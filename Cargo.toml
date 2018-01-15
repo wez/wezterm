@@ -1,0 +1,13 @@
+[package]
+authors = ["Wez Furlong <wez@wezfurlong.org>"]
+name = "wterm"
+version = "0.1.0"
+
+[dependencies]
+failure = "0.1.1"
+hexdump = "0.1.0"
+sdl2 = {version="0.31.0", features=["bundled"]}
+vte = "0.3.2"
+
+[dependencies.font]
+path = "font"
