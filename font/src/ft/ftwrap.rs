@@ -59,11 +59,6 @@ impl Face {
             (),
         )
     }
-    pub fn has_codepoint(&self, cp: char) -> bool {
-        unsafe {
-            FT_Get_Char_Index(self.face, cp as u64) != 0
-        }
-    }
 
     pub fn load_and_render_glyph(
         &mut self,
@@ -77,6 +72,31 @@ impl Face {
                 FT_Render_Glyph((*self.face).glyph, render_mode);
             }
             ft_result(res, &*(*self.face).glyph)
+        }
+    }
+
+    pub fn cell_metrics(&mut self) -> (i64, i64) {
+        unsafe {
+            let metrics = &(*(*self.face).size).metrics;
+            let height = FT_MulFix(metrics.y_scale, (*self.face).height as i64) / 64;
+
+            let mut width = 0;
+            for i in 32..128 {
+                let glyph_pos = FT_Get_Char_Index(self.face, i);
+                let res =
+                    FT_Load_Glyph(self.face, glyph_pos, FT_LOAD_COLOR as i32);
+                if res.succeeded() {
+                    let glyph = &(*(*self.face).glyph);
+                    // FIXME: I don't like this +1, but without it
+                    // we can end up with a width 1 pixel too small
+                    width = width.max(
+                        ((glyph.metrics.horiAdvance as f64) /
+                             64f64)
+                            .ceil() as i64 + 1,
+                    );
+                }
+            }
+            (width, height)
         }
     }
 }

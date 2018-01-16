@@ -65,79 +65,113 @@ impl<'a> Glyph<'a> {
         texture_creator: &'a TextureCreator<T>,
         glyph: &ftwrap::FT_GlyphSlotRec_,
         info: &GlyphInfo,
+        target_cell_height: i64,
+        target_cell_width: i64,
     ) -> Result<Glyph<'a>, Error> {
 
-        // Special case for zero sized bitmaps; we can't
-        // build a texture with zero dimenions, so we return
-        // a Glyph with tex=None.
-        if glyph.bitmap.width == 0 || glyph.bitmap.rows == 0 {
-            return Ok(Glyph {
-                has_color: false,
-                tex: None,
-                width: glyph.bitmap.width,
-                height: glyph.bitmap.rows,
-                info: info.clone(),
-                bearing_x: glyph.bitmap_left,
-                bearing_y: glyph.bitmap_top,
-            });
+        let mut info = info.clone();
+        let mut tex = None;
+        let mut width = glyph.bitmap.width as u32;
+        let mut height = glyph.bitmap.rows as u32;
+        let has_color = false;
+
+        if width == 0 || height == 0 {
+            // Special case for zero sized bitmaps; we can't
+            // build a texture with zero dimenions, so we return
+            // a Glyph with tex=None.
+            tex = None;
+        } else {
+
+            let mode: ftwrap::FT_Pixel_Mode =
+                unsafe { mem::transmute(glyph.bitmap.pixel_mode as u32) };
+
+            // pitch is the number of bytes per source row
+            let pitch = glyph.bitmap.pitch.abs() as usize;
+            let data = unsafe {
+                slice::from_raw_parts(
+                    glyph.bitmap.buffer,
+                    height as usize * pitch,
+                )
+            };
+
+            let mut t = match mode {
+                ftwrap::FT_Pixel_Mode::FT_PIXEL_MODE_LCD => {
+                    width = width / 3;
+                    texture_creator
+                        .create_texture_static(
+                            Some(PixelFormatEnum::BGR24),
+                            width,
+                            height,
+                        )
+                        .map_err(failure::err_msg)?
+                }
+                ftwrap::FT_Pixel_Mode::FT_PIXEL_MODE_BGRA => {
+                    texture_creator
+                        .create_texture_static(
+                            // Note: the pixelformat is BGRA and we really
+                            // want to use BGRA32 as the PixelFormatEnum
+                            // value (which is endian corrected) but that
+                            // is missing.  Instead, we have to go to the
+                            // lower level pixel format value and handle
+                            // the endianness for ourselves
+                            Some(if cfg!(target_endian = "big") {
+                                PixelFormatEnum::BGRA8888
+                            } else {
+                                PixelFormatEnum::ARGB8888
+                            }),
+                            width,
+                            height,
+                        )
+                        .map_err(failure::err_msg)?
+                }
+                mode @ _ => bail!("unhandled pixel mode: {:?}", mode),
+            };
+
+            t.update(None, data, pitch)?;
+            tex = Some(t);
         }
 
-        let mode: ftwrap::FT_Pixel_Mode =
-            unsafe { mem::transmute(glyph.bitmap.pixel_mode as u32) };
+        let mut bearing_x = glyph.bitmap_left;
+        let mut bearing_y = glyph.bitmap_top;
 
-        // pitch is the number of bytes per source row
-        let pitch = glyph.bitmap.pitch.abs() as usize;
-        let height = glyph.bitmap.rows as usize;
-        let data = unsafe {
-            slice::from_raw_parts(glyph.bitmap.buffer, height as usize * pitch)
+        let scale = if height as i64 > target_cell_height {
+            target_cell_height as f64 / height as f64
+        } else if (width / info.text.chars().count() as u32) as i64 >
+                   target_cell_width
+        {
+            target_cell_width as f64 / width as f64
+        } else {
+            1.0f64
         };
 
-        let (width, mut tex) = match mode {
-            ftwrap::FT_Pixel_Mode::FT_PIXEL_MODE_LCD => {
-                let width = (glyph.bitmap.width as usize) / 3;
-                let tex = texture_creator
-                    .create_texture_static(
-                        Some(PixelFormatEnum::BGR24),
-                        width as u32,
-                        height as u32,
-                    )
-                    .map_err(failure::err_msg)?;
-                (width, tex)
-            }
-            ftwrap::FT_Pixel_Mode::FT_PIXEL_MODE_BGRA => {
-                let width = glyph.bitmap.width as usize;
-                let tex = texture_creator
-                    .create_texture_static(
-                        // Note: the pixelformat is BGRA and we really
-                        // want to use BGRA32 as the PixelFormatEnum
-                        // value (which is endian corrected) but that
-                        // is missing.  Instead, we have to go to the
-                        // lower level pixel format value and handle
-                        // the endianness for ourselves
-                        Some(if cfg!(target_endian = "big") {
-                            PixelFormatEnum::BGRA8888
-                        } else {
-                            PixelFormatEnum::ARGB8888
-                        }),
-                        width as u32,
-                        height as u32,
-                    )
-                    .map_err(failure::err_msg)?;
-                (width, tex)
-            }
-            mode @ _ => bail!("unhandled pixel mode: {:?}", mode),
-        };
-
-        tex.update(None, data, pitch)?;
+        if scale != 1.0f64 {
+            println!(
+                "scaling {:?} w={} {}, h={} {} by {}",
+                info,
+                width,
+                target_cell_width,
+                height,
+                target_cell_height,
+                scale
+            );
+            width = (width as f64 * scale) as u32;
+            height = (height as f64 * scale) as u32;
+            bearing_x = (bearing_x as f64 * scale) as i32;
+            bearing_y = (bearing_y as f64 * scale) as i32;
+            info.x_advance = (info.x_advance as f64 * scale) as i32;
+            info.y_advance = (info.y_advance as f64 * scale) as i32;
+            info.x_offset = (info.x_offset as f64 * scale) as i32;
+            info.y_offset = (info.y_offset as f64 * scale) as i32;
+        }
 
         Ok(Glyph {
             has_color: false,
-            tex: Some(tex),
-            width: width as u32,
-            height: height as u32,
-            info: info.clone(),
-            bearing_x: glyph.bitmap_left,
-            bearing_y: glyph.bitmap_top,
+            tex: tex,
+            width,
+            height,
+            info,
+            bearing_x,
+            bearing_y,
         })
     }
 }
@@ -145,6 +179,8 @@ impl<'a> Glyph<'a> {
 struct FontInfo {
     face: ftwrap::Face,
     font: hbwrap::Font,
+    cell_height: i64,
+    cell_width: i64,
 }
 
 struct FontHolder {
@@ -222,7 +258,16 @@ impl FontHolder {
         }
         let font = hbwrap::Font::new(&face);
 
-        self.fonts.push(FontInfo { face, font });
+        // Compute metrics for the nominal monospace cell
+        let (cell_width, cell_height) = face.cell_metrics();
+        println!("metrics: width={} height={}", cell_width, cell_height);
+
+        self.fonts.push(FontInfo {
+            face,
+            font,
+            cell_height,
+            cell_width,
+        });
         Ok(())
     }
 
@@ -387,7 +432,15 @@ fn glyphs_for_text<'a, T>(
     s: &str,
 ) -> Result<Vec<Glyph<'a>>, Error> {
 
-    let mut font_holder = FontHolder::new(36)?;
+    let mut font_holder = FontHolder::new(16)?;
+
+    // We always load the cell_height for font 0,
+    // regardless of which font we are shaping here,
+    // so that we can scale glyphs appropriately
+    let (cell_height, cell_width) = {
+        let font = font_holder.get_font(0)?;
+        (font.cell_height, font.cell_width)
+    };
 
     let mut result = Vec::new();
     for info in font_holder.shape(0, s)? {
@@ -398,7 +451,8 @@ fn glyphs_for_text<'a, T>(
 
         let glyph = font_holder.load_glyph(info.font_idx, info.glyph_pos)?;
 
-        let g = Glyph::new(texture_creator, glyph, &info)?;
+        let g =
+            Glyph::new(texture_creator, glyph, &info, cell_height, cell_width)?;
         result.push(g);
     }
     Ok(result)
@@ -444,7 +498,7 @@ fn run() -> Result<(), Error> {
                         canvas
                         .copy(
                             &tex,
-                            Some(Rect::new(0, 0, g.width, g.height)),
+                            None,
                             Some(Rect::new(
                                 x + g.info.x_offset - g.bearing_x,
                                 y - (g.info.y_offset + g.bearing_y as i32) as i32,
