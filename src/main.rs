@@ -11,19 +11,44 @@ use sdl2::pixels::{Color, PixelFormatEnum};
 use sdl2::rect::Rect;
 use sdl2::render::{BlendMode, Texture, TextureCreator};
 
+use font::ft::fcwrap;
 use font::ft::ftwrap;
 use font::ft::hbwrap;
 use std::mem;
 use std::slice;
 
-struct Glyph<'a> {
-    tex: Texture<'a>,
-    width: u32,
-    height: u32,
+#[derive(Copy, Clone, Debug)]
+struct GlyphInfo {
+    glyph_pos: u32,
+    cluster: u32,
     x_advance: i32,
     y_advance: i32,
     x_offset: i32,
     y_offset: i32,
+}
+
+impl GlyphInfo {
+    pub fn new(
+        info: &hbwrap::hb_glyph_info_t,
+        pos: &hbwrap::hb_glyph_position_t,
+    ) -> GlyphInfo {
+        GlyphInfo {
+            glyph_pos: info.codepoint,
+            cluster: info.cluster,
+            x_advance: pos.x_advance / 64,
+            y_advance: pos.y_advance / 64,
+            x_offset: pos.x_offset / 64,
+            y_offset: pos.y_offset / 64,
+        }
+    }
+}
+
+
+struct Glyph<'a> {
+    tex: Texture<'a>,
+    width: u32,
+    height: u32,
+    info: GlyphInfo,
     bearing_x: i32,
     bearing_y: i32,
 }
@@ -32,7 +57,7 @@ impl<'a> Glyph<'a> {
     fn new<T>(
         texture_creator: &'a TextureCreator<T>,
         glyph: &ftwrap::FT_GlyphSlotRec_,
-        pos: &hbwrap::hb_glyph_position_t,
+        info: &GlyphInfo,
     ) -> Result<Glyph<'a>, Error> {
         let mode: ftwrap::FT_Pixel_Mode =
             unsafe { mem::transmute(glyph.bitmap.pixel_mode as u32) };
@@ -60,10 +85,7 @@ impl<'a> Glyph<'a> {
                     tex,
                     width: width as u32,
                     height: height as u32,
-                    x_advance: pos.x_advance / 64,
-                    y_advance: pos.y_advance / 64,
-                    x_offset: pos.x_offset / 64,
-                    y_offset: pos.y_offset / 64,
+                    info: *info,
                     bearing_x: glyph.bitmap_left,
                     bearing_y: glyph.bitmap_top,
                 })
@@ -73,79 +95,185 @@ impl<'a> Glyph<'a> {
     }
 }
 
+struct FontInfo {
+    face: ftwrap::Face,
+    font: hbwrap::Font,
+}
+
+struct FontHolder {
+    lib: ftwrap::Library,
+    size: i64,
+    pattern: fcwrap::Pattern,
+    font_list: fcwrap::FontSet,
+    fonts: Vec<FontInfo>,
+}
+
+#[derive(Debug)]
+struct ShapedCluster {
+    /// index into FontHolder.fonts
+    font_idx: usize,
+    /// holds shaped results
+    info: Vec<GlyphInfo>,
+}
+
+impl Drop for FontHolder {
+    fn drop(&mut self) {
+        // Ensure that we drop the fonts before we drop the
+        // library, otherwise we will end up faulting
+        self.fonts.clear();
+    }
+}
+
+impl FontHolder {
+    fn new(size: i64) -> Result<FontHolder, Error> {
+        let mut lib = ftwrap::Library::new()?;
+        lib.set_lcd_filter(
+            ftwrap::FT_LcdFilter::FT_LCD_FILTER_DEFAULT,
+        )?;
+
+        let mut pattern = fcwrap::Pattern::new()?;
+        pattern.family("Operator Mono SSm Lig")?;
+        pattern.family("Emoji One")?;
+        pattern.monospace()?;
+        pattern.config_substitute(fcwrap::MatchKind::Pattern)?;
+        pattern.default_substitute();
+        let font_list = pattern.sort(true)?;
+
+        Ok(FontHolder {
+            lib,
+            size,
+            font_list,
+            pattern,
+            fonts: Vec::new(),
+        })
+    }
+
+    fn load_next_fallback(&mut self) -> Result<(), Error> {
+        let idx = self.fonts.len();
+        let pat = self.font_list.iter().nth(idx).ok_or(failure::err_msg(
+            "no more fallbacks",
+        ))?;
+        let pat = self.pattern.render_prepare(&pat)?;
+        let file = pat.get_file()?;
+
+        let mut face = self.lib.new_face(file, 0)?;
+        face.set_char_size(0, self.size * 64, 96, 96)?;
+        let font = hbwrap::Font::new(&face);
+
+        self.fonts.push(FontInfo { face, font });
+        Ok(())
+    }
+
+    fn get_font(&mut self, idx: usize) -> Result<&mut FontInfo, Error> {
+        if idx >= self.fonts.len() {
+            self.load_next_fallback()?;
+            ensure!(
+                idx < self.fonts.len(),
+                "should not ask for a font later than the next prepared font"
+            );
+        }
+
+        Ok(&mut self.fonts[idx])
+    }
+
+    fn shape(&mut self, s: &str) -> Result<Vec<ShapedCluster>, Error> {
+        let features = vec![
+            // kerning
+            hbwrap::feature_from_string("kern")?,
+            // ligatures
+            hbwrap::feature_from_string("liga")?,
+            // contextual ligatures
+            hbwrap::feature_from_string("clig")?,
+        ];
+
+        let mut buf = hbwrap::Buffer::new()?;
+        buf.set_script(hbwrap::HB_SCRIPT_LATIN);
+        buf.set_direction(hbwrap::HB_DIRECTION_LTR);
+        buf.set_language(hbwrap::language_from_string("en")?);
+        buf.add_str(s);
+
+        let font_idx = 0;
+
+        self.shape_with_font(font_idx, &mut buf, &features)?;
+        let infos = buf.glyph_infos();
+        let positions = buf.glyph_positions();
+
+        let mut cluster = Vec::new();
+
+        for (i, info) in infos.iter().enumerate() {
+            let pos = &positions[i];
+            // TODO: if info.codepoint == 0 here then we should
+            // rebuild that portion of the string and reshape it
+            // with the next fallback font
+            cluster.push(GlyphInfo::new(info, pos));
+        }
+
+        println!("shaped: {:?}", cluster);
+
+        Ok(vec![
+            ShapedCluster {
+                font_idx,
+                info: cluster,
+            },
+        ])
+    }
+
+    fn shape_with_font(
+        &mut self,
+        idx: usize,
+        buf: &mut hbwrap::Buffer,
+        features: &Vec<hbwrap::hb_feature_t>,
+    ) -> Result<(), Error> {
+        let info = self.get_font(idx)?;
+        info.font.shape(buf, Some(features.as_slice()));
+        Ok(())
+    }
+
+    fn load_glyph(
+        &mut self,
+        font_idx: usize,
+        glyph_pos: u32,
+    ) -> Result<&ftwrap::FT_GlyphSlotRec_, Error> {
+        let info = &mut self.fonts[font_idx];
+        info.face.load_and_render_glyph(
+            glyph_pos,
+            (ftwrap::FT_LOAD_COLOR) as i32,
+            ftwrap::FT_Render_Mode::FT_RENDER_MODE_LCD,
+        )
+    }
+}
+
 fn glyphs_for_text<'a, T>(
     texture_creator: &'a TextureCreator<T>,
     s: &str,
 ) -> Result<Vec<Glyph<'a>>, Error> {
-    let mut lib = ftwrap::Library::new()?;
-    lib.set_lcd_filter(
-        ftwrap::FT_LcdFilter::FT_LCD_FILTER_DEFAULT,
-    )?;
-    let mut face =
-        lib.new_face("/home/wez/.fonts/OperatorMonoLig-Book.otf", 0)?;
-    face.set_char_size(0, 36 * 64, 96, 96)?;
-    let mut font = hbwrap::Font::new(&face);
-    let lang = hbwrap::language_from_string("en")?;
-    let mut buf = hbwrap::Buffer::new()?;
-    buf.set_script(hbwrap::HB_SCRIPT_LATIN);
-    buf.set_direction(hbwrap::HB_DIRECTION_LTR);
-    buf.set_language(lang);
-    buf.add_str(s);
-    let features = vec![
-        // kerning
-        hbwrap::feature_from_string("kern")?,
-        // ligatures
-        hbwrap::feature_from_string("liga")?,
-        // contextual ligatures
-        hbwrap::feature_from_string("clig")?,
-    ];
-    font.shape(&mut buf, Some(features.as_slice()));
 
-    let infos = buf.glyph_infos();
-    let positions = buf.glyph_positions();
+    let mut font_holder = FontHolder::new(36)?;
+
     let mut result = Vec::new();
+    for cluster in font_holder.shape(s)? {
+        for info in cluster.info.iter() {
+            if info.glyph_pos == 0 {
+                println!("skip: no codepoint for this one");
+                continue;
+            }
 
-    for (i, info) in infos.iter().enumerate() {
-        let pos = &positions[i];
-        println!(
-            "info {} glyph_pos={}, cluster={} x_adv={} y_adv={} x_off={} y_off={}",
-            i,
-            info.codepoint,
-            info.cluster,
-            pos.x_advance,
-            pos.y_advance,
-            pos.x_offset,
-            pos.y_offset
-        );
+            let glyph =
+                font_holder.load_glyph(cluster.font_idx, info.glyph_pos)?;
 
-        let glyph = face.load_and_render_glyph(
-            info.codepoint,
-            (ftwrap::FT_LOAD_COLOR) as i32,
-            ftwrap::FT_Render_Mode::FT_RENDER_MODE_LCD,
-        )?;
+            if glyph.bitmap.width == 0 || glyph.bitmap.rows == 0 {
+                println!("skip: bitmap for this has 0 dimensions {:?}", glyph);
+                continue;
+            }
 
-
-        let g = Glyph::new(texture_creator, glyph, pos)?;
-
-        /*
-        println!(
-            "width={} height={} advx={} advy={} bearing={},{}",
-            g.width,
-            g.height,
-            g.x_advance,
-            g.y_advance,
-            g.bearing_x,
-            g.bearing_y
-        ); */
-
-        result.push(g);
+            let g = Glyph::new(texture_creator, glyph, info)?;
+            result.push(g);
+        }
     }
-
     Ok(result)
 }
 
 fn run() -> Result<(), Error> {
-
     let sdl_context = sdl2::init().map_err(failure::err_msg)?;
     let video_subsys = sdl_context.video().map_err(failure::err_msg)?;
     let window = video_subsys
@@ -155,7 +283,7 @@ fn run() -> Result<(), Error> {
         .build()?;
     let mut canvas = window.into_canvas().build()?;
     let texture_creator = canvas.texture_creator();
-    let glyphs = glyphs_for_text(&texture_creator, "foo->bar();")?;
+    let mut glyphs = glyphs_for_text(&texture_creator, "foo->bar(); ❤")?;
 
     for event in sdl_context
         .event_pump()
@@ -176,21 +304,22 @@ fn run() -> Result<(), Error> {
 
                 let mut x = 10i32;
                 let mut y = 100i32;
-                for g in glyphs.iter() {
+                for g in glyphs.iter_mut() {
+                    g.tex.set_color_mod(0xb3, 0xb3, 0xb3);
                     canvas
                         .copy(
                             &g.tex,
                             Some(Rect::new(0, 0, g.width, g.height)),
                             Some(Rect::new(
-                                x + g.x_offset - g.bearing_x,
-                                y - (g.y_offset + g.bearing_y as i32) as i32,
+                                x + g.info.x_offset - g.bearing_x,
+                                y - (g.info.y_offset + g.bearing_y as i32) as i32,
                                 g.width,
                                 g.height,
                             )),
                         )
                         .map_err(failure::err_msg)?;
-                    x += g.x_advance;
-                    y += g.y_advance;
+                    x += g.info.x_advance;
+                    y += g.info.y_advance;
                 }
 
                 canvas.present();

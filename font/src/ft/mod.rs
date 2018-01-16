@@ -1,6 +1,7 @@
 use failure::Error;
 pub mod ftwrap;
 pub mod hbwrap;
+pub mod fcwrap;
 use self::ftwrap::Library;
 
 pub struct FTEngine {

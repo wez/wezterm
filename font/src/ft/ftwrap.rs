@@ -47,6 +47,12 @@ impl Face {
         )
     }
 
+    pub fn has_codepoint(&self, cp: char) -> bool {
+        unsafe {
+            FT_Get_Char_Index(self.face, cp as u64) != 0
+        }
+    }
+
     pub fn load_and_render_glyph(
         &mut self,
         glyph_index: FT_UInt,
@@ -92,7 +98,7 @@ impl Library {
         P: Into<Vec<u8>>,
     {
         let mut face = ptr::null_mut();
-        let path =CString::new(path.into())?;
+        let path = CString::new(path.into())?;
 
         let res = unsafe {
             FT_New_Face(self.lib, path.as_ptr(), face_index, &mut face as *mut _)
