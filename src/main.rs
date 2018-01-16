@@ -17,8 +17,10 @@ use font::ft::hbwrap;
 use std::mem;
 use std::slice;
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Clone, Debug)]
 struct GlyphInfo {
+    text: String,
+    font_idx: usize,
     glyph_pos: u32,
     cluster: u32,
     x_advance: i32,
@@ -29,10 +31,14 @@ struct GlyphInfo {
 
 impl GlyphInfo {
     pub fn new(
+        text: &str,
+        font_idx: usize,
         info: &hbwrap::hb_glyph_info_t,
         pos: &hbwrap::hb_glyph_position_t,
     ) -> GlyphInfo {
         GlyphInfo {
+            text: text.into(),
+            font_idx,
             glyph_pos: info.codepoint,
             cluster: info.cluster,
             x_advance: pos.x_advance / 64,
@@ -45,7 +51,8 @@ impl GlyphInfo {
 
 
 struct Glyph<'a> {
-    tex: Texture<'a>,
+    has_color: bool,
+    tex: Option<Texture<'a>>,
     width: u32,
     height: u32,
     info: GlyphInfo,
@@ -59,39 +66,79 @@ impl<'a> Glyph<'a> {
         glyph: &ftwrap::FT_GlyphSlotRec_,
         info: &GlyphInfo,
     ) -> Result<Glyph<'a>, Error> {
+
+        // Special case for zero sized bitmaps; we can't
+        // build a texture with zero dimenions, so we return
+        // a Glyph with tex=None.
+        if glyph.bitmap.width == 0 || glyph.bitmap.rows == 0 {
+            return Ok(Glyph {
+                has_color: false,
+                tex: None,
+                width: glyph.bitmap.width,
+                height: glyph.bitmap.rows,
+                info: info.clone(),
+                bearing_x: glyph.bitmap_left,
+                bearing_y: glyph.bitmap_top,
+            });
+        }
+
         let mode: ftwrap::FT_Pixel_Mode =
             unsafe { mem::transmute(glyph.bitmap.pixel_mode as u32) };
 
         // pitch is the number of bytes per source row
         let pitch = glyph.bitmap.pitch.abs() as usize;
+        let height = glyph.bitmap.rows as usize;
+        let data = unsafe {
+            slice::from_raw_parts(glyph.bitmap.buffer, height as usize * pitch)
+        };
 
-        match mode {
+        let (width, mut tex) = match mode {
             ftwrap::FT_Pixel_Mode::FT_PIXEL_MODE_LCD => {
                 let width = (glyph.bitmap.width as usize) / 3;
-                let height = glyph.bitmap.rows as usize;
-                let mut tex = texture_creator
+                let tex = texture_creator
                     .create_texture_static(
                         Some(PixelFormatEnum::BGR24),
                         width as u32,
                         height as u32,
                     )
                     .map_err(failure::err_msg)?;
-                let data = unsafe {
-                    slice::from_raw_parts(glyph.bitmap.buffer, height * pitch)
-                };
-                tex.update(None, data, pitch)?;
-
-                Ok(Glyph {
-                    tex,
-                    width: width as u32,
-                    height: height as u32,
-                    info: *info,
-                    bearing_x: glyph.bitmap_left,
-                    bearing_y: glyph.bitmap_top,
-                })
+                (width, tex)
+            }
+            ftwrap::FT_Pixel_Mode::FT_PIXEL_MODE_BGRA => {
+                let width = glyph.bitmap.width as usize;
+                let tex = texture_creator
+                    .create_texture_static(
+                        // Note: the pixelformat is BGRA and we really
+                        // want to use BGRA32 as the PixelFormatEnum
+                        // value (which is endian corrected) but that
+                        // is missing.  Instead, we have to go to the
+                        // lower level pixel format value and handle
+                        // the endianness for ourselves
+                        Some(if cfg!(target_endian = "big") {
+                            PixelFormatEnum::BGRA8888
+                        } else {
+                            PixelFormatEnum::ARGB8888
+                        }),
+                        width as u32,
+                        height as u32,
+                    )
+                    .map_err(failure::err_msg)?;
+                (width, tex)
             }
             mode @ _ => bail!("unhandled pixel mode: {:?}", mode),
-        }
+        };
+
+        tex.update(None, data, pitch)?;
+
+        Ok(Glyph {
+            has_color: false,
+            tex: Some(tex),
+            width: width as u32,
+            height: height as u32,
+            info: info.clone(),
+            bearing_x: glyph.bitmap_left,
+            bearing_y: glyph.bitmap_top,
+        })
     }
 }
 
@@ -106,14 +153,6 @@ struct FontHolder {
     pattern: fcwrap::Pattern,
     font_list: fcwrap::FontSet,
     fonts: Vec<FontInfo>,
-}
-
-#[derive(Debug)]
-struct ShapedCluster {
-    /// index into FontHolder.fonts
-    font_idx: usize,
-    /// holds shaped results
-    info: Vec<GlyphInfo>,
 }
 
 impl Drop for FontHolder {
@@ -133,7 +172,6 @@ impl FontHolder {
 
         let mut pattern = fcwrap::Pattern::new()?;
         pattern.family("Operator Mono SSm Lig")?;
-        pattern.family("Emoji One")?;
         pattern.monospace()?;
         pattern.config_substitute(fcwrap::MatchKind::Pattern)?;
         pattern.default_substitute();
@@ -156,8 +194,32 @@ impl FontHolder {
         let pat = self.pattern.render_prepare(&pat)?;
         let file = pat.get_file()?;
 
+        println!("load_next_fallback: file={}", file);
+
         let mut face = self.lib.new_face(file, 0)?;
-        face.set_char_size(0, self.size * 64, 96, 96)?;
+        match face.set_char_size(0, self.size * 64, 96, 96) {
+            Err(err) => {
+                let sizes = unsafe {
+                    let rec = &(*face.face);
+                    slice::from_raw_parts(
+                        rec.available_sizes,
+                        rec.num_fixed_sizes as usize,
+                    )
+                };
+                if sizes.len() == 0 {
+                    return Err(err);
+                } else {
+                    // Find the best matching size.
+                    // We just take the biggest.
+                    let mut size = 0i16;
+                    for info in sizes.iter() {
+                        size = size.max(info.height);
+                    }
+                    face.set_pixel_sizes(size as u32, size as u32)?;
+                }
+            }
+            Ok(_) => {}
+        }
         let font = hbwrap::Font::new(&face);
 
         self.fonts.push(FontInfo { face, font });
@@ -176,7 +238,17 @@ impl FontHolder {
         Ok(&mut self.fonts[idx])
     }
 
-    fn shape(&mut self, s: &str) -> Result<Vec<ShapedCluster>, Error> {
+    fn shape(
+        &mut self,
+        font_idx: usize,
+        s: &str,
+    ) -> Result<Vec<GlyphInfo>, Error> {
+        println!(
+            "shape text for font_idx {} with len {} {}",
+            font_idx,
+            s.len(),
+            s
+        );
         let features = vec![
             // kerning
             hbwrap::feature_from_string("kern")?,
@@ -192,30 +264,97 @@ impl FontHolder {
         buf.set_language(hbwrap::language_from_string("en")?);
         buf.add_str(s);
 
-        let font_idx = 0;
-
         self.shape_with_font(font_idx, &mut buf, &features)?;
         let infos = buf.glyph_infos();
         let positions = buf.glyph_positions();
 
         let mut cluster = Vec::new();
 
+        let mut last_text_pos = None;
+        let mut first_fallback_pos = None;
+
+        // Compute the lengths of the text clusters.
+        // Ligatures and combining characters mean
+        // that a single glyph can take the place of
+        // multiple characters.  The 'cluster' member
+        // of the glyph info is set to the position
+        // in the input utf8 text, so we make a pass
+        // over the set of clusters to look for differences
+        // greater than 1 and backfill the length of
+        // the corresponding text fragment.  We need
+        // the fragments to properly handle fallback,
+        // and they're handy to have for debugging
+        // purposes too.
+        let mut sizes = Vec::new();
         for (i, info) in infos.iter().enumerate() {
-            let pos = &positions[i];
-            // TODO: if info.codepoint == 0 here then we should
-            // rebuild that portion of the string and reshape it
-            // with the next fallback font
-            cluster.push(GlyphInfo::new(info, pos));
+            let pos = info.cluster as usize;
+            let mut size = 1;
+            if let Some(last_pos) = last_text_pos {
+                let diff = pos - last_pos;
+                if diff > 1 {
+                    sizes[i - 1] = diff;
+                }
+            } else if pos != 0 {
+                size = pos;
+            }
+            last_text_pos = Some(pos);
+            sizes.push(size);
+        }
+        if let Some(last_pos) = last_text_pos {
+            let diff = s.len() - last_pos;
+            if diff > 1 {
+                let last = sizes.len() - 1;
+                sizes[last] = diff;
+            }
+        }
+        println!("sizes: {:?}", sizes);
+
+        // Now make a second pass to determine if we need
+        // to perform fallback to a later font.
+        // We can determine this by looking at the codepoint.
+        for (i, info) in infos.iter().enumerate() {
+            let pos = info.cluster as usize;
+            if info.codepoint == 0 {
+                if first_fallback_pos.is_none() {
+                    // Start of a run that needs fallback
+                    first_fallback_pos = Some(pos);
+                }
+            } else if let Some(start) = first_fallback_pos {
+                // End of a fallback run
+                println!("range: {:?}-{:?} needs fallback", start, pos);
+
+                let substr = &s[start..pos];
+                let mut shape = self.shape(font_idx + 1, substr)?;
+                cluster.append(&mut shape);
+
+                first_fallback_pos = None;
+            }
+            if info.codepoint != 0 {
+                let text = &s[pos..pos + sizes[i]];
+                println!("glyph from `{}`", text);
+                cluster.push(
+                    GlyphInfo::new(text, font_idx, info, &positions[i]),
+                );
+            }
         }
 
-        println!("shaped: {:?}", cluster);
+        // Check to see if we started and didn't finish a
+        // fallback run.
+        if let Some(start) = first_fallback_pos {
+            let substr = &s[start..];
+            println!(
+                "at end {:?}-{:?} needs fallback {}",
+                start,
+                s.len() - 1,
+                substr,
+            );
+            let mut shape = self.shape(font_idx + 1, substr)?;
+            cluster.append(&mut shape);
+        }
 
-        Ok(vec![
-            ShapedCluster {
-                font_idx,
-                info: cluster,
-            },
-        ])
+        println!("shaped: {:#?}", cluster);
+
+        Ok(cluster)
     }
 
     fn shape_with_font(
@@ -251,24 +390,16 @@ fn glyphs_for_text<'a, T>(
     let mut font_holder = FontHolder::new(36)?;
 
     let mut result = Vec::new();
-    for cluster in font_holder.shape(s)? {
-        for info in cluster.info.iter() {
-            if info.glyph_pos == 0 {
-                println!("skip: no codepoint for this one");
-                continue;
-            }
-
-            let glyph =
-                font_holder.load_glyph(cluster.font_idx, info.glyph_pos)?;
-
-            if glyph.bitmap.width == 0 || glyph.bitmap.rows == 0 {
-                println!("skip: bitmap for this has 0 dimensions {:?}", glyph);
-                continue;
-            }
-
-            let g = Glyph::new(texture_creator, glyph, info)?;
-            result.push(g);
+    for info in font_holder.shape(0, s)? {
+        if info.glyph_pos == 0 {
+            println!("skip: no codepoint for this one {:?}", info);
+            continue;
         }
+
+        let glyph = font_holder.load_glyph(info.font_idx, info.glyph_pos)?;
+
+        let g = Glyph::new(texture_creator, glyph, &info)?;
+        result.push(g);
     }
     Ok(result)
 }
@@ -283,7 +414,8 @@ fn run() -> Result<(), Error> {
         .build()?;
     let mut canvas = window.into_canvas().build()?;
     let texture_creator = canvas.texture_creator();
-    let mut glyphs = glyphs_for_text(&texture_creator, "foo->bar(); ❤")?;
+    let mut glyphs =
+        glyphs_for_text(&texture_creator, "!= foo->bar(); ❤ 😍🤢")?;
 
     for event in sdl_context
         .event_pump()
@@ -305,10 +437,13 @@ fn run() -> Result<(), Error> {
                 let mut x = 10i32;
                 let mut y = 100i32;
                 for g in glyphs.iter_mut() {
-                    g.tex.set_color_mod(0xb3, 0xb3, 0xb3);
-                    canvas
+                    if let &mut Some(ref mut tex) = &mut g.tex {
+                        if !g.has_color {
+                            tex.set_color_mod(0xb3, 0xb3, 0xb3);
+                        }
+                        canvas
                         .copy(
-                            &g.tex,
+                            &tex,
                             Some(Rect::new(0, 0, g.width, g.height)),
                             Some(Rect::new(
                                 x + g.info.x_offset - g.bearing_x,
@@ -318,6 +453,7 @@ fn run() -> Result<(), Error> {
                             )),
                         )
                         .map_err(failure::err_msg)?;
+                    }
                     x += g.info.x_advance;
                     y += g.info.y_advance;
                 }

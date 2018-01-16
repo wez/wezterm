@@ -47,6 +47,18 @@ impl Face {
         )
     }
 
+    pub fn set_pixel_sizes(
+        &mut self,
+        char_width: u32,
+        char_height: u32,
+    ) -> Result<(), Error> {
+        ft_result(
+            unsafe {
+                FT_Set_Pixel_Sizes(self.face, char_width , char_height )
+            },
+            (),
+        )
+    }
     pub fn has_codepoint(&self, cp: char) -> bool {
         unsafe {
             FT_Get_Char_Index(self.face, cp as u64) != 0
