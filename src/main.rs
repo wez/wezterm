@@ -22,7 +22,10 @@ use std::slice;
 
 #[derive(Clone, Debug)]
 struct GlyphInfo {
+    /// We only retain text in debug mode for diagnostic purposes
+    #[cfg(debug_assertions)]
     text: String,
+    num_cells: u8,
     font_idx: usize,
     glyph_pos: u32,
     cluster: u32,
@@ -39,8 +42,11 @@ impl GlyphInfo {
         info: &hbwrap::hb_glyph_info_t,
         pos: &hbwrap::hb_glyph_position_t,
     ) -> GlyphInfo {
+        let num_cells = UnicodeWidthStr::width(text) as u8;
         GlyphInfo {
+            #[cfg(debug_assertions)]
             text: text.into(),
+            num_cells,
             font_idx,
             glyph_pos: info.codepoint,
             cluster: info.cluster,
@@ -137,12 +143,10 @@ impl<'a> Glyph<'a> {
         let mut bearing_x = glyph.bitmap_left;
         let mut bearing_y = glyph.bitmap_top;
 
-        let uc_width = UnicodeWidthStr::width(info.text.as_str());
-
-        let scale = if (info.x_advance / uc_width as i32) as i64 >
+        let scale = if (info.x_advance / info.num_cells as i32) as i64 >
             target_cell_width
         {
-            uc_width as f64 * (target_cell_width as f64 / info.x_advance as f64)
+            info.num_cells as f64 * (target_cell_width as f64 / info.x_advance as f64)
         } else if height as i64 > target_cell_height {
             target_cell_height as f64 / height as f64
         } else {
@@ -151,9 +155,8 @@ impl<'a> Glyph<'a> {
 
         if scale != 1.0f64 {
             println!(
-                "scaling {:?} uc_width={} w={} {}, h={} {} by {}",
+                "scaling {:?} w={} {}, h={} {} by {}",
                 info,
-                uc_width,
                 width,
                 target_cell_width,
                 height,

@@ -14,4 +14,3 @@ reorder_imports_in_group = true
 tab_spaces = 4
 use_try_shorthand = true
 write_mode = "replace"
-max_width = 80
