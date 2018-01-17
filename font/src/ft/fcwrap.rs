@@ -1,4 +1,5 @@
 //! Slightly higher level helper for fontconfig
+
 use failure::{self, Error};
 pub use fontconfig::fontconfig::*;
 use std::ffi::{CStr, CString};
@@ -114,11 +115,7 @@ impl Pattern {
         let value = CString::new(value)?;
         unsafe {
             ensure!(
-                FcPatternAddString(
-                    self.pat,
-                    key.as_ptr(),
-                    value.as_ptr() as *const u8,
-                ) != 0,
+                FcPatternAddString(self.pat, key.as_ptr(), value.as_ptr() as *const u8) != 0,
                 "failed to add string property {:?} -> {:?}",
                 key,
                 value
@@ -161,7 +158,9 @@ impl Pattern {
             let s = FcPatternFormat(self.pat, fmt.as_ptr() as *const u8);
             ensure!(!s.is_null(), "failed to format pattern");
 
-            let res = CStr::from_ptr(s as *const i8).to_string_lossy().into_owned();
+            let res = CStr::from_ptr(s as *const i8)
+                .to_string_lossy()
+                .into_owned();
             FcStrFree(s);
             Ok(res)
         }
@@ -184,17 +183,10 @@ impl Pattern {
         }
     }
 
-    pub fn config_substitute(
-        &mut self,
-        match_kind: MatchKind,
-    ) -> Result<(), Error> {
+    pub fn config_substitute(&mut self, match_kind: MatchKind) -> Result<(), Error> {
         unsafe {
             ensure!(
-                FcConfigSubstitute(
-                    ptr::null_mut(),
-                    self.pat,
-                    mem::transmute(match_kind),
-                ) != 0,
+                FcConfigSubstitute(ptr::null_mut(), self.pat, mem::transmute(match_kind)) != 0,
                 "FcConfigSubstitute failed"
             );
             Ok(())
@@ -210,12 +202,8 @@ impl Pattern {
     pub fn find_match(&self) -> Result<Pattern, Error> {
         unsafe {
             let mut res = FcResultWrap(0);
-            let pat = FcFontMatch(
-                ptr::null_mut(),
-                self.pat,
-                &mut res.0 as *mut _,
-            );
-            res.result(Pattern{pat})
+            let pat = FcFontMatch(ptr::null_mut(), self.pat, &mut res.0 as *mut _);
+            res.result(Pattern { pat })
         }
     }
 
@@ -230,7 +218,7 @@ impl Pattern {
                 &mut res.0 as *mut _,
             );
 
-            res.result(FontSet{fonts})
+            res.result(FontSet { fonts })
         }
     }
 
@@ -251,7 +239,11 @@ impl Pattern {
             if !res.succeeded() {
                 Err(res.as_err())
             } else {
-                Ok(CStr::from_ptr(ptr as *const i8).to_string_lossy().into_owned())
+                Ok(
+                    CStr::from_ptr(ptr as *const i8)
+                        .to_string_lossy()
+                        .into_owned(),
+                )
             }
         }
     }

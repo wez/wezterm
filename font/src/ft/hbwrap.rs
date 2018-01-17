@@ -1,4 +1,5 @@
 //! Higher level harfbuzz bindings
+
 use failure::Error;
 pub use harfbuzz_sys::*;
 use std::mem;
@@ -8,10 +9,7 @@ use std::slice;
 pub fn language_from_string(s: &str) -> Result<hb_language_t, Error> {
     unsafe {
         let lang = hb_language_from_string(s.as_ptr() as *const i8, s.len() as i32);
-        ensure!(
-            !lang.is_null(),
-            "failed to convert {} to language"
-        );
+        ensure!(!lang.is_null(), "failed to convert {} to language");
         Ok(lang)
     }
 }
@@ -149,7 +147,7 @@ impl Buffer {
     /// font->shape() on this buffer instance.
     pub fn glyph_infos(&self) -> &[hb_glyph_info_t] {
         unsafe {
-            let mut len : u32 = 0;
+            let mut len: u32 = 0;
             let info = hb_buffer_get_glyph_infos(self.buf, &mut len as *mut _);
             slice::from_raw_parts(info, len as usize)
         }
@@ -159,7 +157,7 @@ impl Buffer {
     /// font->shape() on this buffer instance.
     pub fn glyph_positions(&self) -> &[hb_glyph_position_t] {
         unsafe {
-            let mut len : u32 = 0;
+            let mut len: u32 = 0;
             let pos = hb_buffer_get_glyph_positions(self.buf, &mut len as *mut _);
             slice::from_raw_parts(pos, len as usize)
         }

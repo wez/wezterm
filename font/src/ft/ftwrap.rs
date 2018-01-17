@@ -1,4 +1,5 @@
 //! Higher level freetype bindings
+
 use failure::Error;
 pub use freetype::freetype::*;
 use std::ffi::CString;
@@ -47,11 +48,7 @@ impl Face {
         )
     }
 
-    pub fn set_pixel_sizes(
-        &mut self,
-        char_width: u32,
-        char_height: u32,
-    ) -> Result<(), Error> {
+    pub fn set_pixel_sizes(&mut self, char_width: u32, char_height: u32) -> Result<(), Error> {
         ft_result(
             unsafe {
                 FT_Set_Pixel_Sizes(self.face, char_width , char_height )
@@ -83,13 +80,10 @@ impl Face {
             let mut width = 0;
             for i in 32..128 {
                 let glyph_pos = FT_Get_Char_Index(self.face, i);
-                let res =
-                    FT_Load_Glyph(self.face, glyph_pos, FT_LOAD_COLOR as i32);
+                let res = FT_Load_Glyph(self.face, glyph_pos, FT_LOAD_COLOR as i32);
                 if res.succeeded() {
                     let glyph = &(*(*self.face).glyph);
-                    width = width.max(((glyph.metrics.horiAdvance as f64) /
-                         64f64)
-                        .ceil() as i64);
+                    width = width.max(((glyph.metrics.horiAdvance as f64) / 64f64).ceil() as i64);
                 }
             }
             (width, height)
@@ -117,29 +111,18 @@ impl Library {
         Ok(Library { lib })
     }
 
-    pub fn new_face<P>(
-        &self,
-        path: P,
-        face_index: FT_Long,
-    ) -> Result<Face, Error>
+    pub fn new_face<P>(&self, path: P, face_index: FT_Long) -> Result<Face, Error>
     where
         P: Into<Vec<u8>>,
     {
         let mut face = ptr::null_mut();
         let path = CString::new(path.into())?;
 
-        let res = unsafe {
-            FT_New_Face(self.lib, path.as_ptr(), face_index, &mut face as *mut _)
-        };
+        let res = unsafe { FT_New_Face(self.lib, path.as_ptr(), face_index, &mut face as *mut _) };
         Ok(Face { face: ft_result(res, face)? })
     }
 
-    pub fn set_lcd_filter(
-        &mut self,
-        filter: FT_LcdFilter,
-    ) -> Result<(), Error> {
-        unsafe {
-            ft_result(FT_Library_SetLcdFilter(self.lib, filter), ())
-        }
+    pub fn set_lcd_filter(&mut self, filter: FT_LcdFilter) -> Result<(), Error> {
+        unsafe { ft_result(FT_Library_SetLcdFilter(self.lib, filter), ()) }
     }
 }

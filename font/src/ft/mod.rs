@@ -11,8 +11,6 @@ pub struct FTEngine {
 
 impl ::FontEngine for FTEngine {
     fn new() -> Result<FTEngine, Error> {
-        Ok(FTEngine {
-            lib: Library::new()?,
-        })
+        Ok(FTEngine { lib: Library::new()? })
     }
 }

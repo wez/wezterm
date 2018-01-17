@@ -26,9 +26,7 @@ impl FontDescription {
     where
         S: Into<String>,
     {
-        FontDescription {
-            name: name.into()
-        }
+        FontDescription { name: name.into() }
     }
 }
 

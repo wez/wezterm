@@ -96,22 +96,14 @@ impl<'a> Glyph<'a> {
 
             // pitch is the number of bytes per source row
             let pitch = glyph.bitmap.pitch.abs() as usize;
-            let data = unsafe {
-                slice::from_raw_parts(
-                    glyph.bitmap.buffer,
-                    height as usize * pitch,
-                )
-            };
+            let data =
+                unsafe { slice::from_raw_parts(glyph.bitmap.buffer, height as usize * pitch) };
 
             let mut t = match mode {
                 ftwrap::FT_Pixel_Mode::FT_PIXEL_MODE_LCD => {
                     width = width / 3;
                     texture_creator
-                        .create_texture_static(
-                            Some(PixelFormatEnum::BGR24),
-                            width,
-                            height,
-                        )
+                        .create_texture_static(Some(PixelFormatEnum::BGR24), width, height)
                         .map_err(failure::err_msg)?
                 }
                 ftwrap::FT_Pixel_Mode::FT_PIXEL_MODE_BGRA => {
@@ -143,9 +135,7 @@ impl<'a> Glyph<'a> {
         let mut bearing_x = glyph.bitmap_left;
         let mut bearing_y = glyph.bitmap_top;
 
-        let scale = if (info.x_advance / info.num_cells as i32) as i64 >
-            target_cell_width
-        {
+        let scale = if (info.x_advance / info.num_cells as i32) as i64 > target_cell_width {
             info.num_cells as f64 * (target_cell_width as f64 / info.x_advance as f64)
         } else if height as i64 > target_cell_height {
             target_cell_height as f64 / height as f64
@@ -215,9 +205,7 @@ impl FontHolder {
             ftwrap::FT_LcdFilter::FT_LCD_FILTER_DEFAULT,
         )?;
 
-        let mut pattern = fcwrap::Pattern::parse(
-            "Operator Mono SSm:size=12:weight=SemiLight",
-        )?;
+        let mut pattern = fcwrap::Pattern::parse("Operator Mono SSm:size=12:weight=SemiLight")?;
         //pattern.family("Operator Mono SSm")?;
         pattern.monospace()?;
         pattern.config_substitute(fcwrap::MatchKind::Pattern)?;
@@ -248,10 +236,7 @@ impl FontHolder {
             Err(err) => {
                 let sizes = unsafe {
                     let rec = &(*face.face);
-                    slice::from_raw_parts(
-                        rec.available_sizes,
-                        rec.num_fixed_sizes as usize,
-                    )
+                    slice::from_raw_parts(rec.available_sizes, rec.num_fixed_sizes as usize)
                 };
                 if sizes.len() == 0 {
                     return Err(err);
@@ -294,11 +279,7 @@ impl FontHolder {
         Ok(&mut self.fonts[idx])
     }
 
-    fn shape(
-        &mut self,
-        font_idx: usize,
-        s: &str,
-    ) -> Result<Vec<GlyphInfo>, Error> {
+    fn shape(&mut self, font_idx: usize, s: &str) -> Result<Vec<GlyphInfo>, Error> {
         println!(
             "shape text for font_idx {} with len {} {}",
             font_idx,
@@ -388,9 +369,7 @@ impl FontHolder {
             if info.codepoint != 0 {
                 let text = &s[pos..pos + sizes[i]];
                 println!("glyph from `{}`", text);
-                cluster.push(
-                    GlyphInfo::new(text, font_idx, info, &positions[i]),
-                );
+                cluster.push(GlyphInfo::new(text, font_idx, info, &positions[i]));
             }
         }
 
@@ -462,8 +441,7 @@ fn glyphs_for_text<'a, T>(
 
         let glyph = font_holder.load_glyph(info.font_idx, info.glyph_pos)?;
 
-        let g =
-            Glyph::new(texture_creator, glyph, &info, cell_height, cell_width)?;
+        let g = Glyph::new(texture_creator, glyph, &info, cell_height, cell_width)?;
         result.push(g);
     }
     Ok(result)
@@ -479,10 +457,7 @@ fn run() -> Result<(), Error> {
         .build()?;
     let mut canvas = window.into_canvas().build()?;
     let texture_creator = canvas.texture_creator();
-    let mut glyphs = glyphs_for_text(
-        &texture_creator,
-        "x_advance != foo->bar(); ❤ 😍🤢",
-    )?;
+    let mut glyphs = glyphs_for_text(&texture_creator, "x_advance != foo->bar(); ❤ 😍🤢")?;
 
     for event in sdl_context
         .event_pump()
@@ -509,17 +484,17 @@ fn run() -> Result<(), Error> {
                             tex.set_color_mod(0xb3, 0xb3, 0xb3);
                         }
                         canvas
-                        .copy(
-                            &tex,
-                            None,
-                            Some(Rect::new(
-                                x + g.info.x_offset + g.bearing_x,
-                                y - g.info.y_offset - g.bearing_y ,
-                                g.width,
-                                g.height,
-                            )),
-                        )
-                        .map_err(failure::err_msg)?;
+                            .copy(
+                                &tex,
+                                None,
+                                Some(Rect::new(
+                                    x + g.info.x_offset + g.bearing_x,
+                                    y - g.info.y_offset - g.bearing_y,
+                                    g.width,
+                                    g.height,
+                                )),
+                            )
+                            .map_err(failure::err_msg)?;
                     }
                     x += g.info.x_advance;
                     y += g.info.y_advance;
