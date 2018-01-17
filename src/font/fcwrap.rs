@@ -54,6 +54,7 @@ impl FontSet {
         }
     }
 
+    #[allow(dead_code)]
     pub fn add(&mut self, pat: &Pattern) {
         unsafe {
             FcFontSetAdd(self.fonts, pat.pat);
@@ -62,6 +63,7 @@ impl FontSet {
 }
 
 #[repr(C)]
+#[allow(dead_code)]
 pub enum MatchKind {
     Pattern = FcMatchPattern as isize,
     Font = FcMatchFont as isize,
@@ -90,6 +92,7 @@ impl FcResultWrap {
     }
 
     pub fn result<T>(&self, t: T) -> Result<T, Error> {
+        #[allow(non_upper_case_globals)]
         match self.0 {
             FcResultMatch => Ok(t),
             _ => Err(self.as_err()),
@@ -102,6 +105,7 @@ pub struct Pattern {
 }
 
 impl Pattern {
+    #[allow(dead_code)]
     pub fn new() -> Result<Pattern, Error> {
         unsafe {
             let p = FcPatternCreate();
@@ -110,6 +114,7 @@ impl Pattern {
         }
     }
 
+    #[allow(dead_code)]
     pub fn add_string(&mut self, key: &str, value: &str) -> Result<(), Error> {
         let key = CString::new(key)?;
         let value = CString::new(value)?;
@@ -124,6 +129,7 @@ impl Pattern {
         }
     }
 
+    #[allow(dead_code)]
     pub fn add_integer(&mut self, key: &str, value: i32) -> Result<(), Error> {
         let key = CString::new(key)?;
         unsafe {
@@ -137,21 +143,24 @@ impl Pattern {
         }
     }
 
-
+    #[allow(dead_code)]
     pub fn family(&mut self, family: &str) -> Result<(), Error> {
         self.add_string("family", family)
     }
 
+    #[allow(dead_code)]
     pub fn monospace(&mut self) -> Result<(), Error> {
         self.add_integer("spacing", FC_MONO)
     }
 
+    #[allow(dead_code)]
     pub fn print(&self) {
         unsafe {
             FcPatternPrint(self.pat);
         }
     }
 
+    #[allow(dead_code)]
     pub fn format(&self, fmt: &str) -> Result<String, Error> {
         let fmt = CString::new(fmt)?;
         unsafe {
@@ -199,6 +208,7 @@ impl Pattern {
         }
     }
 
+    #[allow(dead_code)]
     pub fn find_match(&self) -> Result<Pattern, Error> {
         unsafe {
             let mut res = FcResultWrap(0);

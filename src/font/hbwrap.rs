@@ -44,7 +44,7 @@ impl Drop for Font {
 
 impl Font {
     /// Create a harfbuzz face from a freetype font
-    pub fn new(face: &::ft::ftwrap::Face) -> Font {
+    pub fn new(face: &::ftwrap::Face) -> Font {
         // hb_ft_font_create_referenced always returns a
         // pointer to something, or derefs a nullptr internally
         // if everything fails, so there's nothing for us to
@@ -89,6 +89,7 @@ impl Buffer {
     }
 
     /// Reset the buffer back to its initial post-creation state
+    #[allow(dead_code)]
     pub fn reset(&mut self) {
         unsafe {
             hb_buffer_reset(self.buf);
@@ -113,6 +114,7 @@ impl Buffer {
         }
     }
 
+    #[allow(dead_code)]
     pub fn add(&mut self, codepoint: hb_codepoint_t, cluster: u32) {
         unsafe {
             hb_buffer_add(self.buf, codepoint, cluster);
@@ -132,15 +134,7 @@ impl Buffer {
     }
 
     pub fn add_str(&mut self, s: &str) {
-        unsafe {
-            hb_buffer_add_utf8(
-                self.buf,
-                s.as_ptr() as *const i8,
-                s.len() as i32,
-                0,
-                s.len() as i32,
-            );
-        }
+        self.add_utf8(s.as_bytes())
     }
 
     /// Returns glyph information.  This is only valid after calling

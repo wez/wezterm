@@ -5,12 +5,12 @@ version = "0.1.0"
 
 [dependencies]
 failure = "0.1.1"
+freetype = "0.3.0"
+harfbuzz-sys = "0.1.15"
 hexdump = "0.1.0"
+servo-fontconfig = "0.4.0"
 unicode-width = "0.1.4"
 vte = "0.3.2"
-
-[dependencies.font]
-path = "font"
 
 [dependencies.sdl2]
 features = [
