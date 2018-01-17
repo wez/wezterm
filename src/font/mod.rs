@@ -8,18 +8,28 @@ pub mod fcwrap;
 
 pub use self::fcwrap::Pattern as FontPattern;
 
+/// Holds information about a shaped glyph
 #[derive(Clone, Debug)]
 pub struct GlyphInfo {
     /// We only retain text in debug mode for diagnostic purposes
     #[cfg(debug_assertions)]
     pub text: String,
-    pub num_cells: u8,
-    pub font_idx: usize,
-    pub glyph_pos: u32,
+    /// Offset within text
+    #[cfg(debug_assertions)]
     pub cluster: u32,
+    /// How many cells/columns this glyph occupies horizontally
+    pub num_cells: u8,
+    /// Which font alternative to use; index into Font.fonts
+    pub font_idx: usize,
+    /// Which freetype glyph to load
+    pub glyph_pos: u32,
+    /// How far to advance the render cursor after drawing this glyph
     pub x_advance: i32,
+    /// How far to advance the render cursor after drawing this glyph
     pub y_advance: i32,
+    /// Destination render offset
     pub x_offset: i32,
+    /// Destination render offset
     pub y_offset: i32,
 }
 
@@ -46,13 +56,18 @@ impl GlyphInfo {
     }
 }
 
+/// Holds a loaded font alternative
 struct FontInfo {
     face: ftwrap::Face,
     font: hbwrap::Font,
+    /// nominal monospace cell height
     cell_height: i64,
+    /// nominal monospace cell width
     cell_width: i64,
 }
 
+/// Holds "the" font selected by the user.  In actuality, it
+/// holds the set of fallback fonts that match their criteria
 pub struct Font {
     lib: ftwrap::Library,
     pattern: fcwrap::Pattern,
@@ -69,16 +84,21 @@ impl Drop for Font {
 }
 
 impl Font {
+    /// Construct a new Font from the user supplied pattern
     pub fn new(mut pattern: FontPattern) -> Result<Font, Error> {
         let mut lib = ftwrap::Library::new()?;
         lib.set_lcd_filter(
             ftwrap::FT_LcdFilter::FT_LCD_FILTER_DEFAULT,
         )?;
 
-        //pattern.family("Operator Mono SSm")?;
+        // Enable some filtering options and pull in the standard
+        // fallback font selection from the user configuration
         pattern.monospace()?;
         pattern.config_substitute(fcwrap::MatchKind::Pattern)?;
         pattern.default_substitute();
+
+        // and obtain the selection with the best preference
+        // at index 0.
         let font_list = pattern.sort(true)?;
 
         Ok(Font {
@@ -197,7 +217,7 @@ impl Font {
         // the fragments to properly handle fallback,
         // and they're handy to have for debugging
         // purposes too.
-        let mut sizes = Vec::new();
+        let mut sizes = Vec::with_capacity(s.len());
         for (i, info) in infos.iter().enumerate() {
             let pos = info.cluster as usize;
             let mut size = 1;

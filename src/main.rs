@@ -147,7 +147,7 @@ fn glyphs_for_text<'a, T>(
     s: &str,
 ) -> Result<Vec<Glyph<'a>>, Error> {
 
-    let pattern = FontPattern::parse("Operator Mono SSm:size=12:weight=SemiLight")?;
+    let pattern = FontPattern::parse("Operator Mono SSm Lig:size=12:weight=SemiLight")?;
     let mut font = Font::new(pattern)?;
 
     // We always load the cell_height for font 0,
