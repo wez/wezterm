@@ -1,6 +1,9 @@
 #[macro_use]
 extern crate failure;
 extern crate hexdump;
+extern crate unicode_width;
+
+use unicode_width::UnicodeWidthStr;
 
 use failure::Error;
 extern crate font;
@@ -134,20 +137,23 @@ impl<'a> Glyph<'a> {
         let mut bearing_x = glyph.bitmap_left;
         let mut bearing_y = glyph.bitmap_top;
 
-        let scale = if height as i64 > target_cell_height {
-            target_cell_height as f64 / height as f64
-        } else if (width / info.text.chars().count() as u32) as i64 >
-                   target_cell_width
+        let uc_width = UnicodeWidthStr::width(info.text.as_str());
+
+        let scale = if (info.x_advance / uc_width as i32) as i64 >
+            target_cell_width
         {
-            target_cell_width as f64 / width as f64
+            uc_width as f64 * (target_cell_width as f64 / info.x_advance as f64)
+        } else if height as i64 > target_cell_height {
+            target_cell_height as f64 / height as f64
         } else {
             1.0f64
         };
 
         if scale != 1.0f64 {
             println!(
-                "scaling {:?} w={} {}, h={} {} by {}",
+                "scaling {:?} uc_width={} w={} {}, h={} {} by {}",
                 info,
+                uc_width,
                 width,
                 target_cell_width,
                 height,
@@ -206,8 +212,10 @@ impl FontHolder {
             ftwrap::FT_LcdFilter::FT_LCD_FILTER_DEFAULT,
         )?;
 
-        let mut pattern = fcwrap::Pattern::new()?;
-        pattern.family("Operator Mono SSm Lig")?;
+        let mut pattern = fcwrap::Pattern::parse(
+            "Operator Mono SSm:size=12:weight=SemiLight",
+        )?;
+        //pattern.family("Operator Mono SSm")?;
         pattern.monospace()?;
         pattern.config_substitute(fcwrap::MatchKind::Pattern)?;
         pattern.default_substitute();
@@ -432,7 +440,7 @@ fn glyphs_for_text<'a, T>(
     s: &str,
 ) -> Result<Vec<Glyph<'a>>, Error> {
 
-    let mut font_holder = FontHolder::new(16)?;
+    let mut font_holder = FontHolder::new(12)?;
 
     // We always load the cell_height for font 0,
     // regardless of which font we are shaping here,
@@ -468,8 +476,10 @@ fn run() -> Result<(), Error> {
         .build()?;
     let mut canvas = window.into_canvas().build()?;
     let texture_creator = canvas.texture_creator();
-    let mut glyphs =
-        glyphs_for_text(&texture_creator, "!= foo->bar(); ❤ 😍🤢")?;
+    let mut glyphs = glyphs_for_text(
+        &texture_creator,
+        "x_advance != foo->bar(); ❤ 😍🤢",
+    )?;
 
     for event in sdl_context
         .event_pump()
@@ -500,8 +510,8 @@ fn run() -> Result<(), Error> {
                             &tex,
                             None,
                             Some(Rect::new(
-                                x + g.info.x_offset - g.bearing_x,
-                                y - (g.info.y_offset + g.bearing_y as i32) as i32,
+                                x + g.info.x_offset + g.bearing_x,
+                                y - g.info.y_offset - g.bearing_y ,
                                 g.width,
                                 g.height,
                             )),

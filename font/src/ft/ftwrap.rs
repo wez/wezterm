@@ -87,13 +87,9 @@ impl Face {
                     FT_Load_Glyph(self.face, glyph_pos, FT_LOAD_COLOR as i32);
                 if res.succeeded() {
                     let glyph = &(*(*self.face).glyph);
-                    // FIXME: I don't like this +1, but without it
-                    // we can end up with a width 1 pixel too small
-                    width = width.max(
-                        ((glyph.metrics.horiAdvance as f64) /
-                             64f64)
-                            .ceil() as i64 + 1,
-                    );
+                    width = width.max(((glyph.metrics.horiAdvance as f64) /
+                         64f64)
+                        .ceil() as i64);
                 }
             }
             (width, height)
