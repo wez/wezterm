@@ -236,6 +236,44 @@ impl Pattern {
         self.get_string("file")
     }
 
+    #[allow(dead_code)]
+    pub fn get_double(&self, key: &str) -> Result<f64, Error> {
+        unsafe {
+            let key = CString::new(key)?;
+            let mut fval: f64 = 0.0;
+            let res = FcResultWrap(FcPatternGetDouble(
+                self.pat,
+                key.as_ptr(),
+                0,
+                &mut fval as *mut _,
+            ));
+            if !res.succeeded() {
+                Err(res.as_err())
+            } else {
+                Ok(fval)
+            }
+        }
+    }
+
+    #[allow(dead_code)]
+    pub fn get_integer(&self, key: &str) -> Result<i32, Error> {
+        unsafe {
+            let key = CString::new(key)?;
+            let mut ival: i32 = 0;
+            let res = FcResultWrap(FcPatternGetInteger(
+                self.pat,
+                key.as_ptr(),
+                0,
+                &mut ival as *mut _,
+            ));
+            if !res.succeeded() {
+                Err(res.as_err())
+            } else {
+                Ok(ival)
+            }
+        }
+    }
+
     pub fn get_string(&self, key: &str) -> Result<String, Error> {
         unsafe {
             let key = CString::new(key)?;

@@ -6,6 +6,7 @@ pub mod ftwrap;
 pub mod hbwrap;
 pub mod fcwrap;
 
+pub use self::fcwrap::Pattern as FontPattern;
 
 #[derive(Clone, Debug)]
 pub struct GlyphInfo {
@@ -48,19 +49,19 @@ impl GlyphInfo {
 struct FontInfo {
     face: ftwrap::Face,
     font: hbwrap::Font,
+    pattern: fcwrap::Pattern,
     cell_height: i64,
     cell_width: i64,
 }
 
-pub struct FontHolder {
+pub struct Font {
     lib: ftwrap::Library,
-    size: i64,
     pattern: fcwrap::Pattern,
     font_list: fcwrap::FontSet,
     fonts: Vec<FontInfo>,
 }
 
-impl Drop for FontHolder {
+impl Drop for Font {
     fn drop(&mut self) {
         // Ensure that we drop the fonts before we drop the
         // library, otherwise we will end up faulting
@@ -68,23 +69,21 @@ impl Drop for FontHolder {
     }
 }
 
-impl FontHolder {
-    pub fn new(size: i64) -> Result<FontHolder, Error> {
+impl Font {
+    pub fn new(mut pattern: FontPattern) -> Result<Font, Error> {
         let mut lib = ftwrap::Library::new()?;
         lib.set_lcd_filter(
             ftwrap::FT_LcdFilter::FT_LCD_FILTER_DEFAULT,
         )?;
 
-        let mut pattern = fcwrap::Pattern::parse("Operator Mono SSm:size=12:weight=SemiLight")?;
         //pattern.family("Operator Mono SSm")?;
         pattern.monospace()?;
         pattern.config_substitute(fcwrap::MatchKind::Pattern)?;
         pattern.default_substitute();
         let font_list = pattern.sort(true)?;
 
-        Ok(FontHolder {
+        Ok(Font {
             lib,
-            size,
             font_list,
             pattern,
             fonts: Vec::new(),
@@ -101,8 +100,10 @@ impl FontHolder {
 
         println!("load_next_fallback: file={}", file);
 
+        let size = pat.get_double("size")?.ceil() as i64;
+
         let mut face = self.lib.new_face(file, 0)?;
-        match face.set_char_size(0, self.size * 64, 96, 96) {
+        match face.set_char_size(0, size * 64, 96, 96) {
             Err(err) => {
                 let sizes = unsafe {
                     let rec = &(*face.face);
@@ -131,6 +132,7 @@ impl FontHolder {
         self.fonts.push(FontInfo {
             face,
             font,
+            pattern: pat,
             cell_height,
             cell_width,
         });

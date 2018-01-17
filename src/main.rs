@@ -22,7 +22,7 @@ use font::ftwrap;
 use std::mem;
 use std::slice;
 
-use font::{FontHolder, GlyphInfo};
+use font::{Font, FontPattern, GlyphInfo};
 
 struct Glyph<'a> {
     has_color: bool,
@@ -145,21 +145,22 @@ fn glyphs_for_text<'a, T>(
     s: &str,
 ) -> Result<Vec<Glyph<'a>>, Error> {
 
-    let mut font_holder = FontHolder::new(12)?;
+    let pattern = FontPattern::parse("Operator Mono SSm:size=12:weight=SemiLight")?;
+    let mut font = Font::new(pattern)?;
 
     // We always load the cell_height for font 0,
     // regardless of which font we are shaping here,
     // so that we can scale glyphs appropriately
-    let (cell_height, cell_width) = font_holder.get_metrics()?;
+    let (cell_height, cell_width) = font.get_metrics()?;
 
     let mut result = Vec::new();
-    for info in font_holder.shape(0, s)? {
+    for info in font.shape(0, s)? {
         if info.glyph_pos == 0 {
             println!("skip: no codepoint for this one {:?}", info);
             continue;
         }
 
-        let glyph = font_holder.load_glyph(info.font_idx, info.glyph_pos)?;
+        let glyph = font.load_glyph(info.font_idx, info.glyph_pos)?;
 
         let g = Glyph::new(texture_creator, glyph, &info, cell_height, cell_width)?;
         result.push(g);
