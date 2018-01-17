@@ -7,6 +7,8 @@ extern crate harfbuzz_sys;
 extern crate fontconfig; // from servo-fontconfig
 #[cfg(not(target_os = "macos"))]
 extern crate freetype;
+#[macro_use]
+pub mod log;
 
 mod font;
 
@@ -109,7 +111,7 @@ impl<'a> Glyph<'a> {
         };
 
         if scale != 1.0f64 {
-            println!(
+            debug!(
                 "scaling {:?} w={} {}, h={} {} by {}",
                 info,
                 width,
@@ -156,7 +158,7 @@ fn glyphs_for_text<'a, T>(
     let mut result = Vec::new();
     for info in font.shape(0, s)? {
         if info.glyph_pos == 0 {
-            println!("skip: no codepoint for this one {:?}", info);
+            debug!("skip: no codepoint for this one {:?}", info);
             continue;
         }
 
@@ -189,10 +191,10 @@ fn run() -> Result<(), Error> {
             Event::KeyDown { keycode: Some(Keycode::Escape), .. } |
             Event::Quit { .. } => break,
             Event::Window { win_event: WindowEvent::Resized(..), .. } => {
-                println!("resize");
+                debug!("resize");
             }
             Event::Window { win_event: WindowEvent::Exposed, .. } => {
-                println!("exposed");
+                debug!("exposed");
                 canvas.set_draw_color(Color::RGBA(0, 0, 0, 255));
                 canvas.clear();
                 canvas.set_blend_mode(BlendMode::Blend);

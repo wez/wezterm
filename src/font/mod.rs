@@ -49,7 +49,6 @@ impl GlyphInfo {
 struct FontInfo {
     face: ftwrap::Face,
     font: hbwrap::Font,
-    pattern: fcwrap::Pattern,
     cell_height: i64,
     cell_width: i64,
 }
@@ -98,7 +97,7 @@ impl Font {
         let pat = self.pattern.render_prepare(&pat)?;
         let file = pat.get_file()?;
 
-        println!("load_next_fallback: file={}", file);
+        debug!("load_next_fallback: file={}", file);
 
         let size = pat.get_double("size")?.ceil() as i64;
 
@@ -127,12 +126,11 @@ impl Font {
 
         // Compute metrics for the nominal monospace cell
         let (cell_width, cell_height) = face.cell_metrics();
-        println!("metrics: width={} height={}", cell_width, cell_height);
+        debug!("metrics: width={} height={}", cell_width, cell_height);
 
         self.fonts.push(FontInfo {
             face,
             font,
-            pattern: pat,
             cell_height,
             cell_width,
         });
@@ -157,7 +155,7 @@ impl Font {
     }
 
     pub fn shape(&mut self, font_idx: usize, s: &str) -> Result<Vec<GlyphInfo>, Error> {
-        println!(
+        debug!(
             "shape text for font_idx {} with len {} {}",
             font_idx,
             s.len(),
@@ -221,7 +219,7 @@ impl Font {
                 sizes[last] = diff;
             }
         }
-        println!("sizes: {:?}", sizes);
+        debug!("sizes: {:?}", sizes);
 
         // Now make a second pass to determine if we need
         // to perform fallback to a later font.
@@ -235,7 +233,7 @@ impl Font {
                 }
             } else if let Some(start) = first_fallback_pos {
                 // End of a fallback run
-                println!("range: {:?}-{:?} needs fallback", start, pos);
+                debug!("range: {:?}-{:?} needs fallback", start, pos);
 
                 let substr = &s[start..pos];
                 let mut shape = self.shape(font_idx + 1, substr)?;
@@ -245,7 +243,7 @@ impl Font {
             }
             if info.codepoint != 0 {
                 let text = &s[pos..pos + sizes[i]];
-                println!("glyph from `{}`", text);
+                debug!("glyph from `{}`", text);
                 cluster.push(GlyphInfo::new(text, font_idx, info, &positions[i]));
             }
         }
@@ -254,7 +252,7 @@ impl Font {
         // fallback run.
         if let Some(start) = first_fallback_pos {
             let substr = &s[start..];
-            println!(
+            debug!(
                 "at end {:?}-{:?} needs fallback {}",
                 start,
                 s.len() - 1,
@@ -264,7 +262,7 @@ impl Font {
             cluster.append(&mut shape);
         }
 
-        println!("shaped: {:#?}", cluster);
+        debug!("shaped: {:#?}", cluster);
 
         Ok(cluster)
     }
