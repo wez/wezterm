@@ -3,6 +3,8 @@ extern crate failure;
 extern crate hexdump;
 extern crate unicode_width;
 extern crate harfbuzz_sys;
+extern crate cairo;
+extern crate cairo_sys;
 #[cfg(not(target_os = "macos"))]
 extern crate fontconfig; // from servo-fontconfig
 #[cfg(not(target_os = "macos"))]
@@ -34,6 +36,11 @@ struct Glyph<'a> {
     info: GlyphInfo,
     bearing_x: i32,
     bearing_y: i32,
+    cairo_surface: cairo::ImageSurface,
+}
+
+fn cairo_err(status: cairo::Status) -> Error {
+    format_err!("cairo status: {:?}", status)
 }
 
 impl<'a> Glyph<'a> {
@@ -50,6 +57,18 @@ impl<'a> Glyph<'a> {
         let mut width = glyph.bitmap.width as u32;
         let mut height = glyph.bitmap.rows as u32;
         let mut has_color = false;
+
+        // Note: the pixelformat is BGRA and we really
+        // want to use BGRA32 as the PixelFormatEnum
+        // value (which is endian corrected) but that
+        // is missing.  Instead, we have to go to the
+        // lower level pixel format value and handle
+        // the endianness for ourselves
+        let pixel_format = if cfg!(target_endian = "big") {
+            PixelFormatEnum::BGRA8888
+        } else {
+            PixelFormatEnum::ARGB8888
+        };
 
         if width == 0 || height == 0 {
             // Special case for zero sized bitmaps; we can't
@@ -75,21 +94,7 @@ impl<'a> Glyph<'a> {
                 ftwrap::FT_Pixel_Mode::FT_PIXEL_MODE_BGRA => {
                     has_color = true;
                     texture_creator
-                        .create_texture_static(
-                            // Note: the pixelformat is BGRA and we really
-                            // want to use BGRA32 as the PixelFormatEnum
-                            // value (which is endian corrected) but that
-                            // is missing.  Instead, we have to go to the
-                            // lower level pixel format value and handle
-                            // the endianness for ourselves
-                            Some(if cfg!(target_endian = "big") {
-                                PixelFormatEnum::BGRA8888
-                            } else {
-                                PixelFormatEnum::ARGB8888
-                            }),
-                            width,
-                            height,
-                        )
+                        .create_texture_static(Some(pixel_format), width, height)
                         .map_err(failure::err_msg)?
                 }
                 mode @ _ => bail!("unhandled pixel mode: {:?}", mode),
@@ -130,6 +135,21 @@ impl<'a> Glyph<'a> {
             info.y_offset = (info.y_offset as f64 * scale) as i32;
         }
 
+        let cairo_surface = cairo::ImageSurface::create(
+            cairo::Format::ARgb32,
+            target_cell_width as i32,
+            target_cell_height as i32,
+        ).map_err(cairo_err)?;
+
+        let cairo_glyph = cairo::Glyph {
+            index: info.glyph_pos as u64,
+            x: (0 + info.x_offset + bearing_x) as f64,
+            y: (target_cell_height as i32 - info.y_offset - bearing_y) as f64,
+        };
+        println!("cairo_glyph: {:?}", cairo_glyph);
+        let cairo_context = cairo::Context::new(&cairo_surface);
+        cairo_context.set_source_rgba(0.0, 0.0, 0.0, 0.0);
+
         Ok(Glyph {
             has_color,
             tex,
@@ -138,6 +158,7 @@ impl<'a> Glyph<'a> {
             info,
             bearing_x,
             bearing_y,
+            cairo_surface,
         })
     }
 }

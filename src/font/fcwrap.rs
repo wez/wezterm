@@ -1,5 +1,6 @@
 //! Slightly higher level helper for fontconfig
 
+use self::super::cairo;
 use failure::{self, Error};
 pub use fontconfig::fontconfig::*;
 use std::ffi::{CStr, CString};
@@ -293,6 +294,13 @@ impl Pattern {
                         .into_owned(),
                 )
             }
+        }
+    }
+
+    #[allow(dead_code)]
+    pub fn as_cairo(&self) -> cairo::FontFace {
+        unsafe {
+            cairo::FontFace::from_raw_full(cairo::cairo_ft_font_face_create_for_pattern(self.pat))
         }
     }
 }

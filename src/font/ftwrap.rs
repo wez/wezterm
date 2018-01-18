@@ -1,5 +1,6 @@
 //! Higher level freetype bindings
 
+use self::super::cairo;
 use failure::Error;
 pub use freetype::freetype::*;
 use std::ffi::CString;
@@ -87,6 +88,15 @@ impl Face {
                 }
             }
             (width, height)
+        }
+    }
+
+    #[allow(dead_code)]
+    pub fn as_cairo(&self) -> cairo::FontFace {
+        unsafe {
+            cairo::FontFace::from_raw_full(
+                cairo::cairo_ft_font_face_create_for_ft_face(self.face, 0),
+            )
         }
     }
 }

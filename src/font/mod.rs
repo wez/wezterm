@@ -5,6 +5,7 @@ use unicode_width::UnicodeWidthStr;
 pub mod ftwrap;
 pub mod hbwrap;
 pub mod fcwrap;
+pub mod cairo;
 
 pub use self::fcwrap::Pattern as FontPattern;
 
@@ -60,6 +61,7 @@ impl GlyphInfo {
 struct FontInfo {
     face: ftwrap::Face,
     font: hbwrap::Font,
+    cairo_face: cairo::FontFace,
     /// nominal monospace cell height
     cell_height: i64,
     /// nominal monospace cell width
@@ -148,9 +150,11 @@ impl Font {
         let (cell_width, cell_height) = face.cell_metrics();
         debug!("metrics: width={} height={}", cell_width, cell_height);
 
+        let cairo_face = face.as_cairo();
         self.fonts.push(FontInfo {
             face,
             font,
+            cairo_face,
             cell_height,
             cell_width,
         });
