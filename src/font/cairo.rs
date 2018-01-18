@@ -1,4 +1,3 @@
-
 use cairo_sys;
 use fontconfig::fontconfig::FcPattern;
 use freetype::freetype::FT_Face;

@@ -43,6 +43,17 @@ fn cairo_err(status: cairo::Status) -> Error {
     format_err!("cairo status: {:?}", status)
 }
 
+// Note: the pixelformat is BGRA and we really
+// want to use BGRA32 as the PixelFormatEnum
+// value (which is endian corrected) but that
+// is missing.  Instead, we have to go to the
+// lower level pixel format value and handle
+// the endianness for ourselves
+#[cfg(target_endian = "big")]
+const SDL_BGRA32: PixelFormatEnum = PixelFormatEnum::BGRA8888;
+#[cfg(target_endian = "little")]
+const SDL_BGRA32: PixelFormatEnum = PixelFormatEnum::ARGB8888;
+
 impl<'a> Glyph<'a> {
     fn new<T>(
         texture_creator: &'a TextureCreator<T>,
@@ -57,18 +68,6 @@ impl<'a> Glyph<'a> {
         let mut width = glyph.bitmap.width as u32;
         let mut height = glyph.bitmap.rows as u32;
         let mut has_color = false;
-
-        // Note: the pixelformat is BGRA and we really
-        // want to use BGRA32 as the PixelFormatEnum
-        // value (which is endian corrected) but that
-        // is missing.  Instead, we have to go to the
-        // lower level pixel format value and handle
-        // the endianness for ourselves
-        let pixel_format = if cfg!(target_endian = "big") {
-            PixelFormatEnum::BGRA8888
-        } else {
-            PixelFormatEnum::ARGB8888
-        };
 
         if width == 0 || height == 0 {
             // Special case for zero sized bitmaps; we can't
@@ -94,7 +93,7 @@ impl<'a> Glyph<'a> {
                 ftwrap::FT_Pixel_Mode::FT_PIXEL_MODE_BGRA => {
                     has_color = true;
                     texture_creator
-                        .create_texture_static(Some(pixel_format), width, height)
+                        .create_texture_static(Some(SDL_BGRA32), width, height)
                         .map_err(failure::err_msg)?
                 }
                 mode @ _ => bail!("unhandled pixel mode: {:?}", mode),
