@@ -12,22 +12,37 @@ extern crate freetype;
 #[macro_use]
 pub mod log;
 
-mod font;
-
 use failure::Error;
+
+extern crate xcb;
+use std::mem;
+
+/*
+
 extern crate sdl2;
 use sdl2::event::{Event, WindowEvent};
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::{Color, PixelFormatEnum};
 use sdl2::rect::Rect;
-use sdl2::render::{BlendMode, Texture, TextureCreator};
+use sdl2::render::{BlendMode, RenderTarget, Texture, TextureCreator};
 
-use font::ftwrap;
-use std::mem;
 use std::slice;
 
-use font::{Font, FontPattern, GlyphInfo};
+*/
 
+/*
+mod font;
+use font::{Font, FontPattern, GlyphInfo, ftwrap};
+*/
+
+/*
+fn cairo_err(status: cairo::Status) -> Error {
+    format_err!("cairo status: {:?}", status)
+}
+*/
+
+
+/*
 struct Glyph<'a> {
     has_color: bool,
     tex: Option<Texture<'a>>,
@@ -39,10 +54,6 @@ struct Glyph<'a> {
     cairo_surface: cairo::ImageSurface,
 }
 
-fn cairo_err(status: cairo::Status) -> Error {
-    format_err!("cairo status: {:?}", status)
-}
-
 // Note: the pixelformat is BGRA and we really
 // want to use BGRA32 as the PixelFormatEnum
 // value (which is endian corrected) but that
@@ -51,8 +62,12 @@ fn cairo_err(status: cairo::Status) -> Error {
 // the endianness for ourselves
 #[cfg(target_endian = "big")]
 const SDL_BGRA32: PixelFormatEnum = PixelFormatEnum::BGRA8888;
+#[cfg(target_endian = "big")]
+const SDL_ARGB32: PixelFormatEnum = PixelFormatEnum::ARGB8888;
 #[cfg(target_endian = "little")]
 const SDL_BGRA32: PixelFormatEnum = PixelFormatEnum::ARGB8888;
+#[cfg(target_endian = "little")]
+const SDL_ARGB32: PixelFormatEnum = PixelFormatEnum::BGRA8888;
 
 impl<'a> Glyph<'a> {
     fn new<T>(
@@ -190,6 +205,36 @@ fn glyphs_for_text<'a, T>(
     Ok(result)
 }
 
+fn with_cairo_surface<T, W: RenderTarget, F: FnMut(cairo::Context)>(
+    canvas: &mut sdl2::render::Canvas<W>,
+    texture_creator: &TextureCreator<T>,
+    mut f: F,
+) -> Result<(), Error> {
+    let (width, height) = canvas.output_size().map_err(failure::err_msg)?;
+    println!("canvas size {} {}", width, height);
+    let mut tex = texture_creator.create_texture_streaming(
+        Some(PixelFormatEnum::ARGB8888),
+        width,
+        height,
+    )?;
+    tex.with_lock(None, |data, pitch| {
+        let surface = unsafe {
+            assert!(data.len() == pitch * height as usize);
+            cairo::ImageSurface::from_raw_full(cairo_sys::cairo_image_surface_create_for_data(
+                data.as_mut_ptr(),
+                cairo::Format::ARgb32,
+                width as i32,
+                height as i32,
+                pitch as i32,
+            ))
+        }.expect("failed to create cairo surface");
+
+        let cairo = cairo::Context::new(&surface);
+        f(cairo);
+    }).map_err(failure::err_msg)?;
+    canvas.copy(&tex, None, None).map_err(failure::err_msg)
+}
+
 fn run() -> Result<(), Error> {
     let sdl_context = sdl2::init().map_err(failure::err_msg)?;
     let video_subsys = sdl_context.video().map_err(failure::err_msg)?;
@@ -211,10 +256,8 @@ fn run() -> Result<(), Error> {
             Event::KeyDown { keycode: Some(Keycode::Escape), .. } |
             Event::Quit { .. } => break,
             Event::Window { win_event: WindowEvent::Resized(..), .. } => {
-                debug!("resize");
             }
             Event::Window { win_event: WindowEvent::Exposed, .. } => {
-                debug!("exposed");
                 canvas.set_draw_color(Color::RGBA(0, 0, 0, 255));
                 canvas.clear();
                 canvas.set_blend_mode(BlendMode::Blend);
@@ -243,6 +286,13 @@ fn run() -> Result<(), Error> {
                     y += g.info.y_advance;
                 }
 
+                with_cairo_surface(&mut canvas, &texture_creator, |cairo| {
+                    cairo.set_source_rgb(4.0, 0.2, 0.2);
+                    cairo.set_line_width(2.0);
+                    cairo.rectangle(200.0, 200.0, 300.0, 300.0);
+                    cairo.stroke();
+                })?;
+
                 canvas.present();
             }
             _ => {}
@@ -250,8 +300,146 @@ fn run() -> Result<(), Error> {
     }
     Ok(())
 }
+*/
+
+struct TerminalWindow<'a> {
+    window_id: u32,
+    conn: &'a xcb::Connection,
+    width: u16,
+    height: u16,
+}
+
+impl<'a> TerminalWindow<'a> {
+    fn new(
+        conn: &xcb::Connection,
+        screen_num: i32,
+        width: u16,
+        height: u16,
+    ) -> Result<TerminalWindow, Error> {
+        let setup = conn.get_setup();
+        let screen = setup.roots().nth(screen_num as usize).ok_or(
+            failure::err_msg(
+                "no screen?",
+            ),
+        )?;
+        let window_id = conn.generate_id();
+
+        xcb::create_window(
+            &conn,
+            xcb::COPY_FROM_PARENT as u8,
+            window_id,
+            screen.root(),
+            // x, y
+            0,
+            0,
+            // width, height
+            width,
+            height,
+            // border width
+            0,
+            xcb::WINDOW_CLASS_INPUT_OUTPUT as u16,
+            screen.root_visual(),
+            &[
+                (xcb::CW_BACK_PIXEL, screen.black_pixel()),
+                (
+                    xcb::CW_EVENT_MASK,
+                    xcb::EVENT_MASK_EXPOSURE | xcb::EVENT_MASK_KEY_PRESS | xcb::EVENT_MASK_STRUCTURE_NOTIFY,
+                ),
+            ],
+        );
+
+        Ok(TerminalWindow {
+            window_id,
+            conn,
+            width,
+            height,
+        })
+    }
+
+    fn show(&self) {
+        xcb::map_window(self.conn, self.window_id);
+    }
+}
+
+fn visual_for_screen(screen: &xcb::Screen) -> xcb::Visualtype {
+    for depth in screen.allowed_depths() {
+        for vis in depth.visuals() {
+            if vis.visual_id() == screen.root_visual() {
+                return vis;
+            }
+        }
+    }
+
+    unreachable!("screen doesn't have info on its own visual?");
+}
+
+fn run_xcb() -> Result<(), Error> {
+    use cairo::XCBSurface;
+    use cairo::prelude::*;
+
+    let (conn, screen_num) = xcb::Connection::connect(None)?;
+    println!("Connected screen {}", screen_num);
+
+    let mut window = TerminalWindow::new(&conn, screen_num, 1024, 768)?;
+    window.show();
+    conn.flush();
+
+    loop {
+        let event = conn.wait_for_event();
+        match event {
+            None => break,
+            Some(event) => {
+                let r = event.response_type() & 0x7f;
+                match r {
+                    xcb::EXPOSE => {
+                        println!("expose");
+                        let screen = conn.get_setup().roots().nth(screen_num as usize).ok_or(
+                            failure::err_msg("no screen?"),
+                        )?;
+                        let surface =
+                            cairo::Surface::create(
+                                &cairo::XCBConnection(unsafe { mem::transmute(conn.get_raw_conn()) }),
+                                &cairo::XCBDrawable(window.window_id),
+                                &cairo::XCBVisualType(unsafe {
+                                    mem::transmute(&mut visual_for_screen(&screen).base as *mut _)
+                                }),
+                                window.width as i32,
+                                window.height as i32,
+                            );
+                        let ctx = cairo::Context::new(&surface);
+                        ctx.select_font_face(
+                            "Operator Mono",
+                            cairo::FontSlant::Normal,
+                            cairo::FontWeight::Normal,
+                        );
+                        ctx.set_font_size(32.0);
+                        ctx.set_source_rgb(0.8, 0.8, 0.8);
+                        ctx.move_to(10.0, 50.0);
+                        ctx.show_text("x_advance != foo->bar(); ❤ 😍🤢");
+                        surface.flush();
+                        conn.flush();
+                    }
+                    xcb::CONFIGURE_NOTIFY => {
+                        let cfg: &xcb::ConfigureNotifyEvent = unsafe { xcb::cast_event(&event) };
+                        window.width = cfg.width();
+                        window.height = cfg.height();
+                    }
+                    xcb::KEY_PRESS => {
+                        let key_press: &xcb::KeyPressEvent = unsafe { xcb::cast_event(&event) };
+                        debug!("Key '{}' pressed", key_press.detail());
+                        break;
+                    }
+                    _ => {}
+                }
+            }
+        }
+    }
+
+
+    Ok(())
+}
 
 
 fn main() {
-    run().unwrap();
+    run_xcb().unwrap();
 }
