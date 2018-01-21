@@ -48,6 +48,7 @@ impl GlyphInfo {
             num_cells,
             font_idx,
             glyph_pos: info.codepoint,
+            #[cfg(debug_assertions)]
             cluster: info.cluster,
             x_advance: pos.x_advance as f64 / 64.0,
             y_advance: pos.y_advance as f64 / 64.0,

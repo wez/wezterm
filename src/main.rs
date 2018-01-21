@@ -36,6 +36,9 @@ struct TerminalWindow<'a> {
     font: Font,
     cell_height: f64,
     cell_width: f64,
+    cairo_context: cairo::Context,
+    window_surface: cairo::Surface,
+    buffer_surface: cairo::ImageSurface,
 }
 
 impl<'a> TerminalWindow<'a> {
@@ -78,7 +81,6 @@ impl<'a> TerminalWindow<'a> {
             xcb::WINDOW_CLASS_INPUT_OUTPUT as u16,
             screen.root_visual(),
             &[
-                (xcb::CW_BACK_PIXEL, screen.black_pixel()),
                 (
                     xcb::CW_EVENT_MASK,
                     xcb::EVENT_MASK_EXPOSURE | xcb::EVENT_MASK_KEY_PRESS | xcb::EVENT_MASK_STRUCTURE_NOTIFY,
@@ -86,6 +88,13 @@ impl<'a> TerminalWindow<'a> {
             ],
         );
 
+        let window_surface =
+            TerminalWindow::make_cairo_surface(&conn, screen_num, window_id, width, height)?;
+        let buffer_surface =
+            cairo::ImageSurface::create(cairo::Format::ARgb32, width as i32, height as i32)
+                .map_err(cairo_err)?;
+
+        let cairo_context = cairo::Context::new(&window_surface);
         Ok(TerminalWindow {
             window_id,
             screen_num,
@@ -95,6 +104,9 @@ impl<'a> TerminalWindow<'a> {
             font,
             cell_height,
             cell_width,
+            cairo_context,
+            buffer_surface,
+            window_surface,
         })
     }
 
@@ -102,23 +114,76 @@ impl<'a> TerminalWindow<'a> {
         xcb::map_window(self.conn, self.window_id);
     }
 
-    fn paint(&mut self) -> Result<(), Error> {
-        let screen = self.conn
-            .get_setup()
-            .roots()
-            .nth(self.screen_num as usize)
-            .ok_or(failure::err_msg("no screen?"))?;
-        let surface = cairo::Surface::create(
-            &cairo::XCBConnection(unsafe { mem::transmute(self.conn.get_raw_conn()) }),
-            &cairo::XCBDrawable(self.window_id),
+    fn make_cairo_surface(
+        conn: &xcb::Connection,
+        screen_num: i32,
+        window_id: u32,
+        width: u16,
+        height: u16,
+    ) -> Result<cairo::Surface, Error> {
+        let screen = conn.get_setup().roots().nth(screen_num as usize).ok_or(
+            failure::err_msg("no screen?"),
+        )?;
+        Ok(cairo::Surface::create(
+            &cairo::XCBConnection(
+                unsafe { mem::transmute(conn.get_raw_conn()) },
+            ),
+            &cairo::XCBDrawable(window_id),
             &cairo::XCBVisualType(unsafe {
                 mem::transmute(&mut visual_for_screen(&screen).base as *mut _)
             }),
-            self.width as i32,
-            self.height as i32,
+            width as i32,
+            height as i32,
+        ))
+    }
+
+    fn resize_surfaces(&mut self, width: u16, height: u16) -> Result<bool, Error> {
+        if width != self.width || height != self.height {
+            debug!("resize {},{}", width, height);
+            self.buffer_surface =
+                cairo::ImageSurface::create(cairo::Format::ARgb32, width as i32, height as i32)
+                    .map_err(cairo_err)?;
+
+            self.window_surface.set_size(width as i32, height as i32);
+            self.width = width;
+            self.height = height;
+            Ok(true)
+        } else {
+            debug!("ignoring extra resize");
+            Ok(false)
+        }
+    }
+
+    fn expose(&mut self, x: u16, y: u16, width: u16, height: u16) -> Result<(), Error> {
+        debug!("expose {},{}, {},{}", x, y, width, height);
+        self.cairo_context.reset_clip();
+        self.cairo_context.set_source_surface(
+            &self.buffer_surface,
+            0.0,
+            0.0,
         );
-        let ctx = cairo::Context::new(&surface);
+        self.cairo_context.rectangle(
+            x as f64,
+            y as f64,
+            width as f64,
+            height as f64,
+        );
+        self.cairo_context.clip();
+        self.cairo_context.paint();
+
+        self.conn.flush();
+
+        Ok(())
+    }
+
+    fn paint(&mut self) -> Result<(), Error> {
+        debug!("paint");
+        let ctx = cairo::Context::new(&self.buffer_surface);
+
         let message = "x_advance != foo->bar(); ❤ 😍🤢";
+
+        ctx.set_source_rgba(0.0, 0.0, 0.0, 1.0);
+        ctx.paint();
 
         ctx.set_source_rgba(0.8, 0.8, 0.8, 1.0);
 
@@ -249,8 +314,10 @@ impl<'a> TerminalWindow<'a> {
             y += scale * info.y_advance;
         }
 
-        surface.flush();
-        self.conn.flush();
+        let width = self.width;
+        let height = self.height;
+        self.expose(0, 0, width, height)?;
+
         Ok(())
     }
 }
@@ -272,6 +339,7 @@ fn run() -> Result<(), Error> {
     println!("Connected screen {}", screen_num);
 
     let mut window = TerminalWindow::new(&conn, screen_num, 300, 300)?;
+    window.paint()?;
     window.show();
     conn.flush();
 
@@ -283,13 +351,19 @@ fn run() -> Result<(), Error> {
                 let r = event.response_type() & 0x7f;
                 match r {
                     xcb::EXPOSE => {
-                        println!("expose");
-                        window.paint()?;
+                        let expose: &xcb::ExposeEvent = unsafe { xcb::cast_event(&event) };
+                        window.expose(
+                            expose.x(),
+                            expose.y(),
+                            expose.width(),
+                            expose.height(),
+                        )?;
                     }
                     xcb::CONFIGURE_NOTIFY => {
                         let cfg: &xcb::ConfigureNotifyEvent = unsafe { xcb::cast_event(&event) };
-                        window.width = cfg.width();
-                        window.height = cfg.height();
+                        if window.resize_surfaces(cfg.width(), cfg.height())? {
+                            window.paint()?;
+                        }
                     }
                     xcb::KEY_PRESS => {
                         let key_press: &xcb::KeyPressEvent = unsafe { xcb::cast_event(&event) };
