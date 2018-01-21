@@ -131,6 +131,20 @@ impl Pattern {
     }
 
     #[allow(dead_code)]
+    pub fn add_double(&mut self, key: &str, value: f64) -> Result<(), Error> {
+        let key = CString::new(key)?;
+        unsafe {
+            ensure!(
+                FcPatternAddDouble(self.pat, key.as_ptr(), value) != 0,
+                "failed to set double property {:?} -> {}",
+                key,
+                value
+            );
+            Ok(())
+        }
+    }
+
+    #[allow(dead_code)]
     pub fn add_integer(&mut self, key: &str, value: i32) -> Result<(), Error> {
         let key = CString::new(key)?;
         unsafe {

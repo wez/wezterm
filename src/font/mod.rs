@@ -25,13 +25,13 @@ pub struct GlyphInfo {
     /// Which freetype glyph to load
     pub glyph_pos: u32,
     /// How far to advance the render cursor after drawing this glyph
-    pub x_advance: i32,
+    pub x_advance: f64,
     /// How far to advance the render cursor after drawing this glyph
-    pub y_advance: i32,
+    pub y_advance: f64,
     /// Destination render offset
-    pub x_offset: i32,
+    pub x_offset: f64,
     /// Destination render offset
-    pub y_offset: i32,
+    pub y_offset: f64,
 }
 
 impl GlyphInfo {
@@ -49,10 +49,10 @@ impl GlyphInfo {
             font_idx,
             glyph_pos: info.codepoint,
             cluster: info.cluster,
-            x_advance: pos.x_advance / 64,
-            y_advance: pos.y_advance / 64,
-            x_offset: pos.x_offset / 64,
-            y_offset: pos.y_offset / 64,
+            x_advance: pos.x_advance as f64 / 64.0,
+            y_advance: pos.y_advance as f64 / 64.0,
+            x_offset: pos.x_offset as f64 / 64.0,
+            y_offset: pos.y_offset as f64 / 64.0,
         }
     }
 }
@@ -63,9 +63,9 @@ struct FontInfo {
     font: hbwrap::Font,
     cairo_face: cairo::FontFace,
     /// nominal monospace cell height
-    cell_height: i64,
+    cell_height: f64,
     /// nominal monospace cell width
-    cell_width: i64,
+    cell_width: f64,
 }
 
 /// Holds "the" font selected by the user.  In actuality, it
@@ -95,7 +95,7 @@ impl Font {
 
         // Enable some filtering options and pull in the standard
         // fallback font selection from the user configuration
-        pattern.monospace()?;
+        //pattern.monospace()?;
         pattern.config_substitute(fcwrap::MatchKind::Pattern)?;
         pattern.default_substitute();
 
@@ -120,11 +120,18 @@ impl Font {
         let file = pat.get_file()?;
 
         debug!("load_next_fallback: file={}", file);
+        debug!("{}", pat.format("%{=unparse}")?);
 
-        let size = pat.get_double("size")?.ceil() as i64;
+        let size = pat.get_double("size")?;
+        let dpi = pat.get_double("dpi")? as u32;
+        debug!("set_char_size {} dpi={}", size, dpi);
+        // Scaling before truncating to integer minimizes the chances of hitting
+        // the fallback code for set_pixel_sizes below.
+        let size = (size * 64.0) as i64;
 
         let mut face = self.lib.new_face(file, 0)?;
-        match face.set_char_size(0, size * 64, 96, 96) {
+
+        match face.set_char_size(size, size, dpi, dpi) {
             Err(err) => {
                 let sizes = unsafe {
                     let rec = &(*face.face);
@@ -140,6 +147,7 @@ impl Font {
                         size = size.max(info.height);
                     }
                     face.set_pixel_sizes(size as u32, size as u32)?;
+                    debug!("fall back to set_pixel_sizes {}", size);
                 }
             }
             Ok(_) => {}
@@ -161,6 +169,11 @@ impl Font {
         Ok(())
     }
 
+    pub fn get_cairo_font(&mut self, idx: usize) -> Result<cairo::FontFace, Error> {
+        let font = self.get_font(idx)?;
+        Ok(font.cairo_face.clone())
+    }
+
     fn get_font(&mut self, idx: usize) -> Result<&mut FontInfo, Error> {
         if idx >= self.fonts.len() {
             self.load_next_fallback()?;
@@ -173,9 +186,13 @@ impl Font {
         Ok(&mut self.fonts[idx])
     }
 
-    pub fn get_metrics(&mut self) -> Result<(i64, i64), Error> {
+    pub fn get_metrics(&mut self) -> Result<(f64, f64), Error> {
         let font = self.get_font(0)?;
         Ok((font.cell_height, font.cell_width))
+    }
+
+    pub fn get_font_point_size(&self) -> Result<f64, Error> {
+        self.pattern.get_double("size")
     }
 
     pub fn shape(&mut self, font_idx: usize, s: &str) -> Result<Vec<GlyphInfo>, Error> {
@@ -267,7 +284,7 @@ impl Font {
             }
             if info.codepoint != 0 {
                 let text = &s[pos..pos + sizes[i]];
-                debug!("glyph from `{}`", text);
+                //debug!("glyph from `{}`", text);
                 cluster.push(GlyphInfo::new(text, font_idx, info, &positions[i]));
             }
         }
@@ -286,7 +303,7 @@ impl Font {
             cluster.append(&mut shape);
         }
 
-        debug!("shaped: {:#?}", cluster);
+        //debug!("shaped: {:#?}", cluster);
 
         Ok(cluster)
     }
@@ -308,10 +325,24 @@ impl Font {
         glyph_pos: u32,
     ) -> Result<&ftwrap::FT_GlyphSlotRec_, Error> {
         let info = &mut self.fonts[font_idx];
+
+        let render_mode = ftwrap::FT_Render_Mode::FT_RENDER_MODE_LCD;
+
+        // when changing the load flags, we also need
+        // to change them for harfbuzz otherwise it won't
+        // hint correctly
+        let load_flags = (ftwrap::FT_LOAD_COLOR) as i32 |
+            // enable FT_LOAD_TARGET bits.  There are no flags defined
+            // for these in the bindings so we do some bit magic for
+            // ourselves.  This is how the FT_LOAD_TARGET_() macro
+            // assembles these bits.
+            (render_mode as i32) << 16;
+
+        info.font.set_load_flags(load_flags);
         info.face.load_and_render_glyph(
             glyph_pos,
-            (ftwrap::FT_LOAD_COLOR) as i32,
-            ftwrap::FT_Render_Mode::FT_RENDER_MODE_LCD,
+            load_flags,
+            render_mode,
         )
     }
 }

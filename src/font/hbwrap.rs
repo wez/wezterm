@@ -1,10 +1,15 @@
 //! Higher level harfbuzz bindings
 
 use failure::Error;
+use freetype::freetype;
 pub use harfbuzz_sys::*;
 use std::mem;
 use std::ptr;
 use std::slice;
+
+extern "C" {
+    fn hb_ft_font_set_load_flags(font: *mut hb_font_t, load_flags: i32);
+}
 
 pub fn language_from_string(s: &str) -> Result<hb_language_t, Error> {
     unsafe {
@@ -50,6 +55,12 @@ impl Font {
         // if everything fails, so there's nothing for us to
         // test here.
         Font { font: unsafe { hb_ft_font_create_referenced(face.face) } }
+    }
+
+    pub fn set_load_flags(&mut self, load_flags: freetype::FT_Int32) {
+        unsafe {
+            hb_ft_font_set_load_flags(self.font, load_flags);
+        }
     }
 
     /// Perform shaping.  On entry, Buffer holds the text to shape.

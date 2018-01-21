@@ -1,6 +1,5 @@
 #[macro_use]
 extern crate failure;
-extern crate hexdump;
 extern crate unicode_width;
 extern crate harfbuzz_sys;
 extern crate cairo;
@@ -16,297 +15,27 @@ use failure::Error;
 
 extern crate xcb;
 use std::mem;
-
-/*
-
-extern crate sdl2;
-use sdl2::event::{Event, WindowEvent};
-use sdl2::keyboard::Keycode;
-use sdl2::pixels::{Color, PixelFormatEnum};
-use sdl2::rect::Rect;
-use sdl2::render::{BlendMode, RenderTarget, Texture, TextureCreator};
-
 use std::slice;
 
-*/
+use cairo::XCBSurface;
+use cairo::prelude::*;
 
-/*
 mod font;
-use font::{Font, FontPattern, GlyphInfo, ftwrap};
-*/
+use font::{Font, FontPattern, ftwrap};
 
-/*
 fn cairo_err(status: cairo::Status) -> Error {
     format_err!("cairo status: {:?}", status)
 }
-*/
-
-
-/*
-struct Glyph<'a> {
-    has_color: bool,
-    tex: Option<Texture<'a>>,
-    width: u32,
-    height: u32,
-    info: GlyphInfo,
-    bearing_x: i32,
-    bearing_y: i32,
-    cairo_surface: cairo::ImageSurface,
-}
-
-// Note: the pixelformat is BGRA and we really
-// want to use BGRA32 as the PixelFormatEnum
-// value (which is endian corrected) but that
-// is missing.  Instead, we have to go to the
-// lower level pixel format value and handle
-// the endianness for ourselves
-#[cfg(target_endian = "big")]
-const SDL_BGRA32: PixelFormatEnum = PixelFormatEnum::BGRA8888;
-#[cfg(target_endian = "big")]
-const SDL_ARGB32: PixelFormatEnum = PixelFormatEnum::ARGB8888;
-#[cfg(target_endian = "little")]
-const SDL_BGRA32: PixelFormatEnum = PixelFormatEnum::ARGB8888;
-#[cfg(target_endian = "little")]
-const SDL_ARGB32: PixelFormatEnum = PixelFormatEnum::BGRA8888;
-
-impl<'a> Glyph<'a> {
-    fn new<T>(
-        texture_creator: &'a TextureCreator<T>,
-        glyph: &ftwrap::FT_GlyphSlotRec_,
-        info: &GlyphInfo,
-        target_cell_height: i64,
-        target_cell_width: i64,
-    ) -> Result<Glyph<'a>, Error> {
-
-        let mut info = info.clone();
-        let mut tex = None;
-        let mut width = glyph.bitmap.width as u32;
-        let mut height = glyph.bitmap.rows as u32;
-        let mut has_color = false;
-
-        if width == 0 || height == 0 {
-            // Special case for zero sized bitmaps; we can't
-            // build a texture with zero dimenions, so we return
-            // a Glyph with tex=None.
-        } else {
-
-            let mode: ftwrap::FT_Pixel_Mode =
-                unsafe { mem::transmute(glyph.bitmap.pixel_mode as u32) };
-
-            // pitch is the number of bytes per source row
-            let pitch = glyph.bitmap.pitch.abs() as usize;
-            let data =
-                unsafe { slice::from_raw_parts(glyph.bitmap.buffer, height as usize * pitch) };
-
-            let mut t = match mode {
-                ftwrap::FT_Pixel_Mode::FT_PIXEL_MODE_LCD => {
-                    width = width / 3;
-                    texture_creator
-                        .create_texture_static(Some(PixelFormatEnum::BGR24), width, height)
-                        .map_err(failure::err_msg)?
-                }
-                ftwrap::FT_Pixel_Mode::FT_PIXEL_MODE_BGRA => {
-                    has_color = true;
-                    texture_creator
-                        .create_texture_static(Some(SDL_BGRA32), width, height)
-                        .map_err(failure::err_msg)?
-                }
-                mode @ _ => bail!("unhandled pixel mode: {:?}", mode),
-            };
-
-            t.update(None, data, pitch)?;
-            tex = Some(t);
-        }
-
-        let mut bearing_x = glyph.bitmap_left;
-        let mut bearing_y = glyph.bitmap_top;
-
-        let scale = if (info.x_advance / info.num_cells as i32) as i64 > target_cell_width {
-            info.num_cells as f64 * (target_cell_width as f64 / info.x_advance as f64)
-        } else if height as i64 > target_cell_height {
-            target_cell_height as f64 / height as f64
-        } else {
-            1.0f64
-        };
-
-        if scale != 1.0f64 {
-            debug!(
-                "scaling {:?} w={} {}, h={} {} by {}",
-                info,
-                width,
-                target_cell_width,
-                height,
-                target_cell_height,
-                scale
-            );
-            width = (width as f64 * scale) as u32;
-            height = (height as f64 * scale) as u32;
-            bearing_x = (bearing_x as f64 * scale) as i32;
-            bearing_y = (bearing_y as f64 * scale) as i32;
-            info.x_advance = (info.x_advance as f64 * scale) as i32;
-            info.y_advance = (info.y_advance as f64 * scale) as i32;
-            info.x_offset = (info.x_offset as f64 * scale) as i32;
-            info.y_offset = (info.y_offset as f64 * scale) as i32;
-        }
-
-        let cairo_surface = cairo::ImageSurface::create(
-            cairo::Format::ARgb32,
-            target_cell_width as i32,
-            target_cell_height as i32,
-        ).map_err(cairo_err)?;
-
-        let cairo_glyph = cairo::Glyph {
-            index: info.glyph_pos as u64,
-            x: (0 + info.x_offset + bearing_x) as f64,
-            y: (target_cell_height as i32 - info.y_offset - bearing_y) as f64,
-        };
-        println!("cairo_glyph: {:?}", cairo_glyph);
-        let cairo_context = cairo::Context::new(&cairo_surface);
-        cairo_context.set_source_rgba(0.0, 0.0, 0.0, 0.0);
-
-        Ok(Glyph {
-            has_color,
-            tex,
-            width,
-            height,
-            info,
-            bearing_x,
-            bearing_y,
-            cairo_surface,
-        })
-    }
-}
-
-fn glyphs_for_text<'a, T>(
-    texture_creator: &'a TextureCreator<T>,
-    s: &str,
-) -> Result<Vec<Glyph<'a>>, Error> {
-
-    let pattern = FontPattern::parse("Operator Mono SSm Lig:size=12:weight=SemiLight")?;
-    let mut font = Font::new(pattern)?;
-
-    // We always load the cell_height for font 0,
-    // regardless of which font we are shaping here,
-    // so that we can scale glyphs appropriately
-    let (cell_height, cell_width) = font.get_metrics()?;
-
-    let mut result = Vec::new();
-    for info in font.shape(0, s)? {
-        if info.glyph_pos == 0 {
-            debug!("skip: no codepoint for this one {:?}", info);
-            continue;
-        }
-
-        let glyph = font.load_glyph(info.font_idx, info.glyph_pos)?;
-
-        let g = Glyph::new(texture_creator, glyph, &info, cell_height, cell_width)?;
-        result.push(g);
-    }
-    Ok(result)
-}
-
-fn with_cairo_surface<T, W: RenderTarget, F: FnMut(cairo::Context)>(
-    canvas: &mut sdl2::render::Canvas<W>,
-    texture_creator: &TextureCreator<T>,
-    mut f: F,
-) -> Result<(), Error> {
-    let (width, height) = canvas.output_size().map_err(failure::err_msg)?;
-    println!("canvas size {} {}", width, height);
-    let mut tex = texture_creator.create_texture_streaming(
-        Some(PixelFormatEnum::ARGB8888),
-        width,
-        height,
-    )?;
-    tex.with_lock(None, |data, pitch| {
-        let surface = unsafe {
-            assert!(data.len() == pitch * height as usize);
-            cairo::ImageSurface::from_raw_full(cairo_sys::cairo_image_surface_create_for_data(
-                data.as_mut_ptr(),
-                cairo::Format::ARgb32,
-                width as i32,
-                height as i32,
-                pitch as i32,
-            ))
-        }.expect("failed to create cairo surface");
-
-        let cairo = cairo::Context::new(&surface);
-        f(cairo);
-    }).map_err(failure::err_msg)?;
-    canvas.copy(&tex, None, None).map_err(failure::err_msg)
-}
-
-fn run() -> Result<(), Error> {
-    let sdl_context = sdl2::init().map_err(failure::err_msg)?;
-    let video_subsys = sdl_context.video().map_err(failure::err_msg)?;
-    let window = video_subsys
-        .window("wterm", 1024, 768)
-        .resizable()
-        .opengl()
-        .build()?;
-    let mut canvas = window.into_canvas().build()?;
-    let texture_creator = canvas.texture_creator();
-    let mut glyphs = glyphs_for_text(&texture_creator, "x_advance != foo->bar(); ❤ 😍🤢")?;
-
-    for event in sdl_context
-        .event_pump()
-        .map_err(failure::err_msg)?
-        .wait_iter()
-    {
-        match event {
-            Event::KeyDown { keycode: Some(Keycode::Escape), .. } |
-            Event::Quit { .. } => break,
-            Event::Window { win_event: WindowEvent::Resized(..), .. } => {
-            }
-            Event::Window { win_event: WindowEvent::Exposed, .. } => {
-                canvas.set_draw_color(Color::RGBA(0, 0, 0, 255));
-                canvas.clear();
-                canvas.set_blend_mode(BlendMode::Blend);
-
-                let mut x = 10i32;
-                let mut y = 100i32;
-                for g in glyphs.iter_mut() {
-                    if let &mut Some(ref mut tex) = &mut g.tex {
-                        if !g.has_color {
-                            tex.set_color_mod(0xb3, 0xb3, 0xb3);
-                        }
-                        canvas
-                            .copy(
-                                &tex,
-                                None,
-                                Some(Rect::new(
-                                    x + g.info.x_offset + g.bearing_x,
-                                    y - g.info.y_offset - g.bearing_y,
-                                    g.width,
-                                    g.height,
-                                )),
-                            )
-                            .map_err(failure::err_msg)?;
-                    }
-                    x += g.info.x_advance;
-                    y += g.info.y_advance;
-                }
-
-                with_cairo_surface(&mut canvas, &texture_creator, |cairo| {
-                    cairo.set_source_rgb(4.0, 0.2, 0.2);
-                    cairo.set_line_width(2.0);
-                    cairo.rectangle(200.0, 200.0, 300.0, 300.0);
-                    cairo.stroke();
-                })?;
-
-                canvas.present();
-            }
-            _ => {}
-        }
-    }
-    Ok(())
-}
-*/
 
 struct TerminalWindow<'a> {
     window_id: u32,
+    screen_num: i32,
     conn: &'a xcb::Connection,
     width: u16,
     height: u16,
+    font: Font,
+    cell_height: f64,
+    cell_width: f64,
 }
 
 impl<'a> TerminalWindow<'a> {
@@ -316,6 +45,15 @@ impl<'a> TerminalWindow<'a> {
         width: u16,
         height: u16,
     ) -> Result<TerminalWindow, Error> {
+
+        let mut pattern = FontPattern::parse("Operator Mono SSm Lig:size=10:slant=roman")?;
+        pattern.add_double("dpi", 96.0)?;
+        let mut font = Font::new(pattern)?;
+        // we always load the cell_height for font 0,
+        // regardless of which font we are shaping here,
+        // so that we can scale glyphs appropriately
+        let (cell_height, cell_width) = font.get_metrics()?;
+
         let setup = conn.get_setup();
         let screen = setup.roots().nth(screen_num as usize).ok_or(
             failure::err_msg(
@@ -350,14 +88,170 @@ impl<'a> TerminalWindow<'a> {
 
         Ok(TerminalWindow {
             window_id,
+            screen_num,
             conn,
             width,
             height,
+            font,
+            cell_height,
+            cell_width,
         })
     }
 
     fn show(&self) {
         xcb::map_window(self.conn, self.window_id);
+    }
+
+    fn paint(&mut self) -> Result<(), Error> {
+        let screen = self.conn
+            .get_setup()
+            .roots()
+            .nth(self.screen_num as usize)
+            .ok_or(failure::err_msg("no screen?"))?;
+        let surface = cairo::Surface::create(
+            &cairo::XCBConnection(unsafe { mem::transmute(self.conn.get_raw_conn()) }),
+            &cairo::XCBDrawable(self.window_id),
+            &cairo::XCBVisualType(unsafe {
+                mem::transmute(&mut visual_for_screen(&screen).base as *mut _)
+            }),
+            self.width as i32,
+            self.height as i32,
+        );
+        let ctx = cairo::Context::new(&surface);
+        let message = "x_advance != foo->bar(); ❤ 😍🤢";
+
+        ctx.set_source_rgba(0.8, 0.8, 0.8, 1.0);
+
+        let mut x = 0.0;
+        let mut y = self.cell_height.ceil();
+        let glyph_info = self.font.shape(0, message)?;
+        for info in glyph_info {
+            let ft_glyph = self.font.load_glyph(info.font_idx, info.glyph_pos)?;
+
+            let scale = if (info.x_advance / info.num_cells as f64).floor() > self.cell_width {
+                info.num_cells as f64 * (self.cell_width / info.x_advance)
+            } else if ft_glyph.bitmap.rows as f64 > self.cell_height {
+                self.cell_height / ft_glyph.bitmap.rows as f64
+            } else {
+                1.0f64
+            };
+
+            if ft_glyph.bitmap.width == 0 || ft_glyph.bitmap.rows == 0 {
+                // a whitespace glyph
+            } else {
+
+                let mode: ftwrap::FT_Pixel_Mode =
+                    unsafe { mem::transmute(ft_glyph.bitmap.pixel_mode as u32) };
+
+                // pitch is the number of bytes per source row
+                let pitch = ft_glyph.bitmap.pitch.abs() as usize;
+                let data = unsafe {
+                    slice::from_raw_parts_mut(
+                        ft_glyph.bitmap.buffer,
+                        ft_glyph.bitmap.rows as usize * pitch,
+                    )
+                };
+
+                let cairo_surface = match mode {
+                    ftwrap::FT_Pixel_Mode::FT_PIXEL_MODE_LCD => {
+                        // The FT rasterization is often not aligned in the way that
+                        // cairo would like, so let's allocate a surface of the correct
+                        // size and fill that up.
+                        let mut surface = cairo::ImageSurface::create(
+                            cairo::Format::Rgb24,
+                            (ft_glyph.bitmap.width / 3) as i32,
+                            ft_glyph.bitmap.rows as i32,
+                        ).map_err(cairo_err)?;
+                        {
+                            let dest_pitch = surface.get_stride() as usize;
+                            // debug!("LCD {:?} dest_pitch={}", ft_glyph.bitmap, dest_pitch);
+                            let mut dest_data = surface.get_data()?;
+                            for y in 0..ft_glyph.bitmap.rows as usize {
+                                let dest_offset = y * dest_pitch;
+                                let src_offset = y * pitch;
+                                dest_data[dest_offset..dest_offset + pitch]
+                                    .copy_from_slice(&data[src_offset..src_offset + pitch]);
+                            }
+                        }
+                        Ok(surface)
+                    }
+                    ftwrap::FT_Pixel_Mode::FT_PIXEL_MODE_GRAY => {
+                        // we get GRAY if we change FT_Render_Mode to FT_RENDER_MODE_NORMAL.
+                        // TODO: this isn't right; the glyphs seems super skinny
+                        let mut surface = cairo::ImageSurface::create(
+                            cairo::Format::ARgb32,
+                            ft_glyph.bitmap.width as i32 * 3,
+                            ft_glyph.bitmap.rows as i32,
+                        ).map_err(cairo_err)?;
+                        {
+                            let dest_pitch = surface.get_stride() as usize;
+                            debug!("GRAY {:?} dest_pitch={}", ft_glyph.bitmap, dest_pitch);
+                            let mut dest_data = surface.get_data()?;
+                            for y in 0..ft_glyph.bitmap.rows as usize {
+                                let dest_offset = y * dest_pitch;
+                                let src_offset = y * pitch;
+                                for x in 0..ft_glyph.bitmap.width as usize {
+                                    let gray = data[src_offset + x];
+                                    // TODO: this is likely endian specific
+                                    dest_data[dest_offset + x] = gray;
+                                    dest_data[dest_offset + x + 1] = gray;
+                                    dest_data[dest_offset + x + 2] = gray;
+                                    dest_data[dest_offset + x + 3] = 0xff;
+                                }
+                            }
+                        }
+                        Ok(surface)
+                    }
+                    ftwrap::FT_Pixel_Mode::FT_PIXEL_MODE_BGRA => unsafe {
+                        cairo::ImageSurface::from_raw_full(
+                            cairo_sys::cairo_image_surface_create_for_data(
+                                data.as_mut_ptr(),
+                                cairo::Format::ARgb32,
+                                ft_glyph.bitmap.width as i32,
+                                ft_glyph.bitmap.rows as i32,
+                                pitch as i32,
+                            ),
+                        )
+                    },
+                    mode @ _ => bail!("unhandled pixel mode: {:?}", mode),
+                }.map_err(cairo_err)?;
+
+                let bearing_x = ft_glyph.bitmap_left as f64;
+                let bearing_y = ft_glyph.bitmap_top as f64;
+
+                // TODO: colorize!
+
+                debug!(
+                    "x,y: {},{} bearing:{},{} off={},{} adv={},{} scale={}",
+                    x,
+                    y,
+                    bearing_x,
+                    bearing_y,
+                    info.x_offset,
+                    info.y_offset,
+                    info.x_advance,
+                    info.y_advance,
+                    scale,
+                );
+                ctx.translate(x, y);
+                ctx.scale(scale, scale);
+                ctx.set_source_surface(
+                    &cairo_surface,
+                    // Destination for the paint operation
+                    info.x_offset + bearing_x,
+                    -(info.y_offset + bearing_y),
+                );
+                ctx.paint();
+                ctx.identity_matrix();
+            }
+
+            x += scale * info.x_advance;
+            y += scale * info.y_advance;
+        }
+
+        surface.flush();
+        self.conn.flush();
+        Ok(())
     }
 }
 
@@ -373,14 +267,11 @@ fn visual_for_screen(screen: &xcb::Screen) -> xcb::Visualtype {
     unreachable!("screen doesn't have info on its own visual?");
 }
 
-fn run_xcb() -> Result<(), Error> {
-    use cairo::XCBSurface;
-    use cairo::prelude::*;
-
+fn run() -> Result<(), Error> {
     let (conn, screen_num) = xcb::Connection::connect(None)?;
     println!("Connected screen {}", screen_num);
 
-    let mut window = TerminalWindow::new(&conn, screen_num, 1024, 768)?;
+    let mut window = TerminalWindow::new(&conn, screen_num, 300, 300)?;
     window.show();
     conn.flush();
 
@@ -393,31 +284,7 @@ fn run_xcb() -> Result<(), Error> {
                 match r {
                     xcb::EXPOSE => {
                         println!("expose");
-                        let screen = conn.get_setup().roots().nth(screen_num as usize).ok_or(
-                            failure::err_msg("no screen?"),
-                        )?;
-                        let surface =
-                            cairo::Surface::create(
-                                &cairo::XCBConnection(unsafe { mem::transmute(conn.get_raw_conn()) }),
-                                &cairo::XCBDrawable(window.window_id),
-                                &cairo::XCBVisualType(unsafe {
-                                    mem::transmute(&mut visual_for_screen(&screen).base as *mut _)
-                                }),
-                                window.width as i32,
-                                window.height as i32,
-                            );
-                        let ctx = cairo::Context::new(&surface);
-                        ctx.select_font_face(
-                            "Operator Mono",
-                            cairo::FontSlant::Normal,
-                            cairo::FontWeight::Normal,
-                        );
-                        ctx.set_font_size(32.0);
-                        ctx.set_source_rgb(0.8, 0.8, 0.8);
-                        ctx.move_to(10.0, 50.0);
-                        ctx.show_text("x_advance != foo->bar(); ❤ 😍🤢");
-                        surface.flush();
-                        conn.flush();
+                        window.paint()?;
                     }
                     xcb::CONFIGURE_NOTIFY => {
                         let cfg: &xcb::ConfigureNotifyEvent = unsafe { xcb::cast_event(&event) };
@@ -439,7 +306,6 @@ fn run_xcb() -> Result<(), Error> {
     Ok(())
 }
 
-
 fn main() {
-    run_xcb().unwrap();
+    run().unwrap();
 }

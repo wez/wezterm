@@ -73,21 +73,24 @@ impl Face {
         }
     }
 
-    pub fn cell_metrics(&mut self) -> (i64, i64) {
+    pub fn cell_metrics(&mut self) -> (f64, f64) {
         unsafe {
             let metrics = &(*(*self.face).size).metrics;
-            let height = FT_MulFix(metrics.y_scale, (*self.face).height as i64) / 64;
+            let height = (metrics.y_scale as f64 * (*self.face).height as f64) /
+                (0x10000 as f64 * 64.0);
 
-            let mut width = 0;
+            let mut width = 0.0;
             for i in 32..128 {
                 let glyph_pos = FT_Get_Char_Index(self.face, i);
                 let res = FT_Load_Glyph(self.face, glyph_pos, FT_LOAD_COLOR as i32);
                 if res.succeeded() {
                     let glyph = &(*(*self.face).glyph);
-                    width = width.max(((glyph.metrics.horiAdvance as f64) / 64f64).ceil() as i64);
+                    if glyph.metrics.horiAdvance as f64 > width {
+                        width = glyph.metrics.horiAdvance as f64;
+                    }
                 }
             }
-            (width, height)
+            (width / 64.0, height)
         }
     }
 

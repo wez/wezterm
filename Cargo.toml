@@ -8,7 +8,6 @@ cairo-sys-rs = "0.5.0"
 failure = "0.1.1"
 freetype = "0.3.0"
 harfbuzz-sys = "0.1.15"
-hexdump = "0.1.0"
 servo-fontconfig = "0.4.0"
 unicode-width = "0.1.4"
 vte = "0.3.2"
@@ -18,9 +17,3 @@ xcb = "0.8.1"
 features = ["xcb"]
 version = "0.3.0"
 
-[dependencies.sdl2]
-features = [
-    "bundled",
-    "static-link",
-]
-version = "0.31.0"
