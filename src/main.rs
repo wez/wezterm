@@ -14,6 +14,8 @@ pub mod log;
 use failure::Error;
 
 extern crate xcb;
+extern crate xcb_util;
+
 use std::mem;
 use std::slice;
 
@@ -89,6 +91,7 @@ impl<'a> TerminalWindow<'a> {
                 ),
             ],
         );
+        xcb_util::icccm::set_wm_name(&conn, window_id, "wterm");
 
         let window_surface =
             TerminalWindow::make_cairo_surface(&conn, screen_num, window_id, width, height)?;

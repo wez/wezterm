@@ -17,3 +17,6 @@ xcb = "0.8.1"
 features = ["xcb"]
 version = "0.3.0"
 
+[dependencies.xcb-util]
+version = "0.2.0"
+features = ["image", "icccm", "ewmh", "misc"]
