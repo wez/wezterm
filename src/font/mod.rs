@@ -96,7 +96,7 @@ impl Font {
 
         // Enable some filtering options and pull in the standard
         // fallback font selection from the user configuration
-        //pattern.monospace()?;
+        pattern.monospace()?;
         pattern.config_substitute(fcwrap::MatchKind::Pattern)?;
         pattern.default_substitute();
 
@@ -196,13 +196,11 @@ impl Font {
         }
     }
 
-    pub fn get_metrics(&mut self) -> Result<(f64, f64), Error> {
+    pub fn get_metrics(&mut self) -> Result<(f64, f64, i16), Error> {
         let font = self.get_font(0)?;
-        Ok((font.cell_height, font.cell_width))
-    }
-
-    pub fn get_font_point_size(&self) -> Result<f64, Error> {
-        self.pattern.get_double("size")
+        Ok((font.cell_height, font.cell_width, unsafe {
+            (*font.face.face).descender
+        }))
     }
 
     pub fn shape(&mut self, font_idx: usize, s: &str) -> Result<Vec<GlyphInfo>, Error> {
@@ -336,7 +334,8 @@ impl Font {
     ) -> Result<&ftwrap::FT_GlyphSlotRec_, Error> {
         let info = &mut self.fonts[font_idx];
 
-        let render_mode = ftwrap::FT_Render_Mode::FT_RENDER_MODE_LCD;
+        let render_mode =//ftwrap::FT_Render_Mode::FT_RENDER_MODE_NORMAL;
+            ftwrap::FT_Render_Mode::FT_RENDER_MODE_LCD;
 
         // when changing the load flags, we also need
         // to change them for harfbuzz otherwise it won't

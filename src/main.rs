@@ -36,6 +36,7 @@ struct TerminalWindow<'a> {
     font: Font,
     cell_height: f64,
     cell_width: f64,
+    descender: f64,
     cairo_context: cairo::Context,
     window_surface: cairo::Surface,
     buffer_surface: cairo::ImageSurface,
@@ -50,13 +51,13 @@ impl<'a> TerminalWindow<'a> {
         height: u16,
     ) -> Result<TerminalWindow, Error> {
 
-        let mut pattern = FontPattern::parse("Operator Mono SSm Lig:size=10:slant=roman")?;
+        let mut pattern = FontPattern::parse("Operator Mono SSm:size=16")?;
         pattern.add_double("dpi", 96.0)?;
         let mut font = Font::new(pattern)?;
         // we always load the cell_height for font 0,
         // regardless of which font we are shaping here,
         // so that we can scale glyphs appropriately
-        let (cell_height, cell_width) = font.get_metrics()?;
+        let (cell_height, cell_width, descender) = font.get_metrics()?;
 
         let setup = conn.get_setup();
         let screen = setup.roots().nth(screen_num as usize).ok_or(
@@ -96,6 +97,13 @@ impl<'a> TerminalWindow<'a> {
                 .map_err(cairo_err)?;
 
         let cairo_context = cairo::Context::new(&window_surface);
+
+        let descender = if descender.is_positive() {
+            ((descender as f64) / 64.0).ceil()
+        } else {
+            ((descender as f64) / 64.0).floor()
+        };
+
         Ok(TerminalWindow {
             window_id,
             screen_num,
@@ -105,6 +113,7 @@ impl<'a> TerminalWindow<'a> {
             font,
             cell_height,
             cell_width,
+            descender,
             cairo_context,
             buffer_surface,
             window_surface,
@@ -232,7 +241,6 @@ impl<'a> TerminalWindow<'a> {
                         ).map_err(cairo_err)?;
                         {
                             let dest_pitch = surface.get_stride() as usize;
-                            // debug!("LCD {:?} dest_pitch={}", ft_glyph.bitmap, dest_pitch);
                             let mut dest_data = surface.get_data()?;
                             for y in 0..ft_glyph.bitmap.rows as usize {
                                 let dest_offset = y * dest_pitch;
@@ -244,27 +252,22 @@ impl<'a> TerminalWindow<'a> {
                         Ok(surface)
                     }
                     ftwrap::FT_Pixel_Mode::FT_PIXEL_MODE_GRAY => {
-                        // we get GRAY if we change FT_Render_Mode to FT_RENDER_MODE_NORMAL.
-                        // TODO: this isn't right; the glyphs seems super skinny
                         let mut surface = cairo::ImageSurface::create(
-                            cairo::Format::ARgb32,
-                            ft_glyph.bitmap.width as i32 * 3,
+                            cairo::Format::Rgb24,
+                            ft_glyph.bitmap.width as i32,
                             ft_glyph.bitmap.rows as i32,
                         ).map_err(cairo_err)?;
                         {
                             let dest_pitch = surface.get_stride() as usize;
-                            debug!("GRAY {:?} dest_pitch={}", ft_glyph.bitmap, dest_pitch);
                             let mut dest_data = surface.get_data()?;
                             for y in 0..ft_glyph.bitmap.rows as usize {
-                                let dest_offset = y * dest_pitch;
                                 let src_offset = y * pitch;
                                 for x in 0..ft_glyph.bitmap.width as usize {
+                                    let dest_offset = (y * dest_pitch) + (x * 3);
                                     let gray = data[src_offset + x];
-                                    // TODO: this is likely endian specific
-                                    dest_data[dest_offset + x] = gray;
-                                    dest_data[dest_offset + x + 1] = gray;
-                                    dest_data[dest_offset + x + 2] = gray;
-                                    dest_data[dest_offset + x + 3] = 0xff;
+                                    dest_data[dest_offset + 0] = gray;
+                                    dest_data[dest_offset + 1] = gray;
+                                    dest_data[dest_offset + 2] = gray;
                                 }
                             }
                         }
@@ -288,9 +291,10 @@ impl<'a> TerminalWindow<'a> {
                 let bearing_y = ft_glyph.bitmap_top as f64;
 
                 debug!(
-                    "x,y: {},{} bearing:{},{} off={},{} adv={},{} scale={}",
+                    "x,y: {},{} desc={} bearing:{},{} off={},{} adv={},{} scale={} width={}",
                     x,
                     y,
+                    self.descender,
                     bearing_x,
                     bearing_y,
                     info.x_offset,
@@ -298,8 +302,9 @@ impl<'a> TerminalWindow<'a> {
                     info.x_advance,
                     info.y_advance,
                     scale,
+                    cairo_surface.get_width(),
                 );
-                ctx.translate(x, y);
+                ctx.translate(x, y + self.descender);
                 ctx.scale(scale, scale);
 
                 ctx.set_source_surface(
@@ -310,7 +315,7 @@ impl<'a> TerminalWindow<'a> {
                 );
                 ctx.paint();
 
-                if !has_color {
+                if !has_color || false {
                     // Apply text color.
                     // TODO: we only do this for non-colored fonts, but
                     // we could apply it to those also if the current
@@ -331,6 +336,11 @@ impl<'a> TerminalWindow<'a> {
 
                 ctx.identity_matrix();
             }
+
+            // for debugging purposes, outline the cell
+            ctx.set_source_rgb(0.2, 0.2, 0.2);
+            ctx.rectangle(x, y - self.cell_height, self.cell_width, self.cell_height);
+            ctx.stroke();
 
             x += scale * info.x_advance;
             y += scale * info.y_advance;
@@ -370,7 +380,7 @@ fn run() -> Result<(), Error> {
         let event = if window.need_paint {
             match conn.poll_for_queued_event() {
                 None => {
-                    window.paint();
+                    window.paint()?;
                     continue;
                 }
                 Some(event) => Some(event),
