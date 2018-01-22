@@ -39,6 +39,7 @@ struct TerminalWindow<'a> {
     cairo_context: cairo::Context,
     window_surface: cairo::Surface,
     buffer_surface: cairo::ImageSurface,
+    need_paint: bool,
 }
 
 impl<'a> TerminalWindow<'a> {
@@ -107,6 +108,7 @@ impl<'a> TerminalWindow<'a> {
             cairo_context,
             buffer_surface,
             window_surface,
+            need_paint: true,
         })
     }
 
@@ -147,6 +149,7 @@ impl<'a> TerminalWindow<'a> {
             self.window_surface.set_size(width as i32, height as i32);
             self.width = width;
             self.height = height;
+            self.need_paint = true;
             Ok(true)
         } else {
             debug!("ignoring extra resize");
@@ -178,19 +181,19 @@ impl<'a> TerminalWindow<'a> {
 
     fn paint(&mut self) -> Result<(), Error> {
         debug!("paint");
+        self.need_paint = false;
         let ctx = cairo::Context::new(&self.buffer_surface);
 
         let message = "x_advance != foo->bar(); ❤ 😍🤢";
 
-        ctx.set_source_rgba(0.0, 0.0, 0.0, 1.0);
+        ctx.set_source_rgb(0.0, 0.0, 0.0);
         ctx.paint();
-
-        ctx.set_source_rgba(0.8, 0.8, 0.8, 1.0);
 
         let mut x = 0.0;
         let mut y = self.cell_height.ceil();
         let glyph_info = self.font.shape(0, message)?;
         for info in glyph_info {
+            let has_color = self.font.has_color(info.font_idx)?;
             let ft_glyph = self.font.load_glyph(info.font_idx, info.glyph_pos)?;
 
             let scale = if (info.x_advance / info.num_cells as f64).floor() > self.cell_width {
@@ -284,8 +287,6 @@ impl<'a> TerminalWindow<'a> {
                 let bearing_x = ft_glyph.bitmap_left as f64;
                 let bearing_y = ft_glyph.bitmap_top as f64;
 
-                // TODO: colorize!
-
                 debug!(
                     "x,y: {},{} bearing:{},{} off={},{} adv={},{} scale={}",
                     x,
@@ -300,6 +301,7 @@ impl<'a> TerminalWindow<'a> {
                 );
                 ctx.translate(x, y);
                 ctx.scale(scale, scale);
+
                 ctx.set_source_surface(
                     &cairo_surface,
                     // Destination for the paint operation
@@ -307,6 +309,26 @@ impl<'a> TerminalWindow<'a> {
                     -(info.y_offset + bearing_y),
                 );
                 ctx.paint();
+
+                if !has_color {
+                    // Apply text color.
+                    // TODO: we only do this for non-colored fonts, but
+                    // we could apply it to those also if the current
+                    // cell color is not the default foreground attribute.
+                    ctx.save();
+                    ctx.rectangle(
+                        info.x_offset + bearing_x,
+                        -(info.y_offset + bearing_y),
+                        cairo_surface.get_width() as f64,
+                        cairo_surface.get_height() as f64,
+                    );
+                    ctx.clip();
+                    ctx.set_source_rgb(0.7, 0.7, 0.7);
+                    ctx.set_operator(cairo::Operator::Multiply);
+                    ctx.paint();
+                    ctx.restore();
+                }
+
                 ctx.identity_matrix();
             }
 
@@ -338,13 +360,24 @@ fn run() -> Result<(), Error> {
     let (conn, screen_num) = xcb::Connection::connect(None)?;
     println!("Connected screen {}", screen_num);
 
-    let mut window = TerminalWindow::new(&conn, screen_num, 300, 300)?;
-    window.paint()?;
+    let mut window = TerminalWindow::new(&conn, screen_num, 1024, 300)?;
     window.show();
     conn.flush();
 
     loop {
-        let event = conn.wait_for_event();
+        // If we need to re-render the display, try to defer that until after we've
+        // consumed the input queue
+        let event = if window.need_paint {
+            match conn.poll_for_queued_event() {
+                None => {
+                    window.paint();
+                    continue;
+                }
+                Some(event) => Some(event),
+            }
+        } else {
+            conn.wait_for_event()
+        };
         match event {
             None => break,
             Some(event) => {
@@ -361,9 +394,7 @@ fn run() -> Result<(), Error> {
                     }
                     xcb::CONFIGURE_NOTIFY => {
                         let cfg: &xcb::ConfigureNotifyEvent = unsafe { xcb::cast_event(&event) };
-                        if window.resize_surfaces(cfg.width(), cfg.height())? {
-                            window.paint()?;
-                        }
+                        window.resize_surfaces(cfg.width(), cfg.height())?;
                     }
                     xcb::KEY_PRESS => {
                         let key_press: &xcb::KeyPressEvent = unsafe { xcb::cast_event(&event) };

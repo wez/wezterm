@@ -187,6 +187,15 @@ impl Font {
         Ok(&mut self.fonts[idx])
     }
 
+    pub fn has_color(&mut self, idx: usize) -> Result<bool, Error> {
+        let font = self.get_font(idx)?;
+        unsafe {
+            Ok(
+                ((*font.face.face).face_flags & ftwrap::FT_FACE_FLAG_COLOR as i64) != 0,
+            )
+        }
+    }
+
     pub fn get_metrics(&mut self) -> Result<(f64, f64), Error> {
         let font = self.get_font(0)?;
         Ok((font.cell_height, font.cell_width))
