@@ -61,10 +61,7 @@ impl<'a> Window<'a> {
                 ),
             ],
         ).request_check()?;
-        Ok(Window {
-            conn,
-            window_id,
-        })
+        Ok(Window { conn, window_id })
     }
 
     /// Change the title for the window manager
@@ -169,7 +166,7 @@ impl<'a> Context<'a> {
     /// Send image bytes and render them into the drawable that was used to
     /// create this context.
     pub fn put_image(&self, dest_x: i16, dest_y: i16, im: &Image) -> xcb::VoidCookie {
-        println!(
+        debug!(
             "put_image @{},{} x {},{}",
             dest_x,
             dest_y,
@@ -199,17 +196,98 @@ impl<'a> Drop for Context<'a> {
 }
 
 /// A color stored as big endian bgra32
+#[derive(Copy, Clone)]
 pub struct Color(u32);
 
 impl Color {
+    #[inline]
     pub fn rgb(red: u8, green: u8, blue: u8) -> Color {
         Color::rgba(red, green, blue, 0xff)
     }
 
+    #[inline]
     pub fn rgba(red: u8, green: u8, blue: u8, alpha: u8) -> Color {
         let word = (blue as u32) << 24 | (green as u32) << 16 | (red as u32) << 8 | alpha as u32;
         Color(word.to_be())
     }
+
+    #[inline]
+    pub fn as_rgba(&self) -> (u8, u8, u8, u8) {
+        let host = u32::from_be(self.0);
+        (
+            (host >> 8) as u8,
+            (host >> 16) as u8,
+            (host >> 24) as u8,
+            (host & 0xff) as u8,
+        )
+    }
+
+    /// Compute the composite of two colors according to the supplied operator.
+    /// self is the src operand, dest is the dest operand.
+    #[inline]
+    pub fn composite(&self, dest: Color, operator: &Operator) -> Color {
+        match operator {
+            &Operator::Over => {
+                let (src_r, src_g, src_b, src_a) = self.as_rgba();
+                let (dst_r, dst_g, dst_b, _dst_a) = dest.as_rgba();
+
+                // Alpha blending per https://stackoverflow.com/a/12016968/149111
+                let inv_alpha = 256u16 - src_a as u16;
+                let alpha = src_a as u16 + 1;
+
+                Color::rgb(
+                    ((alpha * src_r as u16 + inv_alpha * dst_r as u16) >> 8) as u8,
+                    ((alpha * src_g as u16 + inv_alpha * dst_g as u16) >> 8) as u8,
+                    ((alpha * src_b as u16 + inv_alpha * dst_b as u16) >> 8) as u8,
+                )
+            }
+
+            &Operator::Dest => dest,
+
+            &Operator::Source => *self,
+
+            &Operator::Multiply => {
+                let (src_r, src_g, src_b, src_a) = self.as_rgba();
+                let (dst_r, dst_g, dst_b, _dst_a) = dest.as_rgba();
+                let r = ((src_r as u16 * dst_r as u16) >> 8) as u8;
+                let g = ((src_g as u16 * dst_g as u16) >> 8) as u8;
+                let b = ((src_b as u16 * dst_b as u16) >> 8) as u8;
+
+                Color::rgba(r, g, b, src_a)
+            }
+
+            &Operator::MultiplyThenOver(ref tint) => {
+                self.composite(*tint, &Operator::Multiply).composite(
+                    dest,
+                    &Operator::Over,
+                )
+            }
+        }
+    }
+}
+
+/// Compositing operator.
+/// We implement a small subset of possible compositing operators.
+/// More information on these and their temrinology can be found
+/// in the Cairo documentation here:
+/// https://www.cairographics.org/operators/
+pub enum Operator {
+    /// Apply the alpha channel of src and combine src with dest,
+    /// according to the classic OVER composite operator
+    Over,
+    /// Ignore src; leave dest untouched
+    Dest,
+    /// Ignore dest; take src as the result of the operation
+    Source,
+    /// Multiply src x dest.  The result is at least as dark as
+    /// the darker of the two input colors.  This is used to
+    /// apply a color tint.
+    Multiply,
+    /// Multiply src with the provided color, then apply the
+    /// Over operator on the result with the dest as the dest.
+    /// This is used to colorize the src and then blend the
+    /// result into the destination.
+    MultiplyThenOver(Color),
 }
 
 /// A bitmap in big endian bgra32 color format
@@ -246,7 +324,7 @@ impl Image {
                 let blue = data[src_offset + (x * 3) + 0];
                 let green = data[src_offset + (x * 3) + 1];
                 let red = data[src_offset + (x * 3) + 2];
-                let alpha = if (red | green | blue) > 0 { 0xff } else { 0 };
+                let alpha = red | green | blue;
                 image.data[dest_offset + (x * 4) + 0] = blue;
                 image.data[dest_offset + (x * 4) + 1] = green;
                 image.data[dest_offset + (x * 4) + 2] = red;
@@ -287,12 +365,11 @@ impl Image {
             let dest_offset = y * width * 4;
             for x in 0..width {
                 let gray = data[src_offset + x];
-                let alpha = if gray != 0 { 0xff } else { 0 };
 
                 image.data[dest_offset + (x * 4) + 0] = gray;
                 image.data[dest_offset + (x * 4) + 1] = gray;
                 image.data[dest_offset + (x * 4) + 2] = gray;
-                image.data[dest_offset + (x * 4) + 3] = alpha;
+                image.data[dest_offset + (x * 4) + 3] = gray;
             }
         }
 
@@ -382,8 +459,8 @@ impl Image {
         }
     }
 
-    pub fn draw_image(&mut self, dest_x: isize, dest_y: isize, im: &Image) {
-        self.draw_image_subset(dest_x, dest_y, 0, 0, im.width, im.height, im)
+    pub fn draw_image(&mut self, dest_x: isize, dest_y: isize, im: &Image, operator: Operator) {
+        self.draw_image_subset(dest_x, dest_y, 0, 0, im.width, im.height, im, operator)
     }
 
     pub fn draw_image_subset(
@@ -395,10 +472,11 @@ impl Image {
         width: usize,
         height: usize,
         im: &Image,
+        operator: Operator,
     ) {
         assert!(width <= im.width && height <= im.height);
         assert!(src_x < im.width && src_y < im.height);
-        for y in src_y..height {
+        for y in src_y..src_y + height {
             let dest_y = y as isize + dest_y - src_y as isize;
             if dest_y < 0 {
                 continue;
@@ -406,7 +484,7 @@ impl Image {
             if dest_y as usize >= self.height {
                 break;
             }
-            for x in src_x..width {
+            for x in src_x..src_x + width {
                 let dest_x = x as isize + dest_x - src_x as isize;
                 if dest_x < 0 {
                     continue;
@@ -415,7 +493,9 @@ impl Image {
                     break;
                 }
 
-                *self.pixel_mut(dest_x as usize, dest_y as usize) = im.pixel(x, y);
+                let src = Color(im.pixel(x, y));
+                let dst = self.pixel_mut(dest_x as usize, dest_y as usize);
+                *dst = src.composite(Color(*dst), &operator).0;
             }
         }
     }

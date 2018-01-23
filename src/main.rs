@@ -87,7 +87,7 @@ impl<'a> TerminalWindow<'a> {
         if width != self.width || height != self.height {
             debug!("resize {},{}", width, height);
             let mut buffer = xgfx::Image::new(width as usize, height as usize);
-            buffer.draw_image(0, 0, &self.buffer_image);
+            buffer.draw_image(0, 0, &self.buffer_image, xgfx::Operator::Source);
             self.buffer_image = buffer;
             self.width = width;
             self.height = height;
@@ -113,6 +113,7 @@ impl<'a> TerminalWindow<'a> {
                 width as usize,
                 height as usize,
                 &self.buffer_image,
+                xgfx::Operator::Source,
             );
             self.window_context.put_image(x as i16, y as i16, &im);
         }
@@ -221,11 +222,16 @@ impl<'a> TerminalWindow<'a> {
                     image
                 };
 
-                // TODO: colorize
+                let operator = if has_color {
+                    xgfx::Operator::Over
+                } else {
+                    xgfx::Operator::MultiplyThenOver(xgfx::Color::rgb(0xb3, 0xb3, 0xb3))
+                };
                 self.buffer_image.draw_image(
                     x + x_offset as isize + bearing_x,
                     y + self.descender - (y_offset as isize + bearing_y),
                     &image,
+                    operator,
                 );
             }
 
