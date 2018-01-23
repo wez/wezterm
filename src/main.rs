@@ -2,12 +2,11 @@
 extern crate failure;
 extern crate unicode_width;
 extern crate harfbuzz_sys;
-extern crate cairo;
-extern crate cairo_sys;
 #[cfg(not(target_os = "macos"))]
 extern crate fontconfig; // from servo-fontconfig
 #[cfg(not(target_os = "macos"))]
 extern crate freetype;
+extern crate resize;
 #[macro_use]
 pub mod log;
 
@@ -19,29 +18,21 @@ extern crate xcb_util;
 use std::mem;
 use std::slice;
 
-use cairo::XCBSurface;
-use cairo::prelude::*;
-
+mod xgfx;
 mod font;
 use font::{Font, FontPattern, ftwrap};
 
-fn cairo_err(status: cairo::Status) -> Error {
-    format_err!("cairo status: {:?}", status)
-}
-
 struct TerminalWindow<'a> {
-    window_id: u32,
-    screen_num: i32,
+    window: xgfx::Window<'a>,
     conn: &'a xcb::Connection,
     width: u16,
     height: u16,
     font: Font,
     cell_height: f64,
     cell_width: f64,
-    descender: f64,
-    cairo_context: cairo::Context,
-    window_surface: cairo::Surface,
-    buffer_surface: cairo::ImageSurface,
+    descender: isize,
+    window_context: xgfx::Context<'a>,
+    buffer_image: xgfx::Image,
     need_paint: bool,
 }
 
@@ -53,7 +44,7 @@ impl<'a> TerminalWindow<'a> {
         height: u16,
     ) -> Result<TerminalWindow, Error> {
 
-        let mut pattern = FontPattern::parse("Operator Mono SSm:size=16")?;
+        let mut pattern = FontPattern::parse("Operator Mono SSm Lig:size=12")?;
         pattern.add_double("dpi", 96.0)?;
         let mut font = Font::new(pattern)?;
         // we always load the cell_height for font 0,
@@ -61,55 +52,22 @@ impl<'a> TerminalWindow<'a> {
         // so that we can scale glyphs appropriately
         let (cell_height, cell_width, descender) = font.get_metrics()?;
 
-        let setup = conn.get_setup();
-        let screen = setup.roots().nth(screen_num as usize).ok_or(
-            failure::err_msg(
-                "no screen?",
-            ),
-        )?;
-        let window_id = conn.generate_id();
+        let window = xgfx::Window::new(&conn, screen_num, width, height)?;
+        window.set_title("wterm");
+        let window_context = xgfx::Context::new(conn, &window);
 
-        xcb::create_window(
-            &conn,
-            xcb::COPY_FROM_PARENT as u8,
-            window_id,
-            screen.root(),
-            // x, y
-            0,
-            0,
-            // width, height
-            width,
-            height,
-            // border width
-            0,
-            xcb::WINDOW_CLASS_INPUT_OUTPUT as u16,
-            screen.root_visual(),
-            &[
-                (
-                    xcb::CW_EVENT_MASK,
-                    xcb::EVENT_MASK_EXPOSURE | xcb::EVENT_MASK_KEY_PRESS | xcb::EVENT_MASK_STRUCTURE_NOTIFY,
-                ),
-            ],
-        );
-        xcb_util::icccm::set_wm_name(&conn, window_id, "wterm");
-
-        let window_surface =
-            TerminalWindow::make_cairo_surface(&conn, screen_num, window_id, width, height)?;
-        let buffer_surface =
-            cairo::ImageSurface::create(cairo::Format::ARgb32, width as i32, height as i32)
-                .map_err(cairo_err)?;
-
-        let cairo_context = cairo::Context::new(&window_surface);
+        let buffer_image = xgfx::Image::new(width as usize, height as usize);
 
         let descender = if descender.is_positive() {
-            ((descender as f64) / 64.0).ceil()
+            ((descender as f64) / 64.0).ceil() as isize
         } else {
-            ((descender as f64) / 64.0).floor()
+            ((descender as f64) / 64.0).floor() as isize
         };
 
         Ok(TerminalWindow {
-            window_id,
-            screen_num,
+            window,
+            window_context,
+            buffer_image,
             conn,
             width,
             height,
@@ -117,48 +75,20 @@ impl<'a> TerminalWindow<'a> {
             cell_height,
             cell_width,
             descender,
-            cairo_context,
-            buffer_surface,
-            window_surface,
             need_paint: true,
         })
     }
 
     fn show(&self) {
-        xcb::map_window(self.conn, self.window_id);
-    }
-
-    fn make_cairo_surface(
-        conn: &xcb::Connection,
-        screen_num: i32,
-        window_id: u32,
-        width: u16,
-        height: u16,
-    ) -> Result<cairo::Surface, Error> {
-        let screen = conn.get_setup().roots().nth(screen_num as usize).ok_or(
-            failure::err_msg("no screen?"),
-        )?;
-        Ok(cairo::Surface::create(
-            &cairo::XCBConnection(
-                unsafe { mem::transmute(conn.get_raw_conn()) },
-            ),
-            &cairo::XCBDrawable(window_id),
-            &cairo::XCBVisualType(unsafe {
-                mem::transmute(&mut visual_for_screen(&screen).base as *mut _)
-            }),
-            width as i32,
-            height as i32,
-        ))
+        self.window.show();
     }
 
     fn resize_surfaces(&mut self, width: u16, height: u16) -> Result<bool, Error> {
         if width != self.width || height != self.height {
             debug!("resize {},{}", width, height);
-            self.buffer_surface =
-                cairo::ImageSurface::create(cairo::Format::ARgb32, width as i32, height as i32)
-                    .map_err(cairo_err)?;
-
-            self.window_surface.set_size(width as i32, height as i32);
+            let mut buffer = xgfx::Image::new(width as usize, height as usize);
+            buffer.draw_image(0, 0, &self.buffer_image);
+            self.buffer_image = buffer;
             self.width = width;
             self.height = height;
             self.need_paint = true;
@@ -171,21 +101,21 @@ impl<'a> TerminalWindow<'a> {
 
     fn expose(&mut self, x: u16, y: u16, width: u16, height: u16) -> Result<(), Error> {
         debug!("expose {},{}, {},{}", x, y, width, height);
-        self.cairo_context.reset_clip();
-        self.cairo_context.set_source_surface(
-            &self.buffer_surface,
-            0.0,
-            0.0,
-        );
-        self.cairo_context.rectangle(
-            x as f64,
-            y as f64,
-            width as f64,
-            height as f64,
-        );
-        self.cairo_context.clip();
-        self.cairo_context.paint();
-
+        if x == 0 && y == 0 && width == self.width && height == self.height {
+            self.window_context.put_image(0, 0, &self.buffer_image);
+        } else {
+            let mut im = xgfx::Image::new(width as usize, height as usize);
+            im.draw_image_subset(
+                0,
+                0,
+                x as usize,
+                y as usize,
+                width as usize,
+                height as usize,
+                &self.buffer_image,
+            );
+            self.window_context.put_image(x as i16, y as i16, &im);
+        }
         self.conn.flush();
 
         Ok(())
@@ -194,15 +124,13 @@ impl<'a> TerminalWindow<'a> {
     fn paint(&mut self) -> Result<(), Error> {
         debug!("paint");
         self.need_paint = false;
-        let ctx = cairo::Context::new(&self.buffer_surface);
 
         let message = "x_advance != foo->bar(); ❤ 😍🤢";
 
-        ctx.set_source_rgb(0.0, 0.0, 0.0);
-        ctx.paint();
+        self.buffer_image.clear(xgfx::Color::rgb(0, 0, 0));
 
-        let mut x = 0.0;
-        let mut y = self.cell_height.ceil();
+        let mut x = 0 as isize;
+        let mut y = self.cell_height.ceil() as isize;
         let glyph_info = self.font.shape(0, message)?;
         for info in glyph_info {
             let has_color = self.font.has_color(info.font_idx)?;
@@ -214,6 +142,16 @@ impl<'a> TerminalWindow<'a> {
                 self.cell_height / ft_glyph.bitmap.rows as f64
             } else {
                 1.0f64
+            };
+            let (x_offset, y_offset, x_advance, y_advance) = if scale != 1.0 {
+                (
+                    info.x_offset * scale,
+                    info.y_offset * scale,
+                    info.x_advance * scale,
+                    info.y_advance * scale,
+                )
+            } else {
+                (info.x_offset, info.y_offset, info.x_advance, info.y_advance)
             };
 
             if ft_glyph.bitmap.width == 0 || ft_glyph.bitmap.rows == 0 {
@@ -232,141 +170,71 @@ impl<'a> TerminalWindow<'a> {
                     )
                 };
 
-                let cairo_surface = match mode {
+                let image = match mode {
                     ftwrap::FT_Pixel_Mode::FT_PIXEL_MODE_LCD => {
-                        // The FT rasterization is often not aligned in the way that
-                        // cairo would like, so let's allocate a surface of the correct
-                        // size and fill that up.
-                        let mut surface = cairo::ImageSurface::create(
-                            cairo::Format::Rgb24,
-                            (ft_glyph.bitmap.width / 3) as i32,
-                            ft_glyph.bitmap.rows as i32,
-                        ).map_err(cairo_err)?;
-                        {
-                            let dest_pitch = surface.get_stride() as usize;
-                            let mut dest_data = surface.get_data()?;
-                            for y in 0..ft_glyph.bitmap.rows as usize {
-                                let dest_offset = y * dest_pitch;
-                                let src_offset = y * pitch;
-                                dest_data[dest_offset..dest_offset + pitch]
-                                    .copy_from_slice(&data[src_offset..src_offset + pitch]);
-                            }
-                        }
-                        Ok(surface)
+                        xgfx::Image::with_bgr24(
+                            ft_glyph.bitmap.width as usize / 3,
+                            ft_glyph.bitmap.rows as usize,
+                            pitch as usize,
+                            data,
+                        )
+                    }
+                    ftwrap::FT_Pixel_Mode::FT_PIXEL_MODE_BGRA => {
+                        xgfx::Image::with_bgra32(
+                            ft_glyph.bitmap.width as usize,
+                            ft_glyph.bitmap.rows as usize,
+                            pitch as usize,
+                            data,
+                        )
                     }
                     ftwrap::FT_Pixel_Mode::FT_PIXEL_MODE_GRAY => {
-                        let mut surface = cairo::ImageSurface::create(
-                            cairo::Format::Rgb24,
-                            ft_glyph.bitmap.width as i32,
-                            ft_glyph.bitmap.rows as i32,
-                        ).map_err(cairo_err)?;
-                        {
-                            let dest_pitch = surface.get_stride() as usize;
-                            let mut dest_data = surface.get_data()?;
-                            for y in 0..ft_glyph.bitmap.rows as usize {
-                                let src_offset = y * pitch;
-                                for x in 0..ft_glyph.bitmap.width as usize {
-                                    let dest_offset = (y * dest_pitch) + (x * 3);
-                                    let gray = data[src_offset + x];
-                                    dest_data[dest_offset + 0] = gray;
-                                    dest_data[dest_offset + 1] = gray;
-                                    dest_data[dest_offset + 2] = gray;
-                                }
-                            }
-                        }
-                        Ok(surface)
-                    }
-                    ftwrap::FT_Pixel_Mode::FT_PIXEL_MODE_BGRA => unsafe {
-                        cairo::ImageSurface::from_raw_full(
-                            cairo_sys::cairo_image_surface_create_for_data(
-                                data.as_mut_ptr(),
-                                cairo::Format::ARgb32,
-                                ft_glyph.bitmap.width as i32,
-                                ft_glyph.bitmap.rows as i32,
-                                pitch as i32,
-                            ),
+                        xgfx::Image::with_8bpp(
+                            ft_glyph.bitmap.width as usize,
+                            ft_glyph.bitmap.rows as usize,
+                            pitch as usize,
+                            data,
                         )
-                    },
+                    }
                     mode @ _ => bail!("unhandled pixel mode: {:?}", mode),
-                }.map_err(cairo_err)?;
+                };
 
-                let bearing_x = ft_glyph.bitmap_left as f64;
-                let bearing_y = ft_glyph.bitmap_top as f64;
+                let bearing_x = (ft_glyph.bitmap_left as f64 * scale) as isize;
+                let bearing_y = (ft_glyph.bitmap_top as f64 * scale) as isize;
 
                 debug!(
-                    "x,y: {},{} desc={} bearing:{},{} off={},{} adv={},{} scale={} width={}",
+                    "x,y: {},{} desc={} bearing:{},{} off={},{} adv={},{} scale={}",
                     x,
                     y,
                     self.descender,
                     bearing_x,
                     bearing_y,
-                    info.x_offset,
-                    info.y_offset,
-                    info.x_advance,
-                    info.y_advance,
+                    x_offset,
+                    y_offset,
+                    x_advance,
+                    y_advance,
                     scale,
-                    cairo_surface.get_width(),
                 );
-                ctx.translate(x, y + self.descender);
-                ctx.scale(scale, scale);
 
-                ctx.set_source_surface(
-                    &cairo_surface,
-                    // Destination for the paint operation
-                    info.x_offset + bearing_x,
-                    -(info.y_offset + bearing_y),
+                let image = if scale != 1.0 {
+                    image.scale_by(scale)
+                } else {
+                    image
+                };
+
+                // TODO: colorize
+                self.buffer_image.draw_image(
+                    x + x_offset as isize + bearing_x,
+                    y + self.descender - (y_offset as isize + bearing_y),
+                    &image,
                 );
-                ctx.paint();
-
-                if !has_color || false {
-                    // Apply text color.
-                    // TODO: we only do this for non-colored fonts, but
-                    // we could apply it to those also if the current
-                    // cell color is not the default foreground attribute.
-                    ctx.save();
-                    ctx.rectangle(
-                        info.x_offset + bearing_x,
-                        -(info.y_offset + bearing_y),
-                        cairo_surface.get_width() as f64,
-                        cairo_surface.get_height() as f64,
-                    );
-                    ctx.clip();
-                    ctx.set_source_rgb(0.7, 0.7, 0.7);
-                    ctx.set_operator(cairo::Operator::Multiply);
-                    ctx.paint();
-                    ctx.restore();
-                }
-
-                ctx.identity_matrix();
             }
 
-            // for debugging purposes, outline the cell
-            ctx.set_source_rgb(0.2, 0.2, 0.2);
-            ctx.rectangle(x, y - self.cell_height, self.cell_width, self.cell_height);
-            ctx.stroke();
-
-            x += scale * info.x_advance;
-            y += scale * info.y_advance;
+            x += x_advance as isize;
+            y += y_advance as isize;
         }
-
-        let width = self.width;
-        let height = self.height;
-        self.expose(0, 0, width, height)?;
 
         Ok(())
     }
-}
-
-fn visual_for_screen(screen: &xcb::Screen) -> xcb::Visualtype {
-    for depth in screen.allowed_depths() {
-        for vis in depth.visuals() {
-            if vis.visual_id() == screen.root_visual() {
-                return vis;
-            }
-        }
-    }
-
-    unreachable!("screen doesn't have info on its own visual?");
 }
 
 fn run() -> Result<(), Error> {
@@ -375,6 +243,7 @@ fn run() -> Result<(), Error> {
 
     let mut window = TerminalWindow::new(&conn, screen_num, 1024, 300)?;
     window.show();
+
     conn.flush();
 
     loop {
@@ -384,6 +253,7 @@ fn run() -> Result<(), Error> {
             match conn.poll_for_queued_event() {
                 None => {
                     window.paint()?;
+                    conn.flush();
                     continue;
                 }
                 Some(event) => Some(event),
