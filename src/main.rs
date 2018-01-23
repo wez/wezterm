@@ -1,6 +1,7 @@
 #[macro_use]
 extern crate failure;
 extern crate unicode_width;
+extern crate unicode_segmentation;
 extern crate harfbuzz_sys;
 #[cfg(not(target_os = "macos"))]
 extern crate fontconfig; // from servo-fontconfig
@@ -21,6 +22,8 @@ use std::slice;
 mod xgfx;
 mod font;
 use font::{Font, FontPattern, ftwrap};
+
+mod term;
 
 struct TerminalWindow<'a> {
     window: xgfx::Window<'a>,
@@ -127,12 +130,14 @@ impl<'a> TerminalWindow<'a> {
         self.need_paint = false;
 
         let message = "x_advance != foo->bar(); ❤ 😍🤢";
+        let cells = term::Line::from_text(message);
+        println!("cells {:?}", cells);
 
         self.buffer_image.clear(xgfx::Color::rgb(0, 0, 0));
 
         let mut x = 0 as isize;
         let mut y = self.cell_height.ceil() as isize;
-        let glyph_info = self.font.shape(0, message)?;
+        let glyph_info = self.font.shape(0, &cells.as_str())?;
         for info in glyph_info {
             let has_color = self.font.has_color(info.font_idx)?;
             let ft_glyph = self.font.load_glyph(info.font_idx, info.glyph_pos)?;
