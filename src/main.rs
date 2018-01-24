@@ -1,5 +1,6 @@
 #[macro_use]
 extern crate failure;
+#[macro_use]
 extern crate unicode_width;
 extern crate unicode_segmentation;
 extern crate harfbuzz_sys;
