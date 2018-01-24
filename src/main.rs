@@ -129,18 +129,34 @@ impl<'a> TerminalWindow<'a> {
         debug!("paint");
         self.need_paint = false;
 
-        let message = "x_advance != foo->bar(); ❤ 😍🤢";
-        let cells = term::Line::from_text(message);
-        println!("cells {:?}", cells);
+        let palette = term::color::ColorPalette::default();
 
-        self.buffer_image.clear(xgfx::Color::rgb(0, 0, 0));
+        let message = "x_advance != foo->bar(); ❤ 😍🤢";
+        let mut line_attr = term::CellAttributes::default();
+        line_attr.foreground =
+            term::color::ColorAttribute::PaletteIndex(term::color::AnsiColor::Teal as u8);
+        let line = term::Line::from_text(message, &line_attr);
+
+        self.buffer_image.clear(xgfx::Color::rgb(0, 0, 0x55));
+        let cell_height = self.cell_height.ceil() as usize;
 
         let mut x = 0 as isize;
-        let mut y = self.cell_height.ceil() as isize;
-        let glyph_info = self.font.shape(0, &cells.as_str())?;
-        for info in glyph_info {
+        let mut y = cell_height as isize;
+        let glyph_info = self.font.shape(0, &line.as_str())?;
+        for (cell_idx, info) in glyph_info.iter().enumerate() {
             let has_color = self.font.has_color(info.font_idx)?;
             let ft_glyph = self.font.load_glyph(info.font_idx, info.glyph_pos)?;
+
+            let attrs = &line.cells[cell_idx].attrs;
+
+            // Render the cell background color
+            self.buffer_image.clear_rect(
+                x,
+                y - cell_height as isize,
+                info.num_cells as usize * self.cell_width as usize,
+                cell_height,
+                palette.resolve(&attrs.background).into(),
+            );
 
             let scale = if (info.x_advance / info.num_cells as f64).floor() > self.cell_width {
                 info.num_cells as f64 * (self.cell_width / info.x_advance)
@@ -230,7 +246,7 @@ impl<'a> TerminalWindow<'a> {
                 let operator = if has_color {
                     xgfx::Operator::Over
                 } else {
-                    xgfx::Operator::MultiplyThenOver(xgfx::Color::rgb(0xb3, 0xb3, 0xb3))
+                    xgfx::Operator::MultiplyThenOver(palette.resolve(&attrs.foreground).into())
                 };
                 self.buffer_image.draw_image(
                     x + x_offset as isize + bearing_x,

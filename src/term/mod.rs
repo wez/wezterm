@@ -5,9 +5,39 @@ use unicode_segmentation;
 
 pub mod color;
 
+#[derive(Debug, Clone, Copy)]
+pub struct CellAttributes {
+    pub bold: bool,
+    pub underline: bool,
+    pub italic: bool,
+    pub blink: bool,
+    pub reverse: bool,
+    pub strikethrough: bool,
+    pub font: u8,
+    pub foreground: color::ColorAttribute,
+    pub background: color::ColorAttribute,
+}
+
+impl Default for CellAttributes {
+    fn default() -> CellAttributes {
+        CellAttributes {
+            bold: false,
+            underline: false,
+            italic: false,
+            blink: false,
+            reverse: false,
+            strikethrough: false,
+            font: 0,
+            foreground: color::ColorAttribute::Foreground,
+            background: color::ColorAttribute::Background,
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Cell {
     chars: [u8; 8],
+    pub attrs: CellAttributes,
 }
 
 impl Cell {
@@ -23,7 +53,7 @@ impl Cell {
 
 #[derive(Debug)]
 pub struct Line {
-    cells: Vec<Cell>,
+    pub cells: Vec<Cell>,
 }
 
 impl Line {
@@ -38,7 +68,7 @@ impl Line {
         s
     }
 
-    pub fn from_text(s: &str) -> Line {
+    pub fn from_text(s: &str, attrs: &CellAttributes) -> Line {
         let mut cells = Vec::new();
 
         for (_, sub) in unicode_segmentation::UnicodeSegmentation::grapheme_indices(s, true) {
@@ -46,7 +76,10 @@ impl Line {
             let len = sub.len().min(8);
             chars[0..len].copy_from_slice(sub.as_bytes());
 
-            cells.push(Cell { chars });
+            cells.push(Cell {
+                chars,
+                attrs: *attrs,
+            });
         }
 
         Line { cells }

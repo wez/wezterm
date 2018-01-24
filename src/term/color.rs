@@ -32,7 +32,7 @@ pub struct RgbColor {
 
 impl RgbColor {}
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub enum ColorAttribute {
     Foreground,
     Background,

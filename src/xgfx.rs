@@ -1,10 +1,13 @@
 use resize;
+use std::convert::From;
 use std::result;
 use xcb;
 use xcb_util;
 
 use failure::{self, Error};
 pub type Result<T> = result::Result<T, Error>;
+
+use super::term::color::RgbColor;
 
 /// The X protocol allows referencing a number of drawable
 /// objects.  This trait marks those objects here in code.
@@ -263,6 +266,12 @@ impl Color {
                 )
             }
         }
+    }
+}
+
+impl From<RgbColor> for Color {
+    fn from(color: RgbColor) -> Self {
+        Color::rgb(color.red, color.green, color.blue)
     }
 }
 
