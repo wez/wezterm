@@ -51,18 +51,52 @@ macro_rules! bitfield {
             self.attributes = (self.attributes & clear) | attr_value;
         }
     };
+
+    ($getter:ident, $setter:ident, $enum:ident, $bitmask:expr, $bitshift:expr) => {
+        #[inline]
+        #[allow(dead_code)]
+        pub fn $getter(&self) -> $enum {
+            unsafe { std::mem::transmute(((self.attributes >> $bitshift) & $bitmask) as u16)}
+        }
+
+        #[inline]
+        #[allow(dead_code)]
+        pub fn $setter(&mut self, value: $enum) {
+            let value = value as u16;
+            let clear = !($bitmask << $bitshift);
+            let attr_value = (value & $bitmask) << $bitshift;
+            self.attributes = (self.attributes & clear) | attr_value;
+        }
+    };
 }
 
+#[derive(Debug, Clone, Copy)]
+#[repr(u16)]
+pub enum Intensity {
+    Normal = 0,
+    Bold = 1,
+    Half = 2,
+}
+
+#[derive(Debug, Clone, Copy)]
+#[repr(u16)]
+pub enum Underline {
+    None = 0,
+    Single = 1,
+    Double = 2,
+}
 
 impl CellAttributes {
-    bitfield!(bold, set_bold, 0);
-    bitfield!(underline, set_underline, 1);
-    bitfield!(italic, set_italic, 2);
-    bitfield!(blink, set_blink, 3);
-    bitfield!(reverse, set_reverse, 4);
-    bitfield!(strikethrough, set_strikethrough, 5);
+    bitfield!(intensity, set_intensity, Intensity, 0b11, 0);
+    bitfield!(underline, set_underline, Underline, 0b1100, 2);
+    bitfield!(italic, set_italic, 4);
+    bitfield!(blink, set_blink, 5);
+    bitfield!(reverse, set_reverse, 6);
+    bitfield!(strikethrough, set_strikethrough, 7);
+    bitfield!(halfbright, set_halfbright, 8);
+    bitfield!(invisible, set_invisible, 9);
     // Allow up to 8 different font values
-    bitfield!(font, set_font, 0b111000000, 6);
+    //bitfield!(font, set_font, 0b111000000, 6);
 }
 
 impl Default for CellAttributes {
@@ -335,6 +369,115 @@ impl Terminal {
     }
 }
 
+enum CSIAction {
+    SetPen(CellAttributes),
+    SetForegroundColor(color::ColorAttribute),
+    SetBackgroundColor(color::ColorAttribute),
+    SetIntensity(Intensity),
+    SetUnderline(Underline),
+    SetItalic(bool),
+    SetBlink(bool),
+    SetReverse(bool),
+    SetStrikethrough(bool),
+    SetInvisible(bool),
+}
+
+impl CSIAction {
+    /// Parses out a "Set Graphics Rendition" action.
+    /// Returns the decoded action plus the unparsed remainder of the
+    /// parameter stream.  Returns None if we couldn't decode one of
+    /// the parameter elements.
+    fn parse_sgr(params: &[i64]) -> Option<(CSIAction, &[i64])> {
+        if params.len() > 2 {
+            // Some special look-ahead cases for 88 and 256 color support
+            if params[0] == 38 && params[1] == 5 {
+                // 38;5;IDX -> foreground color
+                let color = color::ColorAttribute::PaletteIndex(params[2] as u8);
+                return Some((CSIAction::SetForegroundColor(color), &params[3..]));
+            }
+
+            if params[0] == 48 && params[1] == 5 {
+                // 48;5;IDX -> background color
+                let color = color::ColorAttribute::PaletteIndex(params[2] as u8);
+                return Some((CSIAction::SetBackgroundColor(color), &params[3..]));
+            }
+        }
+
+        let p = params[0];
+        match p {
+            0 => Some((CSIAction::SetPen(CellAttributes::default()), &params[1..])),
+            1 => Some((CSIAction::SetIntensity(Intensity::Bold), &params[1..])),
+            2 => Some((CSIAction::SetIntensity(Intensity::Half), &params[1..])),
+            3 => Some((CSIAction::SetItalic(true), &params[1..])),
+            4 => Some((CSIAction::SetUnderline(Underline::Single), &params[1..])),
+            5 => Some((CSIAction::SetBlink(true), &params[1..])),
+            7 => Some((CSIAction::SetReverse(true), &params[1..])),
+            8 => Some((CSIAction::SetInvisible(true), &params[1..])),
+            9 => Some((CSIAction::SetStrikethrough(true), &params[1..])),
+            21 => Some((CSIAction::SetUnderline(Underline::Double), &params[1..])),
+            22 => Some((CSIAction::SetIntensity(Intensity::Normal), &params[1..])),
+            23 => Some((CSIAction::SetItalic(false), &params[1..])),
+            24 => Some((CSIAction::SetUnderline(Underline::None), &params[1..])),
+            25 => Some((CSIAction::SetBlink(false), &params[1..])),
+            27 => Some((CSIAction::SetReverse(false), &params[1..])),
+            28 => Some((CSIAction::SetInvisible(false), &params[1..])),
+            29 => Some((CSIAction::SetStrikethrough(false), &params[1..])),
+            30...37 => {
+                Some((
+                    CSIAction::SetForegroundColor(
+                        color::ColorAttribute::PaletteIndex(p as u8 - 30),
+                    ),
+                    &params[1..],
+                ))
+            }
+            39 => {
+                Some((
+                    CSIAction::SetForegroundColor(
+                        color::ColorAttribute::Foreground,
+                    ),
+                    &params[1..],
+                ))
+            }
+            90...97 => {
+                // Bright foreground colors
+                Some((
+                    CSIAction::SetForegroundColor(
+                        color::ColorAttribute::PaletteIndex(p as u8 - 90 + 8),
+                    ),
+                    &params[1..],
+                ))
+            }
+            40...47 => {
+                Some((
+                    CSIAction::SetBackgroundColor(
+                        color::ColorAttribute::PaletteIndex(p as u8 - 40),
+                    ),
+                    &params[1..],
+                ))
+            }
+            49 => {
+                Some((
+                    CSIAction::SetBackgroundColor(
+                        color::ColorAttribute::Background,
+                    ),
+                    &params[1..],
+                ))
+            }
+            100...107 => {
+                // Bright background colors
+                Some((
+                    CSIAction::SetBackgroundColor(
+                        color::ColorAttribute::PaletteIndex(p as u8 - 100 + 8),
+                    ),
+                    &params[1..],
+                ))
+            }
+            _ => None,
+        }
+    }
+}
+
+
 impl vte::Perform for TerminalState {
     /// Draw a character to the screen
     fn print(&mut self, c: char) {
@@ -373,37 +516,53 @@ impl vte::Perform for TerminalState {
         );
         match byte {
             'm' => {
-                // Set Graphic Rendition
-                for p in params {
-                    match p {
-                        &0 => {
-                            self.pen = CellAttributes::default();
+                let mut params = params;
+                while params.len() > 0 {
+                    match CSIAction::parse_sgr(params) {
+                        Some((CSIAction::SetPen(pen), remainder)) => {
+                            self.pen = pen;
+                            params = remainder;
                         }
-                        &30...37 => {
-                            self.pen.foreground =
-                                color::ColorAttribute::PaletteIndex(*p as u8 - 30);
+                        Some((CSIAction::SetForegroundColor(color), remainder)) => {
+                            self.pen.foreground = color;
+                            params = remainder;
                         }
-                        &39 => {
-                            self.pen.foreground = color::ColorAttribute::Foreground;
+                        Some((CSIAction::SetBackgroundColor(color), remainder)) => {
+                            self.pen.background = color;
+                            params = remainder;
                         }
-                        &90...97 => {
-                            // Bright foreground colors
-                            self.pen.foreground =
-                                color::ColorAttribute::PaletteIndex(*p as u8 - 90 + 8);
+                        Some((CSIAction::SetIntensity(level), remainder)) => {
+                            self.pen.set_intensity(level);
+                            params = remainder;
                         }
-                        &40...47 => {
-                            self.pen.background =
-                                color::ColorAttribute::PaletteIndex(*p as u8 - 40);
+                        Some((CSIAction::SetUnderline(level), remainder)) => {
+                            self.pen.set_underline(level);
+                            params = remainder;
                         }
-                        &49 => {
-                            self.pen.background = color::ColorAttribute::Foreground;
+                        Some((CSIAction::SetItalic(on), remainder)) => {
+                            self.pen.set_italic(on);
+                            params = remainder;
                         }
-                        &100...107 => {
-                            // Bright background colors
-                            self.pen.background =
-                                color::ColorAttribute::PaletteIndex(*p as u8 - 100 + 8);
+                        Some((CSIAction::SetBlink(on), remainder)) => {
+                            self.pen.set_blink(on);
+                            params = remainder;
                         }
-                        _ => {}
+                        Some((CSIAction::SetReverse(on), remainder)) => {
+                            self.pen.set_reverse(on);
+                            params = remainder;
+                        }
+                        Some((CSIAction::SetStrikethrough(on), remainder)) => {
+                            self.pen.set_strikethrough(on);
+                            params = remainder;
+                        }
+                        Some((CSIAction::SetInvisible(on), remainder)) => {
+                            self.pen.set_invisible(on);
+                            params = remainder;
+                        }
+                        None => {
+                            println!("parse_sgr: unhandled sequence {:?}", params);
+                            break;
+                        }
                     }
                 }
             }
