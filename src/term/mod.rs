@@ -2,6 +2,7 @@
 
 use std;
 use unicode_segmentation;
+use vte;
 
 pub mod color;
 
@@ -87,6 +88,15 @@ impl Cell {
             &self.chars[0..len]
         } else {
             &self.chars
+        }
+    }
+
+    pub fn from_char(c: char, attr: &CellAttributes) -> Cell {
+        let mut chars = [0u8; 8];
+        c.encode_utf8(&mut chars);
+        Cell {
+            chars,
+            attrs: *attr,
         }
     }
 }
@@ -194,4 +204,211 @@ impl Screen {
         self.physical_rows = physical_rows;
         self.physical_cols = physical_cols;
     }
+
+    /// Set a cell.  the x and y coordinates are relative to the visible screeen
+    /// origin.  0,0 is the top left.
+    pub fn set_cell(&mut self, x: usize, y: usize, c: char, attr: &CellAttributes) {
+        let line_idx = (self.lines.len() - self.physical_rows) + y;
+        // TODO: if the line isn't wide enough, we should pad it out with
+        // the default attributes
+        println!(
+            "set_cell x,y {},{}, line_idx = {} {} {:?}",
+            x,
+            y,
+            line_idx,
+            c,
+            attr
+        );
+        self.lines[line_idx].cells[x] = Cell::from_char(c, attr);
+    }
+}
+
+pub struct TerminalState {
+    /// The primary screen + scrollback
+    screen: Screen,
+    /// The alternate screen; no scrollback
+    alt_screen: Screen,
+    /// Tells us which screen is active
+    alt_screen_is_active: bool,
+    /// The current set of attributes in effect for the next
+    /// attempt to print to the display
+    pen: CellAttributes,
+    /// The current cursor position, relative to the top left
+    /// of the screen.  0-based index.
+    cursor_x: usize,
+    cursor_y: usize,
+
+    /// If true then the terminal state has changed
+    state_changed: bool,
+}
+
+impl TerminalState {
+    pub fn new(
+        physical_rows: usize,
+        physical_cols: usize,
+        scrollback_size: usize,
+    ) -> TerminalState {
+        let screen = Screen::new(physical_rows, physical_cols, scrollback_size);
+        let alt_screen = Screen::new(physical_rows, physical_cols, 0);
+
+        TerminalState {
+            screen,
+            alt_screen,
+            alt_screen_is_active: false,
+            pen: CellAttributes::default(),
+            cursor_x: 0,
+            cursor_y: 0,
+            state_changed: true,
+        }
+    }
+
+    fn screen(&mut self) -> &Screen {
+        if self.alt_screen_is_active {
+            &self.alt_screen
+        } else {
+            &self.screen
+        }
+    }
+
+    fn screen_mut(&mut self) -> &mut Screen {
+        if self.alt_screen_is_active {
+            &mut self.alt_screen
+        } else {
+            &mut self.screen
+        }
+    }
+}
+
+pub struct Terminal {
+    /// The terminal model/state
+    state: TerminalState,
+    /// Baseline terminal escape sequence parser
+    parser: vte::Parser,
+}
+
+impl Terminal {
+    pub fn new(physical_rows: usize, physical_cols: usize, scrollback_size: usize) -> Terminal {
+        Terminal {
+            state: TerminalState::new(physical_rows, physical_cols, scrollback_size),
+            parser: vte::Parser::new(),
+        }
+    }
+
+    /// Feed the terminal parser a single byte of input
+    pub fn advance(&mut self, byte: u8) {
+        self.parser.advance(&mut self.state, byte);
+    }
+
+    /// Feed the terminal parser a slice of bytes of input
+    pub fn advance_bytes<B: AsRef<[u8]>>(&mut self, bytes: B) {
+        let bytes = bytes.as_ref();
+        for b in bytes.iter() {
+            self.parser.advance(&mut self.state, *b);
+        }
+    }
+
+    /// Return true if the state has changed; the implication is that the terminal
+    /// needs to be redrawn in some fashion.
+    /// TODO: should probably build up a damage list instead
+    pub fn get_state_changed(&self) -> bool {
+        self.state.state_changed
+    }
+
+    /// Clear the state changed flag; the intent is that the consumer of this
+    /// class will clear the state after each paint.
+    pub fn clear_state_changed(&mut self) {
+        self.state.state_changed = false;
+    }
+
+    /// Returns the width of the screen and a slice over the visible rows
+    /// TODO: should allow an arbitrary view for scrollback
+    pub fn visible_cells(&self) -> (usize, &[Line]) {
+        let screen = if self.state.alt_screen_is_active {
+            &self.state.alt_screen
+        } else {
+            &self.state.screen
+        };
+        let width = screen.physical_cols;
+        let height = screen.physical_rows;
+        let len = screen.lines.len();
+        (width, &screen.lines[len - height..len])
+    }
+}
+
+impl vte::Perform for TerminalState {
+    /// Draw a character to the screen
+    fn print(&mut self, c: char) {
+        let x = self.cursor_x;
+        let y = self.cursor_y;
+
+        let pen = self.pen;
+        self.screen_mut().set_cell(x, y, c, &pen);
+
+        self.cursor_x += 1;
+        // TODO: wrap at the end of the screen
+        self.state_changed = true;
+    }
+
+    fn execute(&mut self, byte: u8) {
+        match byte {
+            b'\n' => {
+                self.cursor_x = 0;
+                self.cursor_y += 1;
+                self.state_changed = true;
+            }
+            _ => println!("unhandled vte execute {}", byte),
+        }
+    }
+    fn hook(&mut self, _: &[i64], _: &[u8], _: bool) {}
+    fn put(&mut self, _: u8) {}
+    fn unhook(&mut self) {}
+    fn osc_dispatch(&mut self, _: &[&[u8]]) {}
+    fn csi_dispatch(&mut self, params: &[i64], intermediates: &[u8], ignore: bool, byte: char) {
+        println!(
+            "CSI: params {:?} intermediates {:?} ignore={} byte={}",
+            params,
+            intermediates,
+            ignore,
+            byte
+        );
+        match byte {
+            'm' => {
+                // Set Graphic Rendition
+                for p in params {
+                    match p {
+                        &0 => {
+                            self.pen = CellAttributes::default();
+                        }
+                        &30...37 => {
+                            self.pen.foreground =
+                                color::ColorAttribute::PaletteIndex(*p as u8 - 30);
+                        }
+                        &39 => {
+                            self.pen.foreground = color::ColorAttribute::Foreground;
+                        }
+                        &90...97 => {
+                            // Bright foreground colors
+                            self.pen.foreground =
+                                color::ColorAttribute::PaletteIndex(*p as u8 - 90 + 8);
+                        }
+                        &40...47 => {
+                            self.pen.background =
+                                color::ColorAttribute::PaletteIndex(*p as u8 - 40);
+                        }
+                        &49 => {
+                            self.pen.background = color::ColorAttribute::Foreground;
+                        }
+                        &100...107 => {
+                            // Bright background colors
+                            self.pen.background =
+                                color::ColorAttribute::PaletteIndex(*p as u8 - 100 + 8);
+                        }
+                        _ => {}
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+    fn esc_dispatch(&mut self, _: &[i64], _: &[u8], _: bool, _: u8) {}
 }

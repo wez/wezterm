@@ -9,6 +9,7 @@ extern crate fontconfig; // from servo-fontconfig
 #[cfg(not(target_os = "macos"))]
 extern crate freetype;
 extern crate resize;
+extern crate vte;
 #[macro_use]
 pub mod log;
 
@@ -38,6 +39,7 @@ struct TerminalWindow<'a> {
     window_context: xgfx::Context<'a>,
     buffer_image: xgfx::Image,
     need_paint: bool,
+    terminal: term::Terminal,
 }
 
 impl<'a> TerminalWindow<'a> {
@@ -46,6 +48,7 @@ impl<'a> TerminalWindow<'a> {
         screen_num: i32,
         width: u16,
         height: u16,
+        terminal: term::Terminal,
     ) -> Result<TerminalWindow, Error> {
 
         let mut pattern = FontPattern::parse("Operator Mono SSm Lig:size=12")?;
@@ -80,6 +83,7 @@ impl<'a> TerminalWindow<'a> {
             cell_width,
             descender,
             need_paint: true,
+            terminal,
         })
     }
 
@@ -131,100 +135,103 @@ impl<'a> TerminalWindow<'a> {
         self.need_paint = false;
 
         let palette = term::color::ColorPalette::default();
+        self.buffer_image.clear(
+            palette
+                .resolve(&term::color::ColorAttribute::Background)
+                .into(),
+        );
 
-        let message = "x_advance != foo->bar(); ❤ 😍🤢";
-        let mut line_attr = term::CellAttributes::default();
-        line_attr.foreground =
-            term::color::ColorAttribute::PaletteIndex(term::color::AnsiColor::Teal as u8);
-        let line = term::Line::from_text(message, &line_attr);
-
-        self.buffer_image.clear(xgfx::Color::rgb(0, 0, 0x55));
         let cell_height = self.cell_height.ceil() as usize;
+        let mut y = 0 as isize;
 
-        let mut x = 0 as isize;
-        let mut y = cell_height as isize;
-        let glyph_info = self.font.shape(0, &line.as_str())?;
-        for (cell_idx, info) in glyph_info.iter().enumerate() {
-            let has_color = self.font.has_color(info.font_idx)?;
-            let ft_glyph = self.font.load_glyph(info.font_idx, info.glyph_pos)?;
+        let (phys_cols, lines) = self.terminal.visible_cells();
 
-            let attrs = &line.cells[cell_idx].attrs;
+        for line in lines.iter() {
+            let mut x = 0 as isize;
+            y += cell_height as isize;
 
-            // Render the cell background color
-            self.buffer_image.clear_rect(
-                x,
-                y - cell_height as isize,
-                info.num_cells as usize * self.cell_width as usize,
-                cell_height,
-                palette.resolve(&attrs.background).into(),
-            );
+            let glyph_info = self.font.shape(0, &line.as_str())?;
+            for (cell_idx, info) in glyph_info.iter().enumerate() {
+                let has_color = self.font.has_color(info.font_idx)?;
+                let ft_glyph = self.font.load_glyph(info.font_idx, info.glyph_pos)?;
 
-            let scale = if (info.x_advance / info.num_cells as f64).floor() > self.cell_width {
-                info.num_cells as f64 * (self.cell_width / info.x_advance)
-            } else if ft_glyph.bitmap.rows as f64 > self.cell_height {
-                self.cell_height / ft_glyph.bitmap.rows as f64
-            } else {
-                1.0f64
-            };
-            let (x_offset, y_offset, x_advance, y_advance) = if scale != 1.0 {
-                (
-                    info.x_offset * scale,
-                    info.y_offset * scale,
-                    info.x_advance * scale,
-                    info.y_advance * scale,
-                )
-            } else {
-                (info.x_offset, info.y_offset, info.x_advance, info.y_advance)
-            };
+                let attrs = &line.cells[cell_idx].attrs;
 
-            if ft_glyph.bitmap.width == 0 || ft_glyph.bitmap.rows == 0 {
-                // a whitespace glyph
-            } else {
+                // Render the cell background color
+                self.buffer_image.clear_rect(
+                    x,
+                    y - cell_height as isize,
+                    info.num_cells as usize * self.cell_width as usize,
+                    cell_height,
+                    palette.resolve(&attrs.background).into(),
+                );
 
-                let mode: ftwrap::FT_Pixel_Mode =
-                    unsafe { mem::transmute(ft_glyph.bitmap.pixel_mode as u32) };
-
-                // pitch is the number of bytes per source row
-                let pitch = ft_glyph.bitmap.pitch.abs() as usize;
-                let data = unsafe {
-                    slice::from_raw_parts_mut(
-                        ft_glyph.bitmap.buffer,
-                        ft_glyph.bitmap.rows as usize * pitch,
+                let scale = if (info.x_advance / info.num_cells as f64).floor() > self.cell_width {
+                    info.num_cells as f64 * (self.cell_width / info.x_advance)
+                } else if ft_glyph.bitmap.rows as f64 > self.cell_height {
+                    self.cell_height / ft_glyph.bitmap.rows as f64
+                } else {
+                    1.0f64
+                };
+                let (x_offset, y_offset, x_advance, y_advance) = if scale != 1.0 {
+                    (
+                        info.x_offset * scale,
+                        info.y_offset * scale,
+                        info.x_advance * scale,
+                        info.y_advance * scale,
                     )
+                } else {
+                    (info.x_offset, info.y_offset, info.x_advance, info.y_advance)
                 };
 
-                let image = match mode {
-                    ftwrap::FT_Pixel_Mode::FT_PIXEL_MODE_LCD => {
-                        xgfx::Image::with_bgr24(
-                            ft_glyph.bitmap.width as usize / 3,
-                            ft_glyph.bitmap.rows as usize,
-                            pitch as usize,
-                            data,
-                        )
-                    }
-                    ftwrap::FT_Pixel_Mode::FT_PIXEL_MODE_BGRA => {
-                        xgfx::Image::with_bgra32(
-                            ft_glyph.bitmap.width as usize,
-                            ft_glyph.bitmap.rows as usize,
-                            pitch as usize,
-                            data,
-                        )
-                    }
-                    ftwrap::FT_Pixel_Mode::FT_PIXEL_MODE_GRAY => {
-                        xgfx::Image::with_8bpp(
-                            ft_glyph.bitmap.width as usize,
-                            ft_glyph.bitmap.rows as usize,
-                            pitch as usize,
-                            data,
-                        )
-                    }
-                    mode @ _ => bail!("unhandled pixel mode: {:?}", mode),
-                };
+                if ft_glyph.bitmap.width == 0 || ft_glyph.bitmap.rows == 0 {
+                    // a whitespace glyph
+                } else {
 
-                let bearing_x = (ft_glyph.bitmap_left as f64 * scale) as isize;
-                let bearing_y = (ft_glyph.bitmap_top as f64 * scale) as isize;
+                    let mode: ftwrap::FT_Pixel_Mode =
+                        unsafe { mem::transmute(ft_glyph.bitmap.pixel_mode as u32) };
 
-                debug!(
+                    // pitch is the number of bytes per source row
+                    let pitch = ft_glyph.bitmap.pitch.abs() as usize;
+                    let data = unsafe {
+                        slice::from_raw_parts_mut(
+                            ft_glyph.bitmap.buffer,
+                            ft_glyph.bitmap.rows as usize * pitch,
+                        )
+                    };
+
+                    let image = match mode {
+                        ftwrap::FT_Pixel_Mode::FT_PIXEL_MODE_LCD => {
+                            xgfx::Image::with_bgr24(
+                                ft_glyph.bitmap.width as usize / 3,
+                                ft_glyph.bitmap.rows as usize,
+                                pitch as usize,
+                                data,
+                            )
+                        }
+                        ftwrap::FT_Pixel_Mode::FT_PIXEL_MODE_BGRA => {
+                            xgfx::Image::with_bgra32(
+                                ft_glyph.bitmap.width as usize,
+                                ft_glyph.bitmap.rows as usize,
+                                pitch as usize,
+                                data,
+                            )
+                        }
+                        ftwrap::FT_Pixel_Mode::FT_PIXEL_MODE_GRAY => {
+                            xgfx::Image::with_8bpp(
+                                ft_glyph.bitmap.width as usize,
+                                ft_glyph.bitmap.rows as usize,
+                                pitch as usize,
+                                data,
+                            )
+                        }
+                        mode @ _ => bail!("unhandled pixel mode: {:?}", mode),
+                    };
+
+                    let bearing_x = (ft_glyph.bitmap_left as f64 * scale) as isize;
+                    let bearing_y = (ft_glyph.bitmap_top as f64 * scale) as isize;
+
+                    debug!(
                     "x,y: {},{} desc={} bearing:{},{} off={},{} adv={},{} scale={}",
                     x,
                     y,
@@ -238,27 +245,28 @@ impl<'a> TerminalWindow<'a> {
                     scale,
                 );
 
-                let image = if scale != 1.0 {
-                    image.scale_by(scale)
-                } else {
-                    image
-                };
+                    let image = if scale != 1.0 {
+                        image.scale_by(scale)
+                    } else {
+                        image
+                    };
 
-                let operator = if has_color {
-                    xgfx::Operator::Over
-                } else {
-                    xgfx::Operator::MultiplyThenOver(palette.resolve(&attrs.foreground).into())
-                };
-                self.buffer_image.draw_image(
-                    x + x_offset as isize + bearing_x,
-                    y + self.descender - (y_offset as isize + bearing_y),
-                    &image,
-                    operator,
-                );
+                    let operator = if has_color {
+                        xgfx::Operator::Over
+                    } else {
+                        xgfx::Operator::MultiplyThenOver(palette.resolve(&attrs.foreground).into())
+                    };
+                    self.buffer_image.draw_image(
+                        x + x_offset as isize + bearing_x,
+                        y + self.descender - (y_offset as isize + bearing_y),
+                        &image,
+                        operator,
+                    );
+                }
+
+                x += x_advance as isize;
+                y += y_advance as isize;
             }
-
-            x += x_advance as isize;
-            y += y_advance as isize;
         }
 
         Ok(())
@@ -269,7 +277,11 @@ fn run() -> Result<(), Error> {
     let (conn, screen_num) = xcb::Connection::connect(None)?;
     println!("Connected screen {}", screen_num);
 
-    let mut window = TerminalWindow::new(&conn, screen_num, 1024, 300)?;
+    let mut terminal = term::Terminal::new(24, 80, 3000);
+    let message = "x_advance != foo->bar(); ❤ 😍🤢\n\x1b[91;mw00t\n\x1b[37;104;m bleet\x1b[0;m.";
+    terminal.advance_bytes(message);
+
+    let mut window = TerminalWindow::new(&conn, screen_num, 1024, 300, terminal)?;
     window.show();
 
     conn.flush();
