@@ -388,6 +388,34 @@ impl CSIAction {
     /// parameter stream.  Returns None if we couldn't decode one of
     /// the parameter elements.
     fn parse_sgr(params: &[i64]) -> Option<(CSIAction, &[i64])> {
+        if params.len() > 5 {
+            // ISO-8613-6 foreground and background color specification
+            // using full RGB color codes.
+            if params[0] == 38 && params[1] == 2 {
+                return Some((
+                    CSIAction::SetForegroundColor(
+                        color::ColorAttribute::Rgb(color::RgbColor {
+                            red: params[3] as u8,
+                            green: params[4] as u8,
+                            blue: params[5] as u8,
+                        }),
+                    ),
+                    &params[6..],
+                ));
+            }
+            if params[0] == 48 && params[1] == 2 {
+                return Some((
+                    CSIAction::SetBackgroundColor(
+                        color::ColorAttribute::Rgb(color::RgbColor {
+                            red: params[3] as u8,
+                            green: params[4] as u8,
+                            blue: params[5] as u8,
+                        }),
+                    ),
+                    &params[6..],
+                ));
+            }
+        }
         if params.len() > 2 {
             // Some special look-ahead cases for 88 and 256 color support
             if params[0] == 38 && params[1] == 5 {
