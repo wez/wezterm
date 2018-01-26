@@ -1,6 +1,5 @@
 #[macro_use]
 extern crate failure;
-#[macro_use]
 extern crate unicode_width;
 extern crate unicode_segmentation;
 extern crate harfbuzz_sys;
@@ -10,6 +9,7 @@ extern crate fontconfig; // from servo-fontconfig
 extern crate freetype;
 extern crate resize;
 extern crate vte;
+extern crate libc;
 #[macro_use]
 pub mod log;
 
@@ -26,6 +26,7 @@ mod font;
 use font::{Font, FontPattern, ftwrap};
 
 mod term;
+mod pty;
 
 struct TerminalWindow<'a> {
     window: xgfx::Window<'a>,
@@ -334,6 +335,33 @@ fn run() -> Result<(), Error> {
     Ok(())
 }
 
+fn ptyrun() -> Result<(), Error> {
+    use std::process::Command;
+    use std::io::Read;
+
+    let mut cmd = Command::new("ls");
+
+    let (mut master, slave) = pty::openpty(24, 80)?;
+
+    let child = slave.spawn_command(cmd)?;
+    eprintln!("spawned: {:?}", child);
+
+    loop {
+        let mut buf = [0;256];
+
+        match master.read(&mut buf) {
+            Ok(size) => println!("[ls] {}", std::str::from_utf8(&buf[0..size]).unwrap()),
+            Err(err) => {
+                eprintln!("[ls:err] {:?}", err);
+                break
+            }
+        }
+    }
+
+    Ok(())
+}
+
 fn main() {
-    run().unwrap();
+    ptyrun().unwrap();
+//    run().unwrap();
 }
