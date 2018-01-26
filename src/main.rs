@@ -10,6 +10,7 @@ extern crate freetype;
 extern crate resize;
 extern crate vte;
 extern crate libc;
+extern crate mio;
 #[macro_use]
 pub mod log;
 
@@ -343,17 +344,48 @@ fn ptyrun() -> Result<(), Error> {
 
     let (mut master, slave) = pty::openpty(24, 80)?;
 
-    let child = slave.spawn_command(cmd)?;
+    let mut child = slave.spawn_command(cmd)?;
     eprintln!("spawned: {:?}", child);
 
-    loop {
-        let mut buf = [0;256];
+    use mio::{Events, Poll, PollOpt, Ready, Token};
+    let poll = Poll::new()?;
+    poll.register(
+        &master,
+        Token(0),
+        Ready::readable(),
+        PollOpt::edge(),
+    )?;
 
-        match master.read(&mut buf) {
-            Ok(size) => println!("[ls] {}", std::str::from_utf8(&buf[0..size]).unwrap()),
-            Err(err) => {
-                eprintln!("[ls:err] {:?}", err);
-                break
+    let mut events = Events::with_capacity(8);
+
+    loop {
+        println!("polling");
+        poll.poll(&mut events, None)?;
+
+        match child.try_wait() {
+            Ok(Some(status)) => {
+                println!("child exited: {}", status);
+                break;
+            }
+            Ok(None) => println!("child still running"),
+            Err(e) => {
+                println!("failed to wait for child: {}", e);
+                break;
+            }
+        }
+
+        for event in &events {
+            if event.token() == Token(0) && event.readiness().is_readable() {
+                println!("readable, doing read!");
+                let mut buf = [0; 256];
+
+                match master.read(&mut buf) {
+                    Ok(size) => println!("[ls] {}", std::str::from_utf8(&buf[0..size]).unwrap()),
+                    Err(err) => {
+                        eprintln!("[ls:err] {:?}", err);
+                        break;
+                    }
+                }
             }
         }
     }
@@ -363,5 +395,5 @@ fn ptyrun() -> Result<(), Error> {
 
 fn main() {
     ptyrun().unwrap();
-//    run().unwrap();
+    //    run().unwrap();
 }

@@ -2,10 +2,13 @@
 
 use failure::Error;
 use libc::{self, winsize};
+use mio::{Poll, PollOpt, Ready, Token};
+use mio::event::Evented;
+use mio::unix::EventedFd;
 use std::io;
 use std::os::unix::io::{AsRawFd, FromRawFd, RawFd};
 use std::os::unix::process::CommandExt;
-use std::process::{Command, Stdio, Child};
+use std::process::{Child, Command, Stdio};
 use std::ptr;
 
 /// Represents the master end of a pty.
@@ -227,5 +230,32 @@ impl io::Read for MasterPty {
         } else {
             Ok(size as usize)
         }
+    }
+}
+
+/// Glue for working with mio
+impl Evented for MasterPty {
+    fn register(
+        &self,
+        poll: &Poll,
+        token: Token,
+        interest: Ready,
+        opts: PollOpt,
+    ) -> io::Result<()> {
+        EventedFd(&self.fd).register(poll, token, interest, opts)
+    }
+
+    fn reregister(
+        &self,
+        poll: &Poll,
+        token: Token,
+        interest: Ready,
+        opts: PollOpt,
+    ) -> io::Result<()> {
+        EventedFd(&self.fd).reregister(poll, token, interest, opts)
+    }
+
+    fn deregister(&self, poll: &Poll) -> io::Result<()> {
+        EventedFd(&self.fd).deregister(poll)
     }
 }
