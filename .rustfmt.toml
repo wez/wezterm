@@ -13,4 +13,4 @@ reorder_imports_in_group = true
 # Override the Nuclide/Atom default tab spacing.
 tab_spaces = 4
 use_try_shorthand = true
-write_mode = "replace"
+write_mode = "overwrite"
