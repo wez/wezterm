@@ -172,14 +172,18 @@ impl SlavePty {
                     }
 
                     // Establish ourselves as a session leader.
-                    // On Linux, this will implicitly result in the pty
-                    // being set as the controlling terminal when we exec
-                    // the program momentarily.
                     if libc::setsid() == -1 {
-                        Err(io::Error::last_os_error())
-                    } else {
-                        Ok(())
+                        return Err(io::Error::last_os_error());
                     }
+
+                    // Set the pty as the controlling terminal.
+                    // Failure to do this means that delivery of
+                    // SIGWINCH won't happen when we resize the
+                    // terminal, among other undesirable effects.
+                    if libc::ioctl(0, libc::TIOCSCTTY, 0) == -1 {
+                        return Err(io::Error::last_os_error());
+                    }
+                    Ok(())
                 }
             });
 
