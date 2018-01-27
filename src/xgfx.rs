@@ -1,5 +1,6 @@
 use resize;
 use std::convert::From;
+use std::ops::Deref;
 use std::result;
 use xcb;
 use xcb_util;
@@ -9,17 +10,63 @@ pub type Result<T> = result::Result<T, Error>;
 
 use super::term::color::RgbColor;
 
+pub struct Connection {
+    conn: xcb::Connection,
+    screen_num: i32,
+    atom_protocols: xcb::Atom,
+    atom_delete: xcb::Atom,
+}
+
+impl Deref for Connection {
+    type Target = xcb::Connection;
+
+    fn deref(&self) -> &xcb::Connection {
+        &self.conn
+    }
+}
+
+impl Connection {
+    pub fn new() -> Result<Connection> {
+        let (conn, screen_num) = xcb::Connection::connect(None)?;
+        let atom_protocols = xcb::intern_atom(&conn, false, "WM_PROTOCOLS")
+            .get_reply()?
+            .atom();
+        let atom_delete = xcb::intern_atom(&conn, false, "WM_DELETE_WINDOW")
+            .get_reply()?
+            .atom();
+
+        Ok(Connection {
+            conn,
+            screen_num,
+            atom_protocols,
+            atom_delete,
+        })
+    }
+
+    pub fn conn(&self) -> &xcb::Connection {
+        &self.conn
+    }
+
+    pub fn screen_num(&self) -> i32 {
+        self.screen_num
+    }
+
+    pub fn atom_delete(&self) -> xcb::Atom {
+        self.atom_delete
+    }
+}
+
 /// The X protocol allows referencing a number of drawable
 /// objects.  This trait marks those objects here in code.
 pub trait Drawable {
     fn as_drawable(&self) -> xcb::xproto::Drawable;
-    fn get_conn(&self) -> &xcb::Connection;
+    fn get_conn(&self) -> &Connection;
 }
 
 /// A Window!
 pub struct Window<'a> {
     window_id: xcb::xproto::Window,
-    conn: &'a xcb::Connection,
+    conn: &'a Connection,
 }
 
 impl<'a> Drawable for Window<'a> {
@@ -27,23 +74,21 @@ impl<'a> Drawable for Window<'a> {
         self.window_id
     }
 
-    fn get_conn(&self) -> &xcb::Connection {
+    fn get_conn(&self) -> &Connection {
         self.conn
     }
 }
 
 impl<'a> Window<'a> {
     /// Create a new window on the specified screen with the specified dimensions
-    pub fn new(conn: &xcb::Connection, screen_num: i32, width: u16, height: u16) -> Result<Window> {
-        let setup = conn.get_setup();
-        let screen = setup.roots().nth(screen_num as usize).ok_or(
-            failure::err_msg(
-                "no screen?",
-            ),
+    pub fn new(conn: &Connection, width: u16, height: u16) -> Result<Window> {
+        let setup = conn.conn().get_setup();
+        let screen = setup.roots().nth(conn.screen_num() as usize).ok_or(
+            failure::err_msg("no screen?"),
         )?;
-        let window_id = conn.generate_id();
+        let window_id = conn.conn().generate_id();
         xcb::create_window_checked(
-            &conn,
+            conn.conn(),
             xcb::COPY_FROM_PARENT as u8,
             window_id,
             screen.root(),
@@ -64,29 +109,41 @@ impl<'a> Window<'a> {
                 ),
             ],
         ).request_check()?;
+
+        xcb::change_property(
+            conn,
+            xcb::PROP_MODE_REPLACE as u8,
+            window_id,
+            conn.atom_protocols,
+            4,
+            32,
+            &[conn.atom_delete],
+        );
+
+
         Ok(Window { conn, window_id })
     }
 
     /// Change the title for the window manager
     pub fn set_title(&self, title: &str) {
-        xcb_util::icccm::set_wm_name(&self.conn, self.window_id, title);
+        xcb_util::icccm::set_wm_name(self.conn.conn(), self.window_id, title);
     }
 
     /// Display the window
     pub fn show(&self) {
-        xcb::map_window(self.conn, self.window_id);
+        xcb::map_window(self.conn.conn(), self.window_id);
     }
 }
 
 impl<'a> Drop for Window<'a> {
     fn drop(&mut self) {
-        xcb::destroy_window(self.conn, self.window_id);
+        xcb::destroy_window(self.conn.conn(), self.window_id);
     }
 }
 
 pub struct Pixmap<'a> {
     pixmap_id: xcb::xproto::Pixmap,
-    conn: &'a xcb::Connection,
+    conn: &'a Connection,
 }
 
 impl<'a> Drawable for Pixmap<'a> {
@@ -94,7 +151,7 @@ impl<'a> Drawable for Pixmap<'a> {
         self.pixmap_id
     }
 
-    fn get_conn(&self) -> &xcb::Connection {
+    fn get_conn(&self) -> &Connection {
         self.conn
     }
 }
@@ -102,9 +159,9 @@ impl<'a> Drawable for Pixmap<'a> {
 impl<'a> Pixmap<'a> {
     pub fn new(drawable: &Drawable, depth: u8, width: u16, height: u16) -> Result<Pixmap> {
         let conn = drawable.get_conn();
-        let pixmap_id = conn.generate_id();
+        let pixmap_id = conn.conn().generate_id();
         xcb::create_pixmap(
-            &conn,
+            conn.conn(),
             depth,
             pixmap_id,
             drawable.as_drawable(),
@@ -117,21 +174,21 @@ impl<'a> Pixmap<'a> {
 
 impl<'a> Drop for Pixmap<'a> {
     fn drop(&mut self) {
-        xcb::free_pixmap(self.conn, self.pixmap_id);
+        xcb::free_pixmap(self.conn.conn(), self.pixmap_id);
     }
 }
 
 pub struct Context<'a> {
     gc_id: xcb::xproto::Gcontext,
-    conn: &'a xcb::Connection,
+    conn: &'a Connection,
     drawable: xcb::xproto::Drawable,
 }
 
 impl<'a> Context<'a> {
-    pub fn new(conn: &'a xcb::Connection, d: &Drawable) -> Context<'a> {
-        let gc_id = conn.generate_id();
+    pub fn new(conn: &'a Connection, d: &Drawable) -> Context<'a> {
+        let gc_id = conn.conn().generate_id();
         let drawable = d.as_drawable();
-        xcb::create_gc(&conn, gc_id, drawable, &[]);
+        xcb::create_gc(conn.conn(), gc_id, drawable, &[]);
         Context {
             gc_id,
             conn,
@@ -153,7 +210,7 @@ impl<'a> Context<'a> {
         height: u16,
     ) -> xcb::VoidCookie {
         xcb::copy_area(
-            self.conn,
+            self.conn.conn(),
             src.as_drawable(),
             dest.as_drawable(),
             self.gc_id,
@@ -177,7 +234,7 @@ impl<'a> Context<'a> {
             im.height
         );
         xcb::put_image(
-            self.conn,
+            self.conn.conn(),
             xcb::xproto::IMAGE_FORMAT_Z_PIXMAP as u8,
             self.drawable,
             self.gc_id,
@@ -194,7 +251,7 @@ impl<'a> Context<'a> {
 
 impl<'a> Drop for Context<'a> {
     fn drop(&mut self) {
-        xcb::free_gc(self.conn, self.gc_id);
+        xcb::free_gc(self.conn.conn(), self.gc_id);
     }
 }
 

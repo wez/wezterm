@@ -1,4 +1,3 @@
-
 use failure::Error;
 use font::{Font, ftwrap};
 use pty::MasterPty;
@@ -7,12 +6,11 @@ use std::mem;
 use std::process::Child;
 use std::slice;
 use term;
-use xcb;
-use xgfx::{self, Drawable};
+use xgfx::{self, Connection, Drawable};
 
 pub struct TerminalWindow<'a> {
     window: xgfx::Window<'a>,
-    conn: &'a xcb::Connection,
+    conn: &'a Connection,
     width: u16,
     height: u16,
     font: Font,
@@ -29,8 +27,7 @@ pub struct TerminalWindow<'a> {
 
 impl<'a> TerminalWindow<'a> {
     pub fn new(
-        conn: &xcb::Connection,
-        screen_num: i32,
+        conn: &Connection,
         width: u16,
         height: u16,
         terminal: term::Terminal,
@@ -40,7 +37,7 @@ impl<'a> TerminalWindow<'a> {
     ) -> Result<TerminalWindow, Error> {
         let (cell_height, cell_width, descender) = font.get_metrics()?;
 
-        let window = xgfx::Window::new(&conn, screen_num, width, height)?;
+        let window = xgfx::Window::new(&conn, width, height)?;
         window.set_title("wterm");
         let window_context = xgfx::Context::new(conn, &window);
 

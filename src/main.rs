@@ -36,9 +36,9 @@ mod xwin;
 use xwin::TerminalWindow;
 
 fn dispatch_gui(
+    conn: &xgfx::Connection,
     event: xcb::GenericEvent,
     window: &mut TerminalWindow,
-    atom_delete: xcb::Atom,
 ) -> Result<(), Error> {
     let r = event.response_type() & 0x7f;
     match r {
@@ -62,7 +62,7 @@ fn dispatch_gui(
         xcb::CLIENT_MESSAGE => {
             let msg: &xcb::ClientMessageEvent = unsafe { xcb::cast_event(&event) };
             println!("CLIENT_MESSAGE {:?}", msg.data().data32());
-            if msg.data().data32()[0] == atom_delete {
+            if msg.data().data32()[0] == conn.atom_delete() {
                 // TODO: cleaner exit handling
                 bail!("window close requested!");
             }
@@ -74,7 +74,7 @@ fn dispatch_gui(
 
 fn run() -> Result<(), Error> {
     let poll = Poll::new()?;
-    let (conn, screen_num) = xcb::Connection::connect(None)?;
+    let conn = xgfx::Connection::new()?;
 
     let waiter = sigchld::ChildWaiter::new()?;
 
@@ -134,7 +134,6 @@ fn run() -> Result<(), Error> {
 
     let mut window = TerminalWindow::new(
         &conn,
-        screen_num,
         initial_pixel_width,
         initial_pixel_height,
         terminal,
@@ -142,21 +141,6 @@ fn run() -> Result<(), Error> {
         child,
         font,
     )?;
-    let atom_protocols = xcb::intern_atom(&conn, false, "WM_PROTOCOLS")
-        .get_reply()?
-        .atom();
-    let atom_delete = xcb::intern_atom(&conn, false, "WM_DELETE_WINDOW")
-        .get_reply()?
-        .atom();
-    xcb::change_property(
-        &conn,
-        xcb::PROP_MODE_REPLACE as u8,
-        window.window_id(),
-        atom_protocols,
-        4,
-        32,
-        &[atom_delete],
-    );
 
     window.show();
 
@@ -190,12 +174,12 @@ fn run() -> Result<(), Error> {
                 // will effectively hang without updating all the state.
                 match conn.poll_for_event() {
                     Some(event) => {
-                        dispatch_gui(event, &mut window, atom_delete)?;
+                        dispatch_gui(&conn, event, &mut window)?;
                         // Since we read one event from the connection, we must
                         // now eagerly consume the rest of the queued events.
                         loop {
                             match conn.poll_for_queued_event() {
-                                Some(event) => dispatch_gui(event, &mut window, atom_delete)?,
+                                Some(event) => dispatch_gui(&conn, event, &mut window)?,
                                 None => break,
                             }
                         }
