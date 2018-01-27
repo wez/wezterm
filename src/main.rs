@@ -36,6 +36,7 @@ use font::{Font, FontPattern, ftwrap};
 mod term;
 mod pty;
 use pty::MasterPty;
+mod sigchld;
 
 struct TerminalWindow<'a> {
     window: xgfx::Window<'a>,
@@ -112,7 +113,7 @@ impl<'a> TerminalWindow<'a> {
 
             let rows = height / self.cell_height as u16;
             let cols = width / self.cell_width as u16;
-            self.pty.resize(rows, cols, width, height);
+            self.pty.resize(rows, cols, width, height)?;
             self.terminal.resize(rows as usize, cols as usize);
 
             self.need_paint = true;
@@ -308,16 +309,31 @@ impl<'a> TerminalWindow<'a> {
         Ok(())
     }
 
+    fn test_for_child_exit(&mut self) -> Result<(), Error> {
+        match self.process.try_wait() {
+            Ok(Some(status)) => {
+                bail!("child exited: {}", status);
+            }
+            Ok(None) => {
+                println!("child still running");
+                Ok(())
+            }
+            Err(e) => {
+                bail!("failed to wait for child: {}", e);
+            }
+        }
+    }
+
     fn handle_pty_readable_event(&mut self) {
-        const kBufSize: usize = 8192;
-        let mut buf = [0; kBufSize];
+        const BUFSIZE: usize = 8192;
+        let mut buf = [0; BUFSIZE];
 
         loop {
             match self.pty.read(&mut buf) {
                 Ok(size) => {
                     self.terminal.advance_bytes(&buf[0..size]);
                     self.need_paint = true;
-                    if size < kBufSize {
+                    if size < BUFSIZE {
                         // If we had a short read then there is no more
                         // data to read right now; we'll get called again
                         // when mio says that we're ready
@@ -374,10 +390,12 @@ fn run() -> Result<(), Error> {
     let poll = Poll::new()?;
     let (conn, screen_num) = xcb::Connection::connect(None)?;
 
+    let waiter = sigchld::ChildWaiter::new()?;
+
     // First step is to figure out the font metrics so that we know how
     // big things are going to be.
 
-    let mut pattern = FontPattern::parse("Operator Mono SSm Lig:size=12")?;
+    let mut pattern = FontPattern::parse("Operator Mono SSm Lig:size=10")?;
     pattern.add_double("dpi", 96.0)?;
     let mut font = Font::new(pattern)?;
     // we always load the cell_height for font 0,
@@ -413,6 +431,13 @@ fn run() -> Result<(), Error> {
     poll.register(
         &EventedFd(&conn.as_raw_fd()),
         Token(1),
+        Ready::readable(),
+        PollOpt::edge(),
+    )?;
+
+    poll.register(
+        &waiter,
+        Token(2),
         Ready::readable(),
         PollOpt::edge(),
     )?;
@@ -464,20 +489,6 @@ fn run() -> Result<(), Error> {
             poll.poll(&mut events, None)?;
         }
 
-        /*
-        match child.try_wait() {
-            Ok(Some(status)) => {
-                println!("child exited: {}", status);
-                break;
-            }
-            Ok(None) => println!("child still running"),
-            Err(e) => {
-                println!("failed to wait for child: {}", e);
-                break;
-            }
-        }
-*/
-
         for event in &events {
             if event.token() == Token(0) && event.readiness().is_readable() {
                 window.handle_pty_readable_event();
@@ -508,6 +519,13 @@ fn run() -> Result<(), Error> {
 
                 // If we got disconnected from the display server, we cannot continue
                 conn.has_error()?;
+            }
+
+            if event.token() == Token(2) {
+                println!("sigchld ready");
+                let pid = waiter.read_one()?;
+                println!("got sigchld from pid {}", pid);
+                window.test_for_child_exit()?;
             }
         }
     }
