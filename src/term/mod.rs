@@ -209,7 +209,7 @@ impl Screen {
     /// default cell attributes.
     pub fn new(physical_rows: usize, physical_cols: usize, scrollback_size: usize) -> Screen {
         let mut lines = Vec::with_capacity(physical_rows + scrollback_size);
-        for i in 0..physical_rows {
+        for _ in 0..physical_rows {
             lines.push(Line::new(physical_cols));
         }
 

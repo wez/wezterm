@@ -81,15 +81,20 @@ fn dup(fd: RawFd) -> Result<RawFd, Error> {
 /// Create a new Pty instance with the window size set to the specified
 /// dimensions.  Returns a (master, slave) Pty pair.  The master side
 /// is used to drive the slave side.
-pub fn openpty(num_rows: u16, num_cols: u16) -> Result<(MasterPty, SlavePty), Error> {
+pub fn openpty(
+    num_rows: u16,
+    num_cols: u16,
+    pixel_width: u16,
+    pixel_height: u16,
+) -> Result<(MasterPty, SlavePty), Error> {
     let mut master: RawFd = -1;
     let mut slave: RawFd = -1;
 
     let size = winsize {
         ws_row: num_rows,
         ws_col: num_cols,
-        ws_xpixel: 0,
-        ws_ypixel: 0,
+        ws_xpixel: pixel_width,
+        ws_ypixel: pixel_height,
     };
 
     let result =

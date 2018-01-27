@@ -19,11 +19,12 @@ use failure::Error;
 extern crate xcb;
 extern crate xcb_util;
 
+use mio::{Events, Poll, PollOpt, Ready, Token};
 use mio::unix::EventedFd;
 use std::io::Read;
 use std::mem;
 use std::os::unix::io::AsRawFd;
-use std::process::Command;
+use std::process::{Child, Command};
 use std::slice;
 use std::time::Duration;
 
@@ -34,6 +35,7 @@ use font::{Font, FontPattern, ftwrap};
 
 mod term;
 mod pty;
+use pty::MasterPty;
 
 struct TerminalWindow<'a> {
     window: xgfx::Window<'a>,
@@ -48,6 +50,8 @@ struct TerminalWindow<'a> {
     buffer_image: xgfx::Image,
     need_paint: bool,
     terminal: term::Terminal,
+    pty: MasterPty,
+    process: Child,
 }
 
 impl<'a> TerminalWindow<'a> {
@@ -57,14 +61,10 @@ impl<'a> TerminalWindow<'a> {
         width: u16,
         height: u16,
         terminal: term::Terminal,
+        pty: MasterPty,
+        process: Child,
+        mut font: Font,
     ) -> Result<TerminalWindow, Error> {
-
-        let mut pattern = FontPattern::parse("Operator Mono SSm Lig:size=12")?;
-        pattern.add_double("dpi", 96.0)?;
-        let mut font = Font::new(pattern)?;
-        // we always load the cell_height for font 0,
-        // regardless of which font we are shaping here,
-        // so that we can scale glyphs appropriately
         let (cell_height, cell_width, descender) = font.get_metrics()?;
 
         let window = xgfx::Window::new(&conn, screen_num, width, height)?;
@@ -92,6 +92,8 @@ impl<'a> TerminalWindow<'a> {
             descender,
             need_paint: true,
             terminal,
+            pty,
+            process,
         })
     }
 
@@ -160,6 +162,9 @@ impl<'a> TerminalWindow<'a> {
 
             let glyph_info = self.font.shape(0, &line.as_str())?;
             for (cell_idx, info) in glyph_info.iter().enumerate() {
+                if cell_idx > phys_cols {
+                    break;
+                }
                 let has_color = self.font.has_color(info.font_idx)?;
                 let ft_glyph = self.font.load_glyph(info.font_idx, info.glyph_pos)?;
 
@@ -279,6 +284,18 @@ impl<'a> TerminalWindow<'a> {
 
         Ok(())
     }
+
+    fn handle_pty_readable_event(&mut self) {
+        println!("readable, doing read!");
+        let mut buf = [0; 256];
+
+        match self.pty.read(&mut buf) {
+            Ok(size) => println!("[ls] {}", std::str::from_utf8(&buf[0..size]).unwrap()),
+            Err(err) => {
+                eprintln!("[ls:err] {:?}", err);
+            }
+        }
+    }
 }
 
 fn dispatch_gui(
@@ -319,18 +336,36 @@ fn dispatch_gui(
 }
 
 fn run() -> Result<(), Error> {
-
-    let mut cmd = Command::new("ls");
-
-    let (mut master, slave) = pty::openpty(24, 80)?;
-
-    let mut child = slave.spawn_command(cmd)?;
-    eprintln!("spawned: {:?}", child);
-
-    use mio::{Events, Poll, PollOpt, Ready, Token};
+    let poll = Poll::new()?;
     let (conn, screen_num) = xcb::Connection::connect(None)?;
 
-    let poll = Poll::new()?;
+    // First step is to figure out the font metrics so that we know how
+    // big things are going to be.
+
+    let mut pattern = FontPattern::parse("Operator Mono SSm Lig:size=12")?;
+    pattern.add_double("dpi", 96.0)?;
+    let mut font = Font::new(pattern)?;
+    // we always load the cell_height for font 0,
+    // regardless of which font we are shaping here,
+    // so that we can scale glyphs appropriately
+    let (cell_height, cell_width, _) = font.get_metrics()?;
+
+    let initial_cols = 80u16;
+    let initial_rows = 24u16;
+    let initial_pixel_width = initial_cols * cell_width.ceil() as u16;
+    let initial_pixel_height = initial_rows * cell_height.ceil() as u16;
+
+    let (mut master, slave) = pty::openpty(
+        initial_rows,
+        initial_cols,
+        initial_pixel_width,
+        initial_pixel_height,
+    )?;
+
+    let cmd = Command::new("ls");
+    let child = slave.spawn_command(cmd)?;
+    eprintln!("spawned: {:?}", child);
+
     // Ask mio to watch the pty for input from the child process
     poll.register(
         &master,
@@ -346,11 +381,20 @@ fn run() -> Result<(), Error> {
         PollOpt::edge(),
     )?;
 
-    let mut terminal = term::Terminal::new(24, 80, 3000);
+    let mut terminal = term::Terminal::new(initial_rows as usize, initial_cols as usize, 3000);
     let message = "x_advance != \x1b[38;2;1;0;125;145;mfoo->bar(); ❤ 😍🤢\n\x1b[91;mw00t\n\x1b[37;104;m bleet\x1b[0;m.";
     terminal.advance_bytes(message);
 
-    let mut window = TerminalWindow::new(&conn, screen_num, 1024, 300, terminal)?;
+    let mut window = TerminalWindow::new(
+        &conn,
+        screen_num,
+        initial_pixel_width,
+        initial_pixel_height,
+        terminal,
+        master,
+        child,
+        font,
+    )?;
     let atom_protocols = xcb::intern_atom(&conn, false, "WM_PROTOCOLS")
         .get_reply()?
         .atom();
@@ -400,16 +444,7 @@ fn run() -> Result<(), Error> {
 
         for event in &events {
             if event.token() == Token(0) && event.readiness().is_readable() {
-                println!("readable, doing read!");
-                let mut buf = [0; 256];
-
-                match master.read(&mut buf) {
-                    Ok(size) => println!("[ls] {}", std::str::from_utf8(&buf[0..size]).unwrap()),
-                    Err(err) => {
-                        eprintln!("[ls:err] {:?}", err);
-                        break;
-                    }
-                }
+                window.handle_pty_readable_event();
             }
             if event.token() == Token(1) && event.readiness().is_readable() {
                 // Each time the XCB Connection FD shows as readable, we perform
@@ -440,8 +475,6 @@ fn run() -> Result<(), Error> {
             }
         }
     }
-
-    Ok(())
 }
 
 fn main() {
