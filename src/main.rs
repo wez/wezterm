@@ -109,6 +109,12 @@ impl<'a> TerminalWindow<'a> {
             self.buffer_image = buffer;
             self.width = width;
             self.height = height;
+
+            let rows = height / self.cell_height as u16;
+            let cols = width / self.cell_width as u16;
+            self.pty.resize(rows, cols, width, height);
+            self.terminal.resize(rows as usize, cols as usize);
+
             self.need_paint = true;
             Ok(true)
         } else {
@@ -141,7 +147,6 @@ impl<'a> TerminalWindow<'a> {
     }
 
     fn paint(&mut self) -> Result<(), Error> {
-        debug!("paint");
         self.need_paint = false;
 
         let palette = term::color::ColorPalette::default();
@@ -170,13 +175,25 @@ impl<'a> TerminalWindow<'a> {
 
                 let attrs = &line.cells[cell_idx].attrs;
 
+                let (fg_color, bg_color) = if attrs.reverse() {
+                    (
+                        palette.resolve(&attrs.background),
+                        palette.resolve(&attrs.foreground),
+                    )
+                } else {
+                    (
+                        palette.resolve(&attrs.foreground),
+                        palette.resolve(&attrs.background),
+                    )
+                };
+
                 // Render the cell background color
                 self.buffer_image.clear_rect(
                     x,
                     y - cell_height as isize,
                     info.num_cells as usize * self.cell_width as usize,
                     cell_height,
-                    palette.resolve(&attrs.background).into(),
+                    bg_color.into(),
                 );
 
                 let scale = if (info.x_advance / info.num_cells as f64).floor() > self.cell_width {
@@ -267,7 +284,7 @@ impl<'a> TerminalWindow<'a> {
                     let operator = if has_color {
                         xgfx::Operator::Over
                     } else {
-                        xgfx::Operator::MultiplyThenOver(palette.resolve(&attrs.foreground).into())
+                        xgfx::Operator::MultiplyThenOver(fg_color.into())
                     };
                     self.buffer_image.draw_image(
                         x + x_offset as isize + bearing_x,
@@ -282,17 +299,35 @@ impl<'a> TerminalWindow<'a> {
             }
         }
 
+        // FIXME: we have to push the render to the server in case it
+        // was the result of output from the process on the pty.  It would
+        // be nice to make this paint function only re-render the changed
+        // portions and send only those to the X server here.
+        self.window_context.put_image(0, 0, &self.buffer_image);
+
         Ok(())
     }
 
     fn handle_pty_readable_event(&mut self) {
-        println!("readable, doing read!");
-        let mut buf = [0; 256];
+        const kBufSize: usize = 8192;
+        let mut buf = [0; kBufSize];
 
-        match self.pty.read(&mut buf) {
-            Ok(size) => println!("[ls] {}", std::str::from_utf8(&buf[0..size]).unwrap()),
-            Err(err) => {
-                eprintln!("[ls:err] {:?}", err);
+        loop {
+            match self.pty.read(&mut buf) {
+                Ok(size) => {
+                    self.terminal.advance_bytes(&buf[0..size]);
+                    self.need_paint = true;
+                    if size < kBufSize {
+                        // If we had a short read then there is no more
+                        // data to read right now; we'll get called again
+                        // when mio says that we're ready
+                        break;
+                    }
+                }
+                Err(err) => {
+                    eprintln!("error reading from pty: {:?}", err);
+                    break;
+                }
             }
         }
     }
@@ -355,14 +390,15 @@ fn run() -> Result<(), Error> {
     let initial_pixel_width = initial_cols * cell_width.ceil() as u16;
     let initial_pixel_height = initial_rows * cell_height.ceil() as u16;
 
-    let (mut master, slave) = pty::openpty(
+    let (master, slave) = pty::openpty(
         initial_rows,
         initial_cols,
         initial_pixel_width,
         initial_pixel_height,
     )?;
 
-    let cmd = Command::new("ls");
+    let mut cmd = Command::new("top");
+    //    cmd.arg("-l");
     let child = slave.spawn_command(cmd)?;
     eprintln!("spawned: {:?}", child);
 
@@ -381,9 +417,9 @@ fn run() -> Result<(), Error> {
         PollOpt::edge(),
     )?;
 
-    let mut terminal = term::Terminal::new(initial_rows as usize, initial_cols as usize, 3000);
-    let message = "x_advance != \x1b[38;2;1;0;125;145;mfoo->bar(); ❤ 😍🤢\n\x1b[91;mw00t\n\x1b[37;104;m bleet\x1b[0;m.";
-    terminal.advance_bytes(message);
+    let terminal = term::Terminal::new(initial_rows as usize, initial_cols as usize, 3000);
+    //    let message = "x_advance != \x1b[38;2;1;0;125;145;mfoo->bar(); ❤ 😍🤢\n\x1b[91;mw00t\n\x1b[37;104;m bleet\x1b[0;m.";
+    //    terminal.advance_bytes(message);
 
     let mut window = TerminalWindow::new(
         &conn,
