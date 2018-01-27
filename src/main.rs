@@ -19,10 +19,16 @@ use failure::Error;
 extern crate xcb;
 extern crate xcb_util;
 
+use mio::unix::EventedFd;
+use std::io::Read;
 use std::mem;
+use std::os::unix::io::AsRawFd;
+use std::process::Command;
 use std::slice;
+use std::time::Duration;
 
 mod xgfx;
+use xgfx::Drawable;
 mod font;
 use font::{Font, FontPattern, ftwrap};
 
@@ -275,70 +281,44 @@ impl<'a> TerminalWindow<'a> {
     }
 }
 
-fn run() -> Result<(), Error> {
-    let (conn, screen_num) = xcb::Connection::connect(None)?;
-    println!("Connected screen {}", screen_num);
-
-    let mut terminal = term::Terminal::new(24, 80, 3000);
-    let message = "x_advance != \x1b[38;2;1;0;125;145;mfoo->bar(); ❤ 😍🤢\n\x1b[91;mw00t\n\x1b[37;104;m bleet\x1b[0;m.";
-    terminal.advance_bytes(message);
-
-    let mut window = TerminalWindow::new(&conn, screen_num, 1024, 300, terminal)?;
-    window.show();
-
-    conn.flush();
-
-    loop {
-        // If we need to re-render the display, try to defer that until after we've
-        // consumed the input queue
-        let event = if window.need_paint {
-            match conn.poll_for_queued_event() {
-                None => {
-                    window.paint()?;
-                    conn.flush();
-                    continue;
-                }
-                Some(event) => Some(event),
-            }
-        } else {
-            conn.wait_for_event()
-        };
-        match event {
-            None => break,
-            Some(event) => {
-                let r = event.response_type() & 0x7f;
-                match r {
-                    xcb::EXPOSE => {
-                        let expose: &xcb::ExposeEvent = unsafe { xcb::cast_event(&event) };
-                        window.expose(
-                            expose.x(),
-                            expose.y(),
-                            expose.width(),
-                            expose.height(),
-                        )?;
-                    }
-                    xcb::CONFIGURE_NOTIFY => {
-                        let cfg: &xcb::ConfigureNotifyEvent = unsafe { xcb::cast_event(&event) };
-                        window.resize_surfaces(cfg.width(), cfg.height())?;
-                    }
-                    xcb::KEY_PRESS => {
-                        let key_press: &xcb::KeyPressEvent = unsafe { xcb::cast_event(&event) };
-                        debug!("Key '{}' pressed", key_press.detail());
-                        break;
-                    }
-                    _ => {}
-                }
+fn dispatch_gui(
+    event: xcb::GenericEvent,
+    window: &mut TerminalWindow,
+    atom_delete: xcb::Atom,
+) -> Result<(), Error> {
+    let r = event.response_type() & 0x7f;
+    match r {
+        xcb::EXPOSE => {
+            let expose: &xcb::ExposeEvent = unsafe { xcb::cast_event(&event) };
+            window.expose(
+                expose.x(),
+                expose.y(),
+                expose.width(),
+                expose.height(),
+            )?;
+        }
+        xcb::CONFIGURE_NOTIFY => {
+            let cfg: &xcb::ConfigureNotifyEvent = unsafe { xcb::cast_event(&event) };
+            window.resize_surfaces(cfg.width(), cfg.height())?;
+        }
+        xcb::KEY_PRESS => {
+            let key_press: &xcb::KeyPressEvent = unsafe { xcb::cast_event(&event) };
+            println!("Key '{}' pressed", key_press.detail());
+        }
+        xcb::CLIENT_MESSAGE => {
+            let msg: &xcb::ClientMessageEvent = unsafe { xcb::cast_event(&event) };
+            println!("CLIENT_MESSAGE {:?}", msg.data().data32());
+            if msg.data().data32()[0] == atom_delete {
+                // TODO: cleaner exit handling
+                bail!("window close requested!");
             }
         }
+        _ => {}
     }
-
-
     Ok(())
 }
 
-fn ptyrun() -> Result<(), Error> {
-    use std::process::Command;
-    use std::io::Read;
+fn run() -> Result<(), Error> {
 
     let mut cmd = Command::new("ls");
 
@@ -348,20 +328,63 @@ fn ptyrun() -> Result<(), Error> {
     eprintln!("spawned: {:?}", child);
 
     use mio::{Events, Poll, PollOpt, Ready, Token};
+    let (conn, screen_num) = xcb::Connection::connect(None)?;
+
     let poll = Poll::new()?;
+    // Ask mio to watch the pty for input from the child process
     poll.register(
         &master,
         Token(0),
         Ready::readable(),
         PollOpt::edge(),
     )?;
+    // Ask mio to monitor the X connection fd
+    poll.register(
+        &EventedFd(&conn.as_raw_fd()),
+        Token(1),
+        Ready::readable(),
+        PollOpt::edge(),
+    )?;
+
+    let mut terminal = term::Terminal::new(24, 80, 3000);
+    let message = "x_advance != \x1b[38;2;1;0;125;145;mfoo->bar(); ❤ 😍🤢\n\x1b[91;mw00t\n\x1b[37;104;m bleet\x1b[0;m.";
+    terminal.advance_bytes(message);
+
+    let mut window = TerminalWindow::new(&conn, screen_num, 1024, 300, terminal)?;
+    let atom_protocols = xcb::intern_atom(&conn, false, "WM_PROTOCOLS")
+        .get_reply()?
+        .atom();
+    let atom_delete = xcb::intern_atom(&conn, false, "WM_DELETE_WINDOW")
+        .get_reply()?
+        .atom();
+    xcb::change_property(
+        &conn,
+        xcb::PROP_MODE_REPLACE as u8,
+        window.window.as_drawable(),
+        atom_protocols,
+        4,
+        32,
+        &[atom_delete],
+    );
+
+    window.show();
 
     let mut events = Events::with_capacity(8);
+    conn.flush();
 
     loop {
-        println!("polling");
-        poll.poll(&mut events, None)?;
+        if poll.poll(&mut events, Some(Duration::new(0, 0)))? == 0 {
+            // No immediately ready events.  Before we go to sleep,
+            // make sure we've flushed out any pending X work.
+            if window.need_paint {
+                window.paint()?;
+            }
+            conn.flush();
 
+            poll.poll(&mut events, None)?;
+        }
+
+        /*
         match child.try_wait() {
             Ok(Some(status)) => {
                 println!("child exited: {}", status);
@@ -373,6 +396,7 @@ fn ptyrun() -> Result<(), Error> {
                 break;
             }
         }
+*/
 
         for event in &events {
             if event.token() == Token(0) && event.readiness().is_readable() {
@@ -387,6 +411,33 @@ fn ptyrun() -> Result<(), Error> {
                     }
                 }
             }
+            if event.token() == Token(1) && event.readiness().is_readable() {
+                // Each time the XCB Connection FD shows as readable, we perform
+                // a single poll against the connection and then eagerly consume
+                // all of the queued events that came along as part of that batch.
+                // This is important because we can't assume that one readiness
+                // event from the kerenl maps to a single XCB event.  We need to be
+                // sure that all buffered/queued events are consumed before we
+                // allow the mio poll() routine to put us to sleep, otherwise we
+                // will effectively hang without updating all the state.
+                match conn.poll_for_event() {
+                    Some(event) => {
+                        dispatch_gui(event, &mut window, atom_delete)?;
+                        // Since we read one event from the connection, we must
+                        // now eagerly consume the rest of the queued events.
+                        loop {
+                            match conn.poll_for_queued_event() {
+                                Some(event) => dispatch_gui(event, &mut window, atom_delete)?,
+                                None => break,
+                            }
+                        }
+                    }
+                    None => {}
+                }
+
+                // If we got disconnected from the display server, we cannot continue
+                conn.has_error()?;
+            }
         }
     }
 
@@ -394,6 +445,5 @@ fn ptyrun() -> Result<(), Error> {
 }
 
 fn main() {
-    ptyrun().unwrap();
-    //    run().unwrap();
+    run().unwrap();
 }
