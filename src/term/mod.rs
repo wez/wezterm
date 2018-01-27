@@ -243,8 +243,6 @@ impl Screen {
     /// origin.  0,0 is the top left.
     pub fn set_cell(&mut self, x: usize, y: usize, c: char, attr: &CellAttributes) {
         let line_idx = (self.lines.len() - self.physical_rows) + y;
-        // TODO: if the line isn't wide enough, we should pad it out with
-        // the default attributes
         debug!(
             "set_cell x,y {},{}, line_idx = {} {} {:?}",
             x,
@@ -253,7 +251,13 @@ impl Screen {
             c,
             attr
         );
-        self.lines[line_idx].cells[x] = Cell::from_char(c, attr);
+        let cells = &mut self.lines[line_idx].cells;
+        let width = cells.len();
+        // if the line isn't wide enough, pad it out with the default attributes
+        if x >= width {
+            cells.resize(x + 1, Cell::from_char(' ', &CellAttributes::default()));
+        }
+        cells[x] = Cell::from_char(c, attr);
     }
 
     pub fn clear_line(&mut self, y: usize, cols: std::ops::Range<usize>) {
