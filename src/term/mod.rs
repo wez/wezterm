@@ -427,6 +427,12 @@ impl TerminalState {
         let len = screen.lines.len();
         (width, &screen.lines[len - height..len])
     }
+
+    /// Returns the 0-based cursor position relative to the top left of
+    /// the visible screen
+    pub fn cursor_pos(&self) -> (usize, usize) {
+        (self.cursor_x, self.cursor_y)
+    }
 }
 
 pub struct Terminal {

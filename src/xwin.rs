@@ -137,7 +137,9 @@ impl<'a> TerminalWindow<'a> {
 
         let (phys_cols, lines) = self.terminal.visible_cells();
 
-        for line in lines.iter() {
+        let (cursor_x, cursor_y) = self.terminal.cursor_pos();
+
+        for (line_idx, line) in lines.iter().enumerate() {
             let mut x = 0 as isize;
             y += cell_height as isize;
 
@@ -146,6 +148,11 @@ impl<'a> TerminalWindow<'a> {
                 if cell_idx > phys_cols {
                     break;
                 }
+                let is_cursor_cell = if cell_idx == cursor_x && line_idx == cursor_y {
+                    true
+                } else {
+                    false
+                };
                 let has_color = self.font.has_color(info.font_idx)?;
                 let ft_glyph = self.font.load_glyph(info.font_idx, info.glyph_pos)?;
 
@@ -169,7 +176,11 @@ impl<'a> TerminalWindow<'a> {
                     y - cell_height as isize,
                     info.num_cells as usize * self.cell_width as usize,
                     cell_height,
-                    bg_color.into(),
+                    if is_cursor_cell {
+                        palette.cursor()
+                    } else {
+                        bg_color
+                    }.into(),
                 );
 
                 let scale = if (info.x_advance / info.num_cells as f64).floor() > self.cell_width {
