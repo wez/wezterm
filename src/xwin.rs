@@ -7,7 +7,7 @@ use std::process::Child;
 use std::slice;
 use term::{self, KeyCode, KeyModifiers};
 use xcb;
-use xgfx::{self, Connection, Drawable};
+use xgfx::{self, Connection};
 use xkeysyms;
 
 pub struct TerminalWindow<'a> {
@@ -67,10 +67,6 @@ impl<'a> TerminalWindow<'a> {
             pty,
             process,
         })
-    }
-
-    pub fn window_id(&self) -> u32 {
-        self.window.as_drawable()
     }
 
     pub fn show(&self) {

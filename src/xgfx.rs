@@ -331,8 +331,6 @@ impl Color {
                 )
             }
 
-            &Operator::Dest => dest,
-
             &Operator::Source => *self,
 
             &Operator::Multiply => {
@@ -370,8 +368,6 @@ pub enum Operator {
     /// Apply the alpha channel of src and combine src with dest,
     /// according to the classic OVER composite operator
     Over,
-    /// Ignore src; leave dest untouched
-    Dest,
     /// Ignore dest; take src as the result of the operation
     Source,
     /// Multiply src x dest.  The result is at least as dark as

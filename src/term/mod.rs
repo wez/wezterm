@@ -464,11 +464,6 @@ impl Terminal {
         }
     }
 
-    /// Feed the terminal parser a single byte of input
-    pub fn advance(&mut self, byte: u8) {
-        self.parser.advance(&mut self.state, byte);
-    }
-
     /// Feed the terminal parser a slice of bytes of input
     pub fn advance_bytes<B: AsRef<[u8]>>(&mut self, bytes: B) {
         let bytes = bytes.as_ref();
