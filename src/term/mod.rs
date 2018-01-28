@@ -512,101 +512,59 @@ impl vte::Perform for TerminalState {
     fn unhook(&mut self) {}
     fn osc_dispatch(&mut self, _: &[&[u8]]) {}
     fn csi_dispatch(&mut self, params: &[i64], intermediates: &[u8], ignore: bool, byte: char) {
-        match byte {
-            'm' => {
-                for act in CSIParser::new(params, intermediates, ignore, byte) {
-                    match act {
-                        CSIAction::SetPen(pen) => {
-                            self.pen = pen;
+        for act in CSIParser::new(params, intermediates, ignore, byte) {
+            match act {
+                CSIAction::SetPen(pen) => {
+                    self.pen = pen;
+                }
+                CSIAction::SetForegroundColor(color) => {
+                    self.pen.foreground = color;
+                }
+                CSIAction::SetBackgroundColor(color) => {
+                    self.pen.background = color;
+                }
+                CSIAction::SetIntensity(level) => {
+                    self.pen.set_intensity(level);
+                }
+                CSIAction::SetUnderline(level) => {
+                    self.pen.set_underline(level);
+                }
+                CSIAction::SetItalic(on) => {
+                    self.pen.set_italic(on);
+                }
+                CSIAction::SetBlink(on) => {
+                    self.pen.set_blink(on);
+                }
+                CSIAction::SetReverse(on) => {
+                    self.pen.set_reverse(on);
+                }
+                CSIAction::SetStrikethrough(on) => {
+                    self.pen.set_strikethrough(on);
+                }
+                CSIAction::SetInvisible(on) => {
+                    self.pen.set_invisible(on);
+                }
+                CSIAction::SetCursorXY(x, y) => {
+                    self.cursor_x = x;
+                    self.cursor_y = y;
+                }
+                CSIAction::EraseInLine(erase) => {
+                    let cx = self.cursor_x;
+                    let cy = self.cursor_y;
+                    let mut screen = self.screen_mut();
+                    let cols = screen.physical_cols;
+                    match erase {
+                        LineErase::ToRight => {
+                            screen.clear_line(cy, cx..cols);
                         }
-                        CSIAction::SetForegroundColor(color) => {
-                            self.pen.foreground = color;
+                        LineErase::ToLeft => {
+                            screen.clear_line(cy, 0..cx);
                         }
-                        CSIAction::SetBackgroundColor(color) => {
-                            self.pen.background = color;
-                        }
-                        CSIAction::SetIntensity(level) => {
-                            self.pen.set_intensity(level);
-                        }
-                        CSIAction::SetUnderline(level) => {
-                            self.pen.set_underline(level);
-                        }
-                        CSIAction::SetItalic(on) => {
-                            self.pen.set_italic(on);
-                        }
-                        CSIAction::SetBlink(on) => {
-                            self.pen.set_blink(on);
-                        }
-                        CSIAction::SetReverse(on) => {
-                            self.pen.set_reverse(on);
-                        }
-                        CSIAction::SetStrikethrough(on) => {
-                            self.pen.set_strikethrough(on);
-                        }
-                        CSIAction::SetInvisible(on) => {
-                            self.pen.set_invisible(on);
+                        LineErase::All => {
+                            screen.clear_line(cy, 0..cols);
                         }
                     }
                 }
-            }
-            'H' => {
-                // Cursor Position (CUP)
-                if params.len() == 2 {
-                    // coordinates are 1-based; convert to 0-based
-                    self.cursor_y = (params[0] - 1) as usize;
-                    self.cursor_x = (params[1] - 1) as usize;
-                } else {
-                    // no parameters -> home the cursor
-                    self.cursor_x = 0;
-                    self.cursor_y = 0;
-                }
-            }
-            'K' => {
-                // Erase in line (EL)
-                #[derive(Debug)]
-                enum Erase {
-                    ToRight,
-                    ToLeft,
-                    All,
-                    Unknown,
-                }
-                let what = if params.len() == 0 {
-                    Erase::ToRight
-                } else {
-                    match params[0] {
-                        0 => Erase::ToRight,
-                        1 => Erase::ToLeft,
-                        2 => Erase::All,
-                        _ => Erase::Unknown,
-                    }
-                };
-
-                let cx = self.cursor_x;
-                let cy = self.cursor_y;
-                let mut screen = self.screen_mut();
-                let cols = screen.physical_cols;
-                match what {
-                    Erase::ToRight => {
-                        screen.clear_line(cy, cx..cols);
-                    }
-                    Erase::ToLeft => {
-                        screen.clear_line(cy, 0..cx);
-                    }
-                    Erase::All => {
-                        screen.clear_line(cy, 0..cols);
-                    }
-                    Erase::Unknown => {}
-                }
-
-            }
-            _ => {
-                println!(
-                    "CSI: unhandled params {:?} intermediates {:?} ignore={} byte={}",
-                    params,
-                    intermediates,
-                    ignore,
-                    byte
-                );
             }
         }
     }

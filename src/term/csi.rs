@@ -1,5 +1,13 @@
 //! Parsing CSI escape sequences
+
 use super::*;
+
+#[derive(Debug)]
+pub enum LineErase {
+    ToRight,
+    ToLeft,
+    All,
+}
 
 #[derive(Debug)]
 pub enum CSIAction {
@@ -13,6 +21,8 @@ pub enum CSIAction {
     SetReverse(bool),
     SetStrikethrough(bool),
     SetInvisible(bool),
+    SetCursorXY(usize, usize),
+    EraseInLine(LineErase),
 }
 
 pub struct CSIParser<'a> {
@@ -44,7 +54,50 @@ impl<'a> CSIParser<'a> {
         }
     }
 
-    fn next_sgr(&mut self, params: &'a [i64]) -> Option<CSIAction> {
+    /// Erase in Line (EL)
+    fn el(&mut self, params: &'a [i64]) -> Option<CSIAction> {
+        match params {
+            &[] => Some(CSIAction::EraseInLine(LineErase::ToRight)),
+            &[i] => {
+                self.advance_by(1, params);
+                match i {
+                    0 => Some(CSIAction::EraseInLine(LineErase::ToRight)),
+                    1 => Some(CSIAction::EraseInLine(LineErase::ToLeft)),
+                    2 => Some(CSIAction::EraseInLine(LineErase::All)),
+                    _ => {
+                        println!("el: unknown parameter {:?}", params);
+                        None
+                    }
+                }
+            }
+            _ => {
+                println!("el: unhandled csi sequence {:?}", params);
+                None
+            }
+        }
+    }
+
+    /// Cursor Position (CUP)
+    fn cup(&mut self, params: &'a [i64]) -> Option<CSIAction> {
+        match params {
+            &[] => {
+                // With no parameters, home the cursor
+                Some(CSIAction::SetCursorXY(0, 0))
+            }
+            &[x, y] => {
+                self.advance_by(2, params);
+                // Co-ordinates are 1-based, but we want 0-based
+                Some(CSIAction::SetCursorXY((x - 1) as usize, (y - 1) as usize))
+            }
+            _ => {
+                println!("CUP: unhandled csi sequence {:?}", params);
+                None
+            }
+        }
+    }
+
+    /// Set Graphics Rendition (SGR)
+    fn sgr(&mut self, params: &'a [i64]) -> Option<CSIAction> {
         match params {
             &[] => {
                 // With no parameters, reset to default pen.
@@ -208,7 +261,9 @@ impl<'a> Iterator for CSIParser<'a> {
         let params = self.params.take();
         match (self.byte, params) {
             (_, None) => None,
-            ('m', Some(params)) => self.next_sgr(params),
+            ('H', Some(params)) => self.cup(params),
+            ('K', Some(params)) => self.el(params),
+            ('m', Some(params)) => self.sgr(params),
             (b, Some(p)) => {
                 println!("unhandled {} {:?}", b, p);
                 None
