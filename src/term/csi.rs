@@ -18,6 +18,12 @@ pub enum DisplayErase {
 }
 
 #[derive(Debug)]
+pub enum DecPrivateMode {
+    ApplicationCursorKeys,
+    BrackedPaste,
+}
+
+#[derive(Debug)]
 pub enum CSIAction {
     SetPen(CellAttributes),
     SetForegroundColor(color::ColorAttribute),
@@ -32,6 +38,7 @@ pub enum CSIAction {
     SetCursorXY(usize, usize),
     EraseInLine(LineErase),
     EraseInDisplay(DisplayErase),
+    SetDecPrivateMode(DecPrivateMode, bool),
 }
 
 /// Constrol Sequence Initiator (CSI) Parser.
@@ -113,6 +120,54 @@ impl<'a> CSIParser<'a> {
             }
             _ => {
                 println!("el: unhandled csi sequence {:?}", params);
+                None
+            }
+        }
+    }
+
+    fn parse_dec_mode(&self, mode: i64) -> Option<DecPrivateMode> {
+        match mode {
+            1 => Some(DecPrivateMode::ApplicationCursorKeys),
+            2004 => Some(DecPrivateMode::BrackedPaste),
+            _ => None,
+        }
+    }
+
+    /// Set Mode (SM) and DEC Private Mode (DECSET)
+    fn set_mode(&mut self, params: &'a [i64]) -> Option<CSIAction> {
+        match (self.intermediates, params) {
+            (&[b'?'], &[idx, _..]) => {
+                self.advance_by(1, params);
+                self.parse_dec_mode(idx).map(|m| {
+                    CSIAction::SetDecPrivateMode(m, true)
+                })
+            }
+            _ => {
+                println!(
+                    "set_mode: unhandled sequence {:?} {:?}",
+                    self.intermediates,
+                    params
+                );
+                None
+            }
+        }
+    }
+
+    /// Reset Mode (RM) and DEC Private Mode (DECRST)
+    fn reset_mode(&mut self, params: &'a [i64]) -> Option<CSIAction> {
+        match (self.intermediates, params) {
+            (&[b'?'], &[idx, _..]) => {
+                self.advance_by(1, params);
+                self.parse_dec_mode(idx).map(|m| {
+                    CSIAction::SetDecPrivateMode(m, false)
+                })
+            }
+            _ => {
+                println!(
+                    "reset_mode: unhandled sequence {:?} {:?}",
+                    self.intermediates,
+                    params
+                );
                 None
             }
         }
@@ -302,6 +357,8 @@ impl<'a> Iterator for CSIParser<'a> {
         let params = self.params.take();
         match (self.byte, params) {
             (_, None) => None,
+            ('h', Some(params)) => self.set_mode(params),
+            ('l', Some(params)) => self.reset_mode(params),
             ('H', Some(params)) => self.cup(params),
             ('J', Some(params)) => self.ed(params),
             ('K', Some(params)) => self.el(params),

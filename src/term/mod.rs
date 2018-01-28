@@ -591,6 +591,8 @@ impl vte::Perform for TerminalState {
                         }
                     }
                 }
+                CSIAction::SetDecPrivateMode(DecPrivateMode::ApplicationCursorKeys, _on) => {}
+                CSIAction::SetDecPrivateMode(DecPrivateMode::BrackedPaste, _on) => {}
             }
         }
     }
