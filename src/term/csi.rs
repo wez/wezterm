@@ -10,6 +10,14 @@ pub enum LineErase {
 }
 
 #[derive(Debug)]
+pub enum DisplayErase {
+    Below,
+    Above,
+    All,
+    SavedLines,
+}
+
+#[derive(Debug)]
 pub enum CSIAction {
     SetPen(CellAttributes),
     SetForegroundColor(color::ColorAttribute),
@@ -23,6 +31,7 @@ pub enum CSIAction {
     SetInvisible(bool),
     SetCursorXY(usize, usize),
     EraseInLine(LineErase),
+    EraseInDisplay(DisplayErase),
 }
 
 /// Constrol Sequence Initiator (CSI) Parser.
@@ -59,6 +68,30 @@ impl<'a> CSIParser<'a> {
         let (_, next) = params.split_at(n);
         if next.len() != 0 {
             self.params = Some(next);
+        }
+    }
+
+    /// Erase in Display (ED)
+    fn ed(&mut self, params: &'a [i64]) -> Option<CSIAction> {
+        match params {
+            &[] => Some(CSIAction::EraseInDisplay(DisplayErase::Below)),
+            &[i] => {
+                self.advance_by(1, params);
+                match i {
+                    0 => Some(CSIAction::EraseInDisplay(DisplayErase::Below)),
+                    1 => Some(CSIAction::EraseInDisplay(DisplayErase::Above)),
+                    2 => Some(CSIAction::EraseInDisplay(DisplayErase::All)),
+                    3 => Some(CSIAction::EraseInDisplay(DisplayErase::SavedLines)),
+                    _ => {
+                        println!("ed: unknown parameter {:?}", params);
+                        None
+                    }
+                }
+            }
+            _ => {
+                println!("ed: unhandled csi sequence {:?}", params);
+                None
+            }
         }
     }
 
@@ -270,10 +303,17 @@ impl<'a> Iterator for CSIParser<'a> {
         match (self.byte, params) {
             (_, None) => None,
             ('H', Some(params)) => self.cup(params),
+            ('J', Some(params)) => self.ed(params),
             ('K', Some(params)) => self.el(params),
             ('m', Some(params)) => self.sgr(params),
             (b, Some(p)) => {
-                println!("unhandled {} {:?}", b, p);
+                println!(
+                    "unhandled {} {:?} {:?} ignore={}",
+                    b,
+                    p,
+                    self.intermediates,
+                    self.ignore
+                );
                 None
             }
         }

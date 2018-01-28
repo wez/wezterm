@@ -565,6 +565,32 @@ impl vte::Perform for TerminalState {
                         }
                     }
                 }
+                CSIAction::EraseInDisplay(erase) => {
+                    let cy = self.cursor_y;
+                    let mut screen = self.screen_mut();
+                    let cols = screen.physical_cols;
+                    let rows = screen.physical_rows;
+                    match erase {
+                        DisplayErase::Below => {
+                            for y in cy..rows {
+                                screen.clear_line(y, 0..cols);
+                            }
+                        }
+                        DisplayErase::Above => {
+                            for y in 0..cy {
+                                screen.clear_line(y, 0..cols);
+                            }
+                        }
+                        DisplayErase::All => {
+                            for y in 0..rows {
+                                screen.clear_line(y, 0..cols);
+                            }
+                        }
+                        DisplayErase::SavedLines => {
+                            println!("ed: no support for xterm Erase Saved Lines yet");
+                        }
+                    }
+                }
             }
         }
     }
