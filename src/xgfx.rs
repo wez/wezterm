@@ -4,9 +4,12 @@ use std::ops::Deref;
 use std::result;
 use xcb;
 use xcb_util;
+use xcb_util::ffi::keysyms::{xcb_key_press_lookup_keysym, xcb_key_symbols_alloc,
+                             xcb_key_symbols_free, xcb_key_symbols_t};
 
 use failure::{self, Error};
 pub type Result<T> = result::Result<T, Error>;
+pub use xkeysyms::*;
 
 use super::term::color::RgbColor;
 
@@ -15,6 +18,7 @@ pub struct Connection {
     screen_num: i32,
     atom_protocols: xcb::Atom,
     atom_delete: xcb::Atom,
+    keysyms: *mut xcb_key_symbols_t,
 }
 
 impl Deref for Connection {
@@ -35,11 +39,14 @@ impl Connection {
             .get_reply()?
             .atom();
 
+        let keysyms = unsafe { xcb_key_symbols_alloc(conn.get_raw_conn()) };
+
         Ok(Connection {
             conn,
             screen_num,
             atom_protocols,
             atom_delete,
+            keysyms,
         })
     }
 
@@ -53,6 +60,26 @@ impl Connection {
 
     pub fn atom_delete(&self) -> xcb::Atom {
         self.atom_delete
+    }
+
+    pub fn lookup_keysym(&self, event: &xcb::KeyPressEvent, shifted: bool) -> xcb::Keysym {
+        unsafe {
+            let sym =
+                xcb_key_press_lookup_keysym(self.keysyms, event.ptr, if shifted { 1 } else { 0 });
+            if sym == 0 && shifted {
+                xcb_key_press_lookup_keysym(self.keysyms, event.ptr, 0)
+            } else {
+                sym
+            }
+        }
+    }
+}
+
+impl Drop for Connection {
+    fn drop(&mut self) {
+        unsafe {
+            xcb_key_symbols_free(self.keysyms);
+        }
     }
 }
 
@@ -105,7 +132,9 @@ impl<'a> Window<'a> {
             &[
                 (
                     xcb::CW_EVENT_MASK,
-                    xcb::EVENT_MASK_EXPOSURE | xcb::EVENT_MASK_KEY_PRESS | xcb::EVENT_MASK_STRUCTURE_NOTIFY,
+                    xcb::EVENT_MASK_EXPOSURE | xcb::EVENT_MASK_KEY_PRESS |
+                        xcb::EVENT_MASK_KEY_RELEASE |
+                        xcb::EVENT_MASK_STRUCTURE_NOTIFY,
                 ),
             ],
         ).request_check()?;

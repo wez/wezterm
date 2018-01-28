@@ -1,5 +1,7 @@
 #[macro_use]
 extern crate failure;
+#[macro_use]
+extern crate bitflags;
 extern crate unicode_width;
 extern crate unicode_segmentation;
 extern crate harfbuzz_sys;
@@ -26,6 +28,7 @@ use std::process::Command;
 use std::time::Duration;
 
 mod xgfx;
+mod xkeysyms;
 mod font;
 use font::{Font, FontPattern, ftwrap};
 
@@ -57,7 +60,11 @@ fn dispatch_gui(
         }
         xcb::KEY_PRESS => {
             let key_press: &xcb::KeyPressEvent = unsafe { xcb::cast_event(&event) };
-            println!("Key '{}' pressed", key_press.detail());
+            window.key_down(key_press)?;
+        }
+        xcb::KEY_RELEASE => {
+            let key_press: &xcb::KeyPressEvent = unsafe { xcb::cast_event(&event) };
+            window.key_up(key_press)?;
         }
         xcb::CLIENT_MESSAGE => {
             let msg: &xcb::ClientMessageEvent = unsafe { xcb::cast_event(&event) };
@@ -101,8 +108,7 @@ fn run() -> Result<(), Error> {
         initial_pixel_height,
     )?;
 
-    let mut cmd = Command::new("top");
-    //    cmd.arg("-l");
+    let cmd = Command::new("zsh");
     let child = slave.spawn_command(cmd)?;
     eprintln!("spawned: {:?}", child);
 

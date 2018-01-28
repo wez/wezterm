@@ -5,8 +5,10 @@ use std::io::Read;
 use std::mem;
 use std::process::Child;
 use std::slice;
-use term;
+use term::{self, KeyCode, KeyModifiers};
+use xcb;
 use xgfx::{self, Connection, Drawable};
+use xkeysyms;
 
 pub struct TerminalWindow<'a> {
     window: xgfx::Window<'a>,
@@ -323,5 +325,26 @@ impl<'a> TerminalWindow<'a> {
 
     pub fn need_paint(&self) -> bool {
         self.need_paint
+    }
+
+    fn decode_key(&self, event: &xcb::KeyPressEvent) -> (KeyCode, KeyModifiers) {
+        let mods = xkeysyms::modifiers(event);
+        let sym = self.conn.lookup_keysym(
+            event,
+            mods.contains(KeyModifiers::SHIFT),
+        );
+        (sym.into(), mods)
+    }
+
+    pub fn key_down(&mut self, event: &xcb::KeyPressEvent) -> Result<(), Error> {
+        let (code, mods) = self.decode_key(event);
+        println!("Key pressed {:?} {:?}", code, mods);
+        self.terminal.key_down(code, mods, &mut self.pty)
+    }
+
+    pub fn key_up(&mut self, event: &xcb::KeyPressEvent) -> Result<(), Error> {
+        let (code, mods) = self.decode_key(event);
+        println!("Key released {:?} {:?}", code, mods);
+        self.terminal.key_up(code, mods, &mut self.pty)
     }
 }

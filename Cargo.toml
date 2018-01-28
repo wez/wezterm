@@ -4,6 +4,7 @@ name = "wterm"
 version = "0.1.0"
 
 [dependencies]
+bitflags = "1.0.1"
 failure = "0.1.1"
 freetype = "0.3.0"
 harfbuzz-sys = "0.1.15"
@@ -23,5 +24,6 @@ features = [
     "ewmh",
     "misc",
     "shm",
+    "keysyms",
 ]
 version = "0.2.0"

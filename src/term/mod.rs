@@ -1,10 +1,34 @@
 //! Terminal model
 
+use failure::Error;
 use std;
 use unicode_segmentation;
 use vte;
 
 pub mod color;
+
+bitflags! {
+    #[derive(Default)]
+    pub struct KeyModifiers :u8{
+        const CTRL = 1;
+        const ALT = 2;
+        const META = 4;
+        const SUPER = 8;
+        const SHIFT = 16;
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum KeyCode {
+    Char(char),
+    Unknown,
+    Control,
+    Alt,
+    Meta,
+    Super,
+    Hyper,
+    Shift,
+}
 
 #[derive(Debug, Clone, Copy)]
 pub struct CellAttributes {
@@ -328,6 +352,48 @@ impl TerminalState {
             &mut self.screen
         }
     }
+
+    pub fn key_down<W: std::io::Write>(
+        &mut self,
+        key: KeyCode,
+        mods: KeyModifiers,
+        write: &mut W,
+    ) -> Result<(), Error> {
+        match key {
+            KeyCode::Char(c) => {
+                let adjusted = if mods.contains(KeyModifiers::CTRL) && c <= 0xff as char {
+                    if mods.contains(KeyModifiers::SHIFT) {
+                        // If shift is held we have C == 0x43 and want to translate
+                        // that into 0x03
+                        (c as u8 - 0x40) as char
+                    } else {
+                        // If shift is not held we have c == 0x63 and want to translate
+                        // that into 0x03
+                        (c as u8 - 0x60) as char
+                    }
+                } else if mods.contains(KeyModifiers::ALT) && c <= 0xff as char {
+                    (c as u8 | 0x80) as char
+                } else {
+                    c
+                };
+
+                let mut buf = [0; 8];
+                let encoded = adjusted.encode_utf8(&mut buf);
+                write.write(encoded.as_bytes())?;
+                Ok(())
+            }
+            _ => Ok(()),
+        }
+    }
+
+    pub fn key_up<W: std::io::Write>(
+        &mut self,
+        key: KeyCode,
+        mods: KeyModifiers,
+        write: &mut W,
+    ) -> Result<(), Error> {
+        Ok(())
+    }
 }
 
 pub struct Terminal {
@@ -389,6 +455,24 @@ impl Terminal {
         let height = screen.physical_rows;
         let len = screen.lines.len();
         (width, &screen.lines[len - height..len])
+    }
+
+    pub fn key_down<W: std::io::Write>(
+        &mut self,
+        key: KeyCode,
+        mods: KeyModifiers,
+        write: &mut W,
+    ) -> Result<(), Error> {
+        self.state.key_down(key, mods, write)
+    }
+
+    pub fn key_up<W: std::io::Write>(
+        &mut self,
+        key: KeyCode,
+        mods: KeyModifiers,
+        write: &mut W,
+    ) -> Result<(), Error> {
+        self.state.key_up(key, mods, write)
     }
 }
 
