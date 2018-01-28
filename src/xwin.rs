@@ -1,7 +1,7 @@
 use failure::Error;
 use font::{Font, ftwrap};
 use pty::MasterPty;
-use std::io::Read;
+use std::io::{Read, Write};
 use std::mem;
 use std::process::Child;
 use std::slice;
@@ -408,7 +408,9 @@ impl<'a> TerminalWindow<'a> {
         loop {
             match self.pty.read(&mut buf) {
                 Ok(size) => {
-                    self.terminal.advance_bytes(&buf[0..size]);
+                    if let Some(answer) = self.terminal.advance_bytes(&buf[0..size]) {
+                        self.pty.write(&answer).ok(); // discard error
+                    }
                     self.need_paint = true;
                     if size < BUFSIZE {
                         // If we had a short read then there is no more

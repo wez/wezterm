@@ -318,6 +318,12 @@ pub struct TerminalState {
 
     /// If true then the terminal state has changed
     state_changed: bool,
+
+    /// Some parsing operations may yield responses that need
+    /// to be returned to the client.  They are collected here
+    /// and this is used as the result of the advance_bytes()
+    /// method.
+    answerback: Option<Vec<u8>>,
 }
 
 impl TerminalState {
@@ -337,6 +343,7 @@ impl TerminalState {
             cursor_x: 0,
             cursor_y: 0,
             state_changed: true,
+            answerback: None,
         }
     }
 
@@ -435,6 +442,12 @@ impl TerminalState {
     pub fn cursor_pos(&self) -> (usize, usize) {
         (self.cursor_x, self.cursor_y)
     }
+
+    fn push_answerback(&mut self, buf: &[u8]) {
+        let mut result = self.answerback.take().unwrap_or_else(Vec::new);
+        result.extend_from_slice(buf);
+        self.answerback = Some(result)
+    }
 }
 
 pub struct Terminal {
@@ -466,12 +479,15 @@ impl Terminal {
         }
     }
 
-    /// Feed the terminal parser a slice of bytes of input
-    pub fn advance_bytes<B: AsRef<[u8]>>(&mut self, bytes: B) {
+    /// Feed the terminal parser a slice of bytes of input.
+    /// The return value is an optional sequence of bytes which should
+    /// we sent back to the client.
+    pub fn advance_bytes<B: AsRef<[u8]>>(&mut self, bytes: B) -> Option<Vec<u8>> {
         let bytes = bytes.as_ref();
         for b in bytes.iter() {
             self.parser.advance(&mut self.state, *b);
         }
+        self.answerback.take()
     }
 }
 
@@ -594,10 +610,13 @@ impl vte::Perform for TerminalState {
                 CSIAction::SetDecPrivateMode(DecPrivateMode::ApplicationCursorKeys, _on) => {}
                 CSIAction::SetDecPrivateMode(DecPrivateMode::BrackedPaste, _on) => {}
                 CSIAction::DeviceStatusReport => {
-                    // TODO: should emit "CSI 0 n"
+                    // "OK"
+                    self.push_answerback(b"\x1b[0n");
                 }
                 CSIAction::ReportCursorPosition => {
-                    // TODO: should emit "CSI r ; c R"
+                    let row = self.cursor_y + 1;
+                    let col = self.cursor_x + 1;
+                    self.push_answerback(format!("\x1b[{};{}R", row, col).as_bytes());
                 }
             }
         }
