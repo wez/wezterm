@@ -1,3 +1,4 @@
+//! Parsing CSI escape sequences
 use super::*;
 
 #[derive(Debug)]
@@ -14,125 +15,204 @@ pub enum CSIAction {
     SetInvisible(bool),
 }
 
-impl CSIAction {
-    /// Parses out a "Set Graphics Rendition" action.
-    /// Returns the decoded action plus the unparsed remainder of the
-    /// parameter stream.  Returns None if we couldn't decode one of
-    /// the parameter elements.
-    pub fn parse_sgr(params: &[i64]) -> Option<(CSIAction, &[i64])> {
-        if params.len() > 5 {
-            // ISO-8613-6 foreground and background color specification
-            // using full RGB color codes.
-            if params[0] == 38 && params[1] == 2 {
-                return Some((
-                    CSIAction::SetForegroundColor(
-                        color::ColorAttribute::Rgb(color::RgbColor {
-                            red: params[3] as u8,
-                            green: params[4] as u8,
-                            blue: params[5] as u8,
-                        }),
-                    ),
-                    &params[6..],
-                ));
-            }
-            if params[0] == 48 && params[1] == 2 {
-                return Some((
-                    CSIAction::SetBackgroundColor(
-                        color::ColorAttribute::Rgb(color::RgbColor {
-                            red: params[3] as u8,
-                            green: params[4] as u8,
-                            blue: params[5] as u8,
-                        }),
-                    ),
-                    &params[6..],
-                ));
-            }
-        }
-        if params.len() > 2 {
-            // Some special look-ahead cases for 88 and 256 color support
-            if params[0] == 38 && params[1] == 5 {
-                // 38;5;IDX -> foreground color
-                let color = color::ColorAttribute::PaletteIndex(params[2] as u8);
-                return Some((CSIAction::SetForegroundColor(color), &params[3..]));
-            }
+pub struct CSIParser<'a> {
+    intermediates: &'a [u8],
+    ignore: bool,
+    byte: char,
+    params: Option<&'a [i64]>,
+}
 
-            if params[0] == 48 && params[1] == 5 {
-                // 48;5;IDX -> background color
-                let color = color::ColorAttribute::PaletteIndex(params[2] as u8);
-                return Some((CSIAction::SetBackgroundColor(color), &params[3..]));
-            }
+impl<'a> CSIParser<'a> {
+    pub fn new<'b>(
+        params: &'b [i64],
+        intermediates: &'b [u8],
+        ignore: bool,
+        byte: char,
+    ) -> CSIParser<'b> {
+        CSIParser {
+            intermediates,
+            ignore,
+            byte,
+            params: Some(params),
         }
+    }
 
-        let p = params[0];
-        match p {
-            0 => Some((CSIAction::SetPen(CellAttributes::default()), &params[1..])),
-            1 => Some((CSIAction::SetIntensity(Intensity::Bold), &params[1..])),
-            2 => Some((CSIAction::SetIntensity(Intensity::Half), &params[1..])),
-            3 => Some((CSIAction::SetItalic(true), &params[1..])),
-            4 => Some((CSIAction::SetUnderline(Underline::Single), &params[1..])),
-            5 => Some((CSIAction::SetBlink(true), &params[1..])),
-            7 => Some((CSIAction::SetReverse(true), &params[1..])),
-            8 => Some((CSIAction::SetInvisible(true), &params[1..])),
-            9 => Some((CSIAction::SetStrikethrough(true), &params[1..])),
-            21 => Some((CSIAction::SetUnderline(Underline::Double), &params[1..])),
-            22 => Some((CSIAction::SetIntensity(Intensity::Normal), &params[1..])),
-            23 => Some((CSIAction::SetItalic(false), &params[1..])),
-            24 => Some((CSIAction::SetUnderline(Underline::None), &params[1..])),
-            25 => Some((CSIAction::SetBlink(false), &params[1..])),
-            27 => Some((CSIAction::SetReverse(false), &params[1..])),
-            28 => Some((CSIAction::SetInvisible(false), &params[1..])),
-            29 => Some((CSIAction::SetStrikethrough(false), &params[1..])),
-            30...37 => {
-                Some((
-                    CSIAction::SetForegroundColor(
-                        color::ColorAttribute::PaletteIndex(p as u8 - 30),
-                    ),
-                    &params[1..],
+    fn advance_by(&mut self, n: usize, params: &'a [i64]) {
+        let (_, next) = params.split_at(n);
+        if next.len() != 0 {
+            self.params = Some(next);
+        }
+    }
+
+    fn next_sgr(&mut self, params: &'a [i64]) -> Option<CSIAction> {
+        match params {
+            &[] => {
+                // With no parameters, reset to default pen.
+                // Note that this empty case is only possible for the initial
+                // iteration.
+                Some(CSIAction::SetPen(CellAttributes::default()))
+            }
+            &[0, _..] => {
+                // Explicitly set to default pen
+                self.advance_by(1, params);
+                Some(CSIAction::SetPen(CellAttributes::default()))
+            }
+            &[38, 2, _, red, green, blue, _..] => {
+                // ISO-8613-6 true color foreground
+                self.advance_by(6, params);
+                Some(CSIAction::SetForegroundColor(
+                    color::ColorAttribute::Rgb(color::RgbColor {
+                        red: red as u8,
+                        green: green as u8,
+                        blue: blue as u8,
+                    }),
                 ))
             }
-            39 => {
-                Some((
-                    CSIAction::SetForegroundColor(
-                        color::ColorAttribute::Foreground,
-                    ),
-                    &params[1..],
+            &[48, 2, _, red, green, blue, _..] => {
+                // ISO-8613-6 true color background
+                self.advance_by(6, params);
+                Some(CSIAction::SetBackgroundColor(
+                    color::ColorAttribute::Rgb(color::RgbColor {
+                        red: red as u8,
+                        green: green as u8,
+                        blue: blue as u8,
+                    }),
                 ))
             }
-            90...97 => {
+            &[38, 5, idx, _..] => {
+                // 256 color foreground color index
+                self.advance_by(3, params);
+                let color = color::ColorAttribute::PaletteIndex(idx as u8);
+                Some(CSIAction::SetForegroundColor(color))
+            }
+            &[48, 5, idx, _..] => {
+                // 256 color background color index
+                self.advance_by(3, params);
+                let color = color::ColorAttribute::PaletteIndex(idx as u8);
+                Some(CSIAction::SetBackgroundColor(color))
+            }
+            &[1, _..] => {
+                self.advance_by(1, params);
+                Some(CSIAction::SetIntensity(Intensity::Bold))
+            }
+            &[2, _..] => {
+                self.advance_by(1, params);
+                Some(CSIAction::SetIntensity(Intensity::Half))
+            }
+            &[3, _..] => {
+                self.advance_by(1, params);
+                Some(CSIAction::SetItalic(true))
+            }
+            &[4, _..] => {
+                self.advance_by(1, params);
+                Some(CSIAction::SetUnderline(Underline::Single))
+            }
+            &[5, _..] => {
+                self.advance_by(1, params);
+                Some(CSIAction::SetBlink(true))
+            }
+            &[7, _..] => {
+                self.advance_by(1, params);
+                Some(CSIAction::SetReverse(true))
+            }
+            &[8, _..] => {
+                self.advance_by(1, params);
+                Some(CSIAction::SetInvisible(true))
+            }
+            &[9, _..] => {
+                self.advance_by(1, params);
+                Some(CSIAction::SetStrikethrough(true))
+            }
+            &[21, _..] => {
+                self.advance_by(1, params);
+                Some(CSIAction::SetUnderline(Underline::Double))
+            }
+            &[22, _..] => {
+                self.advance_by(1, params);
+                Some(CSIAction::SetIntensity(Intensity::Normal))
+            }
+            &[23, _..] => {
+                self.advance_by(1, params);
+                Some(CSIAction::SetItalic(false))
+            }
+            &[24, _..] => {
+                self.advance_by(1, params);
+                Some(CSIAction::SetUnderline(Underline::None))
+            }
+            &[25, _..] => {
+                self.advance_by(1, params);
+                Some(CSIAction::SetBlink(false))
+            }
+            &[27, _..] => {
+                self.advance_by(1, params);
+                Some(CSIAction::SetReverse(false))
+            }
+            &[28, _..] => {
+                self.advance_by(1, params);
+                Some(CSIAction::SetInvisible(false))
+            }
+            &[29, _..] => {
+                self.advance_by(1, params);
+                Some(CSIAction::SetStrikethrough(false))
+            }
+            &[idx @ 30...37, _..] => {
+                self.advance_by(1, params);
+                Some(CSIAction::SetForegroundColor(
+                    color::ColorAttribute::PaletteIndex(idx as u8 - 30),
+                ))
+            }
+            &[39, _..] => {
+                self.advance_by(1, params);
+                Some(CSIAction::SetForegroundColor(
+                    color::ColorAttribute::Foreground,
+                ))
+            }
+            &[idx @ 40...47, _..] => {
+                self.advance_by(1, params);
+                Some(CSIAction::SetBackgroundColor(
+                    color::ColorAttribute::PaletteIndex(idx as u8 - 40),
+                ))
+            }
+            &[49, _..] => {
+                self.advance_by(1, params);
+                Some(CSIAction::SetBackgroundColor(
+                    color::ColorAttribute::Background,
+                ))
+            }
+            &[idx @ 90...97, _..] => {
                 // Bright foreground colors
-                Some((
-                    CSIAction::SetForegroundColor(
-                        color::ColorAttribute::PaletteIndex(p as u8 - 90 + 8),
-                    ),
-                    &params[1..],
+                self.advance_by(1, params);
+                Some(CSIAction::SetForegroundColor(
+                    color::ColorAttribute::PaletteIndex(idx as u8 - 90 + 8),
                 ))
             }
-            40...47 => {
-                Some((
-                    CSIAction::SetBackgroundColor(
-                        color::ColorAttribute::PaletteIndex(p as u8 - 40),
-                    ),
-                    &params[1..],
-                ))
-            }
-            49 => {
-                Some((
-                    CSIAction::SetBackgroundColor(
-                        color::ColorAttribute::Background,
-                    ),
-                    &params[1..],
-                ))
-            }
-            100...107 => {
+            &[idx @ 100...107, _..] => {
                 // Bright background colors
-                Some((
-                    CSIAction::SetBackgroundColor(
-                        color::ColorAttribute::PaletteIndex(p as u8 - 100 + 8),
-                    ),
-                    &params[1..],
+                self.advance_by(1, params);
+                Some(CSIAction::SetBackgroundColor(
+                    color::ColorAttribute::PaletteIndex(idx as u8 - 100 + 8),
                 ))
             }
-            _ => None,
+            _ => {
+                println!("parse_sgr: unhandled csi sequence {:?}", params);
+                None
+            }
+        }
+    }
+}
+
+impl<'a> Iterator for CSIParser<'a> {
+    type Item = CSIAction;
+
+    fn next(&mut self) -> Option<CSIAction> {
+        let params = self.params.take();
+        match (self.byte, params) {
+            (_, None) => None,
+            ('m', Some(params)) => self.next_sgr(params),
+            (b, Some(p)) => {
+                println!("unhandled {} {:?}", b, p);
+                None
+            }
         }
     }
 }

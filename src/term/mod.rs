@@ -514,58 +514,37 @@ impl vte::Perform for TerminalState {
     fn csi_dispatch(&mut self, params: &[i64], intermediates: &[u8], ignore: bool, byte: char) {
         match byte {
             'm' => {
-                let mut params = params;
-
-                if params.len() == 0 {
-                    // Empty parameter list means to reset the attributes to default
-                    self.pen = CellAttributes::default();
-                }
-
-                while params.len() > 0 {
-                    match CSIAction::parse_sgr(params) {
-                        Some((CSIAction::SetPen(pen), remainder)) => {
+                for act in CSIParser::new(params, intermediates, ignore, byte) {
+                    match act {
+                        CSIAction::SetPen(pen) => {
                             self.pen = pen;
-                            params = remainder;
                         }
-                        Some((CSIAction::SetForegroundColor(color), remainder)) => {
+                        CSIAction::SetForegroundColor(color) => {
                             self.pen.foreground = color;
-                            params = remainder;
                         }
-                        Some((CSIAction::SetBackgroundColor(color), remainder)) => {
+                        CSIAction::SetBackgroundColor(color) => {
                             self.pen.background = color;
-                            params = remainder;
                         }
-                        Some((CSIAction::SetIntensity(level), remainder)) => {
+                        CSIAction::SetIntensity(level) => {
                             self.pen.set_intensity(level);
-                            params = remainder;
                         }
-                        Some((CSIAction::SetUnderline(level), remainder)) => {
+                        CSIAction::SetUnderline(level) => {
                             self.pen.set_underline(level);
-                            params = remainder;
                         }
-                        Some((CSIAction::SetItalic(on), remainder)) => {
+                        CSIAction::SetItalic(on) => {
                             self.pen.set_italic(on);
-                            params = remainder;
                         }
-                        Some((CSIAction::SetBlink(on), remainder)) => {
+                        CSIAction::SetBlink(on) => {
                             self.pen.set_blink(on);
-                            params = remainder;
                         }
-                        Some((CSIAction::SetReverse(on), remainder)) => {
+                        CSIAction::SetReverse(on) => {
                             self.pen.set_reverse(on);
-                            params = remainder;
                         }
-                        Some((CSIAction::SetStrikethrough(on), remainder)) => {
+                        CSIAction::SetStrikethrough(on) => {
                             self.pen.set_strikethrough(on);
-                            params = remainder;
                         }
-                        Some((CSIAction::SetInvisible(on), remainder)) => {
+                        CSIAction::SetInvisible(on) => {
                             self.pen.set_invisible(on);
-                            params = remainder;
-                        }
-                        None => {
-                            println!("parse_sgr: unhandled sequence {:?}", params);
-                            break;
                         }
                     }
                 }
