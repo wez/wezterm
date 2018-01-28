@@ -593,6 +593,12 @@ impl vte::Perform for TerminalState {
                 }
                 CSIAction::SetDecPrivateMode(DecPrivateMode::ApplicationCursorKeys, _on) => {}
                 CSIAction::SetDecPrivateMode(DecPrivateMode::BrackedPaste, _on) => {}
+                CSIAction::DeviceStatusReport => {
+                    // TODO: should emit "CSI 0 n"
+                }
+                CSIAction::ReportCursorPosition => {
+                    // TODO: should emit "CSI r ; c R"
+                }
             }
         }
     }

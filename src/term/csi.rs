@@ -39,6 +39,8 @@ pub enum CSIAction {
     EraseInLine(LineErase),
     EraseInDisplay(DisplayErase),
     SetDecPrivateMode(DecPrivateMode, bool),
+    DeviceStatusReport,
+    ReportCursorPosition,
 }
 
 /// Constrol Sequence Initiator (CSI) Parser.
@@ -120,6 +122,28 @@ impl<'a> CSIParser<'a> {
             }
             _ => {
                 println!("el: unhandled csi sequence {:?}", params);
+                None
+            }
+        }
+    }
+
+    /// Device status report
+    fn dsr(&mut self, params: &'a [i64]) -> Option<CSIAction> {
+        match (self.intermediates, params) {
+            (&[], &[5, _..]) => {
+                self.advance_by(1, params);
+                Some(CSIAction::DeviceStatusReport)
+            }
+            (&[], &[6, _..]) => {
+                self.advance_by(1, params);
+                Some(CSIAction::ReportCursorPosition)
+            }
+            _ => {
+                println!(
+                    "dsr: unhandled sequence {:?} {:?}",
+                    self.intermediates,
+                    params
+                );
                 None
             }
         }
@@ -385,6 +409,7 @@ impl<'a> Iterator for CSIParser<'a> {
             ('J', Some(params)) => self.ed(params),
             ('K', Some(params)) => self.el(params),
             ('m', Some(params)) => self.sgr(params),
+            ('n', Some(params)) => self.dsr(params),
             (b, Some(p)) => {
                 println!(
                     "unhandled {} {:?} {:?} ignore={}",
