@@ -2,6 +2,7 @@
 
 use failure::Error;
 use std;
+use std::ops::{Deref, DerefMut};
 use unicode_segmentation;
 use vte;
 
@@ -388,11 +389,43 @@ impl TerminalState {
 
     pub fn key_up<W: std::io::Write>(
         &mut self,
-        key: KeyCode,
-        mods: KeyModifiers,
-        write: &mut W,
+        _: KeyCode,
+        _: KeyModifiers,
+        _: &mut W,
     ) -> Result<(), Error> {
         Ok(())
+    }
+
+    /// Return true if the state has changed; the implication is that the terminal
+    /// needs to be redrawn in some fashion.
+    /// TODO: should probably build up a damage list instead
+    pub fn get_state_changed(&self) -> bool {
+        self.state_changed
+    }
+
+    /// Clear the state changed flag; the intent is that the consumer of this
+    /// class will clear the state after each paint.
+    pub fn clear_state_changed(&mut self) {
+        self.state_changed = false;
+    }
+
+    pub fn resize(&mut self, physical_rows: usize, physical_cols: usize) {
+        self.screen.resize(physical_rows, physical_cols);
+        self.alt_screen.resize(physical_rows, physical_cols);
+    }
+
+    /// Returns the width of the screen and a slice over the visible rows
+    /// TODO: should allow an arbitrary view for scrollback
+    pub fn visible_cells(&self) -> (usize, &[Line]) {
+        let screen = if self.alt_screen_is_active {
+            &self.alt_screen
+        } else {
+            &self.screen
+        };
+        let width = screen.physical_cols;
+        let height = screen.physical_rows;
+        let len = screen.lines.len();
+        (width, &screen.lines[len - height..len])
     }
 }
 
@@ -401,6 +434,20 @@ pub struct Terminal {
     state: TerminalState,
     /// Baseline terminal escape sequence parser
     parser: vte::Parser,
+}
+
+impl Deref for Terminal {
+    type Target = TerminalState;
+
+    fn deref(&self) -> &TerminalState {
+        &self.state
+    }
+}
+
+impl DerefMut for Terminal {
+    fn deref_mut(&mut self) -> &mut TerminalState {
+        &mut self.state
+    }
 }
 
 impl Terminal {
@@ -422,57 +469,6 @@ impl Terminal {
         for b in bytes.iter() {
             self.parser.advance(&mut self.state, *b);
         }
-    }
-
-    /// Return true if the state has changed; the implication is that the terminal
-    /// needs to be redrawn in some fashion.
-    /// TODO: should probably build up a damage list instead
-    pub fn get_state_changed(&self) -> bool {
-        self.state.state_changed
-    }
-
-    /// Clear the state changed flag; the intent is that the consumer of this
-    /// class will clear the state after each paint.
-    pub fn clear_state_changed(&mut self) {
-        self.state.state_changed = false;
-    }
-
-    pub fn resize(&mut self, physical_rows: usize, physical_cols: usize) {
-        self.state.screen.resize(physical_rows, physical_cols);
-        self.state.alt_screen.resize(physical_rows, physical_cols);
-    }
-
-
-    /// Returns the width of the screen and a slice over the visible rows
-    /// TODO: should allow an arbitrary view for scrollback
-    pub fn visible_cells(&self) -> (usize, &[Line]) {
-        let screen = if self.state.alt_screen_is_active {
-            &self.state.alt_screen
-        } else {
-            &self.state.screen
-        };
-        let width = screen.physical_cols;
-        let height = screen.physical_rows;
-        let len = screen.lines.len();
-        (width, &screen.lines[len - height..len])
-    }
-
-    pub fn key_down<W: std::io::Write>(
-        &mut self,
-        key: KeyCode,
-        mods: KeyModifiers,
-        write: &mut W,
-    ) -> Result<(), Error> {
-        self.state.key_down(key, mods, write)
-    }
-
-    pub fn key_up<W: std::io::Write>(
-        &mut self,
-        key: KeyCode,
-        mods: KeyModifiers,
-        write: &mut W,
-    ) -> Result<(), Error> {
-        self.state.key_up(key, mods, write)
     }
 }
 
@@ -636,6 +632,10 @@ impl vte::Perform for TerminalState {
             }
             b'\r' => {
                 self.cursor_x = 0;
+                self.state_changed = true;
+            }
+            0x08 => {
+                self.cursor_x -= 1;
                 self.state_changed = true;
             }
             _ => println!("unhandled vte execute {}", byte),

@@ -1,5 +1,6 @@
 //! Colors for attributes
 
+#[allow(dead_code)]
 #[derive(Debug, Clone, Copy)]
 #[repr(u8)]
 /// These correspond to the classic ANSI color indices and are
