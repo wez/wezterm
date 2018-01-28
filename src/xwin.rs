@@ -200,6 +200,7 @@ impl<'a> TerminalWindow<'a> {
         );
 
         let cell_height = self.cell_height.ceil() as usize;
+        let cell_width = self.cell_width.ceil() as usize;
         let mut y = 0 as isize;
 
         let (phys_cols, lines) = self.terminal.visible_cells();
@@ -211,10 +212,16 @@ impl<'a> TerminalWindow<'a> {
             y += cell_height as isize;
 
             let glyph_info = self.font.shape(0, &line.as_str())?;
-            for (cell_idx, info) in glyph_info.iter().enumerate() {
+            for info in glyph_info.iter() {
+                // Figure out which column we should be looking at.
+                // We infer this from the X position rather than enumerate the
+                // glyph_info iterator because glyphs may advance by multiple cells.
+                let cell_idx = x as usize / cell_width;
                 if cell_idx > phys_cols {
+                    // Don't bother rendering outside the viewable area
                     break;
                 }
+
                 let is_cursor_cell = if cell_idx == cursor_x && line_idx == cursor_y {
                     true
                 } else {
