@@ -25,8 +25,16 @@ pub enum CSIAction {
     EraseInLine(LineErase),
 }
 
+/// Constrol Sequence Initiator (CSI) Parser.
+/// Since many sequences allow for composition of actions by separating
+/// parameters using the ; character, we need to be able to iterate over
+/// the set of parsed actions from a given CSI sequence.
+/// CSIParser implements an Iterator that yields CSIAction instances as
+/// it parses them out from the input sequence.
 pub struct CSIParser<'a> {
     intermediates: &'a [u8],
+    /// From vte::Perform: this flag is set when more than two intermediates
+    /// arrived and subsequent characters were ignored.
     ignore: bool,
     byte: char,
     params: Option<&'a [i64]>,
