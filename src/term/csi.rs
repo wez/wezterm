@@ -206,7 +206,7 @@ impl<'a> CSIParser<'a> {
                 self.advance_by(1, params);
                 Some(CSIAction::SetPen(CellAttributes::default()))
             }
-            &[38, 2, _, red, green, blue, _..] => {
+            &[38, 2, _colorspace, red, green, blue, _..] => {
                 // ISO-8613-6 true color foreground
                 self.advance_by(6, params);
                 Some(CSIAction::SetForegroundColor(
@@ -217,9 +217,31 @@ impl<'a> CSIParser<'a> {
                     }),
                 ))
             }
-            &[48, 2, _, red, green, blue, _..] => {
+            &[38, 2, red, green, blue, _..] => {
+                // KDE konsole compatibility for truecolor foreground
+                self.advance_by(5, params);
+                Some(CSIAction::SetForegroundColor(
+                    color::ColorAttribute::Rgb(color::RgbColor {
+                        red: red as u8,
+                        green: green as u8,
+                        blue: blue as u8,
+                    }),
+                ))
+            }
+            &[48, 2, _colorspace, red, green, blue, _..] => {
                 // ISO-8613-6 true color background
                 self.advance_by(6, params);
+                Some(CSIAction::SetBackgroundColor(
+                    color::ColorAttribute::Rgb(color::RgbColor {
+                        red: red as u8,
+                        green: green as u8,
+                        blue: blue as u8,
+                    }),
+                ))
+            }
+            &[48, 2, red, green, blue, _..] => {
+                // KDE konsole compatibility for truecolor background
+                self.advance_by(5, params);
                 Some(CSIAction::SetBackgroundColor(
                     color::ColorAttribute::Rgb(color::RgbColor {
                         red: red as u8,
