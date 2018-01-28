@@ -381,12 +381,130 @@ pub enum Operator {
     MultiplyThenOver(Color),
 }
 
-/// A bitmap in big endian bgra32 color format
+/// A bitmap in big endian bgra32 color format, with storage
+/// in a Vec<u8>.
 pub struct Image {
     data: Vec<u8>,
     width: usize,
     height: usize,
 }
+
+/// A bitmap in big endian bgra32 color format with abstract
+/// storage filled in by the trait implementation.
+pub trait BitmapImage {
+    /// Obtain a read only pointer to the pixel data
+    unsafe fn pixel_data(&self) -> *const u8;
+
+    /// Obtain a mutable pointer to the pixel data
+    unsafe fn pixel_data_mut(&mut self) -> *mut u8;
+
+    /// Return the pair (width, height) of the image, measured in pixels
+    fn image_dimensions(&self) -> (usize, usize);
+
+    #[inline]
+    /// Obtain a mutable reference to the raw bgra pixel at the specified coordinates
+    fn pixel_mut(&mut self, x: usize, y: usize) -> &mut u32 {
+        let (width, height) = self.image_dimensions();
+        assert!(x < width && y < height);
+        unsafe {
+            let offset = (y * width * 4) + (x * 4);
+            &mut *(self.pixel_data_mut().offset(offset as isize) as *mut u32)
+        }
+    }
+
+    #[inline]
+    /// Read the raw bgra pixel at the specified coordinates
+    fn pixel(&self, x: usize, y: usize) -> u32 {
+        let (width, height) = self.image_dimensions();
+        assert!(x < width && y < height);
+        unsafe {
+            let offset = (y * width * 4) + (x * 4);
+            *(self.pixel_data().offset(offset as isize) as *const u32)
+        }
+    }
+
+    /// Clear the entire image to the specific color
+    fn clear(&mut self, color: Color) {
+        let (width, height) = self.image_dimensions();
+        self.clear_rect(0, 0, width, height, color);
+    }
+
+    fn clear_rect(
+        &mut self,
+        dest_x: isize,
+        dest_y: isize,
+        width: usize,
+        height: usize,
+        color: Color,
+    ) {
+        let (dim_width, dim_height) = self.image_dimensions();
+        for y in 0..height {
+            let dest_y = y as isize + dest_y;
+            if dest_y < 0 {
+                continue;
+            }
+            if dest_y as usize >= dim_height {
+                break;
+            }
+            for x in 0..width {
+                let dest_x = x as isize + dest_x;
+                if dest_x < 0 {
+                    continue;
+                }
+                if dest_x as usize >= dim_width {
+                    break;
+                }
+
+                *self.pixel_mut(dest_x as usize, dest_y as usize) = color.0;
+            }
+        }
+    }
+
+    fn draw_image(&mut self, dest_x: isize, dest_y: isize, im: &BitmapImage, operator: Operator) {
+        let (dest_width, dest_height) = im.image_dimensions();
+        self.draw_image_subset(dest_x, dest_y, 0, 0, dest_width, dest_height, im, operator)
+    }
+
+    fn draw_image_subset(
+        &mut self,
+        dest_x: isize,
+        dest_y: isize,
+        src_x: usize,
+        src_y: usize,
+        width: usize,
+        height: usize,
+        im: &BitmapImage,
+        operator: Operator,
+    ) {
+        let (dest_width, dest_height) = im.image_dimensions();
+        let (dim_width, dim_height) = self.image_dimensions();
+        assert!(width <= dest_width && height <= dest_height);
+        assert!(src_x < dest_width && src_y < dest_height);
+        for y in src_y..src_y + height {
+            let dest_y = y as isize + dest_y - src_y as isize;
+            if dest_y < 0 {
+                continue;
+            }
+            if dest_y as usize >= dim_height {
+                break;
+            }
+            for x in src_x..src_x + width {
+                let dest_x = x as isize + dest_x - src_x as isize;
+                if dest_x < 0 {
+                    continue;
+                }
+                if dest_x as usize >= dim_width {
+                    break;
+                }
+
+                let src = Color(im.pixel(x, y));
+                let dst = self.pixel_mut(dest_x as usize, dest_y as usize);
+                *dst = src.composite(Color(*dst), &operator).0;
+            }
+        }
+    }
+}
+
 
 impl Image {
     /// Create a new bgra32 image buffer with the specified dimensions.
@@ -492,102 +610,18 @@ impl Image {
         let height = (self.height as f64 * scale) as usize;
         self.resize(width, height)
     }
+}
 
-    #[inline]
-    /// Obtain a mutable reference to the raw bgra pixel at the specified coordinates
-    pub fn pixel_mut(&mut self, x: usize, y: usize) -> &mut u32 {
-        assert!(x < self.width && y < self.height);
-        unsafe {
-            let offset = (y * self.width * 4) + (x * 4);
-            &mut *(self.data.as_mut_ptr().offset(offset as isize) as *mut u32)
-        }
+impl BitmapImage for Image {
+    unsafe fn pixel_data(&self) -> *const u8 {
+        self.data.as_ptr()
     }
 
-    #[inline]
-    /// Read the raw bgra pixel at the specified coordinates
-    pub fn pixel(&self, x: usize, y: usize) -> u32 {
-        assert!(x < self.width && y < self.height);
-        unsafe {
-            let offset = (y * self.width * 4) + (x * 4);
-            *(self.data.as_ptr().offset(offset as isize) as *const u32)
-        }
+    unsafe fn pixel_data_mut(&mut self) -> *mut u8 {
+        self.data.as_mut_ptr()
     }
 
-    /// Clear the entire image to the specific color
-    pub fn clear(&mut self, color: Color) {
-        let width = self.width;
-        let height = self.height;
-        self.clear_rect(0, 0, width, height, color);
-    }
-
-    pub fn clear_rect(
-        &mut self,
-        dest_x: isize,
-        dest_y: isize,
-        width: usize,
-        height: usize,
-        color: Color,
-    ) {
-        for y in 0..height {
-            let dest_y = y as isize + dest_y;
-            if dest_y < 0 {
-                continue;
-            }
-            if dest_y as usize >= self.height {
-                break;
-            }
-            for x in 0..width {
-                let dest_x = x as isize + dest_x;
-                if dest_x < 0 {
-                    continue;
-                }
-                if dest_x as usize >= self.width {
-                    break;
-                }
-
-                *self.pixel_mut(dest_x as usize, dest_y as usize) = color.0;
-            }
-        }
-    }
-
-    pub fn draw_image(&mut self, dest_x: isize, dest_y: isize, im: &Image, operator: Operator) {
-        self.draw_image_subset(dest_x, dest_y, 0, 0, im.width, im.height, im, operator)
-    }
-
-    pub fn draw_image_subset(
-        &mut self,
-        dest_x: isize,
-        dest_y: isize,
-        src_x: usize,
-        src_y: usize,
-        width: usize,
-        height: usize,
-        im: &Image,
-        operator: Operator,
-    ) {
-        assert!(width <= im.width && height <= im.height);
-        assert!(src_x < im.width && src_y < im.height);
-        for y in src_y..src_y + height {
-            let dest_y = y as isize + dest_y - src_y as isize;
-            if dest_y < 0 {
-                continue;
-            }
-            if dest_y as usize >= self.height {
-                break;
-            }
-            for x in src_x..src_x + width {
-                let dest_x = x as isize + dest_x - src_x as isize;
-                if dest_x < 0 {
-                    continue;
-                }
-                if dest_x as usize >= self.width {
-                    break;
-                }
-
-                let src = Color(im.pixel(x, y));
-                let dst = self.pixel_mut(dest_x as usize, dest_y as usize);
-                *dst = src.composite(Color(*dst), &operator).0;
-            }
-        }
+    fn image_dimensions(&self) -> (usize, usize) {
+        (self.width, self.height)
     }
 }

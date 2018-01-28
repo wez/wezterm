@@ -7,7 +7,7 @@ use std::process::Child;
 use std::slice;
 use term::{self, KeyCode, KeyModifiers};
 use xcb;
-use xgfx::{self, Connection};
+use xgfx::{self, BitmapImage, Connection};
 use xkeysyms;
 
 pub struct TerminalWindow<'a> {
