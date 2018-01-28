@@ -7,8 +7,54 @@ use std::process::Child;
 use std::slice;
 use term::{self, KeyCode, KeyModifiers};
 use xcb;
-use xgfx::{self, BitmapImage, Connection};
+use xgfx::{self, BitmapImage, Connection, Drawable};
 use xkeysyms;
+
+/// BufferImage is used to hold the bitmap of our rendered screen.
+/// If SHM is available we store it there and save the overhead of
+/// sending the bitmap to the server each time something is rendered.
+/// Otherwise, we will send up portions of the bitmap each time something
+/// on the screen changes.
+enum BufferImage<'a> {
+    Shared(xgfx::ShmImage<'a>),
+    Image(xgfx::Image),
+}
+
+impl<'a> BufferImage<'a> {
+    fn new(conn: &Connection, drawable: xcb::Drawable, width: usize, height: usize) -> BufferImage {
+        match xgfx::ShmImage::new(conn, drawable, width, height) {
+            Ok(shm) => BufferImage::Shared(shm),
+            Err(err) => {
+                debug!("falling back to local image because SHM says: {:?}", err);
+                BufferImage::Image(xgfx::Image::new(width, height))
+            }
+        }
+    }
+}
+
+/// Implement BitmapImage that delegates to the underlying image
+impl<'a> BitmapImage for BufferImage<'a> {
+    unsafe fn pixel_data(&self) -> *const u8 {
+        match self {
+            &BufferImage::Shared(ref shm) => shm.pixel_data(),
+            &BufferImage::Image(ref im) => im.pixel_data(),
+        }
+    }
+
+    unsafe fn pixel_data_mut(&mut self) -> *mut u8 {
+        match self {
+            &mut BufferImage::Shared(ref mut shm) => shm.pixel_data_mut(),
+            &mut BufferImage::Image(ref mut im) => im.pixel_data_mut(),
+        }
+    }
+
+    fn image_dimensions(&self) -> (usize, usize) {
+        match self {
+            &BufferImage::Shared(ref shm) => shm.image_dimensions(),
+            &BufferImage::Image(ref im) => im.image_dimensions(),
+        }
+    }
+}
 
 pub struct TerminalWindow<'a> {
     window: xgfx::Window<'a>,
@@ -20,7 +66,7 @@ pub struct TerminalWindow<'a> {
     cell_width: f64,
     descender: isize,
     window_context: xgfx::Context<'a>,
-    buffer_image: xgfx::Image,
+    buffer_image: BufferImage<'a>,
     need_paint: bool,
     terminal: term::Terminal,
     pty: MasterPty,
@@ -43,7 +89,8 @@ impl<'a> TerminalWindow<'a> {
         window.set_title("wterm");
         let window_context = xgfx::Context::new(conn, &window);
 
-        let buffer_image = xgfx::Image::new(width as usize, height as usize);
+        let buffer_image =
+            BufferImage::new(conn, window.as_drawable(), width as usize, height as usize);
 
         let descender = if descender.is_positive() {
             ((descender as f64) / 64.0).ceil() as isize
@@ -76,9 +123,16 @@ impl<'a> TerminalWindow<'a> {
     pub fn resize_surfaces(&mut self, width: u16, height: u16) -> Result<bool, Error> {
         if width != self.width || height != self.height {
             debug!("resize {},{}", width, height);
-            let mut buffer = xgfx::Image::new(width as usize, height as usize);
+
+            let mut buffer = BufferImage::new(
+                self.conn,
+                self.window.as_drawable(),
+                width as usize,
+                height as usize,
+            );
             buffer.draw_image(0, 0, &self.buffer_image, xgfx::Operator::Source);
             self.buffer_image = buffer;
+
             self.width = width;
             self.height = height;
 
@@ -97,21 +151,38 @@ impl<'a> TerminalWindow<'a> {
 
     pub fn expose(&mut self, x: u16, y: u16, width: u16, height: u16) -> Result<(), Error> {
         debug!("expose {},{}, {},{}", x, y, width, height);
-        if x == 0 && y == 0 && width == self.width && height == self.height {
-            self.window_context.put_image(0, 0, &self.buffer_image);
-        } else {
-            let mut im = xgfx::Image::new(width as usize, height as usize);
-            im.draw_image_subset(
-                0,
-                0,
-                x as usize,
-                y as usize,
-                width as usize,
-                height as usize,
-                &self.buffer_image,
-                xgfx::Operator::Source,
-            );
-            self.window_context.put_image(x as i16, y as i16, &im);
+
+        match &self.buffer_image {
+            &BufferImage::Shared(ref shm) => {
+                self.window_context.copy_area(
+                    shm,
+                    x as i16,
+                    y as i16,
+                    &self.window,
+                    x as i16,
+                    y as i16,
+                    width,
+                    height,
+                );
+            }
+            &BufferImage::Image(ref buffer) => {
+                if x == 0 && y == 0 && width == self.width && height == self.height {
+                    self.window_context.put_image(0, 0, buffer);
+                } else {
+                    let mut im = xgfx::Image::new(width as usize, height as usize);
+                    im.draw_image_subset(
+                        0,
+                        0,
+                        x as usize,
+                        y as usize,
+                        width as usize,
+                        height as usize,
+                        buffer,
+                        xgfx::Operator::Source,
+                    );
+                    self.window_context.put_image(x as i16, y as i16, &im);
+                }
+            }
         }
         self.conn.flush();
 
@@ -285,8 +356,25 @@ impl<'a> TerminalWindow<'a> {
         // FIXME: we have to push the render to the server in case it
         // was the result of output from the process on the pty.  It would
         // be nice to make this paint function only re-render the changed
-        // portions and send only those to the X server here.
-        self.window_context.put_image(0, 0, &self.buffer_image);
+        // portions and send only those to the X server here.  This isn't
+        // so terrible when we have SHM available.
+        match &self.buffer_image {
+            &BufferImage::Shared(ref shm) => {
+                self.window_context.copy_area(
+                    shm,
+                    0,
+                    0,
+                    &self.window,
+                    0,
+                    0,
+                    self.width,
+                    self.height,
+                );
+            }
+            &BufferImage::Image(ref buffer) => {
+                self.window_context.put_image(0, 0, buffer);
+            }
+        }
 
         Ok(())
     }

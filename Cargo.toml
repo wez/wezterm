@@ -15,7 +15,10 @@ servo-fontconfig = "0.4.0"
 unicode-segmentation = "1.2.0"
 unicode-width = "0.1.4"
 vte = "0.3.2"
-xcb = "0.8.1"
+
+[dependencies.xcb]
+features = ["shm"]
+version = "0.8.1"
 
 [dependencies.xcb-util]
 features = [
