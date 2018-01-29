@@ -42,6 +42,7 @@ pub enum CSIAction {
     DeviceStatusReport,
     ReportCursorPosition,
     SetScrollingRegion { top: usize, bottom: usize },
+    RequestDeviceAttributes,
 }
 
 /// Constrol Sequence Initiator (CSI) Parser.
@@ -416,6 +417,20 @@ impl<'a> CSIParser<'a> {
             }
         }
     }
+
+    fn device_attributes(&mut self, params: &'a [i64]) -> Option<CSIAction> {
+        match params {
+            &[] => Some(CSIAction::RequestDeviceAttributes),
+            &[0] => {
+                self.advance_by(1, params);
+                Some(CSIAction::RequestDeviceAttributes)
+            }
+            _ => {
+                println!("device_attributes: invalid sequence: {:?}", params);
+                None
+            }
+        }
+    }
 }
 
 impl<'a> Iterator for CSIParser<'a> {
@@ -425,6 +440,7 @@ impl<'a> Iterator for CSIParser<'a> {
         let params = self.params.take();
         match (self.byte, self.intermediates, params) {
             (_, _, None) => None,
+            ('c', &[b'>'], Some(params)) => self.device_attributes(params),
             ('h', &[b'?'], Some(params)) => self.dec_set_mode(params),
             ('l', &[b'?'], Some(params)) => self.dec_reset_mode(params),
             ('r', &[], Some(params)) => self.set_scroll_region(params),

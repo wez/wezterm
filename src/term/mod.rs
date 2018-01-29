@@ -10,6 +10,12 @@ pub mod color;
 mod csi;
 use self::csi::*;
 
+/// The response we given when queries for device attributes.
+/// This particular string says "we are a VT102".
+/// TODO: Consider VT220 extended response which can advertise
+/// certain feature sets.
+const DEVICE_IDENT: &[u8] = b"\x1b[?6c";
+
 bitflags! {
     #[derive(Default)]
     pub struct KeyModifiers :u8{
@@ -458,7 +464,7 @@ impl TerminalState {
     fn set_cursor_pos(&mut self, x: usize, y: usize) {
         let rows = self.screen().physical_rows;
         self.cursor_x = x;
-        self.cursor_y = y.min(rows-1);
+        self.cursor_y = y.min(rows - 1);
         self.state_changed = true;
     }
 
@@ -656,8 +662,11 @@ impl vte::Perform for TerminalState {
                     let col = self.cursor_x + 1;
                     self.push_answerback(format!("\x1b[{};{}R", row, col).as_bytes());
                 }
-                CSIAction::SetScrollingRegion{top, bottom} => {
+                CSIAction::SetScrollingRegion { top, bottom } => {
                     println!("unhandled: SetScrollingRegion {}-{}", top, bottom);
+                }
+                CSIAction::RequestDeviceAttributes => {
+                    self.push_answerback(DEVICE_IDENT);
                 }
             }
         }
