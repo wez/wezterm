@@ -1,9 +1,12 @@
 use failure::Error;
-use font::{Font, ftwrap};
+use font::{Font, GlyphInfo, ftwrap};
 use pty::MasterPty;
+use std::cell::RefCell;
+use std::collections::HashMap;
 use std::io::{Read, Write};
 use std::mem;
 use std::process::Child;
+use std::rc::Rc;
 use std::slice;
 use term::{self, KeyCode, KeyModifiers};
 use xcb;
@@ -61,7 +64,7 @@ pub struct TerminalWindow<'a> {
     conn: &'a Connection,
     width: u16,
     height: u16,
-    font: Font,
+    font: RefCell<Font>,
     cell_height: f64,
     cell_width: f64,
     descender: isize,
@@ -71,6 +74,27 @@ pub struct TerminalWindow<'a> {
     terminal: term::Terminal,
     pty: MasterPty,
     process: Child,
+    glyph_cache: RefCell<HashMap<GlyphKey, Rc<CachedGlyph>>>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+struct GlyphKey {
+    font_idx: usize,
+    glyph_pos: u32,
+}
+
+/// Caches a rendered glyph.
+/// The image data may be None for whitespace glyphs.
+struct CachedGlyph {
+    image: Option<xgfx::Image>,
+    scale: f64,
+    has_color: bool,
+    x_advance: isize,
+    y_advance: isize,
+    x_offset: isize,
+    y_offset: isize,
+    bearing_x: isize,
+    bearing_y: isize,
 }
 
 impl<'a> TerminalWindow<'a> {
@@ -105,7 +129,7 @@ impl<'a> TerminalWindow<'a> {
             conn,
             width,
             height,
-            font,
+            font: RefCell::new(font),
             cell_height,
             cell_width,
             descender,
@@ -113,6 +137,7 @@ impl<'a> TerminalWindow<'a> {
             terminal,
             pty,
             process,
+            glyph_cache: RefCell::new(HashMap::new()),
         })
     }
 
@@ -189,6 +214,144 @@ impl<'a> TerminalWindow<'a> {
         Ok(())
     }
 
+    /// Resolve a glyph from the cache, rendering the glyph on-demand if
+    /// the cache doesn't already hold the desired glyph.
+    fn cached_glyph(&self, info: &GlyphInfo) -> Result<Rc<CachedGlyph>, Error> {
+        let key = GlyphKey {
+            font_idx: info.font_idx,
+            glyph_pos: info.glyph_pos,
+        };
+
+        let mut cache = self.glyph_cache.borrow_mut();
+
+        if let Some(entry) = cache.get(&key) {
+            return Ok(Rc::clone(entry));
+        }
+
+        let glyph = self.load_glyph(info)?;
+        cache.insert(key, Rc::clone(&glyph));
+        Ok(glyph)
+    }
+
+    /// Perform the load and render of a glyph
+    fn load_glyph(&self, info: &GlyphInfo) -> Result<Rc<CachedGlyph>, Error> {
+        let (has_color, ft_glyph) = {
+            let mut font = self.font.borrow_mut();
+            let has_color = font.has_color(info.font_idx)?;
+            // This clone is conceptually unsafe, but ok in practice as we are
+            // single threaded and don't load any other glyphs in the body of
+            // this load_glyph() function.
+            let ft_glyph = font.load_glyph(info.font_idx, info.glyph_pos)?.clone();
+            (has_color, ft_glyph)
+        };
+
+        let scale = if (info.x_advance / info.num_cells as f64).floor() > self.cell_width {
+            info.num_cells as f64 * (self.cell_width / info.x_advance)
+        } else if ft_glyph.bitmap.rows as f64 > self.cell_height {
+            self.cell_height / ft_glyph.bitmap.rows as f64
+        } else {
+            1.0f64
+        };
+        let (x_offset, y_offset, x_advance, y_advance) = if scale != 1.0 {
+            (
+                info.x_offset * scale,
+                info.y_offset * scale,
+                info.x_advance * scale,
+                info.y_advance * scale,
+            )
+        } else {
+            (info.x_offset, info.y_offset, info.x_advance, info.y_advance)
+        };
+
+        let glyph = if ft_glyph.bitmap.width == 0 || ft_glyph.bitmap.rows == 0 {
+            // a whitespace glyph
+            CachedGlyph {
+                image: None,
+                scale,
+                has_color,
+                x_advance: x_advance as isize,
+                y_advance: y_advance as isize,
+                x_offset: x_offset as isize,
+                y_offset: y_offset as isize,
+                bearing_x: 0,
+                bearing_y: 0,
+            }
+        } else {
+
+            let mode: ftwrap::FT_Pixel_Mode =
+                unsafe { mem::transmute(ft_glyph.bitmap.pixel_mode as u32) };
+
+            // pitch is the number of bytes per source row
+            let pitch = ft_glyph.bitmap.pitch.abs() as usize;
+            let data = unsafe {
+                slice::from_raw_parts_mut(
+                    ft_glyph.bitmap.buffer,
+                    ft_glyph.bitmap.rows as usize * pitch,
+                )
+            };
+
+            let image = match mode {
+                ftwrap::FT_Pixel_Mode::FT_PIXEL_MODE_LCD => {
+                    xgfx::Image::with_bgr24(
+                        ft_glyph.bitmap.width as usize / 3,
+                        ft_glyph.bitmap.rows as usize,
+                        pitch as usize,
+                        data,
+                    )
+                }
+                ftwrap::FT_Pixel_Mode::FT_PIXEL_MODE_BGRA => {
+                    xgfx::Image::with_bgra32(
+                        ft_glyph.bitmap.width as usize,
+                        ft_glyph.bitmap.rows as usize,
+                        pitch as usize,
+                        data,
+                    )
+                }
+                ftwrap::FT_Pixel_Mode::FT_PIXEL_MODE_GRAY => {
+                    xgfx::Image::with_8bpp(
+                        ft_glyph.bitmap.width as usize,
+                        ft_glyph.bitmap.rows as usize,
+                        pitch as usize,
+                        data,
+                    )
+                }
+                mode @ _ => bail!("unhandled pixel mode: {:?}", mode),
+            };
+
+            let bearing_x = (ft_glyph.bitmap_left as f64 * scale) as isize;
+            let bearing_y = (ft_glyph.bitmap_top as f64 * scale) as isize;
+
+            let image = if scale != 1.0 {
+                image.scale_by(scale)
+            } else {
+                image
+            };
+
+            CachedGlyph {
+                image: Some(image),
+                scale,
+                has_color,
+                x_advance: x_advance as isize,
+                y_advance: y_advance as isize,
+                x_offset: x_offset as isize,
+                y_offset: y_offset as isize,
+                bearing_x,
+                bearing_y,
+            }
+        };
+
+        Ok(Rc::new(glyph))
+    }
+
+    /// A little helper for shaping text.
+    /// This is needed to dance around interior mutability concerns,
+    /// as the font caches things.
+    /// TODO: consider pushing this down into the Font impl itself.
+    fn shape_text(&self, s: &str) -> Result<Vec<GlyphInfo>, Error> {
+        let mut font = self.font.borrow_mut();
+        font.shape(0, s)
+    }
+
     pub fn paint(&mut self) -> Result<(), Error> {
         self.need_paint = false;
 
@@ -203,7 +366,7 @@ impl<'a> TerminalWindow<'a> {
         let cell_width = self.cell_width.ceil() as usize;
         let mut y = 0 as isize;
 
-        let (phys_cols, lines) = self.terminal.visible_cells();
+        let (_, lines) = self.terminal.visible_cells();
 
         let (cursor_x, cursor_y) = self.terminal.cursor_pos();
 
@@ -211,7 +374,7 @@ impl<'a> TerminalWindow<'a> {
             let mut x = 0 as isize;
             y += cell_height as isize;
 
-            let glyph_info = self.font.shape(0, &line.as_str())?;
+            let glyph_info = self.shape_text(&line.as_str())?;
             for info in glyph_info.iter() {
                 // Figure out which column we should be looking at.
                 // We infer this from the X position rather than enumerate the
@@ -227,8 +390,6 @@ impl<'a> TerminalWindow<'a> {
                 } else {
                     false
                 };
-                let has_color = self.font.has_color(info.font_idx)?;
-                let ft_glyph = self.font.load_glyph(info.font_idx, info.glyph_pos)?;
 
                 let attrs = &line.cells[cell_idx].attrs;
 
@@ -257,106 +418,39 @@ impl<'a> TerminalWindow<'a> {
                     }.into(),
                 );
 
-                let scale = if (info.x_advance / info.num_cells as f64).floor() > self.cell_width {
-                    info.num_cells as f64 * (self.cell_width / info.x_advance)
-                } else if ft_glyph.bitmap.rows as f64 > self.cell_height {
-                    self.cell_height / ft_glyph.bitmap.rows as f64
-                } else {
-                    1.0f64
-                };
-                let (x_offset, y_offset, x_advance, y_advance) = if scale != 1.0 {
-                    (
-                        info.x_offset * scale,
-                        info.y_offset * scale,
-                        info.x_advance * scale,
-                        info.y_advance * scale,
-                    )
-                } else {
-                    (info.x_offset, info.y_offset, info.x_advance, info.y_advance)
-                };
-
-                if ft_glyph.bitmap.width == 0 || ft_glyph.bitmap.rows == 0 {
-                    // a whitespace glyph
-                } else {
-
-                    let mode: ftwrap::FT_Pixel_Mode =
-                        unsafe { mem::transmute(ft_glyph.bitmap.pixel_mode as u32) };
-
-                    // pitch is the number of bytes per source row
-                    let pitch = ft_glyph.bitmap.pitch.abs() as usize;
-                    let data = unsafe {
-                        slice::from_raw_parts_mut(
-                            ft_glyph.bitmap.buffer,
-                            ft_glyph.bitmap.rows as usize * pitch,
-                        )
-                    };
-
-                    let image = match mode {
-                        ftwrap::FT_Pixel_Mode::FT_PIXEL_MODE_LCD => {
-                            xgfx::Image::with_bgr24(
-                                ft_glyph.bitmap.width as usize / 3,
-                                ft_glyph.bitmap.rows as usize,
-                                pitch as usize,
-                                data,
-                            )
-                        }
-                        ftwrap::FT_Pixel_Mode::FT_PIXEL_MODE_BGRA => {
-                            xgfx::Image::with_bgra32(
-                                ft_glyph.bitmap.width as usize,
-                                ft_glyph.bitmap.rows as usize,
-                                pitch as usize,
-                                data,
-                            )
-                        }
-                        ftwrap::FT_Pixel_Mode::FT_PIXEL_MODE_GRAY => {
-                            xgfx::Image::with_8bpp(
-                                ft_glyph.bitmap.width as usize,
-                                ft_glyph.bitmap.rows as usize,
-                                pitch as usize,
-                                data,
-                            )
-                        }
-                        mode @ _ => bail!("unhandled pixel mode: {:?}", mode),
-                    };
-
-                    let bearing_x = (ft_glyph.bitmap_left as f64 * scale) as isize;
-                    let bearing_y = (ft_glyph.bitmap_top as f64 * scale) as isize;
-
+                let glyph = self.cached_glyph(info)?;
+                // glyph.image.is_none() for whitespace glyphs
+                if let &Some(ref image) = &glyph.image {
                     debug!(
-                    "x,y: {},{} desc={} bearing:{},{} off={},{} adv={},{} scale={}",
-                    x,
-                    y,
-                    self.descender,
-                    bearing_x,
-                    bearing_y,
-                    x_offset,
-                    y_offset,
-                    x_advance,
-                    y_advance,
-                    scale,
-                );
+                        "x,y: {},{} desc={} bearing:{},{} off={},{} adv={},{} scale={}",
+                        x,
+                        y,
+                        self.descender,
+                        glyph.bearing_x,
+                        glyph.bearing_y,
+                        glyph.x_offset,
+                        glyph.y_offset,
+                        glyph.x_advance,
+                        glyph.y_advance,
+                        glyph.scale
+                    );
 
-                    let image = if scale != 1.0 {
-                        image.scale_by(scale)
-                    } else {
-                        image
-                    };
-
-                    let operator = if has_color {
+                    let operator = if glyph.has_color {
                         xgfx::Operator::Over
                     } else {
                         xgfx::Operator::MultiplyThenOver(fg_color.into())
                     };
                     self.buffer_image.draw_image(
-                        x + x_offset as isize + bearing_x,
-                        y + self.descender - (y_offset as isize + bearing_y),
-                        &image,
+                        x + glyph.x_offset as isize + glyph.bearing_x,
+                        y + self.descender -
+                            (glyph.y_offset as isize + glyph.bearing_y),
+                        image,
                         operator,
                     );
                 }
 
-                x += x_advance as isize;
-                y += y_advance as isize;
+                x += glyph.x_advance;
+                y += glyph.y_advance;
             }
         }
 
