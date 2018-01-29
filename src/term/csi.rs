@@ -211,7 +211,7 @@ impl<'a> CSIParser<'a> {
                 // With no parameters, home the cursor
                 Some(CSIAction::SetCursorXY(0, 0))
             }
-            &[x, y] => {
+            &[y, x] => {
                 self.advance_by(2, params);
                 // Co-ordinates are 1-based, but we want 0-based
                 Some(CSIAction::SetCursorXY((x - 1) as usize, (y - 1) as usize))
