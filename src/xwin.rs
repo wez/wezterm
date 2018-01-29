@@ -217,7 +217,7 @@ impl<'a> TerminalWindow<'a> {
                 // We infer this from the X position rather than enumerate the
                 // glyph_info iterator because glyphs may advance by multiple cells.
                 let cell_idx = x as usize / cell_width;
-                if cell_idx > phys_cols {
+                if cell_idx >= line.cells.len() {
                     // Don't bother rendering outside the viewable area
                     break;
                 }
