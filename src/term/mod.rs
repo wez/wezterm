@@ -299,6 +299,19 @@ impl Screen {
             line.cells[x] = blank;
         }
     }
+
+    fn scroll_up(&mut self, num_rows: usize) {
+        let max_allowed = self.physical_rows + self.scrollback_size;
+        if self.lines.len() + num_rows >= max_allowed {
+            let lines_to_pop = (self.lines.len() + num_rows) - max_allowed;
+            for _ in 0..lines_to_pop {
+                self.lines.remove(0);
+            }
+        }
+        for _ in 0..num_rows {
+            self.lines.push(Line::new(self.physical_cols));
+        }
+    }
 }
 
 pub struct TerminalState {
@@ -347,7 +360,7 @@ impl TerminalState {
         }
     }
 
-    fn screen(&mut self) -> &Screen {
+    fn screen(&self) -> &Screen {
         if self.alt_screen_is_active {
             &self.alt_screen
         } else {
@@ -426,11 +439,7 @@ impl TerminalState {
     /// Returns the width of the screen and a slice over the visible rows
     /// TODO: should allow an arbitrary view for scrollback
     pub fn visible_cells(&self) -> (usize, &[Line]) {
-        let screen = if self.alt_screen_is_active {
-            &self.alt_screen
-        } else {
-            &self.screen
-        };
+        let screen = self.screen();
         let width = screen.physical_cols;
         let height = screen.physical_rows;
         let len = screen.lines.len();
@@ -441,6 +450,36 @@ impl TerminalState {
     /// the visible screen
     pub fn cursor_pos(&self) -> (usize, usize) {
         (self.cursor_x, self.cursor_y)
+    }
+
+    /// Sets the cursor position. x and y are 0-based and relative to the
+    /// top left of the visible screen.
+    /// TODO: DEC origin mode impacts the interpreation of these
+    fn set_cursor_pos(&mut self, x: usize, y: usize) {
+        self.cursor_x = x;
+        self.cursor_y = y;
+        self.state_changed = true;
+    }
+
+    fn scroll_up(&mut self, num_rows: usize) {
+        self.screen_mut().scroll_up(num_rows)
+    }
+
+    fn new_line(&mut self, move_to_first_column: bool) {
+        let x = if move_to_first_column {
+            0
+        } else {
+            self.cursor_x
+        };
+        let y = self.cursor_y;
+        let num_rows = self.screen().physical_rows;
+        let y = if y + 1 == num_rows {
+            self.scroll_up(1);
+            y
+        } else {
+            y + 1
+        };
+        self.set_cursor_pos(x, y);
     }
 
     fn push_answerback(&mut self, buf: &[u8]) {
@@ -508,15 +547,14 @@ impl vte::Perform for TerminalState {
 
     fn execute(&mut self, byte: u8) {
         match byte {
-            b'\n' => {
-                self.cursor_y += 1;
-                self.state_changed = true;
+            b'\n' | 0x0b /* VT */ | 0x0c /* FF */=> {
+                self.new_line(true /* TODO: depend on terminal mode */)
             }
             b'\r' => {
                 self.cursor_x = 0;
                 self.state_changed = true;
             }
-            0x08 => {
+            0x08 /* BS */ => {
                 self.cursor_x -= 1;
                 self.state_changed = true;
             }
@@ -561,8 +599,7 @@ impl vte::Perform for TerminalState {
                     self.pen.set_invisible(on);
                 }
                 CSIAction::SetCursorXY(x, y) => {
-                    self.cursor_x = x;
-                    self.cursor_y = y;
+                    self.set_cursor_pos(x, y);
                 }
                 CSIAction::EraseInLine(erase) => {
                     let cx = self.cursor_x;
