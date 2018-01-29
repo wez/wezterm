@@ -36,6 +36,7 @@ pub enum CSIAction {
     SetStrikethrough(bool),
     SetInvisible(bool),
     SetCursorXY(usize, usize),
+    DeltaCursorXY{x: isize, y: isize},
     EraseInLine(LineErase),
     EraseInDisplay(DisplayErase),
     SetDecPrivateMode(DecPrivateMode, bool),
@@ -431,6 +432,21 @@ impl<'a> CSIParser<'a> {
             }
         }
     }
+
+    /// CUF - Cursor n forward, or HPR - Character position Relative
+    fn cuf(&mut self, params: &'a [i64]) -> Option<CSIAction> {
+        match params {
+            &[] => Some(CSIAction::DeltaCursorXY{x:1, y:0}),
+            &[n] => {
+                self.advance_by(1, params);
+                Some(CSIAction::DeltaCursorXY{x:n as isize, y:0})
+            }
+            _ => {
+                println!("CUF: invalid sequence: {:?}", params);
+                None
+            }
+        }
+    }
 }
 
 impl<'a> Iterator for CSIParser<'a> {
@@ -440,6 +456,8 @@ impl<'a> Iterator for CSIParser<'a> {
         let params = self.params.take();
         match (self.byte, self.intermediates, params) {
             (_, _, None) => None,
+            ('C', &[], Some(params)) => self.cuf(params),
+            ('a', &[], Some(params)) => self.cuf(params), // HPR
             ('c', &[b'>'], Some(params)) => self.device_attributes(params),
             ('h', &[b'?'], Some(params)) => self.dec_set_mode(params),
             ('l', &[b'?'], Some(params)) => self.dec_reset_mode(params),

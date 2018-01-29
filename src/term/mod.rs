@@ -474,6 +474,12 @@ impl TerminalState {
         self.state_changed = true;
     }
 
+    fn delta_cursor_pos(&mut self, x: isize, y: isize) {
+        let x = self.cursor_x as isize + x;
+        let y = self.cursor_y as isize + y;
+        self.set_cursor_pos(x as usize, y as usize)
+    }
+
     fn scroll_up(&mut self, num_rows: usize) {
         let top = self.scroll_top;
         let bottom = self.scroll_bottom;
@@ -615,6 +621,9 @@ impl vte::Perform for TerminalState {
                 }
                 CSIAction::SetCursorXY(x, y) => {
                     self.set_cursor_pos(x, y);
+                }
+                CSIAction::DeltaCursorXY{x, y} => {
+                    self.delta_cursor_pos(x, y);
                 }
                 CSIAction::EraseInLine(erase) => {
                     let cx = self.cursor_x;
