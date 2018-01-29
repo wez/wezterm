@@ -334,6 +334,9 @@ pub struct TerminalState {
     /// of the screen.  0-based index.
     cursor_x: usize,
     cursor_y: usize,
+    /// if true, implicitly move to the next line on the next
+    /// printed character
+    wrap_next: bool,
 
     /// If true then the terminal state has changed
     state_changed: bool,
@@ -369,6 +372,7 @@ impl TerminalState {
             answerback: None,
             scroll_top: 0,
             scroll_bottom: physical_rows-1,
+            wrap_next: false,
         }
     }
 
@@ -472,6 +476,7 @@ impl TerminalState {
         self.cursor_x = x;
         self.cursor_y = y.min(rows - 1);
         self.state_changed = true;
+        self.wrap_next = false;
     }
 
     fn delta_cursor_pos(&mut self, x: isize, y: isize) {
@@ -554,15 +559,23 @@ impl Terminal {
 impl vte::Perform for TerminalState {
     /// Draw a character to the screen
     fn print(&mut self, c: char) {
+        if self.wrap_next {
+            // TODO: remember that this was a wrapped line in the attributes?
+            self.new_line(true);
+        }
+
         let x = self.cursor_x;
         let y = self.cursor_y;
+        let width = self.screen().physical_cols;
 
         let pen = self.pen;
         self.screen_mut().set_cell(x, y, c, &pen);
 
-        self.cursor_x += 1;
-        // TODO: wrap at the end of the screen
-        self.state_changed = true;
+        if x + 1 < width { // TODO: the 1 here should be based on the glyph width
+            self.set_cursor_pos(x + 1, y);
+        } else {
+            self.wrap_next = true;
+        }
     }
 
     fn execute(&mut self, byte: u8) {
