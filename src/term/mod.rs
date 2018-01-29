@@ -456,8 +456,9 @@ impl TerminalState {
     /// top left of the visible screen.
     /// TODO: DEC origin mode impacts the interpreation of these
     fn set_cursor_pos(&mut self, x: usize, y: usize) {
+        let rows = self.screen().physical_rows;
         self.cursor_x = x;
-        self.cursor_y = y;
+        self.cursor_y = y.min(rows-1);
         self.state_changed = true;
     }
 
