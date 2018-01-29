@@ -86,7 +86,7 @@ impl<'a> TerminalWindow<'a> {
         let (cell_height, cell_width, descender) = font.get_metrics()?;
 
         let window = xgfx::Window::new(&conn, width, height)?;
-        window.set_title("wterm");
+        window.set_title("wezterm");
         let window_context = xgfx::Context::new(conn, &window);
 
         let buffer_image =
