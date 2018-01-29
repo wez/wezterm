@@ -55,6 +55,11 @@ pub struct CSIParser<'a> {
     /// arrived and subsequent characters were ignored.
     ignore: bool,
     byte: char,
+    /// While params is_some we have more data to consume.  The advance_by
+    /// method updates the slice as we consume data.
+    /// In a number of cases an empty params list is used to indicate
+    /// default values, especially for SGR, so we need to be careful not
+    /// to update params to an empty slice.
     params: Option<&'a [i64]>,
 }
 
@@ -73,6 +78,10 @@ impl<'a> CSIParser<'a> {
         }
     }
 
+    /// Consume some number of elements from params and update it.
+    /// Take care to avoid setting params back to an empty slice
+    /// as this would trigger returning a default value and/or
+    /// an unterminated parse loop.
     fn advance_by(&mut self, n: usize, params: &'a [i64]) {
         let (_, next) = params.split_at(n);
         if next.len() != 0 {
