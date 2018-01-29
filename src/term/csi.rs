@@ -447,6 +447,51 @@ impl<'a> CSIParser<'a> {
             }
         }
     }
+
+    /// CUB - Cursor n backward
+    fn cub(&mut self, params: &'a [i64]) -> Option<CSIAction> {
+        match params {
+            &[] => Some(CSIAction::DeltaCursorXY{x:-1, y:0}),
+            &[n] => {
+                self.advance_by(1, params);
+                Some(CSIAction::DeltaCursorXY{x:-n as isize, y:0})
+            }
+            _ => {
+                println!("CUB: invalid sequence: {:?}", params);
+                None
+            }
+        }
+    }
+
+    /// CUU - Cursor Up n times
+    fn cuu(&mut self, params: &'a [i64]) -> Option<CSIAction> {
+        match params {
+            &[] => Some(CSIAction::DeltaCursorXY{x:0, y:-1}),
+            &[n] => {
+                self.advance_by(1, params);
+                Some(CSIAction::DeltaCursorXY{x:0, y:-n as isize})
+            }
+            _ => {
+                println!("CUU: invalid sequence: {:?}", params);
+                None
+            }
+        }
+    }
+
+    /// CUD - Cursor Down n times
+    fn cud(&mut self, params: &'a [i64]) -> Option<CSIAction> {
+        match params {
+            &[] => Some(CSIAction::DeltaCursorXY{x:0, y:1}),
+            &[n] => {
+                self.advance_by(1, params);
+                Some(CSIAction::DeltaCursorXY{x:0, y:n as isize})
+            }
+            _ => {
+                println!("CUD: invalid sequence: {:?}", params);
+                None
+            }
+        }
+    }
 }
 
 impl<'a> Iterator for CSIParser<'a> {
@@ -456,7 +501,10 @@ impl<'a> Iterator for CSIParser<'a> {
         let params = self.params.take();
         match (self.byte, self.intermediates, params) {
             (_, _, None) => None,
+            ('A', &[], Some(params)) => self.cuu(params),
+            ('B', &[], Some(params)) => self.cud(params),
             ('C', &[], Some(params)) => self.cuf(params),
+            ('D', &[], Some(params)) => self.cub(params),
             ('a', &[], Some(params)) => self.cuf(params), // HPR
             ('c', &[b'>'], Some(params)) => self.device_attributes(params),
             ('h', &[b'?'], Some(params)) => self.dec_set_mode(params),
