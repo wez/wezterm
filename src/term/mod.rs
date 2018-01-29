@@ -656,6 +656,9 @@ impl vte::Perform for TerminalState {
                     let col = self.cursor_x + 1;
                     self.push_answerback(format!("\x1b[{};{}R", row, col).as_bytes());
                 }
+                CSIAction::SetScrollingRegion{top, bottom} => {
+                    println!("unhandled: SetScrollingRegion {}-{}", top, bottom);
+                }
             }
         }
     }

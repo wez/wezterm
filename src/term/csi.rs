@@ -41,6 +41,7 @@ pub enum CSIAction {
     SetDecPrivateMode(DecPrivateMode, bool),
     DeviceStatusReport,
     ReportCursorPosition,
+    SetScrollingRegion { top: usize, bottom: usize },
 }
 
 /// Constrol Sequence Initiator (CSI) Parser.
@@ -399,6 +400,22 @@ impl<'a> CSIParser<'a> {
             }
         }
     }
+
+    fn set_scroll_region(&mut self, params: &'a [i64]) -> Option<CSIAction> {
+        match params {
+            &[top, bottom] => {
+                self.advance_by(2, params);
+                Some(CSIAction::SetScrollingRegion {
+                    top: (top - 1) as usize,
+                    bottom: (bottom - 1) as usize,
+                })
+            }
+            _ => {
+                println!("set_scroll_region: invalid sequence: {:?}", params);
+                None
+            }
+        }
+    }
 }
 
 impl<'a> Iterator for CSIParser<'a> {
@@ -410,6 +427,7 @@ impl<'a> Iterator for CSIParser<'a> {
             (_, _, None) => None,
             ('h', &[b'?'], Some(params)) => self.dec_set_mode(params),
             ('l', &[b'?'], Some(params)) => self.dec_reset_mode(params),
+            ('r', &[], Some(params)) => self.set_scroll_region(params),
             ('H', &[], Some(params)) => self.cup(params),
             ('J', &[], Some(params)) => self.ed(params),
             ('K', &[], Some(params)) => self.el(params),
