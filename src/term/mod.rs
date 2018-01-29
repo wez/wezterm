@@ -306,7 +306,7 @@ impl Screen {
         }
     }
 
-    fn scroll_up(&mut self, num_rows: usize) {
+    fn scroll_up(&mut self, scroll_top: usize, scroll_bottom: usize, num_rows: usize) {
         let max_allowed = self.physical_rows + self.scrollback_size;
         if self.lines.len() + num_rows >= max_allowed {
             let lines_to_pop = (self.lines.len() + num_rows) - max_allowed;
@@ -343,6 +343,10 @@ pub struct TerminalState {
     /// and this is used as the result of the advance_bytes()
     /// method.
     answerback: Option<Vec<u8>>,
+
+    /// The scroll region
+    scroll_top: usize,
+    scroll_bottom: usize,
 }
 
 impl TerminalState {
@@ -363,6 +367,8 @@ impl TerminalState {
             cursor_y: 0,
             state_changed: true,
             answerback: None,
+            scroll_top: 0,
+            scroll_bottom: physical_rows-1,
         }
     }
 
@@ -469,7 +475,9 @@ impl TerminalState {
     }
 
     fn scroll_up(&mut self, num_rows: usize) {
-        self.screen_mut().scroll_up(num_rows)
+        let top = self.scroll_top;
+        let bottom = self.scroll_bottom;
+        self.screen_mut().scroll_up(top, bottom, num_rows)
     }
 
     fn new_line(&mut self, move_to_first_column: bool) {
@@ -479,8 +487,7 @@ impl TerminalState {
             self.cursor_x
         };
         let y = self.cursor_y;
-        let num_rows = self.screen().physical_rows;
-        let y = if y + 1 == num_rows {
+        let y = if y == self.scroll_bottom {
             self.scroll_up(1);
             y
         } else {
@@ -574,6 +581,7 @@ impl vte::Perform for TerminalState {
     fn osc_dispatch(&mut self, _: &[&[u8]]) {}
     fn csi_dispatch(&mut self, params: &[i64], intermediates: &[u8], ignore: bool, byte: char) {
         for act in CSIParser::new(params, intermediates, ignore, byte) {
+            debug!("{:?}", act);
             match act {
                 CSIAction::SetPen(pen) => {
                     self.pen = pen;
@@ -663,7 +671,14 @@ impl vte::Perform for TerminalState {
                     self.push_answerback(format!("\x1b[{};{}R", row, col).as_bytes());
                 }
                 CSIAction::SetScrollingRegion { top, bottom } => {
-                    println!("unhandled: SetScrollingRegion {}-{}", top, bottom);
+                    // TODO: this isn't respected fully yet
+                    let rows = self.screen().physical_rows;
+                    self.scroll_top = top.min(rows-1);
+                    self.scroll_bottom = bottom.min(rows-1);
+                    if self.scroll_top > self.scroll_bottom {
+                        std::mem::swap(&mut self.scroll_top, &mut self.scroll_bottom);
+                    }
+                    println!("SetScrollingRegion {} - {}", self.scroll_top, self.scroll_bottom);
                 }
                 CSIAction::RequestDeviceAttributes => {
                     self.push_answerback(DEVICE_IDENT);
