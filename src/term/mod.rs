@@ -371,7 +371,7 @@ impl TerminalState {
             state_changed: true,
             answerback: None,
             scroll_top: 0,
-            scroll_bottom: physical_rows-1,
+            scroll_bottom: physical_rows - 1,
             wrap_next: false,
         }
     }
@@ -479,9 +479,9 @@ impl TerminalState {
         self.wrap_next = false;
     }
 
-    fn delta_cursor_pos(&mut self, x: isize, y: isize) {
-        let x = self.cursor_x as isize + x;
-        let y = self.cursor_y as isize + y;
+    fn delta_cursor_pos(&mut self, x: i64, y: i64) {
+        let x = self.cursor_x as i64 + x;
+        let y = self.cursor_y as i64 + y;
         self.set_cursor_pos(x as usize, y as usize)
     }
 
@@ -571,7 +571,8 @@ impl vte::Perform for TerminalState {
         let pen = self.pen;
         self.screen_mut().set_cell(x, y, c, &pen);
 
-        if x + 1 < width { // TODO: the 1 here should be based on the glyph width
+        if x + 1 < width {
+            // TODO: the 1 here should be based on the glyph width
             self.set_cursor_pos(x + 1, y);
         } else {
             self.wrap_next = true;
@@ -635,7 +636,7 @@ impl vte::Perform for TerminalState {
                 CSIAction::SetCursorXY(x, y) => {
                     self.set_cursor_pos(x, y);
                 }
-                CSIAction::DeltaCursorXY{x, y} => {
+                CSIAction::DeltaCursorXY { x, y } => {
                     self.delta_cursor_pos(x, y);
                 }
                 CSIAction::EraseInLine(erase) => {
@@ -695,12 +696,16 @@ impl vte::Perform for TerminalState {
                 CSIAction::SetScrollingRegion { top, bottom } => {
                     // TODO: this isn't respected fully yet
                     let rows = self.screen().physical_rows;
-                    self.scroll_top = top.min(rows-1);
-                    self.scroll_bottom = bottom.min(rows-1);
+                    self.scroll_top = top.min(rows - 1);
+                    self.scroll_bottom = bottom.min(rows - 1);
                     if self.scroll_top > self.scroll_bottom {
                         std::mem::swap(&mut self.scroll_top, &mut self.scroll_bottom);
                     }
-                    println!("SetScrollingRegion {} - {}", self.scroll_top, self.scroll_bottom);
+                    println!(
+                        "SetScrollingRegion {} - {}",
+                        self.scroll_top,
+                        self.scroll_bottom
+                    );
                 }
                 CSIAction::RequestDeviceAttributes => {
                     self.push_answerback(DEVICE_IDENT);

@@ -36,7 +36,7 @@ pub enum CSIAction {
     SetStrikethrough(bool),
     SetInvisible(bool),
     SetCursorXY(usize, usize),
-    DeltaCursorXY{x: isize, y: isize},
+    DeltaCursorXY { x: i64, y: i64 },
     EraseInLine(LineErase),
     EraseInDisplay(DisplayErase),
     SetDecPrivateMode(DecPrivateMode, bool),
@@ -89,53 +89,6 @@ impl<'a> CSIParser<'a> {
         let (_, next) = params.split_at(n);
         if next.len() != 0 {
             self.params = Some(next);
-        }
-    }
-
-    /// Erase in Display (ED)
-    fn ed(&mut self, params: &'a [i64]) -> Option<CSIAction> {
-        match params {
-            &[] => Some(CSIAction::EraseInDisplay(DisplayErase::Below)),
-            &[i] => {
-                self.advance_by(1, params);
-                match i {
-                    0 => Some(CSIAction::EraseInDisplay(DisplayErase::Below)),
-                    1 => Some(CSIAction::EraseInDisplay(DisplayErase::Above)),
-                    2 => Some(CSIAction::EraseInDisplay(DisplayErase::All)),
-                    3 => Some(CSIAction::EraseInDisplay(DisplayErase::SavedLines)),
-                    _ => {
-                        println!("ed: unknown parameter {:?}", params);
-                        None
-                    }
-                }
-            }
-            _ => {
-                println!("ed: unhandled csi sequence {:?}", params);
-                None
-            }
-        }
-    }
-
-    /// Erase in Line (EL)
-    fn el(&mut self, params: &'a [i64]) -> Option<CSIAction> {
-        match params {
-            &[] => Some(CSIAction::EraseInLine(LineErase::ToRight)),
-            &[i] => {
-                self.advance_by(1, params);
-                match i {
-                    0 => Some(CSIAction::EraseInLine(LineErase::ToRight)),
-                    1 => Some(CSIAction::EraseInLine(LineErase::ToLeft)),
-                    2 => Some(CSIAction::EraseInLine(LineErase::All)),
-                    _ => {
-                        println!("el: unknown parameter {:?}", params);
-                        None
-                    }
-                }
-            }
-            _ => {
-                println!("el: unhandled csi sequence {:?}", params);
-                None
-            }
         }
     }
 
@@ -200,25 +153,6 @@ impl<'a> CSIParser<'a> {
             }
             _ => {
                 println!("dec_reset_mode: unhandled sequence {:?}", params);
-                None
-            }
-        }
-    }
-
-    /// Cursor Position (CUP)
-    fn cup(&mut self, params: &'a [i64]) -> Option<CSIAction> {
-        match params {
-            &[] => {
-                // With no parameters, home the cursor
-                Some(CSIAction::SetCursorXY(0, 0))
-            }
-            &[y, x] => {
-                self.advance_by(2, params);
-                // Co-ordinates are 1-based, but we want 0-based
-                Some(CSIAction::SetCursorXY((x - 1) as usize, (y - 1) as usize))
-            }
-            _ => {
-                println!("CUP: unhandled csi sequence {:?}", params);
                 None
             }
         }
@@ -418,80 +352,6 @@ impl<'a> CSIParser<'a> {
             }
         }
     }
-
-    fn device_attributes(&mut self, params: &'a [i64]) -> Option<CSIAction> {
-        match params {
-            &[] => Some(CSIAction::RequestDeviceAttributes),
-            &[0] => {
-                self.advance_by(1, params);
-                Some(CSIAction::RequestDeviceAttributes)
-            }
-            _ => {
-                println!("device_attributes: invalid sequence: {:?}", params);
-                None
-            }
-        }
-    }
-
-    /// CUF - Cursor n forward, or HPR - Character position Relative
-    fn cuf(&mut self, params: &'a [i64]) -> Option<CSIAction> {
-        match params {
-            &[] => Some(CSIAction::DeltaCursorXY{x:1, y:0}),
-            &[n] => {
-                self.advance_by(1, params);
-                Some(CSIAction::DeltaCursorXY{x:n as isize, y:0})
-            }
-            _ => {
-                println!("CUF: invalid sequence: {:?}", params);
-                None
-            }
-        }
-    }
-
-    /// CUB - Cursor n backward
-    fn cub(&mut self, params: &'a [i64]) -> Option<CSIAction> {
-        match params {
-            &[] => Some(CSIAction::DeltaCursorXY{x:-1, y:0}),
-            &[n] => {
-                self.advance_by(1, params);
-                Some(CSIAction::DeltaCursorXY{x:-n as isize, y:0})
-            }
-            _ => {
-                println!("CUB: invalid sequence: {:?}", params);
-                None
-            }
-        }
-    }
-
-    /// CUU - Cursor Up n times
-    fn cuu(&mut self, params: &'a [i64]) -> Option<CSIAction> {
-        match params {
-            &[] => Some(CSIAction::DeltaCursorXY{x:0, y:-1}),
-            &[n] => {
-                self.advance_by(1, params);
-                Some(CSIAction::DeltaCursorXY{x:0, y:-n as isize})
-            }
-            _ => {
-                println!("CUU: invalid sequence: {:?}", params);
-                None
-            }
-        }
-    }
-
-    /// CUD - Cursor Down n times
-    fn cud(&mut self, params: &'a [i64]) -> Option<CSIAction> {
-        match params {
-            &[] => Some(CSIAction::DeltaCursorXY{x:0, y:1}),
-            &[n] => {
-                self.advance_by(1, params);
-                Some(CSIAction::DeltaCursorXY{x:0, y:n as isize})
-            }
-            _ => {
-                println!("CUD: invalid sequence: {:?}", params);
-                None
-            }
-        }
-    }
 }
 
 impl<'a> Iterator for CSIParser<'a> {
@@ -501,22 +361,57 @@ impl<'a> Iterator for CSIParser<'a> {
         let params = self.params.take();
         match (self.byte, self.intermediates, params) {
             (_, _, None) => None,
-            ('A', &[], Some(params)) => self.cuu(params),
-            ('B', &[], Some(params)) => self.cud(params),
-            ('C', &[], Some(params)) => self.cuf(params),
-            ('D', &[], Some(params)) => self.cub(params),
-            ('a', &[], Some(params)) => self.cuf(params), // HPR
-            ('c', &[b'>'], Some(params)) => self.device_attributes(params),
+            // CUU - Cursor Up n times
+            ('A', &[], Some(&[])) => Some(CSIAction::DeltaCursorXY { x: 0, y: -1 }),
+            ('A', &[], Some(&[y])) => Some(CSIAction::DeltaCursorXY { x: 0, y: -y }),
+
+            // CUD - Cursor Down n times
+            ('B', &[], Some(&[])) => Some(CSIAction::DeltaCursorXY { x: 0, y: 1 }),
+            ('B', &[], Some(&[y])) => Some(CSIAction::DeltaCursorXY { x: 0, y: y }),
+
+            // CUF - Cursor n forward
+            ('C', &[], Some(&[])) => Some(CSIAction::DeltaCursorXY { x: 1, y: 0 }),
+            ('C', &[], Some(&[x])) => Some(CSIAction::DeltaCursorXY { x: x, y: 0 }),
+
+            // CUB - Cursor n backward
+            ('D', &[], Some(&[])) => Some(CSIAction::DeltaCursorXY { x: -1, y: 0 }),
+            ('D', &[], Some(&[x])) => Some(CSIAction::DeltaCursorXY { x: -x, y: 0 }),
+
+            // Cursor Position (CUP)
+            ('H', &[], Some(&[])) => Some(CSIAction::SetCursorXY(0, 0)),
+            ('H', &[], Some(&[y, x])) => {
+                // Co-ordinates are 1-based, but we want 0-based
+                Some(CSIAction::SetCursorXY((x - 1) as usize, (y - 1) as usize))
+            }
+
+            // Erase in Display (ED)
+            ('J', &[], Some(&[])) |
+            ('J', &[], Some(&[0])) => Some(CSIAction::EraseInDisplay(DisplayErase::Below)),
+            ('J', &[], Some(&[1])) => Some(CSIAction::EraseInDisplay(DisplayErase::Above)),
+            ('J', &[], Some(&[2])) => Some(CSIAction::EraseInDisplay(DisplayErase::All)),
+            ('J', &[], Some(&[3])) => Some(CSIAction::EraseInDisplay(DisplayErase::SavedLines)),
+
+            // Erase in Line (EL)
+            ('K', &[], Some(&[])) |
+            ('K', &[], Some(&[0])) => Some(CSIAction::EraseInLine(LineErase::ToRight)),
+            ('K', &[], Some(&[1])) => Some(CSIAction::EraseInLine(LineErase::ToLeft)),
+            ('K', &[], Some(&[2])) => Some(CSIAction::EraseInLine(LineErase::All)),
+
+            // HPR - Character position Relative
+            ('a', &[], Some(&[])) => Some(CSIAction::DeltaCursorXY { x: 1, y: 0 }),
+            ('a', &[], Some(&[x])) => Some(CSIAction::DeltaCursorXY { x: x, y: 0 }),
+
+            ('c', &[b'>'], Some(&[])) |
+            ('c', &[b'>'], Some(&[0])) => Some(CSIAction::RequestDeviceAttributes),
+
             ('h', &[b'?'], Some(params)) => self.dec_set_mode(params),
             ('l', &[b'?'], Some(params)) => self.dec_reset_mode(params),
-            ('r', &[], Some(params)) => self.set_scroll_region(params),
-            ('H', &[], Some(params)) => self.cup(params),
-            ('J', &[], Some(params)) => self.ed(params),
-            ('K', &[], Some(params)) => self.el(params),
             ('m', &[], Some(params)) => self.sgr(params),
             ('n', &[], Some(params)) => self.dsr(params),
+            ('r', &[], Some(params)) => self.set_scroll_region(params),
+
             (b, i, Some(p)) => {
-                println!("unhandled {} {:?} {:?} ignore={}", b, p, i, self.ignore);
+                println!("cSI unhandled {} {:?} {:?} ignore={}", b, p, i, self.ignore);
                 None
             }
         }
