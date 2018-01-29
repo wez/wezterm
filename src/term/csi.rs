@@ -157,10 +157,10 @@ impl<'a> CSIParser<'a> {
         }
     }
 
-    /// Set Mode (SM) and DEC Private Mode (DECSET)
-    fn set_mode(&mut self, params: &'a [i64]) -> Option<CSIAction> {
-        match (self.intermediates, params) {
-            (&[b'?'], &[idx, _..]) => {
+    /// DEC Private Mode (DECSET)
+    fn dec_set_mode(&mut self, params: &'a [i64]) -> Option<CSIAction> {
+        match params {
+            &[idx, _..] => {
                 self.advance_by(1, params);
                 self.parse_dec_mode(idx).map(|m| {
                     CSIAction::SetDecPrivateMode(m, true)
@@ -168,7 +168,7 @@ impl<'a> CSIParser<'a> {
             }
             _ => {
                 println!(
-                    "set_mode: unhandled sequence {:?} {:?}",
+                    "dec_set_mode: unhandled sequence {:?} {:?}",
                     self.intermediates,
                     params
                 );
@@ -177,21 +177,17 @@ impl<'a> CSIParser<'a> {
         }
     }
 
-    /// Reset Mode (RM) and DEC Private Mode (DECRST)
-    fn reset_mode(&mut self, params: &'a [i64]) -> Option<CSIAction> {
-        match (self.intermediates, params) {
-            (&[b'?'], &[idx, _..]) => {
+    /// Reset DEC Private Mode (DECRST)
+    fn dec_reset_mode(&mut self, params: &'a [i64]) -> Option<CSIAction> {
+        match params {
+            &[idx, _..] => {
                 self.advance_by(1, params);
                 self.parse_dec_mode(idx).map(|m| {
                     CSIAction::SetDecPrivateMode(m, false)
                 })
             }
             _ => {
-                println!(
-                    "reset_mode: unhandled sequence {:?} {:?}",
-                    self.intermediates,
-                    params
-                );
+                println!("dec_reset_mode: unhandled sequence {:?}", params);
                 None
             }
         }
@@ -401,23 +397,17 @@ impl<'a> Iterator for CSIParser<'a> {
 
     fn next(&mut self) -> Option<CSIAction> {
         let params = self.params.take();
-        match (self.byte, params) {
-            (_, None) => None,
-            ('h', Some(params)) => self.set_mode(params),
-            ('l', Some(params)) => self.reset_mode(params),
-            ('H', Some(params)) => self.cup(params),
-            ('J', Some(params)) => self.ed(params),
-            ('K', Some(params)) => self.el(params),
-            ('m', Some(params)) => self.sgr(params),
-            ('n', Some(params)) => self.dsr(params),
-            (b, Some(p)) => {
-                println!(
-                    "unhandled {} {:?} {:?} ignore={}",
-                    b,
-                    p,
-                    self.intermediates,
-                    self.ignore
-                );
+        match (self.byte, self.intermediates, params) {
+            (_, _, None) => None,
+            ('h', &[b'?'], Some(params)) => self.dec_set_mode(params),
+            ('l', &[b'?'], Some(params)) => self.dec_reset_mode(params),
+            ('H', &[], Some(params)) => self.cup(params),
+            ('J', &[], Some(params)) => self.ed(params),
+            ('K', &[], Some(params)) => self.el(params),
+            ('m', &[], Some(params)) => self.sgr(params),
+            ('n', &[], Some(params)) => self.dsr(params),
+            (b, i, Some(p)) => {
+                println!("unhandled {} {:?} {:?} ignore={}", b, p, i, self.ignore);
                 None
             }
         }
