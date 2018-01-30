@@ -407,7 +407,7 @@ impl<'a> TerminalWindow<'a> {
                     // Render the cell background color
                     self.buffer_image.clear_rect(
                         x,
-                        y - cell_height as isize,
+                        y,
                         info.num_cells as usize * self.cell_width as usize,
                         cell_height,
                         if is_cursor_cell {
@@ -441,7 +441,7 @@ impl<'a> TerminalWindow<'a> {
                         };
                         self.buffer_image.draw_image(
                             x + glyph.x_offset as isize + glyph.bearing_x,
-                            y + self.descender -
+                            y + cell_height as isize + self.descender -
                                 (glyph.y_offset as isize + glyph.bearing_y),
                             image,
                             operator,

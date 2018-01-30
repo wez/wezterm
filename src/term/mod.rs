@@ -342,22 +342,92 @@ impl Screen {
         }
     }
 
-    /// TODO: properly implement scroll regions
+    /// ---------
+    /// |
+    /// |--- top
+    /// |
+    /// |--- bottom
+    ///
+    /// scroll the region up by num_rows.  Any rows that would be scrolled
+    /// beyond the top get removed from the screen.
+    /// In other words, we remove (top..top+num_rows) and then insert num_rows
+    /// at bottom.
+    /// If the top of the region is the top of the visible display, rather than
+    /// removing the lines we let them go into the scrollback.
     fn scroll_up(&mut self, scroll_top: usize, scroll_bottom: usize, num_rows: usize) {
-        let max_allowed = self.physical_rows + self.scrollback_size;
-        if self.lines.len() + num_rows >= max_allowed {
-            // Any rows that get pushed out of scrollback get removed
-            let lines_to_pop = (self.lines.len() + num_rows) - max_allowed;
-            for _ in 0..lines_to_pop {
-                self.lines.remove(0);
+        let origin_row = self.lines.len() - self.physical_rows;
+        let top_idx = origin_row + scroll_top;
+        let bot_idx = origin_row + scroll_bottom;
+
+        // Invalidate the lines that will move before they move so that
+        // the indices of the lines are stable (we may remove lines below)
+        for y in top_idx + num_rows..bot_idx {
+            self.line_mut(y).set_dirty();
+        }
+
+        if scroll_top > 0 {
+            // No scrollback available for these;
+            // Remove the scrolled lines
+            for _ in 0..num_rows {
+                self.lines.remove(top_idx);
+            }
+        } else {
+            // The lines at the top will move into the scrollback.
+            // Let's check to make sure that we don't exceed the capacity
+
+            let max_allowed = self.physical_rows + self.scrollback_size;
+            if self.lines.len() + num_rows >= max_allowed {
+                // Any rows that get pushed out of scrollback get removed
+                let lines_to_pop = (self.lines.len() + num_rows) - max_allowed;
+                for _ in 0..lines_to_pop {
+                    self.lines.remove(0);
+                }
+            }
+
+            // All of the lines above the top are now effectively dirty because
+            // they were moved by the scroll operation.
+            for y in 0..top_idx {
+                self.line_mut(y).set_dirty();
             }
         }
-        let first_idx = (self.lines.len() - self.physical_rows) + scroll_top - num_rows;
-        for idx in first_idx..first_idx + (scroll_bottom - scroll_top) {
-            self.line_mut(idx); // has the side effect
-        }
+
+        let insertion = if scroll_bottom == self.physical_rows - 1 {
+            // Insert AFTER the bottom, otherwise we'll push down the last row!
+            bot_idx + 1
+        } else {
+            // if we're scrolling within the screen, the bottom is the bottom
+            bot_idx
+        };
         for _ in 0..num_rows {
-            self.lines.push(Line::new(self.physical_cols));
+            self.lines.insert(insertion, Line::new(self.physical_cols));
+        }
+    }
+
+    /// ---------
+    /// |
+    /// |--- top
+    /// |
+    /// |--- bottom
+    ///
+    /// scroll the region down by num_rows.  Any rows that would be scrolled
+    /// beyond the bottom get removed from the screen.
+    /// In other words, we remove (bottom-num_rows..bottom) and then insert num_rows
+    /// at scroll_top.
+    fn scroll_down(&mut self, scroll_top: usize, scroll_bottom: usize, num_rows: usize) {
+        let top_idx = (self.lines.len() - self.physical_rows) + scroll_top;
+        let bot_idx = (self.lines.len() - self.physical_rows) + scroll_bottom;
+
+        let bottom = bot_idx - num_rows;
+        for _ in bottom..bot_idx {
+            self.lines.remove(bottom);
+        }
+
+        for y in top_idx..bot_idx {
+            self.line_mut(y).set_dirty();
+        }
+
+        for _ in 0..num_rows {
+            self.lines.insert(top_idx, Line::new(self.physical_cols));
         }
     }
 }
@@ -554,6 +624,12 @@ impl TerminalState {
         self.screen_mut().scroll_up(top, bottom, num_rows)
     }
 
+    fn scroll_down(&mut self, num_rows: usize) {
+        let top = self.scroll_top;
+        let bottom = self.scroll_bottom;
+        self.screen_mut().scroll_down(top, bottom, num_rows)
+    }
+
     fn new_line(&mut self, move_to_first_column: bool) {
         let x = if move_to_first_column {
             0
@@ -574,6 +650,20 @@ impl TerminalState {
         let mut result = self.answerback.take().unwrap_or_else(Vec::new);
         result.extend_from_slice(buf);
         self.answerback = Some(result)
+    }
+
+    /// Move the cursor up 1 line.  If the position is at the top scroll margin,
+    /// scroll the region down.
+    fn reverse_index(&mut self) {
+        let y = self.cursor_y;
+        let y = if y == self.scroll_top {
+            self.scroll_down(1);
+            y
+        } else {
+            y - 1
+        };
+        let x = self.cursor_x;
+        self.set_cursor_pos(x, y);
     }
 }
 
@@ -663,7 +753,21 @@ impl vte::Perform for TerminalState {
     fn hook(&mut self, _: &[i64], _: &[u8], _: bool) {}
     fn put(&mut self, _: u8) {}
     fn unhook(&mut self) {}
-    fn osc_dispatch(&mut self, _: &[&[u8]]) {}
+    fn osc_dispatch(&mut self, osc: &[&[u8]]) {
+        match osc {
+            &[b"0", title] => {
+                use std::str;
+                if let Ok(title) = str::from_utf8(title) {
+                    println!("OSC: set title {}", title);
+                } else {
+                    println!("OSC: failed to decode utf for {:?}", title);
+                }
+            }
+            _ => {
+                println!("OSC unhandled: {:?}", osc);
+            }
+        }
+    }
     fn csi_dispatch(&mut self, params: &[i64], intermediates: &[u8], ignore: bool, byte: char) {
         for act in CSIParser::new(params, intermediates, ignore, byte) {
             debug!("{:?}", act);
@@ -778,5 +882,31 @@ impl vte::Perform for TerminalState {
             }
         }
     }
-    fn esc_dispatch(&mut self, _: &[i64], _: &[u8], _: bool, _: u8) {}
+
+    fn esc_dispatch(&mut self, params: &[i64], intermediates: &[u8], _ignore: bool, byte: u8) {
+        // Sequences from both of these sections show up in this handler:
+        // https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h2-C1-_8-Bit_-Control-Characters
+        // https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h2-Controls-beginning-with-ESC
+        match (byte, intermediates, params) {
+            // String Terminator (ST); explicitly has nothing to do here, as its purpose is
+            // handled by vte::Parser
+            (b'\\', &[], &[]) => {}
+            // Application Keypad (DECKPAM)
+            (b'=', &[], &[]) => {}
+            // Normal Keypad (DECKPAM)
+            (b'>', &[], &[]) => {}
+            // Reverse Index (RI)
+            (b'M', &[], &[]) => self.reverse_index(),
+
+            (..) => {
+                println!(
+                    "ESC unhandled params={:?}, intermediates={:?} b={:02x} {}",
+                    params,
+                    intermediates,
+                    byte,
+                    byte as char
+                );
+            }
+        }
+    }
 }
