@@ -44,6 +44,8 @@ pub enum CSIAction {
     ReportCursorPosition,
     SetScrollingRegion { top: usize, bottom: usize },
     RequestDeviceAttributes,
+    DeleteLines(usize),
+    InsertLines(usize),
 }
 
 /// Constrol Sequence Initiator (CSI) Parser.
@@ -397,11 +399,20 @@ impl<'a> Iterator for CSIParser<'a> {
             ('K', &[], Some(&[1])) => Some(CSIAction::EraseInLine(LineErase::ToLeft)),
             ('K', &[], Some(&[2])) => Some(CSIAction::EraseInLine(LineErase::All)),
 
+            // Insert Liness (IL)
+            ('L', &[], Some(&[])) => Some(CSIAction::InsertLines(1)),
+            ('L', &[], Some(&[n])) => Some(CSIAction::InsertLines(n as usize)),
+
+            // Delete Liness (DL)
+            ('M', &[], Some(&[])) => Some(CSIAction::DeleteLines(1)),
+            ('M', &[], Some(&[n])) => Some(CSIAction::DeleteLines(n as usize)),
+
             // HPR - Character position Relative
             ('a', &[], Some(&[])) => Some(CSIAction::DeltaCursorXY { x: 1, y: 0 }),
             ('a', &[], Some(&[x])) => Some(CSIAction::DeltaCursorXY { x: x, y: 0 }),
 
             ('c', &[b'>'], Some(&[])) |
+            ('c', &[], Some(&[0])) |
             ('c', &[b'>'], Some(&[0])) => Some(CSIAction::RequestDeviceAttributes),
 
             ('h', &[b'?'], Some(params)) => self.dec_set_mode(params),

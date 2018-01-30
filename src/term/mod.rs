@@ -879,6 +879,16 @@ impl vte::Perform for TerminalState {
                 CSIAction::RequestDeviceAttributes => {
                     self.push_answerback(DEVICE_IDENT);
                 }
+                CSIAction::DeleteLines(n) => {
+                    let top = self.cursor_y;
+                    println!("execute delete {} lines with scroll up {} {}", n, top, top+n);
+                    self.screen_mut().scroll_up(top, top+n, n);
+                }
+                CSIAction::InsertLines(n) => {
+                    let top = self.cursor_y;
+                    println!("execute insert {} lines with scroll down {} {}", n, top, top+n);
+                    self.screen_mut().scroll_down(top, top+n, n);
+                }
             }
         }
     }
