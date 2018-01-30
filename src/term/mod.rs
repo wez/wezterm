@@ -10,11 +10,19 @@ pub mod color;
 mod csi;
 use self::csi::*;
 
+#[cfg(test)]
+mod test;
+
 /// The response we given when queries for device attributes.
 /// This particular string says "we are a VT102".
 /// TODO: Consider VT220 extended response which can advertise
 /// certain feature sets.
-const DEVICE_IDENT: &[u8] = b"\x1b[?6c";
+pub const DEVICE_IDENT: &[u8] = b"\x1b[?6c";
+
+pub const CSI: &[u8] = b"\x1b[";
+pub const OSC: &[u8] = b"\x1b]";
+pub const ST: &[u8] = b"\x1b\\";
+pub const DCS: &[u8] = b"\x1bP";
 
 bitflags! {
     #[derive(Default)]
@@ -39,7 +47,7 @@ pub enum KeyCode {
     Shift,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub struct CellAttributes {
     attributes: u16,
     pub foreground: color::ColorAttribute,
@@ -142,10 +150,16 @@ impl Default for CellAttributes {
     }
 }
 
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub struct Cell {
     chars: [u8; 8],
     pub attrs: CellAttributes,
+}
+
+impl Default for Cell {
+    fn default() -> Cell {
+        Cell::from_char(' ', &CellAttributes::default())
+    }
 }
 
 impl Cell {
@@ -165,6 +179,12 @@ impl Cell {
             chars,
             attrs: *attr,
         }
+    }
+}
+
+impl From<char> for Cell {
+    fn from(c: char) -> Cell {
+        Cell::from_char(c, &CellAttributes::default())
     }
 }
 
@@ -220,6 +240,12 @@ impl Line {
     #[inline]
     fn set_clean(&mut self) {
         self.dirty = false;
+    }
+}
+
+impl<'a> From<&'a str> for Line {
+    fn from(s: &str) -> Line {
+        Line::from_text(s, &CellAttributes::default())
     }
 }
 
@@ -307,6 +333,12 @@ impl Screen {
         self.lines[line_idx].dirty = false;
     }
 
+    /// Returns a slice over the visible lines in the screen (no scrollback)
+    fn visible_lines(&self) -> &[Line] {
+        let line_idx = self.lines.len() - self.physical_rows;
+        &self.lines[line_idx..line_idx + self.physical_rows]
+    }
+
     /// Set a cell.  the x and y coordinates are relative to the visible screeen
     /// origin.  0,0 is the top left.
     pub fn set_cell(&mut self, x: usize, y: usize, c: char, attr: &CellAttributes) {
@@ -324,13 +356,13 @@ impl Screen {
         let width = cells.len();
         // if the line isn't wide enough, pad it out with the default attributes
         if x >= width {
-            cells.resize(x + 1, Cell::from_char(' ', &CellAttributes::default()));
+            cells.resize(x + 1, Cell::default());
         }
         cells[x] = Cell::from_char(c, attr);
     }
 
     pub fn clear_line(&mut self, y: usize, cols: std::ops::Range<usize>) {
-        let blank = Cell::from_char(' ', &CellAttributes::default());
+        let blank = Cell::default();
         let line_idx = (self.lines.len() - self.physical_rows) + y;
         let line = self.line_mut(line_idx);
         let max_col = line.cells.len();
@@ -881,13 +913,23 @@ impl vte::Perform for TerminalState {
                 }
                 CSIAction::DeleteLines(n) => {
                     let top = self.cursor_y;
-                    println!("execute delete {} lines with scroll up {} {}", n, top, top+n);
-                    self.screen_mut().scroll_up(top, top+n, n);
+                    println!(
+                        "execute delete {} lines with scroll up {} {}",
+                        n,
+                        top,
+                        top + n
+                    );
+                    self.screen_mut().scroll_up(top, top + n, n);
                 }
                 CSIAction::InsertLines(n) => {
                     let top = self.cursor_y;
-                    println!("execute insert {} lines with scroll down {} {}", n, top, top+n);
-                    self.screen_mut().scroll_down(top, top+n, n);
+                    println!(
+                        "execute insert {} lines with scroll down {} {}",
+                        n,
+                        top,
+                        top + n
+                    );
+                    self.screen_mut().scroll_down(top, top + n, n);
                 }
             }
         }

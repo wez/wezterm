@@ -24,7 +24,7 @@ pub enum AnsiColor {
     White,
 }
 
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy, Default, Eq, PartialEq)]
 pub struct RgbColor {
     pub red: u8,
     pub green: u8,
@@ -33,7 +33,7 @@ pub struct RgbColor {
 
 impl RgbColor {}
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum ColorAttribute {
     Foreground,
     Background,
