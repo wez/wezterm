@@ -70,7 +70,6 @@ pub struct TerminalWindow<'a> {
     descender: isize,
     window_context: xgfx::Context<'a>,
     buffer_image: BufferImage<'a>,
-    need_paint: bool,
     terminal: term::Terminal,
     pty: MasterPty,
     process: Child,
@@ -133,7 +132,6 @@ impl<'a> TerminalWindow<'a> {
             cell_height,
             cell_width,
             descender,
-            need_paint: true,
             terminal,
             pty,
             process,
@@ -166,7 +164,6 @@ impl<'a> TerminalWindow<'a> {
             self.pty.resize(rows, cols, width, height)?;
             self.terminal.resize(rows as usize, cols as usize);
 
-            self.need_paint = true;
             Ok(true)
         } else {
             debug!("ignoring extra resize");
@@ -353,114 +350,112 @@ impl<'a> TerminalWindow<'a> {
     }
 
     pub fn paint(&mut self) -> Result<(), Error> {
-        self.need_paint = false;
-
         let palette = term::color::ColorPalette::default();
-        self.buffer_image.clear(
-            palette
-                .resolve(&term::color::ColorAttribute::Background)
-                .into(),
-        );
+        let background_color = palette.resolve(&term::color::ColorAttribute::Background);
 
         let cell_height = self.cell_height.ceil() as usize;
         let cell_width = self.cell_width.ceil() as usize;
-        let mut y = 0 as isize;
-
-        let (_, lines) = self.terminal.visible_cells();
 
         let (cursor_x, cursor_y) = self.terminal.cursor_pos();
+        {
+            let dirty_lines = self.terminal.get_dirty_lines();
 
-        for (line_idx, line) in lines.iter().enumerate() {
-            let mut x = 0 as isize;
-            y += cell_height as isize;
+            for (line_idx, line) in dirty_lines {
 
-            let glyph_info = self.shape_text(&line.as_str())?;
-            for info in glyph_info.iter() {
-                // Figure out which column we should be looking at.
-                // We infer this from the X position rather than enumerate the
-                // glyph_info iterator because glyphs may advance by multiple cells.
-                let cell_idx = x as usize / cell_width;
-                if cell_idx >= line.cells.len() {
-                    // Don't bother rendering outside the viewable area
-                    break;
-                }
+                let mut x = 0 as isize;
+                let y = (line_idx * cell_height) as isize;
 
-                let is_cursor_cell = if cell_idx == cursor_x && line_idx == cursor_y {
-                    true
-                } else {
-                    false
-                };
-
-                let attrs = &line.cells[cell_idx].attrs;
-
-                let (fg_color, bg_color) = if attrs.reverse() {
-                    (
-                        palette.resolve(&attrs.background),
-                        palette.resolve(&attrs.foreground),
-                    )
-                } else {
-                    (
-                        palette.resolve(&attrs.foreground),
-                        palette.resolve(&attrs.background),
-                    )
-                };
-
-                // Render the cell background color
                 self.buffer_image.clear_rect(
-                    x,
-                    y - cell_height as isize,
-                    info.num_cells as usize * self.cell_width as usize,
+                    0,
+                    y,
+                    self.width as usize,
                     cell_height,
-                    if is_cursor_cell {
-                        palette.cursor()
-                    } else {
-                        bg_color
-                    }.into(),
+                    background_color.into(),
                 );
 
-                let glyph = self.cached_glyph(info)?;
-                // glyph.image.is_none() for whitespace glyphs
-                if let &Some(ref image) = &glyph.image {
-                    debug!(
-                        "x,y: {},{} desc={} bearing:{},{} off={},{} adv={},{} scale={}",
-                        x,
-                        y,
-                        self.descender,
-                        glyph.bearing_x,
-                        glyph.bearing_y,
-                        glyph.x_offset,
-                        glyph.y_offset,
-                        glyph.x_advance,
-                        glyph.y_advance,
-                        glyph.scale
-                    );
+                let glyph_info = self.shape_text(&line.as_str())?;
+                for info in glyph_info.iter() {
+                    // Figure out which column we should be looking at.
+                    // We infer this from the X position rather than enumerate the
+                    // glyph_info iterator because glyphs may advance by multiple cells.
+                    let cell_idx = x as usize / cell_width;
+                    if cell_idx >= line.cells.len() {
+                        // Don't bother rendering outside the viewable area
+                        break;
+                    }
 
-                    let operator = if glyph.has_color {
-                        xgfx::Operator::Over
+                    let is_cursor_cell = if cell_idx == cursor_x && line_idx == cursor_y {
+                        true
                     } else {
-                        xgfx::Operator::MultiplyThenOver(fg_color.into())
+                        false
                     };
-                    self.buffer_image.draw_image(
-                        x + glyph.x_offset as isize + glyph.bearing_x,
-                        y + self.descender -
-                            (glyph.y_offset as isize + glyph.bearing_y),
-                        image,
-                        operator,
-                    );
-                }
 
-                x += glyph.x_advance;
-                y += glyph.y_advance;
+                    let attrs = &line.cells[cell_idx].attrs;
+
+                    let (fg_color, bg_color) = if attrs.reverse() {
+                        (
+                            palette.resolve(&attrs.background),
+                            palette.resolve(&attrs.foreground),
+                        )
+                    } else {
+                        (
+                            palette.resolve(&attrs.foreground),
+                            palette.resolve(&attrs.background),
+                        )
+                    };
+
+                    // Render the cell background color
+                    self.buffer_image.clear_rect(
+                        x,
+                        y - cell_height as isize,
+                        info.num_cells as usize * self.cell_width as usize,
+                        cell_height,
+                        if is_cursor_cell {
+                            palette.cursor()
+                        } else {
+                            bg_color
+                        }.into(),
+                    );
+
+                    let glyph = self.cached_glyph(info)?;
+                    // glyph.image.is_none() for whitespace glyphs
+                    if let &Some(ref image) = &glyph.image {
+                        debug!(
+                            "x,y: {},{} desc={} bearing:{},{} off={},{} adv={},{} scale={}",
+                            x,
+                            y,
+                            self.descender,
+                            glyph.bearing_x,
+                            glyph.bearing_y,
+                            glyph.x_offset,
+                            glyph.y_offset,
+                            glyph.x_advance,
+                            glyph.y_advance,
+                            glyph.scale
+                        );
+
+                        let operator = if glyph.has_color {
+                            xgfx::Operator::Over
+                        } else {
+                            xgfx::Operator::MultiplyThenOver(fg_color.into())
+                        };
+                        self.buffer_image.draw_image(
+                            x + glyph.x_offset as isize + glyph.bearing_x,
+                            y + self.descender -
+                                (glyph.y_offset as isize + glyph.bearing_y),
+                            image,
+                            operator,
+                        );
+                    }
+
+                    x += glyph.x_advance;
+                }
             }
         }
 
-        // FIXME: we have to push the render to the server in case it
-        // was the result of output from the process on the pty.  It would
-        // be nice to make this paint function only re-render the changed
-        // portions and send only those to the X server here.  This isn't
-        // so terrible when we have SHM available.
         match &self.buffer_image {
             &BufferImage::Shared(ref shm) => {
+                // We handled this above
                 self.window_context.copy_area(
                     shm,
                     0,
@@ -476,6 +471,8 @@ impl<'a> TerminalWindow<'a> {
                 self.window_context.put_image(0, 0, buffer);
             }
         }
+
+        self.terminal.clean_dirty_lines();
 
         Ok(())
     }
@@ -505,7 +502,6 @@ impl<'a> TerminalWindow<'a> {
                     if let Some(answer) = self.terminal.advance_bytes(&buf[0..size]) {
                         self.pty.write(&answer).ok(); // discard error
                     }
-                    self.need_paint = true;
                     if size < BUFSIZE {
                         // If we had a short read then there is no more
                         // data to read right now; we'll get called again
@@ -522,7 +518,7 @@ impl<'a> TerminalWindow<'a> {
     }
 
     pub fn need_paint(&self) -> bool {
-        self.need_paint
+        self.terminal.has_dirty_lines()
     }
 
     fn decode_key(&self, event: &xcb::KeyPressEvent) -> (KeyCode, KeyModifiers) {

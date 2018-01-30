@@ -171,6 +171,7 @@ impl Cell {
 #[derive(Debug, Clone)]
 pub struct Line {
     pub cells: Vec<Cell>,
+    dirty: bool,
 }
 
 impl Line {
@@ -179,7 +180,7 @@ impl Line {
     pub fn new(cols: usize) -> Line {
         let mut cells = Vec::with_capacity(cols);
         cells.resize(cols, Default::default());
-        Line { cells }
+        Line { cells, dirty: true }
     }
 
     /// Recompose line into the corresponding utf8 string.
@@ -193,6 +194,7 @@ impl Line {
         s
     }
 
+    #[allow(dead_code)]
     pub fn from_text(s: &str, attrs: &CellAttributes) -> Line {
         let mut cells = Vec::new();
 
@@ -207,7 +209,17 @@ impl Line {
             });
         }
 
-        Line { cells }
+        Line { cells, dirty: true }
+    }
+
+    #[inline]
+    fn set_dirty(&mut self) {
+        self.dirty = true;
+    }
+
+    #[inline]
+    fn set_clean(&mut self) {
+        self.dirty = false;
     }
 }
 
@@ -225,7 +237,7 @@ pub struct Screen {
     /// on the current window size) and will be the first line to be
     /// popped off the front of the screen when a new line is added that
     /// would otherwise have exceeded the line capacity
-    pub lines: Vec<Line>,
+    lines: Vec<Line>,
 
     /// Maximum number of lines of scrollback
     scrollback_size: usize,
@@ -272,6 +284,29 @@ impl Screen {
         self.physical_cols = physical_cols;
     }
 
+    /// Get mutable reference to a line, relative to start of scrollback.
+    /// Sets the line dirty.
+    fn line_mut(&mut self, idx: usize) -> &mut Line {
+        let line = &mut self.lines[idx];
+        line.set_dirty();
+        line
+    }
+
+    /// Sets a line dirty.  The line is relative to the visible origin.
+    #[inline]
+    fn dirty_line(&mut self, idx: usize) {
+        let line_idx = (self.lines.len() - self.physical_rows) + idx;
+        self.lines[line_idx].set_dirty();
+    }
+
+    /// Clears the dirty flag for a line.  The line is relative to the visible origin.
+    #[inline]
+    #[allow(dead_code)]
+    fn clean_line(&mut self, idx: usize) {
+        let line_idx = (self.lines.len() - self.physical_rows) + idx;
+        self.lines[line_idx].dirty = false;
+    }
+
     /// Set a cell.  the x and y coordinates are relative to the visible screeen
     /// origin.  0,0 is the top left.
     pub fn set_cell(&mut self, x: usize, y: usize, c: char, attr: &CellAttributes) {
@@ -284,7 +319,8 @@ impl Screen {
             c,
             attr
         );
-        let cells = &mut self.lines[line_idx].cells;
+
+        let cells = &mut self.line_mut(line_idx).cells;
         let width = cells.len();
         // if the line isn't wide enough, pad it out with the default attributes
         if x >= width {
@@ -296,7 +332,7 @@ impl Screen {
     pub fn clear_line(&mut self, y: usize, cols: std::ops::Range<usize>) {
         let blank = Cell::from_char(' ', &CellAttributes::default());
         let line_idx = (self.lines.len() - self.physical_rows) + y;
-        let line = &mut self.lines[line_idx];
+        let line = self.line_mut(line_idx);
         let max_col = line.cells.len();
         for x in cols {
             if x >= max_col {
@@ -306,13 +342,19 @@ impl Screen {
         }
     }
 
+    /// TODO: properly implement scroll regions
     fn scroll_up(&mut self, scroll_top: usize, scroll_bottom: usize, num_rows: usize) {
         let max_allowed = self.physical_rows + self.scrollback_size;
         if self.lines.len() + num_rows >= max_allowed {
+            // Any rows that get pushed out of scrollback get removed
             let lines_to_pop = (self.lines.len() + num_rows) - max_allowed;
             for _ in 0..lines_to_pop {
                 self.lines.remove(0);
             }
+        }
+        let first_idx = (self.lines.len() - self.physical_rows) + scroll_top - num_rows;
+        for idx in first_idx..first_idx + (scroll_bottom - scroll_top) {
+            self.line_mut(idx); // has the side effect
         }
         for _ in 0..num_rows {
             self.lines.push(Line::new(self.physical_cols));
@@ -337,9 +379,6 @@ pub struct TerminalState {
     /// if true, implicitly move to the next line on the next
     /// printed character
     wrap_next: bool,
-
-    /// If true then the terminal state has changed
-    state_changed: bool,
 
     /// Some parsing operations may yield responses that need
     /// to be returned to the client.  They are collected here
@@ -368,7 +407,6 @@ impl TerminalState {
             pen: CellAttributes::default(),
             cursor_x: 0,
             cursor_y: 0,
-            state_changed: true,
             answerback: None,
             scroll_top: 0,
             scroll_bottom: physical_rows - 1,
@@ -434,32 +472,51 @@ impl TerminalState {
         Ok(())
     }
 
-    /// Return true if the state has changed; the implication is that the terminal
-    /// needs to be redrawn in some fashion.
-    /// TODO: should probably build up a damage list instead
-    pub fn get_state_changed(&self) -> bool {
-        self.state_changed
-    }
-
-    /// Clear the state changed flag; the intent is that the consumer of this
-    /// class will clear the state after each paint.
-    pub fn clear_state_changed(&mut self) {
-        self.state_changed = false;
-    }
-
     pub fn resize(&mut self, physical_rows: usize, physical_cols: usize) {
         self.screen.resize(physical_rows, physical_cols);
         self.alt_screen.resize(physical_rows, physical_cols);
     }
 
-    /// Returns the width of the screen and a slice over the visible rows
-    /// TODO: should allow an arbitrary view for scrollback
-    pub fn visible_cells(&self) -> (usize, &[Line]) {
+    /// Returns true if any of the visible lines are marked dirty
+    pub fn has_dirty_lines(&self) -> bool {
         let screen = self.screen();
-        let width = screen.physical_cols;
         let height = screen.physical_rows;
         let len = screen.lines.len();
-        (width, &screen.lines[len - height..len])
+
+        for line in screen.lines.iter().skip(len - height) {
+            if line.dirty {
+                return true;
+            }
+        }
+
+        false
+    }
+
+    /// Returns the set of visible lines that are dirty.
+    /// The return value is a Vec<(line_idx, line)>, where
+    /// line_idx is relative to the top of the viewport
+    pub fn get_dirty_lines(&self) -> Vec<(usize, &Line)> {
+        let mut res = Vec::new();
+
+        let screen = self.screen();
+        let height = screen.physical_rows;
+        let len = screen.lines.len();
+
+        for (i, mut line) in screen.lines.iter().skip(len - height).enumerate() {
+            if line.dirty {
+                res.push((i, &*line));
+            }
+        }
+
+        res
+    }
+
+    /// Clear the dirty flag for all dirty lines
+    pub fn clean_dirty_lines(&mut self) {
+        let screen = self.screen_mut();
+        for line in screen.lines.iter_mut() {
+            line.set_clean();
+        }
     }
 
     /// Returns the 0-based cursor position relative to the top left of
@@ -473,10 +530,16 @@ impl TerminalState {
     /// TODO: DEC origin mode impacts the interpreation of these
     fn set_cursor_pos(&mut self, x: usize, y: usize) {
         let rows = self.screen().physical_rows;
+        let old_y = self.cursor_y;
+        let new_y = y.min(rows - 1);
+
         self.cursor_x = x;
-        self.cursor_y = y.min(rows - 1);
-        self.state_changed = true;
+        self.cursor_y = new_y;
         self.wrap_next = false;
+
+        let screen = self.screen_mut();
+        screen.dirty_line(old_y);
+        screen.dirty_line(new_y);
     }
 
     fn delta_cursor_pos(&mut self, x: i64, y: i64) {
@@ -581,16 +644,18 @@ impl vte::Perform for TerminalState {
 
     fn execute(&mut self, byte: u8) {
         match byte {
-            b'\n' | 0x0b /* VT */ | 0x0c /* FF */=> {
+            b'\n' | 0x0b /* VT */ | 0x0c /* FF */ => {
                 self.new_line(true /* TODO: depend on terminal mode */)
             }
             b'\r' => {
+                let row = self.cursor_y;
+                self.screen_mut().dirty_line(row);
                 self.cursor_x = 0;
-                self.state_changed = true;
             }
             0x08 /* BS */ => {
+                let row = self.cursor_y;
+                self.screen_mut().dirty_line(row);
                 self.cursor_x -= 1;
-                self.state_changed = true;
             }
             _ => println!("unhandled vte execute {}", byte),
         }
