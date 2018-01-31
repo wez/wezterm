@@ -499,8 +499,15 @@ impl<'a> TerminalWindow<'a> {
         loop {
             match self.pty.read(&mut buf) {
                 Ok(size) => {
-                    if let Some(answer) = self.terminal.advance_bytes(&buf[0..size]) {
-                        self.pty.write(&answer).ok(); // discard error
+                    for answer in self.terminal.advance_bytes(&buf[0..size]) {
+                        match answer {
+                            term::AnswerBack::WriteToPty(response) => {
+                                self.pty.write(&response).ok(); // discard error
+                            }
+                            term::AnswerBack::TitleChanged(title) => {
+                                self.window.set_title(&title);
+                            }
+                        }
                     }
                     if size < BUFSIZE {
                         // If we had a short read then there is no more

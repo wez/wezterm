@@ -501,7 +501,7 @@ pub struct TerminalState {
     /// to be returned to the client.  They are collected here
     /// and this is used as the result of the advance_bytes()
     /// method.
-    answerback: Option<Vec<u8>>,
+    answerback: Vec<AnswerBack>,
 
     /// The scroll region
     scroll_top: usize,
@@ -524,7 +524,7 @@ impl TerminalState {
             pen: CellAttributes::default(),
             cursor_x: 0,
             cursor_y: 0,
-            answerback: None,
+            answerback: Vec::new(),
             scroll_top: 0,
             scroll_bottom: physical_rows - 1,
             wrap_next: false,
@@ -695,9 +695,7 @@ impl TerminalState {
     }
 
     fn push_answerback(&mut self, buf: &[u8]) {
-        let mut result = self.answerback.take().unwrap_or_else(Vec::new);
-        result.extend_from_slice(buf);
-        self.answerback = Some(result)
+        self.answerback.push(AnswerBack::WriteToPty(buf.to_vec()));
     }
 
     /// Move the cursor up 1 line.  If the position is at the top scroll margin,
@@ -736,6 +734,18 @@ impl DerefMut for Terminal {
     }
 }
 
+/// When the terminal parser needs to convey a response
+/// back to the caller, this enum holds that response
+#[derive(Debug, Clone)]
+pub enum AnswerBack {
+    /// Some data to send back to the application on
+    /// the slave end of the pty.
+    WriteToPty(Vec<u8>),
+    /// The application has requested that we change
+    /// the terminal title, and here it is.
+    TitleChanged(String),
+}
+
 impl Terminal {
     pub fn new(physical_rows: usize, physical_cols: usize, scrollback_size: usize) -> Terminal {
         Terminal {
@@ -745,14 +755,16 @@ impl Terminal {
     }
 
     /// Feed the terminal parser a slice of bytes of input.
-    /// The return value is an optional sequence of bytes which should
-    /// we sent back to the client.
-    pub fn advance_bytes<B: AsRef<[u8]>>(&mut self, bytes: B) -> Option<Vec<u8>> {
+    /// The return value is a (likely empty most of the time)
+    /// sequence of AnswerBack objects that may need to be rendered
+    /// in the UI or sent back to the client on the slave side of
+    /// the pty.
+    pub fn advance_bytes<B: AsRef<[u8]>>(&mut self, bytes: B) -> Vec<AnswerBack> {
         let bytes = bytes.as_ref();
         for b in bytes.iter() {
             self.parser.advance(&mut self.state, *b);
         }
-        self.answerback.take()
+        self.answerback.drain(0..).collect()
     }
 }
 
@@ -804,7 +816,9 @@ impl vte::Perform for TerminalState {
             &[b"0", title] => {
                 use std::str;
                 if let Ok(title) = str::from_utf8(title) {
-                    println!("OSC: set title {}", title);
+                    self.answerback.push(
+                        AnswerBack::TitleChanged(title.to_string()),
+                    );
                 } else {
                     println!("OSC: failed to decode utf for {:?}", title);
                 }
