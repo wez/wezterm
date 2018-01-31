@@ -954,6 +954,11 @@ impl vte::Perform for TerminalState {
             // Reverse Index (RI)
             (b'M', &[], &[]) => self.reverse_index(),
 
+            // Enable alternate character set mode (smacs)
+            (b'0', &[b'('], &[]) => {},
+            // Exit alternate character set mode (rmacs)
+            (b'B', &[b'('], &[]) => {},
+
             (..) => {
                 println!(
                     "ESC unhandled params={:?}, intermediates={:?} b={:02x} {}",
