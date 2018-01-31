@@ -383,7 +383,10 @@ impl<'a> Iterator for CSIParser<'a> {
             ('H', &[], Some(&[])) => Some(CSIAction::SetCursorXY(0, 0)),
             ('H', &[], Some(&[y, x])) => {
                 // Co-ordinates are 1-based, but we want 0-based
-                Some(CSIAction::SetCursorXY((x - 1) as usize, (y - 1) as usize))
+                Some(CSIAction::SetCursorXY(
+                    (x.max(1) - 1) as usize,
+                    (y.max(1) - 1) as usize,
+                ))
             }
 
             // Erase in Display (ED)

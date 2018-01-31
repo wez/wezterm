@@ -19,9 +19,13 @@ mod test;
 /// certain feature sets.
 pub const DEVICE_IDENT: &[u8] = b"\x1b[?6c";
 
+#[allow(dead_code)]
 pub const CSI: &[u8] = b"\x1b[";
+#[allow(dead_code)]
 pub const OSC: &[u8] = b"\x1b]";
+#[allow(dead_code)]
 pub const ST: &[u8] = b"\x1b\\";
+#[allow(dead_code)]
 pub const DCS: &[u8] = b"\x1bP";
 
 bitflags! {
@@ -188,7 +192,7 @@ impl From<char> for Cell {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Line {
     pub cells: Vec<Cell>,
     dirty: bool,
@@ -334,6 +338,7 @@ impl Screen {
     }
 
     /// Returns a slice over the visible lines in the screen (no scrollback)
+    #[cfg(test)]
     fn visible_lines(&self) -> &[Line] {
         let line_idx = self.lines.len() - self.physical_rows;
         &self.lines[line_idx..line_idx + self.physical_rows]
@@ -632,10 +637,11 @@ impl TerminalState {
     /// TODO: DEC origin mode impacts the interpreation of these
     fn set_cursor_pos(&mut self, x: usize, y: usize) {
         let rows = self.screen().physical_rows;
+        let cols = self.screen().physical_cols;
         let old_y = self.cursor_y;
         let new_y = y.min(rows - 1);
 
-        self.cursor_x = x;
+        self.cursor_x = x.min(cols - 1);
         self.cursor_y = new_y;
         self.wrap_next = false;
 
@@ -645,8 +651,8 @@ impl TerminalState {
     }
 
     fn delta_cursor_pos(&mut self, x: i64, y: i64) {
-        let x = self.cursor_x as i64 + x;
-        let y = self.cursor_y as i64 + y;
+        let x = (self.cursor_x as i64 + x).max(0);
+        let y = (self.cursor_y as i64 + y).max(0);
         self.set_cursor_pos(x as usize, y as usize)
     }
 
@@ -775,9 +781,7 @@ impl vte::Perform for TerminalState {
                 self.cursor_x = 0;
             }
             0x08 /* BS */ => {
-                let row = self.cursor_y;
-                self.screen_mut().dirty_line(row);
-                self.cursor_x -= 1;
+                self.delta_cursor_pos(-1, 0);
             }
             _ => println!("unhandled vte execute {}", byte),
         }
