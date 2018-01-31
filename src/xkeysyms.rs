@@ -195,24 +195,22 @@ pub const XK_asciitilde: xcb_keysym_t = 0x007e;
 use term::KeyCode;
 use term::KeyModifiers;
 
-impl From<xcb_keysym_t> for KeyCode {
-    fn from(k: xcb_keysym_t) -> Self {
-        match k {
-            XK_space...XK_asciitilde => {
-                // This range overlaps with ascii
-                KeyCode::Char(k as u8 as char)
-            }
-            XK_BackSpace | XK_Tab | XK_Linefeed | XK_Return | XK_Escape => {
-                KeyCode::Char((k & 0xff) as u8 as char)
-            }
-            XK_Control_L | XK_Control_R => KeyCode::Control,
-            XK_Alt_L | XK_Alt_R => KeyCode::Alt,
-            XK_Meta_L | XK_Meta_R => KeyCode::Meta,
-            XK_Super_L | XK_Super_R => KeyCode::Super,
-            XK_Hyper_L | XK_Hyper_R => KeyCode::Hyper,
-            XK_Shift_L | XK_Shift_R => KeyCode::Shift,
-            _ => KeyCode::Unknown,
+pub fn xcb_keysym_to_keycode(k: xcb_keysym_t) -> KeyCode {
+    match k {
+        XK_space...XK_asciitilde => {
+            // This range overlaps with ascii
+            KeyCode::Char(k as u8 as char)
         }
+        XK_BackSpace | XK_Tab | XK_Linefeed | XK_Return | XK_Escape => {
+            KeyCode::Char((k & 0xff) as u8 as char)
+        }
+        XK_Control_L | XK_Control_R => KeyCode::Control,
+        XK_Alt_L | XK_Alt_R => KeyCode::Alt,
+        XK_Meta_L | XK_Meta_R => KeyCode::Meta,
+        XK_Super_L | XK_Super_R => KeyCode::Super,
+        XK_Hyper_L | XK_Hyper_R => KeyCode::Hyper,
+        XK_Shift_L | XK_Shift_R => KeyCode::Shift,
+        _ => KeyCode::Unknown,
     }
 }
 

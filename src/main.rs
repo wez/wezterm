@@ -1,20 +1,15 @@
-#![feature(slice_patterns)]
-
 #[macro_use]
 extern crate failure;
-#[macro_use]
-extern crate bitflags;
 extern crate unicode_width;
-extern crate unicode_segmentation;
 extern crate harfbuzz_sys;
 #[cfg(not(target_os = "macos"))]
 extern crate fontconfig; // from servo-fontconfig
 #[cfg(not(target_os = "macos"))]
 extern crate freetype;
 extern crate resize;
-extern crate vte;
 extern crate libc;
 extern crate mio;
+extern crate term;
 #[macro_use]
 pub mod log;
 
@@ -34,7 +29,6 @@ mod xkeysyms;
 mod font;
 use font::{Font, FontPattern, ftwrap};
 
-mod term;
 mod pty;
 mod sigchld;
 mod xwin;

@@ -1,10 +1,20 @@
 //! Terminal model
+#![feature(slice_patterns)]
+
+#[allow(unused_imports)]
+#[macro_use]
+extern crate failure;
+#[macro_use]
+extern crate bitflags;
+extern crate unicode_width;
+extern crate unicode_segmentation;
+extern crate vte;
 
 use failure::Error;
-use std;
 use std::ops::{Deref, DerefMut};
-use unicode_segmentation;
-use vte;
+
+#[macro_use]
+mod debug;
 
 pub mod color;
 mod csi;
@@ -955,9 +965,9 @@ impl vte::Perform for TerminalState {
             (b'M', &[], &[]) => self.reverse_index(),
 
             // Enable alternate character set mode (smacs)
-            (b'0', &[b'('], &[]) => {},
+            (b'0', &[b'('], &[]) => {}
             // Exit alternate character set mode (rmacs)
-            (b'B', &[b'('], &[]) => {},
+            (b'B', &[b'('], &[]) => {}
 
             (..) => {
                 println!(

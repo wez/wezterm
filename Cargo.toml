@@ -1,3 +1,5 @@
+[workspace]
+
 [package]
 authors = ["Wez Furlong <wez@wezfurlong.org>"]
 name = "wezterm"
@@ -12,9 +14,10 @@ libc = "0.2.36"
 mio = "0.6.12"
 resize = "0.3.0"
 servo-fontconfig = "0.4.0"
-unicode-segmentation = "1.2.0"
 unicode-width = "0.1.4"
-vte = "0.3.2"
+
+[dependencies.term]
+path = "term"
 
 [dependencies.xcb]
 features = ["shm"]

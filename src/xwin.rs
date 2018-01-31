@@ -527,7 +527,7 @@ impl<'a> TerminalWindow<'a> {
             event,
             mods.contains(KeyModifiers::SHIFT),
         );
-        (sym.into(), mods)
+        (xkeysyms::xcb_keysym_to_keycode(sym), mods)
     }
 
     pub fn key_down(&mut self, event: &xcb::KeyPressEvent) -> Result<(), Error> {

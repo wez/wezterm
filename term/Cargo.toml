@@ -1,0 +1,12 @@
+[package]
+authors = ["Wez Furlong <wez@wezfurlong.org>"]
+name = "term"
+version = "0.1.0"
+
+[dependencies]
+bitflags = "1.0.1"
+failure = "0.1.1"
+unicode-segmentation = "1.2.0"
+unicode-width = "0.1.4"
+vte = "0.3.2"
+
