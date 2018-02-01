@@ -539,13 +539,13 @@ impl<'a> TerminalWindow<'a> {
 
     pub fn key_down(&mut self, event: &xcb::KeyPressEvent) -> Result<(), Error> {
         let (code, mods) = self.decode_key(event);
-        println!("Key pressed {:?} {:?}", code, mods);
+        // println!("Key pressed {:?} {:?}", code, mods);
         self.terminal.key_down(code, mods, &mut self.pty)
     }
 
     pub fn key_up(&mut self, event: &xcb::KeyPressEvent) -> Result<(), Error> {
         let (code, mods) = self.decode_key(event);
-        println!("Key released {:?} {:?}", code, mods);
+        // println!("Key released {:?} {:?}", code, mods);
         self.terminal.key_up(code, mods, &mut self.pty)
     }
 }
