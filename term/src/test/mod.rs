@@ -81,6 +81,17 @@ fn set_mode(term: &mut Terminal, mode: &str, enable: bool) {
     term.advance_bytes(if enable { b"h" } else { b"l" });
 }
 
+#[allow(dead_code)]
+fn set_scroll_region(term: &mut Terminal, top: usize, bottom: usize) {
+    term.advance_bytes(CSI);
+    term.advance_bytes(format!("{};{}r", top + 1, bottom + 1));
+}
+
+fn delete_lines(term: &mut Terminal, n: usize) {
+    term.advance_bytes(CSI);
+    term.advance_bytes(format!("{}M", n));
+}
+
 fn cup(term: &mut Terminal, col: isize, row: isize) {
     term.advance_bytes(CSI);
     term.advance_bytes(format!("{};{}H", row + 1, col + 1));
@@ -115,11 +126,20 @@ bitflags! {
     }
 }
 
+fn print_visible_lines(term: &Terminal) {
+    let screen = term.screen();
+
+    println!("screen contents are:");
+    for line in screen.visible_lines().iter() {
+        println!("[{}]", line.as_str());
+    }
+}
 
 /// Asserts that the visible lines of the terminal have the
 /// same cell contents.  The cells must exactly match.
 #[allow(dead_code)]
 fn assert_visible_lines(term: &Terminal, expect_lines: &[Line]) {
+    print_visible_lines(&term);
     let screen = term.screen();
 
     assert_lines_equal(
@@ -134,6 +154,7 @@ fn assert_visible_lines(term: &Terminal, expect_lines: &[Line]) {
 /// The other cell attributes are not compared; this is
 /// a convenience for writing visually understandable tests.
 fn assert_visible_contents(term: &Terminal, expect_lines: &[&str]) {
+    print_visible_lines(&term);
     let screen = term.screen();
 
     let expect: Vec<Line> = expect_lines.iter().map(|s| (*s).into()).collect();
@@ -216,4 +237,23 @@ fn cursor_movement_damage() {
 
     cup(&mut term, 0, 0);
     assert_dirty_lines!(&term, &[0, 1], "cursor movement dirties old and new lines");
+}
+
+/// Replicates this sequence:
+/// $ vim
+/// :help
+/// PageDown
+#[test]
+fn test_delete_lines() {
+    let mut term = Terminal::new(5, 3, 0);
+
+    term.advance_bytes("111\r\n222\r\n333\r\n444\r\n555");
+    assert_visible_contents(&term, &["111", "222", "333", "444", "555"]);
+    assert_dirty_lines!(&term, &[0, 1, 2, 3, 4]);
+    cup(&mut term, 0, 1);
+    term.clean_dirty_lines();
+    assert_dirty_lines!(&term, &[]);
+    delete_lines(&mut term, 2);
+    assert_visible_contents(&term, &["111", "   ", "   ", "444", "555"]);
+    assert_dirty_lines!(&term, &[1, 2]);
 }

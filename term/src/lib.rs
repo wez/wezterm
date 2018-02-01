@@ -414,6 +414,10 @@ impl Screen {
         let top_idx = origin_row + scroll_top;
         let bot_idx = origin_row + scroll_bottom;
 
+        // if we remove lines due to lack of scrollback capacity,
+        // remember how many so that we can adjust our insertion point later.
+        let mut lines_removed = 0;
+
         // Invalidate the lines that will move before they move so that
         // the indices of the lines are stable (we may remove lines below)
         for y in top_idx + num_rows..bot_idx {
@@ -426,6 +430,7 @@ impl Screen {
             for _ in 0..num_rows {
                 self.lines.remove(top_idx);
             }
+            lines_removed = num_rows;
         } else {
             // The lines at the top will move into the scrollback.
             // Let's check to make sure that we don't exceed the capacity
@@ -437,6 +442,7 @@ impl Screen {
                 for _ in 0..lines_to_pop {
                     self.lines.remove(0);
                 }
+                lines_removed = lines_to_pop;
             }
 
             // All of the lines above the top are now effectively dirty because
@@ -454,7 +460,10 @@ impl Screen {
             bot_idx
         };
         for _ in 0..num_rows {
-            self.lines.insert(insertion, Line::new(self.physical_cols));
+            self.lines.insert(
+                insertion - lines_removed,
+                Line::new(self.physical_cols),
+            );
         }
     }
 
@@ -991,7 +1000,7 @@ impl vte::Perform for TerminalState {
                     if self.scroll_top > self.scroll_bottom {
                         std::mem::swap(&mut self.scroll_top, &mut self.scroll_bottom);
                     }
-                    println!(
+                    debug!(
                         "SetScrollingRegion {} - {}",
                         self.scroll_top,
                         self.scroll_bottom
@@ -1002,7 +1011,7 @@ impl vte::Perform for TerminalState {
                 }
                 CSIAction::DeleteLines(n) => {
                     let top = self.cursor_y;
-                    println!(
+                    debug!(
                         "execute delete {} lines with scroll up {} {}",
                         n,
                         top,
@@ -1012,7 +1021,7 @@ impl vte::Perform for TerminalState {
                 }
                 CSIAction::InsertLines(n) => {
                     let top = self.cursor_y;
-                    println!(
+                    debug!(
                         "execute insert {} lines with scroll down {} {}",
                         n,
                         top,
