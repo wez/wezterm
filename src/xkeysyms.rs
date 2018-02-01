@@ -210,6 +210,14 @@ pub fn xcb_keysym_to_keycode(k: xcb_keysym_t) -> KeyCode {
         XK_Super_L | XK_Super_R => KeyCode::Super,
         XK_Hyper_L | XK_Hyper_R => KeyCode::Hyper,
         XK_Shift_L | XK_Shift_R => KeyCode::Shift,
+        XK_Home => KeyCode::Home,
+        XK_Left => KeyCode::Left,
+        XK_Up => KeyCode::Up,
+        XK_Right => KeyCode::Right,
+        XK_Down => KeyCode::Down,
+        XK_Page_Up => KeyCode::PageUp,
+        XK_Page_Down => KeyCode::PageDown,
+        XK_End => KeyCode::End,
         _ => KeyCode::Unknown,
     }
 }
