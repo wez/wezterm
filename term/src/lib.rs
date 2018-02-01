@@ -413,55 +413,45 @@ impl Screen {
         let origin_row = self.lines.len() - self.physical_rows;
         let top_idx = origin_row + scroll_top;
         let bot_idx = origin_row + scroll_bottom;
-
-        // if we remove lines due to lack of scrollback capacity,
-        // remember how many so that we can adjust our insertion point later.
-        let mut lines_removed = 0;
+        assert!(num_rows <= bot_idx - top_idx);
 
         // Invalidate the lines that will move before they move so that
         // the indices of the lines are stable (we may remove lines below)
-        for y in top_idx + num_rows..bot_idx {
+        for y in top_idx..bot_idx + 1 {
             self.line_mut(y).set_dirty();
         }
 
-        if scroll_top > 0 {
+        // if we're going to remove lines due to lack of scrollback capacity,
+        // remember how many so that we can adjust our insertion point later.
+        let lines_removed = if scroll_top > 0 {
             // No scrollback available for these;
             // Remove the scrolled lines
-            for _ in 0..num_rows {
-                self.lines.remove(top_idx);
-            }
-            lines_removed = num_rows;
+            num_rows
         } else {
-            // The lines at the top will move into the scrollback.
-            // Let's check to make sure that we don't exceed the capacity
-
             let max_allowed = self.physical_rows + self.scrollback_size;
             if self.lines.len() + num_rows >= max_allowed {
-                // Any rows that get pushed out of scrollback get removed
-                let lines_to_pop = (self.lines.len() + num_rows) - max_allowed;
-                for _ in 0..lines_to_pop {
-                    self.lines.remove(0);
-                }
-                lines_removed = lines_to_pop;
+                (self.lines.len() + num_rows) - max_allowed
+            } else {
+                0
             }
+        };
 
+        // Perform the removal
+        for _ in 0..lines_removed {
+            self.lines.remove(top_idx);
+        }
+
+        if scroll_top == 0 {
             // All of the lines above the top are now effectively dirty because
-            // they were moved by the scroll operation.
+            // they were moved into scrollback by the scroll operation.
             for y in 0..top_idx {
                 self.line_mut(y).set_dirty();
             }
         }
 
-        let insertion = if scroll_bottom == self.physical_rows - 1 {
-            // Insert AFTER the bottom, otherwise we'll push down the last row!
-            bot_idx + 1
-        } else {
-            // if we're scrolling within the screen, the bottom is the bottom
-            bot_idx
-        };
         for _ in 0..num_rows {
             self.lines.insert(
-                insertion - lines_removed,
+                bot_idx + 1 - lines_removed,
                 Line::new(self.physical_cols),
             );
         }
@@ -478,16 +468,20 @@ impl Screen {
     /// In other words, we remove (bottom-num_rows..bottom) and then insert num_rows
     /// at scroll_top.
     fn scroll_down(&mut self, scroll_top: usize, scroll_bottom: usize, num_rows: usize) {
-        let top_idx = (self.lines.len() - self.physical_rows) + scroll_top;
-        let bot_idx = (self.lines.len() - self.physical_rows) + scroll_bottom;
+        let origin_row = self.lines.len() - self.physical_rows;
+        let top_idx = origin_row + scroll_top;
+        let bot_idx = origin_row + scroll_bottom;
+        assert!(num_rows <= bot_idx - top_idx);
 
-        let bottom = bot_idx - num_rows;
-        for _ in bottom..bot_idx {
-            self.lines.remove(bottom);
+        let middle = (bot_idx + 1) - num_rows;
+
+        // dirty the rows in the region
+        for y in top_idx..middle {
+            self.line_mut(y).set_dirty();
         }
 
-        for y in top_idx..bot_idx {
-            self.line_mut(y).set_dirty();
+        for _ in 0..num_rows {
+            self.lines.remove(middle);
         }
 
         for _ in 0..num_rows {
@@ -837,7 +831,6 @@ impl Terminal {
 impl vte::Perform for TerminalState {
     /// Draw a character to the screen
     fn print(&mut self, c: char) {
-        debug!("print {:x} {}", c as u32, c);
         if self.wrap_next {
             // TODO: remember that this was a wrapped line in the attributes?
             self.new_line(true);
@@ -993,41 +986,41 @@ impl vte::Perform for TerminalState {
                     self.push_answerback(format!("\x1b[{};{}R", row, col).as_bytes());
                 }
                 CSIAction::SetScrollingRegion { top, bottom } => {
-                    // TODO: this isn't respected fully yet
                     let rows = self.screen().physical_rows;
                     self.scroll_top = top.min(rows - 1);
                     self.scroll_bottom = bottom.min(rows - 1);
                     if self.scroll_top > self.scroll_bottom {
                         std::mem::swap(&mut self.scroll_top, &mut self.scroll_bottom);
                     }
-                    debug!(
-                        "SetScrollingRegion {} - {}",
-                        self.scroll_top,
-                        self.scroll_bottom
-                    );
                 }
                 CSIAction::RequestDeviceAttributes => {
                     self.push_answerback(DEVICE_IDENT);
                 }
                 CSIAction::DeleteLines(n) => {
                     let top = self.cursor_y;
-                    debug!(
-                        "execute delete {} lines with scroll up {} {}",
-                        n,
-                        top,
-                        top + n
-                    );
-                    self.screen_mut().scroll_up(top, top + n, n);
+                    let bottom = self.scroll_bottom;
+                    if top >= self.scroll_top && top <= bottom {
+                        debug!(
+                            "execute delete {} lines with scroll up {} {}",
+                            n,
+                            top,
+                            top + n
+                        );
+                        self.screen_mut().scroll_up(top, bottom, n);
+                    }
                 }
                 CSIAction::InsertLines(n) => {
                     let top = self.cursor_y;
-                    debug!(
-                        "execute insert {} lines with scroll down {} {}",
-                        n,
-                        top,
-                        top + n
-                    );
-                    self.screen_mut().scroll_down(top, top + n, n);
+                    let bottom = self.scroll_bottom;
+                    if top >= self.scroll_top && top <= bottom {
+                        debug!(
+                            "execute insert {} lines with scroll down {} {}",
+                            n,
+                            top,
+                            top + n
+                        );
+                        self.screen_mut().scroll_down(top, bottom, n);
+                    }
                 }
             }
         }

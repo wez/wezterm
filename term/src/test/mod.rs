@@ -239,7 +239,7 @@ fn cursor_movement_damage() {
     assert_dirty_lines!(&term, &[0, 1], "cursor movement dirties old and new lines");
 }
 
-/// Replicates this sequence:
+/// Replicates a bug I initially found via:
 /// $ vim
 /// :help
 /// PageDown
@@ -252,8 +252,31 @@ fn test_delete_lines() {
     assert_dirty_lines!(&term, &[0, 1, 2, 3, 4]);
     cup(&mut term, 0, 1);
     term.clean_dirty_lines();
+
     assert_dirty_lines!(&term, &[]);
     delete_lines(&mut term, 2);
-    assert_visible_contents(&term, &["111", "   ", "   ", "444", "555"]);
-    assert_dirty_lines!(&term, &[1, 2]);
+    assert_visible_contents(&term, &["111", "444", "555", "   ", "   "]);
+    assert_dirty_lines!(&term, &[1, 2, 3, 4]);
+    term.clean_dirty_lines();
+
+    cup(&mut term, 0, 3);
+    term.advance_bytes("aaa\r\nbbb");
+    cup(&mut term, 0, 1);
+    term.clean_dirty_lines();
+    assert_visible_contents(&term, &["111", "444", "555", "aaa", "bbb"]);
+
+    // test with a scroll region smaller than the screen
+    set_scroll_region(&mut term, 1, 3);
+    delete_lines(&mut term, 1);
+
+    assert_visible_contents(&term, &["111", "555", "aaa", "   ", "bbb"]);
+    assert_dirty_lines!(&term, &[1, 2, 3]);
+
+    // expand the scroll region to fill the screen
+    set_scroll_region(&mut term, 0, 4);
+    term.clean_dirty_lines();
+    delete_lines(&mut term, 1);
+
+    assert_visible_contents(&term, &["111", "aaa", "   ", "bbb", "   "]);
+    assert_dirty_lines!(&term, &[1, 2, 3, 4]);
 }
