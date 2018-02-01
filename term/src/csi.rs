@@ -46,6 +46,11 @@ pub enum CSIAction {
     RequestDeviceAttributes,
     DeleteLines(usize),
     InsertLines(usize),
+    LinePositionAbsolute(usize),
+    LinePositionRelative(isize),
+    SaveCursor,
+    RestoreCursor,
+    ScrollLines(isize),
 }
 
 /// Constrol Sequence Initiator (CSI) Parser.
@@ -410,19 +415,37 @@ impl<'a> Iterator for CSIParser<'a> {
             ('M', &[], Some(&[])) => Some(CSIAction::DeleteLines(1)),
             ('M', &[], Some(&[n])) => Some(CSIAction::DeleteLines(n as usize)),
 
+            // SU: Scroll Up Lines
+            ('S', &[], Some(&[])) => Some(CSIAction::ScrollLines(-1)),
+            ('S', &[], Some(&[n])) => Some(CSIAction::ScrollLines(-n as isize)),
+
             // HPR - Character position Relative
             ('a', &[], Some(&[])) => Some(CSIAction::DeltaCursorXY { x: 1, y: 0 }),
             ('a', &[], Some(&[x])) => Some(CSIAction::DeltaCursorXY { x: x, y: 0 }),
 
             ('c', &[b'>'], Some(&[])) |
+            ('c', &[], Some(&[])) |
             ('c', &[], Some(&[0])) |
             ('c', &[b'>'], Some(&[0])) => Some(CSIAction::RequestDeviceAttributes),
+
+            // VPA: Line Position Absolute
+            ('d', &[], Some(&[])) => Some(CSIAction::LinePositionAbsolute(0)),
+            ('d', &[], Some(&[n])) => Some(CSIAction::LinePositionAbsolute(n as usize)),
+
+            // VPR: Line Position Relative
+            ('e', &[], Some(&[])) => Some(CSIAction::LinePositionRelative(0)),
+            ('e', &[], Some(&[n])) => Some(CSIAction::LinePositionRelative(n as isize)),
 
             ('h', &[b'?'], Some(params)) => self.dec_set_mode(params),
             ('l', &[b'?'], Some(params)) => self.dec_reset_mode(params),
             ('m', &[], Some(params)) => self.sgr(params),
             ('n', &[], Some(params)) => self.dsr(params),
             ('r', &[], Some(params)) => self.set_scroll_region(params),
+
+            // SCOSC: Save Cursor
+            ('s', &[], Some(&[])) => Some(CSIAction::SaveCursor),
+            // SCORC: Restore Cursor
+            ('u', &[], Some(&[])) => Some(CSIAction::RestoreCursor),
 
             (b, i, Some(p)) => {
                 println!("cSI unhandled {} {:?} {:?} ignore={}", b, p, i, self.ignore);

@@ -504,6 +504,9 @@ pub struct TerminalState {
     /// of the screen.  0-based index.
     cursor_x: usize,
     cursor_y: usize,
+    saved_cursor_x: usize,
+    saved_cursor_y: usize,
+
     /// if true, implicitly move to the next line on the next
     /// printed character
     wrap_next: bool,
@@ -548,6 +551,8 @@ impl TerminalState {
             pen: CellAttributes::default(),
             cursor_x: 0,
             cursor_y: 0,
+            saved_cursor_x: 0,
+            saved_cursor_y: 0,
             answerback: Vec::new(),
             scroll_top: 0,
             scroll_bottom: physical_rows - 1,
@@ -1020,6 +1025,34 @@ impl vte::Perform for TerminalState {
                             top + n
                         );
                         self.screen_mut().scroll_down(top, bottom, n);
+                    }
+                }
+                CSIAction::SaveCursor => {
+                    self.saved_cursor_x = self.cursor_x;
+                    self.saved_cursor_y = self.cursor_y;
+                }
+                CSIAction::RestoreCursor => {
+                    let rows = self.screen().physical_rows;
+                    let cols = self.screen().physical_cols;
+                    let saved_x = self.saved_cursor_x;
+                    let saved_y = self.saved_cursor_y;
+                    self.cursor_x = saved_x.min(cols - 1);
+                    self.cursor_y = saved_y.min(rows - 1);
+                }
+                CSIAction::LinePositionAbsolute(row) => {
+                    let x = self.cursor_x;
+                    self.set_cursor_pos(x, row);
+                }
+                CSIAction::LinePositionRelative(row) => {
+                    let x = self.cursor_x;
+                    let y = self.cursor_y;
+                    self.set_cursor_pos(x, (y as isize + row).min(0) as usize);
+                }
+                CSIAction::ScrollLines(amount) => {
+                    if amount > 0 {
+                        self.scroll_down(amount as usize);
+                    } else {
+                        self.scroll_up((-amount) as usize);
                     }
                 }
             }
