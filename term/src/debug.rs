@@ -1,3 +1,5 @@
 macro_rules! debug {
-    ($($arg:tt)*) => (if cfg!(debug_assertions) { println!($($arg)*) })
+    ($($arg:tt)*) => (if cfg!(feature="debug-escape-sequences") {
+        println!($($arg)*)
+    })
 }

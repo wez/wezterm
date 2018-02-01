@@ -772,6 +772,7 @@ impl Terminal {
 impl vte::Perform for TerminalState {
     /// Draw a character to the screen
     fn print(&mut self, c: char) {
+        debug!("print {:x} {}", c as u32, c);
         if self.wrap_next {
             // TODO: remember that this was a wrapped line in the attributes?
             self.new_line(true);
@@ -793,14 +794,14 @@ impl vte::Perform for TerminalState {
     }
 
     fn execute(&mut self, byte: u8) {
+        debug!("execute {:02x}", byte);
         match byte {
             b'\n' | 0x0b /* VT */ | 0x0c /* FF */ => {
                 self.new_line(true /* TODO: depend on terminal mode */)
             }
-            b'\r' => {
+            b'\r' => /* CR */ {
                 let row = self.cursor_y;
-                self.screen_mut().dirty_line(row);
-                self.cursor_x = 0;
+                self.set_cursor_pos(0, row);
             }
             0x08 /* BS */ => {
                 self.delta_cursor_pos(-1, 0);
@@ -964,6 +965,13 @@ impl vte::Perform for TerminalState {
     }
 
     fn esc_dispatch(&mut self, params: &[i64], intermediates: &[u8], _ignore: bool, byte: u8) {
+        debug!(
+            "ESC params={:?}, intermediates={:?} b={:02x} {}",
+            params,
+            intermediates,
+            byte,
+            byte as char
+        );
         // Sequences from both of these sections show up in this handler:
         // https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h2-C1-_8-Bit_-Control-Characters
         // https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h2-Controls-beginning-with-ESC

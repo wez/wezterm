@@ -10,3 +10,6 @@ unicode-segmentation = "1.2.0"
 unicode-width = "0.1.4"
 vte = "0.3.2"
 
+[features]
+# When enabled, print the results of parsing the input stream to stdout
+debug-escape-sequences = []

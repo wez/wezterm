@@ -33,3 +33,6 @@ features = [
     "keysyms",
 ]
 version = "0.2.0"
+
+[features]
+debug-escape-sequences = ["term/debug-escape-sequences"]
