@@ -356,7 +356,7 @@ impl<'a> TerminalWindow<'a> {
         let cell_height = self.cell_height.ceil() as usize;
         let cell_width = self.cell_width.ceil() as usize;
 
-        let (cursor_x, cursor_y) = self.terminal.cursor_pos();
+        let cursor = self.terminal.cursor_pos();
         {
             let dirty_lines = self.terminal.get_dirty_lines();
 
@@ -384,7 +384,7 @@ impl<'a> TerminalWindow<'a> {
                         break;
                     }
 
-                    let is_cursor_cell = if cell_idx == cursor_x && line_idx == cursor_y {
+                    let is_cursor_cell = if cell_idx == cursor.x && line_idx == cursor.y as usize {
                         true
                     } else {
                         false

@@ -12,7 +12,8 @@ macro_rules! assert_cursor_pos {
     ($term:expr, $x:expr, $y:expr, $($reason:tt)*) => {
         {
             let cursor = $term.cursor_pos();
-            assert_eq!(cursor, ($x, $y), $($reason)*);
+            let expect = CursorPosition { x: $x, y: $y };
+            assert_eq!(cursor, expect, $($reason)*);
         }
     };
 }

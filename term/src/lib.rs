@@ -16,10 +16,41 @@ use std::ops::{Deref, DerefMut};
 #[macro_use]
 mod debug;
 
+/// Represents the index into screen.lines.  Index 0 is the top of
+/// the scrollback (if any).  The index of the top of the visible screen
+/// depends on the terminal dimensions and the scrollback size.
+pub type PhysRowIndex = usize;
+
+/// Represents an index into the visible portion of the screen.
+/// Value 0 is the first visible row.  VisibleRowIndex needs to be
+/// resolved into a PhysRowIndex to obtain an actual row.  It is not
+/// valid to have a negative VisibleRowIndex value so this type logically
+/// should be unsigned, however, having a different sign is helpful to
+/// have the compiler catch accidental arithmetic performed between
+/// PhysRowIndex and VisibleRowIndex.  We could define our own type with
+/// its own Add and Sub operators, but then we'd not be able to iterate
+/// over Ranges of these types without also laboriously implementing an
+/// iterator Skip trait that is currently only in unstable rust.
+pub type VisibleRowIndex = i64;
+
+/// Position allows referring to an absolute visible row number
+/// or a position relative to some existing row number (typically
+/// where the cursor is located).  Both of the cases are represented
+/// as signed numbers so that the math and error checking for out
+/// of range values can be deferred to the point where we execute
+/// the request.
 #[derive(Debug)]
 pub enum Position {
-    Absolute(i64),
+    Absolute(VisibleRowIndex),
     Relative(i64),
+}
+
+/// Describes the location of the cursor in the visible portion
+/// of the screen.
+#[derive(Debug, Default, Copy, Clone, Eq, PartialEq)]
+pub struct CursorPosition {
+    pub x: usize,
+    pub y: VisibleRowIndex,
 }
 
 pub mod color;
@@ -340,7 +371,7 @@ impl Screen {
 
     /// Get mutable reference to a line, relative to start of scrollback.
     /// Sets the line dirty.
-    fn line_mut(&mut self, idx: usize) -> &mut Line {
+    fn line_mut(&mut self, idx: PhysRowIndex) -> &mut Line {
         let line = &mut self.lines[idx];
         line.set_dirty();
         line
@@ -348,16 +379,16 @@ impl Screen {
 
     /// Sets a line dirty.  The line is relative to the visible origin.
     #[inline]
-    fn dirty_line(&mut self, idx: usize) {
-        let line_idx = (self.lines.len() - self.physical_rows) + idx;
+    fn dirty_line(&mut self, idx: VisibleRowIndex) {
+        let line_idx = self.phys_row(idx);
         self.lines[line_idx].set_dirty();
     }
 
     /// Clears the dirty flag for a line.  The line is relative to the visible origin.
     #[inline]
     #[allow(dead_code)]
-    fn clean_line(&mut self, idx: usize) {
-        let line_idx = (self.lines.len() - self.physical_rows) + idx;
+    fn clean_line(&mut self, idx: VisibleRowIndex) {
+        let line_idx = self.phys_row(idx);
         self.lines[line_idx].dirty = false;
     }
 
@@ -370,8 +401,8 @@ impl Screen {
 
     /// Set a cell.  the x and y coordinates are relative to the visible screeen
     /// origin.  0,0 is the top left.
-    pub fn set_cell(&mut self, x: usize, y: usize, c: char, attr: &CellAttributes) {
-        let line_idx = (self.lines.len() - self.physical_rows) + y;
+    pub fn set_cell(&mut self, x: usize, y: VisibleRowIndex, c: char, attr: &CellAttributes) {
+        let line_idx = self.phys_row(y);
         debug!(
             "set_cell x,y {},{}, line_idx = {} {} {:?}",
             x,
@@ -390,9 +421,9 @@ impl Screen {
         cells[x] = Cell::from_char(c, attr);
     }
 
-    pub fn clear_line(&mut self, y: usize, cols: std::ops::Range<usize>) {
+    pub fn clear_line(&mut self, y: VisibleRowIndex, cols: std::ops::Range<usize>) {
         let blank = Cell::default();
-        let line_idx = (self.lines.len() - self.physical_rows) + y;
+        let line_idx = self.phys_row(y);
         let line = self.line_mut(line_idx);
         let max_col = line.cells.len();
         for x in cols {
@@ -401,6 +432,11 @@ impl Screen {
             }
             line.cells[x] = blank;
         }
+    }
+
+    fn phys_row(&self, row: VisibleRowIndex) -> PhysRowIndex {
+        assert!(row >= 0);
+        (self.lines.len() - self.physical_rows) + row as usize
     }
 
     /// ---------
@@ -415,10 +451,14 @@ impl Screen {
     /// at bottom.
     /// If the top of the region is the top of the visible display, rather than
     /// removing the lines we let them go into the scrollback.
-    fn scroll_up(&mut self, scroll_top: usize, scroll_bottom: usize, num_rows: usize) {
-        let origin_row = self.lines.len() - self.physical_rows;
-        let top_idx = origin_row + scroll_top;
-        let bot_idx = origin_row + scroll_bottom;
+    fn scroll_up(
+        &mut self,
+        scroll_top: VisibleRowIndex,
+        scroll_bottom: VisibleRowIndex,
+        num_rows: usize,
+    ) {
+        let top_idx = self.phys_row(scroll_top);
+        let bot_idx = self.phys_row(scroll_bottom);
         assert!(num_rows <= bot_idx - top_idx);
 
         // Invalidate the lines that will move before they move so that
@@ -473,10 +513,14 @@ impl Screen {
     /// beyond the bottom get removed from the screen.
     /// In other words, we remove (bottom-num_rows..bottom) and then insert num_rows
     /// at scroll_top.
-    fn scroll_down(&mut self, scroll_top: usize, scroll_bottom: usize, num_rows: usize) {
-        let origin_row = self.lines.len() - self.physical_rows;
-        let top_idx = origin_row + scroll_top;
-        let bot_idx = origin_row + scroll_bottom;
+    fn scroll_down(
+        &mut self,
+        scroll_top: VisibleRowIndex,
+        scroll_bottom: VisibleRowIndex,
+        num_rows: usize,
+    ) {
+        let top_idx = self.phys_row(scroll_top);
+        let bot_idx = self.phys_row(scroll_bottom);
         assert!(num_rows <= bot_idx - top_idx);
 
         let middle = (bot_idx + 1) - num_rows;
@@ -508,10 +552,8 @@ pub struct TerminalState {
     pen: CellAttributes,
     /// The current cursor position, relative to the top left
     /// of the screen.  0-based index.
-    cursor_x: usize,
-    cursor_y: usize,
-    saved_cursor_x: usize,
-    saved_cursor_y: usize,
+    cursor: CursorPosition,
+    saved_cursor: CursorPosition,
 
     /// if true, implicitly move to the next line on the next
     /// printed character
@@ -524,8 +566,8 @@ pub struct TerminalState {
     answerback: Vec<AnswerBack>,
 
     /// The scroll region
-    scroll_top: usize,
-    scroll_bottom: usize,
+    scroll_top: VisibleRowIndex,
+    scroll_bottom: VisibleRowIndex,
 
     /// When set, modifies the sequence of bytes sent for keys
     /// designated as cursor keys.  This includes various navigation
@@ -555,13 +597,11 @@ impl TerminalState {
             alt_screen,
             alt_screen_is_active: false,
             pen: CellAttributes::default(),
-            cursor_x: 0,
-            cursor_y: 0,
-            saved_cursor_x: 0,
-            saved_cursor_y: 0,
+            cursor: CursorPosition::default(),
+            saved_cursor: CursorPosition::default(),
             answerback: Vec::new(),
             scroll_top: 0,
-            scroll_bottom: physical_rows - 1,
+            scroll_bottom: physical_rows as i64 - 1,
             wrap_next: false,
             application_cursor_keys: false,
             application_keypad: false,
@@ -708,8 +748,8 @@ impl TerminalState {
 
     /// Returns the 0-based cursor position relative to the top left of
     /// the visible screen
-    pub fn cursor_pos(&self) -> (usize, usize) {
-        (self.cursor_x, self.cursor_y)
+    pub fn cursor_pos(&self) -> CursorPosition {
+        self.cursor
     }
 
     /// Sets the cursor position. x and y are 0-based and relative to the
@@ -717,26 +757,26 @@ impl TerminalState {
     /// TODO: DEC origin mode impacts the interpreation of these
     fn set_cursor_pos(&mut self, x: &Position, y: &Position) {
         let x = match x {
-            &Position::Relative(x) => (self.cursor_x as i64 + x).max(0),
+            &Position::Relative(x) => (self.cursor.x as i64 + x).max(0),
             &Position::Absolute(x) => x,
         };
         let y = match y {
-            &Position::Relative(y) => (self.cursor_y as i64 + y).max(0),
+            &Position::Relative(y) => (self.cursor.y + y).max(0),
             &Position::Absolute(y) => y,
         };
 
         let rows = self.screen().physical_rows;
         let cols = self.screen().physical_cols;
-        let old_y = self.cursor_y;
+        let old_y = self.cursor.y;
         let new_y = y.min(rows as i64 - 1);
 
-        self.cursor_x = x.min(cols as i64 - 1) as usize;
-        self.cursor_y = new_y as usize;
+        self.cursor.x = x.min(cols as i64 - 1) as usize;
+        self.cursor.y = new_y;
         self.wrap_next = false;
 
         let screen = self.screen_mut();
-        screen.dirty_line(old_y as usize);
-        screen.dirty_line(new_y as usize);
+        screen.dirty_line(old_y);
+        screen.dirty_line(new_y);
     }
 
     fn scroll_up(&mut self, num_rows: usize) {
@@ -755,9 +795,9 @@ impl TerminalState {
         let x = if move_to_first_column {
             0
         } else {
-            self.cursor_x
+            self.cursor.x
         };
-        let y = self.cursor_y;
+        let y = self.cursor.y;
         let y = if y == self.scroll_bottom {
             self.scroll_up(1);
             y
@@ -774,7 +814,7 @@ impl TerminalState {
     /// Move the cursor up 1 line.  If the position is at the top scroll margin,
     /// scroll the region down.
     fn reverse_index(&mut self) {
-        let y = self.cursor_y;
+        let y = self.cursor.y;
         let y = if y == self.scroll_top {
             self.scroll_down(1);
             y
@@ -849,8 +889,8 @@ impl vte::Perform for TerminalState {
             self.new_line(true);
         }
 
-        let x = self.cursor_x;
-        let y = self.cursor_y;
+        let x = self.cursor.x;
+        let y = self.cursor.y;
         let width = self.screen().physical_cols;
 
         let pen = self.pen;
@@ -937,8 +977,8 @@ impl vte::Perform for TerminalState {
                     self.set_cursor_pos(&x, &y);
                 }
                 CSIAction::EraseInLine(erase) => {
-                    let cx = self.cursor_x;
-                    let cy = self.cursor_y;
+                    let cx = self.cursor.x;
+                    let cy = self.cursor.y;
                     let mut screen = self.screen_mut();
                     let cols = screen.physical_cols;
                     match erase {
@@ -954,10 +994,10 @@ impl vte::Perform for TerminalState {
                     }
                 }
                 CSIAction::EraseInDisplay(erase) => {
-                    let cy = self.cursor_y;
+                    let cy = self.cursor.y;
                     let mut screen = self.screen_mut();
                     let cols = screen.physical_cols;
-                    let rows = screen.physical_rows;
+                    let rows = screen.physical_rows as VisibleRowIndex;
                     match erase {
                         DisplayErase::Below => {
                             for y in cy..rows {
@@ -990,14 +1030,14 @@ impl vte::Perform for TerminalState {
                     self.push_answerback(b"\x1b[0n");
                 }
                 CSIAction::ReportCursorPosition => {
-                    let row = self.cursor_y + 1;
-                    let col = self.cursor_x + 1;
+                    let row = self.cursor.y + 1;
+                    let col = self.cursor.x + 1;
                     self.push_answerback(format!("\x1b[{};{}R", row, col).as_bytes());
                 }
                 CSIAction::SetScrollingRegion { top, bottom } => {
                     let rows = self.screen().physical_rows;
-                    self.scroll_top = (top as usize).min(rows - 1);
-                    self.scroll_bottom = (bottom as usize).min(rows - 1);
+                    self.scroll_top = top.min(rows as i64 - 1);
+                    self.scroll_bottom = bottom.min(rows as i64 - 1);
                     if self.scroll_top > self.scroll_bottom {
                         std::mem::swap(&mut self.scroll_top, &mut self.scroll_bottom);
                     }
@@ -1006,42 +1046,38 @@ impl vte::Perform for TerminalState {
                     self.push_answerback(DEVICE_IDENT);
                 }
                 CSIAction::DeleteLines(n) => {
-                    let top = self.cursor_y;
+                    let top = self.cursor.y;
                     let bottom = self.scroll_bottom;
                     if top >= self.scroll_top && top <= bottom {
                         debug!(
                             "execute delete {} lines with scroll up {} {}",
                             n,
                             top,
-                            top + n as usize
+                            top + n
                         );
                         self.screen_mut().scroll_up(top, bottom, n as usize);
                     }
                 }
                 CSIAction::InsertLines(n) => {
-                    let top = self.cursor_y;
+                    let top = self.cursor.y;
                     let bottom = self.scroll_bottom;
                     if top >= self.scroll_top && top <= bottom {
                         debug!(
                             "execute insert {} lines with scroll down {} {}",
                             n,
                             top,
-                            top + n as usize
+                            top + n
                         );
                         self.screen_mut().scroll_down(top, bottom, n as usize);
                     }
                 }
                 CSIAction::SaveCursor => {
-                    self.saved_cursor_x = self.cursor_x;
-                    self.saved_cursor_y = self.cursor_y;
+                    self.saved_cursor = self.cursor;
                 }
                 CSIAction::RestoreCursor => {
-                    let rows = self.screen().physical_rows;
-                    let cols = self.screen().physical_cols;
-                    let saved_x = self.saved_cursor_x;
-                    let saved_y = self.saved_cursor_y;
-                    self.cursor_x = saved_x.min(cols - 1);
-                    self.cursor_y = saved_y.min(rows - 1);
+                    let x = self.saved_cursor.x;
+                    let y = self.saved_cursor.y;
+                    self.set_cursor_pos(&Position::Absolute(x as i64), &Position::Absolute(y));
                 }
                 CSIAction::LinePosition(row) => {
                     self.set_cursor_pos(&Position::Relative(0), &row);
