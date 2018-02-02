@@ -16,6 +16,12 @@ use std::ops::{Deref, DerefMut};
 #[macro_use]
 mod debug;
 
+#[derive(Debug)]
+pub enum Position {
+    Absolute(i64),
+    Relative(i64),
+}
+
 pub mod color;
 mod csi;
 use self::csi::*;
@@ -709,25 +715,28 @@ impl TerminalState {
     /// Sets the cursor position. x and y are 0-based and relative to the
     /// top left of the visible screen.
     /// TODO: DEC origin mode impacts the interpreation of these
-    fn set_cursor_pos(&mut self, x: usize, y: usize) {
+    fn set_cursor_pos(&mut self, x: &Position, y: &Position) {
+        let x = match x {
+            &Position::Relative(x) => (self.cursor_x as i64 + x).max(0),
+            &Position::Absolute(x) => x,
+        };
+        let y = match y {
+            &Position::Relative(y) => (self.cursor_y as i64 + y).max(0),
+            &Position::Absolute(y) => y,
+        };
+
         let rows = self.screen().physical_rows;
         let cols = self.screen().physical_cols;
         let old_y = self.cursor_y;
-        let new_y = y.min(rows - 1);
+        let new_y = y.min(rows as i64 - 1);
 
-        self.cursor_x = x.min(cols - 1);
-        self.cursor_y = new_y;
+        self.cursor_x = x.min(cols as i64 - 1) as usize;
+        self.cursor_y = new_y as usize;
         self.wrap_next = false;
 
         let screen = self.screen_mut();
-        screen.dirty_line(old_y);
-        screen.dirty_line(new_y);
-    }
-
-    fn delta_cursor_pos(&mut self, x: i64, y: i64) {
-        let x = (self.cursor_x as i64 + x).max(0);
-        let y = (self.cursor_y as i64 + y).max(0);
-        self.set_cursor_pos(x as usize, y as usize)
+        screen.dirty_line(old_y as usize);
+        screen.dirty_line(new_y as usize);
     }
 
     fn scroll_up(&mut self, num_rows: usize) {
@@ -755,7 +764,7 @@ impl TerminalState {
         } else {
             y + 1
         };
-        self.set_cursor_pos(x, y);
+        self.set_cursor_pos(&Position::Absolute(x as i64), &Position::Absolute(y as i64));
     }
 
     fn push_answerback(&mut self, buf: &[u8]) {
@@ -772,8 +781,7 @@ impl TerminalState {
         } else {
             y - 1
         };
-        let x = self.cursor_x;
-        self.set_cursor_pos(x, y);
+        self.set_cursor_pos(&Position::Relative(0), &Position::Absolute(y as i64));
     }
 }
 
@@ -850,7 +858,7 @@ impl vte::Perform for TerminalState {
 
         if x + 1 < width {
             // TODO: the 1 here should be based on the glyph width
-            self.set_cursor_pos(x + 1, y);
+            self.set_cursor_pos(&Position::Relative(1), &Position::Relative(0));
         } else {
             self.wrap_next = true;
         }
@@ -863,11 +871,10 @@ impl vte::Perform for TerminalState {
                 self.new_line(true /* TODO: depend on terminal mode */)
             }
             b'\r' => /* CR */ {
-                let row = self.cursor_y;
-                self.set_cursor_pos(0, row);
+                self.set_cursor_pos(&Position::Absolute(0), &Position::Relative(0));
             }
             0x08 /* BS */ => {
-                self.delta_cursor_pos(-1, 0);
+                self.set_cursor_pos(&Position::Relative(-1), &Position::Relative(0));
             }
             _ => println!("unhandled vte execute {}", byte),
         }
@@ -926,11 +933,8 @@ impl vte::Perform for TerminalState {
                 CSIAction::SetInvisible(on) => {
                     self.pen.set_invisible(on);
                 }
-                CSIAction::SetCursorXY(x, y) => {
-                    self.set_cursor_pos(x as usize, y as usize);
-                }
-                CSIAction::DeltaCursorXY { x, y } => {
-                    self.delta_cursor_pos(x, y);
+                CSIAction::SetCursorXY { x, y } => {
+                    self.set_cursor_pos(&x, &y);
                 }
                 CSIAction::EraseInLine(erase) => {
                     let cx = self.cursor_x;
@@ -1040,13 +1044,10 @@ impl vte::Perform for TerminalState {
                     self.cursor_y = saved_y.min(rows - 1);
                 }
                 CSIAction::LinePositionAbsolute(row) => {
-                    let x = self.cursor_x;
-                    self.set_cursor_pos(x, row as usize);
+                    self.set_cursor_pos(&Position::Relative(0), &Position::Absolute(row));
                 }
                 CSIAction::LinePositionRelative(row) => {
-                    let x = self.cursor_x;
-                    let y = self.cursor_y;
-                    self.set_cursor_pos(x, (y as i64 + row).min(0) as usize);
+                    self.set_cursor_pos(&Position::Relative(0), &Position::Relative(row));
                 }
                 CSIAction::ScrollLines(amount) => {
                     if amount > 0 {

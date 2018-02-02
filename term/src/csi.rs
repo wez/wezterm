@@ -35,8 +35,7 @@ pub enum CSIAction {
     SetReverse(bool),
     SetStrikethrough(bool),
     SetInvisible(bool),
-    SetCursorXY(i64, i64),
-    DeltaCursorXY { x: i64, y: i64 },
+    SetCursorXY { x: Position, y: Position },
     EraseInLine(LineErase),
     EraseInDisplay(DisplayErase),
     SetDecPrivateMode(DecPrivateMode, bool),
@@ -369,26 +368,56 @@ impl<'a> Iterator for CSIParser<'a> {
         match (self.byte, self.intermediates, params) {
             (_, _, None) => None,
             // CUU - Cursor Up n times
-            ('A', &[], Some(&[])) => Some(CSIAction::DeltaCursorXY { x: 0, y: -1 }),
-            ('A', &[], Some(&[y])) => Some(CSIAction::DeltaCursorXY { x: 0, y: -y }),
+            ('A', &[], Some(&[])) => Some(CSIAction::SetCursorXY {
+                x: Position::Relative(0),
+                y: Position::Relative(-1),
+            }),
+            ('A', &[], Some(&[y])) => Some(CSIAction::SetCursorXY {
+                x: Position::Relative(0),
+                y: Position::Relative(-y),
+            }),
 
             // CUD - Cursor Down n times
-            ('B', &[], Some(&[])) => Some(CSIAction::DeltaCursorXY { x: 0, y: 1 }),
-            ('B', &[], Some(&[y])) => Some(CSIAction::DeltaCursorXY { x: 0, y: y }),
+            ('B', &[], Some(&[])) => Some(CSIAction::SetCursorXY {
+                x: Position::Relative(0),
+                y: Position::Relative(1),
+            }),
+            ('B', &[], Some(&[y])) => Some(CSIAction::SetCursorXY {
+                x: Position::Relative(0),
+                y: Position::Relative(y),
+            }),
 
             // CUF - Cursor n forward
-            ('C', &[], Some(&[])) => Some(CSIAction::DeltaCursorXY { x: 1, y: 0 }),
-            ('C', &[], Some(&[x])) => Some(CSIAction::DeltaCursorXY { x: x, y: 0 }),
+            ('C', &[], Some(&[])) => Some(CSIAction::SetCursorXY {
+                x: Position::Relative(1),
+                y: Position::Relative(0),
+            }),
+            ('C', &[], Some(&[x])) => Some(CSIAction::SetCursorXY {
+                x: Position::Relative(x),
+                y: Position::Relative(0),
+            }),
 
             // CUB - Cursor n backward
-            ('D', &[], Some(&[])) => Some(CSIAction::DeltaCursorXY { x: -1, y: 0 }),
-            ('D', &[], Some(&[x])) => Some(CSIAction::DeltaCursorXY { x: -x, y: 0 }),
+            ('D', &[], Some(&[])) => Some(CSIAction::SetCursorXY {
+                x: Position::Relative(-1),
+                y: Position::Relative(0),
+            }),
+            ('D', &[], Some(&[x])) => Some(CSIAction::SetCursorXY {
+                x: Position::Relative(-x),
+                y: Position::Relative(0),
+            }),
 
             // Cursor Position (CUP)
-            ('H', &[], Some(&[])) => Some(CSIAction::SetCursorXY(0, 0)),
+            ('H', &[], Some(&[])) => Some(CSIAction::SetCursorXY {
+                x: Position::Absolute(0),
+                y: Position::Absolute(0),
+            }),
             ('H', &[], Some(&[y, x])) => {
                 // Co-ordinates are 1-based, but we want 0-based
-                Some(CSIAction::SetCursorXY(x.max(1) - 1, y.max(1) - 1))
+                Some(CSIAction::SetCursorXY {
+                    x: Position::Absolute(x.max(1) - 1),
+                    y: Position::Absolute(y.max(1) - 1),
+                })
             }
 
             // Erase in Display (ED)
@@ -417,8 +446,14 @@ impl<'a> Iterator for CSIParser<'a> {
             ('S', &[], Some(&[n])) => Some(CSIAction::ScrollLines(-n)),
 
             // HPR - Character position Relative
-            ('a', &[], Some(&[])) => Some(CSIAction::DeltaCursorXY { x: 1, y: 0 }),
-            ('a', &[], Some(&[x])) => Some(CSIAction::DeltaCursorXY { x: x, y: 0 }),
+            ('a', &[], Some(&[])) => Some(CSIAction::SetCursorXY {
+                x: Position::Relative(1),
+                y: Position::Relative(0),
+            }),
+            ('a', &[], Some(&[x])) => Some(CSIAction::SetCursorXY {
+                x: Position::Relative(x),
+                y: Position::Relative(0),
+            }),
 
             ('c', &[b'>'], Some(&[])) |
             ('c', &[], Some(&[])) |
