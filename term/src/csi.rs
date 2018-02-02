@@ -35,22 +35,22 @@ pub enum CSIAction {
     SetReverse(bool),
     SetStrikethrough(bool),
     SetInvisible(bool),
-    SetCursorXY(usize, usize),
+    SetCursorXY(i64, i64),
     DeltaCursorXY { x: i64, y: i64 },
     EraseInLine(LineErase),
     EraseInDisplay(DisplayErase),
     SetDecPrivateMode(DecPrivateMode, bool),
     DeviceStatusReport,
     ReportCursorPosition,
-    SetScrollingRegion { top: usize, bottom: usize },
+    SetScrollingRegion { top: i64, bottom: i64 },
     RequestDeviceAttributes,
-    DeleteLines(usize),
-    InsertLines(usize),
-    LinePositionAbsolute(usize),
-    LinePositionRelative(isize),
+    DeleteLines(i64),
+    InsertLines(i64),
+    LinePositionAbsolute(i64),
+    LinePositionRelative(i64),
     SaveCursor,
     RestoreCursor,
-    ScrollLines(isize),
+    ScrollLines(i64),
 }
 
 /// Constrol Sequence Initiator (CSI) Parser.
@@ -349,8 +349,8 @@ impl<'a> CSIParser<'a> {
             &[top, bottom] => {
                 self.advance_by(2, params);
                 Some(CSIAction::SetScrollingRegion {
-                    top: (top - 1) as usize,
-                    bottom: (bottom - 1) as usize,
+                    top: top - 1,
+                    bottom: bottom - 1,
                 })
             }
             _ => {
@@ -388,10 +388,7 @@ impl<'a> Iterator for CSIParser<'a> {
             ('H', &[], Some(&[])) => Some(CSIAction::SetCursorXY(0, 0)),
             ('H', &[], Some(&[y, x])) => {
                 // Co-ordinates are 1-based, but we want 0-based
-                Some(CSIAction::SetCursorXY(
-                    (x.max(1) - 1) as usize,
-                    (y.max(1) - 1) as usize,
-                ))
+                Some(CSIAction::SetCursorXY(x.max(1) - 1, y.max(1) - 1))
             }
 
             // Erase in Display (ED)
@@ -409,15 +406,15 @@ impl<'a> Iterator for CSIParser<'a> {
 
             // Insert Liness (IL)
             ('L', &[], Some(&[])) => Some(CSIAction::InsertLines(1)),
-            ('L', &[], Some(&[n])) => Some(CSIAction::InsertLines(n as usize)),
+            ('L', &[], Some(&[n])) => Some(CSIAction::InsertLines(n)),
 
             // Delete Liness (DL)
             ('M', &[], Some(&[])) => Some(CSIAction::DeleteLines(1)),
-            ('M', &[], Some(&[n])) => Some(CSIAction::DeleteLines(n as usize)),
+            ('M', &[], Some(&[n])) => Some(CSIAction::DeleteLines(n)),
 
             // SU: Scroll Up Lines
             ('S', &[], Some(&[])) => Some(CSIAction::ScrollLines(-1)),
-            ('S', &[], Some(&[n])) => Some(CSIAction::ScrollLines(-n as isize)),
+            ('S', &[], Some(&[n])) => Some(CSIAction::ScrollLines(-n)),
 
             // HPR - Character position Relative
             ('a', &[], Some(&[])) => Some(CSIAction::DeltaCursorXY { x: 1, y: 0 }),
@@ -430,11 +427,11 @@ impl<'a> Iterator for CSIParser<'a> {
 
             // VPA: Line Position Absolute
             ('d', &[], Some(&[])) => Some(CSIAction::LinePositionAbsolute(0)),
-            ('d', &[], Some(&[n])) => Some(CSIAction::LinePositionAbsolute(n as usize)),
+            ('d', &[], Some(&[n])) => Some(CSIAction::LinePositionAbsolute(n)),
 
             // VPR: Line Position Relative
             ('e', &[], Some(&[])) => Some(CSIAction::LinePositionRelative(0)),
-            ('e', &[], Some(&[n])) => Some(CSIAction::LinePositionRelative(n as isize)),
+            ('e', &[], Some(&[n])) => Some(CSIAction::LinePositionRelative(n)),
 
             ('h', &[b'?'], Some(params)) => self.dec_set_mode(params),
             ('l', &[b'?'], Some(params)) => self.dec_reset_mode(params),

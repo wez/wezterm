@@ -927,7 +927,7 @@ impl vte::Perform for TerminalState {
                     self.pen.set_invisible(on);
                 }
                 CSIAction::SetCursorXY(x, y) => {
-                    self.set_cursor_pos(x, y);
+                    self.set_cursor_pos(x as usize, y as usize);
                 }
                 CSIAction::DeltaCursorXY { x, y } => {
                     self.delta_cursor_pos(x, y);
@@ -992,8 +992,8 @@ impl vte::Perform for TerminalState {
                 }
                 CSIAction::SetScrollingRegion { top, bottom } => {
                     let rows = self.screen().physical_rows;
-                    self.scroll_top = top.min(rows - 1);
-                    self.scroll_bottom = bottom.min(rows - 1);
+                    self.scroll_top = (top as usize).min(rows - 1);
+                    self.scroll_bottom = (bottom as usize).min(rows - 1);
                     if self.scroll_top > self.scroll_bottom {
                         std::mem::swap(&mut self.scroll_top, &mut self.scroll_bottom);
                     }
@@ -1009,9 +1009,9 @@ impl vte::Perform for TerminalState {
                             "execute delete {} lines with scroll up {} {}",
                             n,
                             top,
-                            top + n
+                            top + n as usize
                         );
-                        self.screen_mut().scroll_up(top, bottom, n);
+                        self.screen_mut().scroll_up(top, bottom, n as usize);
                     }
                 }
                 CSIAction::InsertLines(n) => {
@@ -1022,9 +1022,9 @@ impl vte::Perform for TerminalState {
                             "execute insert {} lines with scroll down {} {}",
                             n,
                             top,
-                            top + n
+                            top + n as usize
                         );
-                        self.screen_mut().scroll_down(top, bottom, n);
+                        self.screen_mut().scroll_down(top, bottom, n as usize);
                     }
                 }
                 CSIAction::SaveCursor => {
@@ -1041,12 +1041,12 @@ impl vte::Perform for TerminalState {
                 }
                 CSIAction::LinePositionAbsolute(row) => {
                     let x = self.cursor_x;
-                    self.set_cursor_pos(x, row);
+                    self.set_cursor_pos(x, row as usize);
                 }
                 CSIAction::LinePositionRelative(row) => {
                     let x = self.cursor_x;
                     let y = self.cursor_y;
-                    self.set_cursor_pos(x, (y as isize + row).min(0) as usize);
+                    self.set_cursor_pos(x, (y as i64 + row).min(0) as usize);
                 }
                 CSIAction::ScrollLines(amount) => {
                     if amount > 0 {
