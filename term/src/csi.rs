@@ -45,8 +45,7 @@ pub enum CSIAction {
     RequestDeviceAttributes,
     DeleteLines(i64),
     InsertLines(i64),
-    LinePositionAbsolute(i64),
-    LinePositionRelative(i64),
+    LinePosition(Position),
     SaveCursor,
     RestoreCursor,
     ScrollLines(i64),
@@ -461,12 +460,12 @@ impl<'a> Iterator for CSIParser<'a> {
             ('c', &[b'>'], Some(&[0])) => Some(CSIAction::RequestDeviceAttributes),
 
             // VPA: Line Position Absolute
-            ('d', &[], Some(&[])) => Some(CSIAction::LinePositionAbsolute(0)),
-            ('d', &[], Some(&[n])) => Some(CSIAction::LinePositionAbsolute(n)),
+            ('d', &[], Some(&[])) => Some(CSIAction::LinePosition(Position::Absolute(0))),
+            ('d', &[], Some(&[n])) => Some(CSIAction::LinePosition(Position::Absolute(n))),
 
             // VPR: Line Position Relative
-            ('e', &[], Some(&[])) => Some(CSIAction::LinePositionRelative(0)),
-            ('e', &[], Some(&[n])) => Some(CSIAction::LinePositionRelative(n)),
+            ('e', &[], Some(&[])) => Some(CSIAction::LinePosition(Position::Relative(0))),
+            ('e', &[], Some(&[n])) => Some(CSIAction::LinePosition(Position::Relative(n))),
 
             ('h', &[b'?'], Some(params)) => self.dec_set_mode(params),
             ('l', &[b'?'], Some(params)) => self.dec_reset_mode(params),

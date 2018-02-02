@@ -1043,11 +1043,8 @@ impl vte::Perform for TerminalState {
                     self.cursor_x = saved_x.min(cols - 1);
                     self.cursor_y = saved_y.min(rows - 1);
                 }
-                CSIAction::LinePositionAbsolute(row) => {
-                    self.set_cursor_pos(&Position::Relative(0), &Position::Absolute(row));
-                }
-                CSIAction::LinePositionRelative(row) => {
-                    self.set_cursor_pos(&Position::Relative(0), &Position::Relative(row));
+                CSIAction::LinePosition(row) => {
+                    self.set_cursor_pos(&Position::Relative(0), &row);
                 }
                 CSIAction::ScrollLines(amount) => {
                     if amount > 0 {
