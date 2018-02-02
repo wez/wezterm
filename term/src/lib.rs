@@ -11,7 +11,7 @@ extern crate unicode_segmentation;
 extern crate vte;
 
 use failure::Error;
-use std::ops::{Deref, DerefMut};
+use std::ops::{Deref, DerefMut, Range};
 
 #[macro_use]
 mod debug;
@@ -32,6 +32,11 @@ pub type PhysRowIndex = usize;
 /// over Ranges of these types without also laboriously implementing an
 /// iterator Skip trait that is currently only in unstable rust.
 pub type VisibleRowIndex = i64;
+
+/// range.contains(), but that is unstable
+fn in_range<T: PartialOrd>(value: T, range: &Range<T>) -> bool {
+    value >= range.start && value < range.end
+}
 
 /// Position allows referring to an absolute visible row number
 /// or a position relative to some existing row number (typically
@@ -434,9 +439,19 @@ impl Screen {
         }
     }
 
+    /// Translate a VisibleRowIndex into a PhysRowIndex.  The resultant index
+    /// will be invalidated by inserting or removing rows!
+    #[inline]
     fn phys_row(&self, row: VisibleRowIndex) -> PhysRowIndex {
         assert!(row >= 0);
         (self.lines.len() - self.physical_rows) + row as usize
+    }
+
+    /// Translate a range of VisibleRowIndex to a range of PhysRowIndex.
+    /// The resultant range will be invalidated by inserting or removing rows!
+    #[inline]
+    fn phys_range(&self, range: &Range<VisibleRowIndex>) -> Range<PhysRowIndex> {
+        self.phys_row(range.start)..self.phys_row(range.end)
     }
 
     /// ---------
@@ -451,25 +466,19 @@ impl Screen {
     /// at bottom.
     /// If the top of the region is the top of the visible display, rather than
     /// removing the lines we let them go into the scrollback.
-    fn scroll_up(
-        &mut self,
-        scroll_top: VisibleRowIndex,
-        scroll_bottom: VisibleRowIndex,
-        num_rows: usize,
-    ) {
-        let top_idx = self.phys_row(scroll_top);
-        let bot_idx = self.phys_row(scroll_bottom);
-        assert!(num_rows <= bot_idx - top_idx);
+    fn scroll_up(&mut self, scroll_region: &Range<VisibleRowIndex>, num_rows: usize) {
+        let phys_scroll = self.phys_range(&scroll_region);
+        assert!(num_rows <= phys_scroll.end - phys_scroll.start);
 
         // Invalidate the lines that will move before they move so that
         // the indices of the lines are stable (we may remove lines below)
-        for y in top_idx..bot_idx + 1 {
+        for y in phys_scroll.clone() {
             self.line_mut(y).set_dirty();
         }
 
         // if we're going to remove lines due to lack of scrollback capacity,
         // remember how many so that we can adjust our insertion point later.
-        let lines_removed = if scroll_top > 0 {
+        let lines_removed = if scroll_region.start > 0 {
             // No scrollback available for these;
             // Remove the scrolled lines
             num_rows
@@ -484,20 +493,20 @@ impl Screen {
 
         // Perform the removal
         for _ in 0..lines_removed {
-            self.lines.remove(top_idx);
+            self.lines.remove(phys_scroll.start);
         }
 
-        if scroll_top == 0 {
+        if scroll_region.start == 0 {
             // All of the lines above the top are now effectively dirty because
             // they were moved into scrollback by the scroll operation.
-            for y in 0..top_idx {
+            for y in 0..phys_scroll.start {
                 self.line_mut(y).set_dirty();
             }
         }
 
         for _ in 0..num_rows {
             self.lines.insert(
-                bot_idx + 1 - lines_removed,
+                phys_scroll.end - lines_removed,
                 Line::new(self.physical_cols),
             );
         }
@@ -513,20 +522,14 @@ impl Screen {
     /// beyond the bottom get removed from the screen.
     /// In other words, we remove (bottom-num_rows..bottom) and then insert num_rows
     /// at scroll_top.
-    fn scroll_down(
-        &mut self,
-        scroll_top: VisibleRowIndex,
-        scroll_bottom: VisibleRowIndex,
-        num_rows: usize,
-    ) {
-        let top_idx = self.phys_row(scroll_top);
-        let bot_idx = self.phys_row(scroll_bottom);
-        assert!(num_rows <= bot_idx - top_idx);
+    fn scroll_down(&mut self, scroll_region: &Range<VisibleRowIndex>, num_rows: usize) {
+        let phys_scroll = self.phys_range(&scroll_region);
+        assert!(num_rows <= phys_scroll.end - phys_scroll.start);
 
-        let middle = (bot_idx + 1) - num_rows;
+        let middle = phys_scroll.end - num_rows;
 
         // dirty the rows in the region
-        for y in top_idx..middle {
+        for y in phys_scroll.start..middle {
             self.line_mut(y).set_dirty();
         }
 
@@ -535,7 +538,10 @@ impl Screen {
         }
 
         for _ in 0..num_rows {
-            self.lines.insert(top_idx, Line::new(self.physical_cols));
+            self.lines.insert(
+                phys_scroll.start,
+                Line::new(self.physical_cols),
+            );
         }
     }
 }
@@ -566,8 +572,7 @@ pub struct TerminalState {
     answerback: Vec<AnswerBack>,
 
     /// The scroll region
-    scroll_top: VisibleRowIndex,
-    scroll_bottom: VisibleRowIndex,
+    scroll_region: Range<VisibleRowIndex>,
 
     /// When set, modifies the sequence of bytes sent for keys
     /// designated as cursor keys.  This includes various navigation
@@ -600,8 +605,7 @@ impl TerminalState {
             cursor: CursorPosition::default(),
             saved_cursor: CursorPosition::default(),
             answerback: Vec::new(),
-            scroll_top: 0,
-            scroll_bottom: physical_rows as i64 - 1,
+            scroll_region: 0..physical_rows as VisibleRowIndex,
             wrap_next: false,
             application_cursor_keys: false,
             application_keypad: false,
@@ -780,15 +784,13 @@ impl TerminalState {
     }
 
     fn scroll_up(&mut self, num_rows: usize) {
-        let top = self.scroll_top;
-        let bottom = self.scroll_bottom;
-        self.screen_mut().scroll_up(top, bottom, num_rows)
+        let scroll_region = self.scroll_region.clone();
+        self.screen_mut().scroll_up(&scroll_region, num_rows)
     }
 
     fn scroll_down(&mut self, num_rows: usize) {
-        let top = self.scroll_top;
-        let bottom = self.scroll_bottom;
-        self.screen_mut().scroll_down(top, bottom, num_rows)
+        let scroll_region = self.scroll_region.clone();
+        self.screen_mut().scroll_down(&scroll_region, num_rows)
     }
 
     fn new_line(&mut self, move_to_first_column: bool) {
@@ -798,7 +800,7 @@ impl TerminalState {
             self.cursor.x
         };
         let y = self.cursor.y;
-        let y = if y == self.scroll_bottom {
+        let y = if y == self.scroll_region.end - 1 {
             self.scroll_up(1);
             y
         } else {
@@ -815,7 +817,7 @@ impl TerminalState {
     /// scroll the region down.
     fn reverse_index(&mut self) {
         let y = self.cursor.y;
-        let y = if y == self.scroll_top {
+        let y = if y == self.scroll_region.start {
             self.scroll_down(1);
             y
         } else {
@@ -1036,39 +1038,26 @@ impl vte::Perform for TerminalState {
                 }
                 CSIAction::SetScrollingRegion { top, bottom } => {
                     let rows = self.screen().physical_rows;
-                    self.scroll_top = top.min(rows as i64 - 1);
-                    self.scroll_bottom = bottom.min(rows as i64 - 1);
-                    if self.scroll_top > self.scroll_bottom {
-                        std::mem::swap(&mut self.scroll_top, &mut self.scroll_bottom);
+                    let mut top = top.min(rows as i64 - 1);
+                    let mut bottom = bottom.min(rows as i64 - 1);
+                    if top > bottom {
+                        std::mem::swap(&mut top, &mut bottom);
                     }
+                    self.scroll_region = top..bottom + 1;
                 }
                 CSIAction::RequestDeviceAttributes => {
                     self.push_answerback(DEVICE_IDENT);
                 }
                 CSIAction::DeleteLines(n) => {
-                    let top = self.cursor.y;
-                    let bottom = self.scroll_bottom;
-                    if top >= self.scroll_top && top <= bottom {
-                        debug!(
-                            "execute delete {} lines with scroll up {} {}",
-                            n,
-                            top,
-                            top + n
-                        );
-                        self.screen_mut().scroll_up(top, bottom, n as usize);
+                    if in_range(self.cursor.y, &self.scroll_region) {
+                        let scroll_region = self.cursor.y..self.scroll_region.end;
+                        self.screen_mut().scroll_up(&scroll_region, n as usize);
                     }
                 }
                 CSIAction::InsertLines(n) => {
-                    let top = self.cursor.y;
-                    let bottom = self.scroll_bottom;
-                    if top >= self.scroll_top && top <= bottom {
-                        debug!(
-                            "execute insert {} lines with scroll down {} {}",
-                            n,
-                            top,
-                            top + n
-                        );
-                        self.screen_mut().scroll_down(top, bottom, n as usize);
+                    if in_range(self.cursor.y, &self.scroll_region) {
+                        let scroll_region = self.cursor.y..self.scroll_region.end;
+                        self.screen_mut().scroll_down(&scroll_region, n as usize);
                     }
                 }
                 CSIAction::SaveCursor => {
