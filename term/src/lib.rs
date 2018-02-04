@@ -216,7 +216,7 @@ impl Default for CellAttributes {
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub struct Cell {
-    chars: [u8; 8],
+    bytes: [u8; 8],
     pub attrs: CellAttributes,
 }
 
@@ -228,21 +228,26 @@ impl Default for Cell {
 
 impl Cell {
     #[inline]
-    pub fn chars(&self) -> &[u8] {
-        if let Some(len) = self.chars.iter().position(|&c| c == 0) {
-            &self.chars[0..len]
+    pub fn bytes(&self) -> &[u8] {
+        if let Some(len) = self.bytes.iter().position(|&c| c == 0) {
+            &self.bytes[0..len]
         } else {
-            &self.chars
+            &self.bytes
         }
     }
 
     pub fn from_char(c: char, attr: &CellAttributes) -> Cell {
-        let mut chars = [0u8; 8];
-        c.encode_utf8(&mut chars);
+        let mut bytes = [0u8; 8];
+        c.encode_utf8(&mut bytes);
         Cell {
-            chars,
+            bytes,
             attrs: *attr,
         }
+    }
+
+    pub fn width(&self) -> usize {
+        use unicode_width::UnicodeWidthStr;
+        std::str::from_utf8(self.bytes()).unwrap_or("").width()
     }
 }
 
@@ -256,6 +261,41 @@ impl From<char> for Cell {
 pub struct Line {
     pub cells: Vec<Cell>,
     dirty: bool,
+}
+
+/// A CellCluster is another representation of a Line.
+/// A Vec<CellCluster> is produced by walking through the Cells in
+/// a line and collecting succesive Cells with the same attributes
+/// together into a CellCluster instance.  Additional metadata to
+/// aid in font rendering is also collected.
+#[derive(Debug, Clone)]
+pub struct CellCluster {
+    pub attrs: CellAttributes,
+    pub text: String,
+    pub byte_to_cell_idx: Vec<usize>,
+}
+
+impl CellCluster {
+    /// Start off a new cluster with some initial data
+    fn new(attrs: CellAttributes, text: &str, cell_idx: usize) -> CellCluster {
+        let mut idx = Vec::new();
+        for _ in 0..text.len() {
+            idx.push(cell_idx);
+        }
+        CellCluster {
+            attrs,
+            text: text.into(),
+            byte_to_cell_idx: idx,
+        }
+    }
+
+    /// Add to this cluster
+    fn add(&mut self, text: &str, cell_idx: usize) {
+        for _ in 0..text.len() {
+            self.byte_to_cell_idx.push(cell_idx);
+        }
+        self.text.push_str(text);
+    }
 }
 
 impl Line {
@@ -273,9 +313,44 @@ impl Line {
     pub fn as_str(&self) -> String {
         let mut s = String::new();
         for c in self.cells.iter() {
-            s.push_str(std::str::from_utf8(c.chars()).unwrap_or("?"));
+            s.push_str(std::str::from_utf8(c.bytes()).unwrap_or("?"));
         }
         s
+    }
+
+    /// Compute the list of CellClusters for this line
+    pub fn cluster(&self) -> Vec<CellCluster> {
+        let mut last_cluster = None;
+        let mut clusters = Vec::new();
+
+        for (cell_idx, c) in self.cells.iter().enumerate() {
+            let cell_str = std::str::from_utf8(c.bytes()).unwrap_or("?");
+
+            last_cluster = match last_cluster.take() {
+                None => {
+                    // Start new cluster
+                    Some(CellCluster::new(c.attrs, cell_str, cell_idx))
+                }
+                Some(mut last) => {
+                    if last.attrs != c.attrs {
+                        // Flush pending cluster and start a new one
+                        clusters.push(last);
+                        Some(CellCluster::new(c.attrs, cell_str, cell_idx))
+                    } else {
+                        // Add to current cluster
+                        last.add(cell_str, cell_idx);
+                        Some(last)
+                    }
+                }
+            };
+        }
+
+        if let Some(cluster) = last_cluster {
+            // Don't forget to include any pending cluster on the final step!
+            clusters.push(cluster);
+        }
+
+        clusters
     }
 
     #[allow(dead_code)]
@@ -283,12 +358,12 @@ impl Line {
         let mut cells = Vec::new();
 
         for (_, sub) in unicode_segmentation::UnicodeSegmentation::grapheme_indices(s, true) {
-            let mut chars = [0u8; 8];
+            let mut bytes = [0u8; 8];
             let len = sub.len().min(8);
-            chars[0..len].copy_from_slice(sub.as_bytes());
+            bytes[0..len].copy_from_slice(sub.as_bytes());
 
             cells.push(Cell {
-                chars,
+                bytes,
                 attrs: *attrs,
             });
         }
@@ -406,7 +481,13 @@ impl Screen {
 
     /// Set a cell.  the x and y coordinates are relative to the visible screeen
     /// origin.  0,0 is the top left.
-    pub fn set_cell(&mut self, x: usize, y: VisibleRowIndex, c: char, attr: &CellAttributes) {
+    pub fn set_cell(
+        &mut self,
+        x: usize,
+        y: VisibleRowIndex,
+        c: char,
+        attr: &CellAttributes,
+    ) -> &Cell {
         let line_idx = self.phys_row(y);
         debug!(
             "set_cell x,y {},{}, line_idx = {} {} {:?}",
@@ -424,6 +505,7 @@ impl Screen {
             cells.resize(x + 1, Cell::default());
         }
         cells[x] = Cell::from_char(c, attr);
+        &cells[x]
     }
 
     pub fn clear_line(&mut self, y: VisibleRowIndex, cols: std::ops::Range<usize>) {
@@ -887,7 +969,6 @@ impl vte::Perform for TerminalState {
     /// Draw a character to the screen
     fn print(&mut self, c: char) {
         if self.wrap_next {
-            // TODO: remember that this was a wrapped line in the attributes?
             self.new_line(true);
         }
 
@@ -896,11 +977,32 @@ impl vte::Perform for TerminalState {
         let width = self.screen().physical_cols;
 
         let pen = self.pen;
-        self.screen_mut().set_cell(x, y, c, &pen);
 
-        if x + 1 < width {
-            // TODO: the 1 here should be based on the glyph width
-            self.set_cursor_pos(&Position::Relative(1), &Position::Relative(0));
+        // Assign the cell and extract its printable width
+        let print_width = {
+            let cell = self.screen_mut().set_cell(x, y, c, &pen);
+            cell.width()
+        };
+
+        // for double- or triple-wide cells, the client of the terminal
+        // expects the cursor to move by the visible width, which means that
+        // we need to generate non-printing cells to pad out the gap.  They
+        // need to be non-printing rather than space so that that renderer
+        // doesn't render an actual space between the glyphs.
+        for non_print_x in 1..print_width {
+            self.screen_mut().set_cell(
+                x + non_print_x,
+                y,
+                0 as char, // non-printable
+                &pen,
+            );
+        }
+
+        if x + print_width < width {
+            self.set_cursor_pos(
+                &Position::Relative(print_width as i64),
+                &Position::Relative(0),
+            );
         } else {
             self.wrap_next = true;
         }

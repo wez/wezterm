@@ -15,7 +15,6 @@ pub struct GlyphInfo {
     #[cfg(debug_assertions)]
     pub text: String,
     /// Offset within text
-    #[cfg(debug_assertions)]
     pub cluster: u32,
     /// How many cells/columns this glyph occupies horizontally
     pub num_cells: u8,
@@ -47,7 +46,6 @@ impl GlyphInfo {
             num_cells,
             font_idx,
             glyph_pos: info.codepoint,
-            #[cfg(debug_assertions)]
             cluster: info.cluster,
             x_advance: pos.x_advance as f64 / 64.0,
             y_advance: pos.y_advance as f64 / 64.0,
@@ -195,12 +193,14 @@ impl Font {
     }
 
     pub fn shape(&mut self, font_idx: usize, s: &str) -> Result<Vec<GlyphInfo>, Error> {
+        /*
         debug!(
             "shape text for font_idx {} with len {} {}",
             font_idx,
             s.len(),
             s
         );
+        */
         let features = vec![
             // kerning
             hbwrap::feature_from_string("kern")?,
@@ -259,7 +259,7 @@ impl Font {
                 sizes[last] = diff;
             }
         }
-        debug!("sizes: {:?}", sizes);
+        //debug!("sizes: {:?}", sizes);
 
         // Now make a second pass to determine if we need
         // to perform fallback to a later font.
@@ -277,6 +277,11 @@ impl Font {
 
                 let substr = &s[start..pos];
                 let mut shape = self.shape(font_idx + 1, substr)?;
+
+                // Fixup the cluster member to match our current offset
+                for info in shape.iter_mut() {
+                    info.cluster += start as u32;
+                }
                 cluster.append(&mut shape);
 
                 first_fallback_pos = None;
@@ -299,6 +304,10 @@ impl Font {
                 substr,
             );
             let mut shape = self.shape(font_idx + 1, substr)?;
+            // Fixup the cluster member to match our current offset
+            for info in shape.iter_mut() {
+                info.cluster += start as u32;
+            }
             cluster.append(&mut shape);
         }
 

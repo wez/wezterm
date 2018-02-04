@@ -256,7 +256,7 @@ impl<'a> Drop for Context<'a> {
 }
 
 /// A color stored as big endian bgra32
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct Color(u32);
 
 impl Color {
@@ -335,6 +335,7 @@ impl From<RgbColor> for Color {
 /// More information on these and their temrinology can be found
 /// in the Cairo documentation here:
 /// https://www.cairographics.org/operators/
+#[derive(Debug, Clone, Copy)]
 pub enum Operator {
     /// Apply the alpha channel of src and combine src with dest,
     /// according to the classic OVER composite operator
@@ -427,6 +428,63 @@ pub trait BitmapImage {
                 }
 
                 *self.pixel_mut(dest_x as usize, dest_y as usize) = color.0;
+            }
+        }
+    }
+
+    /// Draw a 1-pixel wide rectangle
+    fn draw_rect(
+        &mut self,
+        dest_x: isize,
+        dest_y: isize,
+        width: usize,
+        height: usize,
+        color: Color,
+        operator: Operator,
+    ) {
+        let (dim_width, dim_height) = self.image_dimensions();
+        // Draw the vertical lines down either side
+        for y in 0..height {
+            let dest_y = y as isize + dest_y;
+            if dest_y < 0 {
+                continue;
+            }
+            if dest_y >= dim_height as isize {
+                break;
+            }
+
+            if dest_x >= 0 && dest_x < dim_width as isize {
+                let left = self.pixel_mut(dest_x as usize, dest_y as usize);
+                *left = color.composite(Color(*left), &operator).0;
+            }
+
+            let right_x = dest_x + width as isize - 1;
+            if right_x >= 0 && right_x < dim_width as isize {
+                let right = self.pixel_mut(right_x as usize, dest_y as usize);
+                *right = color.composite(Color(*right), &operator).0;
+            }
+        }
+
+        // And the horizontals for the top and bottom
+        for x in 0..width {
+            let dest_x = x as isize + dest_x;
+
+            if dest_x < 0 {
+                continue;
+            }
+            if dest_x >= dim_width as isize {
+                break;
+            }
+
+            if dest_y >= 0 && dest_y < dim_height as isize {
+                let top = self.pixel_mut(dest_x as usize, dest_y as usize);
+                *top = color.composite(Color(*top), &operator).0;
+            }
+
+            let bot_y = dest_y + height as isize - 1;
+            if bot_y >= 0 && bot_y < dim_height as isize {
+                let bottom = self.pixel_mut(dest_x as usize, bot_y as usize);
+                *bottom = color.composite(Color(*bottom), &operator).0;
             }
         }
     }

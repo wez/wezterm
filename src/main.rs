@@ -131,8 +131,9 @@ fn run() -> Result<(), Error> {
     )?;
 
     let terminal = term::Terminal::new(initial_rows as usize, initial_cols as usize, 3000);
-    //    let message = "x_advance != \x1b[38;2;1;0;125;145;mfoo->bar(); ❤ 😍🤢\n\x1b[91;mw00t\n\x1b[37;104;m bleet\x1b[0;m.";
+    //    let message = "; ❤ 😍🤢\n\x1b[91;mw00t\n\x1b[37;104;m bleet\x1b[0;m.";
     //    terminal.advance_bytes(message);
+    // !=
 
     let mut window = TerminalWindow::new(
         &conn,
