@@ -74,6 +74,7 @@ pub struct TerminalWindow<'a> {
     pty: MasterPty,
     process: Child,
     glyph_cache: RefCell<HashMap<GlyphKey, Rc<CachedGlyph>>>,
+    palette: term::color::ColorPalette,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -136,6 +137,7 @@ impl<'a> TerminalWindow<'a> {
             pty,
             process,
             glyph_cache: RefCell::new(HashMap::new()),
+            palette: term::color::ColorPalette::default(),
         })
     }
 
@@ -167,8 +169,9 @@ impl<'a> TerminalWindow<'a> {
             // If we have partial rows or columns to the bottom or right,
             // clear those out as they may contains artifacts from prior to
             // the resize.
-            let palette = term::color::ColorPalette::default();
-            let background_color = palette.resolve(&term::color::ColorAttribute::Background);
+            let background_color = self.palette.resolve(
+                &term::color::ColorAttribute::Background,
+            );
             self.buffer_image.clear_rect(
                 cols as isize * self.cell_width as isize,
                 0,
@@ -370,8 +373,9 @@ impl<'a> TerminalWindow<'a> {
     }
 
     pub fn paint(&mut self) -> Result<(), Error> {
-        let palette = term::color::ColorPalette::default();
-        let background_color = palette.resolve(&term::color::ColorAttribute::Background);
+        let background_color = self.palette.resolve(
+            &term::color::ColorAttribute::Background,
+        );
 
         let cell_height = self.cell_height.ceil() as usize;
         let cell_width = self.cell_width.ceil() as usize;
@@ -410,7 +414,7 @@ impl<'a> TerminalWindow<'a> {
                         (fg_color, bg_color)
                     };
 
-                    let bg_color = palette.resolve(bg_color);
+                    let bg_color = self.palette.resolve(bg_color);
 
                     // Shape the printable text from this cluster
                     let glyph_info = self.shape_text(&cluster.text)?;
@@ -438,7 +442,7 @@ impl<'a> TerminalWindow<'a> {
                                         y,
                                         cell_width * line.cells[cur_x].width(),
                                         cell_height,
-                                        palette.cursor().into(),
+                                        self.palette.cursor().into(),
                                     );
                                 }
                             }
@@ -485,7 +489,7 @@ impl<'a> TerminalWindow<'a> {
                                 } else {
                                     fg_color
                                 };
-                                let glyph_color = palette.resolve(glyph_color);
+                                let glyph_color = self.palette.resolve(glyph_color);
                                 let operator = if glyph.has_color {
                                     xgfx::Operator::Over
                                 } else {
@@ -518,7 +522,7 @@ impl<'a> TerminalWindow<'a> {
                                         // the rectangle will incorrectly bisect the glyph
                                         (cell_print_width * cell_width),
                                         cell_height,
-                                        palette.cursor().into(),
+                                        self.palette.cursor().into(),
                                         xgfx::Operator::Over,
                                     );
                                 }
