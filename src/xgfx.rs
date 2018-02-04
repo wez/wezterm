@@ -141,6 +141,10 @@ impl<'a> Window<'a> {
                 (
                     xcb::CW_EVENT_MASK,
                     xcb::EVENT_MASK_EXPOSURE | xcb::EVENT_MASK_KEY_PRESS |
+                        xcb::EVENT_MASK_BUTTON_PRESS |
+                        xcb::EVENT_MASK_BUTTON_RELEASE |
+                        xcb::EVENT_MASK_POINTER_MOTION |
+                        xcb::EVENT_MASK_BUTTON_MOTION |
                         xcb::EVENT_MASK_KEY_RELEASE |
                         xcb::EVENT_MASK_STRUCTURE_NOTIFY,
                 ),

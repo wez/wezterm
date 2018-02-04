@@ -631,6 +631,10 @@ impl<'a> TerminalWindow<'a> {
         (xkeysyms::xcb_keysym_to_keycode(sym), mods)
     }
 
+    pub fn mouse_wheel(&mut self, direction: i64) {
+        self.terminal.scroll_viewport(direction);
+    }
+
     pub fn key_down(&mut self, event: &xcb::KeyPressEvent) -> Result<(), Error> {
         let (code, mods) = self.decode_key(event);
         // println!("Key pressed {:?} {:?}", code, mods);

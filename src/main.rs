@@ -62,6 +62,21 @@ fn dispatch_gui(
             let key_press: &xcb::KeyPressEvent = unsafe { xcb::cast_event(&event) };
             window.key_up(key_press)?;
         }
+        xcb::BUTTON_PRESS => {
+            let button_press: &xcb::ButtonPressEvent = unsafe { xcb::cast_event(&event) };
+            debug!(
+                "BUTTON: detail={:x} state={:x} @ {},{}",
+                button_press.detail(),
+                button_press.state(),
+                button_press.event_x(),
+                button_press.event_y()
+            );
+            match button_press.detail() {
+                4 => window.mouse_wheel(-1),
+                5 => window.mouse_wheel(1),
+                _ => {}
+            }
+        }
         xcb::CLIENT_MESSAGE => {
             let msg: &xcb::ClientMessageEvent = unsafe { xcb::cast_event(&event) };
             println!("CLIENT_MESSAGE {:?}", msg.data().data32());

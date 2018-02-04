@@ -670,6 +670,16 @@ pub struct TerminalState {
     /// When set, pasting the clipboard should bracket the data with
     /// designated marker characters.
     bracketed_paste: bool,
+
+    /// Used to compute the offset to the top of the viewport.
+    /// This is used to display the scrollback of the terminal.
+    /// It is distinct from the scroll_region in that the scroll region
+    /// afects how the terminal output is scrolled as data is output,
+    /// and the viewport_offset is used to index into the scrollback
+    /// purely for display purposes.
+    /// The offset is measured from the top of the physical viewable
+    /// screen with larger numbers going backwards.
+    viewport_offset: VisibleRowIndex,
 }
 
 impl TerminalState {
@@ -694,6 +704,7 @@ impl TerminalState {
             application_cursor_keys: false,
             application_keypad: false,
             bracketed_paste: false,
+            viewport_offset: 0,
         }
     }
 
@@ -764,6 +775,16 @@ impl TerminalState {
             (Down, ..) => "\x1b[B",
             (Right, ..) => "\x1b[C",
             (Left, ..) => "\x1b[D",
+            (PageUp, _, _, SHIFT, _) => {
+                let rows = self.screen().physical_rows as i64;
+                self.scroll_viewport(-rows);
+                ""
+            }
+            (PageDown, _, _, SHIFT, _) => {
+                let rows = self.screen().physical_rows as i64;
+                self.scroll_viewport(rows);
+                ""
+            }
             (PageUp, ..) => "\x1b[5~",
             (PageDown, ..) => "\x1b[6~",
             (Home, ..) => "\x1b[H",
@@ -775,6 +796,13 @@ impl TerminalState {
         };
 
         write.write(&to_send.as_bytes())?;
+
+        // Reset the viewport if we sent data to the parser
+        if to_send.len() > 0 && self.viewport_offset != 0 {
+            // TODO: some folks like to configure this behavior.
+            self.set_scroll_viewport(0);
+        }
+
         Ok(())
     }
 
@@ -791,13 +819,14 @@ impl TerminalState {
         self.screen.resize(physical_rows, physical_cols);
         self.alt_screen.resize(physical_rows, physical_cols);
         self.scroll_region = 0..physical_rows as i64;
+        self.set_scroll_viewport(0);
     }
 
     /// Returns true if any of the visible lines are marked dirty
     pub fn has_dirty_lines(&self) -> bool {
         let screen = self.screen();
         let height = screen.physical_rows;
-        let len = screen.lines.len();
+        let len = screen.lines.len() - self.viewport_offset as usize;
 
         for line in screen.lines.iter().skip(len - height) {
             if line.dirty {
@@ -816,7 +845,7 @@ impl TerminalState {
 
         let screen = self.screen();
         let height = screen.physical_rows;
-        let len = screen.lines.len();
+        let len = screen.lines.len() - self.viewport_offset as usize;
 
         for (i, mut line) in screen.lines.iter().skip(len - height).enumerate() {
             if line.dirty {
@@ -838,7 +867,10 @@ impl TerminalState {
     /// Returns the 0-based cursor position relative to the top left of
     /// the visible screen
     pub fn cursor_pos(&self) -> CursorPosition {
-        self.cursor
+        CursorPosition {
+            x: self.cursor.x,
+            y: self.cursor.y + self.viewport_offset,
+        }
     }
 
     /// Sets the cursor position. x and y are 0-based and relative to the
@@ -866,6 +898,31 @@ impl TerminalState {
         let screen = self.screen_mut();
         screen.dirty_line(old_y);
         screen.dirty_line(new_y);
+    }
+
+    fn set_scroll_viewport(&mut self, position: VisibleRowIndex) {
+        let position = position.max(0);
+
+        let rows = self.screen().physical_rows;
+        let avail_scrollback = self.screen().lines.len() - rows;
+
+        let position = position.min(avail_scrollback as i64);
+
+        self.viewport_offset = position;
+        let top = self.screen().lines.len() - (rows + position as usize);
+        let screen = self.screen_mut();
+        for y in top..top + rows {
+            screen.line_mut(y).set_dirty();
+        }
+    }
+
+    /// Adjust the scroll position of the viewport by delta.
+    /// Dirties the lines that are now in view.
+    pub fn scroll_viewport(&mut self, delta: VisibleRowIndex) {
+        // TODO: ignore/reset this when we switch to the alt screen
+
+        let position = self.viewport_offset - delta;
+        self.set_scroll_viewport(position);
     }
 
     fn scroll_up(&mut self, num_rows: usize) {
