@@ -351,6 +351,17 @@ impl<'a> CSIParser<'a> {
                     bottom: bottom - 1,
                 })
             }
+            &[] => {
+                // Default is to restore the region to the full size of
+                // the screen.  We don't have that information here, so
+                // we're just reporting the maximum possible range and
+                // relying on the code that acts on this to clamp accordingly
+                Some(CSIAction::SetScrollingRegion {
+                    top: 0,
+                    bottom: i64::max_value(),
+                })
+
+            }
             _ => {
                 println!("set_scroll_region: invalid sequence: {:?}", params);
                 None

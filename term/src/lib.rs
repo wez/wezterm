@@ -461,7 +461,9 @@ impl Screen {
     #[inline]
     fn dirty_line(&mut self, idx: VisibleRowIndex) {
         let line_idx = self.phys_row(idx);
-        self.lines[line_idx].set_dirty();
+        if line_idx < self.lines.len() {
+            self.lines[line_idx].set_dirty();
+        }
     }
 
     /// Clears the dirty flag for a line.  The line is relative to the visible origin.
@@ -788,6 +790,7 @@ impl TerminalState {
     pub fn resize(&mut self, physical_rows: usize, physical_cols: usize) {
         self.screen.resize(physical_rows, physical_cols);
         self.alt_screen.resize(physical_rows, physical_cols);
+        self.scroll_region = 0..physical_rows as i64;
     }
 
     /// Returns true if any of the visible lines are marked dirty
@@ -906,6 +909,145 @@ impl TerminalState {
             y - 1
         };
         self.set_cursor_pos(&Position::Relative(0), &Position::Absolute(y as i64));
+    }
+
+    fn perform_csi(&mut self, act: CSIAction) {
+        debug!("{:?}", act);
+        match act {
+            CSIAction::SetPen(pen) => {
+                self.pen = pen;
+            }
+            CSIAction::SetForegroundColor(color) => {
+                self.pen.foreground = color;
+            }
+            CSIAction::SetBackgroundColor(color) => {
+                self.pen.background = color;
+            }
+            CSIAction::SetIntensity(level) => {
+                self.pen.set_intensity(level);
+            }
+            CSIAction::SetUnderline(level) => {
+                self.pen.set_underline(level);
+            }
+            CSIAction::SetItalic(on) => {
+                self.pen.set_italic(on);
+            }
+            CSIAction::SetBlink(on) => {
+                self.pen.set_blink(on);
+            }
+            CSIAction::SetReverse(on) => {
+                self.pen.set_reverse(on);
+            }
+            CSIAction::SetStrikethrough(on) => {
+                self.pen.set_strikethrough(on);
+            }
+            CSIAction::SetInvisible(on) => {
+                self.pen.set_invisible(on);
+            }
+            CSIAction::SetCursorXY { x, y } => {
+                self.set_cursor_pos(&x, &y);
+            }
+            CSIAction::EraseInLine(erase) => {
+                let cx = self.cursor.x;
+                let cy = self.cursor.y;
+                let mut screen = self.screen_mut();
+                let cols = screen.physical_cols;
+                match erase {
+                    LineErase::ToRight => {
+                        screen.clear_line(cy, cx..cols);
+                    }
+                    LineErase::ToLeft => {
+                        screen.clear_line(cy, 0..cx);
+                    }
+                    LineErase::All => {
+                        screen.clear_line(cy, 0..cols);
+                    }
+                }
+            }
+            CSIAction::EraseInDisplay(erase) => {
+                let cy = self.cursor.y;
+                let mut screen = self.screen_mut();
+                let cols = screen.physical_cols;
+                let rows = screen.physical_rows as VisibleRowIndex;
+                match erase {
+                    DisplayErase::Below => {
+                        for y in cy..rows {
+                            screen.clear_line(y, 0..cols);
+                        }
+                    }
+                    DisplayErase::Above => {
+                        for y in 0..cy {
+                            screen.clear_line(y, 0..cols);
+                        }
+                    }
+                    DisplayErase::All => {
+                        for y in 0..rows {
+                            screen.clear_line(y, 0..cols);
+                        }
+                    }
+                    DisplayErase::SavedLines => {
+                        println!("ed: no support for xterm Erase Saved Lines yet");
+                    }
+                }
+            }
+            CSIAction::SetDecPrivateMode(DecPrivateMode::ApplicationCursorKeys, on) => {
+                self.application_cursor_keys = on;
+            }
+            CSIAction::SetDecPrivateMode(DecPrivateMode::BrackedPaste, on) => {
+                self.bracketed_paste = on;
+            }
+            CSIAction::DeviceStatusReport => {
+                // "OK"
+                self.push_answerback(b"\x1b[0n");
+            }
+            CSIAction::ReportCursorPosition => {
+                let row = self.cursor.y + 1;
+                let col = self.cursor.x + 1;
+                self.push_answerback(format!("\x1b[{};{}R", row, col).as_bytes());
+            }
+            CSIAction::SetScrollingRegion { top, bottom } => {
+                let rows = self.screen().physical_rows;
+                let mut top = top.min(rows as i64 - 1);
+                let mut bottom = bottom.min(rows as i64 - 1);
+                if top > bottom {
+                    std::mem::swap(&mut top, &mut bottom);
+                }
+                self.scroll_region = top..bottom + 1;
+            }
+            CSIAction::RequestDeviceAttributes => {
+                self.push_answerback(DEVICE_IDENT);
+            }
+            CSIAction::DeleteLines(n) => {
+                if in_range(self.cursor.y, &self.scroll_region) {
+                    let scroll_region = self.cursor.y..self.scroll_region.end;
+                    self.screen_mut().scroll_up(&scroll_region, n as usize);
+                }
+            }
+            CSIAction::InsertLines(n) => {
+                if in_range(self.cursor.y, &self.scroll_region) {
+                    let scroll_region = self.cursor.y..self.scroll_region.end;
+                    self.screen_mut().scroll_down(&scroll_region, n as usize);
+                }
+            }
+            CSIAction::SaveCursor => {
+                self.saved_cursor = self.cursor;
+            }
+            CSIAction::RestoreCursor => {
+                let x = self.saved_cursor.x;
+                let y = self.saved_cursor.y;
+                self.set_cursor_pos(&Position::Absolute(x as i64), &Position::Absolute(y));
+            }
+            CSIAction::LinePosition(row) => {
+                self.set_cursor_pos(&Position::Relative(0), &row);
+            }
+            CSIAction::ScrollLines(amount) => {
+                if amount > 0 {
+                    self.scroll_down(amount as usize);
+                } else {
+                    self.scroll_up((-amount) as usize);
+                }
+            }
+        }
     }
 }
 
@@ -1045,142 +1187,7 @@ impl vte::Perform for TerminalState {
     }
     fn csi_dispatch(&mut self, params: &[i64], intermediates: &[u8], ignore: bool, byte: char) {
         for act in CSIParser::new(params, intermediates, ignore, byte) {
-            debug!("{:?}", act);
-            match act {
-                CSIAction::SetPen(pen) => {
-                    self.pen = pen;
-                }
-                CSIAction::SetForegroundColor(color) => {
-                    self.pen.foreground = color;
-                }
-                CSIAction::SetBackgroundColor(color) => {
-                    self.pen.background = color;
-                }
-                CSIAction::SetIntensity(level) => {
-                    self.pen.set_intensity(level);
-                }
-                CSIAction::SetUnderline(level) => {
-                    self.pen.set_underline(level);
-                }
-                CSIAction::SetItalic(on) => {
-                    self.pen.set_italic(on);
-                }
-                CSIAction::SetBlink(on) => {
-                    self.pen.set_blink(on);
-                }
-                CSIAction::SetReverse(on) => {
-                    self.pen.set_reverse(on);
-                }
-                CSIAction::SetStrikethrough(on) => {
-                    self.pen.set_strikethrough(on);
-                }
-                CSIAction::SetInvisible(on) => {
-                    self.pen.set_invisible(on);
-                }
-                CSIAction::SetCursorXY { x, y } => {
-                    self.set_cursor_pos(&x, &y);
-                }
-                CSIAction::EraseInLine(erase) => {
-                    let cx = self.cursor.x;
-                    let cy = self.cursor.y;
-                    let mut screen = self.screen_mut();
-                    let cols = screen.physical_cols;
-                    match erase {
-                        LineErase::ToRight => {
-                            screen.clear_line(cy, cx..cols);
-                        }
-                        LineErase::ToLeft => {
-                            screen.clear_line(cy, 0..cx);
-                        }
-                        LineErase::All => {
-                            screen.clear_line(cy, 0..cols);
-                        }
-                    }
-                }
-                CSIAction::EraseInDisplay(erase) => {
-                    let cy = self.cursor.y;
-                    let mut screen = self.screen_mut();
-                    let cols = screen.physical_cols;
-                    let rows = screen.physical_rows as VisibleRowIndex;
-                    match erase {
-                        DisplayErase::Below => {
-                            for y in cy..rows {
-                                screen.clear_line(y, 0..cols);
-                            }
-                        }
-                        DisplayErase::Above => {
-                            for y in 0..cy {
-                                screen.clear_line(y, 0..cols);
-                            }
-                        }
-                        DisplayErase::All => {
-                            for y in 0..rows {
-                                screen.clear_line(y, 0..cols);
-                            }
-                        }
-                        DisplayErase::SavedLines => {
-                            println!("ed: no support for xterm Erase Saved Lines yet");
-                        }
-                    }
-                }
-                CSIAction::SetDecPrivateMode(DecPrivateMode::ApplicationCursorKeys, on) => {
-                    self.application_cursor_keys = on;
-                }
-                CSIAction::SetDecPrivateMode(DecPrivateMode::BrackedPaste, on) => {
-                    self.bracketed_paste = on;
-                }
-                CSIAction::DeviceStatusReport => {
-                    // "OK"
-                    self.push_answerback(b"\x1b[0n");
-                }
-                CSIAction::ReportCursorPosition => {
-                    let row = self.cursor.y + 1;
-                    let col = self.cursor.x + 1;
-                    self.push_answerback(format!("\x1b[{};{}R", row, col).as_bytes());
-                }
-                CSIAction::SetScrollingRegion { top, bottom } => {
-                    let rows = self.screen().physical_rows;
-                    let mut top = top.min(rows as i64 - 1);
-                    let mut bottom = bottom.min(rows as i64 - 1);
-                    if top > bottom {
-                        std::mem::swap(&mut top, &mut bottom);
-                    }
-                    self.scroll_region = top..bottom + 1;
-                }
-                CSIAction::RequestDeviceAttributes => {
-                    self.push_answerback(DEVICE_IDENT);
-                }
-                CSIAction::DeleteLines(n) => {
-                    if in_range(self.cursor.y, &self.scroll_region) {
-                        let scroll_region = self.cursor.y..self.scroll_region.end;
-                        self.screen_mut().scroll_up(&scroll_region, n as usize);
-                    }
-                }
-                CSIAction::InsertLines(n) => {
-                    if in_range(self.cursor.y, &self.scroll_region) {
-                        let scroll_region = self.cursor.y..self.scroll_region.end;
-                        self.screen_mut().scroll_down(&scroll_region, n as usize);
-                    }
-                }
-                CSIAction::SaveCursor => {
-                    self.saved_cursor = self.cursor;
-                }
-                CSIAction::RestoreCursor => {
-                    let x = self.saved_cursor.x;
-                    let y = self.saved_cursor.y;
-                    self.set_cursor_pos(&Position::Absolute(x as i64), &Position::Absolute(y));
-                }
-                CSIAction::LinePosition(row) => {
-                    self.set_cursor_pos(&Position::Relative(0), &row);
-                }
-                CSIAction::ScrollLines(amount) => {
-                    if amount > 0 {
-                        self.scroll_down(amount as usize);
-                    } else {
-                        self.scroll_up((-amount) as usize);
-                    }
-                }
-            }
+            self.perform_csi(act);
         }
     }
 
@@ -1214,6 +1221,11 @@ impl vte::Perform for TerminalState {
             (b'0', &[b'('], &[]) => {}
             // Exit alternate character set mode (rmacs)
             (b'B', &[b'('], &[]) => {}
+
+            // DECSC - Save Cursor
+            (b'7', &[], &[]) => self.perform_csi(CSIAction::SaveCursor),
+            // DECRC - Restore Cursor
+            (b'8', &[], &[]) => self.perform_csi(CSIAction::RestoreCursor),
 
             (..) => {
                 println!(

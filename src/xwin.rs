@@ -159,10 +159,30 @@ impl<'a> TerminalWindow<'a> {
             self.width = width;
             self.height = height;
 
-            let rows = height / self.cell_height as u16;
-            let cols = width / self.cell_width as u16;
+            let rows = (height as f64 / self.cell_height).floor() as u16;
+            let cols = (width as f64 / self.cell_width).floor() as u16;
             self.pty.resize(rows, cols, width, height)?;
             self.terminal.resize(rows as usize, cols as usize);
+
+            // If we have partial rows or columns to the bottom or right,
+            // clear those out as they may contains artifacts from prior to
+            // the resize.
+            let palette = term::color::ColorPalette::default();
+            let background_color = palette.resolve(&term::color::ColorAttribute::Background);
+            self.buffer_image.clear_rect(
+                cols as isize * self.cell_width as isize,
+                0,
+                width as usize - (cols as usize * self.cell_width as usize),
+                self.height as usize,
+                background_color.into(),
+            );
+            self.buffer_image.clear_rect(
+                0,
+                rows as isize * self.cell_height as isize,
+                width as usize,
+                height as usize - (rows as usize * self.cell_height as usize),
+                background_color.into(),
+            );
 
             Ok(true)
         } else {
