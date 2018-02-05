@@ -60,8 +60,15 @@ impl<'a> BitmapImage for BufferImage<'a> {
     }
 }
 
-pub struct TerminalWindow<'a> {
+/// Holds the information we need to implement TerminalHost
+struct Host<'a> {
     window: xgfx::Window<'a>,
+    pty: MasterPty,
+    timestamp: xcb::xproto::Timestamp,
+}
+
+pub struct TerminalWindow<'a> {
+    host: Host<'a>,
     conn: &'a Connection,
     width: u16,
     height: u16,
@@ -72,11 +79,9 @@ pub struct TerminalWindow<'a> {
     window_context: xgfx::Context<'a>,
     buffer_image: BufferImage<'a>,
     terminal: term::Terminal,
-    pty: MasterPty,
     process: Child,
     glyph_cache: RefCell<HashMap<GlyphKey, Rc<CachedGlyph>>>,
     palette: term::color::ColorPalette,
-    timestamp: xcb::xproto::Timestamp,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -99,15 +104,9 @@ struct CachedGlyph {
     bearing_y: isize,
 }
 
-struct Host<'a> {
-    pty: &'a mut Write,
-    window: &'a xgfx::Window<'a>,
-    timestamp: xcb::xproto::Timestamp,
-}
-
 impl<'a> term::TerminalHost for Host<'a> {
     fn writer(&mut self) -> &mut Write {
-        self.pty
+        &mut self.pty
     }
 
     // Check out https://tronche.com/gui/x/icccm/sec-2.html for some deep and complex
@@ -181,7 +180,11 @@ impl<'a> TerminalWindow<'a> {
         };
 
         Ok(TerminalWindow {
-            window,
+            host: Host {
+                window,
+                pty,
+                timestamp: 0,
+            },
             window_context,
             buffer_image,
             conn,
@@ -192,16 +195,14 @@ impl<'a> TerminalWindow<'a> {
             cell_width,
             descender,
             terminal,
-            pty,
             process,
             glyph_cache: RefCell::new(HashMap::new()),
             palette: term::color::ColorPalette::default(),
-            timestamp: 0,
         })
     }
 
     pub fn show(&self) {
-        self.window.show();
+        self.host.window.show();
     }
 
     pub fn resize_surfaces(&mut self, width: u16, height: u16) -> Result<bool, Error> {
@@ -210,7 +211,7 @@ impl<'a> TerminalWindow<'a> {
 
             let mut buffer = BufferImage::new(
                 self.conn,
-                self.window.as_drawable(),
+                self.host.window.as_drawable(),
                 width as usize,
                 height as usize,
             );
@@ -222,7 +223,7 @@ impl<'a> TerminalWindow<'a> {
 
             let rows = (height as f64 / self.cell_height).floor() as u16;
             let cols = (width as f64 / self.cell_width).floor() as u16;
-            self.pty.resize(rows, cols, width, height)?;
+            self.host.pty.resize(rows, cols, width, height)?;
             self.terminal.resize(rows as usize, cols as usize);
 
             // If we have partial rows or columns to the bottom or right,
@@ -262,7 +263,7 @@ impl<'a> TerminalWindow<'a> {
                     shm,
                     x as i16,
                     y as i16,
-                    &self.window,
+                    &self.host.window,
                     x as i16,
                     y as i16,
                     width,
@@ -599,7 +600,7 @@ impl<'a> TerminalWindow<'a> {
                             shm,
                             0,
                             y as i16,
-                            &self.window,
+                            &self.host.window,
                             0,
                             y as i16,
                             self.width,
@@ -650,15 +651,15 @@ impl<'a> TerminalWindow<'a> {
         let mut buf = [0; BUFSIZE];
 
         loop {
-            match self.pty.read(&mut buf) {
+            match self.host.pty.read(&mut buf) {
                 Ok(size) => {
                     for answer in self.terminal.advance_bytes(&buf[0..size]) {
                         match answer {
                             term::AnswerBack::WriteToPty(response) => {
-                                self.pty.write(&response).ok(); // discard error
+                                self.host.pty.write(&response).ok(); // discard error
                             }
                             term::AnswerBack::TitleChanged(title) => {
-                                self.window.set_title(&title);
+                                self.host.window.set_title(&title);
                             }
                         }
                     }
@@ -709,31 +710,15 @@ impl<'a> TerminalWindow<'a> {
             }
             xcb::KEY_PRESS => {
                 let key_press: &xcb::KeyPressEvent = unsafe { xcb::cast_event(&event) };
-                self.timestamp = key_press.time();
+                self.host.timestamp = key_press.time();
                 let (code, mods) = self.decode_key(key_press);
-                self.terminal.key_down(
-                    code,
-                    mods,
-                    &mut Host {
-                        pty: &mut self.pty,
-                        window: &self.window,
-                        timestamp: self.timestamp,
-                    },
-                )?;
+                self.terminal.key_down(code, mods, &mut self.host)?;
             }
             xcb::KEY_RELEASE => {
                 let key_press: &xcb::KeyPressEvent = unsafe { xcb::cast_event(&event) };
-                self.timestamp = key_press.time();
+                self.host.timestamp = key_press.time();
                 let (code, mods) = self.decode_key(key_press);
-                self.terminal.key_up(
-                    code,
-                    mods,
-                    &mut Host {
-                        pty: &mut self.pty,
-                        window: &self.window,
-                        timestamp: self.timestamp,
-                    },
-                )?;
+                self.terminal.key_up(code, mods, &mut self.host)?;
             }
             xcb::MOTION_NOTIFY => {
                 let motion: &xcb::MotionNotifyEvent = unsafe { xcb::cast_event(&event) };
@@ -745,19 +730,12 @@ impl<'a> TerminalWindow<'a> {
                     y: (motion.event_y() as f64 / self.cell_height).floor() as i64,
                     modifiers: xkeysyms::modifiers_from_state(motion.state()),
                 };
-                self.terminal.mouse_event(
-                    event,
-                    &mut Host {
-                        pty: &mut self.pty,
-                        window: &self.window,
-                        timestamp: self.timestamp,
-                    },
-                )?;
+                self.terminal.mouse_event(event, &mut self.host)?;
             }
             xcb::BUTTON_PRESS |
             xcb::BUTTON_RELEASE => {
                 let button_press: &xcb::ButtonPressEvent = unsafe { xcb::cast_event(&event) };
-                self.timestamp = button_press.time();
+                self.host.timestamp = button_press.time();
 
                 let event = MouseEvent {
                     kind: match r {
@@ -781,14 +759,7 @@ impl<'a> TerminalWindow<'a> {
                     modifiers: xkeysyms::modifiers_from_state(button_press.state()),
                 };
 
-                self.terminal.mouse_event(
-                    event,
-                    &mut Host {
-                        pty: &mut self.pty,
-                        window: &self.window,
-                        timestamp: self.timestamp,
-                    },
-                )?;
+                self.terminal.mouse_event(event, &mut self.host)?;
             }
             xcb::CLIENT_MESSAGE => {
                 let msg: &xcb::ClientMessageEvent = unsafe { xcb::cast_event(&event) };
