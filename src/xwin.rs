@@ -8,7 +8,7 @@ use std::mem;
 use std::process::Child;
 use std::rc::Rc;
 use std::slice;
-use term::{self, KeyCode, KeyModifiers};
+use term::{self, KeyCode, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 use xcb;
 use xgfx::{self, BitmapImage, Connection, Drawable};
 use xkeysyms;
@@ -631,19 +631,83 @@ impl<'a> TerminalWindow<'a> {
         (xkeysyms::xcb_keysym_to_keycode(sym), mods)
     }
 
-    pub fn mouse_wheel(&mut self, direction: i64) {
-        self.terminal.scroll_viewport(direction);
-    }
 
-    pub fn key_down(&mut self, event: &xcb::KeyPressEvent) -> Result<(), Error> {
-        let (code, mods) = self.decode_key(event);
-        // println!("Key pressed {:?} {:?}", code, mods);
-        self.terminal.key_down(code, mods, &mut self.pty)
-    }
+    pub fn dispatch_event(&mut self, event: xcb::GenericEvent) -> Result<(), Error> {
+        let r = event.response_type() & 0x7f;
+        match r {
+            xcb::EXPOSE => {
+                let expose: &xcb::ExposeEvent = unsafe { xcb::cast_event(&event) };
+                self.expose(
+                    expose.x(),
+                    expose.y(),
+                    expose.width(),
+                    expose.height(),
+                )?;
+            }
+            xcb::CONFIGURE_NOTIFY => {
+                let cfg: &xcb::ConfigureNotifyEvent = unsafe { xcb::cast_event(&event) };
+                self.resize_surfaces(cfg.width(), cfg.height())?;
+            }
+            xcb::KEY_PRESS => {
+                let key_press: &xcb::KeyPressEvent = unsafe { xcb::cast_event(&event) };
+                let (code, mods) = self.decode_key(key_press);
+                self.terminal.key_down(code, mods, &mut self.pty)?;
+            }
+            xcb::KEY_RELEASE => {
+                let key_press: &xcb::KeyPressEvent = unsafe { xcb::cast_event(&event) };
+                let (code, mods) = self.decode_key(key_press);
+                self.terminal.key_up(code, mods, &mut self.pty)?;
+            }
+            xcb::MOTION_NOTIFY => {
+                let motion: &xcb::MotionNotifyEvent = unsafe { xcb::cast_event(&event) };
 
-    pub fn key_up(&mut self, event: &xcb::KeyPressEvent) -> Result<(), Error> {
-        let (code, mods) = self.decode_key(event);
-        // println!("Key released {:?} {:?}", code, mods);
-        self.terminal.key_up(code, mods, &mut self.pty)
+                let event = MouseEvent {
+                    kind: MouseEventKind::Move,
+                    button: MouseButton::None,
+                    x: (motion.event_x() as f64 / self.cell_width).floor() as usize,
+                    y: (motion.event_y() as f64 / self.cell_height).floor() as i64,
+                    modifiers: xkeysyms::modifiers_from_state(motion.state()),
+                };
+                self.terminal.mouse_event(event, &mut self.pty)?;
+            }
+            xcb::BUTTON_PRESS |
+            xcb::BUTTON_RELEASE => {
+                let button_press: &xcb::ButtonPressEvent = unsafe { xcb::cast_event(&event) };
+
+                let event = MouseEvent {
+                    kind: match r {
+                        xcb::BUTTON_PRESS => MouseEventKind::Press,
+                        xcb::BUTTON_RELEASE => MouseEventKind::Release,
+                        _ => unreachable!("button event mismatch"),
+                    },
+                    x: (button_press.event_x() as f64 / self.cell_width).floor() as usize,
+                    y: (button_press.event_y() as f64 / self.cell_height).floor() as i64,
+                    button: match button_press.detail() {
+                        1 => MouseButton::Left,
+                        2 => MouseButton::Middle,
+                        3 => MouseButton::Right,
+                        4 => MouseButton::WheelUp,
+                        5 => MouseButton::WheelDown,
+                        _ => {
+                            eprintln!("button {} is not implemented", button_press.detail());
+                            return Ok(());
+                        }
+                    },
+                    modifiers: xkeysyms::modifiers_from_state(button_press.state()),
+                };
+
+                self.terminal.mouse_event(event, &mut self.pty)?;
+            }
+            xcb::CLIENT_MESSAGE => {
+                let msg: &xcb::ClientMessageEvent = unsafe { xcb::cast_event(&event) };
+                println!("CLIENT_MESSAGE {:?}", msg.data().data32());
+                if msg.data().data32()[0] == self.conn.atom_delete() {
+                    // TODO: cleaner exit handling
+                    bail!("window close requested!");
+                }
+            }
+            _ => {}
+        }
+        Ok(())
     }
 }

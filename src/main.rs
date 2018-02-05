@@ -34,62 +34,6 @@ mod sigchld;
 mod xwin;
 use xwin::TerminalWindow;
 
-fn dispatch_gui(
-    conn: &xgfx::Connection,
-    event: xcb::GenericEvent,
-    window: &mut TerminalWindow,
-) -> Result<(), Error> {
-    let r = event.response_type() & 0x7f;
-    match r {
-        xcb::EXPOSE => {
-            let expose: &xcb::ExposeEvent = unsafe { xcb::cast_event(&event) };
-            window.expose(
-                expose.x(),
-                expose.y(),
-                expose.width(),
-                expose.height(),
-            )?;
-        }
-        xcb::CONFIGURE_NOTIFY => {
-            let cfg: &xcb::ConfigureNotifyEvent = unsafe { xcb::cast_event(&event) };
-            window.resize_surfaces(cfg.width(), cfg.height())?;
-        }
-        xcb::KEY_PRESS => {
-            let key_press: &xcb::KeyPressEvent = unsafe { xcb::cast_event(&event) };
-            window.key_down(key_press)?;
-        }
-        xcb::KEY_RELEASE => {
-            let key_press: &xcb::KeyPressEvent = unsafe { xcb::cast_event(&event) };
-            window.key_up(key_press)?;
-        }
-        xcb::BUTTON_PRESS => {
-            let button_press: &xcb::ButtonPressEvent = unsafe { xcb::cast_event(&event) };
-            debug!(
-                "BUTTON: detail={:x} state={:x} @ {},{}",
-                button_press.detail(),
-                button_press.state(),
-                button_press.event_x(),
-                button_press.event_y()
-            );
-            match button_press.detail() {
-                4 => window.mouse_wheel(-1),
-                5 => window.mouse_wheel(1),
-                _ => {}
-            }
-        }
-        xcb::CLIENT_MESSAGE => {
-            let msg: &xcb::ClientMessageEvent = unsafe { xcb::cast_event(&event) };
-            println!("CLIENT_MESSAGE {:?}", msg.data().data32());
-            if msg.data().data32()[0] == conn.atom_delete() {
-                // TODO: cleaner exit handling
-                bail!("window close requested!");
-            }
-        }
-        _ => {}
-    }
-    Ok(())
-}
-
 fn run() -> Result<(), Error> {
     let poll = Poll::new()?;
     let conn = xgfx::Connection::new()?;
@@ -192,12 +136,12 @@ fn run() -> Result<(), Error> {
                 // will effectively hang without updating all the state.
                 match conn.poll_for_event() {
                     Some(event) => {
-                        dispatch_gui(&conn, event, &mut window)?;
+                        window.dispatch_event(event)?;
                         // Since we read one event from the connection, we must
                         // now eagerly consume the rest of the queued events.
                         loop {
                             match conn.poll_for_queued_event() {
-                                Some(event) => dispatch_gui(&conn, event, &mut window)?,
+                                Some(event) => window.dispatch_event(event)?,
                                 None => break,
                             }
                         }

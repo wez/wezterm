@@ -222,11 +222,11 @@ pub fn xcb_keysym_to_keycode(k: xcb_keysym_t) -> KeyCode {
     }
 }
 
-pub fn modifiers(event: &KeyPressEvent) -> KeyModifiers {
+pub fn modifiers_from_state(state: u16) -> KeyModifiers {
     use xcb::xproto::*;
 
     let mut mods = KeyModifiers::default();
-    let state = event.state() as u32;
+    let state = state as u32;
 
     if state & MOD_MASK_SHIFT != 0 {
         mods |= KeyModifiers::SHIFT;
@@ -242,4 +242,8 @@ pub fn modifiers(event: &KeyPressEvent) -> KeyModifiers {
     }
 
     mods
+}
+
+pub fn modifiers(event: &KeyPressEvent) -> KeyModifiers {
+    modifiers_from_state(event.state())
 }

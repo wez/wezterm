@@ -21,6 +21,11 @@ pub enum DisplayErase {
 pub enum DecPrivateMode {
     ApplicationCursorKeys,
     BrackedPaste,
+    SGRMouse,
+    ButtonEventMouse,
+    ClearAndEnableAlternateScreen,
+    StartBlinkingCursor,
+    ShowCursor,
 }
 
 #[derive(Debug)]
@@ -122,8 +127,16 @@ impl<'a> CSIParser<'a> {
     fn parse_dec_mode(&self, mode: i64) -> Option<DecPrivateMode> {
         match mode {
             1 => Some(DecPrivateMode::ApplicationCursorKeys),
+            12 => Some(DecPrivateMode::StartBlinkingCursor),
+            25 => Some(DecPrivateMode::ShowCursor),
+            1002 => Some(DecPrivateMode::ButtonEventMouse),
+            1006 => Some(DecPrivateMode::SGRMouse),
+            1049 => Some(DecPrivateMode::ClearAndEnableAlternateScreen),
             2004 => Some(DecPrivateMode::BrackedPaste),
-            _ => None,
+            _ => {
+                println!("unknown or unhandled DECSET mode: {}", mode);
+                None
+            }
         }
     }
 
