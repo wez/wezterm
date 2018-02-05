@@ -19,8 +19,10 @@ use super::term::color::RgbColor;
 pub struct Connection {
     conn: xcb::Connection,
     screen_num: i32,
-    atom_protocols: xcb::Atom,
-    atom_delete: xcb::Atom,
+    pub atom_protocols: xcb::Atom,
+    pub atom_delete: xcb::Atom,
+    pub atom_utf8_string: xcb::Atom,
+    pub atom_xsel_data: xcb::Atom,
     keysyms: *mut xcb_key_symbols_t,
     shm_available: bool,
 }
@@ -42,6 +44,12 @@ impl Connection {
         let atom_delete = xcb::intern_atom(&conn, false, "WM_DELETE_WINDOW")
             .get_reply()?
             .atom();
+        let atom_utf8_string = xcb::intern_atom(&conn, false, "UTF8_STRING")
+            .get_reply()?
+            .atom();
+        let atom_xsel_data = xcb::intern_atom(&conn, false, "XSEL_DATA")
+            .get_reply()?
+            .atom();
 
         let keysyms = unsafe { xcb_key_symbols_alloc(conn.get_raw_conn()) };
 
@@ -55,6 +63,8 @@ impl Connection {
             atom_delete,
             keysyms,
             shm_available,
+            atom_utf8_string,
+            atom_xsel_data,
         })
     }
 

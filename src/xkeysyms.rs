@@ -25,6 +25,7 @@ pub const XK_Next: xcb_keysym_t = 0xff56;
 pub const XK_Page_Down: xcb_keysym_t = 0xff56;
 pub const XK_End: xcb_keysym_t = 0xff57;
 pub const XK_Begin: xcb_keysym_t = 0xff58;
+pub const XK_Insert: xcb_keysym_t = 0xff63;
 
 pub const XK_KP_Space: xcb_keysym_t = 0xff80;
 pub const XK_KP_Tab: xcb_keysym_t = 0xff89;
@@ -218,6 +219,7 @@ pub fn xcb_keysym_to_keycode(k: xcb_keysym_t) -> KeyCode {
         XK_Page_Up => KeyCode::PageUp,
         XK_Page_Down => KeyCode::PageDown,
         XK_End => KeyCode::End,
+        XK_KP_Insert | XK_Insert => KeyCode::Insert,
         _ => KeyCode::Unknown,
     }
 }

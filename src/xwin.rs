@@ -1,4 +1,4 @@
-use failure::Error;
+use failure::{self, Error};
 use font::{Font, GlyphInfo, ftwrap};
 use pty::MasterPty;
 use std::cell::RefCell;
@@ -10,6 +10,7 @@ use std::rc::Rc;
 use std::slice;
 use term::{self, KeyCode, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 use xcb;
+use xcb_util;
 use xgfx::{self, BitmapImage, Connection, Drawable};
 use xkeysyms;
 
@@ -75,6 +76,7 @@ pub struct TerminalWindow<'a> {
     process: Child,
     glyph_cache: RefCell<HashMap<GlyphKey, Rc<CachedGlyph>>>,
     palette: term::color::ColorPalette,
+    timestamp: xcb::xproto::Timestamp,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -99,11 +101,57 @@ struct CachedGlyph {
 
 struct Host<'a> {
     pty: &'a mut Write,
+    window: &'a xgfx::Window<'a>,
+    timestamp: xcb::xproto::Timestamp,
 }
 
 impl<'a> term::TerminalHost for Host<'a> {
     fn writer(&mut self) -> &mut Write {
         self.pty
+    }
+
+    // Check out https://tronche.com/gui/x/icccm/sec-2.html for some deep and complex
+    // background on what's happening in here.
+    fn get_clipboard(&mut self) -> Result<String, Error> {
+        let conn = self.window.get_conn();
+
+        xcb::convert_selection(
+            conn.conn(),
+            self.window.as_drawable(),
+            xcb::ATOM_PRIMARY,
+            conn.atom_utf8_string,
+            conn.atom_xsel_data,
+            self.timestamp,
+        );
+        conn.flush();
+
+        loop {
+            let event = conn.wait_for_event().ok_or_else(
+                || failure::err_msg("X connection EOF"),
+            )?;
+            match event.response_type() & 0x7f {
+                xcb::SELECTION_NOTIFY => {
+                    let selection: &xcb::SelectionNotifyEvent = unsafe { xcb::cast_event(&event) };
+
+                    if selection.selection() == xcb::ATOM_PRIMARY &&
+                        selection.property() != xcb::NONE
+                    {
+                        let prop = xcb_util::icccm::get_text_property(
+                            conn,
+                            selection.requestor(),
+                            selection.property(),
+                        ).get_reply()?;
+                        return Ok(prop.name().into());
+                    }
+                }
+                _ => {
+                    eprintln!(
+                        "got XCB event type {} while waiting for selection",
+                        event.response_type() & 0x7f
+                    );
+                }
+            }
+        }
     }
 }
 
@@ -148,6 +196,7 @@ impl<'a> TerminalWindow<'a> {
             process,
             glyph_cache: RefCell::new(HashMap::new()),
             palette: term::color::ColorPalette::default(),
+            timestamp: 0,
         })
     }
 
@@ -660,20 +709,30 @@ impl<'a> TerminalWindow<'a> {
             }
             xcb::KEY_PRESS => {
                 let key_press: &xcb::KeyPressEvent = unsafe { xcb::cast_event(&event) };
+                self.timestamp = key_press.time();
                 let (code, mods) = self.decode_key(key_press);
                 self.terminal.key_down(
                     code,
                     mods,
-                    &mut Host { pty: &mut self.pty },
+                    &mut Host {
+                        pty: &mut self.pty,
+                        window: &self.window,
+                        timestamp: self.timestamp,
+                    },
                 )?;
             }
             xcb::KEY_RELEASE => {
                 let key_press: &xcb::KeyPressEvent = unsafe { xcb::cast_event(&event) };
+                self.timestamp = key_press.time();
                 let (code, mods) = self.decode_key(key_press);
                 self.terminal.key_up(
                     code,
                     mods,
-                    &mut Host { pty: &mut self.pty },
+                    &mut Host {
+                        pty: &mut self.pty,
+                        window: &self.window,
+                        timestamp: self.timestamp,
+                    },
                 )?;
             }
             xcb::MOTION_NOTIFY => {
@@ -688,12 +747,17 @@ impl<'a> TerminalWindow<'a> {
                 };
                 self.terminal.mouse_event(
                     event,
-                    &mut Host { pty: &mut self.pty },
+                    &mut Host {
+                        pty: &mut self.pty,
+                        window: &self.window,
+                        timestamp: self.timestamp,
+                    },
                 )?;
             }
             xcb::BUTTON_PRESS |
             xcb::BUTTON_RELEASE => {
                 let button_press: &xcb::ButtonPressEvent = unsafe { xcb::cast_event(&event) };
+                self.timestamp = button_press.time();
 
                 let event = MouseEvent {
                     kind: match r {
@@ -719,7 +783,11 @@ impl<'a> TerminalWindow<'a> {
 
                 self.terminal.mouse_event(
                     event,
-                    &mut Host { pty: &mut self.pty },
+                    &mut Host {
+                        pty: &mut self.pty,
+                        window: &self.window,
+                        timestamp: self.timestamp,
+                    },
                 )?;
             }
             xcb::CLIENT_MESSAGE => {

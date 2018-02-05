@@ -109,6 +109,7 @@ pub enum KeyCode {
     PageDown,
     Home,
     End,
+    Insert,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -862,9 +863,7 @@ impl TerminalState {
         let shift = mods & SHIFT;
         let alt = mods & ALT;
 
-        // https://doc.rust-lang.org/std/primitive.char.html#method.encode_utf8
-        // says "A buffer of length four is large enough to encode any char."
-        let mut buf = [0u8; 4];
+        let mut buf = String::new();
 
         // TODO: also respect self.application_keypad
 
@@ -872,23 +871,41 @@ impl TerminalState {
             (Char(c), CTRL, _, SHIFT, _) if c <= 0xff as char => {
                 // If shift is held we have C == 0x43 and want to translate
                 // that into 0x03
-                ((c as u8 - 0x40) as char).encode_utf8(&mut buf) as &str
+                buf.push((c as u8 - 0x40) as char);
+                buf.as_str()
             }
             (Char(c), CTRL, ..) if c <= 0xff as char => {
                 // If shift is not held we have C == 0x63 and want to translate
                 // that into 0x03
-                ((c as u8 - 0x60) as char).encode_utf8(&mut buf) as &str
+                buf.push((c as u8 - 0x60) as char);
+                buf.as_str()
             }
             (Char(c), _, ALT, ..) if c <= 0xff as char => {
-                ((c as u8 | 0x80) as char).encode_utf8(&mut buf) as &str
+                buf.push((c as u8 | 0x80) as char);
+                buf.as_str()
             }
-            (Char(c), ..) => c.encode_utf8(&mut buf),
+            (Char(c), ..) => {
+                buf.push(c);
+                buf.as_str()
+            }
+            (Insert, _, _, SHIFT, _) => {
+                let clip = host.get_clipboard()?;
+                if self.bracketed_paste {
+                    use std::fmt::Write;
+                    write!(buf, "\x1b[200~{}\x1b[201~", clip)?;
+                } else {
+                    buf = clip;
+                }
+                buf.as_str()
+            }
+
             (Up, _, _, _, APPCURSOR) => "\x1bOA",
             (Down, _, _, _, APPCURSOR) => "\x1bOB",
             (Right, _, _, _, APPCURSOR) => "\x1bOC",
             (Left, _, _, _, APPCURSOR) => "\x1bOD",
             (Home, _, _, _, APPCURSOR) => "\x1bOH",
             (End, _, _, _, APPCURSOR) => "\x1bOF",
+
             (Up, ..) => "\x1b[A",
             (Down, ..) => "\x1b[B",
             (Right, ..) => "\x1b[C",
@@ -907,6 +924,7 @@ impl TerminalState {
             (PageDown, ..) => "\x1b[6~",
             (Home, ..) => "\x1b[H",
             (End, ..) => "\x1b[F",
+            (Insert, ..) => "\x1b[2~",
 
             // Modifier keys pressed on their own and unmappable keys don't expand to anything
             (Control, ..) | (Alt, ..) | (Meta, ..) | (Super, ..) | (Hyper, ..) | (Shift, ..) |
@@ -1315,7 +1333,12 @@ impl Terminal {
 /// Provides a means for sending data to the connected pty,
 /// and for operating on the clipboard
 pub trait TerminalHost {
+    /// Returns an object that can be used to send data to the
+    /// slave end of the associated pty.
     fn writer(&mut self) -> &mut std::io::Write;
+
+    /// Returns the current clipboard contents
+    fn get_clipboard(&mut self) -> Result<String, Error>;
 }
 
 impl vte::Perform for TerminalState {
