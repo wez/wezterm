@@ -759,11 +759,7 @@ impl TerminalState {
         }
     }
 
-    pub fn mouse_event<W: std::io::Write>(
-        &mut self,
-        event: MouseEvent,
-        write: &mut W,
-    ) -> Result<(), Error> {
+    pub fn mouse_event(&mut self, event: MouseEvent, host: &mut TerminalHost) -> Result<(), Error> {
         match event {
             MouseEvent {
                 kind: MouseEventKind::Press,
@@ -783,7 +779,7 @@ impl TerminalState {
 
                 if self.sgr_mouse {
                     write!(
-                        write,
+                        host.writer(),
                         "\x1b[<{};{};{}M",
                         report_button,
                         event.x + 1,
@@ -791,7 +787,7 @@ impl TerminalState {
                     )?;
                 } else if self.alt_screen_is_active {
                     // Send cursor keys instead (equivalent to xterm's alternateScroll mode)
-                    self.key_down(key, KeyModifiers::default(), write)?;
+                    self.key_down(key, KeyModifiers::default(), host)?;
                 } else {
                     self.scroll_viewport(scroll_delta)
                 }
@@ -806,14 +802,20 @@ impl TerminalState {
                 }
                 {
                     if self.sgr_mouse {
-                        write!(write, "\x1b[<{};{};{}M", button, event.x + 1, event.y + 1)?;
+                        write!(
+                            host.writer(),
+                            "\x1b[<{};{};{}M",
+                            button,
+                            event.x + 1,
+                            event.y + 1
+                        )?;
                     }
                 }
             }
             MouseEvent { kind: MouseEventKind::Release, .. } => {
                 self.current_mouse_button = MouseButton::None;
                 if self.sgr_mouse {
-                    write!(write, "\x1b[<3;{};{}m", event.x + 1, event.y + 1)?;
+                    write!(host.writer(), "\x1b[<3;{};{}m", event.x + 1, event.y + 1)?;
                 }
             }
             MouseEvent { kind: MouseEventKind::Move, .. } => {
@@ -826,7 +828,13 @@ impl TerminalState {
                 }
                 {
                     if self.sgr_mouse {
-                        write!(write, "\x1b[<{};{};{}M", button, event.x + 1, event.y + 1)?;
+                        write!(
+                            host.writer(),
+                            "\x1b[<{};{};{}M",
+                            button,
+                            event.x + 1,
+                            event.y + 1
+                        )?;
                     }
                 }
             }
@@ -838,11 +846,11 @@ impl TerminalState {
     /// that is embedding the Terminal.  This method translates the
     /// keycode into a sequence of bytes to send to the slave end
     /// of the pty via the `Write`-able object provided by the caller.
-    pub fn key_down<W: std::io::Write>(
+    pub fn key_down(
         &mut self,
         key: KeyCode,
         mods: KeyModifiers,
-        write: &mut W,
+        host: &mut TerminalHost,
     ) -> Result<(), Error> {
         const CTRL: KeyModifiers = KeyModifiers::CTRL;
         const SHIFT: KeyModifiers = KeyModifiers::SHIFT;
@@ -905,7 +913,7 @@ impl TerminalState {
             (Unknown, ..) => "",
         };
 
-        write.write(&to_send.as_bytes())?;
+        host.writer().write(&to_send.as_bytes())?;
 
         // Reset the viewport if we sent data to the parser
         if to_send.len() > 0 && self.viewport_offset != 0 {
@@ -916,11 +924,11 @@ impl TerminalState {
         Ok(())
     }
 
-    pub fn key_up<W: std::io::Write>(
+    pub fn key_up(
         &mut self,
         _: KeyCode,
         _: KeyModifiers,
-        _: &mut W,
+        _: &mut TerminalHost,
     ) -> Result<(), Error> {
         Ok(())
     }
@@ -1303,6 +1311,12 @@ impl Terminal {
     }
 }
 
+/// Represents the host of the terminal.
+/// Provides a means for sending data to the connected pty,
+/// and for operating on the clipboard
+pub trait TerminalHost {
+    fn writer(&mut self) -> &mut std::io::Write;
+}
 
 impl vte::Perform for TerminalState {
     /// Draw a character to the screen

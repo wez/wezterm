@@ -97,6 +97,16 @@ struct CachedGlyph {
     bearing_y: isize,
 }
 
+struct Host<'a> {
+    pty: &'a mut Write,
+}
+
+impl<'a> term::TerminalHost for Host<'a> {
+    fn writer(&mut self) -> &mut Write {
+        self.pty
+    }
+}
+
 impl<'a> TerminalWindow<'a> {
     pub fn new(
         conn: &Connection,
@@ -651,12 +661,20 @@ impl<'a> TerminalWindow<'a> {
             xcb::KEY_PRESS => {
                 let key_press: &xcb::KeyPressEvent = unsafe { xcb::cast_event(&event) };
                 let (code, mods) = self.decode_key(key_press);
-                self.terminal.key_down(code, mods, &mut self.pty)?;
+                self.terminal.key_down(
+                    code,
+                    mods,
+                    &mut Host { pty: &mut self.pty },
+                )?;
             }
             xcb::KEY_RELEASE => {
                 let key_press: &xcb::KeyPressEvent = unsafe { xcb::cast_event(&event) };
                 let (code, mods) = self.decode_key(key_press);
-                self.terminal.key_up(code, mods, &mut self.pty)?;
+                self.terminal.key_up(
+                    code,
+                    mods,
+                    &mut Host { pty: &mut self.pty },
+                )?;
             }
             xcb::MOTION_NOTIFY => {
                 let motion: &xcb::MotionNotifyEvent = unsafe { xcb::cast_event(&event) };
@@ -668,7 +686,10 @@ impl<'a> TerminalWindow<'a> {
                     y: (motion.event_y() as f64 / self.cell_height).floor() as i64,
                     modifiers: xkeysyms::modifiers_from_state(motion.state()),
                 };
-                self.terminal.mouse_event(event, &mut self.pty)?;
+                self.terminal.mouse_event(
+                    event,
+                    &mut Host { pty: &mut self.pty },
+                )?;
             }
             xcb::BUTTON_PRESS |
             xcb::BUTTON_RELEASE => {
@@ -696,7 +717,10 @@ impl<'a> TerminalWindow<'a> {
                     modifiers: xkeysyms::modifiers_from_state(button_press.state()),
                 };
 
-                self.terminal.mouse_event(event, &mut self.pty)?;
+                self.terminal.mouse_event(
+                    event,
+                    &mut Host { pty: &mut self.pty },
+                )?;
             }
             xcb::CLIENT_MESSAGE => {
                 let msg: &xcb::ClientMessageEvent = unsafe { xcb::cast_event(&event) };
