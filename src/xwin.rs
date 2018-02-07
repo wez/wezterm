@@ -351,21 +351,22 @@ impl<'a> TerminalWindow<'a> {
 
     /// Perform the load and render of a glyph
     fn load_glyph(&self, info: &GlyphInfo, style: &TextStyle) -> Result<Rc<CachedGlyph>, Error> {
-        let (has_color, ft_glyph) = {
+        let (has_color, ft_glyph, cell_width, cell_height) = {
             let font = self.fonts.cached_font(style)?;
             let mut font = font.borrow_mut();
+            let (height, width, _) = font.get_metrics()?;
             let has_color = font.has_color(info.font_idx)?;
             // This clone is conceptually unsafe, but ok in practice as we are
             // single threaded and don't load any other glyphs in the body of
             // this load_glyph() function.
             let ft_glyph = font.load_glyph(info.font_idx, info.glyph_pos)?.clone();
-            (has_color, ft_glyph)
+            (has_color, ft_glyph, width, height)
         };
 
-        let scale = if (info.x_advance / info.num_cells as f64).floor() > self.cell_width {
-            info.num_cells as f64 * (self.cell_width / info.x_advance)
-        } else if ft_glyph.bitmap.rows as f64 > self.cell_height {
-            self.cell_height / ft_glyph.bitmap.rows as f64
+        let scale = if (info.x_advance / info.num_cells as f64).floor() > cell_width {
+            info.num_cells as f64 * (cell_width / info.x_advance)
+        } else if ft_glyph.bitmap.rows as f64 > cell_height {
+            cell_height / ft_glyph.bitmap.rows as f64
         } else {
             1.0f64
         };
@@ -444,6 +445,21 @@ impl<'a> TerminalWindow<'a> {
                 image
             };
 
+            #[cfg(debug_assertions)]
+            {
+                if info.text == "X" {
+                    println!(
+                        "X: x_advance={} x_offset={} bearing_x={} image={:?} info={:?} glyph={:?}",
+                        x_advance,
+                        x_offset,
+                        bearing_x,
+                        image.image_dimensions(),
+                        info,
+                        ft_glyph
+                    );
+                }
+            }
+
             CachedGlyph {
                 image: Some(image),
                 scale,
@@ -501,6 +517,11 @@ impl<'a> TerminalWindow<'a> {
                 for cluster in cell_clusters {
                     let attrs = &cluster.attrs;
                     let style = self.fonts.match_style(attrs);
+                    let metric_width = {
+                        let font = self.fonts.cached_font(style)?;
+                        let (_, width, _) = font.borrow_mut().get_metrics()?;
+                        width as usize
+                    };
 
                     let (fg_color, bg_color) = {
                         let mut fg_color = &attrs.foreground;
@@ -526,7 +547,7 @@ impl<'a> TerminalWindow<'a> {
                         self.buffer_image.clear_rect(
                             x,
                             y,
-                            cell_print_width * cell_width,
+                            cell_print_width * metric_width,
                             cell_height,
                             bg_color.into(),
                         );
@@ -537,7 +558,7 @@ impl<'a> TerminalWindow<'a> {
                                 if cursor.x == cur_x {
                                     // The cursor fits in this cell, so render the cursor bg
                                     self.buffer_image.clear_rect(
-                                        (cur_x * cell_width) as isize,
+                                        (cur_x * metric_width) as isize,
                                         y,
                                         cell_width * line.cells[cur_x].width(),
                                         cell_height,
@@ -595,7 +616,17 @@ impl<'a> TerminalWindow<'a> {
                                     xgfx::Operator::MultiplyThenOver(glyph_color.into())
                                 };
 
-                                let slice_offset = slice_x * cell_width;
+                                let slice_offset = slice_x * metric_width;
+
+                                // How much of the glyph to render in this slice.  If we're
+                                // the last slice in the sequence then we don't clamp to the
+                                // cell metrics so that ligatures can bleed from one of the
+                                // slice/cells into the next and look good.
+                                let slice_width = if slice_x == info.num_cells as usize - 1 {
+                                    glyph_width - slice_offset
+                                } else {
+                                    (glyph_width - slice_offset).min(metric_width)
+                                };
 
                                 self.buffer_image.draw_image_subset(
                                     slice_offset as isize + x + glyph.x_offset as isize +
@@ -604,7 +635,7 @@ impl<'a> TerminalWindow<'a> {
                                         (glyph.y_offset as isize + glyph.bearing_y),
                                     slice_offset,
                                     0,
-                                    (glyph_width - slice_offset).min(cell_width),
+                                    slice_width,
                                     glyph_height.min(cell_height),
                                     image,
                                     operator,
@@ -614,12 +645,12 @@ impl<'a> TerminalWindow<'a> {
                                     // Render a block outline style of cursor.
                                     // TODO: make this respect user configuration
                                     self.buffer_image.draw_rect(
-                                        (slice_offset + (cell_idx * cell_width)) as
+                                        (slice_offset + (cell_idx * metric_width)) as
                                             isize,
                                         y,
                                         // take care to use the print width here otherwise
                                         // the rectangle will incorrectly bisect the glyph
-                                        (cell_print_width * cell_width),
+                                        (cell_print_width * metric_width),
                                         cell_height,
                                         self.palette.cursor().into(),
                                         xgfx::Operator::Over,
