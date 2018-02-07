@@ -1,6 +1,6 @@
 language: rust
 rust:
-  - stable
+  #  - stable  we use a feature flag that precludes this
   - beta
   - nightly
 matrix:
@@ -9,3 +9,6 @@ matrix:
 script:
   - cargo build --verbose --all
   - cargo test --verbose --all
+before_install:
+  - sudo apt-get -qq update
+  - sudo apt-get install -y libxcb-icccm4-dev libxcb-ewmh-dev libxcb-image0-dev libxcb-keysyms1-dev libharfbuzz-dev libfontconfig1-dev libfreetype6-dev
