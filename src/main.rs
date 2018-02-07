@@ -9,7 +9,11 @@ extern crate freetype;
 extern crate resize;
 extern crate libc;
 extern crate mio;
+extern crate serde;
+#[macro_use]
+extern crate serde_derive;
 extern crate term;
+extern crate toml;
 #[macro_use]
 pub mod log;
 
@@ -27,6 +31,7 @@ use std::process::Command;
 use std::str;
 use std::time::Duration;
 
+mod config;
 mod xgfx;
 mod xkeysyms;
 mod font;
@@ -61,11 +66,16 @@ fn run() -> Result<(), Error> {
 
     let waiter = sigchld::ChildWaiter::new()?;
 
+    let config = config::Config::load()?;
+    println!("Using configuration: {:#?}", config);
+
     // First step is to figure out the font metrics so that we know how
     // big things are going to be.
 
-    let mut pattern = FontPattern::parse("Operator Mono SSm Lig:size=10")?;
-    pattern.add_double("dpi", 96.0)?;
+    let mut pattern = FontPattern::parse(&config.font.fontconfig_pattern)?;
+    pattern.add_double("size", config.font_size)?;
+    pattern.add_double("dpi", config.dpi)?;
+
     let mut font = Font::new(pattern)?;
     // we always load the cell_height for font 0,
     // regardless of which font we are shaping here,

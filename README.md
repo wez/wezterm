@@ -40,7 +40,7 @@ These are in the done/doing soon category:
 - [x] Runs on Linux with XCB
 - [x] Scrollback (use mouse wheel and Shift Page{Up|Down})
 - [x] True Color support
-- [x] Color Emoji and font fallback (Note: currently assumes you have the Operator font!)
+- [x] Color Emoji and font fallback
 - [x] Paste selection via Shift-Insert
 - [ ] xterm style selection of text with mouse
 - [ ] Configuration file to specify fonts and colors
@@ -58,3 +58,21 @@ Things that I'd like to see happen and that have no immediate priority
 - [ ] Tabs
 - [ ] Textual renderer.  Think `tmux` or `screen`.
 - [ ] Runs on Windows
+
+## Configuration
+
+`wezterm` will look for a TOML configuration file in `$HOME/.config/wezterm/wezterm.toml`,
+and then in `$HOME/.wezterm.toml`.
+
+Configuration is currently very simple and the format is considered unstable and subject
+to change.  The code for configuration can be found in `src/config.rs`.
+
+I use the following in my `~/.wezterm.toml`:
+
+```
+font_size = 10
+font = { fontconfig_pattern = "Operator Mono SSm Lig" }
+```
+
+The default configuration will attempt to use whichever font is returned from
+fontconfig when `monospace` is requested.
