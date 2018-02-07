@@ -1,3 +1,5 @@
+# Note that travis has been disabled because the Trusty harfbuzz
+# library doesn't have `hb_ft_font_create_referenced` and we require it
 language: rust
 rust:
   #  - stable  we use a feature flag that precludes this

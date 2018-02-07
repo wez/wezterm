@@ -9,14 +9,15 @@ A terminal emulator implemented in Rust.
 * Build in release mode: `cargo build --release`
 * Run it via either `cargo run --release` or `target/release/wezterm`
 
-You will need a collection of support libraries; I built this incrementally
-so far so I don't have a complete list.  Please open an issue if you work
-through and discover the full and proper list of packages for ubuntu:
+You will need a collection of support libraries; important to note is that
+your `harfbuzz` library must have support for `hb_ft_font_create_referenced`;
+older linux distributions don't have this!
 
-* xcb and xcb-util development packages
-* fontconfig
-* harfbuzz
-* freetype
+```
+$ sudo apt-get install -y libxcb-icccm4-dev libxcb-ewmh-dev \
+    libxcb-image0-dev libxcb-keysyms1-dev libharfbuzz-dev \
+    libfontconfig1-dev libfreetype6-dev
+```
 
 ## What?
 
