@@ -25,6 +25,7 @@ pub struct Config {
 
     /// An optional set of style rules to select the font based
     /// on the cell attributes
+    #[serde(default)]
     pub font_rules: Vec<StyleRule>,
 }
 
