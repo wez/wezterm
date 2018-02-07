@@ -35,7 +35,7 @@ mod config;
 mod xgfx;
 mod xkeysyms;
 mod font;
-use font::{Font, FontPattern, ftwrap};
+use font::{FontConfiguration, ftwrap};
 
 mod pty;
 mod sigchld;
@@ -72,15 +72,13 @@ fn run() -> Result<(), Error> {
     // First step is to figure out the font metrics so that we know how
     // big things are going to be.
 
-    let mut pattern = FontPattern::parse(&config.font.fontconfig_pattern)?;
-    pattern.add_double("size", config.font_size)?;
-    pattern.add_double("dpi", config.dpi)?;
+    let fontconfig = FontConfiguration::new(config);
+    let font = fontconfig.default_font()?;
 
-    let mut font = Font::new(pattern)?;
     // we always load the cell_height for font 0,
     // regardless of which font we are shaping here,
     // so that we can scale glyphs appropriately
-    let (cell_height, cell_width, _) = font.get_metrics()?;
+    let (cell_height, cell_width, _) = font.borrow_mut().get_metrics()?;
 
     let initial_cols = 80u16;
     let initial_rows = 24u16;
@@ -132,7 +130,7 @@ fn run() -> Result<(), Error> {
         terminal,
         master,
         child,
-        font,
+        fontconfig,
     )?;
 
     window.show();

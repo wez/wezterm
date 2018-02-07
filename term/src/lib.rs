@@ -8,6 +8,9 @@ extern crate failure;
 extern crate bitflags;
 extern crate unicode_width;
 extern crate unicode_segmentation;
+extern crate serde;
+#[macro_use]
+extern crate serde_derive;
 extern crate vte;
 
 use failure::Error;
@@ -202,7 +205,7 @@ macro_rules! bitfield {
     };
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Deserialize, PartialEq, Eq)]
 #[repr(u16)]
 pub enum Intensity {
     Normal = 0,
@@ -210,7 +213,7 @@ pub enum Intensity {
     Half = 2,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Deserialize, PartialEq, Eq)]
 #[repr(u16)]
 pub enum Underline {
     None = 0,
@@ -225,8 +228,7 @@ impl CellAttributes {
     bitfield!(blink, set_blink, 5);
     bitfield!(reverse, set_reverse, 6);
     bitfield!(strikethrough, set_strikethrough, 7);
-    bitfield!(halfbright, set_halfbright, 8);
-    bitfield!(invisible, set_invisible, 9);
+    bitfield!(invisible, set_invisible, 8);
     // Allow up to 8 different font values
     //bitfield!(font, set_font, 0b111000000, 6);
 }

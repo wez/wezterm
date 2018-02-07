@@ -1,4 +1,7 @@
 use failure::{self, Error};
+use std::cell::RefCell;
+use std::collections::HashMap;
+use std::rc::Rc;
 use std::slice;
 use unicode_width::UnicodeWidthStr;
 
@@ -7,6 +10,90 @@ pub mod hbwrap;
 pub mod fcwrap;
 
 pub use self::fcwrap::Pattern as FontPattern;
+
+use super::config::{Config, TextStyle};
+use term::CellAttributes;
+
+/// Matches and loads fonts for a given input style
+pub struct FontConfiguration {
+    config: Config,
+    fonts: RefCell<HashMap<TextStyle, Rc<RefCell<Font>>>>,
+}
+
+impl FontConfiguration {
+    /// Create a new empty configuration
+    pub fn new(config: Config) -> Self {
+        Self {
+            config,
+            fonts: RefCell::new(HashMap::new()),
+        }
+    }
+
+    /// Given a text style, load (without caching) the font that
+    /// best matches according to the fontconfig pattern.
+    pub fn load_font(&self, style: &TextStyle) -> Result<Rc<RefCell<Font>>, Error> {
+        let mut pattern = FontPattern::parse(&style.fontconfig_pattern)?;
+        pattern.add_double("size", self.config.font_size)?;
+        pattern.add_double("dpi", self.config.dpi)?;
+
+        Ok(Rc::new(RefCell::new(Font::new(pattern)?)))
+    }
+
+    /// Given a text style, load (with caching) the font that best
+    /// matches according to the fontconfig pattern.
+    pub fn cached_font(&self, style: &TextStyle) -> Result<Rc<RefCell<Font>>, Error> {
+        let mut fonts = self.fonts.borrow_mut();
+
+        if let Some(entry) = fonts.get(style) {
+            return Ok(Rc::clone(entry));
+        }
+
+        let font = self.load_font(style)?;
+        fonts.insert(style.clone(), Rc::clone(&font));
+        Ok(font)
+    }
+
+    /// Returns the baseline font specified in the configuration
+    pub fn default_font(&self) -> Result<Rc<RefCell<Font>>, Error> {
+        self.cached_font(&self.config.font)
+    }
+
+    /// Apply the defined font_rules from the user configuration to
+    /// produce the text style that best matches the supplied input
+    /// cell attributes.
+    pub fn match_style(&self, attrs: &CellAttributes) -> &TextStyle {
+        // a little macro to avoid boilerplate for matching the rules.
+        // If the rule doesn't specify a value for an attribute then
+        // it will implicitly match.  If it specifies an attribute
+        // then it has to have the same value as that in the input attrs.
+        macro_rules! attr_match {
+            ($ident:ident, $rule:expr) => {
+                if let Some($ident) = $rule.$ident {
+                    if $ident != attrs.$ident() {
+                        // Does not match
+                        continue;
+                    }
+                }
+                // matches so far...
+            }
+        };
+
+        for rule in self.config.font_rules.iter() {
+            attr_match!(intensity, &rule);
+            attr_match!(underline, &rule);
+            attr_match!(italic, &rule);
+            attr_match!(blink, &rule);
+            attr_match!(reverse, &rule);
+            attr_match!(strikethrough, &rule);
+            attr_match!(invisible, &rule);
+
+            // If we get here, then none of the rules didn't match,
+            // so we therefore assume that it did match overall.
+            return &rule.font;
+        }
+        &self.config.font
+    }
+}
 
 /// Holds information about a shaped glyph
 #[derive(Clone, Debug)]
@@ -200,7 +287,7 @@ impl Font {
             s.len(),
             s
         );
-        */
+*/
         let features = vec![
             // kerning
             hbwrap::feature_from_string("kern")?,

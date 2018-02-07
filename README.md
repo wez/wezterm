@@ -72,6 +72,10 @@ I use the following in my `~/.wezterm.toml`:
 ```
 font_size = 10
 font = { fontconfig_pattern = "Operator Mono SSm Lig" }
+
+[[font_rules]]
+italic = true
+font = { fontconfig_pattern = "Operator Mono SSm Lig:style=Italic" }
 ```
 
 The default configuration will attempt to use whichever font is returned from

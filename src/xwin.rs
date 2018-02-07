@@ -1,5 +1,6 @@
+use config::TextStyle;
 use failure::{self, Error};
-use font::{Font, GlyphInfo, ftwrap};
+use font::{FontConfiguration, GlyphInfo, ftwrap};
 use pty::MasterPty;
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -73,7 +74,7 @@ pub struct TerminalWindow<'a> {
     conn: &'a Connection,
     width: u16,
     height: u16,
-    font: RefCell<Font>,
+    fonts: FontConfiguration,
     cell_height: f64,
     cell_width: f64,
     descender: isize,
@@ -85,10 +86,11 @@ pub struct TerminalWindow<'a> {
     palette: term::color::ColorPalette,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 struct GlyphKey {
     font_idx: usize,
     glyph_pos: u32,
+    style: TextStyle,
 }
 
 /// Caches a rendered glyph.
@@ -189,9 +191,14 @@ impl<'a> TerminalWindow<'a> {
         terminal: term::Terminal,
         pty: MasterPty,
         process: Child,
-        mut font: Font,
+        fonts: FontConfiguration,
     ) -> Result<TerminalWindow, Error> {
-        let (cell_height, cell_width, descender) = font.get_metrics()?;
+        let (cell_height, cell_width, descender) = {
+            // Urgh, this is a bit repeaty, but we need to satisfy the borrow checker
+            let font = fonts.default_font()?;
+            let tuple = font.borrow_mut().get_metrics()?;
+            tuple
+        };
 
         let window = xgfx::Window::new(&conn, width, height)?;
         window.set_title("wezterm");
@@ -218,7 +225,7 @@ impl<'a> TerminalWindow<'a> {
             conn,
             width,
             height,
-            font: RefCell::new(font),
+            fonts,
             cell_height,
             cell_width,
             descender,
@@ -324,10 +331,11 @@ impl<'a> TerminalWindow<'a> {
 
     /// Resolve a glyph from the cache, rendering the glyph on-demand if
     /// the cache doesn't already hold the desired glyph.
-    fn cached_glyph(&self, info: &GlyphInfo) -> Result<Rc<CachedGlyph>, Error> {
+    fn cached_glyph(&self, info: &GlyphInfo, style: &TextStyle) -> Result<Rc<CachedGlyph>, Error> {
         let key = GlyphKey {
             font_idx: info.font_idx,
             glyph_pos: info.glyph_pos,
+            style: style.clone(),
         };
 
         let mut cache = self.glyph_cache.borrow_mut();
@@ -336,15 +344,16 @@ impl<'a> TerminalWindow<'a> {
             return Ok(Rc::clone(entry));
         }
 
-        let glyph = self.load_glyph(info)?;
+        let glyph = self.load_glyph(info, style)?;
         cache.insert(key, Rc::clone(&glyph));
         Ok(glyph)
     }
 
     /// Perform the load and render of a glyph
-    fn load_glyph(&self, info: &GlyphInfo) -> Result<Rc<CachedGlyph>, Error> {
+    fn load_glyph(&self, info: &GlyphInfo, style: &TextStyle) -> Result<Rc<CachedGlyph>, Error> {
         let (has_color, ft_glyph) = {
-            let mut font = self.font.borrow_mut();
+            let font = self.fonts.cached_font(style)?;
+            let mut font = font.borrow_mut();
             let has_color = font.has_color(info.font_idx)?;
             // This clone is conceptually unsafe, but ok in practice as we are
             // single threaded and don't load any other glyphs in the body of
@@ -455,8 +464,9 @@ impl<'a> TerminalWindow<'a> {
     /// This is needed to dance around interior mutability concerns,
     /// as the font caches things.
     /// TODO: consider pushing this down into the Font impl itself.
-    fn shape_text(&self, s: &str) -> Result<Vec<GlyphInfo>, Error> {
-        let mut font = self.font.borrow_mut();
+    fn shape_text(&self, s: &str, style: &TextStyle) -> Result<Vec<GlyphInfo>, Error> {
+        let font = self.fonts.cached_font(style)?;
+        let mut font = font.borrow_mut();
         font.shape(0, s)
     }
 
@@ -490,6 +500,7 @@ impl<'a> TerminalWindow<'a> {
                 let cell_clusters = line.cluster();
                 for cluster in cell_clusters {
                     let attrs = &cluster.attrs;
+                    let style = self.fonts.match_style(attrs);
 
                     let (fg_color, bg_color) = {
                         let mut fg_color = &attrs.foreground;
@@ -505,7 +516,7 @@ impl<'a> TerminalWindow<'a> {
                     let bg_color = self.palette.resolve(bg_color);
 
                     // Shape the printable text from this cluster
-                    let glyph_info = self.shape_text(&cluster.text)?;
+                    let glyph_info = self.shape_text(&cluster.text, &style)?;
                     for info in glyph_info.iter() {
                         let cell_idx = cluster.byte_to_cell_idx[info.cluster as usize];
                         let cell = &line.cells[cell_idx];
@@ -536,7 +547,7 @@ impl<'a> TerminalWindow<'a> {
                             }
                         }
 
-                        let glyph = self.cached_glyph(info)?;
+                        let glyph = self.cached_glyph(info, &style)?;
                         // glyph.image.is_none() for whitespace glyphs
                         if let &Some(ref image) = &glyph.image {
                             if false && line_idx == cursor.y as usize {
