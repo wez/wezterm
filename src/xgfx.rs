@@ -23,6 +23,7 @@ pub struct Connection {
     pub atom_delete: xcb::Atom,
     pub atom_utf8_string: xcb::Atom,
     pub atom_xsel_data: xcb::Atom,
+    pub atom_targets: xcb::Atom,
     keysyms: *mut xcb_key_symbols_t,
     shm_available: bool,
 }
@@ -50,6 +51,9 @@ impl Connection {
         let atom_xsel_data = xcb::intern_atom(&conn, false, "XSEL_DATA")
             .get_reply()?
             .atom();
+        let atom_targets = xcb::intern_atom(&conn, false, "TARGETS")
+            .get_reply()?
+            .atom();
 
         let keysyms = unsafe { xcb_key_symbols_alloc(conn.get_raw_conn()) };
 
@@ -65,6 +69,7 @@ impl Connection {
             shm_available,
             atom_utf8_string,
             atom_xsel_data,
+            atom_targets,
         })
     }
 

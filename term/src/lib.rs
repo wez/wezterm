@@ -1339,6 +1339,9 @@ pub trait TerminalHost {
 
     /// Returns the current clipboard contents
     fn get_clipboard(&mut self) -> Result<String, Error>;
+
+    /// Adjust the contents of the clipboard
+    fn set_clipboard(&mut self, clip: Option<String>) -> Result<(), Error>;
 }
 
 impl vte::Perform for TerminalState {
