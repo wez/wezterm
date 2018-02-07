@@ -20,8 +20,11 @@ extern crate xcb_util;
 
 use mio::{Events, Poll, PollOpt, Ready, Token};
 use mio::unix::EventedFd;
+use std::env;
+use std::ffi::CStr;
 use std::os::unix::io::AsRawFd;
 use std::process::Command;
+use std::str;
 use std::time::Duration;
 
 mod xgfx;
@@ -33,6 +36,24 @@ mod pty;
 mod sigchld;
 mod xwin;
 use xwin::TerminalWindow;
+
+/// Determine which shell to run.
+/// We take the contents of the $SHELL env var first, then
+/// fall back to looking it up from the password database.
+fn get_shell() -> Result<String, Error> {
+    env::var("SHELL").or_else(|_| {
+        let ent = unsafe { libc::getpwuid(libc::getuid()) };
+
+        if ent.is_null() {
+            Ok("/bin/sh".into())
+        } else {
+            let shell = unsafe { CStr::from_ptr((*ent).pw_shell) };
+            shell.to_str().map(str::to_owned).map_err(|e| {
+                format_err!("failed to resolve shell: {:?}", e)
+            })
+        }
+    })
+}
 
 fn run() -> Result<(), Error> {
     let poll = Poll::new()?;
@@ -63,7 +84,7 @@ fn run() -> Result<(), Error> {
         initial_pixel_height,
     )?;
 
-    let cmd = Command::new("zsh");
+    let cmd = Command::new(get_shell()?);
     let child = slave.spawn_command(cmd)?;
     eprintln!("spawned: {:?}", child);
 

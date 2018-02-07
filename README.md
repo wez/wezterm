@@ -45,7 +45,7 @@ These are in the done/doing soon category:
 - [ ] xterm style selection of text with mouse
 - [ ] Configuration file to specify fonts and colors
 - [ ] Render underline, italic, bold, strikethrough
-- [ ] Command line argument parsing / launching of user shell (currently runs only `zsh`!)
+- [ ] Command line argument parsing instead of launching user shell
 
 There's a good number of terminal escape sequences that are not yet implemented
 and that will get fleshed out as the applications I use uncover them.
