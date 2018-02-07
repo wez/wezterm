@@ -43,7 +43,7 @@ These are in the done/doing soon category:
 - [x] Color Emoji and font fallback
 - [x] Paste selection via Shift-Insert
 - [ ] xterm style selection of text with mouse
-- [ ] Configuration file to specify fonts and colors
+- [ ] Configuration file to specify fonts and colors (in progress)
 - [ ] Render underline, italic, bold, strikethrough
 - [ ] Command line argument parsing instead of launching user shell
 
