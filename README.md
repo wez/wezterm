@@ -41,7 +41,8 @@ These are in the done/doing soon category:
 - [x] Scrollback (use mouse wheel and Shift Page{Up|Down})
 - [x] True Color support
 - [x] Color Emoji and font fallback
-- [x] Paste selection via Shift-Insert
+- [x] Paste selection via Shift-Insert (bracketed paste is supported!)
+- [x] SGR style mouse reporting (works in vim and tmux)
 - [ ] xterm style selection of text with mouse
 - [ ] Configuration file to specify fonts and colors (in progress)
 - [ ] Render underline, italic, bold, strikethrough
@@ -57,6 +58,7 @@ Things that I'd like to see happen and that have no immediate priority
 - [ ] Runs on macOS
 - [ ] Tabs
 - [ ] Textual renderer.  Think `tmux` or `screen`.
+- [ ] Runs on Linux with Wayland (use XWayland for now)
 - [ ] Runs on Windows
 
 ## Configuration
@@ -71,11 +73,24 @@ I use the following in my `~/.wezterm.toml`:
 
 ```
 font_size = 10
-font = { fontconfig_pattern = "Operator Mono SSm Lig" }
+font = { fontconfig_pattern = "Operator Mono SSm Lig Medium" }
 
 [[font_rules]]
 italic = true
-font = { fontconfig_pattern = "Operator Mono SSm Lig:style=Italic" }
+font = { fontconfig_pattern = "Operator Mono SSm Lig Medium:style=Italic" }
+
+[[font_rules]]
+italic = true
+intensity = "Bold"
+font = { fontconfig_pattern = "Operator Mono SSm Lig:style=Italic:weight=bold" }
+
+[[font_rules]]
+intensity = "Bold"
+font = { fontconfig_pattern = "Operator Mono SSm:weight=bold" }
+
+[[font_rules]]
+intensity = "Half"
+font = { fontconfig_pattern = "Operator Mono SSm Lig Light" }
 ```
 
 The default configuration will attempt to use whichever font is returned from
