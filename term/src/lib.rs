@@ -1003,13 +1003,39 @@ impl TerminalState {
                         }
                         // Double click to select a word on the current line
                         Some(&LastMouseClick { streak: 2, .. }) => {
-                            // Prepare to start a new selection.
-                            // We don't form the selection until the mouse drags.
+                            let y = event.y as ScrollbackOrVisibleRowIndex;
+                            let idx = self.screen().scrollback_or_visible_row(y);
+                            let line = self.screen().lines[idx].as_str();
+                            use unicode_segmentation::UnicodeSegmentation;
+
+                            self.selection_start = None;
                             self.selection_range = None;
-                            self.selection_start = Some(SelectionCoordinate {
-                                x: event.x,
-                                y: event.y as ScrollbackOrVisibleRowIndex,
-                            });
+                            // TODO: allow user to configure the word boundary rules.
+                            // Also consider making the default work with URLs?
+                            for (x, word) in line.split_word_bound_indices() {
+                                if event.x < x {
+                                    break;
+                                }
+                                if event.x <= x + word.len() {
+                                    // this is our word
+                                    let start = SelectionCoordinate { x, y };
+                                    let end = SelectionCoordinate {
+                                        x: x + word.len() - 1,
+                                        y,
+                                    };
+                                    self.selection_start = Some(start.clone());
+                                    self.selection_range = Some(SelectionRange { start, end });
+                                    self.dirty_selection_lines();
+                                    let text = self.get_selection_text();
+                                    debug!(
+                                        "finish 2click selection {:?} '{}'",
+                                        self.selection_range,
+                                        text
+                                    );
+                                    host.set_clipboard(Some(text))?;
+                                    return Ok(());
+                                }
+                            }
                             host.set_clipboard(None)?;
                         }
                         // triple click to select the current line
@@ -1030,7 +1056,11 @@ impl TerminalState {
                             });
                             self.dirty_selection_lines();
                             let text = self.get_selection_text();
-                            println!("finish selection {:?} '{}'", self.selection_range, text);
+                            debug!(
+                                "finish 3click selection {:?} '{}'",
+                                self.selection_range,
+                                text
+                            );
                             host.set_clipboard(Some(text))?;
                         }
                         // otherwise, clear out the selection
@@ -1051,15 +1081,25 @@ impl TerminalState {
                  _) => {
                     // Finish selecting a region, update clipboard
                     self.current_mouse_button = MouseButton::None;
-                    let text = self.get_selection_text();
-                    println!("finish selection {:?} '{}'", self.selection_range, text);
-                    host.set_clipboard(Some(text))?;
-                    return Ok(());
+                    match self.last_mouse_click.as_ref() {
+                        // Only consider a drag selection if we have a streak==1.
+                        // The double/triple click cases are handled above.
+                        Some(&LastMouseClick { streak: 1, .. }) => {
+                            let text = self.get_selection_text();
+                            debug!(
+                                "finish drag selection {:?} '{}'",
+                                self.selection_range,
+                                text
+                            );
+                            host.set_clipboard(Some(text))?;
+                            return Ok(());
+                        }
+                        _ => {}
+                    }
                 }
                 (MouseEvent { kind: MouseEventKind::Move, .. }, MouseButton::Left) => {
                     // dragging out the selection region
                     // TODO: may drag and change the viewport
-                    // TODO: scrolling the text (not viewport) should adjust the region
                     self.dirty_selection_lines();
                     let end = SelectionCoordinate {
                         x: event.x,
@@ -1392,6 +1432,7 @@ impl TerminalState {
     }
 
     fn set_scroll_viewport(&mut self, position: VisibleRowIndex) {
+        self.clear_selection();
         let position = position.max(0);
 
         let rows = self.screen().physical_rows;
@@ -1417,11 +1458,13 @@ impl TerminalState {
     }
 
     fn scroll_up(&mut self, num_rows: usize) {
+        self.clear_selection();
         let scroll_region = self.scroll_region.clone();
         self.screen_mut().scroll_up(&scroll_region, num_rows)
     }
 
     fn scroll_down(&mut self, num_rows: usize) {
+        self.clear_selection();
         let scroll_region = self.scroll_region.clone();
         self.screen_mut().scroll_down(&scroll_region, num_rows)
     }
