@@ -15,6 +15,7 @@ extern crate vte;
 
 use failure::Error;
 use std::ops::{Deref, DerefMut, Range};
+use std::time::{Duration, Instant};
 
 #[macro_use]
 mod debug;
@@ -129,9 +130,9 @@ impl SelectionRange {
     /// Must be called on a normalized range!
     pub fn cols_for_row(&self, row: ScrollbackOrVisibleRowIndex) -> Range<usize> {
         let (x1, x2) = if self.start.x <= self.end.x {
-            (self.start.x, self.end.x + 1)
+            (self.start.x, self.end.x.saturating_add(1))
         } else {
-            (self.end.x, self.start.x + 1)
+            (self.end.x, self.start.x.saturating_add(1))
         };
         debug_assert!(
             self.start.y <= self.end.y,
@@ -770,6 +771,47 @@ impl Screen {
     }
 }
 
+/// This is a little helper that keeps track of the "click streak",
+/// which is the number of successive clicks of the same mouse button
+/// within the CLICK_INTERVAL.  The streak is reset to 1 each time
+/// the mouse button differs from the last click, or when the elapsed
+/// time exceeds CLICK_INTERVAL.
+#[derive(Debug)]
+struct LastMouseClick {
+    button: MouseButton,
+    time: Instant,
+    streak: usize,
+}
+
+/// The multi-click interval, measured in milliseconds
+const CLICK_INTERVAL: u64 = 500;
+
+impl LastMouseClick {
+    fn new(button: MouseButton) -> Self {
+        Self {
+            button,
+            time: Instant::now(),
+            streak: 1,
+        }
+    }
+
+    fn add(&self, button: MouseButton) -> Self {
+        let now = Instant::now();
+        let streak = if button == self.button &&
+            now.duration_since(self.time) <= Duration::from_millis(CLICK_INTERVAL)
+        {
+            self.streak + 1
+        } else {
+            1
+        };
+        Self {
+            button,
+            time: now,
+            streak,
+        }
+    }
+}
+
 pub struct TerminalState {
     /// The primary screen + scrollback
     screen: Screen,
@@ -816,6 +858,9 @@ pub struct TerminalState {
     current_mouse_button: MouseButton,
     cursor_visible: bool,
 
+    /// Keeps track of double and triple clicks
+    last_mouse_click: Option<LastMouseClick>,
+
     /// Used to compute the offset to the top of the viewport.
     /// This is used to display the scrollback of the terminal.
     /// It is distinct from the scroll_region in that the scroll region
@@ -859,6 +904,7 @@ impl TerminalState {
             button_event_mouse: false,
             cursor_visible: true,
             current_mouse_button: MouseButton::None,
+            last_mouse_click: None,
             viewport_offset: 0,
             selection_range: None,
             selection_start: None,
@@ -924,6 +970,15 @@ impl TerminalState {
         // First pass to figure out if we're messing with the selection
         let send_event = self.sgr_mouse && !event.modifiers.contains(KeyModifiers::SHIFT);
 
+        // Perform click counting
+        if event.kind == MouseEventKind::Press {
+            let click = match self.last_mouse_click.take() {
+                None => LastMouseClick::new(event.button),
+                Some(click) => click.add(event.button),
+            };
+            self.last_mouse_click = Some(click);
+        }
+
         if !send_event {
             match (event, self.current_mouse_button) {
                 (MouseEvent {
@@ -932,16 +987,59 @@ impl TerminalState {
                      ..
                  },
                  _) => {
-                    // Prepare to start a new selection.
-                    // We don't form the selection until the mouse drags.
                     self.current_mouse_button = MouseButton::Left;
                     self.dirty_selection_lines();
-                    self.selection_range = None;
-                    self.selection_start = Some(SelectionCoordinate {
-                        x: event.x,
-                        y: event.y as ScrollbackOrVisibleRowIndex,
-                    });
-                    host.set_clipboard(None)?;
+                    match self.last_mouse_click.as_ref() {
+                        // Single click prepares the start of a new selection
+                        Some(&LastMouseClick { streak: 1, .. }) => {
+                            // Prepare to start a new selection.
+                            // We don't form the selection until the mouse drags.
+                            self.selection_range = None;
+                            self.selection_start = Some(SelectionCoordinate {
+                                x: event.x,
+                                y: event.y as ScrollbackOrVisibleRowIndex,
+                            });
+                            host.set_clipboard(None)?;
+                        }
+                        // Double click to select a word on the current line
+                        Some(&LastMouseClick { streak: 2, .. }) => {
+                            // Prepare to start a new selection.
+                            // We don't form the selection until the mouse drags.
+                            self.selection_range = None;
+                            self.selection_start = Some(SelectionCoordinate {
+                                x: event.x,
+                                y: event.y as ScrollbackOrVisibleRowIndex,
+                            });
+                            host.set_clipboard(None)?;
+                        }
+                        // triple click to select the current line
+                        Some(&LastMouseClick { streak: 3, .. }) => {
+                            self.selection_start = Some(SelectionCoordinate {
+                                x: event.x,
+                                y: event.y as ScrollbackOrVisibleRowIndex,
+                            });
+                            self.selection_range = Some(SelectionRange {
+                                start: SelectionCoordinate {
+                                    x: 0,
+                                    y: event.y as ScrollbackOrVisibleRowIndex,
+                                },
+                                end: SelectionCoordinate {
+                                    x: usize::max_value(),
+                                    y: event.y as ScrollbackOrVisibleRowIndex,
+                                },
+                            });
+                            self.dirty_selection_lines();
+                            let text = self.get_selection_text();
+                            println!("finish selection {:?} '{}'", self.selection_range, text);
+                            host.set_clipboard(Some(text))?;
+                        }
+                        // otherwise, clear out the selection
+                        _ => {
+                            self.selection_range = None;
+                            self.selection_start = None;
+                            host.set_clipboard(None)?;
+                        }
+                    }
 
                     return Ok(());
                 }
