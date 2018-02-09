@@ -9,7 +9,7 @@ use std::mem;
 use std::process::Child;
 use std::rc::Rc;
 use std::slice;
-use term::{self, KeyCode, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
+use term::{self, KeyCode, KeyModifiers, MouseButton, MouseEvent, MouseEventKind, TerminalHost};
 use xcb;
 use xcb_util;
 use xgfx::{self, BitmapImage, Connection, Drawable};
@@ -115,6 +115,11 @@ impl<'a> term::TerminalHost for Host<'a> {
     // Check out https://tronche.com/gui/x/icccm/sec-2.html for some deep and complex
     // background on what's happening in here.
     fn get_clipboard(&mut self) -> Result<String, Error> {
+        // If we own the clipboard, just return the text now
+        if let Some(ref text) = self.clipboard {
+            return Ok(text.clone());
+        }
+
         let conn = self.window.get_conn();
 
         xcb::convert_selection(
@@ -498,7 +503,7 @@ impl<'a> TerminalWindow<'a> {
         {
             let dirty_lines = self.terminal.get_dirty_lines();
 
-            for (line_idx, line) in dirty_lines {
+            for (line_idx, line, selrange) in dirty_lines {
 
                 let mut x = 0 as isize;
                 let y = (line_idx * cell_height) as isize;
@@ -551,6 +556,20 @@ impl<'a> TerminalWindow<'a> {
                             cell_height,
                             bg_color.into(),
                         );
+
+
+                        // Render selection background
+                        for cur_x in cell_idx..cell_idx + info.num_cells as usize {
+                            if term::in_range(cur_x, &selrange) {
+                                self.buffer_image.clear_rect(
+                                    (cur_x * metric_width) as isize,
+                                    y,
+                                    cell_width * line.cells[cur_x].width(),
+                                    cell_height,
+                                    self.palette.cursor().into(),
+                                );
+                            }
+                        }
 
                         // Render the cursor, if it overlaps with the current cluster
                         if line_idx as i64 == cursor.y {
@@ -761,6 +780,16 @@ impl<'a> TerminalWindow<'a> {
         (xkeysyms::xcb_keysym_to_keycode(sym), mods)
     }
 
+    fn clear_selection(&mut self) -> Result<(), Error> {
+        self.host.set_clipboard(None)?;
+        self.terminal.clear_selection();
+        Ok(())
+    }
+
+    fn mouse_event(&mut self, event: MouseEvent) -> Result<(), Error> {
+        self.terminal.mouse_event(event, &mut self.host)?;
+        Ok(())
+    }
 
     pub fn dispatch_event(&mut self, event: xcb::GenericEvent) -> Result<(), Error> {
         let r = event.response_type() & 0x7f;
@@ -800,7 +829,7 @@ impl<'a> TerminalWindow<'a> {
                     y: (motion.event_y() as f64 / self.cell_height).floor() as i64,
                     modifiers: xkeysyms::modifiers_from_state(motion.state()),
                 };
-                self.terminal.mouse_event(event, &mut self.host)?;
+                self.mouse_event(event)?;
             }
             xcb::BUTTON_PRESS |
             xcb::BUTTON_RELEASE => {
@@ -829,7 +858,7 @@ impl<'a> TerminalWindow<'a> {
                     modifiers: xkeysyms::modifiers_from_state(button_press.state()),
                 };
 
-                self.terminal.mouse_event(event, &mut self.host)?;
+                self.mouse_event(event)?;
             }
             xcb::CLIENT_MESSAGE => {
                 let msg: &xcb::ClientMessageEvent = unsafe { xcb::cast_event(&event) };
@@ -838,6 +867,10 @@ impl<'a> TerminalWindow<'a> {
                     // TODO: cleaner exit handling
                     bail!("window close requested!");
                 }
+            }
+            xcb::SELECTION_CLEAR => {
+                // Someone else now owns the selection
+                self.clear_selection()?;
             }
             xcb::SELECTION_REQUEST => {
                 // Someone is asking for our selected text

@@ -27,7 +27,7 @@ macro_rules! assert_dirty_lines {
     ($term:expr, $expected:expr, $($reason:tt)*) => {
         let dirty_indices: Vec<usize> = $term.get_dirty_lines()
                                              .iter()
-                                             .map(|&(i, _)| i).collect();
+                                             .map(|&(i, _, _)| i).collect();
         assert_eq!(&dirty_indices, $expected, $($reason)*);
     };
 }

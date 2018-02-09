@@ -36,8 +36,15 @@ pub type PhysRowIndex = usize;
 /// iterator Skip trait that is currently only in unstable rust.
 pub type VisibleRowIndex = i64;
 
+/// Like VisibleRowIndex above, but can index backwards into scrollback.
+/// This is deliberately a differently sized signed type to catch
+/// accidentally blending together the wrong types of indices.
+/// This is explicitly 32-bit rather than 64-bit as it seems unreasonable
+/// to want to scroll back or select more than ~2billion lines of scrollback.
+pub type ScrollbackOrVisibleRowIndex = i32;
+
 /// range.contains(), but that is unstable
-fn in_range<T: PartialOrd>(value: T, range: &Range<T>) -> bool {
+pub fn in_range<T: PartialOrd>(value: T, range: &Range<T>) -> bool {
     value >= range.start && value < range.end
 }
 
@@ -59,6 +66,93 @@ pub enum Position {
 pub struct CursorPosition {
     pub x: usize,
     pub y: VisibleRowIndex,
+}
+
+/// The x,y coordinates of either the start or end of a selection region
+#[derive(Debug, Default, Copy, Clone, Eq, PartialEq)]
+pub struct SelectionCoordinate {
+    pub x: usize,
+    pub y: ScrollbackOrVisibleRowIndex,
+}
+
+/// Represents the selected text range.
+/// The end coordinates are inclusive.
+#[derive(Debug, Default, Copy, Clone, Eq, PartialEq)]
+pub struct SelectionRange {
+    pub start: SelectionCoordinate,
+    pub end: SelectionCoordinate,
+}
+
+impl SelectionRange {
+    /// Create a new range that starts at the specified location
+    pub fn start(start: SelectionCoordinate) -> Self {
+        let end = start.clone();
+        Self { start, end }
+    }
+
+    /// Returns an extended selection that it ends at the specified location
+    pub fn extend(&self, end: SelectionCoordinate) -> Self {
+        Self {
+            start: self.start.clone(),
+            end,
+        }
+    }
+
+    /// Return a normalized selection such that the starting y coord
+    /// is <= the ending y coord.
+    pub fn normalize(&self) -> Self {
+        if self.start.y <= self.end.y {
+            self.clone()
+        } else {
+            Self {
+                start: self.end.clone(),
+                end: self.start.clone(),
+            }
+        }
+    }
+
+    /// Yields a range representing the row indices.
+    /// Make sure that you invoke this on a normalized range!
+    pub fn rows(&self) -> Range<ScrollbackOrVisibleRowIndex> {
+        debug_assert!(
+            self.start.y <= self.end.y,
+            "you forgot to normalize a SelectionRange"
+        );
+        self.start.y..self.end.y + 1
+    }
+
+    /// Yields a range representing the selected columns for the specified row.
+    /// Not that the range may include usize::max_value() for some rows; this
+    /// indicates that the selection extends to the end of that row.
+    /// Since this struct has no knowledge of line length, it cannot be
+    /// more precise than that.
+    /// Must be called on a normalized range!
+    pub fn cols_for_row(&self, row: ScrollbackOrVisibleRowIndex) -> Range<usize> {
+        let (x1, x2) = if self.start.x <= self.end.x {
+            (self.start.x, self.end.x + 1)
+        } else {
+            (self.end.x, self.start.x + 1)
+        };
+        debug_assert!(
+            self.start.y <= self.end.y,
+            "you forgot to normalize a SelectionRange"
+        );
+        if row < self.start.y || row > self.end.y {
+            0..0
+        } else if self.start.y == self.end.y {
+            // A single line selection
+            x1..x2
+        } else if row == self.end.y {
+            // last line of multi-line
+            0..x2
+        } else if row == self.start.y {
+            // first line of multi-line
+            x1..usize::max_value()
+        } else {
+            // some "middle" line of multi-line
+            0..usize::max_value()
+        }
+    }
 }
 
 pub mod color;
@@ -560,6 +654,23 @@ impl Screen {
         (self.lines.len() - self.physical_rows) + row as usize
     }
 
+    /// Given a possibly negative row number, return the corresponding physical
+    /// row.  This is similar to phys_row() but allows indexing backwards into
+    /// the scrollback.
+    #[inline]
+    fn scrollback_or_visible_row(&self, row: ScrollbackOrVisibleRowIndex) -> PhysRowIndex {
+        ((self.lines.len() - self.physical_rows) as ScrollbackOrVisibleRowIndex + row).max(0) as
+            usize
+    }
+
+    #[inline]
+    fn scrollback_or_visible_range(
+        &self,
+        range: &Range<ScrollbackOrVisibleRowIndex>,
+    ) -> Range<PhysRowIndex> {
+        self.scrollback_or_visible_row(range.start)..self.scrollback_or_visible_row(range.end)
+    }
+
     /// Translate a range of VisibleRowIndex to a range of PhysRowIndex.
     /// The resultant range will be invalidated by inserting or removing rows!
     #[inline]
@@ -714,6 +825,12 @@ pub struct TerminalState {
     /// The offset is measured from the top of the physical viewable
     /// screen with larger numbers going backwards.
     viewport_offset: VisibleRowIndex,
+
+    /// Remembers the starting coordinate of the selection prior to
+    /// dragging.
+    selection_start: Option<SelectionCoordinate>,
+    /// Holds the not-normalized selection range.
+    selection_range: Option<SelectionRange>,
 }
 
 impl TerminalState {
@@ -743,6 +860,8 @@ impl TerminalState {
             cursor_visible: true,
             current_mouse_button: MouseButton::None,
             viewport_offset: 0,
+            selection_range: None,
+            selection_start: None,
         }
     }
 
@@ -762,7 +881,109 @@ impl TerminalState {
         }
     }
 
+    pub fn get_selection_text(&self) -> String {
+        let mut s = String::new();
+
+        if let Some(sel) = self.selection_range.as_ref().map(|r| r.normalize()) {
+            let screen = self.screen();
+            for y in sel.rows() {
+                let idx = screen.scrollback_or_visible_row(y);
+                let line = screen.lines[idx].as_str();
+                let cols = sel.cols_for_row(y);
+                let end = cols.end.min(line.len());
+                let col_range = cols.start..end;
+                let selected = &line[col_range].trim_right();
+                if s.len() > 0 {
+                    s.push('\n');
+                }
+                s.push_str(selected);
+            }
+        }
+
+        s
+    }
+
+    /// Dirty the lines in the current selection range
+    fn dirty_selection_lines(&mut self) {
+        if let Some(sel) = self.selection_range.as_ref().map(|r| r.normalize()) {
+            let screen = self.screen_mut();
+            for y in screen.scrollback_or_visible_range(&sel.rows()) {
+                screen.line_mut(y).set_dirty();
+            }
+        }
+    }
+
+    pub fn clear_selection(&mut self) {
+        self.dirty_selection_lines();
+        self.selection_range = None;
+        self.selection_start = None;
+    }
+
     pub fn mouse_event(&mut self, event: MouseEvent, host: &mut TerminalHost) -> Result<(), Error> {
+
+        // First pass to figure out if we're messing with the selection
+        let send_event = self.sgr_mouse && !event.modifiers.contains(KeyModifiers::SHIFT);
+
+        if !send_event {
+            match (event, self.current_mouse_button) {
+                (MouseEvent {
+                     kind: MouseEventKind::Press,
+                     button: MouseButton::Left,
+                     ..
+                 },
+                 _) => {
+                    // Prepare to start a new selection.
+                    // We don't form the selection until the mouse drags.
+                    self.current_mouse_button = MouseButton::Left;
+                    self.dirty_selection_lines();
+                    self.selection_range = None;
+                    self.selection_start = Some(SelectionCoordinate {
+                        x: event.x,
+                        y: event.y as ScrollbackOrVisibleRowIndex,
+                    });
+                    host.set_clipboard(None)?;
+
+                    return Ok(());
+                }
+                (MouseEvent {
+                     kind: MouseEventKind::Release,
+                     button: MouseButton::Left,
+                     ..
+                 },
+                 _) => {
+                    // Finish selecting a region, update clipboard
+                    self.current_mouse_button = MouseButton::None;
+                    let text = self.get_selection_text();
+                    println!("finish selection {:?} '{}'", self.selection_range, text);
+                    host.set_clipboard(Some(text))?;
+                    return Ok(());
+                }
+                (MouseEvent { kind: MouseEventKind::Move, .. }, MouseButton::Left) => {
+                    // dragging out the selection region
+                    // TODO: may drag and change the viewport
+                    // TODO: scrolling the text (not viewport) should adjust the region
+                    self.dirty_selection_lines();
+                    let end = SelectionCoordinate {
+                        x: event.x,
+                        y: event.y as ScrollbackOrVisibleRowIndex,
+                    };
+                    let sel = match self.selection_range.take() {
+                        None => {
+                            SelectionRange::start(self.selection_start.unwrap_or(end.clone()))
+                                .extend(end)
+                        }
+                        Some(sel) => sel.extend(end),
+                    };
+                    self.selection_range = Some(sel);
+                    // Dirty lines again to reflect new range
+                    self.dirty_selection_lines();
+                    return Ok(());
+                }
+                _ => {}
+            }
+        }
+
+
         match event {
             MouseEvent {
                 kind: MouseEventKind::Press,
@@ -812,6 +1033,13 @@ impl TerminalState {
                             event.x + 1,
                             event.y + 1
                         )?;
+                    } else if event.button == MouseButton::Middle {
+                        let clip = host.get_clipboard()?;
+                        if self.bracketed_paste {
+                            write!(host.writer(), "\x1b[200~{}\x1b[201~", clip)?;
+                        } else {
+                            write!(host.writer(), "{}", clip)?;
+                        }
                     }
                 }
             }
@@ -976,22 +1204,40 @@ impl TerminalState {
     }
 
     /// Returns the set of visible lines that are dirty.
-    /// The return value is a Vec<(line_idx, line)>, where
-    /// line_idx is relative to the top of the viewport
-    pub fn get_dirty_lines(&self) -> Vec<(usize, &Line)> {
+    /// The return value is a Vec<(line_idx, line, selrange)>, where
+    /// line_idx is relative to the top of the viewport.
+    /// The selrange value is the column range representing the selected
+    /// columns on this line.
+    pub fn get_dirty_lines(&self) -> Vec<(usize, &Line, Range<usize>)> {
         let mut res = Vec::new();
 
         let screen = self.screen();
         let height = screen.physical_rows;
         let len = screen.lines.len() - self.viewport_offset as usize;
 
+        let selection = self.selection_range.map(|r| r.normalize());
+
         for (i, mut line) in screen.lines.iter().skip(len - height).enumerate() {
             if line.dirty {
-                res.push((i, &*line));
+                let selrange = match selection {
+                    None => 0..0,
+                    Some(sel) => {
+                        // i is relative to the viewport, convert it back to
+                        // something we can relate to the selection
+                        let row = (i as ScrollbackOrVisibleRowIndex) -
+                            self.viewport_offset as ScrollbackOrVisibleRowIndex;
+                        sel.cols_for_row(row)
+                    }
+                };
+                res.push((i, &*line, selrange));
             }
         }
 
         res
+    }
+
+    pub fn get_viewport_offset(&self) -> VisibleRowIndex {
+        self.viewport_offset
     }
 
     /// Clear the dirty flag for all dirty lines
@@ -999,6 +1245,14 @@ impl TerminalState {
         let screen = self.screen_mut();
         for line in screen.lines.iter_mut() {
             line.set_clean();
+        }
+    }
+
+    /// When dealing with selection, mark a range of lines as dirty
+    pub fn make_all_lines_dirty(&mut self) {
+        let screen = self.screen_mut();
+        for line in screen.lines.iter_mut() {
+            line.set_dirty();
         }
     }
 
