@@ -628,7 +628,22 @@ impl<'a> TerminalWindow<'a> {
                                 } else {
                                     fg_color
                                 };
-                                let glyph_color = self.palette.resolve(glyph_color);
+                                let glyph_color = match glyph_color {
+                                    &term::color::ColorAttribute::PaletteIndex(idx) if idx < 8 => {
+                                        // For compatibility purposes, switch to a brighter version
+                                        // of one of the standard ANSI colors when Bold is enabled.
+                                        // This lifts black to dark grey.
+                                        let idx = if attrs.intensity() == term::Intensity::Bold {
+                                            idx + 8
+                                        } else {
+                                            idx
+                                        };
+                                        self.palette.resolve(
+                                            &term::color::ColorAttribute::PaletteIndex(idx),
+                                        )
+                                    }
+                                    _ => self.palette.resolve(glyph_color),
+                                };
                                 let operator = if glyph.has_color {
                                     xgfx::Operator::Over
                                 } else {
