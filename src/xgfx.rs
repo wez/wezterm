@@ -542,7 +542,6 @@ pub trait BitmapImage {
         let (dest_width, dest_height) = im.image_dimensions();
         let (dim_width, dim_height) = self.image_dimensions();
         assert!(width <= dest_width && height <= dest_height);
-        assert!(src_x < dest_width && src_y < dest_height);
         for y in src_y..src_y + height {
             let dest_y = y as isize + dest_y - src_y as isize;
             if dest_y < 0 {

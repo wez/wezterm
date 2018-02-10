@@ -665,9 +665,9 @@ impl<'a> TerminalWindow<'a> {
                                 // cell metrics so that ligatures can bleed from one of the
                                 // slice/cells into the next and look good.
                                 let slice_width = if slice_x == info.num_cells as usize - 1 {
-                                    glyph_width - slice_offset
+                                    glyph_width.saturating_sub(slice_offset)
                                 } else {
-                                    (glyph_width - slice_offset).min(metric_width)
+                                    (glyph_width.saturating_sub(slice_offset)).min(metric_width)
                                 };
 
                                 self.buffer_image.draw_image_subset(
