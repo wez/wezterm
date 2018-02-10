@@ -12,6 +12,7 @@ extern crate mio;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
+extern crate palette;
 extern crate term;
 extern crate toml;
 #[macro_use]

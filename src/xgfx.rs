@@ -15,6 +15,8 @@ pub type Result<T> = result::Result<T, Error>;
 pub use xkeysyms::*;
 
 use super::term::color::RgbColor;
+use palette::Blend;
+use palette::pixel::Srgb;
 
 pub struct Connection {
     conn: xcb::Connection,
@@ -278,6 +280,21 @@ impl<'a> Drop for Context<'a> {
 #[derive(Copy, Clone, Debug)]
 pub struct Color(u32);
 
+impl From<Srgb> for Color {
+    #[inline]
+    fn from(s: Srgb) -> Color {
+        let b: [u8; 4] = s.to_pixel();
+        Color::rgba(b[0], b[1], b[2], b[3])
+    }
+}
+
+impl From<Color> for Srgb {
+    #[inline]
+    fn from(c: Color) -> Srgb {
+        Srgb::from_pixel(&c.as_rgba())
+    }
+}
+
 impl Color {
     #[inline]
     pub fn rgb(red: u8, green: u8, blue: u8) -> Color {
@@ -307,43 +324,41 @@ impl Color {
     pub fn composite(&self, dest: Color, operator: &Operator) -> Color {
         match operator {
             &Operator::Over => {
-                let (src_r, src_g, src_b, src_a) = self.as_rgba();
-                let (dst_r, dst_g, dst_b, _dst_a) = dest.as_rgba();
-
-                // Alpha blending per https://stackoverflow.com/a/12016968/149111
-                let inv_alpha = 256u16 - src_a as u16;
-                let alpha = src_a as u16 + 1;
-
-                Color::rgb(
-                    ((alpha * src_r as u16 + inv_alpha * dst_r as u16) >> 8) as u8,
-                    ((alpha * src_g as u16 + inv_alpha * dst_g as u16) >> 8) as u8,
-                    ((alpha * src_b as u16 + inv_alpha * dst_b as u16) >> 8) as u8,
-                )
+                let src: Srgb = (*self).into();
+                let dest: Srgb = dest.into();
+                Srgb::from_linear(src.to_linear().over(dest.to_linear())).into()
             }
 
             &Operator::Source => *self,
 
             &Operator::Multiply => {
-                let (src_r, src_g, src_b, src_a) = self.as_rgba();
-                let (dst_r, dst_g, dst_b, _dst_a) = dest.as_rgba();
-                let r = ((src_r as u16 * dst_r as u16) >> 8) as u8;
-                let g = ((src_g as u16 * dst_g as u16) >> 8) as u8;
-                let b = ((src_b as u16 * dst_b as u16) >> 8) as u8;
-
-                Color::rgba(r, g, b, src_a)
+                let src: Srgb = (*self).into();
+                let dest: Srgb = dest.into();
+                let result: Color = Srgb::from_linear(src.to_linear().multiply(dest.to_linear()))
+                    .into();
+                result.into()
             }
 
             &Operator::MultiplyThenOver(ref tint) => {
-                self.composite(*tint, &Operator::Multiply).composite(
-                    dest,
-                    &Operator::Over,
-                )
+                // First multiply by the tint color.  This colorizes the glyph.
+                let src: Srgb = (*self).into();
+                let tint: Srgb = (*tint).into();
+                let mut tinted = src.to_linear().multiply(tint.to_linear());
+                // We take the alpha from the source.  This is important because
+                // we're using Multiply to tint the glyph and if we don't reset the
+                // alpha we tend to end up with a background square of the tint color.
+                tinted.alpha = src.alpha;
+
+                // Then blend the tinted glyph over the destination background
+                let dest: Srgb = dest.into();
+                Srgb::from_linear(tinted.over(dest.to_linear())).into()
             }
         }
     }
 }
 
 impl From<RgbColor> for Color {
+    #[inline]
     fn from(color: RgbColor) -> Self {
         Color::rgb(color.red, color.green, color.blue)
     }
