@@ -70,8 +70,7 @@ Things that I'd like to see happen and that have no immediate priority
 and then in `$HOME/.wezterm.toml`.
 
 Configuration is currently very simple and the format is considered unstable and subject
-to change.  The code for configuration can be found in
-[`src/config.rs`](blob/master/src/config.rs).
+to change.  The code for configuration can be found in [`src/config.rs`](src/config.rs).
 
 I use the following in my `~/.wezterm.toml`:
 
