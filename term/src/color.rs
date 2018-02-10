@@ -27,7 +27,7 @@ pub enum AnsiColor {
     White,
 }
 
-#[derive(Debug, Clone, Copy, Default, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash)]
 pub struct RgbColor {
     pub red: u8,
     pub green: u8,

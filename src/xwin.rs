@@ -630,6 +630,13 @@ impl<'a> TerminalWindow<'a> {
                                     fg_color
                                 };
                                 let glyph_color = match glyph_color {
+                                    &term::color::ColorAttribute::Foreground => {
+                                        if let Some(fg) = style.foreground {
+                                            fg
+                                        } else {
+                                            self.palette.resolve(glyph_color)
+                                        }
+                                    }
                                     &term::color::ColorAttribute::PaletteIndex(idx) if idx < 8 => {
                                         // For compatibility purposes, switch to a brighter version
                                         // of one of the standard ANSI colors when Bold is enabled.

@@ -89,7 +89,11 @@ font = { fontconfig_pattern = "Operator Mono SSm Lig:style=Italic:weight=bold" }
 
 [[font_rules]]
 intensity = "Bold"
-font = { fontconfig_pattern = "Operator Mono SSm:weight=bold" }
+  [font_rules.font]
+  fontconfig_pattern= "Operator Mono SSm:weight=bold"
+	# if you liked xterm's `boldColor` setting, this is how you do it in wezterm,
+	# but you can apply it to any set of matching attributes!
+  foreground = "tomato"
 
 [[font_rules]]
 intensity = "Half"

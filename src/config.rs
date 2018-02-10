@@ -7,6 +7,7 @@ use std::io::prelude::*;
 use toml;
 
 use term;
+use term::color::RgbColor;
 
 
 #[derive(Debug, Deserialize, Clone)]
@@ -66,11 +67,20 @@ pub struct TextStyle {
     /// Note that the dpi and current font_size for the terminal
     /// will be set on the parsed result.
     pub fontconfig_pattern: String,
+
+    /// If set, when rendering text that is set to the default
+    /// foreground color, use this color instead.  This is most
+    /// useful in a `[[font_rules]]` section to implement changing
+    /// the text color for eg: bold text.
+    pub foreground: Option<RgbColor>,
 }
 
 impl Default for TextStyle {
     fn default() -> Self {
-        Self { fontconfig_pattern: "monospace".into() }
+        Self {
+            fontconfig_pattern: "monospace".into(),
+            foreground: None,
+        }
     }
 }
 
@@ -155,16 +165,16 @@ impl Config {
 #[derive(Debug, Deserialize, Clone)]
 pub struct Palette {
     /// The text color to use when the attributes are reset to default
-    pub foreground: Option<term::color::RgbColor>,
+    pub foreground: Option<RgbColor>,
     /// The background color to use when the attributes are reset to default
-    pub background: Option<term::color::RgbColor>,
+    pub background: Option<RgbColor>,
     /// The color of the cursor
-    pub cursor: Option<term::color::RgbColor>,
+    pub cursor: Option<RgbColor>,
     /// A list of 8 colors corresponding to the basic ANSI palette
-    pub ansi: Option<[term::color::RgbColor; 8]>,
+    pub ansi: Option<[RgbColor; 8]>,
     /// A list of 8 colors corresponding to bright versions of the
     /// ANSI palette
-    pub brights: Option<[term::color::RgbColor; 8]>,
+    pub brights: Option<[RgbColor; 8]>,
 }
 
 impl From<Palette> for term::color::ColorPalette {
