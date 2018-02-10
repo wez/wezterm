@@ -13,11 +13,13 @@ extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 extern crate vte;
+#[cfg(test)]
 #[macro_use]
 extern crate maplit;
 
 use failure::Error;
 use std::ops::{Deref, DerefMut, Range};
+use std::rc::Rc;
 use std::str;
 use std::time::{Duration, Instant};
 
@@ -25,6 +27,7 @@ use std::time::{Duration, Instant};
 mod debug;
 
 pub mod hyperlink;
+use hyperlink::Hyperlink;
 
 /// Represents the index into screen.lines.  Index 0 is the top of
 /// the scrollback (if any).  The index of the top of the visible screen
@@ -242,11 +245,12 @@ pub struct MouseEvent {
     pub modifiers: KeyModifiers,
 }
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct CellAttributes {
     attributes: u16,
     pub foreground: color::ColorAttribute,
     pub background: color::ColorAttribute,
+    pub hyperlink: Option<Rc<Hyperlink>>,
 }
 
 /// Define getter and setter for the attributes bitfield.
@@ -340,6 +344,7 @@ impl Default for CellAttributes {
             attributes: 0,
             foreground: color::ColorAttribute::Foreground,
             background: color::ColorAttribute::Background,
+            hyperlink: None,
         }
     }
 }
@@ -371,7 +376,7 @@ impl Cell {
         c.encode_utf8(&mut bytes);
         Cell {
             bytes,
-            attrs: *attr,
+            attrs: attr.clone(),
         }
     }
 
@@ -459,13 +464,13 @@ impl Line {
             last_cluster = match last_cluster.take() {
                 None => {
                     // Start new cluster
-                    Some(CellCluster::new(c.attrs, cell_str, cell_idx))
+                    Some(CellCluster::new(c.attrs.clone(), cell_str, cell_idx))
                 }
                 Some(mut last) => {
                     if last.attrs != c.attrs {
                         // Flush pending cluster and start a new one
                         clusters.push(last);
-                        Some(CellCluster::new(c.attrs, cell_str, cell_idx))
+                        Some(CellCluster::new(c.attrs.clone(), cell_str, cell_idx))
                     } else {
                         // Add to current cluster
                         last.add(cell_str, cell_idx);
@@ -494,7 +499,7 @@ impl Line {
 
             cells.push(Cell {
                 bytes,
-                attrs: *attrs,
+                attrs: attrs.clone(),
             });
         }
 
@@ -1509,6 +1514,13 @@ impl TerminalState {
         self.set_cursor_pos(&Position::Relative(0), &Position::Absolute(y as i64));
     }
 
+    fn set_hyperlink(&mut self, link: Option<Hyperlink>) {
+        self.pen.hyperlink = match link {
+            Some(hyperlink) => Some(Rc::new(hyperlink)),
+            None => None,
+        }
+    }
+
     fn perform_csi(&mut self, act: CSIAction) {
         debug!("{:?}", act);
         match act {
@@ -1760,7 +1772,7 @@ impl vte::Perform for TerminalState {
         let y = self.cursor.y;
         let width = self.screen().physical_cols;
 
-        let pen = self.pen;
+        let pen = self.pen.clone();
 
         // Assign the cell and extract its printable width
         let print_width = {
@@ -1822,13 +1834,19 @@ impl vte::Perform for TerminalState {
                 }
             }
             &[b"8", params, url] => {
-                if let Ok(params) = str::from_utf8(params) {
-                    println!("set URL params={}", params);
-                }
-                if let Ok(url) = str::from_utf8(url) {
-                    println!("set URL attribute={}", url);
-                } else {
-                    println!("OSC: failed to decode utf for {:?}", url);
+                match (str::from_utf8(params), str::from_utf8(url)) {
+                    (Ok(params), Ok(url)) => {
+                        let params = hyperlink::parse_link_params(params);
+                        if url.len() > 0 {
+                            self.set_hyperlink(Some(Hyperlink::new(url, &params)));
+                        } else {
+                            self.set_hyperlink(None);
+                        }
+                    }
+                    _ => {
+                        eprintln!("problem decoding URL/params {:?}, {:?}", url, params);
+                        self.set_hyperlink(None)
+                    }
                 }
             }
             _ => {

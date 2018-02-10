@@ -7,6 +7,27 @@
 
 use std::collections::HashMap;
 
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct Hyperlink {
+    /// The target
+    pub url: String,
+    /// The identifier.  This can be used by the render layer to determine
+    /// which cells to underline on hover.  This is for the usecase where
+    /// an application has drawn windows in the window and the URL has
+    /// wrapped lines within such a window.
+    pub id: String,
+}
+
+impl Hyperlink {
+    pub fn new(url: &str, params: &HashMap<&str, &str>) -> Self {
+        let id = params.get("id").unwrap_or(&"");
+        Self {
+            url: url.into(),
+            id: (**id).into(),
+        }
+    }
+}
+
 /// The spec says that the escape sequence is of the form:
 /// OSC 8 ; params ; URI BEL|ST
 /// params is an optional list of key=value assignments,

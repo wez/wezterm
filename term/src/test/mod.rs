@@ -49,8 +49,8 @@ fn assert_lines_equal(lines: &[Line], expect_lines: &[Line], compare: Compare) {
         }
 
         if compare.contains(Compare::ATTRS) {
-            let line_attrs: Vec<_> = line.cells.iter().map(|c| c.attrs).collect();
-            let expect_attrs: Vec<_> = expect.cells.iter().map(|c| c.attrs).collect();
+            let line_attrs: Vec<_> = line.cells.iter().map(|c| c.attrs.clone()).collect();
+            let expect_attrs: Vec<_> = expect.cells.iter().map(|c| c.attrs.clone()).collect();
             assert_eq!(
                 expect_attrs ,line_attrs,
                 "line {} attrs didn't match",
