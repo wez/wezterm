@@ -77,6 +77,8 @@ I use the following in my `~/.wezterm.toml`:
 ```
 font_size = 10
 font = { fontconfig_pattern = "Operator Mono SSm Lig Medium" }
+# How many lines of scrollback to retain
+scrollback_lines = 3500
 
 [[font_rules]]
 italic = true

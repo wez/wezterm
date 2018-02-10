@@ -31,6 +31,9 @@ pub struct Config {
 
     /// The color palette
     pub colors: Option<Palette>,
+
+    /// How many lines of scrollback you want to retain
+    pub scrollback_lines: Option<usize>,
 }
 
 fn default_font_size() -> f64 {
@@ -49,6 +52,7 @@ impl Default for Config {
             font: TextStyle::default(),
             font_rules: Vec::new(),
             colors: None,
+            scrollback_lines: None,
         }
     }
 }
