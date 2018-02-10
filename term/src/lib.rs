@@ -1455,8 +1455,6 @@ impl TerminalState {
     /// Adjust the scroll position of the viewport by delta.
     /// Dirties the lines that are now in view.
     pub fn scroll_viewport(&mut self, delta: VisibleRowIndex) {
-        // TODO: ignore/reset this when we switch to the alt screen
-
         let position = self.viewport_offset - delta;
         self.set_scroll_viewport(position);
     }
@@ -1605,6 +1603,7 @@ impl TerminalState {
                         self.alt_screen_is_active = true;
                         self.set_cursor_pos(&Position::Absolute(0), &Position::Absolute(0));
                         self.perform_csi(CSIAction::EraseInDisplay(DisplayErase::All));
+                        self.set_scroll_viewport(0);
                     }
                     (false, true) => {
                         self.alt_screen_is_active = false;
