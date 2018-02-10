@@ -70,7 +70,8 @@ Things that I'd like to see happen and that have no immediate priority
 and then in `$HOME/.wezterm.toml`.
 
 Configuration is currently very simple and the format is considered unstable and subject
-to change.  The code for configuration can be found in `src/config.rs`.
+to change.  The code for configuration can be found in
+[`src/config.rs`](blob/master/src/config.rs).
 
 I use the following in my `~/.wezterm.toml`:
 
@@ -107,7 +108,7 @@ fontconfig when `monospace` is requested.
 
 You can configure colors with a section like this.  In addition to specifying
 SVG/CSS3 color names, you can use `#RRGGBB` to specify a color code using the
-usualy hex notation; eg: `#000000` is equivalent to `black`:
+usual hex notation; eg: `#000000` is equivalent to `black`:
 
 ```
 [colors]
