@@ -13,13 +13,18 @@ extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 extern crate vte;
+#[macro_use]
+extern crate maplit;
 
 use failure::Error;
 use std::ops::{Deref, DerefMut, Range};
+use std::str;
 use std::time::{Duration, Instant};
 
 #[macro_use]
 mod debug;
+
+pub mod hyperlink;
 
 /// Represents the index into screen.lines.  Index 0 is the top of
 /// the scrollback (if any).  The index of the top of the visible screen
@@ -1808,13 +1813,22 @@ impl vte::Perform for TerminalState {
     fn osc_dispatch(&mut self, osc: &[&[u8]]) {
         match osc {
             &[b"0", title] => {
-                use std::str;
                 if let Ok(title) = str::from_utf8(title) {
                     self.answerback.push(
                         AnswerBack::TitleChanged(title.to_string()),
                     );
                 } else {
                     println!("OSC: failed to decode utf for {:?}", title);
+                }
+            }
+            &[b"8", params, url] => {
+                if let Ok(params) = str::from_utf8(params) {
+                    println!("set URL params={}", params);
+                }
+                if let Ok(url) = str::from_utf8(url) {
+                    println!("set URL attribute={}", url);
+                } else {
+                    println!("OSC: failed to decode utf for {:?}", url);
                 }
             }
             _ => {
