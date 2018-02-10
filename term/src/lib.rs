@@ -1249,7 +1249,10 @@ impl TerminalState {
                 buf.as_str()
             }
             (Char(c), _, ALT, ..) if c <= 0xff as char => {
-                buf.push((c as u8 | 0x80) as char);
+                // TODO: add config option to select 8-bit vs. escape behavior?
+                //buf.push((c as u8 | 0x80) as char);
+                buf.push(0x1b as char);
+                buf.push(c);
                 buf.as_str()
             }
             (Char(c), ..) => {
