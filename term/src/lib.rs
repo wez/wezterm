@@ -339,7 +339,7 @@ impl Default for CellAttributes {
     }
 }
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Cell {
     bytes: [u8; 8],
     pub attrs: CellAttributes,
@@ -644,7 +644,7 @@ impl Screen {
             if x >= max_col {
                 break;
             }
-            line.cells[x] = blank;
+            line.cells[x] = blank.clone();
         }
     }
 
