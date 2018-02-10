@@ -27,6 +27,9 @@ pub struct Config {
     /// on the cell attributes
     #[serde(default)]
     pub font_rules: Vec<StyleRule>,
+
+    /// The color palette
+    pub colors: Option<Palette>,
 }
 
 fn default_font_size() -> f64 {
@@ -44,6 +47,7 @@ impl Default for Config {
             dpi: default_dpi(),
             font: TextStyle::default(),
             font_rules: Vec::new(),
+            colors: None,
         }
     }
 }
@@ -145,5 +149,46 @@ impl Config {
         }
 
         Ok(Self::default())
+    }
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct Palette {
+    /// The text color to use when the attributes are reset to default
+    pub foreground: Option<term::color::RgbColor>,
+    /// The background color to use when the attributes are reset to default
+    pub background: Option<term::color::RgbColor>,
+    /// The color of the cursor
+    pub cursor: Option<term::color::RgbColor>,
+    /// A list of 8 colors corresponding to the basic ANSI palette
+    pub ansi: Option<[term::color::RgbColor; 8]>,
+    /// A list of 8 colors corresponding to bright versions of the
+    /// ANSI palette
+    pub brights: Option<[term::color::RgbColor; 8]>,
+}
+
+impl From<Palette> for term::color::ColorPalette {
+    fn from(cfg: Palette) -> term::color::ColorPalette {
+        let mut p = term::color::ColorPalette::default();
+        if let Some(foreground) = cfg.foreground {
+            p.foreground = foreground;
+        }
+        if let Some(background) = cfg.background {
+            p.background = background;
+        }
+        if let Some(cursor) = cfg.cursor {
+            p.cursor = cursor;
+        }
+        if let Some(ansi) = cfg.ansi {
+            for (idx, col) in ansi.iter().enumerate() {
+                p.colors[idx] = *col;
+            }
+        }
+        if let Some(brights) = cfg.brights {
+            for (idx, col) in brights.iter().enumerate() {
+                p.colors[idx + 8] = *col;
+            }
+        }
+        p
     }
 }

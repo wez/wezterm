@@ -98,3 +98,18 @@ font = { fontconfig_pattern = "Operator Mono SSm Lig Light" }
 
 The default configuration will attempt to use whichever font is returned from
 fontconfig when `monospace` is requested.
+
+### Colors
+
+You can configure colors with a section like this.  In addition to specifying
+SVG/CSS3 color names, you can use `#RRGGBB` to specify a color code using the
+usualy hex notation; eg: `#000000` is equivalent to `black`:
+
+```
+[colors]
+foreground = "silver"
+background = "black"
+cursor = "springgreen"
+ansi = ["black", "maroon", "green", "olive", "navy", "purple", "teal", "silver"]
+brights = ["grey", "red", "lime", "yellow", "blue", "fuchsia", "aqua", "white"]
+```

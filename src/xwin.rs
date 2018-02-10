@@ -197,6 +197,7 @@ impl<'a> TerminalWindow<'a> {
         pty: MasterPty,
         process: Child,
         fonts: FontConfiguration,
+        palette: term::color::ColorPalette,
     ) -> Result<TerminalWindow, Error> {
         let (cell_height, cell_width, descender) = {
             // Urgh, this is a bit repeaty, but we need to satisfy the borrow checker
@@ -237,7 +238,7 @@ impl<'a> TerminalWindow<'a> {
             terminal,
             process,
             glyph_cache: RefCell::new(HashMap::new()),
-            palette: term::color::ColorPalette::default(),
+            palette,
         })
     }
 

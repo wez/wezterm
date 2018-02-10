@@ -1,5 +1,8 @@
 //! Colors for attributes
 
+use palette;
+use serde::{self, Deserialize, Deserializer};
+
 #[allow(dead_code)]
 #[derive(Debug, Clone, Copy)]
 #[repr(u8)]
@@ -31,7 +34,62 @@ pub struct RgbColor {
     pub blue: u8,
 }
 
-impl RgbColor {}
+impl RgbColor {
+    /// Construct a color from discrete red, green, blue values
+    /// in the range 0-255.
+    pub fn new(red: u8, green: u8, blue: u8) -> Self {
+        Self { red, green, blue }
+    }
+
+    /// Construct a color from an SVG/CSS3 color name.  The name
+    /// must be lower case.  Returns None if the supplied name is
+    /// not recognized.
+    /// The list of names can be found here:
+    /// https://ogeon.github.io/docs/palette/master/palette/named/index.html
+    pub fn from_named(name: &str) -> Option<RgbColor> {
+        palette::named::from_str(name).map(|(r, g, b)| Self::new(r, g, b))
+    }
+
+    /// Construct a color from a string of the form `#RRGGBB` where
+    /// R, G and B are all hex digits.
+    pub fn from_rgb_str(s: &str) -> Option<RgbColor> {
+        if s.as_bytes()[0] == b'#' && s.len() == 7 {
+            let mut chars = s.chars().skip(1);
+
+            macro_rules! digit {
+                () => {
+                    {
+                        let hi = match chars.next().unwrap().to_digit(16) {
+                            Some(v) => (v as u8) << 4,
+                            None => return None
+                        };
+                        let lo = match chars.next().unwrap().to_digit(16) {
+                            Some(v) => v as u8,
+                            None => return None
+                        };
+                        hi | lo
+                    }
+                }
+            }
+            Some(Self::new(digit!(), digit!(), digit!()))
+        } else {
+            None
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for RgbColor {
+    fn deserialize<D>(deserializer: D) -> Result<RgbColor, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        RgbColor::from_rgb_str(&s)
+            .or_else(|| RgbColor::from_named(&s))
+            .ok_or(format!("unknown color name: {}", s))
+            .map_err(serde::de::Error::custom)
+    }
+}
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum ColorAttribute {
@@ -43,10 +101,10 @@ pub enum ColorAttribute {
 
 #[derive(Clone)]
 pub struct ColorPalette {
-    colors: [RgbColor; 256],
-    foreground: RgbColor,
-    background: RgbColor,
-    cursor: RgbColor,
+    pub colors: [RgbColor; 256],
+    pub foreground: RgbColor,
+    pub background: RgbColor,
+    pub cursor: RgbColor,
 }
 
 impl ColorPalette {
@@ -131,21 +189,13 @@ impl Default for ColorPalette {
 
         for idx in 0..24 {
             let grey = GREYS[idx];
-            colors[232 + idx] = RgbColor {
-                red: grey,
-                green: grey,
-                blue: grey,
-            };
+            colors[232 + idx] = RgbColor::new(grey, grey, grey);
         }
 
         let foreground = colors[249]; // Grey70
         let background = colors[AnsiColor::Black as usize];
 
-        let cursor = RgbColor {
-            red: 0x52,
-            green: 0xad,
-            blue: 0x70,
-        };
+        let cursor = RgbColor::new(0x52, 0xad, 0x70);
 
         ColorPalette {
             colors,

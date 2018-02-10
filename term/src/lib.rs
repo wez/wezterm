@@ -6,6 +6,7 @@
 extern crate failure;
 #[macro_use]
 extern crate bitflags;
+extern crate palette;
 extern crate unicode_width;
 extern crate unicode_segmentation;
 extern crate serde;

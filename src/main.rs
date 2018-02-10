@@ -73,7 +73,7 @@ fn run() -> Result<(), Error> {
     // First step is to figure out the font metrics so that we know how
     // big things are going to be.
 
-    let fontconfig = FontConfiguration::new(config);
+    let fontconfig = FontConfiguration::new(config.clone());
     let font = fontconfig.default_font()?;
 
     // we always load the cell_height for font 0,
@@ -132,6 +132,9 @@ fn run() -> Result<(), Error> {
         master,
         child,
         fontconfig,
+        config.colors.map(|p| p.into()).unwrap_or_else(
+            term::color::ColorPalette::default,
+        ),
     )?;
 
     window.show();
