@@ -42,7 +42,7 @@ fn assert_lines_equal(lines: &[Line], expect_lines: &[Line], compare: Compare) {
 
         if compare.contains(Compare::DIRTY) {
             assert_eq!(
-                line.dirty , expect.dirty,
+                line.is_dirty() , expect.is_dirty(),
                 "line {} dirty didn't match",
                 idx,
             );

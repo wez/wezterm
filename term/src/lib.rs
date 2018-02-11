@@ -32,6 +32,9 @@ pub use input::*;
 pub mod cell;
 pub use cell::*;
 
+pub mod line;
+pub use line::*;
+
 pub mod selection;
 use selection::{SelectionCoordinate, SelectionRange};
 
@@ -108,130 +111,6 @@ pub const OSC: &[u8] = b"\x1b]";
 pub const ST: &[u8] = b"\x1b\\";
 #[allow(dead_code)]
 pub const DCS: &[u8] = b"\x1bP";
-
-#[derive(Debug, Clone, Eq, PartialEq)]
-pub struct Line {
-    pub cells: Vec<Cell>,
-    dirty: bool,
-}
-
-/// A CellCluster is another representation of a Line.
-/// A Vec<CellCluster> is produced by walking through the Cells in
-/// a line and collecting succesive Cells with the same attributes
-/// together into a CellCluster instance.  Additional metadata to
-/// aid in font rendering is also collected.
-#[derive(Debug, Clone)]
-pub struct CellCluster {
-    pub attrs: CellAttributes,
-    pub text: String,
-    pub byte_to_cell_idx: Vec<usize>,
-}
-
-impl CellCluster {
-    /// Start off a new cluster with some initial data
-    fn new(attrs: CellAttributes, text: &str, cell_idx: usize) -> CellCluster {
-        let mut idx = Vec::new();
-        for _ in 0..text.len() {
-            idx.push(cell_idx);
-        }
-        CellCluster {
-            attrs,
-            text: text.into(),
-            byte_to_cell_idx: idx,
-        }
-    }
-
-    /// Add to this cluster
-    fn add(&mut self, text: &str, cell_idx: usize) {
-        for _ in 0..text.len() {
-            self.byte_to_cell_idx.push(cell_idx);
-        }
-        self.text.push_str(text);
-    }
-}
-
-impl Line {
-    /// Create a new line with the specified number of columns.
-    /// Each cell has the default attributes.
-    pub fn new(cols: usize) -> Line {
-        let mut cells = Vec::with_capacity(cols);
-        cells.resize(cols, Default::default());
-        Line { cells, dirty: true }
-    }
-
-    /// Recompose line into the corresponding utf8 string.
-    /// In the future, we'll want to decompose into clusters of Cells that share
-    /// the same render attributes
-    pub fn as_str(&self) -> String {
-        let mut s = String::new();
-        for c in self.cells.iter() {
-            s.push_str(std::str::from_utf8(c.bytes()).unwrap_or("?"));
-        }
-        s
-    }
-
-    /// Compute the list of CellClusters for this line
-    pub fn cluster(&self) -> Vec<CellCluster> {
-        let mut last_cluster = None;
-        let mut clusters = Vec::new();
-
-        for (cell_idx, c) in self.cells.iter().enumerate() {
-            let cell_str = std::str::from_utf8(c.bytes()).unwrap_or("?");
-
-            last_cluster = match last_cluster.take() {
-                None => {
-                    // Start new cluster
-                    Some(CellCluster::new(c.attrs.clone(), cell_str, cell_idx))
-                }
-                Some(mut last) => {
-                    if last.attrs != c.attrs {
-                        // Flush pending cluster and start a new one
-                        clusters.push(last);
-                        Some(CellCluster::new(c.attrs.clone(), cell_str, cell_idx))
-                    } else {
-                        // Add to current cluster
-                        last.add(cell_str, cell_idx);
-                        Some(last)
-                    }
-                }
-            };
-        }
-
-        if let Some(cluster) = last_cluster {
-            // Don't forget to include any pending cluster on the final step!
-            clusters.push(cluster);
-        }
-
-        clusters
-    }
-
-    #[allow(dead_code)]
-    pub fn from_text(s: &str, attrs: &CellAttributes) -> Line {
-        let mut cells = Vec::new();
-
-        for (_, sub) in unicode_segmentation::UnicodeSegmentation::grapheme_indices(s, true) {
-            cells.push(Cell::new(sub, attrs))
-        }
-
-        Line { cells, dirty: true }
-    }
-
-    #[inline]
-    fn set_dirty(&mut self) {
-        self.dirty = true;
-    }
-
-    #[inline]
-    fn set_clean(&mut self) {
-        self.dirty = false;
-    }
-}
-
-impl<'a> From<&'a str> for Line {
-    fn from(s: &str) -> Line {
-        Line::from_text(s, &CellAttributes::default())
-    }
-}
 
 /// Holds the model of a screen.  This can either be the primary screen
 /// which includes lines of scrollback text, or the alternate screen
@@ -316,7 +195,7 @@ impl Screen {
     #[allow(dead_code)]
     fn clean_line(&mut self, idx: VisibleRowIndex) {
         let line_idx = self.phys_row(idx);
-        self.lines[line_idx].dirty = false;
+        self.lines[line_idx].set_clean();
     }
 
     /// Returns a slice over the visible lines in the screen (no scrollback)
@@ -1057,7 +936,7 @@ impl TerminalState {
         let len = screen.lines.len() - self.viewport_offset as usize;
 
         for line in screen.lines.iter().skip(len - height) {
-            if line.dirty {
+            if line.is_dirty() {
                 return true;
             }
         }
@@ -1080,7 +959,7 @@ impl TerminalState {
         let selection = self.selection_range.map(|r| r.normalize());
 
         for (i, mut line) in screen.lines.iter().skip(len - height).enumerate() {
-            if line.dirty {
+            if line.is_dirty() {
                 let selrange = match selection {
                     None => 0..0,
                     Some(sel) => {
