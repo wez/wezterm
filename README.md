@@ -44,8 +44,8 @@ These are in the done/doing soon category:
 - [x] Paste selection via Shift-Insert (bracketed paste is supported!)
 - [x] SGR style mouse reporting (works in vim and tmux)
 - [x] xterm style selection of text with mouse
+- [x] Render underline, italic, bold, strikethrough
 - [ ] Configuration file to specify fonts and colors (in progress)
-- [ ] Render underline, italic, bold, strikethrough
 - [ ] Command line argument parsing instead of launching user shell
 - [ ] Hyperlinks see: https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5feda
 

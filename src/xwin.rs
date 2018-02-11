@@ -736,6 +736,16 @@ impl<'a> TerminalWindow<'a> {
                             }
                         }
 
+                        if attrs.strikethrough() {
+                            self.buffer_image.draw_horizontal_line(
+                                x,
+                                y + (base_y - y) / 2,
+                                cell_print_width * metric_width,
+                                glyph_color.into(),
+                                xgfx::Operator::Over,
+                            );
+                        }
+
                         x += glyph.x_advance;
                     }
                 }
