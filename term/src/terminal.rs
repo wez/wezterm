@@ -65,13 +65,15 @@ impl Terminal {
         for b in bytes.iter() {
             self.parser.advance(&mut self.state, *b);
         }
-        for answer in self.state.drain_answerback() {
-            match answer {
-                AnswerBack::WriteToPty(response) => {
-                    host.writer().write(&response).ok(); // discard error
-                }
-                AnswerBack::TitleChanged(title) => {
-                    host.set_title(&title);
+        if let Some(answerback) = self.state.drain_answerback() {
+            for answer in answerback {
+                match answer {
+                    AnswerBack::WriteToPty(response) => {
+                        host.writer().write(&response).ok(); // discard error
+                    }
+                    AnswerBack::TitleChanged(title) => {
+                        host.set_title(&title);
+                    }
                 }
             }
         }

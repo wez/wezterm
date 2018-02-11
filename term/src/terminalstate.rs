@@ -678,8 +678,12 @@ impl TerminalState {
         self.answerback.push(AnswerBack::WriteToPty(buf.to_vec()));
     }
 
-    pub(crate) fn drain_answerback(&mut self) -> Vec<AnswerBack> {
-        self.answerback.drain(0..).collect()
+    pub(crate) fn drain_answerback(&mut self) -> Option<Vec<AnswerBack>> {
+        if self.answerback.len() == 0 {
+            None
+        } else {
+            Some(self.answerback.drain(0..).collect())
+        }
     }
 
     /// Move the cursor up 1 line.  If the position is at the top scroll margin,
