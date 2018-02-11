@@ -816,7 +816,7 @@ impl<'a> TerminalWindow<'a> {
                 );
             }
             &BufferImage::Image(_) => {
-                // Will handle this at the end
+                // Will handle this at the end of paint()
             }
         }
 
@@ -835,7 +835,7 @@ impl<'a> TerminalWindow<'a> {
 
         match &*self.buffer_image.borrow() {
             &BufferImage::Shared(_) => {
-                // We handled this above
+                // We handled this in render_line() above
             }
             &BufferImage::Image(ref buffer) => {
                 // With no SHM available, we have to push the whole screen buffer
