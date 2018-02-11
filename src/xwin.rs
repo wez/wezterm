@@ -10,8 +10,8 @@ use std::ops::Range;
 use std::process::Child;
 use std::rc::Rc;
 use std::slice;
-use term::{self, CursorPosition, KeyCode, KeyModifiers, Line, MouseButton, MouseEvent,
-           MouseEventKind, TerminalHost, Underline};
+use term::{self, CellAttributes, CursorPosition, KeyCode, KeyModifiers, Line, MouseButton,
+           MouseEvent, MouseEventKind, TerminalHost, Underline};
 use term::color::RgbColor;
 use xcb;
 use xcb_util;
@@ -100,10 +100,8 @@ struct GlyphKey {
 /// The image data may be None for whitespace glyphs.
 struct CachedGlyph {
     image: Option<xgfx::Image>,
-    scale: f64,
     has_color: bool,
     x_advance: isize,
-    y_advance: isize,
     x_offset: isize,
     y_offset: isize,
     bearing_x: isize,
@@ -386,25 +384,22 @@ impl<'a> TerminalWindow<'a> {
         } else {
             1.0f64
         };
-        let (x_offset, y_offset, x_advance, y_advance) = if scale != 1.0 {
+        let (x_offset, y_offset, x_advance) = if scale != 1.0 {
             (
                 info.x_offset * scale,
                 info.y_offset * scale,
                 info.x_advance * scale,
-                info.y_advance * scale,
             )
         } else {
-            (info.x_offset, info.y_offset, info.x_advance, info.y_advance)
+            (info.x_offset, info.y_offset, info.x_advance)
         };
 
         let glyph = if ft_glyph.bitmap.width == 0 || ft_glyph.bitmap.rows == 0 {
             // a whitespace glyph
             CachedGlyph {
                 image: None,
-                scale,
                 has_color,
                 x_advance: x_advance as isize,
-                y_advance: y_advance as isize,
                 x_offset: x_offset as isize,
                 y_offset: y_offset as isize,
                 bearing_x: 0,
@@ -478,10 +473,8 @@ impl<'a> TerminalWindow<'a> {
 
             CachedGlyph {
                 image: Some(image),
-                scale,
                 has_color,
                 x_advance: x_advance as isize,
-                y_advance: y_advance as isize,
                 x_offset: x_offset as isize,
                 y_offset: y_offset as isize,
                 bearing_x,
@@ -572,6 +565,84 @@ impl<'a> TerminalWindow<'a> {
         }
     }
 
+    /// This is a little bit tricky.
+    /// We may have a double-wide glyph based on double-wide contents
+    /// of the cell, or we may have a double-wide glyph based on
+    /// the result of shaping a contextual ligature.  The computed
+    /// cell_print_width tells us about the former.  The shaping
+    /// data in info.num_cells includes both cases.  In order not
+    /// to skip out on rendering the cursor we need to slice the
+    /// glyph up into cell strips and render them.
+    fn render_glyph_slices(
+        &self,
+        x: isize,
+        line_idx: usize,
+        y: isize,
+        base_y: isize,
+        cell_idx: usize,
+        info: &GlyphInfo,
+        glyph: &Rc<CachedGlyph>,
+        image: &xgfx::Image,
+        metric_width: usize,
+        cell_print_width: usize,
+        cursor: &CursorPosition,
+        attrs: &CellAttributes,
+        glyph_color: RgbColor,
+    ) {
+        let (glyph_width, glyph_height) = image.image_dimensions();
+        for slice_x in 0..info.num_cells as usize {
+            let is_cursor = cursor.x == slice_x + cell_idx && line_idx as i64 == cursor.y;
+
+            let glyph_color = if is_cursor {
+                // overlaps with cursor, so adjust colors.
+                // TODO: could make cursor fg color an option.
+                self.palette.resolve(&attrs.background)
+            } else {
+                glyph_color
+            };
+            let operator = if glyph.has_color {
+                xgfx::Operator::Over
+            } else {
+                xgfx::Operator::MultiplyThenOver(glyph_color.into())
+            };
+
+            let slice_offset = slice_x * metric_width;
+
+            // How much of the glyph to render in this slice.  If we're
+            // the last slice in the sequence then we don't clamp to the
+            // cell metrics so that ligatures can bleed from one of the
+            // slice/cells into the next and look good.
+            let slice_width = if slice_x == info.num_cells as usize - 1 {
+                glyph_width.saturating_sub(slice_offset)
+            } else {
+                (glyph_width.saturating_sub(slice_offset)).min(metric_width)
+            };
+
+            let draw_x = slice_offset as isize + x + glyph.x_offset as isize + glyph.bearing_x;
+            let draw_y = base_y - (glyph.y_offset as isize + glyph.bearing_y);
+
+            self.buffer_image.borrow_mut().draw_image_subset(
+                draw_x,
+                draw_y,
+                slice_offset,
+                0,
+                slice_width,
+                glyph_height.min(self.cell_height),
+                image,
+                operator,
+            );
+
+            if is_cursor {
+                self.render_cursor(
+                    (slice_offset + (cell_idx * metric_width)) as isize,
+                    y,
+                    // take care to use the print width here otherwise
+                    // the rectangle will incorrectly bisect the glyph
+                    (cell_print_width * metric_width),
+                );
+            }
+        }
+    }
 
     fn render_line(
         &self,
@@ -696,87 +767,21 @@ impl<'a> TerminalWindow<'a> {
 
                 // glyph.image.is_none() for whitespace glyphs
                 if let &Some(ref image) = &glyph.image {
-                    if false && line_idx == cursor.y as usize {
-                        debug!(
-                            "x,y: {},{} desc={} bearing:{},{} off={},{} adv={},{} scale={}",
-                            x,
-                            y,
-                            self.descender,
-                            glyph.bearing_x,
-                            glyph.bearing_y,
-                            glyph.x_offset,
-                            glyph.y_offset,
-                            glyph.x_advance,
-                            glyph.y_advance,
-                            glyph.scale
-                        );
-                    }
-
-
-                    let (glyph_width, glyph_height) = image.image_dimensions();
-
-                    // This is a little bit tricky.
-                    // We may have a double-wide glyph based on double-wide contents
-                    // of the cell, or we may have a double-wide glyph based on
-                    // the result of shaping a contextual ligature.  The computed
-                    // cell_print_width tells us about the former.  The shaping
-                    // data in info.num_cells includes both cases.  In order not
-                    // to skip out on rendering the cursor we need to slice the
-                    // glyph up into cell strips and render them.
-                    for slice_x in 0..info.num_cells as usize {
-                        let is_cursor = cursor.x == slice_x + cell_idx &&
-                            line_idx as i64 == cursor.y;
-
-                        let glyph_color = if is_cursor {
-                            // overlaps with cursor, so adjust colors.
-                            // TODO: could make cursor fg color an option.
-                            self.palette.resolve(&attrs.background)
-                        } else {
-                            glyph_color
-                        };
-                        let operator = if glyph.has_color {
-                            xgfx::Operator::Over
-                        } else {
-                            xgfx::Operator::MultiplyThenOver(glyph_color.into())
-                        };
-
-                        let slice_offset = slice_x * metric_width;
-
-                        // How much of the glyph to render in this slice.  If we're
-                        // the last slice in the sequence then we don't clamp to the
-                        // cell metrics so that ligatures can bleed from one of the
-                        // slice/cells into the next and look good.
-                        let slice_width = if slice_x == info.num_cells as usize - 1 {
-                            glyph_width.saturating_sub(slice_offset)
-                        } else {
-                            (glyph_width.saturating_sub(slice_offset)).min(metric_width)
-                        };
-
-                        let draw_x = slice_offset as isize + x + glyph.x_offset as isize +
-                            glyph.bearing_x;
-                        let draw_y = base_y - (glyph.y_offset as isize + glyph.bearing_y);
-
-                        self.buffer_image.borrow_mut().draw_image_subset(
-                            draw_x,
-                            draw_y,
-                            slice_offset,
-                            0,
-                            slice_width,
-                            glyph_height.min(self.cell_height),
-                            image,
-                            operator,
-                        );
-
-                        if is_cursor {
-                            self.render_cursor(
-                                (slice_offset + (cell_idx * metric_width)) as isize,
-                                y,
-                                // take care to use the print width here otherwise
-                                // the rectangle will incorrectly bisect the glyph
-                                (cell_print_width * metric_width),
-                            );
-                        }
-                    }
+                    self.render_glyph_slices(
+                        x,
+                        line_idx,
+                        y,
+                        base_y,
+                        cell_idx,
+                        &info,
+                        &glyph,
+                        image,
+                        metric_width,
+                        cell_print_width,
+                        &cursor,
+                        &attrs,
+                        glyph_color,
+                    );
                 }
 
                 self.render_underline(
