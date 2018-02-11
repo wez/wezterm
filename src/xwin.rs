@@ -12,6 +12,7 @@ use std::rc::Rc;
 use std::slice;
 use term::{self, CursorPosition, KeyCode, KeyModifiers, Line, MouseButton, MouseEvent,
            MouseEventKind, TerminalHost, Underline};
+use term::color::RgbColor;
 use xcb;
 use xcb_util;
 use xgfx::{self, BitmapImage, Connection, Drawable};
@@ -501,6 +502,64 @@ impl<'a> TerminalWindow<'a> {
         font.shape(0, s)
     }
 
+    /// Render a line strike through the glyph at the given coords.
+    fn render_strikethrough(
+        &self,
+        x: isize,
+        cell_top: isize,
+        baseline: isize,
+        width: usize,
+        glyph_color: RgbColor,
+    ) {
+        self.buffer_image.borrow_mut().draw_horizontal_line(
+            x,
+            cell_top + (baseline - cell_top) / 2,
+            width,
+            glyph_color.into(),
+            xgfx::Operator::Over,
+        );
+    }
+
+    /// Render a specific style of underline at the given coords.
+    fn render_underline(
+        &self,
+        x: isize,
+        baseline: isize,
+        width: usize,
+        style: Underline,
+        glyph_color: RgbColor,
+    ) {
+        match style {
+            Underline::None => {}
+            Underline::Single => {
+                self.buffer_image.borrow_mut().draw_horizontal_line(
+                    x,
+                    baseline + 2,
+                    width,
+                    glyph_color.into(),
+                    xgfx::Operator::Over,
+                );
+            }
+            Underline::Double => {
+                self.buffer_image.borrow_mut().draw_horizontal_line(
+                    x,
+                    baseline + 1,
+                    width,
+                    glyph_color.into(),
+                    xgfx::Operator::Over,
+                );
+                self.buffer_image.borrow_mut().draw_horizontal_line(
+                    x,
+                    baseline + 3,
+                    width,
+                    glyph_color.into(),
+                    xgfx::Operator::Over,
+                );
+            }
+        }
+    }
+
+
     fn render_line(
         &self,
         line_idx: usize,
@@ -713,43 +772,21 @@ impl<'a> TerminalWindow<'a> {
                     }
                 }
 
-                // underline here
-                match attrs.underline() {
-                    Underline::None => {}
-                    Underline::Single => {
-                        self.buffer_image.borrow_mut().draw_horizontal_line(
-                            x,
-                            base_y + 2,
-                            cell_print_width * metric_width,
-                            glyph_color.into(),
-                            xgfx::Operator::Over,
-                        );
-                    }
-                    Underline::Double => {
-                        self.buffer_image.borrow_mut().draw_horizontal_line(
-                            x,
-                            base_y + 1,
-                            cell_print_width * metric_width,
-                            glyph_color.into(),
-                            xgfx::Operator::Over,
-                        );
-                        self.buffer_image.borrow_mut().draw_horizontal_line(
-                            x,
-                            base_y + 3,
-                            cell_print_width * metric_width,
-                            glyph_color.into(),
-                            xgfx::Operator::Over,
-                        );
-                    }
-                }
+                self.render_underline(
+                    x,
+                    base_y,
+                    cell_print_width * metric_width,
+                    attrs.underline(),
+                    glyph_color,
+                );
 
                 if attrs.strikethrough() {
-                    self.buffer_image.borrow_mut().draw_horizontal_line(
+                    self.render_strikethrough(
                         x,
-                        y + (base_y - y) / 2,
+                        y,
+                        base_y,
                         cell_print_width * metric_width,
                         glyph_color.into(),
-                        xgfx::Operator::Over,
                     );
                 }
 
