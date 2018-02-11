@@ -502,6 +502,19 @@ impl<'a> TerminalWindow<'a> {
         font.shape(0, s)
     }
 
+    /// Render a block outline style of cursor.
+    /// TODO: make this respect user configuration
+    fn render_cursor(&self, x: isize, y: isize, width: usize) {
+        self.buffer_image.borrow_mut().draw_rect(
+            x,
+            y,
+            width,
+            self.cell_height,
+            self.palette.cursor().into(),
+            xgfx::Operator::Over,
+        );
+    }
+
     /// Render a line strike through the glyph at the given coords.
     fn render_strikethrough(
         &self,
@@ -755,18 +768,12 @@ impl<'a> TerminalWindow<'a> {
                         );
 
                         if is_cursor {
-                            // Render a block outline style of cursor.
-                            // TODO: make this respect user configuration
-                            self.buffer_image.borrow_mut().draw_rect(
-                                (slice_offset + (cell_idx * metric_width)) as
-                                    isize,
+                            self.render_cursor(
+                                (slice_offset + (cell_idx * metric_width)) as isize,
                                 y,
                                 // take care to use the print width here otherwise
                                 // the rectangle will incorrectly bisect the glyph
                                 (cell_print_width * metric_width),
-                                self.cell_height,
-                                self.palette.cursor().into(),
-                                xgfx::Operator::Over,
                             );
                         }
                     }
