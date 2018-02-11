@@ -76,8 +76,8 @@ pub struct TerminalWindow<'a> {
     width: u16,
     height: u16,
     fonts: FontConfiguration,
-    cell_height: f64,
-    cell_width: f64,
+    cell_height: usize,
+    cell_width: usize,
     descender: isize,
     window_context: xgfx::Context<'a>,
     buffer_image: BufferImage<'a>,
@@ -233,8 +233,8 @@ impl<'a> TerminalWindow<'a> {
             width,
             height,
             fonts,
-            cell_height,
-            cell_width,
+            cell_height: cell_height.ceil() as usize,
+            cell_width: cell_width.ceil() as usize,
             descender,
             terminal,
             process,
@@ -263,8 +263,8 @@ impl<'a> TerminalWindow<'a> {
             self.width = width;
             self.height = height;
 
-            let rows = (height as f64 / self.cell_height).floor() as u16;
-            let cols = (width as f64 / self.cell_width).floor() as u16;
+            let rows = (height as usize / self.cell_height) as u16;
+            let cols = (width as usize / self.cell_width) as u16;
             self.host.pty.resize(rows, cols, width, height)?;
             self.terminal.resize(rows as usize, cols as usize);
 
@@ -498,8 +498,8 @@ impl<'a> TerminalWindow<'a> {
             &term::color::ColorAttribute::Background,
         );
 
-        let cell_height = self.cell_height.ceil() as usize;
-        let cell_width = self.cell_width.ceil() as usize;
+        let cell_height = self.cell_height;
+        let cell_width = self.cell_width;
 
         let cursor = self.terminal.cursor_pos();
         {
@@ -893,8 +893,8 @@ impl<'a> TerminalWindow<'a> {
                 let event = MouseEvent {
                     kind: MouseEventKind::Move,
                     button: MouseButton::None,
-                    x: (motion.event_x() as f64 / self.cell_width).floor() as usize,
-                    y: (motion.event_y() as f64 / self.cell_height).floor() as i64,
+                    x: (motion.event_x() as usize / self.cell_width) as usize,
+                    y: (motion.event_y() as usize / self.cell_height) as i64,
                     modifiers: xkeysyms::modifiers_from_state(motion.state()),
                 };
                 self.mouse_event(event)?;
@@ -910,8 +910,8 @@ impl<'a> TerminalWindow<'a> {
                         xcb::BUTTON_RELEASE => MouseEventKind::Release,
                         _ => unreachable!("button event mismatch"),
                     },
-                    x: (button_press.event_x() as f64 / self.cell_width).floor() as usize,
-                    y: (button_press.event_y() as f64 / self.cell_height).floor() as i64,
+                    x: (button_press.event_x() as usize / self.cell_width) as usize,
+                    y: (button_press.event_y() as usize / self.cell_height) as i64,
                     button: match button_press.detail() {
                         1 => MouseButton::Left,
                         2 => MouseButton::Middle,
