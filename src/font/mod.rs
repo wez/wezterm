@@ -360,7 +360,7 @@ impl Font {
                 }
             } else if let Some(start) = first_fallback_pos {
                 // End of a fallback run
-                debug!("range: {:?}-{:?} needs fallback", start, pos);
+                //debug!("range: {:?}-{:?} needs fallback", start, pos);
 
                 let substr = &s[start..pos];
                 let mut shape = self.shape(font_idx + 1, substr)?;
@@ -384,12 +384,14 @@ impl Font {
         // fallback run.
         if let Some(start) = first_fallback_pos {
             let substr = &s[start..];
-            debug!(
+            if false {
+                debug!(
                 "at end {:?}-{:?} needs fallback {}",
                 start,
                 s.len() - 1,
                 substr,
             );
+            }
             let mut shape = self.shape(font_idx + 1, substr)?;
             // Fixup the cluster member to match our current offset
             for info in shape.iter_mut() {

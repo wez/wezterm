@@ -6,6 +6,7 @@ use super::*;
 pub struct Line {
     pub cells: Vec<Cell>,
     dirty: bool,
+    has_hyperlink: bool,
 }
 
 /// A CellCluster is another representation of a Line.
@@ -49,7 +50,11 @@ impl Line {
     pub fn new(cols: usize) -> Line {
         let mut cells = Vec::with_capacity(cols);
         cells.resize(cols, Default::default());
-        Line { cells, dirty: true }
+        Line {
+            cells,
+            dirty: true,
+            has_hyperlink: false,
+        }
     }
 
     /// Recompose line into the corresponding utf8 string.
@@ -106,7 +111,11 @@ impl Line {
             cells.push(Cell::new(sub, attrs))
         }
 
-        Line { cells, dirty: true }
+        Line {
+            cells,
+            dirty: true,
+            has_hyperlink: false,
+        }
     }
 
     #[inline]
@@ -122,6 +131,16 @@ impl Line {
     #[inline]
     pub fn set_clean(&mut self) {
         self.dirty = false;
+    }
+
+    #[inline]
+    pub fn has_hyperlink(&self) -> bool {
+        self.has_hyperlink
+    }
+
+    #[inline]
+    pub fn set_has_hyperlink(&mut self, has: bool) {
+        self.has_hyperlink = has;
     }
 }
 

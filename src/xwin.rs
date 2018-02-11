@@ -656,10 +656,16 @@ impl<'a> TerminalWindow<'a> {
             &term::color::ColorAttribute::Background,
         );
 
+        let current_highlight = self.terminal.current_highlight();
+
         // Break the line into clusters of cells with the same attributes
         let cell_clusters = line.cluster();
         for cluster in cell_clusters {
             let attrs = &cluster.attrs;
+            let is_highlited_hyperlink = match (&attrs.hyperlink, &current_highlight) {
+                (&Some(ref this), &Some(ref highlight)) => this == highlight,
+                _ => false,
+            };
             let style = self.fonts.match_style(attrs);
             let metric_width = {
                 let font = self.fonts.cached_font(style)?;
@@ -773,7 +779,20 @@ impl<'a> TerminalWindow<'a> {
                     );
                 }
 
-                self.render_underline(x, base_y, cluster_width, attrs.underline(), glyph_color);
+                // Figure out what we're going to draw for the underline.
+                // If the current cell is part of the current URL highlight
+                // then we want to show the underline.  If that text is already
+                // underlined we pick a different color for the underline to
+                // make it more distinct.
+                // TODO: make that highlight underline color configurable.
+                let (underline, under_color) = match (is_highlited_hyperlink, attrs.underline()) {
+                    (true, Underline::None) => (Underline::Single, glyph_color),
+                    (true, Underline::Single) => (Underline::Single, self.palette.cursor()),
+                    (true, Underline::Double) => (Underline::Single, self.palette.cursor()),
+                    (false, underline) => (underline, glyph_color),
+                };
+
+                self.render_underline(x, base_y, cluster_width, underline, under_color);
 
                 if attrs.strikethrough() {
                     self.render_strikethrough(x, y, base_y, cluster_width, glyph_color.into());
@@ -790,7 +809,7 @@ impl<'a> TerminalWindow<'a> {
         self.buffer_image.borrow_mut().clear_rect(
             x,
             y,
-            self.width as usize - x as usize,
+            self.width.saturating_sub(x as u16) as usize,
             self.cell_height,
             background_color.into(),
         );

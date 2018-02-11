@@ -44,7 +44,12 @@ pub struct TerminalState {
     sgr_mouse: bool,
     button_event_mouse: bool,
     current_mouse_button: MouseButton,
+    mouse_position: CursorPosition,
     cursor_visible: bool,
+
+    /// Which hyperlink is considered to be highlighted, because the
+    /// mouse_position is over a cell with a Hyperlink attribute.
+    current_highlight: Option<Rc<Hyperlink>>,
 
     /// Keeps track of double and triple clicks
     last_mouse_click: Option<LastMouseClick>,
@@ -92,6 +97,8 @@ impl TerminalState {
             button_event_mouse: false,
             cursor_visible: true,
             current_mouse_button: MouseButton::None,
+            mouse_position: CursorPosition::default(),
+            current_highlight: None,
             last_mouse_click: None,
             viewport_offset: 0,
             selection_range: None,
@@ -153,7 +160,53 @@ impl TerminalState {
         self.selection_start = None;
     }
 
+    fn hyperlink_for_cell(
+        &self,
+        x: usize,
+        y: ScrollbackOrVisibleRowIndex,
+    ) -> Option<Rc<Hyperlink>> {
+        let screen = self.screen();
+        let idx = screen.scrollback_or_visible_row(y);
+        let line = &screen.lines[idx];
+        match line.cells.get(x) {
+            Some(cell) => cell.attrs.hyperlink.as_ref().cloned(),
+            None => None,
+        }
+    }
+
+    /// Invalidate rows that have hyperlinks
+    fn invalidate_hyperlinks(&mut self) {
+        let screen = self.screen_mut();
+        for line in screen.lines.iter_mut() {
+            if line.has_hyperlink() {
+                line.set_dirty();
+            }
+        }
+    }
+
+    /// Called after a mouse move or viewport scroll to recompute the
+    /// current highlight
+    fn recompute_highlight(&mut self) {
+        self.current_highlight = self.hyperlink_for_cell(
+            self.mouse_position.x,
+            self.mouse_position.y as ScrollbackOrVisibleRowIndex -
+                self.viewport_offset as ScrollbackOrVisibleRowIndex,
+        );
+        self.invalidate_hyperlinks();
+    }
+
     pub fn mouse_event(&mut self, event: MouseEvent, host: &mut TerminalHost) -> Result<(), Error> {
+        // Remember the last reported mouse position so that we can use it
+        // for highlighting clickable things elsewhere.
+        let new_position = CursorPosition {
+            x: event.x,
+            y: event.y as VisibleRowIndex,
+        };
+
+        if new_position != self.mouse_position {
+            self.mouse_position = new_position;
+            self.recompute_highlight();
+        }
 
         // First pass to figure out if we're messing with the selection
         let send_event = self.sgr_mouse && !event.modifiers.contains(KeyModifiers::SHIFT);
@@ -308,7 +361,6 @@ impl TerminalState {
                 _ => {}
             }
         }
-
 
         match event {
             MouseEvent {
@@ -595,6 +647,11 @@ impl TerminalState {
         }
     }
 
+    /// Returns the currently highlighted hyperlink
+    pub fn current_highlight(&self) -> Option<Rc<Hyperlink>> {
+        self.current_highlight.as_ref().cloned()
+    }
+
     /// Sets the cursor position. x and y are 0-based and relative to the
     /// top left of the visible screen.
     /// TODO: DEC origin mode impacts the interpreation of these
@@ -633,10 +690,13 @@ impl TerminalState {
 
         self.viewport_offset = position;
         let top = self.screen().lines.len() - (rows + position as usize);
-        let screen = self.screen_mut();
-        for y in top..top + rows {
-            screen.line_mut(y).set_dirty();
+        {
+            let screen = self.screen_mut();
+            for y in top..top + rows {
+                screen.line_mut(y).set_dirty();
+            }
         }
+        self.recompute_highlight();
     }
 
     /// Adjust the scroll position of the viewport by delta.

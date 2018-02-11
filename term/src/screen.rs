@@ -79,14 +79,6 @@ impl Screen {
         }
     }
 
-    /// Clears the dirty flag for a line.  The line is relative to the visible origin.
-    #[inline]
-    #[allow(dead_code)]
-    fn clean_line(&mut self, idx: VisibleRowIndex) {
-        let line_idx = self.phys_row(idx);
-        self.lines[line_idx].set_clean();
-    }
-
     /// Returns a slice over the visible lines in the screen (no scrollback)
     #[cfg(test)]
     pub fn visible_lines(&self) -> &[Line] {
@@ -112,6 +104,10 @@ impl Screen {
             c,
             attr
         );
+
+        if attr.hyperlink.is_some() {
+            self.line_mut(line_idx).set_has_hyperlink(true);
+        }
 
         let cells = &mut self.line_mut(line_idx).cells;
         let width = cells.len();
