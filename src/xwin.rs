@@ -6,11 +6,12 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::io::{Read, Write};
 use std::mem;
+use std::ops::Range;
 use std::process::Child;
 use std::rc::Rc;
 use std::slice;
-use term::{self, KeyCode, KeyModifiers, MouseButton, MouseEvent, MouseEventKind, TerminalHost,
-           Underline};
+use term::{self, CursorPosition, KeyCode, KeyModifiers, Line, MouseButton, MouseEvent,
+           MouseEventKind, TerminalHost, Underline};
 use xcb;
 use xcb_util;
 use xgfx::{self, BitmapImage, Connection, Drawable};
@@ -80,7 +81,7 @@ pub struct TerminalWindow<'a> {
     cell_width: usize,
     descender: isize,
     window_context: xgfx::Context<'a>,
-    buffer_image: BufferImage<'a>,
+    buffer_image: RefCell<BufferImage<'a>>,
     terminal: term::Terminal,
     process: Child,
     glyph_cache: RefCell<HashMap<GlyphKey, Rc<CachedGlyph>>>,
@@ -228,7 +229,7 @@ impl<'a> TerminalWindow<'a> {
                 clipboard: None,
             },
             window_context,
-            buffer_image,
+            buffer_image: RefCell::new(buffer_image),
             conn,
             width,
             height,
@@ -257,8 +258,13 @@ impl<'a> TerminalWindow<'a> {
                 width as usize,
                 height as usize,
             );
-            buffer.draw_image(0, 0, &self.buffer_image, xgfx::Operator::Source);
-            self.buffer_image = buffer;
+            buffer.draw_image(
+                0,
+                0,
+                &*self.buffer_image.borrow_mut(),
+                xgfx::Operator::Source,
+            );
+            self.buffer_image = RefCell::new(buffer);
 
             self.width = width;
             self.height = height;
@@ -274,18 +280,20 @@ impl<'a> TerminalWindow<'a> {
             let background_color = self.palette.resolve(
                 &term::color::ColorAttribute::Background,
             );
-            self.buffer_image.clear_rect(
+            self.buffer_image.borrow_mut().clear_rect(
                 cols as isize * self.cell_width as isize,
                 0,
-                width as usize - (cols as usize * self.cell_width as usize),
+                width as usize -
+                    (cols as usize * self.cell_width as usize),
                 self.height as usize,
                 background_color.into(),
             );
-            self.buffer_image.clear_rect(
+            self.buffer_image.borrow_mut().clear_rect(
                 0,
                 rows as isize * self.cell_height as isize,
                 width as usize,
-                height as usize - (rows as usize * self.cell_height as usize),
+                height as usize -
+                    (rows as usize * self.cell_height as usize),
                 background_color.into(),
             );
 
@@ -299,7 +307,7 @@ impl<'a> TerminalWindow<'a> {
     pub fn expose(&mut self, x: u16, y: u16, width: u16, height: u16) -> Result<(), Error> {
         debug!("expose {},{}, {},{}", x, y, width, height);
 
-        match &self.buffer_image {
+        match &*self.buffer_image.borrow() {
             &BufferImage::Shared(ref shm) => {
                 self.window_context.copy_area(
                     shm,
@@ -493,286 +501,295 @@ impl<'a> TerminalWindow<'a> {
         font.shape(0, s)
     }
 
-    pub fn paint(&mut self) -> Result<(), Error> {
+    fn render_line(
+        &self,
+        line_idx: usize,
+        line: &Line,
+        selection: Range<usize>,
+        cursor: &CursorPosition,
+    ) -> Result<(), Error> {
+
+        let mut x = 0 as isize;
+        let y = (line_idx * self.cell_height) as isize;
+        let base_y = y + self.cell_height as isize + self.descender;
+
         let background_color = self.palette.resolve(
             &term::color::ColorAttribute::Background,
         );
 
-        let cell_height = self.cell_height;
-        let cell_width = self.cell_width;
+        // Clear this dirty row
+        self.buffer_image.borrow_mut().clear_rect(
+            0,
+            y,
+            self.width as usize,
+            self.cell_height,
+            background_color.into(),
+        );
 
+        // Break the line into clusters of cells with the same attributes
+        let cell_clusters = line.cluster();
+        for cluster in cell_clusters {
+            let attrs = &cluster.attrs;
+            let style = self.fonts.match_style(attrs);
+            let metric_width = {
+                let font = self.fonts.cached_font(style)?;
+                let (_, width, _) = font.borrow_mut().get_metrics()?;
+                width as usize
+            };
+
+            let (fg_color, bg_color) = {
+                let mut fg_color = &attrs.foreground;
+                let mut bg_color = &attrs.background;
+
+                if attrs.reverse() {
+                    mem::swap(&mut fg_color, &mut bg_color);
+                }
+
+                (fg_color, bg_color)
+            };
+
+            let bg_color = self.palette.resolve(bg_color);
+
+            // Shape the printable text from this cluster
+            let glyph_info = self.shape_text(&cluster.text, &style)?;
+            for info in glyph_info.iter() {
+                let cell_idx = cluster.byte_to_cell_idx[info.cluster as usize];
+                let cell = &line.cells[cell_idx];
+                let cell_print_width = cell.width();
+
+                // Render the cell background color
+                self.buffer_image.borrow_mut().clear_rect(
+                    x,
+                    y,
+                    cell_print_width * metric_width,
+                    self.cell_height,
+                    bg_color.into(),
+                );
+
+                // Render selection background
+                for cur_x in cell_idx..cell_idx + info.num_cells as usize {
+                    if term::in_range(cur_x, &selection) {
+                        self.buffer_image.borrow_mut().clear_rect(
+                            (cur_x * metric_width) as isize,
+                            y,
+                            self.cell_width * line.cells[cur_x].width(),
+                            self.cell_height,
+                            self.palette.cursor().into(),
+                        );
+                    }
+                }
+
+                // Render the cursor, if it overlaps with the current cluster
+                if line_idx as i64 == cursor.y {
+                    for cur_x in cell_idx..cell_idx + info.num_cells as usize {
+                        if cursor.x == cur_x {
+                            // The cursor fits in this cell, so render the cursor bg
+                            self.buffer_image.borrow_mut().clear_rect(
+                                (cur_x * metric_width) as isize,
+                                y,
+                                self.cell_width *
+                                    line.cells[cur_x].width(),
+                                self.cell_height,
+                                self.palette.cursor().into(),
+                            );
+                        }
+                    }
+                }
+
+                let glyph = self.cached_glyph(info, &style)?;
+
+                let glyph_color = match fg_color {
+                    &term::color::ColorAttribute::Foreground => {
+                        if let Some(fg) = style.foreground {
+                            fg
+                        } else {
+                            self.palette.resolve(fg_color)
+                        }
+                    }
+                    &term::color::ColorAttribute::PaletteIndex(idx) if idx < 8 => {
+                        // For compatibility purposes, switch to a brighter version
+                        // of one of the standard ANSI colors when Bold is enabled.
+                        // This lifts black to dark grey.
+                        let idx = if attrs.intensity() == term::Intensity::Bold {
+                            idx + 8
+                        } else {
+                            idx
+                        };
+                        self.palette.resolve(
+                            &term::color::ColorAttribute::PaletteIndex(idx),
+                        )
+                    }
+                    _ => self.palette.resolve(fg_color),
+                };
+
+                // glyph.image.is_none() for whitespace glyphs
+                if let &Some(ref image) = &glyph.image {
+                    if false && line_idx == cursor.y as usize {
+                        debug!(
+                            "x,y: {},{} desc={} bearing:{},{} off={},{} adv={},{} scale={}",
+                            x,
+                            y,
+                            self.descender,
+                            glyph.bearing_x,
+                            glyph.bearing_y,
+                            glyph.x_offset,
+                            glyph.y_offset,
+                            glyph.x_advance,
+                            glyph.y_advance,
+                            glyph.scale
+                        );
+                    }
+
+
+                    let (glyph_width, glyph_height) = image.image_dimensions();
+
+                    // This is a little bit tricky.
+                    // We may have a double-wide glyph based on double-wide contents
+                    // of the cell, or we may have a double-wide glyph based on
+                    // the result of shaping a contextual ligature.  The computed
+                    // cell_print_width tells us about the former.  The shaping
+                    // data in info.num_cells includes both cases.  In order not
+                    // to skip out on rendering the cursor we need to slice the
+                    // glyph up into cell strips and render them.
+                    for slice_x in 0..info.num_cells as usize {
+                        let is_cursor = cursor.x == slice_x + cell_idx &&
+                            line_idx as i64 == cursor.y;
+
+                        let glyph_color = if is_cursor {
+                            // overlaps with cursor, so adjust colors.
+                            // TODO: could make cursor fg color an option.
+                            self.palette.resolve(&attrs.background)
+                        } else {
+                            glyph_color
+                        };
+                        let operator = if glyph.has_color {
+                            xgfx::Operator::Over
+                        } else {
+                            xgfx::Operator::MultiplyThenOver(glyph_color.into())
+                        };
+
+                        let slice_offset = slice_x * metric_width;
+
+                        // How much of the glyph to render in this slice.  If we're
+                        // the last slice in the sequence then we don't clamp to the
+                        // cell metrics so that ligatures can bleed from one of the
+                        // slice/cells into the next and look good.
+                        let slice_width = if slice_x == info.num_cells as usize - 1 {
+                            glyph_width.saturating_sub(slice_offset)
+                        } else {
+                            (glyph_width.saturating_sub(slice_offset)).min(metric_width)
+                        };
+
+                        let draw_x = slice_offset as isize + x + glyph.x_offset as isize +
+                            glyph.bearing_x;
+                        let draw_y = base_y - (glyph.y_offset as isize + glyph.bearing_y);
+
+                        self.buffer_image.borrow_mut().draw_image_subset(
+                            draw_x,
+                            draw_y,
+                            slice_offset,
+                            0,
+                            slice_width,
+                            glyph_height.min(self.cell_height),
+                            image,
+                            operator,
+                        );
+
+                        if is_cursor {
+                            // Render a block outline style of cursor.
+                            // TODO: make this respect user configuration
+                            self.buffer_image.borrow_mut().draw_rect(
+                                (slice_offset + (cell_idx * metric_width)) as
+                                    isize,
+                                y,
+                                // take care to use the print width here otherwise
+                                // the rectangle will incorrectly bisect the glyph
+                                (cell_print_width * metric_width),
+                                self.cell_height,
+                                self.palette.cursor().into(),
+                                xgfx::Operator::Over,
+                            );
+                        }
+                    }
+                }
+
+                // underline here
+                match attrs.underline() {
+                    Underline::None => {}
+                    Underline::Single => {
+                        self.buffer_image.borrow_mut().draw_horizontal_line(
+                            x,
+                            base_y + 2,
+                            cell_print_width * metric_width,
+                            glyph_color.into(),
+                            xgfx::Operator::Over,
+                        );
+                    }
+                    Underline::Double => {
+                        self.buffer_image.borrow_mut().draw_horizontal_line(
+                            x,
+                            base_y + 1,
+                            cell_print_width * metric_width,
+                            glyph_color.into(),
+                            xgfx::Operator::Over,
+                        );
+                        self.buffer_image.borrow_mut().draw_horizontal_line(
+                            x,
+                            base_y + 3,
+                            cell_print_width * metric_width,
+                            glyph_color.into(),
+                            xgfx::Operator::Over,
+                        );
+                    }
+                }
+
+                if attrs.strikethrough() {
+                    self.buffer_image.borrow_mut().draw_horizontal_line(
+                        x,
+                        y + (base_y - y) / 2,
+                        cell_print_width * metric_width,
+                        glyph_color.into(),
+                        xgfx::Operator::Over,
+                    );
+                }
+
+                x += glyph.x_advance;
+            }
+        }
+
+        // If we have SHM available, we can send up just this changed line
+        match &*self.buffer_image.borrow() {
+            &BufferImage::Shared(ref shm) => {
+                self.window_context.copy_area(
+                    shm,
+                    0,
+                    y as i16,
+                    &self.host.window,
+                    0,
+                    y as i16,
+                    self.width,
+                    self.cell_height as u16,
+                );
+            }
+            &BufferImage::Image(_) => {
+                // Will handle this at the end
+            }
+        }
+
+        Ok(())
+    }
+
+    pub fn paint(&mut self) -> Result<(), Error> {
         let cursor = self.terminal.cursor_pos();
         {
             let dirty_lines = self.terminal.get_dirty_lines();
 
             for (line_idx, line, selrange) in dirty_lines {
-
-                let mut x = 0 as isize;
-                let y = (line_idx * cell_height) as isize;
-                let base_y = y + cell_height as isize + self.descender;
-
-                // Clear this dirty row
-                self.buffer_image.clear_rect(
-                    0,
-                    y,
-                    self.width as usize,
-                    cell_height,
-                    background_color.into(),
-                );
-
-                // Break the line into clusters of cells with the same attributes
-                let cell_clusters = line.cluster();
-                for cluster in cell_clusters {
-                    let attrs = &cluster.attrs;
-                    let style = self.fonts.match_style(attrs);
-                    let metric_width = {
-                        let font = self.fonts.cached_font(style)?;
-                        let (_, width, _) = font.borrow_mut().get_metrics()?;
-                        width as usize
-                    };
-
-                    let (fg_color, bg_color) = {
-                        let mut fg_color = &attrs.foreground;
-                        let mut bg_color = &attrs.background;
-
-                        if attrs.reverse() {
-                            mem::swap(&mut fg_color, &mut bg_color);
-                        }
-
-                        (fg_color, bg_color)
-                    };
-
-                    let bg_color = self.palette.resolve(bg_color);
-
-                    // Shape the printable text from this cluster
-                    let glyph_info = self.shape_text(&cluster.text, &style)?;
-                    for info in glyph_info.iter() {
-                        let cell_idx = cluster.byte_to_cell_idx[info.cluster as usize];
-                        let cell = &line.cells[cell_idx];
-                        let cell_print_width = cell.width();
-
-                        // Render the cell background color
-                        self.buffer_image.clear_rect(
-                            x,
-                            y,
-                            cell_print_width * metric_width,
-                            cell_height,
-                            bg_color.into(),
-                        );
-
-                        // Render selection background
-                        for cur_x in cell_idx..cell_idx + info.num_cells as usize {
-                            if term::in_range(cur_x, &selrange) {
-                                self.buffer_image.clear_rect(
-                                    (cur_x * metric_width) as isize,
-                                    y,
-                                    cell_width * line.cells[cur_x].width(),
-                                    cell_height,
-                                    self.palette.cursor().into(),
-                                );
-                            }
-                        }
-
-                        // Render the cursor, if it overlaps with the current cluster
-                        if line_idx as i64 == cursor.y {
-                            for cur_x in cell_idx..cell_idx + info.num_cells as usize {
-                                if cursor.x == cur_x {
-                                    // The cursor fits in this cell, so render the cursor bg
-                                    self.buffer_image.clear_rect(
-                                        (cur_x * metric_width) as isize,
-                                        y,
-                                        cell_width * line.cells[cur_x].width(),
-                                        cell_height,
-                                        self.palette.cursor().into(),
-                                    );
-                                }
-                            }
-                        }
-
-                        let glyph = self.cached_glyph(info, &style)?;
-
-                        let glyph_color = match fg_color {
-                            &term::color::ColorAttribute::Foreground => {
-                                if let Some(fg) = style.foreground {
-                                    fg
-                                } else {
-                                    self.palette.resolve(fg_color)
-                                }
-                            }
-                            &term::color::ColorAttribute::PaletteIndex(idx) if idx < 8 => {
-                                // For compatibility purposes, switch to a brighter version
-                                // of one of the standard ANSI colors when Bold is enabled.
-                                // This lifts black to dark grey.
-                                let idx = if attrs.intensity() == term::Intensity::Bold {
-                                    idx + 8
-                                } else {
-                                    idx
-                                };
-                                self.palette.resolve(
-                                    &term::color::ColorAttribute::PaletteIndex(idx),
-                                )
-                            }
-                            _ => self.palette.resolve(fg_color),
-                        };
-
-                        // glyph.image.is_none() for whitespace glyphs
-                        if let &Some(ref image) = &glyph.image {
-                            if false && line_idx == cursor.y as usize {
-                                debug!(
-                                    "x,y: {},{} desc={} bearing:{},{} off={},{} adv={},{} scale={}",
-                                    x,
-                                    y,
-                                    self.descender,
-                                    glyph.bearing_x,
-                                    glyph.bearing_y,
-                                    glyph.x_offset,
-                                    glyph.y_offset,
-                                    glyph.x_advance,
-                                    glyph.y_advance,
-                                    glyph.scale
-                                );
-                            }
-
-
-                            let (glyph_width, glyph_height) = image.image_dimensions();
-
-                            // This is a little bit tricky.
-                            // We may have a double-wide glyph based on double-wide contents
-                            // of the cell, or we may have a double-wide glyph based on
-                            // the result of shaping a contextual ligature.  The computed
-                            // cell_print_width tells us about the former.  The shaping
-                            // data in info.num_cells includes both cases.  In order not
-                            // to skip out on rendering the cursor we need to slice the
-                            // glyph up into cell strips and render them.
-                            for slice_x in 0..info.num_cells as usize {
-                                let is_cursor = cursor.x == slice_x + cell_idx &&
-                                    line_idx as i64 == cursor.y;
-
-                                let glyph_color = if is_cursor {
-                                    // overlaps with cursor, so adjust colors.
-                                    // TODO: could make cursor fg color an option.
-                                    self.palette.resolve(&attrs.background)
-                                } else {
-                                    glyph_color
-                                };
-                                let operator = if glyph.has_color {
-                                    xgfx::Operator::Over
-                                } else {
-                                    xgfx::Operator::MultiplyThenOver(glyph_color.into())
-                                };
-
-                                let slice_offset = slice_x * metric_width;
-
-                                // How much of the glyph to render in this slice.  If we're
-                                // the last slice in the sequence then we don't clamp to the
-                                // cell metrics so that ligatures can bleed from one of the
-                                // slice/cells into the next and look good.
-                                let slice_width = if slice_x == info.num_cells as usize - 1 {
-                                    glyph_width.saturating_sub(slice_offset)
-                                } else {
-                                    (glyph_width.saturating_sub(slice_offset)).min(metric_width)
-                                };
-
-                                let draw_x = slice_offset as isize + x + glyph.x_offset as isize +
-                                    glyph.bearing_x;
-                                let draw_y = base_y - (glyph.y_offset as isize + glyph.bearing_y);
-
-                                self.buffer_image.draw_image_subset(
-                                    draw_x,
-                                    draw_y,
-                                    slice_offset,
-                                    0,
-                                    slice_width,
-                                    glyph_height.min(cell_height),
-                                    image,
-                                    operator,
-                                );
-
-                                if is_cursor {
-                                    // Render a block outline style of cursor.
-                                    // TODO: make this respect user configuration
-                                    self.buffer_image.draw_rect(
-                                        (slice_offset + (cell_idx * metric_width)) as
-                                            isize,
-                                        y,
-                                        // take care to use the print width here otherwise
-                                        // the rectangle will incorrectly bisect the glyph
-                                        (cell_print_width * metric_width),
-                                        cell_height,
-                                        self.palette.cursor().into(),
-                                        xgfx::Operator::Over,
-                                    );
-                                }
-                            }
-                        }
-
-                        // underline here
-                        match attrs.underline() {
-                            Underline::None => {}
-                            Underline::Single => {
-                                self.buffer_image.draw_horizontal_line(
-                                    x,
-                                    base_y + 2,
-                                    cell_print_width * metric_width,
-                                    glyph_color.into(),
-                                    xgfx::Operator::Over,
-                                );
-                            }
-                            Underline::Double => {
-                                self.buffer_image.draw_horizontal_line(
-                                    x,
-                                    base_y + 1,
-                                    cell_print_width * metric_width,
-                                    glyph_color.into(),
-                                    xgfx::Operator::Over,
-                                );
-                                self.buffer_image.draw_horizontal_line(
-                                    x,
-                                    base_y + 3,
-                                    cell_print_width * metric_width,
-                                    glyph_color.into(),
-                                    xgfx::Operator::Over,
-                                );
-                            }
-                        }
-
-                        if attrs.strikethrough() {
-                            self.buffer_image.draw_horizontal_line(
-                                x,
-                                y + (base_y - y) / 2,
-                                cell_print_width * metric_width,
-                                glyph_color.into(),
-                                xgfx::Operator::Over,
-                            );
-                        }
-
-                        x += glyph.x_advance;
-                    }
-                }
-
-                // If we have SHM available, we can send up just this changed line
-                match &self.buffer_image {
-                    &BufferImage::Shared(ref shm) => {
-                        self.window_context.copy_area(
-                            shm,
-                            0,
-                            y as i16,
-                            &self.host.window,
-                            0,
-                            y as i16,
-                            self.width,
-                            cell_height as u16,
-                        );
-                    }
-                    &BufferImage::Image(_) => {
-                        // Will handle this at the end
-                    }
-                }
-
+                self.render_line(line_idx, line, selrange, &cursor)?;
             }
         }
 
-        match &self.buffer_image {
+        match &*self.buffer_image.borrow() {
             &BufferImage::Shared(_) => {
                 // We handled this above
             }
