@@ -9,7 +9,8 @@ use std::mem;
 use std::process::Child;
 use std::rc::Rc;
 use std::slice;
-use term::{self, KeyCode, KeyModifiers, MouseButton, MouseEvent, MouseEventKind, TerminalHost};
+use term::{self, KeyCode, KeyModifiers, MouseButton, MouseEvent, MouseEventKind, TerminalHost,
+           Underline};
 use xcb;
 use xcb_util;
 use xgfx::{self, BitmapImage, Connection, Drawable};
@@ -508,6 +509,7 @@ impl<'a> TerminalWindow<'a> {
 
                 let mut x = 0 as isize;
                 let y = (line_idx * cell_height) as isize;
+                let base_y = y + cell_height as isize + self.descender;
 
                 // Clear this dirty row
                 self.buffer_image.clear_rect(
@@ -558,7 +560,6 @@ impl<'a> TerminalWindow<'a> {
                             bg_color.into(),
                         );
 
-
                         // Render selection background
                         for cur_x in cell_idx..cell_idx + info.num_cells as usize {
                             if term::in_range(cur_x, &selrange) {
@@ -589,6 +590,31 @@ impl<'a> TerminalWindow<'a> {
                         }
 
                         let glyph = self.cached_glyph(info, &style)?;
+
+                        let glyph_color = match fg_color {
+                            &term::color::ColorAttribute::Foreground => {
+                                if let Some(fg) = style.foreground {
+                                    fg
+                                } else {
+                                    self.palette.resolve(fg_color)
+                                }
+                            }
+                            &term::color::ColorAttribute::PaletteIndex(idx) if idx < 8 => {
+                                // For compatibility purposes, switch to a brighter version
+                                // of one of the standard ANSI colors when Bold is enabled.
+                                // This lifts black to dark grey.
+                                let idx = if attrs.intensity() == term::Intensity::Bold {
+                                    idx + 8
+                                } else {
+                                    idx
+                                };
+                                self.palette.resolve(
+                                    &term::color::ColorAttribute::PaletteIndex(idx),
+                                )
+                            }
+                            _ => self.palette.resolve(fg_color),
+                        };
+
                         // glyph.image.is_none() for whitespace glyphs
                         if let &Some(ref image) = &glyph.image {
                             if false && line_idx == cursor.y as usize {
@@ -625,32 +651,9 @@ impl<'a> TerminalWindow<'a> {
                                 let glyph_color = if is_cursor {
                                     // overlaps with cursor, so adjust colors.
                                     // TODO: could make cursor fg color an option.
-                                    &attrs.background
+                                    self.palette.resolve(&attrs.background)
                                 } else {
-                                    fg_color
-                                };
-                                let glyph_color = match glyph_color {
-                                    &term::color::ColorAttribute::Foreground => {
-                                        if let Some(fg) = style.foreground {
-                                            fg
-                                        } else {
-                                            self.palette.resolve(glyph_color)
-                                        }
-                                    }
-                                    &term::color::ColorAttribute::PaletteIndex(idx) if idx < 8 => {
-                                        // For compatibility purposes, switch to a brighter version
-                                        // of one of the standard ANSI colors when Bold is enabled.
-                                        // This lifts black to dark grey.
-                                        let idx = if attrs.intensity() == term::Intensity::Bold {
-                                            idx + 8
-                                        } else {
-                                            idx
-                                        };
-                                        self.palette.resolve(
-                                            &term::color::ColorAttribute::PaletteIndex(idx),
-                                        )
-                                    }
-                                    _ => self.palette.resolve(glyph_color),
+                                    glyph_color
                                 };
                                 let operator = if glyph.has_color {
                                     xgfx::Operator::Over
@@ -670,11 +673,13 @@ impl<'a> TerminalWindow<'a> {
                                     (glyph_width.saturating_sub(slice_offset)).min(metric_width)
                                 };
 
+                                let draw_x = slice_offset as isize + x + glyph.x_offset as isize +
+                                    glyph.bearing_x;
+                                let draw_y = base_y - (glyph.y_offset as isize + glyph.bearing_y);
+
                                 self.buffer_image.draw_image_subset(
-                                    slice_offset as isize + x + glyph.x_offset as isize +
-                                        glyph.bearing_x,
-                                    y + cell_height as isize + self.descender -
-                                        (glyph.y_offset as isize + glyph.bearing_y),
+                                    draw_x,
+                                    draw_y,
                                     slice_offset,
                                     0,
                                     slice_width,
@@ -698,6 +703,36 @@ impl<'a> TerminalWindow<'a> {
                                         xgfx::Operator::Over,
                                     );
                                 }
+                            }
+                        }
+
+                        // underline here
+                        match attrs.underline() {
+                            Underline::None => {}
+                            Underline::Single => {
+                                self.buffer_image.draw_horizontal_line(
+                                    x,
+                                    base_y + 2,
+                                    cell_print_width * metric_width,
+                                    glyph_color.into(),
+                                    xgfx::Operator::Over,
+                                );
+                            }
+                            Underline::Double => {
+                                self.buffer_image.draw_horizontal_line(
+                                    x,
+                                    base_y + 1,
+                                    cell_print_width * metric_width,
+                                    glyph_color.into(),
+                                    xgfx::Operator::Over,
+                                );
+                                self.buffer_image.draw_horizontal_line(
+                                    x,
+                                    base_y + 3,
+                                    cell_print_width * metric_width,
+                                    glyph_color.into(),
+                                    xgfx::Operator::Over,
+                                );
                             }
                         }
 

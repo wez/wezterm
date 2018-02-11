@@ -88,7 +88,7 @@ pub enum Underline {
 
 impl CellAttributes {
     bitfield!(intensity, set_intensity, Intensity, 0b11, 0);
-    bitfield!(underline, set_underline, Underline, 0b1100, 2);
+    bitfield!(underline, set_underline, Underline, 0b11, 2);
     bitfield!(italic, set_italic, 4);
     bitfield!(blink, set_blink, 5);
     bitfield!(reverse, set_reverse, 6);
@@ -108,6 +108,22 @@ impl Default for CellAttributes {
         }
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    /// Make sure that the bit shifting stuff works correctly
+    #[test]
+    fn cell_attributes() {
+        let mut attrs = CellAttributes::default();
+        attrs.set_underline(Underline::None);
+        assert_eq!(Underline::None, attrs.underline());
+        attrs.set_underline(Underline::Single);
+        assert_eq!(Underline::Single, attrs.underline());
+    }
+}
+
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Cell {
