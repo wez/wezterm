@@ -66,6 +66,6 @@ impl Terminal {
         for b in bytes.iter() {
             self.parser.advance(&mut self.state, *b);
         }
-        self.answerback.drain(0..).collect()
+        self.state.drain_answerback()
     }
 }
