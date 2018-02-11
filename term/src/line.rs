@@ -103,7 +103,6 @@ impl Line {
         clusters
     }
 
-    #[allow(dead_code)]
     pub fn from_text(s: &str, attrs: &CellAttributes) -> Line {
         let mut cells = Vec::new();
 

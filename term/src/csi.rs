@@ -30,7 +30,7 @@ pub enum DecPrivateMode {
 
 #[derive(Debug)]
 pub enum CSIAction {
-    SetPen(CellAttributes),
+    SetPenNoLink(CellAttributes),
     SetForegroundColor(color::ColorAttribute),
     SetBackgroundColor(color::ColorAttribute),
     SetIntensity(Intensity),
@@ -54,6 +54,7 @@ pub enum CSIAction {
     SaveCursor,
     RestoreCursor,
     ScrollLines(i64),
+    SoftReset,
 }
 
 /// Constrol Sequence Initiator (CSI) Parser.
@@ -183,12 +184,12 @@ impl<'a> CSIParser<'a> {
                 // With no parameters, reset to default pen.
                 // Note that this empty case is only possible for the initial
                 // iteration.
-                Some(CSIAction::SetPen(CellAttributes::default()))
+                Some(CSIAction::SetPenNoLink(CellAttributes::default()))
             }
             &[0, _..] => {
                 // Explicitly set to default pen
                 self.advance_by(1, params);
-                Some(CSIAction::SetPen(CellAttributes::default()))
+                Some(CSIAction::SetPenNoLink(CellAttributes::default()))
             }
             &[38, 2, _colorspace, red, green, blue, _..] => {
                 // ISO-8613-6 true color foreground
@@ -495,6 +496,7 @@ impl<'a> Iterator for CSIParser<'a> {
             ('l', &[b'?'], Some(params)) => self.dec_reset_mode(params),
             ('m', &[], Some(params)) => self.sgr(params),
             ('n', &[], Some(params)) => self.dsr(params),
+            ('p', &[b'!'], Some(&[])) => Some(CSIAction::SoftReset),
             ('r', &[], Some(params)) => self.set_scroll_region(params),
 
             // SCOSC: Save Cursor

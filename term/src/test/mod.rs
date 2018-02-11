@@ -98,6 +98,19 @@ impl TestTerm {
         };
         self.print(format!("{}K", num));
     }
+
+    fn hyperlink(&mut self, link: &Rc<Hyperlink>) {
+        self.print(format!("\x1b]8;id={};{}\x1b\\", link.id, link.url));
+    }
+
+    fn hyperlink_off(&mut self) {
+        self.print("\x1b]8;;\x1b\\");
+    }
+
+    fn soft_reset(&mut self) {
+        self.print(CSI);
+        self.print("!p");
+    }
 }
 
 impl Deref for TestTerm {
@@ -190,7 +203,7 @@ bitflags! {
     struct Compare : u8{
         const TEXT = 1;
         const ATTRS = 2;
-        const DIRTY = 3;
+        const DIRTY = 4;
     }
 }
 
@@ -201,20 +214,6 @@ fn print_visible_lines(term: &Terminal) {
     for line in screen.visible_lines().iter() {
         println!("[{}]", line.as_str());
     }
-}
-
-/// Asserts that the visible lines of the terminal have the
-/// same cell contents.  The cells must exactly match.
-#[allow(dead_code)]
-fn assert_visible_lines(term: &Terminal, expect_lines: &[Line]) {
-    print_visible_lines(&term);
-    let screen = term.screen();
-
-    assert_lines_equal(
-        screen.visible_lines(),
-        expect_lines,
-        Compare::ATTRS | Compare::TEXT,
-    );
 }
 
 /// Asserts that the visible lines of the terminal have the
@@ -347,4 +346,66 @@ fn test_delete_lines() {
 
     assert_visible_contents(&term, &["111", "aaa", "   ", "bbb", "   "]);
     assert_dirty_lines!(&term, &[1, 2, 3, 4]);
+}
+
+#[test]
+fn test_hyperlinks() {
+    let mut term = TestTerm::new(3, 5, 0);
+    let link = Rc::new(Hyperlink::with_id("http://example.com", ""));
+    term.hyperlink(&link);
+    term.print("hello");
+    term.hyperlink_off();
+
+    let mut linked = CellAttributes::default();
+    linked.hyperlink = Some(Rc::clone(&link));
+
+    assert_lines_equal(
+        term.screen().visible_lines(),
+        &[
+            Line::from_text("hello", &linked),
+            "     ".into(),
+            "     ".into(),
+        ],
+        Compare::TEXT | Compare::ATTRS,
+    );
+
+    term.hyperlink(&link);
+    term.print("he");
+    // Resetting pen should not reset the link
+    term.print("\x1b[m");
+    term.print("y!!");
+
+    assert_lines_equal(
+        term.screen().visible_lines(),
+        &[
+            Line::from_text("hello", &linked),
+            Line::from_text("hey!!", &linked),
+            "     ".into(),
+        ],
+        Compare::TEXT | Compare::ATTRS,
+    );
+
+    let otherlink = Rc::new(Hyperlink::with_id("http://example.com/other", "w00t"));
+
+    // Switching link and turning it off
+    term.hyperlink(&otherlink);
+    term.print("wo");
+    // soft reset also disables hyperlink attribute
+    term.soft_reset();
+    term.print("00t");
+
+    let mut partial_line: Line = "wo00t".into();
+    partial_line.cells[0].attrs.hyperlink = Some(Rc::clone(&otherlink));
+    partial_line.cells[1].attrs.hyperlink = Some(Rc::clone(&otherlink));
+
+    assert_lines_equal(
+        term.screen().visible_lines(),
+        &[
+            Line::from_text("hello", &linked),
+            Line::from_text("hey!!", &linked),
+            partial_line,
+        ],
+        Compare::TEXT | Compare::ATTRS,
+    );
+
 }

@@ -777,8 +777,14 @@ impl TerminalState {
     fn perform_csi(&mut self, act: CSIAction) {
         debug!("{:?}", act);
         match act {
-            CSIAction::SetPen(pen) => {
+            CSIAction::SoftReset => {
+                self.pen = CellAttributes::default();
+                // TODO: see https://vt100.net/docs/vt510-rm/DECSTR.html
+            }
+            CSIAction::SetPenNoLink(pen) => {
+                let link = self.pen.hyperlink.take();
                 self.pen = pen;
+                self.pen.hyperlink = link;
             }
             CSIAction::SetForegroundColor(color) => {
                 self.pen.foreground = color;
