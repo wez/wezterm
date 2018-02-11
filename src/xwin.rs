@@ -652,15 +652,6 @@ impl<'a> TerminalWindow<'a> {
             &term::color::ColorAttribute::Background,
         );
 
-        // Clear this dirty row
-        self.buffer_image.borrow_mut().clear_rect(
-            0,
-            y,
-            self.width as usize,
-            self.cell_height,
-            background_color.into(),
-        );
-
         // Break the line into clusters of cells with the same attributes
         let cell_clusters = line.cluster();
         for cluster in cell_clusters {
@@ -790,6 +781,15 @@ impl<'a> TerminalWindow<'a> {
                 x += cluster_width as isize;
             }
         }
+
+        // Clear anything remaining to the right of the line
+        self.buffer_image.borrow_mut().clear_rect(
+            x,
+            y,
+            self.width as usize - x as usize,
+            self.cell_height,
+            background_color.into(),
+        );
 
         // If we have SHM available, we can send up just this changed line
         match &*self.buffer_image.borrow() {
