@@ -8,6 +8,7 @@ use std::io::{Read, Write};
 use std::mem;
 use std::ops::Range;
 use std::process::Child;
+use std::process::Command;
 use std::rc::Rc;
 use std::slice;
 use term::{self, CellAttributes, CursorPosition, KeyCode, KeyModifiers, Line, MouseButton,
@@ -114,7 +115,13 @@ impl<'a> term::TerminalHost for Host<'a> {
     }
 
     fn click_link(&mut self, link: &Rc<Hyperlink>) {
-        println!("clicked on link: {:?}", link);
+        // TODO: make this configurable
+        let mut cmd = Command::new("xdg-open");
+        cmd.arg(&link.url);
+        match cmd.spawn() {
+            Ok(_) => {}
+            Err(err) => eprintln!("failed to spawn xdg-open {}: {:?}", link.url, err),
+        }
     }
 
     // Check out https://tronche.com/gui/x/icccm/sec-2.html for some deep and complex
