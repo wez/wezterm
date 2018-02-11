@@ -21,7 +21,6 @@ use failure::Error;
 use std::ops::{Deref, DerefMut, Range};
 use std::rc::Rc;
 use std::str;
-use std::time::{Duration, Instant};
 
 #[macro_use]
 mod debug;
@@ -43,6 +42,9 @@ use selection::{SelectionCoordinate, SelectionRange};
 
 pub mod hyperlink;
 use hyperlink::Hyperlink;
+
+pub mod terminal;
+pub use terminal::*;
 
 /// Represents the index into screen.lines.  Index 0 is the top of
 /// the scrollback (if any).  The index of the top of the visible screen
@@ -114,47 +116,6 @@ pub const OSC: &[u8] = b"\x1b]";
 pub const ST: &[u8] = b"\x1b\\";
 #[allow(dead_code)]
 pub const DCS: &[u8] = b"\x1bP";
-
-/// This is a little helper that keeps track of the "click streak",
-/// which is the number of successive clicks of the same mouse button
-/// within the CLICK_INTERVAL.  The streak is reset to 1 each time
-/// the mouse button differs from the last click, or when the elapsed
-/// time exceeds CLICK_INTERVAL.
-#[derive(Debug)]
-struct LastMouseClick {
-    button: MouseButton,
-    time: Instant,
-    streak: usize,
-}
-
-/// The multi-click interval, measured in milliseconds
-const CLICK_INTERVAL: u64 = 500;
-
-impl LastMouseClick {
-    fn new(button: MouseButton) -> Self {
-        Self {
-            button,
-            time: Instant::now(),
-            streak: 1,
-        }
-    }
-
-    fn add(&self, button: MouseButton) -> Self {
-        let now = Instant::now();
-        let streak = if button == self.button &&
-            now.duration_since(self.time) <= Duration::from_millis(CLICK_INTERVAL)
-        {
-            self.streak + 1
-        } else {
-            1
-        };
-        Self {
-            button,
-            time: now,
-            streak,
-        }
-    }
-}
 
 pub struct TerminalState {
     /// The primary screen + scrollback
@@ -1022,76 +983,6 @@ impl TerminalState {
             }
         }
     }
-}
-
-pub struct Terminal {
-    /// The terminal model/state
-    state: TerminalState,
-    /// Baseline terminal escape sequence parser
-    parser: vte::Parser,
-}
-
-impl Deref for Terminal {
-    type Target = TerminalState;
-
-    fn deref(&self) -> &TerminalState {
-        &self.state
-    }
-}
-
-impl DerefMut for Terminal {
-    fn deref_mut(&mut self) -> &mut TerminalState {
-        &mut self.state
-    }
-}
-
-/// When the terminal parser needs to convey a response
-/// back to the caller, this enum holds that response
-#[derive(Debug, Clone)]
-pub enum AnswerBack {
-    /// Some data to send back to the application on
-    /// the slave end of the pty.
-    WriteToPty(Vec<u8>),
-    /// The application has requested that we change
-    /// the terminal title, and here it is.
-    TitleChanged(String),
-}
-
-impl Terminal {
-    pub fn new(physical_rows: usize, physical_cols: usize, scrollback_size: usize) -> Terminal {
-        Terminal {
-            state: TerminalState::new(physical_rows, physical_cols, scrollback_size),
-            parser: vte::Parser::new(),
-        }
-    }
-
-    /// Feed the terminal parser a slice of bytes of input.
-    /// The return value is a (likely empty most of the time)
-    /// sequence of AnswerBack objects that may need to be rendered
-    /// in the UI or sent back to the client on the slave side of
-    /// the pty.
-    pub fn advance_bytes<B: AsRef<[u8]>>(&mut self, bytes: B) -> Vec<AnswerBack> {
-        let bytes = bytes.as_ref();
-        for b in bytes.iter() {
-            self.parser.advance(&mut self.state, *b);
-        }
-        self.answerback.drain(0..).collect()
-    }
-}
-
-/// Represents the host of the terminal.
-/// Provides a means for sending data to the connected pty,
-/// and for operating on the clipboard
-pub trait TerminalHost {
-    /// Returns an object that can be used to send data to the
-    /// slave end of the associated pty.
-    fn writer(&mut self) -> &mut std::io::Write;
-
-    /// Returns the current clipboard contents
-    fn get_clipboard(&mut self) -> Result<String, Error>;
-
-    /// Adjust the contents of the clipboard
-    fn set_clipboard(&mut self, clip: Option<String>) -> Result<(), Error>;
 }
 
 impl vte::Perform for TerminalState {
