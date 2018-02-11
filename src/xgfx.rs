@@ -466,18 +466,18 @@ pub trait BitmapImage {
         }
     }
 
-    /// Draw a 1-pixel wide rectangle
-    fn draw_rect(
+    fn draw_vertical_line(
         &mut self,
         dest_x: isize,
         dest_y: isize,
-        width: usize,
         height: usize,
         color: Color,
         operator: Operator,
     ) {
         let (dim_width, dim_height) = self.image_dimensions();
-        // Draw the vertical lines down either side
+        if dest_x < 0 || dest_x >= dim_width as isize {
+            return;
+        }
         for y in 0..height {
             let dest_y = y as isize + dest_y;
             if dest_y < 0 {
@@ -487,19 +487,25 @@ pub trait BitmapImage {
                 break;
             }
 
-            if dest_x >= 0 && dest_x < dim_width as isize {
-                let left = self.pixel_mut(dest_x as usize, dest_y as usize);
-                *left = color.composite(Color(*left), &operator).0;
-            }
+            let pix = self.pixel_mut(dest_x as usize, dest_y as usize);
+            *pix = color.composite(Color(*pix), &operator).0;
+        }
+    }
 
-            let right_x = dest_x + width as isize - 1;
-            if right_x >= 0 && right_x < dim_width as isize {
-                let right = self.pixel_mut(right_x as usize, dest_y as usize);
-                *right = color.composite(Color(*right), &operator).0;
-            }
+    fn draw_horizontal_line(
+        &mut self,
+        dest_x: isize,
+        dest_y: isize,
+        width: usize,
+        color: Color,
+        operator: Operator,
+    ) {
+        let (dim_width, dim_height) = self.image_dimensions();
+
+        if dest_y < 0 || dest_y >= dim_height as isize {
+            return;
         }
 
-        // And the horizontals for the top and bottom
         for x in 0..width {
             let dest_x = x as isize + dest_x;
 
@@ -510,17 +516,28 @@ pub trait BitmapImage {
                 break;
             }
 
-            if dest_y >= 0 && dest_y < dim_height as isize {
-                let top = self.pixel_mut(dest_x as usize, dest_y as usize);
-                *top = color.composite(Color(*top), &operator).0;
-            }
-
-            let bot_y = dest_y + height as isize - 1;
-            if bot_y >= 0 && bot_y < dim_height as isize {
-                let bottom = self.pixel_mut(dest_x as usize, bot_y as usize);
-                *bottom = color.composite(Color(*bottom), &operator).0;
-            }
+            let pix = self.pixel_mut(dest_x as usize, dest_y as usize);
+            *pix = color.composite(Color(*pix), &operator).0;
         }
+    }
+
+    /// Draw a 1-pixel wide rectangle
+    fn draw_rect(
+        &mut self,
+        dest_x: isize,
+        dest_y: isize,
+        width: usize,
+        height: usize,
+        color: Color,
+        operator: Operator,
+    ) {
+        // Draw the vertical lines down either side
+        self.draw_vertical_line(dest_x, dest_y, height, color, operator);
+        self.draw_vertical_line(dest_x + width as isize, dest_y, height, color, operator);
+
+        // And the horizontals for the top and bottom
+        self.draw_horizontal_line(dest_x, dest_y, width, color, operator);
+        self.draw_horizontal_line(dest_x, dest_y + height as isize, width, color, operator);
     }
 
     fn draw_image(&mut self, dest_x: isize, dest_y: isize, im: &BitmapImage, operator: Operator) {
