@@ -13,6 +13,9 @@ pub trait TerminalHost {
 
     /// Adjust the contents of the clipboard
     fn set_clipboard(&mut self, clip: Option<String>) -> Result<(), Error>;
+
+    /// Change the title of the window
+    fn set_title(&mut self, title: &str);
 }
 
 pub struct Terminal {
@@ -39,7 +42,7 @@ impl DerefMut for Terminal {
 /// When the terminal parser needs to convey a response
 /// back to the caller, this enum holds that response
 #[derive(Debug, Clone)]
-pub enum AnswerBack {
+pub(crate) enum AnswerBack {
     /// Some data to send back to the application on
     /// the slave end of the pty.
     WriteToPty(Vec<u8>),
@@ -57,15 +60,20 @@ impl Terminal {
     }
 
     /// Feed the terminal parser a slice of bytes of input.
-    /// The return value is a (likely empty most of the time)
-    /// sequence of AnswerBack objects that may need to be rendered
-    /// in the UI or sent back to the client on the slave side of
-    /// the pty.
-    pub fn advance_bytes<B: AsRef<[u8]>>(&mut self, bytes: B) -> Vec<AnswerBack> {
+    pub fn advance_bytes<B: AsRef<[u8]>>(&mut self, bytes: B, host: &mut TerminalHost) {
         let bytes = bytes.as_ref();
         for b in bytes.iter() {
             self.parser.advance(&mut self.state, *b);
         }
-        self.state.drain_answerback()
+        for answer in self.state.drain_answerback() {
+            match answer {
+                AnswerBack::WriteToPty(response) => {
+                    host.writer().write(&response).ok(); // discard error
+                }
+                AnswerBack::TitleChanged(title) => {
+                    host.set_title(&title);
+                }
+            }
+        }
     }
 }

@@ -678,7 +678,7 @@ impl TerminalState {
         self.answerback.push(AnswerBack::WriteToPty(buf.to_vec()));
     }
 
-    pub fn drain_answerback(&mut self) -> Vec<AnswerBack> {
+    pub(crate) fn drain_answerback(&mut self) -> Vec<AnswerBack> {
         self.answerback.drain(0..).collect()
     }
 

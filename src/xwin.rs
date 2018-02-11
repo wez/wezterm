@@ -186,6 +186,10 @@ impl<'a> term::TerminalHost for Host<'a> {
 
         Ok(())
     }
+
+    fn set_title(&mut self, title: &str) {
+        self.window.set_title(title);
+    }
 }
 
 impl<'a> TerminalWindow<'a> {
@@ -861,16 +865,7 @@ impl<'a> TerminalWindow<'a> {
         loop {
             match self.host.pty.read(&mut buf) {
                 Ok(size) => {
-                    for answer in self.terminal.advance_bytes(&buf[0..size]) {
-                        match answer {
-                            term::AnswerBack::WriteToPty(response) => {
-                                self.host.pty.write(&response).ok(); // discard error
-                            }
-                            term::AnswerBack::TitleChanged(title) => {
-                                self.host.window.set_title(&title);
-                            }
-                        }
-                    }
+                    self.terminal.advance_bytes(&buf[0..size], &mut self.host);
                     if size < BUFSIZE {
                         // If we had a short read then there is no more
                         // data to read right now; we'll get called again

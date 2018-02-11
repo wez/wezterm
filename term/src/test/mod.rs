@@ -3,6 +3,38 @@
 
 use super::*;
 
+#[derive(Default, Debug)]
+struct TestHost {
+    title: String,
+    clip: Option<String>,
+}
+
+impl TestHost {
+    fn new() -> Self {
+        Self::default()
+    }
+}
+impl TerminalHost for TestHost {
+    fn set_title(&mut self, title: &str) {
+        self.title = title.into();
+    }
+
+    fn set_clipboard(&mut self, clip: Option<String>) -> Result<(), Error> {
+        self.clip = clip;
+        Ok(())
+    }
+
+    fn get_clipboard(&mut self) -> Result<String, Error> {
+        self.clip.as_ref().map(|c| c.clone()).ok_or_else(|| {
+            failure::err_msg("no clipboard")
+        })
+    }
+
+    fn writer(&mut self) -> &mut std::io::Write {
+        panic!("no writer support in TestHost");
+    }
+}
+
 macro_rules! assert_cursor_pos {
     ($term:expr, $x:expr, $y:expr) => {
         assert_cursor_pos!($term, $x, $y,
@@ -76,47 +108,47 @@ fn assert_lines_equal(lines: &[Line], expect_lines: &[Line], compare: Compare) {
 }
 
 #[allow(dead_code)]
-fn set_mode(term: &mut Terminal, mode: &str, enable: bool) {
-    term.advance_bytes(CSI);
-    term.advance_bytes(mode);
-    term.advance_bytes(if enable { b"h" } else { b"l" });
+fn set_mode(term: &mut Terminal, host: &mut TerminalHost, mode: &str, enable: bool) {
+    term.advance_bytes(CSI, host);
+    term.advance_bytes(mode, host);
+    term.advance_bytes(if enable { b"h" } else { b"l" }, host);
 }
 
 #[allow(dead_code)]
-fn set_scroll_region(term: &mut Terminal, top: usize, bottom: usize) {
-    term.advance_bytes(CSI);
-    term.advance_bytes(format!("{};{}r", top + 1, bottom + 1));
+fn set_scroll_region(term: &mut Terminal, host: &mut TerminalHost, top: usize, bottom: usize) {
+    term.advance_bytes(CSI, host);
+    term.advance_bytes(format!("{};{}r", top + 1, bottom + 1), host);
 }
 
-fn delete_lines(term: &mut Terminal, n: usize) {
-    term.advance_bytes(CSI);
-    term.advance_bytes(format!("{}M", n));
+fn delete_lines(term: &mut Terminal, host: &mut TerminalHost, n: usize) {
+    term.advance_bytes(CSI, host);
+    term.advance_bytes(format!("{}M", n), host);
 }
 
-fn cup(term: &mut Terminal, col: isize, row: isize) {
-    term.advance_bytes(CSI);
-    term.advance_bytes(format!("{};{}H", row + 1, col + 1));
+fn cup(term: &mut Terminal, host: &mut TerminalHost, col: isize, row: isize) {
+    term.advance_bytes(CSI, host);
+    term.advance_bytes(format!("{};{}H", row + 1, col + 1), host);
 }
 
-fn erase_in_display(term: &mut Terminal, erase: DisplayErase) {
-    term.advance_bytes(CSI);
+fn erase_in_display(term: &mut Terminal, host: &mut TerminalHost, erase: DisplayErase) {
+    term.advance_bytes(CSI, host);
     let num = match erase {
         DisplayErase::Below => 0,
         DisplayErase::Above => 1,
         DisplayErase::All => 2,
         DisplayErase::SavedLines => 3,
     };
-    term.advance_bytes(format!("{}J", num));
+    term.advance_bytes(format!("{}J", num), host);
 }
 
-fn erase_in_line(term: &mut Terminal, erase: LineErase) {
-    term.advance_bytes(CSI);
+fn erase_in_line(term: &mut Terminal, host: &mut TerminalHost, erase: LineErase) {
+    term.advance_bytes(CSI, host);
     let num = match erase {
         LineErase::ToRight => 0,
         LineErase::ToLeft => 1,
         LineErase::All => 2,
     };
-    term.advance_bytes(format!("{}K", num));
+    term.advance_bytes(format!("{}K", num), host);
 }
 
 bitflags! {
@@ -166,9 +198,10 @@ fn assert_visible_contents(term: &Terminal, expect_lines: &[&str]) {
 #[test]
 fn basic_output() {
     let mut term = Terminal::new(5, 10, 0);
+    let mut host = TestHost::new();
 
-    cup(&mut term, 1, 1);
-    term.advance_bytes("hello, world!");
+    cup(&mut term, &mut host, 1, 1);
+    term.advance_bytes("hello, world!", &mut host);
     assert_visible_contents(
         &term,
         &[
@@ -180,7 +213,7 @@ fn basic_output() {
         ],
     );
 
-    erase_in_display(&mut term, DisplayErase::Above);
+    erase_in_display(&mut term, &mut host, DisplayErase::Above);
     assert_visible_contents(
         &term,
         &[
@@ -192,8 +225,8 @@ fn basic_output() {
         ],
     );
 
-    cup(&mut term, 2, 2);
-    erase_in_line(&mut term, LineErase::ToRight);
+    cup(&mut term, &mut host, 2, 2);
+    erase_in_line(&mut term, &mut host, LineErase::ToRight);
     assert_visible_contents(
         &term,
         &[
@@ -205,7 +238,7 @@ fn basic_output() {
         ],
     );
 
-    erase_in_line(&mut term, LineErase::ToLeft);
+    erase_in_line(&mut term, &mut host, LineErase::ToLeft);
     assert_visible_contents(
         &term,
         &[
@@ -223,20 +256,21 @@ fn basic_output() {
 #[test]
 fn cursor_movement_damage() {
     let mut term = Terminal::new(2, 3, 0);
+    let mut host = TestHost::new();
 
-    term.advance_bytes("fooo.");
+    term.advance_bytes("fooo.", &mut host);
     assert_visible_contents(&term, &["foo", "o. "]);
     assert_cursor_pos!(&term, 2, 1);
     assert_dirty_lines!(&term, &[0, 1]);
 
-    cup(&mut term, 0, 1);
+    cup(&mut term, &mut host, 0, 1);
     term.clean_dirty_lines();
-    term.advance_bytes("\x08");
+    term.advance_bytes("\x08", &mut host);
     assert_cursor_pos!(&term, 0, 1, "BS doesn't change the line");
     assert_dirty_lines!(&term, &[1]);
     term.clean_dirty_lines();
 
-    cup(&mut term, 0, 0);
+    cup(&mut term, &mut host, 0, 0);
     assert_dirty_lines!(&term, &[0, 1], "cursor movement dirties old and new lines");
 }
 
@@ -247,36 +281,37 @@ fn cursor_movement_damage() {
 #[test]
 fn test_delete_lines() {
     let mut term = Terminal::new(5, 3, 0);
+    let mut host = TestHost::new();
 
-    term.advance_bytes("111\r\n222\r\n333\r\n444\r\n555");
+    term.advance_bytes("111\r\n222\r\n333\r\n444\r\n555", &mut host);
     assert_visible_contents(&term, &["111", "222", "333", "444", "555"]);
     assert_dirty_lines!(&term, &[0, 1, 2, 3, 4]);
-    cup(&mut term, 0, 1);
+    cup(&mut term, &mut host, 0, 1);
     term.clean_dirty_lines();
 
     assert_dirty_lines!(&term, &[]);
-    delete_lines(&mut term, 2);
+    delete_lines(&mut term, &mut host, 2);
     assert_visible_contents(&term, &["111", "444", "555", "   ", "   "]);
     assert_dirty_lines!(&term, &[1, 2, 3, 4]);
     term.clean_dirty_lines();
 
-    cup(&mut term, 0, 3);
-    term.advance_bytes("aaa\r\nbbb");
-    cup(&mut term, 0, 1);
+    cup(&mut term, &mut host, 0, 3);
+    term.advance_bytes("aaa\r\nbbb", &mut host);
+    cup(&mut term, &mut host, 0, 1);
     term.clean_dirty_lines();
     assert_visible_contents(&term, &["111", "444", "555", "aaa", "bbb"]);
 
     // test with a scroll region smaller than the screen
-    set_scroll_region(&mut term, 1, 3);
-    delete_lines(&mut term, 1);
+    set_scroll_region(&mut term, &mut host, 1, 3);
+    delete_lines(&mut term, &mut host, 1);
 
     assert_visible_contents(&term, &["111", "555", "aaa", "   ", "bbb"]);
     assert_dirty_lines!(&term, &[1, 2, 3]);
 
     // expand the scroll region to fill the screen
-    set_scroll_region(&mut term, 0, 4);
+    set_scroll_region(&mut term, &mut host, 0, 4);
     term.clean_dirty_lines();
-    delete_lines(&mut term, 1);
+    delete_lines(&mut term, &mut host, 1);
 
     assert_visible_contents(&term, &["111", "aaa", "   ", "bbb", "   "]);
     assert_dirty_lines!(&term, &[1, 2, 3, 4]);
