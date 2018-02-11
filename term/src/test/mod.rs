@@ -33,6 +33,8 @@ impl TerminalHost for TestHost {
     fn writer(&mut self) -> &mut std::io::Write {
         panic!("no writer support in TestHost");
     }
+
+    fn click_link(&mut self, _link: &Rc<Hyperlink>) {}
 }
 
 macro_rules! assert_cursor_pos {

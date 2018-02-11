@@ -327,12 +327,20 @@ impl TerminalState {
                         // The double/triple click cases are handled above.
                         Some(&LastMouseClick { streak: 1, .. }) => {
                             let text = self.get_selection_text();
-                            debug!(
-                                "finish drag selection {:?} '{}'",
-                                self.selection_range,
-                                text
-                            );
-                            host.set_clipboard(Some(text))?;
+                            if text.len() > 0 {
+                                debug!(
+                                    "finish drag selection {:?} '{}'",
+                                    self.selection_range,
+                                    text
+                                );
+                                host.set_clipboard(Some(text))?;
+                            } else {
+                                // If the button release wasn't a drag, consider
+                                // whether it was a click on a hyperlink
+                                if let Some(link) = self.current_highlight() {
+                                    host.click_link(&link);
+                                }
+                            }
                             return Ok(());
                         }
                         _ => {}

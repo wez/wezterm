@@ -13,6 +13,7 @@ use std::slice;
 use term::{self, CellAttributes, CursorPosition, KeyCode, KeyModifiers, Line, MouseButton,
            MouseEvent, MouseEventKind, TerminalHost, Underline};
 use term::color::RgbColor;
+use term::hyperlink::Hyperlink;
 use xcb;
 use xcb_util;
 use xgfx::{self, BitmapImage, Connection, Drawable};
@@ -110,6 +111,10 @@ struct CachedGlyph {
 impl<'a> term::TerminalHost for Host<'a> {
     fn writer(&mut self) -> &mut Write {
         &mut self.pty
+    }
+
+    fn click_link(&mut self, link: &Rc<Hyperlink>) {
+        println!("clicked on link: {:?}", link);
     }
 
     // Check out https://tronche.com/gui/x/icccm/sec-2.html for some deep and complex
