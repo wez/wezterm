@@ -101,7 +101,6 @@ struct GlyphKey {
 struct CachedGlyph {
     image: Option<xgfx::Image>,
     has_color: bool,
-    x_advance: isize,
     x_offset: isize,
     y_offset: isize,
     bearing_x: isize,
@@ -384,14 +383,10 @@ impl<'a> TerminalWindow<'a> {
         } else {
             1.0f64
         };
-        let (x_offset, y_offset, x_advance) = if scale != 1.0 {
-            (
-                info.x_offset * scale,
-                info.y_offset * scale,
-                info.x_advance * scale,
-            )
+        let (x_offset, y_offset) = if scale != 1.0 {
+            (info.x_offset * scale, info.y_offset * scale)
         } else {
-            (info.x_offset, info.y_offset, info.x_advance)
+            (info.x_offset, info.y_offset)
         };
 
         let glyph = if ft_glyph.bitmap.width == 0 || ft_glyph.bitmap.rows == 0 {
@@ -399,7 +394,6 @@ impl<'a> TerminalWindow<'a> {
             CachedGlyph {
                 image: None,
                 has_color,
-                x_advance: x_advance as isize,
                 x_offset: x_offset as isize,
                 y_offset: y_offset as isize,
                 bearing_x: 0,
@@ -460,8 +454,7 @@ impl<'a> TerminalWindow<'a> {
             {
                 if info.text == "X" {
                     println!(
-                        "X: x_advance={} x_offset={} bearing_x={} image={:?} info={:?} glyph={:?}",
-                        x_advance,
+                        "X: x_offset={} bearing_x={} image={:?} info={:?} glyph={:?}",
                         x_offset,
                         bearing_x,
                         image.image_dimensions(),
@@ -474,7 +467,6 @@ impl<'a> TerminalWindow<'a> {
             CachedGlyph {
                 image: Some(image),
                 has_color,
-                x_advance: x_advance as isize,
                 x_offset: x_offset as isize,
                 y_offset: y_offset as isize,
                 bearing_x,
@@ -700,11 +692,13 @@ impl<'a> TerminalWindow<'a> {
                 let cell = &line.cells[cell_idx];
                 let cell_print_width = cell.width();
 
-                // Render the cell background color
+                let cluster_width = info.num_cells as usize * metric_width;
+
+                // Render the cluster background color
                 self.buffer_image.borrow_mut().clear_rect(
                     x,
                     y,
-                    cell_print_width * metric_width,
+                    cluster_width,
                     self.cell_height,
                     bg_color.into(),
                 );
@@ -784,25 +778,16 @@ impl<'a> TerminalWindow<'a> {
                     );
                 }
 
-                self.render_underline(
-                    x,
-                    base_y,
-                    cell_print_width * metric_width,
-                    attrs.underline(),
-                    glyph_color,
-                );
+                self.render_underline(x, base_y, cluster_width, attrs.underline(), glyph_color);
 
                 if attrs.strikethrough() {
-                    self.render_strikethrough(
-                        x,
-                        y,
-                        base_y,
-                        cell_print_width * metric_width,
-                        glyph_color.into(),
-                    );
+                    self.render_strikethrough(x, y, base_y, cluster_width, glyph_color.into());
                 }
 
-                x += glyph.x_advance;
+                // Always advance by our computed metric, despite what the shaping info
+                // says, otherwise we tend to end up with very slightly offset cells
+                // for example in vim when the window is split vertically.
+                x += cluster_width as isize;
             }
         }
 
