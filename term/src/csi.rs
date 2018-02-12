@@ -486,7 +486,7 @@ impl<'a> Iterator for CSIParser<'a> {
 
             // VPA: Line Position Absolute
             ('d', &[], Some(&[])) => Some(CSIAction::LinePosition(Position::Absolute(0))),
-            ('d', &[], Some(&[n])) => Some(CSIAction::LinePosition(Position::Absolute(n))),
+            ('d', &[], Some(&[n])) => Some(CSIAction::LinePosition(Position::Absolute(n - 1))),
 
             // VPR: Line Position Relative
             ('e', &[], Some(&[])) => Some(CSIAction::LinePosition(Position::Relative(0))),

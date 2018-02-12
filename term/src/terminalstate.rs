@@ -1147,10 +1147,12 @@ impl vte::Perform for TerminalState {
             (b'\\', &[], &[]) => {}
             // Application Keypad (DECKPAM)
             (b'=', &[], &[]) => {
+                debug!("DECKPAM on");
                 self.application_keypad = true;
             }
             // Normal Keypad (DECKPAM)
             (b'>', &[], &[]) => {
+                debug!("DECKPAM off");
                 self.application_keypad = false;
             }
             // Reverse Index (RI)
@@ -1163,9 +1165,13 @@ impl vte::Perform for TerminalState {
             (b'H', &[], &[]) => self.c1_hts(),
 
             // Enable alternate character set mode (smacs)
-            (b'0', &[b'('], &[]) => {}
+            (b'0', &[b'('], &[]) => {
+                debug!("ESC: smacs");
+            }
             // Exit alternate character set mode (rmacs)
-            (b'B', &[b'('], &[]) => {}
+            (b'B', &[b'('], &[]) => {
+                debug!("ESC: rmacs");
+            }
 
             // DECSC - Save Cursor
             (b'7', &[], &[]) => self.perform_csi(CSIAction::SaveCursor),

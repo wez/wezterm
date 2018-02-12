@@ -97,11 +97,11 @@ impl Screen {
     ) -> &Cell {
         let line_idx = self.phys_row(y);
         debug!(
-            "set_cell x,y {},{}, line_idx = {} {} {:?}",
+            "set_cell {} x={} y={} phys={} {:?}",
+            c,
             x,
             y,
             line_idx,
-            c,
             attr
         );
 
@@ -177,6 +177,7 @@ impl Screen {
     /// If the top of the region is the top of the visible display, rather than
     /// removing the lines we let them go into the scrollback.
     pub fn scroll_up(&mut self, scroll_region: &Range<VisibleRowIndex>, num_rows: usize) {
+        debug!("scroll_up {:?} {}", scroll_region, num_rows);
         let phys_scroll = self.phys_range(&scroll_region);
         assert!(num_rows <= phys_scroll.end - phys_scroll.start);
 
@@ -233,6 +234,7 @@ impl Screen {
     /// In other words, we remove (bottom-num_rows..bottom) and then insert num_rows
     /// at scroll_top.
     pub fn scroll_down(&mut self, scroll_region: &Range<VisibleRowIndex>, num_rows: usize) {
+        debug!("scroll_down {:?} {}", scroll_region, num_rows);
         let phys_scroll = self.phys_range(&scroll_region);
         assert!(num_rows <= phys_scroll.end - phys_scroll.start);
 

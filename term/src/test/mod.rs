@@ -5,6 +5,7 @@ use super::*;
 mod selection;
 mod c0;
 mod c1;
+mod csi;
 
 #[derive(Default, Debug)]
 struct TestHost {
