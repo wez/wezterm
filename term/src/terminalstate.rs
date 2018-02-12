@@ -1094,10 +1094,12 @@ impl vte::Perform for TerminalState {
                         AnswerBack::TitleChanged(title.to_string()),
                     );
                 } else {
-                    println!("OSC: failed to decode utf for {:?}", title);
+                    eprintln!("OSC: failed to decode utf title for {:?}", title);
                 }
             }
             &[b"8", params, url] => {
+                // Hyperlinks per:
+                // https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5feda
                 match (str::from_utf8(params), str::from_utf8(url)) {
                     (Ok(params), Ok(url)) => {
                         let params = hyperlink::parse_link_params(params);
@@ -1114,7 +1116,11 @@ impl vte::Perform for TerminalState {
                 }
             }
             _ => {
-                println!("OSC unhandled: {:?}", osc);
+                if osc.len() > 0 {
+                    eprintln!("OSC unhandled: {:?} {:?}", str::from_utf8(osc[0]), osc);
+                } else {
+                    eprintln!("OSC unhandled: {:?}", osc);
+                }
             }
         }
     }
