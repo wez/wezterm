@@ -776,6 +776,12 @@ impl TerminalState {
         self.set_cursor_pos(&Position::Relative(0), &Position::Absolute(y as i64));
     }
 
+    /// Moves the cursor to the first position on the next line.
+    /// If the cursor is at the bottom margin, the page scrolls up.
+    fn c1_nel(&mut self) {
+        self.new_line(true);
+    }
+
     /// Move the cursor up 1 line.  If the position is at the top scroll margin,
     /// scroll the region down.
     fn reverse_index(&mut self) {
@@ -1098,6 +1104,8 @@ impl vte::Perform for TerminalState {
             (b'M', &[], &[]) => self.reverse_index(),
             // Index (IND)
             (b'D', &[], &[]) => self.c1_index(),
+            // Next Line (NEL)
+            (b'E', &[], &[]) => self.c1_nel(),
 
             // Enable alternate character set mode (smacs)
             (b'0', &[b'('], &[]) => {}

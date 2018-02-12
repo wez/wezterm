@@ -14,3 +14,15 @@ fn test_ind() {
     term.assert_cursor_pos(1, 3, None);
     assert_visible_contents(&term, &["b   ", "    ", "    ", "    "]);
 }
+
+#[test]
+fn test_nel() {
+    let mut term = TestTerm::new(4, 4, 0);
+    term.print("a\nb\x1bE");
+    term.assert_cursor_pos(0, 2, None);
+    term.print("\x1bE");
+    term.assert_cursor_pos(0, 3, None);
+    term.print("\x1bE");
+    term.assert_cursor_pos(0, 3, None);
+    assert_visible_contents(&term, &["b   ", "    ", "    ", "    "]);
+}
