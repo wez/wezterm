@@ -27,4 +27,6 @@ fn test_ech() {
     // check how we handle overflowing the width
     term.print("\x1b[12X");
     assert_visible_contents(&term, &["h   ", "wat?", "    "]);
+    term.print("\x1b[-12X");
+    assert_visible_contents(&term, &["h   ", "wat?", "    "]);
 }
