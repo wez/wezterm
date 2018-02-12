@@ -38,3 +38,20 @@ fn test_hts() {
     term.print("\t");
     term.assert_cursor_pos(8, 1, None);
 }
+
+#[test]
+fn test_ri() {
+    let mut term = TestTerm::new(4, 2, 0);
+    term.print("a\nb\nc\nd.");
+    assert_visible_contents(&term, &["a ", "b ", "c ", "d."]);
+    term.assert_cursor_pos(1, 3, None);
+    term.print("\x1bM");
+    term.assert_cursor_pos(1, 2, None);
+    term.print("\x1bM");
+    term.assert_cursor_pos(1, 1, None);
+    term.print("\x1bM");
+    term.assert_cursor_pos(1, 0, None);
+    term.print("\x1bM");
+    term.assert_cursor_pos(1, 0, None);
+    assert_visible_contents(&term, &["  ", "a ", "b ", "c "]);
+}

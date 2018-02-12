@@ -830,7 +830,7 @@ impl TerminalState {
 
     /// Move the cursor up 1 line.  If the position is at the top scroll margin,
     /// scroll the region down.
-    fn reverse_index(&mut self) {
+    fn c1_reverse_index(&mut self) {
         let y = self.cursor.y;
         let y = if y == self.scroll_region.start {
             self.scroll_down(1);
@@ -1148,7 +1148,7 @@ impl vte::Perform for TerminalState {
                 self.application_keypad = false;
             }
             // Reverse Index (RI)
-            (b'M', &[], &[]) => self.reverse_index(),
+            (b'M', &[], &[]) => self.c1_reverse_index(),
             // Index (IND)
             (b'D', &[], &[]) => self.c1_index(),
             // Next Line (NEL)
