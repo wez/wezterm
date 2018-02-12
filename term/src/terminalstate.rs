@@ -129,15 +129,11 @@ impl TerminalState {
             let screen = self.screen();
             for y in sel.rows() {
                 let idx = screen.scrollback_or_visible_row(y);
-                let line = screen.lines[idx].as_str();
                 let cols = sel.cols_for_row(y);
-                let end = cols.end.min(line.len());
-                let col_range = cols.start..end;
-                let selected = &line[col_range].trim_right();
                 if s.len() > 0 {
                     s.push('\n');
                 }
-                s.push_str(selected);
+                s.push_str(&screen.lines[idx].columns_as_str(cols).trim_right());
             }
         }
 

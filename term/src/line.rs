@@ -1,3 +1,4 @@
+use std::ops::Range;
 use std::str;
 
 use super::*;
@@ -63,7 +64,20 @@ impl Line {
     pub fn as_str(&self) -> String {
         let mut s = String::new();
         for c in self.cells.iter() {
-            s.push_str(str::from_utf8(c.bytes()).unwrap_or("?"));
+            s.push_str(c.str());
+        }
+        s
+    }
+
+    /// Returns a substring from the line.
+    pub fn columns_as_str(&self, range: Range<usize>) -> String {
+        let mut s = String::new();
+        let limit = range.end - range.start;
+        for (n, c) in self.cells.iter().skip(range.start).enumerate() {
+            if n >= limit {
+                break;
+            }
+            s.push_str(c.str());
         }
         s
     }
@@ -74,7 +88,7 @@ impl Line {
         let mut clusters = Vec::new();
 
         for (cell_idx, c) in self.cells.iter().enumerate() {
-            let cell_str = str::from_utf8(c.bytes()).unwrap_or("?");
+            let cell_str = c.str();
 
             last_cluster = match last_cluster.take() {
                 None => {

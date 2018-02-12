@@ -166,6 +166,10 @@ impl Cell {
         }
     }
 
+    pub fn str(&self) -> &str {
+        str::from_utf8(self.bytes()).unwrap_or("?")
+    }
+
     pub fn width(&self) -> usize {
         use unicode_width::UnicodeWidthStr;
         str::from_utf8(self.bytes()).unwrap_or("").width()

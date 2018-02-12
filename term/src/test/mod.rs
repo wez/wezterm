@@ -2,6 +2,7 @@
 //! processing routines.
 
 use super::*;
+mod selection;
 
 #[derive(Default, Debug)]
 struct TestHost {
@@ -110,6 +111,69 @@ impl TestTerm {
     fn soft_reset(&mut self) {
         self.print(CSI);
         self.print("!p");
+    }
+
+    fn mouse(&mut self, event: MouseEvent) -> Result<(), Error> {
+        self.term.mouse_event(event, &mut self.host)
+    }
+
+    fn get_clipboard(&self) -> Option<&String> {
+        self.host.clip.as_ref()
+    }
+
+    /// Inject n_times clicks of the button at the specified coordinates
+    fn click_n(&mut self, x: usize, y: i64, button: MouseButton, n_times: usize) {
+        for _ in 0..n_times {
+            self.mouse(MouseEvent {
+                kind: MouseEventKind::Press,
+                x,
+                y,
+                button,
+                modifiers: KeyModifiers::default(),
+            }).unwrap();
+            self.mouse(MouseEvent {
+                kind: MouseEventKind::Release,
+                x,
+                y,
+                button,
+                modifiers: KeyModifiers::default(),
+            }).unwrap();
+        }
+    }
+
+    /// Left mouse button drag from the start to the end coordinates
+    fn drag_select(&mut self, start_x: usize, start_y: i64, end_x: usize, end_y: i64) {
+        // Break any outstanding click streak that might falsely trigger due to
+        // this unit test happening much faster than the CLICK_INTERVAL allows.
+        self.click_n(0, 0, MouseButton::Right, 1);
+
+        // Now inject the appropriate left click events
+
+        self.mouse(MouseEvent {
+            kind: MouseEventKind::Press,
+            x: start_x,
+            y: start_y,
+            button: MouseButton::Left,
+            modifiers: KeyModifiers::default(),
+        }).unwrap();
+        assert!(self.host.clip.is_none());
+
+        self.mouse(MouseEvent {
+            kind: MouseEventKind::Move,
+            x: end_x,
+            y: end_y,
+            button: MouseButton::None,
+            modifiers: KeyModifiers::default(),
+        }).unwrap();
+        assert!(self.host.clip.is_none());
+
+        self.mouse(MouseEvent {
+            kind: MouseEventKind::Release,
+            x: end_x,
+            y: end_y,
+            button: MouseButton::Left,
+            modifiers: KeyModifiers::default(),
+        }).unwrap();
     }
 }
 
