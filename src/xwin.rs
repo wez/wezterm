@@ -283,8 +283,12 @@ impl<'a> TerminalWindow<'a> {
             self.width = width;
             self.height = height;
 
-            let rows = (height as usize / self.cell_height) as u16;
-            let cols = (width as usize / self.cell_width) as u16;
+            // The +1 in here is to handle an irritating case.
+            // When we get N rows with a gap of cell_height - 1 left at
+            // the bottom, we can usually squeeze that extra row in there,
+            // so optimistically pretend that we have that extra pixel!
+            let rows = ((height as usize + 1) / self.cell_height) as u16;
+            let cols = ((width as usize + 1) / self.cell_width) as u16;
             self.host.pty.resize(rows, cols, width, height)?;
             self.terminal.resize(rows as usize, cols as usize);
 
@@ -297,8 +301,9 @@ impl<'a> TerminalWindow<'a> {
             self.buffer_image.borrow_mut().clear_rect(
                 cols as isize * self.cell_width as isize,
                 0,
-                width as usize -
-                    (cols as usize * self.cell_width as usize),
+                (width as usize).saturating_sub(
+                    cols as usize * self.cell_width as usize,
+                ),
                 self.height as usize,
                 background_color.into(),
             );
@@ -306,8 +311,10 @@ impl<'a> TerminalWindow<'a> {
                 0,
                 rows as isize * self.cell_height as isize,
                 width as usize,
-                height as usize -
-                    (rows as usize * self.cell_height as usize),
+                (height as usize).saturating_sub(
+                    rows as usize *
+                        self.cell_height as usize,
+                ),
                 background_color.into(),
             );
 
