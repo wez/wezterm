@@ -191,6 +191,10 @@ impl<'a> CSIParser<'a> {
                 self.advance_by(1, params);
                 Some(CSIAction::SetPenNoLink(CellAttributes::default()))
             }
+            // This variant with a colorspace becomes ambiguous when
+            // embedded like this: [0, 1, 38, 2, 204, 204, 204, 48, 2, 85, 85, 204]
+            // so we're turning it off for now.
+            /*
             &[38, 2, _colorspace, red, green, blue, _..] => {
                 // ISO-8613-6 true color foreground
                 self.advance_by(6, params);
@@ -202,6 +206,7 @@ impl<'a> CSIParser<'a> {
                     }),
                 ))
             }
+            */
             &[38, 2, red, green, blue, _..] => {
                 // KDE konsole compatibility for truecolor foreground
                 self.advance_by(5, params);
@@ -213,6 +218,10 @@ impl<'a> CSIParser<'a> {
                     }),
                 ))
             }
+            // This variant with a colorspace becomes ambiguous when
+            // embedded like this: [0, 1, 38, 2, 204, 204, 204, 48, 2, 85, 85, 204]
+            // so we're turning it off for now.
+            /*
             &[48, 2, _colorspace, red, green, blue, _..] => {
                 // ISO-8613-6 true color background
                 self.advance_by(6, params);
@@ -224,6 +233,7 @@ impl<'a> CSIParser<'a> {
                     }),
                 ))
             }
+            */
             &[48, 2, red, green, blue, _..] => {
                 // KDE konsole compatibility for truecolor background
                 self.advance_by(5, params);

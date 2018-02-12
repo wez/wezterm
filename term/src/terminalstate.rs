@@ -1125,6 +1125,15 @@ impl vte::Perform for TerminalState {
         }
     }
     fn csi_dispatch(&mut self, params: &[i64], intermediates: &[u8], ignore: bool, byte: char) {
+        /*
+        println!(
+            "CSI params={:?}, intermediates={:?} b={:02x} {}",
+            params,
+            intermediates,
+            byte as u8,
+            byte ,
+        );
+        */
         for act in CSIParser::new(params, intermediates, ignore, byte) {
             self.perform_csi(act);
         }
