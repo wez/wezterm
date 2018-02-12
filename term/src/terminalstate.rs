@@ -1,5 +1,33 @@
 use super::*;
 
+struct TabStop {
+    tabs: Vec<bool>,
+}
+
+impl TabStop {
+    fn new(screen_width: usize, tab_width: usize) -> Self {
+        let mut tabs = Vec::with_capacity(screen_width);
+
+        for i in 0..screen_width {
+            tabs.push((i % tab_width) == 0);
+        }
+        Self { tabs }
+    }
+
+    fn set_tab_stop(&mut self, col: usize) {
+        self.tabs[col] = true;
+    }
+
+    fn find_next_tab_stop(&self, col: usize) -> Option<usize> {
+        for i in col + 1..self.tabs.len() {
+            if self.tabs[i] {
+                return Some(i);
+            }
+        }
+        None
+    }
+}
+
 pub struct TerminalState {
     /// The primary screen + scrollback
     screen: Screen,
@@ -69,6 +97,8 @@ pub struct TerminalState {
     selection_start: Option<SelectionCoordinate>,
     /// Holds the not-normalized selection range.
     selection_range: Option<SelectionRange>,
+
+    tabs: TabStop,
 }
 
 impl TerminalState {
@@ -103,6 +133,7 @@ impl TerminalState {
             viewport_offset: 0,
             selection_range: None,
             selection_start: None,
+            tabs: TabStop::new(physical_cols, 8),
         }
     }
 
@@ -782,6 +813,21 @@ impl TerminalState {
         self.new_line(true);
     }
 
+    /// Sets a horizontal tab stop at the column where the cursor is.
+    fn c1_hts(&mut self) {
+        self.tabs.set_tab_stop(self.cursor.x);
+    }
+
+    /// Moves the cursor to the next tab stop. If there are no more tab stops,
+    /// the cursor moves to the right margin. HT does not cause text to auto wrap.
+    fn c0_horizontal_tab(&mut self) {
+        let x = match self.tabs.find_next_tab_stop(self.cursor.x) {
+            Some(x) => x,
+            None => self.screen().physical_cols - 1,
+        };
+        self.set_cursor_pos(&Position::Absolute(x as i64), &Position::Relative(0));
+    }
+
     /// Move the cursor up 1 line.  If the position is at the top scroll margin,
     /// scroll the region down.
     fn reverse_index(&mut self) {
@@ -1033,6 +1079,7 @@ impl vte::Perform for TerminalState {
             0x08 /* BS */ => {
                 self.set_cursor_pos(&Position::Relative(-1), &Position::Relative(0));
             }
+            b'\t' => self.c0_horizontal_tab(),
             _ => println!("unhandled vte execute {}", byte),
         }
     }
@@ -1106,6 +1153,8 @@ impl vte::Perform for TerminalState {
             (b'D', &[], &[]) => self.c1_index(),
             // Next Line (NEL)
             (b'E', &[], &[]) => self.c1_nel(),
+            // Horizontal Tab Set (HTS)
+            (b'H', &[], &[]) => self.c1_hts(),
 
             // Enable alternate character set mode (smacs)
             (b'0', &[b'('], &[]) => {}

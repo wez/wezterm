@@ -26,3 +26,15 @@ fn test_nel() {
     term.assert_cursor_pos(0, 3, None);
     assert_visible_contents(&term, &["b   ", "    ", "    ", "    "]);
 }
+
+#[test]
+fn test_hts() {
+    let mut term = TestTerm::new(3, 25, 0);
+    term.print("boo");
+    term.print("\x1bH\n");
+    term.assert_cursor_pos(0, 1, None);
+    term.print("\t");
+    term.assert_cursor_pos(3, 1, None);
+    term.print("\t");
+    term.assert_cursor_pos(8, 1, None);
+}

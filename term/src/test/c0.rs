@@ -27,3 +27,16 @@ fn test_cr() {
     term.assert_cursor_pos(0, 0, Some("CR moves to left margin on current line"));
     // TODO: when we can set the left margin, we should test that here
 }
+
+#[test]
+fn test_tab() {
+    let mut term = TestTerm::new(3, 25, 0);
+    term.print("\t");
+    term.assert_cursor_pos(8, 0, None);
+    term.print("\t");
+    term.assert_cursor_pos(16, 0, None);
+    term.print("\t");
+    term.assert_cursor_pos(24, 0, None);
+    term.print("\t");
+    term.assert_cursor_pos(24, 0, None);
+}
