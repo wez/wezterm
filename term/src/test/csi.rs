@@ -15,6 +15,8 @@ fn test_vpa() {
     // when we parse them!
     term.print("\x1b[2d");
     term.assert_cursor_pos(0, 1, None);
+    term.print("\x1b[-2d");
+    term.assert_cursor_pos(0, 1, None);
 }
 
 #[test]
@@ -29,4 +31,36 @@ fn test_ech() {
     assert_visible_contents(&term, &["h   ", "wat?", "    "]);
     term.print("\x1b[-12X");
     assert_visible_contents(&term, &["h   ", "wat?", "    "]);
+}
+
+#[test]
+fn test_cup() {
+    let mut term = TestTerm::new(3, 4, 0);
+    term.cup(1, 1);
+    term.assert_cursor_pos(1, 1, None);
+    term.cup(-1, -1);
+    term.assert_cursor_pos(0, 0, None);
+    term.cup(2, 2);
+    term.assert_cursor_pos(2, 2, None);
+    term.cup(-1, -1);
+    term.assert_cursor_pos(0, 0, None);
+    term.cup(500, 500);
+    term.assert_cursor_pos(3, 2, None);
+}
+
+#[test]
+fn test_dl() {
+    let mut term = TestTerm::new(3, 1, 0);
+    term.print("a\nb\nc");
+    term.cup(0, 1);
+    term.delete_lines(1);
+    assert_visible_contents(&term, &["a", "c", " "]);
+    term.assert_cursor_pos(0, 1, None);
+    term.cup(0, 0);
+    term.delete_lines(2);
+    assert_visible_contents(&term, &[" ", " ", " "]);
+    term.print("1\n2\n3");
+    term.cup(0, 1);
+    term.delete_lines(-2);
+    assert_visible_contents(&term, &["1", "2", "3"]);
 }

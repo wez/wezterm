@@ -72,7 +72,7 @@ impl TestTerm {
         self.print(format!("{};{}r", top + 1, bottom + 1));
     }
 
-    fn delete_lines(&mut self, n: usize) {
+    fn delete_lines(&mut self, n: isize) {
         self.print(CSI);
         self.print(format!("{}M", n));
     }
