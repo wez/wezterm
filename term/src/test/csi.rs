@@ -16,3 +16,15 @@ fn test_vpa() {
     term.print("\x1b[2d");
     term.assert_cursor_pos(0, 1, None);
 }
+
+#[test]
+fn test_ech() {
+    let mut term = TestTerm::new(3, 4, 0);
+    term.print("hey!wat?");
+    term.cup(1, 0);
+    term.print("\x1b[2X");
+    assert_visible_contents(&term, &["h  !", "wat?", "    "]);
+    // check how we handle overflowing the width
+    term.print("\x1b[12X");
+    assert_visible_contents(&term, &["h   ", "wat?", "    "]);
+}

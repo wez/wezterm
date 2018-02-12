@@ -851,6 +851,16 @@ impl TerminalState {
     fn perform_csi(&mut self, act: CSIAction) {
         debug!("{:?}", act);
         match act {
+            CSIAction::EraseCharacter(n) => {
+                let y = self.cursor.y;
+                let x = self.cursor.x;
+                let screen = self.screen_mut();
+                let blank = CellAttributes::default();
+                let limit = (x + n as usize).min(screen.physical_cols);
+                for x in x..limit as usize {
+                    screen.set_cell(x, y, ' ', &blank);
+                }
+            }
             CSIAction::SoftReset => {
                 self.pen = CellAttributes::default();
                 // TODO: see https://vt100.net/docs/vt510-rm/DECSTR.html

@@ -55,6 +55,7 @@ pub enum CSIAction {
     RestoreCursor,
     ScrollLines(i64),
     SoftReset,
+    EraseCharacter(i64),
 }
 
 /// Constrol Sequence Initiator (CSI) Parser.
@@ -478,6 +479,10 @@ impl<'a> Iterator for CSIParser<'a> {
             // SU: Scroll Up Lines
             ('S', &[], Some(&[])) => Some(CSIAction::ScrollLines(-1)),
             ('S', &[], Some(&[n])) => Some(CSIAction::ScrollLines(-n)),
+
+            // ECH: Erase Character
+            ('X', &[], Some(&[])) => Some(CSIAction::EraseCharacter(1)),
+            ('X', &[], Some(&[n])) => Some(CSIAction::EraseCharacter(n)),
 
             // HPR - Character position Relative
             ('a', &[], Some(&[])) => Some(CSIAction::SetCursorXY {
