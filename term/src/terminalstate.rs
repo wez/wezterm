@@ -763,6 +763,19 @@ impl TerminalState {
         }
     }
 
+    /// Moves the cursor down one line in the same column.
+    /// If the cursor is at the bottom margin, the page scrolls up.
+    fn c1_index(&mut self) {
+        let y = self.cursor.y;
+        let y = if y == self.scroll_region.end - 1 {
+            self.scroll_up(1);
+            y
+        } else {
+            y + 1
+        };
+        self.set_cursor_pos(&Position::Relative(0), &Position::Absolute(y as i64));
+    }
+
     /// Move the cursor up 1 line.  If the position is at the top scroll margin,
     /// scroll the region down.
     fn reverse_index(&mut self) {
@@ -1083,6 +1096,8 @@ impl vte::Perform for TerminalState {
             }
             // Reverse Index (RI)
             (b'M', &[], &[]) => self.reverse_index(),
+            // Index (IND)
+            (b'D', &[], &[]) => self.c1_index(),
 
             // Enable alternate character set mode (smacs)
             (b'0', &[b'('], &[]) => {}

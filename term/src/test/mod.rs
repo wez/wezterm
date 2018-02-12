@@ -3,6 +3,8 @@
 
 use super::*;
 mod selection;
+mod c0;
+mod c1;
 
 #[derive(Default, Debug)]
 struct TestHost {
@@ -44,9 +46,9 @@ struct TestTerm {
 }
 
 impl TestTerm {
-    fn new(width: usize, height: usize, scrollback: usize) -> Self {
+    fn new(height: usize, width: usize, scrollback: usize) -> Self {
         Self {
-            term: Terminal::new(width, height, scrollback),
+            term: Terminal::new(height, width, scrollback),
             host: TestHost::new(),
         }
     }
@@ -175,6 +177,27 @@ impl TestTerm {
             modifiers: KeyModifiers::default(),
         }).unwrap();
     }
+
+    fn assert_cursor_pos(&self, x: usize, y: i64, reason: Option<&str>) {
+        let cursor = self.cursor_pos();
+        let expect = CursorPosition { x, y };
+        assert_eq!(
+            cursor,
+            expect,
+            "actual cursor (left) didn't match expected cursor (right) reason={:?}",
+            reason
+        );
+    }
+
+    fn assert_dirty_lines(&self, expected: &[usize], reason: Option<&str>) {
+        let dirty_indices: Vec<usize> = self.get_dirty_lines().iter().map(|&(i, ..)| i).collect();
+        assert_eq!(
+            &dirty_indices,
+            &expected,
+            "actual dirty lines (left) didn't match expected dirty lines (right) reason={:?}",
+            reason
+        );
+    }
 }
 
 impl Deref for TestTerm {
@@ -189,35 +212,6 @@ impl DerefMut for TestTerm {
     fn deref_mut(&mut self) -> &mut Terminal {
         &mut self.term
     }
-}
-
-macro_rules! assert_cursor_pos {
-    ($term:expr, $x:expr, $y:expr) => {
-        assert_cursor_pos!($term, $x, $y,
-            "actual cursor (left) didn't match expected cursor (right)");
-    };
-
-    ($term:expr, $x:expr, $y:expr, $($reason:tt)*) => {
-        {
-            let cursor = $term.cursor_pos();
-            let expect = CursorPosition { x: $x, y: $y };
-            assert_eq!(cursor, expect, $($reason)*);
-        }
-    };
-}
-
-macro_rules! assert_dirty_lines {
-    ($term:expr, $expected:expr) => {
-        assert_dirty_lines!($term, $expected,
-            "actual dirty lines (left) didn't match expected dirty lines (right)");
-    };
-
-    ($term:expr, $expected:expr, $($reason:tt)*) => {
-        let dirty_indices: Vec<usize> = $term.get_dirty_lines()
-                                             .iter()
-                                             .map(|&(i, _, _)| i).collect();
-        assert_eq!(&dirty_indices, $expected, $($reason)*);
-    };
 }
 
 /// Asserts that both line slices match according to the
@@ -356,18 +350,18 @@ fn cursor_movement_damage() {
 
     term.print("fooo.");
     assert_visible_contents(&term, &["foo", "o. "]);
-    assert_cursor_pos!(&term, 2, 1);
-    assert_dirty_lines!(&term, &[0, 1]);
+    term.assert_cursor_pos(2, 1, None);
+    term.assert_dirty_lines(&[0, 1], None);
 
     term.cup(0, 1);
     term.clean_dirty_lines();
     term.print("\x08");
-    assert_cursor_pos!(&term, 0, 1, "BS doesn't change the line");
-    assert_dirty_lines!(&term, &[1]);
+    term.assert_cursor_pos(0, 1, Some("BS doesn't change the line"));
+    term.assert_dirty_lines(&[1], None);
     term.clean_dirty_lines();
 
     term.cup(0, 0);
-    assert_dirty_lines!(&term, &[0, 1], "cursor movement dirties old and new lines");
+    term.assert_dirty_lines(&[0, 1], Some("cursor movement dirties old and new lines"));
 }
 
 /// Replicates a bug I initially found via:
@@ -380,14 +374,14 @@ fn test_delete_lines() {
 
     term.print("111\r\n222\r\n333\r\n444\r\n555");
     assert_visible_contents(&term, &["111", "222", "333", "444", "555"]);
-    assert_dirty_lines!(&term, &[0, 1, 2, 3, 4]);
+    term.assert_dirty_lines(&[0, 1, 2, 3, 4], None);
     term.cup(0, 1);
     term.clean_dirty_lines();
 
-    assert_dirty_lines!(&term, &[]);
+    term.assert_dirty_lines(&[], None);
     term.delete_lines(2);
     assert_visible_contents(&term, &["111", "444", "555", "   ", "   "]);
-    assert_dirty_lines!(&term, &[1, 2, 3, 4]);
+    term.assert_dirty_lines(&[1, 2, 3, 4], None);
     term.clean_dirty_lines();
 
     term.cup(0, 3);
@@ -401,7 +395,7 @@ fn test_delete_lines() {
     term.delete_lines(1);
 
     assert_visible_contents(&term, &["111", "555", "aaa", "   ", "bbb"]);
-    assert_dirty_lines!(&term, &[1, 2, 3]);
+    term.assert_dirty_lines(&[1, 2, 3], None);
 
     // expand the scroll region to fill the screen
     term.set_scroll_region(0, 4);
@@ -409,7 +403,7 @@ fn test_delete_lines() {
     term.delete_lines(1);
 
     assert_visible_contents(&term, &["111", "aaa", "   ", "bbb", "   "]);
-    assert_dirty_lines!(&term, &[1, 2, 3, 4]);
+    term.assert_dirty_lines(&[1, 2, 3, 4], None);
 }
 
 #[test]
