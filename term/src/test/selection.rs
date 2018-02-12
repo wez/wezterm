@@ -28,7 +28,10 @@ fn drag_selection() {
     term.drag_select(1, 0, 6, 1);
     assert_eq!(term.get_clipboard().unwrap(), "ello world\n\u{1F480}skull");
 
-    term.drag_select(0, 0, 0, 2);
+    // This next one drags off the bottom; this is technically out of bounds
+    // but we want to make sure we handle this without panicking.  See the
+    // comment in TerminalState::mouse_event for more info.
+    term.drag_select(0, 0, 15, 3);
     assert_eq!(
         term.get_clipboard().unwrap(),
         "hello world\n\u{1F480}skull\n"

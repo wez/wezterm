@@ -191,7 +191,20 @@ impl TerminalState {
         self.invalidate_hyperlinks();
     }
 
-    pub fn mouse_event(&mut self, event: MouseEvent, host: &mut TerminalHost) -> Result<(), Error> {
+    pub fn mouse_event(
+        &mut self,
+        mut event: MouseEvent,
+        host: &mut TerminalHost,
+    ) -> Result<(), Error> {
+        // Clamp the mouse coordinates to the size of the model.
+        // This situation can trigger for example when the
+        // window is resized and leaves a partial row at the bottom of the
+        // terminal.  The mouse can move over that portion and the gui layer
+        // can thus send us out-of-bounds row or column numbers.  We want to
+        // make sure that we clamp this and handle it nicely at the model layer.
+        event.y = event.y.min(self.screen().physical_rows as i64 - 1);
+        event.x = event.x.min(self.screen().physical_cols - 1);
+
         // Remember the last reported mouse position so that we can use it
         // for highlighting clickable things elsewhere.
         let new_position = CursorPosition {
