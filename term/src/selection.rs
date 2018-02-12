@@ -61,11 +61,6 @@ impl SelectionRange {
     /// more precise than that.
     /// Must be called on a normalized range!
     pub fn cols_for_row(&self, row: ScrollbackOrVisibleRowIndex) -> Range<usize> {
-        let (x1, x2) = if self.start.x <= self.end.x {
-            (self.start.x, self.end.x.saturating_add(1))
-        } else {
-            (self.end.x, self.start.x.saturating_add(1))
-        };
         debug_assert!(
             self.start.y <= self.end.y,
             "you forgot to normalize a SelectionRange"
@@ -74,13 +69,17 @@ impl SelectionRange {
             0..0
         } else if self.start.y == self.end.y {
             // A single line selection
-            x1..x2
+            if self.start.x <= self.end.x {
+                self.start.x..self.end.x.saturating_add(1)
+            } else {
+                self.end.x..self.start.x.saturating_add(1)
+            }
         } else if row == self.end.y {
             // last line of multi-line
-            0..x2
+            0..self.end.x.saturating_add(1)
         } else if row == self.start.y {
             // first line of multi-line
-            x1..usize::max_value()
+            self.start.x..usize::max_value()
         } else {
             // some "middle" line of multi-line
             0..usize::max_value()

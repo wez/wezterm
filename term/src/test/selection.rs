@@ -36,6 +36,9 @@ fn drag_selection() {
         term.get_clipboard().unwrap(),
         "hello world\n\u{1F480}skull\n"
     );
+
+    term.drag_select(6, 0, 3, 1);
+    assert_eq!(term.get_clipboard().unwrap(), "world\n\u{1F480}sk");
 }
 
 /// Test double click to select a word
