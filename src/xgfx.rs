@@ -3,7 +3,6 @@ use gl;
 use glium;
 use glium::backend::Backend;
 use libc;
-use resize;
 use std::convert::From;
 use std::io;
 use std::mem;
@@ -300,13 +299,6 @@ impl<'a> Window<'a> {
         xcb::map_window(self.conn.conn(), self.window_id);
     }
 
-    pub fn swap_buffers(&self) {
-        self.conn
-            .egl_display
-            .swap_buffers(&self.gl.surface)
-            .expect("failed to swap buffers");
-    }
-
     pub fn draw(&self) -> glium::Frame {
         glium::Frame::new(
             self.glium_context.clone(),
@@ -356,83 +348,6 @@ unsafe impl glium::backend::Backend for GlState {
         self.display
             .make_current(&self.surface, &self.surface, &self.egl_context)
             .expect("make_current failed");
-    }
-}
-
-pub struct Context<'a> {
-    gc_id: xcb::xproto::Gcontext,
-    conn: &'a Connection,
-    drawable: xcb::xproto::Drawable,
-}
-
-impl<'a> Context<'a> {
-    pub fn new(conn: &'a Connection, d: &Drawable) -> Context<'a> {
-        let gc_id = conn.conn().generate_id();
-        let drawable = d.as_drawable();
-        xcb::create_gc(conn.conn(), gc_id, drawable, &[]);
-        Context {
-            gc_id,
-            conn,
-            drawable,
-        }
-    }
-
-    /// Copy an area from one drawable to another using the settings
-    /// defined in this context.
-    pub fn copy_area(
-        &self,
-        src: &Drawable,
-        src_x: i16,
-        src_y: i16,
-        dest: &Drawable,
-        dest_x: i16,
-        dest_y: i16,
-        width: u16,
-        height: u16,
-    ) -> xcb::VoidCookie {
-        xcb::copy_area(
-            self.conn.conn(),
-            src.as_drawable(),
-            dest.as_drawable(),
-            self.gc_id,
-            src_x,
-            src_y,
-            dest_x,
-            dest_y,
-            width,
-            height,
-        )
-    }
-
-    /// Send image bytes and render them into the drawable that was used to
-    /// create this context.
-    pub fn put_image(&self, dest_x: i16, dest_y: i16, im: &Image) -> xcb::VoidCookie {
-        debug!(
-            "put_image @{},{} x {},{}",
-            dest_x,
-            dest_y,
-            im.width,
-            im.height
-        );
-        xcb::put_image(
-            self.conn.conn(),
-            xcb::xproto::IMAGE_FORMAT_Z_PIXMAP as u8,
-            self.drawable,
-            self.gc_id,
-            im.width as u16,
-            im.height as u16,
-            dest_x,
-            dest_y,
-            0,
-            24,
-            &im.data,
-        )
-    }
-}
-
-impl<'a> Drop for Context<'a> {
-    fn drop(&mut self) {
-        xcb::free_gc(self.conn.conn(), self.gc_id);
     }
 }
 
@@ -759,95 +674,6 @@ impl Image {
             width,
             height,
         }
-    }
-
-    /// Create a new bgra32 image buffer with the specified dimensions.
-    /// The buffer is populated with the source data in bgr24 format.
-    pub fn with_bgr24(width: usize, height: usize, stride: usize, data: &[u8]) -> Image {
-        let mut image = Image::new(width, height);
-        for y in 0..height {
-            let src_offset = y * stride;
-            let dest_offset = y * width * 4;
-            for x in 0..width {
-                let blue = data[src_offset + (x * 3) + 0];
-                let green = data[src_offset + (x * 3) + 1];
-                let red = data[src_offset + (x * 3) + 2];
-                let alpha = red | green | blue;
-                image.data[dest_offset + (x * 4) + 0] = blue;
-                image.data[dest_offset + (x * 4) + 1] = green;
-                image.data[dest_offset + (x * 4) + 2] = red;
-                image.data[dest_offset + (x * 4) + 3] = alpha;
-            }
-        }
-
-        image
-    }
-
-    /// Create a new bgra32 image buffer with the specified dimensions.
-    /// The buffer is populated with the source data in argb32 format.
-    pub fn with_bgra32(width: usize, height: usize, stride: usize, data: &[u8]) -> Image {
-        let mut image = Image::new(width, height);
-        for y in 0..height {
-            let src_offset = y * stride;
-            let dest_offset = y * width * 4;
-            for x in 0..width {
-                let blue = data[src_offset + (x * 4) + 0];
-                let green = data[src_offset + (x * 4) + 1];
-                let red = data[src_offset + (x * 4) + 2];
-                let alpha = data[src_offset + (x * 4) + 3];
-
-                image.data[dest_offset + (x * 4) + 0] = blue;
-                image.data[dest_offset + (x * 4) + 1] = green;
-                image.data[dest_offset + (x * 4) + 2] = red;
-                image.data[dest_offset + (x * 4) + 3] = alpha;
-            }
-        }
-
-        image
-    }
-
-    pub fn with_8bpp(width: usize, height: usize, stride: usize, data: &[u8]) -> Image {
-        let mut image = Image::new(width, height);
-        for y in 0..height {
-            let src_offset = y * stride;
-            let dest_offset = y * width * 4;
-            for x in 0..width {
-                let gray = data[src_offset + x];
-
-                image.data[dest_offset + (x * 4) + 0] = gray;
-                image.data[dest_offset + (x * 4) + 1] = gray;
-                image.data[dest_offset + (x * 4) + 2] = gray;
-                image.data[dest_offset + (x * 4) + 3] = gray;
-            }
-        }
-
-        image
-    }
-
-    /// Creates a new image with the contents of the current image, but
-    /// resized to the specified dimensions.
-    pub fn resize(&self, width: usize, height: usize) -> Image {
-        let mut dest = Image::new(width, height);
-        let algo = if (width * height) < (self.width * self.height) {
-            resize::Type::Lanczos3
-        } else {
-            resize::Type::Mitchell
-        };
-        resize::new(
-            self.width,
-            self.height,
-            width,
-            height,
-            resize::Pixel::RGBA,
-            algo,
-        ).resize(&self.data, &mut dest.data);
-        dest
-    }
-
-    pub fn scale_by(&self, scale: f64) -> Image {
-        let width = (self.width as f64 * scale) as usize;
-        let height = (self.height as f64 * scale) as usize;
-        self.resize(width, height)
     }
 }
 
