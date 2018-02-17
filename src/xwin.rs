@@ -77,20 +77,36 @@ const FRAGMENT_SHADER: &str = r#"
 #version 300 es
 precision mediump float;
 uniform vec3 fg_color;
+uniform vec4 bg_color;
 out vec4 color;
 in vec2 tex_coords;
 uniform sampler2D glyph_tex;
 uniform bool has_color;
+uniform bool bg_fill;
 
 void main() {
-    color = texture(glyph_tex, tex_coords);
-    if (!has_color) {
-        // if it's not a color emoji, tint with the fg_color
-        color = color * vec4(fg_color, 1.0);
+    if (bg_fill) {
+        color = bg_color;
+    } else {
+        color = texture2D(glyph_tex, tex_coords);
+        if (!has_color) {
+            // if it's not a color emoji, tint with the fg_color
+            color = color * vec4(fg_color, 1.0);
+        }
     }
 }
 "#;
 
+const FILL_RECT_FRAG_SHADER: &str = r#"
+#version 300 es
+precision mediump float;
+out vec4 color;
+uniform vec4 bg_color;
+
+void main() {
+    color = bg_color;
+}
+"#;
 
 /// BufferImage is used to hold the bitmap of our rendered screen.
 /// If SHM is available we store it there and save the overhead of
@@ -155,13 +171,13 @@ pub struct TerminalWindow<'a> {
     cell_height: usize,
     cell_width: usize,
     descender: isize,
-    window_context: xgfx::Context<'a>,
     buffer_image: RefCell<BufferImage<'a>>,
     terminal: term::Terminal,
     process: Child,
     glyph_cache: RefCell<HashMap<GlyphKey, Rc<CachedGlyph>>>,
     palette: term::color::ColorPalette,
     program: glium::Program,
+    fill_program: glium::Program,
     vertex_buffer: glium::VertexBuffer<Vertex>,
     projection: Transform3D,
 }
@@ -300,7 +316,6 @@ impl<'a> TerminalWindow<'a> {
 
         let window = xgfx::Window::new(&conn, width, height)?;
         window.set_title("wezterm");
-        let window_context = xgfx::Context::new(conn, &window);
 
         let buffer_image =
             BufferImage::new(conn, window.as_drawable(), width as usize, height as usize);
@@ -346,11 +361,14 @@ impl<'a> TerminalWindow<'a> {
         let program =
             glium::Program::from_source(&host.window, VERTEX_SHADER, FRAGMENT_SHADER, None)?;
 
+        let fill_program =
+            glium::Program::from_source(&host.window, VERTEX_SHADER, FILL_RECT_FRAG_SHADER, None)?;
+
         Ok(TerminalWindow {
             host,
             program,
+            fill_program,
             vertex_buffer,
-            window_context,
             buffer_image: RefCell::new(buffer_image),
             conn,
             width,
@@ -447,7 +465,7 @@ impl<'a> TerminalWindow<'a> {
         }
     }
 
-    pub fn expose(&mut self, x: u16, y: u16, width: u16, height: u16) -> Result<(), Error> {
+    pub fn expose(&mut self, _x: u16, _y: u16, _width: u16, _height: u16) -> Result<(), Error> {
         self.paint()
     }
 
@@ -624,17 +642,43 @@ impl<'a> TerminalWindow<'a> {
         font.shape(0, s)
     }
 
-    /// Render a block outline style of cursor.
-    /// TODO: make this respect user configuration
-    fn render_cursor(&self, x: isize, y: isize, width: usize) {
-        self.buffer_image.borrow_mut().draw_rect(
-            x,
-            y,
-            width,
-            self.cell_height,
-            self.palette.cursor().into(),
-            xgfx::Operator::Over,
-        );
+    fn fill_rect(
+        &self,
+        target: &mut glium::Frame,
+        x: isize,
+        y: isize,
+        num_cells_wide: u32,
+        num_cells_high: u32,
+        color: RgbColor,
+    ) -> Result<(), Error> {
+        // Translate cell coordinate from top-left origin in cell coords
+        // to center origin pixel coords
+        let xlate_model = Transform2D::create_translation(
+            x as f32 - self.width as f32 / 2.0,
+            y as f32 - self.height as f32 / 2.0,
+        ).to_3d();
+        let scale_model = Transform2D::create_scale(num_cells_wide as f32, num_cells_high as f32)
+            .to_3d();
+
+        target.draw(
+            &self.vertex_buffer,
+            glium::index::NoIndices(
+                glium::index::PrimitiveType::TriangleStrip,
+            ),
+            &self.fill_program,
+            &uniform! {
+                    projection: self.projection.to_column_arrays(),
+                    translation: scale_model.post_mul(&xlate_model).to_column_arrays(),
+                    bg_color: color.to_linear_tuple_rgba(),
+                },
+            &glium::DrawParameters {
+                blend: glium::Blend::alpha_blending(),
+                //dithering: false,
+                ..Default::default()
+            },
+        )?;
+
+        Ok(())
     }
 
     /// Render a line strike through the glyph at the given coords.
@@ -694,15 +738,7 @@ impl<'a> TerminalWindow<'a> {
         }
     }
 
-    /// This is a little bit tricky.
-    /// We may have a double-wide glyph based on double-wide contents
-    /// of the cell, or we may have a double-wide glyph based on
-    /// the result of shaping a contextual ligature.  The computed
-    /// cell_print_width tells us about the former.  The shaping
-    /// data in info.num_cells includes both cases.  In order not
-    /// to skip out on rendering the cursor we need to slice the
-    /// glyph up into cell strips and render them.
-    fn render_glyph_slices(
+    fn render_glyph(
         &self,
         target: &mut glium::Frame,
         x: isize,
@@ -714,21 +750,23 @@ impl<'a> TerminalWindow<'a> {
         glyph: &Rc<CachedGlyph>,
         image: &glium::texture::SrgbTexture2d,
         metric_width: usize,
-        cell_print_width: usize,
         cursor: &CursorPosition,
         attrs: &CellAttributes,
         glyph_color: RgbColor,
+        bg_color: RgbColor,
     ) -> Result<(), Error> {
+        let width = self.width as f32;
+        let height = self.height as f32;
+
         let (glyph_width, glyph_height) = {
             let (w, h) = image.dimensions();
             (w as usize, h as usize)
         };
-        let width = self.width as f32;
-        let height = self.height as f32;
 
         let scale_y = glyph_height.min(self.cell_height) as f32 / self.cell_height as f32;
-        let draw_y = base_y - (glyph.y_offset as isize + glyph.bearing_y);
+        let scale_x = glyph.scale * (glyph_width as f32 / metric_width as f32);
 
+        let draw_y = base_y - (glyph.y_offset as isize + glyph.bearing_y);
         let draw_x = x + glyph.x_offset as isize + glyph.bearing_x;
 
         // Translate cell coordinate from top-left origin in cell coords
@@ -738,7 +776,6 @@ impl<'a> TerminalWindow<'a> {
             (draw_y as f32) - height / 2.0,
         ).to_3d();
 
-        let scale_x = info.num_cells as f32;
         let scale_model = Transform2D::create_scale(scale_x, scale_y).to_3d();
 
         target.draw(
@@ -753,93 +790,16 @@ impl<'a> TerminalWindow<'a> {
                     translation: scale_model.post_mul(&xlate_model).to_column_arrays(),
                     glyph_tex: image,
                     has_color: glyph.has_color,
+                    bg_color: bg_color.to_linear_tuple_rgba(),
+                    bg_fill: false,
                 },
-            &Default::default(),
+            &glium::DrawParameters {
+                blend: glium::Blend::alpha_blending(),
+                dithering: false,
+                ..Default::default()
+            },
         )?;
 
-        return Ok(());
-
-        for slice_x in 0..info.num_cells as usize {
-            let is_cursor = cursor.x == slice_x + cell_idx && line_idx as i64 == cursor.y;
-
-            let glyph_color = if is_cursor {
-                // overlaps with cursor, so adjust colors.
-                // TODO: could make cursor fg color an option.
-                self.palette.resolve(&attrs.background)
-            } else {
-                glyph_color
-            };
-            let operator = if glyph.has_color {
-                xgfx::Operator::Over
-            } else {
-                xgfx::Operator::MultiplyThenOver(glyph_color.into())
-            };
-
-            let slice_offset = slice_x * metric_width;
-
-            // How much of the glyph to render in this slice.  If we're
-            // the last slice in the sequence then we don't clamp to the
-            // cell metrics so that ligatures can bleed from one of the
-            // slice/cells into the next and look good.
-            let slice_width = if slice_x == info.num_cells as usize - 1 {
-                glyph_width.saturating_sub(slice_offset)
-            } else {
-                (glyph_width.saturating_sub(slice_offset)).min(metric_width)
-            };
-
-            let draw_x = slice_offset as isize + x + glyph.x_offset as isize + glyph.bearing_x;
-
-            // Translate cell coordinate from top-left origin in cell coords
-            // to center origin pixel coords
-            let xlate_model = Transform2D::create_translation(
-                (draw_x as f32) - width / 2.0,
-                (draw_y as f32) - height / 2.0,
-            ).to_3d();
-
-            let scale_x = slice_width as f32 / slice_width.saturating_sub(slice_offset) as f32;
-
-            let scale_model = Transform2D::create_scale(scale_x, scale_y).to_3d();
-
-            target.draw(
-                &self.vertex_buffer,
-                glium::index::NoIndices(
-                    glium::index::PrimitiveType::TriangleStrip,
-                ),
-                &self.program,
-                &uniform! {
-                    fg_color: glyph_color.to_linear_tuple_rgb(),
-                    projection: self.projection.to_column_arrays(),
-                    translation: scale_model.post_mul(&xlate_model).to_column_arrays(),
-                    glyph_tex: image,
-                },
-                &Default::default(),
-            )?;
-
-            /*
-            self.buffer_image.borrow_mut().draw_image_subset(
-                draw_x,
-                draw_y,
-                slice_offset,
-                0,
-                slice_width,
-                glyph_height.min(self.cell_height),
-                image,
-                operator,
-            );
-            */
-
-            /*
-            if is_cursor {
-                self.render_cursor(
-                    (slice_offset + (cell_idx * metric_width)) as isize,
-                    y,
-                    // take care to use the print width here otherwise
-                    // the rectangle will incorrectly bisect the glyph
-                    (cell_print_width * metric_width),
-                );
-            }
-            */
-        }
         Ok(())
     }
 
@@ -855,10 +815,6 @@ impl<'a> TerminalWindow<'a> {
         let mut x = 0 as isize;
         let y = (line_idx * self.cell_height) as isize;
         let base_y = y + self.cell_height as isize + self.descender;
-
-        let background_color = self.palette.resolve(
-            &term::color::ColorAttribute::Background,
-        );
 
         let current_highlight = self.terminal.current_highlight();
 
@@ -899,50 +855,46 @@ impl<'a> TerminalWindow<'a> {
 
                 let cluster_width = info.num_cells as usize * metric_width;
 
-                // TODO: Render the cluster background color
-                /*
-                self.buffer_image.borrow_mut().clear_rect(
+                // Render the cluster background color
+                self.fill_rect(
+                    target,
                     x,
                     y,
-                    cluster_width,
-                    self.cell_height,
-                    bg_color.into(),
-                );
-                */
+                    info.num_cells as u32,
+                    1,
+                    bg_color,
+                )?;
 
-                // TODO: Render selection background
-                /*
+                // Render selection background
                 for cur_x in cell_idx..cell_idx + info.num_cells as usize {
                     if term::in_range(cur_x, &selection) {
-                        self.buffer_image.borrow_mut().clear_rect(
+                        self.fill_rect(
+                            target,
                             (cur_x * metric_width) as isize,
                             y,
-                            self.cell_width * line.cells[cur_x].width(),
-                            self.cell_height,
-                            self.palette.cursor().into(),
-                        );
+                            line.cells[cur_x].width() as u32,
+                            1,
+                            self.palette.cursor(),
+                        )?;
                     }
                 }
-                */
 
-                // TODO: Render the cursor, if it overlaps with the current cluster
-                /*
+                // Render the cursor, if it overlaps with the current cluster
                 if line_idx as i64 == cursor.y {
                     for cur_x in cell_idx..cell_idx + info.num_cells as usize {
                         if cursor.x == cur_x {
                             // The cursor fits in this cell, so render the cursor bg
-                            self.buffer_image.borrow_mut().clear_rect(
+                            self.fill_rect(
+                                target,
                                 (cur_x * metric_width) as isize,
                                 y,
-                                self.cell_width *
-                                    line.cells[cur_x].width(),
-                                self.cell_height,
-                                self.palette.cursor().into(),
-                            );
+                                line.cells[cur_x].width() as u32,
+                                1,
+                                self.palette.cursor(),
+                            )?;
                         }
                     }
                 }
-                */
 
                 let glyph = self.cached_glyph(info, &style)?;
 
@@ -972,7 +924,7 @@ impl<'a> TerminalWindow<'a> {
 
                 // glyph.image.is_none() for whitespace glyphs
                 if let &Some(ref texture) = &glyph.texture {
-                    self.render_glyph_slices(
+                    self.render_glyph(
                         target,
                         x,
                         line_idx,
@@ -983,10 +935,10 @@ impl<'a> TerminalWindow<'a> {
                         &glyph,
                         texture,
                         metric_width,
-                        cell_print_width,
                         &cursor,
                         &attrs,
                         glyph_color,
+                        bg_color,
                     )?;
                 }
 
