@@ -804,9 +804,14 @@ impl<'a> TerminalWindow<'a> {
             // Translate cell coordinate from top-left origin in cell coords
             // to center origin pixel coords
             let xlate_model = Transform2D::create_translation(
-                (x as f32) /* (* self.cell_width as f32)*/ - width / 2.0,
-                (y as f32) /* (* self.cell_height as f32)*/ - height / 2.0,
+                (draw_x as f32) - width / 2.0,
+                (draw_y as f32) - height / 2.0,
             ).to_3d();
+
+            let scale_y = glyph_height.min(self.cell_height) as f32 / self.cell_height as f32;
+            let scale_x = slice_width as f32 / slice_width.saturating_sub(slice_offset) as f32;
+
+            let scale_model = Transform2D::create_scale(scale_x, scale_y).to_3d();
 
             let (r, g, b): (f32, f32, f32) = glyph_color.to_linear().to_pixel();
 
@@ -819,7 +824,7 @@ impl<'a> TerminalWindow<'a> {
                 &uniform! {
                     fg_color: (r, g, b),
                     projection: self.projection.to_column_arrays(),
-                    translation: xlate_model.to_column_arrays(),
+                    translation: scale_model.post_mul(&xlate_model).to_column_arrays(),
                     glyph_tex: image,
                 },
                 &Default::default(),
