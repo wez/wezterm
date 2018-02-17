@@ -191,6 +191,7 @@ struct GlyphKey {
 
 /// Caches a rendered glyph.
 /// The image data may be None for whitespace glyphs.
+#[derive(Debug)]
 struct CachedGlyph {
     has_color: bool,
     x_offset: isize,
@@ -758,8 +759,8 @@ impl<'a> TerminalWindow<'a> {
             (w as usize, h as usize)
         };
 
-        let scale_y = glyph_height.min(self.cell_height) as f32 / self.cell_height as f32;
-        let scale_x = glyph.scale * (glyph_width as f32 / metric_width as f32);
+        let scale_y = glyph.scale * glyph_height as f32 / self.cell_height as f32;
+        let scale_x = glyph.scale * glyph_width as f32 / metric_width as f32;
 
         let draw_y = base_y - (glyph.y_offset as isize + glyph.bearing_y);
         let draw_x = x + glyph.x_offset as isize + glyph.bearing_x;
