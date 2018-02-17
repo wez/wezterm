@@ -728,7 +728,6 @@ impl<'a> TerminalWindow<'a> {
 
         let scale_y = glyph_height.min(self.cell_height) as f32 / self.cell_height as f32;
         let draw_y = base_y - (glyph.y_offset as isize + glyph.bearing_y);
-        let (r, g, b): (f32, f32, f32) = glyph_color.to_linear().to_pixel();
 
         let draw_x = x + glyph.x_offset as isize + glyph.bearing_x;
 
@@ -749,7 +748,7 @@ impl<'a> TerminalWindow<'a> {
             ),
             &self.program,
             &uniform! {
-                    fg_color: (r, g, b),
+                    fg_color: glyph_color.to_linear_tuple_rgb(),
                     projection: self.projection.to_column_arrays(),
                     translation: scale_model.post_mul(&xlate_model).to_column_arrays(),
                     glyph_tex: image,
@@ -808,7 +807,7 @@ impl<'a> TerminalWindow<'a> {
                 ),
                 &self.program,
                 &uniform! {
-                    fg_color: (r, g, b),
+                    fg_color: glyph_color.to_linear_tuple_rgb(),
                     projection: self.projection.to_column_arrays(),
                     translation: scale_model.post_mul(&xlate_model).to_column_arrays(),
                     glyph_tex: image,
@@ -1027,7 +1026,7 @@ impl<'a> TerminalWindow<'a> {
         let background_color = self.palette.resolve(
             &term::color::ColorAttribute::Background,
         );
-        let (r, g, b, a) = background_color.to_linear().to_pixel();
+        let (r, g, b, a) = background_color.to_linear_tuple_rgba();
         target.clear_color(r, g, b, a);
 
         self.terminal.make_all_lines_dirty();
