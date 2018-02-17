@@ -178,7 +178,8 @@ pub struct TerminalWindow<'a> {
     palette: term::color::ColorPalette,
     program: glium::Program,
     fill_program: glium::Program,
-    vertex_buffer: glium::VertexBuffer<Vertex>,
+    glyph_vertex_buffer: glium::VertexBuffer<Vertex>,
+    line_vertex_buffer: glium::VertexBuffer<Vertex>,
     projection: Transform3D,
 }
 
@@ -336,9 +337,24 @@ impl<'a> TerminalWindow<'a> {
         let cell_height = cell_height.ceil() as usize;
         let cell_width = cell_width.ceil() as usize;
 
-        let vertex_buffer = {
-            let ch = cell_height as f32;
-            let cw = cell_width as f32;
+        let ch = cell_height as f32;
+        let cw = cell_width as f32;
+
+        let line_vertex_buffer = {
+            let shape = [
+                Vertex {
+                    position: Point::new(0.0, 0.0),
+                    tex: [0.0, 0f32],
+                },
+                Vertex {
+                    position: Point::new(cw, 0.0),
+                    tex: [0.0, 0f32],
+                },
+            ];
+            glium::VertexBuffer::new(&host.window, &shape)?
+        };
+
+        let glyph_vertex_buffer = {
             let top_left = Vertex {
                 position: Point::new(0.0, 0.0),
                 tex: [0.0, 0f32],
@@ -369,7 +385,8 @@ impl<'a> TerminalWindow<'a> {
             host,
             program,
             fill_program,
-            vertex_buffer,
+            glyph_vertex_buffer,
+            line_vertex_buffer,
             buffer_image: RefCell::new(buffer_image),
             conn,
             width,
@@ -662,7 +679,7 @@ impl<'a> TerminalWindow<'a> {
             .to_3d();
 
         target.draw(
-            &self.vertex_buffer,
+            &self.glyph_vertex_buffer,
             glium::index::NoIndices(
                 glium::index::PrimitiveType::TriangleStrip,
             ),
@@ -685,58 +702,99 @@ impl<'a> TerminalWindow<'a> {
     /// Render a line strike through the glyph at the given coords.
     fn render_strikethrough(
         &self,
+        target: &mut glium::Frame,
         x: isize,
         cell_top: isize,
         baseline: isize,
-        width: usize,
+        num_cells_wide: u8,
         glyph_color: RgbColor,
-    ) {
-        self.buffer_image.borrow_mut().draw_horizontal_line(
+    ) -> Result<(), Error> {
+        self.draw_line(
+            target,
             x,
             cell_top + (baseline - cell_top) / 2,
-            width,
-            glyph_color.into(),
-            xgfx::Operator::Over,
-        );
+            num_cells_wide,
+            glyph_color,
+        )?;
+        Ok(())
+    }
+
+    fn draw_line(
+        &self,
+        target: &mut glium::Frame,
+        x: isize,
+        y: isize,
+        num_cells_wide: u8,
+        color: RgbColor,
+    ) -> Result<(), Error> {
+        // Translate cell coordinate from top-left origin in cell coords
+        // to center origin pixel coords
+        let xlate_model = Transform2D::create_translation(
+            x as f32 - self.width as f32 / 2.0,
+            y as f32 - self.height as f32 / 2.0,
+        ).to_3d();
+        let scale_model = Transform2D::create_scale(num_cells_wide as f32, 1.0).to_3d();
+
+        target.draw(
+            &self.line_vertex_buffer,
+            glium::index::NoIndices(
+                glium::index::PrimitiveType::LinesList,
+            ),
+            &self.fill_program,
+            &uniform! {
+                    projection: self.projection.to_column_arrays(),
+                    translation: scale_model.post_mul(&xlate_model).to_column_arrays(),
+                    bg_color: color.to_linear_tuple_rgba(),
+                },
+            &glium::DrawParameters {
+                blend: glium::Blend::alpha_blending(),
+                line_width: Some(1.0),
+                ..Default::default()
+            },
+        )?;
+
+        Ok(())
     }
 
     /// Render a specific style of underline at the given coords.
     fn render_underline(
         &self,
+        target: &mut glium::Frame,
         x: isize,
         baseline: isize,
-        width: usize,
+        num_cells_wide: u8,
         style: Underline,
         glyph_color: RgbColor,
-    ) {
+    ) -> Result<(), Error> {
         match style {
             Underline::None => {}
             Underline::Single => {
-                self.buffer_image.borrow_mut().draw_horizontal_line(
+                self.draw_line(
+                    target,
                     x,
                     baseline + 2,
-                    width,
-                    glyph_color.into(),
-                    xgfx::Operator::Over,
-                );
+                    num_cells_wide,
+                    glyph_color,
+                )?;
             }
             Underline::Double => {
-                self.buffer_image.borrow_mut().draw_horizontal_line(
+                self.draw_line(
+                    target,
                     x,
                     baseline + 1,
-                    width,
-                    glyph_color.into(),
-                    xgfx::Operator::Over,
-                );
-                self.buffer_image.borrow_mut().draw_horizontal_line(
+                    num_cells_wide,
+                    glyph_color,
+                )?;
+                self.draw_line(
+                    target,
                     x,
                     baseline + 3,
-                    width,
-                    glyph_color.into(),
-                    xgfx::Operator::Over,
-                );
+                    num_cells_wide,
+                    glyph_color,
+                )?;
             }
         }
+        Ok(())
     }
 
     fn render_glyph(
@@ -774,7 +832,7 @@ impl<'a> TerminalWindow<'a> {
         let scale_model = Transform2D::create_scale(scale_x, scale_y).to_3d();
 
         target.draw(
-            &self.vertex_buffer,
+            &self.glyph_vertex_buffer,
             glium::index::NoIndices(
                 glium::index::PrimitiveType::TriangleStrip,
             ),
@@ -942,10 +1000,24 @@ impl<'a> TerminalWindow<'a> {
                     (false, underline) => (underline, glyph_color),
                 };
 
-                self.render_underline(x, base_y, cluster_width, underline, under_color);
+                self.render_underline(
+                    target,
+                    x,
+                    base_y,
+                    info.num_cells,
+                    underline,
+                    under_color,
+                )?;
 
                 if attrs.strikethrough() {
-                    self.render_strikethrough(x, y, base_y, cluster_width, glyph_color.into());
+                    self.render_strikethrough(
+                        target,
+                        x,
+                        y,
+                        base_y,
+                        info.num_cells,
+                        glyph_color.into(),
+                    )?;
                 }
 
                 // Always advance by our computed metric, despite what the shaping info
