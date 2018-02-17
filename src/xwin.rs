@@ -51,18 +51,23 @@ impl Point {
 #[derive(Copy, Clone, Debug)]
 struct Vertex {
     position: Point,
+    tex: [f32; 2],
 }
 
-implement_vertex!(Vertex, position);
+implement_vertex!(Vertex, position, tex);
 
 const VERTEX_SHADER: &str = r#"
 #version 300 es
 in vec2 position;
+in vec2 tex;
 
 uniform mat4 projection;
 uniform mat4 translation;
 
+out vec2 tex_coords;
+
 void main() {
+    tex_coords = tex;
     vec4 pos = vec4(position, 0.0, 1.0) * translation;
     gl_Position = projection * pos;
 }
@@ -73,8 +78,11 @@ const FRAGMENT_SHADER: &str = r#"
 precision mediump float;
 uniform vec3 fg_color;
 out vec4 color;
+in vec2 tex_coords;
+uniform sampler2D glyph_tex;
+
 void main() {
-    color = vec4(fg_color, 1.0);
+    color = texture(glyph_tex, tex_coords) * vec4(fg_color, 1.0);
 }
 "#;
 
@@ -150,6 +158,7 @@ pub struct TerminalWindow<'a> {
     palette: term::color::ColorPalette,
     program: glium::Program,
     vertex_buffer: glium::VertexBuffer<Vertex>,
+    projection: Transform3D,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -309,10 +318,22 @@ impl<'a> TerminalWindow<'a> {
         let vertex_buffer = {
             let ch = cell_height as f32;
             let cw = cell_width as f32;
-            let top_left = Vertex { position: Point::new(0.0, 0.0) };
-            let top_right = Vertex { position: Point::new(cw, 0.0) };
-            let bot_left = Vertex { position: Point::new(0.0, ch) };
-            let bot_right = Vertex { position: Point::new(cw, ch) };
+            let top_left = Vertex {
+                position: Point::new(0.0, 0.0),
+                tex: [0.0, 0f32],
+            };
+            let top_right = Vertex {
+                position: Point::new(cw, 0.0),
+                tex: [1.0, 0f32],
+            };
+            let bot_left = Vertex {
+                position: Point::new(0.0, ch),
+                tex: [0.0, 1.0f32],
+            };
+            let bot_right = Vertex {
+                position: Point::new(cw, ch),
+                tex: [1.0, 1.0f32],
+            };
             let shape = [top_left, top_right, bot_left, bot_right];
             glium::VertexBuffer::new(&host.window, &shape)?
         };
@@ -337,11 +358,24 @@ impl<'a> TerminalWindow<'a> {
             process,
             glyph_cache: RefCell::new(HashMap::new()),
             palette,
+            projection: Self::compute_projection(width as f32, height as f32),
         })
     }
 
     pub fn show(&self) {
         self.host.window.show();
+    }
+
+    fn compute_projection(width: f32, height: f32) -> Transform3D {
+        // The projection corrects for the aspect ratio and flips the y-axis
+        Transform3D::ortho(
+            -width / 2.0,
+            width / 2.0,
+            height / 2.0,
+            -height / 2.0,
+            -1.0,
+            1.0,
+        )
     }
 
     pub fn resize_surfaces(&mut self, width: u16, height: u16) -> Result<bool, Error> {
@@ -364,6 +398,7 @@ impl<'a> TerminalWindow<'a> {
 
             self.width = width;
             self.height = height;
+            self.projection = Self::compute_projection(width as f32, height as f32);
 
             // The +1 in here is to handle an irritating case.
             // When we get N rows with a gap of cell_height - 1 left at
@@ -406,50 +441,6 @@ impl<'a> TerminalWindow<'a> {
             Ok(false)
         }
     }
-
-/*
-    fn really_paint(&mut self, target: &mut glium::Frame) -> Result<(), Error> {
-        let cell_pos = Point::new(2.0, 0.0);
-        let cell_width = self.cell_width as f32;
-        let cell_height = self.cell_height as f32;
-
-        let width = self.width as f32;
-        let height = self.height as f32;
-
-        // Translate cell coordinate from top-left origin in cell coords
-        // to center origin pixel coords
-        let xlate_model = Transform2D::create_translation(
-            (cell_pos.x * cell_width) - width / 2.0,
-            (cell_pos.y * cell_height) - height / 2.0,
-        ).to_3d();
-
-        // The projection corrects for the aspect ratio and flips the y-axis
-        let projection = Transform3D::ortho(
-            -width / 2.0,
-            width / 2.0,
-            height / 2.0,
-            -height / 2.0,
-            -1.0,
-            1.0,
-        );
-
-        target.draw(
-            &self.vertex_buffer,
-            glium::index::NoIndices(
-                glium::index::PrimitiveType::TriangleStrip,
-            ),
-            &self.program,
-            &uniform! {
-                fg_color: (0.5, 0.0, 0.8f32),
-                projection: projection.to_column_arrays(),
-                translation: xlate_model.to_column_arrays(),
-            },
-            &Default::default(),
-        )?;
-
-        Ok(())
-    }
-    */
 
     pub fn expose(&mut self, x: u16, y: u16, width: u16, height: u16) -> Result<(), Error> {
         self.paint()
@@ -528,104 +519,105 @@ impl<'a> TerminalWindow<'a> {
             };
 
 
-            let (image, raw_im) = match mode {
-                ftwrap::FT_Pixel_Mode::FT_PIXEL_MODE_LCD => {
-                    let width = ft_glyph.bitmap.width as usize / 3;
-                    let height = ft_glyph.bitmap.rows as usize;
-                    let size = (width * height * 4) as usize;
-                    let mut rgba = Vec::with_capacity(size);
-                    rgba.resize(size, 0u8);
-                    for y in 0..height {
-                        let src_offset = y * pitch as usize;
-                        let dest_offset = y * width * 4;
-                        for x in 0..width {
-                            let blue = data[src_offset + (x * 3) + 0];
-                            let green = data[src_offset + (x * 3) + 1];
-                            let red = data[src_offset + (x * 3) + 2];
-                            let alpha = red | green | blue;
-                            rgba[dest_offset + (x * 4) + 0] = blue;
-                            rgba[dest_offset + (x * 4) + 1] = green;
-                            rgba[dest_offset + (x * 4) + 2] = red;
-                            rgba[dest_offset + (x * 4) + 3] = alpha;
+            let (image, raw_im) =
+                match mode {
+                    ftwrap::FT_Pixel_Mode::FT_PIXEL_MODE_LCD => {
+                        let width = ft_glyph.bitmap.width as usize / 3;
+                        let height = ft_glyph.bitmap.rows as usize;
+                        let size = (width * height * 4) as usize;
+                        let mut rgba = Vec::with_capacity(size);
+                        rgba.resize(size, 0u8);
+                        for y in 0..height {
+                            let src_offset = y * pitch as usize;
+                            let dest_offset = y * width * 4;
+                            for x in 0..width {
+                                let blue = data[src_offset + (x * 3) + 0];
+                                let green = data[src_offset + (x * 3) + 1];
+                                let red = data[src_offset + (x * 3) + 2];
+                                let alpha = red | green | blue;
+                                rgba[dest_offset + (x * 4) + 0] = blue;
+                                rgba[dest_offset + (x * 4) + 1] = green;
+                                rgba[dest_offset + (x * 4) + 2] = red;
+                                rgba[dest_offset + (x * 4) + 3] = alpha;
+                            }
                         }
+
+                        (
+                            xgfx::Image::with_bgr24(width, height, pitch as usize, data),
+                            glium::texture::RawImage2d::from_raw_rgba(
+                                rgba,
+                                (width as u32, height as u32),
+                            ),
+                        )
                     }
+                    ftwrap::FT_Pixel_Mode::FT_PIXEL_MODE_BGRA => {
+                        let width = ft_glyph.bitmap.width as usize;
+                        let height = ft_glyph.bitmap.rows as usize;
+                        let size = (width * height * 4) as usize;
+                        let mut rgba = Vec::with_capacity(size);
+                        rgba.resize(size, 0u8);
+                        for y in 0..height {
+                            let src_offset = y * pitch as usize;
+                            let dest_offset = y * width * 4;
+                            for x in 0..width {
+                                let blue = data[src_offset + (x * 4) + 0];
+                                let green = data[src_offset + (x * 4) + 1];
+                                let red = data[src_offset + (x * 4) + 2];
+                                let alpha = data[src_offset + (x * 4) + 3];
 
-                    (
-                        xgfx::Image::with_bgr24(width, height, pitch as usize, data),
-                        glium::texture::RawImage2d::from_raw_rgba_reversed(
-                            &rgba,
-                            (width as u32, height as u32),
-                        ),
-                    )
-                }
-                ftwrap::FT_Pixel_Mode::FT_PIXEL_MODE_BGRA => {
-                    let width = ft_glyph.bitmap.width as usize;
-                    let height = ft_glyph.bitmap.rows as usize;
-                    let size = (width * height * 4) as usize;
-                    let mut rgba = Vec::with_capacity(size);
-                    rgba.resize(size, 0u8);
-                    for y in 0..height {
-                        let src_offset = y * pitch as usize;
-                        let dest_offset = y * width * 4;
-                        for x in 0..width {
-                            let blue = data[src_offset + (x * 4) + 0];
-                            let green = data[src_offset + (x * 4) + 1];
-                            let red = data[src_offset + (x * 4) + 2];
-                            let alpha = data[src_offset + (x * 4) + 3];
-
-                            rgba[dest_offset + (x * 4) + 0] = blue;
-                            rgba[dest_offset + (x * 4) + 1] = green;
-                            rgba[dest_offset + (x * 4) + 2] = red;
-                            rgba[dest_offset + (x * 4) + 3] = alpha;
+                                rgba[dest_offset + (x * 4) + 0] = blue;
+                                rgba[dest_offset + (x * 4) + 1] = green;
+                                rgba[dest_offset + (x * 4) + 2] = red;
+                                rgba[dest_offset + (x * 4) + 3] = alpha;
+                            }
                         }
+
+                        (
+                            xgfx::Image::with_bgra32(
+                                ft_glyph.bitmap.width as usize,
+                                ft_glyph.bitmap.rows as usize,
+                                pitch as usize,
+                                data,
+                            ),
+                            glium::texture::RawImage2d::from_raw_rgba(
+                                rgba,
+                                (width as u32, height as u32),
+                            ),
+                        )
                     }
+                    ftwrap::FT_Pixel_Mode::FT_PIXEL_MODE_GRAY => {
+                        let width = ft_glyph.bitmap.width as usize;
+                        let height = ft_glyph.bitmap.rows as usize;
+                        let size = (width * height * 4) as usize;
+                        let mut rgba = Vec::with_capacity(size);
+                        rgba.resize(size, 0u8);
+                        for y in 0..height {
+                            let src_offset = y * pitch;
+                            let dest_offset = y * width * 4;
+                            for x in 0..width {
+                                let gray = data[src_offset + x];
 
-                    (
-                        xgfx::Image::with_bgra32(
-                            ft_glyph.bitmap.width as usize,
-                            ft_glyph.bitmap.rows as usize,
-                            pitch as usize,
-                            data,
-                        ),
-                        glium::texture::RawImage2d::from_raw_rgba_reversed(
-                            &rgba,
-                            (width as u32, height as u32),
-                        ),
-                    )
-                }
-                ftwrap::FT_Pixel_Mode::FT_PIXEL_MODE_GRAY => {
-                    let width = ft_glyph.bitmap.width as usize;
-                    let height = ft_glyph.bitmap.rows as usize;
-                    let size = (width * height * 4) as usize;
-                    let mut rgba = Vec::with_capacity(size);
-                    rgba.resize(size, 0u8);
-                    for y in 0..height {
-                        let src_offset = y * pitch;
-                        let dest_offset = y * width * 4;
-                        for x in 0..width {
-                            let gray = data[src_offset + x];
-
-                            rgba[dest_offset + (x * 4) + 0] = gray;
-                            rgba[dest_offset + (x * 4) + 1] = gray;
-                            rgba[dest_offset + (x * 4) + 2] = gray;
-                            rgba[dest_offset + (x * 4) + 3] = gray;
+                                rgba[dest_offset + (x * 4) + 0] = gray;
+                                rgba[dest_offset + (x * 4) + 1] = gray;
+                                rgba[dest_offset + (x * 4) + 2] = gray;
+                                rgba[dest_offset + (x * 4) + 3] = gray;
+                            }
                         }
+                        (
+                            xgfx::Image::with_8bpp(
+                                ft_glyph.bitmap.width as usize,
+                                ft_glyph.bitmap.rows as usize,
+                                pitch as usize,
+                                data,
+                            ),
+                            glium::texture::RawImage2d::from_raw_rgba(
+                                rgba,
+                                (width as u32, height as u32),
+                            ),
+                        )
                     }
-                    (
-                        xgfx::Image::with_8bpp(
-                            ft_glyph.bitmap.width as usize,
-                            ft_glyph.bitmap.rows as usize,
-                            pitch as usize,
-                            data,
-                        ),
-                        glium::texture::RawImage2d::from_raw_rgba_reversed(
-                            &rgba,
-                            (width as u32, height as u32),
-                        ),
-                    )
-                }
-                mode @ _ => bail!("unhandled pixel mode: {:?}", mode),
-            };
+                    mode @ _ => bail!("unhandled pixel mode: {:?}", mode),
+                };
 
             let tex = glium::texture::SrgbTexture2d::new(&self.host.window, raw_im)?;
 
@@ -816,16 +808,6 @@ impl<'a> TerminalWindow<'a> {
                 (y as f32) /* (* self.cell_height as f32)*/ - height / 2.0,
             ).to_3d();
 
-            // The projection corrects for the aspect ratio and flips the y-axis
-            let projection = Transform3D::ortho(
-                -width / 2.0,
-                width / 2.0,
-                height / 2.0,
-                -height / 2.0,
-                -1.0,
-                1.0,
-            );
-
             let (r, g, b): (f32, f32, f32) = glyph_color.to_linear().to_pixel();
 
             target.draw(
@@ -835,10 +817,11 @@ impl<'a> TerminalWindow<'a> {
                 ),
                 &self.program,
                 &uniform! {
-                fg_color: (r, g, b),
-                projection: projection.to_column_arrays(),
-                translation: xlate_model.to_column_arrays(),
-            },
+                    fg_color: (r, g, b),
+                    projection: self.projection.to_column_arrays(),
+                    translation: xlate_model.to_column_arrays(),
+                    glyph_tex: image,
+                },
                 &Default::default(),
             )?;
 
@@ -1014,7 +997,7 @@ impl<'a> TerminalWindow<'a> {
                         &cursor,
                         &attrs,
                         glyph_color,
-                    );
+                    )?;
                 }
 
                 // Figure out what we're going to draw for the underline.
