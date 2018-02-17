@@ -742,16 +742,11 @@ impl<'a> TerminalWindow<'a> {
         &self,
         target: &mut glium::Frame,
         x: isize,
-        line_idx: usize,
         y: isize,
         base_y: isize,
-        cell_idx: usize,
-        info: &GlyphInfo,
         glyph: &Rc<CachedGlyph>,
         image: &glium::texture::SrgbTexture2d,
         metric_width: usize,
-        cursor: &CursorPosition,
-        attrs: &CellAttributes,
         glyph_color: RgbColor,
         bg_color: RgbColor,
     ) -> Result<(), Error> {
@@ -850,8 +845,6 @@ impl<'a> TerminalWindow<'a> {
             let glyph_info = self.shape_text(&cluster.text, &style)?;
             for info in glyph_info.iter() {
                 let cell_idx = cluster.byte_to_cell_idx[info.cluster as usize];
-                let cell = &line.cells[cell_idx];
-                let cell_print_width = cell.width();
 
                 let cluster_width = info.num_cells as usize * metric_width;
 
@@ -927,16 +920,11 @@ impl<'a> TerminalWindow<'a> {
                     self.render_glyph(
                         target,
                         x,
-                        line_idx,
                         y,
                         base_y,
-                        cell_idx,
-                        &info,
                         &glyph,
                         texture,
                         metric_width,
-                        &cursor,
-                        &attrs,
                         glyph_color,
                         bg_color,
                     )?;
