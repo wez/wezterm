@@ -5,8 +5,11 @@ version = "0.1.0"
 
 [dependencies]
 bitflags = "1.0.1"
+egli = "0.4.0"
+euclid = "0.17.0"
 failure = "0.1.1"
 freetype = "0.3.0"
+gl = "0.10.0"
 harfbuzz-sys = "0.1.15"
 libc = "0.2.36"
 mio = "0.6.12"
@@ -18,8 +21,16 @@ servo-fontconfig = "0.4.0"
 toml = "0.4.5"
 unicode-width = "0.1.4"
 
+[dependencies.glium]
+default-features = false
+version = "0.20.0"
+
 [dependencies.term]
 path = "term"
+
+[dependencies.x11]
+features = ["xlib"]
+version = "2.17.2"
 
 [dependencies.xcb]
 features = ["shm"]

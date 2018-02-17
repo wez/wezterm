@@ -1,12 +1,14 @@
 use config::TextStyle;
+use euclid;
 use failure::{self, Error};
 use font::{FontConfiguration, GlyphInfo, ftwrap};
+use glium::{self, Surface};
 use pty::MasterPty;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::io::{Read, Write};
 use std::mem;
-use std::ops::Range;
+use std::ops::{Deref, Range};
 use std::process::Child;
 use std::process::Command;
 use std::rc::Rc;
@@ -19,6 +21,63 @@ use xcb;
 use xcb_util;
 use xgfx::{self, BitmapImage, Connection, Drawable};
 use xkeysyms;
+
+type Transform2D = euclid::Transform2D<f32>;
+type Transform3D = euclid::Transform3D<f32>;
+
+#[derive(Copy, Clone, Debug)]
+struct Point(euclid::Point2D<f32>);
+
+impl Deref for Point {
+    type Target = euclid::Point2D<f32>;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+unsafe impl glium::vertex::Attribute for Point {
+    #[inline]
+    fn get_type() -> glium::vertex::AttributeType {
+        glium::vertex::AttributeType::F32F32
+    }
+}
+
+impl Point {
+    fn new(x: f32, y: f32) -> Self {
+        Self { 0: euclid::point2(x, y) }
+    }
+}
+
+#[derive(Copy, Clone, Debug)]
+struct Vertex {
+    position: Point,
+}
+
+implement_vertex!(Vertex, position);
+
+const VERTEX_SHADER: &str = r#"
+#version 300 es
+in vec2 position;
+
+uniform mat4 projection;
+uniform mat4 translation;
+
+void main() {
+    vec4 pos = vec4(position, 0.0, 1.0) * translation;
+    gl_Position = projection * pos;
+}
+"#;
+
+const FRAGMENT_SHADER: &str = r#"
+#version 300 es
+precision mediump float;
+uniform vec3 fg_color;
+out vec4 color;
+void main() {
+    color = vec4(fg_color, 1.0);
+}
+"#;
+
 
 /// BufferImage is used to hold the bitmap of our rendered screen.
 /// If SHM is available we store it there and save the overhead of
@@ -325,7 +384,69 @@ impl<'a> TerminalWindow<'a> {
         }
     }
 
+    fn really_paint(&mut self, target: &mut glium::Frame) -> Result<(), Error> {
+        let cell_pos = Point::new(2.0, 0.0);
+        let cell_width = self.cell_width as f32;
+        let cell_height = self.cell_height as f32;
+        let top_left = Vertex { position: Point::new(0.0, 0.0) };
+        let top_right = Vertex { position: Point::new(cell_width, 0.0) };
+        let bot_left = Vertex { position: Point::new(0.0, cell_height) };
+        let bot_right = Vertex { position: Point::new(cell_width, cell_height) };
+        let shape = [top_left, top_right, bot_left, bot_right];
+
+        let width = self.width as f32;
+        let height = self.height as f32;
+
+        // Translate cell coordinate from top-left origin in cell coords
+        // to center origin pixel coords
+        let xlate_model = Transform2D::create_translation(
+            (cell_pos.x * cell_width) - width / 2.0,
+            (cell_pos.y * cell_height) - height / 2.0,
+        ).to_3d();
+
+        // The projection corrects for the aspect ratio and flips the y-axis
+        let projection = Transform3D::ortho(
+            -width / 2.0,
+            width / 2.0,
+            height / 2.0,
+            -height / 2.0,
+            -1.0,
+            1.0,
+        );
+
+        let vertex_buffer = glium::VertexBuffer::new(&self.host.window, &shape)?;
+
+        let program =
+            glium::Program::from_source(&self.host.window, VERTEX_SHADER, FRAGMENT_SHADER, None)?;
+
+        target.clear_color(0.1, 0.1, 0.3, 1.0);
+        target.draw(
+            &vertex_buffer,
+            glium::index::NoIndices(
+                glium::index::PrimitiveType::TriangleStrip,
+            ),
+            &program,
+            &uniform! {
+                fg_color: (0.5, 0.0, 0.8f32),
+                projection: projection.to_column_arrays(),
+                translation: xlate_model.to_column_arrays(),
+            },
+            &Default::default(),
+        )?;
+
+        Ok(())
+    }
+
+    fn paint_gl(&mut self) -> Result<(), Error> {
+        let mut target = self.host.window.draw();
+        let res = self.really_paint(&mut target);
+        target.finish().unwrap();
+        res
+    }
+
     pub fn expose(&mut self, x: u16, y: u16, width: u16, height: u16) -> Result<(), Error> {
+        return self.paint_gl();
+
         debug!("expose {},{}, {},{}", x, y, width, height);
 
         match &*self.buffer_image.borrow() {
@@ -856,6 +977,8 @@ impl<'a> TerminalWindow<'a> {
     }
 
     pub fn paint(&mut self) -> Result<(), Error> {
+        return Ok(());
+
         let cursor = self.terminal.cursor_pos();
         {
             let dirty_lines = self.terminal.get_dirty_lines();

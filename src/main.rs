@@ -1,5 +1,10 @@
 #[macro_use]
 extern crate failure;
+extern crate gl;
+extern crate egli;
+extern crate euclid;
+#[macro_use]
+extern crate glium;
 extern crate unicode_width;
 extern crate harfbuzz_sys;
 #[cfg(not(target_os = "macos"))]
@@ -15,6 +20,7 @@ extern crate serde_derive;
 extern crate palette;
 extern crate term;
 extern crate toml;
+extern crate x11;
 #[macro_use]
 pub mod log;
 

@@ -194,7 +194,10 @@ impl TerminalState {
     ) -> Option<Rc<Hyperlink>> {
         let screen = self.screen();
         let idx = screen.scrollback_or_visible_row(y);
-        let line = &screen.lines[idx];
+        let line = match &screen.lines.get(idx) {
+            &Some(line) => line,
+            &None => return None,
+        };
         match line.cells.get(x) {
             Some(cell) => cell.attrs.hyperlink.as_ref().cloned(),
             None => None,
