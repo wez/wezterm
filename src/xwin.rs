@@ -13,8 +13,8 @@ use std::process::Child;
 use std::process::Command;
 use std::rc::Rc;
 use std::slice;
-use term::{self, CellAttributes, CursorPosition, KeyCode, KeyModifiers, Line, MouseButton,
-           MouseEvent, MouseEventKind, TerminalHost, Underline};
+use term::{self, CursorPosition, KeyCode, KeyModifiers, Line, MouseButton, MouseEvent,
+           MouseEventKind, TerminalHost, Underline};
 use term::color::RgbColor;
 use term::hyperlink::Hyperlink;
 use xcb;
@@ -743,7 +743,6 @@ impl<'a> TerminalWindow<'a> {
         &self,
         target: &mut glium::Frame,
         x: isize,
-        y: isize,
         base_y: isize,
         glyph: &Rc<CachedGlyph>,
         image: &glium::texture::SrgbTexture2d,
@@ -921,7 +920,6 @@ impl<'a> TerminalWindow<'a> {
                     self.render_glyph(
                         target,
                         x,
-                        y,
                         base_y,
                         &glyph,
                         texture,
