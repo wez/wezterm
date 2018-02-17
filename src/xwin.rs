@@ -80,9 +80,14 @@ uniform vec3 fg_color;
 out vec4 color;
 in vec2 tex_coords;
 uniform sampler2D glyph_tex;
+uniform bool has_color;
 
 void main() {
-    color = texture(glyph_tex, tex_coords) * vec4(fg_color, 1.0);
+    color = texture(glyph_tex, tex_coords);
+    if (!has_color) {
+        // if it's not a color emoji, tint with the fg_color
+        color = color * vec4(fg_color, 1.0);
+    }
 }
 "#;
 
@@ -171,13 +176,13 @@ struct GlyphKey {
 /// Caches a rendered glyph.
 /// The image data may be None for whitespace glyphs.
 struct CachedGlyph {
-    image: Option<xgfx::Image>,
     has_color: bool,
     x_offset: isize,
     y_offset: isize,
     bearing_x: isize,
     bearing_y: isize,
     texture: Option<glium::texture::SrgbTexture2d>,
+    scale: f32,
 }
 
 impl<'a> term::TerminalHost for Host<'a> {
@@ -496,13 +501,13 @@ impl<'a> TerminalWindow<'a> {
         let glyph = if ft_glyph.bitmap.width == 0 || ft_glyph.bitmap.rows == 0 {
             // a whitespace glyph
             CachedGlyph {
-                image: None,
                 texture: None,
                 has_color,
                 x_offset: x_offset as isize,
                 y_offset: y_offset as isize,
                 bearing_x: 0,
                 bearing_y: 0,
+                scale: scale as f32,
             }
         } else {
 
@@ -519,139 +524,90 @@ impl<'a> TerminalWindow<'a> {
             };
 
 
-            let (image, raw_im) =
-                match mode {
-                    ftwrap::FT_Pixel_Mode::FT_PIXEL_MODE_LCD => {
-                        let width = ft_glyph.bitmap.width as usize / 3;
-                        let height = ft_glyph.bitmap.rows as usize;
-                        let size = (width * height * 4) as usize;
-                        let mut rgba = Vec::with_capacity(size);
-                        rgba.resize(size, 0u8);
-                        for y in 0..height {
-                            let src_offset = y * pitch as usize;
-                            let dest_offset = y * width * 4;
-                            for x in 0..width {
-                                let blue = data[src_offset + (x * 3) + 0];
-                                let green = data[src_offset + (x * 3) + 1];
-                                let red = data[src_offset + (x * 3) + 2];
-                                let alpha = red | green | blue;
-                                rgba[dest_offset + (x * 4) + 0] = blue;
-                                rgba[dest_offset + (x * 4) + 1] = green;
-                                rgba[dest_offset + (x * 4) + 2] = red;
-                                rgba[dest_offset + (x * 4) + 3] = alpha;
-                            }
+            let raw_im = match mode {
+                ftwrap::FT_Pixel_Mode::FT_PIXEL_MODE_LCD => {
+                    let width = ft_glyph.bitmap.width as usize / 3;
+                    let height = ft_glyph.bitmap.rows as usize;
+                    let size = (width * height * 4) as usize;
+                    let mut rgba = Vec::with_capacity(size);
+                    rgba.resize(size, 0u8);
+                    for y in 0..height {
+                        let src_offset = y * pitch as usize;
+                        let dest_offset = y * width * 4;
+                        for x in 0..width {
+                            let blue = data[src_offset + (x * 3) + 0];
+                            let green = data[src_offset + (x * 3) + 1];
+                            let red = data[src_offset + (x * 3) + 2];
+                            let alpha = red | green | blue;
+                            rgba[dest_offset + (x * 4) + 0] = red;
+                            rgba[dest_offset + (x * 4) + 1] = green;
+                            rgba[dest_offset + (x * 4) + 2] = blue;
+                            rgba[dest_offset + (x * 4) + 3] = alpha;
                         }
-
-                        (
-                            xgfx::Image::with_bgr24(width, height, pitch as usize, data),
-                            glium::texture::RawImage2d::from_raw_rgba(
-                                rgba,
-                                (width as u32, height as u32),
-                            ),
-                        )
                     }
-                    ftwrap::FT_Pixel_Mode::FT_PIXEL_MODE_BGRA => {
-                        let width = ft_glyph.bitmap.width as usize;
-                        let height = ft_glyph.bitmap.rows as usize;
-                        let size = (width * height * 4) as usize;
-                        let mut rgba = Vec::with_capacity(size);
-                        rgba.resize(size, 0u8);
-                        for y in 0..height {
-                            let src_offset = y * pitch as usize;
-                            let dest_offset = y * width * 4;
-                            for x in 0..width {
-                                let blue = data[src_offset + (x * 4) + 0];
-                                let green = data[src_offset + (x * 4) + 1];
-                                let red = data[src_offset + (x * 4) + 2];
-                                let alpha = data[src_offset + (x * 4) + 3];
 
-                                rgba[dest_offset + (x * 4) + 0] = blue;
-                                rgba[dest_offset + (x * 4) + 1] = green;
-                                rgba[dest_offset + (x * 4) + 2] = red;
-                                rgba[dest_offset + (x * 4) + 3] = alpha;
-                            }
+                    glium::texture::RawImage2d::from_raw_rgba(rgba, (width as u32, height as u32))
+                }
+                ftwrap::FT_Pixel_Mode::FT_PIXEL_MODE_BGRA => {
+                    let width = ft_glyph.bitmap.width as usize;
+                    let height = ft_glyph.bitmap.rows as usize;
+                    let size = (width * height * 4) as usize;
+                    let mut rgba = Vec::with_capacity(size);
+                    rgba.resize(size, 0u8);
+                    for y in 0..height {
+                        let src_offset = y * pitch as usize;
+                        let dest_offset = y * width * 4;
+                        for x in 0..width {
+                            let blue = data[src_offset + (x * 4) + 0];
+                            let green = data[src_offset + (x * 4) + 1];
+                            let red = data[src_offset + (x * 4) + 2];
+                            let alpha = data[src_offset + (x * 4) + 3];
+
+                            rgba[dest_offset + (x * 4) + 0] = red;
+                            rgba[dest_offset + (x * 4) + 1] = green;
+                            rgba[dest_offset + (x * 4) + 2] = blue;
+                            rgba[dest_offset + (x * 4) + 3] = alpha;
                         }
-
-                        (
-                            xgfx::Image::with_bgra32(
-                                ft_glyph.bitmap.width as usize,
-                                ft_glyph.bitmap.rows as usize,
-                                pitch as usize,
-                                data,
-                            ),
-                            glium::texture::RawImage2d::from_raw_rgba(
-                                rgba,
-                                (width as u32, height as u32),
-                            ),
-                        )
                     }
-                    ftwrap::FT_Pixel_Mode::FT_PIXEL_MODE_GRAY => {
-                        let width = ft_glyph.bitmap.width as usize;
-                        let height = ft_glyph.bitmap.rows as usize;
-                        let size = (width * height * 4) as usize;
-                        let mut rgba = Vec::with_capacity(size);
-                        rgba.resize(size, 0u8);
-                        for y in 0..height {
-                            let src_offset = y * pitch;
-                            let dest_offset = y * width * 4;
-                            for x in 0..width {
-                                let gray = data[src_offset + x];
 
-                                rgba[dest_offset + (x * 4) + 0] = gray;
-                                rgba[dest_offset + (x * 4) + 1] = gray;
-                                rgba[dest_offset + (x * 4) + 2] = gray;
-                                rgba[dest_offset + (x * 4) + 3] = gray;
-                            }
+                    glium::texture::RawImage2d::from_raw_rgba(rgba, (width as u32, height as u32))
+                }
+                ftwrap::FT_Pixel_Mode::FT_PIXEL_MODE_GRAY => {
+                    let width = ft_glyph.bitmap.width as usize;
+                    let height = ft_glyph.bitmap.rows as usize;
+                    let size = (width * height * 4) as usize;
+                    let mut rgba = Vec::with_capacity(size);
+                    rgba.resize(size, 0u8);
+                    for y in 0..height {
+                        let src_offset = y * pitch;
+                        let dest_offset = y * width * 4;
+                        for x in 0..width {
+                            let gray = data[src_offset + x];
+
+                            rgba[dest_offset + (x * 4) + 0] = gray;
+                            rgba[dest_offset + (x * 4) + 1] = gray;
+                            rgba[dest_offset + (x * 4) + 2] = gray;
+                            rgba[dest_offset + (x * 4) + 3] = gray;
                         }
-                        (
-                            xgfx::Image::with_8bpp(
-                                ft_glyph.bitmap.width as usize,
-                                ft_glyph.bitmap.rows as usize,
-                                pitch as usize,
-                                data,
-                            ),
-                            glium::texture::RawImage2d::from_raw_rgba(
-                                rgba,
-                                (width as u32, height as u32),
-                            ),
-                        )
                     }
-                    mode @ _ => bail!("unhandled pixel mode: {:?}", mode),
-                };
+                    glium::texture::RawImage2d::from_raw_rgba(rgba, (width as u32, height as u32))
+                }
+                mode @ _ => bail!("unhandled pixel mode: {:?}", mode),
+            };
 
             let tex = glium::texture::SrgbTexture2d::new(&self.host.window, raw_im)?;
 
             let bearing_x = (ft_glyph.bitmap_left as f64 * scale) as isize;
             let bearing_y = (ft_glyph.bitmap_top as f64 * scale) as isize;
 
-            let image = if scale != 1.0 {
-                image.scale_by(scale)
-            } else {
-                image
-            };
-
-            #[cfg(debug_assertions)]
-            {
-                if info.text == "X" {
-                    println!(
-                        "X: x_offset={} bearing_x={} image={:?} info={:?} glyph={:?}",
-                        x_offset,
-                        bearing_x,
-                        image.image_dimensions(),
-                        info,
-                        ft_glyph
-                    );
-                }
-            }
-
             CachedGlyph {
-                image: Some(image),
                 texture: Some(tex),
                 has_color,
                 x_offset: x_offset as isize,
                 y_offset: y_offset as isize,
                 bearing_x,
                 bearing_y,
+                scale: scale as f32,
             }
         };
 
@@ -767,6 +723,42 @@ impl<'a> TerminalWindow<'a> {
             let (w, h) = image.dimensions();
             (w as usize, h as usize)
         };
+        let width = self.width as f32;
+        let height = self.height as f32;
+
+        let scale_y = glyph_height.min(self.cell_height) as f32 / self.cell_height as f32;
+        let draw_y = base_y - (glyph.y_offset as isize + glyph.bearing_y);
+        let (r, g, b): (f32, f32, f32) = glyph_color.to_linear().to_pixel();
+
+        let draw_x = x + glyph.x_offset as isize + glyph.bearing_x;
+
+        // Translate cell coordinate from top-left origin in cell coords
+        // to center origin pixel coords
+        let xlate_model = Transform2D::create_translation(
+            (draw_x as f32) - width / 2.0,
+            (draw_y as f32) - height / 2.0,
+        ).to_3d();
+
+        let scale_x = info.num_cells as f32;
+        let scale_model = Transform2D::create_scale(scale_x, scale_y).to_3d();
+
+        target.draw(
+            &self.vertex_buffer,
+            glium::index::NoIndices(
+                glium::index::PrimitiveType::TriangleStrip,
+            ),
+            &self.program,
+            &uniform! {
+                    fg_color: (r, g, b),
+                    projection: self.projection.to_column_arrays(),
+                    translation: scale_model.post_mul(&xlate_model).to_column_arrays(),
+                    glyph_tex: image,
+                    has_color: glyph.has_color,
+                },
+            &Default::default(),
+        )?;
+
+        return Ok(());
 
         for slice_x in 0..info.num_cells as usize {
             let is_cursor = cursor.x == slice_x + cell_idx && line_idx as i64 == cursor.y;
@@ -797,10 +789,7 @@ impl<'a> TerminalWindow<'a> {
             };
 
             let draw_x = slice_offset as isize + x + glyph.x_offset as isize + glyph.bearing_x;
-            let draw_y = base_y - (glyph.y_offset as isize + glyph.bearing_y);
 
-            let width = self.width as f32;
-            let height = self.height as f32;
             // Translate cell coordinate from top-left origin in cell coords
             // to center origin pixel coords
             let xlate_model = Transform2D::create_translation(
@@ -808,12 +797,9 @@ impl<'a> TerminalWindow<'a> {
                 (draw_y as f32) - height / 2.0,
             ).to_3d();
 
-            let scale_y = glyph_height.min(self.cell_height) as f32 / self.cell_height as f32;
             let scale_x = slice_width as f32 / slice_width.saturating_sub(slice_offset) as f32;
 
             let scale_model = Transform2D::create_scale(scale_x, scale_y).to_3d();
-
-            let (r, g, b): (f32, f32, f32) = glyph_color.to_linear().to_pixel();
 
             target.draw(
                 &self.vertex_buffer,
