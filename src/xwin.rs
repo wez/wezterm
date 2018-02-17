@@ -19,7 +19,7 @@ use term::color::RgbColor;
 use term::hyperlink::Hyperlink;
 use xcb;
 use xcb_util;
-use xgfx::{self, BitmapImage, Connection, Drawable};
+use xgfx::{self, Connection, Drawable};
 use xkeysyms;
 
 type Transform2D = euclid::Transform2D<f32>;
@@ -108,52 +108,6 @@ void main() {
 }
 "#;
 
-/// BufferImage is used to hold the bitmap of our rendered screen.
-/// If SHM is available we store it there and save the overhead of
-/// sending the bitmap to the server each time something is rendered.
-/// Otherwise, we will send up portions of the bitmap each time something
-/// on the screen changes.
-enum BufferImage<'a> {
-    Shared(xgfx::ShmImage<'a>),
-    Image(xgfx::Image),
-}
-
-impl<'a> BufferImage<'a> {
-    fn new(conn: &Connection, drawable: xcb::Drawable, width: usize, height: usize) -> BufferImage {
-        match xgfx::ShmImage::new(conn, drawable, width, height) {
-            Ok(shm) => BufferImage::Shared(shm),
-            Err(err) => {
-                debug!("falling back to local image because SHM says: {:?}", err);
-                BufferImage::Image(xgfx::Image::new(width, height))
-            }
-        }
-    }
-}
-
-/// Implement BitmapImage that delegates to the underlying image
-impl<'a> BitmapImage for BufferImage<'a> {
-    unsafe fn pixel_data(&self) -> *const u8 {
-        match self {
-            &BufferImage::Shared(ref shm) => shm.pixel_data(),
-            &BufferImage::Image(ref im) => im.pixel_data(),
-        }
-    }
-
-    unsafe fn pixel_data_mut(&mut self) -> *mut u8 {
-        match self {
-            &mut BufferImage::Shared(ref mut shm) => shm.pixel_data_mut(),
-            &mut BufferImage::Image(ref mut im) => im.pixel_data_mut(),
-        }
-    }
-
-    fn image_dimensions(&self) -> (usize, usize) {
-        match self {
-            &BufferImage::Shared(ref shm) => shm.image_dimensions(),
-            &BufferImage::Image(ref im) => im.image_dimensions(),
-        }
-    }
-}
-
 /// Holds the information we need to implement TerminalHost
 struct Host<'a> {
     window: xgfx::Window<'a>,
@@ -171,7 +125,6 @@ pub struct TerminalWindow<'a> {
     cell_height: usize,
     cell_width: usize,
     descender: isize,
-    buffer_image: RefCell<BufferImage<'a>>,
     terminal: term::Terminal,
     process: Child,
     glyph_cache: RefCell<HashMap<GlyphKey, Rc<CachedGlyph>>>,
@@ -319,9 +272,6 @@ impl<'a> TerminalWindow<'a> {
         let window = xgfx::Window::new(&conn, width, height)?;
         window.set_title("wezterm");
 
-        let buffer_image =
-            BufferImage::new(conn, window.as_drawable(), width as usize, height as usize);
-
         let descender = if descender.is_positive() {
             ((descender as f64) / 64.0).ceil() as isize
         } else {
@@ -387,7 +337,6 @@ impl<'a> TerminalWindow<'a> {
             fill_program,
             glyph_vertex_buffer,
             line_vertex_buffer,
-            buffer_image: RefCell::new(buffer_image),
             conn,
             width,
             height,
@@ -423,20 +372,6 @@ impl<'a> TerminalWindow<'a> {
         if width != self.width || height != self.height {
             debug!("resize {},{}", width, height);
 
-            let mut buffer = BufferImage::new(
-                self.conn,
-                self.host.window.as_drawable(),
-                width as usize,
-                height as usize,
-            );
-            buffer.draw_image(
-                0,
-                0,
-                &*self.buffer_image.borrow_mut(),
-                xgfx::Operator::Source,
-            );
-            self.buffer_image = RefCell::new(buffer);
-
             self.width = width;
             self.height = height;
             self.projection = Self::compute_projection(width as f32, height as f32);
@@ -449,32 +384,6 @@ impl<'a> TerminalWindow<'a> {
             let cols = ((width as usize + 1) / self.cell_width) as u16;
             self.host.pty.resize(rows, cols, width, height)?;
             self.terminal.resize(rows as usize, cols as usize);
-
-            // If we have partial rows or columns to the bottom or right,
-            // clear those out as they may contains artifacts from prior to
-            // the resize.
-            let background_color = self.palette.resolve(
-                &term::color::ColorAttribute::Background,
-            );
-            self.buffer_image.borrow_mut().clear_rect(
-                cols as isize * self.cell_width as isize,
-                0,
-                (width as usize).saturating_sub(
-                    cols as usize * self.cell_width as usize,
-                ),
-                self.height as usize,
-                background_color.into(),
-            );
-            self.buffer_image.borrow_mut().clear_rect(
-                0,
-                rows as isize * self.cell_height as isize,
-                width as usize,
-                (height as usize).saturating_sub(
-                    rows as usize *
-                        self.cell_height as usize,
-                ),
-                background_color.into(),
-            );
 
             Ok(true)
         } else {
