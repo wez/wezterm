@@ -41,6 +41,10 @@ impl RgbColor {
         Self { red, green, blue }
     }
 
+    pub fn to_linear(&self) -> palette::Rgba {
+        palette::Rgba::new_u8(self.red, self.green, self.blue, 0xff)
+    }
+
     /// Construct a color from an SVG/CSS3 color name.  The name
     /// must be lower case.  Returns None if the supplied name is
     /// not recognized.

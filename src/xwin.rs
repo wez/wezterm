@@ -148,6 +148,8 @@ pub struct TerminalWindow<'a> {
     process: Child,
     glyph_cache: RefCell<HashMap<GlyphKey, Rc<CachedGlyph>>>,
     palette: term::color::ColorPalette,
+    program: glium::Program,
+    vertex_buffer: glium::VertexBuffer<Vertex>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -166,6 +168,7 @@ struct CachedGlyph {
     y_offset: isize,
     bearing_x: isize,
     bearing_y: isize,
+    texture: Option<glium::texture::SrgbTexture2d>,
 }
 
 impl<'a> term::TerminalHost for Host<'a> {
@@ -294,21 +297,41 @@ impl<'a> TerminalWindow<'a> {
             ((descender as f64) / 64.0).floor() as isize
         };
 
+        let host = Host {
+            window,
+            pty,
+            timestamp: 0,
+            clipboard: None,
+        };
+        let cell_height = cell_height.ceil() as usize;
+        let cell_width = cell_width.ceil() as usize;
+
+        let vertex_buffer = {
+            let ch = cell_height as f32;
+            let cw = cell_width as f32;
+            let top_left = Vertex { position: Point::new(0.0, 0.0) };
+            let top_right = Vertex { position: Point::new(cw, 0.0) };
+            let bot_left = Vertex { position: Point::new(0.0, ch) };
+            let bot_right = Vertex { position: Point::new(cw, ch) };
+            let shape = [top_left, top_right, bot_left, bot_right];
+            glium::VertexBuffer::new(&host.window, &shape)?
+        };
+
+        let program =
+            glium::Program::from_source(&host.window, VERTEX_SHADER, FRAGMENT_SHADER, None)?;
+
         Ok(TerminalWindow {
-            host: Host {
-                window,
-                pty,
-                timestamp: 0,
-                clipboard: None,
-            },
+            host,
+            program,
+            vertex_buffer,
             window_context,
             buffer_image: RefCell::new(buffer_image),
             conn,
             width,
             height,
             fonts,
-            cell_height: cell_height.ceil() as usize,
-            cell_width: cell_width.ceil() as usize,
+            cell_height,
+            cell_width,
             descender,
             terminal,
             process,
@@ -384,15 +407,11 @@ impl<'a> TerminalWindow<'a> {
         }
     }
 
+/*
     fn really_paint(&mut self, target: &mut glium::Frame) -> Result<(), Error> {
         let cell_pos = Point::new(2.0, 0.0);
         let cell_width = self.cell_width as f32;
         let cell_height = self.cell_height as f32;
-        let top_left = Vertex { position: Point::new(0.0, 0.0) };
-        let top_right = Vertex { position: Point::new(cell_width, 0.0) };
-        let bot_left = Vertex { position: Point::new(0.0, cell_height) };
-        let bot_right = Vertex { position: Point::new(cell_width, cell_height) };
-        let shape = [top_left, top_right, bot_left, bot_right];
 
         let width = self.width as f32;
         let height = self.height as f32;
@@ -414,18 +433,12 @@ impl<'a> TerminalWindow<'a> {
             1.0,
         );
 
-        let vertex_buffer = glium::VertexBuffer::new(&self.host.window, &shape)?;
-
-        let program =
-            glium::Program::from_source(&self.host.window, VERTEX_SHADER, FRAGMENT_SHADER, None)?;
-
-        target.clear_color(0.1, 0.1, 0.3, 1.0);
         target.draw(
-            &vertex_buffer,
+            &self.vertex_buffer,
             glium::index::NoIndices(
                 glium::index::PrimitiveType::TriangleStrip,
             ),
-            &program,
+            &self.program,
             &uniform! {
                 fg_color: (0.5, 0.0, 0.8f32),
                 projection: projection.to_column_arrays(),
@@ -436,54 +449,10 @@ impl<'a> TerminalWindow<'a> {
 
         Ok(())
     }
-
-    fn paint_gl(&mut self) -> Result<(), Error> {
-        let mut target = self.host.window.draw();
-        let res = self.really_paint(&mut target);
-        target.finish().unwrap();
-        res
-    }
+    */
 
     pub fn expose(&mut self, x: u16, y: u16, width: u16, height: u16) -> Result<(), Error> {
-        return self.paint_gl();
-
-        debug!("expose {},{}, {},{}", x, y, width, height);
-
-        match &*self.buffer_image.borrow() {
-            &BufferImage::Shared(ref shm) => {
-                self.window_context.copy_area(
-                    shm,
-                    x as i16,
-                    y as i16,
-                    &self.host.window,
-                    x as i16,
-                    y as i16,
-                    width,
-                    height,
-                );
-            }
-            &BufferImage::Image(ref buffer) => {
-                if x == 0 && y == 0 && width == self.width && height == self.height {
-                    self.window_context.put_image(0, 0, buffer);
-                } else {
-                    let mut im = xgfx::Image::new(width as usize, height as usize);
-                    im.draw_image_subset(
-                        0,
-                        0,
-                        x as usize,
-                        y as usize,
-                        width as usize,
-                        height as usize,
-                        buffer,
-                        xgfx::Operator::Source,
-                    );
-                    self.window_context.put_image(x as i16, y as i16, &im);
-                }
-            }
-        }
-        self.conn.flush();
-
-        Ok(())
+        self.paint()
     }
 
     /// Resolve a glyph from the cache, rendering the glyph on-demand if
@@ -537,6 +506,7 @@ impl<'a> TerminalWindow<'a> {
             // a whitespace glyph
             CachedGlyph {
                 image: None,
+                texture: None,
                 has_color,
                 x_offset: x_offset as isize,
                 y_offset: y_offset as isize,
@@ -557,33 +527,107 @@ impl<'a> TerminalWindow<'a> {
                 )
             };
 
-            let image = match mode {
+
+            let (image, raw_im) = match mode {
                 ftwrap::FT_Pixel_Mode::FT_PIXEL_MODE_LCD => {
-                    xgfx::Image::with_bgr24(
-                        ft_glyph.bitmap.width as usize / 3,
-                        ft_glyph.bitmap.rows as usize,
-                        pitch as usize,
-                        data,
+                    let width = ft_glyph.bitmap.width as usize / 3;
+                    let height = ft_glyph.bitmap.rows as usize;
+                    let size = (width * height * 4) as usize;
+                    let mut rgba = Vec::with_capacity(size);
+                    rgba.resize(size, 0u8);
+                    for y in 0..height {
+                        let src_offset = y * pitch as usize;
+                        let dest_offset = y * width * 4;
+                        for x in 0..width {
+                            let blue = data[src_offset + (x * 3) + 0];
+                            let green = data[src_offset + (x * 3) + 1];
+                            let red = data[src_offset + (x * 3) + 2];
+                            let alpha = red | green | blue;
+                            rgba[dest_offset + (x * 4) + 0] = blue;
+                            rgba[dest_offset + (x * 4) + 1] = green;
+                            rgba[dest_offset + (x * 4) + 2] = red;
+                            rgba[dest_offset + (x * 4) + 3] = alpha;
+                        }
+                    }
+
+                    (
+                        xgfx::Image::with_bgr24(width, height, pitch as usize, data),
+                        glium::texture::RawImage2d::from_raw_rgba_reversed(
+                            &rgba,
+                            (width as u32, height as u32),
+                        ),
                     )
                 }
                 ftwrap::FT_Pixel_Mode::FT_PIXEL_MODE_BGRA => {
-                    xgfx::Image::with_bgra32(
-                        ft_glyph.bitmap.width as usize,
-                        ft_glyph.bitmap.rows as usize,
-                        pitch as usize,
-                        data,
+                    let width = ft_glyph.bitmap.width as usize;
+                    let height = ft_glyph.bitmap.rows as usize;
+                    let size = (width * height * 4) as usize;
+                    let mut rgba = Vec::with_capacity(size);
+                    rgba.resize(size, 0u8);
+                    for y in 0..height {
+                        let src_offset = y * pitch as usize;
+                        let dest_offset = y * width * 4;
+                        for x in 0..width {
+                            let blue = data[src_offset + (x * 4) + 0];
+                            let green = data[src_offset + (x * 4) + 1];
+                            let red = data[src_offset + (x * 4) + 2];
+                            let alpha = data[src_offset + (x * 4) + 3];
+
+                            rgba[dest_offset + (x * 4) + 0] = blue;
+                            rgba[dest_offset + (x * 4) + 1] = green;
+                            rgba[dest_offset + (x * 4) + 2] = red;
+                            rgba[dest_offset + (x * 4) + 3] = alpha;
+                        }
+                    }
+
+                    (
+                        xgfx::Image::with_bgra32(
+                            ft_glyph.bitmap.width as usize,
+                            ft_glyph.bitmap.rows as usize,
+                            pitch as usize,
+                            data,
+                        ),
+                        glium::texture::RawImage2d::from_raw_rgba_reversed(
+                            &rgba,
+                            (width as u32, height as u32),
+                        ),
                     )
                 }
                 ftwrap::FT_Pixel_Mode::FT_PIXEL_MODE_GRAY => {
-                    xgfx::Image::with_8bpp(
-                        ft_glyph.bitmap.width as usize,
-                        ft_glyph.bitmap.rows as usize,
-                        pitch as usize,
-                        data,
+                    let width = ft_glyph.bitmap.width as usize;
+                    let height = ft_glyph.bitmap.rows as usize;
+                    let size = (width * height * 4) as usize;
+                    let mut rgba = Vec::with_capacity(size);
+                    rgba.resize(size, 0u8);
+                    for y in 0..height {
+                        let src_offset = y * pitch;
+                        let dest_offset = y * width * 4;
+                        for x in 0..width {
+                            let gray = data[src_offset + x];
+
+                            rgba[dest_offset + (x * 4) + 0] = gray;
+                            rgba[dest_offset + (x * 4) + 1] = gray;
+                            rgba[dest_offset + (x * 4) + 2] = gray;
+                            rgba[dest_offset + (x * 4) + 3] = gray;
+                        }
+                    }
+                    (
+                        xgfx::Image::with_8bpp(
+                            ft_glyph.bitmap.width as usize,
+                            ft_glyph.bitmap.rows as usize,
+                            pitch as usize,
+                            data,
+                        ),
+                        glium::texture::RawImage2d::from_raw_rgba_reversed(
+                            &rgba,
+                            (width as u32, height as u32),
+                        ),
                     )
                 }
                 mode @ _ => bail!("unhandled pixel mode: {:?}", mode),
             };
+
+            let tex = glium::texture::SrgbTexture2d::new(&self.host.window, raw_im)?;
 
             let bearing_x = (ft_glyph.bitmap_left as f64 * scale) as isize;
             let bearing_y = (ft_glyph.bitmap_top as f64 * scale) as isize;
@@ -610,6 +654,7 @@ impl<'a> TerminalWindow<'a> {
 
             CachedGlyph {
                 image: Some(image),
+                texture: Some(tex),
                 has_color,
                 x_offset: x_offset as isize,
                 y_offset: y_offset as isize,
@@ -711,6 +756,7 @@ impl<'a> TerminalWindow<'a> {
     /// glyph up into cell strips and render them.
     fn render_glyph_slices(
         &self,
+        target: &mut glium::Frame,
         x: isize,
         line_idx: usize,
         y: isize,
@@ -718,14 +764,18 @@ impl<'a> TerminalWindow<'a> {
         cell_idx: usize,
         info: &GlyphInfo,
         glyph: &Rc<CachedGlyph>,
-        image: &xgfx::Image,
+        image: &glium::texture::SrgbTexture2d,
         metric_width: usize,
         cell_print_width: usize,
         cursor: &CursorPosition,
         attrs: &CellAttributes,
         glyph_color: RgbColor,
-    ) {
-        let (glyph_width, glyph_height) = image.image_dimensions();
+    ) -> Result<(), Error> {
+        let (glyph_width, glyph_height) = {
+            let (w, h) = image.dimensions();
+            (w as usize, h as usize)
+        };
+
         for slice_x in 0..info.num_cells as usize {
             let is_cursor = cursor.x == slice_x + cell_idx && line_idx as i64 == cursor.y;
 
@@ -757,6 +807,42 @@ impl<'a> TerminalWindow<'a> {
             let draw_x = slice_offset as isize + x + glyph.x_offset as isize + glyph.bearing_x;
             let draw_y = base_y - (glyph.y_offset as isize + glyph.bearing_y);
 
+            let width = self.width as f32;
+            let height = self.height as f32;
+            // Translate cell coordinate from top-left origin in cell coords
+            // to center origin pixel coords
+            let xlate_model = Transform2D::create_translation(
+                (x as f32) /* (* self.cell_width as f32)*/ - width / 2.0,
+                (y as f32) /* (* self.cell_height as f32)*/ - height / 2.0,
+            ).to_3d();
+
+            // The projection corrects for the aspect ratio and flips the y-axis
+            let projection = Transform3D::ortho(
+                -width / 2.0,
+                width / 2.0,
+                height / 2.0,
+                -height / 2.0,
+                -1.0,
+                1.0,
+            );
+
+            let (r, g, b): (f32, f32, f32) = glyph_color.to_linear().to_pixel();
+
+            target.draw(
+                &self.vertex_buffer,
+                glium::index::NoIndices(
+                    glium::index::PrimitiveType::TriangleStrip,
+                ),
+                &self.program,
+                &uniform! {
+                fg_color: (r, g, b),
+                projection: projection.to_column_arrays(),
+                translation: xlate_model.to_column_arrays(),
+            },
+                &Default::default(),
+            )?;
+
+            /*
             self.buffer_image.borrow_mut().draw_image_subset(
                 draw_x,
                 draw_y,
@@ -767,7 +853,9 @@ impl<'a> TerminalWindow<'a> {
                 image,
                 operator,
             );
+            */
 
+            /*
             if is_cursor {
                 self.render_cursor(
                     (slice_offset + (cell_idx * metric_width)) as isize,
@@ -777,11 +865,14 @@ impl<'a> TerminalWindow<'a> {
                     (cell_print_width * metric_width),
                 );
             }
+            */
         }
+        Ok(())
     }
 
     fn render_line(
         &self,
+        target: &mut glium::Frame,
         line_idx: usize,
         line: &Line,
         selection: Range<usize>,
@@ -835,7 +926,8 @@ impl<'a> TerminalWindow<'a> {
 
                 let cluster_width = info.num_cells as usize * metric_width;
 
-                // Render the cluster background color
+                // TODO: Render the cluster background color
+                /*
                 self.buffer_image.borrow_mut().clear_rect(
                     x,
                     y,
@@ -843,8 +935,10 @@ impl<'a> TerminalWindow<'a> {
                     self.cell_height,
                     bg_color.into(),
                 );
+                */
 
-                // Render selection background
+                // TODO: Render selection background
+                /*
                 for cur_x in cell_idx..cell_idx + info.num_cells as usize {
                     if term::in_range(cur_x, &selection) {
                         self.buffer_image.borrow_mut().clear_rect(
@@ -856,8 +950,10 @@ impl<'a> TerminalWindow<'a> {
                         );
                     }
                 }
+                */
 
-                // Render the cursor, if it overlaps with the current cluster
+                // TODO: Render the cursor, if it overlaps with the current cluster
+                /*
                 if line_idx as i64 == cursor.y {
                     for cur_x in cell_idx..cell_idx + info.num_cells as usize {
                         if cursor.x == cur_x {
@@ -873,6 +969,7 @@ impl<'a> TerminalWindow<'a> {
                         }
                     }
                 }
+                */
 
                 let glyph = self.cached_glyph(info, &style)?;
 
@@ -901,8 +998,9 @@ impl<'a> TerminalWindow<'a> {
                 };
 
                 // glyph.image.is_none() for whitespace glyphs
-                if let &Some(ref image) = &glyph.image {
+                if let &Some(ref texture) = &glyph.texture {
                     self.render_glyph_slices(
+                        target,
                         x,
                         line_idx,
                         y,
@@ -910,7 +1008,7 @@ impl<'a> TerminalWindow<'a> {
                         cell_idx,
                         &info,
                         &glyph,
-                        image,
+                        texture,
                         metric_width,
                         cell_print_width,
                         &cursor,
@@ -945,61 +1043,37 @@ impl<'a> TerminalWindow<'a> {
             }
         }
 
-        // Clear anything remaining to the right of the line
-        self.buffer_image.borrow_mut().clear_rect(
-            x,
-            y,
-            self.width.saturating_sub(x as u16) as usize,
-            self.cell_height,
-            background_color.into(),
-        );
-
-        // If we have SHM available, we can send up just this changed line
-        match &*self.buffer_image.borrow() {
-            &BufferImage::Shared(ref shm) => {
-                self.window_context.copy_area(
-                    shm,
-                    0,
-                    y as i16,
-                    &self.host.window,
-                    0,
-                    y as i16,
-                    self.width,
-                    self.cell_height as u16,
-                );
-            }
-            &BufferImage::Image(_) => {
-                // Will handle this at the end of paint()
-            }
-        }
-
         Ok(())
     }
 
     pub fn paint(&mut self) -> Result<(), Error> {
-        return Ok(());
 
+        let mut target = self.host.window.draw();
+
+        let background_color = self.palette.resolve(
+            &term::color::ColorAttribute::Background,
+        );
+        let (r, g, b, a) = background_color.to_linear().to_pixel();
+        target.clear_color(r, g, b, a);
+
+        self.terminal.make_all_lines_dirty();
         let cursor = self.terminal.cursor_pos();
         {
             let dirty_lines = self.terminal.get_dirty_lines();
 
             for (line_idx, line, selrange) in dirty_lines {
-                self.render_line(line_idx, line, selrange, &cursor)?;
-            }
-        }
-
-        match &*self.buffer_image.borrow() {
-            &BufferImage::Shared(_) => {
-                // We handled this in render_line() above
-            }
-            &BufferImage::Image(ref buffer) => {
-                // With no SHM available, we have to push the whole screen buffer
-                // here, regardless of which lines are dirty.
-                self.window_context.put_image(0, 0, buffer);
+                self.render_line(
+                    &mut target,
+                    line_idx,
+                    line,
+                    selrange,
+                    &cursor,
+                )?;
             }
         }
 
         self.terminal.clean_dirty_lines();
+        target.finish().unwrap();
 
         Ok(())
     }
