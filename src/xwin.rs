@@ -949,10 +949,9 @@ impl<'a> TerminalWindow<'a> {
         let (r, g, b, a) = background_color.to_linear_tuple_rgba();
         target.clear_color(r, g, b, a);
 
-        self.terminal.make_all_lines_dirty();
         let cursor = self.terminal.cursor_pos();
         {
-            let dirty_lines = self.terminal.get_dirty_lines();
+            let dirty_lines = self.terminal.get_dirty_lines(true);
 
             for (line_idx, line, selrange) in dirty_lines {
                 self.render_line(
