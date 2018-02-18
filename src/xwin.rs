@@ -22,7 +22,7 @@ use xcb_util;
 use xgfx::{self, Connection, Drawable};
 use xkeysyms;
 
-use textureatlas::{Atlas, Sprite};
+use textureatlas::{Atlas, Sprite, SpriteSlice};
 
 type Transform2D = euclid::Transform2D<f32>;
 type Transform3D = euclid::Transform3D<f32>;
@@ -815,6 +815,7 @@ impl<'a> TerminalWindow<'a> {
         Ok(())
     }
 
+    /*
     fn render_glyph(
         &self,
         target: &mut glium::Frame,
@@ -896,6 +897,7 @@ impl<'a> TerminalWindow<'a> {
 
         Ok(())
     }
+    */
 
     fn render_screen_line(
         &self,
@@ -982,9 +984,13 @@ impl<'a> TerminalWindow<'a> {
                 let top = (self.cell_height as f32 + self.descender as f32) -
                     (glyph.y_offset as f32 + glyph.bearing_y as f32);
 
-                for cur_x in cell_idx..cell_idx + info.num_cells as usize {
+                // Iterate each cell that comprises this glyph.  There is usually
+                // a single cell per glyph but combining characters, ligatures
+                // and emoji can be 2 or more cells wide.
+                for glyph_idx in 0..info.num_cells as usize {
+                    let cell_idx = cell_idx + glyph_idx;
 
-                    if cur_x >= num_cols {
+                    if cell_idx >= num_cols {
                         // terminal line data is wider than the window.
                         // This happens for example while live resizing the window
                         // smaller than the terminal.
@@ -993,8 +999,8 @@ impl<'a> TerminalWindow<'a> {
 
                     // TODO: underline and strikethrough
 
-                    let selected = term::in_range(cur_x, &selection);
-                    let is_cursor = line_idx as i64 == cursor.y && cursor.x == cur_x;
+                    let selected = term::in_range(cell_idx, &selection);
+                    let is_cursor = line_idx as i64 == cursor.y && cursor.x == cell_idx;
 
                     let (glyph_color, bg_color) = match (selected, is_cursor) {
                         // Normally, render the cell as configured
@@ -1012,7 +1018,7 @@ impl<'a> TerminalWindow<'a> {
                         ),
                     };
 
-                    let vert_idx = cur_x * VERTICES_PER_CELL;
+                    let vert_idx = cell_idx * VERTICES_PER_CELL;
                     let vert = &mut vertices[vert_idx..vert_idx + VERTICES_PER_CELL];
 
                     vert[V_TOP_LEFT].fg_color = glyph_color;
@@ -1027,19 +1033,33 @@ impl<'a> TerminalWindow<'a> {
 
                     match &glyph.texture {
                         &Some(ref texture) => {
-                            let right = (texture.coords.width as f32 + left) - cell_width;
-                            let bottom = (texture.coords.height as f32 + top) - cell_height;
+                            let slice = SpriteSlice {
+                                cell_idx: glyph_idx,
+                                num_cells: info.num_cells as usize,
+                                cell_width: self.cell_width,
+                                scale: glyph.scale,
+                                left_offset: left as i32,
+                            };
 
-                            vert[V_TOP_LEFT].tex = texture.top_left();
+                            // How much of the width of this glyph we can use here
+                            let slice_width = texture.slice_width(&slice);
+
+                            let left = if glyph_idx == 0 { left } else { 0.0 };
+                            let right = (slice_width as f32 + left) - cell_width;
+
+                            let bottom = ((texture.coords.height as f32) * glyph.scale + top) -
+                                cell_height;
+
+                            vert[V_TOP_LEFT].tex = texture.top_left(&slice);
                             vert[V_TOP_LEFT].adjust = Point::new(left, top);
 
-                            vert[V_TOP_RIGHT].tex = texture.top_right();
+                            vert[V_TOP_RIGHT].tex = texture.top_right(&slice);
                             vert[V_TOP_RIGHT].adjust = Point::new(right, top);
 
-                            vert[V_BOT_LEFT].tex = texture.bottom_left();
+                            vert[V_BOT_LEFT].tex = texture.bottom_left(&slice);
                             vert[V_BOT_LEFT].adjust = Point::new(left, bottom);
 
-                            vert[V_BOT_RIGHT].tex = texture.bottom_right();
+                            vert[V_BOT_RIGHT].tex = texture.bottom_right(&slice);
                             vert[V_BOT_RIGHT].adjust = Point::new(right, bottom);
                         }
                         &None => {
@@ -1058,6 +1078,7 @@ impl<'a> TerminalWindow<'a> {
         Ok(())
     }
 
+    /*
     fn render_line(
         &self,
         target: &mut glium::Frame,
@@ -1231,6 +1252,7 @@ impl<'a> TerminalWindow<'a> {
 
         Ok(())
     }
+    */
 
     pub fn paint(&mut self) -> Result<(), Error> {
 
