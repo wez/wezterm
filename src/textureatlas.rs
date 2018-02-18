@@ -180,13 +180,13 @@ impl Sprite {
 
     /// Returns the top coordinate for a slice in texture coordinate space
     #[inline]
-    pub fn top(&self, slice: &SpriteSlice) -> f32 {
+    pub fn top(&self, _slice: &SpriteSlice) -> f32 {
         self.coords.bottom as f32 / self.texture.height() as f32
     }
 
     /// Returns the bottom coordinate for a slice in texture coordinate space
     #[inline]
-    pub fn bottom(&self, slice: &SpriteSlice) -> f32 {
+    pub fn bottom(&self, _slice: &SpriteSlice) -> f32 {
         (self.coords.bottom + self.coords.height) as f32 / self.texture.height() as f32
     }
 

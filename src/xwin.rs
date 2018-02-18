@@ -15,7 +15,6 @@ use std::rc::Rc;
 use std::slice;
 use term::{self, CursorPosition, KeyCode, KeyModifiers, Line, MouseButton, MouseEvent,
            MouseEventKind, TerminalHost, Underline};
-use term::color::RgbColor;
 use term::hyperlink::Hyperlink;
 use xcb;
 use xcb_util;
@@ -24,7 +23,6 @@ use xkeysyms;
 
 use textureatlas::{Atlas, Sprite, SpriteSlice};
 
-type Transform2D = euclid::Transform2D<f32>;
 type Transform3D = euclid::Transform3D<f32>;
 
 #[derive(Copy, Clone, Debug)]
@@ -75,9 +73,11 @@ struct Vertex {
     // cell foreground and background color
     fg_color: (f32, f32, f32, f32),
     bg_color: (f32, f32, f32, f32),
-    // TODO: underline, strikethrough, cursor, selected
+    // TODO: underline, strikethrough
     /// Nominally a boolean, but the shader compiler hated it
     has_color: f32,
+    /// Count of how many underlines there are
+    underline: f32,
 }
 
 implement_vertex!(Vertex, position, adjust, tex, fg_color, bg_color, has_color);
@@ -90,6 +90,7 @@ in vec2 tex;
 in vec4 fg_color;
 in vec4 bg_color;
 in float has_color;
+in float underline;
 
 uniform mat4 projection;
 uniform mat4 translation;
@@ -99,6 +100,7 @@ out vec2 tex_coords;
 out vec4 o_fg_color;
 out vec4 o_bg_color;
 out float o_has_color;
+out float o_underline;
 
 vec4 cell_pos() {
     if (bg_fill) {
@@ -113,6 +115,7 @@ void main() {
     o_fg_color = fg_color;
     o_bg_color = bg_color;
     o_has_color = has_color;
+    o_underline = underline;
 
     gl_Position = projection * cell_pos();
 }
@@ -144,17 +147,6 @@ void main() {
 }
 "#;
 
-const FILL_RECT_FRAG_SHADER: &str = r#"
-#version 300 es
-precision mediump float;
-out vec4 color;
-uniform vec4 bg_color;
-
-void main() {
-    color = bg_color;
-}
-"#;
-
 /// Holds the information we need to implement TerminalHost
 struct Host<'a> {
     window: xgfx::Window<'a>,
@@ -177,10 +169,8 @@ pub struct TerminalWindow<'a> {
     glyph_cache: RefCell<HashMap<GlyphKey, Rc<CachedGlyph>>>,
     palette: term::color::ColorPalette,
     program: glium::Program,
-    fill_program: glium::Program,
     glyph_vertex_buffer: RefCell<VertexBuffer<Vertex>>,
     glyph_index_buffer: IndexBuffer<u32>,
-    line_vertex_buffer: VertexBuffer<Vertex>,
     projection: Transform3D,
     atlas: RefCell<Atlas>,
 }
@@ -339,28 +329,11 @@ impl<'a> TerminalWindow<'a> {
         let ch = cell_height as f32;
         let cw = cell_width as f32;
 
-        let line_vertex_buffer = {
-            let shape = [
-                Vertex {
-                    position: Point::new(0.0, 0.0),
-                    ..Default::default()
-                },
-                Vertex {
-                    position: Point::new(cw, 0.0),
-                    ..Default::default()
-                },
-            ];
-            VertexBuffer::new(&host.window, &shape)?
-        };
-
         let (glyph_vertex_buffer, glyph_index_buffer) =
             Self::compute_vertices(&host, cw, ch, width as f32, height as f32)?;
 
         let program =
             glium::Program::from_source(&host.window, VERTEX_SHADER, FRAGMENT_SHADER, None)?;
-
-        let fill_program =
-            glium::Program::from_source(&host.window, VERTEX_SHADER, FILL_RECT_FRAG_SHADER, None)?;
 
         let atlas = RefCell::new(Atlas::new(&host.window)?);
 
@@ -368,10 +341,8 @@ impl<'a> TerminalWindow<'a> {
             host,
             atlas,
             program,
-            fill_program,
             glyph_vertex_buffer: RefCell::new(glyph_vertex_buffer),
             glyph_index_buffer,
-            line_vertex_buffer,
             conn,
             width,
             height,
@@ -678,48 +649,7 @@ impl<'a> TerminalWindow<'a> {
         let mut font = font.borrow_mut();
         font.shape(0, s)
     }
-
-    fn fill_rect(
-        &self,
-        target: &mut glium::Frame,
-        x: isize,
-        y: isize,
-        num_cells_wide: u32,
-        num_cells_high: u32,
-        color: RgbColor,
-    ) -> Result<(), Error> {
-        /*
-        // Translate cell coordinate from top-left origin in cell coords
-        // to center origin pixel coords
-        let xlate_model = Transform2D::create_translation(
-            x as f32 - self.width as f32 / 2.0,
-            y as f32 - self.height as f32 / 2.0,
-        ).to_3d();
-        let scale_model = Transform2D::create_scale(num_cells_wide as f32, num_cells_high as f32)
-            .to_3d();
-
-        target.draw(
-            &self.glyph_vertex_buffer,
-            glium::index::NoIndices(
-                glium::index::PrimitiveType::TriangleStrip,
-            ),
-            &self.fill_program,
-            &uniform! {
-                    projection: self.projection.to_column_arrays(),
-                    translation: scale_model.post_mul(&xlate_model).to_column_arrays(),
-                    bg_color: color.to_linear_tuple_rgba(),
-                },
-            &glium::DrawParameters {
-                blend: glium::Blend::alpha_blending(),
-                //dithering: false,
-                ..Default::default()
-            },
-        )?;
-        */
-
-        Ok(())
-    }
-
+    /*
     /// Render a line strike through the glyph at the given coords.
     fn render_strikethrough(
         &self,
@@ -737,43 +667,6 @@ impl<'a> TerminalWindow<'a> {
             num_cells_wide,
             glyph_color,
         )?;
-        Ok(())
-    }
-
-    fn draw_line(
-        &self,
-        target: &mut glium::Frame,
-        x: isize,
-        y: isize,
-        num_cells_wide: u8,
-        color: RgbColor,
-    ) -> Result<(), Error> {
-        // Translate cell coordinate from top-left origin in cell coords
-        // to center origin pixel coords
-        let xlate_model = Transform2D::create_translation(
-            x as f32 - self.width as f32 / 2.0,
-            y as f32 - self.height as f32 / 2.0,
-        ).to_3d();
-        let scale_model = Transform2D::create_scale(num_cells_wide as f32, 1.0).to_3d();
-
-        target.draw(
-            &self.line_vertex_buffer,
-            glium::index::NoIndices(
-                glium::index::PrimitiveType::LinesList,
-            ),
-            &self.fill_program,
-            &uniform! {
-                    projection: self.projection.to_column_arrays(),
-                    translation: scale_model.post_mul(&xlate_model).to_column_arrays(),
-                    bg_color: color.to_linear_tuple_rgba(),
-                },
-            &glium::DrawParameters {
-                blend: glium::Blend::alpha_blending(),
-                line_width: Some(1.0),
-                ..Default::default()
-            },
-        )?;
-
         Ok(())
     }
 
@@ -817,94 +710,10 @@ impl<'a> TerminalWindow<'a> {
         }
         Ok(())
     }
-
-    /*
-    fn render_glyph(
-        &self,
-        target: &mut glium::Frame,
-        x: isize,
-        base_y: isize,
-        glyph: &Rc<CachedGlyph>,
-        image: &Sprite,
-        metric_width: usize,
-        glyph_color: RgbColor,
-        bg_color: RgbColor,
-    ) -> Result<(), Error> {
-        let width = self.width as f32;
-        let height = self.height as f32;
-
-        let (glyph_width, glyph_height) =
-            (image.coords.width as usize, image.coords.height as usize);
-
-        let scale_y = glyph.scale * glyph_height as f32 / self.cell_height as f32;
-        let scale_x = glyph.scale * glyph_width as f32 / metric_width as f32;
-
-        let draw_y = base_y - (glyph.y_offset as isize + glyph.bearing_y);
-        let draw_x = x + glyph.x_offset as isize + glyph.bearing_x;
-
-        // Translate cell coordinate from top-left origin in cell coords
-        // to center origin pixel coords
-        let xlate_model = Transform2D::create_translation(
-            (draw_x as f32) - width / 2.0,
-            (draw_y as f32) - height / 2.0,
-        ).to_3d();
-
-        let scale_model = Transform2D::create_scale(scale_x, scale_y).to_3d();
-
-        let glyph_vertex_buffer = {
-            let top_left = Vertex {
-                position: Point::new(0.0, 0.0),
-                tex: image.top_left(),
-                ..Default::default()
-            };
-            let top_right = Vertex {
-                position: Point::new(self.cell_width as f32, 0.0),
-                tex: image.top_right(),
-                ..Default::default()
-            };
-            let bot_left = Vertex {
-                position: Point::new(0.0, self.cell_height as f32),
-                tex: image.bottom_left(),
-                ..Default::default()
-            };
-            let bot_right = Vertex {
-                position: Point::new(self.cell_width as f32, self.cell_height as f32),
-                tex: image.bottom_right(),
-                ..Default::default()
-            };
-            let shape = [top_left, top_right, bot_left, bot_right];
-            VertexBuffer::new(&self.host.window, &shape)?
-        };
-
-        target.draw(
-            &glyph_vertex_buffer,
-            glium::index::NoIndices(
-                glium::index::PrimitiveType::TriangleStrip,
-            ),
-            &self.program,
-            &uniform! {
-                    fg_color: glyph_color.to_linear_tuple_rgb(),
-                    projection: self.projection.to_column_arrays(),
-                    translation: scale_model.post_mul(&xlate_model).to_column_arrays(),
-                    glyph_tex: &*image.texture,
-                    has_color: glyph.has_color,
-                    bg_color: bg_color.to_linear_tuple_rgba(),
-                    bg_fill: false,
-                },
-            &glium::DrawParameters {
-                blend: glium::Blend::alpha_blending(),
-                dithering: false,
-                ..Default::default()
-            },
-        )?;
-
-        Ok(())
-    }
-    */
+*/
 
     fn render_screen_line(
         &self,
-        target: &mut glium::Frame,
         line_idx: usize,
         line: &Line,
         selection: Range<usize>,
@@ -987,6 +796,19 @@ impl<'a> TerminalWindow<'a> {
                 let top = (self.cell_height as f32 + self.descender as f32) -
                     (glyph.y_offset as f32 + glyph.bearing_y as f32);
 
+                // TODO: underline and strikethrough
+                // Figure out what we're going to draw for the underline.
+                // If the current cell is part of the current URL highlight
+                // then we want to show the underline.
+                let underline: f32 = match (is_highlited_hyperlink, attrs.underline()) {
+                    (true, Underline::None) => 1.0,
+                    (true, Underline::Single) => 2.0,
+                    (true, Underline::Double) => 1.0,
+                    (false, Underline::None) => 0.0,
+                    (false, Underline::Single) => 1.0,
+                    (false, Underline::Double) => 2.0,
+                };
+
                 // Iterate each cell that comprises this glyph.  There is usually
                 // a single cell per glyph but combining characters, ligatures
                 // and emoji can be 2 or more cells wide.
@@ -999,8 +821,6 @@ impl<'a> TerminalWindow<'a> {
                         // smaller than the terminal.
                         break;
                     }
-
-                    // TODO: underline and strikethrough
 
                     let selected = term::in_range(cell_idx, &selection);
                     let is_cursor = line_idx as i64 == cursor.y && cursor.x == cell_idx;
@@ -1033,6 +853,11 @@ impl<'a> TerminalWindow<'a> {
                     vert[V_TOP_RIGHT].bg_color = bg_color;
                     vert[V_BOT_LEFT].bg_color = bg_color;
                     vert[V_BOT_RIGHT].bg_color = bg_color;
+
+                    vert[V_TOP_LEFT].underline = underline;
+                    vert[V_TOP_RIGHT].underline = underline;
+                    vert[V_BOT_LEFT].underline = underline;
+                    vert[V_BOT_RIGHT].underline = underline;
 
                     match &glyph.texture {
                         &Some(ref texture) => {
@@ -1284,13 +1109,7 @@ impl<'a> TerminalWindow<'a> {
             let dirty_lines = self.terminal.get_dirty_lines(false);
 
             for (line_idx, line, selrange) in dirty_lines {
-                self.render_screen_line(
-                    &mut target,
-                    line_idx,
-                    line,
-                    selrange,
-                    &cursor,
-                )?;
+                self.render_screen_line(line_idx, line, selrange, &cursor)?;
             }
         }
 
