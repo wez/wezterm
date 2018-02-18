@@ -30,6 +30,12 @@ type Transform3D = euclid::Transform3D<f32>;
 #[derive(Copy, Clone, Debug)]
 struct Point(euclid::Point2D<f32>);
 
+impl Default for Point {
+    fn default() -> Point {
+        Point::new(0.0, 0.0)
+    }
+}
+
 impl Deref for Point {
     type Target = euclid::Point2D<f32>;
     fn deref(&self) -> &Self::Target {
@@ -50,7 +56,7 @@ impl Point {
     }
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, Default)]
 struct Vertex {
     position: Point,
     tex: (f32, f32),
@@ -297,11 +303,11 @@ impl<'a> TerminalWindow<'a> {
             let shape = [
                 Vertex {
                     position: Point::new(0.0, 0.0),
-                    tex: (0.0, 0f32),
+                    ..Default::default()
                 },
                 Vertex {
                     position: Point::new(cw, 0.0),
-                    tex: (0.0, 0f32),
+                    ..Default::default()
                 },
             ];
             glium::VertexBuffer::new(&host.window, &shape)?
@@ -310,19 +316,19 @@ impl<'a> TerminalWindow<'a> {
         let glyph_vertex_buffer = {
             let top_left = Vertex {
                 position: Point::new(0.0, 0.0),
-                tex: (0.0, 0f32),
+                ..Default::default()
             };
             let top_right = Vertex {
                 position: Point::new(cw, 0.0),
-                tex: (1.0, 0f32),
+                ..Default::default()
             };
             let bot_left = Vertex {
                 position: Point::new(0.0, ch),
-                tex: (0.0, 1.0f32),
+                ..Default::default()
             };
             let bot_right = Vertex {
                 position: Point::new(cw, ch),
-                tex: (1.0, 1.0f32),
+                ..Default::default()
             };
             let shape = [top_left, top_right, bot_left, bot_right];
             glium::VertexBuffer::new(&host.window, &shape)?
