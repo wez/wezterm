@@ -46,6 +46,7 @@ use font::{FontConfiguration, ftwrap};
 
 mod pty;
 mod sigchld;
+mod textureatlas;
 mod xwin;
 use xwin::TerminalWindow;
 

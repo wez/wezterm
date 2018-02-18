@@ -22,6 +22,8 @@ use xcb_util;
 use xgfx::{self, Connection, Drawable};
 use xkeysyms;
 
+use textureatlas::Atlas;
+
 type Transform2D = euclid::Transform2D<f32>;
 type Transform3D = euclid::Transform3D<f32>;
 
