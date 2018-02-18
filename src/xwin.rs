@@ -76,9 +76,11 @@ struct Vertex {
     fg_color: (f32, f32, f32, f32),
     bg_color: (f32, f32, f32, f32),
     // TODO: underline, strikethrough, cursor, selected
+    /// Nominally a boolean, but the shader compiler hated it
+    has_color: f32,
 }
 
-implement_vertex!(Vertex, position, adjust, tex, fg_color, bg_color);
+implement_vertex!(Vertex, position, adjust, tex, fg_color, bg_color, has_color);
 
 const VERTEX_SHADER: &str = r#"
 #version 300 es
@@ -87,6 +89,7 @@ in vec2 adjust;
 in vec2 tex;
 in vec4 fg_color;
 in vec4 bg_color;
+in float has_color;
 
 uniform mat4 projection;
 uniform mat4 translation;
@@ -109,7 +112,7 @@ void main() {
     tex_coords = tex;
     o_fg_color = fg_color;
     o_bg_color = bg_color;
-    o_has_color = 0.0;
+    o_has_color = has_color;
 
     gl_Position = projection * cell_pos();
 }
@@ -1061,14 +1064,26 @@ impl<'a> TerminalWindow<'a> {
 
                             vert[V_BOT_RIGHT].tex = texture.bottom_right(&slice);
                             vert[V_BOT_RIGHT].adjust = Point::new(right, bottom);
+
+                            let has_color = if glyph.has_color { 1.0 } else { 0.0 };
+                            vert[V_TOP_LEFT].has_color = has_color;
+                            vert[V_TOP_RIGHT].has_color = has_color;
+                            vert[V_BOT_LEFT].has_color = has_color;
+                            vert[V_BOT_RIGHT].has_color = has_color;
                         }
                         &None => {
                             // Whitespace; no texture to render
                             let zero = (0.0, 0.0f32);
+
                             vert[V_TOP_LEFT].tex = zero;
                             vert[V_TOP_RIGHT].tex = zero;
                             vert[V_BOT_LEFT].tex = zero;
                             vert[V_BOT_RIGHT].tex = zero;
+
+                            vert[V_TOP_LEFT].has_color = 0.0;
+                            vert[V_TOP_RIGHT].has_color = 0.0;
+                            vert[V_BOT_LEFT].has_color = 0.0;
+                            vert[V_BOT_RIGHT].has_color = 0.0;
                         }
                     }
                 }
