@@ -2,7 +2,7 @@ use config::TextStyle;
 use euclid;
 use failure::{self, Error};
 use font::{FontConfiguration, GlyphInfo, ftwrap};
-use glium::{self, Surface};
+use glium::{self, IndexBuffer, Surface, VertexBuffer};
 use pty::MasterPty;
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -56,50 +56,86 @@ impl Point {
     }
 }
 
+/// Each cell is composed of two triangles built from 4 vertices.
+/// The buffer is organized row by row.
+const VERTICES_PER_CELL: usize = 4;
+const V_TOP_LEFT: usize = 0;
+const V_TOP_RIGHT: usize = 1;
+const V_BOT_LEFT: usize = 2;
+const V_BOT_RIGHT: usize = 3;
+
 #[derive(Copy, Clone, Debug, Default)]
 struct Vertex {
+    // pre-computed by compute_vertices and changed only on resize
     position: Point,
+    // adjustment for glyph size, recomputed each time the cell changes
+    adjust: Point,
+    // texture coords are updated as the screen contents change
     tex: (f32, f32),
+    // cell foreground and background color
+    fg_color: (f32, f32, f32, f32),
+    bg_color: (f32, f32, f32, f32),
+    // TODO: underline, strikethrough, cursor, selected
 }
 
-implement_vertex!(Vertex, position, tex);
+implement_vertex!(Vertex, position, adjust, tex, fg_color, bg_color);
 
 const VERTEX_SHADER: &str = r#"
 #version 300 es
 in vec2 position;
+in vec2 adjust;
 in vec2 tex;
+in vec4 fg_color;
+in vec4 bg_color;
 
 uniform mat4 projection;
 uniform mat4 translation;
+uniform bool bg_fill;
 
 out vec2 tex_coords;
+out vec4 o_fg_color;
+out vec4 o_bg_color;
+out float o_has_color;
+
+vec4 cell_pos() {
+    if (bg_fill) {
+        return vec4(position, 0.0, 1.0);
+    } else {
+        return vec4(position + adjust, 0.0, 1.0);
+    }
+}
 
 void main() {
     tex_coords = tex;
-    vec4 pos = vec4(position, 0.0, 1.0) * translation;
-    gl_Position = projection * pos;
+    o_fg_color = fg_color;
+    o_bg_color = bg_color;
+    o_has_color = 0.0;
+
+    gl_Position = projection * cell_pos();
 }
 "#;
 
 const FRAGMENT_SHADER: &str = r#"
 #version 300 es
 precision mediump float;
-uniform vec3 fg_color;
-uniform vec4 bg_color;
-out vec4 color;
 in vec2 tex_coords;
+in vec4 o_fg_color;
+in vec4 o_bg_color;
+in float o_has_color;
+
+out vec4 color;
 uniform sampler2D glyph_tex;
 uniform bool has_color;
 uniform bool bg_fill;
 
 void main() {
     if (bg_fill) {
-        color = bg_color;
+        color = o_bg_color;
     } else {
         color = texture2D(glyph_tex, tex_coords);
-        if (!has_color) {
+        if (o_has_color == 0.0) {
             // if it's not a color emoji, tint with the fg_color
-            color = color * vec4(fg_color, 1.0);
+            color = color * o_fg_color;
         }
     }
 }
@@ -139,8 +175,9 @@ pub struct TerminalWindow<'a> {
     palette: term::color::ColorPalette,
     program: glium::Program,
     fill_program: glium::Program,
-    glyph_vertex_buffer: glium::VertexBuffer<Vertex>,
-    line_vertex_buffer: glium::VertexBuffer<Vertex>,
+    glyph_vertex_buffer: RefCell<VertexBuffer<Vertex>>,
+    glyph_index_buffer: IndexBuffer<u32>,
+    line_vertex_buffer: VertexBuffer<Vertex>,
     projection: Transform3D,
     atlas: RefCell<Atlas>,
 }
@@ -310,29 +347,11 @@ impl<'a> TerminalWindow<'a> {
                     ..Default::default()
                 },
             ];
-            glium::VertexBuffer::new(&host.window, &shape)?
+            VertexBuffer::new(&host.window, &shape)?
         };
 
-        let glyph_vertex_buffer = {
-            let top_left = Vertex {
-                position: Point::new(0.0, 0.0),
-                ..Default::default()
-            };
-            let top_right = Vertex {
-                position: Point::new(cw, 0.0),
-                ..Default::default()
-            };
-            let bot_left = Vertex {
-                position: Point::new(0.0, ch),
-                ..Default::default()
-            };
-            let bot_right = Vertex {
-                position: Point::new(cw, ch),
-                ..Default::default()
-            };
-            let shape = [top_left, top_right, bot_left, bot_right];
-            glium::VertexBuffer::new(&host.window, &shape)?
-        };
+        let (glyph_vertex_buffer, glyph_index_buffer) =
+            Self::compute_vertices(&host, cw, ch, width as f32, height as f32)?;
 
         let program =
             glium::Program::from_source(&host.window, VERTEX_SHADER, FRAGMENT_SHADER, None)?;
@@ -340,14 +359,15 @@ impl<'a> TerminalWindow<'a> {
         let fill_program =
             glium::Program::from_source(&host.window, VERTEX_SHADER, FILL_RECT_FRAG_SHADER, None)?;
 
-        let atlas = RefCell::new(Atlas::new());
+        let atlas = RefCell::new(Atlas::new(&host.window)?);
 
         Ok(TerminalWindow {
             host,
             atlas,
             program,
             fill_program,
-            glyph_vertex_buffer,
+            glyph_vertex_buffer: RefCell::new(glyph_vertex_buffer),
+            glyph_index_buffer,
             line_vertex_buffer,
             conn,
             width,
@@ -366,6 +386,66 @@ impl<'a> TerminalWindow<'a> {
 
     pub fn show(&self) {
         self.host.window.show();
+    }
+
+    fn compute_vertices(
+        host: &Host,
+        cell_width: f32,
+        cell_height: f32,
+        width: f32,
+        height: f32,
+    ) -> Result<(VertexBuffer<Vertex>, IndexBuffer<u32>), Error> {
+        let mut verts = Vec::new();
+        let mut indices = Vec::new();
+
+        let num_cols = ((width + 1.0) / cell_width).floor() as usize;
+        let num_rows = ((height + 1.0) / cell_height).floor() as usize;
+
+        for y in 0..num_rows {
+            for x in 0..num_cols {
+                let y_pos = (height / -2.0) + (y as f32 * cell_height);
+                let x_pos = (width / -2.0) + (x as f32 * cell_width);
+                // Remember starting index for this position
+                let idx = verts.len() as u32;
+                verts.push(Vertex {
+                    // Top left
+                    position: Point::new(x_pos, y_pos),
+                    ..Default::default()
+                });
+                verts.push(Vertex {
+                    // Top Right
+                    position: Point::new(x_pos + cell_width, y_pos),
+                    ..Default::default()
+                });
+                verts.push(Vertex {
+                    // Bottom Left
+                    position: Point::new(x_pos, y_pos + cell_height),
+                    ..Default::default()
+                });
+                verts.push(Vertex {
+                    // Bottom Right
+                    position: Point::new(x_pos + cell_width, y_pos + cell_height),
+                    ..Default::default()
+                });
+
+                // Emit two triangles to form the glyph quad
+                indices.push(idx);
+                indices.push(idx + 1);
+                indices.push(idx + 2);
+                indices.push(idx + 1);
+                indices.push(idx + 2);
+                indices.push(idx + 3);
+            }
+        }
+
+        Ok((
+            VertexBuffer::dynamic(&host.window, &verts)?,
+            IndexBuffer::new(
+                &host.window,
+                glium::index::PrimitiveType::TrianglesList,
+                &indices,
+            )?,
+        ))
     }
 
     fn compute_projection(width: f32, height: f32) -> Transform3D {
@@ -387,6 +467,16 @@ impl<'a> TerminalWindow<'a> {
             self.width = width;
             self.height = height;
             self.projection = Self::compute_projection(width as f32, height as f32);
+
+            let (glyph_vertex_buffer, glyph_index_buffer) = Self::compute_vertices(
+                &self.host,
+                self.cell_width as f32,
+                self.cell_height as f32,
+                width as f32,
+                height as f32,
+            )?;
+            self.glyph_vertex_buffer = RefCell::new(glyph_vertex_buffer);
+            self.glyph_index_buffer = glyph_index_buffer;
 
             // The +1 in here is to handle an irritating case.
             // When we get N rows with a gap of cell_height - 1 left at
@@ -595,6 +685,7 @@ impl<'a> TerminalWindow<'a> {
         num_cells_high: u32,
         color: RgbColor,
     ) -> Result<(), Error> {
+        /*
         // Translate cell coordinate from top-left origin in cell coords
         // to center origin pixel coords
         let xlate_model = Transform2D::create_translation(
@@ -621,6 +712,7 @@ impl<'a> TerminalWindow<'a> {
                 ..Default::default()
             },
         )?;
+        */
 
         Ok(())
     }
@@ -759,21 +851,25 @@ impl<'a> TerminalWindow<'a> {
             let top_left = Vertex {
                 position: Point::new(0.0, 0.0),
                 tex: image.top_left(),
+                ..Default::default()
             };
             let top_right = Vertex {
                 position: Point::new(self.cell_width as f32, 0.0),
                 tex: image.top_right(),
+                ..Default::default()
             };
             let bot_left = Vertex {
                 position: Point::new(0.0, self.cell_height as f32),
                 tex: image.bottom_left(),
+                ..Default::default()
             };
             let bot_right = Vertex {
                 position: Point::new(self.cell_width as f32, self.cell_height as f32),
                 tex: image.bottom_right(),
+                ..Default::default()
             };
             let shape = [top_left, top_right, bot_left, bot_right];
-            glium::VertexBuffer::new(&self.host.window, &shape)?
+            VertexBuffer::new(&self.host.window, &shape)?
         };
 
         target.draw(
@@ -797,6 +893,167 @@ impl<'a> TerminalWindow<'a> {
                 ..Default::default()
             },
         )?;
+
+        Ok(())
+    }
+
+    fn render_screen_line(
+        &self,
+        target: &mut glium::Frame,
+        line_idx: usize,
+        line: &Line,
+        selection: Range<usize>,
+        cursor: &CursorPosition,
+    ) -> Result<(), Error> {
+        let num_cols = self.terminal.screen().physical_cols;
+        let mut vb = self.glyph_vertex_buffer.borrow_mut();
+        let mut vertices = {
+            let per_line = num_cols * VERTICES_PER_CELL;
+            let start = line_idx * per_line;
+            vb.slice_mut(start..start + per_line)
+                .ok_or_else(|| format_err!("we're confused about the screen size"))?
+                .map()
+        };
+
+        let current_highlight = self.terminal.current_highlight();
+        let cell_width = self.cell_width as f32;
+        let cell_height = self.cell_height as f32;
+
+        // Break the line into clusters of cells with the same attributes
+        let cell_clusters = line.cluster();
+        for cluster in cell_clusters {
+            let attrs = &cluster.attrs;
+            let is_highlited_hyperlink = match (&attrs.hyperlink, &current_highlight) {
+                (&Some(ref this), &Some(ref highlight)) => this == highlight,
+                _ => false,
+            };
+            let style = self.fonts.match_style(attrs);
+
+            let (fg_color, bg_color) = {
+                let mut fg_color = &attrs.foreground;
+                let mut bg_color = &attrs.background;
+
+                if attrs.reverse() {
+                    mem::swap(&mut fg_color, &mut bg_color);
+                }
+
+                (fg_color, bg_color)
+            };
+
+            let bg_color = self.palette.resolve(bg_color).to_linear_tuple_rgba();
+
+            // Shape the printable text from this cluster
+            let glyph_info = self.shape_text(&cluster.text, &style)?;
+            for info in glyph_info.iter() {
+                let cell_idx = cluster.byte_to_cell_idx[info.cluster as usize];
+                let glyph = self.cached_glyph(info, &style)?;
+
+                let glyph_color = match fg_color {
+                    &term::color::ColorAttribute::Foreground => {
+                        if let Some(fg) = style.foreground {
+                            fg
+                        } else {
+                            self.palette.resolve(fg_color)
+                        }
+                    }
+                    &term::color::ColorAttribute::PaletteIndex(idx) if idx < 8 => {
+                        // For compatibility purposes, switch to a brighter version
+                        // of one of the standard ANSI colors when Bold is enabled.
+                        // This lifts black to dark grey.
+                        let idx = if attrs.intensity() == term::Intensity::Bold {
+                            idx + 8
+                        } else {
+                            idx
+                        };
+                        self.palette.resolve(
+                            &term::color::ColorAttribute::PaletteIndex(idx),
+                        )
+                    }
+                    _ => self.palette.resolve(fg_color),
+                }.to_linear_tuple_rgba();
+
+                let glyph_color = match &glyph.texture {
+                    &Some(_) => glyph_color,
+                    // Whitespace glyph; render with 0 alpha
+                    &None => (0.0, 0.0, 0.0, 0.0f32),
+                };
+
+                let left: f32 = glyph.x_offset as f32 + glyph.bearing_x as f32;
+                let top = (self.cell_height as f32 + self.descender as f32) -
+                    (glyph.y_offset as f32 + glyph.bearing_y as f32);
+
+                for cur_x in cell_idx..cell_idx + info.num_cells as usize {
+
+                    if cur_x >= num_cols {
+                        // terminal line data is wider than the window.
+                        // This happens for example while live resizing the window
+                        // smaller than the terminal.
+                        break;
+                    }
+
+                    // TODO: underline and strikethrough
+
+                    let selected = term::in_range(cur_x, &selection);
+                    let is_cursor = line_idx as i64 == cursor.y && cursor.x == cur_x;
+
+                    let (glyph_color, bg_color) = match (selected, is_cursor) {
+                        // Normally, render the cell as configured
+                        (false, false) => (glyph_color, bg_color),
+                        // Cursor cell always renders with background over cursor color
+                        (_, true) => (
+                            self.palette.background.to_linear_tuple_rgba(),
+                            self.palette.cursor.to_linear_tuple_rgba(),
+                        ),
+                        // Selection text colors the background
+                        (true, false) => (
+                            glyph_color,
+                            // TODO: configurable selection color
+                            self.palette.cursor.to_linear_tuple_rgba(),
+                        ),
+                    };
+
+                    let vert_idx = cur_x * VERTICES_PER_CELL;
+                    let vert = &mut vertices[vert_idx..vert_idx + VERTICES_PER_CELL];
+
+                    vert[V_TOP_LEFT].fg_color = glyph_color;
+                    vert[V_TOP_RIGHT].fg_color = glyph_color;
+                    vert[V_BOT_LEFT].fg_color = glyph_color;
+                    vert[V_BOT_RIGHT].fg_color = glyph_color;
+
+                    vert[V_TOP_LEFT].bg_color = bg_color;
+                    vert[V_TOP_RIGHT].bg_color = bg_color;
+                    vert[V_BOT_LEFT].bg_color = bg_color;
+                    vert[V_BOT_RIGHT].bg_color = bg_color;
+
+                    match &glyph.texture {
+                        &Some(ref texture) => {
+                            let right = (texture.coords.width as f32 + left) - cell_width;
+                            let bottom = (texture.coords.height as f32 + top) - cell_height;
+
+                            vert[V_TOP_LEFT].tex = texture.top_left();
+                            vert[V_TOP_LEFT].adjust = Point::new(left, top);
+
+                            vert[V_TOP_RIGHT].tex = texture.top_right();
+                            vert[V_TOP_RIGHT].adjust = Point::new(right, top);
+
+                            vert[V_BOT_LEFT].tex = texture.bottom_left();
+                            vert[V_BOT_LEFT].adjust = Point::new(left, bottom);
+
+                            vert[V_BOT_RIGHT].tex = texture.bottom_right();
+                            vert[V_BOT_RIGHT].adjust = Point::new(right, bottom);
+                        }
+                        &None => {
+                            // Whitespace; no texture to render
+                            let zero = (0.0, 0.0f32);
+                            vert[V_TOP_LEFT].tex = zero;
+                            vert[V_TOP_RIGHT].tex = zero;
+                            vert[V_BOT_LEFT].tex = zero;
+                            vert[V_BOT_RIGHT].tex = zero;
+                        }
+                    }
+                }
+            }
+        }
 
         Ok(())
     }
@@ -987,10 +1244,10 @@ impl<'a> TerminalWindow<'a> {
 
         let cursor = self.terminal.cursor_pos();
         {
-            let dirty_lines = self.terminal.get_dirty_lines(true);
+            let dirty_lines = self.terminal.get_dirty_lines(false);
 
             for (line_idx, line, selrange) in dirty_lines {
-                self.render_line(
+                self.render_screen_line(
                     &mut target,
                     line_idx,
                     line,
@@ -999,6 +1256,43 @@ impl<'a> TerminalWindow<'a> {
                 )?;
             }
         }
+
+        let tex = self.atlas.borrow().texture();
+
+        target.draw(
+            &*self.glyph_vertex_buffer.borrow(),
+            &self.glyph_index_buffer,
+            &self.program,
+            &uniform! {
+                    projection: self.projection.to_column_arrays(),
+                    glyph_tex: &*tex,
+                    //has_color: glyph.has_color,
+                    //bg_color: bg_color.to_linear_tuple_rgba(),
+                    bg_fill: true,
+                },
+            &glium::DrawParameters {
+                blend: glium::Blend::alpha_blending(),
+                dithering: false,
+                ..Default::default()
+            },
+        )?;
+        target.draw(
+            &*self.glyph_vertex_buffer.borrow(),
+            &self.glyph_index_buffer,
+            &self.program,
+            &uniform! {
+                    projection: self.projection.to_column_arrays(),
+                    glyph_tex: &*tex,
+                    //has_color: glyph.has_color,
+                    //bg_color: bg_color.to_linear_tuple_rgba(),
+                    bg_fill: false,
+                },
+            &glium::DrawParameters {
+                blend: glium::Blend::alpha_blending(),
+                dithering: false,
+                ..Default::default()
+            },
+        )?;
 
         self.terminal.clean_dirty_lines();
         target.finish().unwrap();

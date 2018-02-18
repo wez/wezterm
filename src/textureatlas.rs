@@ -12,8 +12,8 @@ use std::rc::Rc;
 /// space, then we move up to the logical row above.  Since sprites can
 /// have varying height the height of the rows can also vary.
 #[derive(Debug)]
-struct Texture {
-    texture: Rc<glium::texture::SrgbTexture2d>,
+pub struct Texture {
+    texture: Rc<SrgbTexture2d>,
 
     // Dimensions of the texture
     width: u32,
@@ -134,8 +134,14 @@ pub struct Atlas {
 const TEX_SIZE: u32 = 2048;
 
 impl Atlas {
-    pub fn new() -> Self {
-        Default::default()
+    pub fn new<'a, F: Facade>(facade: &F) -> Result<Self, Error> {
+        let tex = Texture::new(facade, TEX_SIZE, TEX_SIZE)?;
+        Ok(Self { textures: vec![tex] })
+    }
+
+    // TODO: this is gross, need to tweak this API
+    pub fn texture(&self) -> Rc<SrgbTexture2d> {
+        Rc::clone(&self.textures[0].texture)
     }
 
     pub fn allocate<'a, F: Facade, T: Texture2dDataSource<'a>>(
