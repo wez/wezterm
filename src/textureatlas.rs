@@ -31,7 +31,13 @@ struct Texture {
 
 impl Texture {
     fn new<F: Facade>(facade: &F, width: u32, height: u32) -> Result<Self, Error> {
-        let texture = Rc::new(SrgbTexture2d::empty(facade, width, height)?);
+        let texture = Rc::new(SrgbTexture2d::empty_with_format(
+            facade,
+            glium::texture::SrgbFormat::U8U8U8U8,
+            glium::texture::MipmapsOption::NoMipmap,
+            width,
+            height,
+        )?);
         Ok(Self {
             texture,
             width,
@@ -84,9 +90,40 @@ impl Texture {
     }
 }
 
+#[derive(Debug)]
 pub struct Sprite {
     pub texture: Rc<SrgbTexture2d>,
     pub coords: Rect,
+}
+
+impl Sprite {
+    pub fn top_left(&self) -> (f32, f32) {
+        (
+            self.coords.left as f32 / self.texture.width() as f32,
+            self.coords.bottom as f32 / self.texture.height() as f32,
+        )
+    }
+
+    pub fn bottom_left(&self) -> (f32, f32) {
+        (
+            self.coords.left as f32 / self.texture.width() as f32,
+            (self.coords.bottom + self.coords.height) as f32 / self.texture.height() as f32,
+        )
+    }
+
+    pub fn bottom_right(&self) -> (f32, f32) {
+        (
+            (self.coords.left + self.coords.width) as f32 / self.texture.width() as f32,
+            (self.coords.bottom + self.coords.height) as f32 / self.texture.height() as f32,
+        )
+    }
+
+    pub fn top_right(&self) -> (f32, f32) {
+        (
+            (self.coords.left + self.coords.width) as f32 / self.texture.width() as f32,
+            self.coords.bottom as f32 / self.texture.height() as f32,
+        )
+    }
 }
 
 #[derive(Debug, Default)]

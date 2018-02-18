@@ -22,7 +22,7 @@ use xcb_util;
 use xgfx::{self, Connection, Drawable};
 use xkeysyms;
 
-use textureatlas::Atlas;
+use textureatlas::{Atlas, Sprite};
 
 type Transform2D = euclid::Transform2D<f32>;
 type Transform3D = euclid::Transform3D<f32>;
@@ -53,7 +53,7 @@ impl Point {
 #[derive(Copy, Clone, Debug)]
 struct Vertex {
     position: Point,
-    tex: [f32; 2],
+    tex: (f32, f32),
 }
 
 implement_vertex!(Vertex, position, tex);
@@ -136,6 +136,7 @@ pub struct TerminalWindow<'a> {
     glyph_vertex_buffer: glium::VertexBuffer<Vertex>,
     line_vertex_buffer: glium::VertexBuffer<Vertex>,
     projection: Transform3D,
+    atlas: RefCell<Atlas>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -154,7 +155,7 @@ struct CachedGlyph {
     y_offset: isize,
     bearing_x: isize,
     bearing_y: isize,
-    texture: Option<glium::texture::SrgbTexture2d>,
+    texture: Option<Sprite>,
     scale: f32,
 }
 
@@ -296,11 +297,11 @@ impl<'a> TerminalWindow<'a> {
             let shape = [
                 Vertex {
                     position: Point::new(0.0, 0.0),
-                    tex: [0.0, 0f32],
+                    tex: (0.0, 0f32),
                 },
                 Vertex {
                     position: Point::new(cw, 0.0),
-                    tex: [0.0, 0f32],
+                    tex: (0.0, 0f32),
                 },
             ];
             glium::VertexBuffer::new(&host.window, &shape)?
@@ -309,19 +310,19 @@ impl<'a> TerminalWindow<'a> {
         let glyph_vertex_buffer = {
             let top_left = Vertex {
                 position: Point::new(0.0, 0.0),
-                tex: [0.0, 0f32],
+                tex: (0.0, 0f32),
             };
             let top_right = Vertex {
                 position: Point::new(cw, 0.0),
-                tex: [1.0, 0f32],
+                tex: (1.0, 0f32),
             };
             let bot_left = Vertex {
                 position: Point::new(0.0, ch),
-                tex: [0.0, 1.0f32],
+                tex: (0.0, 1.0f32),
             };
             let bot_right = Vertex {
                 position: Point::new(cw, ch),
-                tex: [1.0, 1.0f32],
+                tex: (1.0, 1.0f32),
             };
             let shape = [top_left, top_right, bot_left, bot_right];
             glium::VertexBuffer::new(&host.window, &shape)?
@@ -333,8 +334,11 @@ impl<'a> TerminalWindow<'a> {
         let fill_program =
             glium::Program::from_source(&host.window, VERTEX_SHADER, FILL_RECT_FRAG_SHADER, None)?;
 
+        let atlas = RefCell::new(Atlas::new());
+
         Ok(TerminalWindow {
             host,
+            atlas,
             program,
             fill_program,
             glyph_vertex_buffer,
@@ -542,7 +546,12 @@ impl<'a> TerminalWindow<'a> {
                 mode @ _ => bail!("unhandled pixel mode: {:?}", mode),
             };
 
-            let tex = glium::texture::SrgbTexture2d::new(&self.host.window, raw_im)?;
+            let tex = self.atlas.borrow_mut().allocate(
+                &self.host.window,
+                raw_im.width,
+                raw_im.height,
+                raw_im,
+            )?;
 
             let bearing_x = (ft_glyph.bitmap_left as f64 * scale) as isize;
             let bearing_y = (ft_glyph.bitmap_top as f64 * scale) as isize;
@@ -714,7 +723,7 @@ impl<'a> TerminalWindow<'a> {
         x: isize,
         base_y: isize,
         glyph: &Rc<CachedGlyph>,
-        image: &glium::texture::SrgbTexture2d,
+        image: &Sprite,
         metric_width: usize,
         glyph_color: RgbColor,
         bg_color: RgbColor,
@@ -722,10 +731,8 @@ impl<'a> TerminalWindow<'a> {
         let width = self.width as f32;
         let height = self.height as f32;
 
-        let (glyph_width, glyph_height) = {
-            let (w, h) = image.dimensions();
-            (w as usize, h as usize)
-        };
+        let (glyph_width, glyph_height) =
+            (image.coords.width as usize, image.coords.height as usize);
 
         let scale_y = glyph.scale * glyph_height as f32 / self.cell_height as f32;
         let scale_x = glyph.scale * glyph_width as f32 / metric_width as f32;
@@ -742,8 +749,29 @@ impl<'a> TerminalWindow<'a> {
 
         let scale_model = Transform2D::create_scale(scale_x, scale_y).to_3d();
 
+        let glyph_vertex_buffer = {
+            let top_left = Vertex {
+                position: Point::new(0.0, 0.0),
+                tex: image.top_left(),
+            };
+            let top_right = Vertex {
+                position: Point::new(self.cell_width as f32, 0.0),
+                tex: image.top_right(),
+            };
+            let bot_left = Vertex {
+                position: Point::new(0.0, self.cell_height as f32),
+                tex: image.bottom_left(),
+            };
+            let bot_right = Vertex {
+                position: Point::new(self.cell_width as f32, self.cell_height as f32),
+                tex: image.bottom_right(),
+            };
+            let shape = [top_left, top_right, bot_left, bot_right];
+            glium::VertexBuffer::new(&self.host.window, &shape)?
+        };
+
         target.draw(
-            &self.glyph_vertex_buffer,
+            &glyph_vertex_buffer,
             glium::index::NoIndices(
                 glium::index::PrimitiveType::TriangleStrip,
             ),
@@ -752,7 +780,7 @@ impl<'a> TerminalWindow<'a> {
                     fg_color: glyph_color.to_linear_tuple_rgb(),
                     projection: self.projection.to_column_arrays(),
                     translation: scale_model.post_mul(&xlate_model).to_column_arrays(),
-                    glyph_tex: image,
+                    glyph_tex: &*image.texture,
                     has_color: glyph.has_color,
                     bg_color: bg_color.to_linear_tuple_rgba(),
                     bg_fill: false,
