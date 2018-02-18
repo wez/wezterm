@@ -73,14 +73,24 @@ struct Vertex {
     // cell foreground and background color
     fg_color: (f32, f32, f32, f32),
     bg_color: (f32, f32, f32, f32),
-    // TODO: underline, strikethrough
     /// Nominally a boolean, but the shader compiler hated it
     has_color: f32,
     /// Count of how many underlines there are
     underline: f32,
+    strikethrough: f32,
 }
 
-implement_vertex!(Vertex, position, adjust, tex, fg_color, bg_color, has_color);
+implement_vertex!(
+    Vertex,
+    position,
+    adjust,
+    tex,
+    fg_color,
+    bg_color,
+    has_color,
+    underline,
+    strikethrough
+);
 
 const VERTEX_SHADER: &str = r#"
 #version 300 es
@@ -91,6 +101,7 @@ in vec4 fg_color;
 in vec4 bg_color;
 in float has_color;
 in float underline;
+in float strikethrough;
 
 uniform mat4 projection;
 uniform mat4 translation;
@@ -101,6 +112,7 @@ out vec4 o_fg_color;
 out vec4 o_bg_color;
 out float o_has_color;
 out float o_underline;
+out float o_strikethrough;
 
 vec4 cell_pos() {
     if (bg_fill) {
@@ -116,6 +128,7 @@ void main() {
     o_bg_color = bg_color;
     o_has_color = has_color;
     o_underline = underline;
+    o_strikethrough = strikethrough;
 
     gl_Position = projection * cell_pos();
 }
@@ -128,6 +141,8 @@ in vec2 tex_coords;
 in vec4 o_fg_color;
 in vec4 o_bg_color;
 in float o_has_color;
+in float o_underline;
+in float o_strikethrough;
 
 out vec4 color;
 uniform sampler2D glyph_tex;
@@ -809,6 +824,8 @@ impl<'a> TerminalWindow<'a> {
                     (false, Underline::Double) => 2.0,
                 };
 
+                let strikethrough: f32 = if attrs.strikethrough() { 1.0 } else { 0.0 };
+
                 // Iterate each cell that comprises this glyph.  There is usually
                 // a single cell per glyph but combining characters, ligatures
                 // and emoji can be 2 or more cells wide.
@@ -858,6 +875,11 @@ impl<'a> TerminalWindow<'a> {
                     vert[V_TOP_RIGHT].underline = underline;
                     vert[V_BOT_LEFT].underline = underline;
                     vert[V_BOT_RIGHT].underline = underline;
+
+                    vert[V_TOP_LEFT].strikethrough = strikethrough;
+                    vert[V_TOP_RIGHT].strikethrough = strikethrough;
+                    vert[V_BOT_LEFT].strikethrough = strikethrough;
+                    vert[V_BOT_RIGHT].strikethrough = strikethrough;
 
                     match &glyph.texture {
                         &Some(ref texture) => {
@@ -917,182 +939,6 @@ impl<'a> TerminalWindow<'a> {
 
         Ok(())
     }
-
-    /*
-    fn render_line(
-        &self,
-        target: &mut glium::Frame,
-        line_idx: usize,
-        line: &Line,
-        selection: Range<usize>,
-        cursor: &CursorPosition,
-    ) -> Result<(), Error> {
-
-        let mut x = 0 as isize;
-        let y = (line_idx * self.cell_height) as isize;
-        let base_y = y + self.cell_height as isize + self.descender;
-
-        let current_highlight = self.terminal.current_highlight();
-
-        // Break the line into clusters of cells with the same attributes
-        let cell_clusters = line.cluster();
-        for cluster in cell_clusters {
-            let attrs = &cluster.attrs;
-            let is_highlited_hyperlink = match (&attrs.hyperlink, &current_highlight) {
-                (&Some(ref this), &Some(ref highlight)) => this == highlight,
-                _ => false,
-            };
-            let style = self.fonts.match_style(attrs);
-            let metric_width = {
-                let font = self.fonts.cached_font(style)?;
-                let (_, width, _) = font.borrow_mut().get_metrics()?;
-                width as usize
-            };
-
-            let (fg_color, bg_color) = {
-                let mut fg_color = &attrs.foreground;
-                let mut bg_color = &attrs.background;
-
-                if attrs.reverse() {
-                    mem::swap(&mut fg_color, &mut bg_color);
-                }
-
-                (fg_color, bg_color)
-            };
-
-            let bg_color = self.palette.resolve(bg_color);
-
-            // Shape the printable text from this cluster
-            let glyph_info = self.shape_text(&cluster.text, &style)?;
-            for info in glyph_info.iter() {
-                let cell_idx = cluster.byte_to_cell_idx[info.cluster as usize];
-
-                let cluster_width = info.num_cells as usize * metric_width;
-
-                // Render the cluster background color
-                self.fill_rect(
-                    target,
-                    x,
-                    y,
-                    info.num_cells as u32,
-                    1,
-                    bg_color,
-                )?;
-
-                // Render selection background
-                for cur_x in cell_idx..cell_idx + info.num_cells as usize {
-                    if term::in_range(cur_x, &selection) {
-                        self.fill_rect(
-                            target,
-                            (cur_x * metric_width) as isize,
-                            y,
-                            line.cells[cur_x].width() as u32,
-                            1,
-                            self.palette.cursor(),
-                        )?;
-                    }
-                }
-
-                // Render the cursor, if it overlaps with the current cluster
-                if line_idx as i64 == cursor.y {
-                    for cur_x in cell_idx..cell_idx + info.num_cells as usize {
-                        if cursor.x == cur_x {
-                            // The cursor fits in this cell, so render the cursor bg
-                            self.fill_rect(
-                                target,
-                                (cur_x * metric_width) as isize,
-                                y,
-                                line.cells[cur_x].width() as u32,
-                                1,
-                                self.palette.cursor(),
-                            )?;
-                        }
-                    }
-                }
-
-                let glyph = self.cached_glyph(info, &style)?;
-
-                let glyph_color = match fg_color {
-                    &term::color::ColorAttribute::Foreground => {
-                        if let Some(fg) = style.foreground {
-                            fg
-                        } else {
-                            self.palette.resolve(fg_color)
-                        }
-                    }
-                    &term::color::ColorAttribute::PaletteIndex(idx) if idx < 8 => {
-                        // For compatibility purposes, switch to a brighter version
-                        // of one of the standard ANSI colors when Bold is enabled.
-                        // This lifts black to dark grey.
-                        let idx = if attrs.intensity() == term::Intensity::Bold {
-                            idx + 8
-                        } else {
-                            idx
-                        };
-                        self.palette.resolve(
-                            &term::color::ColorAttribute::PaletteIndex(idx),
-                        )
-                    }
-                    _ => self.palette.resolve(fg_color),
-                };
-
-                // glyph.image.is_none() for whitespace glyphs
-                if let &Some(ref texture) = &glyph.texture {
-                    self.render_glyph(
-                        target,
-                        x,
-                        base_y,
-                        &glyph,
-                        texture,
-                        metric_width,
-                        glyph_color,
-                        bg_color,
-                    )?;
-                }
-
-                // Figure out what we're going to draw for the underline.
-                // If the current cell is part of the current URL highlight
-                // then we want to show the underline.  If that text is already
-                // underlined we pick a different color for the underline to
-                // make it more distinct.
-                // TODO: make that highlight underline color configurable.
-                let (underline, under_color) = match (is_highlited_hyperlink, attrs.underline()) {
-                    (true, Underline::None) => (Underline::Single, glyph_color),
-                    (true, Underline::Single) => (Underline::Single, self.palette.cursor()),
-                    (true, Underline::Double) => (Underline::Single, self.palette.cursor()),
-                    (false, underline) => (underline, glyph_color),
-                };
-
-                self.render_underline(
-                    target,
-                    x,
-                    base_y,
-                    info.num_cells,
-                    underline,
-                    under_color,
-                )?;
-
-                if attrs.strikethrough() {
-                    self.render_strikethrough(
-                        target,
-                        x,
-                        y,
-                        base_y,
-                        info.num_cells,
-                        glyph_color.into(),
-                    )?;
-                }
-
-                // Always advance by our computed metric, despite what the shaping info
-                // says, otherwise we tend to end up with very slightly offset cells
-                // for example in vim when the window is split vertically.
-                x += cluster_width as isize;
-            }
-        }
-
-        Ok(())
-    }
-    */
 
     pub fn paint(&mut self) -> Result<(), Error> {
 
