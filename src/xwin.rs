@@ -187,6 +187,22 @@ uniform sampler2D underline_tex;
 uniform bool bg_fill;
 uniform bool underlining;
 
+float multiply_one(float src, float dst, float inv_dst_alpha, float inv_src_alpha) {
+    return (src * dst) + (src * (inv_dst_alpha)) + (dst * (inv_src_alpha));
+}
+
+// Alpha-regulated multiply to colorize the glyph bitmap
+vec4 multiply(vec4 src, vec4 dst) {
+    float inv_src_alpha = 1.0 - src.a;
+    float inv_dst_alpha = 1.0 - dst.a;
+
+    return vec4(
+        multiply_one(src.r, dst.r, inv_dst_alpha, inv_src_alpha),
+        multiply_one(src.g, dst.g, inv_dst_alpha, inv_src_alpha),
+        multiply_one(src.b, dst.b, inv_dst_alpha, inv_src_alpha),
+        dst.a);
+}
+
 void main() {
     if (bg_fill) {
         color = o_bg_color;
@@ -200,7 +216,7 @@ void main() {
         color = texture2D(glyph_tex, tex_coords);
         if (o_has_color == 0.0) {
             // if it's not a color emoji, tint with the fg_color
-            color = color * o_fg_color;
+            color = multiply(o_fg_color, color);
         }
     }
 }
@@ -457,11 +473,13 @@ impl<'a> TerminalWindow<'a> {
             )?
         };
 
-        let ch = cell_height as f32;
-        let cw = cell_width as f32;
-
-        let (glyph_vertex_buffer, glyph_index_buffer) =
-            Self::compute_vertices(&host, cw, ch, width as f32, height as f32)?;
+        let (glyph_vertex_buffer, glyph_index_buffer) = Self::compute_vertices(
+            &host,
+            cell_width as f32,
+            cell_height as f32,
+            width as f32,
+            height as f32,
+        )?;
 
         let program =
             glium::Program::from_source(&host.window, VERTEX_SHADER, FRAGMENT_SHADER, None)?;
@@ -755,6 +773,37 @@ impl<'a> TerminalWindow<'a> {
                     }
                     glium::texture::RawImage2d::from_raw_rgba(rgba, (width as u32, height as u32))
                 }
+                ftwrap::FT_Pixel_Mode::FT_PIXEL_MODE_MONO => {
+                    let width = ft_glyph.bitmap.width as usize;
+                    let height = ft_glyph.bitmap.rows as usize;
+                    let size = (width * height * 4) as usize;
+                    let mut rgba = Vec::with_capacity(size);
+                    rgba.resize(size, 0u8);
+                    for y in 0..height {
+                        let src_offset = y * pitch;
+                        let dest_offset = y * width * 4;
+                        let mut x = 0;
+                        for i in 0..pitch {
+                            if x >= width {
+                                break;
+                            }
+                            let mut b = data[src_offset + i];
+                            for _ in 0..8 {
+                                if x >= width {
+                                    break;
+                                }
+                                if b & 0x80 == 0x80 {
+                                    for j in 0..4 {
+                                        rgba[dest_offset + (x * 4) + j] = 0xff;
+                                    }
+                                }
+                                b = b << 1;
+                                x += 1;
+                            }
+                        }
+                    }
+                    glium::texture::RawImage2d::from_raw_rgba(rgba, (width as u32, height as u32))
+                }
                 mode @ _ => bail!("unhandled pixel mode: {:?}", mode),
             };
 
@@ -1013,9 +1062,16 @@ impl<'a> TerminalWindow<'a> {
     }
 
     pub fn paint(&mut self) -> Result<(), Error> {
-
         let mut target = self.host.window.draw();
+        let res = self.do_paint(&mut target);
+        // Ensure that we finish() the target before we let the
+        // error bubble up, otherwise we lose the context.
+        target.finish().unwrap();
+        res?;
+        Ok(())
+    }
 
+    fn do_paint(&mut self, target: &mut glium::Frame) -> Result<(), Error> {
         let background_color = self.palette.resolve(
             &term::color::ColorAttribute::Background,
         );
@@ -1089,8 +1145,6 @@ impl<'a> TerminalWindow<'a> {
         )?;
 
         self.terminal.clean_dirty_lines();
-        target.finish().unwrap();
-
         Ok(())
     }
 

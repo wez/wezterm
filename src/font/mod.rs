@@ -424,7 +424,8 @@ impl Font {
         let info = &mut self.fonts[font_idx];
 
         let render_mode = //ftwrap::FT_Render_Mode::FT_RENDER_MODE_NORMAL;
-        ftwrap::FT_Render_Mode::FT_RENDER_MODE_LCD;
+ //       ftwrap::FT_Render_Mode::FT_RENDER_MODE_LCD;
+        ftwrap::FT_Render_Mode::FT_RENDER_MODE_LIGHT;
 
         // when changing the load flags, we also need
         // to change them for harfbuzz otherwise it won't
