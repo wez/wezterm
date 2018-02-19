@@ -943,12 +943,6 @@ impl<'a> TerminalWindow<'a> {
                     _ => self.palette.resolve(fg_color),
                 }.to_linear_tuple_rgba();
 
-                let glyph_color = match &glyph.texture {
-                    &Some(_) => glyph_color,
-                    // Whitespace glyph; render with 0 alpha
-                    &None => (0.0, 0.0, 0.0, 0.0f32),
-                };
-
                 let left: f32 = glyph.x_offset as f32 + glyph.bearing_x as f32;
                 let top = (self.cell_height as f32 + self.descender as f32) -
                     (glyph.y_offset as f32 + glyph.bearing_y as f32);
