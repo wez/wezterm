@@ -1048,6 +1048,11 @@ impl<'a> TerminalWindow<'a> {
                             vert[V_BOT_LEFT].tex = zero;
                             vert[V_BOT_RIGHT].tex = zero;
 
+                            vert[V_TOP_LEFT].adjust = Default::default();
+                            vert[V_TOP_RIGHT].adjust = Default::default();
+                            vert[V_BOT_LEFT].adjust = Default::default();
+                            vert[V_BOT_RIGHT].adjust = Default::default();
+
                             vert[V_TOP_LEFT].has_color = 0.0;
                             vert[V_TOP_RIGHT].has_color = 0.0;
                             vert[V_BOT_LEFT].has_color = 0.0;
