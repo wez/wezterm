@@ -127,7 +127,8 @@ mod test {
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Cell {
-    bytes: [u8; 8],
+    len: u8,
+    bytes: [u8; 7],
     pub attrs: CellAttributes,
 }
 
@@ -139,10 +140,11 @@ impl Default for Cell {
 
 impl Cell {
     pub fn new(s: &str, attrs: &CellAttributes) -> Cell {
-        let mut bytes = [0u8; 8];
-        let len = s.len().min(8);
+        let mut bytes = [0u8; 7];
+        let len = s.len().min(7);
         bytes[0..len].copy_from_slice(s.as_bytes());
         Cell {
+            len: len as u8,
             bytes,
             attrs: attrs.clone(),
         }
@@ -150,29 +152,38 @@ impl Cell {
 
     #[inline]
     pub fn bytes(&self) -> &[u8] {
-        if let Some(len) = self.bytes.iter().position(|&c| c == 0) {
-            &self.bytes[0..len]
-        } else {
-            &self.bytes
-        }
+        &self.bytes[0..self.len as usize]
     }
 
     pub fn from_char(c: char, attr: &CellAttributes) -> Cell {
-        let mut bytes = [0u8; 8];
-        c.encode_utf8(&mut bytes);
+        let mut bytes = [0u8; 7];
+        let len = if c == 0 as char {
+            0u8
+        } else if c < 0x80 as char {
+            bytes[0] = c as u8;
+            1u8
+        } else {
+            c.encode_utf8(&mut bytes).len() as u8
+        };
         Cell {
+            len,
             bytes,
             attrs: attr.clone(),
         }
     }
 
+    #[inline]
     pub fn str(&self) -> &str {
         str::from_utf8(self.bytes()).unwrap_or("?")
     }
 
     pub fn width(&self) -> usize {
-        use unicode_width::UnicodeWidthStr;
-        str::from_utf8(self.bytes()).unwrap_or("").width()
+        if self.len <= 1 {
+            self.len as usize
+        } else {
+            use unicode_width::UnicodeWidthStr;
+            self.str().width()
+        }
     }
 }
 
