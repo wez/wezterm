@@ -126,7 +126,6 @@ impl Screen {
     }
 
     pub fn clear_line(&mut self, y: VisibleRowIndex, cols: std::ops::Range<usize>) {
-        let blank = Cell::default();
         let line_idx = self.phys_row(y);
         let line = self.line_mut(line_idx);
         let max_col = line.cells.len();
@@ -134,7 +133,7 @@ impl Screen {
             if x >= max_col {
                 break;
             }
-            line.cells[x] = blank.clone();
+            line.cells[x].reset();
         }
     }
 
