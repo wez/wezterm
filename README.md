@@ -130,7 +130,9 @@ Here's a very basic benchmark:
 
 ```
 $ find /usr > /tmp/usr-files.txt
-$ time /tmp/usr-files.txt
+$ wc -l /tmp/usr-files.txt
+364885 /tmp/usr-files.txt
+$ time cat /tmp/usr-files.txt
 ```
 
 And a comparison between some terminal emulators on my system; they were each
