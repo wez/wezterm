@@ -34,6 +34,22 @@ fn test_ech() {
 }
 
 #[test]
+fn test_dch() {
+    let mut term = TestTerm::new(1, 12, 0);
+    term.print("hello world");
+    term.cup(1, 0);
+    term.print("\x1b[P");
+    assert_visible_contents(&term, &["hllo world  "]);
+
+    term.cup(4, 0);
+    term.print("\x1b[2P");
+    assert_visible_contents(&term, &["hlloorld    "]);
+
+    term.print("\x1b[-2P");
+    assert_visible_contents(&term, &["hlloorld    "]);
+}
+
+#[test]
 fn test_cup() {
     let mut term = TestTerm::new(3, 4, 0);
     term.cup(1, 1);

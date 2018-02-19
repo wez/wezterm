@@ -56,6 +56,7 @@ pub enum CSIAction {
     ScrollLines(i64),
     SoftReset,
     EraseCharacter(i64),
+    DeleteCharacter(i64),
 }
 
 /// Constrol Sequence Initiator (CSI) Parser.
@@ -478,6 +479,10 @@ impl<'a> Iterator for CSIParser<'a> {
             // Delete Liness (DL)
             ('M', &[], Some(&[])) => Some(CSIAction::DeleteLines(1)),
             ('M', &[], Some(&[n])) => Some(CSIAction::DeleteLines(n)),
+
+            // DCH: Delete Character
+            ('P', &[], Some(&[])) => Some(CSIAction::DeleteCharacter(1)),
+            ('P', &[], Some(&[n])) => Some(CSIAction::DeleteCharacter(n)),
 
             // SU: Scroll Up Lines
             ('S', &[], Some(&[])) => Some(CSIAction::ScrollLines(-1)),

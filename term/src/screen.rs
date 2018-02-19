@@ -100,6 +100,13 @@ impl Screen {
         self.lines.iter().map(|l| l.clone()).collect()
     }
 
+    pub fn erase_cell(&mut self, x: usize, y: VisibleRowIndex) {
+        let line_idx = self.phys_row(y);
+        let line = self.line_mut(line_idx);
+        line.cells.remove(x);
+        line.cells.push(Cell::default());
+    }
+
     /// Set a cell.  the x and y coordinates are relative to the visible screeen
     /// origin.  0,0 is the top left.
     pub fn set_cell(

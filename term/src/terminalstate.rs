@@ -859,6 +859,15 @@ impl TerminalState {
     fn perform_csi(&mut self, act: CSIAction) {
         debug!("{:?}", act);
         match act {
+            CSIAction::DeleteCharacter(n) => {
+                let y = self.cursor.y;
+                let x = self.cursor.x;
+                let screen = self.screen_mut();
+                let limit = (x + n as usize).min(screen.physical_cols);
+                for _ in x..limit as usize {
+                    screen.erase_cell(x, y);
+                }
+            }
             CSIAction::EraseCharacter(n) => {
                 let y = self.cursor.y;
                 let x = self.cursor.x;
