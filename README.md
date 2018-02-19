@@ -141,7 +141,7 @@ set to 80x24 with 3500 lines of scrollback.  `alacritty` has no scrollback.
 | xterm           | 9.863 |
 | Gnome Terminal  | 2.391 |
 | Terminator 1.91 | 2.319 |
-| wezterm         | 0.996 |
+| wezterm         | 0.940 |
 | kitty           | 0.899 |
 | urxvt           | 0.615 |
 | alacritty       | 0.421 |

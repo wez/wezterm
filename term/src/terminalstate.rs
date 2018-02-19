@@ -1076,10 +1076,8 @@ impl vte::Perform for TerminalState {
         }
 
         if x + print_width < width {
-            self.set_cursor_pos(
-                &Position::Relative(print_width as i64),
-                &Position::Relative(0),
-            );
+            self.cursor.x += print_width;
+            self.wrap_next = false;
         } else {
             self.wrap_next = true;
         }

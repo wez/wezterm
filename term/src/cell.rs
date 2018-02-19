@@ -138,7 +138,7 @@ impl Default for Cell {
         Cell {
             len: 1,
             bytes,
-            attrs: CellAttributes::default()
+            attrs: CellAttributes::default(),
         }
     }
 }
