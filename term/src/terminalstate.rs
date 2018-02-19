@@ -650,6 +650,11 @@ impl TerminalState {
         let selection = self.selection_range.map(|r| r.normalize());
 
         for (i, mut line) in screen.lines.iter().skip(len - height).enumerate() {
+            if i >= height {
+                // When scrolling back, make sure we don't emit lines that
+                // are below the bottom of the viewport
+                break;
+            }
             if line.is_dirty() {
                 let selrange = match selection {
                     None => 0..0,
