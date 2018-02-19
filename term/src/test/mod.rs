@@ -191,10 +191,7 @@ impl TestTerm {
     }
 
     fn assert_dirty_lines(&self, expected: &[usize], reason: Option<&str>) {
-        let dirty_indices: Vec<usize> = self.get_dirty_lines(false)
-            .iter()
-            .map(|&(i, ..)| i)
-            .collect();
+        let dirty_indices: Vec<usize> = self.get_dirty_lines().iter().map(|&(i, ..)| i).collect();
         assert_eq!(
             &dirty_indices,
             &expected,

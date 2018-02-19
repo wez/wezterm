@@ -494,6 +494,12 @@ impl<'a> TerminalWindow<'a> {
         self.host.window.show();
     }
 
+    /// Compute a vertex buffer to hold the quads that comprise the visible
+    /// portion of the screen.   We recreate this when the screen is resized.
+    /// The idea is that we want to minimize and heavy lifting and computation
+    /// and instead just poke some attributes into the offset that corresponds
+    /// to a changed cell when we need to repaint the screen, and then just
+    /// let the GPU figure out the rest.
     fn compute_vertices(
         host: &Host,
         cell_width: f32,
@@ -558,8 +564,8 @@ impl<'a> TerminalWindow<'a> {
         ))
     }
 
+    /// The projection corrects for the aspect ratio and flips the y-axis
     fn compute_projection(width: f32, height: f32) -> Transform3D {
-        // The projection corrects for the aspect ratio and flips the y-axis
         Transform3D::ortho(
             -width / 2.0,
             width / 2.0,
@@ -786,6 +792,10 @@ impl<'a> TerminalWindow<'a> {
         font.shape(0, s)
     }
 
+    /// "Render" a line of the terminal screen into the vertex buffer.
+    /// This is nominally a matter of setting the fg/bg color and the
+    /// texture coordinates for a given glyph.  There's a little bit
+    /// of extra complexity to deal with multi-cell glyphs.
     fn render_screen_line(
         &self,
         line_idx: usize,
@@ -1014,7 +1024,7 @@ impl<'a> TerminalWindow<'a> {
 
         let cursor = self.terminal.cursor_pos();
         {
-            let dirty_lines = self.terminal.get_dirty_lines(false);
+            let dirty_lines = self.terminal.get_dirty_lines();
 
             for (line_idx, line, selrange) in dirty_lines {
                 self.render_screen_line(line_idx, line, selrange, &cursor)?;

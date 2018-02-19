@@ -640,7 +640,7 @@ impl TerminalState {
     /// line_idx is relative to the top of the viewport.
     /// The selrange value is the column range representing the selected
     /// columns on this line.
-    pub fn get_dirty_lines(&self, get_all: bool) -> Vec<(usize, &Line, Range<usize>)> {
+    pub fn get_dirty_lines(&self) -> Vec<(usize, &Line, Range<usize>)> {
         let mut res = Vec::new();
 
         let screen = self.screen();
@@ -650,7 +650,7 @@ impl TerminalState {
         let selection = self.selection_range.map(|r| r.normalize());
 
         for (i, mut line) in screen.lines.iter().skip(len - height).enumerate() {
-            if get_all || line.is_dirty() {
+            if line.is_dirty() {
                 let selrange = match selection {
                     None => 0..0,
                     Some(sel) => {
