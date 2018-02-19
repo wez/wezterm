@@ -266,6 +266,15 @@ bitflags! {
     }
 }
 
+fn print_all_lines(term: &Terminal) {
+    let screen = term.screen();
+
+    println!("whole screen contents are:");
+    for line in screen.lines.iter() {
+        println!("[{}]", line.as_str());
+    }
+}
+
 fn print_visible_lines(term: &Terminal) {
     let screen = term.screen();
 
@@ -286,6 +295,15 @@ fn assert_visible_contents(term: &Terminal, expect_lines: &[&str]) {
     let expect: Vec<Line> = expect_lines.iter().map(|s| (*s).into()).collect();
 
     assert_lines_equal(screen.visible_lines(), &expect, Compare::TEXT);
+}
+
+fn assert_all_contents(term: &Terminal, expect_lines: &[&str]) {
+    print_all_lines(&term);
+    let screen = term.screen();
+
+    let expect: Vec<Line> = expect_lines.iter().map(|s| (*s).into()).collect();
+
+    assert_lines_equal(&screen.lines, &expect, Compare::TEXT);
 }
 
 #[test]
@@ -405,6 +423,27 @@ fn test_delete_lines() {
 
     assert_visible_contents(&term, &["111", "aaa", "   ", "bbb", "   "]);
     term.assert_dirty_lines(&[1, 2, 3, 4], None);
+}
+
+#[test]
+fn test_scrollup() {
+    let mut term = TestTerm::new(2, 1, 4);
+    term.print("1\n");
+    assert_all_contents(&term, &["1", " "]);
+    term.print("2\n");
+    assert_all_contents(&term, &["1", "2", " "]);
+    term.print("3\n");
+    assert_all_contents(&term, &["1", "2", "3", " "]);
+    term.print("4\n");
+    assert_all_contents(&term, &["1", "2", "3", "4", " "]);
+    term.print("5\n");
+    assert_all_contents(&term, &["1", "2", "3", "4", "5", " "]);
+    term.print("6\n");
+    assert_all_contents(&term, &["2", "3", "4", "5", "6", " "]);
+    term.print("7\n");
+    assert_all_contents(&term, &["3", "4", "5", "6", "7", " "]);
+    term.print("8\n");
+    assert_all_contents(&term, &["4", "5", "6", "7", "8", " "]);
 }
 
 #[test]

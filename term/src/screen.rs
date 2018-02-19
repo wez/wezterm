@@ -207,12 +207,18 @@ impl Screen {
             }
         };
 
+        let remove_idx = if scroll_region.start == 0 {
+            0
+        } else {
+            phys_scroll.start
+        };
+
         // To avoid thrashing the heap, prefer to move lines that were
         // scrolled off the top and re-use them at the bottom.
         let to_move = lines_removed.min(num_rows);
         let (to_remove, to_add) = {
             for _ in 0..to_move {
-                let mut line = self.lines.remove(phys_scroll.start);
+                let mut line = self.lines.remove(remove_idx);
                 // Make the line like a new one of the appropriate width
                 line.reset(self.physical_cols);
                 if scroll_region.end as usize == self.physical_rows {
@@ -228,7 +234,7 @@ impl Screen {
 
         // Perform the removal
         for _ in 0..to_remove {
-            self.lines.remove(phys_scroll.start);
+            self.lines.remove(remove_idx);
         }
 
         if scroll_region.end as usize == self.physical_rows {
