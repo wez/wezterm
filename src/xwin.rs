@@ -895,6 +895,7 @@ impl<'a> TerminalWindow<'a> {
 
         // Break the line into clusters of cells with the same attributes
         let cell_clusters = line.cluster();
+        let mut last_cell_idx = 0;
         for cluster in cell_clusters {
             let attrs = &cluster.attrs;
             let is_highlited_hyperlink = match (&attrs.hyperlink, &current_highlight) {
@@ -985,6 +986,7 @@ impl<'a> TerminalWindow<'a> {
                         // smaller than the terminal.
                         break;
                     }
+                    last_cell_idx = cell_idx;
 
                     let selected = term::in_range(cell_idx, &selection);
                     let is_cursor = line_idx as i64 == cursor.y && cursor.x == cell_idx;
@@ -1082,6 +1084,23 @@ impl<'a> TerminalWindow<'a> {
                     }
                 }
             }
+        }
+
+        // Clear any remaining cells to the right of the clusters we
+        // found above, otherwise we leave artifacts behind.  The easiest
+        // reproduction for the artifacts is to maximize the window and
+        // open a vim split horizontally.  Backgrounding vim would leave
+        // the right pane with its prior contents instead of showing the
+        // cleared lines from the shell in the main screen.
+        let bg_color = self.palette.background.to_linear_tuple_rgba();
+        let vert_idx = (last_cell_idx + 1) * VERTICES_PER_CELL;
+        let vert_slice = &mut vertices[vert_idx..];
+        for vert in vert_slice.iter_mut() {
+            vert.bg_color = bg_color;
+            vert.underline = U_NONE;
+            vert.tex = (0.0, 0.0);
+            vert.adjust = Default::default();
+            vert.has_color = 0.0;
         }
 
         Ok(())
