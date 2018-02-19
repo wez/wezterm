@@ -1,4 +1,5 @@
 use super::*;
+use std::collections::VecDeque;
 
 /// Holds the model of a screen.  This can either be the primary screen
 /// which includes lines of scrollback text, or the alternate screen
@@ -14,7 +15,7 @@ pub struct Screen {
     /// on the current window size) and will be the first line to be
     /// popped off the front of the screen when a new line is added that
     /// would otherwise have exceeded the line capacity
-    pub lines: Vec<Line>,
+    pub lines: VecDeque<Line>,
 
     /// Maximum number of lines of scrollback
     pub scrollback_size: usize,
@@ -30,9 +31,9 @@ impl Screen {
     /// The Cells in the viewable portion of the screen are set to the
     /// default cell attributes.
     pub fn new(physical_rows: usize, physical_cols: usize, scrollback_size: usize) -> Screen {
-        let mut lines = Vec::with_capacity(physical_rows + scrollback_size);
+        let mut lines = VecDeque::with_capacity(physical_rows + scrollback_size);
         for _ in 0..physical_rows {
-            lines.push(Line::new(physical_cols));
+            lines.push_back(Line::new(physical_cols));
         }
 
         Screen {
@@ -54,7 +55,7 @@ impl Screen {
         if physical_rows > self.physical_rows {
             // Enlarging the viewable portion?  Add more lines at the bottom
             for _ in self.physical_rows..physical_rows {
-                self.lines.push(Line::new(physical_cols));
+                self.lines.push_back(Line::new(physical_cols));
             }
         }
         self.physical_rows = physical_rows;
@@ -79,11 +80,24 @@ impl Screen {
         }
     }
 
-    /// Returns a slice over the visible lines in the screen (no scrollback)
+    /// Returns a copy of the visible lines in the screen (no scrollback)
     #[cfg(test)]
-    pub fn visible_lines(&self) -> &[Line] {
+    pub fn visible_lines(&self) -> Vec<Line> {
         let line_idx = self.lines.len() - self.physical_rows;
-        &self.lines[line_idx..line_idx + self.physical_rows]
+        let mut lines = Vec::new();
+        for line in self.lines.iter().skip(line_idx) {
+            if lines.len() >= self.physical_rows {
+                break;
+            }
+            lines.push(line.clone());
+        }
+        lines
+    }
+
+    /// Returns a copy of the lines in the screen (including scrollback)
+    #[cfg(test)]
+    pub fn all_lines(&self) -> Vec<Line> {
+        self.lines.iter().map(|l| l.clone()).collect()
     }
 
     /// Set a cell.  the x and y coordinates are relative to the visible screeen
@@ -218,11 +232,11 @@ impl Screen {
         let to_move = lines_removed.min(num_rows);
         let (to_remove, to_add) = {
             for _ in 0..to_move {
-                let mut line = self.lines.remove(remove_idx);
+                let mut line = self.lines.remove(remove_idx).unwrap();
                 // Make the line like a new one of the appropriate width
                 line.reset(self.physical_cols);
                 if scroll_region.end as usize == self.physical_rows {
-                    self.lines.push(line);
+                    self.lines.push_back(line);
                 } else {
                     self.lines.insert(phys_scroll.end - lines_removed, line);
                 }
@@ -240,7 +254,7 @@ impl Screen {
         if scroll_region.end as usize == self.physical_rows {
             // It's cheaper to push() than it is insert() at the end
             for _ in 0..to_add {
-                self.lines.push(Line::new(self.physical_cols));
+                self.lines.push_back(Line::new(self.physical_cols));
             }
         } else {
             for _ in 0..to_add {

@@ -294,7 +294,7 @@ fn assert_visible_contents(term: &Terminal, expect_lines: &[&str]) {
 
     let expect: Vec<Line> = expect_lines.iter().map(|s| (*s).into()).collect();
 
-    assert_lines_equal(screen.visible_lines(), &expect, Compare::TEXT);
+    assert_lines_equal(&screen.visible_lines(), &expect, Compare::TEXT);
 }
 
 fn assert_all_contents(term: &Terminal, expect_lines: &[&str]) {
@@ -303,7 +303,7 @@ fn assert_all_contents(term: &Terminal, expect_lines: &[&str]) {
 
     let expect: Vec<Line> = expect_lines.iter().map(|s| (*s).into()).collect();
 
-    assert_lines_equal(&screen.lines, &expect, Compare::TEXT);
+    assert_lines_equal(&screen.all_lines(), &expect, Compare::TEXT);
 }
 
 #[test]
@@ -458,7 +458,7 @@ fn test_hyperlinks() {
     linked.hyperlink = Some(Rc::clone(&link));
 
     assert_lines_equal(
-        term.screen().visible_lines(),
+        &term.screen().visible_lines(),
         &[
             Line::from_text("hello", &linked),
             "     ".into(),
@@ -474,7 +474,7 @@ fn test_hyperlinks() {
     term.print("y!!");
 
     assert_lines_equal(
-        term.screen().visible_lines(),
+        &term.screen().visible_lines(),
         &[
             Line::from_text("hello", &linked),
             Line::from_text("hey!!", &linked),
@@ -497,7 +497,7 @@ fn test_hyperlinks() {
     partial_line.cells[1].attrs.hyperlink = Some(Rc::clone(&otherlink));
 
     assert_lines_equal(
-        term.screen().visible_lines(),
+        &term.screen().visible_lines(),
         &[
             Line::from_text("hello", &linked),
             Line::from_text("hey!!", &linked),
