@@ -1212,22 +1212,9 @@ impl<'a> TerminalWindow<'a> {
         const BUFSIZE: usize = 8192;
         let mut buf = [0; BUFSIZE];
 
-        loop {
-            match self.host.pty.read(&mut buf) {
-                Ok(size) => {
-                    self.terminal.advance_bytes(&buf[0..size], &mut self.host);
-                    if size < BUFSIZE {
-                        // If we had a short read then there is no more
-                        // data to read right now; we'll get called again
-                        // when mio says that we're ready
-                        break;
-                    }
-                }
-                Err(err) => {
-                    eprintln!("error reading from pty: {:?}", err);
-                    break;
-                }
-            }
+        match self.host.pty.read(&mut buf) {
+            Ok(size) => self.terminal.advance_bytes(&buf[0..size], &mut self.host),
+            Err(err) => eprintln!("error reading from pty: {:?}", err),
         }
     }
 
