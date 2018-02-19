@@ -215,11 +215,18 @@ impl Screen {
             }
         }
 
-        for _ in 0..num_rows {
-            self.lines.insert(
-                phys_scroll.end - lines_removed,
-                Line::new(self.physical_cols),
-            );
+        if scroll_region.end as usize == self.physical_rows {
+            // It's cheaper to push() than it is insert() at the end
+            for _ in 0..num_rows {
+                self.lines.push(Line::new(self.physical_cols));
+            }
+        } else {
+            for _ in 0..num_rows {
+                self.lines.insert(
+                    phys_scroll.end - lines_removed,
+                    Line::new(self.physical_cols),
+                );
+            }
         }
     }
 
