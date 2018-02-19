@@ -437,23 +437,24 @@ impl<'a> TerminalWindow<'a> {
 
             let descender_row = (cell_height as isize + descender) as usize;
             let descender_plus_one = (1 + descender_row).min(cell_height - 1);
+            let descender_plus_two = (2 + descender_row).min(cell_height - 1);
             let strike_row = descender_row / 2;
 
             // First, the single underline.
-            // We place this as the descender position.
+            // We place this just under the descender position.
             {
                 let col = 0;
-                let offset = ((width * 4) * descender_row) + (col * 4 * cell_width);
+                let offset = ((width * 4) * descender_plus_one) + (col * 4 * cell_width);
                 for i in 0..4 * cell_width {
                     underline_data[offset + i] = 0xff;
                 }
             }
             // Double underline,
-            // We place this just above and below the descender
+            // We place this at and just below the descender
             {
                 let col = 1;
-                let offset_one = ((width * 4) * (descender_row - 1)) + (col * 4 * cell_width);
-                let offset_two = ((width * 4) * (descender_plus_one)) + (col * 4 * cell_width);
+                let offset_one = ((width * 4) * (descender_row)) + (col * 4 * cell_width);
+                let offset_two = ((width * 4) * (descender_plus_two)) + (col * 4 * cell_width);
                 for i in 0..4 * cell_width {
                     underline_data[offset_one + i] = 0xff;
                     underline_data[offset_two + i] = 0xff;
@@ -470,7 +471,7 @@ impl<'a> TerminalWindow<'a> {
             // Strikethrough and single underline
             {
                 let col = 3;
-                let offset_one = ((width * 4) * descender_row) + (col * 4 * cell_width);
+                let offset_one = ((width * 4) * descender_plus_one) + (col * 4 * cell_width);
                 let offset_two = ((width * 4) * strike_row) + (col * 4 * cell_width);
                 for i in 0..4 * cell_width {
                     underline_data[offset_one + i] = 0xff;
@@ -480,9 +481,9 @@ impl<'a> TerminalWindow<'a> {
             // Strikethrough and double underline
             {
                 let col = 4;
-                let offset_one = ((width * 4) * (descender_row - 1)) + (col * 4 * cell_width);
+                let offset_one = ((width * 4) * (descender_row)) + (col * 4 * cell_width);
                 let offset_two = ((width * 4) * strike_row) + (col * 4 * cell_width);
-                let offset_three = ((width * 4) * (descender_plus_one)) + (col * 4 * cell_width);
+                let offset_three = ((width * 4) * (descender_plus_two)) + (col * 4 * cell_width);
                 for i in 0..4 * cell_width {
                     underline_data[offset_one + i] = 0xff;
                     underline_data[offset_two + i] = 0xff;
