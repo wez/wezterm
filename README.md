@@ -1,6 +1,6 @@
 # Wez's Terminal
 
-A terminal emulator implemented in Rust.
+A terminal emulator implemented in Rust, using OpenGL ES 2 for rendering.
 
 ## Quickstart
 
@@ -16,7 +16,7 @@ older linux distributions don't have this!
 ```
 $ sudo apt-get install -y libxcb-icccm4-dev libxcb-ewmh-dev \
     libxcb-image0-dev libxcb-keysyms1-dev libharfbuzz-dev \
-    libfontconfig1-dev libfreetype6-dev
+    libfontconfig1-dev libfreetype6-dev libegl1-mesa-dev
 ```
 
 ## What?
