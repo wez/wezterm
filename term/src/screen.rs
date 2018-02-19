@@ -112,11 +112,16 @@ impl Screen {
         }
 
         let width = line.cells.len();
-        // if the line isn't wide enough, pad it out with the default attributes
-        if x >= width {
-            line.cells.resize(x + 1, Cell::default());
+        let cell = Cell::from_char(c, attr);
+        if x == width {
+            line.cells.push(cell);
+        } else if x > width {
+            // if the line isn't wide enough, pad it out with the default attributes
+            line.cells.resize(x, Cell::default());
+            line.cells.push(cell);
+        } else {
+            line.cells[x] = cell;
         }
-        line.cells[x] = Cell::from_char(c, attr);
         &line.cells[x]
     }
 
@@ -203,18 +208,37 @@ impl Screen {
             }
         };
 
+        // To avoid thrashing the heap, prefer to move lines that were
+        // scrolled off the top and re-use them at the bottom.
+        let to_move = lines_removed.min(num_rows);
+        let (to_remove, to_add) = {
+            for _ in 0..to_move {
+                let mut line = self.lines.remove(phys_scroll.start);
+                // Make the line like a new one of the appropriate width
+                line.reset(self.physical_cols);
+                if scroll_region.end as usize == self.physical_rows {
+                    self.lines.push(line);
+                } else {
+                    self.lines.insert(phys_scroll.end - lines_removed, line);
+                }
+            }
+            // We may still have some lines to add at the bottom, so
+            // return revised counts for remove/add
+            (lines_removed - to_move, num_rows - to_move)
+        };
+
         // Perform the removal
-        for _ in 0..lines_removed {
+        for _ in 0..to_remove {
             self.lines.remove(phys_scroll.start);
         }
 
         if scroll_region.end as usize == self.physical_rows {
             // It's cheaper to push() than it is insert() at the end
-            for _ in 0..num_rows {
+            for _ in 0..to_add {
                 self.lines.push(Line::new(self.physical_cols));
             }
         } else {
-            for _ in 0..num_rows {
+            for _ in 0..to_add {
                 self.lines.insert(
                     phys_scroll.end - lines_removed,
                     Line::new(self.physical_cols),

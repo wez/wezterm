@@ -58,6 +58,14 @@ impl Line {
         }
     }
 
+    pub fn reset(&mut self, width: usize) {
+        let blank = Cell::default();
+        self.cells.resize(width, blank);
+        for cell in self.cells.iter_mut() {
+            cell.reset();
+        }
+    }
+
     /// Recompose line into the corresponding utf8 string.
     /// In the future, we'll want to decompose into clusters of Cells that share
     /// the same render attributes

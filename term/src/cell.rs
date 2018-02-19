@@ -134,7 +134,12 @@ pub struct Cell {
 
 impl Default for Cell {
     fn default() -> Cell {
-        Cell::from_char(' ', &CellAttributes::default())
+        let bytes = [b' ', 0, 0, 0, 0, 0, 0];
+        Cell {
+            len: 1,
+            bytes,
+            attrs: CellAttributes::default()
+        }
     }
 }
 
@@ -184,6 +189,13 @@ impl Cell {
             use unicode_width::UnicodeWidthStr;
             self.str().width()
         }
+    }
+
+    #[inline]
+    pub fn reset(&mut self) {
+        self.len = 1;
+        self.bytes[0] = b' ';
+        self.attrs = CellAttributes::default();
     }
 }
 
