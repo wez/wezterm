@@ -238,7 +238,7 @@ impl Screen {
                 if scroll_region.end as usize == self.physical_rows {
                     self.lines.push_back(line);
                 } else {
-                    self.lines.insert(phys_scroll.end - lines_removed, line);
+                    self.lines.insert(phys_scroll.end - 1, line);
                 }
             }
             // We may still have some lines to add at the bottom, so
@@ -259,7 +259,7 @@ impl Screen {
         } else {
             for _ in 0..to_add {
                 self.lines.insert(
-                    phys_scroll.end - lines_removed,
+                    phys_scroll.end - 1,
                     Line::new(self.physical_cols),
                 );
             }

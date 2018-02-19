@@ -416,9 +416,10 @@ fn test_delete_lines() {
 
     // test with a scroll region smaller than the screen
     term.set_scroll_region(1, 3);
-    term.delete_lines(1);
+    print_all_lines(&term);
+    term.delete_lines(2);
 
-    assert_visible_contents(&term, &["111", "555", "aaa", "   ", "bbb"]);
+    assert_visible_contents(&term, &["111", "aaa", "   ", "   ", "bbb"]);
     term.assert_dirty_lines(&[1, 2, 3], None);
 
     // expand the scroll region to fill the screen
@@ -426,7 +427,7 @@ fn test_delete_lines() {
     term.clean_dirty_lines();
     term.delete_lines(1);
 
-    assert_visible_contents(&term, &["111", "aaa", "   ", "bbb", "   "]);
+    assert_visible_contents(&term, &["111", "   ", "   ", "bbb", "   "]);
     term.assert_dirty_lines(&[1, 2, 3, 4], None);
 }
 
