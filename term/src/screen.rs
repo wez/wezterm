@@ -105,18 +105,19 @@ impl Screen {
             attr
         );
 
+        let line = self.line_mut(line_idx);
+
         if attr.hyperlink.is_some() {
-            self.line_mut(line_idx).set_has_hyperlink(true);
+            line.set_has_hyperlink(true);
         }
 
-        let cells = &mut self.line_mut(line_idx).cells;
-        let width = cells.len();
+        let width = line.cells.len();
         // if the line isn't wide enough, pad it out with the default attributes
         if x >= width {
-            cells.resize(x + 1, Cell::default());
+            line.cells.resize(x + 1, Cell::default());
         }
-        cells[x] = Cell::from_char(c, attr);
-        &cells[x]
+        line.cells[x] = Cell::from_char(c, attr);
+        &line.cells[x]
     }
 
     pub fn clear_line(&mut self, y: VisibleRowIndex, cols: std::ops::Range<usize>) {
@@ -179,7 +180,7 @@ impl Screen {
     pub fn scroll_up(&mut self, scroll_region: &Range<VisibleRowIndex>, num_rows: usize) {
         debug!("scroll_up {:?} {}", scroll_region, num_rows);
         let phys_scroll = self.phys_range(&scroll_region);
-        assert!(num_rows <= phys_scroll.end - phys_scroll.start);
+        debug_assert!(num_rows <= phys_scroll.end - phys_scroll.start);
 
         // Invalidate the lines that will move before they move so that
         // the indices of the lines are stable (we may remove lines below)
@@ -205,14 +206,6 @@ impl Screen {
         // Perform the removal
         for _ in 0..lines_removed {
             self.lines.remove(phys_scroll.start);
-        }
-
-        if scroll_region.start == 0 {
-            // All of the lines above the top are now effectively dirty because
-            // they were moved into scrollback by the scroll operation.
-            for y in 0..phys_scroll.start {
-                self.line_mut(y).set_dirty();
-            }
         }
 
         if scroll_region.end as usize == self.physical_rows {
