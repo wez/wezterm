@@ -82,6 +82,11 @@ impl TestTerm {
         self.print(format!("{};{}H", row + 1, col + 1));
     }
 
+    fn hvp(&mut self, col: isize, row: isize) {
+        self.print(CSI);
+        self.print(format!("{};{}f", row + 1, col + 1));
+    }
+
     fn erase_in_display(&mut self, erase: DisplayErase) {
         self.print(CSI);
         let num = match erase {

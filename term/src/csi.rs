@@ -442,12 +442,15 @@ impl<'a> Iterator for CSIParser<'a> {
                 y: Position::Relative(0),
             }),
 
-            // Cursor Position (CUP)
-            ('H', &[], Some(&[])) => Some(CSIAction::SetCursorXY {
+            // H: Cursor Position (CUP)
+            // f: Horizontal and vertical position (HVP)
+            ('H', &[], Some(&[])) |
+            ('f', &[], Some(&[])) => Some(CSIAction::SetCursorXY {
                 x: Position::Absolute(0),
                 y: Position::Absolute(0),
             }),
-            ('H', &[], Some(&[y, x])) => {
+            ('H', &[], Some(&[y, x])) |
+            ('f', &[], Some(&[y, x])) => {
                 // Co-ordinates are 1-based, but we want 0-based
                 Some(CSIAction::SetCursorXY {
                     x: Position::Absolute(x.max(1) - 1),

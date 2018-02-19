@@ -49,6 +49,21 @@ fn test_cup() {
 }
 
 #[test]
+fn test_hvp() {
+    let mut term = TestTerm::new(3, 4, 0);
+    term.hvp(1, 1);
+    term.assert_cursor_pos(1, 1, None);
+    term.hvp(-1, -1);
+    term.assert_cursor_pos(0, 0, None);
+    term.hvp(2, 2);
+    term.assert_cursor_pos(2, 2, None);
+    term.hvp(-1, -1);
+    term.assert_cursor_pos(0, 0, None);
+    term.hvp(500, 500);
+    term.assert_cursor_pos(3, 2, None);
+}
+
+#[test]
 fn test_dl() {
     let mut term = TestTerm::new(3, 1, 0);
     term.print("a\nb\nc");
