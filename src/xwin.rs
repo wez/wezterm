@@ -191,15 +191,17 @@ float multiply_one(float src, float dst, float inv_dst_alpha, float inv_src_alph
     return (src * dst) + (src * (inv_dst_alpha)) + (dst * (inv_src_alpha));
 }
 
-// Alpha-regulated multiply to colorize the glyph bitmap
+// Alpha-regulated multiply to colorize the glyph bitmap.
+// The texture data is pre-multiplied by the alpha, so we need to divide
+// by the alpha after multiplying to avoid having the colors be too dark.
 vec4 multiply(vec4 src, vec4 dst) {
     float inv_src_alpha = 1.0 - src.a;
     float inv_dst_alpha = 1.0 - dst.a;
 
     return vec4(
-        multiply_one(src.r, dst.r, inv_dst_alpha, inv_src_alpha),
-        multiply_one(src.g, dst.g, inv_dst_alpha, inv_src_alpha),
-        multiply_one(src.b, dst.b, inv_dst_alpha, inv_src_alpha),
+        multiply_one(src.r, dst.r, inv_dst_alpha, inv_src_alpha) / dst.a,
+        multiply_one(src.g, dst.g, inv_dst_alpha, inv_src_alpha) / dst.a,
+        multiply_one(src.b, dst.b, inv_dst_alpha, inv_src_alpha) / dst.a,
         dst.a);
 }
 
