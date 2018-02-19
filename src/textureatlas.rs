@@ -123,7 +123,7 @@ impl Sprite {
     /// as we work through the slices.
     pub fn left_pix(&self, slice: &SpriteSlice) -> u32 {
         let width = (self.coords.width as f32 * slice.scale) as i32;
-        if slice.num_cells == 0 || slice.cell_idx == 0 {
+        if slice.num_cells == 1 || slice.cell_idx == 0 {
             0
         } else {
             // Width of the first cell
@@ -148,8 +148,8 @@ impl Sprite {
     pub fn slice_width(&self, slice: &SpriteSlice) -> u32 {
         let width = (self.coords.width as f32 * slice.scale) as i32;
 
-        if slice.num_cells == 0 {
-            width.saturating_sub(slice.left_offset) as u32
+        if slice.num_cells == 1 {
+            width as u32
         } else if slice.cell_idx == 0 {
             // The first slice can extend (or recede) to the left based
             // on the slice.left_offset value.
