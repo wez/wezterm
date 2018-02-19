@@ -392,6 +392,29 @@ impl<'a> TerminalWindow<'a> {
         } else {
             ((descender as f64) / 64.0).floor() as isize
         };
+        debug!(
+            "METRICS: h={} w={} d={}",
+            cell_height,
+            cell_width,
+            descender
+        );
+
+        // The descender isn't always reliable.  If it looks implausible then we
+        // cook up something more reasonable.  For example, if the descender pulls
+        // the basline up into the top half of the cell then it is probably bad
+        // so we halve that distance, putting it closer to the bottom quarter instead.
+        let descender = if descender.abs() >= cell_height as isize / 2 {
+            let alt_desc = descender / 2;
+            eprintln!(
+                "descender {} is >=50% the cell height, using {} instead",
+                descender,
+                alt_desc
+            );
+            alt_desc
+        } else {
+            descender
+        };
+
 
         let host = Host {
             window,
@@ -411,6 +434,7 @@ impl<'a> TerminalWindow<'a> {
             underline_data.resize(width * cell_height * 4, 0u8);
 
             let descender_row = (cell_height as isize + descender) as usize;
+            let descender_plus_one = (1 + descender_row).min(cell_height - 1);
             let strike_row = descender_row / 2;
 
             // First, the single underline.
@@ -427,7 +451,7 @@ impl<'a> TerminalWindow<'a> {
             {
                 let col = 1;
                 let offset_one = ((width * 4) * (descender_row - 1)) + (col * 4 * cell_width);
-                let offset_two = ((width * 4) * (descender_row + 1)) + (col * 4 * cell_width);
+                let offset_two = ((width * 4) * (descender_plus_one)) + (col * 4 * cell_width);
                 for i in 0..4 * cell_width {
                     underline_data[offset_one + i] = 0xff;
                     underline_data[offset_two + i] = 0xff;
@@ -456,7 +480,7 @@ impl<'a> TerminalWindow<'a> {
                 let col = 4;
                 let offset_one = ((width * 4) * (descender_row - 1)) + (col * 4 * cell_width);
                 let offset_two = ((width * 4) * strike_row) + (col * 4 * cell_width);
-                let offset_three = ((width * 4) * (descender_row + 1)) + (col * 4 * cell_width);
+                let offset_three = ((width * 4) * (descender_plus_one)) + (col * 4 * cell_width);
                 for i in 0..4 * cell_width {
                     underline_data[offset_one + i] = 0xff;
                     underline_data[offset_two + i] = 0xff;
