@@ -4,6 +4,8 @@ A terminal emulator implemented in Rust, using OpenGL ES 2 for rendering.
 
 ![Screenshot](screenshots/one.png)
 
+*Screenshot of wezterm on X11, running vim*
+
 ## Quickstart
 
 * Install `rustup` to get the *nightly* `rust` compiler installed on your system.
@@ -39,17 +41,17 @@ terminal session.
 
 These are in the done/doing soon category:
 
-- [x] Runs on Linux with XCB
+- [x] Runs on Linux with XCB and OpenGL ES 2
 - [x] Scrollback (use mouse wheel and Shift Page{Up|Down})
 - [x] True Color support
-- [x] Color Emoji and font fallback
+- [x] Ligatures, Color Emoji and font fallback
 - [x] Paste selection via Shift-Insert (bracketed paste is supported!)
 - [x] SGR style mouse reporting (works in vim and tmux)
 - [x] xterm style selection of text with mouse
 - [x] Render underline, italic, bold, strikethrough
-- [ ] Configuration file to specify fonts and colors (in progress)
+- [x] Configuration file to specify fonts and colors
+- [x] Hyperlinks per: https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5feda
 - [ ] Command line argument parsing instead of launching user shell
-- [ ] Hyperlinks see: https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5feda
 
 There's a good number of terminal escape sequences that are not yet implemented
 and that will get fleshed out as the applications I use uncover them.
@@ -58,12 +60,12 @@ Similarly for key mappings.
 Things that I'd like to see happen and that have no immediate priority
 (contributions to get closer to these are welcomed!)
 
-- [ ] Runs on macOS
+- [ ] Run on macOS
 - [ ] Sixel / iTerm2 graphics protocol support
 - [ ] Tabs
 - [ ] Textual renderer.  Think `tmux` or `screen`.
-- [ ] Runs on Linux with Wayland (use XWayland for now)
-- [ ] Runs on Windows
+- [ ] Run on Linux with Wayland (use XWayland for now)
+- [ ] Run on Windows
 
 
 ## Configuration
