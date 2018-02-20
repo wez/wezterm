@@ -2,6 +2,10 @@
 
 A terminal emulator implemented in Rust, using OpenGL ES 2 for rendering.
 
+[![Build Status](https://travis-ci.org/wez/wezterm.svg?branch=master)](https://travis-ci.org/wez/wezterm)
+[![codecov](https://codecov.io/gh/wez/wezterm/branch/master/graph/badge.svg)](https://codecov.io/gh/wez/wezterm)
+
+
 ![Screenshot](screenshots/one.png)
 
 *Screenshot of wezterm on X11, running vim*
@@ -13,9 +17,8 @@ A terminal emulator implemented in Rust, using OpenGL ES 2 for rendering.
 * Build in release mode: `cargo build --release`
 * Run it via either `cargo run --release` or `target/release/wezterm`
 
-You will need a collection of support libraries; important to note is that
-your `harfbuzz` library must have support for `hb_ft_font_create_referenced`;
-older linux distributions don't have this!
+You will need a collection of support libraries; the example below shows which
+deps are needed for ubuntu systems:
 
 ```
 $ sudo apt-get install -y libxcb-icccm4-dev libxcb-ewmh-dev \
