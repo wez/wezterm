@@ -1,3 +1,5 @@
+use super::{Connection, Drawable, Window};
+use super::xkeysyms;
 use config::TextStyle;
 use euclid;
 use failure::{self, Error};
@@ -20,8 +22,6 @@ use term::color::RgbaTuple;
 use term::hyperlink::Hyperlink;
 use xcb;
 use xcb_util;
-use xgfx::{self, Connection, Drawable};
-use xkeysyms;
 
 use textureatlas::{Atlas, Sprite, SpriteSlice, TEX_SIZE};
 
@@ -234,7 +234,7 @@ void main() {
 
 /// Holds the information we need to implement TerminalHost
 struct Host<'a> {
-    window: xgfx::Window<'a>,
+    window: Window<'a>,
     pty: MasterPty,
     timestamp: xcb::xproto::Timestamp,
     clipboard: Option<String>,
@@ -406,7 +406,7 @@ impl<'a> TerminalWindow<'a> {
             tuple
         };
 
-        let window = xgfx::Window::new(&conn, width, height)?;
+        let window = Window::new(&conn, width, height)?;
         window.set_title("wezterm");
 
         let descender = if descender.is_positive() {

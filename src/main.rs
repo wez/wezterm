@@ -43,9 +43,9 @@ use std::time::Duration;
 mod config;
 
 #[cfg(all(unix, not(target_os = "macos")))]
-mod xgfx;
+mod xwindows;
 #[cfg(all(unix, not(target_os = "macos")))]
-mod xkeysyms;
+use xwindows::xwin::TerminalWindow;
 
 mod font;
 use font::FontConfiguration;
@@ -54,10 +54,6 @@ mod pty;
 mod sigchld;
 mod textureatlas;
 
-#[cfg(all(unix, not(target_os = "macos")))]
-mod xwin;
-#[cfg(all(unix, not(target_os = "macos")))]
-use xwin::TerminalWindow;
 
 /// Determine which shell to run.
 /// We take the contents of the $SHELL env var first, then
@@ -79,7 +75,7 @@ fn get_shell() -> Result<String, Error> {
 
 fn run() -> Result<(), Error> {
     let poll = Poll::new()?;
-    let conn = xgfx::Connection::new()?;
+    let conn = xwindows::Connection::new()?;
 
     let waiter = sigchld::ChildWaiter::new()?;
 

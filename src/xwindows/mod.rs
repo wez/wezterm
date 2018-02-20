@@ -16,7 +16,10 @@ use xcb_util::ffi::keysyms::{xcb_key_press_lookup_keysym, xcb_key_symbols_alloc,
 
 use failure::{self, Error};
 pub type Result<T> = result::Result<T, Error>;
-pub use xkeysyms::*;
+
+mod xkeysyms;
+pub use self::xkeysyms::*;
+pub mod xwin;
 
 pub struct Connection {
     pub display: *mut x11::xlib::Display,
