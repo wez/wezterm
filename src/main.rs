@@ -7,9 +7,9 @@ extern crate euclid;
 extern crate glium;
 extern crate unicode_width;
 extern crate harfbuzz;
-#[cfg(not(target_os = "macos"))]
+#[cfg(any(target_os = "android", all(unix, not(target_os = "macos"))))]
 extern crate fontconfig; // from servo-fontconfig
-#[cfg(not(target_os = "macos"))]
+#[cfg(any(target_os = "android", all(unix, not(target_os = "macos"))))]
 extern crate freetype;
 extern crate libc;
 extern crate mio;
@@ -19,13 +19,16 @@ extern crate serde_derive;
 extern crate palette;
 extern crate term;
 extern crate toml;
+#[cfg(all(unix, not(target_os = "macos")))]
 extern crate x11;
 #[macro_use]
 pub mod log;
 
 use failure::Error;
 
+#[cfg(all(unix, not(target_os = "macos")))]
 extern crate xcb;
+#[cfg(all(unix, not(target_os = "macos")))]
 extern crate xcb_util;
 
 use mio::{Events, Poll, PollOpt, Ready, Token};
@@ -38,15 +41,22 @@ use std::str;
 use std::time::Duration;
 
 mod config;
+
+#[cfg(all(unix, not(target_os = "macos")))]
 mod xgfx;
+#[cfg(all(unix, not(target_os = "macos")))]
 mod xkeysyms;
+
 mod font;
 use font::{FontConfiguration, ftwrap};
 
 mod pty;
 mod sigchld;
 mod textureatlas;
+
+#[cfg(all(unix, not(target_os = "macos")))]
 mod xwin;
+#[cfg(all(unix, not(target_os = "macos")))]
 use xwin::TerminalWindow;
 
 /// Determine which shell to run.
