@@ -1,8 +1,8 @@
-/// This file was copied from https://github.com/servo/rust-harfbuzz
-/// and is included under the terms of its MIT license.
-
 #![allow(non_camel_case_types)]
 #![cfg_attr(feature = "cargo-clippy", allow(unreadable_literal))]
+
+/// This file was copied from https://github.com/servo/rust-harfbuzz
+/// and is included under the terms of its MIT license.
 
 #[cfg(any(target_os = "android", all(unix, not(target_os = "macos"))))]
 extern crate freetype;
