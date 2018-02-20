@@ -33,16 +33,12 @@ features = ["xlib"]
 version = "2.17.2"
 
 [dependencies.xcb]
-features = ["shm"]
 version = "0.8.1"
 
 [dependencies.xcb-util]
 features = [
-    "image",
     "icccm",
     "ewmh",
-    "misc",
-    "shm",
     "keysyms",
 ]
 version = "0.2.0"
