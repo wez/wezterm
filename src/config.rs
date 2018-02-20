@@ -58,13 +58,6 @@ impl Default for Config {
 }
 
 /// Represents textual styling.
-/// TODO: I want to add some rules so that a user can specify the font
-/// and colors to use in some situations.  For example, xterm has
-/// a bold color option; I'd like to be able to express something
-/// like "when text is bold, use this font pattern and set the text
-/// color to X".  There are some interesting possibilities here;
-/// instead of just setting the color to a specific value we could
-/// apply a transform to the color attribute and make it X% brighter.
 #[derive(Debug, Deserialize, Clone, PartialEq, Eq, Hash)]
 pub struct TextStyle {
     /// A font config pattern to parse to locate the font.
