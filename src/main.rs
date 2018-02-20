@@ -42,6 +42,8 @@ use std::time::Duration;
 
 mod config;
 
+mod render;
+
 #[cfg(all(unix, not(target_os = "macos")))]
 mod xwindows;
 #[cfg(all(unix, not(target_os = "macos")))]
