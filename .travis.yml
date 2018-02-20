@@ -1,5 +1,3 @@
-# Note that travis has been disabled because the Trusty harfbuzz
-# library doesn't have `hb_ft_font_create_referenced` and we require it
 language: rust
 rust:
   #  - stable  we use a feature flag that precludes this
@@ -13,4 +11,4 @@ script:
   - cargo test --verbose --all
 before_install:
   - sudo apt-get -qq update
-  - sudo apt-get install -y libxcb-icccm4-dev libxcb-ewmh-dev libxcb-image0-dev libxcb-keysyms1-dev libharfbuzz-dev libfontconfig1-dev libfreetype6-dev
+  - sudo apt-get install -y libxcb-icccm4-dev libxcb-ewmh-dev libxcb-keysyms1-dev libfontconfig1-dev libfreetype6-dev

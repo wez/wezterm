@@ -6,7 +6,7 @@ extern crate euclid;
 #[macro_use]
 extern crate glium;
 extern crate unicode_width;
-extern crate harfbuzz_sys;
+extern crate harfbuzz;
 #[cfg(not(target_os = "macos"))]
 extern crate fontconfig; // from servo-fontconfig
 #[cfg(not(target_os = "macos"))]

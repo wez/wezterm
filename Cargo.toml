@@ -8,9 +8,7 @@ bitflags = "1.0.1"
 egli = "0.4.0"
 euclid = "0.17.0"
 failure = "0.1.1"
-freetype = "0.3.0"
 gl = "0.10.0"
-harfbuzz-sys = "0.1.15"
 libc = "0.2.36"
 mio = "0.6.12"
 palette = "0.2.1"
@@ -24,17 +22,23 @@ unicode-width = "0.1.4"
 default-features = false
 version = "0.20.0"
 
+[dependencies.harfbuzz]
+path = "harfbuzz"
+
 [dependencies.term]
 path = "term"
 
-[dependencies.x11]
+[target.'cfg(any(target_os = "android", all(unix, not(target_os = "macos"))))'.dependencies]
+freetype = "0.3"
+
+[target.'cfg(all(unix, not(target_os = "macos")))'.dependencies.x11]
 features = ["xlib"]
 version = "2.17.2"
 
-[dependencies.xcb]
+[target.'cfg(all(unix, not(target_os = "macos")))'.dependencies.xcb]
 version = "0.8.1"
 
-[dependencies.xcb-util]
+[target.'cfg(all(unix, not(target_os = "macos")))'.dependencies.xcb-util]
 features = [
     "icccm",
     "ewmh",

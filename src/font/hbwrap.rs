@@ -2,7 +2,7 @@
 
 use failure::Error;
 use freetype::freetype;
-pub use harfbuzz_sys::*;
+pub use harfbuzz::*;
 use std::mem;
 use std::ptr;
 use std::slice;
