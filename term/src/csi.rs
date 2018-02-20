@@ -373,8 +373,8 @@ impl<'a> CSIParser<'a> {
             &[top, bottom] => {
                 self.advance_by(2, params);
                 Some(CSIAction::SetScrollingRegion {
-                    top: top - 1,
-                    bottom: bottom - 1,
+                    top: top.saturating_sub(1),
+                    bottom: bottom.saturating_sub(1),
                 })
             }
             &[] => {

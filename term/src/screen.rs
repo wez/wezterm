@@ -162,7 +162,7 @@ impl Screen {
     /// will be invalidated by inserting or removing rows!
     #[inline]
     pub fn phys_row(&self, row: VisibleRowIndex) -> PhysRowIndex {
-        assert!(row >= 0);
+        assert!(row >= 0, "phys_row called with negative row {}", row);
         (self.lines.len() - self.physical_rows) + row as usize
     }
 
