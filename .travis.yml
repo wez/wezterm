@@ -5,10 +5,10 @@ rust:
   - nightly
 matrix:
   allow_failures:
-    - rust: nightly
+    - rust: beta
 script:
   - cargo build --verbose --all
   - cargo test --verbose --all
 before_install:
   - sudo apt-get -qq update
-  - sudo apt-get install -y libxcb-icccm4-dev libxcb-ewmh-dev libxcb-keysyms1-dev libfontconfig1-dev libfreetype6-dev
+  - sudo apt-get install -y libxcb-icccm4-dev libxcb-ewmh-dev libxcb-keysyms1-dev libfontconfig1-dev libfreetype6-dev libegl1-mesa-dev
