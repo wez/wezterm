@@ -3,6 +3,9 @@ authors = ["Wez Furlong <wez@wezfurlong.org>"]
 name = "harfbuzz"
 version = "0.1.0"
 
+[dependencies]
+failure = "0.1.1"
+
 [build-dependencies]
 cmake = "0.1.29"
 

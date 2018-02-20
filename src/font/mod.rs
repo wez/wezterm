@@ -1,4 +1,6 @@
 use failure::{self, Error};
+use harfbuzz;
+
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
@@ -6,7 +8,6 @@ use std::slice;
 use unicode_width::UnicodeWidthStr;
 
 pub mod ftwrap;
-pub mod hbwrap;
 pub mod fcwrap;
 
 pub use self::fcwrap::Pattern as FontPattern;
@@ -123,8 +124,8 @@ impl GlyphInfo {
     pub fn new(
         text: &str,
         font_idx: usize,
-        info: &hbwrap::hb_glyph_info_t,
-        pos: &hbwrap::hb_glyph_position_t,
+        info: &harfbuzz::hb_glyph_info_t,
+        pos: &harfbuzz::hb_glyph_position_t,
     ) -> GlyphInfo {
         let num_cells = UnicodeWidthStr::width(text) as u8;
         GlyphInfo {
@@ -145,7 +146,7 @@ impl GlyphInfo {
 /// Holds a loaded font alternative
 struct FontInfo {
     face: ftwrap::Face,
-    font: hbwrap::Font,
+    font: harfbuzz::Font,
     /// nominal monospace cell height
     cell_height: f64,
     /// nominal monospace cell width
@@ -236,7 +237,7 @@ impl Font {
             }
             Ok(_) => {}
         }
-        let font = hbwrap::Font::new(&face);
+        let font = harfbuzz::Font::new(face.face);
 
         // Compute metrics for the nominal monospace cell
         let (cell_width, cell_height) = face.cell_metrics();
@@ -290,17 +291,17 @@ impl Font {
 */
         let features = vec![
             // kerning
-            hbwrap::feature_from_string("kern")?,
+            harfbuzz::feature_from_string("kern")?,
             // ligatures
-            hbwrap::feature_from_string("liga")?,
+            harfbuzz::feature_from_string("liga")?,
             // contextual ligatures
-            hbwrap::feature_from_string("clig")?,
+            harfbuzz::feature_from_string("clig")?,
         ];
 
-        let mut buf = hbwrap::Buffer::new()?;
-        buf.set_script(hbwrap::HB_SCRIPT_LATIN);
-        buf.set_direction(hbwrap::HB_DIRECTION_LTR);
-        buf.set_language(hbwrap::language_from_string("en")?);
+        let mut buf = harfbuzz::Buffer::new()?;
+        buf.set_script(harfbuzz::HB_SCRIPT_LATIN);
+        buf.set_direction(harfbuzz::HB_DIRECTION_LTR);
+        buf.set_language(harfbuzz::language_from_string("en")?);
         buf.add_str(s);
 
         self.shape_with_font(font_idx, &mut buf, &features)?;
@@ -408,8 +409,8 @@ impl Font {
     fn shape_with_font(
         &mut self,
         idx: usize,
-        buf: &mut hbwrap::Buffer,
-        features: &Vec<hbwrap::hb_feature_t>,
+        buf: &mut harfbuzz::Buffer,
+        features: &Vec<harfbuzz::hb_feature_t>,
     ) -> Result<(), Error> {
         let info = self.get_font(idx)?;
         info.font.shape(buf, Some(features.as_slice()));

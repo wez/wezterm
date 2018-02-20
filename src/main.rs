@@ -48,7 +48,7 @@ mod xgfx;
 mod xkeysyms;
 
 mod font;
-use font::{FontConfiguration, ftwrap};
+use font::FontConfiguration;
 
 mod pty;
 mod sigchld;
