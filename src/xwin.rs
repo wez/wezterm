@@ -23,7 +23,7 @@ use xcb_util;
 use xgfx::{self, Connection, Drawable};
 use xkeysyms;
 
-use textureatlas::{Atlas, Sprite, SpriteSlice};
+use textureatlas::{Atlas, Sprite, SpriteSlice, TEX_SIZE};
 
 type Transform3D = euclid::Transform3D<f32>;
 
@@ -531,7 +531,7 @@ impl<'a> TerminalWindow<'a> {
         let program =
             glium::Program::from_source(&host.window, VERTEX_SHADER, FRAGMENT_SHADER, None)?;
 
-        let atlas = RefCell::new(Atlas::new(&host.window)?);
+        let atlas = RefCell::new(Atlas::new(&host.window, TEX_SIZE)?);
 
         Ok(TerminalWindow {
             host,
@@ -854,12 +854,22 @@ impl<'a> TerminalWindow<'a> {
                 mode @ _ => bail!("unhandled pixel mode: {:?}", mode),
             };
 
-            let tex = self.atlas.borrow_mut().allocate(
-                &self.host.window,
+            let tex = match self.atlas.borrow_mut().allocate(
                 raw_im.width,
                 raw_im.height,
                 raw_im,
-            )?;
+            ) {
+                Ok(tex) => tex,
+                Err(size) => {
+                    // TODO: this is a little tricky.  We need to replace the texture
+                    // atlas with a larger one, blow the font cache (that's the more
+                    // tricky part) and arrange to re-render everything.
+                    bail!(
+                        "Ran out of space in the Atlas! Need to make another one of size {}",
+                        size
+                    );
+                }
+            };
 
             let bearing_x = (ft_glyph.bitmap_left as f64 * scale) as isize;
             let bearing_y = (ft_glyph.bitmap_top as f64 * scale) as isize;

@@ -6,18 +6,19 @@ use glium::backend::Facade;
 use glium::texture::{SrgbTexture2d, Texture2dDataSource};
 use std::rc::Rc;
 
-/// Textures are bitmaps of srgba data that are sized as a power of 2.
+pub const TEX_SIZE: u32 = 4096;
+
+/// Atlases are bitmaps of srgba data that are sized as a power of 2.
 /// We allocate sprites out of the available space, starting from the
 /// bottom left corner and working to the right until we run out of
 /// space, then we move up to the logical row above.  Since sprites can
 /// have varying height the height of the rows can also vary.
 #[derive(Debug)]
-pub struct Texture {
+pub struct Atlas {
     texture: Rc<SrgbTexture2d>,
 
     // Dimensions of the texture
-    width: u32,
-    height: u32,
+    side: u32,
 
     /// The bottom of the available space.
     bottom: u32,
@@ -29,37 +30,41 @@ pub struct Texture {
     left: u32,
 }
 
-impl Texture {
-    fn new<F: Facade>(facade: &F, width: u32, height: u32) -> Result<Self, Error> {
+impl Atlas {
+    pub fn new<F: Facade>(facade: &F, side: u32) -> Result<Self, Error> {
         let texture = Rc::new(SrgbTexture2d::empty_with_format(
             facade,
             glium::texture::SrgbFormat::U8U8U8U8,
             glium::texture::MipmapsOption::NoMipmap,
-            width,
-            height,
+            side,
+            side,
         )?);
         Ok(Self {
             texture,
-            width,
-            height,
+            side,
             bottom: 0,
             tallest: 0,
             left: 0,
         })
     }
 
+    #[inline]
+    pub fn texture(&self) -> Rc<SrgbTexture2d> {
+        Rc::clone(&self.texture)
+    }
+
     /// Reserve space for a sprite of the given size
-    fn reserve<'a, T: Texture2dDataSource<'a>>(
+    pub fn allocate<'a, T: Texture2dDataSource<'a>>(
         &mut self,
         width: u32,
         height: u32,
         data: T,
-    ) -> Result<Rect, T> {
-        if width > self.width || height > self.height {
+    ) -> Result<Sprite, u32> {
+        if width > self.side || height > self.side {
             // It's not possible to satisfy that request
-            return Err(data);
+            return Err(width.max(height).next_power_of_two());
         }
-        let x_left = self.width - self.left;
+        let x_left = self.side - self.left;
         if x_left < width {
             // Bump up to next row
             self.bottom += self.tallest;
@@ -68,10 +73,10 @@ impl Texture {
         }
 
         // Do we have vertical space?
-        let y_left = self.height - self.bottom;
+        let y_left = self.side - self.bottom;
         if y_left < height {
             // No room at the inn.
-            return Err(data);
+            return Err(self.side);
         }
 
         let rect = Rect {
@@ -86,7 +91,10 @@ impl Texture {
         self.left += width;
         self.tallest = self.tallest.max(height);
 
-        Ok(rect)
+        Ok(Sprite {
+            texture: Rc::clone(&self.texture),
+            coords: rect,
+        })
     }
 }
 
@@ -212,62 +220,5 @@ impl Sprite {
     #[inline]
     pub fn top_right(&self, slice: &SpriteSlice) -> (f32, f32) {
         (self.right(slice), self.top(slice))
-    }
-}
-
-#[derive(Debug, Default)]
-pub struct Atlas {
-    textures: Vec<Texture>,
-}
-
-const TEX_SIZE: u32 = 2048;
-
-impl Atlas {
-    pub fn new<'a, F: Facade>(facade: &F) -> Result<Self, Error> {
-        let tex = Texture::new(facade, TEX_SIZE, TEX_SIZE)?;
-        Ok(Self { textures: vec![tex] })
-    }
-
-    // TODO: this is gross, need to tweak this API
-    pub fn texture(&self) -> Rc<SrgbTexture2d> {
-        Rc::clone(&self.textures[0].texture)
-    }
-
-    pub fn allocate<'a, F: Facade, T: Texture2dDataSource<'a>>(
-        &mut self,
-        facade: &F,
-        width: u32,
-        height: u32,
-        mut data: T,
-    ) -> Result<Sprite, Error> {
-        for tex in self.textures.iter_mut() {
-            match tex.reserve(width, height, data) {
-                Ok(rect) => {
-                    return Ok(Sprite {
-                        texture: Rc::clone(&tex.texture),
-                        coords: rect,
-                    });
-                }
-                Err(dat) => data = dat,
-            }
-        }
-
-        // Round up to a reasonable size
-        let size = width.max(height).max(TEX_SIZE).next_power_of_two();
-
-        let mut tex = Texture::new(facade, size, size)?;
-        let rect = match tex.reserve(width, height, data) {
-            Ok(rect) => rect,
-            _ => unreachable!("impossible for Texture::reserve to fail on a fresh instance"),
-        };
-
-        let sprite = Sprite {
-            texture: Rc::clone(&tex.texture),
-            coords: rect,
-        };
-
-        self.textures.push(tex);
-
-        Ok(sprite)
     }
 }
