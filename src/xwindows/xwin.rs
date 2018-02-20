@@ -5,6 +5,7 @@ use euclid;
 use failure::{self, Error};
 use font::{FontConfiguration, GlyphInfo, ftwrap};
 use glium::{self, IndexBuffer, Surface, VertexBuffer};
+use glium::backend::Facade;
 use glium::texture::SrgbTexture2d;
 use pty::MasterPty;
 use std::cell::RefCell;
@@ -232,183 +233,37 @@ void main() {
 }
 "#;
 
-/// Holds the information we need to implement TerminalHost
-struct Host<'a> {
-    window: Window<'a>,
-    pty: MasterPty,
-    timestamp: xcb::xproto::Timestamp,
-    clipboard: Option<String>,
-}
-
-pub struct TerminalWindow<'a> {
-    host: Host<'a>,
-    conn: &'a Connection,
+struct Renderer {
     width: u16,
     height: u16,
     fonts: FontConfiguration,
     cell_height: usize,
     cell_width: usize,
     descender: isize,
-    terminal: term::Terminal,
-    process: Child,
     glyph_cache: RefCell<HashMap<GlyphKey, Rc<CachedGlyph>>>,
-    palette: term::color::ColorPalette,
     program: glium::Program,
     glyph_vertex_buffer: RefCell<VertexBuffer<Vertex>>,
     glyph_index_buffer: IndexBuffer<u32>,
     projection: Transform3D,
     atlas: RefCell<Atlas>,
     underline_tex: SrgbTexture2d,
+    palette: term::color::ColorPalette,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-struct GlyphKey {
-    font_idx: usize,
-    glyph_pos: u32,
-    style: TextStyle,
-}
-
-/// Caches a rendered glyph.
-/// The image data may be None for whitespace glyphs.
-#[derive(Debug)]
-struct CachedGlyph {
-    has_color: bool,
-    x_offset: isize,
-    y_offset: isize,
-    bearing_x: isize,
-    bearing_y: isize,
-    texture: Option<Sprite>,
-    scale: f32,
-}
-
-impl<'a> term::TerminalHost for Host<'a> {
-    fn writer(&mut self) -> &mut Write {
-        &mut self.pty
-    }
-
-    fn click_link(&mut self, link: &Rc<Hyperlink>) {
-        // TODO: make this configurable
-        let mut cmd = Command::new("xdg-open");
-        cmd.arg(&link.url);
-        match cmd.spawn() {
-            Ok(_) => {}
-            Err(err) => eprintln!("failed to spawn xdg-open {}: {:?}", link.url, err),
-        }
-    }
-
-    // Check out https://tronche.com/gui/x/icccm/sec-2.html for some deep and complex
-    // background on what's happening in here.
-    fn get_clipboard(&mut self) -> Result<String, Error> {
-        // If we own the clipboard, just return the text now
-        if let Some(ref text) = self.clipboard {
-            return Ok(text.clone());
-        }
-
-        let conn = self.window.get_conn();
-
-        xcb::convert_selection(
-            conn.conn(),
-            self.window.as_drawable(),
-            xcb::ATOM_PRIMARY,
-            conn.atom_utf8_string,
-            conn.atom_xsel_data,
-            self.timestamp,
-        );
-        conn.flush();
-
-        loop {
-            let event = conn.wait_for_event().ok_or_else(
-                || failure::err_msg("X connection EOF"),
-            )?;
-            match event.response_type() & 0x7f {
-                xcb::SELECTION_NOTIFY => {
-                    let selection: &xcb::SelectionNotifyEvent = unsafe { xcb::cast_event(&event) };
-
-                    if selection.selection() == xcb::ATOM_PRIMARY &&
-                        selection.property() != xcb::NONE
-                    {
-                        let prop = xcb_util::icccm::get_text_property(
-                            conn,
-                            selection.requestor(),
-                            selection.property(),
-                        ).get_reply()?;
-                        return Ok(prop.name().into());
-                    }
-                }
-                _ => {
-                    eprintln!(
-                        "whoops: got XCB event type {} while waiting for selection",
-                        event.response_type() & 0x7f
-                    );
-                    // Rather than block forever, give up and yield an empty string
-                    // for pasting purposes.  We lost an event.  This sucks.
-                    // Will likely need to rethink how we handle passing the clipboard
-                    // data down to the terminal.
-                    return Ok("".into());
-                }
-            }
-        }
-    }
-
-    fn set_clipboard(&mut self, clip: Option<String>) -> Result<(), Error> {
-        self.clipboard = clip;
-        let conn = self.window.get_conn();
-
-        xcb::set_selection_owner(
-            conn.conn(),
-            if self.clipboard.is_some() {
-                self.window.as_drawable()
-            } else {
-                xcb::NONE
-            },
-            xcb::ATOM_PRIMARY,
-            self.timestamp,
-        );
-        // Also set the CLIPBOARD atom, not just the PRIMARY selection.
-        // TODO: make xterm clipboard selection configurable
-        xcb::set_selection_owner(
-            conn.conn(),
-            if self.clipboard.is_some() {
-                self.window.as_drawable()
-            } else {
-                xcb::NONE
-            },
-            conn.atom_clipboard,
-            self.timestamp,
-        );
-
-        // TODO: icccm says that we should check that we got ownership and
-        // amend our UI accordingly
-
-        Ok(())
-    }
-
-    fn set_title(&mut self, title: &str) {
-        self.window.set_title(title);
-    }
-}
-
-impl<'a> TerminalWindow<'a> {
-    pub fn new(
-        conn: &Connection,
+impl Renderer {
+    pub fn new<F: Facade>(
+        facade: &F,
         width: u16,
         height: u16,
-        terminal: term::Terminal,
-        pty: MasterPty,
-        process: Child,
         fonts: FontConfiguration,
         palette: term::color::ColorPalette,
-    ) -> Result<TerminalWindow, Error> {
+    ) -> Result<Self, Error> {
         let (cell_height, cell_width, descender) = {
             // Urgh, this is a bit repeaty, but we need to satisfy the borrow checker
             let font = fonts.default_font()?;
             let tuple = font.borrow_mut().get_metrics()?;
             tuple
         };
-
-        let window = Window::new(&conn, width, height)?;
-        window.set_title("wezterm");
-
         let descender = if descender.is_positive() {
             ((descender as f64) / 64.0).ceil() as isize
         } else {
@@ -437,13 +292,6 @@ impl<'a> TerminalWindow<'a> {
             descender
         };
 
-
-        let host = Host {
-            window,
-            pty,
-            timestamp: 0,
-            clipboard: None,
-        };
         let cell_height = cell_height.ceil() as usize;
         let cell_width = cell_width.ceil() as usize;
 
@@ -512,7 +360,7 @@ impl<'a> TerminalWindow<'a> {
             }
 
             glium::texture::SrgbTexture2d::new(
-                &host.window,
+                facade,
                 glium::texture::RawImage2d::from_raw_rgba(
                     underline_data,
                     (width as u32, cell_height as u32),
@@ -521,162 +369,54 @@ impl<'a> TerminalWindow<'a> {
         };
 
         let (glyph_vertex_buffer, glyph_index_buffer) = Self::compute_vertices(
-            &host,
+            facade,
             cell_width as f32,
             cell_height as f32,
             width as f32,
             height as f32,
         )?;
 
-        let program =
-            glium::Program::from_source(&host.window, VERTEX_SHADER, FRAGMENT_SHADER, None)?;
+        let program = glium::Program::from_source(facade, VERTEX_SHADER, FRAGMENT_SHADER, None)?;
 
-        let atlas = RefCell::new(Atlas::new(&host.window, TEX_SIZE)?);
+        let atlas = RefCell::new(Atlas::new(facade, TEX_SIZE)?);
 
-        Ok(TerminalWindow {
-            host,
+        Ok(Self {
             atlas,
             program,
+            palette,
             glyph_vertex_buffer: RefCell::new(glyph_vertex_buffer),
             glyph_index_buffer,
-            conn,
             width,
             height,
             fonts,
             cell_height,
             cell_width,
             descender,
-            terminal,
-            process,
             glyph_cache: RefCell::new(HashMap::new()),
-            palette,
             projection: Self::compute_projection(width as f32, height as f32),
             underline_tex,
         })
     }
 
-    pub fn show(&self) {
-        self.host.window.show();
-    }
+    pub fn resize<F: Facade>(&mut self, facade: &F, width: u16, height: u16) -> Result<(), Error> {
+        debug!("Renderer resize {},{}", width, height);
 
-    /// Compute a vertex buffer to hold the quads that comprise the visible
-    /// portion of the screen.   We recreate this when the screen is resized.
-    /// The idea is that we want to minimize and heavy lifting and computation
-    /// and instead just poke some attributes into the offset that corresponds
-    /// to a changed cell when we need to repaint the screen, and then just
-    /// let the GPU figure out the rest.
-    fn compute_vertices(
-        host: &Host,
-        cell_width: f32,
-        cell_height: f32,
-        width: f32,
-        height: f32,
-    ) -> Result<(VertexBuffer<Vertex>, IndexBuffer<u32>), Error> {
-        let mut verts = Vec::new();
-        let mut indices = Vec::new();
+        self.width = width;
+        self.height = height;
+        self.projection = Self::compute_projection(width as f32, height as f32);
 
-        let num_cols = (width as usize + 1) / cell_width as usize;
-        let num_rows = (height as usize + 1) / cell_height as usize;
+        let (glyph_vertex_buffer, glyph_index_buffer) = Self::compute_vertices(
+            facade,
+            self.cell_width as f32,
+            self.cell_height as f32,
+            width as f32,
+            height as f32,
+        )?;
+        self.glyph_vertex_buffer = RefCell::new(glyph_vertex_buffer);
+        self.glyph_index_buffer = glyph_index_buffer;
 
-        for y in 0..num_rows {
-            for x in 0..num_cols {
-                let y_pos = (height / -2.0) + (y as f32 * cell_height);
-                let x_pos = (width / -2.0) + (x as f32 * cell_width);
-                // Remember starting index for this position
-                let idx = verts.len() as u32;
-                verts.push(Vertex {
-                    // Top left
-                    position: Point::new(x_pos, y_pos),
-                    v_idx: V_TOP_LEFT as f32,
-                    ..Default::default()
-                });
-                verts.push(Vertex {
-                    // Top Right
-                    position: Point::new(x_pos + cell_width, y_pos),
-                    v_idx: V_TOP_RIGHT as f32,
-                    ..Default::default()
-                });
-                verts.push(Vertex {
-                    // Bottom Left
-                    position: Point::new(x_pos, y_pos + cell_height),
-                    v_idx: V_BOT_LEFT as f32,
-                    ..Default::default()
-                });
-                verts.push(Vertex {
-                    // Bottom Right
-                    position: Point::new(x_pos + cell_width, y_pos + cell_height),
-                    v_idx: V_BOT_RIGHT as f32,
-                    ..Default::default()
-                });
 
-                // Emit two triangles to form the glyph quad
-                indices.push(idx);
-                indices.push(idx + 1);
-                indices.push(idx + 2);
-                indices.push(idx + 1);
-                indices.push(idx + 2);
-                indices.push(idx + 3);
-            }
-        }
-
-        Ok((
-            VertexBuffer::dynamic(&host.window, &verts)?,
-            IndexBuffer::new(
-                &host.window,
-                glium::index::PrimitiveType::TrianglesList,
-                &indices,
-            )?,
-        ))
-    }
-
-    /// The projection corrects for the aspect ratio and flips the y-axis
-    fn compute_projection(width: f32, height: f32) -> Transform3D {
-        Transform3D::ortho(
-            -width / 2.0,
-            width / 2.0,
-            height / 2.0,
-            -height / 2.0,
-            -1.0,
-            1.0,
-        )
-    }
-
-    pub fn resize_surfaces(&mut self, width: u16, height: u16) -> Result<bool, Error> {
-        if width != self.width || height != self.height {
-            debug!("resize {},{}", width, height);
-
-            self.width = width;
-            self.height = height;
-            self.projection = Self::compute_projection(width as f32, height as f32);
-
-            let (glyph_vertex_buffer, glyph_index_buffer) = Self::compute_vertices(
-                &self.host,
-                self.cell_width as f32,
-                self.cell_height as f32,
-                width as f32,
-                height as f32,
-            )?;
-            self.glyph_vertex_buffer = RefCell::new(glyph_vertex_buffer);
-            self.glyph_index_buffer = glyph_index_buffer;
-
-            // The +1 in here is to handle an irritating case.
-            // When we get N rows with a gap of cell_height - 1 left at
-            // the bottom, we can usually squeeze that extra row in there,
-            // so optimistically pretend that we have that extra pixel!
-            let rows = ((height as usize + 1) / self.cell_height) as u16;
-            let cols = ((width as usize + 1) / self.cell_width) as u16;
-            self.host.pty.resize(rows, cols, width, height)?;
-            self.terminal.resize(rows as usize, cols as usize);
-
-            Ok(true)
-        } else {
-            debug!("ignoring extra resize");
-            Ok(false)
-        }
-    }
-
-    pub fn expose(&mut self, _x: u16, _y: u16, _width: u16, _height: u16) -> Result<(), Error> {
-        self.paint()
+        Ok(())
     }
 
     /// Resolve a glyph from the cache, rendering the glyph on-demand if
@@ -888,6 +628,88 @@ impl<'a> TerminalWindow<'a> {
         Ok(Rc::new(glyph))
     }
 
+    /// Compute a vertex buffer to hold the quads that comprise the visible
+    /// portion of the screen.   We recreate this when the screen is resized.
+    /// The idea is that we want to minimize and heavy lifting and computation
+    /// and instead just poke some attributes into the offset that corresponds
+    /// to a changed cell when we need to repaint the screen, and then just
+    /// let the GPU figure out the rest.
+    fn compute_vertices<F: Facade>(
+        facade: &F,
+        cell_width: f32,
+        cell_height: f32,
+        width: f32,
+        height: f32,
+    ) -> Result<(VertexBuffer<Vertex>, IndexBuffer<u32>), Error> {
+        let mut verts = Vec::new();
+        let mut indices = Vec::new();
+
+        let num_cols = (width as usize + 1) / cell_width as usize;
+        let num_rows = (height as usize + 1) / cell_height as usize;
+
+        for y in 0..num_rows {
+            for x in 0..num_cols {
+                let y_pos = (height / -2.0) + (y as f32 * cell_height);
+                let x_pos = (width / -2.0) + (x as f32 * cell_width);
+                // Remember starting index for this position
+                let idx = verts.len() as u32;
+                verts.push(Vertex {
+                    // Top left
+                    position: Point::new(x_pos, y_pos),
+                    v_idx: V_TOP_LEFT as f32,
+                    ..Default::default()
+                });
+                verts.push(Vertex {
+                    // Top Right
+                    position: Point::new(x_pos + cell_width, y_pos),
+                    v_idx: V_TOP_RIGHT as f32,
+                    ..Default::default()
+                });
+                verts.push(Vertex {
+                    // Bottom Left
+                    position: Point::new(x_pos, y_pos + cell_height),
+                    v_idx: V_BOT_LEFT as f32,
+                    ..Default::default()
+                });
+                verts.push(Vertex {
+                    // Bottom Right
+                    position: Point::new(x_pos + cell_width, y_pos + cell_height),
+                    v_idx: V_BOT_RIGHT as f32,
+                    ..Default::default()
+                });
+
+                // Emit two triangles to form the glyph quad
+                indices.push(idx);
+                indices.push(idx + 1);
+                indices.push(idx + 2);
+                indices.push(idx + 1);
+                indices.push(idx + 2);
+                indices.push(idx + 3);
+            }
+        }
+
+        Ok((
+            VertexBuffer::dynamic(facade, &verts)?,
+            IndexBuffer::new(
+                facade,
+                glium::index::PrimitiveType::TrianglesList,
+                &indices,
+            )?,
+        ))
+    }
+
+    /// The projection corrects for the aspect ratio and flips the y-axis
+    fn compute_projection(width: f32, height: f32) -> Transform3D {
+        Transform3D::ortho(
+            -width / 2.0,
+            width / 2.0,
+            height / 2.0,
+            -height / 2.0,
+            -1.0,
+            1.0,
+        )
+    }
+
     /// A little helper for shaping text.
     /// This is needed to dance around interior mutability concerns,
     /// as the font caches things.
@@ -908,8 +730,9 @@ impl<'a> TerminalWindow<'a> {
         line: &Line,
         selection: Range<usize>,
         cursor: &CursorPosition,
+        terminal: &term::Terminal,
     ) -> Result<(), Error> {
-        let num_cols = self.terminal.screen().physical_cols;
+        let num_cols = terminal.screen().physical_cols;
         let mut vb = self.glyph_vertex_buffer.borrow_mut();
         let mut vertices = {
             let per_line = num_cols * VERTICES_PER_CELL;
@@ -919,7 +742,7 @@ impl<'a> TerminalWindow<'a> {
                 .map()
         };
 
-        let current_highlight = self.terminal.current_highlight();
+        let current_highlight = terminal.current_highlight();
         let cell_width = self.cell_width as f32;
         let cell_height = self.cell_height as f32;
 
@@ -1173,29 +996,29 @@ impl<'a> TerminalWindow<'a> {
         (fg_color, bg_color)
     }
 
-    pub fn paint(&mut self) -> Result<(), Error> {
-        let mut target = self.host.window.draw();
-        let res = self.do_paint(&mut target);
-        // Ensure that we finish() the target before we let the
-        // error bubble up, otherwise we lose the context.
-        target.finish().unwrap();
-        res?;
-        Ok(())
-    }
-
-    fn do_paint(&mut self, target: &mut glium::Frame) -> Result<(), Error> {
+    pub fn paint(
+        &mut self,
+        target: &mut glium::Frame,
+        term: &mut term::Terminal,
+    ) -> Result<(), Error> {
         let background_color = self.palette.resolve(
             &term::color::ColorAttribute::Background,
         );
         let (r, g, b, a) = background_color.to_linear_tuple_rgba();
         target.clear_color(r, g, b, a);
 
-        let cursor = self.terminal.cursor_pos();
+        let cursor = term.cursor_pos();
         {
-            let dirty_lines = self.terminal.get_dirty_lines();
+            let dirty_lines = term.get_dirty_lines();
 
             for (line_idx, line, selrange) in dirty_lines {
-                self.render_screen_line(line_idx, line, selrange, &cursor)?;
+                self.render_screen_line(
+                    line_idx,
+                    line,
+                    selrange,
+                    &cursor,
+                    term,
+                )?;
             }
         }
 
@@ -1234,7 +1057,242 @@ impl<'a> TerminalWindow<'a> {
             },
         )?;
 
-        self.terminal.clean_dirty_lines();
+        term.clean_dirty_lines();
+        Ok(())
+    }
+}
+
+/// Holds the information we need to implement TerminalHost
+struct Host<'a> {
+    window: Window<'a>,
+    pty: MasterPty,
+    timestamp: xcb::xproto::Timestamp,
+    clipboard: Option<String>,
+}
+
+pub struct TerminalWindow<'a> {
+    host: Host<'a>,
+    conn: &'a Connection,
+    renderer: Renderer,
+    width: u16,
+    height: u16,
+    cell_height: usize,
+    cell_width: usize,
+    terminal: term::Terminal,
+    process: Child,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+struct GlyphKey {
+    font_idx: usize,
+    glyph_pos: u32,
+    style: TextStyle,
+}
+
+/// Caches a rendered glyph.
+/// The image data may be None for whitespace glyphs.
+#[derive(Debug)]
+struct CachedGlyph {
+    has_color: bool,
+    x_offset: isize,
+    y_offset: isize,
+    bearing_x: isize,
+    bearing_y: isize,
+    texture: Option<Sprite>,
+    scale: f32,
+}
+
+impl<'a> term::TerminalHost for Host<'a> {
+    fn writer(&mut self) -> &mut Write {
+        &mut self.pty
+    }
+
+    fn click_link(&mut self, link: &Rc<Hyperlink>) {
+        // TODO: make this configurable
+        let mut cmd = Command::new("xdg-open");
+        cmd.arg(&link.url);
+        match cmd.spawn() {
+            Ok(_) => {}
+            Err(err) => eprintln!("failed to spawn xdg-open {}: {:?}", link.url, err),
+        }
+    }
+
+    // Check out https://tronche.com/gui/x/icccm/sec-2.html for some deep and complex
+    // background on what's happening in here.
+    fn get_clipboard(&mut self) -> Result<String, Error> {
+        // If we own the clipboard, just return the text now
+        if let Some(ref text) = self.clipboard {
+            return Ok(text.clone());
+        }
+
+        let conn = self.window.get_conn();
+
+        xcb::convert_selection(
+            conn.conn(),
+            self.window.as_drawable(),
+            xcb::ATOM_PRIMARY,
+            conn.atom_utf8_string,
+            conn.atom_xsel_data,
+            self.timestamp,
+        );
+        conn.flush();
+
+        loop {
+            let event = conn.wait_for_event().ok_or_else(
+                || failure::err_msg("X connection EOF"),
+            )?;
+            match event.response_type() & 0x7f {
+                xcb::SELECTION_NOTIFY => {
+                    let selection: &xcb::SelectionNotifyEvent = unsafe { xcb::cast_event(&event) };
+
+                    if selection.selection() == xcb::ATOM_PRIMARY &&
+                        selection.property() != xcb::NONE
+                    {
+                        let prop = xcb_util::icccm::get_text_property(
+                            conn,
+                            selection.requestor(),
+                            selection.property(),
+                        ).get_reply()?;
+                        return Ok(prop.name().into());
+                    }
+                }
+                _ => {
+                    eprintln!(
+                        "whoops: got XCB event type {} while waiting for selection",
+                        event.response_type() & 0x7f
+                    );
+                    // Rather than block forever, give up and yield an empty string
+                    // for pasting purposes.  We lost an event.  This sucks.
+                    // Will likely need to rethink how we handle passing the clipboard
+                    // data down to the terminal.
+                    return Ok("".into());
+                }
+            }
+        }
+    }
+
+    fn set_clipboard(&mut self, clip: Option<String>) -> Result<(), Error> {
+        self.clipboard = clip;
+        let conn = self.window.get_conn();
+
+        xcb::set_selection_owner(
+            conn.conn(),
+            if self.clipboard.is_some() {
+                self.window.as_drawable()
+            } else {
+                xcb::NONE
+            },
+            xcb::ATOM_PRIMARY,
+            self.timestamp,
+        );
+        // Also set the CLIPBOARD atom, not just the PRIMARY selection.
+        // TODO: make xterm clipboard selection configurable
+        xcb::set_selection_owner(
+            conn.conn(),
+            if self.clipboard.is_some() {
+                self.window.as_drawable()
+            } else {
+                xcb::NONE
+            },
+            conn.atom_clipboard,
+            self.timestamp,
+        );
+
+        // TODO: icccm says that we should check that we got ownership and
+        // amend our UI accordingly
+
+        Ok(())
+    }
+
+    fn set_title(&mut self, title: &str) {
+        self.window.set_title(title);
+    }
+}
+
+impl<'a> TerminalWindow<'a> {
+    pub fn new(
+        conn: &Connection,
+        width: u16,
+        height: u16,
+        terminal: term::Terminal,
+        pty: MasterPty,
+        process: Child,
+        fonts: FontConfiguration,
+        palette: term::color::ColorPalette,
+    ) -> Result<TerminalWindow, Error> {
+        let (cell_height, cell_width, _) = {
+            // Urgh, this is a bit repeaty, but we need to satisfy the borrow checker
+            let font = fonts.default_font()?;
+            let tuple = font.borrow_mut().get_metrics()?;
+            tuple
+        };
+
+        let window = Window::new(&conn, width, height)?;
+        window.set_title("wezterm");
+
+        let host = Host {
+            window,
+            pty,
+            timestamp: 0,
+            clipboard: None,
+        };
+
+        let renderer = Renderer::new(&host.window, width, height, fonts, palette)?;
+        let cell_height = cell_height.ceil() as usize;
+        let cell_width = cell_width.ceil() as usize;
+
+        Ok(TerminalWindow {
+            host,
+            renderer: renderer,
+            conn,
+            width,
+            height,
+            cell_height,
+            cell_width,
+            terminal,
+            process,
+        })
+    }
+
+    pub fn show(&self) {
+        self.host.window.show();
+    }
+
+    pub fn resize_surfaces(&mut self, width: u16, height: u16) -> Result<bool, Error> {
+        if width != self.width || height != self.height {
+            debug!("resize {},{}", width, height);
+
+            self.width = width;
+            self.height = height;
+            self.renderer.resize(&self.host.window, width, height)?;
+
+            // The +1 in here is to handle an irritating case.
+            // When we get N rows with a gap of cell_height - 1 left at
+            // the bottom, we can usually squeeze that extra row in there,
+            // so optimistically pretend that we have that extra pixel!
+            let rows = ((height as usize + 1) / self.cell_height) as u16;
+            let cols = ((width as usize + 1) / self.cell_width) as u16;
+            self.host.pty.resize(rows, cols, width, height)?;
+            self.terminal.resize(rows as usize, cols as usize);
+
+            Ok(true)
+        } else {
+            debug!("ignoring extra resize");
+            Ok(false)
+        }
+    }
+
+    pub fn expose(&mut self, _x: u16, _y: u16, _width: u16, _height: u16) -> Result<(), Error> {
+        self.paint()
+    }
+
+    pub fn paint(&mut self) -> Result<(), Error> {
+        let mut target = self.host.window.draw();
+        let res = self.renderer.paint(&mut target, &mut self.terminal);
+        // Ensure that we finish() the target before we let the
+        // error bubble up, otherwise we lose the context.
+        target.finish().unwrap();
+        res?;
         Ok(())
     }
 
