@@ -34,6 +34,9 @@ pub struct RgbColor {
     pub blue: u8,
 }
 
+pub type RgbTuple = (f32, f32, f32);
+pub type RgbaTuple = (f32, f32, f32, f32);
+
 impl RgbColor {
     /// Construct a color from discrete red, green, blue values
     /// in the range 0-255.
@@ -45,11 +48,11 @@ impl RgbColor {
         palette::Rgba::new_u8(self.red, self.green, self.blue, 0xff)
     }
 
-    pub fn to_linear_tuple_rgb(&self) -> (f32, f32, f32) {
+    pub fn to_linear_tuple_rgb(&self) -> RgbTuple {
         self.to_linear().to_pixel()
     }
 
-    pub fn to_linear_tuple_rgba(&self) -> (f32, f32, f32, f32) {
+    pub fn to_linear_tuple_rgba(&self) -> RgbaTuple {
         self.to_linear().to_pixel()
     }
 

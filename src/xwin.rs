@@ -16,6 +16,7 @@ use std::rc::Rc;
 use std::slice;
 use term::{self, CursorPosition, KeyCode, KeyModifiers, Line, MouseButton, MouseEvent,
            MouseEventKind, TerminalHost, Underline};
+use term::color::RgbaTuple;
 use term::hyperlink::Hyperlink;
 use xcb;
 use xcb_util;
@@ -1000,24 +1001,14 @@ impl<'a> TerminalWindow<'a> {
                     }
                     last_cell_idx = cell_idx;
 
-                    let selected = term::in_range(cell_idx, &selection);
-                    let is_cursor = line_idx as i64 == cursor.y && cursor.x == cell_idx;
-
-                    let (glyph_color, bg_color) = match (selected, is_cursor) {
-                        // Normally, render the cell as configured
-                        (false, false) => (glyph_color, bg_color),
-                        // Cursor cell always renders with background over cursor color
-                        (_, true) => (
-                            self.palette.background.to_linear_tuple_rgba(),
-                            self.palette.cursor.to_linear_tuple_rgba(),
-                        ),
-                        // Selection text colors the background
-                        (true, false) => (
-                            glyph_color,
-                            // TODO: configurable selection color
-                            self.palette.cursor.to_linear_tuple_rgba(),
-                        ),
-                    };
+                    let (glyph_color, bg_color) = self.compute_cell_fg_bg(
+                        line_idx,
+                        cell_idx,
+                        &cursor,
+                        &selection,
+                        glyph_color,
+                        bg_color,
+                    );
 
                     let vert_idx = cell_idx * VERTICES_PER_CELL;
                     let vert = &mut vertices[vert_idx..vert_idx + VERTICES_PER_CELL];
@@ -1104,18 +1095,65 @@ impl<'a> TerminalWindow<'a> {
         // open a vim split horizontally.  Backgrounding vim would leave
         // the right pane with its prior contents instead of showing the
         // cleared lines from the shell in the main screen.
-        let bg_color = self.palette.background.to_linear_tuple_rgba();
-        let vert_idx = (last_cell_idx + 1) * VERTICES_PER_CELL;
-        let vert_slice = &mut vertices[vert_idx..];
-        for vert in vert_slice.iter_mut() {
-            vert.bg_color = bg_color;
-            vert.underline = U_NONE;
-            vert.tex = (0.0, 0.0);
-            vert.adjust = Default::default();
-            vert.has_color = 0.0;
+
+        for cell_idx in last_cell_idx + 1..num_cols {
+            let vert_idx = cell_idx * VERTICES_PER_CELL;
+            let vert_slice = &mut vertices[vert_idx..vert_idx + 4];
+
+            // Even though we don't have a cell for these, they still
+            // hold the cursor or the selection so we need to compute
+            // the colors in the usual way.
+            let (glyph_color, bg_color) = self.compute_cell_fg_bg(
+                line_idx,
+                cell_idx,
+                &cursor,
+                &selection,
+                self.palette.foreground.to_linear_tuple_rgba(),
+                self.palette.background.to_linear_tuple_rgba(),
+            );
+
+            for vert in vert_slice.iter_mut() {
+                vert.bg_color = bg_color;
+                vert.fg_color = glyph_color;
+                vert.underline = U_NONE;
+                vert.tex = (0.0, 0.0);
+                vert.adjust = Default::default();
+                vert.has_color = 0.0;
+            }
         }
 
         Ok(())
+    }
+
+    fn compute_cell_fg_bg(
+        &self,
+        line_idx: usize,
+        cell_idx: usize,
+        cursor: &CursorPosition,
+        selection: &Range<usize>,
+        fg_color: RgbaTuple,
+        bg_color: RgbaTuple,
+    ) -> (RgbaTuple, RgbaTuple) {
+        let selected = term::in_range(cell_idx, &selection);
+        let is_cursor = line_idx as i64 == cursor.y && cursor.x == cell_idx;
+
+        let (fg_color, bg_color) = match (selected, is_cursor) {
+            // Normally, render the cell as configured
+            (false, false) => (fg_color, bg_color),
+            // Cursor cell always renders with background over cursor color
+            (_, true) => (
+                self.palette.background.to_linear_tuple_rgba(),
+                self.palette.cursor.to_linear_tuple_rgba(),
+            ),
+            // Selection text colors the background
+            (true, false) => (
+                fg_color,
+                // TODO: configurable selection color
+                self.palette.cursor.to_linear_tuple_rgba(),
+            ),
+        };
+
+        (fg_color, bg_color)
     }
 
     pub fn paint(&mut self) -> Result<(), Error> {
