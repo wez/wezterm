@@ -23,9 +23,9 @@ addons:
       - libfreetype6-dev
       - libegl1-mesa-dev
 
-env:
-  global:
-    - RUSTFLAGS="-C link-dead-code"
+#env:
+#  global:
+#    - RUSTFLAGS="-C link-dead-code"
 
 after_success: |
   wget https://github.com/SimonKagstrom/kcov/archive/master.tar.gz &&
