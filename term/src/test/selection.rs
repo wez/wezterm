@@ -62,3 +62,27 @@ fn triple_click_selection() {
 
     assert_eq!(term.get_clipboard().unwrap(), "hello worl");
 }
+
+/// Make sure that we adjust for the viewport offset when scrolling
+#[test]
+fn selection_in_scrollback() {
+    let mut term = TestTerm::new(2, 1, 4);
+    term.print("1234");
+    assert_all_contents(&term, &["1", "2", "3", "4"]);
+
+    // Scroll back one line
+    term.scroll_viewport(-1);
+    term.assert_viewport_contents(&["2", "3"]);
+
+    term.click_n(0, 0, MouseButton::Left, 2);
+    assert_eq!(term.get_clipboard().unwrap(), "2");
+
+    // Clear the click streak
+    term.click_n(0, 1, MouseButton::Right, 1);
+
+    term.click_n(0, 1, MouseButton::Left, 3);
+    assert_eq!(term.get_clipboard().unwrap(), "3");
+
+    term.drag_select(0, 0, 0, 1);
+    assert_eq!(term.get_clipboard().unwrap(), "2\n3");
+}

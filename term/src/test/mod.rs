@@ -204,6 +204,34 @@ impl TestTerm {
             reason
         );
     }
+
+    fn viewport_lines(&self) -> Vec<Line> {
+        let screen = self.screen();
+        let line_count = screen.lines.len();
+        let viewport = self.viewport_offset;
+        let phs_rows = screen.physical_rows;
+        screen
+            .all_lines()
+            .iter()
+            .skip((line_count as i64 - phs_rows as i64 - viewport) as usize)
+            .take(phs_rows)
+            .cloned()
+            .collect()
+    }
+    fn print_viewport_lines(&self) {
+        println!("viewport contents are:");
+        for line in self.viewport_lines() {
+            println!("[{}]", line.as_str());
+        }
+    }
+
+    fn assert_viewport_contents(&self, expect_lines: &[&str]) {
+        self.print_viewport_lines();
+
+        let expect: Vec<Line> = expect_lines.iter().map(|s| (*s).into()).collect();
+
+        assert_lines_equal(&self.viewport_lines(), &expect, Compare::TEXT);
+    }
 }
 
 impl Deref for TestTerm {

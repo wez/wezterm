@@ -90,7 +90,7 @@ pub struct TerminalState {
     /// purely for display purposes.
     /// The offset is measured from the top of the physical viewable
     /// screen with larger numbers going backwards.
-    viewport_offset: VisibleRowIndex,
+    pub(crate) viewport_offset: VisibleRowIndex,
 
     /// Remembers the starting coordinate of the selection prior to
     /// dragging.
@@ -281,13 +281,15 @@ impl TerminalState {
                             self.selection_range = None;
                             self.selection_start = Some(SelectionCoordinate {
                                 x: event.x,
-                                y: event.y as ScrollbackOrVisibleRowIndex,
+                                y: event.y as ScrollbackOrVisibleRowIndex -
+                                    self.viewport_offset as ScrollbackOrVisibleRowIndex,
                             });
                             host.set_clipboard(None)?;
                         }
                         // Double click to select a word on the current line
                         Some(&LastMouseClick { streak: 2, .. }) => {
-                            let y = event.y as ScrollbackOrVisibleRowIndex;
+                            let y = event.y as ScrollbackOrVisibleRowIndex -
+                                self.viewport_offset as ScrollbackOrVisibleRowIndex;
                             let idx = self.screen().scrollback_or_visible_row(y);
                             let line = self.screen().lines[idx].as_str();
                             use unicode_segmentation::UnicodeSegmentation;
@@ -324,18 +326,14 @@ impl TerminalState {
                         }
                         // triple click to select the current line
                         Some(&LastMouseClick { streak: 3, .. }) => {
-                            self.selection_start = Some(SelectionCoordinate {
-                                x: event.x,
-                                y: event.y as ScrollbackOrVisibleRowIndex,
-                            });
+                            let y = event.y as ScrollbackOrVisibleRowIndex -
+                                self.viewport_offset as ScrollbackOrVisibleRowIndex;
+                            self.selection_start = Some(SelectionCoordinate { x: event.x, y });
                             self.selection_range = Some(SelectionRange {
-                                start: SelectionCoordinate {
-                                    x: 0,
-                                    y: event.y as ScrollbackOrVisibleRowIndex,
-                                },
+                                start: SelectionCoordinate { x: 0, y },
                                 end: SelectionCoordinate {
                                     x: usize::max_value(),
-                                    y: event.y as ScrollbackOrVisibleRowIndex,
+                                    y,
                                 },
                             });
                             self.dirty_selection_lines();
@@ -395,7 +393,8 @@ impl TerminalState {
                     self.dirty_selection_lines();
                     let end = SelectionCoordinate {
                         x: event.x,
-                        y: event.y as ScrollbackOrVisibleRowIndex,
+                        y: event.y as ScrollbackOrVisibleRowIndex -
+                            self.viewport_offset as ScrollbackOrVisibleRowIndex,
                     };
                     let sel = match self.selection_range.take() {
                         None => {
