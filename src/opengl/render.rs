@@ -1,4 +1,6 @@
 //! This module is responsible for rendering a terminal to an OpenGL context
+
+use super::textureatlas::{Atlas, Sprite, SpriteSlice, TEX_SIZE};
 use config::TextStyle;
 use euclid;
 use failure::Error;
@@ -14,7 +16,6 @@ use std::rc::Rc;
 use std::slice;
 use term::{self, CursorPosition, Line, Underline};
 use term::color::RgbaTuple;
-use textureatlas::{Atlas, Sprite, SpriteSlice, TEX_SIZE};
 
 type Transform3D = euclid::Transform3D<f32>;
 

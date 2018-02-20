@@ -1,5 +1,5 @@
 use super::{Connection, Drawable, Window};
-use super::super::render::Renderer;
+use super::super::opengl::render::Renderer;
 use super::xkeysyms;
 use failure::{self, Error};
 use font::FontConfiguration;

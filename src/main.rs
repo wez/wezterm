@@ -42,7 +42,7 @@ use std::time::Duration;
 
 mod config;
 
-mod render;
+mod opengl;
 
 #[cfg(all(unix, not(target_os = "macos")))]
 mod xwindows;
@@ -54,7 +54,6 @@ use font::FontConfiguration;
 
 mod pty;
 mod sigchld;
-mod textureatlas;
 
 
 /// Determine which shell to run.
