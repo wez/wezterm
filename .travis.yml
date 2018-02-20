@@ -2,9 +2,10 @@ language: rust
 sudo: false
 
 rust:
-  - stable
-  - beta
+  #- stable
+  #- beta
   - nightly
+
 matrix:
   allow_failures:
     - rust: stable
@@ -16,12 +17,19 @@ script:
 addons:
   apt:
     packages:
-      - libxcb-icccm4-dev
-      - libxcb-ewmh-dev
-      - libxcb-keysyms1-dev
+      - binutils-dev
+      - cmake
+      - gcc
+      - libcurl4-openssl-dev
+      - libdw-dev
+      - libegl1-mesa-dev
+      - libelf-dev
       - libfontconfig1-dev
       - libfreetype6-dev
-      - libegl1-mesa-dev
+      - libiberty-dev
+      - libxcb-ewmh-dev
+      - libxcb-icccm4-dev
+      - libxcb-keysyms1-dev
 
 #env:
 #  global:
