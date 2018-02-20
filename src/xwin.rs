@@ -109,10 +109,10 @@ in float v_idx;
 
 uniform mat4 projection;
 uniform mat4 translation;
-uniform bool bg_fill;
-uniform bool underlining;
+uniform bool bg_and_line_layer;
 
 out vec2 tex_coords;
+out vec2 underline_coords;
 out vec4 o_fg_color;
 out vec4 o_bg_color;
 out float o_has_color;
@@ -129,10 +129,10 @@ void main() {
     o_has_color = has_color;
     o_underline = underline;
 
-    if (bg_fill || underlining) {
+    if (bg_and_line_layer) {
         gl_Position = projection * vec4(position, 0.0, 1.0);
 
-        if (underlining) {
+        if (underline != 0.0) {
             // Populate the underline texture coordinates based on the
             // v_idx (which tells us which corner of the cell we're
             // looking at) and o_underline which corresponds to one
@@ -140,13 +140,13 @@ void main() {
             // and which holds the RHS position in the texture coordinate
             // space for the underline texture layer.
             if (v_idx == 0.0) { // top left
-                tex_coords = vec2(o_underline - underline_offset, -1.0);
+                underline_coords = vec2(o_underline - underline_offset, -1.0);
             } else if (v_idx == 1.0) { // top right
-                tex_coords = vec2(o_underline, -1.0);
+                underline_coords = vec2(o_underline, -1.0);
             } else if (v_idx == 2.0) { // bot left
-                tex_coords = vec2(o_underline- underline_offset, 0.0);
+                underline_coords = vec2(o_underline- underline_offset, 0.0);
             } else { // bot right
-                tex_coords = vec2(o_underline, 0.0);
+                underline_coords = vec2(o_underline, 0.0);
             }
         }
 
@@ -177,6 +177,7 @@ const FRAGMENT_SHADER: &str = r#"
 #version 300 es
 precision mediump float;
 in vec2 tex_coords;
+in vec2 underline_coords;
 in vec4 o_fg_color;
 in vec4 o_bg_color;
 in float o_has_color;
@@ -185,8 +186,7 @@ in float o_underline;
 out vec4 color;
 uniform sampler2D glyph_tex;
 uniform sampler2D underline_tex;
-uniform bool bg_fill;
-uniform bool underlining;
+uniform bool bg_and_line_layer;
 
 float multiply_one(float src, float dst, float inv_dst_alpha, float inv_src_alpha) {
     return (src * dst) + (src * (inv_dst_alpha)) + (dst * (inv_src_alpha));
@@ -207,13 +207,20 @@ vec4 multiply(vec4 src, vec4 dst) {
 }
 
 void main() {
-    if (bg_fill) {
+    if (bg_and_line_layer) {
         color = o_bg_color;
-    } else if (underlining) {
+        // If there's an underline/strike glyph, extract the pixel color
+        // from the texture.  If the alpha value is non-zero then we'll
+        // take that pixel, otherwise we'll use the background color.
         if (o_underline != 0.0) {
-            color = texture2D(underline_tex, tex_coords) * o_fg_color;
-        } else {
-            discard;
+            // Compute the pixel color for this location
+            vec4 under_color = multiply(o_fg_color, texture2D(underline_tex, underline_coords));
+            if (under_color.a != 0.0) {
+                // if the line glyph isn't transparent in this position then
+                // we take this pixel color, otherwise we'll leave the color
+                // at the background color.
+                color = under_color;
+            }
         }
     } else {
         color = texture2D(glyph_tex, tex_coords);
@@ -1184,7 +1191,7 @@ impl<'a> TerminalWindow<'a> {
 
         let tex = self.atlas.borrow().texture();
 
-        // Pass 1: Draw backgrounds
+        // Pass 1: Draw backgrounds, strikethrough and underline
         target.draw(
             &*self.glyph_vertex_buffer.borrow(),
             &self.glyph_index_buffer,
@@ -1192,13 +1199,11 @@ impl<'a> TerminalWindow<'a> {
             &uniform! {
                     projection: self.projection.to_column_arrays(),
                     glyph_tex: &*tex,
-                    bg_fill: true,
-                    underlining: false,
+                    bg_and_line_layer: true,
                     underline_tex: &self.underline_tex,
                 },
             &glium::DrawParameters {
                 blend: glium::Blend::alpha_blending(),
-                dithering: false,
                 ..Default::default()
             },
         )?;
@@ -1211,30 +1216,10 @@ impl<'a> TerminalWindow<'a> {
             &uniform! {
                     projection: self.projection.to_column_arrays(),
                     glyph_tex: &*tex,
-                    bg_fill: false,
-                    underlining: false,
+                    bg_and_line_layer: false,
                 },
             &glium::DrawParameters {
                 blend: glium::Blend::alpha_blending(),
-                dithering: false,
-                ..Default::default()
-            },
-        )?;
-
-        // Pass 3: Draw underline/strikethrough
-        target.draw(
-            &*self.glyph_vertex_buffer.borrow(),
-            &self.glyph_index_buffer,
-            &self.program,
-            &uniform! {
-                    projection: self.projection.to_column_arrays(),
-                    glyph_tex: &*tex,
-                    bg_fill: false,
-                    underlining: true,
-                },
-            &glium::DrawParameters {
-                blend: glium::Blend::alpha_blending(),
-                dithering: false,
                 ..Default::default()
             },
         )?;
