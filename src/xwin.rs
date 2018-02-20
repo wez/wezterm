@@ -356,6 +356,18 @@ impl<'a> term::TerminalHost for Host<'a> {
             xcb::ATOM_PRIMARY,
             self.timestamp,
         );
+        // Also set the CLIPBOARD atom, not just the PRIMARY selection.
+        // TODO: make xterm clipboard selection configurable
+        xcb::set_selection_owner(
+            conn.conn(),
+            if self.clipboard.is_some() {
+                self.window.as_drawable()
+            } else {
+                xcb::NONE
+            },
+            conn.atom_clipboard,
+            self.timestamp,
+        );
 
         // TODO: icccm says that we should check that we got ownership and
         // amend our UI accordingly
@@ -1337,12 +1349,12 @@ impl<'a> TerminalWindow<'a> {
                     request.property()
                 );
                 debug!(
-                    "XSEL={}, UTF8={} PRIMARY={}",
+                    "XSEL={}, UTF8={} PRIMARY={} clip={}",
                     self.conn.atom_xsel_data,
                     self.conn.atom_utf8_string,
                     xcb::ATOM_PRIMARY,
+                    self.conn.atom_clipboard,
                 );
-
 
                 // I'd like to use `match` here, but the atom values are not
                 // known at compile time so we have to `if` like a caveman :-p

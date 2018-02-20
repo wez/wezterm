@@ -27,6 +27,7 @@ pub struct Connection {
     pub atom_utf8_string: xcb::Atom,
     pub atom_xsel_data: xcb::Atom,
     pub atom_targets: xcb::Atom,
+    pub atom_clipboard: xcb::Atom,
     keysyms: *mut xcb_key_symbols_t,
     egl_display: Rc<egli::Display>,
     egl_config: egli::FrameBufferConfigRef,
@@ -75,6 +76,9 @@ impl Connection {
         let atom_targets = xcb::intern_atom(&conn, false, "TARGETS")
             .get_reply()?
             .atom();
+        let atom_clipboard = xcb::intern_atom(&conn, false, "CLIPBOARD")
+            .get_reply()?
+            .atom();
 
         let keysyms = unsafe { xcb_key_symbols_alloc(conn.get_raw_conn()) };
 
@@ -108,6 +112,7 @@ impl Connection {
             conn,
             screen_num,
             atom_protocols,
+            atom_clipboard,
             atom_delete,
             keysyms,
             atom_utf8_string,
