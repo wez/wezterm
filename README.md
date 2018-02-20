@@ -2,6 +2,8 @@
 
 A terminal emulator implemented in Rust, using OpenGL ES 2 for rendering.
 
+![Screenshot](screenshots/one.png)
+
 ## Quickstart
 
 * Install `rustup` to get the *nightly* `rust` compiler installed on your system.
