@@ -92,12 +92,12 @@ fn run() -> Result<(), Error> {
     // we always load the cell_height for font 0,
     // regardless of which font we are shaping here,
     // so that we can scale glyphs appropriately
-    let (cell_height, cell_width, _) = font.borrow_mut().get_metrics()?;
+    let metrics = font.borrow_mut().get_fallback(0)?.metrics();
 
     let initial_cols = 80u16;
     let initial_rows = 24u16;
-    let initial_pixel_width = initial_cols * cell_width.ceil() as u16;
-    let initial_pixel_height = initial_rows * cell_height.ceil() as u16;
+    let initial_pixel_width = initial_cols * metrics.cell_width.ceil() as u16;
+    let initial_pixel_height = initial_rows * metrics.cell_height.ceil() as u16;
 
     let (master, slave) = pty::openpty(
         initial_rows,

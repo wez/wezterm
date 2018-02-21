@@ -5,20 +5,35 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
 use std::slice;
-use unicode_width::UnicodeWidthStr;
 
 pub mod ftwrap;
 pub mod fcwrap;
+pub mod system;
+use self::system::{FontSystem, NamedFont};
 
 pub use self::fcwrap::Pattern as FontPattern;
 
+pub use self::system::GlyphInfo;
 use super::config::{Config, TextStyle};
 use term::CellAttributes;
+
+struct FontConfigAndFreeType {}
+
+impl system::FontSystem for FontConfigAndFreeType {
+    fn load_font(&self, config: &Config, style: &TextStyle) -> Result<Box<NamedFont>, Error> {
+        let mut pattern = FontPattern::parse(&style.fontconfig_pattern)?;
+        pattern.add_double("size", config.font_size)?;
+        pattern.add_double("dpi", config.dpi)?;
+
+        Ok(Box::new(Font::new(pattern)?))
+    }
+}
 
 /// Matches and loads fonts for a given input style
 pub struct FontConfiguration {
     config: Config,
-    fonts: RefCell<HashMap<TextStyle, Rc<RefCell<Font>>>>,
+    fonts: RefCell<HashMap<TextStyle, Rc<RefCell<Box<NamedFont>>>>>,
+    system: FontConfigAndFreeType,
 }
 
 impl FontConfiguration {
@@ -27,35 +42,26 @@ impl FontConfiguration {
         Self {
             config,
             fonts: RefCell::new(HashMap::new()),
+            system: FontConfigAndFreeType {},
         }
-    }
-
-    /// Given a text style, load (without caching) the font that
-    /// best matches according to the fontconfig pattern.
-    pub fn load_font(&self, style: &TextStyle) -> Result<Rc<RefCell<Font>>, Error> {
-        let mut pattern = FontPattern::parse(&style.fontconfig_pattern)?;
-        pattern.add_double("size", self.config.font_size)?;
-        pattern.add_double("dpi", self.config.dpi)?;
-
-        Ok(Rc::new(RefCell::new(Font::new(pattern)?)))
     }
 
     /// Given a text style, load (with caching) the font that best
     /// matches according to the fontconfig pattern.
-    pub fn cached_font(&self, style: &TextStyle) -> Result<Rc<RefCell<Font>>, Error> {
+    pub fn cached_font(&self, style: &TextStyle) -> Result<Rc<RefCell<Box<NamedFont>>>, Error> {
         let mut fonts = self.fonts.borrow_mut();
 
         if let Some(entry) = fonts.get(style) {
             return Ok(Rc::clone(entry));
         }
 
-        let font = self.load_font(style)?;
+        let font = Rc::new(RefCell::new(self.system.load_font(&self.config, style)?));
         fonts.insert(style.clone(), Rc::clone(&font));
         Ok(font)
     }
 
     /// Returns the baseline font specified in the configuration
-    pub fn default_font(&self) -> Result<Rc<RefCell<Font>>, Error> {
+    pub fn default_font(&self) -> Result<Rc<RefCell<Box<NamedFont>>>, Error> {
         self.cached_font(&self.config.font)
     }
 
@@ -96,61 +102,63 @@ impl FontConfiguration {
     }
 }
 
-/// Holds information about a shaped glyph
-#[derive(Clone, Debug)]
-pub struct GlyphInfo {
-    /// We only retain text in debug mode for diagnostic purposes
-    #[cfg(debug_assertions)]
-    pub text: String,
-    /// Offset within text
-    pub cluster: u32,
-    /// How many cells/columns this glyph occupies horizontally
-    pub num_cells: u8,
-    /// Which font alternative to use; index into Font.fonts
-    pub font_idx: usize,
-    /// Which freetype glyph to load
-    pub glyph_pos: u32,
-    /// How far to advance the render cursor after drawing this glyph
-    pub x_advance: f64,
-    /// How far to advance the render cursor after drawing this glyph
-    pub y_advance: f64,
-    /// Destination render offset
-    pub x_offset: f64,
-    /// Destination render offset
-    pub y_offset: f64,
-}
-
-impl GlyphInfo {
-    pub fn new(
-        text: &str,
-        font_idx: usize,
-        info: &harfbuzz::hb_glyph_info_t,
-        pos: &harfbuzz::hb_glyph_position_t,
-    ) -> GlyphInfo {
-        let num_cells = UnicodeWidthStr::width(text) as u8;
-        GlyphInfo {
-            #[cfg(debug_assertions)]
-            text: text.into(),
-            num_cells,
-            font_idx,
-            glyph_pos: info.codepoint,
-            cluster: info.cluster,
-            x_advance: pos.x_advance as f64 / 64.0,
-            y_advance: pos.y_advance as f64 / 64.0,
-            x_offset: pos.x_offset as f64 / 64.0,
-            y_offset: pos.y_offset as f64 / 64.0,
-        }
-    }
-}
-
 /// Holds a loaded font alternative
 struct FontInfo {
-    face: ftwrap::Face,
-    font: harfbuzz::Font,
+    face: RefCell<ftwrap::Face>,
+    font: RefCell<harfbuzz::Font>,
     /// nominal monospace cell height
     cell_height: f64,
     /// nominal monospace cell width
     cell_width: f64,
+}
+
+
+impl system::Font for FontInfo {
+    fn harfbuzz_shape(
+        &self,
+        buf: &mut harfbuzz::Buffer,
+        features: Option<&[harfbuzz::hb_feature_t]>,
+    ) {
+        self.font.borrow_mut().shape(buf, features)
+    }
+    fn has_color(&self) -> bool {
+        let face = self.face.borrow();
+        unsafe { ((*face.face).face_flags & ftwrap::FT_FACE_FLAG_COLOR as i64) != 0 }
+    }
+
+    fn metrics(&self) -> system::FontMetrics {
+        let face = self.face.borrow();
+        system::FontMetrics {
+            cell_height: self.cell_height,
+            cell_width: self.cell_width,
+            descender: unsafe { (*face.face).descender },
+        }
+    }
+
+    fn load_glyph(&self, glyph_pos: u32) -> Result<ftwrap::FT_GlyphSlotRec_, Error> {
+        let render_mode = //ftwrap::FT_Render_Mode::FT_RENDER_MODE_NORMAL;
+ //       ftwrap::FT_Render_Mode::FT_RENDER_MODE_LCD;
+        ftwrap::FT_Render_Mode::FT_RENDER_MODE_LIGHT;
+
+        // when changing the load flags, we also need
+        // to change them for harfbuzz otherwise it won't
+        // hint correctly
+        let load_flags = (ftwrap::FT_LOAD_COLOR) as i32 |
+            // enable FT_LOAD_TARGET bits.  There are no flags defined
+            // for these in the bindings so we do some bit magic for
+            // ourselves.  This is how the FT_LOAD_TARGET_() macro
+            // assembles these bits.
+            (render_mode as i32) << 16;
+
+        self.font.borrow_mut().set_load_flags(load_flags);
+        // This clone is conceptually unsafe, but ok in practice as we are
+        // single threaded and don't load any other glyphs in the body of
+        // this load_glyph() function.
+        self.face
+            .borrow_mut()
+            .load_and_render_glyph(glyph_pos, load_flags, render_mode)
+            .map(|g| g.clone())
+    }
 }
 
 /// Holds "the" font selected by the user.  In actuality, it
@@ -167,6 +175,15 @@ impl Drop for Font {
         // Ensure that we drop the fonts before we drop the
         // library, otherwise we will end up faulting
         self.fonts.clear();
+    }
+}
+
+impl NamedFont for Font {
+    fn get_fallback(&mut self, idx: system::FallbackIdx) -> Result<&system::Font, Error> {
+        Ok(self.get_font(idx)?)
+    }
+    fn shape(&mut self, s: &str) -> Result<Vec<GlyphInfo>, Error> {
+        shape_with_harfbuzz(self, 0, s)
     }
 }
 
@@ -244,8 +261,8 @@ impl Font {
         debug!("metrics: width={} height={}", cell_width, cell_height);
 
         self.fonts.push(FontInfo {
-            face,
-            font,
+            face: RefCell::new(face),
+            font: RefCell::new(font),
             cell_height,
             cell_width,
         });
@@ -263,186 +280,131 @@ impl Font {
 
         Ok(&mut self.fonts[idx])
     }
+}
 
-    pub fn has_color(&mut self, idx: usize) -> Result<bool, Error> {
-        let font = self.get_font(idx)?;
-        unsafe {
-            Ok(
-                ((*font.face.face).face_flags & ftwrap::FT_FACE_FLAG_COLOR as i64) != 0,
-            )
-        }
+pub fn shape_with_harfbuzz(
+    font: &mut NamedFont,
+    font_idx: system::FallbackIdx,
+    s: &str,
+) -> Result<Vec<GlyphInfo>, Error> {
+    let features = vec![
+        // kerning
+        harfbuzz::feature_from_string("kern")?,
+        // ligatures
+        harfbuzz::feature_from_string("liga")?,
+        // contextual ligatures
+        harfbuzz::feature_from_string("clig")?,
+    ];
+
+    let mut buf = harfbuzz::Buffer::new()?;
+    buf.set_script(harfbuzz::HB_SCRIPT_LATIN);
+    buf.set_direction(harfbuzz::HB_DIRECTION_LTR);
+    buf.set_language(harfbuzz::language_from_string("en")?);
+    buf.add_str(s);
+
+    {
+        let fallback = font.get_fallback(font_idx)?;
+        fallback.harfbuzz_shape(&mut buf, Some(features.as_slice()));
     }
 
-    pub fn get_metrics(&mut self) -> Result<(f64, f64, i16), Error> {
-        let font = self.get_font(0)?;
-        Ok((font.cell_height, font.cell_width, unsafe {
-            (*font.face.face).descender
-        }))
-    }
+    let infos = buf.glyph_infos();
+    let positions = buf.glyph_positions();
 
-    pub fn shape(&mut self, font_idx: usize, s: &str) -> Result<Vec<GlyphInfo>, Error> {
-        /*
-        debug!(
-            "shape text for font_idx {} with len {} {}",
-            font_idx,
-            s.len(),
-            s
-        );
-*/
-        let features = vec![
-            // kerning
-            harfbuzz::feature_from_string("kern")?,
-            // ligatures
-            harfbuzz::feature_from_string("liga")?,
-            // contextual ligatures
-            harfbuzz::feature_from_string("clig")?,
-        ];
+    let mut cluster = Vec::new();
 
-        let mut buf = harfbuzz::Buffer::new()?;
-        buf.set_script(harfbuzz::HB_SCRIPT_LATIN);
-        buf.set_direction(harfbuzz::HB_DIRECTION_LTR);
-        buf.set_language(harfbuzz::language_from_string("en")?);
-        buf.add_str(s);
+    let mut last_text_pos = None;
+    let mut first_fallback_pos = None;
 
-        self.shape_with_font(font_idx, &mut buf, &features)?;
-        let infos = buf.glyph_infos();
-        let positions = buf.glyph_positions();
-
-        let mut cluster = Vec::new();
-
-        let mut last_text_pos = None;
-        let mut first_fallback_pos = None;
-
-        // Compute the lengths of the text clusters.
-        // Ligatures and combining characters mean
-        // that a single glyph can take the place of
-        // multiple characters.  The 'cluster' member
-        // of the glyph info is set to the position
-        // in the input utf8 text, so we make a pass
-        // over the set of clusters to look for differences
-        // greater than 1 and backfill the length of
-        // the corresponding text fragment.  We need
-        // the fragments to properly handle fallback,
-        // and they're handy to have for debugging
-        // purposes too.
-        let mut sizes = Vec::with_capacity(s.len());
-        for (i, info) in infos.iter().enumerate() {
-            let pos = info.cluster as usize;
-            let mut size = 1;
-            if let Some(last_pos) = last_text_pos {
-                let diff = pos - last_pos;
-                if diff > 1 {
-                    sizes[i - 1] = diff;
-                }
-            } else if pos != 0 {
-                size = pos;
-            }
-            last_text_pos = Some(pos);
-            sizes.push(size);
-        }
+    // Compute the lengths of the text clusters.
+    // Ligatures and combining characters mean
+    // that a single glyph can take the place of
+    // multiple characters.  The 'cluster' member
+    // of the glyph info is set to the position
+    // in the input utf8 text, so we make a pass
+    // over the set of clusters to look for differences
+    // greater than 1 and backfill the length of
+    // the corresponding text fragment.  We need
+    // the fragments to properly handle fallback,
+    // and they're handy to have for debugging
+    // purposes too.
+    let mut sizes = Vec::with_capacity(s.len());
+    for (i, info) in infos.iter().enumerate() {
+        let pos = info.cluster as usize;
+        let mut size = 1;
         if let Some(last_pos) = last_text_pos {
-            let diff = s.len() - last_pos;
+            let diff = pos - last_pos;
             if diff > 1 {
-                let last = sizes.len() - 1;
-                sizes[last] = diff;
+                sizes[i - 1] = diff;
             }
+        } else if pos != 0 {
+            size = pos;
         }
-        //debug!("sizes: {:?}", sizes);
-
-        // Now make a second pass to determine if we need
-        // to perform fallback to a later font.
-        // We can determine this by looking at the codepoint.
-        for (i, info) in infos.iter().enumerate() {
-            let pos = info.cluster as usize;
-            if info.codepoint == 0 {
-                if first_fallback_pos.is_none() {
-                    // Start of a run that needs fallback
-                    first_fallback_pos = Some(pos);
-                }
-            } else if let Some(start) = first_fallback_pos {
-                // End of a fallback run
-                //debug!("range: {:?}-{:?} needs fallback", start, pos);
-
-                let substr = &s[start..pos];
-                let mut shape = self.shape(font_idx + 1, substr)?;
-
-                // Fixup the cluster member to match our current offset
-                for info in shape.iter_mut() {
-                    info.cluster += start as u32;
-                }
-                cluster.append(&mut shape);
-
-                first_fallback_pos = None;
-            }
-            if info.codepoint != 0 {
-                let text = &s[pos..pos + sizes[i]];
-                //debug!("glyph from `{}`", text);
-                cluster.push(GlyphInfo::new(text, font_idx, info, &positions[i]));
-            }
+        last_text_pos = Some(pos);
+        sizes.push(size);
+    }
+    if let Some(last_pos) = last_text_pos {
+        let diff = s.len() - last_pos;
+        if diff > 1 {
+            let last = sizes.len() - 1;
+            sizes[last] = diff;
         }
+    }
+    //debug!("sizes: {:?}", sizes);
 
-        // Check to see if we started and didn't finish a
-        // fallback run.
-        if let Some(start) = first_fallback_pos {
-            let substr = &s[start..];
-            if false {
-                debug!(
-                "at end {:?}-{:?} needs fallback {}",
-                start,
-                s.len() - 1,
-                substr,
-            );
+    // Now make a second pass to determine if we need
+    // to perform fallback to a later font.
+    // We can determine this by looking at the codepoint.
+    for (i, info) in infos.iter().enumerate() {
+        let pos = info.cluster as usize;
+        if info.codepoint == 0 {
+            if first_fallback_pos.is_none() {
+                // Start of a run that needs fallback
+                first_fallback_pos = Some(pos);
             }
-            let mut shape = self.shape(font_idx + 1, substr)?;
+        } else if let Some(start) = first_fallback_pos {
+            // End of a fallback run
+            //debug!("range: {:?}-{:?} needs fallback", start, pos);
+
+            let substr = &s[start..pos];
+            let mut shape = shape_with_harfbuzz(font, font_idx + 1, substr)?;
+
             // Fixup the cluster member to match our current offset
             for info in shape.iter_mut() {
                 info.cluster += start as u32;
             }
             cluster.append(&mut shape);
+
+            first_fallback_pos = None;
         }
-
-        //debug!("shaped: {:#?}", cluster);
-
-        Ok(cluster)
+        if info.codepoint != 0 {
+            let text = &s[pos..pos + sizes[i]];
+            //debug!("glyph from `{}`", text);
+            cluster.push(GlyphInfo::new(text, font_idx, info, &positions[i]));
+        }
     }
 
-    fn shape_with_font(
-        &mut self,
-        idx: usize,
-        buf: &mut harfbuzz::Buffer,
-        features: &Vec<harfbuzz::hb_feature_t>,
-    ) -> Result<(), Error> {
-        let info = self.get_font(idx)?;
-        info.font.shape(buf, Some(features.as_slice()));
-        Ok(())
+    // Check to see if we started and didn't finish a
+    // fallback run.
+    if let Some(start) = first_fallback_pos {
+        let substr = &s[start..];
+        if false {
+            debug!(
+                "at end {:?}-{:?} needs fallback {}",
+                start,
+                s.len() - 1,
+                substr,
+            );
+        }
+        let mut shape = shape_with_harfbuzz(font, font_idx + 1, substr)?;
+        // Fixup the cluster member to match our current offset
+        for info in shape.iter_mut() {
+            info.cluster += start as u32;
+        }
+        cluster.append(&mut shape);
     }
 
-    pub fn load_glyph(
-        &mut self,
-        font_idx: usize,
-        glyph_pos: u32,
-    ) -> Result<&ftwrap::FT_GlyphSlotRec_, Error> {
-        let info = &mut self.fonts[font_idx];
+    //debug!("shaped: {:#?}", cluster);
 
-        let render_mode = //ftwrap::FT_Render_Mode::FT_RENDER_MODE_NORMAL;
- //       ftwrap::FT_Render_Mode::FT_RENDER_MODE_LCD;
-        ftwrap::FT_Render_Mode::FT_RENDER_MODE_LIGHT;
+    Ok(cluster)
 
-        // when changing the load flags, we also need
-        // to change them for harfbuzz otherwise it won't
-        // hint correctly
-        let load_flags = (ftwrap::FT_LOAD_COLOR) as i32 |
-            // enable FT_LOAD_TARGET bits.  There are no flags defined
-            // for these in the bindings so we do some bit magic for
-            // ourselves.  This is how the FT_LOAD_TARGET_() macro
-            // assembles these bits.
-            (render_mode as i32) << 16;
-
-        info.font.set_load_flags(load_flags);
-        info.face.load_and_render_glyph(
-            glyph_pos,
-            load_flags,
-            render_mode,
-        )
-    }
 }

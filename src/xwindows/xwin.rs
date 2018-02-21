@@ -152,11 +152,11 @@ impl<'a> TerminalWindow<'a> {
         fonts: FontConfiguration,
         palette: term::color::ColorPalette,
     ) -> Result<TerminalWindow, Error> {
-        let (cell_height, cell_width, _) = {
+        let (cell_height, cell_width) = {
             // Urgh, this is a bit repeaty, but we need to satisfy the borrow checker
             let font = fonts.default_font()?;
-            let tuple = font.borrow_mut().get_metrics()?;
-            tuple
+            let metrics = font.borrow_mut().get_fallback(0)?.metrics();
+            (metrics.cell_height, metrics.cell_width)
         };
 
         let window = Window::new(&conn, width, height)?;

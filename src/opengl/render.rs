@@ -273,8 +273,8 @@ impl Renderer {
         let (cell_height, cell_width, descender) = {
             // Urgh, this is a bit repeaty, but we need to satisfy the borrow checker
             let font = fonts.default_font()?;
-            let tuple = font.borrow_mut().get_metrics()?;
-            tuple
+            let metrics = font.borrow_mut().get_fallback(0)?.metrics();
+            (metrics.cell_height, metrics.cell_width, metrics.descender)
         };
         let descender = if descender.is_positive() {
             ((descender as f64) / 64.0).ceil() as isize
@@ -456,13 +456,11 @@ impl Renderer {
         let (has_color, ft_glyph, cell_width, cell_height) = {
             let font = self.fonts.cached_font(style)?;
             let mut font = font.borrow_mut();
-            let (height, width, _) = font.get_metrics()?;
-            let has_color = font.has_color(info.font_idx)?;
-            // This clone is conceptually unsafe, but ok in practice as we are
-            // single threaded and don't load any other glyphs in the body of
-            // this load_glyph() function.
-            let ft_glyph = font.load_glyph(info.font_idx, info.glyph_pos)?.clone();
-            (has_color, ft_glyph, width, height)
+            let metrics = font.get_fallback(0)?.metrics();
+            let active_font = font.get_fallback(info.font_idx)?;
+            let has_color = active_font.has_color();
+            let ft_glyph = active_font.load_glyph(info.glyph_pos)?;
+            (has_color, ft_glyph, metrics.cell_width, metrics.cell_height)
         };
 
         let scale = if (info.x_advance / info.num_cells as f64).floor() > cell_width {
@@ -729,7 +727,7 @@ impl Renderer {
     fn shape_text(&self, s: &str, style: &TextStyle) -> Result<Vec<GlyphInfo>, Error> {
         let font = self.fonts.cached_font(style)?;
         let mut font = font.borrow_mut();
-        font.shape(0, s)
+        font.shape(s)
     }
 
     /// "Render" a line of the terminal screen into the vertex buffer.
