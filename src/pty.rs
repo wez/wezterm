@@ -173,8 +173,7 @@ impl SlavePty {
                         libc::SIGQUIT,
                         libc::SIGTERM,
                         libc::SIGALRM,
-                    ]
-                    {
+                    ] {
                         libc::signal(*signo, libc::SIG_DFL);
                     }
 

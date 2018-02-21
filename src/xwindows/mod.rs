@@ -85,9 +85,7 @@ impl Connection {
 
         let keysyms = unsafe { xcb_key_symbols_alloc(conn.get_raw_conn()) };
 
-        let egl_display = egli::Display::from_display_id(display as *mut _).map_err(
-            egli_err,
-        )?;
+        let egl_display = egli::Display::from_display_id(display as *mut _).map_err(egli_err)?;
 
         let egl_version = egl_display.initialize_and_get_version().map_err(egli_err)?;
         println!("Using EGL {}", egl_version);
@@ -191,12 +189,14 @@ impl<'a> Drawable for Window<'a> {
 }
 
 impl<'a> Window<'a> {
-    /// Create a new window on the specified screen with the specified dimensions
+    /// Create a new window on the specified screen with the specified
+    /// dimensions
     pub fn new(conn: &Connection, width: u16, height: u16) -> Result<Window> {
         let setup = conn.conn().get_setup();
-        let screen = setup.roots().nth(conn.screen_num() as usize).ok_or(
-            failure::err_msg("no screen?"),
-        )?;
+        let screen = setup
+            .roots()
+            .nth(conn.screen_num() as usize)
+            .ok_or(failure::err_msg("no screen?"))?;
         let window_id = conn.conn().generate_id();
 
         xcb::create_window_checked(
@@ -217,13 +217,13 @@ impl<'a> Window<'a> {
             &[
                 (
                     xcb::CW_EVENT_MASK,
-                    xcb::EVENT_MASK_EXPOSURE | xcb::EVENT_MASK_KEY_PRESS |
-                        xcb::EVENT_MASK_BUTTON_PRESS |
-                        xcb::EVENT_MASK_BUTTON_RELEASE |
-                        xcb::EVENT_MASK_POINTER_MOTION |
-                        xcb::EVENT_MASK_BUTTON_MOTION |
-                        xcb::EVENT_MASK_KEY_RELEASE |
-                        xcb::EVENT_MASK_STRUCTURE_NOTIFY,
+                    xcb::EVENT_MASK_EXPOSURE | xcb::EVENT_MASK_KEY_PRESS
+                        | xcb::EVENT_MASK_BUTTON_PRESS
+                        | xcb::EVENT_MASK_BUTTON_RELEASE
+                        | xcb::EVENT_MASK_POINTER_MOTION
+                        | xcb::EVENT_MASK_BUTTON_MOTION
+                        | xcb::EVENT_MASK_KEY_RELEASE
+                        | xcb::EVENT_MASK_STRUCTURE_NOTIFY,
                 ),
             ],
         ).request_check()?;
@@ -253,9 +253,7 @@ impl<'a> Window<'a> {
             .make_current(&surface, &surface, &egl_context)
             .map_err(egli_err)?;
 
-        gl::load_with(
-            |s| unsafe { mem::transmute(egli::egl::get_proc_address(s)) },
-        );
+        gl::load_with(|s| unsafe { mem::transmute(egli::egl::get_proc_address(s)) });
 
         let gl_state = Rc::new(GlState {
             display: Rc::clone(&conn.egl_display),

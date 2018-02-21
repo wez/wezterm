@@ -218,5 +218,4 @@ pub fn shape_with_harfbuzz(
     //debug!("shaped: {:#?}", cluster);
 
     Ok(cluster)
-
 }

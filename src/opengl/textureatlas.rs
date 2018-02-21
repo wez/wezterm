@@ -135,8 +135,8 @@ impl Sprite {
             0
         } else {
             // Width of the first cell
-            let cell_0 = width.min((slice.cell_width as i32).saturating_sub(slice.left_offset)) as
-                u32;
+            let cell_0 =
+                width.min((slice.cell_width as i32).saturating_sub(slice.left_offset)) as u32;
 
             if slice.cell_idx == slice.num_cells - 1 {
                 // Width of all the other cells
@@ -181,8 +181,8 @@ impl Sprite {
     /// Returns the right coordinate for a slice in texture coordinate space
     #[inline]
     pub fn right(&self, slice: &SpriteSlice) -> f32 {
-        let right = self.coords.left as f32 +
-            ((self.left_pix(slice) + self.slice_width(slice)) as f32 / slice.scale);
+        let right = self.coords.left as f32
+            + ((self.left_pix(slice) + self.slice_width(slice)) as f32 / slice.scale);
         right / self.texture.width() as f32
     }
 
@@ -204,13 +204,15 @@ impl Sprite {
         (self.left(slice), self.top(slice))
     }
 
-    /// Returns the bottom-left coordinate for a slice in texture coordinate space
+    /// Returns the bottom-left coordinate for a slice in texture coordinate
+    /// space
     #[inline]
     pub fn bottom_left(&self, slice: &SpriteSlice) -> (f32, f32) {
         (self.left(slice), self.bottom(slice))
     }
 
-    /// Returns the bottom-right coordinate for a slice in texture coordinate space
+    /// Returns the bottom-right coordinate for a slice in texture coordinate
+    /// space
     #[inline]
     pub fn bottom_right(&self, slice: &SpriteSlice) -> (f32, f32) {
         (self.right(slice), self.bottom(slice))

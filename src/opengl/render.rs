@@ -41,7 +41,6 @@ struct CachedGlyph {
     scale: f32,
 }
 
-
 impl Default for Point {
     fn default() -> Point {
         Point::new(0.0, 0.0)
@@ -64,7 +63,9 @@ unsafe impl glium::vertex::Attribute for Point {
 
 impl Point {
     fn new(x: f32, y: f32) -> Self {
-        Self { 0: euclid::point2(x, y) }
+        Self {
+            0: euclid::point2(x, y),
+        }
     }
 }
 
@@ -282,9 +283,7 @@ impl Renderer {
         };
         debug!(
             "METRICS: h={} w={} d={}",
-            cell_height,
-            cell_width,
-            descender
+            cell_height, cell_width, descender
         );
 
         // The descender isn't always reliable.  If it looks implausible then we
@@ -295,8 +294,7 @@ impl Renderer {
             let alt_desc = descender / 2;
             eprintln!(
                 "descender {} is >=50% the cell height, using {} instead",
-                descender,
-                alt_desc
+                descender, alt_desc
             );
             alt_desc
         } else {
@@ -426,7 +424,6 @@ impl Renderer {
         self.glyph_vertex_buffer = RefCell::new(glyph_vertex_buffer);
         self.glyph_index_buffer = glyph_index_buffer;
 
-
         Ok(())
     }
 
@@ -487,17 +484,15 @@ impl Renderer {
                 scale: scale as f32,
             }
         } else {
-
             let raw_im = glium::texture::RawImage2d::from_raw_rgba(
                 glyph.data,
                 (glyph.width as u32, glyph.height as u32),
             );
 
-            let tex = match self.atlas.borrow_mut().allocate(
-                raw_im.width,
-                raw_im.height,
-                raw_im,
-            ) {
+            let tex = match self.atlas
+                .borrow_mut()
+                .allocate(raw_im.width, raw_im.height, raw_im)
+            {
                 Ok(tex) => tex,
                 Err(size) => {
                     // TODO: this is a little tricky.  We need to replace the texture
@@ -589,11 +584,7 @@ impl Renderer {
 
         Ok((
             VertexBuffer::dynamic(facade, &verts)?,
-            IndexBuffer::new(
-                facade,
-                glium::index::PrimitiveType::TrianglesList,
-                &indices,
-            )?,
+            IndexBuffer::new(facade, glium::index::PrimitiveType::TrianglesList, &indices)?,
         ))
     }
 
@@ -687,16 +678,15 @@ impl Renderer {
                         } else {
                             idx
                         };
-                        self.palette.resolve(
-                            &term::color::ColorAttribute::PaletteIndex(idx),
-                        )
+                        self.palette
+                            .resolve(&term::color::ColorAttribute::PaletteIndex(idx))
                     }
                     _ => self.palette.resolve(fg_color),
                 }.to_linear_tuple_rgba();
 
                 let left: f32 = glyph.x_offset as f32 + glyph.bearing_x as f32;
-                let top = (self.cell_height as f32 + self.descender as f32) -
-                    (glyph.y_offset as f32 + glyph.bearing_y as f32);
+                let top = (self.cell_height as f32 + self.descender as f32)
+                    - (glyph.y_offset as f32 + glyph.bearing_y as f32);
 
                 // underline and strikethrough
                 // Figure out what we're going to draw for the underline.
@@ -778,8 +768,8 @@ impl Renderer {
                             let left = if glyph_idx == 0 { left } else { 0.0 };
                             let right = (slice_width as f32 + left) - cell_width;
 
-                            let bottom = ((texture.coords.height as f32) * glyph.scale + top) -
-                                cell_height;
+                            let bottom =
+                                ((texture.coords.height as f32) * glyph.scale + top) - cell_height;
 
                             vert[V_TOP_LEFT].tex = texture.top_left(&slice);
                             vert[V_TOP_LEFT].adjust = Point::new(left, top);
@@ -895,9 +885,8 @@ impl Renderer {
         target: &mut glium::Frame,
         term: &mut term::Terminal,
     ) -> Result<(), Error> {
-        let background_color = self.palette.resolve(
-            &term::color::ColorAttribute::Background,
-        );
+        let background_color = self.palette
+            .resolve(&term::color::ColorAttribute::Background);
         let (r, g, b, a) = background_color.to_linear_tuple_rgba();
         target.clear_color(r, g, b, a);
 
@@ -906,13 +895,7 @@ impl Renderer {
             let dirty_lines = term.get_dirty_lines();
 
             for (line_idx, line, selrange) in dirty_lines {
-                self.render_screen_line(
-                    line_idx,
-                    line,
-                    selrange,
-                    &cursor,
-                    term,
-                )?;
+                self.render_screen_line(line_idx, line, selrange, &cursor, term)?;
             }
         }
 
@@ -924,11 +907,11 @@ impl Renderer {
             &self.glyph_index_buffer,
             &self.program,
             &uniform! {
-                    projection: self.projection.to_column_arrays(),
-                    glyph_tex: &*tex,
-                    bg_and_line_layer: true,
-                    underline_tex: &self.underline_tex,
-                },
+                projection: self.projection.to_column_arrays(),
+                glyph_tex: &*tex,
+                bg_and_line_layer: true,
+                underline_tex: &self.underline_tex,
+            },
             &glium::DrawParameters {
                 blend: glium::Blend::alpha_blending(),
                 ..Default::default()
@@ -941,10 +924,10 @@ impl Renderer {
             &self.glyph_index_buffer,
             &self.program,
             &uniform! {
-                    projection: self.projection.to_column_arrays(),
-                    glyph_tex: &*tex,
-                    bg_and_line_layer: false,
-                },
+                projection: self.projection.to_column_arrays(),
+                glyph_tex: &*tex,
+                bg_and_line_layer: false,
+            },
             &glium::DrawParameters {
                 blend: glium::Blend::alpha_blending(),
                 ..Default::default()

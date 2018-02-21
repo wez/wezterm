@@ -1,24 +1,24 @@
-#[macro_use]
-extern crate failure;
-extern crate gl;
 extern crate egli;
 extern crate euclid;
 #[macro_use]
-extern crate glium;
-extern crate unicode_width;
-extern crate harfbuzz;
+extern crate failure;
 #[cfg(any(target_os = "android", all(unix, not(target_os = "macos"))))]
 extern crate fontconfig; // from servo-fontconfig
 #[cfg(any(target_os = "android", all(unix, not(target_os = "macos"))))]
 extern crate freetype;
+extern crate gl;
+#[macro_use]
+extern crate glium;
+extern crate harfbuzz;
 extern crate libc;
 extern crate mio;
+extern crate palette;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
-extern crate palette;
 extern crate term;
 extern crate toml;
+extern crate unicode_width;
 #[cfg(all(unix, not(target_os = "macos")))]
 extern crate x11;
 #[macro_use]
@@ -55,7 +55,6 @@ use font::FontConfiguration;
 mod pty;
 mod sigchld;
 
-
 /// Determine which shell to run.
 /// We take the contents of the $SHELL env var first, then
 /// fall back to looking it up from the password database.
@@ -67,9 +66,10 @@ fn get_shell() -> Result<String, Error> {
             Ok("/bin/sh".into())
         } else {
             let shell = unsafe { CStr::from_ptr((*ent).pw_shell) };
-            shell.to_str().map(str::to_owned).map_err(|e| {
-                format_err!("failed to resolve shell: {:?}", e)
-            })
+            shell
+                .to_str()
+                .map(str::to_owned)
+                .map_err(|e| format_err!("failed to resolve shell: {:?}", e))
         }
     })
 }
@@ -111,12 +111,7 @@ fn run() -> Result<(), Error> {
     eprintln!("spawned: {:?}", child);
 
     // Ask mio to watch the pty for input from the child process
-    poll.register(
-        &master,
-        Token(0),
-        Ready::readable(),
-        PollOpt::edge(),
-    )?;
+    poll.register(&master, Token(0), Ready::readable(), PollOpt::edge())?;
     // Ask mio to monitor the X connection fd
     poll.register(
         &EventedFd(&conn.as_raw_fd()),
@@ -125,12 +120,7 @@ fn run() -> Result<(), Error> {
         PollOpt::edge(),
     )?;
 
-    poll.register(
-        &waiter,
-        Token(2),
-        Ready::readable(),
-        PollOpt::edge(),
-    )?;
+    poll.register(&waiter, Token(2), Ready::readable(), PollOpt::edge())?;
 
     let terminal = term::Terminal::new(
         initial_rows as usize,
@@ -149,9 +139,10 @@ fn run() -> Result<(), Error> {
         master,
         child,
         fontconfig,
-        config.colors.map(|p| p.into()).unwrap_or_else(
-            term::color::ColorPalette::default,
-        ),
+        config
+            .colors
+            .map(|p| p.into())
+            .unwrap_or_else(term::color::ColorPalette::default),
     )?;
 
     window.show();

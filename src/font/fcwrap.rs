@@ -301,11 +301,9 @@ impl Pattern {
             if !res.succeeded() {
                 Err(res.as_err())
             } else {
-                Ok(
-                    CStr::from_ptr(ptr as *const i8)
-                        .to_string_lossy()
-                        .into_owned(),
-                )
+                Ok(CStr::from_ptr(ptr as *const i8)
+                    .to_string_lossy()
+                    .into_owned())
             }
         }
     }

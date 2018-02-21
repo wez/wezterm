@@ -219,8 +219,8 @@ impl TerminalState {
     fn recompute_highlight(&mut self) {
         self.current_highlight = self.hyperlink_for_cell(
             self.mouse_position.x,
-            self.mouse_position.y as ScrollbackOrVisibleRowIndex -
-                self.viewport_offset as ScrollbackOrVisibleRowIndex,
+            self.mouse_position.y as ScrollbackOrVisibleRowIndex
+                - self.viewport_offset as ScrollbackOrVisibleRowIndex,
         );
         self.invalidate_hyperlinks();
     }
@@ -265,12 +265,14 @@ impl TerminalState {
 
         if !send_event {
             match (event, self.current_mouse_button) {
-                (MouseEvent {
-                     kind: MouseEventKind::Press,
-                     button: MouseButton::Left,
-                     ..
-                 },
-                 _) => {
+                (
+                    MouseEvent {
+                        kind: MouseEventKind::Press,
+                        button: MouseButton::Left,
+                        ..
+                    },
+                    _,
+                ) => {
                     self.current_mouse_button = MouseButton::Left;
                     self.dirty_selection_lines();
                     match self.last_mouse_click.as_ref() {
@@ -281,15 +283,15 @@ impl TerminalState {
                             self.selection_range = None;
                             self.selection_start = Some(SelectionCoordinate {
                                 x: event.x,
-                                y: event.y as ScrollbackOrVisibleRowIndex -
-                                    self.viewport_offset as ScrollbackOrVisibleRowIndex,
+                                y: event.y as ScrollbackOrVisibleRowIndex
+                                    - self.viewport_offset as ScrollbackOrVisibleRowIndex,
                             });
                             host.set_clipboard(None)?;
                         }
                         // Double click to select a word on the current line
                         Some(&LastMouseClick { streak: 2, .. }) => {
-                            let y = event.y as ScrollbackOrVisibleRowIndex -
-                                self.viewport_offset as ScrollbackOrVisibleRowIndex;
+                            let y = event.y as ScrollbackOrVisibleRowIndex
+                                - self.viewport_offset as ScrollbackOrVisibleRowIndex;
                             let idx = self.screen().scrollback_or_visible_row(y);
                             let line = self.screen().lines[idx].as_str();
                             use unicode_segmentation::UnicodeSegmentation;
@@ -315,8 +317,7 @@ impl TerminalState {
                                     let text = self.get_selection_text();
                                     debug!(
                                         "finish 2click selection {:?} '{}'",
-                                        self.selection_range,
-                                        text
+                                        self.selection_range, text
                                     );
                                     host.set_clipboard(Some(text))?;
                                     return Ok(());
@@ -326,8 +327,8 @@ impl TerminalState {
                         }
                         // triple click to select the current line
                         Some(&LastMouseClick { streak: 3, .. }) => {
-                            let y = event.y as ScrollbackOrVisibleRowIndex -
-                                self.viewport_offset as ScrollbackOrVisibleRowIndex;
+                            let y = event.y as ScrollbackOrVisibleRowIndex
+                                - self.viewport_offset as ScrollbackOrVisibleRowIndex;
                             self.selection_start = Some(SelectionCoordinate { x: event.x, y });
                             self.selection_range = Some(SelectionRange {
                                 start: SelectionCoordinate { x: 0, y },
@@ -340,8 +341,7 @@ impl TerminalState {
                             let text = self.get_selection_text();
                             debug!(
                                 "finish 3click selection {:?} '{}'",
-                                self.selection_range,
-                                text
+                                self.selection_range, text
                             );
                             host.set_clipboard(Some(text))?;
                         }
@@ -355,12 +355,14 @@ impl TerminalState {
 
                     return Ok(());
                 }
-                (MouseEvent {
-                     kind: MouseEventKind::Release,
-                     button: MouseButton::Left,
-                     ..
-                 },
-                 _) => {
+                (
+                    MouseEvent {
+                        kind: MouseEventKind::Release,
+                        button: MouseButton::Left,
+                        ..
+                    },
+                    _,
+                ) => {
                     // Finish selecting a region, update clipboard
                     self.current_mouse_button = MouseButton::None;
                     match self.last_mouse_click.as_ref() {
@@ -371,8 +373,7 @@ impl TerminalState {
                             if text.len() > 0 {
                                 debug!(
                                     "finish drag selection {:?} '{}'",
-                                    self.selection_range,
-                                    text
+                                    self.selection_range, text
                                 );
                                 host.set_clipboard(Some(text))?;
                             } else {
@@ -387,20 +388,24 @@ impl TerminalState {
                         _ => {}
                     }
                 }
-                (MouseEvent { kind: MouseEventKind::Move, .. }, MouseButton::Left) => {
+                (
+                    MouseEvent {
+                        kind: MouseEventKind::Move,
+                        ..
+                    },
+                    MouseButton::Left,
+                ) => {
                     // dragging out the selection region
                     // TODO: may drag and change the viewport
                     self.dirty_selection_lines();
                     let end = SelectionCoordinate {
                         x: event.x,
-                        y: event.y as ScrollbackOrVisibleRowIndex -
-                            self.viewport_offset as ScrollbackOrVisibleRowIndex,
+                        y: event.y as ScrollbackOrVisibleRowIndex
+                            - self.viewport_offset as ScrollbackOrVisibleRowIndex,
                     };
                     let sel = match self.selection_range.take() {
-                        None => {
-                            SelectionRange::start(self.selection_start.unwrap_or(end.clone()))
-                                .extend(end)
-                        }
+                        None => SelectionRange::start(self.selection_start.unwrap_or(end.clone()))
+                            .extend(end),
                         Some(sel) => sel.extend(end),
                     };
                     self.selection_range = Some(sel);
@@ -417,8 +422,8 @@ impl TerminalState {
                 kind: MouseEventKind::Press,
                 button: MouseButton::WheelUp,
                 ..
-            } |
-            MouseEvent {
+            }
+            | MouseEvent {
                 kind: MouseEventKind::Press,
                 button: MouseButton::WheelDown,
                 ..
@@ -444,15 +449,17 @@ impl TerminalState {
                     self.scroll_viewport(scroll_delta)
                 }
             }
-            MouseEvent { kind: MouseEventKind::Press, .. } => {
+            MouseEvent {
+                kind: MouseEventKind::Press,
+                ..
+            } => {
                 self.current_mouse_button = event.button;
                 if let Some(button) = match event.button {
                     MouseButton::Left => Some(0),
                     MouseButton::Middle => Some(1),
                     MouseButton::Right => Some(2),
                     _ => None,
-                }
-                {
+                } {
                     if self.sgr_mouse {
                         write!(
                             host.writer(),
@@ -471,21 +478,26 @@ impl TerminalState {
                     }
                 }
             }
-            MouseEvent { kind: MouseEventKind::Release, .. } => {
+            MouseEvent {
+                kind: MouseEventKind::Release,
+                ..
+            } => {
                 self.current_mouse_button = MouseButton::None;
                 if self.sgr_mouse {
                     write!(host.writer(), "\x1b[<3;{};{}m", event.x + 1, event.y + 1)?;
                 }
             }
-            MouseEvent { kind: MouseEventKind::Move, .. } => {
+            MouseEvent {
+                kind: MouseEventKind::Move,
+                ..
+            } => {
                 if let Some(button) = match (self.current_mouse_button, self.button_event_mouse) {
                     (_, false) => None,
                     (MouseButton::Left, true) => Some(32),
                     (MouseButton::Middle, true) => Some(33),
                     (MouseButton::Right, true) => Some(34),
                     (..) => None,
-                }
-                {
+                } {
                     if self.sgr_mouse {
                         write!(
                             host.writer(),
@@ -588,8 +600,8 @@ impl TerminalState {
             (Insert, ..) => "\x1b[2~",
 
             // Modifier keys pressed on their own and unmappable keys don't expand to anything
-            (Control, ..) | (Alt, ..) | (Meta, ..) | (Super, ..) | (Hyper, ..) | (Shift, ..) |
-            (Unknown, ..) => "",
+            (Control, ..) | (Alt, ..) | (Meta, ..) | (Super, ..) | (Hyper, ..) | (Shift, ..)
+            | (Unknown, ..) => "",
         };
 
         host.writer().write(&to_send.as_bytes())?;
@@ -660,8 +672,8 @@ impl TerminalState {
                     Some(sel) => {
                         // i is relative to the viewport, convert it back to
                         // something we can relate to the selection
-                        let row = (i as ScrollbackOrVisibleRowIndex) -
-                            self.viewport_offset as ScrollbackOrVisibleRowIndex;
+                        let row = (i as ScrollbackOrVisibleRowIndex)
+                            - self.viewport_offset as ScrollbackOrVisibleRowIndex;
                         sel.cols_for_row(row)
                     }
                 };
@@ -939,21 +951,15 @@ impl TerminalState {
                 let cols = screen.physical_cols;
                 let rows = screen.physical_rows as VisibleRowIndex;
                 match erase {
-                    DisplayErase::Below => {
-                        for y in cy..rows {
-                            screen.clear_line(y, 0..cols);
-                        }
-                    }
-                    DisplayErase::Above => {
-                        for y in 0..cy {
-                            screen.clear_line(y, 0..cols);
-                        }
-                    }
-                    DisplayErase::All => {
-                        for y in 0..rows {
-                            screen.clear_line(y, 0..cols);
-                        }
-                    }
+                    DisplayErase::Below => for y in cy..rows {
+                        screen.clear_line(y, 0..cols);
+                    },
+                    DisplayErase::Above => for y in 0..cy {
+                        screen.clear_line(y, 0..cols);
+                    },
+                    DisplayErase::All => for y in 0..rows {
+                        screen.clear_line(y, 0..cols);
+                    },
                     DisplayErase::SavedLines => {
                         println!("ed: no support for xterm Erase Saved Lines yet");
                     }
@@ -1114,9 +1120,8 @@ impl vte::Perform for TerminalState {
         match osc {
             &[b"0", title] => {
                 if let Ok(title) = str::from_utf8(title) {
-                    self.answerback.push(
-                        AnswerBack::TitleChanged(title.to_string()),
-                    );
+                    self.answerback
+                        .push(AnswerBack::TitleChanged(title.to_string()));
                 } else {
                     eprintln!("OSC: failed to decode utf title for {:?}", title);
                 }
@@ -1166,10 +1171,7 @@ impl vte::Perform for TerminalState {
     fn esc_dispatch(&mut self, params: &[i64], intermediates: &[u8], _ignore: bool, byte: u8) {
         debug!(
             "ESC params={:?}, intermediates={:?} b={:02x} {}",
-            params,
-            intermediates,
-            byte,
-            byte as char
+            params, intermediates, byte, byte as char
         );
         // Sequences from both of these sections show up in this handler:
         // https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h2-C1-_8-Bit_-Control-Characters
@@ -1214,10 +1216,7 @@ impl vte::Perform for TerminalState {
             (..) => {
                 println!(
                     "ESC unhandled params={:?}, intermediates={:?} b={:02x} {}",
-                    params,
-                    intermediates,
-                    byte,
-                    byte as char
+                    params, intermediates, byte, byte as char
                 );
             }
         }

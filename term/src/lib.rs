@@ -1,21 +1,21 @@
 //! Terminal model
 #![feature(slice_patterns)]
 
+#[macro_use]
+extern crate bitflags;
 #[allow(unused_imports)]
 #[macro_use]
 extern crate failure;
-#[macro_use]
-extern crate bitflags;
-extern crate palette;
-extern crate unicode_width;
-extern crate unicode_segmentation;
-extern crate serde;
-#[macro_use]
-extern crate serde_derive;
-extern crate vte;
 #[cfg(test)]
 #[macro_use]
 extern crate maplit;
+extern crate palette;
+extern crate serde;
+#[macro_use]
+extern crate serde_derive;
+extern crate unicode_segmentation;
+extern crate unicode_width;
+extern crate vte;
 
 use failure::Error;
 use std::ops::{Deref, DerefMut, Range};

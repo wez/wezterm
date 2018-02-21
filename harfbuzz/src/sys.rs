@@ -692,84 +692,89 @@ extern "C" {
 extern "C" {
     pub fn hb_unicode_funcs_get_parent(ufuncs: *mut hb_unicode_funcs_t) -> *mut hb_unicode_funcs_t;
 }
-pub type hb_unicode_combining_class_func_t =
-    ::std::option::Option<
-        unsafe extern "C" fn(ufuncs: *mut hb_unicode_funcs_t,
-                             unicode: hb_codepoint_t,
-                             user_data: *mut ::std::os::raw::c_void)
-                             -> hb_unicode_combining_class_t,
-    >;
-pub type hb_unicode_eastasian_width_func_t =
-    ::std::option::Option<
-        unsafe extern "C" fn(ufuncs: *mut hb_unicode_funcs_t,
-                             unicode: hb_codepoint_t,
-                             user_data: *mut ::std::os::raw::c_void)
-                             -> ::std::os::raw::c_uint,
-    >;
-pub type hb_unicode_general_category_func_t =
-    ::std::option::Option<
-        unsafe extern "C" fn(ufuncs: *mut hb_unicode_funcs_t,
-                             unicode: hb_codepoint_t,
-                             user_data: *mut ::std::os::raw::c_void)
-                             -> hb_unicode_general_category_t,
-    >;
-pub type hb_unicode_mirroring_func_t =
-    ::std::option::Option<
-        unsafe extern "C" fn(ufuncs: *mut hb_unicode_funcs_t,
-                             unicode: hb_codepoint_t,
-                             user_data: *mut ::std::os::raw::c_void)
-                             -> hb_codepoint_t,
-    >;
-pub type hb_unicode_script_func_t =
-    ::std::option::Option<
-        unsafe extern "C" fn(ufuncs: *mut hb_unicode_funcs_t,
-                             unicode: hb_codepoint_t,
-                             user_data: *mut ::std::os::raw::c_void)
-                             -> hb_script_t,
-    >;
-pub type hb_unicode_compose_func_t =
-    ::std::option::Option<
-        unsafe extern "C" fn(ufuncs: *mut hb_unicode_funcs_t,
-                             a: hb_codepoint_t,
-                             b: hb_codepoint_t,
-                             ab: *mut hb_codepoint_t,
-                             user_data: *mut ::std::os::raw::c_void)
-                             -> hb_bool_t,
-    >;
-pub type hb_unicode_decompose_func_t =
-    ::std::option::Option<
-        unsafe extern "C" fn(ufuncs: *mut hb_unicode_funcs_t,
-                             ab: hb_codepoint_t,
-                             a: *mut hb_codepoint_t,
-                             b: *mut hb_codepoint_t,
-                             user_data: *mut ::std::os::raw::c_void)
-                             -> hb_bool_t,
-    >;
+pub type hb_unicode_combining_class_func_t = ::std::option::Option<
+    unsafe extern "C" fn(
+        ufuncs: *mut hb_unicode_funcs_t,
+        unicode: hb_codepoint_t,
+        user_data: *mut ::std::os::raw::c_void,
+    ) -> hb_unicode_combining_class_t,
+>;
+pub type hb_unicode_eastasian_width_func_t = ::std::option::Option<
+    unsafe extern "C" fn(
+        ufuncs: *mut hb_unicode_funcs_t,
+        unicode: hb_codepoint_t,
+        user_data: *mut ::std::os::raw::c_void,
+    ) -> ::std::os::raw::c_uint,
+>;
+pub type hb_unicode_general_category_func_t = ::std::option::Option<
+    unsafe extern "C" fn(
+        ufuncs: *mut hb_unicode_funcs_t,
+        unicode: hb_codepoint_t,
+        user_data: *mut ::std::os::raw::c_void,
+    ) -> hb_unicode_general_category_t,
+>;
+pub type hb_unicode_mirroring_func_t = ::std::option::Option<
+    unsafe extern "C" fn(
+        ufuncs: *mut hb_unicode_funcs_t,
+        unicode: hb_codepoint_t,
+        user_data: *mut ::std::os::raw::c_void,
+    ) -> hb_codepoint_t,
+>;
+pub type hb_unicode_script_func_t = ::std::option::Option<
+    unsafe extern "C" fn(
+        ufuncs: *mut hb_unicode_funcs_t,
+        unicode: hb_codepoint_t,
+        user_data: *mut ::std::os::raw::c_void,
+    ) -> hb_script_t,
+>;
+pub type hb_unicode_compose_func_t = ::std::option::Option<
+    unsafe extern "C" fn(
+        ufuncs: *mut hb_unicode_funcs_t,
+        a: hb_codepoint_t,
+        b: hb_codepoint_t,
+        ab: *mut hb_codepoint_t,
+        user_data: *mut ::std::os::raw::c_void,
+    ) -> hb_bool_t,
+>;
+pub type hb_unicode_decompose_func_t = ::std::option::Option<
+    unsafe extern "C" fn(
+        ufuncs: *mut hb_unicode_funcs_t,
+        ab: hb_codepoint_t,
+        a: *mut hb_codepoint_t,
+        b: *mut hb_codepoint_t,
+        user_data: *mut ::std::os::raw::c_void,
+    ) -> hb_bool_t,
+>;
 ///
 /// hb_unicode_decompose_compatibility_func_t:
 /// @ufuncs: a Unicode function structure
 /// @u: codepoint to decompose
-/// @decomposed: address of codepoint array (of length %HB_UNICODE_MAX_DECOMPOSITION_LEN) to write decomposition into
-/// @user_data: user data pointer as passed to hb_unicode_funcs_set_decompose_compatibility_func()
+/// @decomposed: address of codepoint array (of length %HB_UNICODE_MAX_DECOMPOSITION_LEN) to write
+/// decomposition into @user_data: user data pointer as passed to
+/// hb_unicode_funcs_set_decompose_compatibility_func()
 ///
-/// Fully decompose @u to its Unicode compatibility decomposition. The codepoints of the decomposition will be written to @decomposed.
-/// The complete length of the decomposition will be returned.
+/// Fully decompose @u to its Unicode compatibility decomposition. The codepoints of the
+/// decomposition will be written to @decomposed. The complete length of the decomposition will be
+/// returned.
 ///
 /// If @u has no compatibility decomposition, zero should be returned.
 ///
-/// The Unicode standard guarantees that a buffer of length %HB_UNICODE_MAX_DECOMPOSITION_LEN codepoints will always be sufficient for any
-/// compatibility decomposition plus an terminating value of 0.  Consequently, @decompose must be allocated by the caller to be at least this length.  Implementations
-/// of this function type must ensure that they do not write past the provided array.
+/// The Unicode standard guarantees that a buffer of length %HB_UNICODE_MAX_DECOMPOSITION_LEN
+/// codepoints will always be sufficient for any compatibility decomposition plus an terminating
+/// value of 0.  Consequently, @decompose must be allocated by the caller to be at least this
+/// length.  Implementations of this function type must ensure that they do not write past the
+/// provided array.
 ///
-/// Return value: number of codepoints in the full compatibility decomposition of @u, or 0 if no decomposition available.
-pub type hb_unicode_decompose_compatibility_func_t =
-    ::std::option::Option<
-        unsafe extern "C" fn(ufuncs: *mut hb_unicode_funcs_t,
-                             u: hb_codepoint_t,
-                             decomposed: *mut hb_codepoint_t,
-                             user_data: *mut ::std::os::raw::c_void)
-                             -> ::std::os::raw::c_uint,
-    >;
+/// Return value: number of codepoints in the full compatibility decomposition of @u, or 0 if no
+/// decomposition available.
+pub type hb_unicode_decompose_compatibility_func_t = ::std::option::Option<
+    unsafe extern "C" fn(
+        ufuncs: *mut hb_unicode_funcs_t,
+        u: hb_codepoint_t,
+        decomposed: *mut hb_codepoint_t,
+        user_data: *mut ::std::os::raw::c_void,
+    ) -> ::std::os::raw::c_uint,
+>;
 extern "C" {
     /// hb_unicode_funcs_set_combining_class_func:
     /// @ufuncs: a Unicode function structure
@@ -982,13 +987,13 @@ pub struct hb_face_t {
 extern "C" {
     pub fn hb_face_create(blob: *mut hb_blob_t, index: ::std::os::raw::c_uint) -> *mut hb_face_t;
 }
-pub type hb_reference_table_func_t =
-    ::std::option::Option<
-        unsafe extern "C" fn(face: *mut hb_face_t,
-                             tag: hb_tag_t,
-                             user_data: *mut ::std::os::raw::c_void)
-                             -> *mut hb_blob_t,
-    >;
+pub type hb_reference_table_func_t = ::std::option::Option<
+    unsafe extern "C" fn(
+        face: *mut hb_face_t,
+        tag: hb_tag_t,
+        user_data: *mut ::std::os::raw::c_void,
+    ) -> *mut hb_blob_t,
+>;
 extern "C" {
     pub fn hb_face_create_for_tables(
         reference_table_func: hb_reference_table_func_t,
@@ -1311,108 +1316,108 @@ fn bindgen_test_layout_hb_glyph_extents_t() {
         )
     );
 }
-pub type hb_font_get_font_extents_func_t =
-    ::std::option::Option<
-        unsafe extern "C" fn(font: *mut hb_font_t,
-                             font_data: *mut ::std::os::raw::c_void,
-                             metrics: *mut hb_font_extents_t,
-                             user_data: *mut ::std::os::raw::c_void)
-                             -> hb_bool_t,
-    >;
+pub type hb_font_get_font_extents_func_t = ::std::option::Option<
+    unsafe extern "C" fn(
+        font: *mut hb_font_t,
+        font_data: *mut ::std::os::raw::c_void,
+        metrics: *mut hb_font_extents_t,
+        user_data: *mut ::std::os::raw::c_void,
+    ) -> hb_bool_t,
+>;
 pub type hb_font_get_font_h_extents_func_t = hb_font_get_font_extents_func_t;
 pub type hb_font_get_font_v_extents_func_t = hb_font_get_font_extents_func_t;
-pub type hb_font_get_nominal_glyph_func_t =
-    ::std::option::Option<
-        unsafe extern "C" fn(font: *mut hb_font_t,
-                             font_data: *mut ::std::os::raw::c_void,
-                             unicode: hb_codepoint_t,
-                             glyph: *mut hb_codepoint_t,
-                             user_data: *mut ::std::os::raw::c_void)
-                             -> hb_bool_t,
-    >;
-pub type hb_font_get_variation_glyph_func_t =
-    ::std::option::Option<
-        unsafe extern "C" fn(font: *mut hb_font_t,
-                             font_data: *mut ::std::os::raw::c_void,
-                             unicode: hb_codepoint_t,
-                             variation_selector: hb_codepoint_t,
-                             glyph: *mut hb_codepoint_t,
-                             user_data: *mut ::std::os::raw::c_void)
-                             -> hb_bool_t,
-    >;
-pub type hb_font_get_glyph_advance_func_t =
-    ::std::option::Option<
-        unsafe extern "C" fn(font: *mut hb_font_t,
-                             font_data: *mut ::std::os::raw::c_void,
-                             glyph: hb_codepoint_t,
-                             user_data: *mut ::std::os::raw::c_void)
-                             -> hb_position_t,
-    >;
+pub type hb_font_get_nominal_glyph_func_t = ::std::option::Option<
+    unsafe extern "C" fn(
+        font: *mut hb_font_t,
+        font_data: *mut ::std::os::raw::c_void,
+        unicode: hb_codepoint_t,
+        glyph: *mut hb_codepoint_t,
+        user_data: *mut ::std::os::raw::c_void,
+    ) -> hb_bool_t,
+>;
+pub type hb_font_get_variation_glyph_func_t = ::std::option::Option<
+    unsafe extern "C" fn(
+        font: *mut hb_font_t,
+        font_data: *mut ::std::os::raw::c_void,
+        unicode: hb_codepoint_t,
+        variation_selector: hb_codepoint_t,
+        glyph: *mut hb_codepoint_t,
+        user_data: *mut ::std::os::raw::c_void,
+    ) -> hb_bool_t,
+>;
+pub type hb_font_get_glyph_advance_func_t = ::std::option::Option<
+    unsafe extern "C" fn(
+        font: *mut hb_font_t,
+        font_data: *mut ::std::os::raw::c_void,
+        glyph: hb_codepoint_t,
+        user_data: *mut ::std::os::raw::c_void,
+    ) -> hb_position_t,
+>;
 pub type hb_font_get_glyph_h_advance_func_t = hb_font_get_glyph_advance_func_t;
 pub type hb_font_get_glyph_v_advance_func_t = hb_font_get_glyph_advance_func_t;
-pub type hb_font_get_glyph_origin_func_t =
-    ::std::option::Option<
-        unsafe extern "C" fn(font: *mut hb_font_t,
-                             font_data: *mut ::std::os::raw::c_void,
-                             glyph: hb_codepoint_t,
-                             x: *mut hb_position_t,
-                             y: *mut hb_position_t,
-                             user_data: *mut ::std::os::raw::c_void)
-                             -> hb_bool_t,
-    >;
+pub type hb_font_get_glyph_origin_func_t = ::std::option::Option<
+    unsafe extern "C" fn(
+        font: *mut hb_font_t,
+        font_data: *mut ::std::os::raw::c_void,
+        glyph: hb_codepoint_t,
+        x: *mut hb_position_t,
+        y: *mut hb_position_t,
+        user_data: *mut ::std::os::raw::c_void,
+    ) -> hb_bool_t,
+>;
 pub type hb_font_get_glyph_h_origin_func_t = hb_font_get_glyph_origin_func_t;
 pub type hb_font_get_glyph_v_origin_func_t = hb_font_get_glyph_origin_func_t;
-pub type hb_font_get_glyph_kerning_func_t =
-    ::std::option::Option<
-        unsafe extern "C" fn(font: *mut hb_font_t,
-                             font_data: *mut ::std::os::raw::c_void,
-                             first_glyph: hb_codepoint_t,
-                             second_glyph: hb_codepoint_t,
-                             user_data: *mut ::std::os::raw::c_void)
-                             -> hb_position_t,
-    >;
+pub type hb_font_get_glyph_kerning_func_t = ::std::option::Option<
+    unsafe extern "C" fn(
+        font: *mut hb_font_t,
+        font_data: *mut ::std::os::raw::c_void,
+        first_glyph: hb_codepoint_t,
+        second_glyph: hb_codepoint_t,
+        user_data: *mut ::std::os::raw::c_void,
+    ) -> hb_position_t,
+>;
 pub type hb_font_get_glyph_h_kerning_func_t = hb_font_get_glyph_kerning_func_t;
 pub type hb_font_get_glyph_v_kerning_func_t = hb_font_get_glyph_kerning_func_t;
-pub type hb_font_get_glyph_extents_func_t =
-    ::std::option::Option<
-        unsafe extern "C" fn(font: *mut hb_font_t,
-                             font_data: *mut ::std::os::raw::c_void,
-                             glyph: hb_codepoint_t,
-                             extents: *mut hb_glyph_extents_t,
-                             user_data: *mut ::std::os::raw::c_void)
-                             -> hb_bool_t,
-    >;
-pub type hb_font_get_glyph_contour_point_func_t =
-    ::std::option::Option<
-        unsafe extern "C" fn(font: *mut hb_font_t,
-                             font_data: *mut ::std::os::raw::c_void,
-                             glyph: hb_codepoint_t,
-                             point_index: ::std::os::raw::c_uint,
-                             x: *mut hb_position_t,
-                             y: *mut hb_position_t,
-                             user_data: *mut ::std::os::raw::c_void)
-                             -> hb_bool_t,
-    >;
-pub type hb_font_get_glyph_name_func_t =
-    ::std::option::Option<
-        unsafe extern "C" fn(font: *mut hb_font_t,
-                             font_data: *mut ::std::os::raw::c_void,
-                             glyph: hb_codepoint_t,
-                             name: *mut ::std::os::raw::c_char,
-                             size: ::std::os::raw::c_uint,
-                             user_data: *mut ::std::os::raw::c_void)
-                             -> hb_bool_t,
-    >;
-pub type hb_font_get_glyph_from_name_func_t =
-    ::std::option::Option<
-        unsafe extern "C" fn(font: *mut hb_font_t,
-                             font_data: *mut ::std::os::raw::c_void,
-                             name: *const ::std::os::raw::c_char,
-                             len: ::std::os::raw::c_int,
-                             glyph: *mut hb_codepoint_t,
-                             user_data: *mut ::std::os::raw::c_void)
-                             -> hb_bool_t,
-    >;
+pub type hb_font_get_glyph_extents_func_t = ::std::option::Option<
+    unsafe extern "C" fn(
+        font: *mut hb_font_t,
+        font_data: *mut ::std::os::raw::c_void,
+        glyph: hb_codepoint_t,
+        extents: *mut hb_glyph_extents_t,
+        user_data: *mut ::std::os::raw::c_void,
+    ) -> hb_bool_t,
+>;
+pub type hb_font_get_glyph_contour_point_func_t = ::std::option::Option<
+    unsafe extern "C" fn(
+        font: *mut hb_font_t,
+        font_data: *mut ::std::os::raw::c_void,
+        glyph: hb_codepoint_t,
+        point_index: ::std::os::raw::c_uint,
+        x: *mut hb_position_t,
+        y: *mut hb_position_t,
+        user_data: *mut ::std::os::raw::c_void,
+    ) -> hb_bool_t,
+>;
+pub type hb_font_get_glyph_name_func_t = ::std::option::Option<
+    unsafe extern "C" fn(
+        font: *mut hb_font_t,
+        font_data: *mut ::std::os::raw::c_void,
+        glyph: hb_codepoint_t,
+        name: *mut ::std::os::raw::c_char,
+        size: ::std::os::raw::c_uint,
+        user_data: *mut ::std::os::raw::c_void,
+    ) -> hb_bool_t,
+>;
+pub type hb_font_get_glyph_from_name_func_t = ::std::option::Option<
+    unsafe extern "C" fn(
+        font: *mut hb_font_t,
+        font_data: *mut ::std::os::raw::c_void,
+        name: *const ::std::os::raw::c_char,
+        len: ::std::os::raw::c_int,
+        glyph: *mut hb_codepoint_t,
+        user_data: *mut ::std::os::raw::c_void,
+    ) -> hb_bool_t,
+>;
 extern "C" {
     /// hb_font_funcs_set_font_h_extents_func:
     /// @ffuncs: font functions.
@@ -2182,7 +2187,9 @@ fn bindgen_test_layout_hb_segment_properties_t() {
         concat!("Alignment of ", stringify!(hb_segment_properties_t))
     );
     assert_eq!(
-        unsafe { &(*(::std::ptr::null::<hb_segment_properties_t>())).direction as *const _ as usize },
+        unsafe {
+            &(*(::std::ptr::null::<hb_segment_properties_t>())).direction as *const _ as usize
+        },
         0usize,
         concat!(
             "Offset of field: ",
@@ -2202,7 +2209,9 @@ fn bindgen_test_layout_hb_segment_properties_t() {
         )
     );
     assert_eq!(
-        unsafe { &(*(::std::ptr::null::<hb_segment_properties_t>())).language as *const _ as usize },
+        unsafe {
+            &(*(::std::ptr::null::<hb_segment_properties_t>())).language as *const _ as usize
+        },
         8usize,
         concat!(
             "Offset of field: ",
@@ -2212,7 +2221,9 @@ fn bindgen_test_layout_hb_segment_properties_t() {
         )
     );
     assert_eq!(
-        unsafe { &(*(::std::ptr::null::<hb_segment_properties_t>())).reserved1 as *const _ as usize },
+        unsafe {
+            &(*(::std::ptr::null::<hb_segment_properties_t>())).reserved1 as *const _ as usize
+        },
         16usize,
         concat!(
             "Offset of field: ",
@@ -2222,7 +2233,9 @@ fn bindgen_test_layout_hb_segment_properties_t() {
         )
     );
     assert_eq!(
-        unsafe { &(*(::std::ptr::null::<hb_segment_properties_t>())).reserved2 as *const _ as usize },
+        unsafe {
+            &(*(::std::ptr::null::<hb_segment_properties_t>())).reserved2 as *const _ as usize
+        },
         24usize,
         concat!(
             "Offset of field: ",
@@ -2584,14 +2597,14 @@ extern "C" {
         position_fuzz: ::std::os::raw::c_uint,
     ) -> hb_buffer_diff_flags_t;
 }
-pub type hb_buffer_message_func_t =
-    ::std::option::Option<
-        unsafe extern "C" fn(buffer: *mut hb_buffer_t,
-                             font: *mut hb_font_t,
-                             message: *const ::std::os::raw::c_char,
-                             user_data: *mut ::std::os::raw::c_void)
-                             -> hb_bool_t,
-    >;
+pub type hb_buffer_message_func_t = ::std::option::Option<
+    unsafe extern "C" fn(
+        buffer: *mut hb_buffer_t,
+        font: *mut hb_font_t,
+        message: *const ::std::os::raw::c_char,
+        user_data: *mut ::std::os::raw::c_void,
+    ) -> hb_bool_t,
+>;
 extern "C" {
     pub fn hb_buffer_set_message_func(
         buffer: *mut hb_buffer_t,
@@ -3152,7 +3165,9 @@ fn bindgen_test_layout_hb_ot_math_glyph_variant_t() {
         concat!("Alignment of ", stringify!(hb_ot_math_glyph_variant_t))
     );
     assert_eq!(
-        unsafe { &(*(::std::ptr::null::<hb_ot_math_glyph_variant_t>())).glyph as *const _ as usize },
+        unsafe {
+            &(*(::std::ptr::null::<hb_ot_math_glyph_variant_t>())).glyph as *const _ as usize
+        },
         0usize,
         concat!(
             "Offset of field: ",
@@ -3162,7 +3177,9 @@ fn bindgen_test_layout_hb_ot_math_glyph_variant_t() {
         )
     );
     assert_eq!(
-        unsafe { &(*(::std::ptr::null::<hb_ot_math_glyph_variant_t>())).advance as *const _ as usize },
+        unsafe {
+            &(*(::std::ptr::null::<hb_ot_math_glyph_variant_t>())).advance as *const _ as usize
+        },
         4usize,
         concat!(
             "Offset of field: ",
@@ -3210,8 +3227,8 @@ fn bindgen_test_layout_hb_ot_math_glyph_part_t() {
     );
     assert_eq!(
         unsafe {
-            &(*(::std::ptr::null::<hb_ot_math_glyph_part_t>())).start_connector_length as
-                *const _ as usize
+            &(*(::std::ptr::null::<hb_ot_math_glyph_part_t>())).start_connector_length as *const _
+                as usize
         },
         4usize,
         concat!(
@@ -3223,8 +3240,8 @@ fn bindgen_test_layout_hb_ot_math_glyph_part_t() {
     );
     assert_eq!(
         unsafe {
-            &(*(::std::ptr::null::<hb_ot_math_glyph_part_t>())).end_connector_length as *const _ as
-                usize
+            &(*(::std::ptr::null::<hb_ot_math_glyph_part_t>())).end_connector_length as *const _
+                as usize
         },
         8usize,
         concat!(

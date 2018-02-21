@@ -119,11 +119,7 @@ impl Screen {
         let line_idx = self.phys_row(y);
         debug!(
             "set_cell {} x={} y={} phys={} {:?}",
-            c,
-            x,
-            y,
-            line_idx,
-            attr
+            c, x, y, line_idx, attr
         );
 
         let line = self.line_mut(line_idx);
@@ -171,8 +167,8 @@ impl Screen {
     /// the scrollback.
     #[inline]
     pub fn scrollback_or_visible_row(&self, row: ScrollbackOrVisibleRowIndex) -> PhysRowIndex {
-        ((self.lines.len() - self.physical_rows) as ScrollbackOrVisibleRowIndex + row).max(0) as
-            usize
+        ((self.lines.len() - self.physical_rows) as ScrollbackOrVisibleRowIndex + row).max(0)
+            as usize
     }
 
     #[inline]
@@ -265,10 +261,8 @@ impl Screen {
             }
         } else {
             for _ in 0..to_add {
-                self.lines.insert(
-                    phys_scroll.end - 1,
-                    Line::new(self.physical_cols),
-                );
+                self.lines
+                    .insert(phys_scroll.end - 1, Line::new(self.physical_cols));
             }
         }
     }
@@ -300,10 +294,8 @@ impl Screen {
         }
 
         for _ in 0..num_rows {
-            self.lines.insert(
-                phys_scroll.start,
-                Line::new(self.physical_cols),
-            );
+            self.lines
+                .insert(phys_scroll.start, Line::new(self.physical_cols));
         }
     }
 }

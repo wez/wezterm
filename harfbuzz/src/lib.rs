@@ -1,9 +1,9 @@
 //! Higher level harfbuzz bindings
 
-#[cfg(any(target_os = "android", all(unix, not(target_os = "macos"))))]
-extern crate freetype;
 #[macro_use]
 extern crate failure;
+#[cfg(any(target_os = "android", all(unix, not(target_os = "macos"))))]
+extern crate freetype;
 
 pub mod sys;
 pub use sys::*;
@@ -63,7 +63,9 @@ impl Font {
         // pointer to something, or derefs a nullptr internally
         // if everything fails, so there's nothing for us to
         // test here.
-        Font { font: unsafe { hb_ft_font_create_referenced(face) } }
+        Font {
+            font: unsafe { hb_ft_font_create_referenced(face) },
+        }
     }
 
     #[cfg(any(target_os = "android", all(unix, not(target_os = "macos"))))]

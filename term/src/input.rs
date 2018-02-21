@@ -86,8 +86,8 @@ impl LastMouseClick {
 
     pub fn add(&self, button: MouseButton) -> Self {
         let now = Instant::now();
-        let streak = if button == self.button &&
-            now.duration_since(self.time) <= Duration::from_millis(CLICK_INTERVAL)
+        let streak = if button == self.button
+            && now.duration_since(self.time) <= Duration::from_millis(CLICK_INTERVAL)
         {
             self.streak + 1
         } else {

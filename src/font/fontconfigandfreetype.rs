@@ -3,14 +3,13 @@
 pub use self::fcwrap::Pattern as FontPattern;
 use config::{Config, TextStyle};
 use failure::{self, Error};
-use font::{FallbackIdx, Font, FontMetrics, FontSystem, GlyphInfo, NamedFont, RasterizedGlyph,
-           shape_with_harfbuzz};
+use font::{shape_with_harfbuzz, FallbackIdx, Font, FontMetrics, FontSystem, GlyphInfo, NamedFont,
+           RasterizedGlyph};
 use font::{fcwrap, ftwrap};
 use harfbuzz;
 use std::cell::RefCell;
 use std::mem;
 use std::slice;
-
 
 pub type FontSystemImpl = FontConfigAndFreeType;
 
@@ -41,7 +40,6 @@ struct FontImpl {
     /// nominal monospace cell width
     cell_width: f64,
 }
-
 
 impl Font for FontImpl {
     fn harfbuzz_shape(
@@ -85,11 +83,7 @@ impl Font for FontImpl {
         // single threaded and don't load any other glyphs in the body of
         // this load_glyph() function.
         let mut face = self.face.borrow_mut();
-        let ft_glyph = face.load_and_render_glyph(
-            glyph_pos,
-            load_flags,
-            render_mode,
-        )?;
+        let ft_glyph = face.load_and_render_glyph(glyph_pos, load_flags, render_mode)?;
 
         let mode: ftwrap::FT_Pixel_Mode =
             unsafe { mem::transmute(ft_glyph.bitmap.pixel_mode as u32) };
@@ -261,9 +255,7 @@ impl NamedFontImpl {
     /// Construct a new Font from the user supplied pattern
     pub fn new(mut pattern: FontPattern) -> Result<Self, Error> {
         let mut lib = ftwrap::Library::new()?;
-        lib.set_lcd_filter(
-            ftwrap::FT_LcdFilter::FT_LCD_FILTER_DEFAULT,
-        )?;
+        lib.set_lcd_filter(ftwrap::FT_LcdFilter::FT_LCD_FILTER_DEFAULT)?;
 
         // Enable some filtering options and pull in the standard
         // fallback font selection from the user configuration
@@ -285,9 +277,10 @@ impl NamedFontImpl {
 
     fn load_next_fallback(&mut self) -> Result<(), Error> {
         let idx = self.fonts.len();
-        let pat = self.font_list.iter().nth(idx).ok_or(failure::err_msg(
-            "no more fallbacks",
-        ))?;
+        let pat = self.font_list
+            .iter()
+            .nth(idx)
+            .ok_or(failure::err_msg("no more fallbacks"))?;
         let pat = self.pattern.render_prepare(&pat)?;
         let file = pat.get_file()?;
 

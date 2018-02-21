@@ -29,9 +29,10 @@ impl TerminalHost for TestHost {
     }
 
     fn get_clipboard(&mut self) -> Result<String, Error> {
-        self.clip.as_ref().map(|c| c.clone()).ok_or_else(|| {
-            failure::err_msg("no clipboard")
-        })
+        self.clip
+            .as_ref()
+            .map(|c| c.clone())
+            .ok_or_else(|| failure::err_msg("no clipboard"))
     }
 
     fn writer(&mut self) -> &mut std::io::Write {
@@ -57,7 +58,6 @@ impl TestTerm {
     fn print<B: AsRef<[u8]>>(&mut self, bytes: B) {
         self.term.advance_bytes(bytes, &mut self.host);
     }
-
 
     #[allow(dead_code)]
     fn set_mode(&mut self, mode: &str, enable: bool) {
@@ -188,8 +188,7 @@ impl TestTerm {
         let cursor = self.cursor_pos();
         let expect = CursorPosition { x, y };
         assert_eq!(
-            cursor,
-            expect,
+            cursor, expect,
             "actual cursor (left) didn't match expected cursor (right) reason={:?}",
             reason
         );
@@ -198,8 +197,7 @@ impl TestTerm {
     fn assert_dirty_lines(&self, expected: &[usize], reason: Option<&str>) {
         let dirty_indices: Vec<usize> = self.get_dirty_lines().iter().map(|&(i, ..)| i).collect();
         assert_eq!(
-            &dirty_indices,
-            &expected,
+            &dirty_indices, &expected,
             "actual dirty lines (left) didn't match expected dirty lines (right) reason={:?}",
             reason
         );
@@ -258,7 +256,8 @@ fn assert_lines_equal(lines: &[Line], expect_lines: &[Line], compare: Compare) {
 
         if compare.contains(Compare::DIRTY) {
             assert_eq!(
-                line.is_dirty() , expect.is_dirty(),
+                line.is_dirty(),
+                expect.is_dirty(),
                 "line {} dirty didn't match",
                 idx,
             );
@@ -267,20 +266,12 @@ fn assert_lines_equal(lines: &[Line], expect_lines: &[Line], compare: Compare) {
         if compare.contains(Compare::ATTRS) {
             let line_attrs: Vec<_> = line.cells.iter().map(|c| c.attrs.clone()).collect();
             let expect_attrs: Vec<_> = expect.cells.iter().map(|c| c.attrs.clone()).collect();
-            assert_eq!(
-                expect_attrs ,line_attrs,
-                "line {} attrs didn't match",
-                idx,
-            );
+            assert_eq!(expect_attrs, line_attrs, "line {} attrs didn't match", idx,);
         }
         if compare.contains(Compare::TEXT) {
             let line_str = line.as_str();
             let expect_str = expect.as_str();
-            assert_eq!(
-                line_str ,expect_str,
-                "line {} text didn't match",
-                idx,
-            );
+            assert_eq!(line_str, expect_str, "line {} text didn't match", idx,);
         }
     }
 
@@ -539,5 +530,4 @@ fn test_hyperlinks() {
         ],
         Compare::TEXT | Compare::ATTRS,
     );
-
 }

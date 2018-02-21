@@ -50,9 +50,7 @@ impl Face {
 
     pub fn set_pixel_sizes(&mut self, char_width: u32, char_height: u32) -> Result<(), Error> {
         ft_result(
-            unsafe {
-                FT_Set_Pixel_Sizes(self.face, char_width , char_height )
-            },
+            unsafe { FT_Set_Pixel_Sizes(self.face, char_width, char_height) },
             (),
         )
     }
@@ -78,8 +76,8 @@ impl Face {
     pub fn cell_metrics(&mut self) -> (f64, f64) {
         unsafe {
             let metrics = &(*(*self.face).size).metrics;
-            let height = (metrics.y_scale as f64 * (*self.face).height as f64) /
-                (0x10000 as f64 * 64.0);
+            let height =
+                (metrics.y_scale as f64 * (*self.face).height as f64) / (0x10000 as f64 * 64.0);
 
             let mut width = 0.0;
             for i in 32..128 {
@@ -125,7 +123,9 @@ impl Library {
         let path = CString::new(path.into())?;
 
         let res = unsafe { FT_New_Face(self.lib, path.as_ptr(), face_index, &mut face as *mut _) };
-        Ok(Face { face: ft_result(res, face)? })
+        Ok(Face {
+            face: ft_result(res, face)?,
+        })
     }
 
     pub fn set_lcd_filter(&mut self, filter: FT_LcdFilter) -> Result<(), Error> {

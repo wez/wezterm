@@ -119,8 +119,7 @@ impl<'a> CSIParser<'a> {
             _ => {
                 println!(
                     "dsr: unhandled sequence {:?} {:?}",
-                    self.intermediates,
-                    params
+                    self.intermediates, params
                 );
                 None
             }
@@ -148,15 +147,13 @@ impl<'a> CSIParser<'a> {
         match params {
             &[idx, _..] => {
                 self.advance_by(1, params);
-                self.parse_dec_mode(idx).map(|m| {
-                    CSIAction::SetDecPrivateMode(m, true)
-                })
+                self.parse_dec_mode(idx)
+                    .map(|m| CSIAction::SetDecPrivateMode(m, true))
             }
             _ => {
                 println!(
                     "dec_set_mode: unhandled sequence {:?} {:?}",
-                    self.intermediates,
-                    params
+                    self.intermediates, params
                 );
                 None
             }
@@ -168,9 +165,8 @@ impl<'a> CSIParser<'a> {
         match params {
             &[idx, _..] => {
                 self.advance_by(1, params);
-                self.parse_dec_mode(idx).map(|m| {
-                    CSIAction::SetDecPrivateMode(m, false)
-                })
+                self.parse_dec_mode(idx)
+                    .map(|m| CSIAction::SetDecPrivateMode(m, false))
             }
             _ => {
                 println!("dec_reset_mode: unhandled sequence {:?}", params);
@@ -212,13 +208,13 @@ impl<'a> CSIParser<'a> {
             &[38, 2, red, green, blue, _..] => {
                 // KDE konsole compatibility for truecolor foreground
                 self.advance_by(5, params);
-                Some(CSIAction::SetForegroundColor(
-                    color::ColorAttribute::Rgb(color::RgbColor {
+                Some(CSIAction::SetForegroundColor(color::ColorAttribute::Rgb(
+                    color::RgbColor {
                         red: red as u8,
                         green: green as u8,
                         blue: blue as u8,
-                    }),
-                ))
+                    },
+                )))
             }
             // This variant with a colorspace becomes ambiguous when
             // embedded like this: [0, 1, 38, 2, 204, 204, 204, 48, 2, 85, 85, 204]
@@ -239,13 +235,13 @@ impl<'a> CSIParser<'a> {
             &[48, 2, red, green, blue, _..] => {
                 // KDE konsole compatibility for truecolor background
                 self.advance_by(5, params);
-                Some(CSIAction::SetBackgroundColor(
-                    color::ColorAttribute::Rgb(color::RgbColor {
+                Some(CSIAction::SetBackgroundColor(color::ColorAttribute::Rgb(
+                    color::RgbColor {
                         red: red as u8,
                         green: green as u8,
                         blue: blue as u8,
-                    }),
-                ))
+                    },
+                )))
             }
             &[38, 5, idx, _..] => {
                 // 256 color foreground color index
@@ -386,7 +382,6 @@ impl<'a> CSIParser<'a> {
                     top: 0,
                     bottom: i64::max_value(),
                 })
-
             }
             _ => {
                 println!("set_scroll_region: invalid sequence: {:?}", params);
@@ -445,13 +440,11 @@ impl<'a> Iterator for CSIParser<'a> {
 
             // H: Cursor Position (CUP)
             // f: Horizontal and vertical position (HVP)
-            ('H', &[], Some(&[])) |
-            ('f', &[], Some(&[])) => Some(CSIAction::SetCursorXY {
+            ('H', &[], Some(&[])) | ('f', &[], Some(&[])) => Some(CSIAction::SetCursorXY {
                 x: Position::Absolute(0),
                 y: Position::Absolute(0),
             }),
-            ('H', &[], Some(&[y, x])) |
-            ('f', &[], Some(&[y, x])) => {
+            ('H', &[], Some(&[y, x])) | ('f', &[], Some(&[y, x])) => {
                 // Co-ordinates are 1-based, but we want 0-based
                 Some(CSIAction::SetCursorXY {
                     x: Position::Absolute(x.max(1) - 1),
@@ -460,15 +453,17 @@ impl<'a> Iterator for CSIParser<'a> {
             }
 
             // Erase in Display (ED)
-            ('J', &[], Some(&[])) |
-            ('J', &[], Some(&[0])) => Some(CSIAction::EraseInDisplay(DisplayErase::Below)),
+            ('J', &[], Some(&[])) | ('J', &[], Some(&[0])) => {
+                Some(CSIAction::EraseInDisplay(DisplayErase::Below))
+            }
             ('J', &[], Some(&[1])) => Some(CSIAction::EraseInDisplay(DisplayErase::Above)),
             ('J', &[], Some(&[2])) => Some(CSIAction::EraseInDisplay(DisplayErase::All)),
             ('J', &[], Some(&[3])) => Some(CSIAction::EraseInDisplay(DisplayErase::SavedLines)),
 
             // Erase in Line (EL)
-            ('K', &[], Some(&[])) |
-            ('K', &[], Some(&[0])) => Some(CSIAction::EraseInLine(LineErase::ToRight)),
+            ('K', &[], Some(&[])) | ('K', &[], Some(&[0])) => {
+                Some(CSIAction::EraseInLine(LineErase::ToRight))
+            }
             ('K', &[], Some(&[1])) => Some(CSIAction::EraseInLine(LineErase::ToLeft)),
             ('K', &[], Some(&[2])) => Some(CSIAction::EraseInLine(LineErase::All)),
 
@@ -502,10 +497,10 @@ impl<'a> Iterator for CSIParser<'a> {
                 y: Position::Relative(0),
             }),
 
-            ('c', &[b'>'], Some(&[])) |
-            ('c', &[], Some(&[])) |
-            ('c', &[], Some(&[0])) |
-            ('c', &[b'>'], Some(&[0])) => Some(CSIAction::RequestDeviceAttributes),
+            ('c', &[b'>'], Some(&[]))
+            | ('c', &[], Some(&[]))
+            | ('c', &[], Some(&[0]))
+            | ('c', &[b'>'], Some(&[0])) => Some(CSIAction::RequestDeviceAttributes),
 
             // VPA: Line Position Absolute
             ('d', &[], Some(&[])) => Some(CSIAction::LinePosition(Position::Absolute(0))),

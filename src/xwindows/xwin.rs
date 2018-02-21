@@ -13,7 +13,6 @@ use term::hyperlink::Hyperlink;
 use xcb;
 use xcb_util;
 
-
 /// Holds the information we need to implement TerminalHost
 struct Host<'a> {
     window: Window<'a>,
@@ -70,15 +69,14 @@ impl<'a> term::TerminalHost for Host<'a> {
         conn.flush();
 
         loop {
-            let event = conn.wait_for_event().ok_or_else(
-                || failure::err_msg("X connection EOF"),
-            )?;
+            let event = conn.wait_for_event()
+                .ok_or_else(|| failure::err_msg("X connection EOF"))?;
             match event.response_type() & 0x7f {
                 xcb::SELECTION_NOTIFY => {
                     let selection: &xcb::SelectionNotifyEvent = unsafe { xcb::cast_event(&event) };
 
-                    if selection.selection() == xcb::ATOM_PRIMARY &&
-                        selection.property() != xcb::NONE
+                    if selection.selection() == xcb::ATOM_PRIMARY
+                        && selection.property() != xcb::NONE
                     {
                         let prop = xcb_util::icccm::get_text_property(
                             conn,
@@ -175,7 +173,7 @@ impl<'a> TerminalWindow<'a> {
 
         Ok(TerminalWindow {
             host,
-            renderer: renderer,
+            renderer,
             conn,
             width,
             height,
@@ -259,10 +257,8 @@ impl<'a> TerminalWindow<'a> {
 
     fn decode_key(&self, event: &xcb::KeyPressEvent) -> (KeyCode, KeyModifiers) {
         let mods = xkeysyms::modifiers(event);
-        let sym = self.conn.lookup_keysym(
-            event,
-            mods.contains(KeyModifiers::SHIFT),
-        );
+        let sym = self.conn
+            .lookup_keysym(event, mods.contains(KeyModifiers::SHIFT));
         (xkeysyms::xcb_keysym_to_keycode(sym), mods)
     }
 
@@ -282,12 +278,7 @@ impl<'a> TerminalWindow<'a> {
         match r {
             xcb::EXPOSE => {
                 let expose: &xcb::ExposeEvent = unsafe { xcb::cast_event(&event) };
-                self.expose(
-                    expose.x(),
-                    expose.y(),
-                    expose.width(),
-                    expose.height(),
-                )?;
+                self.expose(expose.x(), expose.y(), expose.width(), expose.height())?;
             }
             xcb::CONFIGURE_NOTIFY => {
                 let cfg: &xcb::ConfigureNotifyEvent = unsafe { xcb::cast_event(&event) };
@@ -317,8 +308,7 @@ impl<'a> TerminalWindow<'a> {
                 };
                 self.mouse_event(event)?;
             }
-            xcb::BUTTON_PRESS |
-            xcb::BUTTON_RELEASE => {
+            xcb::BUTTON_PRESS | xcb::BUTTON_RELEASE => {
                 let button_press: &xcb::ButtonPressEvent = unsafe { xcb::cast_event(&event) };
                 self.host.timestamp = button_press.time();
 
@@ -396,9 +386,8 @@ impl<'a> TerminalWindow<'a> {
 
                     // let the requestor know that we set their property
                     request.property()
-
-                } else if request.target() == self.conn.atom_utf8_string ||
-                           request.target() == xcb::xproto::ATOM_STRING
+                } else if request.target() == self.conn.atom_utf8_string
+                    || request.target() == xcb::xproto::ATOM_STRING
                 {
                     // We'll accept requests for UTF-8 or STRING data.
                     // We don't and won't do any conversion from UTF-8 to

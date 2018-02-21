@@ -9,7 +9,6 @@ use toml;
 use term;
 use term::color::RgbColor;
 
-
 #[derive(Debug, Deserialize, Clone)]
 pub struct Config {
     /// The font size, measured in points
@@ -127,9 +126,7 @@ pub struct StyleRule {
 
 impl Config {
     pub fn load() -> Result<Self, Error> {
-        let home = std::env::home_dir().ok_or_else(
-            || format_err!("can't find home dir"),
-        )?;
+        let home = std::env::home_dir().ok_or_else(|| format_err!("can't find home dir"))?;
 
         let paths = [
             home.join(".config").join("wezterm").join("wezterm.toml"),
@@ -139,20 +136,17 @@ impl Config {
         for p in paths.iter() {
             let mut file = match fs::File::open(p) {
                 Ok(file) => file,
-                Err(err) => {
-                    match err.kind() {
-                        std::io::ErrorKind::NotFound => continue,
-                        _ => bail!("Error opening {}: {:?}", p.display(), err),
-                    }
-                }
+                Err(err) => match err.kind() {
+                    std::io::ErrorKind::NotFound => continue,
+                    _ => bail!("Error opening {}: {:?}", p.display(), err),
+                },
             };
 
             let mut s = String::new();
             file.read_to_string(&mut s)?;
 
-            return toml::from_str(&s).map_err(|e| {
-                format_err!("Error parsing TOML from {}: {:?}", p.display(), e)
-            });
+            return toml::from_str(&s)
+                .map_err(|e| format_err!("Error parsing TOML from {}: {:?}", p.display(), e));
         }
 
         Ok(Self::default())
