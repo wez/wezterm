@@ -26,9 +26,14 @@ impl Drop for ChildWaiter {
 }
 
 #[cfg(not(target_os = "linux"))]
-extern "C" fn chld_handler(_signo: libc::c_int, _: *const u8, _: *const u8) {
+extern "C" fn chld_handler(_signo: libc::c_int, si: *const libc::siginfo_t, _: *const u8) {
     unsafe {
-        libc::write(WRITE_END, "x".as_ptr() as *const _, 1);
+        let pid = (*si).si_pid;
+        libc::write(
+            WRITE_END,
+            &pid as *const _ as *const libc::c_void,
+            mem::size_of::<libc::pid_t>(),
+        );
     }
 }
 
@@ -46,7 +51,7 @@ impl ChildWaiter {
 
             let mut sa: libc::sigaction = mem::zeroed();
             sa.sa_sigaction = chld_handler as usize;
-            sa.sa_flags = (libc::SA_RESTART | libc::SA_NOCLDSTOP) as _;
+            sa.sa_flags = (libc::SA_SIGINFO | libc::SA_RESTART | libc::SA_NOCLDSTOP) as _;
             let res = libc::sigaction(libc::SIGCHLD, &sa, ptr::null_mut());
             if res == -1 {
                 bail!("sigaction SIGCHLD failed: {:?}", io::Error::last_os_error());
@@ -78,6 +83,24 @@ impl ChildWaiter {
         }
     }
 
+    #[cfg(not(target_os = "linux"))]
+    pub fn read_one(&self) -> Result<u32, Error> {
+        let mut pid: libc::pid_t = 0;
+        let res = unsafe {
+            libc::read(
+                self.fd,
+                &mut pid as *mut _ as *mut libc::c_void,
+                mem::size_of::<libc::pid_t>(),
+            )
+        };
+        if res == mem::size_of::<libc::pid_t>() as isize {
+            Ok(pid as u32)
+        } else {
+            bail!("signalfd read failed: {:?}", io::Error::last_os_error());
+        }
+    }
+
+    #[cfg(target_os = "linux")]
     pub fn read_one(&self) -> Result<u32, Error> {
         const BUFSIZE: usize = mem::size_of::<libc::signalfd_siginfo>();
         let mut buf = [0u8; BUFSIZE];
