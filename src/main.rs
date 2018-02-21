@@ -50,6 +50,7 @@ mod opengl;
 mod xwindows;
 #[cfg(all(unix, not(target_os = "macos")))]
 use xwindows::xwin::TerminalWindow;
+mod gliumwindows;
 
 mod font;
 use font::FontConfiguration;
@@ -76,41 +77,88 @@ fn get_shell() -> Result<String, Error> {
     })
 }
 
-fn run() -> Result<(), Error> {
+/// Drives the gui on macos.  It is included in the linux build to
+/// make it less likely to get broken by accident.
+#[allow(dead_code)]
+fn run_glium(
+    master: pty::MasterPty,
+    child: std::process::Child,
+    config: config::Config,
+    fontconfig: FontConfiguration,
+    terminal: term::Terminal,
+    initial_pixel_width: u16,
+    initial_pixel_height: u16,
+) -> Result<(), Error> {
+    use glium::glutin;
     let poll = Poll::new()?;
-    let conn = xwindows::Connection::new()?;
+    poll.register(&master, Token(0), Ready::readable(), PollOpt::edge())?;
 
-    let waiter = sigchld::ChildWaiter::new()?;
+    let mut events_loop = glium::glutin::EventsLoop::new();
 
-    let config = config::Config::load()?;
-    println!("Using configuration: {:#?}", config);
-
-    // First step is to figure out the font metrics so that we know how
-    // big things are going to be.
-
-    let fontconfig = FontConfiguration::new(config.clone());
-    let font = fontconfig.default_font()?;
-
-    // we always load the cell_height for font 0,
-    // regardless of which font we are shaping here,
-    // so that we can scale glyphs appropriately
-    let metrics = font.borrow_mut().get_fallback(0)?.metrics();
-
-    let initial_cols = 80u16;
-    let initial_rows = 24u16;
-    let initial_pixel_width = initial_cols * metrics.cell_width.ceil() as u16;
-    let initial_pixel_height = initial_rows * metrics.cell_height.ceil() as u16;
-
-    let (master, slave) = pty::openpty(
-        initial_rows,
-        initial_cols,
+    let mut window = gliumwindows::TerminalWindow::new(
+        &events_loop,
         initial_pixel_width,
         initial_pixel_height,
+        terminal,
+        master,
+        child,
+        fontconfig,
+        config
+            .colors
+            .map(|p| p.into())
+            .unwrap_or_else(term::color::ColorPalette::default),
     )?;
 
-    let cmd = Command::new(get_shell()?);
-    let child = slave.spawn_command(cmd)?;
-    eprintln!("spawned: {:?}", child);
+    let mut events = Events::with_capacity(8);
+    let mut done = false;
+
+    loop {
+        if done {
+            break;
+        }
+
+        if poll.poll(&mut events, Some(Duration::new(0, 2000)))? != 0 {
+            for event in &events {
+                if event.token() == Token(0) && event.readiness().is_readable() {
+                    window.handle_pty_readable_event();
+                    window.paint().unwrap();
+                }
+            }
+        }
+        events_loop.poll_events(|event| {
+            match event {
+                glutin::Event::WindowEvent { event, .. } => match event {
+                    // Break from the main loop when the window is closed.
+                    glutin::WindowEvent::Closed => {
+                        done = true;
+                        return;
+                    }
+                    // glutin::ControlFlow::Break, Redraw the triangle when the
+                    // window is resized.
+                    glutin::WindowEvent::Resized(..) => window.paint().unwrap(),
+                    glutin::WindowEvent::Refresh => window.paint().unwrap(),
+                    _ => (),
+                },
+                _ => (),
+            }
+        });
+    }
+    Ok(())
+}
+
+#[cfg(all(unix, not(target_os = "macos")))]
+fn run_xwindows(
+    master: pty::MasterPty,
+    child: std::process::Child,
+    config: config::Config,
+    fontconfig: FontConfiguration,
+    terminal: term::Terminal,
+    initial_pixel_width: u16,
+    initial_pixel_height: u16,
+) -> Result<(), Error> {
+    let conn = xwindows::Connection::new()?;
+    let poll = Poll::new()?;
+    let waiter = sigchld::ChildWaiter::new()?;
 
     // Ask mio to watch the pty for input from the child process
     poll.register(&master, Token(0), Ready::readable(), PollOpt::edge())?;
@@ -124,11 +172,6 @@ fn run() -> Result<(), Error> {
 
     poll.register(&waiter, Token(2), Ready::readable(), PollOpt::edge())?;
 
-    let terminal = term::Terminal::new(
-        initial_rows as usize,
-        initial_cols as usize,
-        config.scrollback_lines.unwrap_or(3500),
-    );
     //    let message = "; ❤ 😍🤢\n\x1b[91;mw00t\n\x1b[37;104;m bleet\x1b[0;m.";
     //    terminal.advance_bytes(message);
     // !=
@@ -204,6 +247,54 @@ fn run() -> Result<(), Error> {
             }
         }
     }
+}
+
+fn run() -> Result<(), Error> {
+    let config = config::Config::load()?;
+    println!("Using configuration: {:#?}", config);
+
+    // First step is to figure out the font metrics so that we know how
+    // big things are going to be.
+
+    let fontconfig = FontConfiguration::new(config.clone());
+    let font = fontconfig.default_font()?;
+
+    // we always load the cell_height for font 0,
+    // regardless of which font we are shaping here,
+    // so that we can scale glyphs appropriately
+    let metrics = font.borrow_mut().get_fallback(0)?.metrics();
+
+    let initial_cols = 80u16;
+    let initial_rows = 24u16;
+    let initial_pixel_width = initial_cols * metrics.cell_width.ceil() as u16;
+    let initial_pixel_height = initial_rows * metrics.cell_height.ceil() as u16;
+
+    let (master, slave) = pty::openpty(
+        initial_rows,
+        initial_cols,
+        initial_pixel_width,
+        initial_pixel_height,
+    )?;
+
+    let cmd = Command::new(get_shell()?);
+    let child = slave.spawn_command(cmd)?;
+    eprintln!("spawned: {:?}", child);
+
+    let terminal = term::Terminal::new(
+        initial_rows as usize,
+        initial_cols as usize,
+        config.scrollback_lines.unwrap_or(3500),
+    );
+
+    run_xwindows(
+        master,
+        child,
+        config,
+        fontconfig,
+        terminal,
+        initial_pixel_width,
+        initial_pixel_height,
+    )
 }
 
 fn main() {
