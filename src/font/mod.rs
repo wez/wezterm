@@ -18,6 +18,11 @@ pub mod fontconfigandfreetype;
 #[cfg(all(unix, not(target_os = "macos")))]
 use self::fontconfigandfreetype::FontSystemImpl;
 
+#[cfg(target_os = "macos")]
+pub mod coretext;
+#[cfg(target_os = "macos")]
+use self::coretext::FontSystemImpl;
+
 use super::config::{Config, TextStyle};
 use term::CellAttributes;
 
