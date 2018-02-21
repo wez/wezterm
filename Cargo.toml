@@ -17,8 +17,11 @@ serde_derive = "1.0.27"
 toml = "0.4.5"
 unicode-width = "0.1.4"
 
-[dependencies.glium]
+[target.'cfg(target_os = "linux")'.dependencies.glium]
 default-features = false
+version = "0.20.0"
+
+[target.'cfg(not(target_os = "linux"))'.dependencies.glium]
 version = "0.20.0"
 
 [dependencies.harfbuzz]
