@@ -720,16 +720,6 @@ impl Renderer {
         )
     }
 
-    /// A little helper for shaping text.
-    /// This is needed to dance around interior mutability concerns,
-    /// as the font caches things.
-    /// TODO: consider pushing this down into the Font impl itself.
-    fn shape_text(&self, s: &str, style: &TextStyle) -> Result<Vec<GlyphInfo>, Error> {
-        let font = self.fonts.cached_font(style)?;
-        let mut font = font.borrow_mut();
-        font.shape(s)
-    }
-
     /// "Render" a line of the terminal screen into the vertex buffer.
     /// This is nominally a matter of setting the fg/bg color and the
     /// texture coordinates for a given glyph.  There's a little bit
@@ -781,7 +771,12 @@ impl Renderer {
             let bg_color = self.palette.resolve(bg_color).to_linear_tuple_rgba();
 
             // Shape the printable text from this cluster
-            let glyph_info = self.shape_text(&cluster.text, &style)?;
+            let glyph_info = {
+                let font = self.fonts.cached_font(&style)?;
+                let mut font = font.borrow_mut();
+                font.shape(&cluster.text)?
+            };
+
             for info in glyph_info.iter() {
                 let cell_idx = cluster.byte_to_cell_idx[info.cluster as usize];
                 let glyph = self.cached_glyph(info, &style)?;
