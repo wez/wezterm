@@ -108,15 +108,22 @@ pub fn openpty(
     let mut master: RawFd = -1;
     let mut slave: RawFd = -1;
 
-    let size = winsize {
+    let mut size = winsize {
         ws_row: num_rows,
         ws_col: num_cols,
         ws_xpixel: pixel_width,
         ws_ypixel: pixel_height,
     };
 
-    let result =
-        unsafe { libc::openpty(&mut master, &mut slave, ptr::null_mut(), ptr::null(), &size) };
+    let result = unsafe {
+        libc::openpty(
+            &mut master,
+            &mut slave,
+            ptr::null_mut(),
+            ptr::null_mut(),
+            &mut size,
+        )
+    };
 
     if result != 0 {
         bail!("failed to openpty: {:?}", io::Error::last_os_error());
@@ -180,7 +187,7 @@ impl SlavePty {
                     // Failure to do this means that delivery of
                     // SIGWINCH won't happen when we resize the
                     // terminal, among other undesirable effects.
-                    if libc::ioctl(0, libc::TIOCSCTTY, 0) == -1 {
+                    if libc::ioctl(0, libc::TIOCSCTTY as _, 0) == -1 {
                         return Err(io::Error::last_os_error());
                     }
                     Ok(())
