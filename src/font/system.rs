@@ -5,6 +5,16 @@ use failure::Error;
 use harfbuzz;
 use unicode_width::UnicodeWidthStr;
 
+/// A bitmap representation of a glyph.
+/// The data is stored as pre-multiplied RGBA 32bpp.
+pub struct RasterizedGlyph {
+    pub data: Vec<u8>,
+    pub height: usize,
+    pub width: usize,
+    pub bearing_x: i32,
+    pub bearing_y: i32,
+}
+
 /// Holds information about a shaped glyph
 #[derive(Clone, Debug)]
 pub struct GlyphInfo {
@@ -86,8 +96,6 @@ pub struct FontMetrics {
     pub descender: i16,
 }
 
-use super::ftwrap;
-
 /// Represents a concrete instance of a font.
 pub trait Font {
     /// Returns true if the font rasterizes with true color glyphs,
@@ -98,9 +106,8 @@ pub trait Font {
     /// Returns the font metrics
     fn metrics(&self) -> FontMetrics;
 
-    /// FIXME: This is a temporary hack and will be replaced
-    /// with a rasterize method.
-    fn load_glyph(&self, glyph_pos: u32) -> Result<ftwrap::FT_GlyphSlotRec_, Error>;
+    /// Rasterize the glyph
+    fn rasterize_glyph(&self, glyph_pos: u32) -> Result<RasterizedGlyph, Error>;
 
     /// Perform shaping on the supplied harfbuzz buffer.
     /// This is really just a proxy for calling the harfbuzz::Font::shape()

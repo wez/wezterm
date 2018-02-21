@@ -3,10 +3,12 @@
 pub use self::fcwrap::Pattern as FontPattern;
 use config::{Config, TextStyle};
 use failure::{self, Error};
-use font::{FallbackIdx, Font, FontMetrics, FontSystem, GlyphInfo, NamedFont, shape_with_harfbuzz};
+use font::{FallbackIdx, Font, FontMetrics, FontSystem, GlyphInfo, NamedFont, RasterizedGlyph,
+           shape_with_harfbuzz};
 use font::{fcwrap, ftwrap};
 use harfbuzz;
 use std::cell::RefCell;
+use std::mem;
 use std::slice;
 
 
@@ -63,7 +65,7 @@ impl Font for FontImpl {
         }
     }
 
-    fn load_glyph(&self, glyph_pos: u32) -> Result<ftwrap::FT_GlyphSlotRec_, Error> {
+    fn rasterize_glyph(&self, glyph_pos: u32) -> Result<RasterizedGlyph, Error> {
         let render_mode = //ftwrap::FT_Render_Mode::FT_RENDER_MODE_NORMAL;
  //       ftwrap::FT_Render_Mode::FT_RENDER_MODE_LCD;
         ftwrap::FT_Render_Mode::FT_RENDER_MODE_LIGHT;
@@ -82,10 +84,150 @@ impl Font for FontImpl {
         // This clone is conceptually unsafe, but ok in practice as we are
         // single threaded and don't load any other glyphs in the body of
         // this load_glyph() function.
-        self.face
-            .borrow_mut()
-            .load_and_render_glyph(glyph_pos, load_flags, render_mode)
-            .map(|g| g.clone())
+        let mut face = self.face.borrow_mut();
+        let ft_glyph = face.load_and_render_glyph(
+            glyph_pos,
+            load_flags,
+            render_mode,
+        )?;
+
+        let mode: ftwrap::FT_Pixel_Mode =
+            unsafe { mem::transmute(ft_glyph.bitmap.pixel_mode as u32) };
+
+        // pitch is the number of bytes per source row
+        let pitch = ft_glyph.bitmap.pitch.abs() as usize;
+        let data = unsafe {
+            slice::from_raw_parts_mut(
+                ft_glyph.bitmap.buffer,
+                ft_glyph.bitmap.rows as usize * pitch,
+            )
+        };
+
+        let glyph = match mode {
+            ftwrap::FT_Pixel_Mode::FT_PIXEL_MODE_LCD => {
+                let width = ft_glyph.bitmap.width as usize / 3;
+                let height = ft_glyph.bitmap.rows as usize;
+                let size = (width * height * 4) as usize;
+                let mut rgba = Vec::with_capacity(size);
+                rgba.resize(size, 0u8);
+                for y in 0..height {
+                    let src_offset = y * pitch as usize;
+                    let dest_offset = y * width * 4;
+                    for x in 0..width {
+                        let blue = data[src_offset + (x * 3) + 0];
+                        let green = data[src_offset + (x * 3) + 1];
+                        let red = data[src_offset + (x * 3) + 2];
+                        let alpha = red | green | blue;
+                        rgba[dest_offset + (x * 4) + 0] = red;
+                        rgba[dest_offset + (x * 4) + 1] = green;
+                        rgba[dest_offset + (x * 4) + 2] = blue;
+                        rgba[dest_offset + (x * 4) + 3] = alpha;
+                    }
+                }
+
+                RasterizedGlyph {
+                    data: rgba,
+                    height,
+                    width,
+                    bearing_x: ft_glyph.bitmap_left,
+                    bearing_y: ft_glyph.bitmap_top,
+                }
+            }
+            ftwrap::FT_Pixel_Mode::FT_PIXEL_MODE_BGRA => {
+                let width = ft_glyph.bitmap.width as usize;
+                let height = ft_glyph.bitmap.rows as usize;
+                let size = (width * height * 4) as usize;
+                let mut rgba = Vec::with_capacity(size);
+                rgba.resize(size, 0u8);
+                for y in 0..height {
+                    let src_offset = y * pitch as usize;
+                    let dest_offset = y * width * 4;
+                    for x in 0..width {
+                        let blue = data[src_offset + (x * 4) + 0];
+                        let green = data[src_offset + (x * 4) + 1];
+                        let red = data[src_offset + (x * 4) + 2];
+                        let alpha = data[src_offset + (x * 4) + 3];
+
+                        rgba[dest_offset + (x * 4) + 0] = red;
+                        rgba[dest_offset + (x * 4) + 1] = green;
+                        rgba[dest_offset + (x * 4) + 2] = blue;
+                        rgba[dest_offset + (x * 4) + 3] = alpha;
+                    }
+                }
+                RasterizedGlyph {
+                    data: rgba,
+                    height,
+                    width,
+                    bearing_x: ft_glyph.bitmap_left,
+                    bearing_y: ft_glyph.bitmap_top,
+                }
+            }
+            ftwrap::FT_Pixel_Mode::FT_PIXEL_MODE_GRAY => {
+                let width = ft_glyph.bitmap.width as usize;
+                let height = ft_glyph.bitmap.rows as usize;
+                let size = (width * height * 4) as usize;
+                let mut rgba = Vec::with_capacity(size);
+                rgba.resize(size, 0u8);
+                for y in 0..height {
+                    let src_offset = y * pitch;
+                    let dest_offset = y * width * 4;
+                    for x in 0..width {
+                        let gray = data[src_offset + x];
+
+                        rgba[dest_offset + (x * 4) + 0] = gray;
+                        rgba[dest_offset + (x * 4) + 1] = gray;
+                        rgba[dest_offset + (x * 4) + 2] = gray;
+                        rgba[dest_offset + (x * 4) + 3] = gray;
+                    }
+                }
+                RasterizedGlyph {
+                    data: rgba,
+                    height,
+                    width,
+                    bearing_x: ft_glyph.bitmap_left,
+                    bearing_y: ft_glyph.bitmap_top,
+                }
+            }
+            ftwrap::FT_Pixel_Mode::FT_PIXEL_MODE_MONO => {
+                let width = ft_glyph.bitmap.width as usize;
+                let height = ft_glyph.bitmap.rows as usize;
+                let size = (width * height * 4) as usize;
+                let mut rgba = Vec::with_capacity(size);
+                rgba.resize(size, 0u8);
+                for y in 0..height {
+                    let src_offset = y * pitch;
+                    let dest_offset = y * width * 4;
+                    let mut x = 0;
+                    for i in 0..pitch {
+                        if x >= width {
+                            break;
+                        }
+                        let mut b = data[src_offset + i];
+                        for _ in 0..8 {
+                            if x >= width {
+                                break;
+                            }
+                            if b & 0x80 == 0x80 {
+                                for j in 0..4 {
+                                    rgba[dest_offset + (x * 4) + j] = 0xff;
+                                }
+                            }
+                            b = b << 1;
+                            x += 1;
+                        }
+                    }
+                }
+                RasterizedGlyph {
+                    data: rgba,
+                    height,
+                    width,
+                    bearing_x: ft_glyph.bitmap_left,
+                    bearing_y: ft_glyph.bitmap_top,
+                }
+            }
+            mode @ _ => bail!("unhandled pixel mode: {:?}", mode),
+        };
+        Ok(glyph)
     }
 }
 
