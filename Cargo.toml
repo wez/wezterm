@@ -9,6 +9,7 @@ egli = "0.4.0"
 euclid = "0.17.0"
 failure = "0.1.1"
 gl = "0.10.0"
+glium = "0.20.0"
 libc = "0.2.36"
 mio = "0.6.12"
 palette = "0.2.1"
@@ -16,13 +17,6 @@ serde = "1.0.27"
 serde_derive = "1.0.27"
 toml = "0.4.5"
 unicode-width = "0.1.4"
-
-[target.'cfg(target_os = "linux")'.dependencies.glium]
-default-features = false
-version = "0.20.0"
-
-[target.'cfg(not(target_os = "linux"))'.dependencies.glium]
-version = "0.20.0"
 
 [dependencies.harfbuzz]
 path = "harfbuzz"
