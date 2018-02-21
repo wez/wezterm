@@ -5,14 +5,18 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
 
-pub mod fontconfigandfreetype;
-use self::fontconfigandfreetype::FontSystemImpl;
-
-pub mod ftwrap;
-pub mod fcwrap;
 pub mod system;
 pub use self::system::*;
 
+#[cfg(any(target_os = "android", all(unix, not(target_os = "macos"))))]
+pub mod ftwrap;
+
+#[cfg(all(unix, not(target_os = "macos")))]
+pub mod fcwrap;
+#[cfg(all(unix, not(target_os = "macos")))]
+pub mod fontconfigandfreetype;
+#[cfg(all(unix, not(target_os = "macos")))]
+use self::fontconfigandfreetype::FontSystemImpl;
 
 use super::config::{Config, TextStyle};
 use term::CellAttributes;
