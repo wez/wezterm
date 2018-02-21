@@ -2,9 +2,16 @@ extern crate cmake;
 use std::env;
 
 fn main() {
-    let dst = cmake::Config::new("harfbuzz")
-        .define("HB_HAVE_FREETYPE", "ON")
-        .build();
+    let mut dst = cmake::Config::new("harfbuzz");
+
+    if cfg!(any(
+        target_os = "android",
+        all(unix, not(target_os = "macos")),
+    ))
+    {
+        dst.define("HB_HAVE_FREETYPE", "ON");
+    }
+    let dst = dst.build();
     println!("cargo:rustc-link-search=native={}/lib", dst.display());
     println!("cargo:rustc-link-lib=static=harfbuzz");
 

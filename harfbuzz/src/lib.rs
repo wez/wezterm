@@ -14,6 +14,7 @@ use std::mem;
 use std::ptr;
 use std::slice;
 
+#[cfg(any(target_os = "android", all(unix, not(target_os = "macos"))))]
 extern "C" {
     fn hb_ft_font_set_load_flags(font: *mut hb_font_t, load_flags: i32);
 }
@@ -55,6 +56,7 @@ impl Drop for Font {
 }
 
 impl Font {
+    #[cfg(any(target_os = "android", all(unix, not(target_os = "macos"))))]
     /// Create a harfbuzz face from a freetype font
     pub fn new(face: freetype::freetype::FT_Face) -> Font {
         // hb_ft_font_create_referenced always returns a
@@ -64,6 +66,7 @@ impl Font {
         Font { font: unsafe { hb_ft_font_create_referenced(face) } }
     }
 
+    #[cfg(any(target_os = "android", all(unix, not(target_os = "macos"))))]
     pub fn set_load_flags(&mut self, load_flags: freetype::freetype::FT_Int32) {
         unsafe {
             hb_ft_font_set_load_flags(self.font, load_flags);

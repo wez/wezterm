@@ -32,6 +32,7 @@ addons:
       - libxcb-ewmh-dev
       - libxcb-icccm4-dev
       - libxcb-keysyms1-dev
+      - ragel
 
 #env:
 #  global:

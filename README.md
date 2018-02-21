@@ -21,7 +21,7 @@ You will need a collection of support libraries; the example below shows which
 deps are needed for ubuntu systems:
 
 ```
-$ sudo apt-get install -y libxcb-icccm4-dev libxcb-ewmh-dev \
+$ sudo apt-get install -y ragel libxcb-icccm4-dev libxcb-ewmh-dev \
     libxcb-keysyms1-dev libfontconfig1-dev libfreetype6-dev libegl1-mesa-dev
 $ git clone --depth=1 --branch=master https://github.com/wez/wezterm.git
 $ cd wezterm
