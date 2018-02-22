@@ -433,6 +433,8 @@ impl TerminalWindow {
                     }
                     Err(TryRecvError::Disconnected) => bail!("clipboard thread died"),
                 }
+
+                self.test_for_child_exit()?;
             }
             _ => {}
         }
