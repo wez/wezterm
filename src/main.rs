@@ -38,7 +38,7 @@ use std::os::unix::io::AsRawFd;
 use std::process::Command;
 use std::str;
 use std::thread;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 mod config;
 
@@ -117,26 +117,35 @@ fn run_glium(
                 PollOpt::edge(),
             ).expect("failed to register pty");
             let mut events = Events::with_capacity(8);
+            let mut last_paint = Instant::now();
+            let refresh = Duration::from_millis(50);
 
             loop {
-                match poll.poll(&mut events, Some(Duration::from_millis(50))) {
-                    Ok(n) if n > 0 => for event in &events {
+                let now = Instant::now();
+                let diff = now - last_paint;
+                let period = if diff >= refresh {
+                    // Tick and wakeup the gui thread to ask it to render
+                    // if needed.  Without this we'd only repaint when
+                    // the window system decides that we were damaged.
+                    // We don't want to paint after every state change
+                    // as that would be too frequent.
+                    wakeup
+                        .send(WakeupMsg::Paint)
+                        .expect("failed to wakeup gui thread");
+                    last_paint = now;
+                    refresh
+                } else {
+                    refresh - diff
+                };
+
+                match poll.poll(&mut events, Some(period)) {
+                    Ok(_) => for event in &events {
                         if event.token() == Token(0) && event.readiness().is_readable() {
                             wakeup
                                 .send(WakeupMsg::PtyReadable)
                                 .expect("failed to wakeup gui thread");
                         }
                     },
-                    Ok(_) => {
-                        // Tick and wakeup the gui thread to ask it to render
-                        // if needed.  Without this we'd only repaint when
-                        // the window system decides that we were damaged.
-                        // We don't want to paint after every state change
-                        // as that would be too frequent.
-                        wakeup
-                            .send(WakeupMsg::Paint)
-                            .expect("failed to wakeup gui thread");
-                    }
                     _ => {}
                 }
             }
