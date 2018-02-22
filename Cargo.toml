@@ -27,10 +27,6 @@ path = "term"
 freetype = "0.3"
 servo-fontconfig = "0.4.0"
 
-[target.'cfg(all(unix, not(target_os = "macos")))'.dependencies.x11]
-features = ["xlib"]
-version = "2.17.2"
-
 [target.'cfg(all(unix, not(target_os = "macos")))'.dependencies.xcb]
 version = "0.8.1"
 

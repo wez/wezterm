@@ -20,8 +20,6 @@ extern crate serde_derive;
 extern crate term;
 extern crate toml;
 extern crate unicode_width;
-#[cfg(all(unix, not(target_os = "macos")))]
-extern crate x11;
 #[macro_use]
 pub mod log;
 
