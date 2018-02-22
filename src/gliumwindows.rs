@@ -1,6 +1,7 @@
 //! Generic system dependent windows via glium+glutin
 #![allow(dead_code)]
 
+use clipboard::x11::Clipboard;
 use failure::Error;
 use font::FontConfiguration;
 use glium::{self, glutin};
@@ -17,7 +18,6 @@ use term::{MouseButton, MouseEventKind};
 use term::KeyCode;
 use term::KeyModifiers;
 use term::hyperlink::Hyperlink;
-use xwindows::clipboard::Clipboard;
 
 struct Host {
     display: glium::Display,
@@ -418,12 +418,10 @@ impl TerminalWindow {
                 event: WindowEvent::Refresh,
                 ..
             } => {
-                println!("Refresh");
                 self.paint()?;
             }
             Event::Awakened => {
-                // TODO: plumb signals from clipboard and sigchld waiter
-                use xwindows::clipboard::Paste;
+                use clipboard::x11::Paste;
                 match self.host.clipboard.receiver().try_recv() {
                     Ok(Paste::Cleared) => {
                         self.terminal.clear_selection();

@@ -1,6 +1,5 @@
 #[cfg(target_os = "macos")]
 extern crate core_text;
-extern crate egli;
 extern crate euclid;
 #[macro_use]
 extern crate failure;
@@ -34,10 +33,8 @@ extern crate xcb;
 extern crate xcb_util;
 
 use mio::{Events, Poll, PollOpt, Ready, Token};
-use mio::unix::EventedFd;
 use std::env;
 use std::ffi::CStr;
-use std::os::unix::io::AsRawFd;
 use std::process::Command;
 use std::str;
 use std::time::Duration;
@@ -46,10 +43,7 @@ mod config;
 
 mod opengl;
 
-#[cfg(all(unix, not(target_os = "macos")))]
-mod xwindows;
-#[cfg(all(unix, not(target_os = "macos")))]
-use xwindows::xwin::TerminalWindow;
+mod clipboard;
 mod gliumwindows;
 
 mod font;
@@ -77,9 +71,6 @@ fn get_shell() -> Result<String, Error> {
     })
 }
 
-/// Drives the gui on macos.  It is included in the linux build to
-/// make it less likely to get broken by accident.
-#[allow(dead_code)]
 fn run_glium(
     master: pty::MasterPty,
     child: std::process::Child,
@@ -89,7 +80,6 @@ fn run_glium(
     initial_pixel_width: u16,
     initial_pixel_height: u16,
 ) -> Result<(), Error> {
-    use glium::glutin;
     let poll = Poll::new()?;
     poll.register(&master, Token(0), Ready::readable(), PollOpt::edge())?;
 
@@ -146,108 +136,9 @@ fn run_glium(
     Ok(())
 }
 
-#[cfg(all(unix, not(target_os = "macos")))]
-fn run_xwindows(
-    master: pty::MasterPty,
-    child: std::process::Child,
-    config: config::Config,
-    fontconfig: FontConfiguration,
-    terminal: term::Terminal,
-    initial_pixel_width: u16,
-    initial_pixel_height: u16,
-) -> Result<(), Error> {
-    let conn = xwindows::Connection::new()?;
-    let poll = Poll::new()?;
-    let waiter = sigchld::ChildWaiter::new()?;
-
-    // Ask mio to watch the pty for input from the child process
-    poll.register(&master, Token(0), Ready::readable(), PollOpt::edge())?;
-    // Ask mio to monitor the X connection fd
-    poll.register(
-        &EventedFd(&conn.as_raw_fd()),
-        Token(1),
-        Ready::readable(),
-        PollOpt::edge(),
-    )?;
-
-    poll.register(&waiter, Token(2), Ready::readable(), PollOpt::edge())?;
-
-    //    let message = "; ❤ 😍🤢\n\x1b[91;mw00t\n\x1b[37;104;m bleet\x1b[0;m.";
-    //    terminal.advance_bytes(message);
-    // !=
-
-    let mut window = TerminalWindow::new(
-        &conn,
-        initial_pixel_width,
-        initial_pixel_height,
-        terminal,
-        master,
-        child,
-        fontconfig,
-        config
-            .colors
-            .map(|p| p.into())
-            .unwrap_or_else(term::color::ColorPalette::default),
-    )?;
-
-    window.show();
-
-    let mut events = Events::with_capacity(8);
-    conn.flush();
-
-    loop {
-        if poll.poll(&mut events, Some(Duration::new(0, 0)))? == 0 {
-            // No immediately ready events.  Before we go to sleep,
-            // make sure we've flushed out any pending X work.
-            if window.need_paint() {
-                window.paint()?;
-            }
-            conn.flush();
-
-            poll.poll(&mut events, None)?;
-        }
-
-        for event in &events {
-            if event.token() == Token(0) && event.readiness().is_readable() {
-                window.handle_pty_readable_event();
-            }
-            if event.token() == Token(1) && event.readiness().is_readable() {
-                // Each time the XCB Connection FD shows as readable, we perform
-                // a single poll against the connection and then eagerly consume
-                // all of the queued events that came along as part of that batch.
-                // This is important because we can't assume that one readiness
-                // event from the kerenl maps to a single XCB event.  We need to be
-                // sure that all buffered/queued events are consumed before we
-                // allow the mio poll() routine to put us to sleep, otherwise we
-                // will effectively hang without updating all the state.
-                match conn.poll_for_event() {
-                    Some(event) => {
-                        window.dispatch_event(event)?;
-                        // Since we read one event from the connection, we must
-                        // now eagerly consume the rest of the queued events.
-                        loop {
-                            match conn.poll_for_queued_event() {
-                                Some(event) => window.dispatch_event(event)?,
-                                None => break,
-                            }
-                        }
-                    }
-                    None => {}
-                }
-
-                // If we got disconnected from the display server, we cannot continue
-                conn.has_error()?;
-            }
-
-            if event.token() == Token(2) {
-                println!("sigchld ready");
-                let pid = waiter.read_one()?;
-                println!("got sigchld from pid {}", pid);
-                window.test_for_child_exit()?;
-            }
-        }
-    }
-}
+//    let message = "; ❤ 😍🤢\n\x1b[91;mw00t\n\x1b[37;104;m bleet\x1b[0;m.";
+//    terminal.advance_bytes(message);
+// !=
 
 fn run() -> Result<(), Error> {
     let config = config::Config::load()?;
