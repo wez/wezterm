@@ -208,7 +208,9 @@ impl TerminalWindow {
             },
             &mut self.host,
         )?;
-        self.paint_if_needed()?;
+        // Deliberately not forcing a paint on mouse move as it
+        // makes selection feel sluggish
+        // self.paint_if_needed()?;
 
         Ok(())
     }
