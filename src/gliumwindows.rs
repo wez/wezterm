@@ -64,6 +64,7 @@ pub struct TerminalWindow {
     terminal: Terminal,
     process: Child,
     last_mouse_coords: (f64, f64),
+    last_modifiers: KeyModifiers,
     wakeup_receiver: Receiver<WakeupMsg>,
 }
 
@@ -120,6 +121,7 @@ impl TerminalWindow {
             terminal,
             process,
             last_mouse_coords: (0.0, 0.0),
+            last_modifiers: Default::default(),
             wakeup_receiver,
         })
     }
@@ -165,6 +167,7 @@ impl TerminalWindow {
             let cols = ((width as usize + 1) / self.cell_width) as u16;
             self.host.pty.resize(rows, cols, width, height)?;
             self.terminal.resize(rows as usize, cols as usize);
+            self.paint_if_needed()?;
 
             Ok(true)
         } else {
@@ -207,6 +210,7 @@ impl TerminalWindow {
             },
             &mut self.host,
         )?;
+        self.paint_if_needed()?;
 
         Ok(())
     }
@@ -235,6 +239,7 @@ impl TerminalWindow {
             },
             &mut self.host,
         )?;
+        self.paint_if_needed()?;
 
         Ok(())
     }
@@ -269,15 +274,16 @@ impl TerminalWindow {
             },
             &mut self.host,
         )?;
+        self.paint_if_needed()?;
 
         Ok(())
     }
 
     fn key_event(&mut self, event: glium::glutin::KeyboardInput) -> Result<(), Error> {
         let mods = Self::decode_modifiers(event.modifiers);
+        self.last_modifiers = mods;
         if let Some(code) = event.virtual_keycode {
             use glium::glutin::VirtualKeyCode as V;
-
             let key = match code {
                 V::Key1
                 | V::Key2
@@ -361,6 +367,14 @@ impl TerminalWindow {
                 ElementState::Released => self.terminal.key_up(key, mods, &mut self.host)?,
             }
         }
+        self.paint_if_needed()?;
+        Ok(())
+    }
+
+    pub fn paint_if_needed(&mut self) -> Result<(), Error> {
+        if self.terminal.has_dirty_lines() {
+            self.paint()?;
+        }
         Ok(())
     }
 
@@ -384,7 +398,8 @@ impl TerminalWindow {
                 ..
             } => {
                 self.terminal
-                    .key_down(KeyCode::Char(c), KeyModifiers::default(), &mut self.host)?;
+                    .key_down(KeyCode::Char(c), self.last_modifiers, &mut self.host)?;
+                self.paint_if_needed()?;
             }
             Event::WindowEvent {
                 event: WindowEvent::KeyboardInput { input, .. },

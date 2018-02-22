@@ -538,21 +538,19 @@ impl TerminalState {
         // TODO: also respect self.application_keypad
 
         let to_send = match (key, ctrl, alt, shift, self.application_cursor_keys) {
-            (Char(c), CTRL, _, SHIFT, _) if c <= 0xff as char => {
+            (Char(c), CTRL, _, SHIFT, _) if c <= 0xff as char && c > 0x40 as char => {
                 // If shift is held we have C == 0x43 and want to translate
                 // that into 0x03
                 buf.push((c as u8 - 0x40) as char);
                 buf.as_str()
             }
-            (Char(c), CTRL, ..) if c <= 0xff as char => {
+            (Char(c), CTRL, ..) if c <= 0xff as char && c > 0x60 as char => {
                 // If shift is not held we have C == 0x63 and want to translate
                 // that into 0x03
                 buf.push((c as u8 - 0x60) as char);
                 buf.as_str()
             }
-            (Char(c), _, ALT, ..) if c <= 0xff as char => {
-                // TODO: add config option to select 8-bit vs. escape behavior?
-                //buf.push((c as u8 | 0x80) as char);
+            (Char(c), _, ALT, ..) => {
                 buf.push(0x1b as char);
                 buf.push(c);
                 buf.as_str()
