@@ -31,11 +31,13 @@ extern crate xcb;
 extern crate xcb_util;
 
 use mio::{Events, Poll, PollOpt, Ready, Token};
+use mio::unix::EventedFd;
 use std::env;
 use std::ffi::CStr;
+use std::os::unix::io::AsRawFd;
 use std::process::Command;
 use std::str;
-use std::time::Duration;
+use std::thread;
 
 mod config;
 
@@ -78,11 +80,10 @@ fn run_glium(
     initial_pixel_width: u16,
     initial_pixel_height: u16,
 ) -> Result<(), Error> {
-    let poll = Poll::new()?;
-    poll.register(&master, Token(0), Ready::readable(), PollOpt::edge())?;
-
     let mut events_loop = glium::glutin::EventsLoop::new();
     sigchld::activate(events_loop.create_proxy())?;
+
+    let master_fd = master.as_raw_fd();
 
     let mut window = gliumwindows::TerminalWindow::new(
         &events_loop,
@@ -98,31 +99,44 @@ fn run_glium(
             .unwrap_or_else(term::color::ColorPalette::default),
     )?;
 
-    let mut events = Events::with_capacity(8);
-    let mut done = false;
+    {
+        let proxy = events_loop.create_proxy();
+        thread::spawn(move || {
+            let poll = Poll::new().expect("mio Poll failed to init");
+            poll.register(
+                &EventedFd(&master_fd),
+                Token(0),
+                Ready::readable(),
+                PollOpt::edge(),
+            ).expect("failed to register pty");
+            let mut events = Events::with_capacity(8);
 
-    loop {
-        if done {
-            break;
-        }
-
-        if poll.poll(&mut events, Some(Duration::new(0, 2000)))? != 0 {
-            for event in &events {
-                if event.token() == Token(0) && event.readiness().is_readable() {
-                    window.handle_pty_readable_event()?;
+            loop {
+                match poll.poll(&mut events, None) {
+                    Ok(_) => for event in &events {
+                        if event.token() == Token(0) && event.readiness().is_readable() {
+                            proxy.wakeup().expect("failed to wake event loop");
+                        }
+                    },
+                    _ => {}
                 }
-            }
-        } else if window.need_paint() {
-            window.paint()?;
-        }
-        events_loop.poll_events(|event| match window.dispatch_event(event) {
-            Ok(_) => {}
-            Err(err) => {
-                eprintln!("{:?}", err);
-                done = true;
             }
         });
     }
+
+    events_loop.run_forever(|event| match window.dispatch_event(event) {
+        Ok(_) => {
+            if window.need_paint() {
+                window.paint().expect("paint failed");
+            }
+            glium::glutin::ControlFlow::Continue
+        }
+        Err(err) => {
+            eprintln!("{:?}", err);
+            glium::glutin::ControlFlow::Break
+        }
+    });
+
     Ok(())
 }
 

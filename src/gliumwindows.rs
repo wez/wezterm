@@ -8,6 +8,7 @@ use glium::{self, glutin};
 use glium::glutin::ElementState;
 use opengl::render::Renderer;
 use pty::MasterPty;
+use std::io;
 use std::io::{Read, Write};
 use std::process::Child;
 use std::process::Command;
@@ -128,13 +129,17 @@ impl TerminalWindow {
         Ok(())
     }
 
-    pub fn handle_pty_readable_event(&mut self) -> Result<(), Error> {
+    pub fn try_read_pty(&mut self) -> Result<(), Error> {
         const BUFSIZE: usize = 8192;
         let mut buf = [0; BUFSIZE];
 
         match self.host.pty.read(&mut buf) {
             Ok(size) => self.terminal.advance_bytes(&buf[0..size], &mut self.host),
-            Err(err) => eprintln!("error reading from pty: {:?}", err),
+            Err(err) => {
+                if err.kind() != io::ErrorKind::WouldBlock {
+                    eprintln!("error reading from pty: {:?}", err)
+                }
+            }
         }
         Ok(())
     }
@@ -434,6 +439,7 @@ impl TerminalWindow {
                     Err(TryRecvError::Disconnected) => bail!("clipboard thread died"),
                 }
 
+                self.try_read_pty()?;
                 self.test_for_child_exit()?;
             }
             _ => {}
@@ -450,10 +456,7 @@ impl TerminalWindow {
             Ok(Some(status)) => {
                 bail!("child exited: {}", status);
             }
-            Ok(None) => {
-                println!("child still running");
-                Ok(())
-            }
+            Ok(None) => Ok(()),
             Err(e) => {
                 bail!("failed to wait for child: {}", e);
             }
