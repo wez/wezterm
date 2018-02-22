@@ -38,12 +38,15 @@ use std::os::unix::io::AsRawFd;
 use std::process::Command;
 use std::str;
 use std::thread;
+use std::time::Duration;
 
 mod config;
 
 mod opengl;
 
 mod clipboard;
+mod wakeup;
+use wakeup::{Wakeup, WakeupMsg};
 mod gliumwindows;
 
 mod font;
@@ -81,12 +84,15 @@ fn run_glium(
     initial_pixel_height: u16,
 ) -> Result<(), Error> {
     let mut events_loop = glium::glutin::EventsLoop::new();
-    sigchld::activate(events_loop.create_proxy())?;
+
+    let (wakeup_receiver, wakeup) = Wakeup::new(events_loop.create_proxy());
+    sigchld::activate(wakeup.clone())?;
 
     let master_fd = master.as_raw_fd();
 
     let mut window = gliumwindows::TerminalWindow::new(
         &events_loop,
+        wakeup_receiver,
         initial_pixel_width,
         initial_pixel_height,
         terminal,
@@ -100,7 +106,7 @@ fn run_glium(
     )?;
 
     {
-        let proxy = events_loop.create_proxy();
+        let mut wakeup = wakeup.clone();
         thread::spawn(move || {
             let poll = Poll::new().expect("mio Poll failed to init");
             poll.register(
@@ -112,12 +118,24 @@ fn run_glium(
             let mut events = Events::with_capacity(8);
 
             loop {
-                match poll.poll(&mut events, None) {
-                    Ok(_) => for event in &events {
+                match poll.poll(&mut events, Some(Duration::from_millis(50))) {
+                    Ok(n) if n > 0 => for event in &events {
                         if event.token() == Token(0) && event.readiness().is_readable() {
-                            proxy.wakeup().expect("failed to wake event loop");
+                            wakeup
+                                .send(WakeupMsg::PtyReadable)
+                                .expect("failed to wakeup gui thread");
                         }
                     },
+                    Ok(_) => {
+                        // Tick and wakeup the gui thread to ask it to render
+                        // if needed.  Without this we'd only repaint when
+                        // the window system decides that we were damaged.
+                        // We don't want to paint after every state change
+                        // as that would be too frequent.
+                        wakeup
+                            .send(WakeupMsg::Paint)
+                            .expect("failed to wakeup gui thread");
+                    }
                     _ => {}
                 }
             }
@@ -125,12 +143,7 @@ fn run_glium(
     }
 
     events_loop.run_forever(|event| match window.dispatch_event(event) {
-        Ok(_) => {
-            if window.need_paint() {
-                window.paint().expect("paint failed");
-            }
-            glium::glutin::ControlFlow::Continue
-        }
+        Ok(_) => glium::glutin::ControlFlow::Continue,
         Err(err) => {
             eprintln!("{:?}", err);
             glium::glutin::ControlFlow::Break

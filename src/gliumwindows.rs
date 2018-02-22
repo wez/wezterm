@@ -13,12 +13,14 @@ use std::io::{Read, Write};
 use std::process::Child;
 use std::process::Command;
 use std::rc::Rc;
+use std::sync::mpsc::Receiver;
 use std::sync::mpsc::TryRecvError;
 use term::{self, Terminal};
 use term::{MouseButton, MouseEventKind};
 use term::KeyCode;
 use term::KeyModifiers;
 use term::hyperlink::Hyperlink;
+use wakeup::WakeupMsg;
 
 struct Host {
     display: glium::Display,
@@ -62,11 +64,13 @@ pub struct TerminalWindow {
     terminal: Terminal,
     process: Child,
     last_mouse_coords: (f64, f64),
+    wakeup_receiver: Receiver<WakeupMsg>,
 }
 
 impl TerminalWindow {
     pub fn new(
         event_loop: &glutin::EventsLoop,
+        wakeup_receiver: Receiver<WakeupMsg>,
         width: u16,
         height: u16,
         terminal: Terminal,
@@ -116,6 +120,7 @@ impl TerminalWindow {
             terminal,
             process,
             last_mouse_coords: (0.0, 0.0),
+            wakeup_receiver,
         })
     }
 
@@ -439,8 +444,19 @@ impl TerminalWindow {
                     Err(TryRecvError::Disconnected) => bail!("clipboard thread died"),
                 }
 
-                self.try_read_pty()?;
-                self.test_for_child_exit()?;
+                loop {
+                    match self.wakeup_receiver.try_recv() {
+                        Ok(WakeupMsg::PtyReadable) => self.try_read_pty()?,
+                        Ok(WakeupMsg::SigChld) => self.test_for_child_exit()?,
+                        Ok(WakeupMsg::Paint) => if self.terminal.has_dirty_lines() {
+                            self.paint()?;
+                        },
+                        Err(_) => break,
+                    }
+                }
+            }
+            Event::Suspended(suspended) => {
+                eprintln!("Suspended {:?}", suspended);
             }
             _ => {}
         }
