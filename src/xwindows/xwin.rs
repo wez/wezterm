@@ -1,24 +1,24 @@
-use super::{Connection, Drawable, Window};
+use super::{Connection, Window};
+use super::clipboard::Clipboard;
 use super::super::opengl::render::Renderer;
 use super::xkeysyms;
-use failure::{self, Error};
+use failure::Error;
 use font::FontConfiguration;
 use pty::MasterPty;
 use std::io::{Read, Write};
 use std::process::Child;
 use std::process::Command;
 use std::rc::Rc;
-use term::{self, KeyCode, KeyModifiers, MouseButton, MouseEvent, MouseEventKind, TerminalHost};
+use term::{self, KeyCode, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 use term::hyperlink::Hyperlink;
 use xcb;
-use xcb_util;
 
 /// Holds the information we need to implement TerminalHost
 struct Host<'a> {
     window: Window<'a>,
     pty: MasterPty,
     timestamp: xcb::xproto::Timestamp,
-    clipboard: Option<String>,
+    clipboard: Clipboard,
 }
 
 pub struct TerminalWindow<'a> {
@@ -51,87 +51,11 @@ impl<'a> term::TerminalHost for Host<'a> {
     // Check out https://tronche.com/gui/x/icccm/sec-2.html for some deep and complex
     // background on what's happening in here.
     fn get_clipboard(&mut self) -> Result<String, Error> {
-        // If we own the clipboard, just return the text now
-        if let Some(ref text) = self.clipboard {
-            return Ok(text.clone());
-        }
-
-        let conn = self.window.get_conn();
-
-        xcb::convert_selection(
-            conn.conn(),
-            self.window.as_drawable(),
-            xcb::ATOM_PRIMARY,
-            conn.atom_utf8_string,
-            conn.atom_xsel_data,
-            self.timestamp,
-        );
-        conn.flush();
-
-        loop {
-            let event = conn.wait_for_event()
-                .ok_or_else(|| failure::err_msg("X connection EOF"))?;
-            match event.response_type() & 0x7f {
-                xcb::SELECTION_NOTIFY => {
-                    let selection: &xcb::SelectionNotifyEvent = unsafe { xcb::cast_event(&event) };
-
-                    if selection.selection() == xcb::ATOM_PRIMARY
-                        && selection.property() != xcb::NONE
-                    {
-                        let prop = xcb_util::icccm::get_text_property(
-                            conn,
-                            selection.requestor(),
-                            selection.property(),
-                        ).get_reply()?;
-                        return Ok(prop.name().into());
-                    }
-                }
-                _ => {
-                    eprintln!(
-                        "whoops: got XCB event type {} while waiting for selection",
-                        event.response_type() & 0x7f
-                    );
-                    // Rather than block forever, give up and yield an empty string
-                    // for pasting purposes.  We lost an event.  This sucks.
-                    // Will likely need to rethink how we handle passing the clipboard
-                    // data down to the terminal.
-                    return Ok("".into());
-                }
-            }
-        }
+        self.clipboard.get_clipboard()
     }
 
     fn set_clipboard(&mut self, clip: Option<String>) -> Result<(), Error> {
-        self.clipboard = clip;
-        let conn = self.window.get_conn();
-
-        xcb::set_selection_owner(
-            conn.conn(),
-            if self.clipboard.is_some() {
-                self.window.as_drawable()
-            } else {
-                xcb::NONE
-            },
-            xcb::ATOM_PRIMARY,
-            self.timestamp,
-        );
-        // Also set the CLIPBOARD atom, not just the PRIMARY selection.
-        // TODO: make xterm clipboard selection configurable
-        xcb::set_selection_owner(
-            conn.conn(),
-            if self.clipboard.is_some() {
-                self.window.as_drawable()
-            } else {
-                xcb::NONE
-            },
-            conn.atom_clipboard,
-            self.timestamp,
-        );
-
-        // TODO: icccm says that we should check that we got ownership and
-        // amend our UI accordingly
-
-        Ok(())
+        self.clipboard.set_clipboard(clip)
     }
 
     fn set_title(&mut self, title: &str) {
@@ -164,7 +88,7 @@ impl<'a> TerminalWindow<'a> {
             window,
             pty,
             timestamp: 0,
-            clipboard: None,
+            clipboard: Clipboard::new(|| {})?,
         };
 
         let renderer = Renderer::new(&host.window, width, height, fonts, palette)?;
@@ -262,12 +186,6 @@ impl<'a> TerminalWindow<'a> {
         (xkeysyms::xcb_keysym_to_keycode(sym), mods)
     }
 
-    fn clear_selection(&mut self) -> Result<(), Error> {
-        self.host.set_clipboard(None)?;
-        self.terminal.clear_selection();
-        Ok(())
-    }
-
     fn mouse_event(&mut self, event: MouseEvent) -> Result<(), Error> {
         self.terminal.mouse_event(event, &mut self.host)?;
         Ok(())
@@ -343,91 +261,6 @@ impl<'a> TerminalWindow<'a> {
                     // TODO: cleaner exit handling
                     bail!("window close requested!");
                 }
-            }
-            xcb::SELECTION_CLEAR => {
-                // Someone else now owns the selection
-                self.clear_selection()?;
-            }
-            xcb::SELECTION_REQUEST => {
-                // Someone is asking for our selected text
-
-                let request: &xcb::SelectionRequestEvent = unsafe { xcb::cast_event(&event) };
-                debug!(
-                    "SEL: time={} owner={} requestor={} selection={} target={} property={}",
-                    request.time(),
-                    request.owner(),
-                    request.requestor(),
-                    request.selection(),
-                    request.target(),
-                    request.property()
-                );
-                debug!(
-                    "XSEL={}, UTF8={} PRIMARY={} clip={}",
-                    self.conn.atom_xsel_data,
-                    self.conn.atom_utf8_string,
-                    xcb::ATOM_PRIMARY,
-                    self.conn.atom_clipboard,
-                );
-
-                // I'd like to use `match` here, but the atom values are not
-                // known at compile time so we have to `if` like a caveman :-p
-                let selprop = if request.target() == self.conn.atom_targets {
-                    // They want to know which targets we support
-                    let atoms: [u32; 1] = [self.conn.atom_utf8_string];
-                    xcb::xproto::change_property(
-                        self.conn.conn(),
-                        xcb::xproto::PROP_MODE_REPLACE as u8,
-                        request.requestor(),
-                        request.property(),
-                        xcb::xproto::ATOM_ATOM,
-                        32, /* 32-bit atom value */
-                        &atoms,
-                    );
-
-                    // let the requestor know that we set their property
-                    request.property()
-                } else if request.target() == self.conn.atom_utf8_string
-                    || request.target() == xcb::xproto::ATOM_STRING
-                {
-                    // We'll accept requests for UTF-8 or STRING data.
-                    // We don't and won't do any conversion from UTF-8 to
-                    // whatever STRING represents; let's just assume that
-                    // the other end is going to handle it correctly.
-                    if let &Some(ref text) = &self.host.clipboard {
-                        xcb::xproto::change_property(
-                            self.conn.conn(),
-                            xcb::xproto::PROP_MODE_REPLACE as u8,
-                            request.requestor(),
-                            request.property(),
-                            request.target(),
-                            8, /* 8-bit string data */
-                            text.as_bytes(),
-                        );
-                        // let the requestor know that we set their property
-                        request.property()
-                    } else {
-                        // We have no clipboard so there is nothing to report
-                        xcb::NONE
-                    }
-                } else {
-                    // We didn't support their request, so there is nothing
-                    // we can report back to them.
-                    xcb::NONE
-                };
-
-                xcb::xproto::send_event(
-                    self.conn.conn(),
-                    true,
-                    request.requestor(),
-                    0,
-                    &xcb::xproto::SelectionNotifyEvent::new(
-                        request.time(),
-                        request.requestor(),
-                        request.selection(),
-                        request.target(),
-                        selprop, // the disposition from the operation above
-                    ),
-                );
             }
             _ => {}
         }

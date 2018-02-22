@@ -20,6 +20,7 @@ pub type Result<T> = result::Result<T, Error>;
 mod xkeysyms;
 pub use self::xkeysyms::*;
 pub mod xwin;
+pub mod clipboard;
 
 pub struct Connection {
     pub display: *mut x11::xlib::Display,
