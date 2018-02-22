@@ -121,25 +121,16 @@ fn run_glium(
             for event in &events {
                 if event.token() == Token(0) && event.readiness().is_readable() {
                     window.handle_pty_readable_event();
-                    window.paint().unwrap();
                 }
             }
+        } else if window.need_paint() {
+            window.paint()?;
         }
-        events_loop.poll_events(|event| {
-            match event {
-                glutin::Event::WindowEvent { event, .. } => match event {
-                    // Break from the main loop when the window is closed.
-                    glutin::WindowEvent::Closed => {
-                        done = true;
-                        return;
-                    }
-                    // glutin::ControlFlow::Break, Redraw the triangle when the
-                    // window is resized.
-                    glutin::WindowEvent::Resized(..) => window.paint().unwrap(),
-                    glutin::WindowEvent::Refresh => window.paint().unwrap(),
-                    _ => (),
-                },
-                _ => (),
+        events_loop.poll_events(|event| match window.dispatch_event(event) {
+            Ok(_) => {}
+            Err(err) => {
+                eprintln!("{:?}", err);
+                done = true;
             }
         });
     }
@@ -286,7 +277,7 @@ fn run() -> Result<(), Error> {
         config.scrollback_lines.unwrap_or(3500),
     );
 
-    run_xwindows(
+    run_glium(
         master,
         child,
         config,

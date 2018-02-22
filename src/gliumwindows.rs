@@ -4,12 +4,16 @@
 use failure::Error;
 use font::FontConfiguration;
 use glium::{self, glutin};
+use glium::glutin::ElementState;
 use opengl::render::Renderer;
 use pty::MasterPty;
 use std::io::{Read, Write};
 use std::process::Child;
 use std::rc::Rc;
 use term::{self, Terminal};
+use term::{MouseButton, MouseEventKind};
+use term::KeyCode;
+use term::KeyModifiers;
 use term::hyperlink::Hyperlink;
 
 struct Host {
@@ -43,6 +47,7 @@ pub struct TerminalWindow {
     cell_width: usize,
     terminal: Terminal,
     process: Child,
+    last_mouse_coords: (f64, f64),
 }
 
 impl TerminalWindow {
@@ -93,6 +98,7 @@ impl TerminalWindow {
             cell_width,
             terminal,
             process,
+            last_mouse_coords: (0.0, 0.0),
         })
     }
 
@@ -106,7 +112,7 @@ impl TerminalWindow {
         Ok(())
     }
 
-    pub fn handle_pty_readable_event(&mut self) {
+    pub fn handle_pty_readable_event(&mut self) -> Result<(), Error> {
         const BUFSIZE: usize = 8192;
         let mut buf = [0; BUFSIZE];
 
@@ -114,5 +120,310 @@ impl TerminalWindow {
             Ok(size) => self.terminal.advance_bytes(&buf[0..size], &mut self.host),
             Err(err) => eprintln!("error reading from pty: {:?}", err),
         }
+        Ok(())
+    }
+
+    fn resize_surfaces(&mut self, width: u16, height: u16) -> Result<bool, Error> {
+        if width != self.width || height != self.height {
+            debug!("resize {},{}", width, height);
+
+            self.width = width;
+            self.height = height;
+            self.renderer.resize(&self.host.display, width, height)?;
+
+            // The +1 in here is to handle an irritating case.
+            // When we get N rows with a gap of cell_height - 1 left at
+            // the bottom, we can usually squeeze that extra row in there,
+            // so optimistically pretend that we have that extra pixel!
+            let rows = ((height as usize + 1) / self.cell_height) as u16;
+            let cols = ((width as usize + 1) / self.cell_width) as u16;
+            self.host.pty.resize(rows, cols, width, height)?;
+            self.terminal.resize(rows as usize, cols as usize);
+
+            Ok(true)
+        } else {
+            debug!("ignoring extra resize");
+            Ok(false)
+        }
+    }
+
+    fn decode_modifiers(state: glium::glutin::ModifiersState) -> term::KeyModifiers {
+        let mut mods = Default::default();
+        if state.shift {
+            mods |= term::KeyModifiers::SHIFT;
+        }
+        if state.ctrl {
+            mods |= term::KeyModifiers::CTRL;
+        }
+        if state.alt {
+            mods |= term::KeyModifiers::ALT;
+        }
+        if state.logo {
+            mods |= term::KeyModifiers::SUPER;
+        }
+        mods
+    }
+
+    fn mouse_move(
+        &mut self,
+        x: f64,
+        y: f64,
+        modifiers: glium::glutin::ModifiersState,
+    ) -> Result<(), Error> {
+        self.last_mouse_coords = (x, y);
+        self.terminal.mouse_event(
+            term::MouseEvent {
+                kind: MouseEventKind::Move,
+                button: MouseButton::None,
+                x: (x as usize / self.cell_width) as usize,
+                y: (y as usize / self.cell_height) as i64,
+                modifiers: Self::decode_modifiers(modifiers),
+            },
+            &mut self.host,
+        )?;
+
+        Ok(())
+    }
+
+    fn mouse_click(
+        &mut self,
+        state: ElementState,
+        button: glutin::MouseButton,
+        modifiers: glium::glutin::ModifiersState,
+    ) -> Result<(), Error> {
+        self.terminal.mouse_event(
+            term::MouseEvent {
+                kind: match state {
+                    ElementState::Pressed => MouseEventKind::Press,
+                    ElementState::Released => MouseEventKind::Release,
+                },
+                button: match button {
+                    glutin::MouseButton::Left => MouseButton::Left,
+                    glutin::MouseButton::Right => MouseButton::Right,
+                    glutin::MouseButton::Middle => MouseButton::Middle,
+                    glutin::MouseButton::Other(_) => return Ok(()),
+                },
+                x: (self.last_mouse_coords.0 as usize / self.cell_width) as usize,
+                y: (self.last_mouse_coords.1 as usize / self.cell_height) as i64,
+                modifiers: Self::decode_modifiers(modifiers),
+            },
+            &mut self.host,
+        )?;
+
+        Ok(())
+    }
+
+    fn mouse_wheel(
+        &mut self,
+        delta: glutin::MouseScrollDelta,
+        modifiers: glium::glutin::ModifiersState,
+    ) -> Result<(), Error> {
+        let button = match delta {
+            glutin::MouseScrollDelta::LineDelta(_, lines) if lines > 0.0 => MouseButton::WheelUp,
+            glutin::MouseScrollDelta::LineDelta(_, lines) if lines < 0.0 => MouseButton::WheelDown,
+            glutin::MouseScrollDelta::PixelDelta(_, pixels) => {
+                let lines = pixels / self.cell_height as f32;
+                if lines > 0.0 {
+                    MouseButton::WheelUp
+                } else if lines < 0.0 {
+                    MouseButton::WheelDown
+                } else {
+                    return Ok(());
+                }
+            }
+            _ => return Ok(()),
+        };
+        self.terminal.mouse_event(
+            term::MouseEvent {
+                kind: MouseEventKind::Press,
+                button,
+                x: (self.last_mouse_coords.0 as usize / self.cell_width) as usize,
+                y: (self.last_mouse_coords.1 as usize / self.cell_height) as i64,
+                modifiers: Self::decode_modifiers(modifiers),
+            },
+            &mut self.host,
+        )?;
+
+        Ok(())
+    }
+
+    fn key_event(&mut self, event: glium::glutin::KeyboardInput) -> Result<(), Error> {
+        let mods = Self::decode_modifiers(event.modifiers);
+        if let Some(code) = event.virtual_keycode {
+            use glium::glutin::VirtualKeyCode as V;
+
+            let shiftpair = |lower, upper| {
+                if mods.contains(KeyModifiers::SHIFT) {
+                    KeyCode::Char(upper)
+                } else {
+                    KeyCode::Char(lower)
+                }
+            };
+
+            let key = match code {
+                V::Key1
+                | V::Key2
+                | V::Key3
+                | V::Key3
+                | V::Key4
+                | V::Key5
+                | V::Key6
+                | V::Key7
+                | V::Key8
+                | V::Key9
+                | V::Key0
+                | V::A
+                | V::B
+                | V::C
+                | V::D
+                | V::E
+                | V::F
+                | V::G
+                | V::H
+                | V::I
+                | V::J
+                | V::K
+                | V::L
+                | V::M
+                | V::N
+                | V::O
+                | V::P
+                | V::Q
+                | V::R
+                | V::S
+                | V::T
+                | V::U
+                | V::V
+                | V::W
+                | V::X
+                | V::Y
+                | V::Z
+                | V::Return
+                | V::Back
+                | V::Escape
+                | V::Delete
+                | V::Colon
+                | V::Return
+                | V::Space
+                | V::Equals
+                | V::Add
+                | V::Apostrophe
+                | V::Backslash
+                | V::Grave
+                | V::LBracket
+                | V::Minus
+                | V::Period
+                | V::RBracket
+                | V::Semicolon
+                | V::Slash
+                | V::Tab => {
+                    // These are all handled by ReceivedCharacter
+                    return Ok(());
+                }
+                V::Insert => KeyCode::Insert,
+                V::Home => KeyCode::Home,
+                V::End => KeyCode::End,
+                V::PageDown => KeyCode::PageDown,
+                V::PageUp => KeyCode::PageUp,
+                V::Left => KeyCode::Left,
+                V::Up => KeyCode::Up,
+                V::Right => KeyCode::Right,
+                V::Down => KeyCode::Down,
+                V::LAlt | V::RAlt => KeyCode::Alt,
+                V::LControl | V::RControl => KeyCode::Control,
+                V::LMenu | V::RMenu => KeyCode::Super,
+                V::LShift | V::RShift => KeyCode::Shift,
+                V::LWin | V::RWin => KeyCode::Super,
+                code @ _ => {
+                    eprintln!("unhandled key: {:?}", event);
+                    return Ok(());
+                }
+            };
+
+            match event.state {
+                ElementState::Pressed => self.terminal.key_down(key, mods, &mut self.host)?,
+                ElementState::Released => self.terminal.key_up(key, mods, &mut self.host)?,
+            }
+        }
+        Ok(())
+    }
+
+    pub fn dispatch_event(&mut self, event: glutin::Event) -> Result<(), Error> {
+        use glium::glutin::{Event, WindowEvent};
+        match event {
+            Event::WindowEvent {
+                event: WindowEvent::Closed,
+                ..
+            } => {
+                bail!("window close requested!");
+            }
+            Event::WindowEvent {
+                event: WindowEvent::Resized(width, height),
+                ..
+            } => {
+                self.resize_surfaces(width as u16, height as u16)?;
+            }
+            Event::WindowEvent {
+                event: WindowEvent::ReceivedCharacter(c),
+                ..
+            } => {
+                self.terminal
+                    .key_down(KeyCode::Char(c), KeyModifiers::default(), &mut self.host)?;
+            }
+            Event::WindowEvent {
+                event: WindowEvent::KeyboardInput { input, .. },
+                ..
+            } => {
+                self.key_event(input)?;
+            }
+            Event::WindowEvent {
+                event:
+                    WindowEvent::CursorMoved {
+                        position: (x, y),
+                        modifiers,
+                        ..
+                    },
+                ..
+            } => {
+                self.mouse_move(x, y, modifiers)?;
+            }
+            Event::WindowEvent {
+                event:
+                    WindowEvent::MouseInput {
+                        state,
+                        button,
+                        modifiers,
+                        ..
+                    },
+                ..
+            } => {
+                self.mouse_click(state, button, modifiers)?;
+            }
+            Event::WindowEvent {
+                event:
+                    WindowEvent::MouseWheel {
+                        delta, modifiers, ..
+                    },
+                ..
+            } => {
+                self.mouse_wheel(delta, modifiers)?;
+            }
+            Event::WindowEvent {
+                event: WindowEvent::Refresh,
+                ..
+            } => {
+                println!("Refresh");
+                self.paint()?;
+            }
+            Event::Awakened => {
+                // TODO: plumb signals from clipboard and sigchld waiter
+            }
+            _ => {}
+        }
+        Ok(())
+    }
+
+    pub fn need_paint(&self) -> bool {
+        self.terminal.has_dirty_lines()
     }
 }
