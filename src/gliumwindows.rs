@@ -338,6 +338,7 @@ impl TerminalWindow {
                 | V::Slash
                 | V::Comma
                 | V::Subtract
+                | V::At
                 | V::Tab => {
                     // These are all handled by ReceivedCharacter
                     return Ok(());
