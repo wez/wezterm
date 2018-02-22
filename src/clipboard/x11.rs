@@ -279,6 +279,10 @@ impl<F: Fn() + Send + 'static> ClipboardImpl<F> {
                         );
                         self.conn.flush();
                     }
+                    xcb::MAPPING_NOTIFY => {
+                        // Nothing to do here; just don't want to print an error
+                        // in the case below.
+                    }
                     _ => {
                         eprintln!(
                             "clipboard: got unhandled XCB event type {}",
