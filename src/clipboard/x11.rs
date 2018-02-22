@@ -321,6 +321,8 @@ impl<F: Fn() + Send + 'static> ClipboardImpl<F> {
 pub struct Clipboard {
     sender: Sender<ClipRequest>,
     receiver: Receiver<Paste>,
+    /// This isn't really dead; we're keeping it alive until we Drop.
+    #[allow(dead_code)]
     clip_thread: JoinHandle<()>,
 }
 
