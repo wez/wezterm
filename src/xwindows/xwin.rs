@@ -48,8 +48,6 @@ impl<'a> term::TerminalHost for Host<'a> {
         }
     }
 
-    // Check out https://tronche.com/gui/x/icccm/sec-2.html for some deep and complex
-    // background on what's happening in here.
     fn get_clipboard(&mut self) -> Result<String, Error> {
         self.clipboard.get_clipboard()
     }

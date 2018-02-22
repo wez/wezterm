@@ -1,4 +1,6 @@
 //! Interface with the X11 clipboard/selection
+//! Check out https://tronche.com/gui/x/icccm/sec-2.html for some deep and complex
+//! background on what's happening in here.
 use failure::{self, Error};
 use std::sync::mpsc::{channel, Receiver, RecvTimeoutError, Sender};
 use std::thread::{self, JoinHandle};

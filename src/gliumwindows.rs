@@ -9,29 +9,42 @@ use opengl::render::Renderer;
 use pty::MasterPty;
 use std::io::{Read, Write};
 use std::process::Child;
+use std::process::Command;
 use std::rc::Rc;
+use std::sync::mpsc::TryRecvError;
 use term::{self, Terminal};
 use term::{MouseButton, MouseEventKind};
 use term::KeyCode;
 use term::KeyModifiers;
 use term::hyperlink::Hyperlink;
+use xwindows::clipboard::Clipboard;
 
 struct Host {
     display: glium::Display,
     pty: MasterPty,
-    clipboard: Option<String>,
+    clipboard: Clipboard,
 }
 
 impl term::TerminalHost for Host {
     fn writer(&mut self) -> &mut Write {
         &mut self.pty
     }
-    fn click_link(&mut self, _link: &Rc<Hyperlink>) {}
-    fn get_clipboard(&mut self) -> Result<String, Error> {
-        bail!("no clipboard");
+    fn click_link(&mut self, link: &Rc<Hyperlink>) {
+        // TODO: make this configurable
+        let mut cmd = Command::new("xdg-open");
+        cmd.arg(&link.url);
+        match cmd.spawn() {
+            Ok(_) => {}
+            Err(err) => eprintln!("failed to spawn xdg-open {}: {:?}", link.url, err),
+        }
     }
-    fn set_clipboard(&mut self, _clip: Option<String>) -> Result<(), Error> {
-        bail!("no clipboard");
+
+    fn get_clipboard(&mut self) -> Result<String, Error> {
+        self.clipboard.get_clipboard()
+    }
+
+    fn set_clipboard(&mut self, clip: Option<String>) -> Result<(), Error> {
+        self.clipboard.set_clipboard(clip)
     }
     fn set_title(&mut self, title: &str) {
         self.display.gl_window().set_title(title);
@@ -79,10 +92,13 @@ impl TerminalWindow {
         let display =
             glium::Display::new(window, context, &event_loop).map_err(|e| format_err!("{:?}", e))?;
 
+        let event_proxy = event_loop.create_proxy();
         let host = Host {
             display,
             pty,
-            clipboard: None,
+            clipboard: Clipboard::new(move || {
+                event_proxy.wakeup().expect("event loop has been destroyed")
+            })?,
         };
 
         let renderer = Renderer::new(&host.display, width, height, fonts, palette)?;
@@ -252,18 +268,9 @@ impl TerminalWindow {
         if let Some(code) = event.virtual_keycode {
             use glium::glutin::VirtualKeyCode as V;
 
-            let shiftpair = |lower, upper| {
-                if mods.contains(KeyModifiers::SHIFT) {
-                    KeyCode::Char(upper)
-                } else {
-                    KeyCode::Char(lower)
-                }
-            };
-
             let key = match code {
                 V::Key1
                 | V::Key2
-                | V::Key3
                 | V::Key3
                 | V::Key4
                 | V::Key5
@@ -303,7 +310,6 @@ impl TerminalWindow {
                 | V::Escape
                 | V::Delete
                 | V::Colon
-                | V::Return
                 | V::Space
                 | V::Equals
                 | V::Add
@@ -334,7 +340,7 @@ impl TerminalWindow {
                 V::LMenu | V::RMenu => KeyCode::Super,
                 V::LShift | V::RShift => KeyCode::Shift,
                 V::LWin | V::RWin => KeyCode::Super,
-                code @ _ => {
+                _ => {
                     eprintln!("unhandled key: {:?}", event);
                     return Ok(());
                 }
@@ -417,6 +423,18 @@ impl TerminalWindow {
             }
             Event::Awakened => {
                 // TODO: plumb signals from clipboard and sigchld waiter
+                use xwindows::clipboard::Paste;
+                match self.host.clipboard.receiver().try_recv() {
+                    Ok(Paste::Cleared) => {
+                        self.terminal.clear_selection();
+                    }
+                    Ok(_) => {}
+                    Err(TryRecvError::Empty) => {
+                        // Spurious wakeup.  Most likely because Clipboard::get_clipboard
+                        // already consumed the Paste::Cleared event.
+                    }
+                    Err(TryRecvError::Disconnected) => bail!("clipboard thread died"),
+                }
             }
             _ => {}
         }
