@@ -426,4 +426,19 @@ impl TerminalWindow {
     pub fn need_paint(&self) -> bool {
         self.terminal.has_dirty_lines()
     }
+
+    pub fn test_for_child_exit(&mut self) -> Result<(), Error> {
+        match self.process.try_wait() {
+            Ok(Some(status)) => {
+                bail!("child exited: {}", status);
+            }
+            Ok(None) => {
+                println!("child still running");
+                Ok(())
+            }
+            Err(e) => {
+                bail!("failed to wait for child: {}", e);
+            }
+        }
+    }
 }

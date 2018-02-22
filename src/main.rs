@@ -93,6 +93,9 @@ fn run_glium(
     let poll = Poll::new()?;
     poll.register(&master, Token(0), Ready::readable(), PollOpt::edge())?;
 
+    let waiter = sigchld::ChildWaiter::new()?;
+    poll.register(&waiter, Token(2), Ready::readable(), PollOpt::edge())?;
+
     let mut events_loop = glium::glutin::EventsLoop::new();
 
     let mut window = gliumwindows::TerminalWindow::new(
@@ -120,7 +123,13 @@ fn run_glium(
         if poll.poll(&mut events, Some(Duration::new(0, 2000)))? != 0 {
             for event in &events {
                 if event.token() == Token(0) && event.readiness().is_readable() {
-                    window.handle_pty_readable_event();
+                    window.handle_pty_readable_event()?;
+                }
+                if event.token() == Token(2) {
+                    println!("sigchld ready");
+                    let pid = waiter.read_one()?;
+                    println!("got sigchld from pid {}", pid);
+                    window.test_for_child_exit()?;
                 }
             }
         } else if window.need_paint() {
