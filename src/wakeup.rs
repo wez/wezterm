@@ -7,6 +7,7 @@ pub enum WakeupMsg {
     PtyReadable,
     SigChld,
     Paint,
+    Paste,
 }
 
 #[derive(Clone)]

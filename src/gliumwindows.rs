@@ -20,7 +20,7 @@ use term::{MouseButton, MouseEventKind};
 use term::KeyCode;
 use term::KeyModifiers;
 use term::hyperlink::Hyperlink;
-use wakeup::WakeupMsg;
+use wakeup::{Wakeup, WakeupMsg};
 
 struct Host {
     display: glium::Display,
@@ -71,6 +71,7 @@ pub struct TerminalWindow {
 impl TerminalWindow {
     pub fn new(
         event_loop: &glutin::EventsLoop,
+        wakeup: Wakeup,
         wakeup_receiver: Receiver<WakeupMsg>,
         width: u16,
         height: u16,
@@ -98,13 +99,10 @@ impl TerminalWindow {
         let display =
             glium::Display::new(window, context, &event_loop).map_err(|e| format_err!("{:?}", e))?;
 
-        let event_proxy = event_loop.create_proxy();
         let host = Host {
             display,
             pty,
-            clipboard: Clipboard::new(move || {
-                event_proxy.wakeup().expect("event loop has been destroyed")
-            })?,
+            clipboard: Clipboard::new(wakeup)?,
         };
 
         let renderer = Renderer::new(&host.display, width, height, fonts, palette)?;
@@ -447,36 +445,39 @@ impl TerminalWindow {
             } => {
                 self.paint()?;
             }
-            Event::Awakened => {
-                use clipboard::x11::Paste;
-                match self.host.clipboard.receiver().try_recv() {
-                    Ok(Paste::Cleared) => {
-                        self.terminal.clear_selection();
-                    }
-                    Ok(_) => {}
-                    Err(TryRecvError::Empty) => {
-                        // Spurious wakeup.  Most likely because Clipboard::get_clipboard
-                        // already consumed the Paste::Cleared event.
-                    }
-                    Err(TryRecvError::Disconnected) => bail!("clipboard thread died"),
+            Event::Awakened => loop {
+                match self.wakeup_receiver.try_recv() {
+                    Ok(WakeupMsg::PtyReadable) => self.try_read_pty()?,
+                    Ok(WakeupMsg::SigChld) => self.test_for_child_exit()?,
+                    Ok(WakeupMsg::Paint) => if self.terminal.has_dirty_lines() {
+                        self.paint()?;
+                    },
+                    Ok(WakeupMsg::Paste) => self.process_clipboard()?,
+                    Err(_) => break,
                 }
-
-                loop {
-                    match self.wakeup_receiver.try_recv() {
-                        Ok(WakeupMsg::PtyReadable) => self.try_read_pty()?,
-                        Ok(WakeupMsg::SigChld) => self.test_for_child_exit()?,
-                        Ok(WakeupMsg::Paint) => if self.terminal.has_dirty_lines() {
-                            self.paint()?;
-                        },
-                        Err(_) => break,
-                    }
-                }
-            }
+            },
             Event::Suspended(suspended) => {
                 eprintln!("Suspended {:?}", suspended);
             }
             _ => {}
         }
+        Ok(())
+    }
+
+    fn process_clipboard(&mut self) -> Result<(), Error> {
+        use clipboard::x11::Paste;
+        match self.host.clipboard.receiver().try_recv() {
+            Ok(Paste::Cleared) => {
+                self.terminal.clear_selection();
+            }
+            Ok(_) => {}
+            Err(TryRecvError::Empty) => {
+                // Spurious wakeup.  Most likely because Clipboard::get_clipboard
+                // already consumed the Paste::Cleared event.
+            }
+            Err(TryRecvError::Disconnected) => bail!("clipboard thread died"),
+        }
+        self.paint_if_needed()?;
         Ok(())
     }
 

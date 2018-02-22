@@ -5,6 +5,7 @@ use failure::{self, Error};
 use std::sync::mpsc::{channel, Receiver, RecvTimeoutError, Sender};
 use std::thread::{self, JoinHandle};
 use std::time::Duration;
+use wakeup::{Wakeup, WakeupMsg};
 use xcb;
 use xcb_util;
 
@@ -32,7 +33,7 @@ enum ClipRequest {
     Terminate,
 }
 
-struct ClipboardImpl<F: Fn() + Send + 'static> {
+struct ClipboardImpl {
     /// if we own the clipboard, here's its string content
     owned: Option<String>,
     receiver: Receiver<ClipRequest>,
@@ -43,11 +44,15 @@ struct ClipboardImpl<F: Fn() + Send + 'static> {
     atom_xsel_data: xcb::Atom,
     atom_targets: xcb::Atom,
     atom_clipboard: xcb::Atom,
-    ping: F,
+    wakeup: Wakeup,
 }
 
-impl<F: Fn() + Send + 'static> ClipboardImpl<F> {
-    fn new(receiver: Receiver<ClipRequest>, sender: Sender<Paste>, ping: F) -> Result<Self, Error> {
+impl ClipboardImpl {
+    fn new(
+        receiver: Receiver<ClipRequest>,
+        sender: Sender<Paste>,
+        wakeup: Wakeup,
+    ) -> Result<Self, Error> {
         let (conn, screen) = xcb::Connection::connect(None)?;
 
         let atom_utf8_string = xcb::intern_atom(&conn, false, "UTF8_STRING")
@@ -100,19 +105,19 @@ impl<F: Fn() + Send + 'static> ClipboardImpl<F> {
             atom_xsel_data,
             atom_targets,
             atom_clipboard,
-            ping,
+            wakeup,
         })
     }
 
-    fn send(&self, packet: Paste) -> bool {
+    fn send(&mut self, packet: Paste) -> bool {
         match self.sender.send(packet) {
             Ok(_) => {
-                (self.ping)();
+                self.wakeup.send(WakeupMsg::Paste).ok();
                 true
             }
             Err(err) => {
                 eprintln!("clipboard: error sending to channel: {:?}", err);
-                (self.ping)();
+                self.wakeup.send(WakeupMsg::Paste).ok();
                 false
             }
         }
@@ -332,14 +337,11 @@ pub struct Clipboard {
 
 impl Clipboard {
     /// Create a new clipboard instance.  `ping` is
-    pub fn new<F>(ping: F) -> Result<Self, Error>
-    where
-        F: Fn() + Send + 'static,
-    {
+    pub fn new(wakeup: Wakeup) -> Result<Self, Error> {
         let (sender_clip, receiver_clip) = channel();
         let (sender_paste, receiver_paste) = channel();
         let clip_thread = thread::spawn(move || {
-            match ClipboardImpl::new(receiver_clip, sender_paste, ping) {
+            match ClipboardImpl::new(receiver_clip, sender_paste, wakeup) {
                 Ok(mut clip) => clip.clip_thread(),
                 Err(err) => eprintln!("failed to init clipboard window: {:?}", err),
             }

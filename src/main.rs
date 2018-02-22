@@ -92,6 +92,7 @@ fn run_glium(
 
     let mut window = gliumwindows::TerminalWindow::new(
         &events_loop,
+        wakeup.clone(),
         wakeup_receiver,
         initial_pixel_width,
         initial_pixel_height,
