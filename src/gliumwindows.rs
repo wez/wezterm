@@ -269,36 +269,54 @@ impl TerminalWindow {
         Ok(())
     }
 
+    /// Handle a scroll wheel or touchpad scroll gesture.
+    /// The delta can provide either a LineDelta or a PixelData
+    /// depending on the source of the input.
+    /// On Linux with a touch pad I'm seeing fractional LineDelta
+    /// values depending on the velocity of my scroll swipe.
+    /// We need to translate this to a series of wheel events to
+    /// pass to the underlying terminal model.
     fn mouse_wheel(
         &mut self,
         delta: glutin::MouseScrollDelta,
         modifiers: glium::glutin::ModifiersState,
     ) -> Result<(), Error> {
-        let button = match delta {
-            glutin::MouseScrollDelta::LineDelta(_, lines) if lines > 0.0 => MouseButton::WheelUp,
-            glutin::MouseScrollDelta::LineDelta(_, lines) if lines < 0.0 => MouseButton::WheelDown,
+        // Figure out which wheel button and how many times we want
+        // to trigger it based on the magnitude of the wheel event.
+        // We currently only care about vertical scrolling so the code
+        // below will return early if all we have is horizontal scroll
+        // components.
+        let (button, times) = match delta {
+            glutin::MouseScrollDelta::LineDelta(_, lines) if lines > 0.0 => {
+                (MouseButton::WheelUp, lines.abs().ceil() as usize)
+            }
+            glutin::MouseScrollDelta::LineDelta(_, lines) if lines < 0.0 => {
+                (MouseButton::WheelDown, lines.abs().ceil() as usize)
+            }
             glutin::MouseScrollDelta::PixelDelta(_, pixels) => {
                 let lines = pixels / self.cell_height as f32;
                 if lines > 0.0 {
-                    MouseButton::WheelUp
+                    (MouseButton::WheelUp, lines.abs().ceil() as usize)
                 } else if lines < 0.0 {
-                    MouseButton::WheelDown
+                    (MouseButton::WheelDown, lines.abs().ceil() as usize)
                 } else {
                     return Ok(());
                 }
             }
             _ => return Ok(()),
         };
-        self.terminal.mouse_event(
-            term::MouseEvent {
-                kind: MouseEventKind::Press,
-                button,
-                x: (self.last_mouse_coords.0 as usize / self.cell_width) as usize,
-                y: (self.last_mouse_coords.1 as usize / self.cell_height) as i64,
-                modifiers: Self::decode_modifiers(modifiers),
-            },
-            &mut self.host,
-        )?;
+        for _ in 0..times {
+            self.terminal.mouse_event(
+                term::MouseEvent {
+                    kind: MouseEventKind::Press,
+                    button,
+                    x: (self.last_mouse_coords.0 as usize / self.cell_width) as usize,
+                    y: (self.last_mouse_coords.1 as usize / self.cell_height) as i64,
+                    modifiers: Self::decode_modifiers(modifiers),
+                },
+                &mut self.host,
+            )?;
+        }
         self.paint_if_needed()?;
 
         Ok(())
