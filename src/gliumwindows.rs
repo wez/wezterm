@@ -66,7 +66,10 @@ pub struct TerminalWindow {
     last_mouse_coords: (f64, f64),
     last_modifiers: KeyModifiers,
     wakeup_receiver: Receiver<WakeupMsg>,
-    is_fullscreen: bool,
+    window_position: Option<(i32, i32)>,
+    /// is is_some, holds position to be restored after exiting
+    /// fullscreen mode.
+    is_fullscreen: Option<(i32, i32)>,
 }
 
 impl TerminalWindow {
@@ -107,6 +110,7 @@ impl TerminalWindow {
         };
 
         host.display.gl_window().set_cursor(MouseCursor::Text);
+        let window_position = host.display.gl_window().get_position();
 
         let renderer = Renderer::new(&host.display, width, height, fonts, palette)?;
         let cell_height = cell_height.ceil() as usize;
@@ -124,7 +128,8 @@ impl TerminalWindow {
             last_mouse_coords: (0.0, 0.0),
             last_modifiers: Default::default(),
             wakeup_receiver,
-            is_fullscreen: false,
+            window_position,
+            is_fullscreen: None,
         })
     }
 
@@ -428,19 +433,29 @@ impl TerminalWindow {
                 self.resize_surfaces(width as u16, height as u16)?;
             }
             Event::WindowEvent {
+                event: WindowEvent::Moved(x, y),
+                ..
+            } => {
+                self.window_position = Some((x, y));
+            }
+            Event::WindowEvent {
                 event: WindowEvent::ReceivedCharacter(c),
                 ..
             } => {
                 // Primitive Alt-Enter fullscreen shortcut
                 if c == '\r' && self.last_modifiers.contains(KeyModifiers::ALT) {
                     let window = self.host.display.gl_window();
-                    let (monitor, enabled) = if self.is_fullscreen {
-                        (None, false)
+                    let pos = self.is_fullscreen.take();
+                    if let Some((x, y)) = pos {
+                        window.set_fullscreen(None);
+                        window.set_position(x, y);
                     } else {
-                        (Some(window.get_current_monitor()), true)
-                    };
-                    window.set_fullscreen(monitor);
-                    self.is_fullscreen = enabled;
+                        // We use our own idea of the position because get_position()
+                        // appears to only return the initial position of the window
+                        // on Linux.
+                        self.is_fullscreen = self.window_position.take();
+                        window.set_fullscreen(Some(window.get_current_monitor()));
+                    }
                 } else {
                     self.terminal
                         .key_down(KeyCode::Char(c), self.last_modifiers, &mut self.host)?;
