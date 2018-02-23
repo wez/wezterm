@@ -154,6 +154,14 @@ impl TerminalWindow {
     }
 
     fn resize_surfaces(&mut self, width: u16, height: u16) -> Result<bool, Error> {
+        // Simple approach to hidpi displays; if the display factor is
+        // two (retina) then we want things to be twice as large so we
+        // simply divide by the scaling factor to have them take up
+        // twice as much space.  OpenGL is going to scale things automatically.
+        let scale = self.host.display.gl_window().hidpi_factor();
+        let width = (width as f32 / scale) as u16;
+        let height = (height as f32 / scale) as u16;
+
         if width != self.width || height != self.height {
             debug!("resize {},{}", width, height);
 
@@ -169,7 +177,6 @@ impl TerminalWindow {
             let cols = ((width as usize + 1) / self.cell_width) as u16;
             self.host.pty.resize(rows, cols, width, height)?;
             self.terminal.resize(rows as usize, cols as usize);
-            self.paint_if_needed()?;
 
             Ok(true)
         } else {
@@ -402,6 +409,17 @@ impl TerminalWindow {
                 ..
             } => {
                 bail!("window close requested!");
+            }
+            Event::WindowEvent {
+                event: WindowEvent::HiDPIFactorChanged(_),
+                ..
+            } => {
+                // Assuming that this is dragging a window between hidpi and
+                // normal dpi displays.  Treat this as a resize event of sorts
+                let size = self.host.display.gl_window().get_inner_size();
+                if let Some((width, height)) = size {
+                    self.resize_surfaces(width as u16, height as u16)?;
+                }
             }
             Event::WindowEvent {
                 event: WindowEvent::Resized(width, height),
