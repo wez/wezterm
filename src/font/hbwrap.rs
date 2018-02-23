@@ -3,8 +3,8 @@
 #[cfg(any(target_os = "android", all(unix, not(target_os = "macos"))))]
 use freetype;
 
-use harfbuzz_sys as harfbuzz;
 pub use self::harfbuzz::*;
+use harfbuzz_sys as harfbuzz;
 
 use failure::Error;
 

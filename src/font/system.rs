@@ -1,8 +1,8 @@
 //! Abstracts over the font selection system for the system
 
+use super::hbwrap as harfbuzz;
 use super::super::config::{Config, TextStyle};
 use failure::Error;
-use super::hbwrap as harfbuzz;
 use unicode_width::UnicodeWidthStr;
 
 /// A bitmap representation of a glyph.

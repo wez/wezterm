@@ -1,12 +1,12 @@
 //! Systems that use fontconfig and freetype
 
 pub use self::fcwrap::Pattern as FontPattern;
+use super::hbwrap as harfbuzz;
 use config::{Config, TextStyle};
 use failure::{self, Error};
 use font::{shape_with_harfbuzz, FallbackIdx, Font, FontMetrics, FontSystem, GlyphInfo, NamedFont,
            RasterizedGlyph};
 use font::{fcwrap, ftwrap};
-use super::hbwrap as harfbuzz;
 use std::cell::RefCell;
 use std::mem;
 use std::slice;
