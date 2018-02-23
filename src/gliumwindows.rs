@@ -66,6 +66,7 @@ pub struct TerminalWindow {
     last_mouse_coords: (f64, f64),
     last_modifiers: KeyModifiers,
     wakeup_receiver: Receiver<WakeupMsg>,
+    is_fullscreen: bool,
 }
 
 impl TerminalWindow {
@@ -123,6 +124,7 @@ impl TerminalWindow {
             last_mouse_coords: (0.0, 0.0),
             last_modifiers: Default::default(),
             wakeup_receiver,
+            is_fullscreen: false,
         })
     }
 
@@ -411,8 +413,20 @@ impl TerminalWindow {
                 event: WindowEvent::ReceivedCharacter(c),
                 ..
             } => {
-                self.terminal
-                    .key_down(KeyCode::Char(c), self.last_modifiers, &mut self.host)?;
+                // Primitive Alt-Enter fullscreen shortcut
+                if c == '\r' && self.last_modifiers.contains(KeyModifiers::ALT) {
+                    let window = self.host.display.gl_window();
+                    let (monitor, enabled) = if self.is_fullscreen {
+                        (None, false)
+                    } else {
+                        (Some(window.get_current_monitor()), true)
+                    };
+                    window.set_fullscreen(monitor);
+                    self.is_fullscreen = enabled;
+                } else {
+                    self.terminal
+                        .key_down(KeyCode::Char(c), self.last_modifiers, &mut self.host)?;
+                }
                 self.paint_if_needed()?;
             }
             Event::WindowEvent {
