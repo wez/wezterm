@@ -864,16 +864,15 @@ impl Renderer {
         let (fg_color, bg_color) = match (selected, is_cursor) {
             // Normally, render the cell as configured
             (false, false) => (fg_color, bg_color),
-            // Cursor cell always renders with background over cursor color
+            // Cursor cell overrides colors
             (_, true) => (
-                self.palette.background.to_linear_tuple_rgba(),
-                self.palette.cursor.to_linear_tuple_rgba(),
+                self.palette.cursor_fg.to_linear_tuple_rgba(),
+                self.palette.cursor_bg.to_linear_tuple_rgba(),
             ),
-            // Selection text colors the background
+            // Selected text overrides colors
             (true, false) => (
-                fg_color,
-                // TODO: configurable selection color
-                self.palette.cursor.to_linear_tuple_rgba(),
+                self.palette.selection_fg.to_linear_tuple_rgba(),
+                self.palette.selection_bg.to_linear_tuple_rgba(),
             ),
         };
 

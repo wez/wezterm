@@ -127,7 +127,7 @@ usual hex notation; eg: `#000000` is equivalent to `black`:
 [colors]
 foreground = "silver"
 background = "black"
-cursor = "springgreen"
+cursor_bg = "springgreen"
 ansi = ["black", "maroon", "green", "olive", "navy", "purple", "teal", "silver"]
 brights = ["grey", "red", "lime", "yellow", "blue", "fuchsia", "aqua", "white"]
 ```

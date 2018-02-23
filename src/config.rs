@@ -160,7 +160,11 @@ pub struct Palette {
     /// The background color to use when the attributes are reset to default
     pub background: Option<RgbColor>,
     /// The color of the cursor
-    pub cursor: Option<RgbColor>,
+    pub cursor_fg: Option<RgbColor>,
+    pub cursor_bg: Option<RgbColor>,
+    /// The color of selected text
+    pub selection_fg: Option<RgbColor>,
+    pub selection_bg: Option<RgbColor>,
     /// A list of 8 colors corresponding to the basic ANSI palette
     pub ansi: Option<[RgbColor; 8]>,
     /// A list of 8 colors corresponding to bright versions of the
@@ -171,15 +175,20 @@ pub struct Palette {
 impl From<Palette> for term::color::ColorPalette {
     fn from(cfg: Palette) -> term::color::ColorPalette {
         let mut p = term::color::ColorPalette::default();
-        if let Some(foreground) = cfg.foreground {
-            p.foreground = foreground;
+        macro_rules! apply_color {
+            ($name:ident) => {
+                if let Some($name) = cfg.$name {
+                    p.$name = $name;
+                }
+            };
         }
-        if let Some(background) = cfg.background {
-            p.background = background;
-        }
-        if let Some(cursor) = cfg.cursor {
-            p.cursor = cursor;
-        }
+        apply_color!(foreground);
+        apply_color!(background);
+        apply_color!(cursor_fg);
+        apply_color!(cursor_bg);
+        apply_color!(selection_fg);
+        apply_color!(selection_bg);
+
         if let Some(ansi) = cfg.ansi {
             for (idx, col) in ansi.iter().enumerate() {
                 p.colors[idx] = *col;
