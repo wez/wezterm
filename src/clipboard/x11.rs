@@ -9,18 +9,7 @@ use wakeup::{Wakeup, WakeupMsg};
 use xcb;
 use xcb_util;
 
-/// A fragment of the clipboard data received from another
-/// app during paste.
-#[derive(Debug)]
-pub enum Paste {
-    /// The whole content of the paste is available
-    All(String),
-    /// Someone else now owns the selection.  You should
-    /// clear the selection locally.
-    Cleared,
-    /// The clipboard window has initialized successfully
-    Running,
-}
+use clipboard::{ClipboardImpl, Paste};
 
 #[derive(Debug)]
 enum ClipRequest {
@@ -33,7 +22,7 @@ enum ClipRequest {
     Terminate,
 }
 
-struct ClipboardImpl {
+struct Inner {
     /// if we own the clipboard, here's its string content
     owned: Option<String>,
     receiver: Receiver<ClipRequest>,
@@ -47,7 +36,7 @@ struct ClipboardImpl {
     wakeup: Wakeup,
 }
 
-impl ClipboardImpl {
+impl Inner {
     fn new(
         receiver: Receiver<ClipRequest>,
         sender: Sender<Paste>,
@@ -95,7 +84,7 @@ impl ClipboardImpl {
             ).request_check()?;
         }
 
-        Ok(ClipboardImpl {
+        Ok(Inner {
             conn,
             owned: None,
             receiver,
@@ -334,13 +323,13 @@ pub struct Clipboard {
     clip_thread: JoinHandle<()>,
 }
 
-impl Clipboard {
+impl ClipboardImpl for Clipboard {
     /// Create a new clipboard instance.  `ping` is
-    pub fn new(wakeup: Wakeup) -> Result<Self, Error> {
+    fn new(wakeup: Wakeup) -> Result<Self, Error> {
         let (sender_clip, receiver_clip) = channel();
         let (sender_paste, receiver_paste) = channel();
         let clip_thread = thread::spawn(move || {
-            match ClipboardImpl::new(receiver_clip, sender_paste, wakeup) {
+            match Inner::new(receiver_clip, sender_paste, wakeup) {
                 Ok(mut clip) => clip.clip_thread(),
                 Err(err) => eprintln!("failed to init clipboard window: {:?}", err),
             }
@@ -360,11 +349,22 @@ impl Clipboard {
     }
 
     /// Tell X that we own the selection and its contents are `text`
-    pub fn set_clipboard(&self, text: Option<String>) -> Result<(), Error> {
+    fn set_clipboard(&self, text: Option<String>) -> Result<(), Error> {
         self.sender.send(ClipRequest::SetClipboard(text))?;
         Ok(())
     }
+    /// Blocks until the clipboard contents have been retrieved
+    fn get_clipboard(&self) -> Result<String, Error> {
+        self.request_clipboard()?;
+        match self.receiver().recv_timeout(Duration::from_secs(10)) {
+            Ok(Paste::All(result)) => return Ok(result),
+            Ok(Paste::Cleared) => return Ok("".into()),
+            other @ _ => bail!("unexpected result while waiting for paste: {:?}", other),
+        }
+    }
+}
 
+impl Clipboard {
     /// Ask the selection owner for the clipboard contents.
     /// The contents will be delivered asynchronously via
     /// the receiver.
@@ -375,16 +375,6 @@ impl Clipboard {
 
     pub fn receiver(&self) -> &Receiver<Paste> {
         &self.receiver
-    }
-
-    /// Blocks until the clipboard contents have been retrieved
-    pub fn get_clipboard(&self) -> Result<String, Error> {
-        self.request_clipboard()?;
-        match self.receiver().recv_timeout(Duration::from_secs(10)) {
-            Ok(Paste::All(result)) => return Ok(result),
-            Ok(Paste::Cleared) => return Ok("".into()),
-            other @ _ => bail!("unexpected result while waiting for paste: {:?}", other),
-        }
     }
 }
 

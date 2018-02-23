@@ -1,7 +1,7 @@
 //! Generic system dependent windows via glium+glutin
 #![allow(dead_code)]
 
-use clipboard::x11::Clipboard;
+use clipboard::{Clipboard, ClipboardImpl, Paste};
 use failure::Error;
 use font::FontConfiguration;
 use glium::{self, glutin};
@@ -468,7 +468,6 @@ impl TerminalWindow {
     }
 
     fn process_clipboard(&mut self) -> Result<(), Error> {
-        use clipboard::x11::Paste;
         match self.host.clipboard.receiver().try_recv() {
             Ok(Paste::Cleared) => {
                 self.terminal.clear_selection();
