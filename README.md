@@ -14,7 +14,6 @@ A terminal emulator implemented in Rust, using OpenGL ES 2 for rendering.
 
 * Install `rustup` to get the *nightly* `rust` compiler installed on your system.
   https://www.rust-lang.org/en-US/install.html
-
 * Build in release mode: `cargo build --release`
 * Run it via either `cargo run --release` or `target/release/wezterm`
 
