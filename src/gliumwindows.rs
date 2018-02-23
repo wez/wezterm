@@ -5,7 +5,7 @@ use clipboard::{Clipboard, ClipboardImpl, Paste};
 use failure::Error;
 use font::FontConfiguration;
 use glium::{self, glutin};
-use glium::glutin::ElementState;
+use glium::glutin::{ElementState, MouseCursor};
 use opengl::render::Renderer;
 use pty::MasterPty;
 use std::io;
@@ -104,6 +104,8 @@ impl TerminalWindow {
             pty,
             clipboard: Clipboard::new(wakeup)?,
         };
+
+        host.display.gl_window().set_cursor(MouseCursor::Text);
 
         let renderer = Renderer::new(&host.display, width, height, fonts, palette)?;
         let cell_height = cell_height.ceil() as usize;
@@ -211,6 +213,15 @@ impl TerminalWindow {
         // Deliberately not forcing a paint on mouse move as it
         // makes selection feel sluggish
         // self.paint_if_needed()?;
+
+        // When hovering over a hyperlink, show an appropriate
+        // mouse cursor to give the cue that it is clickable
+        let cursor = if self.terminal.current_highlight().is_some() {
+            MouseCursor::Hand
+        } else {
+            MouseCursor::Text
+        };
+        self.host.display.gl_window().set_cursor(cursor);
 
         Ok(())
     }
