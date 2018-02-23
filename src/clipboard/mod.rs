@@ -1,4 +1,5 @@
 use failure::Error;
+use std::sync::mpsc::Receiver;
 
 mod none;
 #[cfg(target_os = "macos")]
@@ -32,4 +33,5 @@ pub trait ClipboardImpl {
         Self: Sized;
     fn set_clipboard(&self, text: Option<String>) -> Result<(), Error>;
     fn get_clipboard(&self) -> Result<String, Error>;
+    fn receiver(&self) -> &Receiver<Paste>;
 }

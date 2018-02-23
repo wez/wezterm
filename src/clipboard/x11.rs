@@ -353,27 +353,18 @@ impl ClipboardImpl for Clipboard {
         self.sender.send(ClipRequest::SetClipboard(text))?;
         Ok(())
     }
+
     /// Blocks until the clipboard contents have been retrieved
     fn get_clipboard(&self) -> Result<String, Error> {
-        self.request_clipboard()?;
+        self.sender.send(ClipRequest::RequestClipboard)?;
         match self.receiver().recv_timeout(Duration::from_secs(10)) {
             Ok(Paste::All(result)) => return Ok(result),
             Ok(Paste::Cleared) => return Ok("".into()),
             other @ _ => bail!("unexpected result while waiting for paste: {:?}", other),
         }
     }
-}
 
-impl Clipboard {
-    /// Ask the selection owner for the clipboard contents.
-    /// The contents will be delivered asynchronously via
-    /// the receiver.
-    pub fn request_clipboard(&self) -> Result<(), Error> {
-        self.sender.send(ClipRequest::RequestClipboard)?;
-        Ok(())
-    }
-
-    pub fn receiver(&self) -> &Receiver<Paste> {
+    fn receiver(&self) -> &Receiver<Paste> {
         &self.receiver
     }
 }
