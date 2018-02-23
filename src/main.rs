@@ -1,3 +1,4 @@
+extern crate clap;
 #[cfg(target_os = "macos")]
 extern crate core_text;
 extern crate euclid;
@@ -23,6 +24,7 @@ extern crate unicode_width;
 #[macro_use]
 pub mod log;
 
+use clap::{App, Arg};
 use failure::Error;
 
 #[cfg(all(unix, not(target_os = "macos")))]
@@ -168,6 +170,19 @@ fn run_glium(
 // !=
 
 fn run() -> Result<(), Error> {
+    let args = App::new("wezterm")
+        .version("0.1")
+        .author("Wez Furlong <wez@wezfurlong.org>")
+        .about(
+            "Wez's Terminal Emulator\n\
+             http://github.com/wez/wezterm",
+        )
+        .arg(Arg::with_name("PROG").multiple(true).help(
+            "Instead of executing your shell, run PROG. \
+             For example: `wezterm -- bash -l` will spawn bash \
+             as if it were a login shell.",
+        ))
+        .get_matches();
     let config = config::Config::load()?;
     println!("Using configuration: {:#?}", config);
 
@@ -194,7 +209,15 @@ fn run() -> Result<(), Error> {
         initial_pixel_height,
     )?;
 
-    let cmd = Command::new(get_shell()?);
+    let cmd = if args.is_present("PROG") {
+        let mut args = args.values_of_os("PROG")
+            .expect("PROG wasn't present after all!?");
+        let mut cmd = Command::new(args.next().expect("executable name"));
+        cmd.args(args);
+        cmd
+    } else {
+        Command::new(get_shell()?)
+    };
     let child = slave.spawn_command(cmd)?;
     eprintln!("spawned: {:?}", child);
 

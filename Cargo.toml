@@ -5,6 +5,7 @@ version = "0.1.0"
 
 [dependencies]
 bitflags = "1.0.1"
+clap = "2.30.0"
 euclid = "0.17.0"
 failure = "0.1.1"
 gl = "0.10.0"
