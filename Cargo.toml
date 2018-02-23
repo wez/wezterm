@@ -9,6 +9,7 @@ euclid = "0.17.0"
 failure = "0.1.1"
 gl = "0.10.0"
 glium = "0.20.0"
+harfbuzz-sys = "0.1.15"
 libc = "0.2.36"
 mio = "0.6.12"
 palette = "0.2.1"
@@ -16,9 +17,6 @@ serde = "1.0.27"
 serde_derive = "1.0.27"
 toml = "0.4.5"
 unicode-width = "0.1.4"
-
-[dependencies.harfbuzz]
-path = "harfbuzz"
 
 [dependencies.term]
 path = "term"

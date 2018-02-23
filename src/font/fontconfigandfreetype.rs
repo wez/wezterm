@@ -6,7 +6,7 @@ use failure::{self, Error};
 use font::{shape_with_harfbuzz, FallbackIdx, Font, FontMetrics, FontSystem, GlyphInfo, NamedFont,
            RasterizedGlyph};
 use font::{fcwrap, ftwrap};
-use harfbuzz;
+use super::hbwrap as harfbuzz;
 use std::cell::RefCell;
 use std::mem;
 use std::slice;

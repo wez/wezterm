@@ -2,7 +2,7 @@
 
 use super::super::config::{Config, TextStyle};
 use failure::Error;
-use harfbuzz;
+use super::hbwrap as harfbuzz;
 use unicode_width::UnicodeWidthStr;
 
 /// A bitmap representation of a glyph.

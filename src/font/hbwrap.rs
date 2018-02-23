@@ -1,12 +1,10 @@
 //! Higher level harfbuzz bindings
 
-#[macro_use]
-extern crate failure;
 #[cfg(any(target_os = "android", all(unix, not(target_os = "macos"))))]
-extern crate freetype;
+use freetype;
 
-pub mod sys;
-pub use sys::*;
+use harfbuzz_sys as harfbuzz;
+pub use self::harfbuzz::*;
 
 use failure::Error;
 

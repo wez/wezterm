@@ -1,5 +1,6 @@
 use failure::Error;
-use harfbuzz;
+mod hbwrap;
+use self::hbwrap as harfbuzz;
 
 use std::cell::RefCell;
 use std::collections::HashMap;

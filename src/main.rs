@@ -10,7 +10,7 @@ extern crate freetype;
 extern crate gl;
 #[macro_use]
 extern crate glium;
-extern crate harfbuzz;
+extern crate harfbuzz_sys;
 extern crate libc;
 extern crate mio;
 extern crate palette;
