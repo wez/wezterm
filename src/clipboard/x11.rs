@@ -282,7 +282,6 @@ impl ClipboardImpl {
                                 selprop, // the disposition from the operation above
                             ),
                         );
-                        self.conn.flush();
                     }
                     xcb::MAPPING_NOTIFY => {
                         // Nothing to do here; just don't want to print an error
@@ -296,6 +295,7 @@ impl ClipboardImpl {
                     }
                 },
             }
+            self.conn.flush();
 
             match self.receiver.recv_timeout(Duration::from_millis(100)) {
                 Err(RecvTimeoutError::Timeout) => continue,
@@ -307,7 +307,6 @@ impl ClipboardImpl {
                 Ok(ClipRequest::SetClipboard(clip)) => {
                     self.owned = clip;
                     self.update_owner();
-                    self.conn.flush();
                 }
                 Ok(ClipRequest::RequestClipboard) => {
                     // Find the owner and ask them to send us the buffer
@@ -319,9 +318,9 @@ impl ClipboardImpl {
                         self.atom_xsel_data,
                         xcb::CURRENT_TIME,
                     );
-                    self.conn.flush();
                 }
             }
+            self.conn.flush();
         }
     }
 }
