@@ -552,6 +552,8 @@ impl TerminalState {
         // TODO: also respect self.application_keypad
 
         let to_send = match (key, ctrl, alt, shift, self.application_cursor_keys) {
+            // Delete
+            (Char('\x7f'), ..) => "\x1b[3~",
             (Char(c), CTRL, _, SHIFT, _) if c <= 0xff as char && c > 0x40 as char => {
                 // If shift is held we have C == 0x43 and want to translate
                 // that into 0x03
