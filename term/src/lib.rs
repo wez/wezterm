@@ -10,6 +10,7 @@ extern crate failure;
 #[macro_use]
 extern crate maplit;
 extern crate palette;
+extern crate regex;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;

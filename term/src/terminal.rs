@@ -55,9 +55,19 @@ pub(crate) enum AnswerBack {
 }
 
 impl Terminal {
-    pub fn new(physical_rows: usize, physical_cols: usize, scrollback_size: usize) -> Terminal {
+    pub fn new(
+        physical_rows: usize,
+        physical_cols: usize,
+        scrollback_size: usize,
+        hyperlink_rules: Vec<hyperlink::Rule>,
+    ) -> Terminal {
         Terminal {
-            state: TerminalState::new(physical_rows, physical_cols, scrollback_size),
+            state: TerminalState::new(
+                physical_rows,
+                physical_cols,
+                scrollback_size,
+                hyperlink_rules,
+            ),
             parser: vte::Parser::new(),
         }
     }

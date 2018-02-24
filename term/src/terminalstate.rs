@@ -1,4 +1,5 @@
 use super::*;
+use unicode_segmentation::UnicodeSegmentation;
 
 struct TabStop {
     tabs: Vec<bool>,
@@ -99,6 +100,8 @@ pub struct TerminalState {
     selection_range: Option<SelectionRange>,
 
     tabs: TabStop,
+
+    hyperlink_rules: Vec<hyperlink::Rule>,
 }
 
 impl TerminalState {
@@ -106,6 +109,7 @@ impl TerminalState {
         physical_rows: usize,
         physical_cols: usize,
         scrollback_size: usize,
+        hyperlink_rules: Vec<hyperlink::Rule>,
     ) -> TerminalState {
         let screen = Screen::new(physical_rows, physical_cols, scrollback_size);
         let alt_screen = Screen::new(physical_rows, physical_cols, 0);
@@ -134,6 +138,7 @@ impl TerminalState {
             selection_range: None,
             selection_start: None,
             tabs: TabStop::new(physical_cols, 8),
+            hyperlink_rules,
         }
     }
 
@@ -188,19 +193,30 @@ impl TerminalState {
     }
 
     fn hyperlink_for_cell(
-        &self,
+        &mut self,
         x: usize,
         y: ScrollbackOrVisibleRowIndex,
     ) -> Option<Rc<Hyperlink>> {
-        let screen = self.screen();
-        let idx = screen.scrollback_or_visible_row(y);
-        let line = match &screen.lines.get(idx) {
-            &Some(line) => line,
-            &None => return None,
+        let rules = &self.hyperlink_rules;
+
+        // manually inlining screen_mut() here because the borrow checker
+        // can't see that it is only mutating the screen otherwise.
+        let screen = if self.alt_screen_is_active {
+            &mut self.alt_screen
+        } else {
+            &mut self.screen
         };
-        match line.cells.get(x) {
-            Some(cell) => cell.attrs.hyperlink.as_ref().cloned(),
-            None => None,
+
+        let idx = screen.scrollback_or_visible_row(y);
+        match screen.lines.get_mut(idx) {
+            Some(ref mut line) => {
+                line.find_hyperlinks(&rules);
+                match line.cells.get(x) {
+                    Some(cell) => cell.attrs.hyperlink.as_ref().cloned(),
+                    None => None,
+                }
+            }
+            None => return None,
         }
     }
 
@@ -217,11 +233,10 @@ impl TerminalState {
     /// Called after a mouse move or viewport scroll to recompute the
     /// current highlight
     fn recompute_highlight(&mut self) {
-        self.current_highlight = self.hyperlink_for_cell(
-            self.mouse_position.x,
-            self.mouse_position.y as ScrollbackOrVisibleRowIndex
-                - self.viewport_offset as ScrollbackOrVisibleRowIndex,
-        );
+        let line_idx = self.mouse_position.y as ScrollbackOrVisibleRowIndex
+            - self.viewport_offset as ScrollbackOrVisibleRowIndex;
+        let x = self.mouse_position.x;
+        self.current_highlight = self.hyperlink_for_cell(x, line_idx);
         self.invalidate_hyperlinks();
     }
 
@@ -294,7 +309,6 @@ impl TerminalState {
                                 - self.viewport_offset as ScrollbackOrVisibleRowIndex;
                             let idx = self.screen().scrollback_or_visible_row(y);
                             let line = self.screen().lines[idx].as_str();
-                            use unicode_segmentation::UnicodeSegmentation;
 
                             self.selection_start = None;
                             self.selection_range = None;

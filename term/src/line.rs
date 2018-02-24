@@ -1,13 +1,22 @@
+use hyperlink::Rule;
 use std::ops::Range;
 use std::str;
 
 use super::*;
 
 #[derive(Debug, Clone, Eq, PartialEq)]
+enum ImplicitHyperlinks {
+    DontKnow,
+    HasNone,
+    HasSome,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Line {
     pub cells: Vec<Cell>,
     dirty: bool,
     has_hyperlink: bool,
+    has_implicit_hyperlinks: ImplicitHyperlinks,
 }
 
 /// A CellCluster is another representation of a Line.
@@ -55,6 +64,7 @@ impl Line {
             cells,
             dirty: true,
             has_hyperlink: false,
+            has_implicit_hyperlinks: ImplicitHyperlinks::HasNone,
         }
     }
 
@@ -136,6 +146,7 @@ impl Line {
             cells,
             dirty: true,
             has_hyperlink: false,
+            has_implicit_hyperlinks: ImplicitHyperlinks::DontKnow,
         }
     }
 
@@ -147,6 +158,47 @@ impl Line {
     #[inline]
     pub fn set_dirty(&mut self) {
         self.dirty = true;
+    }
+
+    pub fn invalidate_implicit_links(&mut self) {
+        // Clear any cells that have implicit hyperlinks
+        for cell in self.cells.iter_mut() {
+            let link = cell.attrs.hyperlink.take();
+            cell.attrs.hyperlink = match link.as_ref() {
+                Some(link) if link.implicit => None,
+                Some(link) => Some(Rc::clone(link)),
+                None => None,
+            };
+        }
+        // We'll need to recompute them after the line has been mutated
+        self.has_implicit_hyperlinks = ImplicitHyperlinks::DontKnow;
+    }
+
+    pub fn find_hyperlinks(&mut self, rules: &Vec<Rule>) {
+        if self.has_implicit_hyperlinks != ImplicitHyperlinks::DontKnow {
+            return;
+        }
+        self.has_implicit_hyperlinks = ImplicitHyperlinks::HasNone;
+
+        let line = self.as_str();
+
+        for m in Rule::match_hyperlinks(&line, &rules) {
+            println!("expanded url to {:?}", m.link);
+
+            // The capture range is measured in bytes but we need to translate
+            // that to the char index of the column.
+            for (cell_idx, (byte_idx, _char)) in line.char_indices().enumerate() {
+                if self.cells[cell_idx].attrs.hyperlink.is_some() {
+                    // Don't replace existing links
+                    continue;
+                }
+                if in_range(byte_idx, &m.range) {
+                    self.cells[cell_idx].attrs.hyperlink = Some(Rc::clone(&m.link));
+                    self.has_implicit_hyperlinks = ImplicitHyperlinks::HasSome;
+                    self.has_hyperlink = true;
+                }
+            }
+        }
     }
 
     #[inline]

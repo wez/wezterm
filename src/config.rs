@@ -4,6 +4,7 @@ use failure::Error;
 use std;
 use std::fs;
 use std::io::prelude::*;
+use term::hyperlink;
 use toml;
 
 use term;
@@ -33,6 +34,18 @@ pub struct Config {
 
     /// How many lines of scrollback you want to retain
     pub scrollback_lines: Option<usize>,
+
+    #[serde(default = "default_hyperlink_rules")]
+    pub hyperlink_rules: Vec<hyperlink::Rule>,
+}
+
+fn default_hyperlink_rules() -> Vec<hyperlink::Rule> {
+    vec![
+        // URL with a protocol
+        hyperlink::Rule::new(r"\b\w+://(?:[\w.-]+)\.[a-z]{2,15}\S*\b", "$0").unwrap(),
+        // implicit mailto link
+        hyperlink::Rule::new(r"\b\w+@[\w-]+(\.[\w-]+)+\b", "mailto:$0").unwrap(),
+    ]
 }
 
 fn default_font_size() -> f64 {
@@ -52,6 +65,7 @@ impl Default for Config {
             font_rules: Vec::new(),
             colors: None,
             scrollback_lines: None,
+            hyperlink_rules: default_hyperlink_rules(),
         }
     }
 }

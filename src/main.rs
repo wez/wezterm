@@ -225,6 +225,7 @@ fn run() -> Result<(), Error> {
         initial_rows as usize,
         initial_cols as usize,
         config.scrollback_lines.unwrap_or(3500),
+        config.hyperlink_rules.clone(),
     );
 
     run_glium(

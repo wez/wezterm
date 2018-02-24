@@ -123,6 +123,7 @@ impl Screen {
         );
 
         let line = self.line_mut(line_idx);
+        line.invalidate_implicit_links();
 
         if attr.hyperlink.is_some() {
             line.set_has_hyperlink(true);
