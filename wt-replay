@@ -1,0 +1,16 @@
+#!/bin/sh
+# Replays a recorded session
+TRANSCRIPT="$1"
+
+if test -z "$TRANSCRIPT" -o ! -f "$TRANSCRIPT" ; then
+  echo "usage: wt-replay TRANSCRIPT.tgz"
+  exit 1
+fi
+
+WHERE=`mktemp -d`
+tar xzf "$TRANSCRIPT" -C $WHERE
+
+echo "--- Starting replay ---"
+scriptreplay $WHERE/*.timing $WHERE/*.typescript
+echo "--- replay complete ---"
+

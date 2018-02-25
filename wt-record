@@ -1,0 +1,9 @@
+#!/bin/sh
+# Runs wezterm using `script` to record a session with timing information
+
+NOW=`date -u +%Y%m%d%H%M%S`
+echo $NOW
+
+./target/release/wezterm -- script -t$NOW.timing $NOW.typescript
+tar -cz --remove-files -f $NOW.tgz $NOW.timing $NOW.typescript
+echo "Transcript recorded in $NOW.tgz"
