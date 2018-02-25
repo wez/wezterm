@@ -43,7 +43,13 @@ terminal multiplexer and a gui terminal emulator, where the GUI part
 could automatically provide a native UI around the remotely multiplexed
 terminal session.
 
-## Status / Features
+## Status / Features - Alpha Quality
+
+*There may be bugs that cause the terminal to panic. I'd recommend using
+`tmux` or `screen` to keep your session alive if you are working on something important!*
+
+Despite the warning above, I've been using `wezterm` as my daily driver since
+the middle of Feb 2018.
 
 These are in the done/doing soon category:
 
