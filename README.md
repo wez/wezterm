@@ -22,9 +22,7 @@ deps are needed for ubuntu systems:
 
 ```
 $ curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain nightly
-$ sudo apt-get install -y ragel libxcb-icccm4-dev libxcb-ewmh-dev \
-    libxcb-keysyms1-dev libfontconfig1-dev libfreetype6-dev libegl1-mesa-dev \
-    libharfbuzz-dev
+$ sudo ./get-deps
 $ git clone --depth=1 --branch=master https://github.com/wez/wezterm.git
 $ cd wezterm
 $ cargo build --release
