@@ -183,8 +183,6 @@ impl Line {
         let line = self.as_str();
 
         for m in Rule::match_hyperlinks(&line, &rules) {
-            println!("expanded url to {:?}", m.link);
-
             // The capture range is measured in bytes but we need to translate
             // that to the char index of the column.
             for (cell_idx, (byte_idx, _char)) in line.char_indices().enumerate() {
