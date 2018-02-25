@@ -22,9 +22,9 @@ deps are needed for ubuntu systems:
 
 ```
 $ curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain nightly
-$ sudo ./get-deps
 $ git clone --depth=1 --branch=master https://github.com/wez/wezterm.git
 $ cd wezterm
+$ sudo ./get-deps
 $ cargo build --release
 $ cargo run --release
 ```
