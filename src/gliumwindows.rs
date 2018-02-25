@@ -7,6 +7,7 @@ use font::FontConfiguration;
 use glium::{self, glutin};
 use glium::glutin::{ElementState, MouseCursor};
 use opengl::render::Renderer;
+use opengl::textureatlas::OutOfTextureSpace;
 use pty::MasterPty;
 use std::io;
 use std::io::{Read, Write};
@@ -139,8 +140,26 @@ impl TerminalWindow {
         // Ensure that we finish() the target before we let the
         // error bubble up, otherwise we lose the context.
         target.finish().unwrap();
-        res?;
-        Ok(())
+
+        // The only error we want to catch is texture space related;
+        // when that happens we need to blow our glyph cache and
+        // allocate a newer bigger texture.
+        match res {
+            Err(err) => {
+                match err.downcast_ref::<OutOfTextureSpace>() {
+                    Some(&OutOfTextureSpace { size }) => {
+                        eprintln!("out of texture space, allocating {}", size);
+                        self.renderer.recreate_atlas(&self.host.display, size)?;
+                        self.terminal.make_all_lines_dirty();
+                        // Recursively initiate a new paint
+                        return self.paint();
+                    }
+                    _ => (),
+                };
+                Err(err)
+            }
+            Ok(_) => Ok(()),
+        }
     }
 
     pub fn try_read_pty(&mut self) -> Result<(), Error> {

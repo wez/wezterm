@@ -4,6 +4,8 @@ extern crate core_text;
 extern crate euclid;
 #[macro_use]
 extern crate failure;
+#[macro_use]
+extern crate failure_derive;
 #[cfg(any(target_os = "android", all(unix, not(target_os = "macos"))))]
 extern crate fontconfig; // from servo-fontconfig
 #[cfg(any(target_os = "android", all(unix, not(target_os = "macos"))))]

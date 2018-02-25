@@ -422,6 +422,13 @@ impl Renderer {
         })
     }
 
+    pub fn recreate_atlas<F: Facade>(&mut self, facade: &F, size: u32) -> Result<(), Error> {
+        let atlas = RefCell::new(Atlas::new(facade, size)?);
+        self.atlas = atlas;
+        self.glyph_cache = RefCell::new(HashMap::new());
+        Ok(())
+    }
+
     pub fn resize<F: Facade>(&mut self, facade: &F, width: u16, height: u16) -> Result<(), Error> {
         debug!("Renderer resize {},{}", width, height);
 
@@ -504,21 +511,9 @@ impl Renderer {
                 (glyph.width as u32, glyph.height as u32),
             );
 
-            let tex = match self.atlas
+            let tex = self.atlas
                 .borrow_mut()
-                .allocate(raw_im.width, raw_im.height, raw_im)
-            {
-                Ok(tex) => tex,
-                Err(size) => {
-                    // TODO: this is a little tricky.  We need to replace the texture
-                    // atlas with a larger one, blow the font cache (that's the more
-                    // tricky part) and arrange to re-render everything.
-                    bail!(
-                        "Ran out of space in the Atlas! Need to make another one of size {}",
-                        size
-                    );
-                }
-            };
+                .allocate(raw_im.width, raw_im.height, raw_im)?;
 
             let bearing_x = (glyph.bearing_x as f64 * scale) as isize;
             let bearing_y = (glyph.bearing_y as f64 * scale) as isize;

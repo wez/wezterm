@@ -8,6 +8,12 @@ use std::rc::Rc;
 
 pub const TEX_SIZE: u32 = 4096;
 
+#[derive(Debug, Fail)]
+#[fail(display = "Texture Size exceeded, need {}", size)]
+pub struct OutOfTextureSpace {
+    pub size: u32,
+}
+
 /// Atlases are bitmaps of srgba data that are sized as a power of 2.
 /// We allocate sprites out of the available space, starting from the
 /// bottom left corner and working to the right until we run out of
@@ -59,10 +65,12 @@ impl Atlas {
         width: u32,
         height: u32,
         data: T,
-    ) -> Result<Sprite, u32> {
+    ) -> Result<Sprite, OutOfTextureSpace> {
         if width > self.side || height > self.side {
             // It's not possible to satisfy that request
-            return Err(width.max(height).next_power_of_two());
+            return Err(OutOfTextureSpace {
+                size: width.max(height).next_power_of_two(),
+            });
         }
         let x_left = self.side - self.left;
         if x_left < width {
@@ -76,7 +84,9 @@ impl Atlas {
         let y_left = self.side - self.bottom;
         if y_left < height {
             // No room at the inn.
-            return Err(self.side);
+            return Err(OutOfTextureSpace {
+                size: (self.side + width.max(height)).next_power_of_two(),
+            });
         }
 
         let rect = Rect {
