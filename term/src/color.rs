@@ -2,6 +2,8 @@
 
 use palette;
 use serde::{self, Deserialize, Deserializer};
+use std::fmt;
+use std::result::Result;
 
 #[allow(dead_code)]
 #[derive(Debug, Clone, Copy)]
@@ -115,8 +117,11 @@ pub enum ColorAttribute {
 }
 
 #[derive(Clone)]
+pub struct Palette256(pub [RgbColor; 256]);
+
+#[derive(Clone, Debug)]
 pub struct ColorPalette {
-    pub colors: [RgbColor; 256],
+    pub colors: Palette256,
     pub foreground: RgbColor,
     pub background: RgbColor,
     pub cursor_fg: RgbColor,
@@ -125,12 +130,22 @@ pub struct ColorPalette {
     pub selection_bg: RgbColor,
 }
 
+impl fmt::Debug for Palette256 {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        // If we wanted to dump all of the entries, we'd use this:
+        // self.0[..].fmt(fmt)
+        // However, we typically don't care about those and we're interested
+        // in the Debug-ability of ColorPalette that embeds us.
+        write!(fmt, "[suppressed]")
+    }
+}
+
 impl ColorPalette {
     pub fn resolve(&self, color: &ColorAttribute) -> RgbColor {
         match color {
             &ColorAttribute::Foreground => self.foreground,
             &ColorAttribute::Background => self.background,
-            &ColorAttribute::PaletteIndex(idx) => self.colors[idx as usize],
+            &ColorAttribute::PaletteIndex(idx) => self.colors.0[idx as usize],
             &ColorAttribute::Rgb(color) => color,
         }
     }
@@ -274,7 +289,7 @@ impl Default for ColorPalette {
         let selection_bg = RgbColor::new(0xff, 0xfa, 0xcd);
 
         ColorPalette {
-            colors,
+            colors: Palette256(colors),
             foreground,
             background,
             cursor_fg,

@@ -94,6 +94,7 @@ struct Vertex {
     underline: f32,
     strikethrough: f32,
     v_idx: f32,
+    is_white: f32,
 }
 
 implement_vertex!(
@@ -107,6 +108,7 @@ implement_vertex!(
     underline,
     strikethrough,
     v_idx,
+    is_white,
 );
 
 const VERTEX_SHADER: &str = r#"
@@ -119,6 +121,7 @@ in vec4 bg_color;
 in float has_color;
 in float underline;
 in float v_idx;
+in float is_white;
 
 uniform mat4 projection;
 uniform mat4 translation;
@@ -130,6 +133,7 @@ out vec4 o_fg_color;
 out vec4 o_bg_color;
 out float o_has_color;
 out float o_underline;
+out float o_is_white;
 
 // Offset from the RHS texture coordinate to the LHS.
 // This is an underestimation to avoid the shader interpolating
@@ -141,6 +145,7 @@ void main() {
     o_bg_color = bg_color;
     o_has_color = has_color;
     o_underline = underline;
+    o_is_white = is_white;
 
     if (bg_and_line_layer) {
         gl_Position = projection * vec4(position, 0.0, 1.0);
@@ -195,6 +200,7 @@ in vec4 o_fg_color;
 in vec4 o_bg_color;
 in float o_has_color;
 in float o_underline;
+in float o_is_white;
 
 out vec4 color;
 uniform sampler2D glyph_tex;
@@ -235,6 +241,8 @@ void main() {
                 color = under_color;
             }
         }
+    } else if (o_is_white != 0.0) {
+        color = texture2D(underline_tex, tex_coords);
     } else {
         color = texture2D(glyph_tex, tex_coords);
         if (o_has_color == 0.0) {
@@ -368,6 +376,13 @@ impl Renderer {
                 }
             }
 
+            // IMPORTANT: We also use this same texture for the whitespace cells.
+            // the bottom left corner MUST be a blank pixel!
+            assert_eq!(underline_data[0 + (width * 4 * (cell_height - 1))], 0u8);
+            assert_eq!(underline_data[1 + (width * 4 * (cell_height - 1))], 0u8);
+            assert_eq!(underline_data[2 + (width * 4 * (cell_height - 1))], 0u8);
+            assert_eq!(underline_data[3 + (width * 4 * (cell_height - 1))], 0u8);
+
             glium::texture::SrgbTexture2d::new(
                 facade,
                 glium::texture::RawImage2d::from_raw_rgba(
@@ -471,6 +486,11 @@ impl Renderer {
         } else {
             (info.x_offset, info.y_offset)
         };
+
+        println!(
+            "load_glyph {:?} dims={},{}",
+            info, glyph.width, glyph.height
+        );
 
         let glyph = if glyph.width == 0 || glyph.height == 0 {
             // a whitespace glyph
@@ -788,11 +808,23 @@ impl Renderer {
                             vert[V_TOP_RIGHT].has_color = has_color;
                             vert[V_BOT_LEFT].has_color = has_color;
                             vert[V_BOT_RIGHT].has_color = has_color;
+
+                            vert[V_TOP_LEFT].is_white = 0.0;
+                            vert[V_TOP_RIGHT].is_white = 0.0;
+                            vert[V_BOT_LEFT].is_white = 0.0;
+                            vert[V_BOT_RIGHT].is_white = 0.0;
                         }
                         &None => {
                             // Whitespace; no texture to render
                             let zero = (0.0, 0.0f32);
 
+                            vert[V_TOP_LEFT].is_white = 1.0;
+                            vert[V_TOP_RIGHT].is_white = 1.0;
+                            vert[V_BOT_LEFT].is_white = 1.0;
+                            vert[V_BOT_RIGHT].is_white = 1.0;
+
+                            // Note: these 0 coords refer to the blank pixel
+                            // in the bottom left of the underline texture!
                             vert[V_TOP_LEFT].tex = zero;
                             vert[V_TOP_RIGHT].tex = zero;
                             vert[V_BOT_LEFT].tex = zero;
@@ -840,9 +872,12 @@ impl Renderer {
                 vert.bg_color = bg_color;
                 vert.fg_color = glyph_color;
                 vert.underline = U_NONE;
+                // Note: these 0 coords refer to the blank pixel
+                // in the bottom left of the underline texture!
                 vert.tex = (0.0, 0.0);
                 vert.adjust = Default::default();
                 vert.has_color = 0.0;
+                vert.is_white = 1.0;
             }
         }
 

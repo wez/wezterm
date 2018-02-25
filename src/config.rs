@@ -205,12 +205,12 @@ impl From<Palette> for term::color::ColorPalette {
 
         if let Some(ansi) = cfg.ansi {
             for (idx, col) in ansi.iter().enumerate() {
-                p.colors[idx] = *col;
+                p.colors.0[idx] = *col;
             }
         }
         if let Some(brights) = cfg.brights {
             for (idx, col) in brights.iter().enumerate() {
-                p.colors[idx + 8] = *col;
+                p.colors.0[idx + 8] = *col;
             }
         }
         p
