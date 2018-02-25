@@ -487,11 +487,6 @@ impl Renderer {
             (info.x_offset, info.y_offset)
         };
 
-        println!(
-            "load_glyph {:?} dims={},{}",
-            info, glyph.width, glyph.height
-        );
-
         let glyph = if glyph.width == 0 || glyph.height == 0 {
             // a whitespace glyph
             CachedGlyph {
