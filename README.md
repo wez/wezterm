@@ -14,19 +14,20 @@ A terminal emulator implemented in Rust, using OpenGL ES 2 for rendering.
 
 * Install `rustup` to get the *nightly* `rust` compiler installed on your system.
   https://www.rust-lang.org/en-US/install.html
-* Build in release mode: `cargo build --release`
-* Run it via either `cargo run --release` or `target/release/wezterm`
+* Build in release mode: `rustup run nightly cargo build --release`
+* Run it via either `rustup run nightly cargo run --release` or `target/release/wezterm`
 
-You will need a collection of support libraries; the example below shows which
-deps are needed for ubuntu systems:
+You will need a collection of support libraries; the [`get-deps`](get-deps) script will
+attempt to install them for you.  If it doesn't know about your system,
+[please contribute instructions!](CONTRIBUTING.md)
 
 ```
 $ curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain nightly
 $ git clone --depth=1 --branch=master https://github.com/wez/wezterm.git
 $ cd wezterm
 $ sudo ./get-deps
-$ cargo build --release
-$ cargo run --release
+$ rustup run nightly cargo build --release
+$ rustup run nightly cargo run --release
 ```
 
 ## What?
@@ -51,23 +52,19 @@ terminal session.
 Despite the warning above, I've been using `wezterm` as my daily driver since
 the middle of Feb 2018.
 
-These are in the done/doing soon category:
-
-- [x] Runs on Linux with XCB and OpenGL ES 2
+- [x] Runs on Linux under X (requires OpenGL ES 2)
 - [x] Scrollback (use mouse wheel and Shift Page{Up|Down})
 - [x] True Color support
 - [x] Ligatures, Color Emoji and font fallback
-- [x] Paste selection via Shift-Insert (bracketed paste is supported!)
+- [x] xterm style selection of text with mouse; paste selection via Shift-Insert (bracketed paste is supported!)
 - [x] SGR style mouse reporting (works in vim and tmux)
-- [x] xterm style selection of text with mouse
-- [x] Render underline, italic, bold, strikethrough
+- [x] Render underline, double-underline, italic, bold, strikethrough
 - [x] Configuration file to specify fonts and colors
 - [x] Hyperlinks per: https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5feda
-- [x] Command line argument parsing instead of launching user shell
 
 There's a good number of terminal escape sequences that are not yet implemented
-and that will get fleshed out as the applications I use uncover them.
-Similarly for key mappings.
+and that will get fleshed out as the applications I use uncover them, or as folks
+report them here and raise the priority.  Similarly for key mappings.
 
 Things that I'd like to see happen and that have no immediate priority
 (contributions to get closer to these are welcomed!)
@@ -76,7 +73,7 @@ Things that I'd like to see happen and that have no immediate priority
 - [ ] Sixel / iTerm2 graphics protocol support
 - [ ] Tabs
 - [ ] Textual renderer.  Think `tmux` or `screen`.
-- [ ] Run on Linux with Wayland (use XWayland for now)
+- [ ] Run on Linux with Wayland (use XWayland for now; See https://github.com/tomaka/winit/issues/306 for upstream blockers)
 - [ ] Run on Windows
 
 
