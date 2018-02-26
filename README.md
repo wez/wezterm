@@ -50,7 +50,7 @@ terminal session.
 `tmux` or `screen` to keep your session alive if you are working on something important!*
 
 Despite the warning above, I've been using `wezterm` as my daily driver since
-the middle of Feb 2018.
+the middle of Feb 2018.  The following features are done:
 
 - [x] Runs on Linux under X (requires OpenGL ES 2)
 - [x] Scrollback (use mouse wheel and Shift Page{Up|Down})
@@ -64,10 +64,11 @@ the middle of Feb 2018.
 
 There's a good number of terminal escape sequences that are not yet implemented
 and that will get fleshed out as the applications I use uncover them, or as folks
-report them here and raise the priority.  Similarly for key mappings.
+report them here and raise the priority.  Similarly for key mappings.  Please don't
+be shy about [contributing support for missing things!](CONTRIBUTING.md)
 
-Things that I'd like to see happen and that have no immediate priority
-(contributions to get closer to these are welcomed!)
+Things that I'd like to see happen and that have no immediate priority;
+[contributions to get closer to these are welcomed!](CONTRIBUTING.md)
 
 - [ ] Run on macOS
 - [ ] Sixel / iTerm2 graphics protocol support
