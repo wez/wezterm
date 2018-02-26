@@ -96,6 +96,17 @@ impl CellAttributes {
     bitfield!(invisible, set_invisible, 8);
     // Allow up to 8 different font values
     //bitfield!(font, set_font, 0b111000000, 6);
+
+    /// Clone the attributes, but exclude fancy extras such
+    /// as hyperlinks or future sprite things
+    pub fn clone_sgr_only(&self) -> Self {
+        Self {
+            attributes: self.attributes,
+            foreground: self.foreground,
+            background: self.background,
+            hyperlink: None,
+        }
+    }
 }
 
 impl Default for CellAttributes {
@@ -195,6 +206,13 @@ impl Cell {
         self.len = 1;
         self.bytes[0] = b' ';
         self.attrs = CellAttributes::default();
+    }
+
+    #[inline]
+    pub fn reset_with_attributes(&mut self, attr: &CellAttributes) {
+        self.len = 1;
+        self.bytes[0] = b' ';
+        self.attrs = attr.clone();
     }
 }
 

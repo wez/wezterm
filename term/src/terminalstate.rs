@@ -945,37 +945,39 @@ impl TerminalState {
             CSIAction::EraseInLine(erase) => {
                 let cx = self.cursor.x;
                 let cy = self.cursor.y;
+                let pen = self.pen.clone_sgr_only();
                 let mut screen = self.screen_mut();
                 let cols = screen.physical_cols;
                 match erase {
                     LineErase::ToRight => {
-                        screen.clear_line(cy, cx..cols);
+                        screen.clear_line(cy, cx..cols, &pen);
                     }
                     LineErase::ToLeft => {
-                        screen.clear_line(cy, 0..cx);
+                        screen.clear_line(cy, 0..cx, &pen);
                     }
                     LineErase::All => {
-                        screen.clear_line(cy, 0..cols);
+                        screen.clear_line(cy, 0..cols, &pen);
                     }
                 }
             }
             CSIAction::EraseInDisplay(erase) => {
                 let cy = self.cursor.y;
+                let pen = self.pen.clone_sgr_only();
                 let mut screen = self.screen_mut();
                 let cols = screen.physical_cols;
                 let rows = screen.physical_rows as VisibleRowIndex;
                 match erase {
                     DisplayErase::Below => for y in cy..rows {
-                        screen.clear_line(y, 0..cols);
+                        screen.clear_line(y, 0..cols, &pen);
                     },
                     DisplayErase::Above => for y in 0..cy {
-                        screen.clear_line(y, 0..cols);
+                        screen.clear_line(y, 0..cols, &pen);
                     },
                     DisplayErase::All => for y in 0..rows {
-                        screen.clear_line(y, 0..cols);
+                        screen.clear_line(y, 0..cols, &pen);
                     },
                     DisplayErase::SavedLines => {
-                        println!("ed: no support for xterm Erase Saved Lines yet");
+                        println!("TODO: ed: no support for xterm Erase Saved Lines yet");
                     }
                 }
             }

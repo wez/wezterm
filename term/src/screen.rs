@@ -143,7 +143,12 @@ impl Screen {
         &line.cells[x]
     }
 
-    pub fn clear_line(&mut self, y: VisibleRowIndex, cols: std::ops::Range<usize>) {
+    pub fn clear_line(
+        &mut self,
+        y: VisibleRowIndex,
+        cols: std::ops::Range<usize>,
+        attr: &CellAttributes,
+    ) {
         let line_idx = self.phys_row(y);
         let line = self.line_mut(line_idx);
         let max_col = line.cells.len();
@@ -151,7 +156,7 @@ impl Screen {
             if x >= max_col {
                 break;
             }
-            line.cells[x].reset();
+            line.cells[x].reset_with_attributes(attr);
         }
     }
 

@@ -117,3 +117,31 @@ fn test_cha() {
     term.print("\x1b[100G");
     term.assert_cursor_pos(3, 1, None);
 }
+
+#[test]
+fn test_ed() {
+    let mut term = TestTerm::new(3, 3, 0);
+    term.print("abc\ndef\nghi");
+    term.cup(0, 2);
+    term.print("\x1b[J");
+    assert_visible_contents(&term, &["abc", "def", "   "]);
+
+    // Set background color to blue
+    term.print("\x1b[44m");
+    // Clear whole screen
+    term.print("\x1b[2J");
+
+    // Check that the background color paints all of the cells;
+    // this is also known as BCE - Background Color Erase.
+    let mut attr = CellAttributes::default();
+    attr.background = color::ColorAttribute::PaletteIndex(color::AnsiColor::Navy as u8);
+    let mut line: Line = "   ".into();
+    line.cells[0].attrs = attr.clone();
+    line.cells[1].attrs = attr.clone();
+    line.cells[2].attrs = attr.clone();
+    assert_lines_equal(
+        &term.screen().visible_lines(),
+        &[line.clone(), line.clone(), line],
+        Compare::TEXT | Compare::ATTRS,
+    );
+}
