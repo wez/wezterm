@@ -95,3 +95,25 @@ fn test_dl() {
     term.delete_lines(-2);
     assert_visible_contents(&term, &["1", "2", "3"]);
 }
+
+#[test]
+fn test_cha() {
+    let mut term = TestTerm::new(3, 4, 0);
+    term.cup(1, 1);
+    term.assert_cursor_pos(1, 1, None);
+
+    term.print("\x1b[G");
+    term.assert_cursor_pos(0, 1, None);
+
+    term.print("\x1b[2G");
+    term.assert_cursor_pos(1, 1, None);
+
+    term.print("\x1b[0G");
+    term.assert_cursor_pos(0, 1, None);
+
+    term.print("\x1b[-1G");
+    term.assert_cursor_pos(0, 1, None);
+
+    term.print("\x1b[100G");
+    term.assert_cursor_pos(3, 1, None);
+}

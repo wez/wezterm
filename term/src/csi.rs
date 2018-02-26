@@ -438,6 +438,17 @@ impl<'a> Iterator for CSIParser<'a> {
                 y: Position::Relative(0),
             }),
 
+            // CHA: Cursor Character Absolute
+            ('G', &[], Some(&[])) => Some(CSIAction::SetCursorXY {
+                x: Position::Absolute(0),
+                y: Position::Relative(0),
+            }),
+            // CHA: Cursor Character Absolute
+            ('G', &[], Some(&[col])) => Some(CSIAction::SetCursorXY {
+                x: Position::Absolute(col.max(1) - 1),
+                y: Position::Relative(0),
+            }),
+
             // H: Cursor Position (CUP)
             // f: Horizontal and vertical position (HVP)
             ('H', &[], Some(&[])) | ('f', &[], Some(&[])) => Some(CSIAction::SetCursorXY {
