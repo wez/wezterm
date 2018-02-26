@@ -48,12 +48,6 @@ pub struct TerminalState {
     /// printed character
     wrap_next: bool,
 
-    /// Some parsing operations may yield responses that need
-    /// to be returned to the client.  They are collected here
-    /// and this is used as the result of the advance_bytes()
-    /// method.
-    answerback: Vec<AnswerBack>,
-
     /// The scroll region
     scroll_region: Range<VisibleRowIndex>,
 
@@ -121,7 +115,6 @@ impl TerminalState {
             pen: CellAttributes::default(),
             cursor: CursorPosition::default(),
             saved_cursor: CursorPosition::default(),
-            answerback: Vec::new(),
             scroll_region: 0..physical_rows as VisibleRowIndex,
             wrap_next: false,
             application_cursor_keys: false,
@@ -815,18 +808,6 @@ impl TerminalState {
         self.set_cursor_pos(&Position::Absolute(x as i64), &Position::Absolute(y as i64));
     }
 
-    fn push_answerback(&mut self, buf: &[u8]) {
-        self.answerback.push(AnswerBack::WriteToPty(buf.to_vec()));
-    }
-
-    pub(crate) fn drain_answerback(&mut self) -> Option<Vec<AnswerBack>> {
-        if self.answerback.len() == 0 {
-            None
-        } else {
-            Some(self.answerback.drain(0..).collect())
-        }
-    }
-
     /// Moves the cursor down one line in the same column.
     /// If the cursor is at the bottom margin, the page scrolls up.
     fn c1_index(&mut self) {
@@ -881,7 +862,7 @@ impl TerminalState {
         }
     }
 
-    fn perform_csi(&mut self, act: CSIAction) {
+    fn perform_csi(&mut self, act: CSIAction, host: &mut TerminalHost) {
         debug!("{:?}", act);
         match act {
             CSIAction::DeleteCharacter(n) => {
@@ -997,15 +978,15 @@ impl TerminalState {
                 // TODO: some folks like to disable alt screen
                 match (on, self.alt_screen_is_active) {
                     (true, false) => {
-                        self.perform_csi(CSIAction::SaveCursor);
+                        self.perform_csi(CSIAction::SaveCursor, host);
                         self.alt_screen_is_active = true;
                         self.set_cursor_pos(&Position::Absolute(0), &Position::Absolute(0));
-                        self.perform_csi(CSIAction::EraseInDisplay(DisplayErase::All));
+                        self.perform_csi(CSIAction::EraseInDisplay(DisplayErase::All), host);
                         self.set_scroll_viewport(0);
                     }
                     (false, true) => {
                         self.alt_screen_is_active = false;
-                        self.perform_csi(CSIAction::RestoreCursor);
+                        self.perform_csi(CSIAction::RestoreCursor, host);
                         self.set_scroll_viewport(0);
                     }
                     _ => {}
@@ -1019,12 +1000,12 @@ impl TerminalState {
             }
             CSIAction::DeviceStatusReport => {
                 // "OK"
-                self.push_answerback(b"\x1b[0n");
+                host.writer().write(b"\x1b[0n").ok(); // discard write errors
             }
             CSIAction::ReportCursorPosition => {
                 let row = self.cursor.y + 1;
                 let col = self.cursor.x + 1;
-                self.push_answerback(format!("\x1b[{};{}R", row, col).as_bytes());
+                write!(host.writer(), "\x1b[{};{}R", row, col).ok();
             }
             CSIAction::SetScrollingRegion { top, bottom } => {
                 let rows = self.screen().physical_rows;
@@ -1036,7 +1017,7 @@ impl TerminalState {
                 self.scroll_region = top..bottom + 1;
             }
             CSIAction::RequestDeviceAttributes => {
-                self.push_answerback(DEVICE_IDENT);
+                host.writer().write(DEVICE_IDENT).ok();
             }
             CSIAction::DeleteLines(n) => {
                 if in_range(self.cursor.y, &self.scroll_region) {
@@ -1072,7 +1053,28 @@ impl TerminalState {
     }
 }
 
-impl vte::Perform for TerminalState {
+/// A helper struct for implementing vte::Perform while compartmentalizing
+/// the terminal state and the embedding/host terminal interface
+pub(crate) struct Performer<'a> {
+    pub state: &'a mut TerminalState,
+    pub host: &'a mut TerminalHost,
+}
+
+impl<'a> Deref for Performer<'a> {
+    type Target = TerminalState;
+
+    fn deref(&self) -> &TerminalState {
+        &self.state
+    }
+}
+
+impl<'a> DerefMut for Performer<'a> {
+    fn deref_mut(&mut self) -> &mut TerminalState {
+        &mut self.state
+    }
+}
+
+impl<'a> vte::Perform for Performer<'a> {
     /// Draw a character to the screen
     fn print(&mut self, c: char) {
         if self.wrap_next {
@@ -1136,8 +1138,7 @@ impl vte::Perform for TerminalState {
         match osc {
             &[b"0", title] => {
                 if let Ok(title) = str::from_utf8(title) {
-                    self.answerback
-                        .push(AnswerBack::TitleChanged(title.to_string()));
+                    self.host.set_title(title);
                 } else {
                     eprintln!("OSC: failed to decode utf title for {:?}", title);
                 }
@@ -1180,7 +1181,7 @@ impl vte::Perform for TerminalState {
         );
         */
         for act in CSIParser::new(params, intermediates, ignore, byte) {
-            self.perform_csi(act);
+            self.state.perform_csi(act, self.host);
         }
     }
 
@@ -1225,9 +1226,9 @@ impl vte::Perform for TerminalState {
             }
 
             // DECSC - Save Cursor
-            (b'7', &[], &[]) => self.perform_csi(CSIAction::SaveCursor),
+            (b'7', &[], &[]) => self.state.perform_csi(CSIAction::SaveCursor, self.host),
             // DECRC - Restore Cursor
-            (b'8', &[], &[]) => self.perform_csi(CSIAction::RestoreCursor),
+            (b'8', &[], &[]) => self.state.perform_csi(CSIAction::RestoreCursor, self.host),
 
             (..) => {
                 println!(

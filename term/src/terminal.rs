@@ -42,18 +42,6 @@ impl DerefMut for Terminal {
     }
 }
 
-/// When the terminal parser needs to convey a response
-/// back to the caller, this enum holds that response
-#[derive(Debug, Clone)]
-pub(crate) enum AnswerBack {
-    /// Some data to send back to the application on
-    /// the slave end of the pty.
-    WriteToPty(Vec<u8>),
-    /// The application has requested that we change
-    /// the terminal title, and here it is.
-    TitleChanged(String),
-}
-
 impl Terminal {
     pub fn new(
         physical_rows: usize,
@@ -75,20 +63,14 @@ impl Terminal {
     /// Feed the terminal parser a slice of bytes of input.
     pub fn advance_bytes<B: AsRef<[u8]>>(&mut self, bytes: B, host: &mut TerminalHost) {
         let bytes = bytes.as_ref();
+
+        let mut performer = Performer {
+            state: &mut self.state,
+            host,
+        };
+
         for b in bytes.iter() {
-            self.parser.advance(&mut self.state, *b);
-        }
-        if let Some(answerback) = self.state.drain_answerback() {
-            for answer in answerback {
-                match answer {
-                    AnswerBack::WriteToPty(response) => {
-                        host.writer().write(&response).ok(); // discard error
-                    }
-                    AnswerBack::TitleChanged(title) => {
-                        host.set_title(&title);
-                    }
-                }
-            }
+            self.parser.advance(&mut performer, *b);
         }
     }
 }
