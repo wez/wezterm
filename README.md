@@ -161,3 +161,14 @@ set to 80x24 with 3500 lines of scrollback.  `alacritty` has no scrollback.
 | kitty           | 0.899 |
 | urxvt           | 0.615 |
 | alacritty       | 0.421 |
+
+## Getting help
+
+This is a spare time project, so please bear with me.  There are two channels for support:
+
+* You can use the GitHub issue tracker to see if someone else has a similar issue, or to file a new one: https://github.com/wez/wezterm/issues
+* There is a gitter room for (potentially!) real time discussions: https://gitter.im/wezterm/Lobby
+
+The gitter room is probably better suited to questions than it is to bug reports, but don't be afraid to use whichever you are most comfortable using and we'll work it ou.
+
+
