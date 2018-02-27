@@ -3,6 +3,7 @@
 case `lsb_release -ds` in
   Ubuntu*)
     apt-get install -y \
+      cmake \
       bsdutils \
       libxcb-icccm4-dev \
       libxcb-ewmh-dev \
