@@ -1,5 +1,20 @@
 #!/bin/sh
 
+# Centos may not have lsb_release installed
+if test -e /etc/centos-release || test -e /etc/fedora-release; then
+  yum install -y \
+    cmake \
+    libxcb-devel \
+    xcb-util-keysyms-devel \
+    xcb-util-wm-devel \
+    fontconfig-devel \
+    freetype-devel \
+    mesa-libEGL-devel \
+    harfbuzz-devel \
+    ragel
+  exit $?
+fi
+
 case `lsb_release -ds` in
   Ubuntu*)
     apt-get install -y \
