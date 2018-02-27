@@ -261,9 +261,9 @@ impl Default for ColorPalette {
         // 216 color cube
         static RAMP6: [u8; 6] = [0x00, 0x33, 0x66, 0x99, 0xCC, 0xFF];
         for idx in 0..216 {
-            let red = RAMP6[idx % 6];
+            let blue = RAMP6[idx % 6];
             let green = RAMP6[idx / 6 % 6];
-            let blue = RAMP6[idx / 6 / 6 % 6];
+            let red = RAMP6[idx / 6 / 6 % 6];
 
             colors[16 + idx] = RgbColor { red, green, blue };
         }
