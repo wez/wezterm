@@ -10,6 +10,7 @@ bitflags! {
         const META = 4;
         const SUPER = 8;
         const SHIFT = 16;
+        const NONE = 0;
     }
 }
 
@@ -32,6 +33,8 @@ pub enum KeyCode {
     Home,
     End,
     Insert,
+    /// A numbered F-key
+    F(u8),
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]

@@ -1,4 +1,5 @@
 use super::*;
+use std::fmt::Write;
 use unicode_segmentation::UnicodeSegmentation;
 
 struct TabStop {
@@ -533,6 +534,7 @@ impl TerminalState {
         const CTRL: KeyModifiers = KeyModifiers::CTRL;
         const SHIFT: KeyModifiers = KeyModifiers::SHIFT;
         const ALT: KeyModifiers = KeyModifiers::ALT;
+        const NO: KeyModifiers = KeyModifiers::NONE;
         const APPCURSOR: bool = true;
         use KeyCode::*;
 
@@ -571,7 +573,6 @@ impl TerminalState {
             (Insert, _, _, SHIFT, _) => {
                 let clip = host.get_clipboard()?;
                 if self.bracketed_paste {
-                    use std::fmt::Write;
                     write!(buf, "\x1b[200~{}\x1b[201~", clip)?;
                 } else {
                     buf = clip;
@@ -605,6 +606,51 @@ impl TerminalState {
             (Home, ..) => "\x1b[H",
             (End, ..) => "\x1b[F",
             (Insert, ..) => "\x1b[2~",
+
+            (F(n), ..) => {
+                let modifier = match (ctrl, alt, shift) {
+                    (NO, NO, NO) => "",
+                    (NO, NO, SHIFT) => ";2",
+                    (NO, ALT, NO) => ";3",
+                    (NO, ALT, SHIFT) => ";4",
+                    (CTRL, NO, NO) => ";5",
+                    (CTRL, NO, SHIFT) => ";6",
+                    (CTRL, ALT, NO) => ";7",
+                    (CTRL, ALT, SHIFT) => ";8",
+                    _ => unreachable!("invalid modifiers!?"),
+                };
+
+                if modifier.len() == 0 && n < 5 {
+                    // F1-F4 are encoded using SS3 if there are no modifiers
+                    match n {
+                        1 => "\x1bOP",
+                        2 => "\x1bOQ",
+                        3 => "\x1bOR",
+                        4 => "\x1bOS",
+                        _ => unreachable!("wat?"),
+                    }
+                } else {
+                    // Higher numbered F-keys plus modified F-keys are encoded
+                    // using CSI instead of SS3.
+                    let intro = match n {
+                        1 => "\x1b[11",
+                        2 => "\x1b[12",
+                        3 => "\x1b[13",
+                        4 => "\x1b[14",
+                        5 => "\x1b[15",
+                        6 => "\x1b[17",
+                        7 => "\x1b[18",
+                        8 => "\x1b[19",
+                        9 => "\x1b[20",
+                        10 => "\x1b[21",
+                        11 => "\x1b[23",
+                        12 => "\x1b[24",
+                        _ => bail!("unhandled fkey number {}", n),
+                    };
+                    write!(buf, "{}{}~", intro, modifier)?;
+                    buf.as_str()
+                }
+            }
 
             // Modifier keys pressed on their own and unmappable keys don't expand to anything
             (Control, ..) | (Alt, ..) | (Meta, ..) | (Super, ..) | (Hyper, ..) | (Shift, ..)

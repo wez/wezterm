@@ -407,6 +407,21 @@ impl TerminalWindow {
                     // These are all handled by ReceivedCharacter
                     return Ok(());
                 }
+                V::F1 => KeyCode::F(1),
+                V::F2 => KeyCode::F(2),
+                V::F3 => KeyCode::F(3),
+                V::F4 => KeyCode::F(4),
+                V::F5 => KeyCode::F(5),
+                V::F6 => KeyCode::F(6),
+                V::F7 => KeyCode::F(7),
+                V::F8 => KeyCode::F(8),
+                V::F9 => KeyCode::F(9),
+                V::F10 => KeyCode::F(10),
+                V::F11 => KeyCode::F(11),
+                V::F12 => KeyCode::F(12),
+                V::F13 => KeyCode::F(13),
+                V::F14 => KeyCode::F(14),
+                V::F15 => KeyCode::F(15),
                 V::Insert => KeyCode::Insert,
                 V::Home => KeyCode::Home,
                 V::End => KeyCode::End,
