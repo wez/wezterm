@@ -1174,6 +1174,7 @@ impl<'a> vte::Perform for Performer<'a> {
                 self.set_cursor_pos(&Position::Relative(-1), &Position::Relative(0));
             }
             b'\t' => self.c0_horizontal_tab(),
+            b'\x07' => eprintln!("Ding! (this is the bell"),
             _ => println!("unhandled vte execute {}", byte),
         }
     }
