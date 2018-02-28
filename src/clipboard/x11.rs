@@ -2,7 +2,7 @@
 //! Check out https://tronche.com/gui/x/icccm/sec-2.html for some deep and complex
 //! background on what's happening in here.
 use failure::{self, Error};
-use std::sync::mpsc::{channel, Receiver, RecvTimeoutError, Sender};
+use std::sync::mpsc::{channel, Receiver, RecvTimeoutError, Sender, TryRecvError};
 use std::thread::{self, JoinHandle};
 use std::time::Duration;
 use wakeup::{Wakeup, WakeupMsg};
@@ -288,6 +288,43 @@ impl Inner {
         }
     }
 
+    fn process_receiver(&mut self) -> Result<(), Error> {
+        match self.receiver.recv_timeout(Duration::from_millis(100)) {
+            Err(RecvTimeoutError::Timeout) => return Ok(()),
+            Err(err) => bail!("clipboard: Error while reading channel: {:?}", err),
+            Ok(request) => self.process_one_cliprequest(request)?,
+        }
+        loop {
+            match self.receiver.try_recv() {
+                Err(TryRecvError::Empty) => return Ok(()),
+                Err(TryRecvError::Disconnected) => bail!("clipboard: receiver channel broken"),
+                Ok(request) => self.process_one_cliprequest(request)?,
+            }
+        }
+    }
+
+    fn process_one_cliprequest(&mut self, request: ClipRequest) -> Result<(), Error> {
+        match request {
+            ClipRequest::Terminate => bail!("requested termination of clip thread"),
+            ClipRequest::SetClipboard(clip) => {
+                self.owned = clip;
+                self.update_owner();
+            }
+            ClipRequest::RequestClipboard => {
+                // Find the owner and ask them to send us the buffer
+                xcb::convert_selection(
+                    &self.conn,
+                    self.window_id,
+                    xcb::ATOM_PRIMARY,
+                    self.atom_utf8_string,
+                    self.atom_xsel_data,
+                    xcb::CURRENT_TIME,
+                );
+            }
+        }
+        Ok(())
+    }
+
     /// Waits for events from either the X server or the main thread of the
     /// application.
     fn clip_thread(&mut self) {
@@ -304,28 +341,12 @@ impl Inner {
                 _ => (),
             }
 
-            match self.receiver.recv_timeout(Duration::from_millis(100)) {
-                Err(RecvTimeoutError::Timeout) => continue,
+            match self.process_receiver() {
                 Err(err) => {
-                    eprintln!("clipboard: Error while reading channel: {:?}", err);
+                    eprintln!("clipboard: {:?}", err);
                     return;
                 }
-                Ok(ClipRequest::Terminate) => break,
-                Ok(ClipRequest::SetClipboard(clip)) => {
-                    self.owned = clip;
-                    self.update_owner();
-                }
-                Ok(ClipRequest::RequestClipboard) => {
-                    // Find the owner and ask them to send us the buffer
-                    xcb::convert_selection(
-                        &self.conn,
-                        self.window_id,
-                        xcb::ATOM_PRIMARY,
-                        self.atom_utf8_string,
-                        self.atom_xsel_data,
-                        xcb::CURRENT_TIME,
-                    );
-                }
+                _ => (),
             }
             self.conn.flush();
         }
