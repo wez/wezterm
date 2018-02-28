@@ -131,13 +131,13 @@ impl Inner {
 
     fn selection_clear(&mut self) -> Result<(), Error> {
         // Someone else now owns the selection
-        eprintln!("SELECTION_CLEAR received");
+        debug!("SELECTION_CLEAR received");
         self.owned = None;
         self.send(Paste::Cleared)
     }
 
     fn selection_notify(&mut self, selection: &xcb::SelectionNotifyEvent) -> Result<(), Error> {
-        eprintln!("SELECTION_NOTIFY received");
+        debug!("SELECTION_NOTIFY received");
 
         if (selection.selection() == xcb::ATOM_PRIMARY
             || selection.selection() == self.atom_clipboard)
