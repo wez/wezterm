@@ -534,7 +534,14 @@ impl<'a> Iterator for CSIParser<'a> {
             ('u', &[], Some(&[])) => Some(CSIAction::RestoreCursor),
 
             (b, i, Some(p)) => {
-                println!("cSI unhandled {} {:?} {:?} ignore={}", b, p, i, self.ignore);
+                println!(
+                    "cSI unhandled byte={} params={:?} i={} {:?} ignore={}",
+                    b,
+                    p,
+                    std::str::from_utf8(i).unwrap_or("<not utf8>"),
+                    i,
+                    self.ignore
+                );
                 None
             }
         }
