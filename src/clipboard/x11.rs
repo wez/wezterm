@@ -264,6 +264,30 @@ impl Inner {
         }
     }
 
+    fn process_queued_xcb(&mut self) -> Result<(), Error> {
+        match self.conn.poll_for_event() {
+            None => match self.conn.has_error() {
+                Ok(_) => (),
+                Err(err) => {
+                    bail!("clipboard window connection is broken: {:?}", err);
+                }
+            },
+            Some(event) => match self.process_xcb_event(event) {
+                Ok(_) => (),
+                Err(err) => return Err(err),
+            },
+        }
+        self.conn.flush();
+
+        loop {
+            match self.conn.poll_for_queued_event() {
+                None => return Ok(()),
+                Some(event) => self.process_xcb_event(event)?,
+            }
+            self.conn.flush();
+        }
+    }
+
     /// Waits for events from either the X server or the main thread of the
     /// application.
     fn clip_thread(&mut self) {
@@ -272,23 +296,13 @@ impl Inner {
             .expect("failed to send Running notice");
 
         loop {
-            match self.conn.poll_for_event() {
-                None => match self.conn.has_error() {
-                    Ok(_) => {}
-                    Err(err) => {
-                        eprintln!("clipboard window connection is broken: {:?}", err);
-                        return;
-                    }
-                },
-                Some(event) => match self.process_xcb_event(event) {
-                    Ok(_) => (),
-                    Err(err) => {
-                        eprintln!("{:?}", err);
-                        return;
-                    }
-                },
+            match self.process_queued_xcb() {
+                Err(err) => {
+                    eprintln!("clipboard: {:?}", err);
+                    return;
+                }
+                _ => (),
             }
-            self.conn.flush();
 
             match self.receiver.recv_timeout(Duration::from_millis(100)) {
                 Err(RecvTimeoutError::Timeout) => continue,
