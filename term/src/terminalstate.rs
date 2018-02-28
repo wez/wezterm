@@ -199,6 +199,59 @@ impl TerminalState {
         self.selection_start = None;
     }
 
+    /// If `cols` on the specified `row` intersect with the selection range,
+    /// clear the selection rnage.  This doesn't invalidate the selection,
+    /// it just cancels rendering the selected text.
+    /// Returns true if the selection is invalidated or not present, which
+    /// is useful to terminate a loop when there is no more work to be done.
+    fn clear_selection_if_intersects(
+        &mut self,
+        cols: Range<usize>,
+        row: ScrollbackOrVisibleRowIndex,
+    ) -> bool {
+        let sel = self.selection_range.take();
+        match sel {
+            Some(sel) => {
+                let sel_cols = sel.cols_for_row(row);
+                if cols.start >= sel_cols.start && cols.end <= sel_cols.end {
+                    // Intersects, so clear the selection
+                    self.clear_selection();
+                    true
+                } else {
+                    self.selection_range = Some(sel);
+                    false
+                }
+            }
+            None => true,
+        }
+    }
+
+    /// If `rows` intersect with the selection range, clear the selection rnage.
+    /// This doesn't invalidate the selection, it just cancels rendering the
+    /// selected text.
+    /// Returns true if the selection is invalidated or not present, which
+    /// is useful to terminate a loop when there is no more work to be done.
+    fn clear_selection_if_intersects_rows(
+        &mut self,
+        rows: Range<ScrollbackOrVisibleRowIndex>,
+    ) -> bool {
+        let sel = self.selection_range.take();
+        match sel {
+            Some(sel) => {
+                let sel_rows = sel.rows();
+                if rows.start >= sel_rows.start && rows.end <= sel_rows.end {
+                    // Intersects, so clear the selection
+                    self.clear_selection();
+                    true
+                } else {
+                    self.selection_range = Some(sel);
+                    false
+                }
+            }
+            None => true,
+        }
+    }
+
     fn hyperlink_for_cell(
         &mut self,
         x: usize,
@@ -928,21 +981,27 @@ impl TerminalState {
             CSIAction::DeleteCharacter(n) => {
                 let y = self.cursor.y;
                 let x = self.cursor.x;
-                let screen = self.screen_mut();
-                let limit = (x + n as usize).min(screen.physical_cols);
-                for _ in x..limit as usize {
-                    screen.erase_cell(x, y);
+                let limit = (x + n as usize).min(self.screen().physical_cols);
+                {
+                    let screen = self.screen_mut();
+                    for _ in x..limit as usize {
+                        screen.erase_cell(x, y);
+                    }
                 }
+                self.clear_selection_if_intersects(x..limit, y as ScrollbackOrVisibleRowIndex);
             }
             CSIAction::EraseCharacter(n) => {
                 let y = self.cursor.y;
                 let x = self.cursor.x;
-                let screen = self.screen_mut();
-                let blank = CellAttributes::default();
-                let limit = (x + n as usize).min(screen.physical_cols);
-                for x in x..limit as usize {
-                    screen.set_cell(x, y, ' ', &blank);
+                let limit = (x + n as usize).min(self.screen().physical_cols);
+                {
+                    let screen = self.screen_mut();
+                    let blank = CellAttributes::default();
+                    for x in x..limit as usize {
+                        screen.set_cell(x, y, ' ', &blank);
+                    }
                 }
+                self.clear_selection_if_intersects(x..limit, y as ScrollbackOrVisibleRowIndex);
             }
             CSIAction::SoftReset => {
                 self.pen = CellAttributes::default();
@@ -987,38 +1046,45 @@ impl TerminalState {
                 let cx = self.cursor.x;
                 let cy = self.cursor.y;
                 let pen = self.pen.clone_sgr_only();
-                let mut screen = self.screen_mut();
-                let cols = screen.physical_cols;
-                match erase {
-                    LineErase::ToRight => {
-                        screen.clear_line(cy, cx..cols, &pen);
-                    }
-                    LineErase::ToLeft => {
-                        screen.clear_line(cy, 0..cx, &pen);
-                    }
-                    LineErase::All => {
-                        screen.clear_line(cy, 0..cols, &pen);
-                    }
-                }
+                let cols = self.screen().physical_cols;
+                let range = match erase {
+                    LineErase::ToRight => cx..cols,
+                    LineErase::ToLeft => 0..cx,
+                    LineErase::All => 0..cols,
+                };
+
+                self.screen_mut().clear_line(cy, range.clone(), &pen);
+                self.clear_selection_if_intersects(range, cy as ScrollbackOrVisibleRowIndex);
             }
             CSIAction::EraseInDisplay(erase) => {
                 let cy = self.cursor.y;
                 let pen = self.pen.clone_sgr_only();
-                let mut screen = self.screen_mut();
-                let cols = screen.physical_cols;
-                let rows = screen.physical_rows as VisibleRowIndex;
-                match erase {
-                    DisplayErase::Below => for y in cy..rows {
-                        screen.clear_line(y, 0..cols, &pen);
-                    },
-                    DisplayErase::Above => for y in 0..cy {
-                        screen.clear_line(y, 0..cols, &pen);
-                    },
-                    DisplayErase::All => for y in 0..rows {
-                        screen.clear_line(y, 0..cols, &pen);
-                    },
+                let cols = self.screen().physical_cols;
+                let rows = self.screen().physical_rows as VisibleRowIndex;
+                let col_range = 0..cols;
+                let row_range = match erase {
+                    DisplayErase::Below => cy..rows,
+                    DisplayErase::Above => 0..cy,
+                    DisplayErase::All => 0..rows,
                     DisplayErase::SavedLines => {
-                        println!("TODO: ed: no support for xterm Erase Saved Lines yet");
+                        eprintln!("TODO: ed: no support for xterm Erase Saved Lines yet");
+                        return;
+                    }
+                };
+
+                {
+                    let mut screen = self.screen_mut();
+                    for y in row_range.clone() {
+                        screen.clear_line(y, col_range.clone(), &pen);
+                    }
+                }
+
+                for y in row_range {
+                    if self.clear_selection_if_intersects(
+                        col_range.clone(),
+                        y as ScrollbackOrVisibleRowIndex,
+                    ) {
+                        break;
                     }
                 }
             }
@@ -1089,12 +1155,20 @@ impl TerminalState {
                 if in_range(self.cursor.y, &self.scroll_region) {
                     let scroll_region = self.cursor.y..self.scroll_region.end;
                     self.screen_mut().scroll_up(&scroll_region, n as usize);
+
+                    let scrollback_region = self.cursor.y as ScrollbackOrVisibleRowIndex
+                        ..self.scroll_region.end as ScrollbackOrVisibleRowIndex;
+                    self.clear_selection_if_intersects_rows(scrollback_region);
                 }
             }
             CSIAction::InsertLines(n) => {
                 if in_range(self.cursor.y, &self.scroll_region) {
                     let scroll_region = self.cursor.y..self.scroll_region.end;
                     self.screen_mut().scroll_down(&scroll_region, n as usize);
+
+                    let scrollback_region = self.cursor.y as ScrollbackOrVisibleRowIndex
+                        ..self.scroll_region.end as ScrollbackOrVisibleRowIndex;
+                    self.clear_selection_if_intersects_rows(scrollback_region);
                 }
             }
             CSIAction::SaveCursor => {
@@ -1172,6 +1246,8 @@ impl<'a> vte::Perform for Performer<'a> {
                 &pen,
             );
         }
+
+        self.clear_selection_if_intersects(x..x + print_width, y as ScrollbackOrVisibleRowIndex);
 
         if x + print_width < width {
             self.cursor.x += print_width;
