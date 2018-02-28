@@ -15,7 +15,6 @@ use std::process::Child;
 use std::process::Command;
 use std::rc::Rc;
 use std::sync::mpsc::Receiver;
-use std::sync::mpsc::TryRecvError;
 use term::{self, Terminal};
 use term::{MouseButton, MouseEventKind};
 use term::KeyCode;
@@ -578,16 +577,12 @@ impl TerminalWindow {
     }
 
     fn process_clipboard(&mut self) -> Result<(), Error> {
-        match self.host.clipboard.receiver().try_recv() {
-            Ok(Paste::Cleared) => {
+        match self.host.clipboard.try_get_paste() {
+            Ok(Some(Paste::Cleared)) => {
                 self.terminal.clear_selection();
             }
             Ok(_) => {}
-            Err(TryRecvError::Empty) => {
-                // Spurious wakeup.  Most likely because Clipboard::get_clipboard
-                // already consumed the Paste::Cleared event.
-            }
-            Err(TryRecvError::Disconnected) => bail!("clipboard thread died"),
+            Err(err) => bail!("clipboard thread died? {:?}", err),
         }
         self.paint_if_needed()?;
         Ok(())

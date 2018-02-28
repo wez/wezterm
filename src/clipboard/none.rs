@@ -23,7 +23,8 @@ impl ClipboardImpl for NoClipboard {
     fn get_clipboard(&self) -> Result<String, Error> {
         Ok("".into())
     }
-    fn receiver(&self) -> &Receiver<Paste> {
-        &self.receiver
+
+    fn try_get_paste(&self) -> Result<Option<Paste>, Error> {
+        Ok(None)
     }
 }

@@ -2,7 +2,11 @@
 //! Check out https://tronche.com/gui/x/icccm/sec-2.html for some deep and complex
 //! background on what's happening in here.
 use failure::{self, Error};
-use std::sync::mpsc::{channel, Receiver, RecvTimeoutError, Sender, TryRecvError};
+use mio::{Events, Poll, PollOpt, Ready, Token};
+use mio::unix::EventedFd;
+use mio_extras::channel::{channel as mio_channel, Receiver as MioReceiver, Sender as MioSender};
+use std::os::unix::io::AsRawFd;
+use std::sync::mpsc::{channel, Receiver, Sender, TryRecvError};
 use std::thread::{self, JoinHandle};
 use std::time::Duration;
 use wakeup::{Wakeup, WakeupMsg};
@@ -25,7 +29,7 @@ enum ClipRequest {
 struct Inner {
     /// if we own the clipboard, here's its string content
     owned: Option<String>,
-    receiver: Receiver<ClipRequest>,
+    receiver: MioReceiver<ClipRequest>,
     sender: Sender<Paste>,
     conn: xcb::Connection,
     window_id: xcb::xproto::Window,
@@ -38,7 +42,7 @@ struct Inner {
 
 impl Inner {
     fn new(
-        receiver: Receiver<ClipRequest>,
+        receiver: MioReceiver<ClipRequest>,
         sender: Sender<Paste>,
         wakeup: Wakeup,
     ) -> Result<Self, Error> {
@@ -289,17 +293,10 @@ impl Inner {
     }
 
     fn process_receiver(&mut self) -> Result<(), Error> {
-        match self.receiver.recv_timeout(Duration::from_millis(100)) {
-            Err(RecvTimeoutError::Timeout) => return Ok(()),
+        match self.receiver.try_recv() {
+            Err(TryRecvError::Empty) => Ok(()),
             Err(err) => bail!("clipboard: Error while reading channel: {:?}", err),
-            Ok(request) => self.process_one_cliprequest(request)?,
-        }
-        loop {
-            match self.receiver.try_recv() {
-                Err(TryRecvError::Empty) => return Ok(()),
-                Err(TryRecvError::Disconnected) => bail!("clipboard: receiver channel broken"),
-                Ok(request) => self.process_one_cliprequest(request)?,
-            }
+            Ok(request) => self.process_one_cliprequest(request),
         }
     }
 
@@ -328,34 +325,63 @@ impl Inner {
     /// Waits for events from either the X server or the main thread of the
     /// application.
     fn clip_thread(&mut self) {
+        let poll = Poll::new().expect("mio Poll failed to init");
+
+        poll.register(
+            &EventedFd(&self.conn.as_raw_fd()),
+            Token(0),
+            Ready::readable(),
+            PollOpt::level(),
+        ).expect("failed to register xcb conn for clipboard with mio");
+
+        poll.register(
+            &self.receiver,
+            Token(1),
+            Ready::readable(),
+            PollOpt::level(),
+        ).expect("failed to register receiver for clipboard with mio");
+
+        let mut events = Events::with_capacity(2);
+
         self.sender
             .send(Paste::Running)
             .expect("failed to send Running notice");
 
         loop {
-            match self.process_queued_xcb() {
+            match poll.poll(&mut events, None) {
+                Ok(_) => for event in &events {
+                    if event.token() == Token(0) {
+                        match self.process_queued_xcb() {
+                            Err(err) => {
+                                eprintln!("clipboard: {:?}", err);
+                                return;
+                            }
+                            _ => (),
+                        }
+                    }
+                    if event.token() == Token(1) {
+                        match self.process_receiver() {
+                            Err(err) => {
+                                eprintln!("clipboard: {:?}", err);
+                                return;
+                            }
+                            _ => (),
+                        }
+                        self.conn.flush();
+                    }
+                },
                 Err(err) => {
                     eprintln!("clipboard: {:?}", err);
                     return;
                 }
-                _ => (),
             }
-
-            match self.process_receiver() {
-                Err(err) => {
-                    eprintln!("clipboard: {:?}", err);
-                    return;
-                }
-                _ => (),
-            }
-            self.conn.flush();
         }
     }
 }
 
 /// A clipboard client allows getting or setting the clipboard.
 pub struct Clipboard {
-    sender: Sender<ClipRequest>,
+    sender: MioSender<ClipRequest>,
     receiver: Receiver<Paste>,
     /// This isn't really dead; we're keeping it alive until we Drop.
     #[allow(dead_code)]
@@ -365,7 +391,7 @@ pub struct Clipboard {
 impl ClipboardImpl for Clipboard {
     /// Create a new clipboard instance.  `ping` is
     fn new(wakeup: Wakeup) -> Result<Self, Error> {
-        let (sender_clip, receiver_clip) = channel();
+        let (sender_clip, receiver_clip) = mio_channel();
         let (sender_paste, receiver_paste) = channel();
         let clip_thread = thread::spawn(move || {
             match Inner::new(receiver_clip, sender_paste, wakeup) {
@@ -396,15 +422,19 @@ impl ClipboardImpl for Clipboard {
     /// Blocks until the clipboard contents have been retrieved
     fn get_clipboard(&self) -> Result<String, Error> {
         self.sender.send(ClipRequest::RequestClipboard)?;
-        match self.receiver().recv_timeout(Duration::from_secs(10)) {
+        match self.receiver.recv_timeout(Duration::from_secs(10)) {
             Ok(Paste::All(result)) => return Ok(result),
             Ok(Paste::Cleared) => return Ok("".into()),
             other @ _ => bail!("unexpected result while waiting for paste: {:?}", other),
         }
     }
 
-    fn receiver(&self) -> &Receiver<Paste> {
-        &self.receiver
+    fn try_get_paste(&self) -> Result<Option<Paste>, Error> {
+        match self.receiver.try_recv() {
+            Err(TryRecvError::Empty) => Ok(None),
+            Err(err) => bail!("{:?}", err),
+            Ok(paste) => Ok(Some(paste)),
+        }
     }
 }
 

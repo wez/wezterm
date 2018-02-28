@@ -16,6 +16,7 @@ extern crate glium;
 extern crate harfbuzz_sys;
 extern crate libc;
 extern crate mio;
+extern crate mio_extras;
 extern crate palette;
 extern crate serde;
 #[macro_use]
