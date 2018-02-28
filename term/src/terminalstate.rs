@@ -1044,6 +1044,12 @@ impl TerminalState {
             CSIAction::SetDecPrivateMode(DecPrivateMode::BrackedPaste, on) => {
                 self.bracketed_paste = on;
             }
+            CSIAction::SaveDecPrivateMode(mode) => {
+                eprintln!("SaveDecPrivateMode {:?} not implemented", mode);
+            }
+            CSIAction::RestoreDecPrivateMode(mode) => {
+                eprintln!("RestoreDecPrivateMode {:?} not implemented", mode);
+            }
             CSIAction::DeviceStatusReport => {
                 // "OK"
                 host.writer().write(b"\x1b[0n").ok(); // discard write errors

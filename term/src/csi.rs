@@ -44,6 +44,8 @@ pub enum CSIAction {
     EraseInLine(LineErase),
     EraseInDisplay(DisplayErase),
     SetDecPrivateMode(DecPrivateMode, bool),
+    RestoreDecPrivateMode(DecPrivateMode),
+    SaveDecPrivateMode(DecPrivateMode),
     DeviceStatusReport,
     ReportCursorPosition,
     SetScrollingRegion { top: i64, bottom: i64 },
@@ -170,6 +172,36 @@ impl<'a> CSIParser<'a> {
             }
             _ => {
                 println!("dec_reset_mode: unhandled sequence {:?}", params);
+                None
+            }
+        }
+    }
+
+    /// Restore DEC Private Mode
+    fn dec_restore_mode(&mut self, params: &'a [i64]) -> Option<CSIAction> {
+        match params {
+            &[idx, _..] => {
+                self.advance_by(1, params);
+                self.parse_dec_mode(idx)
+                    .map(|m| CSIAction::RestoreDecPrivateMode(m))
+            }
+            _ => {
+                println!("dec_reset_mode: unhandled sequence {:?}", params);
+                None
+            }
+        }
+    }
+
+    /// Save DEC Private Mode
+    fn dec_save_mode(&mut self, params: &'a [i64]) -> Option<CSIAction> {
+        match params {
+            &[idx, _..] => {
+                self.advance_by(1, params);
+                self.parse_dec_mode(idx)
+                    .map(|m| CSIAction::SaveDecPrivateMode(m))
+            }
+            _ => {
+                println!("dec_save_mode: unhandled sequence {:?}", params);
                 None
             }
         }
@@ -527,6 +559,9 @@ impl<'a> Iterator for CSIParser<'a> {
             ('n', &[], Some(params)) => self.dsr(params),
             ('p', &[b'!'], Some(&[])) => Some(CSIAction::SoftReset),
             ('r', &[], Some(params)) => self.set_scroll_region(params),
+
+            ('r', &[b'?'], Some(params)) => self.dec_restore_mode(params),
+            ('s', &[b'?'], Some(params)) => self.dec_save_mode(params),
 
             // SCOSC: Save Cursor
             ('s', &[], Some(&[])) => Some(CSIAction::SaveCursor),
