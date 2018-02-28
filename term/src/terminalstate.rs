@@ -4,6 +4,7 @@ use unicode_segmentation::UnicodeSegmentation;
 
 struct TabStop {
     tabs: Vec<bool>,
+    tab_width: usize,
 }
 
 impl TabStop {
@@ -13,7 +14,7 @@ impl TabStop {
         for i in 0..screen_width {
             tabs.push((i % tab_width) == 0);
         }
-        Self { tabs }
+        Self { tabs, tab_width }
     }
 
     fn set_tab_stop(&mut self, col: usize) {
@@ -27,6 +28,18 @@ impl TabStop {
             }
         }
         None
+    }
+
+    /// Respond to the terminal resizing.
+    /// If the screen got bigger, we need to expand the tab stops
+    /// into the new columns with the appropriate width.
+    fn resize(&mut self, screen_width: usize) {
+        let current = self.tabs.len();
+        if screen_width > current {
+            for i in current..screen_width {
+                self.tabs.push((i % self.tab_width) == 0);
+            }
+        }
     }
 }
 
@@ -681,6 +694,7 @@ impl TerminalState {
         self.screen.resize(physical_rows, physical_cols);
         self.alt_screen.resize(physical_rows, physical_cols);
         self.scroll_region = 0..physical_rows as i64;
+        self.tabs.resize(physical_cols);
         self.set_scroll_viewport(0);
     }
 
