@@ -98,16 +98,15 @@ impl Inner {
         })
     }
 
-    fn send(&mut self, packet: Paste) -> bool {
+    fn send(&mut self, packet: Paste) -> Result<(), Error> {
         match self.sender.send(packet) {
             Ok(_) => {
-                self.wakeup.send(WakeupMsg::Paste).ok();
-                true
+                self.wakeup.send(WakeupMsg::Paste)?;
+                Ok(())
             }
             Err(err) => {
-                eprintln!("clipboard: error sending to channel: {:?}", err);
-                self.wakeup.send(WakeupMsg::Paste).ok();
-                false
+                self.wakeup.send(WakeupMsg::Paste)?;
+                bail!("clipboard: error sending to channel: {:?}", err);
             }
         }
     }
@@ -126,6 +125,145 @@ impl Inner {
         xcb::set_selection_owner(&self.conn, owner, self.atom_clipboard, xcb::CURRENT_TIME);
     }
 
+    fn selection_clear(&mut self) -> Result<(), Error> {
+        // Someone else now owns the selection
+        eprintln!("SELECTION_CLEAR received");
+        self.owned = None;
+        self.send(Paste::Cleared)
+    }
+
+    fn selection_notify(&mut self, selection: &xcb::SelectionNotifyEvent) -> Result<(), Error> {
+        eprintln!("SELECTION_NOTIFY received");
+
+        if (selection.selection() == xcb::ATOM_PRIMARY
+            || selection.selection() == self.atom_clipboard)
+            && selection.property() != xcb::NONE
+        {
+            match xcb_util::icccm::get_text_property(
+                &self.conn,
+                selection.requestor(),
+                selection.property(),
+            ).get_reply()
+            {
+                Ok(prop) => self.send(Paste::All(prop.name().into())),
+                Err(err) => {
+                    eprintln!("clipboard: err while getting clipboard property: {:?}", err);
+                    self.send(Paste::All("".into()))
+                }
+            }
+        } else {
+            self.send(Paste::All("".into()))
+        }
+    }
+
+    fn selection_request(&mut self, request: &xcb::SelectionRequestEvent) -> Result<(), Error> {
+        // Someone is asking for our selected text
+        debug!(
+            "SEL: time={} owner={} requestor={} selection={} target={} property={}",
+            request.time(),
+            request.owner(),
+            request.requestor(),
+            request.selection(),
+            request.target(),
+            request.property()
+        );
+        debug!(
+            "XSEL={}, UTF8={} PRIMARY={} clip={}",
+            self.atom_xsel_data,
+            self.atom_utf8_string,
+            xcb::ATOM_PRIMARY,
+            self.atom_clipboard,
+        );
+
+        // I'd like to use `match` here, but the atom values are not
+        // known at compile time so we have to `if` like a caveman :-p
+        let selprop = if request.target() == self.atom_targets {
+            // They want to know which targets we support
+            debug!("responding with targets list");
+            let atoms: [u32; 1] = [self.atom_utf8_string];
+            xcb::xproto::change_property(
+                &self.conn,
+                xcb::xproto::PROP_MODE_REPLACE as u8,
+                request.requestor(),
+                request.property(),
+                xcb::xproto::ATOM_ATOM,
+                32, /* 32-bit atom value */
+                &atoms,
+            );
+
+            // let the requestor know that we set their property
+            request.property()
+        } else if request.target() == self.atom_utf8_string
+            || request.target() == xcb::xproto::ATOM_STRING
+        {
+            // We'll accept requests for UTF-8 or STRING data.
+            // We don't and won't do any conversion from UTF-8 to
+            // whatever STRING represents; let's just assume that
+            // the other end is going to handle it correctly.
+            if let &Some(ref text) = &self.owned {
+                debug!("going to respond with clip text because we own it");
+                xcb::xproto::change_property(
+                    &self.conn,
+                    xcb::xproto::PROP_MODE_REPLACE as u8,
+                    request.requestor(),
+                    request.property(),
+                    request.target(),
+                    8, /* 8-bit string data */
+                    text.as_bytes(),
+                );
+                // let the requestor know that we set their property
+                request.property()
+            } else {
+                debug!("we don't own the clipboard");
+                // We have no clipboard so there is nothing to report
+                xcb::NONE
+            }
+        } else {
+            debug!("don't know what to do");
+            // We didn't support their request, so there is nothing
+            // we can report back to them.
+            xcb::NONE
+        };
+        debug!("responding with selprop={}", selprop);
+
+        xcb::xproto::send_event(
+            &self.conn,
+            true,
+            request.requestor(),
+            0,
+            &xcb::xproto::SelectionNotifyEvent::new(
+                request.time(),
+                request.requestor(),
+                request.selection(),
+                request.target(),
+                selprop, // the disposition from the operation above
+            ),
+        );
+        Ok(())
+    }
+
+    fn process_xcb_event(&mut self, event: xcb::GenericEvent) -> Result<(), Error> {
+        match event.response_type() & 0x7f {
+            xcb::SELECTION_CLEAR => self.selection_clear(),
+            xcb::SELECTION_NOTIFY => self.selection_notify(unsafe { xcb::cast_event(&event) }),
+
+            xcb::SELECTION_REQUEST => self.selection_request(unsafe { xcb::cast_event(&event) }),
+            xcb::MAPPING_NOTIFY => {
+                // Nothing to do here; just don't want to print an error
+                // in the case below.
+                Ok(())
+            }
+            _ => {
+                eprintln!(
+                    "clipboard: got unhandled XCB event type {}",
+                    event.response_type() & 0x7f
+                );
+                // Don't bail here; we just want to log the event and carry on.
+                Ok(())
+            }
+        }
+    }
+
     /// Waits for events from either the X server or the main thread of the
     /// application.
     fn clip_thread(&mut self) {
@@ -142,145 +280,11 @@ impl Inner {
                         return;
                     }
                 },
-                Some(event) => match event.response_type() & 0x7f {
-                    xcb::SELECTION_CLEAR => {
-                        // Someone else now owns the selection
-                        eprintln!("SELECTION_CLEAR received");
-                        self.owned = None;
-                        if !self.send(Paste::Cleared) {
-                            return;
-                        }
-                    }
-                    xcb::SELECTION_NOTIFY => {
-                        eprintln!("SELECTION_NOTIFY received");
-                        let selection: &xcb::SelectionNotifyEvent =
-                            unsafe { xcb::cast_event(&event) };
-
-                        if (selection.selection() == xcb::ATOM_PRIMARY
-                            || selection.selection() == self.atom_clipboard)
-                            && selection.property() != xcb::NONE
-                        {
-                            match xcb_util::icccm::get_text_property(
-                                &self.conn,
-                                selection.requestor(),
-                                selection.property(),
-                            ).get_reply()
-                            {
-                                Ok(prop) => {
-                                    if !self.send(Paste::All(prop.name().into())) {
-                                        return;
-                                    }
-                                }
-                                Err(err) => {
-                                    eprintln!(
-                                        "clipboard: err while getting clipboard property: {:?}",
-                                        err
-                                    );
-                                    if !self.send(Paste::All("".into())) {
-                                        return;
-                                    }
-                                }
-                            }
-                        } else if !self.send(Paste::All("".into())) {
-                            return;
-                        }
-                    }
-                    xcb::SELECTION_REQUEST => {
-                        // Someone is asking for our selected text
-
-                        let request: &xcb::SelectionRequestEvent =
-                            unsafe { xcb::cast_event(&event) };
-                        debug!(
-                            "SEL: time={} owner={} requestor={} selection={} target={} property={}",
-                            request.time(),
-                            request.owner(),
-                            request.requestor(),
-                            request.selection(),
-                            request.target(),
-                            request.property()
-                        );
-                        debug!(
-                            "XSEL={}, UTF8={} PRIMARY={} clip={}",
-                            self.atom_xsel_data,
-                            self.atom_utf8_string,
-                            xcb::ATOM_PRIMARY,
-                            self.atom_clipboard,
-                        );
-
-                        // I'd like to use `match` here, but the atom values are not
-                        // known at compile time so we have to `if` like a caveman :-p
-                        let selprop = if request.target() == self.atom_targets {
-                            // They want to know which targets we support
-                            debug!("responding with targets list");
-                            let atoms: [u32; 1] = [self.atom_utf8_string];
-                            xcb::xproto::change_property(
-                                &self.conn,
-                                xcb::xproto::PROP_MODE_REPLACE as u8,
-                                request.requestor(),
-                                request.property(),
-                                xcb::xproto::ATOM_ATOM,
-                                32, /* 32-bit atom value */
-                                &atoms,
-                            );
-
-                            // let the requestor know that we set their property
-                            request.property()
-                        } else if request.target() == self.atom_utf8_string
-                            || request.target() == xcb::xproto::ATOM_STRING
-                        {
-                            // We'll accept requests for UTF-8 or STRING data.
-                            // We don't and won't do any conversion from UTF-8 to
-                            // whatever STRING represents; let's just assume that
-                            // the other end is going to handle it correctly.
-                            if let &Some(ref text) = &self.owned {
-                                debug!("going to respond with clip text because we own it");
-                                xcb::xproto::change_property(
-                                    &self.conn,
-                                    xcb::xproto::PROP_MODE_REPLACE as u8,
-                                    request.requestor(),
-                                    request.property(),
-                                    request.target(),
-                                    8, /* 8-bit string data */
-                                    text.as_bytes(),
-                                );
-                                // let the requestor know that we set their property
-                                request.property()
-                            } else {
-                                debug!("we don't own the clipboard");
-                                // We have no clipboard so there is nothing to report
-                                xcb::NONE
-                            }
-                        } else {
-                            debug!("don't know what to do");
-                            // We didn't support their request, so there is nothing
-                            // we can report back to them.
-                            xcb::NONE
-                        };
-                        debug!("responding with selprop={}", selprop);
-
-                        xcb::xproto::send_event(
-                            &self.conn,
-                            true,
-                            request.requestor(),
-                            0,
-                            &xcb::xproto::SelectionNotifyEvent::new(
-                                request.time(),
-                                request.requestor(),
-                                request.selection(),
-                                request.target(),
-                                selprop, // the disposition from the operation above
-                            ),
-                        );
-                    }
-                    xcb::MAPPING_NOTIFY => {
-                        // Nothing to do here; just don't want to print an error
-                        // in the case below.
-                    }
-                    _ => {
-                        eprintln!(
-                            "clipboard: got unhandled XCB event type {}",
-                            event.response_type() & 0x7f
-                        );
+                Some(event) => match self.process_xcb_event(event) {
+                    Ok(_) => (),
+                    Err(err) => {
+                        eprintln!("{:?}", err);
+                        return;
                     }
                 },
             }
