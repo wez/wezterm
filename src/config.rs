@@ -95,6 +95,11 @@ impl Default for TextStyle {
 }
 
 impl TextStyle {
+    /// Make a version of this style with bold enabled.
+    /// Semi-lame: we just append fontconfig style settings
+    /// to the string blindly.  We could get more involved
+    /// but it would mean adding in the fontsystem stuff here
+    /// and this is probably good enough.
     fn make_bold(&self) -> Self {
         Self {
             fontconfig_pattern: format!("{}:weight=bold", self.fontconfig_pattern),
@@ -102,6 +107,11 @@ impl TextStyle {
         }
     }
 
+    /// Make a version of this style with italic enabled.
+    /// Semi-lame: we just append fontconfig style settings
+    /// to the string blindly.  We could get more involved
+    /// but it would mean adding in the fontsystem stuff here
+    /// and this is probably good enough.
     fn make_italic(&self) -> Self {
         Self {
             fontconfig_pattern: format!("{}:style=Italic", self.fontconfig_pattern),
