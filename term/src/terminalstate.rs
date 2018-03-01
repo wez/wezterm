@@ -1304,6 +1304,12 @@ impl<'a> vte::Perform for Performer<'a> {
                     }
                 }
             }
+            &[b"777", ..] => {
+                // Appears to be an old RXVT command to address perl extensions
+            }
+            &[b"7", _cwd_uri] => {
+                // OSC 7 is used to advise the terminal of the cwd of the running application
+            }
             _ => {
                 if osc.len() > 0 {
                     eprint!("OSC unhandled:");
