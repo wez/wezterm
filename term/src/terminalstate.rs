@@ -1,4 +1,5 @@
 use super::*;
+use base64;
 use std::fmt::Write;
 use unicode_segmentation::UnicodeSegmentation;
 
@@ -1286,6 +1287,33 @@ impl<'a> vte::Perform for Performer<'a> {
                     eprintln!("OSC: failed to decode utf title for {:?}", title);
                 }
             }
+
+            &[b"52", _selection_number] => {
+                // Clear selection
+                self.host.set_clipboard(None).ok();
+            }
+
+            &[b"52", _selection_number, b"?"] => {
+                // query selection
+            }
+
+            &[b"52", _selection_number, selection_data] => {
+                // Set selection
+                fn decode_and_clip(data: &[u8], host: &mut TerminalHost) -> Result<(), Error> {
+                    let bytes = base64::decode(data)?;
+                    let s = str::from_utf8(&bytes)?;
+                    host.set_clipboard(Some(s.to_string()))?;
+                    Ok(())
+                }
+
+                match decode_and_clip(selection_data, self.host) {
+                    Ok(_) => (),
+                    Err(err) => {
+                        eprintln!("failed to set clipboard in response to OSC 52: {:?}", err)
+                    }
+                }
+            }
+
             &[b"8", params, url] => {
                 // Hyperlinks per:
                 // https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5feda
@@ -1304,7 +1332,7 @@ impl<'a> vte::Perform for Performer<'a> {
                     }
                 }
             }
-            &[b"777", ..] => {
+            &[b"777", _..] => {
                 // Appears to be an old RXVT command to address perl extensions
             }
             &[b"7", _cwd_uri] => {

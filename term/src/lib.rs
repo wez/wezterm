@@ -1,6 +1,7 @@
 //! Terminal model
 #![feature(slice_patterns)]
 
+extern crate base64;
 #[macro_use]
 extern crate bitflags;
 #[allow(unused_imports)]
