@@ -213,7 +213,7 @@ impl TerminalState {
         match sel {
             Some(sel) => {
                 let sel_cols = sel.cols_for_row(row);
-                if cols.start >= sel_cols.start && cols.end <= sel_cols.end {
+                if intersects_range(cols, sel_cols) {
                     // Intersects, so clear the selection
                     self.clear_selection();
                     true
@@ -239,7 +239,7 @@ impl TerminalState {
         match sel {
             Some(sel) => {
                 let sel_rows = sel.rows();
-                if rows.start >= sel_rows.start && rows.end <= sel_rows.end {
+                if intersects_range(rows, sel_rows) {
                     // Intersects, so clear the selection
                     self.clear_selection();
                     true

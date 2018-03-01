@@ -79,6 +79,15 @@ pub fn in_range<T: PartialOrd>(value: T, range: &Range<T>) -> bool {
     value >= range.start && value < range.end
 }
 
+/// Returns true if r1 intersects r2
+pub fn intersects_range<T: Ord + Copy>(r1: Range<T>, r2: Range<T>) -> bool {
+    use std::cmp::{max, min};
+    let start = max(r1.start, r2.start);
+    let end = min(r1.end, r2.end);
+
+    end > start
+}
+
 /// Position allows referring to an absolute visible row number
 /// or a position relative to some existing row number (typically
 /// where the cursor is located).  Both of the cases are represented
