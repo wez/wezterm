@@ -1306,7 +1306,11 @@ impl<'a> vte::Perform for Performer<'a> {
             }
             _ => {
                 if osc.len() > 0 {
-                    eprintln!("OSC unhandled: {:?} {:?}", str::from_utf8(osc[0]), osc);
+                    eprint!("OSC unhandled:");
+                    for p in osc.iter() {
+                        eprint!(" {:?}", str::from_utf8(p));
+                    }
+                    eprintln!(" bytes: {:?}", osc);
                 } else {
                     eprintln!("OSC unhandled: {:?}", osc);
                 }
