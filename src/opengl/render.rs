@@ -294,21 +294,6 @@ impl Renderer {
             cell_height, cell_width, descender
         );
 
-        // The descender isn't always reliable.  If it looks implausible then we
-        // cook up something more reasonable.  For example, if the descender pulls
-        // the basline up into the top half of the cell then it is probably bad
-        // so we halve that distance, putting it closer to the bottom quarter instead.
-        let descender = if descender.abs() >= cell_height as isize / 2 {
-            let alt_desc = descender / 2;
-            eprintln!(
-                "descender {} is >=50% the cell height, using {} instead",
-                descender, alt_desc
-            );
-            alt_desc
-        } else {
-            descender
-        };
-
         let cell_height = cell_height.ceil() as usize;
         let cell_width = cell_width.ceil() as usize;
 

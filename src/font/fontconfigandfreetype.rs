@@ -59,7 +59,9 @@ impl Font for FontImpl {
         FontMetrics {
             cell_height: self.cell_height,
             cell_width: self.cell_width,
-            descender: unsafe { (*face.face).descender },
+            // Note: face.face.descender is useless, we have to go through
+            // face.face.size.metrics to get to the real descender!
+            descender: unsafe { (*(*face.face).size).metrics.descender as i16 },
         }
     }
 
