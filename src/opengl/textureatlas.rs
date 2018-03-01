@@ -66,14 +66,22 @@ impl Atlas {
         height: u32,
         data: T,
     ) -> Result<Sprite, OutOfTextureSpace> {
-        if width > self.side || height > self.side {
+        // We pad each sprite reservation with blank space to avoid
+        // surprising and unexpected artifacts when the texture is
+        // interpolated on to the render surface.
+        // In addition, we need to ensure that the bottom left pixel
+        // is blank as we use that for whitespace glyphs.
+        let reserve_width = width + 2;
+        let reserve_height = height + 2;
+
+        if reserve_width > self.side || reserve_height > self.side {
             // It's not possible to satisfy that request
             return Err(OutOfTextureSpace {
-                size: width.max(height).next_power_of_two(),
+                size: reserve_width.max(reserve_height).next_power_of_two(),
             });
         }
         let x_left = self.side - self.left;
-        if x_left < width {
+        if x_left < reserve_width {
             // Bump up to next row
             self.bottom += self.tallest;
             self.left = 0;
@@ -82,24 +90,24 @@ impl Atlas {
 
         // Do we have vertical space?
         let y_left = self.side - self.bottom;
-        if y_left < height {
+        if y_left < reserve_height {
             // No room at the inn.
             return Err(OutOfTextureSpace {
-                size: (self.side + width.max(height)).next_power_of_two(),
+                size: (self.side + reserve_width.max(reserve_height)).next_power_of_two(),
             });
         }
 
         let rect = Rect {
-            left: self.left,
-            bottom: self.bottom,
+            left: self.left + 1,
+            bottom: self.bottom + 1,
             width,
             height,
         };
 
         self.texture.write(rect, data);
 
-        self.left += width;
-        self.tallest = self.tallest.max(height);
+        self.left += reserve_width;
+        self.tallest = self.tallest.max(reserve_height);
 
         Ok(Sprite {
             texture: Rc::clone(&self.texture),
