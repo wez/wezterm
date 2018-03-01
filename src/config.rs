@@ -94,6 +94,22 @@ impl Default for TextStyle {
     }
 }
 
+impl TextStyle {
+    fn make_bold(&self) -> Self {
+        Self {
+            fontconfig_pattern: format!("{}:weight=bold", self.fontconfig_pattern),
+            foreground: self.foreground,
+        }
+    }
+
+    fn make_italic(&self) -> Self {
+        Self {
+            fontconfig_pattern: format!("{}:style=Italic", self.fontconfig_pattern),
+            foreground: self.foreground,
+        }
+    }
+}
+
 /// Defines a rule that can be used to select a TextStyle given
 /// an input CellAttributes value.  The logic that applies the
 /// matching can be found in src/font/mod.rs.  The concept is that
@@ -108,7 +124,7 @@ impl Default for TextStyle {
 /// The above is translated as: "if the CellAttributes have the italic bit
 /// set, then use the italic style of font rather than the default", and
 /// stop processing further font rules.
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Default, Deserialize, Clone)]
 pub struct StyleRule {
     /// If present, this rule matches when CellAttributes::intensity holds
     /// a value that matches this rule.  Valid values are "Bold", "Normal",
@@ -159,11 +175,46 @@ impl Config {
             let mut s = String::new();
             file.read_to_string(&mut s)?;
 
-            return toml::from_str(&s)
-                .map_err(|e| format_err!("Error parsing TOML from {}: {:?}", p.display(), e));
+            let cfg: Self = toml::from_str(&s)
+                .map_err(|e| format_err!("Error parsing TOML from {}: {:?}", p.display(), e))?;
+            return Ok(cfg.compute_extra_defaults());
         }
 
-        Ok(Self::default())
+        Ok(Self::default().compute_extra_defaults())
+    }
+
+    /// In some cases we need to compute expanded values based
+    /// on those provided by the user.  This is where we do that.
+    fn compute_extra_defaults(&self) -> Self {
+        let mut cfg = self.clone();
+
+        if cfg.font_rules.len() == 0 {
+            // Expand out some reasonable default font rules
+            let bold = self.font.make_bold();
+            let italic = self.font.make_italic();
+            let bold_italic = bold.make_italic();
+
+            cfg.font_rules.push(StyleRule {
+                italic: Some(true),
+                font: italic,
+                ..Default::default()
+            });
+
+            cfg.font_rules.push(StyleRule {
+                intensity: Some(term::Intensity::Bold),
+                font: bold,
+                ..Default::default()
+            });
+
+            cfg.font_rules.push(StyleRule {
+                italic: Some(true),
+                intensity: Some(term::Intensity::Bold),
+                font: bold_italic,
+                ..Default::default()
+            });
+        }
+
+        cfg
     }
 }
 
