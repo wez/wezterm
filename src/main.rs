@@ -39,7 +39,7 @@ use glium::glutin::WindowId;
 use mio::{Events, Poll, PollOpt, Ready, Token};
 use mio::unix::EventedFd;
 use mio_extras::channel::{channel as mio_channel, Receiver as MioReceiver};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::env;
 use std::ffi::CStr;
 use std::os::unix::io::AsRawFd;
@@ -88,6 +88,7 @@ enum PtyMsg {
     AddPty(WindowId, RawFd),
     #[allow(dead_code)]
     DelPty(WindowId, RawFd),
+    Terminate,
 }
 
 fn run_pty_thread(mut wakeup: Wakeup, receiver: MioReceiver<PtyMsg>) -> Result<(), Error> {
@@ -125,6 +126,10 @@ fn run_pty_thread(mut wakeup: Wakeup, receiver: MioReceiver<PtyMsg>) -> Result<(
                     match receiver.try_recv() {
                         Err(TryRecvError::Empty) => {}
                         Err(err) => bail!("error receiving PtyMsg {:?}", err),
+                        Ok(PtyMsg::Terminate) => {
+                            eprintln!("pty thread: Terminate");
+                            return Ok(());
+                        }
                         Ok(PtyMsg::AddPty(window_id, fd)) => {
                             let token = Token(next_token_id);
                             poll.register(
@@ -138,6 +143,7 @@ fn run_pty_thread(mut wakeup: Wakeup, receiver: MioReceiver<PtyMsg>) -> Result<(
                             next_token_id += 1;
                         }
                         Ok(PtyMsg::DelPty(_window_id, fd)) => {
+                            eprintln!("DelPty {:?} {}", _window_id, fd);
                             poll.deregister(&EventedFd(&fd))?;
                         }
                     }
@@ -155,11 +161,11 @@ fn run_pty_thread(mut wakeup: Wakeup, receiver: MioReceiver<PtyMsg>) -> Result<(
     }
 }
 
-fn start_pty_thread(wakeup: Wakeup, receiver: MioReceiver<PtyMsg>) {
+fn start_pty_thread(wakeup: Wakeup, receiver: MioReceiver<PtyMsg>) -> std::thread::JoinHandle<()> {
     thread::spawn(move || match run_pty_thread(wakeup, receiver) {
         Ok(_) => {}
-        Err(err) => eprintln!("pty thread: {:?}", err),
-    });
+        Err(err) => eprintln!("pty thread returned error {:?}", err),
+    })
 }
 
 fn run_glium(
@@ -179,7 +185,7 @@ fn run_glium(
     sigchld::activate(wakeup.clone())?;
 
     let (pty_sender, pty_receiver) = mio_channel();
-    start_pty_thread(wakeup.clone(), pty_receiver);
+    let pty_thread = start_pty_thread(wakeup.clone(), pty_receiver);
 
     let master_fd = master.as_raw_fd();
 
@@ -207,14 +213,14 @@ fn run_glium(
         use glium::glutin::ControlFlow::{Break, Continue};
         use glium::glutin::Event;
 
-        let mut dead_windows = Vec::new();
+        let mut dead_windows = HashSet::new();
         let result = match event {
             Event::WindowEvent { window_id, .. } => match windows_by_id.get_mut(&window_id) {
                 Some(window) => match window.dispatch_event(event) {
                     Ok(_) => Continue,
                     Err(err) => match err.downcast_ref::<gliumwindows::SessionTerminated>() {
                         Some(_) => {
-                            dead_windows.push(window_id.clone());
+                            dead_windows.insert(window_id.clone());
                             Continue
                         }
                         _ => {
@@ -239,7 +245,7 @@ fn run_glium(
                             Ok(_) => {}
                             Err(err) => {
                                 eprintln!("pty finished: {:?}", err);
-                                dead_windows.push(window_id.clone());
+                                dead_windows.insert(window_id.clone());
                             }
                         }
                     },
@@ -260,7 +266,12 @@ fn run_glium(
         match result {
             Continue => {
                 for window_id in dead_windows {
-                    // TODO: DelPty
+                    // TODO: DelPty.  Doing this here spews errors
+                    /*
+                    pty_sender
+                        .send(PtyMsg::DelPty(window_id, master_fd))
+                        .unwrap();
+                    */
                     windows_by_id.remove(&window_id);
                 }
 
@@ -274,6 +285,9 @@ fn run_glium(
             Break => Break,
         }
     });
+
+    pty_sender.send(PtyMsg::Terminate)?;
+    pty_thread.join().ok();
 
     Ok(())
 }

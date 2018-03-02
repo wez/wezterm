@@ -16,6 +16,10 @@ use xcb_util;
 
 use clipboard::{ClipboardImpl, Paste};
 
+#[derive(Debug, Fail)]
+#[fail(display = "ClipTerminated")]
+struct ClipTerminated;
+
 #[derive(Debug)]
 enum ClipRequest {
     /// tell the system that we want to set (or clear) the
@@ -306,7 +310,7 @@ impl Inner {
 
     fn process_one_cliprequest(&mut self, request: ClipRequest) -> Result<(), Error> {
         match request {
-            ClipRequest::Terminate => bail!("requested termination of clip thread"),
+            ClipRequest::Terminate => return Err(ClipTerminated.into()),
             ClipRequest::SetClipboard(clip) => {
                 self.owned = clip;
                 self.update_owner();
@@ -365,10 +369,14 @@ impl Inner {
                     }
                     if event.token() == Token(1) {
                         match self.process_receiver() {
-                            Err(err) => {
-                                eprintln!("clipboard: {:?}", err);
-                                return;
-                            }
+                            // No need to print the error trace if we were shutdown gracefully
+                            Err(err) => match err.downcast_ref::<ClipTerminated>() {
+                                Some(_) => return,
+                                _ => {
+                                    eprintln!("clipboard: {:?}", err);
+                                    return;
+                                }
+                            },
                             _ => (),
                         }
                         self.conn.flush();
@@ -388,8 +396,7 @@ pub struct Clipboard {
     sender: MioSender<ClipRequest>,
     receiver: Receiver<Paste>,
     /// This isn't really dead; we're keeping it alive until we Drop.
-    #[allow(dead_code)]
-    clip_thread: JoinHandle<()>,
+    clip_thread: Option<JoinHandle<()>>,
 }
 
 impl ClipboardImpl for Clipboard {
@@ -413,7 +420,7 @@ impl ClipboardImpl for Clipboard {
         Ok(Self {
             sender: sender_clip,
             receiver: receiver_paste,
-            clip_thread,
+            clip_thread: Some(clip_thread),
         })
     }
 
@@ -445,5 +452,11 @@ impl ClipboardImpl for Clipboard {
 impl Drop for Clipboard {
     fn drop(&mut self) {
         self.sender.send(ClipRequest::Terminate).ok();
+        match self.clip_thread.take() {
+            Some(thread) => {
+                thread.join().ok();
+            }
+            None => {}
+        }
     }
 }
