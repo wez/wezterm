@@ -204,20 +204,29 @@ fn run_glium(
     pty_sender.send(PtyMsg::AddPty(window_id, master_fd))?;
 
     events_loop.run_forever(|event| {
+        use glium::glutin::ControlFlow::{Break, Continue};
         use glium::glutin::Event;
-        match event {
+
+        let mut dead_windows = Vec::new();
+        let result = match event {
             Event::WindowEvent { window_id, .. } => match windows_by_id.get_mut(&window_id) {
                 Some(window) => match window.dispatch_event(event) {
-                    Ok(_) => glium::glutin::ControlFlow::Continue,
-                    Err(err) => {
-                        eprintln!("{:?}", err);
-                        glium::glutin::ControlFlow::Break
-                    }
+                    Ok(_) => Continue,
+                    Err(err) => match err.downcast_ref::<gliumwindows::SessionTerminated>() {
+                        Some(_) => {
+                            dead_windows.push(window_id.clone());
+                            Continue
+                        }
+                        _ => {
+                            eprintln!("{:?}", err);
+                            Break
+                        }
+                    },
                 },
                 None => {
                     // This happens surprisingly often!
                     // eprintln!("window event for unknown {:?}", window_id);
-                    glium::glutin::ControlFlow::Continue
+                    Continue
                 }
             },
             Event::Awakened => loop {
@@ -225,8 +234,14 @@ fn run_glium(
                     Ok(WakeupMsg::PtyReadable(window_id)) => {
                         windows_by_id.get_mut(&window_id).map(|w| w.try_read_pty());
                     }
-                    Ok(WakeupMsg::SigChld) => for (_, window) in windows_by_id.iter_mut() {
-                        window.test_for_child_exit().unwrap();
+                    Ok(WakeupMsg::SigChld) => for (window_id, window) in windows_by_id.iter_mut() {
+                        match window.test_for_child_exit() {
+                            Ok(_) => {}
+                            Err(err) => {
+                                eprintln!("pty finished: {:?}", err);
+                                dead_windows.push(window_id.clone());
+                            }
+                        }
                     },
                     Ok(WakeupMsg::Paint) => for (_, window) in windows_by_id.iter_mut() {
                         window.paint_if_needed().unwrap();
@@ -236,10 +251,27 @@ fn run_glium(
                             .get_mut(&window_id)
                             .map(|w| w.process_clipboard());
                     }
-                    Err(_) => return glium::glutin::ControlFlow::Continue,
+                    Err(_) => break Continue,
                 }
             },
-            _ => glium::glutin::ControlFlow::Continue,
+            _ => Continue,
+        };
+
+        match result {
+            Continue => {
+                for window_id in dead_windows {
+                    // TODO: DelPty
+                    windows_by_id.remove(&window_id);
+                }
+
+                if windows_by_id.len() == 0 {
+                    // If we have no more windows left to manage, we're done
+                    Break
+                } else {
+                    Continue
+                }
+            }
+            Break => Break,
         }
     });
 

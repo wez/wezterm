@@ -11,8 +11,7 @@ use opengl::textureatlas::OutOfTextureSpace;
 use pty::MasterPty;
 use std::io;
 use std::io::{Read, Write};
-use std::process::Child;
-use std::process::Command;
+use std::process::{Child, Command, ExitStatus};
 use std::rc::Rc;
 use term::{self, Terminal};
 use term::{MouseButton, MouseEventKind};
@@ -20,6 +19,16 @@ use term::KeyCode;
 use term::KeyModifiers;
 use term::hyperlink::Hyperlink;
 use wakeup::Wakeup;
+
+#[derive(Debug, Fail)]
+pub enum SessionTerminated {
+    #[fail(display = "Process exited: {:?}", status)]
+    ProcessStatus { status: ExitStatus },
+    #[fail(display = "Error: {:?}", err)]
+    Error { err: Error },
+    #[fail(display = "Window Closed")]
+    WindowClosed,
+}
 
 struct Host {
     display: glium::Display,
@@ -465,7 +474,7 @@ impl TerminalWindow {
                 event: WindowEvent::Closed,
                 ..
             } => {
-                bail!("window close requested!");
+                return Err(SessionTerminated::WindowClosed.into());
             }
             Event::WindowEvent {
                 event: WindowEvent::HiDPIFactorChanged(_),
@@ -579,15 +588,11 @@ impl TerminalWindow {
         self.terminal.has_dirty_lines()
     }
 
-    pub fn test_for_child_exit(&mut self) -> Result<(), Error> {
+    pub fn test_for_child_exit(&mut self) -> Result<(), SessionTerminated> {
         match self.process.try_wait() {
-            Ok(Some(status)) => {
-                bail!("child exited: {}", status);
-            }
+            Ok(Some(status)) => Err(SessionTerminated::ProcessStatus { status }),
             Ok(None) => Ok(()),
-            Err(e) => {
-                bail!("failed to wait for child: {}", e);
-            }
+            Err(e) => Err(SessionTerminated::Error { err: e.into() }),
         }
     }
 }
