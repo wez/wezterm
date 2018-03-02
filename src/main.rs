@@ -204,75 +204,84 @@ impl GuiEventLoop {
         Ok(())
     }
 
+    fn process_gui_event(
+        &self,
+        event: glium::glutin::Event,
+        dead_windows: &mut HashSet<WindowId>,
+    ) -> Result<glium::glutin::ControlFlow, Error> {
+        use glium::glutin::ControlFlow::{Break, Continue};
+        use glium::glutin::Event;
+        let result = match event {
+            Event::WindowEvent { window_id, .. } => {
+                match self.windows_by_id.borrow_mut().get_mut(&window_id) {
+                    Some(window) => match window.dispatch_event(event) {
+                        Ok(_) => Continue,
+                        Err(err) => match err.downcast_ref::<gliumwindows::SessionTerminated>() {
+                            Some(_) => {
+                                dead_windows.insert(window_id.clone());
+                                Continue
+                            }
+                            _ => {
+                                eprintln!("{:?}", err);
+                                Break
+                            }
+                        },
+                    },
+                    None => {
+                        // This happens surprisingly often!
+                        // eprintln!("window event for unknown {:?}", window_id);
+                        Continue
+                    }
+                }
+            }
+            Event::Awakened => loop {
+                match self.wakeup_receiver.try_recv() {
+                    Ok(WakeupMsg::PtyReadable(window_id)) => {
+                        self.windows_by_id
+                            .borrow_mut()
+                            .get_mut(&window_id)
+                            .map(|w| w.try_read_pty());
+                    }
+                    Ok(WakeupMsg::SigChld) => {
+                        for (window_id, window) in self.windows_by_id.borrow_mut().iter_mut() {
+                            match window.test_for_child_exit() {
+                                Ok(_) => {}
+                                Err(err) => {
+                                    eprintln!("pty finished: {:?}", err);
+                                    dead_windows.insert(window_id.clone());
+                                }
+                            }
+                        }
+                    }
+                    Ok(WakeupMsg::Paint) => {
+                        for (_, window) in self.windows_by_id.borrow_mut().iter_mut() {
+                            window.paint_if_needed().unwrap();
+                        }
+                    }
+                    Ok(WakeupMsg::Paste(window_id)) => {
+                        self.windows_by_id
+                            .borrow_mut()
+                            .get_mut(&window_id)
+                            .map(|w| w.process_clipboard());
+                    }
+                    Err(_) => break Continue,
+                }
+            },
+            _ => Continue,
+        };
+        Ok(result)
+    }
+
     fn run(&self) -> Result<(), Error> {
         let mut event_loop = self.event_loop.borrow_mut();
         event_loop.run_forever(|event| {
             use glium::glutin::ControlFlow::{Break, Continue};
-            use glium::glutin::Event;
 
             let mut dead_windows = HashSet::new();
-            let result = match event {
-                Event::WindowEvent { window_id, .. } => {
-                    match self.windows_by_id.borrow_mut().get_mut(&window_id) {
-                        Some(window) => match window.dispatch_event(event) {
-                            Ok(_) => Continue,
-                            Err(err) => match err.downcast_ref::<gliumwindows::SessionTerminated>()
-                            {
-                                Some(_) => {
-                                    dead_windows.insert(window_id.clone());
-                                    Continue
-                                }
-                                _ => {
-                                    eprintln!("{:?}", err);
-                                    Break
-                                }
-                            },
-                        },
-                        None => {
-                            // This happens surprisingly often!
-                            // eprintln!("window event for unknown {:?}", window_id);
-                            Continue
-                        }
-                    }
-                }
-                Event::Awakened => loop {
-                    match self.wakeup_receiver.try_recv() {
-                        Ok(WakeupMsg::PtyReadable(window_id)) => {
-                            self.windows_by_id
-                                .borrow_mut()
-                                .get_mut(&window_id)
-                                .map(|w| w.try_read_pty());
-                        }
-                        Ok(WakeupMsg::SigChld) => {
-                            for (window_id, window) in self.windows_by_id.borrow_mut().iter_mut() {
-                                match window.test_for_child_exit() {
-                                    Ok(_) => {}
-                                    Err(err) => {
-                                        eprintln!("pty finished: {:?}", err);
-                                        dead_windows.insert(window_id.clone());
-                                    }
-                                }
-                            }
-                        }
-                        Ok(WakeupMsg::Paint) => {
-                            for (_, window) in self.windows_by_id.borrow_mut().iter_mut() {
-                                window.paint_if_needed().unwrap();
-                            }
-                        }
-                        Ok(WakeupMsg::Paste(window_id)) => {
-                            self.windows_by_id
-                                .borrow_mut()
-                                .get_mut(&window_id)
-                                .map(|w| w.process_clipboard());
-                        }
-                        Err(_) => break Continue,
-                    }
-                },
-                _ => Continue,
-            };
+            let result = self.process_gui_event(event, &mut dead_windows);
 
             match result {
-                Continue => {
+                Ok(Continue) => {
                     for window_id in dead_windows {
                         // TODO: DelPty.  Doing this here spews errors
                     /*
@@ -290,7 +299,11 @@ impl GuiEventLoop {
                         Continue
                     }
                 }
-                Break => Break,
+                Err(err) => {
+                    eprintln!("Error in event loop: {:?}", err);
+                    Break
+                }
+                Ok(Break) => Break,
             }
         });
         self.pty_sender.send(PtyMsg::Terminate)?;
