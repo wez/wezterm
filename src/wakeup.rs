@@ -1,13 +1,13 @@
 use failure::Error;
-use glium::glutin::EventsLoopProxy;
+use glium::glutin::{EventsLoopProxy, WindowId};
 use std::sync::mpsc::{channel, Receiver, Sender};
 
 #[derive(Debug)]
 pub enum WakeupMsg {
-    PtyReadable,
+    PtyReadable(WindowId),
     SigChld,
     Paint,
-    Paste,
+    Paste(WindowId),
 }
 
 #[derive(Clone)]

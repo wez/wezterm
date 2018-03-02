@@ -2,6 +2,7 @@
 //! Check out https://tronche.com/gui/x/icccm/sec-2.html for some deep and complex
 //! background on what's happening in here.
 use failure::{self, Error};
+use glium::glutin::WindowId;
 use mio::{Events, Poll, PollOpt, Ready, Token};
 use mio::unix::EventedFd;
 use mio_extras::channel::{channel as mio_channel, Receiver as MioReceiver, Sender as MioSender};
@@ -38,6 +39,7 @@ struct Inner {
     atom_targets: xcb::Atom,
     atom_clipboard: xcb::Atom,
     wakeup: Wakeup,
+    wakeup_window_id: WindowId,
 }
 
 impl Inner {
@@ -45,6 +47,7 @@ impl Inner {
         receiver: MioReceiver<ClipRequest>,
         sender: Sender<Paste>,
         wakeup: Wakeup,
+        wakeup_window_id: WindowId,
     ) -> Result<Self, Error> {
         let (conn, screen) = xcb::Connection::connect(None)?;
 
@@ -99,17 +102,18 @@ impl Inner {
             atom_targets,
             atom_clipboard,
             wakeup,
+            wakeup_window_id,
         })
     }
 
     fn send(&mut self, packet: Paste) -> Result<(), Error> {
         match self.sender.send(packet) {
             Ok(_) => {
-                self.wakeup.send(WakeupMsg::Paste)?;
+                self.wakeup.send(WakeupMsg::Paste(self.wakeup_window_id))?;
                 Ok(())
             }
             Err(err) => {
-                self.wakeup.send(WakeupMsg::Paste)?;
+                self.wakeup.send(WakeupMsg::Paste(self.wakeup_window_id))?;
                 bail!("clipboard: error sending to channel: {:?}", err);
             }
         }
@@ -390,11 +394,11 @@ pub struct Clipboard {
 
 impl ClipboardImpl for Clipboard {
     /// Create a new clipboard instance.  `ping` is
-    fn new(wakeup: Wakeup) -> Result<Self, Error> {
+    fn new(wakeup: Wakeup, window_id: WindowId) -> Result<Self, Error> {
         let (sender_clip, receiver_clip) = mio_channel();
         let (sender_paste, receiver_paste) = channel();
         let clip_thread = thread::spawn(move || {
-            match Inner::new(receiver_clip, sender_paste, wakeup) {
+            match Inner::new(receiver_clip, sender_paste, wakeup, window_id) {
                 Ok(mut clip) => clip.clip_thread(),
                 Err(err) => eprintln!("failed to init clipboard window: {:?}", err),
             }

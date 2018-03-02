@@ -101,7 +101,6 @@ fn run_glium(
     let window = gliumwindows::TerminalWindow::new(
         &events_loop,
         wakeup.clone(),
-        wakeup_receiver,
         initial_pixel_width,
         initial_pixel_height,
         terminal,
@@ -154,7 +153,7 @@ fn run_glium(
                     Ok(_) => for event in &events {
                         if event.token() == Token(0) && event.readiness().is_readable() {
                             wakeup
-                                .send(WakeupMsg::PtyReadable)
+                                .send(WakeupMsg::PtyReadable(window_id))
                                 .expect("failed to wakeup gui thread");
                         }
                     },
@@ -181,15 +180,23 @@ fn run_glium(
                     glium::glutin::ControlFlow::Continue
                 }
             },
-            Event::Awakened => match windows_by_id
-                .get_mut(&window_id)
-                .unwrap()
-                .dispatch_event(event)
-            {
-                Ok(_) => glium::glutin::ControlFlow::Continue,
-                Err(err) => {
-                    eprintln!("{:?}", err);
-                    glium::glutin::ControlFlow::Break
+            Event::Awakened => loop {
+                match wakeup_receiver.try_recv() {
+                    Ok(WakeupMsg::PtyReadable(window_id)) => {
+                        windows_by_id.get_mut(&window_id).map(|w| w.try_read_pty());
+                    }
+                    Ok(WakeupMsg::SigChld) => for (_, window) in windows_by_id.iter_mut() {
+                        window.test_for_child_exit().unwrap();
+                    },
+                    Ok(WakeupMsg::Paint) => for (_, window) in windows_by_id.iter_mut() {
+                        window.paint_if_needed().unwrap();
+                    },
+                    Ok(WakeupMsg::Paste(window_id)) => {
+                        windows_by_id
+                            .get_mut(&window_id)
+                            .map(|w| w.process_clipboard());
+                    }
+                    Err(_) => return glium::glutin::ControlFlow::Continue,
                 }
             },
             _ => glium::glutin::ControlFlow::Continue,

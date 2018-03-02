@@ -1,4 +1,5 @@
 use failure::Error;
+use glium::glutin::WindowId;
 
 mod none;
 #[cfg(target_os = "macos")]
@@ -27,7 +28,7 @@ pub enum Paste {
 
 /// Abstracts away system specific clipboard implementation details.
 pub trait ClipboardImpl {
-    fn new(wakeup: Wakeup) -> Result<Self, Error>
+    fn new(wakeup: Wakeup, window_id: WindowId) -> Result<Self, Error>
     where
         Self: Sized;
     fn set_clipboard(&self, text: Option<String>) -> Result<(), Error>;

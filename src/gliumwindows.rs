@@ -14,13 +14,12 @@ use std::io::{Read, Write};
 use std::process::Child;
 use std::process::Command;
 use std::rc::Rc;
-use std::sync::mpsc::Receiver;
 use term::{self, Terminal};
 use term::{MouseButton, MouseEventKind};
 use term::KeyCode;
 use term::KeyModifiers;
 use term::hyperlink::Hyperlink;
-use wakeup::{Wakeup, WakeupMsg};
+use wakeup::Wakeup;
 
 struct Host {
     display: glium::Display,
@@ -65,7 +64,6 @@ pub struct TerminalWindow {
     process: Child,
     last_mouse_coords: (f64, f64),
     last_modifiers: KeyModifiers,
-    wakeup_receiver: Receiver<WakeupMsg>,
     window_position: Option<(i32, i32)>,
     /// is is_some, holds position to be restored after exiting
     /// fullscreen mode.
@@ -76,7 +74,6 @@ impl TerminalWindow {
     pub fn new(
         event_loop: &glutin::EventsLoop,
         wakeup: Wakeup,
-        wakeup_receiver: Receiver<WakeupMsg>,
         width: u16,
         height: u16,
         terminal: Terminal,
@@ -102,11 +99,12 @@ impl TerminalWindow {
             .with_srgb(true);
         let display =
             glium::Display::new(window, context, &event_loop).map_err(|e| format_err!("{:?}", e))?;
+        let window_id = display.gl_window().id();
 
         let host = Host {
             display,
             pty,
-            clipboard: Clipboard::new(wakeup)?,
+            clipboard: Clipboard::new(wakeup, window_id)?,
         };
 
         host.display.gl_window().set_cursor(MouseCursor::Text);
@@ -127,7 +125,6 @@ impl TerminalWindow {
             process,
             last_mouse_coords: (0.0, 0.0),
             last_modifiers: Default::default(),
-            wakeup_receiver,
             window_position,
             is_fullscreen: None,
         })
@@ -561,26 +558,12 @@ impl TerminalWindow {
             } => {
                 self.paint()?;
             }
-            Event::Awakened => loop {
-                match self.wakeup_receiver.try_recv() {
-                    Ok(WakeupMsg::PtyReadable) => self.try_read_pty()?,
-                    Ok(WakeupMsg::SigChld) => self.test_for_child_exit()?,
-                    Ok(WakeupMsg::Paint) => if self.terminal.has_dirty_lines() {
-                        self.paint()?;
-                    },
-                    Ok(WakeupMsg::Paste) => self.process_clipboard()?,
-                    Err(_) => break,
-                }
-            },
-            Event::Suspended(suspended) => {
-                eprintln!("Suspended {:?}", suspended);
-            }
             _ => {}
         }
         Ok(())
     }
 
-    fn process_clipboard(&mut self) -> Result<(), Error> {
+    pub fn process_clipboard(&mut self) -> Result<(), Error> {
         match self.host.clipboard.try_get_paste() {
             Ok(Some(Paste::Cleared)) => {
                 self.terminal.clear_selection();
