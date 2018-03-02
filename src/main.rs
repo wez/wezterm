@@ -35,14 +35,18 @@ extern crate xcb;
 #[cfg(all(unix, not(target_os = "macos")))]
 extern crate xcb_util;
 
+use glium::glutin::WindowId;
 use mio::{Events, Poll, PollOpt, Ready, Token};
 use mio::unix::EventedFd;
+use mio_extras::channel::{channel as mio_channel, Receiver as MioReceiver};
 use std::collections::HashMap;
 use std::env;
 use std::ffi::CStr;
 use std::os::unix::io::AsRawFd;
+use std::os::unix::io::RawFd;
 use std::process::Command;
 use std::str;
+use std::sync::mpsc::TryRecvError;
 use std::thread;
 use std::time::{Duration, Instant};
 
@@ -80,6 +84,84 @@ fn get_shell() -> Result<String, Error> {
     })
 }
 
+enum PtyMsg {
+    AddPty(WindowId, RawFd),
+    #[allow(dead_code)]
+    DelPty(WindowId, RawFd),
+}
+
+fn run_pty_thread(mut wakeup: Wakeup, receiver: MioReceiver<PtyMsg>) -> Result<(), Error> {
+    let poll = Poll::new()?;
+
+    let mut events = Events::with_capacity(8);
+    let mut last_paint = Instant::now();
+    let refresh = Duration::from_millis(50);
+
+    let mut window_id_to_token = HashMap::new();
+    let mut token_to_window_id = HashMap::new();
+    let mut next_token_id = 10;
+
+    poll.register(&receiver, Token(0), Ready::readable(), PollOpt::level())?;
+
+    loop {
+        let now = Instant::now();
+        let diff = now - last_paint;
+        let period = if diff >= refresh {
+            // Tick and wakeup the gui thread to ask it to render
+            // if needed.  Without this we'd only repaint when
+            // the window system decides that we were damaged.
+            // We don't want to paint after every state change
+            // as that would be too frequent.
+            wakeup.send(WakeupMsg::Paint)?;
+            last_paint = now;
+            refresh
+        } else {
+            refresh - diff
+        };
+
+        match poll.poll(&mut events, Some(period)) {
+            Ok(_) => for event in &events {
+                if event.token() == Token(0) {
+                    match receiver.try_recv() {
+                        Err(TryRecvError::Empty) => {}
+                        Err(err) => bail!("error receiving PtyMsg {:?}", err),
+                        Ok(PtyMsg::AddPty(window_id, fd)) => {
+                            let token = Token(next_token_id);
+                            poll.register(
+                                &EventedFd(&fd),
+                                token,
+                                Ready::readable(),
+                                PollOpt::edge(),
+                            )?;
+                            window_id_to_token.insert(window_id, token);
+                            token_to_window_id.insert(token, window_id);
+                            next_token_id += 1;
+                        }
+                        Ok(PtyMsg::DelPty(_window_id, fd)) => {
+                            poll.deregister(&EventedFd(&fd))?;
+                        }
+                    }
+                } else {
+                    match token_to_window_id.get(&event.token()) {
+                        Some(window_id) => {
+                            wakeup.send(WakeupMsg::PtyReadable(*window_id))?;
+                        }
+                        None => (),
+                    }
+                }
+            },
+            _ => {}
+        }
+    }
+}
+
+fn start_pty_thread(wakeup: Wakeup, receiver: MioReceiver<PtyMsg>) {
+    thread::spawn(move || match run_pty_thread(wakeup, receiver) {
+        Ok(_) => {}
+        Err(err) => eprintln!("pty thread: {:?}", err),
+    });
+}
+
 fn run_glium(
     master: pty::MasterPty,
     child: std::process::Child,
@@ -95,6 +177,9 @@ fn run_glium(
 
     let (wakeup_receiver, wakeup) = Wakeup::new(events_loop.create_proxy());
     sigchld::activate(wakeup.clone())?;
+
+    let (pty_sender, pty_receiver) = mio_channel();
+    start_pty_thread(wakeup.clone(), pty_receiver);
 
     let master_fd = master.as_raw_fd();
 
@@ -116,52 +201,7 @@ fn run_glium(
     let window_id = window.window_id();
 
     windows_by_id.insert(window_id, window);
-
-    {
-        let mut wakeup = wakeup.clone();
-        thread::spawn(move || {
-            let poll = Poll::new().expect("mio Poll failed to init");
-            poll.register(
-                &EventedFd(&master_fd),
-                Token(0),
-                Ready::readable(),
-                PollOpt::edge(),
-            ).expect("failed to register pty");
-            let mut events = Events::with_capacity(8);
-            let mut last_paint = Instant::now();
-            let refresh = Duration::from_millis(50);
-
-            loop {
-                let now = Instant::now();
-                let diff = now - last_paint;
-                let period = if diff >= refresh {
-                    // Tick and wakeup the gui thread to ask it to render
-                    // if needed.  Without this we'd only repaint when
-                    // the window system decides that we were damaged.
-                    // We don't want to paint after every state change
-                    // as that would be too frequent.
-                    wakeup
-                        .send(WakeupMsg::Paint)
-                        .expect("failed to wakeup gui thread");
-                    last_paint = now;
-                    refresh
-                } else {
-                    refresh - diff
-                };
-
-                match poll.poll(&mut events, Some(period)) {
-                    Ok(_) => for event in &events {
-                        if event.token() == Token(0) && event.readiness().is_readable() {
-                            wakeup
-                                .send(WakeupMsg::PtyReadable(window_id))
-                                .expect("failed to wakeup gui thread");
-                        }
-                    },
-                    _ => {}
-                }
-            }
-        });
-    }
+    pty_sender.send(PtyMsg::AddPty(window_id, master_fd))?;
 
     events_loop.run_forever(|event| {
         use glium::glutin::Event;
