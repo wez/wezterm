@@ -37,6 +37,7 @@ extern crate xcb_util;
 
 use mio::{Events, Poll, PollOpt, Ready, Token};
 use mio::unix::EventedFd;
+use std::collections::HashMap;
 use std::env;
 use std::ffi::CStr;
 use std::os::unix::io::AsRawFd;
@@ -90,12 +91,14 @@ fn run_glium(
 ) -> Result<(), Error> {
     let mut events_loop = glium::glutin::EventsLoop::new();
 
+    let mut windows_by_id = HashMap::new();
+
     let (wakeup_receiver, wakeup) = Wakeup::new(events_loop.create_proxy());
     sigchld::activate(wakeup.clone())?;
 
     let master_fd = master.as_raw_fd();
 
-    let mut window = gliumwindows::TerminalWindow::new(
+    let window = gliumwindows::TerminalWindow::new(
         &events_loop,
         wakeup.clone(),
         wakeup_receiver,
@@ -110,6 +113,10 @@ fn run_glium(
             .map(|p| p.into())
             .unwrap_or_else(term::color::ColorPalette::default),
     )?;
+
+    let window_id = window.window_id();
+
+    windows_by_id.insert(window_id, window);
 
     {
         let mut wakeup = wakeup.clone();
@@ -157,11 +164,35 @@ fn run_glium(
         });
     }
 
-    events_loop.run_forever(|event| match window.dispatch_event(event) {
-        Ok(_) => glium::glutin::ControlFlow::Continue,
-        Err(err) => {
-            eprintln!("{:?}", err);
-            glium::glutin::ControlFlow::Break
+    events_loop.run_forever(|event| {
+        use glium::glutin::Event;
+        match event {
+            Event::WindowEvent { window_id, .. } => match windows_by_id.get_mut(&window_id) {
+                Some(window) => match window.dispatch_event(event) {
+                    Ok(_) => glium::glutin::ControlFlow::Continue,
+                    Err(err) => {
+                        eprintln!("{:?}", err);
+                        glium::glutin::ControlFlow::Break
+                    }
+                },
+                None => {
+                    // This happens surprisingly often!
+                    // eprintln!("window event for unknown {:?}", window_id);
+                    glium::glutin::ControlFlow::Continue
+                }
+            },
+            Event::Awakened => match windows_by_id
+                .get_mut(&window_id)
+                .unwrap()
+                .dispatch_event(event)
+            {
+                Ok(_) => glium::glutin::ControlFlow::Continue,
+                Err(err) => {
+                    eprintln!("{:?}", err);
+                    glium::glutin::ControlFlow::Break
+                }
+            },
+            _ => glium::glutin::ControlFlow::Continue,
         }
     });
 

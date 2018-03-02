@@ -133,6 +133,10 @@ impl TerminalWindow {
         })
     }
 
+    pub fn window_id(&self) -> glutin::WindowId {
+        self.host.display.gl_window().id()
+    }
+
     pub fn paint(&mut self) -> Result<(), Error> {
         let mut target = self.host.display.draw();
         let res = self.renderer.paint(&mut target, &mut self.terminal);
