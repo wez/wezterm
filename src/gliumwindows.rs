@@ -11,6 +11,7 @@ use opengl::textureatlas::OutOfTextureSpace;
 use pty::MasterPty;
 use std::io;
 use std::io::{Read, Write};
+use std::os::unix::io::{AsRawFd, RawFd};
 use std::process::{Child, Command, ExitStatus};
 use std::rc::Rc;
 use term::{self, Terminal};
@@ -141,6 +142,10 @@ impl TerminalWindow {
 
     pub fn window_id(&self) -> glutin::WindowId {
         self.host.display.gl_window().id()
+    }
+
+    pub fn pty_fd(&self) -> RawFd {
+        self.host.pty.as_raw_fd()
     }
 
     pub fn paint(&mut self) -> Result<(), Error> {

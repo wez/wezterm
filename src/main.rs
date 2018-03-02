@@ -38,16 +38,16 @@ extern crate xcb_util;
 use glium::glutin::WindowId;
 use mio::{Events, Poll, PollOpt, Ready, Token};
 use mio::unix::EventedFd;
-use mio_extras::channel::{channel as mio_channel, Receiver as MioReceiver};
+use mio_extras::channel::{channel as mio_channel, Receiver as MioReceiver, Sender as MioSender};
+use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
 use std::env;
 use std::ffi::CStr;
-use std::os::unix::io::AsRawFd;
 use std::os::unix::io::RawFd;
 use std::process::Command;
 use std::str;
 use std::sync::mpsc::TryRecvError;
-use std::thread;
+use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant};
 
 mod config;
@@ -161,11 +161,152 @@ fn run_pty_thread(mut wakeup: Wakeup, receiver: MioReceiver<PtyMsg>) -> Result<(
     }
 }
 
-fn start_pty_thread(wakeup: Wakeup, receiver: MioReceiver<PtyMsg>) -> std::thread::JoinHandle<()> {
+fn start_pty_thread(wakeup: Wakeup, receiver: MioReceiver<PtyMsg>) -> JoinHandle<()> {
     thread::spawn(move || match run_pty_thread(wakeup, receiver) {
         Ok(_) => {}
         Err(err) => eprintln!("pty thread returned error {:?}", err),
     })
+}
+
+struct GuiEventLoop {
+    event_loop: RefCell<glium::glutin::EventsLoop>,
+    windows_by_id: RefCell<HashMap<WindowId, gliumwindows::TerminalWindow>>,
+    wakeup_receiver: std::sync::mpsc::Receiver<WakeupMsg>,
+    wakeup: Wakeup,
+    pty_sender: MioSender<PtyMsg>,
+    pty_thread: Option<JoinHandle<()>>,
+}
+
+impl GuiEventLoop {
+    fn new() -> Result<Self, Error> {
+        let event_loop = glium::glutin::EventsLoop::new();
+        let (wakeup_receiver, wakeup) = Wakeup::new(event_loop.create_proxy());
+        sigchld::activate(wakeup.clone())?;
+
+        let (pty_sender, pty_receiver) = mio_channel();
+        let pty_thread = start_pty_thread(wakeup.clone(), pty_receiver);
+
+        Ok(Self {
+            event_loop: RefCell::new(event_loop),
+            wakeup_receiver,
+            wakeup,
+            windows_by_id: RefCell::new(HashMap::new()),
+            pty_sender,
+            pty_thread: Some(pty_thread),
+        })
+    }
+
+    fn add_window(&self, window: gliumwindows::TerminalWindow) -> Result<(), Error> {
+        let window_id = window.window_id();
+        let fd = window.pty_fd();
+        self.windows_by_id.borrow_mut().insert(window_id, window);
+        self.pty_sender.send(PtyMsg::AddPty(window_id, fd))?;
+        Ok(())
+    }
+
+    fn run(&self) -> Result<(), Error> {
+        let mut event_loop = self.event_loop.borrow_mut();
+        event_loop.run_forever(|event| {
+            use glium::glutin::ControlFlow::{Break, Continue};
+            use glium::glutin::Event;
+
+            let mut dead_windows = HashSet::new();
+            let result = match event {
+                Event::WindowEvent { window_id, .. } => {
+                    match self.windows_by_id.borrow_mut().get_mut(&window_id) {
+                        Some(window) => match window.dispatch_event(event) {
+                            Ok(_) => Continue,
+                            Err(err) => match err.downcast_ref::<gliumwindows::SessionTerminated>()
+                            {
+                                Some(_) => {
+                                    dead_windows.insert(window_id.clone());
+                                    Continue
+                                }
+                                _ => {
+                                    eprintln!("{:?}", err);
+                                    Break
+                                }
+                            },
+                        },
+                        None => {
+                            // This happens surprisingly often!
+                            // eprintln!("window event for unknown {:?}", window_id);
+                            Continue
+                        }
+                    }
+                }
+                Event::Awakened => loop {
+                    match self.wakeup_receiver.try_recv() {
+                        Ok(WakeupMsg::PtyReadable(window_id)) => {
+                            self.windows_by_id
+                                .borrow_mut()
+                                .get_mut(&window_id)
+                                .map(|w| w.try_read_pty());
+                        }
+                        Ok(WakeupMsg::SigChld) => {
+                            for (window_id, window) in self.windows_by_id.borrow_mut().iter_mut() {
+                                match window.test_for_child_exit() {
+                                    Ok(_) => {}
+                                    Err(err) => {
+                                        eprintln!("pty finished: {:?}", err);
+                                        dead_windows.insert(window_id.clone());
+                                    }
+                                }
+                            }
+                        }
+                        Ok(WakeupMsg::Paint) => {
+                            for (_, window) in self.windows_by_id.borrow_mut().iter_mut() {
+                                window.paint_if_needed().unwrap();
+                            }
+                        }
+                        Ok(WakeupMsg::Paste(window_id)) => {
+                            self.windows_by_id
+                                .borrow_mut()
+                                .get_mut(&window_id)
+                                .map(|w| w.process_clipboard());
+                        }
+                        Err(_) => break Continue,
+                    }
+                },
+                _ => Continue,
+            };
+
+            match result {
+                Continue => {
+                    for window_id in dead_windows {
+                        // TODO: DelPty.  Doing this here spews errors
+                    /*
+                    pty_sender
+                        .send(PtyMsg::DelPty(window_id, master_fd))
+                        .unwrap();
+                    */
+                        self.windows_by_id.borrow_mut().remove(&window_id);
+                    }
+
+                    if self.windows_by_id.borrow().len() == 0 {
+                        // If we have no more windows left to manage, we're done
+                        Break
+                    } else {
+                        Continue
+                    }
+                }
+                Break => Break,
+            }
+        });
+        self.pty_sender.send(PtyMsg::Terminate)?;
+        Ok(())
+    }
+}
+
+impl Drop for GuiEventLoop {
+    fn drop(&mut self) {
+        match self.pty_thread.take() {
+            Some(t) => {
+                t.join().unwrap();
+            }
+            None => {}
+        }
+    }
 }
 
 fn run_glium(
@@ -177,21 +318,11 @@ fn run_glium(
     initial_pixel_width: u16,
     initial_pixel_height: u16,
 ) -> Result<(), Error> {
-    let mut events_loop = glium::glutin::EventsLoop::new();
-
-    let mut windows_by_id = HashMap::new();
-
-    let (wakeup_receiver, wakeup) = Wakeup::new(events_loop.create_proxy());
-    sigchld::activate(wakeup.clone())?;
-
-    let (pty_sender, pty_receiver) = mio_channel();
-    let pty_thread = start_pty_thread(wakeup.clone(), pty_receiver);
-
-    let master_fd = master.as_raw_fd();
+    let event_loop = GuiEventLoop::new()?;
 
     let window = gliumwindows::TerminalWindow::new(
-        &events_loop,
-        wakeup.clone(),
+        &*event_loop.event_loop.borrow_mut(),
+        event_loop.wakeup.clone(),
         initial_pixel_width,
         initial_pixel_height,
         terminal,
@@ -204,90 +335,9 @@ fn run_glium(
             .unwrap_or_else(term::color::ColorPalette::default),
     )?;
 
-    let window_id = window.window_id();
+    event_loop.add_window(window)?;
 
-    windows_by_id.insert(window_id, window);
-    pty_sender.send(PtyMsg::AddPty(window_id, master_fd))?;
-
-    events_loop.run_forever(|event| {
-        use glium::glutin::ControlFlow::{Break, Continue};
-        use glium::glutin::Event;
-
-        let mut dead_windows = HashSet::new();
-        let result = match event {
-            Event::WindowEvent { window_id, .. } => match windows_by_id.get_mut(&window_id) {
-                Some(window) => match window.dispatch_event(event) {
-                    Ok(_) => Continue,
-                    Err(err) => match err.downcast_ref::<gliumwindows::SessionTerminated>() {
-                        Some(_) => {
-                            dead_windows.insert(window_id.clone());
-                            Continue
-                        }
-                        _ => {
-                            eprintln!("{:?}", err);
-                            Break
-                        }
-                    },
-                },
-                None => {
-                    // This happens surprisingly often!
-                    // eprintln!("window event for unknown {:?}", window_id);
-                    Continue
-                }
-            },
-            Event::Awakened => loop {
-                match wakeup_receiver.try_recv() {
-                    Ok(WakeupMsg::PtyReadable(window_id)) => {
-                        windows_by_id.get_mut(&window_id).map(|w| w.try_read_pty());
-                    }
-                    Ok(WakeupMsg::SigChld) => for (window_id, window) in windows_by_id.iter_mut() {
-                        match window.test_for_child_exit() {
-                            Ok(_) => {}
-                            Err(err) => {
-                                eprintln!("pty finished: {:?}", err);
-                                dead_windows.insert(window_id.clone());
-                            }
-                        }
-                    },
-                    Ok(WakeupMsg::Paint) => for (_, window) in windows_by_id.iter_mut() {
-                        window.paint_if_needed().unwrap();
-                    },
-                    Ok(WakeupMsg::Paste(window_id)) => {
-                        windows_by_id
-                            .get_mut(&window_id)
-                            .map(|w| w.process_clipboard());
-                    }
-                    Err(_) => break Continue,
-                }
-            },
-            _ => Continue,
-        };
-
-        match result {
-            Continue => {
-                for window_id in dead_windows {
-                    // TODO: DelPty.  Doing this here spews errors
-                    /*
-                    pty_sender
-                        .send(PtyMsg::DelPty(window_id, master_fd))
-                        .unwrap();
-                    */
-                    windows_by_id.remove(&window_id);
-                }
-
-                if windows_by_id.len() == 0 {
-                    // If we have no more windows left to manage, we're done
-                    Break
-                } else {
-                    Continue
-                }
-            }
-            Break => Break,
-        }
-    });
-
-    pty_sender.send(PtyMsg::Terminate)?;
-    pty_thread.join().ok();
+    event_loop.run()?;
 
     Ok(())
 }
