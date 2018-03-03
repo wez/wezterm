@@ -54,6 +54,7 @@ use std::time::{Duration, Instant};
 mod config;
 
 mod futurecore;
+mod remotemio;
 mod opengl;
 
 mod clipboard;
