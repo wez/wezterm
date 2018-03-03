@@ -36,15 +36,16 @@ extern crate xcb;
 #[cfg(all(unix, not(target_os = "macos")))]
 extern crate xcb_util;
 
-use futures::Future;
+use futures::{future, Future};
 use glium::glutin::WindowId;
 use mio::{PollOpt, Ready, Token};
 use std::cell::RefCell;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::env;
 use std::ffi::CStr;
 use std::os::unix::io::RawFd;
 use std::process::Command;
+use std::rc::Rc;
 use std::str;
 use std::sync::mpsc::{Receiver, TryRecvError};
 use std::time::Duration;
@@ -85,11 +86,15 @@ fn get_shell() -> Result<String, Error> {
     })
 }
 
+#[derive(Default)]
+struct Windows {
+    by_id: HashMap<WindowId, gliumwindows::TerminalWindow>,
+    by_fd: HashMap<RawFd, WindowId>,
+}
+
 struct GuiEventLoop {
     event_loop: RefCell<glium::glutin::EventsLoop>,
-    windows_by_id: RefCell<HashMap<WindowId, gliumwindows::TerminalWindow>>,
-    windows_by_fd: RefCell<HashMap<RawFd, WindowId>>,
-    terminate: RefCell<bool>,
+    windows: Rc<RefCell<Windows>>,
     core: futurecore::Core,
     poll: remotemio::IOMgr,
     poll_rx: Receiver<remotemio::Notification>,
@@ -101,7 +106,7 @@ struct GuiEventLoop {
 impl GuiEventLoop {
     fn new() -> Result<Self, Error> {
         let event_loop = glium::glutin::EventsLoop::new();
-        let core = futurecore::Core::new();
+        let core = futurecore::Core::new(event_loop.create_proxy());
 
         let (wake_tx, poll_rx) = wakeup::channel(event_loop.create_proxy());
         let (paster, paster_rx) = wakeup::channel(event_loop.create_proxy());
@@ -118,17 +123,16 @@ impl GuiEventLoop {
             paster_rx,
             sigchld_rx,
             event_loop: RefCell::new(event_loop),
-            windows_by_id: RefCell::new(HashMap::new()),
-            windows_by_fd: RefCell::new(HashMap::new()),
-            terminate: RefCell::new(false),
+            windows: Rc::new(RefCell::new(Default::default())),
         })
     }
 
     fn add_window(&self, window: gliumwindows::TerminalWindow) -> Result<(), Error> {
         let window_id = window.window_id();
         let fd = window.pty_fd();
-        self.windows_by_id.borrow_mut().insert(window_id, window);
-        self.windows_by_fd.borrow_mut().insert(fd, window_id);
+        let mut windows = self.windows.borrow_mut();
+        windows.by_id.insert(window_id, window);
+        windows.by_fd.insert(fd, window_id);
         self.poll
             .register(fd, Token(fd as usize), Ready::readable(), PollOpt::edge())?
             .wait()??;
@@ -138,32 +142,26 @@ impl GuiEventLoop {
     fn process_gui_event(
         &self,
         event: &glium::glutin::Event,
-        dead_windows: &mut HashSet<WindowId>,
     ) -> Result<glium::glutin::ControlFlow, Error> {
         use glium::glutin::ControlFlow::{Break, Continue};
         use glium::glutin::Event;
         let result = match *event {
             Event::WindowEvent { window_id, .. } => {
-                match self.windows_by_id.borrow_mut().get_mut(&window_id) {
+                let dead = match self.windows.borrow_mut().by_id.get_mut(&window_id) {
                     Some(window) => match window.dispatch_event(event) {
-                        Ok(_) => Continue,
+                        Ok(_) => None,
                         Err(err) => match err.downcast_ref::<gliumwindows::SessionTerminated>() {
-                            Some(_) => {
-                                dead_windows.insert(window_id);
-                                Continue
-                            }
-                            _ => {
-                                eprintln!("{:?}", err);
-                                Break
-                            }
+                            Some(_) => Some(window_id),
+                            _ => return Err(err),
                         },
                     },
-                    None => {
-                        // This happens surprisingly often!
-                        // eprintln!("window event for unknown {:?}", window_id);
-                        Continue
-                    }
+                    None => None,
+                };
+
+                if let Some(window_id) = dead {
+                    self.schedule_window_close(window_id)?;
                 }
+                Continue
             }
             Event::Awakened => Break,
             _ => Continue,
@@ -171,34 +169,59 @@ impl GuiEventLoop {
         Ok(result)
     }
 
+    fn schedule_window_close(&self, window_id: WindowId) -> Result<(), Error> {
+        let fd = {
+            let mut windows = self.windows.borrow_mut();
+
+            let window = windows.by_id.get_mut(&window_id).ok_or_else(|| {
+                format_err!("no window_id {:?} in the windows_by_id map", window_id)
+            })?;
+            window.pty_fd()
+        };
+
+        let windows = Rc::clone(&self.windows);
+
+        self.core.spawn(self.poll.deregister(fd)?.then(move |_| {
+            println!("done dereg");
+            let mut windows = windows.borrow_mut();
+            windows.by_id.remove(&window_id);
+            windows.by_fd.remove(&fd);
+            future::ok(())
+        }));
+
+        Ok(())
+    }
+
     fn process_pty_event(&self, event: mio::Event) -> Result<(), Error> {
         // The token is the fd
         let fd = event.token().0 as RawFd;
 
-        let mut by_fd = self.windows_by_fd.borrow_mut();
-        let result = {
-            let window_id = by_fd.get(&fd).ok_or_else(|| {
-                format_err!("fd {} has no associated window in windows_by_fd map", fd)
-            })?;
+        let (window_id, result) = {
+            let mut windows = self.windows.borrow_mut();
 
-            let mut by_id = self.windows_by_id.borrow_mut();
-            let window = by_id.get_mut(window_id).ok_or_else(|| {
+            let window_id = windows
+                .by_fd
+                .get(&fd)
+                .ok_or_else(|| {
+                    format_err!("fd {} has no associated window in windows_by_fd map", fd)
+                })
+                .map(|w| *w)?;
+
+            let window = windows.by_id.get_mut(&window_id).ok_or_else(|| {
                 format_err!(
                     "fd {} -> window_id {:?} but no associated window is in the windows_by_id map",
                     fd,
                     window_id
                 )
             })?;
-            window.try_read_pty()
+            (window_id, window.try_read_pty())
         };
 
         match result {
             Ok(_) => Ok(()),
             Err(err) => match err.downcast_ref::<gliumwindows::SessionTerminated>() {
                 Some(_) => {
-                    eprintln!("shutting down pty: {:?}", err);
-                    self.poll.deregister(fd)?.wait()??;
-                    by_fd.remove(&fd);
+                    self.schedule_window_close(window_id)?;
                     Ok(())
                 }
                 _ => {
@@ -209,7 +232,7 @@ impl GuiEventLoop {
     }
 
     fn do_paint(&self) {
-        for (_, window) in self.windows_by_id.borrow_mut().iter_mut() {
+        for window in &mut self.windows.borrow_mut().by_id.values_mut() {
             window.paint_if_needed().unwrap();
         }
     }
@@ -234,8 +257,9 @@ impl GuiEventLoop {
         loop {
             match self.paster_rx.try_recv() {
                 Ok(window_id) => {
-                    self.windows_by_id
+                    self.windows
                         .borrow_mut()
+                        .by_id
                         .get_mut(&window_id)
                         .map(|w| w.process_clipboard());
                 }
@@ -245,30 +269,36 @@ impl GuiEventLoop {
         }
     }
 
-    fn process_sigchld_wakeups(&self, dead_windows: &mut HashSet<WindowId>) -> Result<(), Error> {
+    fn process_sigchld_wakeups(&self) -> Result<(), Error> {
         loop {
             match self.sigchld_rx.try_recv() {
-                Ok(_) => for (window_id, window) in self.windows_by_id.borrow_mut().iter_mut() {
-                    match window.test_for_child_exit() {
-                        Ok(_) => {}
-                        Err(err) => {
-                            eprintln!("pty finished: {:?}", err);
-                            dead_windows.insert(window_id.clone());
-                        }
+                Ok(_) => {
+                    let window_ids: Vec<WindowId> = self.windows
+                        .borrow_mut()
+                        .by_id
+                        .iter_mut()
+                        .filter_map(|(window_id, window)| match window.test_for_child_exit() {
+                            Ok(_) => None,
+                            Err(_) => Some(*window_id),
+                        })
+                        .collect();
+
+                    for window_id in window_ids {
+                        self.schedule_window_close(window_id)?;
                     }
-                },
+                }
                 Err(TryRecvError::Empty) => return Ok(()),
                 Err(err) => bail!("paster_rx disconnected {:?}", err),
             }
         }
     }
 
-    fn run_event_loop(&self, mut dead_windows: &mut HashSet<WindowId>) -> Result<(), Error> {
+    fn run_event_loop(&self) -> Result<(), Error> {
         let mut event_loop = self.event_loop.borrow_mut();
         event_loop.run_forever(|event| {
             use glium::glutin::ControlFlow::{Break, Continue};
 
-            let result = self.process_gui_event(&event, &mut dead_windows);
+            let result = self.process_gui_event(&event);
 
             match result {
                 Ok(Continue) => Continue,
@@ -282,24 +312,32 @@ impl GuiEventLoop {
         Ok(())
     }
 
+    fn process_futures(&self) {
+        loop {
+            if !self.core.turn() {
+                break;
+            }
+            println!("did one future");
+        }
+    }
+
     fn run(&self) -> Result<(), Error> {
-        while !*self.terminate.borrow() {
-            let mut dead_windows = HashSet::new();
+        loop {
+            self.process_futures();
+
+            {
+                let windows = self.windows.borrow();
+                if windows.by_id.is_empty() && windows.by_fd.is_empty() {
+                    eprintln!("No more windows; done!");
+                    return Ok(());
+                }
+            }
+
+            self.run_event_loop()?;
             self.process_wakeups_new()?;
             self.process_paste_wakeups()?;
-            self.process_sigchld_wakeups(&mut dead_windows)?;
-            self.run_event_loop(&mut dead_windows)?;
-
-            for window_id in dead_windows {
-                self.windows_by_id.borrow_mut().remove(&window_id);
-            }
-
-            if self.windows_by_id.borrow().len() == 0 {
-                // If we have no more windows left to manage, we're done
-                *self.terminate.borrow_mut() = true;
-            }
+            self.process_sigchld_wakeups()?;
         }
-        Ok(())
     }
 }
 

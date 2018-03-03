@@ -13,12 +13,14 @@
 use futures::{Async, Future};
 use futures::executor::{self, Notify, Spawn};
 use futures::future::{ExecuteError, Executor};
+use glium::glutin::EventsLoopProxy;
 use std::cell::{Cell, RefCell};
 use std::sync::{Arc, Mutex};
 use std::sync::mpsc;
+use wakeup::{channel, GuiSender};
 
 pub struct Core {
-    tx: mpsc::Sender<usize>,
+    tx: GuiSender<usize>,
     rx: mpsc::Receiver<usize>,
     notify: Arc<Notifier>,
     // Slab of running futures used to track what's running and what slots are
@@ -34,8 +36,8 @@ enum Slot {
 }
 
 impl Core {
-    pub fn new() -> Self {
-        let (tx, rx) = mpsc::channel();
+    pub fn new(proxy: EventsLoopProxy) -> Self {
+        let (tx, rx) = channel(proxy);
         Self {
             notify: Arc::new(Notifier {
                 tx: Mutex::new(tx.clone()),
@@ -128,7 +130,7 @@ struct Notifier {
     //       itself is basically `Sync` as-is. Ideally this'd use something like
     //       an off-the-shelf mpsc queue as well as `thread::park` and
     //       `Thread::unpark`.
-    tx: Mutex<mpsc::Sender<usize>>,
+    tx: Mutex<GuiSender<usize>>,
 }
 
 impl Notify for Notifier {
