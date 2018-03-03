@@ -1,6 +1,6 @@
 //! Handling hyperlinks.
 //! This gist describes an escape sequence for explicitly managing hyperlinks:
-//! https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5fedaA
+//! <https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5fedaA>
 //! We use that as the foundation of our hyperlink support, and the game
 //! plan is to then implicitly enable the hyperlink attribute for a cell
 //! as we recognize linkable input text during print() processing.
@@ -54,8 +54,8 @@ impl Hyperlink {
 /// to be skipped, returning the data successfully parsed out so far.
 pub fn parse_link_params(params: &str) -> HashMap<&str, &str> {
     let mut map = HashMap::new();
-    for kv in params.split(":") {
-        let mut iter = kv.splitn(2, "=");
+    for kv in params.split(':') {
+        let mut iter = kv.splitn(2, '=');
         let key = iter.next();
         let value = iter.next();
         match (key, value) {
@@ -161,7 +161,7 @@ impl Rule {
     pub fn match_hyperlinks(line: &str, rules: &[Rule]) -> Vec<RuleMatch> {
         let mut matches = Vec::new();
         for rule in rules.iter() {
-            for captures in rule.regex.captures_iter(&line) {
+            for captures in rule.regex.captures_iter(line) {
                 matches.push(Match { rule, captures });
             }
         }

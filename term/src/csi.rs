@@ -65,7 +65,7 @@ pub enum CSIAction {
 /// Since many sequences allow for composition of actions by separating
 /// parameters using the ; character, we need to be able to iterate over
 /// the set of parsed actions from a given CSI sequence.
-/// CSIParser implements an Iterator that yields CSIAction instances as
+/// `CSIParser` implements an Iterator that yields `CSIAction` instances as
 /// it parses them out from the input sequence.
 pub struct CSIParser<'a> {
     intermediates: &'a [u8],
@@ -102,7 +102,7 @@ impl<'a> CSIParser<'a> {
     /// an unterminated parse loop.
     fn advance_by(&mut self, n: usize, params: &'a [i64]) {
         let (_, next) = params.split_at(n);
-        if next.len() != 0 {
+        if !next.is_empty() {
             self.params = Some(next);
         }
     }
@@ -146,8 +146,8 @@ impl<'a> CSIParser<'a> {
 
     /// DEC Private Mode (DECSET)
     fn dec_set_mode(&mut self, params: &'a [i64]) -> Option<CSIAction> {
-        match params {
-            &[idx, _..] => {
+        match *params {
+            [idx, _..] => {
                 self.advance_by(1, params);
                 self.parse_dec_mode(idx)
                     .map(|m| CSIAction::SetDecPrivateMode(m, true))
@@ -164,8 +164,8 @@ impl<'a> CSIParser<'a> {
 
     /// Reset DEC Private Mode (DECRST)
     fn dec_reset_mode(&mut self, params: &'a [i64]) -> Option<CSIAction> {
-        match params {
-            &[idx, _..] => {
+        match *params {
+            [idx, _..] => {
                 self.advance_by(1, params);
                 self.parse_dec_mode(idx)
                     .map(|m| CSIAction::SetDecPrivateMode(m, false))
@@ -179,11 +179,11 @@ impl<'a> CSIParser<'a> {
 
     /// Restore DEC Private Mode
     fn dec_restore_mode(&mut self, params: &'a [i64]) -> Option<CSIAction> {
-        match params {
-            &[idx, _..] => {
+        match *params {
+            [idx, _..] => {
                 self.advance_by(1, params);
                 self.parse_dec_mode(idx)
-                    .map(|m| CSIAction::RestoreDecPrivateMode(m))
+                    .map(CSIAction::RestoreDecPrivateMode)
             }
             _ => {
                 println!("dec_reset_mode: unhandled sequence {:?}", params);
@@ -194,11 +194,10 @@ impl<'a> CSIParser<'a> {
 
     /// Save DEC Private Mode
     fn dec_save_mode(&mut self, params: &'a [i64]) -> Option<CSIAction> {
-        match params {
-            &[idx, _..] => {
+        match *params {
+            [idx, _..] => {
                 self.advance_by(1, params);
-                self.parse_dec_mode(idx)
-                    .map(|m| CSIAction::SaveDecPrivateMode(m))
+                self.parse_dec_mode(idx).map(CSIAction::SaveDecPrivateMode)
             }
             _ => {
                 println!("dec_save_mode: unhandled sequence {:?}", params);
@@ -209,14 +208,14 @@ impl<'a> CSIParser<'a> {
 
     /// Set Graphics Rendition (SGR)
     fn sgr(&mut self, params: &'a [i64]) -> Option<CSIAction> {
-        match params {
-            &[] => {
+        match *params {
+            [] => {
                 // With no parameters, reset to default pen.
                 // Note that this empty case is only possible for the initial
                 // iteration.
                 Some(CSIAction::SetPenNoLink(CellAttributes::default()))
             }
-            &[0, _..] => {
+            [0, _..] => {
                 // Explicitly set to default pen
                 self.advance_by(1, params);
                 Some(CSIAction::SetPenNoLink(CellAttributes::default()))
@@ -225,7 +224,7 @@ impl<'a> CSIParser<'a> {
             // embedded like this: [0, 1, 38, 2, 204, 204, 204, 48, 2, 85, 85, 204]
             // so we're turning it off for now.
             /*
-            &[38, 2, _colorspace, red, green, blue, _..] => {
+            [38, 2, _colorspace, red, green, blue, _..] => {
                 // ISO-8613-6 true color foreground
                 self.advance_by(6, params);
                 Some(CSIAction::SetForegroundColor(
@@ -237,7 +236,7 @@ impl<'a> CSIParser<'a> {
                 ))
             }
             */
-            &[38, 2, red, green, blue, _..] => {
+            [38, 2, red, green, blue, _..] => {
                 // KDE konsole compatibility for truecolor foreground
                 self.advance_by(5, params);
                 Some(CSIAction::SetForegroundColor(color::ColorAttribute::Rgb(
@@ -252,7 +251,7 @@ impl<'a> CSIParser<'a> {
             // embedded like this: [0, 1, 38, 2, 204, 204, 204, 48, 2, 85, 85, 204]
             // so we're turning it off for now.
             /*
-            &[48, 2, _colorspace, red, green, blue, _..] => {
+            [48, 2, _colorspace, red, green, blue, _..] => {
                 // ISO-8613-6 true color background
                 self.advance_by(6, params);
                 Some(CSIAction::SetBackgroundColor(
@@ -264,7 +263,7 @@ impl<'a> CSIParser<'a> {
                 ))
             }
             */
-            &[48, 2, red, green, blue, _..] => {
+            [48, 2, red, green, blue, _..] => {
                 // KDE konsole compatibility for truecolor background
                 self.advance_by(5, params);
                 Some(CSIAction::SetBackgroundColor(color::ColorAttribute::Rgb(
@@ -275,114 +274,114 @@ impl<'a> CSIParser<'a> {
                     },
                 )))
             }
-            &[38, 5, idx, _..] => {
+            [38, 5, idx, _..] => {
                 // 256 color foreground color index
                 self.advance_by(3, params);
                 let color = color::ColorAttribute::PaletteIndex(idx as u8);
                 Some(CSIAction::SetForegroundColor(color))
             }
-            &[48, 5, idx, _..] => {
+            [48, 5, idx, _..] => {
                 // 256 color background color index
                 self.advance_by(3, params);
                 let color = color::ColorAttribute::PaletteIndex(idx as u8);
                 Some(CSIAction::SetBackgroundColor(color))
             }
-            &[1, _..] => {
+            [1, _..] => {
                 self.advance_by(1, params);
                 Some(CSIAction::SetIntensity(Intensity::Bold))
             }
-            &[2, _..] => {
+            [2, _..] => {
                 self.advance_by(1, params);
                 Some(CSIAction::SetIntensity(Intensity::Half))
             }
-            &[3, _..] => {
+            [3, _..] => {
                 self.advance_by(1, params);
                 Some(CSIAction::SetItalic(true))
             }
-            &[4, _..] => {
+            [4, _..] => {
                 self.advance_by(1, params);
                 Some(CSIAction::SetUnderline(Underline::Single))
             }
-            &[5, _..] => {
+            [5, _..] => {
                 self.advance_by(1, params);
                 Some(CSIAction::SetBlink(true))
             }
-            &[7, _..] => {
+            [7, _..] => {
                 self.advance_by(1, params);
                 Some(CSIAction::SetReverse(true))
             }
-            &[8, _..] => {
+            [8, _..] => {
                 self.advance_by(1, params);
                 Some(CSIAction::SetInvisible(true))
             }
-            &[9, _..] => {
+            [9, _..] => {
                 self.advance_by(1, params);
                 Some(CSIAction::SetStrikethrough(true))
             }
-            &[21, _..] => {
+            [21, _..] => {
                 self.advance_by(1, params);
                 Some(CSIAction::SetUnderline(Underline::Double))
             }
-            &[22, _..] => {
+            [22, _..] => {
                 self.advance_by(1, params);
                 Some(CSIAction::SetIntensity(Intensity::Normal))
             }
-            &[23, _..] => {
+            [23, _..] => {
                 self.advance_by(1, params);
                 Some(CSIAction::SetItalic(false))
             }
-            &[24, _..] => {
+            [24, _..] => {
                 self.advance_by(1, params);
                 Some(CSIAction::SetUnderline(Underline::None))
             }
-            &[25, _..] => {
+            [25, _..] => {
                 self.advance_by(1, params);
                 Some(CSIAction::SetBlink(false))
             }
-            &[27, _..] => {
+            [27, _..] => {
                 self.advance_by(1, params);
                 Some(CSIAction::SetReverse(false))
             }
-            &[28, _..] => {
+            [28, _..] => {
                 self.advance_by(1, params);
                 Some(CSIAction::SetInvisible(false))
             }
-            &[29, _..] => {
+            [29, _..] => {
                 self.advance_by(1, params);
                 Some(CSIAction::SetStrikethrough(false))
             }
-            &[idx @ 30...37, _..] => {
+            [idx @ 30...37, _..] => {
                 self.advance_by(1, params);
                 Some(CSIAction::SetForegroundColor(
                     color::ColorAttribute::PaletteIndex(idx as u8 - 30),
                 ))
             }
-            &[39, _..] => {
+            [39, _..] => {
                 self.advance_by(1, params);
                 Some(CSIAction::SetForegroundColor(
                     color::ColorAttribute::Foreground,
                 ))
             }
-            &[idx @ 40...47, _..] => {
+            [idx @ 40...47, _..] => {
                 self.advance_by(1, params);
                 Some(CSIAction::SetBackgroundColor(
                     color::ColorAttribute::PaletteIndex(idx as u8 - 40),
                 ))
             }
-            &[49, _..] => {
+            [49, _..] => {
                 self.advance_by(1, params);
                 Some(CSIAction::SetBackgroundColor(
                     color::ColorAttribute::Background,
                 ))
             }
-            &[idx @ 90...97, _..] => {
+            [idx @ 90...97, _..] => {
                 // Bright foreground colors
                 self.advance_by(1, params);
                 Some(CSIAction::SetForegroundColor(
                     color::ColorAttribute::PaletteIndex(idx as u8 - 90 + 8),
                 ))
             }
-            &[idx @ 100...107, _..] => {
+            [idx @ 100...107, _..] => {
                 // Bright background colors
                 self.advance_by(1, params);
                 Some(CSIAction::SetBackgroundColor(
@@ -397,15 +396,15 @@ impl<'a> CSIParser<'a> {
     }
 
     fn set_scroll_region(&mut self, params: &'a [i64]) -> Option<CSIAction> {
-        match params {
-            &[top, bottom] => {
+        match *params {
+            [top, bottom] => {
                 self.advance_by(2, params);
                 Some(CSIAction::SetScrollingRegion {
                     top: top.saturating_sub(1).max(0),
                     bottom: bottom.saturating_sub(1).max(0),
                 })
             }
-            &[] => {
+            [] => {
                 // Default is to restore the region to the full size of
                 // the screen.  We don't have that information here, so
                 // we're just reporting the maximum possible range and
@@ -428,6 +427,7 @@ impl<'a> Iterator for CSIParser<'a> {
 
     fn next(&mut self) -> Option<CSIAction> {
         let params = self.params.take();
+        #[cfg_attr(feature = "cargo-clippy", allow(match_same_arms))]
         match (self.byte, self.intermediates, params) {
             (_, _, None) => None,
             // CUU - Cursor Up n times

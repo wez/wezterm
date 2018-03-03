@@ -19,10 +19,10 @@ pub struct Line {
     has_implicit_hyperlinks: ImplicitHyperlinks,
 }
 
-/// A CellCluster is another representation of a Line.
-/// A Vec<CellCluster> is produced by walking through the Cells in
+/// A `CellCluster` is another representation of a Line.
+/// A `Vec<CellCluster>` is produced by walking through the Cells in
 /// a line and collecting succesive Cells with the same attributes
-/// together into a CellCluster instance.  Additional metadata to
+/// together into a `CellCluster` instance.  Additional metadata to
 /// aid in font rendering is also collected.
 #[derive(Debug, Clone)]
 pub struct CellCluster {
@@ -71,7 +71,7 @@ impl Line {
     pub fn reset(&mut self, width: usize) {
         let blank = Cell::default();
         self.cells.resize(width, blank);
-        for cell in self.cells.iter_mut() {
+        for mut cell in &mut self.cells {
             cell.reset();
         }
     }
@@ -81,7 +81,7 @@ impl Line {
     /// the same render attributes
     pub fn as_str(&self) -> String {
         let mut s = String::new();
-        for c in self.cells.iter() {
+        for c in &self.cells {
             s.push_str(c.str());
         }
         s
@@ -162,7 +162,7 @@ impl Line {
 
     pub fn invalidate_implicit_links(&mut self) {
         // Clear any cells that have implicit hyperlinks
-        for cell in self.cells.iter_mut() {
+        for mut cell in &mut self.cells {
             let link = cell.attrs.hyperlink.take();
             cell.attrs.hyperlink = match link.as_ref() {
                 Some(link) if link.implicit => None,
@@ -174,7 +174,7 @@ impl Line {
         self.has_implicit_hyperlinks = ImplicitHyperlinks::DontKnow;
     }
 
-    pub fn find_hyperlinks(&mut self, rules: &Vec<Rule>) {
+    pub fn find_hyperlinks(&mut self, rules: &[Rule]) {
         if self.has_implicit_hyperlinks != ImplicitHyperlinks::DontKnow {
             return;
         }
@@ -182,7 +182,7 @@ impl Line {
 
         let line = self.as_str();
 
-        for m in Rule::match_hyperlinks(&line, &rules) {
+        for m in Rule::match_hyperlinks(&line, rules) {
             // The capture range is measured in bytes but we need to translate
             // that to the char index of the column.
             for (cell_idx, (byte_idx, _char)) in line.char_indices().enumerate() {

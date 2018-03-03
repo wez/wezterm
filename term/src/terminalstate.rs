@@ -174,10 +174,10 @@ impl TerminalState {
             for y in sel.rows() {
                 let idx = screen.scrollback_or_visible_row(y);
                 let cols = sel.cols_for_row(y);
-                if s.len() > 0 {
+                if !s.is_empty() {
                     s.push('\n');
                 }
-                s.push_str(&screen.lines[idx].columns_as_str(cols).trim_right());
+                s.push_str(screen.lines[idx].columns_as_str(cols).trim_right());
             }
         }
 
@@ -271,20 +271,20 @@ impl TerminalState {
         let idx = screen.scrollback_or_visible_row(y);
         match screen.lines.get_mut(idx) {
             Some(ref mut line) => {
-                line.find_hyperlinks(&rules);
+                line.find_hyperlinks(rules);
                 match line.cells.get(x) {
                     Some(cell) => cell.attrs.hyperlink.as_ref().cloned(),
                     None => None,
                 }
             }
-            None => return None,
+            None => None,
         }
     }
 
     /// Invalidate rows that have hyperlinks
     fn invalidate_hyperlinks(&mut self) {
         let screen = self.screen_mut();
-        for line in screen.lines.iter_mut() {
+        for mut line in &mut screen.lines {
             if line.has_hyperlink() {
                 line.set_dirty();
             }
@@ -301,6 +301,7 @@ impl TerminalState {
         self.invalidate_hyperlinks();
     }
 
+    #[cfg_attr(feature = "cargo-clippy", allow(cyclomatic_complexity))]
     pub fn mouse_event(
         &mut self,
         mut event: MouseEvent,
@@ -386,7 +387,7 @@ impl TerminalState {
                                         x: x + word.len() - 1,
                                         y,
                                     };
-                                    self.selection_start = Some(start.clone());
+                                    self.selection_start = Some(start);
                                     self.selection_range = Some(SelectionRange { start, end });
                                     self.dirty_selection_lines();
                                     let text = self.get_selection_text();
@@ -440,27 +441,23 @@ impl TerminalState {
                 ) => {
                     // Finish selecting a region, update clipboard
                     self.current_mouse_button = MouseButton::None;
-                    match self.last_mouse_click.as_ref() {
+                    if let Some(&LastMouseClick { streak: 1, .. }) = self.last_mouse_click.as_ref()
+                    {
                         // Only consider a drag selection if we have a streak==1.
                         // The double/triple click cases are handled above.
-                        Some(&LastMouseClick { streak: 1, .. }) => {
-                            let text = self.get_selection_text();
-                            if text.len() > 0 {
-                                debug!(
-                                    "finish drag selection {:?} '{}'",
-                                    self.selection_range, text
-                                );
-                                host.set_clipboard(Some(text))?;
-                            } else {
-                                // If the button release wasn't a drag, consider
-                                // whether it was a click on a hyperlink
-                                if let Some(link) = self.current_highlight() {
-                                    host.click_link(&link);
-                                }
-                            }
-                            return Ok(());
+                        let text = self.get_selection_text();
+                        if !text.is_empty() {
+                            debug!(
+                                "finish drag selection {:?} '{}'",
+                                self.selection_range, text
+                            );
+                            host.set_clipboard(Some(text))?;
+                        } else if let Some(link) = self.current_highlight() {
+                            // If the button release wasn't a drag, consider
+                            // whether it was a click on a hyperlink
+                            host.click_link(&link);
                         }
-                        _ => {}
+                        return Ok(());
                     }
                 }
                 (
@@ -479,8 +476,9 @@ impl TerminalState {
                             - self.viewport_offset as ScrollbackOrVisibleRowIndex,
                     };
                     let sel = match self.selection_range.take() {
-                        None => SelectionRange::start(self.selection_start.unwrap_or(end.clone()))
-                            .extend(end),
+                        None => {
+                            SelectionRange::start(self.selection_start.unwrap_or(end)).extend(end)
+                        }
                         Some(sel) => sel.extend(end),
                     };
                     self.selection_range = Some(sel);
@@ -567,7 +565,6 @@ impl TerminalState {
                 ..
             } => {
                 if let Some(button) = match (self.current_mouse_button, self.button_event_mouse) {
-                    (_, false) => None,
                     (MouseButton::Left, true) => Some(32),
                     (MouseButton::Middle, true) => Some(33),
                     (MouseButton::Right, true) => Some(34),
@@ -687,7 +684,7 @@ impl TerminalState {
                     _ => unreachable!("invalid modifiers!?"),
                 };
 
-                if modifier.len() == 0 && n < 5 {
+                if modifier.is_empty() && n < 5 {
                     // F1-F4 are encoded using SS3 if there are no modifiers
                     match n {
                         1 => "\x1bOP",
@@ -724,10 +721,10 @@ impl TerminalState {
             | (Unknown, ..) => "",
         };
 
-        host.writer().write(&to_send.as_bytes())?;
+        host.writer().write_all(to_send.as_bytes())?;
 
         // Reset the viewport if we sent data to the parser
-        if to_send.len() > 0 && self.viewport_offset != 0 {
+        if !to_send.is_empty() && self.viewport_offset != 0 {
             // TODO: some folks like to configure this behavior.
             self.set_scroll_viewport(0);
         }
@@ -812,7 +809,7 @@ impl TerminalState {
     /// Clear the dirty flag for all dirty lines
     pub fn clean_dirty_lines(&mut self) {
         let screen = self.screen_mut();
-        for line in screen.lines.iter_mut() {
+        for mut line in &mut screen.lines {
             line.set_clean();
         }
     }
@@ -820,7 +817,7 @@ impl TerminalState {
     /// When dealing with selection, mark a range of lines as dirty
     pub fn make_all_lines_dirty(&mut self) {
         let screen = self.screen_mut();
-        for line in screen.lines.iter_mut() {
+        for mut line in &mut screen.lines {
             line.set_dirty();
         }
     }
@@ -844,13 +841,13 @@ impl TerminalState {
     /// top left of the visible screen.
     /// TODO: DEC origin mode impacts the interpreation of these
     fn set_cursor_pos(&mut self, x: &Position, y: &Position) {
-        let x = match x {
-            &Position::Relative(x) => (self.cursor.x as i64 + x).max(0),
-            &Position::Absolute(x) => x,
+        let x = match *x {
+            Position::Relative(x) => (self.cursor.x as i64 + x).max(0),
+            Position::Absolute(x) => x,
         };
-        let y = match y {
-            &Position::Relative(y) => (self.cursor.y + y).max(0),
-            &Position::Absolute(y) => y,
+        let y = match *y {
+            Position::Relative(y) => (self.cursor.y + y).max(0),
+            Position::Absolute(y) => y,
         };
 
         let rows = self.screen().physical_rows;
@@ -1194,7 +1191,7 @@ impl TerminalState {
     }
 }
 
-/// A helper struct for implementing vte::Perform while compartmentalizing
+/// A helper struct for implementing `vte::Perform` while compartmentalizing
 /// the terminal state and the embedding/host terminal interface
 pub(crate) struct Performer<'a> {
     pub state: &'a mut TerminalState,
@@ -1205,7 +1202,7 @@ impl<'a> Deref for Performer<'a> {
     type Target = TerminalState;
 
     fn deref(&self) -> &TerminalState {
-        &self.state
+        self.state
     }
 }
 
@@ -1279,8 +1276,8 @@ impl<'a> vte::Perform for Performer<'a> {
     fn put(&mut self, _: u8) {}
     fn unhook(&mut self) {}
     fn osc_dispatch(&mut self, osc: &[&[u8]]) {
-        match osc {
-            &[b"0", title] => {
+        match *osc {
+            [b"0", title] => {
                 if let Ok(title) = str::from_utf8(title) {
                     self.host.set_title(title);
                 } else {
@@ -1288,16 +1285,16 @@ impl<'a> vte::Perform for Performer<'a> {
                 }
             }
 
-            &[b"52", _selection_number] => {
+            [b"52", _selection_number] => {
                 // Clear selection
                 self.host.set_clipboard(None).ok();
             }
 
-            &[b"52", _selection_number, b"?"] => {
+            [b"52", _selection_number, b"?"] => {
                 // query selection
             }
 
-            &[b"52", _selection_number, selection_data] => {
+            [b"52", _selection_number, selection_data] => {
                 // Set selection
                 fn decode_and_clip(data: &[u8], host: &mut TerminalHost) -> Result<(), Error> {
                     let bytes = base64::decode(data)?;
@@ -1314,13 +1311,13 @@ impl<'a> vte::Perform for Performer<'a> {
                 }
             }
 
-            &[b"8", params, url] => {
+            [b"8", params, url] => {
                 // Hyperlinks per:
                 // https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5feda
                 match (str::from_utf8(params), str::from_utf8(url)) {
                     (Ok(params), Ok(url)) => {
                         let params = hyperlink::parse_link_params(params);
-                        if url.len() > 0 {
+                        if !url.is_empty() {
                             self.set_hyperlink(Some(Hyperlink::new(url, &params)));
                         } else {
                             self.set_hyperlink(None);
@@ -1332,14 +1329,14 @@ impl<'a> vte::Perform for Performer<'a> {
                     }
                 }
             }
-            &[b"777", _..] => {
+            [b"777", _..] => {
                 // Appears to be an old RXVT command to address perl extensions
             }
-            &[b"7", _cwd_uri] => {
+            [b"7", _cwd_uri] => {
                 // OSC 7 is used to advise the terminal of the cwd of the running application
             }
             _ => {
-                if osc.len() > 0 {
+                if !osc.is_empty() {
                     eprint!("OSC unhandled:");
                     for p in osc.iter() {
                         eprint!(" {:?}", str::from_utf8(p));

@@ -206,7 +206,7 @@ impl Screen {
     /// removing the lines we let them go into the scrollback.
     pub fn scroll_up(&mut self, scroll_region: &Range<VisibleRowIndex>, num_rows: usize) {
         debug!("scroll_up {:?} {}", scroll_region, num_rows);
-        let phys_scroll = self.phys_range(&scroll_region);
+        let phys_scroll = self.phys_range(scroll_region);
         debug_assert!(num_rows <= phys_scroll.end - phys_scroll.start);
 
         // Invalidate the lines that will move before they move so that
@@ -285,7 +285,7 @@ impl Screen {
     /// at scroll_top.
     pub fn scroll_down(&mut self, scroll_region: &Range<VisibleRowIndex>, num_rows: usize) {
         debug!("scroll_down {:?} {}", scroll_region, num_rows);
-        let phys_scroll = self.phys_range(&scroll_region);
+        let phys_scroll = self.phys_range(scroll_region);
         assert!(num_rows <= phys_scroll.end - phys_scroll.start);
 
         let middle = phys_scroll.end - num_rows;

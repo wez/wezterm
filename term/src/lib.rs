@@ -4,7 +4,6 @@
 extern crate base64;
 #[macro_use]
 extern crate bitflags;
-#[allow(unused_imports)]
 #[macro_use]
 extern crate failure;
 #[cfg(test)]
@@ -57,18 +56,18 @@ pub use terminalstate::*;
 pub type PhysRowIndex = usize;
 
 /// Represents an index into the visible portion of the screen.
-/// Value 0 is the first visible row.  VisibleRowIndex needs to be
-/// resolved into a PhysRowIndex to obtain an actual row.  It is not
-/// valid to have a negative VisibleRowIndex value so this type logically
+/// Value 0 is the first visible row.  `VisibleRowIndex` needs to be
+/// resolved into a `PhysRowIndex` to obtain an actual row.  It is not
+/// valid to have a negative `VisibleRowIndex` value so this type logically
 /// should be unsigned, however, having a different sign is helpful to
 /// have the compiler catch accidental arithmetic performed between
-/// PhysRowIndex and VisibleRowIndex.  We could define our own type with
-/// its own Add and Sub operators, but then we'd not be able to iterate
-/// over Ranges of these types without also laboriously implementing an
-/// iterator Skip trait that is currently only in unstable rust.
+/// `PhysRowIndex` and `VisibleRowIndex`.  We could define our own type with
+/// its own `Add` and `Sub` operators, but then we'd not be able to iterate
+/// over `Ranges` of these types without also laboriously implementing an
+/// iterator `Skip` trait that is currently only in unstable rust.
 pub type VisibleRowIndex = i64;
 
-/// Like VisibleRowIndex above, but can index backwards into scrollback.
+/// Like `VisibleRowIndex` above, but can index backwards into scrollback.
 /// This is deliberately a differently sized signed type to catch
 /// accidentally blending together the wrong types of indices.
 /// This is explicitly 32-bit rather than 64-bit as it seems unreasonable
@@ -76,7 +75,7 @@ pub type VisibleRowIndex = i64;
 pub type ScrollbackOrVisibleRowIndex = i32;
 
 /// range.contains(), but that is unstable
-pub fn in_range<T: PartialOrd>(value: T, range: &Range<T>) -> bool {
+pub fn in_range<T: Ord + Copy>(value: T, range: &Range<T>) -> bool {
     value >= range.start && value < range.end
 }
 

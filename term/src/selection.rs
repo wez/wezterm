@@ -19,14 +19,14 @@ pub struct SelectionRange {
 impl SelectionRange {
     /// Create a new range that starts at the specified location
     pub fn start(start: SelectionCoordinate) -> Self {
-        let end = start.clone();
+        let end = start;
         Self { start, end }
     }
 
     /// Returns an extended selection that it ends at the specified location
     pub fn extend(&self, end: SelectionCoordinate) -> Self {
         Self {
-            start: self.start.clone(),
+            start: self.start,
             end,
         }
     }
@@ -35,11 +35,11 @@ impl SelectionRange {
     /// is <= the ending y coord.
     pub fn normalize(&self) -> Self {
         if self.start.y <= self.end.y {
-            self.clone()
+            *self
         } else {
             Self {
-                start: self.end.clone(),
-                end: self.start.clone(),
+                start: self.end,
+                end: self.start,
             }
         }
     }

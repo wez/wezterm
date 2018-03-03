@@ -103,7 +103,7 @@ impl<'de> Deserialize<'de> for RgbColor {
         let s = String::deserialize(deserializer)?;
         RgbColor::from_rgb_str(&s)
             .or_else(|| RgbColor::from_named(&s))
-            .ok_or(format!("unknown color name: {}", s))
+            .ok_or_else(|| format!("unknown color name: {}", s))
             .map_err(serde::de::Error::custom)
     }
 }
@@ -142,11 +142,11 @@ impl fmt::Debug for Palette256 {
 
 impl ColorPalette {
     pub fn resolve(&self, color: &ColorAttribute) -> RgbColor {
-        match color {
-            &ColorAttribute::Foreground => self.foreground,
-            &ColorAttribute::Background => self.background,
-            &ColorAttribute::PaletteIndex(idx) => self.colors.0[idx as usize],
-            &ColorAttribute::Rgb(color) => color,
+        match *color {
+            ColorAttribute::Foreground => self.foreground,
+            ColorAttribute::Background => self.background,
+            ColorAttribute::PaletteIndex(idx) => self.colors.0[idx as usize],
+            ColorAttribute::Rgb(color) => color,
         }
     }
 }

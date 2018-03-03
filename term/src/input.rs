@@ -1,3 +1,6 @@
+// clippy hates bitflags
+#![cfg_attr(feature = "cargo-clippy", allow(suspicious_arithmetic_impl, redundant_field_names))]
+
 use std::time::{Duration, Instant};
 
 use super::VisibleRowIndex;
@@ -65,9 +68,9 @@ pub struct MouseEvent {
 
 /// This is a little helper that keeps track of the "click streak",
 /// which is the number of successive clicks of the same mouse button
-/// within the CLICK_INTERVAL.  The streak is reset to 1 each time
+/// within the `CLICK_INTERVAL`.  The streak is reset to 1 each time
 /// the mouse button differs from the last click, or when the elapsed
-/// time exceeds CLICK_INTERVAL.
+/// time exceeds `CLICK_INTERVAL`.
 #[derive(Debug)]
 pub struct LastMouseClick {
     button: MouseButton,
