@@ -36,10 +36,9 @@ extern crate xcb;
 #[cfg(all(unix, not(target_os = "macos")))]
 extern crate xcb_util;
 
+use futures::Future;
 use glium::glutin::WindowId;
-use mio::{Events, Poll, PollOpt, Ready, Token};
-use mio::unix::EventedFd;
-use mio_extras::channel::{channel as mio_channel, Receiver as MioReceiver, Sender as MioSender};
+use mio::{PollOpt, Ready, Token};
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
 use std::env;
@@ -47,9 +46,8 @@ use std::ffi::CStr;
 use std::os::unix::io::RawFd;
 use std::process::Command;
 use std::str;
-use std::sync::mpsc::TryRecvError;
-use std::thread::{self, JoinHandle};
-use std::time::{Duration, Instant};
+use std::sync::mpsc::{Receiver, TryRecvError};
+use std::time::Duration;
 
 mod config;
 
@@ -87,116 +85,38 @@ fn get_shell() -> Result<String, Error> {
     })
 }
 
-enum PtyMsg {
-    AddPty(WindowId, RawFd),
-    #[allow(dead_code)]
-    DelPty(WindowId, RawFd),
-    Terminate,
-}
-
-fn run_pty_thread(mut wakeup: Wakeup, receiver: MioReceiver<PtyMsg>) -> Result<(), Error> {
-    let poll = Poll::new()?;
-
-    let mut events = Events::with_capacity(8);
-    let mut last_paint = Instant::now();
-    let refresh = Duration::from_millis(50);
-
-    let mut window_id_to_token = HashMap::new();
-    let mut token_to_window_id = HashMap::new();
-    let mut next_token_id = 10;
-
-    poll.register(&receiver, Token(0), Ready::readable(), PollOpt::level())?;
-
-    loop {
-        let now = Instant::now();
-        let diff = now - last_paint;
-        let period = if diff >= refresh {
-            // Tick and wakeup the gui thread to ask it to render
-            // if needed.  Without this we'd only repaint when
-            // the window system decides that we were damaged.
-            // We don't want to paint after every state change
-            // as that would be too frequent.
-            wakeup.send(WakeupMsg::Paint)?;
-            last_paint = now;
-            refresh
-        } else {
-            refresh - diff
-        };
-
-        match poll.poll(&mut events, Some(period)) {
-            Ok(_) => for event in &events {
-                if event.token() == Token(0) {
-                    match receiver.try_recv() {
-                        Err(TryRecvError::Empty) => {}
-                        Err(err) => bail!("error receiving PtyMsg {:?}", err),
-                        Ok(PtyMsg::Terminate) => {
-                            eprintln!("pty thread: Terminate");
-                            return Ok(());
-                        }
-                        Ok(PtyMsg::AddPty(window_id, fd)) => {
-                            let token = Token(next_token_id);
-                            poll.register(
-                                &EventedFd(&fd),
-                                token,
-                                Ready::readable(),
-                                PollOpt::edge(),
-                            )?;
-                            window_id_to_token.insert(window_id, token);
-                            token_to_window_id.insert(token, window_id);
-                            next_token_id += 1;
-                        }
-                        Ok(PtyMsg::DelPty(_window_id, fd)) => {
-                            eprintln!("DelPty {:?} {}", _window_id, fd);
-                            poll.deregister(&EventedFd(&fd))?;
-                        }
-                    }
-                } else {
-                    match token_to_window_id.get(&event.token()) {
-                        Some(window_id) => {
-                            wakeup.send(WakeupMsg::PtyReadable(*window_id))?;
-                        }
-                        None => (),
-                    }
-                }
-            },
-            _ => {}
-        }
-    }
-}
-
-fn start_pty_thread(wakeup: Wakeup, receiver: MioReceiver<PtyMsg>) -> JoinHandle<()> {
-    thread::spawn(move || match run_pty_thread(wakeup, receiver) {
-        Ok(_) => {}
-        Err(err) => eprintln!("pty thread returned error {:?}", err),
-    })
-}
-
 struct GuiEventLoop {
     event_loop: RefCell<glium::glutin::EventsLoop>,
     windows_by_id: RefCell<HashMap<WindowId, gliumwindows::TerminalWindow>>,
+    windows_by_fd: RefCell<HashMap<RawFd, WindowId>>,
     wakeup_receiver: std::sync::mpsc::Receiver<WakeupMsg>,
     wakeup: Wakeup,
-    pty_sender: MioSender<PtyMsg>,
-    pty_thread: Option<JoinHandle<()>>,
     terminate: RefCell<bool>,
+    core: futurecore::Core,
+    poll: remotemio::IOMgr,
+    poll_rx: Receiver<remotemio::Notification>,
 }
 
 impl GuiEventLoop {
     fn new() -> Result<Self, Error> {
         let event_loop = glium::glutin::EventsLoop::new();
+        let core = futurecore::Core::new();
         let (wakeup_receiver, wakeup) = Wakeup::new(event_loop.create_proxy());
+
+        let (wake_tx, poll_rx) = wakeup::channel(event_loop.create_proxy());
+
+        let poll = remotemio::IOMgr::new(Duration::from_millis(50), wake_tx);
         sigchld::activate(wakeup.clone())?;
 
-        let (pty_sender, pty_receiver) = mio_channel();
-        let pty_thread = start_pty_thread(wakeup.clone(), pty_receiver);
-
         Ok(Self {
+            core,
+            poll,
+            poll_rx,
             event_loop: RefCell::new(event_loop),
             wakeup_receiver,
             wakeup,
             windows_by_id: RefCell::new(HashMap::new()),
-            pty_sender,
-            pty_thread: Some(pty_thread),
+            windows_by_fd: RefCell::new(HashMap::new()),
             terminate: RefCell::new(false),
         })
     }
@@ -205,7 +125,10 @@ impl GuiEventLoop {
         let window_id = window.window_id();
         let fd = window.pty_fd();
         self.windows_by_id.borrow_mut().insert(window_id, window);
-        self.pty_sender.send(PtyMsg::AddPty(window_id, fd))?;
+        self.windows_by_fd.borrow_mut().insert(fd, window_id);
+        self.poll
+            .register(fd, Token(fd as usize), Ready::readable(), PollOpt::edge())?
+            .wait()??;
         Ok(())
     }
 
@@ -245,15 +168,68 @@ impl GuiEventLoop {
         Ok(result)
     }
 
+    fn process_pty_event(&self, event: mio::Event) -> Result<(), Error> {
+        // The token is the fd
+        let fd = event.token().0 as RawFd;
+
+        let mut by_fd = self.windows_by_fd.borrow_mut();
+        let result = {
+            let window_id = by_fd.get(&fd).ok_or_else(|| {
+                format_err!("fd {} has no associated window in windows_by_fd map", fd)
+            })?;
+
+            let mut by_id = self.windows_by_id.borrow_mut();
+            let window = by_id.get_mut(&window_id).ok_or_else(|| {
+                format_err!(
+                    "fd {} -> window_id {:?} but no associated window is in the windows_by_id map",
+                    fd,
+                    window_id
+                )
+            })?;
+            window.try_read_pty()
+        };
+
+        match result {
+            Ok(_) => Ok(()),
+            Err(err) => match err.downcast_ref::<gliumwindows::SessionTerminated>() {
+                Some(_) => {
+                    eprintln!("shutting down pty: {:?}", err);
+                    self.poll.deregister(fd)?.wait()??;
+                    by_fd.remove(&fd);
+                    Ok(())
+                }
+                _ => {
+                    bail!("{:?}", err);
+                }
+            },
+        }
+    }
+
+    fn do_paint(&self) {
+        for (_, window) in self.windows_by_id.borrow_mut().iter_mut() {
+            window.paint_if_needed().unwrap();
+        }
+    }
+
+    fn process_wakeups_new(&self) -> Result<(), Error> {
+        loop {
+            match self.poll_rx.try_recv() {
+                Ok(remotemio::Notification::EventReady(event)) => {
+                    match self.process_pty_event(event) {
+                        Ok(_) => {}
+                        Err(err) => eprintln!("process_pty_event: {:?}", err),
+                    }
+                }
+                Ok(remotemio::Notification::IntervalDone) => self.do_paint(),
+                Err(TryRecvError::Empty) => return Ok(()),
+                Err(err) => bail!("poll_rx disconnected {:?}", err),
+            }
+        }
+    }
+
     fn process_wakeups(&self, dead_windows: &mut HashSet<WindowId>) -> Result<(), Error> {
         loop {
             match self.wakeup_receiver.try_recv() {
-                Ok(WakeupMsg::PtyReadable(window_id)) => {
-                    self.windows_by_id
-                        .borrow_mut()
-                        .get_mut(&window_id)
-                        .map(|w| w.try_read_pty());
-                }
                 Ok(WakeupMsg::SigChld) => {
                     for (window_id, window) in self.windows_by_id.borrow_mut().iter_mut() {
                         match window.test_for_child_exit() {
@@ -263,11 +239,6 @@ impl GuiEventLoop {
                                 dead_windows.insert(window_id.clone());
                             }
                         }
-                    }
-                }
-                Ok(WakeupMsg::Paint) => {
-                    for (_, window) in self.windows_by_id.borrow_mut().iter_mut() {
-                        window.paint_if_needed().unwrap();
                     }
                 }
                 Ok(WakeupMsg::Paste(window_id)) => {
@@ -304,15 +275,10 @@ impl GuiEventLoop {
         while !*self.terminate.borrow() {
             let mut dead_windows = HashSet::new();
             self.process_wakeups(&mut dead_windows)?;
+            self.process_wakeups_new()?;
             self.run_event_loop(&mut dead_windows)?;
 
             for window_id in dead_windows {
-                // TODO: DelPty.  Doing this here spews errors
-                /*
-                self.pty_sender
-                    .send(PtyMsg::DelPty(window_id, master_fd))
-                    .unwrap();
-                    */
                 self.windows_by_id.borrow_mut().remove(&window_id);
             }
 
@@ -321,20 +287,12 @@ impl GuiEventLoop {
                 *self.terminate.borrow_mut() = true;
             }
         }
-        self.pty_sender.send(PtyMsg::Terminate)?;
         Ok(())
     }
 }
 
 impl Drop for GuiEventLoop {
-    fn drop(&mut self) {
-        match self.pty_thread.take() {
-            Some(t) => {
-                t.join().unwrap();
-            }
-            None => {}
-        }
-    }
+    fn drop(&mut self) {}
 }
 
 fn run_glium(

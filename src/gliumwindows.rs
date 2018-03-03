@@ -184,7 +184,7 @@ impl TerminalWindow {
             Ok(size) => self.terminal.advance_bytes(&buf[0..size], &mut self.host),
             Err(err) => {
                 if err.kind() != io::ErrorKind::WouldBlock {
-                    eprintln!("error reading from pty: {:?}", err)
+                    return Err(SessionTerminated::Error { err: err.into() }.into());
                 }
             }
         }

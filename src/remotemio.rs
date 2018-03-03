@@ -1,10 +1,12 @@
-use failure::{err_msg, Error};
+use failure::Error;
 use futures::sync::oneshot;
-use mio::{Event, Events, Poll, PollOpt, Ready, Token};
+use mio::{Event, Evented, Events, Poll, PollOpt, Ready, Token};
 use mio::unix::EventedFd;
 use mio_extras::channel::{channel as mio_channel, Receiver as MioReceiver, Sender as MioSender};
+use std::collections::HashMap;
 use std::io;
 use std::os::unix::io::RawFd;
+use std::sync::Arc;
 use std::sync::mpsc::TryRecvError;
 use std::thread;
 use std::time::{Duration, Instant};
@@ -29,29 +31,60 @@ pub enum Notification {
     IntervalDone,
 }
 
+struct Fd {
+    fd: RawFd,
+}
+
+impl Evented for Fd {
+    fn register(
+        &self,
+        poll: &Poll,
+        token: Token,
+        interest: Ready,
+        opts: PollOpt,
+    ) -> io::Result<()> {
+        EventedFd(&self.fd).register(poll, token, interest, opts)
+    }
+
+    fn reregister(
+        &self,
+        poll: &Poll,
+        token: Token,
+        interest: Ready,
+        opts: PollOpt,
+    ) -> io::Result<()> {
+        EventedFd(&self.fd).reregister(poll, token, interest, opts)
+    }
+
+    fn deregister(&self, poll: &Poll) -> io::Result<()> {
+        EventedFd(&self.fd).deregister(poll)
+    }
+}
+
 struct Inner {
     rx: MioReceiver<Request>,
     interval: Duration,
     wakeup: wakeup::GuiSender<Notification>,
+    fd_map: HashMap<RawFd, Arc<Fd>>,
 }
 
 pub struct IOMgr {
     tx: MioSender<Request>,
 }
 
-fn done_broke<T>(_: T) -> Error {
-    err_msg("done channel broken")
-}
-
 impl IOMgr {
     pub fn new(interval: Duration, wakeup: wakeup::GuiSender<Notification>) -> Self {
         let (tx, rx) = mio_channel();
-        let inner = Inner {
+        let mut inner = Inner {
             rx,
             interval,
             wakeup,
+            fd_map: HashMap::new(),
         };
-        thread::spawn(move || inner.run());
+        thread::spawn(move || match inner.run() {
+            Ok(_) => eprintln!("IOMgr thread completed with success"),
+            Err(err) => eprintln!("IOMgr thread failed: {:?}", err),
+        });
         Self { tx }
     }
 
@@ -81,7 +114,24 @@ impl IOMgr {
 }
 
 impl Inner {
-    fn run(&self) -> Result<(), Error> {
+    fn dereg(&mut self, poll: &Poll, fd: RawFd) -> Result<(), io::Error> {
+        let evented = self.fd_map
+            .get(&fd)
+            .ok_or_else(|| {
+                io::Error::new(
+                    io::ErrorKind::Other,
+                    format!("fd {} is not present in IOMgr fd_map", fd),
+                )
+            })?
+            .clone();
+
+        poll.deregister(&*evented)?;
+
+        self.fd_map.remove(&fd);
+        Ok(())
+    }
+
+    fn run(&mut self) -> Result<(), Error> {
         let poll = Poll::new()?;
         poll.register(&self.rx, Token(0), Ready::readable(), PollOpt::level())?;
 
@@ -112,12 +162,19 @@ impl Inner {
                                 opts,
                                 done,
                             }) => {
-                                done.send(poll.register(&EventedFd(&fd), token, interest, opts))
-                                    .map_err(done_broke)?;
+                                let evented = Arc::new(Fd { fd });
+                                self.fd_map.insert(fd, evented.clone());
+
+                                match done.send(poll.register(&*evented, token, interest, opts)) {
+                                    Ok(_) => {}
+                                    Err(err) => eprintln!("done channel went away {:?}", err),
+                                };
                             }
                             Ok(Request::Deregister { fd, done }) => {
-                                done.send(poll.deregister(&EventedFd(&fd)))
-                                    .map_err(done_broke)?;
+                                match done.send(self.dereg(&poll, fd)) {
+                                    Ok(_) => eprintln!("deregistered fd {}", fd),
+                                    Err(err) => eprintln!("done channel went away {:?}", err),
+                                };
                             }
                         }
                     } else {

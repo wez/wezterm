@@ -17,7 +17,7 @@ use std::cell::{Cell, RefCell};
 use std::sync::{Arc, Mutex};
 use std::sync::mpsc;
 
-struct Core {
+pub struct Core {
     tx: mpsc::Sender<usize>,
     rx: mpsc::Receiver<usize>,
     notify: Arc<Notifier>,
@@ -34,7 +34,7 @@ enum Slot {
 }
 
 impl Core {
-    fn new() -> Self {
+    pub fn new() -> Self {
         let (tx, rx) = mpsc::channel();
         Self {
             notify: Arc::new(Notifier {
@@ -74,7 +74,7 @@ impl Core {
     /// "Turns" this event loop one tick.
     /// Does not block.
     /// Returns `false` if there were no futures in a known-ready state.
-    fn turn(&self) -> bool {
+    pub fn turn(&self) -> bool {
         let task_id = match self.rx.try_recv() {
             Ok(task_id) => task_id,
             Err(mpsc::TryRecvError::Empty) => return false,

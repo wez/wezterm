@@ -4,9 +4,7 @@ use std::sync::mpsc::{self, Receiver, Sender};
 
 #[derive(Debug)]
 pub enum WakeupMsg {
-    PtyReadable(WindowId),
     SigChld,
-    Paint,
     Paste(WindowId),
 }
 
