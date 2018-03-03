@@ -2,7 +2,7 @@ use clipboard::{ClipboardImpl, Paste};
 use failure::Error;
 use glium::glutin::WindowId;
 use std::sync::mpsc::{channel, Receiver, Sender};
-use wakeup::Wakeup;
+use wakeup::GuiSender;
 
 /// A no-op clipboard implementation
 #[allow(dead_code)]
@@ -12,7 +12,7 @@ pub struct NoClipboard {
 }
 
 impl ClipboardImpl for NoClipboard {
-    fn new(_wakeup: Wakeup, _window_id: WindowId) -> Result<Self, Error> {
+    fn new(_wakeup: GuiSender<WindowId>, _window_id: WindowId) -> Result<Self, Error> {
         let (sender, receiver) = channel();
         Ok(Self { sender, receiver })
     }

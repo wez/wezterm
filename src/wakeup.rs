@@ -1,11 +1,10 @@
 use failure::Error;
-use glium::glutin::{EventsLoopProxy, WindowId};
+use glium::glutin::EventsLoopProxy;
 use std::sync::mpsc::{self, Receiver, Sender};
 
 #[derive(Debug)]
 pub enum WakeupMsg {
     SigChld,
-    Paste(WindowId),
 }
 
 #[derive(Clone)]

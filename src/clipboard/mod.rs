@@ -11,7 +11,7 @@ mod x11;
 #[cfg(all(unix, not(target_os = "macos")))]
 pub use self::x11::Clipboard;
 
-use wakeup::Wakeup;
+use wakeup::GuiSender;
 
 /// A fragment of the clipboard data received from another
 /// app during paste.
@@ -28,7 +28,7 @@ pub enum Paste {
 
 /// Abstracts away system specific clipboard implementation details.
 pub trait ClipboardImpl {
-    fn new(wakeup: Wakeup, window_id: WindowId) -> Result<Self, Error>
+    fn new(wakeup: GuiSender<WindowId>, window_id: WindowId) -> Result<Self, Error>
     where
         Self: Sized;
     fn set_clipboard(&self, text: Option<String>) -> Result<(), Error>;

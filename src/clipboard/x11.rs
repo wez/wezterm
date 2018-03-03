@@ -10,7 +10,7 @@ use std::os::unix::io::AsRawFd;
 use std::sync::mpsc::{channel, Receiver, Sender, TryRecvError};
 use std::thread::{self, JoinHandle};
 use std::time::Duration;
-use wakeup::{Wakeup, WakeupMsg};
+use wakeup::GuiSender;
 use xcb;
 use xcb_util;
 
@@ -42,7 +42,7 @@ struct Inner {
     atom_xsel_data: xcb::Atom,
     atom_targets: xcb::Atom,
     atom_clipboard: xcb::Atom,
-    wakeup: Wakeup,
+    wakeup: GuiSender<WindowId>,
     wakeup_window_id: WindowId,
 }
 
@@ -50,7 +50,7 @@ impl Inner {
     fn new(
         receiver: MioReceiver<ClipRequest>,
         sender: Sender<Paste>,
-        wakeup: Wakeup,
+        wakeup: GuiSender<WindowId>,
         wakeup_window_id: WindowId,
     ) -> Result<Self, Error> {
         let (conn, screen) = xcb::Connection::connect(None)?;
@@ -113,11 +113,11 @@ impl Inner {
     fn send(&mut self, packet: Paste) -> Result<(), Error> {
         match self.sender.send(packet) {
             Ok(_) => {
-                self.wakeup.send(WakeupMsg::Paste(self.wakeup_window_id))?;
+                self.wakeup.send(self.wakeup_window_id)?;
                 Ok(())
             }
             Err(err) => {
-                self.wakeup.send(WakeupMsg::Paste(self.wakeup_window_id))?;
+                self.wakeup.send(self.wakeup_window_id)?;
                 bail!("clipboard: error sending to channel: {:?}", err);
             }
         }
@@ -401,7 +401,7 @@ pub struct Clipboard {
 
 impl ClipboardImpl for Clipboard {
     /// Create a new clipboard instance.  `ping` is
-    fn new(wakeup: Wakeup, window_id: WindowId) -> Result<Self, Error> {
+    fn new(wakeup: GuiSender<WindowId>, window_id: WindowId) -> Result<Self, Error> {
         let (sender_clip, receiver_clip) = mio_channel();
         let (sender_paste, receiver_paste) = channel();
         let clip_thread = thread::spawn(move || {

@@ -57,7 +57,7 @@ mod opengl;
 
 mod clipboard;
 mod wakeup;
-use wakeup::{Wakeup, WakeupMsg};
+use wakeup::{GuiSender, Wakeup, WakeupMsg};
 mod gliumwindows;
 
 mod font;
@@ -90,11 +90,12 @@ struct GuiEventLoop {
     windows_by_id: RefCell<HashMap<WindowId, gliumwindows::TerminalWindow>>,
     windows_by_fd: RefCell<HashMap<RawFd, WindowId>>,
     wakeup_receiver: std::sync::mpsc::Receiver<WakeupMsg>,
-    wakeup: Wakeup,
     terminate: RefCell<bool>,
     core: futurecore::Core,
     poll: remotemio::IOMgr,
     poll_rx: Receiver<remotemio::Notification>,
+    paster: GuiSender<WindowId>,
+    paster_rx: Receiver<WindowId>,
 }
 
 impl GuiEventLoop {
@@ -104,6 +105,7 @@ impl GuiEventLoop {
         let (wakeup_receiver, wakeup) = Wakeup::new(event_loop.create_proxy());
 
         let (wake_tx, poll_rx) = wakeup::channel(event_loop.create_proxy());
+        let (paster, paster_rx) = wakeup::channel(event_loop.create_proxy());
 
         let poll = remotemio::IOMgr::new(Duration::from_millis(50), wake_tx);
         sigchld::activate(wakeup.clone())?;
@@ -112,9 +114,10 @@ impl GuiEventLoop {
             core,
             poll,
             poll_rx,
+            paster,
+            paster_rx,
             event_loop: RefCell::new(event_loop),
             wakeup_receiver,
-            wakeup,
             windows_by_id: RefCell::new(HashMap::new()),
             windows_by_fd: RefCell::new(HashMap::new()),
             terminate: RefCell::new(false),
@@ -227,6 +230,21 @@ impl GuiEventLoop {
         }
     }
 
+    fn process_paste_wakeups(&self) -> Result<(), Error> {
+        loop {
+            match self.paster_rx.try_recv() {
+                Ok(window_id) => {
+                    self.windows_by_id
+                        .borrow_mut()
+                        .get_mut(&window_id)
+                        .map(|w| w.process_clipboard());
+                }
+                Err(TryRecvError::Empty) => return Ok(()),
+                Err(err) => bail!("paster_rx disconnected {:?}", err),
+            }
+        }
+    }
+
     fn process_wakeups(&self, dead_windows: &mut HashSet<WindowId>) -> Result<(), Error> {
         loop {
             match self.wakeup_receiver.try_recv() {
@@ -240,12 +258,6 @@ impl GuiEventLoop {
                             }
                         }
                     }
-                }
-                Ok(WakeupMsg::Paste(window_id)) => {
-                    self.windows_by_id
-                        .borrow_mut()
-                        .get_mut(&window_id)
-                        .map(|w| w.process_clipboard());
                 }
                 Err(_) => return Ok(()),
             }
@@ -276,6 +288,7 @@ impl GuiEventLoop {
             let mut dead_windows = HashSet::new();
             self.process_wakeups(&mut dead_windows)?;
             self.process_wakeups_new()?;
+            self.process_paste_wakeups()?;
             self.run_event_loop(&mut dead_windows)?;
 
             for window_id in dead_windows {
@@ -308,7 +321,7 @@ fn run_glium(
 
     let window = gliumwindows::TerminalWindow::new(
         &*event_loop.event_loop.borrow_mut(),
-        event_loop.wakeup.clone(),
+        event_loop.paster.clone(),
         initial_pixel_width,
         initial_pixel_height,
         terminal,

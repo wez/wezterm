@@ -5,7 +5,7 @@ use clipboard::{Clipboard, ClipboardImpl, Paste};
 use failure::Error;
 use font::FontConfiguration;
 use glium::{self, glutin};
-use glium::glutin::{ElementState, MouseCursor};
+use glium::glutin::{ElementState, MouseCursor, WindowId};
 use opengl::render::Renderer;
 use opengl::textureatlas::OutOfTextureSpace;
 use pty::MasterPty;
@@ -19,7 +19,7 @@ use term::{MouseButton, MouseEventKind};
 use term::KeyCode;
 use term::KeyModifiers;
 use term::hyperlink::Hyperlink;
-use wakeup::Wakeup;
+use wakeup::GuiSender;
 
 #[derive(Debug, Fail)]
 pub enum SessionTerminated {
@@ -83,7 +83,7 @@ pub struct TerminalWindow {
 impl TerminalWindow {
     pub fn new(
         event_loop: &glutin::EventsLoop,
-        wakeup: Wakeup,
+        paster: GuiSender<WindowId>,
         width: u16,
         height: u16,
         terminal: Terminal,
@@ -114,7 +114,7 @@ impl TerminalWindow {
         let host = Host {
             display,
             pty,
-            clipboard: Clipboard::new(wakeup, window_id)?,
+            clipboard: Clipboard::new(paster, window_id)?,
         };
 
         host.display.gl_window().set_cursor(MouseCursor::Text);
