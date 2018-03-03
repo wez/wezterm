@@ -10,6 +10,7 @@ extern crate failure_derive;
 extern crate fontconfig; // from servo-fontconfig
 #[cfg(any(target_os = "android", all(unix, not(target_os = "macos"))))]
 extern crate freetype;
+extern crate futures;
 extern crate gl;
 #[macro_use]
 extern crate glium;
@@ -52,6 +53,7 @@ use std::time::{Duration, Instant};
 
 mod config;
 
+mod futurecore;
 mod opengl;
 
 mod clipboard;
