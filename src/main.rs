@@ -341,10 +341,6 @@ impl GuiEventLoop {
     }
 }
 
-impl Drop for GuiEventLoop {
-    fn drop(&mut self) {}
-}
-
 fn run_glium(
     master: pty::MasterPty,
     child: std::process::Child,

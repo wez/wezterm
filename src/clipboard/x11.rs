@@ -391,7 +391,6 @@ impl Inner {
 pub struct Clipboard {
     sender: MioSender<ClipRequest>,
     receiver: Receiver<Paste>,
-    /// This isn't really dead; we're keeping it alive until we Drop.
     clip_thread: Option<JoinHandle<()>>,
 }
 
