@@ -137,19 +137,19 @@ impl GuiEventLoop {
 
     fn process_gui_event(
         &self,
-        event: glium::glutin::Event,
+        event: &glium::glutin::Event,
         dead_windows: &mut HashSet<WindowId>,
     ) -> Result<glium::glutin::ControlFlow, Error> {
         use glium::glutin::ControlFlow::{Break, Continue};
         use glium::glutin::Event;
-        let result = match event {
+        let result = match *event {
             Event::WindowEvent { window_id, .. } => {
                 match self.windows_by_id.borrow_mut().get_mut(&window_id) {
                     Some(window) => match window.dispatch_event(event) {
                         Ok(_) => Continue,
                         Err(err) => match err.downcast_ref::<gliumwindows::SessionTerminated>() {
                             Some(_) => {
-                                dead_windows.insert(window_id.clone());
+                                dead_windows.insert(window_id);
                                 Continue
                             }
                             _ => {
@@ -182,7 +182,7 @@ impl GuiEventLoop {
             })?;
 
             let mut by_id = self.windows_by_id.borrow_mut();
-            let window = by_id.get_mut(&window_id).ok_or_else(|| {
+            let window = by_id.get_mut(window_id).ok_or_else(|| {
                 format_err!(
                     "fd {} -> window_id {:?} but no associated window is in the windows_by_id map",
                     fd,
@@ -268,7 +268,7 @@ impl GuiEventLoop {
         event_loop.run_forever(|event| {
             use glium::glutin::ControlFlow::{Break, Continue};
 
-            let result = self.process_gui_event(event, &mut dead_windows);
+            let result = self.process_gui_event(&event, &mut dead_windows);
 
             match result {
                 Ok(Continue) => Continue,

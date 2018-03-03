@@ -49,7 +49,7 @@ impl<'a> Iterator for FontSetIter<'a> {
 impl FontSet {
     pub fn iter(&self) -> FontSetIter {
         FontSetIter {
-            set: &self,
+            set: self,
             position: 0,
         }
     }

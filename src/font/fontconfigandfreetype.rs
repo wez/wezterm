@@ -51,7 +51,7 @@ impl Font for FontImpl {
     }
     fn has_color(&self) -> bool {
         let face = self.face.borrow();
-        unsafe { ((*face.face).face_flags & ftwrap::FT_FACE_FLAG_COLOR as i64) != 0 }
+        unsafe { ((*face.face).face_flags & i64::from(ftwrap::FT_FACE_FLAG_COLOR)) != 0 }
     }
 
     fn metrics(&self) -> FontMetrics {
@@ -88,7 +88,7 @@ impl Font for FontImpl {
         let ft_glyph = face.load_and_render_glyph(glyph_pos, load_flags, render_mode)?;
 
         let mode: ftwrap::FT_Pixel_Mode =
-            unsafe { mem::transmute(ft_glyph.bitmap.pixel_mode as u32) };
+            unsafe { mem::transmute(u32::from(ft_glyph.bitmap.pixel_mode)) };
 
         // pitch is the number of bytes per source row
         let pitch = ft_glyph.bitmap.pitch.abs() as usize;
@@ -110,11 +110,11 @@ impl Font for FontImpl {
                     let src_offset = y * pitch as usize;
                     let dest_offset = y * width * 4;
                     for x in 0..width {
-                        let blue = data[src_offset + (x * 3) + 0];
+                        let blue = data[src_offset + (x * 3)];
                         let green = data[src_offset + (x * 3) + 1];
                         let red = data[src_offset + (x * 3) + 2];
                         let alpha = red | green | blue;
-                        rgba[dest_offset + (x * 4) + 0] = red;
+                        rgba[dest_offset + (x * 4)] = red;
                         rgba[dest_offset + (x * 4) + 1] = green;
                         rgba[dest_offset + (x * 4) + 2] = blue;
                         rgba[dest_offset + (x * 4) + 3] = alpha;
@@ -139,12 +139,12 @@ impl Font for FontImpl {
                     let src_offset = y * pitch as usize;
                     let dest_offset = y * width * 4;
                     for x in 0..width {
-                        let blue = data[src_offset + (x * 4) + 0];
+                        let blue = data[src_offset + (x * 4)];
                         let green = data[src_offset + (x * 4) + 1];
                         let red = data[src_offset + (x * 4) + 2];
                         let alpha = data[src_offset + (x * 4) + 3];
 
-                        rgba[dest_offset + (x * 4) + 0] = red;
+                        rgba[dest_offset + (x * 4)] = red;
                         rgba[dest_offset + (x * 4) + 1] = green;
                         rgba[dest_offset + (x * 4) + 2] = blue;
                         rgba[dest_offset + (x * 4) + 3] = alpha;
@@ -170,7 +170,7 @@ impl Font for FontImpl {
                     for x in 0..width {
                         let gray = data[src_offset + x];
 
-                        rgba[dest_offset + (x * 4) + 0] = gray;
+                        rgba[dest_offset + (x * 4)] = gray;
                         rgba[dest_offset + (x * 4) + 1] = gray;
                         rgba[dest_offset + (x * 4) + 2] = gray;
                         rgba[dest_offset + (x * 4) + 3] = gray;
@@ -208,7 +208,7 @@ impl Font for FontImpl {
                                     rgba[dest_offset + (x * 4) + j] = 0xff;
                                 }
                             }
-                            b = b << 1;
+                            b <<= 1;
                             x += 1;
                         }
                     }
@@ -221,7 +221,7 @@ impl Font for FontImpl {
                     bearing_y: ft_glyph.bitmap_top,
                 }
             }
-            mode @ _ => bail!("unhandled pixel mode: {:?}", mode),
+            mode => bail!("unhandled pixel mode: {:?}", mode),
         };
         Ok(glyph)
     }
@@ -288,7 +288,7 @@ impl NamedFontImpl {
         let pat = self.font_list
             .iter()
             .nth(idx)
-            .ok_or(failure::err_msg("no more fallbacks"))?;
+            .ok_or_else(|| failure::err_msg("no more fallbacks"))?;
         let pat = self.pattern.render_prepare(&pat)?;
         let file = pat.get_file()?;
 
@@ -304,26 +304,23 @@ impl NamedFontImpl {
 
         let mut face = self.lib.new_face(file, 0)?;
 
-        match face.set_char_size(size, size, dpi, dpi) {
-            Err(err) => {
-                let sizes = unsafe {
-                    let rec = &(*face.face);
-                    slice::from_raw_parts(rec.available_sizes, rec.num_fixed_sizes as usize)
-                };
-                if sizes.len() == 0 {
-                    return Err(err);
-                } else {
-                    // Find the best matching size.
-                    // We just take the biggest.
-                    let mut size = 0i16;
-                    for info in sizes.iter() {
-                        size = size.max(info.height);
-                    }
-                    face.set_pixel_sizes(size as u32, size as u32)?;
-                    debug!("fall back to set_pixel_sizes {}", size);
+        if let Err(err) = face.set_char_size(size, size, dpi, dpi) {
+            let sizes = unsafe {
+                let rec = &(*face.face);
+                slice::from_raw_parts(rec.available_sizes, rec.num_fixed_sizes as usize)
+            };
+            if sizes.is_empty() {
+                return Err(err);
+            } else {
+                // Find the best matching size.
+                // We just take the biggest.
+                let mut size = 0i16;
+                for info in sizes.iter() {
+                    size = size.max(info.height);
                 }
+                face.set_pixel_sizes(size as u32, size as u32)?;
+                debug!("fall back to set_pixel_sizes {}", size);
             }
-            Ok(_) => {}
         }
         let font = harfbuzz::Font::new(face.face);
 

@@ -149,8 +149,8 @@ impl Inner {
                 self.interval - diff
             };
 
-            match poll.poll(&mut events, Some(period)) {
-                Ok(_) => for event in &events {
+            if poll.poll(&mut events, Some(period)).is_ok() {
+                for event in &events {
                     if event.token() == Token(0) {
                         match self.rx.try_recv() {
                             Err(TryRecvError::Empty) => {}
@@ -180,8 +180,7 @@ impl Inner {
                     } else {
                         self.wakeup.send(Notification::EventReady(event))?;
                     }
-                },
-                _ => {}
+                }
             }
         }
     }

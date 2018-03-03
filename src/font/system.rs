@@ -54,21 +54,21 @@ impl GlyphInfo {
             font_idx,
             glyph_pos: info.codepoint,
             cluster: info.cluster,
-            x_advance: pos.x_advance as f64 / 64.0,
-            y_advance: pos.y_advance as f64 / 64.0,
-            x_offset: pos.x_offset as f64 / 64.0,
-            y_offset: pos.y_offset as f64 / 64.0,
+            x_advance: f64::from(pos.x_advance) / 64.0,
+            y_advance: f64::from(pos.y_advance) / 64.0,
+            x_offset: f64::from(pos.x_offset) / 64.0,
+            y_offset: f64::from(pos.y_offset) / 64.0,
         }
     }
 }
 
-/// Represents a numbered index in the fallback sequence for a NamedFont.
+/// Represents a numbered index in the fallback sequence for a `NamedFont`.
 /// 0 is the first, best match.  If a glyph isn't present then we will
 /// want to search for a fallback in later indices.
 pub type FallbackIdx = usize;
 
 /// Represents a named, user-selected font.
-/// This is really a set of fallback fonts indexed by FallbackIdx with
+/// This is really a set of fallback fonts indexed by `FallbackIdx` with
 /// zero as the best/most preferred font.
 pub trait NamedFont {
     /// Get a reference to a numbered fallback Font instance
@@ -78,7 +78,7 @@ pub trait NamedFont {
     fn shape(&mut self, text: &str) -> Result<Vec<GlyphInfo>, Error>;
 }
 
-/// FontSystem is a handle to the system font selection system
+/// `FontSystem` is a handle to the system font selection system
 pub trait FontSystem {
     /// Given a text style, load (without caching) the font that
     /// best matches according to the fontconfig pattern.

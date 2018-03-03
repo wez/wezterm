@@ -81,6 +81,7 @@ pub struct TerminalWindow {
 }
 
 impl TerminalWindow {
+    #[cfg_attr(feature = "cargo-clippy", allow(too_many_arguments))]
     pub fn new(
         event_loop: &glutin::EventsLoop,
         paster: GuiSender<WindowId>,
@@ -108,7 +109,7 @@ impl TerminalWindow {
             .with_pixel_format(24, 8)
             .with_srgb(true);
         let display =
-            glium::Display::new(window, context, &event_loop).map_err(|e| format_err!("{:?}", e))?;
+            glium::Display::new(window, context, event_loop).map_err(|e| format_err!("{:?}", e))?;
         let window_id = display.gl_window().id();
 
         let host = Host {
@@ -160,16 +161,13 @@ impl TerminalWindow {
         // allocate a newer bigger texture.
         match res {
             Err(err) => {
-                match err.downcast_ref::<OutOfTextureSpace>() {
-                    Some(&OutOfTextureSpace { size }) => {
-                        eprintln!("out of texture space, allocating {}", size);
-                        self.renderer.recreate_atlas(&self.host.display, size)?;
-                        self.terminal.make_all_lines_dirty();
-                        // Recursively initiate a new paint
-                        return self.paint();
-                    }
-                    _ => (),
-                };
+                if let Some(&OutOfTextureSpace { size }) = err.downcast_ref::<OutOfTextureSpace>() {
+                    eprintln!("out of texture space, allocating {}", size);
+                    self.renderer.recreate_atlas(&self.host.display, size)?;
+                    self.terminal.make_all_lines_dirty();
+                    // Recursively initiate a new paint
+                    return self.paint();
+                }
                 Err(err)
             }
             Ok(_) => Ok(()),
@@ -197,8 +195,8 @@ impl TerminalWindow {
         // simply divide by the scaling factor to have them take up
         // twice as much space.  OpenGL is going to scale things automatically.
         let scale = self.host.display.gl_window().hidpi_factor();
-        let width = (width as f32 / scale) as u16;
-        let height = (height as f32 / scale) as u16;
+        let width = (f32::from(width) / scale) as u16;
+        let height = (f32::from(height) / scale) as u16;
 
         if width != self.width || height != self.height {
             debug!("resize {},{}", width, height);
@@ -447,8 +445,7 @@ impl TerminalWindow {
                 V::Down => KeyCode::Down,
                 V::LAlt | V::RAlt => KeyCode::Alt,
                 V::LControl | V::RControl => KeyCode::Control,
-                V::LMenu | V::RMenu => KeyCode::Super,
-                V::LShift | V::RShift => KeyCode::Shift,
+                V::LMenu | V::RMenu | V::LShift | V::RShift => KeyCode::Shift,
                 V::LWin | V::RWin => KeyCode::Super,
                 _ => {
                     eprintln!("unhandled key: {:?}", event);
@@ -472,9 +469,9 @@ impl TerminalWindow {
         Ok(())
     }
 
-    pub fn dispatch_event(&mut self, event: glutin::Event) -> Result<(), Error> {
+    pub fn dispatch_event(&mut self, event: &glutin::Event) -> Result<(), Error> {
         use glium::glutin::{Event, WindowEvent};
-        match event {
+        match *event {
             Event::WindowEvent {
                 event: WindowEvent::Closed,
                 ..

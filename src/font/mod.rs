@@ -27,10 +27,12 @@ use self::coretext::FontSystemImpl;
 use super::config::{Config, TextStyle};
 use term::CellAttributes;
 
+type FontPtr = Rc<RefCell<Box<NamedFont>>>;
+
 /// Matches and loads fonts for a given input style
 pub struct FontConfiguration {
     config: Config,
-    fonts: RefCell<HashMap<TextStyle, Rc<RefCell<Box<NamedFont>>>>>,
+    fonts: RefCell<HashMap<TextStyle, FontPtr>>,
     system: FontSystemImpl,
 }
 
@@ -83,7 +85,7 @@ impl FontConfiguration {
             }
         };
 
-        for rule in self.config.font_rules.iter() {
+        for rule in &self.config.font_rules {
             attr_match!(intensity, &rule);
             attr_match!(underline, &rule);
             attr_match!(italic, &rule);
@@ -179,16 +181,16 @@ pub fn shape_with_harfbuzz(
                 // Start of a run that needs fallback
                 first_fallback_pos = Some(pos);
             }
-        } else if let Some(start) = first_fallback_pos {
+        } else if let Some(start_pos) = first_fallback_pos {
             // End of a fallback run
             //debug!("range: {:?}-{:?} needs fallback", start, pos);
 
-            let substr = &s[start..pos];
+            let substr = &s[start_pos..pos];
             let mut shape = shape_with_harfbuzz(font, font_idx + 1, substr)?;
 
             // Fixup the cluster member to match our current offset
-            for info in shape.iter_mut() {
-                info.cluster += start as u32;
+            for mut info in &mut shape {
+                info.cluster += start_pos as u32;
             }
             cluster.append(&mut shape);
 
@@ -203,20 +205,20 @@ pub fn shape_with_harfbuzz(
 
     // Check to see if we started and didn't finish a
     // fallback run.
-    if let Some(start) = first_fallback_pos {
-        let substr = &s[start..];
+    if let Some(start_pos) = first_fallback_pos {
+        let substr = &s[start_pos..];
         if false {
             debug!(
                 "at end {:?}-{:?} needs fallback {}",
-                start,
+                start_pos,
                 s.len() - 1,
                 substr,
             );
         }
         let mut shape = shape_with_harfbuzz(font, font_idx + 1, substr)?;
         // Fixup the cluster member to match our current offset
-        for info in shape.iter_mut() {
-            info.cluster += start as u32;
+        for mut info in &mut shape {
+            info.cluster += start_pos as u32;
         }
         cluster.append(&mut shape);
     }

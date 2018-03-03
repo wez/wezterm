@@ -124,7 +124,7 @@ pub struct Sprite {
 
 /// Represents a vertical slice through a sprite.
 /// These are used to handle multi-cell wide glyphs.
-/// Each cell is nominally cell_width wide but font metrics
+/// Each cell is nominally `cell_width` wide but font metrics
 /// may result in the glyphs being wider than this.
 #[derive(Debug)]
 pub struct SpriteSlice {

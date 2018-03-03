@@ -90,8 +90,7 @@ impl Core {
         // spawn-in-run.
         let mut future = match self.tasks.borrow_mut().get_mut(task_id) {
             Some(&mut Slot::RunningFuture(ref mut future)) => future.take().unwrap(),
-            Some(&mut Slot::Vacant { .. }) => return false,
-            None => return false,
+            Some(&mut Slot::Vacant { .. }) | None => return false,
         };
 
         // Drive this future forward. If it's done we remove it and if it's not
@@ -110,7 +109,7 @@ impl Core {
             tasks[task_id] = Slot::RunningFuture(Some(future));
         }
 
-        return true;
+        true
     }
 }
 
@@ -134,6 +133,6 @@ struct Notifier {
 
 impl Notify for Notifier {
     fn notify(&self, id: usize) {
-        drop(self.tx.lock().unwrap().send(id));
+        self.tx.lock().unwrap().send(id).ok();
     }
 }

@@ -1,6 +1,6 @@
 //! Configuration for the gui portion of the terminal
 
-use failure::Error;
+use failure::{err_msg, Error};
 use std;
 use std::fs;
 use std::io::prelude::*;
@@ -120,8 +120,8 @@ impl TextStyle {
     }
 }
 
-/// Defines a rule that can be used to select a TextStyle given
-/// an input CellAttributes value.  The logic that applies the
+/// Defines a rule that can be used to select a `TextStyle` given
+/// an input `CellAttributes` value.  The logic that applies the
 /// matching can be found in src/font/mod.rs.  The concept is that
 /// the user can specify something like this:
 ///
@@ -131,7 +131,7 @@ impl TextStyle {
 /// font = { fontconfig_pattern = "Operator Mono SSm Lig:style=Italic" }
 /// ```
 ///
-/// The above is translated as: "if the CellAttributes have the italic bit
+/// The above is translated as: "if the `CellAttributes` have the italic bit
 /// set, then use the italic style of font rather than the default", and
 /// stop processing further font rules.
 #[derive(Debug, Default, Deserialize, Clone)]
@@ -166,14 +166,14 @@ pub struct StyleRule {
 
 impl Config {
     pub fn load() -> Result<Self, Error> {
-        let home = std::env::home_dir().ok_or_else(|| format_err!("can't find home dir"))?;
+        let home = std::env::home_dir().ok_or_else(|| err_msg("can't find home dir"))?;
 
         let paths = [
             home.join(".config").join("wezterm").join("wezterm.toml"),
             home.join(".wezterm.toml"),
         ];
 
-        for p in paths.iter() {
+        for p in &paths {
             let mut file = match fs::File::open(p) {
                 Ok(file) => file,
                 Err(err) => match err.kind() {
@@ -198,7 +198,7 @@ impl Config {
     fn compute_extra_defaults(&self) -> Self {
         let mut cfg = self.clone();
 
-        if cfg.font_rules.len() == 0 {
+        if cfg.font_rules.is_empty() {
             // Expand out some reasonable default font rules
             let bold = self.font.make_bold();
             let italic = self.font.make_italic();

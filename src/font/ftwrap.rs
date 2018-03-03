@@ -76,8 +76,8 @@ impl Face {
     pub fn cell_metrics(&mut self) -> (f64, f64) {
         unsafe {
             let metrics = &(*(*self.face).size).metrics;
-            let height =
-                (metrics.y_scale as f64 * (*self.face).height as f64) / (0x10000 as f64 * 64.0);
+            let height = (metrics.y_scale as f64 * f64::from((*self.face).height))
+                / (f64::from(0x1_0000) * 64.0);
 
             let mut width = 0.0;
             for i in 32..128 {

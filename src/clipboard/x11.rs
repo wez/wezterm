@@ -1,5 +1,5 @@
 //! Interface with the X11 clipboard/selection
-//! Check out https://tronche.com/gui/x/icccm/sec-2.html for some deep and complex
+//! Check out <https://tronche.com/gui/x/icccm/sec-2.html> for some deep and complex
 //! background on what's happening in here.
 use failure::{self, Error};
 use glium::glutin::WindowId;
@@ -74,7 +74,7 @@ impl Inner {
             let screen = setup
                 .roots()
                 .nth(screen as usize)
-                .ok_or(failure::err_msg("no screen?"))?;
+                .ok_or_else(|| failure::err_msg("no screen?"))?;
 
             xcb::create_window_checked(
                 &conn,
@@ -212,7 +212,7 @@ impl Inner {
             // We don't and won't do any conversion from UTF-8 to
             // whatever STRING represents; let's just assume that
             // the other end is going to handle it correctly.
-            if let &Some(ref text) = &self.owned {
+            if let Some(ref text) = self.owned {
                 debug!("going to respond with clip text because we own it");
                 xcb::xproto::change_property(
                     &self.conn,
@@ -254,12 +254,12 @@ impl Inner {
         Ok(())
     }
 
-    fn process_xcb_event(&mut self, event: xcb::GenericEvent) -> Result<(), Error> {
+    fn process_xcb_event(&mut self, event: &xcb::GenericEvent) -> Result<(), Error> {
         match event.response_type() & 0x7f {
             xcb::SELECTION_CLEAR => self.selection_clear(),
-            xcb::SELECTION_NOTIFY => self.selection_notify(unsafe { xcb::cast_event(&event) }),
+            xcb::SELECTION_NOTIFY => self.selection_notify(unsafe { xcb::cast_event(event) }),
 
-            xcb::SELECTION_REQUEST => self.selection_request(unsafe { xcb::cast_event(&event) }),
+            xcb::SELECTION_REQUEST => self.selection_request(unsafe { xcb::cast_event(event) }),
             xcb::MAPPING_NOTIFY => {
                 // Nothing to do here; just don't want to print an error
                 // in the case below.
@@ -284,7 +284,7 @@ impl Inner {
                     bail!("clipboard window connection is broken: {:?}", err);
                 }
             },
-            Some(event) => match self.process_xcb_event(event) {
+            Some(event) => match self.process_xcb_event(&event) {
                 Ok(_) => (),
                 Err(err) => return Err(err),
             },
@@ -294,7 +294,7 @@ impl Inner {
         loop {
             match self.conn.poll_for_queued_event() {
                 None => return Ok(()),
-                Some(event) => self.process_xcb_event(event)?,
+                Some(event) => self.process_xcb_event(&event)?,
             }
             self.conn.flush();
         }
@@ -359,25 +359,21 @@ impl Inner {
             match poll.poll(&mut events, None) {
                 Ok(_) => for event in &events {
                     if event.token() == Token(0) {
-                        match self.process_queued_xcb() {
-                            Err(err) => {
-                                eprintln!("clipboard: {:?}", err);
-                                return;
-                            }
-                            _ => (),
+                        if let Err(err) = self.process_queued_xcb() {
+                            eprintln!("clipboard: {:?}", err);
+                            return;
                         }
                     }
                     if event.token() == Token(1) {
-                        match self.process_receiver() {
+                        if let Err(err) = self.process_receiver() {
                             // No need to print the error trace if we were shutdown gracefully
-                            Err(err) => match err.downcast_ref::<ClipTerminated>() {
+                            match err.downcast_ref::<ClipTerminated>() {
                                 Some(_) => return,
                                 _ => {
                                     eprintln!("clipboard: {:?}", err);
                                     return;
                                 }
-                            },
-                            _ => (),
+                            }
                         }
                         self.conn.flush();
                     }
@@ -414,7 +410,7 @@ impl ClipboardImpl for Clipboard {
         // Make sure that it started up ok
         match receiver_paste.recv_timeout(Duration::from_secs(10)) {
             Ok(Paste::Running) => {}
-            other @ _ => bail!("failed to init clipboard window: {:?}", other),
+            other => bail!("failed to init clipboard window: {:?}", other),
         };
 
         Ok(Self {
@@ -434,9 +430,9 @@ impl ClipboardImpl for Clipboard {
     fn get_clipboard(&self) -> Result<String, Error> {
         self.sender.send(ClipRequest::RequestClipboard)?;
         match self.receiver.recv_timeout(Duration::from_secs(10)) {
-            Ok(Paste::All(result)) => return Ok(result),
-            Ok(Paste::Cleared) => return Ok("".into()),
-            other @ _ => bail!("unexpected result while waiting for paste: {:?}", other),
+            Ok(Paste::All(result)) => Ok(result),
+            Ok(Paste::Cleared) => Ok("".into()),
+            other => bail!("unexpected result while waiting for paste: {:?}", other),
         }
     }
 
@@ -452,11 +448,8 @@ impl ClipboardImpl for Clipboard {
 impl Drop for Clipboard {
     fn drop(&mut self) {
         self.sender.send(ClipRequest::Terminate).ok();
-        match self.clip_thread.take() {
-            Some(thread) => {
-                thread.join().ok();
-            }
-            None => {}
+        if let Some(thread) = self.clip_thread.take() {
+            thread.join().ok();
         }
     }
 }

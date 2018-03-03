@@ -11,11 +11,8 @@ static mut EVENT_LOOP: Option<GuiSender<()>> = None;
 
 extern "C" fn chld_handler(_signo: libc::c_int, _si: *const libc::siginfo_t, _: *const u8) {
     unsafe {
-        match EVENT_LOOP.as_mut() {
-            Some(wakeup) => {
-                wakeup.send(()).ok();
-            }
-            None => (),
+        if let Some(wakeup) = EVENT_LOOP.as_mut() {
+            wakeup.send(()).ok();
         }
     }
 }
