@@ -57,7 +57,7 @@ mod opengl;
 
 mod clipboard;
 mod wakeup;
-use wakeup::{GuiSender, Wakeup, WakeupMsg};
+use wakeup::GuiSender;
 mod gliumwindows;
 
 mod font;
@@ -89,26 +89,26 @@ struct GuiEventLoop {
     event_loop: RefCell<glium::glutin::EventsLoop>,
     windows_by_id: RefCell<HashMap<WindowId, gliumwindows::TerminalWindow>>,
     windows_by_fd: RefCell<HashMap<RawFd, WindowId>>,
-    wakeup_receiver: std::sync::mpsc::Receiver<WakeupMsg>,
     terminate: RefCell<bool>,
     core: futurecore::Core,
     poll: remotemio::IOMgr,
     poll_rx: Receiver<remotemio::Notification>,
     paster: GuiSender<WindowId>,
     paster_rx: Receiver<WindowId>,
+    sigchld_rx: Receiver<()>,
 }
 
 impl GuiEventLoop {
     fn new() -> Result<Self, Error> {
         let event_loop = glium::glutin::EventsLoop::new();
         let core = futurecore::Core::new();
-        let (wakeup_receiver, wakeup) = Wakeup::new(event_loop.create_proxy());
 
         let (wake_tx, poll_rx) = wakeup::channel(event_loop.create_proxy());
         let (paster, paster_rx) = wakeup::channel(event_loop.create_proxy());
+        let (sigchld_tx, sigchld_rx) = wakeup::channel(event_loop.create_proxy());
 
         let poll = remotemio::IOMgr::new(Duration::from_millis(50), wake_tx);
-        sigchld::activate(wakeup.clone())?;
+        sigchld::activate(sigchld_tx)?;
 
         Ok(Self {
             core,
@@ -116,8 +116,8 @@ impl GuiEventLoop {
             poll_rx,
             paster,
             paster_rx,
+            sigchld_rx,
             event_loop: RefCell::new(event_loop),
-            wakeup_receiver,
             windows_by_id: RefCell::new(HashMap::new()),
             windows_by_fd: RefCell::new(HashMap::new()),
             terminate: RefCell::new(false),
@@ -245,21 +245,20 @@ impl GuiEventLoop {
         }
     }
 
-    fn process_wakeups(&self, dead_windows: &mut HashSet<WindowId>) -> Result<(), Error> {
+    fn process_sigchld_wakeups(&self, dead_windows: &mut HashSet<WindowId>) -> Result<(), Error> {
         loop {
-            match self.wakeup_receiver.try_recv() {
-                Ok(WakeupMsg::SigChld) => {
-                    for (window_id, window) in self.windows_by_id.borrow_mut().iter_mut() {
-                        match window.test_for_child_exit() {
-                            Ok(_) => {}
-                            Err(err) => {
-                                eprintln!("pty finished: {:?}", err);
-                                dead_windows.insert(window_id.clone());
-                            }
+            match self.sigchld_rx.try_recv() {
+                Ok(_) => for (window_id, window) in self.windows_by_id.borrow_mut().iter_mut() {
+                    match window.test_for_child_exit() {
+                        Ok(_) => {}
+                        Err(err) => {
+                            eprintln!("pty finished: {:?}", err);
+                            dead_windows.insert(window_id.clone());
                         }
                     }
-                }
-                Err(_) => return Ok(()),
+                },
+                Err(TryRecvError::Empty) => return Ok(()),
+                Err(err) => bail!("paster_rx disconnected {:?}", err),
             }
         }
     }
@@ -286,9 +285,9 @@ impl GuiEventLoop {
     fn run(&self) -> Result<(), Error> {
         while !*self.terminate.borrow() {
             let mut dead_windows = HashSet::new();
-            self.process_wakeups(&mut dead_windows)?;
             self.process_wakeups_new()?;
             self.process_paste_wakeups()?;
+            self.process_sigchld_wakeups(&mut dead_windows)?;
             self.run_event_loop(&mut dead_windows)?;
 
             for window_id in dead_windows {

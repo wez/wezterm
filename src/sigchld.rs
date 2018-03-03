@@ -5,22 +5,22 @@ use libc;
 use std::io;
 use std::mem;
 use std::ptr;
-use wakeup::{Wakeup, WakeupMsg};
+use wakeup::GuiSender;
 
-static mut EVENT_LOOP: Option<Wakeup> = None;
+static mut EVENT_LOOP: Option<GuiSender<()>> = None;
 
 extern "C" fn chld_handler(_signo: libc::c_int, _si: *const libc::siginfo_t, _: *const u8) {
     unsafe {
         match EVENT_LOOP.as_mut() {
             Some(wakeup) => {
-                wakeup.send(WakeupMsg::SigChld).ok();
+                wakeup.send(()).ok();
             }
             None => (),
         }
     }
 }
 
-pub fn activate(wakeup: Wakeup) -> Result<(), Error> {
+pub fn activate(wakeup: GuiSender<()>) -> Result<(), Error> {
     unsafe {
         EVENT_LOOP = Some(wakeup);
 
