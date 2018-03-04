@@ -460,8 +460,6 @@ fn spawn_window(
 
     let window = gliumwindows::TerminalWindow::new(
         event_loop,
-        initial_pixel_width,
-        initial_pixel_height,
         terminal,
         master,
         child,

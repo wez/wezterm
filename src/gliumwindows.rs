@@ -80,11 +80,8 @@ pub struct TerminalWindow {
 }
 
 impl TerminalWindow {
-    #[cfg_attr(feature = "cargo-clippy", allow(too_many_arguments))]
     pub fn new(
         event_loop: &super::GuiEventLoop,
-        width: u16,
-        height: u16,
         terminal: Terminal,
         pty: MasterPty,
         process: Child,
@@ -97,6 +94,10 @@ impl TerminalWindow {
             let metrics = font.borrow_mut().get_fallback(0)?.metrics();
             (metrics.cell_height, metrics.cell_width)
         };
+
+        let size = pty.get_size()?;
+        let width = size.ws_xpixel;
+        let height = size.ws_ypixel;
 
         let window = glutin::WindowBuilder::new()
             .with_dimensions(width.into(), height.into())

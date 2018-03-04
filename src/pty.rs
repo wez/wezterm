@@ -6,6 +6,7 @@ use mio::{Poll, PollOpt, Ready, Token};
 use mio::event::Evented;
 use mio::unix::EventedFd;
 use std::io;
+use std::mem;
 use std::os::unix::io::{AsRawFd, FromRawFd, RawFd};
 use std::os::unix::process::CommandExt;
 use std::process::{Child, Command, Stdio};
@@ -236,6 +237,17 @@ impl MasterPty {
         }
 
         Ok(())
+    }
+
+    pub fn get_size(&self) -> Result<winsize, Error> {
+        let mut size: winsize = unsafe { mem::zeroed() };
+        if unsafe { libc::ioctl(self.fd, libc::TIOCGWINSZ, &mut size as *mut _) } != 0 {
+            bail!(
+                "failed to ioctl(TIOCGWINSZ): {:?}",
+                io::Error::last_os_error()
+            );
+        }
+        Ok(size)
     }
 }
 
