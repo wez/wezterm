@@ -1,7 +1,6 @@
 use clipboard::{ClipboardImpl, Paste};
 use failure::Error;
-use glium::glutin::WindowId;
-use glutinloop::GuiSender;
+use guiloop::{GuiSender, WindowId};
 use std::sync::mpsc::{channel, Receiver, Sender};
 
 /// A no-op clipboard implementation

@@ -1,5 +1,5 @@
 use failure::Error;
-use glium::glutin::WindowId;
+use guiloop::{GuiSender, WindowId};
 
 mod none;
 #[cfg(target_os = "macos")]
@@ -10,8 +10,6 @@ mod x11;
 
 #[cfg(all(unix, not(target_os = "macos")))]
 pub use self::x11::Clipboard;
-
-use glutinloop::GuiSender;
 
 /// A fragment of the clipboard data received from another
 /// app during paste.

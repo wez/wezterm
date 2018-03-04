@@ -13,14 +13,15 @@
 use futures::{Async, Future};
 use futures::executor::{self, Notify, Spawn};
 use futures::future::{ExecuteError, Executor};
-use glutinloop::GuiSender;
 use std::cell::{Cell, RefCell};
 use std::sync::{Arc, Mutex};
 use std::sync::mpsc;
 
+use guiloop::{GuiReceiver, GuiSender};
+
 pub struct Core {
     tx: GuiSender<usize>,
-    rx: mpsc::Receiver<usize>,
+    rx: GuiReceiver<usize>,
     notify: Arc<Notifier>,
     // Slab of running futures used to track what's running and what slots are
     // empty. Slot indexes are then sent along tx/rx above to indicate which
@@ -35,7 +36,7 @@ enum Slot {
 }
 
 impl Core {
-    pub fn new(tx: GuiSender<usize>, rx: mpsc::Receiver<usize>) -> Self {
+    pub fn new(tx: GuiSender<usize>, rx: GuiReceiver<usize>) -> Self {
         Self {
             notify: Arc::new(Notifier {
                 tx: Mutex::new(tx.clone()),

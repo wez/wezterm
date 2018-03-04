@@ -2,8 +2,7 @@
 //! Check out <https://tronche.com/gui/x/icccm/sec-2.html> for some deep and complex
 //! background on what's happening in here.
 use failure::{self, Error};
-use glium::glutin::WindowId;
-use glutinloop::GuiSender;
+use guiloop::{GuiSender, WindowId};
 use mio::{Events, Poll, PollOpt, Ready, Token};
 use mio::unix::EventedFd;
 use mio_extras::channel::{channel as mio_channel, Receiver as MioReceiver, Sender as MioSender};

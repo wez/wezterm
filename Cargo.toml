@@ -11,7 +11,6 @@ failure = "0.1.1"
 failure_derive = "0.1.1"
 futures = "0.1.18"
 gl = "0.10.0"
-glium = "0.20.0"
 harfbuzz-sys = "0.1.15"
 libc = "0.2.36"
 mio = "0.6.12"
@@ -28,6 +27,12 @@ path = "term"
 [target.'cfg(any(target_os = "android", all(unix, not(target_os = "macos"))))'.dependencies]
 freetype = "0.3"
 servo-fontconfig = "0.4.0"
+egli = "0.4.0"
+
+[target.'cfg(any(target_os = "android", all(unix, not(target_os = "macos"))))'.dependencies.glium]
+version = "0.20.0"
+default-features = false
+features = []
 
 [target.'cfg(all(unix, not(target_os = "macos")))'.dependencies.xcb]
 version = "0.8.1"

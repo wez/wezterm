@@ -1,7 +1,7 @@
 //! Helper for detecting SIGCHLD
 
 use failure::Error;
-use glutinloop::GuiSender;
+use guiloop::GuiSender;
 use libc;
 use std::io;
 use std::mem;

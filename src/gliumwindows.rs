@@ -9,7 +9,7 @@ use font::FontConfiguration;
 use futures;
 use glium;
 use glium::glutin::{self, ElementState, MouseCursor};
-use glutinloop::GuiEventLoop;
+use guiloop::GuiEventLoop;
 use opengl::render::Renderer;
 use opengl::textureatlas::OutOfTextureSpace;
 use pty::MasterPty;

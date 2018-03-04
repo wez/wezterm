@@ -49,9 +49,10 @@ mod remotemio;
 mod opengl;
 
 mod clipboard;
-mod glutinloop;
-use glutinloop::GuiEventLoop;
+mod guiloop;
+#[cfg(target_os = "macos")]
 mod gliumwindows;
+#[cfg(target_os = "macos")]
 use gliumwindows::TerminalWindow;
 
 mod font;
