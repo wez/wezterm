@@ -5,7 +5,7 @@ use clipboard::{Clipboard, ClipboardImpl, Paste};
 use failure::Error;
 use font::FontConfiguration;
 use glium::{self, glutin};
-use glium::glutin::{ElementState, MouseCursor, WindowId};
+use glium::glutin::{ElementState, MouseCursor};
 use opengl::render::Renderer;
 use opengl::textureatlas::OutOfTextureSpace;
 use pty::MasterPty;
@@ -19,7 +19,6 @@ use term::{MouseButton, MouseEventKind};
 use term::KeyCode;
 use term::KeyModifiers;
 use term::hyperlink::Hyperlink;
-use wakeup::GuiSender;
 
 #[derive(Debug, Fail)]
 pub enum SessionTerminated {
@@ -83,8 +82,7 @@ pub struct TerminalWindow {
 impl TerminalWindow {
     #[cfg_attr(feature = "cargo-clippy", allow(too_many_arguments))]
     pub fn new(
-        event_loop: &glutin::EventsLoop,
-        paster: GuiSender<WindowId>,
+        event_loop: &super::GuiEventLoop,
         width: u16,
         height: u16,
         terminal: Terminal,
@@ -108,14 +106,14 @@ impl TerminalWindow {
             .with_vsync(true)
             .with_pixel_format(24, 8)
             .with_srgb(true);
-        let display =
-            glium::Display::new(window, context, event_loop).map_err(|e| format_err!("{:?}", e))?;
+        let display = glium::Display::new(window, context, &*event_loop.event_loop.borrow_mut())
+            .map_err(|e| format_err!("{:?}", e))?;
         let window_id = display.gl_window().id();
 
         let host = Host {
             display,
             pty,
-            clipboard: Clipboard::new(paster, window_id)?,
+            clipboard: Clipboard::new(event_loop.paster.clone(), window_id)?,
         };
 
         host.display.gl_window().set_cursor(MouseCursor::Text);

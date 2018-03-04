@@ -100,7 +100,7 @@ struct Windows {
 /// a remote (running on another thread) mio `Poll` instance, and
 /// a core for spawning tasks from futures.  It acts as the manager
 /// for various events and is responsible for driving things forward.
-struct GuiEventLoop {
+pub struct GuiEventLoop {
     event_loop: RefCell<glium::glutin::EventsLoop>,
     windows: Rc<RefCell<Windows>>,
     core: futurecore::Core,
@@ -459,8 +459,7 @@ fn spawn_window(
     );
 
     let window = gliumwindows::TerminalWindow::new(
-        &*event_loop.event_loop.borrow_mut(),
-        event_loop.paster.clone(),
+        event_loop,
         initial_pixel_width,
         initial_pixel_height,
         terminal,
