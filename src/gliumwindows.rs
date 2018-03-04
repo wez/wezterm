@@ -24,16 +24,6 @@ use term::KeyCode;
 use term::KeyModifiers;
 use term::hyperlink::Hyperlink;
 
-#[derive(Debug, Fail)]
-pub enum SessionTerminated {
-    #[fail(display = "Process exited: {:?}", status)]
-    ProcessStatus { status: ExitStatus },
-    #[fail(display = "Error: {:?}", err)]
-    Error { err: Error },
-    #[fail(display = "Window Closed")]
-    WindowClosed,
-}
-
 struct Host {
     display: glium::Display,
     pty: MasterPty,

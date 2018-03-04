@@ -32,9 +32,15 @@ use clap::{App, Arg};
 use failure::Error;
 
 #[cfg(all(unix, not(target_os = "macos")))]
+extern crate egli;
+#[cfg(all(unix, not(target_os = "macos")))]
+extern crate x11;
+#[cfg(all(unix, not(target_os = "macos")))]
 extern crate xcb;
 #[cfg(all(unix, not(target_os = "macos")))]
 extern crate xcb_util;
+#[cfg(all(unix, not(target_os = "macos")))]
+mod xwindows;
 
 use std::env;
 use std::ffi::CStr;
@@ -45,6 +51,7 @@ use std::str;
 mod config;
 
 mod futurecore;
+#[cfg(target_os = "macos")]
 mod remotemio;
 mod opengl;
 
@@ -52,8 +59,8 @@ mod clipboard;
 mod guiloop;
 #[cfg(target_os = "macos")]
 mod gliumwindows;
-#[cfg(target_os = "macos")]
-use gliumwindows::TerminalWindow;
+
+use guiloop::{GuiEventLoop, TerminalWindow};
 
 mod font;
 use font::FontConfiguration;

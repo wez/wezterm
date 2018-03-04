@@ -28,6 +28,7 @@ path = "term"
 freetype = "0.3"
 servo-fontconfig = "0.4.0"
 egli = "0.4.0"
+x11 = {version ="2.17.3", features = ["xlib_xcb"]}
 
 [target.'cfg(any(target_os = "android", all(unix, not(target_os = "macos"))))'.dependencies.glium]
 version = "0.20.0"
