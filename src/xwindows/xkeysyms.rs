@@ -205,6 +205,18 @@ pub fn xcb_keysym_to_keycode(k: xcb_keysym_t) -> KeyCode {
         XK_BackSpace | XK_Tab | XK_Linefeed | XK_Return | XK_Escape => {
             KeyCode::Char((k & 0xff) as u8 as char)
         }
+        XK_F1 => KeyCode::F(1),
+        XK_F2 => KeyCode::F(2),
+        XK_F3 => KeyCode::F(3),
+        XK_F4 => KeyCode::F(4),
+        XK_F5 => KeyCode::F(5),
+        XK_F6 => KeyCode::F(6),
+        XK_F7 => KeyCode::F(7),
+        XK_F8 => KeyCode::F(8),
+        XK_F9 => KeyCode::F(9),
+        XK_F10 => KeyCode::F(10),
+        XK_F11 => KeyCode::F(11),
+        XK_F12 => KeyCode::F(12),
         XK_Control_L | XK_Control_R => KeyCode::Control,
         XK_Alt_L | XK_Alt_R => KeyCode::Alt,
         XK_Meta_L | XK_Meta_R => KeyCode::Meta,
