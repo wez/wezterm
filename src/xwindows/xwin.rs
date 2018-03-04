@@ -25,13 +25,14 @@ struct Host {
     pty: MasterPty,
     timestamp: xcb::xproto::Timestamp,
     clipboard: Clipboard,
+    event_loop: Rc<GuiEventLoop>,
+    fonts: Rc<FontConfiguration>,
+    config: Rc<Config>,
 }
 
 pub struct TerminalWindow {
     host: Host,
     conn: Rc<Connection>,
-    event_loop: Rc<GuiEventLoop>,
-    config: Rc<Config>,
     renderer: Renderer,
     width: u16,
     height: u16,
@@ -66,6 +67,19 @@ impl term::TerminalHost for Host {
 
     fn set_title(&mut self, title: &str) {
         self.window.set_title(title);
+    }
+
+    fn new_window(&mut self) {
+        let event_loop = Rc::clone(&self.event_loop);
+        let config = Rc::clone(&self.config);
+        let fonts = Rc::clone(&self.fonts);
+        self.event_loop
+            .core
+            .spawn(futures::future::poll_fn(move || {
+                spawn_window(&event_loop, None, &config, &fonts)
+                    .map(futures::Async::Ready)
+                    .map_err(|_| ())
+            }));
     }
 }
 
@@ -104,6 +118,9 @@ impl TerminalWindow {
             pty,
             timestamp: 0,
             clipboard: Clipboard::new(event_loop.paster.clone(), window_id)?,
+            event_loop: Rc::clone(event_loop),
+            config: Rc::clone(config),
+            fonts: Rc::clone(fonts),
         };
 
         let renderer = Renderer::new(&host.window, width, height, fonts, palette)?;
@@ -116,8 +133,6 @@ impl TerminalWindow {
             host,
             renderer,
             conn: Rc::clone(&event_loop.conn),
-            event_loop: Rc::clone(event_loop),
-            config: Rc::clone(config),
             width,
             height,
             cell_height,
@@ -259,23 +274,6 @@ impl TerminalWindow {
                 let key_press: &xcb::KeyPressEvent = unsafe { xcb::cast_event(event) };
                 self.host.timestamp = key_press.time();
                 let (code, mods) = self.decode_key(key_press);
-
-                if code == KeyCode::Char('y') && mods == KeyModifiers::SUPER {
-                    println!("open a new one!");
-                    let event_loop = Rc::clone(&self.event_loop);
-                    let config = Rc::clone(&self.config);
-                    let fonts = Rc::clone(&self.renderer.fonts);
-                    self.event_loop
-                        .core
-                        .spawn(futures::future::poll_fn(move || {
-                            spawn_window(&event_loop, None, &config, &fonts)
-                                .map(futures::Async::Ready)
-                                .map_err(|_| ())
-                        }));
-
-                    return Ok(());
-                }
-
                 self.terminal.key_down(code, mods, &mut self.host)?;
             }
             xcb::KEY_RELEASE => {

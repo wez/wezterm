@@ -28,6 +28,10 @@ struct Host {
     display: glium::Display,
     pty: MasterPty,
     clipboard: Clipboard,
+    window_position: Option<(i32, i32)>,
+    /// is is_some, holds position to be restored after exiting
+    /// fullscreen mode.
+    is_fullscreen: Option<(i32, i32)>,
 }
 
 impl term::TerminalHost for Host {
@@ -54,6 +58,37 @@ impl term::TerminalHost for Host {
     fn set_title(&mut self, title: &str) {
         self.display.gl_window().set_title(title);
     }
+
+    fn toggle_full_screen(&mut self) {
+        let window = self.display.gl_window();
+        let pos = self.is_fullscreen.take();
+        if let Some((x, y)) = pos {
+            window.set_fullscreen(None);
+            window.set_position(x, y);
+        } else {
+            // We use our own idea of the position because get_position()
+            // appears to only return the initial position of the window
+            // on Linux.
+            self.is_fullscreen = self.window_position.take();
+            window.set_fullscreen(Some(window.get_current_monitor()));
+        }
+    }
+
+    fn new_window(&mut self) {
+        /*
+        println!("open a new one!");
+        let event_loop = Rc::clone(&self.event_loop);
+        let config = Rc::clone(&self.config);
+        let fonts = Rc::clone(&self.renderer.fonts);
+        self.event_loop
+            .core
+            .spawn(futures::future::poll_fn(move || {
+                spawn_window(&event_loop, None, &config, &fonts)
+                    .map(futures::Async::Ready)
+                    .map_err(|_| ())
+            }));
+        */
+    }
 }
 
 pub struct TerminalWindow {
@@ -69,10 +104,6 @@ pub struct TerminalWindow {
     process: Child,
     last_mouse_coords: (f64, f64),
     last_modifiers: KeyModifiers,
-    window_position: Option<(i32, i32)>,
-    /// is is_some, holds position to be restored after exiting
-    /// fullscreen mode.
-    is_fullscreen: Option<(i32, i32)>,
 }
 
 impl TerminalWindow {
@@ -112,15 +143,17 @@ impl TerminalWindow {
         let display = glium::Display::new(window, context, &*event_loop.event_loop.borrow_mut())
             .map_err(|e| format_err!("{:?}", e))?;
         let window_id = display.gl_window().id();
+        let window_position = display.gl_window().get_position();
 
         let host = Host {
             display,
             pty,
             clipboard: Clipboard::new(event_loop.paster.clone(), window_id)?,
+            window_position,
+            is_fullscreen: None,
         };
 
         host.display.gl_window().set_cursor(MouseCursor::Text);
-        let window_position = host.display.gl_window().get_position();
 
         let renderer = Renderer::new(&host.display, width, height, fonts, palette)?;
         let cell_height = cell_height.ceil() as usize;
@@ -139,8 +172,6 @@ impl TerminalWindow {
             process,
             last_mouse_coords: (0.0, 0.0),
             last_modifiers: Default::default(),
-            window_position,
-            is_fullscreen: None,
         })
     }
 
@@ -508,37 +539,8 @@ impl TerminalWindow {
                 event: WindowEvent::ReceivedCharacter(c),
                 ..
             } => {
-                // Primitive Alt-Enter fullscreen shortcut
-                if c == '\r' && self.last_modifiers.contains(KeyModifiers::ALT) {
-                    let window = self.host.display.gl_window();
-                    let pos = self.is_fullscreen.take();
-                    if let Some((x, y)) = pos {
-                        window.set_fullscreen(None);
-                        window.set_position(x, y);
-                    } else {
-                        // We use our own idea of the position because get_position()
-                        // appears to only return the initial position of the window
-                        // on Linux.
-                        self.is_fullscreen = self.window_position.take();
-                        window.set_fullscreen(Some(window.get_current_monitor()));
-                    }
-                } else if c == 'y' && self.last_modifiers.contains(KeyModifiers::SUPER) {
-                    // CMD-y to open a new window
-                    println!("open a new one!");
-                    let event_loop = Rc::clone(&self.event_loop);
-                    let config = Rc::clone(&self.config);
-                    let fonts = Rc::clone(&self.renderer.fonts);
-                    self.event_loop
-                        .core
-                        .spawn(futures::future::poll_fn(move || {
-                            spawn_window(&event_loop, None, &config, &fonts)
-                                .map(futures::Async::Ready)
-                                .map_err(|_| ())
-                        }));
-                } else {
-                    self.terminal
-                        .key_down(KeyCode::Char(c), self.last_modifiers, &mut self.host)?;
-                }
+                self.terminal
+                    .key_down(KeyCode::Char(c), self.last_modifiers, &mut self.host)?;
                 self.paint_if_needed()?;
             }
             Event::WindowEvent {
