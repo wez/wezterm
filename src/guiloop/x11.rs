@@ -8,7 +8,7 @@ use sigchld;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::io;
-use std::os::unix::io::{AsRawFd, RawFd};
+use std::os::unix::io::RawFd;
 use std::rc::Rc;
 use std::sync::mpsc::TryRecvError;
 use std::time::{Duration, Instant};
@@ -78,12 +78,7 @@ impl GuiEventLoop {
 
         let conn = Rc::new(Connection::new()?);
 
-        poll.register(
-            &EventedFd(&conn.conn().as_raw_fd()),
-            Token(TOK_XCB),
-            Ready::readable(),
-            PollOpt::level(),
-        )?;
+        poll.register(&*conn, Token(TOK_XCB), Ready::readable(), PollOpt::level())?;
 
         let (fut_tx, fut_rx) = channel();
         poll.register(

@@ -2,10 +2,14 @@ use egli;
 use gl;
 use glium;
 use glium::backend::Backend;
+use mio::{Evented, Poll, PollOpt, Ready, Token};
+use mio::unix::EventedFd;
 use std::cell::RefCell;
+use std::io;
 use std::mem;
 use std::ops::Deref;
 use std::os;
+use std::os::unix::io::AsRawFd;
 use std::ptr;
 use std::rc::Rc;
 use std::result;
@@ -42,6 +46,32 @@ impl Deref for Connection {
 
     fn deref(&self) -> &xcb::Connection {
         &self.conn
+    }
+}
+
+impl Evented for Connection {
+    fn register(
+        &self,
+        poll: &Poll,
+        token: Token,
+        interest: Ready,
+        opts: PollOpt,
+    ) -> io::Result<()> {
+        EventedFd(&self.conn.as_raw_fd()).register(poll, token, interest, opts)
+    }
+
+    fn reregister(
+        &self,
+        poll: &Poll,
+        token: Token,
+        interest: Ready,
+        opts: PollOpt,
+    ) -> io::Result<()> {
+        EventedFd(&self.conn.as_raw_fd()).reregister(poll, token, interest, opts)
+    }
+
+    fn deregister(&self, poll: &Poll) -> io::Result<()> {
+        EventedFd(&self.conn.as_raw_fd()).deregister(poll)
     }
 }
 
