@@ -1,10 +1,12 @@
 use super::{Connection, Window};
 use super::super::opengl::render::Renderer;
+use super::super::spawn_window;
 use super::xkeysyms;
 use clipboard::{Clipboard, ClipboardImpl, Paste};
 use config::Config;
 use failure::Error;
 use font::FontConfiguration;
+use futures;
 use guiloop::{GuiEventLoop, SessionTerminated, WindowId};
 use opengl::textureatlas::OutOfTextureSpace;
 use pty::MasterPty;
@@ -28,6 +30,8 @@ struct Host {
 pub struct TerminalWindow {
     host: Host,
     conn: Rc<Connection>,
+    event_loop: Rc<GuiEventLoop>,
+    config: Rc<Config>,
     renderer: Renderer,
     width: u16,
     height: u16,
@@ -93,7 +97,7 @@ impl TerminalWindow {
 
         let window = Window::new(&event_loop.conn, width, height)?;
         window.set_title("wezterm");
-        let window_id = window.window_id;
+        let window_id = window.window.window_id;
 
         let host = Host {
             window,
@@ -112,6 +116,8 @@ impl TerminalWindow {
             host,
             renderer,
             conn: Rc::clone(&event_loop.conn),
+            event_loop: Rc::clone(event_loop),
+            config: Rc::clone(config),
             width,
             height,
             cell_height,
@@ -122,7 +128,7 @@ impl TerminalWindow {
     }
 
     pub fn window_id(&self) -> WindowId {
-        self.host.window.window_id
+        self.host.window.window.window_id
     }
 
     pub fn pty_fd(&self) -> RawFd {
@@ -162,7 +168,9 @@ impl TerminalWindow {
         let res = self.renderer.paint(&mut target, &mut self.terminal);
         // Ensure that we finish() the target before we let the
         // error bubble up, otherwise we lose the context.
-        target.finish().unwrap();
+        target
+            .finish()
+            .expect("target.finish failed and we don't know how to recover");
 
         // The only error we want to catch is texture space related;
         // when that happens we need to blow our glyph cache and
@@ -251,6 +259,23 @@ impl TerminalWindow {
                 let key_press: &xcb::KeyPressEvent = unsafe { xcb::cast_event(event) };
                 self.host.timestamp = key_press.time();
                 let (code, mods) = self.decode_key(key_press);
+
+                if code == KeyCode::Char('y') && mods == KeyModifiers::SUPER {
+                    println!("open a new one!");
+                    let event_loop = Rc::clone(&self.event_loop);
+                    let config = Rc::clone(&self.config);
+                    let fonts = Rc::clone(&self.renderer.fonts);
+                    self.event_loop
+                        .core
+                        .spawn(futures::future::poll_fn(move || {
+                            spawn_window(&event_loop, None, &config, &fonts)
+                                .map(futures::Async::Ready)
+                                .map_err(|_| ())
+                        }));
+
+                    return Ok(());
+                }
+
                 self.terminal.key_down(code, mods, &mut self.host)?;
             }
             xcb::KEY_RELEASE => {

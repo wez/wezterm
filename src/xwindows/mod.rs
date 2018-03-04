@@ -2,6 +2,7 @@ use egli;
 use gl;
 use glium;
 use glium::backend::Backend;
+use std::cell::RefCell;
 use std::mem;
 use std::ops::Deref;
 use std::os;
@@ -157,17 +158,29 @@ impl Drop for Connection {
     }
 }
 
-/// The X protocol allows referencing a number of drawable
-/// objects.  This trait marks those objects here in code.
+struct WindowHolder {
+    window_id: xcb::xproto::Window,
+    conn: Rc<Connection>,
+}
+
+impl Drop for WindowHolder {
+    fn drop(&mut self) {
+        xcb::destroy_window(self.conn.conn(), self.window_id);
+    }
+}
+
 struct GlState {
     display: Rc<egli::Display>,
     surface: egli::Surface,
     egl_context: egli::Context,
+    // It's not dead, it's owning a ref for gl
+    #[allow(dead_code)]
+    window: Rc<WindowHolder>,
 }
 
 /// A Window!
 pub struct Window {
-    window_id: xcb::xproto::Window,
+    window: Rc<WindowHolder>,
     conn: Rc<Connection>,
     gl: Rc<GlState>,
     glium_context: Rc<glium::backend::Context>,
@@ -177,7 +190,7 @@ impl Window {
     /// Create a new window on the specified screen with the specified
     /// dimensions
     pub fn new(conn: &Rc<Connection>, width: u16, height: u16) -> Result<Window> {
-        let window_id = {
+        let window = {
             let setup = conn.conn().get_setup();
             let screen = setup
                 .roots()
@@ -214,13 +227,16 @@ impl Window {
                     ),
                 ],
             ).request_check()?;
-            window_id
+            Rc::new(WindowHolder {
+                window_id,
+                conn: Rc::clone(conn),
+            })
         };
 
         xcb::change_property(
             &*conn,
             xcb::PROP_MODE_REPLACE as u8,
-            window_id,
+            window.window_id,
             conn.atom_protocols,
             4,
             32,
@@ -228,7 +244,7 @@ impl Window {
         );
 
         let surface = conn.egl_display
-            .create_window_surface(conn.egl_config, window_id as *mut _)
+            .create_window_surface(conn.egl_config, window.window_id as *mut _)
             .map_err(egli_err)?;
 
         let egl_context = conn.egl_display
@@ -248,13 +264,13 @@ impl Window {
             display: Rc::clone(&conn.egl_display),
             egl_context,
             surface,
+            window: Rc::clone(&window),
         });
 
         let glium_context = unsafe {
             glium::backend::Context::new(
                 Rc::clone(&gl_state),
-                // we're single threaded, so no need to check contexts
-                false,
+                true,
                 if cfg!(debug_assertions) {
                     //glium::debug::DebugCallbackBehavior::PrintAll
                     glium::debug::DebugCallbackBehavior::DebugMessageOnError
@@ -266,7 +282,7 @@ impl Window {
 
         Ok(Window {
             conn: Rc::clone(conn),
-            window_id,
+            window,
             gl: gl_state,
             glium_context,
         })
@@ -274,12 +290,12 @@ impl Window {
 
     /// Change the title for the window manager
     pub fn set_title(&self, title: &str) {
-        xcb_util::icccm::set_wm_name(self.conn.conn(), self.window_id, title);
+        xcb_util::icccm::set_wm_name(self.conn.conn(), self.window.window_id, title);
     }
 
     /// Display the window
     pub fn show(&self) {
-        xcb::map_window(self.conn.conn(), self.window_id);
+        xcb::map_window(self.conn.conn(), self.window.window_id);
     }
 
     pub fn draw(&self) -> glium::Frame {
@@ -290,15 +306,27 @@ impl Window {
     }
 }
 
-impl Drop for Window {
-    fn drop(&mut self) {
-        xcb::destroy_window(self.conn.conn(), self.window_id);
-    }
-}
-
 impl glium::backend::Facade for Window {
     fn get_context(&self) -> &Rc<glium::backend::Context> {
         &self.glium_context
+    }
+}
+
+// We need to remember which context is current in a multi-window
+// application, and OpenGL cares about this on a per-thread basis.
+// Even though we're largely single threaded, it's worth making sure
+// that we're tracking this for each thread.
+thread_local!(static CURRENT: RefCell<*const GlState> = RefCell::new(ptr::null()));
+
+impl Drop for GlState {
+    fn drop(&mut self) {
+        // On drop, make sure that the current context doesn't refer
+        // to our dead, possibly recycled address.
+        CURRENT.with(|id| {
+            if *id.borrow_mut() == self as *const _ {
+                *id.borrow_mut() = ptr::null();
+            }
+        });
     }
 }
 
@@ -324,12 +352,13 @@ unsafe impl glium::backend::Backend for GlState {
     }
 
     fn is_current(&self) -> bool {
-        true
+        CURRENT.with(|id| *id.borrow() == self as *const _)
     }
 
     unsafe fn make_current(&self) {
         self.display
             .make_current(&self.surface, &self.surface, &self.egl_context)
             .expect("make_current failed");
+        CURRENT.with(|id| *id.borrow_mut() = self as *const _);
     }
 }
