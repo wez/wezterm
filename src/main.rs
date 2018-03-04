@@ -373,7 +373,7 @@ impl GuiEventLoop {
 fn run_glium(
     master: pty::MasterPty,
     child: std::process::Child,
-    config: config::Config,
+    config: &Rc<config::Config>,
     fontconfig: FontConfiguration,
     terminal: term::Terminal,
     initial_pixel_width: u16,
@@ -392,7 +392,8 @@ fn run_glium(
         fontconfig,
         config
             .colors
-            .map(|p| p.into())
+            .as_ref()
+            .map(|p| p.clone().into())
             .unwrap_or_else(term::color::ColorPalette::default),
     )?;
 
@@ -421,13 +422,13 @@ fn run() -> Result<(), Error> {
              as if it were a login shell.",
         ))
         .get_matches();
-    let config = config::Config::load()?;
+    let config = Rc::new(config::Config::load()?);
     println!("Using configuration: {:#?}", config);
 
     // First step is to figure out the font metrics so that we know how
     // big things are going to be.
 
-    let fontconfig = FontConfiguration::new(config.clone());
+    let fontconfig = FontConfiguration::new(Rc::clone(&config));
     let font = fontconfig.default_font()?;
 
     // we always load the cell_height for font 0,
@@ -469,7 +470,7 @@ fn run() -> Result<(), Error> {
     run_glium(
         master,
         child,
-        config,
+        &config,
         fontconfig,
         terminal,
         initial_pixel_width,

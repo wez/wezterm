@@ -31,14 +31,14 @@ type FontPtr = Rc<RefCell<Box<NamedFont>>>;
 
 /// Matches and loads fonts for a given input style
 pub struct FontConfiguration {
-    config: Config,
+    config: Rc<Config>,
     fonts: RefCell<HashMap<TextStyle, FontPtr>>,
     system: FontSystemImpl,
 }
 
 impl FontConfiguration {
     /// Create a new empty configuration
-    pub fn new(config: Config) -> Self {
+    pub fn new(config: Rc<Config>) -> Self {
         Self {
             config,
             fonts: RefCell::new(HashMap::new()),
