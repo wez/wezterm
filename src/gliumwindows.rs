@@ -1,9 +1,12 @@
 //! Generic system dependent windows via glium+glutin
 #![allow(dead_code)]
 
+use super::{spawn_window, GuiEventLoop};
 use clipboard::{Clipboard, ClipboardImpl, Paste};
+use config::Config;
 use failure::Error;
 use font::FontConfiguration;
+use futures;
 use glium::{self, glutin};
 use glium::glutin::{ElementState, MouseCursor};
 use opengl::render::Renderer;
@@ -64,6 +67,8 @@ impl term::TerminalHost for Host {
 
 pub struct TerminalWindow {
     host: Host,
+    event_loop: Rc<GuiEventLoop>,
+    config: Rc<Config>,
     renderer: Renderer,
     width: u16,
     height: u16,
@@ -81,13 +86,19 @@ pub struct TerminalWindow {
 
 impl TerminalWindow {
     pub fn new(
-        event_loop: &super::GuiEventLoop,
+        event_loop: &Rc<GuiEventLoop>,
         terminal: Terminal,
         pty: MasterPty,
         process: Child,
         fonts: &Rc<FontConfiguration>,
-        palette: term::color::ColorPalette,
+        config: &Rc<Config>,
     ) -> Result<TerminalWindow, Error> {
+        let palette = config
+            .colors
+            .as_ref()
+            .map(|p| p.clone().into())
+            .unwrap_or_else(term::color::ColorPalette::default);
+
         let (cell_height, cell_width) = {
             // Urgh, this is a bit repeaty, but we need to satisfy the borrow checker
             let font = fonts.default_font()?;
@@ -126,6 +137,8 @@ impl TerminalWindow {
 
         Ok(TerminalWindow {
             host,
+            event_loop: Rc::clone(event_loop),
+            config: Rc::clone(config),
             renderer,
             width,
             height,
@@ -518,6 +531,19 @@ impl TerminalWindow {
                         self.is_fullscreen = self.window_position.take();
                         window.set_fullscreen(Some(window.get_current_monitor()));
                     }
+                } else if c == 'y' && self.last_modifiers.contains(KeyModifiers::SUPER) {
+                    // CMD-y to open a new window
+                    println!("open a new one!");
+                    let event_loop = Rc::clone(&self.event_loop);
+                    let config = Rc::clone(&self.config);
+                    let fonts = Rc::clone(&self.renderer.fonts);
+                    self.event_loop
+                        .core
+                        .spawn(futures::future::poll_fn(move || {
+                            spawn_window(&event_loop, None, &config, &fonts)
+                                .map(futures::Async::Ready)
+                                .map_err(|_| ())
+                        }));
                 } else {
                     self.terminal
                         .key_down(KeyCode::Char(c), self.last_modifiers, &mut self.host)?;

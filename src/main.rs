@@ -103,7 +103,7 @@ struct Windows {
 pub struct GuiEventLoop {
     event_loop: RefCell<glium::glutin::EventsLoop>,
     windows: Rc<RefCell<Windows>>,
-    core: futurecore::Core,
+    pub core: futurecore::Core,
     poll: remotemio::IOMgr,
     poll_rx: Receiver<remotemio::Notification>,
     paster: GuiSender<WindowId>,
@@ -403,7 +403,7 @@ fn run() -> Result<(), Error> {
         None
     };
 
-    let event_loop = GuiEventLoop::new()?;
+    let event_loop = Rc::new(GuiEventLoop::new()?);
 
     spawn_window(&event_loop, cmd, &config, &fontconfig)?;
 
@@ -412,7 +412,7 @@ fn run() -> Result<(), Error> {
 }
 
 fn spawn_window(
-    event_loop: &GuiEventLoop,
+    event_loop: &Rc<GuiEventLoop>,
     cmd: Option<Vec<&std::ffi::OsStr>>,
     config: &Rc<config::Config>,
     fontconfig: &Rc<FontConfiguration>,
@@ -458,18 +458,8 @@ fn spawn_window(
         config.hyperlink_rules.clone(),
     );
 
-    let window = gliumwindows::TerminalWindow::new(
-        event_loop,
-        terminal,
-        master,
-        child,
-        fontconfig,
-        config
-            .colors
-            .as_ref()
-            .map(|p| p.clone().into())
-            .unwrap_or_else(term::color::ColorPalette::default),
-    )?;
+    let window =
+        gliumwindows::TerminalWindow::new(event_loop, terminal, master, child, fontconfig, config)?;
 
     event_loop.add_window(window)
 }

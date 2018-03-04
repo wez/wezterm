@@ -248,7 +248,7 @@ void main() {
 pub struct Renderer {
     width: u16,
     height: u16,
-    fonts: Rc<FontConfiguration>,
+    pub fonts: Rc<FontConfiguration>,
     cell_height: usize,
     cell_width: usize,
     descender: isize,
