@@ -22,9 +22,27 @@ use xcb;
 
 /// Holds the terminal state for a tab owned by this window
 struct Tab {
-    terminal: term::Terminal,
-    process: Child,
+    terminal: RefCell<term::Terminal>,
+    process: RefCell<Child>,
     pty: RefCell<MasterPty>,
+}
+
+struct Tabs {
+    tabs: Vec<Tab>,
+    active: usize,
+}
+
+impl Tabs {
+    fn new(tab: Tab) -> Self {
+        Self {
+            tabs: vec![tab],
+            active: 0,
+        }
+    }
+
+    fn get_active(&self) -> &Tab {
+        &self.tabs[self.active]
+    }
 }
 
 /// Implements `TerminalHost` for a Tab.
@@ -52,7 +70,7 @@ pub struct TerminalWindow {
     height: u16,
     cell_height: usize,
     cell_width: usize,
-    tab: Tab,
+    tabs: Tabs,
 }
 
 impl<'a> term::TerminalHost for TabHost<'a> {
@@ -142,8 +160,8 @@ impl TerminalWindow {
         host.window.show();
 
         let tab = Tab {
-            terminal,
-            process,
+            terminal: RefCell::new(terminal),
+            process: RefCell::new(process),
             pty: RefCell::new(pty),
         };
 
@@ -155,7 +173,7 @@ impl TerminalWindow {
             height,
             cell_height,
             cell_width,
-            tab,
+            tabs: Tabs::new(tab),
         })
     }
 
@@ -164,7 +182,7 @@ impl TerminalWindow {
     }
 
     pub fn pty_fd(&self) -> RawFd {
-        self.tab.pty.borrow().as_raw_fd()
+        self.tabs.get_active().pty.borrow().as_raw_fd()
     }
 
     pub fn resize_surfaces(&mut self, width: u16, height: u16) -> Result<bool, Error> {
@@ -181,8 +199,16 @@ impl TerminalWindow {
             // so optimistically pretend that we have that extra pixel!
             let rows = ((height as usize + 1) / self.cell_height) as u16;
             let cols = ((width as usize + 1) / self.cell_width) as u16;
-            self.tab.pty.borrow_mut().resize(rows, cols, width, height)?;
-            self.tab.terminal.resize(rows as usize, cols as usize);
+            self.tabs
+                .get_active()
+                .pty
+                .borrow_mut()
+                .resize(rows, cols, width, height)?;
+            self.tabs
+                .get_active()
+                .terminal
+                .borrow_mut()
+                .resize(rows as usize, cols as usize);
 
             Ok(true)
         } else {
@@ -197,7 +223,10 @@ impl TerminalWindow {
 
     pub fn paint(&mut self) -> Result<(), Error> {
         let mut target = self.host.window.draw();
-        let res = self.renderer.paint(&mut target, &mut self.tab.terminal);
+        let res = self.renderer.paint(
+            &mut target,
+            &mut self.tabs.get_active().terminal.borrow_mut(),
+        );
         // Ensure that we finish() the target before we let the
         // error bubble up, otherwise we lose the context.
         target
@@ -212,7 +241,11 @@ impl TerminalWindow {
                 if let Some(&OutOfTextureSpace { size }) = err.downcast_ref::<OutOfTextureSpace>() {
                     eprintln!("out of texture space, allocating {}", size);
                     self.renderer.recreate_atlas(&self.host.window, size)?;
-                    self.tab.terminal.make_all_lines_dirty();
+                    self.tabs
+                        .get_active()
+                        .terminal
+                        .borrow_mut()
+                        .make_all_lines_dirty();
                     // Recursively initiate a new paint
                     return self.paint();
                 }
@@ -223,7 +256,8 @@ impl TerminalWindow {
     }
 
     pub fn paint_if_needed(&mut self) -> Result<(), Error> {
-        if self.tab.terminal.has_dirty_lines() {
+        let dirty = self.tabs.get_active().terminal.borrow().has_dirty_lines();
+        if dirty {
             self.paint()?;
         }
         Ok(())
@@ -232,7 +266,11 @@ impl TerminalWindow {
     pub fn process_clipboard(&mut self) -> Result<(), Error> {
         match self.host.clipboard.try_get_paste() {
             Ok(Some(Paste::Cleared)) => {
-                self.tab.terminal.clear_selection();
+                self.tabs
+                    .get_active()
+                    .terminal
+                    .borrow_mut()
+                    .clear_selection();
             }
             Ok(_) => {}
             Err(err) => bail!("clipboard thread died? {:?}", err),
@@ -242,7 +280,7 @@ impl TerminalWindow {
     }
 
     pub fn test_for_child_exit(&mut self) -> Result<(), SessionTerminated> {
-        match self.tab.process.try_wait() {
+        match self.tabs.get_active().process.borrow_mut().try_wait() {
             Ok(Some(status)) => Err(SessionTerminated::ProcessStatus { status }),
             Ok(None) => Ok(()),
             Err(e) => Err(SessionTerminated::Error { err: e.into() }),
@@ -253,12 +291,12 @@ impl TerminalWindow {
         const BUFSIZE: usize = 8192;
         let mut buf = [0; BUFSIZE];
 
-        let result = self.tab.pty.borrow_mut().read(&mut buf);
+        let result = self.tabs.get_active().pty.borrow_mut().read(&mut buf);
         match result {
-            Ok(size) => self.tab.terminal.advance_bytes(
+            Ok(size) => self.tabs.get_active().terminal.borrow_mut().advance_bytes(
                 &buf[0..size],
                 &mut TabHost {
-                    pty: &mut *self.tab.pty.borrow_mut(),
+                    pty: &mut *self.tabs.get_active().pty.borrow_mut(),
                     host: &mut self.host,
                 },
             ),
@@ -279,10 +317,10 @@ impl TerminalWindow {
     }
 
     fn mouse_event(&mut self, event: MouseEvent) -> Result<(), Error> {
-        self.tab.terminal.mouse_event(
+        self.tabs.get_active().terminal.borrow_mut().mouse_event(
             event,
             &mut TabHost {
-                pty: &mut *self.tab.pty.borrow_mut(),
+                pty: &mut *self.tabs.get_active().pty.borrow_mut(),
                 host: &mut self.host,
             },
         )?;
@@ -303,11 +341,11 @@ impl TerminalWindow {
             xcb::KEY_PRESS => {
                 let key_press: &xcb::KeyPressEvent = unsafe { xcb::cast_event(event) };
                 let (code, mods) = self.decode_key(key_press);
-                self.tab.terminal.key_down(
+                self.tabs.get_active().terminal.borrow_mut().key_down(
                     code,
                     mods,
                     &mut TabHost {
-                        pty: &mut *self.tab.pty.borrow_mut(),
+                        pty: &mut *self.tabs.get_active().pty.borrow_mut(),
                         host: &mut self.host,
                     },
                 )?;
@@ -315,11 +353,11 @@ impl TerminalWindow {
             xcb::KEY_RELEASE => {
                 let key_press: &xcb::KeyPressEvent = unsafe { xcb::cast_event(event) };
                 let (code, mods) = self.decode_key(key_press);
-                self.tab.terminal.key_up(
+                self.tabs.get_active().terminal.borrow_mut().key_up(
                     code,
                     mods,
                     &mut TabHost {
-                        pty: &mut *self.tab.pty.borrow_mut(),
+                        pty: &mut *self.tabs.get_active().pty.borrow_mut(),
                         host: &mut self.host,
                     },
                 )?;
