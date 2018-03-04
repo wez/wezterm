@@ -19,12 +19,12 @@ use xwindows::xwin::TerminalWindow;
 #[cfg(all(unix, not(target_os = "macos")))]
 pub use xcb::xproto::Window as WindowId;
 
-struct WindowEntry {
+struct TabEntry {
     fd: RawFd,
     window_id: WindowId,
 }
 
-impl Evented for WindowEntry {
+impl Evented for TabEntry {
     fn register(
         &self,
         poll: &Poll,
@@ -53,7 +53,7 @@ impl Evented for WindowEntry {
 #[derive(Default)]
 struct Windows {
     by_id: HashMap<WindowId, TerminalWindow>,
-    by_fd: HashMap<RawFd, Rc<WindowEntry>>,
+    by_fd: HashMap<RawFd, Rc<TabEntry>>,
 }
 
 pub struct GuiEventLoop {
@@ -176,18 +176,21 @@ impl GuiEventLoop {
 
     pub fn add_window(&self, window: TerminalWindow) -> Result<(), Error> {
         let window_id = window.window_id();
-        let fd = window.pty_fd();
+        let fds = window.pty_fds();
 
-        let entry = Rc::new(WindowEntry { fd, window_id });
         let mut windows = self.windows.borrow_mut();
         windows.by_id.insert(window_id, window);
-        windows.by_fd.insert(fd, Rc::clone(&entry));
-        self.poll.register(
-            &*entry,
-            Token(fd as usize),
-            Ready::readable(),
-            PollOpt::edge(),
-        )?;
+
+        for fd in fds {
+            let entry = Rc::new(TabEntry { fd, window_id });
+            windows.by_fd.insert(fd, Rc::clone(&entry));
+            self.poll.register(
+                &*entry,
+                Token(fd as usize),
+                Ready::readable(),
+                PollOpt::edge(),
+            )?;
+        }
         Ok(())
     }
 
@@ -227,12 +230,12 @@ impl GuiEventLoop {
                     entry.window_id
                 )
             })?;
-            (entry.window_id, window.try_read_pty())
+            (entry.window_id, window.try_read_pty(fd))
         };
 
         if let Err(err) = result {
             if err.downcast_ref::<SessionTerminated>().is_some() {
-                self.schedule_window_close(window_id)?;
+                self.schedule_window_close(window_id, Some(fd))?;
             } else {
                 bail!("{:?}", err);
             }
@@ -240,23 +243,45 @@ impl GuiEventLoop {
         Ok(())
     }
 
-    fn schedule_window_close(&self, window_id: WindowId) -> Result<(), Error> {
+    fn schedule_window_close(&self, window_id: WindowId, fd: Option<RawFd>) -> Result<(), Error> {
         let mut windows = self.windows.borrow_mut();
 
-        let fd = {
+        let (fds, window_close) = {
             let window = windows.by_id.get_mut(&window_id).ok_or_else(|| {
                 format_err!("no window_id {:?} in the windows_by_id map", window_id)
             })?;
 
-            window.pty_fd()
+            let all_fds = window.pty_fds();
+            let num_fds = all_fds.len();
+
+            // If no fd was specified, close all of them
+
+            let close_fds = match fd {
+                Some(fd) => vec![fd],
+                None => all_fds,
+            };
+
+            let window_close = close_fds.len() == num_fds;
+            (close_fds, window_close)
         };
 
-        if let Some(entry) = windows.by_fd.get_mut(&fd) {
-            self.poll.deregister(&**entry)?;
+        for fd in &fds {
+            if let Some(entry) = windows.by_fd.get_mut(fd) {
+                self.poll.deregister(&**entry)?;
+            }
+            windows.by_fd.remove(fd);
         }
 
-        windows.by_id.remove(&window_id);
-        windows.by_fd.remove(&fd);
+        if window_close {
+            windows.by_id.remove(&window_id);
+        } else {
+            let window = windows.by_id.get_mut(&window_id).ok_or_else(|| {
+                format_err!("no window_id {:?} in the windows_by_id map", window_id)
+            })?;
+            for fd in fds {
+                window.close_tab_for_fd(fd)?;
+            }
+        }
 
         Ok(())
     }
@@ -377,7 +402,7 @@ impl GuiEventLoop {
                         .collect();
 
                     for window_id in window_ids {
-                        self.schedule_window_close(window_id)?;
+                        self.schedule_window_close(window_id, None)?;
                     }
                 }
                 Err(TryRecvError::Empty) => return Ok(()),

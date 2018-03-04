@@ -43,6 +43,33 @@ impl Tabs {
     fn get_active(&self) -> &Tab {
         &self.tabs[self.active]
     }
+
+    fn get_for_fd(&self, fd: RawFd) -> Option<&Tab> {
+        for t in &self.tabs {
+            if t.pty.borrow().as_raw_fd() == fd {
+                return Some(t);
+            }
+        }
+        None
+    }
+
+    fn index_for_fd(&self, fd: RawFd) -> Option<usize> {
+        for i in 0..self.tabs.len() {
+            if self.tabs[i].pty.borrow().as_raw_fd() == fd {
+                return Some(i);
+            }
+        }
+        None
+    }
+
+    fn remove_tab_for_fd(&mut self, fd: RawFd) {
+        if let Some(idx) = self.index_for_fd(fd) {
+            self.tabs.remove(idx);
+            if self.active == idx && idx >= self.tabs.len() {
+                self.active = self.tabs.len() - 1;
+            }
+        }
+    }
 }
 
 /// Implements `TerminalHost` for a Tab.
@@ -181,8 +208,12 @@ impl TerminalWindow {
         self.host.window.window.window_id
     }
 
-    pub fn pty_fd(&self) -> RawFd {
-        self.tabs.get_active().pty.borrow().as_raw_fd()
+    pub fn pty_fds(&self) -> Vec<RawFd> {
+        self.tabs
+            .tabs
+            .iter()
+            .map(|tab| tab.pty.borrow().as_raw_fd())
+            .collect()
     }
 
     pub fn resize_surfaces(&mut self, width: u16, height: u16) -> Result<bool, Error> {
@@ -287,25 +318,37 @@ impl TerminalWindow {
         }
     }
 
-    pub fn try_read_pty(&mut self) -> Result<(), Error> {
+    pub fn close_tab_for_fd(&mut self, fd: RawFd) -> Result<(), Error> {
+        self.tabs.remove_tab_for_fd(fd);
+        Ok(())
+    }
+
+    pub fn try_read_pty(&mut self, fd: RawFd) -> Result<(), Error> {
         const BUFSIZE: usize = 8192;
         let mut buf = [0; BUFSIZE];
 
-        let result = self.tabs.get_active().pty.borrow_mut().read(&mut buf);
+        let tab = self.tabs
+            .get_for_fd(fd)
+            .ok_or_else(|| format_err!("no tab for fd {}", fd))?;
+
+        let result = tab.pty.borrow_mut().read(&mut buf);
         match result {
-            Ok(size) => self.tabs.get_active().terminal.borrow_mut().advance_bytes(
-                &buf[0..size],
-                &mut TabHost {
-                    pty: &mut *self.tabs.get_active().pty.borrow_mut(),
-                    host: &mut self.host,
-                },
-            ),
+            Ok(size) => {
+                tab.terminal.borrow_mut().advance_bytes(
+                    &buf[0..size],
+                    &mut TabHost {
+                        pty: &mut *tab.pty.borrow_mut(),
+                        host: &mut self.host,
+                    },
+                );
+            }
             Err(err) => {
                 if err.kind() != io::ErrorKind::WouldBlock {
                     return Err(SessionTerminated::Error { err: err.into() }.into());
                 }
             }
         }
+
         Ok(())
     }
 
