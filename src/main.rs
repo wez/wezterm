@@ -52,6 +52,7 @@ mod clipboard;
 mod glutinloop;
 use glutinloop::GuiEventLoop;
 mod gliumwindows;
+use gliumwindows::TerminalWindow;
 
 mod font;
 use font::FontConfiguration;
@@ -166,8 +167,7 @@ fn spawn_window(
         config.hyperlink_rules.clone(),
     );
 
-    let window =
-        gliumwindows::TerminalWindow::new(event_loop, terminal, master, child, fontconfig, config)?;
+    let window = TerminalWindow::new(event_loop, terminal, master, child, fontconfig, config)?;
 
     event_loop.add_window(window)
 }

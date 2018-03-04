@@ -13,8 +13,7 @@
 use futures::{Async, Future};
 use futures::executor::{self, Notify, Spawn};
 use futures::future::{ExecuteError, Executor};
-use glium::glutin::EventsLoopProxy;
-use glutinloop::{channel, GuiSender};
+use glutinloop::GuiSender;
 use std::cell::{Cell, RefCell};
 use std::sync::{Arc, Mutex};
 use std::sync::mpsc;
@@ -36,8 +35,7 @@ enum Slot {
 }
 
 impl Core {
-    pub fn new(proxy: EventsLoopProxy) -> Self {
-        let (tx, rx) = channel(proxy);
+    pub fn new(tx: GuiSender<usize>, rx: mpsc::Receiver<usize>) -> Self {
         Self {
             notify: Arc::new(Notifier {
                 tx: Mutex::new(tx.clone()),

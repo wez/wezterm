@@ -66,7 +66,9 @@ pub struct GuiEventLoop {
 impl GuiEventLoop {
     pub fn new() -> Result<Self, Error> {
         let event_loop = glium::glutin::EventsLoop::new();
-        let core = futurecore::Core::new(event_loop.create_proxy());
+
+        let (fut_tx, fut_rx) = channel(event_loop.create_proxy());
+        let core = futurecore::Core::new(fut_tx, fut_rx);
 
         let (wake_tx, poll_rx) = channel(event_loop.create_proxy());
         let (paster, paster_rx) = channel(event_loop.create_proxy());
