@@ -10,6 +10,7 @@ use futures;
 use guiloop::{GuiEventLoop, SessionTerminated, WindowId};
 use opengl::textureatlas::OutOfTextureSpace;
 use pty::MasterPty;
+use std::cell::RefCell;
 use std::io::{self, Read, Write};
 use std::os::unix::io::{AsRawFd, RawFd};
 use std::process::Child;
@@ -19,11 +20,24 @@ use term::{self, KeyCode, KeyModifiers, MouseButton, MouseEvent, MouseEventKind}
 use term::hyperlink::Hyperlink;
 use xcb;
 
-/// Holds the information we need to implement `TerminalHost`
+/// Holds the terminal state for a tab owned by this window
+struct Tab {
+    terminal: term::Terminal,
+    process: Child,
+    pty: RefCell<MasterPty>,
+}
+
+/// Implements `TerminalHost` for a Tab.
+/// `TabHost` instances are short lived and borrow references to
+/// other state.
+struct TabHost<'a> {
+    pty: &'a mut MasterPty,
+    host: &'a mut Host,
+}
+
+/// Holds most of the information we need to implement `TerminalHost`
 struct Host {
     window: Window,
-    pty: MasterPty,
-    timestamp: xcb::xproto::Timestamp,
     clipboard: Clipboard,
     event_loop: Rc<GuiEventLoop>,
     fonts: Rc<FontConfiguration>,
@@ -38,11 +52,10 @@ pub struct TerminalWindow {
     height: u16,
     cell_height: usize,
     cell_width: usize,
-    terminal: term::Terminal,
-    process: Child,
+    tab: Tab,
 }
 
-impl term::TerminalHost for Host {
+impl<'a> term::TerminalHost for TabHost<'a> {
     fn writer(&mut self) -> &mut Write {
         &mut self.pty
     }
@@ -58,22 +71,23 @@ impl term::TerminalHost for Host {
     }
 
     fn get_clipboard(&mut self) -> Result<String, Error> {
-        self.clipboard.get_clipboard()
+        self.host.clipboard.get_clipboard()
     }
 
     fn set_clipboard(&mut self, clip: Option<String>) -> Result<(), Error> {
-        self.clipboard.set_clipboard(clip)
+        self.host.clipboard.set_clipboard(clip)
     }
 
     fn set_title(&mut self, title: &str) {
-        self.window.set_title(title);
+        self.host.window.set_title(title);
     }
 
     fn new_window(&mut self) {
-        let event_loop = Rc::clone(&self.event_loop);
-        let config = Rc::clone(&self.config);
-        let fonts = Rc::clone(&self.fonts);
-        self.event_loop
+        let event_loop = Rc::clone(&self.host.event_loop);
+        let config = Rc::clone(&self.host.config);
+        let fonts = Rc::clone(&self.host.fonts);
+        self.host
+            .event_loop
             .core
             .spawn(futures::future::poll_fn(move || {
                 spawn_window(&event_loop, None, &config, &fonts)
@@ -115,8 +129,6 @@ impl TerminalWindow {
 
         let host = Host {
             window,
-            pty,
-            timestamp: 0,
             clipboard: Clipboard::new(event_loop.paster.clone(), window_id)?,
             event_loop: Rc::clone(event_loop),
             config: Rc::clone(config),
@@ -129,6 +141,12 @@ impl TerminalWindow {
 
         host.window.show();
 
+        let tab = Tab {
+            terminal,
+            process,
+            pty: RefCell::new(pty),
+        };
+
         Ok(TerminalWindow {
             host,
             renderer,
@@ -137,8 +155,7 @@ impl TerminalWindow {
             height,
             cell_height,
             cell_width,
-            terminal,
-            process,
+            tab,
         })
     }
 
@@ -147,7 +164,7 @@ impl TerminalWindow {
     }
 
     pub fn pty_fd(&self) -> RawFd {
-        self.host.pty.as_raw_fd()
+        self.tab.pty.borrow().as_raw_fd()
     }
 
     pub fn resize_surfaces(&mut self, width: u16, height: u16) -> Result<bool, Error> {
@@ -164,8 +181,8 @@ impl TerminalWindow {
             // so optimistically pretend that we have that extra pixel!
             let rows = ((height as usize + 1) / self.cell_height) as u16;
             let cols = ((width as usize + 1) / self.cell_width) as u16;
-            self.host.pty.resize(rows, cols, width, height)?;
-            self.terminal.resize(rows as usize, cols as usize);
+            self.tab.pty.borrow_mut().resize(rows, cols, width, height)?;
+            self.tab.terminal.resize(rows as usize, cols as usize);
 
             Ok(true)
         } else {
@@ -180,7 +197,7 @@ impl TerminalWindow {
 
     pub fn paint(&mut self) -> Result<(), Error> {
         let mut target = self.host.window.draw();
-        let res = self.renderer.paint(&mut target, &mut self.terminal);
+        let res = self.renderer.paint(&mut target, &mut self.tab.terminal);
         // Ensure that we finish() the target before we let the
         // error bubble up, otherwise we lose the context.
         target
@@ -195,7 +212,7 @@ impl TerminalWindow {
                 if let Some(&OutOfTextureSpace { size }) = err.downcast_ref::<OutOfTextureSpace>() {
                     eprintln!("out of texture space, allocating {}", size);
                     self.renderer.recreate_atlas(&self.host.window, size)?;
-                    self.terminal.make_all_lines_dirty();
+                    self.tab.terminal.make_all_lines_dirty();
                     // Recursively initiate a new paint
                     return self.paint();
                 }
@@ -206,7 +223,7 @@ impl TerminalWindow {
     }
 
     pub fn paint_if_needed(&mut self) -> Result<(), Error> {
-        if self.terminal.has_dirty_lines() {
+        if self.tab.terminal.has_dirty_lines() {
             self.paint()?;
         }
         Ok(())
@@ -215,7 +232,7 @@ impl TerminalWindow {
     pub fn process_clipboard(&mut self) -> Result<(), Error> {
         match self.host.clipboard.try_get_paste() {
             Ok(Some(Paste::Cleared)) => {
-                self.terminal.clear_selection();
+                self.tab.terminal.clear_selection();
             }
             Ok(_) => {}
             Err(err) => bail!("clipboard thread died? {:?}", err),
@@ -225,7 +242,7 @@ impl TerminalWindow {
     }
 
     pub fn test_for_child_exit(&mut self) -> Result<(), SessionTerminated> {
-        match self.process.try_wait() {
+        match self.tab.process.try_wait() {
             Ok(Some(status)) => Err(SessionTerminated::ProcessStatus { status }),
             Ok(None) => Ok(()),
             Err(e) => Err(SessionTerminated::Error { err: e.into() }),
@@ -236,8 +253,15 @@ impl TerminalWindow {
         const BUFSIZE: usize = 8192;
         let mut buf = [0; BUFSIZE];
 
-        match self.host.pty.read(&mut buf) {
-            Ok(size) => self.terminal.advance_bytes(&buf[0..size], &mut self.host),
+        let result = self.tab.pty.borrow_mut().read(&mut buf);
+        match result {
+            Ok(size) => self.tab.terminal.advance_bytes(
+                &buf[0..size],
+                &mut TabHost {
+                    pty: &mut *self.tab.pty.borrow_mut(),
+                    host: &mut self.host,
+                },
+            ),
             Err(err) => {
                 if err.kind() != io::ErrorKind::WouldBlock {
                     return Err(SessionTerminated::Error { err: err.into() }.into());
@@ -255,7 +279,13 @@ impl TerminalWindow {
     }
 
     fn mouse_event(&mut self, event: MouseEvent) -> Result<(), Error> {
-        self.terminal.mouse_event(event, &mut self.host)?;
+        self.tab.terminal.mouse_event(
+            event,
+            &mut TabHost {
+                pty: &mut *self.tab.pty.borrow_mut(),
+                host: &mut self.host,
+            },
+        )?;
         Ok(())
     }
 
@@ -272,15 +302,27 @@ impl TerminalWindow {
             }
             xcb::KEY_PRESS => {
                 let key_press: &xcb::KeyPressEvent = unsafe { xcb::cast_event(event) };
-                self.host.timestamp = key_press.time();
                 let (code, mods) = self.decode_key(key_press);
-                self.terminal.key_down(code, mods, &mut self.host)?;
+                self.tab.terminal.key_down(
+                    code,
+                    mods,
+                    &mut TabHost {
+                        pty: &mut *self.tab.pty.borrow_mut(),
+                        host: &mut self.host,
+                    },
+                )?;
             }
             xcb::KEY_RELEASE => {
                 let key_press: &xcb::KeyPressEvent = unsafe { xcb::cast_event(event) };
-                self.host.timestamp = key_press.time();
                 let (code, mods) = self.decode_key(key_press);
-                self.terminal.key_up(code, mods, &mut self.host)?;
+                self.tab.terminal.key_up(
+                    code,
+                    mods,
+                    &mut TabHost {
+                        pty: &mut *self.tab.pty.borrow_mut(),
+                        host: &mut self.host,
+                    },
+                )?;
             }
             xcb::MOTION_NOTIFY => {
                 let motion: &xcb::MotionNotifyEvent = unsafe { xcb::cast_event(event) };
@@ -296,7 +338,6 @@ impl TerminalWindow {
             }
             xcb::BUTTON_PRESS | xcb::BUTTON_RELEASE => {
                 let button_press: &xcb::ButtonPressEvent = unsafe { xcb::cast_event(event) };
-                self.host.timestamp = button_press.time();
 
                 let event = MouseEvent {
                     kind: match r {
