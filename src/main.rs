@@ -96,7 +96,7 @@ struct Windows {
     by_fd: HashMap<RawFd, WindowId>,
 }
 
-/// The `GuiEventLoop` represents the combined gui even processor,
+/// The `GuiEventLoop` represents the combined gui event processor,
 /// a remote (running on another thread) mio `Poll` instance, and
 /// a core for spawning tasks from futures.  It acts as the manager
 /// for various events and is responsible for driving things forward.
