@@ -3,6 +3,7 @@
 //! background on what's happening in here.
 use failure::{self, Error};
 use glium::glutin::WindowId;
+use glutinloop::GuiSender;
 use mio::{Events, Poll, PollOpt, Ready, Token};
 use mio::unix::EventedFd;
 use mio_extras::channel::{channel as mio_channel, Receiver as MioReceiver, Sender as MioSender};
@@ -10,7 +11,6 @@ use std::os::unix::io::AsRawFd;
 use std::sync::mpsc::{channel, Receiver, Sender, TryRecvError};
 use std::thread::{self, JoinHandle};
 use std::time::Duration;
-use wakeup::GuiSender;
 use xcb;
 use xcb_util;
 

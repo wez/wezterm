@@ -49,7 +49,6 @@ mod remotemio;
 mod opengl;
 
 mod clipboard;
-mod wakeup;
 mod glutinloop;
 use glutinloop::GuiEventLoop;
 mod gliumwindows;

@@ -14,10 +14,10 @@ use futures::{Async, Future};
 use futures::executor::{self, Notify, Spawn};
 use futures::future::{ExecuteError, Executor};
 use glium::glutin::EventsLoopProxy;
+use glutinloop::{channel, GuiSender};
 use std::cell::{Cell, RefCell};
 use std::sync::{Arc, Mutex};
 use std::sync::mpsc;
-use wakeup::{channel, GuiSender};
 
 pub struct Core {
     tx: GuiSender<usize>,

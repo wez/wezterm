@@ -1,22 +1,42 @@
 use failure::Error;
 use futures::{future, Future};
 use glium;
-use glium::glutin::WindowId;
+use glium::glutin::{EventsLoopProxy, WindowId};
 use mio;
 use mio::{PollOpt, Ready, Token};
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::os::unix::io::RawFd;
 use std::rc::Rc;
-use std::sync::mpsc::{Receiver, TryRecvError};
+use std::sync::mpsc::{self, Receiver, Sender, TryRecvError};
 use std::time::Duration;
-use wakeup::GuiSender;
 
 use futurecore;
 use gliumwindows;
 use remotemio;
 use sigchld;
-use wakeup;
+
+#[derive(Clone)]
+pub struct GuiSender<T: Send> {
+    tx: Sender<T>,
+    proxy: EventsLoopProxy,
+}
+
+impl<T: Send> GuiSender<T> {
+    pub fn send(&self, what: T) -> Result<(), Error> {
+        match self.tx.send(what) {
+            Ok(_) => {}
+            Err(err) => bail!("send failed: {:?}", err),
+        };
+        self.proxy.wakeup()?;
+        Ok(())
+    }
+}
+
+pub fn channel<T: Send>(proxy: EventsLoopProxy) -> (GuiSender<T>, Receiver<T>) {
+    let (tx, rx) = mpsc::channel();
+    (GuiSender { tx, proxy }, rx)
+}
 
 /// This struct holds references to Windows.
 /// The primary mapping is from `WindowId` -> `TerminalWindow`.
@@ -48,9 +68,9 @@ impl GuiEventLoop {
         let event_loop = glium::glutin::EventsLoop::new();
         let core = futurecore::Core::new(event_loop.create_proxy());
 
-        let (wake_tx, poll_rx) = wakeup::channel(event_loop.create_proxy());
-        let (paster, paster_rx) = wakeup::channel(event_loop.create_proxy());
-        let (sigchld_tx, sigchld_rx) = wakeup::channel(event_loop.create_proxy());
+        let (wake_tx, poll_rx) = channel(event_loop.create_proxy());
+        let (paster, paster_rx) = channel(event_loop.create_proxy());
+        let (sigchld_tx, sigchld_rx) = channel(event_loop.create_proxy());
 
         let poll = remotemio::IOMgr::new(Duration::from_millis(50), wake_tx);
         sigchld::activate(sigchld_tx)?;

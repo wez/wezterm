@@ -1,11 +1,11 @@
 //! Helper for detecting SIGCHLD
 
 use failure::Error;
+use glutinloop::GuiSender;
 use libc;
 use std::io;
 use std::mem;
 use std::ptr;
-use wakeup::GuiSender;
 
 static mut EVENT_LOOP: Option<GuiSender<()>> = None;
 

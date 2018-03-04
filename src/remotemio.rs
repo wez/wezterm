@@ -1,5 +1,6 @@
 use failure::Error;
 use futures::sync::oneshot;
+use glutinloop::GuiSender;
 use mio::{Event, Evented, Events, Poll, PollOpt, Ready, Token};
 use mio::unix::EventedFd;
 use mio_extras::channel::{channel as mio_channel, Receiver as MioReceiver, Sender as MioSender};
@@ -10,7 +11,6 @@ use std::sync::Arc;
 use std::sync::mpsc::TryRecvError;
 use std::thread;
 use std::time::{Duration, Instant};
-use wakeup;
 
 enum Request {
     Register {
@@ -64,7 +64,7 @@ impl Evented for Fd {
 struct Inner {
     rx: MioReceiver<Request>,
     interval: Duration,
-    wakeup: wakeup::GuiSender<Notification>,
+    wakeup: GuiSender<Notification>,
     fd_map: HashMap<RawFd, Arc<Fd>>,
 }
 
@@ -80,7 +80,7 @@ pub struct IOMgr {
 }
 
 impl IOMgr {
-    pub fn new(interval: Duration, wakeup: wakeup::GuiSender<Notification>) -> Self {
+    pub fn new(interval: Duration, wakeup: GuiSender<Notification>) -> Self {
         let (tx, rx) = mio_channel();
         let mut inner = Inner {
             rx,
