@@ -26,6 +26,12 @@ pub trait TerminalHost {
     /// Create a new tab in the current window
     fn new_tab(&mut self) {}
 
+    /// Switch to a specific tab
+    fn activate_tab(&mut self, _tab: usize) {}
+
+    /// Activate a relative tab number
+    fn activate_tab_relative(&mut self, _delta: isize) {}
+
     /// Toggle full-screen mode
     fn toggle_full_screen(&mut self) {}
 }

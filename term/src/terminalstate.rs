@@ -620,6 +620,14 @@ impl TerminalState {
             host.new_tab();
             return Ok(());
         }
+        if mods == (KeyModifiers::SUPER | KeyModifiers::SHIFT) && key == KeyCode::Char('[') {
+            host.activate_tab_relative(-1);
+            return Ok(());
+        }
+        if mods == (KeyModifiers::SUPER | KeyModifiers::SHIFT) && key == KeyCode::Char(']') {
+            host.activate_tab_relative(1);
+            return Ok(());
+        }
 
         let to_send = match (key, ctrl, alt, shift, self.application_cursor_keys) {
             (Char('\n'), _, ALT, ..) => {
