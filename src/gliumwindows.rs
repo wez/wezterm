@@ -1,7 +1,7 @@
 //! Generic system dependent windows via glium+glutin
 #![allow(dead_code)]
 
-use super::{spawn_window, GuiEventLoop};
+use super::spawn_window;
 use clipboard::{Clipboard, ClipboardImpl, Paste};
 use config::Config;
 use failure::Error;
@@ -9,6 +9,7 @@ use font::FontConfiguration;
 use futures;
 use glium::{self, glutin};
 use glium::glutin::{ElementState, MouseCursor};
+use glutinloop::GuiEventLoop;
 use opengl::render::Renderer;
 use opengl::textureatlas::OutOfTextureSpace;
 use pty::MasterPty;
