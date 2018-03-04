@@ -12,7 +12,7 @@ use std::thread;
 use std::time::{Duration, Instant};
 use wakeup;
 
-pub enum Request {
+enum Request {
     Register {
         fd: RawFd,
         token: Token,
@@ -68,6 +68,13 @@ struct Inner {
     fd_map: HashMap<RawFd, Arc<Fd>>,
 }
 
+/// The `IOMgr` represents a mio `Poll` instance that is driven by a separate
+/// thread.  Unix/X11 systems don't really need this to be in a separate
+/// thread, but for the sake of minimizing platform differences we do use the
+/// same approach for all platforms.  `IOMgr` offers `register` and `deregister`
+/// methods that are similar to their namesakes in `Poll`, except that `IOMgr`
+/// returns `Future` instances that can be used to asynchronously handle the
+/// result of those operations.
 pub struct IOMgr {
     tx: MioSender<Request>,
 }

@@ -86,12 +86,20 @@ fn get_shell() -> Result<String, Error> {
     })
 }
 
+/// This struct holds references to Windows.
+/// The primary mapping is from `WindowId` -> `TerminalWindow`.
+/// There is a secondary mapping from `RawFd` -> `WindowId` that
+/// is used to process data to be read from the pty.
 #[derive(Default)]
 struct Windows {
     by_id: HashMap<WindowId, gliumwindows::TerminalWindow>,
     by_fd: HashMap<RawFd, WindowId>,
 }
 
+/// The `GuiEventLoop` represents the combined gui even processor,
+/// a remote (running on another thread) mio `Poll` instance, and
+/// a core for spawning tasks from futures.  It acts as the manager
+/// for various events and is responsible for driving things forward.
 struct GuiEventLoop {
     event_loop: RefCell<glium::glutin::EventsLoop>,
     windows: Rc<RefCell<Windows>>,
@@ -127,6 +135,7 @@ impl GuiEventLoop {
         })
     }
 
+    /// Add a window to the event loop and run it.
     fn add_window(&self, window: gliumwindows::TerminalWindow) -> Result<(), Error> {
         let window_id = window.window_id();
         let fd = window.pty_fd();
@@ -139,6 +148,7 @@ impl GuiEventLoop {
         Ok(())
     }
 
+    /// Process a single winit event
     fn process_gui_event(
         &self,
         event: &glium::glutin::Event,
@@ -169,6 +179,8 @@ impl GuiEventLoop {
         Ok(result)
     }
 
+    /// Spawns a future that will gracefully shut down the resources associated
+    /// with the specified window.
     fn schedule_window_close(&self, window_id: WindowId) -> Result<(), Error> {
         let fd = {
             let mut windows = self.windows.borrow_mut();
@@ -182,7 +194,6 @@ impl GuiEventLoop {
         let windows = Rc::clone(&self.windows);
 
         self.core.spawn(self.poll.deregister(fd)?.then(move |_| {
-            println!("done dereg");
             let mut windows = windows.borrow_mut();
             windows.by_id.remove(&window_id);
             windows.by_fd.remove(&fd);
@@ -192,6 +203,9 @@ impl GuiEventLoop {
         Ok(())
     }
 
+    /// Process an even from the remote mio instance.
+    /// At this time, all such events correspond to readable events
+    /// for the pty associated with a window.
     fn process_pty_event(&self, event: mio::Event) -> Result<(), Error> {
         // The token is the fd
         let fd = event.token().0 as RawFd;
@@ -217,27 +231,30 @@ impl GuiEventLoop {
             (window_id, window.try_read_pty())
         };
 
-        match result {
-            Ok(_) => Ok(()),
-            Err(err) => match err.downcast_ref::<gliumwindows::SessionTerminated>() {
-                Some(_) => {
-                    self.schedule_window_close(window_id)?;
-                    Ok(())
-                }
-                _ => {
-                    bail!("{:?}", err);
-                }
-            },
+        if let Err(err) = result {
+            if err.downcast_ref::<gliumwindows::SessionTerminated>()
+                .is_some()
+            {
+                self.schedule_window_close(window_id)?;
+            } else {
+                bail!("{:?}", err);
+            }
         }
+        Ok(())
     }
 
+    /// Run through all of the windows and cause them to paint if they need it.
+    /// This happens ~50ms or so.
     fn do_paint(&self) {
         for window in &mut self.windows.borrow_mut().by_id.values_mut() {
             window.paint_if_needed().unwrap();
         }
     }
 
-    fn process_wakeups_new(&self) -> Result<(), Error> {
+    /// Process events from the mio Poll instance.  We may have a pty
+    /// event or our interval timer may have expired, indicating that
+    /// we need to paint.
+    fn process_poll(&self) -> Result<(), Error> {
         loop {
             match self.poll_rx.try_recv() {
                 Ok(remotemio::Notification::EventReady(event)) => {
@@ -253,7 +270,8 @@ impl GuiEventLoop {
         }
     }
 
-    fn process_paste_wakeups(&self) -> Result<(), Error> {
+    /// Process paste notifications and route them to their owning windows.
+    fn process_paste(&self) -> Result<(), Error> {
         loop {
             match self.paster_rx.try_recv() {
                 Ok(window_id) => {
@@ -269,7 +287,9 @@ impl GuiEventLoop {
         }
     }
 
-    fn process_sigchld_wakeups(&self) -> Result<(), Error> {
+    /// If we were signalled by a child process completion, zip through
+    /// the windows and have then notice and prepare to close.
+    fn process_sigchld(&self) -> Result<(), Error> {
         loop {
             match self.sigchld_rx.try_recv() {
                 Ok(_) => {
@@ -293,6 +313,9 @@ impl GuiEventLoop {
         }
     }
 
+    /// Runs the winit event loop.  This blocks until a wakeup signal
+    /// is delivered to the event loop.  The `GuiSender` is our way
+    /// of trigger those wakeups.
     fn run_event_loop(&self) -> Result<(), Error> {
         let mut event_loop = self.event_loop.borrow_mut();
         event_loop.run_forever(|event| {
@@ -312,31 +335,37 @@ impl GuiEventLoop {
         Ok(())
     }
 
+    /// Loop through the core and dispatch any tasks that have been
+    /// notified as ready to run.  Returns once all such tasks have
+    /// been polled and there are no more pending task notifications.
     fn process_futures(&self) {
         loop {
             if !self.core.turn() {
                 break;
             }
-            println!("did one future");
         }
     }
 
+    /// Run the event loop.  Does not return until there is either a fatal
+    /// error, or until there are no more windows left to manage.
     fn run(&self) -> Result<(), Error> {
         loop {
             self.process_futures();
 
+            // Check the window count; if after processing the futures there
+            // are no windows left, then we are done.
             {
                 let windows = self.windows.borrow();
                 if windows.by_id.is_empty() && windows.by_fd.is_empty() {
-                    eprintln!("No more windows; done!");
+                    debug!("No more windows; done!");
                     return Ok(());
                 }
             }
 
             self.run_event_loop()?;
-            self.process_wakeups_new()?;
-            self.process_paste_wakeups()?;
-            self.process_sigchld_wakeups()?;
+            self.process_poll()?;
+            self.process_paste()?;
+            self.process_sigchld()?;
         }
     }
 }
