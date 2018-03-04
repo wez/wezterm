@@ -248,7 +248,7 @@ void main() {
 pub struct Renderer {
     width: u16,
     height: u16,
-    fonts: FontConfiguration,
+    fonts: Rc<FontConfiguration>,
     cell_height: usize,
     cell_width: usize,
     descender: isize,
@@ -267,7 +267,7 @@ impl Renderer {
         facade: &F,
         width: u16,
         height: u16,
-        fonts: FontConfiguration,
+        fonts: &Rc<FontConfiguration>,
         palette: term::color::ColorPalette,
     ) -> Result<Self, Error> {
         let (cell_height, cell_width, descender) = {
@@ -382,7 +382,7 @@ impl Renderer {
             glyph_index_buffer,
             width,
             height,
-            fonts,
+            fonts: Rc::clone(fonts),
             cell_height,
             cell_width,
             descender,

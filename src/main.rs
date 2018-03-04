@@ -370,40 +370,6 @@ impl GuiEventLoop {
     }
 }
 
-fn run_glium(
-    master: pty::MasterPty,
-    child: std::process::Child,
-    config: &Rc<config::Config>,
-    fontconfig: FontConfiguration,
-    terminal: term::Terminal,
-    initial_pixel_width: u16,
-    initial_pixel_height: u16,
-) -> Result<(), Error> {
-    let event_loop = GuiEventLoop::new()?;
-
-    let window = gliumwindows::TerminalWindow::new(
-        &*event_loop.event_loop.borrow_mut(),
-        event_loop.paster.clone(),
-        initial_pixel_width,
-        initial_pixel_height,
-        terminal,
-        master,
-        child,
-        fontconfig,
-        config
-            .colors
-            .as_ref()
-            .map(|p| p.clone().into())
-            .unwrap_or_else(term::color::ColorPalette::default),
-    )?;
-
-    event_loop.add_window(window)?;
-
-    event_loop.run()?;
-
-    Ok(())
-}
-
 //    let message = "; ❤ 😍🤢\n\x1b[91;mw00t\n\x1b[37;104;m bleet\x1b[0;m.";
 //    terminal.advance_bytes(message);
 // !=
@@ -425,10 +391,44 @@ fn run() -> Result<(), Error> {
     let config = Rc::new(config::Config::load()?);
     println!("Using configuration: {:#?}", config);
 
+    let fontconfig = Rc::new(FontConfiguration::new(Rc::clone(&config)));
+
+    let cmd = if args.is_present("PROG") {
+        Some(
+            args.values_of_os("PROG")
+                .expect("PROG wasn't present after all!?")
+                .collect(),
+        )
+    } else {
+        None
+    };
+
+    let event_loop = GuiEventLoop::new()?;
+
+    spawn_window(&event_loop, cmd, &config, &fontconfig)?;
+
+    event_loop.run()?;
+    Ok(())
+}
+
+fn spawn_window(
+    event_loop: &GuiEventLoop,
+    cmd: Option<Vec<&std::ffi::OsStr>>,
+    config: &Rc<config::Config>,
+    fontconfig: &Rc<FontConfiguration>,
+) -> Result<(), Error> {
+    let cmd = match cmd {
+        Some(args) => {
+            let mut args = args.iter();
+            let mut cmd = Command::new(args.next().expect("executable name"));
+            cmd.args(args);
+            cmd
+        }
+        None => Command::new(get_shell()?),
+    };
+
     // First step is to figure out the font metrics so that we know how
     // big things are going to be.
-
-    let fontconfig = FontConfiguration::new(Rc::clone(&config));
     let font = fontconfig.default_font()?;
 
     // we always load the cell_height for font 0,
@@ -448,15 +448,6 @@ fn run() -> Result<(), Error> {
         initial_pixel_height,
     )?;
 
-    let cmd = if args.is_present("PROG") {
-        let mut args = args.values_of_os("PROG")
-            .expect("PROG wasn't present after all!?");
-        let mut cmd = Command::new(args.next().expect("executable name"));
-        cmd.args(args);
-        cmd
-    } else {
-        Command::new(get_shell()?)
-    };
     let child = slave.spawn_command(cmd)?;
     eprintln!("spawned: {:?}", child);
 
@@ -467,15 +458,23 @@ fn run() -> Result<(), Error> {
         config.hyperlink_rules.clone(),
     );
 
-    run_glium(
-        master,
-        child,
-        &config,
-        fontconfig,
-        terminal,
+    let window = gliumwindows::TerminalWindow::new(
+        &*event_loop.event_loop.borrow_mut(),
+        event_loop.paster.clone(),
         initial_pixel_width,
         initial_pixel_height,
-    )
+        terminal,
+        master,
+        child,
+        fontconfig,
+        config
+            .colors
+            .as_ref()
+            .map(|p| p.clone().into())
+            .unwrap_or_else(term::color::ColorPalette::default),
+    )?;
+
+    event_loop.add_window(window)
 }
 
 fn main() {

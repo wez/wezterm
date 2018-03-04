@@ -90,7 +90,7 @@ impl TerminalWindow {
         terminal: Terminal,
         pty: MasterPty,
         process: Child,
-        fonts: FontConfiguration,
+        fonts: &Rc<FontConfiguration>,
         palette: term::color::ColorPalette,
     ) -> Result<TerminalWindow, Error> {
         let (cell_height, cell_width) = {
