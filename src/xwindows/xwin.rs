@@ -297,16 +297,13 @@ impl TerminalWindow {
             // so optimistically pretend that we have that extra pixel!
             let rows = ((height as usize + 1) / self.cell_height) as u16;
             let cols = ((width as usize + 1) / self.cell_width) as u16;
-            self.tabs
-                .get_active()
-                .pty
-                .borrow_mut()
-                .resize(rows, cols, width, height)?;
-            self.tabs
-                .get_active()
-                .terminal
-                .borrow_mut()
-                .resize(rows as usize, cols as usize);
+
+            for mut tab in &mut self.tabs.tabs {
+                tab.pty.borrow_mut().resize(rows, cols, width, height)?;
+                tab.terminal
+                    .borrow_mut()
+                    .resize(rows as usize, cols as usize);
+            }
 
             Ok(true)
         } else {
