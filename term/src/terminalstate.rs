@@ -618,9 +618,7 @@ impl TerminalState {
 
         // TODO: also respect self.application_keypad
 
-        // TODO: I don't really like this key assignment, but for the sake of
-        // testing, I'm just jamming something in.
-        if mods == KeyModifiers::SUPER && key == KeyCode::Char('y') {
+        if mods == KeyModifiers::SUPER && key == KeyCode::Char('n') {
             host.new_window();
             return Ok(());
         }

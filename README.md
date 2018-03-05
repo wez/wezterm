@@ -61,7 +61,8 @@ the middle of Feb 2018.  The following features are done:
 - [x] Render underline, double-underline, italic, bold, strikethrough
 - [x] Configuration file to specify fonts and colors
 - [x] Hyperlinks per: https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5feda
-- [x] Multiple Windows (Hotkey: `Alt-Y` but I don't like it) and Tabs (Hotkey: `Super-T`, next/prev: `Super-[` and `Super-]`, go-to: `Super-[0-9]`)
+- [x] Multiple Windows (Hotkey: `Super-N`)
+- [x] Tabs (Hotkey: `Super-T`, next/prev: `Super-[` and `Super-]`, go-to: `Super-[0-9]`)
 
 There's a good number of terminal escape sequences that are not yet implemented
 and that will get fleshed out as the applications I use uncover them, or as folks
