@@ -620,11 +620,15 @@ impl TerminalState {
             host.new_tab();
             return Ok(());
         }
-        if mods == (KeyModifiers::SUPER | KeyModifiers::SHIFT) && key == KeyCode::Char('[') {
+        if mods == (KeyModifiers::SUPER | KeyModifiers::SHIFT)
+            && (key == KeyCode::Char('[') || key == KeyCode::Char('{'))
+        {
             host.activate_tab_relative(-1);
             return Ok(());
         }
-        if mods == (KeyModifiers::SUPER | KeyModifiers::SHIFT) && key == KeyCode::Char(']') {
+        if mods == (KeyModifiers::SUPER | KeyModifiers::SHIFT)
+            && (key == KeyCode::Char(']') || key == KeyCode::Char('}'))
+        {
             host.activate_tab_relative(1);
             return Ok(());
         }

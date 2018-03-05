@@ -174,6 +174,25 @@ impl GuiEventLoop {
         }
     }
 
+    /// Run a function with access to the mutable version of the window with
+    /// the specified window id
+    pub fn with_window<F: FnMut(&mut TerminalWindow) -> Result<(), Error>>(
+        &self,
+        window_id: WindowId,
+        mut func: F,
+    ) -> Result<(), Error> {
+        let mut windows = self.windows.borrow_mut();
+
+        let window = windows
+            .by_id
+            .get_mut(&window_id)
+            .ok_or_else(|| format_err!("no window_id {:?} in the windows_by_id map", window_id))?;
+
+        func(window)
+    }
+
+    /// Spawn a new tab in the specified window.  This method registers
+    /// the returned pty fd as a TabEntry so that events are wired up.
     pub fn spawn_tab(&self, window_id: WindowId) -> Result<(), Error> {
         let mut windows = self.windows.borrow_mut();
 

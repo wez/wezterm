@@ -45,6 +45,12 @@ impl Tabs {
         &self.tabs[self.active]
     }
 
+    fn set_active(&mut self, idx: usize) {
+        assert!(idx < self.tabs.len());
+        self.active = idx;
+        self.tabs[idx].terminal.borrow_mut().make_all_lines_dirty();
+    }
+
     fn get_for_fd(&self, fd: RawFd) -> Option<&Tab> {
         for t in &self.tabs {
             if t.pty.borrow().as_raw_fd() == fd {
@@ -66,8 +72,9 @@ impl Tabs {
     fn remove_tab_for_fd(&mut self, fd: RawFd) {
         if let Some(idx) = self.index_for_fd(fd) {
             self.tabs.remove(idx);
-            if self.active == idx && idx >= self.tabs.len() {
-                self.active = self.tabs.len() - 1;
+            let len = self.tabs.len();
+            if self.active == idx && idx >= len {
+                self.set_active(len - 1);
             }
         }
     }
@@ -152,6 +159,36 @@ impl<'a> term::TerminalHost for TabHost<'a> {
             .spawn(futures::future::poll_fn(move || {
                 events
                     .spawn_tab(window_id)
+                    .map(futures::Async::Ready)
+                    .map_err(|_| ())
+            }));
+    }
+
+    fn activate_tab(&mut self, tab: usize) {
+        let events = Rc::clone(&self.host.event_loop);
+        let window_id = self.host.window.window.window_id;
+
+        self.host
+            .event_loop
+            .core
+            .spawn(futures::future::poll_fn(move || {
+                events
+                    .with_window(window_id, |win| win.activate_tab(tab))
+                    .map(futures::Async::Ready)
+                    .map_err(|_| ())
+            }));
+    }
+
+    fn activate_tab_relative(&mut self, tab: isize) {
+        let events = Rc::clone(&self.host.event_loop);
+        let window_id = self.host.window.window.window_id;
+
+        self.host
+            .event_loop
+            .core
+            .spawn(futures::future::poll_fn(move || {
+                events
+                    .with_window(window_id, |win| win.activate_tab_relative(tab))
                     .map(futures::Async::Ready)
                     .map_err(|_| ())
             }));
@@ -499,5 +536,20 @@ impl TerminalWindow {
         self.tabs.active = self.tabs.tabs.len() - 1;
 
         Ok(fd)
+    }
+
+    pub fn activate_tab(&mut self, tab: usize) -> Result<(), Error> {
+        let max = self.tabs.tabs.len();
+        if tab < max {
+            self.tabs.set_active(tab);
+        }
+        Ok(())
+    }
+
+    pub fn activate_tab_relative(&mut self, delta: isize) -> Result<(), Error> {
+        let max = self.tabs.tabs.len();
+        let tab = (self.tabs.active as isize + delta) as usize % max;
+        self.tabs.set_active(tab);
+        Ok(())
     }
 }
