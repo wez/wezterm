@@ -1,6 +1,6 @@
 use super::{Connection, Window};
+use super::super::{get_shell, spawn_window};
 use super::super::opengl::render::Renderer;
-use super::super::spawn_window;
 use super::xkeysyms;
 use clipboard::{Clipboard, ClipboardImpl, Paste};
 use config::Config;
@@ -9,6 +9,7 @@ use font::FontConfiguration;
 use futures;
 use guiloop::{GuiEventLoop, SessionTerminated, WindowId};
 use opengl::textureatlas::OutOfTextureSpace;
+use pty;
 use pty::MasterPty;
 use std::cell::RefCell;
 use std::io::{self, Read, Write};
@@ -136,6 +137,21 @@ impl<'a> term::TerminalHost for TabHost<'a> {
             .core
             .spawn(futures::future::poll_fn(move || {
                 spawn_window(&event_loop, None, &config, &fonts)
+                    .map(futures::Async::Ready)
+                    .map_err(|_| ())
+            }));
+    }
+
+    fn new_tab(&mut self) {
+        let events = Rc::clone(&self.host.event_loop);
+        let window_id = self.host.window.window.window_id;
+
+        self.host
+            .event_loop
+            .core
+            .spawn(futures::future::poll_fn(move || {
+                events
+                    .spawn_tab(window_id)
                     .map(futures::Async::Ready)
                     .map_err(|_| ())
             }));
@@ -454,5 +470,34 @@ impl TerminalWindow {
             _ => {}
         }
         Ok(())
+    }
+
+    pub fn spawn_tab(&mut self) -> Result<RawFd, Error> {
+        let rows = (self.height as usize + 1) / self.cell_height;
+        let cols = (self.width as usize + 1) / self.cell_width;
+
+        let (pty, slave) = pty::openpty(rows as u16, cols as u16, self.width, self.height)?;
+        let process = RefCell::new(slave.spawn_command(Command::new(get_shell()?))?);
+        eprintln!("spawned: {:?}", process);
+
+        let terminal = RefCell::new(term::Terminal::new(
+            rows,
+            cols,
+            self.host.config.scrollback_lines.unwrap_or(3500),
+            self.host.config.hyperlink_rules.clone(),
+        ));
+
+        let fd = pty.as_raw_fd();
+
+        let tab = Tab {
+            terminal,
+            process,
+            pty: RefCell::new(pty),
+        };
+
+        self.tabs.tabs.push(tab);
+        self.tabs.active = self.tabs.tabs.len() - 1;
+
+        Ok(fd)
     }
 }

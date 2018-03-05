@@ -174,6 +174,31 @@ impl GuiEventLoop {
         }
     }
 
+    pub fn spawn_tab(&self, window_id: WindowId) -> Result<(), Error> {
+        let mut windows = self.windows.borrow_mut();
+
+        let fd = {
+            let mut window = windows.by_id.get_mut(&window_id).ok_or_else(|| {
+                format_err!("no window_id {:?} in the windows_by_id map", window_id)
+            })?;
+
+            window.spawn_tab()?
+        };
+
+        eprintln!("spawned new tab with fd = {}", fd);
+
+        let entry = Rc::new(TabEntry { fd, window_id });
+        windows.by_fd.insert(fd, Rc::clone(&entry));
+        self.poll.register(
+            &*entry,
+            Token(fd as usize),
+            Ready::readable(),
+            PollOpt::edge(),
+        )?;
+
+        Ok(())
+    }
+
     pub fn add_window(&self, window: TerminalWindow) -> Result<(), Error> {
         let window_id = window.window_id();
         let fds = window.pty_fds();
