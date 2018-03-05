@@ -28,6 +28,14 @@ struct Tab {
     pty: RefCell<MasterPty>,
 }
 
+impl Drop for Tab {
+    fn drop(&mut self) {
+        // Avoid lingering zombies
+        self.process.borrow_mut().kill().ok();
+        self.process.borrow_mut().wait().ok();
+    }
+}
+
 struct Tabs {
     tabs: Vec<Tab>,
     active: usize,
