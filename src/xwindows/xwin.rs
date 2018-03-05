@@ -131,8 +131,22 @@ impl<'a> term::TerminalHost for TabHost<'a> {
         self.host.clipboard.set_clipboard(clip)
     }
 
-    fn set_title(&mut self, title: &str) {
-        self.host.window.set_title(title);
+    fn set_title(&mut self, _title: &str) {
+        let events = Rc::clone(&self.host.event_loop);
+        let window_id = self.host.window.window.window_id;
+
+        self.host
+            .event_loop
+            .core
+            .spawn(futures::future::poll_fn(move || {
+                events
+                    .with_window(window_id, |win| {
+                        win.update_title();
+                        Ok(())
+                    })
+                    .map(futures::Async::Ready)
+                    .map_err(|_| ())
+            }));
     }
 
     fn new_window(&mut self) {
@@ -371,11 +385,6 @@ impl TerminalWindow {
         }
     }
 
-    pub fn close_tab_for_fd(&mut self, fd: RawFd) -> Result<(), Error> {
-        self.tabs.remove_tab_for_fd(fd);
-        Ok(())
-    }
-
     pub fn try_read_pty(&mut self, fd: RawFd) -> Result<(), Error> {
         const BUFSIZE: usize = 8192;
         let mut buf = [0; BUFSIZE];
@@ -533,15 +542,41 @@ impl TerminalWindow {
         };
 
         self.tabs.tabs.push(tab);
-        self.tabs.active = self.tabs.tabs.len() - 1;
+        let len = self.tabs.tabs.len();
+        self.activate_tab(len - 1)?;
 
         Ok(fd)
+    }
+
+    pub fn close_tab_for_fd(&mut self, fd: RawFd) -> Result<(), Error> {
+        self.tabs.remove_tab_for_fd(fd);
+        self.update_title();
+        Ok(())
+    }
+
+    fn update_title(&mut self) {
+        let num_tabs = self.tabs.tabs.len();
+        let tab_no = self.tabs.active;
+
+        let terminal = self.tabs.get_active().terminal.borrow();
+
+        if num_tabs == 1 {
+            self.host.window.set_title(terminal.get_title());
+        } else {
+            self.host.window.set_title(&format!(
+                "[{}/{}] {}",
+                tab_no + 1,
+                num_tabs,
+                terminal.get_title()
+            ));
+        }
     }
 
     pub fn activate_tab(&mut self, tab: usize) -> Result<(), Error> {
         let max = self.tabs.tabs.len();
         if tab < max {
             self.tabs.set_active(tab);
+            self.update_title();
         }
         Ok(())
     }
@@ -549,7 +584,6 @@ impl TerminalWindow {
     pub fn activate_tab_relative(&mut self, delta: isize) -> Result<(), Error> {
         let max = self.tabs.tabs.len();
         let tab = (self.tabs.active as isize + delta) as usize % max;
-        self.tabs.set_active(tab);
-        Ok(())
+        self.activate_tab(tab)
     }
 }

@@ -111,6 +111,9 @@ pub struct TerminalState {
     tabs: TabStop,
 
     hyperlink_rules: Vec<hyperlink::Rule>,
+
+    /// The terminal title string
+    title: String,
 }
 
 impl TerminalState {
@@ -147,7 +150,12 @@ impl TerminalState {
             selection_start: None,
             tabs: TabStop::new(physical_cols, 8),
             hyperlink_rules,
+            title: "wezterm".to_string(),
         }
+    }
+
+    pub fn get_title(&self) -> &str {
+        &self.title
     }
 
     pub fn screen(&self) -> &Screen {
@@ -1319,6 +1327,7 @@ impl<'a> vte::Perform for Performer<'a> {
         match *osc {
             [b"0", title] => {
                 if let Ok(title) = str::from_utf8(title) {
+                    self.title = title.to_string();
                     self.host.set_title(title);
                 } else {
                     eprintln!("OSC: failed to decode utf title for {:?}", title);
