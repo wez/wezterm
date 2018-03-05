@@ -633,6 +633,19 @@ impl TerminalState {
             return Ok(());
         }
 
+        if mods == KeyModifiers::SUPER {
+            if let Char(c) = key {
+                if c >= '0' && c <= '9' {
+                    let tab_number = c as u32 - 0x30;
+                    // Treat 0 as 10 as that is physically right of 9 on
+                    // a keyboard
+                    let tab_number = if tab_number == 0 { 10 } else { tab_number - 1 };
+                    host.activate_tab(tab_number as usize);
+                    return Ok(());
+                }
+            }
+        }
+
         let to_send = match (key, ctrl, alt, shift, self.application_cursor_keys) {
             (Char('\n'), _, ALT, ..) => {
                 host.toggle_full_screen();
