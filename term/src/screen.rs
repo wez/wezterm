@@ -100,9 +100,17 @@ impl Screen {
         self.lines.iter().map(|l| l.clone()).collect()
     }
 
+    pub fn insert_cell(&mut self, x: usize, y: VisibleRowIndex) {
+        let line_idx = self.phys_row(y);
+        let line = self.line_mut(line_idx);
+        line.invalidate_implicit_links();
+        line.cells.insert(x, Cell::default());
+    }
+
     pub fn erase_cell(&mut self, x: usize, y: VisibleRowIndex) {
         let line_idx = self.phys_row(y);
         let line = self.line_mut(line_idx);
+        line.invalidate_implicit_links();
         line.cells.remove(x);
         line.cells.push(Cell::default());
     }

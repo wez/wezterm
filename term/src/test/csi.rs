@@ -20,6 +20,20 @@ fn test_vpa() {
 }
 
 #[test]
+fn test_ich() {
+    let mut term = TestTerm::new(3, 4, 0);
+    term.print("hey!wat?");
+    term.cup(1, 0);
+    term.print("\x1b[2@");
+    assert_visible_contents(&term, &["h  ey!", "wat?", "    "]);
+    // check how we handle overflowing the width
+    term.print("\x1b[12@");
+    assert_visible_contents(&term, &["h     ey!", "wat?", "    "]);
+    term.print("\x1b[-12@");
+    assert_visible_contents(&term, &["h     ey!", "wat?", "    "]);
+}
+
+#[test]
 fn test_ech() {
     let mut term = TestTerm::new(3, 4, 0);
     term.print("hey!wat?");

@@ -59,6 +59,7 @@ pub enum CSIAction {
     SoftReset,
     EraseCharacter(i64),
     DeleteCharacter(i64),
+    InsertCharacter(i64),
 }
 
 /// Constrol Sequence Initiator (CSI) Parser.
@@ -430,6 +431,11 @@ impl<'a> Iterator for CSIParser<'a> {
         #[cfg_attr(feature = "cargo-clippy", allow(match_same_arms))]
         match (self.byte, self.intermediates, params) {
             (_, _, None) => None,
+
+            // ICH: Insert Character
+            ('@', &[], Some(&[])) => Some(CSIAction::InsertCharacter(1)),
+            ('@', &[], Some(&[n])) => Some(CSIAction::InsertCharacter(n)),
+
             // CUU - Cursor Up n times
             ('A', &[], Some(&[])) => Some(CSIAction::SetCursorXY {
                 x: Position::Relative(0),

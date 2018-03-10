@@ -1034,6 +1034,20 @@ impl TerminalState {
                 }
                 self.clear_selection_if_intersects(x..limit, y as ScrollbackOrVisibleRowIndex);
             }
+            CSIAction::InsertCharacter(n) => {
+                let y = self.cursor.y;
+                let x = self.cursor.x;
+                // TODO: this limiting behavior may not be correct.  There's also a
+                // SEM sequence that impacts the scope of ICH and ECH to consider.
+                let limit = (x + n as usize).min(self.screen().physical_cols);
+                {
+                    let screen = self.screen_mut();
+                    for x in x..limit as usize {
+                        screen.insert_cell(x, y);
+                    }
+                }
+                self.clear_selection_if_intersects(x..limit, y as ScrollbackOrVisibleRowIndex);
+            }
             CSIAction::EraseCharacter(n) => {
                 let y = self.cursor.y;
                 let x = self.cursor.x;
