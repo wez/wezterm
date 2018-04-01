@@ -37,6 +37,10 @@ pub struct Config {
 
     #[serde(default = "default_hyperlink_rules")]
     pub hyperlink_rules: Vec<hyperlink::Rule>,
+
+    /// What to set the TERM variable to
+    #[serde(default = "default_term")]
+    pub term: String,
 }
 
 fn default_hyperlink_rules() -> Vec<hyperlink::Rule> {
@@ -46,6 +50,10 @@ fn default_hyperlink_rules() -> Vec<hyperlink::Rule> {
         // implicit mailto link
         hyperlink::Rule::new(r"\b\w+@[\w-]+(\.[\w-]+)+\b", "mailto:$0").unwrap(),
     ]
+}
+
+fn default_term() -> String {
+    "xterm-256color".into()
 }
 
 fn default_font_size() -> f64 {
@@ -66,6 +74,7 @@ impl Default for Config {
             colors: None,
             scrollback_lines: None,
             hyperlink_rules: default_hyperlink_rules(),
+            term: default_term(),
         }
     }
 }

@@ -528,7 +528,10 @@ impl TerminalWindow {
         let cols = (self.width as usize + 1) / self.cell_width;
 
         let (pty, slave) = pty::openpty(rows as u16, cols as u16, self.width, self.height)?;
-        let process = RefCell::new(slave.spawn_command(Command::new(get_shell()?))?);
+        let mut cmd = Command::new(get_shell()?);
+        cmd.env("TERM", &self.host.config.term);
+
+        let process = RefCell::new(slave.spawn_command(cmd)?);
         eprintln!("spawned: {:?}", process);
 
         let terminal = RefCell::new(term::Terminal::new(
