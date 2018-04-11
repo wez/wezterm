@@ -2,8 +2,8 @@ use egli;
 use gl;
 use glium;
 use glium::backend::Backend;
-use mio::{Evented, Poll, PollOpt, Ready, Token};
 use mio::unix::EventedFd;
+use mio::{Evented, Poll, PollOpt, Ready, Token};
 use std::cell::RefCell;
 use std::io;
 use std::mem;
@@ -244,18 +244,16 @@ impl Window {
                 0,
                 xcb::WINDOW_CLASS_INPUT_OUTPUT as u16,
                 screen.root_visual(),
-                &[
-                    (
-                        xcb::CW_EVENT_MASK,
-                        xcb::EVENT_MASK_EXPOSURE | xcb::EVENT_MASK_KEY_PRESS
-                            | xcb::EVENT_MASK_BUTTON_PRESS
-                            | xcb::EVENT_MASK_BUTTON_RELEASE
-                            | xcb::EVENT_MASK_POINTER_MOTION
-                            | xcb::EVENT_MASK_BUTTON_MOTION
-                            | xcb::EVENT_MASK_KEY_RELEASE
-                            | xcb::EVENT_MASK_STRUCTURE_NOTIFY,
-                    ),
-                ],
+                &[(
+                    xcb::CW_EVENT_MASK,
+                    xcb::EVENT_MASK_EXPOSURE | xcb::EVENT_MASK_KEY_PRESS
+                        | xcb::EVENT_MASK_BUTTON_PRESS
+                        | xcb::EVENT_MASK_BUTTON_RELEASE
+                        | xcb::EVENT_MASK_POINTER_MOTION
+                        | xcb::EVENT_MASK_BUTTON_MOTION
+                        | xcb::EVENT_MASK_KEY_RELEASE
+                        | xcb::EVENT_MASK_STRUCTURE_NOTIFY,
+                )],
             ).request_check()?;
             Rc::new(WindowHolder {
                 window_id,

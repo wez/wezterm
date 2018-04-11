@@ -1,7 +1,7 @@
-use super::{Connection, Window};
-use super::super::{get_shell, spawn_window};
 use super::super::opengl::render::Renderer;
+use super::super::{get_shell, spawn_window};
 use super::xkeysyms;
+use super::{Connection, Window};
 use clipboard::{Clipboard, ClipboardImpl, Paste};
 use config::Config;
 use failure::Error;
@@ -17,8 +17,8 @@ use std::os::unix::io::{AsRawFd, RawFd};
 use std::process::Child;
 use std::process::Command;
 use std::rc::Rc;
-use term::{self, KeyCode, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 use term::hyperlink::Hyperlink;
+use term::{self, KeyCode, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 use xcb;
 
 /// Holds the terminal state for a tab owned by this window

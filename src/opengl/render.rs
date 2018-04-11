@@ -5,16 +5,16 @@ use config::TextStyle;
 use euclid;
 use failure::{err_msg, Error};
 use font::{FontConfiguration, GlyphInfo};
-use glium::{self, IndexBuffer, Surface, VertexBuffer};
 use glium::backend::Facade;
 use glium::texture::SrgbTexture2d;
+use glium::{self, IndexBuffer, Surface, VertexBuffer};
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::mem;
 use std::ops::{Deref, Range};
 use std::rc::Rc;
-use term::{self, CursorPosition, Line, Underline};
 use term::color::RgbaTuple;
+use term::{self, CursorPosition, Line, Underline};
 
 type Transform3D = euclid::Transform3D<f32>;
 

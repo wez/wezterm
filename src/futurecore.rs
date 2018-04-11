@@ -10,12 +10,12 @@
 //! Copyright (c) 2016 Alex Crichton
 //! Copyright (c) 2017 The Tokio Authors
 
-use futures::{Async, Future};
 use futures::executor::{self, Notify, Spawn};
 use futures::future::{ExecuteError, Executor};
+use futures::{Async, Future};
 use std::cell::{Cell, RefCell};
-use std::sync::{Arc, Mutex};
 use std::sync::mpsc;
+use std::sync::{Arc, Mutex};
 
 use guiloop::{GuiReceiver, GuiSender};
 

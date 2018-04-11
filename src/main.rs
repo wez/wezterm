@@ -51,14 +51,14 @@ use std::str;
 mod config;
 
 mod futurecore;
+mod opengl;
 #[cfg(target_os = "macos")]
 mod remotemio;
-mod opengl;
 
 mod clipboard;
-mod guiloop;
 #[cfg(target_os = "macos")]
 mod gliumwindows;
+mod guiloop;
 
 use guiloop::{GuiEventLoop, TerminalWindow};
 

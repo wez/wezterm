@@ -82,7 +82,7 @@ impl FontConfiguration {
                     }
                 }
                 // matches so far...
-            }
+            };
         };
 
         for rule in &self.config.font_rules {

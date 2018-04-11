@@ -289,8 +289,8 @@ impl Screen {
     ///
     /// scroll the region down by num_rows.  Any rows that would be scrolled
     /// beyond the bottom get removed from the screen.
-    /// In other words, we remove (bottom-num_rows..bottom) and then insert num_rows
-    /// at scroll_top.
+    /// In other words, we remove (bottom-num_rows..bottom) and then insert
+    /// num_rows at scroll_top.
     pub fn scroll_down(&mut self, scroll_region: &Range<VisibleRowIndex>, num_rows: usize) {
         debug!("scroll_down {:?} {}", scroll_region, num_rows);
         let phys_scroll = self.phys_range(scroll_region);

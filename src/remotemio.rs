@@ -1,14 +1,14 @@
 use failure::Error;
 use futures::sync::oneshot;
 use guiloop::GuiSender;
-use mio::{Event, Evented, Events, Poll, PollOpt, Ready, Token};
 use mio::unix::EventedFd;
+use mio::{Event, Evented, Events, Poll, PollOpt, Ready, Token};
 use mio_extras::channel::{channel as mio_channel, Receiver as MioReceiver, Sender as MioSender};
 use std::collections::HashMap;
 use std::io;
 use std::os::unix::io::RawFd;
-use std::sync::Arc;
 use std::sync::mpsc::TryRecvError;
+use std::sync::Arc;
 use std::thread;
 use std::time::{Duration, Instant};
 

@@ -2,10 +2,10 @@
 //! processing routines.
 
 use super::*;
-mod selection;
 mod c0;
 mod c1;
 mod csi;
+mod selection;
 
 #[derive(Default, Debug)]
 struct TestHost {

@@ -990,7 +990,8 @@ impl TerminalState {
     }
 
     /// Moves the cursor to the next tab stop. If there are no more tab stops,
-    /// the cursor moves to the right margin. HT does not cause text to auto wrap.
+    /// the cursor moves to the right margin. HT does not cause text to auto
+    /// wrap.
     fn c0_horizontal_tab(&mut self) {
         let x = match self.tabs.find_next_tab_stop(self.cursor.x) {
             Some(x) => x,

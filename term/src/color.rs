@@ -74,19 +74,17 @@ impl RgbColor {
             let mut chars = s.chars().skip(1);
 
             macro_rules! digit {
-                () => {
-                    {
-                        let hi = match chars.next().unwrap().to_digit(16) {
-                            Some(v) => (v as u8) << 4,
-                            None => return None
-                        };
-                        let lo = match chars.next().unwrap().to_digit(16) {
-                            Some(v) => v as u8,
-                            None => return None
-                        };
-                        hi | lo
-                    }
-                }
+                () => {{
+                    let hi = match chars.next().unwrap().to_digit(16) {
+                        Some(v) => (v as u8) << 4,
+                        None => return None,
+                    };
+                    let lo = match chars.next().unwrap().to_digit(16) {
+                        Some(v) => v as u8,
+                        None => return None,
+                    };
+                    hi | lo
+                }};
             }
             Some(Self::new(digit!(), digit!(), digit!()))
         } else {
@@ -270,8 +268,30 @@ impl Default for ColorPalette {
 
         // 24 grey scales
         static GREYS: [u8; 24] = [
-            0x08, 0x12, 0x1c, 0x26, 0x30, 0x3a, 0x44, 0x4e, 0x58, 0x62, 0x6c, 0x76, 0x80, 0x8a,
-            0x94, 0x9e, 0xa8, 0xb2 /* Grey70 */, 0xbc, 0xc6, 0xd0, 0xda, 0xe4, 0xee,
+            0x08,
+            0x12,
+            0x1c,
+            0x26,
+            0x30,
+            0x3a,
+            0x44,
+            0x4e,
+            0x58,
+            0x62,
+            0x6c,
+            0x76,
+            0x80,
+            0x8a,
+            0x94,
+            0x9e,
+            0xa8,
+            0xb2, /* Grey70 */
+            0xbc,
+            0xc6,
+            0xd0,
+            0xda,
+            0xe4,
+            0xee,
         ];
 
         for idx in 0..24 {

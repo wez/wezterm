@@ -2,9 +2,9 @@
 
 use failure::Error;
 use libc::{self, winsize};
-use mio::{Poll, PollOpt, Ready, Token};
 use mio::event::Evented;
 use mio::unix::EventedFd;
+use mio::{Poll, PollOpt, Ready, Token};
 use std::io;
 use std::mem;
 use std::os::unix::io::{AsRawFd, FromRawFd, RawFd};

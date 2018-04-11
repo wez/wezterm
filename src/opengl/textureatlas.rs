@@ -1,9 +1,9 @@
 //! Keeping track of sprite textures
 
 use failure::Error;
-use glium::{self, Rect};
 use glium::backend::Facade;
 use glium::texture::{SrgbTexture2d, Texture2dDataSource};
+use glium::{self, Rect};
 use std::rc::Rc;
 
 pub const TEX_SIZE: u32 = 4096;

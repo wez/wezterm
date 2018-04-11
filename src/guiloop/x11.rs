@@ -1,8 +1,8 @@
 use super::SessionTerminated;
 use failure::Error;
 use futurecore;
-use mio::{Event, Evented, Events, Poll, PollOpt, Ready, Token};
 use mio::unix::EventedFd;
+use mio::{Event, Evented, Events, Poll, PollOpt, Ready, Token};
 pub use mio_extras::channel::{channel, Receiver as GuiReceiver, Sender as GuiSender};
 use sigchld;
 use std::cell::RefCell;
@@ -13,8 +13,8 @@ use std::rc::Rc;
 use std::sync::mpsc::TryRecvError;
 use std::time::{Duration, Instant};
 use xcb;
-use xwindows::Connection;
 use xwindows::xwin::TerminalWindow;
+use xwindows::Connection;
 
 #[cfg(all(unix, not(target_os = "macos")))]
 pub use xcb::xproto::Window as WindowId;

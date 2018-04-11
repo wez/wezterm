@@ -201,16 +201,14 @@ mod test {
 
         assert_eq!(
             Rule::match_hyperlinks("  http://example.com", &rules),
-            vec![
-                RuleMatch {
-                    range: 2..20,
-                    link: Rc::new(Hyperlink {
-                        url: "http://example.com".to_owned(),
-                        id: "".to_owned(),
-                        implicit: true,
-                    }),
-                },
-            ]
+            vec![RuleMatch {
+                range: 2..20,
+                link: Rc::new(Hyperlink {
+                    url: "http://example.com".to_owned(),
+                    id: "".to_owned(),
+                    implicit: true,
+                }),
+            }]
         );
 
         assert_eq!(

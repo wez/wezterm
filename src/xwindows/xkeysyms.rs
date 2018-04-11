@@ -1,6 +1,6 @@
 #![allow(non_upper_case_globals, dead_code)]
-use xcb::KeyPressEvent;
 use xcb::ffi::xproto::xcb_keysym_t;
+use xcb::KeyPressEvent;
 
 pub const XK_VoidSymbol: xcb_keysym_t = 0xff_ffff;
 pub const XK_BackSpace: xcb_keysym_t = 0xff08;

@@ -18,11 +18,11 @@ use std::io::{Read, Write};
 use std::os::unix::io::{AsRawFd, RawFd};
 use std::process::{Child, Command, ExitStatus};
 use std::rc::Rc;
-use term::{self, Terminal};
-use term::{MouseButton, MouseEventKind};
+use term::hyperlink::Hyperlink;
 use term::KeyCode;
 use term::KeyModifiers;
-use term::hyperlink::Hyperlink;
+use term::{self, Terminal};
+use term::{MouseButton, MouseEventKind};
 
 struct Host {
     display: glium::Display,
