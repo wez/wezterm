@@ -116,6 +116,27 @@ pub struct TerminalState {
     title: String,
 }
 
+/// Like Write::write_all except that we keep looping
+/// when we get WouldBlock
+fn write_all(w: &mut std::io::Write, mut buf: &[u8]) -> std::io::Result<()> {
+    use std::io::ErrorKind;
+    while !buf.is_empty() {
+        match w.write(buf) {
+            Ok(0) => {
+                return Err(std::io::Error::new(
+                    ErrorKind::WriteZero,
+                    "failed to write whole buffer",
+                ))
+            }
+            Ok(n) => buf = &buf[n..],
+            Err(ref e)
+                if e.kind() == ErrorKind::Interrupted || e.kind() == ErrorKind::WouldBlock => {}
+            Err(e) => return Err(e),
+        }
+    }
+    Ok(())
+}
+
 impl TerminalState {
     pub fn new(
         physical_rows: usize,
@@ -767,7 +788,7 @@ impl TerminalState {
             | (Unknown, ..) => "",
         };
 
-        host.writer().write_all(to_send.as_bytes())?;
+        write_all(host.writer(), to_send.as_bytes())?;
 
         // Reset the viewport if we sent data to the parser
         if !to_send.is_empty() && self.viewport_offset != 0 {
