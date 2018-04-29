@@ -6,9 +6,6 @@ error_on_unformatted = false
 # Too many derives can cause line length limits to be exceeded. rustfmt-nightly
 # 0.2.5 doesn't appear to pay attention to this.
 merge_derives = false
-reorder_imported_names = true
-reorder_imports = true
-reorder_imports_in_group = true
 struct_lit_single_line = true
 # Override the Nuclide/Atom default tab spacing.
 tab_spaces = 4
