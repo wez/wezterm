@@ -5,8 +5,10 @@ use super::hbwrap as harfbuzz;
 use config::{Config, TextStyle};
 use failure::{self, Error};
 use font::{fcwrap, ftwrap};
-use font::{shape_with_harfbuzz, FallbackIdx, Font, FontMetrics, FontSystem, GlyphInfo, NamedFont,
-           RasterizedGlyph};
+use font::{
+    shape_with_harfbuzz, FallbackIdx, Font, FontMetrics, FontSystem, GlyphInfo, NamedFont,
+    RasterizedGlyph,
+};
 use std::cell::RefCell;
 use std::mem;
 use std::slice;
@@ -285,7 +287,8 @@ impl NamedFontImpl {
 
     fn load_next_fallback(&mut self) -> Result<(), Error> {
         let idx = self.fonts.len();
-        let pat = self.font_list
+        let pat = self
+            .font_list
             .iter()
             .nth(idx)
             .ok_or_else(|| failure::err_msg("no more fallbacks"))?;

@@ -186,7 +186,8 @@ impl GuiEventLoop {
         };
 
         if let Err(err) = result {
-            if err.downcast_ref::<gliumwindows::SessionTerminated>()
+            if err
+                .downcast_ref::<gliumwindows::SessionTerminated>()
                 .is_some()
             {
                 self.schedule_window_close(window_id)?;
@@ -247,7 +248,8 @@ impl GuiEventLoop {
         loop {
             match self.sigchld_rx.try_recv() {
                 Ok(_) => {
-                    let window_ids: Vec<WindowId> = self.windows
+                    let window_ids: Vec<WindowId> = self
+                        .windows
                         .borrow_mut()
                         .by_id
                         .iter_mut()

@@ -394,7 +394,8 @@ impl TerminalWindow {
         const BUFSIZE: usize = 8192;
         let mut buf = [0; BUFSIZE];
 
-        let tab = self.tabs
+        let tab = self
+            .tabs
             .get_for_fd(fd)
             .ok_or_else(|| format_err!("no tab for fd {}", fd))?;
 
@@ -421,7 +422,8 @@ impl TerminalWindow {
 
     fn decode_key(&self, event: &xcb::KeyPressEvent) -> (KeyCode, KeyModifiers) {
         let mods = xkeysyms::modifiers(event);
-        let sym = self.conn
+        let sym = self
+            .conn
             .lookup_keysym(event, mods.contains(KeyModifiers::SHIFT));
         (xkeysyms::xcb_keysym_to_keycode(sym), mods)
     }

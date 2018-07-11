@@ -122,7 +122,8 @@ impl IOMgr {
 
 impl Inner {
     fn dereg(&mut self, poll: &Poll, fd: RawFd) -> Result<(), io::Error> {
-        let evented = self.fd_map
+        let evented = self
+            .fd_map
             .get(&fd)
             .ok_or_else(|| {
                 io::Error::new(

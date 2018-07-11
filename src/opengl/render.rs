@@ -482,7 +482,8 @@ impl Renderer {
                 (glyph.width as u32, glyph.height as u32),
             );
 
-            let tex = self.atlas
+            let tex = self
+                .atlas
                 .borrow_mut()
                 .allocate(raw_im.width, raw_im.height, raw_im)?;
 
@@ -870,7 +871,8 @@ impl Renderer {
         target: &mut glium::Frame,
         term: &mut term::Terminal,
     ) -> Result<(), Error> {
-        let background_color = self.palette
+        let background_color = self
+            .palette
             .resolve(&term::color::ColorAttribute::Background);
         let (r, g, b, a) = background_color.to_linear_tuple_rgba();
         target.clear_color(r, g, b, a);

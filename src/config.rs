@@ -176,8 +176,7 @@ pub struct StyleRule {
 
 impl Config {
     pub fn load() -> Result<Self, Error> {
-        let dirs = UserDirs::new()
-            .ok_or_else(|| err_msg("can't find home dir"))?;
+        let dirs = UserDirs::new().ok_or_else(|| err_msg("can't find home dir"))?;
         let home = dirs.home_dir();
 
         // Note that the directories crate has methods for locating project

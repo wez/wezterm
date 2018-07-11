@@ -435,7 +435,8 @@ impl GuiEventLoop {
         loop {
             match self.sigchld_rx.try_recv() {
                 Ok(_) => {
-                    let window_ids: Vec<WindowId> = self.windows
+                    let window_ids: Vec<WindowId> = self
+                        .windows
                         .borrow_mut()
                         .by_id
                         .iter_mut()

@@ -12,4 +12,3 @@ tab_spaces = 4
 use_field_init_shorthand = true
 use_try_shorthand = true
 wrap_comments = true
-write_mode = "overwrite"

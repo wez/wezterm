@@ -16,8 +16,9 @@ use std::result;
 use x11;
 use xcb;
 use xcb_util;
-use xcb_util::ffi::keysyms::{xcb_key_press_lookup_keysym, xcb_key_symbols_alloc,
-                             xcb_key_symbols_free, xcb_key_symbols_t};
+use xcb_util::ffi::keysyms::{
+    xcb_key_press_lookup_keysym, xcb_key_symbols_alloc, xcb_key_symbols_free, xcb_key_symbols_t,
+};
 
 use failure::{self, Error};
 pub type Result<T> = result::Result<T, Error>;
@@ -246,7 +247,8 @@ impl Window {
                 screen.root_visual(),
                 &[(
                     xcb::CW_EVENT_MASK,
-                    xcb::EVENT_MASK_EXPOSURE | xcb::EVENT_MASK_KEY_PRESS
+                    xcb::EVENT_MASK_EXPOSURE
+                        | xcb::EVENT_MASK_KEY_PRESS
                         | xcb::EVENT_MASK_BUTTON_PRESS
                         | xcb::EVENT_MASK_BUTTON_RELEASE
                         | xcb::EVENT_MASK_POINTER_MOTION
@@ -271,11 +273,13 @@ impl Window {
             &[conn.atom_delete],
         );
 
-        let surface = conn.egl_display
+        let surface = conn
+            .egl_display
             .create_window_surface(conn.egl_config, window.window_id as *mut _)
             .map_err(egli_err)?;
 
-        let egl_context = conn.egl_display
+        let egl_context = conn
+            .egl_display
             .create_context_with_client_version(
                 conn.egl_config,
                 egli::ContextClientVersion::OpenGlEs2,
