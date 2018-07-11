@@ -1,5 +1,6 @@
 //! Configuration for the gui portion of the terminal
 
+use directories::UserDirs;
 use failure::{err_msg, Error};
 use std;
 use std::fs;
@@ -175,8 +176,13 @@ pub struct StyleRule {
 
 impl Config {
     pub fn load() -> Result<Self, Error> {
-        let home = std::env::home_dir().ok_or_else(|| err_msg("can't find home dir"))?;
+        let dirs = UserDirs::new()
+            .ok_or_else(|| err_msg("can't find home dir"))?;
+        let home = dirs.home_dir();
 
+        // Note that the directories crate has methods for locating project
+        // specific config directories, but only returns one of them, not
+        // multiple.  Not sure how feel about that.
         let paths = [
             home.join(".config").join("wezterm").join("wezterm.toml"),
             home.join(".wezterm.toml"),

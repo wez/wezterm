@@ -20,6 +20,7 @@ serde = "1.0.27"
 serde_derive = "1.0.27"
 toml = "0.4.5"
 unicode-width = "0.1.4"
+directories = "~1.0"
 
 [dependencies.term]
 path = "term"

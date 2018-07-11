@@ -1,6 +1,7 @@
 extern crate clap;
 #[cfg(target_os = "macos")]
 extern crate core_text;
+extern crate directories;
 extern crate euclid;
 #[macro_use]
 extern crate failure;
