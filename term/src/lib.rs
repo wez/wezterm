@@ -121,11 +121,7 @@ mod test;
 /// certain feature sets.
 pub const DEVICE_IDENT: &[u8] = b"\x1b[?6c";
 
-#[allow(dead_code)]
 pub const CSI: &[u8] = b"\x1b[";
-#[allow(dead_code)]
 pub const OSC: &[u8] = b"\x1b]";
-#[allow(dead_code)]
 pub const ST: &[u8] = b"\x1b\\";
-#[allow(dead_code)]
 pub const DCS: &[u8] = b"\x1bP";
