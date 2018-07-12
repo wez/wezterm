@@ -1,4 +1,5 @@
 use cell::{AttributeChange, Cell, CellAttributes};
+use std::borrow::Cow;
 use std::cmp::min;
 
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -21,6 +22,22 @@ pub enum Change {
     CursorPosition { x: Position, y: Position },
     /*   CursorVisibility(bool),
      *   ChangeScrollRegion{top: usize, bottom: usize}, */
+}
+
+impl Change {
+    fn is_text(&self) -> bool {
+        match self {
+            Change::Text(_) => true,
+            _ => false,
+        }
+    }
+
+    fn text(&self) -> &str {
+        match self {
+            Change::Text(text) => text,
+            _ => panic!("you must use Change::is_text() to guard calls to Change::text()"),
+        }
+    }
 }
 
 impl<S: Into<String>> From<S> for Change {
@@ -49,6 +66,39 @@ impl Line {
 
     fn resize(&mut self, width: usize) {
         self.cells.resize(width, Cell::default());
+    }
+
+    /// Given a starting attribute value, produce a series of Change
+    /// entries to recreate the current line
+    fn changes(&self, start_attr: &CellAttributes) -> Vec<Change> {
+        let mut result = Vec::new();
+        let mut attr = start_attr.clone();
+        let mut text_run = String::new();
+
+        for cell in &self.cells {
+            if *cell.attrs() == attr {
+                text_run.push(cell.char());
+            } else {
+                // flush out the current text run
+                if text_run.len() > 0 {
+                    result.push(Change::Text(text_run.clone()));
+                    text_run.clear();
+                }
+
+                attr = cell.attrs().clone();
+                result.push(Change::AllAttributes(attr.clone()));
+            }
+        }
+
+        // flush out any remaining text run
+        if text_run.len() > 0 {
+            // TODO: if this is just spaces then it may be cheaper
+            // to emit ClearToEndOfLine here instead.
+            result.push(Change::Text(text_run.clone()));
+            text_run.clear();
+        }
+
+        result
     }
 }
 
@@ -178,6 +228,93 @@ impl Screen {
             lines.push(line.cells.as_slice());
         }
         lines
+    }
+
+    /// Returns a stream of changes suitable to update the screen
+    /// to match the model.  The input seq argument should be 0
+    /// on the first call, or in any situation where the screen
+    /// contents may have been invalidated, otherwise it should
+    /// be set to the `SequenceNo` returned by the most recent call
+    /// to `get_changes`.
+    /// `get_changes` will use a heuristic to decide on the lower
+    /// cost approach to updating the screen and return some sequence
+    /// of `Change` entries that will update the display accordingly.
+    /// The worst case is that this function will fabricate a sequence
+    /// of Change entries to paint the screen from scratch.
+    pub fn get_changes(&self, seq: SequenceNo) -> (SequenceNo, Cow<[Change]>) {
+        // Do we have continuity in the sequence numbering?
+        let first = self.seqno.saturating_sub(self.changes.len());
+        if seq == 0 || first > seq || self.seqno == 0 {
+            // No, we have folded away some data, we'll need a full paint
+            return (self.seqno, Cow::Owned(self.repaint_all()));
+        }
+
+        // Approximate cost to render the change screen
+        let delta_cost = self.seqno - seq;
+        // Approximate cost to repaint from scratch
+        let full_cost = self.estimate_full_paint_cost();
+
+        if delta_cost > full_cost {
+            (self.seqno, Cow::Owned(self.repaint_all()))
+        } else {
+            (self.seqno, Cow::Borrowed(&self.changes[seq - first..]))
+        }
+    }
+
+    /// Without allocating resources, estimate how many Change entries
+    /// we would produce in repaint_all for the current state.
+    fn estimate_full_paint_cost(&self) -> usize {
+        // assume 1 per cell with 20% overhead for attribute changes
+        3 + (((self.width * self.height) as f64) * 1.2) as usize
+    }
+
+    fn repaint_all(&self) -> Vec<Change> {
+        let mut result = Vec::new();
+
+        // Home the cursor
+        result.push(Change::CursorPosition {
+            x: Position::Absolute(0),
+            y: Position::Absolute(0),
+        });
+        // Reset attributes back to defaults
+        result.push(Change::AllAttributes(CellAttributes::default()));
+
+        let mut attr = CellAttributes::default();
+
+        for (idx, line) in self.lines.iter().enumerate() {
+            let mut changes = line.changes(&attr);
+
+            let result_len = result.len();
+            if result[result_len - 1].is_text() && changes[0].is_text() {
+                // Assumption: that the output has working automatic margins.
+                // We can skip the cursor position change and just join the
+                // text items together
+                if let Change::Text(mut prefix) = result.remove(result_len - 1) {
+                    prefix.push_str(changes[0].text());
+                    changes[0] = Change::Text(prefix);
+                }
+            } else if idx != 0 {
+                // We emit a relative move at the end of each
+                // line with the theory that this will translate
+                // to a short \r\n sequence rather than the longer
+                // absolute cursor positioning sequence
+                result.push(Change::CursorPosition {
+                    x: Position::Absolute(0),
+                    y: Position::Relative(1),
+                });
+            }
+
+            result.append(&mut changes);
+            attr = line.cells[self.width - 1].attrs().clone();
+        }
+
+        // Place the cursor at its intended position
+        result.push(Change::CursorPosition {
+            x: Position::Absolute(self.xpos),
+            y: Position::Absolute(self.ypos),
+        });
+
+        result
     }
 }
 
@@ -309,5 +446,91 @@ mod test {
                 Cell::default(),
             ]]
         );
+    }
+
+    #[test]
+    fn test_empty_changes() {
+        let s = Screen::new(4, 3);
+
+        let empty = &[
+            Change::CursorPosition {
+                x: Position::Absolute(0),
+                y: Position::Absolute(0),
+            },
+            Change::AllAttributes(CellAttributes::default()),
+            Change::Text("            ".to_string()),
+            Change::CursorPosition {
+                x: Position::Absolute(0),
+                y: Position::Absolute(0),
+            },
+        ];
+
+        let (seq, changes) = s.get_changes(0);
+        assert_eq!(seq, 0);
+        assert_eq!(empty, &*changes);
+
+        // Using an invalid sequence number should get us the full
+        // repaint also.
+        let (seq, changes) = s.get_changes(1);
+        assert_eq!(seq, 0);
+        assert_eq!(empty, &*changes);
+    }
+
+    #[test]
+    fn test_delta_change() {
+        let mut s = Screen::new(4, 3);
+
+        let initial = &[
+            Change::CursorPosition {
+                x: Position::Absolute(0),
+                y: Position::Absolute(0),
+            },
+            Change::AllAttributes(CellAttributes::default()),
+            Change::Text("a           ".to_string()),
+            Change::CursorPosition {
+                x: Position::Absolute(1),
+                y: Position::Absolute(0),
+            },
+        ];
+
+        let seq_pos = {
+            let next_seq = s.add_change("a");
+            let (seq, changes) = s.get_changes(0);
+            assert_eq!(seq, next_seq + 1);
+            assert_eq!(initial, &*changes);
+            seq
+        };
+
+        let seq_pos = {
+            let next_seq = s.add_change("b");
+            let (seq, changes) = s.get_changes(seq_pos);
+            assert_eq!(seq, next_seq + 1);
+            assert_eq!(&[Change::Text("b".to_string())], &*changes);
+            seq
+        };
+
+        {
+            s.add_change(Change::Attribute(AttributeChange::Intensity(
+                Intensity::Bold,
+            )));
+            s.add_change("c");
+            s.add_change(Change::Attribute(AttributeChange::Intensity(
+                Intensity::Normal,
+            )));
+            s.add_change("d");
+            let (_seq, changes) = s.get_changes(seq_pos);
+
+            use cell::Intensity;
+
+            assert_eq!(
+                &[
+                    Change::Attribute(AttributeChange::Intensity(Intensity::Bold)),
+                    Change::Text("c".to_string()),
+                    Change::Attribute(AttributeChange::Intensity(Intensity::Normal)),
+                    Change::Text("d".to_string()),
+                ],
+                &*changes
+            );
+        }
     }
 }
