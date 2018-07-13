@@ -148,7 +148,9 @@ impl Screen {
             self.changes.clear();
         }
 
-        // FIXME: cursor position is now undefined
+        // Ensure that the cursor position is well-defined
+        self.xpos = compute_position_change(self.xpos, &Position::NoChange, self.width);
+        self.ypos = compute_position_change(self.ypos, &Position::NoChange, self.height);
     }
 
     pub fn add_change<C: Into<Change>>(&mut self, change: C) -> SequenceNo {
@@ -349,7 +351,7 @@ impl Screen {
 fn compute_position_change(current: usize, pos: &Position, limit: usize) -> usize {
     use self::Position::*;
     match pos {
-        NoChange => current,
+        NoChange => min(current, limit - 1),
         Relative(delta) => {
             if *delta > 0 {
                 min(current.saturating_add(*delta as usize), limit - 1)
@@ -524,6 +526,39 @@ mod test {
 
         let (_seq, changes) = s.get_changes(seq);
         // The resize causes get_changes to return a full repaint
+        assert_eq!(full, &*changes);
+    }
+
+    #[test]
+    fn test_resize_cursor_position() {
+        let mut s = Screen::new(4, 4);
+
+        s.add_change(" a");
+        s.add_change(Change::CursorPosition {
+            x: Position::Absolute(3),
+            y: Position::Absolute(3),
+        });
+
+        assert_eq!(s.xpos, 3);
+        assert_eq!(s.ypos, 3);
+        s.resize(2, 2);
+        assert_eq!(s.xpos, 1);
+        assert_eq!(s.ypos, 1);
+
+        let full = &[
+            Change::CursorPosition {
+                x: Position::Absolute(0),
+                y: Position::Absolute(0),
+            },
+            Change::AllAttributes(CellAttributes::default()),
+            Change::Text(" a  ".to_string()),
+            Change::CursorPosition {
+                x: Position::Absolute(1),
+                y: Position::Absolute(1),
+            },
+        ];
+
+        let (_seq, changes) = s.get_changes(0);
         assert_eq!(full, &*changes);
     }
 
