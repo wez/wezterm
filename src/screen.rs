@@ -135,6 +135,19 @@ impl Screen {
         self.width = width;
         self.height = height;
 
+        // We need to invalidate the change stream prior to this
+        // event, so we nominally generate an entry for the resize
+        // here.  Since rendering a resize doesn't make sense, we
+        // don't record a Change entry.  Instead what we do is
+        // increment the sequence number and then flush the whole
+        // stream.  The next call to get_changes() will perform a
+        // full repaint, and that is what we want.
+        // We only do this if we have any changes buffered.
+        if !self.changes.is_empty() {
+            self.seqno += 1;
+            self.changes.clear();
+        }
+
         // FIXME: cursor position is now undefined
     }
 
@@ -487,6 +500,31 @@ mod test {
         let (seq, changes) = s.get_changes(1);
         assert_eq!(seq, 0);
         assert_eq!(empty, &*changes);
+    }
+
+    #[test]
+    fn test_resize_delta_flush() {
+        let mut s = Screen::new(4, 3);
+        s.add_change("a");
+        let (seq, _) = s.get_changes(0);
+        s.resize(2, 2);
+
+        let full = &[
+            Change::CursorPosition {
+                x: Position::Absolute(0),
+                y: Position::Absolute(0),
+            },
+            Change::AllAttributes(CellAttributes::default()),
+            Change::Text("a   ".to_string()),
+            Change::CursorPosition {
+                x: Position::Absolute(1),
+                y: Position::Absolute(0),
+            },
+        ];
+
+        let (_seq, changes) = s.get_changes(seq);
+        // The resize causes get_changes to return a full repaint
+        assert_eq!(full, &*changes);
     }
 
     #[test]
