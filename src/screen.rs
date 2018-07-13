@@ -261,6 +261,19 @@ impl Screen {
         }
     }
 
+    /// After having called `get_changes` and processed the resultant
+    /// change stream, the caller can then pass the returned `SequenceNo`
+    /// value to this call to prune the list of changes and free up
+    /// resources.
+    pub fn flush_changes_older_than(&mut self, seq: SequenceNo) {
+        let first = self.seqno.saturating_sub(self.changes.len());
+        let idx = seq - first;
+        if idx > self.changes.len() {
+            return;
+        }
+        self.changes = self.changes.split_off(seq - first);
+    }
+
     /// Without allocating resources, estimate how many Change entries
     /// we would produce in repaint_all for the current state.
     fn estimate_full_paint_cost(&self) -> usize {
@@ -479,6 +492,11 @@ mod test {
     #[test]
     fn test_delta_change() {
         let mut s = Screen::new(4, 3);
+        // flushing nothing should be a NOP
+        s.flush_changes_older_than(0);
+
+        // check that using an invalid index doesn't panic
+        s.flush_changes_older_than(1);
 
         let initial = &[
             Change::CursorPosition {
@@ -509,6 +527,9 @@ mod test {
             seq
         };
 
+        use cell::Intensity;
+
+        // prep some deltas for the loop to test below
         {
             s.add_change(Change::Attribute(AttributeChange::Intensity(
                 Intensity::Bold,
@@ -518,19 +539,29 @@ mod test {
                 Intensity::Normal,
             )));
             s.add_change("d");
-            let (_seq, changes) = s.get_changes(seq_pos);
+        }
 
-            use cell::Intensity;
+        // Do this three times to ennsure that the behavior is consistent
+        // across multiple flush calls
+        for _ in 0..3 {
+            {
+                let (_seq, changes) = s.get_changes(seq_pos);
 
-            assert_eq!(
-                &[
-                    Change::Attribute(AttributeChange::Intensity(Intensity::Bold)),
-                    Change::Text("c".to_string()),
-                    Change::Attribute(AttributeChange::Intensity(Intensity::Normal)),
-                    Change::Text("d".to_string()),
-                ],
-                &*changes
-            );
+                assert_eq!(
+                    &[
+                        Change::Attribute(AttributeChange::Intensity(Intensity::Bold)),
+                        Change::Text("c".to_string()),
+                        Change::Attribute(AttributeChange::Intensity(Intensity::Normal)),
+                        Change::Text("d".to_string()),
+                    ],
+                    &*changes
+                );
+            }
+
+            // Flush the changes so that the next iteration is run on a pruned
+            // set of changes.  It should not change the outcome of the body
+            // of the loop.
+            s.flush_changes_older_than(seq_pos);
         }
     }
 }
