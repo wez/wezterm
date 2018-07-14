@@ -383,6 +383,19 @@ impl Screen {
 
         result
     }
+
+    /// Computes the change stream required to make `self` have the same
+    /// screen contents as `other`.
+    pub fn diff_screens(&self, _other: &Screen) -> Vec<Change> {
+        unimplemented!()
+    }
+
+    /// Draw the contents of `other` into self at the specified coordinates.
+    /// The required updates are recorded as Change entries as well as stored
+    /// in the screen line/cell data.
+    pub fn draw_from_screen(&mut self, _other: &Screen, _x: usize, _y: usize) {
+        unimplemented!()
+    }
 }
 
 /// Applies a Position update to either the x or y position.
