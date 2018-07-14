@@ -97,11 +97,24 @@ pub enum ColorSpec {
     Default,
     /// Use either a raw number, or use values from the `AnsiColor` enum
     PaletteIndex(u8),
+    TrueColor(RgbColor),
 }
 
 impl Default for ColorSpec {
     fn default() -> Self {
         ColorSpec::Default
+    }
+}
+
+impl From<AnsiColor> for ColorSpec {
+    fn from(col: AnsiColor) -> Self {
+        ColorSpec::PaletteIndex(col as u8)
+    }
+}
+
+impl From<RgbColor> for ColorSpec {
+    fn from(col: RgbColor) -> Self {
+        ColorSpec::TrueColor(col)
     }
 }
 

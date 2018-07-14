@@ -1,5 +1,5 @@
 //! Rendering of Changes using terminfo
-use cell::{AttributeChange, CellAttributes, Intensity, Underline};
+use cell::{AttributeChange, Blink, CellAttributes, Intensity, Underline};
 use color::ColorSpec;
 use failure;
 use render::Renderer;
@@ -95,7 +95,7 @@ impl Renderer for TerminfoRenderer {
                             .bold(attr.intensity() == Intensity::Bold)
                             .dim(attr.intensity() == Intensity::Half)
                             .underline(attr.underline() != Underline::None)
-                            .blink(attr.blink())
+                            .blink(attr.blink() != Blink::None)
                             .reverse(attr.reverse())
                             .invisible(attr.invisible())
                             .to(WriteWrapper::new(out))?;
@@ -123,6 +123,9 @@ impl Renderer for TerminfoRenderer {
                                     tc.blue
                                 )?;
                             }
+                            (_, _, ColorSpec::TrueColor(_)) => {
+                                // TrueColor was specified with no fallback :-(
+                            }
                             (_, _, ColorSpec::Default) => {
                                 // Terminfo doesn't define a reset color to default, so
                                 // we use the ANSI code.
@@ -146,6 +149,9 @@ impl Renderer for TerminfoRenderer {
                                     tc.green,
                                     tc.blue
                                 )?;
+                            }
+                            (_, _, ColorSpec::TrueColor(_)) => {
+                                // TrueColor was specified with no fallback :-(
                             }
                             (_, _, ColorSpec::Default) => {
                                 // Terminfo doesn't define a reset color to default, so

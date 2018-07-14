@@ -86,14 +86,22 @@ pub enum Underline {
     Double = 2,
 }
 
+#[derive(Debug, Clone, Copy, Deserialize, PartialEq, Eq)]
+#[repr(u16)]
+pub enum Blink {
+    None = 0,
+    Slow = 1,
+    Rapid = 2,
+}
+
 impl CellAttributes {
     bitfield!(intensity, set_intensity, Intensity, 0b11, 0);
     bitfield!(underline, set_underline, Underline, 0b11, 2);
-    bitfield!(italic, set_italic, 4);
-    bitfield!(blink, set_blink, 5);
-    bitfield!(reverse, set_reverse, 6);
-    bitfield!(strikethrough, set_strikethrough, 7);
-    bitfield!(invisible, set_invisible, 8);
+    bitfield!(blink, set_blink, Blink, 0b11, 4);
+    bitfield!(italic, set_italic, 6);
+    bitfield!(reverse, set_reverse, 7);
+    bitfield!(strikethrough, set_strikethrough, 8);
+    bitfield!(invisible, set_invisible, 9);
 
     pub fn set_foreground<C: Into<ColorAttribute>>(&mut self, foreground: C) -> &mut Self {
         self.foreground = foreground.into();
@@ -164,7 +172,7 @@ pub enum AttributeChange {
     Intensity(Intensity),
     Underline(Underline),
     Italic(bool),
-    Blink(bool),
+    Blink(Blink),
     Reverse(bool),
     StrikeThrough(bool),
     Invisible(bool),

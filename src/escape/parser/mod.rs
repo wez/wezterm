@@ -1,0 +1,152 @@
+use escape::{Action, DeviceControlMode, Esc, OperatingSystemCommand, CSI};
+use vte;
+
+/// The `Parser` struct holds the state machine that is used to decode
+/// a sequence of bytes.  The byte sequence can be streaming into the
+/// state machine.
+/// You can either have the parser trigger a callback as `Action`s are
+/// decoded, or have it return a `Vec<Action>` holding zero-or-more
+/// decoded actions.
+pub struct Parser {
+    state_machine: vte::Parser,
+}
+
+impl Parser {
+    pub fn new() -> Self {
+        Self {
+            state_machine: vte::Parser::new(),
+        }
+    }
+
+    pub fn parse<F: FnMut(Action)>(&mut self, bytes: &[u8], mut callback: F) {
+        let mut perform = Performer {
+            callback: &mut callback,
+        };
+        for b in bytes {
+            self.state_machine.advance(&mut perform, *b);
+        }
+    }
+
+    pub fn parse_as_vec(&mut self, bytes: &[u8]) -> Vec<Action> {
+        let mut result = Vec::new();
+        self.parse(bytes, |action| result.push(action));
+        result
+    }
+}
+
+struct Performer<'a, F: FnMut(Action) + 'a> {
+    callback: &'a mut F,
+}
+
+impl<'a, F: FnMut(Action)> vte::Perform for Performer<'a, F> {
+    fn print(&mut self, c: char) {
+        (self.callback)(Action::Print(c));
+    }
+
+    fn execute(&mut self, byte: u8) {
+        (self.callback)(Action::Control(byte.into()));
+    }
+
+    fn hook(&mut self, params: &[i64], intermediates: &[u8], ignored_extra_intermediates: bool) {
+        (self.callback)(Action::DeviceControl(DeviceControlMode::Enter {
+            params: params.to_vec(),
+            intermediates: intermediates.to_vec(),
+            ignored_extra_intermediates,
+        }));
+    }
+
+    fn put(&mut self, data: u8) {
+        (self.callback)(Action::DeviceControl(DeviceControlMode::Data(data)));
+    }
+
+    fn unhook(&mut self) {
+        (self.callback)(Action::DeviceControl(DeviceControlMode::Exit));
+    }
+
+    fn osc_dispatch(&mut self, osc: &[&[u8]]) {
+        let mut vec = Vec::new();
+        for slice in osc {
+            vec.push(slice.to_vec());
+        }
+        (self.callback)(Action::OperatingSystemCommand(
+            OperatingSystemCommand::Unspecified(vec),
+        ));
+    }
+
+    fn csi_dispatch(
+        &mut self,
+        params: &[i64],
+        intermediates: &[u8],
+        ignored_extra_intermediates: bool,
+        control: char,
+    ) {
+        for action in CSI::parse(params, intermediates, ignored_extra_intermediates, control) {
+            (self.callback)(Action::CSI(action));
+        }
+    }
+
+    fn esc_dispatch(
+        &mut self,
+        params: &[i64],
+        intermediates: &[u8],
+        ignored_extra_intermediates: bool,
+        control: u8,
+    ) {
+        (self.callback)(Action::Esc(Esc::Unspecified {
+            params: params.to_vec(),
+            intermediates: intermediates.to_vec(),
+            ignored_extra_intermediates,
+            control,
+        }));
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use cell::Intensity;
+    use escape::csi::Sgr;
+
+    #[test]
+    fn basic_parse() {
+        let mut p = Parser::new();
+        let actions = p.parse_as_vec(b"hello");
+        assert_eq!(
+            vec![
+                Action::Print('h'),
+                Action::Print('e'),
+                Action::Print('l'),
+                Action::Print('l'),
+                Action::Print('o'),
+            ],
+            actions
+        );
+    }
+
+    #[test]
+    fn basic_bold() {
+        let mut p = Parser::new();
+        let actions = p.parse_as_vec(b"\x1b[1mb");
+        assert_eq!(
+            vec![
+                Action::CSI(CSI::Sgr(Sgr::Intensity(Intensity::Bold))),
+                Action::Print('b'),
+            ],
+            actions
+        );
+    }
+
+    #[test]
+    fn basic_bold_italic() {
+        let mut p = Parser::new();
+        let actions = p.parse_as_vec(b"\x1b[1;3mb");
+        assert_eq!(
+            vec![
+                Action::CSI(CSI::Sgr(Sgr::Intensity(Intensity::Bold))),
+                Action::CSI(CSI::Sgr(Sgr::Italic(true))),
+                Action::Print('b'),
+            ],
+            actions
+        );
+    }
+}
