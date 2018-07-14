@@ -7,7 +7,10 @@ pub enum Position {
     NoChange,
     /// Negative values move up, positive values down
     Relative(isize),
+    /// Relative to the start of the line or top of the screen
     Absolute(usize),
+    /// Relative to the end of line or bottom of screen
+    EndRelative(usize),
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -412,6 +415,7 @@ fn compute_position_change(current: usize, pos: &Position, limit: usize) -> usiz
             }
         }
         Absolute(abs) => min(*abs, limit - 1),
+        EndRelative(delta) => limit.saturating_sub(*delta),
     }
 }
 
