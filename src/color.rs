@@ -94,19 +94,33 @@ impl<'de> Deserialize<'de> for RgbColor {
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum ColorSpec {
-    Foreground,
-    Background,
+    Default,
     /// Use either a raw number, or use values from the `AnsiColor` enum
     PaletteIndex(u8),
 }
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+impl Default for ColorSpec {
+    fn default() -> Self {
+        ColorSpec::Default
+    }
+}
+
+#[derive(Debug, Default, Clone, Copy, Eq, PartialEq)]
 pub struct ColorAttribute {
     /// Used if the terminal supports full color
     pub full: Option<RgbColor>,
     /// If the terminal doesn't support full color, or the full color
     /// spec is_none, use old school ansi color number.
     pub ansi: ColorSpec,
+}
+
+impl From<AnsiColor> for ColorAttribute {
+    fn from(col: AnsiColor) -> Self {
+        Self {
+            full: None,
+            ansi: ColorSpec::PaletteIndex(col as u8),
+        }
+    }
 }
 
 #[cfg(test)]

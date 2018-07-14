@@ -200,13 +200,27 @@ impl Screen {
     fn change_attribute(&mut self, change: &AttributeChange) {
         use cell::AttributeChange::*;
         match change {
-            Intensity(value) => self.attributes.set_intensity(*value),
-            Underline(value) => self.attributes.set_underline(*value),
-            Italic(value) => self.attributes.set_italic(*value),
-            Blink(value) => self.attributes.set_blink(*value),
-            Reverse(value) => self.attributes.set_reverse(*value),
-            StrikeThrough(value) => self.attributes.set_strikethrough(*value),
-            Invisible(value) => self.attributes.set_invisible(*value),
+            Intensity(value) => {
+                self.attributes.set_intensity(*value);
+            }
+            Underline(value) => {
+                self.attributes.set_underline(*value);
+            }
+            Italic(value) => {
+                self.attributes.set_italic(*value);
+            }
+            Blink(value) => {
+                self.attributes.set_blink(*value);
+            }
+            Reverse(value) => {
+                self.attributes.set_reverse(*value);
+            }
+            StrikeThrough(value) => {
+                self.attributes.set_strikethrough(*value);
+            }
+            Invisible(value) => {
+                self.attributes.set_invisible(*value);
+            }
             Foreground(value) => self.attributes.foreground = *value,
             Background(value) => self.attributes.background = *value,
             Hyperlink(value) => self.attributes.hyperlink = value.clone(),

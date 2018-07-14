@@ -1,4 +1,4 @@
-use color;
+use color::ColorAttribute;
 use std::mem;
 use std::rc::Rc;
 
@@ -8,11 +8,11 @@ pub struct Hyperlink {
     pub url: String,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Default, Clone, Eq, PartialEq)]
 pub struct CellAttributes {
     attributes: u16,
-    pub foreground: color::ColorAttribute,
-    pub background: color::ColorAttribute,
+    pub foreground: ColorAttribute,
+    pub background: ColorAttribute,
     pub hyperlink: Option<Rc<Hyperlink>>,
 }
 
@@ -31,9 +31,10 @@ macro_rules! bitfield {
         }
 
         #[inline]
-        pub fn $setter(&mut self, value: bool) {
+        pub fn $setter(&mut self, value: bool) -> &mut Self {
             let attr_value = if value { 1 << $bitnum } else { 0 };
             self.attributes = (self.attributes & !(1 << $bitnum)) | attr_value;
+            self
         }
     };
 
@@ -44,10 +45,11 @@ macro_rules! bitfield {
         }
 
         #[inline]
-        pub fn $setter(&mut self, value: u16) {
+        pub fn $setter(&mut self, value: u16) -> &mut Self {
             let clear = !($bitmask << $bitshift);
             let attr_value = (value & $bitmask) << $bitshift;
             self.attributes = (self.attributes & clear) | attr_value;
+            self
         }
     };
 
@@ -58,11 +60,12 @@ macro_rules! bitfield {
         }
 
         #[inline]
-        pub fn $setter(&mut self, value: $enum) {
+        pub fn $setter(&mut self, value: $enum) -> &mut Self {
             let value = value as u16;
             let clear = !($bitmask << $bitshift);
             let attr_value = (value & $bitmask) << $bitshift;
             self.attributes = (self.attributes & clear) | attr_value;
+            self
         }
     };
 }
@@ -83,23 +86,6 @@ pub enum Underline {
     Double = 2,
 }
 
-impl Default for CellAttributes {
-    fn default() -> Self {
-        Self {
-            attributes: 0,
-            foreground: color::ColorAttribute {
-                ansi: color::ColorSpec::Foreground,
-                full: None,
-            },
-            background: color::ColorAttribute {
-                ansi: color::ColorSpec::Background,
-                full: None,
-            },
-            hyperlink: None,
-        }
-    }
-}
-
 impl CellAttributes {
     bitfield!(intensity, set_intensity, Intensity, 0b11, 0);
     bitfield!(underline, set_underline, Underline, 0b11, 2);
@@ -108,6 +94,16 @@ impl CellAttributes {
     bitfield!(reverse, set_reverse, 6);
     bitfield!(strikethrough, set_strikethrough, 7);
     bitfield!(invisible, set_invisible, 8);
+
+    pub fn set_foreground<C: Into<ColorAttribute>>(&mut self, foreground: C) -> &mut Self {
+        self.foreground = foreground.into();
+        self
+    }
+
+    pub fn set_background<C: Into<ColorAttribute>>(&mut self, background: C) -> &mut Self {
+        self.background = background.into();
+        self
+    }
 
     /// Clone the attributes, but exclude fancy extras such
     /// as hyperlinks or future sprite things
@@ -172,7 +168,7 @@ pub enum AttributeChange {
     Reverse(bool),
     StrikeThrough(bool),
     Invisible(bool),
-    Foreground(color::ColorAttribute),
-    Background(color::ColorAttribute),
+    Foreground(ColorAttribute),
+    Background(ColorAttribute),
     Hyperlink(Option<Rc<Hyperlink>>),
 }
