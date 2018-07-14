@@ -14,12 +14,22 @@ pub enum Position {
 pub enum Change {
     Attribute(AttributeChange),
     AllAttributes(CellAttributes),
+    /// Add printable text.
+    /// Control characters are rendered inert by transforming them
+    /// to space.  CR and LF characters are interpreted by moving
+    /// the cursor position.  CR moves the cursor to the start of
+    /// the line and LF moves the cursor down to the next line.
+    /// You typically want to use both together when sending in
+    /// a line break.
     Text(String),
     //   ClearScreen,
     //   ClearToStartOfLine,
     //   ClearToEndOfLine,
     //   ClearToEndOfScreen,
-    CursorPosition { x: Position, y: Position },
+    CursorPosition {
+        x: Position,
+        y: Position,
+    },
     /*   CursorVisibility(bool),
      *   ChangeScrollRegion{top: usize, bottom: usize}, */
 }
@@ -178,6 +188,21 @@ impl Screen {
 
     fn print_text(&mut self, text: &str) {
         for c in text.chars() {
+            if c == '\r' {
+                self.xpos = 0;
+                continue;
+            }
+
+            if c == '\n' {
+                let new_y = self.ypos + 1;
+                if new_y >= self.height {
+                    self.scroll_screen_up();
+                } else {
+                    self.ypos = new_y;
+                }
+                continue;
+            }
+
             if self.xpos >= self.width {
                 let new_y = self.ypos + 1;
                 if new_y >= self.height {
@@ -425,6 +450,19 @@ mod test {
             "foob\n\
              aarb\n\
              az\x20\x20\n"
+        );
+    }
+
+    #[test]
+    fn test_newline() {
+        let mut s = Screen::new(4, 4);
+        s.add_change("bloo\rwat\n hey\r\nho");
+        assert_eq!(
+            s.screen_chars_to_string(),
+            "wato\n\
+             \x20\x20\x20\x20\n\
+             hey \n\
+             ho  \n"
         );
     }
 

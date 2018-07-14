@@ -16,9 +16,10 @@ pub trait Renderer {
     /// information described by `changes`.  Returns the attribute
     /// value of the terminal at the end of the stream of changes.
     ///
-    /// The intent is that you'd set `starting_attr` to `CellAttributes::default()`
-    /// on the first call, then feed the return value in on subsequent calls
-    /// to maintain the running view of the attributes.
+    /// The intent is that you'd set `starting_attr` to
+    /// `CellAttributes::default()` on the first call, then feed the return
+    /// value in on subsequent calls to maintain the running view of the
+    /// attributes.
     fn render_to(
         &self,
         starting_attr: &CellAttributes,
