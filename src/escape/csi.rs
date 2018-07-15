@@ -1,7 +1,7 @@
 use cell::{Blink, Intensity, Underline};
 use color::{AnsiColor, ColorSpec, RgbColor};
 use escape::EncodeEscape;
-use num;
+use num::{self, ToPrimitive};
 use std;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -14,6 +14,8 @@ pub enum CSI {
     Cursor(Cursor),
 
     Edit(Edit),
+
+    Mode(Mode),
 
     Unspecified {
         params: Vec<i64>,
@@ -41,6 +43,7 @@ impl EncodeEscape for CSI {
             CSI::Sgr(sgr) => sgr.encode_escape(w)?,
             CSI::Cursor(c) => c.encode_escape(w)?,
             CSI::Edit(e) => e.encode_escape(w)?,
+            CSI::Mode(mode) => mode.encode_escape(w)?,
             CSI::Unspecified {
                 params,
                 intermediates,
@@ -63,6 +66,56 @@ impl EncodeEscape for CSI {
         };
         Ok(())
     }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Mode {
+    SetDecPrivateMode(DecPrivateMode),
+    ResetDecPrivateMode(DecPrivateMode),
+    SaveDecPrivateMode(DecPrivateMode),
+    RestoreDecPrivateMode(DecPrivateMode),
+}
+
+impl EncodeEscape for Mode {
+    fn encode_escape<W: std::io::Write>(&self, w: &mut W) -> Result<(), std::io::Error> {
+        macro_rules! emit {
+            ($flag:expr, $mode:expr) => {{
+                let value = match $mode {
+                    DecPrivateMode::Code(mode) => mode.to_i64().ok_or_else(|| {
+                        std::io::Error::new(
+                            std::io::ErrorKind::Other,
+                            "enum value was not representable as i64!?",
+                        )
+                    })?,
+                    DecPrivateMode::Unspecified(mode) => *mode,
+                };
+                write!(w, "?{}{}", value, $flag)
+            }};
+        }
+        match self {
+            Mode::SetDecPrivateMode(mode) => emit!("h", mode),
+            Mode::ResetDecPrivateMode(mode) => emit!("l", mode),
+            Mode::SaveDecPrivateMode(mode) => emit!("s", mode),
+            Mode::RestoreDecPrivateMode(mode) => emit!("r", mode),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum DecPrivateMode {
+    Code(DecPrivateModeCode),
+    Unspecified(i64),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, FromPrimitive, ToPrimitive)]
+pub enum DecPrivateModeCode {
+    ApplicationCursorKeys = 1,
+    StartBlinkingCursor = 12,
+    ShowCursor = 25,
+    ButtonEventMouse = 1002,
+    SGRMouse = 1006,
+    ClearAndEnableAlternateScreen = 1049,
+    BrackedPaste = 2004,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -761,6 +814,15 @@ impl<'a> CSIParser<'a> {
 
             ('m', &[]) => self.sgr(params).map(|sgr| CSI::Sgr(sgr)),
 
+            ('h', &[b'?']) => self.dec(params)
+                .map(|mode| CSI::Mode(Mode::SetDecPrivateMode(mode))),
+            ('l', &[b'?']) => self.dec(params)
+                .map(|mode| CSI::Mode(Mode::ResetDecPrivateMode(mode))),
+            ('r', &[b'?']) => self.dec(params)
+                .map(|mode| CSI::Mode(Mode::RestoreDecPrivateMode(mode))),
+            ('s', &[b'?']) => self.dec(params)
+                .map(|mode| CSI::Mode(Mode::SaveDecPrivateMode(mode))),
+
             _ => Err(()),
         }
     }
@@ -775,6 +837,17 @@ impl<'a> CSIParser<'a> {
             self.params = Some(next);
         }
         result
+    }
+
+    fn dec(&mut self, params: &'a [i64]) -> Result<DecPrivateMode, ()> {
+        if params.len() != 1 {
+            return Err(());
+        }
+
+        match num::FromPrimitive::from_i64(params[0]) {
+            None => Ok(DecPrivateMode::Unspecified(params[0])),
+            Some(mode) => Ok(DecPrivateMode::Code(mode)),
+        }
     }
 
     fn parse_sgr_color(&mut self, params: &'a [i64]) -> Result<ColorSpec, ()> {
@@ -1002,6 +1075,13 @@ mod test {
         res
     }
 
+    fn parse_int(control: char, params: &[i64], intermediate: u8, expected: &str) -> Vec<CSI> {
+        let intermediates = [intermediate];
+        let res = CSI::parse(params, &intermediates, false, control).collect();
+        assert_eq!(encode(&res), expected);
+        res
+    }
+
     fn encode(seq: &Vec<CSI>) -> String {
         let mut res = Vec::new();
         seq.encode_escape(&mut res).unwrap();
@@ -1134,6 +1214,35 @@ mod test {
         assert_eq!(
             parse('C', &[4], "\x1b[4C"),
             vec![CSI::Cursor(Cursor::Right(4))]
+        );
+    }
+
+    #[test]
+    fn decset() {
+        assert_eq!(
+            parse_int('h', &[2342342], b'?', "\x1b[?2342342h"),
+            vec![CSI::Mode(Mode::SetDecPrivateMode(
+                DecPrivateMode::Unspecified(2342342),
+            ))]
+        );
+        assert_eq!(
+            parse_int('l', &[1], b'?', "\x1b[?1l"),
+            vec![CSI::Mode(Mode::ResetDecPrivateMode(DecPrivateMode::Code(
+                DecPrivateModeCode::ApplicationCursorKeys,
+            )))]
+        );
+
+        assert_eq!(
+            parse_int('s', &[25], b'?', "\x1b[?25s"),
+            vec![CSI::Mode(Mode::SaveDecPrivateMode(DecPrivateMode::Code(
+                DecPrivateModeCode::ShowCursor,
+            )))]
+        );
+        assert_eq!(
+            parse_int('r', &[2004], b'?', "\x1b[?2004r"),
+            vec![CSI::Mode(Mode::RestoreDecPrivateMode(
+                DecPrivateMode::Code(DecPrivateModeCode::BrackedPaste),
+            ))]
         );
     }
 }
