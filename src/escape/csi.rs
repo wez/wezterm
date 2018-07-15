@@ -587,8 +587,21 @@ fn to_u8(v: i64) -> Result<u8, ()> {
     }
 }
 
-fn to_u32(v: i64) -> Result<u32, ()> {
-    if v >= 0 && v <= u32::max_value() as i64 {
+/// Convert the input value to 1-based u32.
+/// The intent is to protect consumers from out of range values
+/// when operating on the data, while balancing strictness with
+/// practical implementation bugs.  For example, it is common
+/// to see 0 values being emitted from existing libraries, and
+/// we desire to see the intended output.
+/// Ensures that the value is in the range 1..=max_value.
+/// If the input is 0 it is treated as 1.  If the value is
+/// otherwise outside that range, an error is propagated and
+/// that will typically case the sequence to be reported via
+/// the Unspecified placeholder.
+fn to_1b_u32(v: i64) -> Result<u32, ()> {
+    if v == 0 {
+        Ok(1)
+    } else if v > 0 && v <= u32::max_value() as i64 {
         Ok(v as u32)
     } else {
         Err(())
@@ -599,40 +612,42 @@ impl<'a> CSIParser<'a> {
     fn parse_next(&mut self, params: &'a [i64]) -> Result<CSI, ()> {
         match (self.control, self.intermediates, params) {
             ('@', &[], &[]) => Ok(CSI::Edit(Edit::InsertCharacter(1))),
-            ('@', &[], &[n]) => Ok(CSI::Edit(Edit::InsertCharacter(to_u32(n)?))),
+            ('@', &[], &[n]) => Ok(CSI::Edit(Edit::InsertCharacter(to_1b_u32(n)?))),
 
             ('`', &[], &[]) => Ok(CSI::Cursor(Cursor::CharacterPositionAbsolute(1))),
-            ('`', &[], &[n]) => Ok(CSI::Cursor(Cursor::CharacterPositionAbsolute(to_u32(n)?))),
+            ('`', &[], &[n]) => Ok(CSI::Cursor(Cursor::CharacterPositionAbsolute(to_1b_u32(
+                n,
+            )?))),
 
             ('A', &[], &[]) => Ok(CSI::Cursor(Cursor::Up(1))),
-            ('A', &[], &[n]) => Ok(CSI::Cursor(Cursor::Up(to_u32(n)?))),
+            ('A', &[], &[n]) => Ok(CSI::Cursor(Cursor::Up(to_1b_u32(n)?))),
 
             ('B', &[], &[]) => Ok(CSI::Cursor(Cursor::Down(1))),
-            ('B', &[], &[n]) => Ok(CSI::Cursor(Cursor::Down(to_u32(n)?))),
+            ('B', &[], &[n]) => Ok(CSI::Cursor(Cursor::Down(to_1b_u32(n)?))),
 
             ('C', &[], &[]) => Ok(CSI::Cursor(Cursor::Right(1))),
-            ('C', &[], &[n]) => Ok(CSI::Cursor(Cursor::Right(to_u32(n)?))),
+            ('C', &[], &[n]) => Ok(CSI::Cursor(Cursor::Right(to_1b_u32(n)?))),
 
             ('D', &[], &[]) => Ok(CSI::Cursor(Cursor::Left(1))),
-            ('D', &[], &[n]) => Ok(CSI::Cursor(Cursor::Left(to_u32(n)?))),
+            ('D', &[], &[n]) => Ok(CSI::Cursor(Cursor::Left(to_1b_u32(n)?))),
 
             ('E', &[], &[]) => Ok(CSI::Cursor(Cursor::NextLine(1))),
-            ('E', &[], &[n]) => Ok(CSI::Cursor(Cursor::NextLine(to_u32(n)?))),
+            ('E', &[], &[n]) => Ok(CSI::Cursor(Cursor::NextLine(to_1b_u32(n)?))),
 
             ('F', &[], &[]) => Ok(CSI::Cursor(Cursor::PrecedingLine(1))),
-            ('F', &[], &[n]) => Ok(CSI::Cursor(Cursor::PrecedingLine(to_u32(n)?))),
+            ('F', &[], &[n]) => Ok(CSI::Cursor(Cursor::PrecedingLine(to_1b_u32(n)?))),
 
             ('G', &[], &[]) => Ok(CSI::Cursor(Cursor::CharacterAbsolute(1))),
-            ('G', &[], &[n]) => Ok(CSI::Cursor(Cursor::CharacterAbsolute(to_u32(n)?))),
+            ('G', &[], &[n]) => Ok(CSI::Cursor(Cursor::CharacterAbsolute(to_1b_u32(n)?))),
 
             ('H', &[], &[line, col]) => Ok(CSI::Cursor(Cursor::Position {
-                line: to_u32(line)?,
-                col: to_u32(col)?,
+                line: to_1b_u32(line)?,
+                col: to_1b_u32(col)?,
             })),
             ('H', &[], &[]) => Ok(CSI::Cursor(Cursor::Position { line: 1, col: 1 })),
 
             ('I', &[], &[]) => Ok(CSI::Cursor(Cursor::ForwardTabulation(1))),
-            ('I', &[], &[n]) => Ok(CSI::Cursor(Cursor::ForwardTabulation(to_u32(n)?))),
+            ('I', &[], &[n]) => Ok(CSI::Cursor(Cursor::ForwardTabulation(to_1b_u32(n)?))),
 
             ('J', &[], &[]) => Ok(CSI::Edit(Edit::EraseInDisplay(
                 EraseInDisplay::EraseToEndOfDisplay,
@@ -647,23 +662,23 @@ impl<'a> CSIParser<'a> {
             ).ok_or(())?))),
 
             ('L', &[], &[]) => Ok(CSI::Edit(Edit::InsertLine(1))),
-            ('L', &[], &[n]) => Ok(CSI::Edit(Edit::InsertLine(to_u32(n)?))),
+            ('L', &[], &[n]) => Ok(CSI::Edit(Edit::InsertLine(to_1b_u32(n)?))),
 
             ('M', &[], &[]) => Ok(CSI::Edit(Edit::DeleteLine(1))),
-            ('M', &[], &[n]) => Ok(CSI::Edit(Edit::DeleteLine(to_u32(n)?))),
+            ('M', &[], &[n]) => Ok(CSI::Edit(Edit::DeleteLine(to_1b_u32(n)?))),
 
             ('P', &[], &[]) => Ok(CSI::Edit(Edit::DeleteCharacter(1))),
-            ('P', &[], &[n]) => Ok(CSI::Edit(Edit::DeleteCharacter(to_u32(n)?))),
+            ('P', &[], &[n]) => Ok(CSI::Edit(Edit::DeleteCharacter(to_1b_u32(n)?))),
 
             ('R', &[], &[line, col]) => Ok(CSI::Cursor(Cursor::ActivePositionReport {
-                line: to_u32(line)?,
-                col: to_u32(col)?,
+                line: to_1b_u32(line)?,
+                col: to_1b_u32(col)?,
             })),
 
             ('S', &[], &[]) => Ok(CSI::Edit(Edit::ScrollUp(1))),
-            ('S', &[], &[n]) => Ok(CSI::Edit(Edit::ScrollUp(to_u32(n)?))),
+            ('S', &[], &[n]) => Ok(CSI::Edit(Edit::ScrollUp(to_1b_u32(n)?))),
             ('T', &[], &[]) => Ok(CSI::Edit(Edit::ScrollDown(1))),
-            ('T', &[], &[n]) => Ok(CSI::Edit(Edit::ScrollDown(to_u32(n)?))),
+            ('T', &[], &[n]) => Ok(CSI::Edit(Edit::ScrollDown(to_1b_u32(n)?))),
 
             ('W', &[], &[]) => Ok(CSI::Cursor(Cursor::TabulationControl(
                 CursorTabulationControl::SetCharacterTabStopAtActivePosition,
@@ -673,26 +688,26 @@ impl<'a> CSIParser<'a> {
             ))),
 
             ('X', &[], &[]) => Ok(CSI::Edit(Edit::EraseCharacter(1))),
-            ('X', &[], &[n]) => Ok(CSI::Edit(Edit::EraseCharacter(to_u32(n)?))),
+            ('X', &[], &[n]) => Ok(CSI::Edit(Edit::EraseCharacter(to_1b_u32(n)?))),
 
             ('Y', &[], &[]) => Ok(CSI::Cursor(Cursor::LineTabulation(1))),
-            ('Y', &[], &[n]) => Ok(CSI::Cursor(Cursor::LineTabulation(to_u32(n)?))),
+            ('Y', &[], &[n]) => Ok(CSI::Cursor(Cursor::LineTabulation(to_1b_u32(n)?))),
 
             ('Z', &[], &[]) => Ok(CSI::Cursor(Cursor::BackwardTabulation(1))),
-            ('Z', &[], &[n]) => Ok(CSI::Cursor(Cursor::BackwardTabulation(to_u32(n)?))),
+            ('Z', &[], &[n]) => Ok(CSI::Cursor(Cursor::BackwardTabulation(to_1b_u32(n)?))),
 
             ('a', &[], &[]) => Ok(CSI::Cursor(Cursor::CharacterPositionForward(1))),
-            ('a', &[], &[n]) => Ok(CSI::Cursor(Cursor::CharacterPositionForward(to_u32(n)?))),
+            ('a', &[], &[n]) => Ok(CSI::Cursor(Cursor::CharacterPositionForward(to_1b_u32(n)?))),
 
             ('d', &[], &[]) => Ok(CSI::Cursor(Cursor::LinePositionAbsolute(1))),
-            ('d', &[], &[n]) => Ok(CSI::Cursor(Cursor::LinePositionAbsolute(to_u32(n)?))),
+            ('d', &[], &[n]) => Ok(CSI::Cursor(Cursor::LinePositionAbsolute(to_1b_u32(n)?))),
 
             ('e', &[], &[]) => Ok(CSI::Cursor(Cursor::LinePositionForward(1))),
-            ('e', &[], &[n]) => Ok(CSI::Cursor(Cursor::LinePositionForward(to_u32(n)?))),
+            ('e', &[], &[n]) => Ok(CSI::Cursor(Cursor::LinePositionForward(to_1b_u32(n)?))),
 
             ('f', &[], &[line, col]) => Ok(CSI::Cursor(Cursor::CharacterAndLinePosition {
-                line: to_u32(line)?,
-                col: to_u32(col)?,
+                line: to_1b_u32(line)?,
+                col: to_1b_u32(col)?,
             })),
             ('f', &[], &[]) => Ok(CSI::Cursor(Cursor::CharacterAndLinePosition {
                 line: 1,
@@ -707,10 +722,12 @@ impl<'a> CSIParser<'a> {
             ))),
 
             ('j', &[], &[]) => Ok(CSI::Cursor(Cursor::CharacterPositionBackward(1))),
-            ('j', &[], &[n]) => Ok(CSI::Cursor(Cursor::CharacterPositionBackward(to_u32(n)?))),
+            ('j', &[], &[n]) => Ok(CSI::Cursor(Cursor::CharacterPositionBackward(to_1b_u32(
+                n,
+            )?))),
 
             ('k', &[], &[]) => Ok(CSI::Cursor(Cursor::LinePositionBackward(1))),
-            ('k', &[], &[n]) => Ok(CSI::Cursor(Cursor::LinePositionBackward(to_u32(n)?))),
+            ('k', &[], &[n]) => Ok(CSI::Cursor(Cursor::LinePositionBackward(to_1b_u32(n)?))),
 
             ('m', &[], params) => self.sgr(params).map(|sgr| CSI::Sgr(sgr)),
 
@@ -1051,6 +1068,11 @@ mod test {
     fn cursor() {
         assert_eq!(
             parse('C', &[], "\x1b[C"),
+            vec![CSI::Cursor(Cursor::Right(1))]
+        );
+        // check that 0 is treated as 1
+        assert_eq!(
+            parse('C', &[0], "\x1b[C"),
             vec![CSI::Cursor(Cursor::Right(1))]
         );
         assert_eq!(
