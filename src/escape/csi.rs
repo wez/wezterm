@@ -13,6 +13,8 @@ pub enum CSI {
     /// CSI codes that relate to the cursor
     Cursor(Cursor),
 
+    Edit(Edit),
+
     Unspecified {
         params: Vec<i64>,
         // TODO: can we just make intermediates a single u8?
@@ -38,6 +40,7 @@ impl EncodeEscape for CSI {
         match self {
             CSI::Sgr(sgr) => sgr.encode_escape(w)?,
             CSI::Cursor(c) => c.encode_escape(w)?,
+            CSI::Edit(e) => e.encode_escape(w)?,
             CSI::Unspecified {
                 params,
                 intermediates,
@@ -70,10 +73,56 @@ pub enum Cursor {
     /// character path, where n equals the value of Pn
     BackwardTabulation(u32),
 
+    /// TBC - TABULATION CLEAR
+    TabulationClear(TabulationClear),
+
     /// CHA causes the active presentation position to be moved to character
     /// position n in the active line in the presentation component, where n
     /// equals the value of Pn.
     CharacterAbsolute(u32),
+
+    /// HPA CHARACTER POSITION ABSOLUTE
+    /// HPA causes the active data position to be moved to character position n
+    /// in the active line (the line in the data component that contains
+    /// the active data position), where n equals the value of Pn.
+    CharacterPositionAbsolute(u32),
+
+    /// HPB - CHARACTER POSITION BACKWARD
+    /// HPB causes the active data position to be moved by n character
+    /// positions in the data component in the direction opposite to that
+    /// of the character progression, where n equals the value of Pn.
+    CharacterPositionBackward(u32),
+
+    /// HPR - CHARACTER POSITION FORWARD
+    /// HPR causes the active data position to be moved by n character
+    /// positions in the data component in the direction of the character
+    /// progression, where n equals the value of Pn.
+    CharacterPositionForward(u32),
+
+    /// HVP - CHARACTER AND LINE POSITION
+    /// HVP causes the active data position to be moved in the data component
+    /// to the n-th line position according to the line progression and to
+    /// the m-th character position according to the character progression,
+    /// where n equals the value of Pn1 and m equals the value of Pn2
+    CharacterAndLinePosition { line: u32, col: u32 },
+
+    /// VPA - LINE POSITION ABSOLUTE
+    /// VPA causes the active data position to be moved to line position n in
+    /// the data component in a direction parallel to the line progression,
+    /// where n equals the value of Pn.
+    LinePositionAbsolute(u32),
+
+    /// VPB - LINE POSITION BACKWARD
+    /// VPB causes the active data position to be moved by n line positions in
+    /// the data component in a direction opposite to that of the line
+    /// progression, where n equals the value of Pn.
+    LinePositionBackward(u32),
+
+    /// VPR - LINE POSITION FORWARD
+    /// VPR causes the active data position to be moved by n line positions in
+    /// the data component in a direction parallel to the line progression,
+    /// where n equals the value of Pn.
+    LinePositionForward(u32),
 
     /// CHT causes the active presentation position to be moved to the
     /// character position corresponding to the n-th following character
@@ -146,6 +195,105 @@ pub enum Cursor {
     LineTabulation(u32),
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Edit {
+    /// DCH - DELETE CHARACTER
+    /// If the DEVICE COMPONENT SELECT MODE (DCSM) is set to PRESENTATION, DCH
+    /// causes the contents of the active presentation position and,
+    /// depending on the setting of the CHARACTER EDITING MODE (HEM), the
+    /// contents of the n-1 preceding or following character positions to be
+    /// removed from the presentation component, where n equals the value of
+    /// Pn. The resulting gap is closed by shifting the contents of the
+    /// adjacent character positions towards the active presentation
+    /// position. At the other end of the shifted part, n character positions
+    /// are put into the erased state.
+    DeleteCharacter(u32),
+
+    /// DL - DELETE LINE
+    /// If the DEVICE COMPONENT SELECT MODE (DCSM) is set to PRESENTATION, DL
+    /// causes the contents of the active line (the line that contains the
+    /// active presentation position) and, depending on the setting of the
+    /// LINE EDITING MODE (VEM), the contents of the n-1 preceding or
+    /// following lines to be removed from the presentation component, where n
+    /// equals the value of Pn. The resulting gap is closed by shifting the
+    /// contents of a number of adjacent lines towards the active line. At
+    /// the other end of the shifted part, n lines are put into the
+    /// erased state.  The active presentation position is moved to the line
+    /// home position in the active line. The line home position is
+    /// established by the parameter value of SET LINE HOME (SLH). If the
+    /// TABULATION STOP MODE (TSM) is set to SINGLE, character tabulation stops
+    /// are cleared in the lines that are put into the erased state.  The
+    /// extent of the shifted part is established by SELECT EDITING EXTENT
+    /// (SEE).  Any occurrences of the start or end of a selected area, the
+    /// start or end of a qualified area, or a tabulation stop in the shifted
+    /// part, are also shifted.
+    DeleteLine(u32),
+
+    /// ECH - ERASE CHARACTER
+    /// If the DEVICE COMPONENT SELECT MODE (DCSM) is set to PRESENTATION, ECH
+    /// causes the active presentation position and the n-1 following
+    /// character positions in the presentation component to be put into
+    /// the erased state, where n equals the value of Pn.
+    EraseCharacter(u32),
+
+    /// EL - ERASE IN LINE
+    /// If the DEVICE COMPONENT SELECT MODE (DCSM) is set to PRESENTATION, EL
+    /// causes some or all character positions of the active line (the line
+    /// which contains the active presentation position in the presentation
+    /// component) to be put into the erased state, depending on the
+    /// parameter values
+    EraseInLine(EraseInLine),
+
+    /// ICH - INSERT CHARACTER
+    /// If the DEVICE COMPONENT SELECT MODE (DCSM) is set to PRESENTATION, ICH
+    /// is used to prepare the insertion of n characters, by putting into the
+    /// erased state the active presentation position and, depending on the
+    /// setting of the CHARACTER EDITING MODE (HEM), the n-1 preceding or
+    /// following character positions in the presentation component, where n
+    /// equals the value of Pn. The previous contents of the active
+    /// presentation position and an adjacent string of character positions are
+    /// shifted away from the active presentation position. The contents of n
+    /// character positions at the other end of the shifted part are removed.
+    /// The active presentation position is moved to the line home position in
+    /// the active line. The line home position is established by the parameter
+    /// value of SET LINE HOME (SLH).
+    InsertCharacter(u32),
+
+    /// IL - INSERT LINE
+    /// If the DEVICE COMPONENT SELECT MODE (DCSM) is set to PRESENTATION, IL
+    /// is used to prepare the insertion of n lines, by putting into the
+    /// erased state in the presentation component the active line (the
+    /// line that contains the active presentation position) and, depending on
+    /// the setting of the LINE EDITING MODE (VEM), the n-1 preceding or
+    /// following lines, where n equals the value of Pn. The previous
+    /// contents of the active line and of adjacent lines are shifted away
+    /// from the active line. The contents of n lines at the other end of the
+    /// shifted part are removed. The active presentation position is moved
+    /// to the line home position in the active line. The line home
+    /// position is established by the parameter value of SET LINE
+    /// HOME (SLH).
+    InsertLine(u32),
+
+    /// SD - SCROLL DOWN
+    /// SD causes the data in the presentation component to be moved by n line
+    /// positions if the line orientation is horizontal, or by n character
+    /// positions if the line orientation is vertical, such that the data
+    /// appear to move down; where n equals the value of Pn. The active
+    /// presentation position is not affected by this control function.
+    ScrollDown(u32),
+
+    /// SU - SCROLL UP
+    /// SU causes the data in the presentation component to be moved by n line
+    /// positions if the line orientation is horizontal, or by n character
+    /// positions if the line orientation is vertical, such that the data
+    /// appear to move up; where n equals the value of Pn. The active
+    /// presentation position is not affected by this control function.
+    ScrollUp(u32),
+
+    /// ED - ERASE IN PAGE (XTerm calls this Erase in Display)
+    EraseInDisplay(EraseInDisplay),
+}
+
 macro_rules! write_csi {
     ($w:expr, $control:expr, $p1:expr) => {
         if $p1 == 1 {
@@ -154,6 +302,23 @@ macro_rules! write_csi {
             write!($w, "{}{}", $p1, $control)
         }
     };
+}
+
+impl EncodeEscape for Edit {
+    fn encode_escape<W: std::io::Write>(&self, w: &mut W) -> Result<(), std::io::Error> {
+        match self {
+            Edit::DeleteCharacter(n) => write_csi!(w, "P", *n)?,
+            Edit::DeleteLine(n) => write_csi!(w, "M", *n)?,
+            Edit::EraseCharacter(n) => write_csi!(w, "X", *n)?,
+            Edit::EraseInLine(n) => write!(w, "{}K", n.clone() as u8)?,
+            Edit::InsertCharacter(n) => write_csi!(w, "@", *n)?,
+            Edit::InsertLine(n) => write_csi!(w, "L", *n)?,
+            Edit::ScrollDown(n) => write_csi!(w, "T", *n)?,
+            Edit::ScrollUp(n) => write_csi!(w, "S", *n)?,
+            Edit::EraseInDisplay(n) => write!(w, "{}J", n.clone() as u8)?,
+        }
+        Ok(())
+    }
 }
 
 impl EncodeEscape for Cursor {
@@ -172,6 +337,14 @@ impl EncodeEscape for Cursor {
             Cursor::Position { line, col } => write!(w, "{};{}H", line, col)?,
             Cursor::LineTabulation(n) => write_csi!(w, "Y", *n)?,
             Cursor::TabulationControl(n) => write_csi!(w, "W", n.clone() as u8)?,
+            Cursor::TabulationClear(n) => write_csi!(w, "g", n.clone() as u8)?,
+            Cursor::CharacterPositionAbsolute(n) => write_csi!(w, "`", *n)?,
+            Cursor::CharacterPositionBackward(n) => write_csi!(w, "j", *n)?,
+            Cursor::CharacterPositionForward(n) => write_csi!(w, "a", *n)?,
+            Cursor::CharacterAndLinePosition { line, col } => write!(w, "{};{}f", line, col)?,
+            Cursor::LinePositionAbsolute(n) => write_csi!(w, "d", *n)?,
+            Cursor::LinePositionBackward(n) => write_csi!(w, "k", *n)?,
+            Cursor::LinePositionForward(n) => write_csi!(w, "e", *n)?,
         }
         Ok(())
     }
@@ -186,6 +359,38 @@ pub enum CursorTabulationControl {
     ClearAllCharacterTabStopsAtActiveLine = 4,
     ClearAllCharacterTabStops = 5,
     ClearAllLineTabStops = 6,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, FromPrimitive)]
+pub enum TabulationClear {
+    ClearCharacterTabStopAtActivePosition = 0,
+    ClearLineTabStopAtActiveLine = 1,
+    ClearCharacterTabStopsAtActiveLine = 2,
+    ClearAllCharacterTabStops = 3,
+    ClearAllLineTabStops = 4,
+    ClearAllTabStops = 5,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, FromPrimitive)]
+pub enum EraseInLine {
+    EraseToEndOfLine = 0,
+    EraseToStartOfLine = 1,
+    EraseLine = 2,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, FromPrimitive)]
+pub enum EraseInDisplay {
+    /// the active presentation position and the character positions up to the
+    /// end of the page are put into the erased state
+    EraseToEndOfDisplay = 0,
+    /// the character positions from the beginning of the page up to and
+    /// including the active presentation position are put into the erased
+    /// state
+    EraseToStartOfDisplay = 1,
+    /// all character positions of the page are put into the erased state
+    EraseDisplay = 2,
+    /// Clears the scrollback.  This is an Xterm extension to ECMA-48.
+    EraseScrollback = 3,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -393,30 +598,14 @@ fn to_u32(v: i64) -> Result<u32, ()> {
 impl<'a> CSIParser<'a> {
     fn parse_next(&mut self, params: &'a [i64]) -> Result<CSI, ()> {
         match (self.control, self.intermediates, params) {
-            ('m', &[], params) => self.sgr(params).map(|sgr| CSI::Sgr(sgr)),
+            ('@', &[], &[]) => Ok(CSI::Edit(Edit::InsertCharacter(1))),
+            ('@', &[], &[n]) => Ok(CSI::Edit(Edit::InsertCharacter(to_u32(n)?))),
 
-            ('Z', &[], &[]) => Ok(CSI::Cursor(Cursor::BackwardTabulation(1))),
-            ('Z', &[], &[n]) => Ok(CSI::Cursor(Cursor::BackwardTabulation(to_u32(n)?))),
+            ('`', &[], &[]) => Ok(CSI::Cursor(Cursor::CharacterPositionAbsolute(1))),
+            ('`', &[], &[n]) => Ok(CSI::Cursor(Cursor::CharacterPositionAbsolute(to_u32(n)?))),
 
-            ('G', &[], &[]) => Ok(CSI::Cursor(Cursor::CharacterAbsolute(1))),
-            ('G', &[], &[n]) => Ok(CSI::Cursor(Cursor::CharacterAbsolute(to_u32(n)?))),
-
-            ('I', &[], &[]) => Ok(CSI::Cursor(Cursor::ForwardTabulation(1))),
-            ('I', &[], &[n]) => Ok(CSI::Cursor(Cursor::ForwardTabulation(to_u32(n)?))),
-
-            ('E', &[], &[]) => Ok(CSI::Cursor(Cursor::NextLine(1))),
-            ('E', &[], &[n]) => Ok(CSI::Cursor(Cursor::NextLine(to_u32(n)?))),
-
-            ('F', &[], &[]) => Ok(CSI::Cursor(Cursor::PrecedingLine(1))),
-            ('F', &[], &[n]) => Ok(CSI::Cursor(Cursor::PrecedingLine(to_u32(n)?))),
-
-            ('R', &[], &[line, col]) => Ok(CSI::Cursor(Cursor::ActivePositionReport {
-                line: to_u32(line)?,
-                col: to_u32(col)?,
-            })),
-
-            ('D', &[], &[]) => Ok(CSI::Cursor(Cursor::Left(1))),
-            ('D', &[], &[n]) => Ok(CSI::Cursor(Cursor::Left(to_u32(n)?))),
+            ('A', &[], &[]) => Ok(CSI::Cursor(Cursor::Up(1))),
+            ('A', &[], &[n]) => Ok(CSI::Cursor(Cursor::Up(to_u32(n)?))),
 
             ('B', &[], &[]) => Ok(CSI::Cursor(Cursor::Down(1))),
             ('B', &[], &[n]) => Ok(CSI::Cursor(Cursor::Down(to_u32(n)?))),
@@ -424,8 +613,57 @@ impl<'a> CSIParser<'a> {
             ('C', &[], &[]) => Ok(CSI::Cursor(Cursor::Right(1))),
             ('C', &[], &[n]) => Ok(CSI::Cursor(Cursor::Right(to_u32(n)?))),
 
-            ('Y', &[], &[]) => Ok(CSI::Cursor(Cursor::LineTabulation(1))),
-            ('Y', &[], &[n]) => Ok(CSI::Cursor(Cursor::LineTabulation(to_u32(n)?))),
+            ('D', &[], &[]) => Ok(CSI::Cursor(Cursor::Left(1))),
+            ('D', &[], &[n]) => Ok(CSI::Cursor(Cursor::Left(to_u32(n)?))),
+
+            ('E', &[], &[]) => Ok(CSI::Cursor(Cursor::NextLine(1))),
+            ('E', &[], &[n]) => Ok(CSI::Cursor(Cursor::NextLine(to_u32(n)?))),
+
+            ('F', &[], &[]) => Ok(CSI::Cursor(Cursor::PrecedingLine(1))),
+            ('F', &[], &[n]) => Ok(CSI::Cursor(Cursor::PrecedingLine(to_u32(n)?))),
+
+            ('G', &[], &[]) => Ok(CSI::Cursor(Cursor::CharacterAbsolute(1))),
+            ('G', &[], &[n]) => Ok(CSI::Cursor(Cursor::CharacterAbsolute(to_u32(n)?))),
+
+            ('H', &[], &[line, col]) => Ok(CSI::Cursor(Cursor::Position {
+                line: to_u32(line)?,
+                col: to_u32(col)?,
+            })),
+            ('H', &[], &[]) => Ok(CSI::Cursor(Cursor::Position { line: 1, col: 1 })),
+
+            ('I', &[], &[]) => Ok(CSI::Cursor(Cursor::ForwardTabulation(1))),
+            ('I', &[], &[n]) => Ok(CSI::Cursor(Cursor::ForwardTabulation(to_u32(n)?))),
+
+            ('J', &[], &[]) => Ok(CSI::Edit(Edit::EraseInDisplay(
+                EraseInDisplay::EraseToEndOfDisplay,
+            ))),
+            ('J', &[], &[n]) => Ok(CSI::Edit(Edit::EraseInDisplay(
+                num::FromPrimitive::from_i64(n).ok_or(())?,
+            ))),
+
+            ('K', &[], &[]) => Ok(CSI::Edit(Edit::EraseInLine(EraseInLine::EraseToEndOfLine))),
+            ('K', &[], &[n]) => Ok(CSI::Edit(Edit::EraseInLine(num::FromPrimitive::from_i64(
+                n,
+            ).ok_or(())?))),
+
+            ('L', &[], &[]) => Ok(CSI::Edit(Edit::InsertLine(1))),
+            ('L', &[], &[n]) => Ok(CSI::Edit(Edit::InsertLine(to_u32(n)?))),
+
+            ('M', &[], &[]) => Ok(CSI::Edit(Edit::DeleteLine(1))),
+            ('M', &[], &[n]) => Ok(CSI::Edit(Edit::DeleteLine(to_u32(n)?))),
+
+            ('P', &[], &[]) => Ok(CSI::Edit(Edit::DeleteCharacter(1))),
+            ('P', &[], &[n]) => Ok(CSI::Edit(Edit::DeleteCharacter(to_u32(n)?))),
+
+            ('R', &[], &[line, col]) => Ok(CSI::Cursor(Cursor::ActivePositionReport {
+                line: to_u32(line)?,
+                col: to_u32(col)?,
+            })),
+
+            ('S', &[], &[]) => Ok(CSI::Edit(Edit::ScrollUp(1))),
+            ('S', &[], &[n]) => Ok(CSI::Edit(Edit::ScrollUp(to_u32(n)?))),
+            ('T', &[], &[]) => Ok(CSI::Edit(Edit::ScrollDown(1))),
+            ('T', &[], &[n]) => Ok(CSI::Edit(Edit::ScrollDown(to_u32(n)?))),
 
             ('W', &[], &[]) => Ok(CSI::Cursor(Cursor::TabulationControl(
                 CursorTabulationControl::SetCharacterTabStopAtActivePosition,
@@ -434,10 +672,47 @@ impl<'a> CSIParser<'a> {
                 num::FromPrimitive::from_i64(n).ok_or(())?,
             ))),
 
-            ('H', &[], &[line, col]) => Ok(CSI::Cursor(Cursor::Position {
+            ('X', &[], &[]) => Ok(CSI::Edit(Edit::EraseCharacter(1))),
+            ('X', &[], &[n]) => Ok(CSI::Edit(Edit::EraseCharacter(to_u32(n)?))),
+
+            ('Y', &[], &[]) => Ok(CSI::Cursor(Cursor::LineTabulation(1))),
+            ('Y', &[], &[n]) => Ok(CSI::Cursor(Cursor::LineTabulation(to_u32(n)?))),
+
+            ('Z', &[], &[]) => Ok(CSI::Cursor(Cursor::BackwardTabulation(1))),
+            ('Z', &[], &[n]) => Ok(CSI::Cursor(Cursor::BackwardTabulation(to_u32(n)?))),
+
+            ('a', &[], &[]) => Ok(CSI::Cursor(Cursor::CharacterPositionForward(1))),
+            ('a', &[], &[n]) => Ok(CSI::Cursor(Cursor::CharacterPositionForward(to_u32(n)?))),
+
+            ('d', &[], &[]) => Ok(CSI::Cursor(Cursor::LinePositionAbsolute(1))),
+            ('d', &[], &[n]) => Ok(CSI::Cursor(Cursor::LinePositionAbsolute(to_u32(n)?))),
+
+            ('e', &[], &[]) => Ok(CSI::Cursor(Cursor::LinePositionForward(1))),
+            ('e', &[], &[n]) => Ok(CSI::Cursor(Cursor::LinePositionForward(to_u32(n)?))),
+
+            ('f', &[], &[line, col]) => Ok(CSI::Cursor(Cursor::CharacterAndLinePosition {
                 line: to_u32(line)?,
                 col: to_u32(col)?,
             })),
+            ('f', &[], &[]) => Ok(CSI::Cursor(Cursor::CharacterAndLinePosition {
+                line: 1,
+                col: 1,
+            })),
+
+            ('g', &[], &[]) => Ok(CSI::Cursor(Cursor::TabulationClear(
+                TabulationClear::ClearCharacterTabStopAtActivePosition,
+            ))),
+            ('g', &[], &[n]) => Ok(CSI::Cursor(Cursor::TabulationClear(
+                num::FromPrimitive::from_i64(n).ok_or(())?,
+            ))),
+
+            ('j', &[], &[]) => Ok(CSI::Cursor(Cursor::CharacterPositionBackward(1))),
+            ('j', &[], &[n]) => Ok(CSI::Cursor(Cursor::CharacterPositionBackward(to_u32(n)?))),
+
+            ('k', &[], &[]) => Ok(CSI::Cursor(Cursor::LinePositionBackward(1))),
+            ('k', &[], &[n]) => Ok(CSI::Cursor(Cursor::LinePositionBackward(to_u32(n)?))),
+
+            ('m', &[], params) => self.sgr(params).map(|sgr| CSI::Sgr(sgr)),
 
             _ => Err(()),
         }
