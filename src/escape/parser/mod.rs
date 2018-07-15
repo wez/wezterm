@@ -106,6 +106,13 @@ mod test {
     use super::*;
     use cell::Intensity;
     use escape::csi::Sgr;
+    use escape::EncodeEscape;
+
+    fn encode(seq: &Vec<Action>) -> String {
+        let mut res = Vec::new();
+        seq.encode_escape(&mut res).unwrap();
+        String::from_utf8(res).unwrap()
+    }
 
     #[test]
     fn basic_parse() {
@@ -121,6 +128,7 @@ mod test {
             ],
             actions
         );
+        assert_eq!(encode(&actions), "hello");
     }
 
     #[test]
@@ -134,6 +142,7 @@ mod test {
             ],
             actions
         );
+        assert_eq!(encode(&actions), "\x1b[1mb");
     }
 
     #[test]
@@ -148,5 +157,7 @@ mod test {
             ],
             actions
         );
+
+        assert_eq!(encode(&actions), "\x1b[1m\x1b[3mb");
     }
 }

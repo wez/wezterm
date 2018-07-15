@@ -1,11 +1,12 @@
 //! Colors for attributes
 
+use num;
 use palette;
 use palette::Srgb;
 use serde::{self, Deserialize, Deserializer};
 use std::result::Result;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, FromPrimitive)]
 #[repr(u8)]
 /// These correspond to the classic ANSI color indices and are
 /// used for convenience/readability in code

@@ -1,6 +1,8 @@
 use cell::{Blink, Intensity, Underline};
 use color::{AnsiColor, ColorSpec, RgbColor};
+use escape::EncodeEscape;
 use num;
+use std;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CSI {
@@ -23,6 +25,39 @@ pub enum CSI {
     __Nonexhaustive,
 }
 
+impl EncodeEscape for CSI {
+    // TODO: data size optimization opportunity: if we could somehow know that we
+    // had a run of CSI instances being encoded in sequence, we could
+    // potentially collapse them together.  This is a few bytes difference in
+    // practice so it may not be worthwhile with modern networks.
+    fn encode_escape<W: std::io::Write>(&self, w: &mut W) -> Result<(), std::io::Error> {
+        w.write_all(&[0x1b, b'['])?;
+        match self {
+            CSI::Sgr(sgr) => sgr.encode_escape(w)?,
+            CSI::Unspecified {
+                params,
+                intermediates,
+                control,
+                ..
+            } => {
+                for (idx, p) in params.iter().enumerate() {
+                    if idx > 0 {
+                        write!(w, ";{}", p)?;
+                    } else {
+                        write!(w, "{}", p)?;
+                    }
+                }
+                for i in intermediates {
+                    write!(w, "{}", i)?;
+                }
+                write!(w, "{}", control)?;
+            }
+            CSI::__Nonexhaustive => {}
+        };
+        Ok(())
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Sgr {
     /// Resets rendition to defaults.  Typically switches off
@@ -39,6 +74,125 @@ pub enum Sgr {
     Font(Font),
     Foreground(ColorSpec),
     Background(ColorSpec),
+}
+
+impl EncodeEscape for Sgr {
+    fn encode_escape<W: std::io::Write>(&self, w: &mut W) -> Result<(), std::io::Error> {
+        macro_rules! code {
+            ($t:ident) => {
+                write!(w, "{}m", SgrCode::$t as i64)?
+            };
+        }
+
+        macro_rules! ansi_color {
+            ($idx:expr, $eightbit:ident, $( ($Ansi:ident, $code:ident) ),*) => {
+                if let Some(ansi) = num::FromPrimitive::from_u8($idx) {
+                    match ansi {
+                        $(AnsiColor::$Ansi => code!($code) ,)*
+                    }
+                } else {
+                    write!(w, "{};5;{}m", SgrCode::$eightbit as i64, $idx)?
+                }
+            }
+        }
+
+        match self {
+            Sgr::Reset => code!(Reset),
+            Sgr::Intensity(Intensity::Bold) => code!(IntensityBold),
+            Sgr::Intensity(Intensity::Half) => code!(IntensityDim),
+            Sgr::Intensity(Intensity::Normal) => code!(NormalIntensity),
+            Sgr::Underline(Underline::Single) => code!(UnderlineOn),
+            Sgr::Underline(Underline::Double) => code!(UnderlineDouble),
+            Sgr::Underline(Underline::None) => code!(UnderlineOff),
+            Sgr::Blink(Blink::Slow) => code!(BlinkOn),
+            Sgr::Blink(Blink::Rapid) => code!(RapidBlinkOn),
+            Sgr::Blink(Blink::None) => code!(BlinkOff),
+            Sgr::Italic(true) => code!(ItalicOn),
+            Sgr::Italic(false) => code!(ItalicOff),
+            Sgr::Inverse(true) => code!(InverseOn),
+            Sgr::Inverse(false) => code!(InverseOff),
+            Sgr::Invisible(true) => code!(InvisibleOn),
+            Sgr::Invisible(false) => code!(InvisibleOff),
+            Sgr::StrikeThrough(true) => code!(StrikeThroughOn),
+            Sgr::StrikeThrough(false) => code!(StrikeThroughOff),
+            Sgr::Font(Font::Default) => code!(DefaultFont),
+            Sgr::Font(Font::Alternate(1)) => code!(AltFont1),
+            Sgr::Font(Font::Alternate(2)) => code!(AltFont2),
+            Sgr::Font(Font::Alternate(3)) => code!(AltFont3),
+            Sgr::Font(Font::Alternate(4)) => code!(AltFont4),
+            Sgr::Font(Font::Alternate(5)) => code!(AltFont5),
+            Sgr::Font(Font::Alternate(6)) => code!(AltFont6),
+            Sgr::Font(Font::Alternate(7)) => code!(AltFont7),
+            Sgr::Font(Font::Alternate(8)) => code!(AltFont8),
+            Sgr::Font(Font::Alternate(9)) => code!(AltFont9),
+            Sgr::Font(_) => { /* there are no other possible font values */ }
+            Sgr::Foreground(ColorSpec::Default) => code!(ForegroundDefault),
+            Sgr::Background(ColorSpec::Default) => code!(BackgroundDefault),
+            Sgr::Foreground(ColorSpec::PaletteIndex(idx)) => ansi_color!(
+                *idx,
+                ForegroundColor,
+                (Black, ForegroundBlack),
+                (Maroon, ForegroundRed),
+                (Green, ForegroundGreen),
+                (Olive, ForegroundYellow),
+                (Navy, ForegroundBlue),
+                (Purple, ForegroundMagenta),
+                (Teal, ForegroundCyan),
+                (Silver, ForegroundWhite),
+                // Note: these brights are emitted using codes in the 100 range.
+                // I don't know how portable this is vs. the 256 color sequences,
+                // so we may need to make an adjustment here later.
+                (Grey, ForegroundBrightBlack),
+                (Red, ForegroundBrightRed),
+                (Lime, ForegroundBrightGreen),
+                (Yellow, ForegroundBrightYellow),
+                (Blue, ForegroundBrightBlue),
+                (Fuschia, ForegroundBrightMagenta),
+                (Aqua, ForegroundBrightCyan),
+                (White, ForegroundBrightWhite)
+            ),
+            Sgr::Foreground(ColorSpec::TrueColor(c)) => write!(
+                w,
+                "{};2;{};{};{}m",
+                SgrCode::ForegroundColor as i64,
+                c.red,
+                c.green,
+                c.blue
+            )?,
+            Sgr::Background(ColorSpec::PaletteIndex(idx)) => ansi_color!(
+                *idx,
+                BackgroundColor,
+                (Black, BackgroundBlack),
+                (Maroon, BackgroundRed),
+                (Green, BackgroundGreen),
+                (Olive, BackgroundYellow),
+                (Navy, BackgroundBlue),
+                (Purple, BackgroundMagenta),
+                (Teal, BackgroundCyan),
+                (Silver, BackgroundWhite),
+                // Note: these brights are emitted using codes in the 100 range.
+                // I don't know how portable this is vs. the 256 color sequences,
+                // so we may need to make an adjustment here later.
+                (Grey, BackgroundBrightBlack),
+                (Red, BackgroundBrightRed),
+                (Lime, BackgroundBrightGreen),
+                (Yellow, BackgroundBrightYellow),
+                (Blue, BackgroundBrightBlue),
+                (Fuschia, BackgroundBrightMagenta),
+                (Aqua, BackgroundBrightCyan),
+                (White, BackgroundBrightWhite)
+            ),
+            Sgr::Background(ColorSpec::TrueColor(c)) => write!(
+                w,
+                "{};2;{};{};{}m",
+                SgrCode::BackgroundColor as i64,
+                c.red,
+                c.green,
+                c.blue
+            )?,
+        }
+        Ok(())
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -338,20 +492,28 @@ impl<'a> Iterator for CSIParser<'a> {
 mod test {
     use super::*;
 
-    fn parse(control: char, params: &[i64]) -> Vec<CSI> {
-        CSI::parse(params, &[], false, control).collect()
+    fn parse(control: char, params: &[i64], expected: &str) -> Vec<CSI> {
+        let res = CSI::parse(params, &[], false, control).collect();
+        assert_eq!(encode(&res), expected);
+        res
+    }
+
+    fn encode(seq: &Vec<CSI>) -> String {
+        let mut res = Vec::new();
+        seq.encode_escape(&mut res).unwrap();
+        String::from_utf8(res).unwrap()
     }
 
     #[test]
     fn test_basic() {
-        assert_eq!(parse('m', &[]), vec![CSI::Sgr(Sgr::Reset)]);
-        assert_eq!(parse('m', &[0]), vec![CSI::Sgr(Sgr::Reset)]);
+        assert_eq!(parse('m', &[], "\x1b[0m"), vec![CSI::Sgr(Sgr::Reset)]);
+        assert_eq!(parse('m', &[0], "\x1b[0m"), vec![CSI::Sgr(Sgr::Reset)]);
         assert_eq!(
-            parse('m', &[1]),
+            parse('m', &[1], "\x1b[1m"),
             vec![CSI::Sgr(Sgr::Intensity(Intensity::Bold))]
         );
         assert_eq!(
-            parse('m', &[1, 3]),
+            parse('m', &[1, 3], "\x1b[1m\x1b[3m"),
             vec![
                 CSI::Sgr(Sgr::Intensity(Intensity::Bold)),
                 CSI::Sgr(Sgr::Italic(true)),
@@ -361,7 +523,7 @@ mod test {
         // Verify that we propagate Unspecified for codes
         // that we don't recognize.
         assert_eq!(
-            parse('m', &[1, 3, 1231231]),
+            parse('m', &[1, 3, 1231231], "\x1b[1m\x1b[3m\x1b[1231231m"),
             vec![
                 CSI::Sgr(Sgr::Intensity(Intensity::Bold)),
                 CSI::Sgr(Sgr::Italic(true)),
@@ -374,7 +536,7 @@ mod test {
             ]
         );
         assert_eq!(
-            parse('m', &[1, 1231231, 3]),
+            parse('m', &[1, 1231231, 3], "\x1b[1m\x1b[1231231;3m"),
             vec![
                 CSI::Sgr(Sgr::Intensity(Intensity::Bold)),
                 CSI::Unspecified {
@@ -386,7 +548,7 @@ mod test {
             ]
         );
         assert_eq!(
-            parse('m', &[1231231, 3]),
+            parse('m', &[1231231, 3], "\x1b[1231231;3m"),
             vec![CSI::Unspecified {
                 params: [1231231, 3].to_vec(),
                 intermediates: vec![],
@@ -399,7 +561,7 @@ mod test {
     #[test]
     fn test_color() {
         assert_eq!(
-            parse('m', &[38, 2]),
+            parse('m', &[38, 2], "\x1b[38;2m"),
             vec![CSI::Unspecified {
                 params: [38, 2].to_vec(),
                 intermediates: vec![],
@@ -407,14 +569,15 @@ mod test {
                 control: 'm',
             }]
         );
+
         assert_eq!(
-            parse('m', &[38, 2, 255, 255, 255]),
+            parse('m', &[38, 2, 255, 255, 255], "\x1b[38;2;255;255;255m"),
             vec![CSI::Sgr(Sgr::Foreground(ColorSpec::TrueColor(
                 RgbColor::new(255, 255, 255),
             )))]
         );
         assert_eq!(
-            parse('m', &[38, 5, 220, 255, 255]),
+            parse('m', &[38, 5, 220, 255, 255], "\x1b[38;5;220m\x1b[255;255m"),
             vec![
                 CSI::Sgr(Sgr::Foreground(ColorSpec::PaletteIndex(220))),
                 CSI::Unspecified {

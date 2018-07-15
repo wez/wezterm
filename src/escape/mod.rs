@@ -3,6 +3,8 @@
 //! escape sequences.  It provides encoding and decoding functionality
 //! only; it does not provide terminal emulation facilities itself.
 use num;
+use std;
+
 pub mod csi;
 pub mod osc;
 pub mod parser;
@@ -24,6 +26,35 @@ pub enum Action {
     OperatingSystemCommand(OperatingSystemCommand),
     CSI(CSI),
     Esc(Esc),
+}
+
+/// Encode self as an escape sequence.  The escape sequence may potentially
+/// be clear text with no actual escape sequences.
+pub trait EncodeEscape {
+    fn encode_escape<W: std::io::Write>(&self, w: &mut W) -> Result<(), std::io::Error>;
+}
+
+impl EncodeEscape for Action {
+    fn encode_escape<W: std::io::Write>(&self, w: &mut W) -> Result<(), std::io::Error> {
+        match self {
+            Action::Print(c) => write!(w, "{}", c),
+            Action::Control(Control::Code(c)) => w.write_all(&[c.clone() as u8]),
+            Action::Control(Control::Unspecified(c)) => w.write_all(&[*c]),
+            Action::DeviceControl(_) => unimplemented!(),
+            Action::OperatingSystemCommand(_) => unimplemented!(),
+            Action::CSI(csi) => csi.encode_escape(w),
+            Action::Esc(esc) => unimplemented!(),
+        }
+    }
+}
+
+impl<T: EncodeEscape> EncodeEscape for [T] {
+    fn encode_escape<W: std::io::Write>(&self, w: &mut W) -> Result<(), std::io::Error> {
+        for item in self {
+            item.encode_escape(w)?;
+        }
+        Ok(())
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
