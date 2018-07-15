@@ -10,6 +10,9 @@ pub enum CSI {
     /// These values affect how the character is rendered.
     Sgr(Sgr),
 
+    /// CSI codes that relate to the cursor
+    Cursor(Cursor),
+
     Unspecified {
         params: Vec<i64>,
         // TODO: can we just make intermediates a single u8?
@@ -34,6 +37,7 @@ impl EncodeEscape for CSI {
         w.write_all(&[0x1b, b'['])?;
         match self {
             CSI::Sgr(sgr) => sgr.encode_escape(w)?,
+            CSI::Cursor(c) => c.encode_escape(w)?,
             CSI::Unspecified {
                 params,
                 intermediates,
@@ -56,6 +60,132 @@ impl EncodeEscape for CSI {
         };
         Ok(())
     }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Cursor {
+    /// CBT causes the active present ation position to be moved to the
+    /// character position corresponding to the n-th preceding character
+    /// tabulation stop in the presentation component, according to the
+    /// character path, where n equals the value of Pn
+    BackwardTabulation(u32),
+
+    /// CHA causes the active presentation position to be moved to character
+    /// position n in the active line in the presentation component, where n
+    /// equals the value of Pn.
+    CharacterAbsolute(u32),
+
+    /// CHT causes the active presentation position to be moved to the
+    /// character position corresponding to the n-th following character
+    /// tabulation stop in the presentation component, according to the
+    /// character path, where n equals the value of Pn
+    ForwardTabulation(u32),
+
+    /// CNL causes the active presentation position to be moved to the
+    /// first character position of the n-th following line in the
+    /// presentation component, where n equals the value of Pn
+    NextLine(u32),
+
+    /// CPL causes the active presentation position to be moved to the first
+    /// character position of the  n-th preceding line in the presentation
+    /// component, where n equals the value of Pn
+    PrecedingLine(u32),
+
+    /// CPR - ACTIVE POSITION REPORT
+    /// If the DEVICE COMPONENT SELECT MODE (DCSM)
+    /// is set to PRESENTATION, CPR is used to report the active presentation
+    /// position of the sending device as residing in the presentation
+    /// component at the n-th line position according to the line progression
+    /// and at the m-th character position according to the character path,
+    /// where n equals the value of Pn1 and m equal s the value of Pn2.
+    /// If the DEVICE COMPONENT SELECT MODE (DCSM) is set to DATA, CPR is used
+    /// to report the active data position of the sending device as
+    /// residing in the data component at the n-th line position according
+    /// to the line progression and at the m-th character position
+    /// according to the character progression, where n equals the value of
+    /// Pn1 and m equals the value of Pn2. CPR may be solicited by a DEVICE
+    /// STATUS REPORT (DSR) or be sent unsolicited .
+    ActivePositionReport { line: u32, col: u32 },
+
+    /// CTC - CURSOR TABULATION CONTROL
+    /// CTC causes one or more tabulation stops to be set or cleared in the
+    /// presentation component, depending on the parameter values.
+    /// In the case of parameter values 0, 2 or 4 the number of lines affected
+    /// depends on the setting of the TABULATION STOP MODE (TSM).
+    TabulationControl(CursorTabulationControl),
+
+    /// CUB - Cursor Left
+    /// CUB causes the active presentation position to be moved leftwards in
+    /// the presentation component by n character positions if the character
+    /// pat h is horizontal, or by n line positions if the character pat h is
+    /// vertical, where n equals the value of Pn.
+    Left(u32),
+
+    /// CUD - Cursor Down
+    Down(u32),
+
+    /// CUF - Cursor Right
+    Right(u32),
+
+    /// CUP - Cursor Position
+    /// CUP causes the active presentation position to be moved in the
+    /// presentation component to the n-th line position according to the line
+    /// progression and to the m-th character position according to the
+    /// character path, where n equals the value of Pn1 and m equals the value
+    /// of Pn2.
+    Position { line: u32, col: u32 },
+
+    /// CUU - Cursor Up
+    Up(u32),
+
+    /// CVT - Cursor Line Tabulation
+    /// CVT causes the active presentation position to be moved to the
+    /// corresponding character position of the line corresponding to the n-th
+    /// following line tabulation stop in the presentation component, where n
+    /// equals the value of Pn.
+    LineTabulation(u32),
+}
+
+macro_rules! write_csi {
+    ($w:expr, $control:expr, $p1:expr) => {
+        if $p1 == 1 {
+            write!($w, "{}", $control)
+        } else {
+            write!($w, "{}{}", $p1, $control)
+        }
+    };
+}
+
+impl EncodeEscape for Cursor {
+    fn encode_escape<W: std::io::Write>(&self, w: &mut W) -> Result<(), std::io::Error> {
+        match self {
+            Cursor::BackwardTabulation(n) => write_csi!(w, "Z", *n)?,
+            Cursor::CharacterAbsolute(col) => write_csi!(w, "G", *col)?,
+            Cursor::ForwardTabulation(n) => write_csi!(w, "I", *n)?,
+            Cursor::NextLine(n) => write_csi!(w, "E", *n)?,
+            Cursor::PrecedingLine(n) => write_csi!(w, "F", *n)?,
+            Cursor::ActivePositionReport { line, col } => write!(w, "{};{}R", line, col)?,
+            Cursor::Left(n) => write_csi!(w, "D", *n)?,
+            Cursor::Down(n) => write_csi!(w, "B", *n)?,
+            Cursor::Right(n) => write_csi!(w, "C", *n)?,
+            Cursor::Up(n) => write_csi!(w, "A", *n)?,
+            Cursor::Position { line, col } => write!(w, "{};{}H", line, col)?,
+            Cursor::LineTabulation(n) => write_csi!(w, "Y", *n)?,
+            Cursor::TabulationControl(n) => write_csi!(w, "W", n.clone() as u8)?,
+        }
+        Ok(())
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, FromPrimitive)]
+pub enum CursorTabulationControl {
+    SetCharacterTabStopAtActivePosition = 0,
+    SetLineTabStopAtActiveLine = 1,
+    ClearCharacterTabStopAtActivePosition = 2,
+    ClearLineTabstopAtActiveLine = 3,
+    ClearAllCharacterTabStopsAtActiveLine = 4,
+    ClearAllCharacterTabStops = 5,
+    ClearAllLineTabStops = 6,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -252,7 +382,67 @@ fn to_u8(v: i64) -> Result<u8, ()> {
     }
 }
 
+fn to_u32(v: i64) -> Result<u32, ()> {
+    if v >= 0 && v <= u32::max_value() as i64 {
+        Ok(v as u32)
+    } else {
+        Err(())
+    }
+}
+
 impl<'a> CSIParser<'a> {
+    fn parse_next(&mut self, params: &'a [i64]) -> Result<CSI, ()> {
+        match (self.control, self.intermediates, params) {
+            ('m', &[], params) => self.sgr(params).map(|sgr| CSI::Sgr(sgr)),
+
+            ('Z', &[], &[]) => Ok(CSI::Cursor(Cursor::BackwardTabulation(1))),
+            ('Z', &[], &[n]) => Ok(CSI::Cursor(Cursor::BackwardTabulation(to_u32(n)?))),
+
+            ('G', &[], &[]) => Ok(CSI::Cursor(Cursor::CharacterAbsolute(1))),
+            ('G', &[], &[n]) => Ok(CSI::Cursor(Cursor::CharacterAbsolute(to_u32(n)?))),
+
+            ('I', &[], &[]) => Ok(CSI::Cursor(Cursor::ForwardTabulation(1))),
+            ('I', &[], &[n]) => Ok(CSI::Cursor(Cursor::ForwardTabulation(to_u32(n)?))),
+
+            ('E', &[], &[]) => Ok(CSI::Cursor(Cursor::NextLine(1))),
+            ('E', &[], &[n]) => Ok(CSI::Cursor(Cursor::NextLine(to_u32(n)?))),
+
+            ('F', &[], &[]) => Ok(CSI::Cursor(Cursor::PrecedingLine(1))),
+            ('F', &[], &[n]) => Ok(CSI::Cursor(Cursor::PrecedingLine(to_u32(n)?))),
+
+            ('R', &[], &[line, col]) => Ok(CSI::Cursor(Cursor::ActivePositionReport {
+                line: to_u32(line)?,
+                col: to_u32(col)?,
+            })),
+
+            ('D', &[], &[]) => Ok(CSI::Cursor(Cursor::Left(1))),
+            ('D', &[], &[n]) => Ok(CSI::Cursor(Cursor::Left(to_u32(n)?))),
+
+            ('B', &[], &[]) => Ok(CSI::Cursor(Cursor::Down(1))),
+            ('B', &[], &[n]) => Ok(CSI::Cursor(Cursor::Down(to_u32(n)?))),
+
+            ('C', &[], &[]) => Ok(CSI::Cursor(Cursor::Right(1))),
+            ('C', &[], &[n]) => Ok(CSI::Cursor(Cursor::Right(to_u32(n)?))),
+
+            ('Y', &[], &[]) => Ok(CSI::Cursor(Cursor::LineTabulation(1))),
+            ('Y', &[], &[n]) => Ok(CSI::Cursor(Cursor::LineTabulation(to_u32(n)?))),
+
+            ('W', &[], &[]) => Ok(CSI::Cursor(Cursor::TabulationControl(
+                CursorTabulationControl::SetCharacterTabStopAtActivePosition,
+            ))),
+            ('W', &[], &[n]) => Ok(CSI::Cursor(Cursor::TabulationControl(
+                num::FromPrimitive::from_i64(n).ok_or(())?,
+            ))),
+
+            ('H', &[], &[line, col]) => Ok(CSI::Cursor(Cursor::Position {
+                line: to_u32(line)?,
+                col: to_u32(col)?,
+            })),
+
+            _ => Err(()),
+        }
+    }
+
     /// Consume some number of elements from params and update it.
     /// Take care to avoid setting params back to an empty slice
     /// as this would trigger returning a default value and/or
@@ -463,26 +653,18 @@ impl<'a> Iterator for CSIParser<'a> {
     type Item = CSI;
 
     fn next(&mut self) -> Option<CSI> {
-        let params = self.params.take();
+        let params = match self.params.take() {
+            None => return None,
+            Some(params) => params,
+        };
 
-        match (self.control, self.intermediates, params) {
-            (_, _, None) => None,
-            ('m', &[], Some(params)) => match self.sgr(params) {
-                Ok(sgr) => Some(CSI::Sgr(sgr)),
-                Err(()) => Some(CSI::Unspecified {
-                    params: params.to_vec(),
-                    intermediates: vec![],
-                    ignored_extra_intermediates: self.ignored_extra_intermediates,
-                    control: self.control,
-                }),
-            },
-
-            // Catch-all: just report the leftovers
-            (control, intermediates, Some(params)) => Some(CSI::Unspecified {
+        match self.parse_next(&params) {
+            Ok(csi) => Some(csi),
+            Err(()) => Some(CSI::Unspecified {
                 params: params.to_vec(),
-                intermediates: intermediates.to_vec(),
+                intermediates: self.intermediates.to_vec(),
                 ignored_extra_intermediates: self.ignored_extra_intermediates,
-                control,
+                control: self.control,
             }),
         }
     }
@@ -587,6 +769,22 @@ mod test {
                     control: 'm',
                 },
             ]
+        );
+    }
+
+    #[test]
+    fn cursor() {
+        assert_eq!(
+            parse('C', &[], "\x1b[C"),
+            vec![CSI::Cursor(Cursor::Right(1))]
+        );
+        assert_eq!(
+            parse('C', &[1], "\x1b[C"),
+            vec![CSI::Cursor(Cursor::Right(1))]
+        );
+        assert_eq!(
+            parse('C', &[4], "\x1b[4C"),
+            vec![CSI::Cursor(Cursor::Right(4))]
         );
     }
 }
