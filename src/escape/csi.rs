@@ -294,28 +294,48 @@ pub enum Edit {
     EraseInDisplay(EraseInDisplay),
 }
 
-macro_rules! write_csi {
-    ($w:expr, $control:expr, $p1:expr) => {
-        if $p1 == 1 {
-            write!($w, "{}", $control)
+trait EncodeCSIParam {
+    fn write_csi<W: std::io::Write>(&self, w: &mut W, control: &str) -> Result<(), std::io::Error>;
+}
+
+impl<T: ParamEnum + PartialEq + num::ToPrimitive> EncodeCSIParam for T {
+    fn write_csi<W: std::io::Write>(&self, w: &mut W, control: &str) -> Result<(), std::io::Error> {
+        if *self == ParamEnum::default() {
+            write!(w, "{}", control)
         } else {
-            write!($w, "{}{}", $p1, $control)
+            let value = self.to_i64().ok_or_else(|| {
+                std::io::Error::new(
+                    std::io::ErrorKind::Other,
+                    "enum value was not representable as i64!?",
+                )
+            })?;
+            write!(w, "{}{}", value, control)
         }
-    };
+    }
+}
+
+impl EncodeCSIParam for u32 {
+    fn write_csi<W: std::io::Write>(&self, w: &mut W, control: &str) -> Result<(), std::io::Error> {
+        if *self == 1 {
+            write!(w, "{}", control)
+        } else {
+            write!(w, "{}{}", *self, control)
+        }
+    }
 }
 
 impl EncodeEscape for Edit {
     fn encode_escape<W: std::io::Write>(&self, w: &mut W) -> Result<(), std::io::Error> {
         match self {
-            Edit::DeleteCharacter(n) => write_csi!(w, "P", *n)?,
-            Edit::DeleteLine(n) => write_csi!(w, "M", *n)?,
-            Edit::EraseCharacter(n) => write_csi!(w, "X", *n)?,
-            Edit::EraseInLine(n) => write!(w, "{}K", n.clone() as u8)?,
-            Edit::InsertCharacter(n) => write_csi!(w, "@", *n)?,
-            Edit::InsertLine(n) => write_csi!(w, "L", *n)?,
-            Edit::ScrollDown(n) => write_csi!(w, "T", *n)?,
-            Edit::ScrollUp(n) => write_csi!(w, "S", *n)?,
-            Edit::EraseInDisplay(n) => write!(w, "{}J", n.clone() as u8)?,
+            Edit::DeleteCharacter(n) => n.write_csi(w, "P")?,
+            Edit::DeleteLine(n) => n.write_csi(w, "M")?,
+            Edit::EraseCharacter(n) => n.write_csi(w, "X")?,
+            Edit::EraseInLine(n) => n.write_csi(w, "K")?,
+            Edit::InsertCharacter(n) => n.write_csi(w, "@")?,
+            Edit::InsertLine(n) => n.write_csi(w, "L")?,
+            Edit::ScrollDown(n) => n.write_csi(w, "T")?,
+            Edit::ScrollUp(n) => n.write_csi(w, "S")?,
+            Edit::EraseInDisplay(n) => n.write_csi(w, "J")?,
         }
         Ok(())
     }
@@ -324,33 +344,90 @@ impl EncodeEscape for Edit {
 impl EncodeEscape for Cursor {
     fn encode_escape<W: std::io::Write>(&self, w: &mut W) -> Result<(), std::io::Error> {
         match self {
-            Cursor::BackwardTabulation(n) => write_csi!(w, "Z", *n)?,
-            Cursor::CharacterAbsolute(col) => write_csi!(w, "G", *col)?,
-            Cursor::ForwardTabulation(n) => write_csi!(w, "I", *n)?,
-            Cursor::NextLine(n) => write_csi!(w, "E", *n)?,
-            Cursor::PrecedingLine(n) => write_csi!(w, "F", *n)?,
+            Cursor::BackwardTabulation(n) => n.write_csi(w, "Z")?,
+            Cursor::CharacterAbsolute(col) => col.write_csi(w, "G")?,
+            Cursor::ForwardTabulation(n) => n.write_csi(w, "I")?,
+            Cursor::NextLine(n) => n.write_csi(w, "E")?,
+            Cursor::PrecedingLine(n) => n.write_csi(w, "F")?,
             Cursor::ActivePositionReport { line, col } => write!(w, "{};{}R", line, col)?,
-            Cursor::Left(n) => write_csi!(w, "D", *n)?,
-            Cursor::Down(n) => write_csi!(w, "B", *n)?,
-            Cursor::Right(n) => write_csi!(w, "C", *n)?,
-            Cursor::Up(n) => write_csi!(w, "A", *n)?,
+            Cursor::Left(n) => n.write_csi(w, "D")?,
+            Cursor::Down(n) => n.write_csi(w, "B")?,
+            Cursor::Right(n) => n.write_csi(w, "C")?,
+            Cursor::Up(n) => n.write_csi(w, "A")?,
             Cursor::Position { line, col } => write!(w, "{};{}H", line, col)?,
-            Cursor::LineTabulation(n) => write_csi!(w, "Y", *n)?,
-            Cursor::TabulationControl(n) => write_csi!(w, "W", n.clone() as u8)?,
-            Cursor::TabulationClear(n) => write_csi!(w, "g", n.clone() as u8)?,
-            Cursor::CharacterPositionAbsolute(n) => write_csi!(w, "`", *n)?,
-            Cursor::CharacterPositionBackward(n) => write_csi!(w, "j", *n)?,
-            Cursor::CharacterPositionForward(n) => write_csi!(w, "a", *n)?,
+            Cursor::LineTabulation(n) => n.write_csi(w, "Y")?,
+            Cursor::TabulationControl(n) => n.write_csi(w, "W")?,
+            Cursor::TabulationClear(n) => n.write_csi(w, "g")?,
+            Cursor::CharacterPositionAbsolute(n) => n.write_csi(w, "`")?,
+            Cursor::CharacterPositionBackward(n) => n.write_csi(w, "j")?,
+            Cursor::CharacterPositionForward(n) => n.write_csi(w, "a")?,
             Cursor::CharacterAndLinePosition { line, col } => write!(w, "{};{}f", line, col)?,
-            Cursor::LinePositionAbsolute(n) => write_csi!(w, "d", *n)?,
-            Cursor::LinePositionBackward(n) => write_csi!(w, "k", *n)?,
-            Cursor::LinePositionForward(n) => write_csi!(w, "e", *n)?,
+            Cursor::LinePositionAbsolute(n) => n.write_csi(w, "d")?,
+            Cursor::LinePositionBackward(n) => n.write_csi(w, "k")?,
+            Cursor::LinePositionForward(n) => n.write_csi(w, "e")?,
         }
         Ok(())
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, FromPrimitive)]
+/// This trait aids in parsing escape sequences.
+/// In many cases we simply want to collect integral values >= 1,
+/// but in some we build out an enum.  The trait helps to generalize
+/// the parser code while keeping it relatively terse.
+trait ParseParams: Sized {
+    fn parse_params(params: &[i64]) -> Result<Self, ()>;
+}
+
+/// Parse an input parameter into a 1-based unsigned value
+impl ParseParams for u32 {
+    fn parse_params(params: &[i64]) -> Result<u32, ()> {
+        if params.len() == 0 {
+            Ok(1)
+        } else if params.len() == 1 {
+            to_1b_u32(params[0])
+        } else {
+            Err(())
+        }
+    }
+}
+
+/// Parse a pair of 1-based unsigned values into a tuple.
+/// This is typically used to build a struct comprised of
+/// the pair of values.
+impl ParseParams for (u32, u32) {
+    fn parse_params(params: &[i64]) -> Result<(u32, u32), ()> {
+        if params.len() == 0 {
+            Ok((1, 1))
+        } else if params.len() == 2 {
+            Ok((to_1b_u32(params[0])?, to_1b_u32(params[1])?))
+        } else {
+            Err(())
+        }
+    }
+}
+
+/// This is ostensibly a marker trait that is used within this module
+/// to denote an enum.  It does double duty as a stand-in for Default.
+/// We need separate traits for this to disambiguate from a regular
+/// primitive integer.
+trait ParamEnum: num::FromPrimitive {
+    fn default() -> Self;
+}
+
+/// implement ParseParams for the enums that also implement ParamEnum.
+impl<T: ParamEnum> ParseParams for T {
+    fn parse_params(params: &[i64]) -> Result<Self, ()> {
+        if params.len() == 0 {
+            Ok(ParamEnum::default())
+        } else if params.len() == 1 {
+            num::FromPrimitive::from_i64(params[0]).ok_or(())
+        } else {
+            Err(())
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, FromPrimitive, Copy, ToPrimitive)]
 pub enum CursorTabulationControl {
     SetCharacterTabStopAtActivePosition = 0,
     SetLineTabStopAtActiveLine = 1,
@@ -361,7 +438,13 @@ pub enum CursorTabulationControl {
     ClearAllLineTabStops = 6,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, FromPrimitive)]
+impl ParamEnum for CursorTabulationControl {
+    fn default() -> Self {
+        CursorTabulationControl::SetCharacterTabStopAtActivePosition
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, FromPrimitive, Copy, ToPrimitive)]
 pub enum TabulationClear {
     ClearCharacterTabStopAtActivePosition = 0,
     ClearLineTabStopAtActiveLine = 1,
@@ -371,14 +454,26 @@ pub enum TabulationClear {
     ClearAllTabStops = 5,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, FromPrimitive)]
+impl ParamEnum for TabulationClear {
+    fn default() -> Self {
+        TabulationClear::ClearCharacterTabStopAtActivePosition
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, FromPrimitive, Copy, ToPrimitive)]
 pub enum EraseInLine {
     EraseToEndOfLine = 0,
     EraseToStartOfLine = 1,
     EraseLine = 2,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, FromPrimitive)]
+impl ParamEnum for EraseInLine {
+    fn default() -> Self {
+        EraseInLine::EraseToEndOfLine
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, FromPrimitive, Copy, ToPrimitive)]
 pub enum EraseInDisplay {
     /// the active presentation position and the character positions up to the
     /// end of the page are put into the erased state
@@ -391,6 +486,12 @@ pub enum EraseInDisplay {
     EraseDisplay = 2,
     /// Clears the scrollback.  This is an Xterm extension to ECMA-48.
     EraseScrollback = 3,
+}
+
+impl ParamEnum for EraseInDisplay {
+    fn default() -> Self {
+        EraseInDisplay::EraseToEndOfDisplay
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -608,128 +709,57 @@ fn to_1b_u32(v: i64) -> Result<u32, ()> {
     }
 }
 
+macro_rules! parse {
+    ($ns:ident, $variant:ident, $params:expr) => {{
+        let value = ParseParams::parse_params($params)?;
+        Ok(CSI::$ns($ns::$variant(value)))
+    }};
+
+    ($ns:ident, $variant:ident, $first:ident, $second:ident, $params:expr) => {{
+        let (p1, p2): (u32, u32) = ParseParams::parse_params($params)?;
+        Ok(CSI::$ns($ns::$variant {
+            $first: p1,
+            $second: p2,
+        }))
+    }};
+}
+
 impl<'a> CSIParser<'a> {
     fn parse_next(&mut self, params: &'a [i64]) -> Result<CSI, ()> {
-        match (self.control, self.intermediates, params) {
-            ('@', &[], &[]) => Ok(CSI::Edit(Edit::InsertCharacter(1))),
-            ('@', &[], &[n]) => Ok(CSI::Edit(Edit::InsertCharacter(to_1b_u32(n)?))),
+        match (self.control, self.intermediates) {
+            ('@', &[]) => parse!(Edit, InsertCharacter, params),
+            ('`', &[]) => parse!(Cursor, CharacterPositionAbsolute, params),
+            ('A', &[]) => parse!(Cursor, Up, params),
+            ('B', &[]) => parse!(Cursor, Down, params),
+            ('C', &[]) => parse!(Cursor, Right, params),
+            ('D', &[]) => parse!(Cursor, Left, params),
+            ('E', &[]) => parse!(Cursor, NextLine, params),
+            ('F', &[]) => parse!(Cursor, PrecedingLine, params),
+            ('G', &[]) => parse!(Cursor, CharacterAbsolute, params),
+            ('H', &[]) => parse!(Cursor, Position, line, col, params),
+            ('I', &[]) => parse!(Cursor, ForwardTabulation, params),
+            ('J', &[]) => parse!(Edit, EraseInDisplay, params),
+            ('K', &[]) => parse!(Edit, EraseInLine, params),
+            ('L', &[]) => parse!(Edit, InsertLine, params),
+            ('M', &[]) => parse!(Edit, DeleteLine, params),
+            ('P', &[]) => parse!(Edit, DeleteCharacter, params),
+            ('R', &[]) => parse!(Cursor, ActivePositionReport, line, col, params),
+            ('S', &[]) => parse!(Edit, ScrollUp, params),
+            ('T', &[]) => parse!(Edit, ScrollDown, params),
+            ('W', &[]) => parse!(Cursor, TabulationControl, params),
+            ('X', &[]) => parse!(Edit, EraseCharacter, params),
+            ('Y', &[]) => parse!(Cursor, LineTabulation, params),
+            ('Z', &[]) => parse!(Cursor, BackwardTabulation, params),
 
-            ('`', &[], &[]) => Ok(CSI::Cursor(Cursor::CharacterPositionAbsolute(1))),
-            ('`', &[], &[n]) => Ok(CSI::Cursor(Cursor::CharacterPositionAbsolute(to_1b_u32(
-                n,
-            )?))),
+            ('a', &[]) => parse!(Cursor, CharacterPositionForward, params),
+            ('d', &[]) => parse!(Cursor, LinePositionAbsolute, params),
+            ('e', &[]) => parse!(Cursor, LinePositionForward, params),
+            ('f', &[]) => parse!(Cursor, CharacterAndLinePosition, line, col, params),
+            ('g', &[]) => parse!(Cursor, TabulationClear, params),
+            ('j', &[]) => parse!(Cursor, CharacterPositionBackward, params),
+            ('k', &[]) => parse!(Cursor, LinePositionBackward, params),
 
-            ('A', &[], &[]) => Ok(CSI::Cursor(Cursor::Up(1))),
-            ('A', &[], &[n]) => Ok(CSI::Cursor(Cursor::Up(to_1b_u32(n)?))),
-
-            ('B', &[], &[]) => Ok(CSI::Cursor(Cursor::Down(1))),
-            ('B', &[], &[n]) => Ok(CSI::Cursor(Cursor::Down(to_1b_u32(n)?))),
-
-            ('C', &[], &[]) => Ok(CSI::Cursor(Cursor::Right(1))),
-            ('C', &[], &[n]) => Ok(CSI::Cursor(Cursor::Right(to_1b_u32(n)?))),
-
-            ('D', &[], &[]) => Ok(CSI::Cursor(Cursor::Left(1))),
-            ('D', &[], &[n]) => Ok(CSI::Cursor(Cursor::Left(to_1b_u32(n)?))),
-
-            ('E', &[], &[]) => Ok(CSI::Cursor(Cursor::NextLine(1))),
-            ('E', &[], &[n]) => Ok(CSI::Cursor(Cursor::NextLine(to_1b_u32(n)?))),
-
-            ('F', &[], &[]) => Ok(CSI::Cursor(Cursor::PrecedingLine(1))),
-            ('F', &[], &[n]) => Ok(CSI::Cursor(Cursor::PrecedingLine(to_1b_u32(n)?))),
-
-            ('G', &[], &[]) => Ok(CSI::Cursor(Cursor::CharacterAbsolute(1))),
-            ('G', &[], &[n]) => Ok(CSI::Cursor(Cursor::CharacterAbsolute(to_1b_u32(n)?))),
-
-            ('H', &[], &[line, col]) => Ok(CSI::Cursor(Cursor::Position {
-                line: to_1b_u32(line)?,
-                col: to_1b_u32(col)?,
-            })),
-            ('H', &[], &[]) => Ok(CSI::Cursor(Cursor::Position { line: 1, col: 1 })),
-
-            ('I', &[], &[]) => Ok(CSI::Cursor(Cursor::ForwardTabulation(1))),
-            ('I', &[], &[n]) => Ok(CSI::Cursor(Cursor::ForwardTabulation(to_1b_u32(n)?))),
-
-            ('J', &[], &[]) => Ok(CSI::Edit(Edit::EraseInDisplay(
-                EraseInDisplay::EraseToEndOfDisplay,
-            ))),
-            ('J', &[], &[n]) => Ok(CSI::Edit(Edit::EraseInDisplay(
-                num::FromPrimitive::from_i64(n).ok_or(())?,
-            ))),
-
-            ('K', &[], &[]) => Ok(CSI::Edit(Edit::EraseInLine(EraseInLine::EraseToEndOfLine))),
-            ('K', &[], &[n]) => Ok(CSI::Edit(Edit::EraseInLine(num::FromPrimitive::from_i64(
-                n,
-            ).ok_or(())?))),
-
-            ('L', &[], &[]) => Ok(CSI::Edit(Edit::InsertLine(1))),
-            ('L', &[], &[n]) => Ok(CSI::Edit(Edit::InsertLine(to_1b_u32(n)?))),
-
-            ('M', &[], &[]) => Ok(CSI::Edit(Edit::DeleteLine(1))),
-            ('M', &[], &[n]) => Ok(CSI::Edit(Edit::DeleteLine(to_1b_u32(n)?))),
-
-            ('P', &[], &[]) => Ok(CSI::Edit(Edit::DeleteCharacter(1))),
-            ('P', &[], &[n]) => Ok(CSI::Edit(Edit::DeleteCharacter(to_1b_u32(n)?))),
-
-            ('R', &[], &[line, col]) => Ok(CSI::Cursor(Cursor::ActivePositionReport {
-                line: to_1b_u32(line)?,
-                col: to_1b_u32(col)?,
-            })),
-
-            ('S', &[], &[]) => Ok(CSI::Edit(Edit::ScrollUp(1))),
-            ('S', &[], &[n]) => Ok(CSI::Edit(Edit::ScrollUp(to_1b_u32(n)?))),
-            ('T', &[], &[]) => Ok(CSI::Edit(Edit::ScrollDown(1))),
-            ('T', &[], &[n]) => Ok(CSI::Edit(Edit::ScrollDown(to_1b_u32(n)?))),
-
-            ('W', &[], &[]) => Ok(CSI::Cursor(Cursor::TabulationControl(
-                CursorTabulationControl::SetCharacterTabStopAtActivePosition,
-            ))),
-            ('W', &[], &[n]) => Ok(CSI::Cursor(Cursor::TabulationControl(
-                num::FromPrimitive::from_i64(n).ok_or(())?,
-            ))),
-
-            ('X', &[], &[]) => Ok(CSI::Edit(Edit::EraseCharacter(1))),
-            ('X', &[], &[n]) => Ok(CSI::Edit(Edit::EraseCharacter(to_1b_u32(n)?))),
-
-            ('Y', &[], &[]) => Ok(CSI::Cursor(Cursor::LineTabulation(1))),
-            ('Y', &[], &[n]) => Ok(CSI::Cursor(Cursor::LineTabulation(to_1b_u32(n)?))),
-
-            ('Z', &[], &[]) => Ok(CSI::Cursor(Cursor::BackwardTabulation(1))),
-            ('Z', &[], &[n]) => Ok(CSI::Cursor(Cursor::BackwardTabulation(to_1b_u32(n)?))),
-
-            ('a', &[], &[]) => Ok(CSI::Cursor(Cursor::CharacterPositionForward(1))),
-            ('a', &[], &[n]) => Ok(CSI::Cursor(Cursor::CharacterPositionForward(to_1b_u32(n)?))),
-
-            ('d', &[], &[]) => Ok(CSI::Cursor(Cursor::LinePositionAbsolute(1))),
-            ('d', &[], &[n]) => Ok(CSI::Cursor(Cursor::LinePositionAbsolute(to_1b_u32(n)?))),
-
-            ('e', &[], &[]) => Ok(CSI::Cursor(Cursor::LinePositionForward(1))),
-            ('e', &[], &[n]) => Ok(CSI::Cursor(Cursor::LinePositionForward(to_1b_u32(n)?))),
-
-            ('f', &[], &[line, col]) => Ok(CSI::Cursor(Cursor::CharacterAndLinePosition {
-                line: to_1b_u32(line)?,
-                col: to_1b_u32(col)?,
-            })),
-            ('f', &[], &[]) => Ok(CSI::Cursor(Cursor::CharacterAndLinePosition {
-                line: 1,
-                col: 1,
-            })),
-
-            ('g', &[], &[]) => Ok(CSI::Cursor(Cursor::TabulationClear(
-                TabulationClear::ClearCharacterTabStopAtActivePosition,
-            ))),
-            ('g', &[], &[n]) => Ok(CSI::Cursor(Cursor::TabulationClear(
-                num::FromPrimitive::from_i64(n).ok_or(())?,
-            ))),
-
-            ('j', &[], &[]) => Ok(CSI::Cursor(Cursor::CharacterPositionBackward(1))),
-            ('j', &[], &[n]) => Ok(CSI::Cursor(Cursor::CharacterPositionBackward(to_1b_u32(
-                n,
-            )?))),
-
-            ('k', &[], &[]) => Ok(CSI::Cursor(Cursor::LinePositionBackward(1))),
-            ('k', &[], &[n]) => Ok(CSI::Cursor(Cursor::LinePositionBackward(to_1b_u32(n)?))),
-
-            ('m', &[], params) => self.sgr(params).map(|sgr| CSI::Sgr(sgr)),
+            ('m', &[]) => self.sgr(params).map(|sgr| CSI::Sgr(sgr)),
 
             _ => Err(()),
         }
@@ -1061,6 +1091,28 @@ mod test {
                     control: 'm',
                 },
             ]
+        );
+    }
+
+    #[test]
+    fn edit() {
+        assert_eq!(
+            parse('J', &[], "\x1b[J"),
+            vec![CSI::Edit(Edit::EraseInDisplay(
+                EraseInDisplay::EraseToEndOfDisplay,
+            ))]
+        );
+        assert_eq!(
+            parse('J', &[0], "\x1b[J"),
+            vec![CSI::Edit(Edit::EraseInDisplay(
+                EraseInDisplay::EraseToEndOfDisplay,
+            ))]
+        );
+        assert_eq!(
+            parse('J', &[1], "\x1b[1J"),
+            vec![CSI::Edit(Edit::EraseInDisplay(
+                EraseInDisplay::EraseToStartOfDisplay,
+            ))]
         );
     }
 
