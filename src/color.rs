@@ -1,6 +1,5 @@
 //! Colors for attributes
 
-use num;
 use palette;
 use palette::Srgb;
 use serde::{self, Deserialize, Deserializer};

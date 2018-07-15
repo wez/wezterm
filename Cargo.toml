@@ -12,5 +12,8 @@ serde_derive = "~1.0"
 failure = "~0.1"
 vte = "0.3.2"
 num = "0.2.0"
-num-derive = "0.2.2"
 num-traits = "0.2.5"
+
+[dependencies.num-derive]
+version = "~0.2"
+features = ["full-syntax"]

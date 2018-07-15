@@ -6,10 +6,12 @@ use num;
 use std;
 
 pub mod csi;
+pub mod esc;
 pub mod osc;
 pub mod parser;
 
 use self::csi::CSI;
+use self::esc::Esc;
 use self::osc::OperatingSystemCommand;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -43,7 +45,7 @@ impl EncodeEscape for Action {
             Action::DeviceControl(_) => unimplemented!(),
             Action::OperatingSystemCommand(osc) => osc.encode_escape(w),
             Action::CSI(csi) => csi.encode_escape(w),
-            Action::Esc(esc) => unimplemented!(),
+            Action::Esc(esc) => esc.encode_escape(w),
         }
     }
 }
@@ -55,21 +57,6 @@ impl<T: EncodeEscape> EncodeEscape for [T] {
         }
         Ok(())
     }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Esc {
-    Unspecified {
-        params: Vec<i64>,
-        // TODO: can we just make intermediates a single u8?
-        intermediates: Vec<u8>,
-        /// if true, more than two intermediates arrived and the
-        /// remaining data was ignored
-        ignored_extra_intermediates: bool,
-        /// The final character in the Escape sequence; this typically
-        /// defines how to interpret the other parameters.
-        control: u8,
-    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

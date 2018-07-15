@@ -82,15 +82,20 @@ impl<'a, F: FnMut(Action)> vte::Perform for Performer<'a, F> {
 
     fn esc_dispatch(
         &mut self,
-        params: &[i64],
+        _params: &[i64],
         intermediates: &[u8],
-        ignored_extra_intermediates: bool,
+        _ignored_extra_intermediates: bool,
         control: u8,
     ) {
+        // It doesn't appear to be possible for params.len() > 1 due to the way
+        // that the state machine in vte functions.  As such, it also seems to
+        // be impossible for ignored_extra_intermediates to be true too.
         (self.callback)(Action::Esc(Esc::Unspecified {
-            params: params.to_vec(),
-            intermediates: intermediates.to_vec(),
-            ignored_extra_intermediates,
+            intermediate: if intermediates.len() == 1 {
+                Some(intermediates[0])
+            } else {
+                None
+            },
             control,
         }));
     }
@@ -176,5 +181,29 @@ mod test {
             actions
         );
         assert_eq!(encode(&actions), "\x1b]532534523;hello\x07");
+    }
+
+    #[test]
+    fn basic_esc() {
+        let mut p = Parser::new();
+        let actions = p.parse_as_vec(b"\x1bH");
+        assert_eq!(
+            vec![Action::Esc(Esc::Unspecified {
+                intermediate: None,
+                control: b'H',
+            })],
+            actions
+        );
+        assert_eq!(encode(&actions), "\x1bH");
+
+        let actions = p.parse_as_vec(b"\x1b%H");
+        assert_eq!(
+            vec![Action::Esc(Esc::Unspecified {
+                intermediate: Some(b'%'),
+                control: b'H',
+            })],
+            actions
+        );
+        assert_eq!(encode(&actions), "\x1b%H");
     }
 }
