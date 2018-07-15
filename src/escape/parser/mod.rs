@@ -64,13 +64,8 @@ impl<'a, F: FnMut(Action)> vte::Perform for Performer<'a, F> {
     }
 
     fn osc_dispatch(&mut self, osc: &[&[u8]]) {
-        let mut vec = Vec::new();
-        for slice in osc {
-            vec.push(slice.to_vec());
-        }
-        (self.callback)(Action::OperatingSystemCommand(
-            OperatingSystemCommand::Unspecified(vec),
-        ));
+        let osc = OperatingSystemCommand::parse(osc);
+        (self.callback)(Action::OperatingSystemCommand(osc));
     }
 
     fn csi_dispatch(
@@ -159,5 +154,27 @@ mod test {
         );
 
         assert_eq!(encode(&actions), "\x1b[1m\x1b[3mb");
+    }
+
+    #[test]
+    fn basic_osc() {
+        let mut p = Parser::new();
+        let actions = p.parse_as_vec(b"\x1b]0;hello\x07");
+        assert_eq!(
+            vec![Action::OperatingSystemCommand(
+                OperatingSystemCommand::SetIconNameAndWindowTitle("hello".to_owned()),
+            )],
+            actions
+        );
+        assert_eq!(encode(&actions), "\x1b]0;hello\x07");
+
+        let actions = p.parse_as_vec(b"\x1b]532534523;hello\x07");
+        assert_eq!(
+            vec![Action::OperatingSystemCommand(
+                OperatingSystemCommand::Unspecified(vec![b"532534523".to_vec(), b"hello".to_vec()]),
+            )],
+            actions
+        );
+        assert_eq!(encode(&actions), "\x1b]532534523;hello\x07");
     }
 }

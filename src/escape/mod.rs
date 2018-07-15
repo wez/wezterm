@@ -41,7 +41,7 @@ impl EncodeEscape for Action {
             Action::Control(Control::Code(c)) => w.write_all(&[c.clone() as u8]),
             Action::Control(Control::Unspecified(c)) => w.write_all(&[*c]),
             Action::DeviceControl(_) => unimplemented!(),
-            Action::OperatingSystemCommand(_) => unimplemented!(),
+            Action::OperatingSystemCommand(osc) => osc.encode_escape(w),
             Action::CSI(csi) => csi.encode_escape(w),
             Action::Esc(esc) => unimplemented!(),
         }
