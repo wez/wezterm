@@ -180,3 +180,16 @@ pub enum AttributeChange {
     Background(ColorAttribute),
     Hyperlink(Option<Rc<Hyperlink>>),
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn nerf_special() {
+        for c in " \n\r\t".chars() {
+            let cell = Cell::new(c, CellAttributes::default());
+            assert_eq!(cell.char(), ' ');
+        }
+    }
+}

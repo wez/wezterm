@@ -387,17 +387,124 @@ impl Screen {
         result
     }
 
+    /// Computes the change stream required to make the region within `self`
+    /// at coordinates `x`, `y` and size `width`, `height` look like the
+    /// same sized region within `other` at coordinates `other_x`, `other_y`.
+    /// # Panics
+    /// Will panic if the regions of interest are not within the bounds of
+    /// their respective `Screen`.
+    pub fn diff_region(
+        &self,
+        x: usize,
+        y: usize,
+        width: usize,
+        height: usize,
+        other: &Screen,
+        other_x: usize,
+        other_y: usize,
+    ) -> Vec<Change> {
+        assert!(x + width <= self.width);
+        assert!(y + height <= self.height);
+        assert!(other_x + width <= other.width);
+        assert!(other_y + height <= other.height);
+
+        let mut result = Vec::new();
+        // Keep track of the cursor position that the change stream
+        // selects for updates so that we can avoid emitting redundant
+        // position changes.
+        let mut cursor = None;
+        // Similarly, we keep track of the cell attributes that we have
+        // activated for change stream to avoid over-emitting.
+        // Tracking the cursor and attributes in this way helps to coalesce
+        // lines of text into simpler strings.
+        let mut attr: Option<CellAttributes> = None;
+
+        for ((row_num, line), other_line) in self.lines
+            .iter()
+            .enumerate()
+            .skip(y)
+            .take_while(|(row_num, _)| *row_num < y + height)
+            .zip(other.lines.iter().skip(other_y))
+        {
+            for ((col_num, cell), other_cell) in line.cells
+                .iter()
+                .enumerate()
+                .skip(x)
+                .take_while(|(col_num, _)| *col_num < x + width)
+                .zip(other_line.cells.iter().skip(other_x))
+            {
+                if cell != other_cell {
+                    cursor = match cursor.take() {
+                        Some((cursor_row, cursor_col))
+                            if cursor_row == row_num && cursor_col == col_num - 1 =>
+                        {
+                            // It is on the column prior, so we don't need
+                            // to explicitly move it.  Record the effective
+                            // position for next time.
+                            Some((row_num, col_num))
+                        }
+                        _ => {
+                            // Need to explicitly move the cursor
+                            result.push(Change::CursorPosition {
+                                y: Position::Absolute(row_num),
+                                x: Position::Absolute(col_num),
+                            });
+                            // and remember the position for next time
+                            Some((row_num, col_num))
+                        }
+                    };
+
+                    // we could get fancy and try to minimize the update traffic
+                    // by computing a series of AttributeChange values here.
+                    // For now, let's just record the new value
+                    attr = match attr.take() {
+                        Some(ref attr) if attr == other_cell.attrs() => {
+                            // Active attributes match, so we don't need
+                            // to emit a change for them
+                            Some(attr.clone())
+                        }
+                        _ => {
+                            // Attributes are different
+                            result.push(Change::AllAttributes(other_cell.attrs().clone()));
+                            Some(other_cell.attrs().clone())
+                        }
+                    };
+                    if cell.char() != other_cell.char() {
+                        // A little bit of bloat in the code to avoid runs of single
+                        // character Text entries; just append to the string.
+                        let result_len = result.len();
+                        if result_len > 0 && result[result_len - 1].is_text() {
+                            if let Some(Change::Text(ref mut prefix)) =
+                                result.get_mut(result_len - 1)
+                            {
+                                prefix.push(other_cell.char());
+                            }
+                        } else {
+                            result.push(Change::Text(other_cell.char().to_string()));
+                        }
+                    }
+                }
+            }
+        }
+
+        result
+    }
+
     /// Computes the change stream required to make `self` have the same
     /// screen contents as `other`.
-    pub fn diff_screens(&self, _other: &Screen) -> Vec<Change> {
-        unimplemented!()
+    pub fn diff_screens(&self, other: &Screen) -> Vec<Change> {
+        self.diff_region(0, 0, self.width, self.height, other, 0, 0)
     }
 
     /// Draw the contents of `other` into self at the specified coordinates.
     /// The required updates are recorded as Change entries as well as stored
     /// in the screen line/cell data.
-    pub fn draw_from_screen(&mut self, _other: &Screen, _x: usize, _y: usize) {
-        unimplemented!()
+    pub fn draw_from_screen(&mut self, other: &Screen, x: usize, y: usize) -> SequenceNo {
+        let mut seq = 0;
+        for change in self.diff_region(x, y, other.width, other.height, other, 0, 0) {
+            seq = self.add_change(change);
+        }
+        seq
     }
 }
 
@@ -422,6 +529,7 @@ fn compute_position_change(current: usize, pos: &Position, limit: usize) -> usiz
 #[cfg(test)]
 mod test {
     use super::*;
+    use cell::Intensity;
 
     // The \x20's look a little awkward, but we can't use a plain
     // space in the first chararcter of a multi-line continuation;
@@ -669,8 +777,6 @@ mod test {
             seq
         };
 
-        use cell::Intensity;
-
         // prep some deltas for the loop to test below
         {
             s.add_change(Change::Attribute(AttributeChange::Intensity(
@@ -705,5 +811,102 @@ mod test {
             // of the loop.
             s.flush_changes_older_than(seq_pos);
         }
+    }
+
+    #[test]
+    fn diff_screens() {
+        let mut s = Screen::new(4, 3);
+        s.add_change("w00t");
+        s.add_change("foo");
+        s.add_change("baar");
+        s.add_change("baz");
+        assert_eq!(
+            s.screen_chars_to_string(),
+            "foob\n\
+             aarb\n\
+             az  \n"
+        );
+
+        let s2 = Screen::new(2, 2);
+
+        {
+            // We want to sample the top left corner
+            let changes = s2.diff_region(0, 0, 2, 2, &s, 0, 0);
+            assert_eq!(
+                vec![
+                    Change::CursorPosition {
+                        x: Position::Absolute(0),
+                        y: Position::Absolute(0),
+                    },
+                    Change::AllAttributes(CellAttributes::default()),
+                    Change::Text("fo".into()),
+                    Change::CursorPosition {
+                        x: Position::Absolute(0),
+                        y: Position::Absolute(1),
+                    },
+                    Change::Text("aa".into()),
+                ],
+                changes
+            );
+        }
+
+        // Throw in some attribute changes too
+        s.add_change(Change::CursorPosition {
+            x: Position::Absolute(1),
+            y: Position::Absolute(1),
+        });
+        s.add_change(Change::Attribute(AttributeChange::Intensity(
+            Intensity::Bold,
+        )));
+        s.add_change("XO");
+
+        {
+            let changes = s2.diff_region(0, 0, 2, 2, &s, 1, 1);
+            assert_eq!(
+                vec![
+                    Change::CursorPosition {
+                        x: Position::Absolute(0),
+                        y: Position::Absolute(0),
+                    },
+                    Change::AllAttributes(
+                        CellAttributes::default()
+                            .set_intensity(Intensity::Bold)
+                            .clone(),
+                    ),
+                    Change::Text("XO".into()),
+                    Change::CursorPosition {
+                        x: Position::Absolute(0),
+                        y: Position::Absolute(1),
+                    },
+                    Change::AllAttributes(CellAttributes::default()),
+                    Change::Text("z".into()),
+                    /* There's no change for the final character
+                     * position because it is a space in both regions. */
+                ],
+                changes
+            );
+        }
+    }
+
+    #[test]
+    fn draw_screens() {
+        let mut s = Screen::new(4, 4);
+
+        let mut s1 = Screen::new(2, 2);
+        s1.add_change("1234");
+
+        let mut s2 = Screen::new(2, 2);
+        s2.add_change("XYZA");
+
+        s.draw_from_screen(&s1, 0, 0);
+        s.draw_from_screen(&s2, 2, 2);
+
+        assert_eq!(
+            s.screen_chars_to_string(),
+            "12  \n\
+             34  \n\
+             \x20\x20XY\n\
+             \x20\x20ZA\n"
+        );
     }
 }
