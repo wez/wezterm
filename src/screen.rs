@@ -166,6 +166,22 @@ impl Screen {
         self.ypos = compute_position_change(self.ypos, &Position::NoChange, self.height);
     }
 
+    /// Efficiently apply a series of changes
+    /// Returns the sequence number at the end of the change.
+    pub fn add_changes(&mut self, mut changes: Vec<Change>) -> SequenceNo {
+        let seq = self.seqno.saturating_sub(1) + changes.len();
+
+        for change in &changes {
+            self.apply_change(&change);
+        }
+
+        self.seqno += changes.len();
+        self.changes.append(&mut changes);
+
+        seq
+    }
+
+    /// Apply a change and return the sequence number at the end of the change.
     pub fn add_change<C: Into<Change>>(&mut self, change: C) -> SequenceNo {
         let seq = self.seqno;
         self.seqno += 1;
@@ -500,11 +516,8 @@ impl Screen {
     /// The required updates are recorded as Change entries as well as stored
     /// in the screen line/cell data.
     pub fn draw_from_screen(&mut self, other: &Screen, x: usize, y: usize) -> SequenceNo {
-        let mut seq = 0;
-        for change in self.diff_region(x, y, other.width, other.height, other, 0, 0) {
-            seq = self.add_change(change);
-        }
-        seq
+        let changes = self.diff_region(x, y, other.width, other.height, other, 0, 0);
+        self.add_changes(changes)
     }
 
     /// Copy the contents of the specified region to the same sized
@@ -524,11 +537,8 @@ impl Screen {
         dest_x: usize,
         dest_y: usize,
     ) -> SequenceNo {
-        let mut seq = 0;
-        for change in self.diff_region(dest_x, dest_y, width, height, self, src_x, src_y) {
-            seq = self.add_change(change);
-        }
-        seq
+        let changes = self.diff_region(dest_x, dest_y, width, height, self, src_x, src_y);
+        self.add_changes(changes)
     }
 }
 
@@ -703,6 +713,15 @@ mod test {
         let (seq, changes) = s.get_changes(1);
         assert_eq!(seq, 0);
         assert_eq!(empty, &*changes);
+    }
+
+    #[test]
+    fn add_changes_empty() {
+        let mut s = Screen::new(2, 2);
+        let last_seq = s.add_change("foo");
+        assert_eq!(0, last_seq);
+        assert_eq!(last_seq, s.add_changes(vec![]));
+        assert_eq!(last_seq + 1, s.add_changes(vec![Change::Text("a".into())]));
     }
 
     #[test]
