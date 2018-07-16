@@ -1,6 +1,9 @@
 //! Rendering of Changes using terminfo
 use cell::{AttributeChange, Blink, CellAttributes, Intensity, Underline};
 use color::ColorSpec;
+use escape::csi::{Sgr, CSI};
+use escape::osc::OperatingSystemCommand;
+use escape::EncodeEscape;
 use failure;
 use render::Renderer;
 use screen::{Change, Position};
@@ -114,22 +117,18 @@ impl Renderer for TerminfoRenderer {
 
                     if attr.foreground != current_attr.foreground {
                         match (has_true_color, attr.foreground.full, attr.foreground.ansi) {
-                            (true, Some(tc), _) => {
-                                write!(
-                                    WriteWrapper::new(out),
-                                    "\x1b[38;2;{};{};{}m",
-                                    tc.red,
-                                    tc.green,
-                                    tc.blue
-                                )?;
+                            (true, Some(tc), _) | (true, _, ColorSpec::TrueColor(tc)) => {
+                                let sgr = CSI::Sgr(Sgr::Foreground(ColorSpec::TrueColor(tc)));
+                                sgr.encode_escape(&mut WriteWrapper::new(out))?;
                             }
-                            (_, _, ColorSpec::TrueColor(_)) => {
+                            (false, _, ColorSpec::TrueColor(_)) => {
                                 // TrueColor was specified with no fallback :-(
                             }
                             (_, _, ColorSpec::Default) => {
                                 // Terminfo doesn't define a reset color to default, so
                                 // we use the ANSI code.
-                                write!(WriteWrapper::new(out), "\x1b[39m")?;
+                                let sgr = CSI::Sgr(Sgr::Foreground(ColorSpec::Default));
+                                sgr.encode_escape(&mut WriteWrapper::new(out))?;
                             }
                             (_, _, ColorSpec::PaletteIndex(idx)) => {
                                 if let Some(set) = self.db.get::<cap::SetAForeground>() {
@@ -141,22 +140,18 @@ impl Renderer for TerminfoRenderer {
 
                     if attr.background != current_attr.background {
                         match (has_true_color, attr.background.full, attr.background.ansi) {
-                            (true, Some(tc), _) => {
-                                write!(
-                                    WriteWrapper::new(out),
-                                    "\x1b[48;2;{};{};{}m",
-                                    tc.red,
-                                    tc.green,
-                                    tc.blue
-                                )?;
+                            (true, Some(tc), _) | (true, _, ColorSpec::TrueColor(tc)) => {
+                                let sgr = CSI::Sgr(Sgr::Background(ColorSpec::TrueColor(tc)));
+                                sgr.encode_escape(&mut WriteWrapper::new(out))?;
                             }
-                            (_, _, ColorSpec::TrueColor(_)) => {
+                            (false, _, ColorSpec::TrueColor(_)) => {
                                 // TrueColor was specified with no fallback :-(
                             }
                             (_, _, ColorSpec::Default) => {
                                 // Terminfo doesn't define a reset color to default, so
                                 // we use the ANSI code.
-                                write!(WriteWrapper::new(out), "\x1b[49m")?;
+                                let sgr = CSI::Sgr(Sgr::Background(ColorSpec::Default));
+                                sgr.encode_escape(&mut WriteWrapper::new(out))?;
                             }
                             (_, _, ColorSpec::PaletteIndex(idx)) => {
                                 if let Some(set) = self.db.get::<cap::SetABackground>() {
@@ -168,14 +163,12 @@ impl Renderer for TerminfoRenderer {
 
                     // See https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5feda
                     if let Some(link) = attr.hyperlink.as_ref() {
-                        write!(WriteWrapper::new(out), "\x1b]8;")?;
-                        if !link.id.is_empty() {
-                            write!(WriteWrapper::new(out), "id={}", link.id)?;
-                        }
-                        write!(WriteWrapper::new(out), ";{}\x1b\\", link.url)?;
+                        let osc = OperatingSystemCommand::SetHyperlink(Some((**link).clone()));
+                        osc.encode_escape(&mut WriteWrapper::new(out))?;
                     } else if current_attr.hyperlink.is_some() {
                         // Close out the old hyperlink
-                        write!(WriteWrapper::new(out), "\x1b]8;;\x1b\\")?;
+                        let osc = OperatingSystemCommand::SetHyperlink(None);
+                        osc.encode_escape(&mut WriteWrapper::new(out))?;
                     }
 
                     current_attr = attr;
@@ -295,14 +288,13 @@ impl Renderer for TerminfoRenderer {
 #[cfg(test)]
 mod test {
     use super::*;
-    use color::AnsiColor;
+    use color::{AnsiColor, RgbColor};
 
     fn xterm() -> Database {
-        // Load the xterm entry from the system location.
-        // Depending on how things go, we may want to include
-        // our own definition in the repo and load from that path
-        // instead.
-        Database::from_name("xterm").unwrap()
+        // Load our own compiled data so that the tests have an
+        // environment that doesn't vary machine by machine.
+        let data = include_bytes!("../../data/xterm-256color");
+        Database::from_buffer(data.as_ref()).unwrap()
     }
 
     #[test]
@@ -369,9 +361,10 @@ mod test {
             .render_to(
                 &CellAttributes::default(),
                 &[
-                    Change::Attribute(AttributeChange::Foreground(AnsiColor::Red.into())),
+                    Change::Attribute(AttributeChange::Foreground(AnsiColor::Maroon.into())),
                     Change::Attribute(AttributeChange::Intensity(Intensity::Bold)),
                     Change::Text("red".into()),
+                    Change::Attribute(AttributeChange::Foreground(AnsiColor::Red.into())),
                 ],
                 &mut out,
             )
@@ -379,7 +372,7 @@ mod test {
 
         // Note that the render code rearranges (red,bold) to (bold,red)
         assert_eq!(
-            "\x1b(B\x1b[0;1m\x1b[39mred",
+            "\x1b(B\x1b[0;1m\x1b[31mred\x1b(B\x1b[0;1m\x1b[91m",
             String::from_utf8(out).unwrap()
         );
 
@@ -389,6 +382,30 @@ mod test {
                 .set_intensity(Intensity::Bold)
                 .set_foreground(AnsiColor::Red)
                 .clone()
+        );
+    }
+
+    #[test]
+    fn truecolor() {
+        let mut out = Vec::<u8>::new();
+        let renderer = TerminfoRenderer::new(xterm());
+        renderer
+            .render_to(
+                &CellAttributes::default(),
+                &[
+                    Change::Attribute(AttributeChange::Foreground(
+                        ColorSpec::TrueColor(RgbColor::new(255, 128, 64)).into(),
+                    )),
+                    Change::Text("A".into()),
+                ],
+                &mut out,
+            )
+            .unwrap();
+
+        // Note that the render code rearranges (red,bold) to (bold,red)
+        assert_eq!(
+            "\x1b(B\x1b[0m\x1b[38;2;255;128;64mA",
+            String::from_utf8(out).unwrap()
         );
     }
 }

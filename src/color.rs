@@ -136,6 +136,15 @@ impl From<AnsiColor> for ColorAttribute {
     }
 }
 
+impl From<ColorSpec> for ColorAttribute {
+    fn from(spec: ColorSpec) -> Self {
+        Self {
+            full: None,
+            ansi: spec,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

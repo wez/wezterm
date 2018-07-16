@@ -1,12 +1,7 @@
 use color::ColorAttribute;
+pub use escape::osc::Hyperlink;
 use std::mem;
 use std::rc::Rc;
-
-#[derive(Debug, Clone, Eq, PartialEq)]
-pub struct Hyperlink {
-    pub id: String,
-    pub url: String,
-}
 
 #[derive(Debug, Default, Clone, Eq, PartialEq)]
 pub struct CellAttributes {
