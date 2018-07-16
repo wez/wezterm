@@ -506,6 +506,30 @@ impl Screen {
         }
         seq
     }
+
+    /// Copy the contents of the specified region to the same sized
+    /// region elsewhere in the screen display.
+    /// The regions may overlap.
+    /// # Panics
+    /// The destination region must be the same size as the source
+    /// (which is implied by the function parameters) and must fit
+    /// within the width and height of the Screen or this operation
+    /// will panic.
+    pub fn copy_region(
+        &mut self,
+        src_x: usize,
+        src_y: usize,
+        width: usize,
+        height: usize,
+        dest_x: usize,
+        dest_y: usize,
+    ) -> SequenceNo {
+        let mut seq = 0;
+        for change in self.diff_region(dest_x, dest_y, width, height, self, src_x, src_y) {
+            seq = self.add_change(change);
+        }
+        seq
+    }
 }
 
 /// Applies a Position update to either the x or y position.
@@ -907,6 +931,30 @@ mod test {
              34  \n\
              \x20\x20XY\n\
              \x20\x20ZA\n"
+        );
+    }
+
+    #[test]
+    fn copy_region() {
+        let mut s = Screen::new(4, 3);
+        s.add_change("w00t");
+        s.add_change("foo");
+        s.add_change("baar");
+        s.add_change("baz");
+        assert_eq!(
+            s.screen_chars_to_string(),
+            "foob\n\
+             aarb\n\
+             az  \n"
+        );
+
+        // Copy top left to bottom left
+        s.copy_region(0, 0, 2, 2, 2, 1);
+        assert_eq!(
+            s.screen_chars_to_string(),
+            "foob\n\
+             aafo\n\
+             azaa\n"
         );
     }
 }
