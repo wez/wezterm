@@ -93,19 +93,21 @@ impl Renderer for TerminfoRenderer {
         macro_rules! flush_pending_attr {
             () => {
                 if let Some(attr) = pending_attr.take() {
-                    if let Some(sgr) = self.db.get::<cap::SetAttributes>() {
-                        sgr.expand()
-                            .bold(attr.intensity() == Intensity::Bold)
-                            .dim(attr.intensity() == Intensity::Half)
-                            .underline(attr.underline() != Underline::None)
-                            .blink(attr.blink() != Blink::None)
-                            .reverse(attr.reverse())
-                            .invisible(attr.invisible())
-                            .to(WriteWrapper::new(out))?;
-                    }
+                    if !attr.attribute_bits_equal(&current_attr) {
+                        if let Some(sgr) = self.db.get::<cap::SetAttributes>() {
+                            sgr.expand()
+                                .bold(attr.intensity() == Intensity::Bold)
+                                .dim(attr.intensity() == Intensity::Half)
+                                .underline(attr.underline() != Underline::None)
+                                .blink(attr.blink() != Blink::None)
+                                .reverse(attr.reverse())
+                                .invisible(attr.invisible())
+                                .to(WriteWrapper::new(out))?;
+                        }
 
-                    if attr.italic() != current_attr.italic() {
-                        attr_on_off!(EnterItalicsMode, ExitItalicsMode, attr.italic());
+                        if attr.italic() != current_attr.italic() {
+                            attr_on_off!(EnterItalicsMode, ExitItalicsMode, attr.italic());
+                        }
                     }
 
                     // Note: strikethrough is not exposed in terminfo
@@ -372,7 +374,7 @@ mod test {
 
         // Note that the render code rearranges (red,bold) to (bold,red)
         assert_eq!(
-            "\x1b(B\x1b[0;1m\x1b[31mred\x1b(B\x1b[0;1m\x1b[91m",
+            "\x1b(B\x1b[0;1m\x1b[31mred\x1b[91m",
             String::from_utf8(out).unwrap()
         );
 
@@ -402,10 +404,6 @@ mod test {
             )
             .unwrap();
 
-        // Note that the render code rearranges (red,bold) to (bold,red)
-        assert_eq!(
-            "\x1b(B\x1b[0m\x1b[38;2;255;128;64mA",
-            String::from_utf8(out).unwrap()
-        );
+        assert_eq!("\x1b[38;2;255;128;64mA", String::from_utf8(out).unwrap());
     }
 }

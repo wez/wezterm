@@ -98,6 +98,11 @@ impl CellAttributes {
     bitfield!(strikethrough, set_strikethrough, 8);
     bitfield!(invisible, set_invisible, 9);
 
+    /// Returns true if the attribute bits in both objects are equal
+    pub fn attribute_bits_equal(&self, other: &Self) -> bool {
+        self.attributes == other.attributes
+    }
+
     pub fn set_foreground<C: Into<ColorAttribute>>(&mut self, foreground: C) -> &mut Self {
         self.foreground = foreground.into();
         self
