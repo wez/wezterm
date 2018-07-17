@@ -13,6 +13,8 @@ failure = "~0.1"
 vte = "0.3.2"
 num = "0.2.0"
 num-traits = "0.2.5"
+derive_builder = "0.5.1"
+semver = "0.9.0"
 
 [dependencies.num-derive]
 version = "~0.2"
