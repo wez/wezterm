@@ -166,5 +166,6 @@ mod test {
     #[test]
     fn test() {
         assert_eq!(parse("(0"), Esc::Code(EscCode::DecLineDrawing));
+        assert_eq!(parse("(B"), Esc::Code(EscCode::AsciiCharacterSet));
     }
 }

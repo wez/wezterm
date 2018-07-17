@@ -81,12 +81,30 @@ pub enum Underline {
     Double = 2,
 }
 
+/// Allow converting to boolean; true means some kind of
+/// underline, false means none.  This is used in some
+/// generic code to determine whether to enable underline.
+impl Into<bool> for Underline {
+    fn into(self) -> bool {
+        self != Underline::None
+    }
+}
+
 #[derive(Debug, Clone, Copy, Deserialize, PartialEq, Eq)]
 #[repr(u16)]
 pub enum Blink {
     None = 0,
     Slow = 1,
     Rapid = 2,
+}
+
+/// Allow converting to boolean; true means some kind of
+/// blink, false means none.  This is used in some
+/// generic code to determine whether to enable blink.
+impl Into<bool> for Blink {
+    fn into(self) -> bool {
+        self != Blink::None
+    }
 }
 
 impl CellAttributes {

@@ -10,9 +10,10 @@ pub mod esc;
 pub mod osc;
 pub mod parser;
 
-use self::csi::CSI;
-use self::esc::Esc;
-use self::osc::OperatingSystemCommand;
+pub use self::csi::CSI;
+pub use self::esc::Esc;
+pub use self::esc::EscCode;
+pub use self::osc::OperatingSystemCommand;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Action {

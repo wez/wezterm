@@ -90,14 +90,14 @@ impl<'a, F: FnMut(Action)> vte::Perform for Performer<'a, F> {
         // It doesn't appear to be possible for params.len() > 1 due to the way
         // that the state machine in vte functions.  As such, it also seems to
         // be impossible for ignored_extra_intermediates to be true too.
-        (self.callback)(Action::Esc(Esc::Unspecified {
-            intermediate: if intermediates.len() == 1 {
+        (self.callback)(Action::Esc(Esc::parse(
+            if intermediates.len() == 1 {
                 Some(intermediates[0])
             } else {
                 None
             },
             control,
-        }));
+        )));
     }
 }
 
@@ -107,6 +107,7 @@ mod test {
     use cell::Intensity;
     use escape::csi::Sgr;
     use escape::EncodeEscape;
+    use escape::EscCode;
 
     fn encode(seq: &Vec<Action>) -> String {
         let mut res = Vec::new();
@@ -188,10 +189,7 @@ mod test {
         let mut p = Parser::new();
         let actions = p.parse_as_vec(b"\x1bH");
         assert_eq!(
-            vec![Action::Esc(Esc::Unspecified {
-                intermediate: None,
-                control: b'H',
-            })],
+            vec![Action::Esc(Esc::Code(EscCode::HorizontalTabSet))],
             actions
         );
         assert_eq!(encode(&actions), "\x1bH");
