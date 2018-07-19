@@ -1,7 +1,7 @@
 use cell::CellAttributes;
 use failure;
 use screen::Change;
-use std;
+use terminal::Terminal;
 
 /// The `Renderer` trait defines a way to translate a sequence
 /// of `Change`s into an output stream.  This is typically a
@@ -24,7 +24,7 @@ pub trait Renderer {
         &self,
         starting_attr: &CellAttributes,
         changes: &[Change],
-        out: &mut std::io::Write,
+        out: &mut Terminal,
     ) -> Result<CellAttributes, failure::Error>;
 }
 

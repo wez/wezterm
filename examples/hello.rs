@@ -1,9 +1,7 @@
-extern crate termwiz;
-#[macro_use]
 extern crate failure;
+extern crate termwiz;
 
 use failure::Error;
-use std::io::stdout;
 use termwiz::caps::Capabilities;
 use termwiz::cell::{AttributeChange, CellAttributes};
 use termwiz::color::AnsiColor;
@@ -27,8 +25,8 @@ fn main() -> Result<(), Error> {
     )));
     screen.add_change("Hello world\r\n");
 
-    let (seq, changes) = screen.get_changes(0);
-    let end_attr = renderer.render_to(&CellAttributes::default(), &changes, &mut terminal);
+    let (_seq, changes) = screen.get_changes(0);
+    let _end_attr = renderer.render_to(&CellAttributes::default(), &changes, &mut terminal);
     //println!("changes: {:?}", changes);
     println!("size: {:?}", size);
 

@@ -1,4 +1,5 @@
 use cell::{AttributeChange, Cell, CellAttributes};
+use color::ColorAttribute;
 use std::borrow::Cow;
 use std::cmp::min;
 
@@ -30,7 +31,10 @@ pub enum Change {
     /// You typically want to use both together when sending in
     /// a line break.
     Text(String),
-    //   ClearScreen,
+    /// Clear the screen to the specified color.
+    /// Implicitly clears all attributes prior to clearing the screen.
+    /// Moves the cursor to the home position (top left).
+    ClearScreen(ColorAttribute),
     //   ClearToStartOfLine,
     //   ClearToEndOfLine,
     //   ClearToEndOfScreen,
@@ -203,6 +207,18 @@ impl Screen {
             Change::Text(text) => self.print_text(text),
             Change::Attribute(change) => self.change_attribute(change),
             Change::CursorPosition { x, y } => self.set_cursor_pos(x, y),
+            Change::ClearScreen(color) => self.clear_screen(color),
+        }
+    }
+
+    fn clear_screen(&mut self, color: &ColorAttribute) {
+        self.attributes = CellAttributes::default()
+            .set_background(color.clone())
+            .clone();
+        for line in &mut self.lines {
+            for cell in &mut line.cells {
+                *cell = Cell::new(' ', self.attributes.clone());
+            }
         }
     }
 
@@ -630,6 +646,14 @@ mod test {
              hey \n\
              ho  \n"
         );
+    }
+
+    #[test]
+    fn clear_screen() {
+        let mut s = Screen::new(2, 2);
+        s.add_change("hello");
+        s.add_change(Change::ClearScreen(Default::default()));
+        assert_eq!(s.screen_chars_to_string(), "  \n  \n");
     }
 
     #[test]
