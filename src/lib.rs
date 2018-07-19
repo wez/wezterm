@@ -1,9 +1,11 @@
 #[macro_use]
 extern crate failure;
+extern crate libc;
 extern crate palette;
 extern crate semver;
 extern crate serde;
 extern crate terminfo;
+extern crate termios;
 #[macro_use]
 extern crate serde_derive;
 extern crate num;
@@ -17,5 +19,7 @@ pub mod caps;
 pub mod cell;
 pub mod color;
 pub mod escape;
+pub mod istty;
 pub mod render;
 pub mod screen;
+pub mod terminal;

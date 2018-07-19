@@ -10,9 +10,14 @@ use termwiz::color::AnsiColor;
 use termwiz::render::terminfo::TerminfoRenderer;
 use termwiz::render::Renderer;
 use termwiz::screen::{Change, Screen};
+use termwiz::terminal::{Terminal, UnixTerminal};
 
 fn main() -> Result<(), Error> {
     let caps = Capabilities::new_from_env()?;
+
+    let mut terminal = UnixTerminal::new()?;
+    terminal.set_raw_mode()?;
+
     let renderer = TerminfoRenderer::new(caps);
 
     // TODO: obtain the size via termios
@@ -24,7 +29,7 @@ fn main() -> Result<(), Error> {
     screen.add_change("Hello world\r\n");
 
     let (seq, changes) = screen.get_changes(0);
-    let end_attr = renderer.render_to(&CellAttributes::default(), &changes, &mut stdout());
+    let end_attr = renderer.render_to(&CellAttributes::default(), &changes, &mut terminal);
     //println!("changes: {:?}", changes);
     Ok(())
 }

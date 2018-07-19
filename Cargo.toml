@@ -15,6 +15,8 @@ num = "0.2.0"
 num-traits = "0.2.5"
 derive_builder = "0.5.1"
 semver = "0.9.0"
+termios = "0.3.0"
+libc = "0.2.42"
 
 [dependencies.num-derive]
 version = "~0.2"
