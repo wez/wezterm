@@ -373,13 +373,19 @@ impl Renderer for TerminfoRenderer {
                     x: Position::Absolute(x),
                     y: Position::Absolute(y),
                 } => {
-                    let x = (*x as u32) + 1;
-                    let y = (*y as u32) + 1;
+                    let x = *x as u32;
+                    let y = *y as u32;
                     if let Some(attr) = self.get_capability::<cap::CursorAddress>() {
+                        // terminfo expansion automatically converts coordinates to 1-based,
+                        // so we can pass in the 0-based coordinates as-is
                         attr.expand().x(x).y(y).to(WriteWrapper::new(out))?;
                     } else {
-                        CSI::Cursor(Cursor::Position { line: x, col: y })
-                            .encode_escape(&mut WriteWrapper::new(out))?
+                        // We need to manually convert to 1-based as the CSI representation
+                        // requires it and there's no automatic conversion.
+                        CSI::Cursor(Cursor::Position {
+                            line: x + 1,
+                            col: y + 1,
+                        }).encode_escape(&mut WriteWrapper::new(out))?
                     }
                 }
                 Change::CursorPosition { .. } => {

@@ -2,6 +2,11 @@ use cell::{AttributeChange, Cell, CellAttributes};
 use std::borrow::Cow;
 use std::cmp::min;
 
+/// Position holds 0-based positioning information, where
+/// Absolute(0) is the start of the line or column,
+/// Resltive(0) is the current position in the line or
+/// column and EndRelative(0) is the end position in the
+/// line or column.
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum Position {
     NoChange,
@@ -100,6 +105,7 @@ impl Line {
 
                 attr = cell.attrs().clone();
                 result.push(Change::AllAttributes(attr.clone()));
+                text_run.push(cell.char());
             }
         }
 
@@ -564,6 +570,7 @@ fn compute_position_change(current: usize, pos: &Position, limit: usize) -> usiz
 mod test {
     use super::*;
     use cell::Intensity;
+    use color::AnsiColor;
 
     // The \x20's look a little awkward, but we can't use a plain
     // space in the first chararcter of a multi-line continuation;
@@ -747,6 +754,42 @@ mod test {
         let (_seq, changes) = s.get_changes(seq);
         // The resize causes get_changes to return a full repaint
         assert_eq!(full, &*changes);
+    }
+
+    #[test]
+    fn dont_lose_first_char_on_attr_change() {
+        let mut s = Screen::new(2, 2);
+        s.add_change(Change::Attribute(AttributeChange::Foreground(
+            AnsiColor::Maroon.into(),
+        )));
+        s.add_change("ab");
+        let (_seq, changes) = s.get_changes(0);
+        assert_eq!(
+            &[
+                Change::CursorPosition {
+                    x: Position::Absolute(0),
+                    y: Position::Absolute(0),
+                },
+                Change::AllAttributes(CellAttributes::default()),
+                Change::AllAttributes(
+                    CellAttributes::default()
+                        .set_foreground(AnsiColor::Maroon)
+                        .clone()
+                ),
+                Change::Text("ab".into()),
+                Change::CursorPosition {
+                    x: Position::Absolute(0),
+                    y: Position::Relative(1),
+                },
+                Change::AllAttributes(CellAttributes::default()),
+                Change::Text("  ".into()),
+                Change::CursorPosition {
+                    x: Position::Absolute(2),
+                    y: Position::Absolute(0),
+                },
+            ],
+            &*changes
+        );
     }
 
     #[test]
