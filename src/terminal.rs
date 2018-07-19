@@ -6,11 +6,35 @@
 
 use failure::Error;
 use istty::IsTty;
+use libc::{self, winsize};
+use num::{self, NumCast};
+use std::fmt::Display;
 use std::fs::{File, OpenOptions};
 use std::io::{stdin, stdout, Stdin, Stdout};
-use std::io::{Read, Result as IOResult, Write};
+use std::io::{Error as IOError, Read, Result as IOResult, Write};
+use std::mem;
 use std::os::unix::io::{AsRawFd, RawFd};
 use termios::{cfmakeraw, tcsetattr, Termios, TCSANOW};
+
+/// Represents the size of the terminal screen.
+/// The number of rows and columns of character cells are returned.
+/// Some implementations populate the size of those cells in pixels.
+// On Windows, GetConsoleFontSize() can return the size of a cell in
+// logical units and we can probably use this to populate xpixel, ypixel.
+// GetConsoleScreenBufferInfo() can return the rows and cols.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ScreenSize {
+    /// The number of rows of text
+    pub rows: usize,
+    /// The number of columns per row
+    pub cols: usize,
+    /// The width of a cell in pixels.  Some implementations never
+    /// set this to anything other than zero.
+    pub xpixel: usize,
+    /// The height of a cell in pixels.  Some implementations never
+    /// set this to anything other than zero.
+    pub ypixel: usize,
+}
 
 /// `Terminal` abstracts over some basic terminal capabilities.
 /// If the `set_raw_mode` or `set_cooked_mode` functions are used in
@@ -23,16 +47,16 @@ pub trait Terminal: Read + Write {
     /// output, and disables canonicalization of unix newlines to CRLF.
     fn set_raw_mode(&mut self) -> Result<(), Error>;
 
+    /// Queries the current screen size, returning width, height.
+    fn get_screen_size(&mut self) -> Result<ScreenSize, Error>;
+
+    /// Sets the current screen size
+    fn set_screen_size(&mut self, size: ScreenSize) -> Result<(), Error>;
+
     /*
     /// Sets the terminal to cooked mode, which is essentially the opposite
     /// to raw mode: input and output processing are enabled.
     fn set_cooked_mode(&mut self) -> Result<(), Error>;
-
-    /// Queries the current screen size, returning width, height.
-    fn get_screen_size(&mut self) -> Result<(u32, u32), Error>;
-
-    /// Sets the current screen size
-    fn set_screen_size(&mut self, width: u32, height: u32) -> Result<(), Error>;
     */
 }
 
@@ -120,12 +144,50 @@ impl Write for UnixTerminal {
     }
 }
 
+fn cast<T: NumCast + Display + Copy, U: NumCast>(n: T) -> Result<U, Error> {
+    num::cast(n).ok_or_else(|| format_err!("{} is out of bounds for this system", n))
+}
+
 impl Terminal for UnixTerminal {
     fn set_raw_mode(&mut self) -> Result<(), Error> {
         let fd = self.handle.writable_fd();
         let mut raw = Termios::from_fd(fd)?;
         cfmakeraw(&mut raw);
         tcsetattr(fd, TCSANOW, &raw).map_err(|e| format_err!("failed to set raw mode: {}", e))
+    }
+
+    fn get_screen_size(&mut self) -> Result<ScreenSize, Error> {
+        let fd = self.handle.writable_fd();
+        let mut size: winsize = unsafe { mem::zeroed() };
+        if unsafe { libc::ioctl(fd, libc::TIOCGWINSZ, &mut size as *mut _) } != 0 {
+            bail!("failed to ioctl(TIOCGWINSZ): {}", IOError::last_os_error());
+        }
+        Ok(ScreenSize {
+            rows: cast(size.ws_row)?,
+            cols: cast(size.ws_col)?,
+            xpixel: cast(size.ws_xpixel)?,
+            ypixel: cast(size.ws_ypixel)?,
+        })
+    }
+
+    fn set_screen_size(&mut self, size: ScreenSize) -> Result<(), Error> {
+        let fd = self.handle.writable_fd();
+
+        let size = winsize {
+            ws_row: cast(size.rows)?,
+            ws_col: cast(size.cols)?,
+            ws_xpixel: cast(size.xpixel)?,
+            ws_ypixel: cast(size.ypixel)?,
+        };
+
+        if unsafe { libc::ioctl(fd, libc::TIOCSWINSZ, &size as *const _) } != 0 {
+            bail!(
+                "failed to ioctl(TIOCSWINSZ): {:?}",
+                IOError::last_os_error()
+            );
+        }
+
+        Ok(())
     }
 }
 
