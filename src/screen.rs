@@ -215,9 +215,10 @@ impl Screen {
         self.attributes = CellAttributes::default()
             .set_background(color.clone())
             .clone();
+        let cleared = Cell::new(' ', self.attributes.clone());
         for line in &mut self.lines {
             for cell in &mut line.cells {
-                *cell = Cell::new(' ', self.attributes.clone());
+                *cell = cleared.clone();
             }
         }
     }
@@ -379,13 +380,8 @@ impl Screen {
     fn repaint_all(&self) -> Vec<Change> {
         let mut result = Vec::new();
 
-        // Home the cursor
-        result.push(Change::CursorPosition {
-            x: Position::Absolute(0),
-            y: Position::Absolute(0),
-        });
-        // Reset attributes back to defaults
-        result.push(Change::AllAttributes(CellAttributes::default()));
+        // Home the cursor and clear the screen to defaults
+        result.push(Change::ClearScreen(Default::default()));
 
         let mut attr = CellAttributes::default();
 
@@ -416,11 +412,39 @@ impl Screen {
             attr = line.cells[self.width - 1].attrs().clone();
         }
 
-        // Place the cursor at its intended position
-        result.push(Change::CursorPosition {
-            x: Position::Absolute(self.xpos),
-            y: Position::Absolute(self.ypos),
-        });
+        // Optimization opportunity: if we end up with a Text that ends with
+        // a sequence of spaces, and that sequence is long enough, then we can
+        // munge the output to use ClearScreen.
+        if attr == CellAttributes::default() {
+            let result_len = result.len();
+            if result[result_len - 1].is_text() {
+                if let Change::Text(text) = result.remove(result_len - 1) {
+                    let left = text.trim_right_matches(' ').to_string();
+                    let num_trailing_spaces = text.len() - left.len();
+                    if num_trailing_spaces > 0 && left.len() > 0 {
+                        // We can replace the trailing space with the effects of
+                        // the screen clearing.  We only need to push the left portion
+                        // of the string if it has non-zero length.
+                        result.push(Change::Text(left));
+                    } else if num_trailing_spaces == 0 {
+                        result.push(Change::Text(text));
+                    }
+                }
+            }
+        }
+
+        // Place the cursor at its intended position, but only if we moved the
+        // cursor.  We don't explicitly track movement but can infer it from the
+        // size of the results: results will have an initial ClearScreen entry
+        // that homes the cursor.  If the screen is otherwise blank there will
+        // be no further entries and we don't need to emit cursor movement.
+        let moved_cursor = result.len() != 1;
+        if moved_cursor {
+            result.push(Change::CursorPosition {
+                x: Position::Absolute(self.xpos),
+                y: Position::Absolute(self.ypos),
+            });
+        }
 
         result
     }
@@ -722,18 +746,7 @@ mod test {
     fn test_empty_changes() {
         let s = Screen::new(4, 3);
 
-        let empty = &[
-            Change::CursorPosition {
-                x: Position::Absolute(0),
-                y: Position::Absolute(0),
-            },
-            Change::AllAttributes(CellAttributes::default()),
-            Change::Text("            ".to_string()),
-            Change::CursorPosition {
-                x: Position::Absolute(0),
-                y: Position::Absolute(0),
-            },
-        ];
+        let empty = &[Change::ClearScreen(Default::default())];
 
         let (seq, changes) = s.get_changes(0);
         assert_eq!(seq, 0);
@@ -763,12 +776,8 @@ mod test {
         s.resize(2, 2);
 
         let full = &[
-            Change::CursorPosition {
-                x: Position::Absolute(0),
-                y: Position::Absolute(0),
-            },
-            Change::AllAttributes(CellAttributes::default()),
-            Change::Text("a   ".to_string()),
+            Change::ClearScreen(Default::default()),
+            Change::Text("a".to_string()),
             Change::CursorPosition {
                 x: Position::Absolute(1),
                 y: Position::Absolute(0),
@@ -790,11 +799,7 @@ mod test {
         let (_seq, changes) = s.get_changes(0);
         assert_eq!(
             &[
-                Change::CursorPosition {
-                    x: Position::Absolute(0),
-                    y: Position::Absolute(0),
-                },
-                Change::AllAttributes(CellAttributes::default()),
+                Change::ClearScreen(Default::default()),
                 Change::AllAttributes(
                     CellAttributes::default()
                         .set_foreground(AnsiColor::Maroon)
@@ -806,7 +811,6 @@ mod test {
                     y: Position::Relative(1),
                 },
                 Change::AllAttributes(CellAttributes::default()),
-                Change::Text("  ".into()),
                 Change::CursorPosition {
                     x: Position::Absolute(2),
                     y: Position::Absolute(0),
@@ -833,12 +837,8 @@ mod test {
         assert_eq!(s.ypos, 1);
 
         let full = &[
-            Change::CursorPosition {
-                x: Position::Absolute(0),
-                y: Position::Absolute(0),
-            },
-            Change::AllAttributes(CellAttributes::default()),
-            Change::Text(" a  ".to_string()),
+            Change::ClearScreen(Default::default()),
+            Change::Text(" a".to_string()),
             Change::CursorPosition {
                 x: Position::Absolute(1),
                 y: Position::Absolute(1),
@@ -859,12 +859,8 @@ mod test {
         s.flush_changes_older_than(1);
 
         let initial = &[
-            Change::CursorPosition {
-                x: Position::Absolute(0),
-                y: Position::Absolute(0),
-            },
-            Change::AllAttributes(CellAttributes::default()),
-            Change::Text("a           ".to_string()),
+            Change::ClearScreen(Default::default()),
+            Change::Text("a".to_string()),
             Change::CursorPosition {
                 x: Position::Absolute(1),
                 y: Position::Absolute(0),
