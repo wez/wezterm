@@ -4,7 +4,6 @@ use cell::{AttributeChange, Blink, CellAttributes, Intensity, Underline};
 use color::{ColorAttribute, ColorSpec};
 use escape::csi::{Cursor, Edit, EraseInDisplay, Sgr, CSI};
 use escape::osc::OperatingSystemCommand;
-use escape::EncodeEscape;
 use failure;
 use render::Renderer;
 use screen::{Change, Position};
@@ -56,13 +55,13 @@ impl TerminfoRenderer {
                         if let Some(attr) = self.get_capability::<cap::$cap_on>() {
                             attr.expand().to(out)?;
                         } else {
-                            CSI::Sgr(Sgr::$sgr(value)).encode_escape(&mut out)?;
+                            write!(out, "{}", CSI::Sgr(Sgr::$sgr(value)))?;
                         }
                     } else {
                         if let Some(attr) = self.get_capability::<cap::$cap_off>() {
                             attr.expand().to(out)?;
                         } else {
-                            CSI::Sgr(Sgr::$sgr(value)).encode_escape(&mut out)?;
+                            write!(out, "{}", CSI::Sgr(Sgr::$sgr(value)))?;
                         }
                     }
                 }
@@ -84,7 +83,7 @@ impl TerminfoRenderer {
                     if let Some(exit) = self.get_capability::<cap::ExitAttributeMode>() {
                         exit.expand().to(WriteWrapper::new(out))?;
                     } else {
-                        CSI::Sgr(Sgr::Reset).encode_escape(&mut WriteWrapper::new(out))?;
+                        write!(out, "{}", CSI::Sgr(Sgr::Reset))?;
                     }
 
                     if attr.intensity() != self.current_attr.intensity() {
@@ -93,16 +92,14 @@ impl TerminfoRenderer {
                                 if let Some(bold) = self.get_capability::<cap::EnterBoldMode>() {
                                     bold.expand().to(WriteWrapper::new(out))?;
                                 } else {
-                                    CSI::Sgr(Sgr::Intensity(attr.intensity()))
-                                        .encode_escape(&mut WriteWrapper::new(out))?;
+                                    write!(out, "{}", CSI::Sgr(Sgr::Intensity(attr.intensity())))?;
                                 }
                             }
                             Intensity::Half => {
                                 if let Some(dim) = self.get_capability::<cap::EnterDimMode>() {
                                     dim.expand().to(WriteWrapper::new(out))?;
                                 } else {
-                                    CSI::Sgr(Sgr::Intensity(attr.intensity()))
-                                        .encode_escape(&mut WriteWrapper::new(out))?;
+                                    write!(out, "{}", CSI::Sgr(Sgr::Intensity(attr.intensity())))?;
                                 }
                             }
                             _ => {}
@@ -129,8 +126,7 @@ impl TerminfoRenderer {
                         if let Some(attr) = self.get_capability::<cap::EnterBlinkMode>() {
                             attr.expand().to(WriteWrapper::new(out))?;
                         } else {
-                            CSI::Sgr(Sgr::Blink(attr.blink()))
-                                .encode_escape(&mut WriteWrapper::new(out))?;
+                            write!(out, "{}", CSI::Sgr(Sgr::Blink(attr.blink())))?;
                         }
                     }
 
@@ -138,14 +134,12 @@ impl TerminfoRenderer {
                         if let Some(attr) = self.get_capability::<cap::EnterReverseMode>() {
                             attr.expand().to(WriteWrapper::new(out))?;
                         } else {
-                            CSI::Sgr(Sgr::Inverse(attr.reverse()))
-                                .encode_escape(&mut WriteWrapper::new(out))?;
+                            write!(out, "{}", CSI::Sgr(Sgr::Inverse(attr.reverse())))?;
                         }
                     }
 
                     if attr.invisible() != self.current_attr.invisible() {
-                        CSI::Sgr(Sgr::Invisible(attr.invisible()))
-                            .encode_escape(&mut WriteWrapper::new(out))?;
+                        write!(out, "{}", CSI::Sgr(Sgr::Invisible(attr.invisible())))?;
                     }
                 }
 
@@ -153,8 +147,11 @@ impl TerminfoRenderer {
 
                 // TODO: add strikethrough to Capabilities
                 if attr.strikethrough() != self.current_attr.strikethrough() {
-                    CSI::Sgr(Sgr::StrikeThrough(attr.strikethrough()))
-                        .encode_escape(&mut WriteWrapper::new(out))?;
+                    write!(
+                        out,
+                        "{}",
+                        CSI::Sgr(Sgr::StrikeThrough(attr.strikethrough()))
+                    )?;
                 }
             }
 
@@ -164,23 +161,28 @@ impl TerminfoRenderer {
                 match (has_true_color, attr.foreground) {
                     (true, ColorAttribute::TrueColorWithPaletteFallback(tc, _))
                     | (true, ColorAttribute::TrueColorWithDefaultFallback(tc)) => {
-                        CSI::Sgr(Sgr::Foreground(ColorSpec::TrueColor(tc)))
-                            .encode_escape(&mut WriteWrapper::new(out))?;
+                        write!(
+                            out,
+                            "{}",
+                            CSI::Sgr(Sgr::Foreground(ColorSpec::TrueColor(tc)))
+                        )?;
                     }
                     (false, ColorAttribute::TrueColorWithDefaultFallback(_))
                     | (_, ColorAttribute::Default) => {
                         // Terminfo doesn't define a reset color to default, so
                         // we use the ANSI code.
-                        CSI::Sgr(Sgr::Foreground(ColorSpec::Default))
-                            .encode_escape(&mut WriteWrapper::new(out))?;
+                        write!(out, "{}", CSI::Sgr(Sgr::Foreground(ColorSpec::Default)))?;
                     }
                     (false, ColorAttribute::TrueColorWithPaletteFallback(_, idx))
                     | (_, ColorAttribute::PaletteIndex(idx)) => {
                         if let Some(set) = self.get_capability::<cap::SetAForeground>() {
                             set.expand().color(idx).to(WriteWrapper::new(out))?;
                         } else {
-                            CSI::Sgr(Sgr::Foreground(ColorSpec::PaletteIndex(idx)))
-                                .encode_escape(&mut WriteWrapper::new(out))?;
+                            write!(
+                                out,
+                                "{}",
+                                CSI::Sgr(Sgr::Foreground(ColorSpec::PaletteIndex(idx)))
+                            )?;
                         }
                     }
                 }
@@ -190,23 +192,28 @@ impl TerminfoRenderer {
                 match (has_true_color, attr.background) {
                     (true, ColorAttribute::TrueColorWithPaletteFallback(tc, _))
                     | (true, ColorAttribute::TrueColorWithDefaultFallback(tc)) => {
-                        CSI::Sgr(Sgr::Background(ColorSpec::TrueColor(tc)))
-                            .encode_escape(&mut WriteWrapper::new(out))?;
+                        write!(
+                            out,
+                            "{}",
+                            CSI::Sgr(Sgr::Background(ColorSpec::TrueColor(tc)))
+                        )?;
                     }
                     (false, ColorAttribute::TrueColorWithDefaultFallback(_))
                     | (_, ColorAttribute::Default) => {
                         // Terminfo doesn't define a reset color to default, so
                         // we use the ANSI code.
-                        CSI::Sgr(Sgr::Background(ColorSpec::Default))
-                            .encode_escape(&mut WriteWrapper::new(out))?;
+                        write!(out, "{}", CSI::Sgr(Sgr::Background(ColorSpec::Default)))?;
                     }
                     (false, ColorAttribute::TrueColorWithPaletteFallback(_, idx))
                     | (_, ColorAttribute::PaletteIndex(idx)) => {
                         if let Some(set) = self.get_capability::<cap::SetABackground>() {
                             set.expand().color(idx).to(WriteWrapper::new(out))?;
                         } else {
-                            CSI::Sgr(Sgr::Background(ColorSpec::PaletteIndex(idx)))
-                                .encode_escape(&mut WriteWrapper::new(out))?;
+                            write!(
+                                out,
+                                "{}",
+                                CSI::Sgr(Sgr::Background(ColorSpec::PaletteIndex(idx)))
+                            )?;
                         }
                     }
                 }
@@ -215,11 +222,11 @@ impl TerminfoRenderer {
             if self.caps.hyperlinks() {
                 if let Some(link) = attr.hyperlink.as_ref() {
                     let osc = OperatingSystemCommand::SetHyperlink(Some((**link).clone()));
-                    osc.encode_escape(&mut WriteWrapper::new(out))?;
+                    write!(out, "{}", osc)?;
                 } else if self.current_attr.hyperlink.is_some() {
                     // Close out the old hyperlink
                     let osc = OperatingSystemCommand::SetHyperlink(None);
-                    osc.encode_escape(&mut WriteWrapper::new(out))?;
+                    write!(out, "{}", osc)?;
                 }
             }
 
@@ -294,12 +301,18 @@ impl Renderer for TerminfoRenderer {
                             if let Some(attr) = self.get_capability::<cap::CursorHome>() {
                                 attr.expand().to(WriteWrapper::new(out))?;
                             } else {
-                                CSI::Cursor(Cursor::Position { line: 1, col: 1 })
-                                    .encode_escape(&mut WriteWrapper::new(out))?
+                                write!(
+                                    out,
+                                    "{}",
+                                    CSI::Cursor(Cursor::Position { line: 1, col: 1 })
+                                )?;
                             }
 
-                            CSI::Edit(Edit::EraseInDisplay(EraseInDisplay::EraseDisplay))
-                                .encode_escape(&mut WriteWrapper::new(out))?;
+                            write!(
+                                out,
+                                "{}",
+                                CSI::Edit(Edit::EraseInDisplay(EraseInDisplay::EraseDisplay))
+                            )?;
                         }
                     } else {
                         // We're setting the background to a specific color, so we get to
@@ -308,8 +321,7 @@ impl Renderer for TerminfoRenderer {
                         if let Some(attr) = self.get_capability::<cap::CursorHome>() {
                             attr.expand().to(WriteWrapper::new(out))?;
                         } else {
-                            CSI::Cursor(Cursor::Position { line: 1, col: 1 })
-                                .encode_escape(&mut WriteWrapper::new(out))?
+                            write!(out, "{}", CSI::Cursor(Cursor::Position { line: 1, col: 1 }))?;
                         }
 
                         let size = out.get_screen_size()?;
@@ -369,8 +381,7 @@ impl Renderer for TerminfoRenderer {
                     if let Some(attr) = self.get_capability::<cap::CursorHome>() {
                         attr.expand().to(WriteWrapper::new(out))?;
                     } else {
-                        CSI::Cursor(Cursor::Position { line: 1, col: 1 })
-                            .encode_escape(&mut WriteWrapper::new(out))?
+                        write!(out, "{}", CSI::Cursor(Cursor::Position { line: 1, col: 1 }))?;
                     }
                 }
                 Change::CursorPosition {
@@ -380,7 +391,7 @@ impl Renderer for TerminfoRenderer {
                     if let Some(attr) = self.get_capability::<cap::CursorDown>() {
                         attr.expand().to(WriteWrapper::new(out))?;
                     } else {
-                        CSI::Cursor(Cursor::Down(1)).encode_escape(&mut WriteWrapper::new(out))?
+                        write!(out, "{}", CSI::Cursor(Cursor::Down(1)))?;
                     }
                 }
                 Change::CursorPosition {
@@ -390,7 +401,7 @@ impl Renderer for TerminfoRenderer {
                     if let Some(attr) = self.get_capability::<cap::CursorUp>() {
                         attr.expand().to(WriteWrapper::new(out))?;
                     } else {
-                        CSI::Cursor(Cursor::Up(1)).encode_escape(&mut WriteWrapper::new(out))?
+                        write!(out, "{}", CSI::Cursor(Cursor::Up(1)))?;
                     }
                 }
                 Change::CursorPosition {
@@ -400,7 +411,7 @@ impl Renderer for TerminfoRenderer {
                     if let Some(attr) = self.get_capability::<cap::CursorLeft>() {
                         attr.expand().to(WriteWrapper::new(out))?;
                     } else {
-                        CSI::Cursor(Cursor::Left(1)).encode_escape(&mut WriteWrapper::new(out))?
+                        write!(out, "{}", CSI::Cursor(Cursor::Left(1)))?;
                     }
                 }
                 Change::CursorPosition {
@@ -410,7 +421,7 @@ impl Renderer for TerminfoRenderer {
                     if let Some(attr) = self.get_capability::<cap::CursorRight>() {
                         attr.expand().to(WriteWrapper::new(out))?;
                     } else {
-                        CSI::Cursor(Cursor::Right(1)).encode_escape(&mut WriteWrapper::new(out))?
+                        write!(out, "{}", CSI::Cursor(Cursor::Right(1)))?;
                     }
                 }
                 Change::CursorPosition {
@@ -426,10 +437,14 @@ impl Renderer for TerminfoRenderer {
                     } else {
                         // We need to manually convert to 1-based as the CSI representation
                         // requires it and there's no automatic conversion.
-                        CSI::Cursor(Cursor::Position {
-                            line: x + 1,
-                            col: y + 1,
-                        }).encode_escape(&mut WriteWrapper::new(out))?
+                        write!(
+                            out,
+                            "{}",
+                            CSI::Cursor(Cursor::Position {
+                                line: x + 1,
+                                col: y + 1,
+                            })
+                        )?;
                     }
                 }
                 Change::CursorPosition { .. } => {

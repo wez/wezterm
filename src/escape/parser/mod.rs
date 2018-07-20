@@ -106,12 +106,14 @@ mod test {
     use super::*;
     use cell::Intensity;
     use escape::csi::Sgr;
-    use escape::EncodeEscape;
     use escape::EscCode;
+    use std::io::Write;
 
     fn encode(seq: &Vec<Action>) -> String {
         let mut res = Vec::new();
-        seq.encode_escape(&mut res).unwrap();
+        for s in seq {
+            write!(res, "{}", s).unwrap();
+        }
         String::from_utf8(res).unwrap()
     }
 

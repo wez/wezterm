@@ -1,8 +1,7 @@
 use cell::{Blink, Intensity, Underline};
 use color::{AnsiColor, ColorSpec, RgbColor};
-use escape::EncodeEscape;
 use num::{self, ToPrimitive};
-use std;
+use std::fmt::{Display, Error as FmtError, Formatter};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CSI {
@@ -32,18 +31,18 @@ pub enum CSI {
     __Nonexhaustive,
 }
 
-impl EncodeEscape for CSI {
+impl Display for CSI {
     // TODO: data size optimization opportunity: if we could somehow know that we
     // had a run of CSI instances being encoded in sequence, we could
     // potentially collapse them together.  This is a few bytes difference in
     // practice so it may not be worthwhile with modern networks.
-    fn encode_escape<W: std::io::Write>(&self, w: &mut W) -> Result<(), std::io::Error> {
-        w.write_all(&[0x1b, b'['])?;
+    fn fmt(&self, f: &mut Formatter) -> Result<(), FmtError> {
+        write!(f, "\x1b[")?;
         match self {
-            CSI::Sgr(sgr) => sgr.encode_escape(w)?,
-            CSI::Cursor(c) => c.encode_escape(w)?,
-            CSI::Edit(e) => e.encode_escape(w)?,
-            CSI::Mode(mode) => mode.encode_escape(w)?,
+            CSI::Sgr(sgr) => sgr.fmt(f)?,
+            CSI::Cursor(c) => c.fmt(f)?,
+            CSI::Edit(e) => e.fmt(f)?,
+            CSI::Mode(mode) => mode.fmt(f)?,
             CSI::Unspecified {
                 params,
                 intermediates,
@@ -52,15 +51,15 @@ impl EncodeEscape for CSI {
             } => {
                 for (idx, p) in params.iter().enumerate() {
                     if idx > 0 {
-                        write!(w, ";{}", p)?;
+                        write!(f, ";{}", p)?;
                     } else {
-                        write!(w, "{}", p)?;
+                        write!(f, "{}", p)?;
                     }
                 }
                 for i in intermediates {
-                    write!(w, "{}", i)?;
+                    write!(f, "{}", i)?;
                 }
-                write!(w, "{}", control)?;
+                write!(f, "{}", control)?;
             }
             CSI::__Nonexhaustive => {}
         };
@@ -76,20 +75,15 @@ pub enum Mode {
     RestoreDecPrivateMode(DecPrivateMode),
 }
 
-impl EncodeEscape for Mode {
-    fn encode_escape<W: std::io::Write>(&self, w: &mut W) -> Result<(), std::io::Error> {
+impl Display for Mode {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), FmtError> {
         macro_rules! emit {
             ($flag:expr, $mode:expr) => {{
                 let value = match $mode {
-                    DecPrivateMode::Code(mode) => mode.to_i64().ok_or_else(|| {
-                        std::io::Error::new(
-                            std::io::ErrorKind::Other,
-                            "enum value was not representable as i64!?",
-                        )
-                    })?,
+                    DecPrivateMode::Code(mode) => mode.to_i64().ok_or_else(|| FmtError)?,
                     DecPrivateMode::Unspecified(mode) => *mode,
                 };
-                write!(w, "?{}{}", value, $flag)
+                write!(f, "?{}{}", value, $flag)
             }};
         }
         match self {
@@ -348,76 +342,71 @@ pub enum Edit {
 }
 
 trait EncodeCSIParam {
-    fn write_csi<W: std::io::Write>(&self, w: &mut W, control: &str) -> Result<(), std::io::Error>;
+    fn write_csi(&self, f: &mut Formatter, control: &str) -> Result<(), FmtError>;
 }
 
 impl<T: ParamEnum + PartialEq + num::ToPrimitive> EncodeCSIParam for T {
-    fn write_csi<W: std::io::Write>(&self, w: &mut W, control: &str) -> Result<(), std::io::Error> {
+    fn write_csi(&self, f: &mut Formatter, control: &str) -> Result<(), FmtError> {
         if *self == ParamEnum::default() {
-            write!(w, "{}", control)
+            write!(f, "{}", control)
         } else {
-            let value = self.to_i64().ok_or_else(|| {
-                std::io::Error::new(
-                    std::io::ErrorKind::Other,
-                    "enum value was not representable as i64!?",
-                )
-            })?;
-            write!(w, "{}{}", value, control)
+            let value = self.to_i64().ok_or_else(|| FmtError)?;
+            write!(f, "{}{}", value, control)
         }
     }
 }
 
 impl EncodeCSIParam for u32 {
-    fn write_csi<W: std::io::Write>(&self, w: &mut W, control: &str) -> Result<(), std::io::Error> {
+    fn write_csi(&self, f: &mut Formatter, control: &str) -> Result<(), FmtError> {
         if *self == 1 {
-            write!(w, "{}", control)
+            write!(f, "{}", control)
         } else {
-            write!(w, "{}{}", *self, control)
+            write!(f, "{}{}", *self, control)
         }
     }
 }
 
-impl EncodeEscape for Edit {
-    fn encode_escape<W: std::io::Write>(&self, w: &mut W) -> Result<(), std::io::Error> {
+impl Display for Edit {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), FmtError> {
         match self {
-            Edit::DeleteCharacter(n) => n.write_csi(w, "P")?,
-            Edit::DeleteLine(n) => n.write_csi(w, "M")?,
-            Edit::EraseCharacter(n) => n.write_csi(w, "X")?,
-            Edit::EraseInLine(n) => n.write_csi(w, "K")?,
-            Edit::InsertCharacter(n) => n.write_csi(w, "@")?,
-            Edit::InsertLine(n) => n.write_csi(w, "L")?,
-            Edit::ScrollDown(n) => n.write_csi(w, "T")?,
-            Edit::ScrollUp(n) => n.write_csi(w, "S")?,
-            Edit::EraseInDisplay(n) => n.write_csi(w, "J")?,
+            Edit::DeleteCharacter(n) => n.write_csi(f, "P")?,
+            Edit::DeleteLine(n) => n.write_csi(f, "M")?,
+            Edit::EraseCharacter(n) => n.write_csi(f, "X")?,
+            Edit::EraseInLine(n) => n.write_csi(f, "K")?,
+            Edit::InsertCharacter(n) => n.write_csi(f, "@")?,
+            Edit::InsertLine(n) => n.write_csi(f, "L")?,
+            Edit::ScrollDown(n) => n.write_csi(f, "T")?,
+            Edit::ScrollUp(n) => n.write_csi(f, "S")?,
+            Edit::EraseInDisplay(n) => n.write_csi(f, "J")?,
         }
         Ok(())
     }
 }
 
-impl EncodeEscape for Cursor {
-    fn encode_escape<W: std::io::Write>(&self, w: &mut W) -> Result<(), std::io::Error> {
+impl Display for Cursor {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), FmtError> {
         match self {
-            Cursor::BackwardTabulation(n) => n.write_csi(w, "Z")?,
-            Cursor::CharacterAbsolute(col) => col.write_csi(w, "G")?,
-            Cursor::ForwardTabulation(n) => n.write_csi(w, "I")?,
-            Cursor::NextLine(n) => n.write_csi(w, "E")?,
-            Cursor::PrecedingLine(n) => n.write_csi(w, "F")?,
-            Cursor::ActivePositionReport { line, col } => write!(w, "{};{}R", line, col)?,
-            Cursor::Left(n) => n.write_csi(w, "D")?,
-            Cursor::Down(n) => n.write_csi(w, "B")?,
-            Cursor::Right(n) => n.write_csi(w, "C")?,
-            Cursor::Up(n) => n.write_csi(w, "A")?,
-            Cursor::Position { line, col } => write!(w, "{};{}H", line, col)?,
-            Cursor::LineTabulation(n) => n.write_csi(w, "Y")?,
-            Cursor::TabulationControl(n) => n.write_csi(w, "W")?,
-            Cursor::TabulationClear(n) => n.write_csi(w, "g")?,
-            Cursor::CharacterPositionAbsolute(n) => n.write_csi(w, "`")?,
-            Cursor::CharacterPositionBackward(n) => n.write_csi(w, "j")?,
-            Cursor::CharacterPositionForward(n) => n.write_csi(w, "a")?,
-            Cursor::CharacterAndLinePosition { line, col } => write!(w, "{};{}f", line, col)?,
-            Cursor::LinePositionAbsolute(n) => n.write_csi(w, "d")?,
-            Cursor::LinePositionBackward(n) => n.write_csi(w, "k")?,
-            Cursor::LinePositionForward(n) => n.write_csi(w, "e")?,
+            Cursor::BackwardTabulation(n) => n.write_csi(f, "Z")?,
+            Cursor::CharacterAbsolute(col) => col.write_csi(f, "G")?,
+            Cursor::ForwardTabulation(n) => n.write_csi(f, "I")?,
+            Cursor::NextLine(n) => n.write_csi(f, "E")?,
+            Cursor::PrecedingLine(n) => n.write_csi(f, "F")?,
+            Cursor::ActivePositionReport { line, col } => write!(f, "{};{}R", line, col)?,
+            Cursor::Left(n) => n.write_csi(f, "D")?,
+            Cursor::Down(n) => n.write_csi(f, "B")?,
+            Cursor::Right(n) => n.write_csi(f, "C")?,
+            Cursor::Up(n) => n.write_csi(f, "A")?,
+            Cursor::Position { line, col } => write!(f, "{};{}H", line, col)?,
+            Cursor::LineTabulation(n) => n.write_csi(f, "Y")?,
+            Cursor::TabulationControl(n) => n.write_csi(f, "W")?,
+            Cursor::TabulationClear(n) => n.write_csi(f, "g")?,
+            Cursor::CharacterPositionAbsolute(n) => n.write_csi(f, "`")?,
+            Cursor::CharacterPositionBackward(n) => n.write_csi(f, "j")?,
+            Cursor::CharacterPositionForward(n) => n.write_csi(f, "a")?,
+            Cursor::CharacterAndLinePosition { line, col } => write!(f, "{};{}f", line, col)?,
+            Cursor::LinePositionAbsolute(n) => n.write_csi(f, "d")?,
+            Cursor::LinePositionBackward(n) => n.write_csi(f, "k")?,
+            Cursor::LinePositionForward(n) => n.write_csi(f, "e")?,
         }
         Ok(())
     }
@@ -565,11 +554,11 @@ pub enum Sgr {
     Background(ColorSpec),
 }
 
-impl EncodeEscape for Sgr {
-    fn encode_escape<W: std::io::Write>(&self, w: &mut W) -> Result<(), std::io::Error> {
+impl Display for Sgr {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), FmtError> {
         macro_rules! code {
             ($t:ident) => {
-                write!(w, "{}m", SgrCode::$t as i64)?
+                write!(f, "{}m", SgrCode::$t as i64)?
             };
         }
 
@@ -580,7 +569,7 @@ impl EncodeEscape for Sgr {
                         $(AnsiColor::$Ansi => code!($code) ,)*
                     }
                 } else {
-                    write!(w, "{};5;{}m", SgrCode::$eightbit as i64, $idx)?
+                    write!(f, "{};5;{}m", SgrCode::$eightbit as i64, $idx)?
                 }
             }
         }
@@ -641,7 +630,7 @@ impl EncodeEscape for Sgr {
                 (White, ForegroundBrightWhite)
             ),
             Sgr::Foreground(ColorSpec::TrueColor(c)) => write!(
-                w,
+                f,
                 "{};2;{};{};{}m",
                 SgrCode::ForegroundColor as i64,
                 c.red,
@@ -672,7 +661,7 @@ impl EncodeEscape for Sgr {
                 (White, BackgroundBrightWhite)
             ),
             Sgr::Background(ColorSpec::TrueColor(c)) => write!(
-                w,
+                f,
                 "{};2;{};{};{}m",
                 SgrCode::BackgroundColor as i64,
                 c.red,
@@ -1068,6 +1057,7 @@ impl<'a> Iterator for CSIParser<'a> {
 #[cfg(test)]
 mod test {
     use super::*;
+    use std::io::Write;
 
     fn parse(control: char, params: &[i64], expected: &str) -> Vec<CSI> {
         let res = CSI::parse(params, &[], false, control).collect();
@@ -1084,7 +1074,9 @@ mod test {
 
     fn encode(seq: &Vec<CSI>) -> String {
         let mut res = Vec::new();
-        seq.encode_escape(&mut res).unwrap();
+        for s in seq {
+            write!(res, "{}", s).unwrap();
+        }
         String::from_utf8(res).unwrap()
     }
 

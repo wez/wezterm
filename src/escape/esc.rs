@@ -1,6 +1,5 @@
-use escape::EncodeEscape;
 use num::{self, ToPrimitive};
-use std;
+use std::fmt::{Display, Error as FmtError, Formatter, Write as FmtWrite};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Esc {
@@ -104,24 +103,27 @@ impl Esc {
     }
 }
 
-impl EncodeEscape for Esc {
+impl Display for Esc {
     // TODO: data size optimization opportunity: if we could somehow know that we
     // had a run of CSI instances being encoded in sequence, we could
     // potentially collapse them together.  This is a few bytes difference in
     // practice so it may not be worthwhile with modern networks.
-    fn encode_escape<W: std::io::Write>(&self, w: &mut W) -> Result<(), std::io::Error> {
-        w.write_all(&[0x1b])?;
+    fn fmt(&self, f: &mut Formatter) -> Result<(), FmtError> {
+        f.write_char(0x1b as char)?;
         use self::Esc::*;
         match self {
             Code(code) => {
                 let packed = code.to_u16()
                     .expect("num-derive failed to implement ToPrimitive");
                 if packed > u8::max_value() as u16 {
-                    let buf = [(packed >> 8) as u8, (packed & 0xff) as u8];
-                    w.write_all(&buf)?;
+                    write!(
+                        f,
+                        "{}{}",
+                        (packed >> 8) as u8 as char,
+                        (packed & 0xff) as u8 as char
+                    )?;
                 } else {
-                    let buf = [(packed & 0xff) as u8];
-                    w.write_all(&buf)?;
+                    f.write_char((packed & 0xff) as u8 as char)?;
                 }
             }
             Unspecified {
@@ -129,11 +131,9 @@ impl EncodeEscape for Esc {
                 control,
             } => {
                 if let Some(i) = intermediate {
-                    let buf = [*i, *control];
-                    w.write_all(&buf)?;
+                    write!(f, "{}{}", *i as char, *control as char)?;
                 } else {
-                    let buf = [*control];
-                    w.write_all(&buf)?;
+                    f.write_char(*control as char)?;
                 }
             }
         };
@@ -146,9 +146,7 @@ mod test {
     use super::*;
 
     fn encode(osc: &Esc) -> String {
-        let mut res = Vec::new();
-        osc.encode_escape(&mut res).unwrap();
-        String::from_utf8(res).unwrap()
+        format!("{}", osc)
     }
 
     fn parse(esc: &str) -> Esc {

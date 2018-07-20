@@ -3,7 +3,7 @@
 //! escape sequences.  It provides encoding and decoding functionality
 //! only; it does not provide terminal emulation facilities itself.
 use num;
-use std;
+use std::fmt::{Display, Error as FmtError, Formatter, Write as FmtWrite};
 
 pub mod csi;
 pub mod esc;
@@ -33,30 +33,17 @@ pub enum Action {
 
 /// Encode self as an escape sequence.  The escape sequence may potentially
 /// be clear text with no actual escape sequences.
-pub trait EncodeEscape {
-    fn encode_escape<W: std::io::Write>(&self, w: &mut W) -> Result<(), std::io::Error>;
-}
-
-impl EncodeEscape for Action {
-    fn encode_escape<W: std::io::Write>(&self, w: &mut W) -> Result<(), std::io::Error> {
+impl Display for Action {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), FmtError> {
         match self {
-            Action::Print(c) => write!(w, "{}", c),
-            Action::Control(Control::Code(c)) => w.write_all(&[c.clone() as u8]),
-            Action::Control(Control::Unspecified(c)) => w.write_all(&[*c]),
+            Action::Print(c) => write!(f, "{}", c),
+            Action::Control(Control::Code(c)) => f.write_char(*c as u8 as char),
+            Action::Control(Control::Unspecified(c)) => f.write_char(*c as char),
             Action::DeviceControl(_) => unimplemented!(),
-            Action::OperatingSystemCommand(osc) => osc.encode_escape(w),
-            Action::CSI(csi) => csi.encode_escape(w),
-            Action::Esc(esc) => esc.encode_escape(w),
+            Action::OperatingSystemCommand(osc) => osc.fmt(f),
+            Action::CSI(csi) => csi.fmt(f),
+            Action::Esc(esc) => esc.fmt(f),
         }
-    }
-}
-
-impl<T: EncodeEscape> EncodeEscape for [T] {
-    fn encode_escape<W: std::io::Write>(&self, w: &mut W) -> Result<(), std::io::Error> {
-        for item in self {
-            item.encode_escape(w)?;
-        }
-        Ok(())
     }
 }
 
@@ -82,7 +69,7 @@ pub enum DeviceControlMode {
 }
 
 /// C0 or C1 control codes
-#[derive(Debug, Clone, PartialEq, Eq, FromPrimitive)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, FromPrimitive)]
 #[repr(u8)]
 pub enum ControlCode {
     Null = 0,

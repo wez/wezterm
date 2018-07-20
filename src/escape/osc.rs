@@ -1,8 +1,7 @@
-use escape::EncodeEscape;
 use failure;
 use num;
-use std;
 use std::collections::HashMap;
+use std::fmt::{Display, Error as FmtError, Formatter};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum OperatingSystemCommand {
@@ -76,27 +75,22 @@ impl Hyperlink {
     }
 }
 
-impl EncodeEscape for Option<Hyperlink> {
-    fn encode_escape<W: std::io::Write>(&self, w: &mut W) -> Result<(), std::io::Error> {
-        match self {
-            None => write!(w, "8;;"),
-            Some(link) => {
-                write!(w, "8;")?;
-                for (idx, (k, v)) in link.params.iter().enumerate() {
-                    // TODO: protect against k, v containing : or =
-                    if idx > 0 {
-                        write!(w, ":")?;
-                    }
-                    write!(w, "{}={}", k, v)?;
-                }
-                // TODO: ensure that link.uri doesn't contain characters
-                // outside the range 32-126.  Need to pull in a URI/URL
-                // crate to help with this.
-                write!(w, ";{}", link.uri)?;
-
-                Ok(())
+impl Display for Hyperlink {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), FmtError> {
+        write!(f, "8;")?;
+        for (idx, (k, v)) in self.params.iter().enumerate() {
+            // TODO: protect against k, v containing : or =
+            if idx > 0 {
+                write!(f, ":")?;
             }
+            write!(f, "{}={}", k, v)?;
         }
+        // TODO: ensure that link.uri doesn't contain characters
+        // outside the range 32-126.  Need to pull in a URI/URL
+        // crate to help with this.
+        write!(f, ";{}", self.uri)?;
+
+        Ok(())
     }
 }
 
@@ -171,13 +165,13 @@ pub enum OperatingSystemCommandCode {
     ITermProprietary = 1337,
 }
 
-impl EncodeEscape for OperatingSystemCommand {
-    fn encode_escape<W: std::io::Write>(&self, w: &mut W) -> Result<(), std::io::Error> {
-        write!(w, "\x1b]")?;
+impl Display for OperatingSystemCommand {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), FmtError> {
+        write!(f, "\x1b]")?;
 
         macro_rules! single_string {
             ($variant:ident, $s:expr) => {
-                write!(w, "{};{}", OperatingSystemCommandCode::$variant as u8, $s)?
+                write!(f, "{};{}", OperatingSystemCommandCode::$variant as u8, $s)?
             };
         };
 
@@ -186,18 +180,20 @@ impl EncodeEscape for OperatingSystemCommand {
             SetIconNameAndWindowTitle(title) => single_string!(SetIconNameAndWindowTitle, title),
             SetWindowTitle(title) => single_string!(SetWindowTitle, title),
             SetIconName(title) => single_string!(SetIconName, title),
-            SetHyperlink(link) => link.encode_escape(w)?,
+            SetHyperlink(Some(link)) => link.fmt(f)?,
+            SetHyperlink(None) => write!(f, "8;;")?,
             Unspecified(v) => {
                 for (idx, item) in v.iter().enumerate() {
                     if idx > 0 {
-                        write!(w, ";")?;
+                        write!(f, ";")?;
                     }
-                    w.write_all(item.as_slice())?;
+                    f.write_str(&String::from_utf8_lossy(item))?;
+                    //f.write_all(item.as_slice())?;
                 }
             }
             __Nonexhaustive => {}
         };
-        write!(w, "\x07")?;
+        write!(f, "\x07")?;
         Ok(())
     }
 }
@@ -207,9 +203,7 @@ mod test {
     use super::*;
 
     fn encode(osc: &OperatingSystemCommand) -> String {
-        let mut res = Vec::new();
-        osc.encode_escape(&mut res).unwrap();
-        String::from_utf8(res).unwrap()
+        format!("{}", osc)
     }
 
     fn parse(osc: &[&str], expected: &str) -> OperatingSystemCommand {
