@@ -65,21 +65,32 @@ enum Handle {
     Stdio { stdin: Stdin, stdout: Stdout },
 }
 
+impl Read for Handle {
+    fn read(&mut self, buf: &mut [u8]) -> IOResult<usize> {
+        match self {
+            Handle::File(f) => f.read(buf),
+            Handle::Stdio { stdin, .. } => stdin.read(buf),
+        }
+    }
+}
+
+impl Write for Handle {
+    fn write(&mut self, buf: &[u8]) -> IOResult<usize> {
+        match self {
+            Handle::File(f) => f.write(buf),
+            Handle::Stdio { stdout, .. } => stdout.write(buf),
+        }
+    }
+
+    fn flush(&mut self) -> IOResult<()> {
+        match self {
+            Handle::File(f) => f.flush(),
+            Handle::Stdio { stdout, .. } => stdout.flush(),
+        }
+    }
+}
+
 impl Handle {
-    fn read<T, F: FnOnce(&mut Read) -> T>(&mut self, func: F) -> T {
-        match self {
-            Handle::File(f) => func(f),
-            Handle::Stdio { stdin, .. } => func(stdin),
-        }
-    }
-
-    fn write<T, F: FnOnce(&mut Write) -> T>(&mut self, func: F) -> T {
-        match self {
-            Handle::File(f) => func(f),
-            Handle::Stdio { stdout, .. } => func(stdout),
-        }
-    }
-
     fn writable_fd(&self) -> RawFd {
         match self {
             Handle::File(f) => f.as_raw_fd(),
@@ -131,17 +142,17 @@ impl UnixTerminal {
 
 impl Read for UnixTerminal {
     fn read(&mut self, buf: &mut [u8]) -> IOResult<usize> {
-        self.handle.read(|r| r.read(buf))
+        self.handle.read(buf)
     }
 }
 
 impl Write for UnixTerminal {
     fn write(&mut self, buf: &[u8]) -> IOResult<usize> {
-        self.handle.write(|w| w.write(buf))
+        self.handle.write(buf)
     }
 
     fn flush(&mut self) -> IOResult<()> {
-        self.handle.write(|w| w.flush())
+        self.handle.flush()
     }
 }
 
