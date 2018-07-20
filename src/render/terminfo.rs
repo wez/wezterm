@@ -547,7 +547,7 @@ mod test {
     }
 
     #[test]
-    fn test_empty_render() {
+    fn empty_render() {
         let mut out = FakeTerm::new();
         let renderer = TerminfoRenderer::new(xterm_terminfo());
         let end_attr = renderer
@@ -558,7 +558,7 @@ mod test {
     }
 
     #[test]
-    fn test_basic_text() {
+    fn basic_text() {
         let mut out = FakeTerm::new();
         let renderer = TerminfoRenderer::new(xterm_terminfo());
         let end_attr = renderer
@@ -573,7 +573,7 @@ mod test {
     }
 
     #[test]
-    fn test_bold_text() {
+    fn bold_text() {
         let mut out = FakeTerm::new();
         let renderer = TerminfoRenderer::new(xterm_terminfo());
         let end_attr = renderer
@@ -741,7 +741,7 @@ mod test {
     }
 
     #[test]
-    fn test_bold_text_no_terminfo() {
+    fn bold_text_no_terminfo() {
         let mut out = FakeTerm::new();
         let renderer = TerminfoRenderer::new(no_terminfo_all_enabled());
         let end_attr = renderer
@@ -781,7 +781,7 @@ mod test {
     }
 
     #[test]
-    fn test_red_bold_text() {
+    fn red_bold_text() {
         let mut out = FakeTerm::new();
         let renderer = TerminfoRenderer::new(xterm_terminfo());
         let end_attr = renderer
@@ -823,7 +823,7 @@ mod test {
     }
 
     #[test]
-    fn test_red_bold_text_no_terminfo() {
+    fn red_bold_text_no_terminfo() {
         let mut out = FakeTerm::new();
         let renderer = TerminfoRenderer::new(no_terminfo_all_enabled());
         let end_attr = renderer

@@ -1089,7 +1089,7 @@ mod test {
     }
 
     #[test]
-    fn test_basic() {
+    fn basic() {
         assert_eq!(parse('m', &[], "\x1b[0m"), vec![CSI::Sgr(Sgr::Reset)]);
         assert_eq!(parse('m', &[0], "\x1b[0m"), vec![CSI::Sgr(Sgr::Reset)]);
         assert_eq!(
@@ -1143,7 +1143,7 @@ mod test {
     }
 
     #[test]
-    fn test_color() {
+    fn color() {
         assert_eq!(
             parse('m', &[38, 2], "\x1b[38;2m"),
             vec![CSI::Unspecified {

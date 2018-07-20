@@ -617,7 +617,7 @@ mod test {
     // it gets eaten up and ignored.
 
     #[test]
-    fn test_basic_print() {
+    fn basic_print() {
         let mut s = Screen::new(4, 3);
         assert_eq!(
             s.screen_chars_to_string(),
@@ -660,7 +660,7 @@ mod test {
     }
 
     #[test]
-    fn test_newline() {
+    fn newline() {
         let mut s = Screen::new(4, 4);
         s.add_change("bloo\rwat\n hey\r\nho");
         assert_eq!(
@@ -681,7 +681,7 @@ mod test {
     }
 
     #[test]
-    fn test_cursor_movement() {
+    fn cursor_movement() {
         let mut s = Screen::new(4, 3);
         s.add_change(Change::CursorPosition {
             x: Position::Absolute(3),
@@ -721,7 +721,7 @@ mod test {
     }
 
     #[test]
-    fn test_attribute_setting() {
+    fn attribute_setting() {
         use cell::Intensity;
 
         let mut s = Screen::new(3, 1);
@@ -743,7 +743,7 @@ mod test {
     }
 
     #[test]
-    fn test_empty_changes() {
+    fn empty_changes() {
         let s = Screen::new(4, 3);
 
         let empty = &[Change::ClearScreen(Default::default())];
@@ -769,7 +769,7 @@ mod test {
     }
 
     #[test]
-    fn test_resize_delta_flush() {
+    fn resize_delta_flush() {
         let mut s = Screen::new(4, 3);
         s.add_change("a");
         let (seq, _) = s.get_changes(0);
@@ -821,7 +821,7 @@ mod test {
     }
 
     #[test]
-    fn test_resize_cursor_position() {
+    fn resize_cursor_position() {
         let mut s = Screen::new(4, 4);
 
         s.add_change(" a");
@@ -850,7 +850,7 @@ mod test {
     }
 
     #[test]
-    fn test_delta_change() {
+    fn delta_change() {
         let mut s = Screen::new(4, 3);
         // flushing nothing should be a NOP
         s.flush_changes_older_than(0);
