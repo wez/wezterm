@@ -60,7 +60,8 @@ use std::env::var;
 use terminfo::{self, capability as cap};
 
 /// Use the `ProbeHintsBuilder` to configure an instance of
-/// the `ProbeHints` struct.
+/// the `ProbeHints` struct.  `ProbeHints` are passed to the `Capabilities`
+/// constructor to influence the effective set of terminal capabilities.
 #[derive(Debug, Default, Builder, Clone)]
 #[builder(default)]
 pub struct ProbeHints {
@@ -68,7 +69,7 @@ pub struct ProbeHints {
     term: Option<String>,
 
     /// The contents of the COLORTERM environment variable.
-    /// http://invisible-island.net/ncurses/ncurses-slang.html#env_COLORTERM
+    /// <http://invisible-island.net/ncurses/ncurses-slang.html#env_COLORTERM>
     colorterm: Option<String>,
 
     /// The contents of the TERM_PROGRAM environment variable
@@ -88,14 +89,14 @@ pub struct ProbeHints {
     sixel: Option<bool>,
 
     /// Configure whether iTerm2 style graphics embedding is supported
-    /// See https://www.iterm2.com/documentation-images.html
+    /// See <https://www.iterm2.com/documentation-images.html>
     iterm2_image: Option<bool>,
 
     /// Specify whether `bce`, background color erase, is supported.
-    /// http://invisible-island.net/ncurses/ncurses-slang.html#env_COLORTERM_BCE
     bce: Option<bool>,
 
     /// The contents of the COLORTERM_BCE environment variable
+    /// <http://invisible-island.net/ncurses/ncurses-slang.html#env_COLORTERM_BCE>
     colorterm_bce: Option<String>,
 
     /// A loaded terminfo database entry
@@ -120,6 +121,11 @@ pub enum ColorLevel {
     TrueColor,
 }
 
+/// `Capabilities` holds information about the capabilities of a terminal.
+/// On POSIX systems this is largely derived from an available terminfo
+/// database, but there are some newish capabilities that are not yet
+/// described by the majority of terminfo installations and thus have some
+/// additional handling in this struct.
 pub struct Capabilities {
     color_level: ColorLevel,
     hyperlinks: bool,
@@ -145,8 +151,7 @@ impl Capabilities {
         Self::new_with_hints(hints.build().map_err(|e| err_msg(e))?)
     }
 
-    /// Given some hints and a writable handle to the terminal output stream,
-    /// compute the available terminal capabilities.
+    /// Build a `Capabilities` object based on the provided `ProbeHints` object.
     pub fn new_with_hints(hints: ProbeHints) -> Result<Self, Error> {
         let color_level = hints.color_level.unwrap_or_else(|| {
             // If set, COLORTERM overrides any other source of information
@@ -253,19 +258,19 @@ impl Capabilities {
     }
 
     /// Does the terminal support hyperlinks?
-    /// See https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5feda
+    /// See <https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5feda>
     pub fn hyperlinks(&self) -> bool {
         self.hyperlinks
     }
 
     /// Does the terminal support the iTerm2 image protocol?
-    /// See https://www.iterm2.com/documentation-images.html
+    /// See <https://www.iterm2.com/documentation-images.html>
     pub fn iterm2_image(&self) -> bool {
         self.iterm2_image
     }
 
     /// Is `bce`, background color erase supported?
-    /// http://invisible-island.net/ncurses/ncurses-slang.html#env_COLORTERM_BCE
+    /// <http://invisible-island.net/ncurses/ncurses-slang.html#env_COLORTERM_BCE>
     pub fn bce(&self) -> bool {
         self.bce
     }

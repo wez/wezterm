@@ -17,7 +17,7 @@ use std::os::unix::io::{AsRawFd, RawFd};
 use termios::{cfmakeraw, tcsetattr, Termios, TCSANOW};
 
 /// Represents the size of the terminal screen.
-/// The number of rows and columns of character cells are returned.
+/// The number of rows and columns of character cells are expressed.
 /// Some implementations populate the size of those cells in pixels.
 // On Windows, GetConsoleFontSize() can return the size of a cell in
 // logical units and we can probably use this to populate xpixel, ypixel.
@@ -88,6 +88,7 @@ impl Handle {
     }
 }
 
+/// A unix style terminal
 pub struct UnixTerminal {
     handle: Handle,
     saved_termios: Termios,

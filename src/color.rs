@@ -10,24 +10,42 @@ use std::result::Result;
 /// These correspond to the classic ANSI color indices and are
 /// used for convenience/readability in code
 pub enum AnsiColor {
+    /// "Dark" black
     Black = 0,
+    /// Dark red
     Maroon,
+    /// Dark green
     Green,
+    /// "Dark" yellow
     Olive,
+    /// Dark blue
     Navy,
+    /// Dark purple
     Purple,
+    /// "Dark" cyan
     Teal,
+    /// "Dark" white
     Silver,
+    /// "Bright" black
     Grey,
+    /// Bright red
     Red,
+    /// Bright green
     Lime,
+    /// Bright yellow
     Yellow,
+    /// Bright blue
     Blue,
+    /// Bright purple
     Fuschia,
+    /// Bright Cyan/Aqua
     Aqua,
+    /// Bright white
     White,
 }
 
+/// Describes a color in the SRGB colorspace using red, green and blue
+/// components in the range 0-255.
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash)]
 pub struct RgbColor {
     pub red: u8,
@@ -45,7 +63,7 @@ impl RgbColor {
     /// Construct a color from an SVG/CSS3 color name.
     /// Returns None if the supplied name is not recognized.
     /// The list of names can be found here:
-    /// https://ogeon.github.io/docs/palette/master/palette/named/index.html
+    /// <https://ogeon.github.io/docs/palette/master/palette/named/index.html>
     pub fn from_named(name: &str) -> Option<RgbColor> {
         palette::named::from_str(&name.to_ascii_lowercase()).map(|color| {
             let color = Srgb::<u8>::from_format(color);
@@ -92,6 +110,10 @@ impl<'de> Deserialize<'de> for RgbColor {
     }
 }
 
+/// Specifies the color to be used when rendering a cell.
+/// This differs from `ColorAttribute` in that this type can only
+/// specify one of the possible color types at once, whereas the
+/// `ColorAttribute` type can specify a TrueColor value and a fallback.
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum ColorSpec {
     Default,
@@ -118,6 +140,10 @@ impl From<RgbColor> for ColorSpec {
     }
 }
 
+/// Specifies the color to be used when rendering a cell.  This is the
+/// type used in the `CellAttributes` struct and can specify an optional
+/// TrueColor value, allowing a fallback to a more traditional palette
+/// index if TrueColor is not available.
 #[derive(Debug, Default, Clone, Copy, Eq, PartialEq)]
 pub struct ColorAttribute {
     /// Used if the terminal supports full color

@@ -19,9 +19,14 @@ pub enum Position {
     EndRelative(usize),
 }
 
+/// `Change` describes an update operation to be applied to a `Screen`.
+/// Changes to the active attributes (color, style), moving the cursor
+/// and outputting text are examples of some of the values.
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum Change {
+    /// Change a single attribute
     Attribute(AttributeChange),
+    /// Change all possible attributes to the given set of values
     AllAttributes(CellAttributes),
     /// Add printable text.
     /// Control characters are rendered inert by transforming them
@@ -38,10 +43,8 @@ pub enum Change {
     //   ClearToStartOfLine,
     //   ClearToEndOfLine,
     //   ClearToEndOfScreen,
-    CursorPosition {
-        x: Position,
-        y: Position,
-    },
+    /// Move the cursor to the specified `Position`.
+    CursorPosition { x: Position, y: Position },
     /*   CursorVisibility(bool),
      *   ChangeScrollRegion{top: usize, bottom: usize}, */
 }
@@ -125,8 +128,34 @@ impl Line {
     }
 }
 
+/// SequenceNo indicates a logical position within a stream of changes.
+/// The sequence is only meaningful within a given `Screen` instance.
 pub type SequenceNo = usize;
 
+/// The `Screen` type represents the contents of a terminal screen.
+/// It is not directly connected to a terminal device.
+/// It consists of a buffer and a log of changes.  You can accumulate
+/// updates to the screen by adding instances of the `Change` enum
+/// that describe the updates.
+///
+/// When ready to render the `Screen` to a `Terminal`, you can use
+/// the `get_changes` method to return an optimized stream of `Change`s
+/// since the last render and then pass it to an instance of `Renderer`.
+///
+/// `Screen`s can also be composited together; this is useful when
+/// building up a UI with layers or widgets: each widget can be its
+/// own `Screen` instance and have its content maintained independently
+/// from the other widgets on the screen and can then be copied into
+/// the target `Screen` buffer for rendering.
+///
+/// To support more efficient updates in the composite use case, a
+/// `draw_from_screen` method is available; the intent is to have one
+/// `Screen` be hold the data that was last rendered, and a second `Screen`
+/// of the same size that is repeatedly redrawn from the composite
+/// of the widgets.  `draw_from_screen` is used to extract the smallest
+/// difference between the updated screen and apply those changes to
+/// the render target, and then use `get_changes` to render those without
+/// repainting the world on each update.
 #[derive(Default)]
 pub struct Screen {
     width: usize,
@@ -140,6 +169,7 @@ pub struct Screen {
 }
 
 impl Screen {
+    /// Create a new Screen surface with the specified width and height.
     pub fn new(width: usize, height: usize) -> Self {
         let mut scr = Screen {
             width,
@@ -150,6 +180,15 @@ impl Screen {
         scr
     }
 
+    /// Resize the Screen surface to the specified width and height.
+    /// If the width and/or height are smaller than previously, the rows and/or
+    /// columns are truncated.  If the width and/or height are larger than
+    /// previously then an appropriate number of cells are added to the
+    /// buffer and filled with default attributes.
+    /// The resize event invalidates the change stream, discarding it and
+    /// causing a subsequent `get_changes` call to yield a full repaint.
+    /// If the cursor position would be outside the bounds of the newly resized
+    /// screen, it will be moved to be within the new bounds.
     pub fn resize(&mut self, width: usize, height: usize) {
         self.lines.resize(height, Line::with_width(width));
         for line in &mut self.lines {
@@ -327,7 +366,7 @@ impl Screen {
     }
 
     /// Returns a stream of changes suitable to update the screen
-    /// to match the model.  The input seq argument should be 0
+    /// to match the model.  The input `seq` argument should be 0
     /// on the first call, or in any situation where the screen
     /// contents may have been invalidated, otherwise it should
     /// be set to the `SequenceNo` returned by the most recent call
@@ -360,7 +399,7 @@ impl Screen {
     /// After having called `get_changes` and processed the resultant
     /// change stream, the caller can then pass the returned `SequenceNo`
     /// value to this call to prune the list of changes and free up
-    /// resources.
+    /// resources from the change log.
     pub fn flush_changes_older_than(&mut self, seq: SequenceNo) {
         let first = self.seqno.saturating_sub(self.changes.len());
         let idx = seq - first;
@@ -452,6 +491,12 @@ impl Screen {
     /// Computes the change stream required to make the region within `self`
     /// at coordinates `x`, `y` and size `width`, `height` look like the
     /// same sized region within `other` at coordinates `other_x`, `other_y`.
+    ///
+    /// `other` and `self` may be the same, causing regions within the same
+    /// `Screen` to be differenced; this is used by the `copy_region` method.
+    ///
+    /// The returned list of `Change`s can be passed to the `add_changes` method
+    /// to make the region within self match the region within other.
     /// # Panics
     /// Will panic if the regions of interest are not within the bounds of
     /// their respective `Screen`.
