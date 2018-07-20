@@ -1,4 +1,5 @@
 use escape::{Action, DeviceControlMode, Esc, OperatingSystemCommand, CSI};
+use num;
 use vte;
 
 /// The `Parser` struct holds the state machine that is used to decode
@@ -44,28 +45,33 @@ impl<'a, F: FnMut(Action)> vte::Perform for Performer<'a, F> {
     }
 
     fn execute(&mut self, byte: u8) {
-        (self.callback)(Action::Control(byte.into()));
+        match num::FromPrimitive::from_u8(byte) {
+            Some(code) => (self.callback)(Action::Control(code)),
+            None => eprintln!("impossible C0/C1 control code {:?} was dropped", byte),
+        }
     }
 
     fn hook(&mut self, params: &[i64], intermediates: &[u8], ignored_extra_intermediates: bool) {
-        (self.callback)(Action::DeviceControl(DeviceControlMode::Enter {
+        (self.callback)(Action::DeviceControl(Box::new(DeviceControlMode::Enter {
             params: params.to_vec(),
             intermediates: intermediates.to_vec(),
             ignored_extra_intermediates,
-        }));
+        })));
     }
 
     fn put(&mut self, data: u8) {
-        (self.callback)(Action::DeviceControl(DeviceControlMode::Data(data)));
+        (self.callback)(Action::DeviceControl(Box::new(DeviceControlMode::Data(
+            data,
+        ))));
     }
 
     fn unhook(&mut self) {
-        (self.callback)(Action::DeviceControl(DeviceControlMode::Exit));
+        (self.callback)(Action::DeviceControl(Box::new(DeviceControlMode::Exit)));
     }
 
     fn osc_dispatch(&mut self, osc: &[&[u8]]) {
         let osc = OperatingSystemCommand::parse(osc);
-        (self.callback)(Action::OperatingSystemCommand(osc));
+        (self.callback)(Action::OperatingSystemCommand(Box::new(osc)));
     }
 
     fn csi_dispatch(
@@ -169,18 +175,18 @@ mod test {
         let mut p = Parser::new();
         let actions = p.parse_as_vec(b"\x1b]0;hello\x07");
         assert_eq!(
-            vec![Action::OperatingSystemCommand(
+            vec![Action::OperatingSystemCommand(Box::new(
                 OperatingSystemCommand::SetIconNameAndWindowTitle("hello".to_owned()),
-            )],
+            ))],
             actions
         );
         assert_eq!(encode(&actions), "\x1b]0;hello\x07");
 
         let actions = p.parse_as_vec(b"\x1b]532534523;hello\x07");
         assert_eq!(
-            vec![Action::OperatingSystemCommand(
+            vec![Action::OperatingSystemCommand(Box::new(
                 OperatingSystemCommand::Unspecified(vec![b"532534523".to_vec(), b"hello".to_vec()]),
-            )],
+            ))],
             actions
         );
         assert_eq!(encode(&actions), "\x1b]532534523;hello\x07");

@@ -11,8 +11,6 @@ pub enum OperatingSystemCommand {
     SetHyperlink(Option<Hyperlink>),
 
     Unspecified(Vec<Vec<u8>>),
-    #[doc(hidden)]
-    __Nonexhaustive,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -191,7 +189,6 @@ impl Display for OperatingSystemCommand {
                     //f.write_all(item.as_slice())?;
                 }
             }
-            __Nonexhaustive => {}
         };
         write!(f, "\x07")?;
         Ok(())

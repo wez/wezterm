@@ -2,7 +2,6 @@
 //! semantic meaning to them.  It can also encode the semantic values as
 //! escape sequences.  It provides encoding and decoding functionality
 //! only; it does not provide terminal emulation facilities itself.
-use num;
 use std::fmt::{Display, Error as FmtError, Formatter, Write as FmtWrite};
 
 pub mod csi;
@@ -20,13 +19,13 @@ pub enum Action {
     /// Send a single printable character to the display
     Print(char),
     /// A C0 or C1 control code
-    Control(Control),
+    Control(ControlCode),
     /// Device control.  This is uncommon wrt. terminal emulation.
-    DeviceControl(DeviceControlMode),
+    DeviceControl(Box<DeviceControlMode>),
     /// A command that typically doesn't change the contents of the
     /// terminal, but rather influences how it displays or otherwise
     /// interacts with the rest of the system
-    OperatingSystemCommand(OperatingSystemCommand),
+    OperatingSystemCommand(Box<OperatingSystemCommand>),
     CSI(CSI),
     Esc(Esc),
 }
@@ -37,8 +36,7 @@ impl Display for Action {
     fn fmt(&self, f: &mut Formatter) -> Result<(), FmtError> {
         match self {
             Action::Print(c) => write!(f, "{}", c),
-            Action::Control(Control::Code(c)) => f.write_char(*c as u8 as char),
-            Action::Control(Control::Unspecified(c)) => f.write_char(*c as char),
+            Action::Control(c) => f.write_char(*c as u8 as char),
             Action::DeviceControl(_) => unimplemented!(),
             Action::OperatingSystemCommand(osc) => osc.fmt(f),
             Action::CSI(csi) => csi.fmt(f),
@@ -104,19 +102,34 @@ pub enum ControlCode {
     GroupSeparator = 0x1d,
     RecordSeparator = 0x1e,
     UnitSeparator = 0x1f,
-}
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Control {
-    Code(ControlCode),
-    Unspecified(u8),
-}
-
-impl From<u8> for Control {
-    fn from(b: u8) -> Self {
-        match num::FromPrimitive::from_u8(b) {
-            Some(result) => Control::Code(result),
-            None => Control::Unspecified(b),
-        }
-    }
+    // C1 8-bit values
+    BPH = 0x82,
+    NBH = 0x83,
+    NEL = 0x85,
+    SSA = 0x86,
+    ESA = 0x87,
+    HTS = 0x88,
+    HTJ = 0x89,
+    VTS = 0x8a,
+    PLD = 0x8b,
+    PLU = 0x8c,
+    RI = 0x8d,
+    SS2 = 0x8e,
+    SS3 = 0x8f,
+    DCS = 0x90,
+    PU1 = 0x91,
+    PU2 = 0x92,
+    STS = 0x93,
+    CCH = 0x94,
+    MW = 0x95,
+    SPA = 0x96,
+    EPA = 0x97,
+    SOS = 0x98,
+    SCI = 0x9a,
+    CSI = 0x9b,
+    ST = 0x9c,
+    OSC = 0x9d,
+    PM = 0x9e,
+    APC = 0x9f,
 }
