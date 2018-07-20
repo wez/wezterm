@@ -12,7 +12,7 @@ use termwiz::terminal::{Terminal, UnixTerminal};
 
 fn main() -> Result<(), Error> {
     let caps = Capabilities::new_from_env()?;
-    let renderer = TerminfoRenderer::new(caps);
+    let mut renderer = TerminfoRenderer::new(caps);
 
     let mut terminal = UnixTerminal::new()?;
     terminal.set_raw_mode()?;

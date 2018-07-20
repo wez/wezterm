@@ -21,7 +21,7 @@ pub trait Renderer {
     /// value in on subsequent calls to maintain the running view of the
     /// attributes.
     fn render_to(
-        &self,
+        &mut self,
         starting_attr: &CellAttributes,
         changes: &[Change],
         out: &mut Terminal,
