@@ -99,10 +99,13 @@ impl Handle {
     }
 }
 
+const BUF_SIZE: usize = 128;
+
 /// A unix style terminal
 pub struct UnixTerminal {
     handle: Handle,
     saved_termios: Termios,
+    write_buffer: Vec<u8>,
 }
 
 impl UnixTerminal {
@@ -123,6 +126,7 @@ impl UnixTerminal {
                 stdout: write,
             },
             saved_termios,
+            write_buffer: Vec::with_capacity(BUF_SIZE),
         })
     }
 
@@ -136,6 +140,7 @@ impl UnixTerminal {
         Ok(UnixTerminal {
             handle: Handle::File(file),
             saved_termios,
+            write_buffer: Vec::with_capacity(BUF_SIZE),
         })
     }
 }
@@ -148,10 +153,21 @@ impl Read for UnixTerminal {
 
 impl Write for UnixTerminal {
     fn write(&mut self, buf: &[u8]) -> IOResult<usize> {
-        self.handle.write(buf)
+        if self.write_buffer.len() + buf.len() > self.write_buffer.capacity() {
+            self.flush()?;
+        }
+        if buf.len() >= self.write_buffer.capacity() {
+            self.handle.write(buf)
+        } else {
+            self.write_buffer.write(buf)
+        }
     }
 
     fn flush(&mut self) -> IOResult<()> {
+        if self.write_buffer.len() > 0 {
+            self.handle.write(&self.write_buffer)?;
+            self.write_buffer.clear();
+        }
         self.handle.flush()
     }
 }

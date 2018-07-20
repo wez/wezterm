@@ -457,6 +457,7 @@ impl Renderer for TerminfoRenderer {
         }
 
         self.flush_pending_attr(out)?;
+        out.flush()?;
         Ok(self.current_attr.clone())
     }
 }
