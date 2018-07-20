@@ -110,6 +110,9 @@ impl<'de> Deserialize<'de> for RgbColor {
     }
 }
 
+/// An index into the fixed color palette.
+pub type PaletteIndex = u8;
+
 /// Specifies the color to be used when rendering a cell.
 /// This differs from `ColorAttribute` in that this type can only
 /// specify one of the possible color types at once, whereas the
@@ -118,7 +121,7 @@ impl<'de> Deserialize<'de> for RgbColor {
 pub enum ColorSpec {
     Default,
     /// Use either a raw number, or use values from the `AnsiColor` enum
-    PaletteIndex(u8),
+    PaletteIndex(PaletteIndex),
     TrueColor(RgbColor),
 }
 
@@ -144,29 +147,36 @@ impl From<RgbColor> for ColorSpec {
 /// type used in the `CellAttributes` struct and can specify an optional
 /// TrueColor value, allowing a fallback to a more traditional palette
 /// index if TrueColor is not available.
-#[derive(Debug, Default, Clone, Copy, Eq, PartialEq)]
-pub struct ColorAttribute {
-    /// Used if the terminal supports full color
-    pub full: Option<RgbColor>,
-    /// If the terminal doesn't support full color, or the full color
-    /// spec is_none, use old school ansi color number.
-    pub ansi: ColorSpec,
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+pub enum ColorAttribute {
+    /// Use RgbColor when supported, falling back to the specified PaletteIndex.
+    TrueColorWithPaletteFallback(RgbColor, PaletteIndex),
+    /// Use RgbColor when supported, falling back to the default color
+    TrueColorWithDefaultFallback(RgbColor),
+    /// Use the specified PaletteIndex
+    PaletteIndex(PaletteIndex),
+    /// Use the default color
+    Default,
+}
+
+impl Default for ColorAttribute {
+    fn default() -> Self {
+        ColorAttribute::Default
+    }
 }
 
 impl From<AnsiColor> for ColorAttribute {
     fn from(col: AnsiColor) -> Self {
-        Self {
-            full: None,
-            ansi: ColorSpec::PaletteIndex(col as u8),
-        }
+        ColorAttribute::PaletteIndex(col as u8)
     }
 }
 
 impl From<ColorSpec> for ColorAttribute {
     fn from(spec: ColorSpec) -> Self {
-        Self {
-            full: None,
-            ansi: spec,
+        match spec {
+            ColorSpec::Default => ColorAttribute::Default,
+            ColorSpec::PaletteIndex(idx) => ColorAttribute::PaletteIndex(idx),
+            ColorSpec::TrueColor(color) => ColorAttribute::TrueColorWithDefaultFallback(color),
         }
     }
 }

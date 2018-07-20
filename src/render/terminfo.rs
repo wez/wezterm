@@ -1,7 +1,7 @@
 //! Rendering of Changes using terminfo
 use caps::{Capabilities, ColorLevel};
 use cell::{AttributeChange, Blink, CellAttributes, Intensity, Underline};
-use color::ColorSpec;
+use color::{ColorAttribute, ColorSpec};
 use escape::csi::{Cursor, Edit, EraseInDisplay, Sgr, CSI};
 use escape::osc::OperatingSystemCommand;
 use escape::EncodeEscape;
@@ -204,21 +204,21 @@ impl Renderer for TerminfoRenderer {
                     let has_true_color = self.caps.color_level() == ColorLevel::TrueColor;
 
                     if attr.foreground != current_attr.foreground {
-                        match (has_true_color, attr.foreground.full, attr.foreground.ansi) {
-                            (true, Some(tc), _) | (true, _, ColorSpec::TrueColor(tc)) => {
+                        match (has_true_color, attr.foreground) {
+                            (true, ColorAttribute::TrueColorWithPaletteFallback(tc, _))
+                            | (true, ColorAttribute::TrueColorWithDefaultFallback(tc)) => {
                                 CSI::Sgr(Sgr::Foreground(ColorSpec::TrueColor(tc)))
                                     .encode_escape(&mut WriteWrapper::new(out))?;
                             }
-                            (false, _, ColorSpec::TrueColor(_)) => {
-                                // TrueColor was specified with no fallback :-(
-                            }
-                            (_, _, ColorSpec::Default) => {
+                            (false, ColorAttribute::TrueColorWithDefaultFallback(_))
+                            | (_, ColorAttribute::Default) => {
                                 // Terminfo doesn't define a reset color to default, so
                                 // we use the ANSI code.
                                 CSI::Sgr(Sgr::Foreground(ColorSpec::Default))
                                     .encode_escape(&mut WriteWrapper::new(out))?;
                             }
-                            (_, _, ColorSpec::PaletteIndex(idx)) => {
+                            (false, ColorAttribute::TrueColorWithPaletteFallback(_, idx))
+                            | (_, ColorAttribute::PaletteIndex(idx)) => {
                                 if let Some(set) = self.get_capability::<cap::SetAForeground>()
                                 {
                                     set.expand().color(idx).to(WriteWrapper::new(out))?;
@@ -231,21 +231,21 @@ impl Renderer for TerminfoRenderer {
                     }
 
                     if attr.background != current_attr.background {
-                        match (has_true_color, attr.background.full, attr.background.ansi) {
-                            (true, Some(tc), _) | (true, _, ColorSpec::TrueColor(tc)) => {
+                        match (has_true_color, attr.background) {
+                            (true, ColorAttribute::TrueColorWithPaletteFallback(tc, _))
+                            | (true, ColorAttribute::TrueColorWithDefaultFallback(tc)) => {
                                 CSI::Sgr(Sgr::Background(ColorSpec::TrueColor(tc)))
                                     .encode_escape(&mut WriteWrapper::new(out))?;
                             }
-                            (false, _, ColorSpec::TrueColor(_)) => {
-                                // TrueColor was specified with no fallback :-(
-                            }
-                            (_, _, ColorSpec::Default) => {
+                            (false, ColorAttribute::TrueColorWithDefaultFallback(_))
+                            | (_, ColorAttribute::Default) => {
                                 // Terminfo doesn't define a reset color to default, so
                                 // we use the ANSI code.
                                 CSI::Sgr(Sgr::Background(ColorSpec::Default))
                                     .encode_escape(&mut WriteWrapper::new(out))?;
                             }
-                            (_, _, ColorSpec::PaletteIndex(idx)) => {
+                            (false, ColorAttribute::TrueColorWithPaletteFallback(_, idx))
+                            | (_, ColorAttribute::PaletteIndex(idx)) => {
                                 if let Some(set) = self.get_capability::<cap::SetABackground>()
                                 {
                                     set.expand().color(idx).to(WriteWrapper::new(out))?;
@@ -287,11 +287,8 @@ impl Renderer for TerminfoRenderer {
                     }
                     pending_attr = None;
 
-                    if current_attr.background.full.is_none()
-                        && (current_attr.background.ansi == ColorSpec::Default)
-                        || self.caps.bce()
-                    {
-                        // The erase operation either respects "background color erase",
+                    if current_attr.background == ColorAttribute::Default || self.caps.bce() {
+                        // The erase operation respects "background color erase",
                         // or we're clearing to the default background color, so we can
                         // simply emit a clear screen op.
                         if let Some(clr) = self.get_capability::<cap::ClearScreen>() {
