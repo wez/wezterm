@@ -16,19 +16,39 @@ pub enum CSI {
 
     Mode(Mode),
 
-    Unspecified {
-        params: Vec<i64>,
-        // TODO: can we just make intermediates a single u8?
-        intermediates: Vec<u8>,
-        /// if true, more than two intermediates arrived and the
-        /// remaining data was ignored
-        ignored_extra_intermediates: bool,
-        /// The final character in the CSI sequence; this typically
-        /// defines how to interpret the other parameters.
-        control: char,
-    },
-    #[doc(hidden)]
-    __Nonexhaustive,
+    /// Unknown or unspecified; should be rare and is rather
+    /// large, so it is boxed and kept outside of the enum
+    /// body to help reduce space usage in the common cases.
+    Unspecified(Box<Unspecified>),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Unspecified {
+    params: Vec<i64>,
+    // TODO: can we just make intermediates a single u8?
+    intermediates: Vec<u8>,
+    /// if true, more than two intermediates arrived and the
+    /// remaining data was ignored
+    ignored_extra_intermediates: bool,
+    /// The final character in the CSI sequence; this typically
+    /// defines how to interpret the other parameters.
+    control: char,
+}
+
+impl Display for Unspecified {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), FmtError> {
+        for (idx, p) in self.params.iter().enumerate() {
+            if idx > 0 {
+                write!(f, ";{}", p)?;
+            } else {
+                write!(f, "{}", p)?;
+            }
+        }
+        for i in &self.intermediates {
+            write!(f, "{}", i)?;
+        }
+        write!(f, "{}", self.control)
+    }
 }
 
 impl Display for CSI {
@@ -43,25 +63,7 @@ impl Display for CSI {
             CSI::Cursor(c) => c.fmt(f)?,
             CSI::Edit(e) => e.fmt(f)?,
             CSI::Mode(mode) => mode.fmt(f)?,
-            CSI::Unspecified {
-                params,
-                intermediates,
-                control,
-                ..
-            } => {
-                for (idx, p) in params.iter().enumerate() {
-                    if idx > 0 {
-                        write!(f, ";{}", p)?;
-                    } else {
-                        write!(f, "{}", p)?;
-                    }
-                }
-                for i in intermediates {
-                    write!(f, "{}", i)?;
-                }
-                write!(f, "{}", control)?;
-            }
-            CSI::__Nonexhaustive => {}
+            CSI::Unspecified(unspec) => unspec.fmt(f)?,
         };
         Ok(())
     }
@@ -80,7 +82,7 @@ impl Display for Mode {
         macro_rules! emit {
             ($flag:expr, $mode:expr) => {{
                 let value = match $mode {
-                    DecPrivateMode::Code(mode) => mode.to_i64().ok_or_else(|| FmtError)?,
+                    DecPrivateMode::Code(mode) => mode.to_u16().ok_or_else(|| FmtError)?,
                     DecPrivateMode::Unspecified(mode) => *mode,
                 };
                 write!(f, "?{}{}", value, $flag)
@@ -98,7 +100,7 @@ impl Display for Mode {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum DecPrivateMode {
     Code(DecPrivateModeCode),
-    Unspecified(i64),
+    Unspecified(u16),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, FromPrimitive, ToPrimitive)]
@@ -834,7 +836,7 @@ impl<'a> CSIParser<'a> {
         }
 
         match num::FromPrimitive::from_i64(params[0]) {
-            None => Ok(DecPrivateMode::Unspecified(params[0])),
+            None => Ok(DecPrivateMode::Unspecified(params[0].to_u16().ok_or(())?)),
             Some(mode) => Ok(DecPrivateMode::Code(mode)),
         }
     }
@@ -1044,12 +1046,12 @@ impl<'a> Iterator for CSIParser<'a> {
 
         match self.parse_next(&params) {
             Ok(csi) => Some(csi),
-            Err(()) => Some(CSI::Unspecified {
+            Err(()) => Some(CSI::Unspecified(Box::new(Unspecified {
                 params: params.to_vec(),
                 intermediates: self.intermediates.to_vec(),
                 ignored_extra_intermediates: self.ignored_extra_intermediates,
                 control: self.control,
-            }),
+            }))),
         }
     }
 }
@@ -1103,34 +1105,34 @@ mod test {
             vec![
                 CSI::Sgr(Sgr::Intensity(Intensity::Bold)),
                 CSI::Sgr(Sgr::Italic(true)),
-                CSI::Unspecified {
+                CSI::Unspecified(Box::new(Unspecified {
                     params: [1231231].to_vec(),
                     intermediates: vec![],
                     ignored_extra_intermediates: false,
                     control: 'm',
-                },
+                })),
             ]
         );
         assert_eq!(
             parse('m', &[1, 1231231, 3], "\x1b[1m\x1b[1231231;3m"),
             vec![
                 CSI::Sgr(Sgr::Intensity(Intensity::Bold)),
-                CSI::Unspecified {
+                CSI::Unspecified(Box::new(Unspecified {
                     params: [1231231, 3].to_vec(),
                     intermediates: vec![],
                     ignored_extra_intermediates: false,
                     control: 'm',
-                },
+                })),
             ]
         );
         assert_eq!(
             parse('m', &[1231231, 3], "\x1b[1231231;3m"),
-            vec![CSI::Unspecified {
+            vec![CSI::Unspecified(Box::new(Unspecified {
                 params: [1231231, 3].to_vec(),
                 intermediates: vec![],
                 ignored_extra_intermediates: false,
                 control: 'm',
-            }]
+            }))]
         );
     }
 
@@ -1138,12 +1140,12 @@ mod test {
     fn color() {
         assert_eq!(
             parse('m', &[38, 2], "\x1b[38;2m"),
-            vec![CSI::Unspecified {
+            vec![CSI::Unspecified(Box::new(Unspecified {
                 params: [38, 2].to_vec(),
                 intermediates: vec![],
                 ignored_extra_intermediates: false,
                 control: 'm',
-            }]
+            }))]
         );
 
         assert_eq!(
@@ -1156,12 +1158,12 @@ mod test {
             parse('m', &[38, 5, 220, 255, 255], "\x1b[38;5;220m\x1b[255;255m"),
             vec![
                 CSI::Sgr(Sgr::Foreground(ColorSpec::PaletteIndex(220))),
-                CSI::Unspecified {
+                CSI::Unspecified(Box::new(Unspecified {
                     params: [255, 255].to_vec(),
                     intermediates: vec![],
                     ignored_extra_intermediates: false,
                     control: 'm',
-                },
+                })),
             ]
         );
     }
@@ -1212,9 +1214,9 @@ mod test {
     #[test]
     fn decset() {
         assert_eq!(
-            parse_int('h', &[2342342], b'?', "\x1b[?2342342h"),
+            parse_int('h', &[23434], b'?', "\x1b[?23434h"),
             vec![CSI::Mode(Mode::SetDecPrivateMode(
-                DecPrivateMode::Unspecified(2342342),
+                DecPrivateMode::Unspecified(23434),
             ))]
         );
         assert_eq!(
