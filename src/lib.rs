@@ -5,7 +5,10 @@ extern crate palette;
 extern crate semver;
 extern crate serde;
 extern crate terminfo;
+#[cfg(unix)]
 extern crate termios;
+#[cfg(windows)]
+extern crate winapi;
 #[macro_use]
 extern crate serde_derive;
 extern crate num;

@@ -8,13 +8,23 @@ use termwiz::color::AnsiColor;
 use termwiz::render::terminfo::TerminfoRenderer;
 use termwiz::render::Renderer;
 use termwiz::screen::{Change, Screen};
-use termwiz::terminal::{Terminal, UnixTerminal};
+use termwiz::terminal::{self, Terminal};
+
+#[cfg(unix)]
+fn get_terminal() -> Result<impl Terminal, failure::Error> {
+    terminal::UnixTerminal::new()
+}
+
+#[cfg(windows)]
+fn get_terminal() -> Result<impl Terminal, failure::Error> {
+    terminal::WindowsTerminal::new()
+}
 
 fn main() -> Result<(), Error> {
     let caps = Capabilities::new_from_env()?;
     let mut renderer = TerminfoRenderer::new(caps);
 
-    let mut terminal = UnixTerminal::new()?;
+    let mut terminal = get_terminal()?;
     terminal.set_raw_mode()?;
 
     let size = terminal.get_screen_size()?;
