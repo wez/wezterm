@@ -5,7 +5,8 @@ use std::io::{stdin, stdout, Error as IOError, ErrorKind, Read, Result as IOResu
 use std::mem;
 use std::os::unix::io::{AsRawFd, RawFd};
 use termios::{
-    cfmakeraw, tcdrain, tcflush, tcsetattr, Termios, TCIFLUSH, TCIOFLUSH, TCOFLUSH, TCSANOW,
+    cfmakeraw, tcdrain, tcflush, tcsetattr, Termios, TCIFLUSH, TCIOFLUSH, TCOFLUSH, TCSADRAIN,
+    TCSAFLUSH, TCSANOW,
 };
 
 use terminal::{cast, ScreenSize, Terminal, BUF_SIZE};
@@ -26,11 +27,21 @@ pub enum Purge {
     InputAndOutputQueue,
 }
 
+pub enum SetAttributeWhen {
+    /// changes are applied immediately
+    Now,
+    /// Apply once the current output queue has drained
+    AfterDrainOutputQueue,
+    /// Wait for the current output queue to drain, then
+    /// discard any unread input
+    AfterDrainOutputQueuePurgeInputQueue,
+}
+
 pub trait UnixTty {
     fn get_size(&mut self) -> Result<winsize, Error>;
     fn set_size(&mut self, size: winsize) -> Result<(), Error>;
     fn get_termios(&mut self) -> Result<Termios, Error>;
-    fn set_termios(&mut self, termios: &Termios) -> Result<(), Error>;
+    fn set_termios(&mut self, termios: &Termios, when: SetAttributeWhen) -> Result<(), Error>;
     /// Waits until all written data has been transmitted.
     fn drain(&mut self) -> Result<(), Error>;
     fn purge(&mut self, purge: Purge) -> Result<(), Error>;
@@ -107,8 +118,13 @@ impl UnixTty for TtyHandle {
         Termios::from_fd(self.fd).map_err(|e| format_err!("get_termios failed: {}", e))
     }
 
-    fn set_termios(&mut self, termios: &Termios) -> Result<(), Error> {
-        tcsetattr(self.fd, TCSANOW, termios).map_err(|e| format_err!("set_termios failed: {}", e))
+    fn set_termios(&mut self, termios: &Termios, when: SetAttributeWhen) -> Result<(), Error> {
+        let when = match when {
+            SetAttributeWhen::Now => TCSANOW,
+            SetAttributeWhen::AfterDrainOutputQueue => TCSADRAIN,
+            SetAttributeWhen::AfterDrainOutputQueuePurgeInputQueue => TCSAFLUSH,
+        };
+        tcsetattr(self.fd, when, termios).map_err(|e| format_err!("set_termios failed: {}", e))
     }
 
     fn drain(&mut self) -> Result<(), Error> {
@@ -209,7 +225,7 @@ impl Terminal for UnixTerminal {
         let mut raw = self.write.get_termios()?;
         cfmakeraw(&mut raw);
         self.write
-            .set_termios(&raw)
+            .set_termios(&raw, SetAttributeWhen::AfterDrainOutputQueuePurgeInputQueue)
             .map_err(|e| format_err!("failed to set raw mode: {}", e))
     }
 
@@ -238,7 +254,7 @@ impl Terminal for UnixTerminal {
 impl Drop for UnixTerminal {
     fn drop(&mut self) {
         self.write
-            .set_termios(&self.saved_termios)
+            .set_termios(&self.saved_termios, SetAttributeWhen::Now)
             .expect("failed to restore original termios state");
     }
 }
