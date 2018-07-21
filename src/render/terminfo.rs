@@ -5,10 +5,9 @@ use color::{ColorAttribute, ColorSpec};
 use escape::csi::{Cursor, Edit, EraseInDisplay, Sgr, CSI};
 use escape::osc::OperatingSystemCommand;
 use failure;
-use render::Renderer;
 use screen::{Change, Position};
-use std::io::{Error as IoError, Write};
-use terminal::Terminal;
+use std::io::{Read, Write};
+use terminal::unix::UnixTty;
 use terminfo::{capability as cap, Capability as TermInfoCapability};
 
 pub struct TerminfoRenderer {
@@ -44,12 +43,15 @@ impl TerminfoRenderer {
         });
     }
 
-    fn flush_pending_attr(&mut self, out: &mut Terminal) -> Result<(), failure::Error> {
+    fn flush_pending_attr<W: UnixTty + Write>(
+        &mut self,
+        out: &mut W,
+    ) -> Result<(), failure::Error> {
         macro_rules! attr_on_off {
             ($cap_on:ident, $cap_off:ident, $attr:expr, $accesor:ident, $sgr:ident) => {
                 let value = $attr.$accesor();
                 if value != self.current_attr.$accesor() {
-                    let mut out = WriteWrapper::new(out);
+                    let mut out = out.by_ref();
                     let on: bool = value.into();
                     if on {
                         if let Some(attr) = self.get_capability::<cap::$cap_on>() {
@@ -78,10 +80,10 @@ impl TerminfoRenderer {
                         .blink(attr.blink() != Blink::None)
                         .reverse(attr.reverse())
                         .invisible(attr.invisible())
-                        .to(WriteWrapper::new(out))?;
+                        .to(out.by_ref())?;
                 } else {
                     if let Some(exit) = self.get_capability::<cap::ExitAttributeMode>() {
-                        exit.expand().to(WriteWrapper::new(out))?;
+                        exit.expand().to(out.by_ref())?;
                     } else {
                         write!(out, "{}", CSI::Sgr(Sgr::Reset))?;
                     }
@@ -90,14 +92,14 @@ impl TerminfoRenderer {
                         match attr.intensity() {
                             Intensity::Bold => {
                                 if let Some(bold) = self.get_capability::<cap::EnterBoldMode>() {
-                                    bold.expand().to(WriteWrapper::new(out))?;
+                                    bold.expand().to(out.by_ref())?;
                                 } else {
                                     write!(out, "{}", CSI::Sgr(Sgr::Intensity(attr.intensity())))?;
                                 }
                             }
                             Intensity::Half => {
                                 if let Some(dim) = self.get_capability::<cap::EnterDimMode>() {
-                                    dim.expand().to(WriteWrapper::new(out))?;
+                                    dim.expand().to(out.by_ref())?;
                                 } else {
                                     write!(out, "{}", CSI::Sgr(Sgr::Intensity(attr.intensity())))?;
                                 }
@@ -124,7 +126,7 @@ impl TerminfoRenderer {
 
                     if attr.blink() != self.current_attr.blink() {
                         if let Some(attr) = self.get_capability::<cap::EnterBlinkMode>() {
-                            attr.expand().to(WriteWrapper::new(out))?;
+                            attr.expand().to(out.by_ref())?;
                         } else {
                             write!(out, "{}", CSI::Sgr(Sgr::Blink(attr.blink())))?;
                         }
@@ -132,7 +134,7 @@ impl TerminfoRenderer {
 
                     if attr.reverse() != self.current_attr.reverse() {
                         if let Some(attr) = self.get_capability::<cap::EnterReverseMode>() {
-                            attr.expand().to(WriteWrapper::new(out))?;
+                            attr.expand().to(out.by_ref())?;
                         } else {
                             write!(out, "{}", CSI::Sgr(Sgr::Inverse(attr.reverse())))?;
                         }
@@ -176,7 +178,7 @@ impl TerminfoRenderer {
                     (false, ColorAttribute::TrueColorWithPaletteFallback(_, idx))
                     | (_, ColorAttribute::PaletteIndex(idx)) => {
                         if let Some(set) = self.get_capability::<cap::SetAForeground>() {
-                            set.expand().color(idx).to(WriteWrapper::new(out))?;
+                            set.expand().color(idx).to(out.by_ref())?;
                         } else {
                             write!(
                                 out,
@@ -207,7 +209,7 @@ impl TerminfoRenderer {
                     (false, ColorAttribute::TrueColorWithPaletteFallback(_, idx))
                     | (_, ColorAttribute::PaletteIndex(idx)) => {
                         if let Some(set) = self.get_capability::<cap::SetABackground>() {
-                            set.expand().color(idx).to(WriteWrapper::new(out))?;
+                            set.expand().color(idx).to(out.by_ref())?;
                         } else {
                             write!(
                                 out,
@@ -237,39 +239,13 @@ impl TerminfoRenderer {
     }
 }
 
-// The terminfo crate wants us to move the Write instance in on
-// each call.  This is a little struct that allows us to do that
-// without moving out the actual Write ref.
-struct WriteWrapper<'a> {
-    out: &'a mut Terminal,
-}
-
-impl<'a> WriteWrapper<'a> {
-    fn new(out: &'a mut Terminal) -> Self {
-        Self { out }
-    }
-}
-
-impl<'a> Write for WriteWrapper<'a> {
-    fn write(&mut self, buf: &[u8]) -> Result<usize, IoError> {
-        self.out.write(buf)
-    }
-
-    fn flush(&mut self) -> Result<(), IoError> {
-        self.out.flush()
-    }
-}
-
-impl Renderer for TerminfoRenderer {
-    fn render_to(
+impl TerminfoRenderer {
+    pub fn render_to<R: UnixTty + Read, W: UnixTty + Write>(
         &mut self,
-        start_attr: &CellAttributes,
         changes: &[Change],
-        out: &mut Terminal,
-    ) -> Result<CellAttributes, failure::Error> {
-        self.current_attr = start_attr.clone();
-        self.pending_attr = None;
-
+        _read: &mut R,
+        out: &mut W,
+    ) -> Result<(), failure::Error> {
         macro_rules! record {
             ($accesor:ident, $value:expr) => {
                 self.attr_apply(|attr| {
@@ -296,10 +272,10 @@ impl Renderer for TerminfoRenderer {
                         // or we're clearing to the default background color, so we can
                         // simply emit a clear screen op.
                         if let Some(clr) = self.get_capability::<cap::ClearScreen>() {
-                            clr.expand().to(WriteWrapper::new(out))?;
+                            clr.expand().to(out.by_ref())?;
                         } else {
                             if let Some(attr) = self.get_capability::<cap::CursorHome>() {
-                                attr.expand().to(WriteWrapper::new(out))?;
+                                attr.expand().to(out.by_ref())?;
                             } else {
                                 write!(
                                     out,
@@ -319,13 +295,13 @@ impl Renderer for TerminfoRenderer {
                         // paint the whole thing.
 
                         if let Some(attr) = self.get_capability::<cap::CursorHome>() {
-                            attr.expand().to(WriteWrapper::new(out))?;
+                            attr.expand().to(out.by_ref())?;
                         } else {
                             write!(out, "{}", CSI::Cursor(Cursor::Position { line: 1, col: 1 }))?;
                         }
 
-                        let size = out.get_screen_size()?;
-                        let num_spaces = size.cols * size.rows;
+                        let size = out.get_size()?;
+                        let num_spaces = size.ws_col as usize * size.ws_row as usize;
                         let mut buf = Vec::with_capacity(num_spaces);
                         buf.resize(num_spaces, b' ');
                         out.write(buf.as_slice())?;
@@ -366,20 +342,20 @@ impl Renderer for TerminfoRenderer {
                 }
                 Change::Text(text) => {
                     self.flush_pending_attr(out)?;
-                    WriteWrapper::new(out).write_all(text.as_bytes())?;
+                    out.by_ref().write_all(text.as_bytes())?;
                 }
                 Change::CursorPosition {
                     x: Position::Absolute(0),
                     y: Position::Relative(1),
                 } => {
-                    WriteWrapper::new(out).write_all(b"\r\n")?;
+                    out.by_ref().write_all(b"\r\n")?;
                 }
                 Change::CursorPosition {
                     x: Position::Absolute(0),
                     y: Position::Absolute(0),
                 } => {
                     if let Some(attr) = self.get_capability::<cap::CursorHome>() {
-                        attr.expand().to(WriteWrapper::new(out))?;
+                        attr.expand().to(out.by_ref())?;
                     } else {
                         write!(out, "{}", CSI::Cursor(Cursor::Position { line: 1, col: 1 }))?;
                     }
@@ -389,7 +365,7 @@ impl Renderer for TerminfoRenderer {
                     y: Position::Relative(1),
                 } => {
                     if let Some(attr) = self.get_capability::<cap::CursorDown>() {
-                        attr.expand().to(WriteWrapper::new(out))?;
+                        attr.expand().to(out.by_ref())?;
                     } else {
                         write!(out, "{}", CSI::Cursor(Cursor::Down(1)))?;
                     }
@@ -399,7 +375,7 @@ impl Renderer for TerminfoRenderer {
                     y: Position::Relative(-1),
                 } => {
                     if let Some(attr) = self.get_capability::<cap::CursorUp>() {
-                        attr.expand().to(WriteWrapper::new(out))?;
+                        attr.expand().to(out.by_ref())?;
                     } else {
                         write!(out, "{}", CSI::Cursor(Cursor::Up(1)))?;
                     }
@@ -409,7 +385,7 @@ impl Renderer for TerminfoRenderer {
                     y: Position::NoChange,
                 } => {
                     if let Some(attr) = self.get_capability::<cap::CursorLeft>() {
-                        attr.expand().to(WriteWrapper::new(out))?;
+                        attr.expand().to(out.by_ref())?;
                     } else {
                         write!(out, "{}", CSI::Cursor(Cursor::Left(1)))?;
                     }
@@ -419,7 +395,7 @@ impl Renderer for TerminfoRenderer {
                     y: Position::NoChange,
                 } => {
                     if let Some(attr) = self.get_capability::<cap::CursorRight>() {
-                        attr.expand().to(WriteWrapper::new(out))?;
+                        attr.expand().to(out.by_ref())?;
                     } else {
                         write!(out, "{}", CSI::Cursor(Cursor::Right(1)))?;
                     }
@@ -433,7 +409,7 @@ impl Renderer for TerminfoRenderer {
                     if let Some(attr) = self.get_capability::<cap::CursorAddress>() {
                         // terminfo expansion automatically converts coordinates to 1-based,
                         // so we can pass in the 0-based coordinates as-is
-                        attr.expand().x(x).y(y).to(WriteWrapper::new(out))?;
+                        attr.expand().x(x).y(y).to(out.by_ref())?;
                     } else {
                         // We need to manually convert to 1-based as the CSI representation
                         // requires it and there's no automatic conversion.
@@ -458,7 +434,7 @@ impl Renderer for TerminfoRenderer {
 
         self.flush_pending_attr(out)?;
         out.flush()?;
-        Ok(self.current_attr.clone())
+        Ok(())
     }
 }
 
@@ -470,8 +446,14 @@ mod test {
     use escape::parser::Parser;
     use escape::{Action, Esc, EscCode};
     use failure::Error;
+    use libc::winsize;
+    use std::io::{Error as IoError, ErrorKind, Read, Result as IoResult, Write};
+    use std::mem;
+    use terminal::unix::{Purge, SetAttributeWhen, UnixTty};
     use terminal::ScreenSize;
+    use terminal::{cast, Terminal};
     use terminfo;
+    use termios::Termios;
 
     /// Return Capabilities loaded from the included xterm terminfo data
     fn xterm_terminfo() -> Capabilities {
@@ -497,48 +479,109 @@ mod test {
         ).unwrap()
     }
 
-    use std::io::{Read, Result as IOResult, Write};
-
-    struct FakeTerm {
+    struct FakeTty {
         buf: Vec<u8>,
-        size: ScreenSize,
+        size: winsize,
+        termios: Termios,
     }
 
-    impl FakeTerm {
-        fn new() -> Self {
-            Self::new_with_size(80, 24)
-        }
-
+    impl FakeTty {
         fn new_with_size(width: usize, height: usize) -> Self {
-            let size = ScreenSize {
-                cols: width,
-                rows: height,
-                xpixel: 0,
-                ypixel: 0,
+            let size = winsize {
+                ws_col: cast(width).unwrap(),
+                ws_row: cast(height).unwrap(),
+                ws_xpixel: 0,
+                ws_ypixel: 0,
             };
             let buf = Vec::new();
-            Self { size, buf }
-        }
-
-        fn parse(&self) -> Vec<Action> {
-            let mut p = Parser::new();
-            p.parse_as_vec(&self.buf)
+            Self {
+                size,
+                buf,
+                termios: unsafe { mem::zeroed() },
+            }
         }
     }
 
-    impl Write for FakeTerm {
-        fn write(&mut self, buf: &[u8]) -> IOResult<usize> {
+    impl UnixTty for FakeTty {
+        fn get_size(&mut self) -> Result<winsize, Error> {
+            Ok(self.size.clone())
+        }
+        fn set_size(&mut self, size: winsize) -> Result<(), Error> {
+            self.size = size.clone();
+            Ok(())
+        }
+        fn get_termios(&mut self) -> Result<Termios, Error> {
+            Ok(self.termios.clone())
+        }
+        fn set_termios(&mut self, termios: &Termios, _when: SetAttributeWhen) -> Result<(), Error> {
+            self.termios = termios.clone();
+            Ok(())
+        }
+        /// Waits until all written data has been transmitted.
+        fn drain(&mut self) -> Result<(), Error> {
+            Ok(())
+        }
+        fn purge(&mut self, _purge: Purge) -> Result<(), Error> {
+            Ok(())
+        }
+    }
+
+    impl Read for FakeTty {
+        fn read(&mut self, _buf: &mut [u8]) -> Result<usize, IoError> {
+            Err(IoError::new(ErrorKind::Other, "not implemented"))
+        }
+    }
+    impl Write for FakeTty {
+        fn write(&mut self, buf: &[u8]) -> IoResult<usize> {
             self.buf.write(buf)
         }
 
-        fn flush(&mut self) -> IOResult<()> {
+        fn flush(&mut self) -> IoResult<()> {
             self.buf.flush()
         }
     }
 
+    struct FakeTerm {
+        read: FakeTty,
+        write: FakeTty,
+        renderer: TerminfoRenderer,
+    }
+
+    impl FakeTerm {
+        fn new(caps: Capabilities) -> Self {
+            Self::new_with_size(caps, 80, 24)
+        }
+
+        fn new_with_size(caps: Capabilities, width: usize, height: usize) -> Self {
+            let read = FakeTty::new_with_size(width, height);
+            let write = FakeTty::new_with_size(width, height);
+            let renderer = TerminfoRenderer::new(caps);
+            Self {
+                read,
+                write,
+                renderer,
+            }
+        }
+
+        fn parse(&self) -> Vec<Action> {
+            let mut p = Parser::new();
+            p.parse_as_vec(&self.write.buf)
+        }
+    }
+
+    impl Write for FakeTerm {
+        fn write(&mut self, buf: &[u8]) -> IoResult<usize> {
+            self.write.write(buf)
+        }
+
+        fn flush(&mut self) -> IoResult<()> {
+            self.write.flush()
+        }
+    }
+
     impl Read for FakeTerm {
-        fn read(&mut self, _buf: &mut [u8]) -> IOResult<usize> {
-            Ok(0)
+        fn read(&mut self, buf: &mut [u8]) -> IoResult<usize> {
+            self.read.read(buf)
         }
     }
 
@@ -546,57 +589,56 @@ mod test {
         fn set_raw_mode(&mut self) -> Result<(), Error> {
             bail!("not implemented");
         }
+        fn render(&mut self, changes: &[Change]) -> Result<(), Error> {
+            self.renderer
+                .render_to(changes, &mut self.read, &mut self.write)
+        }
 
         fn get_screen_size(&mut self) -> Result<ScreenSize, Error> {
-            Ok(self.size.clone())
+            let size = self.write.get_size()?;
+            Ok(ScreenSize {
+                rows: cast(size.ws_row)?,
+                cols: cast(size.ws_col)?,
+                xpixel: cast(size.ws_xpixel)?,
+                ypixel: cast(size.ws_ypixel)?,
+            })
         }
         fn set_screen_size(&mut self, size: ScreenSize) -> Result<(), Error> {
-            self.size = size;
-            Ok(())
+            let size = winsize {
+                ws_row: cast(size.rows)?,
+                ws_col: cast(size.cols)?,
+                ws_xpixel: cast(size.xpixel)?,
+                ws_ypixel: cast(size.ypixel)?,
+            };
+
+            self.write.set_size(size)
         }
     }
 
     #[test]
     fn empty_render() {
-        let mut out = FakeTerm::new();
-        let mut renderer = TerminfoRenderer::new(xterm_terminfo());
-        let end_attr = renderer
-            .render_to(&CellAttributes::default(), &[], &mut out)
-            .unwrap();
-        assert_eq!("", String::from_utf8(out.buf).unwrap());
-        assert_eq!(end_attr, CellAttributes::default());
+        let mut out = FakeTerm::new(xterm_terminfo());
+        out.render(&[]).unwrap();
+        assert_eq!("", String::from_utf8(out.write.buf).unwrap());
+        assert_eq!(out.renderer.current_attr, CellAttributes::default());
     }
 
     #[test]
     fn basic_text() {
-        let mut out = FakeTerm::new();
-        let mut renderer = TerminfoRenderer::new(xterm_terminfo());
-        let end_attr = renderer
-            .render_to(
-                &CellAttributes::default(),
-                &[Change::Text("foo".into())],
-                &mut out,
-            )
-            .unwrap();
-        assert_eq!("foo", String::from_utf8(out.buf).unwrap());
-        assert_eq!(end_attr, CellAttributes::default());
+        let mut out = FakeTerm::new(xterm_terminfo());
+        out.render(&[Change::Text("foo".into())]).unwrap();
+        assert_eq!("foo", String::from_utf8(out.write.buf).unwrap());
+        assert_eq!(out.renderer.current_attr, CellAttributes::default());
     }
 
     #[test]
     fn bold_text() {
-        let mut out = FakeTerm::new();
-        let mut renderer = TerminfoRenderer::new(xterm_terminfo());
-        let end_attr = renderer
-            .render_to(
-                &CellAttributes::default(),
-                &[
-                    Change::Text("not ".into()),
-                    Change::Attribute(AttributeChange::Intensity(Intensity::Bold)),
-                    Change::Text("foo".into()),
-                ],
-                &mut out,
-            )
-            .unwrap();
+        let mut out = FakeTerm::new(xterm_terminfo());
+        out.render(&[
+            Change::Text("not ".into()),
+            Change::Attribute(AttributeChange::Intensity(Intensity::Bold)),
+            Change::Text("foo".into()),
+        ]).unwrap();
 
         let result = out.parse();
         assert_eq!(
@@ -616,7 +658,7 @@ mod test {
         );
 
         assert_eq!(
-            end_attr,
+            out.renderer.current_attr,
             CellAttributes::default()
                 .set_intensity(Intensity::Bold)
                 .clone()
@@ -625,14 +667,8 @@ mod test {
 
     #[test]
     fn clear_screen() {
-        let mut out = FakeTerm::new_with_size(4, 3);
-        let mut renderer = TerminfoRenderer::new(xterm_terminfo());
-        let end_attr = renderer
-            .render_to(
-                &CellAttributes::default(),
-                &[Change::ClearScreen(ColorAttribute::default())],
-                &mut out,
-            )
+        let mut out = FakeTerm::new_with_size(xterm_terminfo(), 4, 3);
+        out.render(&[Change::ClearScreen(ColorAttribute::default())])
             .unwrap();
 
         let result = out.parse();
@@ -646,19 +682,13 @@ mod test {
             ]
         );
 
-        assert_eq!(end_attr, CellAttributes::default());
+        assert_eq!(out.renderer.current_attr, CellAttributes::default());
     }
 
     #[test]
     fn clear_screen_bce() {
-        let mut out = FakeTerm::new_with_size(4, 3);
-        let mut renderer = TerminfoRenderer::new(xterm_terminfo());
-        let end_attr = renderer
-            .render_to(
-                &CellAttributes::default(),
-                &[Change::ClearScreen(AnsiColor::Maroon.into())],
-                &mut out,
-            )
+        let mut out = FakeTerm::new_with_size(xterm_terminfo(), 4, 3);
+        out.render(&[Change::ClearScreen(AnsiColor::Maroon.into())])
             .unwrap();
 
         let result = out.parse();
@@ -674,7 +704,7 @@ mod test {
         );
 
         assert_eq!(
-            end_attr,
+            out.renderer.current_attr,
             CellAttributes::default()
                 .set_background(AnsiColor::Maroon)
                 .clone()
@@ -683,14 +713,8 @@ mod test {
 
     #[test]
     fn clear_screen_no_terminfo() {
-        let mut out = FakeTerm::new_with_size(4, 3);
-        let mut renderer = TerminfoRenderer::new(no_terminfo_all_enabled());
-        let end_attr = renderer
-            .render_to(
-                &CellAttributes::default(),
-                &[Change::ClearScreen(ColorAttribute::default())],
-                &mut out,
-            )
+        let mut out = FakeTerm::new_with_size(no_terminfo_all_enabled(), 4, 3);
+        out.render(&[Change::ClearScreen(ColorAttribute::default())])
             .unwrap();
 
         let result = out.parse();
@@ -704,19 +728,13 @@ mod test {
             ]
         );
 
-        assert_eq!(end_attr, CellAttributes::default());
+        assert_eq!(out.renderer.current_attr, CellAttributes::default());
     }
 
     #[test]
     fn clear_screen_bce_no_terminfo() {
-        let mut out = FakeTerm::new_with_size(4, 3);
-        let mut renderer = TerminfoRenderer::new(no_terminfo_all_enabled());
-        let end_attr = renderer
-            .render_to(
-                &CellAttributes::default(),
-                &[Change::ClearScreen(AnsiColor::Maroon.into())],
-                &mut out,
-            )
+        let mut out = FakeTerm::new_with_size(no_terminfo_all_enabled(), 4, 3);
+        out.render(&[Change::ClearScreen(AnsiColor::Maroon.into())])
             .unwrap();
 
         let result = out.parse();
@@ -743,7 +761,7 @@ mod test {
         );
 
         assert_eq!(
-            end_attr,
+            out.renderer.current_attr,
             CellAttributes::default()
                 .set_background(AnsiColor::Maroon)
                 .clone()
@@ -752,19 +770,12 @@ mod test {
 
     #[test]
     fn bold_text_no_terminfo() {
-        let mut out = FakeTerm::new();
-        let mut renderer = TerminfoRenderer::new(no_terminfo_all_enabled());
-        let end_attr = renderer
-            .render_to(
-                &CellAttributes::default(),
-                &[
-                    Change::Text("not ".into()),
-                    Change::Attribute(AttributeChange::Intensity(Intensity::Bold)),
-                    Change::Text("foo".into()),
-                ],
-                &mut out,
-            )
-            .unwrap();
+        let mut out = FakeTerm::new(no_terminfo_all_enabled());
+        out.render(&[
+            Change::Text("not ".into()),
+            Change::Attribute(AttributeChange::Intensity(Intensity::Bold)),
+            Change::Text("foo".into()),
+        ]).unwrap();
 
         let result = out.parse();
         assert_eq!(
@@ -783,7 +794,7 @@ mod test {
         );
 
         assert_eq!(
-            end_attr,
+            out.renderer.current_attr,
             CellAttributes::default()
                 .set_intensity(Intensity::Bold)
                 .clone()
@@ -792,20 +803,13 @@ mod test {
 
     #[test]
     fn red_bold_text() {
-        let mut out = FakeTerm::new();
-        let mut renderer = TerminfoRenderer::new(xterm_terminfo());
-        let end_attr = renderer
-            .render_to(
-                &CellAttributes::default(),
-                &[
-                    Change::Attribute(AttributeChange::Foreground(AnsiColor::Maroon.into())),
-                    Change::Attribute(AttributeChange::Intensity(Intensity::Bold)),
-                    Change::Text("red".into()),
-                    Change::Attribute(AttributeChange::Foreground(AnsiColor::Red.into())),
-                ],
-                &mut out,
-            )
-            .unwrap();
+        let mut out = FakeTerm::new(xterm_terminfo());
+        out.render(&[
+            Change::Attribute(AttributeChange::Foreground(AnsiColor::Maroon.into())),
+            Change::Attribute(AttributeChange::Intensity(Intensity::Bold)),
+            Change::Text("red".into()),
+            Change::Attribute(AttributeChange::Foreground(AnsiColor::Red.into())),
+        ]).unwrap();
 
         let result = out.parse();
         assert_eq!(
@@ -824,7 +828,7 @@ mod test {
         );
 
         assert_eq!(
-            end_attr,
+            out.renderer.current_attr,
             CellAttributes::default()
                 .set_intensity(Intensity::Bold)
                 .set_foreground(AnsiColor::Red)
@@ -834,20 +838,13 @@ mod test {
 
     #[test]
     fn red_bold_text_no_terminfo() {
-        let mut out = FakeTerm::new();
-        let mut renderer = TerminfoRenderer::new(no_terminfo_all_enabled());
-        let end_attr = renderer
-            .render_to(
-                &CellAttributes::default(),
-                &[
-                    Change::Attribute(AttributeChange::Foreground(AnsiColor::Maroon.into())),
-                    Change::Attribute(AttributeChange::Intensity(Intensity::Bold)),
-                    Change::Text("red".into()),
-                    Change::Attribute(AttributeChange::Foreground(AnsiColor::Red.into())),
-                ],
-                &mut out,
-            )
-            .unwrap();
+        let mut out = FakeTerm::new(no_terminfo_all_enabled());
+        out.render(&[
+            Change::Attribute(AttributeChange::Foreground(AnsiColor::Maroon.into())),
+            Change::Attribute(AttributeChange::Intensity(Intensity::Bold)),
+            Change::Text("red".into()),
+            Change::Attribute(AttributeChange::Foreground(AnsiColor::Red.into())),
+        ]).unwrap();
 
         let result = out.parse();
         assert_eq!(
@@ -865,7 +862,7 @@ mod test {
         );
 
         assert_eq!(
-            end_attr,
+            out.renderer.current_attr,
             CellAttributes::default()
                 .set_intensity(Intensity::Bold)
                 .set_foreground(AnsiColor::Red)
@@ -875,20 +872,13 @@ mod test {
 
     #[test]
     fn truecolor() {
-        let mut out = FakeTerm::new();
-        let mut renderer = TerminfoRenderer::new(xterm_terminfo());
-        renderer
-            .render_to(
-                &CellAttributes::default(),
-                &[
-                    Change::Attribute(AttributeChange::Foreground(
-                        ColorSpec::TrueColor(RgbColor::new(255, 128, 64)).into(),
-                    )),
-                    Change::Text("A".into()),
-                ],
-                &mut out,
-            )
-            .unwrap();
+        let mut out = FakeTerm::new(xterm_terminfo());
+        out.render(&[
+            Change::Attribute(AttributeChange::Foreground(
+                ColorSpec::TrueColor(RgbColor::new(255, 128, 64)).into(),
+            )),
+            Change::Text("A".into()),
+        ]).unwrap();
 
         let result = out.parse();
         assert_eq!(
@@ -904,20 +894,13 @@ mod test {
 
     #[test]
     fn truecolor_no_terminfo() {
-        let mut out = FakeTerm::new();
-        let mut renderer = TerminfoRenderer::new(no_terminfo_all_enabled());
-        renderer
-            .render_to(
-                &CellAttributes::default(),
-                &[
-                    Change::Attribute(AttributeChange::Foreground(
-                        ColorSpec::TrueColor(RgbColor::new(255, 128, 64)).into(),
-                    )),
-                    Change::Text("A".into()),
-                ],
-                &mut out,
-            )
-            .unwrap();
+        let mut out = FakeTerm::new(no_terminfo_all_enabled());
+        out.render(&[
+            Change::Attribute(AttributeChange::Foreground(
+                ColorSpec::TrueColor(RgbColor::new(255, 128, 64)).into(),
+            )),
+            Change::Text("A".into()),
+        ]).unwrap();
 
         let result = out.parse();
         assert_eq!(

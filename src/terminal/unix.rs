@@ -9,6 +9,9 @@ use termios::{
     TCSAFLUSH, TCSANOW,
 };
 
+use caps::Capabilities;
+use render::terminfo::TerminfoRenderer;
+use screen::Change;
 use terminal::{cast, ScreenSize, Terminal, BUF_SIZE};
 
 /// Helper function to duplicate a file descriptor.
@@ -147,6 +150,7 @@ pub struct UnixTerminal {
     write: TtyHandle,
     saved_termios: Termios,
     write_buffer: Vec<u8>,
+    renderer: TerminfoRenderer,
 }
 
 impl UnixTerminal {
@@ -155,16 +159,25 @@ impl UnixTerminal {
     /// Note that this will duplicate the underlying file descriptors
     /// and will no longer participate in the stdin/stdout locking
     /// provided by the rust standard library.
-    pub fn new_from_stdio() -> Result<UnixTerminal, Error> {
-        let read = TtyHandle::new(&stdin())?;
-        let mut write = TtyHandle::new(&stdout())?;
+    pub fn new_from_stdio(caps: Capabilities) -> Result<UnixTerminal, Error> {
+        Self::new_with(caps, &stdin(), &stdout())
+    }
 
+    pub fn new_with<A: AsRawFd, B: AsRawFd>(
+        caps: Capabilities,
+        read: &A,
+        write: &B,
+    ) -> Result<UnixTerminal, Error> {
+        let read = TtyHandle::new(read)?;
+        let mut write = TtyHandle::new(write)?;
         let saved_termios = write.get_termios()?;
+        let renderer = TerminfoRenderer::new(caps);
 
         Ok(UnixTerminal {
             read,
             write,
             saved_termios,
+            renderer,
             write_buffer: Vec::with_capacity(BUF_SIZE),
         })
     }
@@ -173,18 +186,10 @@ impl UnixTerminal {
     /// (/dev/tty) and build a `UnixTerminal` from there.  This will
     /// yield a terminal even if the stdio streams have been redirected,
     /// provided that the process has an associated controlling terminal.
-    pub fn new() -> Result<UnixTerminal, Error> {
+    pub fn new(caps: Capabilities) -> Result<UnixTerminal, Error> {
         use std::fs::OpenOptions;
         let file = OpenOptions::new().read(true).write(true).open("/dev/tty")?;
-        let read = TtyHandle::new(&file)?;
-        let mut write = TtyHandle::new(&file)?;
-        let saved_termios = write.get_termios()?;
-        Ok(UnixTerminal {
-            read,
-            write,
-            saved_termios,
-            write_buffer: Vec::with_capacity(BUF_SIZE),
-        })
+        Self::new_with(caps, &file, &file)
     }
 
     fn flush_local_buffer_only(&mut self) -> IOResult<()> {
@@ -248,6 +253,10 @@ impl Terminal for UnixTerminal {
         };
 
         self.write.set_size(size)
+    }
+    fn render(&mut self, changes: &[Change]) -> Result<(), Error> {
+        self.renderer
+            .render_to(changes, &mut self.read, &mut self.write)
     }
 }
 

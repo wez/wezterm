@@ -126,6 +126,7 @@ pub enum ColorLevel {
 /// database, but there are some newish capabilities that are not yet
 /// described by the majority of terminfo installations and thus have some
 /// additional handling in this struct.
+#[derive(Debug, Clone)]
 pub struct Capabilities {
     color_level: ColorLevel,
     hyperlinks: bool,

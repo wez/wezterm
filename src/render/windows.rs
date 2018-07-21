@@ -1,23 +1,28 @@
 //! A Renderer for windows consoles
 
+use caps::Capabilities;
 use cell::{AttributeChange, CellAttributes, Underline};
 use color::{AnsiColor, ColorAttribute};
 use failure;
 use num;
-use render::Renderer;
 use screen::{Change, Position};
-use terminal::Terminal;
+use std::io::{Read, Write};
+use terminal::windows::{ConsoleInputHandle, ConsoleOutputHandle};
 use winapi::um::wincon::{
     BACKGROUND_BLUE, BACKGROUND_GREEN, BACKGROUND_INTENSITY, BACKGROUND_RED,
     COMMON_LVB_REVERSE_VIDEO, COMMON_LVB_UNDERSCORE, FOREGROUND_BLUE, FOREGROUND_GREEN,
     FOREGROUND_INTENSITY, FOREGROUND_RED,
 };
 
-pub struct WindowsConsoleRenderer {}
+pub struct WindowsConsoleRenderer {
+    current_attr: CellAttributes,
+}
 
 impl WindowsConsoleRenderer {
-    pub fn new() -> Self {
-        Self {}
+    pub fn new(_caps: Capabilities) -> Self {
+        Self {
+            current_attr: CellAttributes::default(),
+        }
     }
 }
 
@@ -106,30 +111,28 @@ fn to_attr_word(attr: &CellAttributes) -> u16 {
     bg | fg | reverse | underline
 }
 
-impl Renderer for WindowsConsoleRenderer {
-    fn render_to(
+impl WindowsConsoleRenderer {
+    pub fn render_to<A: ConsoleInputHandle + Read, B: ConsoleOutputHandle + Write>(
         &mut self,
-        starting_attr: &CellAttributes,
         changes: &[Change],
-        out: &mut Terminal,
-    ) -> Result<CellAttributes, failure::Error> {
-        let mut current_attr = starting_attr.clone();
-
+        _read: &mut A,
+        out: &mut B,
+    ) -> Result<(), failure::Error> {
         for change in changes {
             match change {
                 Change::ClearScreen(color) => {
                     out.flush()?;
-                    current_attr = CellAttributes::default()
+                    self.current_attr = CellAttributes::default()
                         .set_background(color.clone())
                         .clone();
 
-                    let info = out.get_console_output_handle().get_buffer_info()?;
+                    let info = out.get_buffer_info()?;
                     // We want to clear only the viewport; we don't want to toss out
                     // the scrollback.
                     if info.srWindow.Left != 0 {
                         // The user has scrolled the viewport horizontally; let's move
                         // it back to the left for the sake of sanity
-                        out.get_console_output_handle().set_viewport(
+                        out.set_viewport(
                             0,
                             info.srWindow.Top,
                             info.srWindow.Right - info.srWindow.Left,
@@ -141,30 +144,23 @@ impl Renderer for WindowsConsoleRenderer {
                     // And clear all of the visible lines from this point down
                     let visible_height = info.dwSize.Y as u32 - info.srWindow.Top as u32;
                     let num_spaces = visible_width * visible_height;
-                    out.get_console_output_handle().fill_char(
-                        ' ',
+                    out.fill_char(' ', 0, info.srWindow.Top, num_spaces as u32)?;
+                    out.fill_attr(
+                        to_attr_word(&self.current_attr),
                         0,
                         info.srWindow.Top,
                         num_spaces as u32,
                     )?;
-                    out.get_console_output_handle().fill_attr(
-                        to_attr_word(&current_attr),
-                        0,
-                        info.srWindow.Top,
-                        num_spaces as u32,
-                    )?;
-                    out.get_console_output_handle()
-                        .set_cursor_position(0, info.srWindow.Top)?;
+                    out.set_cursor_position(0, info.srWindow.Top)?;
                 }
                 Change::Text(text) => {
                     out.flush()?;
-                    out.get_console_output_handle()
-                        .set_attr(to_attr_word(&current_attr))?;
+                    out.set_attr(to_attr_word(&self.current_attr))?;
                     out.write_all(text.as_bytes())?;
                 }
                 Change::CursorPosition { x, y } => {
                     out.flush()?;
-                    let info = out.get_console_output_handle().get_buffer_info()?;
+                    let info = out.get_buffer_info()?;
                     // For horizontal cursor movement, we consider the full width
                     // of the screen buffer, even if the viewport is smaller
                     let x = match x {
@@ -182,46 +178,45 @@ impl Renderer for WindowsConsoleRenderer {
                         Position::EndRelative(delta) => info.srWindow.Bottom - *delta as i16,
                     };
 
-                    out.get_console_output_handle().set_cursor_position(x, y)?;
+                    out.set_cursor_position(x, y)?;
                 }
                 Change::Attribute(AttributeChange::Intensity(value)) => {
-                    current_attr.set_intensity(*value);
+                    self.current_attr.set_intensity(*value);
                 }
                 Change::Attribute(AttributeChange::Italic(value)) => {
-                    current_attr.set_italic(*value);
+                    self.current_attr.set_italic(*value);
                 }
                 Change::Attribute(AttributeChange::Reverse(value)) => {
-                    current_attr.set_reverse(*value);
+                    self.current_attr.set_reverse(*value);
                 }
                 Change::Attribute(AttributeChange::StrikeThrough(value)) => {
-                    current_attr.set_strikethrough(*value);
+                    self.current_attr.set_strikethrough(*value);
                 }
                 Change::Attribute(AttributeChange::Blink(value)) => {
-                    current_attr.set_blink(*value);
+                    self.current_attr.set_blink(*value);
                 }
                 Change::Attribute(AttributeChange::Invisible(value)) => {
-                    current_attr.set_invisible(*value);
+                    self.current_attr.set_invisible(*value);
                 }
                 Change::Attribute(AttributeChange::Underline(value)) => {
-                    current_attr.set_underline(*value);
+                    self.current_attr.set_underline(*value);
                 }
                 Change::Attribute(AttributeChange::Foreground(col)) => {
-                    current_attr.set_foreground(*col);
+                    self.current_attr.set_foreground(*col);
                 }
                 Change::Attribute(AttributeChange::Background(col)) => {
-                    current_attr.set_background(*col);
+                    self.current_attr.set_background(*col);
                 }
                 Change::Attribute(AttributeChange::Hyperlink(link)) => {
-                    current_attr.hyperlink = link.clone();
+                    self.current_attr.hyperlink = link.clone();
                 }
                 Change::AllAttributes(all) => {
-                    current_attr = all.clone();
+                    self.current_attr = all.clone();
                 }
             }
         }
         out.flush()?;
-        out.get_console_output_handle()
-            .set_attr(to_attr_word(&current_attr))?;
-        Ok(current_attr)
+        out.set_attr(to_attr_word(&self.current_attr))?;
+        Ok(())
     }
 }

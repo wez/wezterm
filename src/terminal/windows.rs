@@ -13,6 +13,9 @@ use winapi::um::wincon::{
     ENABLE_VIRTUAL_TERMINAL_PROCESSING, SMALL_RECT,
 };
 
+use caps::Capabilities;
+use render::windows::WindowsConsoleRenderer;
+use screen::Change;
 use terminal::{cast, ScreenSize, Terminal, BUF_SIZE};
 
 pub trait ConsoleInputHandle {
@@ -49,6 +52,12 @@ impl DerefMut for InputHandle {
     }
 }
 
+impl Read for InputHandle {
+    fn read(&mut self, buf: &mut [u8]) -> Result<usize, IOError> {
+        self.handle.read(buf)
+    }
+}
+
 impl ConsoleInputHandle for InputHandle {
     fn set_input_mode(&mut self, mode: u32) -> Result<(), Error> {
         if unsafe { consoleapi::SetConsoleMode(self.handle.as_raw_handle(), mode) } == 0 {
@@ -81,6 +90,16 @@ impl Deref for OutputHandle {
 impl DerefMut for OutputHandle {
     fn deref_mut(&mut self) -> &mut Stdout {
         &mut self.handle
+    }
+}
+
+impl Write for OutputHandle {
+    fn write(&mut self, buf: &[u8]) -> IOResult<usize> {
+        self.handle.write(buf)
+    }
+
+    fn flush(&mut self) -> IOResult<()> {
+        self.handle.flush()
     }
 }
 
@@ -201,6 +220,7 @@ pub struct WindowsTerminal {
     write_buffer: Vec<u8>,
     saved_input_mode: u32,
     saved_output_mode: u32,
+    renderer: WindowsConsoleRenderer,
 }
 
 impl Drop for WindowsTerminal {
@@ -215,7 +235,7 @@ impl Drop for WindowsTerminal {
 }
 
 impl WindowsTerminal {
-    pub fn new() -> Result<Self, Error> {
+    pub fn new(caps: Capabilities) -> Result<Self, Error> {
         let read = stdin();
         let write = stdout();
 
@@ -228,12 +248,14 @@ impl WindowsTerminal {
 
         let saved_input_mode = input_handle.get_input_mode()?;
         let saved_output_mode = output_handle.get_output_mode()?;
+        let renderer = WindowsConsoleRenderer::new(caps);
 
         Ok(Self {
             input_handle,
             output_handle,
             saved_input_mode,
             saved_output_mode,
+            renderer,
             write_buffer: Vec::with_capacity(BUF_SIZE),
         })
     }
@@ -324,11 +346,8 @@ impl Terminal for WindowsTerminal {
         Ok(())
     }
 
-    fn get_console_input_handle(&mut self) -> &mut ConsoleInputHandle {
-        &mut self.input_handle
-    }
-
-    fn get_console_output_handle(&mut self) -> &mut ConsoleOutputHandle {
-        &mut self.output_handle
+    fn render(&mut self, changes: &[Change]) -> Result<(), Error> {
+        self.renderer
+            .render_to(changes, &mut self.input_handle, &mut self.output_handle)
     }
 }

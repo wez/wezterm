@@ -6,6 +6,7 @@
 
 use failure::Error;
 use num::{self, NumCast};
+use screen::Change;
 use std::fmt::Display;
 use std::io::{Read, Write};
 
@@ -17,7 +18,7 @@ pub mod windows;
 #[cfg(unix)]
 pub use self::unix::UnixTerminal;
 #[cfg(windows)]
-pub use self::windows::{ConsoleInputHandle, ConsoleOutputHandle, WindowsTerminal};
+pub use self::windows::WindowsTerminal;
 
 /// Represents the size of the terminal screen.
 /// The number of rows and columns of character cells are expressed.
@@ -56,20 +57,18 @@ pub trait Terminal: Read + Write {
     /// Sets the current screen size
     fn set_screen_size(&mut self, size: ScreenSize) -> Result<(), Error>;
 
+    /// Render a series of changes to the terminal output
+    fn render(&mut self, changes: &[Change]) -> Result<(), Error>;
+
     /*
     /// Sets the terminal to cooked mode, which is essentially the opposite
     /// to raw mode: input and output processing are enabled.
     fn set_cooked_mode(&mut self) -> Result<(), Error>;
-    */
-
-    #[cfg(windows)]
-    fn get_console_input_handle(&mut self) -> &mut ConsoleInputHandle;
-    #[cfg(windows)]
-    fn get_console_output_handle(&mut self) -> &mut ConsoleOutputHandle;
+*/
 }
 
 const BUF_SIZE: usize = 128;
 
-fn cast<T: NumCast + Display + Copy, U: NumCast>(n: T) -> Result<U, Error> {
+pub(crate) fn cast<T: NumCast + Display + Copy, U: NumCast>(n: T) -> Result<U, Error> {
     num::cast(n).ok_or_else(|| format_err!("{} is out of bounds for this system", n))
 }
