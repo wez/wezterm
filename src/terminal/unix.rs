@@ -1,10 +1,12 @@
 use failure::Error;
 use istty::IsTty;
 use libc::{self, winsize};
-use std::io::{stdin, stdout, Error as IOError, Read, Result as IOResult, Write};
+use std::io::{stdin, stdout, Error as IOError, ErrorKind, Read, Result as IOResult, Write};
 use std::mem;
 use std::os::unix::io::{AsRawFd, RawFd};
-use termios::{cfmakeraw, tcsetattr, Termios, TCSANOW};
+use termios::{
+    cfmakeraw, tcdrain, tcflush, tcsetattr, Termios, TCIFLUSH, TCIOFLUSH, TCOFLUSH, TCSANOW,
+};
 
 use terminal::{cast, ScreenSize, Terminal, BUF_SIZE};
 
@@ -18,11 +20,20 @@ fn dup(fd: RawFd) -> Result<RawFd, Error> {
     Ok(new_fd)
 }
 
+pub enum Purge {
+    InputQueue,
+    OutputQueue,
+    InputAndOutputQueue,
+}
+
 pub trait UnixTty {
     fn get_size(&mut self) -> Result<winsize, Error>;
     fn set_size(&mut self, size: winsize) -> Result<(), Error>;
     fn get_termios(&mut self) -> Result<Termios, Error>;
     fn set_termios(&mut self, termios: &Termios) -> Result<(), Error>;
+    /// Waits until all written data has been transmitted.
+    fn drain(&mut self) -> Result<(), Error>;
+    fn purge(&mut self, purge: Purge) -> Result<(), Error>;
 }
 
 pub struct TtyHandle {
@@ -47,6 +58,8 @@ impl Write for TtyHandle {
     }
 
     fn flush(&mut self) -> Result<(), IOError> {
+        self.drain()
+            .map_err(|e| IOError::new(ErrorKind::Other, format!("{}", e)))?;
         Ok(())
     }
 }
@@ -97,6 +110,19 @@ impl UnixTty for TtyHandle {
     fn set_termios(&mut self, termios: &Termios) -> Result<(), Error> {
         tcsetattr(self.fd, TCSANOW, termios).map_err(|e| format_err!("set_termios failed: {}", e))
     }
+
+    fn drain(&mut self) -> Result<(), Error> {
+        tcdrain(self.fd).map_err(|e| format_err!("tcdrain failed: {}", e))
+    }
+
+    fn purge(&mut self, purge: Purge) -> Result<(), Error> {
+        let param = match purge {
+            Purge::InputQueue => TCIFLUSH,
+            Purge::OutputQueue => TCOFLUSH,
+            Purge::InputAndOutputQueue => TCIOFLUSH,
+        };
+        tcflush(self.fd, param).map_err(|e| format_err!("tcflush failed: {}", e))
+    }
 }
 
 /// A unix style terminal
@@ -144,6 +170,14 @@ impl UnixTerminal {
             write_buffer: Vec::with_capacity(BUF_SIZE),
         })
     }
+
+    fn flush_local_buffer_only(&mut self) -> IOResult<()> {
+        if self.write_buffer.len() > 0 {
+            self.write.write(&self.write_buffer)?;
+            self.write_buffer.clear();
+        }
+        Ok(())
+    }
 }
 
 impl Read for UnixTerminal {
@@ -155,7 +189,7 @@ impl Read for UnixTerminal {
 impl Write for UnixTerminal {
     fn write(&mut self, buf: &[u8]) -> IOResult<usize> {
         if self.write_buffer.len() + buf.len() > self.write_buffer.capacity() {
-            self.flush()?;
+            self.flush_local_buffer_only()?;
         }
         if buf.len() >= self.write_buffer.capacity() {
             self.write.write(buf)
@@ -165,10 +199,7 @@ impl Write for UnixTerminal {
     }
 
     fn flush(&mut self) -> IOResult<()> {
-        if self.write_buffer.len() > 0 {
-            self.write.write(&self.write_buffer)?;
-            self.write_buffer.clear();
-        }
+        self.flush_local_buffer_only()?;
         self.write.flush()
     }
 }
