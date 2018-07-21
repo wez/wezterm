@@ -2,7 +2,7 @@
 use caps::{Capabilities, ColorLevel};
 use cell::{AttributeChange, Blink, CellAttributes, Intensity, Underline};
 use color::{ColorAttribute, ColorSpec};
-use escape::csi::{Cursor, Edit, EraseInDisplay, Sgr, CSI};
+use escape::csi::{Cursor, Edit, EraseInDisplay, EraseInLine, Sgr, CSI};
 use escape::osc::OperatingSystemCommand;
 use failure;
 use screen::{Change, Position};
@@ -305,6 +305,30 @@ impl TerminfoRenderer {
                         let mut buf = Vec::with_capacity(num_spaces);
                         buf.resize(num_spaces, b' ');
                         out.write(buf.as_slice())?;
+                    }
+                }
+                Change::ClearToEndOfLine(color) => {
+                    // ClearScreen implicitly resets all to default
+                    let defaults = CellAttributes::default()
+                        .set_background(color.clone())
+                        .clone();
+                    if self.current_attr != defaults {
+                        self.pending_attr = Some(defaults);
+                        self.flush_pending_attr(out)?;
+                    }
+                    self.pending_attr = None;
+
+                    // FIXME: this doesn't behave correctly for terminals without bce.
+                    // If we knew the current cursor position, we would be able to
+                    // emit the correctly colored background for that case.
+                    if let Some(clr) = self.get_capability::<cap::ClrEol>() {
+                        clr.expand().to(out.by_ref())?;
+                    } else {
+                        write!(
+                            out,
+                            "{}",
+                            CSI::Edit(Edit::EraseInLine(EraseInLine::EraseToEndOfLine))
+                        )?;
                     }
                 }
                 Change::Attribute(AttributeChange::Intensity(value)) => {

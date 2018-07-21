@@ -40,8 +40,10 @@ pub enum Change {
     /// Implicitly clears all attributes prior to clearing the screen.
     /// Moves the cursor to the home position (top left).
     ClearScreen(ColorAttribute),
-    //   ClearToStartOfLine,
-    //   ClearToEndOfLine,
+    /// Clear from the current cursor X position to the rightmost
+    /// edge of the screen.  The background color is set to the
+    /// provided color.  The cursor position remains unchanged.
+    ClearToEndOfLine(ColorAttribute),
     //   ClearToEndOfScreen,
     /// Move the cursor to the specified `Position`.
     CursorPosition { x: Position, y: Position },
@@ -247,6 +249,7 @@ impl Screen {
             Change::Attribute(change) => self.change_attribute(change),
             Change::CursorPosition { x, y } => self.set_cursor_pos(x, y),
             Change::ClearScreen(color) => self.clear_screen(color),
+            Change::ClearToEndOfLine(color) => self.clear_eol(color),
         }
     }
 
@@ -259,6 +262,16 @@ impl Screen {
             for cell in &mut line.cells {
                 *cell = cleared.clone();
             }
+        }
+    }
+
+    fn clear_eol(&mut self, color: &ColorAttribute) {
+        self.attributes = CellAttributes::default()
+            .set_background(color.clone())
+            .clone();
+        let cleared = Cell::new(' ', self.attributes.clone());
+        for cell in self.lines[self.ypos].cells.iter_mut().skip(self.xpos) {
+            *cell = cleared.clone();
         }
     }
 
@@ -723,6 +736,26 @@ mod test {
         s.add_change("hello");
         s.add_change(Change::ClearScreen(Default::default()));
         assert_eq!(s.screen_chars_to_string(), "  \n  \n");
+    }
+
+    #[test]
+    fn clear_eol() {
+        let mut s = Screen::new(3, 3);
+        s.add_change("helwowfoo");
+        s.add_change(Change::ClearToEndOfLine(Default::default()));
+        assert_eq!(s.screen_chars_to_string(), "hel\nwow\nfoo\n");
+        s.add_change(Change::CursorPosition {
+            x: Position::Absolute(0),
+            y: Position::Absolute(0),
+        });
+        s.add_change(Change::ClearToEndOfLine(Default::default()));
+        assert_eq!(s.screen_chars_to_string(), "   \nwow\nfoo\n");
+        s.add_change(Change::CursorPosition {
+            x: Position::Absolute(1),
+            y: Position::Absolute(1),
+        });
+        s.add_change(Change::ClearToEndOfLine(Default::default()));
+        assert_eq!(s.screen_chars_to_string(), "   \nw  \nfoo\n");
     }
 
     #[test]

@@ -153,6 +153,23 @@ impl WindowsConsoleRenderer {
                     )?;
                     out.set_cursor_position(0, info.srWindow.Top)?;
                 }
+                Change::ClearToEndOfLine(color) => {
+                    out.flush()?;
+                    self.current_attr = CellAttributes::default()
+                        .set_background(color.clone())
+                        .clone();
+
+                    let info = out.get_buffer_info()?;
+                    let width =
+                        (info.dwSize.X as u32).saturating_sub(info.dwCursorPosition.X as u32);
+                    out.fill_char(' ', info.dwCursorPosition.X, info.dwCursorPosition.Y, width)?;
+                    out.fill_attr(
+                        to_attr_word(&self.current_attr),
+                        info.dwCursorPosition.X,
+                        info.dwCursorPosition.Y,
+                        width,
+                    )?;
+                }
                 Change::Text(text) => {
                     out.flush()?;
                     out.set_attr(to_attr_word(&self.current_attr))?;
