@@ -44,7 +44,12 @@ pub enum Change {
     /// edge of the screen.  The background color is set to the
     /// provided color.  The cursor position remains unchanged.
     ClearToEndOfLine(ColorAttribute),
-    //   ClearToEndOfScreen,
+    /// Clear from the current cursor X position to the rightmost
+    /// edge of the screen on the current line.  Clear all of the
+    /// lines below the current cursor Y position.  The background
+    /// color is set ot the provided color.  The cursor position
+    /// remains unchanged.
+    ClearToEndOfScreen(ColorAttribute),
     /// Move the cursor to the specified `Position`.
     CursorPosition { x: Position, y: Position },
     /*   CursorVisibility(bool),
@@ -250,6 +255,7 @@ impl Screen {
             Change::CursorPosition { x, y } => self.set_cursor_pos(x, y),
             Change::ClearScreen(color) => self.clear_screen(color),
             Change::ClearToEndOfLine(color) => self.clear_eol(color),
+            Change::ClearToEndOfScreen(color) => self.clear_eos(color),
         }
     }
 
@@ -259,6 +265,21 @@ impl Screen {
             .clone();
         let cleared = Cell::new(' ', self.attributes.clone());
         for line in &mut self.lines {
+            for cell in &mut line.cells {
+                *cell = cleared.clone();
+            }
+        }
+    }
+
+    fn clear_eos(&mut self, color: &ColorAttribute) {
+        self.attributes = CellAttributes::default()
+            .set_background(color.clone())
+            .clone();
+        let cleared = Cell::new(' ', self.attributes.clone());
+        for cell in self.lines[self.ypos].cells.iter_mut().skip(self.xpos) {
+            *cell = cleared.clone();
+        }
+        for line in &mut self.lines.iter_mut().skip(self.ypos + 1) {
             for cell in &mut line.cells {
                 *cell = cleared.clone();
             }
@@ -756,6 +777,20 @@ mod test {
         });
         s.add_change(Change::ClearToEndOfLine(Default::default()));
         assert_eq!(s.screen_chars_to_string(), "   \nw  \nfoo\n");
+    }
+
+    #[test]
+    fn clear_eos() {
+        let mut s = Screen::new(3, 3);
+        s.add_change("helwowfoo");
+        s.add_change(Change::ClearToEndOfScreen(Default::default()));
+        assert_eq!(s.screen_chars_to_string(), "hel\nwow\nfoo\n");
+        s.add_change(Change::CursorPosition {
+            x: Position::Absolute(1),
+            y: Position::Absolute(1),
+        });
+        s.add_change(Change::ClearToEndOfScreen(Default::default()));
+        assert_eq!(s.screen_chars_to_string(), "hel\nw  \n   \n");
     }
 
     #[test]

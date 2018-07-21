@@ -331,6 +331,30 @@ impl TerminfoRenderer {
                         )?;
                     }
                 }
+                Change::ClearToEndOfScreen(color) => {
+                    // ClearScreen implicitly resets all to default
+                    let defaults = CellAttributes::default()
+                        .set_background(color.clone())
+                        .clone();
+                    if self.current_attr != defaults {
+                        self.pending_attr = Some(defaults);
+                        self.flush_pending_attr(out)?;
+                    }
+                    self.pending_attr = None;
+
+                    // FIXME: this doesn't behave correctly for terminals without bce.
+                    // If we knew the current cursor position, we would be able to
+                    // emit the correctly colored background for that case.
+                    if let Some(clr) = self.get_capability::<cap::ClrEos>() {
+                        clr.expand().to(out.by_ref())?;
+                    } else {
+                        write!(
+                            out,
+                            "{}",
+                            CSI::Edit(Edit::EraseInDisplay(EraseInDisplay::EraseToEndOfDisplay))
+                        )?;
+                    }
+                }
                 Change::Attribute(AttributeChange::Intensity(value)) => {
                     record!(set_intensity, value);
                 }
