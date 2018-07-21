@@ -1,12 +1,43 @@
 use failure::Error;
 use istty::IsTty;
 use libc::{self, winsize};
-use std::io::{stdin, stdout, Error as IOError, Read, Result as IOResult, Write};
+use std::fs::File;
+use std::io::{stdin, stdout, Error as IOError, Read, Result as IOResult, Stdin, Stdout, Write};
 use std::mem;
 use std::os::unix::io::{AsRawFd, RawFd};
 use termios::{cfmakeraw, tcsetattr, Termios, TCSANOW};
 
-use terminal::{cast, Handle, ScreenSize, Terminal, BUF_SIZE};
+use terminal::{cast, ScreenSize, Terminal, BUF_SIZE};
+
+enum Handle {
+    File(File),
+    Stdio { stdin: Stdin, stdout: Stdout },
+}
+
+impl Read for Handle {
+    fn read(&mut self, buf: &mut [u8]) -> IOResult<usize> {
+        match self {
+            Handle::File(f) => f.read(buf),
+            Handle::Stdio { stdin, .. } => stdin.read(buf),
+        }
+    }
+}
+
+impl Write for Handle {
+    fn write(&mut self, buf: &[u8]) -> IOResult<usize> {
+        match self {
+            Handle::File(f) => f.write(buf),
+            Handle::Stdio { stdout, .. } => stdout.write(buf),
+        }
+    }
+
+    fn flush(&mut self) -> IOResult<()> {
+        match self {
+            Handle::File(f) => f.flush(),
+            Handle::Stdio { stdout, .. } => stdout.flush(),
+        }
+    }
+}
 
 impl Handle {
     fn writable_fd(&self) -> RawFd {

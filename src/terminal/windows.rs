@@ -1,9 +1,9 @@
 use failure::Error;
 use istty::IsTty;
-use std::io::{stdin, stdout};
-use std::io::{Error as IOError, Read, Result as IOResult, Write};
+use std::io::{stdin, stdout, Error as IOError, Read, Result as IOResult, Stdin, Stdout, Write};
 use std::mem;
-use std::os::windows::io::{AsRawHandle, RawHandle};
+use std::ops::{Deref, DerefMut};
+use std::os::windows::io::AsRawHandle;
 use winapi::um::consoleapi;
 use winapi::um::wincon::{
     GetConsoleScreenBufferInfo, SetConsoleScreenBufferSize, CONSOLE_SCREEN_BUFFER_INFO, COORD,
@@ -11,71 +11,91 @@ use winapi::um::wincon::{
     ENABLE_VIRTUAL_TERMINAL_INPUT, ENABLE_VIRTUAL_TERMINAL_PROCESSING,
 };
 
-use terminal::{cast, Handle, ScreenSize, Terminal, BUF_SIZE};
+use terminal::{cast, ScreenSize, Terminal, BUF_SIZE};
 
-impl Handle {
-    fn writable_handle(&self) -> RawHandle {
-        match self {
-            Handle::File(f) => f.as_raw_handle(),
-            Handle::Stdio { stdout, .. } => stdout.as_raw_handle(),
-        }
+pub trait ConsoleInputHandle {
+    fn set_input_mode(&mut self, mode: u32) -> Result<(), Error>;
+    fn get_input_mode(&mut self) -> Result<u32, Error>;
+}
+
+pub trait ConsoleOutputHandle {
+    fn set_output_mode(&mut self, mode: u32) -> Result<(), Error>;
+    fn get_output_mode(&mut self) -> Result<u32, Error>;
+}
+
+struct InputHandle {
+    handle: Stdin,
+}
+
+impl Deref for InputHandle {
+    type Target = Stdin;
+
+    fn deref(&self) -> &Stdin {
+        &self.handle
     }
+}
 
-    fn readable_handle(&self) -> RawHandle {
-        match self {
-            Handle::File(f) => f.as_raw_handle(),
-            Handle::Stdio { stdin, .. } => stdin.as_raw_handle(),
-        }
+impl DerefMut for InputHandle {
+    fn deref_mut(&mut self) -> &mut Stdin {
+        &mut self.handle
     }
+}
 
-    fn enable_virtual_terminal_processing(&self) -> Result<(), Error> {
-        let mode = self.get_console_output_mode()?;
-        self.set_console_output_mode(
-            mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING | DISABLE_NEWLINE_AUTO_RETURN,
-        )?;
-
-        let mode = self.get_console_input_mode()?;
-        self.set_console_output_mode(mode | ENABLE_VIRTUAL_TERMINAL_INPUT)?;
-        Ok(())
-    }
-
-    fn get_console_input_mode(&self) -> Result<u32, Error> {
-        let mut mode = 0;
-        let handle = self.readable_handle();
-        if unsafe { consoleapi::GetConsoleMode(handle, &mut mode) } == 0 {
-            bail!("GetConsoleMode failed: {}", IOError::last_os_error());
-        }
-        Ok(mode)
-    }
-
-    fn set_console_input_mode(&self, mode: u32) -> Result<(), Error> {
-        let handle = self.readable_handle();
-        if unsafe { consoleapi::SetConsoleMode(handle, mode) } == 0 {
+impl ConsoleInputHandle for InputHandle {
+    fn set_input_mode(&mut self, mode: u32) -> Result<(), Error> {
+        if unsafe { consoleapi::SetConsoleMode(self.handle.as_raw_handle(), mode) } == 0 {
             bail!("SetConsoleMode failed: {}", IOError::last_os_error());
         }
         Ok(())
     }
 
-    fn get_console_output_mode(&self) -> Result<u32, Error> {
+    fn get_input_mode(&mut self) -> Result<u32, Error> {
         let mut mode = 0;
-        let handle = self.writable_handle();
-        if unsafe { consoleapi::GetConsoleMode(handle, &mut mode) } == 0 {
+        if unsafe { consoleapi::GetConsoleMode(self.handle.as_raw_handle(), &mut mode) } == 0 {
             bail!("GetConsoleMode failed: {}", IOError::last_os_error());
         }
         Ok(mode)
     }
+}
 
-    fn set_console_output_mode(&self, mode: u32) -> Result<(), Error> {
-        let handle = self.writable_handle();
-        if unsafe { consoleapi::SetConsoleMode(handle, mode) } == 0 {
+struct OutputHandle {
+    handle: Stdout,
+}
+
+impl Deref for OutputHandle {
+    type Target = Stdout;
+
+    fn deref(&self) -> &Stdout {
+        &self.handle
+    }
+}
+
+impl DerefMut for OutputHandle {
+    fn deref_mut(&mut self) -> &mut Stdout {
+        &mut self.handle
+    }
+}
+
+impl ConsoleOutputHandle for OutputHandle {
+    fn set_output_mode(&mut self, mode: u32) -> Result<(), Error> {
+        if unsafe { consoleapi::SetConsoleMode(self.handle.as_raw_handle(), mode) } == 0 {
             bail!("SetConsoleMode failed: {}", IOError::last_os_error());
         }
         Ok(())
+    }
+
+    fn get_output_mode(&mut self) -> Result<u32, Error> {
+        let mut mode = 0;
+        if unsafe { consoleapi::GetConsoleMode(self.handle.as_raw_handle(), &mut mode) } == 0 {
+            bail!("GetConsoleMode failed: {}", IOError::last_os_error());
+        }
+        Ok(mode)
     }
 }
 
 pub struct WindowsTerminal {
-    handle: Handle,
+    input_handle: InputHandle,
+    output_handle: OutputHandle,
     write_buffer: Vec<u8>,
     saved_input_mode: u32,
     saved_output_mode: u32,
@@ -83,11 +103,11 @@ pub struct WindowsTerminal {
 
 impl Drop for WindowsTerminal {
     fn drop(&mut self) {
-        self.handle
-            .set_console_input_mode(self.saved_input_mode)
+        self.input_handle
+            .set_input_mode(self.saved_input_mode)
             .expect("failed to restore console input mode");
-        self.handle
-            .set_console_output_mode(self.saved_output_mode)
+        self.output_handle
+            .set_output_mode(self.saved_output_mode)
             .expect("failed to restore console output mode");
     }
 }
@@ -101,28 +121,37 @@ impl WindowsTerminal {
             bail!("stdin and stdout must both be tty handles");
         }
 
-        let handle = Handle::Stdio {
-            stdin: read,
-            stdout: write,
-        };
+        let mut input_handle = InputHandle { handle: read };
+        let mut output_handle = OutputHandle { handle: write };
 
-        let saved_input_mode = handle.get_console_input_mode()?;
-        let saved_output_mode = handle.get_console_output_mode()?;
-
-        handle.enable_virtual_terminal_processing()?;
+        let saved_input_mode = input_handle.get_input_mode()?;
+        let saved_output_mode = output_handle.get_output_mode()?;
 
         Ok(Self {
-            handle,
+            input_handle,
+            output_handle,
             saved_input_mode,
             saved_output_mode,
             write_buffer: Vec::with_capacity(BUF_SIZE),
         })
     }
+
+    pub fn enable_virtual_terminal_processing(&mut self) -> Result<(), Error> {
+        let mode = self.output_handle.get_output_mode()?;
+        self.output_handle.set_output_mode(
+            mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING | DISABLE_NEWLINE_AUTO_RETURN,
+        )?;
+
+        let mode = self.input_handle.get_input_mode()?;
+        self.input_handle
+            .set_input_mode(mode | ENABLE_VIRTUAL_TERMINAL_INPUT)?;
+        Ok(())
+    }
 }
 
 impl Read for WindowsTerminal {
     fn read(&mut self, buf: &mut [u8]) -> IOResult<usize> {
-        self.handle.read(buf)
+        self.input_handle.read(buf)
     }
 }
 
@@ -132,7 +161,7 @@ impl Write for WindowsTerminal {
             self.flush()?;
         }
         if buf.len() >= self.write_buffer.capacity() {
-            self.handle.write(buf)
+            self.output_handle.write(buf)
         } else {
             self.write_buffer.write(buf)
         }
@@ -140,25 +169,25 @@ impl Write for WindowsTerminal {
 
     fn flush(&mut self) -> IOResult<()> {
         if self.write_buffer.len() > 0 {
-            self.handle.write(&self.write_buffer)?;
+            self.output_handle.write(&self.write_buffer)?;
             self.write_buffer.clear();
         }
-        self.handle.flush()
+        self.output_handle.flush()
     }
 }
 
 impl Terminal for WindowsTerminal {
     fn set_raw_mode(&mut self) -> Result<(), Error> {
-        let mode = self.handle.get_console_input_mode()?;
+        let mode = self.input_handle.get_input_mode()?;
 
-        self.handle.set_console_input_mode(
+        self.input_handle.set_input_mode(
             mode & !(ENABLE_ECHO_INPUT | ENABLE_LINE_INPUT | ENABLE_PROCESSED_INPUT),
         )
     }
 
     fn get_screen_size(&mut self) -> Result<ScreenSize, Error> {
         let mut info: CONSOLE_SCREEN_BUFFER_INFO = unsafe { mem::zeroed() };
-        let handle = self.handle.writable_handle();
+        let handle = self.output_handle.handle.as_raw_handle();
         let ok = unsafe { GetConsoleScreenBufferInfo(handle, &mut info as *mut _) };
         if ok != 1 {
             bail!(
@@ -180,7 +209,7 @@ impl Terminal for WindowsTerminal {
             X: cast(size.cols)?,
             Y: cast(size.rows)?,
         };
-        let handle = self.handle.writable_handle();
+        let handle = self.output_handle.handle.as_raw_handle();
         if unsafe { SetConsoleScreenBufferSize(handle, size) } != 1 {
             bail!(
                 "failed to SetConsoleScreenBufferSize: {}",
@@ -188,5 +217,13 @@ impl Terminal for WindowsTerminal {
             );
         }
         Ok(())
+    }
+
+    fn get_console_input_handle(&mut self) -> &mut ConsoleInputHandle {
+        &mut self.input_handle
+    }
+
+    fn get_console_output_handle(&mut self) -> &mut ConsoleOutputHandle {
+        &mut self.output_handle
     }
 }

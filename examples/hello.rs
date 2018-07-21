@@ -5,6 +5,7 @@ use failure::Error;
 use termwiz::caps::Capabilities;
 use termwiz::cell::{AttributeChange, CellAttributes};
 use termwiz::color::AnsiColor;
+#[cfg(unix)]
 use termwiz::render::terminfo::TerminfoRenderer;
 #[cfg(windows)]
 use termwiz::render::windows::WindowsConsoleRenderer;

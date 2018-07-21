@@ -7,13 +7,17 @@
 use failure::Error;
 use num::{self, NumCast};
 use std::fmt::Display;
-use std::fs::File;
-use std::io::{Read, Result as IOResult, Stdin, Stdout, Write};
+use std::io::{Read, Write};
 
 #[cfg(unix)]
 pub mod unix;
 #[cfg(windows)]
 pub mod windows;
+
+#[cfg(unix)]
+pub use self::unix::UnixTerminal;
+#[cfg(windows)]
+pub use self::windows::{ConsoleInputHandle, ConsoleOutputHandle, WindowsTerminal};
 
 /// Represents the size of the terminal screen.
 /// The number of rows and columns of character cells are expressed.
@@ -57,36 +61,11 @@ pub trait Terminal: Read + Write {
     /// to raw mode: input and output processing are enabled.
     fn set_cooked_mode(&mut self) -> Result<(), Error>;
     */
-}
 
-enum Handle {
-    File(File),
-    Stdio { stdin: Stdin, stdout: Stdout },
-}
-
-impl Read for Handle {
-    fn read(&mut self, buf: &mut [u8]) -> IOResult<usize> {
-        match self {
-            Handle::File(f) => f.read(buf),
-            Handle::Stdio { stdin, .. } => stdin.read(buf),
-        }
-    }
-}
-
-impl Write for Handle {
-    fn write(&mut self, buf: &[u8]) -> IOResult<usize> {
-        match self {
-            Handle::File(f) => f.write(buf),
-            Handle::Stdio { stdout, .. } => stdout.write(buf),
-        }
-    }
-
-    fn flush(&mut self) -> IOResult<()> {
-        match self {
-            Handle::File(f) => f.flush(),
-            Handle::Stdio { stdout, .. } => stdout.flush(),
-        }
-    }
+    #[cfg(windows)]
+    fn get_console_input_handle(&mut self) -> &mut ConsoleInputHandle;
+    #[cfg(windows)]
+    fn get_console_output_handle(&mut self) -> &mut ConsoleOutputHandle;
 }
 
 const BUF_SIZE: usize = 128;
@@ -94,8 +73,3 @@ const BUF_SIZE: usize = 128;
 fn cast<T: NumCast + Display + Copy, U: NumCast>(n: T) -> Result<U, Error> {
     num::cast(n).ok_or_else(|| format_err!("{} is out of bounds for this system", n))
 }
-
-#[cfg(unix)]
-pub use self::unix::UnixTerminal;
-#[cfg(windows)]
-pub use self::windows::WindowsTerminal;
