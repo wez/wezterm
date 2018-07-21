@@ -6,9 +6,11 @@ use std::ops::{Deref, DerefMut};
 use std::os::windows::io::AsRawHandle;
 use winapi::um::consoleapi;
 use winapi::um::wincon::{
-    GetConsoleScreenBufferInfo, SetConsoleScreenBufferSize, CONSOLE_SCREEN_BUFFER_INFO, COORD,
-    DISABLE_NEWLINE_AUTO_RETURN, ENABLE_ECHO_INPUT, ENABLE_LINE_INPUT, ENABLE_PROCESSED_INPUT,
-    ENABLE_VIRTUAL_TERMINAL_INPUT, ENABLE_VIRTUAL_TERMINAL_PROCESSING,
+    FillConsoleOutputAttribute, FillConsoleOutputCharacterW, GetConsoleScreenBufferInfo,
+    SetConsoleCursorPosition, SetConsoleScreenBufferSize, SetConsoleTextAttribute,
+    SetConsoleWindowInfo, CONSOLE_SCREEN_BUFFER_INFO, COORD, DISABLE_NEWLINE_AUTO_RETURN,
+    ENABLE_ECHO_INPUT, ENABLE_LINE_INPUT, ENABLE_PROCESSED_INPUT, ENABLE_VIRTUAL_TERMINAL_INPUT,
+    ENABLE_VIRTUAL_TERMINAL_PROCESSING, SMALL_RECT,
 };
 
 use terminal::{cast, ScreenSize, Terminal, BUF_SIZE};
@@ -21,6 +23,12 @@ pub trait ConsoleInputHandle {
 pub trait ConsoleOutputHandle {
     fn set_output_mode(&mut self, mode: u32) -> Result<(), Error>;
     fn get_output_mode(&mut self) -> Result<u32, Error>;
+    fn fill_char(&mut self, text: char, x: i16, y: i16, len: u32) -> Result<u32, Error>;
+    fn fill_attr(&mut self, attr: u16, x: i16, y: i16, len: u32) -> Result<u32, Error>;
+    fn set_attr(&mut self, attr: u16) -> Result<(), Error>;
+    fn set_cursor_position(&mut self, x: i16, y: i16) -> Result<(), Error>;
+    fn get_buffer_info(&mut self) -> Result<CONSOLE_SCREEN_BUFFER_INFO, Error>;
+    fn set_viewport(&mut self, left: i16, top: i16, right: i16, bottom: i16) -> Result<(), Error>;
 }
 
 struct InputHandle {
@@ -78,6 +86,7 @@ impl DerefMut for OutputHandle {
 
 impl ConsoleOutputHandle for OutputHandle {
     fn set_output_mode(&mut self, mode: u32) -> Result<(), Error> {
+        self.handle.flush()?;
         if unsafe { consoleapi::SetConsoleMode(self.handle.as_raw_handle(), mode) } == 0 {
             bail!("SetConsoleMode failed: {}", IOError::last_os_error());
         }
@@ -90,6 +99,99 @@ impl ConsoleOutputHandle for OutputHandle {
             bail!("GetConsoleMode failed: {}", IOError::last_os_error());
         }
         Ok(mode)
+    }
+
+    fn fill_char(&mut self, text: char, x: i16, y: i16, len: u32) -> Result<u32, Error> {
+        self.handle.flush()?;
+        let mut wrote = 0;
+        if unsafe {
+            FillConsoleOutputCharacterW(
+                self.handle.as_raw_handle(),
+                text as u16,
+                len,
+                COORD { X: x, Y: y },
+                &mut wrote,
+            )
+        } == 0
+        {
+            bail!(
+                "FillConsoleOutputCharacterW failed: {}",
+                IOError::last_os_error()
+            );
+        }
+        Ok(wrote)
+    }
+
+    fn fill_attr(&mut self, attr: u16, x: i16, y: i16, len: u32) -> Result<u32, Error> {
+        self.handle.flush()?;
+        let mut wrote = 0;
+        if unsafe {
+            FillConsoleOutputAttribute(
+                self.handle.as_raw_handle(),
+                attr,
+                len,
+                COORD { X: x, Y: y },
+                &mut wrote,
+            )
+        } == 0
+        {
+            bail!(
+                "FillConsoleOutputAttribute failed: {}",
+                IOError::last_os_error()
+            );
+        }
+        Ok(wrote)
+    }
+
+    fn set_attr(&mut self, attr: u16) -> Result<(), Error> {
+        self.handle.flush()?;
+        if unsafe { SetConsoleTextAttribute(self.handle.as_raw_handle(), attr) } == 0 {
+            bail!(
+                "SetConsoleTextAttribute failed: {}",
+                IOError::last_os_error()
+            );
+        }
+        Ok(())
+    }
+
+    fn set_cursor_position(&mut self, x: i16, y: i16) -> Result<(), Error> {
+        self.handle.flush()?;
+        if unsafe { SetConsoleCursorPosition(self.handle.as_raw_handle(), COORD { X: x, Y: y }) }
+            == 0
+        {
+            bail!(
+                "SetConsoleCursorPosition failed: {}",
+                IOError::last_os_error()
+            );
+        }
+        Ok(())
+    }
+
+    fn get_buffer_info(&mut self) -> Result<CONSOLE_SCREEN_BUFFER_INFO, Error> {
+        let mut info: CONSOLE_SCREEN_BUFFER_INFO = unsafe { mem::zeroed() };
+        let ok =
+            unsafe { GetConsoleScreenBufferInfo(self.handle.as_raw_handle(), &mut info as *mut _) };
+        if ok == 0 {
+            bail!(
+                "GetConsoleScreenBufferInfo failed: {}",
+                IOError::last_os_error()
+            );
+        }
+        Ok(info)
+    }
+
+    fn set_viewport(&mut self, left: i16, top: i16, right: i16, bottom: i16) -> Result<(), Error> {
+        self.handle.flush()?;
+        let rect = SMALL_RECT {
+            Left: left,
+            Top: top,
+            Right: right,
+            Bottom: bottom,
+        };
+        if unsafe { SetConsoleWindowInfo(self.handle.as_raw_handle(), 1, &rect) } == 0 {
+            bail!("SetConsoleWindowInfo failed: {}", IOError::last_os_error());
+        }
+        Ok(())
     }
 }
 
@@ -186,27 +288,30 @@ impl Terminal for WindowsTerminal {
     }
 
     fn get_screen_size(&mut self) -> Result<ScreenSize, Error> {
-        let mut info: CONSOLE_SCREEN_BUFFER_INFO = unsafe { mem::zeroed() };
-        let handle = self.output_handle.handle.as_raw_handle();
-        let ok = unsafe { GetConsoleScreenBufferInfo(handle, &mut info as *mut _) };
-        if ok != 1 {
-            bail!(
-                "failed to GetConsoleScreenBufferInfo: {}",
-                IOError::last_os_error()
-            );
-        }
+        let info = self.output_handle.get_buffer_info()?;
+
+        // NOTE: the default console behavior is different from unix style
+        // terminals wrt. handling printing in the last column position.
+        // We under report the width by one to make it easier to have similar
+        // semantics to unix style terminals.
+
+        let visible_width = 0 + (info.srWindow.Right - info.srWindow.Left);
+        let visible_height = 1 + (info.srWindow.Bottom - info.srWindow.Top);
 
         Ok(ScreenSize {
-            rows: cast(info.dwSize.Y)?,
-            cols: cast(info.dwSize.X)?,
+            rows: cast(visible_height)?,
+            cols: cast(visible_width)?,
             xpixel: 0,
             ypixel: 0,
         })
     }
 
     fn set_screen_size(&mut self, size: ScreenSize) -> Result<(), Error> {
+        // FIXME: take into account the visible window size here;
+        // this probably changes the size of everything including scrollback
         let size = COORD {
-            X: cast(size.cols)?,
+            // See the note in get_screen_size() for info on the +1.
+            X: cast(size.cols + 1)?,
             Y: cast(size.rows)?,
         };
         let handle = self.output_handle.handle.as_raw_handle();

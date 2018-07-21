@@ -462,7 +462,7 @@ impl Renderer for TerminfoRenderer {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, unix))]
 mod test {
     use super::*;
     use caps::ProbeHintsBuilder;

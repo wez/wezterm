@@ -29,8 +29,8 @@ fn get_terminal() -> Result<impl Terminal, failure::Error> {
 }
 
 #[cfg(windows)]
-fn get_renderer(caps: Capabilities) -> impl Renderer {
-    WindowsConsoleRenderer::new(caps)
+fn get_renderer(_caps: Capabilities) -> impl Renderer {
+    WindowsConsoleRenderer::new()
 }
 
 fn main() -> Result<(), Error> {
@@ -47,6 +47,10 @@ fn main() -> Result<(), Error> {
         AnsiColor::Maroon.into(),
     )));
     screen.add_change("Hello world\r\n");
+    screen.add_change(Change::Attribute(AttributeChange::Foreground(
+        AnsiColor::Red.into(),
+    )));
+    screen.add_change("and in red here\r\n");
 
     let (_seq, changes) = screen.get_changes(0);
     let _end_attr = renderer.render_to(&CellAttributes::default(), &changes, &mut terminal);
