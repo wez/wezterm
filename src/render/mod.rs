@@ -29,3 +29,6 @@ pub trait Renderer {
 }
 
 pub mod terminfo;
+
+#[cfg(windows)]
+pub mod windows;
