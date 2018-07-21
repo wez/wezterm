@@ -1,56 +1,108 @@
 use failure::Error;
 use istty::IsTty;
 use libc::{self, winsize};
-use std::fs::File;
-use std::io::{stdin, stdout, Error as IOError, Read, Result as IOResult, Stdin, Stdout, Write};
+use std::io::{stdin, stdout, Error as IOError, Read, Result as IOResult, Write};
 use std::mem;
 use std::os::unix::io::{AsRawFd, RawFd};
 use termios::{cfmakeraw, tcsetattr, Termios, TCSANOW};
 
 use terminal::{cast, ScreenSize, Terminal, BUF_SIZE};
 
-enum Handle {
-    File(File),
-    Stdio { stdin: Stdin, stdout: Stdout },
+/// Helper function to duplicate a file descriptor.
+/// The duplicated descriptor will have the close-on-exec flag set.
+fn dup(fd: RawFd) -> Result<RawFd, Error> {
+    let new_fd = unsafe { libc::fcntl(fd, libc::F_DUPFD_CLOEXEC, 0) };
+    if new_fd == -1 {
+        bail!("dup of pty fd failed: {:?}", IOError::last_os_error())
+    }
+    Ok(new_fd)
 }
 
-impl Read for Handle {
-    fn read(&mut self, buf: &mut [u8]) -> IOResult<usize> {
-        match self {
-            Handle::File(f) => f.read(buf),
-            Handle::Stdio { stdin, .. } => stdin.read(buf),
+pub trait UnixTty {
+    fn get_size(&mut self) -> Result<winsize, Error>;
+    fn set_size(&mut self, size: winsize) -> Result<(), Error>;
+    fn get_termios(&mut self) -> Result<Termios, Error>;
+    fn set_termios(&mut self, termios: &Termios) -> Result<(), Error>;
+}
+
+pub struct TtyHandle {
+    fd: RawFd,
+}
+
+impl Drop for TtyHandle {
+    fn drop(&mut self) {
+        unsafe {
+            libc::close(self.fd);
+        }
+    }
+}
+impl Write for TtyHandle {
+    fn write(&mut self, buf: &[u8]) -> Result<usize, IOError> {
+        let size = unsafe { libc::write(self.fd, buf.as_ptr() as *const _, buf.len()) };
+        if size == -1 {
+            Err(IOError::last_os_error())
+        } else {
+            Ok(size as usize)
+        }
+    }
+
+    fn flush(&mut self) -> Result<(), IOError> {
+        Ok(())
+    }
+}
+
+impl Read for TtyHandle {
+    fn read(&mut self, buf: &mut [u8]) -> Result<usize, IOError> {
+        let size = unsafe { libc::read(self.fd, buf.as_mut_ptr() as *mut _, buf.len()) };
+        if size == -1 {
+            Err(IOError::last_os_error())
+        } else {
+            Ok(size as usize)
         }
     }
 }
 
-impl Write for Handle {
-    fn write(&mut self, buf: &[u8]) -> IOResult<usize> {
-        match self {
-            Handle::File(f) => f.write(buf),
-            Handle::Stdio { stdout, .. } => stdout.write(buf),
-        }
-    }
-
-    fn flush(&mut self) -> IOResult<()> {
-        match self {
-            Handle::File(f) => f.flush(),
-            Handle::Stdio { stdout, .. } => stdout.flush(),
-        }
+impl TtyHandle {
+    pub fn new<S: AsRawFd>(s: &S) -> Result<Self, Error> {
+        ensure!(s.is_tty(), "Can only construct a TtyHandle from a tty");
+        let fd = dup(s.as_raw_fd())?;
+        Ok(Self { fd })
     }
 }
 
-impl Handle {
-    fn writable_fd(&self) -> RawFd {
-        match self {
-            Handle::File(f) => f.as_raw_fd(),
-            Handle::Stdio { stdout, .. } => stdout.as_raw_fd(),
+impl UnixTty for TtyHandle {
+    fn get_size(&mut self) -> Result<winsize, Error> {
+        let mut size: winsize = unsafe { mem::zeroed() };
+        if unsafe { libc::ioctl(self.fd, libc::TIOCGWINSZ, &mut size) } != 0 {
+            bail!("failed to ioctl(TIOCGWINSZ): {}", IOError::last_os_error());
         }
+        Ok(size)
+    }
+
+    fn set_size(&mut self, size: winsize) -> Result<(), Error> {
+        if unsafe { libc::ioctl(self.fd, libc::TIOCSWINSZ, &size as *const _) } != 0 {
+            bail!(
+                "failed to ioctl(TIOCSWINSZ): {:?}",
+                IOError::last_os_error()
+            );
+        }
+
+        Ok(())
+    }
+
+    fn get_termios(&mut self) -> Result<Termios, Error> {
+        Termios::from_fd(self.fd).map_err(|e| format_err!("get_termios failed: {}", e))
+    }
+
+    fn set_termios(&mut self, termios: &Termios) -> Result<(), Error> {
+        tcsetattr(self.fd, TCSANOW, termios).map_err(|e| format_err!("set_termios failed: {}", e))
     }
 }
 
 /// A unix style terminal
 pub struct UnixTerminal {
-    handle: Handle,
+    read: TtyHandle,
+    write: TtyHandle,
     saved_termios: Termios,
     write_buffer: Vec<u8>,
 }
@@ -58,20 +110,18 @@ pub struct UnixTerminal {
 impl UnixTerminal {
     /// Attempt to create an instance from the stdin and stdout of the
     /// process.  This will fail unless both are associated with a tty.
+    /// Note that this will duplicate the underlying file descriptors
+    /// and will no longer participate in the stdin/stdout locking
+    /// provided by the rust standard library.
     pub fn new_from_stdio() -> Result<UnixTerminal, Error> {
-        let read = stdin();
-        let write = stdout();
+        let read = TtyHandle::new(&stdin())?;
+        let mut write = TtyHandle::new(&stdout())?;
 
-        if !read.is_tty() || !write.is_tty() {
-            bail!("stdin and stdout must both be tty handles");
-        }
-        let saved_termios = Termios::from_fd(write.as_raw_fd())?;
+        let saved_termios = write.get_termios()?;
 
         Ok(UnixTerminal {
-            handle: Handle::Stdio {
-                stdin: read,
-                stdout: write,
-            },
+            read,
+            write,
             saved_termios,
             write_buffer: Vec::with_capacity(BUF_SIZE),
         })
@@ -84,9 +134,12 @@ impl UnixTerminal {
     pub fn new() -> Result<UnixTerminal, Error> {
         use std::fs::OpenOptions;
         let file = OpenOptions::new().read(true).write(true).open("/dev/tty")?;
-        let saved_termios = Termios::from_fd(file.as_raw_fd())?;
+        let read = TtyHandle::new(&file)?;
+        let mut write = TtyHandle::new(&file)?;
+        let saved_termios = write.get_termios()?;
         Ok(UnixTerminal {
-            handle: Handle::File(file),
+            read,
+            write,
             saved_termios,
             write_buffer: Vec::with_capacity(BUF_SIZE),
         })
@@ -95,7 +148,7 @@ impl UnixTerminal {
 
 impl Read for UnixTerminal {
     fn read(&mut self, buf: &mut [u8]) -> IOResult<usize> {
-        self.handle.read(buf)
+        self.read.read(buf)
     }
 }
 
@@ -105,7 +158,7 @@ impl Write for UnixTerminal {
             self.flush()?;
         }
         if buf.len() >= self.write_buffer.capacity() {
-            self.handle.write(buf)
+            self.write.write(buf)
         } else {
             self.write_buffer.write(buf)
         }
@@ -113,27 +166,24 @@ impl Write for UnixTerminal {
 
     fn flush(&mut self) -> IOResult<()> {
         if self.write_buffer.len() > 0 {
-            self.handle.write(&self.write_buffer)?;
+            self.write.write(&self.write_buffer)?;
             self.write_buffer.clear();
         }
-        self.handle.flush()
+        self.write.flush()
     }
 }
 
 impl Terminal for UnixTerminal {
     fn set_raw_mode(&mut self) -> Result<(), Error> {
-        let fd = self.handle.writable_fd();
-        let mut raw = Termios::from_fd(fd)?;
+        let mut raw = self.write.get_termios()?;
         cfmakeraw(&mut raw);
-        tcsetattr(fd, TCSANOW, &raw).map_err(|e| format_err!("failed to set raw mode: {}", e))
+        self.write
+            .set_termios(&raw)
+            .map_err(|e| format_err!("failed to set raw mode: {}", e))
     }
 
     fn get_screen_size(&mut self) -> Result<ScreenSize, Error> {
-        let fd = self.handle.writable_fd();
-        let mut size: winsize = unsafe { mem::zeroed() };
-        if unsafe { libc::ioctl(fd, libc::TIOCGWINSZ, &mut size as *mut _) } != 0 {
-            bail!("failed to ioctl(TIOCGWINSZ): {}", IOError::last_os_error());
-        }
+        let size = self.write.get_size()?;
         Ok(ScreenSize {
             rows: cast(size.ws_row)?,
             cols: cast(size.ws_col)?,
@@ -143,8 +193,6 @@ impl Terminal for UnixTerminal {
     }
 
     fn set_screen_size(&mut self, size: ScreenSize) -> Result<(), Error> {
-        let fd = self.handle.writable_fd();
-
         let size = winsize {
             ws_row: cast(size.rows)?,
             ws_col: cast(size.cols)?,
@@ -152,21 +200,14 @@ impl Terminal for UnixTerminal {
             ws_ypixel: cast(size.ypixel)?,
         };
 
-        if unsafe { libc::ioctl(fd, libc::TIOCSWINSZ, &size as *const _) } != 0 {
-            bail!(
-                "failed to ioctl(TIOCSWINSZ): {:?}",
-                IOError::last_os_error()
-            );
-        }
-
-        Ok(())
+        self.write.set_size(size)
     }
 }
 
 impl Drop for UnixTerminal {
     fn drop(&mut self) {
-        let fd = self.handle.writable_fd();
-        tcsetattr(fd, TCSANOW, &self.saved_termios)
+        self.write
+            .set_termios(&self.saved_termios)
             .expect("failed to restore original termios state");
     }
 }
