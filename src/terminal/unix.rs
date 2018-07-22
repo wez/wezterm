@@ -2,8 +2,9 @@ use failure::Error;
 use istty::IsTty;
 use libc::{self, winsize};
 use std::fs::OpenOptions;
-use std::io::{stdin, stdout, Error as IOError, ErrorKind, Read, Result as IOResult, Write};
+use std::io::{stdin, stdout, Error as IOError, ErrorKind, Read, Write};
 use std::mem;
+use std::ops::Deref;
 use std::os::unix::io::{AsRawFd, RawFd};
 use termios::{
     cfmakeraw, tcdrain, tcflush, tcsetattr, Termios, TCIFLUSH, TCIOFLUSH, TCOFLUSH, TCSADRAIN,
@@ -13,7 +14,9 @@ use termios::{
 use caps::Capabilities;
 use render::terminfo::TerminfoRenderer;
 use surface::Change;
-use terminal::{cast, ScreenSize, Terminal, BUF_SIZE};
+use terminal::{cast, ScreenSize, Terminal};
+
+const BUF_SIZE: usize = 128;
 
 /// Helper function to duplicate a file descriptor.
 /// The duplicated descriptor will have the close-on-exec flag set.
@@ -51,46 +54,19 @@ pub trait UnixTty {
     fn purge(&mut self, purge: Purge) -> Result<(), Error>;
 }
 
-pub struct TtyHandle {
+struct Fd {
     fd: RawFd,
 }
 
-impl Drop for TtyHandle {
+impl Drop for Fd {
     fn drop(&mut self) {
         unsafe {
             libc::close(self.fd);
         }
     }
 }
-impl Write for TtyHandle {
-    fn write(&mut self, buf: &[u8]) -> Result<usize, IOError> {
-        let size = unsafe { libc::write(self.fd, buf.as_ptr() as *const _, buf.len()) };
-        if size == -1 {
-            Err(IOError::last_os_error())
-        } else {
-            Ok(size as usize)
-        }
-    }
 
-    fn flush(&mut self) -> Result<(), IOError> {
-        self.drain()
-            .map_err(|e| IOError::new(ErrorKind::Other, format!("{}", e)))?;
-        Ok(())
-    }
-}
-
-impl Read for TtyHandle {
-    fn read(&mut self, buf: &mut [u8]) -> Result<usize, IOError> {
-        let size = unsafe { libc::read(self.fd, buf.as_mut_ptr() as *mut _, buf.len()) };
-        if size == -1 {
-            Err(IOError::last_os_error())
-        } else {
-            Ok(size as usize)
-        }
-    }
-}
-
-impl TtyHandle {
+impl Fd {
     pub fn new<S: AsRawFd>(s: &S) -> Result<Self, Error> {
         ensure!(s.is_tty(), "Can only construct a TtyHandle from a tty");
         let fd = dup(s.as_raw_fd())?;
@@ -98,17 +74,96 @@ impl TtyHandle {
     }
 }
 
-impl UnixTty for TtyHandle {
+impl Deref for Fd {
+    type Target = RawFd;
+    fn deref(&self) -> &RawFd {
+        &self.fd
+    }
+}
+
+pub struct TtyReadHandle {
+    fd: Fd,
+}
+
+impl TtyReadHandle {
+    fn new(fd: Fd) -> Self {
+        Self { fd }
+    }
+}
+
+impl Read for TtyReadHandle {
+    fn read(&mut self, buf: &mut [u8]) -> Result<usize, IOError> {
+        let size = unsafe { libc::read(*self.fd, buf.as_mut_ptr() as *mut _, buf.len()) };
+        if size == -1 {
+            Err(IOError::last_os_error())
+        } else {
+            Ok(size as usize)
+        }
+    }
+}
+
+pub struct TtyWriteHandle {
+    fd: Fd,
+    write_buffer: Vec<u8>,
+}
+
+impl TtyWriteHandle {
+    fn new(fd: Fd) -> Self {
+        Self {
+            fd,
+            write_buffer: Vec::with_capacity(BUF_SIZE),
+        }
+    }
+
+    fn flush_local_buffer(&mut self) -> Result<(), IOError> {
+        if self.write_buffer.len() > 0 {
+            do_write(*self.fd, &self.write_buffer)?;
+            self.write_buffer.clear();
+        }
+        Ok(())
+    }
+}
+
+fn do_write(fd: RawFd, buf: &[u8]) -> Result<usize, IOError> {
+    let size = unsafe { libc::write(fd, buf.as_ptr() as *const _, buf.len()) };
+    if size == -1 {
+        Err(IOError::last_os_error())
+    } else {
+        Ok(size as usize)
+    }
+}
+
+impl Write for TtyWriteHandle {
+    fn write(&mut self, buf: &[u8]) -> Result<usize, IOError> {
+        if self.write_buffer.len() + buf.len() > self.write_buffer.capacity() {
+            self.flush()?;
+        }
+        if buf.len() >= self.write_buffer.capacity() {
+            do_write(*self.fd, buf)
+        } else {
+            self.write_buffer.write(buf)
+        }
+    }
+
+    fn flush(&mut self) -> Result<(), IOError> {
+        self.flush_local_buffer()?;
+        self.drain()
+            .map_err(|e| IOError::new(ErrorKind::Other, format!("{}", e)))?;
+        Ok(())
+    }
+}
+
+impl UnixTty for TtyWriteHandle {
     fn get_size(&mut self) -> Result<winsize, Error> {
         let mut size: winsize = unsafe { mem::zeroed() };
-        if unsafe { libc::ioctl(self.fd, libc::TIOCGWINSZ, &mut size) } != 0 {
+        if unsafe { libc::ioctl(*self.fd, libc::TIOCGWINSZ, &mut size) } != 0 {
             bail!("failed to ioctl(TIOCGWINSZ): {}", IOError::last_os_error());
         }
         Ok(size)
     }
 
     fn set_size(&mut self, size: winsize) -> Result<(), Error> {
-        if unsafe { libc::ioctl(self.fd, libc::TIOCSWINSZ, &size as *const _) } != 0 {
+        if unsafe { libc::ioctl(*self.fd, libc::TIOCSWINSZ, &size as *const _) } != 0 {
             bail!(
                 "failed to ioctl(TIOCSWINSZ): {:?}",
                 IOError::last_os_error()
@@ -119,7 +174,7 @@ impl UnixTty for TtyHandle {
     }
 
     fn get_termios(&mut self) -> Result<Termios, Error> {
-        Termios::from_fd(self.fd).map_err(|e| format_err!("get_termios failed: {}", e))
+        Termios::from_fd(*self.fd).map_err(|e| format_err!("get_termios failed: {}", e))
     }
 
     fn set_termios(&mut self, termios: &Termios, when: SetAttributeWhen) -> Result<(), Error> {
@@ -128,11 +183,11 @@ impl UnixTty for TtyHandle {
             SetAttributeWhen::AfterDrainOutputQueue => TCSADRAIN,
             SetAttributeWhen::AfterDrainOutputQueuePurgeInputQueue => TCSAFLUSH,
         };
-        tcsetattr(self.fd, when, termios).map_err(|e| format_err!("set_termios failed: {}", e))
+        tcsetattr(*self.fd, when, termios).map_err(|e| format_err!("set_termios failed: {}", e))
     }
 
     fn drain(&mut self) -> Result<(), Error> {
-        tcdrain(self.fd).map_err(|e| format_err!("tcdrain failed: {}", e))
+        tcdrain(*self.fd).map_err(|e| format_err!("tcdrain failed: {}", e))
     }
 
     fn purge(&mut self, purge: Purge) -> Result<(), Error> {
@@ -141,16 +196,15 @@ impl UnixTty for TtyHandle {
             Purge::OutputQueue => TCOFLUSH,
             Purge::InputAndOutputQueue => TCIOFLUSH,
         };
-        tcflush(self.fd, param).map_err(|e| format_err!("tcflush failed: {}", e))
+        tcflush(*self.fd, param).map_err(|e| format_err!("tcflush failed: {}", e))
     }
 }
 
 /// A unix style terminal
 pub struct UnixTerminal {
-    read: TtyHandle,
-    write: TtyHandle,
+    read: TtyReadHandle,
+    write: TtyWriteHandle,
     saved_termios: Termios,
-    write_buffer: Vec<u8>,
     renderer: TerminfoRenderer,
 }
 
@@ -169,8 +223,8 @@ impl UnixTerminal {
         read: &A,
         write: &B,
     ) -> Result<UnixTerminal, Error> {
-        let read = TtyHandle::new(read)?;
-        let mut write = TtyHandle::new(write)?;
+        let read = TtyReadHandle::new(Fd::new(read)?);
+        let mut write = TtyWriteHandle::new(Fd::new(write)?);
         let saved_termios = write.get_termios()?;
         let renderer = TerminfoRenderer::new(caps);
 
@@ -179,7 +233,6 @@ impl UnixTerminal {
             write,
             saved_termios,
             renderer,
-            write_buffer: Vec::with_capacity(BUF_SIZE),
         })
     }
 
@@ -190,38 +243,6 @@ impl UnixTerminal {
     pub fn new(caps: Capabilities) -> Result<UnixTerminal, Error> {
         let file = OpenOptions::new().read(true).write(true).open("/dev/tty")?;
         Self::new_with(caps, &file, &file)
-    }
-
-    fn flush_local_buffer_only(&mut self) -> IOResult<()> {
-        if self.write_buffer.len() > 0 {
-            self.write.write(&self.write_buffer)?;
-            self.write_buffer.clear();
-        }
-        Ok(())
-    }
-}
-
-impl Read for UnixTerminal {
-    fn read(&mut self, buf: &mut [u8]) -> IOResult<usize> {
-        self.read.read(buf)
-    }
-}
-
-impl Write for UnixTerminal {
-    fn write(&mut self, buf: &[u8]) -> IOResult<usize> {
-        if self.write_buffer.len() + buf.len() > self.write_buffer.capacity() {
-            self.flush_local_buffer_only()?;
-        }
-        if buf.len() >= self.write_buffer.capacity() {
-            self.write.write(buf)
-        } else {
-            self.write_buffer.write(buf)
-        }
-    }
-
-    fn flush(&mut self) -> IOResult<()> {
-        self.flush_local_buffer_only()?;
-        self.write.flush()
     }
 }
 
@@ -257,6 +278,11 @@ impl Terminal for UnixTerminal {
     fn render(&mut self, changes: &[Change]) -> Result<(), Error> {
         self.renderer
             .render_to(changes, &mut self.read, &mut self.write)
+    }
+    fn flush(&mut self) -> Result<(), Error> {
+        self.write
+            .flush()
+            .map_err(|e| format_err!("flush failed: {}", e))
     }
 }
 

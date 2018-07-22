@@ -8,7 +8,6 @@ use caps::Capabilities;
 use failure::Error;
 use num::{self, NumCast};
 use std::fmt::Display;
-use std::io::{Read, Write};
 use surface::Change;
 
 #[cfg(unix)]
@@ -47,7 +46,7 @@ pub struct ScreenSize {
 /// If the `set_raw_mode` or `set_cooked_mode` functions are used in
 /// any combination, the implementation is required to restore the
 /// terminal mode that was in effect when it was created.
-pub trait Terminal: Read + Write {
+pub trait Terminal {
     /// Raw mode disables input line buffering, allowing data to be
     /// read as the user presses keys, disables local echo, so keys
     /// pressed by the user do not implicitly render to the terminal
@@ -62,6 +61,9 @@ pub trait Terminal: Read + Write {
 
     /// Render a series of changes to the terminal output
     fn render(&mut self, changes: &[Change]) -> Result<(), Error>;
+
+    /// Flush any buffered output
+    fn flush(&mut self) -> Result<(), Error>;
 
     /*
     /// Sets the terminal to cooked mode, which is essentially the opposite
@@ -91,8 +93,6 @@ pub type SystemTerminal = WindowsTerminal;
 pub fn new_terminal(caps: Capabilities) -> Result<impl Terminal, Error> {
     SystemTerminal::new(caps)
 }
-
-const BUF_SIZE: usize = 128;
 
 pub(crate) fn cast<T: NumCast + Display + Copy, U: NumCast>(n: T) -> Result<U, Error> {
     num::cast(n).ok_or_else(|| format_err!("{} is out of bounds for this system", n))

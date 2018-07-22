@@ -240,7 +240,7 @@ impl TerminfoRenderer {
 }
 
 impl TerminfoRenderer {
-    pub fn render_to<R: UnixTty + Read, W: UnixTty + Write>(
+    pub fn render_to<R: Read, W: UnixTty + Write>(
         &mut self,
         changes: &[Change],
         _read: &mut R,
@@ -617,22 +617,6 @@ mod test {
         }
     }
 
-    impl Write for FakeTerm {
-        fn write(&mut self, buf: &[u8]) -> IoResult<usize> {
-            self.write.write(buf)
-        }
-
-        fn flush(&mut self) -> IoResult<()> {
-            self.write.flush()
-        }
-    }
-
-    impl Read for FakeTerm {
-        fn read(&mut self, buf: &mut [u8]) -> IoResult<usize> {
-            self.read.read(buf)
-        }
-    }
-
     impl Terminal for FakeTerm {
         fn set_raw_mode(&mut self) -> Result<(), Error> {
             bail!("not implemented");
@@ -660,6 +644,9 @@ mod test {
             };
 
             self.write.set_size(size)
+        }
+        fn flush(&mut self) -> Result<(), Error> {
+            Ok(())
         }
     }
 

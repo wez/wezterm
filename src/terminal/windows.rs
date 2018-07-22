@@ -20,7 +20,9 @@ use winapi::um::winnt::DUPLICATE_SAME_ACCESS;
 use caps::Capabilities;
 use render::windows::WindowsConsoleRenderer;
 use surface::Change;
-use terminal::{cast, ScreenSize, Terminal, BUF_SIZE};
+use terminal::{cast, ScreenSize, Terminal};
+
+const BUF_SIZE: usize = 128;
 
 pub trait ConsoleInputHandle {
     fn set_input_mode(&mut self, mode: u32) -> Result<(), Error>;
@@ -108,6 +110,34 @@ impl ConsoleInputHandle for InputHandle {
 
 struct OutputHandle {
     handle: RawHandle,
+    write_buffer: Vec<u8>,
+}
+
+impl OutputHandle {
+    fn new(handle: RawHandle) -> Self {
+        Self {
+            handle,
+            write_buffer: Vec::with_capacity(BUF_SIZE),
+        }
+    }
+}
+
+fn do_write(handle: RawHandle, buf: &[u8]) -> IOResult<usize> {
+    let mut num_wrote = 0;
+    let ok = unsafe {
+        WriteFile(
+            handle,
+            buf.as_ptr() as *const _,
+            buf.len() as u32,
+            &mut num_wrote,
+            ptr::null_mut(),
+        )
+    };
+    if ok == 0 {
+        Err(IOError::last_os_error())
+    } else {
+        Ok(num_wrote as usize)
+    }
 }
 
 impl Drop for OutputHandle {
@@ -118,24 +148,21 @@ impl Drop for OutputHandle {
 
 impl Write for OutputHandle {
     fn write(&mut self, buf: &[u8]) -> IOResult<usize> {
-        let mut num_wrote = 0;
-        let ok = unsafe {
-            WriteFile(
-                self.handle,
-                buf.as_ptr() as *const _,
-                buf.len() as u32,
-                &mut num_wrote,
-                ptr::null_mut(),
-            )
-        };
-        if ok == 0 {
-            Err(IOError::last_os_error())
+        if self.write_buffer.len() + buf.len() > self.write_buffer.capacity() {
+            self.flush()?;
+        }
+        if buf.len() >= self.write_buffer.capacity() {
+            do_write(self.handle, buf)
         } else {
-            Ok(num_wrote as usize)
+            self.write_buffer.write(buf)
         }
     }
 
     fn flush(&mut self) -> IOResult<()> {
+        if self.write_buffer.len() > 0 {
+            do_write(self.handle, &self.write_buffer)?;
+            self.write_buffer.clear();
+        }
         Ok(())
     }
 }
@@ -239,7 +266,6 @@ impl ConsoleOutputHandle for OutputHandle {
 pub struct WindowsTerminal {
     input_handle: InputHandle,
     output_handle: OutputHandle,
-    write_buffer: Vec<u8>,
     saved_input_mode: u32,
     saved_output_mode: u32,
     renderer: WindowsConsoleRenderer,
@@ -279,9 +305,7 @@ impl WindowsTerminal {
         }
 
         let mut input_handle = InputHandle { handle: dup(read)? };
-        let mut output_handle = OutputHandle {
-            handle: dup(write)?,
-        };
+        let mut output_handle = OutputHandle::new(dup(write)?);
 
         let saved_input_mode = input_handle.get_input_mode()?;
         let saved_output_mode = output_handle.get_output_mode()?;
@@ -293,7 +317,6 @@ impl WindowsTerminal {
             saved_input_mode,
             saved_output_mode,
             renderer,
-            write_buffer: Vec::with_capacity(BUF_SIZE),
         })
     }
 
@@ -316,33 +339,6 @@ impl WindowsTerminal {
         self.input_handle
             .set_input_mode(mode | ENABLE_VIRTUAL_TERMINAL_INPUT)?;
         Ok(())
-    }
-}
-
-impl Read for WindowsTerminal {
-    fn read(&mut self, buf: &mut [u8]) -> IOResult<usize> {
-        self.input_handle.read(buf)
-    }
-}
-
-impl Write for WindowsTerminal {
-    fn write(&mut self, buf: &[u8]) -> IOResult<usize> {
-        if self.write_buffer.len() + buf.len() > self.write_buffer.capacity() {
-            self.flush()?;
-        }
-        if buf.len() >= self.write_buffer.capacity() {
-            self.output_handle.write(buf)
-        } else {
-            self.write_buffer.write(buf)
-        }
-    }
-
-    fn flush(&mut self) -> IOResult<()> {
-        if self.write_buffer.len() > 0 {
-            self.output_handle.write(&self.write_buffer)?;
-            self.write_buffer.clear();
-        }
-        self.output_handle.flush()
     }
 }
 
@@ -395,5 +391,10 @@ impl Terminal for WindowsTerminal {
     fn render(&mut self, changes: &[Change]) -> Result<(), Error> {
         self.renderer
             .render_to(changes, &mut self.input_handle, &mut self.output_handle)
+    }
+    fn flush(&mut self) -> Result<(), Error> {
+        self.output_handle
+            .flush()
+            .map_err(|e| format_err!("flush failed: {}", e))
     }
 }
