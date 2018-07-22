@@ -5,7 +5,7 @@ use std::io::{stdin, stdout, Error as IOError, Read, Result as IOResult, Write};
 use std::os::windows::io::{AsRawHandle, RawHandle};
 use std::{mem, ptr};
 use winapi::um::consoleapi;
-use winapi::um::fileapi::{FlushFileBuffers, ReadFile, WriteFile};
+use winapi::um::fileapi::{ReadFile, WriteFile};
 use winapi::um::handleapi::*;
 use winapi::um::processthreadsapi::GetCurrentProcess;
 use winapi::um::wincon::{
@@ -136,11 +136,7 @@ impl Write for OutputHandle {
     }
 
     fn flush(&mut self) -> IOResult<()> {
-        if unsafe { FlushFileBuffers(self.handle) } == 0 {
-            Err(IOError::last_os_error())
-        } else {
-            Ok(())
-        }
+        Ok(())
     }
 }
 
