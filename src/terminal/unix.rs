@@ -11,7 +11,7 @@ use termios::{
 
 use caps::Capabilities;
 use render::terminfo::TerminfoRenderer;
-use screen::Change;
+use surface::Change;
 use terminal::{cast, ScreenSize, Terminal, BUF_SIZE};
 
 /// Helper function to duplicate a file descriptor.

@@ -5,8 +5,8 @@ use cell::{AttributeChange, CellAttributes, Underline};
 use color::{AnsiColor, ColorAttribute};
 use failure;
 use num;
-use screen::{Change, Position};
 use std::io::{Read, Write};
+use surface::{Change, Position};
 use terminal::windows::{ConsoleInputHandle, ConsoleOutputHandle};
 use winapi::um::wincon::{
     BACKGROUND_BLUE, BACKGROUND_GREEN, BACKGROUND_INTENSITY, BACKGROUND_RED,

@@ -5,8 +5,8 @@ use color::{ColorAttribute, ColorSpec};
 use escape::csi::{Cursor, Edit, EraseInDisplay, EraseInLine, Sgr, CSI};
 use escape::osc::OperatingSystemCommand;
 use failure;
-use screen::{Change, Position};
 use std::io::{Read, Write};
+use surface::{Change, Position};
 use terminal::unix::UnixTty;
 use terminfo::{capability as cap, Capability as TermInfoCapability};
 

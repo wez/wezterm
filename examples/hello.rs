@@ -5,7 +5,7 @@ use failure::Error;
 use termwiz::caps::Capabilities;
 use termwiz::cell::AttributeChange;
 use termwiz::color::AnsiColor;
-use termwiz::screen::{Change, Screen};
+use termwiz::surface::{Change, Surface};
 use termwiz::terminal::{self, Terminal};
 
 #[cfg(unix)]
@@ -25,7 +25,7 @@ fn main() -> Result<(), Error> {
     terminal.set_raw_mode()?;
 
     let size = terminal.get_screen_size()?;
-    let mut screen = Screen::new(size.cols as usize, size.rows as usize);
+    let mut screen = Surface::new(size.cols as usize, size.rows as usize);
 
     screen.add_change(Change::Attribute(AttributeChange::Foreground(
         AnsiColor::Maroon.into(),

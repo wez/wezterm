@@ -15,7 +15,7 @@ use winapi::um::wincon::{
 
 use caps::Capabilities;
 use render::windows::WindowsConsoleRenderer;
-use screen::Change;
+use surface::Change;
 use terminal::{cast, ScreenSize, Terminal, BUF_SIZE};
 
 pub trait ConsoleInputHandle {

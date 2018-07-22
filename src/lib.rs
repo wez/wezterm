@@ -24,5 +24,5 @@ pub mod color;
 pub mod escape;
 pub mod istty;
 pub mod render;
-pub mod screen;
+pub mod surface;
 pub mod terminal;

@@ -19,7 +19,7 @@ pub enum Position {
     EndRelative(usize),
 }
 
-/// `Change` describes an update operation to be applied to a `Screen`.
+/// `Change` describes an update operation to be applied to a `Surface`.
 /// Changes to the active attributes (color, style), moving the cursor
 /// and outputting text are examples of some of the values.
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -169,35 +169,35 @@ impl Line {
 }
 
 /// SequenceNo indicates a logical position within a stream of changes.
-/// The sequence is only meaningful within a given `Screen` instance.
+/// The sequence is only meaningful within a given `Surface` instance.
 pub type SequenceNo = usize;
 
-/// The `Screen` type represents the contents of a terminal screen.
+/// The `Surface` type represents the contents of a terminal screen.
 /// It is not directly connected to a terminal device.
 /// It consists of a buffer and a log of changes.  You can accumulate
 /// updates to the screen by adding instances of the `Change` enum
 /// that describe the updates.
 ///
-/// When ready to render the `Screen` to a `Terminal`, you can use
+/// When ready to render the `Surface` to a `Terminal`, you can use
 /// the `get_changes` method to return an optimized stream of `Change`s
 /// since the last render and then pass it to an instance of `Renderer`.
 ///
-/// `Screen`s can also be composited together; this is useful when
+/// `Surface`s can also be composited together; this is useful when
 /// building up a UI with layers or widgets: each widget can be its
-/// own `Screen` instance and have its content maintained independently
+/// own `Surface` instance and have its content maintained independently
 /// from the other widgets on the screen and can then be copied into
-/// the target `Screen` buffer for rendering.
+/// the target `Surface` buffer for rendering.
 ///
 /// To support more efficient updates in the composite use case, a
 /// `draw_from_screen` method is available; the intent is to have one
-/// `Screen` be hold the data that was last rendered, and a second `Screen`
+/// `Surface` be hold the data that was last rendered, and a second `Surface`
 /// of the same size that is repeatedly redrawn from the composite
 /// of the widgets.  `draw_from_screen` is used to extract the smallest
 /// difference between the updated screen and apply those changes to
 /// the render target, and then use `get_changes` to render those without
 /// repainting the world on each update.
 #[derive(Default)]
-pub struct Screen {
+pub struct Surface {
     width: usize,
     height: usize,
     lines: Vec<Line>,
@@ -208,10 +208,10 @@ pub struct Screen {
     changes: Vec<Change>,
 }
 
-impl Screen {
-    /// Create a new Screen surface with the specified width and height.
+impl Surface {
+    /// Create a new Surface surface with the specified width and height.
     pub fn new(width: usize, height: usize) -> Self {
-        let mut scr = Screen {
+        let mut scr = Surface {
             width,
             height,
             ..Default::default()
@@ -220,7 +220,7 @@ impl Screen {
         scr
     }
 
-    /// Resize the Screen surface to the specified width and height.
+    /// Resize the Surface surface to the specified width and height.
     /// If the width and/or height are smaller than previously, the rows and/or
     /// columns are truncated.  If the width and/or height are larger than
     /// previously then an appropriate number of cells are added to the
@@ -629,20 +629,20 @@ impl Screen {
     /// same sized region within `other` at coordinates `other_x`, `other_y`.
     ///
     /// `other` and `self` may be the same, causing regions within the same
-    /// `Screen` to be differenced; this is used by the `copy_region` method.
+    /// `Surface` to be differenced; this is used by the `copy_region` method.
     ///
     /// The returned list of `Change`s can be passed to the `add_changes` method
     /// to make the region within self match the region within other.
     /// # Panics
     /// Will panic if the regions of interest are not within the bounds of
-    /// their respective `Screen`.
+    /// their respective `Surface`.
     pub fn diff_region(
         &self,
         x: usize,
         y: usize,
         width: usize,
         height: usize,
-        other: &Screen,
+        other: &Surface,
         other_x: usize,
         other_y: usize,
     ) -> Vec<Change> {
@@ -735,14 +735,14 @@ impl Screen {
 
     /// Computes the change stream required to make `self` have the same
     /// screen contents as `other`.
-    pub fn diff_screens(&self, other: &Screen) -> Vec<Change> {
+    pub fn diff_screens(&self, other: &Surface) -> Vec<Change> {
         self.diff_region(0, 0, self.width, self.height, other, 0, 0)
     }
 
     /// Draw the contents of `other` into self at the specified coordinates.
     /// The required updates are recorded as Change entries as well as stored
     /// in the screen line/cell data.
-    pub fn draw_from_screen(&mut self, other: &Screen, x: usize, y: usize) -> SequenceNo {
+    pub fn draw_from_screen(&mut self, other: &Surface, x: usize, y: usize) -> SequenceNo {
         let changes = self.diff_region(x, y, other.width, other.height, other, 0, 0);
         self.add_changes(changes)
     }
@@ -753,7 +753,7 @@ impl Screen {
     /// # Panics
     /// The destination region must be the same size as the source
     /// (which is implied by the function parameters) and must fit
-    /// within the width and height of the Screen or this operation
+    /// within the width and height of the Surface or this operation
     /// will panic.
     pub fn copy_region(
         &mut self,
@@ -799,7 +799,7 @@ mod test {
 
     #[test]
     fn basic_print() {
-        let mut s = Screen::new(4, 3);
+        let mut s = Surface::new(4, 3);
         assert_eq!(
             s.screen_chars_to_string(),
             "\x20\x20\x20\x20\n\
@@ -842,7 +842,7 @@ mod test {
 
     #[test]
     fn newline() {
-        let mut s = Screen::new(4, 4);
+        let mut s = Surface::new(4, 4);
         s.add_change("bloo\rwat\n hey\r\nho");
         assert_eq!(
             s.screen_chars_to_string(),
@@ -855,7 +855,7 @@ mod test {
 
     #[test]
     fn clear_screen() {
-        let mut s = Screen::new(2, 2);
+        let mut s = Surface::new(2, 2);
         s.add_change("hello");
         s.add_change(Change::ClearScreen(Default::default()));
         assert_eq!(s.screen_chars_to_string(), "  \n  \n");
@@ -863,7 +863,7 @@ mod test {
 
     #[test]
     fn clear_eol() {
-        let mut s = Screen::new(3, 3);
+        let mut s = Surface::new(3, 3);
         s.add_change("helwowfoo");
         s.add_change(Change::ClearToEndOfLine(Default::default()));
         assert_eq!(s.screen_chars_to_string(), "hel\nwow\nfoo\n");
@@ -883,7 +883,7 @@ mod test {
 
     #[test]
     fn clear_eos() {
-        let mut s = Screen::new(3, 3);
+        let mut s = Surface::new(3, 3);
         s.add_change("helwowfoo");
         s.add_change(Change::ClearToEndOfScreen(Default::default()));
         assert_eq!(s.screen_chars_to_string(), "hel\nwow\nfoo\n");
@@ -910,7 +910,7 @@ mod test {
 
     #[test]
     fn clear_eos_back_color() {
-        let mut s = Screen::new(3, 3);
+        let mut s = Surface::new(3, 3);
         s.add_change(Change::ClearScreen(AnsiColor::Red.into()));
         s.add_change("helwowfoo");
         assert_eq!(s.screen_chars_to_string(), "hel\nwow\nfoo\n");
@@ -943,7 +943,7 @@ mod test {
 
     #[test]
     fn clear_eol_opt() {
-        let mut s = Screen::new(3, 3);
+        let mut s = Surface::new(3, 3);
         s.add_change(Change::Attribute(AttributeChange::Background(
             AnsiColor::Red.into(),
         )));
@@ -979,7 +979,7 @@ mod test {
 
     #[test]
     fn clear_and_move_cursor() {
-        let mut s = Screen::new(4, 3);
+        let mut s = Surface::new(4, 3);
         s.add_change(Change::CursorPosition {
             x: Position::Absolute(3),
             y: Position::Absolute(2),
@@ -999,7 +999,7 @@ mod test {
 
     #[test]
     fn cursor_movement() {
-        let mut s = Screen::new(4, 3);
+        let mut s = Surface::new(4, 3);
         s.add_change(Change::CursorPosition {
             x: Position::Absolute(3),
             y: Position::Absolute(2),
@@ -1041,7 +1041,7 @@ mod test {
     fn attribute_setting() {
         use cell::Intensity;
 
-        let mut s = Screen::new(3, 1);
+        let mut s = Surface::new(3, 1);
         s.add_change("n");
         s.add_change(AttributeChange::Intensity(Intensity::Bold));
         s.add_change("b");
@@ -1061,7 +1061,7 @@ mod test {
 
     #[test]
     fn empty_changes() {
-        let s = Screen::new(4, 3);
+        let s = Surface::new(4, 3);
 
         let empty = &[Change::ClearScreen(Default::default())];
 
@@ -1078,7 +1078,7 @@ mod test {
 
     #[test]
     fn add_changes_empty() {
-        let mut s = Screen::new(2, 2);
+        let mut s = Surface::new(2, 2);
         let last_seq = s.add_change("foo");
         assert_eq!(0, last_seq);
         assert_eq!(last_seq, s.add_changes(vec![]));
@@ -1087,7 +1087,7 @@ mod test {
 
     #[test]
     fn resize_delta_flush() {
-        let mut s = Screen::new(4, 3);
+        let mut s = Surface::new(4, 3);
         s.add_change("a");
         let (seq, _) = s.get_changes(0);
         s.resize(2, 2);
@@ -1108,7 +1108,7 @@ mod test {
 
     #[test]
     fn dont_lose_first_char_on_attr_change() {
-        let mut s = Screen::new(2, 2);
+        let mut s = Surface::new(2, 2);
         s.add_change(Change::Attribute(AttributeChange::Foreground(
             AnsiColor::Maroon.into(),
         )));
@@ -1134,7 +1134,7 @@ mod test {
 
     #[test]
     fn resize_cursor_position() {
-        let mut s = Screen::new(4, 4);
+        let mut s = Surface::new(4, 4);
 
         s.add_change(" a");
         s.add_change(Change::CursorPosition {
@@ -1163,7 +1163,7 @@ mod test {
 
     #[test]
     fn delta_change() {
-        let mut s = Screen::new(4, 3);
+        let mut s = Surface::new(4, 3);
         // flushing nothing should be a NOP
         s.flush_changes_older_than(0);
 
@@ -1233,7 +1233,7 @@ mod test {
 
     #[test]
     fn diff_screens() {
-        let mut s = Screen::new(4, 3);
+        let mut s = Surface::new(4, 3);
         s.add_change("w00t");
         s.add_change("foo");
         s.add_change("baar");
@@ -1245,7 +1245,7 @@ mod test {
              az  \n"
         );
 
-        let s2 = Screen::new(2, 2);
+        let s2 = Surface::new(2, 2);
 
         {
             // We want to sample the top left corner
@@ -1308,12 +1308,12 @@ mod test {
 
     #[test]
     fn draw_screens() {
-        let mut s = Screen::new(4, 4);
+        let mut s = Surface::new(4, 4);
 
-        let mut s1 = Screen::new(2, 2);
+        let mut s1 = Surface::new(2, 2);
         s1.add_change("1234");
 
-        let mut s2 = Screen::new(2, 2);
+        let mut s2 = Surface::new(2, 2);
         s2.add_change("XYZA");
 
         s.draw_from_screen(&s1, 0, 0);
@@ -1330,7 +1330,7 @@ mod test {
 
     #[test]
     fn copy_region() {
-        let mut s = Screen::new(4, 3);
+        let mut s = Surface::new(4, 3);
         s.add_change("w00t");
         s.add_change("foo");
         s.add_change("baar");

@@ -6,9 +6,9 @@
 
 use failure::Error;
 use num::{self, NumCast};
-use screen::Change;
 use std::fmt::Display;
 use std::io::{Read, Write};
+use surface::Change;
 
 #[cfg(unix)]
 pub mod unix;
