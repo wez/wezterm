@@ -16,6 +16,8 @@ pub mod unix;
 #[cfg(windows)]
 pub mod windows;
 
+pub mod buffered;
+
 #[cfg(unix)]
 pub use self::unix::UnixTerminal;
 #[cfg(windows)]
@@ -68,6 +70,15 @@ pub trait Terminal: Read + Write {
 */
 }
 
+/// `SystemTerminal` is a concrete implementation of `Terminal`.
+/// Ideally you wouldn't reference `SystemTerminal` in consuming
+/// code.  This type is exposed for convenience if you are doing
+/// something unusual and want easier access to the constructors.
+#[cfg(unix)]
+pub type SystemTerminal = UnixTerminal;
+#[cfg(windows)]
+pub type SystemTerminal = WindowsTerminal;
+
 /// Construct a new instance of Terminal.
 /// The terminal will have a renderer that is influenced by the configuration
 /// in the provided `Capabilities` instance.
@@ -78,17 +89,7 @@ pub trait Terminal: Read + Write {
 /// constructors for `UnixTerminal` and `WindowsTerminal` and call whichever
 /// one is most suitable for your needs.
 pub fn new_terminal(caps: Capabilities) -> Result<impl Terminal, Error> {
-    new_terminal_sys(caps)
-}
-
-#[cfg(unix)]
-fn new_terminal_sys(caps: Capabilities) -> Result<impl Terminal, Error> {
-    UnixTerminal::new(caps)
-}
-
-#[cfg(windows)]
-fn new_terminal_sys(caps: Capabilities) -> Result<impl Terminal, Error> {
-    WindowsTerminal::new(caps)
+    SystemTerminal::new(caps)
 }
 
 const BUF_SIZE: usize = 128;

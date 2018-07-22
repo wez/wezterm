@@ -209,7 +209,7 @@ pub struct Surface {
 }
 
 impl Surface {
-    /// Create a new Surface surface with the specified width and height.
+    /// Create a new Surface with the specified width and height.
     pub fn new(width: usize, height: usize) -> Self {
         let mut scr = Surface {
             width,
@@ -220,7 +220,12 @@ impl Surface {
         scr
     }
 
-    /// Resize the Surface surface to the specified width and height.
+    /// Returns the (width, height) of the surface
+    pub fn dimensions(&self) -> (usize, usize) {
+        (self.width, self.height)
+    }
+
+    /// Resize the Surface to the specified width and height.
     /// If the width and/or height are smaller than previously, the rows and/or
     /// columns are truncated.  If the width and/or height are larger than
     /// previously then an appropriate number of cells are added to the

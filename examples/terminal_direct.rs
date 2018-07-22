@@ -1,7 +1,9 @@
 //! This example shows how to render `Change`s directly to
 //! an instance of `Terminal`.  When used in this way, the
 //! library performas no optimization on the change stream.
-//! Consider using the `Surface` struct to enable optimization.
+//! Consider using the `Surface` struct to enable optimization;
+//! the `buffered_terminal.rs` example demonstrates a simple
+//! way to enable optimizations.
 extern crate failure;
 extern crate termwiz;
 
