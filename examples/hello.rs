@@ -6,22 +6,12 @@ use termwiz::caps::Capabilities;
 use termwiz::cell::AttributeChange;
 use termwiz::color::AnsiColor;
 use termwiz::surface::{Change, Surface};
-use termwiz::terminal::{self, Terminal};
-
-#[cfg(unix)]
-fn get_terminal(caps: Capabilities) -> Result<impl Terminal, failure::Error> {
-    terminal::UnixTerminal::new(caps)
-}
-
-#[cfg(windows)]
-fn get_terminal(caps: Capabilities) -> Result<impl Terminal, failure::Error> {
-    terminal::WindowsTerminal::new(caps)
-}
+use termwiz::terminal::{new_terminal, Terminal};
 
 fn main() -> Result<(), Error> {
     let caps = Capabilities::new_from_env()?;
 
-    let mut terminal = get_terminal(caps)?;
+    let mut terminal = new_terminal(caps)?;
     terminal.set_raw_mode()?;
 
     let size = terminal.get_screen_size()?;

@@ -4,6 +4,7 @@
 //! between POSIX and Windows systems, but is implemented only for POSIX
 //! at this time.
 
+use caps::Capabilities;
 use failure::Error;
 use num::{self, NumCast};
 use std::fmt::Display;
@@ -65,6 +66,29 @@ pub trait Terminal: Read + Write {
     /// to raw mode: input and output processing are enabled.
     fn set_cooked_mode(&mut self) -> Result<(), Error>;
 */
+}
+
+/// Construct a new instance of Terminal.
+/// The terminal will have a renderer that is influenced by the configuration
+/// in the provided `Capabilities` instance.
+/// The terminal will explicitly open `/dev/tty` on Unix systems and
+/// `CONIN$` and `CONOUT$` on Windows systems, so that it should yield a
+/// functioning console with minimal headaches.
+/// If you have a more advanced use case you will want to look to the
+/// constructors for `UnixTerminal` and `WindowsTerminal` and call whichever
+/// one is most suitable for your needs.
+pub fn new_terminal(caps: Capabilities) -> Result<impl Terminal, Error> {
+    new_terminal_sys(caps)
+}
+
+#[cfg(unix)]
+fn new_terminal_sys(caps: Capabilities) -> Result<impl Terminal, Error> {
+    UnixTerminal::new(caps)
+}
+
+#[cfg(windows)]
+fn new_terminal_sys(caps: Capabilities) -> Result<impl Terminal, Error> {
+    WindowsTerminal::new(caps)
 }
 
 const BUF_SIZE: usize = 128;

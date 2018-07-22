@@ -1,6 +1,7 @@
 use failure::Error;
 use istty::IsTty;
 use libc::{self, winsize};
+use std::fs::OpenOptions;
 use std::io::{stdin, stdout, Error as IOError, ErrorKind, Read, Result as IOResult, Write};
 use std::mem;
 use std::os::unix::io::{AsRawFd, RawFd};
@@ -187,7 +188,6 @@ impl UnixTerminal {
     /// yield a terminal even if the stdio streams have been redirected,
     /// provided that the process has an associated controlling terminal.
     pub fn new(caps: Capabilities) -> Result<UnixTerminal, Error> {
-        use std::fs::OpenOptions;
         let file = OpenOptions::new().read(true).write(true).open("/dev/tty")?;
         Self::new_with(caps, &file, &file)
     }

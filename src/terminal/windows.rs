@@ -1,10 +1,13 @@
 use failure::Error;
 use istty::IsTty;
-use std::io::{stdin, stdout, Error as IOError, Read, Result as IOResult, Stdin, Stdout, Write};
-use std::mem;
-use std::ops::{Deref, DerefMut};
-use std::os::windows::io::AsRawHandle;
+use std::fs::OpenOptions;
+use std::io::{stdin, stdout, Error as IOError, Read, Result as IOResult, Write};
+use std::os::windows::io::{AsRawHandle, RawHandle};
+use std::{mem, ptr};
 use winapi::um::consoleapi;
+use winapi::um::fileapi::{FlushFileBuffers, ReadFile, WriteFile};
+use winapi::um::handleapi::*;
+use winapi::um::processthreadsapi::GetCurrentProcess;
 use winapi::um::wincon::{
     FillConsoleOutputAttribute, FillConsoleOutputCharacterW, GetConsoleScreenBufferInfo,
     SetConsoleCursorPosition, SetConsoleScreenBufferSize, SetConsoleTextAttribute,
@@ -12,6 +15,7 @@ use winapi::um::wincon::{
     ENABLE_ECHO_INPUT, ENABLE_LINE_INPUT, ENABLE_PROCESSED_INPUT, ENABLE_VIRTUAL_TERMINAL_INPUT,
     ENABLE_VIRTUAL_TERMINAL_PROCESSING, SMALL_RECT,
 };
+use winapi::um::winnt::DUPLICATE_SAME_ACCESS;
 
 use caps::Capabilities;
 use render::windows::WindowsConsoleRenderer;
@@ -35,32 +39,59 @@ pub trait ConsoleOutputHandle {
 }
 
 struct InputHandle {
-    handle: Stdin,
+    handle: RawHandle,
 }
 
-impl Deref for InputHandle {
-    type Target = Stdin;
-
-    fn deref(&self) -> &Stdin {
-        &self.handle
+fn dup<H: AsRawHandle>(h: H) -> Result<RawHandle, Error> {
+    let proc = unsafe { GetCurrentProcess() };
+    let mut duped = INVALID_HANDLE_VALUE;
+    let ok = unsafe {
+        DuplicateHandle(
+            proc,
+            h.as_raw_handle(),
+            proc,
+            &mut duped,
+            0,
+            0,
+            DUPLICATE_SAME_ACCESS,
+        )
+    };
+    if ok == 0 {
+        bail!("DuplicateHandle failed: {}", IOError::last_os_error())
+    } else {
+        Ok(duped)
     }
 }
 
-impl DerefMut for InputHandle {
-    fn deref_mut(&mut self) -> &mut Stdin {
-        &mut self.handle
+impl Drop for InputHandle {
+    fn drop(&mut self) {
+        unsafe { CloseHandle(self.handle) };
     }
 }
 
 impl Read for InputHandle {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, IOError> {
-        self.handle.read(buf)
+        let mut num_read = 0;
+        let ok = unsafe {
+            ReadFile(
+                self.handle,
+                buf.as_mut_ptr() as *mut _,
+                buf.len() as u32,
+                &mut num_read,
+                ptr::null_mut(),
+            )
+        };
+        if ok == 0 {
+            Err(IOError::last_os_error())
+        } else {
+            Ok(num_read as usize)
+        }
     }
 }
 
 impl ConsoleInputHandle for InputHandle {
     fn set_input_mode(&mut self, mode: u32) -> Result<(), Error> {
-        if unsafe { consoleapi::SetConsoleMode(self.handle.as_raw_handle(), mode) } == 0 {
+        if unsafe { consoleapi::SetConsoleMode(self.handle, mode) } == 0 {
             bail!("SetConsoleMode failed: {}", IOError::last_os_error());
         }
         Ok(())
@@ -68,7 +99,7 @@ impl ConsoleInputHandle for InputHandle {
 
     fn get_input_mode(&mut self) -> Result<u32, Error> {
         let mut mode = 0;
-        if unsafe { consoleapi::GetConsoleMode(self.handle.as_raw_handle(), &mut mode) } == 0 {
+        if unsafe { consoleapi::GetConsoleMode(self.handle, &mut mode) } == 0 {
             bail!("GetConsoleMode failed: {}", IOError::last_os_error());
         }
         Ok(mode)
@@ -76,37 +107,46 @@ impl ConsoleInputHandle for InputHandle {
 }
 
 struct OutputHandle {
-    handle: Stdout,
+    handle: RawHandle,
 }
 
-impl Deref for OutputHandle {
-    type Target = Stdout;
-
-    fn deref(&self) -> &Stdout {
-        &self.handle
-    }
-}
-
-impl DerefMut for OutputHandle {
-    fn deref_mut(&mut self) -> &mut Stdout {
-        &mut self.handle
+impl Drop for OutputHandle {
+    fn drop(&mut self) {
+        unsafe { CloseHandle(self.handle) };
     }
 }
 
 impl Write for OutputHandle {
     fn write(&mut self, buf: &[u8]) -> IOResult<usize> {
-        self.handle.write(buf)
+        let mut num_wrote = 0;
+        let ok = unsafe {
+            WriteFile(
+                self.handle,
+                buf.as_ptr() as *const _,
+                buf.len() as u32,
+                &mut num_wrote,
+                ptr::null_mut(),
+            )
+        };
+        if ok == 0 {
+            Err(IOError::last_os_error())
+        } else {
+            Ok(num_wrote as usize)
+        }
     }
 
     fn flush(&mut self) -> IOResult<()> {
-        self.handle.flush()
+        if unsafe { FlushFileBuffers(self.handle) } == 0 {
+            Err(IOError::last_os_error())
+        } else {
+            Ok(())
+        }
     }
 }
 
 impl ConsoleOutputHandle for OutputHandle {
     fn set_output_mode(&mut self, mode: u32) -> Result<(), Error> {
-        self.handle.flush()?;
-        if unsafe { consoleapi::SetConsoleMode(self.handle.as_raw_handle(), mode) } == 0 {
+        if unsafe { consoleapi::SetConsoleMode(self.handle, mode) } == 0 {
             bail!("SetConsoleMode failed: {}", IOError::last_os_error());
         }
         Ok(())
@@ -114,18 +154,17 @@ impl ConsoleOutputHandle for OutputHandle {
 
     fn get_output_mode(&mut self) -> Result<u32, Error> {
         let mut mode = 0;
-        if unsafe { consoleapi::GetConsoleMode(self.handle.as_raw_handle(), &mut mode) } == 0 {
+        if unsafe { consoleapi::GetConsoleMode(self.handle, &mut mode) } == 0 {
             bail!("GetConsoleMode failed: {}", IOError::last_os_error());
         }
         Ok(mode)
     }
 
     fn fill_char(&mut self, text: char, x: i16, y: i16, len: u32) -> Result<u32, Error> {
-        self.handle.flush()?;
         let mut wrote = 0;
         if unsafe {
             FillConsoleOutputCharacterW(
-                self.handle.as_raw_handle(),
+                self.handle,
                 text as u16,
                 len,
                 COORD { X: x, Y: y },
@@ -142,16 +181,9 @@ impl ConsoleOutputHandle for OutputHandle {
     }
 
     fn fill_attr(&mut self, attr: u16, x: i16, y: i16, len: u32) -> Result<u32, Error> {
-        self.handle.flush()?;
         let mut wrote = 0;
         if unsafe {
-            FillConsoleOutputAttribute(
-                self.handle.as_raw_handle(),
-                attr,
-                len,
-                COORD { X: x, Y: y },
-                &mut wrote,
-            )
+            FillConsoleOutputAttribute(self.handle, attr, len, COORD { X: x, Y: y }, &mut wrote)
         } == 0
         {
             bail!(
@@ -163,8 +195,7 @@ impl ConsoleOutputHandle for OutputHandle {
     }
 
     fn set_attr(&mut self, attr: u16) -> Result<(), Error> {
-        self.handle.flush()?;
-        if unsafe { SetConsoleTextAttribute(self.handle.as_raw_handle(), attr) } == 0 {
+        if unsafe { SetConsoleTextAttribute(self.handle, attr) } == 0 {
             bail!(
                 "SetConsoleTextAttribute failed: {}",
                 IOError::last_os_error()
@@ -174,10 +205,7 @@ impl ConsoleOutputHandle for OutputHandle {
     }
 
     fn set_cursor_position(&mut self, x: i16, y: i16) -> Result<(), Error> {
-        self.handle.flush()?;
-        if unsafe { SetConsoleCursorPosition(self.handle.as_raw_handle(), COORD { X: x, Y: y }) }
-            == 0
-        {
+        if unsafe { SetConsoleCursorPosition(self.handle, COORD { X: x, Y: y }) } == 0 {
             bail!(
                 "SetConsoleCursorPosition failed: {}",
                 IOError::last_os_error()
@@ -188,8 +216,7 @@ impl ConsoleOutputHandle for OutputHandle {
 
     fn get_buffer_info(&mut self) -> Result<CONSOLE_SCREEN_BUFFER_INFO, Error> {
         let mut info: CONSOLE_SCREEN_BUFFER_INFO = unsafe { mem::zeroed() };
-        let ok =
-            unsafe { GetConsoleScreenBufferInfo(self.handle.as_raw_handle(), &mut info as *mut _) };
+        let ok = unsafe { GetConsoleScreenBufferInfo(self.handle, &mut info as *mut _) };
         if ok == 0 {
             bail!(
                 "GetConsoleScreenBufferInfo failed: {}",
@@ -200,14 +227,13 @@ impl ConsoleOutputHandle for OutputHandle {
     }
 
     fn set_viewport(&mut self, left: i16, top: i16, right: i16, bottom: i16) -> Result<(), Error> {
-        self.handle.flush()?;
         let rect = SMALL_RECT {
             Left: left,
             Top: top,
             Right: right,
             Bottom: bottom,
         };
-        if unsafe { SetConsoleWindowInfo(self.handle.as_raw_handle(), 1, &rect) } == 0 {
+        if unsafe { SetConsoleWindowInfo(self.handle, 1, &rect) } == 0 {
             bail!("SetConsoleWindowInfo failed: {}", IOError::last_os_error());
         }
         Ok(())
@@ -235,16 +261,31 @@ impl Drop for WindowsTerminal {
 }
 
 impl WindowsTerminal {
-    pub fn new(caps: Capabilities) -> Result<Self, Error> {
-        let read = stdin();
-        let write = stdout();
+    /// Attempt to create an instance from the stdin and stdout of the
+    /// process.  This will fail unless both are associated with a tty.
+    /// Note that this will duplicate the underlying file descriptors
+    /// and will no longer participate in the stdin/stdout locking
+    /// provided by the rust standard library.
+    pub fn new_from_stdio(caps: Capabilities) -> Result<Self, Error> {
+        Self::new_with(caps, stdin(), stdout())
+    }
 
+    /// Create an instance using the provided capabilities, read and write
+    /// handles. The read and write handles must be tty handles of this
+    /// will return an error.
+    pub fn new_with<A: Read + IsTty + AsRawHandle, B: Write + IsTty + AsRawHandle>(
+        caps: Capabilities,
+        read: A,
+        write: B,
+    ) -> Result<Self, Error> {
         if !read.is_tty() || !write.is_tty() {
             bail!("stdin and stdout must both be tty handles");
         }
 
-        let mut input_handle = InputHandle { handle: read };
-        let mut output_handle = OutputHandle { handle: write };
+        let mut input_handle = InputHandle { handle: dup(read)? };
+        let mut output_handle = OutputHandle {
+            handle: dup(write)?,
+        };
 
         let saved_input_mode = input_handle.get_input_mode()?;
         let saved_output_mode = output_handle.get_output_mode()?;
@@ -258,6 +299,15 @@ impl WindowsTerminal {
             renderer,
             write_buffer: Vec::with_capacity(BUF_SIZE),
         })
+    }
+
+    /// Attempt to explicitly open handles to a console device (CONIN$,
+    /// CONOUT$). This should yield the terminal already associated with
+    /// the process, even if stdio streams have been redirected.
+    pub fn new(caps: Capabilities) -> Result<Self, Error> {
+        let read = OpenOptions::new().read(true).write(true).open("CONIN$")?;
+        let write = OpenOptions::new().read(true).write(true).open("CONOUT$")?;
+        Self::new_with(caps, read, write)
     }
 
     pub fn enable_virtual_terminal_processing(&mut self) -> Result<(), Error> {
@@ -336,7 +386,7 @@ impl Terminal for WindowsTerminal {
             X: cast(size.cols + 1)?,
             Y: cast(size.rows)?,
         };
-        let handle = self.output_handle.handle.as_raw_handle();
+        let handle = self.output_handle.handle;
         if unsafe { SetConsoleScreenBufferSize(handle, size) } != 1 {
             bail!(
                 "failed to SetConsoleScreenBufferSize: {}",
