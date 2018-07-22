@@ -717,19 +717,15 @@ impl Surface {
                             Some(other_cell.attrs().clone())
                         }
                     };
-                    if cell.char() != other_cell.char() {
-                        // A little bit of bloat in the code to avoid runs of single
-                        // character Text entries; just append to the string.
-                        let result_len = result.len();
-                        if result_len > 0 && result[result_len - 1].is_text() {
-                            if let Some(Change::Text(ref mut prefix)) =
-                                result.get_mut(result_len - 1)
-                            {
-                                prefix.push(other_cell.char());
-                            }
-                        } else {
-                            result.push(Change::Text(other_cell.char().to_string()));
+                    // A little bit of bloat in the code to avoid runs of single
+                    // character Text entries; just append to the string.
+                    let result_len = result.len();
+                    if result_len > 0 && result[result_len - 1].is_text() {
+                        if let Some(Change::Text(ref mut prefix)) = result.get_mut(result_len - 1) {
+                            prefix.push(other_cell.char());
                         }
+                    } else {
+                        result.push(Change::Text(other_cell.char().to_string()));
                     }
                 }
             }
@@ -747,9 +743,18 @@ impl Surface {
     /// Draw the contents of `other` into self at the specified coordinates.
     /// The required updates are recorded as Change entries as well as stored
     /// in the screen line/cell data.
+    /// Saves the cursor position and attributes that were in effect prior to
+    /// calling `draw_from_screen` and restores them after applying the changes
+    /// from the other surface.
     pub fn draw_from_screen(&mut self, other: &Surface, x: usize, y: usize) -> SequenceNo {
+        let attrs = self.attributes.clone();
+        let cursor = (self.xpos, self.ypos);
         let changes = self.diff_region(x, y, other.width, other.height, other, 0, 0);
-        self.add_changes(changes)
+        let seq = self.add_changes(changes);
+        self.xpos = cursor.0;
+        self.ypos = cursor.1;
+        self.attributes = attrs;
+        seq
     }
 
     /// Copy the contents of the specified region to the same sized
@@ -1330,6 +1335,73 @@ mod test {
              34  \n\
              \x20\x20XY\n\
              \x20\x20ZA\n"
+        );
+    }
+
+    #[test]
+    fn draw_colored_region() {
+        let mut dest = Surface::new(4, 4);
+        dest.add_change("A");
+        let mut src = Surface::new(2, 2);
+        src.add_change(Change::ClearScreen(AnsiColor::Blue.into()));
+        dest.draw_from_screen(&src, 2, 2);
+
+        assert_eq!(
+            dest.screen_chars_to_string(),
+            "A   \n\
+             \x20   \n\
+             \x20   \n\
+             \x20   \n"
+        );
+
+        let blue_space = Cell::new(
+            ' ',
+            CellAttributes::default()
+                .set_background(AnsiColor::Blue)
+                .clone(),
+        );
+
+        assert_eq!(
+            dest.screen_cells(),
+            [
+                [
+                    Cell::new('A', CellAttributes::default()),
+                    Cell::default(),
+                    Cell::default(),
+                    Cell::default(),
+                ],
+                [
+                    Cell::default(),
+                    Cell::default(),
+                    Cell::default(),
+                    Cell::default(),
+                ],
+                [
+                    Cell::default(),
+                    Cell::default(),
+                    blue_space.clone(),
+                    blue_space.clone(),
+                ],
+                [
+                    Cell::default(),
+                    Cell::default(),
+                    blue_space.clone(),
+                    blue_space.clone(),
+                ]
+            ]
+        );
+
+        assert_eq!(dest.xpos, 1);
+        assert_eq!(dest.ypos, 0);
+        assert_eq!(dest.attributes, Default::default());
+        dest.add_change("B");
+
+        assert_eq!(
+            dest.screen_chars_to_string(),
+            "AB  \n\
+             \x20   \n\
+             \x20   \n\
+             \x20   \n"
         );
     }
 
