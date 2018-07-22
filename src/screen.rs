@@ -125,10 +125,43 @@ impl Line {
 
         // flush out any remaining text run
         if text_run.len() > 0 {
-            // TODO: if this is just spaces then it may be cheaper
-            // to emit ClearToEndOfLine here instead.
-            result.push(Change::Text(text_run.clone()));
-            text_run.clear();
+            // if this is just spaces then it is likely cheaper
+            // to emit ClearToEndOfLine instead.
+            if attr == CellAttributes::default()
+                .set_background(attr.background)
+                .clone()
+            {
+                let left = text_run.trim_right_matches(' ').to_string();
+                let num_trailing_spaces = text_run.len() - left.len();
+
+                if num_trailing_spaces > 0 {
+                    if left.len() > 0 {
+                        result.push(Change::Text(left.to_string()));
+                    } else if result.len() == 1 {
+                        // if the only queued result prior to clearing
+                        // to the end of the line is an attribute change,
+                        // we can prune it out and return just the line
+                        // clearing operation
+                        match result[0] {
+                            Change::AllAttributes(_) => result.clear(),
+                            _ => {}
+                        }
+                    }
+
+                    // Since this function is only called in the full repaint
+                    // case, and we always emit a clear screen with the default
+                    // background color, we don't need to emit an instruction
+                    // to clear the remainder of the line unless it has a different
+                    // background color.
+                    if attr.background != Default::default() {
+                        result.push(Change::ClearToEndOfLine(attr.background));
+                    }
+                } else {
+                    result.push(Change::Text(text_run.clone()));
+                }
+            } else {
+                result.push(Change::Text(text_run.clone()));
+            }
         }
 
         result
@@ -458,11 +491,85 @@ impl Screen {
 
         let mut attr = CellAttributes::default();
 
+        let crlf = Change::CursorPosition {
+            x: Position::Absolute(0),
+            y: Position::Relative(1),
+        };
+
+        // Walk backwards through the lines; the goal is to determine
+        // if the screen ends with a number of clear lines that we
+        // can coalesce together as a ClearToEndOfScreen op.
+        // We track the index (from the end) of the last matching
+        // run, together with the color of that run.
+        let mut trailing_color = None;
+        let mut trailing_idx = None;
+
+        for (idx, line) in self.lines.iter().rev().enumerate() {
+            let mut changes = line.changes(&attr);
+            if changes.len() == 0 {
+                // The line recorded no changes; this means that the line
+                // consists of spaces and the default background color
+                match trailing_color {
+                    Some(other) if other != Default::default() => {
+                        // Color doesn't match up, so we have to stop
+                        // looking for the ClearToEndOfScreen run here
+                        break;
+                    }
+                    // Color does match
+                    Some(_) => continue,
+                    // we don't have a run, we should start one
+                    None => {
+                        trailing_color = Some(Default::default());
+                        trailing_idx = Some(idx);
+                        continue;
+                    }
+                }
+            } else {
+                let last_change = changes.len() - 1;
+                match (&changes[last_change], trailing_color) {
+                    (&Change::ClearToEndOfLine(ref color), None) => {
+                        trailing_color = Some(color.clone());
+                        trailing_idx = Some(idx);
+                    }
+                    (&Change::ClearToEndOfLine(ref color), Some(other)) => {
+                        if other == *color {
+                            trailing_idx = Some(idx);
+                            continue;
+                        } else {
+                            break;
+                        }
+                    }
+                    _ => break,
+                }
+            }
+        }
+
         for (idx, line) in self.lines.iter().enumerate() {
+            match trailing_idx {
+                Some(t) if self.height - t == idx => {
+                    let color =
+                        trailing_color.expect("didn't set trailing_color along with trailing_idx");
+
+                    // The first in the sequence of the ClearToEndOfLine may
+                    // be batched up here; let's remove it if that is the case.
+                    let last_result = result.len() - 1;
+                    match result[last_result] {
+                        Change::ClearToEndOfLine(col) if col == color => {
+                            result.remove(last_result);
+                        }
+                        _ => {}
+                    }
+
+                    result.push(Change::ClearToEndOfScreen(color));
+                    break;
+                }
+                _ => {}
+            }
+
             let mut changes = line.changes(&attr);
 
             let result_len = result.len();
-            if result[result_len - 1].is_text() && changes[0].is_text() {
+            if changes.len() > 0 && result[result_len - 1].is_text() && changes[0].is_text() {
                 // Assumption: that the output has working automatic margins.
                 // We can skip the cursor position change and just join the
                 // text items together
@@ -475,34 +582,25 @@ impl Screen {
                 // line with the theory that this will translate
                 // to a short \r\n sequence rather than the longer
                 // absolute cursor positioning sequence
-                result.push(Change::CursorPosition {
-                    x: Position::Absolute(0),
-                    y: Position::Relative(1),
-                });
+                result.push(crlf.clone());
             }
 
             result.append(&mut changes);
             attr = line.cells[self.width - 1].attrs().clone();
         }
 
-        // Optimization opportunity: if we end up with a Text that ends with
-        // a sequence of spaces, and that sequence is long enough, then we can
-        // munge the output to use ClearScreen.
-        if attr == CellAttributes::default() {
+        // Remove any trailing sequence of cursor movements, as we're
+        // going to just finish up with an absolute move anyway.
+        loop {
             let result_len = result.len();
-            if result[result_len - 1].is_text() {
-                if let Change::Text(text) = result.remove(result_len - 1) {
-                    let left = text.trim_right_matches(' ').to_string();
-                    let num_trailing_spaces = text.len() - left.len();
-                    if num_trailing_spaces > 0 && left.len() > 0 {
-                        // We can replace the trailing space with the effects of
-                        // the screen clearing.  We only need to push the left portion
-                        // of the string if it has non-zero length.
-                        result.push(Change::Text(left));
-                    } else if num_trailing_spaces == 0 {
-                        result.push(Change::Text(text));
-                    }
+            if result_len == 0 {
+                break;
+            }
+            match result[result_len - 1] {
+                Change::CursorPosition { .. } => {
+                    result.remove(result_len - 1);
                 }
+                _ => break,
             }
         }
 
@@ -511,8 +609,12 @@ impl Screen {
         // size of the results: results will have an initial ClearScreen entry
         // that homes the cursor.  If the screen is otherwise blank there will
         // be no further entries and we don't need to emit cursor movement.
+        // However, in the optimization passes above, we may have removed
+        // some number of movement entries, so let's be sure to check the
+        // cursor position to make sure that we don't fail to emit movement.
+
         let moved_cursor = result.len() != 1;
-        if moved_cursor {
+        if moved_cursor || self.xpos != 0 || self.ypos != 0 {
             result.push(Change::CursorPosition {
                 x: Position::Absolute(self.xpos),
                 y: Position::Absolute(self.ypos),
@@ -791,6 +893,108 @@ mod test {
         });
         s.add_change(Change::ClearToEndOfScreen(Default::default()));
         assert_eq!(s.screen_chars_to_string(), "hel\nw  \n   \n");
+
+        let (_seq, changes) = s.get_changes(0);
+        assert_eq!(
+            &[
+                Change::ClearScreen(Default::default()),
+                Change::Text("helw".into()),
+                Change::CursorPosition {
+                    x: Position::Absolute(1),
+                    y: Position::Absolute(1),
+                },
+            ],
+            &*changes
+        );
+    }
+
+    #[test]
+    fn clear_eos_back_color() {
+        let mut s = Screen::new(3, 3);
+        s.add_change(Change::ClearScreen(AnsiColor::Red.into()));
+        s.add_change("helwowfoo");
+        assert_eq!(s.screen_chars_to_string(), "hel\nwow\nfoo\n");
+        s.add_change(Change::CursorPosition {
+            x: Position::Absolute(1),
+            y: Position::Absolute(1),
+        });
+        s.add_change(Change::ClearToEndOfScreen(AnsiColor::Red.into()));
+        assert_eq!(s.screen_chars_to_string(), "hel\nw  \n   \n");
+
+        let (_seq, changes) = s.get_changes(0);
+        assert_eq!(
+            &[
+                Change::ClearScreen(Default::default()),
+                Change::AllAttributes(
+                    CellAttributes::default()
+                        .set_background(AnsiColor::Red)
+                        .clone()
+                ),
+                Change::Text("helw".into()),
+                Change::ClearToEndOfScreen(AnsiColor::Red.into()),
+                Change::CursorPosition {
+                    x: Position::Absolute(1),
+                    y: Position::Absolute(1),
+                },
+            ],
+            &*changes
+        );
+    }
+
+    #[test]
+    fn clear_eol_opt() {
+        let mut s = Screen::new(3, 3);
+        s.add_change(Change::Attribute(AttributeChange::Background(
+            AnsiColor::Red.into(),
+        )));
+        s.add_change("111   333");
+        let (_seq, changes) = s.get_changes(0);
+        assert_eq!(
+            &[
+                Change::ClearScreen(Default::default()),
+                Change::AllAttributes(
+                    CellAttributes::default()
+                        .set_background(AnsiColor::Red)
+                        .clone()
+                ),
+                Change::Text("111".into()),
+                Change::CursorPosition {
+                    x: Position::Absolute(0),
+                    y: Position::Relative(1),
+                },
+                Change::ClearToEndOfLine(AnsiColor::Red.into()),
+                Change::CursorPosition {
+                    x: Position::Absolute(0),
+                    y: Position::Relative(1),
+                },
+                Change::Text("333".into()),
+                Change::CursorPosition {
+                    x: Position::Absolute(3),
+                    y: Position::Absolute(2),
+                },
+            ],
+            &*changes
+        );
+    }
+
+    #[test]
+    fn clear_and_move_cursor() {
+        let mut s = Screen::new(4, 3);
+        s.add_change(Change::CursorPosition {
+            x: Position::Absolute(3),
+            y: Position::Absolute(2),
+        });
+        let (_seq, changes) = s.get_changes(0);
+        assert_eq!(
+            &[
+                Change::ClearScreen(Default::default()),
+                Change::CursorPosition {
+                    x: Position::Absolute(3),
+                    y: Position::Absolute(2),
+                },
+            ],
+            &*changes
+        );
     }
 
     #[test]
@@ -919,11 +1123,6 @@ mod test {
                         .clone()
                 ),
                 Change::Text("ab".into()),
-                Change::CursorPosition {
-                    x: Position::Absolute(0),
-                    y: Position::Relative(1),
-                },
-                Change::AllAttributes(CellAttributes::default()),
                 Change::CursorPosition {
                     x: Position::Absolute(2),
                     y: Position::Absolute(0),
