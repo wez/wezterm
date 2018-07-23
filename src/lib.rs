@@ -17,12 +17,16 @@ extern crate vte;
 extern crate num_derive;
 #[macro_use]
 extern crate derive_builder;
+#[macro_use]
+extern crate bitflags;
 
 pub mod caps;
 pub mod cell;
 pub mod color;
 pub mod escape;
+pub mod input;
 pub mod istty;
+pub mod keymap;
 pub mod render;
 pub mod surface;
 pub mod terminal;

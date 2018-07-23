@@ -15,13 +15,14 @@ num-traits = "0.2.5"
 derive_builder = "0.5.1"
 semver = "0.9.0"
 libc = "0.2.42"
+bitflags = "~1.0.0"
+
+[dependencies.num-derive]
+version = "~0.2"
+features = ["full-syntax"]
 
 [target.'cfg(windows)'.dependencies]
 winapi = {version = "~0.3", features = ["winuser", "consoleapi", "handleapi", "fileapi"]}
 
 [target.'cfg(unix)'.dependencies]
 termios = "0.3.0"
-
-[dependencies.num-derive]
-version = "~0.2"
-features = ["full-syntax"]
