@@ -1,6 +1,7 @@
 use failure::Error;
 use istty::IsTty;
 use libc::{self, winsize};
+use std::collections::VecDeque;
 use std::fs::OpenOptions;
 use std::io::{stdin, stdout, Error as IOError, ErrorKind, Read, Write};
 use std::mem;
@@ -12,9 +13,10 @@ use termios::{
 };
 
 use caps::Capabilities;
+use input::{InputEvent, InputParser};
 use render::terminfo::TerminfoRenderer;
 use surface::Change;
-use terminal::{cast, ScreenSize, Terminal};
+use terminal::{cast, Blocking, ScreenSize, Terminal};
 
 const BUF_SIZE: usize = 128;
 
@@ -88,6 +90,17 @@ pub struct TtyReadHandle {
 impl TtyReadHandle {
     fn new(fd: Fd) -> Self {
         Self { fd }
+    }
+
+    fn set_blocking(&mut self, blocking: Blocking) -> Result<(), Error> {
+        let value: libc::c_int = match blocking {
+            Blocking::Yes => 0,
+            Blocking::No => 1,
+        };
+        if unsafe { libc::ioctl(*self.fd, libc::FIONBIO, &value as *const _) } != 0 {
+            bail!("failed to ioctl(FIONBIO): {:?}", IOError::last_os_error());
+        }
+        Ok(())
     }
 }
 
@@ -206,6 +219,8 @@ pub struct UnixTerminal {
     write: TtyWriteHandle,
     saved_termios: Termios,
     renderer: TerminfoRenderer,
+    input_parser: InputParser,
+    input_queue: Option<VecDeque<InputEvent>>,
 }
 
 impl UnixTerminal {
@@ -227,12 +242,16 @@ impl UnixTerminal {
         let mut write = TtyWriteHandle::new(Fd::new(write)?);
         let saved_termios = write.get_termios()?;
         let renderer = TerminfoRenderer::new(caps);
+        let input_parser = InputParser::new();
+        let input_queue = None;
 
         Ok(UnixTerminal {
             read,
             write,
             saved_termios,
             renderer,
+            input_parser,
+            input_queue,
         })
     }
 
@@ -283,6 +302,37 @@ impl Terminal for UnixTerminal {
         self.write
             .flush()
             .map_err(|e| format_err!("flush failed: {}", e))
+    }
+
+    fn poll_input(&mut self, blocking: Blocking) -> Result<Option<InputEvent>, Error> {
+        if let Some(ref mut queue) = self.input_queue {
+            if let Some(event) = queue.pop_front() {
+                return Ok(Some(event));
+            }
+        }
+
+        self.read.set_blocking(blocking)?;
+
+        let mut buf = [0u8; 64];
+        match self.read.read(&mut buf) {
+            Ok(n) => {
+                // A little bit of a dance with moving the queue out of self
+                // to appease the borrow checker.  We'll need to be sure to
+                // move it back before we return!
+                let mut queue = match self.input_queue.take() {
+                    Some(queue) => queue,
+                    None => VecDeque::new(),
+                };
+                self.input_parser
+                    .parse(&buf[0..n], |evt| queue.push_back(evt), n == buf.len());
+                let result = queue.pop_front();
+                // Move the queue back into self before we leave this scope
+                self.input_queue = Some(queue);
+                Ok(result)
+            }
+            Err(ref e) if e.kind() == ErrorKind::WouldBlock => Ok(None),
+            Err(e) => Err(format_err!("failed to read input {}", e)),
+        }
     }
 }
 

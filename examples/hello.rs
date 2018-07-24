@@ -5,15 +5,15 @@ use failure::Error;
 use termwiz::caps::Capabilities;
 use termwiz::cell::AttributeChange;
 use termwiz::color::AnsiColor;
+use termwiz::input::{InputEvent, KeyCode, KeyEvent};
 use termwiz::surface::{Change, Position, Surface};
 use termwiz::terminal::buffered::BufferedTerminal;
-use termwiz::terminal::{new_terminal, Terminal};
+use termwiz::terminal::{new_terminal, Blocking, Terminal};
 
 fn main() -> Result<(), Error> {
     let caps = Capabilities::new_from_env()?;
 
-    let mut terminal = new_terminal(caps)?;
-    terminal.set_raw_mode()?;
+    let terminal = new_terminal(caps)?;
 
     let mut buf = BufferedTerminal::new(terminal)?;
 
@@ -35,6 +35,28 @@ fn main() -> Result<(), Error> {
     });
 
     buf.flush()?;
+
+    buf.terminal().set_raw_mode()?;
+    loop {
+        match buf.terminal().poll_input(Blocking::Yes) {
+            Ok(Some(input)) => match input {
+                InputEvent::Key(KeyEvent {
+                    key: KeyCode::Char('q'),
+                    ..
+                }) => {
+                    break;
+                }
+                _ => {
+                    print!("{:?}\r\n", input);
+                }
+            },
+            Ok(None) => {}
+            Err(e) => {
+                print!("{:?}\r\n", e);
+                break;
+            }
+        }
+    }
 
     Ok(())
 }

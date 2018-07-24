@@ -1,5 +1,6 @@
 use failure::Error;
 use istty::IsTty;
+use std::collections::VecDeque;
 use std::fs::OpenOptions;
 use std::io::{stdin, stdout, Error as IOError, Read, Result as IOResult, Write};
 use std::os::windows::io::{AsRawHandle, RawHandle};
@@ -13,20 +14,23 @@ use winapi::um::wincon::{
     SetConsoleCursorPosition, SetConsoleScreenBufferSize, SetConsoleTextAttribute,
     SetConsoleWindowInfo, CONSOLE_SCREEN_BUFFER_INFO, COORD, DISABLE_NEWLINE_AUTO_RETURN,
     ENABLE_ECHO_INPUT, ENABLE_LINE_INPUT, ENABLE_PROCESSED_INPUT, ENABLE_VIRTUAL_TERMINAL_INPUT,
-    ENABLE_VIRTUAL_TERMINAL_PROCESSING, SMALL_RECT,
+    ENABLE_VIRTUAL_TERMINAL_PROCESSING, INPUT_RECORD, SMALL_RECT,
 };
 use winapi::um::winnt::DUPLICATE_SAME_ACCESS;
 
 use caps::Capabilities;
+use input::{InputEvent, InputParser};
 use render::windows::WindowsConsoleRenderer;
 use surface::Change;
-use terminal::{cast, ScreenSize, Terminal};
+use terminal::{cast, Blocking, ScreenSize, Terminal};
 
 const BUF_SIZE: usize = 128;
 
 pub trait ConsoleInputHandle {
     fn set_input_mode(&mut self, mode: u32) -> Result<(), Error>;
     fn get_input_mode(&mut self) -> Result<u32, Error>;
+    fn get_number_of_input_events(&mut self) -> Result<usize, Error>;
+    fn read_console_input(&mut self, num_events: usize) -> Result<Vec<INPUT_RECORD>, Error>;
 }
 
 pub trait ConsoleOutputHandle {
@@ -105,6 +109,40 @@ impl ConsoleInputHandle for InputHandle {
             bail!("GetConsoleMode failed: {}", IOError::last_os_error());
         }
         Ok(mode)
+    }
+
+    fn get_number_of_input_events(&mut self) -> Result<usize, Error> {
+        let mut num = 0;
+        if unsafe { consoleapi::GetNumberOfConsoleInputEvents(self.handle, &mut num) } == 0 {
+            bail!(
+                "GetNumberOfConsoleInputEvents failed: {}",
+                IOError::last_os_error()
+            );
+        }
+        Ok(num as usize)
+    }
+
+    fn read_console_input(&mut self, num_events: usize) -> Result<Vec<INPUT_RECORD>, Error> {
+        let mut res = Vec::with_capacity(num_events);
+        let empty_record: INPUT_RECORD = unsafe { mem::zeroed() };
+        res.resize(num_events, empty_record);
+
+        let mut num = 0;
+
+        if unsafe {
+            consoleapi::ReadConsoleInputW(
+                self.handle,
+                res.as_mut_ptr(),
+                num_events as u32,
+                &mut num,
+            )
+        } == 0
+        {
+            bail!("ReadConsoleInput failed: {}", IOError::last_os_error());
+        }
+
+        unsafe { res.set_len(num as usize) };
+        Ok(res)
     }
 }
 
@@ -269,6 +307,8 @@ pub struct WindowsTerminal {
     saved_input_mode: u32,
     saved_output_mode: u32,
     renderer: WindowsConsoleRenderer,
+    input_parser: InputParser,
+    input_queue: Option<VecDeque<InputEvent>>,
 }
 
 impl Drop for WindowsTerminal {
@@ -310,6 +350,7 @@ impl WindowsTerminal {
         let saved_input_mode = input_handle.get_input_mode()?;
         let saved_output_mode = output_handle.get_output_mode()?;
         let renderer = WindowsConsoleRenderer::new(caps);
+        let input_parser = InputParser::new();
 
         Ok(Self {
             input_handle,
@@ -317,6 +358,8 @@ impl WindowsTerminal {
             saved_input_mode,
             saved_output_mode,
             renderer,
+            input_parser,
+            input_queue: None,
         })
     }
 
@@ -396,5 +439,36 @@ impl Terminal for WindowsTerminal {
         self.output_handle
             .flush()
             .map_err(|e| format_err!("flush failed: {}", e))
+    }
+
+    fn poll_input(&mut self, blocking: Blocking) -> Result<Option<InputEvent>, Error> {
+        if let Some(ref mut queue) = self.input_queue {
+            if let Some(event) = queue.pop_front() {
+                return Ok(Some(event));
+            }
+        }
+
+        let pending = match (self.input_handle.get_number_of_input_events()?, blocking) {
+            (0, Blocking::No) => return Ok(None),
+            (0, Blocking::Yes) => 1,
+            (pending, _) => pending,
+        };
+
+        let records = self.input_handle.read_console_input(pending)?;
+
+        // A little bit of a dance with moving the queue out of self
+        // to appease the borrow checker.  We'll need to be sure to
+        // move it back before we return!
+        let mut queue = match self.input_queue.take() {
+            Some(queue) => queue,
+            None => VecDeque::new(),
+        };
+
+        self.input_parser
+            .decode_input_records(&records, &mut |evt| queue.push_back(evt));
+
+        let result = queue.pop_front();
+        self.input_queue = Some(queue);
+        Ok(result)
     }
 }

@@ -494,12 +494,13 @@ mod test {
     use escape::parser::Parser;
     use escape::{Action, Esc, EscCode};
     use failure::Error;
+    use input::InputEvent;
     use libc::winsize;
     use std::io::{Error as IoError, ErrorKind, Read, Result as IoResult, Write};
     use std::mem;
     use terminal::unix::{Purge, SetAttributeWhen, UnixTty};
     use terminal::ScreenSize;
-    use terminal::{cast, Terminal};
+    use terminal::{cast, Blocking, Terminal};
     use terminfo;
     use termios::Termios;
 
@@ -647,6 +648,10 @@ mod test {
         }
         fn flush(&mut self) -> Result<(), Error> {
             Ok(())
+        }
+
+        fn poll_input(&mut self, _blocking: Blocking) -> Result<Option<InputEvent>, Error> {
+            bail!("not implemented");
         }
     }
 

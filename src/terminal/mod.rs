@@ -6,6 +6,7 @@
 
 use caps::Capabilities;
 use failure::Error;
+use input::InputEvent;
 use num::{self, NumCast};
 use std::fmt::Display;
 use surface::Change;
@@ -42,6 +43,12 @@ pub struct ScreenSize {
     pub ypixel: usize,
 }
 
+#[derive(Debug, Clone, Copy)]
+pub enum Blocking {
+    No,
+    Yes,
+}
+
 /// `Terminal` abstracts over some basic terminal capabilities.
 /// If the `set_raw_mode` or `set_cooked_mode` functions are used in
 /// any combination, the implementation is required to restore the
@@ -65,11 +72,17 @@ pub trait Terminal {
     /// Flush any buffered output
     fn flush(&mut self) -> Result<(), Error>;
 
-    /*
-    /// Sets the terminal to cooked mode, which is essentially the opposite
-    /// to raw mode: input and output processing are enabled.
-    fn set_cooked_mode(&mut self) -> Result<(), Error>;
-*/
+    /// Check for a parsed input event.
+    /// `blocking` indicates the behavior in the case that no input is
+    /// immediately available.  If blocking == `Blocking::Yes` then
+    /// `poll_input` will not return until an event is available.
+    /// If blocking == `Blocking:No` then `poll_input` will return
+    /// immediately with a value of `Ok(None)`.
+    ///
+    /// The possible values returned as `InputEvent`s depend on the
+    /// mode of the terminal.  Most modes are not returned unless
+    /// the terminal is set to raw mode.
+    fn poll_input(&mut self, blocking: Blocking) -> Result<Option<InputEvent>, Error>;
 }
 
 /// `SystemTerminal` is a concrete implementation of `Terminal`.
