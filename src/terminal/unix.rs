@@ -3,7 +3,7 @@ use istty::IsTty;
 use libc::{self, winsize};
 use std::collections::VecDeque;
 use std::fs::OpenOptions;
-use std::io::{stdin, stdout, Error as IOError, ErrorKind, Read, Write};
+use std::io::{stdin, stdout, Error as IoError, ErrorKind, Read, Write};
 use std::mem;
 use std::ops::Deref;
 use std::os::unix::io::{AsRawFd, RawFd};
@@ -25,7 +25,7 @@ const BUF_SIZE: usize = 128;
 fn dup(fd: RawFd) -> Result<RawFd, Error> {
     let new_fd = unsafe { libc::fcntl(fd, libc::F_DUPFD_CLOEXEC, 0) };
     if new_fd == -1 {
-        bail!("dup of pty fd failed: {:?}", IOError::last_os_error())
+        bail!("dup of pty fd failed: {:?}", IoError::last_os_error())
     }
     Ok(new_fd)
 }
@@ -98,17 +98,17 @@ impl TtyReadHandle {
             Blocking::No => 1,
         };
         if unsafe { libc::ioctl(*self.fd, libc::FIONBIO, &value as *const _) } != 0 {
-            bail!("failed to ioctl(FIONBIO): {:?}", IOError::last_os_error());
+            bail!("failed to ioctl(FIONBIO): {:?}", IoError::last_os_error());
         }
         Ok(())
     }
 }
 
 impl Read for TtyReadHandle {
-    fn read(&mut self, buf: &mut [u8]) -> Result<usize, IOError> {
+    fn read(&mut self, buf: &mut [u8]) -> Result<usize, IoError> {
         let size = unsafe { libc::read(*self.fd, buf.as_mut_ptr() as *mut _, buf.len()) };
         if size == -1 {
-            Err(IOError::last_os_error())
+            Err(IoError::last_os_error())
         } else {
             Ok(size as usize)
         }
@@ -128,7 +128,7 @@ impl TtyWriteHandle {
         }
     }
 
-    fn flush_local_buffer(&mut self) -> Result<(), IOError> {
+    fn flush_local_buffer(&mut self) -> Result<(), IoError> {
         if self.write_buffer.len() > 0 {
             do_write(*self.fd, &self.write_buffer)?;
             self.write_buffer.clear();
@@ -137,17 +137,17 @@ impl TtyWriteHandle {
     }
 }
 
-fn do_write(fd: RawFd, buf: &[u8]) -> Result<usize, IOError> {
+fn do_write(fd: RawFd, buf: &[u8]) -> Result<usize, IoError> {
     let size = unsafe { libc::write(fd, buf.as_ptr() as *const _, buf.len()) };
     if size == -1 {
-        Err(IOError::last_os_error())
+        Err(IoError::last_os_error())
     } else {
         Ok(size as usize)
     }
 }
 
 impl Write for TtyWriteHandle {
-    fn write(&mut self, buf: &[u8]) -> Result<usize, IOError> {
+    fn write(&mut self, buf: &[u8]) -> Result<usize, IoError> {
         if self.write_buffer.len() + buf.len() > self.write_buffer.capacity() {
             self.flush()?;
         }
@@ -158,10 +158,10 @@ impl Write for TtyWriteHandle {
         }
     }
 
-    fn flush(&mut self) -> Result<(), IOError> {
+    fn flush(&mut self) -> Result<(), IoError> {
         self.flush_local_buffer()?;
         self.drain()
-            .map_err(|e| IOError::new(ErrorKind::Other, format!("{}", e)))?;
+            .map_err(|e| IoError::new(ErrorKind::Other, format!("{}", e)))?;
         Ok(())
     }
 }
@@ -170,7 +170,7 @@ impl UnixTty for TtyWriteHandle {
     fn get_size(&mut self) -> Result<winsize, Error> {
         let mut size: winsize = unsafe { mem::zeroed() };
         if unsafe { libc::ioctl(*self.fd, libc::TIOCGWINSZ, &mut size) } != 0 {
-            bail!("failed to ioctl(TIOCGWINSZ): {}", IOError::last_os_error());
+            bail!("failed to ioctl(TIOCGWINSZ): {}", IoError::last_os_error());
         }
         Ok(size)
     }
@@ -179,7 +179,7 @@ impl UnixTty for TtyWriteHandle {
         if unsafe { libc::ioctl(*self.fd, libc::TIOCSWINSZ, &size as *const _) } != 0 {
             bail!(
                 "failed to ioctl(TIOCSWINSZ): {:?}",
-                IOError::last_os_error()
+                IoError::last_os_error()
             );
         }
 

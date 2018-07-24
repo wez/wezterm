@@ -9,13 +9,13 @@ palette = "~0.4"
 serde = "~1.0"
 serde_derive = "~1.0"
 failure = "~0.1"
-vte = "0.3.2"
-num = "0.2.0"
-num-traits = "0.2.5"
-derive_builder = "0.5.1"
-semver = "0.9.0"
-libc = "0.2.42"
-bitflags = "~1.0.0"
+vte = "~0.3"
+num = "~0.2"
+num-traits = "~0.2"
+derive_builder = "~0.5"
+semver = "0.9"
+libc = "~0.2"
+bitflags = "~1.0"
 
 [dependencies.num-derive]
 version = "~0.2"
@@ -25,4 +25,4 @@ features = ["full-syntax"]
 winapi = {version = "~0.3", features = ["winuser", "consoleapi", "handleapi", "fileapi"]}
 
 [target.'cfg(unix)'.dependencies]
-termios = "0.3.0"
+termios = "~0.3"
