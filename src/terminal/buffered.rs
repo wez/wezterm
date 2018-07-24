@@ -55,7 +55,7 @@ impl<T: Terminal> BufferedTerminal<T> {
             // renders all.
             self.seqno = 0;
             self.terminal.render(&changes)?;
-            self.terminal.flush()?;
+            //self.terminal.flush()?;
             self.seqno = seq;
         }
         self.surface.flush_changes_older_than(self.seqno);

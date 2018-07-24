@@ -260,6 +260,8 @@ impl WindowsConsoleRenderer {
                 Change::AllAttributes(all) => {
                     self.current_attr = all.clone();
                 }
+                Change::CursorColor(_color) => {}
+                Change::CursorShape(_shape) => {}
             }
         }
         out.flush()?;

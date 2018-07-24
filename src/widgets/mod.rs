@@ -1,7 +1,8 @@
+use color::ColorAttribute;
 use input::InputEvent;
 use std::cell::{Ref, RefCell, RefMut};
 use std::rc::{Rc, Weak};
-use surface::{SequenceNo, Surface};
+use surface::{Change, CursorShape, Position, SequenceNo, Surface};
 
 /// Describes an event that may need to be processed by the widget
 pub enum WidgetEvent {
@@ -46,6 +47,13 @@ impl SizeConstraints {
     }
 }
 
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct CursorShapeAndPosition {
+    pub shape: CursorShape,
+    pub coords: ParentRelativeCoords,
+    pub color: ColorAttribute,
+}
+
 pub trait WidgetImpl {
     /// Called once by the widget manager to inform the widget
     /// of its identifier
@@ -58,12 +66,17 @@ pub trait WidgetImpl {
     fn get_size_constraints(&self) -> SizeConstraints;
 
     fn render_to_surface(&self, surface: &mut Surface);
+
+    /// Called for the focused widget to determine how to render
+    /// the cursor.
+    fn get_cursor_shape_and_position(&self) -> CursorShapeAndPosition;
 }
 
 /// Relative to the top left of the parent container
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct ParentRelativeCoords {
-    x: usize,
-    y: usize,
+    pub x: usize,
+    pub y: usize,
 }
 
 impl ParentRelativeCoords {
@@ -73,9 +86,10 @@ impl ParentRelativeCoords {
 }
 
 /// Relative to the top left of the screen
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct ScreenRelativeCoords {
-    x: usize,
-    y: usize,
+    pub x: usize,
+    pub y: usize,
 }
 
 impl ScreenRelativeCoords {
@@ -192,6 +206,25 @@ impl Widget {
     pub fn add_child(&mut self, widget: &WidgetHandle) {
         self.children.push(widget.clone());
     }
+
+    pub fn to_screen_coords(&self, coords: &ParentRelativeCoords) -> ScreenRelativeCoords {
+        let mut x = coords.x;
+        let mut y = coords.y;
+        let mut widget = self.parent();
+        loop {
+            let parent = match widget {
+                Some(parent) => {
+                    let p = parent.borrow();
+                    x += p.coordinates.x;
+                    y += p.coordinates.y;
+                    p.parent()
+                }
+                None => break,
+            };
+            widget = parent;
+        }
+        ScreenRelativeCoords { x, y }
+    }
 }
 
 pub struct Screen {
@@ -243,5 +276,18 @@ impl Screen {
     /// and then progresses up through its children.
     pub fn render_to_screen(&mut self, screen: &mut Surface) {
         self.root_widget.borrow_mut().render_to_screen(screen);
+
+        let focused = self.focused_widget.borrow();
+        let cursor = focused.inner.get_cursor_shape_and_position();
+        let coords = focused.to_screen_coords(&cursor.coords);
+
+        screen.add_changes(vec![
+            Change::CursorShape(cursor.shape),
+            Change::CursorColor(cursor.color),
+            Change::CursorPosition {
+                x: Position::Absolute(coords.x),
+                y: Position::Absolute(coords.y),
+            },
+        ]);
     }
 }

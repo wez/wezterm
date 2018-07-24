@@ -6,7 +6,7 @@ use escape::csi::{Cursor, Edit, EraseInDisplay, EraseInLine, Sgr, CSI};
 use escape::osc::OperatingSystemCommand;
 use failure;
 use std::io::{Read, Write};
-use surface::{Change, Position};
+use surface::{Change, CursorShape, Position};
 use terminal::unix::UnixTty;
 use terminfo::{capability as cap, Capability as TermInfoCapability};
 
@@ -14,6 +14,8 @@ pub struct TerminfoRenderer {
     caps: Capabilities,
     current_attr: CellAttributes,
     pending_attr: Option<CellAttributes>,
+    /* TODO: we should record cursor position, shape and color here
+     * so that we can optimize updating them on screen. */
 }
 
 impl TerminfoRenderer {
@@ -477,6 +479,39 @@ impl TerminfoRenderer {
                         change
                     );
                 }
+                Change::CursorColor(_color) => {
+                    // TODO: this isn't spec'd by terminfo, but some terminals
+                    // support it.  Add this to capabilities?
+                }
+                Change::CursorShape(shape) => match shape {
+                    CursorShape::Default => {
+                        if let Some(reset) = self.get_capability::<cap::ResetCursorStyle>() {
+                            reset.expand().to(out.by_ref())?;
+                        }
+                    }
+                    CursorShape::Hidden => {
+                        if let Some(hide) = self.get_capability::<cap::CursorInvisible>() {
+                            hide.expand().to(out.by_ref())?;
+                        }
+                    }
+                    _ => {
+                        if let Some(show) = self.get_capability::<cap::CursorVisible>() {
+                            show.expand().to(out.by_ref())?;
+                        }
+                        let param = match shape {
+                            CursorShape::Default | CursorShape::Hidden => unreachable!(),
+                            CursorShape::BlinkingBlock => 1,
+                            CursorShape::SteadyBlock => 2,
+                            CursorShape::BlinkingUnderline => 3,
+                            CursorShape::SteadyUnderline => 4,
+                            CursorShape::BlinkingBar => 6,
+                            CursorShape::SteadyBar => 7,
+                        };
+                        if let Some(set) = self.get_capability::<cap::SetCursorStyle>() {
+                            set.expand().kind(param).to(out.by_ref())?;
+                        }
+                    }
+                },
             }
         }
 

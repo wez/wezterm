@@ -19,6 +19,24 @@ pub enum Position {
     EndRelative(usize),
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CursorShape {
+    Hidden,
+    Default,
+    BlinkingBlock,
+    SteadyBlock,
+    BlinkingUnderline,
+    SteadyUnderline,
+    BlinkingBar,
+    SteadyBar,
+}
+
+impl Default for CursorShape {
+    fn default() -> CursorShape {
+        CursorShape::Default
+    }
+}
+
 /// `Change` describes an update operation to be applied to a `Surface`.
 /// Changes to the active attributes (color, style), moving the cursor
 /// and outputting text are examples of some of the values.
@@ -52,8 +70,11 @@ pub enum Change {
     ClearToEndOfScreen(ColorAttribute),
     /// Move the cursor to the specified `Position`.
     CursorPosition { x: Position, y: Position },
-    /*   CursorVisibility(bool),
-     *   ChangeScrollRegion{top: usize, bottom: usize}, */
+    /// Change the cursor color.
+    CursorColor(ColorAttribute),
+    /// Change the cursor shape
+    CursorShape(CursorShape),
+    /* ChangeScrollRegion{top: usize, bottom: usize}, */
 }
 
 impl Change {
@@ -206,6 +227,8 @@ pub struct Surface {
     ypos: usize,
     seqno: SequenceNo,
     changes: Vec<Change>,
+    cursor_shape: CursorShape,
+    cursor_color: ColorAttribute,
 }
 
 impl Surface {
@@ -223,6 +246,10 @@ impl Surface {
     /// Returns the (width, height) of the surface
     pub fn dimensions(&self) -> (usize, usize) {
         (self.width, self.height)
+    }
+
+    pub fn cursor_position(&self) -> (usize, usize) {
+        (self.xpos, self.ypos)
     }
 
     /// Resize the Surface to the specified width and height.
@@ -294,6 +321,8 @@ impl Surface {
             Change::ClearScreen(color) => self.clear_screen(color),
             Change::ClearToEndOfLine(color) => self.clear_eol(color),
             Change::ClearToEndOfScreen(color) => self.clear_eos(color),
+            Change::CursorColor(color) => self.cursor_color = color.clone(),
+            Change::CursorShape(shape) => self.cursor_shape = shape.clone(),
         }
     }
 
