@@ -1,8 +1,4 @@
 //! An abstraction over a terminal device
-//! `Terminal` implements `Read` and `Write` and offers methods
-//! for changing the input mode.  The interface considers the differences
-//! between POSIX and Windows systems, but is implemented only for POSIX
-//! at this time.
 
 use caps::Capabilities;
 use failure::Error;

@@ -2,8 +2,6 @@
 //! something is a terminal teletype or not.
 //! This module defines the IsTty trait and the is_tty method to
 //! return true if the item represents a terminal.
-//! The implementation at the time of writing is unix centric, but
-//! the trait could also be ported to Windows and have meaning.
 #[cfg(unix)]
 use std::os::unix::io::AsRawFd;
 #[cfg(windows)]
