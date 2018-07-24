@@ -30,3 +30,4 @@ pub mod keymap;
 pub mod render;
 pub mod surface;
 pub mod terminal;
+pub mod widgets;

@@ -307,6 +307,8 @@ impl Surface {
                 *cell = cleared.clone();
             }
         }
+        self.xpos = 0;
+        self.ypos = 0;
     }
 
     fn clear_eos(&mut self, color: &ColorAttribute) {
@@ -867,7 +869,11 @@ mod test {
     fn clear_screen() {
         let mut s = Surface::new(2, 2);
         s.add_change("hello");
+        assert_eq!(s.xpos, 1);
+        assert_eq!(s.ypos, 1);
         s.add_change(Change::ClearScreen(Default::default()));
+        assert_eq!(s.xpos, 0);
+        assert_eq!(s.ypos, 0);
         assert_eq!(s.screen_chars_to_string(), "  \n  \n");
     }
 
