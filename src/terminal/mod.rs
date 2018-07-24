@@ -41,8 +41,8 @@ pub struct ScreenSize {
 
 #[derive(Debug, Clone, Copy)]
 pub enum Blocking {
-    No,
-    Yes,
+    DoNotWait,
+    Wait,
 }
 
 /// `Terminal` abstracts over some basic terminal capabilities.

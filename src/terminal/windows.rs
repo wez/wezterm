@@ -449,8 +449,8 @@ impl Terminal for WindowsTerminal {
         }
 
         let pending = match (self.input_handle.get_number_of_input_events()?, blocking) {
-            (0, Blocking::No) => return Ok(None),
-            (0, Blocking::Yes) => 1,
+            (0, Blocking::DoNotWait) => return Ok(None),
+            (0, Blocking::Wait) => 1,
             (pending, _) => pending,
         };
 

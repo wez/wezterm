@@ -94,8 +94,8 @@ impl TtyReadHandle {
 
     fn set_blocking(&mut self, blocking: Blocking) -> Result<(), Error> {
         let value: libc::c_int = match blocking {
-            Blocking::Yes => 0,
-            Blocking::No => 1,
+            Blocking::Wait => 0,
+            Blocking::DoNotWait => 1,
         };
         if unsafe { libc::ioctl(*self.fd, libc::FIONBIO, &value as *const _) } != 0 {
             bail!("failed to ioctl(FIONBIO): {:?}", IoError::last_os_error());

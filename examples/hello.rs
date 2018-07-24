@@ -38,7 +38,7 @@ fn main() -> Result<(), Error> {
 
     buf.terminal().set_raw_mode()?;
     loop {
-        match buf.terminal().poll_input(Blocking::Yes) {
+        match buf.terminal().poll_input(Blocking::Wait) {
             Ok(Some(input)) => match input {
                 InputEvent::Key(KeyEvent {
                     key: KeyCode::Escape,
