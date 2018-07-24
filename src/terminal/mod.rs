@@ -70,9 +70,9 @@ pub trait Terminal {
 
     /// Check for a parsed input event.
     /// `blocking` indicates the behavior in the case that no input is
-    /// immediately available.  If blocking == `Blocking::Yes` then
+    /// immediately available.  If blocking == `Blocking::Wait` then
     /// `poll_input` will not return until an event is available.
-    /// If blocking == `Blocking:No` then `poll_input` will return
+    /// If blocking == `Blocking:DoNotWait` then `poll_input` will return
     /// immediately with a value of `Ok(None)`.
     ///
     /// The possible values returned as `InputEvent`s depend on the
