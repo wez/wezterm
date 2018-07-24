@@ -41,10 +41,17 @@ fn main() -> Result<(), Error> {
         match buf.terminal().poll_input(Blocking::Yes) {
             Ok(Some(input)) => match input {
                 InputEvent::Key(KeyEvent {
-                    key: KeyCode::Char('q'),
+                    key: KeyCode::Escape,
                     ..
                 }) => {
                     break;
+                }
+                InputEvent::Key(KeyEvent {
+                    key: KeyCode::Char(c),
+                    ..
+                }) => {
+                    buf.add_change(format!("{}", c));
+                    buf.flush()?;
                 }
                 _ => {
                     print!("{:?}\r\n", input);
