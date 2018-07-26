@@ -21,7 +21,6 @@ struct MainScreen {
 }
 
 impl WidgetImpl for MainScreen {
-    fn set_widget_id(&mut self, _id: WidgetId) {}
     fn process_event(&mut self, event: &WidgetEvent) -> EventDisposition {
         match event {
             WidgetEvent::Input(InputEvent::Key(KeyEvent {
@@ -42,10 +41,6 @@ impl WidgetImpl for MainScreen {
         }
     }
 
-    fn get_size_constraints(&self) -> SizeConstraints {
-        SizeConstraints::default()
-    }
-
     fn render_to_surface(&self, surface: &mut Surface) {
         surface.add_change(Change::ClearScreen(AnsiColor::Blue.into()));
         surface.add_change(self.buf.clone());
@@ -59,6 +54,7 @@ impl WidgetImpl for MainScreen {
     fn get_cursor_shape_and_position(&self) -> CursorShapeAndPosition {
         CursorShapeAndPosition {
             coords: self.cursor.get(),
+            shape: termwiz::surface::CursorShape::SteadyBar,
             ..Default::default()
         }
     }
@@ -72,7 +68,7 @@ fn main() -> Result<(), Error> {
 
     let mut screen = Screen::new(Widget::new(Box::new(MainScreen::default())));
 
-    screen.render_to_screen(&mut buf);
+    screen.render_to_screen(&mut buf)?;
     buf.flush()?;
 
     loop {
@@ -95,7 +91,7 @@ fn main() -> Result<(), Error> {
             }
         }
 
-        screen.render_to_screen(&mut buf);
+        screen.render_to_screen(&mut buf)?;
         buf.flush()?;
     }
 

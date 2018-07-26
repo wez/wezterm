@@ -16,6 +16,7 @@ derive_builder = "~0.5"
 semver = "0.9"
 libc = "~0.2"
 bitflags = "~1.0"
+cassowary = "~0.3"
 
 [dependencies.num-derive]
 version = "~0.2"

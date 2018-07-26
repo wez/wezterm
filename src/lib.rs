@@ -19,6 +19,7 @@ extern crate num_derive;
 extern crate derive_builder;
 #[macro_use]
 extern crate bitflags;
+extern crate cassowary;
 
 pub mod caps;
 pub mod cell;

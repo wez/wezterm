@@ -1,8 +1,13 @@
 use color::ColorAttribute;
+use failure::Error;
 use input::InputEvent;
 use std::cell::{Ref, RefCell, RefMut};
+use std::fmt::{Debug, Error as FmtError, Formatter};
+use std::hash::{Hash, Hasher};
 use std::rc::{Rc, Weak};
 use surface::{Change, CursorShape, Position, SequenceNo, Surface};
+
+pub mod layout;
 
 /// Describes an event that may need to be processed by the widget
 pub enum WidgetEvent {
@@ -19,35 +24,6 @@ pub enum EventDisposition {
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
-pub struct SizeConstraints {
-    pub min_width: Option<usize>,
-    pub min_height: Option<usize>,
-    pub max_width: Option<usize>,
-    pub max_height: Option<usize>,
-    pub width: Option<usize>,
-    pub height: Option<usize>,
-}
-
-impl SizeConstraints {
-    pub fn deduce_initial_size(&self) -> (usize, usize) {
-        match (self.width, self.height) {
-            (Some(w), Some(h)) => return (w, h),
-            _ => {}
-        }
-        match (self.max_width, self.max_height) {
-            (Some(w), Some(h)) => return (w, h),
-            _ => {}
-        }
-        match (self.min_width, self.min_height) {
-            (Some(w), Some(h)) => return (w, h),
-            _ => {}
-        }
-
-        (80, 24)
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct CursorShapeAndPosition {
     pub shape: CursorShape,
     pub coords: ParentRelativeCoords,
@@ -57,19 +33,25 @@ pub struct CursorShapeAndPosition {
 pub trait WidgetImpl {
     /// Called once by the widget manager to inform the widget
     /// of its identifier
-    fn set_widget_id(&mut self, id: WidgetId);
+    fn set_widget_id(&mut self, _id: WidgetId) {}
 
     /// Handle an event
-    fn process_event(&mut self, event: &WidgetEvent) -> EventDisposition;
+    fn process_event(&mut self, _event: &WidgetEvent) -> EventDisposition {
+        EventDisposition::Propagate
+    }
 
     /// Interrogates the widget to ask if it has any sizing constraints
-    fn get_size_constraints(&self) -> SizeConstraints;
+    fn get_size_constraints(&self) -> layout::Constraints {
+        Default::default()
+    }
 
     fn render_to_surface(&self, surface: &mut Surface);
 
     /// Called for the focused widget to determine how to render
     /// the cursor.
-    fn get_cursor_shape_and_position(&self) -> CursorShapeAndPosition;
+    fn get_cursor_shape_and_position(&self) -> CursorShapeAndPosition {
+        Default::default()
+    }
 }
 
 /// Relative to the top left of the parent container
@@ -141,6 +123,26 @@ impl WidgetHandle {
     }
 }
 
+impl PartialEq for WidgetHandle {
+    fn eq(&self, other: &WidgetHandle) -> bool {
+        self.inner.as_ptr() == other.inner.as_ptr()
+    }
+}
+
+impl Eq for WidgetHandle {}
+
+impl Hash for WidgetHandle {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.inner.as_ptr().hash(state)
+    }
+}
+
+impl Debug for WidgetHandle {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), FmtError> {
+        write!(f, "WidgetHandle({:?})", self.inner.as_ptr())
+    }
+}
+
 /// An identifier assigned by the widget management machinery.
 #[derive(Clone)]
 pub struct WidgetId {
@@ -159,7 +161,7 @@ impl WidgetId {
 
 impl Widget {
     pub fn new(widget: Box<WidgetImpl>) -> WidgetHandle {
-        let (width, height) = widget.get_size_constraints().deduce_initial_size();
+        let (width, height) = (80, 24); //widget.get_size_constraints().deduce_initial_size();
         let surface = Surface::new(width, height);
         let coordinates = ParentRelativeCoords::new(0, 0);
         let children = Vec::new();
@@ -189,6 +191,10 @@ impl Widget {
         self.inner.process_event(event)
     }
 
+    pub fn get_size_constraints(&self) -> layout::Constraints {
+        self.inner.get_size_constraints()
+    }
+
     pub fn render_to_screen(&mut self, screen: &mut Surface) {
         self.inner.render_to_surface(&mut self.surface);
         for child in &mut self.children {
@@ -197,6 +203,21 @@ impl Widget {
         self.surface
             .flush_changes_older_than(SequenceNo::max_value());
         screen.draw_from_screen(&self.surface, self.coordinates.x, self.coordinates.y);
+    }
+
+    pub fn get_size_and_position(&self) -> (usize, usize, ParentRelativeCoords) {
+        let (width, height) = self.surface.dimensions();
+        (width, height, self.coordinates)
+    }
+
+    pub fn set_size_and_position(
+        &mut self,
+        width: usize,
+        height: usize,
+        coords: ParentRelativeCoords,
+    ) {
+        self.surface.resize(width, height);
+        self.coordinates = coords;
     }
 
     pub fn parent(&self) -> Option<WidgetHandle> {
@@ -274,7 +295,10 @@ impl Screen {
 
     /// Rendering starts at the root (which can be considered the lowest layer),
     /// and then progresses up through its children.
-    pub fn render_to_screen(&mut self, screen: &mut Surface) {
+    pub fn render_to_screen(&mut self, screen: &mut Surface) -> Result<(), Error> {
+        let (width, height) = screen.dimensions();
+        layout::LayoutState::compute_layout(width, height, &self.root_widget)?;
+
         self.root_widget.borrow_mut().render_to_screen(screen);
 
         let focused = self.focused_widget.borrow();
@@ -289,5 +313,7 @@ impl Screen {
                 y: Position::Absolute(coords.y),
             },
         ]);
+
+        Ok(())
     }
 }

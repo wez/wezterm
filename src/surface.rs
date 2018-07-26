@@ -815,7 +815,7 @@ impl Surface {
 fn compute_position_change(current: usize, pos: &Position, limit: usize) -> usize {
     use self::Position::*;
     match pos {
-        NoChange => min(current, limit - 1),
+        NoChange => min(current, limit.saturating_sub(1)),
         Relative(delta) => {
             if *delta > 0 {
                 min(current.saturating_add(*delta as usize), limit - 1)
