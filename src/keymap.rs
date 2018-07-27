@@ -123,11 +123,11 @@ pub enum Found<Value> {
 /// The `lookup` operation returns an enum describing the
 /// confidence of a match rather than a simple map lookup.
 #[derive(Debug, Clone)]
-pub struct KeyMap<Value: Debug> {
+pub struct KeyMap<Value: Debug + Clone> {
     root: Node<Value>,
 }
 
-impl<Value: Debug> KeyMap<Value> {
+impl<Value: Debug + Clone> KeyMap<Value> {
     pub fn new() -> Self {
         Self { root: Node::new(0) }
     }
@@ -165,12 +165,12 @@ impl<Value: Debug> KeyMap<Value> {
     /// case; if the caller knows that no more data is available this can be
     /// treated as `Found::None`, but otherwise it would be best to read more
     /// data from the stream and retry with a longer input.
-    pub fn lookup<S: AsRef<[u8]>>(&self, key: S) -> Found<&Value> {
+    pub fn lookup<S: AsRef<[u8]>>(&self, key: S) -> Found<Value> {
         match self.root.lookup(key.as_ref(), 0) {
             NodeFind::None => Found::None,
             NodeFind::AmbiguousBackTrack => Found::NeedData,
-            NodeFind::Exact(depth, value) => Found::Exact(depth, value),
-            NodeFind::AmbiguousMatch(depth, value) => Found::Ambiguous(depth, value),
+            NodeFind::Exact(depth, value) => Found::Exact(depth, value.clone()),
+            NodeFind::AmbiguousMatch(depth, value) => Found::Ambiguous(depth, value.clone()),
         }
     }
 }
@@ -193,10 +193,10 @@ mod test {
         km.insert("boom", false);
         assert_eq!(km.lookup("b"), Found::NeedData);
         assert_eq!(km.lookup("bo"), Found::NeedData);
-        assert_eq!(km.lookup("boa"), Found::Exact(3, &true),);
-        assert_eq!(km.lookup("boo"), Found::Ambiguous(3, &true),);
-        assert_eq!(km.lookup("boom"), Found::Exact(4, &false),);
-        assert_eq!(km.lookup("boom!"), Found::Exact(4, &false),);
+        assert_eq!(km.lookup("boa"), Found::Exact(3, true),);
+        assert_eq!(km.lookup("boo"), Found::Ambiguous(3, true),);
+        assert_eq!(km.lookup("boom"), Found::Exact(4, false),);
+        assert_eq!(km.lookup("boom!"), Found::Exact(4, false),);
     }
 
     #[test]
@@ -205,8 +205,8 @@ mod test {
         km.insert("\x03", true);
         km.insert("\x27", true);
         km.insert("\x03XYZ", true);
-        assert_eq!(km.lookup("\x03"), Found::Ambiguous(1, &true),);
-        assert_eq!(km.lookup("\x03foo"), Found::Exact(1, &true),);
-        assert_eq!(km.lookup("\x03X"), Found::Ambiguous(1, &true),);
+        assert_eq!(km.lookup("\x03"), Found::Ambiguous(1, true),);
+        assert_eq!(km.lookup("\x03foo"), Found::Exact(1, true),);
+        assert_eq!(km.lookup("\x03X"), Found::Ambiguous(1, true),);
     }
 }

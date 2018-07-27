@@ -144,10 +144,18 @@ pub enum KeyCode {
     MediaPlayPause,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum InputState {
+    Normal,
+    EscapeMaybeAlt,
+    // TODO: bracketed paste
+}
+
 #[derive(Debug)]
 pub struct InputParser {
     key_map: KeyMap<InputEvent>,
     buf: ReadBuffer,
+    state: InputState,
 }
 
 #[cfg(windows)]
@@ -392,6 +400,7 @@ impl InputParser {
         Self {
             key_map: Self::build_basic_key_map(),
             buf: ReadBuffer::new(),
+            state: InputState::Normal,
         }
     }
 
@@ -613,11 +622,53 @@ impl InputParser {
         }
     }
 
+    fn dispatch_callback<F: FnMut(InputEvent)>(&mut self, mut callback: F, event: InputEvent) {
+        match (self.state, event) {
+            (InputState::EscapeMaybeAlt, InputEvent::Key(KeyEvent { key, modifiers })) => {
+                // Treat this as ALT-key
+                self.state = InputState::Normal;
+                callback(InputEvent::Key(KeyEvent {
+                    key,
+                    modifiers: modifiers | Modifiers::ALT,
+                }));
+            }
+            (InputState::EscapeMaybeAlt, event) => {
+                // The prior ESC was not part of an ALT sequence, so emit
+                // both it and the current event
+                callback(InputEvent::Key(KeyEvent {
+                    key: KeyCode::Escape,
+                    modifiers: Modifiers::NONE,
+                }));
+                callback(event);
+            }
+            (_, event) => callback(event),
+        }
+    }
+
     fn process_bytes<F: FnMut(InputEvent)>(&mut self, mut callback: F, maybe_more: bool) {
         while !self.buf.is_empty() {
             match (self.key_map.lookup(self.buf.as_slice()), maybe_more) {
+                // If we got an unambiguous ESC and we have more data to
+                // follow, then this is likely the Meta version of the
+                // following keypress.  Buffer up the escape key and
+                // consume it from the input.  dispatch_callback() will
+                // emit either the ESC or the ALT modified following key.
+                (
+                    Found::Exact(
+                        len,
+                        InputEvent::Key(KeyEvent {
+                            key: KeyCode::Escape,
+                            modifiers: Modifiers::NONE,
+                        }),
+                    ),
+                    _,
+                ) if self.state == InputState::Normal && self.buf.len() > len =>
+                {
+                    self.state = InputState::EscapeMaybeAlt;
+                    self.buf.advance(len);
+                }
                 (Found::Exact(len, event), _) | (Found::Ambiguous(len, event), false) => {
-                    callback(event.clone());
+                    self.dispatch_callback(&mut callback, event.clone());
                     self.buf.advance(len);
                 }
                 (Found::Ambiguous(_, _), true) | (Found::NeedData, true) => {
@@ -627,10 +678,13 @@ impl InputParser {
                     // No pre-defined key, so pull out a unicode character
                     if let Some((c, len)) = Self::decode_one_char(self.buf.as_slice()) {
                         self.buf.advance(len);
-                        callback(InputEvent::Key(KeyEvent {
-                            key: KeyCode::Char(c),
-                            modifiers: Modifiers::NONE,
-                        }));
+                        self.dispatch_callback(
+                            &mut callback,
+                            InputEvent::Key(KeyEvent {
+                                key: KeyCode::Char(c),
+                                modifiers: Modifiers::NONE,
+                            }),
+                        );
                     } else {
                         // We need more data to recognize the input, so
                         // yield the remainder of the slice

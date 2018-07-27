@@ -20,6 +20,10 @@ impl ReadBuffer {
         self.storage.is_empty()
     }
 
+    pub fn len(&self) -> usize {
+        self.storage.len()
+    }
+
     /// Mark `len` bytes as consumed, discarding them and shunting
     /// the contents of the buffer such that the remainder of the
     /// bytes are available at the front of the buffer.
