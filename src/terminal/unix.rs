@@ -331,6 +331,7 @@ impl Terminal for UnixTerminal {
                 Ok(result)
             }
             Err(ref e) if e.kind() == ErrorKind::WouldBlock => Ok(None),
+            Err(ref e) if e.kind() == ErrorKind::Interrupted => Ok(None),
             Err(e) => Err(format_err!("failed to read input {}", e)),
         }
     }

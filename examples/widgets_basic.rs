@@ -1,6 +1,8 @@
 //! This example shows how to make a basic widget that accumulates
 //! text input and renders it to the screen
 extern crate failure;
+#[cfg(unix)]
+extern crate libc;
 extern crate termwiz;
 
 use failure::Error;
@@ -18,6 +20,14 @@ use termwiz::widgets::*;
 struct MainScreen {
     buf: String,
     cursor: Cell<ParentRelativeCoords>,
+}
+
+#[cfg(unix)]
+fn catch_winch() {
+    extern "C" fn dummy(_: libc::c_int) {}
+    unsafe {
+        libc::signal(libc::SIGWINCH, dummy as usize);
+    }
 }
 
 impl WidgetImpl for MainScreen {
@@ -43,6 +53,8 @@ impl WidgetImpl for MainScreen {
 
     fn render_to_surface(&self, surface: &mut Surface) {
         surface.add_change(Change::ClearScreen(AnsiColor::Blue.into()));
+        let dims = surface.dimensions();
+        surface.add_change(format!("surface size is {:?}\r\n", dims));
         surface.add_change(self.buf.clone());
         // Allow the surface rendering code to figure out where the
         // cursor ends up, then stash a copy of that information for
@@ -61,6 +73,9 @@ impl WidgetImpl for MainScreen {
 }
 
 fn main() -> Result<(), Error> {
+    #[cfg(unix)]
+    catch_winch();
+
     let caps = Capabilities::new_from_env()?;
 
     let mut buf = BufferedTerminal::new(new_terminal(caps)?)?;
@@ -91,6 +106,9 @@ fn main() -> Result<(), Error> {
             }
         }
 
+        if buf.check_for_resize()? {
+            buf.add_change(Change::ClearScreen(Default::default()));
+        }
         screen.render_to_screen(&mut buf)?;
         buf.flush()?;
     }

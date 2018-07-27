@@ -97,8 +97,8 @@ impl<T: Terminal> BufferedTerminal<T> {
         let size = self.terminal.get_screen_size()?;
         let (width, height) = self.surface.dimensions();
 
-        if width != size.cols || height != size.rows {
-            self.surface.resize(width, height);
+        if (width != size.cols) || (height != size.rows) {
+            self.surface.resize(size.cols, size.rows);
             Ok(true)
         } else {
             Ok(false)
