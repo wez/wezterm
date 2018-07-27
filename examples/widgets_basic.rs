@@ -24,9 +24,19 @@ struct MainScreen {
 
 #[cfg(unix)]
 fn catch_winch() {
-    extern "C" fn dummy(_: libc::c_int) {}
+    extern "C" fn dummy(_: libc::c_int) {
+        // This signal handler only exists so that we can knock
+        // ourselves out of a read syscall with EINTR.
+    }
     unsafe {
-        libc::signal(libc::SIGWINCH, dummy as usize);
+        // note: SA_RESTART is cleared by this; we don't want
+        // SA_RESTART enabled; we want SIGWINCH to generate an
+        // EINTR when it occurs.
+        use std::mem;
+        use std::ptr;
+        let mut sig: libc::sigaction = mem::zeroed();
+        sig.sa_sigaction = dummy as usize;
+        libc::sigaction(libc::SIGWINCH, &sig, ptr::null_mut());
     }
 }
 
