@@ -4,6 +4,8 @@ extern crate libc;
 extern crate palette;
 extern crate semver;
 extern crate serde;
+#[cfg(unix)]
+extern crate signal_hook;
 extern crate terminfo;
 #[cfg(unix)]
 extern crate termios;

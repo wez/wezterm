@@ -1,12 +1,14 @@
 use failure::Error;
 use istty::IsTty;
-use libc::{self, winsize};
+use libc::{self, poll, pollfd, winsize, POLLIN};
+use signal_hook::{self, SigId};
 use std::collections::VecDeque;
 use std::fs::OpenOptions;
 use std::io::{stdin, stdout, Error as IoError, ErrorKind, Read, Write};
 use std::mem;
 use std::ops::Deref;
 use std::os::unix::io::{AsRawFd, RawFd};
+use std::os::unix::net::UnixStream;
 use termios::{
     cfmakeraw, tcdrain, tcflush, tcsetattr, Termios, TCIFLUSH, TCIOFLUSH, TCOFLUSH, TCSADRAIN,
     TCSAFLUSH, TCSANOW,
@@ -221,6 +223,8 @@ pub struct UnixTerminal {
     renderer: TerminfoRenderer,
     input_parser: InputParser,
     input_queue: Option<VecDeque<InputEvent>>,
+    sigwinch_id: SigId,
+    sigwinch_pipe: UnixStream,
 }
 
 impl UnixTerminal {
@@ -238,12 +242,18 @@ impl UnixTerminal {
         read: &A,
         write: &B,
     ) -> Result<UnixTerminal, Error> {
-        let read = TtyReadHandle::new(Fd::new(read)?);
+        let mut read = TtyReadHandle::new(Fd::new(read)?);
         let mut write = TtyWriteHandle::new(Fd::new(write)?);
         let saved_termios = write.get_termios()?;
         let renderer = TerminfoRenderer::new(caps);
         let input_parser = InputParser::new();
         let input_queue = None;
+
+        let (sigwinch_pipe, pipe_write) = UnixStream::pair()?;
+        let sigwinch_id = signal_hook::pipe::register(libc::SIGWINCH, pipe_write)?;
+        sigwinch_pipe.set_nonblocking(true)?;
+
+        read.set_blocking(Blocking::DoNotWait)?;
 
         Ok(UnixTerminal {
             read,
@@ -252,6 +262,8 @@ impl UnixTerminal {
             renderer,
             input_parser,
             input_queue,
+            sigwinch_pipe,
+            sigwinch_id,
         })
     }
 
@@ -262,6 +274,28 @@ impl UnixTerminal {
     pub fn new(caps: Capabilities) -> Result<UnixTerminal, Error> {
         let file = OpenOptions::new().read(true).write(true).open("/dev/tty")?;
         Self::new_with(caps, &file, &file)
+    }
+
+    /// Test whether we caught delivery of SIGWINCH.
+    /// If so, yield an `InputEvent` with the current size of the tty.
+    fn caught_sigwinch(&mut self) -> Result<Option<InputEvent>, Error> {
+        let mut buf = [0u8; 64];
+
+        match self.sigwinch_pipe.read(&mut buf) {
+            Ok(_) => {
+                let size = self.write.get_size()?;
+                Ok(Some(InputEvent::Resized {
+                    rows: cast(size.ws_row)?,
+                    cols: cast(size.ws_col)?,
+                }))
+            }
+            Err(ref e)
+                if e.kind() == ErrorKind::WouldBlock || e.kind() == ErrorKind::Interrupted =>
+            {
+                Ok(None)
+            }
+            Err(e) => Err(format_err!("failed to read sigwinch pipe {}", e)),
+        }
     }
 }
 
@@ -311,34 +345,98 @@ impl Terminal for UnixTerminal {
             }
         }
 
-        self.read.set_blocking(blocking)?;
+        // Some unfortunately verbose code here.  In order to safely hook and process
+        // SIGWINCH we need to use the self-pipe trick to deliver signals to a pipe
+        // so that we can use poll(2) to wait for events on both the tty input and
+        // the sigwinch pipe at the same time.  In theory we could do away with this
+        // and use sigaction to register SIGWINCH without SA_RESTART set; that way
+        // we could do a blocking read and have it get EINTR on a resize.
+        // Doing such a thing may introduce more problems for other components in
+        // the rust crate ecosystem if they're not ready to deal with EINTR, so
+        // we opt to take on the complexity here to make things overall easier to
+        // integrate.
 
-        let mut buf = [0u8; 64];
-        match self.read.read(&mut buf) {
-            Ok(n) => {
-                // A little bit of a dance with moving the queue out of self
-                // to appease the borrow checker.  We'll need to be sure to
-                // move it back before we return!
-                let mut queue = match self.input_queue.take() {
-                    Some(queue) => queue,
-                    None => VecDeque::new(),
-                };
-                self.input_parser
-                    .parse(&buf[0..n], |evt| queue.push_back(evt), n == buf.len());
-                let result = queue.pop_front();
-                // Move the queue back into self before we leave this scope
-                self.input_queue = Some(queue);
-                Ok(result)
+        let mut pfd = [
+            pollfd {
+                fd: self.read.fd.fd,
+                events: POLLIN,
+                revents: 0,
+            },
+            pollfd {
+                fd: self.sigwinch_pipe.as_raw_fd(),
+                events: POLLIN,
+                revents: 0,
+            },
+        ];
+
+        let poll_result = unsafe {
+            poll(
+                pfd.as_mut_ptr(),
+                pfd.len() as _,
+                if blocking == Blocking::DoNotWait {
+                    0 // Immediate
+                } else {
+                    -1 // Infinite
+                },
+            )
+        };
+        if poll_result < 0 {
+            let err = IoError::last_os_error();
+
+            if err.kind() == ErrorKind::Interrupted {
+                // SIGWINCH may have been the source of the interrupt.
+                // Check for that now so that we reduce the latency of
+                // processing the resize
+                if let Some(resize) = self.caught_sigwinch()? {
+                    return Ok(Some(resize));
+                }
+
+                return Ok(None);
             }
-            Err(ref e) if e.kind() == ErrorKind::WouldBlock => Ok(None),
-            Err(ref e) if e.kind() == ErrorKind::Interrupted => Ok(None),
-            Err(e) => Err(format_err!("failed to read input {}", e)),
+            return Err(format_err!("poll(2) error: {}", err));
+        }
+
+        if pfd[1].revents != 0 {
+            // SIGWINCH received via our pipe?
+            if let Some(resize) = self.caught_sigwinch()? {
+                return Ok(Some(resize));
+            }
+        }
+
+        if pfd[0].revents != 0 {
+            let mut buf = [0u8; 64];
+            match self.read.read(&mut buf) {
+                Ok(n) => {
+                    // A little bit of a dance with moving the queue out of self
+                    // to appease the borrow checker.  We'll need to be sure to
+                    // move it back before we return!
+                    let mut queue = match self.input_queue.take() {
+                        Some(queue) => queue,
+                        None => VecDeque::new(),
+                    };
+                    self.input_parser
+                        .parse(&buf[0..n], |evt| queue.push_back(evt), n == buf.len());
+                    let result = queue.pop_front();
+                    // Move the queue back into self before we leave this scope
+                    self.input_queue = Some(queue);
+                    Ok(result)
+                }
+                Err(ref e)
+                    if e.kind() == ErrorKind::WouldBlock || e.kind() == ErrorKind::Interrupted =>
+                {
+                    Ok(None)
+                }
+                Err(e) => Err(format_err!("failed to read input {}", e)),
+            }
+        } else {
+            Ok(None)
         }
     }
 }
 
 impl Drop for UnixTerminal {
     fn drop(&mut self) {
+        signal_hook::unregister(self.sigwinch_id);
         self.write
             .set_termios(&self.saved_termios, SetAttributeWhen::Now)
             .expect("failed to restore original termios state");

@@ -39,7 +39,7 @@ pub struct ScreenSize {
     pub ypixel: usize,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Blocking {
     DoNotWait,
     Wait,

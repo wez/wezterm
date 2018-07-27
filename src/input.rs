@@ -37,8 +37,8 @@ pub enum InputEvent {
     Mouse(MouseEvent),
     /// Detected that the user has resized the terminal
     Resized {
-        cols: u16,
-        rows: u16,
+        cols: usize,
+        rows: usize,
     },
 }
 
@@ -357,8 +357,8 @@ mod windows {
             callback: &mut F,
         ) {
             callback(InputEvent::Resized {
-                rows: event.dwSize.Y as u16,
-                cols: event.dwSize.X as u16,
+                rows: event.dwSize.Y as usize,
+                cols: event.dwSize.X as usize,
             });
         }
 

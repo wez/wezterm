@@ -27,3 +27,4 @@ winapi = {version = "~0.3", features = ["winuser", "consoleapi", "handleapi", "f
 
 [target.'cfg(unix)'.dependencies]
 termios = "~0.3"
+signal-hook = "~0.1"

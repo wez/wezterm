@@ -1,8 +1,6 @@
 //! This example shows how to make a basic widget that accumulates
 //! text input and renders it to the screen
 extern crate failure;
-#[cfg(unix)]
-extern crate libc;
 extern crate termwiz;
 
 use failure::Error;
@@ -20,24 +18,6 @@ use termwiz::widgets::*;
 struct MainScreen {
     buf: String,
     cursor: Cell<ParentRelativeCoords>,
-}
-
-#[cfg(unix)]
-fn catch_winch() {
-    extern "C" fn dummy(_: libc::c_int) {
-        // This signal handler only exists so that we can knock
-        // ourselves out of a read syscall with EINTR.
-    }
-    unsafe {
-        // note: SA_RESTART is cleared by this; we don't want
-        // SA_RESTART enabled; we want SIGWINCH to generate an
-        // EINTR when it occurs.
-        use std::mem;
-        use std::ptr;
-        let mut sig: libc::sigaction = mem::zeroed();
-        sig.sa_sigaction = dummy as usize;
-        libc::sigaction(libc::SIGWINCH, &sig, ptr::null_mut());
-    }
 }
 
 impl WidgetImpl for MainScreen {
@@ -83,9 +63,6 @@ impl WidgetImpl for MainScreen {
 }
 
 fn main() -> Result<(), Error> {
-    #[cfg(unix)]
-    catch_winch();
-
     let caps = Capabilities::new_from_env()?;
 
     let mut buf = BufferedTerminal::new(new_terminal(caps)?)?;
@@ -98,6 +75,10 @@ fn main() -> Result<(), Error> {
 
     loop {
         match buf.terminal().poll_input(Blocking::Wait) {
+            Ok(Some(InputEvent::Resized { rows, cols })) => {
+                buf.add_change(Change::ClearScreen(Default::default()));
+                buf.resize(cols, rows);
+            }
             Ok(Some(input)) => match input {
                 InputEvent::Key(KeyEvent {
                     key: KeyCode::Escape,
@@ -116,9 +97,6 @@ fn main() -> Result<(), Error> {
             }
         }
 
-        if buf.check_for_resize()? {
-            buf.add_change(Change::ClearScreen(Default::default()));
-        }
         screen.render_to_screen(&mut buf)?;
         buf.flush()?;
     }
