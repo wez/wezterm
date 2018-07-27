@@ -30,6 +30,7 @@ pub mod escape;
 pub mod input;
 pub mod istty;
 pub mod keymap;
+mod readbuf;
 pub mod render;
 pub mod surface;
 pub mod terminal;

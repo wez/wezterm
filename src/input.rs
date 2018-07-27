@@ -1,6 +1,7 @@
 //! This module provides an InputParser struct to help with parsing
 //! input received from a terminal.
 use keymap::{Found, KeyMap};
+use readbuf::ReadBuffer;
 use std;
 #[cfg(windows)]
 use winapi::um::wincon::{
@@ -146,7 +147,7 @@ pub enum KeyCode {
 #[derive(Debug)]
 pub struct InputParser {
     key_map: KeyMap<InputEvent>,
-    buf: Vec<u8>,
+    buf: ReadBuffer,
 }
 
 #[cfg(windows)]
@@ -390,7 +391,7 @@ impl InputParser {
     pub fn new() -> Self {
         Self {
             key_map: Self::build_basic_key_map(),
-            buf: Vec::new(),
+            buf: ReadBuffer::new(),
         }
     }
 
@@ -587,22 +588,24 @@ impl InputParser {
 
     /// This is a horrible function to pull off the first unicode character
     /// from the sequence of bytes and return it and the remaining slice.
-    // TODO: This has the potential to be an ugly hotspot since the complexity
-    // is a function of the length of the entire buffer rather than the length
-    // of the first char component.  A simple mitigation might be to slice off
-    // the first 6 bytes.  Ideally we'd directly decode the utf8 here.
-    fn decode_one_char(bytes: &[u8]) -> Option<(char, &[u8])> {
+    fn decode_one_char(bytes: &[u8]) -> Option<(char, usize)> {
+        // This has the potential to be an ugly hotspot since the complexity
+        // is a function of the length of the entire buffer rather than the length
+        // of the first char component.  A simple mitigation might be to slice off
+        // the first 4 bytes.  We pick 4 bytes because the docs for str::len_utf8()
+        // state that the maximum expansion for a `char` is 4 bytes.
+        let bytes = &bytes[..bytes.len().min(4)];
         match std::str::from_utf8(bytes) {
             Ok(s) => {
                 let (c, len) = Self::first_char_and_len(s);
-                Some((c, &bytes[len..]))
+                Some((c, len))
             }
             Err(err) => {
                 let (valid, _after_valid) = bytes.split_at(err.valid_up_to());
                 if valid.len() > 0 {
                     let s = unsafe { std::str::from_utf8_unchecked(valid) };
                     let (c, len) = Self::first_char_and_len(s);
-                    Some((c, &bytes[len..]))
+                    Some((c, len))
                 } else {
                     None
                 }
@@ -610,30 +613,20 @@ impl InputParser {
         }
     }
 
-    fn process_bytes<F: FnMut(InputEvent)>(
-        bytes: &[u8],
-        key_map: &KeyMap<InputEvent>,
-        mut callback: F,
-        maybe_more: bool,
-    ) -> Option<Vec<u8>> {
-        let mut cursor = bytes;
-        while cursor.len() > 0 {
-            match (key_map.lookup(cursor), maybe_more) {
+    fn process_bytes<F: FnMut(InputEvent)>(&mut self, mut callback: F, maybe_more: bool) {
+        while !self.buf.is_empty() {
+            match (self.key_map.lookup(self.buf.as_slice()), maybe_more) {
                 (Found::Exact(len, event), _) | (Found::Ambiguous(len, event), false) => {
                     callback(event.clone());
-                    cursor = &cursor[len..];
+                    self.buf.advance(len);
                 }
                 (Found::Ambiguous(_, _), true) | (Found::NeedData, true) => {
-                    // We need more data to recognize the input, so
-                    // yield the remainder of the slice
-                    let mut buf = Vec::new();
-                    buf.extend_from_slice(cursor);
-                    return Some(buf);
+                    return;
                 }
                 (Found::None, _) | (Found::NeedData, false) => {
                     // No pre-defined key, so pull out a unicode character
-                    if let Some((c, remain)) = Self::decode_one_char(cursor) {
-                        cursor = remain;
+                    if let Some((c, len)) = Self::decode_one_char(self.buf.as_slice()) {
+                        self.buf.advance(len);
                         callback(InputEvent::Key(KeyEvent {
                             key: KeyCode::Char(c),
                             modifiers: Modifiers::NONE,
@@ -641,14 +634,11 @@ impl InputParser {
                     } else {
                         // We need more data to recognize the input, so
                         // yield the remainder of the slice
-                        let mut buf = Vec::new();
-                        buf.extend_from_slice(cursor);
-                        return Some(buf);
+                        return;
                     }
                 }
             }
         }
-        None
     }
 
     /// Push a sequence of bytes into the parser.
@@ -666,25 +656,8 @@ impl InputParser {
     /// with an empty slice and `maybe_more=false` to allow the partial
     /// data to be recognized and processed.
     pub fn parse<F: FnMut(InputEvent)>(&mut self, bytes: &[u8], callback: F, maybe_more: bool) {
-        if self.buf.len() > 0 {
-            self.buf.extend_from_slice(bytes);
-            match Self::process_bytes(&self.buf, &self.key_map, callback, maybe_more) {
-                None => {
-                    // We consumed all of the combined buffer, so we can empty
-                    // it out now.
-                    self.buf.clear();
-                }
-                Some(remainder) => {
-                    self.buf = remainder;
-                }
-            }
-        } else {
-            // Nothing buffered, let's try to process directly from the input slice
-            match Self::process_bytes(bytes, &self.key_map, callback, maybe_more) {
-                None => {}
-                Some(remainder) => self.buf = remainder,
-            }
-        }
+        self.buf.extend_with(bytes);
+        self.process_bytes(callback, maybe_more);
     }
 
     pub fn parse_as_vec(&mut self, bytes: &[u8]) -> Vec<InputEvent> {
