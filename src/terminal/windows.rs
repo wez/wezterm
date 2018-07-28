@@ -13,8 +13,9 @@ use winapi::um::wincon::{
     FillConsoleOutputAttribute, FillConsoleOutputCharacterW, GetConsoleScreenBufferInfo,
     SetConsoleCursorPosition, SetConsoleScreenBufferSize, SetConsoleTextAttribute,
     SetConsoleWindowInfo, CONSOLE_SCREEN_BUFFER_INFO, COORD, DISABLE_NEWLINE_AUTO_RETURN,
-    ENABLE_ECHO_INPUT, ENABLE_LINE_INPUT, ENABLE_PROCESSED_INPUT, ENABLE_VIRTUAL_TERMINAL_INPUT,
-    ENABLE_VIRTUAL_TERMINAL_PROCESSING, INPUT_RECORD, SMALL_RECT,
+    ENABLE_ECHO_INPUT, ENABLE_LINE_INPUT, ENABLE_MOUSE_INPUT, ENABLE_PROCESSED_INPUT,
+    ENABLE_VIRTUAL_TERMINAL_INPUT, ENABLE_VIRTUAL_TERMINAL_PROCESSING, ENABLE_WINDOW_INPUT,
+    INPUT_RECORD, SMALL_RECT,
 };
 use winapi::um::winnt::DUPLICATE_SAME_ACCESS;
 
@@ -390,7 +391,9 @@ impl Terminal for WindowsTerminal {
         let mode = self.input_handle.get_input_mode()?;
 
         self.input_handle.set_input_mode(
-            mode & !(ENABLE_ECHO_INPUT | ENABLE_LINE_INPUT | ENABLE_PROCESSED_INPUT),
+            (mode & !(ENABLE_ECHO_INPUT | ENABLE_LINE_INPUT | ENABLE_PROCESSED_INPUT))
+                | ENABLE_MOUSE_INPUT
+                | ENABLE_WINDOW_INPUT,
         )
     }
 

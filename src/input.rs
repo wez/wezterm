@@ -1,5 +1,8 @@
 //! This module provides an InputParser struct to help with parsing
 //! input received from a terminal.
+use escape::csi::MouseReport;
+use escape::parser::Parser;
+use escape::{Action, CSI};
 use keymap::{Found, KeyMap};
 use readbuf::ReadBuffer;
 use std;
@@ -708,6 +711,37 @@ impl InputParser {
                     }
                 }
                 InputState::EscapeMaybeAlt | InputState::Normal => {
+                    if self.state == InputState::Normal && self.buf.as_slice()[0] == b'\x1b' {
+                        // This feels a bit gross because we have two different parsers at play
+                        // here.  We want to re-use the escape sequence parser to crack the
+                        // parameters out from things like mouse reports.  The keymap tree doesn't
+                        // know how to grok this.
+                        let mut parser = Parser::new();
+                        match parser.parse_first(self.buf.as_slice()) {
+                            Some((Action::CSI(CSI::Mouse(mouse)), len)) => {
+                                self.buf.advance(len);
+
+                                match mouse {
+                                    MouseReport::SGR1006 {
+                                        x,
+                                        y,
+                                        button,
+                                        modifiers,
+                                    } => {
+                                        callback(InputEvent::Mouse(MouseEvent {
+                                            x,
+                                            y,
+                                            mouse_buttons: button.into(),
+                                            modifiers,
+                                        }));
+                                    }
+                                }
+                                continue;
+                            }
+                            _ => {}
+                        }
+                    }
+
                     match (self.key_map.lookup(self.buf.as_slice()), maybe_more) {
                         // If we got an unambiguous ESC and we have more data to
                         // follow, then this is likely the Meta version of the

@@ -101,6 +101,12 @@ pub struct ProbeHints {
 
     /// A loaded terminfo database entry
     terminfo_db: Option<terminfo::Database>,
+
+    /// Whether bracketed paste mode is supported
+    bracketed_paste: Option<bool>,
+
+    /// Whether mouse support is present and should be used
+    mouse_reporting: Option<bool>,
 }
 
 /// Describes the level of color support available
@@ -134,6 +140,8 @@ pub struct Capabilities {
     iterm2_image: bool,
     bce: bool,
     terminfo_db: Option<terminfo::Database>,
+    bracketed_paste: bool,
+    mouse_reporting: bool,
 }
 
 impl Capabilities {
@@ -238,6 +246,9 @@ impl Capabilities {
             }
         });
 
+        let bracketed_paste = hints.bracketed_paste.unwrap_or(true);
+        let mouse_reporting = hints.mouse_reporting.unwrap_or(true);
+
         Ok(Self {
             color_level,
             sixel,
@@ -245,6 +256,8 @@ impl Capabilities {
             iterm2_image,
             bce,
             terminfo_db: hints.terminfo_db,
+            bracketed_paste,
+            mouse_reporting,
         })
     }
 
@@ -279,6 +292,16 @@ impl Capabilities {
     /// Returns a reference to the loaded terminfo, if any.
     pub fn terminfo_db(&self) -> Option<&terminfo::Database> {
         self.terminfo_db.as_ref()
+    }
+
+    /// Whether bracketed paste is supported
+    pub fn bracketed_paste(&self) -> bool {
+        self.bracketed_paste
+    }
+
+    /// Whether mouse reporting is supported
+    pub fn mouse_reporting(&self) -> bool {
+        self.mouse_reporting
     }
 }
 

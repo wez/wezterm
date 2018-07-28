@@ -226,6 +226,7 @@ pub struct UnixTerminal {
     input_queue: Option<VecDeque<InputEvent>>,
     sigwinch_id: SigId,
     sigwinch_pipe: UnixStream,
+    caps: Capabilities,
 }
 
 impl UnixTerminal {
@@ -246,7 +247,7 @@ impl UnixTerminal {
         let mut read = TtyReadHandle::new(Fd::new(read)?);
         let mut write = TtyWriteHandle::new(Fd::new(write)?);
         let saved_termios = write.get_termios()?;
-        let renderer = TerminfoRenderer::new(caps);
+        let renderer = TerminfoRenderer::new(caps.clone());
         let input_parser = InputParser::new();
         let input_queue = None;
 
@@ -257,6 +258,7 @@ impl UnixTerminal {
         read.set_blocking(Blocking::DoNotWait)?;
 
         Ok(UnixTerminal {
+            caps,
             read,
             write,
             saved_termios,
@@ -308,13 +310,25 @@ impl Terminal for UnixTerminal {
             .set_termios(&raw, SetAttributeWhen::AfterDrainOutputQueuePurgeInputQueue)
             .map_err(|e| format_err!("failed to set raw mode: {}", e))?;
 
-        write!(
-            self.write,
-            "{}",
-            CSI::Mode(Mode::SetDecPrivateMode(DecPrivateMode::Code(
-                DecPrivateModeCode::BracketedPaste
-            )))
-        )?;
+        macro_rules! decset {
+            ($variant:ident) => {
+                write!(
+                    self.write,
+                    "{}",
+                    CSI::Mode(Mode::SetDecPrivateMode(DecPrivateMode::Code(
+                        DecPrivateModeCode::$variant
+                    )))
+                )?;
+            };
+        }
+
+        if self.caps.bracketed_paste() {
+            decset!(BracketedPaste);
+        }
+        if self.caps.mouse_reporting() {
+            decset!(AnyEventMouse);
+            decset!(SGRMouse);
+        }
         self.write.flush()?;
 
         Ok(())
@@ -448,13 +462,24 @@ impl Terminal for UnixTerminal {
 
 impl Drop for UnixTerminal {
     fn drop(&mut self) {
-        write!(
-            self.write,
-            "{}",
-            CSI::Mode(Mode::ResetDecPrivateMode(DecPrivateMode::Code(
-                DecPrivateModeCode::BracketedPaste
-            )))
-        ).unwrap();
+        macro_rules! decreset {
+            ($variant:ident) => {
+                write!(
+                    self.write,
+                    "{}",
+                    CSI::Mode(Mode::ResetDecPrivateMode(DecPrivateMode::Code(
+                        DecPrivateModeCode::$variant
+                    )))
+                ).unwrap();
+            };
+        }
+        if self.caps.bracketed_paste() {
+            decreset!(BracketedPaste);
+        }
+        if self.caps.mouse_reporting() {
+            decreset!(SGRMouse);
+            decreset!(AnyEventMouse);
+        }
         self.write.flush().unwrap();
 
         signal_hook::unregister(self.sigwinch_id);

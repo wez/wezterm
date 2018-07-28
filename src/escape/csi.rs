@@ -1,5 +1,6 @@
 use cell::{Blink, Intensity, Underline};
 use color::{AnsiColor, ColorSpec, RgbColor};
+use input::{Modifiers, MouseButtons};
 use num::{self, ToPrimitive};
 use std::fmt::{Display, Error as FmtError, Formatter};
 
@@ -15,6 +16,8 @@ pub enum CSI {
     Edit(Edit),
 
     Mode(Mode),
+
+    Mouse(MouseReport),
 
     /// Unknown or unspecified; should be rare and is rather
     /// large, so it is boxed and kept outside of the enum
@@ -64,8 +67,98 @@ impl Display for CSI {
             CSI::Edit(e) => e.fmt(f)?,
             CSI::Mode(mode) => mode.fmt(f)?,
             CSI::Unspecified(unspec) => unspec.fmt(f)?,
+            CSI::Mouse(mouse) => mouse.fmt(f)?,
         };
         Ok(())
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum MouseButton {
+    Button1Press,
+    Button2Press,
+    Button3Press,
+    Button4Press,
+    Button5Press,
+    Button1Release,
+    Button2Release,
+    Button3Release,
+    Button4Release,
+    Button5Release,
+    Button1Drag,
+    Button2Drag,
+    Button3Drag,
+    None,
+}
+
+impl From<MouseButton> for MouseButtons {
+    fn from(button: MouseButton) -> MouseButtons {
+        match button {
+            MouseButton::Button1Press | MouseButton::Button1Drag => MouseButtons::LEFT,
+            MouseButton::Button2Press | MouseButton::Button2Drag => MouseButtons::MIDDLE,
+            MouseButton::Button3Press | MouseButton::Button3Drag => MouseButtons::RIGHT,
+            MouseButton::Button4Press => MouseButtons::VERT_WHEEL | MouseButtons::WHEEL_POSITIVE,
+            MouseButton::Button5Press => MouseButtons::VERT_WHEEL,
+            _ => MouseButtons::NONE,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum MouseReport {
+    SGR1006 {
+        x: u16,
+        y: u16,
+        button: MouseButton,
+        modifiers: Modifiers,
+    },
+}
+
+impl Display for MouseReport {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), FmtError> {
+        match self {
+            MouseReport::SGR1006 {
+                x,
+                y,
+                button,
+                modifiers,
+            } => {
+                let mut b = 0;
+                if (*modifiers & Modifiers::SHIFT) != Modifiers::NONE {
+                    b |= 4;
+                }
+                if (*modifiers & Modifiers::ALT) != Modifiers::NONE {
+                    b |= 8;
+                }
+                if (*modifiers & Modifiers::CTRL) != Modifiers::NONE {
+                    b |= 16;
+                }
+                b |= match button {
+                    MouseButton::Button1Press | MouseButton::Button1Release => 0,
+                    MouseButton::Button2Press | MouseButton::Button2Release => 1,
+                    MouseButton::Button3Press | MouseButton::Button3Release => 2,
+                    MouseButton::Button4Press | MouseButton::Button4Release => 64,
+                    MouseButton::Button5Press | MouseButton::Button5Release => 65,
+                    MouseButton::Button1Drag => 32,
+                    MouseButton::Button2Drag => 33,
+                    MouseButton::Button3Drag => 34,
+                    MouseButton::None => 35,
+                };
+                let trailer = match button {
+                    MouseButton::Button1Press
+                    | MouseButton::Button2Press
+                    | MouseButton::Button3Press
+                    | MouseButton::Button4Press
+                    | MouseButton::Button5Press
+                    | MouseButton::Button1Drag
+                    | MouseButton::Button2Drag
+                    | MouseButton::Button3Drag
+                    | MouseButton::None => 'M',
+                    _ => 'm',
+                };
+                write!(f, "<{};{};{}{}", b, x, y, trailer)
+            }
+        }
     }
 }
 
@@ -108,7 +201,18 @@ pub enum DecPrivateModeCode {
     ApplicationCursorKeys = 1,
     StartBlinkingCursor = 12,
     ShowCursor = 25,
+    /// Enable mouse button press/release reporting
+    MouseTracking = 1000,
+    /// Warning: this requires a cooperative and timely response from
+    /// the application otherwise the terminal can hang
+    HighlightMouseTracking = 1001,
+    /// Enable mouse button press/release and drag reporting
     ButtonEventMouse = 1002,
+    /// Enable mouse motion, button press/release and drag reporting
+    AnyEventMouse = 1003,
+    /// Use extended coordinate system in mouse reporting.  Does not
+    /// enable mouse reporting itself, it just controls how reports
+    /// will be encoded.
     SGRMouse = 1006,
     ClearAndEnableAlternateScreen = 1049,
     BracketedPaste = 2004,
@@ -814,6 +918,10 @@ impl<'a> CSIParser<'a> {
             ('s', &[b'?']) => self.dec(params)
                 .map(|mode| CSI::Mode(Mode::SaveDecPrivateMode(mode))),
 
+            ('m', &[b'<']) | ('M', &[b'<']) => {
+                self.mouse_sgr1006(params).map(|mouse| CSI::Mouse(mouse))
+            }
+
             _ => Err(()),
         }
     }
@@ -828,6 +936,60 @@ impl<'a> CSIParser<'a> {
             self.params = Some(next);
         }
         result
+    }
+
+    /// Parse extended mouse reports known as SGR 1006 mode
+    fn mouse_sgr1006(&mut self, params: &'a [i64]) -> Result<MouseReport, ()> {
+        if params.len() != 3 {
+            return Err(());
+        }
+
+        // 'M' encodes a press, 'm' a release.
+        let button = match (self.control, params[0] & 0b1100011) {
+            ('M', 0) => MouseButton::Button1Press,
+            ('m', 0) => MouseButton::Button1Release,
+            ('M', 1) => MouseButton::Button2Press,
+            ('m', 1) => MouseButton::Button2Release,
+            ('M', 2) => MouseButton::Button3Press,
+            ('m', 2) => MouseButton::Button3Release,
+            ('M', 64) => MouseButton::Button4Press,
+            ('m', 64) => MouseButton::Button4Release,
+            ('M', 65) => MouseButton::Button5Press,
+            ('m', 65) => MouseButton::Button5Release,
+            ('M', 32) => MouseButton::Button1Drag,
+            ('M', 33) => MouseButton::Button2Drag,
+            ('M', 34) => MouseButton::Button3Drag,
+            // Note that there is some theoretical ambiguity with these None values.
+            // The ambiguity stems from alternative encodings of the mouse protocol;
+            // when set to SGR1006 mode the variants with the `3` parameter do not
+            // occur.  They included here as a reminder for when support for those
+            // other encodings is added and this block is likely copied and pasted
+            // or refactored for re-use with them.
+            ('M', 35) => MouseButton::None, // mouse motion with no buttons
+            ('M', 3) => MouseButton::None,  // legacy notification about button release
+            ('m', 3) => MouseButton::None,  // release+press doesn't make sense
+            _ => {
+                return Err(());
+            }
+        };
+
+        let mut modifiers = Modifiers::NONE;
+        if params[0] & 4 != 0 {
+            modifiers |= Modifiers::SHIFT;
+        }
+        if params[0] & 8 != 0 {
+            modifiers |= Modifiers::ALT;
+        }
+        if params[0] & 16 != 0 {
+            modifiers |= Modifiers::CTRL;
+        }
+
+        Ok(MouseReport::SGR1006 {
+            x: params[1] as u16,
+            y: params[2] as u16,
+            button,
+            modifiers,
+        })
     }
 
     fn dec(&mut self, params: &'a [i64]) -> Result<DecPrivateMode, ()> {
@@ -1237,6 +1399,19 @@ mod test {
             vec![CSI::Mode(Mode::RestoreDecPrivateMode(
                 DecPrivateMode::Code(DecPrivateModeCode::BracketedPaste),
             ))]
+        );
+    }
+
+    #[test]
+    fn mouse() {
+        assert_eq!(
+            parse_int('M', &[0, 12, 300], b'<', "\x1b[<0;12;300M"),
+            vec![CSI::Mouse(MouseReport::SGR1006 {
+                x: 12,
+                y: 300,
+                button: MouseButton::Button1Press,
+                modifiers: Modifiers::NONE,
+            })]
         );
     }
 }
