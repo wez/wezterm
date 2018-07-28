@@ -162,8 +162,7 @@ impl WidgetId {
 impl Widget {
     pub fn new<W: WidgetImpl + 'static>(widget: W) -> WidgetHandle {
         let widget = Box::new(widget);
-        let (width, height) = (80, 24); //widget.get_size_constraints().deduce_initial_size();
-        let surface = Surface::new(width, height);
+        let surface = Surface::new(1, 1);
         let coordinates = ParentRelativeCoords::new(0, 0);
         let children = Vec::new();
         let id = WidgetId::new();
