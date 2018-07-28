@@ -68,7 +68,7 @@ fn main() -> Result<(), Error> {
     let mut buf = BufferedTerminal::new(new_terminal(caps)?)?;
     buf.terminal().set_raw_mode()?;
 
-    let mut screen = Screen::new(Widget::new(Box::new(MainScreen::default())));
+    let mut screen = Screen::new(Widget::new(MainScreen::default()));
 
     screen.render_to_screen(&mut buf)?;
     buf.flush()?;

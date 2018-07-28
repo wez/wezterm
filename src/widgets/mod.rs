@@ -160,7 +160,8 @@ impl WidgetId {
 }
 
 impl Widget {
-    pub fn new(widget: Box<WidgetImpl>) -> WidgetHandle {
+    pub fn new<W: WidgetImpl + 'static>(widget: W) -> WidgetHandle {
+        let widget = Box::new(widget);
         let (width, height) = (80, 24); //widget.get_size_constraints().deduce_initial_size();
         let surface = Surface::new(width, height);
         let coordinates = ParentRelativeCoords::new(0, 0);

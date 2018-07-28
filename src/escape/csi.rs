@@ -1574,7 +1574,7 @@ mod test {
                     DeviceAttribute::Code(DeviceAttributeCodes::NationalReplacementCharsets),
                     DeviceAttribute::Code(DeviceAttributeCodes::TechnicalCharacters),
                     DeviceAttribute::Code(DeviceAttributeCodes::AnsiColor),
-                ]))
+                ])),
             )))]
         );
     }

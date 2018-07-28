@@ -538,7 +538,7 @@ mod test {
 
     #[test]
     fn single_widget_unspec() {
-        let widget = Widget::new(Box::new(UnspecWidget {}));
+        let widget = Widget::new(UnspecWidget {});
         let mut layout = LayoutState::new();
         layout.add_widget_recursive(&widget);
         layout.update_constraints(40, 12, &widget).unwrap();
@@ -551,14 +551,14 @@ mod test {
 
     #[test]
     fn two_children_pct() {
-        let root = Widget::new(Box::new(UnspecWidget {}));
+        let root = Widget::new(UnspecWidget {});
 
-        let a = Widget::new(Box::new(ConstrainedWidget::new(
+        let a = Widget::new(ConstrainedWidget::new(
             Constraints::default().set_pct_width(50).clone(),
-        )));
-        let b = Widget::new(Box::new(ConstrainedWidget::new(
+        ));
+        let b = Widget::new(ConstrainedWidget::new(
             Constraints::default().set_pct_width(50).clone(),
-        )));
+        ));
 
         root.borrow_mut().add_child(&a);
         root.borrow_mut().add_child(&b);
@@ -583,17 +583,17 @@ mod test {
 
     #[test]
     fn three_children_pct() {
-        let root = Widget::new(Box::new(UnspecWidget {}));
+        let root = Widget::new(UnspecWidget {});
 
-        let a = Widget::new(Box::new(ConstrainedWidget::new(
+        let a = Widget::new(ConstrainedWidget::new(
             Constraints::default().set_pct_width(20).clone(),
-        )));
-        let b = Widget::new(Box::new(ConstrainedWidget::new(
+        ));
+        let b = Widget::new(ConstrainedWidget::new(
             Constraints::default().set_pct_width(20).clone(),
-        )));
-        let c = Widget::new(Box::new(ConstrainedWidget::new(
+        ));
+        let c = Widget::new(ConstrainedWidget::new(
             Constraints::default().set_pct_width(20).clone(),
-        )));
+        ));
 
         root.borrow_mut().add_child(&a);
         root.borrow_mut().add_child(&b);
@@ -621,14 +621,14 @@ mod test {
 
     #[test]
     fn two_children_a_b() {
-        let root = Widget::new(Box::new(UnspecWidget {}));
+        let root = Widget::new(UnspecWidget {});
 
-        let a = Widget::new(Box::new(ConstrainedWidget::new(
+        let a = Widget::new(ConstrainedWidget::new(
             Constraints::with_fixed_width_height(5, 2),
-        )));
-        let b = Widget::new(Box::new(ConstrainedWidget::new(
+        ));
+        let b = Widget::new(ConstrainedWidget::new(
             Constraints::with_fixed_width_height(3, 2),
-        )));
+        ));
 
         root.borrow_mut().add_child(&a);
         root.borrow_mut().add_child(&b);
@@ -653,14 +653,14 @@ mod test {
 
     #[test]
     fn two_children_b_a() {
-        let root = Widget::new(Box::new(UnspecWidget {}));
+        let root = Widget::new(UnspecWidget {});
 
-        let a = Widget::new(Box::new(ConstrainedWidget::new(
+        let a = Widget::new(ConstrainedWidget::new(
             Constraints::with_fixed_width_height(5, 2),
-        )));
-        let b = Widget::new(Box::new(ConstrainedWidget::new(
+        ));
+        let b = Widget::new(ConstrainedWidget::new(
             Constraints::with_fixed_width_height(3, 2),
-        )));
+        ));
 
         root.borrow_mut().add_child(&b);
         root.borrow_mut().add_child(&a);
@@ -685,14 +685,14 @@ mod test {
 
     #[test]
     fn two_children_overflow() {
-        let root = Widget::new(Box::new(UnspecWidget {}));
+        let root = Widget::new(UnspecWidget {});
 
-        let a = Widget::new(Box::new(ConstrainedWidget::new(
+        let a = Widget::new(ConstrainedWidget::new(
             Constraints::with_fixed_width_height(5, 2),
-        )));
-        let b = Widget::new(Box::new(ConstrainedWidget::new(
+        ));
+        let b = Widget::new(ConstrainedWidget::new(
             Constraints::with_fixed_width_height(3, 2),
-        )));
+        ));
 
         root.borrow_mut().add_child(&a);
         root.borrow_mut().add_child(&b);
@@ -719,7 +719,7 @@ mod test {
         ($name:ident, $constraint:expr, $width:expr, $height:expr, $coords:expr) => {
             #[test]
             fn $name() {
-                let widget = Widget::new(Box::new(ConstrainedWidget::new($constraint)));
+                let widget = Widget::new(ConstrainedWidget::new($constraint));
                 let mut layout = LayoutState::new();
                 layout.add_widget_recursive(&widget);
                 layout.update_constraints(100, 100, &widget).unwrap();
