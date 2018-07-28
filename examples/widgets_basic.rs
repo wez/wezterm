@@ -6,7 +6,8 @@ extern crate termwiz;
 use failure::Error;
 use std::cell::Cell;
 use termwiz::caps::Capabilities;
-use termwiz::color::AnsiColor;
+use termwiz::cell::AttributeChange;
+use termwiz::color::{AnsiColor, ColorAttribute, RgbColor};
 use termwiz::input::*;
 use termwiz::surface::{Change, Surface};
 use termwiz::terminal::buffered::BufferedTerminal;
@@ -42,9 +43,20 @@ impl WidgetImpl for MainScreen {
     }
 
     fn render_to_surface(&self, surface: &mut Surface) {
-        surface.add_change(Change::ClearScreen(AnsiColor::Blue.into()));
+        surface.add_change(Change::ClearScreen(
+            ColorAttribute::TrueColorWithPaletteFallback(
+                RgbColor::new(0x31, 0x1B, 0x92),
+                AnsiColor::Black.into(),
+            ),
+        ));
+        surface.add_change(Change::Attribute(AttributeChange::Foreground(
+            ColorAttribute::TrueColorWithPaletteFallback(
+                RgbColor::new(0xB3, 0x88, 0xFF),
+                AnsiColor::Purple.into(),
+            ),
+        )));
         let dims = surface.dimensions();
-        surface.add_change(format!("surface size is {:?}\r\n", dims));
+        surface.add_change(format!("🤷 surface size is {:?}\r\n", dims));
         surface.add_change(self.buf.clone());
         // Allow the surface rendering code to figure out where the
         // cursor ends up, then stash a copy of that information for

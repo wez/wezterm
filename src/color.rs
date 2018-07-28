@@ -44,6 +44,12 @@ pub enum AnsiColor {
     White,
 }
 
+impl From<AnsiColor> for u8 {
+    fn from(col: AnsiColor) -> u8 {
+        col as u8
+    }
+}
+
 /// Describes a color in the SRGB colorspace using red, green and blue
 /// components in the range 0-255.
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash)]
