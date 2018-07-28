@@ -17,6 +17,8 @@ pub enum CSI {
 
     Mode(Mode),
 
+    Device(Box<Device>),
+
     Mouse(MouseReport),
 
     /// Unknown or unspecified; should be rare and is rather
@@ -68,6 +70,94 @@ impl Display for CSI {
             CSI::Mode(mode) => mode.fmt(f)?,
             CSI::Unspecified(unspec) => unspec.fmt(f)?,
             CSI::Mouse(mouse) => mouse.fmt(f)?,
+            CSI::Device(dev) => dev.fmt(f)?,
+        };
+        Ok(())
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, FromPrimitive, ToPrimitive)]
+pub enum DeviceAttributeCodes {
+    Columns132 = 1,
+    Printer = 2,
+    RegisGraphics = 3,
+    SixelGraphics = 4,
+    SelectiveErase = 6,
+    UserDefinedKeys = 8,
+    NationalReplacementCharsets = 9,
+    TechnicalCharacters = 15,
+    UserWindows = 18,
+    HorizontalScrolling = 21,
+    AnsiColor = 22,
+    AnsiTextLocator = 29,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum DeviceAttribute {
+    Code(DeviceAttributeCodes),
+    Unspecified(u16),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DeviceAttributeFlags {
+    pub attributes: Vec<DeviceAttribute>,
+}
+
+impl DeviceAttributeFlags {
+    fn emit(&self, f: &mut Formatter, leader: &str) -> Result<(), FmtError> {
+        write!(f, "{}", leader)?;
+        for item in &self.attributes {
+            match item {
+                DeviceAttribute::Code(c) => write!(f, ";{}", c.to_u16().ok_or_else(|| FmtError)?)?,
+                DeviceAttribute::Unspecified(c) => write!(f, ";{}", *c)?,
+            }
+        }
+        write!(f, "c")?;
+        Ok(())
+    }
+
+    pub fn new(attributes: Vec<DeviceAttribute>) -> Self {
+        Self { attributes }
+    }
+
+    fn from_params(params: &[i64]) -> Self {
+        let mut attributes = Vec::new();
+        for p in params {
+            match num::FromPrimitive::from_i64(*p) {
+                Some(c) => attributes.push(DeviceAttribute::Code(c)),
+                None => attributes.push(DeviceAttribute::Unspecified(*p as u16)),
+            }
+        }
+        Self { attributes }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum DeviceAttributes {
+    Vt100WithAdvancedVideoOption,
+    Vt101WithNoOptions,
+    Vt102,
+    Vt220(DeviceAttributeFlags),
+    Vt320(DeviceAttributeFlags),
+    Vt420(DeviceAttributeFlags),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Device {
+    DeviceAttributes(DeviceAttributes),
+}
+
+impl Display for Device {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), FmtError> {
+        match self {
+            Device::DeviceAttributes(DeviceAttributes::Vt100WithAdvancedVideoOption) => {
+                write!(f, "?1;2c")?
+            }
+            Device::DeviceAttributes(DeviceAttributes::Vt101WithNoOptions) => write!(f, "?1;0c")?,
+            Device::DeviceAttributes(DeviceAttributes::Vt102) => write!(f, "?6c")?,
+            Device::DeviceAttributes(DeviceAttributes::Vt220(attr)) => attr.emit(f, "?62")?,
+            Device::DeviceAttributes(DeviceAttributes::Vt320(attr)) => attr.emit(f, "?63")?,
+            Device::DeviceAttributes(DeviceAttributes::Vt420(attr)) => attr.emit(f, "?64")?,
         };
         Ok(())
     }
@@ -922,6 +1012,9 @@ impl<'a> CSIParser<'a> {
                 self.mouse_sgr1006(params).map(|mouse| CSI::Mouse(mouse))
             }
 
+            ('c', &[b'?']) => self.secondary_device_attributes(params)
+                .map(|dev| CSI::Device(Box::new(dev))),
+
             _ => Err(()),
         }
     }
@@ -936,6 +1029,50 @@ impl<'a> CSIParser<'a> {
             self.params = Some(next);
         }
         result
+    }
+
+    fn secondary_device_attributes(&mut self, params: &'a [i64]) -> Result<Device, ()> {
+        if params == [1, 0] {
+            Ok(self.advance_by(
+                2,
+                params,
+                Device::DeviceAttributes(DeviceAttributes::Vt101WithNoOptions),
+            ))
+        } else if params == [6] {
+            Ok(self.advance_by(1, params, Device::DeviceAttributes(DeviceAttributes::Vt102)))
+        } else if params == [1, 2] {
+            Ok(self.advance_by(
+                1,
+                params,
+                Device::DeviceAttributes(DeviceAttributes::Vt100WithAdvancedVideoOption),
+            ))
+        } else if params.len() >= 1 && params[0] == 62 {
+            Ok(self.advance_by(
+                params.len(),
+                params,
+                Device::DeviceAttributes(DeviceAttributes::Vt220(
+                    DeviceAttributeFlags::from_params(&params[1..]),
+                )),
+            ))
+        } else if params.len() >= 1 && params[0] == 63 {
+            Ok(self.advance_by(
+                params.len(),
+                params,
+                Device::DeviceAttributes(DeviceAttributes::Vt320(
+                    DeviceAttributeFlags::from_params(&params[1..]),
+                )),
+            ))
+        } else if params.len() >= 1 && params[0] == 64 {
+            Ok(self.advance_by(
+                params.len(),
+                params,
+                Device::DeviceAttributes(DeviceAttributes::Vt420(
+                    DeviceAttributeFlags::from_params(&params[1..]),
+                )),
+            ))
+        } else {
+            Err(())
+        }
     }
 
     /// Parse extended mouse reports known as SGR 1006 mode
@@ -984,12 +1121,16 @@ impl<'a> CSIParser<'a> {
             modifiers |= Modifiers::CTRL;
         }
 
-        Ok(MouseReport::SGR1006 {
-            x: params[1] as u16,
-            y: params[2] as u16,
-            button,
-            modifiers,
-        })
+        Ok(self.advance_by(
+            3,
+            params,
+            MouseReport::SGR1006 {
+                x: params[1] as u16,
+                y: params[2] as u16,
+                button,
+                modifiers,
+            },
+        ))
     }
 
     fn dec(&mut self, params: &'a [i64]) -> Result<DecPrivateMode, ()> {
@@ -1412,6 +1553,29 @@ mod test {
                 button: MouseButton::Button1Press,
                 modifiers: Modifiers::NONE,
             })]
+        );
+    }
+
+    #[test]
+    fn device_attr() {
+        assert_eq!(
+            parse_int(
+                'c',
+                &[63, 1, 2, 4, 6, 9, 15, 22],
+                b'?',
+                "\x1b[?63;1;2;4;6;9;15;22c"
+            ),
+            vec![CSI::Device(Box::new(Device::DeviceAttributes(
+                DeviceAttributes::Vt320(DeviceAttributeFlags::new(vec![
+                    DeviceAttribute::Code(DeviceAttributeCodes::Columns132),
+                    DeviceAttribute::Code(DeviceAttributeCodes::Printer),
+                    DeviceAttribute::Code(DeviceAttributeCodes::SixelGraphics),
+                    DeviceAttribute::Code(DeviceAttributeCodes::SelectiveErase),
+                    DeviceAttribute::Code(DeviceAttributeCodes::NationalReplacementCharsets),
+                    DeviceAttribute::Code(DeviceAttributeCodes::TechnicalCharacters),
+                    DeviceAttribute::Code(DeviceAttributeCodes::AnsiColor),
+                ]))
+            )))]
         );
     }
 }
