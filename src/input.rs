@@ -33,7 +33,6 @@ bitflags! {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum InputEvent {
-    // FIXME: Bracketed Paste mode
     Key(KeyEvent),
     Mouse(MouseEvent),
     /// Detected that the user has resized the terminal
@@ -41,6 +40,9 @@ pub enum InputEvent {
         cols: usize,
         rows: usize,
     },
+    /// For terminals that support Bracketed Paste mode,
+    /// pastes are collected and reported as this variant.
+    Paste(String),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -142,13 +144,18 @@ pub enum KeyCode {
     MediaPrevTrack,
     MediaStop,
     MediaPlayPause,
+
+    #[doc(hidden)]
+    InternalPasteStart,
+    #[doc(hidden)]
+    InternalPasteEnd,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum InputState {
     Normal,
     EscapeMaybeAlt,
-    // TODO: bracketed paste
+    Pasting(usize),
 }
 
 #[derive(Debug)]
@@ -584,6 +591,21 @@ impl InputParser {
             }),
         );
 
+        map.insert(
+            b"\x1b[200~",
+            InputEvent::Key(KeyEvent {
+                key: KeyCode::InternalPasteStart,
+                modifiers: Modifiers::NONE,
+            }),
+        );
+        map.insert(
+            b"\x1b[201~",
+            InputEvent::Key(KeyEvent {
+                key: KeyCode::InternalPasteEnd,
+                modifiers: Modifiers::NONE,
+            }),
+        );
+
         map
     }
 
@@ -624,6 +646,30 @@ impl InputParser {
 
     fn dispatch_callback<F: FnMut(InputEvent)>(&mut self, mut callback: F, event: InputEvent) {
         match (self.state, event) {
+            (
+                InputState::Normal,
+                InputEvent::Key(KeyEvent {
+                    key: KeyCode::InternalPasteStart,
+                    ..
+                }),
+            ) => {
+                self.state = InputState::Pasting(0);
+            }
+            (
+                InputState::EscapeMaybeAlt,
+                InputEvent::Key(KeyEvent {
+                    key: KeyCode::InternalPasteStart,
+                    ..
+                }),
+            ) => {
+                // The prior ESC was not part of an ALT sequence, so emit
+                // it before we start collecting for paste.
+                callback(InputEvent::Key(KeyEvent {
+                    key: KeyCode::Escape,
+                    modifiers: Modifiers::NONE,
+                }));
+                self.state = InputState::Pasting(0);
+            }
             (InputState::EscapeMaybeAlt, InputEvent::Key(KeyEvent { key, modifiers })) => {
                 // Treat this as ALT-key
                 self.state = InputState::Normal;
@@ -647,48 +693,65 @@ impl InputParser {
 
     fn process_bytes<F: FnMut(InputEvent)>(&mut self, mut callback: F, maybe_more: bool) {
         while !self.buf.is_empty() {
-            match (self.key_map.lookup(self.buf.as_slice()), maybe_more) {
-                // If we got an unambiguous ESC and we have more data to
-                // follow, then this is likely the Meta version of the
-                // following keypress.  Buffer up the escape key and
-                // consume it from the input.  dispatch_callback() will
-                // emit either the ESC or the ALT modified following key.
-                (
-                    Found::Exact(
-                        len,
-                        InputEvent::Key(KeyEvent {
-                            key: KeyCode::Escape,
-                            modifiers: Modifiers::NONE,
-                        }),
-                    ),
-                    _,
-                ) if self.state == InputState::Normal && self.buf.len() > len =>
-                {
-                    self.state = InputState::EscapeMaybeAlt;
-                    self.buf.advance(len);
-                }
-                (Found::Exact(len, event), _) | (Found::Ambiguous(len, event), false) => {
-                    self.dispatch_callback(&mut callback, event.clone());
-                    self.buf.advance(len);
-                }
-                (Found::Ambiguous(_, _), true) | (Found::NeedData, true) => {
-                    return;
-                }
-                (Found::None, _) | (Found::NeedData, false) => {
-                    // No pre-defined key, so pull out a unicode character
-                    if let Some((c, len)) = Self::decode_one_char(self.buf.as_slice()) {
-                        self.buf.advance(len);
-                        self.dispatch_callback(
-                            &mut callback,
-                            InputEvent::Key(KeyEvent {
-                                key: KeyCode::Char(c),
-                                modifiers: Modifiers::NONE,
-                            }),
-                        );
+            match self.state {
+                InputState::Pasting(offset) => {
+                    let end_paste = b"\x1b[201~";
+                    if let Some(idx) = self.buf.find_subsequence(offset, end_paste) {
+                        let pasted =
+                            String::from_utf8_lossy(&self.buf.as_slice()[0..idx]).to_string();
+                        self.buf.advance(pasted.len() + end_paste.len());
+                        callback(InputEvent::Paste(pasted));
+                        self.state = InputState::Normal;
                     } else {
-                        // We need more data to recognize the input, so
-                        // yield the remainder of the slice
+                        self.state = InputState::Pasting(self.buf.len() - end_paste.len());
                         return;
+                    }
+                }
+                InputState::EscapeMaybeAlt | InputState::Normal => {
+                    match (self.key_map.lookup(self.buf.as_slice()), maybe_more) {
+                        // If we got an unambiguous ESC and we have more data to
+                        // follow, then this is likely the Meta version of the
+                        // following keypress.  Buffer up the escape key and
+                        // consume it from the input.  dispatch_callback() will
+                        // emit either the ESC or the ALT modified following key.
+                        (
+                            Found::Exact(
+                                len,
+                                InputEvent::Key(KeyEvent {
+                                    key: KeyCode::Escape,
+                                    modifiers: Modifiers::NONE,
+                                }),
+                            ),
+                            _,
+                        ) if self.state == InputState::Normal && self.buf.len() > len =>
+                        {
+                            self.state = InputState::EscapeMaybeAlt;
+                            self.buf.advance(len);
+                        }
+                        (Found::Exact(len, event), _) | (Found::Ambiguous(len, event), false) => {
+                            self.dispatch_callback(&mut callback, event.clone());
+                            self.buf.advance(len);
+                        }
+                        (Found::Ambiguous(_, _), true) | (Found::NeedData, true) => {
+                            return;
+                        }
+                        (Found::None, _) | (Found::NeedData, false) => {
+                            // No pre-defined key, so pull out a unicode character
+                            if let Some((c, len)) = Self::decode_one_char(self.buf.as_slice()) {
+                                self.buf.advance(len);
+                                self.dispatch_callback(
+                                    &mut callback,
+                                    InputEvent::Key(KeyEvent {
+                                        key: KeyCode::Char(c),
+                                        modifiers: Modifiers::NONE,
+                                    }),
+                                );
+                            } else {
+                                // We need more data to recognize the input, so
+                                // yield the remainder of the slice
+                                return;
+                            }
+                        }
                     }
                 }
             }

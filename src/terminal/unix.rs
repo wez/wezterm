@@ -15,6 +15,7 @@ use termios::{
 };
 
 use caps::Capabilities;
+use escape::csi::{DecPrivateMode, DecPrivateModeCode, Mode, CSI};
 use input::{InputEvent, InputParser};
 use render::terminfo::TerminfoRenderer;
 use surface::Change;
@@ -305,7 +306,18 @@ impl Terminal for UnixTerminal {
         cfmakeraw(&mut raw);
         self.write
             .set_termios(&raw, SetAttributeWhen::AfterDrainOutputQueuePurgeInputQueue)
-            .map_err(|e| format_err!("failed to set raw mode: {}", e))
+            .map_err(|e| format_err!("failed to set raw mode: {}", e))?;
+
+        write!(
+            self.write,
+            "{}",
+            CSI::Mode(Mode::SetDecPrivateMode(DecPrivateMode::Code(
+                DecPrivateModeCode::BracketedPaste
+            )))
+        )?;
+        self.write.flush()?;
+
+        Ok(())
     }
 
     fn get_screen_size(&mut self) -> Result<ScreenSize, Error> {
@@ -436,6 +448,15 @@ impl Terminal for UnixTerminal {
 
 impl Drop for UnixTerminal {
     fn drop(&mut self) {
+        write!(
+            self.write,
+            "{}",
+            CSI::Mode(Mode::ResetDecPrivateMode(DecPrivateMode::Code(
+                DecPrivateModeCode::BracketedPaste
+            )))
+        ).unwrap();
+        self.write.flush().unwrap();
+
         signal_hook::unregister(self.sigwinch_id);
         self.write
             .set_termios(&self.saved_termios, SetAttributeWhen::Now)

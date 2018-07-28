@@ -111,7 +111,7 @@ pub enum DecPrivateModeCode {
     ButtonEventMouse = 1002,
     SGRMouse = 1006,
     ClearAndEnableAlternateScreen = 1049,
-    BrackedPaste = 2004,
+    BracketedPaste = 2004,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -1235,7 +1235,7 @@ mod test {
         assert_eq!(
             parse_int('r', &[2004], b'?', "\x1b[?2004r"),
             vec![CSI::Mode(Mode::RestoreDecPrivateMode(
-                DecPrivateMode::Code(DecPrivateModeCode::BrackedPaste),
+                DecPrivateMode::Code(DecPrivateModeCode::BracketedPaste),
             ))]
         );
     }

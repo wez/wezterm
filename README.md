@@ -2,7 +2,7 @@
 
  * [ ] Load key mapping information from terminfo
  * [ ] Mouse reporting mode (and restore on drop)
- * [ ] Bracketed paste mode (and restore on drop)
+ * [x] Bracketed paste mode (and restore on drop)
 
 ## Windows
 

@@ -22,6 +22,7 @@ extern crate derive_builder;
 #[macro_use]
 extern crate bitflags;
 extern crate cassowary;
+extern crate memmem;
 
 pub mod caps;
 pub mod cell;
