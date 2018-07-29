@@ -7,7 +7,7 @@ use cassowary::{AddConstraintError, Expression, Solver, SuggestValueError, Varia
 use failure::{err_msg, Error};
 use std::collections::HashMap;
 
-use widgets::{ParentRelativeCoords, WidgetHandle};
+use widgets::{Rect, WidgetId};
 
 /// Expands to an Expression holding the value of the variable,
 /// or if there is no variable, a constant with the specified
@@ -163,19 +163,27 @@ pub struct LayoutState {
     solver: Solver,
     screen_width: Variable,
     screen_height: Variable,
-    widget_states: HashMap<WidgetHandle, WidgetState>,
+    widget_states: HashMap<WidgetId, WidgetState>,
 }
 
-/// Each `WidgetHandle` has a `WidgetState` associated with it.
+/// Each `WidgetId` has a `WidgetState` associated with it.
 /// This allows us to look up the `Variable` for each of the
-/// layout features of a widget by `WidgetHandle` after the solver
+/// layout features of a widget by `WidgetId` after the solver
 /// has computed the layout solution.
-#[derive(Copy, Clone)]
+#[derive(Clone)]
 struct WidgetState {
     left: Variable,
     top: Variable,
     width: Variable,
     height: Variable,
+    constraints: Constraints,
+    children: Vec<WidgetId>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LaidOutWidget {
+    pub widget: WidgetId,
+    pub rect: Rect,
 }
 
 fn suggesterr(e: SuggestValueError) -> Error {
@@ -190,18 +198,6 @@ fn adderr(e: AddConstraintError) -> Error {
 }
 
 impl LayoutState {
-    /// Convenience function that performs the entire layout operation
-    /// and updates the widget tree.
-    pub fn compute_layout(
-        screen_width: usize,
-        screen_height: usize,
-        root_widget: &WidgetHandle,
-    ) -> Result<(), Error> {
-        let mut layout = Self::new();
-        layout.add_widget_recursive(root_widget);
-        layout.update_constraints(screen_width, screen_height, root_widget)
-    }
-
     /// Create a new `LayoutState`
     pub fn new() -> Self {
         let mut solver = Solver::new();
@@ -222,32 +218,32 @@ impl LayoutState {
     }
 
     /// Creates a WidgetState entry for a widget.
-    fn add_widget(&mut self, widget: &WidgetHandle) {
+    pub fn add_widget(
+        &mut self,
+        widget: WidgetId,
+        constraints: &Constraints,
+        children: &[WidgetId],
+    ) {
         let state = WidgetState {
             left: Variable::new(),
             top: Variable::new(),
             width: Variable::new(),
             height: Variable::new(),
+            constraints: constraints.clone(),
+            children: children.to_vec(),
         };
-        self.widget_states.insert(widget.clone(), state);
-    }
-
-    pub fn add_widget_recursive(&mut self, widget: &WidgetHandle) {
-        self.add_widget(widget);
-        for child in &widget.borrow().children {
-            self.add_widget_recursive(child);
-        }
+        self.widget_states.insert(widget, state);
     }
 
     /// Assign the screen dimensions, compute constraints, solve
     /// the layout and then apply the size and positioning information
     /// to the widgets in the widget tree.
-    pub fn update_constraints(
+    pub fn compute_constraints(
         &mut self,
         screen_width: usize,
         screen_height: usize,
-        root_widget: &WidgetHandle,
-    ) -> Result<(), Error> {
+        root_widget: WidgetId,
+    ) -> Result<Vec<LaidOutWidget>, Error> {
         self.solver
             .suggest_value(self.screen_width, screen_width as f64)
             .map_err(suggesterr)?;
@@ -267,33 +263,40 @@ impl LayoutState {
         // feels easier and probably has a low enough cardinality that it won't
         // feel too expensive.
         self.solver.fetch_changes();
-        self.apply_widget_state(root_widget, 0, 0)?;
 
-        Ok(())
+        let mut results = Vec::new();
+        self.compute_widget_state(root_widget, 0, 0, &mut results)?;
+
+        Ok(results)
     }
 
-    fn apply_widget_state(
+    fn compute_widget_state(
         &self,
-        widget: &WidgetHandle,
+        widget: WidgetId,
         parent_left: usize,
         parent_top: usize,
+        results: &mut Vec<LaidOutWidget>,
     ) -> Result<(), Error> {
-        let state = *self.widget_states
-            .get(widget)
+        let state = self.widget_states
+            .get(&widget)
             .ok_or_else(|| err_msg("widget has no solver state"))?;
         let width = self.solver.get_value(state.width) as usize;
         let height = self.solver.get_value(state.height) as usize;
         let left = self.solver.get_value(state.left) as usize;
         let top = self.solver.get_value(state.top) as usize;
 
-        widget.borrow_mut().set_size_and_position(
-            width,
-            height,
-            ParentRelativeCoords::new(left - parent_left, top - parent_top),
-        );
+        results.push(LaidOutWidget {
+            widget,
+            rect: Rect {
+                x: left - parent_left,
+                y: top - parent_top,
+                width,
+                height,
+            },
+        });
 
-        for child in &widget.borrow().children {
-            self.apply_widget_state(child, left, top)?;
+        for child in &state.children {
+            self.compute_widget_state(*child, left, top, results)?;
         }
 
         Ok(())
@@ -301,15 +304,16 @@ impl LayoutState {
 
     fn update_widget_constraint(
         &mut self,
-        widget: &WidgetHandle,
+        widget: WidgetId,
         parent_width: Variable,
         parent_height: Variable,
         parent_left: Option<Variable>,
         parent_top: Option<Variable>,
-    ) -> Result<(WidgetState, Constraints), Error> {
-        let state = *self.widget_states
-            .get(widget)
-            .ok_or_else(|| err_msg("widget has no solver state"))?;
+    ) -> Result<WidgetState, Error> {
+        let state = self.widget_states
+            .get(&widget)
+            .ok_or_else(|| err_msg("widget has no solver state"))?
+            .clone();
 
         let is_root_widget = parent_left.is_none();
 
@@ -335,12 +339,10 @@ impl LayoutState {
             .add_constraint(state.top | GE(REQUIRED) | parent_top.clone())
             .map_err(adderr)?;
 
-        let constraints = widget.borrow().get_size_constraints();
-
         if is_root_widget {
             // We handle alignment on the root widget specially here;
             // for non-root widgets, we handle it when assessing children
-            match constraints.halign {
+            match state.constraints.halign {
                 HorizontalAlignment::Left => self.solver
                     .add_constraint(state.left | EQ(STRONG) | 0.0)
                     .map_err(adderr)?,
@@ -352,7 +354,7 @@ impl LayoutState {
                     .map_err(adderr)?,
             }
 
-            match constraints.valign {
+            match state.constraints.valign {
                 VerticalAlignment::Top => self.solver
                     .add_constraint(state.top | EQ(STRONG) | 0.0)
                     .map_err(adderr)?,
@@ -365,7 +367,7 @@ impl LayoutState {
             }
         }
 
-        match constraints.width.spec {
+        match state.constraints.width.spec {
             DimensionSpec::Fixed(width) => {
                 self.solver
                     .add_constraint(state.width | EQ(STRONG) | f64::from(width))
@@ -381,16 +383,18 @@ impl LayoutState {
         }
         self.solver
             .add_constraint(
-                state.width | GE(STRONG) | f64::from(constraints.width.minimum.unwrap_or(1).max(1)),
+                state.width
+                    | GE(STRONG)
+                    | f64::from(state.constraints.width.minimum.unwrap_or(1).max(1)),
             )
             .map_err(adderr)?;
-        if let Some(max_width) = constraints.width.maximum {
+        if let Some(max_width) = state.constraints.width.maximum {
             self.solver
                 .add_constraint(state.width | LE(STRONG) | f64::from(max_width))
                 .map_err(adderr)?;
         }
 
-        match constraints.height.spec {
+        match state.constraints.height.spec {
             DimensionSpec::Fixed(height) => {
                 self.solver
                     .add_constraint(state.height | EQ(STRONG) | f64::from(height))
@@ -408,32 +412,32 @@ impl LayoutState {
             .add_constraint(
                 state.height
                     | GE(STRONG)
-                    | f64::from(constraints.height.minimum.unwrap_or(1).max(1)),
+                    | f64::from(state.constraints.height.minimum.unwrap_or(1).max(1)),
             )
             .map_err(adderr)?;
-        if let Some(max_height) = constraints.height.maximum {
+        if let Some(max_height) = state.constraints.height.maximum {
             self.solver
                 .add_constraint(state.height | LE(STRONG) | f64::from(max_height))
                 .map_err(adderr)?;
         }
 
-        let has_children = !widget.borrow().children.is_empty();
+        let has_children = !state.children.is_empty();
         if has_children {
             let mut left_edge: Expression = state.left + 0.0;
             let mut top_edge: Expression = state.top + 0.0;
             let mut width_constraint = Expression::from_constant(0.0);
             let mut height_constraint = Expression::from_constant(0.0);
 
-            for child in &widget.borrow().children {
-                let (child_state, child_constraints) = self.update_widget_constraint(
-                    child,
+            for child in &state.children {
+                let child_state = self.update_widget_constraint(
+                    *child,
                     state.width,
                     state.height,
                     Some(state.left),
                     Some(state.top),
                 )?;
 
-                match child_constraints.halign {
+                match child_state.constraints.halign {
                     HorizontalAlignment::Left => self.solver
                         .add_constraint(child_state.left | EQ(STRONG) | left_edge.clone())
                         .map_err(adderr)?,
@@ -453,7 +457,7 @@ impl LayoutState {
                         .map_err(adderr)?,
                 }
 
-                match child_constraints.valign {
+                match child_state.constraints.valign {
                     VerticalAlignment::Top => self.solver
                         .add_constraint(child_state.top | EQ(STRONG) | top_edge.clone())
                         .map_err(adderr)?,
@@ -473,7 +477,7 @@ impl LayoutState {
                         .map_err(adderr)?,
                 }
 
-                match constraints.child_orientation {
+                match state.constraints.child_orientation {
                     ChildOrientation::Horizontal => {
                         left_edge = child_state.left + child_state.width;
                         width_constraint = width_constraint + child_state.width;
@@ -506,227 +510,302 @@ impl LayoutState {
                 .map_err(adderr)?;
         }
 
-        Ok((state, constraints))
+        Ok(state)
     }
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
-    use surface::Surface;
-    use widgets::{Widget, WidgetImpl};
-
-    struct UnspecWidget {}
-    impl WidgetImpl for UnspecWidget {
-        fn render_to_surface(&self, _surface: &mut Surface) {}
-    }
-
-    struct ConstrainedWidget {
-        constraints: Constraints,
-    }
-    impl WidgetImpl for ConstrainedWidget {
-        fn render_to_surface(&self, _surface: &mut Surface) {}
-        fn get_size_constraints(&self) -> Constraints {
-            self.constraints
-        }
-    }
-    impl ConstrainedWidget {
-        fn new(constraints: Constraints) -> Self {
-            Self { constraints }
-        }
-    }
 
     #[test]
     fn single_widget_unspec() {
-        let widget = Widget::new(UnspecWidget {});
         let mut layout = LayoutState::new();
-        layout.add_widget_recursive(&widget);
-        layout.update_constraints(40, 12, &widget).unwrap();
+        let main_id = WidgetId::new();
+        layout.add_widget(main_id, &Constraints::default(), &[]);
+        let results = layout.compute_constraints(40, 12, main_id).unwrap();
 
         assert_eq!(
-            widget.borrow().get_size_and_position(),
-            (40, 12, ParentRelativeCoords::new(0, 0))
+            results,
+            vec![LaidOutWidget {
+                widget: main_id,
+                rect: Rect {
+                    x: 0,
+                    y: 0,
+                    width: 40,
+                    height: 12,
+                },
+            }]
         );
     }
 
     #[test]
     fn two_children_pct() {
-        let root = Widget::new(UnspecWidget {});
-
-        let a = Widget::new(ConstrainedWidget::new(
-            Constraints::default().set_pct_width(50).clone(),
-        ));
-        let b = Widget::new(ConstrainedWidget::new(
-            Constraints::default().set_pct_width(50).clone(),
-        ));
-
-        root.borrow_mut().add_child(&a);
-        root.borrow_mut().add_child(&b);
+        let root = WidgetId::new();
+        let a = WidgetId::new();
+        let b = WidgetId::new();
 
         let mut layout = LayoutState::new();
-        layout.add_widget_recursive(&root);
-        layout.update_constraints(100, 100, &root).unwrap();
+        layout.add_widget(root, &Constraints::default(), &[a, b]);
+        layout.add_widget(a, Constraints::default().set_pct_width(50), &[]);
+        layout.add_widget(b, Constraints::default().set_pct_width(50), &[]);
+
+        let results = layout.compute_constraints(100, 100, root).unwrap();
 
         assert_eq!(
-            (
-                root.borrow().get_size_and_position(),
-                a.borrow().get_size_and_position(),
-                b.borrow().get_size_and_position()
-            ),
-            (
-                (100, 100, ParentRelativeCoords::new(0, 0)),
-                (50, 100, ParentRelativeCoords::new(0, 0)),
-                (50, 100, ParentRelativeCoords::new(50, 0))
-            )
+            results,
+            vec![
+                LaidOutWidget {
+                    widget: root,
+                    rect: Rect {
+                        x: 0,
+                        y: 0,
+                        width: 100,
+                        height: 100,
+                    },
+                },
+                LaidOutWidget {
+                    widget: a,
+                    rect: Rect {
+                        x: 0,
+                        y: 0,
+                        width: 50,
+                        height: 100,
+                    },
+                },
+                LaidOutWidget {
+                    widget: b,
+                    rect: Rect {
+                        x: 50,
+                        y: 0,
+                        width: 50,
+                        height: 100,
+                    },
+                },
+            ]
         );
     }
 
     #[test]
     fn three_children_pct() {
-        let root = Widget::new(UnspecWidget {});
-
-        let a = Widget::new(ConstrainedWidget::new(
-            Constraints::default().set_pct_width(20).clone(),
-        ));
-        let b = Widget::new(ConstrainedWidget::new(
-            Constraints::default().set_pct_width(20).clone(),
-        ));
-        let c = Widget::new(ConstrainedWidget::new(
-            Constraints::default().set_pct_width(20).clone(),
-        ));
-
-        root.borrow_mut().add_child(&a);
-        root.borrow_mut().add_child(&b);
-        root.borrow_mut().add_child(&c);
+        let root = WidgetId::new();
+        let a = WidgetId::new();
+        let b = WidgetId::new();
+        let c = WidgetId::new();
 
         let mut layout = LayoutState::new();
-        layout.add_widget_recursive(&root);
-        layout.update_constraints(100, 100, &root).unwrap();
+        layout.add_widget(root, &Constraints::default(), &[a, b, c]);
+        layout.add_widget(a, Constraints::default().set_pct_width(20), &[]);
+        layout.add_widget(b, Constraints::default().set_pct_width(20), &[]);
+        layout.add_widget(c, Constraints::default().set_pct_width(20), &[]);
+
+        let results = layout.compute_constraints(100, 100, root).unwrap();
 
         assert_eq!(
-            (
-                root.borrow().get_size_and_position(),
-                a.borrow().get_size_and_position(),
-                b.borrow().get_size_and_position(),
-                c.borrow().get_size_and_position(),
-            ),
-            (
-                (100, 100, ParentRelativeCoords::new(0, 0)),
-                (20, 100, ParentRelativeCoords::new(0, 0)),
-                (20, 100, ParentRelativeCoords::new(20, 0)),
-                (20, 100, ParentRelativeCoords::new(40, 0))
-            )
+            results,
+            vec![
+                LaidOutWidget {
+                    widget: root,
+                    rect: Rect {
+                        x: 0,
+                        y: 0,
+                        width: 100,
+                        height: 100,
+                    },
+                },
+                LaidOutWidget {
+                    widget: a,
+                    rect: Rect {
+                        x: 0,
+                        y: 0,
+                        width: 20,
+                        height: 100,
+                    },
+                },
+                LaidOutWidget {
+                    widget: b,
+                    rect: Rect {
+                        x: 20,
+                        y: 0,
+                        width: 20,
+                        height: 100,
+                    },
+                },
+                LaidOutWidget {
+                    widget: c,
+                    rect: Rect {
+                        x: 40,
+                        y: 0,
+                        width: 20,
+                        height: 100,
+                    },
+                },
+            ]
         );
     }
 
     #[test]
     fn two_children_a_b() {
-        let root = Widget::new(UnspecWidget {});
-
-        let a = Widget::new(ConstrainedWidget::new(
-            Constraints::with_fixed_width_height(5, 2),
-        ));
-        let b = Widget::new(ConstrainedWidget::new(
-            Constraints::with_fixed_width_height(3, 2),
-        ));
-
-        root.borrow_mut().add_child(&a);
-        root.borrow_mut().add_child(&b);
+        let root = WidgetId::new();
+        let a = WidgetId::new();
+        let b = WidgetId::new();
 
         let mut layout = LayoutState::new();
-        layout.add_widget_recursive(&root);
-        layout.update_constraints(100, 100, &root).unwrap();
+        layout.add_widget(root, &Constraints::default(), &[a, b]);
+        layout.add_widget(a, &Constraints::with_fixed_width_height(5, 2), &[]);
+        layout.add_widget(b, &Constraints::with_fixed_width_height(3, 2), &[]);
+
+        let results = layout.compute_constraints(100, 100, root).unwrap();
 
         assert_eq!(
-            (
-                root.borrow().get_size_and_position(),
-                a.borrow().get_size_and_position(),
-                b.borrow().get_size_and_position()
-            ),
-            (
-                (100, 100, ParentRelativeCoords::new(0, 0)),
-                (5, 2, ParentRelativeCoords::new(0, 0)),
-                (3, 2, ParentRelativeCoords::new(5, 0))
-            )
+            results,
+            vec![
+                LaidOutWidget {
+                    widget: root,
+                    rect: Rect {
+                        x: 0,
+                        y: 0,
+                        width: 100,
+                        height: 100,
+                    },
+                },
+                LaidOutWidget {
+                    widget: a,
+                    rect: Rect {
+                        x: 0,
+                        y: 0,
+                        width: 5,
+                        height: 2,
+                    },
+                },
+                LaidOutWidget {
+                    widget: b,
+                    rect: Rect {
+                        x: 5,
+                        y: 0,
+                        width: 3,
+                        height: 2,
+                    },
+                },
+            ]
         );
     }
 
     #[test]
     fn two_children_b_a() {
-        let root = Widget::new(UnspecWidget {});
-
-        let a = Widget::new(ConstrainedWidget::new(
-            Constraints::with_fixed_width_height(5, 2),
-        ));
-        let b = Widget::new(ConstrainedWidget::new(
-            Constraints::with_fixed_width_height(3, 2),
-        ));
-
-        root.borrow_mut().add_child(&b);
-        root.borrow_mut().add_child(&a);
+        let root = WidgetId::new();
+        let a = WidgetId::new();
+        let b = WidgetId::new();
 
         let mut layout = LayoutState::new();
-        layout.add_widget_recursive(&root);
-        layout.update_constraints(100, 100, &root).unwrap();
+        layout.add_widget(root, &Constraints::default(), &[b, a]);
+        layout.add_widget(a, &Constraints::with_fixed_width_height(5, 2), &[]);
+        layout.add_widget(b, &Constraints::with_fixed_width_height(3, 2), &[]);
+
+        let results = layout.compute_constraints(100, 100, root).unwrap();
 
         assert_eq!(
-            (
-                root.borrow().get_size_and_position(),
-                a.borrow().get_size_and_position(),
-                b.borrow().get_size_and_position()
-            ),
-            (
-                (100, 100, ParentRelativeCoords::new(0, 0)),
-                (5, 2, ParentRelativeCoords::new(3, 0)),
-                (3, 2, ParentRelativeCoords::new(0, 0)),
-            )
+            results,
+            vec![
+                LaidOutWidget {
+                    widget: root,
+                    rect: Rect {
+                        x: 0,
+                        y: 0,
+                        width: 100,
+                        height: 100,
+                    },
+                },
+                LaidOutWidget {
+                    widget: b,
+                    rect: Rect {
+                        x: 0,
+                        y: 0,
+                        width: 3,
+                        height: 2,
+                    },
+                },
+                LaidOutWidget {
+                    widget: a,
+                    rect: Rect {
+                        x: 3,
+                        y: 0,
+                        width: 5,
+                        height: 2,
+                    },
+                },
+            ]
         );
     }
 
     #[test]
     fn two_children_overflow() {
-        let root = Widget::new(UnspecWidget {});
-
-        let a = Widget::new(ConstrainedWidget::new(
-            Constraints::with_fixed_width_height(5, 2),
-        ));
-        let b = Widget::new(ConstrainedWidget::new(
-            Constraints::with_fixed_width_height(3, 2),
-        ));
-
-        root.borrow_mut().add_child(&a);
-        root.borrow_mut().add_child(&b);
+        let root = WidgetId::new();
+        let a = WidgetId::new();
+        let b = WidgetId::new();
 
         let mut layout = LayoutState::new();
-        layout.add_widget_recursive(&root);
-        layout.update_constraints(6, 2, &root).unwrap();
+        layout.add_widget(root, &Constraints::default(), &[a, b]);
+        layout.add_widget(a, &Constraints::with_fixed_width_height(5, 2), &[]);
+        layout.add_widget(b, &Constraints::with_fixed_width_height(3, 2), &[]);
+
+        let results = layout.compute_constraints(6, 2, root).unwrap();
 
         assert_eq!(
-            (
-                root.borrow().get_size_and_position(),
-                a.borrow().get_size_and_position(),
-                b.borrow().get_size_and_position()
-            ),
-            (
-                (8, 2, ParentRelativeCoords::new(0, 0)),
-                (5, 2, ParentRelativeCoords::new(0, 0)),
-                (3, 2, ParentRelativeCoords::new(5, 0)),
-            )
+            results,
+            vec![
+                LaidOutWidget {
+                    widget: root,
+                    rect: Rect {
+                        x: 0,
+                        y: 0,
+                        width: 8,
+                        height: 2,
+                    },
+                },
+                LaidOutWidget {
+                    widget: a,
+                    rect: Rect {
+                        x: 0,
+                        y: 0,
+                        width: 5,
+                        height: 2,
+                    },
+                },
+                LaidOutWidget {
+                    widget: b,
+                    rect: Rect {
+                        x: 5,
+                        y: 0,
+                        width: 3,
+                        height: 2,
+                    },
+                },
+            ]
         );
     }
 
     macro_rules! single_constrain {
-        ($name:ident, $constraint:expr, $width:expr, $height:expr, $coords:expr) => {
+        ($name:ident, $constraint:expr, $width:expr, $height:expr, $x:expr, $y:expr) => {
             #[test]
             fn $name() {
-                let widget = Widget::new(ConstrainedWidget::new($constraint));
+                let root = WidgetId::new();
                 let mut layout = LayoutState::new();
-                layout.add_widget_recursive(&widget);
-                layout.update_constraints(100, 100, &widget).unwrap();
+                layout.add_widget(root, &$constraint, &[]);
+
+                let results = layout.compute_constraints(100, 100, root).unwrap();
 
                 assert_eq!(
-                    widget.borrow().get_size_and_position(),
-                    ($width, $height, $coords)
+                    results,
+                    vec![LaidOutWidget {
+                        widget: root,
+                        rect: Rect {
+                            x: $x,
+                            y: $y,
+                            width: $width,
+                            height: $height,
+                        },
+                    }]
                 );
             }
         };
@@ -737,7 +816,8 @@ mod test {
         Constraints::with_fixed_width_height(10, 2),
         10,
         2,
-        ParentRelativeCoords::new(0, 0)
+        0,
+        0
     );
 
     single_constrain!(
@@ -747,7 +827,8 @@ mod test {
             .clone(),
         10,
         2,
-        ParentRelativeCoords::new(0, 98)
+        0,
+        98
     );
 
     single_constrain!(
@@ -757,7 +838,8 @@ mod test {
             .clone(),
         10,
         2,
-        ParentRelativeCoords::new(0, 49)
+        0,
+        49
     );
 
     single_constrain!(
@@ -767,7 +849,8 @@ mod test {
             .clone(),
         10,
         2,
-        ParentRelativeCoords::new(90, 0)
+        90,
+        0
     );
 
     single_constrain!(
@@ -778,7 +861,7 @@ mod test {
             .clone(),
         10,
         2,
-        ParentRelativeCoords::new(45, 98)
+        45,
+        98
     );
-
 }
