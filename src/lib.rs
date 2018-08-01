@@ -1,5 +1,6 @@
 #[macro_use]
 extern crate failure;
+extern crate fnv;
 extern crate libc;
 extern crate palette;
 extern crate semver;

@@ -18,6 +18,7 @@ libc = "~0.2"
 bitflags = "~1.0"
 cassowary = "~0.3"
 memmem = "~0.1"
+fnv = "~1.0"
 
 [dependencies.num-derive]
 version = "~0.2"

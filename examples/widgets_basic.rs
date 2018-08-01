@@ -4,7 +4,6 @@ extern crate failure;
 extern crate termwiz;
 
 use failure::Error;
-use std::borrow::Cow;
 use termwiz::caps::Capabilities;
 use termwiz::cell::AttributeChange;
 use termwiz::color::{AnsiColor, ColorAttribute, RgbColor};
@@ -18,93 +17,66 @@ use termwiz::widgets::*;
 /// This is a widget for our application
 struct MainScreen<'a> {
     /// Holds the input text that we wish the widget to display
-    text: &'a str,
+    text: &'a mut String,
 }
 
 impl<'a> MainScreen<'a> {
     /// Initialize the widget with the input text
-    pub fn new(text: &'a str) -> Self {
+    pub fn new(text: &'a mut String) -> Self {
         Self { text }
     }
 }
 
 impl<'a> Widget for MainScreen<'a> {
-    /// This particular widget doesn't require the Ui to hold any state
-    /// for it, as the Event always returns any changed text, and we
-    /// always pass in that text on the next loop iteration.
-    type State = ();
-
-    /// Our `update_state` method will return Some(text) if the result
-    /// of processing input changed the input text, or None if the
-    /// input text is unchanged.
-    type Event = Option<String>;
-
-    /// We have no State to initialize
-    fn init_state(&self) {}
-
-    /// Process any input events and potentially update the returned text.
-    /// Returns Some(text) if it was edited, else None.
-    fn update_state(&self, args: &mut WidgetUpdate<Self>) -> Option<String> {
-        // We use Cow here to defer making a clone of the input
-        // text until the input events require it.
-        let mut text = Cow::Borrowed(self.text);
-
-        for event in args.events() {
-            match event {
-                WidgetEvent::Input(InputEvent::Key(KeyEvent {
-                    key: KeyCode::Char(c),
-                    ..
-                })) => text.to_mut().push(c),
-                WidgetEvent::Input(InputEvent::Key(KeyEvent {
-                    key: KeyCode::Enter,
-                    ..
-                })) => {
-                    text.to_mut().push_str("\r\n");
-                }
-                WidgetEvent::Input(InputEvent::Paste(s)) => {
-                    text.to_mut().push_str(&s);
-                }
-                _ => {}
+    fn process_event(&mut self, event: &WidgetEvent, _args: &mut UpdateArgs) -> bool {
+        match event {
+            WidgetEvent::Input(InputEvent::Key(KeyEvent {
+                key: KeyCode::Char(c),
+                ..
+            })) => self.text.push(*c),
+            WidgetEvent::Input(InputEvent::Key(KeyEvent {
+                key: KeyCode::Enter,
+                ..
+            })) => {
+                self.text.push_str("\r\n");
             }
+            WidgetEvent::Input(InputEvent::Paste(s)) => {
+                self.text.push_str(&s);
+            }
+            _ => {}
         }
 
-        // Now that we've updated the text, let's render it to
-        // the display.  Get a reference to the surface.
-        let mut surface = args.surface_mut();
+        true // handled it all
+    }
 
-        surface.add_change(Change::ClearScreen(
+    /// Draw ourselves into the surface provided by RenderArgs
+    fn render(&mut self, args: &mut RenderArgs) {
+        args.surface.add_change(Change::ClearScreen(
             ColorAttribute::TrueColorWithPaletteFallback(
                 RgbColor::new(0x31, 0x1B, 0x92),
                 AnsiColor::Black.into(),
             ),
         ));
-        surface.add_change(Change::Attribute(AttributeChange::Foreground(
-            ColorAttribute::TrueColorWithPaletteFallback(
-                RgbColor::new(0xB3, 0x88, 0xFF),
-                AnsiColor::Purple.into(),
-            ),
-        )));
-        let dims = surface.dimensions();
-        surface.add_change(format!("🤷 surface size is {:?}\r\n", dims));
-        surface.add_change(text.clone());
+        args.surface
+            .add_change(Change::Attribute(AttributeChange::Foreground(
+                ColorAttribute::TrueColorWithPaletteFallback(
+                    RgbColor::new(0xB3, 0x88, 0xFF),
+                    AnsiColor::Purple.into(),
+                ),
+            )));
+        let dims = args.surface.dimensions();
+        args.surface
+            .add_change(format!("🤷 surface size is {:?}\r\n", dims));
+        args.surface.add_change(self.text.clone());
 
         // Place the cursor at the end of the text.
         // A more advanced text editing widget would manage the
         // cursor position differently.
-        *args.cursor_mut() = CursorShapeAndPosition {
-            coords: surface.cursor_position().into(),
+        *args.cursor = CursorShapeAndPosition {
+            coords: args.surface.cursor_position().into(),
             shape: termwiz::surface::CursorShape::SteadyBar,
             ..Default::default()
         };
-
-        // Return the new text if it changed, else None.
-        if text != self.text {
-            // updated!
-            Some(text.into_owned())
-        } else {
-            // unchanged
-            None
-        }
     }
 }
 
@@ -121,26 +93,11 @@ fn main() -> Result<(), Error> {
 
         // Set up the UI
         let mut ui = Ui::new();
-        // Assign an id to associate state with the MainScreen widget.
-        // We don't happen to retain anything in this example, but we
-        // still need to assign an id.
-        let main_id = WidgetId::new();
+
+        ui.set_root(MainScreen::new(&mut typed_text));
 
         loop {
-            // Create the MainScreen and place it into the Ui.
-            // When `build_ui_root` is called, the Ui machinery will
-            // invoke `MainScreen::update_state` to process any input
-            // events.
-            // Because we've defined MainScreen to return Some(String)
-            // when the input text is edited, the effect of these next
-            // few lines is to have `MainScreen` take `typed_text`, apply
-            // any keyboard events to it, display it, and then update
-            // `typed_text` to hold the changed value.
-            // `MainScreen` doesn't live for longer then the scope of this
-            // short block.
-            if let Some(updated) = MainScreen::new(&typed_text).build_ui_root(main_id, &mut ui) {
-                typed_text = updated;
-            }
+            ui.process_event_queue()?;
 
             // After updating and processing all of the widgets, compose them
             // and render them to the screen.
