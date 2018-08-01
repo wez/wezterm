@@ -19,6 +19,9 @@ bitflags = "~1.0"
 cassowary = "~0.3"
 memmem = "~0.1"
 fnv = "~1.0"
+unicode-segmentation = "~1.2"
+smallvec = "~0.6"
+unicode-width = "~0.1"
 
 [dependencies.num-derive]
 version = "~0.2"

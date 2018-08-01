@@ -2,6 +2,7 @@ use cell::{AttributeChange, Cell, CellAttributes};
 use color::ColorAttribute;
 use std::borrow::Cow;
 use std::cmp::min;
+use unicode_segmentation::UnicodeSegmentation;
 
 /// Position holds 0-based positioning information, where
 /// Absolute(0) is the start of the line or column,
@@ -130,7 +131,7 @@ impl Line {
 
         for cell in &self.cells {
             if *cell.attrs() == attr {
-                text_run.push(cell.char());
+                text_run.push_str(cell.str());
             } else {
                 // flush out the current text run
                 if text_run.len() > 0 {
@@ -140,7 +141,7 @@ impl Line {
 
                 attr = cell.attrs().clone();
                 result.push(Change::AllAttributes(attr.clone()));
-                text_run.push(cell.char());
+                text_run.push_str(cell.str());
             }
         }
 
@@ -371,13 +372,24 @@ impl Surface {
     }
 
     fn print_text(&mut self, text: &str) {
-        for c in text.chars() {
-            if c == '\r' {
+        for g in UnicodeSegmentation::graphemes(text, true) {
+            if g == "\r\n" {
+                self.xpos = 0;
+                let new_y = self.ypos + 1;
+                if new_y >= self.height {
+                    self.scroll_screen_up();
+                } else {
+                    self.ypos = new_y;
+                }
+                continue;
+            }
+
+            if g == "\r" {
                 self.xpos = 0;
                 continue;
             }
 
-            if c == '\n' {
+            if g == "\n" {
                 let new_y = self.ypos + 1;
                 if new_y >= self.height {
                     self.scroll_screen_up();
@@ -397,7 +409,7 @@ impl Surface {
                 self.xpos = 0;
             }
 
-            self.lines[self.ypos].cells[self.xpos] = Cell::new(c, self.attributes.clone());
+            self.lines[self.ypos].cells[self.xpos] = Cell::new_grapheme(g, self.attributes.clone());
 
             // Increment the position now; we'll defer processing
             // wrapping until the next printed character, otherwise
@@ -450,7 +462,7 @@ impl Surface {
 
         for line in &self.lines {
             for cell in &line.cells {
-                s.push(cell.char());
+                s.push_str(cell.str());
             }
             s.push('\n');
         }
@@ -753,10 +765,10 @@ impl Surface {
                     let result_len = result.len();
                     if result_len > 0 && result[result_len - 1].is_text() {
                         if let Some(Change::Text(ref mut prefix)) = result.get_mut(result_len - 1) {
-                            prefix.push(other_cell.char());
+                            prefix.push_str(other_cell.str());
                         }
                     } else {
-                        result.push(Change::Text(other_cell.char().to_string()));
+                        result.push(Change::Text(other_cell.str().to_string()));
                     }
                 }
             }

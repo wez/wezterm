@@ -1,8 +1,11 @@
 //! Model a cell in the terminal display
 use color::ColorAttribute;
 pub use escape::osc::Hyperlink;
+use smallvec::SmallVec;
+use std;
 use std::mem;
 use std::rc::Rc;
+use unicode_width::UnicodeWidthStr;
 
 /// Holds the attributes for a cell.
 /// Most style attributes are stored internally as part of a bitfield
@@ -167,7 +170,7 @@ impl CellAttributes {
 /// Models the contents of a cell on the terminal display
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Cell {
-    text: char,
+    text: SmallVec<[u8; 4]>,
     attrs: CellAttributes,
 }
 
@@ -181,11 +184,18 @@ impl Cell {
     /// De-fang the input character such that it has no special meaning
     /// to a terminal.  All control and movement characters are rewritten
     /// as a space.
-    pub(crate) fn nerf_control_char(text: char) -> char {
-        if text < 0x20 as char || text == 0x7f as char {
-            ' '
-        } else {
-            text
+    fn nerf_control_char(text: &mut SmallVec<[u8; 4]>) {
+        if text.len() == 0 {
+            text.push(b' ');
+            return;
+        }
+
+        if text.len() != 1 {
+            return;
+        }
+
+        if text[0] < 0x20 || text[0] == 0x7f {
+            text[0] = b' ';
         }
     }
 
@@ -193,15 +203,44 @@ impl Cell {
     /// specified cell attributes.
     /// All control and movement characters are rewritten as a space.
     pub fn new(text: char, attrs: CellAttributes) -> Self {
+        let len = text.len_utf8();
+        let mut storage = SmallVec::with_capacity(len);
+        storage.resize(len, 0);
+        text.encode_utf8(&mut storage);
+        Self::nerf_control_char(&mut storage);
         Self {
-            text: Self::nerf_control_char(text),
+            text: storage,
+            attrs,
+        }
+    }
+
+    /// Create a new cell holding the specified grapheme.
+    /// The grapheme is passed as a string slice and is intended to hold
+    /// double-width characters, or combining unicode sequences, that need
+    /// to be treated as a single logical "character" that can be cursored
+    /// over.  This function technically allows for an arbitrary string to
+    /// be passed but it should not be used to hold strings other than
+    /// graphemes.
+    pub fn new_grapheme(text: &str, attrs: CellAttributes) -> Self {
+        let mut storage = SmallVec::from_slice(text.as_bytes());
+
+        Self::nerf_control_char(&mut storage);
+
+        Self {
+            text: storage,
             attrs,
         }
     }
 
     /// Returns the textual content of the cell
-    pub fn char(&self) -> char {
-        self.text
+    pub fn str(&self) -> &str {
+        // unsafety: this is safe because the constructor guarantees
+        // that the storage is valid utf8
+        unsafe { std::str::from_utf8_unchecked(&self.text) }
+    }
+
+    pub fn width(&self) -> usize {
+        UnicodeWidthStr::width(self.str())
     }
 
     /// Returns the attributes of the cell
@@ -235,7 +274,12 @@ mod test {
     fn nerf_special() {
         for c in " \n\r\t".chars() {
             let cell = Cell::new(c, CellAttributes::default());
-            assert_eq!(cell.char(), ' ');
+            assert_eq!(cell.str(), " ");
+        }
+
+        for g in &["", " ", "\n", "\r", "\t"] {
+            let cell = Cell::new_grapheme(g, CellAttributes::default());
+            assert_eq!(cell.str(), " ");
         }
     }
 }

@@ -24,6 +24,9 @@ extern crate derive_builder;
 extern crate bitflags;
 extern crate cassowary;
 extern crate memmem;
+extern crate smallvec;
+extern crate unicode_segmentation;
+extern crate unicode_width;
 
 pub mod caps;
 pub mod cell;
