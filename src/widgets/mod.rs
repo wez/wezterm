@@ -232,7 +232,6 @@ impl<'widget> Ui<'widget> {
                     );
                     m.x = coords.x as u16;
                     m.y = coords.y as u16;
-                    // TODO: exclude if these are outside of the rect!
                     self.do_deliver(id, &WidgetEvent::Input(InputEvent::Mouse(m)))
                 }
                 WidgetEvent::Input(InputEvent::Paste(_))
@@ -250,11 +249,54 @@ impl<'widget> Ui<'widget> {
         }
     }
 
-    // TODO: we should find the best matching widget that
-    // is under the mouse cursor, and then propagate up
-    // its graph to the root
-    fn hovered_widget(&self, _coords: &ScreenRelativeCoords) -> Option<WidgetId> {
-        self.graph.root
+    /// find the best matching widget that is under the mouse cursor.
+    /// We're looking for the latest, deepest widget that contains the input
+    /// coordinates.
+    fn hovered_widget(&self, coords: &ScreenRelativeCoords) -> Option<WidgetId> {
+        let root = match self.graph.root {
+            Some(id) => id,
+            _ => return None,
+        };
+
+        let depth = 0;
+        let mut best = (depth, root);
+        self.hovered_recursive(root, depth, coords.x, coords.y, &mut best);
+
+        Some(best.1)
+    }
+
+    /// Recursive helper for hovered_widget().  The `best` tuple holds the
+    /// best (depth, widget) pair.  Depth is incremented each time the function
+    /// recurses.
+    fn hovered_recursive(
+        &self,
+        widget: WidgetId,
+        depth: usize,
+        x: usize,
+        y: usize,
+        best: &mut (usize, WidgetId),
+    ) {
+        let render = &self.render[&widget];
+
+        // only consider the dimensions if this node is at the same or a deeper
+        // depth.  If so, then we check to see if the coords are within the bounds.
+        if depth >= best.0 && x >= render.coordinates.x && y >= render.coordinates.y {
+            let (width, height) = render.surface.dimensions();
+
+            if (x - render.coordinates.x < width) && (y - render.coordinates.y < height) {
+                *best = (depth, widget);
+            }
+        }
+
+        for child in self.graph.children(widget) {
+            self.hovered_recursive(
+                *child,
+                depth + 1,
+                x + render.coordinates.x,
+                y + render.coordinates.y,
+                best,
+            );
+        }
     }
 
     pub fn process_event_queue(&mut self) -> Result<(), Error> {
