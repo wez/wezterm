@@ -6,7 +6,7 @@ use unicode_segmentation::UnicodeSegmentation;
 
 /// Position holds 0-based positioning information, where
 /// Absolute(0) is the start of the line or column,
-/// Resltive(0) is the current position in the line or
+/// Relative(0) is the current position in the line or
 /// column and EndRelative(0) is the end position in the
 /// line or column.
 #[derive(Debug, Clone, Eq, PartialEq)]
