@@ -78,6 +78,10 @@ impl<'a> Widget for MainScreen<'a> {
             ..Default::default()
         };
     }
+
+    fn get_size_constraints(&self) -> layout::Constraints {
+        layout::Constraints::with_fixed_width_height(80, 24)
+    }
 }
 
 fn main() -> Result<(), Error> {

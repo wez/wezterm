@@ -190,6 +190,12 @@ impl Cell {
             return;
         }
 
+        if text.as_slice() == &[b'\r', b'\n'] {
+            text.remove(1);
+            text[0] = b' ';
+            return;
+        }
+
         if text.len() != 1 {
             return;
         }
@@ -208,6 +214,7 @@ impl Cell {
         storage.resize(len, 0);
         text.encode_utf8(&mut storage);
         Self::nerf_control_char(&mut storage);
+
         Self {
             text: storage,
             attrs,
@@ -223,7 +230,6 @@ impl Cell {
     /// graphemes.
     pub fn new_grapheme(text: &str, attrs: CellAttributes) -> Self {
         let mut storage = SmallVec::from_slice(text.as_bytes());
-
         Self::nerf_control_char(&mut storage);
 
         Self {
@@ -239,6 +245,7 @@ impl Cell {
         unsafe { std::str::from_utf8_unchecked(&self.text) }
     }
 
+    /// Returns the number of cells visually occupied by this grapheme
     pub fn width(&self) -> usize {
         UnicodeWidthStr::width(self.str())
     }
@@ -277,7 +284,7 @@ mod test {
             assert_eq!(cell.str(), " ");
         }
 
-        for g in &["", " ", "\n", "\r", "\t"] {
+        for g in &["", " ", "\n", "\r", "\t", "\r\n"] {
             let cell = Cell::new_grapheme(g, CellAttributes::default());
             assert_eq!(cell.str(), " ");
         }

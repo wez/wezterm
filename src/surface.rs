@@ -122,6 +122,61 @@ impl Line {
         self.cells.resize(width, Cell::default());
     }
 
+    /// If we're about to modify a cell obscured by a double-width
+    /// character ahead of that cell, we need to nerf that sequence
+    /// of cells to avoid partial rendering concerns.
+    /// Similarly, when we assign a cell, we need to blank out those
+    /// occluded successor cells.
+    /// Note that an invalid index will be silently ignored; attempting
+    /// to assign to an out of bounds index will not extend the cell array,
+    /// and it will not flag an error.
+    fn set_cell(&mut self, idx: usize, cell: Cell) {
+        // Assumption: that the width of a grapheme is never > 2.
+        // This constrains the amount of look-back that we need to do here.
+        if idx > 0 {
+            let prior = idx - 1;
+            let width = self.cells[prior].width();
+            if width > 1 {
+                let attrs = self.cells[prior].attrs().clone();
+                for nerf in prior..prior + width {
+                    self.cells[nerf] = Cell::new(' ', attrs.clone());
+                }
+            }
+        }
+
+        // For double-wide or wider chars, ensure that the cells that
+        // are overlapped by this one are blanked out.
+        let width = cell.width();
+        for i in 1..=width.saturating_sub(1) {
+            self.cells
+                .get_mut(idx + i)
+                .map(|target| *target = Cell::new(' ', cell.attrs().clone()));
+        }
+
+        self.cells.get_mut(idx).map(|target| *target = cell);
+    }
+
+    /// Iterates the visible cells, respecting the width of the cell.
+    /// For instance, a double-width cell overlaps the following (blank)
+    /// cell, so that blank cell is omitted from the iterator results.
+    /// The iterator yields (column_index, Cell).  Column index is the
+    /// index into Self::cells, and due to the possibility of skipping
+    /// the characters that follow wide characters, the column index may
+    /// skip some positions.  It is returned as a convenience to the consumer
+    /// as using .enumerate() on this iterator wouldn't be as useful.
+    fn visible_cells(&self) -> impl Iterator<Item = (usize, &Cell)> {
+        let mut skip_width = 0;
+        self.cells.iter().enumerate().filter(move |(_idx, cell)| {
+            if skip_width > 0 {
+                skip_width -= 1;
+                false
+            } else {
+                skip_width = cell.width().saturating_sub(1);
+                true
+            }
+        })
+    }
+
     /// Given a starting attribute value, produce a series of Change
     /// entries to recreate the current line
     fn changes(&self, start_attr: &CellAttributes) -> Vec<Change> {
@@ -129,7 +184,7 @@ impl Line {
         let mut attr = start_attr.clone();
         let mut text_run = String::new();
 
-        for cell in &self.cells {
+        for (_, cell) in self.visible_cells() {
             if *cell.attrs() == attr {
                 text_run.push_str(cell.str());
             } else {
@@ -346,7 +401,11 @@ impl Surface {
             .set_background(color.clone())
             .clone();
         let cleared = Cell::new(' ', self.attributes.clone());
-        for cell in self.lines[self.ypos].cells.iter_mut().skip(self.xpos) {
+        // Ensure that we have the opportunity to fixup any damage to double-wide
+        // chararcters that overlap the start of the current position.
+        self.lines[self.ypos].set_cell(self.xpos, cleared.clone());
+        // Now we can safely directly poke all remaining cells with a space
+        for cell in self.lines[self.ypos].cells.iter_mut().skip(self.xpos + 1) {
             *cell = cleared.clone();
         }
         for line in &mut self.lines.iter_mut().skip(self.ypos + 1) {
@@ -361,7 +420,10 @@ impl Surface {
             .set_background(color.clone())
             .clone();
         let cleared = Cell::new(' ', self.attributes.clone());
-        for cell in self.lines[self.ypos].cells.iter_mut().skip(self.xpos) {
+        // Ensure that we have the opportunity to fixup any damage to double-wide
+        // chararcters that overlap the start of the current position.
+        self.lines[self.ypos].set_cell(self.xpos, cleared.clone());
+        for cell in self.lines[self.ypos].cells.iter_mut().skip(self.xpos + 1) {
             *cell = cleared.clone();
         }
     }
@@ -409,12 +471,20 @@ impl Surface {
                 self.xpos = 0;
             }
 
-            self.lines[self.ypos].cells[self.xpos] = Cell::new_grapheme(g, self.attributes.clone());
+            let cell = Cell::new_grapheme(g, self.attributes.clone());
+            // the max(1) here is to ensure that we advance to the next cell
+            // position for zero-width graphemes.  We want to make sure that
+            // they occupy a cell so that we can re-emit them when we output them.
+            // If we didn't do this, then we'd effectively filter them out from
+            // the model, which seems like a lossy design choice.
+            let mut width = cell.width().max(1);
+
+            self.lines[self.ypos].set_cell(self.xpos, cell);
 
             // Increment the position now; we'll defer processing
             // wrapping until the next printed character, otherwise
             // we'll eagerly scroll when we reach the right margin.
-            self.xpos += 1;
+            self.xpos += width;
         }
     }
 
@@ -461,7 +531,7 @@ impl Surface {
         let mut s = String::new();
 
         for line in &self.lines {
-            for cell in &line.cells {
+            for (_, cell) in line.visible_cells() {
                 s.push_str(cell.str());
             }
             s.push('\n');
@@ -717,12 +787,10 @@ impl Surface {
             .take_while(|(row_num, _)| *row_num < y + height)
             .zip(other.lines.iter().skip(other_y))
         {
-            for ((col_num, cell), other_cell) in line.cells
-                .iter()
-                .enumerate()
+            for ((col_num, cell), (_, other_cell)) in line.visible_cells()
                 .skip(x)
                 .take_while(|(col_num, _)| *col_num < x + width)
-                .zip(other_line.cells.iter().skip(other_x))
+                .zip(other_line.visible_cells().skip(other_x))
             {
                 if cell != other_cell {
                     cursor = match cursor.take() {
@@ -1474,5 +1542,32 @@ mod test {
              aafo\n\
              azaa\n"
         );
+    }
+
+    #[test]
+    fn double_width() {
+        let mut s = Surface::new(4, 1);
+        s.add_change("🤷12");
+        assert_eq!(s.screen_chars_to_string(), "🤷12\n");
+        s.add_change(Change::CursorPosition {
+            x: Position::Absolute(1),
+            y: Position::Absolute(0),
+        });
+        s.add_change("a🤷");
+        assert_eq!(s.screen_chars_to_string(), " a🤷\n");
+        s.add_change(Change::CursorPosition {
+            x: Position::Absolute(2),
+            y: Position::Absolute(0),
+        });
+        s.add_change("x");
+        assert_eq!(s.screen_chars_to_string(), " ax \n");
+    }
+
+    #[test]
+    fn zero_width() {
+        let mut s = Surface::new(4, 1);
+        // https://en.wikipedia.org/wiki/Zero-width_space
+        s.add_change("A\u{200b}B");
+        assert_eq!(s.screen_chars_to_string(), "A\u{200b}B \n");
     }
 }
