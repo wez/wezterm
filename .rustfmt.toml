@@ -1,14 +1,3 @@
-# Run `rustfmt --config-help` to see available config options.
 # Please keep these in alphabetical order.
-condense_wildcard_suffixes = true
-error_on_line_overflow = false
-error_on_unformatted = false
-# Too many derives can cause line length limits to be exceeded. rustfmt-nightly
-# 0.2.5 doesn't appear to pay attention to this.
-merge_derives = false
-struct_lit_single_line = true
-# Override the Nuclide/Atom default tab spacing.
 tab_spaces = 4
-use_field_init_shorthand = true
-use_try_shorthand = true
 wrap_comments = true
