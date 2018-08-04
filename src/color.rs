@@ -1,7 +1,7 @@
 //! Colors for attributes
 
 use palette;
-use palette::Srgb;
+use palette::{LinSrgba, Srgb, Srgba};
 use serde::{self, Deserialize, Deserializer};
 use std::result::Result;
 
@@ -50,6 +50,8 @@ impl From<AnsiColor> for u8 {
     }
 }
 
+pub type RgbaTuple = (f32, f32, f32, f32);
+
 /// Describes a color in the SRGB colorspace using red, green and blue
 /// components in the range 0-255.
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash)]
@@ -64,6 +66,16 @@ impl RgbColor {
     /// in the range 0-255.
     pub fn new(red: u8, green: u8, blue: u8) -> Self {
         Self { red, green, blue }
+    }
+
+    pub fn to_linear(&self) -> LinSrgba {
+        Srgba::<u8>::new(self.red, self.green, self.blue, 0xff)
+            .into_format()
+            .into_linear()
+    }
+
+    pub fn to_linear_tuple_rgba(&self) -> RgbaTuple {
+        self.to_linear().into_components()
     }
 
     /// Construct a color from an SVG/CSS3 color name.

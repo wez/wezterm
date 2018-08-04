@@ -155,6 +155,11 @@ impl CellAttributes {
         self
     }
 
+    pub fn set_hyperlink(&mut self, link: Option<Rc<Hyperlink>>) -> &mut Self {
+        self.hyperlink = link;
+        self
+    }
+
     /// Clone the attributes, but exclude fancy extras such
     /// as hyperlinks or future sprite things
     pub fn clone_sgr_only(&self) -> Self {
