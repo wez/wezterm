@@ -42,15 +42,15 @@ pub struct Unspecified {
 
 impl Display for Unspecified {
     fn fmt(&self, f: &mut Formatter) -> Result<(), FmtError> {
+        for i in &self.intermediates {
+            write!(f, "{}", *i as char)?;
+        }
         for (idx, p) in self.params.iter().enumerate() {
             if idx > 0 {
                 write!(f, ";{}", p)?;
             } else {
                 write!(f, "{}", p)?;
             }
-        }
-        for i in &self.intermediates {
-            write!(f, "{}", i)?;
         }
         write!(f, "{}", self.control)
     }
@@ -1231,13 +1231,9 @@ impl<'a> CSIParser<'a> {
     }
 
     fn dec(&mut self, params: &'a [i64]) -> Result<DecPrivateMode, ()> {
-        if params.len() != 1 {
-            return Err(());
-        }
-
         match num::FromPrimitive::from_i64(params[0]) {
             None => Ok(DecPrivateMode::Unspecified(params[0].to_u16().ok_or(())?)),
-            Some(mode) => Ok(DecPrivateMode::Code(mode)),
+            Some(mode) => Ok(self.advance_by(1, params, DecPrivateMode::Code(mode))),
         }
     }
 
@@ -1637,6 +1633,17 @@ mod test {
             vec![CSI::Mode(Mode::RestoreDecPrivateMode(
                 DecPrivateMode::Code(DecPrivateModeCode::BracketedPaste),
             ))]
+        );
+        assert_eq!(
+            parse_int('h', &[12, 25], b'?', "\x1b[?12h\x1b[?25h"),
+            vec![
+                CSI::Mode(Mode::SetDecPrivateMode(DecPrivateMode::Code(
+                    DecPrivateModeCode::StartBlinkingCursor,
+                ))),
+                CSI::Mode(Mode::SetDecPrivateMode(DecPrivateMode::Code(
+                    DecPrivateModeCode::ShowCursor,
+                ))),
+            ]
         );
     }
 
