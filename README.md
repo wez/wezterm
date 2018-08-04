@@ -1,5 +1,7 @@
 # Terminal Wizardry
 
+[![Build Status](https://travis-ci.org/wez/termwiz.svg?branch=master)](https://travis-ci.org/wez/termwiz)
+
 This is a rust crate that provides a number of support functions
 for applications interesting in either displaying data to a terminal
 or in building a terminal emulator.
