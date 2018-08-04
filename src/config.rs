@@ -159,7 +159,7 @@ pub struct StyleRule {
     pub italic: Option<bool>,
     /// If present, this rule matches when CellAttributes::blink holds
     /// a value that matches this rule.
-    pub blink: Option<bool>,
+    pub blink: Option<term::Blink>,
     /// If present, this rule matches when CellAttributes::reverse holds
     /// a value that matches this rule.
     pub reverse: Option<bool>,

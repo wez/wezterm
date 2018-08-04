@@ -138,7 +138,7 @@ impl Screen {
         }
 
         let width = line.cells.len();
-        let cell = Cell::from_char(c, attr);
+        let cell = Cell::new(c, attr.clone());
         if x == width {
             line.cells.push(cell);
         } else if x > width {
@@ -164,7 +164,7 @@ impl Screen {
             if x >= max_col {
                 break;
             }
-            line.cells[x].reset_with_attributes(attr);
+            line.cells[x] = Cell::new(' ', attr.clone());
         }
     }
 

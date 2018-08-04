@@ -147,12 +147,13 @@ fn test_ed() {
 
     // Check that the background color paints all of the cells;
     // this is also known as BCE - Background Color Erase.
-    let mut attr = CellAttributes::default();
-    attr.background = color::ColorAttribute::PaletteIndex(color::AnsiColor::Navy as u8);
+    let attr = CellAttributes::default()
+        .set_background(color::AnsiColor::Navy)
+        .clone();
     let mut line: Line = "   ".into();
-    line.cells[0].attrs = attr.clone();
-    line.cells[1].attrs = attr.clone();
-    line.cells[2].attrs = attr.clone();
+    line.cells[0] = Cell::new(' ', attr.clone());
+    line.cells[1] = Cell::new(' ', attr.clone());
+    line.cells[2] = Cell::new(' ', attr.clone());
     assert_lines_equal(
         &term.screen().visible_lines(),
         &[line.clone(), line.clone(), line],

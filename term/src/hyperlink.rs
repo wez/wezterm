@@ -8,7 +8,6 @@
 use failure::Error;
 use regex::{Captures, Regex};
 use serde::{self, Deserialize, Deserializer};
-use std::collections::HashMap;
 use std::ops::Range;
 use std::rc::Rc;
 

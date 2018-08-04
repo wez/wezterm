@@ -5,7 +5,6 @@ extern crate bitflags;
 extern crate failure;
 #[macro_use]
 extern crate maplit;
-extern crate palette;
 extern crate regex;
 extern crate serde;
 #[macro_use]
@@ -25,8 +24,7 @@ mod debug;
 pub mod input;
 pub use input::*;
 
-pub mod cell;
-pub use cell::*;
+pub use termwiz::cell::{self, *};
 
 pub mod line;
 pub use line::*;

@@ -306,7 +306,7 @@ impl TerminalState {
             Some(ref mut line) => {
                 line.find_hyperlinks(rules);
                 match line.cells.get(x) {
-                    Some(cell) => cell.attrs.hyperlink.as_ref().cloned(),
+                    Some(cell) => cell.attrs().hyperlink.as_ref().cloned(),
                     None => None,
                 }
             }
@@ -1376,19 +1376,33 @@ impl TerminalState {
                 self.pen = CellAttributes::default();
                 self.pen.hyperlink = link;
             }
-            Sgr::Intensity(intensity) => self.pen.set_intensity(intensity),
-            Sgr::Underline(underline) => self.pen.set_underline(underline),
-            Sgr::Blink(blink) => self.pen.set_blink(if blink == termwiz::cell::Blink::None {
-                false
-            } else {
-                true
-            }),
-            Sgr::Italic(italic) => self.pen.set_italic(italic),
-            Sgr::Inverse(inverse) => self.pen.set_reverse(inverse),
-            Sgr::Invisible(invis) => self.pen.set_invisible(invis),
-            Sgr::StrikeThrough(strike) => self.pen.set_strikethrough(strike),
-            Sgr::Foreground(col) => self.pen.foreground = col.into(),
-            Sgr::Background(col) => self.pen.background = col.into(),
+            Sgr::Intensity(intensity) => {
+                self.pen.set_intensity(intensity);
+            }
+            Sgr::Underline(underline) => {
+                self.pen.set_underline(underline);
+            }
+            Sgr::Blink(blink) => {
+                self.pen.set_blink(blink);
+            }
+            Sgr::Italic(italic) => {
+                self.pen.set_italic(italic);
+            }
+            Sgr::Inverse(inverse) => {
+                self.pen.set_reverse(inverse);
+            }
+            Sgr::Invisible(invis) => {
+                self.pen.set_invisible(invis);
+            }
+            Sgr::StrikeThrough(strike) => {
+                self.pen.set_strikethrough(strike);
+            }
+            Sgr::Foreground(col) => {
+                self.pen.set_foreground(col);
+            }
+            Sgr::Background(col) => {
+                self.pen.set_background(col);
+            }
             Sgr::Font(_) => {}
         }
     }

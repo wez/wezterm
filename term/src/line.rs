@@ -72,8 +72,29 @@ impl Line {
         let blank = Cell::default();
         self.cells.resize(width, blank);
         for mut cell in &mut self.cells {
-            cell.reset();
+            *cell = Cell::default();
         }
+    }
+
+    /// Iterates the visible cells, respecting the width of the cell.
+    /// For instance, a double-width cell overlaps the following (blank)
+    /// cell, so that blank cell is omitted from the iterator results.
+    /// The iterator yields (column_index, Cell).  Column index is the
+    /// index into Self::cells, and due to the possibility of skipping
+    /// the characters that follow wide characters, the column index may
+    /// skip some positions.  It is returned as a convenience to the consumer
+    /// as using .enumerate() on this iterator wouldn't be as useful.
+    pub fn visible_cells(&self) -> impl Iterator<Item = (usize, &Cell)> {
+        let mut skip_width = 0;
+        self.cells.iter().enumerate().filter(move |(_idx, cell)| {
+            if skip_width > 0 {
+                skip_width -= 1;
+                false
+            } else {
+                skip_width = cell.width().saturating_sub(1);
+                true
+            }
+        })
     }
 
     /// Recompose line into the corresponding utf8 string.
@@ -81,8 +102,8 @@ impl Line {
     /// the same render attributes
     pub fn as_str(&self) -> String {
         let mut s = String::new();
-        for c in &self.cells {
-            s.push_str(c.str());
+        for (_, cell) in self.visible_cells() {
+            s.push_str(cell.str());
         }
         s
     }
@@ -90,9 +111,11 @@ impl Line {
     /// Returns a substring from the line.
     pub fn columns_as_str(&self, range: Range<usize>) -> String {
         let mut s = String::new();
-        let limit = range.end - range.start;
-        for (n, c) in self.cells.iter().skip(range.start).enumerate() {
-            if n >= limit {
+        for (n, c) in self.visible_cells() {
+            if n < range.start {
+                continue;
+            }
+            if n >= range.end {
                 break;
             }
             s.push_str(c.str());
@@ -105,19 +128,19 @@ impl Line {
         let mut last_cluster = None;
         let mut clusters = Vec::new();
 
-        for (cell_idx, c) in self.cells.iter().enumerate() {
+        for (cell_idx, c) in self.visible_cells() {
             let cell_str = c.str();
 
             last_cluster = match last_cluster.take() {
                 None => {
                     // Start new cluster
-                    Some(CellCluster::new(c.attrs.clone(), cell_str, cell_idx))
+                    Some(CellCluster::new(c.attrs().clone(), cell_str, cell_idx))
                 }
                 Some(mut last) => {
-                    if last.attrs != c.attrs {
+                    if last.attrs != *c.attrs() {
                         // Flush pending cluster and start a new one
                         clusters.push(last);
-                        Some(CellCluster::new(c.attrs.clone(), cell_str, cell_idx))
+                        Some(CellCluster::new(c.attrs().clone(), cell_str, cell_idx))
                     } else {
                         // Add to current cluster
                         last.add(cell_str, cell_idx);
@@ -138,8 +161,13 @@ impl Line {
     pub fn from_text(s: &str, attrs: &CellAttributes) -> Line {
         let mut cells = Vec::new();
 
-        for (_, sub) in unicode_segmentation::UnicodeSegmentation::grapheme_indices(s, true) {
-            cells.push(Cell::new(sub, attrs))
+        for sub in unicode_segmentation::UnicodeSegmentation::graphemes(s, true) {
+            let cell = Cell::new_grapheme(sub, attrs.clone());
+            let width = cell.width();
+            cells.push(cell);
+            for _ in 1..width {
+                cells.push(Cell::new(' ', attrs.clone()));
+            }
         }
 
         Line {
@@ -163,12 +191,18 @@ impl Line {
     pub fn invalidate_implicit_links(&mut self) {
         // Clear any cells that have implicit hyperlinks
         for mut cell in &mut self.cells {
-            let link = cell.attrs.hyperlink.take();
-            cell.attrs.hyperlink = match link.as_ref() {
-                Some(link) if link.params().contains_key("implicit") => None,
-                Some(link) => Some(Rc::clone(link)),
-                None => None,
+            let replace = match cell.attrs().hyperlink {
+                Some(ref link) if link.params().contains_key("implicit") => {
+                    Some(Cell::new_grapheme(
+                        cell.str(),
+                        cell.attrs().clone().set_hyperlink(None).clone(),
+                    ))
+                }
+                _ => None,
             };
+            if let Some(replace) = replace {
+                *cell = replace;
+            }
         }
         // We'll need to recompute them after the line has been mutated
         self.has_implicit_hyperlinks = ImplicitHyperlinks::DontKnow;
@@ -186,12 +220,18 @@ impl Line {
             // The capture range is measured in bytes but we need to translate
             // that to the char index of the column.
             for (cell_idx, (byte_idx, _char)) in line.char_indices().enumerate() {
-                if self.cells[cell_idx].attrs.hyperlink.is_some() {
+                if self.cells[cell_idx].attrs().hyperlink.is_some() {
                     // Don't replace existing links
                     continue;
                 }
                 if in_range(byte_idx, &m.range) {
-                    self.cells[cell_idx].attrs.hyperlink = Some(Rc::clone(&m.link));
+                    let attrs = self.cells[cell_idx]
+                        .attrs()
+                        .clone()
+                        .set_hyperlink(Some(Rc::clone(&m.link)))
+                        .clone();
+                    let cell = Cell::new_grapheme(self.cells[cell_idx].str(), attrs);
+                    self.cells[cell_idx] = cell;
                     self.has_implicit_hyperlinks = ImplicitHyperlinks::HasSome;
                     self.has_hyperlink = true;
                 }

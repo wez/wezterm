@@ -630,7 +630,7 @@ impl Renderer {
                 (fg_color, bg_color)
             };
 
-            let bg_color = self.palette.resolve(bg_color).to_linear_tuple_rgba();
+            let bg_color = self.palette.resolve_bg(bg_color).to_linear_tuple_rgba();
 
             // Shape the printable text from this cluster
             let glyph_info = {
@@ -644,11 +644,11 @@ impl Renderer {
                 let glyph = self.cached_glyph(info, style)?;
 
                 let glyph_color = match *fg_color {
-                    term::color::ColorAttribute::Foreground => {
+                    term::color::ColorAttribute::Default => {
                         if let Some(fg) = style.foreground {
                             fg
                         } else {
-                            self.palette.resolve(fg_color)
+                            self.palette.resolve_fg(fg_color)
                         }
                     }
                     term::color::ColorAttribute::PaletteIndex(idx) if idx < 8 => {
@@ -661,9 +661,9 @@ impl Renderer {
                             idx
                         };
                         self.palette
-                            .resolve(&term::color::ColorAttribute::PaletteIndex(idx))
+                            .resolve_fg(&term::color::ColorAttribute::PaletteIndex(idx))
                     }
-                    _ => self.palette.resolve(fg_color),
+                    _ => self.palette.resolve_fg(fg_color),
                 }.to_linear_tuple_rgba();
 
                 let left: f32 = glyph.x_offset as f32 + glyph.bearing_x as f32;
@@ -873,7 +873,7 @@ impl Renderer {
     ) -> Result<(), Error> {
         let background_color = self
             .palette
-            .resolve(&term::color::ColorAttribute::Background);
+            .resolve_bg(&term::color::ColorAttribute::Default);
         let (r, g, b, a) = background_color.to_linear_tuple_rgba();
         target.clear_color(r, g, b, a);
 

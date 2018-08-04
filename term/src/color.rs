@@ -1,106 +1,8 @@
 //! Colors for attributes
 
-use palette;
-use serde::{self, Deserialize, Deserializer};
 use std::fmt;
 use std::result::Result;
-pub use termwiz::color::AnsiColor;
-use termwiz::color::ColorSpec;
-
-#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash)]
-pub struct RgbColor {
-    pub red: u8,
-    pub green: u8,
-    pub blue: u8,
-}
-
-pub type RgbTuple = (f32, f32, f32);
-pub type RgbaTuple = (f32, f32, f32, f32);
-
-impl RgbColor {
-    /// Construct a color from discrete red, green, blue values
-    /// in the range 0-255.
-    pub fn new(red: u8, green: u8, blue: u8) -> Self {
-        Self { red, green, blue }
-    }
-
-    pub fn to_linear(&self) -> palette::Rgba {
-        palette::Rgba::new_u8(self.red, self.green, self.blue, 0xff)
-    }
-
-    pub fn to_linear_tuple_rgb(&self) -> RgbTuple {
-        self.to_linear().to_pixel()
-    }
-
-    pub fn to_linear_tuple_rgba(&self) -> RgbaTuple {
-        self.to_linear().to_pixel()
-    }
-
-    /// Construct a color from an SVG/CSS3 color name.  The name
-    /// must be lower case.  Returns None if the supplied name is
-    /// not recognized.
-    /// The list of names can be found here:
-    /// https://ogeon.github.io/docs/palette/master/palette/named/index.html
-    pub fn from_named(name: &str) -> Option<RgbColor> {
-        palette::named::from_str(name).map(|(r, g, b)| Self::new(r, g, b))
-    }
-
-    /// Construct a color from a string of the form `#RRGGBB` where
-    /// R, G and B are all hex digits.
-    pub fn from_rgb_str(s: &str) -> Option<RgbColor> {
-        if s.as_bytes()[0] == b'#' && s.len() == 7 {
-            let mut chars = s.chars().skip(1);
-
-            macro_rules! digit {
-                () => {{
-                    let hi = match chars.next().unwrap().to_digit(16) {
-                        Some(v) => (v as u8) << 4,
-                        None => return None,
-                    };
-                    let lo = match chars.next().unwrap().to_digit(16) {
-                        Some(v) => v as u8,
-                        None => return None,
-                    };
-                    hi | lo
-                }};
-            }
-            Some(Self::new(digit!(), digit!(), digit!()))
-        } else {
-            None
-        }
-    }
-}
-
-impl<'de> Deserialize<'de> for RgbColor {
-    fn deserialize<D>(deserializer: D) -> Result<RgbColor, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let s = String::deserialize(deserializer)?;
-        RgbColor::from_rgb_str(&s)
-            .or_else(|| RgbColor::from_named(&s))
-            .ok_or_else(|| format!("unknown color name: {}", s))
-            .map_err(serde::de::Error::custom)
-    }
-}
-
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
-pub enum ColorAttribute {
-    Foreground,
-    Background,
-    PaletteIndex(u8),
-    Rgb(RgbColor),
-}
-
-impl From<ColorSpec> for ColorAttribute {
-    fn from(spec: ColorSpec) -> Self {
-        match spec {
-            ColorSpec::Default => ColorAttribute::Foreground, // FIXME!
-            ColorSpec::PaletteIndex(i) => ColorAttribute::PaletteIndex(i),
-            ColorSpec::TrueColor(c) => ColorAttribute::Rgb(RgbColor::new(c.red, c.green, c.blue)),
-        }
-    }
-}
+pub use termwiz::color::{AnsiColor, ColorAttribute, RgbColor, RgbaTuple};
 
 #[derive(Clone)]
 pub struct Palette256(pub [RgbColor; 256]);
@@ -127,12 +29,20 @@ impl fmt::Debug for Palette256 {
 }
 
 impl ColorPalette {
-    pub fn resolve(&self, color: &ColorAttribute) -> RgbColor {
+    pub fn resolve_fg(&self, color: &ColorAttribute) -> RgbColor {
         match *color {
-            ColorAttribute::Foreground => self.foreground,
-            ColorAttribute::Background => self.background,
+            ColorAttribute::Default => self.foreground,
             ColorAttribute::PaletteIndex(idx) => self.colors.0[idx as usize],
-            ColorAttribute::Rgb(color) => color,
+            ColorAttribute::TrueColorWithPaletteFallback(color, _)
+            | ColorAttribute::TrueColorWithDefaultFallback(color) => color,
+        }
+    }
+    pub fn resolve_bg(&self, color: &ColorAttribute) -> RgbColor {
+        match *color {
+            ColorAttribute::Default => self.background,
+            ColorAttribute::PaletteIndex(idx) => self.colors.0[idx as usize],
+            ColorAttribute::TrueColorWithPaletteFallback(color, _)
+            | ColorAttribute::TrueColorWithDefaultFallback(color) => color,
         }
     }
 }
