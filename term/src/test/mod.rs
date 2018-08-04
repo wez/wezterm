@@ -7,7 +7,7 @@ mod c1;
 mod csi;
 mod selection;
 use termwiz::escape::csi::{Edit, EraseInDisplay, EraseInLine};
-use termwiz::escape::CSI;
+use termwiz::escape::{OperatingSystemCommand, CSI};
 
 #[derive(Default, Debug)]
 struct TestHost {
@@ -100,7 +100,8 @@ impl TestTerm {
     }
 
     fn hyperlink(&mut self, link: &Rc<Hyperlink>) {
-        self.print(format!("\x1b]8;id={};{}\x1b\\", link.id, link.url));
+        let osc = OperatingSystemCommand::SetHyperlink(Some(link.as_ref().clone()));
+        self.print(format!("{}", osc));
     }
 
     fn hyperlink_off(&mut self) {
@@ -465,7 +466,7 @@ fn test_scrollup() {
 #[test]
 fn test_hyperlinks() {
     let mut term = TestTerm::new(3, 5, 0);
-    let link = Rc::new(Hyperlink::with_id("http://example.com", ""));
+    let link = Rc::new(Hyperlink::new("http://example.com"));
     term.hyperlink(&link);
     term.print("hello");
     term.hyperlink_off();
@@ -499,7 +500,7 @@ fn test_hyperlinks() {
         Compare::TEXT | Compare::ATTRS,
     );
 
-    let otherlink = Rc::new(Hyperlink::with_id("http://example.com/other", "w00t"));
+    let otherlink = Rc::new(Hyperlink::new_with_id("http://example.com/other", "w00t"));
 
     // Switching link and turning it off
     term.hyperlink(&otherlink);

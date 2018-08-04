@@ -3,7 +3,6 @@
 extern crate bitflags;
 #[macro_use]
 extern crate failure;
-#[cfg(test)]
 #[macro_use]
 extern crate maplit;
 extern crate palette;

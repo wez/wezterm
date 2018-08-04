@@ -12,60 +12,7 @@ use std::collections::HashMap;
 use std::ops::Range;
 use std::rc::Rc;
 
-#[derive(Debug, Clone, Eq, PartialEq)]
-pub struct Hyperlink {
-    /// The target
-    pub url: String,
-    /// The identifier.  This can be used by the render layer to determine
-    /// which cells to underline on hover.  This is for the usecase where
-    /// an application has drawn windows in the window and the URL has
-    /// wrapped lines within such a window.
-    pub id: String,
-    /// If the link was produced by an implicit or matching rule,
-    /// this field will be set to true.
-    pub implicit: bool,
-}
-
-impl Hyperlink {
-    pub fn new(url: &str, params: &HashMap<&str, &str>) -> Self {
-        let id = params.get("id").unwrap_or(&"");
-        Self {
-            url: url.into(),
-            id: (**id).into(),
-            implicit: false,
-        }
-    }
-
-    pub fn with_id(url: &str, id: &str) -> Self {
-        Self {
-            url: url.into(),
-            id: id.into(),
-            implicit: false,
-        }
-    }
-}
-
-/// The spec says that the escape sequence is of the form:
-/// OSC 8 ; params ; URI BEL|ST
-/// params is an optional list of key=value assignments,
-/// separated by the : character. Example: id=xyz123:foo=bar:baz=quux.
-/// This function parses such a string and returns the mapping
-/// of key to value.  Malformed input causes subsequent key/value pairs
-/// to be skipped, returning the data successfully parsed out so far.
-pub fn parse_link_params(params: &str) -> HashMap<&str, &str> {
-    let mut map = HashMap::new();
-    for kv in params.split(':') {
-        let mut iter = kv.splitn(2, '=');
-        let key = iter.next();
-        let value = iter.next();
-        match (key, value) {
-            (Some(key), Some(value)) => map.insert(key, value),
-            _ => break,
-        };
-    }
-
-    map
-}
+pub use termwiz::escape::osc::Hyperlink;
 
 /// In addition to handling explicit escape sequences to enable
 /// hyperlinks, we also support defining rules that match text
@@ -174,11 +121,10 @@ impl Rule {
             .into_iter()
             .map(|m| {
                 let url = m.expand();
-                let link = Rc::new(Hyperlink {
+                let link = Rc::new(Hyperlink::new_with_params(
                     url,
-                    id: "".to_owned(),
-                    implicit: true,
-                });
+                    hashmap!{"implicit".into() => "1".into()},
+                ));
                 RuleMatch {
                     link,
                     range: m.range(),
@@ -203,11 +149,10 @@ mod test {
             Rule::match_hyperlinks("  http://example.com", &rules),
             vec![RuleMatch {
                 range: 2..20,
-                link: Rc::new(Hyperlink {
-                    url: "http://example.com".to_owned(),
-                    id: "".to_owned(),
-                    implicit: true,
-                }),
+                link: Rc::new(Hyperlink::new_with_params(
+                    "http://example.com",
+                    hashmap!{"implicit".into()=>"1".into()},
+                )),
             }]
         );
 
@@ -217,47 +162,19 @@ mod test {
                 // Longest match first
                 RuleMatch {
                     range: 18..34,
-                    link: Rc::new(Hyperlink {
-                        url: "mailto:woot@example.com".to_owned(),
-                        id: "".to_owned(),
-                        implicit: true,
-                    }),
+                    link: Rc::new(Hyperlink::new_with_params(
+                        "mailto:woot@example.com",
+                        hashmap!{"implicit".into()=>"1".into()},
+                    )),
                 },
                 RuleMatch {
                     range: 2..17,
-                    link: Rc::new(Hyperlink {
-                        url: "mailto:foo@example.com".to_owned(),
-                        id: "".to_owned(),
-                        implicit: true,
-                    }),
+                    link: Rc::new(Hyperlink::new_with_params(
+                        "mailto:foo@example.com",
+                        hashmap!{"implicit".into()=>"1".into()},
+                    )),
                 },
             ]
-        );
-    }
-
-    #[test]
-    fn parse_link() {
-        assert_eq!(parse_link_params(""), hashmap!{});
-        assert_eq!(parse_link_params("foo"), hashmap!{});
-        assert_eq!(
-            parse_link_params("foo=bar=baz"),
-            hashmap!{"foo" => "bar=baz"}
-        );
-        assert_eq!(parse_link_params("foo=bar"), hashmap!{"foo" => "bar"});
-
-        assert_eq!(
-            parse_link_params("id=1234:foo=bar"),
-            hashmap!{
-                "id" => "1234",
-                "foo" => "bar"
-            }
-        );
-        assert_eq!(
-            parse_link_params("id=1234:foo=bar:"),
-            hashmap!{
-                "id" => "1234",
-                "foo" => "bar"
-            }
         );
     }
 }

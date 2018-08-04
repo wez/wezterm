@@ -1,5 +1,4 @@
 use super::*;
-use std::collections::HashMap;
 use std::fmt::Write;
 use termwiz::escape::csi::{
     Cursor, DecPrivateMode, DecPrivateModeCode, Device, Edit, EraseInDisplay, EraseInLine, Mode,
@@ -1532,19 +1531,15 @@ impl<'a> Performer<'a> {
                 self.host.set_title(&title);
             }
             OperatingSystemCommand::SetIconName(_) => {}
-            OperatingSystemCommand::SetHyperlink(Some(link)) => {
-                let params: HashMap<_, _> = link
-                    .params()
-                    .iter()
-                    .map(|(a, b)| (a.as_str(), b.as_str()))
-                    .collect();
-                self.set_hyperlink(Some(Hyperlink::new(link.uri(), &params)));
-            }
-            OperatingSystemCommand::SetHyperlink(None) => {
-                self.set_hyperlink(None);
+            OperatingSystemCommand::SetHyperlink(link) => {
+                self.set_hyperlink(link);
             }
             OperatingSystemCommand::Unspecified(unspec) => {
-                eprintln!("Unhandled {:?}", unspec);
+                eprint!("Unhandled OSC ");
+                for item in unspec {
+                    eprint!(" {}", String::from_utf8_lossy(&item));
+                }
+                eprintln!("");
             }
 
             OperatingSystemCommand::ClearSelection(_) => {

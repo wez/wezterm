@@ -165,7 +165,7 @@ impl Line {
         for mut cell in &mut self.cells {
             let link = cell.attrs.hyperlink.take();
             cell.attrs.hyperlink = match link.as_ref() {
-                Some(link) if link.implicit => None,
+                Some(link) if link.params().contains_key("implicit") => None,
                 Some(link) => Some(Rc::clone(link)),
                 None => None,
             };
