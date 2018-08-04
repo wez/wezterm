@@ -186,7 +186,13 @@ pub fn shape_with_harfbuzz(
             //debug!("range: {:?}-{:?} needs fallback", start, pos);
 
             let substr = &s[start_pos..pos];
-            let mut shape = shape_with_harfbuzz(font, font_idx + 1, substr)?;
+            let mut shape = match shape_with_harfbuzz(font, font_idx + 1, substr) {
+                Ok(shape) => Ok(shape),
+                Err(e) => {
+                    eprintln!("{:?} for {:?}", e, substr);
+                    shape_with_harfbuzz(font, 0, "?")
+                }
+            }?;
 
             // Fixup the cluster member to match our current offset
             for mut info in &mut shape {
@@ -215,7 +221,13 @@ pub fn shape_with_harfbuzz(
                 substr,
             );
         }
-        let mut shape = shape_with_harfbuzz(font, font_idx + 1, substr)?;
+        let mut shape = match shape_with_harfbuzz(font, font_idx + 1, substr) {
+            Ok(shape) => Ok(shape),
+            Err(e) => {
+                eprintln!("{:?} for {:?}", e, substr);
+                shape_with_harfbuzz(font, 0, "?")
+            }
+        }?;
         // Fixup the cluster member to match our current offset
         for mut info in &mut shape {
             info.cluster += start_pos as u32;
