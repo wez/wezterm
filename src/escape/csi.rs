@@ -145,6 +145,11 @@ pub enum DeviceAttributes {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Device {
     DeviceAttributes(DeviceAttributes),
+    /// DECSTR - https://vt100.net/docs/vt510-rm/DECSTR.html
+    SoftReset,
+    RequestPrimaryDeviceAttributes,
+    RequestSecondaryDeviceAttributes,
+    StatusReport,
 }
 
 impl Display for Device {
@@ -158,6 +163,10 @@ impl Display for Device {
             Device::DeviceAttributes(DeviceAttributes::Vt220(attr)) => attr.emit(f, "?62")?,
             Device::DeviceAttributes(DeviceAttributes::Vt320(attr)) => attr.emit(f, "?63")?,
             Device::DeviceAttributes(DeviceAttributes::Vt420(attr)) => attr.emit(f, "?64")?,
+            Device::SoftReset => write!(f, "!p")?,
+            Device::RequestPrimaryDeviceAttributes => write!(f, "c")?,
+            Device::RequestSecondaryDeviceAttributes => write!(f, ">c")?,
+            Device::StatusReport => write!(f, "5n")?,
         };
         Ok(())
     }
@@ -310,77 +319,62 @@ pub enum DecPrivateModeCode {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Cursor {
-    /// CBT causes the active present ation position to be moved to the
-    /// character position corresponding to the n-th preceding character
-    /// tabulation stop in the presentation component, according to the
-    /// character path, where n equals the value of Pn
+    /// CBT Moves cursor to the Ps tabs backward. The default value of Ps is 1.
     BackwardTabulation(u32),
 
     /// TBC - TABULATION CLEAR
     TabulationClear(TabulationClear),
 
-    /// CHA causes the active presentation position to be moved to character
-    /// position n in the active line in the presentation component, where n
-    /// equals the value of Pn.
+    /// CHA: Moves cursor to the Ps-th column of the active line. The default
+    /// value of Ps is 1.
     CharacterAbsolute(u32),
 
     /// HPA CHARACTER POSITION ABSOLUTE
-    /// HPA causes the active data position to be moved to character position n
-    /// in the active line (the line in the data component that contains
-    /// the active data position), where n equals the value of Pn.
+    /// HPA Moves cursor to the Ps-th column of the active line. The default
+    /// value of Ps is 1.
     CharacterPositionAbsolute(u32),
 
     /// HPB - CHARACTER POSITION BACKWARD
-    /// HPB causes the active data position to be moved by n character
-    /// positions in the data component in the direction opposite to that
-    /// of the character progression, where n equals the value of Pn.
+    /// HPB Moves cursor to the left Ps columns. The default value of Ps is 1.
     CharacterPositionBackward(u32),
 
     /// HPR - CHARACTER POSITION FORWARD
-    /// HPR causes the active data position to be moved by n character
-    /// positions in the data component in the direction of the character
-    /// progression, where n equals the value of Pn.
+    /// HPR Moves cursor to the right Ps columns. The default value of Ps is 1.
     CharacterPositionForward(u32),
 
     /// HVP - CHARACTER AND LINE POSITION
-    /// HVP causes the active data position to be moved in the data component
-    /// to the n-th line position according to the line progression and to
-    /// the m-th character position according to the character progression,
-    /// where n equals the value of Pn1 and m equals the value of Pn2
-    CharacterAndLinePosition { line: u32, col: u32 },
+    /// HVP Moves cursor to the Ps1-th line and to the Ps2-th column. The
+    /// default value of Ps1 and Ps2 is 1.
+    CharacterAndLinePosition {
+        line: u32,
+        col: u32,
+    },
 
     /// VPA - LINE POSITION ABSOLUTE
-    /// VPA causes the active data position to be moved to line position n in
-    /// the data component in a direction parallel to the line progression,
-    /// where n equals the value of Pn.
+    /// Move to the corresponding vertical position (line Ps) of the current
+    /// column. The default value of Ps is 1.
     LinePositionAbsolute(u32),
 
     /// VPB - LINE POSITION BACKWARD
-    /// VPB causes the active data position to be moved by n line positions in
-    /// the data component in a direction opposite to that of the line
-    /// progression, where n equals the value of Pn.
+    /// Moves cursor up Ps lines in the same column. The default value of Ps is
+    /// 1.
     LinePositionBackward(u32),
 
     /// VPR - LINE POSITION FORWARD
-    /// VPR causes the active data position to be moved by n line positions in
-    /// the data component in a direction parallel to the line progression,
-    /// where n equals the value of Pn.
+    /// Moves cursor down Ps lines in the same column. The default value of Ps
+    /// is 1.
     LinePositionForward(u32),
 
-    /// CHT causes the active presentation position to be moved to the
-    /// character position corresponding to the n-th following character
-    /// tabulation stop in the presentation component, according to the
-    /// character path, where n equals the value of Pn
+    /// CHT
+    /// Moves cursor to the Ps tabs forward. The default value of Ps is 1.
     ForwardTabulation(u32),
 
-    /// CNL causes the active presentation position to be moved to the
-    /// first character position of the n-th following line in the
-    /// presentation component, where n equals the value of Pn
+    /// CNL Moves cursor to the first column of Ps-th following line. The
+    /// default value of Ps is 1.
     NextLine(u32),
 
-    /// CPL causes the active presentation position to be moved to the first
-    /// character position of the  n-th preceding line in the presentation
-    /// component, where n equals the value of Pn
+    /// CPL Moves cursor to the first column of Ps-th preceding line. The
+    /// default value of Ps is 1.
     PrecedingLine(u32),
 
     /// CPR - ACTIVE POSITION REPORT
@@ -397,7 +391,19 @@ pub enum Cursor {
     /// according to the character progression, where n equals the value of
     /// Pn1 and m equals the value of Pn2. CPR may be solicited by a DEVICE
     /// STATUS REPORT (DSR) or be sent unsolicited .
-    ActivePositionReport { line: u32, col: u32 },
+    ActivePositionReport {
+        line: u32,
+        col: u32,
+    },
+
+    /// CPR: this is the request from the client.
+    /// The terminal will respond with ActivePositionReport.
+    RequestActivePositionReport,
+
+    /// SCP - Save Cursor Position.
+    /// Only works when DECLRMM is disabled
+    SaveCursor,
+    RestoreCursor,
 
     /// CTC - CURSOR TABULATION CONTROL
     /// CTC causes one or more tabulation stops to be set or cleared in the
@@ -407,10 +413,7 @@ pub enum Cursor {
     TabulationControl(CursorTabulationControl),
 
     /// CUB - Cursor Left
-    /// CUB causes the active presentation position to be moved leftwards in
-    /// the presentation component by n character positions if the character
-    /// pat h is horizontal, or by n line positions if the character pat h is
-    /// vertical, where n equals the value of Pn.
+    /// Moves cursor to the left Ps columns. The default value of Ps is 1.
     Left(u32),
 
     /// CUD - Cursor Down
@@ -420,12 +423,12 @@ pub enum Cursor {
     Right(u32),
 
     /// CUP - Cursor Position
-    /// CUP causes the active presentation position to be moved in the
-    /// presentation component to the n-th line position according to the line
-    /// progression and to the m-th character position according to the
-    /// character path, where n equals the value of Pn1 and m equals the value
-    /// of Pn2.
-    Position { line: u32, col: u32 },
+    /// Moves cursor to the Ps1-th line and to the Ps2-th column. The default
+    /// value of Ps1 and Ps2 is 1.
+    Position {
+        line: u32,
+        col: u32,
+    },
 
     /// CUU - Cursor Up
     Up(u32),
@@ -436,20 +439,27 @@ pub enum Cursor {
     /// following line tabulation stop in the presentation component, where n
     /// equals the value of Pn.
     LineTabulation(u32),
+
+    /// DECSTBM - Set top and bottom margins.
+    SetTopAndBottomMargins {
+        top: u32,
+        bottom: u32,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Edit {
     /// DCH - DELETE CHARACTER
-    /// If the DEVICE COMPONENT SELECT MODE (DCSM) is set to PRESENTATION, DCH
-    /// causes the contents of the active presentation position and,
-    /// depending on the setting of the CHARACTER EDITING MODE (HEM), the
-    /// contents of the n-1 preceding or following character positions to be
-    /// removed from the presentation component, where n equals the value of
-    /// Pn. The resulting gap is closed by shifting the contents of the
-    /// adjacent character positions towards the active presentation
-    /// position. At the other end of the shifted part, n character positions
-    /// are put into the erased state.
+    /// Deletes Ps characters from the cursor position to the right. The
+    /// default value of Ps is 1. If the DEVICE COMPONENT SELECT MODE
+    /// (DCSM) is set to PRESENTATION, DCH causes the contents of the
+    /// active presentation position and, depending on the setting of the
+    /// CHARACTER EDITING MODE (HEM), the contents of the n-1 preceding or
+    /// following character positions to be removed from the presentation
+    /// component, where n equals the value of Pn. The resulting gap is
+    /// closed by shifting the contents of the adjacent character positions
+    /// towards the active presentation position. At the other end of the
+    /// shifted part, n character positions are put into the erased state.
     DeleteCharacter(u32),
 
     /// DL - DELETE LINE
@@ -603,6 +613,16 @@ impl Display for Cursor {
             Cursor::LinePositionAbsolute(n) => n.write_csi(f, "d")?,
             Cursor::LinePositionBackward(n) => n.write_csi(f, "k")?,
             Cursor::LinePositionForward(n) => n.write_csi(f, "e")?,
+            Cursor::SetTopAndBottomMargins { top, bottom } => {
+                if *top == 0 && *bottom == u32::max_value() {
+                    write!(f, "r")?;
+                } else {
+                    write!(f, "{};{}r", top, bottom)?;
+                }
+            }
+            Cursor::RequestActivePositionReport => write!(f, "6n")?,
+            Cursor::SaveCursor => write!(f, "s")?,
+            Cursor::RestoreCursor => write!(f, "u")?,
         }
         Ok(())
     }
@@ -947,6 +967,16 @@ fn to_1b_u32(v: i64) -> Result<u32, ()> {
     }
 }
 
+macro_rules! noparams {
+    ($ns:ident, $variant:ident, $params:expr) => {{
+        if $params.len() != 0 {
+            Err(())
+        } else {
+            Ok(CSI::$ns($ns::$variant))
+        }
+    }};
+}
+
 macro_rules! parse {
     ($ns:ident, $variant:ident, $params:expr) => {{
         let value = ParseParams::parse_params($params)?;
@@ -998,21 +1028,38 @@ impl<'a> CSIParser<'a> {
             ('k', &[]) => parse!(Cursor, LinePositionBackward, params),
 
             ('m', &[]) => self.sgr(params).map(|sgr| CSI::Sgr(sgr)),
+            ('n', &[]) => self.dsr(params),
+            ('r', &[]) => self.decstbm(params),
+            ('s', &[]) => noparams!(Cursor, SaveCursor, params),
+            ('u', &[]) => noparams!(Cursor, RestoreCursor, params),
 
-            ('h', &[b'?']) => self.dec(params)
+            ('p', &[b'!']) => Ok(CSI::Device(Box::new(Device::SoftReset))),
+
+            ('h', &[b'?']) => self
+                .dec(params)
                 .map(|mode| CSI::Mode(Mode::SetDecPrivateMode(mode))),
-            ('l', &[b'?']) => self.dec(params)
+            ('l', &[b'?']) => self
+                .dec(params)
                 .map(|mode| CSI::Mode(Mode::ResetDecPrivateMode(mode))),
-            ('r', &[b'?']) => self.dec(params)
+            ('r', &[b'?']) => self
+                .dec(params)
                 .map(|mode| CSI::Mode(Mode::RestoreDecPrivateMode(mode))),
-            ('s', &[b'?']) => self.dec(params)
+            ('s', &[b'?']) => self
+                .dec(params)
                 .map(|mode| CSI::Mode(Mode::SaveDecPrivateMode(mode))),
 
             ('m', &[b'<']) | ('M', &[b'<']) => {
                 self.mouse_sgr1006(params).map(|mouse| CSI::Mouse(mouse))
             }
 
-            ('c', &[b'?']) => self.secondary_device_attributes(params)
+            ('c', &[]) => self
+                .req_primary_device_attributes(params)
+                .map(|dev| CSI::Device(Box::new(dev))),
+            ('c', &[b'>']) => self
+                .req_secondary_device_attributes(params)
+                .map(|dev| CSI::Device(Box::new(dev))),
+            ('c', &[b'?']) => self
+                .secondary_device_attributes(params)
                 .map(|dev| CSI::Device(Box::new(dev))),
 
             _ => Err(()),
@@ -1031,6 +1078,56 @@ impl<'a> CSIParser<'a> {
         result
     }
 
+    fn dsr(&mut self, params: &'a [i64]) -> Result<CSI, ()> {
+        if params == [5] {
+            Ok(self.advance_by(1, params, CSI::Device(Box::new(Device::StatusReport))))
+        } else if params == [6] {
+            Ok(self.advance_by(1, params, CSI::Cursor(Cursor::RequestActivePositionReport)))
+        } else {
+            Err(())
+        }
+    }
+
+    fn decstbm(&mut self, params: &'a [i64]) -> Result<CSI, ()> {
+        if params.len() == 0 {
+            Ok(CSI::Cursor(Cursor::SetTopAndBottomMargins {
+                top: 0,
+                bottom: u32::max_value(),
+            }))
+        } else if params.len() == 2 {
+            Ok(self.advance_by(
+                2,
+                params,
+                CSI::Cursor(Cursor::SetTopAndBottomMargins {
+                    top: params[0] as u32,
+                    bottom: params[1] as u32,
+                }),
+            ))
+        } else {
+            Err(())
+        }
+    }
+
+    fn req_primary_device_attributes(&mut self, params: &'a [i64]) -> Result<Device, ()> {
+        if params == [] {
+            Ok(Device::RequestPrimaryDeviceAttributes)
+        } else if params == [0] {
+            Ok(self.advance_by(1, params, Device::RequestPrimaryDeviceAttributes))
+        } else {
+            Err(())
+        }
+    }
+
+    fn req_secondary_device_attributes(&mut self, params: &'a [i64]) -> Result<Device, ()> {
+        if params == [] {
+            Ok(Device::RequestSecondaryDeviceAttributes)
+        } else if params == [0] {
+            Ok(self.advance_by(1, params, Device::RequestSecondaryDeviceAttributes))
+        } else {
+            Err(())
+        }
+    }
+
     fn secondary_device_attributes(&mut self, params: &'a [i64]) -> Result<Device, ()> {
         if params == [1, 0] {
             Ok(self.advance_by(
@@ -1042,7 +1139,7 @@ impl<'a> CSIParser<'a> {
             Ok(self.advance_by(1, params, Device::DeviceAttributes(DeviceAttributes::Vt102)))
         } else if params == [1, 2] {
             Ok(self.advance_by(
-                1,
+                2,
                 params,
                 Device::DeviceAttributes(DeviceAttributes::Vt100WithAdvancedVideoOption),
             ))

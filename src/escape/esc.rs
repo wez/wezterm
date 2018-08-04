@@ -113,7 +113,8 @@ impl Display for Esc {
         use self::Esc::*;
         match self {
             Code(code) => {
-                let packed = code.to_u16()
+                let packed = code
+                    .to_u16()
                     .expect("num-derive failed to implement ToPrimitive");
                 if packed > u8::max_value() as u16 {
                     write!(

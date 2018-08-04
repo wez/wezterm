@@ -34,6 +34,7 @@
 //!   level.
 #[macro_use]
 extern crate failure;
+extern crate base64;
 extern crate fnv;
 extern crate libc;
 extern crate palette;
