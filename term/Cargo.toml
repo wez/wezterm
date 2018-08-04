@@ -14,7 +14,8 @@ unicode-segmentation = "~1.2"
 unicode-width = "~0.1"
 
 [dependencies.termwiz]
-path = "../../termwiz"
+git = "https://github.com/wez/termwiz"
+#path = "../../termwiz"
 
 [features]
 debug-escape-sequences = []
