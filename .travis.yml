@@ -4,14 +4,14 @@ sudo: required
 cache: cargo
 
 rust:
-  #- stable
-  #- beta
+  - stable
+  - beta
   - nightly
 
 matrix:
   allow_failures:
-    - rust: stable
     - rust: beta
+    - rust: nightly
 
 before_script:
   - rustup component add rustfmt-preview
