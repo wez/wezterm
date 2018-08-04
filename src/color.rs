@@ -74,6 +74,11 @@ impl RgbColor {
             .into_linear()
     }
 
+    pub fn to_tuple_rgba(&self) -> RgbaTuple {
+        Srgba::<u8>::new(self.red, self.green, self.blue, 0xff)
+            .into_format().into_components()
+    }
+
     pub fn to_linear_tuple_rgba(&self) -> RgbaTuple {
         self.to_linear().into_components()
     }
