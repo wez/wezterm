@@ -1356,6 +1356,7 @@ impl TerminalState {
             }
             Cursor::SaveCursor => self.save_cursor(),
             Cursor::RestoreCursor => self.restore_cursor(),
+            Cursor::CursorStyle(style) => eprintln!("unhandled: CursorStyle {:?}", style),
         }
     }
 
