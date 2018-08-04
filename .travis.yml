@@ -18,7 +18,7 @@ before_script:
   - PREFIX=$TRAVIS_BUILD_DIR ./ci/build_harfbuzz.sh
 
 script:
-  - [[ "$TRAVIS_RUST_VERSION" == "stable" ]] && cargo fmt --all -- --check
+  - "[[ \"$TRAVIS_RUST_VERSION\" == \"stable\" ]] && cargo fmt --all -- --check"
   - cargo build --verbose --all
   - cargo test --verbose --all
 
