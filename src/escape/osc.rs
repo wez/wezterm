@@ -140,11 +140,13 @@ impl Hyperlink {
             let uri = String::from_utf8(osc[2].to_vec())?;
 
             let mut params = HashMap::new();
-            for pair in param_str.split(':') {
-                let mut iter = pair.splitn(2, '=');
-                let key = iter.next().ok_or_else(|| failure::err_msg("bad params"))?;
-                let value = iter.next().ok_or_else(|| failure::err_msg("bad params"))?;
-                params.insert(key.to_owned(), value.to_owned());
+            if param_str.len() > 0 {
+                for pair in param_str.split(':') {
+                    let mut iter = pair.splitn(2, '=');
+                    let key = iter.next().ok_or_else(|| failure::err_msg("bad params"))?;
+                    let value = iter.next().ok_or_else(|| failure::err_msg("bad params"))?;
+                    params.insert(key.to_owned(), value.to_owned());
+                }
             }
 
             Ok(Some(Hyperlink::new_with_params(uri, params)))
@@ -356,6 +358,11 @@ mod test {
         assert_eq!(
             parse(&["8", "1", "2"], "\x1b]8;1;2\x07"),
             OperatingSystemCommand::Unspecified(vec![b"8".to_vec(), b"1".to_vec(), b"2".to_vec()])
+        );
+
+        assert_eq!(
+            Hyperlink::parse(&[b"8", b"", b"x"]).unwrap(),
+            Some(Hyperlink::new("x"))
         );
     }
 }
