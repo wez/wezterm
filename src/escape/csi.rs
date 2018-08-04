@@ -76,6 +76,23 @@ impl Display for CSI {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, FromPrimitive, ToPrimitive)]
+pub enum CursorStyle {
+    Default = 0,
+    BlinkingBlock = 1,
+    SteadyBlock = 2,
+    BlinkingUnderline = 3,
+    SteadyUnderline = 4,
+    BlinkingBar = 5,
+    SteadyBar = 6,
+}
+
+impl Default for CursorStyle {
+    fn default() -> CursorStyle {
+        CursorStyle::Default
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, FromPrimitive, ToPrimitive)]
 pub enum DeviceAttributeCodes {
     Columns132 = 1,
@@ -445,6 +462,8 @@ pub enum Cursor {
         top: u32,
         bottom: u32,
     },
+
+    CursorStyle(CursorStyle),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -623,6 +642,7 @@ impl Display for Cursor {
             Cursor::RequestActivePositionReport => write!(f, "6n")?,
             Cursor::SaveCursor => write!(f, "s")?,
             Cursor::RestoreCursor => write!(f, "u")?,
+            Cursor::CursorStyle(style) => write!(f, "{} q", *style as u8)?,
         }
         Ok(())
     }
@@ -1029,6 +1049,7 @@ impl<'a> CSIParser<'a> {
 
             ('m', &[]) => self.sgr(params).map(|sgr| CSI::Sgr(sgr)),
             ('n', &[]) => self.dsr(params),
+            ('q', &[b' ']) => self.cursor_style(params),
             ('r', &[]) => self.decstbm(params),
             ('s', &[]) => noparams!(Cursor, SaveCursor, params),
             ('u', &[]) => noparams!(Cursor, RestoreCursor, params),
@@ -1076,6 +1097,19 @@ impl<'a> CSIParser<'a> {
             self.params = Some(next);
         }
         result
+    }
+
+    fn cursor_style(&mut self, params: &'a [i64]) -> Result<CSI, ()> {
+        if params.len() != 1 {
+            Err(())
+        } else {
+            match num::FromPrimitive::from_i64(params[0]) {
+                None => Err(()),
+                Some(style) => {
+                    Ok(self.advance_by(1, params, CSI::Cursor(Cursor::CursorStyle(style))))
+                }
+            }
+        }
     }
 
     fn dsr(&mut self, params: &'a [i64]) -> Result<CSI, ()> {

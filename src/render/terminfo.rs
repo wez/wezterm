@@ -504,8 +504,8 @@ impl TerminfoRenderer {
                             CursorShape::SteadyBlock => 2,
                             CursorShape::BlinkingUnderline => 3,
                             CursorShape::SteadyUnderline => 4,
-                            CursorShape::BlinkingBar => 6,
-                            CursorShape::SteadyBar => 7,
+                            CursorShape::BlinkingBar => 5,
+                            CursorShape::SteadyBar => 6,
                         };
                         if let Some(set) = self.get_capability::<cap::SetCursorStyle>() {
                             set.expand().kind(param).to(out.by_ref())?;
