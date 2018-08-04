@@ -630,7 +630,7 @@ impl Renderer {
                 (fg_color, bg_color)
             };
 
-            let bg_color = self.palette.resolve_bg(bg_color).to_linear_tuple_rgba();
+            let bg_color = self.palette.resolve_bg(bg_color).to_tuple_rgba();
 
             // Shape the printable text from this cluster
             let glyph_info = {
@@ -664,7 +664,7 @@ impl Renderer {
                             .resolve_fg(&term::color::ColorAttribute::PaletteIndex(idx))
                     }
                     _ => self.palette.resolve_fg(fg_color),
-                }.to_linear_tuple_rgba();
+                }.to_tuple_rgba();
 
                 let left: f32 = glyph.x_offset as f32 + glyph.bearing_x as f32;
                 let top = (self.cell_height as f32 + self.descender as f32)
@@ -817,8 +817,8 @@ impl Renderer {
                 cell_idx,
                 cursor,
                 &selection,
-                self.palette.foreground.to_linear_tuple_rgba(),
-                self.palette.background.to_linear_tuple_rgba(),
+                self.palette.foreground.to_tuple_rgba(),
+                self.palette.background.to_tuple_rgba(),
             );
 
             for vert in vert_slice.iter_mut() {
@@ -853,13 +853,13 @@ impl Renderer {
             (false, false) => (fg_color, bg_color),
             // Cursor cell overrides colors
             (_, true) => (
-                self.palette.cursor_fg.to_linear_tuple_rgba(),
-                self.palette.cursor_bg.to_linear_tuple_rgba(),
+                self.palette.cursor_fg.to_tuple_rgba(),
+                self.palette.cursor_bg.to_tuple_rgba(),
             ),
             // Selected text overrides colors
             (true, false) => (
-                self.palette.selection_fg.to_linear_tuple_rgba(),
-                self.palette.selection_bg.to_linear_tuple_rgba(),
+                self.palette.selection_fg.to_tuple_rgba(),
+                self.palette.selection_bg.to_tuple_rgba(),
             ),
         };
 
@@ -874,7 +874,7 @@ impl Renderer {
         let background_color = self
             .palette
             .resolve_bg(&term::color::ColorAttribute::Default);
-        let (r, g, b, a) = background_color.to_linear_tuple_rgba();
+        let (r, g, b, a) = background_color.to_tuple_rgba();
         target.clear_color(r, g, b, a);
 
         let cursor = term.cursor_pos();
