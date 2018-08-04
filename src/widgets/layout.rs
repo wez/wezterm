@@ -277,7 +277,8 @@ impl LayoutState {
         parent_top: usize,
         results: &mut Vec<LaidOutWidget>,
     ) -> Result<(), Error> {
-        let state = self.widget_states
+        let state = self
+            .widget_states
             .get(&widget)
             .ok_or_else(|| err_msg("widget has no solver state"))?;
         let width = self.solver.get_value(state.width) as usize;
@@ -310,7 +311,8 @@ impl LayoutState {
         parent_left: Option<Variable>,
         parent_top: Option<Variable>,
     ) -> Result<WidgetState, Error> {
-        let state = self.widget_states
+        let state = self
+            .widget_states
             .get(&widget)
             .ok_or_else(|| err_msg("widget has no solver state"))?
             .clone();
@@ -343,25 +345,31 @@ impl LayoutState {
             // We handle alignment on the root widget specially here;
             // for non-root widgets, we handle it when assessing children
             match state.constraints.halign {
-                HorizontalAlignment::Left => self.solver
+                HorizontalAlignment::Left => self
+                    .solver
                     .add_constraint(state.left | EQ(STRONG) | 0.0)
                     .map_err(adderr)?,
-                HorizontalAlignment::Right => self.solver
+                HorizontalAlignment::Right => self
+                    .solver
                     .add_constraint(state.left | EQ(STRONG) | parent_width - state.width)
                     .map_err(adderr)?,
-                HorizontalAlignment::Center => self.solver
+                HorizontalAlignment::Center => self
+                    .solver
                     .add_constraint(state.left | EQ(STRONG) | (parent_width - state.width) / 2.0)
                     .map_err(adderr)?,
             }
 
             match state.constraints.valign {
-                VerticalAlignment::Top => self.solver
+                VerticalAlignment::Top => self
+                    .solver
                     .add_constraint(state.top | EQ(STRONG) | 0.0)
                     .map_err(adderr)?,
-                VerticalAlignment::Bottom => self.solver
+                VerticalAlignment::Bottom => self
+                    .solver
                     .add_constraint(state.top | EQ(STRONG) | parent_height - state.height)
                     .map_err(adderr)?,
-                VerticalAlignment::Middle => self.solver
+                VerticalAlignment::Middle => self
+                    .solver
                     .add_constraint(state.top | EQ(STRONG) | (parent_height - state.height) / 2.0)
                     .map_err(adderr)?,
             }
@@ -438,17 +446,20 @@ impl LayoutState {
                 )?;
 
                 match child_state.constraints.halign {
-                    HorizontalAlignment::Left => self.solver
+                    HorizontalAlignment::Left => self
+                        .solver
                         .add_constraint(child_state.left | EQ(STRONG) | left_edge.clone())
                         .map_err(adderr)?,
-                    HorizontalAlignment::Right => self.solver
+                    HorizontalAlignment::Right => self
+                        .solver
                         .add_constraint(
                             child_state.left + child_state.width
                                 | EQ(STRONG)
                                 | state.left + state.width,
                         )
                         .map_err(adderr)?,
-                    HorizontalAlignment::Center => self.solver
+                    HorizontalAlignment::Center => self
+                        .solver
                         .add_constraint(
                             child_state.left
                                 | EQ(STRONG)
@@ -458,17 +469,20 @@ impl LayoutState {
                 }
 
                 match child_state.constraints.valign {
-                    VerticalAlignment::Top => self.solver
+                    VerticalAlignment::Top => self
+                        .solver
                         .add_constraint(child_state.top | EQ(STRONG) | top_edge.clone())
                         .map_err(adderr)?,
-                    VerticalAlignment::Bottom => self.solver
+                    VerticalAlignment::Bottom => self
+                        .solver
                         .add_constraint(
                             child_state.top + child_state.height
                                 | EQ(STRONG)
                                 | state.top + state.height,
                         )
                         .map_err(adderr)?,
-                    VerticalAlignment::Middle => self.solver
+                    VerticalAlignment::Middle => self
+                        .solver
                         .add_constraint(
                             child_state.top
                                 | EQ(STRONG)

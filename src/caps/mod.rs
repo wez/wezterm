@@ -170,7 +170,8 @@ impl Capabilities {
                 _ => {
                     // COLORTERM isn't set, so look at the terminfo.
                     if let Some(ref db) = hints.terminfo_db.as_ref() {
-                        let has_true_color = db.get::<cap::TrueColor>()
+                        let has_true_color = db
+                            .get::<cap::TrueColor>()
                             .unwrap_or(cap::TrueColor(false))
                             .0;
                         if has_true_color {

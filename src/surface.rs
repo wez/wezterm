@@ -780,14 +780,16 @@ impl Surface {
         // lines of text into simpler strings.
         let mut attr: Option<CellAttributes> = None;
 
-        for ((row_num, line), other_line) in self.lines
+        for ((row_num, line), other_line) in self
+            .lines
             .iter()
             .enumerate()
             .skip(y)
             .take_while(|(row_num, _)| *row_num < y + height)
             .zip(other.lines.iter().skip(other_y))
         {
-            for ((col_num, cell), (_, other_cell)) in line.visible_cells()
+            for ((col_num, cell), (_, other_cell)) in line
+                .visible_cells()
                 .skip(x)
                 .take_while(|(col_num, _)| *col_num < x + width)
                 .zip(other_line.visible_cells().skip(other_x))

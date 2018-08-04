@@ -23,7 +23,8 @@ impl<Value: Debug> Node<Value> {
             self.value = Some(value);
             return;
         }
-        match self.children
+        match self
+            .children
             .binary_search_by(|node| node.label.cmp(&key[0]))
         {
             Ok(idx) => {
@@ -54,7 +55,8 @@ impl<Value: Debug> Node<Value> {
             };
         }
 
-        match self.children
+        match self
+            .children
             .binary_search_by(|node| node.label.cmp(&key[0]))
         {
             Ok(idx) => {
