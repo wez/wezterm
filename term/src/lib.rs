@@ -1,7 +1,4 @@
 //! Terminal model
-#![feature(slice_patterns)]
-
-extern crate base64;
 #[macro_use]
 extern crate bitflags;
 #[macro_use]
@@ -14,9 +11,9 @@ extern crate regex;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
+extern crate termwiz;
 extern crate unicode_segmentation;
 extern crate unicode_width;
-extern crate vte;
 
 use failure::Error;
 use std::ops::{Deref, DerefMut, Range};
@@ -109,8 +106,6 @@ pub struct CursorPosition {
 }
 
 pub mod color;
-mod csi;
-use self::csi::*;
 
 #[cfg(test)]
 mod test;

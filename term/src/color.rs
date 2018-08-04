@@ -4,30 +4,8 @@ use palette;
 use serde::{self, Deserialize, Deserializer};
 use std::fmt;
 use std::result::Result;
-
-#[allow(dead_code)]
-#[derive(Debug, Clone, Copy)]
-#[repr(u8)]
-/// These correspond to the classic ANSI color indices and are
-/// used for convenience/readability here in the code
-pub enum AnsiColor {
-    Black = 0,
-    Maroon,
-    Green,
-    Olive,
-    Navy,
-    Purple,
-    Teal,
-    Silver,
-    Grey,
-    Red,
-    Lime,
-    Yellow,
-    Blue,
-    Fuschia,
-    Aqua,
-    White,
-}
+pub use termwiz::color::AnsiColor;
+use termwiz::color::ColorSpec;
 
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash)]
 pub struct RgbColor {
@@ -112,6 +90,16 @@ pub enum ColorAttribute {
     Background,
     PaletteIndex(u8),
     Rgb(RgbColor),
+}
+
+impl From<ColorSpec> for ColorAttribute {
+    fn from(spec: ColorSpec) -> Self {
+        match spec {
+            ColorSpec::Default => ColorAttribute::Foreground, // FIXME!
+            ColorSpec::PaletteIndex(i) => ColorAttribute::PaletteIndex(i),
+            ColorSpec::TrueColor(c) => ColorAttribute::Rgb(RgbColor::new(c.red, c.green, c.blue)),
+        }
+    }
 }
 
 #[derive(Clone)]

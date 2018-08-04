@@ -12,22 +12,22 @@ A terminal emulator implemented in Rust, using OpenGL ES 2 for rendering.
 
 ## Quickstart
 
-* Install `rustup` to get the *nightly* `rust` compiler installed on your system.
+* Install `rustup` to get the *stable* `rust` compiler installed on your system.
   https://www.rust-lang.org/en-US/install.html
-* Build in release mode: `rustup run nightly cargo build --release`
-* Run it via either `rustup run nightly cargo run --release` or `target/release/wezterm`
+* Build in release mode: `rustup run stable cargo build --release`
+* Run it via either `rustup run stable cargo run --release` or `target/release/wezterm`
 
 You will need a collection of support libraries; the [`get-deps`](get-deps) script will
 attempt to install them for you.  If it doesn't know about your system,
 [please contribute instructions!](CONTRIBUTING.md)
 
 ```
-$ curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain nightly
+$ curl https://sh.rustup.rs -sSf | sh -s
 $ git clone --depth=1 --branch=master https://github.com/wez/wezterm.git
 $ cd wezterm
 $ sudo ./get-deps
-$ rustup run nightly cargo build --release
-$ rustup run nightly cargo run --release
+$ rustup run stable cargo build --release
+$ rustup run stable cargo run --release
 ```
 
 ## What?

@@ -70,21 +70,8 @@ macro_rules! bitfield {
     };
 }
 
-#[derive(Debug, Clone, Copy, Deserialize, PartialEq, Eq)]
-#[repr(u16)]
-pub enum Intensity {
-    Normal = 0,
-    Bold = 1,
-    Half = 2,
-}
-
-#[derive(Debug, Clone, Copy, Deserialize, PartialEq, Eq)]
-#[repr(u16)]
-pub enum Underline {
-    None = 0,
-    Single = 1,
-    Double = 2,
-}
+pub use termwiz::cell::Intensity;
+pub use termwiz::cell::Underline;
 
 impl CellAttributes {
     bitfield!(intensity, set_intensity, Intensity, 0b11, 0);

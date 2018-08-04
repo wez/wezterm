@@ -4,7 +4,6 @@ name = "term"
 version = "0.1.0"
 
 [dependencies]
-base64 = "0.9.0"
 bitflags = "1.0.1"
 failure = "0.1.1"
 maplit = "1.0.1"
@@ -14,7 +13,9 @@ serde = "1.0.27"
 serde_derive = "1.0.27"
 unicode-segmentation = "1.2.0"
 unicode-width = "0.1.4"
-vte = "0.3.2"
+
+[dependencies.termwiz]
+path = "../../termwiz"
 
 [features]
 debug-escape-sequences = []

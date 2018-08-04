@@ -1,6 +1,11 @@
 use super::*;
-use base64;
+use std::collections::HashMap;
 use std::fmt::Write;
+use termwiz::escape::csi::{
+    Cursor, DecPrivateMode, DecPrivateModeCode, Device, Edit, EraseInDisplay, EraseInLine, Mode,
+    Sgr,
+};
+use termwiz::escape::{Action, ControlCode, Esc, EscCode, OperatingSystemCommand, CSI};
 use unicode_segmentation::UnicodeSegmentation;
 
 struct TabStop {
@@ -1041,10 +1046,159 @@ impl TerminalState {
         }
     }
 
-    fn perform_csi(&mut self, act: CSIAction, host: &mut TerminalHost) {
-        debug!("{:?}", act);
-        match act {
-            CSIAction::DeleteCharacter(n) => {
+    fn perform_device(&mut self, dev: Device, host: &mut TerminalHost) {
+        match dev {
+            Device::DeviceAttributes(a) => eprintln!("unhandled: {:?}", a),
+            Device::SoftReset => {
+                self.pen = CellAttributes::default();
+                // TODO: see https://vt100.net/docs/vt510-rm/DECSTR.html
+            }
+            Device::RequestPrimaryDeviceAttributes => {
+                host.writer().write(DEVICE_IDENT).ok();
+            }
+            Device::RequestSecondaryDeviceAttributes => {
+                host.writer().write(b"\x1b[>0;0;0c").ok();
+            }
+            Device::StatusReport => {
+                host.writer().write(b"\x1b[0n").ok();
+            }
+        }
+    }
+
+    fn perform_csi_mode(&mut self, mode: Mode) {
+        match mode {
+            Mode::SetDecPrivateMode(DecPrivateMode::Code(
+                DecPrivateModeCode::StartBlinkingCursor,
+            ))
+            | Mode::ResetDecPrivateMode(DecPrivateMode::Code(
+                DecPrivateModeCode::StartBlinkingCursor,
+            )) => {}
+
+            Mode::SetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::BracketedPaste)) => {
+                self.bracketed_paste = true;
+            }
+            Mode::ResetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::BracketedPaste)) => {
+                self.bracketed_paste = false;
+            }
+
+            Mode::SetDecPrivateMode(DecPrivateMode::Code(
+                DecPrivateModeCode::ApplicationCursorKeys,
+            )) => {
+                self.application_cursor_keys = true;
+            }
+            Mode::ResetDecPrivateMode(DecPrivateMode::Code(
+                DecPrivateModeCode::ApplicationCursorKeys,
+            )) => {
+                self.application_cursor_keys = false;
+            }
+
+            Mode::SetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::ShowCursor)) => {
+                self.cursor_visible = true;
+            }
+            Mode::ResetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::ShowCursor)) => {
+                self.cursor_visible = false;
+            }
+
+            Mode::SetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::MouseTracking))
+            | Mode::ResetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::MouseTracking)) => {
+            }
+
+            Mode::SetDecPrivateMode(DecPrivateMode::Code(
+                DecPrivateModeCode::HighlightMouseTracking,
+            ))
+            | Mode::ResetDecPrivateMode(DecPrivateMode::Code(
+                DecPrivateModeCode::HighlightMouseTracking,
+            )) => {}
+
+            Mode::SetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::ButtonEventMouse)) => {
+                self.button_event_mouse = true;
+            }
+            Mode::ResetDecPrivateMode(DecPrivateMode::Code(
+                DecPrivateModeCode::ButtonEventMouse,
+            )) => {
+                self.button_event_mouse = false;
+            }
+
+            Mode::SetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::AnyEventMouse))
+            | Mode::ResetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::AnyEventMouse)) => {
+            }
+
+            Mode::SetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::SGRMouse)) => {
+                self.sgr_mouse = true;
+            }
+            Mode::ResetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::SGRMouse)) => {
+                self.sgr_mouse = false;
+            }
+
+            Mode::SetDecPrivateMode(DecPrivateMode::Code(
+                DecPrivateModeCode::ClearAndEnableAlternateScreen,
+            )) => {
+                if !self.alt_screen_is_active {
+                    self.save_cursor();
+                    self.alt_screen_is_active = true;
+                    self.set_cursor_pos(&Position::Absolute(0), &Position::Absolute(0));
+                    self.erase_in_display(EraseInDisplay::EraseDisplay);
+                    self.set_scroll_viewport(0);
+                }
+            }
+            Mode::ResetDecPrivateMode(DecPrivateMode::Code(
+                DecPrivateModeCode::ClearAndEnableAlternateScreen,
+            )) => {
+                if self.alt_screen_is_active {
+                    self.alt_screen_is_active = false;
+                    self.restore_cursor();
+                    self.set_scroll_viewport(0);
+                }
+            }
+            Mode::SaveDecPrivateMode(DecPrivateMode::Code(_))
+            | Mode::RestoreDecPrivateMode(DecPrivateMode::Code(_)) => {
+                eprintln!("save/restore dec mode unimplemented")
+            }
+
+            Mode::SetDecPrivateMode(DecPrivateMode::Unspecified(n))
+            | Mode::ResetDecPrivateMode(DecPrivateMode::Unspecified(n))
+            | Mode::SaveDecPrivateMode(DecPrivateMode::Unspecified(n))
+            | Mode::RestoreDecPrivateMode(DecPrivateMode::Unspecified(n)) => {
+                eprintln!("unhandled DecPrivateMode {}", n);
+            }
+        }
+    }
+
+    fn erase_in_display(&mut self, erase: EraseInDisplay) {
+        let cy = self.cursor.y;
+        let pen = self.pen.clone_sgr_only();
+        let cols = self.screen().physical_cols;
+        let rows = self.screen().physical_rows as VisibleRowIndex;
+        let col_range = 0..cols;
+        let row_range = match erase {
+            EraseInDisplay::EraseToEndOfDisplay => cy..rows,
+            EraseInDisplay::EraseToStartOfDisplay => 0..cy,
+            EraseInDisplay::EraseDisplay => 0..rows,
+            EraseInDisplay::EraseScrollback => {
+                eprintln!("TODO: ed: no support for xterm Erase Saved Lines yet");
+                return;
+            }
+        };
+
+        {
+            let screen = self.screen_mut();
+            for y in row_range.clone() {
+                screen.clear_line(y, col_range.clone(), &pen);
+            }
+        }
+
+        for y in row_range {
+            if self
+                .clear_selection_if_intersects(col_range.clone(), y as ScrollbackOrVisibleRowIndex)
+            {
+                break;
+            }
+        }
+    }
+
+    fn perform_csi_edit(&mut self, edit: Edit) {
+        match edit {
+            Edit::DeleteCharacter(n) => {
                 let y = self.cursor.y;
                 let x = self.cursor.x;
                 let limit = (x + n as usize).min(self.screen().physical_cols);
@@ -1056,7 +1210,45 @@ impl TerminalState {
                 }
                 self.clear_selection_if_intersects(x..limit, y as ScrollbackOrVisibleRowIndex);
             }
-            CSIAction::InsertCharacter(n) => {
+            Edit::DeleteLine(n) => {
+                if in_range(self.cursor.y, &self.scroll_region) {
+                    let scroll_region = self.cursor.y..self.scroll_region.end;
+                    self.screen_mut().scroll_up(&scroll_region, n as usize);
+
+                    let scrollback_region = self.cursor.y as ScrollbackOrVisibleRowIndex
+                        ..self.scroll_region.end as ScrollbackOrVisibleRowIndex;
+                    self.clear_selection_if_intersects_rows(scrollback_region);
+                }
+            }
+            Edit::EraseCharacter(n) => {
+                let y = self.cursor.y;
+                let x = self.cursor.x;
+                let limit = (x + n as usize).min(self.screen().physical_cols);
+                {
+                    let screen = self.screen_mut();
+                    let blank = CellAttributes::default();
+                    for x in x..limit as usize {
+                        screen.set_cell(x, y, ' ', &blank);
+                    }
+                }
+                self.clear_selection_if_intersects(x..limit, y as ScrollbackOrVisibleRowIndex);
+            }
+
+            Edit::EraseInLine(erase) => {
+                let cx = self.cursor.x;
+                let cy = self.cursor.y;
+                let pen = self.pen.clone_sgr_only();
+                let cols = self.screen().physical_cols;
+                let range = match erase {
+                    EraseInLine::EraseToEndOfLine => cx..cols,
+                    EraseInLine::EraseToStartOfLine => 0..cx,
+                    EraseInLine::EraseLine => 0..cols,
+                };
+
+                self.screen_mut().clear_line(cy, range.clone(), &pen);
+                self.clear_selection_if_intersects(range, cy as ScrollbackOrVisibleRowIndex);
+            }
+            Edit::InsertCharacter(n) => {
                 let y = self.cursor.y;
                 let x = self.cursor.x;
                 // TODO: this limiting behavior may not be correct.  There's also a
@@ -1070,178 +1262,7 @@ impl TerminalState {
                 }
                 self.clear_selection_if_intersects(x..limit, y as ScrollbackOrVisibleRowIndex);
             }
-            CSIAction::EraseCharacter(n) => {
-                let y = self.cursor.y;
-                let x = self.cursor.x;
-                let limit = (x + n as usize).min(self.screen().physical_cols);
-                {
-                    let screen = self.screen_mut();
-                    let blank = CellAttributes::default();
-                    for x in x..limit as usize {
-                        screen.set_cell(x, y, ' ', &blank);
-                    }
-                }
-                self.clear_selection_if_intersects(x..limit, y as ScrollbackOrVisibleRowIndex);
-            }
-            CSIAction::SoftReset => {
-                self.pen = CellAttributes::default();
-                // TODO: see https://vt100.net/docs/vt510-rm/DECSTR.html
-            }
-            CSIAction::SetPenNoLink(pen) => {
-                let link = self.pen.hyperlink.take();
-                self.pen = pen;
-                self.pen.hyperlink = link;
-            }
-            CSIAction::SetForegroundColor(color) => {
-                self.pen.foreground = color;
-            }
-            CSIAction::SetBackgroundColor(color) => {
-                self.pen.background = color;
-            }
-            CSIAction::SetIntensity(level) => {
-                self.pen.set_intensity(level);
-            }
-            CSIAction::SetUnderline(level) => {
-                self.pen.set_underline(level);
-            }
-            CSIAction::SetItalic(on) => {
-                self.pen.set_italic(on);
-            }
-            CSIAction::SetBlink(on) => {
-                self.pen.set_blink(on);
-            }
-            CSIAction::SetReverse(on) => {
-                self.pen.set_reverse(on);
-            }
-            CSIAction::SetStrikethrough(on) => {
-                self.pen.set_strikethrough(on);
-            }
-            CSIAction::SetInvisible(on) => {
-                self.pen.set_invisible(on);
-            }
-            CSIAction::SetCursorXY { x, y } => {
-                self.set_cursor_pos(&x, &y);
-            }
-            CSIAction::EraseInLine(erase) => {
-                let cx = self.cursor.x;
-                let cy = self.cursor.y;
-                let pen = self.pen.clone_sgr_only();
-                let cols = self.screen().physical_cols;
-                let range = match erase {
-                    LineErase::ToRight => cx..cols,
-                    LineErase::ToLeft => 0..cx,
-                    LineErase::All => 0..cols,
-                };
-
-                self.screen_mut().clear_line(cy, range.clone(), &pen);
-                self.clear_selection_if_intersects(range, cy as ScrollbackOrVisibleRowIndex);
-            }
-            CSIAction::EraseInDisplay(erase) => {
-                let cy = self.cursor.y;
-                let pen = self.pen.clone_sgr_only();
-                let cols = self.screen().physical_cols;
-                let rows = self.screen().physical_rows as VisibleRowIndex;
-                let col_range = 0..cols;
-                let row_range = match erase {
-                    DisplayErase::Below => cy..rows,
-                    DisplayErase::Above => 0..cy,
-                    DisplayErase::All => 0..rows,
-                    DisplayErase::SavedLines => {
-                        eprintln!("TODO: ed: no support for xterm Erase Saved Lines yet");
-                        return;
-                    }
-                };
-
-                {
-                    let mut screen = self.screen_mut();
-                    for y in row_range.clone() {
-                        screen.clear_line(y, col_range.clone(), &pen);
-                    }
-                }
-
-                for y in row_range {
-                    if self.clear_selection_if_intersects(
-                        col_range.clone(),
-                        y as ScrollbackOrVisibleRowIndex,
-                    ) {
-                        break;
-                    }
-                }
-            }
-            CSIAction::SetDecPrivateMode(DecPrivateMode::StartBlinkingCursor, _) => {
-                // ignored
-            }
-            CSIAction::SetDecPrivateMode(DecPrivateMode::ShowCursor, on) => {
-                self.cursor_visible = on;
-            }
-            CSIAction::SetDecPrivateMode(DecPrivateMode::ButtonEventMouse, on) => {
-                self.button_event_mouse = on;
-            }
-            CSIAction::SetDecPrivateMode(DecPrivateMode::SGRMouse, on) => {
-                self.sgr_mouse = on;
-            }
-            CSIAction::SetDecPrivateMode(DecPrivateMode::ClearAndEnableAlternateScreen, on) => {
-                // TODO: some folks like to disable alt screen
-                match (on, self.alt_screen_is_active) {
-                    (true, false) => {
-                        self.perform_csi(CSIAction::SaveCursor, host);
-                        self.alt_screen_is_active = true;
-                        self.set_cursor_pos(&Position::Absolute(0), &Position::Absolute(0));
-                        self.perform_csi(CSIAction::EraseInDisplay(DisplayErase::All), host);
-                        self.set_scroll_viewport(0);
-                    }
-                    (false, true) => {
-                        self.alt_screen_is_active = false;
-                        self.perform_csi(CSIAction::RestoreCursor, host);
-                        self.set_scroll_viewport(0);
-                    }
-                    _ => {}
-                }
-            }
-            CSIAction::SetDecPrivateMode(DecPrivateMode::ApplicationCursorKeys, on) => {
-                self.application_cursor_keys = on;
-            }
-            CSIAction::SetDecPrivateMode(DecPrivateMode::BrackedPaste, on) => {
-                self.bracketed_paste = on;
-            }
-            CSIAction::SaveDecPrivateMode(mode) => {
-                eprintln!("SaveDecPrivateMode {:?} not implemented", mode);
-            }
-            CSIAction::RestoreDecPrivateMode(mode) => {
-                eprintln!("RestoreDecPrivateMode {:?} not implemented", mode);
-            }
-            CSIAction::DeviceStatusReport => {
-                // "OK"
-                host.writer().write(b"\x1b[0n").ok(); // discard write errors
-            }
-            CSIAction::ReportCursorPosition => {
-                let row = self.cursor.y + 1;
-                let col = self.cursor.x + 1;
-                write!(host.writer(), "\x1b[{};{}R", row, col).ok();
-            }
-            CSIAction::SetScrollingRegion { top, bottom } => {
-                let rows = self.screen().physical_rows;
-                let mut top = top.min(rows as i64 - 1);
-                let mut bottom = bottom.min(rows as i64 - 1);
-                if top > bottom {
-                    std::mem::swap(&mut top, &mut bottom);
-                }
-                self.scroll_region = top..bottom + 1;
-            }
-            CSIAction::RequestDeviceAttributes => {
-                host.writer().write(DEVICE_IDENT).ok();
-            }
-            CSIAction::DeleteLines(n) => {
-                if in_range(self.cursor.y, &self.scroll_region) {
-                    let scroll_region = self.cursor.y..self.scroll_region.end;
-                    self.screen_mut().scroll_up(&scroll_region, n as usize);
-
-                    let scrollback_region = self.cursor.y as ScrollbackOrVisibleRowIndex
-                        ..self.scroll_region.end as ScrollbackOrVisibleRowIndex;
-                    self.clear_selection_if_intersects_rows(scrollback_region);
-                }
-            }
-            CSIAction::InsertLines(n) => {
+            Edit::InsertLine(n) => {
                 if in_range(self.cursor.y, &self.scroll_region) {
                     let scroll_region = self.cursor.y..self.scroll_region.end;
                     self.screen_mut().scroll_down(&scroll_region, n as usize);
@@ -1251,24 +1272,125 @@ impl TerminalState {
                     self.clear_selection_if_intersects_rows(scrollback_region);
                 }
             }
-            CSIAction::SaveCursor => {
-                self.saved_cursor = self.cursor;
+            Edit::ScrollDown(n) => self.scroll_down(n as usize),
+            Edit::ScrollUp(n) => self.scroll_up(n as usize),
+            Edit::EraseInDisplay(erase) => self.erase_in_display(erase),
+        }
+    }
+
+    fn perform_csi_cursor(&mut self, cursor: Cursor, host: &mut TerminalHost) {
+        match cursor {
+            Cursor::SetTopAndBottomMargins { top, bottom } => {
+                let rows = self.screen().physical_rows;
+                let mut top = (top as i64).saturating_sub(1).min(rows as i64 - 1);
+                let mut bottom = (bottom as i64).saturating_sub(1).min(rows as i64 - 1);
+                if top > bottom {
+                    std::mem::swap(&mut top, &mut bottom);
+                }
+                self.scroll_region = top..bottom + 1;
             }
-            CSIAction::RestoreCursor => {
-                let x = self.saved_cursor.x;
-                let y = self.saved_cursor.y;
-                self.set_cursor_pos(&Position::Absolute(x as i64), &Position::Absolute(y));
-            }
-            CSIAction::LinePosition(row) => {
-                self.set_cursor_pos(&Position::Relative(0), &row);
-            }
-            CSIAction::ScrollLines(amount) => {
-                if amount > 0 {
-                    self.scroll_down(amount as usize);
-                } else {
-                    self.scroll_up((-amount) as usize);
+            Cursor::ForwardTabulation(n) => {
+                for _ in 0..n {
+                    self.c0_horizontal_tab();
                 }
             }
+            Cursor::BackwardTabulation(_) => {}
+            Cursor::TabulationClear(_) => {}
+            Cursor::TabulationControl(_) => {}
+            Cursor::LineTabulation(_) => {}
+
+            Cursor::Left(n) => {
+                self.set_cursor_pos(&Position::Relative(-(n as i64)), &Position::Relative(0))
+            }
+            Cursor::Right(n) => {
+                self.set_cursor_pos(&Position::Relative(n as i64), &Position::Relative(0))
+            }
+            Cursor::Up(n) => {
+                self.set_cursor_pos(&Position::Relative(0), &Position::Relative(-(n as i64)))
+            }
+            Cursor::Down(n) => {
+                self.set_cursor_pos(&Position::Relative(0), &Position::Relative(n as i64))
+            }
+            Cursor::CharacterAndLinePosition { line, col } | Cursor::Position { line, col } => self
+                .set_cursor_pos(
+                    &Position::Absolute((col as i64).saturating_sub(1)),
+                    &Position::Absolute((line as i64).saturating_sub(1)),
+                ),
+            Cursor::CharacterAbsolute(col) | Cursor::CharacterPositionAbsolute(col) => self
+                .set_cursor_pos(
+                    &Position::Absolute((col as i64).saturating_sub(1)),
+                    &Position::Relative(0),
+                ),
+            Cursor::CharacterPositionBackward(col) => {
+                self.set_cursor_pos(&Position::Relative(-(col as i64)), &Position::Relative(0))
+            }
+            Cursor::CharacterPositionForward(col) => {
+                self.set_cursor_pos(&Position::Relative(col as i64), &Position::Relative(0))
+            }
+            Cursor::LinePositionAbsolute(line) => self.set_cursor_pos(
+                &Position::Relative(0),
+                &Position::Absolute((line as i64).saturating_sub(1)),
+            ),
+            Cursor::LinePositionBackward(line) => {
+                self.set_cursor_pos(&Position::Relative(0), &Position::Relative(-(line as i64)))
+            }
+            Cursor::LinePositionForward(line) => {
+                self.set_cursor_pos(&Position::Relative(0), &Position::Relative(line as i64))
+            }
+            Cursor::NextLine(n) => {
+                for _ in 0..n {
+                    self.new_line(true);
+                }
+            }
+            Cursor::PrecedingLine(n) => {
+                self.set_cursor_pos(&Position::Absolute(0), &Position::Relative(-(n as i64)))
+            }
+            Cursor::ActivePositionReport { .. } => {
+                // This is really a response from the terminal, and
+                // we don't need to process it as a terminal command
+            }
+            Cursor::RequestActivePositionReport => {
+                let line = self.cursor.y as u32 + 1;
+                let col = self.cursor.x as u32 + 1;
+                let report = CSI::Cursor(Cursor::ActivePositionReport { line, col });
+                write!(host.writer(), "{}", report).ok();
+            }
+            Cursor::SaveCursor => self.save_cursor(),
+            Cursor::RestoreCursor => self.restore_cursor(),
+        }
+    }
+
+    fn save_cursor(&mut self) {
+        self.saved_cursor = self.cursor;
+    }
+    fn restore_cursor(&mut self) {
+        let x = self.saved_cursor.x;
+        let y = self.saved_cursor.y;
+        self.set_cursor_pos(&Position::Absolute(x as i64), &Position::Absolute(y));
+    }
+
+    fn perform_csi_sgr(&mut self, sgr: Sgr) {
+        debug!("{:?}", sgr);
+        match sgr {
+            Sgr::Reset => {
+                let link = self.pen.hyperlink.take();
+                self.pen = CellAttributes::default();
+                self.pen.hyperlink = link;
+            }
+            Sgr::Intensity(intensity) => self.pen.set_intensity(intensity),
+            Sgr::Underline(underline) => self.pen.set_underline(underline),
+            Sgr::Blink(blink) => self.pen.set_blink(if blink == termwiz::cell::Blink::None {
+                false
+            } else {
+                true
+            }),
+            Sgr::Italic(italic) => self.pen.set_italic(italic),
+            Sgr::Inverse(inverse) => self.pen.set_reverse(inverse),
+            Sgr::Invisible(invis) => self.pen.set_invisible(invis),
+            Sgr::StrikeThrough(strike) => self.pen.set_strikethrough(strike),
+            Sgr::Foreground(col) => self.pen.foreground = col.into(),
+            Sgr::Background(col) => self.pen.background = col.into(),
+            Sgr::Font(_) => {}
         }
     }
 }
@@ -1294,7 +1416,18 @@ impl<'a> DerefMut for Performer<'a> {
     }
 }
 
-impl<'a> vte::Perform for Performer<'a> {
+impl<'a> Performer<'a> {
+    pub fn perform(&mut self, action: Action) {
+        match action {
+            Action::Print(c) => self.print(c),
+            Action::Control(code) => self.control(code),
+            Action::DeviceControl(ctrl) => eprintln!("Unhandled {:?}", ctrl),
+            Action::OperatingSystemCommand(osc) => self.osc_dispatch(*osc),
+            Action::Esc(esc) => self.esc_dispatch(esc),
+            Action::CSI(csi) => self.csi_dispatch(csi),
+        }
+    }
+
     /// Draw a character to the screen
     fn print(&mut self, c: char) {
         if self.wrap_next {
@@ -1337,166 +1470,94 @@ impl<'a> vte::Perform for Performer<'a> {
         }
     }
 
-    fn execute(&mut self, byte: u8) {
-        debug!("execute {:02x}", byte);
-        match byte {
-            b'\n' | 0x0b /* VT */ | 0x0c /* FF */ => {
+    fn control(&mut self, control: ControlCode) {
+        match control {
+            ControlCode::LineFeed | ControlCode::VerticalTab | ControlCode::FormFeed => {
                 self.new_line(true /* TODO: depend on terminal mode */)
             }
-            b'\r' => /* CR */ {
+            ControlCode::CarriageReturn => {
                 self.set_cursor_pos(&Position::Absolute(0), &Position::Relative(0));
             }
-            0x08 /* BS */ => {
+            ControlCode::Backspace => {
                 self.set_cursor_pos(&Position::Relative(-1), &Position::Relative(0));
             }
-            b'\t' => self.c0_horizontal_tab(),
-            b'\x07' => eprintln!("Ding! (this is the bell"),
-            _ => println!("unhandled vte execute {}", byte),
-        }
-    }
-    fn hook(&mut self, _: &[i64], _: &[u8], _: bool) {}
-    fn put(&mut self, _: u8) {}
-    fn unhook(&mut self) {}
-    fn osc_dispatch(&mut self, osc: &[&[u8]]) {
-        match *osc {
-            [b"0", title] => {
-                if let Ok(title) = str::from_utf8(title) {
-                    self.title = title.to_string();
-                    self.host.set_title(title);
-                } else {
-                    eprintln!("OSC: failed to decode utf title for {:?}", title);
-                }
-            }
-
-            [b"52", _selection_number] => {
-                // Clear selection
-                self.host.set_clipboard(None).ok();
-            }
-
-            [b"52", _selection_number, b"?"] => {
-                // query selection
-            }
-
-            [b"52", _selection_number, selection_data] => {
-                // Set selection
-                fn decode_and_clip(data: &[u8], host: &mut TerminalHost) -> Result<(), Error> {
-                    let bytes = base64::decode(data)?;
-                    let s = str::from_utf8(&bytes)?;
-                    host.set_clipboard(Some(s.to_string()))?;
-                    Ok(())
-                }
-
-                match decode_and_clip(selection_data, self.host) {
-                    Ok(_) => (),
-                    Err(err) => {
-                        eprintln!("failed to set clipboard in response to OSC 52: {:?}", err)
-                    }
-                }
-            }
-
-            [b"8", params, url] => {
-                // Hyperlinks per:
-                // https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5feda
-                match (str::from_utf8(params), str::from_utf8(url)) {
-                    (Ok(params), Ok(url)) => {
-                        let params = hyperlink::parse_link_params(params);
-                        if !url.is_empty() {
-                            self.set_hyperlink(Some(Hyperlink::new(url, &params)));
-                        } else {
-                            self.set_hyperlink(None);
-                        }
-                    }
-                    _ => {
-                        eprintln!("problem decoding URL/params {:?}, {:?}", url, params);
-                        self.set_hyperlink(None)
-                    }
-                }
-            }
-            [b"777", _..] => {
-                // Appears to be an old RXVT command to address perl extensions
-            }
-            [b"7", _cwd_uri] => {
-                // OSC 7 is used to advise the terminal of the cwd of the running application
-            }
-            _ => {
-                if !osc.is_empty() {
-                    eprint!("OSC unhandled:");
-                    for p in osc.iter() {
-                        eprint!(" {:?}", str::from_utf8(p));
-                    }
-                    eprintln!(" bytes: {:?}", osc);
-                } else {
-                    eprintln!("OSC unhandled: {:?}", osc);
-                }
-            }
-        }
-    }
-    fn csi_dispatch(&mut self, params: &[i64], intermediates: &[u8], ignore: bool, byte: char) {
-        /*
-        println!(
-            "CSI params={:?}, intermediates={:?} b={:02x} {}",
-            params,
-            intermediates,
-            byte as u8,
-            byte ,
-        );
-        */
-        for act in CSIParser::new(params, intermediates, ignore, byte) {
-            self.state.perform_csi(act, self.host);
+            ControlCode::HorizontalTab => self.c0_horizontal_tab(),
+            ControlCode::Bell => eprintln!("Ding! (this is the bell"),
+            _ => println!("unhandled ControlCode {:?}", control),
         }
     }
 
-    fn esc_dispatch(&mut self, params: &[i64], intermediates: &[u8], _ignore: bool, byte: u8) {
-        debug!(
-            "ESC params={:?}, intermediates={:?} b={:02x} {}",
-            params, intermediates, byte, byte as char
-        );
-        // Sequences from both of these sections show up in this handler:
-        // https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h2-C1-_8-Bit_-Control-Characters
-        // https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h2-Controls-beginning-with-ESC
-        match (byte, intermediates, params) {
-            // String Terminator (ST); explicitly has nothing to do here, as its purpose is
-            // handled by vte::Parser
-            (b'\\', &[], &[]) => {}
-            // Application Keypad (DECKPAM)
-            (b'=', &[], &[]) => {
+    fn csi_dispatch(&mut self, csi: CSI) {
+        match csi {
+            CSI::Sgr(sgr) => self.state.perform_csi_sgr(sgr),
+            CSI::Cursor(cursor) => self.state.perform_csi_cursor(cursor, self.host),
+            CSI::Edit(edit) => self.state.perform_csi_edit(edit),
+            CSI::Mode(mode) => self.state.perform_csi_mode(mode),
+            CSI::Device(dev) => self.state.perform_device(*dev, self.host),
+            CSI::Mouse(mouse) => eprintln!("mouse report sent by app? {:?}", mouse),
+            CSI::Unspecified(unspec) => eprintln!("unknown unspecified CSI: {:?}", unspec),
+        };
+    }
+
+    fn esc_dispatch(&mut self, esc: Esc) {
+        match esc {
+            Esc::Code(EscCode::StringTerminator) => {
+                // String Terminator (ST); explicitly has nothing to do here, as its purpose is
+                // handled by vte::Parser
+            }
+            Esc::Code(EscCode::DecApplicationKeyPad) => {
                 debug!("DECKPAM on");
                 self.application_keypad = true;
             }
-            // Normal Keypad (DECKPAM)
-            (b'>', &[], &[]) => {
+            Esc::Code(EscCode::DecNormalKeyPad) => {
                 debug!("DECKPAM off");
                 self.application_keypad = false;
             }
-            // Reverse Index (RI)
-            (b'M', &[], &[]) => self.c1_reverse_index(),
-            // Index (IND)
-            (b'D', &[], &[]) => self.c1_index(),
-            // Next Line (NEL)
-            (b'E', &[], &[]) => self.c1_nel(),
-            // Horizontal Tab Set (HTS)
-            (b'H', &[], &[]) => self.c1_hts(),
+            Esc::Code(EscCode::ReverseIndex) => self.c1_reverse_index(),
+            Esc::Code(EscCode::Index) => self.c1_index(),
+            Esc::Code(EscCode::NextLine) => self.c1_nel(),
+            Esc::Code(EscCode::HorizontalTabSet) => self.c1_hts(),
+            Esc::Code(EscCode::DecLineDrawing) => debug!("ESC: smacs/DecLineDrawing"),
+            Esc::Code(EscCode::AsciiCharacterSet) => debug!("ESC: rmacs/AsciiCharacterSet"),
+            Esc::Code(EscCode::DecSaveCursorPosition) => self.save_cursor(),
+            Esc::Code(EscCode::DecRestoreCursorPosition) => self.restore_cursor(),
+            _ => println!("ESC: unhandled {:?}", esc),
+        }
+    }
 
-            // Enable alternate character set mode (smacs)
-            (b'0', &[b'('], &[]) => {
-                debug!("ESC: smacs");
+    fn osc_dispatch(&mut self, osc: OperatingSystemCommand) {
+        match osc {
+            OperatingSystemCommand::SetIconNameAndWindowTitle(title)
+            | OperatingSystemCommand::SetWindowTitle(title) => {
+                self.host.set_title(&title);
             }
-            // Exit alternate character set mode (rmacs)
-            (b'B', &[b'('], &[]) => {
-                debug!("ESC: rmacs");
+            OperatingSystemCommand::SetIconName(_) => {}
+            OperatingSystemCommand::SetHyperlink(Some(link)) => {
+                let params: HashMap<_, _> = link
+                    .params()
+                    .iter()
+                    .map(|(a, b)| (a.as_str(), b.as_str()))
+                    .collect();
+                self.set_hyperlink(Some(Hyperlink::new(link.uri(), &params)));
+            }
+            OperatingSystemCommand::SetHyperlink(None) => {
+                self.set_hyperlink(None);
+            }
+            OperatingSystemCommand::Unspecified(unspec) => {
+                eprintln!("Unhandled {:?}", unspec);
             }
 
-            // DECSC - Save Cursor
-            (b'7', &[], &[]) => self.state.perform_csi(CSIAction::SaveCursor, self.host),
-            // DECRC - Restore Cursor
-            (b'8', &[], &[]) => self.state.perform_csi(CSIAction::RestoreCursor, self.host),
-
-            (..) => {
-                println!(
-                    "ESC unhandled params={:?}, intermediates={:?} b={:02x} {}",
-                    params, intermediates, byte, byte as char
-                );
+            OperatingSystemCommand::ClearSelection(_) => {
+                self.host.set_clipboard(None).ok();
             }
+            OperatingSystemCommand::QuerySelection(_) => {}
+            OperatingSystemCommand::SetSelection(_, selection_data) => match self
+                .host
+                .set_clipboard(Some(selection_data))
+            {
+                Ok(_) => (),
+                Err(err) => eprintln!("failed to set clipboard in response to OSC 52: {:?}", err),
+            },
         }
     }
 }

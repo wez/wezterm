@@ -1,4 +1,5 @@
 use super::*;
+use termwiz::escape::parser::Parser;
 
 /// Represents the host of the terminal.
 /// Provides a means for sending data to the connected pty,
@@ -40,7 +41,7 @@ pub struct Terminal {
     /// The terminal model/state
     state: TerminalState,
     /// Baseline terminal escape sequence parser
-    parser: vte::Parser,
+    parser: Parser,
 }
 
 impl Deref for Terminal {
@@ -71,7 +72,7 @@ impl Terminal {
                 scrollback_size,
                 hyperlink_rules,
             ),
-            parser: vte::Parser::new(),
+            parser: Parser::new(),
         }
     }
 
@@ -84,8 +85,6 @@ impl Terminal {
             host,
         };
 
-        for b in bytes.iter() {
-            self.parser.advance(&mut performer, *b);
-        }
+        self.parser.parse(bytes, |action| performer.perform(action));
     }
 }

@@ -6,6 +6,8 @@ mod c0;
 mod c1;
 mod csi;
 mod selection;
+use termwiz::escape::csi::{Edit, EraseInDisplay, EraseInLine};
+use termwiz::escape::CSI;
 
 #[derive(Default, Debug)]
 struct TestHost {
@@ -87,25 +89,14 @@ impl TestTerm {
         self.print(format!("{};{}f", row + 1, col + 1));
     }
 
-    fn erase_in_display(&mut self, erase: DisplayErase) {
-        self.print(CSI);
-        let num = match erase {
-            DisplayErase::Below => 0,
-            DisplayErase::Above => 1,
-            DisplayErase::All => 2,
-            DisplayErase::SavedLines => 3,
-        };
-        self.print(format!("{}J", num));
+    fn erase_in_display(&mut self, erase: EraseInDisplay) {
+        let csi = CSI::Edit(Edit::EraseInDisplay(erase));
+        self.print(format!("{}", csi));
     }
 
-    fn erase_in_line(&mut self, erase: LineErase) {
-        self.print(CSI);
-        let num = match erase {
-            LineErase::ToRight => 0,
-            LineErase::ToLeft => 1,
-            LineErase::All => 2,
-        };
-        self.print(format!("{}K", num));
+    fn erase_in_line(&mut self, erase: EraseInLine) {
+        let csi = CSI::Edit(Edit::EraseInLine(erase));
+        self.print(format!("{}", csi));
     }
 
     fn hyperlink(&mut self, link: &Rc<Hyperlink>) {
@@ -347,7 +338,7 @@ fn basic_output() {
         ],
     );
 
-    term.erase_in_display(DisplayErase::Above);
+    term.erase_in_display(EraseInDisplay::EraseToStartOfDisplay);
     assert_visible_contents(
         &term,
         &[
@@ -360,7 +351,7 @@ fn basic_output() {
     );
 
     term.cup(2, 2);
-    term.erase_in_line(LineErase::ToRight);
+    term.erase_in_line(EraseInLine::EraseToEndOfLine);
     assert_visible_contents(
         &term,
         &[
@@ -372,7 +363,7 @@ fn basic_output() {
         ],
     );
 
-    term.erase_in_line(LineErase::ToLeft);
+    term.erase_in_line(EraseInLine::EraseToStartOfLine);
     assert_visible_contents(
         &term,
         &[
