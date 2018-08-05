@@ -1,0 +1,36 @@
+[package]
+name = "termwiz"
+version = "0.1.0"
+authors = ["Wez Furlong"]
+
+[dependencies]
+terminfo = "~0.6"
+palette = "~0.4"
+serde = "~1.0"
+serde_derive = "~1.0"
+failure = "~0.1"
+vte = "~0.3"
+num = "~0.2"
+num-traits = "~0.2"
+derive_builder = "~0.5"
+semver = "0.9"
+libc = "~0.2"
+bitflags = "~1.0"
+cassowary = "~0.3"
+memmem = "~0.1"
+fnv = "~1.0"
+unicode-segmentation = "~1.2"
+smallvec = "~0.6"
+unicode-width = "~0.1"
+base64 = "~0.9"
+
+[dependencies.num-derive]
+version = "~0.2"
+features = ["full-syntax"]
+
+[target.'cfg(windows)'.dependencies]
+winapi = {version = "~0.3", features = ["winuser", "consoleapi", "handleapi", "fileapi"]}
+
+[target.'cfg(unix)'.dependencies]
+termios = "~0.3"
+signal-hook = "~0.1"
