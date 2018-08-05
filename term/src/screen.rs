@@ -114,27 +114,18 @@ impl Screen {
 
     /// Set a cell.  the x and y coordinates are relative to the visible screeen
     /// origin.  0,0 is the top left.
-    pub fn set_cell(
-        &mut self,
-        x: usize,
-        y: VisibleRowIndex,
-        c: char,
-        attr: &CellAttributes,
-    ) -> &Cell {
+    pub fn set_cell(&mut self, x: usize, y: VisibleRowIndex, cell: &Cell) -> &Cell {
         let line_idx = self.phys_row(y);
-        debug!(
-            "set_cell {} x={} y={} phys={} {:?}",
-            c, x, y, line_idx, attr
-        );
+        debug!("set_cell x={} y={} phys={} {:?}", x, y, line_idx, cell);
 
         let line = self.line_mut(line_idx);
         line.invalidate_implicit_links();
 
-        if attr.hyperlink.is_some() {
+        if cell.attrs().hyperlink.is_some() {
             line.set_has_hyperlink(true);
         }
 
-        line.set_cell(x, Cell::new(c, attr.clone()))
+        line.set_cell(x, cell.clone())
     }
 
     pub fn clear_line(

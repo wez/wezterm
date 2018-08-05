@@ -1225,9 +1225,9 @@ impl TerminalState {
                 let limit = (x + n as usize).min(self.screen().physical_cols);
                 {
                     let screen = self.screen_mut();
-                    let blank = CellAttributes::default();
+                    let blank = Cell::default();
                     for x in x..limit as usize {
-                        screen.set_cell(x, y, ' ', &blank);
+                        screen.set_cell(x, y, &blank);
                     }
                 }
                 self.clear_selection_if_intersects(x..limit, y as ScrollbackOrVisibleRowIndex);
@@ -1414,6 +1414,7 @@ impl TerminalState {
 pub(crate) struct Performer<'a> {
     pub state: &'a mut TerminalState,
     pub host: &'a mut TerminalHost,
+    print: Option<String>,
 }
 
 impl<'a> Deref for Performer<'a> {
@@ -1430,7 +1431,65 @@ impl<'a> DerefMut for Performer<'a> {
     }
 }
 
+impl<'a> Drop for Performer<'a> {
+    fn drop(&mut self) {
+        self.flush_print();
+    }
+}
+
 impl<'a> Performer<'a> {
+    pub fn new(state: &'a mut TerminalState, host: &'a mut TerminalHost) -> Self {
+        Self {
+            state,
+            host,
+            print: None,
+        }
+    }
+
+    fn flush_print(&mut self) {
+        let p = match self.print.take() {
+            Some(s) => s,
+            None => return,
+        };
+
+        for g in unicode_segmentation::UnicodeSegmentation::graphemes(p.as_str(), true) {
+            if self.wrap_next {
+                self.new_line(true);
+            }
+
+            let x = self.cursor.x;
+            let y = self.cursor.y;
+            let width = self.screen().physical_cols;
+
+            let pen = self.pen.clone();
+
+            // Assign the cell and extract its printable width
+            let print_width = {
+                let cell = self
+                    .screen_mut()
+                    .set_cell(x, y, &Cell::new_grapheme(g, pen.clone()));
+                // the max(1) here is to ensure that we advance to the next cell
+                // position for zero-width graphemes.  We want to make sure that
+                // they occupy a cell so that we can re-emit them when we output them.
+                // If we didn't do this, then we'd effectively filter them out from
+                // the model, which seems like a lossy design choice.
+                cell.width().max(1)
+            };
+
+            self.clear_selection_if_intersects(
+                x..x + print_width,
+                y as ScrollbackOrVisibleRowIndex,
+            );
+
+            if x + print_width < width {
+                self.cursor.x += print_width;
+                self.wrap_next = false;
+            } else {
+                self.wrap_next = true;
+            }
+        }
+    }
+
     pub fn perform(&mut self, action: Action) {
         match action {
             Action::Print(c) => self.print(c),
@@ -1444,33 +1503,12 @@ impl<'a> Performer<'a> {
 
     /// Draw a character to the screen
     fn print(&mut self, c: char) {
-        if self.wrap_next {
-            self.new_line(true);
-        }
-
-        let x = self.cursor.x;
-        let y = self.cursor.y;
-        let width = self.screen().physical_cols;
-
-        let pen = self.pen.clone();
-
-        // Assign the cell and extract its printable width
-        let print_width = {
-            let cell = self.screen_mut().set_cell(x, y, c, &pen);
-            cell.width()
-        };
-
-        self.clear_selection_if_intersects(x..x + print_width, y as ScrollbackOrVisibleRowIndex);
-
-        if x + print_width < width {
-            self.cursor.x += print_width;
-            self.wrap_next = false;
-        } else {
-            self.wrap_next = true;
-        }
+        // We buffer up the chars to increase the chances of correctly grouping graphemes into cells
+        self.print.get_or_insert_with(String::new).push(c);
     }
 
     fn control(&mut self, control: ControlCode) {
+        self.flush_print();
         match control {
             ControlCode::LineFeed | ControlCode::VerticalTab | ControlCode::FormFeed => {
                 self.new_line(true /* TODO: depend on terminal mode */)
@@ -1488,6 +1526,7 @@ impl<'a> Performer<'a> {
     }
 
     fn csi_dispatch(&mut self, csi: CSI) {
+        self.flush_print();
         match csi {
             CSI::Sgr(sgr) => self.state.perform_csi_sgr(sgr),
             CSI::Cursor(cursor) => self.state.perform_csi_cursor(cursor, self.host),
@@ -1502,6 +1541,7 @@ impl<'a> Performer<'a> {
     }
 
     fn esc_dispatch(&mut self, esc: Esc) {
+        self.flush_print();
         match esc {
             Esc::Code(EscCode::StringTerminator) => {
                 // String Terminator (ST); explicitly has nothing to do here, as its purpose is
@@ -1528,6 +1568,7 @@ impl<'a> Performer<'a> {
     }
 
     fn osc_dispatch(&mut self, osc: OperatingSystemCommand) {
+        self.flush_print();
         match osc {
             OperatingSystemCommand::SetIconNameAndWindowTitle(title)
             | OperatingSystemCommand::SetWindowTitle(title) => {

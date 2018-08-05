@@ -80,10 +80,7 @@ impl Terminal {
     pub fn advance_bytes<B: AsRef<[u8]>>(&mut self, bytes: B, host: &mut TerminalHost) {
         let bytes = bytes.as_ref();
 
-        let mut performer = Performer {
-            state: &mut self.state,
-            host,
-        };
+        let mut performer = Performer::new(&mut self.state, host);
 
         self.parser.parse(bytes, |action| performer.perform(action));
     }
