@@ -97,16 +97,17 @@ impl Line {
     /// Similarly, when we assign a cell, we need to blank out those
     /// occluded successor cells.
     pub fn set_cell(&mut self, idx: usize, cell: Cell) -> &Cell {
+        let width = cell.width();
+
         // if the line isn't wide enough, pad it out with the default attributes
-        if idx >= self.cells.len() {
-            self.cells.resize(idx, Cell::default());
+        if idx + width >= self.cells.len() {
+            self.cells.resize(idx + width, Cell::default());
         }
 
         self.invalidate_grapheme_at_or_before(idx);
 
         // For double-wide or wider chars, ensure that the cells that
         // are overlapped by this one are blanked out.
-        let width = cell.width();
         for i in 1..=width.saturating_sub(1) {
             self.cells[idx + i] = Cell::new(' ', cell.attrs().clone());
         }
