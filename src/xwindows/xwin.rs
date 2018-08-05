@@ -593,7 +593,9 @@ impl TerminalWindow {
 
     pub fn activate_tab_relative(&mut self, delta: isize) -> Result<(), Error> {
         let max = self.tabs.tabs.len();
-        let tab = (self.tabs.active as isize + delta) as usize % max;
-        self.activate_tab(tab)
+        let active = self.tabs.active as isize;
+        let tab = active + delta;
+        let tab = if tab < 0 { max as isize + tab } else { tab };
+        self.activate_tab(tab as usize % max)
     }
 }
