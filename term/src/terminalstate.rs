@@ -571,9 +571,9 @@ impl TerminalState {
                 ..
             } => {
                 let (report_button, scroll_delta, key) = if event.button == MouseButton::WheelUp {
-                    (64, -1, KeyCode::Up)
+                    (64, -1, KeyCode::UpArrow)
                 } else {
-                    (65, 1, KeyCode::Down)
+                    (65, 1, KeyCode::DownArrow)
                 };
 
                 if self.sgr_mouse {
@@ -718,8 +718,12 @@ impl TerminalState {
                 host.toggle_full_screen();
                 return Ok(());
             }
+            (Tab, ..) => "\t",
+            (Enter, ..) => "\n",
+            (Backspace, ..) => "\x08",
+            (Escape, ..) => "\x1b",
             // Delete
-            (Char('\x7f'), ..) => "\x1b[3~",
+            (Char('\x7f'), ..) | (Delete, ..) => "\x1b[3~",
             (Char(c), CTRL, _, SHIFT, _) if c <= 0xff as char && c > 0x40 as char => {
                 // If shift is held we have C == 0x43 and want to translate
                 // that into 0x03
@@ -751,17 +755,17 @@ impl TerminalState {
                 buf.as_str()
             }
 
-            (Up, _, _, _, APPCURSOR) => "\x1bOA",
-            (Down, _, _, _, APPCURSOR) => "\x1bOB",
-            (Right, _, _, _, APPCURSOR) => "\x1bOC",
-            (Left, _, _, _, APPCURSOR) => "\x1bOD",
+            (UpArrow, _, _, _, APPCURSOR) => "\x1bOA",
+            (DownArrow, _, _, _, APPCURSOR) => "\x1bOB",
+            (RightArrow, _, _, _, APPCURSOR) => "\x1bOC",
+            (LeftArrow, _, _, _, APPCURSOR) => "\x1bOD",
             (Home, _, _, _, APPCURSOR) => "\x1bOH",
             (End, _, _, _, APPCURSOR) => "\x1bOF",
 
-            (Up, ..) => "\x1b[A",
-            (Down, ..) => "\x1b[B",
-            (Right, ..) => "\x1b[C",
-            (Left, ..) => "\x1b[D",
+            (UpArrow, ..) => "\x1b[A",
+            (DownArrow, ..) => "\x1b[B",
+            (RightArrow, ..) => "\x1b[C",
+            (LeftArrow, ..) => "\x1b[D",
             (PageUp, _, _, SHIFT, _) => {
                 let rows = self.screen().physical_rows as i64;
                 self.scroll_viewport(-rows);
@@ -778,7 +782,7 @@ impl TerminalState {
             (End, ..) => "\x1b[F",
             (Insert, ..) => "\x1b[2~",
 
-            (F(n), ..) => {
+            (Function(n), ..) => {
                 let modifier = match (ctrl, alt, shift) {
                     (NO, NO, NO) => "",
                     (NO, NO, SHIFT) => ";2",
@@ -823,9 +827,45 @@ impl TerminalState {
                 }
             }
 
-            // Modifier keys pressed on their own and unmappable keys don't expand to anything
-            (Control, ..) | (Alt, ..) | (Meta, ..) | (Super, ..) | (Hyper, ..) | (Shift, ..)
-            | (Unknown, ..) => "",
+            // TODO: emit numpad sequences
+            (Numpad0, ..) | (Numpad1, ..) | (Numpad2, ..) | (Numpad3, ..) | (Numpad4, ..)
+            | (Numpad5, ..) | (Numpad6, ..) | (Numpad7, ..) | (Numpad8, ..) | (Numpad9, ..)
+            | (Multiply, ..) | (Add, ..) | (Separator, ..) | (Subtract, ..) | (Decimal, ..)
+            | (Divide, ..) => "",
+
+            // Modifier keys pressed on their own don't expand to anything
+            (Control, ..) | (LeftControl, ..) | (RightControl, ..) | (Alt, ..) | (LeftAlt, ..)
+            | (RightAlt, ..) | (Menu, ..) | (LeftMenu, ..) | (RightMenu, ..) | (Super, ..)
+            | (Hyper, ..) | (Shift, ..) | (LeftShift, ..) | (RightShift, ..) | (Meta, ..)
+            | (LeftWindows, ..) | (RightWindows, ..) | (NumLock, ..) | (ScrollLock, ..) => "",
+
+            (Cancel, ..)
+            | (Clear, ..)
+            | (Pause, ..)
+            | (CapsLock, ..)
+            | (Select, ..)
+            | (Print, ..)
+            | (PrintScreen, ..)
+            | (Execute, ..)
+            | (Help, ..)
+            | (Applications, ..)
+            | (Sleep, ..)
+            | (BrowserBack, ..)
+            | (BrowserForward, ..)
+            | (BrowserRefresh, ..)
+            | (BrowserStop, ..)
+            | (BrowserSearch, ..)
+            | (BrowserFavorites, ..)
+            | (BrowserHome, ..)
+            | (VolumeMute, ..)
+            | (VolumeDown, ..)
+            | (VolumeUp, ..)
+            | (MediaNextTrack, ..)
+            | (MediaPrevTrack, ..)
+            | (MediaStop, ..)
+            | (MediaPlayPause, ..)
+            | (InternalPasteStart, ..)
+            | (InternalPasteEnd, ..) => "",
         };
 
         write_all(host.writer(), to_send.as_bytes())?;

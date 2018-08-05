@@ -420,12 +420,12 @@ impl TerminalWindow {
         Ok(())
     }
 
-    fn decode_key(&self, event: &xcb::KeyPressEvent) -> (KeyCode, KeyModifiers) {
+    fn decode_key(&self, event: &xcb::KeyPressEvent) -> Option<(KeyCode, KeyModifiers)> {
         let mods = xkeysyms::modifiers(event);
         let sym = self
             .conn
             .lookup_keysym(event, mods.contains(KeyModifiers::SHIFT));
-        (xkeysyms::xcb_keysym_to_keycode(sym), mods)
+        xkeysyms::xcb_keysym_to_keycode(sym).map(|code| (code, mods))
     }
 
     fn mouse_event(&mut self, event: MouseEvent) -> Result<(), Error> {
@@ -452,27 +452,29 @@ impl TerminalWindow {
             }
             xcb::KEY_PRESS => {
                 let key_press: &xcb::KeyPressEvent = unsafe { xcb::cast_event(event) };
-                let (code, mods) = self.decode_key(key_press);
-                self.tabs.get_active().terminal.borrow_mut().key_down(
-                    code,
-                    mods,
-                    &mut TabHost {
-                        pty: &mut *self.tabs.get_active().pty.borrow_mut(),
-                        host: &mut self.host,
-                    },
-                )?;
+                if let Some((code, mods)) = self.decode_key(key_press) {
+                    self.tabs.get_active().terminal.borrow_mut().key_down(
+                        code,
+                        mods,
+                        &mut TabHost {
+                            pty: &mut *self.tabs.get_active().pty.borrow_mut(),
+                            host: &mut self.host,
+                        },
+                    )?;
+                }
             }
             xcb::KEY_RELEASE => {
                 let key_press: &xcb::KeyPressEvent = unsafe { xcb::cast_event(event) };
-                let (code, mods) = self.decode_key(key_press);
-                self.tabs.get_active().terminal.borrow_mut().key_up(
-                    code,
-                    mods,
-                    &mut TabHost {
-                        pty: &mut *self.tabs.get_active().pty.borrow_mut(),
-                        host: &mut self.host,
-                    },
-                )?;
+                if let Some((code, mods)) = self.decode_key(key_press) {
+                    self.tabs.get_active().terminal.borrow_mut().key_up(
+                        code,
+                        mods,
+                        &mut TabHost {
+                            pty: &mut *self.tabs.get_active().pty.borrow_mut(),
+                            host: &mut self.host,
+                        },
+                    )?;
+                }
             }
             xcb::MOTION_NOTIFY => {
                 let motion: &xcb::MotionNotifyEvent = unsafe { xcb::cast_event(event) };

@@ -13,14 +13,17 @@ use winapi::um::wincon::{
 };
 
 bitflags! {
+    #[derive(Default)]
     pub struct Modifiers: u8 {
         const NONE = 0;
         const SHIFT = 1<<1;
         const ALT = 1<<2;
         const CTRL = 1<<3;
+        const SUPER = 1<<4;
     }
 }
 bitflags! {
+    #[derive(Default)]
     pub struct MouseButtons: u8 {
         const NONE = 0;
         const LEFT = 1<<1;
@@ -68,10 +71,14 @@ pub struct KeyEvent {
 /// Which key is pressed.  Not all of these are probable to appear
 /// on most systems.  A lot of this list is @wez trawling docs and
 /// making an entry for things that might be possible in this first pass.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum KeyCode {
     /// The decoded unicode character
     Char(char),
+
+    Hyper,
+    Super,
+    Meta,
 
     /// Ctrl-break on windows
     Cancel,

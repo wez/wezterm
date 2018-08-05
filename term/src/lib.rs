@@ -1,5 +1,5 @@
 //! Terminal model
-#[macro_use]
+#[cfg_attr(test, macro_use)]
 extern crate bitflags;
 #[macro_use]
 extern crate failure;

@@ -5,40 +5,8 @@ use std::time::{Duration, Instant};
 
 use super::VisibleRowIndex;
 
-bitflags! {
-    #[derive(Default)]
-    pub struct KeyModifiers :u8{
-        const CTRL = 1;
-        const ALT = 2;
-        const META = 4;
-        const SUPER = 8;
-        const SHIFT = 16;
-        const NONE = 0;
-    }
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum KeyCode {
-    Char(char),
-    Unknown,
-    Control,
-    Alt,
-    Meta,
-    Super,
-    Hyper,
-    Shift,
-    Left,
-    Up,
-    Right,
-    Down,
-    PageUp,
-    PageDown,
-    Home,
-    End,
-    Insert,
-    /// A numbered F-key
-    F(u8),
-}
+pub use termwiz::input::KeyCode;
+pub use termwiz::input::Modifiers as KeyModifiers;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum MouseButton {

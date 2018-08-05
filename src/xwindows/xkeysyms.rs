@@ -196,8 +196,8 @@ pub const XK_asciitilde: xcb_keysym_t = 0x007e;
 use term::KeyCode;
 use term::KeyModifiers;
 
-pub fn xcb_keysym_to_keycode(k: xcb_keysym_t) -> KeyCode {
-    match k {
+pub fn xcb_keysym_to_keycode(k: xcb_keysym_t) -> Option<KeyCode> {
+    Some(match k {
         XK_space...XK_asciitilde => {
             // This range overlaps with ascii
             KeyCode::Char(k as u8 as char)
@@ -205,18 +205,18 @@ pub fn xcb_keysym_to_keycode(k: xcb_keysym_t) -> KeyCode {
         XK_BackSpace | XK_Tab | XK_Linefeed | XK_Return | XK_Escape => {
             KeyCode::Char((k & 0xff) as u8 as char)
         }
-        XK_F1 => KeyCode::F(1),
-        XK_F2 => KeyCode::F(2),
-        XK_F3 => KeyCode::F(3),
-        XK_F4 => KeyCode::F(4),
-        XK_F5 => KeyCode::F(5),
-        XK_F6 => KeyCode::F(6),
-        XK_F7 => KeyCode::F(7),
-        XK_F8 => KeyCode::F(8),
-        XK_F9 => KeyCode::F(9),
-        XK_F10 => KeyCode::F(10),
-        XK_F11 => KeyCode::F(11),
-        XK_F12 => KeyCode::F(12),
+        XK_F1 => KeyCode::Function(1),
+        XK_F2 => KeyCode::Function(2),
+        XK_F3 => KeyCode::Function(3),
+        XK_F4 => KeyCode::Function(4),
+        XK_F5 => KeyCode::Function(5),
+        XK_F6 => KeyCode::Function(6),
+        XK_F7 => KeyCode::Function(7),
+        XK_F8 => KeyCode::Function(8),
+        XK_F9 => KeyCode::Function(9),
+        XK_F10 => KeyCode::Function(10),
+        XK_F11 => KeyCode::Function(11),
+        XK_F12 => KeyCode::Function(12),
         XK_Control_L | XK_Control_R => KeyCode::Control,
         XK_Alt_L | XK_Alt_R => KeyCode::Alt,
         XK_Meta_L | XK_Meta_R => KeyCode::Meta,
@@ -224,16 +224,16 @@ pub fn xcb_keysym_to_keycode(k: xcb_keysym_t) -> KeyCode {
         XK_Hyper_L | XK_Hyper_R => KeyCode::Hyper,
         XK_Shift_L | XK_Shift_R => KeyCode::Shift,
         XK_Home => KeyCode::Home,
-        XK_Left => KeyCode::Left,
-        XK_Up => KeyCode::Up,
-        XK_Right => KeyCode::Right,
-        XK_Down => KeyCode::Down,
+        XK_Left => KeyCode::LeftArrow,
+        XK_Up => KeyCode::UpArrow,
+        XK_Right => KeyCode::RightArrow,
+        XK_Down => KeyCode::DownArrow,
         XK_Page_Up => KeyCode::PageUp,
         XK_Page_Down => KeyCode::PageDown,
         XK_End => KeyCode::End,
         XK_KP_Insert | XK_Insert => KeyCode::Insert,
-        _ => KeyCode::Unknown,
-    }
+        _ => return None,
+    })
 }
 
 pub fn modifiers_from_state(state: u16) -> KeyModifiers {
