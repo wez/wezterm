@@ -893,6 +893,8 @@ impl TerminalState {
         self.scroll_region = 0..physical_rows as i64;
         self.tabs.resize(physical_cols);
         self.set_scroll_viewport(0);
+        // Ensure that the cursor is within the new bounds of the screen
+        self.set_cursor_pos(&Position::Relative(0), &Position::Relative(0));
     }
 
     /// Returns true if any of the visible lines are marked dirty
