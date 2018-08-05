@@ -1166,11 +1166,10 @@ impl TerminalState {
     fn erase_in_display(&mut self, erase: EraseInDisplay) {
         let cy = self.cursor.y;
         let pen = self.pen.clone_sgr_only();
-        let cols = self.screen().physical_cols;
         let rows = self.screen().physical_rows as VisibleRowIndex;
-        let col_range = 0..cols;
+        let col_range = 0..usize::max_value();
         let row_range = match erase {
-            EraseInDisplay::EraseToEndOfDisplay => cy..rows,
+            EraseInDisplay::EraseToEndOfDisplay => cy + 1..rows,
             EraseInDisplay::EraseToStartOfDisplay => 0..cy,
             EraseInDisplay::EraseDisplay => 0..rows,
             EraseInDisplay::EraseScrollback => {

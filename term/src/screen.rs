@@ -131,7 +131,7 @@ impl Screen {
     pub fn clear_line(
         &mut self,
         y: VisibleRowIndex,
-        cols: std::ops::Range<usize>,
+        cols: impl Iterator<Item = usize>,
         attr: &CellAttributes,
     ) {
         let line_idx = self.phys_row(y);
