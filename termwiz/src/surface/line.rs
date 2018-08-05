@@ -1,8 +1,24 @@
 use cell::{Cell, CellAttributes};
 use surface::Change;
 
+bitflags! {
+    struct LineBits : u8 {
+        const NONE = 0;
+        /// The contents of the Line have changed and cached or
+        /// derived data will need to be reassessed.
+        const DIRTY = 1<<0;
+        /// The line contains 1+ cells with hyperlinks set
+        const HAS_HYPERLINK = 1<<1;
+        /// true if we have scanned for implicit hyperlinks
+        const SCANNED_IMPLICIT_HYPERLINKS = 1<<2;
+        /// true if we found implicit hyperlinks in the last scan
+        const HAS_IMPLICIT_HYPERLINKS = 1<<3;
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Line {
+    bits: LineBits,
     cells: Vec<Cell>,
 }
 
@@ -10,11 +26,27 @@ impl Line {
     pub fn with_width(width: usize) -> Self {
         let mut cells = Vec::with_capacity(width);
         cells.resize(width, Cell::default());
-        Self { cells }
+        let bits = LineBits::DIRTY;
+        Self { bits, cells }
     }
 
     pub fn resize(&mut self, width: usize) {
         self.cells.resize(width, Cell::default());
+        self.bits |= LineBits::DIRTY;
+    }
+
+    /// Check whether the dirty bit is set.
+    /// If it is set, then something about the line has changed since
+    /// the dirty bit was last cleared.
+    #[inline]
+    pub fn is_dirty(&self) -> bool {
+        (self.bits & LineBits::DIRTY) == LineBits::DIRTY
+    }
+
+    /// Clear the dirty bit.
+    #[inline]
+    pub fn clear_dirty(&mut self) {
+        self.bits &= !LineBits::DIRTY;
     }
 
     /// If we're about to modify a cell obscured by a double-width
@@ -26,6 +58,7 @@ impl Line {
     /// to assign to an out of bounds index will not extend the cell array,
     /// and it will not flag an error.
     pub fn set_cell(&mut self, idx: usize, cell: Cell) {
+        self.bits |= LineBits::DIRTY;
         // Assumption: that the width of a grapheme is never > 2.
         // This constrains the amount of look-back that we need to do here.
         if idx > 0 {
