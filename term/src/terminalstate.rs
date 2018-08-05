@@ -1169,8 +1169,14 @@ impl TerminalState {
         let rows = self.screen().physical_rows as VisibleRowIndex;
         let col_range = 0..usize::max_value();
         let row_range = match erase {
-            EraseInDisplay::EraseToEndOfDisplay => cy + 1..rows,
-            EraseInDisplay::EraseToStartOfDisplay => 0..cy,
+            EraseInDisplay::EraseToEndOfDisplay => {
+                self.perform_csi_edit(Edit::EraseInLine(EraseInLine::EraseToEndOfLine));
+                cy + 1..rows
+            }
+            EraseInDisplay::EraseToStartOfDisplay => {
+                self.perform_csi_edit(Edit::EraseInLine(EraseInLine::EraseToStartOfLine));
+                0..cy
+            }
             EraseInDisplay::EraseDisplay => 0..rows,
             EraseInDisplay::EraseScrollback => {
                 eprintln!("TODO: ed: no support for xterm Erase Saved Lines yet");

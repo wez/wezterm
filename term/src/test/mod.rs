@@ -345,12 +345,14 @@ fn basic_output() {
         &[
             "          ",
             "          ",
-            "rld!      ",
+            "          ",
             "          ",
             "          ",
         ],
     );
 
+    term.cup(0, 2);
+    term.print("woot");
     term.cup(2, 2);
     term.erase_in_line(EraseInLine::EraseToEndOfLine);
     assert_visible_contents(
@@ -358,7 +360,7 @@ fn basic_output() {
         &[
             "          ",
             "          ",
-            "rl        ",
+            "wo        ",
             "          ",
             "          ",
         ],

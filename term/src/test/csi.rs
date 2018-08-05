@@ -136,9 +136,9 @@ fn test_cha() {
 fn test_ed() {
     let mut term = TestTerm::new(3, 3, 0);
     term.print("abc\ndef\nghi");
-    term.cup(0, 1);
+    term.cup(1, 2);
     term.print("\x1b[J");
-    assert_visible_contents(&term, &["abc", "def", "   "]);
+    assert_visible_contents(&term, &["abc", "def", "g  "]);
 
     // Set background color to blue
     term.print("\x1b[44m");
