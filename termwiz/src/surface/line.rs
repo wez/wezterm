@@ -10,7 +10,7 @@ bitflags! {
         /// The contents of the Line have changed and cached or
         /// derived data will need to be reassessed.
         const DIRTY = 1<<0;
-        /// The line contains 1+ cells with hyperlinks set
+        /// The line contains 1+ cells with explicit hyperlinks set
         const HAS_HYPERLINK = 1<<1;
         /// true if we have scanned for implicit hyperlinks
         const SCANNED_IMPLICIT_HYPERLINKS = 1<<2;
@@ -99,6 +99,10 @@ impl Line {
             return;
         }
 
+        // FIXME: let's build a string and a byte-to-cell map here, and
+        // use this as an opportunity to rebuild HAS_HYPERLINK, skip matching
+        // cells with existing non-implicit hyperlinks, and avoid matching
+        // text with zero-width cells.
         let line = self.as_str();
         self.bits |= LineBits::SCANNED_IMPLICIT_HYPERLINKS;
         self.bits &= !LineBits::HAS_IMPLICIT_HYPERLINKS;
@@ -125,6 +129,13 @@ impl Line {
         }
     }
 
+    /// Returns true if the line contains a hyperlink
+    #[inline]
+    pub fn has_hyperlink(&self) -> bool {
+        (self.bits & (LineBits::HAS_HYPERLINK | LineBits::HAS_IMPLICIT_HYPERLINKS))
+            != LineBits::NONE
+    }
+
     /// Recompose line into the corresponding utf8 string.
     pub fn as_str(&self) -> String {
         let mut s = String::new();
@@ -145,6 +156,10 @@ impl Line {
     pub fn set_cell(&mut self, idx: usize, cell: Cell) {
         self.invalidate_implicit_hyperlinks();
         self.bits |= LineBits::DIRTY;
+        if cell.attrs().hyperlink.is_some() {
+            self.bits |= LineBits::HAS_HYPERLINK;
+        }
+
         // Assumption: that the width of a grapheme is never > 2.
         // This constrains the amount of look-back that we need to do here.
         if idx > 0 {
