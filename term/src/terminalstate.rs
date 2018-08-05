@@ -305,7 +305,7 @@ impl TerminalState {
         let idx = screen.scrollback_or_visible_row(y);
         match screen.lines.get_mut(idx) {
             Some(ref mut line) => {
-                line.find_hyperlinks(rules);
+                line.scan_and_create_hyperlinks(rules);
                 match line.cells().get(x) {
                     Some(cell) => cell.attrs().hyperlink.as_ref().cloned(),
                     None => None,
@@ -882,7 +882,7 @@ impl TerminalState {
     pub fn clean_dirty_lines(&mut self) {
         let screen = self.screen_mut();
         for mut line in &mut screen.lines {
-            line.set_clean();
+            line.clear_dirty();
         }
     }
 

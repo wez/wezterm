@@ -33,7 +33,7 @@ impl Screen {
     pub fn new(physical_rows: usize, physical_cols: usize, scrollback_size: usize) -> Screen {
         let mut lines = VecDeque::with_capacity(physical_rows + scrollback_size);
         for _ in 0..physical_rows {
-            lines.push_back(Line::new(physical_cols));
+            lines.push_back(Line::with_width(physical_cols));
         }
 
         Screen {
@@ -55,7 +55,7 @@ impl Screen {
         if physical_rows > self.physical_rows {
             // Enlarging the viewable portion?  Add more lines at the bottom
             for _ in self.physical_rows..physical_rows {
-                self.lines.push_back(Line::new(physical_cols));
+                self.lines.push_back(Line::with_width(physical_cols));
             }
         }
         self.physical_rows = physical_rows;
@@ -63,12 +63,9 @@ impl Screen {
     }
 
     /// Get mutable reference to a line, relative to start of scrollback.
-    /// Sets the line dirty.
     #[inline]
     pub fn line_mut(&mut self, idx: PhysRowIndex) -> &mut Line {
-        let line = &mut self.lines[idx];
-        line.set_dirty();
-        line
+        &mut self.lines[idx]
     }
 
     /// Sets a line dirty.  The line is relative to the visible origin.
@@ -119,12 +116,6 @@ impl Screen {
         debug!("set_cell x={} y={} phys={} {:?}", x, y, line_idx, cell);
 
         let line = self.line_mut(line_idx);
-        line.invalidate_implicit_links();
-
-        if cell.attrs().hyperlink.is_some() {
-            line.set_has_hyperlink(true);
-        }
-
         line.set_cell(x, cell.clone())
     }
 
@@ -222,7 +213,7 @@ impl Screen {
             for _ in 0..to_move {
                 let mut line = self.lines.remove(remove_idx).unwrap();
                 // Make the line like a new one of the appropriate width
-                line.reset(self.physical_cols);
+                line.resize_and_clear(self.physical_cols);
                 if scroll_region.end as usize == self.physical_rows {
                     self.lines.push_back(line);
                 } else {
@@ -242,12 +233,12 @@ impl Screen {
         if scroll_region.end as usize == self.physical_rows {
             // It's cheaper to push() than it is insert() at the end
             for _ in 0..to_add {
-                self.lines.push_back(Line::new(self.physical_cols));
+                self.lines.push_back(Line::with_width(self.physical_cols));
             }
         } else {
             for _ in 0..to_add {
                 self.lines
-                    .insert(phys_scroll.end - 1, Line::new(self.physical_cols));
+                    .insert(phys_scroll.end - 1, Line::with_width(self.physical_cols));
             }
         }
     }
@@ -280,7 +271,7 @@ impl Screen {
 
         for _ in 0..num_rows {
             self.lines
-                .insert(phys_scroll.start, Line::new(self.physical_cols));
+                .insert(phys_scroll.start, Line::with_width(self.physical_cols));
         }
     }
 }

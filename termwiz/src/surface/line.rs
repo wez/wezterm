@@ -2,8 +2,10 @@ use cell::{Cell, CellAttributes};
 use cellcluster::CellCluster;
 use hyperlink::Rule;
 use range::in_range;
+use std::ops::Range;
 use std::rc::Rc;
 use surface::Change;
+use unicode_segmentation::UnicodeSegmentation;
 
 bitflags! {
     struct LineBits : u8 {
@@ -34,6 +36,33 @@ impl Line {
         Self { bits, cells }
     }
 
+    pub fn from_text(s: &str, attrs: &CellAttributes) -> Line {
+        let mut cells = Vec::new();
+
+        for sub in s.graphemes(true) {
+            let cell = Cell::new_grapheme(sub, attrs.clone());
+            let width = cell.width();
+            cells.push(cell);
+            for _ in 1..width {
+                cells.push(Cell::new(' ', attrs.clone()));
+            }
+        }
+
+        Line {
+            cells,
+            bits: LineBits::DIRTY,
+        }
+    }
+
+    pub fn resize_and_clear(&mut self, width: usize) {
+        let blank = Cell::default();
+        self.cells.resize(width, blank);
+        for mut cell in &mut self.cells {
+            *cell = Cell::default();
+        }
+        self.bits = LineBits::DIRTY;
+    }
+
     pub fn resize(&mut self, width: usize) {
         self.cells.resize(width, Cell::default());
         self.bits |= LineBits::DIRTY;
@@ -45,6 +74,13 @@ impl Line {
     #[inline]
     pub fn is_dirty(&self) -> bool {
         (self.bits & LineBits::DIRTY) == LineBits::DIRTY
+    }
+
+    /// Force the dirty bit set.
+    /// FIXME: this is abused by term::Screen, want to remove or rethink it.
+    #[inline]
+    pub fn set_dirty(&mut self) {
+        self.bits |= LineBits::DIRTY;
     }
 
     /// Clear the dirty bit.
@@ -146,21 +182,52 @@ impl Line {
         s
     }
 
+    /// Returns a substring from the line.
+    pub fn columns_as_str(&self, range: Range<usize>) -> String {
+        let mut s = String::new();
+        for (n, c) in self.visible_cells() {
+            if n < range.start {
+                continue;
+            }
+            if n >= range.end {
+                break;
+            }
+            s.push_str(c.str());
+        }
+        s
+    }
+
     /// If we're about to modify a cell obscured by a double-width
     /// character ahead of that cell, we need to nerf that sequence
     /// of cells to avoid partial rendering concerns.
     /// Similarly, when we assign a cell, we need to blank out those
     /// occluded successor cells.
-    /// Note that an invalid index will be silently ignored; attempting
-    /// to assign to an out of bounds index will not extend the cell array,
-    /// and it will not flag an error.
-    pub fn set_cell(&mut self, idx: usize, cell: Cell) {
+    pub fn set_cell(&mut self, idx: usize, cell: Cell) -> &Cell {
+        let width = cell.width();
+
+        // if the line isn't wide enough, pad it out with the default attributes
+        if idx + width >= self.cells.len() {
+            self.cells.resize(idx + width, Cell::default());
+        }
+
         self.invalidate_implicit_hyperlinks();
         self.bits |= LineBits::DIRTY;
         if cell.attrs().hyperlink.is_some() {
             self.bits |= LineBits::HAS_HYPERLINK;
         }
+        self.invalidate_grapheme_at_or_before(idx);
 
+        // For double-wide or wider chars, ensure that the cells that
+        // are overlapped by this one are blanked out.
+        for i in 1..=width.saturating_sub(1) {
+            self.cells[idx + i] = Cell::new(' ', cell.attrs().clone());
+        }
+
+        self.cells[idx] = cell;
+        &self.cells[idx]
+    }
+
+    fn invalidate_grapheme_at_or_before(&mut self, idx: usize) {
         // Assumption: that the width of a grapheme is never > 2.
         // This constrains the amount of look-back that we need to do here.
         if idx > 0 {
@@ -173,17 +240,26 @@ impl Line {
                 }
             }
         }
+    }
 
-        // For double-wide or wider chars, ensure that the cells that
-        // are overlapped by this one are blanked out.
+    pub fn insert_cell(&mut self, x: usize, cell: Cell) {
+        self.invalidate_implicit_hyperlinks();
+
+        // If we're inserting a wide cell, we should also insert the overlapped cells.
+        // We insert them first so that the grapheme winds up left-most.
         let width = cell.width();
-        for i in 1..=width.saturating_sub(1) {
-            self.cells
-                .get_mut(idx + i)
-                .map(|target| *target = Cell::new(' ', cell.attrs().clone()));
+        for _ in 1..=width.saturating_sub(1) {
+            self.cells.insert(x, Cell::new(' ', cell.attrs().clone()));
         }
 
-        self.cells.get_mut(idx).map(|target| *target = cell);
+        self.cells.insert(x, cell);
+    }
+
+    pub fn erase_cell(&mut self, x: usize) {
+        self.invalidate_implicit_hyperlinks();
+        self.invalidate_grapheme_at_or_before(x);
+        self.cells.remove(x);
+        self.cells.push(Cell::default());
     }
 
     pub fn fill_range(&mut self, cols: impl Iterator<Item = usize>, cell: &Cell) {
@@ -291,5 +367,11 @@ impl Line {
         }
 
         result
+    }
+}
+
+impl<'a> From<&'a str> for Line {
+    fn from(s: &str) -> Line {
+        Line::from_text(s, &CellAttributes::default())
     }
 }

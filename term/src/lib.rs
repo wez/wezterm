@@ -20,8 +20,7 @@ pub use input::*;
 
 pub use termwiz::cell::{self, *};
 
-pub mod line;
-pub use line::*;
+pub use termwiz::surface::line::*;
 
 pub mod screen;
 pub use screen::*;
