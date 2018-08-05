@@ -49,13 +49,67 @@ impl TabStop {
     }
 }
 
-pub struct TerminalState {
+struct ScreenOrAlt {
     /// The primary screen + scrollback
     screen: Screen,
     /// The alternate screen; no scrollback
     alt_screen: Screen,
     /// Tells us which screen is active
     alt_screen_is_active: bool,
+}
+
+impl Deref for ScreenOrAlt {
+    type Target = Screen;
+
+    fn deref(&self) -> &Screen {
+        match self.alt_screen_is_active {
+            true => &self.alt_screen,
+            false => &self.screen,
+        }
+    }
+}
+
+impl DerefMut for ScreenOrAlt {
+    fn deref_mut(&mut self) -> &mut Screen {
+        match self.alt_screen_is_active {
+            true => &mut self.alt_screen,
+            false => &mut self.screen,
+        }
+    }
+}
+
+impl ScreenOrAlt {
+    pub fn new(physical_rows: usize, physical_cols: usize, scrollback_size: usize) -> Self {
+        let screen = Screen::new(physical_rows, physical_cols, scrollback_size);
+        let alt_screen = Screen::new(physical_rows, physical_cols, 0);
+
+        Self {
+            screen,
+            alt_screen,
+            alt_screen_is_active: false,
+        }
+    }
+
+    pub fn resize(&mut self, physical_rows: usize, physical_cols: usize) {
+        self.screen.resize(physical_rows, physical_cols);
+        self.alt_screen.resize(physical_rows, physical_cols);
+    }
+
+    pub fn activate_alt_screen(&mut self) {
+        self.alt_screen_is_active = true;
+    }
+
+    pub fn activate_primary_screen(&mut self) {
+        self.alt_screen_is_active = false;
+    }
+
+    pub fn is_alt_screen_active(&self) -> bool {
+        self.alt_screen_is_active
+    }
+}
+
+pub struct TerminalState {
+    screen: ScreenOrAlt,
     /// The current set of attributes in effect for the next
     /// attempt to print to the display
     pen: CellAttributes,
@@ -149,13 +203,10 @@ impl TerminalState {
         scrollback_size: usize,
         hyperlink_rules: Vec<HyperlinkRule>,
     ) -> TerminalState {
-        let screen = Screen::new(physical_rows, physical_cols, scrollback_size);
-        let alt_screen = Screen::new(physical_rows, physical_cols, 0);
+        let screen = ScreenOrAlt::new(physical_rows, physical_cols, scrollback_size);
 
         TerminalState {
             screen,
-            alt_screen,
-            alt_screen_is_active: false,
             pen: CellAttributes::default(),
             cursor: CursorPosition::default(),
             saved_cursor: CursorPosition::default(),
@@ -185,19 +236,11 @@ impl TerminalState {
     }
 
     pub fn screen(&self) -> &Screen {
-        if self.alt_screen_is_active {
-            &self.alt_screen
-        } else {
-            &self.screen
-        }
+        &self.screen
     }
 
     pub fn screen_mut(&mut self) -> &mut Screen {
-        if self.alt_screen_is_active {
-            &mut self.alt_screen
-        } else {
-            &mut self.screen
-        }
+        &mut self.screen
     }
 
     pub fn get_selection_text(&self) -> String {
@@ -294,16 +337,8 @@ impl TerminalState {
     ) -> Option<Rc<Hyperlink>> {
         let rules = &self.hyperlink_rules;
 
-        // manually inlining screen_mut() here because the borrow checker
-        // can't see that it is only mutating the screen otherwise.
-        let screen = if self.alt_screen_is_active {
-            &mut self.alt_screen
-        } else {
-            &mut self.screen
-        };
-
-        let idx = screen.scrollback_or_visible_row(y);
-        match screen.lines.get_mut(idx) {
+        let idx = self.screen.scrollback_or_visible_row(y);
+        match self.screen.lines.get_mut(idx) {
             Some(ref mut line) => {
                 line.scan_and_create_hyperlinks(rules);
                 match line.cells().get(x) {
@@ -549,7 +584,7 @@ impl TerminalState {
                         event.x + 1,
                         event.y + 1
                     )?;
-                } else if self.alt_screen_is_active {
+                } else if self.screen.is_alt_screen_active() {
                     // Send cursor keys instead (equivalent to xterm's alternateScroll mode)
                     self.key_down(key, KeyModifiers::default(), host)?;
                 } else {
@@ -815,7 +850,6 @@ impl TerminalState {
 
     pub fn resize(&mut self, physical_rows: usize, physical_cols: usize) {
         self.screen.resize(physical_rows, physical_cols);
-        self.alt_screen.resize(physical_rows, physical_cols);
         self.scroll_region = 0..physical_rows as i64;
         self.tabs.resize(physical_cols);
         self.set_scroll_viewport(0);
@@ -1133,9 +1167,9 @@ impl TerminalState {
             Mode::SetDecPrivateMode(DecPrivateMode::Code(
                 DecPrivateModeCode::ClearAndEnableAlternateScreen,
             )) => {
-                if !self.alt_screen_is_active {
+                if !self.screen.is_alt_screen_active() {
                     self.save_cursor();
-                    self.alt_screen_is_active = true;
+                    self.screen.activate_alt_screen();
                     self.set_cursor_pos(&Position::Absolute(0), &Position::Absolute(0));
                     self.erase_in_display(EraseInDisplay::EraseDisplay);
                     self.set_scroll_viewport(0);
@@ -1144,8 +1178,8 @@ impl TerminalState {
             Mode::ResetDecPrivateMode(DecPrivateMode::Code(
                 DecPrivateModeCode::ClearAndEnableAlternateScreen,
             )) => {
-                if self.alt_screen_is_active {
-                    self.alt_screen_is_active = false;
+                if self.screen.is_alt_screen_active() {
+                    self.screen.activate_primary_screen();
                     self.restore_cursor();
                     self.set_scroll_viewport(0);
                 }
