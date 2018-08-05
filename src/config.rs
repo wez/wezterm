@@ -5,7 +5,7 @@ use failure::{err_msg, Error};
 use std;
 use std::fs;
 use std::io::prelude::*;
-use term::hyperlink;
+use termwiz::hyperlink;
 use toml;
 
 use term;

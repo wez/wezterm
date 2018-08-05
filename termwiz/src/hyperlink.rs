@@ -4,14 +4,113 @@
 //! We use that as the foundation of our hyperlink support, and the game
 //! plan is to then implicitly enable the hyperlink attribute for a cell
 //! as we recognize linkable input text during print() processing.
-
-use failure::Error;
+use failure::{err_msg, Error};
 use regex::{Captures, Regex};
 use serde::{self, Deserialize, Deserializer};
+use std::collections::HashMap;
+use std::fmt::{Display, Error as FmtError, Formatter};
 use std::ops::Range;
 use std::rc::Rc;
 
-pub use termwiz::escape::osc::Hyperlink;
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Hyperlink {
+    params: HashMap<String, String>,
+    uri: String,
+    /// If the link was produced by an implicit or matching rule,
+    /// this field will be set to true.
+    implicit: bool,
+}
+
+impl Hyperlink {
+    pub fn uri(&self) -> &str {
+        &self.uri
+    }
+
+    pub fn params(&self) -> &HashMap<String, String> {
+        &self.params
+    }
+
+    pub fn new<S: Into<String>>(uri: S) -> Self {
+        Self {
+            uri: uri.into(),
+            params: HashMap::new(),
+            implicit: false,
+        }
+    }
+
+    #[inline]
+    pub fn is_implicit(&self) -> bool {
+        self.implicit
+    }
+
+    pub fn new_implicit<S: Into<String>>(uri: S) -> Self {
+        Self {
+            uri: uri.into(),
+            params: HashMap::new(),
+            implicit: true,
+        }
+    }
+
+    pub fn new_with_id<S: Into<String>, S2: Into<String>>(uri: S, id: S2) -> Self {
+        let mut params = HashMap::new();
+        params.insert("id".into(), id.into());
+        Self {
+            uri: uri.into(),
+            params,
+            implicit:false,
+        }
+    }
+
+    pub fn new_with_params<S: Into<String>>(uri: S, params: HashMap<String, String>) -> Self {
+        Self {
+            uri: uri.into(),
+            params,
+            implicit:false,
+        }
+    }
+
+    pub fn parse(osc: &[&[u8]]) -> Result<Option<Hyperlink>, Error> {
+        ensure!(osc.len() == 3, "wrong param count");
+        if osc[1].len() == 0 && osc[2].len() == 0 {
+            // Clearing current hyperlink
+            Ok(None)
+        } else {
+            let param_str = String::from_utf8(osc[1].to_vec())?;
+            let uri = String::from_utf8(osc[2].to_vec())?;
+
+            let mut params = HashMap::new();
+            if param_str.len() > 0 {
+                for pair in param_str.split(':') {
+                    let mut iter = pair.splitn(2, '=');
+                    let key = iter.next().ok_or_else(|| err_msg("bad params"))?;
+                    let value = iter.next().ok_or_else(|| err_msg("bad params"))?;
+                    params.insert(key.to_owned(), value.to_owned());
+                }
+            }
+
+            Ok(Some(Hyperlink::new_with_params(uri, params)))
+        }
+    }
+}
+
+impl Display for Hyperlink {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), FmtError> {
+        write!(f, "8;")?;
+        for (idx, (k, v)) in self.params.iter().enumerate() {
+            // TODO: protect against k, v containing : or =
+            if idx > 0 {
+                write!(f, ":")?;
+            }
+            write!(f, "{}={}", k, v)?;
+        }
+        // TODO: ensure that link.uri doesn't contain characters
+        // outside the range 32-126.  Need to pull in a URI/URL
+        // crate to help with this.
+        write!(f, ";{}", self.uri)?;
+
+        Ok(())
+    }
+}
 
 /// In addition to handling explicit escape sequences to enable
 /// hyperlinks, we also support defining rules that match text
@@ -120,9 +219,8 @@ impl Rule {
             .into_iter()
             .map(|m| {
                 let url = m.expand();
-                let link = Rc::new(Hyperlink::new_with_params(
-                    url,
-                    hashmap!{"implicit".into() => "1".into()},
+                let link = Rc::new(Hyperlink::new_implicit(
+                    url
                 ));
                 RuleMatch {
                     link,
@@ -148,9 +246,8 @@ mod test {
             Rule::match_hyperlinks("  http://example.com", &rules),
             vec![RuleMatch {
                 range: 2..20,
-                link: Rc::new(Hyperlink::new_with_params(
+                link: Rc::new(Hyperlink::new_implicit(
                     "http://example.com",
-                    hashmap!{"implicit".into()=>"1".into()},
                 )),
             }]
         );
@@ -161,16 +258,14 @@ mod test {
                 // Longest match first
                 RuleMatch {
                     range: 18..34,
-                    link: Rc::new(Hyperlink::new_with_params(
+                    link: Rc::new(Hyperlink::new_implicit(
                         "mailto:woot@example.com",
-                        hashmap!{"implicit".into()=>"1".into()},
                     )),
                 },
                 RuleMatch {
                     range: 2..17,
-                    link: Rc::new(Hyperlink::new_with_params(
+                    link: Rc::new(Hyperlink::new_implicit(
                         "mailto:foo@example.com",
-                        hashmap!{"implicit".into()=>"1".into()},
                     )),
                 },
             ]

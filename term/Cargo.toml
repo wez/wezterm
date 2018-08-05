@@ -6,10 +6,6 @@ version = "0.1.0"
 [dependencies]
 bitflags = "~1.0"
 failure = "~0.1"
-maplit = "~1.0"
-regex = "~0.2"
-serde = "~1.0"
-serde_derive = "~1.0"
 unicode-segmentation = "~1.2"
 unicode-width = "~0.1"
 

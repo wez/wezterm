@@ -49,6 +49,31 @@ impl Line {
         self.bits &= !LineBits::DIRTY;
     }
 
+    /// If we have any cells with an implicit hyperlink, remove the hyperlink
+    /// from the cell attributes but leave the remainder of the attributes alone.
+    fn invalidate_implicit_hyperlinks(&mut self) {
+        if (self.bits & LineBits::HAS_IMPLICIT_HYPERLINKS) == LineBits::NONE {
+            return;
+        }
+        for mut cell in &mut self.cells {
+            let replace = match cell.attrs().hyperlink {
+                Some(ref link) if link.is_implicit() => {
+                    Some(Cell::new_grapheme(
+                        cell.str(),
+                        cell.attrs().clone().set_hyperlink(None).clone(),
+                    ))
+                }
+                _ => None,
+            };
+            if let Some(replace) = replace {
+                *cell = replace;
+            }
+        }
+
+        self.bits &= !LineBits::HAS_IMPLICIT_HYPERLINKS;
+        self.bits |= LineBits::SCANNED_IMPLICIT_HYPERLINKS|LineBits::DIRTY;
+    }
+
     /// If we're about to modify a cell obscured by a double-width
     /// character ahead of that cell, we need to nerf that sequence
     /// of cells to avoid partial rendering concerns.
@@ -58,6 +83,7 @@ impl Line {
     /// to assign to an out of bounds index will not extend the cell array,
     /// and it will not flag an error.
     pub fn set_cell(&mut self, idx: usize, cell: Cell) {
+        self.invalidate_implicit_hyperlinks();
         self.bits |= LineBits::DIRTY;
         // Assumption: that the width of a grapheme is never > 2.
         // This constrains the amount of look-back that we need to do here.

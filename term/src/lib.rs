@@ -3,12 +3,6 @@
 extern crate bitflags;
 #[macro_use]
 extern crate failure;
-#[macro_use]
-extern crate maplit;
-extern crate regex;
-extern crate serde;
-#[macro_use]
-extern crate serde_derive;
 extern crate termwiz;
 extern crate unicode_segmentation;
 extern crate unicode_width;
@@ -35,8 +29,7 @@ pub use screen::*;
 pub mod selection;
 use selection::{SelectionCoordinate, SelectionRange};
 
-pub mod hyperlink;
-use hyperlink::Hyperlink;
+use termwiz::hyperlink::Hyperlink;
 
 pub mod terminal;
 pub use terminal::*;

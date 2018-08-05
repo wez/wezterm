@@ -1,5 +1,6 @@
 use super::*;
 use termwiz::escape::parser::Parser;
+use termwiz::hyperlink::Rule as HyperlinkRule;
 
 /// Represents the host of the terminal.
 /// Provides a means for sending data to the connected pty,
@@ -63,7 +64,7 @@ impl Terminal {
         physical_rows: usize,
         physical_cols: usize,
         scrollback_size: usize,
-        hyperlink_rules: Vec<hyperlink::Rule>,
+        hyperlink_rules: Vec<HyperlinkRule>,
     ) -> Terminal {
         Terminal {
             state: TerminalState::new(

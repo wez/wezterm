@@ -5,6 +5,7 @@ use termwiz::escape::csi::{
     Sgr,
 };
 use termwiz::escape::{Action, ControlCode, Esc, EscCode, OperatingSystemCommand, CSI};
+use termwiz::hyperlink::Rule as HyperlinkRule;
 use unicode_segmentation::UnicodeSegmentation;
 
 struct TabStop {
@@ -114,7 +115,7 @@ pub struct TerminalState {
 
     tabs: TabStop,
 
-    hyperlink_rules: Vec<hyperlink::Rule>,
+    hyperlink_rules: Vec<HyperlinkRule>,
 
     /// The terminal title string
     title: String,
@@ -146,7 +147,7 @@ impl TerminalState {
         physical_rows: usize,
         physical_cols: usize,
         scrollback_size: usize,
-        hyperlink_rules: Vec<hyperlink::Rule>,
+        hyperlink_rules: Vec<HyperlinkRule>,
     ) -> TerminalState {
         let screen = Screen::new(physical_rows, physical_cols, scrollback_size);
         let alt_screen = Screen::new(physical_rows, physical_cols, 0);

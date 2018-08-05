@@ -57,8 +57,10 @@ extern crate num_derive;
 extern crate derive_builder;
 #[macro_use]
 extern crate bitflags;
+
 extern crate cassowary;
 extern crate memmem;
+extern crate regex;
 extern crate smallvec;
 extern crate unicode_segmentation;
 extern crate unicode_width;
@@ -67,6 +69,7 @@ pub mod caps;
 pub mod cell;
 pub mod color;
 pub mod escape;
+pub mod hyperlink;
 pub mod input;
 pub mod istty;
 pub mod keymap;

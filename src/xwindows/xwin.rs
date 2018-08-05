@@ -17,7 +17,7 @@ use std::os::unix::io::{AsRawFd, RawFd};
 use std::process::Child;
 use std::process::Command;
 use std::rc::Rc;
-use term::hyperlink::Hyperlink;
+use termwiz::hyperlink::Hyperlink;
 use term::{self, KeyCode, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 use xcb;
 

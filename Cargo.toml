@@ -25,6 +25,9 @@ directories = "~1.0"
 [dependencies.term]
 path = "term"
 
+[dependencies.termwiz]
+path = "termwiz"
+
 [target.'cfg(any(target_os = "android", all(unix, not(target_os = "macos"))))'.dependencies]
 freetype = "0.3"
 servo-fontconfig = "~0.4"
