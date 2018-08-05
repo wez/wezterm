@@ -57,12 +57,10 @@ impl Line {
         }
         for mut cell in &mut self.cells {
             let replace = match cell.attrs().hyperlink {
-                Some(ref link) if link.is_implicit() => {
-                    Some(Cell::new_grapheme(
-                        cell.str(),
-                        cell.attrs().clone().set_hyperlink(None).clone(),
-                    ))
-                }
+                Some(ref link) if link.is_implicit() => Some(Cell::new_grapheme(
+                    cell.str(),
+                    cell.attrs().clone().set_hyperlink(None).clone(),
+                )),
                 _ => None,
             };
             if let Some(replace) = replace {
@@ -71,7 +69,7 @@ impl Line {
         }
 
         self.bits &= !LineBits::HAS_IMPLICIT_HYPERLINKS;
-        self.bits |= LineBits::SCANNED_IMPLICIT_HYPERLINKS|LineBits::DIRTY;
+        self.bits |= LineBits::SCANNED_IMPLICIT_HYPERLINKS | LineBits::DIRTY;
     }
 
     /// If we're about to modify a cell obscured by a double-width

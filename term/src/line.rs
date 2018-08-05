@@ -1,6 +1,6 @@
-use termwiz::hyperlink::Rule;
 use std::ops::Range;
 use std::str;
+use termwiz::hyperlink::Rule;
 
 use super::*;
 
@@ -266,12 +266,10 @@ impl Line {
         // Clear any cells that have implicit hyperlinks
         for mut cell in &mut self.cells {
             let replace = match cell.attrs().hyperlink {
-                Some(ref link) if link.is_implicit() => {
-                    Some(Cell::new_grapheme(
-                        cell.str(),
-                        cell.attrs().clone().set_hyperlink(None).clone(),
-                    ))
-                }
+                Some(ref link) if link.is_implicit() => Some(Cell::new_grapheme(
+                    cell.str(),
+                    cell.attrs().clone().set_hyperlink(None).clone(),
+                )),
                 _ => None,
             };
             if let Some(replace) = replace {

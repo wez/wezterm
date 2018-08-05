@@ -57,7 +57,7 @@ impl Hyperlink {
         Self {
             uri: uri.into(),
             params,
-            implicit:false,
+            implicit: false,
         }
     }
 
@@ -65,7 +65,7 @@ impl Hyperlink {
         Self {
             uri: uri.into(),
             params,
-            implicit:false,
+            implicit: false,
         }
     }
 
@@ -219,9 +219,7 @@ impl Rule {
             .into_iter()
             .map(|m| {
                 let url = m.expand();
-                let link = Rc::new(Hyperlink::new_implicit(
-                    url
-                ));
+                let link = Rc::new(Hyperlink::new_implicit(url));
                 RuleMatch {
                     link,
                     range: m.range(),
@@ -246,9 +244,7 @@ mod test {
             Rule::match_hyperlinks("  http://example.com", &rules),
             vec![RuleMatch {
                 range: 2..20,
-                link: Rc::new(Hyperlink::new_implicit(
-                    "http://example.com",
-                )),
+                link: Rc::new(Hyperlink::new_implicit("http://example.com")),
             }]
         );
 
@@ -258,15 +254,11 @@ mod test {
                 // Longest match first
                 RuleMatch {
                     range: 18..34,
-                    link: Rc::new(Hyperlink::new_implicit(
-                        "mailto:woot@example.com",
-                    )),
+                    link: Rc::new(Hyperlink::new_implicit("mailto:woot@example.com")),
                 },
                 RuleMatch {
                     range: 2..17,
-                    link: Rc::new(Hyperlink::new_implicit(
-                        "mailto:foo@example.com",
-                    )),
+                    link: Rc::new(Hyperlink::new_implicit("mailto:foo@example.com")),
                 },
             ]
         );

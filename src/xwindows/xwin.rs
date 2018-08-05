@@ -17,8 +17,8 @@ use std::os::unix::io::{AsRawFd, RawFd};
 use std::process::Child;
 use std::process::Command;
 use std::rc::Rc;
-use termwiz::hyperlink::Hyperlink;
 use term::{self, KeyCode, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
+use termwiz::hyperlink::Hyperlink;
 use xcb;
 
 /// Holds the terminal state for a tab owned by this window

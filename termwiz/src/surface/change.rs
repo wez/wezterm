@@ -1,6 +1,6 @@
 use cell::{AttributeChange, CellAttributes};
 use color::ColorAttribute;
-use surface::{CursorShape,Position};
+use surface::{CursorShape, Position};
 
 /// `Change` describes an update operation to be applied to a `Surface`.
 /// Changes to the active attributes (color, style), moving the cursor

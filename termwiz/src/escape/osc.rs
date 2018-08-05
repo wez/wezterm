@@ -1,8 +1,8 @@
 use base64;
 use failure::{self, Error};
+pub use hyperlink::Hyperlink;
 use num;
 use std::fmt::{Display, Error as FmtError, Formatter};
-pub use hyperlink::Hyperlink;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum OperatingSystemCommand {
