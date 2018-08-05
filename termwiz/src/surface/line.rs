@@ -1,4 +1,7 @@
 use cell::{Cell, CellAttributes};
+use hyperlink::Rule;
+use range::in_range;
+use std::rc::Rc;
 use surface::Change;
 
 bitflags! {
@@ -51,10 +54,18 @@ impl Line {
 
     /// If we have any cells with an implicit hyperlink, remove the hyperlink
     /// from the cell attributes but leave the remainder of the attributes alone.
-    fn invalidate_implicit_hyperlinks(&mut self) {
+    pub fn invalidate_implicit_hyperlinks(&mut self) {
+        if (self.bits & (LineBits::SCANNED_IMPLICIT_HYPERLINKS | LineBits::HAS_IMPLICIT_HYPERLINKS))
+            == LineBits::NONE
+        {
+            return;
+        }
+
+        self.bits &= !LineBits::SCANNED_IMPLICIT_HYPERLINKS;
         if (self.bits & LineBits::HAS_IMPLICIT_HYPERLINKS) == LineBits::NONE {
             return;
         }
+
         for mut cell in &mut self.cells {
             let replace = match cell.attrs().hyperlink {
                 Some(ref link) if link.is_implicit() => Some(Cell::new_grapheme(
@@ -69,7 +80,58 @@ impl Line {
         }
 
         self.bits &= !LineBits::HAS_IMPLICIT_HYPERLINKS;
-        self.bits |= LineBits::SCANNED_IMPLICIT_HYPERLINKS | LineBits::DIRTY;
+        self.bits |= LineBits::DIRTY;
+    }
+
+    /// Scan through the line and look for sequences that match the provided
+    /// rules.  Matching sequences are considered to be implicit hyperlinks
+    /// and will have a hyperlink attribute associated with them.
+    /// This function will only make changes if the line has been invalidated
+    /// since the last time this function was called.
+    /// This function does not remember the values of the `rules` slice, so it
+    /// is the responsibility of the caller to call `invalidate_implicit_hyperlinks`
+    /// if it wishes to call this function with different `rules`.
+    pub fn scan_and_create_hyperlinks(&mut self, rules: &[Rule]) {
+        if (self.bits & LineBits::SCANNED_IMPLICIT_HYPERLINKS)
+            == LineBits::SCANNED_IMPLICIT_HYPERLINKS
+        {
+            // Has not changed since last time we scanned
+            return;
+        }
+
+        let line = self.as_str();
+        self.bits |= LineBits::SCANNED_IMPLICIT_HYPERLINKS;
+        self.bits &= !LineBits::HAS_IMPLICIT_HYPERLINKS;
+
+        for m in Rule::match_hyperlinks(&line, rules) {
+            // The capture range is measured in bytes but we need to translate
+            // that to the char index of the column.
+            for (cell_idx, (byte_idx, _char)) in line.char_indices().enumerate() {
+                if self.cells[cell_idx].attrs().hyperlink.is_some() {
+                    // Don't replace existing links
+                    continue;
+                }
+                if in_range(byte_idx, &m.range) {
+                    let attrs = self.cells[cell_idx]
+                        .attrs()
+                        .clone()
+                        .set_hyperlink(Some(Rc::clone(&m.link)))
+                        .clone();
+                    let cell = Cell::new_grapheme(self.cells[cell_idx].str(), attrs);
+                    self.cells[cell_idx] = cell;
+                    self.bits |= LineBits::HAS_IMPLICIT_HYPERLINKS;
+                }
+            }
+        }
+    }
+
+    /// Recompose line into the corresponding utf8 string.
+    pub fn as_str(&self) -> String {
+        let mut s = String::new();
+        for (_, cell) in self.visible_cells() {
+            s.push_str(cell.str());
+        }
+        s
     }
 
     /// If we're about to modify a cell obscured by a double-width
