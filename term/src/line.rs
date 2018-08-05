@@ -13,7 +13,7 @@ enum ImplicitHyperlinks {
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Line {
-    pub cells: Vec<Cell>,
+    cells: Vec<Cell>,
     dirty: bool,
     has_hyperlink: bool,
     has_implicit_hyperlinks: ImplicitHyperlinks,
@@ -74,6 +74,79 @@ impl Line {
         for mut cell in &mut self.cells {
             *cell = Cell::default();
         }
+    }
+
+    fn invalidate_grapheme_at_or_before(&mut self, idx: usize) {
+        // Assumption: that the width of a grapheme is never > 2.
+        // This constrains the amount of look-back that we need to do here.
+        if idx > 0 {
+            let prior = idx - 1;
+            let width = self.cells[prior].width();
+            if width > 1 {
+                let attrs = self.cells[prior].attrs().clone();
+                for nerf in prior..prior + width {
+                    self.cells[nerf] = Cell::new(' ', attrs.clone());
+                }
+            }
+        }
+    }
+
+    /// If we're about to modify a cell obscured by a double-width
+    /// character ahead of that cell, we need to nerf that sequence
+    /// of cells to avoid partial rendering concerns.
+    /// Similarly, when we assign a cell, we need to blank out those
+    /// occluded successor cells.
+    pub fn set_cell(&mut self, idx: usize, cell: Cell) -> &Cell {
+        // if the line isn't wide enough, pad it out with the default attributes
+        if idx >= self.cells.len() {
+            self.cells.resize(idx, Cell::default());
+        }
+
+        self.invalidate_grapheme_at_or_before(idx);
+
+        // For double-wide or wider chars, ensure that the cells that
+        // are overlapped by this one are blanked out.
+        let width = cell.width();
+        for i in 1..=width.saturating_sub(1) {
+            self.cells[idx + i] = Cell::new(' ', cell.attrs().clone());
+        }
+
+        self.cells[idx] = cell;
+        &self.cells[idx]
+    }
+
+    pub fn insert_cell(&mut self, x: usize, cell: Cell) {
+        self.invalidate_implicit_links();
+
+        // If we're inserting a wide cell, we should also insert the overlapped cells.
+        // We insert them first so that the grapheme winds up left-most.
+        let width = cell.width();
+        for _ in 1..=width.saturating_sub(1) {
+            self.cells.insert(x, Cell::new(' ', cell.attrs().clone()));
+        }
+
+        self.cells.insert(x, cell);
+    }
+
+    pub fn erase_cell(&mut self, x: usize) {
+        self.invalidate_implicit_links();
+        self.invalidate_grapheme_at_or_before(x);
+        self.cells.remove(x);
+        self.cells.push(Cell::default());
+    }
+
+    pub fn fill_range(&mut self, cols: impl Iterator<Item = usize>, cell: &Cell) {
+        let max_col = self.cells.len();
+        for x in cols {
+            if x >= max_col {
+                break;
+            }
+            self.set_cell(x, cell.clone());
+        }
+    }
+
+    pub fn cells(&self) -> &[Cell] {
+        &self.cells
     }
 
     /// Iterates the visible cells, respecting the width of the cell.

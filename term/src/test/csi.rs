@@ -151,9 +151,7 @@ fn test_ed() {
         .set_background(color::AnsiColor::Navy)
         .clone();
     let mut line: Line = "   ".into();
-    line.cells[0] = Cell::new(' ', attr.clone());
-    line.cells[1] = Cell::new(' ', attr.clone());
-    line.cells[2] = Cell::new(' ', attr.clone());
+    line.fill_range(0..=2, &Cell::new(' ', attr.clone()));
     assert_lines_equal(
         &term.screen().visible_lines(),
         &[line.clone(), line.clone(), line],

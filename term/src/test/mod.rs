@@ -256,8 +256,8 @@ fn assert_lines_equal(lines: &[Line], expect_lines: &[Line], compare: Compare) {
         }
 
         if compare.contains(Compare::ATTRS) {
-            let line_attrs: Vec<_> = line.cells.iter().map(|c| c.attrs().clone()).collect();
-            let expect_attrs: Vec<_> = expect.cells.iter().map(|c| c.attrs().clone()).collect();
+            let line_attrs: Vec<_> = line.cells().iter().map(|c| c.attrs().clone()).collect();
+            let expect_attrs: Vec<_> = expect.cells().iter().map(|c| c.attrs().clone()).collect();
             assert_eq!(expect_attrs, line_attrs, "line {} attrs didn't match", idx,);
         }
         if compare.contains(Compare::TEXT) {
@@ -510,17 +510,23 @@ fn test_hyperlinks() {
     term.print("00t");
 
     let mut partial_line: Line = "wo00t".into();
-    partial_line.cells[0] = Cell::new(
-        'w',
-        CellAttributes::default()
-            .set_hyperlink(Some(Rc::clone(&otherlink)))
-            .clone(),
+    partial_line.set_cell(
+        0,
+        Cell::new(
+            'w',
+            CellAttributes::default()
+                .set_hyperlink(Some(Rc::clone(&otherlink)))
+                .clone(),
+        ),
     );
-    partial_line.cells[1] = Cell::new(
-        'o',
-        CellAttributes::default()
-            .set_hyperlink(Some(Rc::clone(&otherlink)))
-            .clone(),
+    partial_line.set_cell(
+        1,
+        Cell::new(
+            'o',
+            CellAttributes::default()
+                .set_hyperlink(Some(Rc::clone(&otherlink)))
+                .clone(),
+        ),
     );
 
     assert_lines_equal(

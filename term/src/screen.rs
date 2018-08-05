@@ -103,16 +103,13 @@ impl Screen {
     pub fn insert_cell(&mut self, x: usize, y: VisibleRowIndex) {
         let line_idx = self.phys_row(y);
         let line = self.line_mut(line_idx);
-        line.invalidate_implicit_links();
-        line.cells.insert(x, Cell::default());
+        line.insert_cell(x, Cell::default());
     }
 
     pub fn erase_cell(&mut self, x: usize, y: VisibleRowIndex) {
         let line_idx = self.phys_row(y);
         let line = self.line_mut(line_idx);
-        line.invalidate_implicit_links();
-        line.cells.remove(x);
-        line.cells.push(Cell::default());
+        line.erase_cell(x);
     }
 
     /// Set a cell.  the x and y coordinates are relative to the visible screeen
@@ -137,18 +134,7 @@ impl Screen {
             line.set_has_hyperlink(true);
         }
 
-        let width = line.cells.len();
-        let cell = Cell::new(c, attr.clone());
-        if x == width {
-            line.cells.push(cell);
-        } else if x > width {
-            // if the line isn't wide enough, pad it out with the default attributes
-            line.cells.resize(x, Cell::default());
-            line.cells.push(cell);
-        } else {
-            line.cells[x] = cell;
-        }
-        &line.cells[x]
+        line.set_cell(x, Cell::new(c, attr.clone()))
     }
 
     pub fn clear_line(
@@ -159,13 +145,7 @@ impl Screen {
     ) {
         let line_idx = self.phys_row(y);
         let line = self.line_mut(line_idx);
-        let max_col = line.cells.len();
-        for x in cols {
-            if x >= max_col {
-                break;
-            }
-            line.cells[x] = Cell::new(' ', attr.clone());
-        }
+        line.fill_range(cols, &Cell::new(' ', attr.clone()));
     }
 
     /// Translate a VisibleRowIndex into a PhysRowIndex.  The resultant index

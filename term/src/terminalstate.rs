@@ -305,7 +305,7 @@ impl TerminalState {
         match screen.lines.get_mut(idx) {
             Some(ref mut line) => {
                 line.find_hyperlinks(rules);
-                match line.cells.get(x) {
+                match line.cells().get(x) {
                     Some(cell) => cell.attrs().hyperlink.as_ref().cloned(),
                     None => None,
                 }
@@ -1459,20 +1459,6 @@ impl<'a> Performer<'a> {
             let cell = self.screen_mut().set_cell(x, y, c, &pen);
             cell.width()
         };
-
-        // for double- or triple-wide cells, the client of the terminal
-        // expects the cursor to move by the visible width, which means that
-        // we need to generate non-printing cells to pad out the gap.  They
-        // need to be non-printing rather than space so that that renderer
-        // doesn't render an actual space between the glyphs.
-        for non_print_x in 1..print_width {
-            self.screen_mut().set_cell(
-                x + non_print_x,
-                y,
-                0 as char, // non-printable
-                &pen,
-            );
-        }
 
         self.clear_selection_if_intersects(x..x + print_width, y as ScrollbackOrVisibleRowIndex);
 
