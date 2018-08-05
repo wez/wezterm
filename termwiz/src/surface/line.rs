@@ -1,4 +1,5 @@
 use cell::{Cell, CellAttributes};
+use cellcluster::CellCluster;
 use hyperlink::Rule;
 use range::in_range;
 use std::rc::Rc;
@@ -215,6 +216,10 @@ impl Line {
                 true
             }
         })
+    }
+
+    pub fn cluster(&self) -> Vec<CellCluster> {
+        CellCluster::make_cluster(self.visible_cells())
     }
 
     pub fn cells(&self) -> &[Cell] {

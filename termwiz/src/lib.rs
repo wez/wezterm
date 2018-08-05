@@ -67,6 +67,7 @@ extern crate unicode_width;
 
 pub mod caps;
 pub mod cell;
+pub mod cellcluster;
 pub mod color;
 pub mod escape;
 pub mod hyperlink;
