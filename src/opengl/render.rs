@@ -619,18 +619,43 @@ impl Renderer {
             };
             let style = self.fonts.match_style(attrs);
 
-            let (fg_color, bg_color) = {
-                let mut fg_color = &attrs.foreground;
-                let mut bg_color = &attrs.background;
-
-                if attrs.reverse() {
-                    mem::swap(&mut fg_color, &mut bg_color);
+            let bg_color = self.palette.resolve_bg(&attrs.background);
+            let fg_color = match attrs.foreground {
+                term::color::ColorAttribute::Default => {
+                    if let Some(fg) = style.foreground {
+                        fg
+                    } else {
+                        self.palette.resolve_fg(&attrs.foreground)
+                    }
                 }
-
-                (fg_color, bg_color)
+                term::color::ColorAttribute::PaletteIndex(idx) if idx < 8 => {
+                    // For compatibility purposes, switch to a brighter version
+                    // of one of the standard ANSI colors when Bold is enabled.
+                    // This lifts black to dark grey.
+                    let idx = if attrs.intensity() == term::Intensity::Bold {
+                        idx + 8
+                    } else {
+                        idx
+                    };
+                    self.palette
+                        .resolve_fg(&term::color::ColorAttribute::PaletteIndex(idx))
+                }
+                _ => self.palette.resolve_fg(&attrs.foreground),
             };
 
-            let bg_color = self.palette.resolve_bg(bg_color).to_tuple_rgba();
+            let (fg_color, bg_color) = {
+                let mut fg = fg_color;
+                let mut bg = bg_color;
+
+                if attrs.reverse() {
+                    mem::swap(&mut fg, &mut bg);
+                }
+
+                (fg, bg)
+            };
+
+            let glyph_color = fg_color.to_tuple_rgba();
+            let bg_color = bg_color.to_tuple_rgba();
 
             // Shape the printable text from this cluster
             let glyph_info = {
@@ -642,29 +667,6 @@ impl Renderer {
             for info in &glyph_info {
                 let cell_idx = cluster.byte_to_cell_idx[info.cluster as usize];
                 let glyph = self.cached_glyph(info, style)?;
-
-                let glyph_color = match *fg_color {
-                    term::color::ColorAttribute::Default => {
-                        if let Some(fg) = style.foreground {
-                            fg
-                        } else {
-                            self.palette.resolve_fg(fg_color)
-                        }
-                    }
-                    term::color::ColorAttribute::PaletteIndex(idx) if idx < 8 => {
-                        // For compatibility purposes, switch to a brighter version
-                        // of one of the standard ANSI colors when Bold is enabled.
-                        // This lifts black to dark grey.
-                        let idx = if attrs.intensity() == term::Intensity::Bold {
-                            idx + 8
-                        } else {
-                            idx
-                        };
-                        self.palette
-                            .resolve_fg(&term::color::ColorAttribute::PaletteIndex(idx))
-                    }
-                    _ => self.palette.resolve_fg(fg_color),
-                }.to_tuple_rgba();
 
                 let left: f32 = glyph.x_offset as f32 + glyph.bearing_x as f32;
                 let top = (self.cell_height as f32 + self.descender as f32)
