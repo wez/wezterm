@@ -1602,7 +1602,7 @@ impl<'a> Performer<'a> {
                 self.set_cursor_pos(&Position::Relative(-1), &Position::Relative(0));
             }
             ControlCode::HorizontalTab => self.c0_horizontal_tab(),
-            ControlCode::Bell => eprintln!("Ding! (this is the bell"),
+            ControlCode::Bell => eprintln!("Ding! (this is the bell)"),
             _ => println!("unhandled ControlCode {:?}", control),
         }
     }
