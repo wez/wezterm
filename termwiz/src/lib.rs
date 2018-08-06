@@ -60,6 +60,7 @@ extern crate bitflags;
 
 extern crate cassowary;
 extern crate memmem;
+extern crate ordered_float;
 extern crate regex;
 extern crate smallvec;
 extern crate unicode_segmentation;

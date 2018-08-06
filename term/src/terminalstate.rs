@@ -1679,6 +1679,13 @@ impl<'a> Performer<'a> {
                 Ok(_) => (),
                 Err(err) => eprintln!("failed to set clipboard in response to OSC 52: {:?}", err),
             },
+            OperatingSystemCommand::ITermProprietary(iterm) => {
+                // TODO: handle some iTerm2 sequences
+                eprintln!("unhandled iterm2: {:?}", iterm);
+            }
+            OperatingSystemCommand::SystemNotification(message) => {
+                eprintln!("Application sends SystemNotification: {}", message);
+            }
         }
     }
 }
