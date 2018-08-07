@@ -59,6 +59,7 @@ extern crate derive_builder;
 extern crate bitflags;
 
 extern crate cassowary;
+extern crate image as image_crate;
 extern crate memmem;
 extern crate ordered_float;
 extern crate regex;
@@ -72,6 +73,7 @@ pub mod cellcluster;
 pub mod color;
 pub mod escape;
 pub mod hyperlink;
+pub mod image;
 pub mod input;
 pub mod istty;
 pub mod keymap;

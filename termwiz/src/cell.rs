@@ -1,6 +1,7 @@
 //! Model a cell in the terminal display
 use color::ColorAttribute;
 pub use escape::osc::Hyperlink;
+use image::ImageCell;
 use smallvec::SmallVec;
 use std;
 use std::mem;
@@ -21,6 +22,8 @@ pub struct CellAttributes {
     pub background: ColorAttribute,
     /// The hyperlink content, if any
     pub hyperlink: Option<Rc<Hyperlink>>,
+    /// The image data, if any
+    pub image: Option<Box<ImageCell>>,
 }
 
 /// Define getter and setter for the attributes bitfield.
@@ -168,6 +171,7 @@ impl CellAttributes {
             foreground: self.foreground,
             background: self.background,
             hyperlink: None,
+            image: None,
         }
     }
 }
