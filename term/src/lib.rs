@@ -3,6 +3,8 @@
 extern crate bitflags;
 #[macro_use]
 extern crate failure;
+extern crate image;
+extern crate ordered_float;
 extern crate termwiz;
 extern crate unicode_segmentation;
 extern crate unicode_width;

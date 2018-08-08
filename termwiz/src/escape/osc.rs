@@ -446,6 +446,21 @@ impl ITermDimension {
             Ok(ITermDimension::Cells(num))
         }
     }
+
+    /// Convert the dimension into a number of pixels based on the provided
+    /// size of a cell and number of cells in that dimension.
+    /// Returns None for the Automatic variant.
+    pub fn to_pixels(&self, cell_size: usize, num_cells: usize) -> Option<usize> {
+        match self {
+            ITermDimension::Automatic => None,
+            ITermDimension::Cells(n) => Some((*n).max(0) as usize * cell_size),
+            ITermDimension::Pixels(n) => Some((*n).max(0) as usize),
+            ITermDimension::Percent(n) => Some(
+                (((*n).max(0).min(100) as f32 / 100.0) * num_cells as f32 * cell_size as f32)
+                    as usize,
+            ),
+        }
+    }
 }
 
 impl ITermProprietary {

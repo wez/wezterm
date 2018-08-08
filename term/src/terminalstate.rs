@@ -1,11 +1,15 @@
 use super::*;
+use image::{self, GenericImage};
+use ordered_float::NotNaN;
 use std::fmt::Write;
 use termwiz::escape::csi::{
     Cursor, DecPrivateMode, DecPrivateModeCode, Device, Edit, EraseInDisplay, EraseInLine, Mode,
     Sgr,
 };
+use termwiz::escape::osc::{ITermFileData, ITermProprietary};
 use termwiz::escape::{Action, ControlCode, Esc, EscCode, OperatingSystemCommand, CSI};
 use termwiz::hyperlink::Rule as HyperlinkRule;
+use termwiz::image::{ImageCell, ImageData, TextureCoordinate};
 use unicode_segmentation::UnicodeSegmentation;
 
 struct TabStop {
@@ -1122,6 +1126,133 @@ impl TerminalState {
         }
     }
 
+    fn set_image(&mut self, image: ITermFileData) {
+        if !image.inline {
+            eprintln!(
+                "Ignoring file download request name={:?} size={}",
+                image.name,
+                image.data.len()
+            );
+            return;
+        }
+
+        // Decode the image data
+        let decoded_image = match image::load_from_memory(&image.data) {
+            Ok(im) => im,
+            Err(e) => {
+                eprintln!(
+                    "Unable to decode image: {}: size={} {:?}",
+                    e,
+                    image.data.len(),
+                    image
+                );
+                return;
+            }
+        };
+
+        // Figure out the dimensions.
+        // TODO: we need to understand pixels here, and we don't today,
+        // so "guess" using the values that I see in my setup.
+        let cell_pixel_width = 8;
+        let cell_pixel_height = 15;
+
+        let width = image
+            .width
+            .to_pixels(cell_pixel_width, self.screen().physical_cols);
+        let height = image
+            .height
+            .to_pixels(cell_pixel_height, self.screen().physical_rows);
+
+        // Compute any Automatic dimensions
+        let (width, height) = match (width, height) {
+            (None, None) => (
+                decoded_image.width() as usize,
+                decoded_image.height() as usize,
+            ),
+            (Some(w), None) => {
+                let scale = decoded_image.width() as f32 / w as f32;
+                let h = decoded_image.height() as f32 * scale;
+                (w, h as usize)
+            }
+            (None, Some(h)) => {
+                let scale = decoded_image.height() as f32 / h as f32;
+                let w = decoded_image.width() as f32 * scale;
+                (w as usize, h)
+            }
+            (Some(w), Some(h)) => (w, h),
+        };
+
+        let width_in_cells = width / cell_pixel_width;
+        let height_in_cells = height / cell_pixel_height;
+
+        let available_pixel_width = width_in_cells * cell_pixel_width;
+        let available_pixel_height = height_in_cells * cell_pixel_height;
+
+        // TODO: defer this to the actual renderer
+        /*
+        let resized_image = if image.preserve_aspect_ratio {
+            let resized = decoded_image.resize(
+                available_pixel_width as u32,
+                available_pixel_height as u32,
+                image::FilterType::Lanczos3,
+            );
+            // Pad with black bars to preserve aspect ratio
+            // Assumption: new_rgba8 returns black/transparent pixels by default.
+            let dest = DynamicImage::new_rgba8(available_pixel_width, available_pixel_height);
+            dest.copy_from(resized, 0, 0);
+            dest
+        } else {
+            decoded_image.resize_exact(
+                available_pixel_width as u32,
+                available_pixel_height as u32,
+                image::FilterType::Lanczos3,
+            )
+        };
+        */
+
+        let image_data = Rc::new(ImageData::with_raw_data(image.data));
+
+        let mut ypos = NotNaN::new(0.0).unwrap();
+        let cursor_x = self.cursor.x;
+        let cursor_y = self.cursor.y;
+        let x_delta = 1.0 / available_pixel_width as f32;
+        let y_delta = 1.0 / available_pixel_height as f32;
+        eprintln!(
+            "image is {}x{} cells, {}x{} pixels",
+            width_in_cells, height_in_cells, width, height
+        );
+        for y in 0..height_in_cells {
+            let mut xpos = NotNaN::new(0.0).unwrap();
+            for x in 0..width_in_cells {
+                self.screen_mut().set_cell(
+                    cursor_x + x,
+                    cursor_y + y as VisibleRowIndex,
+                    &Cell::new(
+                        ' ',
+                        CellAttributes::default()
+                            .set_image(Some(Box::new(ImageCell::new(
+                                TextureCoordinate::new(xpos, ypos),
+                                TextureCoordinate::new(
+                                    xpos + cell_pixel_width as f32,
+                                    ypos + cell_pixel_height as f32,
+                                ),
+                                image_data.clone(),
+                            ))))
+                            .clone(),
+                    ),
+                );
+                xpos += x_delta;
+            }
+            ypos += y_delta;
+        }
+
+        // FIXME: check cursor positioning in iterm
+        self.set_cursor_pos(
+            &Position::Relative(width_in_cells as i64),
+            &Position::Relative(0),
+        );
+    }
+
     fn perform_device(&mut self, dev: Device, host: &mut TerminalHost) {
         match dev {
             Device::DeviceAttributes(a) => eprintln!("unhandled: {:?}", a),
@@ -1679,10 +1810,10 @@ impl<'a> Performer<'a> {
                 Ok(_) => (),
                 Err(err) => eprintln!("failed to set clipboard in response to OSC 52: {:?}", err),
             },
-            OperatingSystemCommand::ITermProprietary(iterm) => {
-                // TODO: handle some iTerm2 sequences
-                eprintln!("unhandled iterm2: {:?}", iterm);
-            }
+            OperatingSystemCommand::ITermProprietary(iterm) => match iterm {
+                ITermProprietary::File(image) => self.set_image(*image),
+                _ => eprintln!("unhandled iterm2: {:?}", iterm),
+            },
             OperatingSystemCommand::SystemNotification(message) => {
                 eprintln!("Application sends SystemNotification: {}", message);
             }
