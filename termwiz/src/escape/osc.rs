@@ -270,21 +270,21 @@ pub enum ITermProprietary {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ITermFileData {
     /// file name
-    name: Option<String>,
+    pub name: Option<String>,
     /// size of the data in bytes; this is used by iterm to show progress
     /// while waiting for the rest of the payload
-    size: Option<u64>,
+    pub size: Option<usize>,
     /// width to render
-    width: ITermDimension,
+    pub width: ITermDimension,
     /// height to render
-    height: ITermDimension,
+    pub height: ITermDimension,
     /// if true, preserve aspect ratio when fitting to width/height
-    preserve_aspect_ratio: bool,
+    pub preserve_aspect_ratio: bool,
     /// if true, attempt to display in the terminal rather than downloading to
     /// the users download directory
-    inline: bool,
+    pub inline: bool,
     /// The data to transfer
-    data: Vec<u8>,
+    pub data: Vec<u8>,
 }
 
 impl ITermFileData {

@@ -163,6 +163,11 @@ impl CellAttributes {
         self
     }
 
+    pub fn set_image(&mut self, image: Option<Box<ImageCell>>) -> &mut Self {
+        self.image = image;
+        self
+    }
+
     /// Clone the attributes, but exclude fancy extras such
     /// as hyperlinks or future sprite things
     pub fn clone_sgr_only(&self) -> Self {

@@ -11,15 +11,25 @@
 // protocol appears to track the images out of band as attachments with
 // z-order.
 
-use failure::Error;
-use image_crate::load_from_memory;
 use ordered_float::NotNaN;
 use std::rc::Rc;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TextureCoordinate {
-    x: NotNaN<f32>,
-    y: NotNaN<f32>,
+    pub x: NotNaN<f32>,
+    pub y: NotNaN<f32>,
+}
+
+impl TextureCoordinate {
+    pub fn new(x: NotNaN<f32>, y: NotNaN<f32>) -> Self {
+        Self { x, y }
+    }
+
+    pub fn new_f32(x: f32, y: f32) -> Self {
+        let x = NotNaN::new(x).unwrap();
+        let y = NotNaN::new(y).unwrap();
+        Self::new(x, y)
+    }
 }
 
 /// Tracks data for displaying an image in the place of the normal cell
@@ -39,39 +49,34 @@ pub struct ImageCell {
     data: Rc<ImageData>,
 }
 
+impl ImageCell {
+    pub fn new(
+        top_left: TextureCoordinate,
+        bottom_right: TextureCoordinate,
+        data: Rc<ImageData>,
+    ) -> Self {
+        Self {
+            top_left,
+            bottom_right,
+            data,
+        }
+    }
+}
+
 static IMAGE_ID: ::std::sync::atomic::AtomicUsize = ::std::sync::atomic::ATOMIC_USIZE_INIT;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ImageData {
     id: usize,
-    /// Width of the image, in pixels
-    width: usize,
-    /// Height of the image, in pixels,
-    height: usize,
-    /// The image data bytes.  Data is SRGBA, 32 bits per pixel
+    /// The image data bytes.  Data is the native image file format
     data: Vec<u8>,
 }
 
 impl ImageData {
-    /// Guess the image format from the contained buffer and return the
-    /// decoded image data.
-    pub fn load_from_memory(buffer: &[u8]) -> Result<ImageData, Error> {
-        let img = load_from_memory(buffer)?.to_rgba();
-        let width = img.width() as usize;
-        let height = img.height() as usize;
-        let data = img.into_raw();
-
-        Ok(Self::with_raw_data(width, height, data))
-    }
-
-    pub fn with_raw_data(width: usize, height: usize, data: Vec<u8>) -> Self {
+    /// Create a new ImageData struct with the provided raw data.
+    pub fn with_raw_data(data: Vec<u8>) -> Self {
         let id = IMAGE_ID.fetch_add(1, ::std::sync::atomic::Ordering::Relaxed);
-        Self {
-            id,
-            width,
-            height,
-            data,
-        }
+        Self { id, data }
     }
 
     #[inline]
@@ -82,15 +87,5 @@ impl ImageData {
     #[inline]
     pub fn id(&self) -> usize {
         self.id
-    }
-
-    #[inline]
-    pub fn width(&self) -> usize {
-        self.width
-    }
-
-    #[inline]
-    pub fn height(&self) -> usize {
-        self.height
     }
 }

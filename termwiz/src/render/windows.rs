@@ -262,6 +262,24 @@ impl WindowsConsoleRenderer {
                 }
                 Change::CursorColor(_color) => {}
                 Change::CursorShape(_shape) => {}
+                Change::Image(image) => {
+                    // Images are not supported, so just blank out the cells and
+                    // move the cursor to the right spot
+                    out.flush()?;
+                    let info = out.get_buffer_info()?;
+                    for y in 0..image.height {
+                        out.fill_char(
+                            ' ',
+                            info.dwCursorPosition.X,
+                            y as i16 + info.dwCursorPosition.Y,
+                            image.width as u32,
+                        )?;
+                    }
+                    out.set_cursor_position(
+                        info.dwCursorPosition.X + image.width as i16,
+                        info.dwCursorPosition.Y,
+                    )?;
+                }
             }
         }
         out.flush()?;

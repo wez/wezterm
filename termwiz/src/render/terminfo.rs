@@ -3,8 +3,9 @@ use caps::{Capabilities, ColorLevel};
 use cell::{AttributeChange, Blink, CellAttributes, Intensity, Underline};
 use color::{ColorAttribute, ColorSpec};
 use escape::csi::{Cursor, Edit, EraseInDisplay, EraseInLine, Sgr, CSI};
-use escape::osc::OperatingSystemCommand;
-use failure;
+use escape::osc::{ITermDimension, ITermFileData, ITermProprietary, OperatingSystemCommand};
+use failure::{self, Error};
+use image::TextureCoordinate;
 use std::io::{Read, Write};
 use surface::{Change, CursorShape, Position};
 use terminal::unix::UnixTty;
@@ -239,6 +240,40 @@ impl TerminfoRenderer {
 
         Ok(())
     }
+
+    fn cursor_up<W: UnixTty + Write>(&mut self, n: u32, out: &mut W) -> Result<(), Error> {
+        if let Some(attr) = self.get_capability::<cap::ParmUpCursor>() {
+            attr.expand().count(n).to(out.by_ref())?;
+        } else {
+            write!(out, "{}", CSI::Cursor(Cursor::Up(n)))?;
+        }
+        Ok(())
+    }
+    fn cursor_down<W: UnixTty + Write>(&mut self, n: u32, out: &mut W) -> Result<(), Error> {
+        if let Some(attr) = self.get_capability::<cap::ParmDownCursor>() {
+            attr.expand().count(n).to(out.by_ref())?;
+        } else {
+            write!(out, "{}", CSI::Cursor(Cursor::Down(n)))?;
+        }
+        Ok(())
+    }
+
+    fn cursor_left<W: UnixTty + Write>(&mut self, n: u32, out: &mut W) -> Result<(), Error> {
+        if let Some(attr) = self.get_capability::<cap::ParmLeftCursor>() {
+            attr.expand().count(n).to(out.by_ref())?;
+        } else {
+            write!(out, "{}", CSI::Cursor(Cursor::Left(n)))?;
+        }
+        Ok(())
+    }
+    fn cursor_right<W: UnixTty + Write>(&mut self, n: u32, out: &mut W) -> Result<(), Error> {
+        if let Some(attr) = self.get_capability::<cap::ParmRightCursor>() {
+            attr.expand().count(n).to(out.by_ref())?;
+        } else {
+            write!(out, "{}", CSI::Cursor(Cursor::Right(n)))?;
+        }
+        Ok(())
+    }
 }
 
 impl TerminfoRenderer {
@@ -412,43 +447,31 @@ impl TerminfoRenderer {
                 }
                 Change::CursorPosition {
                     x: Position::NoChange,
-                    y: Position::Relative(1),
-                } => {
-                    if let Some(attr) = self.get_capability::<cap::CursorDown>() {
-                        attr.expand().to(out.by_ref())?;
-                    } else {
-                        write!(out, "{}", CSI::Cursor(Cursor::Down(1)))?;
-                    }
+                    y: Position::Relative(n),
+                } if *n > 0 =>
+                {
+                    self.cursor_down(*n as u32, out)?;
                 }
                 Change::CursorPosition {
                     x: Position::NoChange,
-                    y: Position::Relative(-1),
-                } => {
-                    if let Some(attr) = self.get_capability::<cap::CursorUp>() {
-                        attr.expand().to(out.by_ref())?;
-                    } else {
-                        write!(out, "{}", CSI::Cursor(Cursor::Up(1)))?;
-                    }
+                    y: Position::Relative(n),
+                } if *n < 0 =>
+                {
+                    self.cursor_up(*n as u32, out)?;
                 }
                 Change::CursorPosition {
-                    x: Position::Relative(-1),
+                    x: Position::Relative(n),
                     y: Position::NoChange,
-                } => {
-                    if let Some(attr) = self.get_capability::<cap::CursorLeft>() {
-                        attr.expand().to(out.by_ref())?;
-                    } else {
-                        write!(out, "{}", CSI::Cursor(Cursor::Left(1)))?;
-                    }
+                } if *n < 0 =>
+                {
+                    self.cursor_left(*n as u32, out)?;
                 }
                 Change::CursorPosition {
-                    x: Position::Relative(1),
+                    x: Position::Relative(n),
                     y: Position::NoChange,
-                } => {
-                    if let Some(attr) = self.get_capability::<cap::CursorRight>() {
-                        attr.expand().to(out.by_ref())?;
-                    } else {
-                        write!(out, "{}", CSI::Cursor(Cursor::Right(1)))?;
-                    }
+                } if *n > 0 =>
+                {
+                    self.cursor_right(*n as u32, out)?;
                 }
                 Change::CursorPosition {
                     x: Position::Absolute(x),
@@ -512,6 +535,52 @@ impl TerminfoRenderer {
                         }
                     }
                 },
+                Change::Image(image) => {
+                    if self.caps.iterm2_image() {
+                        let data = if image.top_left == TextureCoordinate::new_f32(0.0, 0.0)
+                            && image.bottom_right == TextureCoordinate::new_f32(1.0, 1.0)
+                        {
+                            // The whole image is requested, so we can send the
+                            // original image bytes over
+                            image.image.data().to_vec()
+                        } else {
+                            // TODO: slice out the requested region of the image,
+                            // and encode as a PNG.
+                            unimplemented!();
+                        };
+
+                        let file = ITermFileData {
+                            name: None,
+                            size: Some(data.len()),
+                            width: ITermDimension::Cells(image.width as i64),
+                            height: ITermDimension::Cells(image.height as i64),
+                            preserve_aspect_ratio: true,
+                            inline: true,
+                            data,
+                        };
+
+                        let osc = OperatingSystemCommand::ITermProprietary(ITermProprietary::File(
+                            Box::new(file),
+                        ));
+
+                        write!(out, "{}", osc)?;
+
+                    // TODO: } else if self.caps.sixel() {
+                    } else {
+                        // Blank out the cells and move the cursor to the right spot
+                        for y in 0..image.height {
+                            for _ in 0..image.width {
+                                write!(out, " ")?;
+                            }
+
+                            if y != image.height - 1 {
+                                write!(out, "\n")?;
+                                self.cursor_left(image.width as u32, out)?;
+                            }
+                        }
+                        self.cursor_up(image.height as u32, out)?;
+                    }
+                }
             }
         }
 
