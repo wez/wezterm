@@ -1494,8 +1494,11 @@ impl TerminalState {
         match cursor {
             Cursor::SetTopAndBottomMargins { top, bottom } => {
                 let rows = self.screen().physical_rows;
-                let mut top = (top as i64).saturating_sub(1).min(rows as i64 - 1);
-                let mut bottom = (bottom as i64).saturating_sub(1).min(rows as i64 - 1);
+                let mut top = (top as i64).saturating_sub(1).min(rows as i64 - 1).max(0);
+                let mut bottom = (bottom as i64)
+                    .saturating_sub(1)
+                    .min(rows as i64 - 1)
+                    .max(0);
                 if top > bottom {
                     std::mem::swap(&mut top, &mut bottom);
                 }
