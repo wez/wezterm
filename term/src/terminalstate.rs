@@ -628,9 +628,11 @@ impl TerminalState {
                 kind: MouseEventKind::Release,
                 ..
             } => {
-                self.current_mouse_button = MouseButton::None;
-                if self.sgr_mouse {
-                    write!(host.writer(), "\x1b[<3;{};{}m", event.x + 1, event.y + 1)?;
+                if self.current_mouse_button != MouseButton::None {
+                    self.current_mouse_button = MouseButton::None;
+                    if self.sgr_mouse {
+                        write!(host.writer(), "\x1b[<3;{};{}m", event.x + 1, event.y + 1)?;
+                    }
                 }
             }
             MouseEvent {
