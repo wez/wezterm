@@ -317,12 +317,16 @@ impl NamedFontImpl {
             } else {
                 // Find the best matching size.
                 // We just take the biggest.
-                let mut size = 0i16;
-                for info in sizes.iter() {
-                    size = size.max(info.height);
+                let mut best = 0;
+                let mut best_size = 0;
+                for (idx, info) in sizes.iter().enumerate() {
+                    let size = best_size.max(info.height);
+                    if size > best_size {
+                        best = idx;
+                        best_size = size;
+                    }
                 }
-                face.set_pixel_sizes(size as u32, size as u32)?;
-                debug!("fall back to set_pixel_sizes {}", size);
+                face.select_size(best)?;
             }
         }
         let font = harfbuzz::Font::new(face.face);

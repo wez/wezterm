@@ -11,7 +11,7 @@ failure = "~0.1"
 failure_derive = "~0.1"
 futures = "~0.1"
 gl = "~0.10"
-harfbuzz-sys = "~0.1"
+harfbuzz-sys = "~0.2"
 libc = "~0.2"
 mio = "~0.6"
 mio-extras = "~2.0"
@@ -29,7 +29,7 @@ path = "term"
 path = "termwiz"
 
 [target.'cfg(any(target_os = "android", all(unix, not(target_os = "macos"))))'.dependencies]
-freetype = "0.3"
+freetype = "~0.4"
 servo-fontconfig = "~0.4"
 egli = "~0.4"
 x11 = {version ="~2.17", features = ["xlib_xcb"]}
