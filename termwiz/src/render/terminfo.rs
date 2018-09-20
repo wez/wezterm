@@ -448,28 +448,32 @@ impl TerminfoRenderer {
                 Change::CursorPosition {
                     x: Position::NoChange,
                     y: Position::Relative(n),
-                } if *n > 0 =>
+                }
+                    if *n > 0 =>
                 {
                     self.cursor_down(*n as u32, out)?;
                 }
                 Change::CursorPosition {
                     x: Position::NoChange,
                     y: Position::Relative(n),
-                } if *n < 0 =>
+                }
+                    if *n < 0 =>
                 {
                     self.cursor_up(*n as u32, out)?;
                 }
                 Change::CursorPosition {
                     x: Position::Relative(n),
                     y: Position::NoChange,
-                } if *n < 0 =>
+                }
+                    if *n < 0 =>
                 {
                     self.cursor_left(*n as u32, out)?;
                 }
                 Change::CursorPosition {
                     x: Position::Relative(n),
                     y: Position::NoChange,
-                } if *n > 0 =>
+                }
+                    if *n > 0 =>
                 {
                     self.cursor_right(*n as u32, out)?;
                 }
@@ -617,8 +621,7 @@ mod test {
             ProbeHintsBuilder::default()
                 .terminfo_db(Some(
                     terminfo::Database::from_buffer(data.as_ref()).unwrap(),
-                ))
-                .build()
+                )).build()
                 .unwrap(),
         ).unwrap()
     }

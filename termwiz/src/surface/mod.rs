@@ -216,8 +216,7 @@ impl Surface {
                                     image.top_left.y + ypos + ysize,
                                 ),
                                 image.image.clone(),
-                            ))))
-                            .clone(),
+                            )))).clone(),
                     ),
                 );
 
@@ -1435,8 +1434,7 @@ mod test {
                                 TextureCoordinate::new_f32(0.0, 0.0),
                                 TextureCoordinate::new_f32(0.25, 0.5),
                                 data.clone()
-                            ))))
-                            .clone()
+                            )))).clone()
                     ),
                     Cell::new(
                         ' ',
@@ -1445,8 +1443,7 @@ mod test {
                                 TextureCoordinate::new_f32(0.25, 0.0),
                                 TextureCoordinate::new_f32(0.5, 0.5),
                                 data.clone()
-                            ))))
-                            .clone()
+                            )))).clone()
                     ),
                     Cell::new(
                         ' ',
@@ -1455,8 +1452,7 @@ mod test {
                                 TextureCoordinate::new_f32(0.5, 0.0),
                                 TextureCoordinate::new_f32(0.75, 0.5),
                                 data.clone()
-                            ))))
-                            .clone()
+                            )))).clone()
                     ),
                     Cell::new(
                         ' ',
@@ -1465,8 +1461,7 @@ mod test {
                                 TextureCoordinate::new_f32(0.75, 0.0),
                                 TextureCoordinate::new_f32(1.0, 0.5),
                                 data.clone()
-                            ))))
-                            .clone()
+                            )))).clone()
                     ),
                 ],
                 [
@@ -1477,8 +1472,7 @@ mod test {
                                 TextureCoordinate::new_f32(0.0, 0.5),
                                 TextureCoordinate::new_f32(0.25, 1.0),
                                 data.clone()
-                            ))))
-                            .clone()
+                            )))).clone()
                     ),
                     Cell::new(
                         ' ',
@@ -1487,8 +1481,7 @@ mod test {
                                 TextureCoordinate::new_f32(0.25, 0.5),
                                 TextureCoordinate::new_f32(0.5, 1.0),
                                 data.clone()
-                            ))))
-                            .clone()
+                            )))).clone()
                     ),
                     Cell::new(
                         ' ',
@@ -1497,8 +1490,7 @@ mod test {
                                 TextureCoordinate::new_f32(0.5, 0.5),
                                 TextureCoordinate::new_f32(0.75, 1.0),
                                 data.clone()
-                            ))))
-                            .clone()
+                            )))).clone()
                     ),
                     Cell::new(
                         ' ',
@@ -1507,8 +1499,7 @@ mod test {
                                 TextureCoordinate::new_f32(0.75, 0.5),
                                 TextureCoordinate::new_f32(1.0, 1.0),
                                 data.clone()
-                            ))))
-                            .clone()
+                            )))).clone()
                     ),
                 ],
             ]
@@ -1533,8 +1524,7 @@ mod test {
                         TextureCoordinate::new_f32(0.25, 0.3),
                         TextureCoordinate::new_f32(0.75, 0.8),
                         data.clone()
-                    ))))
-                    .clone()
+                    )))).clone()
             ),]]
         );
     }

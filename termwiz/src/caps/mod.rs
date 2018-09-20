@@ -223,8 +223,7 @@ impl Capabilities {
                             db.get::<cap::BackColorErase>()
                                 .unwrap_or(cap::BackColorErase(false))
                                 .0
-                        })
-                        .unwrap_or(false)
+                        }).unwrap_or(false)
                 }
             }
         });

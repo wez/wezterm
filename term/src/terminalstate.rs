@@ -1239,8 +1239,7 @@ impl TerminalState {
                                     ypos + cell_pixel_height as f32,
                                 ),
                                 image_data.clone(),
-                            ))))
-                            .clone(),
+                            )))).clone(),
                     ),
                 );
                 xpos += x_delta;

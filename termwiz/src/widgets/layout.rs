@@ -326,8 +326,7 @@ impl LayoutState {
         self.solver
             .add_constraint(
                 state.left + state.width | LE(REQUIRED) | parent_left.clone() + parent_width,
-            )
-            .map_err(adderr)?;
+            ).map_err(adderr)?;
         self.solver
             .add_constraint(state.left | GE(REQUIRED) | parent_left.clone())
             .map_err(adderr)?;
@@ -335,8 +334,7 @@ impl LayoutState {
         self.solver
             .add_constraint(
                 state.top + state.height | LE(REQUIRED) | parent_top.clone() + parent_height,
-            )
-            .map_err(adderr)?;
+            ).map_err(adderr)?;
         self.solver
             .add_constraint(state.top | GE(REQUIRED) | parent_top.clone())
             .map_err(adderr)?;
@@ -385,8 +383,7 @@ impl LayoutState {
                 self.solver
                     .add_constraint(
                         state.width | EQ(STRONG) | f64::from(pct) * parent_width / 100.0,
-                    )
-                    .map_err(adderr)?;
+                    ).map_err(adderr)?;
             }
         }
         self.solver
@@ -394,8 +391,7 @@ impl LayoutState {
                 state.width
                     | GE(STRONG)
                     | f64::from(state.constraints.width.minimum.unwrap_or(1).max(1)),
-            )
-            .map_err(adderr)?;
+            ).map_err(adderr)?;
         if let Some(max_width) = state.constraints.width.maximum {
             self.solver
                 .add_constraint(state.width | LE(STRONG) | f64::from(max_width))
@@ -412,8 +408,7 @@ impl LayoutState {
                 self.solver
                     .add_constraint(
                         state.height | EQ(STRONG) | f64::from(pct) * parent_height / 100.0,
-                    )
-                    .map_err(adderr)?;
+                    ).map_err(adderr)?;
             }
         }
         self.solver
@@ -421,8 +416,7 @@ impl LayoutState {
                 state.height
                     | GE(STRONG)
                     | f64::from(state.constraints.height.minimum.unwrap_or(1).max(1)),
-            )
-            .map_err(adderr)?;
+            ).map_err(adderr)?;
         if let Some(max_height) = state.constraints.height.maximum {
             self.solver
                 .add_constraint(state.height | LE(STRONG) | f64::from(max_height))
@@ -456,16 +450,14 @@ impl LayoutState {
                             child_state.left + child_state.width
                                 | EQ(STRONG)
                                 | state.left + state.width,
-                        )
-                        .map_err(adderr)?,
+                        ).map_err(adderr)?,
                     HorizontalAlignment::Center => self
                         .solver
                         .add_constraint(
                             child_state.left
                                 | EQ(STRONG)
                                 | state.left + (state.width - child_state.width) / 2.0,
-                        )
-                        .map_err(adderr)?,
+                        ).map_err(adderr)?,
                 }
 
                 match child_state.constraints.valign {
@@ -479,16 +471,14 @@ impl LayoutState {
                             child_state.top + child_state.height
                                 | EQ(STRONG)
                                 | state.top + state.height,
-                        )
-                        .map_err(adderr)?,
+                        ).map_err(adderr)?,
                     VerticalAlignment::Middle => self
                         .solver
                         .add_constraint(
                             child_state.top
                                 | EQ(STRONG)
                                 | state.top + (state.height - child_state.height) / 2.0,
-                        )
-                        .map_err(adderr)?,
+                        ).map_err(adderr)?,
                 }
 
                 match state.constraints.child_orientation {

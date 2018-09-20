@@ -224,8 +224,7 @@ impl Rule {
                     link,
                     range: m.range(),
                 }
-            })
-            .collect()
+            }).collect()
     }
 }
 

@@ -130,8 +130,7 @@ impl Connection {
             .with_depth_size(24)
             .with_surface_type(
                 egli::SurfaceType::WINDOW | egli::SurfaceType::PBUFFER | egli::SurfaceType::PIXMAP,
-            )
-            .with_renderable_type(egli::RenderableType::OPENGL_ES2)
+            ).with_renderable_type(egli::RenderableType::OPENGL_ES2)
             .with_conformant(egli::RenderableType::OPENGL_ES2)
             .choose_configs()
             .map_err(|e| format_err!("failed to get EGL config: {:?}", e))?;
@@ -283,8 +282,7 @@ impl Window {
             .create_context_with_client_version(
                 conn.egl_config,
                 egli::ContextClientVersion::OpenGlEs2,
-            )
-            .map_err(egli_err)?;
+            ).map_err(egli_err)?;
 
         conn.egl_display
             .make_current(&surface, &surface, &egl_context)
