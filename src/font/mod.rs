@@ -203,9 +203,13 @@ pub fn shape_with_harfbuzz(
             first_fallback_pos = None;
         }
         if info.codepoint != 0 {
-            let text = &s[pos..pos + sizes[i]];
-            //debug!("glyph from `{}`", text);
-            cluster.push(GlyphInfo::new(text, font_idx, info, &positions[i]));
+            if s.is_char_boundary(pos) && s.is_char_boundary(pos + sizes[i]) {
+                let text = &s[pos..pos + sizes[i]];
+                //debug!("glyph from `{}`", text);
+                cluster.push(GlyphInfo::new(text, font_idx, info, &positions[i]));
+            } else {
+                cluster.append(&mut shape_with_harfbuzz(font, 0, "?")?);
+            }
         }
     }
 
