@@ -307,33 +307,42 @@ impl NamedFontImpl {
 
         let mut face = self.lib.new_face(file, 0)?;
 
-        if let Err(err) = face.set_char_size(size, size, dpi, dpi) {
-            let sizes = unsafe {
-                let rec = &(*face.face);
-                slice::from_raw_parts(rec.available_sizes, rec.num_fixed_sizes as usize)
-            };
-            if sizes.is_empty() {
-                return Err(err);
-            } else {
+        let (cell_width, cell_height) = match face.set_char_size(size, size, dpi, dpi) {
+            Ok(_) => {
+                // Compute metrics for the nominal monospace cell
+                face.cell_metrics()
+            }
+            Err(err) => {
+                let sizes = unsafe {
+                    let rec = &(*face.face);
+                    slice::from_raw_parts(rec.available_sizes, rec.num_fixed_sizes as usize)
+                };
+                if sizes.is_empty() {
+                    return Err(err);
+                }
                 // Find the best matching size.
                 // We just take the biggest.
                 let mut best = 0;
                 let mut best_size = 0;
+                let mut cell_width = 0;
+                let mut cell_height = 0;
+
                 for (idx, info) in sizes.iter().enumerate() {
                     let size = best_size.max(info.height);
                     if size > best_size {
                         best = idx;
                         best_size = size;
+                        cell_width = info.width;
+                        cell_height = info.height;
                     }
                 }
                 face.select_size(best)?;
+                (cell_width as f64, cell_height as f64)
             }
-        }
-        let font = harfbuzz::Font::new(face.face);
+        };
 
-        // Compute metrics for the nominal monospace cell
-        let (cell_width, cell_height) = face.cell_metrics();
         debug!("metrics: width={} height={}", cell_width, cell_height);
+        let font = harfbuzz::Font::new(face.face);
 
         self.fonts.push(FontImpl {
             face: RefCell::new(face),
