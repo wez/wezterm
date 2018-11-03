@@ -114,7 +114,7 @@ fn get_shell() -> Result<String, Error> {
 //    terminal.advance_bytes(message);
 // !=
 
-fn run() -> Result<(), Error> {
+fn main() -> Result<(), Error> {
     let args = App::new("wezterm")
         .version("0.1")
         .author("Wez Furlong <wez@wezfurlong.org>")
@@ -203,8 +203,4 @@ fn spawn_window(
     let window = TerminalWindow::new(event_loop, terminal, master, child, fontconfig, config)?;
 
     event_loop.add_window(window)
-}
-
-fn main() {
-    run().unwrap();
 }
