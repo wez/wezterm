@@ -44,11 +44,8 @@ extern crate xcb_util;
 #[cfg(all(unix, not(target_os = "macos")))]
 mod xwindows;
 
-use std::env;
-use std::ffi::CStr;
 use std::process::Command;
 use std::rc::Rc;
-use std::str;
 
 mod config;
 
@@ -67,19 +64,31 @@ use guiloop::{GuiEventLoop, TerminalWindow};
 mod font;
 use font::FontConfiguration;
 
+#[cfg(unix)]
 mod pty;
+#[cfg(unix)]
+pub use pty::{openpty, MasterPty, SlavePty};
+#[cfg(windows)]
+mod winpty;
+#[cfg(windows)]
+pub use winpty::{openpty, MasterPty, SlavePty};
+#[cfg(unix)]
 mod sigchld;
 
 /// Determine which shell to run.
 /// We take the contents of the $SHELL env var first, then
 /// fall back to looking it up from the password database.
+#[cfg(unix)]
 fn get_shell() -> Result<String, Error> {
+    use std::env;
     env::var("SHELL").or_else(|_| {
         let ent = unsafe { libc::getpwuid(libc::getuid()) };
 
         if ent.is_null() {
             Ok("/bin/sh".into())
         } else {
+            use std::ffi::CStr;
+            use std::str;
             let shell = unsafe { CStr::from_ptr((*ent).pw_shell) };
             shell
                 .to_str()
@@ -87,6 +96,11 @@ fn get_shell() -> Result<String, Error> {
                 .map_err(|e| format_err!("failed to resolve shell: {:?}", e))
         }
     })
+}
+
+#[cfg(windows)]
+fn get_shell() -> Result<String, Error> {
+    bail!("you must specify which application to run")
 }
 
 //    let message = "; ❤ 😍🤢\n\x1b[91;mw00t\n\x1b[37;104;m bleet\x1b[0;m.";
@@ -162,7 +176,7 @@ fn spawn_window(
     let initial_pixel_width = initial_cols * metrics.cell_width.ceil() as u16;
     let initial_pixel_height = initial_rows * metrics.cell_height.ceil() as u16;
 
-    let (master, slave) = pty::openpty(
+    let (master, slave) = openpty(
         initial_rows,
         initial_cols,
         initial_pixel_width,
