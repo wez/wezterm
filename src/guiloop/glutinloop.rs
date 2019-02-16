@@ -81,6 +81,25 @@ pub struct GuiEventLoop {
     pub paster: GuiSender<WindowId>,
     paster_rx: Receiver<WindowId>,
     sigchld_rx: Receiver<()>,
+    tick_rx: Receiver<()>,
+}
+
+fn clear_nonblocking(fd: RawFd) -> Result<(), Error> {
+    let flags = unsafe { libc::fcntl(fd, libc::F_GETFL, 0) };
+    if flags == -1 {
+        bail!(
+            "fcntl to read flags failed: {:?}",
+            io::Error::last_os_error()
+        );
+    }
+    let result = unsafe { libc::fcntl(fd, libc::F_SETFL, flags & !libc::O_NONBLOCK) };
+    if result == -1 {
+        bail!(
+            "fcntl to set NONBLOCK failed: {:?}",
+            io::Error::last_os_error()
+        );
+    }
+    Ok(())
 }
 
 impl GuiEventLoop {
@@ -94,6 +113,19 @@ impl GuiEventLoop {
         let (paster, paster_rx) = channel(event_loop.create_proxy());
         let (sigchld_tx, sigchld_rx) = channel(event_loop.create_proxy());
 
+        // The glutin/glium plumbing has no native tick/timer stuff, so
+        // we implement one using a thread.  Nice.
+        let (tick_tx, tick_rx) = channel(event_loop.create_proxy());
+        thread::spawn(move || {
+            use std::time;
+            loop {
+                std::thread::sleep(time::Duration::from_millis(50));
+                if tick_tx.send(()).is_err() {
+                    return;
+                }
+            }
+        });
+
         sigchld::activate(sigchld_tx)?;
 
         Ok(Self {
@@ -102,6 +134,7 @@ impl GuiEventLoop {
             poll_rx,
             paster,
             paster_rx,
+            tick_rx,
             sigchld_rx,
             event_loop: RefCell::new(event_loop),
             windows: Rc::new(RefCell::new(Default::default())),
@@ -118,6 +151,7 @@ impl GuiEventLoop {
         let tx = self.poll_tx.clone();
 
         thread::spawn(move || {
+            clear_nonblocking(fd).unwrap();
             let mut fd = ReadWrap { fd };
             const BUFSIZE: usize = 8192;
             let mut buf = [0; BUFSIZE];
@@ -238,6 +272,18 @@ impl GuiEventLoop {
         }
     }
 
+    fn process_tick(&self) -> Result<(), Error> {
+        loop {
+            match self.tick_rx.try_recv() {
+                Ok(_) => {
+                    self.do_paint();
+                }
+                Err(TryRecvError::Empty) => return Ok(()),
+                Err(err) => bail!("tick_rx disconnected {:?}", err),
+            }
+        }
+    }
+
     /// If we were signalled by a child process completion, zip through
     /// the windows and have then notice and prepare to close.
     fn process_sigchld(&self) -> Result<(), Error> {
@@ -321,6 +367,7 @@ impl GuiEventLoop {
             self.process_poll()?;
             self.process_paste()?;
             self.process_sigchld()?;
+            self.process_tick()?;
         }
     }
 }
