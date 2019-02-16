@@ -24,6 +24,11 @@ pub mod coretext;
 #[cfg(target_os = "macos")]
 use self::coretext::FontSystemImpl;
 
+#[cfg(windows)]
+pub mod windows;
+#[cfg(windows)]
+use self::windows::FontSystemImpl;
+
 use super::config::{Config, TextStyle};
 use term::CellAttributes;
 
