@@ -10,8 +10,7 @@ use guiloop::{GuiEventLoop, SessionTerminated};
 use opengl::render::Renderer;
 use opengl::textureatlas::OutOfTextureSpace;
 use pty::MasterPty;
-use std::io;
-use std::io::{Read, Write};
+use std::io::Write;
 use std::os::unix::io::{AsRawFd, RawFd};
 use std::process::{Child, Command};
 use std::rc::Rc;
@@ -207,19 +206,8 @@ impl TerminalWindow {
         }
     }
 
-    pub fn try_read_pty(&mut self) -> Result<(), Error> {
-        const BUFSIZE: usize = 8192;
-        let mut buf = [0; BUFSIZE];
-
-        match self.host.pty.read(&mut buf) {
-            Ok(size) => self.terminal.advance_bytes(&buf[0..size], &mut self.host),
-            Err(err) => {
-                if err.kind() != io::ErrorKind::WouldBlock {
-                    return Err(SessionTerminated::Error { err: err.into() }.into());
-                }
-            }
-        }
-        Ok(())
+    pub fn process_data_read_from_pty(&mut self, data: &[u8]) {
+        self.terminal.advance_bytes(data, &mut self.host)
     }
 
     fn resize_surfaces(&mut self, width: u16, height: u16) -> Result<bool, Error> {

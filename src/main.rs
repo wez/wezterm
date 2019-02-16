@@ -51,8 +51,6 @@ mod config;
 
 mod futurecore;
 mod opengl;
-#[cfg(any(windows, feature = "force-glutin", target_os = "macos"))]
-mod remotemio;
 
 mod clipboard;
 #[cfg(any(windows, feature = "force-glutin", target_os = "macos"))]

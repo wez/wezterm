@@ -1,23 +1,22 @@
 use failure::Error;
-use futures::{future, Future};
+use futures::future;
 use glium;
 use glium::glutin::EventsLoopProxy;
-use mio;
-use mio::{PollOpt, Ready, Token};
 use std::cell::RefCell;
 use std::collections::HashMap;
+use std::io::{self, Read};
 #[cfg(unix)]
 use std::os::unix::io::RawFd;
 use std::rc::Rc;
 use std::sync::mpsc::{self, Receiver, Sender, TryRecvError};
-use std::time::Duration;
+use std::thread;
 
+use super::SessionTerminated;
 pub use glium::glutin::WindowId;
 pub use gliumwindows::TerminalWindow;
 
 use futurecore;
 use gliumwindows;
-use remotemio;
 use sigchld;
 
 #[derive(Clone)]
@@ -42,14 +41,31 @@ pub fn channel<T: Send>(proxy: EventsLoopProxy) -> (GuiSender<T>, Receiver<T>) {
     (GuiSender { tx, proxy }, rx)
 }
 
+#[derive(Clone)]
+enum IOEvent {
+    Data { window_id: WindowId, data: Vec<u8> },
+    Terminated { window_id: WindowId },
+}
+
+struct ReadWrap {
+    fd: RawFd,
+}
+impl io::Read for ReadWrap {
+    fn read(&mut self, buf: &mut [u8]) -> Result<usize, io::Error> {
+        let size = unsafe { libc::read(self.fd, buf.as_mut_ptr() as *mut _, buf.len()) };
+        if size == -1 {
+            Err(io::Error::last_os_error())
+        } else {
+            Ok(size as usize)
+        }
+    }
+}
+
 /// This struct holds references to Windows.
 /// The primary mapping is from `WindowId` -> `TerminalWindow`.
-/// There is a secondary mapping from `RawFd` -> `WindowId` that
-/// is used to process data to be read from the pty.
 #[derive(Default)]
 struct Windows {
     by_id: HashMap<WindowId, gliumwindows::TerminalWindow>,
-    by_fd: HashMap<RawFd, WindowId>,
 }
 
 /// The `GuiEventLoop` represents the combined gui event processor,
@@ -60,8 +76,8 @@ pub struct GuiEventLoop {
     pub event_loop: RefCell<glium::glutin::EventsLoop>,
     windows: Rc<RefCell<Windows>>,
     pub core: futurecore::Core,
-    poll: remotemio::IOMgr,
-    poll_rx: Receiver<remotemio::Notification>,
+    poll_tx: GuiSender<IOEvent>,
+    poll_rx: Receiver<IOEvent>,
     pub paster: GuiSender<WindowId>,
     paster_rx: Receiver<WindowId>,
     sigchld_rx: Receiver<()>,
@@ -74,16 +90,15 @@ impl GuiEventLoop {
         let (fut_tx, fut_rx) = channel(event_loop.create_proxy());
         let core = futurecore::Core::new(fut_tx, fut_rx);
 
-        let (wake_tx, poll_rx) = channel(event_loop.create_proxy());
+        let (poll_tx, poll_rx) = channel(event_loop.create_proxy());
         let (paster, paster_rx) = channel(event_loop.create_proxy());
         let (sigchld_tx, sigchld_rx) = channel(event_loop.create_proxy());
 
-        let poll = remotemio::IOMgr::new(Duration::from_millis(50), wake_tx);
         sigchld::activate(sigchld_tx)?;
 
         Ok(Self {
             core,
-            poll,
+            poll_tx,
             poll_rx,
             paster,
             paster_rx,
@@ -99,10 +114,35 @@ impl GuiEventLoop {
         let fd = window.pty_fd();
         let mut windows = self.windows.borrow_mut();
         windows.by_id.insert(window_id, window);
-        windows.by_fd.insert(fd, window_id);
-        self.poll
-            .register(fd, Token(fd as usize), Ready::readable(), PollOpt::edge())?
-            .wait()??;
+
+        let tx = self.poll_tx.clone();
+
+        thread::spawn(move || {
+            let mut fd = ReadWrap { fd };
+            const BUFSIZE: usize = 8192;
+            let mut buf = [0; BUFSIZE];
+            loop {
+                match fd.read(&mut buf) {
+                    Ok(size) => {
+                        if tx
+                            .send(IOEvent::Data {
+                                window_id,
+                                data: buf[0..size].to_vec(),
+                            })
+                            .is_err()
+                        {
+                            return;
+                        }
+                    }
+                    Err(err) => {
+                        eprintln!("window {:?} {:?}", window_id, err);
+                        tx.send(IOEvent::Terminated { window_id }).ok();
+                        return;
+                    }
+                }
+            }
+        });
+
         Ok(())
     }
 
@@ -118,7 +158,7 @@ impl GuiEventLoop {
                 let dead = match self.windows.borrow_mut().by_id.get_mut(&window_id) {
                     Some(window) => match window.dispatch_event(event) {
                         Ok(_) => None,
-                        Err(err) => match err.downcast_ref::<super::SessionTerminated>() {
+                        Err(err) => match err.downcast_ref::<SessionTerminated>() {
                             Some(_) => Some(window_id),
                             _ => return Err(err),
                         },
@@ -140,62 +180,14 @@ impl GuiEventLoop {
     /// Spawns a future that will gracefully shut down the resources associated
     /// with the specified window.
     fn schedule_window_close(&self, window_id: WindowId) -> Result<(), Error> {
-        let fd = {
-            let mut windows = self.windows.borrow_mut();
-
-            let window = windows.by_id.get_mut(&window_id).ok_or_else(|| {
-                format_err!("no window_id {:?} in the windows_by_id map", window_id)
-            })?;
-            window.pty_fd()
-        };
-
         let windows = Rc::clone(&self.windows);
 
-        self.core.spawn(self.poll.deregister(fd)?.then(move |_| {
+        self.core.spawn(futures::future::lazy(move || {
             let mut windows = windows.borrow_mut();
             windows.by_id.remove(&window_id);
-            windows.by_fd.remove(&fd);
             future::ok(())
         }));
 
-        Ok(())
-    }
-
-    /// Process an even from the remote mio instance.
-    /// At this time, all such events correspond to readable events
-    /// for the pty associated with a window.
-    fn process_pty_event(&self, event: mio::Event) -> Result<(), Error> {
-        // The token is the fd
-        let fd = event.token().0 as RawFd;
-
-        let (window_id, result) = {
-            let mut windows = self.windows.borrow_mut();
-
-            let window_id = windows
-                .by_fd
-                .get(&fd)
-                .ok_or_else(|| {
-                    format_err!("fd {} has no associated window in windows_by_fd map", fd)
-                })
-                .map(|w| *w)?;
-
-            let window = windows.by_id.get_mut(&window_id).ok_or_else(|| {
-                format_err!(
-                    "fd {} -> window_id {:?} but no associated window is in the windows_by_id map",
-                    fd,
-                    window_id
-                )
-            })?;
-            (window_id, window.try_read_pty())
-        };
-
-        if let Err(err) = result {
-            if err.downcast_ref::<super::SessionTerminated>().is_some() {
-                self.schedule_window_close(window_id)?;
-            } else {
-                bail!("{:?}", err);
-            }
-        }
         Ok(())
     }
 
@@ -213,13 +205,16 @@ impl GuiEventLoop {
     fn process_poll(&self) -> Result<(), Error> {
         loop {
             match self.poll_rx.try_recv() {
-                Ok(remotemio::Notification::EventReady(event)) => {
-                    match self.process_pty_event(event) {
-                        Ok(_) => {}
-                        Err(err) => eprintln!("process_pty_event: {:?}", err),
-                    }
+                Ok(IOEvent::Data { window_id, data }) => {
+                    let mut windows = self.windows.borrow_mut();
+                    let window = windows.by_id.get_mut(&window_id).ok_or_else(|| {
+                        format_err!("window_id {:?} not in windows_by_id map", window_id)
+                    })?;
+                    window.process_data_read_from_pty(&data);
                 }
-                Ok(remotemio::Notification::IntervalDone) => self.do_paint(),
+                Ok(IOEvent::Terminated { window_id }) => {
+                    self.schedule_window_close(window_id)?;
+                }
                 Err(TryRecvError::Empty) => return Ok(()),
                 Err(err) => bail!("poll_rx disconnected {:?}", err),
             }
@@ -281,7 +276,10 @@ impl GuiEventLoop {
             let result = self.process_gui_event(&event);
 
             match result {
-                Ok(Continue) => Continue,
+                Ok(Continue) => {
+                    self.do_paint();
+                    Continue
+                }
                 Ok(Break) => Break,
                 Err(err) => {
                     eprintln!("Error in event loop: {:?}", err);
@@ -313,7 +311,7 @@ impl GuiEventLoop {
             // are no windows left, then we are done.
             {
                 let windows = self.windows.borrow();
-                if windows.by_id.is_empty() && windows.by_fd.is_empty() {
+                if windows.by_id.is_empty() {
                     debug!("No more windows; done!");
                     return Ok(());
                 }
