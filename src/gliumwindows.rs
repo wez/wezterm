@@ -1,5 +1,6 @@
 //! Generic system dependent windows via glium+glutin
 
+use super::MasterPty;
 use clipboard::{Clipboard, ClipboardImpl, Paste};
 use config::Config;
 use failure::Error;
@@ -9,9 +10,7 @@ use glium::glutin::{self, ElementState, MouseCursor};
 use guiloop::{GuiEventLoop, SessionTerminated};
 use opengl::render::Renderer;
 use opengl::textureatlas::OutOfTextureSpace;
-use pty::MasterPty;
 use std::io::Write;
-use std::os::unix::io::{AsRawFd, RawFd};
 use std::process::{Child, Command};
 use std::rc::Rc;
 use term::KeyCode;
@@ -194,8 +193,8 @@ impl TerminalWindow {
         self.host.display.gl_window().id()
     }
 
-    pub fn pty_fd(&self) -> RawFd {
-        self.host.pty.as_raw_fd()
+    pub fn pty(&self) -> &MasterPty {
+        &self.host.pty
     }
 
     pub fn paint(&mut self) -> Result<(), Error> {

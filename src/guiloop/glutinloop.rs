@@ -4,9 +4,7 @@ use glium;
 use glium::glutin::EventsLoopProxy;
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::io::{self, Read};
-#[cfg(unix)]
-use std::os::unix::io::RawFd;
+use std::io::Read;
 use std::rc::Rc;
 use std::sync::mpsc::{self, Receiver, Sender, TryRecvError};
 use std::thread;
@@ -47,20 +45,6 @@ enum IOEvent {
     Terminated { window_id: WindowId },
 }
 
-struct ReadWrap {
-    fd: RawFd,
-}
-impl io::Read for ReadWrap {
-    fn read(&mut self, buf: &mut [u8]) -> Result<usize, io::Error> {
-        let size = unsafe { libc::read(self.fd, buf.as_mut_ptr() as *mut _, buf.len()) };
-        if size == -1 {
-            Err(io::Error::last_os_error())
-        } else {
-            Ok(size as usize)
-        }
-    }
-}
-
 /// This struct holds references to Windows.
 /// The primary mapping is from `WindowId` -> `TerminalWindow`.
 #[derive(Default)]
@@ -82,24 +66,6 @@ pub struct GuiEventLoop {
     paster_rx: Receiver<WindowId>,
     sigchld_rx: Receiver<()>,
     tick_rx: Receiver<()>,
-}
-
-fn clear_nonblocking(fd: RawFd) -> Result<(), Error> {
-    let flags = unsafe { libc::fcntl(fd, libc::F_GETFL, 0) };
-    if flags == -1 {
-        bail!(
-            "fcntl to read flags failed: {:?}",
-            io::Error::last_os_error()
-        );
-    }
-    let result = unsafe { libc::fcntl(fd, libc::F_SETFL, flags & !libc::O_NONBLOCK) };
-    if result == -1 {
-        bail!(
-            "fcntl to set NONBLOCK failed: {:?}",
-            io::Error::last_os_error()
-        );
-    }
-    Ok(())
 }
 
 impl GuiEventLoop {
@@ -144,19 +110,18 @@ impl GuiEventLoop {
     /// Add a window to the event loop and run it.
     pub fn add_window(&self, window: gliumwindows::TerminalWindow) -> Result<(), Error> {
         let window_id = window.window_id();
-        let fd = window.pty_fd();
+        let mut pty = window.pty().try_clone()?;
+        pty.clear_nonblocking()?;
         let mut windows = self.windows.borrow_mut();
         windows.by_id.insert(window_id, window);
 
         let tx = self.poll_tx.clone();
 
         thread::spawn(move || {
-            clear_nonblocking(fd).unwrap();
-            let mut fd = ReadWrap { fd };
             const BUFSIZE: usize = 8192;
             let mut buf = [0; BUFSIZE];
             loop {
-                match fd.read(&mut buf) {
+                match pty.read(&mut buf) {
                     Ok(size) => {
                         if tx
                             .send(IOEvent::Data {

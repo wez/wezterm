@@ -79,6 +79,24 @@ fn dup(fd: RawFd) -> Result<RawFd, Error> {
     }
 }
 
+fn clear_nonblocking(fd: RawFd) -> Result<(), Error> {
+    let flags = unsafe { libc::fcntl(fd, libc::F_GETFL, 0) };
+    if flags == -1 {
+        bail!(
+            "fcntl to read flags failed: {:?}",
+            io::Error::last_os_error()
+        );
+    }
+    let result = unsafe { libc::fcntl(fd, libc::F_SETFL, flags & !libc::O_NONBLOCK) };
+    if result == -1 {
+        bail!(
+            "fcntl to set NONBLOCK failed: {:?}",
+            io::Error::last_os_error()
+        );
+    }
+    Ok(())
+}
+
 fn set_nonblocking(fd: RawFd) -> Result<(), Error> {
     let flags = unsafe { libc::fcntl(fd, libc::F_GETFL, 0) };
     if flags == -1 {
@@ -248,6 +266,15 @@ impl MasterPty {
             );
         }
         Ok(size)
+    }
+
+    pub fn clear_nonblocking(&self) -> Result<(), Error> {
+        clear_nonblocking(self.fd)
+    }
+
+    pub fn try_clone(&self) -> Result<Self, Error> {
+        let fd = dup(self.fd)?;
+        Ok(Self { fd })
     }
 }
 
