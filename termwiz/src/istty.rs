@@ -32,7 +32,7 @@ impl<S: AsRawFd> IsTty for S {
 impl<S: AsRawHandle> IsTty for S {
     fn is_tty(&self) -> bool {
         let mut mode = 0;
-        let ok = unsafe { GetConsoleMode(self.as_raw_handle(), &mut mode) };
+        let ok = unsafe { GetConsoleMode(self.as_raw_handle() as *mut _, &mut mode) };
         ok == 1
     }
 }
