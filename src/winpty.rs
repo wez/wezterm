@@ -1,4 +1,5 @@
 use failure::Error;
+use std::io;
 use std::process::{Child, Command};
 
 pub struct MasterPty {}
@@ -23,6 +24,29 @@ impl MasterPty {
 
     pub fn get_size(&self) -> Result<winsize, Error> {
         bail!("MasterPty::get_size not implemented")
+    }
+
+    pub fn try_clone(&self) -> Result<Self, Error> {
+        bail!("MasterPty::try_clone not implemented")
+    }
+
+    pub fn clear_nonblocking(&self) -> Result<(), Error> {
+        unimplemented!();
+    }
+}
+
+impl io::Write for MasterPty {
+    fn write(&mut self, buf: &[u8]) -> Result<usize, io::Error> {
+        unimplemented!();
+    }
+    fn flush(&mut self) -> Result<(), io::Error> {
+        Ok(())
+    }
+}
+
+impl io::Read for MasterPty {
+    fn read(&mut self, buf: &mut [u8]) -> Result<usize, io::Error> {
+        unimplemented!();
     }
 }
 
