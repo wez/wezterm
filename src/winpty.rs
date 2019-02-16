@@ -3,7 +3,12 @@ use std::process::{Child, Command};
 
 pub struct MasterPty {}
 pub struct SlavePty {}
-pub struct winsize {}
+pub struct winsize {
+    pub ws_row: u16,
+    pub ws_col: u16,
+    pub ws_xpixel: u16,
+    pub ws_ypixel: u16,
+}
 
 impl MasterPty {
     pub fn resize(
