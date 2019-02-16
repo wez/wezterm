@@ -1,12 +1,9 @@
 //! Generic system dependent windows via glium+glutin
-#![allow(dead_code)]
 
-use super::spawn_window;
 use clipboard::{Clipboard, ClipboardImpl, Paste};
 use config::Config;
 use failure::Error;
 use font::FontConfiguration;
-use futures;
 use glium;
 use glium::glutin::{self, ElementState, MouseCursor};
 use guiloop::{GuiEventLoop, SessionTerminated};
@@ -16,7 +13,7 @@ use pty::MasterPty;
 use std::io;
 use std::io::{Read, Write};
 use std::os::unix::io::{AsRawFd, RawFd};
-use std::process::{Child, Command, ExitStatus};
+use std::process::{Child, Command};
 use std::rc::Rc;
 use term::KeyCode;
 use term::KeyModifiers;
@@ -76,6 +73,8 @@ impl term::TerminalHost for Host {
 
     fn new_window(&mut self) {
         /*
+        use super::spawn_window;
+        use futures;
         println!("open a new one!");
         let event_loop = Rc::clone(&self.event_loop);
         let config = Rc::clone(&self.config);
@@ -93,8 +92,8 @@ impl term::TerminalHost for Host {
 
 pub struct TerminalWindow {
     host: Host,
-    event_loop: Rc<GuiEventLoop>,
-    config: Rc<Config>,
+    _event_loop: Rc<GuiEventLoop>,
+    _config: Rc<Config>,
     renderer: Renderer,
     width: u16,
     height: u16,
@@ -161,8 +160,8 @@ impl TerminalWindow {
 
         Ok(TerminalWindow {
             host,
-            event_loop: Rc::clone(event_loop),
-            config: Rc::clone(config),
+            _event_loop: Rc::clone(event_loop),
+            _config: Rc::clone(config),
             renderer,
             width,
             height,
@@ -602,10 +601,6 @@ impl TerminalWindow {
         }
         self.paint_if_needed()?;
         Ok(())
-    }
-
-    pub fn need_paint(&self) -> bool {
-        self.terminal.has_dirty_lines()
     }
 
     pub fn test_for_child_exit(&mut self) -> Result<(), SessionTerminated> {
