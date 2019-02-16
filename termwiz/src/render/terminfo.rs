@@ -448,33 +448,25 @@ impl TerminfoRenderer {
                 Change::CursorPosition {
                     x: Position::NoChange,
                     y: Position::Relative(n),
-                }
-                    if *n > 0 =>
-                {
+                } if *n > 0 => {
                     self.cursor_down(*n as u32, out)?;
                 }
                 Change::CursorPosition {
                     x: Position::NoChange,
                     y: Position::Relative(n),
-                }
-                    if *n < 0 =>
-                {
+                } if *n < 0 => {
                     self.cursor_up(*n as u32, out)?;
                 }
                 Change::CursorPosition {
                     x: Position::Relative(n),
                     y: Position::NoChange,
-                }
-                    if *n < 0 =>
-                {
+                } if *n < 0 => {
                     self.cursor_left(*n as u32, out)?;
                 }
                 Change::CursorPosition {
                     x: Position::Relative(n),
                     y: Position::NoChange,
-                }
-                    if *n > 0 =>
-                {
+                } if *n > 0 => {
                     self.cursor_right(*n as u32, out)?;
                 }
                 Change::CursorPosition {
@@ -621,9 +613,11 @@ mod test {
             ProbeHintsBuilder::default()
                 .terminfo_db(Some(
                     terminfo::Database::from_buffer(data.as_ref()).unwrap(),
-                )).build()
+                ))
+                .build()
                 .unwrap(),
-        ).unwrap()
+        )
+        .unwrap()
     }
 
     fn no_terminfo_all_enabled() -> Capabilities {
@@ -632,7 +626,8 @@ mod test {
                 .color_level(Some(ColorLevel::TrueColor))
                 .build()
                 .unwrap(),
-        ).unwrap()
+        )
+        .unwrap()
     }
 
     struct FakeTty {
@@ -785,7 +780,8 @@ mod test {
             Change::Text("not ".into()),
             Change::Attribute(AttributeChange::Intensity(Intensity::Bold)),
             Change::Text("foo".into()),
-        ]).unwrap();
+        ])
+        .unwrap();
 
         let result = out.parse();
         assert_eq!(
@@ -922,7 +918,8 @@ mod test {
             Change::Text("not ".into()),
             Change::Attribute(AttributeChange::Intensity(Intensity::Bold)),
             Change::Text("foo".into()),
-        ]).unwrap();
+        ])
+        .unwrap();
 
         let result = out.parse();
         assert_eq!(
@@ -956,7 +953,8 @@ mod test {
             Change::Attribute(AttributeChange::Intensity(Intensity::Bold)),
             Change::Text("red".into()),
             Change::Attribute(AttributeChange::Foreground(AnsiColor::Red.into())),
-        ]).unwrap();
+        ])
+        .unwrap();
 
         let result = out.parse();
         assert_eq!(
@@ -991,7 +989,8 @@ mod test {
             Change::Attribute(AttributeChange::Intensity(Intensity::Bold)),
             Change::Text("red".into()),
             Change::Attribute(AttributeChange::Foreground(AnsiColor::Red.into())),
-        ]).unwrap();
+        ])
+        .unwrap();
 
         let result = out.parse();
         assert_eq!(
@@ -1025,7 +1024,8 @@ mod test {
                 ColorSpec::TrueColor(RgbColor::new(255, 128, 64)).into(),
             )),
             Change::Text("A".into()),
-        ]).unwrap();
+        ])
+        .unwrap();
 
         let result = out.parse();
         assert_eq!(
@@ -1047,7 +1047,8 @@ mod test {
                 ColorSpec::TrueColor(RgbColor::new(255, 128, 64)).into(),
             )),
             Change::Text("A".into()),
-        ]).unwrap();
+        ])
+        .unwrap();
 
         let result = out.parse();
         assert_eq!(

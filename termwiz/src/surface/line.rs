@@ -329,9 +329,10 @@ impl Line {
         if text_run.len() > 0 {
             // if this is just spaces then it is likely cheaper
             // to emit ClearToEndOfLine instead.
-            if attr == CellAttributes::default()
-                .set_background(attr.background)
-                .clone()
+            if attr
+                == CellAttributes::default()
+                    .set_background(attr.background)
+                    .clone()
             {
                 let left = text_run.trim_right_matches(' ').to_string();
                 let num_trailing_spaces = text_run.len() - left.len();

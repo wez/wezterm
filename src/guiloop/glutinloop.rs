@@ -172,7 +172,8 @@ impl GuiEventLoop {
                 .get(&fd)
                 .ok_or_else(|| {
                     format_err!("fd {} has no associated window in windows_by_fd map", fd)
-                }).map(|w| *w)?;
+                })
+                .map(|w| *w)?;
 
             let window = windows.by_id.get_mut(&window_id).ok_or_else(|| {
                 format_err!(
@@ -255,7 +256,8 @@ impl GuiEventLoop {
                         .filter_map(|(window_id, window)| match window.test_for_child_exit() {
                             Ok(_) => None,
                             Err(_) => Some(*window_id),
-                        }).collect();
+                        })
+                        .collect();
 
                     for window_id in window_ids {
                         self.schedule_window_close(window_id)?;

@@ -223,7 +223,8 @@ impl Capabilities {
                             db.get::<cap::BackColorErase>()
                                 .unwrap_or(cap::BackColorErase(false))
                                 .0
-                        }).unwrap_or(false)
+                        })
+                        .unwrap_or(false)
                 }
             }
         });
@@ -335,7 +336,8 @@ mod test {
                 .colorterm_bce(Some("1".into()))
                 .build()
                 .unwrap(),
-        ).unwrap();
+        )
+        .unwrap();
 
         assert_eq!(caps.bce(), true);
     }
@@ -347,7 +349,8 @@ mod test {
                 .terminfo_db(Some(load_terminfo()))
                 .build()
                 .unwrap(),
-        ).unwrap();
+        )
+        .unwrap();
 
         assert_eq!(caps.bce(), true);
     }
@@ -359,7 +362,8 @@ mod test {
                 .terminfo_db(Some(load_terminfo()))
                 .build()
                 .unwrap(),
-        ).unwrap();
+        )
+        .unwrap();
 
         assert_eq!(caps.color_level(), ColorLevel::TrueColor);
     }
@@ -371,7 +375,8 @@ mod test {
                 .term(Some("xterm-256color".into()))
                 .build()
                 .unwrap(),
-        ).unwrap();
+        )
+        .unwrap();
 
         assert_eq!(caps.color_level(), ColorLevel::TwoFiftySix);
     }
@@ -383,7 +388,8 @@ mod test {
                 .colorterm(Some("24bit".into()))
                 .build()
                 .unwrap(),
-        ).unwrap();
+        )
+        .unwrap();
 
         assert_eq!(caps.color_level(), ColorLevel::TrueColor);
     }
@@ -397,7 +403,8 @@ mod test {
                 .colorterm(Some("24bot".into()))
                 .build()
                 .unwrap(),
-        ).unwrap();
+        )
+        .unwrap();
 
         assert_eq!(caps.color_level(), ColorLevel::TwoFiftySix);
 
@@ -407,7 +414,8 @@ mod test {
                 .colorterm(Some("24bit".into()))
                 .build()
                 .unwrap(),
-        ).unwrap();
+        )
+        .unwrap();
 
         assert_eq!(caps.color_level(), ColorLevel::TrueColor);
 
@@ -417,7 +425,8 @@ mod test {
                 .colorterm(Some("truecolor".into()))
                 .build()
                 .unwrap(),
-        ).unwrap();
+        )
+        .unwrap();
 
         assert_eq!(caps.color_level(), ColorLevel::TrueColor);
     }
@@ -430,7 +439,8 @@ mod test {
                 .term_program_version(Some("1.0.0".into()))
                 .build()
                 .unwrap(),
-        ).unwrap();
+        )
+        .unwrap();
         assert_eq!(caps.iterm2_image(), false);
 
         let caps = Capabilities::new_with_hints(
@@ -439,7 +449,8 @@ mod test {
                 .term_program_version(Some("2.9.0".into()))
                 .build()
                 .unwrap(),
-        ).unwrap();
+        )
+        .unwrap();
         assert_eq!(caps.iterm2_image(), false);
 
         let caps = Capabilities::new_with_hints(
@@ -448,7 +459,8 @@ mod test {
                 .term_program_version(Some("2.9.20150512".into()))
                 .build()
                 .unwrap(),
-        ).unwrap();
+        )
+        .unwrap();
         assert_eq!(caps.iterm2_image(), true);
 
         let caps = Capabilities::new_with_hints(
@@ -457,7 +469,8 @@ mod test {
                 .term_program_version(Some("3.2.0beta5".into()))
                 .build()
                 .unwrap(),
-        ).unwrap();
+        )
+        .unwrap();
         assert_eq!(caps.iterm2_image(), true);
     }
 }

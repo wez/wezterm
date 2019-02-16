@@ -764,9 +764,7 @@ impl InputParser {
                                 }),
                             ),
                             _,
-                        )
-                            if self.state == InputState::Normal && self.buf.len() > len =>
-                        {
+                        ) if self.state == InputState::Normal && self.buf.len() > len => {
                             self.state = InputState::EscapeMaybeAlt;
                             self.buf.advance(len);
                         }

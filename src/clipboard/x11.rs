@@ -91,7 +91,8 @@ impl Inner {
                 xcb::WINDOW_CLASS_INPUT_ONLY as u16,
                 screen.root_visual(),
                 &[(xcb::CW_EVENT_MASK, 0)],
-            ).request_check()?;
+            )
+            .request_check()?;
         }
 
         Ok(Inner {
@@ -154,7 +155,8 @@ impl Inner {
                 &self.conn,
                 selection.requestor(),
                 selection.property(),
-            ).get_reply()
+            )
+            .get_reply()
             {
                 Ok(prop) => self.send(Paste::All(prop.name().into())),
                 Err(err) => {
@@ -339,14 +341,16 @@ impl Inner {
             Token(0),
             Ready::readable(),
             PollOpt::level(),
-        ).expect("failed to register xcb conn for clipboard with mio");
+        )
+        .expect("failed to register xcb conn for clipboard with mio");
 
         poll.register(
             &self.receiver,
             Token(1),
             Ready::readable(),
             PollOpt::level(),
-        ).expect("failed to register receiver for clipboard with mio");
+        )
+        .expect("failed to register receiver for clipboard with mio");
 
         let mut events = Events::with_capacity(2);
 
@@ -356,27 +360,29 @@ impl Inner {
 
         loop {
             match poll.poll(&mut events, None) {
-                Ok(_) => for event in &events {
-                    if event.token() == Token(0) {
-                        if let Err(err) = self.process_queued_xcb() {
-                            eprintln!("clipboard: {:?}", err);
-                            return;
-                        }
-                    }
-                    if event.token() == Token(1) {
-                        if let Err(err) = self.process_receiver() {
-                            // No need to print the error trace if we were shutdown gracefully
-                            match err.downcast_ref::<ClipTerminated>() {
-                                Some(_) => return,
-                                _ => {
-                                    eprintln!("clipboard: {:?}", err);
-                                    return;
-                                }
+                Ok(_) => {
+                    for event in &events {
+                        if event.token() == Token(0) {
+                            if let Err(err) = self.process_queued_xcb() {
+                                eprintln!("clipboard: {:?}", err);
+                                return;
                             }
                         }
-                        self.conn.flush();
+                        if event.token() == Token(1) {
+                            if let Err(err) = self.process_receiver() {
+                                // No need to print the error trace if we were shutdown gracefully
+                                match err.downcast_ref::<ClipTerminated>() {
+                                    Some(_) => return,
+                                    _ => {
+                                        eprintln!("clipboard: {:?}", err);
+                                        return;
+                                    }
+                                }
+                            }
+                            self.conn.flush();
+                        }
                     }
-                },
+                }
                 Err(err) => {
                     eprintln!("clipboard: {:?}", err);
                     return;

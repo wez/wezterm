@@ -130,7 +130,8 @@ impl Inner {
                     io::ErrorKind::Other,
                     format!("fd {} is not present in IOMgr fd_map", fd),
                 )
-            })?.clone();
+            })?
+            .clone();
 
         poll.deregister(&*evented)?;
 

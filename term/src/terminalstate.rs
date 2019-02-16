@@ -189,7 +189,7 @@ fn write_all(w: &mut std::io::Write, mut buf: &[u8]) -> std::io::Result<()> {
                 return Err(std::io::Error::new(
                     ErrorKind::WriteZero,
                     "failed to write whole buffer",
-                ))
+                ));
             }
             Ok(n) => buf = &buf[n..],
             Err(ref e)
@@ -1239,7 +1239,8 @@ impl TerminalState {
                                     ypos + cell_pixel_height as f32,
                                 ),
                                 image_data.clone(),
-                            )))).clone(),
+                            ))))
+                            .clone(),
                     ),
                 );
                 xpos += x_delta;

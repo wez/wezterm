@@ -151,7 +151,8 @@ impl<'a> term::TerminalHost for TabHost<'a> {
                     .with_window(window_id, |win| {
                         win.update_title();
                         Ok(())
-                    }).map(futures::Async::Ready)
+                    })
+                    .map(futures::Async::Ready)
                     .map_err(|_| ())
             }));
     }

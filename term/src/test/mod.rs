@@ -130,14 +130,16 @@ impl TestTerm {
                 y,
                 button,
                 modifiers: KeyModifiers::default(),
-            }).unwrap();
+            })
+            .unwrap();
             self.mouse(MouseEvent {
                 kind: MouseEventKind::Release,
                 x,
                 y,
                 button,
                 modifiers: KeyModifiers::default(),
-            }).unwrap();
+            })
+            .unwrap();
         }
     }
 
@@ -155,7 +157,8 @@ impl TestTerm {
             y: start_y,
             button: MouseButton::Left,
             modifiers: KeyModifiers::default(),
-        }).unwrap();
+        })
+        .unwrap();
         assert!(self.host.clip.is_none());
 
         self.mouse(MouseEvent {
@@ -164,7 +167,8 @@ impl TestTerm {
             y: end_y,
             button: MouseButton::None,
             modifiers: KeyModifiers::default(),
-        }).unwrap();
+        })
+        .unwrap();
         assert!(self.host.clip.is_none());
 
         self.mouse(MouseEvent {
@@ -173,7 +177,8 @@ impl TestTerm {
             y: end_y,
             button: MouseButton::Left,
             modifiers: KeyModifiers::default(),
-        }).unwrap();
+        })
+        .unwrap();
     }
 
     fn assert_cursor_pos(&self, x: usize, y: i64, reason: Option<&str>) {

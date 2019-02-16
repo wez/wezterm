@@ -470,7 +470,8 @@ impl Drop for UnixTerminal {
                     CSI::Mode(Mode::ResetDecPrivateMode(DecPrivateMode::Code(
                         DecPrivateModeCode::$variant
                     )))
-                ).unwrap();
+                )
+                .unwrap();
             };
         }
         if self.caps.bracketed_paste() {

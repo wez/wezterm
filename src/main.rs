@@ -100,11 +100,13 @@ fn run() -> Result<(), Error> {
         .about(
             "Wez's Terminal Emulator\n\
              http://github.com/wez/wezterm",
-        ).arg(Arg::with_name("PROG").multiple(true).help(
+        )
+        .arg(Arg::with_name("PROG").multiple(true).help(
             "Instead of executing your shell, run PROG. \
              For example: `wezterm -- bash -l` will spawn bash \
              as if it were a login shell.",
-        )).get_matches();
+        ))
+        .get_matches();
     let config = Rc::new(config::Config::load()?);
     println!("Using configuration: {:#?}", config);
 
