@@ -6,6 +6,7 @@ use mio;
 use mio::{PollOpt, Ready, Token};
 use std::cell::RefCell;
 use std::collections::HashMap;
+#[cfg(unix)]
 use std::os::unix::io::RawFd;
 use std::rc::Rc;
 use std::sync::mpsc::{self, Receiver, Sender, TryRecvError};

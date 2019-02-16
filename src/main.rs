@@ -51,11 +51,11 @@ mod config;
 
 mod futurecore;
 mod opengl;
-#[cfg(target_os = "macos")]
+#[cfg(any(windows,target_os = "macos"))]
 mod remotemio;
 
 mod clipboard;
-#[cfg(target_os = "macos")]
+#[cfg(any(windows,target_os = "macos"))]
 mod gliumwindows;
 mod guiloop;
 

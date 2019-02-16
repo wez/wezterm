@@ -37,7 +37,7 @@ x11 = {version ="~2.17", features = ["xlib_xcb"]}
 [target.'cfg(any(target_os = "android", windows, all(unix, not(target_os = "macos"))))'.dependencies.glium]
 version = "~0.20"
 default-features = false
-features = []
+features = ["glutin"]
 
 [target.'cfg(all(unix, not(target_os = "macos")))'.dependencies.xcb]
 version = "~0.8"
