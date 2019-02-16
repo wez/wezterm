@@ -1,7 +1,7 @@
 use failure::Error;
 use futures::{future, Future};
 use glium;
-use glium::glutin::{EventsLoopProxy, WindowId};
+use glium::glutin::EventsLoopProxy;
 use mio;
 use mio::{PollOpt, Ready, Token};
 use std::cell::RefCell;
@@ -11,6 +11,9 @@ use std::os::unix::io::RawFd;
 use std::rc::Rc;
 use std::sync::mpsc::{self, Receiver, Sender, TryRecvError};
 use std::time::Duration;
+
+pub use glium::glutin::WindowId;
+pub use gliumwindows::TerminalWindow;
 
 use futurecore;
 use gliumwindows;
@@ -115,7 +118,7 @@ impl GuiEventLoop {
                 let dead = match self.windows.borrow_mut().by_id.get_mut(&window_id) {
                     Some(window) => match window.dispatch_event(event) {
                         Ok(_) => None,
-                        Err(err) => match err.downcast_ref::<gliumwindows::SessionTerminated>() {
+                        Err(err) => match err.downcast_ref::<super::SessionTerminated>() {
                             Some(_) => Some(window_id),
                             _ => return Err(err),
                         },
@@ -187,10 +190,7 @@ impl GuiEventLoop {
         };
 
         if let Err(err) = result {
-            if err
-                .downcast_ref::<gliumwindows::SessionTerminated>()
-                .is_some()
-            {
+            if err.downcast_ref::<super::SessionTerminated>().is_some() {
                 self.schedule_window_close(window_id)?;
             } else {
                 bail!("{:?}", err);

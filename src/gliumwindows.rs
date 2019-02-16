@@ -9,7 +9,7 @@ use font::FontConfiguration;
 use futures;
 use glium;
 use glium::glutin::{self, ElementState, MouseCursor};
-use guiloop::GuiEventLoop;
+use guiloop::{GuiEventLoop, SessionTerminated};
 use opengl::render::Renderer;
 use opengl::textureatlas::OutOfTextureSpace;
 use pty::MasterPty;
@@ -18,11 +18,11 @@ use std::io::{Read, Write};
 use std::os::unix::io::{AsRawFd, RawFd};
 use std::process::{Child, Command, ExitStatus};
 use std::rc::Rc;
-use term::hyperlink::Hyperlink;
 use term::KeyCode;
 use term::KeyModifiers;
 use term::{self, Terminal};
 use term::{MouseButton, MouseEventKind};
+use termwiz::hyperlink::Hyperlink;
 
 struct Host {
     display: glium::Display,
@@ -41,10 +41,10 @@ impl term::TerminalHost for Host {
     fn click_link(&mut self, link: &Rc<Hyperlink>) {
         // TODO: make this configurable
         let mut cmd = Command::new("xdg-open");
-        cmd.arg(&link.url);
+        cmd.arg(link.uri());
         match cmd.spawn() {
             Ok(_) => {}
-            Err(err) => eprintln!("failed to spawn xdg-open {}: {:?}", link.url, err),
+            Err(err) => eprintln!("failed to spawn xdg-open {}: {:?}", link.uri(), err),
         }
     }
 
@@ -533,7 +533,7 @@ impl TerminalWindow {
                 event: WindowEvent::Moved(x, y),
                 ..
             } => {
-                self.window_position = Some((x, y));
+                self.host.window_position = Some((x, y));
             }
             Event::WindowEvent {
                 event: WindowEvent::ReceivedCharacter(c),

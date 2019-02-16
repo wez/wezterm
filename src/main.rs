@@ -41,7 +41,7 @@ extern crate x11;
 extern crate xcb;
 #[cfg(all(unix, not(target_os = "macos")))]
 extern crate xcb_util;
-#[cfg(all(unix, not(target_os = "macos")))]
+#[cfg(all(unix, not(feature = "force-glutin"), not(target_os = "macos")))]
 mod xwindows;
 
 use std::process::Command;
@@ -51,11 +51,11 @@ mod config;
 
 mod futurecore;
 mod opengl;
-#[cfg(any(windows,target_os = "macos"))]
+#[cfg(any(windows, feature = "force-glutin", target_os = "macos"))]
 mod remotemio;
 
 mod clipboard;
-#[cfg(any(windows,target_os = "macos"))]
+#[cfg(any(windows, feature = "force-glutin", target_os = "macos"))]
 mod gliumwindows;
 mod guiloop;
 

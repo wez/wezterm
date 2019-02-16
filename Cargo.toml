@@ -55,5 +55,6 @@ core-text = "~9.2"
 
 [features]
 debug-escape-sequences = ["term/debug-escape-sequences"]
+force-glutin = []
 
 [workspace]
