@@ -15,6 +15,7 @@ pub use gliumwindows::TerminalWindow;
 
 use futurecore;
 use gliumwindows;
+#[cfg(unix)]
 use sigchld;
 
 #[derive(Clone)]
@@ -64,6 +65,7 @@ pub struct GuiEventLoop {
     poll_rx: Receiver<IOEvent>,
     pub paster: GuiSender<WindowId>,
     paster_rx: Receiver<WindowId>,
+    #[cfg(unix)]
     sigchld_rx: Receiver<()>,
     tick_rx: Receiver<()>,
 }
@@ -77,6 +79,7 @@ impl GuiEventLoop {
 
         let (poll_tx, poll_rx) = channel(event_loop.create_proxy());
         let (paster, paster_rx) = channel(event_loop.create_proxy());
+        #[cfg(unix)]
         let (sigchld_tx, sigchld_rx) = channel(event_loop.create_proxy());
 
         // The glutin/glium plumbing has no native tick/timer stuff, so
@@ -92,6 +95,7 @@ impl GuiEventLoop {
             }
         });
 
+        #[cfg(unix)]
         sigchld::activate(sigchld_tx)?;
 
         Ok(Self {
@@ -101,6 +105,7 @@ impl GuiEventLoop {
             paster,
             paster_rx,
             tick_rx,
+            #[cfg(unix)]
             sigchld_rx,
             event_loop: RefCell::new(event_loop),
             windows: Rc::new(RefCell::new(Default::default())),
@@ -251,6 +256,7 @@ impl GuiEventLoop {
 
     /// If we were signalled by a child process completion, zip through
     /// the windows and have then notice and prepare to close.
+    #[cfg(unix)]
     fn process_sigchld(&self) -> Result<(), Error> {
         loop {
             match self.sigchld_rx.try_recv() {
@@ -331,6 +337,7 @@ impl GuiEventLoop {
             self.run_event_loop()?;
             self.process_poll()?;
             self.process_paste()?;
+            #[cfg(unix)]
             self.process_sigchld()?;
             self.process_tick()?;
         }
