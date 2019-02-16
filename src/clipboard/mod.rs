@@ -2,7 +2,7 @@ use failure::Error;
 use guiloop::{GuiSender, WindowId};
 
 mod none;
-#[cfg(target_os = "macos")]
+#[cfg(any(target_os = "macos", windows))]
 pub use self::none::NoClipboard as Clipboard;
 
 #[cfg(all(unix, not(target_os = "macos")))]
