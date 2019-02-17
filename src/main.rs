@@ -18,7 +18,9 @@ extern crate glium;
 #[cfg(unix)]
 extern crate harfbuzz_sys;
 extern crate libc;
+#[cfg(unix)]
 extern crate mio;
+#[cfg(unix)]
 extern crate mio_extras;
 extern crate palette;
 extern crate serde;
