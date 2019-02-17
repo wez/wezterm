@@ -40,6 +40,7 @@ pub struct GlyphInfo {
 }
 
 impl GlyphInfo {
+    #[allow(dead_code)]
     pub fn new(
         text: &str,
         font_idx: usize,

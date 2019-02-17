@@ -110,6 +110,7 @@ impl FontConfiguration {
     }
 }
 
+#[allow(dead_code)]
 pub fn shape_with_harfbuzz(
     font: &mut NamedFont,
     font_idx: system::FallbackIdx,

@@ -1,5 +1,5 @@
 //! Higher level harfbuzz bindings
-
+#![allow(dead_code)]
 #[cfg(any(target_os = "android", all(unix, not(target_os = "macos"))))]
 use freetype;
 
