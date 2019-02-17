@@ -21,6 +21,8 @@ serde_derive = "~1.0"
 toml = "~0.4"
 unicode-width = "~0.1"
 directories = "~1.0"
+font-loader = "0.8"
+rusttype = "0.7"
 
 [dependencies.term]
 path = "term"
@@ -28,9 +30,6 @@ path = "term"
 [dependencies.termwiz]
 path = "termwiz"
 
-[target.'cfg(windows)'.dependencies]
-font-loader = "0.8"
-rusttype = "0.7"
 
 [target.'cfg(any(target_os = "android", all(unix, not(target_os = "macos"))))'.dependencies]
 freetype = "~0.4"
@@ -60,5 +59,6 @@ core-text = "~9.2"
 [features]
 debug-escape-sequences = ["term/debug-escape-sequences"]
 force-glutin = []
+force-rusttype = []
 
 [workspace]

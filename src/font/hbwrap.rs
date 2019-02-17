@@ -53,6 +53,58 @@ impl Drop for Font {
     }
 }
 
+struct Blob {
+    blob: *mut hb_blob_t,
+}
+
+impl Drop for Blob {
+    fn drop(&mut self) {
+        unsafe {
+            hb_blob_destroy(self.blob);
+        }
+    }
+}
+
+impl Blob {
+    fn from_slice(data: &[u8]) -> Result<Self, Error> {
+        let blob = unsafe {
+            hb_blob_create(
+                data.as_ptr() as *const i8,
+                data.len() as u32,
+                HB_MEMORY_MODE_READONLY,
+                ptr::null_mut(),
+                None,
+            )
+        };
+        ensure!(!blob.is_null(), "failed to create harfbuzz blob for slice");
+        Ok(Self { blob })
+    }
+}
+
+struct Face {
+    face: *mut hb_face_t,
+}
+
+impl Drop for Face {
+    fn drop(&mut self) {
+        unsafe {
+            hb_face_destroy(self.face);
+        }
+    }
+}
+
+impl Face {
+    fn from_blob(blob: &Blob, idx: u32) -> Result<Face, Error> {
+        let face = unsafe { hb_face_create(blob.blob, idx) };
+        ensure!(
+            !face.is_null(),
+            "failed to create face from blob data at idx {}",
+            idx
+        );
+        Ok(Self { face })
+    }
+}
+
 impl Font {
     #[cfg(any(target_os = "android", all(unix, not(target_os = "macos"))))]
     /// Create a harfbuzz face from a freetype font
@@ -64,6 +116,18 @@ impl Font {
         Font {
             font: unsafe { hb_ft_font_create_referenced(face) },
         }
+    }
+
+    /// Create a font from raw data
+    /// Harfbuzz doesn't know how to interpret this without registering
+    /// some callbacks
+    /// FIXME: need to specialize this for rusttype
+    pub fn new_from_slice(data: &[u8], idx: u32) -> Result<Font, Error> {
+        let blob = Blob::from_slice(data)?;
+        let face = Face::from_blob(&blob, idx)?;
+        let font = unsafe { hb_font_create(face.face) };
+        ensure!(!font.is_null(), "failed to convert face to font");
+        Ok(Self { font })
     }
 
     #[cfg(any(target_os = "android", all(unix, not(target_os = "macos"))))]

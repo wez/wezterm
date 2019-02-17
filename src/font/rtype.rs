@@ -9,10 +9,12 @@ use font::{
 };
 use font_loader::system_fonts;
 use rusttype::{Font as RTFont, FontCollection, Scale};
+use std::cell::RefCell;
 
 struct NamedFontImpl<'a> {
     collection: FontCollection<'a>,
     font: RTFont<'a>,
+    hbfont: RefCell<harfbuzz::Font>,
     scale: Scale,
 }
 
@@ -27,17 +29,21 @@ impl RustTypeFonts {
 impl FontSystem for RustTypeFonts {
     fn load_font(&self, config: &Config, style: &TextStyle) -> Result<Box<NamedFont>, Error> {
         let font_props = system_fonts::FontPropertyBuilder::new()
-            .family(&style.fontconfig_pattern)
+            //.family(&style.fontconfig_pattern)
+            .family("monospace")
             .monospace()
             .build();
         let (data, idx) = system_fonts::get(&font_props)
             .ok_or_else(|| format_err!("no font matching {:?}", style))?;
+        eprintln!("want idx {} in bytes of len {}", idx, data.len());
+        let hbfont = RefCell::new(harfbuzz::Font::new_from_slice(&data, idx as u32)?);
         let collection = FontCollection::from_bytes(data)?;
         let font = collection.font_at(idx as usize)?;
         eprintln!("made a font for {:?}", style);
         let scale = Scale::uniform(config.font_size as f32 * 96.0 / 72.0);
         Ok(Box::new(NamedFontImpl {
             collection,
+            hbfont,
             font,
             scale,
         }))
@@ -46,7 +52,7 @@ impl FontSystem for RustTypeFonts {
 
 impl<'a> NamedFont for NamedFontImpl<'a> {
     fn get_fallback(&mut self, idx: FallbackIdx) -> Result<&Font, Error> {
-        ensure!(idx == 0, "no fallback fonts available");
+        ensure!(idx == 0, "no fallback fonts available (idx={})", idx);
         Ok(self)
     }
     fn shape(&mut self, s: &str) -> Result<Vec<GlyphInfo>, Error> {
@@ -60,7 +66,7 @@ impl<'a> Font for NamedFontImpl<'a> {
         buf: &mut harfbuzz::Buffer,
         features: Option<&[harfbuzz::hb_feature_t]>,
     ) {
-        unimplemented!();
+        self.hbfont.borrow_mut().shape(buf, features)
     }
 
     fn has_color(&self) -> bool {

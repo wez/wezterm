@@ -28,9 +28,9 @@ extern crate termwiz;
 extern crate toml;
 extern crate unicode_width;
 
-#[cfg(windows)]
+#[cfg(any(windows, feature = "force-rusttype"))]
 extern crate font_loader;
-#[cfg(windows)]
+#[cfg(any(windows, feature = "force-rusttype"))]
 extern crate rusttype;
 
 #[macro_use]

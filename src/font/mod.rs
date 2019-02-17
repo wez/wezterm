@@ -9,24 +9,27 @@ use std::rc::Rc;
 pub mod system;
 pub use self::system::*;
 
-#[cfg(any(target_os = "android", all(unix, not(target_os = "macos"))))]
+#[cfg(any(
+    target_os = "android",
+    all(unix, not(feature = "force-rusttype"), not(target_os = "macos"))
+))]
 pub mod ftwrap;
 
-#[cfg(all(unix, not(target_os = "macos")))]
+#[cfg(all(unix, not(target_os = "macos"), not(feature = "force-rusttype")))]
 pub mod fcwrap;
-#[cfg(all(unix, not(target_os = "macos")))]
+#[cfg(all(unix, not(target_os = "macos"), not(feature = "force-rusttype")))]
 pub mod fontconfigandfreetype;
-#[cfg(all(unix, not(target_os = "macos")))]
+#[cfg(all(unix, not(target_os = "macos"), not(feature = "force-rusttype")))]
 use self::fontconfigandfreetype::FontSystemImpl;
 
-#[cfg(target_os = "macos")]
+#[cfg(all(target_os = "macos", not(feature = "force-rusttype")))]
 pub mod coretext;
-#[cfg(target_os = "macos")]
+#[cfg(all(target_os = "macos", not(feature = "force-rusttype")))]
 use self::coretext::FontSystemImpl;
 
-#[cfg(windows)]
+#[cfg(any(windows, feature = "force-rusttype"))]
 pub mod rtype;
-#[cfg(windows)]
+#[cfg(any(windows, feature = "force-rusttype"))]
 use self::rtype::FontSystemImpl;
 
 use super::config::{Config, TextStyle};
@@ -195,6 +198,9 @@ pub fn shape_with_harfbuzz(
                 Ok(shape) => Ok(shape),
                 Err(e) => {
                     eprintln!("{:?} for {:?}", e, substr);
+                    if font_idx == 0 && s == "?" {
+                        bail!("unable to find any usable glyphs for `?` in font_idx 0");
+                    }
                     shape_with_harfbuzz(font, 0, "?")
                 }
             }?;
@@ -234,6 +240,9 @@ pub fn shape_with_harfbuzz(
             Ok(shape) => Ok(shape),
             Err(e) => {
                 eprintln!("{:?} for {:?}", e, substr);
+                if font_idx == 0 && s == "?" {
+                    bail!("unable to find any usable glyphs for `?` in font_idx 0");
+                }
                 shape_with_harfbuzz(font, 0, "?")
             }
         }?;
