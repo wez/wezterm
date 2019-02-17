@@ -246,6 +246,8 @@ impl GuiEventLoop {
         loop {
             match self.tick_rx.try_recv() {
                 Ok(_) => {
+                    #[cfg(not(unix))]
+                    self.test_for_child_exit();
                     self.do_paint();
                 }
                 Err(TryRecvError::Empty) => return Ok(()),
@@ -261,24 +263,28 @@ impl GuiEventLoop {
         loop {
             match self.sigchld_rx.try_recv() {
                 Ok(_) => {
-                    let window_ids: Vec<WindowId> = self
-                        .windows
-                        .borrow_mut()
-                        .by_id
-                        .iter_mut()
-                        .filter_map(|(window_id, window)| match window.test_for_child_exit() {
-                            Ok(_) => None,
-                            Err(_) => Some(*window_id),
-                        })
-                        .collect();
-
-                    for window_id in window_ids {
-                        self.schedule_window_close(window_id)?;
-                    }
+                    self.test_for_child_exit();
                 }
                 Err(TryRecvError::Empty) => return Ok(()),
                 Err(err) => bail!("paster_rx disconnected {:?}", err),
             }
+        }
+    }
+
+    fn test_for_child_exit(&self) {
+        let window_ids: Vec<WindowId> = self
+            .windows
+            .borrow_mut()
+            .by_id
+            .iter_mut()
+            .filter_map(|(window_id, window)| match window.test_for_child_exit() {
+                Ok(_) => None,
+                Err(_) => Some(*window_id),
+            })
+            .collect();
+
+        for window_id in window_ids {
+            self.schedule_window_close(window_id).ok();
         }
     }
 

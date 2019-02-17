@@ -13,6 +13,7 @@ use winpty::winapi::shared::minwindef::DWORD;
 use winpty::winapi::shared::winerror::{HRESULT, S_OK};
 use winpty::winapi::um::fileapi::{ReadFile, WriteFile};
 use winpty::winapi::um::handleapi::*;
+use winpty::winapi::um::minwinbase::STILL_ACTIVE;
 use winpty::winapi::um::namedpipeapi::CreatePipe;
 use winpty::winapi::um::processthreadsapi::*;
 use winpty::winapi::um::winbase::EXTENDED_STARTUPINFO_PRESENT;
@@ -291,7 +292,11 @@ impl Child {
         let mut status: DWORD = 0;
         let res = unsafe { GetExitCodeProcess(self.proc.handle, &mut status) };
         if res != 0 {
-            Ok(Some(ExitStatus { status }))
+            if status == STILL_ACTIVE {
+                Ok(None)
+            } else {
+                Ok(Some(ExitStatus { status }))
+            }
         } else {
             Ok(None)
         }
