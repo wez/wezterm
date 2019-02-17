@@ -3,7 +3,6 @@ use std::io::{self, Error as IoError, Result as IoResult};
 extern crate winapi;
 use std::env;
 use std::ffi::{OsStr, OsString};
-use std::fs;
 use std::mem;
 use std::os::windows::ffi::OsStrExt;
 use std::os::windows::ffi::OsStringExt;
@@ -33,20 +32,20 @@ pub struct Command {
 impl Command {
     pub fn new<S: AsRef<OsStr>>(program: S) -> Self {
         Self {
-            args: vec![Self::search_path(program.as_ref().to_owned())],
+            args: vec![program.as_ref().to_owned()],
             input: None,
             output: None,
             hpc: None,
         }
     }
 
-    fn search_path(exe: OsString) -> OsString {
+    fn search_path(exe: &OsStr) -> OsString {
         if let Some(path) = env::var_os("PATH") {
             let extensions = env::var_os("PATHEXT").unwrap_or(".EXE".into());
             for path in env::split_paths(&path) {
                 // Check for exactly the user's string in this path dir
                 let candidate = path.join(&exe);
-                if fs::metadata(&candidate).is_ok() {
+                if candidate.exists() {
                     return candidate.into_os_string();
                 }
 
@@ -58,14 +57,14 @@ impl Command {
                     // doesn't want that
                     let ext = ext.to_str().expect("PATHEXT entries must be utf8");
                     let path = path.join(&exe).with_extension(&ext[1..]);
-                    if fs::metadata(&path).is_ok() {
+                    if path.exists() {
                         return path.into_os_string();
                     }
                 }
             }
         }
 
-        exe
+        exe.to_owned()
     }
 
     pub fn arg<S: AsRef<OsStr>>(&mut self, arg: S) -> &mut Command {
@@ -105,21 +104,23 @@ impl Command {
         self
     }
 
-    fn cmdline(&self) -> Result<Vec<u16>, Error> {
+    fn cmdline(&self) -> Result<(Vec<u16>, Vec<u16>), Error> {
         let mut cmdline = Vec::<u16>::new();
-        for (idx, arg) in self.args.iter().enumerate() {
-            if idx != 0 {
-                cmdline.push(' ' as u16);
-            }
+
+        let exe = Self::search_path(&self.args[0]);
+        Self::append_quoted(&exe, &mut cmdline);
+        let exe = exe.encode_wide().collect();
+
+        for arg in self.args.iter().skip(1) {
+            cmdline.push(' ' as u16);
             ensure!(
                 !arg.encode_wide().any(|c| c == 0),
-                "invalid encoding for command line argument at index {}: {:?}",
-                idx,
+                "invalid encoding for command line argument {:?}",
                 arg
             );
             Self::append_quoted(arg, &mut cmdline);
         }
-        Ok(cmdline)
+        Ok((exe, cmdline))
     }
 
     // Borrowed from https://github.com/hniksic/rust-subprocess/blob/873dfed165173e52907beb87118b2c0c05d8b8a1/src/popen.rs#L1117
@@ -179,10 +180,16 @@ impl Command {
 
         let mut pi: PROCESS_INFORMATION = unsafe { mem::zeroed() };
 
-        let mut cmdline = self.cmdline()?;
+        let (mut exe, mut cmdline) = self.cmdline()?;
+        let cmd_os = OsString::from_wide(&cmdline);
+        eprintln!(
+            "Running: module: {:?} {:?}",
+            OsString::from_wide(&exe),
+            cmd_os
+        );
         let res = unsafe {
             CreateProcessW(
-                ptr::null(),
+                exe.as_mut_slice().as_mut_ptr(),
                 cmdline.as_mut_slice().as_mut_ptr(),
                 ptr::null_mut(),
                 ptr::null_mut(),
@@ -195,11 +202,8 @@ impl Command {
             )
         };
         if res == 0 {
-            bail!(
-                "CreateProcessW `{:?}` failed: {}",
-                OsString::from_wide(&cmdline),
-                IoError::last_os_error()
-            );
+            let err = IoError::last_os_error();
+            bail!("CreateProcessW `{:?}` failed: {}", cmd_os, err);
         }
 
         // Make sure we close out the thread handle so we don't leak it;
@@ -354,12 +358,20 @@ struct OwnedHandle {
 unsafe impl Send for OwnedHandle {}
 impl Drop for OwnedHandle {
     fn drop(&mut self) {
-        unsafe { CloseHandle(self.handle) };
+        if self.handle != INVALID_HANDLE_VALUE && !self.handle.is_null() {
+            unsafe { CloseHandle(self.handle) };
+        }
     }
 }
 
 impl OwnedHandle {
     fn try_clone(&self) -> Result<Self, IoError> {
+        if self.handle == INVALID_HANDLE_VALUE || self.handle.is_null() {
+            return Ok(OwnedHandle {
+                handle: self.handle,
+            });
+        }
+
         let proc = unsafe { GetCurrentProcess() };
         let mut duped = INVALID_HANDLE_VALUE;
         let ok = unsafe {
@@ -448,13 +460,23 @@ impl MasterPty {
     }
 
     pub fn try_clone(&self) -> Result<Self, Error> {
+        // FIXME: this isn't great.  Replace this with a way to
+        // clone the output handle and read it.
+        let mut inner = self.inner.lock().unwrap();
         Ok(Self {
-            inner: self.inner.clone(),
+            inner: Arc::new(Mutex::new(Inner {
+                con: PsuedoCon {
+                    con: INVALID_HANDLE_VALUE,
+                },
+                readable: inner.readable.try_clone()?,
+                writable: inner.writable.try_clone()?,
+                size: inner.size,
+            })),
         })
     }
 
     pub fn clear_nonblocking(&self) -> Result<(), Error> {
-        unimplemented!();
+        Ok(())
     }
 }
 

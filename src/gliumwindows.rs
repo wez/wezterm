@@ -131,7 +131,7 @@ impl TerminalWindow {
 
         let display = {
             let pref_context = glutin::ContextBuilder::new()
-                .with_gl(glutin::GlRequest::Specific(glutin::Api::OpenGlEs, (2, 0)))
+                //.with_gl(glutin::GlRequest::Specific(glutin::Api::OpenGlEs, (2, 0)))
                 .with_vsync(true)
                 .with_pixel_format(24, 8)
                 .with_srgb(true);
@@ -143,7 +143,11 @@ impl TerminalWindow {
 
             match glium::Display::new(window, pref_context, &*mut_loop) {
                 Ok(display) => display,
-                Err(_) => {
+                Err(err) => {
+                    eprintln!(
+                        "preferred GL context not available: {}, try a fallback",
+                        err
+                    );
                     // Take anything that might show something.
                     // This fallback is typically hit when running with a remote
                     // X server.

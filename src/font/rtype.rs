@@ -75,10 +75,6 @@ impl<'a> NamedFont for NamedFontImpl<'a> {
             let hmetrics = glyph.h_metrics();
             let glyph = glyph.positioned(point(0.0, 0.0));
 
-            if c != ' ' {
-                eprintln!("{} -> glyph {} {:?}", c, glyph.id().0, hmetrics);
-            }
-
             shaped.push(GlyphInfo {
                 #[cfg(debug_assertions)]
                 text: s[cluster..cluster].to_string(),
@@ -140,10 +136,12 @@ impl<'a> Font for NamedFontImpl<'a> {
             data.push(v); // green
             data.push(v); // blue
         });
+        /*
         eprintln!(
             "rasterize_glyph {} {}x{} {} bounds {:?}",
             glyph_pos, width, height, self.cell_height, bounds
         );
+        */
         // FIXME: there's something funky about either the bearing
         // calculation here or the y_offset calculation in the
         // shape function that causes the baseline to vary and
