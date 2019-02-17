@@ -7,6 +7,7 @@ use std::mem;
 use std::os::windows::ffi::OsStrExt;
 use std::os::windows::ffi::OsStringExt;
 use std::os::windows::raw::HANDLE;
+use std::path::Path;
 use std::ptr;
 use std::sync::{Arc, Mutex};
 use winpty::winapi::shared::minwindef::DWORD;
@@ -110,7 +111,11 @@ impl Command {
 
         let exe = Self::search_path(&self.args[0]);
         Self::append_quoted(&exe, &mut cmdline);
-        let exe = exe.encode_wide().collect();
+
+        // Ensure that we nul terminate the module name, otherwise we'll
+        // ask CreateProcessW to start something random!
+        let mut exe: Vec<u16> = exe.encode_wide().collect();
+        exe.push(0);
 
         for arg in self.args.iter().skip(1) {
             cmdline.push(' ' as u16);
@@ -121,6 +126,8 @@ impl Command {
             );
             Self::append_quoted(arg, &mut cmdline);
         }
+        // Ensure that the command line is nul terminated too!
+        cmdline.push(0);
         Ok((exe, cmdline))
     }
 
@@ -184,8 +191,8 @@ impl Command {
         let (mut exe, mut cmdline) = self.cmdline()?;
         let cmd_os = OsString::from_wide(&cmdline);
         eprintln!(
-            "Running: module: {:?} {:?}",
-            OsString::from_wide(&exe),
+            "Running: module: {} {:?}",
+            Path::new(&OsString::from_wide(&exe)).display(),
             cmd_os
         );
         let res = unsafe {
