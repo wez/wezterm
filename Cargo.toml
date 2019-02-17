@@ -11,7 +11,6 @@ failure = "~0.1"
 failure_derive = "~0.1"
 futures = "~0.1"
 gl = "~0.10"
-harfbuzz-sys = "~0.2"
 libc = "~0.2"
 mio = "~0.6"
 mio-extras = "~2.0"
@@ -23,6 +22,9 @@ unicode-width = "~0.1"
 directories = "~1.0"
 font-loader = "0.8"
 rusttype = "0.7"
+
+[target.'cfg(unix)'.dependencies]
+harfbuzz-sys = "~0.2"
 
 [dependencies.term]
 path = "term"

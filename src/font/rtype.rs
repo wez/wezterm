@@ -1,5 +1,6 @@
 //! Systems using rust native rasterizer
 
+#[cfg(unix)]
 use super::hbwrap as harfbuzz;
 use config::{Config, TextStyle};
 use failure::Error;
@@ -94,6 +95,7 @@ impl<'a> NamedFont for NamedFontImpl<'a> {
 }
 
 impl<'a> Font for NamedFontImpl<'a> {
+    #[cfg(unix)]
     fn harfbuzz_shape(
         &self,
         _buf: &mut harfbuzz::Buffer,

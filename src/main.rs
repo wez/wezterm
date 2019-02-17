@@ -15,6 +15,7 @@ extern crate futures;
 extern crate gl;
 #[macro_use]
 extern crate glium;
+#[cfg(unix)]
 extern crate harfbuzz_sys;
 extern crate libc;
 extern crate mio;
