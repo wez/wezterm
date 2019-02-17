@@ -81,12 +81,13 @@ pub use winpty::{openpty, Child, Command, ExitStatus, MasterPty, SlavePty};
 #[cfg(unix)]
 mod sigchld;
 
+use std::env;
+
 /// Determine which shell to run.
 /// We take the contents of the $SHELL env var first, then
 /// fall back to looking it up from the password database.
 #[cfg(unix)]
 fn get_shell() -> Result<String, Error> {
-    use std::env;
     env::var("SHELL").or_else(|_| {
         let ent = unsafe { libc::getpwuid(libc::getuid()) };
 
@@ -106,7 +107,7 @@ fn get_shell() -> Result<String, Error> {
 
 #[cfg(windows)]
 fn get_shell() -> Result<String, Error> {
-    bail!("you must specify which application to run")
+    Ok(env::var("ComSpec").unwrap_or("cmd.exe".into()))
 }
 
 //    let message = "; ❤ 😍🤢\n\x1b[91;mw00t\n\x1b[37;104;m bleet\x1b[0;m.";
