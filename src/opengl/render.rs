@@ -441,7 +441,7 @@ impl Renderer {
 
     /// Perform the load and render of a glyph
     fn load_glyph(&self, info: &GlyphInfo, style: &TextStyle) -> Result<Rc<CachedGlyph>, Error> {
-        let (has_color, glyph, cell_width, _cell_height) = {
+        let (has_color, glyph, cell_width, cell_height) = {
             let font = self.fonts.cached_font(style)?;
             let mut font = font.borrow_mut();
             let metrics = font.get_fallback(0)?.metrics();
@@ -451,14 +451,13 @@ impl Renderer {
             (has_color, glyph, metrics.cell_width, metrics.cell_height)
         };
 
-        let effective_width = f64::from(info.num_cells) * cell_width;
-
-        let scale = if glyph.width as f64 > effective_width {
-            effective_width / glyph.width as f64
+        let scale = if (info.x_advance / f64::from(info.num_cells)).floor() > cell_width {
+            f64::from(info.num_cells) * (cell_width / info.x_advance)
+        } else if glyph.height as f64 > cell_height {
+            cell_height / glyph.height as f64
         } else {
             1.0f64
         };
-
         #[cfg_attr(feature = "cargo-clippy", allow(float_cmp))]
         let (x_offset, y_offset) = if scale != 1.0 {
             (info.x_offset * scale, info.y_offset * scale)
