@@ -9,8 +9,10 @@ use std::io;
 use std::mem;
 use std::os::unix::io::{AsRawFd, FromRawFd, RawFd};
 use std::os::unix::process::CommandExt;
-use std::process::{Child, Command, Stdio};
+use std::process::Stdio;
 use std::ptr;
+
+pub use std::process::{Child, Command};
 
 /// Represents the master end of a pty.
 /// The file descriptor will be closed when the Pty is dropped.

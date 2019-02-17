@@ -1,6 +1,7 @@
 //! Generic system dependent windows via glium+glutin
 
 use super::MasterPty;
+use super::{Child, Command};
 use clipboard::{Clipboard, ClipboardImpl, Paste};
 use config::Config;
 use failure::Error;
@@ -11,7 +12,6 @@ use guiloop::{GuiEventLoop, SessionTerminated};
 use opengl::render::Renderer;
 use opengl::textureatlas::OutOfTextureSpace;
 use std::io::Write;
-use std::process::{Child, Command};
 use std::rc::Rc;
 use term::KeyCode;
 use term::KeyModifiers;

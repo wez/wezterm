@@ -30,6 +30,15 @@ path = "term"
 [dependencies.termwiz]
 path = "termwiz"
 
+[target."cfg(windows)".dependencies.winapi]
+features = [
+    "winuser",
+    "consoleapi",
+    "handleapi",
+    "fileapi",
+    "namedpipeapi",
+]
+version = "~0.3"
 
 [target.'cfg(any(target_os = "android", all(unix, not(target_os = "macos"))))'.dependencies]
 freetype = "~0.4"

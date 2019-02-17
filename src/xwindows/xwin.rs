@@ -1,6 +1,7 @@
 use super::super::opengl::render::Renderer;
 use super::super::{get_shell, spawn_window};
 use super::xkeysyms;
+use super::{Child, Command};
 use super::{Connection, Window};
 use clipboard::{Clipboard, ClipboardImpl, Paste};
 use config::Config;
@@ -14,8 +15,6 @@ use pty::MasterPty;
 use std::cell::RefCell;
 use std::io::{self, Read, Write};
 use std::os::unix::io::{AsRawFd, RawFd};
-use std::process::Child;
-use std::process::Command;
 use std::rc::Rc;
 use term::{self, KeyCode, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 use termwiz::hyperlink::Hyperlink;

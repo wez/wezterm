@@ -50,7 +50,6 @@ extern crate xcb_util;
 #[cfg(all(unix, not(feature = "force-glutin"), not(target_os = "macos")))]
 mod xwindows;
 
-use std::process::Command;
 use std::rc::Rc;
 
 mod config;
@@ -71,11 +70,11 @@ use font::FontConfiguration;
 #[cfg(unix)]
 mod pty;
 #[cfg(unix)]
-pub use pty::{openpty, MasterPty, SlavePty};
+pub use pty::{openpty, Child, Command, MasterPty, SlavePty};
 #[cfg(windows)]
 mod winpty;
 #[cfg(windows)]
-pub use winpty::{openpty, MasterPty, SlavePty};
+pub use winpty::{openpty, Child, Command, MasterPty, SlavePty};
 #[cfg(unix)]
 mod sigchld;
 
