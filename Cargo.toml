@@ -28,6 +28,10 @@ path = "term"
 [dependencies.termwiz]
 path = "termwiz"
 
+[target.'cfg(windows)'.dependencies]
+font-loader = "0.8"
+rusttype = "0.7"
+
 [target.'cfg(any(target_os = "android", all(unix, not(target_os = "macos"))))'.dependencies]
 freetype = "~0.4"
 servo-fontconfig = "~0.4"

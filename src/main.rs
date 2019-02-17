@@ -27,6 +27,12 @@ extern crate term;
 extern crate termwiz;
 extern crate toml;
 extern crate unicode_width;
+
+#[cfg(windows)]
+extern crate font_loader;
+#[cfg(windows)]
+extern crate rusttype;
+
 #[macro_use]
 pub mod log;
 

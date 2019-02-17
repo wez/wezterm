@@ -25,9 +25,9 @@ pub mod coretext;
 use self::coretext::FontSystemImpl;
 
 #[cfg(windows)]
-pub mod windows;
+pub mod rtype;
 #[cfg(windows)]
-use self::windows::FontSystemImpl;
+use self::rtype::FontSystemImpl;
 
 use super::config::{Config, TextStyle};
 use term::CellAttributes;
