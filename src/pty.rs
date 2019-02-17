@@ -12,7 +12,7 @@ use std::os::unix::process::CommandExt;
 use std::process::Stdio;
 use std::ptr;
 
-pub use std::process::{Child, Command};
+pub use std::process::{Child, Command, ExitStatus};
 
 /// Represents the master end of a pty.
 /// The file descriptor will be closed when the Pty is dropped.
