@@ -1,5 +1,5 @@
+use super::ExitStatus;
 use failure::Error;
-use std::process::ExitStatus;
 
 #[cfg(any(windows, feature = "force-glutin", target_os = "macos"))]
 mod glutinloop;

@@ -70,11 +70,11 @@ use font::FontConfiguration;
 #[cfg(unix)]
 mod pty;
 #[cfg(unix)]
-pub use pty::{openpty, Child, Command, MasterPty, SlavePty};
+pub use pty::{openpty, Child, Command, ExitStatus, MasterPty, SlavePty};
 #[cfg(windows)]
 mod winpty;
 #[cfg(windows)]
-pub use winpty::{openpty, Child, Command, MasterPty, SlavePty};
+pub use winpty::{openpty, Child, Command, ExitStatus, MasterPty, SlavePty};
 #[cfg(unix)]
 mod sigchld;
 
