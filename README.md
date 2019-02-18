@@ -63,6 +63,8 @@ the middle of Feb 2018.  The following features are done:
 - [x] Hyperlinks per: https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5feda
 - [x] Multiple Windows (Hotkey: `Super-N`)
 - [x] Tabs (Hotkey: `Super-T`, next/prev: `Super-[` and `Super-]`, go-to: `Super-[0-9]`)
+- [ ] Run on macOS (in progress: use `cargo build --features force-rusttype` for very early version)
+- [ ] Run on Windows (in progress: uses rusttype for rasterizing)
 
 There's a good number of terminal escape sequences that are not yet implemented
 and that will get fleshed out as the applications I use uncover them, or as folks
@@ -72,11 +74,9 @@ be shy about [contributing support for missing things!](CONTRIBUTING.md)
 Things that I'd like to see happen and that have no immediate priority;
 [contributions to get closer to these are welcomed!](CONTRIBUTING.md)
 
-- [ ] Run on macOS
 - [ ] Sixel / iTerm2 graphics protocol support
 - [ ] Textual renderer.  Think `tmux` or `screen`.
 - [ ] Run on Linux with Wayland (use XWayland for now; See https://github.com/tomaka/winit/issues/306 for upstream blockers)
-- [ ] Run on Windows
 
 
 ## Configuration
