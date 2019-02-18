@@ -140,7 +140,7 @@ impl TerminalWindow {
             let mut_loop = event_loop.event_loop.borrow_mut();
 
             glium::Display::new(window, pref_context, &*mut_loop)
-                        .map_err(|e| format_err!("{:?}", e))?
+                .map_err(|e| format_err!("{:?}", e))?
         };
         let window_id = display.gl_window().id();
         let window_position = display.gl_window().get_position();

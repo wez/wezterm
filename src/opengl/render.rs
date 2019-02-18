@@ -370,7 +370,17 @@ impl Renderer {
             f32::from(height),
         )?;
 
-        let program = glium::Program::from_source(facade, VERTEX_SHADER, FRAGMENT_SHADER, None)?;
+        let source = glium::program::ProgramCreationInput::SourceCode {
+            vertex_shader: VERTEX_SHADER,
+            fragment_shader: FRAGMENT_SHADER,
+            outputs_srgb: true,
+            tessellation_control_shader: None,
+            tessellation_evaluation_shader: None,
+            transform_feedback_varyings: None,
+            uses_point_size: false,
+            geometry_shader: None,
+        };
+        let program = glium::Program::new(facade, source)?;
 
         let atlas = RefCell::new(Atlas::new(facade, TEX_SIZE)?);
 
