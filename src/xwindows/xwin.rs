@@ -1,7 +1,7 @@
 use super::super::opengl::render::Renderer;
 use super::super::{get_shell, spawn_window};
-use super::xkeysyms;
 use super::super::{Child, Command};
+use super::xkeysyms;
 use super::{Connection, Window};
 use clipboard::{Clipboard, ClipboardImpl, Paste};
 use config::Config;
