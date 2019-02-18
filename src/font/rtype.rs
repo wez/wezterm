@@ -48,7 +48,15 @@ impl FontSystem for RustTypeFonts {
             .ok_or_else(|| format_err!("no font matching {:?} {:?}", font_props, font))?;
         eprintln!("want idx {} in bytes of len {}", idx, data.len());
         let collection = FontCollection::from_bytes(data)?;
-        let font = collection.font_at(idx as usize)?;
+        // Most likely problem is that we matched an OpenType font and rusttype can't
+        // load it today.
+        let font = collection.font_at(idx as usize).map_err(|e| {
+            format_err!(
+                "{:?}: {} (Note that rusttype only supports TrueType font files!)",
+                font,
+                e
+            )
+        })?;
         eprintln!("made a font for {:?}", style);
         let scale = Scale::uniform(config.font_size as f32 * config.dpi as f32 / 72.0);
         let vmetrics = font.v_metrics(scale);
