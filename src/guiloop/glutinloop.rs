@@ -63,8 +63,6 @@ pub struct GuiEventLoop {
     pub core: futurecore::Core,
     poll_tx: GuiSender<IOEvent>,
     poll_rx: Receiver<IOEvent>,
-    pub paster: GuiSender<WindowId>,
-    paster_rx: Receiver<WindowId>,
     #[cfg(unix)]
     sigchld_rx: Receiver<()>,
     tick_rx: Receiver<()>,
@@ -78,7 +76,6 @@ impl GuiEventLoop {
         let core = futurecore::Core::new(fut_tx, fut_rx);
 
         let (poll_tx, poll_rx) = channel(event_loop.create_proxy());
-        let (paster, paster_rx) = channel(event_loop.create_proxy());
         #[cfg(unix)]
         let (sigchld_tx, sigchld_rx) = channel(event_loop.create_proxy());
 
@@ -102,8 +99,6 @@ impl GuiEventLoop {
             core,
             poll_tx,
             poll_rx,
-            paster,
-            paster_rx,
             tick_rx,
             #[cfg(unix)]
             sigchld_rx,
@@ -225,23 +220,6 @@ impl GuiEventLoop {
         }
     }
 
-    /// Process paste notifications and route them to their owning windows.
-    fn process_paste(&self) -> Result<(), Error> {
-        loop {
-            match self.paster_rx.try_recv() {
-                Ok(window_id) => {
-                    self.windows
-                        .borrow_mut()
-                        .by_id
-                        .get_mut(&window_id)
-                        .map(|w| w.process_clipboard());
-                }
-                Err(TryRecvError::Empty) => return Ok(()),
-                Err(err) => bail!("paster_rx disconnected {:?}", err),
-            }
-        }
-    }
-
     fn process_tick(&self) -> Result<(), Error> {
         loop {
             match self.tick_rx.try_recv() {
@@ -266,7 +244,7 @@ impl GuiEventLoop {
                     self.test_for_child_exit();
                 }
                 Err(TryRecvError::Empty) => return Ok(()),
-                Err(err) => bail!("paster_rx disconnected {:?}", err),
+                Err(err) => bail!("sigchld_rx disconnected {:?}", err),
             }
         }
     }
@@ -342,7 +320,6 @@ impl GuiEventLoop {
 
             self.run_event_loop()?;
             self.process_poll()?;
-            self.process_paste()?;
             #[cfg(unix)]
             self.process_sigchld()?;
             self.process_tick()?;

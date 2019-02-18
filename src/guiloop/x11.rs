@@ -59,8 +59,6 @@ struct Windows {
 pub struct GuiEventLoop {
     poll: Poll,
     pub conn: Rc<Connection>,
-    pub paster: GuiSender<WindowId>,
-    paster_rx: GuiReceiver<WindowId>,
     sigchld_rx: GuiReceiver<()>,
     pub core: futurecore::Core,
     windows: Rc<RefCell<Windows>>,
@@ -68,7 +66,6 @@ pub struct GuiEventLoop {
 }
 
 const TOK_CORE: usize = 0xffff_ffff;
-const TOK_PASTER: usize = 0xffff_fffe;
 const TOK_CHLD: usize = 0xffff_fffd;
 const TOK_XCB: usize = 0xffff_fffc;
 
@@ -89,14 +86,6 @@ impl GuiEventLoop {
         )?;
         let core = futurecore::Core::new(fut_tx, fut_rx);
 
-        let (paster, paster_rx) = channel();
-        poll.register(
-            &paster_rx,
-            Token(TOK_PASTER),
-            Ready::readable(),
-            PollOpt::level(),
-        )?;
-
         let (sigchld_tx, sigchld_rx) = channel();
         poll.register(
             &sigchld_rx,
@@ -110,8 +99,6 @@ impl GuiEventLoop {
             conn,
             poll,
             core,
-            paster,
-            paster_rx,
             sigchld_rx,
             interval: Duration::from_millis(50),
             windows: Rc::new(RefCell::new(Default::default())),
@@ -122,7 +109,6 @@ impl GuiEventLoop {
         let mut events = Events::with_capacity(8);
 
         let tok_core = Token(TOK_CORE);
-        let tok_paster = Token(TOK_PASTER);
         let tok_chld = Token(TOK_CHLD);
         let tok_xcb = Token(TOK_XCB);
 
@@ -146,8 +132,6 @@ impl GuiEventLoop {
                         let t = event.token();
                         if t == tok_core {
                             self.process_futures();
-                        } else if t == tok_paster {
-                            self.process_paste()?;
                         } else if t == tok_chld {
                             self.process_sigchld()?;
                         } else if t == tok_xcb {
@@ -412,23 +396,6 @@ impl GuiEventLoop {
         self.conn.flush();
     }
 
-    /// Process paste notifications and route them to their owning windows.
-    fn process_paste(&self) -> Result<(), Error> {
-        loop {
-            match self.paster_rx.try_recv() {
-                Ok(window_id) => {
-                    self.windows
-                        .borrow_mut()
-                        .by_id
-                        .get_mut(&window_id)
-                        .map(|w| w.process_clipboard());
-                }
-                Err(TryRecvError::Empty) => return Ok(()),
-                Err(err) => bail!("paster_rx disconnected {:?}", err),
-            }
-        }
-    }
-
     /// If we were signalled by a child process completion, zip through
     /// the windows and have then notice and prepare to close.
     fn process_sigchld(&self) -> Result<(), Error> {
@@ -451,7 +418,7 @@ impl GuiEventLoop {
                     }
                 }
                 Err(TryRecvError::Empty) => return Ok(()),
-                Err(err) => bail!("paster_rx disconnected {:?}", err),
+                Err(err) => bail!("sigchld_rx disconnected {:?}", err),
             }
         }
     }

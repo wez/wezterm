@@ -20,6 +20,7 @@ unicode-width = "~0.1"
 directories = "~1.0"
 font-loader = "0.8"
 rusttype = "0.7"
+clipboard = "0.2"
 
 [target.'cfg(unix)'.dependencies]
 harfbuzz-sys = "~0.2"

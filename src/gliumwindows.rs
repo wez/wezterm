@@ -2,7 +2,7 @@
 
 use super::MasterPty;
 use super::{Child, Command};
-use clipboard::{Clipboard, ClipboardImpl, Paste};
+use clipboard::ClipboardContext;
 use config::Config;
 use failure::Error;
 use font::FontConfiguration;
@@ -22,7 +22,7 @@ use termwiz::hyperlink::Hyperlink;
 struct Host {
     display: glium::Display,
     pty: MasterPty,
-    clipboard: Clipboard,
+    clipboard: ClipboardContext,
     window_position: Option<(i32, i32)>,
     /// is is_some, holds position to be restored after exiting
     /// fullscreen mode.
@@ -44,12 +44,21 @@ impl term::TerminalHost for Host {
     }
 
     fn get_clipboard(&mut self) -> Result<String, Error> {
-        self.clipboard.get_clipboard()
+        self.clipboard
+            .get_contents()
+            .map_err(|e| format_err!("{}", e))
     }
 
     fn set_clipboard(&mut self, clip: Option<String>) -> Result<(), Error> {
-        self.clipboard.set_clipboard(clip)
+        self.clipboard
+            .set_contents(clip.unwrap_or_else(|| "".into()))
+            .map_err(|e| format_err!("{}", e))
+            // Request the clipboard contents we just set; on some systems
+            // if we copy and paste in wezterm, the clipboard isn't visible
+            // to us again until the second call to get_clipboard.
+            .and_then(|_| self.get_clipboard().map(|_| ()))
     }
+
     fn set_title(&mut self, title: &str) {
         self.display.gl_window().set_title(title);
     }
@@ -142,13 +151,12 @@ impl TerminalWindow {
             glium::Display::new(window, pref_context, &*mut_loop)
                 .map_err(|e| format_err!("{:?}", e))?
         };
-        let window_id = display.gl_window().id();
         let window_position = display.gl_window().get_position();
 
         let host = Host {
             display,
             pty,
-            clipboard: Clipboard::new(event_loop.paster.clone(), window_id)?,
+            clipboard: ClipboardContext::new().map_err(|e| format_err!("{}", e))?,
             window_position,
             is_fullscreen: None,
         };
@@ -578,18 +586,6 @@ impl TerminalWindow {
             }
             _ => {}
         }
-        Ok(())
-    }
-
-    pub fn process_clipboard(&mut self) -> Result<(), Error> {
-        match self.host.clipboard.try_get_paste() {
-            Ok(Some(Paste::Cleared)) => {
-                self.terminal.clear_selection();
-            }
-            Ok(_) => {}
-            Err(err) => bail!("clipboard thread died? {:?}", err),
-        }
-        self.paint_if_needed()?;
         Ok(())
     }
 

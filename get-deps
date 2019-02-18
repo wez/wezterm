@@ -19,6 +19,7 @@ case `lsb_release -ds` in
   Ubuntu*|Debian*)
     apt-get install -y \
       cmake \
+      xorg-dev \
       bsdutils \
       libxcb-icccm4-dev \
       libxcb-ewmh-dev \

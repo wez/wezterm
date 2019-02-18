@@ -28,6 +28,7 @@ addons:
       - binutils-dev
       - cmake
       - gcc
+      - xorg-dev
       - libcurl4-openssl-dev
       - libdw-dev
       - libegl1-mesa-dev

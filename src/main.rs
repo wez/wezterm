@@ -26,6 +26,7 @@ extern crate palette;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
+extern crate clipboard;
 extern crate term;
 extern crate termwiz;
 extern crate toml;
@@ -60,7 +61,6 @@ mod config;
 mod futurecore;
 mod opengl;
 
-mod clipboard;
 #[cfg(any(windows, feature = "force-glutin", target_os = "macos"))]
 mod gliumwindows;
 mod guiloop;

@@ -3,7 +3,7 @@ use super::super::{get_shell, spawn_window};
 use super::super::{Child, Command};
 use super::xkeysyms;
 use super::{Connection, Window};
-use clipboard::{Clipboard, ClipboardImpl, Paste};
+use clipboard::ClipboardContext;
 use config::Config;
 use failure::Error;
 use font::FontConfiguration;
@@ -98,7 +98,7 @@ struct TabHost<'a> {
 /// Holds most of the information we need to implement `TerminalHost`
 struct Host {
     window: Window,
-    clipboard: Clipboard,
+    clipboard: ClipboardContext,
     event_loop: Rc<GuiEventLoop>,
     fonts: Rc<FontConfiguration>,
     config: Rc<Config>,
@@ -131,11 +131,21 @@ impl<'a> term::TerminalHost for TabHost<'a> {
     }
 
     fn get_clipboard(&mut self) -> Result<String, Error> {
-        self.host.clipboard.get_clipboard()
+        self.host
+            .clipboard
+            .get_contents()
+            .map_err(|e| format_err!("{}", e))
     }
 
     fn set_clipboard(&mut self, clip: Option<String>) -> Result<(), Error> {
-        self.host.clipboard.set_clipboard(clip)
+        self.host
+            .clipboard
+            .set_contents(clip.unwrap_or_else(|| "".into()))
+            .map_err(|e| format_err!("{}", e))
+            // Request the clipboard contents we just set; on some systems
+            // if we copy and paste in wezterm, the clipboard isn't visible
+            // to us again until the second call to get_clipboard.
+            .and_then(|_| self.get_clipboard().map(|_| ()))
     }
 
     fn set_title(&mut self, _title: &str) {
@@ -244,11 +254,10 @@ impl TerminalWindow {
 
         let window = Window::new(&event_loop.conn, width, height)?;
         window.set_title("wezterm");
-        let window_id = window.window.window_id;
 
         let host = Host {
             window,
-            clipboard: Clipboard::new(event_loop.paster.clone(), window_id)?,
+            clipboard: ClipboardContext::new().map_err(|e| format_err!("{}", e))?,
             event_loop: Rc::clone(event_loop),
             config: Rc::clone(config),
             fonts: Rc::clone(fonts),
@@ -362,22 +371,6 @@ impl TerminalWindow {
         if dirty {
             self.paint()?;
         }
-        Ok(())
-    }
-
-    pub fn process_clipboard(&mut self) -> Result<(), Error> {
-        match self.host.clipboard.try_get_paste() {
-            Ok(Some(Paste::Cleared)) => {
-                self.tabs
-                    .get_active()
-                    .terminal
-                    .borrow_mut()
-                    .clear_selection();
-            }
-            Ok(_) => {}
-            Err(err) => bail!("clipboard thread died? {:?}", err),
-        }
-        self.paint_if_needed()?;
         Ok(())
     }
 
