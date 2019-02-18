@@ -134,6 +134,23 @@ impl Library {
         })
     }
 
+    pub fn new_face_from_slice(&self, data: &[u8], face_index: FT_Long) -> Result<Face, Error> {
+        let mut face = ptr::null_mut();
+
+        let res = unsafe {
+            FT_New_Memory_Face(
+                self.lib,
+                data.as_ptr(),
+                data.len() as i32,
+                face_index,
+                &mut face as *mut _,
+            )
+        };
+        Ok(Face {
+            face: ft_result(res, face)?,
+        })
+    }
+
     pub fn set_lcd_filter(&mut self, filter: FT_LcdFilter) -> Result<(), Error> {
         unsafe { ft_result(FT_Library_SetLcdFilter(self.lib, filter), ()) }
     }
