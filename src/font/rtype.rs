@@ -52,7 +52,7 @@ impl FontSystem for RustTypeFonts {
             let font_props = font_props.build();
 
             let (data, idx) = system_fonts::get(&font_props)
-                .ok_or_else(|| format_err!("no font matching {:?} {:?}", font_props, font_attr))?;
+                .ok_or_else(|| format_err!("no font matching {:?}", font_attr))?;
             eprintln!("want idx {} in bytes of len {}", idx, data.len());
             let collection = FontCollection::from_bytes(data)?;
             // Most likely problem is that we matched an OpenType font and rusttype can't

@@ -3,7 +3,7 @@ use super::super::{get_shell, spawn_window};
 use super::super::{Child, Command};
 use super::xkeysyms;
 use super::{Connection, Window};
-use clipboard::ClipboardContext;
+use clipboard::{ClipboardContext, ClipboardProvider};
 use config::Config;
 use failure::Error;
 use font::FontConfiguration;
