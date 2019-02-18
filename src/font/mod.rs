@@ -26,10 +26,10 @@ pub mod coretext;
 #[cfg(all(target_os = "macos", not(feature = "force-rusttype")))]
 use self::coretext::FontSystemImpl;
 
+pub mod fontloader;
 #[cfg(any(windows, feature = "force-rusttype"))]
 pub mod fontloader_and_rusttype;
 pub mod rtype;
-
 #[cfg(any(windows, feature = "force-rusttype"))]
 use self::fontloader_and_rusttype::FontSystemImpl;
 

@@ -3,6 +3,7 @@
 use super::hbwrap as harfbuzz;
 use config::{Config, TextStyle};
 use failure::Error;
+use font::fontloader;
 use font::rtype::RustTypeFontImpl;
 use font::{FallbackIdx, Font, FontMetrics, FontSystem, GlyphInfo, NamedFont, RasterizedGlyph};
 use font_loader::system_fonts;
@@ -27,24 +28,7 @@ impl RustTypeFonts {
 impl FontSystem for RustTypeFonts {
     fn load_font(&self, config: &Config, style: &TextStyle) -> Result<Box<NamedFont>, Error> {
         let mut fonts = Vec::new();
-        for font_attr in &style.font {
-            let mut font_props = system_fonts::FontPropertyBuilder::new()
-                .family(&font_attr.family)
-                .monospace();
-            font_props = if *font_attr.bold.as_ref().unwrap_or(&false) {
-                font_props.bold()
-            } else {
-                font_props
-            };
-            font_props = if *font_attr.italic.as_ref().unwrap_or(&false) {
-                font_props.italic()
-            } else {
-                font_props
-            };
-            let font_props = font_props.build();
-
-            let (data, idx) = system_fonts::get(&font_props)
-                .ok_or_else(|| format_err!("no font matching {:?}", font_attr))?;
+        for (data, idx) in fontloader::load_system_fonts(config, style)? {
             eprintln!("want idx {} in bytes of len {}", idx, data.len());
             fonts.push(RustTypeFontImpl::from_bytes(
                 data,
