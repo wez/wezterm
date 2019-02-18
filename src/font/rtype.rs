@@ -43,7 +43,7 @@ impl FontSystem for RustTypeFonts {
         let collection = FontCollection::from_bytes(data)?;
         let font = collection.font_at(idx as usize)?;
         eprintln!("made a font for {:?}", style);
-        let scale = Scale::uniform(config.font_size as f32 * 96.0 / 72.0);
+        let scale = Scale::uniform(config.font_size as f32 * config.dpi as f32 / 72.0);
         let vmetrics = font.v_metrics(scale);
         eprintln!("vmetrics {:?}", vmetrics);
         let cell_height = f64::from(vmetrics.ascent - vmetrics.descent + vmetrics.line_gap);

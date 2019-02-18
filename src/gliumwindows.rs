@@ -7,6 +7,7 @@ use config::Config;
 use failure::Error;
 use font::FontConfiguration;
 use glium;
+use glium::glutin::dpi::{LogicalPosition, LogicalSize};
 use glium::glutin::{self, ElementState, MouseCursor};
 use guiloop::{GuiEventLoop, SessionTerminated};
 use opengl::render::Renderer;
@@ -23,10 +24,10 @@ struct Host {
     display: glium::Display,
     pty: MasterPty,
     clipboard: Clipboard,
-    window_position: Option<(i32, i32)>,
+    window_position: Option<LogicalPosition>,
     /// is is_some, holds position to be restored after exiting
     /// fullscreen mode.
-    is_fullscreen: Option<(i32, i32)>,
+    is_fullscreen: Option<LogicalPosition>,
 }
 
 /// macOS gets unhappy if we set up the clipboard too early,
@@ -89,10 +90,9 @@ impl term::TerminalHost for Host {
 
     fn toggle_full_screen(&mut self) {
         let window = self.display.gl_window();
-        let pos = self.is_fullscreen.take();
-        if let Some((x, y)) = pos {
+        if let Some(pos) = self.is_fullscreen.take() {
             window.set_fullscreen(None);
-            window.set_position(x, y);
+            window.set_position(pos);
         } else {
             // We use our own idea of the position because get_position()
             // appears to only return the initial position of the window
@@ -132,7 +132,7 @@ pub struct TerminalWindow {
     cell_width: usize,
     terminal: Terminal,
     process: Child,
-    last_mouse_coords: (f64, f64),
+    last_mouse_coords: LogicalPosition,
     last_modifiers: KeyModifiers,
 }
 
@@ -161,13 +161,15 @@ impl TerminalWindow {
         let size = pty.get_size()?;
         let width = size.ws_xpixel;
         let height = size.ws_ypixel;
+        let logical_size = LogicalSize::new(width.into(), height.into());
+        eprintln!("make window with {}x{}", width, height);
 
         let display = {
             let pref_context = glutin::ContextBuilder::new()
                 .with_vsync(true)
                 .with_pixel_format(24, 8);
             let window = glutin::WindowBuilder::new()
-                .with_dimensions(width.into(), height.into())
+                .with_dimensions(logical_size)
                 .with_title("wezterm");
 
             let mut_loop = event_loop.event_loop.borrow_mut();
@@ -202,7 +204,7 @@ impl TerminalWindow {
             cell_width,
             terminal,
             process,
-            last_mouse_coords: (0.0, 0.0),
+            last_mouse_coords: LogicalPosition::new(0.0, 0.0),
             last_modifiers: Default::default(),
         })
     }
@@ -244,14 +246,10 @@ impl TerminalWindow {
         self.terminal.advance_bytes(data, &mut self.host)
     }
 
-    fn resize_surfaces(&mut self, width: u16, height: u16) -> Result<bool, Error> {
-        // Simple approach to hidpi displays; if the display factor is
-        // two (retina) then we want things to be twice as large so we
-        // simply divide by the scaling factor to have them take up
-        // twice as much space.  OpenGL is going to scale things automatically.
-        let scale = self.host.display.gl_window().hidpi_factor();
-        let width = (f32::from(width) / scale) as u16;
-        let height = (f32::from(height) / scale) as u16;
+    fn resize_surfaces(&mut self, size: LogicalSize) -> Result<bool, Error> {
+        let (width, height): (u32, u32) = size.into();
+        let width = width as u16;
+        let height = height as u16;
 
         if width != self.width || height != self.height {
             debug!("resize {},{}", width, height);
@@ -295,11 +293,11 @@ impl TerminalWindow {
 
     fn mouse_move(
         &mut self,
-        x: f64,
-        y: f64,
+        position: LogicalPosition,
         modifiers: glium::glutin::ModifiersState,
     ) -> Result<(), Error> {
-        self.last_mouse_coords = (x, y);
+        self.last_mouse_coords = position;
+        let (x, y): (i32, i32) = position.into();
         self.terminal.mouse_event(
             term::MouseEvent {
                 kind: MouseEventKind::Move,
@@ -344,8 +342,8 @@ impl TerminalWindow {
                     glutin::MouseButton::Middle => MouseButton::Middle,
                     glutin::MouseButton::Other(_) => return Ok(()),
                 },
-                x: (self.last_mouse_coords.0 as usize / self.cell_width) as usize,
-                y: (self.last_mouse_coords.1 as usize / self.cell_height) as i64,
+                x: (self.last_mouse_coords.x as usize / self.cell_width) as usize,
+                y: (self.last_mouse_coords.y as usize / self.cell_height) as i64,
                 modifiers: Self::decode_modifiers(modifiers),
             },
             &mut self.host,
@@ -379,8 +377,8 @@ impl TerminalWindow {
             glutin::MouseScrollDelta::LineDelta(_, lines) if lines < 0.0 => {
                 (MouseButton::WheelDown, lines.abs().ceil() as usize)
             }
-            glutin::MouseScrollDelta::PixelDelta(_, pixels) => {
-                let lines = pixels / self.cell_height as f32;
+            glutin::MouseScrollDelta::PixelDelta(position) => {
+                let lines = position.y / self.cell_height as f64;
                 if lines > 0.0 {
                     (MouseButton::WheelUp, lines.abs().ceil() as usize)
                 } else if lines < 0.0 {
@@ -396,8 +394,8 @@ impl TerminalWindow {
                 term::MouseEvent {
                     kind: MouseEventKind::Press,
                     button,
-                    x: (self.last_mouse_coords.0 as usize / self.cell_width) as usize,
-                    y: (self.last_mouse_coords.1 as usize / self.cell_height) as i64,
+                    x: (self.last_mouse_coords.x as usize / self.cell_width) as usize,
+                    y: (self.last_mouse_coords.y as usize / self.cell_height) as i64,
                     modifiers: Self::decode_modifiers(modifiers),
                 },
                 &mut self.host,
@@ -500,7 +498,7 @@ impl TerminalWindow {
                 V::Down => KeyCode::DownArrow,
                 V::LAlt | V::RAlt => KeyCode::Alt,
                 V::LControl | V::RControl => KeyCode::Control,
-                V::LMenu | V::RMenu | V::LShift | V::RShift => KeyCode::Shift,
+                V::LShift | V::RShift => KeyCode::Shift,
                 V::LWin | V::RWin => KeyCode::Super,
                 _ => {
                     eprintln!("unhandled key: {:?}", event);
@@ -528,33 +526,33 @@ impl TerminalWindow {
         use glium::glutin::{Event, WindowEvent};
         match *event {
             Event::WindowEvent {
-                event: WindowEvent::Closed,
+                event: WindowEvent::Destroyed,
                 ..
             } => {
                 return Err(SessionTerminated::WindowClosed.into());
             }
             Event::WindowEvent {
-                event: WindowEvent::HiDPIFactorChanged(_),
+                event: WindowEvent::HiDpiFactorChanged(_),
                 ..
             } => {
                 // Assuming that this is dragging a window between hidpi and
                 // normal dpi displays.  Treat this as a resize event of sorts
                 let size = self.host.display.gl_window().get_inner_size();
-                if let Some((width, height)) = size {
-                    self.resize_surfaces(width as u16, height as u16)?;
+                if let Some(size) = size {
+                    self.resize_surfaces(size)?;
                 }
             }
             Event::WindowEvent {
-                event: WindowEvent::Resized(width, height),
+                event: WindowEvent::Resized(size),
                 ..
             } => {
-                self.resize_surfaces(width as u16, height as u16)?;
+                self.resize_surfaces(size)?;
             }
             Event::WindowEvent {
-                event: WindowEvent::Moved(x, y),
+                event: WindowEvent::Moved(position),
                 ..
             } => {
-                self.host.window_position = Some((x, y));
+                self.host.window_position = Some(position);
             }
             Event::WindowEvent {
                 event: WindowEvent::ReceivedCharacter(c),
@@ -573,13 +571,13 @@ impl TerminalWindow {
             Event::WindowEvent {
                 event:
                     WindowEvent::CursorMoved {
-                        position: (x, y),
+                        position,
                         modifiers,
                         ..
                     },
                 ..
             } => {
-                self.mouse_move(x, y, modifiers)?;
+                self.mouse_move(position, modifiers)?;
             }
             Event::WindowEvent {
                 event:
