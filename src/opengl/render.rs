@@ -109,8 +109,71 @@ implement_vertex!(
     v_idx,
 );
 
+#[cfg(any(windows, feature = "force-glutin", target_os = "macos"))]
 const VERTEX_SHADER: &str = r#"
 #version 330
+in vec2 position;
+in vec2 adjust;
+in vec2 tex;
+in vec4 fg_color;
+in vec4 bg_color;
+in float has_color;
+in float underline;
+in float v_idx;
+
+uniform mat4 projection;
+uniform mat4 translation;
+uniform bool bg_and_line_layer;
+
+out vec2 tex_coords;
+out vec2 underline_coords;
+out vec4 o_fg_color;
+out vec4 o_bg_color;
+out float o_has_color;
+out float o_underline;
+
+// Offset from the RHS texture coordinate to the LHS.
+// This is an underestimation to avoid the shader interpolating
+// the underline gylph into its neighbor.
+const float underline_offset = (1.0 / 5.0);
+
+void main() {
+    o_fg_color = fg_color;
+    o_bg_color = bg_color;
+    o_has_color = has_color;
+    o_underline = underline;
+
+    if (bg_and_line_layer) {
+        gl_Position = projection * vec4(position, 0.0, 1.0);
+
+        if (underline != 0.0) {
+            // Populate the underline texture coordinates based on the
+            // v_idx (which tells us which corner of the cell we're
+            // looking at) and o_underline which corresponds to one
+            // of the U_XXX constants defined in the rust code below
+            // and which holds the RHS position in the texture coordinate
+            // space for the underline texture layer.
+            if (v_idx == 0.0) { // top left
+                underline_coords = vec2(o_underline - underline_offset, -1.0);
+            } else if (v_idx == 1.0) { // top right
+                underline_coords = vec2(o_underline, -1.0);
+            } else if (v_idx == 2.0) { // bot left
+                underline_coords = vec2(o_underline- underline_offset, 0.0);
+            } else { // bot right
+                underline_coords = vec2(o_underline, 0.0);
+            }
+        }
+
+    } else {
+        gl_Position = projection * vec4(position + adjust, 0.0, 1.0);
+        tex_coords = tex;
+    }
+}
+"#;
+
+#[cfg(not(any(windows, feature = "force-glutin", target_os = "macos")))]
+const VERTEX_SHADER: &str = r#"
+#version 300 es
 in vec2 position;
 in vec2 adjust;
 in vec2 tex;
@@ -186,8 +249,69 @@ const U_STRIKE_ONE: f32 = 4.0 / U_COLS;
 /// Texture coord for the RHS of the strikethrough + double underline glyph
 const U_STRIKE_TWO: f32 = 5.0 / U_COLS;
 
+#[cfg(any(windows, feature = "force-glutin", target_os = "macos"))]
 const FRAGMENT_SHADER: &str = r#"
 #version 330
+precision mediump float;
+in vec2 tex_coords;
+in vec2 underline_coords;
+in vec4 o_fg_color;
+in vec4 o_bg_color;
+in float o_has_color;
+in float o_underline;
+
+out vec4 color;
+uniform sampler2D glyph_tex;
+uniform sampler2D underline_tex;
+uniform bool bg_and_line_layer;
+
+float multiply_one(float src, float dst, float inv_dst_alpha, float inv_src_alpha) {
+    return (src * dst) + (src * (inv_dst_alpha)) + (dst * (inv_src_alpha));
+}
+
+// Alpha-regulated multiply to colorize the glyph bitmap.
+// The texture data is pre-multiplied by the alpha, so we need to divide
+// by the alpha after multiplying to avoid having the colors be too dark.
+vec4 multiply(vec4 src, vec4 dst) {
+    float inv_src_alpha = 1.0 - src.a;
+    float inv_dst_alpha = 1.0 - dst.a;
+
+    return vec4(
+        multiply_one(src.r, dst.r, inv_dst_alpha, inv_src_alpha) / dst.a,
+        multiply_one(src.g, dst.g, inv_dst_alpha, inv_src_alpha) / dst.a,
+        multiply_one(src.b, dst.b, inv_dst_alpha, inv_src_alpha) / dst.a,
+        dst.a);
+}
+
+void main() {
+    if (bg_and_line_layer) {
+        color = o_bg_color;
+        // If there's an underline/strike glyph, extract the pixel color
+        // from the texture.  If the alpha value is non-zero then we'll
+        // take that pixel, otherwise we'll use the background color.
+        if (o_underline != 0.0) {
+            // Compute the pixel color for this location
+            vec4 under_color = multiply(o_fg_color, texture(underline_tex, underline_coords));
+            if (under_color.a != 0.0) {
+                // if the line glyph isn't transparent in this position then
+                // we take this pixel color, otherwise we'll leave the color
+                // at the background color.
+                color = under_color;
+            }
+        }
+    } else {
+        color = texture(glyph_tex, tex_coords);
+        if (o_has_color == 0.0) {
+            // if it's not a color emoji, tint with the fg_color
+            color = multiply(o_fg_color, color);
+        }
+    }
+}
+"#;
+
+#[cfg(not(any(windows, feature = "force-glutin", target_os = "macos")))]
+const FRAGMENT_SHADER: &str = r#"
+#version 300 es
 precision mediump float;
 in vec2 tex_coords;
 in vec2 underline_coords;
