@@ -303,7 +303,8 @@ void main() {
         color = texture(glyph_tex, tex_coords);
         if (o_has_color == 0.0) {
             // if it's not a color emoji, tint with the fg_color
-            color = multiply(o_fg_color, color);
+            //color = multiply(o_fg_color, color);
+            color.rgb = o_fg_color.rgb;
         }
     }
 }
@@ -363,7 +364,8 @@ void main() {
         color = texture(glyph_tex, tex_coords);
         if (o_has_color == 0.0) {
             // if it's not a color emoji, tint with the fg_color
-            color = multiply(o_fg_color, color);
+            //color = multiply(o_fg_color, color);
+            color.rgb = o_fg_color.rgb;
         }
     }
 }
