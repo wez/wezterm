@@ -730,6 +730,16 @@ impl TerminalState {
             (Escape, ..) => "\x1b",
             // Delete
             (Char('\x7f'), ..) | (Delete, ..) => "\x1b[3~",
+            (Insert, _, _, SHIFT, _) | (Char('v'), ..) if mods == KeyModifiers::SUPER => {
+                let clip = host.get_clipboard()?;
+                if self.bracketed_paste {
+                    write!(buf, "\x1b[200~{}\x1b[201~", clip)?;
+                } else {
+                    buf = clip;
+                }
+                buf.as_str()
+            }
+
             (Char(c), CTRL, _, SHIFT, _) if c <= 0xff as char && c > 0x40 as char => {
                 // If shift is held we have C == 0x43 and want to translate
                 // that into 0x03
@@ -749,15 +759,6 @@ impl TerminalState {
             }
             (Char(c), ..) => {
                 buf.push(c);
-                buf.as_str()
-            }
-            (Insert, _, _, SHIFT, _) => {
-                let clip = host.get_clipboard()?;
-                if self.bracketed_paste {
-                    write!(buf, "\x1b[200~{}\x1b[201~", clip)?;
-                } else {
-                    buf = clip;
-                }
                 buf.as_str()
             }
 
