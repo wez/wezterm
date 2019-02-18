@@ -141,7 +141,7 @@ impl Library {
             FT_New_Memory_Face(
                 self.lib,
                 data.as_ptr(),
-                data.len() as i32,
+                data.len() as _,
                 face_index,
                 &mut face as *mut _,
             )

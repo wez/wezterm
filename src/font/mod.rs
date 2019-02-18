@@ -27,9 +27,11 @@ pub mod coretext;
 use self::coretext::FontSystemImpl;
 
 #[cfg(any(windows, feature = "force-rusttype"))]
+pub mod fontloader_and_rusttype;
 pub mod rtype;
+
 #[cfg(any(windows, feature = "force-rusttype"))]
-use self::rtype::FontSystemImpl;
+use self::fontloader_and_rusttype::FontSystemImpl;
 
 use super::config::{Config, TextStyle};
 use term::CellAttributes;

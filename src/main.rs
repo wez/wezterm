@@ -26,16 +26,13 @@ extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 extern crate clipboard;
+extern crate font_loader;
+extern crate rusttype;
 extern crate term;
 extern crate termwiz;
 extern crate toml;
 extern crate unicode_normalization;
 extern crate unicode_width;
-
-#[cfg(any(windows, feature = "force-rusttype"))]
-extern crate font_loader;
-#[cfg(any(windows, feature = "force-rusttype"))]
-extern crate rusttype;
 
 #[macro_use]
 pub mod log;
