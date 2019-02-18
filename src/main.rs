@@ -30,6 +30,7 @@ extern crate clipboard;
 extern crate term;
 extern crate termwiz;
 extern crate toml;
+extern crate unicode_normalization;
 extern crate unicode_width;
 
 #[cfg(any(windows, feature = "force-rusttype"))]

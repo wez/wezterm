@@ -179,6 +179,15 @@ impl TextStyle {
                 .collect(),
         }
     }
+
+    fn add_fallback(&mut self) {
+        #[cfg(target_os = "macos")]
+        self.font.push(FontAttributes {
+            family: "Apple Symbols".into(),
+            bold: None,
+            italic: None,
+        });
+    }
 }
 
 /// Defines a rule that can be used to select a `TextStyle` given
@@ -292,6 +301,8 @@ impl Config {
                 ..Default::default()
             });
         }
+
+        cfg.font.add_fallback();
 
         cfg
     }
