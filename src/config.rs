@@ -58,7 +58,7 @@ fn default_term() -> String {
 }
 
 fn default_font_size() -> f64 {
-    10.0
+    11.0
 }
 
 fn default_dpi() -> f64 {
