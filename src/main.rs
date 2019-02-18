@@ -122,13 +122,22 @@ fn main() -> Result<(), Error> {
             "Wez's Terminal Emulator\n\
              http://github.com/wez/wezterm",
         )
+        .arg(
+            Arg::with_name("SKIP_CONFIG")
+                .short("n")
+                .help("Skip loading ~/.wezterm.toml"),
+        )
         .arg(Arg::with_name("PROG").multiple(true).help(
             "Instead of executing your shell, run PROG. \
              For example: `wezterm -- bash -l` will spawn bash \
              as if it were a login shell.",
         ))
         .get_matches();
-    let config = Rc::new(config::Config::load()?);
+    let config = Rc::new(if args.is_present("SKIP_CONFIG") {
+        config::Config::default_config()
+    } else {
+        config::Config::load()?
+    });
     println!("Using configuration: {:#?}", config);
 
     let fontconfig = Rc::new(FontConfiguration::new(Rc::clone(&config)));

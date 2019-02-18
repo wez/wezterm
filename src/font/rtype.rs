@@ -28,17 +28,24 @@ impl RustTypeFonts {
 
 impl FontSystem for RustTypeFonts {
     fn load_font(&self, config: &Config, style: &TextStyle) -> Result<Box<NamedFont>, Error> {
-        #[cfg(not(target_os = "macos"))]
-        let family = "monospace";
-        #[cfg(target_os = "macos")]
-        let family = "Menlo";
-        let font_props = system_fonts::FontPropertyBuilder::new()
-            //.family(&style.fontconfig_pattern)
-            .family(family)
-            .monospace()
-            .build();
+        let font = &style.font[0];
+        let mut font_props = system_fonts::FontPropertyBuilder::new()
+            .family(&font.family)
+            .monospace();
+        font_props = if *font.bold.as_ref().unwrap_or(&false) {
+            font_props.bold()
+        } else {
+            font_props
+        };
+        font_props = if *font.italic.as_ref().unwrap_or(&false) {
+            font_props.italic()
+        } else {
+            font_props
+        };
+        let font_props = font_props.build();
+
         let (data, idx) = system_fonts::get(&font_props)
-            .ok_or_else(|| format_err!("no font matching {:?}", family))?;
+            .ok_or_else(|| format_err!("no font matching {:?} {:?}", font_props, font))?;
         eprintln!("want idx {} in bytes of len {}", idx, data.len());
         let collection = FontCollection::from_bytes(data)?;
         let font = collection.font_at(idx as usize)?;

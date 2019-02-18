@@ -80,13 +80,45 @@ impl Default for Config {
     }
 }
 
+#[cfg(target_os = "macos")]
+const FONT_FAMILY: &str = "Menlo";
+#[cfg(not(target_os = "macos"))]
+const FONT_FAMILY: &str = "monospace";
+
+#[derive(Debug, Deserialize, Clone, PartialEq, Eq, Hash)]
+pub struct FontAttributes {
+    /// The font family name
+    pub family: String,
+    /// Whether the font should be a bold variant
+    pub bold: Option<bool>,
+    /// Whether the font should be an italic variant
+    pub italic: Option<bool>,
+}
+
+impl Default for FontAttributes {
+    fn default() -> Self {
+        Self {
+            family: FONT_FAMILY.into(),
+            bold: None,
+            italic: None,
+        }
+    }
+}
+
+fn default_fontconfig_pattern() -> String {
+    FONT_FAMILY.into()
+}
+
 /// Represents textual styling.
 #[derive(Debug, Deserialize, Clone, PartialEq, Eq, Hash)]
 pub struct TextStyle {
     /// A font config pattern to parse to locate the font.
     /// Note that the dpi and current font_size for the terminal
     /// will be set on the parsed result.
+    #[serde(default = "default_fontconfig_pattern")]
     pub fontconfig_pattern: String,
+
+    pub font: Vec<FontAttributes>,
 
     /// If set, when rendering text that is set to the default
     /// foreground color, use this color instead.  This is most
@@ -98,8 +130,9 @@ pub struct TextStyle {
 impl Default for TextStyle {
     fn default() -> Self {
         Self {
-            fontconfig_pattern: "monospace".into(),
+            fontconfig_pattern: FONT_FAMILY.into(),
             foreground: None,
+            font: vec![FontAttributes::default()],
         }
     }
 }
@@ -114,6 +147,15 @@ impl TextStyle {
         Self {
             fontconfig_pattern: format!("{}:weight=bold", self.fontconfig_pattern),
             foreground: self.foreground,
+            font: self
+                .font
+                .iter()
+                .map(|attr| {
+                    let mut attr = attr.clone();
+                    attr.bold = Some(true);
+                    attr
+                })
+                .collect(),
         }
     }
 
@@ -126,6 +168,15 @@ impl TextStyle {
         Self {
             fontconfig_pattern: format!("{}:style=Italic", self.fontconfig_pattern),
             foreground: self.foreground,
+            font: self
+                .font
+                .iter()
+                .map(|attr| {
+                    let mut attr = attr.clone();
+                    attr.italic = Some(true);
+                    attr
+                })
+                .collect(),
         }
     }
 }
@@ -204,7 +255,11 @@ impl Config {
             return Ok(cfg.compute_extra_defaults());
         }
 
-        Ok(Self::default().compute_extra_defaults())
+        Ok(Self::default_config())
+    }
+
+    pub fn default_config() -> Self {
+        Self::default().compute_extra_defaults()
     }
 
     /// In some cases we need to compute expanded values based
