@@ -66,7 +66,7 @@ features = [
 version = "~0.2"
 
 [target.'cfg(target_os = "macos")'.dependencies]
-core-text = "~9.2"
+core-text = "~13.1"
 
 [features]
 debug-escape-sequences = ["term/debug-escape-sequences"]
