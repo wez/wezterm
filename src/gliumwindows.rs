@@ -132,32 +132,15 @@ impl TerminalWindow {
         let display = {
             let pref_context = glutin::ContextBuilder::new()
                 .with_vsync(true)
-                .with_pixel_format(24, 8)
-                .with_srgb(true);
+                .with_pixel_format(24, 8);
             let window = glutin::WindowBuilder::new()
                 .with_dimensions(width.into(), height.into())
                 .with_title("wezterm");
 
             let mut_loop = event_loop.event_loop.borrow_mut();
 
-            match glium::Display::new(window, pref_context, &*mut_loop) {
-                Ok(display) => display,
-                Err(err) => {
-                    eprintln!(
-                        "preferred GL context not available: {}, try a fallback",
-                        err
-                    );
-                    // Take anything that might show something.
-                    // This fallback is typically hit when running with a remote
-                    // X server.
-                    let any_context = glutin::ContextBuilder::new();
-                    let window = glutin::WindowBuilder::new()
-                        .with_dimensions(width.into(), height.into())
-                        .with_title("wezterm");
-                    glium::Display::new(window, any_context, &*mut_loop)
+            glium::Display::new(window, pref_context, &*mut_loop)
                         .map_err(|e| format_err!("{:?}", e))?
-                }
-            }
         };
         let window_id = display.gl_window().id();
         let window_position = display.gl_window().get_position();
