@@ -22,6 +22,7 @@ font-loader = "0.8"
 rusttype = "0.7"
 clipboard = "0.5"
 unicode-normalization = "~0.1"
+freetype = "~0.4"
 
 [target.'cfg(unix)'.dependencies]
 harfbuzz-sys = "~0.2"
@@ -45,7 +46,6 @@ features = [
 version = "~0.3"
 
 [target.'cfg(any(target_os = "android", all(unix, not(target_os = "macos"))))'.dependencies]
-freetype = "~0.4"
 servo-fontconfig = "~0.4"
 egli = "~0.4"
 x11 = {version ="~2.17", features = ["xlib_xcb"]}

@@ -9,7 +9,6 @@ extern crate failure;
 extern crate failure_derive;
 #[cfg(any(target_os = "android", all(unix, not(target_os = "macos"))))]
 extern crate fontconfig; // from servo-fontconfig
-#[cfg(any(target_os = "android", all(unix, not(target_os = "macos"))))]
 extern crate freetype;
 extern crate futures;
 extern crate gl;

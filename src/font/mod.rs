@@ -1,4 +1,5 @@
 use failure::Error;
+mod ftfont;
 #[cfg(unix)]
 mod hbwrap;
 #[cfg(unix)]
@@ -11,10 +12,6 @@ use std::rc::Rc;
 pub mod system;
 pub use self::system::*;
 
-#[cfg(any(
-    target_os = "android",
-    all(unix, not(feature = "force-rusttype"), not(target_os = "macos"))
-))]
 pub mod ftwrap;
 
 #[cfg(all(unix, not(target_os = "macos"), not(feature = "force-rusttype")))]
