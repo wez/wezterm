@@ -20,7 +20,7 @@ unicode-width = "~0.1"
 directories = "~1.0"
 font-loader = "0.8"
 rusttype = "0.7"
-clipboard = "0.2"
+clipboard = "0.5"
 
 [target.'cfg(unix)'.dependencies]
 harfbuzz-sys = "~0.2"
@@ -49,7 +49,7 @@ servo-fontconfig = "~0.4"
 egli = "~0.4"
 x11 = {version ="~2.17", features = ["xlib_xcb"]}
 
-[target.'cfg(any(target_os = "android", windows, all(unix, not(target_os = "macos"))))'.dependencies.glium]
+[dependencies.glium]
 version = "~0.20"
 default-features = false
 features = ["glutin"]

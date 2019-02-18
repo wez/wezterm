@@ -2,7 +2,7 @@
 
 use super::MasterPty;
 use super::{Child, Command};
-use clipboard::ClipboardContext;
+use clipboard::{ClipboardContext, ClipboardProvider};
 use config::Config;
 use failure::Error;
 use font::FontConfiguration;
@@ -22,11 +22,43 @@ use termwiz::hyperlink::Hyperlink;
 struct Host {
     display: glium::Display,
     pty: MasterPty,
-    clipboard: ClipboardContext,
+    clipboard: Clipboard,
     window_position: Option<(i32, i32)>,
     /// is is_some, holds position to be restored after exiting
     /// fullscreen mode.
     is_fullscreen: Option<(i32, i32)>,
+}
+
+/// macOS gets unhappy if we set up the clipboard too early,
+/// so we use this to defer it until we use it
+#[derive(Default)]
+struct Clipboard {
+    clipboard: Option<ClipboardContext>,
+}
+
+impl Clipboard {
+    fn clipboard(&mut self) -> Result<&mut ClipboardContext, Error> {
+        if self.clipboard.is_none() {
+            self.clipboard = Some(ClipboardContext::new().map_err(|e| format_err!("{}", e))?);
+        }
+        Ok(self.clipboard.as_mut().unwrap())
+    }
+
+    pub fn get_clipboard(&mut self) -> Result<String, Error> {
+        self.clipboard()?
+            .get_contents()
+            .map_err(|e| format_err!("{}", e))
+    }
+
+    pub fn set_clipboard(&mut self, clip: Option<String>) -> Result<(), Error> {
+        self.clipboard()?
+            .set_contents(clip.unwrap_or_else(|| "".into()))
+            .map_err(|e| format_err!("{}", e))?;
+        // Request the clipboard contents we just set; on some systems
+        // if we copy and paste in wezterm, the clipboard isn't visible
+        // to us again until the second call to get_clipboard.
+        self.get_clipboard().map(|_| ())
+    }
 }
 
 impl term::TerminalHost for Host {
@@ -44,19 +76,11 @@ impl term::TerminalHost for Host {
     }
 
     fn get_clipboard(&mut self) -> Result<String, Error> {
-        self.clipboard
-            .get_contents()
-            .map_err(|e| format_err!("{}", e))
+        self.clipboard.get_clipboard()
     }
 
     fn set_clipboard(&mut self, clip: Option<String>) -> Result<(), Error> {
-        self.clipboard
-            .set_contents(clip.unwrap_or_else(|| "".into()))
-            .map_err(|e| format_err!("{}", e))
-            // Request the clipboard contents we just set; on some systems
-            // if we copy and paste in wezterm, the clipboard isn't visible
-            // to us again until the second call to get_clipboard.
-            .and_then(|_| self.get_clipboard().map(|_| ()))
+        self.clipboard.set_clipboard(clip)
     }
 
     fn set_title(&mut self, title: &str) {
@@ -156,7 +180,7 @@ impl TerminalWindow {
         let host = Host {
             display,
             pty,
-            clipboard: ClipboardContext::new().map_err(|e| format_err!("{}", e))?,
+            clipboard: Clipboard::default(),
             window_position,
             is_fullscreen: None,
         };
