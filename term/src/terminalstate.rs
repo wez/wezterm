@@ -729,6 +729,7 @@ impl TerminalState {
             (Backspace, ..) => "\x08",
             (Escape, ..) => "\x1b",
             // Delete
+            (Char('\x7f'), _, _, _, false) | (Delete, _, _, _, false) => "\x7f",
             (Char('\x7f'), ..) | (Delete, ..) => "\x1b[3~",
             (Insert, _, _, SHIFT, _) | (Char('v'), ..) if mods == KeyModifiers::SUPER => {
                 let clip = host.get_clipboard()?;
