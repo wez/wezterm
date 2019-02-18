@@ -131,7 +131,6 @@ impl TerminalWindow {
 
         let display = {
             let pref_context = glutin::ContextBuilder::new()
-                //.with_gl(glutin::GlRequest::Specific(glutin::Api::OpenGlEs, (2, 0)))
                 .with_vsync(true)
                 .with_pixel_format(24, 8)
                 .with_srgb(true);

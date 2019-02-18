@@ -474,7 +474,7 @@ impl MasterPty {
     pub fn try_clone(&self) -> Result<Self, Error> {
         // FIXME: this isn't great.  Replace this with a way to
         // clone the output handle and read it.
-        let mut inner = self.inner.lock().unwrap();
+        let inner = self.inner.lock().unwrap();
         Ok(Self {
             inner: Arc::new(Mutex::new(Inner {
                 con: PsuedoCon {

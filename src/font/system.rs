@@ -4,7 +4,6 @@ use super::super::config::{Config, TextStyle};
 #[cfg(unix)]
 use super::hbwrap as harfbuzz;
 use failure::Error;
-use unicode_width::UnicodeWidthStr;
 
 /// A bitmap representation of a glyph.
 /// The data is stored as pre-multiplied RGBA 32bpp.
@@ -49,6 +48,7 @@ impl GlyphInfo {
         info: &harfbuzz::hb_glyph_info_t,
         pos: &harfbuzz::hb_glyph_position_t,
     ) -> GlyphInfo {
+        use unicode_width::UnicodeWidthStr;
         let num_cells = UnicodeWidthStr::width(text) as u8;
         GlyphInfo {
             #[cfg(debug_assertions)]
