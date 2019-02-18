@@ -109,6 +109,10 @@ fn default_fontconfig_pattern() -> String {
     FONT_FAMILY.into()
 }
 
+fn empty_font_attributes() -> Vec<FontAttributes> {
+    Vec::new()
+}
+
 /// Represents textual styling.
 #[derive(Debug, Deserialize, Clone, PartialEq, Eq, Hash)]
 pub struct TextStyle {
@@ -118,6 +122,7 @@ pub struct TextStyle {
     #[serde(default = "default_fontconfig_pattern")]
     pub fontconfig_pattern: String,
 
+    #[serde(default = "empty_font_attributes")]
     pub font: Vec<FontAttributes>,
 
     /// If set, when rendering text that is set to the default

@@ -25,7 +25,27 @@ impl FontConfigAndFreeType {
 
 impl FontSystem for FontConfigAndFreeType {
     fn load_font(&self, config: &Config, style: &TextStyle) -> Result<Box<NamedFont>, Error> {
-        let mut pattern = FontPattern::parse(&style.fontconfig_pattern)?;
+        let mut pattern = if style.font.len() >= 1 {
+            let mut pattern = FontPattern::new()?;
+            if style.font.len() > 1 {
+                eprintln!(
+                    "FIXME: fontconfig loader currently only processes
+                      the first in your set of fonts for {:?}",
+                    style
+                );
+            }
+            let attr = &style.font[0];
+            pattern.family(&attr.family)?;
+            if *attr.bold.as_ref().unwrap_or(&false) {
+                pattern.add_integer("weight", 200)?;
+            }
+            if *attr.italic.as_ref().unwrap_or(&false) {
+                pattern.add_integer("slant", 100)?;
+            }
+            pattern
+        } else {
+            FontPattern::parse(&style.fontconfig_pattern)?
+        };
         pattern.add_double("size", config.font_size)?;
         pattern.add_double("dpi", config.dpi)?;
 
