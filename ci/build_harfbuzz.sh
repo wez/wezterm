@@ -1,8 +1,14 @@
-#!/bin/sh
+#!/bin/bash
 set -e
 set -x
 
-cd ci/harfbuzz
-./autogen.sh --prefix=$PREFIX
-make install
+case "$OSTYPE" in
+  darwin*)
+    ;;
+  *)
+    cd ci/harfbuzz
+    ./autogen.sh --prefix=$PREFIX
+    make install
+    ;;
+esac
 
