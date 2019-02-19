@@ -55,7 +55,7 @@ impl Default for FontSystemSelection {
             not(feature = "force-rusttype")
         )) {
             FontSystemSelection::FontConfigAndFreeType
-        } else if cfg!(all(windows, not(feature = "force-rusttype"))) {
+        } else if cfg!(not(feature = "force-rusttype")) {
             FontSystemSelection::FontLoaderAndFreeType
         } else {
             FontSystemSelection::FontLoaderAndRustType
