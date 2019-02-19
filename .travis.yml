@@ -8,6 +8,11 @@ rust:
   - beta
   - nightly
 
+os:
+  - osx
+  - linux
+  - windows
+
 matrix:
   allow_failures:
     - rust: beta
