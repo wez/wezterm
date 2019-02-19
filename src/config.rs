@@ -192,6 +192,12 @@ impl TextStyle {
             bold: None,
             italic: None,
         });
+        #[cfg(windows)]
+        self.font.push(FontAttributes {
+            family: "Segoe UI".into(),
+            bold: None,
+            italic: None,
+        });
     }
 }
 

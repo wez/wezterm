@@ -61,6 +61,25 @@ impl Face {
         ft_result(unsafe { FT_Select_Size(self.face, idx as i32) }, ())
     }
 
+    pub fn load_codepoint(
+        &mut self,
+        codepoint: char,
+    ) -> Result<(FT_UInt, FT_Glyph_Metrics_), Error> {
+        unsafe {
+            let glyph_pos = FT_Get_Char_Index(self.face, codepoint as u32 as _);
+            let res = FT_Load_Glyph(self.face, glyph_pos, FT_LOAD_COLOR as i32);
+            ensure!(
+                succeeded(res),
+                "load_codepoint {}: FreeType error {:?}",
+                codepoint,
+                res
+            );
+
+            let glyph = &(*(*self.face).glyph);
+            Ok((glyph_pos, glyph.metrics))
+        }
+    }
+
     pub fn load_and_render_glyph(
         &mut self,
         glyph_index: FT_UInt,

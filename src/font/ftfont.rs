@@ -1,4 +1,5 @@
 use failure::Error;
+use font::system::GlyphInfo;
 use font::{ftwrap, Font, FontMetrics, RasterizedGlyph};
 use std::cell::RefCell;
 use std::mem;
@@ -73,6 +74,22 @@ impl FreeTypeFontImpl {
             font: RefCell::new(font),
             cell_height,
             cell_width,
+        })
+    }
+
+    pub fn single_glyph_info(&self, codepoint: char) -> Result<GlyphInfo, Error> {
+        let (glyph_pos, metrics) = self.face.borrow_mut().load_codepoint(codepoint)?;
+        Ok(GlyphInfo {
+            #[cfg(debug_assertions)]
+            text: codepoint.to_string(),
+            cluster: 0,
+            num_cells: 1,
+            font_idx: 0,
+            glyph_pos,
+            x_advance: (metrics.horiAdvance as f64 / 64.0).into(),
+            x_offset: (metrics.horiBearingX as f64 / 64.0).into(),
+            y_advance: 0.0,
+            y_offset: 0.0,
         })
     }
 }

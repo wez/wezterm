@@ -27,10 +27,13 @@ pub mod coretext;
 use self::coretext::FontSystemImpl;
 
 pub mod fontloader;
+pub mod fontloader_and_freetype;
 #[cfg(any(windows, feature = "force-rusttype"))]
 pub mod fontloader_and_rusttype;
 pub mod rtype;
-#[cfg(any(windows, feature = "force-rusttype"))]
+#[cfg(all(windows, not(feature = "force-rusttype")))]
+use self::fontloader_and_freetype::FontSystemImpl;
+#[cfg(feature = "force-rusttype")]
 use self::fontloader_and_rusttype::FontSystemImpl;
 
 use super::config::{Config, TextStyle};
