@@ -114,8 +114,9 @@ fn main() -> Result<(), Error> {
     let event_loop = Rc::new(GuiEventLoop::new()?);
 
     spawn_window(&event_loop, cmd, &config, &fontconfig)?;
-
-    event_loop.run()?;
+    // This convoluted run() signature is present because of this issue:
+    // https://github.com/tomaka/winit/issues/413
+    GuiEventLoop::run(&event_loop, &config, &fontconfig)?;
     Ok(())
 }
 

@@ -1,7 +1,12 @@
+use crate::config::Config;
+use crate::font::FontConfiguration;
+pub use crate::gliumwindows::TerminalWindow;
+use crate::guiloop::SessionTerminated;
 use failure::Error;
 use futures::future;
 use glium;
 use glium::glutin::EventsLoopProxy;
+pub use glium::glutin::WindowId;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::io::Read;
@@ -9,10 +14,6 @@ use std::rc::Rc;
 use std::sync::mpsc::{self, Receiver, SyncSender, TryRecvError};
 use std::thread;
 use std::time::{Duration, SystemTime};
-
-pub use crate::gliumwindows::TerminalWindow;
-use crate::guiloop::SessionTerminated;
-pub use glium::glutin::WindowId;
 
 use crate::futurecore;
 use crate::gliumwindows;
@@ -45,7 +46,7 @@ pub fn channel<T: Send>(proxy: EventsLoopProxy) -> (GuiSender<T>, Receiver<T>) {
 }
 
 #[derive(Clone)]
-enum IOEvent {
+pub enum IOEvent {
     Data { window_id: WindowId, data: Vec<u8> },
     Terminated { window_id: WindowId },
 }
@@ -55,6 +56,11 @@ enum IOEvent {
 #[derive(Default)]
 struct Windows {
     by_id: HashMap<WindowId, gliumwindows::TerminalWindow>,
+}
+
+enum SpawnRequest {
+    Window,
+    Tab(WindowId),
 }
 
 /// The `GuiEventLoop` represents the combined gui event processor,
@@ -67,6 +73,8 @@ pub struct GuiEventLoop {
     pub core: futurecore::Core,
     poll_tx: GuiSender<IOEvent>,
     poll_rx: Receiver<IOEvent>,
+    spawn_tx: GuiSender<SpawnRequest>,
+    spawn_rx: Receiver<SpawnRequest>,
     #[cfg(unix)]
     sigchld_rx: Receiver<()>,
     tick_rx: Receiver<()>,
@@ -82,6 +90,7 @@ impl GuiEventLoop {
         let (fut_tx, fut_rx) = channel(event_loop.create_proxy());
         let core = futurecore::Core::new(fut_tx, fut_rx);
 
+        let (spawn_tx, spawn_rx) = channel(event_loop.create_proxy());
         let (poll_tx, poll_rx) = channel(event_loop.create_proxy());
         #[cfg(unix)]
         let (sigchld_tx, sigchld_rx) = channel(event_loop.create_proxy());
@@ -101,6 +110,8 @@ impl GuiEventLoop {
 
         Ok(Self {
             core,
+            spawn_tx,
+            spawn_rx,
             poll_tx,
             poll_rx,
             tick_rx,
@@ -109,6 +120,14 @@ impl GuiEventLoop {
             event_loop: RefCell::new(event_loop),
             windows: Rc::new(RefCell::new(Default::default())),
         })
+    }
+
+    pub fn request_spawn_window(&self) -> Result<(), Error> {
+        self.spawn_tx.send(SpawnRequest::Window)
+    }
+
+    pub fn request_spawn_tab(&self, window_id: WindowId) -> Result<(), Error> {
+        self.spawn_tx.send(SpawnRequest::Tab(window_id))
     }
 
     /// Add a window to the event loop and run it.
@@ -220,10 +239,10 @@ impl GuiEventLoop {
             match self.poll_rx.try_recv() {
                 Ok(IOEvent::Data { window_id, data }) => {
                     let mut windows = self.windows.borrow_mut();
-                    let window = windows.by_id.get_mut(&window_id).ok_or_else(|| {
-                        format_err!("window_id {:?} not in windows_by_id map", window_id)
-                    })?;
-                    window.process_data_read_from_pty(&data);
+                    windows.by_id.get_mut(&window_id).map(|window| {
+                        window.process_data_read_from_pty(&data);
+                        Some(())
+                    });
                 }
                 Ok(IOEvent::Terminated { window_id }) => {
                     self.schedule_window_close(window_id)?;
@@ -316,27 +335,51 @@ impl GuiEventLoop {
         }
     }
 
+    fn process_spawn(
+        myself: &Rc<Self>,
+        config: &Rc<Config>,
+        fonts: &Rc<FontConfiguration>,
+    ) -> Result<(), Error> {
+        loop {
+            match myself.spawn_rx.try_recv() {
+                Ok(SpawnRequest::Window) => {
+                    crate::spawn_window(myself, None, config, fonts)?;
+                }
+                Ok(SpawnRequest::Tab(_window_id)) => {
+                    eprintln!("Spawning tabs is not yet implemented for glutin");
+                }
+                Err(TryRecvError::Empty) => return Ok(()),
+                Err(err) => bail!("sigchld_rx disconnected {:?}", err),
+            }
+        }
+    }
+
     /// Run the event loop.  Does not return until there is either a fatal
     /// error, or until there are no more windows left to manage.
-    pub fn run(&self) -> Result<(), Error> {
+    pub fn run(
+        myself: &Rc<Self>,
+        config: &Rc<Config>,
+        fonts: &Rc<FontConfiguration>,
+    ) -> Result<(), Error> {
         loop {
-            self.process_futures();
+            myself.process_futures();
 
             // Check the window count; if after processing the futures there
             // are no windows left, then we are done.
             {
-                let windows = self.windows.borrow();
+                let windows = myself.windows.borrow();
                 if windows.by_id.is_empty() {
                     debug!("No more windows; done!");
                     return Ok(());
                 }
             }
 
-            self.run_event_loop()?;
-            self.process_poll()?;
+            myself.run_event_loop()?;
+            myself.process_poll()?;
+            Self::process_spawn(myself, config, fonts)?;
             #[cfg(unix)]
-            self.process_sigchld()?;
-            self.process_tick()?;
+            myself.process_sigchld()?;
+            myself.process_tick()?;
         }
     }
 }

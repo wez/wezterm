@@ -105,7 +105,15 @@ impl GuiEventLoop {
         })
     }
 
-    pub fn run(&self) -> Result<(), Error> {
+    pub fn run(
+        myself: &Rc<Self>,
+        _config: &Rc<Config>,
+        _fonts: &Rc<FontConfiguration>,
+    ) -> Result<(), Error> {
+        myself.run_impl()
+    }
+
+    fn run_impl(&self) -> Result<(), Error> {
         let mut events = Events::with_capacity(8);
 
         let tok_core = Token(TOK_CORE);

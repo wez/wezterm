@@ -21,6 +21,7 @@ use term::{MouseButton, MouseEventKind};
 use termwiz::hyperlink::Hyperlink;
 
 struct Host {
+    event_loop: Rc<GuiEventLoop>,
     display: glium::Display,
     pty: MasterPty,
     clipboard: Clipboard,
@@ -100,21 +101,12 @@ impl term::TerminalHost for Host {
     }
 
     fn new_window(&mut self) {
-        /*
-        use super::spawn_window;
-        use futures;
-        println!("open a new one!");
-        let event_loop = Rc::clone(&self.event_loop);
-        let config = Rc::clone(&self.config);
-        let fonts = Rc::clone(&self.renderer.fonts);
+        self.event_loop.request_spawn_window().ok();
+    }
+    fn new_tab(&mut self) {
         self.event_loop
-            .core
-            .spawn(futures::future::poll_fn(move || {
-                spawn_window(&event_loop, None, &config, &fonts)
-                    .map(futures::Async::Ready)
-                    .map_err(|_| ())
-            }));
-        */
+            .request_spawn_tab(self.display.gl_window().id())
+            .ok();
     }
 }
 
@@ -177,6 +169,7 @@ impl TerminalWindow {
         let window_position = display.gl_window().get_position();
 
         let host = Host {
+            event_loop: Rc::clone(event_loop),
             display,
             pty,
             clipboard: Clipboard::default(),
