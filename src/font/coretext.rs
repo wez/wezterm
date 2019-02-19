@@ -14,7 +14,7 @@ impl CoreTextSystem {
 }
 
 impl FontSystem for CoreTextSystem {
-    fn load_font(&self, config: &Config, style: &TextStyle) -> Result<Box<NamedFont>, Error> {
+    fn load_font(&self, _config: &Config, _style: &TextStyle) -> Result<Box<NamedFont>, Error> {
         bail!("load_font");
     }
 }

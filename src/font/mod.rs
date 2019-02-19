@@ -1,8 +1,8 @@
 use failure::Error;
 mod ftfont;
-#[cfg(unix)]
+#[cfg(all(unix, not(target_os = "macos")))]
 mod hbwrap;
-#[cfg(unix)]
+#[cfg(all(unix, not(target_os = "macos")))]
 use self::hbwrap as harfbuzz;
 
 use std::cell::RefCell;
@@ -159,7 +159,7 @@ impl FontConfiguration {
 }
 
 #[allow(dead_code)]
-#[cfg(unix)]
+#[cfg(all(unix, not(target_os = "macos")))]
 pub fn shape_with_harfbuzz(
     font: &mut NamedFont,
     font_idx: system::FallbackIdx,

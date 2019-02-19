@@ -5,13 +5,13 @@ use std::cell::RefCell;
 use std::mem;
 use std::slice;
 
-#[cfg(unix)]
+#[cfg(all(unix, not(target_os = "macos")))]
 use super::hbwrap as harfbuzz;
 
 /// Holds a loaded font alternative
 pub struct FreeTypeFontImpl {
     face: RefCell<ftwrap::Face>,
-    #[cfg(unix)]
+    #[cfg(all(unix, not(target_os = "macos")))]
     font: RefCell<harfbuzz::Font>,
     /// nominal monospace cell height
     cell_height: f64,
@@ -65,12 +65,12 @@ impl FreeTypeFontImpl {
         };
 
         debug!("metrics: width={} height={}", cell_width, cell_height);
-        #[cfg(unix)]
+        #[cfg(all(unix, not(target_os = "macos")))]
         let font = harfbuzz::Font::new(face.face);
 
         Ok(FreeTypeFontImpl {
             face: RefCell::new(face),
-            #[cfg(unix)]
+            #[cfg(all(unix, not(target_os = "macos")))]
             font: RefCell::new(font),
             cell_height,
             cell_width,
@@ -95,7 +95,7 @@ impl FreeTypeFontImpl {
 }
 
 impl Font for FreeTypeFontImpl {
-    #[cfg(unix)]
+    #[cfg(all(unix, not(target_os = "macos")))]
     fn harfbuzz_shape(
         &self,
         buf: &mut harfbuzz::Buffer,
@@ -134,7 +134,7 @@ impl Font for FreeTypeFontImpl {
             // assembles these bits.
             (render_mode as i32) << 16;
 
-        #[cfg(unix)]
+        #[cfg(all(unix, not(target_os = "macos")))]
         self.font.borrow_mut().set_load_flags(load_flags);
 
         // This clone is conceptually unsafe, but ok in practice as we are

@@ -106,7 +106,7 @@ impl Face {
 }
 
 impl Font {
-    #[cfg(any(target_os = "android", all(unix, not(target_os = "macos"))))]
+    #[cfg(not(target_os = "macos"))]
     /// Create a harfbuzz face from a freetype font
     pub fn new(face: freetype::freetype::FT_Face) -> Font {
         // hb_ft_font_create_referenced always returns a
@@ -130,7 +130,7 @@ impl Font {
         Ok(Self { font })
     }
 
-    #[cfg(any(target_os = "android", all(unix, not(target_os = "macos"))))]
+    #[cfg(not(target_os = "macos"))]
     pub fn set_load_flags(&mut self, load_flags: freetype::freetype::FT_Int32) {
         unsafe {
             hb_ft_font_set_load_flags(self.font, load_flags);
