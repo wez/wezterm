@@ -87,7 +87,7 @@ impl FreeTypeFontImpl {
             font_idx: 0,
             glyph_pos,
             x_advance: (metrics.horiAdvance as f64 / 64.0).into(),
-            x_offset: (metrics.horiBearingX as f64 / 64.0).into(),
+            x_offset: 0.0, //(metrics.horiBearingX as f64 / 64.0).into(),
             y_advance: 0.0,
             y_offset: 0.0,
         })
