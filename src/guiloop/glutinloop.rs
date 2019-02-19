@@ -6,8 +6,9 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::io::Read;
 use std::rc::Rc;
-use std::sync::mpsc::{self, Receiver, Sender, TryRecvError};
+use std::sync::mpsc::{self, Receiver, SyncSender, TryRecvError};
 use std::thread;
+use std::time::{Duration, SystemTime};
 
 pub use crate::gliumwindows::TerminalWindow;
 use crate::guiloop::SessionTerminated;
@@ -20,7 +21,7 @@ use crate::sigchld;
 
 #[derive(Clone)]
 pub struct GuiSender<T: Send> {
-    tx: Sender<T>,
+    tx: SyncSender<T>,
     proxy: EventsLoopProxy,
 }
 
@@ -36,7 +37,10 @@ impl<T: Send> GuiSender<T> {
 }
 
 pub fn channel<T: Send>(proxy: EventsLoopProxy) -> (GuiSender<T>, Receiver<T>) {
-    let (tx, rx) = mpsc::channel();
+    // Set an upper bound on the number of items in the queue, so that
+    // we don't swamp the gui loop; this puts back pressure on the
+    // producer side so that we have a chance for eg: processing CTRL-C
+    let (tx, rx) = mpsc::sync_channel(4);
     (GuiSender { tx, proxy }, rx)
 }
 
@@ -68,6 +72,9 @@ pub struct GuiEventLoop {
     tick_rx: Receiver<()>,
 }
 
+const TICK_INTERVAL: Duration = Duration::from_millis(50);
+const MAX_POLL_LOOP_DURATION: Duration = Duration::from_millis(500);
+
 impl GuiEventLoop {
     pub fn new() -> Result<Self, Error> {
         let event_loop = glium::glutin::EventsLoop::new();
@@ -82,13 +89,10 @@ impl GuiEventLoop {
         // The glutin/glium plumbing has no native tick/timer stuff, so
         // we implement one using a thread.  Nice.
         let (tick_tx, tick_rx) = channel(event_loop.create_proxy());
-        thread::spawn(move || {
-            use std::time;
-            loop {
-                std::thread::sleep(time::Duration::from_millis(50));
-                if tick_tx.send(()).is_err() {
-                    return;
-                }
+        thread::spawn(move || loop {
+            std::thread::sleep(TICK_INTERVAL);
+            if tick_tx.send(()).is_err() {
+                return;
             }
         });
 
@@ -118,7 +122,7 @@ impl GuiEventLoop {
         let tx = self.poll_tx.clone();
 
         thread::spawn(move || {
-            const BUFSIZE: usize = 8192;
+            const BUFSIZE: usize = 32 * 1024;
             let mut buf = [0; BUFSIZE];
             loop {
                 match pty.read(&mut buf) {
@@ -202,7 +206,17 @@ impl GuiEventLoop {
     /// event or our interval timer may have expired, indicating that
     /// we need to paint.
     fn process_poll(&self) -> Result<(), Error> {
+        let start = SystemTime::now();
         loop {
+            match start.elapsed() {
+                Ok(elapsed) if elapsed > MAX_POLL_LOOP_DURATION => {
+                    return Ok(());
+                }
+                Err(_) => {
+                    return Ok(());
+                }
+                _ => {}
+            }
             match self.poll_rx.try_recv() {
                 Ok(IOEvent::Data { window_id, data }) => {
                     let mut windows = self.windows.borrow_mut();
