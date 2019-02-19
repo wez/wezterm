@@ -23,6 +23,7 @@ rusttype = "0.7"
 clipboard = "0.5"
 unicode-normalization = "~0.1"
 freetype = "~0.4"
+open = "1.2"
 
 [target.'cfg(unix)'.dependencies]
 harfbuzz-sys = "~0.2"

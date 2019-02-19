@@ -121,12 +121,9 @@ impl<'a> term::TerminalHost for TabHost<'a> {
     }
 
     fn click_link(&mut self, link: &Rc<Hyperlink>) {
-        // TODO: make this configurable
-        let mut cmd = Command::new("xdg-open");
-        cmd.arg(&link.uri());
-        match cmd.spawn() {
+        match open::that(link.uri()) {
             Ok(_) => {}
-            Err(err) => eprintln!("failed to spawn xdg-open {}: {:?}", link.uri(), err),
+            Err(err) => eprintln!("failed to open {}: {:?}", link.uri(), err),
         }
     }
 

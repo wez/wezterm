@@ -1,7 +1,7 @@
 //! Generic system dependent windows via glium+glutin
 
+use super::Child;
 use super::MasterPty;
-use super::{Child, Command};
 use clipboard::{ClipboardContext, ClipboardProvider};
 use config::Config;
 use failure::Error;
@@ -67,12 +67,9 @@ impl term::TerminalHost for Host {
         &mut self.pty
     }
     fn click_link(&mut self, link: &Rc<Hyperlink>) {
-        // TODO: make this configurable
-        let mut cmd = Command::new("xdg-open");
-        cmd.arg(link.uri());
-        match cmd.spawn() {
+        match open::that(link.uri()) {
             Ok(_) => {}
-            Err(err) => eprintln!("failed to spawn xdg-open {}: {:?}", link.uri(), err),
+            Err(err) => eprintln!("failed to open {}: {:?}", link.uri(), err),
         }
     }
 

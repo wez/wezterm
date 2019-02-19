@@ -28,6 +28,7 @@ case `lsb_release -ds` in
       libfreetype6-dev \
       libegl1-mesa-dev \
       libharfbuzz-dev \
+      xdg-utils \
       ragel
     ;;
   *)

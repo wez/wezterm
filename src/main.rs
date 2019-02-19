@@ -27,6 +27,7 @@ extern crate serde;
 extern crate serde_derive;
 extern crate clipboard;
 extern crate font_loader;
+extern crate open;
 extern crate rusttype;
 extern crate term;
 extern crate termwiz;
