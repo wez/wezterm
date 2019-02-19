@@ -12,6 +12,14 @@ struct NamedFontImpl {
     _fontdata: Vec<Vec<u8>>,
 }
 
+impl Drop for NamedFontImpl {
+    fn drop(&mut self) {
+        // Ensure that we drop the fonts before we drop the
+        // library, otherwise we will end up faulting
+        self.fonts.clear();
+    }
+}
+
 pub type FontSystemImpl = FontLoaderAndFreeType;
 pub struct FontLoaderAndFreeType {}
 impl FontLoaderAndFreeType {
