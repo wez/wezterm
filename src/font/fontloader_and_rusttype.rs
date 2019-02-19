@@ -1,16 +1,10 @@
 //! Systems using rust native loader and rasterizer
-#[cfg(unix)]
-use super::hbwrap as harfbuzz;
 use config::{Config, TextStyle};
 use failure::Error;
 use font::fontloader;
 use font::rtype::RustTypeFontImpl;
-use font::{FallbackIdx, Font, FontMetrics, FontSystem, GlyphInfo, NamedFont, RasterizedGlyph};
-use font_loader::system_fonts;
-use rusttype::{
-    point, Codepoint, Font as RTFont, FontCollection, PositionedGlyph, Rect, Scale, ScaledGlyph,
-    VMetrics,
-};
+use font::{FallbackIdx, Font, FontSystem, GlyphInfo, NamedFont};
+use rusttype::{point, Codepoint, ScaledGlyph};
 use unicode_normalization::UnicodeNormalization;
 
 struct NamedFontImpl<'a> {

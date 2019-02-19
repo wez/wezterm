@@ -8,6 +8,7 @@ use std::io::prelude::*;
 use termwiz::hyperlink;
 use toml;
 
+use font::FontSystemSelection;
 use term;
 use term::color::RgbColor;
 
@@ -42,6 +43,9 @@ pub struct Config {
     /// What to set the TERM variable to
     #[serde(default = "default_term")]
     pub term: String,
+
+    #[serde(default)]
+    pub font_system: FontSystemSelection,
 }
 
 fn default_hyperlink_rules() -> Vec<hyperlink::Rule> {
@@ -72,6 +76,7 @@ impl Default for Config {
             dpi: default_dpi(),
             font: TextStyle::default(),
             font_rules: Vec::new(),
+            font_system: FontSystemSelection::default(),
             colors: None,
             scrollback_lines: None,
             hyperlink_rules: default_hyperlink_rules(),

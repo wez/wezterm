@@ -140,6 +140,7 @@ impl Library {
         Ok(Library { lib })
     }
 
+    #[allow(dead_code)]
     pub fn new_face<P>(&self, path: P, face_index: FT_Long) -> Result<Face, Error>
     where
         P: Into<Vec<u8>>,

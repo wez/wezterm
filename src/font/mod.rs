@@ -14,27 +14,18 @@ pub use self::system::*;
 
 pub mod ftwrap;
 
-#[cfg(all(unix, not(target_os = "macos"), not(feature = "force-rusttype")))]
+#[cfg(all(unix, not(target_os = "macos")))]
 pub mod fcwrap;
-#[cfg(all(unix, not(target_os = "macos"), not(feature = "force-rusttype")))]
+#[cfg(all(unix, not(target_os = "macos")))]
 pub mod fontconfigandfreetype;
-#[cfg(all(unix, not(target_os = "macos"), not(feature = "force-rusttype")))]
-use self::fontconfigandfreetype::FontSystemImpl;
 
-#[cfg(all(target_os = "macos", not(feature = "force-rusttype")))]
+#[cfg(target_os = "macos")]
 pub mod coretext;
-#[cfg(all(target_os = "macos", not(feature = "force-rusttype")))]
-use self::coretext::FontSystemImpl;
 
 pub mod fontloader;
 pub mod fontloader_and_freetype;
-#[cfg(any(windows, feature = "force-rusttype"))]
 pub mod fontloader_and_rusttype;
 pub mod rtype;
-#[cfg(all(windows, not(feature = "force-rusttype")))]
-use self::fontloader_and_freetype::FontSystemImpl;
-#[cfg(feature = "force-rusttype")]
-use self::fontloader_and_rusttype::FontSystemImpl;
 
 use super::config::{Config, TextStyle};
 use term::CellAttributes;
@@ -45,7 +36,60 @@ type FontPtr = Rc<RefCell<Box<NamedFont>>>;
 pub struct FontConfiguration {
     config: Rc<Config>,
     fonts: RefCell<HashMap<TextStyle, FontPtr>>,
-    system: FontSystemImpl,
+    system: Box<FontSystem>,
+}
+
+#[derive(Debug, Deserialize, Clone, Copy)]
+pub enum FontSystemSelection {
+    FontConfigAndFreeType,
+    FontLoaderAndFreeType,
+    FontLoaderAndRustType,
+    CoreText,
+}
+
+impl Default for FontSystemSelection {
+    fn default() -> Self {
+        if cfg!(all(
+            unix,
+            not(target_os = "macos"),
+            not(feature = "force-rusttype")
+        )) {
+            FontSystemSelection::FontConfigAndFreeType
+        } else if cfg!(all(windows, not(feature = "force-rusttype"))) {
+            FontSystemSelection::FontLoaderAndFreeType
+        } else {
+            FontSystemSelection::FontLoaderAndRustType
+        }
+    }
+}
+
+impl FontSystemSelection {
+    fn new_font_system(&self) -> Box<FontSystem> {
+        match self {
+            FontSystemSelection::FontConfigAndFreeType => {
+                #[cfg(all(unix, not(target_os = "macos")))]
+                return Box::new(fontconfigandfreetype::FontSystemImpl::new());
+                #[cfg(not(all(unix, not(target_os = "macos"))))]
+                panic!("fontconfig not compiled in");
+            }
+            FontSystemSelection::FontLoaderAndFreeType => {
+                return Box::new(fontloader_and_freetype::FontSystemImpl::new());
+            }
+            FontSystemSelection::FontLoaderAndRustType => {
+                return Box::new(fontloader_and_rusttype::FontSystemImpl::new());
+            }
+            FontSystemSelection::CoreText => {
+                #[cfg(target_os = "macos")]
+                return Box::new(coretext::FontSystemImpl::new());
+                #[cfg(not(target_os = "macos"))]
+                panic!("coretext not compiled in");
+            }
+        }
+    }
+}
+
+fn new_font_system() -> Box<FontSystem> {
+    FontSystemSelection::default().new_font_system()
 }
 
 impl FontConfiguration {
@@ -54,7 +98,7 @@ impl FontConfiguration {
         Self {
             config,
             fonts: RefCell::new(HashMap::new()),
-            system: FontSystemImpl::new(),
+            system: new_font_system(),
         }
     }
 

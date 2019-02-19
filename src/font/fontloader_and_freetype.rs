@@ -1,24 +1,15 @@
 //! Systems using rust native loader and freetype for rasterizing
-#[cfg(unix)]
-use super::hbwrap as harfbuzz;
 use config::{Config, TextStyle};
 use failure::Error;
 use font::fontloader;
 use font::ftfont::FreeTypeFontImpl;
-use font::{
-    ftwrap, FallbackIdx, Font, FontMetrics, FontSystem, GlyphInfo, NamedFont, RasterizedGlyph,
-};
-use font_loader::system_fonts;
-use rusttype::{
-    point, Codepoint, Font as RTFont, FontCollection, PositionedGlyph, Rect, Scale, ScaledGlyph,
-    VMetrics,
-};
+use font::{ftwrap, FallbackIdx, Font, FontSystem, GlyphInfo, NamedFont};
 use unicode_normalization::UnicodeNormalization;
 
 struct NamedFontImpl {
-    lib: ftwrap::Library,
+    _lib: ftwrap::Library,
     fonts: Vec<FreeTypeFontImpl>,
-    fontdata: Vec<Vec<u8>>,
+    _fontdata: Vec<Vec<u8>>,
 }
 
 pub type FontSystemImpl = FontLoaderAndFreeType;
@@ -55,8 +46,8 @@ impl FontSystem for FontLoaderAndFreeType {
         }
         Ok(Box::new(NamedFontImpl {
             fonts,
-            lib,
-            fontdata,
+            _lib: lib,
+            _fontdata: fontdata,
         }))
     }
 }

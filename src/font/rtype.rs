@@ -2,15 +2,11 @@
 
 #[cfg(unix)]
 use super::hbwrap as harfbuzz;
-use config::{Config, TextStyle};
 use failure::Error;
-use font::{FallbackIdx, Font, FontMetrics, FontSystem, GlyphInfo, NamedFont, RasterizedGlyph};
-use font_loader::system_fonts;
+use font::{Font, FontMetrics, RasterizedGlyph};
 use rusttype::{
-    point, Codepoint, Font as RTFont, FontCollection, PositionedGlyph, Rect, Scale, ScaledGlyph,
-    VMetrics,
+    point, Codepoint, Font as RTFont, FontCollection, PositionedGlyph, Rect, Scale, VMetrics,
 };
-use unicode_normalization::UnicodeNormalization;
 
 pub struct RustTypeFontImpl<'a> {
     _collection: FontCollection<'a>,
