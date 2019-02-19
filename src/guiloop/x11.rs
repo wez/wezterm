@@ -1,4 +1,6 @@
 use super::SessionTerminated;
+use crate::config::Config;
+use crate::font::FontConfiguration;
 use crate::futurecore;
 use crate::sigchld;
 use crate::xwindows::xwin::TerminalWindow;
