@@ -9,14 +9,14 @@ use std::rc::Rc;
 use std::sync::mpsc::{self, Receiver, Sender, TryRecvError};
 use std::thread;
 
-use super::SessionTerminated;
+pub use crate::gliumwindows::TerminalWindow;
+use crate::guiloop::SessionTerminated;
 pub use glium::glutin::WindowId;
-pub use gliumwindows::TerminalWindow;
 
-use futurecore;
-use gliumwindows;
+use crate::futurecore;
+use crate::gliumwindows;
 #[cfg(unix)]
-use sigchld;
+use crate::sigchld;
 
 #[derive(Clone)]
 pub struct GuiSender<T: Send> {

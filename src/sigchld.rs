@@ -1,7 +1,7 @@
 //! Helper for detecting SIGCHLD
 
+use crate::guiloop::GuiSender;
 use failure::Error;
-use guiloop::GuiSender;
 use libc;
 use std::io;
 use std::mem;

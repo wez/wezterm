@@ -8,7 +8,7 @@ use std::io::prelude::*;
 use termwiz::hyperlink;
 use toml;
 
-use font::FontSystemSelection;
+use crate::font::FontSystemSelection;
 use term;
 use term::color::RgbColor;
 

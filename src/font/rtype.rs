@@ -2,8 +2,8 @@
 
 #[cfg(all(unix, not(target_os = "macos")))]
 use super::hbwrap as harfbuzz;
+use crate::font::{Font, FontMetrics, RasterizedGlyph};
 use failure::Error;
-use font::{Font, FontMetrics, RasterizedGlyph};
 use rusttype::{
     point, Codepoint, Font as RTFont, FontCollection, PositionedGlyph, Rect, Scale, VMetrics,
 };

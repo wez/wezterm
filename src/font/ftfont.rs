@@ -1,6 +1,6 @@
+use crate::font::system::GlyphInfo;
+use crate::font::{ftwrap, Font, FontMetrics, RasterizedGlyph};
 use failure::Error;
-use font::system::GlyphInfo;
-use font::{ftwrap, Font, FontMetrics, RasterizedGlyph};
 use std::cell::RefCell;
 use std::mem;
 use std::slice;

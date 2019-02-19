@@ -1,54 +1,15 @@
-extern crate clap;
-#[cfg(target_os = "macos")]
-extern crate core_text;
-extern crate directories;
-extern crate euclid;
 #[macro_use]
 extern crate failure;
 #[macro_use]
 extern crate failure_derive;
-#[cfg(any(target_os = "android", all(unix, not(target_os = "macos"))))]
-extern crate fontconfig; // from servo-fontconfig
-extern crate freetype;
-extern crate futures;
-extern crate gl;
-#[macro_use]
-extern crate glium;
-#[cfg(unix)]
-extern crate harfbuzz_sys;
-extern crate libc;
-#[cfg(unix)]
-extern crate mio;
-#[cfg(unix)]
-extern crate mio_extras;
-extern crate palette;
-extern crate serde;
 #[macro_use]
 extern crate serde_derive;
-extern crate clipboard;
-extern crate font_loader;
-extern crate open;
-extern crate rusttype;
-extern crate term;
-extern crate termwiz;
-extern crate toml;
-extern crate unicode_normalization;
-extern crate unicode_width;
-
 #[macro_use]
 pub mod log;
 
 use clap::{App, Arg};
 use failure::Error;
 
-#[cfg(all(unix, not(target_os = "macos")))]
-extern crate egli;
-#[cfg(all(unix, not(target_os = "macos")))]
-extern crate x11;
-#[cfg(all(unix, not(target_os = "macos")))]
-extern crate xcb;
-#[cfg(all(unix, not(target_os = "macos")))]
-extern crate xcb_util;
 #[cfg(all(unix, not(feature = "force-glutin"), not(target_os = "macos")))]
 mod xwindows;
 
@@ -63,19 +24,19 @@ mod opengl;
 mod gliumwindows;
 mod guiloop;
 
-use guiloop::{GuiEventLoop, TerminalWindow};
+use crate::guiloop::{GuiEventLoop, TerminalWindow};
 
 mod font;
-use font::FontConfiguration;
+use crate::font::FontConfiguration;
 
 #[cfg(unix)]
 mod pty;
 #[cfg(unix)]
-pub use pty::{openpty, Child, Command, ExitStatus, MasterPty, SlavePty};
+pub use crate::pty::{openpty, Child, Command, ExitStatus, MasterPty, SlavePty};
 #[cfg(windows)]
 mod winpty;
 #[cfg(windows)]
-pub use winpty::{openpty, Child, Command, ExitStatus, MasterPty, SlavePty};
+pub use crate::winpty::{openpty, Child, Command, ExitStatus, MasterPty, SlavePty};
 #[cfg(unix)]
 mod sigchld;
 

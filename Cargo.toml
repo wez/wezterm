@@ -2,6 +2,7 @@
 authors = ["Wez Furlong <wez@wezfurlong.org>"]
 name = "wezterm"
 version = "0.1.0"
+edition = "2018"
 
 [dependencies]
 bitflags = "~1.0"

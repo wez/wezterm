@@ -1,4 +1,4 @@
-use config::{Config, TextStyle};
+use crate::config::{Config, TextStyle};
 use failure::Error;
 use font_loader::system_fonts;
 

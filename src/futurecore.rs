@@ -17,7 +17,7 @@ use std::cell::{Cell, RefCell};
 use std::sync::mpsc;
 use std::sync::{Arc, Mutex};
 
-use guiloop::{GuiReceiver, GuiSender};
+use crate::guiloop::{GuiReceiver, GuiSender};
 
 pub struct Core {
     tx: GuiSender<usize>,

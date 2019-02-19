@@ -1,9 +1,9 @@
 //! Systems using rust native loader and freetype for rasterizing
-use config::{Config, TextStyle};
+use crate::config::{Config, TextStyle};
+use crate::font::fontloader;
+use crate::font::ftfont::FreeTypeFontImpl;
+use crate::font::{ftwrap, FallbackIdx, Font, FontSystem, GlyphInfo, NamedFont};
 use failure::Error;
-use font::fontloader;
-use font::ftfont::FreeTypeFontImpl;
-use font::{ftwrap, FallbackIdx, Font, FontSystem, GlyphInfo, NamedFont};
 use unicode_normalization::UnicodeNormalization;
 
 struct NamedFontImpl {

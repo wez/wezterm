@@ -1,9 +1,9 @@
 //! Systems using rust native loader and rasterizer
-use config::{Config, TextStyle};
+use crate::config::{Config, TextStyle};
+use crate::font::fontloader;
+use crate::font::rtype::RustTypeFontImpl;
+use crate::font::{FallbackIdx, Font, FontSystem, GlyphInfo, NamedFont};
 use failure::Error;
-use font::fontloader;
-use font::rtype::RustTypeFontImpl;
-use font::{FallbackIdx, Font, FontSystem, GlyphInfo, NamedFont};
 use rusttype::{point, Codepoint, ScaledGlyph};
 use unicode_normalization::UnicodeNormalization;
 

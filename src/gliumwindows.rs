@@ -1,17 +1,17 @@
 //! Generic system dependent windows via glium+glutin
 
-use super::Child;
-use super::MasterPty;
+use crate::config::Config;
+use crate::failure::Error;
+use crate::font::FontConfiguration;
+use crate::guiloop::{GuiEventLoop, SessionTerminated};
+use crate::opengl::render::Renderer;
+use crate::opengl::textureatlas::OutOfTextureSpace;
+use crate::Child;
+use crate::MasterPty;
 use clipboard::{ClipboardContext, ClipboardProvider};
-use config::Config;
-use failure::Error;
-use font::FontConfiguration;
 use glium;
 use glium::glutin::dpi::{LogicalPosition, LogicalSize};
 use glium::glutin::{self, ElementState, MouseCursor};
-use guiloop::{GuiEventLoop, SessionTerminated};
-use opengl::render::Renderer;
-use opengl::textureatlas::OutOfTextureSpace;
 use std::io::Write;
 use std::rc::Rc;
 use term::KeyCode;

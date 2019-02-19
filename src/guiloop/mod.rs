@@ -11,7 +11,7 @@ pub use self::glutinloop::{GuiEventLoop, GuiSender, TerminalWindow, WindowId};
 pub use std::sync::mpsc::Receiver as GuiReceiver;
 
 #[cfg(all(unix, not(feature = "force-glutin"), not(target_os = "macos")))]
-pub use xwindows::xwin::TerminalWindow;
+pub use crate::xwindows::xwin::TerminalWindow;
 
 #[cfg(all(unix, not(feature = "force-glutin"), not(target_os = "macos")))]
 mod x11;

@@ -1,6 +1,16 @@
 use failure::Error;
 use std::io::{self, Error as IoError, Result as IoResult};
 extern crate winapi;
+use crate::winpty::winapi::shared::minwindef::DWORD;
+use crate::winpty::winapi::shared::winerror::{HRESULT, S_OK};
+use crate::winpty::winapi::um::fileapi::{ReadFile, WriteFile};
+use crate::winpty::winapi::um::handleapi::*;
+use crate::winpty::winapi::um::minwinbase::STILL_ACTIVE;
+use crate::winpty::winapi::um::namedpipeapi::CreatePipe;
+use crate::winpty::winapi::um::processthreadsapi::*;
+use crate::winpty::winapi::um::winbase::EXTENDED_STARTUPINFO_PRESENT;
+use crate::winpty::winapi::um::winbase::STARTUPINFOEXW;
+use crate::winpty::winapi::um::wincon::COORD;
 use std::env;
 use std::ffi::{OsStr, OsString};
 use std::mem;
@@ -10,16 +20,6 @@ use std::os::windows::raw::HANDLE;
 use std::path::Path;
 use std::ptr;
 use std::sync::{Arc, Mutex};
-use winpty::winapi::shared::minwindef::DWORD;
-use winpty::winapi::shared::winerror::{HRESULT, S_OK};
-use winpty::winapi::um::fileapi::{ReadFile, WriteFile};
-use winpty::winapi::um::handleapi::*;
-use winpty::winapi::um::minwinbase::STILL_ACTIVE;
-use winpty::winapi::um::namedpipeapi::CreatePipe;
-use winpty::winapi::um::processthreadsapi::*;
-use winpty::winapi::um::winbase::EXTENDED_STARTUPINFO_PRESENT;
-use winpty::winapi::um::winbase::STARTUPINFOEXW;
-use winpty::winapi::um::wincon::COORD;
 
 const PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE: usize = 0x00020016;
 

@@ -1,13 +1,14 @@
 //! This module is responsible for rendering a terminal to an OpenGL context
 
 use super::textureatlas::{Atlas, Sprite, SpriteSlice, TEX_SIZE};
-use config::TextStyle;
+use crate::config::TextStyle;
+use crate::font::{FontConfiguration, GlyphInfo};
 use euclid;
 use failure::{err_msg, Error};
-use font::{FontConfiguration, GlyphInfo};
 use glium::backend::Facade;
 use glium::texture::SrgbTexture2d;
 use glium::{self, IndexBuffer, Surface, VertexBuffer};
+use glium::{implement_vertex, uniform};
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::mem;
