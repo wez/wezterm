@@ -548,6 +548,13 @@ impl TerminalWindow {
                 event: WindowEvent::ReceivedCharacter(c),
                 ..
             } => {
+                if c as u32 >= 0xf700 {
+                    // on macos, 0xf700-f703 are generated in addition to
+                    // the KeyUp/Down/Left/Right codes for the arrow cluster.
+                    // Let's ignore overly large looking codes
+                    debug!("ignoring ReceivedCharacter {:?}", KeyCode::Char(c));
+                    return Ok(());
+                }
                 self.terminal
                     .key_down(KeyCode::Char(c), self.last_modifiers, &mut self.host)?;
                 self.paint_if_needed()?;
