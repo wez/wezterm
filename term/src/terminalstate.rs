@@ -357,7 +357,7 @@ impl TerminalState {
     /// Invalidate rows that have hyperlinks
     fn invalidate_hyperlinks(&mut self) {
         let screen = self.screen_mut();
-        for mut line in &mut screen.lines {
+        for line in &mut screen.lines {
             if line.has_hyperlink() {
                 line.set_dirty();
             }
@@ -675,7 +675,7 @@ impl TerminalState {
         const ALT: KeyModifiers = KeyModifiers::ALT;
         const NO: KeyModifiers = KeyModifiers::NONE;
         const APPCURSOR: bool = true;
-        use KeyCode::*;
+        use crate::KeyCode::*;
 
         let ctrl = mods & CTRL;
         let shift = mods & SHIFT;
@@ -934,7 +934,7 @@ impl TerminalState {
 
         let selection = self.selection_range.map(|r| r.normalize());
 
-        for (i, mut line) in screen.lines.iter().skip(len - height).enumerate() {
+        for (i, line) in screen.lines.iter().skip(len - height).enumerate() {
             if i >= height {
                 // When scrolling back, make sure we don't emit lines that
                 // are below the bottom of the viewport
@@ -965,7 +965,7 @@ impl TerminalState {
     /// Clear the dirty flag for all dirty lines
     pub fn clean_dirty_lines(&mut self) {
         let screen = self.screen_mut();
-        for mut line in &mut screen.lines {
+        for line in &mut screen.lines {
             line.clear_dirty();
         }
     }
@@ -973,7 +973,7 @@ impl TerminalState {
     /// When dealing with selection, mark a range of lines as dirty
     pub fn make_all_lines_dirty(&mut self) {
         let screen = self.screen_mut();
-        for mut line in &mut screen.lines {
+        for line in &mut screen.lines {
             line.set_dirty();
         }
     }

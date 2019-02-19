@@ -3,11 +3,6 @@
 extern crate bitflags;
 #[macro_use]
 extern crate failure;
-extern crate image;
-extern crate ordered_float;
-extern crate termwiz;
-extern crate unicode_segmentation;
-extern crate unicode_width;
 
 use failure::Error;
 use std::ops::{Deref, DerefMut, Range};
@@ -18,25 +13,25 @@ use std::str;
 mod debug;
 
 pub mod input;
-pub use input::*;
+pub use crate::input::*;
 
 pub use termwiz::cell::{self, *};
 
 pub use termwiz::surface::line::*;
 
 pub mod screen;
-pub use screen::*;
+pub use crate::screen::*;
 
 pub mod selection;
-use selection::{SelectionCoordinate, SelectionRange};
+use crate::selection::{SelectionCoordinate, SelectionRange};
 
 use termwiz::hyperlink::Hyperlink;
 
 pub mod terminal;
-pub use terminal::*;
+pub use crate::terminal::*;
 
 pub mod terminalstate;
-pub use terminalstate::*;
+pub use crate::terminalstate::*;
 
 /// Represents the index into screen.lines.  Index 0 is the top of
 /// the scrollback (if any).  The index of the top of the visible screen
