@@ -1,13 +1,13 @@
 //! A Renderer for windows consoles
 
-use caps::Capabilities;
-use cell::{AttributeChange, CellAttributes, Underline};
-use color::{AnsiColor, ColorAttribute};
+use crate::caps::Capabilities;
+use crate::cell::{AttributeChange, CellAttributes, Underline};
+use crate::color::{AnsiColor, ColorAttribute};
+use crate::surface::{Change, Position};
+use crate::terminal::windows::{ConsoleInputHandle, ConsoleOutputHandle};
 use failure;
 use num;
 use std::io::{Read, Write};
-use surface::{Change, Position};
-use terminal::windows::{ConsoleInputHandle, ConsoleOutputHandle};
 use winapi::um::wincon::{
     BACKGROUND_BLUE, BACKGROUND_GREEN, BACKGROUND_INTENSITY, BACKGROUND_RED,
     COMMON_LVB_REVERSE_VIDEO, COMMON_LVB_UNDERSCORE, FOREGROUND_BLUE, FOREGROUND_GREEN,

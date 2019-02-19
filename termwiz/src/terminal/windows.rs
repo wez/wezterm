@@ -1,5 +1,5 @@
+use crate::istty::IsTty;
 use failure::Error;
-use istty::IsTty;
 use std::collections::VecDeque;
 use std::fs::OpenOptions;
 use std::io::{stdin, stdout, Error as IoError, Read, Result as IoResult, Write};
@@ -19,11 +19,11 @@ use winapi::um::wincon::{
 };
 use winapi::um::winnt::DUPLICATE_SAME_ACCESS;
 
-use caps::Capabilities;
-use input::{InputEvent, InputParser};
-use render::windows::WindowsConsoleRenderer;
-use surface::Change;
-use terminal::{cast, Blocking, ScreenSize, Terminal};
+use crate::caps::Capabilities;
+use crate::input::{InputEvent, InputParser};
+use crate::render::windows::WindowsConsoleRenderer;
+use crate::surface::Change;
+use crate::terminal::{cast, Blocking, ScreenSize, Terminal};
 
 const BUF_SIZE: usize = 128;
 

@@ -1,7 +1,7 @@
 //! Model a cell in the terminal display
-use color::ColorAttribute;
-pub use escape::osc::Hyperlink;
-use image::ImageCell;
+use crate::color::ColorAttribute;
+pub use crate::escape::osc::Hyperlink;
+use crate::image::ImageCell;
 use smallvec::SmallVec;
 use std;
 use std::mem;

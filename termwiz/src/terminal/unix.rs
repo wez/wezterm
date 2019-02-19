@@ -1,5 +1,5 @@
+use crate::istty::IsTty;
 use failure::Error;
-use istty::IsTty;
 use libc::{self, poll, pollfd, winsize, POLLIN};
 use signal_hook::{self, SigId};
 use std::collections::VecDeque;
@@ -14,12 +14,12 @@ use termios::{
     TCSAFLUSH, TCSANOW,
 };
 
-use caps::Capabilities;
-use escape::csi::{DecPrivateMode, DecPrivateModeCode, Mode, CSI};
-use input::{InputEvent, InputParser};
-use render::terminfo::TerminfoRenderer;
-use surface::Change;
-use terminal::{cast, Blocking, ScreenSize, Terminal};
+use crate::caps::Capabilities;
+use crate::escape::csi::{DecPrivateMode, DecPrivateModeCode, Mode, CSI};
+use crate::input::{InputEvent, InputParser};
+use crate::render::terminfo::TerminfoRenderer;
+use crate::surface::Change;
+use crate::terminal::{cast, Blocking, ScreenSize, Terminal};
 
 const BUF_SIZE: usize = 128;
 

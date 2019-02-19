@@ -1,10 +1,10 @@
-use cell::{Cell, CellAttributes};
-use cellcluster::CellCluster;
-use hyperlink::Rule;
-use range::in_range;
+use crate::cell::{Cell, CellAttributes};
+use crate::cellcluster::CellCluster;
+use crate::hyperlink::Rule;
+use crate::range::in_range;
+use crate::surface::Change;
 use std::ops::Range;
 use std::rc::Rc;
-use surface::Change;
 use unicode_segmentation::UnicodeSegmentation;
 
 bitflags! {
@@ -57,7 +57,7 @@ impl Line {
     pub fn resize_and_clear(&mut self, width: usize) {
         let blank = Cell::default();
         self.cells.resize(width, blank);
-        for mut cell in &mut self.cells {
+        for cell in &mut self.cells {
             *cell = Cell::default();
         }
         self.bits = LineBits::DIRTY;
@@ -103,7 +103,7 @@ impl Line {
             return;
         }
 
-        for mut cell in &mut self.cells {
+        for cell in &mut self.cells {
             let replace = match cell.attrs().hyperlink {
                 Some(ref link) if link.is_implicit() => Some(Cell::new_grapheme(
                     cell.str(),

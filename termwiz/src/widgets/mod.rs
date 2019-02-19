@@ -1,10 +1,10 @@
-use color::ColorAttribute;
+use crate::color::ColorAttribute;
+use crate::input::InputEvent;
+use crate::surface::{Change, CursorShape, Position, SequenceNo, Surface};
 use failure::Error;
 use fnv::FnvHasher;
-use input::InputEvent;
 use std::collections::{HashMap, VecDeque};
 use std::hash::BuildHasherDefault;
-use surface::{Change, CursorShape, Position, SequenceNo, Surface};
 
 /// fnv is a more appropriate hasher for the WidgetIds we use in this module.
 type FnvHashMap<K, V> = HashMap<K, V, BuildHasherDefault<FnvHasher>>;

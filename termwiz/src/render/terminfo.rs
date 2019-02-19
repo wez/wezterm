@@ -1,14 +1,14 @@
 //! Rendering of Changes using terminfo
-use caps::{Capabilities, ColorLevel};
-use cell::{AttributeChange, Blink, CellAttributes, Intensity, Underline};
-use color::{ColorAttribute, ColorSpec};
-use escape::csi::{Cursor, Edit, EraseInDisplay, EraseInLine, Sgr, CSI};
-use escape::osc::{ITermDimension, ITermFileData, ITermProprietary, OperatingSystemCommand};
+use crate::caps::{Capabilities, ColorLevel};
+use crate::cell::{AttributeChange, Blink, CellAttributes, Intensity, Underline};
+use crate::color::{ColorAttribute, ColorSpec};
+use crate::escape::csi::{Cursor, Edit, EraseInDisplay, EraseInLine, Sgr, CSI};
+use crate::escape::osc::{ITermDimension, ITermFileData, ITermProprietary, OperatingSystemCommand};
+use crate::image::TextureCoordinate;
+use crate::surface::{Change, CursorShape, Position};
+use crate::terminal::unix::UnixTty;
 use failure::{self, Error};
-use image::TextureCoordinate;
 use std::io::{Read, Write};
-use surface::{Change, CursorShape, Position};
-use terminal::unix::UnixTty;
 use terminfo::{capability as cap, Capability as TermInfoCapability};
 
 pub struct TerminfoRenderer {
@@ -54,7 +54,7 @@ impl TerminfoRenderer {
             ($cap_on:ident, $cap_off:ident, $attr:expr, $accesor:ident, $sgr:ident) => {
                 let value = $attr.$accesor();
                 if value != self.current_attr.$accesor() {
-                    let mut out = out.by_ref();
+                    let out = out.by_ref();
                     let on: bool = value.into();
                     if on {
                         if let Some(attr) = self.get_capability::<cap::$cap_on>() {
@@ -589,18 +589,18 @@ impl TerminfoRenderer {
 #[cfg(all(test, unix))]
 mod test {
     use super::*;
-    use caps::ProbeHintsBuilder;
-    use color::{AnsiColor, ColorAttribute, RgbColor};
-    use escape::parser::Parser;
-    use escape::{Action, Esc, EscCode};
+    use crate::caps::ProbeHintsBuilder;
+    use crate::color::{AnsiColor, ColorAttribute, RgbColor};
+    use crate::escape::parser::Parser;
+    use crate::escape::{Action, Esc, EscCode};
+    use crate::input::InputEvent;
+    use crate::terminal::unix::{Purge, SetAttributeWhen, UnixTty};
+    use crate::terminal::ScreenSize;
+    use crate::terminal::{cast, Blocking, Terminal};
     use failure::Error;
-    use input::InputEvent;
     use libc::winsize;
     use std::io::{Error as IoError, ErrorKind, Read, Result as IoResult, Write};
     use std::mem;
-    use terminal::unix::{Purge, SetAttributeWhen, UnixTty};
-    use terminal::ScreenSize;
-    use terminal::{cast, Blocking, Terminal};
     use terminfo;
     use termios::Termios;
 

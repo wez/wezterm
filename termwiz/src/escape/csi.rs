@@ -1,6 +1,6 @@
-use cell::{Blink, Intensity, Underline};
-use color::{AnsiColor, ColorSpec, RgbColor};
-use input::{Modifiers, MouseButtons};
+use crate::cell::{Blink, Intensity, Underline};
+use crate::color::{AnsiColor, ColorSpec, RgbColor};
+use crate::input::{Modifiers, MouseButtons};
 use num::{self, ToPrimitive};
 use std::fmt::{Display, Error as FmtError, Formatter};
 

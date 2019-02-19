@@ -1,8 +1,8 @@
-use cell::{AttributeChange, CellAttributes};
-use color::ColorAttribute;
-pub use image::{ImageData, TextureCoordinate};
+use crate::cell::{AttributeChange, CellAttributes};
+use crate::color::ColorAttribute;
+pub use crate::image::{ImageData, TextureCoordinate};
+use crate::surface::{CursorShape, Position};
 use std::rc::Rc;
-use surface::{CursorShape, Position};
 
 /// `Change` describes an update operation to be applied to a `Surface`.
 /// Changes to the active attributes (color, style), moving the cursor

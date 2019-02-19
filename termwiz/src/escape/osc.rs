@@ -1,6 +1,6 @@
+pub use crate::hyperlink::Hyperlink;
 use base64;
 use failure::{self, err_msg, Error};
-pub use hyperlink::Hyperlink;
 use num;
 use ordered_float::NotNaN;
 use std::collections::HashMap;

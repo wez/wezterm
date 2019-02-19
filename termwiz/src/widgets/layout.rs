@@ -7,7 +7,7 @@ use cassowary::{AddConstraintError, Expression, Solver, SuggestValueError, Varia
 use failure::{err_msg, Error};
 use std::collections::HashMap;
 
-use widgets::{Rect, WidgetId};
+use crate::widgets::{Rect, WidgetId};
 
 /// Expands to an Expression holding the value of the variable,
 /// or if there is no variable, a constant with the specified

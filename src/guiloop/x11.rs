@@ -181,7 +181,7 @@ impl GuiEventLoop {
         let mut windows = self.windows.borrow_mut();
 
         let fd = {
-            let mut window = windows.by_id.get_mut(&window_id).ok_or_else(|| {
+            let window = windows.by_id.get_mut(&window_id).ok_or_else(|| {
                 format_err!("no window_id {:?} in the windows_by_id map", window_id)
             })?;
 

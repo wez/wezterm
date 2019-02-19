@@ -1,4 +1,4 @@
-use escape::{Action, DeviceControlMode, Esc, OperatingSystemCommand, CSI};
+use crate::escape::{Action, DeviceControlMode, Esc, OperatingSystemCommand, CSI};
 use num;
 use std::cell::RefCell;
 use vte;
@@ -150,9 +150,9 @@ impl<'a, F: FnMut(Action)> vte::Perform for Performer<'a, F> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use cell::Intensity;
-    use escape::csi::Sgr;
-    use escape::EscCode;
+    use crate::cell::Intensity;
+    use crate::escape::csi::Sgr;
+    use crate::escape::EscCode;
     use std::io::Write;
 
     fn encode(seq: &Vec<Action>) -> String {

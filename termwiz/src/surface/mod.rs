@@ -1,6 +1,6 @@
-use cell::{AttributeChange, Cell, CellAttributes};
-use color::ColorAttribute;
-use image::ImageCell;
+use crate::cell::{AttributeChange, Cell, CellAttributes};
+use crate::color::ColorAttribute;
+use crate::image::ImageCell;
 use ordered_float::NotNaN;
 use std::borrow::Cow;
 use std::cmp::min;
@@ -309,7 +309,7 @@ impl Surface {
             // they occupy a cell so that we can re-emit them when we output them.
             // If we didn't do this, then we'd effectively filter them out from
             // the model, which seems like a lossy design choice.
-            let mut width = cell.width().max(1);
+            let width = cell.width().max(1);
 
             self.lines[self.ypos].set_cell(self.xpos, cell);
 
@@ -321,7 +321,7 @@ impl Surface {
     }
 
     fn change_attribute(&mut self, change: &AttributeChange) {
-        use cell::AttributeChange::*;
+        use crate::cell::AttributeChange::*;
         match change {
             Intensity(value) => {
                 self.attributes.set_intensity(*value);
@@ -455,7 +455,7 @@ impl Surface {
         let mut trailing_idx = None;
 
         for (idx, line) in self.lines.iter().rev().enumerate() {
-            let mut changes = line.changes(&attr);
+            let changes = line.changes(&attr);
             if changes.len() == 0 {
                 // The line recorded no changes; this means that the line
                 // consists of spaces and the default background color
@@ -745,9 +745,9 @@ fn compute_position_change(current: usize, pos: &Position, limit: usize) -> usiz
 #[cfg(test)]
 mod test {
     use super::*;
-    use cell::Intensity;
-    use color::AnsiColor;
-    use image::ImageData;
+    use crate::cell::Intensity;
+    use crate::color::AnsiColor;
+    use crate::image::ImageData;
     use std::rc::Rc;
 
     // The \x20's look a little awkward, but we can't use a plain
@@ -1000,7 +1000,7 @@ mod test {
 
     #[test]
     fn attribute_setting() {
-        use cell::Intensity;
+        use crate::cell::Intensity;
 
         let mut s = Surface::new(3, 1);
         s.add_change("n");

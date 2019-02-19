@@ -2,6 +2,7 @@
 authors = ["Wez Furlong"]
 name = "termwiz"
 version = "0.1.0"
+edition = "2018"
 
 [dependencies]
 base64 = "~0.9"

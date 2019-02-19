@@ -1,10 +1,10 @@
 //! This module provides an InputParser struct to help with parsing
 //! input received from a terminal.
-use escape::csi::MouseReport;
-use escape::parser::Parser;
-use escape::{Action, CSI};
-use keymap::{Found, KeyMap};
-use readbuf::ReadBuffer;
+use crate::escape::csi::MouseReport;
+use crate::escape::parser::Parser;
+use crate::escape::{Action, CSI};
+use crate::keymap::{Found, KeyMap};
+use crate::readbuf::ReadBuffer;
 use std;
 #[cfg(windows)]
 use winapi::um::wincon::{

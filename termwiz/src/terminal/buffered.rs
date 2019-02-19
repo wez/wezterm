@@ -1,9 +1,9 @@
 //! A Terminal buffered with a Surface
 
+use crate::surface::{SequenceNo, Surface};
+use crate::terminal::Terminal;
 use failure::Error;
 use std::ops::{Deref, DerefMut};
-use surface::{SequenceNo, Surface};
-use terminal::Terminal;
 
 /// `BufferedTerminal` is a convenience wrapper around both
 /// a `Terminal` and a `Surface`.  It enables easier use of

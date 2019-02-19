@@ -311,7 +311,7 @@ impl TerminalWindow {
             let rows = ((height as usize + 1) / self.cell_height) as u16;
             let cols = ((width as usize + 1) / self.cell_width) as u16;
 
-            for mut tab in &mut self.tabs.tabs {
+            for tab in &mut self.tabs.tabs {
                 tab.pty.borrow_mut().resize(rows, cols, width, height)?;
                 tab.terminal
                     .borrow_mut()

@@ -1,11 +1,11 @@
 //! An abstraction over a terminal device
 
-use caps::Capabilities;
+use crate::caps::Capabilities;
+use crate::input::InputEvent;
+use crate::surface::Change;
 use failure::Error;
-use input::InputEvent;
 use num::{self, NumCast};
 use std::fmt::Display;
-use surface::Change;
 
 #[cfg(unix)]
 pub mod unix;

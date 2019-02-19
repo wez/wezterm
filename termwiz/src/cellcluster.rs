@@ -1,4 +1,4 @@
-use cell::{Cell, CellAttributes};
+use crate::cell::{Cell, CellAttributes};
 
 /// A `CellCluster` is another representation of a Line.
 /// A `Vec<CellCluster>` is produced by walking through the Cells in
