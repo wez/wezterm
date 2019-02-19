@@ -1,7 +1,7 @@
 //! We'll put macOS Core Text stuff in here
-use config::{Config, TextStyle};
+use crate::config::{Config, TextStyle};
+use crate::font::{FontSystem, NamedFont};
 use failure::Error;
-use font::{FontSystem, NamedFont};
 
 pub type FontSystemImpl = CoreTextSystem;
 
