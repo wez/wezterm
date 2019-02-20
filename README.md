@@ -3,8 +3,6 @@
 A terminal emulator implemented in Rust, using OpenGL ES 2 for rendering.
 
 [![Build Status](https://travis-ci.org/wez/wezterm.svg?branch=master)](https://travis-ci.org/wez/wezterm)
-[![codecov](https://codecov.io/gh/wez/wezterm/branch/master/graph/badge.svg)](https://codecov.io/gh/wez/wezterm)
-
 
 ![Screenshot](screenshots/one.png)
 
