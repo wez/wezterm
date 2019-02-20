@@ -24,7 +24,7 @@ use crate::guiloop::GuiSelection;
 use crate::guiloop::GuiSystem;
 
 mod font;
-use crate::font::FontConfiguration;
+use crate::font::{FontConfiguration, FontSystemSelection};
 
 mod pty;
 pub use crate::pty::{openpty, Child, Command, ExitStatus, MasterPty, SlavePty};
@@ -82,6 +82,15 @@ struct Opt {
     )]
     gui_system: Option<GuiSelection>,
 
+    #[structopt(
+        long = "font-system",
+        raw(
+            possible_values = "&FontSystemSelection::variants()",
+            case_insensitive = "true"
+        )
+    )]
+    font_system: Option<FontSystemSelection>,
+
     /// Instead of executing your shell, run PROG.
     /// For example: `wezterm -- bash -l` will spawn bash
     /// as if it were a login shell.
@@ -96,9 +105,10 @@ fn main() -> Result<(), Error> {
     } else {
         config::Config::load()?
     });
-    println!("Using configuration: {:#?}", config);
+    println!("Using configuration: {:#?}\nopts: {:#?}", config, opts);
 
-    let fontconfig = Rc::new(FontConfiguration::new(Rc::clone(&config)));
+    let font_system = opts.font_system.unwrap_or(config.font_system);
+    let fontconfig = Rc::new(FontConfiguration::new(Rc::clone(&config), font_system));
 
     let cmd = if opts.prog.len() > 0 {
         Some(opts.prog.iter().map(|x| x.as_os_str()).collect())

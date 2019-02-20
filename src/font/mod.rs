@@ -86,19 +86,40 @@ impl FontSystemSelection {
             }
         }
     }
+    pub fn variants() -> Vec<&'static str> {
+        vec![
+            "FontConfigAndFreeType",
+            "FontLoaderAndFreeType",
+            "FontLoaderAndRustType",
+            "CoreText",
+        ]
+    }
 }
 
-fn new_font_system() -> Box<FontSystem> {
-    FontSystemSelection::default().new_font_system()
+impl std::str::FromStr for FontSystemSelection {
+    type Err = Error;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_ref() {
+            "fontconfigandfreetype" => Ok(FontSystemSelection::FontConfigAndFreeType),
+            "fontloadandfreetype" => Ok(FontSystemSelection::FontLoaderAndFreeType),
+            "fontloaderandrusttype" => Ok(FontSystemSelection::FontLoaderAndRustType),
+            "coretext" => Ok(FontSystemSelection::CoreText),
+            _ => Err(format_err!(
+                "{} is not a valid FontSystemSelection variant, possible values are {:?}",
+                s,
+                FontSystemSelection::variants()
+            )),
+        }
+    }
 }
 
 impl FontConfiguration {
     /// Create a new empty configuration
-    pub fn new(config: Rc<Config>) -> Self {
+    pub fn new(config: Rc<Config>, system: FontSystemSelection) -> Self {
         Self {
             config,
             fonts: RefCell::new(HashMap::new()),
-            system: new_font_system(),
+            system: system.new_font_system(),
         }
     }
 
