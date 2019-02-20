@@ -403,66 +403,63 @@ impl TerminalWindow {
         if let Some(code) = event.virtual_keycode {
             use glium::glutin::VirtualKeyCode as V;
             let key = match code {
-                V::Key1
-                | V::Key2
-                | V::Key3
-                | V::Key4
-                | V::Key5
-                | V::Key6
-                | V::Key7
-                | V::Key8
-                | V::Key9
-                | V::Key0
-                | V::A
-                | V::B
-                | V::C
-                | V::D
-                | V::E
-                | V::F
-                | V::G
-                | V::H
-                | V::I
-                | V::J
-                | V::K
-                | V::L
-                | V::M
-                | V::N
-                | V::O
-                | V::P
-                | V::Q
-                | V::R
-                | V::S
-                | V::T
-                | V::U
-                | V::V
-                | V::W
-                | V::X
-                | V::Y
-                | V::Z
-                | V::Return
-                | V::Back
-                | V::Escape
-                | V::Delete
-                | V::Colon
-                | V::Space
-                | V::Equals
-                | V::Add
-                | V::Apostrophe
-                | V::Backslash
-                | V::Grave
-                | V::LBracket
-                | V::Minus
-                | V::Period
-                | V::RBracket
-                | V::Semicolon
-                | V::Slash
-                | V::Comma
-                | V::Subtract
-                | V::At
-                | V::Tab => {
-                    // These are all handled by ReceivedCharacter
-                    return Ok(());
-                }
+                V::Key1 => KeyCode::Char('1'),
+                V::Key2 => KeyCode::Char('2'),
+                V::Key3 => KeyCode::Char('3'),
+                V::Key4 => KeyCode::Char('4'),
+                V::Key5 => KeyCode::Char('5'),
+                V::Key6 => KeyCode::Char('6'),
+                V::Key7 => KeyCode::Char('7'),
+                V::Key8 => KeyCode::Char('8'),
+                V::Key9 => KeyCode::Char('9'),
+                V::Key0 => KeyCode::Char('0'),
+                V::A => KeyCode::Char('a'),
+                V::B => KeyCode::Char('b'),
+                V::C => KeyCode::Char('c'),
+                V::D => KeyCode::Char('d'),
+                V::E => KeyCode::Char('e'),
+                V::F => KeyCode::Char('f'),
+                V::G => KeyCode::Char('g'),
+                V::H => KeyCode::Char('h'),
+                V::I => KeyCode::Char('i'),
+                V::J => KeyCode::Char('j'),
+                V::K => KeyCode::Char('k'),
+                V::L => KeyCode::Char('l'),
+                V::M => KeyCode::Char('m'),
+                V::N => KeyCode::Char('n'),
+                V::O => KeyCode::Char('o'),
+                V::P => KeyCode::Char('p'),
+                V::Q => KeyCode::Char('q'),
+                V::R => KeyCode::Char('r'),
+                V::S => KeyCode::Char('s'),
+                V::T => KeyCode::Char('t'),
+                V::U => KeyCode::Char('u'),
+                V::V => KeyCode::Char('v'),
+                V::W => KeyCode::Char('w'),
+                V::X => KeyCode::Char('x'),
+                V::Y => KeyCode::Char('y'),
+                V::Z => KeyCode::Char('z'),
+                V::Return => KeyCode::Enter,
+                V::Back => KeyCode::Backspace,
+                V::Escape => KeyCode::Escape,
+                V::Delete => KeyCode::Delete,
+                V::Colon => KeyCode::Char(':'),
+                V::Space => KeyCode::Char(' '),
+                V::Equals => KeyCode::Char('='),
+                V::Add => KeyCode::Char('+'),
+                V::Apostrophe => KeyCode::Char('\''),
+                V::Backslash => KeyCode::Char('\\'),
+                V::Grave => KeyCode::Char('`'),
+                V::LBracket => KeyCode::Char('['),
+                V::Minus => KeyCode::Char('-'),
+                V::Period => KeyCode::Char('.'),
+                V::RBracket => KeyCode::Char(']'),
+                V::Semicolon => KeyCode::Char(';'),
+                V::Slash => KeyCode::Char('/'),
+                V::Comma => KeyCode::Char(','),
+                V::Subtract => KeyCode::Char('-'),
+                V::At => KeyCode::Char('@'),
+                V::Tab => KeyCode::Char('\t'),
                 V::F1 => KeyCode::Function(1),
                 V::F2 => KeyCode::Function(2),
                 V::F3 => KeyCode::Function(3),
@@ -492,6 +489,10 @@ impl TerminalWindow {
                 V::LShift | V::RShift => KeyCode::Shift,
                 V::LWin | V::RWin => KeyCode::Super,
                 _ => {
+                    // Wondering why a key isn't working?
+                    // Probably need to add a mapping above for VirtualKeyCode
+                    // enum variants defined in the `winit` crate.
+                    // https://docs.rs/winit/0.18.1/i686-apple-darwin/winit/enum.VirtualKeyCode.html
                     eprintln!("unhandled key: {:?}", event);
                     return Ok(());
                 }
@@ -546,19 +547,27 @@ impl TerminalWindow {
                 self.host.window_position = Some(position);
             }
             Event::WindowEvent {
-                event: WindowEvent::ReceivedCharacter(c),
+                event: WindowEvent::ReceivedCharacter(_c),
                 ..
             } => {
-                if c as u32 >= 0xf700 {
-                    // on macos, 0xf700-f703 are generated in addition to
-                    // the KeyUp/Down/Left/Right codes for the arrow cluster.
-                    // Let's ignore overly large looking codes
-                    debug!("ignoring ReceivedCharacter {:?}", KeyCode::Char(c));
-                    return Ok(());
-                }
+                // on macos, various keys generate ReceivedCharacters input.
+                // These are mostly unwanted but there are some potential tricky i18n
+                // situations to figure out.  For example, pressing
+                // ALT-1 generates the desirable-to-me Alt and 1 key
+                // press in key_event but then also generates a `ReceivedCharacter Char('¡')`
+                // here, which I don't want but which international users
+                // might; see https://github.com/wez/wezterm/issues/18
+                // Unfortunately, the state of ReceivedCharacter in the
+                // underlying winit library is rather inconsistent wrt
+                // cross platform support, so glutin on linux doesn't
+                // have this same behavior.
+                // For now, we're just going to ignore them all here.
+                /*
                 self.terminal
                     .key_down(KeyCode::Char(c), self.last_modifiers, &mut self.host)?;
                 self.paint_if_needed()?;
+                */
+                return Ok(());
             }
             Event::WindowEvent {
                 event: WindowEvent::KeyboardInput { input, .. },
