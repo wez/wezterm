@@ -1,5 +1,5 @@
+use super::super::get_shell;
 use super::super::opengl::render::Renderer;
-use super::super::{get_shell, spawn_window};
 use super::super::{Child, Command};
 use super::xkeysyms;
 use super::{Connection, Window};
@@ -164,19 +164,20 @@ impl<'a> term::TerminalHost for TabHost<'a> {
     }
 
     fn new_window(&mut self) {
-        /*
         let event_loop = Rc::clone(&self.host.event_loop);
+        let events = Rc::clone(&self.host.event_loop);
         let config = Rc::clone(&self.host.config);
         let fonts = Rc::clone(&self.host.fonts);
+
         self.host
             .event_loop
             .core
             .spawn(futures::future::poll_fn(move || {
-                spawn_window(&event_loop, None, &config, &fonts)
+                events
+                    .spawn_window(&event_loop, &config, &fonts)
                     .map(futures::Async::Ready)
                     .map_err(|_| ())
             }));
-            */
     }
 
     fn new_tab(&mut self) {

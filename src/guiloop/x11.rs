@@ -4,7 +4,7 @@ use crate::font::FontConfiguration;
 use crate::futurecore;
 use crate::xwindows::xwin::TerminalWindow;
 use crate::xwindows::Connection;
-use crate::{Child, MasterPty};
+use crate::{get_shell, openpty, Child, Command, MasterPty};
 use failure::Error;
 use mio::unix::EventedFd;
 use mio::{Event, Evented, Events, Poll, PollOpt, Ready, Token};
@@ -240,6 +240,52 @@ impl GuiEventLoop {
         )?;
 
         Ok(())
+    }
+
+    pub fn spawn_window(
+        &self,
+        event_loop: &Rc<Self>,
+        config: &Rc<Config>,
+        fontconfig: &Rc<FontConfiguration>,
+    ) -> Result<(), Error> {
+        let mut cmd = Command::new(get_shell()?);
+
+        cmd.env("TERM", &config.term);
+
+        // First step is to figure out the font metrics so that we know how
+        // big things are going to be.
+        let font = fontconfig.default_font()?;
+
+        // we always load the cell_height for font 0,
+        // regardless of which font we are shaping here,
+        // so that we can scale glyphs appropriately
+        let metrics = font.borrow_mut().get_fallback(0)?.metrics();
+
+        let initial_cols = 80u16;
+        let initial_rows = 24u16;
+        let initial_pixel_width = initial_cols * metrics.cell_width.ceil() as u16;
+        let initial_pixel_height = initial_rows * metrics.cell_height.ceil() as u16;
+
+        let (master, slave) = openpty(
+            initial_rows,
+            initial_cols,
+            initial_pixel_width,
+            initial_pixel_height,
+        )?;
+
+        let child = slave.spawn_command(cmd)?;
+        eprintln!("spawned: {:?}", child);
+
+        let terminal = term::Terminal::new(
+            initial_rows as usize,
+            initial_cols as usize,
+            config.scrollback_lines.unwrap_or(3500),
+            config.hyperlink_rules.clone(),
+        );
+
+        let window = TerminalWindow::new(event_loop, terminal, master, child, fontconfig, config)?;
+
+        self.add_window(window)
     }
 
     pub fn add_window(&self, window: TerminalWindow) -> Result<(), Error> {
