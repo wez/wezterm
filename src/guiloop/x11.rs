@@ -21,6 +21,18 @@ use xcb;
 #[cfg(all(unix, not(target_os = "macos")))]
 pub use xcb::xproto::Window as WindowId;
 
+impl futurecore::CoreSender for GuiSender<usize> {
+    fn send(&self, idx: usize) -> Result<(), Error> {
+        GuiSender::send(self, idx)
+    }
+}
+
+impl futurecore::CoreReceiver for GuiReceiver<usize> {
+    fn try_recv(&self) -> Result<usize, TryRecvError> {
+        GuiReceiver::try_recv(self)
+    }
+}
+
 struct TabEntry {
     fd: RawFd,
     window_id: WindowId,
@@ -88,7 +100,8 @@ impl GuiEventLoop {
             Ready::readable(),
             PollOpt::level(),
         )?;
-        let core = futurecore::Core::new(fut_tx, fut_rx);
+        let fut_tx2 = fut_tx.clone();
+        let core = futurecore::Core::new(Box::new(fut_tx), Box::new(fut_tx2), Box::new(fut_rx));
 
         let (sigchld_tx, sigchld_rx) = channel();
         poll.register(

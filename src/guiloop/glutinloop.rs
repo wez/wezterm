@@ -37,6 +37,18 @@ impl<T: Send> GuiSender<T> {
     }
 }
 
+impl futurecore::CoreSender for GuiSender<usize> {
+    fn send(&self, idx: usize) -> Result<(), Error> {
+        GuiSender::send(self, idx)
+    }
+}
+
+impl futurecore::CoreReceiver for Receiver<usize> {
+    fn try_recv(&self) -> Result<usize, mpsc::TryRecvError> {
+        Receiver::try_recv(self)
+    }
+}
+
 pub fn channel<T: Send>(proxy: EventsLoopProxy) -> (GuiSender<T>, Receiver<T>) {
     // Set an upper bound on the number of items in the queue, so that
     // we don't swamp the gui loop; this puts back pressure on the
@@ -174,7 +186,8 @@ impl GuiEventLoop {
         let event_loop = glium::glutin::EventsLoop::new();
 
         let (fut_tx, fut_rx) = channel(event_loop.create_proxy());
-        let core = futurecore::Core::new(fut_tx, fut_rx);
+        let fut_tx2 = fut_tx.clone();
+        let core = futurecore::Core::new(Box::new(fut_tx), Box::new(fut_tx2), Box::new(fut_rx));
 
         let (spawn_tx, spawn_rx) = channel(event_loop.create_proxy());
         let (poll_tx, poll_rx) = channel(event_loop.create_proxy());

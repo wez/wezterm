@@ -10,6 +10,7 @@
 //! Copyright (c) 2016 Alex Crichton
 //! Copyright (c) 2017 The Tokio Authors
 
+use failure::Error;
 use futures::executor::{self, Notify, Spawn};
 use futures::future::{ExecuteError, Executor};
 use futures::{Async, Future};
@@ -17,11 +18,17 @@ use std::cell::{Cell, RefCell};
 use std::sync::mpsc;
 use std::sync::{Arc, Mutex};
 
-use crate::guiloop::{GuiReceiver, GuiSender};
+pub trait CoreSender: Send {
+    fn send(&self, idx: usize) -> Result<(), Error>;
+}
+
+pub trait CoreReceiver {
+    fn try_recv(&self) -> Result<usize, mpsc::TryRecvError>;
+}
 
 pub struct Core {
-    tx: GuiSender<usize>,
-    rx: GuiReceiver<usize>,
+    tx: Box<CoreSender>,
+    rx: Box<CoreReceiver>,
     notify: Arc<Notifier>,
     // Slab of running futures used to track what's running and what slots are
     // empty. Slot indexes are then sent along tx/rx above to indicate which
@@ -36,10 +43,10 @@ enum Slot {
 }
 
 impl Core {
-    pub fn new(tx: GuiSender<usize>, rx: GuiReceiver<usize>) -> Self {
+    pub fn new(tx: Box<CoreSender>, tx2: Box<CoreSender>, rx: Box<CoreReceiver>) -> Self {
         Self {
             notify: Arc::new(Notifier {
-                tx: Mutex::new(tx.clone()),
+                tx: Mutex::new(tx2),
             }),
             tx,
             rx,
@@ -129,7 +136,7 @@ struct Notifier {
     //       itself is basically `Sync` as-is. Ideally this'd use something like
     //       an off-the-shelf mpsc queue as well as `thread::park` and
     //       `Thread::unpark`.
-    tx: Mutex<GuiSender<usize>>,
+    tx: Mutex<Box<CoreSender>>,
 }
 
 impl Notify for Notifier {
