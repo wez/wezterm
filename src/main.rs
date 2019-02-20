@@ -24,7 +24,7 @@ mod opengl;
 mod gliumwindows;
 mod guiloop;
 
-use crate::guiloop::{GuiEventLoop, TerminalWindow};
+use crate::guiloop::GuiSystem;
 
 mod font;
 use crate::font::FontConfiguration;
@@ -105,17 +105,16 @@ fn main() -> Result<(), Error> {
         None
     };
 
-    let event_loop = Rc::new(GuiEventLoop::new()?);
+    let guitype = guiloop::GuiSelection::default();
 
-    spawn_window(&event_loop, cmd, &config, &fontconfig)?;
-    // This convoluted run() signature is present because of this issue:
-    // https://github.com/tomaka/winit/issues/413
-    GuiEventLoop::run(&event_loop, &config, &fontconfig)?;
-    Ok(())
+    let gui = guitype.new()?;
+
+    spawn_window(&*gui, cmd, &config, &fontconfig)?;
+    gui.run_forever(&config, &fontconfig)
 }
 
 fn spawn_window(
-    event_loop: &Rc<GuiEventLoop>,
+    gui: &GuiSystem,
     cmd: Option<Vec<&std::ffi::OsStr>>,
     config: &Rc<config::Config>,
     fontconfig: &Rc<FontConfiguration>,
@@ -163,7 +162,5 @@ fn spawn_window(
         config.hyperlink_rules.clone(),
     );
 
-    let window = TerminalWindow::new(event_loop, terminal, master, child, fontconfig, config)?;
-
-    event_loop.add_window(window)
+    gui.spawn_new_window(terminal, master, child, config, fontconfig)
 }

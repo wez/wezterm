@@ -1,7 +1,12 @@
 use crate::config::Config;
 use crate::font::FontConfiguration;
+use crate::futurecore;
+use crate::gliumwindows;
 pub use crate::gliumwindows::TerminalWindow;
 use crate::guiloop::SessionTerminated;
+#[cfg(unix)]
+use crate::sigchld;
+use crate::{Child, MasterPty};
 use failure::Error;
 use futures::future;
 use glium;
@@ -14,11 +19,6 @@ use std::rc::Rc;
 use std::sync::mpsc::{self, Receiver, SyncSender, TryRecvError};
 use std::thread;
 use std::time::{Duration, SystemTime};
-
-use crate::futurecore;
-use crate::gliumwindows;
-#[cfg(unix)]
-use crate::sigchld;
 
 #[derive(Clone)]
 pub struct GuiSender<T: Send> {
@@ -83,7 +83,91 @@ pub struct GuiEventLoop {
 const TICK_INTERVAL: Duration = Duration::from_millis(50);
 const MAX_POLL_LOOP_DURATION: Duration = Duration::from_millis(500);
 
-impl super::GuiSystem for GuiEventLoop {}
+pub struct GlutinGuiSystem {
+    event_loop: Rc<GuiEventLoop>,
+}
+
+use super::GuiSystem;
+
+impl GlutinGuiSystem {
+    pub fn new() -> Result<Rc<GuiSystem>, Error> {
+        let event_loop = Rc::new(GuiEventLoop::new()?);
+        Ok(Rc::new(Self { event_loop }))
+    }
+
+    fn process_spawn(
+        &self,
+        config: &Rc<Config>,
+        fonts: &Rc<FontConfiguration>,
+    ) -> Result<(), Error> {
+        loop {
+            match self.event_loop.spawn_rx.try_recv() {
+                Ok(SpawnRequest::Window) => {
+                    crate::spawn_window(&*self, None, config, fonts)?;
+                }
+                Ok(SpawnRequest::Tab(_window_id)) => {
+                    eprintln!("Spawning tabs is not yet implemented for glutin");
+                }
+                Err(TryRecvError::Empty) => return Ok(()),
+                Err(err) => bail!("sigchld_rx disconnected {:?}", err),
+            }
+        }
+    }
+}
+
+impl GuiSystem for GlutinGuiSystem {
+    /// Run the event loop.  Does not return until there is either a fatal
+    /// error, or until there are no more windows left to manage.
+    fn run_forever(
+        &self,
+        config: &Rc<crate::config::Config>,
+        fontconfig: &Rc<crate::font::FontConfiguration>,
+    ) -> Result<(), Error> {
+        // This convoluted run() signature is present because of this issue:
+        // https://github.com/tomaka/winit/issues/413
+        let myself = &self.event_loop;
+        loop {
+            myself.process_futures();
+
+            // Check the window count; if after processing the futures there
+            // are no windows left, then we are done.
+            {
+                let windows = myself.windows.borrow();
+                if windows.by_id.is_empty() {
+                    debug!("No more windows; done!");
+                    return Ok(());
+                }
+            }
+
+            myself.run_event_loop()?;
+            myself.process_poll()?;
+            self.process_spawn(config, fontconfig)?;
+            #[cfg(unix)]
+            myself.process_sigchld()?;
+            myself.process_tick()?;
+        }
+    }
+
+    fn spawn_new_window(
+        &self,
+        terminal: term::Terminal,
+        master: MasterPty,
+        child: Child,
+        config: &Rc<crate::config::Config>,
+        fontconfig: &Rc<crate::font::FontConfiguration>,
+    ) -> Result<(), Error> {
+        let window = TerminalWindow::new(
+            &self.event_loop,
+            terminal,
+            master,
+            child,
+            fontconfig,
+            config,
+        )?;
+
+        self.event_loop.add_window(window)
+    }
+}
 
 impl GuiEventLoop {
     pub fn new() -> Result<Self, Error> {
@@ -334,54 +418,6 @@ impl GuiEventLoop {
             if !self.core.turn() {
                 break;
             }
-        }
-    }
-
-    fn process_spawn(
-        myself: &Rc<Self>,
-        config: &Rc<Config>,
-        fonts: &Rc<FontConfiguration>,
-    ) -> Result<(), Error> {
-        loop {
-            match myself.spawn_rx.try_recv() {
-                Ok(SpawnRequest::Window) => {
-                    crate::spawn_window(myself, None, config, fonts)?;
-                }
-                Ok(SpawnRequest::Tab(_window_id)) => {
-                    eprintln!("Spawning tabs is not yet implemented for glutin");
-                }
-                Err(TryRecvError::Empty) => return Ok(()),
-                Err(err) => bail!("sigchld_rx disconnected {:?}", err),
-            }
-        }
-    }
-
-    /// Run the event loop.  Does not return until there is either a fatal
-    /// error, or until there are no more windows left to manage.
-    pub fn run(
-        myself: &Rc<Self>,
-        config: &Rc<Config>,
-        fonts: &Rc<FontConfiguration>,
-    ) -> Result<(), Error> {
-        loop {
-            myself.process_futures();
-
-            // Check the window count; if after processing the futures there
-            // are no windows left, then we are done.
-            {
-                let windows = myself.windows.borrow();
-                if windows.by_id.is_empty() {
-                    debug!("No more windows; done!");
-                    return Ok(());
-                }
-            }
-
-            myself.run_event_loop()?;
-            myself.process_poll()?;
-            Self::process_spawn(myself, config, fonts)?;
-            #[cfg(unix)]
-            myself.process_sigchld()?;
-            myself.process_tick()?;
         }
     }
 }

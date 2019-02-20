@@ -1,5 +1,9 @@
 use super::ExitStatus;
+use crate::config::Config;
+use crate::font::FontConfiguration;
+use crate::{Child, MasterPty};
 use failure::Error;
+use std::rc::Rc;
 
 #[derive(Debug, Deserialize, Clone, Copy)]
 pub enum GuiSelection {
@@ -19,10 +23,36 @@ impl Default for GuiSelection {
     }
 }
 
-pub trait GuiSystem {}
+impl GuiSelection {
+    pub fn new(&self) -> Result<Rc<GuiSystem>, Error> {
+        match self {
+            GuiSelection::Glutin => glutinloop::GlutinGuiSystem::new(),
+            GuiSelection::X11 => {
+                //#[cfg!(all(unix, not(target_os = "macos")))]
+                bail!("X11 not compiled in");
+            }
+        }
+    }
+}
 
-#[cfg(any(windows, feature = "force-glutin", target_os = "macos"))]
-mod glutinloop;
+pub trait GuiSystem {
+    fn run_forever(
+        &self,
+        config: &Rc<Config>,
+        fontconfig: &Rc<FontConfiguration>,
+    ) -> Result<(), Error>;
+
+    fn spawn_new_window(
+        &self,
+        terminal: term::Terminal,
+        master: MasterPty,
+        child: Child,
+        config: &Rc<Config>,
+        fontconfig: &Rc<FontConfiguration>,
+    ) -> Result<(), Error>;
+}
+
+pub mod glutinloop;
 
 #[cfg(any(windows, feature = "force-glutin", target_os = "macos"))]
 pub use self::glutinloop::{GuiEventLoop, GuiSender, TerminalWindow, WindowId};

@@ -3,7 +3,8 @@
 use crate::config::Config;
 use crate::failure::Error;
 use crate::font::FontConfiguration;
-use crate::guiloop::{GuiEventLoop, SessionTerminated};
+use crate::guiloop::glutinloop::GuiEventLoop;
+use crate::guiloop::SessionTerminated;
 use crate::opengl::render::Renderer;
 use crate::opengl::textureatlas::OutOfTextureSpace;
 use crate::Child;
