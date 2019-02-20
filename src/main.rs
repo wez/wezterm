@@ -20,7 +20,7 @@ mod futurecore;
 mod gliumwindows;
 mod guiloop;
 mod opengl;
-
+use crate::guiloop::GuiSelection;
 use crate::guiloop::GuiSystem;
 
 mod font;
@@ -73,6 +73,15 @@ struct Opt {
     #[structopt(short = "n")]
     skip_config: bool,
 
+    #[structopt(
+        long = "gui-system",
+        raw(
+            possible_values = "&GuiSelection::variants()",
+            case_insensitive = "true"
+        )
+    )]
+    gui_system: Option<GuiSelection>,
+
     /// Instead of executing your shell, run PROG.
     /// For example: `wezterm -- bash -l` will spawn bash
     /// as if it were a login shell.
@@ -97,7 +106,8 @@ fn main() -> Result<(), Error> {
         None
     };
 
-    let gui = config.gui_system.new()?;
+    let gui_system = opts.gui_system.unwrap_or(config.gui_system);
+    let gui = gui_system.new()?;
 
     spawn_window(&*gui, cmd, &config, &fontconfig)?;
     gui.run_forever(&config, &fontconfig)

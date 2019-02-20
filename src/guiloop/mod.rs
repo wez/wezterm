@@ -35,6 +35,26 @@ impl GuiSelection {
             }
         }
     }
+
+    // TODO: find or build a proc macro for this
+    pub fn variants() -> Vec<&'static str> {
+        vec!["Glutin", "X11"]
+    }
+}
+
+impl std::str::FromStr for GuiSelection {
+    type Err = Error;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_ref() {
+            "glutin" => Ok(GuiSelection::Glutin),
+            "x11" => Ok(GuiSelection::X11),
+            _ => Err(format_err!(
+                "{} is not a valid GuiSelection variant, possible values are {:?}",
+                s,
+                GuiSelection::variants()
+            )),
+        }
+    }
 }
 
 pub trait GuiSystem {
