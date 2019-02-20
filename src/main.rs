@@ -29,14 +29,8 @@ use crate::guiloop::{GuiEventLoop, TerminalWindow};
 mod font;
 use crate::font::FontConfiguration;
 
-#[cfg(unix)]
 mod pty;
-#[cfg(unix)]
 pub use crate::pty::{openpty, Child, Command, ExitStatus, MasterPty, SlavePty};
-#[cfg(windows)]
-mod winpty;
-#[cfg(windows)]
-pub use crate::winpty::{openpty, Child, Command, ExitStatus, MasterPty, SlavePty};
 #[cfg(unix)]
 mod sigchld;
 
