@@ -124,6 +124,7 @@ pub struct TerminalWindow {
     process: Child,
     last_mouse_coords: LogicalPosition,
     last_modifiers: KeyModifiers,
+    allow_received_character: bool,
 }
 
 impl TerminalWindow {
@@ -197,6 +198,7 @@ impl TerminalWindow {
             process,
             last_mouse_coords: LogicalPosition::new(0.0, 0.0),
             last_modifiers: Default::default(),
+            allow_received_character: false,
         })
     }
 
@@ -397,11 +399,91 @@ impl TerminalWindow {
         Ok(())
     }
 
+    fn is_us_simple_key(code: glium::glutin::VirtualKeyCode) -> bool {
+        use glium::glutin::VirtualKeyCode as V;
+        match code {
+            V::Key1
+            | V::Key2
+            | V::Key3
+            | V::Key4
+            | V::Key5
+            | V::Key6
+            | V::Key7
+            | V::Key8
+            | V::Key9
+            | V::Key0
+            | V::A
+            | V::B
+            | V::C
+            | V::D
+            | V::E
+            | V::F
+            | V::G
+            | V::H
+            | V::I
+            | V::J
+            | V::K
+            | V::L
+            | V::M
+            | V::N
+            | V::O
+            | V::P
+            | V::Q
+            | V::R
+            | V::S
+            | V::T
+            | V::U
+            | V::V
+            | V::W
+            | V::X
+            | V::Y
+            | V::Z
+            | V::Return
+            | V::Back
+            | V::Escape
+            | V::Delete
+            | V::Colon
+            | V::Space
+            | V::Equals
+            | V::Add
+            | V::Apostrophe
+            | V::Backslash
+            | V::Grave
+            | V::LBracket
+            | V::Minus
+            | V::Period
+            | V::RBracket
+            | V::Semicolon
+            | V::Slash
+            | V::Comma
+            | V::Subtract
+            | V::At
+            | V::Tab => true,
+            _ => false,
+        }
+    }
+
     fn key_event(&mut self, event: glium::glutin::KeyboardInput) -> Result<(), Error> {
         let mods = Self::decode_modifiers(event.modifiers);
         self.last_modifiers = mods;
+        self.allow_received_character = false;
         if let Some(code) = event.virtual_keycode {
             use glium::glutin::VirtualKeyCode as V;
+
+            // This is horrible for international users, but it makes
+            // things workable in the short term.
+            // on macOS, and some flavors of X environments,
+            // alt unconditionally composes input to international
+            // characters which breaks the `alt-1` key I use often in
+            // tmux.  That input shows up after this key_event call as
+            // a ReceivedCharacter input.  We want to usually allow that
+            // but as a way to avoid the weirdness I mentioned, want to
+            // suppress it for ALT.
+            // We also want to suppress it for eg: cursor keys.
+            if Self::is_us_simple_key(code) && !event.modifiers.alt {
+                self.allow_received_character = true;
+                return Ok(());
+            }
             let key = match code {
                 V::Key1 => KeyCode::Char('1'),
                 V::Key2 => KeyCode::Char('2'),
@@ -547,26 +629,20 @@ impl TerminalWindow {
                 self.host.window_position = Some(position);
             }
             Event::WindowEvent {
-                event: WindowEvent::ReceivedCharacter(_c),
+                event: WindowEvent::ReceivedCharacter(c),
                 ..
             } => {
-                // on macos, various keys generate ReceivedCharacters input.
-                // These are mostly unwanted but there are some potential tricky i18n
-                // situations to figure out.  For example, pressing
-                // ALT-1 generates the desirable-to-me Alt and 1 key
-                // press in key_event but then also generates a `ReceivedCharacter Char('¡')`
-                // here, which I don't want but which international users
-                // might; see https://github.com/wez/wezterm/issues/18
-                // Unfortunately, the state of ReceivedCharacter in the
-                // underlying winit library is rather inconsistent wrt
-                // cross platform support, so glutin on linux doesn't
-                // have this same behavior.
-                // For now, we're just going to ignore them all here.
-                /*
-                self.terminal
-                    .key_down(KeyCode::Char(c), self.last_modifiers, &mut self.host)?;
-                self.paint_if_needed()?;
-                */
+                // Coupled with logic in key_event which gates whether
+                // we allow processing unicode chars here
+                if self.allow_received_character {
+                    self.allow_received_character = false;
+                    self.terminal.key_down(
+                        KeyCode::Char(c),
+                        self.last_modifiers,
+                        &mut self.host,
+                    )?;
+                    self.paint_if_needed()?;
+                }
                 return Ok(());
             }
             Event::WindowEvent {
