@@ -378,6 +378,9 @@ unsafe impl glium::backend::Backend for GlState {
     }
 
     fn get_framebuffer_dimensions(&self) -> (u32, u32) {
+        unsafe {
+            self.make_current();
+        }
         (
             self.surface.query_width().unwrap() as u32,
             self.surface.query_height().unwrap() as u32,
