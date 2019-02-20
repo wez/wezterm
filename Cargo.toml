@@ -6,14 +6,14 @@ edition = "2018"
 
 [dependencies]
 bitflags = "~1.0"
-clap = "~2.30"
-euclid = "~0.17"
+clap = "~2.32"
+euclid = "~0.19"
 failure = "~0.1"
 failure_derive = "~0.1"
 futures = "~0.1"
-gl = "~0.10"
+gl = "~0.11"
 libc = "~0.2"
-palette = "~0.2"
+palette = "~0.4"
 serde = "~1.0"
 serde_derive = "~1.0"
 toml = "~0.4"
@@ -27,7 +27,7 @@ freetype = "~0.4"
 open = "1.2"
 
 [target.'cfg(unix)'.dependencies]
-harfbuzz-sys = "~0.2"
+harfbuzz-sys = "~0.3"
 mio = "~0.6"
 mio-extras = "~2.0"
 
@@ -50,7 +50,7 @@ version = "~0.3"
 [target.'cfg(any(target_os = "android", all(unix, not(target_os = "macos"))))'.dependencies]
 servo-fontconfig = "~0.4"
 egli = "~0.4"
-x11 = {version ="~2.17", features = ["xlib_xcb"]}
+x11 = {version ="~2.18", features = ["xlib_xcb"]}
 
 [dependencies.glium]
 version = "~0.23"
