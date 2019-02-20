@@ -89,30 +89,30 @@ I use the following in my `~/.wezterm.toml`:
 
 ```
 font_size = 10
-font = { fontconfig_pattern = "Operator Mono SSm Lig Medium" }
+font = { font = [{family = "Operator Mono SSm Lig Medium"}] }
 # How many lines of scrollback to retain
 scrollback_lines = 3500
 
 [[font_rules]]
 italic = true
-font = { fontconfig_pattern = "Operator Mono SSm Lig Medium:style=Italic" }
+font = { font = [{family = "Operator Mono SSm Lig Medium", italic=true}]}
 
 [[font_rules]]
 italic = true
 intensity = "Bold"
-font = { fontconfig_pattern = "Operator Mono SSm Lig:style=Italic:weight=bold" }
+font = { font = [{family = "Operator Mono SSm Lig", italic=true, bold=true}]}
 
 [[font_rules]]
 intensity = "Bold"
   [font_rules.font]
-  fontconfig_pattern= "Operator Mono SSm:weight=bold"
+  font = [{family = "Operator Mono SSm", bold=true}]
   # if you liked xterm's `boldColor` setting, this is how you do it in wezterm,
   # but you can apply it to any set of matching attributes!
   foreground = "tomato"
 
 [[font_rules]]
 intensity = "Half"
-font = { fontconfig_pattern = "Operator Mono SSm Lig Light" }
+font = { font=[{family = "Operator Mono SSm Lig Light" }]}
 ```
 
 The default configuration will attempt to use whichever font is returned from
