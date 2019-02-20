@@ -6,9 +6,9 @@ extern crate failure_derive;
 extern crate serde_derive;
 #[macro_use]
 pub mod log;
-
-use clap::{App, Arg};
 use failure::Error;
+use std::ffi::OsString;
+use structopt::StructOpt;
 
 #[cfg(all(unix, not(feature = "force-glutin"), not(target_os = "macos")))]
 mod xwindows;
@@ -62,26 +62,27 @@ fn get_shell() -> Result<String, Error> {
 //    terminal.advance_bytes(message);
 // !=
 
+#[derive(Debug, StructOpt)]
+#[structopt(
+    name = "wezterm",
+    about = "Wez's Terminal Emulator\nhttp://github.com/wez/wezterm"
+)]
+#[structopt(raw(setting = "structopt::clap::AppSettings::ColoredHelp"))]
+struct Opt {
+    /// Skip loading ~/.wezterm.toml
+    #[structopt(short = "n")]
+    skip_config: bool,
+
+    /// Instead of executing your shell, run PROG.
+    /// For example: `wezterm -- bash -l` will spawn bash
+    /// as if it were a login shell.
+    #[structopt(parse(from_os_str))]
+    prog: Vec<OsString>,
+}
+
 fn main() -> Result<(), Error> {
-    let args = App::new("wezterm")
-        .version("0.1")
-        .author("Wez Furlong <wez@wezfurlong.org>")
-        .about(
-            "Wez's Terminal Emulator\n\
-             http://github.com/wez/wezterm",
-        )
-        .arg(
-            Arg::with_name("SKIP_CONFIG")
-                .short("n")
-                .help("Skip loading ~/.wezterm.toml"),
-        )
-        .arg(Arg::with_name("PROG").multiple(true).help(
-            "Instead of executing your shell, run PROG. \
-             For example: `wezterm -- bash -l` will spawn bash \
-             as if it were a login shell.",
-        ))
-        .get_matches();
-    let config = Rc::new(if args.is_present("SKIP_CONFIG") {
+    let opts = Opt::from_args();
+    let config = Rc::new(if opts.skip_config {
         config::Config::default_config()
     } else {
         config::Config::load()?
@@ -90,12 +91,8 @@ fn main() -> Result<(), Error> {
 
     let fontconfig = Rc::new(FontConfiguration::new(Rc::clone(&config)));
 
-    let cmd = if args.is_present("PROG") {
-        Some(
-            args.values_of_os("PROG")
-                .expect("PROG wasn't present after all!?")
-                .collect(),
-        )
+    let cmd = if opts.prog.len() > 0 {
+        Some(opts.prog.iter().map(|x| x.as_os_str()).collect())
     } else {
         None
     };

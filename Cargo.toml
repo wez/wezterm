@@ -6,7 +6,6 @@ edition = "2018"
 
 [dependencies]
 bitflags = "~1.0"
-clap = "~2.32"
 euclid = "~0.19"
 failure = "~0.1"
 failure_derive = "~0.1"
@@ -25,6 +24,7 @@ clipboard = "0.5"
 unicode-normalization = "~0.1"
 freetype = "~0.4"
 open = "1.2"
+structopt = "0.2"
 
 [target.'cfg(unix)'.dependencies]
 harfbuzz-sys = "~0.3"
