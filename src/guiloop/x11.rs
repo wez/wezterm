@@ -71,6 +71,8 @@ const TOK_CORE: usize = 0xffff_ffff;
 const TOK_CHLD: usize = 0xffff_fffd;
 const TOK_XCB: usize = 0xffff_fffc;
 
+impl super::GuiSystem for GuiEventLoop {}
+
 impl GuiEventLoop {
     pub fn new() -> Result<Self, Error> {
         let poll = Poll::new()?;

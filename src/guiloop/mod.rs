@@ -1,6 +1,26 @@
 use super::ExitStatus;
 use failure::Error;
 
+#[derive(Debug, Deserialize, Clone, Copy)]
+pub enum GuiSelection {
+    Glutin,
+    X11,
+}
+
+impl Default for GuiSelection {
+    fn default() -> Self {
+        if cfg!(feature = "force-glutin") {
+            GuiSelection::Glutin
+        } else if cfg!(all(unix, not(target_os = "macos"))) {
+            GuiSelection::X11
+        } else {
+            GuiSelection::Glutin
+        }
+    }
+}
+
+pub trait GuiSystem {}
+
 #[cfg(any(windows, feature = "force-glutin", target_os = "macos"))]
 mod glutinloop;
 

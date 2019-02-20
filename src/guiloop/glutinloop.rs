@@ -83,6 +83,8 @@ pub struct GuiEventLoop {
 const TICK_INTERVAL: Duration = Duration::from_millis(50);
 const MAX_POLL_LOOP_DURATION: Duration = Duration::from_millis(500);
 
+impl super::GuiSystem for GuiEventLoop {}
+
 impl GuiEventLoop {
     pub fn new() -> Result<Self, Error> {
         let event_loop = glium::glutin::EventsLoop::new();
