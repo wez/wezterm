@@ -4,8 +4,6 @@ use crate::futurecore;
 use crate::gliumwindows;
 pub use crate::gliumwindows::TerminalWindow;
 use crate::guiloop::SessionTerminated;
-#[cfg(unix)]
-use crate::sigchld;
 use crate::{Child, MasterPty};
 use failure::Error;
 use futures::future;
@@ -87,8 +85,6 @@ pub struct GuiEventLoop {
     poll_rx: Receiver<IOEvent>,
     spawn_tx: GuiSender<SpawnRequest>,
     spawn_rx: Receiver<SpawnRequest>,
-    #[cfg(unix)]
-    sigchld_rx: Receiver<()>,
     tick_rx: Receiver<()>,
 }
 
@@ -121,15 +117,13 @@ impl GlutinGuiSystem {
                     eprintln!("Spawning tabs is not yet implemented for glutin");
                 }
                 Err(TryRecvError::Empty) => return Ok(()),
-                Err(err) => bail!("sigchld_rx disconnected {:?}", err),
+                Err(err) => bail!("spawn_rx disconnected {:?}", err),
             }
         }
     }
 }
 
 impl GuiSystem for GlutinGuiSystem {
-    /// Run the event loop.  Does not return until there is either a fatal
-    /// error, or until there are no more windows left to manage.
     fn run_forever(
         &self,
         config: &Rc<crate::config::Config>,
@@ -154,8 +148,6 @@ impl GuiSystem for GlutinGuiSystem {
             myself.run_event_loop()?;
             myself.process_poll()?;
             self.process_spawn(config, fontconfig)?;
-            #[cfg(unix)]
-            myself.process_sigchld()?;
             myself.process_tick()?;
         }
     }
@@ -191,8 +183,6 @@ impl GuiEventLoop {
 
         let (spawn_tx, spawn_rx) = channel(event_loop.create_proxy());
         let (poll_tx, poll_rx) = channel(event_loop.create_proxy());
-        #[cfg(unix)]
-        let (sigchld_tx, sigchld_rx) = channel(event_loop.create_proxy());
 
         // The glutin/glium plumbing has no native tick/timer stuff, so
         // we implement one using a thread.  Nice.
@@ -204,9 +194,6 @@ impl GuiEventLoop {
             }
         });
 
-        #[cfg(unix)]
-        sigchld::activate(sigchld_tx)?;
-
         Ok(Self {
             core,
             spawn_tx,
@@ -214,8 +201,6 @@ impl GuiEventLoop {
             poll_tx,
             poll_rx,
             tick_rx,
-            #[cfg(unix)]
-            sigchld_rx,
             event_loop: RefCell::new(event_loop),
             windows: Rc::new(RefCell::new(Default::default())),
         })
@@ -356,27 +341,11 @@ impl GuiEventLoop {
         loop {
             match self.tick_rx.try_recv() {
                 Ok(_) => {
-                    #[cfg(not(unix))]
                     self.test_for_child_exit();
                     self.do_paint();
                 }
                 Err(TryRecvError::Empty) => return Ok(()),
                 Err(err) => bail!("tick_rx disconnected {:?}", err),
-            }
-        }
-    }
-
-    /// If we were signalled by a child process completion, zip through
-    /// the windows and have then notice and prepare to close.
-    #[cfg(unix)]
-    fn process_sigchld(&self) -> Result<(), Error> {
-        loop {
-            match self.sigchld_rx.try_recv() {
-                Ok(_) => {
-                    self.test_for_child_exit();
-                }
-                Err(TryRecvError::Empty) => return Ok(()),
-                Err(err) => bail!("sigchld_rx disconnected {:?}", err),
             }
         }
     }

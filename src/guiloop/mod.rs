@@ -28,7 +28,9 @@ impl GuiSelection {
         match self {
             GuiSelection::Glutin => glutinloop::GlutinGuiSystem::new(),
             GuiSelection::X11 => {
-                //#[cfg!(all(unix, not(target_os = "macos")))]
+                #[cfg(all(unix, not(target_os = "macos")))]
+                return x11::X11GuiSystem::new();
+                #[cfg(not(all(unix, not(target_os = "macos"))))]
                 bail!("X11 not compiled in");
             }
         }
@@ -36,6 +38,8 @@ impl GuiSelection {
 }
 
 pub trait GuiSystem {
+    /// Run the event loop.  Does not return until there is either a fatal
+    /// error, or until there are no more windows left to manage.
     fn run_forever(
         &self,
         config: &Rc<Config>,
@@ -53,21 +57,8 @@ pub trait GuiSystem {
 }
 
 pub mod glutinloop;
-
-#[cfg(any(windows, feature = "force-glutin", target_os = "macos"))]
-pub use self::glutinloop::{GuiEventLoop, GuiSender, TerminalWindow, WindowId};
-
-#[cfg(any(windows, feature = "force-glutin", target_os = "macos"))]
-pub use std::sync::mpsc::Receiver as GuiReceiver;
-
 #[cfg(all(unix, not(feature = "force-glutin"), not(target_os = "macos")))]
-pub use crate::xwindows::xwin::TerminalWindow;
-
-#[cfg(all(unix, not(feature = "force-glutin"), not(target_os = "macos")))]
-mod x11;
-
-#[cfg(all(unix, not(feature = "force-glutin"), not(target_os = "macos")))]
-pub use self::x11::*;
+pub mod x11;
 
 #[derive(Debug, Fail)]
 pub enum SessionTerminated {

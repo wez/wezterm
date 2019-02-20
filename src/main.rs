@@ -16,13 +16,10 @@ mod xwindows;
 use std::rc::Rc;
 
 mod config;
-
 mod futurecore;
-mod opengl;
-
-#[cfg(any(windows, feature = "force-glutin", target_os = "macos"))]
 mod gliumwindows;
 mod guiloop;
+mod opengl;
 
 use crate::guiloop::GuiSystem;
 
@@ -31,8 +28,6 @@ use crate::font::FontConfiguration;
 
 mod pty;
 pub use crate::pty::{openpty, Child, Command, ExitStatus, MasterPty, SlavePty};
-#[cfg(unix)]
-mod sigchld;
 
 use std::env;
 
@@ -105,9 +100,7 @@ fn main() -> Result<(), Error> {
         None
     };
 
-    let guitype = guiloop::GuiSelection::default();
-
-    let gui = guitype.new()?;
+    let gui = config.gui_system.new()?;
 
     spawn_window(&*gui, cmd, &config, &fontconfig)?;
     gui.run_forever(&config, &fontconfig)

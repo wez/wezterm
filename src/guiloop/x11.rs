@@ -1,14 +1,14 @@
-use super::SessionTerminated;
+use super::{GuiSystem, SessionTerminated};
 use crate::config::Config;
 use crate::font::FontConfiguration;
 use crate::futurecore;
-use crate::sigchld;
 use crate::xwindows::xwin::TerminalWindow;
 use crate::xwindows::Connection;
+use crate::{Child, MasterPty};
 use failure::Error;
 use mio::unix::EventedFd;
 use mio::{Event, Evented, Events, Poll, PollOpt, Ready, Token};
-pub use mio_extras::channel::{channel, Receiver as GuiReceiver, Sender as GuiSender};
+use mio_extras::channel::{channel, Receiver as GuiReceiver, Sender as GuiSender};
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::io;
@@ -23,7 +23,7 @@ pub use xcb::xproto::Window as WindowId;
 
 impl futurecore::CoreSender for GuiSender<usize> {
     fn send(&self, idx: usize) -> Result<(), Error> {
-        GuiSender::send(self, idx)
+        GuiSender::send(self, idx).map_err(|e| format_err!("send: {}", e))
     }
 }
 
@@ -73,17 +73,52 @@ struct Windows {
 pub struct GuiEventLoop {
     poll: Poll,
     pub conn: Rc<Connection>,
-    sigchld_rx: GuiReceiver<()>,
     pub core: futurecore::Core,
     windows: Rc<RefCell<Windows>>,
     interval: Duration,
 }
 
 const TOK_CORE: usize = 0xffff_ffff;
-const TOK_CHLD: usize = 0xffff_fffd;
 const TOK_XCB: usize = 0xffff_fffc;
 
-impl super::GuiSystem for GuiEventLoop {}
+pub struct X11GuiSystem {
+    event_loop: Rc<GuiEventLoop>,
+}
+impl X11GuiSystem {
+    pub fn new() -> Result<Rc<GuiSystem>, Error> {
+        let event_loop = Rc::new(GuiEventLoop::new()?);
+        Ok(Rc::new(Self { event_loop }))
+    }
+}
+
+impl super::GuiSystem for X11GuiSystem {
+    fn run_forever(
+        &self,
+        _config: &Rc<Config>,
+        _fontconfig: &Rc<FontConfiguration>,
+    ) -> Result<(), Error> {
+        self.event_loop.run()
+    }
+    fn spawn_new_window(
+        &self,
+        terminal: term::Terminal,
+        master: MasterPty,
+        child: Child,
+        config: &Rc<Config>,
+        fontconfig: &Rc<FontConfiguration>,
+    ) -> Result<(), Error> {
+        let window = TerminalWindow::new(
+            &self.event_loop,
+            terminal,
+            master,
+            child,
+            fontconfig,
+            config,
+        )?;
+
+        self.event_loop.add_window(window)
+    }
+}
 
 impl GuiEventLoop {
     pub fn new() -> Result<Self, Error> {
@@ -103,38 +138,19 @@ impl GuiEventLoop {
         let fut_tx2 = fut_tx.clone();
         let core = futurecore::Core::new(Box::new(fut_tx), Box::new(fut_tx2), Box::new(fut_rx));
 
-        let (sigchld_tx, sigchld_rx) = channel();
-        poll.register(
-            &sigchld_rx,
-            Token(TOK_CHLD),
-            Ready::readable(),
-            PollOpt::level(),
-        )?;
-        sigchld::activate(sigchld_tx)?;
-
         Ok(Self {
             conn,
             poll,
             core,
-            sigchld_rx,
             interval: Duration::from_millis(50),
             windows: Rc::new(RefCell::new(Default::default())),
         })
     }
 
-    pub fn run(
-        myself: &Rc<Self>,
-        _config: &Rc<Config>,
-        _fonts: &Rc<FontConfiguration>,
-    ) -> Result<(), Error> {
-        myself.run_impl()
-    }
-
-    fn run_impl(&self) -> Result<(), Error> {
+    fn run(&self) -> Result<(), Error> {
         let mut events = Events::with_capacity(8);
 
         let tok_core = Token(TOK_CORE);
-        let tok_chld = Token(TOK_CHLD);
         let tok_xcb = Token(TOK_XCB);
 
         self.conn.flush();
@@ -157,14 +173,13 @@ impl GuiEventLoop {
                         let t = event.token();
                         if t == tok_core {
                             self.process_futures();
-                        } else if t == tok_chld {
-                            self.process_sigchld()?;
                         } else if t == tok_xcb {
                             self.process_queued_xcb()?;
                         } else {
                             self.process_pty_event(event)?;
                         }
                     }
+                    self.process_sigchld()?;
                     // Check the window count; if after processing the futures there
                     // are no windows left, then we are done.
                     {
@@ -424,27 +439,20 @@ impl GuiEventLoop {
     /// If we were signalled by a child process completion, zip through
     /// the windows and have then notice and prepare to close.
     fn process_sigchld(&self) -> Result<(), Error> {
-        loop {
-            match self.sigchld_rx.try_recv() {
-                Ok(_) => {
-                    let window_ids: Vec<WindowId> = self
-                        .windows
-                        .borrow_mut()
-                        .by_id
-                        .iter_mut()
-                        .filter_map(|(window_id, window)| match window.test_for_child_exit() {
-                            Ok(_) => None,
-                            Err(_) => Some(*window_id),
-                        })
-                        .collect();
+        let window_ids: Vec<WindowId> = self
+            .windows
+            .borrow_mut()
+            .by_id
+            .iter_mut()
+            .filter_map(|(window_id, window)| match window.test_for_child_exit() {
+                Ok(_) => None,
+                Err(_) => Some(*window_id),
+            })
+            .collect();
 
-                    for window_id in window_ids {
-                        self.schedule_window_close(window_id, None)?;
-                    }
-                }
-                Err(TryRecvError::Empty) => return Ok(()),
-                Err(err) => bail!("sigchld_rx disconnected {:?}", err),
-            }
+        for window_id in window_ids {
+            self.schedule_window_close(window_id, None)?;
         }
+        Ok(())
     }
 }

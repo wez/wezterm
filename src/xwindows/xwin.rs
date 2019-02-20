@@ -5,10 +5,10 @@ use super::xkeysyms;
 use super::{Connection, Window};
 use crate::config::Config;
 use crate::font::FontConfiguration;
-use crate::guiloop::{GuiEventLoop, SessionTerminated, WindowId};
+use crate::guiloop::x11::{GuiEventLoop, WindowId};
+use crate::guiloop::SessionTerminated;
 use crate::opengl::textureatlas::OutOfTextureSpace;
-use crate::pty;
-use crate::pty::MasterPty;
+use crate::{openpty, MasterPty};
 use clipboard::{ClipboardContext, ClipboardProvider};
 use failure::Error;
 use futures;
@@ -164,6 +164,7 @@ impl<'a> term::TerminalHost for TabHost<'a> {
     }
 
     fn new_window(&mut self) {
+        /*
         let event_loop = Rc::clone(&self.host.event_loop);
         let config = Rc::clone(&self.host.config);
         let fonts = Rc::clone(&self.host.fonts);
@@ -175,6 +176,7 @@ impl<'a> term::TerminalHost for TabHost<'a> {
                     .map(futures::Async::Ready)
                     .map_err(|_| ())
             }));
+            */
     }
 
     fn new_tab(&mut self) {
@@ -520,7 +522,7 @@ impl TerminalWindow {
         let rows = (self.height as usize + 1) / self.cell_height;
         let cols = (self.width as usize + 1) / self.cell_width;
 
-        let (pty, slave) = pty::openpty(rows as u16, cols as u16, self.width, self.height)?;
+        let (pty, slave) = openpty(rows as u16, cols as u16, self.width, self.height)?;
         let mut cmd = Command::new(get_shell()?);
         cmd.env("TERM", &self.host.config.term);
 

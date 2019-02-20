@@ -1,16 +1,16 @@
 //! Configuration for the gui portion of the terminal
 
+use crate::font::FontSystemSelection;
+use crate::guiloop::GuiSelection;
 use directories::UserDirs;
 use failure::{err_msg, Error};
 use std;
 use std::fs;
 use std::io::prelude::*;
-use termwiz::hyperlink;
-use toml;
-
-use crate::font::FontSystemSelection;
 use term;
 use term::color::RgbColor;
+use termwiz::hyperlink;
+use toml;
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct Config {
@@ -46,6 +46,9 @@ pub struct Config {
 
     #[serde(default)]
     pub font_system: FontSystemSelection,
+
+    #[serde(default)]
+    pub gui_system: GuiSelection,
 }
 
 fn default_hyperlink_rules() -> Vec<hyperlink::Rule> {
@@ -77,6 +80,7 @@ impl Default for Config {
             font: TextStyle::default(),
             font_rules: Vec::new(),
             font_system: FontSystemSelection::default(),
+            gui_system: GuiSelection::default(),
             colors: None,
             scrollback_lines: None,
             hyperlink_rules: default_hyperlink_rules(),
