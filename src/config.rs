@@ -108,7 +108,9 @@ impl Default for Config {
 
 #[cfg(target_os = "macos")]
 const FONT_FAMILY: &str = "Menlo";
-#[cfg(not(target_os = "macos"))]
+#[cfg(windows)]
+const FONT_FAMILY: &str = "Consolas";
+#[cfg(all(not(target_os = "macos"), not(windows)))]
 const FONT_FAMILY: &str = "monospace";
 
 #[derive(Debug, Deserialize, Clone, PartialEq, Eq, Hash)]
@@ -235,7 +237,12 @@ impl TextStyle {
         });
         #[cfg(windows)]
         font.push(FontAttributes {
-            family: "Segoe UI".into(),
+            family: "Segoe UI Emoji".into(),
+            bold: None,
+            italic: None,
+        });
+        font.push(FontAttributes {
+            family: "Segoe UI Symbol".into(),
             bold: None,
             italic: None,
         });
