@@ -399,67 +399,199 @@ impl TerminalWindow {
         Ok(())
     }
 
-    fn is_us_simple_key(code: glium::glutin::VirtualKeyCode) -> bool {
+    /// Winit, which is the underlying windowing library, doesn't have a very consistent
+    /// story around how it constructs KeyboardInput instances.  For example when running
+    /// against X11 inside WSL, the VirtualKeyCode is set to Grave when backtick is pressed,
+    /// but is None when `~` is pressed (shift+Grave).
+    /// In this situation we don't know whether ReceivedCharacter will follow with the
+    /// `~` translated.
+    /// Because we cannot trust the input data, this function is present to compute
+    /// a VirtualKeyCode from the scan_code.
+    /// This isn't great because correctly interpreting the scan_code requires more
+    /// system dependent context than we have available.
+    /// For now we have to put up with it; this may result in us effectively being
+    /// hardcoded to a US English keyboard layout until we come up with something
+    /// better.
+    fn scancode_to_virtual(scan_code: u32) -> Option<glium::glutin::VirtualKeyCode> {
         use glium::glutin::VirtualKeyCode as V;
-        match code {
-            V::Key1
-            | V::Key2
-            | V::Key3
-            | V::Key4
-            | V::Key5
-            | V::Key6
-            | V::Key7
-            | V::Key8
-            | V::Key9
-            | V::Key0
-            | V::A
-            | V::B
-            | V::C
-            | V::D
-            | V::E
-            | V::F
-            | V::G
-            | V::H
-            | V::I
-            | V::J
-            | V::K
-            | V::L
-            | V::M
-            | V::N
-            | V::O
-            | V::P
-            | V::Q
-            | V::R
-            | V::S
-            | V::T
-            | V::U
-            | V::V
-            | V::W
-            | V::X
-            | V::Y
-            | V::Z
-            | V::Return
-            | V::Back
-            | V::Escape
-            | V::Delete
-            | V::Colon
-            | V::Space
-            | V::Equals
-            | V::Add
-            | V::Apostrophe
-            | V::Backslash
-            | V::Grave
-            | V::LBracket
-            | V::Minus
-            | V::Period
-            | V::RBracket
-            | V::Semicolon
-            | V::Slash
-            | V::Comma
-            | V::Subtract
-            | V::At
-            | V::Tab => true,
-            _ => false,
+        let code = match scan_code {
+            0x29 => V::Grave,
+            0x02 => V::Key1,
+            0x03 => V::Key2,
+            0x04 => V::Key3,
+            0x05 => V::Key4,
+            0x06 => V::Key5,
+            0x07 => V::Key6,
+            0x08 => V::Key7,
+            0x09 => V::Key8,
+            0x0a => V::Key9,
+            0x0b => V::Key0,
+            0x0c => V::Minus,
+            0x0d => V::Equals,
+            0x0e => V::Back,
+            0x0f => V::Tab,
+            0x10 => V::Q,
+            0x11 => V::W,
+            0x12 => V::E,
+            0x13 => V::R,
+            0x14 => V::T,
+            0x15 => V::Y,
+            0x16 => V::U,
+            0x17 => V::I,
+            0x18 => V::O,
+            0x19 => V::P,
+            0x1a => V::LBracket,
+            0x1b => V::RBracket,
+            0x2b => V::Backslash,
+            0x1e => V::A,
+            0x1f => V::S,
+            0x20 => V::D,
+            0x21 => V::F,
+            0x22 => V::G,
+            0x23 => V::H,
+            0x24 => V::J,
+            0x25 => V::K,
+            0x26 => V::L,
+            0x27 => V::Semicolon,
+            0x28 => V::Apostrophe,
+            0x1c => V::Return,
+            0x2a => V::LShift,
+            0x2c => V::Z,
+            0x2d => V::X,
+            0x2e => V::C,
+            0x2f => V::V,
+            0x30 => V::B,
+            0x31 => V::N,
+            0x32 => V::M,
+            0x33 => V::Comma,
+            0x34 => V::Period,
+            0x35 => V::Slash,
+            0x36 => V::RShift,
+            0x1d => V::LControl,
+            0x38 => V::RControl,
+            0x39 => V::Space,
+            0x01 => V::Escape,
+            _ => return None,
+        };
+        Some(code)
+    }
+
+    fn normalize_keycode(code: glium::glutin::VirtualKeyCode, shifted: bool) -> Option<KeyCode> {
+        use glium::glutin::VirtualKeyCode as V;
+        macro_rules! shifted {
+            ($lower:expr, $upper:expr) => {
+                if shifted {
+                    KeyCode::Char($upper)
+                } else {
+                    KeyCode::Char($lower)
+                }
+            };
+            ($lower:expr) => {
+                if shifted {
+                    KeyCode::Char($lower.to_ascii_uppercase())
+                } else {
+                    KeyCode::Char($lower)
+                }
+            };
+        }
+        let key = match code {
+            V::Key1 => shifted!('1', '!'),
+            V::Key2 => shifted!('2', '@'),
+            V::Key3 => shifted!('3', '#'),
+            V::Key4 => shifted!('4', '$'),
+            V::Key5 => shifted!('5', '%'),
+            V::Key6 => shifted!('6', '^'),
+            V::Key7 => shifted!('7', '&'),
+            V::Key8 => shifted!('8', '*'),
+            V::Key9 => shifted!('9', '('),
+            V::Key0 => shifted!('0', ')'),
+            V::A => shifted!('a'),
+            V::B => shifted!('b'),
+            V::C => shifted!('c'),
+            V::D => shifted!('d'),
+            V::E => shifted!('e'),
+            V::F => shifted!('f'),
+            V::G => shifted!('g'),
+            V::H => shifted!('h'),
+            V::I => shifted!('i'),
+            V::J => shifted!('j'),
+            V::K => shifted!('k'),
+            V::L => shifted!('l'),
+            V::M => shifted!('m'),
+            V::N => shifted!('n'),
+            V::O => shifted!('o'),
+            V::P => shifted!('p'),
+            V::Q => shifted!('q'),
+            V::R => shifted!('r'),
+            V::S => shifted!('s'),
+            V::T => shifted!('t'),
+            V::U => shifted!('u'),
+            V::V => shifted!('v'),
+            V::W => shifted!('w'),
+            V::X => shifted!('x'),
+            V::Y => shifted!('y'),
+            V::Z => shifted!('z'),
+            V::Return |V::NumpadEnter => KeyCode::Enter,
+            V::Back => KeyCode::Backspace,
+            V::Escape => KeyCode::Escape,
+            V::Delete => KeyCode::Delete,
+            V::Colon => KeyCode::Char(':'),
+            V::Space => KeyCode::Char(' '),
+            V::Equals => shifted!('=', '+'),
+            V::Add => KeyCode::Char('+'),
+            V::Apostrophe => shifted!('\'', '"'),
+            V::Backslash => shifted!('\\', '|'),
+            V::Grave => shifted!('`', '~'),
+            V::LBracket => shifted!('[', '{'),
+            V::Minus => shifted!('-', '_'),
+            V::Period => shifted!('.', '>'),
+            V::RBracket => shifted!(']', '}'),
+            V::Semicolon => shifted!(';', ':'),
+            V::Slash => shifted!('/', '?'),
+            V::Comma => shifted!(',', '<'),
+            V::Subtract => shifted!('-', '_'),
+            V::At => KeyCode::Char('@'),
+            V::Tab => KeyCode::Char('\t'),
+            V::F1 => KeyCode::Function(1),
+            V::F2 => KeyCode::Function(2),
+            V::F3 => KeyCode::Function(3),
+            V::F4 => KeyCode::Function(4),
+            V::F5 => KeyCode::Function(5),
+            V::F6 => KeyCode::Function(6),
+            V::F7 => KeyCode::Function(7),
+            V::F8 => KeyCode::Function(8),
+            V::F9 => KeyCode::Function(9),
+            V::F10 => KeyCode::Function(10),
+            V::F11 => KeyCode::Function(11),
+            V::F12 => KeyCode::Function(12),
+            V::F13 => KeyCode::Function(13),
+            V::F14 => KeyCode::Function(14),
+            V::F15 => KeyCode::Function(15),
+            V::Insert => KeyCode::Insert,
+            V::Home => KeyCode::Home,
+            V::End => KeyCode::End,
+            V::PageDown => KeyCode::PageDown,
+            V::PageUp => KeyCode::PageUp,
+            V::Left => KeyCode::LeftArrow,
+            V::Up => KeyCode::UpArrow,
+            V::Right => KeyCode::RightArrow,
+            V::Down => KeyCode::DownArrow,
+            V::LAlt | V::RAlt => KeyCode::Alt,
+            V::LControl | V::RControl => KeyCode::Control,
+            V::LShift | V::RShift => KeyCode::Shift,
+            V::LWin | V::RWin => KeyCode::Super,
+            _ => return None,
+        };
+        Some(key)
+    }
+
+    fn keycode_from_input(event: &glium::glutin::KeyboardInput) -> Option<KeyCode> {
+        if let Some(code) = event.virtual_keycode {
+            Self::normalize_keycode(code, event.modifiers.shift)
+        } else if let Some(code) = Self::scancode_to_virtual(event.scancode) {
+            Self::normalize_keycode(code, event.modifiers.shift)
+        } else {
+            None
         }
     }
 
@@ -467,123 +599,14 @@ impl TerminalWindow {
         let mods = Self::decode_modifiers(event.modifiers);
         self.last_modifiers = mods;
         self.allow_received_character = false;
-        if let Some(code) = event.virtual_keycode {
-            use glium::glutin::VirtualKeyCode as V;
-
-            // This is horrible for international users, but it makes
-            // things workable in the short term.
-            // on macOS, and some flavors of X environments,
-            // alt unconditionally composes input to international
-            // characters which breaks the `alt-1` key I use often in
-            // tmux.  That input shows up after this key_event call as
-            // a ReceivedCharacter input.  We want to usually allow that
-            // but as a way to avoid the weirdness I mentioned, want to
-            // suppress it for ALT.
-            // We also want to suppress it for eg: cursor keys.
-            if Self::is_us_simple_key(code) && !event.modifiers.alt {
-                self.allow_received_character = true;
-                return Ok(());
-            }
-            let key = match code {
-                V::Key1 => KeyCode::Char('1'),
-                V::Key2 => KeyCode::Char('2'),
-                V::Key3 => KeyCode::Char('3'),
-                V::Key4 => KeyCode::Char('4'),
-                V::Key5 => KeyCode::Char('5'),
-                V::Key6 => KeyCode::Char('6'),
-                V::Key7 => KeyCode::Char('7'),
-                V::Key8 => KeyCode::Char('8'),
-                V::Key9 => KeyCode::Char('9'),
-                V::Key0 => KeyCode::Char('0'),
-                V::A => KeyCode::Char('a'),
-                V::B => KeyCode::Char('b'),
-                V::C => KeyCode::Char('c'),
-                V::D => KeyCode::Char('d'),
-                V::E => KeyCode::Char('e'),
-                V::F => KeyCode::Char('f'),
-                V::G => KeyCode::Char('g'),
-                V::H => KeyCode::Char('h'),
-                V::I => KeyCode::Char('i'),
-                V::J => KeyCode::Char('j'),
-                V::K => KeyCode::Char('k'),
-                V::L => KeyCode::Char('l'),
-                V::M => KeyCode::Char('m'),
-                V::N => KeyCode::Char('n'),
-                V::O => KeyCode::Char('o'),
-                V::P => KeyCode::Char('p'),
-                V::Q => KeyCode::Char('q'),
-                V::R => KeyCode::Char('r'),
-                V::S => KeyCode::Char('s'),
-                V::T => KeyCode::Char('t'),
-                V::U => KeyCode::Char('u'),
-                V::V => KeyCode::Char('v'),
-                V::W => KeyCode::Char('w'),
-                V::X => KeyCode::Char('x'),
-                V::Y => KeyCode::Char('y'),
-                V::Z => KeyCode::Char('z'),
-                V::Return => KeyCode::Enter,
-                V::Back => KeyCode::Backspace,
-                V::Escape => KeyCode::Escape,
-                V::Delete => KeyCode::Delete,
-                V::Colon => KeyCode::Char(':'),
-                V::Space => KeyCode::Char(' '),
-                V::Equals => KeyCode::Char('='),
-                V::Add => KeyCode::Char('+'),
-                V::Apostrophe => KeyCode::Char('\''),
-                V::Backslash => KeyCode::Char('\\'),
-                V::Grave => KeyCode::Char('`'),
-                V::LBracket => KeyCode::Char('['),
-                V::Minus => KeyCode::Char('-'),
-                V::Period => KeyCode::Char('.'),
-                V::RBracket => KeyCode::Char(']'),
-                V::Semicolon => KeyCode::Char(';'),
-                V::Slash => KeyCode::Char('/'),
-                V::Comma => KeyCode::Char(','),
-                V::Subtract => KeyCode::Char('-'),
-                V::At => KeyCode::Char('@'),
-                V::Tab => KeyCode::Char('\t'),
-                V::F1 => KeyCode::Function(1),
-                V::F2 => KeyCode::Function(2),
-                V::F3 => KeyCode::Function(3),
-                V::F4 => KeyCode::Function(4),
-                V::F5 => KeyCode::Function(5),
-                V::F6 => KeyCode::Function(6),
-                V::F7 => KeyCode::Function(7),
-                V::F8 => KeyCode::Function(8),
-                V::F9 => KeyCode::Function(9),
-                V::F10 => KeyCode::Function(10),
-                V::F11 => KeyCode::Function(11),
-                V::F12 => KeyCode::Function(12),
-                V::F13 => KeyCode::Function(13),
-                V::F14 => KeyCode::Function(14),
-                V::F15 => KeyCode::Function(15),
-                V::Insert => KeyCode::Insert,
-                V::Home => KeyCode::Home,
-                V::End => KeyCode::End,
-                V::PageDown => KeyCode::PageDown,
-                V::PageUp => KeyCode::PageUp,
-                V::Left => KeyCode::LeftArrow,
-                V::Up => KeyCode::UpArrow,
-                V::Right => KeyCode::RightArrow,
-                V::Down => KeyCode::DownArrow,
-                V::LAlt | V::RAlt => KeyCode::Alt,
-                V::LControl | V::RControl => KeyCode::Control,
-                V::LShift | V::RShift => KeyCode::Shift,
-                V::LWin | V::RWin => KeyCode::Super,
-                _ => {
-                    // Wondering why a key isn't working?
-                    // Probably need to add a mapping above for VirtualKeyCode
-                    // enum variants defined in the `winit` crate.
-                    // https://docs.rs/winit/0.18.1/i686-apple-darwin/winit/enum.VirtualKeyCode.html
-                    eprintln!("unhandled key: {:?}", event);
-                    return Ok(());
-                }
-            };
-
+        if let Some(key) = Self::keycode_from_input(&event) {
+            // debug!("event {:?} -> {:?}", event, key);
             match event.state {
                 ElementState::Pressed => self.terminal.key_down(key, mods, &mut self.host)?,
                 ElementState::Released => self.terminal.key_up(key, mods, &mut self.host)?,
             }
+        } else {
+            eprintln!("event {:?} with no mapping", event);
         }
         self.paint_if_needed()?;
         Ok(())
@@ -634,6 +657,7 @@ impl TerminalWindow {
             } => {
                 // Coupled with logic in key_event which gates whether
                 // we allow processing unicode chars here
+                // eprintln!("ReceivedCharacter {} {:?}", c as u32, c);
                 if self.allow_received_character {
                     self.allow_received_character = false;
                     self.terminal.key_down(

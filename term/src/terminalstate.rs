@@ -725,7 +725,7 @@ impl TerminalState {
                 return Ok(());
             }
             (Tab, ..) => "\t",
-            (Enter, ..) => "\n",
+            (Enter, ..) => "\r",
             (Backspace, ..) => "\x08",
             (Escape, ..) => "\x1b",
             // Delete
@@ -876,6 +876,7 @@ impl TerminalState {
             | (InternalPasteEnd, ..) => "",
         };
 
+        // eprintln!("sending {:?}", to_send);
         write_all(host.writer(), to_send.as_bytes())?;
 
         // Reset the viewport if we sent data to the parser
