@@ -408,11 +408,7 @@ impl TerminalWindow {
     }
 
     fn decode_key(&self, event: &xcb::KeyPressEvent) -> Option<(KeyCode, KeyModifiers)> {
-        let mods = xkeysyms::modifiers(event);
-        let sym = self
-            .conn
-            .lookup_keysym(event, mods.contains(KeyModifiers::SHIFT));
-        xkeysyms::xcb_keysym_to_keycode(sym).map(|code| (code, mods))
+        self.conn.xkb_lookup_keysym(event)
     }
 
     fn mouse_event(&mut self, event: MouseEvent) -> Result<(), Error> {
@@ -509,7 +505,11 @@ impl TerminalWindow {
                     return Err(SessionTerminated::WindowClosed.into());
                 }
             }
-            _ => {}
+            _ => {
+                if r == self.conn.kbd_ev {
+                    self.conn.keyboard.process_xkb_event(&self.conn, event);
+                }
+            }
         }
         Ok(())
     }

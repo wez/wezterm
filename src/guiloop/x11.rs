@@ -440,6 +440,11 @@ impl GuiEventLoop {
     fn process_xcb_event(&self, event: &xcb::GenericEvent) -> Result<(), Error> {
         if let Some(window_id) = Self::window_id_from_event(event) {
             self.process_window_event(window_id, event)?;
+        } else { // [FIXME] can't identify window from xkb keyboard event
+            let mut windows = self.windows.borrow_mut();
+            for w in windows.by_id.values_mut() {
+                w.dispatch_event(event)?;
+            }
         }
         Ok(())
     }

@@ -61,6 +61,10 @@ features = ["glutin"]
 [target.'cfg(all(unix, not(target_os = "macos")))'.dependencies.xcb]
 version = "~0.8"
 
+[target.'cfg(all(unix, not(target_os = "macos")))'.dependencies.xkbcommon]
+version = "~0.4"
+features = ["x11"]
+
 [target.'cfg(all(unix, not(target_os = "macos")))'.dependencies.xcb-util]
 features = [
     "icccm",
