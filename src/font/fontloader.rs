@@ -7,7 +7,7 @@ pub fn load_system_fonts(
     style: &TextStyle,
 ) -> Result<Vec<(Vec<u8>, i32)>, Error> {
     let mut fonts = Vec::new();
-    for font_attr in &style.font {
+    for font_attr in style.font_with_fallback() {
         let mut font_props = system_fonts::FontPropertyBuilder::new()
             .family(&font_attr.family)
             .monospace();

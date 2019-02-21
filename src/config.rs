@@ -194,25 +194,27 @@ impl TextStyle {
         }
     }
 
-    fn add_fallback(&mut self) {
+    pub fn font_with_fallback(&self) -> Vec<FontAttributes> {
+        let mut font = self.font.clone();
         #[cfg(target_os = "macos")]
-        self.font.push(FontAttributes {
+        font.push(FontAttributes {
             family: "Apple Color Emoji".into(),
             bold: None,
             italic: None,
         });
         #[cfg(target_os = "macos")]
-        self.font.push(FontAttributes {
+        font.push(FontAttributes {
             family: "Apple Symbols".into(),
             bold: None,
             italic: None,
         });
         #[cfg(windows)]
-        self.font.push(FontAttributes {
+        font.push(FontAttributes {
             family: "Segoe UI".into(),
             bold: None,
             italic: None,
         });
+        font
     }
 }
 
@@ -327,8 +329,6 @@ impl Config {
                 ..Default::default()
             });
         }
-
-        cfg.font.add_fallback();
 
         cfg
     }
