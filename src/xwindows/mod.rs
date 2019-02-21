@@ -1,3 +1,8 @@
+use term::{KeyCode, KeyModifiers};
+extern crate xkbcommon;
+extern crate libc;
+mod keyboard;
+use keyboard::Keyboard;
 use egli;
 use gl;
 use glium;
@@ -17,7 +22,7 @@ use x11;
 use xcb;
 use xcb_util;
 use xcb_util::ffi::keysyms::{
-    xcb_key_press_lookup_keysym, xcb_key_symbols_alloc, xcb_key_symbols_free, xcb_key_symbols_t,
+    xcb_key_symbols_alloc, xcb_key_symbols_free, xcb_key_symbols_t,
 };
 
 use failure::{self, Error};
@@ -31,6 +36,8 @@ pub struct Connection {
     pub display: *mut x11::xlib::Display,
     conn: xcb::Connection,
     screen_num: i32,
+    keyboard: Keyboard,
+    kbd_ev: u8,
     pub atom_protocols: xcb::Atom,
     pub atom_delete: xcb::Atom,
     pub atom_utf8_string: xcb::Atom,
@@ -140,10 +147,13 @@ impl Connection {
             .first()
             .ok_or_else(|| failure::err_msg("no compatible EGL configuration was found"))?;
 
+        let (keyboard, kbd_ev, _) = Keyboard::new(&conn);
         Ok(Connection {
             display,
             conn,
             screen_num,
+            keyboard,
+            kbd_ev,
             atom_protocols,
             atom_clipboard,
             atom_delete,
@@ -168,16 +178,8 @@ impl Connection {
         self.atom_delete
     }
 
-    pub fn lookup_keysym(&self, event: &xcb::KeyPressEvent, shifted: bool) -> xcb::Keysym {
-        unsafe {
-            let sym =
-                xcb_key_press_lookup_keysym(self.keysyms, event.ptr, if shifted { 1 } else { 0 });
-            if sym == 0 && shifted {
-                xcb_key_press_lookup_keysym(self.keysyms, event.ptr, 0)
-            } else {
-                sym
-            }
-        }
+    pub fn xkb_lookup_keysym(&self, event: &xcb::KeyPressEvent) -> Option<(KeyCode, KeyModifiers)> {
+        self.keyboard.process_key_event(event)
     }
 }
 
