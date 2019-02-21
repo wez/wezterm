@@ -197,6 +197,12 @@ impl TextStyle {
     fn add_fallback(&mut self) {
         #[cfg(target_os = "macos")]
         self.font.push(FontAttributes {
+            family: "Apple Color Emoji".into(),
+            bold: None,
+            italic: None,
+        });
+        #[cfg(target_os = "macos")]
+        self.font.push(FontAttributes {
             family: "Apple Symbols".into(),
             bold: None,
             italic: None,

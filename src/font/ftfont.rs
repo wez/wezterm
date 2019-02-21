@@ -83,7 +83,7 @@ impl FreeTypeFontImpl {
             #[cfg(debug_assertions)]
             text: codepoint.to_string(),
             cluster: 0,
-            num_cells: 1,
+            num_cells: unicode_width::UnicodeWidthChar::width(codepoint).unwrap_or(1) as u8,
             font_idx: 0,
             glyph_pos,
             x_advance: (metrics.horiAdvance as f64 / 64.0).into(),
