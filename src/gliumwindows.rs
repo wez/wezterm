@@ -531,7 +531,7 @@ impl TerminalWindow {
             V::X => shifted!('x'),
             V::Y => shifted!('y'),
             V::Z => shifted!('z'),
-            V::Return |V::NumpadEnter => KeyCode::Enter,
+            V::Return | V::NumpadEnter => KeyCode::Enter,
             V::Back => KeyCode::Backspace,
             V::Escape => KeyCode::Escape,
             V::Delete => KeyCode::Delete,
