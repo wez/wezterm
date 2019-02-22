@@ -37,6 +37,7 @@ pub struct FontConfiguration {
     config: Rc<Config>,
     fonts: RefCell<HashMap<TextStyle, FontPtr>>,
     system: Box<FontSystem>,
+    metrics: RefCell<Option<FontMetrics>>,
 }
 
 #[derive(Debug, Deserialize, Clone, Copy)]
@@ -120,6 +121,7 @@ impl FontConfiguration {
             config,
             fonts: RefCell::new(HashMap::new()),
             system: system.new_font_system(),
+            metrics: RefCell::new(None),
         }
     }
 
@@ -140,6 +142,22 @@ impl FontConfiguration {
     /// Returns the baseline font specified in the configuration
     pub fn default_font(&self) -> Result<Rc<RefCell<Box<NamedFont>>>, Error> {
         self.cached_font(&self.config.font)
+    }
+
+    pub fn default_font_metrics(&self) -> Result<FontMetrics, Error> {
+        {
+            let metrics = self.metrics.borrow();
+            if let Some(metrics) = metrics.as_ref() {
+                return Ok(*metrics);
+            }
+        }
+
+        let font = self.default_font()?;
+        let metrics = font.borrow_mut().get_fallback(0)?.metrics();
+
+        *self.metrics.borrow_mut() = Some(metrics.clone());
+
+        Ok(metrics)
     }
 
     /// Apply the defined font_rules from the user configuration to

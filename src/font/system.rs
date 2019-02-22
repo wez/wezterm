@@ -89,7 +89,7 @@ pub trait FontSystem {
 }
 
 /// Describes the key font metrics that we use in rendering
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, Default)]
 pub struct FontMetrics {
     /// Width of a character cell in pixels
     pub cell_width: f64,

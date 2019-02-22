@@ -397,12 +397,9 @@ impl Renderer {
         fonts: &Rc<FontConfiguration>,
         palette: term::color::ColorPalette,
     ) -> Result<Self, Error> {
-        let (cell_height, cell_width, descender) = {
-            // Urgh, this is a bit repeaty, but we need to satisfy the borrow checker
-            let font = fonts.default_font()?;
-            let metrics = font.borrow_mut().get_fallback(0)?.metrics();
-            (metrics.cell_height, metrics.cell_width, metrics.descender)
-        };
+        let metrics = fonts.default_font_metrics()?;
+        let (cell_height, cell_width, descender) =
+            (metrics.cell_height, metrics.cell_width, metrics.descender);
         let descender = if descender.is_positive() {
             ((f64::from(descender)) / 64.0).ceil() as isize
         } else {

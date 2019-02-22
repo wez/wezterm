@@ -254,12 +254,10 @@ impl GuiEventLoop {
 
         // First step is to figure out the font metrics so that we know how
         // big things are going to be.
-        let font = fontconfig.default_font()?;
-
         // we always load the cell_height for font 0,
         // regardless of which font we are shaping here,
         // so that we can scale glyphs appropriately
-        let metrics = font.borrow_mut().get_fallback(0)?.metrics();
+        let metrics = fontconfig.default_font_metrics();
 
         let initial_cols = 80u16;
         let initial_rows = 24u16;

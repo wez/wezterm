@@ -241,12 +241,8 @@ impl TerminalWindow {
             .map(|p| p.clone().into())
             .unwrap_or_else(term::color::ColorPalette::default);
 
-        let (cell_height, cell_width) = {
-            // Urgh, this is a bit repeaty, but we need to satisfy the borrow checker
-            let font = fonts.default_font()?;
-            let metrics = font.borrow_mut().get_fallback(0)?.metrics();
-            (metrics.cell_height, metrics.cell_width)
-        };
+        let metrics = fonts.default_font_metrics()?;
+        let (cell_height, cell_width) = (metrics.cell_height, metrics.cell_width);
 
         let size = pty.get_size()?;
         let width = size.ws_xpixel;
