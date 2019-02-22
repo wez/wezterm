@@ -18,7 +18,12 @@ impl FontConfigAndFreeType {
 }
 
 impl FontSystem for FontConfigAndFreeType {
-    fn load_font(&self, config: &Config, style: &TextStyle) -> Result<Box<NamedFont>, Error> {
+    fn load_font(
+        &self,
+        config: &Config,
+        style: &TextStyle,
+        font_scale: f64,
+    ) -> Result<Box<NamedFont>, Error> {
         let fonts = style.font_with_fallback();
         let mut pattern = if fonts.len() >= 1 {
             let mut pattern = FontPattern::new()?;
@@ -41,7 +46,7 @@ impl FontSystem for FontConfigAndFreeType {
         } else {
             FontPattern::parse(&style.fontconfig_pattern)?
         };
-        pattern.add_double("size", config.font_size)?;
+        pattern.add_double("size", config.font_size * font_scale)?;
         pattern.add_double("dpi", config.dpi)?;
 
         Ok(Box::new(NamedFontImpl::new(pattern)?))

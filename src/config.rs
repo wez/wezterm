@@ -195,6 +195,7 @@ impl TextStyle {
     }
 
     pub fn font_with_fallback(&self) -> Vec<FontAttributes> {
+        #[allow(unused_mut)]
         let mut font = self.font.clone();
         #[cfg(target_os = "macos")]
         font.push(FontAttributes {
