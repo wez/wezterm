@@ -19,14 +19,19 @@ impl RustTypeFonts {
 }
 
 impl FontSystem for RustTypeFonts {
-    fn load_font(&self, config: &Config, style: &TextStyle) -> Result<Box<NamedFont>, Error> {
+    fn load_font(
+        &self,
+        config: &Config,
+        style: &TextStyle,
+        font_scale: f64,
+    ) -> Result<Box<NamedFont>, Error> {
         let mut fonts = Vec::new();
         for (data, idx) in fontloader::load_system_fonts(config, style)? {
             eprintln!("want idx {} in bytes of len {}", idx, data.len());
             fonts.push(RustTypeFontImpl::from_bytes(
                 data,
                 idx,
-                config.font_size as f32 * config.dpi as f32 / 72.0,
+                font_scale as f32 * config.font_size as f32 * config.dpi as f32 / 72.0,
             )?);
         }
         Ok(Box::new(NamedFontImpl { fonts }))

@@ -42,7 +42,12 @@ struct NamedFontImpl {
 }
 
 impl FontSystem for CoreTextSystem {
-    fn load_font(&self, config: &Config, style: &TextStyle) -> Result<Box<NamedFont>, Error> {
+    fn load_font(
+        &self,
+        config: &Config,
+        style: &TextStyle,
+        font_scale: f64,
+    ) -> Result<Box<NamedFont>, Error> {
         let mut fonts = Vec::new();
         for font_attr in style.font_with_fallback() {
             let col = match create_for_family(&font_attr.family) {
@@ -63,7 +68,8 @@ impl FontSystem for CoreTextSystem {
                     let has_color = (traits & kCTFontTraitColorGlyphs) == kCTFontTraitColorGlyphs;
 
                     let d = d.clone();
-                    let ct_font = new_from_descriptor(&d, config.font_size * config.dpi / 72.0);
+                    let ct_font =
+                        new_from_descriptor(&d, font_scale * config.font_size * config.dpi / 72.0);
                     fonts.push(CoreTextFontImpl::new(ct_font, has_color));
                 }
             }

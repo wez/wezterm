@@ -413,78 +413,7 @@ impl Renderer {
         let cell_height = cell_height.ceil() as usize;
         let cell_width = cell_width.ceil() as usize;
 
-        // Create the texture atlas for the line decoration layer.
-        // This is a bitmap with columns to accomodate the U_XXX
-        // constants defined above.
-        let underline_tex = {
-            let width = 5 * cell_width;
-            let mut underline_data = Vec::with_capacity(width * cell_height * 4);
-            underline_data.resize(width * cell_height * 4, 0u8);
-
-            let descender_row = (cell_height as isize + descender) as usize;
-            let descender_plus_one = (1 + descender_row).min(cell_height - 1);
-            let descender_plus_two = (2 + descender_row).min(cell_height - 1);
-            let strike_row = descender_row / 2;
-
-            // First, the single underline.
-            // We place this just under the descender position.
-            {
-                let col = 0;
-                let offset = ((width * 4) * descender_plus_one) + (col * 4 * cell_width);
-                for i in 0..4 * cell_width {
-                    underline_data[offset + i] = 0xff;
-                }
-            }
-            // Double underline,
-            // We place this at and just below the descender
-            {
-                let col = 1;
-                let offset_one = ((width * 4) * (descender_row)) + (col * 4 * cell_width);
-                let offset_two = ((width * 4) * (descender_plus_two)) + (col * 4 * cell_width);
-                for i in 0..4 * cell_width {
-                    underline_data[offset_one + i] = 0xff;
-                    underline_data[offset_two + i] = 0xff;
-                }
-            }
-            // Strikethrough
-            {
-                let col = 2;
-                let offset = (width * 4) * strike_row + (col * 4 * cell_width);
-                for i in 0..4 * cell_width {
-                    underline_data[offset + i] = 0xff;
-                }
-            }
-            // Strikethrough and single underline
-            {
-                let col = 3;
-                let offset_one = ((width * 4) * descender_plus_one) + (col * 4 * cell_width);
-                let offset_two = ((width * 4) * strike_row) + (col * 4 * cell_width);
-                for i in 0..4 * cell_width {
-                    underline_data[offset_one + i] = 0xff;
-                    underline_data[offset_two + i] = 0xff;
-                }
-            }
-            // Strikethrough and double underline
-            {
-                let col = 4;
-                let offset_one = ((width * 4) * (descender_row)) + (col * 4 * cell_width);
-                let offset_two = ((width * 4) * strike_row) + (col * 4 * cell_width);
-                let offset_three = ((width * 4) * (descender_plus_two)) + (col * 4 * cell_width);
-                for i in 0..4 * cell_width {
-                    underline_data[offset_one + i] = 0xff;
-                    underline_data[offset_two + i] = 0xff;
-                    underline_data[offset_three + i] = 0xff;
-                }
-            }
-
-            glium::texture::SrgbTexture2d::new(
-                facade,
-                glium::texture::RawImage2d::from_raw_rgba(
-                    underline_data,
-                    (width as u32, cell_height as u32),
-                ),
-            )?
-        };
+        let underline_tex = Self::compute_underlines(facade, cell_width, cell_height, descender)?;
 
         let (glyph_vertex_buffer, glyph_index_buffer) = Self::compute_vertices(
             facade,
@@ -526,10 +455,105 @@ impl Renderer {
         })
     }
 
+    /// Create the texture atlas for the line decoration layer.
+    /// This is a bitmap with columns to accomodate the U_XXX
+    /// constants defined above.
+    fn compute_underlines<F: Facade>(
+        facade: &F,
+        cell_width: usize,
+        cell_height: usize,
+        descender: isize,
+    ) -> Result<SrgbTexture2d, glium::texture::TextureCreationError> {
+        let width = 5 * cell_width;
+        let mut underline_data = Vec::with_capacity(width * cell_height * 4);
+        underline_data.resize(width * cell_height * 4, 0u8);
+
+        let descender_row = (cell_height as isize + descender) as usize;
+        let descender_plus_one = (1 + descender_row).min(cell_height - 1);
+        let descender_plus_two = (2 + descender_row).min(cell_height - 1);
+        let strike_row = descender_row / 2;
+
+        // First, the single underline.
+        // We place this just under the descender position.
+        {
+            let col = 0;
+            let offset = ((width * 4) * descender_plus_one) + (col * 4 * cell_width);
+            for i in 0..4 * cell_width {
+                underline_data[offset + i] = 0xff;
+            }
+        }
+        // Double underline,
+        // We place this at and just below the descender
+        {
+            let col = 1;
+            let offset_one = ((width * 4) * (descender_row)) + (col * 4 * cell_width);
+            let offset_two = ((width * 4) * (descender_plus_two)) + (col * 4 * cell_width);
+            for i in 0..4 * cell_width {
+                underline_data[offset_one + i] = 0xff;
+                underline_data[offset_two + i] = 0xff;
+            }
+        }
+        // Strikethrough
+        {
+            let col = 2;
+            let offset = (width * 4) * strike_row + (col * 4 * cell_width);
+            for i in 0..4 * cell_width {
+                underline_data[offset + i] = 0xff;
+            }
+        }
+        // Strikethrough and single underline
+        {
+            let col = 3;
+            let offset_one = ((width * 4) * descender_plus_one) + (col * 4 * cell_width);
+            let offset_two = ((width * 4) * strike_row) + (col * 4 * cell_width);
+            for i in 0..4 * cell_width {
+                underline_data[offset_one + i] = 0xff;
+                underline_data[offset_two + i] = 0xff;
+            }
+        }
+        // Strikethrough and double underline
+        {
+            let col = 4;
+            let offset_one = ((width * 4) * (descender_row)) + (col * 4 * cell_width);
+            let offset_two = ((width * 4) * strike_row) + (col * 4 * cell_width);
+            let offset_three = ((width * 4) * (descender_plus_two)) + (col * 4 * cell_width);
+            for i in 0..4 * cell_width {
+                underline_data[offset_one + i] = 0xff;
+                underline_data[offset_two + i] = 0xff;
+                underline_data[offset_three + i] = 0xff;
+            }
+        }
+
+        glium::texture::SrgbTexture2d::new(
+            facade,
+            glium::texture::RawImage2d::from_raw_rgba(
+                underline_data,
+                (width as u32, cell_height as u32),
+            ),
+        )
+    }
+
+    pub fn scaling_changed<F: Facade>(&mut self, facade: &F) -> Result<(), Error> {
+        let metrics = self.fonts.default_font_metrics()?;
+        self.cell_height = metrics.cell_height.ceil() as usize;
+        self.cell_width = metrics.cell_width.ceil() as usize;
+        self.descender = if metrics.descender.is_positive() {
+            ((f64::from(metrics.descender)) / 64.0).ceil() as isize
+        } else {
+            ((f64::from(metrics.descender)) / 64.0).floor() as isize
+        };
+
+        self.glyph_cache.borrow_mut().clear();
+        self.atlas = RefCell::new(Atlas::new(facade, TEX_SIZE)?);
+        self.underline_tex =
+            Self::compute_underlines(facade, self.cell_width, self.cell_height, self.descender)?;
+        Ok(())
+    }
+
     pub fn recreate_atlas<F: Facade>(&mut self, facade: &F, size: u32) -> Result<(), Error> {
         let atlas = RefCell::new(Atlas::new(facade, size)?);
         self.atlas = atlas;
-        self.glyph_cache = RefCell::new(HashMap::new());
+        self.glyph_cache.borrow_mut().clear();
         Ok(())
     }
 

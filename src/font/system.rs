@@ -85,7 +85,12 @@ pub trait NamedFont {
 pub trait FontSystem {
     /// Given a text style, load (without caching) the font that
     /// best matches according to the fontconfig pattern.
-    fn load_font(&self, config: &Config, style: &TextStyle) -> Result<Box<NamedFont>, Error>;
+    fn load_font(
+        &self,
+        config: &Config,
+        style: &TextStyle,
+        font_scale: f64,
+    ) -> Result<Box<NamedFont>, Error>;
 }
 
 /// Describes the key font metrics that we use in rendering

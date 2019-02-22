@@ -28,7 +28,12 @@ impl FontLoaderAndFreeType {
 }
 
 impl FontSystem for FontLoaderAndFreeType {
-    fn load_font(&self, config: &Config, style: &TextStyle) -> Result<Box<NamedFont>, Error> {
+    fn load_font(
+        &self,
+        config: &Config,
+        style: &TextStyle,
+        font_scale: f64,
+    ) -> Result<Box<NamedFont>, Error> {
         let mut lib = ftwrap::Library::new()?;
         // Some systems don't support this mode, so if it fails, we don't
         // care to abort the rest of what we're doing
@@ -47,7 +52,7 @@ impl FontSystem for FontLoaderAndFreeType {
 
             fonts.push(FreeTypeFontImpl::with_face_size_and_dpi(
                 face,
-                config.font_size,
+                config.font_size * font_scale,
                 config.dpi as u32,
             )?);
         }

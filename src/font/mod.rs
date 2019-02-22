@@ -38,6 +38,8 @@ pub struct FontConfiguration {
     fonts: RefCell<HashMap<TextStyle, FontPtr>>,
     system: Box<FontSystem>,
     metrics: RefCell<Option<FontMetrics>>,
+    dpi_scale: RefCell<f64>,
+    font_scale: RefCell<f64>,
 }
 
 #[derive(Debug, Deserialize, Clone, Copy)]
@@ -122,6 +124,8 @@ impl FontConfiguration {
             fonts: RefCell::new(HashMap::new()),
             system: system.new_font_system(),
             metrics: RefCell::new(None),
+            font_scale: RefCell::new(1.0),
+            dpi_scale: RefCell::new(1.0),
         }
     }
 
@@ -134,14 +138,30 @@ impl FontConfiguration {
             return Ok(Rc::clone(entry));
         }
 
-        let font = Rc::new(RefCell::new(self.system.load_font(&self.config, style)?));
+        let scale = *self.dpi_scale.borrow() * *self.font_scale.borrow();
+        let font = Rc::new(RefCell::new(self.system.load_font(
+            &self.config,
+            style,
+            scale,
+        )?));
         fonts.insert(style.clone(), Rc::clone(&font));
         Ok(font)
+    }
+
+    pub fn change_scaling(&self, font_scale: f64, dpi_scale: f64) {
+        *self.dpi_scale.borrow_mut() = dpi_scale;
+        *self.font_scale.borrow_mut() = font_scale;
+        self.fonts.borrow_mut().clear();
+        self.metrics.borrow_mut().take();
     }
 
     /// Returns the baseline font specified in the configuration
     pub fn default_font(&self) -> Result<Rc<RefCell<Box<NamedFont>>>, Error> {
         self.cached_font(&self.config.font)
+    }
+
+    pub fn get_font_scale(&self) -> f64 {
+        *self.font_scale.borrow()
     }
 
     pub fn default_font_metrics(&self) -> Result<FontMetrics, Error> {

@@ -11,7 +11,7 @@ use crate::Child;
 use crate::MasterPty;
 use clipboard::{ClipboardContext, ClipboardProvider};
 use glium;
-use glium::glutin::dpi::{LogicalPosition, LogicalSize};
+use glium::glutin::dpi::{LogicalPosition, LogicalSize, PhysicalPosition};
 use glium::glutin::{self, ElementState, MouseCursor};
 use std::io::Write;
 use std::rc::Rc;
@@ -115,6 +115,7 @@ pub struct TerminalWindow {
     host: Host,
     _event_loop: Rc<GuiEventLoop>,
     _config: Rc<Config>,
+    fonts: Rc<FontConfiguration>,
     renderer: Renderer,
     width: u16,
     height: u16,
@@ -122,7 +123,7 @@ pub struct TerminalWindow {
     cell_width: usize,
     terminal: Terminal,
     process: Child,
-    last_mouse_coords: LogicalPosition,
+    last_mouse_coords: PhysicalPosition,
     last_modifiers: KeyModifiers,
     allow_received_character: bool,
 }
@@ -185,6 +186,7 @@ impl TerminalWindow {
             host,
             _event_loop: Rc::clone(event_loop),
             _config: Rc::clone(config),
+            fonts: Rc::clone(fonts),
             renderer,
             width,
             height,
@@ -192,7 +194,7 @@ impl TerminalWindow {
             cell_width,
             terminal,
             process,
-            last_mouse_coords: LogicalPosition::new(0.0, 0.0),
+            last_mouse_coords: PhysicalPosition::new(0.0, 0.0),
             last_modifiers: Default::default(),
             allow_received_character: false,
         })
@@ -236,7 +238,8 @@ impl TerminalWindow {
     }
 
     fn resize_surfaces(&mut self, size: LogicalSize) -> Result<bool, Error> {
-        let (width, height): (u32, u32) = size.into();
+        let dpi_scale = self.host.display.gl_window().get_hidpi_factor();
+        let (width, height): (u32, u32) = size.to_physical(dpi_scale).into();
         let width = width as u16;
         let height = height as u16;
 
@@ -282,7 +285,7 @@ impl TerminalWindow {
 
     fn mouse_move(
         &mut self,
-        position: LogicalPosition,
+        position: PhysicalPosition,
         modifiers: glium::glutin::ModifiersState,
     ) -> Result<(), Error> {
         self.last_mouse_coords = position;
@@ -615,6 +618,34 @@ impl TerminalWindow {
         Ok(())
     }
 
+    /// Called in response to either the screen dpi changing,
+    /// or the font scaling factor changing
+    fn scaling_changed(&mut self, font_scale: Option<f64>) -> Result<(), Error> {
+        let dpi_scale = self.host.display.gl_window().get_hidpi_factor();
+        let font_scale = font_scale.unwrap_or_else(|| self.fonts.get_font_scale());
+        eprintln!(
+            "TerminalWindow::scaling_changed dpi_scale={} font_scale={}",
+            dpi_scale, font_scale
+        );
+
+        self.fonts.change_scaling(font_scale, dpi_scale);
+
+        let metrics = self.fonts.default_font_metrics()?;
+        let (cell_height, cell_width) = (metrics.cell_height, metrics.cell_width);
+        self.cell_height = cell_height.ceil() as usize;
+        self.cell_width = cell_width.ceil() as usize;
+
+        self.renderer.scaling_changed(&mut self.host.display)?;
+
+        let size = self.host.display.gl_window().get_inner_size();
+        self.width = 0;
+        self.height = 0;
+        if let Some(size) = size {
+            self.resize_surfaces(size)?;
+        }
+        Ok(())
+    }
+
     pub fn dispatch_event(&mut self, event: &glutin::Event) -> Result<(), Error> {
         use glium::glutin::{Event, WindowEvent};
         match *event {
@@ -630,10 +661,7 @@ impl TerminalWindow {
             } => {
                 // Assuming that this is dragging a window between hidpi and
                 // normal dpi displays.  Treat this as a resize event of sorts
-                let size = self.host.display.gl_window().get_inner_size();
-                if let Some(size) = size {
-                    self.resize_surfaces(size)?;
-                }
+                self.scaling_changed(None)?;
             }
             Event::WindowEvent {
                 event: WindowEvent::Resized(size),
@@ -680,7 +708,8 @@ impl TerminalWindow {
                     },
                 ..
             } => {
-                self.mouse_move(position, modifiers)?;
+                let dpi_scale = self.host.display.gl_window().get_hidpi_factor();
+                self.mouse_move(position.to_physical(dpi_scale), modifiers)?;
             }
             Event::WindowEvent {
                 event:
