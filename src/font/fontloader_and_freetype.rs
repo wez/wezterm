@@ -4,7 +4,6 @@ use crate::font::fontloader;
 use crate::font::ftfont::FreeTypeFontImpl;
 use crate::font::{ftwrap, FallbackIdx, Font, FontSystem, GlyphInfo, NamedFont};
 use failure::Error;
-use unicode_normalization::UnicodeNormalization;
 
 struct NamedFontImpl {
     _lib: ftwrap::Library,
@@ -93,8 +92,11 @@ impl NamedFont for NamedFontImpl {
     fn shape(&mut self, s: &str) -> Result<Vec<GlyphInfo>, Error> {
         let mut shaped = Vec::new();
 
-        for (cluster, c) in s.nfc().enumerate() {
-            shaped.push(self.shape_codepoint(c, cluster)?);
+        let mut cluster = 0;
+        for c in s.chars() {
+            let info = self.shape_codepoint(c, cluster)?;
+            cluster += c.len_utf8();
+            shaped.push(info);
         }
         Ok(shaped)
     }

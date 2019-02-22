@@ -5,7 +5,6 @@ use crate::font::rtype::RustTypeFontImpl;
 use crate::font::{FallbackIdx, Font, FontSystem, GlyphInfo, NamedFont};
 use failure::Error;
 use rusttype::{point, Codepoint, ScaledGlyph};
-use unicode_normalization::UnicodeNormalization;
 
 struct NamedFontImpl<'a> {
     fonts: Vec<RustTypeFontImpl<'a>>,
@@ -68,7 +67,8 @@ impl<'a> NamedFont for NamedFontImpl<'a> {
     fn shape(&mut self, s: &str) -> Result<Vec<GlyphInfo>, Error> {
         let mut shaped = Vec::new();
 
-        for (cluster, c) in s.nfc().enumerate() {
+        let mut cluster = 0;
+        for c in s.chars() {
             let (glyph, font_idx) = self.glyph(c)?;
             let hmetrics = glyph.h_metrics();
             let glyph = glyph.positioned(point(0.0, 0.0));
@@ -85,7 +85,8 @@ impl<'a> NamedFont for NamedFontImpl<'a> {
                 y_advance: 0.0,
                 y_offset: 0.0, //(-bounds.max.y).into(),
                                // vmetrics.descent.into(),
-            })
+            });
+            cluster += c.len_utf8();
         }
         Ok(shaped)
     }
