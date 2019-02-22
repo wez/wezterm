@@ -108,7 +108,7 @@ fn glyph_index(ct_font: &CTFont, codepoint: char) -> Option<CGGlyph> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 struct Metrics {
     font_metrics: FontMetrics,
     ascent: f64,
@@ -150,8 +150,9 @@ impl CoreTextFontImpl {
         let w_metrics = metrics('W', &ct_font);
         let m_metrics = metrics('M', &ct_font);
         let zero_metrics = metrics('0', &ct_font);
-        let metrics =
-            w_metrics.unwrap_or_else(|| m_metrics.unwrap_or_else(|| zero_metrics.unwrap()));
+        let metrics = w_metrics.unwrap_or_else(|| {
+            m_metrics.unwrap_or_else(|| zero_metrics.unwrap_or_else(|| Default::default()))
+        });
         Self {
             ct_font,
             hb_font,

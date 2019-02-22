@@ -208,6 +208,12 @@ impl TextStyle {
             bold: None,
             italic: None,
         });
+        #[cfg(target_os = "macos")]
+        font.push(FontAttributes {
+            family: "Zapf Dingbats".into(),
+            bold: None,
+            italic: None,
+        });
         #[cfg(windows)]
         font.push(FontAttributes {
             family: "Segoe UI".into(),

@@ -58,10 +58,12 @@ impl Default for FontSystemSelection {
             not(feature = "force-rusttype")
         )) {
             FontSystemSelection::FontConfigAndFreeType
-        } else if cfg!(not(feature = "force-rusttype")) {
-            FontSystemSelection::FontLoaderAndFreeType
-        } else {
+        } else if cfg!(feature = "force-rusttype") {
             FontSystemSelection::FontLoaderAndRustType
+        } else if cfg!(target_os = "macos") {
+            FontSystemSelection::CoreText
+        } else {
+            FontSystemSelection::FontLoaderAndFreeType
         }
     }
 }
@@ -104,7 +106,7 @@ impl std::str::FromStr for FontSystemSelection {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_ref() {
             "fontconfigandfreetype" => Ok(FontSystemSelection::FontConfigAndFreeType),
-            "fontloadandfreetype" => Ok(FontSystemSelection::FontLoaderAndFreeType),
+            "fontloaderandfreetype" => Ok(FontSystemSelection::FontLoaderAndFreeType),
             "fontloaderandrusttype" => Ok(FontSystemSelection::FontLoaderAndRustType),
             "coretext" => Ok(FontSystemSelection::CoreText),
             _ => Err(format_err!(
