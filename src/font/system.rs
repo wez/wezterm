@@ -1,7 +1,7 @@
 //! Abstracts over the font selection system for the system
 
 use super::super::config::{Config, TextStyle};
-#[cfg(all(unix, not(target_os = "macos")))]
+#[cfg(unix)]
 use super::hbwrap as harfbuzz;
 use failure::Error;
 
@@ -41,7 +41,7 @@ pub struct GlyphInfo {
 
 impl GlyphInfo {
     #[allow(dead_code)]
-    #[cfg(all(unix, not(target_os = "macos")))]
+    #[cfg(unix)]
     pub fn new(
         text: &str,
         font_idx: usize,
@@ -89,6 +89,7 @@ pub trait FontSystem {
 }
 
 /// Describes the key font metrics that we use in rendering
+#[derive(Copy, Clone, Debug)]
 pub struct FontMetrics {
     /// Width of a character cell in pixels
     pub cell_width: f64,
@@ -115,7 +116,7 @@ pub trait Font {
     /// Perform shaping on the supplied harfbuzz buffer.
     /// This is really just a proxy for calling the harfbuzz::Font::shape()
     /// method on the contained harfbuzz font instance.
-    #[cfg(all(unix, not(target_os = "macos")))]
+    #[cfg(unix)]
     fn harfbuzz_shape(
         &self,
         buf: &mut harfbuzz::Buffer,

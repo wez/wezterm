@@ -5,7 +5,7 @@ use std::cell::RefCell;
 use std::mem;
 use std::slice;
 
-#[cfg(all(unix, not(target_os = "macos")))]
+#[cfg(unix)]
 use super::hbwrap as harfbuzz;
 
 /// Holds a loaded font alternative
@@ -95,12 +95,14 @@ impl FreeTypeFontImpl {
 }
 
 impl Font for FreeTypeFontImpl {
-    #[cfg(all(unix, not(target_os = "macos")))]
+    #[cfg(unix)]
+    #[allow(unused_variables)]
     fn harfbuzz_shape(
         &self,
         buf: &mut harfbuzz::Buffer,
         features: Option<&[harfbuzz::hb_feature_t]>,
     ) {
+        #[cfg(all(unix, not(target_os = "macos")))]
         self.font.borrow_mut().shape(buf, features)
     }
     fn has_color(&self) -> bool {

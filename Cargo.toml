@@ -25,6 +25,7 @@ unicode-normalization = "~0.1"
 freetype = "~0.4"
 open = "1.2"
 structopt = "0.2"
+foreign-types = "0.3"
 
 [target.'cfg(unix)'.dependencies]
 harfbuzz-sys = "~0.3"
@@ -70,6 +71,8 @@ version = "~0.2"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 core-text = "~13.1"
+core-graphics = "0.17"
+core-foundation = "0.6"
 
 [features]
 debug-escape-sequences = ["term/debug-escape-sequences"]

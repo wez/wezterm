@@ -1,6 +1,6 @@
 //! Systems using rust native rasterizer
 
-#[cfg(all(unix, not(target_os = "macos")))]
+#[cfg(unix)]
 use super::hbwrap as harfbuzz;
 use crate::font::{Font, FontMetrics, RasterizedGlyph};
 use failure::Error;
@@ -52,7 +52,7 @@ fn bounds(g: &PositionedGlyph) -> Rect<i32> {
 }
 
 impl<'a> Font for RustTypeFontImpl<'a> {
-    #[cfg(all(unix, not(target_os = "macos")))]
+    #[cfg(unix)]
     fn harfbuzz_shape(
         &self,
         _buf: &mut harfbuzz::Buffer,
