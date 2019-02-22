@@ -2,6 +2,7 @@ use crate::font::system::GlyphInfo;
 use crate::font::{ftwrap, Font, FontMetrics, RasterizedGlyph};
 use failure::Error;
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::mem;
 use std::slice;
 
@@ -17,6 +18,7 @@ pub struct FreeTypeFontImpl {
     cell_height: f64,
     /// nominal monospace cell width
     cell_width: f64,
+    glyph_cache: RefCell<HashMap<char, GlyphInfo>>,
 }
 
 impl FreeTypeFontImpl {
@@ -74,12 +76,20 @@ impl FreeTypeFontImpl {
             font: RefCell::new(font),
             cell_height,
             cell_width,
+            glyph_cache: RefCell::new(HashMap::new()),
         })
     }
 
     pub fn single_glyph_info(&self, codepoint: char) -> Result<GlyphInfo, Error> {
+        // Memoize this, as we are called frequently during shaping
+        {
+            let cache = self.glyph_cache.borrow_mut();
+            if let Some(info) = cache.get(&codepoint) {
+                return Ok(info.clone());
+            }
+        }
         let (glyph_pos, metrics) = self.face.borrow_mut().load_codepoint(codepoint)?;
-        Ok(GlyphInfo {
+        let info = GlyphInfo {
             #[cfg(debug_assertions)]
             text: codepoint.to_string(),
             cluster: 0,
@@ -90,7 +100,13 @@ impl FreeTypeFontImpl {
             x_offset: 0.0, //(metrics.horiBearingX as f64 / 64.0).into(),
             y_advance: 0.0,
             y_offset: 0.0,
-        })
+        };
+
+        self.glyph_cache
+            .borrow_mut()
+            .insert(codepoint, info.clone());
+
+        Ok(info)
     }
 }
 

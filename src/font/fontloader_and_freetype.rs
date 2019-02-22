@@ -90,7 +90,7 @@ impl NamedFont for NamedFontImpl {
     }
 
     fn shape(&mut self, s: &str) -> Result<Vec<GlyphInfo>, Error> {
-        let mut shaped = Vec::new();
+        let mut shaped = Vec::with_capacity(s.len());
 
         let mut cluster = 0;
         for c in s.chars() {
