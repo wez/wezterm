@@ -109,6 +109,24 @@ impl term::TerminalHost for Host {
             .request_spawn_tab(self.display.gl_window().id())
             .ok();
     }
+
+    fn increase_font_size(&mut self) {
+        self.event_loop
+            .request_increase_font_size(self.display.gl_window().id())
+            .ok();
+    }
+
+    fn decrease_font_size(&mut self) {
+        self.event_loop
+            .request_decrease_font_size(self.display.gl_window().id())
+            .ok();
+    }
+
+    fn reset_font_size(&mut self) {
+        self.event_loop
+            .request_reset_font_size(self.display.gl_window().id())
+            .ok();
+    }
 }
 
 pub struct TerminalWindow {
@@ -620,7 +638,7 @@ impl TerminalWindow {
 
     /// Called in response to either the screen dpi changing,
     /// or the font scaling factor changing
-    fn scaling_changed(&mut self, font_scale: Option<f64>) -> Result<(), Error> {
+    pub fn scaling_changed(&mut self, font_scale: Option<f64>) -> Result<(), Error> {
         let dpi_scale = self.host.display.gl_window().get_hidpi_factor();
         let font_scale = font_scale.unwrap_or_else(|| self.fonts.get_font_scale());
         eprintln!(

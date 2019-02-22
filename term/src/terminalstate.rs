@@ -706,6 +706,22 @@ impl TerminalState {
             return Ok(());
         }
 
+        if (mods == KeyModifiers::SUPER || mods == KeyModifiers::CTRL) && key == KeyCode::Char('-')
+        {
+            host.decrease_font_size();
+            return Ok(());
+        }
+        if (mods == KeyModifiers::SUPER || mods == KeyModifiers::CTRL) && key == KeyCode::Char('=')
+        {
+            host.increase_font_size();
+            return Ok(());
+        }
+        if (mods == KeyModifiers::SUPER || mods == KeyModifiers::CTRL) && key == KeyCode::Char('0')
+        {
+            host.reset_font_size();
+            return Ok(());
+        }
+
         if mods == KeyModifiers::SUPER {
             if let Char(c) = key {
                 if c >= '0' && c <= '9' {

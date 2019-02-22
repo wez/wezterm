@@ -71,6 +71,9 @@ struct Windows {
 enum SpawnRequest {
     Window,
     Tab(WindowId),
+    FontLarger(WindowId),
+    FontSmaller(WindowId),
+    FontReset(WindowId),
 }
 
 /// The `GuiEventLoop` represents the combined gui event processor,
@@ -115,6 +118,41 @@ impl GlutinGuiSystem {
                 }
                 Ok(SpawnRequest::Tab(_window_id)) => {
                     eprintln!("Spawning tabs is not yet implemented for glutin");
+                }
+                Ok(SpawnRequest::FontLarger(window_id)) => {
+                    let scale = fonts.get_font_scale() * 1.1;
+                    if let Some(window) = self
+                        .event_loop
+                        .windows
+                        .borrow_mut()
+                        .by_id
+                        .get_mut(&window_id)
+                    {
+                        window.scaling_changed(Some(scale)).ok();
+                    }
+                }
+                Ok(SpawnRequest::FontSmaller(window_id)) => {
+                    let scale = fonts.get_font_scale() * 0.9;
+                    if let Some(window) = self
+                        .event_loop
+                        .windows
+                        .borrow_mut()
+                        .by_id
+                        .get_mut(&window_id)
+                    {
+                        window.scaling_changed(Some(scale)).ok();
+                    }
+                }
+                Ok(SpawnRequest::FontReset(window_id)) => {
+                    if let Some(window) = self
+                        .event_loop
+                        .windows
+                        .borrow_mut()
+                        .by_id
+                        .get_mut(&window_id)
+                    {
+                        window.scaling_changed(Some(1.0)).ok();
+                    }
                 }
                 Err(TryRecvError::Empty) => return Ok(()),
                 Err(err) => bail!("spawn_rx disconnected {:?}", err),
@@ -204,6 +242,16 @@ impl GuiEventLoop {
             event_loop: RefCell::new(event_loop),
             windows: Rc::new(RefCell::new(Default::default())),
         })
+    }
+
+    pub fn request_increase_font_size(&self, window_id: WindowId) -> Result<(), Error> {
+        self.spawn_tx.send(SpawnRequest::FontLarger(window_id))
+    }
+    pub fn request_decrease_font_size(&self, window_id: WindowId) -> Result<(), Error> {
+        self.spawn_tx.send(SpawnRequest::FontSmaller(window_id))
+    }
+    pub fn request_reset_font_size(&self, window_id: WindowId) -> Result<(), Error> {
+        self.spawn_tx.send(SpawnRequest::FontReset(window_id))
     }
 
     pub fn request_spawn_window(&self) -> Result<(), Error> {

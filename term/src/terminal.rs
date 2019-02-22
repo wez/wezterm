@@ -36,6 +36,15 @@ pub trait TerminalHost {
 
     /// Toggle full-screen mode
     fn toggle_full_screen(&mut self) {}
+
+    /// Increase font size by one step
+    fn increase_font_size(&mut self) {}
+
+    /// Decrease font size by one step
+    fn decrease_font_size(&mut self) {}
+
+    /// Reset font size
+    fn reset_font_size(&mut self) {}
 }
 
 pub struct Terminal {
