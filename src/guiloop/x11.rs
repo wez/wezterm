@@ -200,10 +200,10 @@ impl GuiEventLoop {
 
     /// Run a function with access to the mutable version of the window with
     /// the specified window id
-    pub fn with_window<F: FnMut(&mut TerminalWindow) -> Result<(), Error>>(
+    pub fn with_window<F: FnOnce(&mut TerminalWindow) -> Result<(), Error>>(
         &self,
         window_id: WindowId,
-        mut func: F,
+        func: F,
     ) -> Result<(), Error> {
         let mut windows = self.windows.borrow_mut();
 

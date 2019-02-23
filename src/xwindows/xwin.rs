@@ -115,6 +115,23 @@ pub struct TerminalWindow {
     tabs: Tabs,
 }
 
+impl<'a> TabHost<'a> {
+    fn with_window<F: 'static + Fn(&mut TerminalWindow) -> Result<(), Error>>(&self, func: F) {
+        let events = Rc::clone(&self.host.event_loop);
+        let window_id = self.host.window.window.window_id;
+
+        self.host
+            .event_loop
+            .core
+            .spawn(futures::future::poll_fn(move || {
+                events
+                    .with_window(window_id, &func)
+                    .map(futures::Async::Ready)
+                    .map_err(|_| ())
+            }));
+    }
+}
+
 impl<'a> term::TerminalHost for TabHost<'a> {
     fn writer(&mut self) -> &mut Write {
         &mut self.pty
@@ -146,21 +163,10 @@ impl<'a> term::TerminalHost for TabHost<'a> {
     }
 
     fn set_title(&mut self, _title: &str) {
-        let events = Rc::clone(&self.host.event_loop);
-        let window_id = self.host.window.window.window_id;
-
-        self.host
-            .event_loop
-            .core
-            .spawn(futures::future::poll_fn(move || {
-                events
-                    .with_window(window_id, |win| {
-                        win.update_title();
-                        Ok(())
-                    })
-                    .map(futures::Async::Ready)
-                    .map_err(|_| ())
-            }));
+        self.with_window(move |win| {
+            win.update_title();
+            Ok(())
+        })
     }
 
     fn new_window(&mut self) {
@@ -196,81 +202,29 @@ impl<'a> term::TerminalHost for TabHost<'a> {
     }
 
     fn activate_tab(&mut self, tab: usize) {
-        let events = Rc::clone(&self.host.event_loop);
-        let window_id = self.host.window.window.window_id;
-
-        self.host
-            .event_loop
-            .core
-            .spawn(futures::future::poll_fn(move || {
-                events
-                    .with_window(window_id, |win| win.activate_tab(tab))
-                    .map(futures::Async::Ready)
-                    .map_err(|_| ())
-            }));
+        self.with_window(move |win| win.activate_tab(tab))
     }
 
     fn activate_tab_relative(&mut self, tab: isize) {
-        let events = Rc::clone(&self.host.event_loop);
-        let window_id = self.host.window.window.window_id;
-
-        self.host
-            .event_loop
-            .core
-            .spawn(futures::future::poll_fn(move || {
-                events
-                    .with_window(window_id, |win| win.activate_tab_relative(tab))
-                    .map(futures::Async::Ready)
-                    .map_err(|_| ())
-            }));
+        self.with_window(move |win| win.activate_tab_relative(tab))
     }
 
     fn increase_font_size(&mut self) {
-        let events = Rc::clone(&self.host.event_loop);
-        let window_id = self.host.window.window.window_id;
-        self.host
-            .event_loop
-            .core
-            .spawn(futures::future::poll_fn(move || {
-                events
-                    .with_window(window_id, |win| {
-                        let scale = win.fonts.get_font_scale();
-                        win.scaling_changed(Some(scale * 1.1))
-                    })
-                    .map(futures::Async::Ready)
-                    .map_err(|_| ())
-            }));
+        self.with_window(move |win| {
+            let scale = win.fonts.get_font_scale();
+            win.scaling_changed(Some(scale * 1.1))
+        })
     }
 
     fn decrease_font_size(&mut self) {
-        let events = Rc::clone(&self.host.event_loop);
-        let window_id = self.host.window.window.window_id;
-        self.host
-            .event_loop
-            .core
-            .spawn(futures::future::poll_fn(move || {
-                events
-                    .with_window(window_id, |win| {
-                        let scale = win.fonts.get_font_scale();
-                        win.scaling_changed(Some(scale * 0.9))
-                    })
-                    .map(futures::Async::Ready)
-                    .map_err(|_| ())
-            }));
+        self.with_window(move |win| {
+            let scale = win.fonts.get_font_scale();
+            win.scaling_changed(Some(scale * 0.9))
+        })
     }
 
     fn reset_font_size(&mut self) {
-        let events = Rc::clone(&self.host.event_loop);
-        let window_id = self.host.window.window.window_id;
-        self.host
-            .event_loop
-            .core
-            .spawn(futures::future::poll_fn(move || {
-                events
-                    .with_window(window_id, |win| win.scaling_changed(Some(1.0)))
-                    .map(futures::Async::Ready)
-                    .map_err(|_| ())
-            }));
+        self.with_window(move |win| win.scaling_changed(Some(1.0)))
     }
 }
 
