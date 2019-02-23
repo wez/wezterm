@@ -50,19 +50,20 @@ terminal session.
 Despite the warning above, I've been using `wezterm` as my daily driver since
 the middle of Feb 2018.  The following features are done:
 
-- [x] Runs on Linux under X (requires OpenGL ES 2)
-- [x] Scrollback (use mouse wheel and Shift Page{Up|Down})
+- [x] Runs on
+ * Linux under X (requires OpenGL ES 2)
+ * macOS
+ * Windows 10 with [ConPty](https://blogs.msdn.microsoft.com/commandline/2018/08/02/windows-command-line-introducing-the-windows-pseudo-console-conpty/)
 - [x] True Color support
 - [x] Ligatures, Color Emoji and font fallback
+- [x] Hyperlinks per: https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5feda
+- [x] Scrollback (use mouse wheel and Shift Page{Up|Down})
 - [x] xterm style selection of text with mouse; paste selection via Shift-Insert (bracketed paste is supported!)
 - [x] SGR style mouse reporting (works in vim and tmux)
 - [x] Render underline, double-underline, italic, bold, strikethrough
 - [x] Configuration file to specify fonts and colors
-- [x] Hyperlinks per: https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5feda
 - [x] Multiple Windows (Hotkey: `Super-N`)
 - [x] Tabs (Hotkey: `Super-T`, next/prev: `Super-[` and `Super-]`, go-to: `Super-[0-9]`)
-- [x] Run on macOS
-- [x] Run on Windows (Windows 10 with [ConPty](https://blogs.msdn.microsoft.com/commandline/2018/08/02/windows-command-line-introducing-the-windows-pseudo-console-conpty/) only)
 
 There's a good number of terminal escape sequences that are not yet implemented
 and that will get fleshed out as the applications I use uncover them, or as folks
