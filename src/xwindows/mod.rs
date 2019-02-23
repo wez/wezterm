@@ -1,11 +1,11 @@
-use term::{KeyCode, KeyModifiers};
 use libc;
+use term::{KeyCode, KeyModifiers};
 mod keyboard;
-use keyboard::Keyboard;
 use egli;
 use gl;
 use glium;
 use glium::backend::Backend;
+use keyboard::Keyboard;
 use mio::unix::EventedFd;
 use mio::{Evented, Poll, PollOpt, Ready, Token};
 use std::cell::RefCell;
@@ -20,9 +20,7 @@ use std::result;
 use x11;
 use xcb;
 use xcb_util;
-use xcb_util::ffi::keysyms::{
-    xcb_key_symbols_alloc, xcb_key_symbols_free, xcb_key_symbols_t,
-};
+use xcb_util::ffi::keysyms::{xcb_key_symbols_alloc, xcb_key_symbols_free, xcb_key_symbols_t};
 
 use failure::{self, Error};
 pub type Result<T> = result::Result<T, Error>;
