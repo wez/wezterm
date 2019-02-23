@@ -106,6 +106,7 @@ struct Host {
 pub struct TerminalWindow {
     host: Host,
     conn: Rc<Connection>,
+    fonts: Rc<FontConfiguration>,
     renderer: Renderer,
     width: u16,
     height: u16,
@@ -223,6 +224,54 @@ impl<'a> term::TerminalHost for TabHost<'a> {
                     .map_err(|_| ())
             }));
     }
+
+    fn increase_font_size(&mut self) {
+        let events = Rc::clone(&self.host.event_loop);
+        let window_id = self.host.window.window.window_id;
+        self.host
+            .event_loop
+            .core
+            .spawn(futures::future::poll_fn(move || {
+                events
+                    .with_window(window_id, |win| {
+                        let scale = win.fonts.get_font_scale();
+                        win.scaling_changed(Some(scale * 1.1))
+                    })
+                    .map(futures::Async::Ready)
+                    .map_err(|_| ())
+            }));
+    }
+
+    fn decrease_font_size(&mut self) {
+        let events = Rc::clone(&self.host.event_loop);
+        let window_id = self.host.window.window.window_id;
+        self.host
+            .event_loop
+            .core
+            .spawn(futures::future::poll_fn(move || {
+                events
+                    .with_window(window_id, |win| {
+                        let scale = win.fonts.get_font_scale();
+                        win.scaling_changed(Some(scale * 0.9))
+                    })
+                    .map(futures::Async::Ready)
+                    .map_err(|_| ())
+            }));
+    }
+
+    fn reset_font_size(&mut self) {
+        let events = Rc::clone(&self.host.event_loop);
+        let window_id = self.host.window.window.window_id;
+        self.host
+            .event_loop
+            .core
+            .spawn(futures::future::poll_fn(move || {
+                events
+                    .with_window(window_id, |win| win.scaling_changed(Some(1.0)))
+                    .map(futures::Async::Ready)
+                    .map_err(|_| ())
+            }));
+    }
 }
 
 impl TerminalWindow {
@@ -274,6 +323,7 @@ impl TerminalWindow {
             host,
             renderer,
             conn: Rc::clone(&event_loop.conn),
+            fonts: Rc::clone(&fonts),
             width,
             height,
             cell_height,
@@ -292,6 +342,26 @@ impl TerminalWindow {
             .iter()
             .map(|tab| tab.pty.borrow().as_raw_fd())
             .collect()
+    }
+
+    pub fn scaling_changed(&mut self, font_scale: Option<f64>) -> Result<(), Error> {
+        let font_scale = font_scale.unwrap_or_else(|| self.fonts.get_font_scale());
+        eprintln!("TerminalWindow::scaling_changed font_scale={}", font_scale);
+
+        self.fonts.change_scaling(font_scale, 1.0);
+
+        let metrics = self.fonts.default_font_metrics()?;
+        let (cell_height, cell_width) = (metrics.cell_height, metrics.cell_width);
+        self.cell_height = cell_height.ceil() as usize;
+        self.cell_width = cell_width.ceil() as usize;
+
+        self.renderer.scaling_changed(&self.host.window)?;
+
+        let (width, height) = (self.width, self.height);
+        self.width = 0;
+        self.height = 0;
+        self.resize_surfaces(width, height)?;
+        Ok(())
     }
 
     pub fn resize_surfaces(&mut self, width: u16, height: u16) -> Result<bool, Error> {
