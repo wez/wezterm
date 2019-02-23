@@ -265,12 +265,10 @@ struct XkbGenericEvent {
 }
 
 impl XkbGenericEvent {
-    #[allow(non_snake_case)]
     pub fn xkb_type(&self) -> u8 {
         unsafe { (*self.base.ptr).xkb_type }
     }
 
-    #[allow(non_snake_case)]
     pub fn device_id(&self) -> u8 {
         unsafe { (*self.base.ptr).device_id }
     }
