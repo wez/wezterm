@@ -3,7 +3,7 @@ use super::Error;
 use super::{KeyCode, KeyModifiers};
 use std::cell::RefCell;
 use xkbcommon::xkb;
-
+use std::ffi::CStr;
 use xkb::compose::Status as ComposeStatus;
 
 pub struct Keyboard {
@@ -51,12 +51,10 @@ impl Keyboard {
         );
         let state = xkb::x11::state_new_from_device(&keymap, &connection, device_id);
 
-        use std::ffi::CStr;
-        let locale = unsafe{CStr::from_ptr(libc::setlocale(libc::LC_CTYPE, std::ptr::null()))}
-            .to_str()?;
+        let locale = query_lc_ctype()?;
 
         let table =
-            xkb::compose::Table::new_from_locale(&context, locale, xkb::compose::COMPILE_NO_FLAGS)
+            xkb::compose::Table::new_from_locale(&context, locale.to_str()?, xkb::compose::COMPILE_NO_FLAGS)
             .map_err(|()| format_err!("Failed to acquire compose table from locale"))?;
         let compose_state = xkb::compose::State::new(&table, xkb::compose::STATE_NO_FLAGS);
 
@@ -539,6 +537,14 @@ fn keysym_to_keycode(keysym: u32) -> Option<KeyCode> {
             _ => {return None;}
         };
     Some(res)
+}
+
+fn query_lc_ctype() -> Result<&'static CStr, Error> {
+    let ptr = unsafe {libc::setlocale(libc::LC_CTYPE, std::ptr::null())};
+    ensure!(!ptr.is_null(), "failed to query locale");
+    unsafe {
+       Ok(CStr::from_ptr(ptr))
+    }
 }
 
 /// struct that has fields common to the 3 different xkb events
