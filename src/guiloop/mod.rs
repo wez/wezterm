@@ -81,6 +81,7 @@ pub mod glutinloop;
 pub mod x11;
 
 #[derive(Debug, Fail)]
+#[allow(dead_code)]
 pub enum SessionTerminated {
     #[fail(display = "Process exited: {:?}", status)]
     ProcessStatus { status: ExitStatus },

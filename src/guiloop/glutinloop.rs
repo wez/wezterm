@@ -57,8 +57,15 @@ pub fn channel<T: Send>(proxy: EventsLoopProxy) -> (GuiSender<T>, Receiver<T>) {
 
 #[derive(Clone)]
 pub enum IOEvent {
-    Data { window_id: WindowId, data: Vec<u8> },
-    Terminated { window_id: WindowId },
+    Data {
+        window_id: WindowId,
+        tab_id: usize,
+        data: Vec<u8>,
+    },
+    Terminated {
+        window_id: WindowId,
+        tab_id: usize,
+    },
 }
 
 /// This struct holds references to Windows.
@@ -74,6 +81,8 @@ enum SpawnRequest {
     FontLarger(WindowId),
     FontSmaller(WindowId),
     FontReset(WindowId),
+    ActivateTab(WindowId, usize),
+    ActivateTabRelative(WindowId, isize),
 }
 
 /// The `GuiEventLoop` represents the combined gui event processor,
@@ -116,8 +125,16 @@ impl GlutinGuiSystem {
                 Ok(SpawnRequest::Window) => {
                     crate::spawn_window(&*self, None, config, fonts)?;
                 }
-                Ok(SpawnRequest::Tab(_window_id)) => {
-                    eprintln!("Spawning tabs is not yet implemented for glutin");
+                Ok(SpawnRequest::Tab(window_id)) => {
+                    if let Some(window) = self
+                        .event_loop
+                        .windows
+                        .borrow_mut()
+                        .by_id
+                        .get_mut(&window_id)
+                    {
+                        window.spawn_tab().ok();
+                    }
                 }
                 Ok(SpawnRequest::FontLarger(window_id)) => {
                     let scale = fonts.get_font_scale() * 1.1;
@@ -152,6 +169,28 @@ impl GlutinGuiSystem {
                         .get_mut(&window_id)
                     {
                         window.scaling_changed(Some(1.0)).ok();
+                    }
+                }
+                Ok(SpawnRequest::ActivateTab(window_id, tab)) => {
+                    if let Some(window) = self
+                        .event_loop
+                        .windows
+                        .borrow_mut()
+                        .by_id
+                        .get_mut(&window_id)
+                    {
+                        window.activate_tab(tab).ok();
+                    }
+                }
+                Ok(SpawnRequest::ActivateTabRelative(window_id, tab)) => {
+                    if let Some(window) = self
+                        .event_loop
+                        .windows
+                        .borrow_mut()
+                        .by_id
+                        .get_mut(&window_id)
+                    {
+                        window.activate_tab_relative(tab).ok();
                     }
                 }
                 Err(TryRecvError::Empty) => return Ok(()),
@@ -262,14 +301,26 @@ impl GuiEventLoop {
         self.spawn_tx.send(SpawnRequest::Tab(window_id))
     }
 
-    /// Add a window to the event loop and run it.
-    pub fn add_window(&self, window: gliumwindows::TerminalWindow) -> Result<(), Error> {
-        let window_id = window.window_id();
-        let mut pty = window.pty().try_clone()?;
-        pty.clear_nonblocking()?;
-        let mut windows = self.windows.borrow_mut();
-        windows.by_id.insert(window_id, window);
+    pub fn request_activate_tab(&self, window_id: WindowId, tabidx: usize) -> Result<(), Error> {
+        self.spawn_tx
+            .send(SpawnRequest::ActivateTab(window_id, tabidx))
+    }
+    pub fn request_activate_tab_relative(
+        &self,
+        window_id: WindowId,
+        tab: isize,
+    ) -> Result<(), Error> {
+        self.spawn_tx
+            .send(SpawnRequest::ActivateTabRelative(window_id, tab))
+    }
 
+    pub fn schedule_read_pty(
+        &self,
+        mut pty: MasterPty,
+        window_id: WindowId,
+        tab_id: usize,
+    ) -> Result<(), Error> {
+        pty.clear_nonblocking()?;
         let tx = self.poll_tx.clone();
 
         thread::spawn(move || {
@@ -281,6 +332,7 @@ impl GuiEventLoop {
                         if tx
                             .send(IOEvent::Data {
                                 window_id,
+                                tab_id,
                                 data: buf[0..size].to_vec(),
                             })
                             .is_err()
@@ -289,14 +341,24 @@ impl GuiEventLoop {
                         }
                     }
                     Err(err) => {
-                        eprintln!("window {:?} {:?}", window_id, err);
-                        tx.send(IOEvent::Terminated { window_id }).ok();
+                        eprintln!("window {:?} {} {:?}", window_id, tab_id, err);
+                        tx.send(IOEvent::Terminated { window_id, tab_id }).ok();
                         return;
                     }
                 }
             }
         });
 
+        Ok(())
+    }
+
+    /// Add a window to the event loop and run it.
+    pub fn add_window(&self, window: gliumwindows::TerminalWindow) -> Result<(), Error> {
+        let window_id = window.window_id();
+        let pty = window.clone_current_pty()?;
+        self.schedule_read_pty(pty, window_id, window.get_tab_id_by_idx(0))?;
+        let mut windows = self.windows.borrow_mut();
+        windows.by_id.insert(window_id, window);
         Ok(())
     }
 
@@ -369,15 +431,24 @@ impl GuiEventLoop {
                 _ => {}
             }
             match self.poll_rx.try_recv() {
-                Ok(IOEvent::Data { window_id, data }) => {
+                Ok(IOEvent::Data {
+                    window_id,
+                    tab_id,
+                    data,
+                }) => {
                     let mut windows = self.windows.borrow_mut();
                     windows.by_id.get_mut(&window_id).map(|window| {
-                        window.process_data_read_from_pty(&data);
+                        window.process_data_read_from_pty(&data, tab_id).ok();
                         Some(())
                     });
                 }
-                Ok(IOEvent::Terminated { window_id }) => {
-                    self.schedule_window_close(window_id)?;
+                Ok(IOEvent::Terminated { window_id, tab_id }) => {
+                    eprintln!("window {:?} tab {} terminated", window_id, tab_id);
+                    let mut windows = self.windows.borrow_mut();
+                    windows.by_id.get_mut(&window_id).map(|window| {
+                        window.tab_did_terminate(tab_id);
+                        Some(())
+                    });
                 }
                 Err(TryRecvError::Empty) => return Ok(()),
                 Err(err) => bail!("poll_rx disconnected {:?}", err),
@@ -405,8 +476,8 @@ impl GuiEventLoop {
             .by_id
             .iter_mut()
             .filter_map(|(window_id, window)| match window.test_for_child_exit() {
-                Ok(_) => None,
-                Err(_) => Some(*window_id),
+                false => None,
+                true => Some(*window_id),
             })
             .collect();
 

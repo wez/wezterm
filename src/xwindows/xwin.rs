@@ -79,7 +79,7 @@ impl Tabs {
         if let Some(idx) = self.index_for_fd(fd) {
             self.tabs.remove(idx);
             let len = self.tabs.len();
-            if self.active == idx && idx >= len {
+            if len > 0 && self.active == idx && idx >= len {
                 self.set_active(len - 1);
             }
         }
@@ -575,6 +575,9 @@ impl TerminalWindow {
 
     fn update_title(&mut self) {
         let num_tabs = self.tabs.tabs.len();
+        if num_tabs == 0 {
+            return;
+        }
         let tab_no = self.tabs.active;
 
         let terminal = self.tabs.get_active().terminal.borrow();

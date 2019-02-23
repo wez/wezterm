@@ -1814,6 +1814,7 @@ impl<'a> Performer<'a> {
         match osc {
             OperatingSystemCommand::SetIconNameAndWindowTitle(title)
             | OperatingSystemCommand::SetWindowTitle(title) => {
+                self.title = title.clone();
                 self.host.set_title(&title);
             }
             OperatingSystemCommand::SetIconName(_) => {}
