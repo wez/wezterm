@@ -505,7 +505,7 @@ impl TerminalWindow {
                     return Err(SessionTerminated::WindowClosed.into());
                 }
             }
-            _ => { }
+            _ => {}
         }
         Ok(())
     }

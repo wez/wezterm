@@ -1,5 +1,4 @@
-#![allow(non_upper_case_globals, dead_code)]
-use xcb::ffi::xproto::xcb_keysym_t;
+#![allow(non_upper_case_globals)]
 use xcb::KeyPressEvent;
 
 use term::KeyCode;
