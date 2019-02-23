@@ -505,11 +505,7 @@ impl TerminalWindow {
                     return Err(SessionTerminated::WindowClosed.into());
                 }
             }
-            _ => {
-                if r == self.conn.kbd_ev {
-                    self.conn.keyboard.process_xkb_event(&self.conn, event);
-                }
-            }
+            _ => { }
         }
         Ok(())
     }
