@@ -85,3 +85,6 @@ glutin = { git = "https://github.com/yvt/glutin", branch="patch-macos-iscurrent"
 harfbuzz-sys = { git = "https://github.com/wez/rust-harfbuzz", branch="coretext" }
 
 [workspace]
+
+[profile.release]
+debug = true
