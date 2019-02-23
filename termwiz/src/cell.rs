@@ -225,7 +225,9 @@ impl Cell {
     pub fn new(text: char, attrs: CellAttributes) -> Self {
         let len = text.len_utf8();
         let mut storage = SmallVec::with_capacity(len);
-        storage.resize(len, 0);
+        unsafe {
+            storage.set_len(len);
+        }
         text.encode_utf8(&mut storage);
         Self::nerf_control_char(&mut storage);
 
