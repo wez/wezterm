@@ -1,6 +1,6 @@
 # Wez's Terminal
 
-A terminal emulator implemented in Rust, using OpenGL ES 2 for rendering.
+A terminal emulator implemented in Rust, using OpenGL for rendering.
 
 [![Build Status](https://travis-ci.org/wez/wezterm.svg?branch=master)](https://travis-ci.org/wez/wezterm)
 
@@ -42,7 +42,7 @@ terminal multiplexer and a gui terminal emulator, where the GUI part
 could automatically provide a native UI around the remotely multiplexed
 terminal session.
 
-## Status / Features - Alpha Quality
+## Status / Features - Beta Quality
 
 *There may be bugs that cause the terminal to panic. I'd recommend using
 `tmux` or `screen` to keep your session alive if you are working on something important!*
@@ -61,8 +61,8 @@ the middle of Feb 2018.  The following features are done:
 - [x] Hyperlinks per: https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5feda
 - [x] Multiple Windows (Hotkey: `Super-N`)
 - [x] Tabs (Hotkey: `Super-T`, next/prev: `Super-[` and `Super-]`, go-to: `Super-[0-9]`)
-- [ ] Run on macOS (in progress)
-- [ ] Run on Windows (in progress)
+- [x] Run on macOS
+- [x] Run on Windows (Windows 10 with [ConPty](https://blogs.msdn.microsoft.com/commandline/2018/08/02/windows-command-line-introducing-the-windows-pseudo-console-conpty/) only)
 
 There's a good number of terminal escape sequences that are not yet implemented
 and that will get fleshed out as the applications I use uncover them, or as folks
