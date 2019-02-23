@@ -26,6 +26,7 @@ case `lsb_release -ds` in
       libxcb-icccm4-dev \
       libxcb-ewmh-dev \
       libxcb-keysyms1-dev \
+      libxcb-xkb-dev \
       libxkbcommon-dev \
       libxkbcommon-x11-dev \
       libfontconfig1-dev \
