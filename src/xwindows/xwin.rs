@@ -1,5 +1,5 @@
 use super::super::opengl::render::Renderer;
-use super::super::{Child, Command};
+use super::super::Child;
 use super::xkeysyms;
 use super::{Connection, Window};
 use crate::config::Config;
@@ -519,7 +519,7 @@ impl TerminalWindow {
         let cols = (self.width as usize + 1) / self.cell_width;
 
         let (pty, slave) = openpty(rows as u16, cols as u16, self.width, self.height)?;
-        let mut cmd = self.host.config.build_prog(None)?;
+        let cmd = self.host.config.build_prog(None)?;
 
         let process = RefCell::new(slave.spawn_command(cmd)?);
         eprintln!("spawned: {:?}", process);
