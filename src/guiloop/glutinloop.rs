@@ -328,6 +328,11 @@ impl GuiEventLoop {
             let mut buf = [0; BUFSIZE];
             loop {
                 match pty.read(&mut buf) {
+                    Ok(size) if size == 0 => {
+                        eprintln!("read_pty EOF: window {:?} {}", window_id, tab_id);
+                        tx.send(IOEvent::Terminated { window_id, tab_id }).ok();
+                        return;
+                    }
                     Ok(size) => {
                         if tx
                             .send(IOEvent::Data {
@@ -341,7 +346,10 @@ impl GuiEventLoop {
                         }
                     }
                     Err(err) => {
-                        eprintln!("window {:?} {} {:?}", window_id, tab_id, err);
+                        eprintln!(
+                            "read_pty failed: window {:?} {} {:?}",
+                            window_id, tab_id, err
+                        );
                         tx.send(IOEvent::Terminated { window_id, tab_id }).ok();
                         return;
                     }
