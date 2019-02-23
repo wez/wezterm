@@ -443,6 +443,10 @@ impl GuiEventLoop {
         } else {
             let r = event.response_type() & 0x7f;
             if r == self.conn.kbd_ev {
+                // key press/release are not processed here.
+                // xkbcommon depends on those events in order to:
+                //    - update modifiers state
+                //    - update keymap/state on keyboard changes
                 self.conn.keyboard.process_xkb_event(&self.conn, event)?;
             }
         }
