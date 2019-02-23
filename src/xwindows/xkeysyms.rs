@@ -26,10 +26,6 @@ pub fn modifiers_from_state(state: u16) -> KeyModifiers {
     mods
 }
 
-pub fn modifiers(event: &KeyPressEvent) -> KeyModifiers {
-    modifiers_from_state(event.state())
-}
-
 /// Translates non-printable X11 keysym to termwiz::KeyCode
 /// for missing keys, look into ```/usr/include/X11/keysymdef.h``` and/or define them in KeyCode.
 /// If we can find a unicode representation of the input key then this function is skipped.
