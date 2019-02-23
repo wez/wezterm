@@ -7,6 +7,8 @@ if test -e /etc/centos-release || test -e /etc/fedora-release; then
     libxcb-devel \
     xcb-util-keysyms-devel \
     xcb-util-wm-devel \
+    libxkbcommon-devel \
+    libxkbcommon-x11-devel \
     fontconfig-devel \
     freetype-devel \
     mesa-libEGL-devel \
@@ -24,6 +26,8 @@ case `lsb_release -ds` in
       libxcb-icccm4-dev \
       libxcb-ewmh-dev \
       libxcb-keysyms1-dev \
+      libxkbcommon-dev \
+      libxkbcommon-x11-dev \
       libfontconfig1-dev \
       libfreetype6-dev \
       libegl1-mesa-dev \
