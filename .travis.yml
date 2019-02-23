@@ -20,7 +20,6 @@ matrix:
 
 before_script:
   - rustup component add rustfmt-preview
-  - PREFIX=$TRAVIS_BUILD_DIR ./ci/build_harfbuzz.sh
 
 script:
   - "if [[ \"$TRAVIS_RUST_VERSION\" == \"stable\" ]] ; then cargo fmt --all -- --check ; else true ; fi"
@@ -48,5 +47,6 @@ addons:
 
 env:
   global:
-      - PKG_CONFIG_PATH=$TRAVIS_BUILD_DIR/lib/pkgconfig
+      # Use the library bundled in the harfbuzz-sys crate
+      - HARFBUZZ_SYS_NO_PKG_CONFIG=1
 
