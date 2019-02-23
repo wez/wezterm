@@ -645,7 +645,7 @@ impl TerminalWindow {
             "TerminalWindow::scaling_changed dpi_scale={} font_scale={}",
             dpi_scale, font_scale
         );
-
+        self.terminal.make_all_lines_dirty();
         self.fonts.change_scaling(font_scale, dpi_scale);
 
         let metrics = self.fonts.default_font_metrics()?;
