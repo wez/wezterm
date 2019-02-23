@@ -82,5 +82,6 @@ force-rusttype = []
 [patch.crates-io]
 # We need https://github.com/tomaka/glutin/pull/1099
 glutin = { git = "https://github.com/yvt/glutin", branch="patch-macos-iscurrent" }
+harfbuzz-sys = { git = "https://github.com/wez/rust-harfbuzz", branch="coretext" }
 
 [workspace]
