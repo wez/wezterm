@@ -129,17 +129,7 @@ fn spawn_window(
     config: &Rc<config::Config>,
     fontconfig: &Rc<FontConfiguration>,
 ) -> Result<(), Error> {
-    let mut cmd = match cmd {
-        Some(args) => {
-            let mut args = args.iter();
-            let mut cmd = Command::new(args.next().expect("executable name"));
-            cmd.args(args);
-            cmd
-        }
-        None => Command::new(get_shell()?),
-    };
-
-    cmd.env("TERM", &config.term);
+    let cmd = config.build_prog(cmd)?;
 
     // First step is to figure out the font metrics so that we know how
     // big things are going to be.

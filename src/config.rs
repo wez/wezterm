@@ -2,9 +2,11 @@
 
 use crate::font::FontSystemSelection;
 use crate::guiloop::GuiSelection;
+use crate::{get_shell, Command};
 use directories::UserDirs;
 use failure::{err_msg, Error};
 use std;
+use std::ffi::OsStr;
 use std::fs;
 use std::io::prelude::*;
 use term;
@@ -36,6 +38,20 @@ pub struct Config {
 
     /// How many lines of scrollback you want to retain
     pub scrollback_lines: Option<usize>,
+
+    /// If no `prog` is specified on the command line, use this
+    /// instead of running the user's shell.
+    /// For example, to have `wezterm` always run `top` by default,
+    /// you'd use this:
+    ///
+    /// ```
+    /// default_prog = ["top"]
+    /// ```
+    ///
+    /// `default_prog` is implemented as an array where the 0th element
+    /// is the command to run and the rest of the elements are passed
+    /// as the positional arguments to that command.
+    pub default_prog: Option<Vec<String>>,
 
     #[serde(default = "default_hyperlink_rules")]
     pub hyperlink_rules: Vec<hyperlink::Rule>,
@@ -85,6 +101,7 @@ impl Default for Config {
             scrollback_lines: None,
             hyperlink_rules: default_hyperlink_rules(),
             term: default_term(),
+            default_prog: None,
         }
     }
 }
@@ -338,6 +355,36 @@ impl Config {
         }
 
         cfg
+    }
+
+    pub fn default_prog(&self) -> Result<Vec<String>, Error> {
+        if let Some(prog) = self.default_prog.as_ref() {
+            Ok(prog.clone())
+        } else {
+            Ok(vec![get_shell()?])
+        }
+    }
+
+    pub fn build_prog(&self, prog: Option<Vec<&OsStr>>) -> Result<Command, Error> {
+        let mut cmd = match prog {
+            Some(args) => {
+                let mut args = args.iter();
+                let mut cmd = Command::new(args.next().expect("executable name"));
+                cmd.args(args);
+                cmd
+            }
+            None => {
+                let prog = self.default_prog()?;
+                let mut args = prog.iter();
+                let mut cmd = Command::new(args.next().expect("executable name"));
+                cmd.args(args);
+                cmd
+            }
+        };
+
+        cmd.env("TERM", &self.term);
+
+        Ok(cmd)
     }
 }
 

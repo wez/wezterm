@@ -4,7 +4,7 @@ use crate::font::FontConfiguration;
 use crate::futurecore;
 use crate::xwindows::xwin::TerminalWindow;
 use crate::xwindows::Connection;
-use crate::{get_shell, openpty, Child, Command, MasterPty};
+use crate::{openpty, Child, Command, MasterPty};
 use failure::Error;
 use mio::unix::EventedFd;
 use mio::{Event, Evented, Events, Poll, PollOpt, Ready, Token};
@@ -248,10 +248,7 @@ impl GuiEventLoop {
         config: &Rc<Config>,
         fontconfig: &Rc<FontConfiguration>,
     ) -> Result<(), Error> {
-        let mut cmd = Command::new(get_shell()?);
-
-        cmd.env("TERM", &config.term);
-
+        let mut cmd = config.build_prog(None)?;
         // First step is to figure out the font metrics so that we know how
         // big things are going to be.
         // we always load the cell_height for font 0,

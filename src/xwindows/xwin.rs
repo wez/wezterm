@@ -1,4 +1,3 @@
-use super::super::get_shell;
 use super::super::opengl::render::Renderer;
 use super::super::{Child, Command};
 use super::xkeysyms;
@@ -520,8 +519,7 @@ impl TerminalWindow {
         let cols = (self.width as usize + 1) / self.cell_width;
 
         let (pty, slave) = openpty(rows as u16, cols as u16, self.width, self.height)?;
-        let mut cmd = Command::new(get_shell()?);
-        cmd.env("TERM", &self.host.config.term);
+        let mut cmd = self.host.config.build_prog(None)?;
 
         let process = RefCell::new(slave.spawn_command(cmd)?);
         eprintln!("spawned: {:?}", process);
