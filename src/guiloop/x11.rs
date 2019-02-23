@@ -443,7 +443,7 @@ impl GuiEventLoop {
         } else {
             let r = event.response_type() & 0x7f;
             if r == self.conn.kbd_ev {
-                self.conn.keyboard.process_xkb_event(&self.conn, event);
+                self.conn.keyboard.process_xkb_event(&self.conn, event)?;
             }
         }
         Ok(())

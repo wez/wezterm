@@ -1,4 +1,5 @@
 use super::libc;
+use super::Error;
 use super::{KeyCode, KeyModifiers};
 use std::cell::RefCell;
 use xkbcommon::xkb;
@@ -15,15 +16,12 @@ pub struct Keyboard {
 }
 
 impl Keyboard {
-    pub fn new(connection: &xcb::Connection) -> (Keyboard, u8, u8) {
+    pub fn new(connection: &xcb::Connection) -> Result<(Keyboard, u8), Error> {
         connection.prefetch_extension_data(xcb::xkb::id());
 
-        let (first_ev, first_er) = match connection.get_extension_data(xcb::xkb::id()) {
-            Some(r) => (r.first_event(), r.first_error()),
-            None => {
-                panic!("could not get xkb extension data");
-            }
-        };
+        let first_ev = connection.get_extension_data(xcb::xkb::id())
+            .map(|r| r.first_event())
+            .ok_or(format_err!("could not get xkb extension data"))?;
 
         {
             let cookie = xcb::xkb::use_extension(
@@ -31,27 +29,19 @@ impl Keyboard {
                 xkb::x11::MIN_MAJOR_XKB_VERSION,
                 xkb::x11::MIN_MINOR_XKB_VERSION,
             );
-            match cookie.get_reply() {
-                Ok(r) => {
-                    if !r.supported() {
-                        panic!(
-                            "required xcb-xkb-{}-{} is not supported",
-                            xkb::x11::MIN_MAJOR_XKB_VERSION,
-                            xkb::x11::MIN_MINOR_XKB_VERSION
-                        );
-                    }
-                }
-                Err(_) => {
-                    panic!("could not check if xkb is supported");
-                }
-            }
+            let r = cookie.get_reply()?;
+
+            ensure!{r.supported(),
+                    "required xcb-xkb-{}-{} is not supported",
+                    xkb::x11::MIN_MAJOR_XKB_VERSION,
+                    xkb::x11::MIN_MINOR_XKB_VERSION};
+
         }
 
         let context = xkb::Context::new(xkb::CONTEXT_NO_FLAGS);
         let device_id = xkb::x11::get_core_keyboard_device_id(&connection);
-        if device_id == -1 {
-            panic!("Couldn't find core keyboard device");
-        }
+        ensure!(device_id != -1,
+                "Couldn't find core keyboard device");
 
         let keymap = xkb::x11::keymap_new_from_device(
             &context,
@@ -63,12 +53,11 @@ impl Keyboard {
 
         use std::ffi::CStr;
         let locale = unsafe{CStr::from_ptr(libc::setlocale(libc::LC_CTYPE, std::ptr::null()))}
-            .to_str()
-            .expect("Failed to query locale");
+            .to_str()?;
 
         let table =
             xkb::compose::Table::new_from_locale(&context, locale, xkb::compose::COMPILE_NO_FLAGS)
-                .expect("Failed to get ctable");
+            .map_err(|()| format_err!("Failed to acquire compose table from locale"))?;
         let compose_state = xkb::compose::State::new(&table, xkb::compose::STATE_NO_FLAGS);
 
         {
@@ -97,8 +86,7 @@ impl Keyboard {
             );
 
             cookie
-                .request_check()
-                .expect("failed to select notify events from xcb xkb");
+                .request_check()?;
         }
 
         let kbd = Keyboard {
@@ -109,7 +97,7 @@ impl Keyboard {
             compose_state: RefCell::new(compose_state),
         };
 
-        (kbd, first_ev, first_er)
+        Ok((kbd, first_ev))
     }
 
     pub fn process_key_event(
@@ -192,7 +180,7 @@ impl Keyboard {
         res
     }
 
-    pub fn process_xkb_event(&self, connection: &xcb::Connection, event: &xcb::GenericEvent) {
+    pub fn process_xkb_event(&self, connection: &xcb::Connection, event: &xcb::GenericEvent) -> Result<(), Error>{
         let xkb_ev: &XkbGenericEvent = unsafe { xcb::cast_event(&event) };
 
         if xkb_ev.device_id() == self.get_device_id() as u8 {
@@ -201,11 +189,12 @@ impl Keyboard {
                     self.update_state(unsafe { xcb::cast_event(&event) });
                 }
                 xcb::xkb::MAP_NOTIFY | xcb::xkb::NEW_KEYBOARD_NOTIFY => {
-                    self.update_keymap(connection);
+                    self.update_keymap(connection)?;
                 }
                 _ => {}
             }
         }
+        Ok(())
     }
     // for convenience, this fn takes &self, not &mut self
     pub fn update_state(&self, ev: &xcb::xkb::StateNotifyEvent) {
@@ -219,23 +208,21 @@ impl Keyboard {
         );
     }
 
-    pub fn update_keymap(&self, connection: &xcb::Connection) {
+    pub fn update_keymap(&self, connection: &xcb::Connection) -> Result<(), Error>{
         let new_keymap = xkb::x11::keymap_new_from_device(
             &self.context,
             &connection,
             self.get_device_id(),
             xkb::KEYMAP_COMPILE_NO_FLAGS,
         );
-        if new_keymap.get_raw_ptr() == std::ptr::null_mut() {
-            eprintln!("problem with new keymap");
-        }
+        ensure!(new_keymap.get_raw_ptr() != std::ptr::null_mut(), "problem with new keymap");
+
         let new_state = xkb::x11::state_new_from_device(&new_keymap, &connection, self.device_id);
-        if new_state.get_raw_ptr() == std::ptr::null_mut() {
-            eprintln!("problem with new state");
-        }
+        ensure!(new_state.get_raw_ptr() != std::ptr::null_mut(), "problem with new state");
+
         self.state.replace(new_state);
         self.keymap.replace(new_keymap);
-        eprintln!("updated keymap");
+        Ok(())
     }
 
     pub fn get_device_id(&self) -> i32 {
