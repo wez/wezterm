@@ -1,6 +1,6 @@
 use term::{KeyCode, KeyModifiers};
-extern crate xkbcommon;
-extern crate libc;
+use libc;
+use xkbcommon;
 mod keyboard;
 use keyboard::Keyboard;
 use egli;
@@ -147,7 +147,7 @@ impl Connection {
             .first()
             .ok_or_else(|| failure::err_msg("no compatible EGL configuration was found"))?;
 
-        let (keyboard, kbd_ev, _) = Keyboard::new(&conn);
+        let (keyboard, kbd_ev) = Keyboard::new(&conn)?;
         Ok(Connection {
             display,
             conn,
