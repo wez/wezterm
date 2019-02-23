@@ -102,14 +102,15 @@ impl Keyboard {
         &self,
         xcb_ev: &xcb::KeyPressEvent,
     ) -> Option<(KeyCode, KeyModifiers)> {
-        let xcode = xcb_ev.detail() as xkb::Keycode;
-        let xsym = self.state.borrow().key_get_one_sym(xcode);
         let pressed = (xcb_ev.response_type() & !0x80) == xcb::KEY_PRESS;
-        if pressed {
-            self.compose_state.borrow_mut().feed(xsym);
-        } else {
+
+        if ! pressed {
             return None;
         }
+
+        let xcode = xcb_ev.detail() as xkb::Keycode;
+        let xsym = self.state.borrow().key_get_one_sym(xcode);
+        self.compose_state.borrow_mut().feed(xsym);
 
         let cstate = self.compose_state.borrow().status().clone();
         let ksym = match cstate {
