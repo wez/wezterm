@@ -1,6 +1,5 @@
 use term::{KeyCode, KeyModifiers};
 use libc;
-use xkbcommon;
 mod keyboard;
 use keyboard::Keyboard;
 use egli;
