@@ -748,7 +748,7 @@ impl TerminalState {
         }
 
         let to_send = match (key, ctrl, alt, shift, self.application_cursor_keys) {
-            (Char('\n'), _, ALT, ..) => {
+            (Enter, _, ALT, ..) | (Char('\r'), _, ALT, ..) | (Char('\n'), _, ALT, ..) => {
                 host.toggle_full_screen();
                 return Ok(());
             }

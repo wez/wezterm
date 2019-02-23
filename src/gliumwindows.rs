@@ -20,6 +20,8 @@ use term::KeyModifiers;
 use term::{self, Terminal};
 use term::{MouseButton, MouseEventKind};
 use termwiz::hyperlink::Hyperlink;
+#[cfg(target_os = "macos")]
+use winit::os::macos::WindowExt;
 
 struct Host {
     event_loop: Rc<GuiEventLoop>,
@@ -27,7 +29,7 @@ struct Host {
     pty: MasterPty,
     clipboard: Clipboard,
     window_position: Option<LogicalPosition>,
-    /// is is_some, holds position to be restored after exiting
+    /// if is_some, holds position to be restored after exiting
     /// fullscreen mode.
     is_fullscreen: Option<LogicalPosition>,
 }
@@ -90,6 +92,14 @@ impl term::TerminalHost for Host {
     fn toggle_full_screen(&mut self) {
         let window = self.display.gl_window();
         if let Some(pos) = self.is_fullscreen.take() {
+            // Use simple fullscreen mode on macos, as wez personally
+            // prefers the faster transition to/from this mode than
+            // the Lion+ slow transition to a new Space.  This could
+            // be made into a config option if someone really wanted
+            // that behavior.
+            #[cfg(target_os = "macos")]
+            window.set_simple_fullscreen(false);
+            #[cfg(not(target_os = "macos"))]
             window.set_fullscreen(None);
             window.set_position(pos);
         } else {
@@ -97,6 +107,10 @@ impl term::TerminalHost for Host {
             // appears to only return the initial position of the window
             // on Linux.
             self.is_fullscreen = self.window_position.take();
+
+            #[cfg(target_os = "macos")]
+            window.set_simple_fullscreen(true);
+            #[cfg(not(target_os = "macos"))]
             window.set_fullscreen(Some(window.get_current_monitor()));
         }
     }

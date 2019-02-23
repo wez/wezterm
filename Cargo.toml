@@ -26,6 +26,7 @@ freetype = "~0.4"
 open = "1.2"
 structopt = "0.2"
 foreign-types = "0.3"
+winit = "0.18"
 
 [target.'cfg(unix)'.dependencies]
 harfbuzz-sys = "~0.3"
