@@ -56,10 +56,8 @@ impl Line {
 
     pub fn resize_and_clear(&mut self, width: usize) {
         let blank = Cell::default();
+        self.cells.clear();
         self.cells.resize(width, blank);
-        for cell in &mut self.cells {
-            *cell = Cell::default();
-        }
         self.bits = LineBits::DIRTY;
     }
 
