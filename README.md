@@ -139,27 +139,8 @@ While ultimate speed is not the main goal, performance is important!
 Using the GPU to render the terminal contents helps keep CPU usage down
 and the output feeling snappy.
 
-Here's a very basic benchmark:
-
-```
-$ find /usr > /tmp/usr-files.txt
-$ wc -l /tmp/usr-files.txt
-364885 /tmp/usr-files.txt
-$ time cat /tmp/usr-files.txt
-```
-
-And a comparison between some terminal emulators on my system; they were each
-set to 80x24 with 3500 lines of scrollback.  `alacritty` has no scrollback.
-
-| Terminal        | Time (seconds) |
-|-----------------|-------|
-| xterm           | 9.863 |
-| Gnome Terminal  | 2.391 |
-| Terminator 1.91 | 2.319 |
-| **wezterm**     | 0.940 |
-| kitty           | 0.899 |
-| urxvt           | 0.615 |
-| alacritty       | 0.421 |
+If you want the absolute fastest terminal emulator, [alacritty](https://github.com/jwilm/alacritty)
+is currently king of the crop.
 
 ## Getting help
 
