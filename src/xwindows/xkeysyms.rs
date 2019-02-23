@@ -1,6 +1,3 @@
-#![allow(non_upper_case_globals)]
-use xcb::KeyPressEvent;
-
 use term::KeyCode;
 use term::KeyModifiers;
 
@@ -31,6 +28,7 @@ pub fn modifiers_from_state(state: u16) -> KeyModifiers {
 /// If we can find a unicode representation of the input key then this function is skipped.
 pub fn keysym_to_keycode(keysym: u32) -> Option<KeyCode> {
     use xkbcommon::xkb::keysyms::*;
+    #[allow(non_upper_case_globals)]
     let res = match keysym {
         KEY_Escape => KeyCode::Escape,
         KEY_Tab => KeyCode::Tab,

@@ -301,7 +301,6 @@ impl TerminalWindow {
     pub fn scaling_changed(&mut self, font_scale: Option<f64>) -> Result<(), Error> {
         let font_scale = font_scale.unwrap_or_else(|| self.fonts.get_font_scale());
         eprintln!("TerminalWindow::scaling_changed font_scale={}", font_scale);
-        self.terminal.make_all_lines_dirty();
 
         self.fonts.change_scaling(font_scale, 1.0);
 
