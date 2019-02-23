@@ -13,6 +13,8 @@ os:
   - linux
 #  - windows
 
+dist: xenial
+
 matrix:
   allow_failures:
     - rust: beta
@@ -20,7 +22,7 @@ matrix:
 
 before_script:
   - rustup component add rustfmt-preview
-  - PREFIX=$TRAVIS_BUILD_DIR ./ci/build_harfbuzz.sh
+  - if [[ "$TRAVIS_OS_NAME" != "linux" ]]; then PREFIX=$TRAVIS_BUILD_DIR ./ci/build_harfbuzz.sh ; fi
 
 script:
   - "if [[ \"$TRAVIS_RUST_VERSION\" == \"stable\" ]] ; then cargo fmt --all -- --check ; else true ; fi"
@@ -40,6 +42,7 @@ addons:
       - libelf-dev
       - libfontconfig1-dev
       - libfreetype6-dev
+      - libharfbuzz-dev
       - libiberty-dev
       - libxcb-ewmh-dev
       - libxcb-icccm4-dev
