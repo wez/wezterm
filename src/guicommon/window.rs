@@ -9,6 +9,9 @@ use glium;
 use std::cell::RefMut;
 use std::rc::Rc;
 
+/// Reports the currently configured physical size of the display
+/// surface (physical pixels, not adjusted for dpi) and the current
+/// cell dimensions, also in physical pixels
 pub struct Dimensions {
     pub width: u16,
     pub height: u16,
@@ -16,6 +19,10 @@ pub struct Dimensions {
     pub cell_width: usize,
 }
 
+/// This trait is used to share implementations of common code between
+/// the different GUI systems.
+/// A number of methods need to be provided by the window in order to
+/// unlock the use of the provided methods towards the bottom of the trait.
 pub trait TerminalWindow {
     fn get_tabs_mut(&mut self) -> &mut Tabs;
     fn get_tabs(&self) -> &Tabs;
