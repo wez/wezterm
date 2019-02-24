@@ -127,8 +127,10 @@ fn spawn_window_impl(
     cmd: Option<Vec<&std::ffi::OsStr>>,
     config: &Rc<config::Config>,
     fontconfig: &Rc<FontConfiguration>,
-) -> Result<(term::Terminal, MasterPty, Child), Error> {
+) -> Result<(term::Terminal, MasterPty, Child, Rc<FontConfiguration>), Error> {
     let cmd = config.build_prog(cmd)?;
+
+    let fontconfig = fontconfig.clone_unscaled();
 
     // First step is to figure out the font metrics so that we know how
     // big things are going to be.
@@ -159,7 +161,7 @@ fn spawn_window_impl(
         config.hyperlink_rules.clone(),
     );
 
-    Ok((terminal, master, child))
+    Ok((terminal, master, child, fontconfig))
 }
 
 fn spawn_window(
@@ -168,7 +170,7 @@ fn spawn_window(
     config: &Rc<config::Config>,
     fontconfig: &Rc<FontConfiguration>,
 ) -> Result<(), Error> {
-    let (terminal, master, child) = spawn_window_impl(cmd, config, fontconfig)?;
+    let (terminal, master, child, fontconfig) = spawn_window_impl(cmd, config, fontconfig)?;
 
-    gui.spawn_new_window(terminal, master, child, config, fontconfig)
+    gui.spawn_new_window(terminal, master, child, config, &fontconfig)
 }

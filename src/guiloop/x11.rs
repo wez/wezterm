@@ -244,9 +244,9 @@ impl GuiEventLoop {
         config: &Rc<Config>,
         fontconfig: &Rc<FontConfiguration>,
     ) -> Result<(), Error> {
-        let (terminal, master, child) = spawn_window_impl(None, config, fontconfig)?;
+        let (terminal, master, child, fontconfig) = spawn_window_impl(None, config, fontconfig)?;
 
-        let window = TerminalWindow::new(event_loop, terminal, master, child, fontconfig, config)?;
+        let window = TerminalWindow::new(event_loop, terminal, master, child, &fontconfig, config)?;
 
         self.add_window(window)
     }

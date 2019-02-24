@@ -134,7 +134,7 @@ impl<'a> term::TerminalHost for TabHost<'a> {
         let config = Rc::clone(&self.host.config);
         let fonts = Rc::clone(&self.host.fonts);
         self.host.event_loop.spawn_fn(move || {
-            let (terminal, master, child) = spawn_window_impl(None, &config, &fonts)?;
+            let (terminal, master, child, fonts) = spawn_window_impl(None, &config, &fonts)?;
             let window =
                 TerminalWindow::new(&event_loop, terminal, master, child, &fonts, &config)?;
 

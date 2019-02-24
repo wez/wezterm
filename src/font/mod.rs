@@ -131,6 +131,18 @@ impl FontConfiguration {
         }
     }
 
+    /// Used when spawning a window to start with an unscaled font configuration
+    pub fn clone_unscaled(&self) -> Rc<Self> {
+        Rc::new(Self {
+            config: Rc::clone(&self.config),
+            fonts: RefCell::new(HashMap::new()),
+            system: Rc::clone(&self.system),
+            metrics: RefCell::new(None),
+            font_scale: RefCell::new(1.0),
+            dpi_scale: RefCell::new(1.0),
+        })
+    }
+
     /// Given a text style, load (with caching) the font that best
     /// matches according to the fontconfig pattern.
     pub fn cached_font(&self, style: &TextStyle) -> Result<Rc<RefCell<Box<NamedFont>>>, Error> {
