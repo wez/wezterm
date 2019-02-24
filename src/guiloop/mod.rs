@@ -60,11 +60,7 @@ impl std::str::FromStr for GuiSelection {
 pub trait GuiSystem {
     /// Run the event loop.  Does not return until there is either a fatal
     /// error, or until there are no more windows left to manage.
-    fn run_forever(
-        &self,
-        config: &Rc<Config>,
-        fontconfig: &Rc<FontConfiguration>,
-    ) -> Result<(), Error>;
+    fn run_forever(&self) -> Result<(), Error>;
 
     fn spawn_new_window(
         &self,

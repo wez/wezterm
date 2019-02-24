@@ -1,5 +1,3 @@
-use crate::config::Config;
-use crate::font::FontConfiguration;
 use crate::futurecore;
 use crate::gliumwindows;
 pub use crate::gliumwindows::TerminalWindow;
@@ -75,16 +73,6 @@ struct Windows {
     by_id: HashMap<WindowId, gliumwindows::TerminalWindow>,
 }
 
-enum SpawnRequest {
-    Window,
-    Tab(WindowId),
-    FontLarger(WindowId),
-    FontSmaller(WindowId),
-    FontReset(WindowId),
-    ActivateTab(WindowId, usize),
-    ActivateTabRelative(WindowId, isize),
-}
-
 /// The `GuiEventLoop` represents the combined gui event processor,
 /// a remote (running on another thread) mio `Poll` instance, and
 /// a core for spawning tasks from futures.  It acts as the manager
@@ -92,11 +80,9 @@ enum SpawnRequest {
 pub struct GuiEventLoop {
     pub event_loop: RefCell<glium::glutin::EventsLoop>,
     windows: Rc<RefCell<Windows>>,
-    pub core: futurecore::Core,
+    core: futurecore::Core,
     poll_tx: GuiSender<IOEvent>,
     poll_rx: Receiver<IOEvent>,
-    spawn_tx: GuiSender<SpawnRequest>,
-    spawn_rx: Receiver<SpawnRequest>,
     tick_rx: Receiver<()>,
 }
 
@@ -115,102 +101,25 @@ impl GlutinGuiSystem {
         Ok(Rc::new(Self { event_loop }))
     }
 
-    fn process_spawn(
-        &self,
-        config: &Rc<Config>,
-        fonts: &Rc<FontConfiguration>,
-    ) -> Result<(), Error> {
+    /// Loop through the core and dispatch any tasks that have been
+    /// notified as ready to run.  Returns once all such tasks have
+    /// been polled and there are no more pending task notifications.
+    fn process_futures(&self) {
         loop {
-            match self.event_loop.spawn_rx.try_recv() {
-                Ok(SpawnRequest::Window) => {
-                    crate::spawn_window(&*self, None, config, fonts)?;
-                }
-                Ok(SpawnRequest::Tab(window_id)) => {
-                    if let Some(window) = self
-                        .event_loop
-                        .windows
-                        .borrow_mut()
-                        .by_id
-                        .get_mut(&window_id)
-                    {
-                        window.spawn_tab().ok();
-                    }
-                }
-                Ok(SpawnRequest::FontLarger(window_id)) => {
-                    let scale = fonts.get_font_scale() * 1.1;
-                    if let Some(window) = self
-                        .event_loop
-                        .windows
-                        .borrow_mut()
-                        .by_id
-                        .get_mut(&window_id)
-                    {
-                        window.scaling_changed(Some(scale)).ok();
-                    }
-                }
-                Ok(SpawnRequest::FontSmaller(window_id)) => {
-                    let scale = fonts.get_font_scale() * 0.9;
-                    if let Some(window) = self
-                        .event_loop
-                        .windows
-                        .borrow_mut()
-                        .by_id
-                        .get_mut(&window_id)
-                    {
-                        window.scaling_changed(Some(scale)).ok();
-                    }
-                }
-                Ok(SpawnRequest::FontReset(window_id)) => {
-                    if let Some(window) = self
-                        .event_loop
-                        .windows
-                        .borrow_mut()
-                        .by_id
-                        .get_mut(&window_id)
-                    {
-                        window.scaling_changed(Some(1.0)).ok();
-                    }
-                }
-                Ok(SpawnRequest::ActivateTab(window_id, tab)) => {
-                    if let Some(window) = self
-                        .event_loop
-                        .windows
-                        .borrow_mut()
-                        .by_id
-                        .get_mut(&window_id)
-                    {
-                        window.activate_tab(tab).ok();
-                    }
-                }
-                Ok(SpawnRequest::ActivateTabRelative(window_id, tab)) => {
-                    if let Some(window) = self
-                        .event_loop
-                        .windows
-                        .borrow_mut()
-                        .by_id
-                        .get_mut(&window_id)
-                    {
-                        window.activate_tab_relative(tab).ok();
-                    }
-                }
-                Err(TryRecvError::Empty) => return Ok(()),
-                Err(err) => bail!("spawn_rx disconnected {:?}", err),
+            if !self.event_loop.core.turn() {
+                break;
             }
         }
     }
 }
 
 impl GuiSystem for GlutinGuiSystem {
-    fn run_forever(
-        &self,
-        config: &Rc<crate::config::Config>,
-        fontconfig: &Rc<crate::font::FontConfiguration>,
-    ) -> Result<(), Error> {
+    fn run_forever(&self) -> Result<(), Error> {
         // This convoluted run() signature is present because of this issue:
         // https://github.com/tomaka/winit/issues/413
         let myself = &self.event_loop;
         loop {
-            myself.process_futures();
+            self.process_futures();
 
             // Check the window count; if after processing the futures there
             // are no windows left, then we are done.
@@ -224,7 +133,6 @@ impl GuiSystem for GlutinGuiSystem {
 
             myself.run_event_loop()?;
             myself.process_poll()?;
-            self.process_spawn(config, fontconfig)?;
             myself.process_tick()?;
         }
     }
@@ -258,7 +166,6 @@ impl GuiEventLoop {
         let fut_tx2 = fut_tx.clone();
         let core = futurecore::Core::new(Box::new(fut_tx), Box::new(fut_tx2), Box::new(fut_rx));
 
-        let (spawn_tx, spawn_rx) = channel(event_loop.create_proxy());
         let (poll_tx, poll_rx) = channel(event_loop.create_proxy());
 
         // The glutin/glium plumbing has no native tick/timer stuff, so
@@ -273,8 +180,6 @@ impl GuiEventLoop {
 
         Ok(Self {
             core,
-            spawn_tx,
-            spawn_rx,
             poll_tx,
             poll_rx,
             tick_rx,
@@ -283,35 +188,26 @@ impl GuiEventLoop {
         })
     }
 
-    pub fn request_increase_font_size(&self, window_id: WindowId) -> Result<(), Error> {
-        self.spawn_tx.send(SpawnRequest::FontLarger(window_id))
-    }
-    pub fn request_decrease_font_size(&self, window_id: WindowId) -> Result<(), Error> {
-        self.spawn_tx.send(SpawnRequest::FontSmaller(window_id))
-    }
-    pub fn request_reset_font_size(&self, window_id: WindowId) -> Result<(), Error> {
-        self.spawn_tx.send(SpawnRequest::FontReset(window_id))
-    }
-
-    pub fn request_spawn_window(&self) -> Result<(), Error> {
-        self.spawn_tx.send(SpawnRequest::Window)
-    }
-
-    pub fn request_spawn_tab(&self, window_id: WindowId) -> Result<(), Error> {
-        self.spawn_tx.send(SpawnRequest::Tab(window_id))
-    }
-
-    pub fn request_activate_tab(&self, window_id: WindowId, tabidx: usize) -> Result<(), Error> {
-        self.spawn_tx
-            .send(SpawnRequest::ActivateTab(window_id, tabidx))
-    }
-    pub fn request_activate_tab_relative(
-        &self,
+    pub fn with_window<F: 'static + Fn(&mut TerminalWindow) -> Result<(), Error>>(
+        events: &Rc<Self>,
         window_id: WindowId,
-        tab: isize,
-    ) -> Result<(), Error> {
-        self.spawn_tx
-            .send(SpawnRequest::ActivateTabRelative(window_id, tab))
+        func: F,
+    ) {
+        let myself = Rc::clone(events);
+        events.core.spawn(futures::future::poll_fn(move || {
+            let mut windows = myself.windows.borrow_mut();
+            if let Some(window) = windows.by_id.get_mut(&window_id) {
+                func(window).map(futures::Async::Ready).map_err(|_| ())
+            } else {
+                Err(())
+            }
+        }));
+    }
+
+    pub fn spawn_fn<F: 'static + Fn() -> Result<(), Error>>(&self, func: F) {
+        self.core.spawn(futures::future::poll_fn(move || {
+            func().map(futures::Async::Ready).map_err(|_| ())
+        }))
     }
 
     pub fn schedule_read_pty(
@@ -517,16 +413,5 @@ impl GuiEventLoop {
             }
         });
         Ok(())
-    }
-
-    /// Loop through the core and dispatch any tasks that have been
-    /// notified as ready to run.  Returns once all such tasks have
-    /// been polled and there are no more pending task notifications.
-    fn process_futures(&self) {
-        loop {
-            if !self.core.turn() {
-                break;
-            }
-        }
     }
 }

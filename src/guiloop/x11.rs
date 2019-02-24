@@ -92,11 +92,7 @@ impl X11GuiSystem {
 }
 
 impl super::GuiSystem for X11GuiSystem {
-    fn run_forever(
-        &self,
-        _config: &Rc<Config>,
-        _fontconfig: &Rc<FontConfiguration>,
-    ) -> Result<(), Error> {
+    fn run_forever(&self) -> Result<(), Error> {
         self.event_loop.run()
     }
     fn spawn_new_window(

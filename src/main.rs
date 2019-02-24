@@ -120,15 +120,14 @@ fn main() -> Result<(), Error> {
     let gui = gui_system.new()?;
 
     spawn_window(&*gui, cmd, &config, &fontconfig)?;
-    gui.run_forever(&config, &fontconfig)
+    gui.run_forever()
 }
 
-fn spawn_window(
-    gui: &GuiSystem,
+fn spawn_window_impl(
     cmd: Option<Vec<&std::ffi::OsStr>>,
     config: &Rc<config::Config>,
     fontconfig: &Rc<FontConfiguration>,
-) -> Result<(), Error> {
+) -> Result<(term::Terminal, MasterPty, Child), Error> {
     let cmd = config.build_prog(cmd)?;
 
     // First step is to figure out the font metrics so that we know how
@@ -159,6 +158,17 @@ fn spawn_window(
         config.scrollback_lines.unwrap_or(3500),
         config.hyperlink_rules.clone(),
     );
+
+    Ok((terminal, master, child))
+}
+
+fn spawn_window(
+    gui: &GuiSystem,
+    cmd: Option<Vec<&std::ffi::OsStr>>,
+    config: &Rc<config::Config>,
+    fontconfig: &Rc<FontConfiguration>,
+) -> Result<(), Error> {
+    let (terminal, master, child) = spawn_window_impl(cmd, config, fontconfig)?;
 
     gui.spawn_new_window(terminal, master, child, config, fontconfig)
 }

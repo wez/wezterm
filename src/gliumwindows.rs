@@ -7,7 +7,7 @@ use crate::guiloop::glutinloop::GuiEventLoop;
 use crate::guiloop::SessionTerminated;
 use crate::opengl::render::Renderer;
 use crate::opengl::textureatlas::OutOfTextureSpace;
-use crate::{openpty, Child, MasterPty};
+use crate::{openpty, spawn_window_impl, Child, MasterPty};
 use clipboard::{ClipboardContext, ClipboardProvider};
 use glium;
 use glium::glutin::dpi::{LogicalPosition, LogicalSize, PhysicalPosition};
@@ -42,6 +42,8 @@ struct Host {
     /// if is_some, holds position to be restored after exiting
     /// fullscreen mode.
     is_fullscreen: Option<LogicalPosition>,
+    config: Rc<Config>,
+    fonts: Rc<FontConfiguration>,
 }
 
 /// macOS gets unhappy if we set up the clipboard too early,
@@ -128,47 +130,70 @@ impl<'a> term::TerminalHost for TabHost<'a> {
     }
 
     fn new_window(&mut self) {
-        self.host.event_loop.request_spawn_window().ok();
+        let event_loop = Rc::clone(&self.host.event_loop);
+        let config = Rc::clone(&self.host.config);
+        let fonts = Rc::clone(&self.host.fonts);
+        self.host.event_loop.spawn_fn(move || {
+            let (terminal, master, child) = spawn_window_impl(None, &config, &fonts)?;
+            let window =
+                TerminalWindow::new(&event_loop, terminal, master, child, &fonts, &config)?;
+
+            event_loop.add_window(window)
+        });
     }
+
     fn new_tab(&mut self) {
-        self.host
-            .event_loop
-            .request_spawn_tab(self.host.display.gl_window().id())
-            .ok();
+        GuiEventLoop::with_window(
+            &self.host.event_loop,
+            self.host.display.gl_window().id(),
+            |win| win.spawn_tab(),
+        );
     }
+
     fn activate_tab(&mut self, tab: usize) {
-        self.host
-            .event_loop
-            .request_activate_tab(self.host.display.gl_window().id(), tab)
-            .ok();
+        GuiEventLoop::with_window(
+            &self.host.event_loop,
+            self.host.display.gl_window().id(),
+            move |win| win.activate_tab(tab),
+        );
     }
 
     fn activate_tab_relative(&mut self, tab: isize) {
-        self.host
-            .event_loop
-            .request_activate_tab_relative(self.host.display.gl_window().id(), tab)
-            .ok();
+        GuiEventLoop::with_window(
+            &self.host.event_loop,
+            self.host.display.gl_window().id(),
+            move |win| win.activate_tab_relative(tab),
+        );
     }
 
     fn increase_font_size(&mut self) {
-        self.host
-            .event_loop
-            .request_increase_font_size(self.host.display.gl_window().id())
-            .ok();
+        GuiEventLoop::with_window(
+            &self.host.event_loop,
+            self.host.display.gl_window().id(),
+            |win| {
+                let scale = win.fonts.get_font_scale();
+                win.scaling_changed(Some(scale * 1.1))
+            },
+        );
     }
 
     fn decrease_font_size(&mut self) {
-        self.host
-            .event_loop
-            .request_decrease_font_size(self.host.display.gl_window().id())
-            .ok();
+        GuiEventLoop::with_window(
+            &self.host.event_loop,
+            self.host.display.gl_window().id(),
+            |win| {
+                let scale = win.fonts.get_font_scale();
+                win.scaling_changed(Some(scale * 0.9))
+            },
+        );
     }
 
     fn reset_font_size(&mut self) {
-        self.host
-            .event_loop
-            .request_reset_font_size(self.host.display.gl_window().id())
-            .ok();
+        GuiEventLoop::with_window(
+            &self.host.event_loop,
+            self.host.display.gl_window().id(),
+            |win| win.scaling_changed(Some(1.0)),
+        );
     }
 }
 
@@ -312,6 +337,8 @@ impl TerminalWindow {
             clipboard: Clipboard::default(),
             window_position,
             is_fullscreen: None,
+            config: Rc::clone(config),
+            fonts: Rc::clone(fonts),
         };
 
         host.display.gl_window().set_cursor(MouseCursor::Text);
