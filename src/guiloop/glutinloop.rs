@@ -76,8 +76,7 @@ struct Windows {
 }
 
 /// The `GuiEventLoop` represents the combined gui event processor,
-/// a remote (running on another thread) mio `Poll` instance, and
-/// a core for spawning tasks from futures.  It acts as the manager
+/// and a core for spawning tasks from futures.  It acts as the manager
 /// for various events and is responsible for driving things forward.
 pub struct GuiEventLoop {
     pub event_loop: RefCell<glium::glutin::EventsLoop>,
@@ -319,7 +318,7 @@ impl GuiEventLoop {
         }
     }
 
-    /// Process events from the mio Poll instance.  We may have a pty
+    /// Process events on poll_rx.  We may have a pty
     /// event or our interval timer may have expired, indicating that
     /// we need to paint.
     fn process_poll(&self) -> Result<(), Error> {
