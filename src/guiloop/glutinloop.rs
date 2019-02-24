@@ -1,3 +1,4 @@
+use super::GuiSystem;
 use crate::futurecore;
 use crate::gliumwindows;
 pub use crate::gliumwindows::TerminalWindow;
@@ -92,8 +93,6 @@ const MAX_POLL_LOOP_DURATION: Duration = Duration::from_millis(500);
 pub struct GlutinGuiSystem {
     event_loop: Rc<GuiEventLoop>,
 }
-
-use super::GuiSystem;
 
 impl GlutinGuiSystem {
     pub fn new() -> Result<Rc<GuiSystem>, Error> {

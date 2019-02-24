@@ -4,7 +4,7 @@ use crate::font::FontConfiguration;
 use crate::futurecore;
 use crate::xwindows::xwin::TerminalWindow;
 use crate::xwindows::Connection;
-use crate::{openpty, Child, MasterPty};
+use crate::{openpty, spawn_window_impl, Child, MasterPty};
 use failure::Error;
 use mio::unix::EventedFd;
 use mio::{Event, Evented, Events, Poll, PollOpt, Ready, Token};
@@ -244,35 +244,7 @@ impl GuiEventLoop {
         config: &Rc<Config>,
         fontconfig: &Rc<FontConfiguration>,
     ) -> Result<(), Error> {
-        let cmd = config.build_prog(None)?;
-        // First step is to figure out the font metrics so that we know how
-        // big things are going to be.
-        // we always load the cell_height for font 0,
-        // regardless of which font we are shaping here,
-        // so that we can scale glyphs appropriately
-        let metrics = fontconfig.default_font_metrics()?;
-
-        let initial_cols = 80u16;
-        let initial_rows = 24u16;
-        let initial_pixel_width = initial_cols * metrics.cell_width.ceil() as u16;
-        let initial_pixel_height = initial_rows * metrics.cell_height.ceil() as u16;
-
-        let (master, slave) = openpty(
-            initial_rows,
-            initial_cols,
-            initial_pixel_width,
-            initial_pixel_height,
-        )?;
-
-        let child = slave.spawn_command(cmd)?;
-        eprintln!("spawned: {:?}", child);
-
-        let terminal = term::Terminal::new(
-            initial_rows as usize,
-            initial_cols as usize,
-            config.scrollback_lines.unwrap_or(3500),
-            config.hyperlink_rules.clone(),
-        );
+        let (terminal, master, child) = spawn_window_impl(None, config, fontconfig)?;
 
         let window = TerminalWindow::new(event_loop, terminal, master, child, fontconfig, config)?;
 
