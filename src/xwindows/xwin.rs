@@ -35,7 +35,7 @@ struct Host {
     config: Rc<Config>,
 }
 
-pub struct TerminalWindow {
+pub struct X11TerminalWindow {
     host: Host,
     conn: Rc<Connection>,
     fonts: Rc<FontConfiguration>,
@@ -48,7 +48,7 @@ pub struct TerminalWindow {
 }
 
 impl<'a> TabHost<'a> {
-    fn with_window<F: 'static + Fn(&mut TerminalWindow) -> Result<(), Error>>(&self, func: F) {
+    fn with_window<F: 'static + Fn(&mut X11TerminalWindow) -> Result<(), Error>>(&self, func: F) {
         let events = Rc::clone(&self.host.event_loop);
         let window_id = self.host.window.window.window_id;
 
@@ -160,7 +160,7 @@ impl<'a> term::TerminalHost for TabHost<'a> {
     }
 }
 
-impl TerminalWindow {
+impl X11TerminalWindow {
     pub fn new(
         event_loop: &Rc<GuiEventLoop>,
         terminal: term::Terminal,
@@ -168,7 +168,7 @@ impl TerminalWindow {
         process: Child,
         fonts: &Rc<FontConfiguration>,
         config: &Rc<Config>,
-    ) -> Result<TerminalWindow, Error> {
+    ) -> Result<X11TerminalWindow, Error> {
         let palette = config
             .colors
             .as_ref()
@@ -201,7 +201,7 @@ impl TerminalWindow {
 
         let tab = Tab::new(terminal, process, pty);
 
-        Ok(TerminalWindow {
+        Ok(X11TerminalWindow {
             host,
             renderer,
             conn: Rc::clone(&event_loop.conn),
@@ -220,7 +220,10 @@ impl TerminalWindow {
 
     pub fn scaling_changed(&mut self, font_scale: Option<f64>) -> Result<(), Error> {
         let font_scale = font_scale.unwrap_or_else(|| self.fonts.get_font_scale());
-        eprintln!("TerminalWindow::scaling_changed font_scale={}", font_scale);
+        eprintln!(
+            "X11TerminalWindow::scaling_changed font_scale={}",
+            font_scale
+        );
 
         self.fonts.change_scaling(font_scale, 1.0);
 

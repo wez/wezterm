@@ -3,7 +3,7 @@ use crate::config::Config;
 use crate::font::FontConfiguration;
 use crate::futurecore;
 use crate::guicommon::tabs::TabId;
-use crate::xwindows::xwin::TerminalWindow;
+use crate::xwindows::xwin::X11TerminalWindow;
 use crate::xwindows::Connection;
 use crate::{spawn_window_impl, Child, MasterPty};
 use failure::Error;
@@ -69,7 +69,7 @@ impl Evented for TabEntry {
 
 #[derive(Default)]
 struct Windows {
-    by_id: HashMap<WindowId, TerminalWindow>,
+    by_id: HashMap<WindowId, X11TerminalWindow>,
     tab_by_id: HashMap<TabId, Rc<TabEntry>>,
 }
 
@@ -106,7 +106,7 @@ impl super::GuiSystem for X11GuiSystem {
         config: &Rc<Config>,
         fontconfig: &Rc<FontConfiguration>,
     ) -> Result<(), Error> {
-        let window = TerminalWindow::new(
+        let window = X11TerminalWindow::new(
             &self.event_loop,
             terminal,
             master,
@@ -199,7 +199,7 @@ impl GuiEventLoop {
 
     /// Run a function with access to the mutable version of the window with
     /// the specified window id
-    pub fn with_window<F: FnOnce(&mut TerminalWindow) -> Result<(), Error>>(
+    pub fn with_window<F: FnOnce(&mut X11TerminalWindow) -> Result<(), Error>>(
         &self,
         window_id: WindowId,
         func: F,
@@ -257,12 +257,13 @@ impl GuiEventLoop {
     ) -> Result<(), Error> {
         let (terminal, master, child, fontconfig) = spawn_window_impl(None, config, fontconfig)?;
 
-        let window = TerminalWindow::new(event_loop, terminal, master, child, &fontconfig, config)?;
+        let window =
+            X11TerminalWindow::new(event_loop, terminal, master, child, &fontconfig, config)?;
 
         self.add_window(window)
     }
 
-    pub fn add_window(&self, window: TerminalWindow) -> Result<(), Error> {
+    pub fn add_window(&self, window: X11TerminalWindow) -> Result<(), Error> {
         let window_id = window.window_id();
 
         let mut windows = self.windows.borrow_mut();
