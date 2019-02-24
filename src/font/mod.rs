@@ -36,7 +36,7 @@ type FontPtr = Rc<RefCell<Box<NamedFont>>>;
 pub struct FontConfiguration {
     config: Rc<Config>,
     fonts: RefCell<HashMap<TextStyle, FontPtr>>,
-    system: Box<FontSystem>,
+    system: Rc<FontSystem>,
     metrics: RefCell<Option<FontMetrics>>,
     dpi_scale: RefCell<f64>,
     font_scale: RefCell<f64>,
@@ -69,23 +69,23 @@ impl Default for FontSystemSelection {
 }
 
 impl FontSystemSelection {
-    fn new_font_system(&self) -> Box<FontSystem> {
+    fn new_font_system(&self) -> Rc<FontSystem> {
         match self {
             FontSystemSelection::FontConfigAndFreeType => {
                 #[cfg(all(unix, not(target_os = "macos")))]
-                return Box::new(fontconfigandfreetype::FontSystemImpl::new());
+                return Rc::new(fontconfigandfreetype::FontSystemImpl::new());
                 #[cfg(not(all(unix, not(target_os = "macos"))))]
                 panic!("fontconfig not compiled in");
             }
             FontSystemSelection::FontLoaderAndFreeType => {
-                return Box::new(fontloader_and_freetype::FontSystemImpl::new());
+                return Rc::new(fontloader_and_freetype::FontSystemImpl::new());
             }
             FontSystemSelection::FontLoaderAndRustType => {
-                return Box::new(fontloader_and_rusttype::FontSystemImpl::new());
+                return Rc::new(fontloader_and_rusttype::FontSystemImpl::new());
             }
             FontSystemSelection::CoreText => {
                 #[cfg(target_os = "macos")]
-                return Box::new(coretext::FontSystemImpl::new());
+                return Rc::new(coretext::FontSystemImpl::new());
                 #[cfg(not(target_os = "macos"))]
                 panic!("coretext not compiled in");
             }
