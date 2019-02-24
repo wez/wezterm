@@ -802,13 +802,29 @@ impl GliumTerminalWindow {
             } => {
                 // Assuming that this is dragging a window between hidpi and
                 // normal dpi displays.  Treat this as a resize event of sorts
+                eprintln!("HiDpiFactorChanged {}", factor);
                 self.scaling_changed(None, Some(factor), self.width, self.height)?;
             }
             Event::WindowEvent {
                 event: WindowEvent::Resized(size),
                 ..
             } => {
-                self.resize_surfaces_logical(size)?;
+                // On Linux we may get here when HiDpiFactorChanged occurs, but
+                // without ever receiving a HiDpiFactorChanged event.
+                // We need to synthesize that event here by checking what we
+                // think we know, otherwise we will use the wrong font size.
+                let old_dpi_scale = self.fonts.get_dpi_scale();
+                let dpi_scale = self.host.display.gl_window().get_hidpi_factor();
+                if old_dpi_scale != dpi_scale {
+                    let (width, height): (u32, u32) = size.to_physical(dpi_scale).into();
+                    eprintln!(
+                        "Synthesize HiDpiFactorChanged {} -> {}",
+                        old_dpi_scale, dpi_scale
+                    );
+                    self.scaling_changed(None, Some(dpi_scale), width as u16, height as u16)?;
+                } else {
+                    self.resize_surfaces_logical(size)?;
+                }
             }
             Event::WindowEvent {
                 event: WindowEvent::Moved(position),
