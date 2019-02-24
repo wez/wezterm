@@ -320,10 +320,6 @@ impl X11TerminalWindow {
         self.paint()
     }
 
-    pub fn tabs<'a>(&'a self) -> &'a Tabs {
-        &self.tabs
-    }
-
     pub fn tab_did_terminate(&mut self, tab_id: TabId) {
         self.tabs.remove_by_id(tab_id);
         match self.tabs.get_active() {

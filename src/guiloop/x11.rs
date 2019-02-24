@@ -227,7 +227,12 @@ impl GuiEventLoop {
 
             let tab_id = window.spawn_tab()?;
 
-            let fd = window.tabs().get_by_id(tab_id).unwrap().pty().as_raw_fd();
+            let fd = window
+                .get_tabs()
+                .get_by_id(tab_id)
+                .unwrap()
+                .pty()
+                .as_raw_fd();
 
             (tab_id, fd)
         };
@@ -269,7 +274,7 @@ impl GuiEventLoop {
 
         let mut windows = self.windows.borrow_mut();
 
-        for tab in window.tabs().iter() {
+        for tab in window.get_tabs().iter() {
             let fd = tab.pty().as_raw_fd();
             let tab_id = tab.tab_id();
             let entry = Rc::new(TabEntry {
