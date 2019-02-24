@@ -1,10 +1,20 @@
-use crate::guicommon::tabs::Tabs;
+use crate::config::Config;
+use crate::font::FontConfiguration;
+use crate::guicommon::tabs::{Tab, TabId, Tabs};
 use crate::opengl::render::Renderer;
 use crate::opengl::textureatlas::OutOfTextureSpace;
+use crate::pty::unix::openpty;
 use failure::Error;
 use glium;
-use glium::backend::Facade;
 use std::cell::RefMut;
+use std::rc::Rc;
+
+pub struct Dimensions {
+    pub width: u16,
+    pub height: u16,
+    pub cell_height: usize,
+    pub cell_width: usize,
+}
 
 pub trait TerminalWindow {
     fn get_tabs_mut(&mut self) -> &mut Tabs;
@@ -14,6 +24,10 @@ pub trait TerminalWindow {
     fn renderer(&mut self) -> &mut Renderer;
     fn renderer_and_terminal(&mut self) -> (&mut Renderer, RefMut<term::Terminal>);
     fn recreate_texture_atlas(&mut self, size: u32) -> Result<(), Error>;
+    fn tab_was_created(&mut self, tab_id: TabId) -> Result<(), Error>;
+    fn config(&self) -> &Rc<Config>;
+    fn fonts(&self) -> &Rc<FontConfiguration>;
+    fn get_dimensions(&self) -> Dimensions;
 
     fn activate_tab(&mut self, tab_idx: usize) -> Result<(), Error> {
         let max = self.get_tabs().len();
@@ -98,5 +112,38 @@ pub trait TerminalWindow {
             }
             Ok(_) => Ok(()),
         }
+    }
+
+    fn spawn_tab(&mut self) -> Result<TabId, Error> {
+        let config = self.config();
+
+        let dims = self.get_dimensions();
+
+        let rows = (dims.height as usize + 1) / dims.cell_height;
+        let cols = (dims.width as usize + 1) / dims.cell_width;
+
+        let (pty, slave) = openpty(rows as u16, cols as u16, dims.width, dims.height)?;
+        let cmd = config.build_prog(None)?;
+
+        let process = slave.spawn_command(cmd)?;
+        eprintln!("spawned: {:?}", process);
+
+        let terminal = term::Terminal::new(
+            rows,
+            cols,
+            config.scrollback_lines.unwrap_or(3500),
+            config.hyperlink_rules.clone(),
+        );
+
+        let tab = Tab::new(terminal, process, pty);
+        let tab_id = tab.tab_id();
+
+        self.get_tabs_mut().push(tab);
+        let len = self.get_tabs().len();
+        self.activate_tab(len - 1)?;
+
+        self.tab_was_created(tab_id)?;
+
+        Ok(tab_id)
     }
 }

@@ -4,12 +4,11 @@ use crate::config::Config;
 use crate::failure::Error;
 use crate::font::FontConfiguration;
 use crate::guicommon::tabs::{Tab, TabId, Tabs};
-use crate::guicommon::window::TerminalWindow;
+use crate::guicommon::window::{Dimensions, TerminalWindow};
 use crate::guiloop::glutinloop::GuiEventLoop;
 use crate::guiloop::SessionTerminated;
 use crate::opengl::render::Renderer;
-use crate::opengl::textureatlas::OutOfTextureSpace;
-use crate::{openpty, spawn_window_impl, Child, MasterPty};
+use crate::{spawn_window_impl, Child, MasterPty};
 use clipboard::{ClipboardContext, ClipboardProvider};
 use glium;
 use glium::glutin::dpi::{LogicalPosition, LogicalSize, PhysicalPosition};
@@ -145,7 +144,7 @@ impl<'a> term::TerminalHost for TabHost<'a> {
         GuiEventLoop::with_window(
             &self.host.event_loop,
             self.host.display.gl_window().id(),
-            |win| win.spawn_tab(),
+            |win| win.spawn_tab().map(|_| ()),
         );
     }
 
@@ -219,6 +218,12 @@ impl TerminalWindow for GliumTerminalWindow {
     fn get_tabs_mut(&mut self) -> &mut Tabs {
         &mut self.tabs
     }
+    fn config(&self) -> &Rc<Config> {
+        &self.config
+    }
+    fn fonts(&self) -> &Rc<FontConfiguration> {
+        &self.fonts
+    }
 
     fn set_window_title(&mut self, title: &str) -> Result<(), Error> {
         self.host.display.gl_window().set_title(title);
@@ -240,6 +245,23 @@ impl TerminalWindow for GliumTerminalWindow {
             &mut self.renderer,
             self.tabs.get_active().unwrap().terminal(),
         )
+    }
+    fn tab_was_created(&mut self, tab_id: TabId) -> Result<(), Error> {
+        match self.tabs.get_by_id(tab_id) {
+            Ok(tab) => {
+                self.event_loop
+                    .schedule_read_pty(tab.pty().try_clone()?, self.window_id(), tab_id)
+            }
+            _ => Ok(()),
+        }
+    }
+    fn get_dimensions(&self) -> Dimensions {
+        Dimensions {
+            width: self.width,
+            height: self.height,
+            cell_height: self.cell_height,
+            cell_width: self.cell_width,
+        }
     }
 }
 
@@ -322,36 +344,6 @@ impl GliumTerminalWindow {
             .get_by_idx(tab_idx)
             .expect("invalid tab_idx")
             .tab_id()
-    }
-
-    pub fn spawn_tab(&mut self) -> Result<(), Error> {
-        let rows = (self.height as usize + 1) / self.cell_height;
-        let cols = (self.width as usize + 1) / self.cell_width;
-
-        let (pty, slave) = openpty(rows as u16, cols as u16, self.width, self.height)?;
-        let cmd = self.config.build_prog(None)?;
-
-        let process = slave.spawn_command(cmd)?;
-        eprintln!("spawned: {:?}", process);
-
-        let terminal = term::Terminal::new(
-            rows,
-            cols,
-            self.config.scrollback_lines.unwrap_or(3500),
-            self.config.hyperlink_rules.clone(),
-        );
-
-        let cloned_pty = pty.try_clone()?;
-        let tab = Tab::new(terminal, process, pty);
-
-        self.event_loop
-            .schedule_read_pty(cloned_pty, self.window_id(), tab.tab_id())?;
-
-        self.tabs.push(tab);
-        let len = self.tabs.len();
-        self.activate_tab(len - 1)?;
-
-        Ok(())
     }
 
     pub fn window_id(&self) -> glutin::WindowId {

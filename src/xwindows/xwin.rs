@@ -5,11 +5,10 @@ use super::{Connection, Window};
 use crate::config::Config;
 use crate::font::FontConfiguration;
 use crate::guicommon::tabs::{Tab, TabId, Tabs};
-use crate::guicommon::window::TerminalWindow;
+use crate::guicommon::window::{Dimensions, TerminalWindow};
 use crate::guiloop::x11::{GuiEventLoop, WindowId};
 use crate::guiloop::SessionTerminated;
-use crate::opengl::textureatlas::OutOfTextureSpace;
-use crate::{openpty, MasterPty};
+use crate::MasterPty;
 use clipboard::{ClipboardContext, ClipboardProvider};
 use failure::Error;
 use futures;
@@ -169,6 +168,12 @@ impl TerminalWindow for X11TerminalWindow {
     fn get_tabs_mut(&mut self) -> &mut Tabs {
         &mut self.tabs
     }
+    fn config(&self) -> &Rc<Config> {
+        &self.host.config
+    }
+    fn fonts(&self) -> &Rc<FontConfiguration> {
+        &self.host.fonts
+    }
 
     fn set_window_title(&mut self, title: &str) -> Result<(), Error> {
         self.host.window.set_title(title);
@@ -189,6 +194,17 @@ impl TerminalWindow for X11TerminalWindow {
             &mut self.renderer,
             self.tabs.get_active().unwrap().terminal(),
         )
+    }
+    fn tab_was_created(&mut self, _tab_id: TabId) -> Result<(), Error> {
+        Ok(())
+    }
+    fn get_dimensions(&self) -> Dimensions {
+        Dimensions {
+            width: self.width,
+            height: self.height,
+            cell_height: self.cell_height,
+            cell_width: self.cell_width,
+        }
     }
 }
 
@@ -485,32 +501,5 @@ impl X11TerminalWindow {
             _ => {}
         }
         Ok(())
-    }
-
-    pub fn spawn_tab(&mut self) -> Result<TabId, Error> {
-        let rows = (self.height as usize + 1) / self.cell_height;
-        let cols = (self.width as usize + 1) / self.cell_width;
-
-        let (pty, slave) = openpty(rows as u16, cols as u16, self.width, self.height)?;
-        let cmd = self.host.config.build_prog(None)?;
-
-        let process = slave.spawn_command(cmd)?;
-        eprintln!("spawned: {:?}", process);
-
-        let terminal = term::Terminal::new(
-            rows,
-            cols,
-            self.host.config.scrollback_lines.unwrap_or(3500),
-            self.host.config.hyperlink_rules.clone(),
-        );
-
-        let tab = Tab::new(terminal, process, pty);
-        let tab_id = tab.tab_id();
-
-        self.tabs.push(tab);
-        let len = self.tabs.len();
-        self.activate_tab(len - 1)?;
-
-        Ok(tab_id)
     }
 }
