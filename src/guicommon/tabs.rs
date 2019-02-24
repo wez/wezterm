@@ -107,9 +107,8 @@ impl Tabs {
         }
     }
 
-    pub fn get_active(&self) -> &Tab {
-        // FIXME: Optional
-        &self.tabs[self.active]
+    pub fn get_active(&self) -> Option<&Tab> {
+        self.tabs.get(self.active)
     }
 
     #[inline]

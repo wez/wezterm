@@ -2,6 +2,7 @@ use super::{GuiSystem, SessionTerminated};
 use crate::config::Config;
 use crate::font::FontConfiguration;
 use crate::futurecore;
+use crate::guicommon::tabs::TabId;
 use crate::xwindows::xwin::TerminalWindow;
 use crate::xwindows::Connection;
 use crate::{spawn_window_impl, Child, MasterPty};
@@ -12,6 +13,7 @@ use mio_extras::channel::{channel, Receiver as GuiReceiver, Sender as GuiSender}
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::io;
+use std::os::unix::io::AsRawFd;
 use std::os::unix::io::RawFd;
 use std::rc::Rc;
 use std::sync::mpsc::TryRecvError;
@@ -34,6 +36,7 @@ impl futurecore::CoreReceiver for GuiReceiver<usize> {
 }
 
 struct TabEntry {
+    tab_id: TabId,
     fd: RawFd,
     window_id: WindowId,
 }
@@ -67,7 +70,7 @@ impl Evented for TabEntry {
 #[derive(Default)]
 struct Windows {
     by_id: HashMap<WindowId, TerminalWindow>,
-    by_fd: HashMap<RawFd, Rc<TabEntry>>,
+    tab_by_id: HashMap<TabId, Rc<TabEntry>>,
 }
 
 pub struct GuiEventLoop {
@@ -175,12 +178,12 @@ impl GuiEventLoop {
                             self.process_pty_event(event)?;
                         }
                     }
-                    self.process_sigchld()?;
+                    self.process_sigchld();
                     // Check the window count; if after processing the futures there
                     // are no windows left, then we are done.
                     {
                         let windows = self.windows.borrow();
-                        if windows.by_id.is_empty() && windows.by_fd.is_empty() {
+                        if windows.by_id.is_empty() && windows.tab_by_id.is_empty() {
                             debug!("No more windows; done!");
                             return Ok(());
                         }
@@ -216,21 +219,29 @@ impl GuiEventLoop {
     pub fn spawn_tab(&self, window_id: WindowId) -> Result<(), Error> {
         let mut windows = self.windows.borrow_mut();
 
-        let fd = {
+        let (tab_id, fd) = {
             let window = windows.by_id.get_mut(&window_id).ok_or_else(|| {
                 format_err!("no window_id {:?} in the windows_by_id map", window_id)
             })?;
 
-            window.spawn_tab()?
+            let tab_id = window.spawn_tab()?;
+
+            let fd = window.tabs().get_by_id(tab_id).unwrap().pty().as_raw_fd();
+
+            (tab_id, fd)
         };
 
         eprintln!("spawned new tab with fd = {}", fd);
 
-        let entry = Rc::new(TabEntry { fd, window_id });
-        windows.by_fd.insert(fd, Rc::clone(&entry));
+        let entry = Rc::new(TabEntry {
+            fd,
+            tab_id,
+            window_id,
+        });
+        windows.tab_by_id.insert(tab_id, Rc::clone(&entry));
         self.poll.register(
             &*entry,
-            Token(fd as usize),
+            Token(tab_id as usize),
             Ready::readable(),
             PollOpt::edge(),
         )?;
@@ -253,21 +264,26 @@ impl GuiEventLoop {
 
     pub fn add_window(&self, window: TerminalWindow) -> Result<(), Error> {
         let window_id = window.window_id();
-        let fds = window.pty_fds();
 
         let mut windows = self.windows.borrow_mut();
-        windows.by_id.insert(window_id, window);
 
-        for fd in fds {
-            let entry = Rc::new(TabEntry { fd, window_id });
-            windows.by_fd.insert(fd, Rc::clone(&entry));
+        for tab in window.tabs().iter() {
+            let fd = tab.pty().as_raw_fd();
+            let tab_id = tab.tab_id();
+            let entry = Rc::new(TabEntry {
+                fd,
+                tab_id,
+                window_id,
+            });
+            windows.tab_by_id.insert(tab_id, Rc::clone(&entry));
             self.poll.register(
                 &*entry,
-                Token(fd as usize),
+                Token(tab_id as usize),
                 Ready::readable(),
                 PollOpt::edge(),
             )?;
         }
+        windows.by_id.insert(window_id, window);
         Ok(())
     }
 
@@ -286,33 +302,47 @@ impl GuiEventLoop {
     /// At this time, all such events correspond to readable events
     /// for the pty associated with a window.
     fn process_pty_event(&self, event: Event) -> Result<(), Error> {
-        // The token is the fd
-        let fd = event.token().0 as RawFd;
+        // The token is the tab_id
+        let tab_id = event.token().0 as TabId;
 
-        let (window_id, result) = {
+        let (window_id, tab_id, result) = {
             let mut windows = self.windows.borrow_mut();
 
             let entry = windows
-                .by_fd
-                .get(&fd)
+                .tab_by_id
+                .get(&tab_id)
                 .ok_or_else(|| {
-                    format_err!("fd {} has no associated window in windows_by_fd map", fd)
+                    format_err!(
+                        "tab_id {} has no associated window in windows_tab_by_id map",
+                        tab_id
+                    )
                 })
-                .map(|w| Rc::clone(w))?;
+                .map(Rc::clone)?;
 
             let window = windows.by_id.get_mut(&entry.window_id).ok_or_else(|| {
                 format_err!(
-                    "fd {} -> window_id {:?} but no associated window is in the windows_by_id map",
-                    fd,
+                    "tab {} -> window_id {:?} but no associated window is in the windows_tab_by_id map",
+                    tab_id,
                     entry.window_id
                 )
             })?;
-            (entry.window_id, window.try_read_pty(fd))
+            (
+                entry.window_id,
+                entry.tab_id,
+                window.try_read_pty(entry.tab_id),
+            )
         };
 
         if let Err(err) = result {
             if err.downcast_ref::<SessionTerminated>().is_some() {
-                self.schedule_window_close(window_id, Some(fd))?;
+                self.windows
+                    .borrow_mut()
+                    .by_id
+                    .get_mut(&window_id)
+                    .map(|window| {
+                        window.tab_did_terminate(tab_id);
+                        Some(())
+                    });
             } else {
                 bail!("{:?}", err);
             }
@@ -320,45 +350,46 @@ impl GuiEventLoop {
         Ok(())
     }
 
-    fn schedule_window_close(&self, window_id: WindowId, fd: Option<RawFd>) -> Result<(), Error> {
+    pub fn deregister_tab(&self, tab_id: TabId) -> Result<(), Error> {
+        let mut windows = self.windows.borrow_mut();
+        if let Some(entry) = windows.tab_by_id.get_mut(&tab_id) {
+            self.poll.deregister(&**entry).ok();
+        }
+        windows.tab_by_id.remove(&tab_id);
+        Ok(())
+    }
+
+    fn schedule_window_close(&self, window_id: WindowId) -> Result<(), Error> {
+        eprintln!("schedule_window_close {:?}", window_id);
+
         let mut windows = self.windows.borrow_mut();
 
-        let (fds, window_close) = {
-            let window = windows.by_id.get_mut(&window_id).ok_or_else(|| {
-                format_err!("no window_id {:?} in the windows_by_id map", window_id)
-            })?;
+        let tab_ids: Vec<TabId> = windows
+            .tab_by_id
+            .iter()
+            .filter_map(|(tab_id, entry)| {
+                if entry.window_id == window_id {
+                    Some(*tab_id)
+                } else {
+                    None
+                }
+            })
+            .collect();
 
-            let all_fds = window.pty_fds();
-            let num_fds = all_fds.len();
-
-            // If no fd was specified, close all of them
-
-            let close_fds = match fd {
-                Some(fd) => vec![fd],
-                None => all_fds,
-            };
-
-            let window_close = close_fds.len() == num_fds;
-            (close_fds, window_close)
-        };
-
-        for fd in &fds {
-            if let Some(entry) = windows.by_fd.get_mut(fd) {
-                self.poll.deregister(&**entry)?;
+        for tab_id in &tab_ids {
+            if let Some(entry) = windows.tab_by_id.get_mut(&tab_id) {
+                self.poll.deregister(&**entry).ok();
             }
-            windows.by_fd.remove(fd);
+            windows.tab_by_id.remove(&tab_id);
         }
 
-        if window_close {
-            windows.by_id.remove(&window_id);
-        } else {
-            let window = windows.by_id.get_mut(&window_id).ok_or_else(|| {
-                format_err!("no window_id {:?} in the windows_by_id map", window_id)
-            })?;
-            for fd in fds {
-                window.close_tab_for_fd(fd)?;
-            }
-        }
+        windows.by_id.remove(&window_id);
+        eprintln!(
+            "deregistered tabs {:?}.  Remaining counts {} {}",
+            tab_ids,
+            windows.tab_by_id.len(),
+            windows.by_id.len()
+        );
 
         Ok(())
     }
@@ -456,21 +487,20 @@ impl GuiEventLoop {
 
     /// If we were signalled by a child process completion, zip through
     /// the windows and have then notice and prepare to close.
-    fn process_sigchld(&self) -> Result<(), Error> {
+    fn process_sigchld(&self) {
         let window_ids: Vec<WindowId> = self
             .windows
             .borrow_mut()
             .by_id
             .iter_mut()
             .filter_map(|(window_id, window)| match window.test_for_child_exit() {
-                Ok(_) => None,
-                Err(_) => Some(*window_id),
+                false => None,
+                true => Some(*window_id),
             })
             .collect();
 
         for window_id in window_ids {
-            self.schedule_window_close(window_id, None)?;
+            self.schedule_window_close(window_id).ok();
         }
-        Ok(())
     }
 }

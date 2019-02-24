@@ -4,6 +4,7 @@ use super::xkeysyms;
 use super::{Connection, Window};
 use crate::config::Config;
 use crate::font::FontConfiguration;
+use crate::guicommon::tabs::{Tab, TabId, Tabs};
 use crate::guiloop::x11::{GuiEventLoop, WindowId};
 use crate::guiloop::SessionTerminated;
 use crate::opengl::textureatlas::OutOfTextureSpace;
@@ -11,80 +12,11 @@ use crate::{openpty, MasterPty};
 use clipboard::{ClipboardContext, ClipboardProvider};
 use failure::Error;
 use futures;
-use std::cell::RefCell;
 use std::io::{self, Read, Write};
-use std::os::unix::io::{AsRawFd, RawFd};
 use std::rc::Rc;
 use term::{self, KeyCode, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 use termwiz::hyperlink::Hyperlink;
 use xcb;
-
-/// Holds the terminal state for a tab owned by this window
-struct Tab {
-    terminal: RefCell<term::Terminal>,
-    process: RefCell<Child>,
-    pty: RefCell<MasterPty>,
-}
-
-impl Drop for Tab {
-    fn drop(&mut self) {
-        // Avoid lingering zombies
-        self.process.borrow_mut().kill().ok();
-        self.process.borrow_mut().wait().ok();
-    }
-}
-
-struct Tabs {
-    tabs: Vec<Tab>,
-    active: usize,
-}
-
-impl Tabs {
-    fn new(tab: Tab) -> Self {
-        Self {
-            tabs: vec![tab],
-            active: 0,
-        }
-    }
-
-    fn get_active(&self) -> &Tab {
-        &self.tabs[self.active]
-    }
-
-    fn set_active(&mut self, idx: usize) {
-        assert!(idx < self.tabs.len());
-        self.active = idx;
-        self.tabs[idx].terminal.borrow_mut().make_all_lines_dirty();
-    }
-
-    fn get_for_fd(&self, fd: RawFd) -> Option<&Tab> {
-        for t in &self.tabs {
-            if t.pty.borrow().as_raw_fd() == fd {
-                return Some(t);
-            }
-        }
-        None
-    }
-
-    fn index_for_fd(&self, fd: RawFd) -> Option<usize> {
-        for i in 0..self.tabs.len() {
-            if self.tabs[i].pty.borrow().as_raw_fd() == fd {
-                return Some(i);
-            }
-        }
-        None
-    }
-
-    fn remove_tab_for_fd(&mut self, fd: RawFd) {
-        if let Some(idx) = self.index_for_fd(fd) {
-            self.tabs.remove(idx);
-            let len = self.tabs.len();
-            if len > 0 && self.active == idx && idx >= len {
-                self.set_active(len - 1);
-            }
-        }
-    }
-}
 
 /// Implements `TerminalHost` for a Tab.
 /// `TabHost` instances are short lived and borrow references to
@@ -267,11 +199,7 @@ impl TerminalWindow {
 
         host.window.show();
 
-        let tab = Tab {
-            terminal: RefCell::new(terminal),
-            process: RefCell::new(process),
-            pty: RefCell::new(pty),
-        };
+        let tab = Tab::new(terminal, process, pty);
 
         Ok(TerminalWindow {
             host,
@@ -288,14 +216,6 @@ impl TerminalWindow {
 
     pub fn window_id(&self) -> WindowId {
         self.host.window.window.window_id
-    }
-
-    pub fn pty_fds(&self) -> Vec<RawFd> {
-        self.tabs
-            .tabs
-            .iter()
-            .map(|tab| tab.pty.borrow().as_raw_fd())
-            .collect()
     }
 
     pub fn scaling_changed(&mut self, font_scale: Option<f64>) -> Result<(), Error> {
@@ -333,11 +253,9 @@ impl TerminalWindow {
             let rows = ((height as usize + 1) / self.cell_height) as u16;
             let cols = ((width as usize + 1) / self.cell_width) as u16;
 
-            for tab in &mut self.tabs.tabs {
-                tab.pty.borrow_mut().resize(rows, cols, width, height)?;
-                tab.terminal
-                    .borrow_mut()
-                    .resize(rows as usize, cols as usize);
+            for tab in self.tabs.iter() {
+                tab.pty().resize(rows, cols, width, height)?;
+                tab.terminal().resize(rows as usize, cols as usize);
             }
 
             Ok(true)
@@ -352,11 +270,13 @@ impl TerminalWindow {
     }
 
     pub fn paint(&mut self) -> Result<(), Error> {
+        let tab = match self.tabs.get_active() {
+            Some(tab) => tab,
+            None => return Ok(()),
+        };
+
         let mut target = self.host.window.draw();
-        let res = self.renderer.paint(
-            &mut target,
-            &mut self.tabs.get_active().terminal.borrow_mut(),
-        );
+        let res = self.renderer.paint(&mut target, &mut tab.terminal());
         // Ensure that we finish() the target before we let the
         // error bubble up, otherwise we lose the context.
         target
@@ -371,11 +291,7 @@ impl TerminalWindow {
                 if let Some(&OutOfTextureSpace { size }) = err.downcast_ref::<OutOfTextureSpace>() {
                     eprintln!("out of texture space, allocating {}", size);
                     self.renderer.recreate_atlas(&self.host.window, size)?;
-                    self.tabs
-                        .get_active()
-                        .terminal
-                        .borrow_mut()
-                        .make_all_lines_dirty();
+                    tab.terminal().make_all_lines_dirty();
                     // Recursively initiate a new paint
                     return self.paint();
                 }
@@ -386,37 +302,70 @@ impl TerminalWindow {
     }
 
     pub fn paint_if_needed(&mut self) -> Result<(), Error> {
-        let dirty = self.tabs.get_active().terminal.borrow().has_dirty_lines();
-        if dirty {
+        let tab = match self.tabs.get_active() {
+            Some(tab) => tab,
+            None => return Ok(()),
+        };
+        if tab.terminal().has_dirty_lines() {
             self.paint()?;
         }
         Ok(())
     }
 
-    pub fn test_for_child_exit(&mut self) -> Result<(), SessionTerminated> {
-        match self.tabs.get_active().process.borrow_mut().try_wait() {
-            Ok(Some(status)) => Err(SessionTerminated::ProcessStatus { status }),
-            Ok(None) => Ok(()),
-            Err(e) => Err(SessionTerminated::Error { err: e.into() }),
-        }
+    pub fn tabs<'a>(&'a self) -> &'a Tabs {
+        &self.tabs
     }
 
-    pub fn try_read_pty(&mut self, fd: RawFd) -> Result<(), Error> {
+    pub fn tab_did_terminate(&mut self, tab_id: TabId) {
+        self.tabs.remove_by_id(tab_id);
+        match self.tabs.get_active() {
+            Some(tab) => {
+                tab.terminal().make_all_lines_dirty();
+                self.update_title();
+            }
+            None => (),
+        }
+
+        let events = Rc::clone(&self.host.event_loop);
+        self.host
+            .event_loop
+            .core
+            .spawn(futures::future::poll_fn(move || {
+                events
+                    .deregister_tab(tab_id)
+                    .map(futures::Async::Ready)
+                    .map_err(|_| ())
+            }));
+    }
+
+    pub fn test_for_child_exit(&mut self) -> bool {
+        let dead_tabs: Vec<TabId> = self
+            .tabs
+            .iter()
+            .filter_map(|tab| match tab.process().try_wait() {
+                Ok(None) => None,
+                _ => Some(tab.tab_id()),
+            })
+            .collect();
+        for tab_id in dead_tabs {
+            self.tab_did_terminate(tab_id);
+        }
+        self.tabs.is_empty()
+    }
+
+    pub fn try_read_pty(&mut self, tab_id: TabId) -> Result<(), Error> {
         const BUFSIZE: usize = 8192;
         let mut buf = [0; BUFSIZE];
 
-        let tab = self
-            .tabs
-            .get_for_fd(fd)
-            .ok_or_else(|| format_err!("no tab for fd {}", fd))?;
+        let tab = self.tabs.get_by_id(tab_id)?;
 
-        let result = tab.pty.borrow_mut().read(&mut buf);
+        let result = tab.pty().read(&mut buf);
         match result {
             Ok(size) => {
-                tab.terminal.borrow_mut().advance_bytes(
+                tab.terminal().advance_bytes(
                     &buf[0..size],
                     &mut TabHost {
-                        pty: &mut *tab.pty.borrow_mut(),
+                        pty: &mut *tab.pty(),
                         host: &mut self.host,
                     },
                 );
@@ -436,10 +385,14 @@ impl TerminalWindow {
     }
 
     fn mouse_event(&mut self, event: MouseEvent) -> Result<(), Error> {
-        self.tabs.get_active().terminal.borrow_mut().mouse_event(
+        let tab = match self.tabs.get_active() {
+            Some(tab) => tab,
+            None => return Ok(()),
+        };
+        tab.terminal().mouse_event(
             event,
             &mut TabHost {
-                pty: &mut *self.tabs.get_active().pty.borrow_mut(),
+                pty: &mut *tab.pty(),
                 host: &mut self.host,
             },
         )?;
@@ -459,12 +412,16 @@ impl TerminalWindow {
             }
             xcb::KEY_PRESS => {
                 let key_press: &xcb::KeyPressEvent = unsafe { xcb::cast_event(event) };
+                let tab = match self.tabs.get_active() {
+                    Some(tab) => tab,
+                    None => return Ok(()),
+                };
                 if let Some((code, mods)) = self.decode_key(key_press) {
-                    self.tabs.get_active().terminal.borrow_mut().key_down(
+                    tab.terminal().key_down(
                         code,
                         mods,
                         &mut TabHost {
-                            pty: &mut *self.tabs.get_active().pty.borrow_mut(),
+                            pty: &mut *tab.pty(),
                             host: &mut self.host,
                         },
                     )?;
@@ -473,11 +430,15 @@ impl TerminalWindow {
             xcb::KEY_RELEASE => {
                 let key_press: &xcb::KeyPressEvent = unsafe { xcb::cast_event(event) };
                 if let Some((code, mods)) = self.decode_key(key_press) {
-                    self.tabs.get_active().terminal.borrow_mut().key_up(
+                    let tab = match self.tabs.get_active() {
+                        Some(tab) => tab,
+                        None => return Ok(()),
+                    };
+                    tab.terminal().key_up(
                         code,
                         mods,
                         &mut TabHost {
-                            pty: &mut *self.tabs.get_active().pty.borrow_mut(),
+                            pty: &mut *tab.pty(),
                             host: &mut self.host,
                         },
                     )?;
@@ -534,52 +495,41 @@ impl TerminalWindow {
         Ok(())
     }
 
-    pub fn spawn_tab(&mut self) -> Result<RawFd, Error> {
+    pub fn spawn_tab(&mut self) -> Result<TabId, Error> {
         let rows = (self.height as usize + 1) / self.cell_height;
         let cols = (self.width as usize + 1) / self.cell_width;
 
         let (pty, slave) = openpty(rows as u16, cols as u16, self.width, self.height)?;
         let cmd = self.host.config.build_prog(None)?;
 
-        let process = RefCell::new(slave.spawn_command(cmd)?);
+        let process = slave.spawn_command(cmd)?;
         eprintln!("spawned: {:?}", process);
 
-        let terminal = RefCell::new(term::Terminal::new(
+        let terminal = term::Terminal::new(
             rows,
             cols,
             self.host.config.scrollback_lines.unwrap_or(3500),
             self.host.config.hyperlink_rules.clone(),
-        ));
+        );
 
-        let fd = pty.as_raw_fd();
+        let tab = Tab::new(terminal, process, pty);
+        let tab_id = tab.tab_id();
 
-        let tab = Tab {
-            terminal,
-            process,
-            pty: RefCell::new(pty),
-        };
-
-        self.tabs.tabs.push(tab);
-        let len = self.tabs.tabs.len();
+        self.tabs.push(tab);
+        let len = self.tabs.len();
         self.activate_tab(len - 1)?;
 
-        Ok(fd)
-    }
-
-    pub fn close_tab_for_fd(&mut self, fd: RawFd) -> Result<(), Error> {
-        self.tabs.remove_tab_for_fd(fd);
-        self.update_title();
-        Ok(())
+        Ok(tab_id)
     }
 
     fn update_title(&mut self) {
-        let num_tabs = self.tabs.tabs.len();
+        let num_tabs = self.tabs.len();
         if num_tabs == 0 {
             return;
         }
-        let tab_no = self.tabs.active;
+        let tab_no = self.tabs.get_active_idx();
 
-        let terminal = self.tabs.get_active().terminal.borrow();
+        let terminal = self.tabs.get_active().unwrap().terminal();
 
         if num_tabs == 1 {
             self.host.window.set_title(terminal.get_title());
@@ -594,7 +544,7 @@ impl TerminalWindow {
     }
 
     pub fn activate_tab(&mut self, tab: usize) -> Result<(), Error> {
-        let max = self.tabs.tabs.len();
+        let max = self.tabs.len();
         if tab < max {
             self.tabs.set_active(tab);
             self.update_title();
@@ -603,8 +553,8 @@ impl TerminalWindow {
     }
 
     pub fn activate_tab_relative(&mut self, delta: isize) -> Result<(), Error> {
-        let max = self.tabs.tabs.len();
-        let active = self.tabs.active as isize;
+        let max = self.tabs.len();
+        let active = self.tabs.get_active_idx() as isize;
         let tab = active + delta;
         let tab = if tab < 0 { max as isize + tab } else { tab };
         self.activate_tab(tab as usize % max)
