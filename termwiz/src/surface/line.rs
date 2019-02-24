@@ -190,12 +190,7 @@ impl Line {
 
         // TODO: look back and look ahead for cells that are hidden by
         // a preceding multi-wide cell
-        for (idx, cell) in self
-            .cells
-            .iter()
-            .enumerate()
-            .skip(click_col.saturating_sub(1))
-        {
+        for (idx, cell) in self.cells.iter().enumerate().skip(click_col) {
             if !is_word(cell.str()) {
                 break;
             }
