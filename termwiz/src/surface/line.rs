@@ -180,6 +180,40 @@ impl Line {
         s
     }
 
+    pub fn compute_double_click_range(
+        &self,
+        click_col: usize,
+        is_word: fn(s: &str) -> bool,
+    ) -> Range<usize> {
+        let mut lower = click_col;
+        let mut upper = click_col;
+
+        // TODO: look back and look ahead for cells that are hidden by
+        // a preceding multi-wide cell
+        for (idx, cell) in self
+            .cells
+            .iter()
+            .enumerate()
+            .skip(click_col.saturating_sub(1))
+        {
+            if !is_word(cell.str()) {
+                break;
+            }
+            upper = idx;
+        }
+        for (idx, cell) in self.cells.iter().enumerate().rev() {
+            if idx > click_col {
+                continue;
+            }
+            if !is_word(cell.str()) {
+                break;
+            }
+            lower = idx;
+        }
+
+        lower..upper
+    }
+
     /// Returns a substring from the line.
     pub fn columns_as_str(&self, range: Range<usize>) -> String {
         let mut s = String::new();

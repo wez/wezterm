@@ -13,7 +13,6 @@ use termwiz::escape::osc::{ITermFileData, ITermProprietary};
 use termwiz::escape::{Action, ControlCode, Esc, EscCode, OperatingSystemCommand, CSI};
 use termwiz::hyperlink::Rule as HyperlinkRule;
 use termwiz::image::{ImageCell, ImageData, TextureCoordinate};
-use unicode_segmentation::UnicodeSegmentation;
 
 struct TabStop {
     tabs: Vec<bool>,
@@ -448,36 +447,43 @@ impl TerminalState {
                             let y = event.y as ScrollbackOrVisibleRowIndex
                                 - self.viewport_offset as ScrollbackOrVisibleRowIndex;
                             let idx = self.screen().scrollback_or_visible_row(y);
-                            let line = self.screen().lines[idx].as_str();
+                            let click_range =
+                                self.screen().lines[idx].compute_double_click_range(event.x, |s| {
+                                    // TODO: add configuration for this
+                                    if s.len() > 1 {
+                                        true
+                                    } else if s.len() == 1 {
+                                        match s.chars().nth(0).unwrap() {
+                                            ' ' | '\t' | '\n' | '{' | '[' | '}' | ']' | '('
+                                            | ')' | '"' | '\'' => false,
+                                            _ => true,
+                                        }
+                                    } else {
+                                        false
+                                    }
+                                });
 
-                            self.selection_start = None;
-                            self.selection_range = None;
-                            // TODO: allow user to configure the word boundary rules.
-                            // Also consider making the default work with URLs?
-                            for (x, word) in line.split_word_bound_indices() {
-                                if event.x < x {
-                                    break;
-                                }
-                                if event.x <= x + word.len() {
-                                    // this is our word
-                                    let start = SelectionCoordinate { x, y };
-                                    let end = SelectionCoordinate {
-                                        x: x + word.len() - 1,
-                                        y,
-                                    };
-                                    self.selection_start = Some(start);
-                                    self.selection_range = Some(SelectionRange { start, end });
-                                    self.dirty_selection_lines();
-                                    let text = self.get_selection_text();
-                                    debug!(
-                                        "finish 2click selection {:?} '{}'",
-                                        self.selection_range, text
-                                    );
-                                    host.set_clipboard(Some(text))?;
-                                    return Ok(());
-                                }
-                            }
-                            host.set_clipboard(None)?;
+                            self.selection_start = Some(SelectionCoordinate {
+                                x: click_range.start,
+                                y,
+                            });
+                            self.selection_range = Some(SelectionRange {
+                                start: SelectionCoordinate {
+                                    x: click_range.start,
+                                    y,
+                                },
+                                end: SelectionCoordinate {
+                                    x: click_range.end,
+                                    y,
+                                },
+                            });
+                            self.dirty_selection_lines();
+                            let text = self.get_selection_text();
+                            debug!(
+                                "finish 2click selection {:?} '{}'",
+                                self.selection_range, text
+                            );
+                            host.set_clipboard(Some(text))?;
                         }
                         // triple click to select the current line
                         Some(&LastMouseClick { streak: 3, .. }) => {
