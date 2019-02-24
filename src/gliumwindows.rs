@@ -4,6 +4,7 @@ use crate::config::Config;
 use crate::failure::Error;
 use crate::font::FontConfiguration;
 use crate::guicommon::tabs::{Tab, TabId, Tabs};
+use crate::guicommon::window::TerminalWindow;
 use crate::guiloop::glutinloop::GuiEventLoop;
 use crate::guiloop::SessionTerminated;
 use crate::opengl::render::Renderer;
@@ -210,6 +211,17 @@ pub struct GliumTerminalWindow {
     tabs: Tabs,
 }
 
+impl TerminalWindow for GliumTerminalWindow {
+    fn get_tabs(&mut self) -> &mut Tabs {
+        &mut self.tabs
+    }
+
+    fn set_window_title(&mut self, title: &str) -> Result<(), Error> {
+        self.host.display.gl_window().set_title(title);
+        Ok(())
+    }
+}
+
 impl GliumTerminalWindow {
     pub fn new(
         event_loop: &Rc<GuiEventLoop>,
@@ -321,39 +333,12 @@ impl GliumTerminalWindow {
         Ok(())
     }
 
-    pub fn activate_tab(&mut self, tab: usize) -> Result<(), Error> {
-        let max = self.tabs.len();
-        if tab < max {
-            self.tabs.set_active(tab);
-            self.update_title();
-        }
-        Ok(())
-    }
     pub fn activate_tab_relative(&mut self, delta: isize) -> Result<(), Error> {
         let max = self.tabs.len();
         let active = self.tabs.get_active_idx() as isize;
         let tab = active + delta;
         let tab = if tab < 0 { max as isize + tab } else { tab };
         self.activate_tab(tab as usize % max)
-    }
-
-    fn update_title(&mut self) {
-        let num_tabs = self.tabs.len();
-
-        if num_tabs == 0 {
-            return;
-        }
-        let tab_no = self.tabs.get_active_idx();
-
-        let terminal = self.tabs.get_active().unwrap().terminal();
-        let title = terminal.get_title();
-        let window = self.host.display.gl_window();
-
-        if num_tabs == 1 {
-            window.set_title(title)
-        } else {
-            window.set_title(&format!("[{}/{}] {}", tab_no + 1, num_tabs, title));
-        }
     }
 
     pub fn window_id(&self) -> glutin::WindowId {

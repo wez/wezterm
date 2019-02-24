@@ -5,6 +5,7 @@ use super::{Connection, Window};
 use crate::config::Config;
 use crate::font::FontConfiguration;
 use crate::guicommon::tabs::{Tab, TabId, Tabs};
+use crate::guicommon::window::TerminalWindow;
 use crate::guiloop::x11::{GuiEventLoop, WindowId};
 use crate::guiloop::SessionTerminated;
 use crate::opengl::textureatlas::OutOfTextureSpace;
@@ -157,6 +158,17 @@ impl<'a> term::TerminalHost for TabHost<'a> {
 
     fn reset_font_size(&mut self) {
         self.with_window(move |win| win.scaling_changed(Some(1.0)))
+    }
+}
+
+impl TerminalWindow for X11TerminalWindow {
+    fn get_tabs(&mut self) -> &mut Tabs {
+        &mut self.tabs
+    }
+
+    fn set_window_title(&mut self, title: &str) -> Result<(), Error> {
+        self.host.window.set_title(title);
+        Ok(())
     }
 }
 
@@ -523,36 +535,6 @@ impl X11TerminalWindow {
         self.activate_tab(len - 1)?;
 
         Ok(tab_id)
-    }
-
-    fn update_title(&mut self) {
-        let num_tabs = self.tabs.len();
-        if num_tabs == 0 {
-            return;
-        }
-        let tab_no = self.tabs.get_active_idx();
-
-        let terminal = self.tabs.get_active().unwrap().terminal();
-
-        if num_tabs == 1 {
-            self.host.window.set_title(terminal.get_title());
-        } else {
-            self.host.window.set_title(&format!(
-                "[{}/{}] {}",
-                tab_no + 1,
-                num_tabs,
-                terminal.get_title()
-            ));
-        }
-    }
-
-    pub fn activate_tab(&mut self, tab: usize) -> Result<(), Error> {
-        let max = self.tabs.len();
-        if tab < max {
-            self.tabs.set_active(tab);
-            self.update_title();
-        }
-        Ok(())
     }
 
     pub fn activate_tab_relative(&mut self, delta: isize) -> Result<(), Error> {
