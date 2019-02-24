@@ -154,10 +154,10 @@ pub trait TerminalWindow {
         Ok(tab_id)
     }
 
-    fn resize_surfaces(&mut self, width: u16, height: u16) -> Result<bool, Error> {
+    fn resize_surfaces(&mut self, width: u16, height: u16, force: bool) -> Result<bool, Error> {
         let dims = self.get_dimensions();
 
-        if width != dims.width || height != dims.height {
+        if force || width != dims.width || height != dims.height {
             debug!("resize {},{}", width, height);
 
             self.advise_renderer_of_resize(width, height)?;
@@ -213,7 +213,7 @@ pub trait TerminalWindow {
             cell_height.ceil() as usize,
         )?;
 
-        self.resize_surfaces(width, height)?;
+        self.resize_surfaces(width, height, true)?;
         Ok(())
     }
 

@@ -352,7 +352,7 @@ impl X11TerminalWindow {
             }
             xcb::CONFIGURE_NOTIFY => {
                 let cfg: &xcb::ConfigureNotifyEvent = unsafe { xcb::cast_event(event) };
-                self.resize_surfaces(cfg.width(), cfg.height())?;
+                self.resize_surfaces(cfg.width(), cfg.height(), false)?;
             }
             xcb::KEY_PRESS => {
                 let key_press: &xcb::KeyPressEvent = unsafe { xcb::cast_event(event) };

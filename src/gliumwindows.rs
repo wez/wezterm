@@ -395,7 +395,7 @@ impl GliumTerminalWindow {
         let (width, height): (u32, u32) = size.to_physical(dpi_scale).into();
         let width = width as u16;
         let height = height as u16;
-        self.resize_surfaces(width, height)
+        self.resize_surfaces(width, height, false)
     }
 
     fn decode_modifiers(state: glium::glutin::ModifiersState) -> term::KeyModifiers {
