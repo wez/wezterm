@@ -110,9 +110,9 @@ impl OperatingSystemCommand {
 
     fn parse_selection(osc: &[&[u8]]) -> Result<Self, Error> {
         if osc.len() == 2 {
-            Selection::try_parse(osc[1]).map(|s| OperatingSystemCommand::ClearSelection(s))
+            Selection::try_parse(osc[1]).map(OperatingSystemCommand::ClearSelection)
         } else if osc.len() == 3 && osc[2] == b"?" {
-            Selection::try_parse(osc[1]).map(|s| OperatingSystemCommand::QuerySelection(s))
+            Selection::try_parse(osc[1]).map(OperatingSystemCommand::QuerySelection)
         } else if osc.len() == 3 {
             let sel = Selection::try_parse(osc[1])?;
             let bytes = base64::decode(osc[2])?;
@@ -124,7 +124,7 @@ impl OperatingSystemCommand {
     }
 
     fn internal_parse(osc: &[&[u8]]) -> Result<Self, failure::Error> {
-        ensure!(osc.len() > 0, "no params");
+        ensure!(!osc.is_empty(), "no params");
         let p1str = String::from_utf8_lossy(osc[0]);
         let code: i64 = p1str.parse()?;
         let osc_code: OperatingSystemCommandCode =
@@ -149,8 +149,9 @@ impl OperatingSystemCommand {
             SetHyperlink => Ok(OperatingSystemCommand::SetHyperlink(Hyperlink::parse(osc)?)),
             ManipulateSelectionData => Self::parse_selection(osc),
             SystemNotification => single_string!(SystemNotification),
-            ITermProprietary => self::ITermProprietary::parse(osc)
-                .map(|p| OperatingSystemCommand::ITermProprietary(p)),
+            ITermProprietary => {
+                self::ITermProprietary::parse(osc).map(OperatingSystemCommand::ITermProprietary)
+            }
 
             _ => bail!("not impl"),
         }
@@ -348,12 +349,9 @@ impl ITermFileData {
             .unwrap_or(ITermDimension::Automatic);
         let preserve_aspect_ratio = params
             .get("preserveAspectRatio")
-            .map(|s| if *s == "0" { false } else { true })
+            .map(|s| *s != "0")
             .unwrap_or(true);
-        let inline = params
-            .get("inline")
-            .map(|s| if *s == "0" { false } else { true })
-            .unwrap_or(false);
+        let inline = params.get("inline").map(|s| *s != "0").unwrap_or(false);
         let data = data.ok_or_else(|| err_msg("didn't set data"))?;
         Ok(Self {
             name,
@@ -437,7 +435,7 @@ impl ITermDimension {
             let s = &s[..s.len() - 2];
             let num = s.parse()?;
             Ok(ITermDimension::Pixels(num))
-        } else if s.ends_with("%") {
+        } else if s.ends_with('%') {
             let s = &s[..s.len() - 1];
             let num = s.parse()?;
             Ok(ITermDimension::Percent(num))
@@ -464,6 +462,7 @@ impl ITermDimension {
 }
 
 impl ITermProprietary {
+    #[cfg_attr(feature = "cargo-clippy", allow(clippy::cyclomatic_complexity))]
     fn parse(osc: &[&[u8]]) -> Result<Self, Error> {
         // iTerm has a number of different styles of OSC parameter
         // encodings, which makes this section of code a bit gnarly.
@@ -547,14 +546,11 @@ impl ITermProprietary {
                 let p1 = iter.next();
                 let p2 = iter.next();
 
-                match (p1, p2) {
-                    (Some(k), Some(v)) => {
-                        return Ok(ITermProprietary::SetUserVar {
-                            name: k.to_string(),
-                            value: String::from_utf8(base64::decode(v)?)?,
-                        });
-                    }
-                    _ => {}
+                if let (Some(k), Some(v)) = (p1, p2) {
+                    return Ok(ITermProprietary::SetUserVar {
+                        name: k.to_string(),
+                        value: String::from_utf8(base64::decode(v)?)?,
+                    });
                 }
             }
         }

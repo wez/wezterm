@@ -157,7 +157,7 @@ impl Capabilities {
         hints.term_program(var("TERM_PROGRAM").ok());
         hints.term_program_version(var("TERM_PROGRAM_VERSION").ok());
         hints.terminfo_db(terminfo::Database::from_env().ok());
-        Self::new_with_hints(hints.build().map_err(|e| err_msg(e))?)
+        Self::new_with_hints(hints.build().map_err(err_msg)?)
     }
 
     /// Build a `Capabilities` object based on the provided `ProbeHints` object.

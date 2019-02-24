@@ -25,7 +25,7 @@ impl FontSystem for FontConfigAndFreeType {
         font_scale: f64,
     ) -> Result<Box<NamedFont>, Error> {
         let fonts = style.font_with_fallback();
-        let mut pattern = if fonts.len() >= 1 {
+        let mut pattern = if !fonts.is_empty() {
             let mut pattern = FontPattern::new()?;
             if fonts.len() > 1 {
                 eprintln!(

@@ -13,6 +13,12 @@ pub struct Parser {
     state_machine: vte::Parser,
 }
 
+impl Default for Parser {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Parser {
     pub fn new() -> Self {
         Self {

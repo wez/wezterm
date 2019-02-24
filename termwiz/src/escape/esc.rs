@@ -93,8 +93,8 @@ impl Esc {
 
     fn internal_parse(intermediate: Option<u8>, control: u8) -> Result<Self, ()> {
         let packed = match intermediate {
-            Some(high) => ((high as u16) << 8) | control as u16,
-            None => control as u16,
+            Some(high) => ((u16::from(high)) << 8) | u16::from(control),
+            None => u16::from(control),
         };
 
         let code = num::FromPrimitive::from_u16(packed).ok_or(())?;
@@ -116,7 +116,7 @@ impl Display for Esc {
                 let packed = code
                     .to_u16()
                     .expect("num-derive failed to implement ToPrimitive");
-                if packed > u8::max_value() as u16 {
+                if packed > u16::from(u8::max_value()) {
                     write!(
                         f,
                         "{}{}",

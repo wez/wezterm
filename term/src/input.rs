@@ -1,5 +1,5 @@
 // clippy hates bitflags
-#![cfg_attr(feature = "cargo-clippy", allow(suspicious_arithmetic_impl, redundant_field_names))]
+#![cfg_attr(feature = "cargo-clippy", allow(clippy::suspicious_arithmetic_impl, clippy::redundant_field_names))]
 
 use std::time::{Duration, Instant};
 

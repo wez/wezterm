@@ -199,12 +199,12 @@ impl Cell {
     /// to a terminal.  All control and movement characters are rewritten
     /// as a space.
     fn nerf_control_char(text: &mut SmallVec<[u8; 4]>) {
-        if text.len() == 0 {
+        if text.is_empty() {
             text.push(b' ');
             return;
         }
 
-        if text.as_slice() == &[b'\r', b'\n'] {
+        if text.as_slice() == [b'\r', b'\n'] {
             text.remove(1);
             text[0] = b' ';
             return;

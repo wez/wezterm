@@ -23,7 +23,7 @@ impl Keyboard {
         let first_ev = connection
             .get_extension_data(xcb::xkb::id())
             .map(|r| r.first_event())
-            .ok_or(format_err!("could not get xkb extension data"))?;
+            .ok_or_else(|| format_err!("could not get xkb extension data"))?;
 
         {
             let cookie = xcb::xkb::use_extension(
@@ -92,8 +92,8 @@ impl Keyboard {
         }
 
         let kbd = Keyboard {
-            context: context,
-            device_id: device_id,
+            context,
+            device_id,
             keymap: RefCell::new(keymap),
             state: RefCell::new(state),
             compose_state: RefCell::new(compose_state),
@@ -112,11 +112,11 @@ impl Keyboard {
             return None;
         }
 
-        let xcode = xcb_ev.detail() as xkb::Keycode;
+        let xcode = xkb::Keycode::from(xcb_ev.detail());
         let xsym = self.state.borrow().key_get_one_sym(xcode);
         self.compose_state.borrow_mut().feed(xsym);
 
-        let cstate = self.compose_state.borrow().status().clone();
+        let cstate = self.compose_state.borrow().status();
         let ksym = match cstate {
             ComposeStatus::Composing => {
                 // eat
@@ -206,12 +206,12 @@ impl Keyboard {
     // for convenience, this fn takes &self, not &mut self
     pub fn update_state(&self, ev: &xcb::xkb::StateNotifyEvent) {
         self.state.borrow_mut().update_mask(
-            ev.base_mods() as xkb::ModMask,
-            ev.latched_mods() as xkb::ModMask,
-            ev.locked_mods() as xkb::ModMask,
+            xkb::ModMask::from(ev.base_mods()),
+            xkb::ModMask::from(ev.latched_mods()),
+            xkb::ModMask::from(ev.locked_mods()),
             ev.base_group() as xkb::LayoutIndex,
             ev.latched_group() as xkb::LayoutIndex,
-            ev.locked_group() as xkb::LayoutIndex,
+            xkb::LayoutIndex::from(ev.locked_group()),
         );
     }
 
@@ -223,15 +223,12 @@ impl Keyboard {
             xkb::KEYMAP_COMPILE_NO_FLAGS,
         );
         ensure!(
-            new_keymap.get_raw_ptr() != std::ptr::null_mut(),
+            !new_keymap.get_raw_ptr().is_null(),
             "problem with new keymap"
         );
 
         let new_state = xkb::x11::state_new_from_device(&new_keymap, &connection, self.device_id);
-        ensure!(
-            new_state.get_raw_ptr() != std::ptr::null_mut(),
-            "problem with new state"
-        );
+        ensure!(!new_state.get_raw_ptr().is_null(), "problem with new state");
 
         self.state.replace(new_state);
         self.keymap.replace(new_keymap);

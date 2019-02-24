@@ -175,11 +175,11 @@ impl Surface {
             Change::Text(text) => self.print_text(text),
             Change::Attribute(change) => self.change_attribute(change),
             Change::CursorPosition { x, y } => self.set_cursor_pos(x, y),
-            Change::ClearScreen(color) => self.clear_screen(color),
-            Change::ClearToEndOfLine(color) => self.clear_eol(color),
-            Change::ClearToEndOfScreen(color) => self.clear_eos(color),
-            Change::CursorColor(color) => self.cursor_color = color.clone(),
-            Change::CursorShape(shape) => self.cursor_shape = shape.clone(),
+            Change::ClearScreen(color) => self.clear_screen(*color),
+            Change::ClearToEndOfLine(color) => self.clear_eol(*color),
+            Change::ClearToEndOfScreen(color) => self.clear_eos(*color),
+            Change::CursorColor(color) => self.cursor_color = *color,
+            Change::CursorShape(shape) => self.cursor_shape = *shape,
             Change::Image(image) => self.add_image(image),
         }
     }
@@ -229,10 +229,8 @@ impl Surface {
         self.xpos += image.width;
     }
 
-    fn clear_screen(&mut self, color: &ColorAttribute) {
-        self.attributes = CellAttributes::default()
-            .set_background(color.clone())
-            .clone();
+    fn clear_screen(&mut self, color: ColorAttribute) {
+        self.attributes = CellAttributes::default().set_background(color).clone();
         let cleared = Cell::new(' ', self.attributes.clone());
         for line in &mut self.lines {
             line.fill_range(0.., &cleared);
@@ -241,10 +239,8 @@ impl Surface {
         self.ypos = 0;
     }
 
-    fn clear_eos(&mut self, color: &ColorAttribute) {
-        self.attributes = CellAttributes::default()
-            .set_background(color.clone())
-            .clone();
+    fn clear_eos(&mut self, color: ColorAttribute) {
+        self.attributes = CellAttributes::default().set_background(color).clone();
         let cleared = Cell::new(' ', self.attributes.clone());
         self.lines[self.ypos].fill_range(self.xpos.., &cleared);
         for line in &mut self.lines.iter_mut().skip(self.ypos + 1) {
@@ -252,10 +248,8 @@ impl Surface {
         }
     }
 
-    fn clear_eol(&mut self, color: &ColorAttribute) {
-        self.attributes = CellAttributes::default()
-            .set_background(color.clone())
-            .clone();
+    fn clear_eol(&mut self, color: ColorAttribute) {
+        self.attributes = CellAttributes::default().set_background(color).clone();
         let cleared = Cell::new(' ', self.attributes.clone());
         self.lines[self.ypos].fill_range(self.xpos.., &cleared);
     }
@@ -456,7 +450,7 @@ impl Surface {
 
         for (idx, line) in self.lines.iter().rev().enumerate() {
             let changes = line.changes(&attr);
-            if changes.len() == 0 {
+            if changes.is_empty() {
                 // The line recorded no changes; this means that the line
                 // consists of spaces and the default background color
                 match trailing_color {
@@ -478,7 +472,7 @@ impl Surface {
                 let last_change = changes.len() - 1;
                 match (&changes[last_change], trailing_color) {
                     (&Change::ClearToEndOfLine(ref color), None) => {
-                        trailing_color = Some(color.clone());
+                        trailing_color = Some(*color);
                         trailing_idx = Some(idx);
                     }
                     (&Change::ClearToEndOfLine(ref color), Some(other)) => {
@@ -519,7 +513,7 @@ impl Surface {
             let mut changes = line.changes(&attr);
 
             let result_len = result.len();
-            if changes.len() > 0 && result[result_len - 1].is_text() && changes[0].is_text() {
+            if !changes.is_empty() && result[result_len - 1].is_text() && changes[0].is_text() {
                 // Assumption: that the output has working automatic margins.
                 // We can skip the cursor position change and just join the
                 // text items together
@@ -586,6 +580,7 @@ impl Surface {
     /// # Panics
     /// Will panic if the regions of interest are not within the bounds of
     /// their respective `Surface`.
+    #[allow(clippy::too_many_arguments)]
     pub fn diff_region(
         &self,
         x: usize,

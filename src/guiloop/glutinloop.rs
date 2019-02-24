@@ -95,7 +95,7 @@ pub struct GlutinGuiSystem {
 }
 
 impl GlutinGuiSystem {
-    pub fn new() -> Result<Rc<GuiSystem>, Error> {
+    pub fn try_new() -> Result<Rc<GuiSystem>, Error> {
         let event_loop = Rc::new(GuiEventLoop::new()?);
         Ok(Rc::new(Self { event_loop }))
     }
@@ -378,9 +378,12 @@ impl GuiEventLoop {
             .borrow_mut()
             .by_id
             .iter_mut()
-            .filter_map(|(window_id, window)| match window.test_for_child_exit() {
-                false => None,
-                true => Some(*window_id),
+            .filter_map(|(window_id, window)| {
+                if window.test_for_child_exit() {
+                    Some(*window_id)
+                } else {
+                    None
+                }
             })
             .collect();
 

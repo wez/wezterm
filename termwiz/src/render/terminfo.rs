@@ -46,6 +46,7 @@ impl TerminfoRenderer {
         });
     }
 
+    #[cfg_attr(feature = "cargo-clippy", allow(clippy::cyclomatic_complexity))]
     fn flush_pending_attr<W: UnixTty + Write>(
         &mut self,
         out: &mut W,
@@ -277,6 +278,7 @@ impl TerminfoRenderer {
 }
 
 impl TerminfoRenderer {
+    #[cfg_attr(feature = "cargo-clippy", allow(clippy::cyclomatic_complexity))]
     pub fn render_to<R: Read, W: UnixTty + Write>(
         &mut self,
         changes: &[Change],
@@ -341,7 +343,7 @@ impl TerminfoRenderer {
                         let num_spaces = size.ws_col as usize * size.ws_row as usize;
                         let mut buf = Vec::with_capacity(num_spaces);
                         buf.resize(num_spaces, b' ');
-                        out.write(buf.as_slice())?;
+                        out.write_all(buf.as_slice())?;
                     }
                 }
                 Change::ClearToEndOfLine(color) => {
@@ -570,7 +572,7 @@ impl TerminfoRenderer {
                             }
 
                             if y != image.height - 1 {
-                                write!(out, "\n")?;
+                                writeln!(out)?;
                                 self.cursor_left(image.width as u32, out)?;
                             }
                         }

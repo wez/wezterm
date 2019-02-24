@@ -1,3 +1,6 @@
+// Ideally this would be scoped to WidgetId, but I can't seem to find the
+// right place for it to take effect
+#![allow(clippy::new_without_default_derive)]
 use crate::color::ColorAttribute;
 use crate::input::InputEvent;
 use crate::surface::{Change, CursorShape, Position, SequenceNo, Surface};
@@ -159,7 +162,7 @@ impl Graph {
         id
     }
 
-    fn children<'a>(&'a self, id: WidgetId) -> &[WidgetId] {
+    fn children(&self, id: WidgetId) -> &[WidgetId] {
         self.children
             .get(&id)
             .map(|v| v.as_slice())
@@ -300,11 +303,7 @@ impl<'widget> Ui<'widget> {
     }
 
     pub fn process_event_queue(&mut self) -> Result<(), Error> {
-        loop {
-            let event = match self.input_queue.pop_front() {
-                Some(event) => event,
-                None => break,
-            };
+        while let Some(event) = self.input_queue.pop_front() {
             match event {
                 WidgetEvent::Input(InputEvent::Resized { rows, cols }) => {
                     self.compute_layout(cols, rows)?;

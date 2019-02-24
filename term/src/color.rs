@@ -29,16 +29,16 @@ impl fmt::Debug for Palette256 {
 }
 
 impl ColorPalette {
-    pub fn resolve_fg(&self, color: &ColorAttribute) -> RgbColor {
-        match *color {
+    pub fn resolve_fg(&self, color: ColorAttribute) -> RgbColor {
+        match color {
             ColorAttribute::Default => self.foreground,
             ColorAttribute::PaletteIndex(idx) => self.colors.0[idx as usize],
             ColorAttribute::TrueColorWithPaletteFallback(color, _)
             | ColorAttribute::TrueColorWithDefaultFallback(color) => color,
         }
     }
-    pub fn resolve_bg(&self, color: &ColorAttribute) -> RgbColor {
-        match *color {
+    pub fn resolve_bg(&self, color: ColorAttribute) -> RgbColor {
+        match color {
             ColorAttribute::Default => self.background,
             ColorAttribute::PaletteIndex(idx) => self.colors.0[idx as usize],
             ColorAttribute::TrueColorWithPaletteFallback(color, _)

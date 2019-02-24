@@ -24,12 +24,12 @@ impl Default for GuiSelection {
 }
 
 impl GuiSelection {
-    pub fn new(&self) -> Result<Rc<GuiSystem>, Error> {
+    pub fn try_new(self) -> Result<Rc<GuiSystem>, Error> {
         match self {
-            GuiSelection::Glutin => glutinloop::GlutinGuiSystem::new(),
+            GuiSelection::Glutin => glutinloop::GlutinGuiSystem::try_new(),
             GuiSelection::X11 => {
                 #[cfg(all(unix, not(target_os = "macos")))]
-                return x11::X11GuiSystem::new();
+                return x11::X11GuiSystem::try_new();
                 #[cfg(not(all(unix, not(target_os = "macos"))))]
                 bail!("X11 not compiled in");
             }

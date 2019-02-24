@@ -412,6 +412,12 @@ mod windows {
     }
 }
 
+impl Default for InputParser {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl InputParser {
     pub fn new() -> Self {
         Self {
@@ -460,7 +466,7 @@ impl InputParser {
             map.insert(
                 &app,
                 InputEvent::Key(KeyEvent {
-                    key: keycode.clone(),
+                    key: *keycode,
                     modifiers: Modifiers::NONE,
                 }),
             );
@@ -470,7 +476,7 @@ impl InputParser {
             map.insert(
                 &arrow,
                 InputEvent::Key(KeyEvent {
-                    key: keycode.clone(),
+                    key: *keycode,
                     modifiers: Modifiers::NONE,
                 }),
             );
@@ -489,8 +495,8 @@ impl InputParser {
                 map.insert(
                     key,
                     InputEvent::Key(KeyEvent {
-                        key: keycode.clone(),
-                        modifiers: modifiers.clone(),
+                        key: *keycode,
+                        modifiers: *modifiers,
                     }),
                 );
             }
@@ -507,7 +513,7 @@ impl InputParser {
             map.insert(
                 &key,
                 InputEvent::Key(KeyEvent {
-                    key: keycode.clone(),
+                    key: *keycode,
                     modifiers: Modifiers::NONE,
                 }),
             );
@@ -530,7 +536,7 @@ impl InputParser {
                     key,
                     InputEvent::Key(KeyEvent {
                         key: KeyCode::Function(n),
-                        modifiers: modifiers.clone(),
+                        modifiers: *modifiers,
                     }),
                 );
             }
@@ -548,7 +554,7 @@ impl InputParser {
             map.insert(
                 key,
                 InputEvent::Key(KeyEvent {
-                    key: keycode.clone(),
+                    key: *keycode,
                     modifiers: Modifiers::NONE,
                 }),
             );
@@ -643,7 +649,7 @@ impl InputParser {
             }
             Err(err) => {
                 let (valid, _after_valid) = bytes.split_at(err.valid_up_to());
-                if valid.len() > 0 {
+                if !valid.is_empty() {
                     let s = unsafe { std::str::from_utf8_unchecked(valid) };
                     let (c, len) = Self::first_char_and_len(s);
                     Some((c, len))
@@ -724,28 +730,27 @@ impl InputParser {
                         // parameters out from things like mouse reports.  The keymap tree doesn't
                         // know how to grok this.
                         let mut parser = Parser::new();
-                        match parser.parse_first(self.buf.as_slice()) {
-                            Some((Action::CSI(CSI::Mouse(mouse)), len)) => {
-                                self.buf.advance(len);
+                        if let Some((Action::CSI(CSI::Mouse(mouse)), len)) =
+                            parser.parse_first(self.buf.as_slice())
+                        {
+                            self.buf.advance(len);
 
-                                match mouse {
-                                    MouseReport::SGR1006 {
+                            match mouse {
+                                MouseReport::SGR1006 {
+                                    x,
+                                    y,
+                                    button,
+                                    modifiers,
+                                } => {
+                                    callback(InputEvent::Mouse(MouseEvent {
                                         x,
                                         y,
-                                        button,
+                                        mouse_buttons: button.into(),
                                         modifiers,
-                                    } => {
-                                        callback(InputEvent::Mouse(MouseEvent {
-                                            x,
-                                            y,
-                                            mouse_buttons: button.into(),
-                                            modifiers,
-                                        }));
-                                    }
+                                    }));
                                 }
-                                continue;
                             }
-                            _ => {}
+                            continue;
                         }
                     }
 

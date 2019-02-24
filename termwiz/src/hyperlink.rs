@@ -71,7 +71,7 @@ impl Hyperlink {
 
     pub fn parse(osc: &[&[u8]]) -> Result<Option<Hyperlink>, Error> {
         ensure!(osc.len() == 3, "wrong param count");
-        if osc[1].len() == 0 && osc[2].len() == 0 {
+        if osc[1].is_empty() && osc[2].is_empty() {
             // Clearing current hyperlink
             Ok(None)
         } else {
@@ -79,7 +79,7 @@ impl Hyperlink {
             let uri = String::from_utf8(osc[2].to_vec())?;
 
             let mut params = HashMap::new();
-            if param_str.len() > 0 {
+            if !param_str.is_empty() {
                 for pair in param_str.split(':') {
                     let mut iter = pair.splitn(2, '=');
                     let key = iter.next().ok_or_else(|| err_msg("bad params"))?;

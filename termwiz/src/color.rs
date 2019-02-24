@@ -1,4 +1,6 @@
 //! Colors for attributes
+// for FromPrimitive
+#![cfg_attr(feature = "cargo-clippy", allow(clippy::useless_attribute))]
 
 use palette;
 use palette::{LinSrgba, Srgb, Srgba};
@@ -68,19 +70,19 @@ impl RgbColor {
         Self { red, green, blue }
     }
 
-    pub fn to_linear(&self) -> LinSrgba {
+    pub fn to_linear(self) -> LinSrgba {
         Srgba::<u8>::new(self.red, self.green, self.blue, 0xff)
             .into_format()
             .into_linear()
     }
 
-    pub fn to_tuple_rgba(&self) -> RgbaTuple {
+    pub fn to_tuple_rgba(self) -> RgbaTuple {
         Srgba::<u8>::new(self.red, self.green, self.blue, 0xff)
             .into_format()
             .into_components()
     }
 
-    pub fn to_linear_tuple_rgba(&self) -> RgbaTuple {
+    pub fn to_linear_tuple_rgba(self) -> RgbaTuple {
         self.to_linear().into_components()
     }
 

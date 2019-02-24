@@ -203,9 +203,9 @@ pub trait TerminalWindow {
             "TerminalWindow::scaling_changed dpi_scale={} font_scale={}",
             dpi_scale, font_scale
         );
-        self.get_tabs()
-            .get_active()
-            .map(|tab| tab.terminal().make_all_lines_dirty());
+        if let Some(tab) = self.get_tabs().get_active() {
+            tab.terminal().make_all_lines_dirty();
+        }
         fonts.change_scaling(font_scale, dpi_scale);
 
         let metrics = fonts.default_font_metrics()?;
@@ -235,12 +235,9 @@ pub trait TerminalWindow {
 
     fn tab_did_terminate(&mut self, tab_id: TabId) {
         self.get_tabs_mut().remove_by_id(tab_id);
-        match self.get_tabs().get_active() {
-            Some(tab) => {
-                tab.terminal().make_all_lines_dirty();
-                self.update_title();
-            }
-            None => (),
+        if let Some(tab) = self.get_tabs().get_active() {
+            tab.terminal().make_all_lines_dirty();
+            self.update_title();
         }
 
         self.deregister_tab(tab_id).ok();

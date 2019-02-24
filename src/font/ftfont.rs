@@ -62,7 +62,7 @@ impl FreeTypeFontImpl {
                     }
                 }
                 face.select_size(best)?;
-                (cell_width as f64, cell_height as f64)
+                (f64::from(cell_width), f64::from(cell_height))
             }
         };
 
@@ -96,7 +96,7 @@ impl FreeTypeFontImpl {
             num_cells: unicode_width::UnicodeWidthChar::width(codepoint).unwrap_or(1) as u8,
             font_idx: 0,
             glyph_pos,
-            x_advance: (metrics.horiAdvance as f64 / 64.0).into(),
+            x_advance: (metrics.horiAdvance as f64 / 64.0),
             x_offset: 0.0, //(metrics.horiBearingX as f64 / 64.0).into(),
             y_advance: 0.0,
             y_offset: 0.0,
@@ -123,7 +123,9 @@ impl Font for FreeTypeFontImpl {
     }
     fn has_color(&self) -> bool {
         let face = self.face.borrow();
-        unsafe { (i64::from((*face.face).face_flags) & i64::from(ftwrap::FT_FACE_FLAG_COLOR)) != 0 }
+        unsafe {
+            ((*face.face).face_flags & ftwrap::FT_Long::from(ftwrap::FT_FACE_FLAG_COLOR)) != 0
+        }
     }
 
     fn metrics(&self) -> FontMetrics {
@@ -178,8 +180,7 @@ impl Font for FreeTypeFontImpl {
                 let width = ft_glyph.bitmap.width as usize / 3;
                 let height = ft_glyph.bitmap.rows as usize;
                 let size = (width * height * 4) as usize;
-                let mut rgba = Vec::with_capacity(size);
-                rgba.resize(size, 0u8);
+                let mut rgba = vec![0u8; size];
                 for y in 0..height {
                     let src_offset = y * pitch as usize;
                     let dest_offset = y * width * 4;
@@ -260,8 +261,7 @@ impl Font for FreeTypeFontImpl {
                 let dest_height = 1 + last_line - first_line;
 
                 let size = (dest_width * dest_height * 4) as usize;
-                let mut rgba = Vec::with_capacity(size);
-                rgba.resize(size, 0u8);
+                let mut rgba = vec![0u8; size];
 
                 for y in first_line..=last_line {
                     let src_offset = y * pitch as usize;
@@ -284,9 +284,10 @@ impl Font for FreeTypeFontImpl {
                     data: rgba,
                     height: dest_height,
                     width: dest_width,
-                    bearing_x: (ft_glyph.bitmap_left as f64 * (dest_width as f64 / width as f64))
-                        as i32,
-                    bearing_y: (ft_glyph.bitmap_top as f64 * (dest_height as f64 / height as f64))
+                    bearing_x: (f64::from(ft_glyph.bitmap_left)
+                        * (dest_width as f64 / width as f64)) as i32,
+                    bearing_y: (f64::from(ft_glyph.bitmap_top)
+                        * (dest_height as f64 / height as f64))
                         as i32,
                 }
             }
@@ -294,8 +295,7 @@ impl Font for FreeTypeFontImpl {
                 let width = ft_glyph.bitmap.width as usize;
                 let height = ft_glyph.bitmap.rows as usize;
                 let size = (width * height * 4) as usize;
-                let mut rgba = Vec::with_capacity(size);
-                rgba.resize(size, 0u8);
+                let mut rgba = vec![0u8; size];
                 for y in 0..height {
                     let src_offset = y * pitch;
                     let dest_offset = y * width * 4;
@@ -320,8 +320,7 @@ impl Font for FreeTypeFontImpl {
                 let width = ft_glyph.bitmap.width as usize;
                 let height = ft_glyph.bitmap.rows as usize;
                 let size = (width * height * 4) as usize;
-                let mut rgba = Vec::with_capacity(size);
-                rgba.resize(size, 0u8);
+                let mut rgba = vec![0u8; size];
                 for y in 0..height {
                     let src_offset = y * pitch;
                     let dest_offset = y * width * 4;

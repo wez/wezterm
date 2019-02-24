@@ -111,14 +111,14 @@ fn main() -> Result<(), Error> {
     let font_system = opts.font_system.unwrap_or(config.font_system);
     let fontconfig = Rc::new(FontConfiguration::new(Rc::clone(&config), font_system));
 
-    let cmd = if opts.prog.len() > 0 {
+    let cmd = if !opts.prog.is_empty() {
         Some(opts.prog.iter().map(|x| x.as_os_str()).collect())
     } else {
         None
     };
 
     let gui_system = opts.gui_system.unwrap_or(config.gui_system);
-    let gui = gui_system.new()?;
+    let gui = gui_system.try_new()?;
 
     spawn_window(&*gui, cmd, &config, &fontconfig)?;
     gui.run_forever()

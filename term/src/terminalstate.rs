@@ -1,3 +1,6 @@
+// The range_plus_one lint can't see when the LHS is not compatible with
+// and inclusive range
+#![cfg_attr(feature = "cargo-clippy", allow(clippy::range_plus_one))]
 use super::*;
 use image::{self, GenericImage};
 use ordered_float::NotNaN;
@@ -66,18 +69,20 @@ impl Deref for ScreenOrAlt {
     type Target = Screen;
 
     fn deref(&self) -> &Screen {
-        match self.alt_screen_is_active {
-            true => &self.alt_screen,
-            false => &self.screen,
+        if self.alt_screen_is_active {
+            &self.alt_screen
+        } else {
+            &self.screen
         }
     }
 }
 
 impl DerefMut for ScreenOrAlt {
     fn deref_mut(&mut self) -> &mut Screen {
-        match self.alt_screen_is_active {
-            true => &mut self.alt_screen,
-            false => &mut self.screen,
+        if self.alt_screen_is_active {
+            &mut self.alt_screen
+        } else {
+            &mut self.screen
         }
     }
 }
@@ -374,7 +379,7 @@ impl TerminalState {
         self.invalidate_hyperlinks();
     }
 
-    #[cfg_attr(feature = "cargo-clippy", allow(cyclomatic_complexity))]
+    #[cfg_attr(feature = "cargo-clippy", allow(clippy::cyclomatic_complexity))]
     pub fn mouse_event(
         &mut self,
         mut event: MouseEvent,
@@ -1520,8 +1525,8 @@ impl TerminalState {
         match cursor {
             Cursor::SetTopAndBottomMargins { top, bottom } => {
                 let rows = self.screen().physical_rows;
-                let mut top = (top as i64).saturating_sub(1).min(rows as i64 - 1).max(0);
-                let mut bottom = (bottom as i64)
+                let mut top = i64::from(top).saturating_sub(1).min(rows as i64 - 1).max(0);
+                let mut bottom = i64::from(bottom)
                     .saturating_sub(1)
                     .min(rows as i64 - 1)
                     .max(0);
@@ -1541,42 +1546,44 @@ impl TerminalState {
             Cursor::LineTabulation(_) => {}
 
             Cursor::Left(n) => {
-                self.set_cursor_pos(&Position::Relative(-(n as i64)), &Position::Relative(0))
+                self.set_cursor_pos(&Position::Relative(-(i64::from(n))), &Position::Relative(0))
             }
             Cursor::Right(n) => {
-                self.set_cursor_pos(&Position::Relative(n as i64), &Position::Relative(0))
+                self.set_cursor_pos(&Position::Relative(i64::from(n)), &Position::Relative(0))
             }
             Cursor::Up(n) => {
-                self.set_cursor_pos(&Position::Relative(0), &Position::Relative(-(n as i64)))
+                self.set_cursor_pos(&Position::Relative(0), &Position::Relative(-(i64::from(n))))
             }
             Cursor::Down(n) => {
-                self.set_cursor_pos(&Position::Relative(0), &Position::Relative(n as i64))
+                self.set_cursor_pos(&Position::Relative(0), &Position::Relative(i64::from(n)))
             }
             Cursor::CharacterAndLinePosition { line, col } | Cursor::Position { line, col } => self
                 .set_cursor_pos(
-                    &Position::Absolute((col as i64).saturating_sub(1)),
-                    &Position::Absolute((line as i64).saturating_sub(1)),
+                    &Position::Absolute((i64::from(col)).saturating_sub(1)),
+                    &Position::Absolute((i64::from(line)).saturating_sub(1)),
                 ),
             Cursor::CharacterAbsolute(col) | Cursor::CharacterPositionAbsolute(col) => self
                 .set_cursor_pos(
-                    &Position::Absolute((col as i64).saturating_sub(1)),
+                    &Position::Absolute((i64::from(col)).saturating_sub(1)),
                     &Position::Relative(0),
                 ),
-            Cursor::CharacterPositionBackward(col) => {
-                self.set_cursor_pos(&Position::Relative(-(col as i64)), &Position::Relative(0))
-            }
+            Cursor::CharacterPositionBackward(col) => self.set_cursor_pos(
+                &Position::Relative(-(i64::from(col))),
+                &Position::Relative(0),
+            ),
             Cursor::CharacterPositionForward(col) => {
-                self.set_cursor_pos(&Position::Relative(col as i64), &Position::Relative(0))
+                self.set_cursor_pos(&Position::Relative(i64::from(col)), &Position::Relative(0))
             }
             Cursor::LinePositionAbsolute(line) => self.set_cursor_pos(
                 &Position::Relative(0),
-                &Position::Absolute((line as i64).saturating_sub(1)),
+                &Position::Absolute((i64::from(line)).saturating_sub(1)),
             ),
-            Cursor::LinePositionBackward(line) => {
-                self.set_cursor_pos(&Position::Relative(0), &Position::Relative(-(line as i64)))
-            }
+            Cursor::LinePositionBackward(line) => self.set_cursor_pos(
+                &Position::Relative(0),
+                &Position::Relative(-(i64::from(line))),
+            ),
             Cursor::LinePositionForward(line) => {
-                self.set_cursor_pos(&Position::Relative(0), &Position::Relative(line as i64))
+                self.set_cursor_pos(&Position::Relative(0), &Position::Relative(i64::from(line)))
             }
             Cursor::NextLine(n) => {
                 for _ in 0..n {
@@ -1584,7 +1591,7 @@ impl TerminalState {
                 }
             }
             Cursor::PrecedingLine(n) => {
-                self.set_cursor_pos(&Position::Absolute(0), &Position::Relative(-(n as i64)))
+                self.set_cursor_pos(&Position::Absolute(0), &Position::Relative(-(i64::from(n))))
             }
             Cursor::ActivePositionReport { .. } => {
                 // This is really a response from the terminal, and

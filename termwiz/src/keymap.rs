@@ -18,7 +18,7 @@ impl<Value: Debug> Node<Value> {
     }
 
     fn insert(&mut self, key: &[u8], value: Value) {
-        if key.len() == 0 {
+        if key.is_empty() {
             // We've reached the leaf
             self.value = Some(value);
             return;
@@ -38,7 +38,7 @@ impl<Value: Debug> Node<Value> {
     }
 
     fn lookup(&self, key: &[u8], depth: usize) -> NodeFind<&Value> {
-        if key.len() == 0 {
+        if key.is_empty() {
             // We've matched the maximum extent of the input key.
             if self.children.is_empty() {
                 match self.value.as_ref() {
@@ -69,7 +69,7 @@ impl<Value: Debug> Node<Value> {
                             None => NodeFind::AmbiguousBackTrack,
                         }
                     }
-                    result @ _ => result,
+                    result => result,
                 }
             }
             Err(_) => {
@@ -127,6 +127,12 @@ pub enum Found<Value> {
 #[derive(Debug, Clone)]
 pub struct KeyMap<Value: Debug + Clone> {
     root: Node<Value>,
+}
+
+impl<Value: Debug + Clone> Default for KeyMap<Value> {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl<Value: Debug + Clone> KeyMap<Value> {

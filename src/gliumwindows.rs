@@ -161,7 +161,7 @@ impl TerminalWindow for GliumTerminalWindow {
     ) -> Result<(), Error> {
         self.cell_width = cell_width;
         self.cell_height = cell_height;
-        self.renderer.scaling_changed(&mut self.host.display)
+        self.renderer.scaling_changed(&self.host.display)
     }
     fn advise_renderer_of_resize(&mut self, width: u16, height: u16) -> Result<(), Error> {
         self.width = width;
@@ -518,6 +518,7 @@ impl GliumTerminalWindow {
         Some(code)
     }
 
+    #[cfg_attr(feature = "cargo-clippy", allow(clippy::cyclomatic_complexity))]
     fn normalize_keycode(code: glium::glutin::VirtualKeyCode, shifted: bool) -> Option<KeyCode> {
         use glium::glutin::VirtualKeyCode as V;
         macro_rules! shifted {
@@ -695,7 +696,7 @@ impl GliumTerminalWindow {
                 // think we know, otherwise we will use the wrong font size.
                 let old_dpi_scale = self.fonts.get_dpi_scale();
                 let dpi_scale = self.host.display.gl_window().get_hidpi_factor();
-                if old_dpi_scale != dpi_scale {
+                if (old_dpi_scale - dpi_scale).abs() < std::f64::EPSILON {
                     let (width, height): (u32, u32) = size.to_physical(dpi_scale).into();
                     eprintln!(
                         "Synthesize HiDpiFactorChanged {} -> {} current {}x{} -> {}x{}",

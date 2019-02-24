@@ -211,6 +211,7 @@ impl TextStyle {
         }
     }
 
+    #[cfg_attr(feature = "cargo-clippy", allow(clippy::let_and_return))]
     pub fn font_with_fallback(&self) -> Vec<FontAttributes> {
         #[allow(unused_mut)]
         let mut font = self.font.clone();
@@ -238,6 +239,7 @@ impl TextStyle {
             bold: None,
             italic: None,
         });
+
         font
     }
 }

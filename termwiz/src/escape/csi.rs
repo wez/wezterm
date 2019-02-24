@@ -659,7 +659,7 @@ trait ParseParams: Sized {
 /// Parse an input parameter into a 1-based unsigned value
 impl ParseParams for u32 {
     fn parse_params(params: &[i64]) -> Result<u32, ()> {
-        if params.len() == 0 {
+        if params.is_empty() {
             Ok(1)
         } else if params.len() == 1 {
             to_1b_u32(params[0])
@@ -674,7 +674,7 @@ impl ParseParams for u32 {
 /// the pair of values.
 impl ParseParams for (u32, u32) {
     fn parse_params(params: &[i64]) -> Result<(u32, u32), ()> {
-        if params.len() == 0 {
+        if params.is_empty() {
             Ok((1, 1))
         } else if params.len() == 2 {
             Ok((to_1b_u32(params[0])?, to_1b_u32(params[1])?))
@@ -695,7 +695,7 @@ trait ParamEnum: num::FromPrimitive {
 /// implement ParseParams for the enums that also implement ParamEnum.
 impl<T: ParamEnum> ParseParams for T {
     fn parse_params(params: &[i64]) -> Result<Self, ()> {
-        if params.len() == 0 {
+        if params.is_empty() {
             Ok(ParamEnum::default())
         } else if params.len() == 1 {
             num::FromPrimitive::from_i64(params[0]).ok_or(())
@@ -959,7 +959,7 @@ impl CSI {
 
 /// A little helper to convert i64 -> u8 if safe
 fn to_u8(v: i64) -> Result<u8, ()> {
-    if v <= u8::max_value() as i64 {
+    if v <= i64::from(u8::max_value()) {
         Ok(v as u8)
     } else {
         Err(())
@@ -980,7 +980,7 @@ fn to_u8(v: i64) -> Result<u8, ()> {
 fn to_1b_u32(v: i64) -> Result<u32, ()> {
     if v == 0 {
         Ok(1)
-    } else if v > 0 && v <= u32::max_value() as i64 {
+    } else if v > 0 && v <= i64::from(u32::max_value()) {
         Ok(v as u32)
     } else {
         Err(())
@@ -1047,7 +1047,7 @@ impl<'a> CSIParser<'a> {
             ('j', &[]) => parse!(Cursor, CharacterPositionBackward, params),
             ('k', &[]) => parse!(Cursor, LinePositionBackward, params),
 
-            ('m', &[]) => self.sgr(params).map(|sgr| CSI::Sgr(sgr)),
+            ('m', &[]) => self.sgr(params).map(CSI::Sgr),
             ('n', &[]) => self.dsr(params),
             ('q', &[b' ']) => self.cursor_style(params),
             ('r', &[]) => self.decstbm(params),
@@ -1069,9 +1069,7 @@ impl<'a> CSIParser<'a> {
                 .dec(params)
                 .map(|mode| CSI::Mode(Mode::SaveDecPrivateMode(mode))),
 
-            ('m', &[b'<']) | ('M', &[b'<']) => {
-                self.mouse_sgr1006(params).map(|mouse| CSI::Mouse(mouse))
-            }
+            ('m', &[b'<']) | ('M', &[b'<']) => self.mouse_sgr1006(params).map(CSI::Mouse),
 
             ('c', &[]) => self
                 .req_primary_device_attributes(params)
@@ -1123,7 +1121,7 @@ impl<'a> CSIParser<'a> {
     }
 
     fn decstbm(&mut self, params: &'a [i64]) -> Result<CSI, ()> {
-        if params.len() == 0 {
+        if params.is_empty() {
             Ok(CSI::Cursor(Cursor::SetTopAndBottomMargins {
                 top: 0,
                 bottom: u32::max_value(),
@@ -1177,7 +1175,7 @@ impl<'a> CSIParser<'a> {
                 params,
                 Device::DeviceAttributes(DeviceAttributes::Vt100WithAdvancedVideoOption),
             ))
-        } else if params.len() >= 1 && params[0] == 62 {
+        } else if !params.is_empty() && params[0] == 62 {
             Ok(self.advance_by(
                 params.len(),
                 params,
@@ -1185,7 +1183,7 @@ impl<'a> CSIParser<'a> {
                     DeviceAttributeFlags::from_params(&params[1..]),
                 )),
             ))
-        } else if params.len() >= 1 && params[0] == 63 {
+        } else if !params.is_empty() && params[0] == 63 {
             Ok(self.advance_by(
                 params.len(),
                 params,
@@ -1193,7 +1191,7 @@ impl<'a> CSIParser<'a> {
                     DeviceAttributeFlags::from_params(&params[1..]),
                 )),
             ))
-        } else if params.len() >= 1 && params[0] == 64 {
+        } else if !params.is_empty() && params[0] == 64 {
             Ok(self.advance_by(
                 params.len(),
                 params,
@@ -1213,7 +1211,7 @@ impl<'a> CSIParser<'a> {
         }
 
         // 'M' encodes a press, 'm' a release.
-        let button = match (self.control, params[0] & 0b1100011) {
+        let button = match (self.control, params[0] & 0b110_0011) {
             ('M', 0) => MouseButton::Button1Press,
             ('m', 0) => MouseButton::Button1Release,
             ('M', 1) => MouseButton::Button2Press,
@@ -1287,7 +1285,7 @@ impl<'a> CSIParser<'a> {
     }
 
     fn sgr(&mut self, params: &'a [i64]) -> Result<Sgr, ()> {
-        if params.len() == 0 {
+        if params.is_empty() {
             // With no parameters, treat as equivalent to Reset.
             Ok(Sgr::Reset)
         } else {
@@ -1313,9 +1311,7 @@ impl<'a> CSIParser<'a> {
                     SgrCode::BlinkOff => one!(Sgr::Blink(Blink::None)),
                     SgrCode::ItalicOn => one!(Sgr::Italic(true)),
                     SgrCode::ItalicOff => one!(Sgr::Italic(false)),
-                    SgrCode::ForegroundColor => {
-                        self.parse_sgr_color(params).map(|c| Sgr::Foreground(c))
-                    }
+                    SgrCode::ForegroundColor => self.parse_sgr_color(params).map(Sgr::Foreground),
                     SgrCode::ForegroundBlack => one!(Sgr::Foreground(AnsiColor::Black.into())),
                     SgrCode::ForegroundRed => one!(Sgr::Foreground(AnsiColor::Maroon.into())),
                     SgrCode::ForegroundGreen => one!(Sgr::Foreground(AnsiColor::Green.into())),
@@ -1340,9 +1336,7 @@ impl<'a> CSIParser<'a> {
                         one!(Sgr::Foreground(AnsiColor::White.into()))
                     }
 
-                    SgrCode::BackgroundColor => {
-                        self.parse_sgr_color(params).map(|c| Sgr::Background(c))
-                    }
+                    SgrCode::BackgroundColor => self.parse_sgr_color(params).map(Sgr::Background),
                     SgrCode::BackgroundBlack => one!(Sgr::Background(AnsiColor::Black.into())),
                     SgrCode::BackgroundRed => one!(Sgr::Background(AnsiColor::Maroon.into())),
                     SgrCode::BackgroundGreen => one!(Sgr::Background(AnsiColor::Green.into())),

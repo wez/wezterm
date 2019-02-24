@@ -465,8 +465,7 @@ impl Renderer {
         descender: isize,
     ) -> Result<SrgbTexture2d, glium::texture::TextureCreationError> {
         let width = 5 * cell_width;
-        let mut underline_data = Vec::with_capacity(width * cell_height * 4);
-        underline_data.resize(width * cell_height * 4, 0u8);
+        let mut underline_data = vec![0u8; width * cell_height * 4];
 
         let descender_row = (cell_height as isize + descender) as usize;
         let descender_plus_one = (1 + descender_row).min(cell_height - 1);
@@ -616,7 +615,7 @@ impl Renderer {
         } else {
             1.0f64
         };
-        #[cfg_attr(feature = "cargo-clippy", allow(float_cmp))]
+        #[cfg_attr(feature = "cargo-clippy", allow(clippy::float_cmp))]
         let (x_offset, y_offset) = if scale != 1.0 {
             (info.x_offset * scale, info.y_offset * scale)
         } else {
@@ -777,13 +776,13 @@ impl Renderer {
             };
             let style = self.fonts.match_style(attrs);
 
-            let bg_color = self.palette.resolve_bg(&attrs.background);
+            let bg_color = self.palette.resolve_bg(attrs.background);
             let fg_color = match attrs.foreground {
                 term::color::ColorAttribute::Default => {
                     if let Some(fg) = style.foreground {
                         fg
                     } else {
-                        self.palette.resolve_fg(&attrs.foreground)
+                        self.palette.resolve_fg(attrs.foreground)
                     }
                 }
                 term::color::ColorAttribute::PaletteIndex(idx) if idx < 8 => {
@@ -796,9 +795,9 @@ impl Renderer {
                         idx
                     };
                     self.palette
-                        .resolve_fg(&term::color::ColorAttribute::PaletteIndex(idx))
+                        .resolve_fg(term::color::ColorAttribute::PaletteIndex(idx))
                 }
-                _ => self.palette.resolve_fg(&attrs.foreground),
+                _ => self.palette.resolve_fg(attrs.foreground),
             };
 
             let (fg_color, bg_color) = {
@@ -834,7 +833,7 @@ impl Renderer {
                 // Figure out what we're going to draw for the underline.
                 // If the current cell is part of the current URL highlight
                 // then we want to show the underline.
-                #[cfg_attr(feature = "cargo-clippy", allow(match_same_arms))]
+                #[cfg_attr(feature = "cargo-clippy", allow(clippy::match_same_arms))]
                 let underline: f32 = match (
                     is_highlited_hyperlink,
                     attrs.strikethrough(),
@@ -1033,7 +1032,7 @@ impl Renderer {
     ) -> Result<(), Error> {
         let background_color = self
             .palette
-            .resolve_bg(&term::color::ColorAttribute::Default);
+            .resolve_bg(term::color::ColorAttribute::Default);
         let (r, g, b, a) = background_color.to_tuple_rgba();
         target.clear_color(r, g, b, a);
 

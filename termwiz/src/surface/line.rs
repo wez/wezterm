@@ -12,7 +12,7 @@ bitflags! {
         const NONE = 0;
         /// The contents of the Line have changed and cached or
         /// derived data will need to be reassessed.
-        const DIRTY = 1<<0;
+        const DIRTY = 1;
         /// The line contains 1+ cells with explicit hyperlinks set
         const HAS_HYPERLINK = 1<<1;
         /// true if we have scanned for implicit hyperlinks
@@ -312,7 +312,7 @@ impl Line {
                 text_run.push_str(cell.str());
             } else {
                 // flush out the current text run
-                if text_run.len() > 0 {
+                if !text_run.is_empty() {
                     result.push(Change::Text(text_run.clone()));
                     text_run.clear();
                 }
@@ -324,7 +324,7 @@ impl Line {
         }
 
         // flush out any remaining text run
-        if text_run.len() > 0 {
+        if !text_run.is_empty() {
             // if this is just spaces then it is likely cheaper
             // to emit ClearToEndOfLine instead.
             if attr
@@ -336,16 +336,15 @@ impl Line {
                 let num_trailing_spaces = text_run.len() - left.len();
 
                 if num_trailing_spaces > 0 {
-                    if left.len() > 0 {
+                    if !left.is_empty() {
                         result.push(Change::Text(left.to_string()));
                     } else if result.len() == 1 {
                         // if the only queued result prior to clearing
                         // to the end of the line is an attribute change,
                         // we can prune it out and return just the line
                         // clearing operation
-                        match result[0] {
-                            Change::AllAttributes(_) => result.clear(),
-                            _ => {}
+                        if let Change::AllAttributes(_) = result[0] {
+                            result.clear()
                         }
                     }
 

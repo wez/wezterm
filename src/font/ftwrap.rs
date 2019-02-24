@@ -66,7 +66,7 @@ impl Face {
         codepoint: char,
     ) -> Result<(FT_UInt, FT_Glyph_Metrics_), Error> {
         unsafe {
-            let glyph_pos = FT_Get_Char_Index(self.face, codepoint as u32 as _);
+            let glyph_pos = FT_Get_Char_Index(self.face, FT_ULong::from(u32::from(codepoint)));
             let res = FT_Load_Glyph(self.face, glyph_pos, FT_LOAD_COLOR as i32);
             ensure!(
                 succeeded(res),

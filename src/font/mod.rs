@@ -69,7 +69,7 @@ impl Default for FontSystemSelection {
 }
 
 impl FontSystemSelection {
-    fn new_font_system(&self) -> Rc<FontSystem> {
+    fn new_font_system(self) -> Rc<FontSystem> {
         match self {
             FontSystemSelection::FontConfigAndFreeType => {
                 #[cfg(all(unix, not(target_os = "macos")))]
@@ -78,10 +78,10 @@ impl FontSystemSelection {
                 panic!("fontconfig not compiled in");
             }
             FontSystemSelection::FontLoaderAndFreeType => {
-                return Rc::new(fontloader_and_freetype::FontSystemImpl::new());
+                Rc::new(fontloader_and_freetype::FontSystemImpl::new())
             }
             FontSystemSelection::FontLoaderAndRustType => {
-                return Rc::new(fontloader_and_rusttype::FontSystemImpl::new());
+                Rc::new(fontloader_and_rusttype::FontSystemImpl::new())
             }
             FontSystemSelection::CoreText => {
                 #[cfg(target_os = "macos")]
@@ -193,7 +193,7 @@ impl FontConfiguration {
         let font = self.default_font()?;
         let metrics = font.borrow_mut().get_fallback(0)?.metrics();
 
-        *self.metrics.borrow_mut() = Some(metrics.clone());
+        *self.metrics.borrow_mut() = Some(metrics);
 
         Ok(metrics)
     }

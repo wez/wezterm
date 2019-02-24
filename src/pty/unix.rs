@@ -138,7 +138,7 @@ pub fn openpty(
 
     let result = unsafe {
         // BSDish systems may require mut pointers to some args
-        #[cfg_attr(feature = "cargo-clippy", allow(unnecessary_mut_passed))]
+        #[cfg_attr(feature = "cargo-clippy", allow(clippy::unnecessary_mut_passed))]
         libc::openpty(
             &mut master,
             &mut slave,
