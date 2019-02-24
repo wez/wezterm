@@ -832,10 +832,11 @@ impl GliumTerminalWindow {
                 if old_dpi_scale != dpi_scale {
                     let (width, height): (u32, u32) = size.to_physical(dpi_scale).into();
                     eprintln!(
-                        "Synthesize HiDpiFactorChanged {} -> {}",
-                        old_dpi_scale, dpi_scale
+                        "Synthesize HiDpiFactorChanged {} -> {} current {}x{} -> {}x{}",
+                        old_dpi_scale, dpi_scale, self.width, self.height, width, height
                     );
-                    self.scaling_changed(None, Some(dpi_scale), width as u16, height as u16)?;
+                    eprintln!("Generate scaling_changed with {}x{}", width, height);
+                    self.scaling_changed(None, Some(dpi_scale), self.width, self.height)?;
                 } else {
                     self.resize_surfaces_logical(size)?;
                 }
