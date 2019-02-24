@@ -18,6 +18,7 @@ use std::rc::Rc;
 mod config;
 mod futurecore;
 mod gliumwindows;
+mod guicommon;
 mod guiloop;
 mod opengl;
 use crate::guiloop::GuiSelection;
