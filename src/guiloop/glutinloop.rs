@@ -187,7 +187,7 @@ impl GuiEventLoop {
         })
     }
 
-    pub fn with_window<F: 'static + Fn(&mut GliumTerminalWindow) -> Result<(), Error>>(
+    pub fn with_window<F: 'static + Fn(&mut TerminalWindow) -> Result<(), Error>>(
         events: &Rc<Self>,
         window_id: WindowId,
         func: F,

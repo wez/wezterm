@@ -200,7 +200,7 @@ impl GuiEventLoop {
 
     /// Run a function with access to the mutable version of the window with
     /// the specified window id
-    pub fn with_window<F: FnOnce(&mut X11TerminalWindow) -> Result<(), Error>>(
+    pub fn with_window<F: FnOnce(&mut TerminalWindow) -> Result<(), Error>>(
         &self,
         window_id: WindowId,
         func: F,

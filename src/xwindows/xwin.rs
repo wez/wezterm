@@ -35,27 +35,12 @@ struct Host {
     config: Rc<Config>,
 }
 
-impl HostHelper for Host {}
+impl HostHelper for Host {
+    fn with_window<F: 'static + Fn(&mut TerminalWindow) -> Result<(), Error>>(&self, func: F) {
+        let events = Rc::clone(&self.event_loop);
+        let window_id = self.window.window.window_id;
 
-pub struct X11TerminalWindow {
-    host: HostImpl<Host>,
-    conn: Rc<Connection>,
-    fonts: Rc<FontConfiguration>,
-    renderer: Renderer,
-    width: u16,
-    height: u16,
-    cell_height: usize,
-    cell_width: usize,
-    tabs: Tabs,
-}
-
-impl<'a> TabHost<'a> {
-    fn with_window<F: 'static + Fn(&mut X11TerminalWindow) -> Result<(), Error>>(&self, func: F) {
-        let events = Rc::clone(&self.host.event_loop);
-        let window_id = self.host.window.window.window_id;
-
-        self.host
-            .event_loop
+        self.event_loop
             .core
             .spawn(futures::future::poll_fn(move || {
                 events
@@ -64,6 +49,48 @@ impl<'a> TabHost<'a> {
                     .map_err(|_| ())
             }));
     }
+    fn new_window(&mut self) {
+        let event_loop = Rc::clone(&self.event_loop);
+        let events = Rc::clone(&self.event_loop);
+        let config = Rc::clone(&self.config);
+        let fonts = Rc::clone(&self.fonts);
+
+        self.event_loop
+            .core
+            .spawn(futures::future::poll_fn(move || {
+                events
+                    .spawn_window(&event_loop, &config, &fonts)
+                    .map(futures::Async::Ready)
+                    .map_err(|_| ())
+            }));
+    }
+
+    fn new_tab(&mut self) {
+        let events = Rc::clone(&self.event_loop);
+        let window_id = self.window.window.window_id;
+
+        self.event_loop
+            .core
+            .spawn(futures::future::poll_fn(move || {
+                events
+                    .spawn_tab(window_id)
+                    .map(futures::Async::Ready)
+                    .map_err(|_| ())
+            }));
+    }
+
+    fn toggle_full_screen(&mut self) {}
+}
+
+pub struct X11TerminalWindow {
+    host: HostImpl<Host>,
+    conn: Rc<Connection>,
+    renderer: Renderer,
+    width: u16,
+    height: u16,
+    cell_height: usize,
+    cell_width: usize,
+    tabs: Tabs,
 }
 
 impl<'a> term::TerminalHost for TabHost<'a> {
@@ -87,68 +114,49 @@ impl<'a> term::TerminalHost for TabHost<'a> {
     }
 
     fn set_title(&mut self, _title: &str) {
-        self.with_window(move |win| {
+        self.host.with_window(move |win| {
             win.update_title();
             Ok(())
         })
     }
 
     fn new_window(&mut self) {
-        let event_loop = Rc::clone(&self.host.event_loop);
-        let events = Rc::clone(&self.host.event_loop);
-        let config = Rc::clone(&self.host.config);
-        let fonts = Rc::clone(&self.host.fonts);
-
-        self.host
-            .event_loop
-            .core
-            .spawn(futures::future::poll_fn(move || {
-                events
-                    .spawn_window(&event_loop, &config, &fonts)
-                    .map(futures::Async::Ready)
-                    .map_err(|_| ())
-            }));
+        self.host.new_window();
     }
-
     fn new_tab(&mut self) {
-        let events = Rc::clone(&self.host.event_loop);
-        let window_id = self.host.window.window.window_id;
-
-        self.host
-            .event_loop
-            .core
-            .spawn(futures::future::poll_fn(move || {
-                events
-                    .spawn_tab(window_id)
-                    .map(futures::Async::Ready)
-                    .map_err(|_| ())
-            }));
+        self.host.new_tab();
     }
 
     fn activate_tab(&mut self, tab: usize) {
-        self.with_window(move |win| win.activate_tab(tab))
+        self.host.with_window(move |win| win.activate_tab(tab))
     }
 
     fn activate_tab_relative(&mut self, tab: isize) {
-        self.with_window(move |win| win.activate_tab_relative(tab))
+        self.host
+            .with_window(move |win| win.activate_tab_relative(tab))
     }
 
     fn increase_font_size(&mut self) {
-        self.with_window(move |win| {
-            let scale = win.fonts.get_font_scale();
-            win.scaling_changed(Some(scale * 1.1), None, win.width, win.height)
+        self.host.with_window(move |win| {
+            let scale = win.fonts().get_font_scale();
+            let dims = win.get_dimensions();
+            win.scaling_changed(Some(scale * 1.1), None, dims.width, dims.height)
         })
     }
 
     fn decrease_font_size(&mut self) {
-        self.with_window(move |win| {
-            let scale = win.fonts.get_font_scale();
-            win.scaling_changed(Some(scale * 0.9), None, win.width, win.height)
+        self.host.with_window(move |win| {
+            let scale = win.fonts().get_font_scale();
+            let dims = win.get_dimensions();
+            win.scaling_changed(Some(scale * 0.9), None, dims.width, dims.height)
         })
     }
 
     fn reset_font_size(&mut self) {
-        self.with_window(move |win| win.scaling_changed(Some(1.0), None, win.width, win.height))
+        self.host.with_window(move |win| {
+            let dims = win.get_dimensions();
+            win.scaling_changed(Some(1.0), None, dims.width, dims.height)
+        })
     }
 }
 
@@ -276,7 +284,6 @@ impl X11TerminalWindow {
             host,
             renderer,
             conn: Rc::clone(&event_loop.conn),
-            fonts: Rc::clone(&fonts),
             width,
             height,
             cell_height,

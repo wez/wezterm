@@ -43,7 +43,54 @@ struct Host {
     fonts: Rc<FontConfiguration>,
 }
 
-impl HostHelper for Host {}
+impl HostHelper for Host {
+    fn with_window<F: 'static + Fn(&mut TerminalWindow) -> Result<(), Error>>(&self, func: F) {
+        GuiEventLoop::with_window(&self.event_loop, self.display.gl_window().id(), func);
+    }
+
+    fn new_window(&mut self) {
+        let event_loop = Rc::clone(&self.event_loop);
+        let config = Rc::clone(&self.config);
+        let fonts = Rc::clone(&self.fonts);
+        self.event_loop.spawn_fn(move || {
+            let (terminal, master, child, fonts) = spawn_window_impl(None, &config, &fonts)?;
+            let window =
+                GliumTerminalWindow::new(&event_loop, terminal, master, child, &fonts, &config)?;
+
+            event_loop.add_window(window)
+        });
+    }
+    fn new_tab(&mut self) {
+        self.with_window(|win| win.spawn_tab().map(|_| ()));
+    }
+
+    fn toggle_full_screen(&mut self) {
+        if let Some(pos) = self.is_fullscreen.take() {
+            let window = self.display.gl_window();
+            // Use simple fullscreen mode on macos, as wez personally
+            // prefers the faster transition to/from this mode than
+            // the Lion+ slow transition to a new Space.  This could
+            // be made into a config option if someone really wanted
+            // that behavior.
+            #[cfg(target_os = "macos")]
+            window.set_simple_fullscreen(false);
+            #[cfg(not(target_os = "macos"))]
+            window.set_fullscreen(None);
+            window.set_position(pos);
+        } else {
+            // We use our own idea of the position because get_position()
+            // appears to only return the initial position of the window
+            // on Linux.
+            self.is_fullscreen = self.window_position.take();
+
+            let window = self.display.gl_window();
+            #[cfg(target_os = "macos")]
+            window.set_simple_fullscreen(true);
+            #[cfg(not(target_os = "macos"))]
+            window.set_fullscreen(Some(window.get_current_monitor()));
+        }
+    }
+}
 
 impl<'a> term::TerminalHost for TabHost<'a> {
     fn writer(&mut self) -> &mut Write {
@@ -65,103 +112,52 @@ impl<'a> term::TerminalHost for TabHost<'a> {
     }
 
     fn set_title(&mut self, _title: &str) {
-        // activate_tab_relative calls Terminal::update_title()
-        // in the appropriate context
-        self.activate_tab_relative(0);
+        self.host.with_window(move |win| {
+            win.update_title();
+            Ok(())
+        })
     }
 
     fn toggle_full_screen(&mut self) {
-        if let Some(pos) = self.host.is_fullscreen.take() {
-            let window = self.host.display.gl_window();
-            // Use simple fullscreen mode on macos, as wez personally
-            // prefers the faster transition to/from this mode than
-            // the Lion+ slow transition to a new Space.  This could
-            // be made into a config option if someone really wanted
-            // that behavior.
-            #[cfg(target_os = "macos")]
-            window.set_simple_fullscreen(false);
-            #[cfg(not(target_os = "macos"))]
-            window.set_fullscreen(None);
-            window.set_position(pos);
-        } else {
-            // We use our own idea of the position because get_position()
-            // appears to only return the initial position of the window
-            // on Linux.
-            self.host.is_fullscreen = self.host.window_position.take();
-
-            let window = self.host.display.gl_window();
-            #[cfg(target_os = "macos")]
-            window.set_simple_fullscreen(true);
-            #[cfg(not(target_os = "macos"))]
-            window.set_fullscreen(Some(window.get_current_monitor()));
-        }
-    }
-
-    fn new_window(&mut self) {
-        let event_loop = Rc::clone(&self.host.event_loop);
-        let config = Rc::clone(&self.host.config);
-        let fonts = Rc::clone(&self.host.fonts);
-        self.host.event_loop.spawn_fn(move || {
-            let (terminal, master, child, fonts) = spawn_window_impl(None, &config, &fonts)?;
-            let window =
-                GliumTerminalWindow::new(&event_loop, terminal, master, child, &fonts, &config)?;
-
-            event_loop.add_window(window)
-        });
+        self.host.toggle_full_screen();
     }
 
     fn new_tab(&mut self) {
-        GuiEventLoop::with_window(
-            &self.host.event_loop,
-            self.host.display.gl_window().id(),
-            |win| win.spawn_tab().map(|_| ()),
-        );
+        self.host.new_tab();
+    }
+    fn new_window(&mut self) {
+        self.host.new_window();
     }
 
     fn activate_tab(&mut self, tab: usize) {
-        GuiEventLoop::with_window(
-            &self.host.event_loop,
-            self.host.display.gl_window().id(),
-            move |win| win.activate_tab(tab),
-        );
+        self.host.with_window(move |win| win.activate_tab(tab));
     }
 
     fn activate_tab_relative(&mut self, tab: isize) {
-        GuiEventLoop::with_window(
-            &self.host.event_loop,
-            self.host.display.gl_window().id(),
-            move |win| win.activate_tab_relative(tab),
-        );
+        self.host
+            .with_window(move |win| win.activate_tab_relative(tab));
     }
-
     fn increase_font_size(&mut self) {
-        GuiEventLoop::with_window(
-            &self.host.event_loop,
-            self.host.display.gl_window().id(),
-            |win| {
-                let scale = win.fonts.get_font_scale();
-                win.scaling_changed(Some(scale * 1.1), None, win.width, win.height)
-            },
-        );
+        self.host.with_window(move |win| {
+            let scale = win.fonts().get_font_scale();
+            let dims = win.get_dimensions();
+            win.scaling_changed(Some(scale * 1.1), None, dims.width, dims.height)
+        })
     }
 
     fn decrease_font_size(&mut self) {
-        GuiEventLoop::with_window(
-            &self.host.event_loop,
-            self.host.display.gl_window().id(),
-            |win| {
-                let scale = win.fonts.get_font_scale();
-                win.scaling_changed(Some(scale * 0.9), None, win.width, win.height)
-            },
-        );
+        self.host.with_window(move |win| {
+            let scale = win.fonts().get_font_scale();
+            let dims = win.get_dimensions();
+            win.scaling_changed(Some(scale * 0.9), None, dims.width, dims.height)
+        })
     }
 
     fn reset_font_size(&mut self) {
-        GuiEventLoop::with_window(
-            &self.host.event_loop,
-            self.host.display.gl_window().id(),
-            |win| win.scaling_changed(Some(1.0), None, win.width, win.height),
-        );
+        self.host.with_window(move |win| {
+            let dims = win.get_dimensions();
+            win.scaling_changed(Some(1.0), None, dims.width, dims.height)
+        })
     }
 }
 

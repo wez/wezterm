@@ -1,8 +1,13 @@
+use super::window::TerminalWindow;
 use clipboard::{ClipboardContext, ClipboardProvider};
 use failure::Error;
 use std::ops::{Deref, DerefMut};
 
 pub trait HostHelper {
+    fn with_window<F: 'static + Fn(&mut TerminalWindow) -> Result<(), Error>>(&self, func: F);
+    fn new_tab(&mut self);
+    fn new_window(&mut self);
+    fn toggle_full_screen(&mut self);
 }
 
 pub struct HostImpl<H: HostHelper> {
