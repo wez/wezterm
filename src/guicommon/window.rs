@@ -24,6 +24,8 @@ pub trait TerminalWindow {
     fn renderer(&mut self) -> &mut Renderer;
     fn renderer_and_terminal(&mut self) -> (&mut Renderer, RefMut<term::Terminal>);
     fn recreate_texture_atlas(&mut self, size: u32) -> Result<(), Error>;
+    fn advise_renderer_that_scaling_has_changed(&mut self) -> Result<(), Error>;
+    fn advise_renderer_of_resize(&mut self, width: u16, height: u16) -> Result<(), Error>;
     fn tab_was_created(&mut self, tab_id: TabId) -> Result<(), Error>;
     fn config(&self) -> &Rc<Config>;
     fn fonts(&self) -> &Rc<FontConfiguration>;
@@ -145,5 +147,32 @@ pub trait TerminalWindow {
         self.tab_was_created(tab_id)?;
 
         Ok(tab_id)
+    }
+
+    fn resize_surfaces(&mut self, width: u16, height: u16) -> Result<bool, Error> {
+        let dims = self.get_dimensions();
+
+        if width != dims.width || height != dims.height {
+            debug!("resize {},{}", width, height);
+
+            self.advise_renderer_of_resize(width, height)?;
+
+            // The +1 in here is to handle an irritating case.
+            // When we get N rows with a gap of cell_height - 1 left at
+            // the bottom, we can usually squeeze that extra row in there,
+            // so optimistically pretend that we have that extra pixel!
+            let rows = ((height as usize + 1) / dims.cell_height) as u16;
+            let cols = ((width as usize + 1) / dims.cell_width) as u16;
+
+            for tab in self.get_tabs().iter() {
+                tab.pty().resize(rows, cols, width, height)?;
+                tab.terminal().resize(rows as usize, cols as usize);
+            }
+
+            Ok(true)
+        } else {
+            debug!("ignoring extra resize");
+            Ok(false)
+        }
     }
 }

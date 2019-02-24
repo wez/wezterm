@@ -263,6 +263,14 @@ impl TerminalWindow for GliumTerminalWindow {
             cell_width: self.cell_width,
         }
     }
+    fn advise_renderer_that_scaling_has_changed(&mut self) -> Result<(), Error> {
+        self.renderer.scaling_changed(&mut self.host.display)
+    }
+    fn advise_renderer_of_resize(&mut self, width: u16, height: u16) -> Result<(), Error> {
+        self.width = width;
+        self.height = height;
+        self.renderer.resize(&self.host.display, width, height)
+    }
 }
 
 impl GliumTerminalWindow {
@@ -372,36 +380,12 @@ impl GliumTerminalWindow {
         Ok(())
     }
 
-    fn resize_surfaces(&mut self, size: LogicalSize) -> Result<bool, Error> {
+    fn resize_surfaces_logical(&mut self, size: LogicalSize) -> Result<bool, Error> {
         let dpi_scale = self.host.display.gl_window().get_hidpi_factor();
         let (width, height): (u32, u32) = size.to_physical(dpi_scale).into();
         let width = width as u16;
         let height = height as u16;
-
-        if width != self.width || height != self.height {
-            debug!("resize {},{}", width, height);
-
-            self.width = width;
-            self.height = height;
-            self.renderer.resize(&self.host.display, width, height)?;
-
-            // The +1 in here is to handle an irritating case.
-            // When we get N rows with a gap of cell_height - 1 left at
-            // the bottom, we can usually squeeze that extra row in there,
-            // so optimistically pretend that we have that extra pixel!
-            let rows = ((height as usize + 1) / self.cell_height) as u16;
-            let cols = ((width as usize + 1) / self.cell_width) as u16;
-
-            for tab in self.tabs.iter() {
-                tab.pty().resize(rows, cols, width, height)?;
-                tab.terminal().resize(rows as usize, cols as usize);
-            }
-
-            Ok(true)
-        } else {
-            debug!("ignoring extra resize");
-            Ok(false)
-        }
+        self.resize_surfaces(width, height)
     }
 
     fn decode_modifiers(state: glium::glutin::ModifiersState) -> term::KeyModifiers {
@@ -823,13 +807,13 @@ impl GliumTerminalWindow {
         self.cell_height = cell_height.ceil() as usize;
         self.cell_width = cell_width.ceil() as usize;
 
-        self.renderer.scaling_changed(&mut self.host.display)?;
+        self.advise_renderer_that_scaling_has_changed()?;
 
         let size = self.host.display.gl_window().get_inner_size();
         self.width = 0;
         self.height = 0;
         if let Some(size) = size {
-            self.resize_surfaces(size)?;
+            self.resize_surfaces_logical(size)?;
         }
         Ok(())
     }
@@ -855,7 +839,7 @@ impl GliumTerminalWindow {
                 event: WindowEvent::Resized(size),
                 ..
             } => {
-                self.resize_surfaces(size)?;
+                self.resize_surfaces_logical(size)?;
             }
             Event::WindowEvent {
                 event: WindowEvent::Moved(position),

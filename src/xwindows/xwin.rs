@@ -206,6 +206,14 @@ impl TerminalWindow for X11TerminalWindow {
             cell_width: self.cell_width,
         }
     }
+    fn advise_renderer_that_scaling_has_changed(&mut self) -> Result<(), Error> {
+        self.renderer.scaling_changed(&self.host.window)
+    }
+    fn advise_renderer_of_resize(&mut self, width: u16, height: u16) -> Result<(), Error> {
+        self.width = width;
+        self.height = height;
+        self.renderer.resize(&self.host.window, width, height)
+    }
 }
 
 impl X11TerminalWindow {
@@ -280,40 +288,13 @@ impl X11TerminalWindow {
         self.cell_height = cell_height.ceil() as usize;
         self.cell_width = cell_width.ceil() as usize;
 
-        self.renderer.scaling_changed(&self.host.window)?;
+        self.advise_renderer_that_scaling_has_changed()?;
 
         let (width, height) = (self.width, self.height);
         self.width = 0;
         self.height = 0;
         self.resize_surfaces(width, height)?;
         Ok(())
-    }
-
-    pub fn resize_surfaces(&mut self, width: u16, height: u16) -> Result<bool, Error> {
-        if width != self.width || height != self.height {
-            debug!("resize {},{}", width, height);
-
-            self.width = width;
-            self.height = height;
-            self.renderer.resize(&self.host.window, width, height)?;
-
-            // The +1 in here is to handle an irritating case.
-            // When we get N rows with a gap of cell_height - 1 left at
-            // the bottom, we can usually squeeze that extra row in there,
-            // so optimistically pretend that we have that extra pixel!
-            let rows = ((height as usize + 1) / self.cell_height) as u16;
-            let cols = ((width as usize + 1) / self.cell_width) as u16;
-
-            for tab in self.tabs.iter() {
-                tab.pty().resize(rows, cols, width, height)?;
-                tab.terminal().resize(rows as usize, cols as usize);
-            }
-
-            Ok(true)
-        } else {
-            debug!("ignoring extra resize");
-            Ok(false)
-        }
     }
 
     pub fn expose(&mut self, _x: u16, _y: u16, _width: u16, _height: u16) -> Result<(), Error> {
