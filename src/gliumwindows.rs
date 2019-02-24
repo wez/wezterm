@@ -11,7 +11,7 @@ use crate::opengl::render::Renderer;
 use crate::{spawn_window_impl, Child, MasterPty};
 use clipboard::{ClipboardContext, ClipboardProvider};
 use glium;
-use glium::glutin::dpi::{LogicalPosition, LogicalSize, PhysicalPosition};
+use glium::glutin::dpi::{LogicalPosition, LogicalSize, PhysicalPosition, PhysicalSize};
 use glium::glutin::{self, ElementState, MouseCursor};
 use std::cell::RefMut;
 use std::io::Write;
@@ -280,6 +280,20 @@ impl TerminalWindow for GliumTerminalWindow {
         self.width = width;
         self.height = height;
         self.renderer.resize(&self.host.display, width, height)
+    }
+    fn resize_if_not_full_screen(&mut self, width: u16, height: u16) -> Result<bool, Error> {
+        if self.host.is_fullscreen.is_none() {
+            {
+                let size = PhysicalSize::new(width.into(), height.into());
+                let window = self.host.display.gl_window();
+                let dpi = window.get_hidpi_factor();
+                window.set_inner_size(size.to_logical(dpi));
+            }
+            self.resize_surfaces(width, height, true)?;
+            Ok(true)
+        } else {
+            Ok(false)
+        }
     }
 }
 

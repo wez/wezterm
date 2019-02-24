@@ -35,6 +35,7 @@ pub trait TerminalWindow {
     fn config(&self) -> &Rc<Config>;
     fn fonts(&self) -> &Rc<FontConfiguration>;
     fn get_dimensions(&self) -> Dimensions;
+    fn resize_if_not_full_screen(&mut self, width: u16, height: u16) -> Result<bool, Error>;
 
     fn activate_tab(&mut self, tab_idx: usize) -> Result<(), Error> {
         let max = self.get_tabs().len();
@@ -203,17 +204,25 @@ pub trait TerminalWindow {
         let metrics = fonts.default_font_metrics()?;
         let (cell_height, cell_width) = (metrics.cell_height, metrics.cell_width);
 
-        // FIXME: our current behavior is to preserve the dimensions of the window,
-        // but vary the size of the font when scaling changes.  This can result
-        // in the number of rows and columns changing when we should really preserve
-        // the terminal surface dimensions.
+        // It is desirable to preserve the terminal rows/cols when scaling,
+        // so we query for that information here.
+        // If the backend supports `resize_if_not_full_screen` then we'll try
+        // to resize the window to match the new cell metrics.
+        let (rows, cols) = {
+            let term = self.get_tabs().get_active().unwrap().terminal();
+            (term.screen().physical_rows, term.screen().physical_cols)
+        };
 
         self.advise_renderer_that_scaling_has_changed(
             cell_width.ceil() as usize,
             cell_height.ceil() as usize,
         )?;
-
-        self.resize_surfaces(width, height, true)?;
+        if !self.resize_if_not_full_screen(
+            cell_width.ceil() as u16 * cols as u16,
+            cell_height.ceil() as u16 * rows as u16,
+        )? {
+            self.resize_surfaces(width, height, true)?;
+        }
         Ok(())
     }
 

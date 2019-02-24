@@ -233,6 +233,12 @@ impl TerminalWindow for X11TerminalWindow {
         self.height = height;
         self.renderer.resize(&self.host.window, width, height)
     }
+    fn resize_if_not_full_screen(&mut self, _width: u16, _height: u16) -> Result<bool, Error> {
+        // FIXME: it would be nice to implement this!
+        // It requires some plumbing to allow sending xcb_configure_window with
+        // XCB_CONFIG_WINDOW_WIDTH and XCB_CONFIG_WINDOW_HEIGHT set.
+        Ok(false)
+    }
 }
 
 impl X11TerminalWindow {
