@@ -4,12 +4,12 @@ use super::xkeysyms;
 use super::{Connection, Window};
 use crate::config::Config;
 use crate::font::FontConfiguration;
+use crate::guicommon::host::{HostHelper, HostImpl};
 use crate::guicommon::tabs::{Tab, TabId, Tabs};
 use crate::guicommon::window::{Dimensions, TerminalWindow};
 use crate::guiloop::x11::{GuiEventLoop, WindowId};
 use crate::guiloop::SessionTerminated;
 use crate::MasterPty;
-use clipboard::{ClipboardContext, ClipboardProvider};
 use failure::Error;
 use futures;
 use std::cell::RefMut;
@@ -24,20 +24,21 @@ use xcb;
 /// other state.
 struct TabHost<'a> {
     pty: &'a mut MasterPty,
-    host: &'a mut Host,
+    host: &'a mut HostImpl<Host>,
 }
 
 /// Holds most of the information we need to implement `TerminalHost`
 struct Host {
     window: Window,
-    clipboard: ClipboardContext,
     event_loop: Rc<GuiEventLoop>,
     fonts: Rc<FontConfiguration>,
     config: Rc<Config>,
 }
 
+impl HostHelper for Host {}
+
 pub struct X11TerminalWindow {
-    host: Host,
+    host: HostImpl<Host>,
     conn: Rc<Connection>,
     fonts: Rc<FontConfiguration>,
     renderer: Renderer,
@@ -78,21 +79,11 @@ impl<'a> term::TerminalHost for TabHost<'a> {
     }
 
     fn get_clipboard(&mut self) -> Result<String, Error> {
-        self.host
-            .clipboard
-            .get_contents()
-            .map_err(|e| format_err!("{}", e))
+        self.host.get_clipboard()
     }
 
     fn set_clipboard(&mut self, clip: Option<String>) -> Result<(), Error> {
-        self.host
-            .clipboard
-            .set_contents(clip.unwrap_or_else(|| "".into()))
-            .map_err(|e| format_err!("{}", e))
-            // Request the clipboard contents we just set; on some systems
-            // if we copy and paste in wezterm, the clipboard isn't visible
-            // to us again until the second call to get_clipboard.
-            .and_then(|_| self.get_clipboard().map(|_| ()))
+        self.host.set_clipboard(clip)
     }
 
     fn set_title(&mut self, _title: &str) {
@@ -266,13 +257,12 @@ impl X11TerminalWindow {
         let window = Window::new(&event_loop.conn, width, height)?;
         window.set_title("wezterm");
 
-        let host = Host {
+        let host = HostImpl::new(Host {
             window,
-            clipboard: ClipboardContext::new().map_err(|e| format_err!("{}", e))?,
             event_loop: Rc::clone(event_loop),
             config: Rc::clone(config),
             fonts: Rc::clone(fonts),
-        };
+        });
 
         let renderer = Renderer::new(&host.window, width, height, fonts, palette)?;
         let cell_height = cell_height.ceil() as usize;

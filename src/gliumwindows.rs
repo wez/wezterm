@@ -3,13 +3,13 @@
 use crate::config::Config;
 use crate::failure::Error;
 use crate::font::FontConfiguration;
+use crate::guicommon::host::{HostHelper, HostImpl};
 use crate::guicommon::tabs::{Tab, TabId, Tabs};
 use crate::guicommon::window::{Dimensions, TerminalWindow};
 use crate::guiloop::glutinloop::GuiEventLoop;
 use crate::guiloop::SessionTerminated;
 use crate::opengl::render::Renderer;
 use crate::{spawn_window_impl, Child, MasterPty};
-use clipboard::{ClipboardContext, ClipboardProvider};
 use glium;
 use glium::glutin::dpi::{LogicalPosition, LogicalSize, PhysicalPosition, PhysicalSize};
 use glium::glutin::{self, ElementState, MouseCursor};
@@ -29,13 +29,12 @@ use winit::os::macos::WindowExt;
 /// other state.
 struct TabHost<'a> {
     pty: &'a mut MasterPty,
-    host: &'a mut Host,
+    host: &'a mut HostImpl<Host>,
 }
 
 struct Host {
     event_loop: Rc<GuiEventLoop>,
     display: glium::Display,
-    clipboard: Clipboard,
     window_position: Option<LogicalPosition>,
     /// if is_some, holds position to be restored after exiting
     /// fullscreen mode.
@@ -44,37 +43,7 @@ struct Host {
     fonts: Rc<FontConfiguration>,
 }
 
-/// macOS gets unhappy if we set up the clipboard too early,
-/// so we use this to defer it until we use it
-#[derive(Default)]
-struct Clipboard {
-    clipboard: Option<ClipboardContext>,
-}
-
-impl Clipboard {
-    fn clipboard(&mut self) -> Result<&mut ClipboardContext, Error> {
-        if self.clipboard.is_none() {
-            self.clipboard = Some(ClipboardContext::new().map_err(|e| format_err!("{}", e))?);
-        }
-        Ok(self.clipboard.as_mut().unwrap())
-    }
-
-    pub fn get_clipboard(&mut self) -> Result<String, Error> {
-        self.clipboard()?
-            .get_contents()
-            .map_err(|e| format_err!("{}", e))
-    }
-
-    pub fn set_clipboard(&mut self, clip: Option<String>) -> Result<(), Error> {
-        self.clipboard()?
-            .set_contents(clip.unwrap_or_else(|| "".into()))
-            .map_err(|e| format_err!("{}", e))?;
-        // Request the clipboard contents we just set; on some systems
-        // if we copy and paste in wezterm, the clipboard isn't visible
-        // to us again until the second call to get_clipboard.
-        self.get_clipboard().map(|_| ())
-    }
-}
+impl HostHelper for Host {}
 
 impl<'a> term::TerminalHost for TabHost<'a> {
     fn writer(&mut self) -> &mut Write {
@@ -88,11 +57,11 @@ impl<'a> term::TerminalHost for TabHost<'a> {
     }
 
     fn get_clipboard(&mut self) -> Result<String, Error> {
-        self.host.clipboard.get_clipboard()
+        self.host.get_clipboard()
     }
 
     fn set_clipboard(&mut self, clip: Option<String>) -> Result<(), Error> {
-        self.host.clipboard.set_clipboard(clip)
+        self.host.set_clipboard(clip)
     }
 
     fn set_title(&mut self, _title: &str) {
@@ -102,8 +71,8 @@ impl<'a> term::TerminalHost for TabHost<'a> {
     }
 
     fn toggle_full_screen(&mut self) {
-        let window = self.host.display.gl_window();
         if let Some(pos) = self.host.is_fullscreen.take() {
+            let window = self.host.display.gl_window();
             // Use simple fullscreen mode on macos, as wez personally
             // prefers the faster transition to/from this mode than
             // the Lion+ slow transition to a new Space.  This could
@@ -120,6 +89,7 @@ impl<'a> term::TerminalHost for TabHost<'a> {
             // on Linux.
             self.host.is_fullscreen = self.host.window_position.take();
 
+            let window = self.host.display.gl_window();
             #[cfg(target_os = "macos")]
             window.set_simple_fullscreen(true);
             #[cfg(not(target_os = "macos"))]
@@ -196,7 +166,7 @@ impl<'a> term::TerminalHost for TabHost<'a> {
 }
 
 pub struct GliumTerminalWindow {
-    host: Host,
+    host: HostImpl<Host>,
     event_loop: Rc<GuiEventLoop>,
     config: Rc<Config>,
     fonts: Rc<FontConfiguration>,
@@ -336,15 +306,14 @@ impl GliumTerminalWindow {
         };
         let window_position = display.gl_window().get_position();
 
-        let host = Host {
+        let host = HostImpl::new(Host {
             event_loop: Rc::clone(event_loop),
             display,
-            clipboard: Clipboard::default(),
             window_position,
             is_fullscreen: None,
             config: Rc::clone(config),
             fonts: Rc::clone(fonts),
-        };
+        });
 
         host.display.gl_window().set_cursor(MouseCursor::Text);
 
