@@ -4,7 +4,7 @@ use crate::font::FontConfiguration;
 use crate::futurecore;
 use crate::xwindows::xwin::TerminalWindow;
 use crate::xwindows::Connection;
-use crate::{openpty, spawn_window_impl, Child, MasterPty};
+use crate::{spawn_window_impl, Child, MasterPty};
 use failure::Error;
 use mio::unix::EventedFd;
 use mio::{Event, Evented, Events, Poll, PollOpt, Ready, Token};
