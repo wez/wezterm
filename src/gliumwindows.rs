@@ -133,7 +133,7 @@ impl<'a> term::TerminalHost for TabHost<'a> {
         self.host.event_loop.spawn_fn(move || {
             let (terminal, master, child, fonts) = spawn_window_impl(None, &config, &fonts)?;
             let window =
-                TerminalWindow::new(&event_loop, terminal, master, child, &fonts, &config)?;
+                GliumTerminalWindow::new(&event_loop, terminal, master, child, &fonts, &config)?;
 
             event_loop.add_window(window)
         });
@@ -194,7 +194,7 @@ impl<'a> term::TerminalHost for TabHost<'a> {
     }
 }
 
-pub struct TerminalWindow {
+pub struct GliumTerminalWindow {
     host: Host,
     event_loop: Rc<GuiEventLoop>,
     config: Rc<Config>,
@@ -210,7 +210,7 @@ pub struct TerminalWindow {
     tabs: Tabs,
 }
 
-impl TerminalWindow {
+impl GliumTerminalWindow {
     pub fn new(
         event_loop: &Rc<GuiEventLoop>,
         terminal: Terminal,
@@ -218,7 +218,7 @@ impl TerminalWindow {
         process: Child,
         fonts: &Rc<FontConfiguration>,
         config: &Rc<Config>,
-    ) -> Result<TerminalWindow, Error> {
+    ) -> Result<GliumTerminalWindow, Error> {
         let palette = config
             .colors
             .as_ref()
@@ -267,7 +267,7 @@ impl TerminalWindow {
 
         let tab = Tab::new(terminal, process, pty);
 
-        Ok(TerminalWindow {
+        Ok(GliumTerminalWindow {
             host,
             event_loop: Rc::clone(event_loop),
             config: Rc::clone(config),
@@ -849,7 +849,7 @@ impl TerminalWindow {
         let dpi_scale = self.host.display.gl_window().get_hidpi_factor();
         let font_scale = font_scale.unwrap_or_else(|| self.fonts.get_font_scale());
         eprintln!(
-            "TerminalWindow::scaling_changed dpi_scale={} font_scale={}",
+            "GliumTerminalWindow::scaling_changed dpi_scale={} font_scale={}",
             dpi_scale, font_scale
         );
         self.tabs

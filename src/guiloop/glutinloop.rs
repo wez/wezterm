@@ -1,7 +1,7 @@
 use super::GuiSystem;
 use crate::futurecore;
 use crate::gliumwindows;
-pub use crate::gliumwindows::TerminalWindow;
+pub use crate::gliumwindows::GliumTerminalWindow;
 use crate::guiloop::SessionTerminated;
 use crate::{Child, MasterPty};
 use failure::Error;
@@ -68,10 +68,10 @@ pub enum IOEvent {
 }
 
 /// This struct holds references to Windows.
-/// The primary mapping is from `WindowId` -> `TerminalWindow`.
+/// The primary mapping is from `WindowId` -> `GliumTerminalWindow`.
 #[derive(Default)]
 struct Windows {
-    by_id: HashMap<WindowId, gliumwindows::TerminalWindow>,
+    by_id: HashMap<WindowId, gliumwindows::GliumTerminalWindow>,
 }
 
 /// The `GuiEventLoop` represents the combined gui event processor,
@@ -144,7 +144,7 @@ impl GuiSystem for GlutinGuiSystem {
         config: &Rc<crate::config::Config>,
         fontconfig: &Rc<crate::font::FontConfiguration>,
     ) -> Result<(), Error> {
-        let window = TerminalWindow::new(
+        let window = GliumTerminalWindow::new(
             &self.event_loop,
             terminal,
             master,
@@ -187,7 +187,7 @@ impl GuiEventLoop {
         })
     }
 
-    pub fn with_window<F: 'static + Fn(&mut TerminalWindow) -> Result<(), Error>>(
+    pub fn with_window<F: 'static + Fn(&mut GliumTerminalWindow) -> Result<(), Error>>(
         events: &Rc<Self>,
         window_id: WindowId,
         func: F,
@@ -256,7 +256,7 @@ impl GuiEventLoop {
     }
 
     /// Add a window to the event loop and run it.
-    pub fn add_window(&self, window: gliumwindows::TerminalWindow) -> Result<(), Error> {
+    pub fn add_window(&self, window: gliumwindows::GliumTerminalWindow) -> Result<(), Error> {
         let window_id = window.window_id();
         let pty = window.clone_current_pty()?;
         self.schedule_read_pty(pty, window_id, window.get_tab_id_by_idx(0))?;
