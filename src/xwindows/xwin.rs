@@ -13,6 +13,7 @@ use crate::{openpty, MasterPty};
 use clipboard::{ClipboardContext, ClipboardProvider};
 use failure::Error;
 use futures;
+use std::cell::RefMut;
 use std::io::{self, Read, Write};
 use std::rc::Rc;
 use term::{self, KeyCode, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
@@ -162,13 +163,32 @@ impl<'a> term::TerminalHost for TabHost<'a> {
 }
 
 impl TerminalWindow for X11TerminalWindow {
-    fn get_tabs(&mut self) -> &mut Tabs {
+    fn get_tabs(&self) -> &Tabs {
+        &self.tabs
+    }
+    fn get_tabs_mut(&mut self) -> &mut Tabs {
         &mut self.tabs
     }
 
     fn set_window_title(&mut self, title: &str) -> Result<(), Error> {
         self.host.window.set_title(title);
         Ok(())
+    }
+    fn frame(&self) -> glium::Frame {
+        self.host.window.draw()
+    }
+
+    fn renderer(&mut self) -> &mut Renderer {
+        &mut self.renderer
+    }
+    fn recreate_texture_atlas(&mut self, size: u32) -> Result<(), Error> {
+        self.renderer.recreate_atlas(&self.host.window, size)
+    }
+    fn renderer_and_terminal(&mut self) -> (&mut Renderer, RefMut<term::Terminal>) {
+        (
+            &mut self.renderer,
+            self.tabs.get_active().unwrap().terminal(),
+        )
     }
 }
 
@@ -282,49 +302,6 @@ impl X11TerminalWindow {
 
     pub fn expose(&mut self, _x: u16, _y: u16, _width: u16, _height: u16) -> Result<(), Error> {
         self.paint()
-    }
-
-    pub fn paint(&mut self) -> Result<(), Error> {
-        let tab = match self.tabs.get_active() {
-            Some(tab) => tab,
-            None => return Ok(()),
-        };
-
-        let mut target = self.host.window.draw();
-        let res = self.renderer.paint(&mut target, &mut tab.terminal());
-        // Ensure that we finish() the target before we let the
-        // error bubble up, otherwise we lose the context.
-        target
-            .finish()
-            .expect("target.finish failed and we don't know how to recover");
-
-        // The only error we want to catch is texture space related;
-        // when that happens we need to blow our glyph cache and
-        // allocate a newer bigger texture.
-        match res {
-            Err(err) => {
-                if let Some(&OutOfTextureSpace { size }) = err.downcast_ref::<OutOfTextureSpace>() {
-                    eprintln!("out of texture space, allocating {}", size);
-                    self.renderer.recreate_atlas(&self.host.window, size)?;
-                    tab.terminal().make_all_lines_dirty();
-                    // Recursively initiate a new paint
-                    return self.paint();
-                }
-                Err(err)
-            }
-            Ok(_) => Ok(()),
-        }
-    }
-
-    pub fn paint_if_needed(&mut self) -> Result<(), Error> {
-        let tab = match self.tabs.get_active() {
-            Some(tab) => tab,
-            None => return Ok(()),
-        };
-        if tab.terminal().has_dirty_lines() {
-            self.paint()?;
-        }
-        Ok(())
     }
 
     pub fn tabs<'a>(&'a self) -> &'a Tabs {
@@ -535,13 +512,5 @@ impl X11TerminalWindow {
         self.activate_tab(len - 1)?;
 
         Ok(tab_id)
-    }
-
-    pub fn activate_tab_relative(&mut self, delta: isize) -> Result<(), Error> {
-        let max = self.tabs.len();
-        let active = self.tabs.get_active_idx() as isize;
-        let tab = active + delta;
-        let tab = if tab < 0 { max as isize + tab } else { tab };
-        self.activate_tab(tab as usize % max)
     }
 }

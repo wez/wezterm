@@ -3,6 +3,7 @@ use crate::config::Config;
 use crate::font::FontConfiguration;
 use crate::futurecore;
 use crate::guicommon::tabs::TabId;
+use crate::guicommon::window::TerminalWindow;
 use crate::xwindows::xwin::X11TerminalWindow;
 use crate::xwindows::Connection;
 use crate::{spawn_window_impl, Child, MasterPty};

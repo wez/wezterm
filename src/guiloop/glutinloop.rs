@@ -2,6 +2,7 @@ use super::GuiSystem;
 use crate::futurecore;
 use crate::gliumwindows;
 pub use crate::gliumwindows::GliumTerminalWindow;
+use crate::guicommon::window::TerminalWindow;
 use crate::guiloop::SessionTerminated;
 use crate::{Child, MasterPty};
 use failure::Error;

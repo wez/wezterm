@@ -14,6 +14,7 @@ use clipboard::{ClipboardContext, ClipboardProvider};
 use glium;
 use glium::glutin::dpi::{LogicalPosition, LogicalSize, PhysicalPosition};
 use glium::glutin::{self, ElementState, MouseCursor};
+use std::cell::RefMut;
 use std::io::Write;
 use std::rc::Rc;
 use term::KeyCode;
@@ -212,13 +213,33 @@ pub struct GliumTerminalWindow {
 }
 
 impl TerminalWindow for GliumTerminalWindow {
-    fn get_tabs(&mut self) -> &mut Tabs {
+    fn get_tabs(&self) -> &Tabs {
+        &self.tabs
+    }
+    fn get_tabs_mut(&mut self) -> &mut Tabs {
         &mut self.tabs
     }
 
     fn set_window_title(&mut self, title: &str) -> Result<(), Error> {
         self.host.display.gl_window().set_title(title);
         Ok(())
+    }
+
+    fn frame(&self) -> glium::Frame {
+        self.host.display.draw()
+    }
+
+    fn renderer(&mut self) -> &mut Renderer {
+        &mut self.renderer
+    }
+    fn recreate_texture_atlas(&mut self, size: u32) -> Result<(), Error> {
+        self.renderer.recreate_atlas(&self.host.display, size)
+    }
+    fn renderer_and_terminal(&mut self) -> (&mut Renderer, RefMut<term::Terminal>) {
+        (
+            &mut self.renderer,
+            self.tabs.get_active().unwrap().terminal(),
+        )
     }
 }
 
@@ -333,14 +354,6 @@ impl GliumTerminalWindow {
         Ok(())
     }
 
-    pub fn activate_tab_relative(&mut self, delta: isize) -> Result<(), Error> {
-        let max = self.tabs.len();
-        let active = self.tabs.get_active_idx() as isize;
-        let tab = active + delta;
-        let tab = if tab < 0 { max as isize + tab } else { tab };
-        self.activate_tab(tab as usize % max)
-    }
-
     pub fn window_id(&self) -> glutin::WindowId {
         self.host.display.gl_window().id()
     }
@@ -351,35 +364,6 @@ impl GliumTerminalWindow {
             .ok_or_else(|| format_err!("no active tab"))?
             .pty()
             .try_clone()
-    }
-
-    pub fn paint(&mut self) -> Result<(), Error> {
-        let tab = match self.tabs.get_active() {
-            Some(tab) => tab,
-            None => return Ok(()),
-        };
-        let mut target = self.host.display.draw();
-        let res = self.renderer.paint(&mut target, &mut tab.terminal());
-        // Ensure that we finish() the target before we let the
-        // error bubble up, otherwise we lose the context.
-        target.finish().unwrap();
-
-        // The only error we want to catch is texture space related;
-        // when that happens we need to blow our glyph cache and
-        // allocate a newer bigger texture.
-        match res {
-            Err(err) => {
-                if let Some(&OutOfTextureSpace { size }) = err.downcast_ref::<OutOfTextureSpace>() {
-                    eprintln!("out of texture space, allocating {}", size);
-                    self.renderer.recreate_atlas(&self.host.display, size)?;
-                    tab.terminal().make_all_lines_dirty();
-                    // Recursively initiate a new paint
-                    return self.paint();
-                }
-                Err(err)
-            }
-            Ok(_) => Ok(()),
-        }
     }
 
     pub fn process_data_read_from_pty(&mut self, data: &[u8], tab_id: usize) -> Result<(), Error> {
