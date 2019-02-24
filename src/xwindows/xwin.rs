@@ -198,6 +198,19 @@ impl TerminalWindow for X11TerminalWindow {
     fn tab_was_created(&mut self, _tab_id: TabId) -> Result<(), Error> {
         Ok(())
     }
+    fn deregister_tab(&mut self, tab_id: TabId) -> Result<(), Error> {
+        let events = Rc::clone(&self.host.event_loop);
+        self.host
+            .event_loop
+            .core
+            .spawn(futures::future::poll_fn(move || {
+                events
+                    .deregister_tab(tab_id)
+                    .map(futures::Async::Ready)
+                    .map_err(|_| ())
+            }));
+        Ok(())
+    }
     fn get_dimensions(&self) -> Dimensions {
         Dimensions {
             width: self.width,
@@ -299,43 +312,6 @@ impl X11TerminalWindow {
 
     pub fn expose(&mut self, _x: u16, _y: u16, _width: u16, _height: u16) -> Result<(), Error> {
         self.paint()
-    }
-
-    pub fn tab_did_terminate(&mut self, tab_id: TabId) {
-        self.tabs.remove_by_id(tab_id);
-        match self.tabs.get_active() {
-            Some(tab) => {
-                tab.terminal().make_all_lines_dirty();
-                self.update_title();
-            }
-            None => (),
-        }
-
-        let events = Rc::clone(&self.host.event_loop);
-        self.host
-            .event_loop
-            .core
-            .spawn(futures::future::poll_fn(move || {
-                events
-                    .deregister_tab(tab_id)
-                    .map(futures::Async::Ready)
-                    .map_err(|_| ())
-            }));
-    }
-
-    pub fn test_for_child_exit(&mut self) -> bool {
-        let dead_tabs: Vec<TabId> = self
-            .tabs
-            .iter()
-            .filter_map(|tab| match tab.process().try_wait() {
-                Ok(None) => None,
-                _ => Some(tab.tab_id()),
-            })
-            .collect();
-        for tab_id in dead_tabs {
-            self.tab_did_terminate(tab_id);
-        }
-        self.tabs.is_empty()
     }
 
     pub fn try_read_pty(&mut self, tab_id: TabId) -> Result<(), Error> {

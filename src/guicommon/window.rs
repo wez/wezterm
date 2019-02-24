@@ -27,6 +27,7 @@ pub trait TerminalWindow {
     fn advise_renderer_that_scaling_has_changed(&mut self) -> Result<(), Error>;
     fn advise_renderer_of_resize(&mut self, width: u16, height: u16) -> Result<(), Error>;
     fn tab_was_created(&mut self, tab_id: TabId) -> Result<(), Error>;
+    fn deregister_tab(&mut self, tab_id: TabId) -> Result<(), Error>;
     fn config(&self) -> &Rc<Config>;
     fn fonts(&self) -> &Rc<FontConfiguration>;
     fn get_dimensions(&self) -> Dimensions;
@@ -174,5 +175,32 @@ pub trait TerminalWindow {
             debug!("ignoring extra resize");
             Ok(false)
         }
+    }
+
+    fn tab_did_terminate(&mut self, tab_id: TabId) {
+        self.get_tabs_mut().remove_by_id(tab_id);
+        match self.get_tabs().get_active() {
+            Some(tab) => {
+                tab.terminal().make_all_lines_dirty();
+                self.update_title();
+            }
+            None => (),
+        }
+
+        self.deregister_tab(tab_id).ok();
+    }
+    fn test_for_child_exit(&mut self) -> bool {
+        let dead_tabs: Vec<TabId> = self
+            .get_tabs()
+            .iter()
+            .filter_map(|tab| match tab.process().try_wait() {
+                Ok(None) => None,
+                _ => Some(tab.tab_id()),
+            })
+            .collect();
+        for tab_id in dead_tabs {
+            self.tab_did_terminate(tab_id);
+        }
+        self.get_tabs().is_empty()
     }
 }
