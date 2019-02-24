@@ -24,7 +24,11 @@ pub trait TerminalWindow {
     fn renderer(&mut self) -> &mut Renderer;
     fn renderer_and_terminal(&mut self) -> (&mut Renderer, RefMut<term::Terminal>);
     fn recreate_texture_atlas(&mut self, size: u32) -> Result<(), Error>;
-    fn advise_renderer_that_scaling_has_changed(&mut self) -> Result<(), Error>;
+    fn advise_renderer_that_scaling_has_changed(
+        &mut self,
+        cell_width: usize,
+        cell_height: usize,
+    ) -> Result<(), Error>;
     fn advise_renderer_of_resize(&mut self, width: u16, height: u16) -> Result<(), Error>;
     fn tab_was_created(&mut self, tab_id: TabId) -> Result<(), Error>;
     fn deregister_tab(&mut self, tab_id: TabId) -> Result<(), Error>;
@@ -166,7 +170,7 @@ pub trait TerminalWindow {
             let cols = ((width as usize + 1) / dims.cell_width) as u16;
 
             for tab in self.get_tabs().iter() {
-                tab.pty().resize(rows, cols, width, height)?;
+                tab.pty().resize(rows, cols, width as u16, height as u16)?;
                 tab.terminal().resize(rows as usize, cols as usize);
             }
 
@@ -175,6 +179,42 @@ pub trait TerminalWindow {
             debug!("ignoring extra resize");
             Ok(false)
         }
+    }
+
+    fn scaling_changed(
+        &mut self,
+        font_scale: Option<f64>,
+        dpi_scale: Option<f64>,
+        width: u16,
+        height: u16,
+    ) -> Result<(), Error> {
+        let fonts = self.fonts();
+        let dpi_scale = dpi_scale.unwrap_or_else(|| fonts.get_dpi_scale());
+        let font_scale = font_scale.unwrap_or_else(|| fonts.get_font_scale());
+        eprintln!(
+            "TerminalWindow::scaling_changed dpi_scale={} font_scale={}",
+            dpi_scale, font_scale
+        );
+        self.get_tabs()
+            .get_active()
+            .map(|tab| tab.terminal().make_all_lines_dirty());
+        fonts.change_scaling(font_scale, dpi_scale);
+
+        let metrics = fonts.default_font_metrics()?;
+        let (cell_height, cell_width) = (metrics.cell_height, metrics.cell_width);
+
+        // FIXME: our current behavior is to preserve the dimensions of the window,
+        // but vary the size of the font when scaling changes.  This can result
+        // in the number of rows and columns changing when we should really preserve
+        // the terminal surface dimensions.
+
+        self.advise_renderer_that_scaling_has_changed(
+            cell_width.ceil() as usize,
+            cell_height.ceil() as usize,
+        )?;
+
+        self.resize_surfaces(width, height)?;
+        Ok(())
     }
 
     fn tab_did_terminate(&mut self, tab_id: TabId) {

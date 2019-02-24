@@ -145,19 +145,19 @@ impl<'a> term::TerminalHost for TabHost<'a> {
     fn increase_font_size(&mut self) {
         self.with_window(move |win| {
             let scale = win.fonts.get_font_scale();
-            win.scaling_changed(Some(scale * 1.1))
+            win.scaling_changed(Some(scale * 1.1), None, win.width, win.height)
         })
     }
 
     fn decrease_font_size(&mut self) {
         self.with_window(move |win| {
             let scale = win.fonts.get_font_scale();
-            win.scaling_changed(Some(scale * 0.9))
+            win.scaling_changed(Some(scale * 0.9), None, win.width, win.height)
         })
     }
 
     fn reset_font_size(&mut self) {
-        self.with_window(move |win| win.scaling_changed(Some(1.0)))
+        self.with_window(move |win| win.scaling_changed(Some(1.0), None, win.width, win.height))
     }
 }
 
@@ -219,7 +219,13 @@ impl TerminalWindow for X11TerminalWindow {
             cell_width: self.cell_width,
         }
     }
-    fn advise_renderer_that_scaling_has_changed(&mut self) -> Result<(), Error> {
+    fn advise_renderer_that_scaling_has_changed(
+        &mut self,
+        cell_width: usize,
+        cell_height: usize,
+    ) -> Result<(), Error> {
+        self.cell_width = cell_width;
+        self.cell_height = cell_height;
         self.renderer.scaling_changed(&self.host.window)
     }
     fn advise_renderer_of_resize(&mut self, width: u16, height: u16) -> Result<(), Error> {
@@ -285,29 +291,6 @@ impl X11TerminalWindow {
 
     pub fn window_id(&self) -> WindowId {
         self.host.window.window.window_id
-    }
-
-    pub fn scaling_changed(&mut self, font_scale: Option<f64>) -> Result<(), Error> {
-        let font_scale = font_scale.unwrap_or_else(|| self.fonts.get_font_scale());
-        eprintln!(
-            "X11TerminalWindow::scaling_changed font_scale={}",
-            font_scale
-        );
-
-        self.fonts.change_scaling(font_scale, 1.0);
-
-        let metrics = self.fonts.default_font_metrics()?;
-        let (cell_height, cell_width) = (metrics.cell_height, metrics.cell_width);
-        self.cell_height = cell_height.ceil() as usize;
-        self.cell_width = cell_width.ceil() as usize;
-
-        self.advise_renderer_that_scaling_has_changed()?;
-
-        let (width, height) = (self.width, self.height);
-        self.width = 0;
-        self.height = 0;
-        self.resize_surfaces(width, height)?;
-        Ok(())
     }
 
     pub fn expose(&mut self, _x: u16, _y: u16, _width: u16, _height: u16) -> Result<(), Error> {

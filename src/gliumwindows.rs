@@ -170,7 +170,7 @@ impl<'a> term::TerminalHost for TabHost<'a> {
             self.host.display.gl_window().id(),
             |win| {
                 let scale = win.fonts.get_font_scale();
-                win.scaling_changed(Some(scale * 1.1))
+                win.scaling_changed(Some(scale * 1.1), None, win.width, win.height)
             },
         );
     }
@@ -181,7 +181,7 @@ impl<'a> term::TerminalHost for TabHost<'a> {
             self.host.display.gl_window().id(),
             |win| {
                 let scale = win.fonts.get_font_scale();
-                win.scaling_changed(Some(scale * 0.9))
+                win.scaling_changed(Some(scale * 0.9), None, win.width, win.height)
             },
         );
     }
@@ -190,7 +190,7 @@ impl<'a> term::TerminalHost for TabHost<'a> {
         GuiEventLoop::with_window(
             &self.host.event_loop,
             self.host.display.gl_window().id(),
-            |win| win.scaling_changed(Some(1.0)),
+            |win| win.scaling_changed(Some(1.0), None, win.width, win.height),
         );
     }
 }
@@ -267,7 +267,13 @@ impl TerminalWindow for GliumTerminalWindow {
             cell_width: self.cell_width,
         }
     }
-    fn advise_renderer_that_scaling_has_changed(&mut self) -> Result<(), Error> {
+    fn advise_renderer_that_scaling_has_changed(
+        &mut self,
+        cell_width: usize,
+        cell_height: usize,
+    ) -> Result<(), Error> {
+        self.cell_width = cell_width;
+        self.cell_height = cell_height;
         self.renderer.scaling_changed(&mut self.host.display)
     }
     fn advise_renderer_of_resize(&mut self, width: u16, height: u16) -> Result<(), Error> {
@@ -781,47 +787,6 @@ impl GliumTerminalWindow {
         Ok(())
     }
 
-    pub fn paint_if_needed(&mut self) -> Result<(), Error> {
-        let tab = match self.tabs.get_active() {
-            Some(tab) => tab,
-            None => return Ok(()),
-        };
-        if tab.terminal().has_dirty_lines() {
-            self.paint()?;
-        }
-        Ok(())
-    }
-
-    /// Called in response to either the screen dpi changing,
-    /// or the font scaling factor changing
-    pub fn scaling_changed(&mut self, font_scale: Option<f64>) -> Result<(), Error> {
-        let dpi_scale = self.host.display.gl_window().get_hidpi_factor();
-        let font_scale = font_scale.unwrap_or_else(|| self.fonts.get_font_scale());
-        eprintln!(
-            "GliumTerminalWindow::scaling_changed dpi_scale={} font_scale={}",
-            dpi_scale, font_scale
-        );
-        self.tabs
-            .get_active()
-            .map(|tab| tab.terminal().make_all_lines_dirty());
-        self.fonts.change_scaling(font_scale, dpi_scale);
-
-        let metrics = self.fonts.default_font_metrics()?;
-        let (cell_height, cell_width) = (metrics.cell_height, metrics.cell_width);
-        self.cell_height = cell_height.ceil() as usize;
-        self.cell_width = cell_width.ceil() as usize;
-
-        self.advise_renderer_that_scaling_has_changed()?;
-
-        let size = self.host.display.gl_window().get_inner_size();
-        self.width = 0;
-        self.height = 0;
-        if let Some(size) = size {
-            self.resize_surfaces_logical(size)?;
-        }
-        Ok(())
-    }
-
     pub fn dispatch_event(&mut self, event: &glutin::Event) -> Result<(), Error> {
         use glium::glutin::{Event, WindowEvent};
         match *event {
@@ -832,12 +797,12 @@ impl GliumTerminalWindow {
                 return Err(SessionTerminated::WindowClosed.into());
             }
             Event::WindowEvent {
-                event: WindowEvent::HiDpiFactorChanged(_),
+                event: WindowEvent::HiDpiFactorChanged(factor),
                 ..
             } => {
                 // Assuming that this is dragging a window between hidpi and
                 // normal dpi displays.  Treat this as a resize event of sorts
-                self.scaling_changed(None)?;
+                self.scaling_changed(None, Some(factor), self.width, self.height)?;
             }
             Event::WindowEvent {
                 event: WindowEvent::Resized(size),
