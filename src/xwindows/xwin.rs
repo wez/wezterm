@@ -4,7 +4,7 @@ use super::xkeysyms;
 use super::{Connection, Window};
 use crate::config::Config;
 use crate::font::FontConfiguration;
-use crate::guicommon::host::{HostHelper, HostImpl};
+use crate::guicommon::host::{HostHelper, HostImpl, TabHost};
 use crate::guicommon::tabs::{Tab, TabId, Tabs};
 use crate::guicommon::window::{Dimensions, TerminalWindow};
 use crate::guiloop::x11::{GuiEventLoop, WindowId};
@@ -13,19 +13,10 @@ use crate::MasterPty;
 use failure::Error;
 use futures;
 use std::cell::RefMut;
-use std::io::{self, Read, Write};
+use std::io::{self, Read};
 use std::rc::Rc;
 use term::{self, KeyCode, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
-use termwiz::hyperlink::Hyperlink;
 use xcb;
-
-/// Implements `TerminalHost` for a Tab.
-/// `TabHost` instances are short lived and borrow references to
-/// other state.
-struct TabHost<'a> {
-    pty: &'a mut MasterPty,
-    host: &'a mut HostImpl<Host>,
-}
 
 /// Holds most of the information we need to implement `TerminalHost`
 struct Host {
@@ -91,73 +82,6 @@ pub struct X11TerminalWindow {
     cell_height: usize,
     cell_width: usize,
     tabs: Tabs,
-}
-
-impl<'a> term::TerminalHost for TabHost<'a> {
-    fn writer(&mut self) -> &mut Write {
-        &mut self.pty
-    }
-
-    fn click_link(&mut self, link: &Rc<Hyperlink>) {
-        match open::that(link.uri()) {
-            Ok(_) => {}
-            Err(err) => eprintln!("failed to open {}: {:?}", link.uri(), err),
-        }
-    }
-
-    fn get_clipboard(&mut self) -> Result<String, Error> {
-        self.host.get_clipboard()
-    }
-
-    fn set_clipboard(&mut self, clip: Option<String>) -> Result<(), Error> {
-        self.host.set_clipboard(clip)
-    }
-
-    fn set_title(&mut self, _title: &str) {
-        self.host.with_window(move |win| {
-            win.update_title();
-            Ok(())
-        })
-    }
-
-    fn new_window(&mut self) {
-        self.host.new_window();
-    }
-    fn new_tab(&mut self) {
-        self.host.new_tab();
-    }
-
-    fn activate_tab(&mut self, tab: usize) {
-        self.host.with_window(move |win| win.activate_tab(tab))
-    }
-
-    fn activate_tab_relative(&mut self, tab: isize) {
-        self.host
-            .with_window(move |win| win.activate_tab_relative(tab))
-    }
-
-    fn increase_font_size(&mut self) {
-        self.host.with_window(move |win| {
-            let scale = win.fonts().get_font_scale();
-            let dims = win.get_dimensions();
-            win.scaling_changed(Some(scale * 1.1), None, dims.width, dims.height)
-        })
-    }
-
-    fn decrease_font_size(&mut self) {
-        self.host.with_window(move |win| {
-            let scale = win.fonts().get_font_scale();
-            let dims = win.get_dimensions();
-            win.scaling_changed(Some(scale * 0.9), None, dims.width, dims.height)
-        })
-    }
-
-    fn reset_font_size(&mut self) {
-        self.host.with_window(move |win| {
-            let dims = win.get_dimensions();
-            win.scaling_changed(Some(1.0), None, dims.width, dims.height)
-        })
-    }
 }
 
 impl TerminalWindow for X11TerminalWindow {
@@ -311,10 +235,7 @@ impl X11TerminalWindow {
             Ok(size) => {
                 tab.terminal().advance_bytes(
                     &buf[0..size],
-                    &mut TabHost {
-                        pty: &mut *tab.pty(),
-                        host: &mut self.host,
-                    },
+                    &mut TabHost::new(&mut tab.pty(), &mut self.host),
                 );
             }
             Err(err) => {
@@ -336,13 +257,8 @@ impl X11TerminalWindow {
             Some(tab) => tab,
             None => return Ok(()),
         };
-        tab.terminal().mouse_event(
-            event,
-            &mut TabHost {
-                pty: &mut *tab.pty(),
-                host: &mut self.host,
-            },
-        )?;
+        tab.terminal()
+            .mouse_event(event, &mut TabHost::new(&mut tab.pty(), &mut self.host))?;
         Ok(())
     }
 
@@ -367,10 +283,7 @@ impl X11TerminalWindow {
                     tab.terminal().key_down(
                         code,
                         mods,
-                        &mut TabHost {
-                            pty: &mut *tab.pty(),
-                            host: &mut self.host,
-                        },
+                        &mut TabHost::new(&mut tab.pty(), &mut self.host),
                     )?;
                 }
             }
@@ -384,10 +297,7 @@ impl X11TerminalWindow {
                     tab.terminal().key_up(
                         code,
                         mods,
-                        &mut TabHost {
-                            pty: &mut *tab.pty(),
-                            host: &mut self.host,
-                        },
+                        &mut TabHost::new(&mut tab.pty(), &mut self.host),
                     )?;
                 }
             }
