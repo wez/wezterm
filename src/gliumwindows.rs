@@ -670,7 +670,9 @@ impl GliumTerminalWindow {
                 // think we know, otherwise we will use the wrong font size.
                 let old_dpi_scale = self.fonts.get_dpi_scale();
                 let dpi_scale = self.host.display.gl_window().get_hidpi_factor();
-                if (old_dpi_scale - dpi_scale).abs() < std::f64::EPSILON {
+                if cfg!(all(unix, not(target_os = "macos")))
+                    && (old_dpi_scale - dpi_scale).abs() < std::f64::EPSILON
+                {
                     let (width, height): (u32, u32) = size.to_physical(dpi_scale).into();
                     eprintln!(
                         "Synthesize HiDpiFactorChanged {} -> {} current {}x{} -> {}x{}",
