@@ -8,8 +8,6 @@ use termwiz::hyperlink::Hyperlink;
 
 pub trait HostHelper {
     fn with_window<F: 'static + Fn(&mut TerminalWindow) -> Result<(), Error>>(&self, func: F);
-    fn new_tab(&mut self);
-    fn new_window(&mut self);
     fn toggle_full_screen(&mut self);
 }
 
@@ -103,13 +101,6 @@ impl<'a, H: HostHelper> term::TerminalHost for TabHost<'a, H> {
             win.update_title();
             Ok(())
         })
-    }
-
-    fn new_window(&mut self) {
-        self.host.new_window();
-    }
-    fn new_tab(&mut self) {
-        self.host.new_tab();
     }
 
     fn activate_tab(&mut self, tab: usize) {

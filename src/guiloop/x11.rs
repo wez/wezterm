@@ -1,21 +1,18 @@
-use super::{GuiSystem, SessionTerminated};
 use crate::config::Config;
 use crate::font::FontConfiguration;
 use crate::futurecore;
-use crate::guicommon::tabs::TabId;
+use crate::guicommon::tabs::{Tab };
 use crate::guicommon::window::TerminalWindow;
+use crate::guiloop::GuiSystem;
+use crate::mux::{Mux, PtyEvent, PtyEventSender};
+use crate::spawn_tab;
 use crate::xwindows::xwin::X11TerminalWindow;
 use crate::xwindows::Connection;
-use crate::{spawn_window_impl, Child, MasterPty};
 use failure::Error;
-use mio::unix::EventedFd;
-use mio::{Event, Evented, Events, Poll, PollOpt, Ready, Token};
+use mio::{Events, Poll, PollOpt, Ready, Token};
 use mio_extras::channel::{channel, Receiver as GuiReceiver, Sender as GuiSender};
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::io;
-use std::os::unix::io::AsRawFd;
-use std::os::unix::io::RawFd;
 use std::rc::Rc;
 use std::sync::mpsc::TryRecvError;
 use std::time::{Duration, Instant};
@@ -30,48 +27,21 @@ impl futurecore::CoreSender for GuiSender<usize> {
     }
 }
 
+impl PtyEventSender for GuiSender<PtyEvent> {
+    fn send(&self, event: PtyEvent) -> Result<(), Error> {
+        GuiSender::send(self, event).map_err(|e| format_err!("send: {}", e))
+    }
+}
+
 impl futurecore::CoreReceiver for GuiReceiver<usize> {
     fn try_recv(&self) -> Result<usize, TryRecvError> {
         GuiReceiver::try_recv(self)
     }
 }
 
-struct TabEntry {
-    tab_id: TabId,
-    fd: RawFd,
-    window_id: WindowId,
-}
-
-impl Evented for TabEntry {
-    fn register(
-        &self,
-        poll: &Poll,
-        token: Token,
-        interest: Ready,
-        opts: PollOpt,
-    ) -> io::Result<()> {
-        EventedFd(&self.fd).register(poll, token, interest, opts)
-    }
-
-    fn reregister(
-        &self,
-        poll: &Poll,
-        token: Token,
-        interest: Ready,
-        opts: PollOpt,
-    ) -> io::Result<()> {
-        EventedFd(&self.fd).reregister(poll, token, interest, opts)
-    }
-
-    fn deregister(&self, poll: &Poll) -> io::Result<()> {
-        EventedFd(&self.fd).deregister(poll)
-    }
-}
-
 #[derive(Default)]
 struct Windows {
     by_id: HashMap<WindowId, X11TerminalWindow>,
-    tab_by_id: HashMap<TabId, Rc<TabEntry>>,
 }
 
 pub struct GuiEventLoop {
@@ -80,40 +50,43 @@ pub struct GuiEventLoop {
     pub core: futurecore::Core,
     windows: Rc<RefCell<Windows>>,
     interval: Duration,
+    pty_rx: GuiReceiver<PtyEvent>,
+    pty_tx: GuiSender<PtyEvent>,
+    mux: Rc<Mux>,
 }
 
 const TOK_CORE: usize = 0xffff_ffff;
+const TOK_PTY: usize = 0xffff_fffe;
 const TOK_XCB: usize = 0xffff_fffc;
 
 pub struct X11GuiSystem {
     event_loop: Rc<GuiEventLoop>,
 }
 impl X11GuiSystem {
-    pub fn try_new() -> Result<Rc<GuiSystem>, Error> {
-        let event_loop = Rc::new(GuiEventLoop::new()?);
+    pub fn try_new(mux: &Rc<Mux>) -> Result<Rc<GuiSystem>, Error> {
+        let event_loop = Rc::new(GuiEventLoop::new(mux)?);
         Ok(Rc::new(Self { event_loop }))
     }
 }
 
 impl super::GuiSystem for X11GuiSystem {
+    fn pty_sender(&self) -> Box<PtyEventSender> {
+        Box::new(self.event_loop.pty_tx.clone())
+    }
     fn run_forever(&self) -> Result<(), Error> {
         self.event_loop.run()
     }
     fn spawn_new_window(
         &self,
-        terminal: term::Terminal,
-        master: MasterPty,
-        child: Child,
         config: &Rc<Config>,
         fontconfig: &Rc<FontConfiguration>,
+        tab: &Rc<Tab>,
     ) -> Result<(), Error> {
         let window = X11TerminalWindow::new(
             &self.event_loop,
-            terminal,
-            master,
-            child,
             fontconfig,
             config,
+            tab,
         )?;
 
         self.event_loop.add_window(window)
@@ -121,7 +94,7 @@ impl super::GuiSystem for X11GuiSystem {
 }
 
 impl GuiEventLoop {
-    pub fn new() -> Result<Self, Error> {
+    pub fn new(mux: &Rc<Mux>) -> Result<Self, Error> {
         let poll = Poll::new()?;
 
         let conn = Rc::new(Connection::new()?);
@@ -138,13 +111,23 @@ impl GuiEventLoop {
         let fut_tx2 = fut_tx.clone();
         let core = futurecore::Core::new(Box::new(fut_tx), Box::new(fut_tx2), Box::new(fut_rx));
 
+        let (pty_tx, pty_rx) = channel();
+        poll.register(&pty_rx, Token(TOK_PTY), Ready::readable(), PollOpt::level())?;
+
         Ok(Self {
             conn,
             poll,
             core,
+            pty_rx,
+            pty_tx,
             interval: Duration::from_millis(50),
             windows: Rc::new(RefCell::new(Default::default())),
+            mux: Rc::clone(mux),
         })
+    }
+
+    pub fn register_tab(&self, tab: &Rc<Tab>) -> Result<(), Error> {
+        self.mux.add_tab(Box::new(self.pty_tx.clone()), tab)
     }
 
     fn run(&self) -> Result<(), Error> {
@@ -152,6 +135,7 @@ impl GuiEventLoop {
 
         let tok_core = Token(TOK_CORE);
         let tok_xcb = Token(TOK_XCB);
+        let tok_pty = Token(TOK_PTY);
 
         self.conn.flush();
         let mut last_interval = Instant::now();
@@ -175,19 +159,17 @@ impl GuiEventLoop {
                             self.process_futures();
                         } else if t == tok_xcb {
                             self.process_queued_xcb()?;
+                        } else if t == tok_pty {
+                            self.process_pty_event()?;
                         } else {
-                            self.process_pty_event(event)?;
                         }
                     }
                     self.process_sigchld();
                     // Check the window count; if after processing the futures there
                     // are no windows left, then we are done.
-                    {
-                        let windows = self.windows.borrow();
-                        if windows.by_id.is_empty() && windows.tab_by_id.is_empty() {
-                            debug!("No more windows; done!");
-                            return Ok(());
-                        }
+                    if self.mux.is_empty() {
+                        debug!("No more windows; done!");
+                        return Ok(());
                     }
                 }
 
@@ -215,58 +197,32 @@ impl GuiEventLoop {
         func(window)
     }
 
-    /// Spawn a new tab in the specified window.  This method registers
-    /// the returned pty fd as a TabEntry so that events are wired up.
-    pub fn spawn_tab(&self, window_id: WindowId) -> Result<(), Error> {
-        let mut windows = self.windows.borrow_mut();
+    fn do_spawn_new_window(
+        events: &Rc<Self>,
+        config: &Rc<Config>,
+        fonts: &Rc<FontConfiguration>,
+    ) -> Result<(), Error> {
+        let tab = spawn_tab(&config, None)?;
+        let sender = Box::new(events.pty_tx.clone());
+        events.mux.add_tab(sender, &tab)?;
+        let window = X11TerminalWindow::new(&events, &fonts, &config, &tab)?;
 
-        let (tab_id, fd) = {
-            let window = windows.by_id.get_mut(&window_id).ok_or_else(|| {
-                format_err!("no window_id {:?} in the windows_by_id map", window_id)
-            })?;
-
-            let tab_id = window.spawn_tab()?;
-
-            let fd = window
-                .get_tabs()
-                .get_by_id(tab_id)
-                .unwrap()
-                .pty()
-                .as_raw_fd();
-
-            (tab_id, fd)
-        };
-
-        eprintln!("spawned new tab with fd = {}", fd);
-
-        let entry = Rc::new(TabEntry {
-            fd,
-            tab_id,
-            window_id,
-        });
-        windows.tab_by_id.insert(tab_id, Rc::clone(&entry));
-        self.poll.register(
-            &*entry,
-            Token(tab_id as usize),
-            Ready::readable(),
-            PollOpt::edge(),
-        )?;
-
-        Ok(())
+        events.add_window(window)
     }
 
-    pub fn spawn_window(
-        &self,
-        event_loop: &Rc<Self>,
+    pub fn schedule_spawn_new_window(
+        events: &Rc<Self>,
         config: &Rc<Config>,
-        fontconfig: &Rc<FontConfiguration>,
-    ) -> Result<(), Error> {
-        let (terminal, master, child, fontconfig) = spawn_window_impl(None, config, fontconfig)?;
-
-        let window =
-            X11TerminalWindow::new(event_loop, terminal, master, child, &fontconfig, config)?;
-
-        self.add_window(window)
+        fonts: &Rc<FontConfiguration>,
+    ) {
+        let myself = Rc::clone(events);
+        let config = Rc::clone(config);
+        let fonts = Rc::clone(fonts);
+        events.core.spawn(futures::future::poll_fn(move || {
+            Self::do_spawn_new_window(&myself, &config, &fonts)
+                .map(futures::Async::Ready)
+                .map_err(|_| ())
+        }));
     }
 
     pub fn add_window(&self, window: X11TerminalWindow) -> Result<(), Error> {
@@ -274,22 +230,6 @@ impl GuiEventLoop {
 
         let mut windows = self.windows.borrow_mut();
 
-        for tab in window.get_tabs().iter() {
-            let fd = tab.pty().as_raw_fd();
-            let tab_id = tab.tab_id();
-            let entry = Rc::new(TabEntry {
-                fd,
-                tab_id,
-                window_id,
-            });
-            windows.tab_by_id.insert(tab_id, Rc::clone(&entry));
-            self.poll.register(
-                &*entry,
-                Token(tab_id as usize),
-                Ready::readable(),
-                PollOpt::edge(),
-            )?;
-        }
         windows.by_id.insert(window_id, window);
         Ok(())
     }
@@ -308,61 +248,12 @@ impl GuiEventLoop {
     /// Process an even from the remote mio instance.
     /// At this time, all such events correspond to readable events
     /// for the pty associated with a window.
-    fn process_pty_event(&self, event: Event) -> Result<(), Error> {
-        // The token is the tab_id
-        let tab_id = event.token().0 as TabId;
-
-        let (window_id, tab_id, result) = {
-            let mut windows = self.windows.borrow_mut();
-
-            let entry = windows
-                .tab_by_id
-                .get(&tab_id)
-                .ok_or_else(|| {
-                    format_err!(
-                        "tab_id {} has no associated window in windows_tab_by_id map",
-                        tab_id
-                    )
-                })
-                .map(Rc::clone)?;
-
-            let window = windows.by_id.get_mut(&entry.window_id).ok_or_else(|| {
-                format_err!(
-                    "tab {} -> window_id {:?} but no associated window is in the windows_tab_by_id map",
-                    tab_id,
-                    entry.window_id
-                )
-            })?;
-            (
-                entry.window_id,
-                entry.tab_id,
-                window.try_read_pty(entry.tab_id),
-            )
-        };
-
-        if let Err(err) = result {
-            if err.downcast_ref::<SessionTerminated>().is_some() {
-                self.windows
-                    .borrow_mut()
-                    .by_id
-                    .get_mut(&window_id)
-                    .map(|window| {
-                        window.tab_did_terminate(tab_id);
-                        Some(())
-                    });
-            } else {
-                bail!("{:?}", err);
-            }
+    fn process_pty_event(&self) -> Result<(), Error> {
+        match self.pty_rx.try_recv() {
+            Ok(event) => self.mux.process_pty_event(event)?,
+            Err(TryRecvError::Empty) => return Ok(()),
+            Err(err) => bail!("poll_rx disconnected {:?}", err),
         }
-        Ok(())
-    }
-
-    pub fn deregister_tab(&self, tab_id: TabId) -> Result<(), Error> {
-        let mut windows = self.windows.borrow_mut();
-        if let Some(entry) = windows.tab_by_id.get_mut(&tab_id) {
-            self.poll.deregister(&**entry).ok();
-        }
-        windows.tab_by_id.remove(&tab_id);
         Ok(())
     }
 
@@ -370,33 +261,7 @@ impl GuiEventLoop {
         eprintln!("schedule_window_close {:?}", window_id);
 
         let mut windows = self.windows.borrow_mut();
-
-        let tab_ids: Vec<TabId> = windows
-            .tab_by_id
-            .iter()
-            .filter_map(|(tab_id, entry)| {
-                if entry.window_id == window_id {
-                    Some(*tab_id)
-                } else {
-                    None
-                }
-            })
-            .collect();
-
-        for tab_id in &tab_ids {
-            if let Some(entry) = windows.tab_by_id.get_mut(&tab_id) {
-                self.poll.deregister(&**entry).ok();
-            }
-            windows.tab_by_id.remove(&tab_id);
-        }
-
         windows.by_id.remove(&window_id);
-        eprintln!(
-            "deregistered tabs {:?}.  Remaining counts {} {}",
-            tab_ids,
-            windows.tab_by_id.len(),
-            windows.by_id.len()
-        );
 
         Ok(())
     }

@@ -1,10 +1,14 @@
 use super::GuiSystem;
+use crate::config::Config;
+use crate::font::FontConfiguration;
 use crate::futurecore;
 use crate::gliumwindows;
 pub use crate::gliumwindows::GliumTerminalWindow;
+use crate::guicommon::tabs::Tab;
 use crate::guicommon::window::TerminalWindow;
 use crate::guiloop::SessionTerminated;
-use crate::{Child, MasterPty};
+use crate::mux::{Mux, PtyEvent, PtyEventSender};
+use crate::spawn_tab;
 use failure::Error;
 use futures::future;
 use glium;
@@ -12,7 +16,6 @@ use glium::glutin::EventsLoopProxy;
 pub use glium::glutin::WindowId;
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::io::Read;
 use std::rc::Rc;
 use std::sync::mpsc::{self, Receiver, SyncSender, TryRecvError};
 use std::thread;
@@ -41,6 +44,12 @@ impl futurecore::CoreSender for GuiSender<usize> {
     }
 }
 
+impl PtyEventSender for GuiSender<PtyEvent> {
+    fn send(&self, event: PtyEvent) -> Result<(), Error> {
+        GuiSender::send(self, event)
+    }
+}
+
 impl futurecore::CoreReceiver for Receiver<usize> {
     fn try_recv(&self) -> Result<usize, mpsc::TryRecvError> {
         Receiver::try_recv(self)
@@ -53,19 +62,6 @@ pub fn channel<T: Send>(proxy: EventsLoopProxy) -> (GuiSender<T>, Receiver<T>) {
     // producer side so that we have a chance for eg: processing CTRL-C
     let (tx, rx) = mpsc::sync_channel(4);
     (GuiSender { tx, proxy }, rx)
-}
-
-#[derive(Clone)]
-pub enum IOEvent {
-    Data {
-        window_id: WindowId,
-        tab_id: usize,
-        data: Vec<u8>,
-    },
-    Terminated {
-        window_id: WindowId,
-        tab_id: usize,
-    },
 }
 
 /// This struct holds references to Windows.
@@ -82,9 +78,10 @@ pub struct GuiEventLoop {
     pub event_loop: RefCell<glium::glutin::EventsLoop>,
     windows: Rc<RefCell<Windows>>,
     core: futurecore::Core,
-    poll_tx: GuiSender<IOEvent>,
-    poll_rx: Receiver<IOEvent>,
+    poll_tx: GuiSender<PtyEvent>,
+    poll_rx: Receiver<PtyEvent>,
     tick_rx: Receiver<()>,
+    mux: Rc<Mux>,
 }
 
 const TICK_INTERVAL: Duration = Duration::from_millis(50);
@@ -95,8 +92,8 @@ pub struct GlutinGuiSystem {
 }
 
 impl GlutinGuiSystem {
-    pub fn try_new() -> Result<Rc<GuiSystem>, Error> {
-        let event_loop = Rc::new(GuiEventLoop::new()?);
+    pub fn try_new(mux: &Rc<Mux>) -> Result<Rc<GuiSystem>, Error> {
+        let event_loop = Rc::new(GuiEventLoop::new(mux)?);
         Ok(Rc::new(Self { event_loop }))
     }
 
@@ -113,6 +110,10 @@ impl GlutinGuiSystem {
 }
 
 impl GuiSystem for GlutinGuiSystem {
+    fn pty_sender(&self) -> Box<PtyEventSender> {
+        Box::new(self.event_loop.poll_tx.clone())
+    }
+
     fn run_forever(&self) -> Result<(), Error> {
         // This convoluted run() signature is present because of this issue:
         // https://github.com/tomaka/winit/issues/413
@@ -138,19 +139,15 @@ impl GuiSystem for GlutinGuiSystem {
 
     fn spawn_new_window(
         &self,
-        terminal: term::Terminal,
-        master: MasterPty,
-        child: Child,
         config: &Rc<crate::config::Config>,
         fontconfig: &Rc<crate::font::FontConfiguration>,
+        tab: &Rc<Tab>,
     ) -> Result<(), Error> {
         let window = GliumTerminalWindow::new(
             &self.event_loop,
-            terminal,
-            master,
-            child,
             fontconfig,
             config,
+            tab,
         )?;
 
         self.event_loop.add_window(window)
@@ -158,7 +155,7 @@ impl GuiSystem for GlutinGuiSystem {
 }
 
 impl GuiEventLoop {
-    pub fn new() -> Result<Self, Error> {
+    pub fn new(mux: &Rc<Mux>) -> Result<Self, Error> {
         let event_loop = glium::glutin::EventsLoop::new();
 
         let (fut_tx, fut_rx) = channel(event_loop.create_proxy());
@@ -184,7 +181,40 @@ impl GuiEventLoop {
             tick_rx,
             event_loop: RefCell::new(event_loop),
             windows: Rc::new(RefCell::new(Default::default())),
+            mux: Rc::clone(mux),
         })
+    }
+
+    pub fn register_tab(&self, tab: &Rc<Tab>) -> Result<(), Error> {
+        self.mux.add_tab(Box::new(self.poll_tx.clone()), tab)
+    }
+
+    fn do_spawn_new_window(
+        events: &Rc<Self>,
+        config: &Rc<Config>,
+        fonts: &Rc<FontConfiguration>,
+    ) -> Result<(), Error> {
+        let tab = spawn_tab(&config, None)?;
+        let sender = Box::new(events.poll_tx.clone());
+        events.mux.add_tab(sender, &tab)?;
+        let window = GliumTerminalWindow::new( &events, &fonts, &config, &tab)?;
+
+        events.add_window(window)
+    }
+
+    pub fn schedule_spawn_new_window(
+        events: &Rc<Self>,
+        config: &Rc<Config>,
+        fonts: &Rc<FontConfiguration>,
+    ) {
+        let myself = Rc::clone(events);
+        let config = Rc::clone(config);
+        let fonts = Rc::clone(fonts);
+        events.core.spawn(futures::future::poll_fn(move || {
+            Self::do_spawn_new_window(&myself, &config, &fonts)
+                .map(futures::Async::Ready)
+                .map_err(|_| ())
+        }));
     }
 
     pub fn with_window<F: 'static + Fn(&mut TerminalWindow) -> Result<(), Error>>(
@@ -203,63 +233,9 @@ impl GuiEventLoop {
         }));
     }
 
-    pub fn spawn_fn<F: 'static + Fn() -> Result<(), Error>>(&self, func: F) {
-        self.core.spawn(futures::future::poll_fn(move || {
-            func().map(futures::Async::Ready).map_err(|_| ())
-        }))
-    }
-
-    pub fn schedule_read_pty(
-        &self,
-        mut pty: MasterPty,
-        window_id: WindowId,
-        tab_id: usize,
-    ) -> Result<(), Error> {
-        pty.clear_nonblocking()?;
-        let tx = self.poll_tx.clone();
-
-        thread::spawn(move || {
-            const BUFSIZE: usize = 32 * 1024;
-            let mut buf = [0; BUFSIZE];
-            loop {
-                match pty.read(&mut buf) {
-                    Ok(size) if size == 0 => {
-                        eprintln!("read_pty EOF: window {:?} {}", window_id, tab_id);
-                        tx.send(IOEvent::Terminated { window_id, tab_id }).ok();
-                        return;
-                    }
-                    Ok(size) => {
-                        if tx
-                            .send(IOEvent::Data {
-                                window_id,
-                                tab_id,
-                                data: buf[0..size].to_vec(),
-                            })
-                            .is_err()
-                        {
-                            return;
-                        }
-                    }
-                    Err(err) => {
-                        eprintln!(
-                            "read_pty failed: window {:?} {} {:?}",
-                            window_id, tab_id, err
-                        );
-                        tx.send(IOEvent::Terminated { window_id, tab_id }).ok();
-                        return;
-                    }
-                }
-            }
-        });
-
-        Ok(())
-    }
-
     /// Add a window to the event loop and run it.
     pub fn add_window(&self, window: gliumwindows::GliumTerminalWindow) -> Result<(), Error> {
         let window_id = window.window_id();
-        let pty = window.clone_current_pty()?;
-        self.schedule_read_pty(pty, window_id, window.get_tab_id_by_idx(0))?;
         let mut windows = self.windows.borrow_mut();
         windows.by_id.insert(window_id, window);
         Ok(())
@@ -334,25 +310,7 @@ impl GuiEventLoop {
                 _ => {}
             }
             match self.poll_rx.try_recv() {
-                Ok(IOEvent::Data {
-                    window_id,
-                    tab_id,
-                    data,
-                }) => {
-                    let mut windows = self.windows.borrow_mut();
-                    windows.by_id.get_mut(&window_id).map(|window| {
-                        window.process_data_read_from_pty(&data, tab_id).ok();
-                        Some(())
-                    });
-                }
-                Ok(IOEvent::Terminated { window_id, tab_id }) => {
-                    eprintln!("window {:?} tab {} terminated", window_id, tab_id);
-                    let mut windows = self.windows.borrow_mut();
-                    windows.by_id.get_mut(&window_id).map(|window| {
-                        window.tab_did_terminate(tab_id);
-                        Some(())
-                    });
-                }
+                Ok(event) => self.mux.process_pty_event(event)?,
                 Err(TryRecvError::Empty) => return Ok(()),
                 Err(err) => bail!("poll_rx disconnected {:?}", err),
             }

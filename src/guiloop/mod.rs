@@ -1,7 +1,8 @@
 use super::ExitStatus;
 use crate::config::Config;
 use crate::font::FontConfiguration;
-use crate::{Child, MasterPty};
+use crate::guicommon::tabs::Tab;
+use crate::mux::{Mux, PtyEventSender};
 use failure::Error;
 use std::rc::Rc;
 
@@ -24,12 +25,12 @@ impl Default for GuiSelection {
 }
 
 impl GuiSelection {
-    pub fn try_new(self) -> Result<Rc<GuiSystem>, Error> {
+    pub fn try_new(self, mux: &Rc<Mux>) -> Result<Rc<GuiSystem>, Error> {
         match self {
-            GuiSelection::Glutin => glutinloop::GlutinGuiSystem::try_new(),
+            GuiSelection::Glutin => glutinloop::GlutinGuiSystem::try_new(mux),
             GuiSelection::X11 => {
                 #[cfg(all(unix, not(target_os = "macos")))]
-                return x11::X11GuiSystem::try_new();
+                return x11::X11GuiSystem::try_new(mux);
                 #[cfg(not(all(unix, not(target_os = "macos"))))]
                 bail!("X11 not compiled in");
             }
@@ -64,12 +65,12 @@ pub trait GuiSystem {
 
     fn spawn_new_window(
         &self,
-        terminal: term::Terminal,
-        master: MasterPty,
-        child: Child,
         config: &Rc<Config>,
         fontconfig: &Rc<FontConfiguration>,
+        tab: &Rc<Tab>,
     ) -> Result<(), Error>;
+
+    fn pty_sender(&self) -> Box<PtyEventSender>;
 }
 
 pub mod glutinloop;

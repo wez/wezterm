@@ -9,15 +9,14 @@ use crate::guicommon::window::{Dimensions, TerminalWindow};
 use crate::guiloop::glutinloop::GuiEventLoop;
 use crate::guiloop::SessionTerminated;
 use crate::opengl::render::Renderer;
-use crate::{spawn_window_impl, Child, MasterPty};
 use glium;
 use glium::glutin::dpi::{LogicalPosition, LogicalSize, PhysicalPosition, PhysicalSize};
 use glium::glutin::{self, ElementState, MouseCursor};
 use std::cell::RefMut;
 use std::rc::Rc;
+use term;
 use term::KeyCode;
 use term::KeyModifiers;
-use term::{self, Terminal};
 use term::{MouseButton, MouseEventKind};
 #[cfg(target_os = "macos")]
 use winit::os::macos::WindowExt;
@@ -36,22 +35,6 @@ struct Host {
 impl HostHelper for Host {
     fn with_window<F: 'static + Fn(&mut TerminalWindow) -> Result<(), Error>>(&self, func: F) {
         GuiEventLoop::with_window(&self.event_loop, self.display.gl_window().id(), func);
-    }
-
-    fn new_window(&mut self) {
-        let event_loop = Rc::clone(&self.event_loop);
-        let config = Rc::clone(&self.config);
-        let fonts = Rc::clone(&self.fonts);
-        self.event_loop.spawn_fn(move || {
-            let (terminal, master, child, fonts) = spawn_window_impl(None, &config, &fonts)?;
-            let window =
-                GliumTerminalWindow::new(&event_loop, terminal, master, child, &fonts, &config)?;
-
-            event_loop.add_window(window)
-        });
-    }
-    fn new_tab(&mut self) {
-        self.with_window(|win| win.spawn_tab().map(|_| ()));
     }
 
     fn toggle_full_screen(&mut self) {
@@ -133,14 +116,9 @@ impl TerminalWindow for GliumTerminalWindow {
             self.tabs.get_active().unwrap().terminal(),
         )
     }
-    fn tab_was_created(&mut self, tab_id: TabId) -> Result<(), Error> {
-        match self.tabs.get_by_id(tab_id) {
-            Ok(tab) => {
-                self.event_loop
-                    .schedule_read_pty(tab.pty().try_clone()?, self.window_id(), tab_id)
-            }
-            _ => Ok(()),
-        }
+
+    fn tab_was_created(&mut self, tab: &Rc<Tab>) -> Result<(), Error> {
+        self.event_loop.register_tab(tab)
     }
     fn deregister_tab(&mut self, _tab_id: TabId) -> Result<(), Error> {
         Ok(())
@@ -187,11 +165,9 @@ impl TerminalWindow for GliumTerminalWindow {
 impl GliumTerminalWindow {
     pub fn new(
         event_loop: &Rc<GuiEventLoop>,
-        terminal: Terminal,
-        pty: MasterPty,
-        process: Child,
         fonts: &Rc<FontConfiguration>,
         config: &Rc<Config>,
+        tab: &Rc<Tab>,
     ) -> Result<GliumTerminalWindow, Error> {
         let palette = config
             .colors
@@ -199,13 +175,19 @@ impl GliumTerminalWindow {
             .map(|p| p.clone().into())
             .unwrap_or_else(term::color::ColorPalette::default);
 
-        let metrics = fonts.default_font_metrics()?;
-        let (cell_height, cell_width) = (metrics.cell_height, metrics.cell_width);
+        let terminal = tab.terminal();
+        let screen = terminal.screen();
 
-        let size = pty.get_size()?;
-        let width = size.ws_xpixel;
-        let height = size.ws_ypixel;
-        let logical_size = LogicalSize::new(width.into(), height.into());
+        let metrics = fonts.default_font_metrics()?;
+        let (cell_height, cell_width) = (
+            metrics.cell_height.ceil() as usize,
+            metrics.cell_width.ceil() as usize,
+        );
+
+        let width = cell_width * screen.physical_cols;
+        let height = cell_height * screen.physical_rows;
+
+        let logical_size = LogicalSize::new(width as f64, height as f64);
         eprintln!("make window with {}x{}", width, height);
 
         let display = {
@@ -234,11 +216,9 @@ impl GliumTerminalWindow {
 
         host.display.gl_window().set_cursor(MouseCursor::Text);
 
+        let width = width as u16;
+        let height = height as u16;
         let renderer = Renderer::new(&host.display, width, height, fonts, palette)?;
-        let cell_height = cell_height.ceil() as usize;
-        let cell_width = cell_width.ceil() as usize;
-
-        let tab = Tab::new(terminal, process, pty);
 
         Ok(GliumTerminalWindow {
             host,
@@ -257,32 +237,8 @@ impl GliumTerminalWindow {
         })
     }
 
-    pub fn get_tab_id_by_idx(&self, tab_idx: usize) -> usize {
-        self.tabs
-            .get_by_idx(tab_idx)
-            .expect("invalid tab_idx")
-            .tab_id()
-    }
-
     pub fn window_id(&self) -> glutin::WindowId {
         self.host.display.gl_window().id()
-    }
-
-    pub fn clone_current_pty(&self) -> Result<MasterPty, Error> {
-        self.tabs
-            .get_active()
-            .ok_or_else(|| format_err!("no active tab"))?
-            .pty()
-            .try_clone()
-    }
-
-    pub fn process_data_read_from_pty(&mut self, data: &[u8], tab_id: usize) -> Result<(), Error> {
-        let tab = self.tabs.get_by_id(tab_id)?;
-
-        tab.terminal()
-            .advance_bytes(data, &mut TabHost::new(&mut tab.pty(), &mut self.host));
-
-        Ok(())
     }
 
     fn resize_surfaces_logical(&mut self, size: LogicalSize) -> Result<bool, Error> {
@@ -649,11 +605,29 @@ impl GliumTerminalWindow {
         if let Some(key) = Self::keycode_from_input(&event) {
             // debug!("event {:?} -> {:?}", event, key);
             match event.state {
-                ElementState::Pressed => tab.terminal().key_down(
-                    key,
-                    mods,
-                    &mut TabHost::new(&mut tab.pty(), &mut self.host),
-                )?,
+                ElementState::Pressed => {
+                    if mods == KeyModifiers::SUPER && key == KeyCode::Char('n') {
+                        GuiEventLoop::schedule_spawn_new_window(
+                            &self.event_loop,
+                            &self.host.config,
+                            &self.host.fonts,
+                        );
+                        return Ok(());
+                    }
+
+                    if mods == KeyModifiers::SUPER && key == KeyCode::Char('t') {
+                        GuiEventLoop::with_window(&self.event_loop, self.window_id(), |win| {
+                            win.spawn_tab().map(|_| ())
+                        });
+                        return Ok(());
+                    }
+
+                    tab.terminal().key_down(
+                        key,
+                        mods,
+                        &mut TabHost::new(&mut tab.pty(), &mut self.host),
+                    )?
+                }
 
                 ElementState::Released => tab.terminal().key_up(
                     key,

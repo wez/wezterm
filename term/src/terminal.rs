@@ -22,12 +22,6 @@ pub trait TerminalHost {
     /// Called when a URL is clicked
     fn click_link(&mut self, link: &Rc<Hyperlink>);
 
-    /// Create a new Window
-    fn new_window(&mut self) {}
-
-    /// Create a new tab in the current window
-    fn new_tab(&mut self) {}
-
     /// Switch to a specific tab
     fn activate_tab(&mut self, _tab: usize) {}
 

@@ -20,9 +20,12 @@ mod futurecore;
 mod gliumwindows;
 mod guicommon;
 mod guiloop;
+mod mux;
 mod opengl;
+use crate::guicommon::tabs::Tab;
 use crate::guiloop::GuiSelection;
 use crate::guiloop::GuiSystem;
+use crate::mux::Mux;
 
 mod font;
 use crate::font::{FontConfiguration, FontSystemSelection};
@@ -117,33 +120,25 @@ fn main() -> Result<(), Error> {
         None
     };
 
-    let gui_system = opts.gui_system.unwrap_or(config.gui_system);
-    let gui = gui_system.try_new()?;
+    let mux = Rc::new(mux::Mux::default());
 
-    spawn_window(&*gui, cmd, &config, &fontconfig)?;
+    let gui_system = opts.gui_system.unwrap_or(config.gui_system);
+    let gui = gui_system.try_new(&mux)?;
+
+    spawn_window(&mux, &*gui, cmd, &config, &fontconfig)?;
     gui.run_forever()
 }
 
-fn spawn_window_impl(
-    cmd: Option<Vec<&std::ffi::OsStr>>,
+fn spawn_tab(
     config: &Rc<config::Config>,
-    fontconfig: &Rc<FontConfiguration>,
-) -> Result<(term::Terminal, MasterPty, Child, Rc<FontConfiguration>), Error> {
+    cmd: Option<Vec<&std::ffi::OsStr>>,
+) -> Result<Rc<Tab>, Error> {
     let cmd = config.build_prog(cmd)?;
-
-    let fontconfig = fontconfig.clone_unscaled();
-
-    // First step is to figure out the font metrics so that we know how
-    // big things are going to be.
-    // we always load the cell_height for font 0,
-    // regardless of which font we are shaping here,
-    // so that we can scale glyphs appropriately
-    let metrics = fontconfig.default_font_metrics()?;
 
     let initial_cols = 80u16;
     let initial_rows = 24u16;
-    let initial_pixel_width = initial_cols * metrics.cell_width.ceil() as u16;
-    let initial_pixel_height = initial_rows * metrics.cell_height.ceil() as u16;
+    let initial_pixel_width = 0;
+    let initial_pixel_height = 0;
 
     let (master, slave) = openpty(
         initial_rows,
@@ -162,16 +157,18 @@ fn spawn_window_impl(
         config.hyperlink_rules.clone(),
     );
 
-    Ok((terminal, master, child, fontconfig))
+    Ok(Rc::new(Tab::new(terminal, child, master)))
 }
 
 fn spawn_window(
+    mux: &Rc<Mux>,
     gui: &GuiSystem,
     cmd: Option<Vec<&std::ffi::OsStr>>,
     config: &Rc<config::Config>,
     fontconfig: &Rc<FontConfiguration>,
 ) -> Result<(), Error> {
-    let (terminal, master, child, fontconfig) = spawn_window_impl(cmd, config, fontconfig)?;
+    let tab = spawn_tab(config, cmd)?;
+    mux.add_tab(gui.pty_sender(), &tab)?;
 
-    gui.spawn_new_window(terminal, master, child, config, &fontconfig)
+    gui.spawn_new_window(config, &fontconfig, &tab)
 }

@@ -1,5 +1,4 @@
 use super::super::opengl::render::Renderer;
-use super::super::Child;
 use super::xkeysyms;
 use super::{Connection, Window};
 use crate::config::Config;
@@ -9,11 +8,9 @@ use crate::guicommon::tabs::{Tab, TabId, Tabs};
 use crate::guicommon::window::{Dimensions, TerminalWindow};
 use crate::guiloop::x11::{GuiEventLoop, WindowId};
 use crate::guiloop::SessionTerminated;
-use crate::MasterPty;
 use failure::Error;
 use futures;
 use std::cell::RefMut;
-use std::io::{self, Read};
 use std::rc::Rc;
 use term::{self, KeyCode, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 use xcb;
@@ -36,35 +33,6 @@ impl HostHelper for Host {
             .spawn(futures::future::poll_fn(move || {
                 events
                     .with_window(window_id, &func)
-                    .map(futures::Async::Ready)
-                    .map_err(|_| ())
-            }));
-    }
-    fn new_window(&mut self) {
-        let event_loop = Rc::clone(&self.event_loop);
-        let events = Rc::clone(&self.event_loop);
-        let config = Rc::clone(&self.config);
-        let fonts = Rc::clone(&self.fonts);
-
-        self.event_loop
-            .core
-            .spawn(futures::future::poll_fn(move || {
-                events
-                    .spawn_window(&event_loop, &config, &fonts)
-                    .map(futures::Async::Ready)
-                    .map_err(|_| ())
-            }));
-    }
-
-    fn new_tab(&mut self) {
-        let events = Rc::clone(&self.event_loop);
-        let window_id = self.window.window.window_id;
-
-        self.event_loop
-            .core
-            .spawn(futures::future::poll_fn(move || {
-                events
-                    .spawn_tab(window_id)
                     .map(futures::Async::Ready)
                     .map_err(|_| ())
             }));
@@ -118,20 +86,10 @@ impl TerminalWindow for X11TerminalWindow {
             self.tabs.get_active().unwrap().terminal(),
         )
     }
-    fn tab_was_created(&mut self, _tab_id: TabId) -> Result<(), Error> {
-        Ok(())
+    fn tab_was_created(&mut self, tab: &Rc<Tab>) -> Result<(), Error> {
+        self.host.event_loop.register_tab(tab)
     }
-    fn deregister_tab(&mut self, tab_id: TabId) -> Result<(), Error> {
-        let events = Rc::clone(&self.host.event_loop);
-        self.host
-            .event_loop
-            .core
-            .spawn(futures::future::poll_fn(move || {
-                events
-                    .deregister_tab(tab_id)
-                    .map(futures::Async::Ready)
-                    .map_err(|_| ())
-            }));
+    fn deregister_tab(&mut self, _tab_id: TabId) -> Result<(), Error> {
         Ok(())
     }
     fn get_dimensions(&self) -> Dimensions {
@@ -167,11 +125,9 @@ impl TerminalWindow for X11TerminalWindow {
 impl X11TerminalWindow {
     pub fn new(
         event_loop: &Rc<GuiEventLoop>,
-        terminal: term::Terminal,
-        pty: MasterPty,
-        process: Child,
         fonts: &Rc<FontConfiguration>,
         config: &Rc<Config>,
+        tab: &Rc<Tab>,
     ) -> Result<X11TerminalWindow, Error> {
         let palette = config
             .colors
@@ -179,13 +135,20 @@ impl X11TerminalWindow {
             .map(|p| p.clone().into())
             .unwrap_or_else(term::color::ColorPalette::default);
 
+        let terminal = tab.terminal();
+        let screen = terminal.screen();
+
         let metrics = fonts.default_font_metrics()?;
-        let (cell_height, cell_width) = (metrics.cell_height, metrics.cell_width);
+        let (cell_height, cell_width) = (
+            metrics.cell_height.ceil() as usize,
+            metrics.cell_width.ceil() as usize,
+        );
 
-        let size = pty.get_size()?;
-        let width = size.ws_xpixel;
-        let height = size.ws_ypixel;
+        let width = cell_width * screen.physical_cols;
+        let height = cell_height * screen.physical_rows;
 
+        let width = width as u16;
+        let height = height as u16;
         let window = Window::new(&event_loop.conn, width, height)?;
         window.set_title("wezterm");
 
@@ -197,12 +160,8 @@ impl X11TerminalWindow {
         });
 
         let renderer = Renderer::new(&host.window, width, height, fonts, palette)?;
-        let cell_height = cell_height.ceil() as usize;
-        let cell_width = cell_width.ceil() as usize;
 
         host.window.show();
-
-        let tab = Tab::new(terminal, process, pty);
 
         Ok(X11TerminalWindow {
             host,
@@ -222,30 +181,6 @@ impl X11TerminalWindow {
 
     pub fn expose(&mut self, _x: u16, _y: u16, _width: u16, _height: u16) -> Result<(), Error> {
         self.paint()
-    }
-
-    pub fn try_read_pty(&mut self, tab_id: TabId) -> Result<(), Error> {
-        const BUFSIZE: usize = 8192;
-        let mut buf = [0; BUFSIZE];
-
-        let tab = self.tabs.get_by_id(tab_id)?;
-
-        let result = tab.pty().read(&mut buf);
-        match result {
-            Ok(size) => {
-                tab.terminal().advance_bytes(
-                    &buf[0..size],
-                    &mut TabHost::new(&mut tab.pty(), &mut self.host),
-                );
-            }
-            Err(err) => {
-                if err.kind() != io::ErrorKind::WouldBlock {
-                    return Err(SessionTerminated::Error { err: err.into() }.into());
-                }
-            }
-        }
-
-        Ok(())
     }
 
     fn decode_key(&self, event: &xcb::KeyPressEvent) -> Option<(KeyCode, KeyModifiers)> {
@@ -280,6 +215,18 @@ impl X11TerminalWindow {
                     None => return Ok(()),
                 };
                 if let Some((code, mods)) = self.decode_key(key_press) {
+                    if mods == KeyModifiers::SUPER && code == KeyCode::Char('n') {
+                        GuiEventLoop::schedule_spawn_new_window(
+                            &self.host.event_loop,
+                            &self.host.config,
+                            &self.host.fonts,
+                        );
+                        return Ok(());
+                    }
+                    if mods == KeyModifiers::SUPER && code == KeyCode::Char('t') {
+                        self.host.with_window(|win| win.spawn_tab().map(|_| ()));
+                        return Ok(());
+                    }
                     tab.terminal().key_down(
                         code,
                         mods,

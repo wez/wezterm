@@ -1,6 +1,6 @@
 use crate::{Child, MasterPty};
-use failure::Error;
 use std::cell::{RefCell, RefMut};
+use std::rc::Rc;
 use term::Terminal;
 
 static TAB_ID: ::std::sync::atomic::AtomicUsize = ::std::sync::atomic::ATOMIC_USIZE_INIT;
@@ -51,20 +51,20 @@ impl Drop for Tab {
 }
 
 pub struct Tabs {
-    tabs: Vec<Tab>,
+    tabs: Vec<Rc<Tab>>,
     active: usize,
 }
 
 impl Tabs {
-    pub fn new(tab: Tab) -> Self {
+    pub fn new(tab: &Rc<Tab>) -> Self {
         Self {
-            tabs: vec![tab],
+            tabs: vec![Rc::clone(tab)],
             active: 0,
         }
     }
 
-    pub fn push(&mut self, tab: Tab) {
-        self.tabs.push(tab);
+    pub fn push(&mut self, tab: &Rc<Tab>) {
+        self.tabs.push(Rc::clone(tab))
     }
 
     pub fn is_empty(&self) -> bool {
@@ -75,22 +75,13 @@ impl Tabs {
         self.tabs.len()
     }
 
-    pub fn get_by_idx(&self, idx: usize) -> Option<&Tab> {
+    pub fn get_by_idx(&self, idx: usize) -> Option<&Rc<Tab>> {
         self.tabs.get(idx)
-    }
-
-    pub fn get_by_id(&self, id: TabId) -> Result<&Tab, Error> {
-        for t in &self.tabs {
-            if t.tab_id == id {
-                return Ok(t);
-            }
-        }
-        bail!("no such tab id {}", id)
     }
 
     pub fn idx_by_id(&self, id: TabId) -> Option<usize> {
         for (idx, t) in self.tabs.iter().enumerate() {
-            if t.tab_id == id {
+            if t.tab_id() == id {
                 return Some(idx);
             }
         }
@@ -107,8 +98,8 @@ impl Tabs {
         }
     }
 
-    pub fn get_active(&self) -> Option<&Tab> {
-        self.tabs.get(self.active)
+    pub fn get_active(&self) -> Option<&Rc<Tab>> {
+        self.get_by_idx(self.active)
     }
 
     #[inline]
@@ -119,10 +110,14 @@ impl Tabs {
     pub fn set_active(&mut self, idx: usize) {
         assert!(idx < self.tabs.len());
         self.active = idx;
-        self.tabs[idx].terminal.borrow_mut().make_all_lines_dirty();
+        self.get_by_idx(idx)
+            .unwrap()
+            .terminal
+            .borrow_mut()
+            .make_all_lines_dirty();
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = &Tab> {
+    pub fn iter(&self) -> impl Iterator<Item = &Rc<Tab>> {
         self.tabs.iter()
     }
 }

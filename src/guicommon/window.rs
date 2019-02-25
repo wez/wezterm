@@ -3,7 +3,7 @@ use crate::font::FontConfiguration;
 use crate::guicommon::tabs::{Tab, TabId, Tabs};
 use crate::opengl::render::Renderer;
 use crate::opengl::textureatlas::OutOfTextureSpace;
-use crate::pty::unix::openpty;
+use crate::openpty;
 use failure::Error;
 use glium;
 use std::cell::RefMut;
@@ -37,7 +37,7 @@ pub trait TerminalWindow {
         cell_height: usize,
     ) -> Result<(), Error>;
     fn advise_renderer_of_resize(&mut self, width: u16, height: u16) -> Result<(), Error>;
-    fn tab_was_created(&mut self, tab_id: TabId) -> Result<(), Error>;
+    fn tab_was_created(&mut self, tab: &Rc<Tab>) -> Result<(), Error>;
     fn deregister_tab(&mut self, tab_id: TabId) -> Result<(), Error>;
     fn config(&self) -> &Rc<Config>;
     fn fonts(&self) -> &Rc<FontConfiguration>;
@@ -90,6 +90,7 @@ pub trait TerminalWindow {
         if tab.terminal().has_dirty_lines() {
             self.paint()?;
         }
+        self.update_title();
         Ok(())
     }
 
@@ -150,14 +151,14 @@ pub trait TerminalWindow {
             config.hyperlink_rules.clone(),
         );
 
-        let tab = Tab::new(terminal, process, pty);
+        let tab = Rc::new(Tab::new(terminal, process, pty));
         let tab_id = tab.tab_id();
 
-        self.get_tabs_mut().push(tab);
+        self.get_tabs_mut().push(&tab);
         let len = self.get_tabs().len();
         self.activate_tab(len - 1)?;
 
-        self.tab_was_created(tab_id)?;
+        self.tab_was_created(&tab)?;
 
         Ok(tab_id)
     }
@@ -177,7 +178,8 @@ pub trait TerminalWindow {
             let rows = ((height as usize + 1) / dims.cell_height) as u16;
             let cols = ((width as usize + 1) / dims.cell_width) as u16;
 
-            for tab in self.get_tabs().iter() {
+            let tabs = self.get_tabs();
+            for tab in tabs.iter() {
                 tab.pty().resize(rows, cols, width as u16, height as u16)?;
                 tab.terminal().resize(rows as usize, cols as usize);
             }
@@ -235,24 +237,26 @@ pub trait TerminalWindow {
 
     fn tab_did_terminate(&mut self, tab_id: TabId) {
         self.get_tabs_mut().remove_by_id(tab_id);
-        if let Some(tab) = self.get_tabs().get_active() {
-            tab.terminal().make_all_lines_dirty();
+        if let Some(active) = self.get_tabs().get_active() {
+            active.terminal().make_all_lines_dirty();
             self.update_title();
         }
-
         self.deregister_tab(tab_id).ok();
     }
     fn test_for_child_exit(&mut self) -> bool {
-        let dead_tabs: Vec<TabId> = self
-            .get_tabs()
+        let tabs = self.get_tabs();
+        let dead_tabs: Vec<Rc<Tab>> = tabs
             .iter()
-            .filter_map(|tab| match tab.process().try_wait() {
-                Ok(None) => None,
-                _ => Some(tab.tab_id()),
+            .filter_map(|tab| {
+                if let Ok(None) = tab.process().try_wait() {
+                    None
+                } else {
+                    Some(Rc::clone(tab))
+                }
             })
             .collect();
-        for tab_id in dead_tabs {
-            self.tab_did_terminate(tab_id);
+        for tab in dead_tabs {
+            self.tab_did_terminate(tab.tab_id());
         }
         self.get_tabs().is_empty()
     }

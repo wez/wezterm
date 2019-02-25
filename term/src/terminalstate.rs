@@ -696,14 +696,6 @@ impl TerminalState {
 
         // TODO: also respect self.application_keypad
 
-        if mods == KeyModifiers::SUPER && key == KeyCode::Char('n') {
-            host.new_window();
-            return Ok(());
-        }
-        if mods == KeyModifiers::SUPER && key == KeyCode::Char('t') {
-            host.new_tab();
-            return Ok(());
-        }
         if mods == (KeyModifiers::SUPER | KeyModifiers::SHIFT)
             && (key == KeyCode::Char('[') || key == KeyCode::Char('{'))
         {
