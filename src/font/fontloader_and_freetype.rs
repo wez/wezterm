@@ -66,7 +66,10 @@ impl FontSystem for FontLoaderAndFreeType {
 impl NamedFontImpl {
     fn shape_codepoint(&mut self, c: char, cluster: usize) -> Result<GlyphInfo, Error> {
         for (font_idx, font) in self.fonts.iter().enumerate() {
-            let mut info = font.single_glyph_info(c)?;
+            let mut info = match font.single_glyph_info(c) {
+                Err(_) => continue,
+                Ok(info) => info,
+            };
             if info.glyph_pos == 0 {
                 continue;
             }
