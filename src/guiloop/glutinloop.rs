@@ -143,12 +143,7 @@ impl GuiSystem for GlutinGuiSystem {
         fontconfig: &Rc<crate::font::FontConfiguration>,
         tab: &Rc<Tab>,
     ) -> Result<(), Error> {
-        let window = GliumTerminalWindow::new(
-            &self.event_loop,
-            fontconfig,
-            config,
-            tab,
-        )?;
+        let window = GliumTerminalWindow::new(&self.event_loop, fontconfig, config, tab)?;
 
         self.event_loop.add_window(window)
     }
@@ -197,7 +192,7 @@ impl GuiEventLoop {
         let tab = spawn_tab(&config, None)?;
         let sender = Box::new(events.poll_tx.clone());
         events.mux.add_tab(sender, &tab)?;
-        let window = GliumTerminalWindow::new( &events, &fonts, &config, &tab)?;
+        let window = GliumTerminalWindow::new(&events, &fonts, &config, &tab)?;
 
         events.add_window(window)
     }

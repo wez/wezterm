@@ -83,8 +83,7 @@ impl<'a> TerminalHost for Host<'a> {
         Ok(())
     }
 
-    fn set_title(&mut self, _title: &str) {
-    }
+    fn set_title(&mut self, _title: &str) {}
 }
 
 impl Mux {

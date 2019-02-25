@@ -1,7 +1,7 @@
 use crate::config::Config;
 use crate::font::FontConfiguration;
 use crate::futurecore;
-use crate::guicommon::tabs::{Tab };
+use crate::guicommon::tabs::Tab;
 use crate::guicommon::window::TerminalWindow;
 use crate::guiloop::GuiSystem;
 use crate::mux::{Mux, PtyEvent, PtyEventSender};
@@ -82,12 +82,7 @@ impl super::GuiSystem for X11GuiSystem {
         fontconfig: &Rc<FontConfiguration>,
         tab: &Rc<Tab>,
     ) -> Result<(), Error> {
-        let window = X11TerminalWindow::new(
-            &self.event_loop,
-            fontconfig,
-            config,
-            tab,
-        )?;
+        let window = X11TerminalWindow::new(&self.event_loop, fontconfig, config, tab)?;
 
         self.event_loop.add_window(window)
     }
