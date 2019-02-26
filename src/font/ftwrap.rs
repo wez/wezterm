@@ -11,7 +11,7 @@ fn ft_result<T>(err: FT_Error, t: T) -> Result<T, Error> {
     if succeeded(err) {
         Ok(t)
     } else {
-        Err(format_err!("FreeType error {:?}", err))
+        Err(format_err!("FreeType error {:?} 0x{:x}", err, err))
     }
 }
 
@@ -70,8 +70,9 @@ impl Face {
             let res = FT_Load_Glyph(self.face, glyph_pos, FT_LOAD_COLOR as i32);
             ensure!(
                 succeeded(res),
-                "load_codepoint {}: FreeType error {:?}",
+                "load_codepoint {}: FreeType error {:?} 0x{:x}",
                 codepoint,
+                res,
                 res
             );
 
