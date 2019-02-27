@@ -50,6 +50,7 @@ pub struct X11TerminalWindow {
     cell_height: usize,
     cell_width: usize,
     tabs: Tabs,
+    have_pending_resize: Option<(u16, u16)>,
 }
 
 impl TerminalWindow for X11TerminalWindow {
@@ -120,6 +121,13 @@ impl TerminalWindow for X11TerminalWindow {
         // XCB_CONFIG_WINDOW_WIDTH and XCB_CONFIG_WINDOW_HEIGHT set.
         Ok(false)
     }
+
+    fn check_for_resize(&mut self) -> Result<(), Error> {
+        if let Some((width, height)) = self.have_pending_resize.take() {
+            self.resize_surfaces(width, height, false)?;
+        }
+        Ok(())
+    }
 }
 
 impl X11TerminalWindow {
@@ -172,6 +180,7 @@ impl X11TerminalWindow {
             cell_height,
             cell_width,
             tabs: Tabs::new(tab),
+            have_pending_resize: None,
         })
     }
 
@@ -206,7 +215,11 @@ impl X11TerminalWindow {
             }
             xcb::CONFIGURE_NOTIFY => {
                 let cfg: &xcb::ConfigureNotifyEvent = unsafe { xcb::cast_event(event) };
-                self.resize_surfaces(cfg.width(), cfg.height(), false)?;
+                let schedule = self.have_pending_resize.is_none();
+                self.have_pending_resize = Some((cfg.width(), cfg.height()));
+                if schedule {
+                    self.host.with_window(|win| win.check_for_resize());
+                }
             }
             xcb::KEY_PRESS => {
                 let key_press: &xcb::KeyPressEvent = unsafe { xcb::cast_event(event) };
