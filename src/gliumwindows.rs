@@ -79,6 +79,7 @@ pub struct GliumTerminalWindow {
     last_modifiers: KeyModifiers,
     allow_received_character: bool,
     tabs: Tabs,
+    have_pending_resize_check: bool,
 }
 
 impl TerminalWindow for GliumTerminalWindow {
@@ -160,6 +161,28 @@ impl TerminalWindow for GliumTerminalWindow {
             Ok(false)
         }
     }
+    fn check_for_resize(&mut self) -> Result<(), Error> {
+        self.have_pending_resize_check = false;
+        let old_dpi_scale = self.fonts.get_dpi_scale();
+        let size = self
+            .host
+            .display
+            .gl_window()
+            .get_inner_size()
+            .ok_or_else(|| format_err!("failed to get inner window size"))?;
+        let dpi_scale = self.host.display.gl_window().get_hidpi_factor();
+        let (width, height): (u32, u32) = size.to_physical(dpi_scale).into();
+        eprintln!(
+            "resize {}x{}@{} -> {}x{}@{}",
+            self.width, self.height, old_dpi_scale, width, height, dpi_scale
+        );
+        if (old_dpi_scale - dpi_scale).abs() >= std::f64::EPSILON {
+            self.scaling_changed(None, Some(dpi_scale), width as u16, height as u16)?;
+        } else {
+            self.resize_surfaces(width as u16, height as u16, false)?;
+        }
+        Ok(())
+    }
 }
 
 impl GliumTerminalWindow {
@@ -234,19 +257,12 @@ impl GliumTerminalWindow {
             last_modifiers: Default::default(),
             allow_received_character: false,
             tabs: Tabs::new(tab),
+            have_pending_resize_check: false,
         })
     }
 
     pub fn window_id(&self) -> glutin::WindowId {
         self.host.display.gl_window().id()
-    }
-
-    fn resize_surfaces_logical(&mut self, size: LogicalSize) -> Result<bool, Error> {
-        let dpi_scale = self.host.display.gl_window().get_hidpi_factor();
-        let (width, height): (u32, u32) = size.to_physical(dpi_scale).into();
-        let width = width as u16;
-        let height = height as u16;
-        self.resize_surfaces(width, height, false)
     }
 
     fn decode_modifiers(state: glium::glutin::ModifiersState) -> term::KeyModifiers {
@@ -652,36 +668,16 @@ impl GliumTerminalWindow {
                 return Err(SessionTerminated::WindowClosed.into());
             }
             Event::WindowEvent {
-                event: WindowEvent::HiDpiFactorChanged(factor),
+                event: WindowEvent::HiDpiFactorChanged(_),
                 ..
-            } => {
-                // Assuming that this is dragging a window between hidpi and
-                // normal dpi displays.  Treat this as a resize event of sorts
-                eprintln!("HiDpiFactorChanged {}", factor);
-                self.scaling_changed(None, Some(factor), self.width, self.height)?;
             }
-            Event::WindowEvent {
-                event: WindowEvent::Resized(size),
+            | Event::WindowEvent {
+                event: WindowEvent::Resized(_),
                 ..
             } => {
-                // On Linux we may get here when HiDpiFactorChanged occurs, but
-                // without ever receiving a HiDpiFactorChanged event.
-                // We need to synthesize that event here by checking what we
-                // think we know, otherwise we will use the wrong font size.
-                let old_dpi_scale = self.fonts.get_dpi_scale();
-                let dpi_scale = self.host.display.gl_window().get_hidpi_factor();
-                if cfg!(all(unix, not(target_os = "macos")))
-                    && (old_dpi_scale - dpi_scale).abs() < std::f64::EPSILON
-                {
-                    let (width, height): (u32, u32) = size.to_physical(dpi_scale).into();
-                    eprintln!(
-                        "Synthesize HiDpiFactorChanged {} -> {} current {}x{} -> {}x{}",
-                        old_dpi_scale, dpi_scale, self.width, self.height, width, height
-                    );
-                    eprintln!("Generate scaling_changed with {}x{}", width, height);
-                    self.scaling_changed(None, Some(dpi_scale), self.width, self.height)?;
-                } else {
-                    self.resize_surfaces_logical(size)?;
+                if !self.have_pending_resize_check {
+                    self.have_pending_resize_check = true;
+                    self.host.with_window(|win| win.check_for_resize());
                 }
             }
             Event::WindowEvent {

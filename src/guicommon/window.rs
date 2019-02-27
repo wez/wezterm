@@ -43,6 +43,9 @@ pub trait TerminalWindow {
     fn fonts(&self) -> &Rc<FontConfiguration>;
     fn get_dimensions(&self) -> Dimensions;
     fn resize_if_not_full_screen(&mut self, width: u16, height: u16) -> Result<bool, Error>;
+    fn check_for_resize(&mut self) -> Result<(), Error> {
+        Ok(())
+    }
 
     fn activate_tab(&mut self, tab_idx: usize) -> Result<(), Error> {
         let max = self.get_tabs().len();
