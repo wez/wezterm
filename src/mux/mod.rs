@@ -9,6 +9,8 @@ use std::thread;
 use term::TerminalHost;
 use termwiz::hyperlink::Hyperlink;
 
+pub mod renderable;
+
 #[derive(Default)]
 pub struct Mux {
     tabs: RefCell<HashMap<TabId, Rc<Tab>>>,

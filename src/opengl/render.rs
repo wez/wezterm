@@ -3,6 +3,7 @@
 use super::textureatlas::{Atlas, Sprite, SpriteSlice, TEX_SIZE};
 use crate::config::TextStyle;
 use crate::font::{FontConfiguration, GlyphInfo};
+use crate::mux::renderable::Renderable;
 use euclid;
 use failure::{err_msg, Error};
 use glium::backend::Facade;
@@ -749,9 +750,9 @@ impl Renderer {
         line: &Line,
         selection: Range<usize>,
         cursor: &CursorPosition,
-        terminal: &term::Terminal,
+        terminal: &Renderable,
     ) -> Result<(), Error> {
-        let num_cols = terminal.screen().physical_cols;
+        let (num_cols, _num_rows) = terminal.physical_dimensions();
         let mut vb = self.glyph_vertex_buffer.borrow_mut();
         let mut vertices = {
             let per_line = num_cols * VERTICES_PER_CELL;
