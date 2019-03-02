@@ -631,36 +631,7 @@ impl GliumTerminalWindow {
                         return Ok(());
                     }
 
-                    if mods == KeyModifiers::SUPER && key == KeyCode::Char('t') {
-                        GuiEventLoop::with_window(&self.event_loop, self.window_id(), |win| {
-                            win.spawn_tab().map(|_| ())
-                        });
-                        return Ok(());
-                    }
-
-                    if mods == KeyModifiers::ALT
-                        && (key == KeyCode::Char('\r')
-                            || key == KeyCode::Char('\n')
-                            || key == KeyCode::Enter)
-                    {
-                        self.host.toggle_full_screen();
-                        return Ok(());
-                    }
-
-                    if cfg!(target_os = "macos")
-                        && mods == KeyModifiers::SUPER
-                        && key == KeyCode::Char('c')
-                    {
-                        // Nominally copy, but that is implicit, so NOP
-                        return Ok(());
-                    }
-                    if (cfg!(target_os = "macos")
-                        && mods == KeyModifiers::SUPER
-                        && key == KeyCode::Char('v'))
-                        || (mods == KeyModifiers::SHIFT && key == KeyCode::Insert)
-                    {
-                        tab.terminal()
-                            .send_paste(&self.host.get_clipboard()?, &mut *tab.pty())?;
+                    if self.host.process_gui_shortcuts(tab, mods, key)? {
                         return Ok(());
                     }
 

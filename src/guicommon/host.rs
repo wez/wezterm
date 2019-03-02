@@ -1,9 +1,11 @@
 use super::window::TerminalWindow;
+use crate::guicommon::tabs::Tab;
 use crate::MasterPty;
 use clipboard::{ClipboardContext, ClipboardProvider};
 use failure::Error;
 use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
+use term::{KeyCode, KeyModifiers};
 use termwiz::hyperlink::Hyperlink;
 
 pub trait HostHelper {
@@ -47,6 +49,110 @@ impl<H: HostHelper> HostImpl<H> {
         // if we copy and paste in wezterm, the clipboard isn't visible
         // to us again until the second call to get_clipboard.
         self.get_clipboard().map(|_| ())
+    }
+
+    pub fn process_gui_shortcuts(
+        &mut self,
+        tab: &Tab,
+        mods: KeyModifiers,
+        key: KeyCode,
+    ) -> Result<bool, Error> {
+        if mods == KeyModifiers::SUPER && key == KeyCode::Char('t') {
+            self.with_window(|win| win.spawn_tab().map(|_| ()));
+            return Ok(true);
+        }
+
+        if mods == KeyModifiers::ALT
+            && (key == KeyCode::Char('\r') || key == KeyCode::Char('\n') || key == KeyCode::Enter)
+        {
+            self.toggle_full_screen();
+            return Ok(true);
+        }
+
+        if cfg!(target_os = "macos") && mods == KeyModifiers::SUPER && key == KeyCode::Char('c') {
+            // Nominally copy, but that is implicit, so NOP
+            return Ok(true);
+        }
+        if (cfg!(target_os = "macos") && mods == KeyModifiers::SUPER && key == KeyCode::Char('v'))
+            || (mods == KeyModifiers::SHIFT && key == KeyCode::Insert)
+        {
+            tab.terminal()
+                .send_paste(&self.get_clipboard()?, &mut *tab.pty())?;
+            return Ok(true);
+        }
+        if mods == (KeyModifiers::SUPER | KeyModifiers::SHIFT)
+            && (key == KeyCode::Char('[') || key == KeyCode::Char('{'))
+        {
+            self.activate_tab_relative(-1);
+            return Ok(true);
+        }
+        if mods == (KeyModifiers::SUPER | KeyModifiers::SHIFT)
+            && (key == KeyCode::Char(']') || key == KeyCode::Char('}'))
+        {
+            self.activate_tab_relative(1);
+            return Ok(true);
+        }
+
+        if (mods == KeyModifiers::SUPER || mods == KeyModifiers::CTRL) && key == KeyCode::Char('-')
+        {
+            self.decrease_font_size();
+            return Ok(true);
+        }
+        if (mods == KeyModifiers::SUPER || mods == KeyModifiers::CTRL) && key == KeyCode::Char('=')
+        {
+            self.increase_font_size();
+            return Ok(true);
+        }
+        if (mods == KeyModifiers::SUPER || mods == KeyModifiers::CTRL) && key == KeyCode::Char('0')
+        {
+            self.reset_font_size();
+            return Ok(true);
+        }
+
+        if mods == KeyModifiers::SUPER {
+            if let KeyCode::Char(c) = key {
+                if c >= '0' && c <= '9' {
+                    let tab_number = c as u32 - 0x30;
+                    // Treat 0 as 10 as that is physically right of 9 on
+                    // a keyboard
+                    let tab_number = if tab_number == 0 { 10 } else { tab_number - 1 };
+                    self.activate_tab(tab_number as usize);
+                    return Ok(true);
+                }
+            }
+        }
+        Ok(false)
+    }
+
+    pub fn activate_tab(&mut self, tab: usize) {
+        self.with_window(move |win| win.activate_tab(tab))
+    }
+
+    pub fn activate_tab_relative(&mut self, tab: isize) {
+        self.with_window(move |win| win.activate_tab_relative(tab))
+    }
+
+    pub fn increase_font_size(&mut self) {
+        self.with_window(move |win| {
+            let scale = win.fonts().get_font_scale();
+            let dims = win.get_dimensions();
+            win.scaling_changed(Some(scale * 1.1), None, dims.width, dims.height)
+        })
+    }
+
+    pub fn decrease_font_size(&mut self) {
+        self.with_window(move |win| {
+            let scale = win.fonts().get_font_scale();
+            let dims = win.get_dimensions();
+            win.scaling_changed(Some(scale * 0.9), None, dims.width, dims.height)
+        })
+    }
+
+    pub fn reset_font_size(&mut self) {
+        self.with_window(move |win| {
+            let dims = win.get_dimensions();
+            win.scaling_changed(Some(1.0), None, dims.width, dims.height)
+        })
     }
 }
 
@@ -104,34 +210,22 @@ impl<'a, H: HostHelper> term::TerminalHost for TabHost<'a, H> {
     }
 
     fn activate_tab(&mut self, tab: usize) {
-        self.host.with_window(move |win| win.activate_tab(tab))
+        self.host.activate_tab(tab)
     }
 
     fn activate_tab_relative(&mut self, tab: isize) {
-        self.host
-            .with_window(move |win| win.activate_tab_relative(tab))
+        self.host.activate_tab_relative(tab)
     }
 
     fn increase_font_size(&mut self) {
-        self.host.with_window(move |win| {
-            let scale = win.fonts().get_font_scale();
-            let dims = win.get_dimensions();
-            win.scaling_changed(Some(scale * 1.1), None, dims.width, dims.height)
-        })
+        self.host.increase_font_size()
     }
 
     fn decrease_font_size(&mut self) {
-        self.host.with_window(move |win| {
-            let scale = win.fonts().get_font_scale();
-            let dims = win.get_dimensions();
-            win.scaling_changed(Some(scale * 0.9), None, dims.width, dims.height)
-        })
+        self.host.decrease_font_size()
     }
 
     fn reset_font_size(&mut self) {
-        self.host.with_window(move |win| {
-            let dims = win.get_dimensions();
-            win.scaling_changed(Some(1.0), None, dims.width, dims.height)
-        })
+        self.host.reset_font_size()
     }
 }
