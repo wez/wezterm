@@ -765,23 +765,31 @@ impl TerminalState {
             (Insert, _, _, SHIFT, _) => paste!(),
             (Char('v'), ..) if mods == KeyModifiers::SUPER => paste!(),
 
-            (Char(c), CTRL, _, SHIFT, _) if c <= 0xff as char && c > 0x40 as char => {
-                // If shift is held we have C == 0x43 and want to translate
-                // that into 0x03
-                buf.push((c as u8 - 0x40) as char);
+            // Control key interpration
+            // https://www.x.org/releases/current/doc/kbproto/xkbproto.html#Interpreting_the_Control_Modifier
+            // & libX11:src/xkb/XKBBind.c
+            (Char(c), CTRL, _, _, _) if c >= '@' && c < 127u8 as char || c == ' ' => {
+                buf.push(((c as u8) & 0x1f) as char);
                 buf.as_str()
             }
-            (Char(c), CTRL, ..) if c <= 0xff as char && c > 0x60 as char => {
-                // If shift is not held we have C == 0x63 and want to translate
-                // that into 0x03
-                buf.push((c as u8 - 0x60) as char);
+            (Char('2'), CTRL, _, _, _) => "\0",
+            (Char(c), CTRL, _, _, _) if c >= '3' && c <= '7' => {
+                buf.push(((c as u8) - 27) as char);
                 buf.as_str()
             }
+            (Char('8'), CTRL, _, _, _) => "\x1f",
+            (Char('/'), CTRL, _, _, _) => {
+                buf.push((('_' as u8) & 0x1f) as char);
+                buf.as_str()
+            }
+
+            // Alt key interpretation
             (Char(c), _, ALT, ..) => {
                 buf.push(0x1b as char);
                 buf.push(c);
                 buf.as_str()
             }
+
             (Char(c), ..) => {
                 buf.push(c);
                 buf.as_str()
