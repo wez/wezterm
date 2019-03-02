@@ -329,9 +329,3 @@ impl io::Write for MasterPty {
         self.fd.flush()
     }
 }
-
-impl io::Read for MasterPty {
-    fn read(&mut self, buf: &mut [u8]) -> Result<usize, io::Error> {
-        self.fd.read(buf)
-    }
-}
