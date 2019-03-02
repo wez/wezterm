@@ -18,6 +18,10 @@ pub trait Renderable {
     /// columns on this line.
     fn get_dirty_lines(&self) -> Vec<(usize, &Line, Range<usize>)>;
 
+    fn has_dirty_lines(&self) -> bool;
+
+    fn make_all_lines_dirty(&mut self);
+
     /// Clear the dirty flag for all dirty lines
     fn clean_dirty_lines(&mut self);
 
@@ -42,6 +46,10 @@ impl Renderable for Terminal {
         TerminalState::clean_dirty_lines(self)
     }
 
+    fn make_all_lines_dirty(&mut self) {
+        TerminalState::make_all_lines_dirty(self)
+    }
+
     fn current_highlight(&self) -> Option<Rc<Hyperlink>> {
         TerminalState::current_highlight(self)
     }
@@ -49,5 +57,9 @@ impl Renderable for Terminal {
     fn physical_dimensions(&self) -> (usize, usize) {
         let screen = self.screen();
         (screen.physical_cols, screen.physical_rows)
+    }
+
+    fn has_dirty_lines(&self) -> bool {
+        TerminalState::has_dirty_lines(self)
     }
 }

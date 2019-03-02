@@ -8,6 +8,7 @@ use crate::guicommon::tabs::{Tab, TabId, Tabs};
 use crate::guicommon::window::{Dimensions, TerminalWindow};
 use crate::guiloop::glutinloop::GuiEventLoop;
 use crate::guiloop::SessionTerminated;
+use crate::mux::renderable::Renderable;
 use crate::opengl::render::Renderer;
 use glium;
 use glium::glutin::dpi::{LogicalPosition, LogicalSize, PhysicalPosition, PhysicalSize};
@@ -198,8 +199,7 @@ impl GliumTerminalWindow {
             .map(|p| p.clone().into())
             .unwrap_or_else(term::color::ColorPalette::default);
 
-        let terminal = tab.terminal();
-        let screen = terminal.screen();
+        let (physical_rows, physical_cols) = tab.renderer().physical_dimensions();
 
         let metrics = fonts.default_font_metrics()?;
         let (cell_height, cell_width) = (
@@ -207,8 +207,8 @@ impl GliumTerminalWindow {
             metrics.cell_width.ceil() as usize,
         );
 
-        let width = cell_width * screen.physical_cols;
-        let height = cell_height * screen.physical_rows;
+        let width = cell_width * physical_cols;
+        let height = cell_height * physical_rows;
 
         let logical_size = LogicalSize::new(width as f64, height as f64);
         eprintln!("make window with {}x{}", width, height);
@@ -294,7 +294,7 @@ impl GliumTerminalWindow {
 
         self.last_mouse_coords = position;
         let (x, y): (i32, i32) = position.into();
-        tab.terminal().mouse_event(
+        tab.mouse_event(
             term::MouseEvent {
                 kind: MouseEventKind::Move,
                 button: MouseButton::None,
@@ -311,7 +311,7 @@ impl GliumTerminalWindow {
         // When hovering over a hyperlink, show an appropriate
         // mouse cursor to give the cue that it is clickable
 
-        let cursor = if tab.terminal().current_highlight().is_some() {
+        let cursor = if tab.renderer().current_highlight().is_some() {
             MouseCursor::Hand
         } else {
             MouseCursor::Text
@@ -332,7 +332,7 @@ impl GliumTerminalWindow {
             None => return Ok(()),
         };
 
-        tab.terminal().mouse_event(
+        tab.mouse_event(
             term::MouseEvent {
                 kind: match state {
                     ElementState::Pressed => MouseEventKind::Press,
@@ -397,7 +397,7 @@ impl GliumTerminalWindow {
             None => return Ok(()),
         };
         for _ in 0..times {
-            tab.terminal().mouse_event(
+            tab.mouse_event(
                 term::MouseEvent {
                     kind: MouseEventKind::Press,
                     button,
@@ -635,7 +635,7 @@ impl GliumTerminalWindow {
                         return Ok(());
                     }
 
-                    tab.terminal().key_down(key, mods, &mut *tab.writer())?
+                    tab.key_down(key, mods)?;
                 }
                 ElementState::Released => {}
             }
@@ -687,11 +687,7 @@ impl GliumTerminalWindow {
                         Some(tab) => tab,
                         None => return Ok(()),
                     };
-                    tab.terminal().key_down(
-                        KeyCode::Char(c),
-                        self.last_modifiers,
-                        &mut *tab.writer(),
-                    )?;
+                    tab.key_down(KeyCode::Char(c), self.last_modifiers)?;
                     self.paint_if_needed()?;
                 }
                 return Ok(());

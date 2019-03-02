@@ -2,7 +2,7 @@ use crate::{Child, MasterPty};
 use failure::Error;
 use std::cell::{RefCell, RefMut};
 use std::rc::Rc;
-use term::Terminal;
+use term::{KeyCode, KeyModifiers, MouseEvent, Terminal, TerminalHost};
 
 static TAB_ID: ::std::sync::atomic::AtomicUsize = ::std::sync::atomic::ATOMIC_USIZE_INIT;
 pub type TabId = usize;
@@ -30,7 +30,12 @@ impl Tab {
         self.tab_id
     }
 
+    #[deprecated]
     pub fn terminal(&self) -> RefMut<Terminal> {
+        self.terminal.borrow_mut()
+    }
+
+    pub fn renderer(&self) -> RefMut<Terminal> {
         self.terminal.borrow_mut()
     }
 
@@ -40,6 +45,20 @@ impl Tab {
         } else {
             true
         }
+    }
+
+    pub fn advance_bytes(&self, buf: &[u8], host: &mut TerminalHost) {
+        self.terminal.borrow_mut().advance_bytes(buf, host)
+    }
+
+    pub fn mouse_event(&self, event: MouseEvent, host: &mut TerminalHost) -> Result<(), Error> {
+        self.terminal.borrow_mut().mouse_event(event, host)
+    }
+
+    pub fn key_down(&self, key: KeyCode, mods: KeyModifiers) -> Result<(), Error> {
+        self.terminal
+            .borrow_mut()
+            .key_down(key, mods, &mut *self.pty.borrow_mut())
     }
 
     pub fn resize(
@@ -64,6 +83,16 @@ impl Tab {
 
     pub fn reader(&self) -> Result<Box<std::io::Read + Send>, Error> {
         self.pty.borrow_mut().try_clone_reader()
+    }
+
+    pub fn send_paste(&self, text: &str) -> Result<(), Error> {
+        self.terminal
+            .borrow_mut()
+            .send_paste(text, &mut *self.pty.borrow_mut())
+    }
+
+    pub fn get_title(&self) -> String {
+        self.terminal.borrow_mut().get_title().to_string()
     }
 }
 

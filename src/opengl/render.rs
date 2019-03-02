@@ -1026,18 +1026,14 @@ impl Renderer {
         (fg_color, bg_color)
     }
 
-    pub fn paint(
-        &mut self,
-        target: &mut glium::Frame,
-        term: &mut term::Terminal,
-    ) -> Result<(), Error> {
+    pub fn paint(&mut self, target: &mut glium::Frame, term: &mut Renderable) -> Result<(), Error> {
         let background_color = self
             .palette
             .resolve_bg(term::color::ColorAttribute::Default);
         let (r, g, b, a) = background_color.to_tuple_rgba();
         target.clear_color(r, g, b, a);
 
-        let cursor = term.cursor_pos();
+        let cursor = term.get_cursor_position();
         {
             let dirty_lines = term.get_dirty_lines();
 

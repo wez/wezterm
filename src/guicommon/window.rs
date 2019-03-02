@@ -1,6 +1,7 @@
 use crate::config::Config;
 use crate::font::FontConfiguration;
 use crate::guicommon::tabs::{Tab, TabId, Tabs};
+use crate::mux::renderable::Renderable;
 use crate::opengl::render::Renderer;
 use crate::opengl::textureatlas::OutOfTextureSpace;
 use crate::openpty;
@@ -72,10 +73,7 @@ pub trait TerminalWindow {
         }
         let tab_no = self.get_tabs().get_active_idx();
 
-        let title = {
-            let terminal = self.get_tabs().get_active().unwrap().terminal();
-            terminal.get_title().to_owned()
-        };
+        let title = self.get_tabs().get_active().unwrap().get_title();
 
         if num_tabs == 1 {
             self.set_window_title(&title).ok();
@@ -90,7 +88,7 @@ pub trait TerminalWindow {
             Some(tab) => tab,
             None => return Ok(()),
         };
-        if tab.terminal().has_dirty_lines() {
+        if tab.renderer().has_dirty_lines() {
             self.paint()?;
         }
         self.update_title();
@@ -102,7 +100,7 @@ pub trait TerminalWindow {
 
         let res = {
             let (renderer, mut terminal) = self.renderer_and_terminal();
-            renderer.paint(&mut target, &mut terminal)
+            renderer.paint(&mut target, &mut *terminal)
         };
 
         // Ensure that we finish() the target before we let the
@@ -122,7 +120,7 @@ pub trait TerminalWindow {
                     self.get_tabs_mut()
                         .get_active()
                         .unwrap()
-                        .terminal()
+                        .renderer()
                         .make_all_lines_dirty();
                     // Recursively initiate a new paint
                     return self.paint();
@@ -208,7 +206,7 @@ pub trait TerminalWindow {
             dpi_scale, font_scale
         );
         if let Some(tab) = self.get_tabs().get_active() {
-            tab.terminal().make_all_lines_dirty();
+            tab.renderer().make_all_lines_dirty();
         }
         fonts.change_scaling(font_scale, dpi_scale);
 
@@ -220,8 +218,11 @@ pub trait TerminalWindow {
         // If the backend supports `resize_if_not_full_screen` then we'll try
         // to resize the window to match the new cell metrics.
         let (rows, cols) = {
-            let term = self.get_tabs().get_active().unwrap().terminal();
-            (term.screen().physical_rows, term.screen().physical_cols)
+            self.get_tabs()
+                .get_active()
+                .unwrap()
+                .renderer()
+                .physical_dimensions()
         };
 
         self.advise_renderer_that_scaling_has_changed(
@@ -240,7 +241,7 @@ pub trait TerminalWindow {
     fn tab_did_terminate(&mut self, tab_id: TabId) {
         self.get_tabs_mut().remove_by_id(tab_id);
         if let Some(active) = self.get_tabs().get_active() {
-            active.terminal().make_all_lines_dirty();
+            active.renderer().make_all_lines_dirty();
             self.update_title();
         }
         self.deregister_tab(tab_id).ok();

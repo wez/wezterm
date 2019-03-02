@@ -75,8 +75,7 @@ impl<H: HostHelper> HostImpl<H> {
         if (cfg!(target_os = "macos") && mods == KeyModifiers::SUPER && key == KeyCode::Char('v'))
             || (mods == KeyModifiers::SHIFT && key == KeyCode::Insert)
         {
-            tab.terminal()
-                .send_paste(&self.get_clipboard()?, &mut *tab.writer())?;
+            tab.send_paste(&self.get_clipboard()?)?;
             return Ok(true);
         }
         if mods == (KeyModifiers::SUPER | KeyModifiers::SHIFT)

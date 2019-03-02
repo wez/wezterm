@@ -106,8 +106,8 @@ impl Mux {
         match event {
             PtyEvent::Data { tab_id, data } => {
                 if let Some(tab) = self.get_tab(tab_id) {
-                    tab.terminal().advance_bytes(
-                        data,
+                    tab.advance_bytes(
+                        &data,
                         &mut Host {
                             writer: &mut *tab.writer(),
                         },
