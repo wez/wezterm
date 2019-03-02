@@ -378,6 +378,94 @@ impl TerminalState {
         self.invalidate_hyperlinks();
     }
 
+    /// Single click prepares the start of a new selection
+    fn mouse_single_click_left(
+        &mut self,
+        event: MouseEvent,
+        host: &mut TerminalHost,
+    ) -> Result<(), Error> {
+        // Prepare to start a new selection.
+        // We don't form the selection until the mouse drags.
+        self.selection_range = None;
+        self.selection_start = Some(SelectionCoordinate {
+            x: event.x,
+            y: event.y as ScrollbackOrVisibleRowIndex
+                - self.viewport_offset as ScrollbackOrVisibleRowIndex,
+        });
+        host.set_clipboard(None)
+    }
+
+    /// Double click to select a word on the current line
+    fn mouse_double_click_left(
+        &mut self,
+        event: MouseEvent,
+        host: &mut TerminalHost,
+    ) -> Result<(), Error> {
+        let y = event.y as ScrollbackOrVisibleRowIndex
+            - self.viewport_offset as ScrollbackOrVisibleRowIndex;
+        let idx = self.screen().scrollback_or_visible_row(y);
+        let click_range = self.screen().lines[idx].compute_double_click_range(event.x, |s| {
+            // TODO: add configuration for this
+            if s.len() > 1 {
+                true
+            } else if s.len() == 1 {
+                match s.chars().nth(0).unwrap() {
+                    ' ' | '\t' | '\n' | '{' | '[' | '}' | ']' | '(' | ')' | '"' | '\'' => false,
+                    _ => true,
+                }
+            } else {
+                false
+            }
+        });
+
+        self.selection_start = Some(SelectionCoordinate {
+            x: click_range.start,
+            y,
+        });
+        self.selection_range = Some(SelectionRange {
+            start: SelectionCoordinate {
+                x: click_range.start,
+                y,
+            },
+            end: SelectionCoordinate {
+                x: click_range.end,
+                y,
+            },
+        });
+        self.dirty_selection_lines();
+        let text = self.get_selection_text();
+        debug!(
+            "finish 2click selection {:?} '{}'",
+            self.selection_range, text
+        );
+        host.set_clipboard(Some(text))
+    }
+
+    /// triple click to select the current line
+    fn mouse_triple_click_left(
+        &mut self,
+        event: MouseEvent,
+        host: &mut TerminalHost,
+    ) -> Result<(), Error> {
+        let y = event.y as ScrollbackOrVisibleRowIndex
+            - self.viewport_offset as ScrollbackOrVisibleRowIndex;
+        self.selection_start = Some(SelectionCoordinate { x: event.x, y });
+        self.selection_range = Some(SelectionRange {
+            start: SelectionCoordinate { x: 0, y },
+            end: SelectionCoordinate {
+                x: usize::max_value(),
+                y,
+            },
+        });
+        self.dirty_selection_lines();
+        let text = self.get_selection_text();
+        debug!(
+            "finish 3click selection {:?} '{}'",
+            self.selection_range, text
+        );
+        host.set_clipboard(Some(text))
+    }
+
     fn mouse_press_left(
         &mut self,
         event: MouseEvent,
@@ -386,80 +474,14 @@ impl TerminalState {
         self.current_mouse_button = MouseButton::Left;
         self.dirty_selection_lines();
         match self.last_mouse_click.as_ref() {
-            // Single click prepares the start of a new selection
             Some(&LastMouseClick { streak: 1, .. }) => {
-                // Prepare to start a new selection.
-                // We don't form the selection until the mouse drags.
-                self.selection_range = None;
-                self.selection_start = Some(SelectionCoordinate {
-                    x: event.x,
-                    y: event.y as ScrollbackOrVisibleRowIndex
-                        - self.viewport_offset as ScrollbackOrVisibleRowIndex,
-                });
-                host.set_clipboard(None)?;
+                self.mouse_single_click_left(event, host)?;
             }
-            // Double click to select a word on the current line
             Some(&LastMouseClick { streak: 2, .. }) => {
-                let y = event.y as ScrollbackOrVisibleRowIndex
-                    - self.viewport_offset as ScrollbackOrVisibleRowIndex;
-                let idx = self.screen().scrollback_or_visible_row(y);
-                let click_range =
-                    self.screen().lines[idx].compute_double_click_range(event.x, |s| {
-                        // TODO: add configuration for this
-                        if s.len() > 1 {
-                            true
-                        } else if s.len() == 1 {
-                            match s.chars().nth(0).unwrap() {
-                                ' ' | '\t' | '\n' | '{' | '[' | '}' | ']' | '(' | ')' | '"'
-                                | '\'' => false,
-                                _ => true,
-                            }
-                        } else {
-                            false
-                        }
-                    });
-
-                self.selection_start = Some(SelectionCoordinate {
-                    x: click_range.start,
-                    y,
-                });
-                self.selection_range = Some(SelectionRange {
-                    start: SelectionCoordinate {
-                        x: click_range.start,
-                        y,
-                    },
-                    end: SelectionCoordinate {
-                        x: click_range.end,
-                        y,
-                    },
-                });
-                self.dirty_selection_lines();
-                let text = self.get_selection_text();
-                debug!(
-                    "finish 2click selection {:?} '{}'",
-                    self.selection_range, text
-                );
-                host.set_clipboard(Some(text))?;
+                self.mouse_double_click_left(event, host)?;
             }
-            // triple click to select the current line
             Some(&LastMouseClick { streak: 3, .. }) => {
-                let y = event.y as ScrollbackOrVisibleRowIndex
-                    - self.viewport_offset as ScrollbackOrVisibleRowIndex;
-                self.selection_start = Some(SelectionCoordinate { x: event.x, y });
-                self.selection_range = Some(SelectionRange {
-                    start: SelectionCoordinate { x: 0, y },
-                    end: SelectionCoordinate {
-                        x: usize::max_value(),
-                        y,
-                    },
-                });
-                self.dirty_selection_lines();
-                let text = self.get_selection_text();
-                debug!(
-                    "finish 3click selection {:?} '{}'",
-                    self.selection_range, text
-                );
-                host.set_clipboard(Some(text))?;
+                self.mouse_triple_click_left(event, host)?;
             }
             // otherwise, clear out the selection
             _ => {
