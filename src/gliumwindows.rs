@@ -638,6 +638,32 @@ impl GliumTerminalWindow {
                         return Ok(());
                     }
 
+                    if mods == KeyModifiers::ALT
+                        && (key == KeyCode::Char('\r')
+                            || key == KeyCode::Char('\n')
+                            || key == KeyCode::Enter)
+                    {
+                        self.host.toggle_full_screen();
+                        return Ok(());
+                    }
+
+                    if cfg!(target_os = "macos")
+                        && mods == KeyModifiers::SUPER
+                        && key == KeyCode::Char('c')
+                    {
+                        // Nominally copy, but that is implicit, so NOP
+                        return Ok(());
+                    }
+                    if (cfg!(target_os = "macos")
+                        && mods == KeyModifiers::SUPER
+                        && key == KeyCode::Char('v'))
+                        || (mods == KeyModifiers::SHIFT && key == KeyCode::Insert)
+                    {
+                        tab.terminal()
+                            .send_paste(&self.host.get_clipboard()?, &mut *tab.pty())?;
+                        return Ok(());
+                    }
+
                     tab.terminal().key_down(
                         key,
                         mods,

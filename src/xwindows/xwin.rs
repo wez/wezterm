@@ -240,6 +240,13 @@ impl X11TerminalWindow {
                         self.host.with_window(|win| win.spawn_tab().map(|_| ()));
                         return Ok(());
                     }
+
+                    if mods == KeyModifiers::SHIFT && key == KeyCode::Insert {
+                        tab.terminal()
+                            .send_paste(&self.host.get_clipboard()?, &mut *tab.pty())?;
+                        return Ok(());
+                    }
+
                     tab.terminal().key_down(
                         code,
                         mods,
