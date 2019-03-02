@@ -11,6 +11,7 @@ use std::ptr;
 
 pub use std::process::{Child, Command, ExitStatus};
 
+#[derive(Debug)]
 pub struct OwnedFd {
     fd: RawFd,
 }
@@ -47,7 +48,9 @@ impl AsRawFd for OwnedFd {
 
 impl IntoRawFd for OwnedFd {
     fn into_raw_fd(self) -> RawFd {
-        self.fd
+        let fd = self.fd;
+        mem::forget(self);
+        fd
     }
 }
 
