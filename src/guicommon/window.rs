@@ -7,7 +7,6 @@ use crate::opengl::textureatlas::OutOfTextureSpace;
 use crate::openpty;
 use failure::Error;
 use glium;
-use std::cell::RefMut;
 use std::rc::Rc;
 
 /// Reports the currently configured physical size of the display
@@ -30,7 +29,7 @@ pub trait TerminalWindow {
     fn set_window_title(&mut self, title: &str) -> Result<(), Error>;
     fn frame(&self) -> glium::Frame;
     fn renderer(&mut self) -> &mut Renderer;
-    fn renderer_and_terminal(&mut self) -> (&mut Renderer, RefMut<term::Terminal>);
+    fn renderer_and_tab(&mut self) -> (&mut Renderer, &Tab);
     fn recreate_texture_atlas(&mut self, size: u32) -> Result<(), Error>;
     fn advise_renderer_that_scaling_has_changed(
         &mut self,
@@ -99,8 +98,8 @@ pub trait TerminalWindow {
         let mut target = self.frame();
 
         let res = {
-            let (renderer, mut terminal) = self.renderer_and_terminal();
-            renderer.paint(&mut target, &mut *terminal)
+            let (renderer, tab) = self.renderer_and_tab();
+            renderer.paint(&mut target, &mut *tab.renderer())
         };
 
         // Ensure that we finish() the target before we let the

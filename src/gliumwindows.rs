@@ -13,7 +13,6 @@ use crate::opengl::render::Renderer;
 use glium;
 use glium::glutin::dpi::{LogicalPosition, LogicalSize, PhysicalPosition, PhysicalSize};
 use glium::glutin::{self, ElementState, MouseCursor};
-use std::cell::RefMut;
 use std::rc::Rc;
 use term;
 use term::KeyCode;
@@ -112,11 +111,8 @@ impl TerminalWindow for GliumTerminalWindow {
     fn recreate_texture_atlas(&mut self, size: u32) -> Result<(), Error> {
         self.renderer.recreate_atlas(&self.host.display, size)
     }
-    fn renderer_and_terminal(&mut self) -> (&mut Renderer, RefMut<term::Terminal>) {
-        (
-            &mut self.renderer,
-            self.tabs.get_active().unwrap().terminal(),
-        )
+    fn renderer_and_tab(&mut self) -> (&mut Renderer, &Tab) {
+        (&mut self.renderer, self.tabs.get_active().unwrap())
     }
 
     fn tab_was_created(&mut self, tab: &Rc<Tab>) -> Result<(), Error> {

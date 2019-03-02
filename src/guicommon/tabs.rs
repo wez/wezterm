@@ -30,11 +30,6 @@ impl Tab {
         self.tab_id
     }
 
-    #[deprecated]
-    pub fn terminal(&self) -> RefMut<Terminal> {
-        self.terminal.borrow_mut()
-    }
-
     pub fn renderer(&self) -> RefMut<Terminal> {
         self.terminal.borrow_mut()
     }

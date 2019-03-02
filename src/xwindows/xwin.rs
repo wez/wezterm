@@ -11,7 +11,6 @@ use crate::guiloop::SessionTerminated;
 use crate::mux::renderable::Renderable;
 use failure::Error;
 use futures;
-use std::cell::RefMut;
 use std::rc::Rc;
 use term::{self, KeyCode, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 use xcb;
@@ -82,11 +81,8 @@ impl TerminalWindow for X11TerminalWindow {
     fn recreate_texture_atlas(&mut self, size: u32) -> Result<(), Error> {
         self.renderer.recreate_atlas(&self.host.window, size)
     }
-    fn renderer_and_terminal(&mut self) -> (&mut Renderer, RefMut<term::Terminal>) {
-        (
-            &mut self.renderer,
-            self.tabs.get_active().unwrap().terminal(),
-        )
+    fn renderer_and_tab(&mut self) -> (&mut Renderer, &Tab) {
+        (&mut self.renderer, self.tabs.get_active().unwrap())
     }
     fn tab_was_created(&mut self, tab: &Rc<Tab>) -> Result<(), Error> {
         self.host.event_loop.register_tab(tab)
