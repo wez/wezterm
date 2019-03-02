@@ -8,6 +8,7 @@ use crate::guicommon::tabs::{Tab, TabId, Tabs};
 use crate::guicommon::window::{Dimensions, TerminalWindow};
 use crate::guiloop::x11::{GuiEventLoop, WindowId};
 use crate::guiloop::SessionTerminated;
+use crate::mux::renderable::Renderable;
 use failure::Error;
 use futures;
 use std::cell::RefMut;
@@ -143,8 +144,7 @@ impl X11TerminalWindow {
             .map(|p| p.clone().into())
             .unwrap_or_else(term::color::ColorPalette::default);
 
-        let terminal = tab.terminal();
-        let screen = terminal.screen();
+        let (physical_rows, physical_cols) = tab.renderer().physical_dimensions();
 
         let metrics = fonts.default_font_metrics()?;
         let (cell_height, cell_width) = (
@@ -152,8 +152,8 @@ impl X11TerminalWindow {
             metrics.cell_width.ceil() as usize,
         );
 
-        let width = cell_width * screen.physical_cols;
-        let height = cell_height * screen.physical_rows;
+        let width = cell_width * physical_cols;
+        let height = cell_height * physical_rows;
 
         let width = width as u16;
         let height = height as u16;
@@ -201,8 +201,7 @@ impl X11TerminalWindow {
             Some(tab) => tab,
             None => return Ok(()),
         };
-        tab.terminal()
-            .mouse_event(event, &mut TabHost::new(&mut *tab.writer(), &mut self.host))?;
+        tab.mouse_event(event, &mut TabHost::new(&mut *tab.writer(), &mut self.host))?;
         Ok(())
     }
 
@@ -241,7 +240,7 @@ impl X11TerminalWindow {
                         return Ok(());
                     }
 
-                    tab.terminal().key_down(code, mods, &mut *tab.writer())?;
+                    tab.key_down(code, mods)?;
                 }
             }
             xcb::MOTION_NOTIFY => {
