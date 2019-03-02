@@ -37,7 +37,12 @@ impl Tab {
         self.process.borrow_mut()
     }
 
+    #[deprecated(note = "use writer or something else")]
     pub fn pty(&self) -> RefMut<MasterPty> {
+        self.pty.borrow_mut()
+    }
+
+    pub fn writer(&self) -> RefMut<MasterPty> {
         self.pty.borrow_mut()
     }
 }

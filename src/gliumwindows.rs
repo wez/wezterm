@@ -635,14 +635,9 @@ impl GliumTerminalWindow {
                         return Ok(());
                     }
 
-                    tab.terminal().key_down(key, mods, &mut *tab.pty())?
+                    tab.terminal().key_down(key, mods, &mut *tab.writer())?
                 }
-
-                ElementState::Released => tab.terminal().key_up(
-                    key,
-                    mods,
-                    &mut TabHost::new(&mut tab.pty(), &mut self.host),
-                )?,
+                ElementState::Released => {}
             }
         } else {
             eprintln!("event {:?} with no mapping", event);
@@ -695,7 +690,7 @@ impl GliumTerminalWindow {
                     tab.terminal().key_down(
                         KeyCode::Char(c),
                         self.last_modifiers,
-                        &mut *tab.pty(),
+                        &mut *tab.writer(),
                     )?;
                     self.paint_if_needed()?;
                 }

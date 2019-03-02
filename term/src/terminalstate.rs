@@ -910,15 +910,6 @@ impl TerminalState {
         Ok(())
     }
 
-    pub fn key_up(
-        &mut self,
-        _: KeyCode,
-        _: KeyModifiers,
-        _: &mut TerminalHost,
-    ) -> Result<(), Error> {
-        Ok(())
-    }
-
     pub fn resize(&mut self, physical_rows: usize, physical_cols: usize) {
         self.screen.resize(physical_rows, physical_cols);
         self.scroll_region = 0..physical_rows as i64;

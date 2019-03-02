@@ -241,21 +241,7 @@ impl X11TerminalWindow {
                         return Ok(());
                     }
 
-                    tab.terminal().key_down(code, mods, &mut *tab.pty())?;
-                }
-            }
-            xcb::KEY_RELEASE => {
-                let key_press: &xcb::KeyPressEvent = unsafe { xcb::cast_event(event) };
-                if let Some((code, mods)) = self.decode_key(key_press) {
-                    let tab = match self.tabs.get_active() {
-                        Some(tab) => tab,
-                        None => return Ok(()),
-                    };
-                    tab.terminal().key_up(
-                        code,
-                        mods,
-                        &mut TabHost::new(&mut tab.pty(), &mut self.host),
-                    )?;
+                    tab.terminal().key_down(code, mods, &mut *tab.writer())?;
                 }
             }
             xcb::MOTION_NOTIFY => {
