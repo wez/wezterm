@@ -202,7 +202,7 @@ impl X11TerminalWindow {
             None => return Ok(()),
         };
         tab.terminal()
-            .mouse_event(event, &mut TabHost::new(&mut tab.pty(), &mut self.host))?;
+            .mouse_event(event, &mut TabHost::new(&mut *tab.writer(), &mut self.host))?;
         Ok(())
     }
 

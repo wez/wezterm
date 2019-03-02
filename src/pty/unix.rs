@@ -2,44 +2,100 @@
 
 use failure::Error;
 use libc::{self, winsize};
-use mio::event::Evented;
-use mio::unix::EventedFd;
-use mio::{Poll, PollOpt, Ready, Token};
 use std::io;
 use std::mem;
-use std::os::unix::io::{AsRawFd, FromRawFd, RawFd};
+use std::os::unix::io::{AsRawFd, FromRawFd, IntoRawFd, RawFd};
 use std::os::unix::process::CommandExt;
 use std::process::Stdio;
 use std::ptr;
 
 pub use std::process::{Child, Command, ExitStatus};
 
+pub struct OwnedFd {
+    fd: RawFd,
+}
+
+impl OwnedFd {
+    fn try_clone(&self) -> Result<Self, Error> {
+        // Note that linux has a variant of the dup syscall that can set
+        // the CLOEXEC flag at dup time.  We could use that here but the
+        // additional code complexity isn't worth it: it's just a couple
+        // of syscalls at startup to do it the portable way below.
+        let new_fd = unsafe { libc::dup(self.fd) };
+        if new_fd == -1 {
+            bail!("dup of pty fd failed: {:?}", io::Error::last_os_error())
+        }
+        match cloexec(new_fd) {
+            Ok(_) => Ok(OwnedFd { fd: new_fd }),
+            Err(err) => {
+                unsafe { libc::close(new_fd) };
+                Err(err)
+            }
+        }
+    }
+}
+
+impl Drop for OwnedFd {
+    fn drop(&mut self) {
+        unsafe {
+            libc::close(self.fd);
+        }
+    }
+}
+
+impl AsRawFd for OwnedFd {
+    fn as_raw_fd(&self) -> RawFd {
+        self.fd
+    }
+}
+
+impl IntoRawFd for OwnedFd {
+    fn into_raw_fd(self) -> RawFd {
+        self.fd
+    }
+}
+
+impl FromRawFd for OwnedFd {
+    unsafe fn from_raw_fd(fd: RawFd) -> Self {
+        Self { fd }
+    }
+}
+
+impl io::Read for OwnedFd {
+    fn read(&mut self, buf: &mut [u8]) -> Result<usize, io::Error> {
+        let size = unsafe { libc::read(self.fd, buf.as_mut_ptr() as *mut _, buf.len()) };
+        if size == -1 {
+            Err(io::Error::last_os_error())
+        } else {
+            Ok(size as usize)
+        }
+    }
+}
+
+impl io::Write for OwnedFd {
+    fn write(&mut self, buf: &[u8]) -> Result<usize, io::Error> {
+        let size = unsafe { libc::write(self.fd, buf.as_ptr() as *const _, buf.len()) };
+        if size == -1 {
+            Err(io::Error::last_os_error())
+        } else {
+            Ok(size as usize)
+        }
+    }
+    fn flush(&mut self) -> Result<(), io::Error> {
+        Ok(())
+    }
+}
+
 /// Represents the master end of a pty.
 /// The file descriptor will be closed when the Pty is dropped.
 pub struct MasterPty {
-    fd: RawFd,
+    fd: OwnedFd,
 }
 
 /// Represents the slave end of a pty.
 /// The file descriptor will be closed when the Pty is dropped.
 pub struct SlavePty {
-    fd: RawFd,
-}
-
-impl Drop for MasterPty {
-    fn drop(&mut self) {
-        unsafe {
-            libc::close(self.fd);
-        }
-    }
-}
-
-impl Drop for SlavePty {
-    fn drop(&mut self) {
-        unsafe {
-            libc::close(self.fd);
-        }
-    }
+    fd: OwnedFd,
 }
 
 /// Helper function to set the close-on-exec flag for a raw descriptor
@@ -59,26 +115,6 @@ fn cloexec(fd: RawFd) -> Result<(), Error> {
         );
     }
     Ok(())
-}
-
-/// Helper function to duplicate a file descriptor.
-/// The duplicated descriptor will have the close-on-exec flag set.
-fn dup(fd: RawFd) -> Result<RawFd, Error> {
-    // Note that linux has a variant of the dup syscall that can set
-    // the CLOEXEC flag at dup time.  We could use that here but the
-    // additional code complexity isn't worth it: it's just a couple
-    // of syscalls at startup to do it the portable way below.
-    let new_fd = unsafe { libc::dup(fd) };
-    if new_fd == -1 {
-        bail!("dup of pty fd failed: {:?}", io::Error::last_os_error())
-    }
-    match cloexec(new_fd) {
-        Ok(_) => Ok(new_fd),
-        Err(err) => {
-            unsafe { libc::close(new_fd) };
-            Err(err)
-        }
-    }
 }
 
 fn clear_nonblocking(fd: RawFd) -> Result<(), Error> {
@@ -152,17 +188,21 @@ pub fn openpty(
         bail!("failed to openpty: {:?}", io::Error::last_os_error());
     }
 
-    let master = MasterPty { fd: master };
-    let slave = SlavePty { fd: slave };
+    let master = MasterPty {
+        fd: OwnedFd { fd: master },
+    };
+    let slave = SlavePty {
+        fd: OwnedFd { fd: slave },
+    };
 
     // Ensure that these descriptors will get closed when we execute
     // the child process.  This is done after constructing the Pty
     // instances so that we ensure that the Ptys get drop()'d if
     // the cloexec() functions fail (unlikely!).
-    cloexec(master.fd)?;
-    cloexec(slave.fd)?;
+    cloexec(master.fd.as_raw_fd())?;
+    cloexec(slave.fd.as_raw_fd())?;
 
-    set_nonblocking(master.fd)?;
+    set_nonblocking(master.fd.as_raw_fd())?; // FIXME: do we need this any more?
 
     Ok((master, slave))
 }
@@ -170,7 +210,8 @@ pub fn openpty(
 impl SlavePty {
     /// Helper for setting up a Command instance
     fn as_stdio(&self) -> Result<Stdio, Error> {
-        dup(self.fd).map(|fd| unsafe { Stdio::from_raw_fd(fd) })
+        let dup = self.fd.try_clone()?;
+        Ok(unsafe { Stdio::from_raw_fd(dup.into_raw_fd()) })
     }
 
     /// this method prepares a Command builder to spawn a process with the Pty
@@ -256,7 +297,7 @@ impl MasterPty {
             ws_ypixel: pixel_height,
         };
 
-        if unsafe { libc::ioctl(self.fd, libc::TIOCSWINSZ, &size as *const _) } != 0 {
+        if unsafe { libc::ioctl(self.fd.as_raw_fd(), libc::TIOCSWINSZ, &size as *const _) } != 0 {
             bail!(
                 "failed to ioctl(TIOCSWINSZ): {:?}",
                 io::Error::last_os_error()
@@ -268,7 +309,7 @@ impl MasterPty {
 
     pub fn get_size(&self) -> Result<winsize, Error> {
         let mut size: winsize = unsafe { mem::zeroed() };
-        if unsafe { libc::ioctl(self.fd, libc::TIOCGWINSZ, &mut size as *mut _) } != 0 {
+        if unsafe { libc::ioctl(self.fd.as_raw_fd(), libc::TIOCGWINSZ, &mut size as *mut _) } != 0 {
             bail!(
                 "failed to ioctl(TIOCGWINSZ): {:?}",
                 io::Error::last_os_error()
@@ -277,70 +318,24 @@ impl MasterPty {
         Ok(size)
     }
 
-    pub fn clear_nonblocking(&self) -> Result<(), Error> {
-        clear_nonblocking(self.fd)
-    }
-
-    pub fn try_clone(&self) -> Result<Self, Error> {
-        let fd = dup(self.fd)?;
-        Ok(Self { fd })
-    }
-}
-
-impl AsRawFd for MasterPty {
-    fn as_raw_fd(&self) -> RawFd {
-        self.fd
+    pub fn try_clone_reader(&self) -> Result<Box<std::io::Read + Send>, Error> {
+        let fd = self.fd.try_clone()?;
+        clear_nonblocking(fd.as_raw_fd())?;
+        Ok(Box::new(fd))
     }
 }
 
 impl io::Write for MasterPty {
     fn write(&mut self, buf: &[u8]) -> Result<usize, io::Error> {
-        let size = unsafe { libc::write(self.fd, buf.as_ptr() as *const _, buf.len()) };
-        if size == -1 {
-            Err(io::Error::last_os_error())
-        } else {
-            Ok(size as usize)
-        }
+        self.fd.write(buf)
     }
     fn flush(&mut self) -> Result<(), io::Error> {
-        Ok(())
+        self.fd.flush()
     }
 }
 
 impl io::Read for MasterPty {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, io::Error> {
-        let size = unsafe { libc::read(self.fd, buf.as_mut_ptr() as *mut _, buf.len()) };
-        if size == -1 {
-            Err(io::Error::last_os_error())
-        } else {
-            Ok(size as usize)
-        }
-    }
-}
-
-/// Glue for working with mio
-impl Evented for MasterPty {
-    fn register(
-        &self,
-        poll: &Poll,
-        token: Token,
-        interest: Ready,
-        opts: PollOpt,
-    ) -> io::Result<()> {
-        EventedFd(&self.fd).register(poll, token, interest, opts)
-    }
-
-    fn reregister(
-        &self,
-        poll: &Poll,
-        token: Token,
-        interest: Ready,
-        opts: PollOpt,
-    ) -> io::Result<()> {
-        EventedFd(&self.fd).reregister(poll, token, interest, opts)
-    }
-
-    fn deregister(&self, poll: &Poll) -> io::Result<()> {
-        EventedFd(&self.fd).deregister(poll)
+        self.fd.read(buf)
     }
 }

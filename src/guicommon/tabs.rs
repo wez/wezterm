@@ -54,13 +54,12 @@ impl Tab {
         Ok(())
     }
 
-    #[deprecated(note = "use writer or something else")]
-    pub fn pty(&self) -> RefMut<MasterPty> {
+    pub fn writer(&self) -> RefMut<MasterPty> {
         self.pty.borrow_mut()
     }
 
-    pub fn writer(&self) -> RefMut<MasterPty> {
-        self.pty.borrow_mut()
+    pub fn reader(&self) -> Result<Box<std::io::Read + Send>, Error> {
+        self.pty.borrow_mut().try_clone_reader()
     }
 }
 

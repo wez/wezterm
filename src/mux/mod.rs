@@ -1,5 +1,4 @@
 use crate::guicommon::tabs::{Tab, TabId};
-use crate::MasterPty;
 use failure::Error;
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -26,11 +25,11 @@ pub trait PtyEventSender: Send {
     fn send(&self, event: PtyEvent) -> Result<(), Error>;
 }
 
-fn read_from_tab_pty(sender: Box<PtyEventSender>, tab_id: TabId, mut pty: MasterPty) {
+fn read_from_tab_pty(sender: Box<PtyEventSender>, tab_id: TabId, mut reader: Box<std::io::Read>) {
     const BUFSIZE: usize = 32 * 1024;
     let mut buf = [0; BUFSIZE];
     loop {
-        match pty.read(&mut buf) {
+        match reader.read(&mut buf) {
             Ok(size) if size == 0 => {
                 eprintln!("read_pty EOF: tab_id {}", tab_id);
                 sender.send(PtyEvent::Terminated { tab_id }).ok();
@@ -61,12 +60,12 @@ fn read_from_tab_pty(sender: Box<PtyEventSender>, tab_id: TabId, mut pty: Master
 /// As such it only really has Host::writer get called.
 /// The GUI driven flows provide their own impl of TerminalHost.
 struct Host<'a> {
-    pty: &'a mut MasterPty,
+    writer: &'a mut std::io::Write,
 }
 
 impl<'a> TerminalHost for Host<'a> {
     fn writer(&mut self) -> &mut std::io::Write {
-        &mut self.pty
+        &mut self.writer
     }
 
     fn click_link(&mut self, link: &Rc<Hyperlink>) {
@@ -96,10 +95,9 @@ impl Mux {
     pub fn add_tab(&self, sender: Box<PtyEventSender>, tab: &Rc<Tab>) -> Result<(), Error> {
         self.tabs.borrow_mut().insert(tab.tab_id(), Rc::clone(tab));
 
-        let pty = tab.pty().try_clone()?;
-        pty.clear_nonblocking()?;
+        let reader = tab.reader()?;
         let tab_id = tab.tab_id();
-        thread::spawn(move || read_from_tab_pty(sender, tab_id, pty));
+        thread::spawn(move || read_from_tab_pty(sender, tab_id, reader));
 
         Ok(())
     }
@@ -111,7 +109,7 @@ impl Mux {
                     tab.terminal().advance_bytes(
                         data,
                         &mut Host {
-                            pty: &mut tab.pty(),
+                            writer: &mut *tab.writer(),
                         },
                     );
                 }

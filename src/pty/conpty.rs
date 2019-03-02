@@ -471,24 +471,8 @@ impl MasterPty {
         Ok(inner.size.clone())
     }
 
-    pub fn try_clone(&self) -> Result<Self, Error> {
-        // FIXME: this isn't great.  Replace this with a way to
-        // clone the output handle and read it.
-        let inner = self.inner.lock().unwrap();
-        Ok(Self {
-            inner: Arc::new(Mutex::new(Inner {
-                con: PsuedoCon {
-                    con: INVALID_HANDLE_VALUE,
-                },
-                readable: inner.readable.try_clone()?,
-                writable: inner.writable.try_clone()?,
-                size: inner.size,
-            })),
-        })
-    }
-
-    pub fn clear_nonblocking(&self) -> Result<(), Error> {
-        Ok(())
+    pub fn try_clone_reader(&self) -> Result<Box<std::io::Read + Send>, Error> {
+        Ok(Box::new(self.inner.readable.try_clone()?))
     }
 }
 
