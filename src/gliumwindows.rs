@@ -302,7 +302,7 @@ impl GliumTerminalWindow {
                 y: (y as usize / self.cell_height) as i64,
                 modifiers: Self::decode_modifiers(modifiers),
             },
-            &mut TabHost::new(&mut tab.pty(), &mut self.host),
+            &mut TabHost::new(&mut *tab.writer(), &mut self.host),
         )?;
         // Deliberately not forcing a paint on mouse move as it
         // makes selection feel sluggish
@@ -348,7 +348,7 @@ impl GliumTerminalWindow {
                 y: (self.last_mouse_coords.y as usize / self.cell_height) as i64,
                 modifiers: Self::decode_modifiers(modifiers),
             },
-            &mut TabHost::new(&mut tab.pty(), &mut self.host),
+            &mut TabHost::new(&mut *tab.writer(), &mut self.host),
         )?;
         self.paint_if_needed()?;
 
@@ -405,7 +405,7 @@ impl GliumTerminalWindow {
                     y: (self.last_mouse_coords.y as usize / self.cell_height) as i64,
                     modifiers: Self::decode_modifiers(modifiers),
                 },
-                &mut TabHost::new(&mut tab.pty(), &mut self.host),
+                &mut TabHost::new(&mut *tab.writer(), &mut self.host),
             )?;
         }
         self.paint_if_needed()?;

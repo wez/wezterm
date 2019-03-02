@@ -183,8 +183,7 @@ pub trait TerminalWindow {
 
             let tabs = self.get_tabs();
             for tab in tabs.iter() {
-                tab.pty().resize(rows, cols, width as u16, height as u16)?;
-                tab.terminal().resize(rows as usize, cols as usize);
+                tab.resize(rows, cols, width as u16, height as u16)?;
             }
 
             Ok(true)

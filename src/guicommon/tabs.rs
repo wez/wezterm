@@ -1,4 +1,5 @@
 use crate::{Child, MasterPty};
+use failure::Error;
 use std::cell::{RefCell, RefMut};
 use std::rc::Rc;
 use term::Terminal;
@@ -35,6 +36,22 @@ impl Tab {
 
     pub fn process(&self) -> RefMut<Child> {
         self.process.borrow_mut()
+    }
+
+    pub fn resize(
+        &self,
+        rows: u16,
+        cols: u16,
+        pixel_width: u16,
+        pixel_height: u16,
+    ) -> Result<(), Error> {
+        self.pty
+            .borrow_mut()
+            .resize(rows, cols, pixel_width, pixel_height)?;
+        self.terminal
+            .borrow_mut()
+            .resize(rows as usize, cols as usize);
+        Ok(())
     }
 
     #[deprecated(note = "use writer or something else")]

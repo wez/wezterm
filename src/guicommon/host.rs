@@ -1,6 +1,5 @@
 use super::window::TerminalWindow;
 use crate::guicommon::tabs::Tab;
-use crate::MasterPty;
 use clipboard::{ClipboardContext, ClipboardProvider};
 use failure::Error;
 use std::ops::{Deref, DerefMut};
@@ -77,7 +76,7 @@ impl<H: HostHelper> HostImpl<H> {
             || (mods == KeyModifiers::SHIFT && key == KeyCode::Insert)
         {
             tab.terminal()
-                .send_paste(&self.get_clipboard()?, &mut *tab.pty())?;
+                .send_paste(&self.get_clipboard()?, &mut *tab.writer())?;
             return Ok(true);
         }
         if mods == (KeyModifiers::SUPER | KeyModifiers::SHIFT)
@@ -172,19 +171,19 @@ impl<H: HostHelper> DerefMut for HostImpl<H> {
 /// `TabHost` instances are short lived and borrow references to
 /// other state.
 pub struct TabHost<'a, H: HostHelper> {
-    pty: &'a mut MasterPty,
+    writer: &'a mut std::io::Write,
     host: &'a mut HostImpl<H>,
 }
 
 impl<'a, H: HostHelper> TabHost<'a, H> {
-    pub fn new(pty: &'a mut MasterPty, host: &'a mut HostImpl<H>) -> Self {
-        Self { pty, host }
+    pub fn new(writer: &'a mut std::io::Write, host: &'a mut HostImpl<H>) -> Self {
+        Self { writer, host }
     }
 }
 
 impl<'a, H: HostHelper> term::TerminalHost for TabHost<'a, H> {
     fn writer(&mut self) -> &mut std::io::Write {
-        &mut self.pty
+        &mut self.writer
     }
 
     fn click_link(&mut self, link: &Rc<Hyperlink>) {
