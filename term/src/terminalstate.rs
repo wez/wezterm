@@ -529,7 +529,7 @@ impl TerminalState {
         if self.sgr_mouse {
             write_all(
                 writer,
-                &format!("\x1b[<{};{};{}M", report_button, event.x + 1, event.y + 1).as_bytes(),
+                format!("\x1b[<{};{};{}M", report_button, event.x + 1, event.y + 1).as_bytes(),
             )?;
         } else if self.screen.is_alt_screen_active() {
             // Send cursor keys instead (equivalent to xterm's alternateScroll mode)
@@ -559,11 +559,7 @@ impl TerminalState {
                 )?;
             } else if event.button == MouseButton::Middle {
                 let clip = host.get_clipboard()?;
-                if self.bracketed_paste {
-                    write!(host.writer(), "\x1b[200~{}\x1b[201~", clip)?;
-                } else {
-                    write!(host.writer(), "{}", clip)?;
-                }
+                self.send_paste(&clip, host.writer())?
             }
         }
 
