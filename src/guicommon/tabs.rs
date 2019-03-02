@@ -34,8 +34,12 @@ impl Tab {
         self.terminal.borrow_mut()
     }
 
-    pub fn process(&self) -> RefMut<Child> {
-        self.process.borrow_mut()
+    pub fn is_dead(&self) -> bool {
+        if let Ok(None) = self.process.borrow_mut().try_wait() {
+            false
+        } else {
+            true
+        }
     }
 
     pub fn resize(

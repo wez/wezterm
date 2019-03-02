@@ -250,10 +250,10 @@ pub trait TerminalWindow {
         let dead_tabs: Vec<Rc<Tab>> = tabs
             .iter()
             .filter_map(|tab| {
-                if let Ok(None) = tab.process().try_wait() {
-                    None
-                } else {
+                if tab.is_dead() {
                     Some(Rc::clone(tab))
+                } else {
+                    None
                 }
             })
             .collect();
