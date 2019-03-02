@@ -25,13 +25,9 @@ impl OwnedFd {
         if new_fd == -1 {
             bail!("dup of pty fd failed: {:?}", io::Error::last_os_error())
         }
-        match cloexec(new_fd) {
-            Ok(_) => Ok(OwnedFd { fd: new_fd }),
-            Err(err) => {
-                unsafe { libc::close(new_fd) };
-                Err(err)
-            }
-        }
+        let new_fd = OwnedFd { fd: new_fd };
+        cloexec(new_fd.as_raw_fd())?;
+        Ok(new_fd)
     }
 }
 
