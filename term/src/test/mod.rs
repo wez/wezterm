@@ -20,6 +20,16 @@ impl TestHost {
         Self::default()
     }
 }
+
+impl std::io::Write for TestHost {
+    fn write(&mut self, _buf: &[u8]) -> Result<usize, std::io::Error> {
+        panic!("no writer support in TestHost");
+    }
+    fn flush(&mut self) -> Result<(), std::io::Error> {
+        panic!("no writer support in TestHost");
+    }
+}
+
 impl TerminalHost for TestHost {
     fn set_title(&mut self, title: &str) {
         self.title = title.into();
@@ -38,7 +48,7 @@ impl TerminalHost for TestHost {
     }
 
     fn writer(&mut self) -> &mut std::io::Write {
-        panic!("no writer support in TestHost");
+        self
     }
 
     fn click_link(&mut self, _link: &Rc<Hyperlink>) {}
