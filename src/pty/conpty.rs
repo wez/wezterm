@@ -407,6 +407,26 @@ impl OwnedHandle {
     }
 }
 
+impl io::Read for OwnedHandle {
+    fn read(&mut self, buf: &mut [u8]) -> Result<usize, io::Error> {
+        let mut num_read = 0;
+        let ok = unsafe {
+            ReadFile(
+                self.handle as *mut _,
+                buf.as_mut_ptr() as *mut _,
+                buf.len() as u32,
+                &mut num_read,
+                ptr::null_mut(),
+            )
+        };
+        if ok == 0 {
+            Err(IoError::last_os_error())
+        } else {
+            Ok(num_read as usize)
+        }
+    }
+}
+
 struct Inner {
     con: PsuedoCon,
     readable: OwnedHandle,
@@ -496,26 +516,6 @@ impl io::Write for MasterPty {
     }
     fn flush(&mut self) -> Result<(), io::Error> {
         Ok(())
-    }
-}
-
-impl io::Read for MasterPty {
-    fn read(&mut self, buf: &mut [u8]) -> Result<usize, io::Error> {
-        let mut num_read = 0;
-        let ok = unsafe {
-            ReadFile(
-                self.inner.lock().unwrap().readable.handle as *mut _,
-                buf.as_mut_ptr() as *mut _,
-                buf.len() as u32,
-                &mut num_read,
-                ptr::null_mut(),
-            )
-        };
-        if ok == 0 {
-            Err(IoError::last_os_error())
-        } else {
-            Ok(num_read as usize)
-        }
     }
 }
 
