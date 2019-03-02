@@ -205,12 +205,19 @@ impl SlavePty {
                         return Err(io::Error::last_os_error());
                     }
 
-                    // Set the pty as the controlling terminal.
-                    // Failure to do this means that delivery of
-                    // SIGWINCH won't happen when we resize the
-                    // terminal, among other undesirable effects.
-                    if libc::ioctl(0, libc::TIOCSCTTY as _, 0) == -1 {
-                        return Err(io::Error::last_os_error());
+                    // Clippy wants us to explicitly cast TIOCSCTTY using
+                    // type::from(), but the size and potentially signedness
+                    // are system dependent, which is why we're using `as _`.
+                    // Suppress this lint for this section of code.
+                    #[cfg_attr(feature = "cargo-clippy", allow(clippy::cast_lossless))]
+                    {
+                        // Set the pty as the controlling terminal.
+                        // Failure to do this means that delivery of
+                        // SIGWINCH won't happen when we resize the
+                        // terminal, among other undesirable effects.
+                        if libc::ioctl(0, libc::TIOCSCTTY as _, 0) == -1 {
+                            return Err(io::Error::last_os_error());
+                        }
                     }
                     Ok(())
                 }

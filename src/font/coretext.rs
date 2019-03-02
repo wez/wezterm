@@ -151,7 +151,7 @@ impl CoreTextFontImpl {
         let m_metrics = metrics('M', &ct_font);
         let zero_metrics = metrics('0', &ct_font);
         let metrics = w_metrics.unwrap_or_else(|| {
-            m_metrics.unwrap_or_else(|| zero_metrics.unwrap_or_else(|| Default::default()))
+            m_metrics.unwrap_or_else(|| zero_metrics.unwrap_or_else(Default::default))
         });
         Self {
             ct_font,
