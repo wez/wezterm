@@ -635,11 +635,7 @@ impl GliumTerminalWindow {
                         return Ok(());
                     }
 
-                    tab.terminal().key_down(
-                        key,
-                        mods,
-                        &mut TabHost::new(&mut tab.pty(), &mut self.host),
-                    )?
+                    tab.terminal().key_down(key, mods, &mut *tab.pty())?
                 }
 
                 ElementState::Released => tab.terminal().key_up(
@@ -699,7 +695,7 @@ impl GliumTerminalWindow {
                     tab.terminal().key_down(
                         KeyCode::Char(c),
                         self.last_modifiers,
-                        &mut TabHost::new(&mut tab.pty(), &mut self.host),
+                        &mut *tab.pty(),
                     )?;
                     self.paint_if_needed()?;
                 }

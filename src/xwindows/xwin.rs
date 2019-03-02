@@ -241,11 +241,7 @@ impl X11TerminalWindow {
                         return Ok(());
                     }
 
-                    tab.terminal().key_down(
-                        code,
-                        mods,
-                        &mut TabHost::new(&mut tab.pty(), &mut self.host),
-                    )?;
+                    tab.terminal().key_down(code, mods, &mut *tab.pty())?;
                 }
             }
             xcb::KEY_RELEASE => {

@@ -601,7 +601,7 @@ impl TerminalState {
                     )?;
                 } else if self.screen.is_alt_screen_active() {
                     // Send cursor keys instead (equivalent to xterm's alternateScroll mode)
-                    self.key_down(key, KeyModifiers::default(), host)?;
+                    self.key_down(key, KeyModifiers::default(), host.writer())?;
                 } else {
                     self.scroll_viewport(scroll_delta)
                 }
@@ -692,7 +692,7 @@ impl TerminalState {
         &mut self,
         key: KeyCode,
         mods: KeyModifiers,
-        host: &mut TerminalHost,
+        writer: &mut std::io::Write,
     ) -> Result<(), Error> {
         const CTRL: KeyModifiers = KeyModifiers::CTRL;
         const SHIFT: KeyModifiers = KeyModifiers::SHIFT;
@@ -710,10 +710,6 @@ impl TerminalState {
         // TODO: also respect self.application_keypad
 
         let to_send = match (key, ctrl, alt, shift, self.application_cursor_keys) {
-            (Enter, _, ALT, ..) | (Char('\r'), _, ALT, ..) | (Char('\n'), _, ALT, ..) => {
-                host.toggle_full_screen();
-                return Ok(());
-            }
             (Tab, ..) => "\t",
             (Enter, ..) => "\r",
             (Backspace, ..) => "\x08",
@@ -858,7 +854,7 @@ impl TerminalState {
         };
 
         // eprintln!("sending {:?}", to_send);
-        write_all(host.writer(), to_send.as_bytes())?;
+        write_all(writer, to_send.as_bytes())?;
 
         // Reset the viewport if we sent data to the parser
         if !to_send.is_empty() && self.viewport_offset != 0 {
