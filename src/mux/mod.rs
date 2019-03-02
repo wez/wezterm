@@ -124,6 +124,7 @@ impl Mux {
         Ok(())
     }
 
+    #[allow(dead_code)]
     pub fn is_empty(&self) -> bool {
         self.tabs.borrow().is_empty()
     }

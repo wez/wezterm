@@ -116,6 +116,7 @@ fn cloexec(fd: RawFd) -> Result<(), Error> {
     Ok(())
 }
 
+#[allow(dead_code)]
 fn clear_nonblocking(fd: RawFd) -> Result<(), Error> {
     let flags = unsafe { libc::fcntl(fd, libc::F_GETFL, 0) };
     if flags == -1 {
@@ -134,6 +135,7 @@ fn clear_nonblocking(fd: RawFd) -> Result<(), Error> {
     Ok(())
 }
 
+#[allow(dead_code)]
 fn set_nonblocking(fd: RawFd) -> Result<(), Error> {
     let flags = unsafe { libc::fcntl(fd, libc::F_GETFL, 0) };
     if flags == -1 {
@@ -200,8 +202,6 @@ pub fn openpty(
     // the cloexec() functions fail (unlikely!).
     cloexec(master.fd.as_raw_fd())?;
     cloexec(slave.fd.as_raw_fd())?;
-
-    set_nonblocking(master.fd.as_raw_fd())?; // FIXME: do we need this any more?
 
     Ok((master, slave))
 }
@@ -319,7 +319,6 @@ impl MasterPty {
 
     pub fn try_clone_reader(&self) -> Result<Box<std::io::Read + Send>, Error> {
         let fd = self.fd.try_clone()?;
-        clear_nonblocking(fd.as_raw_fd())?;
         Ok(Box::new(fd))
     }
 }
