@@ -752,7 +752,7 @@ impl Renderer {
         cursor: &CursorPosition,
         terminal: &Renderable,
     ) -> Result<(), Error> {
-        let (num_cols, _num_rows) = terminal.physical_dimensions();
+        let (_num_rows, num_cols) = terminal.physical_dimensions();
         let mut vb = self.glyph_vertex_buffer.borrow_mut();
         let mut vertices = {
             let per_line = num_cols * VERTICES_PER_CELL;

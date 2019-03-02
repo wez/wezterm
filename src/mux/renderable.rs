@@ -56,7 +56,7 @@ impl Renderable for Terminal {
 
     fn physical_dimensions(&self) -> (usize, usize) {
         let screen = self.screen();
-        (screen.physical_cols, screen.physical_rows)
+        (screen.physical_rows, screen.physical_cols)
     }
 
     fn has_dirty_lines(&self) -> bool {
