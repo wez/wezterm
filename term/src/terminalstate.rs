@@ -378,7 +378,227 @@ impl TerminalState {
         self.invalidate_hyperlinks();
     }
 
-    #[cfg_attr(feature = "cargo-clippy", allow(clippy::cyclomatic_complexity))]
+    fn mouse_press_left(
+        &mut self,
+        event: MouseEvent,
+        host: &mut TerminalHost,
+    ) -> Result<(), Error> {
+        self.current_mouse_button = MouseButton::Left;
+        self.dirty_selection_lines();
+        match self.last_mouse_click.as_ref() {
+            // Single click prepares the start of a new selection
+            Some(&LastMouseClick { streak: 1, .. }) => {
+                // Prepare to start a new selection.
+                // We don't form the selection until the mouse drags.
+                self.selection_range = None;
+                self.selection_start = Some(SelectionCoordinate {
+                    x: event.x,
+                    y: event.y as ScrollbackOrVisibleRowIndex
+                        - self.viewport_offset as ScrollbackOrVisibleRowIndex,
+                });
+                host.set_clipboard(None)?;
+            }
+            // Double click to select a word on the current line
+            Some(&LastMouseClick { streak: 2, .. }) => {
+                let y = event.y as ScrollbackOrVisibleRowIndex
+                    - self.viewport_offset as ScrollbackOrVisibleRowIndex;
+                let idx = self.screen().scrollback_or_visible_row(y);
+                let click_range =
+                    self.screen().lines[idx].compute_double_click_range(event.x, |s| {
+                        // TODO: add configuration for this
+                        if s.len() > 1 {
+                            true
+                        } else if s.len() == 1 {
+                            match s.chars().nth(0).unwrap() {
+                                ' ' | '\t' | '\n' | '{' | '[' | '}' | ']' | '(' | ')' | '"'
+                                | '\'' => false,
+                                _ => true,
+                            }
+                        } else {
+                            false
+                        }
+                    });
+
+                self.selection_start = Some(SelectionCoordinate {
+                    x: click_range.start,
+                    y,
+                });
+                self.selection_range = Some(SelectionRange {
+                    start: SelectionCoordinate {
+                        x: click_range.start,
+                        y,
+                    },
+                    end: SelectionCoordinate {
+                        x: click_range.end,
+                        y,
+                    },
+                });
+                self.dirty_selection_lines();
+                let text = self.get_selection_text();
+                debug!(
+                    "finish 2click selection {:?} '{}'",
+                    self.selection_range, text
+                );
+                host.set_clipboard(Some(text))?;
+            }
+            // triple click to select the current line
+            Some(&LastMouseClick { streak: 3, .. }) => {
+                let y = event.y as ScrollbackOrVisibleRowIndex
+                    - self.viewport_offset as ScrollbackOrVisibleRowIndex;
+                self.selection_start = Some(SelectionCoordinate { x: event.x, y });
+                self.selection_range = Some(SelectionRange {
+                    start: SelectionCoordinate { x: 0, y },
+                    end: SelectionCoordinate {
+                        x: usize::max_value(),
+                        y,
+                    },
+                });
+                self.dirty_selection_lines();
+                let text = self.get_selection_text();
+                debug!(
+                    "finish 3click selection {:?} '{}'",
+                    self.selection_range, text
+                );
+                host.set_clipboard(Some(text))?;
+            }
+            // otherwise, clear out the selection
+            _ => {
+                self.selection_range = None;
+                self.selection_start = None;
+                host.set_clipboard(None)?;
+            }
+        }
+
+        Ok(())
+    }
+
+    fn mouse_release_left(
+        &mut self,
+        event: MouseEvent,
+        host: &mut TerminalHost,
+    ) -> Result<(), Error> {
+        // Finish selecting a region, update clipboard
+        self.current_mouse_button = MouseButton::None;
+        if let Some(&LastMouseClick { streak: 1, .. }) = self.last_mouse_click.as_ref() {
+            // Only consider a drag selection if we have a streak==1.
+            // The double/triple click cases are handled above.
+            let text = self.get_selection_text();
+            if !text.is_empty() {
+                debug!(
+                    "finish drag selection {:?} '{}'",
+                    self.selection_range, text
+                );
+                host.set_clipboard(Some(text))?;
+            } else if let Some(link) = self.current_highlight() {
+                // If the button release wasn't a drag, consider
+                // whether it was a click on a hyperlink
+                host.click_link(&link);
+            }
+            Ok(())
+        } else {
+            self.mouse_button_release(event, host.writer())
+        }
+    }
+
+    fn mouse_drag_left(&mut self, event: MouseEvent) -> Result<(), Error> {
+        // dragging out the selection region
+        // TODO: may drag and change the viewport
+        self.dirty_selection_lines();
+        let end = SelectionCoordinate {
+            x: event.x,
+            y: event.y as ScrollbackOrVisibleRowIndex
+                - self.viewport_offset as ScrollbackOrVisibleRowIndex,
+        };
+        let sel = match self.selection_range.take() {
+            None => SelectionRange::start(self.selection_start.unwrap_or(end)).extend(end),
+            Some(sel) => sel.extend(end),
+        };
+        self.selection_range = Some(sel);
+        // Dirty lines again to reflect new range
+        self.dirty_selection_lines();
+        Ok(())
+    }
+
+    fn mouse_wheel(&mut self, event: MouseEvent, writer: &mut std::io::Write) -> Result<(), Error> {
+        let (report_button, scroll_delta, key) = if event.button == MouseButton::WheelUp {
+            (64, -1, KeyCode::UpArrow)
+        } else {
+            (65, 1, KeyCode::DownArrow)
+        };
+
+        if self.sgr_mouse {
+            write_all(
+                writer,
+                &format!("\x1b[<{};{};{}M", report_button, event.x + 1, event.y + 1).as_bytes(),
+            )?;
+        } else if self.screen.is_alt_screen_active() {
+            // Send cursor keys instead (equivalent to xterm's alternateScroll mode)
+            self.key_down(key, KeyModifiers::default(), writer)?;
+        } else {
+            self.scroll_viewport(scroll_delta)
+        }
+        Ok(())
+    }
+
+    fn mouse_button_press(
+        &mut self,
+        event: MouseEvent,
+        host: &mut TerminalHost,
+    ) -> Result<(), Error> {
+        self.current_mouse_button = event.button;
+        if let Some(button) = match event.button {
+            MouseButton::Left => Some(0),
+            MouseButton::Middle => Some(1),
+            MouseButton::Right => Some(2),
+            _ => None,
+        } {
+            if self.sgr_mouse {
+                write_all(
+                    host.writer(),
+                    format!("\x1b[<{};{};{}M", button, event.x + 1, event.y + 1).as_bytes(),
+                )?;
+            } else if event.button == MouseButton::Middle {
+                let clip = host.get_clipboard()?;
+                if self.bracketed_paste {
+                    write!(host.writer(), "\x1b[200~{}\x1b[201~", clip)?;
+                } else {
+                    write!(host.writer(), "{}", clip)?;
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    fn mouse_button_release(
+        &mut self,
+        event: MouseEvent,
+        writer: &mut std::io::Write,
+    ) -> Result<(), Error> {
+        if self.current_mouse_button != MouseButton::None {
+            self.current_mouse_button = MouseButton::None;
+            if self.sgr_mouse {
+                write!(writer, "\x1b[<3;{};{}m", event.x + 1, event.y + 1)?;
+            }
+        }
+
+        Ok(())
+    }
+
+    fn mouse_move(&mut self, event: MouseEvent, writer: &mut std::io::Write) -> Result<(), Error> {
+        if let Some(button) = match (self.current_mouse_button, self.button_event_mouse) {
+            (MouseButton::Left, true) => Some(32),
+            (MouseButton::Middle, true) => Some(33),
+            (MouseButton::Right, true) => Some(34),
+            (..) => None,
+        } {
+            if self.sgr_mouse {
+                write!(writer, "\x1b[<{};{};{}M", button, event.x + 1, event.y + 1)?;
+            }
+        }
+        Ok(())
+    }
+
     pub fn mouse_event(
         &mut self,
         mut event: MouseEvent,
@@ -427,93 +647,7 @@ impl TerminalState {
                     },
                     _,
                 ) => {
-                    self.current_mouse_button = MouseButton::Left;
-                    self.dirty_selection_lines();
-                    match self.last_mouse_click.as_ref() {
-                        // Single click prepares the start of a new selection
-                        Some(&LastMouseClick { streak: 1, .. }) => {
-                            // Prepare to start a new selection.
-                            // We don't form the selection until the mouse drags.
-                            self.selection_range = None;
-                            self.selection_start = Some(SelectionCoordinate {
-                                x: event.x,
-                                y: event.y as ScrollbackOrVisibleRowIndex
-                                    - self.viewport_offset as ScrollbackOrVisibleRowIndex,
-                            });
-                            host.set_clipboard(None)?;
-                        }
-                        // Double click to select a word on the current line
-                        Some(&LastMouseClick { streak: 2, .. }) => {
-                            let y = event.y as ScrollbackOrVisibleRowIndex
-                                - self.viewport_offset as ScrollbackOrVisibleRowIndex;
-                            let idx = self.screen().scrollback_or_visible_row(y);
-                            let click_range =
-                                self.screen().lines[idx].compute_double_click_range(event.x, |s| {
-                                    // TODO: add configuration for this
-                                    if s.len() > 1 {
-                                        true
-                                    } else if s.len() == 1 {
-                                        match s.chars().nth(0).unwrap() {
-                                            ' ' | '\t' | '\n' | '{' | '[' | '}' | ']' | '('
-                                            | ')' | '"' | '\'' => false,
-                                            _ => true,
-                                        }
-                                    } else {
-                                        false
-                                    }
-                                });
-
-                            self.selection_start = Some(SelectionCoordinate {
-                                x: click_range.start,
-                                y,
-                            });
-                            self.selection_range = Some(SelectionRange {
-                                start: SelectionCoordinate {
-                                    x: click_range.start,
-                                    y,
-                                },
-                                end: SelectionCoordinate {
-                                    x: click_range.end,
-                                    y,
-                                },
-                            });
-                            self.dirty_selection_lines();
-                            let text = self.get_selection_text();
-                            debug!(
-                                "finish 2click selection {:?} '{}'",
-                                self.selection_range, text
-                            );
-                            host.set_clipboard(Some(text))?;
-                        }
-                        // triple click to select the current line
-                        Some(&LastMouseClick { streak: 3, .. }) => {
-                            let y = event.y as ScrollbackOrVisibleRowIndex
-                                - self.viewport_offset as ScrollbackOrVisibleRowIndex;
-                            self.selection_start = Some(SelectionCoordinate { x: event.x, y });
-                            self.selection_range = Some(SelectionRange {
-                                start: SelectionCoordinate { x: 0, y },
-                                end: SelectionCoordinate {
-                                    x: usize::max_value(),
-                                    y,
-                                },
-                            });
-                            self.dirty_selection_lines();
-                            let text = self.get_selection_text();
-                            debug!(
-                                "finish 3click selection {:?} '{}'",
-                                self.selection_range, text
-                            );
-                            host.set_clipboard(Some(text))?;
-                        }
-                        // otherwise, clear out the selection
-                        _ => {
-                            self.selection_range = None;
-                            self.selection_start = None;
-                            host.set_clipboard(None)?;
-                        }
-                    }
-
-                    return Ok(());
+                    return self.mouse_press_left(event, host);
                 }
                 (
                     MouseEvent {
@@ -523,26 +657,7 @@ impl TerminalState {
                     },
                     _,
                 ) => {
-                    // Finish selecting a region, update clipboard
-                    self.current_mouse_button = MouseButton::None;
-                    if let Some(&LastMouseClick { streak: 1, .. }) = self.last_mouse_click.as_ref()
-                    {
-                        // Only consider a drag selection if we have a streak==1.
-                        // The double/triple click cases are handled above.
-                        let text = self.get_selection_text();
-                        if !text.is_empty() {
-                            debug!(
-                                "finish drag selection {:?} '{}'",
-                                self.selection_range, text
-                            );
-                            host.set_clipboard(Some(text))?;
-                        } else if let Some(link) = self.current_highlight() {
-                            // If the button release wasn't a drag, consider
-                            // whether it was a click on a hyperlink
-                            host.click_link(&link);
-                        }
-                        return Ok(());
-                    }
+                    return self.mouse_release_left(event, host);
                 }
                 (
                     MouseEvent {
@@ -551,24 +666,7 @@ impl TerminalState {
                     },
                     MouseButton::Left,
                 ) => {
-                    // dragging out the selection region
-                    // TODO: may drag and change the viewport
-                    self.dirty_selection_lines();
-                    let end = SelectionCoordinate {
-                        x: event.x,
-                        y: event.y as ScrollbackOrVisibleRowIndex
-                            - self.viewport_offset as ScrollbackOrVisibleRowIndex,
-                    };
-                    let sel = match self.selection_range.take() {
-                        None => {
-                            SelectionRange::start(self.selection_start.unwrap_or(end)).extend(end)
-                        }
-                        Some(sel) => sel.extend(end),
-                    };
-                    self.selection_range = Some(sel);
-                    // Dirty lines again to reflect new range
-                    self.dirty_selection_lines();
-                    return Ok(());
+                    return self.mouse_drag_left(event);
                 }
                 _ => {}
             }
@@ -584,91 +682,20 @@ impl TerminalState {
                 kind: MouseEventKind::Press,
                 button: MouseButton::WheelDown,
                 ..
-            } => {
-                let (report_button, scroll_delta, key) = if event.button == MouseButton::WheelUp {
-                    (64, -1, KeyCode::UpArrow)
-                } else {
-                    (65, 1, KeyCode::DownArrow)
-                };
-
-                if self.sgr_mouse {
-                    write!(
-                        host.writer(),
-                        "\x1b[<{};{};{}M",
-                        report_button,
-                        event.x + 1,
-                        event.y + 1
-                    )?;
-                } else if self.screen.is_alt_screen_active() {
-                    // Send cursor keys instead (equivalent to xterm's alternateScroll mode)
-                    self.key_down(key, KeyModifiers::default(), host.writer())?;
-                } else {
-                    self.scroll_viewport(scroll_delta)
-                }
-            }
+            } => self.mouse_wheel(event, host.writer()),
             MouseEvent {
                 kind: MouseEventKind::Press,
                 ..
-            } => {
-                self.current_mouse_button = event.button;
-                if let Some(button) = match event.button {
-                    MouseButton::Left => Some(0),
-                    MouseButton::Middle => Some(1),
-                    MouseButton::Right => Some(2),
-                    _ => None,
-                } {
-                    if self.sgr_mouse {
-                        write!(
-                            host.writer(),
-                            "\x1b[<{};{};{}M",
-                            button,
-                            event.x + 1,
-                            event.y + 1
-                        )?;
-                    } else if event.button == MouseButton::Middle {
-                        let clip = host.get_clipboard()?;
-                        if self.bracketed_paste {
-                            write!(host.writer(), "\x1b[200~{}\x1b[201~", clip)?;
-                        } else {
-                            write!(host.writer(), "{}", clip)?;
-                        }
-                    }
-                }
-            }
+            } => self.mouse_button_press(event, host),
             MouseEvent {
                 kind: MouseEventKind::Release,
                 ..
-            } => {
-                if self.current_mouse_button != MouseButton::None {
-                    self.current_mouse_button = MouseButton::None;
-                    if self.sgr_mouse {
-                        write!(host.writer(), "\x1b[<3;{};{}m", event.x + 1, event.y + 1)?;
-                    }
-                }
-            }
+            } => self.mouse_button_release(event, host.writer()),
             MouseEvent {
                 kind: MouseEventKind::Move,
                 ..
-            } => {
-                if let Some(button) = match (self.current_mouse_button, self.button_event_mouse) {
-                    (MouseButton::Left, true) => Some(32),
-                    (MouseButton::Middle, true) => Some(33),
-                    (MouseButton::Right, true) => Some(34),
-                    (..) => None,
-                } {
-                    if self.sgr_mouse {
-                        write!(
-                            host.writer(),
-                            "\x1b[<{};{};{}M",
-                            button,
-                            event.x + 1,
-                            event.y + 1
-                        )?;
-                    }
-                }
-            }
+            } => self.mouse_move(event, host.writer()),
         }
-        Ok(())
     }
 
     /// Send text to the terminal that is the result of pasting.
