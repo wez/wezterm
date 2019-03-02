@@ -1,5 +1,3 @@
-use failure::Error;
-use std::io::{self, Error as IoError, Result as IoResult};
 extern crate winapi;
 use crate::pty::conpty::winapi::shared::minwindef::DWORD;
 use crate::pty::conpty::winapi::shared::winerror::{HRESULT, S_OK};
@@ -11,8 +9,10 @@ use crate::pty::conpty::winapi::um::processthreadsapi::*;
 use crate::pty::conpty::winapi::um::winbase::EXTENDED_STARTUPINFO_PRESENT;
 use crate::pty::conpty::winapi::um::winbase::STARTUPINFOEXW;
 use crate::pty::conpty::winapi::um::wincon::COORD;
+use failure::Error;
 use std::env;
 use std::ffi::{OsStr, OsString};
+use std::io::{self, Error as IoError, Result as IoResult};
 use std::mem;
 use std::os::windows::ffi::OsStrExt;
 use std::os::windows::ffi::OsStringExt;
@@ -20,6 +20,8 @@ use std::os::windows::raw::HANDLE;
 use std::path::Path;
 use std::ptr;
 use std::sync::{Arc, Mutex};
+use winapi::um::synchapi::WaitForSingleObject;
+use winapi::um::winbase::INFINITE;
 
 const PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE: usize = 0x00020016;
 
@@ -308,6 +310,29 @@ impl Child {
             Ok(None)
         }
     }
+
+    pub fn kill(&mut self) -> IoResult<ExitStatus> {
+        unsafe {
+            TerminateProcess(self.proc.handle, 1);
+        }
+        self.wait()
+    }
+
+    pub fn wait(&mut self) -> IoResult<ExitStatus> {
+        if let Ok(Some(status)) = self.try_wait() {
+            return Ok(status);
+        }
+        unsafe {
+            WaitForSingleObject(self.proc.handle, INFINITE);
+        }
+        let mut status: DWORD = 0;
+        let res = unsafe { GetExitCodeProcess(self.proc.handle, &mut status) };
+        if res != 0 {
+            Ok(ExitStatus { status })
+        } else {
+            Err(IoError::last_os_error())
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -492,7 +517,7 @@ impl MasterPty {
     }
 
     pub fn try_clone_reader(&self) -> Result<Box<std::io::Read + Send>, Error> {
-        Ok(Box::new(self.inner.readable.try_clone()?))
+        Ok(Box::new(self.inner.lock().unwrap().readable.try_clone()?))
     }
 }
 

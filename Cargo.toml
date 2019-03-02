@@ -46,6 +46,7 @@ features = [
     "handleapi",
     "fileapi",
     "namedpipeapi",
+    "synchapi",
 ]
 version = "~0.3"
 

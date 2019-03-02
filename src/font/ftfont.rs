@@ -123,9 +123,7 @@ impl Font for FreeTypeFontImpl {
     }
     fn has_color(&self) -> bool {
         let face = self.face.borrow();
-        unsafe {
-            ((*face.face).face_flags & ftwrap::FT_Long::from(ftwrap::FT_FACE_FLAG_COLOR)) != 0
-        }
+        unsafe { (((*face.face).face_flags as u32) & (ftwrap::FT_FACE_FLAG_COLOR as u32)) != 0 }
     }
 
     fn metrics(&self) -> FontMetrics {
