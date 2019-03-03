@@ -15,11 +15,15 @@ use futures::executor::{self, Notify, Spawn};
 use futures::future::{ExecuteError, Executor};
 use futures::{Async, Future};
 use std::cell::{Cell, RefCell};
+use std::collections::VecDeque;
 use std::sync::mpsc;
 use std::sync::{Arc, Mutex};
 
+const EXTERNAL_SPAWN: usize = !0usize;
+
 pub trait CoreSender: Send {
     fn send(&self, idx: usize) -> Result<(), Error>;
+    fn clone_sender(&self) -> Box<CoreSender>;
 }
 
 pub trait CoreReceiver {
@@ -35,6 +39,34 @@ pub struct Core {
     // future is ready to get polled.
     tasks: RefCell<Vec<Slot>>,
     next_vacant: Cell<usize>,
+    external_spawn: Arc<SpawningFromAnotherThread>,
+}
+
+#[derive(Default)]
+struct SpawningFromAnotherThread {
+    futures: Mutex<VecDeque<Box<Future<Item = (), Error = ()> + Send>>>,
+}
+
+pub struct Spawner {
+    tx: Box<CoreSender>,
+    external_spawn: Arc<SpawningFromAnotherThread>,
+}
+
+impl Spawner {
+    pub fn spawn(&self, future: Box<dyn Future<Item = (), Error = ()> + Send>) {
+        let mut futures = self.external_spawn.futures.lock().unwrap();
+        futures.push_back(future);
+        self.tx.send(EXTERNAL_SPAWN).unwrap();
+    }
+}
+
+impl Clone for Spawner {
+    fn clone(&self) -> Spawner {
+        Spawner {
+            tx: self.tx.clone_sender(),
+            external_spawn: Arc::clone(&self.external_spawn),
+        }
+    }
 }
 
 enum Slot {
@@ -43,7 +75,8 @@ enum Slot {
 }
 
 impl Core {
-    pub fn new(tx: Box<CoreSender>, tx2: Box<CoreSender>, rx: Box<CoreReceiver>) -> Self {
+    pub fn new(tx: Box<CoreSender>, rx: Box<CoreReceiver>) -> Self {
+        let tx2 = tx.clone_sender();
         Self {
             notify: Arc::new(Notifier {
                 tx: Mutex::new(tx2),
@@ -52,6 +85,14 @@ impl Core {
             rx,
             next_vacant: Cell::new(0),
             tasks: RefCell::new(Vec::new()),
+            external_spawn: Arc::new(SpawningFromAnotherThread::default()),
+        }
+    }
+
+    pub fn get_spawner(&self) -> Spawner {
+        Spawner {
+            tx: self.tx.clone_sender(),
+            external_spawn: Arc::clone(&self.external_spawn),
         }
     }
 
@@ -62,6 +103,10 @@ impl Core {
     where
         F: Future<Item = (), Error = ()> + 'static,
     {
+        self.spawn_impl(Box::new(f), true);
+    }
+
+    fn spawn_impl(&self, f: Box<Future<Item = (), Error = ()> + 'static>, do_tx: bool) -> usize {
         let idx = self.next_vacant.get();
         let mut tasks = self.tasks.borrow_mut();
         match tasks.get_mut(idx) {
@@ -76,7 +121,19 @@ impl Core {
             }
         }
         tasks[idx] = Slot::RunningFuture(Some(executor::spawn(Box::new(f))));
-        self.tx.send(idx).unwrap();
+        if do_tx {
+            self.tx.send(idx).unwrap();
+        }
+        idx
+    }
+
+    fn spawn_external(&self) -> Option<usize> {
+        let mut futures = self.external_spawn.futures.lock().unwrap();
+        if let Some(future) = futures.pop_front() {
+            Some(self.spawn_impl(future, false))
+        } else {
+            None
+        }
     }
 
     /// "Turns" this event loop one tick.
@@ -84,6 +141,10 @@ impl Core {
     /// Returns `false` if there were no futures in a known-ready state.
     pub fn turn(&self) -> bool {
         let task_id = match self.rx.try_recv() {
+            Ok(task_id) if task_id == EXTERNAL_SPAWN => match self.spawn_external() {
+                Some(task_id) => task_id,
+                _ => return false,
+            },
             Ok(task_id) => task_id,
             Err(mpsc::TryRecvError::Empty) => return false,
             Err(mpsc::TryRecvError::Disconnected) => panic!("futurecore rx Disconnected"),
@@ -132,10 +193,6 @@ where
 }
 
 struct Notifier {
-    // TODO: it's pretty unfortunate to use a `Mutex` here where the `Sender`
-    //       itself is basically `Sync` as-is. Ideally this'd use something like
-    //       an off-the-shelf mpsc queue as well as `thread::park` and
-    //       `Thread::unpark`.
     tx: Mutex<Box<CoreSender>>,
 }
 

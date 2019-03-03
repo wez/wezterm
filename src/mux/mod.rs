@@ -1,3 +1,4 @@
+use crate::futurecore::Spawner;
 use crate::guicommon::tabs::{Tab, TabId};
 use failure::Error;
 use std::cell::RefCell;
@@ -13,6 +14,7 @@ pub mod renderable;
 #[derive(Default)]
 pub struct Mux {
     tabs: RefCell<HashMap<TabId, Rc<Tab>>>,
+    spawner: RefCell<Option<Spawner>>,
 }
 
 #[derive(Clone)]
@@ -25,7 +27,12 @@ pub trait PtyEventSender: Send {
     fn send(&self, event: PtyEvent) -> Result<(), Error>;
 }
 
-fn read_from_tab_pty(sender: Box<PtyEventSender>, tab_id: TabId, mut reader: Box<std::io::Read>) {
+fn read_from_tab_pty(
+    spawner: Spawner,
+    sender: Box<PtyEventSender>,
+    tab_id: TabId,
+    mut reader: Box<std::io::Read>,
+) {
     const BUFSIZE: usize = 32 * 1024;
     let mut buf = [0; BUFSIZE];
     loop {
@@ -36,6 +43,10 @@ fn read_from_tab_pty(sender: Box<PtyEventSender>, tab_id: TabId, mut reader: Box
                 return;
             }
             Ok(size) => {
+                spawner.spawn(Box::new(futures::future::lazy(|| {
+                    eprintln!("I was spawned from a pty thread");
+                    futures::future::ok(())
+                })));
                 if sender
                     .send(PtyEvent::Data {
                         tab_id,
@@ -88,6 +99,10 @@ impl<'a> TerminalHost for Host<'a> {
 }
 
 impl Mux {
+    pub fn set_spawner(&self, spawner: Spawner) {
+        *self.spawner.borrow_mut() = Some(spawner);
+    }
+
     pub fn get_tab(&self, tab_id: TabId) -> Option<Rc<Tab>> {
         self.tabs.borrow().get(&tab_id).map(Rc::clone)
     }
@@ -97,7 +112,8 @@ impl Mux {
 
         let reader = tab.reader()?;
         let tab_id = tab.tab_id();
-        thread::spawn(move || read_from_tab_pty(sender, tab_id, reader));
+        let spawner = self.spawner.borrow().as_ref().unwrap().clone();
+        thread::spawn(move || read_from_tab_pty(spawner, sender, tab_id, reader));
 
         Ok(())
     }

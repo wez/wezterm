@@ -42,6 +42,9 @@ impl futurecore::CoreSender for GuiSender<usize> {
     fn send(&self, idx: usize) -> Result<(), Error> {
         GuiSender::send(self, idx)
     }
+    fn clone_sender(&self) -> Box<futurecore::CoreSender> {
+        Box::new(GuiSender::clone(self))
+    }
 }
 
 impl PtyEventSender for GuiSender<PtyEvent> {
@@ -154,8 +157,8 @@ impl GuiEventLoop {
         let event_loop = glium::glutin::EventsLoop::new();
 
         let (fut_tx, fut_rx) = channel(event_loop.create_proxy());
-        let fut_tx2 = fut_tx.clone();
-        let core = futurecore::Core::new(Box::new(fut_tx), Box::new(fut_tx2), Box::new(fut_rx));
+        let core = futurecore::Core::new(Box::new(fut_tx), Box::new(fut_rx));
+        mux.set_spawner(core.get_spawner());
 
         let (poll_tx, poll_rx) = channel(event_loop.create_proxy());
 

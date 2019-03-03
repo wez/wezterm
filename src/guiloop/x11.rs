@@ -25,6 +25,9 @@ impl futurecore::CoreSender for GuiSender<usize> {
     fn send(&self, idx: usize) -> Result<(), Error> {
         GuiSender::send(self, idx).map_err(|e| format_err!("send: {}", e))
     }
+    fn clone_sender(&self) -> Box<futurecore::CoreSender> {
+        Box::new(GuiSender::clone(self))
+    }
 }
 
 impl PtyEventSender for GuiSender<PtyEvent> {
@@ -103,8 +106,8 @@ impl GuiEventLoop {
             Ready::readable(),
             PollOpt::level(),
         )?;
-        let fut_tx2 = fut_tx.clone();
-        let core = futurecore::Core::new(Box::new(fut_tx), Box::new(fut_tx2), Box::new(fut_rx));
+        let core = futurecore::Core::new(Box::new(fut_tx), Box::new(fut_rx));
+        mux.set_spawner(core.get_spawner());
 
         let (pty_tx, pty_rx) = channel();
         poll.register(&pty_rx, Token(TOK_PTY), Ready::readable(), PollOpt::level())?;
