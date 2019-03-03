@@ -27,6 +27,7 @@ open = "1.2"
 structopt = "0.2"
 foreign-types = "0.3"
 winit = "0.18"
+boxfnonce = "0.1"
 
 [target.'cfg(unix)'.dependencies]
 harfbuzz-sys = "~0.3"
