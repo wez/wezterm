@@ -39,6 +39,9 @@ path = "term"
 [dependencies.termwiz]
 path = "termwiz"
 
+[target."cfg(windows)".dependencies.uds_windows]
+version = "0.1"
+
 [target."cfg(windows)".dependencies.winapi]
 features = [
     "winuser",

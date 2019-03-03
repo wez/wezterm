@@ -22,6 +22,7 @@ mod guicommon;
 mod guiloop;
 mod mux;
 mod opengl;
+mod server;
 use crate::guicommon::tabs::Tab;
 use crate::guiloop::GuiSelection;
 use crate::guiloop::GuiSystem;
