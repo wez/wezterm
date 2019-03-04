@@ -3,7 +3,7 @@ use failure::Error;
 use std::sync::{Arc, Condvar, Mutex};
 
 type NextFunc<T> = SendBoxFnOnce<'static, (Result<T, Error>,)>;
-type SpawnFunc = SendBoxFnOnce<'static, ()>;
+pub type SpawnFunc = SendBoxFnOnce<'static, ()>;
 
 pub trait Executor {
     fn execute(&self, f: SpawnFunc);

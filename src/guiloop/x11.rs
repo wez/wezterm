@@ -5,6 +5,7 @@ use crate::guicommon::tabs::Tab;
 use crate::guicommon::window::TerminalWindow;
 use crate::guiloop::GuiSystem;
 use crate::mux::{Mux, PtyEvent, PtyEventSender};
+use crate::promise::{Executor, SpawnFunc};
 use crate::spawn_tab;
 use crate::xwindows::xwin::X11TerminalWindow;
 use crate::xwindows::Connection;
@@ -47,6 +48,16 @@ struct Windows {
     by_id: HashMap<WindowId, X11TerminalWindow>,
 }
 
+pub struct X11GuiExecutor {
+    tx: GuiSender<SpawnFunc>,
+}
+
+impl Executor for X11GuiExecutor {
+    fn execute(&self, f: SpawnFunc) {
+        self.tx.send(f).expect("GlutinExecutor execute failed");
+    }
+}
+
 pub struct GuiEventLoop {
     poll: Poll,
     pub conn: Rc<Connection>,
@@ -55,12 +66,15 @@ pub struct GuiEventLoop {
     interval: Duration,
     pty_rx: GuiReceiver<PtyEvent>,
     pty_tx: GuiSender<PtyEvent>,
+    gui_rx: GuiReceiver<SpawnFunc>,
+    gui_tx: GuiSender<SpawnFunc>,
     mux: Rc<Mux>,
 }
 
 const TOK_CORE: usize = 0xffff_ffff;
 const TOK_PTY: usize = 0xffff_fffe;
 const TOK_XCB: usize = 0xffff_fffc;
+const TOK_GUI_EXEC: usize = 0xffff_fffd;
 
 pub struct X11GuiSystem {
     event_loop: Rc<GuiEventLoop>,
@@ -76,6 +90,13 @@ impl super::GuiSystem for X11GuiSystem {
     fn pty_sender(&self) -> Box<PtyEventSender> {
         Box::new(self.event_loop.pty_tx.clone())
     }
+
+    fn gui_executor(&self) -> Arc<Executor> {
+        Arc::new(X11GuiExecutor {
+            tx: self.event_loop.gui_tx.clone(),
+        })
+    }
+
     fn run_forever(&self) -> Result<(), Error> {
         self.event_loop.run()
     }
@@ -112,12 +133,22 @@ impl GuiEventLoop {
         let (pty_tx, pty_rx) = channel();
         poll.register(&pty_rx, Token(TOK_PTY), Ready::readable(), PollOpt::level())?;
 
+        let (gui_tx, gui_rx) = channel();
+        poll.register(
+            &gui_rx,
+            Token(TOK_GUI_EXEC),
+            Ready::readable(),
+            PollOpt::level(),
+        )?;
+
         Ok(Self {
             conn,
             poll,
             core,
             pty_rx,
             pty_tx,
+            gui_tx,
+            gui_rx,
             interval: Duration::from_millis(50),
             windows: Rc::new(RefCell::new(Default::default())),
             mux: Rc::clone(mux),
@@ -134,6 +165,7 @@ impl GuiEventLoop {
         let tok_core = Token(TOK_CORE);
         let tok_xcb = Token(TOK_XCB);
         let tok_pty = Token(TOK_PTY);
+        let tok_gui = Token(TOK_GUI_EXEC);
 
         self.conn.flush();
         let mut last_interval = Instant::now();
@@ -159,6 +191,8 @@ impl GuiEventLoop {
                             self.process_queued_xcb()?;
                         } else if t == tok_pty {
                             self.process_pty_event()?;
+                        } else if t == tok_gui {
+                            self.process_gui_exec()?;
                         } else {
                         }
                     }
@@ -249,6 +283,15 @@ impl GuiEventLoop {
     fn process_pty_event(&self) -> Result<(), Error> {
         match self.pty_rx.try_recv() {
             Ok(event) => self.mux.process_pty_event(event)?,
+            Err(TryRecvError::Empty) => return Ok(()),
+            Err(err) => bail!("poll_rx disconnected {:?}", err),
+        }
+        Ok(())
+    }
+
+    fn process_gui_exec(&self) -> Result<(), Error> {
+        match self.gui_rx.try_recv() {
+            Ok(func) => func.call(),
             Err(TryRecvError::Empty) => return Ok(()),
             Err(err) => bail!("poll_rx disconnected {:?}", err),
         }

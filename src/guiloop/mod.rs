@@ -3,8 +3,10 @@ use crate::config::Config;
 use crate::font::FontConfiguration;
 use crate::guicommon::tabs::Tab;
 use crate::mux::{Mux, PtyEventSender};
+use crate::promise::Executor;
 use failure::Error;
 use std::rc::Rc;
+use std::sync::Arc;
 
 #[derive(Debug, Deserialize, Clone, Copy)]
 pub enum GuiSelection {
@@ -71,6 +73,8 @@ pub trait GuiSystem {
     ) -> Result<(), Error>;
 
     fn pty_sender(&self) -> Box<PtyEventSender>;
+
+    fn gui_executor(&self) -> Arc<Executor>;
 }
 
 pub mod glutinloop;

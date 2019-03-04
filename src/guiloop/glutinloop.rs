@@ -8,6 +8,7 @@ use crate::guicommon::tabs::Tab;
 use crate::guicommon::window::TerminalWindow;
 use crate::guiloop::SessionTerminated;
 use crate::mux::{Mux, PtyEvent, PtyEventSender};
+use crate::promise::{Executor, SpawnFunc};
 use crate::spawn_tab;
 use failure::Error;
 use futures::future;
@@ -18,6 +19,7 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
 use std::sync::mpsc::{self, Receiver, SyncSender, TryRecvError};
+use std::sync::Arc;
 use std::thread;
 use std::time::{Duration, SystemTime};
 
@@ -67,6 +69,16 @@ pub fn channel<T: Send>(proxy: EventsLoopProxy) -> (GuiSender<T>, Receiver<T>) {
     (GuiSender { tx, proxy }, rx)
 }
 
+pub struct GlutinGuiExecutor {
+    tx: Arc<GuiSender<SpawnFunc>>,
+}
+
+impl Executor for GlutinGuiExecutor {
+    fn execute(&self, f: SpawnFunc) {
+        self.tx.send(f).expect("GlutinExecutor execute failed");
+    }
+}
+
 /// This struct holds references to Windows.
 /// The primary mapping is from `WindowId` -> `GliumTerminalWindow`.
 #[derive(Default)]
@@ -83,6 +95,8 @@ pub struct GuiEventLoop {
     core: futurecore::Core,
     poll_tx: GuiSender<PtyEvent>,
     poll_rx: Receiver<PtyEvent>,
+    gui_tx: Arc<GuiSender<SpawnFunc>>,
+    gui_rx: Receiver<SpawnFunc>,
     tick_rx: Receiver<()>,
     mux: Rc<Mux>,
 }
@@ -117,6 +131,12 @@ impl GuiSystem for GlutinGuiSystem {
         Box::new(self.event_loop.poll_tx.clone())
     }
 
+    fn gui_executor(&self) -> Arc<Executor> {
+        Arc::new(GlutinGuiExecutor {
+            tx: self.event_loop.gui_tx.clone(),
+        })
+    }
+
     fn run_forever(&self) -> Result<(), Error> {
         // This convoluted run() signature is present because of this issue:
         // https://github.com/tomaka/winit/issues/413
@@ -136,6 +156,7 @@ impl GuiSystem for GlutinGuiSystem {
 
             myself.run_event_loop()?;
             myself.process_poll()?;
+            myself.process_gui_exec()?;
             myself.process_tick()?;
         }
     }
@@ -161,6 +182,7 @@ impl GuiEventLoop {
         mux.set_spawner(core.get_spawner());
 
         let (poll_tx, poll_rx) = channel(event_loop.create_proxy());
+        let (gui_tx, gui_rx) = channel(event_loop.create_proxy());
 
         // The glutin/glium plumbing has no native tick/timer stuff, so
         // we implement one using a thread.  Nice.
@@ -176,6 +198,8 @@ impl GuiEventLoop {
             core,
             poll_tx,
             poll_rx,
+            gui_rx,
+            gui_tx: Arc::new(gui_tx),
             tick_rx,
             event_loop: RefCell::new(event_loop),
             windows: Rc::new(RefCell::new(Default::default())),
@@ -309,6 +333,26 @@ impl GuiEventLoop {
             }
             match self.poll_rx.try_recv() {
                 Ok(event) => self.mux.process_pty_event(event)?,
+                Err(TryRecvError::Empty) => return Ok(()),
+                Err(err) => bail!("poll_rx disconnected {:?}", err),
+            }
+        }
+    }
+
+    fn process_gui_exec(&self) -> Result<(), Error> {
+        let start = SystemTime::now();
+        loop {
+            match start.elapsed() {
+                Ok(elapsed) if elapsed > MAX_POLL_LOOP_DURATION => {
+                    return Ok(());
+                }
+                Err(_) => {
+                    return Ok(());
+                }
+                _ => {}
+            }
+            match self.gui_rx.try_recv() {
+                Ok(func) => func.call(),
                 Err(TryRecvError::Empty) => return Ok(()),
                 Err(err) => bail!("poll_rx disconnected {:?}", err),
             }
