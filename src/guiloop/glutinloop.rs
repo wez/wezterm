@@ -227,13 +227,14 @@ impl GuiEventLoop {
     }
 
     fn do_spawn_new_window(
-        events: &Rc<Self>,
+        &self,
         config: &Arc<Config>,
         fonts: &Rc<FontConfiguration>,
     ) -> Result<(), Error> {
         let tab = spawn_tab(&config, None)?;
-        let sender = Box::new(events.poll_tx.clone());
-        events.mux.add_tab(sender, &tab)?;
+        let sender = Box::new(self.poll_tx.clone());
+        self.mux.add_tab(sender, &tab)?;
+        let events = Self::get().expect("to be called on gui thread");
         let window = GliumTerminalWindow::new(&events, &fonts, &config, &tab)?;
 
         events.add_window(window)
@@ -241,16 +242,19 @@ impl GuiEventLoop {
 
     pub fn schedule_spawn_new_window(&self, config: &Arc<Config>) {
         let config = Arc::clone(config);
-        self.core.spawn(futures::future::poll_fn(move || {
-            let myself = Self::get().expect("to be called on gui thread");
-            let fonts = Rc::new(FontConfiguration::new(
-                Arc::clone(&config),
-                FontSystemSelection::get_default(),
-            ));
-            Self::do_spawn_new_window(&myself, &config, &fonts)
-                .map(futures::Async::Ready)
-                .map_err(|_| ())
-        }));
+        Future::with_executor(
+            GlutinGuiExecutor {
+                tx: self.gui_tx.clone(),
+            },
+            move || {
+                let myself = Self::get().expect("to be called on gui thread");
+                let fonts = Rc::new(FontConfiguration::new(
+                    Arc::clone(&config),
+                    FontSystemSelection::get_default(),
+                ));
+                myself.do_spawn_new_window(&config, &fonts)
+            },
+        );
     }
 
     pub fn with_window<F: Send + 'static + Fn(&mut TerminalWindow) -> Result<(), Error>>(
