@@ -6,9 +6,9 @@ use crate::gliumwindows;
 pub use crate::gliumwindows::GliumTerminalWindow;
 use crate::guicommon::tabs::Tab;
 use crate::guicommon::window::TerminalWindow;
-use crate::guiloop::SessionTerminated;
+use crate::guiloop::{GuiSelection, SessionTerminated};
 use crate::mux::{Mux, PtyEvent, PtyEventSender};
-use crate::promise::{Executor, SpawnFunc};
+use crate::promise::{Executor, Future, SpawnFunc};
 use crate::spawn_tab;
 use failure::Error;
 use futures::future;
@@ -108,9 +108,14 @@ pub struct GlutinGuiSystem {
     event_loop: Rc<GuiEventLoop>,
 }
 
+thread_local! {
+    static GLUTIN_EVENT_LOOP: RefCell<Option<Rc<GuiEventLoop>>> = RefCell::new(None);
+}
+
 impl GlutinGuiSystem {
     pub fn try_new(mux: &Rc<Mux>) -> Result<Rc<GuiSystem>, Error> {
         let event_loop = Rc::new(GuiEventLoop::new(mux)?);
+        GLUTIN_EVENT_LOOP.with(|f| *f.borrow_mut() = Some(Rc::clone(&event_loop)));
         Ok(Rc::new(Self { event_loop }))
     }
 
@@ -207,6 +212,16 @@ impl GuiEventLoop {
         })
     }
 
+    pub fn get() -> Option<Rc<Self>> {
+        let mut res = None;
+        GLUTIN_EVENT_LOOP.with(|f| {
+            if let Some(me) = &*f.borrow() {
+                res = Some(Rc::clone(me));
+            }
+        });
+        res
+    }
+
     pub fn register_tab(&self, tab: &Rc<Tab>) -> Result<(), Error> {
         self.mux.add_tab(Box::new(self.poll_tx.clone()), tab)
     }
@@ -239,20 +254,25 @@ impl GuiEventLoop {
         }));
     }
 
-    pub fn with_window<F: 'static + Fn(&mut TerminalWindow) -> Result<(), Error>>(
+    pub fn with_window<F: Send + 'static + Fn(&mut TerminalWindow) -> Result<(), Error>>(
         events: &Rc<Self>,
         window_id: WindowId,
         func: F,
     ) {
-        let myself = Rc::clone(events);
-        events.core.spawn(futures::future::poll_fn(move || {
-            let mut windows = myself.windows.borrow_mut();
-            if let Some(window) = windows.by_id.get_mut(&window_id) {
-                func(window).map(futures::Async::Ready).map_err(|_| ())
-            } else {
-                Err(())
-            }
-        }));
+        Future::with_executor(
+            GlutinGuiExecutor {
+                tx: events.gui_tx.clone(),
+            },
+            move || {
+                let myself = Self::get().expect("to be called on gui thread");
+                let mut windows = myself.windows.borrow_mut();
+                if let Some(window) = windows.by_id.get_mut(&window_id) {
+                    func(window)
+                } else {
+                    bail!("no such window {:?}", window_id);
+                }
+            },
+        );
     }
 
     /// Add a window to the event loop and run it.

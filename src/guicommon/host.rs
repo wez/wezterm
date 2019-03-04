@@ -8,7 +8,10 @@ use term::{KeyCode, KeyModifiers};
 use termwiz::hyperlink::Hyperlink;
 
 pub trait HostHelper {
-    fn with_window<F: 'static + Fn(&mut TerminalWindow) -> Result<(), Error>>(&self, func: F);
+    fn with_window<F: Send + 'static + Fn(&mut TerminalWindow) -> Result<(), Error>>(
+        &self,
+        func: F,
+    );
     fn toggle_full_screen(&mut self);
 }
 

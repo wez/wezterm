@@ -5,6 +5,7 @@ use crate::guicommon::tabs::Tab;
 use crate::mux::{Mux, PtyEventSender};
 use crate::promise::Executor;
 use failure::Error;
+use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::Arc;
 
@@ -26,17 +27,39 @@ impl Default for GuiSelection {
     }
 }
 
+thread_local! {
+    static GUI_SYSTEM: RefCell<Option<Rc<GuiSystem>>> = RefCell::new(None);
+}
+
 impl GuiSelection {
     pub fn try_new(self, mux: &Rc<Mux>) -> Result<Rc<GuiSystem>, Error> {
-        match self {
+        let system = match self {
             GuiSelection::Glutin => glutinloop::GlutinGuiSystem::try_new(mux),
-            GuiSelection::X11 => {
-                #[cfg(all(unix, not(target_os = "macos")))]
-                return x11::X11GuiSystem::try_new(mux);
-                #[cfg(not(all(unix, not(target_os = "macos"))))]
-                bail!("X11 not compiled in");
-            }
+            #[cfg(all(unix, not(target_os = "macos")))]
+            GuiSelection::X11 => x11::X11GuiSystem::try_new(mux),
+            #[cfg(not(all(unix, not(target_os = "macos"))))]
+            GuiSelection::X11 => bail!("X11 not compiled in"),
+        };
+
+        if let Ok(sys) = &system {
+            GUI_SYSTEM.with(|g| {
+                *g.borrow_mut() = Some(Rc::clone(&sys));
+            });
         }
+
+        system
+    }
+
+    /// Returns a reference to the gui system.
+    /// Will return None if not called on the gui thread.
+    pub fn get() -> Option<Rc<GuiSystem>> {
+        let mut res = None;
+        GUI_SYSTEM.with(|g| {
+            if let Some(sys) = &*g.borrow() {
+                res = Some(Rc::clone(sys));
+            }
+        });
+        res
     }
 
     // TODO: find or build a proc macro for this

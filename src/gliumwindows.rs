@@ -33,7 +33,10 @@ struct Host {
 }
 
 impl HostHelper for Host {
-    fn with_window<F: 'static + Fn(&mut TerminalWindow) -> Result<(), Error>>(&self, func: F) {
+    fn with_window<F: Send + 'static + Fn(&mut TerminalWindow) -> Result<(), Error>>(
+        &self,
+        func: F,
+    ) {
         GuiEventLoop::with_window(&self.event_loop, self.display.gl_window().id(), func);
     }
 
