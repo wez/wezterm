@@ -3,6 +3,27 @@ use failure::Error;
 use std::sync::{Arc, Condvar, Mutex};
 
 type NextFunc<T> = SendBoxFnOnce<'static, (Result<T, Error>,)>;
+type SpawnFunc = SendBoxFnOnce<'static, ()>;
+
+pub trait Executor {
+    fn execute(&self, f: SpawnFunc);
+}
+
+/// An executor for spawning futures into the rayon global
+/// thread pool
+pub struct RayonExecutor {}
+
+impl RayonExecutor {
+    pub fn new() -> Self {
+        Self {}
+    }
+}
+
+impl Executor for RayonExecutor {
+    fn execute(&self, f: SpawnFunc) {
+        rayon::spawn(|| f.call());
+    }
+}
 
 enum PromiseState<T> {
     Waiting(Arc<Core<T>>),
@@ -104,6 +125,28 @@ impl<T: Send + 'static> Future<T> {
         Self {
             state: FutureState::Ready(result),
         }
+    }
+
+    /// Create a future from a function that will be spawned via
+    /// the provided executor
+    pub fn with_executor<F, IF, EXEC>(executor: EXEC, f: F) -> Future<T>
+    where
+        F: FnOnce() -> IF,
+        IF: Into<Future<T>>,
+        IF: 'static,
+        F: Send + 'static,
+        EXEC: Executor + Send + 'static,
+    {
+        let mut promise = Promise::new();
+        let future = promise.get_future().unwrap();
+
+        let func = SendBoxFnOnce::from(f);
+        let promise_chain = NextFunc::from(move |result| promise.result(result));
+        executor.execute(SpawnFunc::from(move || {
+            let future = func.call().into();
+            future.chain(promise_chain);
+        }));
+        future
     }
 
     fn chain(self, f: NextFunc<T>) {
@@ -315,5 +358,11 @@ mod test {
         let f2 = f.then(move |result| Ok(result.unwrap() * 2));
 
         assert_eq!(f2.wait().unwrap(), 246);
+    }
+
+    #[test]
+    fn via_rayon() {
+        let f = Future::with_executor(RayonExecutor::new(), || Ok(true));
+        assert_eq!(f.wait().unwrap(), true);
     }
 }
