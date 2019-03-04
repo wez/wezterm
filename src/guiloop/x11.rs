@@ -1,6 +1,5 @@
 use crate::config::Config;
 use crate::font::FontConfiguration;
-use crate::futurecore;
 use crate::guicommon::tabs::Tab;
 use crate::guicommon::window::TerminalWindow;
 use crate::guiloop::GuiSystem;
@@ -22,27 +21,6 @@ use xcb;
 #[cfg(all(unix, not(target_os = "macos")))]
 pub use xcb::xproto::Window as WindowId;
 
-impl futurecore::CoreSender for GuiSender<usize> {
-    fn send(&self, idx: usize) -> Result<(), Error> {
-        GuiSender::send(self, idx).map_err(|e| format_err!("send: {}", e))
-    }
-    fn clone_sender(&self) -> Box<futurecore::CoreSender> {
-        Box::new(GuiSender::clone(self))
-    }
-}
-
-impl PtyEventSender for GuiSender<PtyEvent> {
-    fn send(&self, event: PtyEvent) -> Result<(), Error> {
-        GuiSender::send(self, event).map_err(|e| format_err!("send: {}", e))
-    }
-}
-
-impl futurecore::CoreReceiver for GuiReceiver<usize> {
-    fn try_recv(&self) -> Result<usize, TryRecvError> {
-        GuiReceiver::try_recv(self)
-    }
-}
-
 #[derive(Default)]
 struct Windows {
     by_id: HashMap<WindowId, X11TerminalWindow>,
@@ -61,17 +39,13 @@ impl Executor for X11GuiExecutor {
 pub struct GuiEventLoop {
     poll: Poll,
     pub conn: Rc<Connection>,
-    pub core: futurecore::Core,
     windows: Rc<RefCell<Windows>>,
     interval: Duration,
-    pty_rx: GuiReceiver<PtyEvent>,
-    pty_tx: GuiSender<PtyEvent>,
     gui_rx: GuiReceiver<SpawnFunc>,
     gui_tx: GuiSender<SpawnFunc>,
     mux: Rc<Mux>,
 }
 
-const TOK_CORE: usize = 0xffff_ffff;
 const TOK_PTY: usize = 0xffff_fffe;
 const TOK_XCB: usize = 0xffff_fffc;
 const TOK_GUI_EXEC: usize = 0xffff_fffd;
@@ -87,10 +61,6 @@ impl X11GuiSystem {
 }
 
 impl super::GuiSystem for X11GuiSystem {
-    fn pty_sender(&self) -> Box<PtyEventSender> {
-        Box::new(self.event_loop.pty_tx.clone())
-    }
-
     fn gui_executor(&self) -> Arc<Executor> {
         Arc::new(X11GuiExecutor {
             tx: self.event_loop.gui_tx.clone(),
@@ -120,19 +90,6 @@ impl GuiEventLoop {
 
         poll.register(&*conn, Token(TOK_XCB), Ready::readable(), PollOpt::level())?;
 
-        let (fut_tx, fut_rx) = channel();
-        poll.register(
-            &fut_rx,
-            Token(TOK_CORE),
-            Ready::readable(),
-            PollOpt::level(),
-        )?;
-        let core = futurecore::Core::new(Box::new(fut_tx), Box::new(fut_rx));
-        mux.set_spawner(core.get_spawner());
-
-        let (pty_tx, pty_rx) = channel();
-        poll.register(&pty_rx, Token(TOK_PTY), Ready::readable(), PollOpt::level())?;
-
         let (gui_tx, gui_rx) = channel();
         poll.register(
             &gui_rx,
@@ -144,9 +101,6 @@ impl GuiEventLoop {
         Ok(Self {
             conn,
             poll,
-            core,
-            pty_rx,
-            pty_tx,
             gui_tx,
             gui_rx,
             interval: Duration::from_millis(50),
@@ -162,9 +116,7 @@ impl GuiEventLoop {
     fn run(&self) -> Result<(), Error> {
         let mut events = Events::with_capacity(8);
 
-        let tok_core = Token(TOK_CORE);
         let tok_xcb = Token(TOK_XCB);
-        let tok_pty = Token(TOK_PTY);
         let tok_gui = Token(TOK_GUI_EXEC);
 
         self.conn.flush();
@@ -185,12 +137,8 @@ impl GuiEventLoop {
                 Ok(_) => {
                     for event in &events {
                         let t = event.token();
-                        if t == tok_core {
-                            self.process_futures();
-                        } else if t == tok_xcb {
+                        if t == tok_xcb {
                             self.process_queued_xcb()?;
-                        } else if t == tok_pty {
-                            self.process_pty_event()?;
                         } else if t == tok_gui {
                             self.process_gui_exec()?;
                         } else {
@@ -236,14 +184,14 @@ impl GuiEventLoop {
     }
 
     fn do_spawn_new_window(
-        events: &Rc<Self>,
+        &self,
         config: &Arc<Config>,
         fonts: &Rc<FontConfiguration>,
     ) -> Result<(), Error> {
         let tab = spawn_tab(&config, None)?;
-        events.mux.add_tab(self.gui_executor(), &tab)?;
+        self.mux.add_tab(self.gui_executor(), &tab)?;
+        let events = Self::get().expect("to be called on gui thread");
         let window = X11TerminalWindow::new(&events, &fonts, &config, &tab)?;
-
         events.add_window(window)
     }
 
@@ -270,29 +218,6 @@ impl GuiEventLoop {
         let mut windows = self.windows.borrow_mut();
 
         windows.by_id.insert(window_id, window);
-        Ok(())
-    }
-
-    /// Loop through the core and dispatch any tasks that have been
-    /// notified as ready to run.  Returns once all such tasks have
-    /// been polled and there are no more pending task notifications.
-    fn process_futures(&self) {
-        loop {
-            if !self.core.turn() {
-                break;
-            }
-        }
-    }
-
-    /// Process an even from the remote mio instance.
-    /// At this time, all such events correspond to readable events
-    /// for the pty associated with a window.
-    fn process_pty_event(&self) -> Result<(), Error> {
-        match self.pty_rx.try_recv() {
-            Ok(event) => self.mux.process_pty_event(event)?,
-            Err(TryRecvError::Empty) => return Ok(()),
-            Err(err) => bail!("poll_rx disconnected {:?}", err),
-        }
         Ok(())
     }
 
