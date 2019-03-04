@@ -95,7 +95,7 @@ pub trait GuiSystem {
         tab: &Rc<Tab>,
     ) -> Result<(), Error>;
 
-    fn gui_executor(&self) -> Arc<Executor + Sync + Send>;
+    fn gui_executor(&self) -> Box<Executor>;
 }
 
 pub mod glutinloop;

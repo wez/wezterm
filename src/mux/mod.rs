@@ -5,7 +5,6 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::io::Read;
 use std::rc::Rc;
-use std::sync::Arc;
 use std::thread;
 use term::TerminalHost;
 use termwiz::hyperlink::Hyperlink;
@@ -17,14 +16,14 @@ pub struct Mux {
     tabs: RefCell<HashMap<TabId, Rc<Tab>>>,
 }
 
-fn read_from_tab_pty(executor: Arc<Executor>, tab_id: TabId, mut reader: Box<std::io::Read>) {
+fn read_from_tab_pty(executor: Box<Executor>, tab_id: TabId, mut reader: Box<std::io::Read>) {
     const BUFSIZE: usize = 32 * 1024;
     let mut buf = [0; BUFSIZE];
     loop {
         match reader.read(&mut buf) {
             Ok(size) if size == 0 => {
                 eprintln!("read_pty EOF: tab_id {}", tab_id);
-                Future::with_executor(Arc::clone(&executor), move || {
+                Future::with_executor(executor.clone_executor(), move || {
                     let mux = Mux::get().unwrap();
                     mux.remove_tab(tab_id);
                     Ok(())
@@ -33,7 +32,7 @@ fn read_from_tab_pty(executor: Arc<Executor>, tab_id: TabId, mut reader: Box<std
             }
             Ok(size) => {
                 let data = buf[0..size].to_vec();
-                Future::with_executor(Arc::clone(&executor), move || {
+                Future::with_executor(executor.clone_executor(), move || {
                     let mux = Mux::get().unwrap();
                     if let Some(tab) = mux.get_tab(tab_id) {
                         tab.advance_bytes(
@@ -48,7 +47,7 @@ fn read_from_tab_pty(executor: Arc<Executor>, tab_id: TabId, mut reader: Box<std
             }
             Err(err) => {
                 eprintln!("read_pty failed: tab {} {:?}", tab_id, err);
-                Future::with_executor(Arc::clone(&executor), move || {
+                Future::with_executor(executor.clone_executor(), move || {
                     let mux = Mux::get().unwrap();
                     mux.remove_tab(tab_id);
                     Ok(())
@@ -116,7 +115,7 @@ impl Mux {
         self.tabs.borrow().get(&tab_id).map(Rc::clone)
     }
 
-    pub fn add_tab(&self, executor: Arc<Executor>, tab: &Rc<Tab>) -> Result<(), Error> {
+    pub fn add_tab(&self, executor: Box<Executor>, tab: &Rc<Tab>) -> Result<(), Error> {
         self.tabs.borrow_mut().insert(tab.tab_id(), Rc::clone(tab));
 
         let reader = tab.reader()?;

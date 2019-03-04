@@ -46,6 +46,7 @@ pub fn channel<T: Send>(proxy: EventsLoopProxy) -> (GuiSender<T>, Receiver<T>) {
     (GuiSender { tx, proxy }, rx)
 }
 
+#[derive(Clone)]
 pub struct GlutinGuiExecutor {
     tx: Arc<GuiSender<SpawnFunc>>,
 }
@@ -53,6 +54,11 @@ pub struct GlutinGuiExecutor {
 impl Executor for GlutinGuiExecutor {
     fn execute(&self, f: SpawnFunc) {
         self.tx.send(f).expect("GlutinExecutor execute failed");
+    }
+    fn clone_executor(&self) -> Box<Executor> {
+        Box::new(GlutinGuiExecutor {
+            tx: Arc::clone(&self.tx),
+        })
     }
 }
 
@@ -95,7 +101,7 @@ impl GlutinGuiSystem {
 }
 
 impl GuiSystem for GlutinGuiSystem {
-    fn gui_executor(&self) -> Arc<Executor + Sync + Send> {
+    fn gui_executor(&self) -> Box<Executor> {
         self.event_loop.gui_executor()
     }
 
@@ -168,8 +174,8 @@ impl GuiEventLoop {
         res
     }
 
-    fn gui_executor(&self) -> Arc<Executor + Sync + Send> {
-        Arc::new(GlutinGuiExecutor {
+    fn gui_executor(&self) -> Box<Executor> {
+        Box::new(GlutinGuiExecutor {
             tx: self.gui_tx.clone(),
         })
     }

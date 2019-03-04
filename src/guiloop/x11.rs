@@ -34,6 +34,11 @@ impl Executor for X11GuiExecutor {
     fn execute(&self, f: SpawnFunc) {
         self.tx.send(f).expect("GlutinExecutor execute failed");
     }
+    fn clone_executor(&self) -> Box<Executor> {
+        Box::new(X11GuiExecutor {
+            tx: self.tx.clone(),
+        })
+    }
 }
 
 pub struct GuiEventLoop {
