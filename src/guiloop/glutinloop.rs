@@ -320,13 +320,18 @@ impl GuiEventLoop {
     /// Spawns a future that will gracefully shut down the resources associated
     /// with the specified window.
     fn schedule_window_close(&self, window_id: WindowId) -> Result<(), Error> {
-        let windows = Rc::clone(&self.windows);
+        Future::with_executor(
+            GlutinGuiExecutor {
+                tx: self.gui_tx.clone(),
+            },
+            move || {
+                let events = Self::get().expect("to be called on gui thread");
+                let mut windows = events.windows.borrow_mut();
 
-        self.core.spawn(futures::future::lazy(move || {
-            let mut windows = windows.borrow_mut();
-            windows.by_id.remove(&window_id);
-            future::ok(())
-        }));
+                windows.by_id.remove(&window_id);
+                Ok(())
+            },
+        );
 
         Ok(())
     }
