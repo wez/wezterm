@@ -38,7 +38,8 @@ impl HostHelper for Host {
         &self,
         func: F,
     ) {
-        GuiEventLoop::with_window(&self.event_loop, self.display.gl_window().id(), func);
+        self.event_loop
+            .with_window(self.display.gl_window().id(), func);
     }
 
     fn toggle_full_screen(&mut self) {
@@ -623,11 +624,7 @@ impl GliumTerminalWindow {
             match event.state {
                 ElementState::Pressed => {
                     if mods == KeyModifiers::SUPER && key == KeyCode::Char('n') {
-                        GuiEventLoop::schedule_spawn_new_window(
-                            &self.event_loop,
-                            &self.host.config,
-                            &self.host.fonts,
-                        );
+                        self.event_loop.schedule_spawn_new_window(&self.host.config);
                         return Ok(());
                     }
 

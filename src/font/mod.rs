@@ -69,6 +69,10 @@ impl Default for FontSystemSelection {
     }
 }
 
+thread_local! {
+    static DEFAULT_FONT_SYSTEM: RefCell<FontSystemSelection> = RefCell::new(Default::default());
+}
+
 impl FontSystemSelection {
     fn new_font_system(self) -> Rc<FontSystem> {
         match self {
@@ -99,6 +103,16 @@ impl FontSystemSelection {
             "FontLoaderAndRustType",
             "CoreText",
         ]
+    }
+
+    pub fn set_default(self) {
+        DEFAULT_FONT_SYSTEM.with(|def| {
+            *def.borrow_mut() = self;
+        });
+    }
+
+    pub fn get_default() -> Self {
+        DEFAULT_FONT_SYSTEM.with(|def| *def.borrow())
     }
 }
 

@@ -1,6 +1,6 @@
 use super::GuiSystem;
 use crate::config::Config;
-use crate::font::FontConfiguration;
+use crate::font::{FontConfiguration, FontSystemSelection};
 use crate::futurecore;
 use crate::gliumwindows;
 pub use crate::gliumwindows::GliumTerminalWindow;
@@ -239,15 +239,14 @@ impl GuiEventLoop {
         events.add_window(window)
     }
 
-    pub fn schedule_spawn_new_window(
-        events: &Rc<Self>,
-        config: &Arc<Config>,
-        fonts: &Rc<FontConfiguration>,
-    ) {
-        let myself = Rc::clone(events);
+    pub fn schedule_spawn_new_window(&self, config: &Arc<Config>) {
         let config = Arc::clone(config);
-        let fonts = Rc::clone(fonts);
-        events.core.spawn(futures::future::poll_fn(move || {
+        self.core.spawn(futures::future::poll_fn(move || {
+            let myself = Self::get().expect("to be called on gui thread");
+            let fonts = Rc::new(FontConfiguration::new(
+                Arc::clone(&config),
+                FontSystemSelection::get_default(),
+            ));
             Self::do_spawn_new_window(&myself, &config, &fonts)
                 .map(futures::Async::Ready)
                 .map_err(|_| ())
@@ -255,13 +254,13 @@ impl GuiEventLoop {
     }
 
     pub fn with_window<F: Send + 'static + Fn(&mut TerminalWindow) -> Result<(), Error>>(
-        events: &Rc<Self>,
+        &self,
         window_id: WindowId,
         func: F,
     ) {
         Future::with_executor(
             GlutinGuiExecutor {
-                tx: events.gui_tx.clone(),
+                tx: self.gui_tx.clone(),
             },
             move || {
                 let myself = Self::get().expect("to be called on gui thread");

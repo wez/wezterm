@@ -114,6 +114,8 @@ fn main() -> Result<(), Error> {
     println!("Using configuration: {:#?}\nopts: {:#?}", config, opts);
 
     let font_system = opts.font_system.unwrap_or(config.font_system);
+    font_system.set_default();
+
     let fontconfig = Rc::new(FontConfiguration::new(Arc::clone(&config), font_system));
 
     let cmd = if !opts.prog.is_empty() {
