@@ -79,13 +79,13 @@ impl<T> Promise<T> {
     }
 }
 
-impl<T: 'static> std::convert::From<Result<T, Error>> for Future<T> {
+impl<T: Send + 'static> std::convert::From<Result<T, Error>> for Future<T> {
     fn from(result: Result<T, Error>) -> Future<T> {
         Future::result(result)
     }
 }
 
-impl<T: 'static> Future<T> {
+impl<T: Send + 'static> Future<T> {
     /// Create a leaf future which is immediately ready with
     /// the provided value
     pub fn ok(value: T) -> Self {
@@ -140,6 +140,9 @@ impl<T: 'static> Future<T> {
         }
     }
 
+    /// When this future resolves, then map the result via the
+    /// supplied lambda, which returns something that is convertible
+    /// to a Future.
     pub fn then<U, F, IF>(self, f: F) -> Future<U>
     where
         F: FnOnce(Result<T, Error>) -> IF,
@@ -148,7 +151,7 @@ impl<T: 'static> Future<T> {
         F: Send + 'static,
         U: Send + 'static,
     {
-        let mut promise = Promise::<U>::new();
+        let mut promise = Promise::new();
         let future = promise.get_future().unwrap();
         let func = SendBoxFnOnce::from(f);
 
@@ -160,11 +163,69 @@ impl<T: 'static> Future<T> {
         }));
         future
     }
+
+    /// When this future resolves successfully, map the result via
+    /// the supplied lambda, which returns something that is convertible
+    /// to a Future.
+    /// When this future resolves with an error, the error is propagated
+    /// along as the error value of the returned future.
+    pub fn map<U, F, IF>(self, f: F) -> Future<U>
+    where
+        F: FnOnce(T) -> IF,
+        IF: Into<Future<U>>,
+        IF: 'static,
+        F: Send + 'static,
+        U: Send + 'static,
+    {
+        let mut promise = Promise::new();
+        let future = promise.get_future().unwrap();
+        let func = SendBoxFnOnce::from(f);
+
+        let promise_chain = NextFunc::from(move |result| promise.result(result));
+
+        self.chain(SendBoxFnOnce::from(move |result| {
+            let future = match result {
+                Ok(value) => func.call(value).into(),
+                Err(err) => Err(err).into(),
+            };
+            future.chain(promise_chain);
+        }));
+        future
+    }
+
+    /// When this future resolves with an error, map the error result
+    /// via the supplied lambda, with returns something that is convertible
+    /// to a Future.
+    /// When this future resolves successfully, the value is propagated
+    /// along as the Ok value of the returned future.
+    pub fn map_err<F, IF>(self, f: F) -> Future<T>
+    where
+        F: FnOnce(Error) -> IF,
+        IF: Into<Future<T>>,
+        IF: 'static,
+        F: Send + 'static,
+    {
+        let mut promise = Promise::new();
+        let future = promise.get_future().unwrap();
+        let func = SendBoxFnOnce::from(f);
+
+        let promise_chain = NextFunc::from(move |result| promise.result(result));
+
+        self.chain(SendBoxFnOnce::from(move |result| {
+            let future = match result {
+                Ok(value) => Ok(value).into(),
+                Err(err) => func.call(err).into(),
+            };
+            future.chain(promise_chain);
+        }));
+        future
+    }
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
+    use failure::{err_msg, format_err};
     #[test]
     fn basic_promise() {
         let mut p = Promise::new();
@@ -190,6 +251,26 @@ mod test {
             .then(|result| Ok(result.unwrap() + 3));
         p.ok(1);
         assert_eq!(f.wait().unwrap(), 5);
+    }
+
+    #[test]
+    fn promise_map() {
+        let mut p = Promise::new();
+        let f = p.get_future().unwrap().map(|value| Ok(value + 1));
+        p.ok(1);
+        assert_eq!(f.wait().unwrap(), 2);
+    }
+
+    #[test]
+    fn promise_map_err() {
+        let mut p = Promise::new();
+        let f: Future<usize> = p
+            .get_future()
+            .unwrap()
+            .map(|value| Err(err_msg("boo")))
+            .map_err(|err| Err(format_err!("whoops: {}", err)));
+        p.ok(1);
+        assert_eq!(format!("{}", f.wait().unwrap_err()), "whoops: boo");
     }
 
     #[test]
