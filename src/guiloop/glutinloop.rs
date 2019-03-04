@@ -136,10 +136,8 @@ impl GuiSystem for GlutinGuiSystem {
         Box::new(self.event_loop.poll_tx.clone())
     }
 
-    fn gui_executor(&self) -> Arc<Executor> {
-        Arc::new(GlutinGuiExecutor {
-            tx: self.event_loop.gui_tx.clone(),
-        })
+    fn gui_executor(&self) -> Arc<Executor + Sync + Send> {
+        self.event_loop.gui_executor()
     }
 
     fn run_forever(&self) -> Result<(), Error> {
@@ -222,8 +220,15 @@ impl GuiEventLoop {
         res
     }
 
+    fn gui_executor(&self) -> Arc<Executor + Sync + Send> {
+        Arc::new(GlutinGuiExecutor {
+            tx: self.gui_tx.clone(),
+        })
+    }
+
     pub fn register_tab(&self, tab: &Rc<Tab>) -> Result<(), Error> {
-        self.mux.add_tab(Box::new(self.poll_tx.clone()), tab)
+        self.mux
+            .add_tab(self.gui_executor(), Box::new(self.poll_tx.clone()), tab)
     }
 
     fn do_spawn_new_window(
@@ -233,7 +238,7 @@ impl GuiEventLoop {
     ) -> Result<(), Error> {
         let tab = spawn_tab(&config, None)?;
         let sender = Box::new(self.poll_tx.clone());
-        self.mux.add_tab(sender, &tab)?;
+        self.mux.add_tab(self.gui_executor(), sender, &tab)?;
         let events = Self::get().expect("to be called on gui thread");
         let window = GliumTerminalWindow::new(&events, &fonts, &config, &tab)?;
 

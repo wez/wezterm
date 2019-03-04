@@ -97,7 +97,7 @@ pub trait GuiSystem {
 
     fn pty_sender(&self) -> Box<PtyEventSender>;
 
-    fn gui_executor(&self) -> Arc<Executor>;
+    fn gui_executor(&self) -> Arc<Executor + Sync + Send>;
 }
 
 pub mod glutinloop;

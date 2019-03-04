@@ -1,10 +1,12 @@
 use crate::futurecore::Spawner;
 use crate::guicommon::tabs::{Tab, TabId};
 use failure::Error;
+use promise::Executor;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::io::Read;
 use std::rc::Rc;
+use std::sync::Arc;
 use std::thread;
 use term::TerminalHost;
 use termwiz::hyperlink::Hyperlink;
@@ -28,6 +30,7 @@ pub trait PtyEventSender: Send {
 }
 
 fn read_from_tab_pty(
+    executor: Arc<Executor>,
     spawner: Spawner,
     sender: Box<PtyEventSender>,
     tab_id: TabId,
@@ -107,15 +110,25 @@ impl Mux {
         self.tabs.borrow().get(&tab_id).map(Rc::clone)
     }
 
-    pub fn add_tab(&self, sender: Box<PtyEventSender>, tab: &Rc<Tab>) -> Result<(), Error> {
+    pub fn add_tab(
+        &self,
+        executor: Arc<Executor + Send + Sync>,
+        sender: Box<PtyEventSender>,
+        tab: &Rc<Tab>,
+    ) -> Result<(), Error> {
         self.tabs.borrow_mut().insert(tab.tab_id(), Rc::clone(tab));
 
         let reader = tab.reader()?;
         let tab_id = tab.tab_id();
         let spawner = self.spawner.borrow().as_ref().unwrap().clone();
-        thread::spawn(move || read_from_tab_pty(spawner, sender, tab_id, reader));
+        thread::spawn(move || read_from_tab_pty(executor, spawner, sender, tab_id, reader));
 
         Ok(())
+    }
+
+    pub fn remove_tab(&self, tab_id: TabId) {
+        eprintln!("removing tab {}", tab_id);
+        self.tabs.borrow_mut().remove(&tab_id);
     }
 
     pub fn process_pty_event(&self, event: PtyEvent) -> Result<(), Error> {
@@ -134,7 +147,7 @@ impl Mux {
                 // The fact that we woke up is enough to trigger each
                 // window to check for termination
                 eprintln!("tab {} terminated", tab_id);
-                self.tabs.borrow_mut().remove(&tab_id);
+                self.remove_tab(tab_id);
             }
         }
         Ok(())

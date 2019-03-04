@@ -172,7 +172,7 @@ fn spawn_window(
     fontconfig: &Rc<FontConfiguration>,
 ) -> Result<(), Error> {
     let tab = spawn_tab(config, cmd)?;
-    mux.add_tab(gui.pty_sender(), &tab)?;
+    mux.add_tab(gui.gui_executor(), gui.pty_sender(), &tab)?;
 
     gui.spawn_new_window(config, &fontconfig, &tab)
 }
