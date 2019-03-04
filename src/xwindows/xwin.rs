@@ -10,7 +10,6 @@ use crate::guiloop::x11::{GuiEventLoop, WindowId};
 use crate::guiloop::SessionTerminated;
 use crate::mux::renderable::Renderable;
 use failure::Error;
-use futures;
 use std::rc::Rc;
 use term::{self, KeyCode, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 use xcb;
@@ -25,17 +24,7 @@ struct Host {
 
 impl HostHelper for Host {
     fn with_window<F: 'static + Fn(&mut TerminalWindow) -> Result<(), Error>>(&self, func: F) {
-        let events = Rc::clone(&self.event_loop);
-        let window_id = self.window.window.window_id;
-
-        self.event_loop
-            .core
-            .spawn(futures::future::poll_fn(move || {
-                events
-                    .with_window(window_id, &func)
-                    .map(futures::Async::Ready)
-                    .map_err(|_| ())
-            }));
+        self.event_loop.with_window(window_id, func);
     }
 
     fn toggle_full_screen(&mut self) {}
@@ -224,11 +213,9 @@ impl X11TerminalWindow {
                 };
                 if let Some((code, mods)) = self.decode_key(key_press) {
                     if mods == KeyModifiers::SUPER && code == KeyCode::Char('n') {
-                        GuiEventLoop::schedule_spawn_new_window(
-                            &self.host.event_loop,
-                            &self.host.config,
-                            &self.host.fonts,
-                        );
+                        self.host
+                            .event_loop
+                            .schedule_spawn_new_window(&self.host.config);
                         return Ok(());
                     }
 

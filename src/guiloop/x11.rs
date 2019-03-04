@@ -214,19 +214,25 @@ impl GuiEventLoop {
 
     /// Run a function with access to the mutable version of the window with
     /// the specified window id
-    pub fn with_window<F: FnOnce(&mut TerminalWindow) -> Result<(), Error>>(
+    pub fn with_window<F: Send + 'static + Fn(&mut TerminalWindow) -> Result<(), Error>>(
         &self,
         window_id: WindowId,
         func: F,
     ) -> Result<(), Error> {
-        let mut windows = self.windows.borrow_mut();
-
-        let window = windows
-            .by_id
-            .get_mut(&window_id)
-            .ok_or_else(|| format_err!("no window_id {:?} in the windows_by_id map", window_id))?;
-
-        func(window)
+        Future::with_executor(
+            X11GuiExecutor {
+                tx: self.gui_tx.clone(),
+            },
+            move || {
+                let myself = Self::get().expect("to be called on gui thread");
+                let mut windows = myself.windows.borrow_mut();
+                if let Some(window) = windows.by_id.get_mut(&window_id) {
+                    func(window)
+                } else {
+                    bail!("no such window {:?}", window_id);
+                }
+            },
+        );
     }
 
     fn do_spawn_new_window(
@@ -242,19 +248,21 @@ impl GuiEventLoop {
         events.add_window(window)
     }
 
-    pub fn schedule_spawn_new_window(
-        events: &Rc<Self>,
-        config: &Arc<Config>,
-        fonts: &Rc<FontConfiguration>,
-    ) {
-        let myself = Rc::clone(events);
+    pub fn schedule_spawn_new_window(&self, config: &Arc<Config>) {
         let config = Arc::clone(config);
-        let fonts = Rc::clone(fonts);
-        events.core.spawn(futures::future::poll_fn(move || {
-            Self::do_spawn_new_window(&myself, &config, &fonts)
-                .map(futures::Async::Ready)
-                .map_err(|_| ())
-        }));
+        Future::with_executor(
+            X11GuiExecutor {
+                tx: self.gui_tx.clone(),
+            },
+            move || {
+                let myself = Self::get().expect("to be called on gui thread");
+                let fonts = Rc::new(FontConfiguration::new(
+                    Arc::clone(&config),
+                    FontSystemSelection::get_default(),
+                ));
+                myself.do_spawn_new_window(&config, &fonts)
+            },
+        );
     }
 
     pub fn add_window(&self, window: X11TerminalWindow) -> Result<(), Error> {
