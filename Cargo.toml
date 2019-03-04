@@ -29,6 +29,7 @@ foreign-types = "0.3"
 winit = "0.18"
 boxfnonce = "0.1"
 rayon = "1.0"
+promise = { path = "promise" }
 
 [target.'cfg(unix)'.dependencies]
 harfbuzz-sys = "~0.3"

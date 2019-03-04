@@ -33,7 +33,6 @@ enum PromiseState<T> {
 enum FutureState<T> {
     Waiting(Arc<Core<T>>),
     Ready(Result<T, Error>),
-    Done,
 }
 
 struct CoreData<T> {
@@ -151,7 +150,6 @@ impl<T: Send + 'static> Future<T> {
 
     fn chain(self, f: NextFunc<T>) {
         match self.state {
-            FutureState::Done => panic!("chaining an already done future"),
             FutureState::Ready(result) => {
                 f.call(result);
             }
@@ -179,7 +177,6 @@ impl<T: Send + 'static> Future<T> {
                 }
             }
             FutureState::Ready(result) => result,
-            FutureState::Done => bail!("Future is already done"),
         }
     }
 
