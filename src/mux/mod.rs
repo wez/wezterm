@@ -101,9 +101,29 @@ impl<'a> TerminalHost for Host<'a> {
     fn set_title(&mut self, _title: &str) {}
 }
 
+thread_local! {
+    static MUX: RefCell<Option<Rc<Mux>>> = RefCell::new(None);
+}
+
 impl Mux {
     pub fn set_spawner(&self, spawner: Spawner) {
         *self.spawner.borrow_mut() = Some(spawner);
+    }
+
+    pub fn set_mux(mux: &Rc<Mux>) {
+        MUX.with(|m| {
+            *m.borrow_mut() = Some(Rc::clone(mux));
+        });
+    }
+
+    pub fn get() -> Option<Rc<Mux>> {
+        let mut res = None;
+        MUX.with(|m| {
+            if let Some(mux) = &*m.borrow() {
+                res = Some(Rc::clone(mux));
+            }
+        });
+        res
     }
 
     pub fn get_tab(&self, tab_id: TabId) -> Option<Rc<Tab>> {

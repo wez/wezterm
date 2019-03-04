@@ -125,6 +125,7 @@ fn main() -> Result<(), Error> {
     };
 
     let mux = Rc::new(mux::Mux::default());
+    Mux::set_mux(&mux);
 
     let gui_system = opts.gui_system.unwrap_or(config.gui_system);
     let gui = gui_system.try_new(&mux)?;
