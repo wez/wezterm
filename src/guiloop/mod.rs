@@ -90,7 +90,7 @@ pub trait GuiSystem {
 
     fn spawn_new_window(
         &self,
-        config: &Rc<Config>,
+        config: &Arc<Config>,
         fontconfig: &Rc<FontConfiguration>,
         tab: &Rc<Tab>,
     ) -> Result<(), Error>;

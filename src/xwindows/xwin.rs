@@ -20,7 +20,7 @@ struct Host {
     window: Window,
     event_loop: Rc<GuiEventLoop>,
     fonts: Rc<FontConfiguration>,
-    config: Rc<Config>,
+    config: Arc<Config>,
 }
 
 impl HostHelper for Host {
@@ -60,7 +60,7 @@ impl TerminalWindow for X11TerminalWindow {
     fn get_tabs_mut(&mut self) -> &mut Tabs {
         &mut self.tabs
     }
-    fn config(&self) -> &Rc<Config> {
+    fn config(&self) -> &Arc<Config> {
         &self.host.config
     }
     fn fonts(&self) -> &Rc<FontConfiguration> {
@@ -131,7 +131,7 @@ impl X11TerminalWindow {
     pub fn new(
         event_loop: &Rc<GuiEventLoop>,
         fonts: &Rc<FontConfiguration>,
-        config: &Rc<Config>,
+        config: &Arc<Config>,
         tab: &Rc<Tab>,
     ) -> Result<X11TerminalWindow, Error> {
         let palette = config
@@ -159,7 +159,7 @@ impl X11TerminalWindow {
         let host = HostImpl::new(Host {
             window,
             event_loop: Rc::clone(event_loop),
-            config: Rc::clone(config),
+            config: Arc::clone(config),
             fonts: Rc::clone(fonts),
         });
 

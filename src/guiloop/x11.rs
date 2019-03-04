@@ -102,7 +102,7 @@ impl super::GuiSystem for X11GuiSystem {
     }
     fn spawn_new_window(
         &self,
-        config: &Rc<Config>,
+        config: &Arc<Config>,
         fontconfig: &Rc<FontConfiguration>,
         tab: &Rc<Tab>,
     ) -> Result<(), Error> {
@@ -231,7 +231,7 @@ impl GuiEventLoop {
 
     fn do_spawn_new_window(
         events: &Rc<Self>,
-        config: &Rc<Config>,
+        config: &Arc<Config>,
         fonts: &Rc<FontConfiguration>,
     ) -> Result<(), Error> {
         let tab = spawn_tab(&config, None)?;
@@ -244,11 +244,11 @@ impl GuiEventLoop {
 
     pub fn schedule_spawn_new_window(
         events: &Rc<Self>,
-        config: &Rc<Config>,
+        config: &Arc<Config>,
         fonts: &Rc<FontConfiguration>,
     ) {
         let myself = Rc::clone(events);
-        let config = Rc::clone(config);
+        let config = Arc::clone(config);
         let fonts = Rc::clone(fonts);
         events.core.spawn(futures::future::poll_fn(move || {
             Self::do_spawn_new_window(&myself, &config, &fonts)

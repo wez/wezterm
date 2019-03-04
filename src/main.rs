@@ -14,6 +14,7 @@ use structopt::StructOpt;
 mod xwindows;
 
 use std::rc::Rc;
+use std::sync::Arc;
 
 mod config;
 mod futurecore;
@@ -105,7 +106,7 @@ struct Opt {
 
 fn main() -> Result<(), Error> {
     let opts = Opt::from_args();
-    let config = Rc::new(if opts.skip_config {
+    let config = Arc::new(if opts.skip_config {
         config::Config::default_config()
     } else {
         config::Config::load()?
@@ -113,7 +114,7 @@ fn main() -> Result<(), Error> {
     println!("Using configuration: {:#?}\nopts: {:#?}", config, opts);
 
     let font_system = opts.font_system.unwrap_or(config.font_system);
-    let fontconfig = Rc::new(FontConfiguration::new(Rc::clone(&config), font_system));
+    let fontconfig = Rc::new(FontConfiguration::new(Arc::clone(&config), font_system));
 
     let cmd = if !opts.prog.is_empty() {
         Some(opts.prog.iter().map(|x| x.as_os_str()).collect())
@@ -131,7 +132,7 @@ fn main() -> Result<(), Error> {
 }
 
 fn spawn_tab(
-    config: &Rc<config::Config>,
+    config: &Arc<config::Config>,
     cmd: Option<Vec<&std::ffi::OsStr>>,
 ) -> Result<Rc<Tab>, Error> {
     let cmd = config.build_prog(cmd)?;
@@ -165,7 +166,7 @@ fn spawn_window(
     mux: &Rc<Mux>,
     gui: &GuiSystem,
     cmd: Option<Vec<&std::ffi::OsStr>>,
-    config: &Rc<config::Config>,
+    config: &Arc<config::Config>,
     fontconfig: &Rc<FontConfiguration>,
 ) -> Result<(), Error> {
     let tab = spawn_tab(config, cmd)?;

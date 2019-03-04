@@ -14,6 +14,7 @@ use glium;
 use glium::glutin::dpi::{LogicalPosition, LogicalSize, PhysicalPosition, PhysicalSize};
 use glium::glutin::{self, ElementState, MouseCursor};
 use std::rc::Rc;
+use std::sync::Arc;
 use term;
 use term::KeyCode;
 use term::KeyModifiers;
@@ -28,7 +29,7 @@ struct Host {
     /// if is_some, holds position to be restored after exiting
     /// fullscreen mode.
     is_fullscreen: Option<LogicalPosition>,
-    config: Rc<Config>,
+    config: Arc<Config>,
     fonts: Rc<FontConfiguration>,
 }
 
@@ -71,7 +72,7 @@ impl HostHelper for Host {
 pub struct GliumTerminalWindow {
     host: HostImpl<Host>,
     event_loop: Rc<GuiEventLoop>,
-    config: Rc<Config>,
+    config: Arc<Config>,
     fonts: Rc<FontConfiguration>,
     renderer: Renderer,
     width: u16,
@@ -92,7 +93,7 @@ impl TerminalWindow for GliumTerminalWindow {
     fn get_tabs_mut(&mut self) -> &mut Tabs {
         &mut self.tabs
     }
-    fn config(&self) -> &Rc<Config> {
+    fn config(&self) -> &Arc<Config> {
         &self.config
     }
     fn fonts(&self) -> &Rc<FontConfiguration> {
@@ -189,7 +190,7 @@ impl GliumTerminalWindow {
     pub fn new(
         event_loop: &Rc<GuiEventLoop>,
         fonts: &Rc<FontConfiguration>,
-        config: &Rc<Config>,
+        config: &Arc<Config>,
         tab: &Rc<Tab>,
     ) -> Result<GliumTerminalWindow, Error> {
         let palette = config
@@ -232,7 +233,7 @@ impl GliumTerminalWindow {
             display,
             window_position,
             is_fullscreen: None,
-            config: Rc::clone(config),
+            config: Arc::clone(config),
             fonts: Rc::clone(fonts),
         });
 
@@ -245,7 +246,7 @@ impl GliumTerminalWindow {
         Ok(GliumTerminalWindow {
             host,
             event_loop: Rc::clone(event_loop),
-            config: Rc::clone(config),
+            config: Arc::clone(config),
             fonts: Rc::clone(fonts),
             renderer,
             width,

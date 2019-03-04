@@ -8,6 +8,7 @@ use self::hbwrap as harfbuzz;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
+use std::sync::Arc;
 
 pub mod system;
 pub use self::system::*;
@@ -34,7 +35,7 @@ type FontPtr = Rc<RefCell<Box<NamedFont>>>;
 
 /// Matches and loads fonts for a given input style
 pub struct FontConfiguration {
-    config: Rc<Config>,
+    config: Arc<Config>,
     fonts: RefCell<HashMap<TextStyle, FontPtr>>,
     system: Rc<FontSystem>,
     metrics: RefCell<Option<FontMetrics>>,
@@ -120,7 +121,7 @@ impl std::str::FromStr for FontSystemSelection {
 
 impl FontConfiguration {
     /// Create a new empty configuration
-    pub fn new(config: Rc<Config>, system: FontSystemSelection) -> Self {
+    pub fn new(config: Arc<Config>, system: FontSystemSelection) -> Self {
         Self {
             config,
             fonts: RefCell::new(HashMap::new()),

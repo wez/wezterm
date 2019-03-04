@@ -8,6 +8,7 @@ use crate::openpty;
 use failure::Error;
 use glium;
 use std::rc::Rc;
+use std::sync::Arc;
 
 /// Reports the currently configured physical size of the display
 /// surface (physical pixels, not adjusted for dpi) and the current
@@ -39,7 +40,7 @@ pub trait TerminalWindow {
     fn advise_renderer_of_resize(&mut self, width: u16, height: u16) -> Result<(), Error>;
     fn tab_was_created(&mut self, tab: &Rc<Tab>) -> Result<(), Error>;
     fn deregister_tab(&mut self, tab_id: TabId) -> Result<(), Error>;
-    fn config(&self) -> &Rc<Config>;
+    fn config(&self) -> &Arc<Config>;
     fn fonts(&self) -> &Rc<FontConfiguration>;
     fn get_dimensions(&self) -> Dimensions;
     fn resize_if_not_full_screen(&mut self, width: u16, height: u16) -> Result<bool, Error>;
