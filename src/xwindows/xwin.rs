@@ -11,6 +11,7 @@ use crate::guiloop::SessionTerminated;
 use crate::mux::renderable::Renderable;
 use failure::Error;
 use std::rc::Rc;
+use std::sync::Arc;
 use term::{self, KeyCode, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 use xcb;
 
@@ -23,7 +24,11 @@ struct Host {
 }
 
 impl HostHelper for Host {
-    fn with_window<F: 'static + Fn(&mut TerminalWindow) -> Result<(), Error>>(&self, func: F) {
+    fn with_window<F: Send + 'static + Fn(&mut TerminalWindow) -> Result<(), Error>>(
+        &self,
+        func: F,
+    ) {
+        let window_id = self.host.window.window.window_id;
         self.event_loop.with_window(window_id, func);
     }
 
