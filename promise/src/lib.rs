@@ -313,7 +313,7 @@ mod test {
         let f: Future<usize> = p
             .get_future()
             .unwrap()
-            .map(|value| Err(err_msg("boo")))
+            .map(|_value| Err(err_msg("boo")))
             .map_err(|err| Err(format_err!("whoops: {}", err)));
         p.ok(1);
         assert_eq!(format!("{}", f.wait().unwrap_err()), "whoops: boo");
