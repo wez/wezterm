@@ -2,7 +2,7 @@ use super::ExitStatus;
 use crate::config::Config;
 use crate::font::FontConfiguration;
 use crate::guicommon::tabs::Tab;
-use crate::mux::{Mux, PtyEventSender};
+use crate::mux::Mux;
 use failure::Error;
 use promise::Executor;
 use std::cell::RefCell;
@@ -94,8 +94,6 @@ pub trait GuiSystem {
         fontconfig: &Rc<FontConfiguration>,
         tab: &Rc<Tab>,
     ) -> Result<(), Error>;
-
-    fn pty_sender(&self) -> Box<PtyEventSender>;
 
     fn gui_executor(&self) -> Arc<Executor + Sync + Send>;
 }

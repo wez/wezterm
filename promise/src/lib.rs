@@ -5,8 +5,14 @@ use std::sync::{Arc, Condvar, Mutex};
 type NextFunc<T> = SendBoxFnOnce<'static, (Result<T, Error>,)>;
 pub type SpawnFunc = SendBoxFnOnce<'static, ()>;
 
-pub trait Executor {
+pub trait Executor: Sync + Send {
     fn execute(&self, f: SpawnFunc);
+}
+
+impl Executor for Arc<Executor> {
+    fn execute(&self, f: SpawnFunc) {
+        Executor::execute(&**self, f)
+    }
 }
 
 /// An executor for spawning futures into the rayon global

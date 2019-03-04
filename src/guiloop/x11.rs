@@ -156,7 +156,7 @@ impl GuiEventLoop {
     }
 
     pub fn register_tab(&self, tab: &Rc<Tab>) -> Result<(), Error> {
-        self.mux.add_tab(Box::new(self.pty_tx.clone()), tab)
+        self.mux.add_tab(self.gui_executor(), tab)
     }
 
     fn run(&self) -> Result<(), Error> {
@@ -241,8 +241,7 @@ impl GuiEventLoop {
         fonts: &Rc<FontConfiguration>,
     ) -> Result<(), Error> {
         let tab = spawn_tab(&config, None)?;
-        let sender = Box::new(events.pty_tx.clone());
-        events.mux.add_tab(sender, &tab)?;
+        events.mux.add_tab(self.gui_executor(), &tab)?;
         let window = X11TerminalWindow::new(&events, &fonts, &config, &tab)?;
 
         events.add_window(window)

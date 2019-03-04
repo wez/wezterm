@@ -17,7 +17,6 @@ use std::rc::Rc;
 use std::sync::Arc;
 
 mod config;
-mod futurecore;
 mod gliumwindows;
 mod guicommon;
 mod guiloop;
@@ -173,7 +172,7 @@ fn spawn_window(
     fontconfig: &Rc<FontConfiguration>,
 ) -> Result<(), Error> {
     let tab = spawn_tab(config, cmd)?;
-    mux.add_tab(gui.gui_executor(), gui.pty_sender(), &tab)?;
+    mux.add_tab(gui.gui_executor(), &tab)?;
 
     gui.spawn_new_window(config, &fontconfig, &tab)
 }

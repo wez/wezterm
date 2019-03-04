@@ -30,7 +30,6 @@ struct Host {
     /// fullscreen mode.
     is_fullscreen: Option<LogicalPosition>,
     config: Arc<Config>,
-    fonts: Rc<FontConfiguration>,
 }
 
 impl HostHelper for Host {
@@ -235,7 +234,6 @@ impl GliumTerminalWindow {
             window_position,
             is_fullscreen: None,
             config: Arc::clone(config),
-            fonts: Rc::clone(fonts),
         });
 
         host.display.gl_window().set_cursor(MouseCursor::Text);

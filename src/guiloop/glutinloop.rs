@@ -1,16 +1,14 @@
 use super::GuiSystem;
 use crate::config::Config;
 use crate::font::{FontConfiguration, FontSystemSelection};
-use crate::futurecore;
 use crate::gliumwindows;
 pub use crate::gliumwindows::GliumTerminalWindow;
 use crate::guicommon::tabs::Tab;
 use crate::guicommon::window::TerminalWindow;
 use crate::guiloop::SessionTerminated;
-use crate::mux::{Mux, PtyEvent, PtyEventSender};
+use crate::mux::Mux;
 use crate::spawn_tab;
 use failure::Error;
-use futures::future;
 use glium;
 use glium::glutin::EventsLoopProxy;
 pub use glium::glutin::WindowId;
@@ -37,27 +35,6 @@ impl<T: Send> GuiSender<T> {
         };
         self.proxy.wakeup()?;
         Ok(())
-    }
-}
-
-impl futurecore::CoreSender for GuiSender<usize> {
-    fn send(&self, idx: usize) -> Result<(), Error> {
-        GuiSender::send(self, idx)
-    }
-    fn clone_sender(&self) -> Box<futurecore::CoreSender> {
-        Box::new(GuiSender::clone(self))
-    }
-}
-
-impl PtyEventSender for GuiSender<PtyEvent> {
-    fn send(&self, event: PtyEvent) -> Result<(), Error> {
-        GuiSender::send(self, event)
-    }
-}
-
-impl futurecore::CoreReceiver for Receiver<usize> {
-    fn try_recv(&self) -> Result<usize, mpsc::TryRecvError> {
-        Receiver::try_recv(self)
     }
 }
 
@@ -92,9 +69,6 @@ struct Windows {
 pub struct GuiEventLoop {
     pub event_loop: RefCell<glium::glutin::EventsLoop>,
     windows: Rc<RefCell<Windows>>,
-    core: futurecore::Core,
-    poll_tx: GuiSender<PtyEvent>,
-    poll_rx: Receiver<PtyEvent>,
     gui_tx: Arc<GuiSender<SpawnFunc>>,
     gui_rx: Receiver<SpawnFunc>,
     tick_rx: Receiver<()>,
@@ -118,24 +92,9 @@ impl GlutinGuiSystem {
         GLUTIN_EVENT_LOOP.with(|f| *f.borrow_mut() = Some(Rc::clone(&event_loop)));
         Ok(Rc::new(Self { event_loop }))
     }
-
-    /// Loop through the core and dispatch any tasks that have been
-    /// notified as ready to run.  Returns once all such tasks have
-    /// been polled and there are no more pending task notifications.
-    fn process_futures(&self) {
-        loop {
-            if !self.event_loop.core.turn() {
-                break;
-            }
-        }
-    }
 }
 
 impl GuiSystem for GlutinGuiSystem {
-    fn pty_sender(&self) -> Box<PtyEventSender> {
-        Box::new(self.event_loop.poll_tx.clone())
-    }
-
     fn gui_executor(&self) -> Arc<Executor + Sync + Send> {
         self.event_loop.gui_executor()
     }
@@ -145,8 +104,6 @@ impl GuiSystem for GlutinGuiSystem {
         // https://github.com/tomaka/winit/issues/413
         let myself = &self.event_loop;
         loop {
-            self.process_futures();
-
             // Check the window count; if after processing the futures there
             // are no windows left, then we are done.
             {
@@ -158,7 +115,6 @@ impl GuiSystem for GlutinGuiSystem {
             }
 
             myself.run_event_loop()?;
-            myself.process_poll()?;
             myself.process_gui_exec()?;
             myself.process_tick()?;
         }
@@ -180,11 +136,6 @@ impl GuiEventLoop {
     pub fn new(mux: &Rc<Mux>) -> Result<Self, Error> {
         let event_loop = glium::glutin::EventsLoop::new();
 
-        let (fut_tx, fut_rx) = channel(event_loop.create_proxy());
-        let core = futurecore::Core::new(Box::new(fut_tx), Box::new(fut_rx));
-        mux.set_spawner(core.get_spawner());
-
-        let (poll_tx, poll_rx) = channel(event_loop.create_proxy());
         let (gui_tx, gui_rx) = channel(event_loop.create_proxy());
 
         // The glutin/glium plumbing has no native tick/timer stuff, so
@@ -198,9 +149,6 @@ impl GuiEventLoop {
         });
 
         Ok(Self {
-            core,
-            poll_tx,
-            poll_rx,
             gui_rx,
             gui_tx: Arc::new(gui_tx),
             tick_rx,
@@ -227,8 +175,7 @@ impl GuiEventLoop {
     }
 
     pub fn register_tab(&self, tab: &Rc<Tab>) -> Result<(), Error> {
-        self.mux
-            .add_tab(self.gui_executor(), Box::new(self.poll_tx.clone()), tab)
+        self.mux.add_tab(self.gui_executor(), tab)
     }
 
     fn do_spawn_new_window(
@@ -237,8 +184,7 @@ impl GuiEventLoop {
         fonts: &Rc<FontConfiguration>,
     ) -> Result<(), Error> {
         let tab = spawn_tab(&config, None)?;
-        let sender = Box::new(self.poll_tx.clone());
-        self.mux.add_tab(self.gui_executor(), sender, &tab)?;
+        self.mux.add_tab(self.gui_executor(), &tab)?;
         let events = Self::get().expect("to be called on gui thread");
         let window = GliumTerminalWindow::new(&events, &fonts, &config, &tab)?;
 
@@ -346,29 +292,6 @@ impl GuiEventLoop {
     fn do_paint(&self) {
         for window in &mut self.windows.borrow_mut().by_id.values_mut() {
             window.paint_if_needed().unwrap();
-        }
-    }
-
-    /// Process events on poll_rx.  We may have a pty
-    /// event or our interval timer may have expired, indicating that
-    /// we need to paint.
-    fn process_poll(&self) -> Result<(), Error> {
-        let start = SystemTime::now();
-        loop {
-            match start.elapsed() {
-                Ok(elapsed) if elapsed > MAX_POLL_LOOP_DURATION => {
-                    return Ok(());
-                }
-                Err(_) => {
-                    return Ok(());
-                }
-                _ => {}
-            }
-            match self.poll_rx.try_recv() {
-                Ok(event) => self.mux.process_pty_event(event)?,
-                Err(TryRecvError::Empty) => return Ok(()),
-                Err(err) => bail!("poll_rx disconnected {:?}", err),
-            }
         }
     }
 
