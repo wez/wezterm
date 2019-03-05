@@ -28,8 +28,8 @@ impl HostHelper for Host {
         &self,
         func: F,
     ) {
-        let window_id = self.host.window.window.window_id;
-        self.event_loop.with_window(window_id, func);
+        let window_id = self.window.window.window_id;
+        self.event_loop.with_window(window_id, func).ok();
     }
 
     fn toggle_full_screen(&mut self) {}

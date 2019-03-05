@@ -15,6 +15,7 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
 use std::sync::mpsc::TryRecvError;
+use std::sync::Arc;
 use std::time::{Duration, Instant};
 use xcb;
 
@@ -51,7 +52,6 @@ pub struct GuiEventLoop {
     mux: Rc<Mux>,
 }
 
-const TOK_PTY: usize = 0xffff_fffe;
 const TOK_XCB: usize = 0xffff_fffc;
 const TOK_GUI_EXEC: usize = 0xffff_fffd;
 
@@ -61,15 +61,18 @@ pub struct X11GuiSystem {
 impl X11GuiSystem {
     pub fn try_new(mux: &Rc<Mux>) -> Result<Rc<GuiSystem>, Error> {
         let event_loop = Rc::new(GuiEventLoop::new(mux)?);
+        X11_EVENT_LOOP.with(|f| *f.borrow_mut() = Some(Rc::clone(&event_loop)));
         Ok(Rc::new(Self { event_loop }))
     }
 }
 
+thread_local! {
+    static X11_EVENT_LOOP: RefCell<Option<Rc<GuiEventLoop>>> = RefCell::new(None);
+}
+
 impl super::GuiSystem for X11GuiSystem {
-    fn gui_executor(&self) -> Arc<Executor> {
-        Arc::new(X11GuiExecutor {
-            tx: self.event_loop.gui_tx.clone(),
-        })
+    fn gui_executor(&self) -> Box<Executor> {
+        self.event_loop.gui_executor()
     }
 
     fn run_forever(&self) -> Result<(), Error> {
@@ -111,6 +114,22 @@ impl GuiEventLoop {
             interval: Duration::from_millis(50),
             windows: Rc::new(RefCell::new(Default::default())),
             mux: Rc::clone(mux),
+        })
+    }
+
+    pub fn get() -> Option<Rc<Self>> {
+        let mut res = None;
+        X11_EVENT_LOOP.with(|f| {
+            if let Some(me) = &*f.borrow() {
+                res = Some(Rc::clone(me));
+            }
+        });
+        res
+    }
+
+    fn gui_executor(&self) -> Box<Executor> {
+        Box::new(X11GuiExecutor {
+            tx: self.gui_tx.clone(),
         })
     }
 
@@ -186,6 +205,7 @@ impl GuiEventLoop {
                 }
             },
         );
+        Ok(())
     }
 
     fn do_spawn_new_window(
