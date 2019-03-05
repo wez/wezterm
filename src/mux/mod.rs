@@ -23,12 +23,11 @@ fn read_from_tab_pty(executor: Box<Executor>, tab_id: TabId, mut reader: Box<std
         match reader.read(&mut buf) {
             Ok(size) if size == 0 => {
                 eprintln!("read_pty EOF: tab_id {}", tab_id);
-                Future::with_executor(executor.clone_executor(), move || {
-                    let mux = Mux::get().unwrap();
-                    mux.remove_tab(tab_id);
-                    Ok(())
-                });
-                return;
+                break;
+            }
+            Err(err) => {
+                eprintln!("read_pty failed: tab {} {:?}", tab_id, err);
+                break;
             }
             Ok(size) => {
                 let data = buf[0..size].to_vec();
@@ -45,17 +44,13 @@ fn read_from_tab_pty(executor: Box<Executor>, tab_id: TabId, mut reader: Box<std
                     Ok(())
                 });
             }
-            Err(err) => {
-                eprintln!("read_pty failed: tab {} {:?}", tab_id, err);
-                Future::with_executor(executor.clone_executor(), move || {
-                    let mux = Mux::get().unwrap();
-                    mux.remove_tab(tab_id);
-                    Ok(())
-                });
-                return;
-            }
         }
     }
+    Future::with_executor(executor.clone_executor(), move || {
+        let mux = Mux::get().unwrap();
+        mux.remove_tab(tab_id);
+        Ok(())
+    });
 }
 
 /// This is just a stub impl of TerminalHost; it really only exists
