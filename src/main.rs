@@ -101,17 +101,14 @@ struct Opt {
     /// as if it were a login shell.
     #[structopt(parse(from_os_str))]
     prog: Vec<OsString>,
+
+    /// Rather than running the terminal, run as the
+    /// multiplexer server.
+    #[structopt(long = "start-mux-server")]
+    start_mux_server: bool,
 }
 
-fn main() -> Result<(), Error> {
-    let opts = Opt::from_args();
-    let config = Arc::new(if opts.skip_config {
-        config::Config::default_config()
-    } else {
-        config::Config::load()?
-    });
-    println!("Using configuration: {:#?}\nopts: {:#?}", config, opts);
-
+fn run_terminal_gui(config: Arc<config::Config>, opts: Opt) -> Result<(), Error> {
     let font_system = opts.font_system.unwrap_or(config.font_system);
     font_system.set_default();
 
@@ -131,6 +128,22 @@ fn main() -> Result<(), Error> {
 
     spawn_window(&mux, &*gui, cmd, &config, &fontconfig)?;
     gui.run_forever()
+}
+
+fn main() -> Result<(), Error> {
+    let opts = Opt::from_args();
+    let config = Arc::new(if opts.skip_config {
+        config::Config::default_config()
+    } else {
+        config::Config::load()?
+    });
+    println!("Using configuration: {:#?}\nopts: {:#?}", config, opts);
+
+    if opts.start_mux_server {
+        server::listener::run_mux_server(config)
+    } else {
+        run_terminal_gui(config, opts)
+    }
 }
 
 fn spawn_tab(
