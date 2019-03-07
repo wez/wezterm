@@ -1,32 +1,10 @@
 use crate::mux::renderable::Renderable;
+use crate::mux::tab::{alloc_tab_id, Tab, TabId};
 use crate::{Child, MasterPty};
 use failure::Error;
 use std::cell::{RefCell, RefMut};
 use std::rc::Rc;
 use term::{KeyCode, KeyModifiers, MouseEvent, Terminal, TerminalHost};
-
-static TAB_ID: ::std::sync::atomic::AtomicUsize = ::std::sync::atomic::ATOMIC_USIZE_INIT;
-pub type TabId = usize;
-
-pub trait Tab {
-    fn tab_id(&self) -> TabId;
-    fn renderer(&self) -> RefMut<Renderable>;
-    fn get_title(&self) -> String;
-    fn send_paste(&self, text: &str) -> Result<(), Error>;
-    fn reader(&self) -> Result<Box<std::io::Read + Send>, Error>;
-    fn writer(&self) -> RefMut<std::io::Write>;
-    fn resize(
-        &self,
-        rows: u16,
-        cols: u16,
-        pixel_width: u16,
-        pixel_height: u16,
-    ) -> Result<(), Error>;
-    fn key_down(&self, key: KeyCode, mods: KeyModifiers) -> Result<(), Error>;
-    fn mouse_event(&self, event: MouseEvent, host: &mut TerminalHost) -> Result<(), Error>;
-    fn advance_bytes(&self, buf: &[u8], host: &mut TerminalHost);
-    fn is_dead(&self) -> bool;
-}
 
 pub struct LocalTab {
     tab_id: TabId,
@@ -104,7 +82,7 @@ impl Tab for LocalTab {
 
 impl LocalTab {
     pub fn new(terminal: Terminal, process: Child, pty: MasterPty) -> Self {
-        let tab_id = TAB_ID.fetch_add(1, ::std::sync::atomic::Ordering::Relaxed);
+        let tab_id = alloc_tab_id();
         Self {
             tab_id,
             terminal: RefCell::new(terminal),

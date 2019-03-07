@@ -1,6 +1,7 @@
 use crate::config::Config;
 use crate::font::FontConfiguration;
-use crate::guicommon::tabs::{LocalTab, Tab, TabId, Tabs};
+use crate::guicommon::tabs::{LocalTab, Tabs};
+use crate::mux::tab::{Tab, TabId};
 use crate::opengl::render::Renderer;
 use crate::opengl::textureatlas::OutOfTextureSpace;
 use crate::openpty;

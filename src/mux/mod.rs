@@ -1,4 +1,3 @@
-use crate::guicommon::tabs::{Tab, TabId};
 use failure::Error;
 use promise::{Executor, Future};
 use std::cell::RefCell;
@@ -10,6 +9,9 @@ use term::TerminalHost;
 use termwiz::hyperlink::Hyperlink;
 
 pub mod renderable;
+pub mod tab;
+
+use crate::mux::tab::{Tab, TabId};
 
 #[derive(Default)]
 pub struct Mux {

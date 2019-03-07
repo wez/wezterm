@@ -23,9 +23,10 @@ mod guiloop;
 mod mux;
 mod opengl;
 mod server;
-use crate::guicommon::tabs::{LocalTab, Tab};
+use crate::guicommon::tabs::LocalTab;
 use crate::guiloop::GuiSelection;
 use crate::guiloop::GuiSystem;
+use crate::mux::tab::Tab;
 use crate::mux::Mux;
 
 mod font;

@@ -1,5 +1,5 @@
 use super::window::TerminalWindow;
-use crate::guicommon::tabs::Tab;
+use crate::mux::tab::Tab;
 use clipboard::{ClipboardContext, ClipboardProvider};
 use failure::Error;
 use std::ops::{Deref, DerefMut};
