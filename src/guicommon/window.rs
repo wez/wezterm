@@ -1,7 +1,6 @@
 use crate::config::Config;
 use crate::font::FontConfiguration;
-use crate::guicommon::tabs::{Tab, TabId, Tabs};
-use crate::mux::renderable::Renderable;
+use crate::guicommon::tabs::{LocalTab, Tab, TabId, Tabs};
 use crate::opengl::render::Renderer;
 use crate::opengl::textureatlas::OutOfTextureSpace;
 use crate::openpty;
@@ -30,7 +29,7 @@ pub trait TerminalWindow {
     fn set_window_title(&mut self, title: &str) -> Result<(), Error>;
     fn frame(&self) -> glium::Frame;
     fn renderer(&mut self) -> &mut Renderer;
-    fn renderer_and_tab(&mut self) -> (&mut Renderer, &Tab);
+    fn renderer_and_tab(&mut self) -> (&mut Renderer, &Rc<Tab>);
     fn recreate_texture_atlas(&mut self, size: u32) -> Result<(), Error>;
     fn advise_renderer_that_scaling_has_changed(
         &mut self,
@@ -152,7 +151,7 @@ pub trait TerminalWindow {
             config.hyperlink_rules.clone(),
         );
 
-        let tab = Rc::new(Tab::new(terminal, process, pty));
+        let tab: Rc<Tab> = Rc::new(LocalTab::new(terminal, process, pty));
         let tab_id = tab.tab_id();
 
         self.get_tabs_mut().push(&tab);

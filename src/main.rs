@@ -23,7 +23,7 @@ mod guiloop;
 mod mux;
 mod opengl;
 mod server;
-use crate::guicommon::tabs::Tab;
+use crate::guicommon::tabs::{LocalTab, Tab};
 use crate::guiloop::GuiSelection;
 use crate::guiloop::GuiSystem;
 use crate::mux::Mux;
@@ -174,7 +174,7 @@ fn spawn_tab(
         config.hyperlink_rules.clone(),
     );
 
-    Ok(Rc::new(Tab::new(terminal, child, master)))
+    Ok(Rc::new(LocalTab::new(terminal, child, master)))
 }
 
 fn spawn_window(

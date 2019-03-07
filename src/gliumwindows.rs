@@ -8,7 +8,6 @@ use crate::guicommon::tabs::{Tab, TabId, Tabs};
 use crate::guicommon::window::{Dimensions, TerminalWindow};
 use crate::guiloop::glutinloop::GuiEventLoop;
 use crate::guiloop::SessionTerminated;
-use crate::mux::renderable::Renderable;
 use crate::opengl::render::Renderer;
 use glium;
 use glium::glutin::dpi::{LogicalPosition, LogicalSize, PhysicalPosition, PhysicalSize};
@@ -115,7 +114,7 @@ impl TerminalWindow for GliumTerminalWindow {
     fn recreate_texture_atlas(&mut self, size: u32) -> Result<(), Error> {
         self.renderer.recreate_atlas(&self.host.display, size)
     }
-    fn renderer_and_tab(&mut self) -> (&mut Renderer, &Tab) {
+    fn renderer_and_tab(&mut self) -> (&mut Renderer, &Rc<Tab>) {
         (&mut self.renderer, self.tabs.get_active().unwrap())
     }
 
@@ -626,7 +625,7 @@ impl GliumTerminalWindow {
                         return Ok(());
                     }
 
-                    if self.host.process_gui_shortcuts(tab, mods, key)? {
+                    if self.host.process_gui_shortcuts(&**tab, mods, key)? {
                         return Ok(());
                     }
 

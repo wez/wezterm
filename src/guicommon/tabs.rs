@@ -1,3 +1,4 @@
+use crate::mux::renderable::Renderable;
 use crate::{Child, MasterPty};
 use failure::Error;
 use std::cell::{RefCell, RefMut};
@@ -7,34 +8,44 @@ use term::{KeyCode, KeyModifiers, MouseEvent, Terminal, TerminalHost};
 static TAB_ID: ::std::sync::atomic::AtomicUsize = ::std::sync::atomic::ATOMIC_USIZE_INIT;
 pub type TabId = usize;
 
-pub struct Tab {
+pub trait Tab {
+    fn tab_id(&self) -> TabId;
+    fn renderer(&self) -> RefMut<Renderable>;
+    fn get_title(&self) -> String;
+    fn send_paste(&self, text: &str) -> Result<(), Error>;
+    fn reader(&self) -> Result<Box<std::io::Read + Send>, Error>;
+    fn writer(&self) -> RefMut<std::io::Write>;
+    fn resize(
+        &self,
+        rows: u16,
+        cols: u16,
+        pixel_width: u16,
+        pixel_height: u16,
+    ) -> Result<(), Error>;
+    fn key_down(&self, key: KeyCode, mods: KeyModifiers) -> Result<(), Error>;
+    fn mouse_event(&self, event: MouseEvent, host: &mut TerminalHost) -> Result<(), Error>;
+    fn advance_bytes(&self, buf: &[u8], host: &mut TerminalHost);
+    fn is_dead(&self) -> bool;
+}
+
+pub struct LocalTab {
     tab_id: TabId,
     terminal: RefCell<Terminal>,
     process: RefCell<Child>,
     pty: RefCell<MasterPty>,
 }
 
-impl Tab {
-    pub fn new(terminal: Terminal, process: Child, pty: MasterPty) -> Self {
-        let tab_id = TAB_ID.fetch_add(1, ::std::sync::atomic::Ordering::Relaxed);
-        Self {
-            tab_id,
-            terminal: RefCell::new(terminal),
-            process: RefCell::new(process),
-            pty: RefCell::new(pty),
-        }
-    }
-
+impl Tab for LocalTab {
     #[inline]
-    pub fn tab_id(&self) -> TabId {
+    fn tab_id(&self) -> TabId {
         self.tab_id
     }
 
-    pub fn renderer(&self) -> RefMut<Terminal> {
-        self.terminal.borrow_mut()
+    fn renderer(&self) -> RefMut<Renderable> {
+        RefMut::map(self.terminal.borrow_mut(), |t| &mut *t)
     }
 
-    pub fn is_dead(&self) -> bool {
+    fn is_dead(&self) -> bool {
         if let Ok(None) = self.process.borrow_mut().try_wait() {
             false
         } else {
@@ -42,21 +53,21 @@ impl Tab {
         }
     }
 
-    pub fn advance_bytes(&self, buf: &[u8], host: &mut TerminalHost) {
+    fn advance_bytes(&self, buf: &[u8], host: &mut TerminalHost) {
         self.terminal.borrow_mut().advance_bytes(buf, host)
     }
 
-    pub fn mouse_event(&self, event: MouseEvent, host: &mut TerminalHost) -> Result<(), Error> {
+    fn mouse_event(&self, event: MouseEvent, host: &mut TerminalHost) -> Result<(), Error> {
         self.terminal.borrow_mut().mouse_event(event, host)
     }
 
-    pub fn key_down(&self, key: KeyCode, mods: KeyModifiers) -> Result<(), Error> {
+    fn key_down(&self, key: KeyCode, mods: KeyModifiers) -> Result<(), Error> {
         self.terminal
             .borrow_mut()
             .key_down(key, mods, &mut *self.pty.borrow_mut())
     }
 
-    pub fn resize(
+    fn resize(
         &self,
         rows: u16,
         cols: u16,
@@ -72,26 +83,38 @@ impl Tab {
         Ok(())
     }
 
-    pub fn writer(&self) -> RefMut<MasterPty> {
+    fn writer(&self) -> RefMut<std::io::Write> {
         self.pty.borrow_mut()
     }
 
-    pub fn reader(&self) -> Result<Box<std::io::Read + Send>, Error> {
+    fn reader(&self) -> Result<Box<std::io::Read + Send>, Error> {
         self.pty.borrow_mut().try_clone_reader()
     }
 
-    pub fn send_paste(&self, text: &str) -> Result<(), Error> {
+    fn send_paste(&self, text: &str) -> Result<(), Error> {
         self.terminal
             .borrow_mut()
             .send_paste(text, &mut *self.pty.borrow_mut())
     }
 
-    pub fn get_title(&self) -> String {
+    fn get_title(&self) -> String {
         self.terminal.borrow_mut().get_title().to_string()
     }
 }
 
-impl Drop for Tab {
+impl LocalTab {
+    pub fn new(terminal: Terminal, process: Child, pty: MasterPty) -> Self {
+        let tab_id = TAB_ID.fetch_add(1, ::std::sync::atomic::Ordering::Relaxed);
+        Self {
+            tab_id,
+            terminal: RefCell::new(terminal),
+            process: RefCell::new(process),
+            pty: RefCell::new(pty),
+        }
+    }
+}
+
+impl Drop for LocalTab {
     fn drop(&mut self) {
         // Avoid lingering zombies
         self.process.borrow_mut().kill().ok();
@@ -161,8 +184,7 @@ impl Tabs {
         self.active = idx;
         self.get_by_idx(idx)
             .unwrap()
-            .terminal
-            .borrow_mut()
+            .renderer()
             .make_all_lines_dirty();
     }
 
