@@ -1,7 +1,9 @@
 use crate::config::Config;
 use crate::font::FontConfiguration;
-use crate::guicommon::tabs::{LocalTab, Tabs};
+use crate::guicommon::tabs::LocalTab;
 use crate::mux::tab::{Tab, TabId};
+use crate::mux::window::WindowId;
+use crate::mux::Mux;
 use crate::opengl::render::Renderer;
 use crate::opengl::textureatlas::OutOfTextureSpace;
 use crate::openpty;
@@ -25,12 +27,10 @@ pub struct Dimensions {
 /// A number of methods need to be provided by the window in order to
 /// unlock the use of the provided methods towards the bottom of the trait.
 pub trait TerminalWindow {
-    fn get_tabs_mut(&mut self) -> &mut Tabs;
-    fn get_tabs(&self) -> &Tabs;
     fn set_window_title(&mut self, title: &str) -> Result<(), Error>;
+    fn get_mux_window_id(&self) -> WindowId;
     fn frame(&self) -> glium::Frame;
     fn renderer(&mut self) -> &mut Renderer;
-    fn renderer_and_tab(&mut self) -> (&mut Renderer, &Rc<Tab>);
     fn recreate_texture_atlas(&mut self, size: u32) -> Result<(), Error>;
     fn advise_renderer_that_scaling_has_changed(
         &mut self,
@@ -49,31 +49,51 @@ pub trait TerminalWindow {
     }
 
     fn activate_tab(&mut self, tab_idx: usize) -> Result<(), Error> {
-        let max = self.get_tabs().len();
+        let mux = Mux::get().unwrap();
+        let mut window = mux
+            .get_window_mut(self.get_mux_window_id())
+            .ok_or_else(|| format_err!("no such window"))?;
+
+        let max = window.len();
         if tab_idx < max {
-            self.get_tabs_mut().set_active(tab_idx);
+            window.set_active(tab_idx);
+
+            drop(window);
             self.update_title();
         }
         Ok(())
     }
 
     fn activate_tab_relative(&mut self, delta: isize) -> Result<(), Error> {
-        let max = self.get_tabs().len();
-        let active = self.get_tabs().get_active_idx() as isize;
+        let mux = Mux::get().unwrap();
+        let window = mux
+            .get_window(self.get_mux_window_id())
+            .ok_or_else(|| format_err!("no such window"))?;
+
+        let max = window.len();
+        let active = window.get_active_idx() as isize;
         let tab = active + delta;
         let tab = if tab < 0 { max as isize + tab } else { tab };
+        drop(window);
         self.activate_tab(tab as usize % max)
     }
 
     fn update_title(&mut self) {
-        let num_tabs = self.get_tabs().len();
+        let mux = Mux::get().unwrap();
+        let window = match mux.get_window(self.get_mux_window_id()) {
+            Some(window) => window,
+            _ => return,
+        };
+        let num_tabs = window.len();
 
         if num_tabs == 0 {
             return;
         }
-        let tab_no = self.get_tabs().get_active_idx();
+        let tab_no = window.get_active_idx();
 
-        let title = self.get_tabs().get_active().unwrap().get_title();
+        let title = window.get_active().unwrap().get_title();
+
+        drop(window);
 
         if num_tabs == 1 {
             self.set_window_title(&title).ok();
@@ -84,7 +104,8 @@ pub trait TerminalWindow {
     }
 
     fn paint_if_needed(&mut self) -> Result<(), Error> {
-        let tab = match self.get_tabs().get_active() {
+        let mux = Mux::get().unwrap();
+        let tab = match mux.get_active_tab_for_window(self.get_mux_window_id()) {
             Some(tab) => tab,
             None => return Ok(()),
         };
@@ -98,8 +119,14 @@ pub trait TerminalWindow {
     fn paint(&mut self) -> Result<(), Error> {
         let mut target = self.frame();
 
+        let mux = Mux::get().unwrap();
+        let tab = match mux.get_active_tab_for_window(self.get_mux_window_id()) {
+            Some(tab) => tab,
+            None => return Ok(()),
+        };
+
         let res = {
-            let (renderer, tab) = self.renderer_and_tab();
+            let renderer = self.renderer();
             renderer.paint(&mut target, &mut *tab.renderer())
         };
 
@@ -117,11 +144,7 @@ pub trait TerminalWindow {
                 if let Some(&OutOfTextureSpace { size }) = err.downcast_ref::<OutOfTextureSpace>() {
                     eprintln!("out of texture space, allocating {}", size);
                     self.recreate_texture_atlas(size)?;
-                    self.get_tabs_mut()
-                        .get_active()
-                        .unwrap()
-                        .renderer()
-                        .make_all_lines_dirty();
+                    tab.renderer().make_all_lines_dirty();
                     // Recursively initiate a new paint
                     return self.paint();
                 }
@@ -145,6 +168,8 @@ pub trait TerminalWindow {
         let process = slave.spawn_command(cmd)?;
         eprintln!("spawned: {:?}", process);
 
+        let mux = Mux::get().unwrap();
+
         let terminal = term::Terminal::new(
             rows,
             cols,
@@ -155,8 +180,13 @@ pub trait TerminalWindow {
         let tab: Rc<Tab> = Rc::new(LocalTab::new(terminal, process, pty));
         let tab_id = tab.tab_id();
 
-        self.get_tabs_mut().push(&tab);
-        let len = self.get_tabs().len();
+        let len = {
+            let mut window = mux
+                .get_window_mut(self.get_mux_window_id())
+                .ok_or_else(|| format_err!("no such window!?"))?;
+            window.push(&tab);
+            window.len()
+        };
         self.activate_tab(len - 1)?;
 
         self.tab_was_created(&tab)?;
@@ -179,8 +209,11 @@ pub trait TerminalWindow {
             let rows = ((height as usize + 1) / dims.cell_height) as u16;
             let cols = ((width as usize + 1) / dims.cell_width) as u16;
 
-            let tabs = self.get_tabs();
-            for tab in tabs.iter() {
+            let mux = Mux::get().unwrap();
+            let window = mux
+                .get_window(self.get_mux_window_id())
+                .ok_or_else(|| format_err!("no such window!?"))?;
+            for tab in window.iter() {
                 tab.resize(rows, cols, width as u16, height as u16)?;
             }
 
@@ -205,9 +238,12 @@ pub trait TerminalWindow {
             "TerminalWindow::scaling_changed dpi_scale={} font_scale={}",
             dpi_scale, font_scale
         );
-        if let Some(tab) = self.get_tabs().get_active() {
-            tab.renderer().make_all_lines_dirty();
-        }
+        let mux = Mux::get().unwrap();
+        let tab = match mux.get_active_tab_for_window(self.get_mux_window_id()) {
+            Some(tab) => tab,
+            None => return Ok(()),
+        };
+        tab.renderer().make_all_lines_dirty();
         fonts.change_scaling(font_scale, dpi_scale);
 
         let metrics = fonts.default_font_metrics()?;
@@ -217,13 +253,7 @@ pub trait TerminalWindow {
         // so we query for that information here.
         // If the backend supports `resize_if_not_full_screen` then we'll try
         // to resize the window to match the new cell metrics.
-        let (rows, cols) = {
-            self.get_tabs()
-                .get_active()
-                .unwrap()
-                .renderer()
-                .physical_dimensions()
-        };
+        let (rows, cols) = { tab.renderer().physical_dimensions() };
 
         self.advise_renderer_that_scaling_has_changed(
             cell_width.ceil() as usize,
@@ -239,16 +269,28 @@ pub trait TerminalWindow {
     }
 
     fn tab_did_terminate(&mut self, tab_id: TabId) {
-        self.get_tabs_mut().remove_by_id(tab_id);
-        if let Some(active) = self.get_tabs().get_active() {
+        let mux = Mux::get().unwrap();
+        let mut window = match mux.get_window_mut(self.get_mux_window_id()) {
+            Some(window) => window,
+            None => return,
+        };
+
+        window.remove_by_id(tab_id);
+
+        if let Some(active) = window.get_active() {
             active.renderer().make_all_lines_dirty();
-            self.update_title();
         }
+        drop(window);
+        self.update_title();
         self.deregister_tab(tab_id).ok();
     }
     fn test_for_child_exit(&mut self) -> bool {
-        let tabs = self.get_tabs();
-        let dead_tabs: Vec<Rc<Tab>> = tabs
+        let mux = Mux::get().unwrap();
+        let window = match mux.get_window(self.get_mux_window_id()) {
+            Some(window) => window,
+            None => return true,
+        };
+        let dead_tabs: Vec<Rc<Tab>> = window
             .iter()
             .filter_map(|tab| {
                 if tab.is_dead() {
@@ -258,9 +300,14 @@ pub trait TerminalWindow {
                 }
             })
             .collect();
+        drop(window);
         for tab in dead_tabs {
             self.tab_did_terminate(tab.tab_id());
         }
-        self.get_tabs().is_empty()
+        let empty = match mux.get_window(self.get_mux_window_id()) {
+            Some(window) => window.is_empty(),
+            None => true,
+        };
+        empty
     }
 }

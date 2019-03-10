@@ -3,7 +3,6 @@ use crate::mux::tab::{alloc_tab_id, Tab, TabId};
 use crate::{Child, MasterPty};
 use failure::Error;
 use std::cell::{RefCell, RefMut};
-use std::rc::Rc;
 use term::{KeyCode, KeyModifiers, MouseEvent, Terminal, TerminalHost};
 
 pub struct LocalTab {
@@ -97,76 +96,5 @@ impl Drop for LocalTab {
         // Avoid lingering zombies
         self.process.borrow_mut().kill().ok();
         self.process.borrow_mut().wait().ok();
-    }
-}
-
-pub struct Tabs {
-    tabs: Vec<Rc<Tab>>,
-    active: usize,
-}
-
-impl Tabs {
-    pub fn new(tab: &Rc<Tab>) -> Self {
-        Self {
-            tabs: vec![Rc::clone(tab)],
-            active: 0,
-        }
-    }
-
-    pub fn push(&mut self, tab: &Rc<Tab>) {
-        self.tabs.push(Rc::clone(tab))
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.tabs.is_empty()
-    }
-
-    pub fn len(&self) -> usize {
-        self.tabs.len()
-    }
-
-    pub fn get_by_idx(&self, idx: usize) -> Option<&Rc<Tab>> {
-        self.tabs.get(idx)
-    }
-
-    pub fn idx_by_id(&self, id: TabId) -> Option<usize> {
-        for (idx, t) in self.tabs.iter().enumerate() {
-            if t.tab_id() == id {
-                return Some(idx);
-            }
-        }
-        None
-    }
-
-    pub fn remove_by_id(&mut self, id: TabId) {
-        if let Some(idx) = self.idx_by_id(id) {
-            self.tabs.remove(idx);
-            let len = self.tabs.len();
-            if len > 0 && self.active == idx && idx >= len {
-                self.set_active(len - 1);
-            }
-        }
-    }
-
-    pub fn get_active(&self) -> Option<&Rc<Tab>> {
-        self.get_by_idx(self.active)
-    }
-
-    #[inline]
-    pub fn get_active_idx(&self) -> usize {
-        self.active
-    }
-
-    pub fn set_active(&mut self, idx: usize) {
-        assert!(idx < self.tabs.len());
-        self.active = idx;
-        self.get_by_idx(idx)
-            .unwrap()
-            .renderer()
-            .make_all_lines_dirty();
-    }
-
-    pub fn iter(&self) -> impl Iterator<Item = &Rc<Tab>> {
-        self.tabs.iter()
     }
 }

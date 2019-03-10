@@ -1,6 +1,6 @@
 use failure::Error;
 use promise::{Executor, Future};
-use std::cell::RefCell;
+use std::cell::{Ref, RefCell, RefMut};
 use std::collections::HashMap;
 use std::io::Read;
 use std::rc::Rc;
@@ -10,12 +10,15 @@ use termwiz::hyperlink::Hyperlink;
 
 pub mod renderable;
 pub mod tab;
+pub mod window;
 
 use crate::mux::tab::{Tab, TabId};
+use crate::mux::window::{Window, WindowId};
 
 #[derive(Default)]
 pub struct Mux {
     tabs: RefCell<HashMap<TabId, Rc<Tab>>>,
+    windows: RefCell<HashMap<WindowId, Window>>,
 }
 
 fn read_from_tab_pty(executor: Box<Executor>, tab_id: TabId, mut reader: Box<std::io::Read>) {
@@ -125,6 +128,36 @@ impl Mux {
     pub fn remove_tab(&self, tab_id: TabId) {
         eprintln!("removing tab {}", tab_id);
         self.tabs.borrow_mut().remove(&tab_id);
+    }
+
+    pub fn get_window(&self, window_id: WindowId) -> Option<Ref<Window>> {
+        if !self.windows.borrow().contains_key(&window_id) {
+            return None;
+        }
+        Some(Ref::map(self.windows.borrow(), |windows| {
+            windows.get(&window_id).unwrap()
+        }))
+    }
+
+    pub fn get_window_mut(&self, window_id: WindowId) -> Option<RefMut<Window>> {
+        if !self.windows.borrow().contains_key(&window_id) {
+            return None;
+        }
+        Some(RefMut::map(self.windows.borrow_mut(), |windows| {
+            windows.get_mut(&window_id).unwrap()
+        }))
+    }
+
+    pub fn get_active_tab_for_window(&self, window_id: WindowId) -> Option<Rc<Tab>> {
+        let window = self.get_window(window_id)?;
+        window.get_active().map(Rc::clone)
+    }
+
+    pub fn add_new_window_with_tab(&self, tab: &Rc<Tab>) -> Result<WindowId, Error> {
+        let window = Window::new(tab);
+        let window_id = window.window_id();
+        self.windows.borrow_mut().insert(window_id, window);
+        Ok(window_id)
     }
 
     #[allow(dead_code)]

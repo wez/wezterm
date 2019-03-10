@@ -4,11 +4,12 @@ use crate::config::Config;
 use crate::failure::Error;
 use crate::font::FontConfiguration;
 use crate::guicommon::host::{HostHelper, HostImpl, TabHost};
-use crate::guicommon::tabs::Tabs;
 use crate::guicommon::window::{Dimensions, TerminalWindow};
 use crate::guiloop::glutinloop::GuiEventLoop;
 use crate::guiloop::SessionTerminated;
 use crate::mux::tab::{Tab, TabId};
+use crate::mux::window::WindowId;
+use crate::mux::Mux;
 use crate::opengl::render::Renderer;
 use glium;
 use glium::glutin::dpi::{LogicalPosition, LogicalSize, PhysicalPosition, PhysicalSize};
@@ -82,17 +83,15 @@ pub struct GliumTerminalWindow {
     last_mouse_coords: PhysicalPosition,
     last_modifiers: KeyModifiers,
     allow_received_character: bool,
-    tabs: Tabs,
+    mux_window_id: WindowId,
     have_pending_resize_check: bool,
 }
 
 impl TerminalWindow for GliumTerminalWindow {
-    fn get_tabs(&self) -> &Tabs {
-        &self.tabs
+    fn get_mux_window_id(&self) -> WindowId {
+        self.mux_window_id
     }
-    fn get_tabs_mut(&mut self) -> &mut Tabs {
-        &mut self.tabs
-    }
+
     fn config(&self) -> &Arc<Config> {
         &self.config
     }
@@ -114,9 +113,6 @@ impl TerminalWindow for GliumTerminalWindow {
     }
     fn recreate_texture_atlas(&mut self, size: u32) -> Result<(), Error> {
         self.renderer.recreate_atlas(&self.host.display, size)
-    }
-    fn renderer_and_tab(&mut self) -> (&mut Renderer, &Rc<Tab>) {
-        (&mut self.renderer, self.tabs.get_active().unwrap())
     }
 
     fn tab_was_created(&mut self, tab: &Rc<Tab>) -> Result<(), Error> {
@@ -242,6 +238,9 @@ impl GliumTerminalWindow {
         let height = height as u16;
         let renderer = Renderer::new(&host.display, width, height, fonts, palette)?;
 
+        let mux = Mux::get().unwrap();
+        let mux_window_id = mux.add_new_window_with_tab(tab)?;
+
         Ok(GliumTerminalWindow {
             host,
             event_loop: Rc::clone(event_loop),
@@ -255,7 +254,7 @@ impl GliumTerminalWindow {
             last_mouse_coords: PhysicalPosition::new(0.0, 0.0),
             last_modifiers: Default::default(),
             allow_received_character: false,
-            tabs: Tabs::new(tab),
+            mux_window_id,
             have_pending_resize_check: false,
         })
     }
@@ -286,7 +285,8 @@ impl GliumTerminalWindow {
         position: PhysicalPosition,
         modifiers: glium::glutin::ModifiersState,
     ) -> Result<(), Error> {
-        let tab = match self.tabs.get_active() {
+        let mux = Mux::get().unwrap();
+        let tab = match mux.get_active_tab_for_window(self.get_mux_window_id()) {
             Some(tab) => tab,
             None => return Ok(()),
         };
@@ -326,7 +326,8 @@ impl GliumTerminalWindow {
         button: glutin::MouseButton,
         modifiers: glium::glutin::ModifiersState,
     ) -> Result<(), Error> {
-        let tab = match self.tabs.get_active() {
+        let mux = Mux::get().unwrap();
+        let tab = match mux.get_active_tab_for_window(self.get_mux_window_id()) {
             Some(tab) => tab,
             None => return Ok(()),
         };
@@ -391,7 +392,8 @@ impl GliumTerminalWindow {
             _ => return Ok(()),
         };
 
-        let tab = match self.tabs.get_active() {
+        let mux = Mux::get().unwrap();
+        let tab = match mux.get_active_tab_for_window(self.get_mux_window_id()) {
             Some(tab) => tab,
             None => return Ok(()),
         };
@@ -610,7 +612,8 @@ impl GliumTerminalWindow {
     }
 
     fn key_event(&mut self, event: glium::glutin::KeyboardInput) -> Result<(), Error> {
-        let tab = match self.tabs.get_active() {
+        let mux = Mux::get().unwrap();
+        let tab = match mux.get_active_tab_for_window(self.get_mux_window_id()) {
             Some(tab) => tab,
             None => return Ok(()),
         };
@@ -626,7 +629,7 @@ impl GliumTerminalWindow {
                         return Ok(());
                     }
 
-                    if self.host.process_gui_shortcuts(&**tab, mods, key)? {
+                    if self.host.process_gui_shortcuts(&*tab, mods, key)? {
                         return Ok(());
                     }
 
@@ -678,7 +681,8 @@ impl GliumTerminalWindow {
                 // eprintln!("ReceivedCharacter {} {:?}", c as u32, c);
                 if self.allow_received_character {
                     self.allow_received_character = false;
-                    let tab = match self.tabs.get_active() {
+                    let mux = Mux::get().unwrap();
+                    let tab = match mux.get_active_tab_for_window(self.get_mux_window_id()) {
                         Some(tab) => tab,
                         None => return Ok(()),
                     };

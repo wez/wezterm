@@ -4,11 +4,13 @@ use super::{Connection, Window};
 use crate::config::Config;
 use crate::font::FontConfiguration;
 use crate::guicommon::host::{HostHelper, HostImpl, TabHost};
-use crate::guicommon::tabs::{Tab, TabId, Tabs};
 use crate::guicommon::window::{Dimensions, TerminalWindow};
-use crate::guiloop::x11::{GuiEventLoop, WindowId};
+use crate::guiloop::x11::{GuiEventLoop, WindowId as X11WindowId};
 use crate::guiloop::SessionTerminated;
 use crate::mux::renderable::Renderable;
+use crate::mux::tab::{Tab, TabId};
+use crate::mux::window::WindowId;
+use crate::mux::Mux;
 use failure::Error;
 use std::rc::Rc;
 use std::sync::Arc;
@@ -43,16 +45,13 @@ pub struct X11TerminalWindow {
     height: u16,
     cell_height: usize,
     cell_width: usize,
-    tabs: Tabs,
     have_pending_resize: Option<(u16, u16)>,
+    mux_window_id: WindowId,
 }
 
 impl TerminalWindow for X11TerminalWindow {
-    fn get_tabs(&self) -> &Tabs {
-        &self.tabs
-    }
-    fn get_tabs_mut(&mut self) -> &mut Tabs {
-        &mut self.tabs
+    fn get_mux_window_id(&self) -> WindowId {
+        self.mux_window_id
     }
     fn config(&self) -> &Arc<Config> {
         &self.host.config
@@ -74,9 +73,6 @@ impl TerminalWindow for X11TerminalWindow {
     }
     fn recreate_texture_atlas(&mut self, size: u32) -> Result<(), Error> {
         self.renderer.recreate_atlas(&self.host.window, size)
-    }
-    fn renderer_and_tab(&mut self) -> (&mut Renderer, &Tab) {
-        (&mut self.renderer, self.tabs.get_active().unwrap())
     }
     fn tab_was_created(&mut self, tab: &Rc<Tab>) -> Result<(), Error> {
         self.host.event_loop.register_tab(tab)
@@ -158,7 +154,8 @@ impl X11TerminalWindow {
         });
 
         let renderer = Renderer::new(&host.window, width, height, fonts, palette)?;
-
+        let mux = Mux::get().unwrap();
+        let mux_window_id = mux.add_new_window_with_tab(tab)?;
         host.window.show();
 
         Ok(X11TerminalWindow {
@@ -169,12 +166,12 @@ impl X11TerminalWindow {
             height,
             cell_height,
             cell_width,
-            tabs: Tabs::new(tab),
             have_pending_resize: None,
+            mux_window_id,
         })
     }
 
-    pub fn window_id(&self) -> WindowId {
+    pub fn window_id(&self) -> X11WindowId {
         self.host.window.window.window_id
     }
 
@@ -187,7 +184,8 @@ impl X11TerminalWindow {
     }
 
     fn mouse_event(&mut self, event: MouseEvent) -> Result<(), Error> {
-        let tab = match self.tabs.get_active() {
+        let mux = Mux::get().unwrap();
+        let tab = match mux.get_active_tab_for_window(self.get_mux_window_id()) {
             Some(tab) => tab,
             None => return Ok(()),
         };
@@ -212,7 +210,8 @@ impl X11TerminalWindow {
             }
             xcb::KEY_PRESS => {
                 let key_press: &xcb::KeyPressEvent = unsafe { xcb::cast_event(event) };
-                let tab = match self.tabs.get_active() {
+                let mux = Mux::get().unwrap();
+                let tab = match mux.get_active_tab_for_window(self.get_mux_window_id()) {
                     Some(tab) => tab,
                     None => return Ok(()),
                 };
