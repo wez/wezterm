@@ -241,6 +241,7 @@ impl TextStyle {
             bold: None,
             italic: None,
         });
+        #[cfg(windows)]
         font.push(FontAttributes {
             family: "Segoe UI Symbol".into(),
             bold: None,
