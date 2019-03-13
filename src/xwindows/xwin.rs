@@ -7,7 +7,6 @@ use crate::guicommon::host::{HostHelper, HostImpl, TabHost};
 use crate::guicommon::window::{Dimensions, TerminalWindow};
 use crate::guiloop::x11::{GuiEventLoop, WindowId as X11WindowId};
 use crate::guiloop::SessionTerminated;
-use crate::mux::renderable::Renderable;
 use crate::mux::tab::{Tab, TabId};
 use crate::mux::window::WindowId;
 use crate::mux::Mux;
