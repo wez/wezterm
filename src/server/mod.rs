@@ -1,7 +1,7 @@
 #[cfg(unix)]
-use std::os::unix::net::{SocketAddr, UnixListener, UnixStream};
+use std::os::unix::net::{UnixListener, UnixStream};
 #[cfg(windows)]
-use uds_windows::{SocketAddr, UnixListener, UnixStream};
+use uds_windows::{UnixListener, UnixStream};
 
 pub mod client;
 pub mod listener;

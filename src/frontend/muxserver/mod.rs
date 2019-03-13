@@ -4,6 +4,7 @@ use crate::font::FontConfiguration;
 use crate::frontend::FrontEnd;
 use crate::mux::tab::Tab;
 use crate::mux::Mux;
+use crate::server::listener::spawn_listener;
 use failure::Error;
 use promise::Executor;
 use promise::SpawnFunc;
@@ -33,8 +34,9 @@ pub struct MuxServerFrontEnd {
 }
 
 impl MuxServerFrontEnd {
-    pub fn try_new(_mux: &Rc<Mux>) -> Result<Rc<FrontEnd>, Error> {
+    pub fn try_new(mux: &Rc<Mux>) -> Result<Rc<FrontEnd>, Error> {
         let (tx, rx) = mpsc::sync_channel(4);
+        spawn_listener(mux.config(), Box::new(MuxExecutor { tx: tx.clone() }))?;
         Ok(Rc::new(Self { tx, rx }))
     }
 }
@@ -61,6 +63,7 @@ impl FrontEnd for MuxServerFrontEnd {
         _fontconfig: &Rc<FontConfiguration>,
         _tab: &Rc<Tab>,
     ) -> Result<(), Error> {
-        unimplemented!();
+        // The tab was already added to the mux, so we are a NOP
+        Ok(())
     }
 }
