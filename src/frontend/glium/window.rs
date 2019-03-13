@@ -3,10 +3,10 @@
 use crate::config::Config;
 use crate::failure::Error;
 use crate::font::FontConfiguration;
-use crate::guicommon::host::{HostHelper, HostImpl, TabHost};
-use crate::guicommon::window::{Dimensions, TerminalWindow};
-use crate::guiloop::glutinloop::GuiEventLoop;
-use crate::guiloop::SessionTerminated;
+use crate::frontend::glium::glutinloop::GuiEventLoop;
+use crate::frontend::guicommon::host::{HostHelper, HostImpl, TabHost};
+use crate::frontend::guicommon::window::{Dimensions, TerminalWindow};
+use crate::frontend::guiloop::SessionTerminated;
 use crate::mux::tab::{Tab, TabId};
 use crate::mux::window::WindowId;
 use crate::mux::Mux;

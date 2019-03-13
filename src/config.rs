@@ -1,7 +1,7 @@
 //! Configuration for the gui portion of the terminal
 
 use crate::font::FontSystemSelection;
-use crate::guiloop::GuiSelection;
+use crate::frontend::guiloop::GuiSelection;
 use crate::{get_shell, Command};
 use directories::UserDirs;
 use failure::{err_msg, Error};

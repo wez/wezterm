@@ -10,22 +10,16 @@ use failure::Error;
 use std::ffi::OsString;
 use structopt::StructOpt;
 
-#[cfg(all(unix, not(feature = "force-glutin"), not(target_os = "macos")))]
-mod xwindows;
-
 use std::rc::Rc;
 use std::sync::Arc;
 
 mod config;
-mod gliumwindows;
-mod guicommon;
-mod guiloop;
+mod frontend;
 mod mux;
 mod opengl;
 mod server;
-use crate::guicommon::localtab::LocalTab;
-use crate::guiloop::GuiSelection;
-use crate::guiloop::GuiSystem;
+use crate::frontend::guicommon::localtab::LocalTab;
+use crate::frontend::guiloop::{GuiSelection, GuiSystem};
 use crate::mux::tab::Tab;
 use crate::mux::Mux;
 

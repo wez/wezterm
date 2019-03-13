@@ -27,6 +27,7 @@ pub type Result<T> = result::Result<T, Error>;
 
 mod xkeysyms;
 pub use self::xkeysyms::*;
+pub mod x11loop;
 pub mod xwin;
 
 pub struct Connection {

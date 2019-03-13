@@ -1,8 +1,8 @@
-use super::ExitStatus;
 use crate::config::Config;
 use crate::font::FontConfiguration;
 use crate::mux::tab::Tab;
 use crate::mux::Mux;
+use crate::ExitStatus;
 use failure::Error;
 use promise::Executor;
 use std::rc::Rc;
@@ -29,9 +29,9 @@ impl Default for GuiSelection {
 impl GuiSelection {
     pub fn try_new(self, mux: &Rc<Mux>) -> Result<Rc<GuiSystem>, Error> {
         let system = match self {
-            GuiSelection::Glutin => glutinloop::GlutinGuiSystem::try_new(mux),
+            GuiSelection::Glutin => super::glium::glutinloop::GlutinGuiSystem::try_new(mux),
             #[cfg(all(unix, not(target_os = "macos")))]
-            GuiSelection::X11 => x11::X11GuiSystem::try_new(mux),
+            GuiSelection::X11 => super::xwindows::x11loop::X11GuiSystem::try_new(mux),
             #[cfg(not(all(unix, not(target_os = "macos"))))]
             GuiSelection::X11 => bail!("X11 not compiled in"),
         };
@@ -73,10 +73,6 @@ pub trait GuiSystem {
 
     fn gui_executor(&self) -> Box<Executor>;
 }
-
-pub mod glutinloop;
-#[cfg(all(unix, not(feature = "force-glutin"), not(target_os = "macos")))]
-pub mod x11;
 
 #[derive(Debug, Fail)]
 #[allow(dead_code)]

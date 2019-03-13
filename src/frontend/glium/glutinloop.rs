@@ -1,17 +1,16 @@
-use super::GuiSystem;
 use crate::config::Config;
 use crate::font::{FontConfiguration, FontSystemSelection};
-use crate::gliumwindows;
-pub use crate::gliumwindows::GliumTerminalWindow;
-use crate::guicommon::window::TerminalWindow;
-use crate::guiloop::SessionTerminated;
+use crate::frontend::glium::window::GliumTerminalWindow;
+use crate::frontend::guicommon::window::TerminalWindow;
+use crate::frontend::guiloop::GuiSystem;
+use crate::frontend::guiloop::SessionTerminated;
 use crate::mux::tab::Tab;
 use crate::mux::Mux;
 use crate::spawn_tab;
 use failure::Error;
 use glium;
 use glium::glutin::EventsLoopProxy;
-pub use glium::glutin::WindowId;
+use glium::glutin::WindowId;
 use promise::{Executor, Future, SpawnFunc};
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -66,7 +65,7 @@ impl Executor for GlutinGuiExecutor {
 /// The primary mapping is from `WindowId` -> `GliumTerminalWindow`.
 #[derive(Default)]
 struct Windows {
-    by_id: HashMap<WindowId, gliumwindows::GliumTerminalWindow>,
+    by_id: HashMap<WindowId, GliumTerminalWindow>,
 }
 
 /// The `GuiEventLoop` represents the combined gui event processor,
@@ -236,7 +235,7 @@ impl GuiEventLoop {
     }
 
     /// Add a window to the event loop and run it.
-    pub fn add_window(&self, window: gliumwindows::GliumTerminalWindow) -> Result<(), Error> {
+    pub fn add_window(&self, window: GliumTerminalWindow) -> Result<(), Error> {
         let window_id = window.window_id();
         let mut windows = self.windows.borrow_mut();
         windows.by_id.insert(window_id, window);

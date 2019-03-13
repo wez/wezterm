@@ -1,12 +1,12 @@
 use crate::config::Config;
 use crate::font::{FontConfiguration, FontSystemSelection};
-use crate::guicommon::window::TerminalWindow;
-use crate::guiloop::GuiSystem;
+use crate::frontend::guicommon::window::TerminalWindow;
+use crate::frontend::guiloop::GuiSystem;
+use crate::frontend::xwindows::xwin::X11TerminalWindow;
+use crate::frontend::xwindows::Connection;
 use crate::mux::tab::Tab;
 use crate::mux::Mux;
 use crate::spawn_tab;
-use crate::xwindows::xwin::X11TerminalWindow;
-use crate::xwindows::Connection;
 use failure::Error;
 use mio::{Events, Poll, PollOpt, Ready, Token};
 use mio_extras::channel::{channel, Receiver as GuiReceiver, Sender as GuiSender};
@@ -70,7 +70,7 @@ thread_local! {
     static X11_EVENT_LOOP: RefCell<Option<Rc<GuiEventLoop>>> = RefCell::new(None);
 }
 
-impl super::GuiSystem for X11GuiSystem {
+impl GuiSystem for X11GuiSystem {
     fn gui_executor(&self) -> Box<Executor> {
         self.event_loop.gui_executor()
     }
