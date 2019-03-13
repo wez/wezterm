@@ -5,7 +5,6 @@ use crate::mux::tab::Tab;
 use crate::mux::Mux;
 use failure::Error;
 use promise::Executor;
-use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::Arc;
 
