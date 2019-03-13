@@ -44,7 +44,7 @@ impl FontSystem for FontConfigAndFreeType {
             }
             pattern
         } else {
-            FontPattern::parse(&style.fontconfig_pattern)?
+            bail!("no fonts specified!? {:?}", fonts);
         };
         pattern.add_double("size", config.font_size * font_scale)?;
         pattern.add_double("dpi", config.dpi)?;

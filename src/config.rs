@@ -133,10 +133,6 @@ impl Default for FontAttributes {
     }
 }
 
-fn default_fontconfig_pattern() -> String {
-    FONT_FAMILY.into()
-}
-
 fn empty_font_attributes() -> Vec<FontAttributes> {
     Vec::new()
 }
@@ -144,12 +140,6 @@ fn empty_font_attributes() -> Vec<FontAttributes> {
 /// Represents textual styling.
 #[derive(Debug, Deserialize, Clone, PartialEq, Eq, Hash)]
 pub struct TextStyle {
-    /// A font config pattern to parse to locate the font.
-    /// Note that the dpi and current font_size for the terminal
-    /// will be set on the parsed result.
-    #[serde(default = "default_fontconfig_pattern")]
-    pub fontconfig_pattern: String,
-
     #[serde(default = "empty_font_attributes")]
     pub font: Vec<FontAttributes>,
 
@@ -163,7 +153,6 @@ pub struct TextStyle {
 impl Default for TextStyle {
     fn default() -> Self {
         Self {
-            fontconfig_pattern: FONT_FAMILY.into(),
             foreground: None,
             font: vec![FontAttributes::default()],
         }
@@ -172,13 +161,8 @@ impl Default for TextStyle {
 
 impl TextStyle {
     /// Make a version of this style with bold enabled.
-    /// Semi-lame: we just append fontconfig style settings
-    /// to the string blindly.  We could get more involved
-    /// but it would mean adding in the fontsystem stuff here
-    /// and this is probably good enough.
     fn make_bold(&self) -> Self {
         Self {
-            fontconfig_pattern: format!("{}:weight=bold", self.fontconfig_pattern),
             foreground: self.foreground,
             font: self
                 .font
@@ -193,13 +177,8 @@ impl TextStyle {
     }
 
     /// Make a version of this style with italic enabled.
-    /// Semi-lame: we just append fontconfig style settings
-    /// to the string blindly.  We could get more involved
-    /// but it would mean adding in the fontsystem stuff here
-    /// and this is probably good enough.
     fn make_italic(&self) -> Self {
         Self {
-            fontconfig_pattern: format!("{}:style=Italic", self.fontconfig_pattern),
             foreground: self.foreground,
             font: self
                 .font
@@ -217,6 +196,14 @@ impl TextStyle {
     pub fn font_with_fallback(&self) -> Vec<FontAttributes> {
         #[allow(unused_mut)]
         let mut font = self.font.clone();
+
+        if font.is_empty() {
+            // This can happen when migratin from the old fontconfig_pattern
+            // configuration syntax; ensure that we have something likely
+            // sane in the font configuration
+            font.push(FontAttributes::default());
+        }
+
         #[cfg(target_os = "macos")]
         font.push(FontAttributes {
             family: "Apple Color Emoji".into(),
@@ -260,7 +247,7 @@ impl TextStyle {
 /// ```
 /// [[font_rules]]
 /// italic = true
-/// font = { fontconfig_pattern = "Operator Mono SSm Lig:style=Italic" }
+/// font = { font = [{family = "Operator Mono SSm Lig", italic=true}]}
 /// ```
 ///
 /// The above is translated as: "if the `CellAttributes` have the italic bit
