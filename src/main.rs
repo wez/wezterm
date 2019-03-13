@@ -19,8 +19,7 @@ mod mux;
 mod opengl;
 mod server;
 use crate::frontend::guicommon::localtab::LocalTab;
-use crate::frontend::guiloop::GuiSystem;
-use crate::frontend::FrontEndSelection;
+use crate::frontend::{FrontEnd, FrontEndSelection};
 use crate::mux::tab::Tab;
 use crate::mux::Mux;
 
@@ -175,7 +174,7 @@ fn spawn_tab(
 
 fn spawn_window(
     mux: &Rc<Mux>,
-    gui: &GuiSystem,
+    gui: &FrontEnd,
     cmd: Option<Vec<&std::ffi::OsStr>>,
     config: &Arc<config::Config>,
     fontconfig: &Rc<FontConfiguration>,

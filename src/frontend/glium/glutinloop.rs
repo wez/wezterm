@@ -2,7 +2,7 @@ use crate::config::Config;
 use crate::font::{FontConfiguration, FontSystemSelection};
 use crate::frontend::glium::window::GliumTerminalWindow;
 use crate::frontend::guicommon::window::TerminalWindow;
-use crate::frontend::guiloop::GuiSystem;
+use crate::frontend::FrontEnd;
 use crate::mux::tab::Tab;
 use crate::mux::{Mux, SessionTerminated};
 use crate::spawn_tab;
@@ -82,7 +82,7 @@ pub struct GuiEventLoop {
 const TICK_INTERVAL: Duration = Duration::from_millis(50);
 const MAX_POLL_LOOP_DURATION: Duration = Duration::from_millis(500);
 
-pub struct GlutinGuiSystem {
+pub struct GlutinFrontEnd {
     event_loop: Rc<GuiEventLoop>,
 }
 
@@ -90,15 +90,15 @@ thread_local! {
     static GLUTIN_EVENT_LOOP: RefCell<Option<Rc<GuiEventLoop>>> = RefCell::new(None);
 }
 
-impl GlutinGuiSystem {
-    pub fn try_new(mux: &Rc<Mux>) -> Result<Rc<GuiSystem>, Error> {
+impl GlutinFrontEnd {
+    pub fn try_new(mux: &Rc<Mux>) -> Result<Rc<FrontEnd>, Error> {
         let event_loop = Rc::new(GuiEventLoop::new(mux)?);
         GLUTIN_EVENT_LOOP.with(|f| *f.borrow_mut() = Some(Rc::clone(&event_loop)));
         Ok(Rc::new(Self { event_loop }))
     }
 }
 
-impl GuiSystem for GlutinGuiSystem {
+impl FrontEnd for GlutinFrontEnd {
     fn gui_executor(&self) -> Box<Executor> {
         self.event_loop.gui_executor()
     }

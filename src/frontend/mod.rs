@@ -1,10 +1,13 @@
+use crate::config::Config;
+use crate::font::FontConfiguration;
+use crate::mux::tab::Tab;
 use crate::mux::Mux;
 use failure::Error;
-use guiloop::GuiSystem;
+use promise::Executor;
 use std::rc::Rc;
+use std::sync::Arc;
 
 pub mod guicommon;
-pub mod guiloop;
 
 pub mod glium;
 #[cfg(all(unix, not(feature = "force-glutin"), not(target_os = "macos")))]
@@ -29,11 +32,11 @@ impl Default for FrontEndSelection {
 }
 
 impl FrontEndSelection {
-    pub fn try_new(self, mux: &Rc<Mux>) -> Result<Rc<GuiSystem>, Error> {
+    pub fn try_new(self, mux: &Rc<Mux>) -> Result<Rc<FrontEnd>, Error> {
         let system = match self {
-            FrontEndSelection::Glutin => glium::glutinloop::GlutinGuiSystem::try_new(mux),
+            FrontEndSelection::Glutin => glium::glutinloop::GlutinFrontEnd::try_new(mux),
             #[cfg(all(unix, not(target_os = "macos")))]
-            FrontEndSelection::X11 => xwindows::x11loop::X11GuiSystem::try_new(mux),
+            FrontEndSelection::X11 => xwindows::x11loop::X11FrontEnd::try_new(mux),
             #[cfg(not(all(unix, not(target_os = "macos"))))]
             FrontEndSelection::X11 => bail!("X11 not compiled in"),
         };
@@ -59,4 +62,19 @@ impl std::str::FromStr for FrontEndSelection {
             )),
         }
     }
+}
+
+pub trait FrontEnd {
+    /// Run the event loop.  Does not return until there is either a fatal
+    /// error, or until there are no more windows left to manage.
+    fn run_forever(&self) -> Result<(), Error>;
+
+    fn spawn_new_window(
+        &self,
+        config: &Arc<Config>,
+        fontconfig: &Rc<FontConfiguration>,
+        tab: &Rc<Tab>,
+    ) -> Result<(), Error>;
+
+    fn gui_executor(&self) -> Box<Executor>;
 }

@@ -1,9 +1,9 @@
 use crate::config::Config;
 use crate::font::{FontConfiguration, FontSystemSelection};
 use crate::frontend::guicommon::window::TerminalWindow;
-use crate::frontend::guiloop::GuiSystem;
 use crate::frontend::xwindows::xwin::X11TerminalWindow;
 use crate::frontend::xwindows::Connection;
+use crate::frontend::FrontEnd;
 use crate::mux::tab::Tab;
 use crate::mux::Mux;
 use crate::spawn_tab;
@@ -55,11 +55,11 @@ pub struct GuiEventLoop {
 const TOK_XCB: usize = 0xffff_fffc;
 const TOK_GUI_EXEC: usize = 0xffff_fffd;
 
-pub struct X11GuiSystem {
+pub struct X11FrontEnd {
     event_loop: Rc<GuiEventLoop>,
 }
-impl X11GuiSystem {
-    pub fn try_new(mux: &Rc<Mux>) -> Result<Rc<GuiSystem>, Error> {
+impl X11FrontEnd {
+    pub fn try_new(mux: &Rc<Mux>) -> Result<Rc<FrontEnd>, Error> {
         let event_loop = Rc::new(GuiEventLoop::new(mux)?);
         X11_EVENT_LOOP.with(|f| *f.borrow_mut() = Some(Rc::clone(&event_loop)));
         Ok(Rc::new(Self { event_loop }))
@@ -70,7 +70,7 @@ thread_local! {
     static X11_EVENT_LOOP: RefCell<Option<Rc<GuiEventLoop>>> = RefCell::new(None);
 }
 
-impl GuiSystem for X11GuiSystem {
+impl FrontEnd for X11FrontEnd {
     fn gui_executor(&self) -> Box<Executor> {
         self.event_loop.gui_executor()
     }
