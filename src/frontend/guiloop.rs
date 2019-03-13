@@ -2,7 +2,6 @@ use crate::config::Config;
 use crate::font::FontConfiguration;
 use crate::mux::tab::Tab;
 use crate::mux::Mux;
-use crate::ExitStatus;
 use failure::Error;
 use promise::Executor;
 use std::rc::Rc;
@@ -72,15 +71,4 @@ pub trait GuiSystem {
     ) -> Result<(), Error>;
 
     fn gui_executor(&self) -> Box<Executor>;
-}
-
-#[derive(Debug, Fail)]
-#[allow(dead_code)]
-pub enum SessionTerminated {
-    #[fail(display = "Process exited: {:?}", status)]
-    ProcessStatus { status: ExitStatus },
-    #[fail(display = "Error: {:?}", err)]
-    Error { err: Error },
-    #[fail(display = "Window Closed")]
-    WindowClosed,
 }

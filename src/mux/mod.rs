@@ -1,3 +1,4 @@
+use crate::ExitStatus;
 use failure::Error;
 use promise::{Executor, Future};
 use std::cell::{Ref, RefCell, RefMut};
@@ -164,4 +165,15 @@ impl Mux {
     pub fn is_empty(&self) -> bool {
         self.tabs.borrow().is_empty()
     }
+}
+
+#[derive(Debug, Fail)]
+#[allow(dead_code)]
+pub enum SessionTerminated {
+    #[fail(display = "Process exited: {:?}", status)]
+    ProcessStatus { status: ExitStatus },
+    #[fail(display = "Error: {:?}", err)]
+    Error { err: Error },
+    #[fail(display = "Window Closed")]
+    WindowClosed,
 }
