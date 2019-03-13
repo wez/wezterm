@@ -17,9 +17,12 @@ impl SocketLike for UnixStream {}
 impl Acceptor for UnixListener {
     fn accept(&self) -> Result<Box<SocketLike>, Error> {
         let (stream, _addr) = UnixListener::accept(self)?;
-        let timeout = std::time::Duration::new(60, 0);
-        stream.set_read_timeout(Some(timeout))?;
-        stream.set_write_timeout(Some(timeout))?;
+        #[cfg(unix)]
+        {
+            let timeout = std::time::Duration::new(60, 0);
+            stream.set_read_timeout(Some(timeout))?;
+            stream.set_write_timeout(Some(timeout))?;
+        }
         Ok(Box::new(stream))
     }
 }
