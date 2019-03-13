@@ -1,8 +1,8 @@
 use crate::config::Config;
 use crate::font::{FontConfiguration, FontSystemSelection};
-use crate::guicommon::tabs::Tab;
 use crate::guicommon::window::TerminalWindow;
 use crate::guiloop::GuiSystem;
+use crate::mux::tab::Tab;
 use crate::mux::Mux;
 use crate::spawn_tab;
 use crate::xwindows::xwin::X11TerminalWindow;

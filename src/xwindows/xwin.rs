@@ -223,7 +223,7 @@ impl X11TerminalWindow {
                         return Ok(());
                     }
 
-                    if self.host.process_gui_shortcuts(tab, mods, code)? {
+                    if self.host.process_gui_shortcuts(&*tab, mods, code)? {
                         return Ok(());
                     }
 
