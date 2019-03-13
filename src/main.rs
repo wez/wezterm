@@ -19,7 +19,8 @@ mod mux;
 mod opengl;
 mod server;
 use crate::frontend::guicommon::localtab::LocalTab;
-use crate::frontend::guiloop::{GuiSelection, GuiSystem};
+use crate::frontend::guiloop::GuiSystem;
+use crate::frontend::FrontEndSelection;
 use crate::mux::tab::Tab;
 use crate::mux::Mux;
 
@@ -74,13 +75,13 @@ struct Opt {
     skip_config: bool,
 
     #[structopt(
-        long = "gui-system",
+        long = "front-end",
         raw(
-            possible_values = "&GuiSelection::variants()",
+            possible_values = "&FrontEndSelection::variants()",
             case_insensitive = "true"
         )
     )]
-    gui_system: Option<GuiSelection>,
+    front_end: Option<FrontEndSelection>,
 
     #[structopt(
         long = "font-system",
@@ -118,8 +119,8 @@ fn run_terminal_gui(config: Arc<config::Config>, opts: Opt) -> Result<(), Error>
     let mux = Rc::new(mux::Mux::default());
     Mux::set_mux(&mux);
 
-    let gui_system = opts.gui_system.unwrap_or(config.gui_system);
-    let gui = gui_system.try_new(&mux)?;
+    let front_end = opts.front_end.unwrap_or(config.front_end);
+    let gui = front_end.try_new(&mux)?;
 
     spawn_window(&mux, &*gui, cmd, &config, &fontconfig)?;
     gui.run_forever()

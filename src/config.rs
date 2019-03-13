@@ -1,7 +1,7 @@
 //! Configuration for the gui portion of the terminal
 
 use crate::font::FontSystemSelection;
-use crate::frontend::guiloop::GuiSelection;
+use crate::frontend::FrontEndSelection;
 use crate::{get_shell, Command};
 use directories::UserDirs;
 use failure::{err_msg, Error};
@@ -64,7 +64,7 @@ pub struct Config {
     pub font_system: FontSystemSelection,
 
     #[serde(default)]
-    pub gui_system: GuiSelection,
+    pub front_end: FrontEndSelection,
 }
 
 fn default_hyperlink_rules() -> Vec<hyperlink::Rule> {
@@ -96,7 +96,7 @@ impl Default for Config {
             font: TextStyle::default(),
             font_rules: Vec::new(),
             font_system: FontSystemSelection::default(),
-            gui_system: GuiSelection::default(),
+            front_end: FrontEndSelection::default(),
             colors: None,
             scrollback_lines: None,
             hyperlink_rules: default_hyperlink_rules(),
