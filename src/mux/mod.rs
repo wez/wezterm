@@ -1,3 +1,4 @@
+use crate::config::Config;
 use crate::ExitStatus;
 use failure::Error;
 use promise::{Executor, Future};
@@ -5,6 +6,7 @@ use std::cell::{Ref, RefCell, RefMut};
 use std::collections::HashMap;
 use std::io::Read;
 use std::rc::Rc;
+use std::sync::Arc;
 use std::thread;
 use term::TerminalHost;
 use termwiz::hyperlink::Hyperlink;
@@ -16,10 +18,10 @@ pub mod window;
 use crate::mux::tab::{Tab, TabId};
 use crate::mux::window::{Window, WindowId};
 
-#[derive(Default)]
 pub struct Mux {
     tabs: RefCell<HashMap<TabId, Rc<Tab>>>,
     windows: RefCell<HashMap<WindowId, Window>>,
+    config: Arc<Config>,
 }
 
 fn read_from_tab_pty(executor: Box<Executor>, tab_id: TabId, mut reader: Box<std::io::Read>) {
@@ -96,6 +98,18 @@ thread_local! {
 }
 
 impl Mux {
+    pub fn new(config: &Arc<Config>) -> Self {
+        Self {
+            tabs: RefCell::new(HashMap::new()),
+            windows: RefCell::new(HashMap::new()),
+            config: Arc::clone(config),
+        }
+    }
+
+    pub fn config(&self) -> &Arc<Config> {
+        &self.config
+    }
+
     pub fn set_mux(mux: &Rc<Mux>) {
         MUX.with(|m| {
             *m.borrow_mut() = Some(Rc::clone(mux));

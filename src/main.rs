@@ -110,13 +110,13 @@ fn run_terminal_gui(config: Arc<config::Config>, opts: Opt) -> Result<(), Error>
         None
     };
 
-    let mux = Rc::new(mux::Mux::default());
+    let mux = Rc::new(mux::Mux::new(&config));
     Mux::set_mux(&mux);
 
     let front_end = opts.front_end.unwrap_or(config.front_end);
     let gui = front_end.try_new(&mux)?;
 
-    spawn_window(&mux, &*gui, cmd, &config, &fontconfig)?;
+    spawn_window(&mux, &*gui, cmd, &fontconfig)?;
     gui.run_forever()
 }
 
@@ -167,11 +167,10 @@ fn spawn_window(
     mux: &Rc<Mux>,
     gui: &FrontEnd,
     cmd: Option<Vec<&std::ffi::OsStr>>,
-    config: &Arc<config::Config>,
     fontconfig: &Rc<FontConfiguration>,
 ) -> Result<(), Error> {
-    let tab = spawn_tab(config, cmd)?;
+    let tab = spawn_tab(mux.config(), cmd)?;
     mux.add_tab(gui.gui_executor(), &tab)?;
 
-    gui.spawn_new_window(config, &fontconfig, &tab)
+    gui.spawn_new_window(mux.config(), &fontconfig, &tab)
 }
