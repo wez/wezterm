@@ -7,9 +7,9 @@ use promise::Executor;
 use std::rc::Rc;
 use std::sync::Arc;
 
-pub mod guicommon;
-
 pub mod glium;
+pub mod guicommon;
+pub mod muxserver;
 #[cfg(all(unix, not(feature = "force-glutin"), not(target_os = "macos")))]
 pub mod xwindows;
 
@@ -17,6 +17,7 @@ pub mod xwindows;
 pub enum FrontEndSelection {
     Glutin,
     X11,
+    MuxServer,
 }
 
 impl Default for FrontEndSelection {
@@ -33,19 +34,19 @@ impl Default for FrontEndSelection {
 
 impl FrontEndSelection {
     pub fn try_new(self, mux: &Rc<Mux>) -> Result<Rc<FrontEnd>, Error> {
-        let system = match self {
+        match self {
             FrontEndSelection::Glutin => glium::glutinloop::GlutinFrontEnd::try_new(mux),
             #[cfg(all(unix, not(target_os = "macos")))]
             FrontEndSelection::X11 => xwindows::x11loop::X11FrontEnd::try_new(mux),
             #[cfg(not(all(unix, not(target_os = "macos"))))]
             FrontEndSelection::X11 => bail!("X11 not compiled in"),
-        };
-        system
+            FrontEndSelection::MuxServer => muxserver::MuxServerFrontEnd::try_new(mux),
+        }
     }
 
     // TODO: find or build a proc macro for this
     pub fn variants() -> Vec<&'static str> {
-        vec!["Glutin", "X11"]
+        vec!["Glutin", "X11", "MuxServer"]
     }
 }
 
@@ -55,6 +56,7 @@ impl std::str::FromStr for FrontEndSelection {
         match s.to_lowercase().as_ref() {
             "glutin" => Ok(FrontEndSelection::Glutin),
             "x11" => Ok(FrontEndSelection::X11),
+            "muxserver" => Ok(FrontEndSelection::MuxServer),
             _ => Err(format_err!(
                 "{} is not a valid FrontEndSelection variant, possible values are {:?}",
                 s,

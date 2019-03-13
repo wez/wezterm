@@ -1,10 +1,6 @@
-use crate::config::Config;
-use crate::mux::Mux;
 use crate::server::{UnixListener, UnixStream};
 use failure::Error;
 use std::io::{Read, Write};
-use std::rc::Rc;
-use std::sync::Arc;
 
 pub trait SocketLike: Read + Write + Send {}
 
@@ -38,10 +34,3 @@ impl Listener {
 }
 
 pub struct ClientSession {}
-
-pub fn run_mux_server(config: Arc<Config>) -> Result<(), Error> {
-    let mux = Rc::new(Mux::default());
-    Mux::set_mux(&mux);
-
-    Ok(())
-}

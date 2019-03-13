@@ -96,11 +96,6 @@ struct Opt {
     /// as if it were a login shell.
     #[structopt(parse(from_os_str))]
     prog: Vec<OsString>,
-
-    /// Rather than running the terminal, run as the
-    /// multiplexer server.
-    #[structopt(long = "start-mux-server")]
-    start_mux_server: bool,
 }
 
 fn run_terminal_gui(config: Arc<config::Config>, opts: Opt) -> Result<(), Error> {
@@ -134,11 +129,7 @@ fn main() -> Result<(), Error> {
     });
     println!("Using configuration: {:#?}\nopts: {:#?}", config, opts);
 
-    if opts.start_mux_server {
-        server::listener::run_mux_server(config)
-    } else {
-        run_terminal_gui(config, opts)
-    }
+    run_terminal_gui(config, opts)
 }
 
 fn spawn_tab(
