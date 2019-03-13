@@ -197,15 +197,6 @@ impl Pattern {
         }
     }
 
-    pub fn parse(pattern: &str) -> Result<Pattern, Error> {
-        let pattern = CString::new(pattern)?;
-        unsafe {
-            let p = FcNameParse(pattern.as_ptr() as *const u8);
-            ensure!(!p.is_null(), "failed to parse {:?}", pattern);
-            Ok(Pattern { pat: p })
-        }
-    }
-
     pub fn config_substitute(&mut self, match_kind: MatchKind) -> Result<(), Error> {
         unsafe {
             ensure!(
