@@ -20,7 +20,7 @@ use std::thread;
 use std::time::{Duration, SystemTime};
 
 #[derive(Clone)]
-pub struct GuiSender<T: Send> {
+struct GuiSender<T: Send> {
     tx: SyncSender<T>,
     proxy: EventsLoopProxy,
 }
@@ -36,7 +36,7 @@ impl<T: Send> GuiSender<T> {
     }
 }
 
-pub fn channel<T: Send>(proxy: EventsLoopProxy) -> (GuiSender<T>, Receiver<T>) {
+fn channel<T: Send>(proxy: EventsLoopProxy) -> (GuiSender<T>, Receiver<T>) {
     // Set an upper bound on the number of items in the queue, so that
     // we don't swamp the gui loop; this puts back pressure on the
     // producer side so that we have a chance for eg: processing CTRL-C
