@@ -1,3 +1,3 @@
 pub mod host;
-pub mod tabs;
+pub mod localtab;
 pub mod window;

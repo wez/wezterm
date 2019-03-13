@@ -1,6 +1,6 @@
 use crate::config::Config;
 use crate::font::FontConfiguration;
-use crate::guicommon::tabs::LocalTab;
+use crate::guicommon::localtab::LocalTab;
 use crate::mux::tab::{Tab, TabId};
 use crate::mux::window::WindowId;
 use crate::mux::Mux;
