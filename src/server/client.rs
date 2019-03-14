@@ -64,4 +64,9 @@ impl Client {
 
     rpc!(ping, Ping = (), Pong);
     rpc!(list_tabs, ListTabs = (), ListTabsResponse);
+    rpc!(
+        get_coarse_tab_renderable_data,
+        GetCoarseTabRenderableData,
+        GetCoarseTabRenderableDataResponse
+    );
 }

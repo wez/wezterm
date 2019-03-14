@@ -1,5 +1,5 @@
 use std::ops::Range;
-use std::rc::Rc;
+use std::sync::Arc;
 use term::{CursorPosition, Line, Terminal, TerminalState};
 use termwiz::hyperlink::Hyperlink;
 
@@ -26,7 +26,7 @@ pub trait Renderable {
     fn clean_dirty_lines(&mut self);
 
     /// Returns the currently highlighted hyperlink
-    fn current_highlight(&self) -> Option<Rc<Hyperlink>>;
+    fn current_highlight(&self) -> Option<Arc<Hyperlink>>;
 
     /// Returns physical, non-scrollback (rows, cols) for the
     /// terminal screen
@@ -50,7 +50,7 @@ impl Renderable for Terminal {
         TerminalState::make_all_lines_dirty(self)
     }
 
-    fn current_highlight(&self) -> Option<Rc<Hyperlink>> {
+    fn current_highlight(&self) -> Option<Arc<Hyperlink>> {
         TerminalState::current_highlight(self)
     }
 

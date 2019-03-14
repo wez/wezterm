@@ -770,7 +770,7 @@ mod test {
     use crate::cell::Intensity;
     use crate::color::AnsiColor;
     use crate::image::ImageData;
-    use std::rc::Rc;
+    use std::sync::Arc;
 
     // The \x20's look a little awkward, but we can't use a plain
     // space in the first chararcter of a multi-line continuation;
@@ -1432,7 +1432,7 @@ mod test {
     #[test]
     fn images() {
         // a dummy image blob with nonsense content
-        let data = Rc::new(ImageData::with_raw_data(vec![]));
+        let data = Arc::new(ImageData::with_raw_data(vec![]));
         let mut s = Surface::new(2, 2);
         s.add_change(Change::Image(Image {
             top_left: TextureCoordinate::new_f32(0.0, 0.0),

@@ -4,7 +4,7 @@ use crate::hyperlink::Rule;
 use crate::range::in_range;
 use crate::surface::Change;
 use std::ops::Range;
-use std::rc::Rc;
+use std::sync::Arc;
 use unicode_segmentation::UnicodeSegmentation;
 
 bitflags! {
@@ -155,7 +155,7 @@ impl Line {
                     let attrs = self.cells[cell_idx]
                         .attrs()
                         .clone()
-                        .set_hyperlink(Some(Rc::clone(&m.link)))
+                        .set_hyperlink(Some(Arc::clone(&m.link)))
                         .clone();
                     let cell = Cell::new_grapheme(self.cells[cell_idx].str(), attrs);
                     self.cells[cell_idx] = cell;

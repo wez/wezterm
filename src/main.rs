@@ -153,9 +153,17 @@ fn main() -> Result<(), Error> {
         }
         SubCommand::Cli(_) => {
             use crate::server::client::Client;
+            use crate::server::codec::*;
             let mut client = Client::new(&config)?;
             eprintln!("ping: {:?}", client.ping()?);
-            eprintln!("tabs: {:?}", client.list_tabs()?);
+            let tabs = client.list_tabs()?;
+            for (tab_id, title) in tabs.tabs.iter() {
+                eprintln!("tab {}: {}", tab_id, title);
+                let data = client.get_coarse_tab_renderable_data(GetCoarseTabRenderableData {
+                    tab_id: *tab_id,
+                })?;
+                eprintln!("coarse: {:?}", data);
+            }
             Ok(())
         }
     }

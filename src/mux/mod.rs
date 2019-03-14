@@ -74,7 +74,7 @@ impl<'a> TerminalHost for Host<'a> {
         &mut self.writer
     }
 
-    fn click_link(&mut self, link: &Rc<Hyperlink>) {
+    fn click_link(&mut self, link: &Arc<Hyperlink>) {
         match open::that(link.uri()) {
             Ok(_) => {}
             Err(err) => eprintln!("failed to open {}: {:?}", link.uri(), err),

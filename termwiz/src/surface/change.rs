@@ -2,7 +2,7 @@ use crate::cell::{AttributeChange, CellAttributes};
 use crate::color::ColorAttribute;
 pub use crate::image::{ImageData, TextureCoordinate};
 use crate::surface::{CursorShape, Position};
-use std::rc::Rc;
+use std::sync::Arc;
 
 /// `Change` describes an update operation to be applied to a `Surface`.
 /// Changes to the active attributes (color, style), moving the cursor
@@ -103,5 +103,5 @@ pub struct Image {
     /// Texture coordinates for the bottom right of this image block.
     pub bottom_right: TextureCoordinate,
     /// the image data
-    pub image: Rc<ImageData>,
+    pub image: Arc<ImageData>,
 }

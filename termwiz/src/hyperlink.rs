@@ -11,7 +11,7 @@ use serde_derive::*;
 use std::collections::HashMap;
 use std::fmt::{Display, Error as FmtError, Formatter};
 use std::ops::Range;
-use std::rc::Rc;
+use std::sync::Arc;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Hyperlink {
@@ -157,7 +157,7 @@ pub struct RuleMatch {
     pub range: Range<usize>,
     /// Holds the created Hyperlink object that should be associated
     /// the cells that correspond to the span.
-    pub link: Rc<Hyperlink>,
+    pub link: Arc<Hyperlink>,
 }
 
 /// An internal intermediate match result
@@ -220,7 +220,7 @@ impl Rule {
             .into_iter()
             .map(|m| {
                 let url = m.expand();
-                let link = Rc::new(Hyperlink::new_implicit(url));
+                let link = Arc::new(Hyperlink::new_implicit(url));
                 RuleMatch {
                     link,
                     range: m.range(),
@@ -245,7 +245,7 @@ mod test {
             Rule::match_hyperlinks("  http://example.com", &rules),
             vec![RuleMatch {
                 range: 2..20,
-                link: Rc::new(Hyperlink::new_implicit("http://example.com")),
+                link: Arc::new(Hyperlink::new_implicit("http://example.com")),
             }]
         );
 
@@ -255,11 +255,11 @@ mod test {
                 // Longest match first
                 RuleMatch {
                     range: 18..34,
-                    link: Rc::new(Hyperlink::new_implicit("mailto:woot@example.com")),
+                    link: Arc::new(Hyperlink::new_implicit("mailto:woot@example.com")),
                 },
                 RuleMatch {
                     range: 2..17,
-                    link: Rc::new(Hyperlink::new_implicit("mailto:foo@example.com")),
+                    link: Arc::new(Hyperlink::new_implicit("mailto:foo@example.com")),
                 },
             ]
         );

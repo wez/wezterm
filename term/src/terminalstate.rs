@@ -5,6 +5,7 @@ use super::*;
 use image::{self, GenericImage};
 use ordered_float::NotNaN;
 use std::fmt::Write;
+use std::sync::Arc;
 use termwiz::escape::csi::{
     Cursor, DecPrivateMode, DecPrivateModeCode, Device, Edit, EraseInDisplay, EraseInLine, Mode,
     Sgr,
@@ -154,7 +155,7 @@ pub struct TerminalState {
 
     /// Which hyperlink is considered to be highlighted, because the
     /// mouse_position is over a cell with a Hyperlink attribute.
-    current_highlight: Option<Rc<Hyperlink>>,
+    current_highlight: Option<Arc<Hyperlink>>,
 
     /// Keeps track of double and triple clicks
     last_mouse_click: Option<LastMouseClick>,
@@ -342,7 +343,7 @@ impl TerminalState {
         &mut self,
         x: usize,
         y: ScrollbackOrVisibleRowIndex,
-    ) -> Option<Rc<Hyperlink>> {
+    ) -> Option<Arc<Hyperlink>> {
         let rules = &self.hyperlink_rules;
 
         let idx = self.screen.scrollback_or_visible_row(y);
@@ -1003,7 +1004,7 @@ impl TerminalState {
     }
 
     /// Returns the currently highlighted hyperlink
-    pub fn current_highlight(&self) -> Option<Rc<Hyperlink>> {
+    pub fn current_highlight(&self) -> Option<Arc<Hyperlink>> {
         self.current_highlight.as_ref().cloned()
     }
 
@@ -1139,7 +1140,7 @@ impl TerminalState {
 
     fn set_hyperlink(&mut self, link: Option<Hyperlink>) {
         self.pen.hyperlink = match link {
-            Some(hyperlink) => Some(Rc::new(hyperlink)),
+            Some(hyperlink) => Some(Arc::new(hyperlink)),
             None => None,
         }
     }
@@ -1228,7 +1229,7 @@ impl TerminalState {
         };
         */
 
-        let image_data = Rc::new(ImageData::with_raw_data(image.data));
+        let image_data = Arc::new(ImageData::with_raw_data(image.data));
 
         let mut ypos = NotNaN::new(0.0).unwrap();
         let cursor_x = self.cursor.x;

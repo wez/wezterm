@@ -6,7 +6,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use smallvec::SmallVec;
 use std;
 use std::mem;
-use std::rc::Rc;
+use std::sync::Arc;
 use unicode_width::UnicodeWidthStr;
 
 /// Holds the attributes for a cell.
@@ -22,7 +22,7 @@ pub struct CellAttributes {
     /// The background color
     pub background: ColorAttribute,
     /// The hyperlink content, if any
-    pub hyperlink: Option<Rc<Hyperlink>>,
+    pub hyperlink: Option<Arc<Hyperlink>>,
     /// The image data, if any
     pub image: Option<Box<ImageCell>>,
 }
@@ -159,7 +159,7 @@ impl CellAttributes {
         self
     }
 
-    pub fn set_hyperlink(&mut self, link: Option<Rc<Hyperlink>>) -> &mut Self {
+    pub fn set_hyperlink(&mut self, link: Option<Arc<Hyperlink>>) -> &mut Self {
         self.hyperlink = link;
         self
     }
@@ -309,7 +309,7 @@ pub enum AttributeChange {
     Invisible(bool),
     Foreground(ColorAttribute),
     Background(ColorAttribute),
-    Hyperlink(Option<Rc<Hyperlink>>),
+    Hyperlink(Option<Arc<Hyperlink>>),
 }
 
 #[cfg(test)]

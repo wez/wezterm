@@ -14,7 +14,7 @@
 use ordered_float::NotNaN;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_derive::*;
-use std::rc::Rc;
+use std::sync::Arc;
 
 fn deserialize_notnan<'de, D>(deserializer: D) -> Result<NotNaN<f32>, D::Error>
 where
@@ -71,14 +71,14 @@ pub struct ImageCell {
     /// Texture coordinates for the bottom right of this cell.
     bottom_right: TextureCoordinate,
     /// References the underlying image data
-    data: Rc<ImageData>,
+    data: Arc<ImageData>,
 }
 
 impl ImageCell {
     pub fn new(
         top_left: TextureCoordinate,
         bottom_right: TextureCoordinate,
-        data: Rc<ImageData>,
+        data: Arc<ImageData>,
     ) -> Self {
         Self {
             top_left,

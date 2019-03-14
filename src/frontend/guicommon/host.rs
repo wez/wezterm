@@ -3,7 +3,7 @@ use crate::mux::tab::Tab;
 use clipboard::{ClipboardContext, ClipboardProvider};
 use failure::Error;
 use std::ops::{Deref, DerefMut};
-use std::rc::Rc;
+use std::sync::Arc;
 use term::{KeyCode, KeyModifiers};
 use termwiz::hyperlink::Hyperlink;
 
@@ -188,7 +188,7 @@ impl<'a, H: HostHelper> term::TerminalHost for TabHost<'a, H> {
         &mut self.writer
     }
 
-    fn click_link(&mut self, link: &Rc<Hyperlink>) {
+    fn click_link(&mut self, link: &Arc<Hyperlink>) {
         match open::that(link.uri()) {
             Ok(_) => {}
             Err(err) => eprintln!("failed to open {}: {:?}", link.uri(), err),

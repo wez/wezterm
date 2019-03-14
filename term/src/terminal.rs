@@ -1,4 +1,5 @@
 use super::*;
+use std::sync::Arc;
 use termwiz::escape::parser::Parser;
 use termwiz::hyperlink::Rule as HyperlinkRule;
 
@@ -20,7 +21,7 @@ pub trait TerminalHost {
     fn set_title(&mut self, title: &str);
 
     /// Called when a URL is clicked
-    fn click_link(&mut self, link: &Rc<Hyperlink>);
+    fn click_link(&mut self, link: &Arc<Hyperlink>);
 
     /// Switch to a specific tab
     fn activate_tab(&mut self, _tab: usize) {}

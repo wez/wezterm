@@ -7,7 +7,6 @@ use serde_derive::*;
 
 use failure::Error;
 use std::ops::{Deref, DerefMut, Range};
-use std::rc::Rc;
 use std::str;
 
 #[macro_use]

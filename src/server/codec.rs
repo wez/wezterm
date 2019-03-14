@@ -15,7 +15,7 @@ use bincode;
 use failure::Error;
 use serde_derive::*;
 use std::collections::HashMap;
-use std::rc::Rc;
+use std::sync::Arc;
 use term::{CursorPosition, Line};
 use termwiz::hyperlink::Hyperlink;
 use varu64;
@@ -137,6 +137,8 @@ pdu! {
     Pong: 2,
     ListTabs: 3,
     ListTabsResponse: 4,
+    GetCoarseTabRenderableData: 5,
+    GetCoarseTabRenderableDataResponse: 6,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
@@ -174,7 +176,7 @@ pub struct GetCoarseTabRenderableDataResponse {
     pub cursor_position: CursorPosition,
     pub physical_rows: usize,
     pub physical_cols: usize,
-    pub current_highlight: Option<Rc<Hyperlink>>,
+    pub current_highlight: Option<Arc<Hyperlink>>,
     pub dirty_lines: Vec<DirtyLine>,
 }
 

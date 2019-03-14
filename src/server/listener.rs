@@ -71,8 +71,43 @@ impl ClientSession {
                     .wait()?;
                     Pdu::ListTabsResponse(result).encode(&mut self.stream, decoded.serial)?;
                 }
+                Pdu::GetCoarseTabRenderableData(GetCoarseTabRenderableData { tab_id }) => {
+                    let result = Future::with_executor(self.executor.clone_executor(), move || {
+                        let mux = Mux::get().unwrap();
+                        let tab = mux
+                            .get_tab(tab_id)
+                            .ok_or_else(|| format_err!("no such tab {}", tab_id))?;
+                        let renderable = tab.renderer();
+                        let dirty_lines = renderable
+                            .get_dirty_lines()
+                            .iter()
+                            .map(|(line_idx, line, sel)| DirtyLine {
+                                line_idx: *line_idx,
+                                line: (*line).clone(),
+                                selection_col_from: sel.start,
+                                selection_col_to: sel.end,
+                            })
+                            .collect();
 
-                Pdu::Pong { .. } | Pdu::ListTabsResponse { .. } | Pdu::Invalid { .. } => {}
+                        let (physical_rows, physical_cols) = renderable.physical_dimensions();
+
+                        Ok(GetCoarseTabRenderableDataResponse {
+                            dirty_lines,
+                            current_highlight: renderable.current_highlight(),
+                            cursor_position: renderable.get_cursor_position(),
+                            physical_rows,
+                            physical_cols,
+                        })
+                    })
+                    .wait()?;
+                    Pdu::GetCoarseTabRenderableDataResponse(result)
+                        .encode(&mut self.stream, decoded.serial)?;
+                }
+
+                Pdu::Pong { .. }
+                | Pdu::ListTabsResponse { .. }
+                | Pdu::GetCoarseTabRenderableDataResponse { .. }
+                | Pdu::Invalid { .. } => {}
             }
         }
     }
