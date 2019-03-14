@@ -88,6 +88,76 @@ pub struct Surface {
     cursor_color: ColorAttribute,
 }
 
+#[derive(Default)]
+struct DiffState {
+    changes: Vec<Change>,
+    /// Keep track of the cursor position that the change stream
+    /// selects for updates so that we can avoid emitting redundant
+    /// position changes.
+    cursor: Option<(usize, usize)>,
+    /// Similarly, we keep track of the cell attributes that we have
+    /// activated for change stream to avoid over-emitting.
+    /// Tracking the cursor and attributes in this way helps to coalesce
+    /// lines of text into simpler strings.
+    attr: Option<CellAttributes>,
+}
+
+impl DiffState {
+    #[inline]
+    fn diff_cells(&mut self, col_num: usize, row_num: usize, cell: &Cell, other_cell: &Cell) {
+        if cell == other_cell {
+            return;
+        }
+        self.cursor = match self.cursor.take() {
+            Some((cursor_row, cursor_col))
+                if cursor_row == row_num && cursor_col == col_num - 1 =>
+            {
+                // It is on the column prior, so we don't need
+                // to explicitly move it.  Record the effective
+                // position for next time.
+                Some((row_num, col_num))
+            }
+            _ => {
+                // Need to explicitly move the cursor
+                self.changes.push(Change::CursorPosition {
+                    y: Position::Absolute(row_num),
+                    x: Position::Absolute(col_num),
+                });
+                // and remember the position for next time
+                Some((row_num, col_num))
+            }
+        };
+
+        // we could get fancy and try to minimize the update traffic
+        // by computing a series of AttributeChange values here.
+        // For now, let's just record the new value
+        self.attr = match self.attr.take() {
+            Some(ref attr) if attr == other_cell.attrs() => {
+                // Active attributes match, so we don't need
+                // to emit a change for them
+                Some(attr.clone())
+            }
+            _ => {
+                // Attributes are different
+                self.changes
+                    .push(Change::AllAttributes(other_cell.attrs().clone()));
+                Some(other_cell.attrs().clone())
+            }
+        };
+        // A little bit of bloat in the code to avoid runs of single
+        // character Text entries; just append to the string.
+        let result_len = self.changes.len();
+        if result_len > 0 && self.changes[result_len - 1].is_text() {
+            if let Some(Change::Text(ref mut prefix)) = self.changes.get_mut(result_len - 1) {
+                prefix.push_str(other_cell.str());
+            }
+        } else {
+            self.changes
+                .push(Change::Text(other_cell.str().to_string()));
+        }
+    }
+}
+
 impl Surface {
     /// Create a new Surface with the specified width and height.
     pub fn new(width: usize, height: usize) -> Self {
@@ -596,16 +666,7 @@ impl Surface {
         assert!(other_x + width <= other.width);
         assert!(other_y + height <= other.height);
 
-        let mut result = Vec::new();
-        // Keep track of the cursor position that the change stream
-        // selects for updates so that we can avoid emitting redundant
-        // position changes.
-        let mut cursor = None;
-        // Similarly, we keep track of the cell attributes that we have
-        // activated for change stream to avoid over-emitting.
-        // Tracking the cursor and attributes in this way helps to coalesce
-        // lines of text into simpler strings.
-        let mut attr: Option<CellAttributes> = None;
+        let mut diff_state = DiffState::default();
 
         for ((row_num, line), other_line) in self
             .lines
@@ -621,57 +682,23 @@ impl Surface {
                 .take_while(|(col_num, _)| *col_num < x + width)
                 .zip(other_line.visible_cells().skip(other_x))
             {
-                if cell != other_cell {
-                    cursor = match cursor.take() {
-                        Some((cursor_row, cursor_col))
-                            if cursor_row == row_num && cursor_col == col_num - 1 =>
-                        {
-                            // It is on the column prior, so we don't need
-                            // to explicitly move it.  Record the effective
-                            // position for next time.
-                            Some((row_num, col_num))
-                        }
-                        _ => {
-                            // Need to explicitly move the cursor
-                            result.push(Change::CursorPosition {
-                                y: Position::Absolute(row_num),
-                                x: Position::Absolute(col_num),
-                            });
-                            // and remember the position for next time
-                            Some((row_num, col_num))
-                        }
-                    };
-
-                    // we could get fancy and try to minimize the update traffic
-                    // by computing a series of AttributeChange values here.
-                    // For now, let's just record the new value
-                    attr = match attr.take() {
-                        Some(ref attr) if attr == other_cell.attrs() => {
-                            // Active attributes match, so we don't need
-                            // to emit a change for them
-                            Some(attr.clone())
-                        }
-                        _ => {
-                            // Attributes are different
-                            result.push(Change::AllAttributes(other_cell.attrs().clone()));
-                            Some(other_cell.attrs().clone())
-                        }
-                    };
-                    // A little bit of bloat in the code to avoid runs of single
-                    // character Text entries; just append to the string.
-                    let result_len = result.len();
-                    if result_len > 0 && result[result_len - 1].is_text() {
-                        if let Some(Change::Text(ref mut prefix)) = result.get_mut(result_len - 1) {
-                            prefix.push_str(other_cell.str());
-                        }
-                    } else {
-                        result.push(Change::Text(other_cell.str().to_string()));
-                    }
-                }
+                diff_state.diff_cells(col_num, row_num, cell, other_cell);
             }
         }
 
-        result
+        diff_state.changes
+    }
+
+    pub fn diff_lines(&self, other_lines: Vec<&Line>) -> Vec<Change> {
+        let mut diff_state = DiffState::default();
+        for ((row_num, line), other_line) in self.lines.iter().enumerate().zip(other_lines.iter()) {
+            for ((col_num, cell), (_, other_cell)) in
+                line.visible_cells().zip(other_line.visible_cells())
+            {
+                diff_state.diff_cells(col_num, row_num, cell, other_cell);
+            }
+        }
+        diff_state.changes
     }
 
     /// Computes the change stream required to make `self` have the same
