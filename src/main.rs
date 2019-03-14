@@ -3,8 +3,6 @@ extern crate failure;
 #[macro_use]
 extern crate failure_derive;
 #[macro_use]
-extern crate serde_derive;
-#[macro_use]
 pub mod log;
 use failure::Error;
 use std::ffi::OsString;

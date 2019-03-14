@@ -13,7 +13,11 @@
 use crate::mux::tab::TabId;
 use bincode;
 use failure::Error;
+use serde_derive::*;
 use std::collections::HashMap;
+use std::rc::Rc;
+use term::{CursorPosition, Line};
+use termwiz::hyperlink::Hyperlink;
 use varu64;
 
 fn encode_raw<W: std::io::Write>(
@@ -146,6 +150,32 @@ pub struct ListTabs {}
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
 pub struct ListTabsResponse {
     pub tabs: HashMap<TabId, String>,
+}
+
+/// This is a transitional request to get some basic
+/// remoting working.  The ideal is to produce Change
+/// objects instead of the coarse response data in
+/// GetCoarseTabRenderableDataResponse
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct GetCoarseTabRenderableData {
+    pub tab_id: TabId,
+}
+
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct DirtyLine {
+    pub line_idx: usize,
+    pub line: Line,
+    pub selection_col_from: usize,
+    pub selection_col_to: usize,
+}
+
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct GetCoarseTabRenderableDataResponse {
+    pub cursor_position: CursorPosition,
+    pub physical_rows: usize,
+    pub physical_cols: usize,
+    pub current_highlight: Option<Rc<Hyperlink>>,
+    pub dirty_lines: Vec<DirtyLine>,
 }
 
 #[cfg(test)]

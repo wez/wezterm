@@ -5,6 +5,7 @@ use crate::frontend::FrontEndSelection;
 use crate::{get_shell, Command};
 use failure::{err_msg, Error};
 use lazy_static::lazy_static;
+use serde_derive::*;
 use std;
 use std::ffi::OsStr;
 use std::fs;

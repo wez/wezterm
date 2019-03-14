@@ -11,6 +11,8 @@ image = "~0.19"
 ordered-float = "~0.5"
 unicode-segmentation = "~1.2"
 unicode-width = "~0.1"
+serde = {version="~1.0", features = ["rc"]}
+serde_derive = "~1.0"
 
 [dependencies.termwiz]
 path = "../termwiz"

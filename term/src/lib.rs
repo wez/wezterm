@@ -3,6 +3,7 @@
 extern crate bitflags;
 #[macro_use]
 extern crate failure;
+use serde_derive::*;
 
 use failure::Error;
 use std::ops::{Deref, DerefMut, Range};
@@ -85,7 +86,7 @@ pub enum Position {
 
 /// Describes the location of the cursor in the visible portion
 /// of the screen.
-#[derive(Debug, Default, Copy, Clone, Eq, PartialEq)]
+#[derive(Debug, Default, Copy, Clone, Eq, PartialEq, Deserialize, Serialize)]
 pub struct CursorPosition {
     pub x: usize,
     pub y: VisibleRowIndex,

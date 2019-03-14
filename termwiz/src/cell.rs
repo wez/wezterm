@@ -2,6 +2,7 @@
 use crate::color::ColorAttribute;
 pub use crate::escape::osc::Hyperlink;
 use crate::image::ImageCell;
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use smallvec::SmallVec;
 use std;
 use std::mem;
@@ -13,7 +14,7 @@ use unicode_width::UnicodeWidthStr;
 /// to reduce per-cell overhead.
 /// The setter methods return a mutable self reference so that they can
 /// be chained together.
-#[derive(Debug, Default, Clone, Eq, PartialEq)]
+#[derive(Debug, Default, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct CellAttributes {
     attributes: u16,
     /// The foreground color
@@ -84,7 +85,7 @@ macro_rules! bitfield {
 /// implement `Intensity::Bold` by either using a bold font or by simply
 /// using an alternative color.  Some terminals implement `Intensity::Half`
 /// as a dimmer color variant.
-#[derive(Debug, Clone, Copy, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[repr(u16)]
 pub enum Intensity {
     Normal = 0,
@@ -93,7 +94,7 @@ pub enum Intensity {
 }
 
 /// Specify just how underlined you want your `Cell` to be
-#[derive(Debug, Clone, Copy, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[repr(u16)]
 pub enum Underline {
     /// The cell is not underlined
@@ -114,7 +115,7 @@ impl Into<bool> for Underline {
 }
 
 /// Specify whether you want to slowly or rapidly annoy your users
-#[derive(Debug, Clone, Copy, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[repr(u16)]
 pub enum Blink {
     None = 0,
@@ -181,9 +182,31 @@ impl CellAttributes {
     }
 }
 
+fn deserialize_smallvec<'de, D>(deserializer: D) -> Result<SmallVec<[u8; 4]>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let text = String::deserialize(deserializer)?;
+    Ok(SmallVec::from_slice(text.as_bytes()))
+}
+
+fn serialize_smallvec<S>(value: &SmallVec<[u8; 4]>, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    // unsafety: this is safe because the Cell constructor guarantees
+    // that the storage is valid utf8
+    let s = unsafe { std::str::from_utf8_unchecked(value) };
+    s.serialize(serializer)
+}
+
 /// Models the contents of a cell on the terminal display
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
 pub struct Cell {
+    #[serde(
+        deserialize_with = "deserialize_smallvec",
+        serialize_with = "serialize_smallvec"
+    )]
     text: SmallVec<[u8; 4]>,
     attrs: CellAttributes,
 }
@@ -275,7 +298,7 @@ impl Cell {
 /// Models a change in the attributes of a cell in a stream of changes.
 /// Each variant specifies one of the possible attributes; the corresponding
 /// value holds the new value to be used for that attribute.
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub enum AttributeChange {
     Intensity(Intensity),
     Underline(Underline),

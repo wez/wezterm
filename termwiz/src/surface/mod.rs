@@ -17,7 +17,7 @@ pub use self::line::Line;
 /// Relative(0) is the current position in the line or
 /// column and EndRelative(0) is the end position in the
 /// line or column.
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub enum Position {
     NoChange,
     /// Negative values move up, positive values down
@@ -28,7 +28,7 @@ pub enum Position {
     EndRelative(usize),
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum CursorShape {
     Hidden,
     Default,

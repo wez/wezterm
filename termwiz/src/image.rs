@@ -12,11 +12,36 @@
 // z-order.
 
 use ordered_float::NotNaN;
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use serde_derive::*;
 use std::rc::Rc;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+fn deserialize_notnan<'de, D>(deserializer: D) -> Result<NotNaN<f32>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let value = f32::deserialize(deserializer)?;
+    NotNaN::new(value).map_err(|e| serde::de::Error::custom(format!("{:?}", e)))
+}
+
+fn serialize_notnan<S>(value: &NotNaN<f32>, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    value.into_inner().serialize(serializer)
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TextureCoordinate {
+    #[serde(
+        deserialize_with = "deserialize_notnan",
+        serialize_with = "serialize_notnan"
+    )]
     pub x: NotNaN<f32>,
+    #[serde(
+        deserialize_with = "deserialize_notnan",
+        serialize_with = "serialize_notnan"
+    )]
     pub y: NotNaN<f32>,
 }
 
@@ -37,7 +62,7 @@ impl TextureCoordinate {
 /// carve up the image and track each slice of it.  Each cell needs to know
 /// its "texture coordinates" within that image so that we can render the
 /// right slice.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ImageCell {
     /// Texture coordinate for the top left of this cell.
     /// (0,0) is the top left of the ImageData. (1, 1) is
@@ -65,7 +90,7 @@ impl ImageCell {
 
 static IMAGE_ID: ::std::sync::atomic::AtomicUsize = ::std::sync::atomic::ATOMIC_USIZE_INIT;
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ImageData {
     id: usize,
     /// The image data bytes.  Data is the native image file format

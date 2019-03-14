@@ -1,4 +1,5 @@
 use failure::Error;
+use serde_derive::*;
 mod ftfont;
 #[cfg(unix)]
 mod hbwrap;

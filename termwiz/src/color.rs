@@ -4,7 +4,7 @@
 
 use palette;
 use palette::{LinSrgba, Srgb, Srgba};
-use serde::{self, Deserialize, Deserializer};
+use serde::{self, Deserialize, Deserializer, Serialize, Serializer};
 use std::result::Result;
 
 #[derive(Debug, Clone, Copy, FromPrimitive)]
@@ -97,6 +97,11 @@ impl RgbColor {
         })
     }
 
+    /// Returns a string of the form `#RRGGBB`
+    pub fn to_rgb_string(&self) -> String {
+        format!("#{:02x}{:02x}{:02x}", self.red, self.green, self.blue)
+    }
+
     /// Construct a color from a string of the form `#RRGGBB` where
     /// R, G and B are all hex digits.
     pub fn from_rgb_str(s: &str) -> Option<RgbColor> {
@@ -120,6 +125,23 @@ impl RgbColor {
         } else {
             None
         }
+    }
+}
+
+/// This is mildly unfortunate: in order to round trip RgbColor with serde
+/// we need to provide a Serialize impl equivalent to the Deserialize impl
+/// below.  We use the impl below to allow more flexible specification of
+/// color strings in the config file.  A side effect of doing it this way
+/// is that we have to serialize RgbColor as a 7-byte string when we could
+/// otherwise serialize it as a 3-byte array.  There's probably a way
+/// to make this work more efficiently, but for now this will do.
+impl Serialize for RgbColor {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let s = self.to_rgb_string();
+        s.serialize(serializer)
     }
 }
 
@@ -173,7 +195,7 @@ impl From<RgbColor> for ColorSpec {
 /// type used in the `CellAttributes` struct and can specify an optional
 /// TrueColor value, allowing a fallback to a more traditional palette
 /// index if TrueColor is not available.
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
 pub enum ColorAttribute {
     /// Use RgbColor when supported, falling back to the specified PaletteIndex.
     TrueColorWithPaletteFallback(RgbColor, PaletteIndex),
@@ -216,5 +238,12 @@ mod tests {
         assert_eq!(dark_green.red, 0);
         assert_eq!(dark_green.green, 0x64);
         assert_eq!(dark_green.blue, 0);
+    }
+
+    #[test]
+    fn roundtrip_rgbcolor() {
+        let data = bincode::serialize(&RgbColor::from_named("DarkGreen").unwrap()).unwrap();
+        eprintln!("serialized as {:?}", data);
+        let decoded: RgbColor = bincode::deserialize(&data).unwrap();
     }
 }

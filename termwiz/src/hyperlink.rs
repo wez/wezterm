@@ -7,12 +7,13 @@
 use failure::{err_msg, Error};
 use regex::{Captures, Regex};
 use serde::{self, Deserialize, Deserializer};
+use serde_derive::*;
 use std::collections::HashMap;
 use std::fmt::{Display, Error as FmtError, Formatter};
 use std::ops::Range;
 use std::rc::Rc;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Hyperlink {
     params: HashMap<String, String>,
     uri: String,

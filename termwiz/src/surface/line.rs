@@ -8,6 +8,7 @@ use std::rc::Rc;
 use unicode_segmentation::UnicodeSegmentation;
 
 bitflags! {
+    #[derive(Serialize, Deserialize)]
     struct LineBits : u8 {
         const NONE = 0;
         /// The contents of the Line have changed and cached or
@@ -22,7 +23,7 @@ bitflags! {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Line {
     bits: LineBits,
     cells: Vec<Cell>,

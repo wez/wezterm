@@ -4,6 +4,7 @@ use crate::mux::tab::Tab;
 use crate::mux::Mux;
 use failure::Error;
 use promise::Executor;
+use serde_derive::*;
 use std::rc::Rc;
 use std::sync::Arc;
 
