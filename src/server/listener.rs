@@ -1,10 +1,12 @@
 use crate::config::Config;
+use crate::mux::Mux;
 use crate::server::codec::*;
 use crate::server::{UnixListener, UnixStream};
 use failure::{err_msg, Error};
 #[cfg(unix)]
 use libc::{mode_t, umask};
-use promise::Executor;
+use promise::{Executor, Future};
+use std::collections::HashMap;
 use std::fs::{remove_file, DirBuilder};
 #[cfg(unix)]
 use std::os::unix::fs::{DirBuilderExt, PermissionsExt};
@@ -57,8 +59,20 @@ impl ClientSession {
                 Pdu::Ping(Ping {}) => {
                     Pdu::Pong(Pong {}).encode(&mut self.stream, decoded.serial)?;
                 }
+                Pdu::ListTabs(ListTabs {}) => {
+                    let result = Future::with_executor(self.executor.clone_executor(), move || {
+                        let mut tabs = HashMap::new();
+                        let mux = Mux::get().unwrap();
+                        for tab in mux.iter_tabs() {
+                            tabs.insert(tab.tab_id(), tab.get_title());
+                        }
+                        Ok(ListTabsResponse { tabs })
+                    })
+                    .wait()?;
+                    Pdu::ListTabsResponse(result).encode(&mut self.stream, decoded.serial)?;
+                }
 
-                Pdu::Pong { .. } | Pdu::Invalid { .. } => {}
+                Pdu::Pong { .. } | Pdu::ListTabsResponse { .. } | Pdu::Invalid { .. } => {}
             }
         }
     }

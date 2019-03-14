@@ -10,8 +10,10 @@
 //! manage unknown enum variants.
 #![allow(dead_code)]
 
+use crate::mux::tab::TabId;
 use bincode;
 use failure::Error;
+use std::collections::HashMap;
 use varu64;
 
 fn encode_raw<W: std::io::Write>(
@@ -77,11 +79,6 @@ pub struct DecodedPdu {
     pub pdu: Pdu,
 }
 
-#[derive(Deserialize, Serialize, PartialEq, Debug)]
-pub struct Ping {}
-#[derive(Deserialize, Serialize, PartialEq, Debug)]
-pub struct Pong {}
-
 macro_rules! pdu {
     ($( $name:ident:$vers:expr),* $(,)?) => {
         #[derive(PartialEq, Debug)]
@@ -133,7 +130,22 @@ macro_rules! pdu {
 /// and defining newer structs as the protocol evolves.
 pdu! {
     Ping: 1,
-    Pong: 2
+    Pong: 2,
+    ListTabs: 3,
+    ListTabsResponse: 4,
+}
+
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct Ping {}
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct Pong {}
+
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct ListTabs {}
+
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct ListTabsResponse {
+    pub tabs: HashMap<TabId, String>,
 }
 
 #[cfg(test)]

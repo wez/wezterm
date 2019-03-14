@@ -179,6 +179,14 @@ impl Mux {
     pub fn is_empty(&self) -> bool {
         self.tabs.borrow().is_empty()
     }
+
+    pub fn iter_tabs(&self) -> Vec<Rc<Tab>> {
+        self.tabs
+            .borrow()
+            .iter()
+            .map(|(_, v)| Rc::clone(v))
+            .collect()
+    }
 }
 
 #[derive(Debug, Fail)]

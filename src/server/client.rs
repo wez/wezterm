@@ -63,4 +63,5 @@ impl Client {
     }
 
     rpc!(ping, Ping = (), Pong);
+    rpc!(list_tabs, ListTabs = (), ListTabsResponse);
 }

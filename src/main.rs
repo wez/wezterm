@@ -157,6 +157,7 @@ fn main() -> Result<(), Error> {
             use crate::server::client::Client;
             let mut client = Client::new(&config)?;
             eprintln!("ping: {:?}", client.ping()?);
+            eprintln!("tabs: {:?}", client.list_tabs()?);
             Ok(())
         }
     }
