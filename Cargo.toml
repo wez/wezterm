@@ -30,6 +30,8 @@ boxfnonce = "0.1"
 rayon = "1.0"
 promise = { path = "promise" }
 base91 = { path = "base91" }
+varu64 = "0.6"
+bincode = "1.1"
 
 [target.'cfg(unix)'.dependencies]
 harfbuzz-sys = { git = "https://github.com/wez/rust-harfbuzz", branch="coretext" }
