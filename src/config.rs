@@ -3,12 +3,13 @@
 use crate::font::FontSystemSelection;
 use crate::frontend::FrontEndSelection;
 use crate::{get_shell, Command};
-use directories::{ProjectDirs, UserDirs};
 use failure::{err_msg, Error};
+use lazy_static::lazy_static;
 use std;
 use std::ffi::OsStr;
 use std::fs;
 use std::io::prelude::*;
+use std::path::PathBuf;
 use term;
 use term::color::RgbColor;
 use termwiz::hyperlink;
@@ -288,25 +289,32 @@ pub struct StyleRule {
     pub font: TextStyle,
 }
 
-fn project_dirs() -> Result<ProjectDirs, Error> {
-    ProjectDirs::from("org", "wez", "wezterm").ok_or_else(|| err_msg("can't find project dirs"))
+fn compute_runtime_dir() -> Result<PathBuf, Error> {
+    if let Some(runtime) = dirs::runtime_dir() {
+        return Ok(runtime.join("wezterm"));
+    }
+
+    let home = dirs::home_dir().ok_or_else(|| err_msg("can't find home dir"))?;
+    Ok(home.join(".local/share/wezterm"))
+}
+
+lazy_static! {
+    static ref HOME_DIR: PathBuf = dirs::home_dir().expect("can't find HOME dir");
+    static ref RUNTIME_DIR: PathBuf = compute_runtime_dir().unwrap();
 }
 
 impl Config {
     pub fn load() -> Result<Self, Error> {
-        let project_dirs = project_dirs()?;
-        let dirs = UserDirs::new().ok_or_else(|| err_msg("can't find home dir"))?;
-        let home = dirs.home_dir();
-
         // Note that the directories crate has methods for locating project
         // specific config directories, but only returns one of them, not
-        // multiple, so we use it for one of the paths, and fill in the fallbacks
-        // manually here.  This will likely result in trying the same path
-        // a couple of times, but that's harmless.
+        // multiple.  In addition, it spawns a lot of subprocesses,
+        // so we do this bit "by-hand"
         let paths = [
-            project_dirs.config_dir().join("wezterm.toml"),
-            home.join(".config").join("wezterm").join("wezterm.toml"),
-            home.join(".wezterm.toml"),
+            HOME_DIR
+                .join(".config")
+                .join("wezterm")
+                .join("wezterm.toml"),
+            HOME_DIR.join(".wezterm.toml"),
         ];
 
         for p in &paths {
@@ -323,29 +331,24 @@ impl Config {
 
             let cfg: Self = toml::from_str(&s)
                 .map_err(|e| format_err!("Error parsing TOML from {}: {:?}", p.display(), e))?;
-            return Ok(cfg.compute_extra_defaults(project_dirs));
+            return Ok(cfg.compute_extra_defaults());
         }
 
-        Ok(Self::default().compute_extra_defaults(project_dirs))
+        Ok(Self::default().compute_extra_defaults())
     }
 
     pub fn default_config() -> Self {
-        let project_dirs = project_dirs().unwrap();
-        Self::default().compute_extra_defaults(project_dirs)
+        Self::default().compute_extra_defaults()
     }
 
     /// In some cases we need to compute expanded values based
     /// on those provided by the user.  This is where we do that.
-    fn compute_extra_defaults(&self, project_dirs: ProjectDirs) -> Self {
+    fn compute_extra_defaults(&self) -> Self {
         let mut cfg = self.clone();
 
         if cfg.mux_server_unix_domain_socket_path.is_none() {
-            cfg.mux_server_unix_domain_socket_path = match project_dirs.runtime_dir() {
-                Some(path) => path.join("sock"),
-                None => project_dirs.data_local_dir().join("sock"),
-            }
-            .to_str()
-            .map(str::to_owned);
+            cfg.mux_server_unix_domain_socket_path =
+                RUNTIME_DIR.join("sock").to_str().map(str::to_owned);
         }
 
         if cfg.font_rules.is_empty() {
