@@ -51,11 +51,11 @@ impl ClientSession {
 
     fn process(&mut self) -> Result<(), Error> {
         loop {
-            let pdu = Pdu::decode(&mut self.stream)?;
-            eprintln!("got pdu {:?} from client", pdu);
-            match pdu {
-                Pdu::Ping(Ping { serial }) => {
-                    Pdu::Pong(Pong { serial }).encode(&mut self.stream)?;
+            let decoded = Pdu::decode(&mut self.stream)?;
+            eprintln!("got pdu {:?} from client", decoded);
+            match decoded.pdu {
+                Pdu::Ping(Ping {}) => {
+                    Pdu::Pong(Pong {}).encode(&mut self.stream, decoded.serial)?;
                 }
 
                 Pdu::Pong { .. } | Pdu::Invalid { .. } => {}

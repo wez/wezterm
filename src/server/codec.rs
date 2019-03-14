@@ -1,7 +1,7 @@
 //! encode and decode the frames for the mux protocol.
 //! The frames include the length of a PDU as well as an identifier
-//! that informs us how to decode it.  The length and ident are encoded
-//! using a variable length integer encoding.
+//! that informs us how to decode it.  The length, ident and serial
+//! number are encoded using a variable length integer encoding.
 //! Rather than rely solely on serde to serialize and deserialize an
 //! enum, we encode the enum variants with a version/identifier tag
 //! for ourselves.  This will make it a little easier to manage
@@ -14,13 +14,15 @@ use bincode;
 use failure::Error;
 use varu64;
 
-pub fn encode_raw<W: std::io::Write>(
+fn encode_raw<W: std::io::Write>(
     ident: u64,
+    serial: u64,
     data: &[u8],
     mut w: W,
 ) -> Result<(), std::io::Error> {
-    let len = data.len() + varu64::encoding_length(ident);
+    let len = data.len() + varu64::encoding_length(ident) + varu64::encoding_length(serial);
     varu64::encode_write(len as u64, w.by_ref())?;
+    varu64::encode_write(serial, w.by_ref())?;
     varu64::encode_write(ident, w.by_ref())?;
     w.write_all(data)
 }
@@ -48,23 +50,37 @@ fn read_u64<R: std::io::Read>(mut r: R) -> Result<u64, std::io::Error> {
     Ok(value)
 }
 
-pub fn decode_raw<R: std::io::Read>(mut r: R) -> Result<(u64, Vec<u8>), std::io::Error> {
+#[derive(Debug)]
+struct Decoded {
+    ident: u64,
+    serial: u64,
+    data: Vec<u8>,
+}
+
+fn decode_raw<R: std::io::Read>(mut r: R) -> Result<Decoded, std::io::Error> {
     let len = read_u64(r.by_ref())? as usize;
+    let serial = read_u64(r.by_ref())?;
     let ident = read_u64(r.by_ref())?;
-    let data_len = len - varu64::encoding_length(ident);
+    let data_len = len - (varu64::encoding_length(ident) + varu64::encoding_length(serial));
     let mut data = vec![0u8; data_len];
     r.read_exact(&mut data)?;
-    Ok((ident, data))
+    Ok(Decoded {
+        ident,
+        serial,
+        data,
+    })
+}
+
+#[derive(Debug, PartialEq)]
+pub struct DecodedPdu {
+    pub serial: u64,
+    pub pdu: Pdu,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
-pub struct Ping {
-    pub serial: u64,
-}
+pub struct Ping {}
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
-pub struct Pong {
-    pub serial: u64,
-}
+pub struct Pong {}
 
 macro_rules! pdu {
     ($( $name:ident:$vers:expr),* $(,)?) => {
@@ -77,28 +93,34 @@ macro_rules! pdu {
         }
 
         impl Pdu {
-            pub fn encode<W: std::io::Write>(&self, w: W) -> Result<(), Error> {
+            pub fn encode<W: std::io::Write>(&self, w: W, serial: u64) -> Result<(), Error> {
                 match self {
                     Pdu::Invalid{..} => bail!("attempted to serialize Pdu::Invalid"),
                     $(
                         Pdu::$name(s) => {
                             let data = bincode::serialize(s)?;
-                            encode_raw($vers, &data, w)?;
+                            encode_raw($vers, serial, &data, w)?;
                             Ok(())
                         }
                     ,)*
                 }
             }
 
-            pub fn decode<R: std::io::Read>(r:R) -> Result<Pdu, Error> {
-                let (ident, data) = decode_raw(r)?;
-                match ident {
+            pub fn decode<R: std::io::Read>(r:R) -> Result<DecodedPdu, Error> {
+                let decoded = decode_raw(r)?;
+                match decoded.ident {
                     $(
                         $vers => {
-                            Ok(Pdu::$name(bincode::deserialize(&data)?))
+                            Ok(DecodedPdu {
+                                serial: decoded.serial,
+                                pdu: Pdu::$name(bincode::deserialize(&decoded.data)?)
+                            })
                         }
                     ,)*
-                    _ => Ok(Pdu::Invalid{ident}),
+                    _ => Ok(DecodedPdu {
+                        serial: decoded.serial,
+                        pdu: Pdu::Invalid{ident:decoded.ident}
+                    }),
                 }
             }
         }
@@ -121,34 +143,40 @@ mod test {
     #[test]
     fn test_frame() {
         let mut encoded = Vec::new();
-        encode_raw(0x81, b"hello", &mut encoded).unwrap();
-        assert_eq!(&encoded, b"\x06\x81hello");
-        let (ident, data) = decode_raw(encoded.as_slice()).unwrap();
-        assert_eq!(ident, 0x81);
-        assert_eq!(data, b"hello");
+        encode_raw(0x81, 0x42, b"hello", &mut encoded).unwrap();
+        assert_eq!(&encoded, b"\x07\x42\x81hello");
+        let decoded = decode_raw(encoded.as_slice()).unwrap();
+        assert_eq!(decoded.ident, 0x81);
+        assert_eq!(decoded.serial, 0x42);
+        assert_eq!(decoded.data, b"hello");
     }
 
     #[test]
     fn test_frame_lengths() {
+        let mut serial = 1;
         for target_len in &[128, 247, 256, 65536, 16777216] {
             let mut payload = Vec::with_capacity(*target_len);
             payload.resize(*target_len, b'a');
             let mut encoded = Vec::new();
-            encode_raw(0x42, payload.as_slice(), &mut encoded).unwrap();
-            let (ident, data) = decode_raw(encoded.as_slice()).unwrap();
-            assert_eq!(ident, 0x42);
-            assert_eq!(data, payload);
+            encode_raw(0x42, serial, payload.as_slice(), &mut encoded).unwrap();
+            let decoded = decode_raw(encoded.as_slice()).unwrap();
+            assert_eq!(decoded.ident, 0x42);
+            assert_eq!(decoded.serial, serial);
+            assert_eq!(decoded.data, payload);
+            serial += 1;
         }
     }
 
     #[test]
     fn test_pdu_ping() {
         let mut encoded = Vec::new();
-        Pdu::Ping(Ping { serial: 1 }).encode(&mut encoded).unwrap();
-        // FIXME: bincode is a bit long for this
-        assert_eq!(&encoded, &[9, 1, 1, 0, 0, 0, 0, 0, 0, 0]);
+        Pdu::Ping(Ping {}).encode(&mut encoded, 0x40).unwrap();
+        assert_eq!(&encoded, &[2, 0x40, 1]);
         assert_eq!(
-            Pdu::Ping(Ping { serial: 1 }),
+            DecodedPdu {
+                serial: 0x40,
+                pdu: Pdu::Ping(Ping {})
+            },
             Pdu::decode(encoded.as_slice()).unwrap()
         );
     }
@@ -158,12 +186,15 @@ mod test {
         let mut encoded = Vec::new();
         {
             let mut encoder = base91::Base91Encoder::new(&mut encoded);
-            Pdu::Ping(Ping { serial: 1 }).encode(&mut encoder).unwrap();
+            Pdu::Ping(Ping {}).encode(&mut encoder, 0x41).unwrap();
         }
-        assert_eq!(&encoded, &[94, 67, 73, 65, 65, 65, 65, 65, 65, 65, 65, 65]);
+        assert_eq!(&encoded, &[60, 67, 75, 65]);
         let decoded = base91::decode(&encoded);
         assert_eq!(
-            Pdu::Ping(Ping { serial: 1 }),
+            DecodedPdu {
+                serial: 0x41,
+                pdu: Pdu::Ping(Ping {})
+            },
             Pdu::decode(decoded.as_slice()).unwrap()
         );
     }
@@ -171,10 +202,13 @@ mod test {
     #[test]
     fn test_pdu_pong() {
         let mut encoded = Vec::new();
-        Pdu::Pong(Pong { serial: 1 }).encode(&mut encoded).unwrap();
-        assert_eq!(&encoded, &[9, 2, 1, 0, 0, 0, 0, 0, 0, 0]);
+        Pdu::Pong(Pong {}).encode(&mut encoded, 0x42).unwrap();
+        assert_eq!(&encoded, &[2, 0x42, 2]);
         assert_eq!(
-            Pdu::Pong(Pong { serial: 1 }),
+            DecodedPdu {
+                serial: 0x42,
+                pdu: Pdu::Pong(Pong {})
+            },
             Pdu::decode(encoded.as_slice()).unwrap()
         );
     }
@@ -182,9 +216,12 @@ mod test {
     #[test]
     fn test_bogus_pdu() {
         let mut encoded = Vec::new();
-        encode_raw(0xdeadbeef, b"hello", &mut encoded).unwrap();
+        encode_raw(0xdeadbeef, 0x42, b"hello", &mut encoded).unwrap();
         assert_eq!(
-            Pdu::Invalid { ident: 0xdeadbeef },
+            DecodedPdu {
+                serial: 0x42,
+                pdu: Pdu::Invalid { ident: 0xdeadbeef }
+            },
             Pdu::decode(encoded.as_slice()).unwrap()
         );
     }

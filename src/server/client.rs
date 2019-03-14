@@ -26,19 +26,11 @@ impl Client {
     pub fn ping(&mut self) -> Result<(), Error> {
         let ping_serial = self.serial;
         self.serial += 1;
-        Pdu::Ping(Ping {
-            serial: ping_serial,
-        })
-        .encode(&mut self.stream)?;
-        let pdu = Pdu::decode(&mut self.stream)?;
-        match pdu {
-            Pdu::Pong(Pong { serial }) if serial == ping_serial => Ok(()),
-            Pdu::Pong(Pong { serial }) => bail!(
-                "expected pong with serial {} but got {}",
-                ping_serial,
-                serial
-            ),
-            _ => bail!("expected Pong response, got {:?}", pdu),
+        Pdu::Ping(Ping {}).encode(&mut self.stream, ping_serial)?;
+        let decoded_pdu = Pdu::decode(&mut self.stream)?;
+        match decoded_pdu.pdu {
+            Pdu::Pong(Pong {}) => Ok(()),
+            _ => bail!("expected Pong response, got {:?}", decoded_pdu),
         }
     }
 }
