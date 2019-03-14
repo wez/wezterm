@@ -1,20 +1,16 @@
 use crate::config::Config;
+use crate::server::codec::*;
 use crate::server::{UnixListener, UnixStream};
 use failure::{err_msg, Error};
 #[cfg(unix)]
 use libc::{mode_t, umask};
 use promise::Executor;
 use std::fs::{remove_file, DirBuilder};
-use std::io::{Read, Write};
 #[cfg(unix)]
 use std::os::unix::fs::{DirBuilderExt, PermissionsExt};
 use std::path::Path;
 use std::sync::Arc;
 use std::thread;
-
-pub trait SocketLike: Read + Write + Send {}
-
-impl SocketLike for UnixStream {}
 
 pub struct Listener {
     acceptor: UnixListener,
@@ -53,7 +49,23 @@ impl ClientSession {
         Self { stream, executor }
     }
 
-    fn run(&mut self) {}
+    fn process(&mut self) -> Result<(), Error> {
+        loop {
+            let pdu = Pdu::decode(&mut self.stream)?;
+            eprintln!("got pdu {:?} from client", pdu);
+            match pdu {
+                Pdu::Ping(Ping { serial }) => {
+                    Pdu::Pong(Pong { serial }).encode(&mut self.stream)?;
+                }
+
+                Pdu::Pong { .. } | Pdu::Invalid { .. } => {}
+            }
+        }
+    }
+
+    fn run(&mut self) {
+        self.process().ok();
+    }
 }
 
 /// Unfortunately, novice unix users can sometimes be running

@@ -58,9 +58,13 @@ pub fn decode_raw<R: std::io::Read>(mut r: R) -> Result<(u64, Vec<u8>), std::io:
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
-pub struct Ping {}
+pub struct Ping {
+    pub serial: u64,
+}
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
-pub struct Pong {}
+pub struct Pong {
+    pub serial: u64,
+}
 
 macro_rules! pdu {
     ($( $name:ident:$vers:expr),* $(,)?) => {
@@ -140,9 +144,13 @@ mod test {
     #[test]
     fn test_pdu_ping() {
         let mut encoded = Vec::new();
-        Pdu::Ping(Ping {}).encode(&mut encoded).unwrap();
-        assert_eq!(&encoded, b"\x01\x01");
-        assert_eq!(Pdu::Ping(Ping {}), Pdu::decode(encoded.as_slice()).unwrap());
+        Pdu::Ping(Ping { serial: 1 }).encode(&mut encoded).unwrap();
+        // FIXME: bincode is a bit long for this
+        assert_eq!(&encoded, &[9, 1, 1, 0, 0, 0, 0, 0, 0, 0]);
+        assert_eq!(
+            Pdu::Ping(Ping { serial: 1 }),
+            Pdu::decode(encoded.as_slice()).unwrap()
+        );
     }
 
     #[test]
@@ -150,19 +158,25 @@ mod test {
         let mut encoded = Vec::new();
         {
             let mut encoder = base91::Base91Encoder::new(&mut encoded);
-            Pdu::Ping(Ping {}).encode(&mut encoder).unwrap();
+            Pdu::Ping(Ping { serial: 1 }).encode(&mut encoder).unwrap();
         }
-        assert_eq!(&encoded, b";CA");
+        assert_eq!(&encoded, &[94, 67, 73, 65, 65, 65, 65, 65, 65, 65, 65, 65]);
         let decoded = base91::decode(&encoded);
-        assert_eq!(Pdu::Ping(Ping {}), Pdu::decode(decoded.as_slice()).unwrap());
+        assert_eq!(
+            Pdu::Ping(Ping { serial: 1 }),
+            Pdu::decode(decoded.as_slice()).unwrap()
+        );
     }
 
     #[test]
     fn test_pdu_pong() {
         let mut encoded = Vec::new();
-        Pdu::Pong(Pong {}).encode(&mut encoded).unwrap();
-        assert_eq!(&encoded, b"\x01\x02");
-        assert_eq!(Pdu::Pong(Pong {}), Pdu::decode(encoded.as_slice()).unwrap());
+        Pdu::Pong(Pong { serial: 1 }).encode(&mut encoded).unwrap();
+        assert_eq!(&encoded, &[9, 2, 1, 0, 0, 0, 0, 0, 0, 0]);
+        assert_eq!(
+            Pdu::Pong(Pong { serial: 1 }),
+            Pdu::decode(encoded.as_slice()).unwrap()
+        );
     }
 
     #[test]

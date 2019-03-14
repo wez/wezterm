@@ -109,9 +109,16 @@ enum SubCommand {
     #[structopt(name = "start", about = "Start a front-end")]
     #[structopt(raw(setting = "structopt::clap::AppSettings::ColoredHelp"))]
     Start(StartCommand),
+
+    #[structopt(name = "cli", about = "Interact with mux server")]
+    #[structopt(raw(setting = "structopt::clap::AppSettings::ColoredHelp"))]
+    Cli(CliCommand),
 }
 
-fn run_terminal_gui(config: Arc<config::Config>, opts: StartCommand) -> Result<(), Error> {
+#[derive(Debug, StructOpt)]
+struct CliCommand {}
+
+fn run_terminal_gui(config: Arc<config::Config>, opts: &StartCommand) -> Result<(), Error> {
     let font_system = opts.font_system.unwrap_or(config.font_system);
     font_system.set_default();
 
@@ -140,10 +147,18 @@ fn main() -> Result<(), Error> {
     } else {
         config::Config::load()?
     });
-    println!("Using configuration: {:#?}\nopts: {:#?}", config, opts);
 
-    match opts.cmd {
-        SubCommand::Start(start) => run_terminal_gui(config, start),
+    match &opts.cmd {
+        SubCommand::Start(start) => {
+            println!("Using configuration: {:#?}\nopts: {:#?}", config, opts);
+            run_terminal_gui(config, start)
+        }
+        SubCommand::Cli(_) => {
+            use crate::server::client::Client;
+            let mut client = Client::new(&config)?;
+            eprintln!("ping: {:?}", client.ping()?);
+            Ok(())
+        }
     }
 }
 
