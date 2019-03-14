@@ -73,6 +73,12 @@ struct Opt {
     #[structopt(short = "n")]
     skip_config: bool,
 
+    #[structopt(subcommand)]
+    cmd: SubCommand,
+}
+
+#[derive(Debug, StructOpt)]
+struct StartCommand {
     #[structopt(
         long = "front-end",
         raw(
@@ -92,13 +98,20 @@ struct Opt {
     font_system: Option<FontSystemSelection>,
 
     /// Instead of executing your shell, run PROG.
-    /// For example: `wezterm -- bash -l` will spawn bash
+    /// For example: `wezterm start -- bash -l` will spawn bash
     /// as if it were a login shell.
     #[structopt(parse(from_os_str))]
     prog: Vec<OsString>,
 }
 
-fn run_terminal_gui(config: Arc<config::Config>, opts: Opt) -> Result<(), Error> {
+#[derive(Debug, StructOpt)]
+enum SubCommand {
+    #[structopt(name = "start", about = "Start a front-end")]
+    #[structopt(raw(setting = "structopt::clap::AppSettings::ColoredHelp"))]
+    Start(StartCommand),
+}
+
+fn run_terminal_gui(config: Arc<config::Config>, opts: StartCommand) -> Result<(), Error> {
     let font_system = opts.font_system.unwrap_or(config.font_system);
     font_system.set_default();
 
@@ -129,7 +142,9 @@ fn main() -> Result<(), Error> {
     });
     println!("Using configuration: {:#?}\nopts: {:#?}", config, opts);
 
-    run_terminal_gui(config, opts)
+    match opts.cmd {
+        SubCommand::Start(start) => run_terminal_gui(config, start),
+    }
 }
 
 fn spawn_tab(

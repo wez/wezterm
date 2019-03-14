@@ -25,7 +25,7 @@ $ git clone --depth=1 --branch=master https://github.com/wez/wezterm.git
 $ cd wezterm
 $ sudo ./get-deps
 $ cargo build --release
-$ cargo run --release
+$ cargo run --release -- start
 ```
 
 ## What?
