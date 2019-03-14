@@ -10,6 +10,31 @@ pub struct Client {
     serial: u64,
 }
 
+macro_rules! rpc {
+    ($method_name:ident, $request_type:ident, $response_type:ident) => {
+        pub fn $method_name(&mut self, pdu: $request_type) -> Result<$response_type, Error> {
+            let result = self.send_pdu(Pdu::$request_type(pdu))?;
+            match result {
+                Pdu::$response_type(res) => Ok(res),
+                _ => bail!("unexpected response {:?}", result),
+            }
+        }
+    };
+
+    // This variant allows omitting the request parameter; this is useful
+    // in the case where the struct is empty and present only for the purpose
+    // of typing the request.
+    ($method_name:ident, $request_type:ident=(), $response_type:ident) => {
+        pub fn $method_name(&mut self) -> Result<$response_type, Error> {
+            let result = self.send_pdu(Pdu::$request_type($request_type{}))?;
+            match result {
+                Pdu::$response_type(res) => Ok(res),
+                _ => bail!("unexpected response {:?}", result),
+            }
+        }
+    };
+}
+
 impl Client {
     pub fn new(config: &Arc<Config>) -> Result<Self, Error> {
         let sock_path = Path::new(
@@ -23,14 +48,19 @@ impl Client {
         Ok(Self { stream, serial: 0 })
     }
 
-    pub fn ping(&mut self) -> Result<(), Error> {
-        let ping_serial = self.serial;
+    pub fn send_pdu(&mut self, pdu: Pdu) -> Result<Pdu, Error> {
+        let serial = self.serial;
         self.serial += 1;
-        Pdu::Ping(Ping {}).encode(&mut self.stream, ping_serial)?;
-        let decoded_pdu = Pdu::decode(&mut self.stream)?;
-        match decoded_pdu.pdu {
-            Pdu::Pong(Pong {}) => Ok(()),
-            _ => bail!("expected Pong response, got {:?}", decoded_pdu),
-        }
+        pdu.encode(&mut self.stream, serial)?;
+        let decoded = Pdu::decode(&mut self.stream)?;
+        ensure!(
+            decoded.serial == serial,
+            "got out of order response (expected serial {} but got {:?}",
+            serial,
+            decoded
+        );
+        Ok(decoded.pdu)
     }
+
+    rpc!(ping, Ping = (), Pong);
 }
