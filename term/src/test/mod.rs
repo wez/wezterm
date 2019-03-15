@@ -6,6 +6,7 @@ mod c0;
 mod c1;
 mod csi;
 mod selection;
+use std::sync::Arc;
 use termwiz::escape::csi::{Edit, EraseInDisplay, EraseInLine};
 use termwiz::escape::{OperatingSystemCommand, CSI};
 
@@ -51,7 +52,7 @@ impl TerminalHost for TestHost {
         self
     }
 
-    fn click_link(&mut self, _link: &Rc<Hyperlink>) {}
+    fn click_link(&mut self, _link: &Arc<Hyperlink>) {}
 }
 
 struct TestTerm {
@@ -109,7 +110,7 @@ impl TestTerm {
         self.print(format!("{}", csi));
     }
 
-    fn hyperlink(&mut self, link: &Rc<Hyperlink>) {
+    fn hyperlink(&mut self, link: &Arc<Hyperlink>) {
         let osc = OperatingSystemCommand::SetHyperlink(Some(link.as_ref().clone()));
         self.print(format!("{}", osc));
     }
@@ -483,13 +484,13 @@ fn test_scrollup() {
 #[test]
 fn test_hyperlinks() {
     let mut term = TestTerm::new(3, 5, 0);
-    let link = Rc::new(Hyperlink::new("http://example.com"));
+    let link = Arc::new(Hyperlink::new("http://example.com"));
     term.hyperlink(&link);
     term.print("hello");
     term.hyperlink_off();
 
     let mut linked = CellAttributes::default();
-    linked.hyperlink = Some(Rc::clone(&link));
+    linked.hyperlink = Some(Arc::clone(&link));
 
     assert_lines_equal(
         &term.screen().visible_lines(),
@@ -517,7 +518,7 @@ fn test_hyperlinks() {
         Compare::TEXT | Compare::ATTRS,
     );
 
-    let otherlink = Rc::new(Hyperlink::new_with_id("http://example.com/other", "w00t"));
+    let otherlink = Arc::new(Hyperlink::new_with_id("http://example.com/other", "w00t"));
 
     // Switching link and turning it off
     term.hyperlink(&otherlink);
@@ -532,7 +533,7 @@ fn test_hyperlinks() {
         Cell::new(
             'w',
             CellAttributes::default()
-                .set_hyperlink(Some(Rc::clone(&otherlink)))
+                .set_hyperlink(Some(Arc::clone(&otherlink)))
                 .clone(),
         ),
     );
@@ -541,7 +542,7 @@ fn test_hyperlinks() {
         Cell::new(
             'o',
             CellAttributes::default()
-                .set_hyperlink(Some(Rc::clone(&otherlink)))
+                .set_hyperlink(Some(Arc::clone(&otherlink)))
                 .clone(),
         ),
     );
