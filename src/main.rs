@@ -162,7 +162,7 @@ fn main() -> Result<(), Error> {
                 let data = client.get_coarse_tab_renderable_data(GetCoarseTabRenderableData {
                     tab_id: *tab_id,
                 })?;
-                eprintln!("coarse: {:?}", data);
+                // eprintln!("coarse: {:?}", data);
             }
             Ok(())
         }

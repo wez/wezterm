@@ -1,5 +1,5 @@
-use super::{deserialize, error::Error, serialize};
-use serde::{Deserialize, Serialize};
+use super::{deserialize, serialize};
+use serde::Serialize;
 use serde_derive::*;
 use std::collections::HashMap;
 

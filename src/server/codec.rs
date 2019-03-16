@@ -11,14 +11,29 @@
 #![allow(dead_code)]
 
 use crate::mux::tab::TabId;
-use bincode;
 use failure::Error;
+use leb128;
 use serde_derive::*;
 use std::collections::HashMap;
 use std::sync::Arc;
 use term::{CursorPosition, Line};
 use termwiz::hyperlink::Hyperlink;
-use varu64;
+use varbincode;
+
+/// Returns the encoded length of the leb128 representation of value
+fn encoded_length(value: u64) -> usize {
+    struct NullWrite {};
+    impl std::io::Write for NullWrite {
+        fn write(&mut self, buf: &[u8]) -> std::result::Result<usize, std::io::Error> {
+            Ok(buf.len())
+        }
+        fn flush(&mut self) -> std::result::Result<(), std::io::Error> {
+            Ok(())
+        }
+    };
+
+    leb128::write::unsigned(&mut NullWrite {}, value).unwrap()
+}
 
 fn encode_raw<W: std::io::Write>(
     ident: u64,
@@ -26,34 +41,16 @@ fn encode_raw<W: std::io::Write>(
     data: &[u8],
     mut w: W,
 ) -> Result<(), std::io::Error> {
-    let len = data.len() + varu64::encoding_length(ident) + varu64::encoding_length(serial);
-    varu64::encode_write(len as u64, w.by_ref())?;
-    varu64::encode_write(serial, w.by_ref())?;
-    varu64::encode_write(ident, w.by_ref())?;
+    let len = data.len() + encoded_length(ident) + encoded_length(serial);
+    leb128::write::unsigned(w.by_ref(), len as u64)?;
+    leb128::write::unsigned(w.by_ref(), serial)?;
+    leb128::write::unsigned(w.by_ref(), ident)?;
     w.write_all(data)
 }
 
 fn read_u64<R: std::io::Read>(mut r: R) -> Result<u64, std::io::Error> {
-    let mut intbuf = [0u8; 9];
-    r.read_exact(&mut intbuf[0..1])?;
-    let len = match intbuf[0] {
-        0...247 => 0,
-        248 => 1,
-        249 => 2,
-        250 => 3,
-        251 => 4,
-        252 => 5,
-        253 => 6,
-        254 => 7,
-        255 => 8,
-        _ => unreachable!(),
-    };
-    if len > 0 {
-        r.read_exact(&mut intbuf[1..=len])?;
-    }
-    let (value, _) = varu64::decode(&intbuf[0..=len])
-        .map_err(|(err, _)| std::io::Error::new(std::io::ErrorKind::Other, format!("{}", err)))?;
-    Ok(value)
+    leb128::read::unsigned(&mut r)
+        .map_err(|err| std::io::Error::new(std::io::ErrorKind::Other, format!("{}", err)))
 }
 
 #[derive(Debug)]
@@ -65,9 +62,10 @@ struct Decoded {
 
 fn decode_raw<R: std::io::Read>(mut r: R) -> Result<Decoded, std::io::Error> {
     let len = read_u64(r.by_ref())? as usize;
+    eprintln!("decode_raw: {} bytes", len);
     let serial = read_u64(r.by_ref())?;
     let ident = read_u64(r.by_ref())?;
-    let data_len = len - (varu64::encoding_length(ident) + varu64::encoding_length(serial));
+    let data_len = len - (encoded_length(ident) + encoded_length(serial));
     let mut data = vec![0u8; data_len];
     r.read_exact(&mut data)?;
     Ok(Decoded {
@@ -99,7 +97,7 @@ macro_rules! pdu {
                     Pdu::Invalid{..} => bail!("attempted to serialize Pdu::Invalid"),
                     $(
                         Pdu::$name(s) => {
-                            let data = bincode::serialize(s)?;
+                            let data = varbincode::serialize(s)?;
                             encode_raw($vers, serial, &data, w)?;
                             Ok(())
                         }
@@ -114,7 +112,7 @@ macro_rules! pdu {
                         $vers => {
                             Ok(DecodedPdu {
                                 serial: decoded.serial,
-                                pdu: Pdu::$name(bincode::deserialize(&decoded.data)?)
+                                pdu: Pdu::$name(varbincode::deserialize(decoded.data.as_slice())?)
                             })
                         }
                     ,)*
@@ -188,7 +186,7 @@ mod test {
     fn test_frame() {
         let mut encoded = Vec::new();
         encode_raw(0x81, 0x42, b"hello", &mut encoded).unwrap();
-        assert_eq!(&encoded, b"\x07\x42\x81hello");
+        assert_eq!(&encoded, b"\x08\x42\x81\x01hello");
         let decoded = decode_raw(encoded.as_slice()).unwrap();
         assert_eq!(decoded.ident, 0x81);
         assert_eq!(decoded.serial, 0x42);
