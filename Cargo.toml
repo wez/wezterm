@@ -30,6 +30,7 @@ boxfnonce = "0.1"
 rayon = "1.0"
 promise = { path = "promise" }
 base91 = { path = "base91" }
+varbincode = { path = "varbincode" }
 varu64 = "0.6"
 bincode = "1.1"
 lazy_static = "1.3"
