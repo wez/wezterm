@@ -35,19 +35,37 @@ fn encoded_length(value: u64) -> usize {
     leb128::write::unsigned(&mut NullWrite {}, value).unwrap()
 }
 
+const COMPRESSED_MASK: u64 = 1 << 63;
+
+/// Encode a frame.  If the data is compressed, the high bit of the length
+/// is set to indicate that.  The data written out has the format:
+/// tagged_len: leb128  (u64 msb is set if data is compressed)
+/// serial: leb128
+/// ident: leb128
+/// data bytes
 fn encode_raw<W: std::io::Write>(
     ident: u64,
     serial: u64,
     data: &[u8],
+    is_compressed: bool,
     mut w: W,
 ) -> Result<(), std::io::Error> {
     let len = data.len() + encoded_length(ident) + encoded_length(serial);
-    leb128::write::unsigned(w.by_ref(), len as u64)?;
+    let len = len as u64;
+    leb128::write::unsigned(
+        w.by_ref(),
+        if is_compressed {
+            len | COMPRESSED_MASK
+        } else {
+            len
+        },
+    )?;
     leb128::write::unsigned(w.by_ref(), serial)?;
     leb128::write::unsigned(w.by_ref(), ident)?;
     w.write_all(data)
 }
 
+/// Read a single leb128 encoded value from the stream
 fn read_u64<R: std::io::Read>(mut r: R) -> Result<u64, std::io::Error> {
     leb128::read::unsigned(&mut r)
         .map_err(|err| std::io::Error::new(std::io::ErrorKind::Other, format!("{}", err)))
@@ -58,20 +76,29 @@ struct Decoded {
     ident: u64,
     serial: u64,
     data: Vec<u8>,
+    is_compressed: bool,
 }
 
+/// Decode a frame.
+/// See encode_raw() for the frame format.
 fn decode_raw<R: std::io::Read>(mut r: R) -> Result<Decoded, std::io::Error> {
-    let len = read_u64(r.by_ref())? as usize;
-    eprintln!("decode_raw: {} bytes", len);
+    let len = read_u64(r.by_ref())?;
+    let (len, is_compressed) = if (len & COMPRESSED_MASK) != 0 {
+        (len & !COMPRESSED_MASK, true)
+    } else {
+        (len, false)
+    };
+    eprintln!("decode_raw {} compressed={}", len, is_compressed);
     let serial = read_u64(r.by_ref())?;
     let ident = read_u64(r.by_ref())?;
-    let data_len = len - (encoded_length(ident) + encoded_length(serial));
+    let data_len = len as usize - (encoded_length(ident) + encoded_length(serial));
     let mut data = vec![0u8; data_len];
     r.read_exact(&mut data)?;
     Ok(Decoded {
         ident,
         serial,
         data,
+        is_compressed,
     })
 }
 
@@ -79,6 +106,52 @@ fn decode_raw<R: std::io::Read>(mut r: R) -> Result<Decoded, std::io::Error> {
 pub struct DecodedPdu {
     pub serial: u64,
     pub pdu: Pdu,
+}
+
+/// If the serialized size is larger than this, then we'll consider compressing it
+const COMPRESS_THRESH: usize = 32;
+
+fn serialize<T: serde::Serialize>(t: &T) -> Result<(Vec<u8>, bool), Error> {
+    let mut uncompressed = Vec::new();
+    let mut encode = varbincode::Serializer::new(&mut uncompressed);
+    t.serialize(&mut encode)?;
+
+    if uncompressed.len() <= COMPRESS_THRESH {
+        return Ok((uncompressed, false));
+    }
+    // It's a little heavy; let's try compressing it
+    let mut compressed = Vec::new();
+    let mut compress = zstd::Encoder::new(&mut compressed, zstd::DEFAULT_COMPRESSION_LEVEL)?;
+    let mut encode = varbincode::Serializer::new(&mut compress);
+    t.serialize(&mut encode)?;
+    drop(encode);
+    compress.finish()?;
+
+    eprintln!(
+        "serialized+compress len {} vs {}",
+        compressed.len(),
+        uncompressed.len()
+    );
+
+    if compressed.len() < uncompressed.len() {
+        Ok((compressed, true))
+    } else {
+        Ok((uncompressed, false))
+    }
+}
+
+fn deserialize<T: serde::de::DeserializeOwned, R: std::io::Read>(
+    mut r: R,
+    is_compressed: bool,
+) -> Result<T, Error> {
+    if is_compressed {
+        let mut decompress = zstd::Decoder::new(r)?;
+        let mut decode = varbincode::Deserializer::new(&mut decompress);
+        serde::Deserialize::deserialize(&mut decode).map_err(Into::into)
+    } else {
+        let mut decode = varbincode::Deserializer::new(&mut r);
+        serde::Deserialize::deserialize(&mut decode).map_err(Into::into)
+    }
 }
 
 macro_rules! pdu {
@@ -97,8 +170,8 @@ macro_rules! pdu {
                     Pdu::Invalid{..} => bail!("attempted to serialize Pdu::Invalid"),
                     $(
                         Pdu::$name(s) => {
-                            let data = varbincode::serialize(s)?;
-                            encode_raw($vers, serial, &data, w)?;
+                            let (data, is_compressed) = serialize(s)?;
+                            encode_raw($vers, serial, &data, is_compressed, w)?;
                             Ok(())
                         }
                     ,)*
@@ -112,7 +185,7 @@ macro_rules! pdu {
                         $vers => {
                             Ok(DecodedPdu {
                                 serial: decoded.serial,
-                                pdu: Pdu::$name(varbincode::deserialize(decoded.data.as_slice())?)
+                                pdu: Pdu::$name(deserialize(decoded.data.as_slice(), decoded.is_compressed)?)
                             })
                         }
                     ,)*
@@ -185,7 +258,7 @@ mod test {
     #[test]
     fn test_frame() {
         let mut encoded = Vec::new();
-        encode_raw(0x81, 0x42, b"hello", &mut encoded).unwrap();
+        encode_raw(0x81, 0x42, b"hello", false, &mut encoded).unwrap();
         assert_eq!(&encoded, b"\x08\x42\x81\x01hello");
         let decoded = decode_raw(encoded.as_slice()).unwrap();
         assert_eq!(decoded.ident, 0x81);
@@ -200,7 +273,7 @@ mod test {
             let mut payload = Vec::with_capacity(*target_len);
             payload.resize(*target_len, b'a');
             let mut encoded = Vec::new();
-            encode_raw(0x42, serial, payload.as_slice(), &mut encoded).unwrap();
+            encode_raw(0x42, serial, payload.as_slice(), false, &mut encoded).unwrap();
             let decoded = decode_raw(encoded.as_slice()).unwrap();
             assert_eq!(decoded.ident, 0x42);
             assert_eq!(decoded.serial, serial);
@@ -258,7 +331,7 @@ mod test {
     #[test]
     fn test_bogus_pdu() {
         let mut encoded = Vec::new();
-        encode_raw(0xdeadbeef, 0x42, b"hello", &mut encoded).unwrap();
+        encode_raw(0xdeadbeef, 0x42, b"hello", false, &mut encoded).unwrap();
         assert_eq!(
             DecodedPdu {
                 serial: 0x42,

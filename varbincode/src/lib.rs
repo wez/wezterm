@@ -7,11 +7,14 @@ pub mod ser;
 #[cfg(test)]
 mod test;
 
+pub use de::Deserializer;
+pub use ser::Serializer;
+
 /// A convenience function for serializing a value as a byte vector
 /// See also `ser::Serializer`.
 pub fn serialize<T: serde::Serialize>(t: &T) -> Result<Vec<u8>, error::Error> {
     let mut result = Vec::new();
-    let mut s = ser::Serializer::new(&mut result);
+    let mut s = Serializer::new(&mut result);
     t.serialize(&mut s)?;
     Ok(result)
 }
@@ -21,6 +24,6 @@ pub fn serialize<T: serde::Serialize>(t: &T) -> Result<Vec<u8>, error::Error> {
 pub fn deserialize<T: serde::de::DeserializeOwned, R: std::io::Read>(
     mut r: R,
 ) -> Result<T, error::Error> {
-    let mut d = de::Deserializer::new(&mut r);
+    let mut d = Deserializer::new(&mut r);
     serde::Deserialize::deserialize(&mut d)
 }
