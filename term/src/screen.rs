@@ -177,7 +177,7 @@ impl Screen {
     pub fn scroll_up(&mut self, scroll_region: &Range<VisibleRowIndex>, num_rows: usize) {
         debug!("scroll_up {:?} {}", scroll_region, num_rows);
         let phys_scroll = self.phys_range(scroll_region);
-        debug_assert!(num_rows <= phys_scroll.end - phys_scroll.start);
+        let num_rows = num_rows.min(phys_scroll.end - phys_scroll.start);
 
         // Invalidate the lines that will move before they move so that
         // the indices of the lines are stable (we may remove lines below)
@@ -256,7 +256,7 @@ impl Screen {
     pub fn scroll_down(&mut self, scroll_region: &Range<VisibleRowIndex>, num_rows: usize) {
         debug!("scroll_down {:?} {}", scroll_region, num_rows);
         let phys_scroll = self.phys_range(scroll_region);
-        assert!(num_rows <= phys_scroll.end - phys_scroll.start);
+        let num_rows = num_rows.min(phys_scroll.end - phys_scroll.start);
 
         let middle = phys_scroll.end - num_rows;
 
