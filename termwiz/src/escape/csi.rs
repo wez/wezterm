@@ -21,6 +21,8 @@ pub enum CSI {
 
     Mouse(MouseReport),
 
+    Window(Window),
+
     /// Unknown or unspecified; should be rare and is rather
     /// large, so it is boxed and kept outside of the enum
     /// body to help reduce space usage in the common cases.
@@ -71,6 +73,7 @@ impl Display for CSI {
             CSI::Unspecified(unspec) => unspec.fmt(f)?,
             CSI::Mouse(mouse) => mouse.fmt(f)?,
             CSI::Device(dev) => dev.fmt(f)?,
+            CSI::Window(window) => window.fmt(f)?,
         };
         Ok(())
     }
@@ -216,6 +219,107 @@ impl From<MouseButton> for MouseButtons {
             MouseButton::Button4Press => MouseButtons::VERT_WHEEL | MouseButtons::WHEEL_POSITIVE,
             MouseButton::Button5Press => MouseButtons::VERT_WHEEL,
             _ => MouseButtons::NONE,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Window {
+    DeIconify,
+    Iconify,
+    MoveWindow {
+        x: i64,
+        y: i64,
+    },
+    ResizeWindowPixels {
+        width: Option<i64>,
+        height: Option<i64>,
+    },
+    RaiseWindow,
+    LowerWindow,
+    RefreshWindow,
+    ResizeWindowCells {
+        width: Option<i64>,
+        height: Option<i64>,
+    },
+    RestoreMaximizedWindow,
+    MaximizeWindow,
+    MaximizeWindowVertically,
+    MaximizeWindowHorizontally,
+    UndoFullScreenMode,
+    ChangeToFullScreenMode,
+    ToggleFullScreen,
+    ReportWindowState,
+    ReportWindowPosition,
+    ReportTextAreaPosition,
+    ReportTextAreaSizePixels,
+    ReportWindowSizePixels,
+    ReportScreenSizePixels,
+    ReportCellSizePixels,
+    ReportTextAreaSizeCells,
+    ReportScreenSizeCells,
+    ReportIconLabel,
+    ReportWindowTitle,
+    PushIconAndWindowTitle,
+    PushIconTitle,
+    PushWindowTitle,
+    PopIconAndWindowTitle,
+    PopIconTitle,
+    PopWindowTitle,
+}
+
+fn numstr_or_empty(x: &Option<i64>) -> String {
+    match x {
+        Some(x) => format!("{}", x),
+        None => "".to_owned(),
+    }
+}
+
+impl Display for Window {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), FmtError> {
+        match self {
+            Window::DeIconify => write!(f, "1t"),
+            Window::Iconify => write!(f, "2t"),
+            Window::MoveWindow { x, y } => write!(f, "3;{};{}t", x, y),
+            Window::ResizeWindowPixels { width, height } => write!(
+                f,
+                "4;{};{}t",
+                numstr_or_empty(width),
+                numstr_or_empty(height)
+            ),
+            Window::RaiseWindow => write!(f, "5t"),
+            Window::LowerWindow => write!(f, "6t"),
+            Window::RefreshWindow => write!(f, "7t"),
+            Window::ResizeWindowCells { width, height } => write!(
+                f,
+                "8;{};{}t",
+                numstr_or_empty(width),
+                numstr_or_empty(height)
+            ),
+            Window::RestoreMaximizedWindow => write!(f, "9;0t"),
+            Window::MaximizeWindow => write!(f, "9;1t"),
+            Window::MaximizeWindowVertically => write!(f, "9;2t"),
+            Window::MaximizeWindowHorizontally => write!(f, "9;3t"),
+            Window::UndoFullScreenMode => write!(f, "10;0t"),
+            Window::ChangeToFullScreenMode => write!(f, "10;1t"),
+            Window::ToggleFullScreen => write!(f, "10;2t"),
+            Window::ReportWindowState => write!(f, "11t"),
+            Window::ReportWindowPosition => write!(f, "13t"),
+            Window::ReportTextAreaPosition => write!(f, "13;2t"),
+            Window::ReportTextAreaSizePixels => write!(f, "14t"),
+            Window::ReportWindowSizePixels => write!(f, "14;2t"),
+            Window::ReportScreenSizePixels => write!(f, "15t"),
+            Window::ReportCellSizePixels => write!(f, "16t"),
+            Window::ReportTextAreaSizeCells => write!(f, "18t"),
+            Window::ReportScreenSizeCells => write!(f, "19t"),
+            Window::ReportIconLabel => write!(f, "20t"),
+            Window::ReportWindowTitle => write!(f, "21t"),
+            Window::PushIconAndWindowTitle => write!(f, "22;0t"),
+            Window::PushIconTitle => write!(f, "22;1t"),
+            Window::PushWindowTitle => write!(f, "22;2t"),
+            Window::PopIconAndWindowTitle => write!(f, "23;0t"),
+            Window::PopIconTitle => write!(f, "23;1t"),
+            Window::PopWindowTitle => write!(f, "23;2t"),
         }
     }
 }
@@ -1052,6 +1156,7 @@ impl<'a> CSIParser<'a> {
             ('q', &[b' ']) => self.cursor_style(params),
             ('r', &[]) => self.decstbm(params),
             ('s', &[]) => noparams!(Cursor, SaveCursor, params),
+            ('t', &[]) => self.window(params).map(CSI::Window),
             ('u', &[]) => noparams!(Cursor, RestoreCursor, params),
 
             ('p', &[b'!']) => Ok(CSI::Device(Box::new(Device::SoftReset))),
@@ -1281,6 +1386,77 @@ impl<'a> CSIParser<'a> {
             Ok(self.advance_by(3, params, ColorSpec::PaletteIndex(idx)))
         } else {
             Err(())
+        }
+    }
+
+    fn window(&mut self, params: &'a [i64]) -> Result<Window, ()> {
+        if params.is_empty() {
+            Err(())
+        } else {
+            let arg1 = params.get(1).map(|x| *x);
+            let arg2 = params.get(2).map(|x| *x);
+            match params[0] {
+                1 => Ok(Window::DeIconify),
+                2 => Ok(Window::Iconify),
+                3 => Ok(Window::MoveWindow {
+                    x: arg1.unwrap_or(0),
+                    y: arg2.unwrap_or(0),
+                }),
+                4 => Ok(Window::ResizeWindowPixels {
+                    width: arg1,
+                    height: arg2,
+                }),
+                5 => Ok(Window::RaiseWindow),
+                6 => Ok(Window::LowerWindow),
+                7 => Ok(Window::RefreshWindow),
+                8 => Ok(Window::ResizeWindowCells {
+                    width: arg1,
+                    height: arg2,
+                }),
+                9 => match arg1 {
+                    Some(0) => Ok(Window::RestoreMaximizedWindow),
+                    Some(1) => Ok(Window::MaximizeWindow),
+                    Some(2) => Ok(Window::MaximizeWindowVertically),
+                    Some(3) => Ok(Window::MaximizeWindowHorizontally),
+                    _ => Err(()),
+                },
+                10 => match arg1 {
+                    Some(0) => Ok(Window::UndoFullScreenMode),
+                    Some(1) => Ok(Window::ChangeToFullScreenMode),
+                    Some(2) => Ok(Window::ToggleFullScreen),
+                    _ => Err(()),
+                },
+                11 => Ok(Window::ReportWindowState),
+                13 => match arg1 {
+                    None => Ok(Window::ReportWindowPosition),
+                    Some(2) => Ok(Window::ReportTextAreaPosition),
+                    _ => Err(()),
+                },
+                14 => match arg1 {
+                    None => Ok(Window::ReportTextAreaSizePixels),
+                    Some(2) => Ok(Window::ReportWindowSizePixels),
+                    _ => Err(()),
+                },
+                15 => Ok(Window::ReportScreenSizePixels),
+                16 => Ok(Window::ReportCellSizePixels),
+                18 => Ok(Window::ReportTextAreaSizeCells),
+                19 => Ok(Window::ReportScreenSizeCells),
+                20 => Ok(Window::ReportIconLabel),
+                21 => Ok(Window::ReportWindowTitle),
+                22 => match arg1 {
+                    Some(0) => Ok(Window::PushIconAndWindowTitle),
+                    Some(1) => Ok(Window::PushIconTitle),
+                    Some(2) => Ok(Window::PushWindowTitle),
+                    _ => Err(()),
+                },
+                23 => match arg1 {
+                    Some(0) => Ok(Window::PopIconAndWindowTitle),
+                    Some(1) => Ok(Window::PopIconTitle),
+                    Some(2) => Ok(Window::PopWindowTitle),
+                    _ => Err(()),
+                },
+                _ => Err(()),
+            }
         }
     }
 

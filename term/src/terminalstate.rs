@@ -1780,6 +1780,7 @@ impl<'a> Performer<'a> {
             CSI::Mode(mode) => self.state.perform_csi_mode(mode),
             CSI::Device(dev) => self.state.perform_device(*dev, self.host),
             CSI::Mouse(mouse) => eprintln!("mouse report sent by app? {:?}", mouse),
+            CSI::Window(window) => eprintln!("unhandled Window CSI {:?}", window),
             CSI::Unspecified(unspec) => {
                 eprintln!("unknown unspecified CSI: {:?}", format!("{}", unspec))
             }
