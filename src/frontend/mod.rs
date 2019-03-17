@@ -19,6 +19,7 @@ pub enum FrontEndSelection {
     Glutin,
     X11,
     MuxServer,
+    Null,
 }
 
 impl Default for FrontEndSelection {
@@ -42,12 +43,13 @@ impl FrontEndSelection {
             #[cfg(not(all(unix, not(target_os = "macos"))))]
             FrontEndSelection::X11 => bail!("X11 not compiled in"),
             FrontEndSelection::MuxServer => muxserver::MuxServerFrontEnd::try_new(mux),
+            FrontEndSelection::Null => muxserver::MuxServerFrontEnd::new_null(mux),
         }
     }
 
     // TODO: find or build a proc macro for this
     pub fn variants() -> Vec<&'static str> {
-        vec!["Glutin", "X11", "MuxServer"]
+        vec!["Glutin", "X11", "MuxServer", "Null"]
     }
 }
 
@@ -58,6 +60,7 @@ impl std::str::FromStr for FrontEndSelection {
             "glutin" => Ok(FrontEndSelection::Glutin),
             "x11" => Ok(FrontEndSelection::X11),
             "muxserver" => Ok(FrontEndSelection::MuxServer),
+            "null" => Ok(FrontEndSelection::Null),
             _ => Err(format_err!(
                 "{} is not a valid FrontEndSelection variant, possible values are {:?}",
                 s,

@@ -34,10 +34,21 @@ pub struct MuxServerFrontEnd {
 }
 
 impl MuxServerFrontEnd {
-    pub fn try_new(mux: &Rc<Mux>) -> Result<Rc<FrontEnd>, Error> {
+    fn new(mux: &Rc<Mux>, start_listener: bool) -> Result<Rc<FrontEnd>, Error> {
         let (tx, rx) = mpsc::sync_channel(4);
-        spawn_listener(mux.config(), Box::new(MuxExecutor { tx: tx.clone() }))?;
+
+        if start_listener {
+            spawn_listener(mux.config(), Box::new(MuxExecutor { tx: tx.clone() }))?;
+        }
         Ok(Rc::new(Self { tx, rx }))
+    }
+
+    pub fn try_new(mux: &Rc<Mux>) -> Result<Rc<FrontEnd>, Error> {
+        Self::new(mux, true)
+    }
+
+    pub fn new_null(mux: &Rc<Mux>) -> Result<Rc<FrontEnd>, Error> {
+        Self::new(mux, false)
     }
 }
 
@@ -53,6 +64,11 @@ impl FrontEnd for MuxServerFrontEnd {
             match self.rx.recv() {
                 Ok(func) => func.call(),
                 Err(err) => bail!("while waiting for events: {:?}", err),
+            }
+
+            if Mux::get().unwrap().is_empty() {
+                eprintln!("No more tabs; all done!");
+                return Ok(());
             }
         }
     }
