@@ -20,6 +20,15 @@ fn test_vpa() {
 }
 
 #[test]
+fn test_rep() {
+    let mut term = TestTerm::new(3, 4, 0);
+    term.print("h");
+    term.cup(1, 0);
+    term.print("\x1b[2ba");
+    assert_visible_contents(&term, &["hhha", "    ", "    "]);
+}
+
+#[test]
 fn test_ich() {
     let mut term = TestTerm::new(3, 4, 0);
     term.print("hey!wat?");

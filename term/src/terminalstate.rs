@@ -1515,6 +1515,18 @@ impl TerminalState {
             Edit::ScrollDown(n) => self.scroll_down(n as usize),
             Edit::ScrollUp(n) => self.scroll_up(n as usize),
             Edit::EraseInDisplay(erase) => self.erase_in_display(erase),
+            Edit::Repeat(n) => {
+                let y = self.cursor.y;
+                let x = self.cursor.x;
+                let to_copy = x.saturating_sub(1);
+                let screen = self.screen_mut();
+                let line_idx = screen.phys_row(y);
+                let line = screen.line_mut(line_idx);
+                if let Some(cell) = line.cells().get(to_copy).cloned() {
+                    line.fill_range(x..=x + n as usize, &cell);
+                    self.set_cursor_pos(&Position::Relative(i64::from(n)), &Position::Relative(0))
+                }
+            }
         }
     }
 

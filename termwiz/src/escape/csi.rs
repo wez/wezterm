@@ -668,6 +668,9 @@ pub enum Edit {
 
     /// ED - ERASE IN PAGE (XTerm calls this Erase in Display)
     EraseInDisplay(EraseInDisplay),
+
+    /// REP - Repeat the preceding character n times
+    Repeat(u32),
 }
 
 trait EncodeCSIParam {
@@ -707,6 +710,7 @@ impl Display for Edit {
             Edit::ScrollDown(n) => n.write_csi(f, "T")?,
             Edit::ScrollUp(n) => n.write_csi(f, "S")?,
             Edit::EraseInDisplay(n) => n.write_csi(f, "J")?,
+            Edit::Repeat(n) => n.write_csi(f, "b")?,
         }
         Ok(())
     }
@@ -1144,6 +1148,7 @@ impl<'a> CSIParser<'a> {
             ('Z', &[]) => parse!(Cursor, BackwardTabulation, params),
 
             ('a', &[]) => parse!(Cursor, CharacterPositionForward, params),
+            ('b', &[]) => parse!(Edit, Repeat, params),
             ('d', &[]) => parse!(Cursor, LinePositionAbsolute, params),
             ('e', &[]) => parse!(Cursor, LinePositionForward, params),
             ('f', &[]) => parse!(Cursor, CharacterAndLinePosition, line, col, params),
