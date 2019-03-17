@@ -8,7 +8,7 @@ use std::fmt::Write;
 use std::sync::Arc;
 use termwiz::escape::csi::{
     Cursor, DecPrivateMode, DecPrivateModeCode, Device, Edit, EraseInDisplay, EraseInLine, Mode,
-    Sgr,
+    Sgr, Window,
 };
 use termwiz::escape::osc::{ITermFileData, ITermProprietary};
 use termwiz::escape::{Action, ControlCode, Esc, EscCode, OperatingSystemCommand, CSI};
@@ -1399,6 +1399,20 @@ impl TerminalState {
         }
     }
 
+    fn perform_csi_window(&mut self, window: Window, host: &mut TerminalHost) {
+        match window {
+            Window::ReportTextAreaSizeCells => {
+                let screen = self.screen();
+                let height = Some(screen.physical_rows as i64);
+                let width = Some(screen.physical_cols as i64);
+
+                let response = Window::ResizeWindowCells { width, height };
+                write!(host.writer(), "{}", CSI::Window(response)).ok();
+            }
+            _ => eprintln!("unhandled Window CSI {:?}", window),
+        }
+    }
+
     fn erase_in_display(&mut self, erase: EraseInDisplay) {
         let cy = self.cursor.y;
         let pen = self.pen.clone_sgr_only();
@@ -1792,7 +1806,7 @@ impl<'a> Performer<'a> {
             CSI::Mode(mode) => self.state.perform_csi_mode(mode),
             CSI::Device(dev) => self.state.perform_device(*dev, self.host),
             CSI::Mouse(mouse) => eprintln!("mouse report sent by app? {:?}", mouse),
-            CSI::Window(window) => eprintln!("unhandled Window CSI {:?}", window),
+            CSI::Window(window) => self.state.perform_csi_window(window, self.host),
             CSI::Unspecified(unspec) => {
                 eprintln!("unknown unspecified CSI: {:?}", format!("{}", unspec))
             }
