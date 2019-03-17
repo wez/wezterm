@@ -108,7 +108,7 @@ enum SubCommand {
     #[structopt(raw(setting = "structopt::clap::AppSettings::ColoredHelp"))]
     Start(StartCommand),
 
-    #[structopt(name = "cli", about = "Interact with mux server")]
+    #[structopt(name = "cli", about = "Interact with experimental mux server")]
     #[structopt(raw(setting = "structopt::clap::AppSettings::ColoredHelp"))]
     Cli(CliCommand),
 }
@@ -159,7 +159,7 @@ fn main() -> Result<(), Error> {
             let tabs = client.list_tabs()?;
             for (tab_id, title) in tabs.tabs.iter() {
                 eprintln!("tab {}: {}", tab_id, title);
-                let data = client.get_coarse_tab_renderable_data(GetCoarseTabRenderableData {
+                let _data = client.get_coarse_tab_renderable_data(GetCoarseTabRenderableData {
                     tab_id: *tab_id,
                 })?;
                 // eprintln!("coarse: {:?}", data);
