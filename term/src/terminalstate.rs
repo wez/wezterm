@@ -1233,19 +1233,25 @@ impl TerminalState {
 
         let mut ypos = NotNaN::new(0.0).unwrap();
         let cursor_x = self.cursor.x;
-        let cursor_y = self.cursor.y;
         let x_delta = 1.0 / available_pixel_width as f32;
         let y_delta = 1.0 / available_pixel_height as f32;
         eprintln!(
             "image is {}x{} cells, {}x{} pixels",
             width_in_cells, height_in_cells, width, height
         );
-        for y in 0..height_in_cells {
+        for _ in 0..height_in_cells {
             let mut xpos = NotNaN::new(0.0).unwrap();
+            let cursor_y = self.cursor.y;
+            eprintln!(
+                "setting cells for y={} x=[{}..{}]",
+                cursor_y,
+                cursor_x,
+                cursor_x + width_in_cells
+            );
             for x in 0..width_in_cells {
                 self.screen_mut().set_cell(
                     cursor_x + x,
-                    cursor_y + y as VisibleRowIndex,
+                    cursor_y, // + y as VisibleRowIndex,
                     &Cell::new(
                         ' ',
                         CellAttributes::default()
@@ -1263,13 +1269,16 @@ impl TerminalState {
                 xpos += x_delta;
             }
             ypos += y_delta;
+            self.new_line(false);
         }
 
         // FIXME: check cursor positioning in iterm
+        /*
         self.set_cursor_pos(
             &Position::Relative(width_in_cells as i64),
-            &Position::Relative(0),
+            &Position::Relative(-(height_in_cells as i64)),
         );
+        */
     }
 
     fn perform_device(&mut self, dev: Device, host: &mut TerminalHost) {
