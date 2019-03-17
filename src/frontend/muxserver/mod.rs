@@ -19,7 +19,7 @@ struct MuxExecutor {
 
 impl Executor for MuxExecutor {
     fn execute(&self, f: SpawnFunc) {
-        self.tx.send(f).expect("GlutinExecutor execute failed");
+        self.tx.send(f).expect("MuxExecutor execute failed");
     }
     fn clone_executor(&self) -> Box<Executor> {
         Box::new(MuxExecutor {
