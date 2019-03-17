@@ -44,15 +44,15 @@ pub struct Unspecified {
 
 impl Display for Unspecified {
     fn fmt(&self, f: &mut Formatter) -> Result<(), FmtError> {
-        for i in &self.intermediates {
-            write!(f, "{}", *i as char)?;
-        }
         for (idx, p) in self.params.iter().enumerate() {
             if idx > 0 {
                 write!(f, ";{}", p)?;
             } else {
                 write!(f, "{}", p)?;
             }
+        }
+        for i in &self.intermediates {
+            write!(f, "{}", *i as char)?;
         }
         write!(f, "{}", self.control)
     }
