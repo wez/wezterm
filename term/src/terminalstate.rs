@@ -1409,6 +1409,8 @@ impl TerminalState {
                 let response = Window::ResizeWindowCells { width, height };
                 write!(host.writer(), "{}", CSI::Window(response)).ok();
             }
+            Window::Iconify | Window::DeIconify => {},
+            Window::PopIconAndWindowTitle => {},
             _ => eprintln!("unhandled Window CSI {:?}", window),
         }
     }

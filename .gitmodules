@@ -1,3 +1,6 @@
 [submodule "harfbuzz/harfbuzz"]
 	path = ci/harfbuzz
 	url = https://github.com/harfbuzz/harfbuzz.git
+[submodule "ci/esctest"]
+	path = ci/esctest
+	url = https://gitlab.freedesktop.org/terminal-wg/esctest
