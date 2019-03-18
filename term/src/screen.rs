@@ -98,9 +98,14 @@ impl Screen {
     }
 
     pub fn insert_cell(&mut self, x: usize, y: VisibleRowIndex) {
+        let phys_cols = self.physical_cols;
+
         let line_idx = self.phys_row(y);
         let line = self.line_mut(line_idx);
         line.insert_cell(x, Cell::default());
+        if line.cells().len() > phys_cols {
+            line.resize(phys_cols);
+        }
     }
 
     pub fn erase_cell(&mut self, x: usize, y: VisibleRowIndex) {

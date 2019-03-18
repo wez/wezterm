@@ -266,6 +266,15 @@ pub enum Window {
     PopIconAndWindowTitle,
     PopIconTitle,
     PopWindowTitle,
+    /// DECRQCRA; used by esctest
+    ChecksumRectangularArea {
+        request_id: i64,
+        page_number: i64,
+        top: u32,
+        left: u32,
+        bottom: u32,
+        right: u32,
+    },
 }
 
 fn numstr_or_empty(x: &Option<i64>) -> String {
@@ -320,6 +329,23 @@ impl Display for Window {
             Window::PopIconAndWindowTitle => write!(f, "23;0t"),
             Window::PopIconTitle => write!(f, "23;1t"),
             Window::PopWindowTitle => write!(f, "23;2t"),
+            Window::ChecksumRectangularArea {
+                request_id,
+                page_number,
+                top,
+                left,
+                bottom,
+                right,
+            } => write!(
+                f,
+                "{};{};{};{};{};{}*y",
+                request_id,
+                page_number,
+                top + 1,
+                left + 1,
+                bottom + 1,
+                right + 1
+            ),
         }
     }
 }
@@ -388,6 +414,8 @@ pub enum Mode {
     ResetDecPrivateMode(DecPrivateMode),
     SaveDecPrivateMode(DecPrivateMode),
     RestoreDecPrivateMode(DecPrivateMode),
+    SetMode(TerminalMode),
+    ResetMode(TerminalMode),
 }
 
 impl Display for Mode {
@@ -401,11 +429,22 @@ impl Display for Mode {
                 write!(f, "?{}{}", value, $flag)
             }};
         }
+        macro_rules! emit_mode {
+            ($flag:expr, $mode:expr) => {{
+                let value = match $mode {
+                    TerminalMode::Code(mode) => mode.to_u16().ok_or_else(|| FmtError)?,
+                    TerminalMode::Unspecified(mode) => *mode,
+                };
+                write!(f, "?{}{}", value, $flag)
+            }};
+        }
         match self {
             Mode::SetDecPrivateMode(mode) => emit!("h", mode),
             Mode::ResetDecPrivateMode(mode) => emit!("l", mode),
             Mode::SaveDecPrivateMode(mode) => emit!("s", mode),
             Mode::RestoreDecPrivateMode(mode) => emit!("r", mode),
+            Mode::SetMode(mode) => emit_mode!("h", mode),
+            Mode::ResetMode(mode) => emit_mode!("l", mode),
         }
     }
 }
@@ -435,7 +474,22 @@ pub enum DecPrivateModeCode {
     /// will be encoded.
     SGRMouse = 1006,
     ClearAndEnableAlternateScreen = 1049,
+    EnableAlternateScreen = 47,
     BracketedPaste = 2004,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum TerminalMode {
+    Code(TerminalModeCode),
+    Unspecified(u16),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, FromPrimitive, ToPrimitive)]
+pub enum TerminalModeCode {
+    KeyboardAction = 2,
+    Insert = 4,
+    SendReceive = 12,
+    AutomaticNewline = 20,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -1153,8 +1207,14 @@ impl<'a> CSIParser<'a> {
             ('e', &[]) => parse!(Cursor, LinePositionForward, params),
             ('f', &[]) => parse!(Cursor, CharacterAndLinePosition, line, col, params),
             ('g', &[]) => parse!(Cursor, TabulationClear, params),
+            ('h', &[]) => self
+                .terminal_mode(params)
+                .map(|mode| CSI::Mode(Mode::SetMode(mode))),
             ('j', &[]) => parse!(Cursor, CharacterPositionBackward, params),
             ('k', &[]) => parse!(Cursor, LinePositionBackward, params),
+            ('l', &[]) => self
+                .terminal_mode(params)
+                .map(|mode| CSI::Mode(Mode::ResetMode(mode))),
 
             ('m', &[]) => self.sgr(params).map(CSI::Sgr),
             ('n', &[]) => self.dsr(params),
@@ -1163,6 +1223,25 @@ impl<'a> CSIParser<'a> {
             ('s', &[]) => noparams!(Cursor, SaveCursor, params),
             ('t', &[]) => self.window(params).map(CSI::Window),
             ('u', &[]) => noparams!(Cursor, RestoreCursor, params),
+            ('y', &[b'*']) => {
+                fn p(params: &[i64], idx: usize) -> Result<i64, ()> {
+                    params.get(idx).cloned().ok_or(())
+                }
+                let request_id = p(params, 0)?;
+                let page_number = p(params, 1)?;
+                let top = to_1b_u32(p(params, 2)?)?.saturating_sub(1);
+                let left = to_1b_u32(p(params, 3)?)?.saturating_sub(1);
+                let bottom = to_1b_u32(p(params, 4)?)?.saturating_sub(1);
+                let right = to_1b_u32(p(params, 5)?)?.saturating_sub(1);
+                Ok(CSI::Window(Window::ChecksumRectangularArea {
+                    request_id,
+                    page_number,
+                    top,
+                    left,
+                    bottom,
+                    right,
+                }))
+            }
 
             ('p', &[b'!']) => Ok(CSI::Device(Box::new(Device::SoftReset))),
 
@@ -1376,6 +1455,13 @@ impl<'a> CSIParser<'a> {
         match num::FromPrimitive::from_i64(params[0]) {
             None => Ok(DecPrivateMode::Unspecified(params[0].to_u16().ok_or(())?)),
             Some(mode) => Ok(self.advance_by(1, params, DecPrivateMode::Code(mode))),
+        }
+    }
+
+    fn terminal_mode(&mut self, params: &'a [i64]) -> Result<TerminalMode, ()> {
+        match num::FromPrimitive::from_i64(params[0]) {
+            None => Ok(TerminalMode::Unspecified(params[0].to_u16().ok_or(())?)),
+            Some(mode) => Ok(self.advance_by(1, params, TerminalMode::Code(mode))),
         }
     }
 

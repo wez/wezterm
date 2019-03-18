@@ -40,7 +40,7 @@ fn channel<T: Send>(proxy: EventsLoopProxy) -> (GuiSender<T>, Receiver<T>) {
     // Set an upper bound on the number of items in the queue, so that
     // we don't swamp the gui loop; this puts back pressure on the
     // producer side so that we have a chance for eg: processing CTRL-C
-    let (tx, rx) = mpsc::sync_channel(4);
+    let (tx, rx) = mpsc::sync_channel(12);
     (GuiSender { tx, proxy }, rx)
 }
 

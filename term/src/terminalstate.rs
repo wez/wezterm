@@ -8,7 +8,7 @@ use std::fmt::Write;
 use std::sync::Arc;
 use termwiz::escape::csi::{
     Cursor, DecPrivateMode, DecPrivateModeCode, Device, Edit, EraseInDisplay, EraseInLine, Mode,
-    Sgr, Window,
+    Sgr, TerminalMode, TerminalModeCode, Window,
 };
 use termwiz::escape::osc::{ITermFileData, ITermProprietary};
 use termwiz::escape::{Action, ControlCode, Esc, EscCode, OperatingSystemCommand, CSI};
@@ -56,6 +56,13 @@ impl TabStop {
     }
 }
 
+#[derive(Debug, Copy, Clone)]
+struct SavedCursor {
+    position: CursorPosition,
+    wrap_next: bool,
+    insert: bool,
+}
+
 struct ScreenOrAlt {
     /// The primary screen + scrollback
     screen: Screen,
@@ -63,6 +70,8 @@ struct ScreenOrAlt {
     alt_screen: Screen,
     /// Tells us which screen is active
     alt_screen_is_active: bool,
+    saved_cursor: Option<SavedCursor>,
+    alt_saved_cursor: Option<SavedCursor>,
 }
 
 impl Deref for ScreenOrAlt {
@@ -96,6 +105,8 @@ impl ScreenOrAlt {
             screen,
             alt_screen,
             alt_screen_is_active: false,
+            saved_cursor: None,
+            alt_saved_cursor: None,
         }
     }
 
@@ -115,6 +126,14 @@ impl ScreenOrAlt {
     pub fn is_alt_screen_active(&self) -> bool {
         self.alt_screen_is_active
     }
+
+    pub fn saved_cursor(&mut self) -> &mut Option<SavedCursor> {
+        if self.alt_screen_is_active {
+            &mut self.alt_saved_cursor
+        } else {
+            &mut self.saved_cursor
+        }
+    }
 }
 
 pub struct TerminalState {
@@ -125,11 +144,13 @@ pub struct TerminalState {
     /// The current cursor position, relative to the top left
     /// of the screen.  0-based index.
     cursor: CursorPosition,
-    saved_cursor: CursorPosition,
 
     /// if true, implicitly move to the next line on the next
     /// printed character
     wrap_next: bool,
+
+    /// If true, writing a character inserts a new cell
+    insert: bool,
 
     /// The scroll region
     scroll_region: Range<VisibleRowIndex>,
@@ -218,9 +239,9 @@ impl TerminalState {
             screen,
             pen: CellAttributes::default(),
             cursor: CursorPosition::default(),
-            saved_cursor: CursorPosition::default(),
             scroll_region: 0..physical_rows as VisibleRowIndex,
             wrap_next: false,
+            insert: false,
             application_cursor_keys: false,
             application_keypad: false,
             bracketed_paste: false,
@@ -1309,11 +1330,37 @@ impl TerminalState {
                 DecPrivateModeCode::StartBlinkingCursor,
             )) => {}
 
+            Mode::SetMode(TerminalMode::Code(TerminalModeCode::Insert)) => {
+                eprintln!("Enable insert");
+                self.insert = true;
+            }
+            Mode::ResetMode(TerminalMode::Code(TerminalModeCode::Insert)) => {
+                eprintln!("Disable insert");
+                self.insert = false;
+            }
+
             Mode::SetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::BracketedPaste)) => {
                 self.bracketed_paste = true;
             }
             Mode::ResetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::BracketedPaste)) => {
                 self.bracketed_paste = false;
+            }
+
+            Mode::SetDecPrivateMode(DecPrivateMode::Code(
+                DecPrivateModeCode::EnableAlternateScreen,
+            )) => {
+                if !self.screen.is_alt_screen_active() {
+                    self.screen.activate_alt_screen();
+                    self.set_scroll_viewport(0);
+                }
+            }
+            Mode::ResetDecPrivateMode(DecPrivateMode::Code(
+                DecPrivateModeCode::EnableAlternateScreen,
+            )) => {
+                if self.screen.is_alt_screen_active() {
+                    self.screen.activate_primary_screen();
+                    self.set_scroll_viewport(0);
+                }
             }
 
             Mode::SetDecPrivateMode(DecPrivateMode::Code(
@@ -1396,7 +1443,40 @@ impl TerminalState {
             | Mode::RestoreDecPrivateMode(DecPrivateMode::Unspecified(n)) => {
                 eprintln!("unhandled DecPrivateMode {}", n);
             }
+
+            Mode::SetMode(TerminalMode::Unspecified(n))
+            | Mode::ResetMode(TerminalMode::Unspecified(n)) => {
+                eprintln!("unhandled TerminalMode {}", n);
+            }
+
+            Mode::SetMode(m) | Mode::ResetMode(m) => {
+                eprintln!("unhandled TerminalMode {:?}", m);
+            }
         }
+    }
+
+    fn checksum_rectangle(&mut self, left: u32, top: u32, right: u32, bottom: u32) -> u16 {
+        let screen = self.screen_mut();
+        let mut checksum = 0;
+        debug!(
+            "checksum left={} top={} right={} bottom={}",
+            left, top, right, bottom
+        );
+        for y in top..=bottom {
+            let line_idx = screen.phys_row(y as VisibleRowIndex);
+            let line = screen.line_mut(line_idx);
+            for (col, cell) in line.cells().iter().enumerate().skip(left as usize) {
+                if col > right as usize {
+                    break;
+                }
+
+                let ch = cell.str().chars().nth(0).unwrap() as u32;
+                debug!("y={} col={} ch={:x} cell={:?}", y, col, ch, cell);
+
+                checksum += (ch as u8) as u16;
+            }
+        }
+        checksum
     }
 
     fn perform_csi_window(&mut self, window: Window, host: &mut TerminalHost) {
@@ -1409,8 +1489,19 @@ impl TerminalState {
                 let response = Window::ResizeWindowCells { width, height };
                 write!(host.writer(), "{}", CSI::Window(response)).ok();
             }
-            Window::Iconify | Window::DeIconify => {},
-            Window::PopIconAndWindowTitle => {},
+            Window::ChecksumRectangularArea {
+                request_id,
+                top,
+                left,
+                bottom,
+                right,
+                ..
+            } => {
+                let checksum = self.checksum_rectangle(left, top, right, bottom);
+                write!(host.writer(), "\x1bP{}!~{:04x}\x1b\\", request_id, checksum).ok();
+            }
+            Window::Iconify | Window::DeIconify => {}
+            Window::PopIconAndWindowTitle => {}
             _ => eprintln!("unhandled Window CSI {:?}", window),
         }
     }
@@ -1635,12 +1726,34 @@ impl TerminalState {
     }
 
     fn save_cursor(&mut self) {
-        self.saved_cursor = self.cursor;
+        let saved = SavedCursor {
+            position: self.cursor,
+            insert: self.insert,
+            wrap_next: self.wrap_next,
+        };
+        debug!(
+            "saving cursor {:?} is_alt={}",
+            saved,
+            self.screen.is_alt_screen_active()
+        );
+        *self.screen.saved_cursor() = Some(saved);
     }
     fn restore_cursor(&mut self) {
-        let x = self.saved_cursor.x;
-        let y = self.saved_cursor.y;
+        let saved = self.screen.saved_cursor().unwrap_or_else(|| SavedCursor {
+            position: CursorPosition::default(),
+            insert: false,
+            wrap_next: false,
+        });
+        debug!(
+            "restore cursor {:?} is_alt={}",
+            saved,
+            self.screen.is_alt_screen_active()
+        );
+        let x = saved.position.x;
+        let y = saved.position.y;
         self.set_cursor_pos(&Position::Absolute(x as i64), &Position::Absolute(y));
+        self.wrap_next = saved.wrap_next;
+        self.insert = saved.insert;
     }
 
     fn perform_csi_sgr(&mut self, sgr: Sgr) {
@@ -1726,8 +1839,10 @@ impl<'a> Performer<'a> {
             None => return,
         };
 
+        let mut x_offset = 0;
+
         for g in unicode_segmentation::UnicodeSegmentation::graphemes(p.as_str(), true) {
-            if self.wrap_next {
+            if !self.insert && self.wrap_next {
                 self.new_line(true);
             }
 
@@ -1737,29 +1852,38 @@ impl<'a> Performer<'a> {
 
             let pen = self.pen.clone();
 
-            // Assign the cell and extract its printable width
-            let print_width = {
-                let cell = self
-                    .screen_mut()
-                    .set_cell(x, y, &Cell::new_grapheme(g, pen.clone()));
-                // the max(1) here is to ensure that we advance to the next cell
-                // position for zero-width graphemes.  We want to make sure that
-                // they occupy a cell so that we can re-emit them when we output them.
-                // If we didn't do this, then we'd effectively filter them out from
-                // the model, which seems like a lossy design choice.
-                cell.width().max(1)
-            };
+            let cell = Cell::new_grapheme(g, pen.clone());
+            // the max(1) here is to ensure that we advance to the next cell
+            // position for zero-width graphemes.  We want to make sure that
+            // they occupy a cell so that we can re-emit them when we output them.
+            // If we didn't do this, then we'd effectively filter them out from
+            // the model, which seems like a lossy design choice.
+            let print_width = cell.width().max(1);
+
+            if self.insert {
+                let screen = self.screen_mut();
+                for _ in x..x + print_width as usize {
+                    screen.insert_cell(x + x_offset, y);
+                }
+            }
+
+            // Assign the cell
+            self.screen_mut().set_cell(x + x_offset, y, &cell);
 
             self.clear_selection_if_intersects(
                 x..x + print_width,
                 y as ScrollbackOrVisibleRowIndex,
             );
 
-            if x + print_width < width {
-                self.cursor.x += print_width;
-                self.wrap_next = false;
+            if self.insert {
+                x_offset += print_width;
             } else {
-                self.wrap_next = true;
+                if x + print_width < width {
+                    self.cursor.x += print_width;
+                    self.wrap_next = false;
+                } else {
+                    self.wrap_next = true;
+                }
             }
         }
     }

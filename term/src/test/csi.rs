@@ -29,17 +29,26 @@ fn test_rep() {
 }
 
 #[test]
+fn test_irm() {
+    let mut term = TestTerm::new(3, 8, 0);
+    term.print("foo");
+    term.cup(0, 0);
+    term.print("\x1b[4hBAR");
+    assert_visible_contents(&term, &["BARfoo  ", "        ", "        "]);
+}
+
+#[test]
 fn test_ich() {
     let mut term = TestTerm::new(3, 4, 0);
     term.print("hey!wat?");
     term.cup(1, 0);
     term.print("\x1b[2@");
-    assert_visible_contents(&term, &["h  ey!", "wat?", "    "]);
+    assert_visible_contents(&term, &["h  e", "wat?", "    "]);
     // check how we handle overflowing the width
     term.print("\x1b[12@");
-    assert_visible_contents(&term, &["h     ey!", "wat?", "    "]);
+    assert_visible_contents(&term, &["h   ", "wat?", "    "]);
     term.print("\x1b[-12@");
-    assert_visible_contents(&term, &["h     ey!", "wat?", "    "]);
+    assert_visible_contents(&term, &["h   ", "wat?", "    "]);
 }
 
 #[test]
