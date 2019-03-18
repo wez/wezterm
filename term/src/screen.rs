@@ -118,7 +118,7 @@ impl Screen {
     /// origin.  0,0 is the top left.
     pub fn set_cell(&mut self, x: usize, y: VisibleRowIndex, cell: &Cell) -> &Cell {
         let line_idx = self.phys_row(y);
-        debug!("set_cell x={} y={} phys={} {:?}", x, y, line_idx, cell);
+        //debug!("set_cell x={} y={} phys={} {:?}", x, y, line_idx, cell);
 
         let line = self.line_mut(line_idx);
         line.set_cell(x, cell.clone())
@@ -180,10 +180,13 @@ impl Screen {
     /// If the top of the region is the top of the visible display, rather than
     /// removing the lines we let them go into the scrollback.
     pub fn scroll_up(&mut self, scroll_region: &Range<VisibleRowIndex>, num_rows: usize) {
-        debug!("scroll_up {:?} {}", scroll_region, num_rows);
         let phys_scroll = self.phys_range(scroll_region);
         let num_rows = num_rows.min(phys_scroll.end - phys_scroll.start);
 
+        debug!(
+            "scroll_up {:?} num_rows={} phys_scroll={:?}",
+            scroll_region, num_rows, phys_scroll
+        );
         // Invalidate the lines that will move before they move so that
         // the indices of the lines are stable (we may remove lines below)
         for y in phys_scroll.clone() {
@@ -243,7 +246,7 @@ impl Screen {
         } else {
             for _ in 0..to_add {
                 self.lines
-                    .insert(phys_scroll.end - 1, Line::with_width(self.physical_cols));
+                    .insert(phys_scroll.end, Line::with_width(self.physical_cols));
             }
         }
     }

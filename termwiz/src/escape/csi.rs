@@ -795,7 +795,7 @@ impl Display for Cursor {
             Cursor::LinePositionBackward(n) => n.write_csi(f, "k")?,
             Cursor::LinePositionForward(n) => n.write_csi(f, "e")?,
             Cursor::SetTopAndBottomMargins { top, bottom } => {
-                if *top == 0 && *bottom == u32::max_value() {
+                if *top == 1 && *bottom == u32::max_value() {
                     write!(f, "r")?;
                 } else {
                     write!(f, "{};{}r", top, bottom)?;
@@ -1312,7 +1312,7 @@ impl<'a> CSIParser<'a> {
     fn decstbm(&mut self, params: &'a [i64]) -> Result<CSI, ()> {
         if params.is_empty() {
             Ok(CSI::Cursor(Cursor::SetTopAndBottomMargins {
-                top: 0,
+                top: 1,
                 bottom: u32::max_value(),
             }))
         } else if params.len() == 2 {
@@ -1320,8 +1320,8 @@ impl<'a> CSIParser<'a> {
                 2,
                 params,
                 CSI::Cursor(Cursor::SetTopAndBottomMargins {
-                    top: params[0] as u32,
-                    bottom: params[1] as u32,
+                    top: to_1b_u32(params[0])?,
+                    bottom: to_1b_u32(params[1])?,
                 }),
             ))
         } else {

@@ -482,6 +482,27 @@ fn test_scrollup() {
 }
 
 #[test]
+fn test_scroll_margins() {
+    let mut term = TestTerm::new(3, 1, 10);
+    term.print("1\n2\n3\n4\n");
+    assert_all_contents(&term, &["1", "2", "3", "4", " "]);
+
+    let margins =
+        CSI::Cursor(termwiz::escape::csi::Cursor::SetTopAndBottomMargins { top: 1, bottom: 2 });
+    term.print(format!("{}", margins));
+
+    term.print("z\n");
+    assert_all_contents(&term, &["1", "2", "3", "4", "z"]);
+
+    term.print("a\n");
+    assert_all_contents(&term, &["1", "2", "3", "4", "a"]);
+
+    term.cup(0, 1);
+    term.print("W\n");
+    assert_all_contents(&term, &["1", "2", "3", "W", " ", "a"]);
+}
+
+#[test]
 fn test_hyperlinks() {
     let mut term = TestTerm::new(3, 5, 0);
     let link = Arc::new(Hyperlink::new("http://example.com"));

@@ -1889,6 +1889,7 @@ impl<'a> Performer<'a> {
     }
 
     pub fn perform(&mut self, action: Action) {
+        debug!("perform {:?}", action);
         match action {
             Action::Print(c) => self.print(c),
             Action::Control(code) => self.control(code),
