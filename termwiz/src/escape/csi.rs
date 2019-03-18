@@ -1,3 +1,4 @@
+use super::OneBased;
 use crate::cell::{Blink, Intensity, Underline};
 use crate::color::{AnsiColor, ColorSpec, RgbColor};
 use crate::input::{Modifiers, MouseButtons};
@@ -270,10 +271,10 @@ pub enum Window {
     ChecksumRectangularArea {
         request_id: i64,
         page_number: i64,
-        top: u32,
-        left: u32,
-        bottom: u32,
-        right: u32,
+        top: OneBased,
+        left: OneBased,
+        bottom: OneBased,
+        right: OneBased,
     },
 }
 
@@ -339,12 +340,7 @@ impl Display for Window {
             } => write!(
                 f,
                 "{};{};{};{};{};{}*y",
-                request_id,
-                page_number,
-                top + 1,
-                left + 1,
-                bottom + 1,
-                right + 1
+                request_id, page_number, top, left, bottom, right,
             ),
         }
     }
@@ -1229,10 +1225,10 @@ impl<'a> CSIParser<'a> {
                 }
                 let request_id = p(params, 0)?;
                 let page_number = p(params, 1)?;
-                let top = to_1b_u32(p(params, 2)?)?.saturating_sub(1);
-                let left = to_1b_u32(p(params, 3)?)?.saturating_sub(1);
-                let bottom = to_1b_u32(p(params, 4)?)?.saturating_sub(1);
-                let right = to_1b_u32(p(params, 5)?)?.saturating_sub(1);
+                let top = OneBased::from_optional_esc_param(params.get(2))?;
+                let left = OneBased::from_optional_esc_param(params.get(3))?;
+                let bottom = OneBased::from_optional_esc_param(params.get(4))?;
+                let right = OneBased::from_optional_esc_param(params.get(5))?;
                 Ok(CSI::Window(Window::ChecksumRectangularArea {
                     request_id,
                     page_number,

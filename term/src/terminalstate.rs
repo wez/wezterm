@@ -1495,7 +1495,12 @@ impl TerminalState {
                 right,
                 ..
             } => {
-                let checksum = self.checksum_rectangle(left, top, right, bottom);
+                let checksum = self.checksum_rectangle(
+                    left.as_zero_based(),
+                    top.as_zero_based(),
+                    right.as_zero_based(),
+                    bottom.as_zero_based(),
+                );
                 write!(host.writer(), "\x1bP{}!~{:04x}\x1b\\", request_id, checksum).ok();
             }
             Window::Iconify | Window::DeIconify => {}

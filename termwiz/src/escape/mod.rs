@@ -136,3 +136,47 @@ pub enum ControlCode {
     PM = 0x9e,
     APC = 0x9f,
 }
+
+/// A helper type to avoid accidentally tripping over problems with
+/// 1-based values in escape sequences.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct OneBased {
+    value: u32,
+}
+
+impl OneBased {
+    pub fn new(value: u32) -> Self {
+        debug_assert!(
+            value != 0,
+            "programmer error: deliberately assigning zero to a OneBased"
+        );
+        Self { value }
+    }
+
+    /// Map a value from an escape sequence parameter
+    pub fn from_esc_param(v: i64) -> Result<Self, ()> {
+        if v == 0 {
+            Ok(Self { value: num::one() })
+        } else if v > 0 && v <= i64::from(u32::max_value()) {
+            Ok(Self { value: v as u32 })
+        } else {
+            Err(())
+        }
+    }
+
+    /// Map a value from an optional escape sequence parameter
+    pub fn from_optional_esc_param(o: Option<&i64>) -> Result<Self, ()> {
+        Self::from_esc_param(o.map(|x| *x).unwrap_or(1))
+    }
+
+    /// Return the underlying value as a 0-based value
+    pub fn as_zero_based(self) -> u32 {
+        self.value.saturating_sub(1)
+    }
+}
+
+impl Display for OneBased {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), FmtError> {
+        self.value.fmt(f)
+    }
+}
