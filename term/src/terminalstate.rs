@@ -1331,11 +1331,9 @@ impl TerminalState {
             )) => {}
 
             Mode::SetMode(TerminalMode::Code(TerminalModeCode::Insert)) => {
-                eprintln!("Enable insert");
                 self.insert = true;
             }
             Mode::ResetMode(TerminalMode::Code(TerminalModeCode::Insert)) => {
-                eprintln!("Disable insert");
                 self.insert = false;
             }
 
@@ -1501,7 +1499,12 @@ impl TerminalState {
                 write!(host.writer(), "\x1bP{}!~{:04x}\x1b\\", request_id, checksum).ok();
             }
             Window::Iconify | Window::DeIconify => {}
-            Window::PopIconAndWindowTitle => {}
+            Window::PopIconAndWindowTitle
+            | Window::PopWindowTitle
+            | Window::PopIconTitle
+            | Window::PushIconAndWindowTitle
+            | Window::PushIconTitle
+            | Window::PushWindowTitle => {}
             _ => eprintln!("unhandled Window CSI {:?}", window),
         }
     }
