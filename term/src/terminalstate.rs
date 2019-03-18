@@ -11,7 +11,7 @@ use termwiz::escape::csi::{
     Sgr, TerminalMode, TerminalModeCode, Window,
 };
 use termwiz::escape::osc::{ITermFileData, ITermProprietary};
-use termwiz::escape::{Action, ControlCode, Esc, EscCode, OperatingSystemCommand, CSI};
+use termwiz::escape::{Action, ControlCode, Esc, EscCode, OneBased, OperatingSystemCommand, CSI};
 use termwiz::hyperlink::Rule as HyperlinkRule;
 use termwiz::image::{ImageCell, ImageData, TextureCoordinate};
 
@@ -1649,9 +1649,8 @@ impl TerminalState {
         match cursor {
             Cursor::SetTopAndBottomMargins { top, bottom } => {
                 let rows = self.screen().physical_rows;
-                let mut top = i64::from(top).saturating_sub(1).min(rows as i64 - 1).max(0);
-                let mut bottom = i64::from(bottom)
-                    .saturating_sub(1)
+                let mut top = i64::from(top.as_zero_based()).min(rows as i64 - 1).max(0);
+                let mut bottom = i64::from(bottom.as_zero_based())
                     .min(rows as i64 - 1)
                     .max(0);
                 if top > bottom {
@@ -1683,12 +1682,12 @@ impl TerminalState {
             }
             Cursor::CharacterAndLinePosition { line, col } | Cursor::Position { line, col } => self
                 .set_cursor_pos(
-                    &Position::Absolute((i64::from(col)).saturating_sub(1)),
-                    &Position::Absolute((i64::from(line)).saturating_sub(1)),
+                    &Position::Absolute(i64::from(col.as_zero_based())),
+                    &Position::Absolute(i64::from(line.as_zero_based())),
                 ),
             Cursor::CharacterAbsolute(col) | Cursor::CharacterPositionAbsolute(col) => self
                 .set_cursor_pos(
-                    &Position::Absolute((i64::from(col)).saturating_sub(1)),
+                    &Position::Absolute(i64::from(col.as_zero_based())),
                     &Position::Relative(0),
                 ),
             Cursor::CharacterPositionBackward(col) => self.set_cursor_pos(
@@ -1722,8 +1721,8 @@ impl TerminalState {
                 // we don't need to process it as a terminal command
             }
             Cursor::RequestActivePositionReport => {
-                let line = self.cursor.y as u32 + 1;
-                let col = self.cursor.x as u32 + 1;
+                let line = OneBased::from_zero_based(self.cursor.y as u32);
+                let col = OneBased::from_zero_based(self.cursor.x as u32);
                 let report = CSI::Cursor(Cursor::ActivePositionReport { line, col });
                 write!(host.writer(), "{}", report).ok();
             }

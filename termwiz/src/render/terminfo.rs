@@ -4,6 +4,7 @@ use crate::cell::{AttributeChange, Blink, CellAttributes, Intensity, Underline};
 use crate::color::{ColorAttribute, ColorSpec};
 use crate::escape::csi::{Cursor, Edit, EraseInDisplay, EraseInLine, Sgr, CSI};
 use crate::escape::osc::{ITermDimension, ITermFileData, ITermProprietary, OperatingSystemCommand};
+use crate::escape::OneBased;
 use crate::image::TextureCoordinate;
 use crate::surface::{Change, CursorShape, Position};
 use crate::terminal::unix::UnixTty;
@@ -319,7 +320,10 @@ impl TerminfoRenderer {
                                 write!(
                                     out,
                                     "{}",
-                                    CSI::Cursor(Cursor::Position { line: 1, col: 1 })
+                                    CSI::Cursor(Cursor::Position {
+                                        line: OneBased::new(1),
+                                        col: OneBased::new(1)
+                                    })
                                 )?;
                             }
 
@@ -336,7 +340,14 @@ impl TerminfoRenderer {
                         if let Some(attr) = self.get_capability::<cap::CursorHome>() {
                             attr.expand().to(out.by_ref())?;
                         } else {
-                            write!(out, "{}", CSI::Cursor(Cursor::Position { line: 1, col: 1 }))?;
+                            write!(
+                                out,
+                                "{}",
+                                CSI::Cursor(Cursor::Position {
+                                    line: OneBased::new(1),
+                                    col: OneBased::new(1)
+                                })
+                            )?;
                         }
 
                         let size = out.get_size()?;
@@ -444,7 +455,14 @@ impl TerminfoRenderer {
                     if let Some(attr) = self.get_capability::<cap::CursorHome>() {
                         attr.expand().to(out.by_ref())?;
                     } else {
-                        write!(out, "{}", CSI::Cursor(Cursor::Position { line: 1, col: 1 }))?;
+                        write!(
+                            out,
+                            "{}",
+                            CSI::Cursor(Cursor::Position {
+                                line: OneBased::new(1),
+                                col: OneBased::new(1)
+                            })
+                        )?;
                     }
                 }
                 Change::CursorPosition {
@@ -488,8 +506,8 @@ impl TerminfoRenderer {
                             out,
                             "{}",
                             CSI::Cursor(Cursor::Position {
-                                line: x + 1,
-                                col: y + 1,
+                                line: OneBased::from_zero_based(x),
+                                col: OneBased::from_zero_based(y),
                             })
                         )?;
                     }
@@ -820,7 +838,10 @@ mod test {
         assert_eq!(
             result,
             vec![
-                Action::CSI(CSI::Cursor(Cursor::Position { line: 1, col: 1 })),
+                Action::CSI(CSI::Cursor(Cursor::Position {
+                    line: OneBased::new(1),
+                    col: OneBased::new(1)
+                })),
                 Action::CSI(CSI::Edit(Edit::EraseInDisplay(
                     EraseInDisplay::EraseDisplay,
                 ))),
@@ -841,7 +862,10 @@ mod test {
             result,
             vec![
                 Action::CSI(CSI::Sgr(Sgr::Background(AnsiColor::Maroon.into()))),
-                Action::CSI(CSI::Cursor(Cursor::Position { line: 1, col: 1 })),
+                Action::CSI(CSI::Cursor(Cursor::Position {
+                    line: OneBased::new(1),
+                    col: OneBased::new(1)
+                })),
                 Action::CSI(CSI::Edit(Edit::EraseInDisplay(
                     EraseInDisplay::EraseDisplay,
                 ))),
@@ -866,7 +890,10 @@ mod test {
         assert_eq!(
             result,
             vec![
-                Action::CSI(CSI::Cursor(Cursor::Position { line: 1, col: 1 })),
+                Action::CSI(CSI::Cursor(Cursor::Position {
+                    line: OneBased::new(1),
+                    col: OneBased::new(1)
+                })),
                 Action::CSI(CSI::Edit(Edit::EraseInDisplay(
                     EraseInDisplay::EraseDisplay,
                 ))),
@@ -887,7 +914,10 @@ mod test {
             result,
             vec![
                 Action::CSI(CSI::Sgr(Sgr::Background(AnsiColor::Maroon.into()))),
-                Action::CSI(CSI::Cursor(Cursor::Position { line: 1, col: 1 })),
+                Action::CSI(CSI::Cursor(Cursor::Position {
+                    line: OneBased::new(1),
+                    col: OneBased::new(1)
+                })),
                 // bce is not known to be available, so we emit a bunch of spaces.
                 // TODO: could we use ECMA-48 REP for this?
                 Action::Print(' '),

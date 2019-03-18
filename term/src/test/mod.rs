@@ -8,7 +8,7 @@ mod csi;
 mod selection;
 use std::sync::Arc;
 use termwiz::escape::csi::{Edit, EraseInDisplay, EraseInLine};
-use termwiz::escape::{OperatingSystemCommand, CSI};
+use termwiz::escape::{OneBased, OperatingSystemCommand, CSI};
 
 #[derive(Default, Debug)]
 struct TestHost {
@@ -487,8 +487,10 @@ fn test_scroll_margins() {
     term.print("1\n2\n3\n4\n");
     assert_all_contents(&term, &["1", "2", "3", "4", " "]);
 
-    let margins =
-        CSI::Cursor(termwiz::escape::csi::Cursor::SetTopAndBottomMargins { top: 1, bottom: 2 });
+    let margins = CSI::Cursor(termwiz::escape::csi::Cursor::SetTopAndBottomMargins {
+        top: OneBased::new(1),
+        bottom: OneBased::new(2),
+    });
     term.print(format!("{}", margins));
 
     term.print("z\n");

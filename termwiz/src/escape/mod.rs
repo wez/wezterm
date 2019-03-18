@@ -153,6 +153,10 @@ impl OneBased {
         Self { value }
     }
 
+    pub fn from_zero_based(value: u32) -> Self {
+        Self { value: value + 1 }
+    }
+
     /// Map a value from an escape sequence parameter
     pub fn from_esc_param(v: i64) -> Result<Self, ()> {
         if v == 0 {
@@ -172,6 +176,10 @@ impl OneBased {
     /// Return the underlying value as a 0-based value
     pub fn as_zero_based(self) -> u32 {
         self.value.saturating_sub(1)
+    }
+
+    pub fn as_one_based(self) -> u32 {
+        self.value
     }
 }
 

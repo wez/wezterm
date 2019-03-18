@@ -498,12 +498,12 @@ pub enum Cursor {
 
     /// CHA: Moves cursor to the Ps-th column of the active line. The default
     /// value of Ps is 1.
-    CharacterAbsolute(u32),
+    CharacterAbsolute(OneBased),
 
     /// HPA CHARACTER POSITION ABSOLUTE
     /// HPA Moves cursor to the Ps-th column of the active line. The default
     /// value of Ps is 1.
-    CharacterPositionAbsolute(u32),
+    CharacterPositionAbsolute(OneBased),
 
     /// HPB - CHARACTER POSITION BACKWARD
     /// HPB Moves cursor to the left Ps columns. The default value of Ps is 1.
@@ -517,8 +517,8 @@ pub enum Cursor {
     /// HVP Moves cursor to the Ps1-th line and to the Ps2-th column. The
     /// default value of Ps1 and Ps2 is 1.
     CharacterAndLinePosition {
-        line: u32,
-        col: u32,
+        line: OneBased,
+        col: OneBased,
     },
 
     /// VPA - LINE POSITION ABSOLUTE
@@ -563,8 +563,8 @@ pub enum Cursor {
     /// Pn1 and m equals the value of Pn2. CPR may be solicited by a DEVICE
     /// STATUS REPORT (DSR) or be sent unsolicited .
     ActivePositionReport {
-        line: u32,
-        col: u32,
+        line: OneBased,
+        col: OneBased,
     },
 
     /// CPR: this is the request from the client.
@@ -597,8 +597,8 @@ pub enum Cursor {
     /// Moves cursor to the Ps1-th line and to the Ps2-th column. The default
     /// value of Ps1 and Ps2 is 1.
     Position {
-        line: u32,
-        col: u32,
+        line: OneBased,
+        col: OneBased,
     },
 
     /// CUU - Cursor Up
@@ -613,8 +613,8 @@ pub enum Cursor {
 
     /// DECSTBM - Set top and bottom margins.
     SetTopAndBottomMargins {
-        top: u32,
-        bottom: u32,
+        top: OneBased,
+        bottom: OneBased,
     },
 
     CursorStyle(CursorStyle),
@@ -748,6 +748,16 @@ impl EncodeCSIParam for u32 {
     }
 }
 
+impl EncodeCSIParam for OneBased {
+    fn write_csi(&self, f: &mut Formatter, control: &str) -> Result<(), FmtError> {
+        if self.as_one_based() == 1 {
+            write!(f, "{}", control)
+        } else {
+            write!(f, "{}{}", *self, control)
+        }
+    }
+}
+
 impl Display for Edit {
     fn fmt(&self, f: &mut Formatter) -> Result<(), FmtError> {
         match self {
@@ -791,7 +801,7 @@ impl Display for Cursor {
             Cursor::LinePositionBackward(n) => n.write_csi(f, "k")?,
             Cursor::LinePositionForward(n) => n.write_csi(f, "e")?,
             Cursor::SetTopAndBottomMargins { top, bottom } => {
-                if *top == 1 && *bottom == u32::max_value() {
+                if top.as_one_based() == 1 && bottom.as_one_based() == u32::max_value() {
                     write!(f, "r")?;
                 } else {
                     write!(f, "{};{}r", top, bottom)?;
@@ -827,15 +837,31 @@ impl ParseParams for u32 {
     }
 }
 
+/// Parse an input parameter into a 1-based unsigned value
+impl ParseParams for OneBased {
+    fn parse_params(params: &[i64]) -> Result<OneBased, ()> {
+        if params.is_empty() {
+            Ok(OneBased::new(1))
+        } else if params.len() == 1 {
+            OneBased::from_esc_param(params[0])
+        } else {
+            Err(())
+        }
+    }
+}
+
 /// Parse a pair of 1-based unsigned values into a tuple.
 /// This is typically used to build a struct comprised of
 /// the pair of values.
-impl ParseParams for (u32, u32) {
-    fn parse_params(params: &[i64]) -> Result<(u32, u32), ()> {
+impl ParseParams for (OneBased, OneBased) {
+    fn parse_params(params: &[i64]) -> Result<(OneBased, OneBased), ()> {
         if params.is_empty() {
-            Ok((1, 1))
+            Ok((OneBased::new(1), OneBased::new(1)))
         } else if params.len() == 2 {
-            Ok((to_1b_u32(params[0])?, to_1b_u32(params[1])?))
+            Ok((
+                OneBased::from_esc_param(params[0])?,
+                OneBased::from_esc_param(params[1])?,
+            ))
         } else {
             Err(())
         }
@@ -1162,7 +1188,7 @@ macro_rules! parse {
     }};
 
     ($ns:ident, $variant:ident, $first:ident, $second:ident, $params:expr) => {{
-        let (p1, p2): (u32, u32) = ParseParams::parse_params($params)?;
+        let (p1, p2): (OneBased, OneBased) = ParseParams::parse_params($params)?;
         Ok(CSI::$ns($ns::$variant {
             $first: p1,
             $second: p2,
@@ -1308,16 +1334,16 @@ impl<'a> CSIParser<'a> {
     fn decstbm(&mut self, params: &'a [i64]) -> Result<CSI, ()> {
         if params.is_empty() {
             Ok(CSI::Cursor(Cursor::SetTopAndBottomMargins {
-                top: 1,
-                bottom: u32::max_value(),
+                top: OneBased::new(1),
+                bottom: OneBased::new(u32::max_value()),
             }))
         } else if params.len() == 2 {
             Ok(self.advance_by(
                 2,
                 params,
                 CSI::Cursor(Cursor::SetTopAndBottomMargins {
-                    top: to_1b_u32(params[0])?,
-                    bottom: to_1b_u32(params[1])?,
+                    top: OneBased::from_esc_param(params[0])?,
+                    bottom: OneBased::from_esc_param(params[1])?,
                 }),
             ))
         } else {
