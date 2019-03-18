@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # Replays a recorded session
 TRANSCRIPT="$1"
 
@@ -11,6 +11,13 @@ WHERE=`mktemp -d`
 tar xzf "$TRANSCRIPT" -C $WHERE
 
 echo "--- Starting replay ---"
-scriptreplay $WHERE/*.timing $WHERE/*.typescript
+case $OSTYPE in
+  darwin*)
+    script -p $WHERE/*.typescript
+    ;;
+  linux*)
+    scriptreplay $WHERE/*.timing $WHERE/*.typescript
+    ;;
+esac
 echo "--- replay complete ---"
 
