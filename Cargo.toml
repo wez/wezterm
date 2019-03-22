@@ -32,7 +32,7 @@ promise = { path = "promise" }
 base91 = { path = "base91" }
 
 [target.'cfg(unix)'.dependencies]
-harfbuzz-sys = "~0.3"
+harfbuzz-sys = { git = "https://github.com/wez/rust-harfbuzz", branch="coretext" }
 mio = "~0.6"
 mio-extras = "~2.0"
 
