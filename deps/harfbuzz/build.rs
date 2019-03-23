@@ -19,7 +19,11 @@ fn harfbuzz() {
             std::env::var("DEP_FREETYPE_LIB").unwrap(),
         )
         .define(
-            "FREETYPE_INCLUDE_DIRS",
+            "FREETYPE_INCLUDE_DIR_ft2build",
+            std::env::var("DEP_FREETYPE_INCLUDE").unwrap(),
+        )
+        .define(
+            "FREETYPE_INCLUDE_DIR_freetype2",
             std::env::var("DEP_FREETYPE_INCLUDE").unwrap(),
         )
         .profile("Release")
@@ -28,7 +32,6 @@ fn harfbuzz() {
     println!("cargo:rustc-link-search=native={}/lib", dst.display());
     println!("cargo:rustc-link-lib=static=harfbuzz");
     println!("cargo:rustc-link-search=native=/usr/lib");
-    println!("cargo:rustc-link-lib=bz2");
     println!("cargo:rustc-link-lib=z");
 }
 

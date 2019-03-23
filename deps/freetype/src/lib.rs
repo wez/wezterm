@@ -12,18 +12,6 @@ pub type FT_UInt64 = u64;
 
 pub const FT_RENDER_POOL_SIZE: u32 = 16384;
 pub const FT_MAX_MODULES: u32 = 32;
-pub const FT_CHAR_BIT: u32 = 8;
-pub const FT_USHORT_MAX: u32 = 65535;
-pub const FT_INT_MAX: u32 = 2147483647;
-pub const FT_INT_MIN: i32 = -2147483648;
-pub const FT_UINT_MAX: u32 = 4294967295;
-pub const FT_LONG_MIN: i64 = -9223372036854775808;
-pub const FT_LONG_MAX: u64 = 9223372036854775807;
-pub const FT_ULONG_MAX: i32 = -1;
-pub const FT_SIZEOF_INT: u32 = 4;
-pub const FT_SIZEOF_LONG: u32 = 8;
-pub const FT_OUTLINE_CONTOURS_MAX: u32 = 32767;
-pub const FT_OUTLINE_POINTS_MAX: u32 = 32767;
 pub const FT_OUTLINE_NONE: u32 = 0;
 pub const FT_OUTLINE_OWNER: u32 = 1;
 pub const FT_OUTLINE_EVEN_ODD_FILL: u32 = 2;
@@ -1649,7 +1637,6 @@ pub enum _bindgen_ty_2 {
     FT_Err_Max = 187,
 }
 extern "C" {
-    #[link_name = "\u{1}_FT_Error_String"]
     pub fn FT_Error_String(error_code: FT_Error) -> *const ::std::os::raw::c_char;
 }
 #[repr(C)]
@@ -2774,11 +2761,9 @@ fn bindgen_test_layout_FT_GlyphSlotRec_() {
 }
 pub type FT_GlyphSlotRec = FT_GlyphSlotRec_;
 extern "C" {
-    #[link_name = "\u{1}_FT_Init_FreeType"]
     pub fn FT_Init_FreeType(alibrary: *mut FT_Library) -> FT_Error;
 }
 extern "C" {
-    #[link_name = "\u{1}_FT_Done_FreeType"]
     pub fn FT_Done_FreeType(library: FT_Library) -> FT_Error;
 }
 #[repr(C)]
@@ -2928,7 +2913,6 @@ fn bindgen_test_layout_FT_Open_Args_() {
 }
 pub type FT_Open_Args = FT_Open_Args_;
 extern "C" {
-    #[link_name = "\u{1}_FT_New_Face"]
     pub fn FT_New_Face(
         library: FT_Library,
         filepathname: *const ::std::os::raw::c_char,
@@ -2937,7 +2921,6 @@ extern "C" {
     ) -> FT_Error;
 }
 extern "C" {
-    #[link_name = "\u{1}_FT_New_Memory_Face"]
     pub fn FT_New_Memory_Face(
         library: FT_Library,
         file_base: *const FT_Byte,
@@ -2947,7 +2930,6 @@ extern "C" {
     ) -> FT_Error;
 }
 extern "C" {
-    #[link_name = "\u{1}_FT_Open_Face"]
     pub fn FT_Open_Face(
         library: FT_Library,
         args: *const FT_Open_Args,
@@ -2956,23 +2938,18 @@ extern "C" {
     ) -> FT_Error;
 }
 extern "C" {
-    #[link_name = "\u{1}_FT_Attach_File"]
     pub fn FT_Attach_File(face: FT_Face, filepathname: *const ::std::os::raw::c_char) -> FT_Error;
 }
 extern "C" {
-    #[link_name = "\u{1}_FT_Attach_Stream"]
     pub fn FT_Attach_Stream(face: FT_Face, parameters: *mut FT_Open_Args) -> FT_Error;
 }
 extern "C" {
-    #[link_name = "\u{1}_FT_Reference_Face"]
     pub fn FT_Reference_Face(face: FT_Face) -> FT_Error;
 }
 extern "C" {
-    #[link_name = "\u{1}_FT_Done_Face"]
     pub fn FT_Done_Face(face: FT_Face) -> FT_Error;
 }
 extern "C" {
-    #[link_name = "\u{1}_FT_Select_Size"]
     pub fn FT_Select_Size(face: FT_Face, strike_index: FT_Int) -> FT_Error;
 }
 #[repr(u32)]
@@ -3065,11 +3042,9 @@ fn bindgen_test_layout_FT_Size_RequestRec_() {
 pub type FT_Size_RequestRec = FT_Size_RequestRec_;
 pub type FT_Size_Request = *mut FT_Size_RequestRec_;
 extern "C" {
-    #[link_name = "\u{1}_FT_Request_Size"]
     pub fn FT_Request_Size(face: FT_Face, req: FT_Size_Request) -> FT_Error;
 }
 extern "C" {
-    #[link_name = "\u{1}_FT_Set_Char_Size"]
     pub fn FT_Set_Char_Size(
         face: FT_Face,
         char_width: FT_F26Dot6,
@@ -3079,7 +3054,6 @@ extern "C" {
     ) -> FT_Error;
 }
 extern "C" {
-    #[link_name = "\u{1}_FT_Set_Pixel_Sizes"]
     pub fn FT_Set_Pixel_Sizes(
         face: FT_Face,
         pixel_width: FT_UInt,
@@ -3087,15 +3061,12 @@ extern "C" {
     ) -> FT_Error;
 }
 extern "C" {
-    #[link_name = "\u{1}_FT_Load_Glyph"]
     pub fn FT_Load_Glyph(face: FT_Face, glyph_index: FT_UInt, load_flags: FT_Int32) -> FT_Error;
 }
 extern "C" {
-    #[link_name = "\u{1}_FT_Load_Char"]
     pub fn FT_Load_Char(face: FT_Face, char_code: FT_ULong, load_flags: FT_Int32) -> FT_Error;
 }
 extern "C" {
-    #[link_name = "\u{1}_FT_Set_Transform"]
     pub fn FT_Set_Transform(face: FT_Face, matrix: *mut FT_Matrix, delta: *mut FT_Vector);
 }
 #[repr(u32)]
@@ -3110,7 +3081,6 @@ pub enum FT_Render_Mode_ {
 }
 pub use self::FT_Render_Mode_ as FT_Render_Mode;
 extern "C" {
-    #[link_name = "\u{1}_FT_Render_Glyph"]
     pub fn FT_Render_Glyph(slot: FT_GlyphSlot, render_mode: FT_Render_Mode) -> FT_Error;
 }
 #[repr(u32)]
@@ -3122,7 +3092,6 @@ pub enum FT_Kerning_Mode_ {
 }
 pub use self::FT_Kerning_Mode_ as FT_Kerning_Mode;
 extern "C" {
-    #[link_name = "\u{1}_FT_Get_Kerning"]
     pub fn FT_Get_Kerning(
         face: FT_Face,
         left_glyph: FT_UInt,
@@ -3132,7 +3101,6 @@ extern "C" {
     ) -> FT_Error;
 }
 extern "C" {
-    #[link_name = "\u{1}_FT_Get_Track_Kerning"]
     pub fn FT_Get_Track_Kerning(
         face: FT_Face,
         point_size: FT_Fixed,
@@ -3141,7 +3109,6 @@ extern "C" {
     ) -> FT_Error;
 }
 extern "C" {
-    #[link_name = "\u{1}_FT_Get_Glyph_Name"]
     pub fn FT_Get_Glyph_Name(
         face: FT_Face,
         glyph_index: FT_UInt,
@@ -3150,35 +3117,27 @@ extern "C" {
     ) -> FT_Error;
 }
 extern "C" {
-    #[link_name = "\u{1}_FT_Get_Postscript_Name"]
     pub fn FT_Get_Postscript_Name(face: FT_Face) -> *const ::std::os::raw::c_char;
 }
 extern "C" {
-    #[link_name = "\u{1}_FT_Select_Charmap"]
     pub fn FT_Select_Charmap(face: FT_Face, encoding: FT_Encoding) -> FT_Error;
 }
 extern "C" {
-    #[link_name = "\u{1}_FT_Set_Charmap"]
     pub fn FT_Set_Charmap(face: FT_Face, charmap: FT_CharMap) -> FT_Error;
 }
 extern "C" {
-    #[link_name = "\u{1}_FT_Get_Charmap_Index"]
     pub fn FT_Get_Charmap_Index(charmap: FT_CharMap) -> FT_Int;
 }
 extern "C" {
-    #[link_name = "\u{1}_FT_Get_Char_Index"]
     pub fn FT_Get_Char_Index(face: FT_Face, charcode: FT_ULong) -> FT_UInt;
 }
 extern "C" {
-    #[link_name = "\u{1}_FT_Get_First_Char"]
     pub fn FT_Get_First_Char(face: FT_Face, agindex: *mut FT_UInt) -> FT_ULong;
 }
 extern "C" {
-    #[link_name = "\u{1}_FT_Get_Next_Char"]
     pub fn FT_Get_Next_Char(face: FT_Face, char_code: FT_ULong, agindex: *mut FT_UInt) -> FT_ULong;
 }
 extern "C" {
-    #[link_name = "\u{1}_FT_Face_Properties"]
     pub fn FT_Face_Properties(
         face: FT_Face,
         num_properties: FT_UInt,
@@ -3186,11 +3145,9 @@ extern "C" {
     ) -> FT_Error;
 }
 extern "C" {
-    #[link_name = "\u{1}_FT_Get_Name_Index"]
     pub fn FT_Get_Name_Index(face: FT_Face, glyph_name: *mut FT_String) -> FT_UInt;
 }
 extern "C" {
-    #[link_name = "\u{1}_FT_Get_SubGlyph_Info"]
     pub fn FT_Get_SubGlyph_Info(
         glyph: FT_GlyphSlot,
         sub_index: FT_UInt,
@@ -3253,7 +3210,6 @@ fn bindgen_test_layout_FT_LayerIterator_() {
 }
 pub type FT_LayerIterator = FT_LayerIterator_;
 extern "C" {
-    #[link_name = "\u{1}_FT_Get_Color_Glyph_Layer"]
     pub fn FT_Get_Color_Glyph_Layer(
         face: FT_Face,
         base_glyph: FT_UInt,
@@ -3263,11 +3219,9 @@ extern "C" {
     ) -> FT_Bool;
 }
 extern "C" {
-    #[link_name = "\u{1}_FT_Get_FSType_Flags"]
     pub fn FT_Get_FSType_Flags(face: FT_Face) -> FT_UShort;
 }
 extern "C" {
-    #[link_name = "\u{1}_FT_Face_GetCharVariantIndex"]
     pub fn FT_Face_GetCharVariantIndex(
         face: FT_Face,
         charcode: FT_ULong,
@@ -3275,7 +3229,6 @@ extern "C" {
     ) -> FT_UInt;
 }
 extern "C" {
-    #[link_name = "\u{1}_FT_Face_GetCharVariantIsDefault"]
     pub fn FT_Face_GetCharVariantIsDefault(
         face: FT_Face,
         charcode: FT_ULong,
@@ -3283,47 +3236,36 @@ extern "C" {
     ) -> FT_Int;
 }
 extern "C" {
-    #[link_name = "\u{1}_FT_Face_GetVariantSelectors"]
     pub fn FT_Face_GetVariantSelectors(face: FT_Face) -> *mut FT_UInt32;
 }
 extern "C" {
-    #[link_name = "\u{1}_FT_Face_GetVariantsOfChar"]
     pub fn FT_Face_GetVariantsOfChar(face: FT_Face, charcode: FT_ULong) -> *mut FT_UInt32;
 }
 extern "C" {
-    #[link_name = "\u{1}_FT_Face_GetCharsOfVariant"]
     pub fn FT_Face_GetCharsOfVariant(face: FT_Face, variantSelector: FT_ULong) -> *mut FT_UInt32;
 }
 extern "C" {
-    #[link_name = "\u{1}_FT_MulDiv"]
     pub fn FT_MulDiv(a: FT_Long, b: FT_Long, c: FT_Long) -> FT_Long;
 }
 extern "C" {
-    #[link_name = "\u{1}_FT_MulFix"]
     pub fn FT_MulFix(a: FT_Long, b: FT_Long) -> FT_Long;
 }
 extern "C" {
-    #[link_name = "\u{1}_FT_DivFix"]
     pub fn FT_DivFix(a: FT_Long, b: FT_Long) -> FT_Long;
 }
 extern "C" {
-    #[link_name = "\u{1}_FT_RoundFix"]
     pub fn FT_RoundFix(a: FT_Fixed) -> FT_Fixed;
 }
 extern "C" {
-    #[link_name = "\u{1}_FT_CeilFix"]
     pub fn FT_CeilFix(a: FT_Fixed) -> FT_Fixed;
 }
 extern "C" {
-    #[link_name = "\u{1}_FT_FloorFix"]
     pub fn FT_FloorFix(a: FT_Fixed) -> FT_Fixed;
 }
 extern "C" {
-    #[link_name = "\u{1}_FT_Vector_Transform"]
     pub fn FT_Vector_Transform(vector: *mut FT_Vector, matrix: *const FT_Matrix);
 }
 extern "C" {
-    #[link_name = "\u{1}_FT_Library_Version"]
     pub fn FT_Library_Version(
         library: FT_Library,
         amajor: *mut FT_Int,
@@ -3332,11 +3274,9 @@ extern "C" {
     );
 }
 extern "C" {
-    #[link_name = "\u{1}_FT_Face_CheckTrueTypePatents"]
     pub fn FT_Face_CheckTrueTypePatents(face: FT_Face) -> FT_Bool;
 }
 extern "C" {
-    #[link_name = "\u{1}_FT_Face_SetUnpatentedHinting"]
     pub fn FT_Face_SetUnpatentedHinting(face: FT_Face, value: FT_Bool) -> FT_Bool;
 }
 #[repr(u32)]
@@ -3351,11 +3291,9 @@ pub enum FT_LcdFilter_ {
 }
 pub use self::FT_LcdFilter_ as FT_LcdFilter;
 extern "C" {
-    #[link_name = "\u{1}_FT_Library_SetLcdFilter"]
     pub fn FT_Library_SetLcdFilter(library: FT_Library, filter: FT_LcdFilter) -> FT_Error;
 }
 extern "C" {
-    #[link_name = "\u{1}_FT_Library_SetLcdFilterWeights"]
     pub fn FT_Library_SetLcdFilterWeights(
         library: FT_Library,
         weights: *mut ::std::os::raw::c_uchar,
@@ -3363,7 +3301,6 @@ extern "C" {
 }
 pub type FT_LcdFiveTapFilter = [FT_Byte; 5usize];
 extern "C" {
-    #[link_name = "\u{1}_FT_Library_SetLcdGeometry"]
     pub fn FT_Library_SetLcdGeometry(library: FT_Library, sub: *mut FT_Vector) -> FT_Error;
 }
 #[repr(u32)]
@@ -3380,11 +3317,9 @@ pub enum FT_Sfnt_Tag_ {
 }
 pub use self::FT_Sfnt_Tag_ as FT_Sfnt_Tag;
 extern "C" {
-    #[link_name = "\u{1}_FT_Get_Sfnt_Table"]
     pub fn FT_Get_Sfnt_Table(face: FT_Face, tag: FT_Sfnt_Tag) -> *mut ::std::os::raw::c_void;
 }
 extern "C" {
-    #[link_name = "\u{1}_FT_Load_Sfnt_Table"]
     pub fn FT_Load_Sfnt_Table(
         face: FT_Face,
         tag: FT_ULong,
@@ -3394,7 +3329,6 @@ extern "C" {
     ) -> FT_Error;
 }
 extern "C" {
-    #[link_name = "\u{1}_FT_Sfnt_Table_Info"]
     pub fn FT_Sfnt_Table_Info(
         face: FT_Face,
         table_index: FT_UInt,
@@ -3403,11 +3337,9 @@ extern "C" {
     ) -> FT_Error;
 }
 extern "C" {
-    #[link_name = "\u{1}_FT_Get_CMap_Language_ID"]
     pub fn FT_Get_CMap_Language_ID(charmap: FT_CharMap) -> FT_ULong;
 }
 extern "C" {
-    #[link_name = "\u{1}_FT_Get_CMap_Format"]
     pub fn FT_Get_CMap_Format(charmap: FT_CharMap) -> FT_Long;
 }
 pub type FT_Module_Interface = FT_Pointer;
@@ -3542,22 +3474,18 @@ fn bindgen_test_layout_FT_Module_Class_() {
 }
 pub type FT_Module_Class = FT_Module_Class_;
 extern "C" {
-    #[link_name = "\u{1}_FT_Add_Module"]
     pub fn FT_Add_Module(library: FT_Library, clazz: *const FT_Module_Class) -> FT_Error;
 }
 extern "C" {
-    #[link_name = "\u{1}_FT_Get_Module"]
     pub fn FT_Get_Module(
         library: FT_Library,
         module_name: *const ::std::os::raw::c_char,
     ) -> FT_Module;
 }
 extern "C" {
-    #[link_name = "\u{1}_FT_Remove_Module"]
     pub fn FT_Remove_Module(library: FT_Library, module: FT_Module) -> FT_Error;
 }
 extern "C" {
-    #[link_name = "\u{1}_FT_Property_Set"]
     pub fn FT_Property_Set(
         library: FT_Library,
         module_name: *const FT_String,
@@ -3566,7 +3494,6 @@ extern "C" {
     ) -> FT_Error;
 }
 extern "C" {
-    #[link_name = "\u{1}_FT_Property_Get"]
     pub fn FT_Property_Get(
         library: FT_Library,
         module_name: *const FT_String,
@@ -3575,25 +3502,20 @@ extern "C" {
     ) -> FT_Error;
 }
 extern "C" {
-    #[link_name = "\u{1}_FT_Set_Default_Properties"]
     pub fn FT_Set_Default_Properties(library: FT_Library);
 }
 extern "C" {
-    #[link_name = "\u{1}_FT_Reference_Library"]
     pub fn FT_Reference_Library(library: FT_Library) -> FT_Error;
 }
 extern "C" {
-    #[link_name = "\u{1}_FT_New_Library"]
     pub fn FT_New_Library(memory: FT_Memory, alibrary: *mut FT_Library) -> FT_Error;
 }
 extern "C" {
-    #[link_name = "\u{1}_FT_Done_Library"]
     pub fn FT_Done_Library(library: FT_Library) -> FT_Error;
 }
 pub type FT_DebugHook_Func =
     ::std::option::Option<unsafe extern "C" fn(arg: *mut ::std::os::raw::c_void)>;
 extern "C" {
-    #[link_name = "\u{1}_FT_Set_Debug_Hook"]
     pub fn FT_Set_Debug_Hook(
         library: FT_Library,
         hook_index: FT_UInt,
@@ -3601,7 +3523,6 @@ extern "C" {
     );
 }
 extern "C" {
-    #[link_name = "\u{1}_FT_Add_Default_Modules"]
     pub fn FT_Add_Default_Modules(library: FT_Library);
 }
 #[repr(u32)]
@@ -3613,11 +3534,9 @@ pub enum FT_TrueTypeEngineType_ {
 }
 pub use self::FT_TrueTypeEngineType_ as FT_TrueTypeEngineType;
 extern "C" {
-    #[link_name = "\u{1}_FT_Get_TrueType_Engine_Type"]
     pub fn FT_Get_TrueType_Engine_Type(library: FT_Library) -> FT_TrueTypeEngineType;
 }
 extern "C" {
-    #[link_name = "\u{1}_FT_Outline_Decompose"]
     pub fn FT_Outline_Decompose(
         outline: *mut FT_Outline,
         func_interface: *const FT_Outline_Funcs,
@@ -3625,7 +3544,6 @@ extern "C" {
     ) -> FT_Error;
 }
 extern "C" {
-    #[link_name = "\u{1}_FT_Outline_New"]
     pub fn FT_Outline_New(
         library: FT_Library,
         numPoints: FT_UInt,
@@ -3634,35 +3552,27 @@ extern "C" {
     ) -> FT_Error;
 }
 extern "C" {
-    #[link_name = "\u{1}_FT_Outline_Done"]
     pub fn FT_Outline_Done(library: FT_Library, outline: *mut FT_Outline) -> FT_Error;
 }
 extern "C" {
-    #[link_name = "\u{1}_FT_Outline_Check"]
     pub fn FT_Outline_Check(outline: *mut FT_Outline) -> FT_Error;
 }
 extern "C" {
-    #[link_name = "\u{1}_FT_Outline_Get_CBox"]
     pub fn FT_Outline_Get_CBox(outline: *const FT_Outline, acbox: *mut FT_BBox);
 }
 extern "C" {
-    #[link_name = "\u{1}_FT_Outline_Translate"]
     pub fn FT_Outline_Translate(outline: *const FT_Outline, xOffset: FT_Pos, yOffset: FT_Pos);
 }
 extern "C" {
-    #[link_name = "\u{1}_FT_Outline_Copy"]
     pub fn FT_Outline_Copy(source: *const FT_Outline, target: *mut FT_Outline) -> FT_Error;
 }
 extern "C" {
-    #[link_name = "\u{1}_FT_Outline_Transform"]
     pub fn FT_Outline_Transform(outline: *const FT_Outline, matrix: *const FT_Matrix);
 }
 extern "C" {
-    #[link_name = "\u{1}_FT_Outline_Embolden"]
     pub fn FT_Outline_Embolden(outline: *mut FT_Outline, strength: FT_Pos) -> FT_Error;
 }
 extern "C" {
-    #[link_name = "\u{1}_FT_Outline_EmboldenXY"]
     pub fn FT_Outline_EmboldenXY(
         outline: *mut FT_Outline,
         xstrength: FT_Pos,
@@ -3670,11 +3580,9 @@ extern "C" {
     ) -> FT_Error;
 }
 extern "C" {
-    #[link_name = "\u{1}_FT_Outline_Reverse"]
     pub fn FT_Outline_Reverse(outline: *mut FT_Outline);
 }
 extern "C" {
-    #[link_name = "\u{1}_FT_Outline_Get_Bitmap"]
     pub fn FT_Outline_Get_Bitmap(
         library: FT_Library,
         outline: *mut FT_Outline,
@@ -3682,7 +3590,6 @@ extern "C" {
     ) -> FT_Error;
 }
 extern "C" {
-    #[link_name = "\u{1}_FT_Outline_Render"]
     pub fn FT_Outline_Render(
         library: FT_Library,
         outline: *mut FT_Outline,
@@ -3705,6 +3612,5 @@ pub enum FT_Orientation_ {
 }
 pub use self::FT_Orientation_ as FT_Orientation;
 extern "C" {
-    #[link_name = "\u{1}_FT_Outline_Get_Orientation"]
     pub fn FT_Outline_Get_Orientation(outline: *mut FT_Outline) -> FT_Orientation;
 }

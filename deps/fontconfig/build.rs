@@ -2,8 +2,6 @@ use pkg_config;
 use std::env;
 
 fn main() {
-    let out_dir = env::var("OUT_DIR").unwrap();
-
     if let Ok(lib) = pkg_config::Config::new()
         .atleast_version("2.11.1")
         .find("fontconfig")

@@ -21,8 +21,9 @@ attempt to install them for you.  If it doesn't know about your system,
 
 ```
 $ curl https://sh.rustup.rs -sSf | sh -s
-$ git clone --depth=1 --branch=master https://github.com/wez/wezterm.git
+$ git clone --depth=1 --branch=master --recursive https://github.com/wez/wezterm.git
 $ cd wezterm
+$ git submodule update --init
 $ sudo ./get-deps
 $ cargo build --release
 $ cargo run --release -- start

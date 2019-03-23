@@ -4,6 +4,12 @@
 #![allow(non_camel_case_types)]
 #![allow(non_upper_case_globals)]
 
+pub type __int8_t = ::std::os::raw::c_schar;
+pub type __uint8_t = ::std::os::raw::c_uchar;
+pub type __int16_t = ::std::os::raw::c_short;
+pub type __uint16_t = ::std::os::raw::c_ushort;
+pub type __int32_t = ::std::os::raw::c_int;
+pub type __uint32_t = ::std::os::raw::c_uint;
 pub type hb_bool_t = ::std::os::raw::c_int;
 pub type hb_codepoint_t = u32;
 pub type hb_position_t = i32;
@@ -95,14 +101,12 @@ fn bindgen_test_layout__hb_var_int_t() {
 pub type hb_var_int_t = _hb_var_int_t;
 pub type hb_tag_t = u32;
 extern "C" {
-    #[link_name = "\u{1}_hb_tag_from_string"]
     pub fn hb_tag_from_string(
         str: *const ::std::os::raw::c_char,
         len: ::std::os::raw::c_int,
     ) -> hb_tag_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_tag_to_string"]
     pub fn hb_tag_to_string(tag: hb_tag_t, buf: *mut ::std::os::raw::c_char);
 }
 #[repr(u32)]
@@ -115,14 +119,12 @@ pub enum hb_direction_t {
     HB_DIRECTION_BTT = 7,
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_direction_from_string"]
     pub fn hb_direction_from_string(
         str: *const ::std::os::raw::c_char,
         len: ::std::os::raw::c_int,
     ) -> hb_direction_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_direction_to_string"]
     pub fn hb_direction_to_string(direction: hb_direction_t) -> *const ::std::os::raw::c_char;
 }
 #[repr(C)]
@@ -132,18 +134,15 @@ pub struct hb_language_impl_t {
 }
 pub type hb_language_t = *const hb_language_impl_t;
 extern "C" {
-    #[link_name = "\u{1}_hb_language_from_string"]
     pub fn hb_language_from_string(
         str: *const ::std::os::raw::c_char,
         len: ::std::os::raw::c_int,
     ) -> hb_language_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_language_to_string"]
     pub fn hb_language_to_string(language: hb_language_t) -> *const ::std::os::raw::c_char;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_language_get_default"]
     pub fn hb_language_get_default() -> hb_language_t;
 }
 impl hb_script_t {
@@ -309,22 +308,18 @@ pub enum hb_script_t {
     _HB_SCRIPT_MAX_VALUE = 2147483647,
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_script_from_iso15924_tag"]
     pub fn hb_script_from_iso15924_tag(tag: hb_tag_t) -> hb_script_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_script_from_string"]
     pub fn hb_script_from_string(
         str: *const ::std::os::raw::c_char,
         len: ::std::os::raw::c_int,
     ) -> hb_script_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_script_to_iso15924_tag"]
     pub fn hb_script_to_iso15924_tag(script: hb_script_t) -> hb_tag_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_script_get_horizontal_direction"]
     pub fn hb_script_get_horizontal_direction(script: hb_script_t) -> hb_direction_t;
 }
 #[repr(C)]
@@ -419,7 +414,6 @@ fn bindgen_test_layout_hb_feature_t() {
     );
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_feature_from_string"]
     pub fn hb_feature_from_string(
         str: *const ::std::os::raw::c_char,
         len: ::std::os::raw::c_int,
@@ -427,7 +421,6 @@ extern "C" {
     ) -> hb_bool_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_feature_to_string"]
     pub fn hb_feature_to_string(
         feature: *mut hb_feature_t,
         buf: *mut ::std::os::raw::c_char,
@@ -474,7 +467,6 @@ fn bindgen_test_layout_hb_variation_t() {
     );
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_variation_from_string"]
     pub fn hb_variation_from_string(
         str: *const ::std::os::raw::c_char,
         len: ::std::os::raw::c_int,
@@ -482,7 +474,6 @@ extern "C" {
     ) -> hb_bool_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_variation_to_string"]
     pub fn hb_variation_to_string(
         variation: *mut hb_variation_t,
         buf: *mut ::std::os::raw::c_char,
@@ -504,7 +495,6 @@ pub struct hb_blob_t {
     _unused: [u8; 0],
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_blob_create"]
     pub fn hb_blob_create(
         data: *const ::std::os::raw::c_char,
         length: ::std::os::raw::c_uint,
@@ -514,7 +504,6 @@ extern "C" {
     ) -> *mut hb_blob_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_blob_create_sub_blob"]
     pub fn hb_blob_create_sub_blob(
         parent: *mut hb_blob_t,
         offset: ::std::os::raw::c_uint,
@@ -522,23 +511,18 @@ extern "C" {
     ) -> *mut hb_blob_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_blob_copy_writable_or_fail"]
     pub fn hb_blob_copy_writable_or_fail(blob: *mut hb_blob_t) -> *mut hb_blob_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_blob_get_empty"]
     pub fn hb_blob_get_empty() -> *mut hb_blob_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_blob_reference"]
     pub fn hb_blob_reference(blob: *mut hb_blob_t) -> *mut hb_blob_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_blob_destroy"]
     pub fn hb_blob_destroy(blob: *mut hb_blob_t);
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_blob_set_user_data"]
     pub fn hb_blob_set_user_data(
         blob: *mut hb_blob_t,
         key: *mut hb_user_data_key_t,
@@ -548,40 +532,33 @@ extern "C" {
     ) -> hb_bool_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_blob_get_user_data"]
     pub fn hb_blob_get_user_data(
         blob: *mut hb_blob_t,
         key: *mut hb_user_data_key_t,
     ) -> *mut ::std::os::raw::c_void;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_blob_make_immutable"]
     pub fn hb_blob_make_immutable(blob: *mut hb_blob_t);
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_blob_is_immutable"]
     pub fn hb_blob_is_immutable(blob: *mut hb_blob_t) -> hb_bool_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_blob_get_length"]
     pub fn hb_blob_get_length(blob: *mut hb_blob_t) -> ::std::os::raw::c_uint;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_blob_get_data"]
     pub fn hb_blob_get_data(
         blob: *mut hb_blob_t,
         length: *mut ::std::os::raw::c_uint,
     ) -> *const ::std::os::raw::c_char;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_blob_get_data_writable"]
     pub fn hb_blob_get_data_writable(
         blob: *mut hb_blob_t,
         length: *mut ::std::os::raw::c_uint,
     ) -> *mut ::std::os::raw::c_char;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_blob_create_from_file"]
     pub fn hb_blob_create_from_file(file_name: *const ::std::os::raw::c_char) -> *mut hb_blob_t;
 }
 #[repr(u32)]
@@ -685,27 +662,21 @@ pub struct hb_unicode_funcs_t {
     _unused: [u8; 0],
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_unicode_funcs_get_default"]
     pub fn hb_unicode_funcs_get_default() -> *mut hb_unicode_funcs_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_unicode_funcs_create"]
     pub fn hb_unicode_funcs_create(parent: *mut hb_unicode_funcs_t) -> *mut hb_unicode_funcs_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_unicode_funcs_get_empty"]
     pub fn hb_unicode_funcs_get_empty() -> *mut hb_unicode_funcs_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_unicode_funcs_reference"]
     pub fn hb_unicode_funcs_reference(ufuncs: *mut hb_unicode_funcs_t) -> *mut hb_unicode_funcs_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_unicode_funcs_destroy"]
     pub fn hb_unicode_funcs_destroy(ufuncs: *mut hb_unicode_funcs_t);
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_unicode_funcs_set_user_data"]
     pub fn hb_unicode_funcs_set_user_data(
         ufuncs: *mut hb_unicode_funcs_t,
         key: *mut hb_user_data_key_t,
@@ -715,22 +686,18 @@ extern "C" {
     ) -> hb_bool_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_unicode_funcs_get_user_data"]
     pub fn hb_unicode_funcs_get_user_data(
         ufuncs: *mut hb_unicode_funcs_t,
         key: *mut hb_user_data_key_t,
     ) -> *mut ::std::os::raw::c_void;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_unicode_funcs_make_immutable"]
     pub fn hb_unicode_funcs_make_immutable(ufuncs: *mut hb_unicode_funcs_t);
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_unicode_funcs_is_immutable"]
     pub fn hb_unicode_funcs_is_immutable(ufuncs: *mut hb_unicode_funcs_t) -> hb_bool_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_unicode_funcs_get_parent"]
     pub fn hb_unicode_funcs_get_parent(ufuncs: *mut hb_unicode_funcs_t) -> *mut hb_unicode_funcs_t;
 }
 pub type hb_unicode_combining_class_func_t = ::std::option::Option<
@@ -780,7 +747,6 @@ pub type hb_unicode_decompose_func_t = ::std::option::Option<
     ) -> hb_bool_t,
 >;
 extern "C" {
-    #[link_name = "\u{1}_hb_unicode_funcs_set_combining_class_func"]
     pub fn hb_unicode_funcs_set_combining_class_func(
         ufuncs: *mut hb_unicode_funcs_t,
         func: hb_unicode_combining_class_func_t,
@@ -789,7 +755,6 @@ extern "C" {
     );
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_unicode_funcs_set_general_category_func"]
     pub fn hb_unicode_funcs_set_general_category_func(
         ufuncs: *mut hb_unicode_funcs_t,
         func: hb_unicode_general_category_func_t,
@@ -798,7 +763,6 @@ extern "C" {
     );
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_unicode_funcs_set_mirroring_func"]
     pub fn hb_unicode_funcs_set_mirroring_func(
         ufuncs: *mut hb_unicode_funcs_t,
         func: hb_unicode_mirroring_func_t,
@@ -807,7 +771,6 @@ extern "C" {
     );
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_unicode_funcs_set_script_func"]
     pub fn hb_unicode_funcs_set_script_func(
         ufuncs: *mut hb_unicode_funcs_t,
         func: hb_unicode_script_func_t,
@@ -816,7 +779,6 @@ extern "C" {
     );
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_unicode_funcs_set_compose_func"]
     pub fn hb_unicode_funcs_set_compose_func(
         ufuncs: *mut hb_unicode_funcs_t,
         func: hb_unicode_compose_func_t,
@@ -825,7 +787,6 @@ extern "C" {
     );
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_unicode_funcs_set_decompose_func"]
     pub fn hb_unicode_funcs_set_decompose_func(
         ufuncs: *mut hb_unicode_funcs_t,
         func: hb_unicode_decompose_func_t,
@@ -834,35 +795,30 @@ extern "C" {
     );
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_unicode_combining_class"]
     pub fn hb_unicode_combining_class(
         ufuncs: *mut hb_unicode_funcs_t,
         unicode: hb_codepoint_t,
     ) -> hb_unicode_combining_class_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_unicode_general_category"]
     pub fn hb_unicode_general_category(
         ufuncs: *mut hb_unicode_funcs_t,
         unicode: hb_codepoint_t,
     ) -> hb_unicode_general_category_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_unicode_mirroring"]
     pub fn hb_unicode_mirroring(
         ufuncs: *mut hb_unicode_funcs_t,
         unicode: hb_codepoint_t,
     ) -> hb_codepoint_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_unicode_script"]
     pub fn hb_unicode_script(
         ufuncs: *mut hb_unicode_funcs_t,
         unicode: hb_codepoint_t,
     ) -> hb_script_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_unicode_compose"]
     pub fn hb_unicode_compose(
         ufuncs: *mut hb_unicode_funcs_t,
         a: hb_codepoint_t,
@@ -871,7 +827,6 @@ extern "C" {
     ) -> hb_bool_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_unicode_decompose"]
     pub fn hb_unicode_decompose(
         ufuncs: *mut hb_unicode_funcs_t,
         ab: hb_codepoint_t,
@@ -885,23 +840,18 @@ pub struct hb_set_t {
     _unused: [u8; 0],
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_set_create"]
     pub fn hb_set_create() -> *mut hb_set_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_set_get_empty"]
     pub fn hb_set_get_empty() -> *mut hb_set_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_set_reference"]
     pub fn hb_set_reference(set: *mut hb_set_t) -> *mut hb_set_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_set_destroy"]
     pub fn hb_set_destroy(set: *mut hb_set_t);
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_set_set_user_data"]
     pub fn hb_set_set_user_data(
         set: *mut hb_set_t,
         key: *mut hb_user_data_key_t,
@@ -911,94 +861,72 @@ extern "C" {
     ) -> hb_bool_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_set_get_user_data"]
     pub fn hb_set_get_user_data(
         set: *mut hb_set_t,
         key: *mut hb_user_data_key_t,
     ) -> *mut ::std::os::raw::c_void;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_set_allocation_successful"]
     pub fn hb_set_allocation_successful(set: *const hb_set_t) -> hb_bool_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_set_clear"]
     pub fn hb_set_clear(set: *mut hb_set_t);
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_set_is_empty"]
     pub fn hb_set_is_empty(set: *const hb_set_t) -> hb_bool_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_set_has"]
     pub fn hb_set_has(set: *const hb_set_t, codepoint: hb_codepoint_t) -> hb_bool_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_set_add"]
     pub fn hb_set_add(set: *mut hb_set_t, codepoint: hb_codepoint_t);
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_set_add_range"]
     pub fn hb_set_add_range(set: *mut hb_set_t, first: hb_codepoint_t, last: hb_codepoint_t);
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_set_del"]
     pub fn hb_set_del(set: *mut hb_set_t, codepoint: hb_codepoint_t);
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_set_del_range"]
     pub fn hb_set_del_range(set: *mut hb_set_t, first: hb_codepoint_t, last: hb_codepoint_t);
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_set_is_equal"]
     pub fn hb_set_is_equal(set: *const hb_set_t, other: *const hb_set_t) -> hb_bool_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_set_is_subset"]
     pub fn hb_set_is_subset(set: *const hb_set_t, larger_set: *const hb_set_t) -> hb_bool_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_set_set"]
     pub fn hb_set_set(set: *mut hb_set_t, other: *const hb_set_t);
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_set_union"]
     pub fn hb_set_union(set: *mut hb_set_t, other: *const hb_set_t);
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_set_intersect"]
     pub fn hb_set_intersect(set: *mut hb_set_t, other: *const hb_set_t);
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_set_subtract"]
     pub fn hb_set_subtract(set: *mut hb_set_t, other: *const hb_set_t);
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_set_symmetric_difference"]
     pub fn hb_set_symmetric_difference(set: *mut hb_set_t, other: *const hb_set_t);
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_set_get_population"]
     pub fn hb_set_get_population(set: *const hb_set_t) -> ::std::os::raw::c_uint;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_set_get_min"]
     pub fn hb_set_get_min(set: *const hb_set_t) -> hb_codepoint_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_set_get_max"]
     pub fn hb_set_get_max(set: *const hb_set_t) -> hb_codepoint_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_set_next"]
     pub fn hb_set_next(set: *const hb_set_t, codepoint: *mut hb_codepoint_t) -> hb_bool_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_set_previous"]
     pub fn hb_set_previous(set: *const hb_set_t, codepoint: *mut hb_codepoint_t) -> hb_bool_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_set_next_range"]
     pub fn hb_set_next_range(
         set: *const hb_set_t,
         first: *mut hb_codepoint_t,
@@ -1006,7 +934,6 @@ extern "C" {
     ) -> hb_bool_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_set_previous_range"]
     pub fn hb_set_previous_range(
         set: *const hb_set_t,
         first: *mut hb_codepoint_t,
@@ -1014,7 +941,6 @@ extern "C" {
     ) -> hb_bool_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_face_count"]
     pub fn hb_face_count(blob: *mut hb_blob_t) -> ::std::os::raw::c_uint;
 }
 #[repr(C)]
@@ -1023,7 +949,6 @@ pub struct hb_face_t {
     _unused: [u8; 0],
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_face_create"]
     pub fn hb_face_create(blob: *mut hb_blob_t, index: ::std::os::raw::c_uint) -> *mut hb_face_t;
 }
 pub type hb_reference_table_func_t = ::std::option::Option<
@@ -1034,7 +959,6 @@ pub type hb_reference_table_func_t = ::std::option::Option<
     ) -> *mut hb_blob_t,
 >;
 extern "C" {
-    #[link_name = "\u{1}_hb_face_create_for_tables"]
     pub fn hb_face_create_for_tables(
         reference_table_func: hb_reference_table_func_t,
         user_data: *mut ::std::os::raw::c_void,
@@ -1042,19 +966,15 @@ extern "C" {
     ) -> *mut hb_face_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_face_get_empty"]
     pub fn hb_face_get_empty() -> *mut hb_face_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_face_reference"]
     pub fn hb_face_reference(face: *mut hb_face_t) -> *mut hb_face_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_face_destroy"]
     pub fn hb_face_destroy(face: *mut hb_face_t);
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_face_set_user_data"]
     pub fn hb_face_set_user_data(
         face: *mut hb_face_t,
         key: *mut hb_user_data_key_t,
@@ -1064,54 +984,42 @@ extern "C" {
     ) -> hb_bool_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_face_get_user_data"]
     pub fn hb_face_get_user_data(
         face: *const hb_face_t,
         key: *mut hb_user_data_key_t,
     ) -> *mut ::std::os::raw::c_void;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_face_make_immutable"]
     pub fn hb_face_make_immutable(face: *mut hb_face_t);
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_face_is_immutable"]
     pub fn hb_face_is_immutable(face: *const hb_face_t) -> hb_bool_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_face_reference_table"]
     pub fn hb_face_reference_table(face: *const hb_face_t, tag: hb_tag_t) -> *mut hb_blob_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_face_reference_blob"]
     pub fn hb_face_reference_blob(face: *mut hb_face_t) -> *mut hb_blob_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_face_set_index"]
     pub fn hb_face_set_index(face: *mut hb_face_t, index: ::std::os::raw::c_uint);
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_face_get_index"]
     pub fn hb_face_get_index(face: *const hb_face_t) -> ::std::os::raw::c_uint;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_face_set_upem"]
     pub fn hb_face_set_upem(face: *mut hb_face_t, upem: ::std::os::raw::c_uint);
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_face_get_upem"]
     pub fn hb_face_get_upem(face: *const hb_face_t) -> ::std::os::raw::c_uint;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_face_set_glyph_count"]
     pub fn hb_face_set_glyph_count(face: *mut hb_face_t, glyph_count: ::std::os::raw::c_uint);
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_face_get_glyph_count"]
     pub fn hb_face_get_glyph_count(face: *const hb_face_t) -> ::std::os::raw::c_uint;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_face_get_table_tags"]
     pub fn hb_face_get_table_tags(
         face: *const hb_face_t,
         start_offset: ::std::os::raw::c_uint,
@@ -1120,15 +1028,12 @@ extern "C" {
     ) -> ::std::os::raw::c_uint;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_face_collect_unicodes"]
     pub fn hb_face_collect_unicodes(face: *mut hb_face_t, out: *mut hb_set_t);
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_face_collect_variation_selectors"]
     pub fn hb_face_collect_variation_selectors(face: *mut hb_face_t, out: *mut hb_set_t);
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_face_collect_variation_unicodes"]
     pub fn hb_face_collect_variation_unicodes(
         face: *mut hb_face_t,
         variation_selector: hb_codepoint_t,
@@ -1136,11 +1041,9 @@ extern "C" {
     );
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_face_builder_create"]
     pub fn hb_face_builder_create() -> *mut hb_face_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_face_builder_add_table"]
     pub fn hb_face_builder_add_table(
         face: *mut hb_face_t,
         tag: hb_tag_t,
@@ -1158,23 +1061,18 @@ pub struct hb_font_funcs_t {
     _unused: [u8; 0],
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_font_funcs_create"]
     pub fn hb_font_funcs_create() -> *mut hb_font_funcs_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_font_funcs_get_empty"]
     pub fn hb_font_funcs_get_empty() -> *mut hb_font_funcs_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_font_funcs_reference"]
     pub fn hb_font_funcs_reference(ffuncs: *mut hb_font_funcs_t) -> *mut hb_font_funcs_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_font_funcs_destroy"]
     pub fn hb_font_funcs_destroy(ffuncs: *mut hb_font_funcs_t);
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_font_funcs_set_user_data"]
     pub fn hb_font_funcs_set_user_data(
         ffuncs: *mut hb_font_funcs_t,
         key: *mut hb_user_data_key_t,
@@ -1184,18 +1082,15 @@ extern "C" {
     ) -> hb_bool_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_font_funcs_get_user_data"]
     pub fn hb_font_funcs_get_user_data(
         ffuncs: *mut hb_font_funcs_t,
         key: *mut hb_user_data_key_t,
     ) -> *mut ::std::os::raw::c_void;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_font_funcs_make_immutable"]
     pub fn hb_font_funcs_make_immutable(ffuncs: *mut hb_font_funcs_t);
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_font_funcs_is_immutable"]
     pub fn hb_font_funcs_is_immutable(ffuncs: *mut hb_font_funcs_t) -> hb_bool_t;
 }
 #[repr(C)]
@@ -1526,7 +1421,6 @@ pub type hb_font_get_glyph_from_name_func_t = ::std::option::Option<
     ) -> hb_bool_t,
 >;
 extern "C" {
-    #[link_name = "\u{1}_hb_font_funcs_set_font_h_extents_func"]
     pub fn hb_font_funcs_set_font_h_extents_func(
         ffuncs: *mut hb_font_funcs_t,
         func: hb_font_get_font_h_extents_func_t,
@@ -1535,7 +1429,6 @@ extern "C" {
     );
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_font_funcs_set_font_v_extents_func"]
     pub fn hb_font_funcs_set_font_v_extents_func(
         ffuncs: *mut hb_font_funcs_t,
         func: hb_font_get_font_v_extents_func_t,
@@ -1544,7 +1437,6 @@ extern "C" {
     );
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_font_funcs_set_nominal_glyph_func"]
     pub fn hb_font_funcs_set_nominal_glyph_func(
         ffuncs: *mut hb_font_funcs_t,
         func: hb_font_get_nominal_glyph_func_t,
@@ -1553,7 +1445,6 @@ extern "C" {
     );
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_font_funcs_set_nominal_glyphs_func"]
     pub fn hb_font_funcs_set_nominal_glyphs_func(
         ffuncs: *mut hb_font_funcs_t,
         func: hb_font_get_nominal_glyphs_func_t,
@@ -1562,7 +1453,6 @@ extern "C" {
     );
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_font_funcs_set_variation_glyph_func"]
     pub fn hb_font_funcs_set_variation_glyph_func(
         ffuncs: *mut hb_font_funcs_t,
         func: hb_font_get_variation_glyph_func_t,
@@ -1571,7 +1461,6 @@ extern "C" {
     );
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_font_funcs_set_glyph_h_advance_func"]
     pub fn hb_font_funcs_set_glyph_h_advance_func(
         ffuncs: *mut hb_font_funcs_t,
         func: hb_font_get_glyph_h_advance_func_t,
@@ -1580,7 +1469,6 @@ extern "C" {
     );
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_font_funcs_set_glyph_v_advance_func"]
     pub fn hb_font_funcs_set_glyph_v_advance_func(
         ffuncs: *mut hb_font_funcs_t,
         func: hb_font_get_glyph_v_advance_func_t,
@@ -1589,7 +1477,6 @@ extern "C" {
     );
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_font_funcs_set_glyph_h_advances_func"]
     pub fn hb_font_funcs_set_glyph_h_advances_func(
         ffuncs: *mut hb_font_funcs_t,
         func: hb_font_get_glyph_h_advances_func_t,
@@ -1598,7 +1485,6 @@ extern "C" {
     );
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_font_funcs_set_glyph_v_advances_func"]
     pub fn hb_font_funcs_set_glyph_v_advances_func(
         ffuncs: *mut hb_font_funcs_t,
         func: hb_font_get_glyph_v_advances_func_t,
@@ -1607,7 +1493,6 @@ extern "C" {
     );
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_font_funcs_set_glyph_h_origin_func"]
     pub fn hb_font_funcs_set_glyph_h_origin_func(
         ffuncs: *mut hb_font_funcs_t,
         func: hb_font_get_glyph_h_origin_func_t,
@@ -1616,7 +1501,6 @@ extern "C" {
     );
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_font_funcs_set_glyph_v_origin_func"]
     pub fn hb_font_funcs_set_glyph_v_origin_func(
         ffuncs: *mut hb_font_funcs_t,
         func: hb_font_get_glyph_v_origin_func_t,
@@ -1625,7 +1509,6 @@ extern "C" {
     );
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_font_funcs_set_glyph_extents_func"]
     pub fn hb_font_funcs_set_glyph_extents_func(
         ffuncs: *mut hb_font_funcs_t,
         func: hb_font_get_glyph_extents_func_t,
@@ -1634,7 +1517,6 @@ extern "C" {
     );
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_font_funcs_set_glyph_contour_point_func"]
     pub fn hb_font_funcs_set_glyph_contour_point_func(
         ffuncs: *mut hb_font_funcs_t,
         func: hb_font_get_glyph_contour_point_func_t,
@@ -1643,7 +1525,6 @@ extern "C" {
     );
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_font_funcs_set_glyph_name_func"]
     pub fn hb_font_funcs_set_glyph_name_func(
         ffuncs: *mut hb_font_funcs_t,
         func: hb_font_get_glyph_name_func_t,
@@ -1652,7 +1533,6 @@ extern "C" {
     );
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_font_funcs_set_glyph_from_name_func"]
     pub fn hb_font_funcs_set_glyph_from_name_func(
         ffuncs: *mut hb_font_funcs_t,
         func: hb_font_get_glyph_from_name_func_t,
@@ -1661,21 +1541,18 @@ extern "C" {
     );
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_font_get_h_extents"]
     pub fn hb_font_get_h_extents(
         font: *mut hb_font_t,
         extents: *mut hb_font_extents_t,
     ) -> hb_bool_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_font_get_v_extents"]
     pub fn hb_font_get_v_extents(
         font: *mut hb_font_t,
         extents: *mut hb_font_extents_t,
     ) -> hb_bool_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_font_get_nominal_glyph"]
     pub fn hb_font_get_nominal_glyph(
         font: *mut hb_font_t,
         unicode: hb_codepoint_t,
@@ -1683,7 +1560,6 @@ extern "C" {
     ) -> hb_bool_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_font_get_variation_glyph"]
     pub fn hb_font_get_variation_glyph(
         font: *mut hb_font_t,
         unicode: hb_codepoint_t,
@@ -1692,21 +1568,18 @@ extern "C" {
     ) -> hb_bool_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_font_get_glyph_h_advance"]
     pub fn hb_font_get_glyph_h_advance(
         font: *mut hb_font_t,
         glyph: hb_codepoint_t,
     ) -> hb_position_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_font_get_glyph_v_advance"]
     pub fn hb_font_get_glyph_v_advance(
         font: *mut hb_font_t,
         glyph: hb_codepoint_t,
     ) -> hb_position_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_font_get_glyph_h_advances"]
     pub fn hb_font_get_glyph_h_advances(
         font: *mut hb_font_t,
         count: ::std::os::raw::c_uint,
@@ -1717,7 +1590,6 @@ extern "C" {
     );
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_font_get_glyph_v_advances"]
     pub fn hb_font_get_glyph_v_advances(
         font: *mut hb_font_t,
         count: ::std::os::raw::c_uint,
@@ -1728,7 +1600,6 @@ extern "C" {
     );
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_font_get_glyph_h_origin"]
     pub fn hb_font_get_glyph_h_origin(
         font: *mut hb_font_t,
         glyph: hb_codepoint_t,
@@ -1737,7 +1608,6 @@ extern "C" {
     ) -> hb_bool_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_font_get_glyph_v_origin"]
     pub fn hb_font_get_glyph_v_origin(
         font: *mut hb_font_t,
         glyph: hb_codepoint_t,
@@ -1746,7 +1616,6 @@ extern "C" {
     ) -> hb_bool_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_font_get_glyph_extents"]
     pub fn hb_font_get_glyph_extents(
         font: *mut hb_font_t,
         glyph: hb_codepoint_t,
@@ -1754,7 +1623,6 @@ extern "C" {
     ) -> hb_bool_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_font_get_glyph_contour_point"]
     pub fn hb_font_get_glyph_contour_point(
         font: *mut hb_font_t,
         glyph: hb_codepoint_t,
@@ -1764,7 +1632,6 @@ extern "C" {
     ) -> hb_bool_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_font_get_glyph_name"]
     pub fn hb_font_get_glyph_name(
         font: *mut hb_font_t,
         glyph: hb_codepoint_t,
@@ -1773,7 +1640,6 @@ extern "C" {
     ) -> hb_bool_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_font_get_glyph_from_name"]
     pub fn hb_font_get_glyph_from_name(
         font: *mut hb_font_t,
         name: *const ::std::os::raw::c_char,
@@ -1782,7 +1648,6 @@ extern "C" {
     ) -> hb_bool_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_font_get_glyph"]
     pub fn hb_font_get_glyph(
         font: *mut hb_font_t,
         unicode: hb_codepoint_t,
@@ -1791,7 +1656,6 @@ extern "C" {
     ) -> hb_bool_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_font_get_extents_for_direction"]
     pub fn hb_font_get_extents_for_direction(
         font: *mut hb_font_t,
         direction: hb_direction_t,
@@ -1799,7 +1663,6 @@ extern "C" {
     );
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_font_get_glyph_advance_for_direction"]
     pub fn hb_font_get_glyph_advance_for_direction(
         font: *mut hb_font_t,
         glyph: hb_codepoint_t,
@@ -1809,7 +1672,6 @@ extern "C" {
     );
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_font_get_glyph_advances_for_direction"]
     pub fn hb_font_get_glyph_advances_for_direction(
         font: *mut hb_font_t,
         direction: hb_direction_t,
@@ -1821,7 +1683,6 @@ extern "C" {
     );
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_font_get_glyph_origin_for_direction"]
     pub fn hb_font_get_glyph_origin_for_direction(
         font: *mut hb_font_t,
         glyph: hb_codepoint_t,
@@ -1831,7 +1692,6 @@ extern "C" {
     );
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_font_add_glyph_origin_for_direction"]
     pub fn hb_font_add_glyph_origin_for_direction(
         font: *mut hb_font_t,
         glyph: hb_codepoint_t,
@@ -1841,7 +1701,6 @@ extern "C" {
     );
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_font_subtract_glyph_origin_for_direction"]
     pub fn hb_font_subtract_glyph_origin_for_direction(
         font: *mut hb_font_t,
         glyph: hb_codepoint_t,
@@ -1851,7 +1710,6 @@ extern "C" {
     );
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_font_get_glyph_extents_for_origin"]
     pub fn hb_font_get_glyph_extents_for_origin(
         font: *mut hb_font_t,
         glyph: hb_codepoint_t,
@@ -1860,7 +1718,6 @@ extern "C" {
     ) -> hb_bool_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_font_get_glyph_contour_point_for_origin"]
     pub fn hb_font_get_glyph_contour_point_for_origin(
         font: *mut hb_font_t,
         glyph: hb_codepoint_t,
@@ -1871,7 +1728,6 @@ extern "C" {
     ) -> hb_bool_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_font_glyph_to_string"]
     pub fn hb_font_glyph_to_string(
         font: *mut hb_font_t,
         glyph: hb_codepoint_t,
@@ -1880,7 +1736,6 @@ extern "C" {
     );
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_font_glyph_from_string"]
     pub fn hb_font_glyph_from_string(
         font: *mut hb_font_t,
         s: *const ::std::os::raw::c_char,
@@ -1889,27 +1744,21 @@ extern "C" {
     ) -> hb_bool_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_font_create"]
     pub fn hb_font_create(face: *mut hb_face_t) -> *mut hb_font_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_font_create_sub_font"]
     pub fn hb_font_create_sub_font(parent: *mut hb_font_t) -> *mut hb_font_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_font_get_empty"]
     pub fn hb_font_get_empty() -> *mut hb_font_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_font_reference"]
     pub fn hb_font_reference(font: *mut hb_font_t) -> *mut hb_font_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_font_destroy"]
     pub fn hb_font_destroy(font: *mut hb_font_t);
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_font_set_user_data"]
     pub fn hb_font_set_user_data(
         font: *mut hb_font_t,
         key: *mut hb_user_data_key_t,
@@ -1919,38 +1768,30 @@ extern "C" {
     ) -> hb_bool_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_font_get_user_data"]
     pub fn hb_font_get_user_data(
         font: *mut hb_font_t,
         key: *mut hb_user_data_key_t,
     ) -> *mut ::std::os::raw::c_void;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_font_make_immutable"]
     pub fn hb_font_make_immutable(font: *mut hb_font_t);
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_font_is_immutable"]
     pub fn hb_font_is_immutable(font: *mut hb_font_t) -> hb_bool_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_font_set_parent"]
     pub fn hb_font_set_parent(font: *mut hb_font_t, parent: *mut hb_font_t);
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_font_get_parent"]
     pub fn hb_font_get_parent(font: *mut hb_font_t) -> *mut hb_font_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_font_set_face"]
     pub fn hb_font_set_face(font: *mut hb_font_t, face: *mut hb_face_t);
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_font_get_face"]
     pub fn hb_font_get_face(font: *mut hb_font_t) -> *mut hb_face_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_font_set_funcs"]
     pub fn hb_font_set_funcs(
         font: *mut hb_font_t,
         klass: *mut hb_font_funcs_t,
@@ -1959,7 +1800,6 @@ extern "C" {
     );
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_font_set_funcs_data"]
     pub fn hb_font_set_funcs_data(
         font: *mut hb_font_t,
         font_data: *mut ::std::os::raw::c_void,
@@ -1967,7 +1807,6 @@ extern "C" {
     );
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_font_set_scale"]
     pub fn hb_font_set_scale(
         font: *mut hb_font_t,
         x_scale: ::std::os::raw::c_int,
@@ -1975,7 +1814,6 @@ extern "C" {
     );
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_font_get_scale"]
     pub fn hb_font_get_scale(
         font: *mut hb_font_t,
         x_scale: *mut ::std::os::raw::c_int,
@@ -1983,7 +1821,6 @@ extern "C" {
     );
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_font_set_ppem"]
     pub fn hb_font_set_ppem(
         font: *mut hb_font_t,
         x_ppem: ::std::os::raw::c_uint,
@@ -1991,7 +1828,6 @@ extern "C" {
     );
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_font_get_ppem"]
     pub fn hb_font_get_ppem(
         font: *mut hb_font_t,
         x_ppem: *mut ::std::os::raw::c_uint,
@@ -1999,15 +1835,12 @@ extern "C" {
     );
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_font_set_ptem"]
     pub fn hb_font_set_ptem(font: *mut hb_font_t, ptem: f32);
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_font_get_ptem"]
     pub fn hb_font_get_ptem(font: *mut hb_font_t) -> f32;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_font_set_variations"]
     pub fn hb_font_set_variations(
         font: *mut hb_font_t,
         variations: *const hb_variation_t,
@@ -2015,7 +1848,6 @@ extern "C" {
     );
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_font_set_var_coords_design"]
     pub fn hb_font_set_var_coords_design(
         font: *mut hb_font_t,
         coords: *const f32,
@@ -2023,7 +1855,6 @@ extern "C" {
     );
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_font_set_var_coords_normalized"]
     pub fn hb_font_set_var_coords_normalized(
         font: *mut hb_font_t,
         coords: *const ::std::os::raw::c_int,
@@ -2031,7 +1862,6 @@ extern "C" {
     );
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_font_get_var_coords_normalized"]
     pub fn hb_font_get_var_coords_normalized(
         font: *mut hb_font_t,
         length: *mut ::std::os::raw::c_uint,
@@ -2119,7 +1949,6 @@ pub enum hb_glyph_flags_t {
     HB_GLYPH_FLAG_UNSAFE_TO_BREAK = 1,
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_glyph_info_get_glyph_flags"]
     pub fn hb_glyph_info_get_glyph_flags(info: *const hb_glyph_info_t) -> hb_glyph_flags_t;
 }
 #[repr(C)]
@@ -2275,14 +2104,12 @@ fn bindgen_test_layout_hb_segment_properties_t() {
     );
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_segment_properties_equal"]
     pub fn hb_segment_properties_equal(
         a: *const hb_segment_properties_t,
         b: *const hb_segment_properties_t,
     ) -> hb_bool_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_segment_properties_hash"]
     pub fn hb_segment_properties_hash(p: *const hb_segment_properties_t) -> ::std::os::raw::c_uint;
 }
 #[repr(C)]
@@ -2291,23 +2118,18 @@ pub struct hb_buffer_t {
     _unused: [u8; 0],
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_buffer_create"]
     pub fn hb_buffer_create() -> *mut hb_buffer_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_buffer_get_empty"]
     pub fn hb_buffer_get_empty() -> *mut hb_buffer_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_buffer_reference"]
     pub fn hb_buffer_reference(buffer: *mut hb_buffer_t) -> *mut hb_buffer_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_buffer_destroy"]
     pub fn hb_buffer_destroy(buffer: *mut hb_buffer_t);
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_buffer_set_user_data"]
     pub fn hb_buffer_set_user_data(
         buffer: *mut hb_buffer_t,
         key: *mut hb_user_data_key_t,
@@ -2317,7 +2139,6 @@ extern "C" {
     ) -> hb_bool_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_buffer_get_user_data"]
     pub fn hb_buffer_get_user_data(
         buffer: *mut hb_buffer_t,
         key: *mut hb_user_data_key_t,
@@ -2331,67 +2152,54 @@ pub enum hb_buffer_content_type_t {
     HB_BUFFER_CONTENT_TYPE_GLYPHS = 2,
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_buffer_set_content_type"]
     pub fn hb_buffer_set_content_type(
         buffer: *mut hb_buffer_t,
         content_type: hb_buffer_content_type_t,
     );
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_buffer_get_content_type"]
     pub fn hb_buffer_get_content_type(buffer: *mut hb_buffer_t) -> hb_buffer_content_type_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_buffer_set_unicode_funcs"]
     pub fn hb_buffer_set_unicode_funcs(
         buffer: *mut hb_buffer_t,
         unicode_funcs: *mut hb_unicode_funcs_t,
     );
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_buffer_get_unicode_funcs"]
     pub fn hb_buffer_get_unicode_funcs(buffer: *mut hb_buffer_t) -> *mut hb_unicode_funcs_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_buffer_set_direction"]
     pub fn hb_buffer_set_direction(buffer: *mut hb_buffer_t, direction: hb_direction_t);
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_buffer_get_direction"]
     pub fn hb_buffer_get_direction(buffer: *mut hb_buffer_t) -> hb_direction_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_buffer_set_script"]
     pub fn hb_buffer_set_script(buffer: *mut hb_buffer_t, script: hb_script_t);
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_buffer_get_script"]
     pub fn hb_buffer_get_script(buffer: *mut hb_buffer_t) -> hb_script_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_buffer_set_language"]
     pub fn hb_buffer_set_language(buffer: *mut hb_buffer_t, language: hb_language_t);
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_buffer_get_language"]
     pub fn hb_buffer_get_language(buffer: *mut hb_buffer_t) -> hb_language_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_buffer_set_segment_properties"]
     pub fn hb_buffer_set_segment_properties(
         buffer: *mut hb_buffer_t,
         props: *const hb_segment_properties_t,
     );
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_buffer_get_segment_properties"]
     pub fn hb_buffer_get_segment_properties(
         buffer: *mut hb_buffer_t,
         props: *mut hb_segment_properties_t,
     );
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_buffer_guess_segment_properties"]
     pub fn hb_buffer_guess_segment_properties(buffer: *mut hb_buffer_t);
 }
 #[repr(u32)]
@@ -2405,11 +2213,9 @@ pub enum hb_buffer_flags_t {
     HB_BUFFER_FLAG_DO_NOT_INSERT_DOTTED_CIRCLE = 16,
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_buffer_set_flags"]
     pub fn hb_buffer_set_flags(buffer: *mut hb_buffer_t, flags: hb_buffer_flags_t);
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_buffer_get_flags"]
     pub fn hb_buffer_get_flags(buffer: *mut hb_buffer_t) -> hb_buffer_flags_t;
 }
 impl hb_buffer_cluster_level_t {
@@ -2424,60 +2230,48 @@ pub enum hb_buffer_cluster_level_t {
     HB_BUFFER_CLUSTER_LEVEL_CHARACTERS = 2,
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_buffer_set_cluster_level"]
     pub fn hb_buffer_set_cluster_level(
         buffer: *mut hb_buffer_t,
         cluster_level: hb_buffer_cluster_level_t,
     );
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_buffer_get_cluster_level"]
     pub fn hb_buffer_get_cluster_level(buffer: *mut hb_buffer_t) -> hb_buffer_cluster_level_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_buffer_set_replacement_codepoint"]
     pub fn hb_buffer_set_replacement_codepoint(
         buffer: *mut hb_buffer_t,
         replacement: hb_codepoint_t,
     );
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_buffer_get_replacement_codepoint"]
     pub fn hb_buffer_get_replacement_codepoint(buffer: *mut hb_buffer_t) -> hb_codepoint_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_buffer_set_invisible_glyph"]
     pub fn hb_buffer_set_invisible_glyph(buffer: *mut hb_buffer_t, invisible: hb_codepoint_t);
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_buffer_get_invisible_glyph"]
     pub fn hb_buffer_get_invisible_glyph(buffer: *mut hb_buffer_t) -> hb_codepoint_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_buffer_reset"]
     pub fn hb_buffer_reset(buffer: *mut hb_buffer_t);
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_buffer_clear_contents"]
     pub fn hb_buffer_clear_contents(buffer: *mut hb_buffer_t);
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_buffer_pre_allocate"]
     pub fn hb_buffer_pre_allocate(
         buffer: *mut hb_buffer_t,
         size: ::std::os::raw::c_uint,
     ) -> hb_bool_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_buffer_allocation_successful"]
     pub fn hb_buffer_allocation_successful(buffer: *mut hb_buffer_t) -> hb_bool_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_buffer_reverse"]
     pub fn hb_buffer_reverse(buffer: *mut hb_buffer_t);
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_buffer_reverse_range"]
     pub fn hb_buffer_reverse_range(
         buffer: *mut hb_buffer_t,
         start: ::std::os::raw::c_uint,
@@ -2485,11 +2279,9 @@ extern "C" {
     );
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_buffer_reverse_clusters"]
     pub fn hb_buffer_reverse_clusters(buffer: *mut hb_buffer_t);
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_buffer_add"]
     pub fn hb_buffer_add(
         buffer: *mut hb_buffer_t,
         codepoint: hb_codepoint_t,
@@ -2497,7 +2289,6 @@ extern "C" {
     );
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_buffer_add_utf8"]
     pub fn hb_buffer_add_utf8(
         buffer: *mut hb_buffer_t,
         text: *const ::std::os::raw::c_char,
@@ -2507,7 +2298,6 @@ extern "C" {
     );
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_buffer_add_utf16"]
     pub fn hb_buffer_add_utf16(
         buffer: *mut hb_buffer_t,
         text: *const u16,
@@ -2517,7 +2307,6 @@ extern "C" {
     );
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_buffer_add_utf32"]
     pub fn hb_buffer_add_utf32(
         buffer: *mut hb_buffer_t,
         text: *const u32,
@@ -2527,7 +2316,6 @@ extern "C" {
     );
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_buffer_add_latin1"]
     pub fn hb_buffer_add_latin1(
         buffer: *mut hb_buffer_t,
         text: *const u8,
@@ -2537,7 +2325,6 @@ extern "C" {
     );
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_buffer_add_codepoints"]
     pub fn hb_buffer_add_codepoints(
         buffer: *mut hb_buffer_t,
         text: *const hb_codepoint_t,
@@ -2547,7 +2334,6 @@ extern "C" {
     );
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_buffer_append"]
     pub fn hb_buffer_append(
         buffer: *mut hb_buffer_t,
         source: *mut hb_buffer_t,
@@ -2556,32 +2342,27 @@ extern "C" {
     );
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_buffer_set_length"]
     pub fn hb_buffer_set_length(
         buffer: *mut hb_buffer_t,
         length: ::std::os::raw::c_uint,
     ) -> hb_bool_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_buffer_get_length"]
     pub fn hb_buffer_get_length(buffer: *mut hb_buffer_t) -> ::std::os::raw::c_uint;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_buffer_get_glyph_infos"]
     pub fn hb_buffer_get_glyph_infos(
         buffer: *mut hb_buffer_t,
         length: *mut ::std::os::raw::c_uint,
     ) -> *mut hb_glyph_info_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_buffer_get_glyph_positions"]
     pub fn hb_buffer_get_glyph_positions(
         buffer: *mut hb_buffer_t,
         length: *mut ::std::os::raw::c_uint,
     ) -> *mut hb_glyph_position_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_buffer_normalize_glyphs"]
     pub fn hb_buffer_normalize_glyphs(buffer: *mut hb_buffer_t);
 }
 #[repr(u32)]
@@ -2603,24 +2384,20 @@ pub enum hb_buffer_serialize_format_t {
     HB_BUFFER_SERIALIZE_FORMAT_INVALID = 0,
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_buffer_serialize_format_from_string"]
     pub fn hb_buffer_serialize_format_from_string(
         str: *const ::std::os::raw::c_char,
         len: ::std::os::raw::c_int,
     ) -> hb_buffer_serialize_format_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_buffer_serialize_format_to_string"]
     pub fn hb_buffer_serialize_format_to_string(
         format: hb_buffer_serialize_format_t,
     ) -> *const ::std::os::raw::c_char;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_buffer_serialize_list_formats"]
     pub fn hb_buffer_serialize_list_formats() -> *mut *const ::std::os::raw::c_char;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_buffer_serialize_glyphs"]
     pub fn hb_buffer_serialize_glyphs(
         buffer: *mut hb_buffer_t,
         start: ::std::os::raw::c_uint,
@@ -2634,7 +2411,6 @@ extern "C" {
     ) -> ::std::os::raw::c_uint;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_buffer_deserialize_glyphs"]
     pub fn hb_buffer_deserialize_glyphs(
         buffer: *mut hb_buffer_t,
         buf: *const ::std::os::raw::c_char,
@@ -2658,7 +2434,6 @@ pub enum hb_buffer_diff_flags_t {
     HB_BUFFER_DIFF_FLAG_POSITION_MISMATCH = 128,
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_buffer_diff"]
     pub fn hb_buffer_diff(
         buffer: *mut hb_buffer_t,
         reference: *mut hb_buffer_t,
@@ -2675,7 +2450,6 @@ pub type hb_buffer_message_func_t = ::std::option::Option<
     ) -> hb_bool_t,
 >;
 extern "C" {
-    #[link_name = "\u{1}_hb_buffer_set_message_func"]
     pub fn hb_buffer_set_message_func(
         buffer: *mut hb_buffer_t,
         func: hb_buffer_message_func_t,
@@ -2694,7 +2468,6 @@ pub type hb_font_get_glyph_func_t = ::std::option::Option<
     ) -> hb_bool_t,
 >;
 extern "C" {
-    #[link_name = "\u{1}_hb_font_funcs_set_glyph_func"]
     pub fn hb_font_funcs_set_glyph_func(
         ffuncs: *mut hb_font_funcs_t,
         func: hb_font_get_glyph_func_t,
@@ -2703,7 +2476,6 @@ extern "C" {
     );
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_set_invert"]
     pub fn hb_set_invert(set: *mut hb_set_t);
 }
 pub type hb_unicode_eastasian_width_func_t = ::std::option::Option<
@@ -2714,7 +2486,6 @@ pub type hb_unicode_eastasian_width_func_t = ::std::option::Option<
     ) -> ::std::os::raw::c_uint,
 >;
 extern "C" {
-    #[link_name = "\u{1}_hb_unicode_funcs_set_eastasian_width_func"]
     pub fn hb_unicode_funcs_set_eastasian_width_func(
         ufuncs: *mut hb_unicode_funcs_t,
         func: hb_unicode_eastasian_width_func_t,
@@ -2723,7 +2494,6 @@ extern "C" {
     );
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_unicode_eastasian_width"]
     pub fn hb_unicode_eastasian_width(
         ufuncs: *mut hb_unicode_funcs_t,
         unicode: hb_codepoint_t,
@@ -2738,7 +2508,6 @@ pub type hb_unicode_decompose_compatibility_func_t = ::std::option::Option<
     ) -> ::std::os::raw::c_uint,
 >;
 extern "C" {
-    #[link_name = "\u{1}_hb_unicode_funcs_set_decompose_compatibility_func"]
     pub fn hb_unicode_funcs_set_decompose_compatibility_func(
         ufuncs: *mut hb_unicode_funcs_t,
         func: hb_unicode_decompose_compatibility_func_t,
@@ -2747,7 +2516,6 @@ extern "C" {
     );
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_unicode_decompose_compatibility"]
     pub fn hb_unicode_decompose_compatibility(
         ufuncs: *mut hb_unicode_funcs_t,
         u: hb_codepoint_t,
@@ -2766,7 +2534,6 @@ pub type hb_font_get_glyph_kerning_func_t = ::std::option::Option<
 pub type hb_font_get_glyph_h_kerning_func_t = hb_font_get_glyph_kerning_func_t;
 pub type hb_font_get_glyph_v_kerning_func_t = hb_font_get_glyph_kerning_func_t;
 extern "C" {
-    #[link_name = "\u{1}_hb_font_funcs_set_glyph_h_kerning_func"]
     pub fn hb_font_funcs_set_glyph_h_kerning_func(
         ffuncs: *mut hb_font_funcs_t,
         func: hb_font_get_glyph_h_kerning_func_t,
@@ -2775,7 +2542,6 @@ extern "C" {
     );
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_font_funcs_set_glyph_v_kerning_func"]
     pub fn hb_font_funcs_set_glyph_v_kerning_func(
         ffuncs: *mut hb_font_funcs_t,
         func: hb_font_get_glyph_v_kerning_func_t,
@@ -2784,7 +2550,6 @@ extern "C" {
     );
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_font_get_glyph_h_kerning"]
     pub fn hb_font_get_glyph_h_kerning(
         font: *mut hb_font_t,
         left_glyph: hb_codepoint_t,
@@ -2792,7 +2557,6 @@ extern "C" {
     ) -> hb_position_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_font_get_glyph_v_kerning"]
     pub fn hb_font_get_glyph_v_kerning(
         font: *mut hb_font_t,
         top_glyph: hb_codepoint_t,
@@ -2800,7 +2564,6 @@ extern "C" {
     ) -> hb_position_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_font_get_glyph_kerning_for_direction"]
     pub fn hb_font_get_glyph_kerning_for_direction(
         font: *mut hb_font_t,
         first_glyph: hb_codepoint_t,
@@ -2816,23 +2579,18 @@ pub struct hb_map_t {
     _unused: [u8; 0],
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_map_create"]
     pub fn hb_map_create() -> *mut hb_map_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_map_get_empty"]
     pub fn hb_map_get_empty() -> *mut hb_map_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_map_reference"]
     pub fn hb_map_reference(map: *mut hb_map_t) -> *mut hb_map_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_map_destroy"]
     pub fn hb_map_destroy(map: *mut hb_map_t);
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_map_set_user_data"]
     pub fn hb_map_set_user_data(
         map: *mut hb_map_t,
         key: *mut hb_user_data_key_t,
@@ -2842,46 +2600,36 @@ extern "C" {
     ) -> hb_bool_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_map_get_user_data"]
     pub fn hb_map_get_user_data(
         map: *mut hb_map_t,
         key: *mut hb_user_data_key_t,
     ) -> *mut ::std::os::raw::c_void;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_map_allocation_successful"]
     pub fn hb_map_allocation_successful(map: *const hb_map_t) -> hb_bool_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_map_clear"]
     pub fn hb_map_clear(map: *mut hb_map_t);
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_map_is_empty"]
     pub fn hb_map_is_empty(map: *const hb_map_t) -> hb_bool_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_map_get_population"]
     pub fn hb_map_get_population(map: *const hb_map_t) -> ::std::os::raw::c_uint;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_map_set"]
     pub fn hb_map_set(map: *mut hb_map_t, key: hb_codepoint_t, value: hb_codepoint_t);
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_map_get"]
     pub fn hb_map_get(map: *const hb_map_t, key: hb_codepoint_t) -> hb_codepoint_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_map_del"]
     pub fn hb_map_del(map: *mut hb_map_t, key: hb_codepoint_t);
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_map_has"]
     pub fn hb_map_has(map: *const hb_map_t, key: hb_codepoint_t) -> hb_bool_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_shape"]
     pub fn hb_shape(
         font: *mut hb_font_t,
         buffer: *mut hb_buffer_t,
@@ -2890,7 +2638,6 @@ extern "C" {
     );
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_shape_full"]
     pub fn hb_shape_full(
         font: *mut hb_font_t,
         buffer: *mut hb_buffer_t,
@@ -2900,7 +2647,6 @@ extern "C" {
     ) -> hb_bool_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_shape_list_shapers"]
     pub fn hb_shape_list_shapers() -> *mut *const ::std::os::raw::c_char;
 }
 #[repr(C)]
@@ -2909,7 +2655,6 @@ pub struct hb_shape_plan_t {
     _unused: [u8; 0],
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_shape_plan_create"]
     pub fn hb_shape_plan_create(
         face: *mut hb_face_t,
         props: *const hb_segment_properties_t,
@@ -2919,7 +2664,6 @@ extern "C" {
     ) -> *mut hb_shape_plan_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_shape_plan_create_cached"]
     pub fn hb_shape_plan_create_cached(
         face: *mut hb_face_t,
         props: *const hb_segment_properties_t,
@@ -2929,7 +2673,6 @@ extern "C" {
     ) -> *mut hb_shape_plan_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_shape_plan_create2"]
     pub fn hb_shape_plan_create2(
         face: *mut hb_face_t,
         props: *const hb_segment_properties_t,
@@ -2941,7 +2684,6 @@ extern "C" {
     ) -> *mut hb_shape_plan_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_shape_plan_create_cached2"]
     pub fn hb_shape_plan_create_cached2(
         face: *mut hb_face_t,
         props: *const hb_segment_properties_t,
@@ -2953,19 +2695,15 @@ extern "C" {
     ) -> *mut hb_shape_plan_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_shape_plan_get_empty"]
     pub fn hb_shape_plan_get_empty() -> *mut hb_shape_plan_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_shape_plan_reference"]
     pub fn hb_shape_plan_reference(shape_plan: *mut hb_shape_plan_t) -> *mut hb_shape_plan_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_shape_plan_destroy"]
     pub fn hb_shape_plan_destroy(shape_plan: *mut hb_shape_plan_t);
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_shape_plan_set_user_data"]
     pub fn hb_shape_plan_set_user_data(
         shape_plan: *mut hb_shape_plan_t,
         key: *mut hb_user_data_key_t,
@@ -2975,14 +2713,12 @@ extern "C" {
     ) -> hb_bool_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_shape_plan_get_user_data"]
     pub fn hb_shape_plan_get_user_data(
         shape_plan: *mut hb_shape_plan_t,
         key: *mut hb_user_data_key_t,
     ) -> *mut ::std::os::raw::c_void;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_shape_plan_execute"]
     pub fn hb_shape_plan_execute(
         shape_plan: *mut hb_shape_plan_t,
         font: *mut hb_font_t,
@@ -2992,13 +2728,11 @@ extern "C" {
     ) -> hb_bool_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_shape_plan_get_shaper"]
     pub fn hb_shape_plan_get_shaper(
         shape_plan: *mut hb_shape_plan_t,
     ) -> *const ::std::os::raw::c_char;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_version"]
     pub fn hb_version(
         major: *mut ::std::os::raw::c_uint,
         minor: *mut ::std::os::raw::c_uint,
@@ -3006,11 +2740,9 @@ extern "C" {
     );
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_version_string"]
     pub fn hb_version_string() -> *const ::std::os::raw::c_char;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_version_atleast"]
     pub fn hb_version_atleast(
         major: ::std::os::raw::c_uint,
         minor: ::std::os::raw::c_uint,
@@ -4823,42 +4555,32 @@ fn bindgen_test_layout_FT_GlyphSlotRec_() {
     );
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_ft_face_create"]
     pub fn hb_ft_face_create(ft_face: FT_Face, destroy: hb_destroy_func_t) -> *mut hb_face_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_ft_face_create_cached"]
     pub fn hb_ft_face_create_cached(ft_face: FT_Face) -> *mut hb_face_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_ft_face_create_referenced"]
     pub fn hb_ft_face_create_referenced(ft_face: FT_Face) -> *mut hb_face_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_ft_font_create"]
     pub fn hb_ft_font_create(ft_face: FT_Face, destroy: hb_destroy_func_t) -> *mut hb_font_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_ft_font_create_referenced"]
     pub fn hb_ft_font_create_referenced(ft_face: FT_Face) -> *mut hb_font_t;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_ft_font_get_face"]
     pub fn hb_ft_font_get_face(font: *mut hb_font_t) -> FT_Face;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_ft_font_set_load_flags"]
     pub fn hb_ft_font_set_load_flags(font: *mut hb_font_t, load_flags: ::std::os::raw::c_int);
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_ft_font_get_load_flags"]
     pub fn hb_ft_font_get_load_flags(font: *mut hb_font_t) -> ::std::os::raw::c_int;
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_ft_font_changed"]
     pub fn hb_ft_font_changed(font: *mut hb_font_t);
 }
 extern "C" {
-    #[link_name = "\u{1}_hb_ft_font_set_funcs"]
     pub fn hb_ft_font_set_funcs(font: *mut hb_font_t);
 }
