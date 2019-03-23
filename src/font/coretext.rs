@@ -135,7 +135,7 @@ fn metrics(codepoint: char, ct_font: &CTFont) -> Option<Metrics> {
             cell_width,
             // render.rs divides this value by 64 because freetype returns
             // a scaled integer value, so compensate here
-            descender: -64 * descent as i16,
+            descender: -descent,
         },
         ascent,
         descent,
@@ -184,20 +184,22 @@ impl Font for CoreTextFontImpl {
             .ct_font
             .get_bounding_rects_for_glyphs(kCTFontDefaultOrientation, &[glyph_pos as CGGlyph]);
 
-        let left = rect.origin.x.floor();
-        let descent = (-rect.origin.y).ceil();
-        let ascent = (rect.size.height + rect.origin.y).ceil();
+        // Pad out the size of the bitmap to allow for antialiasing.
+        // If we don't do this, we cut off the antialiased edges.
+        const AA_PADDING: f64 = 1.5;
+        let width = rect.size.width + 2.0 * AA_PADDING;
+        let height = rect.size.height + 2.0 * AA_PADDING;
 
-        let width = (rect.origin.x - left + rect.size.width).ceil() as usize;
-        let height = (descent + ascent) as usize;
+        let width = width.ceil() as usize;
+        let height = height.ceil() as usize;
 
         if width == 0 || height == 0 {
             return Ok(RasterizedGlyph {
                 data: Vec::new(),
                 height: 0,
                 width: 0,
-                bearing_x: 0,
-                bearing_y: 0,
+                bearing_x: 0.0,
+                bearing_y: 0.0,
             });
         }
 
@@ -230,20 +232,30 @@ impl Font for CoreTextFontImpl {
         self.ct_font.draw_glyphs(
             &[glyph_pos as CGGlyph],
             &[CGPoint {
-                x: -left,
-                y: descent,
+                x: -rect.origin.x + AA_PADDING,
+                y: -rect.origin.y + AA_PADDING,
             }],
             context.clone(),
         );
 
         let data = context.data().to_vec();
 
-        let bearing_y = (rect.origin.y + rect.size.height).ceil() as i32;
+        // FIXME: there's something funky in this stuff still.
+        // For the most part things line up, but with operator mono
+        // the `s` glyph is slightly too high when compared to the
+        // freetype renderer.
+        let bearing_x = rect.origin.x - AA_PADDING;
+        let bearing_y = height as f64 + AA_PADDING + rect.origin.y;
+        eprintln!(
+            "rasterize_glyph {:?} -> {}x{} bearing_x={} bearing_y={}",
+            rect, width, height, bearing_x, bearing_y
+        );
+
         Ok(RasterizedGlyph {
             data,
             height,
             width,
-            bearing_x: left as i32,
+            bearing_x,
             bearing_y,
         })
     }

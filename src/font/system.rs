@@ -11,8 +11,8 @@ pub struct RasterizedGlyph {
     pub data: Vec<u8>,
     pub height: usize,
     pub width: usize,
-    pub bearing_x: i32,
-    pub bearing_y: i32,
+    pub bearing_x: f64,
+    pub bearing_y: f64,
 }
 
 /// Holds information about a shaped glyph
@@ -102,7 +102,7 @@ pub struct FontMetrics {
     pub cell_height: f64,
     /// Added to the bottom y coord to find the baseline.
     /// descender is typically negative.
-    pub descender: i16,
+    pub descender: f64,
 }
 
 /// Represents a concrete instance of a font.

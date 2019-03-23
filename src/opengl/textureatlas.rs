@@ -140,30 +140,29 @@ pub struct SpriteSlice {
     /// The font metrics will adjust the left-most pixel
     /// by this amount.  This causes the width of cell 0
     /// to be adjusted by this same amount.
-    pub left_offset: i32,
+    pub left_offset: f32,
 }
 
 impl Sprite {
     /// Returns the scaled offset to the left most pixel in a slice.
     /// This is 0 for the first slice and increases by the slice_width
     /// as we work through the slices.
-    pub fn left_pix(&self, slice: &SpriteSlice) -> u32 {
-        let width = (self.coords.width as f32 * slice.scale) as i32;
+    pub fn left_pix(&self, slice: &SpriteSlice) -> f32 {
+        let width = self.coords.width as f32 * slice.scale;
         if slice.num_cells == 1 || slice.cell_idx == 0 {
-            0
+            0.0
         } else {
             // Width of the first cell
-            let cell_0 =
-                width.min((slice.cell_width as i32).saturating_sub(slice.left_offset)) as u32;
+            let cell_0 = width.min((slice.cell_width as f32) - slice.left_offset);
 
             if slice.cell_idx == slice.num_cells - 1 {
                 // Width of all the other cells
                 let middle = slice.cell_width * (slice.num_cells - 2);
-                cell_0 + middle as u32
+                cell_0 + middle as f32
             } else {
                 // Width of all the preceding cells
                 let prev = slice.cell_width * slice.cell_idx;
-                cell_0 + prev as u32
+                cell_0 + prev as f32
             }
         }
     }
@@ -171,28 +170,28 @@ impl Sprite {
     /// Returns the (scaled) pixel width of a slice.
     /// This is nominally the cell_width but can be modified by being the first
     /// or last in a sequence of potentially oversized sprite slices.
-    pub fn slice_width(&self, slice: &SpriteSlice) -> u32 {
-        let width = (self.coords.width as f32 * slice.scale) as i32;
+    pub fn slice_width(&self, slice: &SpriteSlice) -> f32 {
+        let width = self.coords.width as f32 * slice.scale;
 
         if slice.num_cells == 1 {
-            width as u32
+            width
         } else if slice.cell_idx == 0 {
             // The first slice can extend (or recede) to the left based
             // on the slice.left_offset value.
-            width.min((slice.cell_width as i32).saturating_sub(slice.left_offset)) as u32
+            width.min((slice.cell_width as f32) - slice.left_offset)
         } else if slice.cell_idx == slice.num_cells - 1 {
-            width as u32 - self.left_pix(slice)
+            width - self.left_pix(slice)
         } else {
             // somewhere in the middle of the sequence, the width is
             // simply the cell_width
-            slice.cell_width as u32
+            slice.cell_width as f32
         }
     }
 
     /// Returns the left coordinate for a slice in texture coordinate space
     #[inline]
     pub fn left(&self, slice: &SpriteSlice) -> f32 {
-        let left = self.coords.left as f32 + (self.left_pix(slice) as f32 / slice.scale);
+        let left = self.coords.left as f32 + (self.left_pix(slice) / slice.scale);
         left / self.texture.width() as f32
     }
 

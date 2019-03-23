@@ -41,12 +41,16 @@ impl<'a> RustTypeFontImpl<'a> {
     }
 }
 
-fn bounds(g: &PositionedGlyph) -> Rect<i32> {
+fn bounds(g: &PositionedGlyph) -> Rect<f64> {
     match g.pixel_bounding_box() {
-        Some(bounds) => bounds,
+        Some(bounds) => rusttype::Rect {
+            min: point(bounds.min.x as f64, bounds.min.y as f64),
+            max: point(bounds.max.x as f64, bounds.max.y as f64),
+        },
+
         None => rusttype::Rect {
-            min: point(0, 0),
-            max: point(0, 0),
+            min: point(0.0, 0.0),
+            max: point(0.0, 0.0),
         },
     }
 }
@@ -74,7 +78,7 @@ impl<'a> Font for RustTypeFontImpl<'a> {
         FontMetrics {
             cell_height: self.cell_height,
             cell_width: hmetrics.advance_width.into(),
-            descender: self.vmetrics.descent as i16,
+            descender: self.vmetrics.descent as f64 / 64.0,
         }
     }
 

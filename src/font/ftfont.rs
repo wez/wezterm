@@ -133,7 +133,7 @@ impl Font for FreeTypeFontImpl {
             cell_width: self.cell_width,
             // Note: face.face.descender is useless, we have to go through
             // face.face.size.metrics to get to the real descender!
-            descender: unsafe { (*(*face.face).size).metrics.descender as i16 },
+            descender: unsafe { (*(*face.face).size).metrics.descender as f64 } / 64.0,
         }
     }
 
@@ -198,8 +198,8 @@ impl Font for FreeTypeFontImpl {
                     data: rgba,
                     height,
                     width,
-                    bearing_x: ft_glyph.bitmap_left,
-                    bearing_y: ft_glyph.bitmap_top,
+                    bearing_x: ft_glyph.bitmap_left as f64,
+                    bearing_y: ft_glyph.bitmap_top as f64,
                 }
             }
             ftwrap::FT_Pixel_Mode::FT_PIXEL_MODE_BGRA => {
@@ -283,10 +283,9 @@ impl Font for FreeTypeFontImpl {
                     height: dest_height,
                     width: dest_width,
                     bearing_x: (f64::from(ft_glyph.bitmap_left)
-                        * (dest_width as f64 / width as f64)) as i32,
+                        * (dest_width as f64 / width as f64)),
                     bearing_y: (f64::from(ft_glyph.bitmap_top)
-                        * (dest_height as f64 / height as f64))
-                        as i32,
+                        * (dest_height as f64 / height as f64)),
                 }
             }
             ftwrap::FT_Pixel_Mode::FT_PIXEL_MODE_GRAY => {
@@ -310,8 +309,8 @@ impl Font for FreeTypeFontImpl {
                     data: rgba,
                     height,
                     width,
-                    bearing_x: ft_glyph.bitmap_left,
-                    bearing_y: ft_glyph.bitmap_top,
+                    bearing_x: ft_glyph.bitmap_left as f64,
+                    bearing_y: ft_glyph.bitmap_top as f64,
                 }
             }
             ftwrap::FT_Pixel_Mode::FT_PIXEL_MODE_MONO => {
@@ -346,8 +345,8 @@ impl Font for FreeTypeFontImpl {
                     data: rgba,
                     height,
                     width,
-                    bearing_x: ft_glyph.bitmap_left,
-                    bearing_y: ft_glyph.bitmap_top,
+                    bearing_x: ft_glyph.bitmap_left as f64,
+                    bearing_y: ft_glyph.bitmap_top as f64,
                 }
             }
             mode => bail!("unhandled pixel mode: {:?}", mode),
