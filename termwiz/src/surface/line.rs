@@ -362,7 +362,7 @@ impl Line {
                     .set_background(attr.background)
                     .clone()
             {
-                let left = text_run.trim_right_matches(' ').to_string();
+                let left = text_run.trim_end_matches(' ').to_string();
                 let num_trailing_spaces = text_run.len() - left.len();
 
                 if num_trailing_spaces > 0 {

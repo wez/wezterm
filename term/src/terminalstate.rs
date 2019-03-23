@@ -286,7 +286,7 @@ impl TerminalState {
                 if !s.is_empty() {
                     s.push('\n');
                 }
-                s.push_str(screen.lines[idx].columns_as_str(cols).trim_right());
+                s.push_str(screen.lines[idx].columns_as_str(cols).trim_end());
             }
         }
 
