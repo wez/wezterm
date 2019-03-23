@@ -16,16 +16,19 @@ pub use self::system::*;
 
 pub mod ftwrap;
 
-#[cfg(all(unix, not(target_os = "macos")))]
+#[cfg(all(unix, any(feature = "force-fontconfig", not(target_os = "macos"))))]
 pub mod fcwrap;
-#[cfg(all(unix, not(target_os = "macos")))]
+#[cfg(all(unix, any(feature = "force-fontconfig", not(target_os = "macos"))))]
 pub mod fontconfigandfreetype;
 
 #[cfg(target_os = "macos")]
 pub mod coretext;
 
+#[cfg(any(target_os = "macos", windows))]
 pub mod fontloader;
+#[cfg(any(target_os = "macos", windows))]
 pub mod fontloader_and_freetype;
+#[cfg(any(target_os = "macos", windows))]
 pub mod fontloader_and_rusttype;
 pub mod rtype;
 
@@ -80,16 +83,25 @@ impl FontSystemSelection {
     fn new_font_system(self) -> Rc<FontSystem> {
         match self {
             FontSystemSelection::FontConfigAndFreeType => {
-                #[cfg(all(unix, not(target_os = "macos")))]
+                #[cfg(all(unix, any(feature = "force-fontconfig", not(target_os = "macos"))))]
                 return Rc::new(fontconfigandfreetype::FontSystemImpl::new());
-                #[cfg(not(all(unix, not(target_os = "macos"))))]
+                #[cfg(not(all(
+                    unix,
+                    any(feature = "force-fontconfig", not(target_os = "macos"))
+                )))]
                 panic!("fontconfig not compiled in");
             }
             FontSystemSelection::FontLoaderAndFreeType => {
-                Rc::new(fontloader_and_freetype::FontSystemImpl::new())
+                #[cfg(any(target_os = "macos", windows))]
+                return Rc::new(fontloader_and_freetype::FontSystemImpl::new());
+                #[cfg(not(any(target_os = "macos", windows)))]
+                panic!("font-loader not compiled in");
             }
             FontSystemSelection::FontLoaderAndRustType => {
-                Rc::new(fontloader_and_rusttype::FontSystemImpl::new())
+                #[cfg(any(target_os = "macos", windows))]
+                return Rc::new(fontloader_and_rusttype::FontSystemImpl::new());
+                #[cfg(not(any(target_os = "macos", windows)))]
+                panic!("font-loader not compiled in");
             }
             FontSystemSelection::CoreText => {
                 #[cfg(target_os = "macos")]
@@ -258,8 +270,8 @@ pub fn shape_with_harfbuzz(
     ];
 
     let mut buf = harfbuzz::Buffer::new()?;
-    buf.set_script(harfbuzz::HB_SCRIPT_LATIN);
-    buf.set_direction(harfbuzz::HB_DIRECTION_LTR);
+    buf.set_script(harfbuzz::hb_script_t::HB_SCRIPT_LATIN);
+    buf.set_direction(harfbuzz::hb_direction_t::HB_DIRECTION_LTR);
     buf.set_language(harfbuzz::language_from_string("en")?);
     buf.add_str(s);
 

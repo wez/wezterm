@@ -1,10 +1,14 @@
 //! Higher level freetype bindings
 
 use failure::Error;
-pub use freetype::freetype::*;
-use freetype::succeeded;
+pub use freetype::*;
 use std::ffi::CString;
 use std::ptr;
+
+#[inline]
+pub fn succeeded(error: FT_Error) -> bool {
+    error == freetype::FT_Err_Ok as FT_Error
+}
 
 /// Translate an error and value into a result
 fn ft_result<T>(err: FT_Error, t: T) -> Result<T, Error> {
@@ -59,26 +63,6 @@ impl Face {
 
     pub fn select_size(&mut self, idx: usize) -> Result<(), Error> {
         ft_result(unsafe { FT_Select_Size(self.face, idx as i32) }, ())
-    }
-
-    pub fn load_codepoint(
-        &mut self,
-        codepoint: char,
-    ) -> Result<(FT_UInt, FT_Glyph_Metrics_), Error> {
-        unsafe {
-            let glyph_pos = FT_Get_Char_Index(self.face, FT_ULong::from(u32::from(codepoint)));
-            let res = FT_Load_Glyph(self.face, glyph_pos, FT_LOAD_COLOR as i32);
-            ensure!(
-                succeeded(res),
-                "load_codepoint {}: FreeType error {:?} 0x{:x}",
-                codepoint,
-                res,
-                res
-            );
-
-            let glyph = &(*(*self.face).glyph);
-            Ok((glyph_pos, glyph.metrics))
-        }
     }
 
     pub fn load_and_render_glyph(

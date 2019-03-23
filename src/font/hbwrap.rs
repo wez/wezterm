@@ -2,18 +2,15 @@
 #![allow(dead_code)]
 #[cfg(target_os = "macos")]
 use core_text::font::{CTFont, CTFontRef};
-#[cfg(any(target_os = "android", all(unix, not(target_os = "macos"))))]
 use freetype;
 
-pub use self::harfbuzz::*;
-use harfbuzz_sys as harfbuzz;
+pub use harfbuzz::*;
 
 use failure::Error;
 use std::mem;
 use std::ptr;
 use std::slice;
 
-#[cfg(any(target_os = "android", all(unix, not(target_os = "macos"))))]
 extern "C" {
     fn hb_ft_font_set_load_flags(font: *mut hb_font_t, load_flags: i32);
 }
@@ -92,7 +89,7 @@ impl Blob {
             hb_blob_create(
                 data.as_ptr() as *const i8,
                 data.len() as u32,
-                HB_MEMORY_MODE_READONLY,
+                hb_memory_mode_t::HB_MEMORY_MODE_READONLY,
                 ptr::null_mut(),
                 None,
             )
@@ -127,15 +124,14 @@ impl Face {
 }
 
 impl Font {
-    #[cfg(not(target_os = "macos"))]
     /// Create a harfbuzz face from a freetype font
-    pub fn new(face: freetype::freetype::FT_Face) -> Font {
+    pub fn new(face: freetype::FT_Face) -> Font {
         // hb_ft_font_create_referenced always returns a
         // pointer to something, or derefs a nullptr internally
         // if everything fails, so there's nothing for us to
         // test here.
         Font {
-            font: unsafe { hb_ft_font_create_referenced(face) },
+            font: unsafe { hb_ft_font_create_referenced(face as _) },
         }
     }
     #[cfg(target_os = "macos")]
@@ -163,8 +159,7 @@ impl Font {
         Ok(Self { font })
     }
 
-    #[cfg(not(target_os = "macos"))]
-    pub fn set_load_flags(&mut self, load_flags: freetype::freetype::FT_Int32) {
+    pub fn set_load_flags(&mut self, load_flags: freetype::FT_Int32) {
         unsafe {
             hb_ft_font_set_load_flags(self.font, load_flags);
         }

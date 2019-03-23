@@ -2,7 +2,9 @@
 use crate::config::{Config, TextStyle};
 use crate::font::fontloader;
 use crate::font::ftfont::FreeTypeFontImpl;
-use crate::font::{ftwrap, FallbackIdx, Font, FontSystem, GlyphInfo, NamedFont};
+use crate::font::{
+    ftwrap, shape_with_harfbuzz, FallbackIdx, Font, FontSystem, GlyphInfo, NamedFont,
+};
 use failure::Error;
 
 struct NamedFontImpl {
@@ -63,29 +65,7 @@ impl FontSystem for FontLoaderAndFreeType {
         }))
     }
 }
-impl NamedFontImpl {
-    fn shape_codepoint(&mut self, c: char, cluster: usize) -> Result<GlyphInfo, Error> {
-        for (font_idx, font) in self.fonts.iter().enumerate() {
-            let mut info = match font.single_glyph_info(c) {
-                Err(_) => continue,
-                Ok(info) => info,
-            };
-            if info.glyph_pos == 0 {
-                continue;
-            }
-            info.cluster = cluster as u32;
-            info.font_idx = font_idx;
-            return Ok(info);
-        }
-        if c == '?' {
-            bail!("no glyph for ?");
-        }
-        match self.shape_codepoint('?', cluster) {
-            Ok(info) => Ok(info),
-            Err(_) => bail!("no glyph for {}, and no glyph for fallback ?", c),
-        }
-    }
-}
+
 impl NamedFont for NamedFontImpl {
     fn get_fallback(&mut self, idx: FallbackIdx) -> Result<&Font, Error> {
         self.fonts
@@ -98,14 +78,6 @@ impl NamedFont for NamedFontImpl {
     }
 
     fn shape(&mut self, s: &str) -> Result<Vec<GlyphInfo>, Error> {
-        let mut shaped = Vec::with_capacity(s.len());
-
-        let mut cluster = 0;
-        for c in s.chars() {
-            let info = self.shape_codepoint(c, cluster)?;
-            cluster += c.len_utf8();
-            shaped.push(info);
-        }
-        Ok(shaped)
+        shape_with_harfbuzz(self, 0, s)
     }
 }

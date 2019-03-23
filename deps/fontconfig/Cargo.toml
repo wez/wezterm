@@ -1,0 +1,13 @@
+[package]
+authors = ["Wez Furlong <wez@wezfurlong.org>"]
+name = "fontconfig"
+version = "0.1.0"
+edition = "2018"
+links = "fontconfig"
+build = "build.rs"
+
+[dependencies]
+libc = "~0.2"
+
+[build-dependencies]
+pkg-config = "0.3"

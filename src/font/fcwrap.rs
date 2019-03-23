@@ -1,7 +1,7 @@
 //! Slightly higher level helper for fontconfig
 
 use failure::{self, Error};
-pub use fontconfig::fontconfig::*;
+pub use fontconfig::*;
 use std::ffi::{CStr, CString};
 use std::mem;
 use std::ptr;
@@ -53,21 +53,11 @@ impl FontSet {
             position: 0,
         }
     }
-
-    #[allow(dead_code)]
-    pub fn add(&mut self, pat: &Pattern) {
-        unsafe {
-            FcFontSetAdd(self.fonts, pat.pat);
-        }
-    }
 }
 
 #[repr(C)]
-#[allow(dead_code)]
 pub enum MatchKind {
     Pattern = FcMatchPattern as isize,
-    Font = FcMatchFont as isize,
-    Scan = FcMatchScan as isize,
 }
 
 pub struct FcResultWrap(FcResult);
@@ -105,7 +95,6 @@ pub struct Pattern {
 }
 
 impl Pattern {
-    #[allow(dead_code)]
     pub fn new() -> Result<Pattern, Error> {
         unsafe {
             let p = FcPatternCreate();
@@ -114,7 +103,6 @@ impl Pattern {
         }
     }
 
-    #[allow(dead_code)]
     pub fn add_string(&mut self, key: &str, value: &str) -> Result<(), Error> {
         let key = CString::new(key)?;
         let value = CString::new(value)?;
@@ -129,7 +117,6 @@ impl Pattern {
         }
     }
 
-    #[allow(dead_code)]
     pub fn add_double(&mut self, key: &str, value: f64) -> Result<(), Error> {
         let key = CString::new(key)?;
         unsafe {
@@ -143,7 +130,6 @@ impl Pattern {
         }
     }
 
-    #[allow(dead_code)]
     pub fn add_integer(&mut self, key: &str, value: i32) -> Result<(), Error> {
         let key = CString::new(key)?;
         unsafe {
@@ -157,24 +143,14 @@ impl Pattern {
         }
     }
 
-    #[allow(dead_code)]
     pub fn family(&mut self, family: &str) -> Result<(), Error> {
         self.add_string("family", family)
     }
 
-    #[allow(dead_code)]
     pub fn monospace(&mut self) -> Result<(), Error> {
         self.add_integer("spacing", FC_MONO)
     }
 
-    #[allow(dead_code)]
-    pub fn print(&self) {
-        unsafe {
-            FcPatternPrint(self.pat);
-        }
-    }
-
-    #[allow(dead_code)]
     pub fn format(&self, fmt: &str) -> Result<String, Error> {
         let fmt = CString::new(fmt)?;
         unsafe {
@@ -213,15 +189,6 @@ impl Pattern {
         }
     }
 
-    #[allow(dead_code)]
-    pub fn find_match(&self) -> Result<Pattern, Error> {
-        unsafe {
-            let mut res = FcResultWrap(0);
-            let pat = FcFontMatch(ptr::null_mut(), self.pat, &mut res.0 as *mut _);
-            res.result(Pattern { pat })
-        }
-    }
-
     pub fn sort(&self, trim: bool) -> Result<FontSet, Error> {
         unsafe {
             let mut res = FcResultWrap(0);
@@ -241,7 +208,6 @@ impl Pattern {
         self.get_string("file")
     }
 
-    #[allow(dead_code)]
     pub fn get_double(&self, key: &str) -> Result<f64, Error> {
         unsafe {
             let key = CString::new(key)?;
@@ -256,25 +222,6 @@ impl Pattern {
                 Err(res.as_err())
             } else {
                 Ok(fval)
-            }
-        }
-    }
-
-    #[allow(dead_code)]
-    pub fn get_integer(&self, key: &str) -> Result<i32, Error> {
-        unsafe {
-            let key = CString::new(key)?;
-            let mut ival: i32 = 0;
-            let res = FcResultWrap(FcPatternGetInteger(
-                self.pat,
-                key.as_ptr(),
-                0,
-                &mut ival as *mut _,
-            ));
-            if !res.succeeded() {
-                Err(res.as_err())
-            } else {
-                Ok(ival)
             }
         }
     }

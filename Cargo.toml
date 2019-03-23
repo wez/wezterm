@@ -17,11 +17,10 @@ serde_derive = "~1.0"
 toml = "~0.4"
 unicode-width = "~0.1"
 dirs = "~1.0"
-font-loader = "0.8"
 rusttype = "0.7"
 clipboard = "0.5"
 unicode-normalization = "~0.1"
-freetype = "~0.4"
+freetype = { path = "deps/freetype" }
 open = "1.2"
 structopt = "0.2"
 foreign-types = "0.3"
@@ -36,15 +35,24 @@ leb128 = "0.2"
 zstd = "0.4"
 
 [target.'cfg(unix)'.dependencies]
-harfbuzz-sys = { git = "https://github.com/wez/rust-harfbuzz", branch="coretext" }
+harfbuzz = { path = "deps/harfbuzz" }
 mio = "~0.6"
 mio-extras = "~2.0"
+
+[dependencies.fontconfig]
+optional = true
+path = "deps/fontconfig"
 
 [dependencies.term]
 path = "term"
 
 [dependencies.termwiz]
 path = "termwiz"
+
+[target.'cfg(any(windows, target_os = "macos"))'.dependencies.font-loader]
+# on linux, font-loader pulls in servo-font* crates which conflict with
+# our newer font related deps, so we avoid it on linux
+version = "0.8"
 
 [target."cfg(windows)".dependencies.uds_windows]
 version = "0.1"
@@ -61,7 +69,7 @@ features = [
 version = "~0.3"
 
 [target.'cfg(any(target_os = "android", all(unix, not(target_os = "macos"))))'.dependencies]
-servo-fontconfig = "~0.4"
+fontconfig = { path = "deps/fontconfig" }
 egli = "~0.4"
 x11 = {version ="~2.18", features = ["xlib_xcb"]}
 
@@ -94,11 +102,11 @@ core-foundation = "0.6"
 debug-escape-sequences = ["term/debug-escape-sequences"]
 force-glutin = []
 force-rusttype = []
+force-fontconfig = ["fontconfig"]
 
 [patch.crates-io]
 # We need https://github.com/tomaka/glutin/pull/1099
 glutin = { git = "https://github.com/yvt/glutin", branch="patch-macos-iscurrent" }
-harfbuzz-sys = { git = "https://github.com/wez/rust-harfbuzz", branch="coretext" }
 
 [workspace]
 

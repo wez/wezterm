@@ -1,6 +1,12 @@
 [submodule "harfbuzz/harfbuzz"]
-	path = ci/harfbuzz
+	path = deps/harfbuzz/harfbuzz
 	url = https://github.com/harfbuzz/harfbuzz.git
 [submodule "ci/esctest"]
 	path = ci/esctest
 	url = https://gitlab.freedesktop.org/terminal-wg/esctest
+[submodule "freetype/freetype2"]
+	path = deps/freetype/freetype2
+	url = git://git.savannah.gnu.org/freetype/freetype2.git
+[submodule "freetype/libpng"]
+	path = deps/freetype/libpng
+	url = https://github.com/glennrp/libpng.git

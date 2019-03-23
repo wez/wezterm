@@ -1,24 +1,18 @@
-use crate::font::system::GlyphInfo;
+use super::hbwrap as harfbuzz;
 use crate::font::{ftwrap, Font, FontMetrics, RasterizedGlyph};
 use failure::Error;
 use std::cell::RefCell;
-use std::collections::HashMap;
 use std::mem;
 use std::slice;
-
-#[cfg(unix)]
-use super::hbwrap as harfbuzz;
 
 /// Holds a loaded font alternative
 pub struct FreeTypeFontImpl {
     face: RefCell<ftwrap::Face>,
-    #[cfg(all(unix, not(target_os = "macos")))]
     font: RefCell<harfbuzz::Font>,
     /// nominal monospace cell height
     cell_height: f64,
     /// nominal monospace cell width
     cell_width: f64,
-    glyph_cache: RefCell<HashMap<char, GlyphInfo>>,
 }
 
 impl FreeTypeFontImpl {
@@ -67,58 +61,23 @@ impl FreeTypeFontImpl {
         };
 
         debug!("metrics: width={} height={}", cell_width, cell_height);
-        #[cfg(all(unix, not(target_os = "macos")))]
         let font = harfbuzz::Font::new(face.face);
 
         Ok(FreeTypeFontImpl {
             face: RefCell::new(face),
-            #[cfg(all(unix, not(target_os = "macos")))]
             font: RefCell::new(font),
             cell_height,
             cell_width,
-            glyph_cache: RefCell::new(HashMap::new()),
         })
-    }
-
-    pub fn single_glyph_info(&self, codepoint: char) -> Result<GlyphInfo, Error> {
-        // Memoize this, as we are called frequently during shaping
-        {
-            let cache = self.glyph_cache.borrow_mut();
-            if let Some(info) = cache.get(&codepoint) {
-                return Ok(info.clone());
-            }
-        }
-        let (glyph_pos, metrics) = self.face.borrow_mut().load_codepoint(codepoint)?;
-        let info = GlyphInfo {
-            #[cfg(debug_assertions)]
-            text: codepoint.to_string(),
-            cluster: 0,
-            num_cells: unicode_width::UnicodeWidthChar::width(codepoint).unwrap_or(1) as u8,
-            font_idx: 0,
-            glyph_pos,
-            x_advance: (metrics.horiAdvance as f64 / 64.0),
-            x_offset: 0.0, //(metrics.horiBearingX as f64 / 64.0).into(),
-            y_advance: 0.0,
-            y_offset: 0.0,
-        };
-
-        self.glyph_cache
-            .borrow_mut()
-            .insert(codepoint, info.clone());
-
-        Ok(info)
     }
 }
 
 impl Font for FreeTypeFontImpl {
-    #[cfg(unix)]
-    #[allow(unused_variables)]
     fn harfbuzz_shape(
         &self,
         buf: &mut harfbuzz::Buffer,
         features: Option<&[harfbuzz::hb_feature_t]>,
     ) {
-        #[cfg(all(unix, not(target_os = "macos")))]
         self.font.borrow_mut().shape(buf, features)
     }
     fn has_color(&self) -> bool {
@@ -152,7 +111,6 @@ impl Font for FreeTypeFontImpl {
             // assembles these bits.
             (render_mode as i32) << 16;
 
-        #[cfg(all(unix, not(target_os = "macos")))]
         self.font.borrow_mut().set_load_flags(load_flags);
 
         // This clone is conceptually unsafe, but ok in practice as we are

@@ -1,0 +1,12 @@
+[package]
+authors = ["Wez Furlong <wez@wezfurlong.org>"]
+name = "freetype"
+version = "0.1.0"
+edition = "2018"
+links = "freetype"
+build = "build.rs"
+
+[dependencies]
+
+[build-dependencies]
+cmake = "0.1"
