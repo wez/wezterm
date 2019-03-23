@@ -5,97 +5,77 @@ version = "0.1.0"
 edition = "2018"
 
 [dependencies]
-bitflags = "~1.0"
-euclid = "~0.19"
-failure = "~0.1"
-failure_derive = "~0.1"
-gl = "~0.11"
-libc = "~0.2"
-palette = "~0.4"
-serde = {version="~1.0", features = ["rc"]}
-serde_derive = "~1.0"
-toml = "~0.4"
-unicode-width = "~0.1"
-dirs = "~1.0"
-clipboard = "0.5"
-unicode-normalization = "~0.1"
-freetype = { path = "deps/freetype" }
-open = "1.2"
-structopt = "0.2"
-foreign-types = "0.3"
-winit = "0.18"
-boxfnonce = "0.1"
-rayon = "1.0"
-promise = { path = "promise" }
 base91 = { path = "base91" }
-varbincode = { path = "varbincode" }
+bitflags = "1.0"
+boxfnonce = "0.1"
+clipboard = "0.5"
+dirs = "1.0"
+euclid = "0.19"
+failure = "0.1"
+failure_derive = "0.1"
+foreign-types = "0.3"
+freetype = { path = "deps/freetype" }
+gl = "0.11"
+glium = { version = "0.23", default-features = false, features = ["glutin"]}
+harfbuzz = { path = "deps/harfbuzz" }
 lazy_static = "1.3"
 leb128 = "0.2"
+libc = "0.2"
+open = "1.2"
+palette = "0.4"
+promise = { path = "promise" }
+rayon = "1.0"
+serde = {version="1.0", features = ["rc"]}
+serde_derive = "1.0"
+structopt = "0.2"
+term = { path = "term" }
+termwiz = { path = "termwiz"}
+toml = "0.4"
+unicode-normalization = "0.1"
+unicode-width = "0.1"
+varbincode = { path = "varbincode" }
+winit = "0.18"
 zstd = "0.4"
-harfbuzz = { path = "deps/harfbuzz" }
 
 [target.'cfg(unix)'.dependencies]
-mio = "~0.6"
-mio-extras = "~2.0"
+mio = "0.6"
+mio-extras = "2.0"
 
 [dependencies.fontconfig]
 optional = true
 path = "deps/fontconfig"
 
-[dependencies.term]
-path = "term"
-
-[dependencies.termwiz]
-path = "termwiz"
-
-[target.'cfg(any(windows, target_os = "macos"))'.dependencies.font-loader]
 # on linux, font-loader pulls in servo-font* crates which conflict with
 # our newer font related deps, so we avoid it on linux
-version = "0.8"
+[target.'cfg(any(windows, target_os = "macos"))'.dependencies]
+font-loader = { version = "0.8" }
 
-[target."cfg(windows)".dependencies.uds_windows]
-version = "0.1"
-
-[target."cfg(windows)".dependencies.winapi]
-features = [
+[target."cfg(windows)".dependencies]
+uds_windows = "0.1"
+winapi = { version = "0.3", features = [
     "winuser",
     "consoleapi",
     "handleapi",
     "fileapi",
     "namedpipeapi",
     "synchapi",
-]
-version = "~0.3"
+]}
 
 [target.'cfg(any(target_os = "android", all(unix, not(target_os = "macos"))))'.dependencies]
+egli = "0.4"
 fontconfig = { path = "deps/fontconfig" }
-egli = "~0.4"
-x11 = {version ="~2.18", features = ["xlib_xcb"]}
+x11 = {version ="2.18", features = ["xlib_xcb"]}
 
-[dependencies.glium]
-version = "~0.23"
-default-features = false
-features = ["glutin"]
 
-[target.'cfg(all(unix, not(target_os = "macos")))'.dependencies.xcb]
-version = "~0.8"
-
-[target.'cfg(all(unix, not(target_os = "macos")))'.dependencies.xkbcommon]
-version = "~0.4"
-features = ["x11"]
-
-[target.'cfg(all(unix, not(target_os = "macos")))'.dependencies.xcb-util]
-features = [
-    "icccm",
-    "ewmh",
-    "keysyms",
-]
-version = "~0.2"
+[target.'cfg(all(unix, not(target_os = "macos")))'.dependencies]
+xcb = "0.8"
+xcb-util = { features = [ "icccm", "ewmh", "keysyms", ], version = "0.2" }
+xkbcommon = { version = "0.4", features = ["x11"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
-core-text = "~13.1"
-core-graphics = "0.17"
 core-foundation = "0.6"
+core-graphics = "0.17"
+core-text = "13.1"
 
 [features]
 debug-escape-sequences = ["term/debug-escape-sequences"]
