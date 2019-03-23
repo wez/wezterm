@@ -72,10 +72,10 @@ struct Opt {
     skip_config: bool,
 
     #[structopt(subcommand)]
-    cmd: SubCommand,
+    cmd: Option<SubCommand>,
 }
 
-#[derive(Debug, StructOpt)]
+#[derive(Debug, StructOpt, Default, Clone)]
 struct StartCommand {
     #[structopt(
         long = "front-end",
@@ -102,7 +102,7 @@ struct StartCommand {
     prog: Vec<OsString>,
 }
 
-#[derive(Debug, StructOpt)]
+#[derive(Debug, StructOpt, Clone)]
 enum SubCommand {
     #[structopt(name = "start", about = "Start a front-end")]
     #[structopt(raw(setting = "structopt::clap::AppSettings::ColoredHelp"))]
@@ -113,7 +113,7 @@ enum SubCommand {
     Cli(CliCommand),
 }
 
-#[derive(Debug, StructOpt)]
+#[derive(Debug, StructOpt, Clone)]
 struct CliCommand {}
 
 fn run_terminal_gui(config: Arc<config::Config>, opts: &StartCommand) -> Result<(), Error> {
@@ -146,10 +146,15 @@ fn main() -> Result<(), Error> {
         config::Config::load()?
     });
 
-    match &opts.cmd {
+    match opts
+        .cmd
+        .as_ref()
+        .map(|c| c.clone())
+        .unwrap_or_else(|| SubCommand::Start(StartCommand::default()))
+    {
         SubCommand::Start(start) => {
             println!("Using configuration: {:#?}\nopts: {:#?}", config, opts);
-            run_terminal_gui(config, start)
+            run_terminal_gui(config, &start)
         }
         SubCommand::Cli(_) => {
             use crate::server::client::Client;
