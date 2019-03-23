@@ -10,3 +10,6 @@
 [submodule "freetype/libpng"]
 	path = deps/freetype/libpng
 	url = https://github.com/glennrp/libpng.git
+[submodule "deps/freetype/zlib"]
+	path = deps/freetype/zlib
+	url = https://github.com/madler/zlib.git

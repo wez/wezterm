@@ -32,7 +32,6 @@ fn harfbuzz() {
     println!("cargo:rustc-link-search=native={}/lib", dst.display());
     println!("cargo:rustc-link-lib=static=harfbuzz");
     println!("cargo:rustc-link-search=native=/usr/lib");
-    println!("cargo:rustc-link-lib=z");
 }
 
 fn main() {

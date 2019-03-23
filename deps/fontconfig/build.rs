@@ -1,5 +1,4 @@
 use pkg_config;
-use std::env;
 
 fn main() {
     if let Ok(lib) = pkg_config::Config::new()

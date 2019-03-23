@@ -244,6 +244,6 @@ mod tests {
     fn roundtrip_rgbcolor() {
         let data = bincode::serialize(&RgbColor::from_named("DarkGreen").unwrap()).unwrap();
         eprintln!("serialized as {:?}", data);
-        let decoded: RgbColor = bincode::deserialize(&data).unwrap();
+        let _decoded: RgbColor = bincode::deserialize(&data).unwrap();
     }
 }
