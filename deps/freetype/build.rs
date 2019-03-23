@@ -5,14 +5,22 @@ fn zlib() {
     let mut config = Config::new("zlib");
     let dst = config.profile("Release").build();
     println!("cargo:rustc-link-search=native={}/lib", dst.display());
-    println!("cargo:rustc-link-lib=static=z");
+    if cfg!(unix) {
+        println!("cargo:rustc-link-lib=static=z");
+    } else {
+        println!("cargo:rustc-link-lib=static=zlibstatic");
+    }
 }
 
 fn libpng() {
     let mut config = Config::new("libpng");
     let dst = config.profile("Release").build();
     println!("cargo:rustc-link-search=native={}/lib", dst.display());
-    println!("cargo:rustc-link-lib=static=png");
+    if cfg!(unix) {
+        println!("cargo:rustc-link-lib=static=png");
+    } else {
+        println!("cargo:rustc-link-lib=static=libpng16_static");
+    }
 }
 
 fn freetype() {

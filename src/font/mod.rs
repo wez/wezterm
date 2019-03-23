@@ -1,9 +1,7 @@
 use failure::Error;
 use serde_derive::*;
 mod ftfont;
-#[cfg(unix)]
 mod hbwrap;
-#[cfg(unix)]
 use self::hbwrap as harfbuzz;
 
 use std::cell::RefCell;
@@ -254,7 +252,6 @@ impl FontConfiguration {
 }
 
 #[allow(dead_code)]
-#[cfg(unix)]
 pub fn shape_with_harfbuzz(
     font: &mut NamedFont,
     font_idx: system::FallbackIdx,
