@@ -1,8 +1,23 @@
 use cmake::Config;
+use fs_extra;
 use std::env;
+use std::path::PathBuf;
 
 fn zlib() {
-    let mut config = Config::new("zlib");
+    // The out-of-source build for zlib unfortunately modifies some of
+    // the sources, leaving the repo with a dirty status.  Let's take
+    // a copy of the sources so that we don't trigger this.
+    let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
+
+    let src_dir = out_dir.join("zlib-src");
+    if src_dir.exists() {
+        fs_extra::remove_items(&vec![&src_dir]).expect("failed to remove zlib-src");
+    }
+    std::fs::create_dir(&src_dir).expect("failed to create zlib-src");
+    fs_extra::copy_items(&vec!["zlib"], &src_dir, &fs_extra::dir::CopyOptions::new())
+        .expect("failed to copy zlib to zlib-src");
+
+    let mut config = Config::new(src_dir.join("zlib"));
     let dst = config.profile("Release").build();
     println!("cargo:rustc-link-search=native={}/lib", dst.display());
     if cfg!(unix) {
