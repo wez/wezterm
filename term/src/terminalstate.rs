@@ -1582,8 +1582,8 @@ impl TerminalState {
                 let x = self.cursor.x;
                 let limit = (x + n as usize).min(self.screen().physical_cols);
                 {
+                    let blank = Cell::new(' ', self.pen.clone_sgr_only());
                     let screen = self.screen_mut();
-                    let blank = Cell::default();
                     for x in x..limit as usize {
                         screen.set_cell(x, y, &blank);
                     }
