@@ -740,6 +740,10 @@ impl TerminalState {
         }
     }
 
+    pub fn bracketed_paste_enabled(&self) -> bool {
+        self.bracketed_paste
+    }
+
     /// Send text to the terminal that is the result of pasting.
     /// If bracketed paste mode is enabled, the paste is enclosed
     /// in the bracketing, otherwise it is fed to the pty as-is.

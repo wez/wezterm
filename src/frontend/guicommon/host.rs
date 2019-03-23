@@ -1,9 +1,12 @@
 use super::window::TerminalWindow;
-use crate::mux::tab::Tab;
+use crate::frontend::gui_executor;
+use crate::mux::tab::{Tab, TabId};
+use crate::mux::Mux;
 use clipboard::{ClipboardContext, ClipboardProvider};
 use failure::Error;
+use promise::Future;
 use std::ops::{Deref, DerefMut};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use term::{KeyCode, KeyModifiers};
 use termwiz::hyperlink::Hyperlink;
 
@@ -20,6 +23,45 @@ pub struct HostImpl<H: HostHelper> {
     /// macOS gets unhappy if we set up the clipboard too early,
     /// so we use an Option to defer it until we use it
     clipboard: Option<ClipboardContext>,
+}
+
+const PASTE_CHUNK_SIZE: usize = 1024;
+
+struct Paste {
+    tab_id: TabId,
+    text: String,
+    offset: usize,
+}
+
+fn schedule_next_paste(paste: &Arc<Mutex<Paste>>) {
+    let paste = Arc::clone(paste);
+    Future::with_executor(gui_executor().unwrap(), move || {
+        let mut locked = paste.lock().unwrap();
+        let mux = Mux::get().unwrap();
+        let tab = mux.get_tab(locked.tab_id).unwrap();
+
+        let remain = locked.text.len() - locked.offset;
+        let chunk = remain.min(PASTE_CHUNK_SIZE);
+        let text_slice = &locked.text[locked.offset..locked.offset + chunk];
+        tab.send_paste(text_slice).unwrap();
+
+        if chunk < remain {
+            // There is more to send
+            locked.offset += chunk;
+            schedule_next_paste(&paste);
+        }
+
+        Ok(())
+    });
+}
+
+fn trickle_paste(tab_id: TabId, text: String) {
+    let paste = Arc::new(Mutex::new(Paste {
+        tab_id,
+        text,
+        offset: PASTE_CHUNK_SIZE,
+    }));
+    schedule_next_paste(&paste);
 }
 
 impl<H: HostHelper> HostImpl<H> {
@@ -78,7 +120,15 @@ impl<H: HostHelper> HostImpl<H> {
         if (cfg!(target_os = "macos") && mods == KeyModifiers::SUPER && key == KeyCode::Char('v'))
             || (mods == KeyModifiers::SHIFT && key == KeyCode::Insert)
         {
-            tab.send_paste(&self.get_clipboard()?)?;
+            let text = self.get_clipboard()?;
+            if text.len() <= PASTE_CHUNK_SIZE {
+                // Send it all now
+                tab.send_paste(&text)?;
+                return Ok(true);
+            }
+            // It's pretty heavy, so we trickle it into the pty
+            tab.send_paste(&text[0..PASTE_CHUNK_SIZE])?;
+            trickle_paste(tab.tab_id(), text);
             return Ok(true);
         }
         if mods == (KeyModifiers::SUPER | KeyModifiers::SHIFT)

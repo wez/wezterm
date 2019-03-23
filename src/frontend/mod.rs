@@ -5,6 +5,7 @@ use crate::mux::Mux;
 use failure::Error;
 use promise::Executor;
 use serde_derive::*;
+use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::Arc;
 
@@ -34,9 +35,23 @@ impl Default for FrontEndSelection {
     }
 }
 
+thread_local! {
+    static EXECUTOR: RefCell<Option<Box<Executor>>> = RefCell::new(None);
+}
+
+pub fn gui_executor() -> Option<Box<Executor>> {
+    let mut res = None;
+    EXECUTOR.with(|exec| {
+        if let Some(exec) = &*exec.borrow() {
+            res = Some(exec.clone_executor());
+        }
+    });
+    res
+}
+
 impl FrontEndSelection {
     pub fn try_new(self, mux: &Rc<Mux>) -> Result<Rc<FrontEnd>, Error> {
-        match self {
+        let front_end = match self {
             FrontEndSelection::Glutin => glium::glutinloop::GlutinFrontEnd::try_new(mux),
             #[cfg(all(unix, not(target_os = "macos")))]
             FrontEndSelection::X11 => xwindows::x11loop::X11FrontEnd::try_new(mux),
@@ -44,7 +59,13 @@ impl FrontEndSelection {
             FrontEndSelection::X11 => bail!("X11 not compiled in"),
             FrontEndSelection::MuxServer => muxserver::MuxServerFrontEnd::try_new(mux),
             FrontEndSelection::Null => muxserver::MuxServerFrontEnd::new_null(mux),
-        }
+        }?;
+
+        EXECUTOR.with(|exec| {
+            *exec.borrow_mut() = Some(front_end.gui_executor());
+        });
+
+        Ok(front_end)
     }
 
     // TODO: find or build a proc macro for this
