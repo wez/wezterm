@@ -173,6 +173,7 @@ pub struct TerminalState {
     current_mouse_button: MouseButton,
     mouse_position: CursorPosition,
     cursor_visible: bool,
+    dec_line_drawing_mode: bool,
 
     /// Which hyperlink is considered to be highlighted, because the
     /// mouse_position is over a cell with a Hyperlink attribute.
@@ -248,6 +249,7 @@ impl TerminalState {
             sgr_mouse: false,
             button_event_mouse: false,
             cursor_visible: true,
+            dec_line_drawing_mode: false,
             current_mouse_button: MouseButton::None,
             mouse_position: CursorPosition::default(),
             current_highlight: None,
@@ -1849,6 +1851,25 @@ impl<'a> Performer<'a> {
         let mut x_offset = 0;
 
         for g in unicode_segmentation::UnicodeSegmentation::graphemes(p.as_str(), true) {
+            let g = if self.dec_line_drawing_mode {
+                match g {
+                    "j" => "┘",
+                    "k" => "┐",
+                    "l" => "┌",
+                    "m" => "└",
+                    "n" => "┼",
+                    "q" => "─",
+                    "t" => "├",
+                    "u" => "┤",
+                    "v" => "┴",
+                    "w" => "┬",
+                    "x" => "│",
+                    _ => g,
+                }
+            } else {
+                g
+            };
+
             if !self.insert && self.wrap_next {
                 self.new_line(true);
             }
@@ -1966,8 +1987,12 @@ impl<'a> Performer<'a> {
             Esc::Code(EscCode::Index) => self.c1_index(),
             Esc::Code(EscCode::NextLine) => self.c1_nel(),
             Esc::Code(EscCode::HorizontalTabSet) => self.c1_hts(),
-            Esc::Code(EscCode::DecLineDrawing) => debug!("ESC: smacs/DecLineDrawing"),
-            Esc::Code(EscCode::AsciiCharacterSet) => debug!("ESC: rmacs/AsciiCharacterSet"),
+            Esc::Code(EscCode::DecLineDrawing) => {
+                self.dec_line_drawing_mode = true;
+            }
+            Esc::Code(EscCode::AsciiCharacterSet) => {
+                self.dec_line_drawing_mode = false;
+            }
             Esc::Code(EscCode::DecSaveCursorPosition) => self.save_cursor(),
             Esc::Code(EscCode::DecRestoreCursorPosition) => self.restore_cursor(),
             _ => println!("ESC: unhandled {:?}", esc),
