@@ -130,8 +130,10 @@ impl Screen {
         cols: impl Iterator<Item = usize>,
         attr: &CellAttributes,
     ) {
+        let physical_cols = self.physical_cols;
         let line_idx = self.phys_row(y);
         let line = self.line_mut(line_idx);
+        line.resize(physical_cols);
         line.fill_range(cols, &Cell::new(' ', attr.clone()));
     }
 
