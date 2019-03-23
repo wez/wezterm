@@ -10,9 +10,7 @@ if test -e /etc/centos-release || test -e /etc/fedora-release; then
     libxkbcommon-devel \
     libxkbcommon-x11-devel \
     fontconfig-devel \
-    freetype-devel \
     mesa-libEGL-devel \
-    harfbuzz-devel \
     ragel
   exit $?
 fi
@@ -30,9 +28,7 @@ case `lsb_release -ds` in
       libxkbcommon-dev \
       libxkbcommon-x11-dev \
       libfontconfig1-dev \
-      libfreetype6-dev \
       libegl1-mesa-dev \
-      libharfbuzz-dev \
       xdg-utils \
       ragel
     ;;
