@@ -26,9 +26,6 @@ pub mod coretext;
 pub mod fontloader;
 #[cfg(any(target_os = "macos", windows))]
 pub mod fontloader_and_freetype;
-#[cfg(any(target_os = "macos", windows))]
-pub mod fontloader_and_rusttype;
-pub mod rtype;
 
 use super::config::{Config, TextStyle};
 use term::CellAttributes;
@@ -49,20 +46,13 @@ pub struct FontConfiguration {
 pub enum FontSystemSelection {
     FontConfigAndFreeType,
     FontLoaderAndFreeType,
-    FontLoaderAndRustType,
     CoreText,
 }
 
 impl Default for FontSystemSelection {
     fn default() -> Self {
-        if cfg!(all(
-            unix,
-            not(target_os = "macos"),
-            not(feature = "force-rusttype")
-        )) {
+        if cfg!(all(unix, not(target_os = "macos"),)) {
             FontSystemSelection::FontConfigAndFreeType
-        } else if cfg!(feature = "force-rusttype") {
-            FontSystemSelection::FontLoaderAndRustType
         /*
         } else if cfg!(target_os = "macos") {
             FontSystemSelection::CoreText
@@ -92,12 +82,6 @@ impl FontSystemSelection {
             FontSystemSelection::FontLoaderAndFreeType => {
                 #[cfg(any(target_os = "macos", windows))]
                 return Rc::new(fontloader_and_freetype::FontSystemImpl::new());
-                #[cfg(not(any(target_os = "macos", windows)))]
-                panic!("font-loader not compiled in");
-            }
-            FontSystemSelection::FontLoaderAndRustType => {
-                #[cfg(any(target_os = "macos", windows))]
-                return Rc::new(fontloader_and_rusttype::FontSystemImpl::new());
                 #[cfg(not(any(target_os = "macos", windows)))]
                 panic!("font-loader not compiled in");
             }
@@ -135,7 +119,6 @@ impl std::str::FromStr for FontSystemSelection {
         match s.to_lowercase().as_ref() {
             "fontconfigandfreetype" => Ok(FontSystemSelection::FontConfigAndFreeType),
             "fontloaderandfreetype" => Ok(FontSystemSelection::FontLoaderAndFreeType),
-            "fontloaderandrusttype" => Ok(FontSystemSelection::FontLoaderAndRustType),
             "coretext" => Ok(FontSystemSelection::CoreText),
             _ => Err(format_err!(
                 "{} is not a valid FontSystemSelection variant, possible values are {:?}",

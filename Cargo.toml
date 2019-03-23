@@ -17,7 +17,6 @@ serde_derive = "~1.0"
 toml = "~0.4"
 unicode-width = "~0.1"
 dirs = "~1.0"
-rusttype = "0.7"
 clipboard = "0.5"
 unicode-normalization = "~0.1"
 freetype = { path = "deps/freetype" }
@@ -101,7 +100,6 @@ core-foundation = "0.6"
 [features]
 debug-escape-sequences = ["term/debug-escape-sequences"]
 force-glutin = []
-force-rusttype = []
 force-fontconfig = ["fontconfig"]
 
 [patch.crates-io]
