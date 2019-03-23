@@ -4,7 +4,7 @@ use super::*;
 #[test]
 fn drag_selection() {
     let mut term = TestTerm::new(3, 12, 0);
-    term.print("hello world\n");
+    term.print("hello world\r\n");
     assert_visible_contents(&term, &["hello world ", "            ", "            "]);
 
     term.drag_select(1, 0, 4, 0);
@@ -12,7 +12,7 @@ fn drag_selection() {
 
     // Now check that we respect double-width boundaries reasonably sanely;
     // here we're dragging from the middle of the skull emoji
-    term.print("\u{1F480}skull\n");
+    term.print("\u{1F480}skull\r\n");
     assert_visible_contents(
         &term,
         &["hello world ", "\u{1F480}skull     ", "            "],

@@ -1938,7 +1938,7 @@ impl<'a> Performer<'a> {
         self.flush_print();
         match control {
             ControlCode::LineFeed | ControlCode::VerticalTab | ControlCode::FormFeed => {
-                self.new_line(true /* TODO: depend on terminal mode */)
+                self.new_line(false)
             }
             ControlCode::CarriageReturn => {
                 self.set_cursor_pos(&Position::Absolute(0), &Position::Relative(0));

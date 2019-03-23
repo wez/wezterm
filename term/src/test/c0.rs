@@ -17,7 +17,7 @@ fn test_bs() {
 fn test_lf() {
     let mut term = TestTerm::new(3, 10, 0);
     term.print("hello\n");
-    term.assert_cursor_pos(0, 1, Some("LF moves to new line"));
+    term.assert_cursor_pos(5, 1, Some("LF moves vertically only"));
 }
 
 #[test]

@@ -4,11 +4,11 @@ use super::*;
 fn test_vpa() {
     let mut term = TestTerm::new(3, 4, 0);
     term.assert_cursor_pos(0, 0, None);
-    term.print("a\nb\nc");
+    term.print("a\r\nb\r\nc");
     term.assert_cursor_pos(1, 2, None);
     term.print("\x1b[d");
     term.assert_cursor_pos(1, 0, None);
-    term.print("\n\n");
+    term.print("\r\n\r\n");
     term.assert_cursor_pos(0, 2, None);
 
     // escapes are 1-based, so check that we're handling that
@@ -114,7 +114,7 @@ fn test_hvp() {
 #[test]
 fn test_dl() {
     let mut term = TestTerm::new(3, 1, 0);
-    term.print("a\nb\nc");
+    term.print("a\r\nb\r\nc");
     term.cup(0, 1);
     term.delete_lines(1);
     assert_visible_contents(&term, &["a", "c", " "]);
@@ -122,7 +122,7 @@ fn test_dl() {
     term.cup(0, 0);
     term.delete_lines(2);
     assert_visible_contents(&term, &[" ", " ", " "]);
-    term.print("1\n2\n3");
+    term.print("1\r\n2\r\n3");
     term.cup(0, 1);
     term.delete_lines(-2);
     assert_visible_contents(&term, &["1", "2", "3"]);
@@ -153,7 +153,7 @@ fn test_cha() {
 #[test]
 fn test_ed() {
     let mut term = TestTerm::new(3, 3, 0);
-    term.print("abc\ndef\nghi");
+    term.print("abc\r\ndef\r\nghi");
     term.cup(1, 2);
     term.print("\x1b[J");
     assert_visible_contents(&term, &["abc", "def", "g  "]);
