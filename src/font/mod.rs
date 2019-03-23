@@ -62,8 +62,10 @@ impl Default for FontSystemSelection {
             FontSystemSelection::FontConfigAndFreeType
         } else if cfg!(feature = "force-rusttype") {
             FontSystemSelection::FontLoaderAndRustType
+        /*
         } else if cfg!(target_os = "macos") {
             FontSystemSelection::CoreText
+        */
         } else {
             FontSystemSelection::FontLoaderAndFreeType
         }
