@@ -6,7 +6,6 @@ cache: cargo
 rust:
   - stable
   - beta
-  - nightly
 
 os:
   - osx
@@ -18,8 +17,6 @@ dist: xenial
 matrix:
   allow_failures:
     - rust: beta
-    - rust: nightly
-    - os: windows
 
 before_script:
   - rustup component add rustfmt-preview
