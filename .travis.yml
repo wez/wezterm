@@ -17,6 +17,7 @@ dist: xenial
 matrix:
   allow_failures:
     - rust: beta
+    - os: windows
 
 before_script:
   - rustup component add rustfmt-preview
