@@ -407,7 +407,8 @@ impl Config {
         if let Some(prog) = self.default_prog.as_ref() {
             Ok(prog.clone())
         } else {
-            if cfg!(target_os = "macos") {
+            #[cfg(target_os = "macos")]
+            {
                 if let Ok(login) = Self::macos_login() {
                     return Ok(login);
                 }
