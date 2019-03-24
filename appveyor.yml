@@ -9,6 +9,7 @@ install:
   - rustc -vV
   - cargo -vV
 test_script:
+  - git submodule update --init
   - cargo build --release
   - cargo test --release --all
 artifacts:
