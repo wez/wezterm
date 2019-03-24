@@ -3,12 +3,19 @@
 A terminal emulator implemented in Rust, using OpenGL for rendering.
 
 [![Build Status](https://travis-ci.org/wez/wezterm.svg?branch=master)](https://travis-ci.org/wez/wezterm)
+[![Build status](https://ci.appveyor.com/api/projects/status/4ys3pb1vb1ja8b7h/branch/master?svg=true)](https://ci.appveyor.com/project/wez/wezterm/branch/master)
 
 ![Screenshot](screenshots/one.png)
 
 *Screenshot of wezterm on X11, running vim*
 
-## Quickstart
+## Installing a package
+
+* macOS and Windows packages are available from [the Releases page](https://github.com/wez/wezterm/releases)
+* Bleeding edge Windows package available from [Appveyor](https://ci.appveyor.com/project/wez/wezterm/build/artifacts?branch=master)
+)
+
+## Installing from source
 
 * Install `rustup` to get the `rust` compiler installed on your system.
   https://www.rust-lang.org/en-US/install.html
