@@ -1,15 +1,6 @@
-extern crate winapi;
-use crate::pty::conpty::winapi::shared::minwindef::DWORD;
-use crate::pty::conpty::winapi::shared::winerror::{HRESULT, S_OK};
-use crate::pty::conpty::winapi::um::fileapi::{ReadFile, WriteFile};
-use crate::pty::conpty::winapi::um::handleapi::*;
-use crate::pty::conpty::winapi::um::minwinbase::STILL_ACTIVE;
-use crate::pty::conpty::winapi::um::namedpipeapi::CreatePipe;
-use crate::pty::conpty::winapi::um::processthreadsapi::*;
-use crate::pty::conpty::winapi::um::winbase::EXTENDED_STARTUPINFO_PRESENT;
-use crate::pty::conpty::winapi::um::winbase::STARTUPINFOEXW;
-use crate::pty::conpty::winapi::um::wincon::COORD;
 use failure::Error;
+use lazy_static::lazy_static;
+use shared_library::shared_library;
 use std::env;
 use std::ffi::{OsStr, OsString};
 use std::io::{self, Error as IoError, Result as IoResult};
@@ -20,8 +11,18 @@ use std::os::windows::raw::HANDLE;
 use std::path::Path;
 use std::ptr;
 use std::sync::{Arc, Mutex};
+use winapi::shared::minwindef::DWORD;
+use winapi::shared::winerror::{HRESULT, S_OK};
+use winapi::um::fileapi::{ReadFile, WriteFile};
+use winapi::um::handleapi::*;
+use winapi::um::minwinbase::STILL_ACTIVE;
+use winapi::um::namedpipeapi::CreatePipe;
+use winapi::um::processthreadsapi::*;
 use winapi::um::synchapi::WaitForSingleObject;
+use winapi::um::winbase::EXTENDED_STARTUPINFO_PRESENT;
 use winapi::um::winbase::INFINITE;
+use winapi::um::winbase::STARTUPINFOEXW;
+use winapi::um::wincon::COORD;
 
 const PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE: usize = 0x00020016;
 
@@ -342,16 +343,22 @@ pub struct ExitStatus {
 
 type HPCON = HANDLE;
 
-extern "system" {
-    fn CreatePseudoConsole(
+shared_library!(ConPtyFuncs,
+    pub fn CreatePseudoConsole(
         size: COORD,
         hInput: HANDLE,
         hOutput: HANDLE,
         flags: DWORD,
-        hpc: *mut HPCON,
-    ) -> HRESULT;
-    fn ResizePseudoConsole(hpc: HPCON, size: COORD) -> HRESULT;
-    fn ClosePseudoConsole(hpc: HPCON);
+        hpc: *mut HPCON
+    ) -> HRESULT,
+    pub fn ResizePseudoConsole(hpc: HPCON, size: COORD) -> HRESULT,
+    pub fn ClosePseudoConsole(hpc: HPCON),
+);
+
+lazy_static! {
+    static ref CONPTY: ConPtyFuncs = ConPtyFuncs::open(Path::new("kernel32.dll")).expect(
+        "this system does not support conpty.  Windows 10 October 2018 or newer is required"
+    );
 }
 
 struct PsuedoCon {
@@ -361,13 +368,14 @@ unsafe impl Send for PsuedoCon {}
 unsafe impl Sync for PsuedoCon {}
 impl Drop for PsuedoCon {
     fn drop(&mut self) {
-        unsafe { ClosePseudoConsole(self.con) };
+        unsafe { (CONPTY.ClosePseudoConsole)(self.con) };
     }
 }
 impl PsuedoCon {
     fn new(size: COORD, input: &OwnedHandle, output: &OwnedHandle) -> Result<Self, Error> {
         let mut con: HPCON = INVALID_HANDLE_VALUE;
-        let result = unsafe { CreatePseudoConsole(size, input.handle, output.handle, 0, &mut con) };
+        let result =
+            unsafe { (CONPTY.CreatePseudoConsole)(size, input.handle, output.handle, 0, &mut con) };
         ensure!(
             result == S_OK,
             "failed to create psuedo console: HRESULT {}",
@@ -376,7 +384,7 @@ impl PsuedoCon {
         Ok(Self { con })
     }
     fn resize(&self, size: COORD) -> Result<(), Error> {
-        let result = unsafe { ResizePseudoConsole(self.con, size) };
+        let result = unsafe { (CONPTY.ResizePseudoConsole)(self.con, size) };
         ensure!(
             result == S_OK,
             "failed to resize console to {}x{}: HRESULT: {}",

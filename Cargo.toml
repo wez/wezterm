@@ -51,6 +51,7 @@ path = "deps/fontconfig"
 font-loader = { version = "0.8" }
 
 [target."cfg(windows)".dependencies]
+shared_library = "0.1"
 uds_windows = "0.1"
 winapi = { version = "0.3", features = [
     "winuser",
