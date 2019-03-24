@@ -381,10 +381,37 @@ impl Config {
         cfg
     }
 
+    /// On macOS, we get launched from: eg: spotlight or alfred
+    /// or the finder with whatever SHELL was set to at login time
+    /// (which have been subsequently changed via `chsh`) and with
+    /// a cwd=/.
+    /// That feels a bit broken, so we follow the lead of
+    /// Terminal.app and use `login -pf $USER` as the default
+    /// program to run.
+    /// This function computes and returns that command.
+    /// We don't do this on Linux because the linux `login`
+    /// program refuses to run except when started by root.
+    #[cfg(target_os = "macos")]
+    fn macos_login() -> Result<Vec<String>, Error> {
+        let ent = unsafe { libc::getpwuid(libc::getuid()) };
+        if ent.is_null() {
+            bail!("unable to resolve my own uid");
+        } else {
+            let name = unsafe { std::ffi::CStr::from_ptr((*ent).pw_name) };
+            let name = name.to_str().map(str::to_owned)?;
+            Ok(vec!["login".to_owned(), "-pf".to_owned(), name])
+        }
+    }
+
     pub fn default_prog(&self) -> Result<Vec<String>, Error> {
         if let Some(prog) = self.default_prog.as_ref() {
             Ok(prog.clone())
         } else {
+            if cfg!(target_os = "macos") {
+                if let Ok(login) = Self::macos_login() {
+                    return Ok(login);
+                }
+            }
             Ok(vec![get_shell()?])
         }
     }
