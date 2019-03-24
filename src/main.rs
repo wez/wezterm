@@ -1,3 +1,6 @@
+// Don't create a new standard console window when launched from the windows GUI.
+#![windows_subsystem = "windows"]
+
 #[macro_use]
 extern crate failure;
 #[macro_use]
@@ -136,6 +139,22 @@ fn run_terminal_gui(config: Arc<config::Config>, opts: &StartCommand) -> Result<
 }
 
 fn main() -> Result<(), Error> {
+    // This is a bit gross.
+    // In order to not to automatically open a standard windows console when
+    // we run, we use the windows_subsystem attribute at the top of this
+    // source file.  That comes at the cost of causing the help output
+    // to disappear if we are actually invoked from a console.
+    // This AttachConsole call will attach us to the console of the parent
+    // in that situation, but since we were launched as a windows subsystem
+    // application we will be running asynchronously from the shell in
+    // the command window, which means that it will appear to the user
+    // that we hung at the end, when in reality the shell is waiting for
+    // input but didn't know to re-draw the prompt.
+    #[cfg(windows)]
+    unsafe {
+        winapi::um::wincon::AttachConsole(winapi::um::wincon::ATTACH_PARENT_PROCESS)
+    };
+
     let opts = Opt::from_args();
     let config = Arc::new(if opts.skip_config {
         config::Config::default_config()
