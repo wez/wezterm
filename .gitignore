@@ -1,4 +1,5 @@
 .DS_Store
+/WezTerm*.zip
 /Cargo.lock
 /target/
 **/*.rs.bk
