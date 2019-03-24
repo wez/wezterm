@@ -22,9 +22,7 @@ before_script:
   - rustup component add rustfmt-preview
 
 script:
-  - "if [[ \"$TRAVIS_RUST_VERSION\" == \"stable\" ]] ; then cargo fmt --all -- --check ; else true ; fi"
-  - cargo build
-  - cargo test -p term -p termwiz -p wezterm -p base91 -p varbincode
+  - ./ci/travis-run.sh
 
 addons:
   apt:

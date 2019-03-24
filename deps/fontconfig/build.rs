@@ -13,8 +13,5 @@ fn main() {
                 .into_string()
                 .unwrap()
         );
-        return;
     }
-
-    panic!("You need to install fontconfig");
 }

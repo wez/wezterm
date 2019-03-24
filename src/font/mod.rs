@@ -14,9 +14,9 @@ pub use self::system::*;
 
 pub mod ftwrap;
 
-#[cfg(all(unix, any(feature = "force-fontconfig", not(target_os = "macos"))))]
+#[cfg(all(unix, any(feature = "fontconfig", not(target_os = "macos"))))]
 pub mod fcwrap;
-#[cfg(all(unix, any(feature = "force-fontconfig", not(target_os = "macos"))))]
+#[cfg(all(unix, any(feature = "fontconfig", not(target_os = "macos"))))]
 pub mod fontconfigandfreetype;
 
 #[cfg(target_os = "macos")]
@@ -71,12 +71,9 @@ impl FontSystemSelection {
     fn new_font_system(self) -> Rc<FontSystem> {
         match self {
             FontSystemSelection::FontConfigAndFreeType => {
-                #[cfg(all(unix, any(feature = "force-fontconfig", not(target_os = "macos"))))]
+                #[cfg(all(unix, any(feature = "fontconfig", not(target_os = "macos"))))]
                 return Rc::new(fontconfigandfreetype::FontSystemImpl::new());
-                #[cfg(not(all(
-                    unix,
-                    any(feature = "force-fontconfig", not(target_os = "macos"))
-                )))]
+                #[cfg(not(all(unix, any(feature = "fontconfig", not(target_os = "macos")))))]
                 panic!("fontconfig not compiled in");
             }
             FontSystemSelection::FontLoaderAndFreeType => {
