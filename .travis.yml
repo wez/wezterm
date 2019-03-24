@@ -23,8 +23,8 @@ before_script:
 
 script:
   - "if [[ \"$TRAVIS_RUST_VERSION\" == \"stable\" ]] ; then cargo fmt --all -- --check ; else true ; fi"
-  - cargo build --verbose
-  - cargo test --verbose -p term -p termwiz -p wezterm -p base91 -p varbincode
+  - cargo build
+  - cargo test -p term -p termwiz -p wezterm -p base91 -p varbincode
 
 addons:
   apt:
@@ -48,7 +48,7 @@ addons:
       - ragel
 
 before_deploy:
-  - ./install.sh
+  - ci/deploy.sh
 
 deploy:
   provider: releases
@@ -57,8 +57,9 @@ deploy:
   file_glob: true
   file: WezTerm*.zip
   skip_cleanup: true
-  draft: true
   on:
     repo: wez/wezterm
     tags: true
+    rust: stable
+    condition: $TRAVIS_OS_NAME = osx
 

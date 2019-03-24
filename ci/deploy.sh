@@ -4,7 +4,7 @@ set -x
 TRAVIS_TAG=${TRAVIS_TAG:-$(git describe --tags)}
 TRAVIS_TAG=${TRAVIS_TAG:-$(date +'%Y%m%d-%H%M%S')-$(git log --format=%h -1)}
 
-./install.sh
+bash -x ./install.sh
 
 HERE=$(pwd)
 
