@@ -1,0 +1,23 @@
+name: wezterm
+version: git
+summary: Wez's Terminal Emulator
+description: |
+  wezterm is a terminal emulator with support for modern features
+  such as fonts with ligatures, hyperlinks, tabs and multiple
+  windows.
+
+grade: devel
+confinement: devmode
+base: core18
+icon: assets/icon/terminal.png
+license: MIT
+
+parts:
+  wezterm:
+    plugin: rust
+    source: .
+    stage-packages: [libegl-mesa0, libxcb-icccm4, libxcb-ewmh2, libxcb-keysyms1, libxcb-xkb1, libxkbcommon0, libxkbcommon-x11-0, libfontconfig1, xdg-utils, libxcb-render0, libxcb-shape0, libx11-6, libegl1]
+    build-packages: [cmake, xorg-dev , bsdutils , libxcb-icccm4-dev , libxcb-ewmh-dev , libxcb-keysyms1-dev , libxcb-xkb-dev , libxkbcommon-dev , libxkbcommon-x11-dev , libfontconfig1-dev , libegl1-mesa-dev , xdg-utils , ragel] 
+apps:
+  wezterm:
+    command: env XDG_RUNTIME_DIR= XDG_CONFIG_HOME=$SNAP_USER_DATA XDG_DATA_DIRS=$SNAP_DATA $SNAP/bin/wezterm

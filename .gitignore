@@ -1,4 +1,5 @@
 .DS_Store
+/wezterm*.snap
 /WezTerm*.zip
 /Cargo.lock
 /target/
