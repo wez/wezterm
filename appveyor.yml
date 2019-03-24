@@ -20,7 +20,7 @@ deploy:
   provider: GitHub
   auth_token:
     secure: MEa32ld6Qe1Lswvc0iE6+q6bKAkOXDa+5PukIFWXekh8uwYNhf0k0kpK8QbSgZk6
-  artifact: WezTerm*.zip
+  artifact: '/WezTerm.*\.zip/'
   draft: false
   prerelease: false
   on:
