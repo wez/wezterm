@@ -1,6 +1,7 @@
 #!/bin/bash
 
 bindgen bindings.h -o src/lib.rs \
+  --no-layout-tests \
   --no-doc-comments \
   --raw-line "#![allow(non_snake_case)]" \
   --raw-line "#![allow(non_camel_case_types)]" \
