@@ -61,10 +61,7 @@ fn get_shell() -> Result<String, Error> {
 // !=
 
 #[derive(Debug, StructOpt)]
-#[structopt(
-    name = "wezterm",
-    about = "Wez's Terminal Emulator\nhttp://github.com/wez/wezterm"
-)]
+#[structopt(about = "Wez's Terminal Emulator\nhttp://github.com/wez/wezterm")]
 #[structopt(raw(setting = "structopt::clap::AppSettings::ColoredHelp"))]
 struct Opt {
     /// Skip loading ~/.wezterm.toml

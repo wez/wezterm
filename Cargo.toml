@@ -3,6 +3,10 @@ authors = ["Wez Furlong <wez@wezfurlong.org>"]
 name = "wezterm"
 version = "0.1.0"
 edition = "2018"
+build = "build.rs"
+
+[build-dependencies]
+vergen = "3"
 
 [dependencies]
 base91 = { path = "base91" }
@@ -86,6 +90,8 @@ force-fontconfig = ["fontconfig"]
 [patch.crates-io]
 # We need https://github.com/tomaka/glutin/pull/1099
 glutin = { git = "https://github.com/yvt/glutin", branch="patch-macos-iscurrent" }
+# This allows using the git tab in the help output
+structopt-derive = { git = "https://github.com/wez/structopt", branch="vergen" }
 
 [workspace]
 
