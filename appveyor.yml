@@ -1,0 +1,13 @@
+os: Visual Studio 2017
+build: false
+install:
+  - appveyor DownloadFile https://win.rustup.rs/ -FileName rustup-init.exe
+  - rustup-init -yv
+  - set PATH=%PATH%;%USERPROFILE%\.cargo\bin
+  - rustc -vV
+  - cargo -vV
+test_script:
+  - cargo build --release
+  - cargo test --release --all
+artifacts:
+  - path: target/release/wezterm.exe
