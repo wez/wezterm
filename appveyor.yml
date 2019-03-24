@@ -12,5 +12,17 @@ test_script:
   - git submodule update --init
   - cargo build --release
   - cargo test --release --all
+  - bash ci/deploy.sh
 artifacts:
-  - path: target/release/wezterm.exe
+  - path: 'WezTerm*.zip'
+deploy:
+  release: $(APPVEYOR_REPO_TAG_NAME)
+  provider: GitHub
+  auth_token:
+    secure: MEa32ld6Qe1Lswvc0iE6+q6bKAkOXDa+5PukIFWXekh8uwYNhf0k0kpK8QbSgZk6
+  artifact: WezTerm*.zip
+  draft: false
+  prerelease: false
+  on:
+    branch: master
+    APPVEYOR_REPO_TAG: true
