@@ -22,7 +22,7 @@ before_script:
   - rustup component add rustfmt-preview
 
 script:
-  - ./ci/travis-run.sh
+  - bash ./ci/travis-run.sh
 
 addons:
   apt:
@@ -46,7 +46,7 @@ addons:
       - ragel
 
 before_deploy:
-  - ci/deploy.sh
+  - bash ci/deploy.sh
 
 deploy:
   provider: releases

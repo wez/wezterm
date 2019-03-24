@@ -12,6 +12,12 @@ case $OSTYPE in
   darwin*)
     (cd $HOME/Applications && zip -r $HERE/WezTerm-macOS-$TRAVIS_TAG.zip WezTerm.app)
     ;;
+  msys)
+    zipdir=WezTerm-windows-$TRAVIS_TAG
+    mkdir zipdir
+    cp target/release/wezterm.exe target/release/wezterm.pdb $zipdir
+    7z a -tzip $zipdir.zip $zipdir
+    ;;
   *)
     ;;
 esac
