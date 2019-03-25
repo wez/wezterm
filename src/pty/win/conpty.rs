@@ -1,5 +1,6 @@
 use super::cmdline::CommandBuilder;
-use crate::pty::win::ownedhandle::OwnedHandle;
+use super::ownedhandle::OwnedHandle;
+use super::winsize;
 use failure::Error;
 use lazy_static::lazy_static;
 use shared_library::shared_library;
@@ -7,8 +8,7 @@ use std::env;
 use std::ffi::{OsStr, OsString};
 use std::io::{self, Error as IoError, Result as IoResult};
 use std::mem;
-use std::os::windows::ffi::OsStrExt;
-use std::os::windows::ffi::OsStringExt;
+use std::os::windows::ffi::{OsStrExt, OsStringExt};
 use std::os::windows::raw::HANDLE;
 use std::path::Path;
 use std::ptr;
@@ -327,15 +327,6 @@ pub struct MasterPty {
 
 pub struct SlavePty {
     inner: Arc<Mutex<Inner>>,
-}
-
-#[derive(Debug, Clone, Copy)]
-#[allow(non_camel_case_types)]
-pub struct winsize {
-    pub ws_row: u16,
-    pub ws_col: u16,
-    pub ws_xpixel: u16,
-    pub ws_ypixel: u16,
 }
 
 impl MasterPty {
