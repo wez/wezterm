@@ -1,28 +1,24 @@
 use super::cmdline::CommandBuilder;
 use super::ownedhandle::OwnedHandle;
 use super::winsize;
-use super::{Child, ExitStatus};
+use super::Child;
 use failure::Error;
 use lazy_static::lazy_static;
 use shared_library::shared_library;
-use std::env;
 use std::ffi::{OsStr, OsString};
-use std::io::{self, Error as IoError, Result as IoResult};
+use std::io::{self, Error as IoError};
 use std::mem;
-use std::os::windows::ffi::{OsStrExt, OsStringExt};
+use std::os::windows::ffi::OsStringExt;
 use std::os::windows::raw::HANDLE;
 use std::path::Path;
 use std::ptr;
 use std::sync::{Arc, Mutex};
 use winapi::shared::minwindef::DWORD;
 use winapi::shared::winerror::{HRESULT, S_OK};
-use winapi::um::fileapi::WriteFile;
 use winapi::um::handleapi::*;
 use winapi::um::namedpipeapi::CreatePipe;
 use winapi::um::processthreadsapi::*;
-use winapi::um::synchapi::WaitForSingleObject;
 use winapi::um::winbase::EXTENDED_STARTUPINFO_PRESENT;
-use winapi::um::winbase::INFINITE;
 use winapi::um::winbase::STARTUPINFOEXW;
 use winapi::um::wincon::COORD;
 
@@ -114,10 +110,8 @@ impl Command {
 
         // Make sure we close out the thread handle so we don't leak it;
         // we do this simply by making it owned
-        let _main_thread = OwnedHandle { handle: pi.hThread };
-        let proc = OwnedHandle {
-            handle: pi.hProcess,
-        };
+        let _main_thread = OwnedHandle::new(pi.hThread);
+        let proc = OwnedHandle::new(pi.hProcess);
 
         Ok(Child { proc })
     }

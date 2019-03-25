@@ -171,11 +171,11 @@ fn safely_create_sock_path(sock_path: &String) -> Result<UnixListener, Error> {
 
     builder.create(sock_dir)?;
 
-    // Let's be sure that the ownership looks sane
-    let meta = sock_dir.symlink_metadata()?;
-
     #[cfg(unix)]
     {
+        // Let's be sure that the ownership looks sane
+        let meta = sock_dir.symlink_metadata()?;
+
         let permissions = meta.permissions();
         if (permissions.mode() & 0o22) != 0 {
             bail!(

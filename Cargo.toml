@@ -89,6 +89,7 @@ core-text = "13.1"
 debug-escape-sequences = ["term/debug-escape-sequences"]
 force-glutin = []
 force-fontconfig = ["fontconfig"]
+use-winpty = []
 
 [patch.crates-io]
 # We need https://github.com/tomaka/glutin/pull/1099

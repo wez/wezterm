@@ -93,12 +93,14 @@ shared_library!(WinPtyFuncs,
         rows: c_int,
         err: *mut winpty_error_ptr_t
     ) -> BOOL,
+    /*
     pub fn winpty_get_console_process_list(
         wp: *mut winpty_t,
         processList: *mut c_int,
         processCount: c_int,
         err: *mut winpty_error_ptr_t
     ) -> c_int,
+    */
     pub fn winpty_free(wp: *mut winpty_t),
 );
 

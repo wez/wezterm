@@ -1,6 +1,7 @@
 //! A type-safe wrapper around the sys module, which in turn exposes
 //! the API exported by winpty.dll.
 //! https://github.com/rprichard/winpty/blob/master/src/include/winpty.h
+#![allow(dead_code)]
 use super::sys::*;
 use crate::pty::win::ownedhandle::OwnedHandle;
 use bitflags::bitflags;
@@ -32,18 +33,18 @@ bitflags! {
 }
 
 #[repr(u32)]
-enum MouseMode {
+pub enum MouseMode {
     None = WINPTY_MOUSE_MODE_NONE,
     Auto = WINPTY_MOUSE_MODE_AUTO,
     Force = WINPTY_MOUSE_MODE_FORCE,
 }
 
-enum Timeout {
+pub enum Timeout {
     Infinite,
     Milliseconds(DWORD),
 }
 
-struct WinPtyConfig {
+pub struct WinPtyConfig {
     config: *mut winpty_config_t,
 }
 
@@ -60,7 +61,9 @@ fn wstr_to_string(wstr: LPCWSTR) -> Result<String, Error> {
 }
 
 fn check_err<T>(err: winpty_error_ptr_t, value: T) -> Result<T, Error> {
-    ensure!(!err.is_null(), "winpty error object is null");
+    if err.is_null() {
+        return Ok(value);
+    }
     unsafe {
         let code = (WINPTY.winpty_error_code)(err);
         if code == WINPTY_ERROR_SUCCESS {
@@ -126,11 +129,15 @@ impl Drop for WinPty {
     }
 }
 
-fn pipe_client(name: LPCWSTR) -> Result<OwnedHandle, Error> {
+fn pipe_client(name: LPCWSTR, for_read: bool) -> Result<OwnedHandle, Error> {
     let handle = unsafe {
         CreateFileW(
             name,
-            GENERIC_READ | GENERIC_WRITE,
+            if for_read {
+                GENERIC_READ
+            } else {
+                GENERIC_WRITE
+            },
             0,
             ptr::null_mut(),
             OPEN_EXISTING,
@@ -152,20 +159,20 @@ impl WinPty {
     }
 
     pub fn conin(&self) -> Result<OwnedHandle, Error> {
-        pipe_client(unsafe { (WINPTY.winpty_conin_name)(self.pty) })
+        pipe_client(unsafe { (WINPTY.winpty_conin_name)(self.pty) }, false)
     }
 
     pub fn conout(&self) -> Result<OwnedHandle, Error> {
-        pipe_client(unsafe { (WINPTY.winpty_conout_name)(self.pty) })
+        pipe_client(unsafe { (WINPTY.winpty_conout_name)(self.pty) }, true)
     }
 
     pub fn conerr(&self) -> Result<OwnedHandle, Error> {
-        pipe_client(unsafe { (WINPTY.winpty_conerr_name)(self.pty) })
+        pipe_client(unsafe { (WINPTY.winpty_conerr_name)(self.pty) }, true)
     }
 
-    pub fn set_size(&mut self, rows: c_int, cols: c_int) -> Result<bool, Error> {
+    pub fn set_size(&mut self, cols: c_int, rows: c_int) -> Result<bool, Error> {
         let mut err: winpty_error_ptr_t = ptr::null_mut();
-        let result = unsafe { (WINPTY.winpty_set_size)(self.pty, rows, cols, &mut err) };
+        let result = unsafe { (WINPTY.winpty_set_size)(self.pty, cols, rows, &mut err) };
         Ok(result != 0)
     }
 
@@ -200,8 +207,8 @@ impl WinPty {
 }
 
 pub struct SpawnedProcess {
-    process_handle: OwnedHandle,
-    thread_handle: OwnedHandle,
+    pub process_handle: OwnedHandle,
+    pub thread_handle: OwnedHandle,
 }
 
 pub struct SpawnConfig {
@@ -223,7 +230,7 @@ fn str_ptr(s: &Option<Vec<u16>>) -> LPCWSTR {
 }
 
 impl SpawnConfig {
-    pub fn new(
+    pub fn with_os_str_args(
         flags: SpawnFlags,
         appname: Option<&OsStr>,
         cmdline: Option<&OsStr>,
@@ -234,7 +241,16 @@ impl SpawnConfig {
         let cmdline = cmdline.map(str_to_wide);
         let cwd = cwd.map(str_to_wide);
         let env = env.map(str_to_wide);
+        Self::new(flags, appname, cmdline, cwd, env)
+    }
 
+    pub fn new(
+        flags: SpawnFlags,
+        appname: Option<Vec<u16>>,
+        cmdline: Option<Vec<u16>>,
+        cwd: Option<Vec<u16>>,
+        env: Option<Vec<u16>>,
+    ) -> Result<Self, Error> {
         let mut err: winpty_error_ptr_t = ptr::null_mut();
 
         let spawn_config = unsafe {

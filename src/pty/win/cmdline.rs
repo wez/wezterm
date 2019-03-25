@@ -1,7 +1,7 @@
 use failure::Error;
 use std::env;
 use std::ffi::{OsStr, OsString};
-use std::os::windows::ffi::{OsStrExt, OsStringExt};
+use std::os::windows::ffi::OsStrExt;
 
 #[derive(Debug)]
 pub struct CommandBuilder {

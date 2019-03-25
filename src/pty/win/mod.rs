@@ -1,4 +1,4 @@
-use std::io::{self, Error as IoError, Result as IoResult};
+use std::io::{Error as IoError, Result as IoResult};
 use winapi::shared::minwindef::DWORD;
 use winapi::um::minwinbase::STILL_ACTIVE;
 use winapi::um::processthreadsapi::*;
@@ -6,9 +6,13 @@ use winapi::um::synchapi::WaitForSingleObject;
 use winapi::um::winbase::INFINITE;
 
 pub mod cmdline;
+
+#[cfg(not(feature = "use-winpty"))]
 pub mod conpty;
-pub mod ownedhandle;
+#[cfg(feature = "use-winpty")]
 pub mod winpty;
+
+pub mod ownedhandle;
 
 use ownedhandle::OwnedHandle;
 
