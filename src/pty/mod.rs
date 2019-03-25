@@ -1,5 +1,7 @@
 #[cfg(windows)]
 pub mod conpty;
+#[cfg(windows)]
+pub mod ownedhandle;
 #[cfg(unix)]
 pub mod unix;
 #[cfg(windows)]
