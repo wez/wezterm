@@ -28,6 +28,7 @@ script:
 addons:
   apt:
     packages:
+      - fakeroot
       - binutils-dev
       - cmake
       - gcc
