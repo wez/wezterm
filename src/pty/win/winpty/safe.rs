@@ -2,7 +2,7 @@
 //! the API exported by winpty.dll.
 //! https://github.com/rprichard/winpty/blob/master/src/include/winpty.h
 use super::sys::*;
-use crate::pty::ownedhandle::OwnedHandle;
+use crate::pty::win::ownedhandle::OwnedHandle;
 use bitflags::bitflags;
 use failure::{format_err, Error};
 use std::ffi::{OsStr, OsString};

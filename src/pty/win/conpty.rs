@@ -1,4 +1,4 @@
-use crate::pty::ownedhandle::OwnedHandle;
+use crate::pty::win::ownedhandle::OwnedHandle;
 use failure::Error;
 use lazy_static::lazy_static;
 use shared_library::shared_library;
