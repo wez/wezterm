@@ -1,5 +1,5 @@
 use crate::config::Config;
-use crate::ExitStatus;
+use crate::pty::ExitStatus;
 use failure::Error;
 use promise::{Executor, Future};
 use std::cell::{Ref, RefCell, RefMut};

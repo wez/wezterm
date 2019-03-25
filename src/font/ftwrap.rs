@@ -139,6 +139,7 @@ impl Library {
         })
     }
 
+    #[allow(dead_code)]
     pub fn new_face_from_slice(&self, data: &[u8], face_index: FT_Long) -> Result<Face, Error> {
         let mut face = ptr::null_mut();
 

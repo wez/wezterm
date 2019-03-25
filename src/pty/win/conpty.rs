@@ -1,11 +1,11 @@
-use super::cmdline::CommandBuilder;
 use super::ownedhandle::OwnedHandle;
-use super::winsize;
 use super::Child;
+use crate::pty::cmdbuilder::CommandBuilder;
+use crate::pty::{ChildTrait, MasterPtyTrait, PtySize, PtySystem, SlavePtyTrait};
 use failure::Error;
 use lazy_static::lazy_static;
 use shared_library::shared_library;
-use std::ffi::{OsStr, OsString};
+use std::ffi::OsString;
 use std::io::{self, Error as IoError};
 use std::mem;
 use std::os::windows::ffi::OsStringExt;
@@ -24,96 +24,35 @@ use winapi::um::wincon::COORD;
 
 const PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE: usize = 0x00020016;
 
-#[derive(Debug)]
-pub struct Command {
-    builder: CommandBuilder,
-    input: Option<OwnedHandle>,
-    output: Option<OwnedHandle>,
-    hpc: Option<HPCON>,
-}
+pub struct ConPtySystem {}
+impl PtySystem for ConPtySystem {
+    fn openpty(&self, size: PtySize) -> Result<(Box<MasterPtyTrait>, Box<SlavePtyTrait>), Error> {
+        let (stdin_read, stdin_write) = pipe()?;
+        let (stdout_read, stdout_write) = pipe()?;
 
-impl Command {
-    pub fn new<S: AsRef<OsStr>>(program: S) -> Self {
-        Self {
-            builder: CommandBuilder::new(program),
-            input: None,
-            output: None,
-            hpc: None,
-        }
-    }
+        let con = PsuedoCon::new(
+            COORD {
+                X: size.cols as i16,
+                Y: size.rows as i16,
+            },
+            &stdin_read,
+            &stdout_write,
+        )?;
 
-    pub fn arg<S: AsRef<OsStr>>(&mut self, arg: S) -> &mut Command {
-        self.builder.arg(arg);
-        self
-    }
-
-    pub fn args<I, S>(&mut self, args: I) -> &mut Command
-    where
-        I: IntoIterator<Item = S>,
-        S: AsRef<OsStr>,
-    {
-        self.builder.args(args);
-        self
-    }
-
-    pub fn env<K, V>(&mut self, key: K, val: V) -> &mut Command
-    where
-        K: AsRef<OsStr>,
-        V: AsRef<OsStr>,
-    {
-        self.builder.env(key, val);
-        self
-    }
-
-    fn set_pty(&mut self, input: OwnedHandle, output: OwnedHandle, con: HPCON) -> &mut Command {
-        self.input.replace(input);
-        self.output.replace(output);
-        self.hpc.replace(con);
-        self
-    }
-
-    pub fn spawn(&mut self) -> Result<Child, Error> {
-        let mut si: STARTUPINFOEXW = unsafe { mem::zeroed() };
-        si.StartupInfo.cb = mem::size_of::<STARTUPINFOEXW>() as u32;
-
-        let mut attrs = ProcThreadAttributeList::with_capacity(1)?;
-        attrs.set_pty(*self.hpc.as_ref().unwrap())?;
-        si.lpAttributeList = attrs.as_mut_ptr();
-
-        let mut pi: PROCESS_INFORMATION = unsafe { mem::zeroed() };
-
-        let (mut exe, mut cmdline) = self.builder.cmdline()?;
-        let cmd_os = OsString::from_wide(&cmdline);
-        eprintln!(
-            "Running: module: {} {:?}",
-            Path::new(&OsString::from_wide(&exe)).display(),
-            cmd_os
-        );
-        let res = unsafe {
-            CreateProcessW(
-                exe.as_mut_slice().as_mut_ptr(),
-                cmdline.as_mut_slice().as_mut_ptr(),
-                ptr::null_mut(),
-                ptr::null_mut(),
-                0,
-                EXTENDED_STARTUPINFO_PRESENT,
-                ptr::null_mut(), // FIXME: env
-                ptr::null_mut(),
-                &mut si.StartupInfo,
-                &mut pi,
-            )
+        let master = MasterPty {
+            inner: Arc::new(Mutex::new(Inner {
+                con,
+                readable: stdout_read,
+                writable: stdin_write,
+                size,
+            })),
         };
-        if res == 0 {
-            let err = IoError::last_os_error();
-            bail!("CreateProcessW `{:?}` failed: {}", cmd_os, err);
-        }
 
-        // Make sure we close out the thread handle so we don't leak it;
-        // we do this simply by making it owned
-        let _main_thread = OwnedHandle::new(pi.hThread);
-        let proc = OwnedHandle::new(pi.hProcess);
+        let slave = SlavePty {
+            inner: master.inner.clone(),
+        };
 
-        Ok(Child { proc })
+        Ok((Box::new(master), Box::new(slave)))
     }
 }
 
@@ -240,7 +179,7 @@ struct Inner {
     con: PsuedoCon,
     readable: OwnedHandle,
     writable: OwnedHandle,
-    size: winsize,
+    size: PtySize,
 }
 
 impl Inner {
@@ -255,11 +194,11 @@ impl Inner {
             X: num_cols as i16,
             Y: num_rows as i16,
         })?;
-        self.size = winsize {
-            ws_row: num_rows,
-            ws_col: num_cols,
-            ws_xpixel: pixel_width,
-            ws_ypixel: pixel_height,
+        self.size = PtySize {
+            rows: num_rows,
+            cols: num_cols,
+            pixel_width,
+            pixel_height,
         };
         Ok(())
     }
@@ -274,24 +213,18 @@ pub struct SlavePty {
     inner: Arc<Mutex<Inner>>,
 }
 
-impl MasterPty {
-    pub fn resize(
-        &self,
-        num_rows: u16,
-        num_cols: u16,
-        pixel_width: u16,
-        pixel_height: u16,
-    ) -> Result<(), Error> {
+impl MasterPtyTrait for MasterPty {
+    fn resize(&self, size: PtySize) -> Result<(), Error> {
         let mut inner = self.inner.lock().unwrap();
-        inner.resize(num_rows, num_cols, pixel_width, pixel_height)
+        inner.resize(size.rows, size.cols, size.pixel_width, size.pixel_height)
     }
 
-    pub fn get_size(&self) -> Result<winsize, Error> {
+    fn get_size(&self) -> Result<PtySize, Error> {
         let inner = self.inner.lock().unwrap();
         Ok(inner.size.clone())
     }
 
-    pub fn try_clone_reader(&self) -> Result<Box<std::io::Read + Send>, Error> {
+    fn try_clone_reader(&self) -> Result<Box<std::io::Read + Send>, Error> {
         Ok(Box::new(self.inner.lock().unwrap().readable.try_clone()?))
     }
 }
@@ -305,16 +238,51 @@ impl io::Write for MasterPty {
     }
 }
 
-impl SlavePty {
-    pub fn spawn_command(self, mut cmd: Command) -> Result<Child, Error> {
+impl SlavePtyTrait for SlavePty {
+    fn spawn_command(&self, cmd: CommandBuilder) -> Result<Box<ChildTrait>, Error> {
         let inner = self.inner.lock().unwrap();
-        cmd.set_pty(
-            inner.writable.try_clone()?,
-            inner.readable.try_clone()?,
-            inner.con.con,
-        );
 
-        cmd.spawn()
+        let mut si: STARTUPINFOEXW = unsafe { mem::zeroed() };
+        si.StartupInfo.cb = mem::size_of::<STARTUPINFOEXW>() as u32;
+
+        let mut attrs = ProcThreadAttributeList::with_capacity(1)?;
+        attrs.set_pty(inner.con.con)?;
+        si.lpAttributeList = attrs.as_mut_ptr();
+
+        let mut pi: PROCESS_INFORMATION = unsafe { mem::zeroed() };
+
+        let (mut exe, mut cmdline) = cmd.cmdline()?;
+        let cmd_os = OsString::from_wide(&cmdline);
+        eprintln!(
+            "Running: module: {} {:?}",
+            Path::new(&OsString::from_wide(&exe)).display(),
+            cmd_os
+        );
+        let res = unsafe {
+            CreateProcessW(
+                exe.as_mut_slice().as_mut_ptr(),
+                cmdline.as_mut_slice().as_mut_ptr(),
+                ptr::null_mut(),
+                ptr::null_mut(),
+                0,
+                EXTENDED_STARTUPINFO_PRESENT,
+                ptr::null_mut(), // FIXME: env
+                ptr::null_mut(),
+                &mut si.StartupInfo,
+                &mut pi,
+            )
+        };
+        if res == 0 {
+            let err = IoError::last_os_error();
+            bail!("CreateProcessW `{:?}` failed: {}", cmd_os, err);
+        }
+
+        // Make sure we close out the thread handle so we don't leak it;
+        // we do this simply by making it owned
+        let _main_thread = OwnedHandle::new(pi.hThread);
+        let proc = OwnedHandle::new(pi.hProcess);
+
+        Ok(Box::new(Child { proc }))
     }
 }
 
@@ -325,45 +293,4 @@ fn pipe() -> Result<(OwnedHandle, OwnedHandle), Error> {
         bail!("CreatePipe failed: {}", IoError::last_os_error());
     }
     Ok((OwnedHandle { handle: read }, OwnedHandle { handle: write }))
-}
-
-pub fn openpty(
-    num_rows: u16,
-    num_cols: u16,
-    pixel_width: u16,
-    pixel_height: u16,
-) -> Result<(MasterPty, SlavePty), Error> {
-    let (stdin_read, stdin_write) = pipe()?;
-    let (stdout_read, stdout_write) = pipe()?;
-
-    let con = PsuedoCon::new(
-        COORD {
-            X: num_cols as i16,
-            Y: num_rows as i16,
-        },
-        &stdin_read,
-        &stdout_write,
-    )?;
-
-    let size = winsize {
-        ws_row: num_rows,
-        ws_col: num_cols,
-        ws_xpixel: pixel_width,
-        ws_ypixel: pixel_height,
-    };
-
-    let master = MasterPty {
-        inner: Arc::new(Mutex::new(Inner {
-            con,
-            readable: stdout_read,
-            writable: stdin_write,
-            size,
-        })),
-    };
-
-    let slave = SlavePty {
-        inner: master.inner.clone(),
-    };
-
-    Ok((master, slave))
 }

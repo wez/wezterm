@@ -6,7 +6,7 @@ use crate::mux::window::WindowId;
 use crate::mux::Mux;
 use crate::opengl::render::Renderer;
 use crate::opengl::textureatlas::OutOfTextureSpace;
-use crate::openpty;
+use crate::pty::{PtySize, PtySystem, ThePtySystem};
 use failure::Error;
 use glium;
 use std::rc::Rc;
@@ -162,7 +162,13 @@ pub trait TerminalWindow {
         let rows = (dims.height as usize + 1) / dims.cell_height;
         let cols = (dims.width as usize + 1) / dims.cell_width;
 
-        let (pty, slave) = openpty(rows as u16, cols as u16, dims.width, dims.height)?;
+        let pty_sys = ThePtySystem {};
+        let (pty, slave) = pty_sys.openpty(PtySize {
+            rows: rows as u16,
+            cols: cols as u16,
+            pixel_width: dims.width,
+            pixel_height: dims.height,
+        })?;
         let cmd = config.build_prog(None)?;
 
         let process = slave.spawn_command(cmd)?;

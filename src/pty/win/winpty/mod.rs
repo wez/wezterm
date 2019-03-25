@@ -1,9 +1,10 @@
-use super::cmdline::CommandBuilder;
 use super::ownedhandle::OwnedHandle;
-use super::{winsize, Child};
+use super::Child;
+use crate::pty::cmdbuilder::CommandBuilder;
+use crate::pty::{ChildTrait, MasterPtyTrait, PtySize, PtySystem, SlavePtyTrait};
 use failure::Error;
 use safe::{AgentFlags, MouseMode, SpawnConfig, SpawnFlags, Timeout, WinPty, WinPtyConfig};
-use std::ffi::{OsStr, OsString};
+use std::ffi::OsString;
 use std::os::windows::ffi::OsStringExt;
 use std::path::Path;
 use std::sync::{Arc, Mutex};
@@ -11,45 +12,9 @@ use std::sync::{Arc, Mutex};
 mod safe;
 mod sys;
 
-#[derive(Debug)]
-pub struct Command {
-    builder: CommandBuilder,
-}
-
-impl Command {
-    pub fn new<S: AsRef<OsStr>>(program: S) -> Self {
-        Self {
-            builder: CommandBuilder::new(program),
-        }
-    }
-
-    pub fn arg<S: AsRef<OsStr>>(&mut self, arg: S) -> &mut Command {
-        self.builder.arg(arg);
-        self
-    }
-
-    pub fn args<I, S>(&mut self, args: I) -> &mut Command
-    where
-        I: IntoIterator<Item = S>,
-        S: AsRef<OsStr>,
-    {
-        self.builder.args(args);
-        self
-    }
-
-    pub fn env<K, V>(&mut self, key: K, val: V) -> &mut Command
-    where
-        K: AsRef<OsStr>,
-        V: AsRef<OsStr>,
-    {
-        self.builder.env(key, val);
-        self
-    }
-}
-
 struct Inner {
     pty: WinPty,
-    size: winsize,
+    size: PtySize,
     reader: OwnedHandle,
     writer: OwnedHandle,
 }
@@ -63,33 +28,22 @@ pub struct SlavePty {
     inner: Arc<Mutex<Inner>>,
 }
 
-impl MasterPty {
-    pub fn resize(
-        &self,
-        num_rows: u16,
-        num_cols: u16,
-        pixel_width: u16,
-        pixel_height: u16,
-    ) -> Result<(), Error> {
+impl MasterPtyTrait for MasterPty {
+    fn resize(&self, size: PtySize) -> Result<(), Error> {
         let mut inner = self.inner.lock().unwrap();
-        if inner.pty.set_size(num_cols as i32, num_rows as i32)? {
-            inner.size = winsize {
-                ws_row: num_rows,
-                ws_col: num_cols,
-                ws_xpixel: pixel_width,
-                ws_ypixel: pixel_height,
-            };
+        if inner.pty.set_size(size.cols as i32, size.rows as i32)? {
+            inner.size = size;
             Ok(())
         } else {
             bail!("MasterPty::resize returned false");
         }
     }
 
-    pub fn get_size(&self) -> Result<winsize, Error> {
+    fn get_size(&self) -> Result<PtySize, Error> {
         Ok(self.inner.lock().unwrap().size)
     }
 
-    pub fn try_clone_reader(&self) -> Result<Box<std::io::Read + Send>, Error> {
+    fn try_clone_reader(&self) -> Result<Box<std::io::Read + Send>, Error> {
         Ok(Box::new(self.inner.lock().unwrap().reader.try_clone()?))
     }
 }
@@ -103,9 +57,9 @@ impl std::io::Write for MasterPty {
     }
 }
 
-impl SlavePty {
-    pub fn spawn_command(self, cmd: Command) -> Result<Child, Error> {
-        let (exe, cmdline) = cmd.builder.cmdline()?;
+impl SlavePtyTrait for SlavePty {
+    fn spawn_command(&self, cmd: CommandBuilder) -> Result<Box<ChildTrait>, Error> {
+        let (exe, cmdline) = cmd.cmdline()?;
         let cmd_os = OsString::from_wide(&cmdline);
         eprintln!(
             "Running: module: {} {:?}",
@@ -128,44 +82,36 @@ impl SlavePty {
             proc: spawned.process_handle,
         };
 
-        Ok(child)
+        Ok(Box::new(child))
     }
 }
 
-pub fn openpty(
-    num_rows: u16,
-    num_cols: u16,
-    pixel_width: u16,
-    pixel_height: u16,
-) -> Result<(MasterPty, SlavePty), Error> {
-    let mut config = WinPtyConfig::new(AgentFlags::empty())?;
+pub struct WinPtySystem {}
+impl PtySystem for WinPtySystem {
+    fn openpty(&self, size: PtySize) -> Result<(Box<MasterPtyTrait>, Box<SlavePtyTrait>), Error> {
+        let mut config = WinPtyConfig::new(AgentFlags::empty())?;
 
-    config.set_initial_size(num_cols as i32, num_rows as i32);
-    config.set_mouse_mode(MouseMode::Auto);
-    config.set_agent_timeout(Timeout::Milliseconds(10_000));
+        config.set_initial_size(size.cols as i32, size.rows as i32);
+        config.set_mouse_mode(MouseMode::Auto);
+        config.set_agent_timeout(Timeout::Milliseconds(10_000));
 
-    let pty = config.open()?;
+        let pty = config.open()?;
 
-    let reader = pty.conout()?;
-    let writer = pty.conin()?;
-    let size = winsize {
-        ws_row: num_rows,
-        ws_col: num_cols,
-        ws_xpixel: pixel_width,
-        ws_ypixel: pixel_height,
-    };
+        let reader = pty.conout()?;
+        let writer = pty.conin()?;
 
-    let inner = Arc::new(Mutex::new(Inner {
-        pty,
-        reader,
-        writer,
-        size,
-    }));
+        let inner = Arc::new(Mutex::new(Inner {
+            pty,
+            reader,
+            writer,
+            size,
+        }));
 
-    let master = MasterPty {
-        inner: Arc::clone(&inner),
-    };
-    let slave = SlavePty { inner };
+        let master = MasterPty {
+            inner: Arc::clone(&inner),
+        };
+        let slave = SlavePty { inner };
 
-    Ok((master, slave))
+        Ok((Box::new(master), Box::new(slave)))
+    }
 }

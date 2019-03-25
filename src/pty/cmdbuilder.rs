@@ -1,46 +1,21 @@
+#[cfg(windows)]
 use failure::Error;
-use std::env;
 use std::ffi::{OsStr, OsString};
+#[cfg(windows)]
 use std::os::windows::ffi::OsStrExt;
 
 #[derive(Debug)]
 pub struct CommandBuilder {
     args: Vec<OsString>,
+    envs: Vec<(OsString, OsString)>,
 }
 
 impl CommandBuilder {
     pub fn new<S: AsRef<OsStr>>(program: S) -> Self {
         Self {
             args: vec![program.as_ref().to_owned()],
+            envs: vec![],
         }
-    }
-
-    fn search_path(exe: &OsStr) -> OsString {
-        if let Some(path) = env::var_os("PATH") {
-            let extensions = env::var_os("PATHEXT").unwrap_or(".EXE".into());
-            for path in env::split_paths(&path) {
-                // Check for exactly the user's string in this path dir
-                let candidate = path.join(&exe);
-                if candidate.exists() {
-                    return candidate.into_os_string();
-                }
-
-                // otherwise try tacking on some extensions.
-                // Note that this really replaces the extension in the
-                // user specified path, so this is potentially wrong.
-                for ext in env::split_paths(&extensions) {
-                    // PATHEXT includes the leading `.`, but `with_extension`
-                    // doesn't want that
-                    let ext = ext.to_str().expect("PATHEXT entries must be utf8");
-                    let path = path.join(&exe).with_extension(&ext[1..]);
-                    if path.exists() {
-                        return path.into_os_string();
-                    }
-                }
-            }
-        }
-
-        exe.to_owned()
     }
 
     pub fn arg<S: AsRef<OsStr>>(&mut self, arg: S) {
@@ -62,11 +37,58 @@ impl CommandBuilder {
         K: AsRef<OsStr>,
         V: AsRef<OsStr>,
     {
+        self.envs
+            .push((key.as_ref().to_owned(), val.as_ref().to_owned()));
+        #[cfg(windows)]
         eprintln!(
             "ignoring env {:?}={:?} for child; FIXME: implement this!",
             key.as_ref(),
             val.as_ref()
         );
+    }
+}
+
+#[cfg(unix)]
+impl CommandBuilder {
+    pub fn as_command(&self) -> std::process::Command {
+        let mut cmd = std::process::Command::new(&self.args[0]);
+        cmd.args(&self.args[1..]);
+        for (key, val) in &self.envs {
+            cmd.env(key, val);
+        }
+
+        cmd
+    }
+}
+
+#[cfg(windows)]
+impl CommandBuilder {
+    fn search_path(exe: &OsStr) -> OsString {
+        if let Some(path) = std::env::var_os("PATH") {
+            let extensions = std::env::var_os("PATHEXT").unwrap_or(".EXE".into());
+            for path in std::env::split_paths(&path) {
+                // Check for exactly the user's string in this path dir
+                let candidate = path.join(&exe);
+                if candidate.exists() {
+                    return candidate.into_os_string();
+                }
+
+                // otherwise try tacking on some extensions.
+                // Note that this really replaces the extension in the
+                // user specified path, so this is potentially wrong.
+                for ext in std::env::split_paths(&extensions) {
+                    // PATHEXT includes the leading `.`, but `with_extension`
+                    // doesn't want that
+                    let ext = ext.to_str().expect("PATHEXT entries must be utf8");
+                    let path = path.join(&exe).with_extension(&ext[1..]);
+                    if path.exists() {
+                        return path.into_os_string();
+                    }
+                }
+            }
+        }
+
+        exe.to_owned()
     }
 
     pub fn cmdline(&self) -> Result<(Vec<u16>, Vec<u16>), Error> {

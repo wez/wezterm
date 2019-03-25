@@ -1,5 +1,6 @@
 //! Working with pseudo-terminals
 
+use crate::pty::{ChildTrait, CommandBuilder, MasterPtyTrait, PtySize, PtySystem, SlavePtyTrait};
 use failure::Error;
 use libc::{self, winsize};
 use std::io;
@@ -10,6 +11,53 @@ use std::process::Stdio;
 use std::ptr;
 
 pub use std::process::{Child, Command, ExitStatus};
+
+pub struct UnixPtySystem {}
+impl PtySystem for UnixPtySystem {
+    fn openpty(&self, size: PtySize) -> Result<(Box<MasterPtyTrait>, Box<SlavePtyTrait>), Error> {
+        let mut master: RawFd = -1;
+        let mut slave: RawFd = -1;
+
+        let mut size = winsize {
+            ws_row: size.rows,
+            ws_col: size.cols,
+            ws_xpixel: size.pixel_width,
+            ws_ypixel: size.pixel_height,
+        };
+
+        let result = unsafe {
+            // BSDish systems may require mut pointers to some args
+            #[cfg_attr(feature = "cargo-clippy", allow(clippy::unnecessary_mut_passed))]
+            libc::openpty(
+                &mut master,
+                &mut slave,
+                ptr::null_mut(),
+                ptr::null_mut(),
+                &mut size,
+            )
+        };
+
+        if result != 0 {
+            bail!("failed to openpty: {:?}", io::Error::last_os_error());
+        }
+
+        let master = MasterPty {
+            fd: OwnedFd { fd: master },
+        };
+        let slave = SlavePty {
+            fd: OwnedFd { fd: slave },
+        };
+
+        // Ensure that these descriptors will get closed when we execute
+        // the child process.  This is done after constructing the Pty
+        // instances so that we ensure that the Ptys get drop()'d if
+        // the cloexec() functions fail (unlikely!).
+        cloexec(master.fd.as_raw_fd())?;
+        cloexec(slave.fd.as_raw_fd())?;
+
+        Ok((Box::new(master), Box::new(slave)))
+    }
+}
 
 #[derive(Debug)]
 pub struct OwnedFd {
@@ -154,73 +202,10 @@ fn set_nonblocking(fd: RawFd) -> Result<(), Error> {
     Ok(())
 }
 
-/// Create a new Pty instance with the window size set to the specified
-/// dimensions.  Returns a (master, slave) Pty pair.  The master side
-/// is used to drive the slave side.
-pub fn openpty(
-    num_rows: u16,
-    num_cols: u16,
-    pixel_width: u16,
-    pixel_height: u16,
-) -> Result<(MasterPty, SlavePty), Error> {
-    let mut master: RawFd = -1;
-    let mut slave: RawFd = -1;
+impl SlavePtyTrait for SlavePty {
+    fn spawn_command(&self, builder: CommandBuilder) -> Result<Box<ChildTrait>, Error> {
+        let mut cmd = builder.as_command();
 
-    let mut size = winsize {
-        ws_row: num_rows,
-        ws_col: num_cols,
-        ws_xpixel: pixel_width,
-        ws_ypixel: pixel_height,
-    };
-
-    let result = unsafe {
-        // BSDish systems may require mut pointers to some args
-        #[cfg_attr(feature = "cargo-clippy", allow(clippy::unnecessary_mut_passed))]
-        libc::openpty(
-            &mut master,
-            &mut slave,
-            ptr::null_mut(),
-            ptr::null_mut(),
-            &mut size,
-        )
-    };
-
-    if result != 0 {
-        bail!("failed to openpty: {:?}", io::Error::last_os_error());
-    }
-
-    let master = MasterPty {
-        fd: OwnedFd { fd: master },
-    };
-    let slave = SlavePty {
-        fd: OwnedFd { fd: slave },
-    };
-
-    // Ensure that these descriptors will get closed when we execute
-    // the child process.  This is done after constructing the Pty
-    // instances so that we ensure that the Ptys get drop()'d if
-    // the cloexec() functions fail (unlikely!).
-    cloexec(master.fd.as_raw_fd())?;
-    cloexec(slave.fd.as_raw_fd())?;
-
-    Ok((master, slave))
-}
-
-impl SlavePty {
-    /// Helper for setting up a Command instance
-    fn as_stdio(&self) -> Result<Stdio, Error> {
-        let dup = self.fd.try_clone()?;
-        Ok(unsafe { Stdio::from_raw_fd(dup.into_raw_fd()) })
-    }
-
-    /// this method prepares a Command builder to spawn a process with the Pty
-    /// set up to be the controlling terminal, and then spawns the command.
-    /// This method consumes the slave Pty instance and the Command builder
-    /// instance so that the associated file descriptors are closed.
-    /// The `cmd` parameter is set up to reference the slave
-    /// Pty for its stdio streams, as well as to establish itself as the session
-    /// leader.
-    pub fn spawn_command(self, mut cmd: Command) -> Result<Child, Error> {
         cmd.stdin(self.as_stdio()?)
             .stdout(self.as_stdio()?)
             .stderr(self.as_stdio()?)
@@ -274,29 +259,29 @@ impl SlavePty {
         child.stdout.take();
         child.stderr.take();
 
-        Ok(child)
+        Ok(Box::new(child))
     }
 }
 
-impl MasterPty {
-    /// Inform the kernel and thus the child process that the window resized.
-    /// It will update the winsize information maintained by the kernel,
-    /// and generate a signal for the child to notice and update its state.
-    pub fn resize(
-        &self,
-        num_rows: u16,
-        num_cols: u16,
-        pixel_width: u16,
-        pixel_height: u16,
-    ) -> Result<(), Error> {
-        let size = winsize {
-            ws_row: num_rows,
-            ws_col: num_cols,
-            ws_xpixel: pixel_width,
-            ws_ypixel: pixel_height,
+impl SlavePty {
+    /// Helper for setting up a Command instance
+    fn as_stdio(&self) -> Result<Stdio, Error> {
+        let dup = self.fd.try_clone()?;
+        Ok(unsafe { Stdio::from_raw_fd(dup.into_raw_fd()) })
+    }
+}
+
+impl MasterPtyTrait for MasterPty {
+    fn resize(&self, size: PtySize) -> Result<(), Error> {
+        let ws_size = winsize {
+            ws_row: size.rows,
+            ws_col: size.cols,
+            ws_xpixel: size.pixel_width,
+            ws_ypixel: size.pixel_height,
         };
 
-        if unsafe { libc::ioctl(self.fd.as_raw_fd(), libc::TIOCSWINSZ, &size as *const _) } != 0 {
+        if unsafe { libc::ioctl(self.fd.as_raw_fd(), libc::TIOCSWINSZ, &ws_size as *const _) } != 0
+        {
             bail!(
                 "failed to ioctl(TIOCSWINSZ): {:?}",
                 io::Error::last_os_error()
@@ -306,7 +291,7 @@ impl MasterPty {
         Ok(())
     }
 
-    pub fn get_size(&self) -> Result<winsize, Error> {
+    fn get_size(&self) -> Result<PtySize, Error> {
         let mut size: winsize = unsafe { mem::zeroed() };
         if unsafe { libc::ioctl(self.fd.as_raw_fd(), libc::TIOCGWINSZ, &mut size as *mut _) } != 0 {
             bail!(
@@ -314,10 +299,15 @@ impl MasterPty {
                 io::Error::last_os_error()
             );
         }
-        Ok(size)
+        Ok(PtySize {
+            rows: size.ws_row,
+            cols: size.ws_col,
+            pixel_width: size.ws_xpixel,
+            pixel_height: size.ws_ypixel,
+        })
     }
 
-    pub fn try_clone_reader(&self) -> Result<Box<std::io::Read + Send>, Error> {
+    fn try_clone_reader(&self) -> Result<Box<std::io::Read + Send>, Error> {
         let fd = self.fd.try_clone()?;
         Ok(Box::new(fd))
     }

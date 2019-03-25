@@ -1,6 +1,6 @@
 use crate::mux::renderable::Renderable;
 use crate::mux::tab::{alloc_tab_id, Tab, TabId};
-use crate::{Child, MasterPty};
+use crate::pty::{ChildTrait, MasterPtyTrait, PtySize};
 use failure::Error;
 use std::cell::{RefCell, RefMut};
 use term::{KeyCode, KeyModifiers, MouseEvent, Terminal, TerminalHost};
@@ -8,8 +8,8 @@ use term::{KeyCode, KeyModifiers, MouseEvent, Terminal, TerminalHost};
 pub struct LocalTab {
     tab_id: TabId,
     terminal: RefCell<Terminal>,
-    process: RefCell<Child>,
-    pty: RefCell<MasterPty>,
+    process: RefCell<Box<ChildTrait>>,
+    pty: RefCell<Box<MasterPtyTrait>>,
 }
 
 impl Tab for LocalTab {
@@ -51,9 +51,12 @@ impl Tab for LocalTab {
         pixel_width: u16,
         pixel_height: u16,
     ) -> Result<(), Error> {
-        self.pty
-            .borrow_mut()
-            .resize(rows, cols, pixel_width, pixel_height)?;
+        self.pty.borrow_mut().resize(PtySize {
+            rows,
+            cols,
+            pixel_width,
+            pixel_height,
+        })?;
         self.terminal
             .borrow_mut()
             .resize(rows as usize, cols as usize);
@@ -80,7 +83,7 @@ impl Tab for LocalTab {
 }
 
 impl LocalTab {
-    pub fn new(terminal: Terminal, process: Child, pty: MasterPty) -> Self {
+    pub fn new(terminal: Terminal, process: Box<ChildTrait>, pty: Box<MasterPtyTrait>) -> Self {
         let tab_id = alloc_tab_id();
         Self {
             tab_id,

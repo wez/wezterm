@@ -28,8 +28,7 @@ mod font;
 use crate::font::{FontConfiguration, FontSystemSelection};
 
 mod pty;
-pub use crate::pty::{openpty, Child, Command, ExitStatus, MasterPty, SlavePty};
-
+use pty::{PtySize, PtySystem, ThePtySystem};
 use std::env;
 
 /// Determine which shell to run.
@@ -201,12 +200,13 @@ fn spawn_tab(
     let initial_pixel_width = 0;
     let initial_pixel_height = 0;
 
-    let (master, slave) = openpty(
-        initial_rows,
-        initial_cols,
-        initial_pixel_width,
-        initial_pixel_height,
-    )?;
+    let pty_sys = ThePtySystem {};
+    let (master, slave) = pty_sys.openpty(PtySize {
+        rows: initial_rows,
+        cols: initial_cols,
+        pixel_width: initial_pixel_width,
+        pixel_height: initial_pixel_height,
+    })?;
 
     let child = slave.spawn_command(cmd)?;
     eprintln!("spawned: {:?}", child);
