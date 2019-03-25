@@ -62,5 +62,3 @@ deploy:
     repo: wez/wezterm
     tags: true
     rust: stable
-    condition: $TRAVIS_OS_NAME = osx
-
