@@ -1,6 +1,8 @@
 .DS_Store
 /wezterm*.snap
 /WezTerm*.zip
+/wezterm*.deb
+/pkg
 /Cargo.lock
 /target/
 **/*.rs.bk
