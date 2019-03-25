@@ -1,6 +1,7 @@
 use super::cmdline::CommandBuilder;
 use super::ownedhandle::OwnedHandle;
 use super::winsize;
+use super::{Child, ExitStatus};
 use failure::Error;
 use lazy_static::lazy_static;
 use shared_library::shared_library;
@@ -17,7 +18,6 @@ use winapi::shared::minwindef::DWORD;
 use winapi::shared::winerror::{HRESULT, S_OK};
 use winapi::um::fileapi::WriteFile;
 use winapi::um::handleapi::*;
-use winapi::um::minwinbase::STILL_ACTIVE;
 use winapi::um::namedpipeapi::CreatePipe;
 use winapi::um::processthreadsapi::*;
 use winapi::um::synchapi::WaitForSingleObject;
@@ -185,55 +185,6 @@ impl Drop for ProcThreadAttributeList {
     fn drop(&mut self) {
         unsafe { DeleteProcThreadAttributeList(self.as_mut_ptr()) };
     }
-}
-
-#[derive(Debug)]
-pub struct Child {
-    proc: OwnedHandle,
-}
-
-impl Child {
-    pub fn try_wait(&mut self) -> IoResult<Option<ExitStatus>> {
-        let mut status: DWORD = 0;
-        let res = unsafe { GetExitCodeProcess(self.proc.handle, &mut status) };
-        if res != 0 {
-            if status == STILL_ACTIVE {
-                Ok(None)
-            } else {
-                Ok(Some(ExitStatus { status }))
-            }
-        } else {
-            Ok(None)
-        }
-    }
-
-    pub fn kill(&mut self) -> IoResult<ExitStatus> {
-        unsafe {
-            TerminateProcess(self.proc.handle, 1);
-        }
-        self.wait()
-    }
-
-    pub fn wait(&mut self) -> IoResult<ExitStatus> {
-        if let Ok(Some(status)) = self.try_wait() {
-            return Ok(status);
-        }
-        unsafe {
-            WaitForSingleObject(self.proc.handle, INFINITE);
-        }
-        let mut status: DWORD = 0;
-        let res = unsafe { GetExitCodeProcess(self.proc.handle, &mut status) };
-        if res != 0 {
-            Ok(ExitStatus { status })
-        } else {
-            Err(IoError::last_os_error())
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct ExitStatus {
-    status: DWORD,
 }
 
 type HPCON = HANDLE;
