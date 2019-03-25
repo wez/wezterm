@@ -2,6 +2,8 @@
 pub mod conpty;
 #[cfg(unix)]
 pub mod unix;
+#[cfg(windows)]
+pub mod winpty;
 
 #[cfg(windows)]
 pub use self::conpty::{openpty, Child, Command, ExitStatus, MasterPty, SlavePty};

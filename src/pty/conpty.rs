@@ -397,7 +397,7 @@ impl PsuedoCon {
 }
 
 #[derive(Debug)]
-struct OwnedHandle {
+pub struct OwnedHandle {
     handle: HANDLE,
 }
 unsafe impl Send for OwnedHandle {}
@@ -410,7 +410,10 @@ impl Drop for OwnedHandle {
 }
 
 impl OwnedHandle {
-    fn try_clone(&self) -> Result<Self, IoError> {
+    pub fn new(handle: HANDLE) -> Self {
+        Self { handle }
+    }
+    pub fn try_clone(&self) -> Result<Self, IoError> {
         if self.handle == INVALID_HANDLE_VALUE || self.handle.is_null() {
             return Ok(OwnedHandle {
                 handle: self.handle,
