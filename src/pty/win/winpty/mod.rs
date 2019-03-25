@@ -1,7 +1,7 @@
 use super::ownedhandle::OwnedHandle;
-use super::Child;
+use super::WinChild;
 use crate::pty::cmdbuilder::CommandBuilder;
-use crate::pty::{ChildTrait, MasterPtyTrait, PtySize, PtySystem, SlavePtyTrait};
+use crate::pty::{Child, MasterPty, PtySize, PtySystem, SlavePty};
 use failure::Error;
 use safe::{AgentFlags, MouseMode, SpawnConfig, SpawnFlags, Timeout, WinPty, WinPtyConfig};
 use std::ffi::OsString;
@@ -20,22 +20,22 @@ struct Inner {
 }
 
 #[derive(Clone)]
-pub struct MasterPty {
+pub struct WinPtyMasterPty {
     inner: Arc<Mutex<Inner>>,
 }
 
-pub struct SlavePty {
+pub struct WinPtySlavePty {
     inner: Arc<Mutex<Inner>>,
 }
 
-impl MasterPtyTrait for MasterPty {
+impl MasterPty for WinPtyMasterPty {
     fn resize(&self, size: PtySize) -> Result<(), Error> {
         let mut inner = self.inner.lock().unwrap();
         if inner.pty.set_size(size.cols as i32, size.rows as i32)? {
             inner.size = size;
             Ok(())
         } else {
-            bail!("MasterPty::resize returned false");
+            bail!("WinPtyMasterPty::resize returned false");
         }
     }
 
@@ -48,7 +48,7 @@ impl MasterPtyTrait for MasterPty {
     }
 }
 
-impl std::io::Write for MasterPty {
+impl std::io::Write for WinPtyMasterPty {
     fn write(&mut self, buf: &[u8]) -> Result<usize, std::io::Error> {
         self.inner.lock().unwrap().writer.write(buf)
     }
@@ -57,8 +57,8 @@ impl std::io::Write for MasterPty {
     }
 }
 
-impl SlavePtyTrait for SlavePty {
-    fn spawn_command(&self, cmd: CommandBuilder) -> Result<Box<ChildTrait>, Error> {
+impl SlavePty for WinPtySlavePty {
+    fn spawn_command(&self, cmd: CommandBuilder) -> Result<Box<Child>, Error> {
         let (exe, cmdline) = cmd.cmdline()?;
         let cmd_os = OsString::from_wide(&cmdline);
         eprintln!(
@@ -78,7 +78,7 @@ impl SlavePtyTrait for SlavePty {
         let mut inner = self.inner.lock().unwrap();
         let spawned = inner.pty.spawn(&spawn_config)?;
 
-        let child = Child {
+        let child = WinChild {
             proc: spawned.process_handle,
         };
 
@@ -88,7 +88,7 @@ impl SlavePtyTrait for SlavePty {
 
 pub struct WinPtySystem {}
 impl PtySystem for WinPtySystem {
-    fn openpty(&self, size: PtySize) -> Result<(Box<MasterPtyTrait>, Box<SlavePtyTrait>), Error> {
+    fn openpty(&self, size: PtySize) -> Result<(Box<MasterPty>, Box<SlavePty>), Error> {
         let mut config = WinPtyConfig::new(AgentFlags::empty())?;
 
         config.set_initial_size(size.cols as i32, size.rows as i32);
@@ -107,10 +107,10 @@ impl PtySystem for WinPtySystem {
             size,
         }));
 
-        let master = MasterPty {
+        let master = WinPtyMasterPty {
             inner: Arc::clone(&inner),
         };
-        let slave = SlavePty { inner };
+        let slave = WinPtySlavePty { inner };
 
         Ok((Box::new(master), Box::new(slave)))
     }

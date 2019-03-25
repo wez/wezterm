@@ -17,7 +17,7 @@ pub struct PtySize {
     pub pixel_height: u16,
 }
 
-pub trait MasterPtyTrait: std::io::Write {
+pub trait MasterPty: std::io::Write {
     /// Inform the kernel and thus the child process that the window resized.
     /// It will update the winsize information maintained by the kernel,
     /// and generate a signal for the child to notice and update its state.
@@ -26,14 +26,14 @@ pub trait MasterPtyTrait: std::io::Write {
     fn try_clone_reader(&self) -> Result<Box<std::io::Read + Send>, Error>;
 }
 
-pub trait ChildTrait: std::fmt::Debug {
+pub trait Child: std::fmt::Debug {
     fn try_wait(&mut self) -> IoResult<Option<ExitStatus>>;
     fn kill(&mut self) -> IoResult<()>;
     fn wait(&mut self) -> IoResult<ExitStatus>;
 }
 
-pub trait SlavePtyTrait {
-    fn spawn_command(&self, cmd: CommandBuilder) -> Result<Box<ChildTrait>, Error>;
+pub trait SlavePty {
+    fn spawn_command(&self, cmd: CommandBuilder) -> Result<Box<Child>, Error>;
 }
 
 #[derive(Debug)]
@@ -61,10 +61,10 @@ pub trait PtySystem {
     /// Create a new Pty instance with the window size set to the specified
     /// dimensions.  Returns a (master, slave) Pty pair.  The master side
     /// is used to drive the slave side.
-    fn openpty(&self, size: PtySize) -> Result<(Box<MasterPtyTrait>, Box<SlavePtyTrait>), Error>;
+    fn openpty(&self, size: PtySize) -> Result<(Box<MasterPty>, Box<SlavePty>), Error>;
 }
 
-impl ChildTrait for std::process::Child {
+impl Child for std::process::Child {
     fn try_wait(&mut self) -> IoResult<Option<ExitStatus>> {
         std::process::Child::try_wait(self).map(|s| match s {
             Some(s) => Some(s.into()),
@@ -81,7 +81,38 @@ impl ChildTrait for std::process::Child {
     }
 }
 
-#[cfg(unix)]
-pub use self::unix::UnixPtySystem as ThePtySystem;
-#[cfg(windows)]
-pub use self::win::conpty::ConPtySystem as ThePtySystem;
+#[allow(dead_code)]
+pub enum PtySystemSelection {
+    Unix,
+    ConPty,
+    WinPty,
+}
+
+impl PtySystemSelection {
+    #[cfg(unix)]
+    pub fn get(&self) -> Result<Box<PtySystem>, Error> {
+        match self {
+            PtySystemSelection::Unix => Ok(Box::new(unix::UnixPtySystem {})),
+            _ => bail!("{:?} not available on unix"),
+        }
+    }
+    #[cfg(windows)]
+    pub fn get(&self) -> Result<Box<PtySystem>, Error> {
+        match self {
+            PtySystemSelection::ConPty => Ok(Box::new(win::conpty::ConPtySystem {})),
+            PtySystemSelection::WinPty => Ok(Box::new(win::winpty::WinPtySystem {})),
+            _ => bail!("{:?} not available on Windows"),
+        }
+    }
+}
+
+impl Default for PtySystemSelection {
+    fn default() -> PtySystemSelection {
+        #[cfg(unix)]
+        return PtySystemSelection::Unix;
+        #[cfg(all(windows, not(feature = "use-winpty")))]
+        return PtySystemSelection::ConPty;
+        #[cfg(all(windows, feature = "use-winpty"))]
+        return PtySystemSelection::WinPty;
+    }
+}

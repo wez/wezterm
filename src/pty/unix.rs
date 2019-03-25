@@ -1,6 +1,6 @@
 //! Working with pseudo-terminals
 
-use crate::pty::{ChildTrait, CommandBuilder, MasterPtyTrait, PtySize, PtySystem, SlavePtyTrait};
+use crate::pty::{Child, CommandBuilder, MasterPty, PtySize, PtySystem, SlavePty};
 use failure::Error;
 use libc::{self, winsize};
 use std::io;
@@ -10,11 +10,9 @@ use std::os::unix::process::CommandExt;
 use std::process::Stdio;
 use std::ptr;
 
-pub use std::process::{Child, Command, ExitStatus};
-
 pub struct UnixPtySystem {}
 impl PtySystem for UnixPtySystem {
-    fn openpty(&self, size: PtySize) -> Result<(Box<MasterPtyTrait>, Box<SlavePtyTrait>), Error> {
+    fn openpty(&self, size: PtySize) -> Result<(Box<MasterPty>, Box<SlavePty>), Error> {
         let mut master: RawFd = -1;
         let mut slave: RawFd = -1;
 
@@ -41,10 +39,10 @@ impl PtySystem for UnixPtySystem {
             bail!("failed to openpty: {:?}", io::Error::last_os_error());
         }
 
-        let master = MasterPty {
+        let master = UnixMasterPty {
             fd: OwnedFd { fd: master },
         };
-        let slave = SlavePty {
+        let slave = UnixSlavePty {
             fd: OwnedFd { fd: slave },
         };
 
@@ -135,13 +133,13 @@ impl io::Write for OwnedFd {
 
 /// Represents the master end of a pty.
 /// The file descriptor will be closed when the Pty is dropped.
-pub struct MasterPty {
+pub struct UnixMasterPty {
     fd: OwnedFd,
 }
 
 /// Represents the slave end of a pty.
 /// The file descriptor will be closed when the Pty is dropped.
-pub struct SlavePty {
+pub struct UnixSlavePty {
     fd: OwnedFd,
 }
 
@@ -202,8 +200,8 @@ fn set_nonblocking(fd: RawFd) -> Result<(), Error> {
     Ok(())
 }
 
-impl SlavePtyTrait for SlavePty {
-    fn spawn_command(&self, builder: CommandBuilder) -> Result<Box<ChildTrait>, Error> {
+impl SlavePty for UnixSlavePty {
+    fn spawn_command(&self, builder: CommandBuilder) -> Result<Box<Child>, Error> {
         let mut cmd = builder.as_command();
 
         cmd.stdin(self.as_stdio()?)
@@ -263,7 +261,7 @@ impl SlavePtyTrait for SlavePty {
     }
 }
 
-impl SlavePty {
+impl UnixSlavePty {
     /// Helper for setting up a Command instance
     fn as_stdio(&self) -> Result<Stdio, Error> {
         let dup = self.fd.try_clone()?;
@@ -271,7 +269,7 @@ impl SlavePty {
     }
 }
 
-impl MasterPtyTrait for MasterPty {
+impl MasterPty for UnixMasterPty {
     fn resize(&self, size: PtySize) -> Result<(), Error> {
         let ws_size = winsize {
             ws_row: size.rows,
@@ -313,7 +311,7 @@ impl MasterPtyTrait for MasterPty {
     }
 }
 
-impl io::Write for MasterPty {
+impl io::Write for UnixMasterPty {
     fn write(&mut self, buf: &[u8]) -> Result<usize, io::Error> {
         self.fd.write(buf)
     }

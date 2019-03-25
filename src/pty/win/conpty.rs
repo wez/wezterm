@@ -1,7 +1,7 @@
 use super::ownedhandle::OwnedHandle;
-use super::Child;
+use super::WinChild;
 use crate::pty::cmdbuilder::CommandBuilder;
-use crate::pty::{ChildTrait, MasterPtyTrait, PtySize, PtySystem, SlavePtyTrait};
+use crate::pty::{Child, MasterPty, PtySize, PtySystem, SlavePty};
 use failure::Error;
 use lazy_static::lazy_static;
 use shared_library::shared_library;
@@ -26,7 +26,7 @@ const PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE: usize = 0x00020016;
 
 pub struct ConPtySystem {}
 impl PtySystem for ConPtySystem {
-    fn openpty(&self, size: PtySize) -> Result<(Box<MasterPtyTrait>, Box<SlavePtyTrait>), Error> {
+    fn openpty(&self, size: PtySize) -> Result<(Box<MasterPty>, Box<SlavePty>), Error> {
         let (stdin_read, stdin_write) = pipe()?;
         let (stdout_read, stdout_write) = pipe()?;
 
@@ -39,7 +39,7 @@ impl PtySystem for ConPtySystem {
             &stdout_write,
         )?;
 
-        let master = MasterPty {
+        let master = ConPtyMasterPty {
             inner: Arc::new(Mutex::new(Inner {
                 con,
                 readable: stdout_read,
@@ -48,7 +48,7 @@ impl PtySystem for ConPtySystem {
             })),
         };
 
-        let slave = SlavePty {
+        let slave = ConPtySlavePty {
             inner: master.inner.clone(),
         };
 
@@ -205,15 +205,15 @@ impl Inner {
 }
 
 #[derive(Clone)]
-pub struct MasterPty {
+pub struct ConPtyMasterPty {
     inner: Arc<Mutex<Inner>>,
 }
 
-pub struct SlavePty {
+pub struct ConPtySlavePty {
     inner: Arc<Mutex<Inner>>,
 }
 
-impl MasterPtyTrait for MasterPty {
+impl MasterPty for ConPtyMasterPty {
     fn resize(&self, size: PtySize) -> Result<(), Error> {
         let mut inner = self.inner.lock().unwrap();
         inner.resize(size.rows, size.cols, size.pixel_width, size.pixel_height)
@@ -229,7 +229,7 @@ impl MasterPtyTrait for MasterPty {
     }
 }
 
-impl io::Write for MasterPty {
+impl io::Write for ConPtyMasterPty {
     fn write(&mut self, buf: &[u8]) -> Result<usize, io::Error> {
         self.inner.lock().unwrap().writable.write(buf)
     }
@@ -238,8 +238,8 @@ impl io::Write for MasterPty {
     }
 }
 
-impl SlavePtyTrait for SlavePty {
-    fn spawn_command(&self, cmd: CommandBuilder) -> Result<Box<ChildTrait>, Error> {
+impl SlavePty for ConPtySlavePty {
+    fn spawn_command(&self, cmd: CommandBuilder) -> Result<Box<Child>, Error> {
         let inner = self.inner.lock().unwrap();
 
         let mut si: STARTUPINFOEXW = unsafe { mem::zeroed() };
@@ -282,7 +282,7 @@ impl SlavePtyTrait for SlavePty {
         let _main_thread = OwnedHandle::new(pi.hThread);
         let proc = OwnedHandle::new(pi.hProcess);
 
-        Ok(Box::new(Child { proc }))
+        Ok(Box::new(WinChild { proc }))
     }
 }
 
