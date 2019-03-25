@@ -214,6 +214,9 @@ impl GliumTerminalWindow {
                 .with_pixel_format(24, 8);
             let window = glutin::WindowBuilder::new()
                 .with_dimensions(logical_size)
+                .with_window_icon(Some(glutin::Icon::from_bytes(include_bytes!(
+                    "../../../assets/icon/terminal.png"
+                ))?))
                 .with_title("wezterm");
 
             let mut_loop = event_loop.event_loop.borrow_mut();

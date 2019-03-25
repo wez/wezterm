@@ -7,4 +7,7 @@ fn main() {
 
     // Generate the 'cargo:' key output
     generate_cargo_keys(ConstantsFlags::all()).expect("Unable to generate the cargo keys!");
+
+    #[cfg(windows)]
+    embed_resource::compile("assets/windows/resource.rc");
 }

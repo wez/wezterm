@@ -8,6 +8,9 @@ build = "build.rs"
 [build-dependencies]
 vergen = "3"
 
+[target.'cfg(windows)'.build-dependencies]
+embed-resource = "1.1"
+
 [dependencies]
 base91 = { path = "base91" }
 bitflags = "1.0"
@@ -20,7 +23,7 @@ failure_derive = "0.1"
 foreign-types = "0.3"
 freetype = { path = "deps/freetype" }
 gl = "0.11"
-glium = { version = "0.23", default-features = false, features = ["glutin"]}
+glium = { version = "0.23", default-features = false, features = ["glutin", "icon_loading"]}
 harfbuzz = { path = "deps/harfbuzz" }
 lazy_static = "1.3"
 leb128 = "0.2"
