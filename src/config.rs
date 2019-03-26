@@ -4,6 +4,7 @@ use crate::font::FontSystemSelection;
 use crate::frontend::FrontEndSelection;
 use crate::get_shell;
 use crate::pty::CommandBuilder;
+use crate::pty::PtySystemSelection;
 use failure::{err_msg, Error};
 use lazy_static::lazy_static;
 use serde_derive::*;
@@ -69,6 +70,9 @@ pub struct Config {
     #[serde(default)]
     pub front_end: FrontEndSelection,
 
+    #[serde(default)]
+    pub pty: PtySystemSelection,
+
     /// When using the MuxServer, this specifies the path to the unix
     /// domain socket to use to communicate with the mux server.
     pub mux_server_unix_domain_socket_path: Option<String>,
@@ -104,6 +108,7 @@ impl Default for Config {
             font_rules: Vec::new(),
             font_system: FontSystemSelection::default(),
             front_end: FrontEndSelection::default(),
+            pty: PtySystemSelection::default(),
             colors: None,
             scrollback_lines: None,
             hyperlink_rules: default_hyperlink_rules(),

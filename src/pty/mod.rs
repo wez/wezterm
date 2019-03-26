@@ -1,4 +1,5 @@
 use failure::Error;
+use serde_derive::*;
 use std::io::Result as IoResult;
 
 pub mod cmdbuilder;
@@ -82,6 +83,7 @@ impl Child for std::process::Child {
 }
 
 #[allow(dead_code)]
+#[derive(Debug, Clone, Copy, Deserialize)]
 pub enum PtySystemSelection {
     Unix,
     ConPty,
@@ -93,7 +95,7 @@ impl PtySystemSelection {
     pub fn get(&self) -> Result<Box<PtySystem>, Error> {
         match self {
             PtySystemSelection::Unix => Ok(Box::new(unix::UnixPtySystem {})),
-            _ => bail!("{:?} not available on unix"),
+            _ => bail!("{:?} not available on unix", self),
         }
     }
     #[cfg(windows)]
@@ -101,7 +103,27 @@ impl PtySystemSelection {
         match self {
             PtySystemSelection::ConPty => Ok(Box::new(win::conpty::ConPtySystem {})),
             PtySystemSelection::WinPty => Ok(Box::new(win::winpty::WinPtySystem {})),
-            _ => bail!("{:?} not available on Windows"),
+            _ => bail!("{:?} not available on Windows", self),
+        }
+    }
+
+    pub fn variants() -> Vec<&'static str> {
+        vec!["Unix", "ConPty", "WinPty"]
+    }
+}
+
+impl std::str::FromStr for PtySystemSelection {
+    type Err = Error;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_ref() {
+            "unix" => Ok(PtySystemSelection::Unix),
+            "winpty" => Ok(PtySystemSelection::WinPty),
+            "conpty" => Ok(PtySystemSelection::ConPty),
+            _ => Err(format_err!(
+                "{} is not a valid PtySystemSelection variant, possible values are {:?}",
+                s,
+                PtySystemSelection::variants()
+            )),
         }
     }
 }
