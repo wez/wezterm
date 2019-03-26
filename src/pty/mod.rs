@@ -132,9 +132,7 @@ impl Default for PtySystemSelection {
     fn default() -> PtySystemSelection {
         #[cfg(unix)]
         return PtySystemSelection::Unix;
-        #[cfg(all(windows, not(feature = "use-winpty")))]
+        #[cfg(windows)]
         return PtySystemSelection::ConPty;
-        #[cfg(all(windows, feature = "use-winpty"))]
-        return PtySystemSelection::WinPty;
     }
 }
