@@ -3,11 +3,11 @@ use crate::font::FontConfiguration;
 use crate::mux::tab::Tab;
 use crate::mux::Mux;
 use failure::{format_err, Error};
+use lazy_static::lazy_static;
 use promise::Executor;
 use serde_derive::*;
-use std::cell::RefCell;
 use std::rc::Rc;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 pub mod glium;
 pub mod guicommon;
@@ -35,18 +35,16 @@ impl Default for FrontEndSelection {
     }
 }
 
-thread_local! {
-    static EXECUTOR: RefCell<Option<Box<Executor>>> = RefCell::new(None);
+lazy_static! {
+    static ref EXECUTOR: Mutex<Option<Box<Executor>>> = Mutex::new(None);
 }
 
 pub fn gui_executor() -> Option<Box<Executor>> {
-    let mut res = None;
-    EXECUTOR.with(|exec| {
-        if let Some(exec) = &*exec.borrow() {
-            res = Some(exec.clone_executor());
-        }
-    });
-    res
+    let locked = EXECUTOR.lock().unwrap();
+    match locked.as_ref() {
+        Some(exec) => Some(exec.clone_executor()),
+        None => None,
+    }
 }
 
 impl FrontEndSelection {
@@ -61,9 +59,7 @@ impl FrontEndSelection {
             FrontEndSelection::Null => muxserver::MuxServerFrontEnd::new_null(mux),
         }?;
 
-        EXECUTOR.with(|exec| {
-            *exec.borrow_mut() = Some(front_end.gui_executor());
-        });
+        EXECUTOR.lock().unwrap().replace(front_end.gui_executor());
 
         Ok(front_end)
     }
