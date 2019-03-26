@@ -738,6 +738,22 @@ impl GliumTerminalWindow {
             } => {
                 self.paint()?;
             }
+            Event::WindowEvent {
+                event: WindowEvent::CloseRequested,
+                ..
+            } => {
+                let mux = Mux::get().unwrap();
+                let tab = match mux.get_active_tab_for_window(self.get_mux_window_id()) {
+                    Some(tab) => tab,
+                    None => return Ok(()),
+                };
+                mux.remove_tab(tab.tab_id());
+                if let Some(mut win) = mux.get_window_mut(self.get_mux_window_id()) {
+                    win.remove_by_id(tab.tab_id());
+                }
+                // Explicit drop of mux to satisfy the borrow checker
+                drop(mux);
+            }
             _ => {}
         }
         Ok(())
