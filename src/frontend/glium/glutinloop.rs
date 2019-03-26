@@ -5,11 +5,11 @@ use crate::frontend::guicommon::window::TerminalWindow;
 use crate::frontend::FrontEnd;
 use crate::mux::tab::Tab;
 use crate::mux::{Mux, SessionTerminated};
-use crate::spawn_tab;
 use failure::{bail, Error};
 use glium;
 use glium::glutin::EventsLoopProxy;
 use glium::glutin::WindowId;
+use portable_pty::PtySize;
 use promise::{Executor, Future, SpawnFunc};
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -215,7 +215,7 @@ impl GuiEventLoop {
         config: &Arc<Config>,
         fonts: &Rc<FontConfiguration>,
     ) -> Result<(), Error> {
-        let tab = spawn_tab(&config)?; // FIXME: Domain
+        let tab = self.mux.default_domain().spawn(PtySize::default(), None)?;
         self.mux.add_tab(self.gui_executor(), &tab)?;
         let events = Self::get().expect("to be called on gui thread");
         let window = GliumTerminalWindow::new(&events, &fonts, &config, &tab)?;

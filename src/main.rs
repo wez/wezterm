@@ -17,7 +17,6 @@ mod opengl;
 mod server;
 use crate::frontend::{FrontEnd, FrontEndSelection};
 use crate::mux::domain::{Domain, LocalDomain};
-use crate::mux::tab::Tab;
 use crate::mux::Mux;
 use portable_pty::cmdbuilder::CommandBuilder;
 
@@ -127,15 +126,15 @@ fn run_terminal_gui(config: Arc<config::Config>, opts: &StartCommand) -> Result<
         None
     };
 
-    let mux = Rc::new(mux::Mux::new(&config));
+    let domain: Arc<Domain> = Arc::new(LocalDomain::new(&config)?);
+
+    let mux = Rc::new(mux::Mux::new(&config, &domain));
     Mux::set_mux(&mux);
 
     let front_end = opts.front_end.unwrap_or(config.front_end);
     let gui = front_end.try_new(&mux)?;
 
-    let domain = LocalDomain::new(&config)?;
-
-    spawn_window(&mux, &domain, &*gui, cmd, &fontconfig)?;
+    spawn_window(&mux, &*gui, cmd, &fontconfig)?;
     gui.run_forever()
 }
 
@@ -191,19 +190,13 @@ fn main() -> Result<(), Error> {
     }
 }
 
-fn spawn_tab(config: &Arc<config::Config>) -> Result<Rc<Tab>, Error> {
-    let domain = LocalDomain::new(config)?;
-    domain.spawn(PtySize::default(), None)
-}
-
 fn spawn_window(
     mux: &Rc<Mux>,
-    domain: &Domain,
     gui: &FrontEnd,
     cmd: Option<CommandBuilder>,
     fontconfig: &Rc<FontConfiguration>,
 ) -> Result<(), Error> {
-    let tab = domain.spawn(PtySize::default(), cmd)?;
+    let tab = mux.default_domain().spawn(PtySize::default(), cmd)?;
     mux.add_tab(gui.gui_executor(), &tab)?;
 
     gui.spawn_new_window(mux.config(), &fontconfig, &tab)

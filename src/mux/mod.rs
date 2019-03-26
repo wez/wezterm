@@ -19,11 +19,13 @@ pub mod window;
 
 use crate::mux::tab::{Tab, TabId};
 use crate::mux::window::{Window, WindowId};
+use domain::Domain;
 
 pub struct Mux {
     tabs: RefCell<HashMap<TabId, Rc<Tab>>>,
     windows: RefCell<HashMap<WindowId, Window>>,
     config: Arc<Config>,
+    default_domain: Arc<Domain>,
 }
 
 fn read_from_tab_pty(executor: Box<Executor>, tab_id: TabId, mut reader: Box<std::io::Read>) {
@@ -100,12 +102,17 @@ thread_local! {
 }
 
 impl Mux {
-    pub fn new(config: &Arc<Config>) -> Self {
+    pub fn new(config: &Arc<Config>, default_domain: &Arc<Domain>) -> Self {
         Self {
             tabs: RefCell::new(HashMap::new()),
             windows: RefCell::new(HashMap::new()),
             config: Arc::clone(config),
+            default_domain: Arc::clone(default_domain),
         }
+    }
+
+    pub fn default_domain(&self) -> &Arc<Domain> {
+        &self.default_domain
     }
 
     pub fn config(&self) -> &Arc<Config> {

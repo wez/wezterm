@@ -1,6 +1,5 @@
 use crate::config::Config;
 use crate::font::FontConfiguration;
-use crate::mux::domain::{Domain, LocalDomain};
 use crate::mux::tab::{Tab, TabId};
 use crate::mux::window::WindowId;
 use crate::mux::Mux;
@@ -156,9 +155,6 @@ pub trait TerminalWindow {
     }
 
     fn spawn_tab(&mut self) -> Result<TabId, Error> {
-        let config = self.config();
-        let domain = LocalDomain::new(config)?; // FIXME: Domain
-
         let dims = self.get_dimensions();
 
         let rows = (dims.height as usize + 1) / dims.cell_height;
@@ -171,9 +167,9 @@ pub trait TerminalWindow {
             pixel_height: dims.height,
         };
 
-        let tab = domain.spawn(size, None)?;
-        let tab_id = tab.tab_id();
         let mux = Mux::get().unwrap();
+        let tab = mux.default_domain().spawn(size, None)?;
+        let tab_id = tab.tab_id();
 
         let len = {
             let mut window = mux
