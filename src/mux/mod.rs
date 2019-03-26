@@ -1,4 +1,5 @@
 use crate::config::Config;
+use crate::frontend::gui_executor;
 use failure::Error;
 use failure_derive::*;
 use portable_pty::ExitStatus;
@@ -28,7 +29,8 @@ pub struct Mux {
     default_domain: Arc<Domain>,
 }
 
-fn read_from_tab_pty(executor: Box<Executor>, tab_id: TabId, mut reader: Box<std::io::Read>) {
+fn read_from_tab_pty(tab_id: TabId, mut reader: Box<std::io::Read>) {
+    let executor = gui_executor().expect("gui_executor was not registered yet!?");
     const BUFSIZE: usize = 32 * 1024;
     let mut buf = [0; BUFSIZE];
     loop {
@@ -139,12 +141,12 @@ impl Mux {
         self.tabs.borrow().get(&tab_id).map(Rc::clone)
     }
 
-    pub fn add_tab(&self, executor: Box<Executor>, tab: &Rc<Tab>) -> Result<(), Error> {
+    pub fn add_tab(&self, tab: &Rc<Tab>) -> Result<(), Error> {
         self.tabs.borrow_mut().insert(tab.tab_id(), Rc::clone(tab));
 
         let reader = tab.reader()?;
         let tab_id = tab.tab_id();
-        thread::spawn(move || read_from_tab_pty(executor, tab_id, reader));
+        thread::spawn(move || read_from_tab_pty(tab_id, reader));
 
         Ok(())
     }

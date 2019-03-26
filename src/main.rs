@@ -197,7 +197,5 @@ fn spawn_window(
     fontconfig: &Rc<FontConfiguration>,
 ) -> Result<(), Error> {
     let tab = mux.default_domain().spawn(PtySize::default(), cmd)?;
-    mux.add_tab(gui.gui_executor(), &tab)?;
-
     gui.spawn_new_window(mux.config(), &fontconfig, &tab)
 }

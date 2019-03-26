@@ -206,17 +206,12 @@ impl GuiEventLoop {
         })
     }
 
-    pub fn register_tab(&self, tab: &Rc<Tab>) -> Result<(), Error> {
-        self.mux.add_tab(self.gui_executor(), tab)
-    }
-
     fn do_spawn_new_window(
         &self,
         config: &Arc<Config>,
         fonts: &Rc<FontConfiguration>,
     ) -> Result<(), Error> {
         let tab = self.mux.default_domain().spawn(PtySize::default(), None)?;
-        self.mux.add_tab(self.gui_executor(), &tab)?;
         let events = Self::get().expect("to be called on gui thread");
         let window = GliumTerminalWindow::new(&events, &fonts, &config, &tab)?;
 

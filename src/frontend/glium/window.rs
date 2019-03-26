@@ -5,7 +5,7 @@ use crate::font::FontConfiguration;
 use crate::frontend::glium::glutinloop::GuiEventLoop;
 use crate::frontend::guicommon::host::{HostHelper, HostImpl, TabHost};
 use crate::frontend::guicommon::window::{Dimensions, TerminalWindow};
-use crate::mux::tab::{Tab, TabId};
+use crate::mux::tab::Tab;
 use crate::mux::window::WindowId;
 use crate::mux::{Mux, SessionTerminated};
 use crate::opengl::render::Renderer;
@@ -112,13 +112,6 @@ impl TerminalWindow for GliumTerminalWindow {
     }
     fn recreate_texture_atlas(&mut self, size: u32) -> Result<(), Error> {
         self.renderer.recreate_atlas(&self.host.display, size)
-    }
-
-    fn tab_was_created(&mut self, tab: &Rc<Tab>) -> Result<(), Error> {
-        self.event_loop.register_tab(tab)
-    }
-    fn deregister_tab(&mut self, _tab_id: TabId) -> Result<(), Error> {
-        Ok(())
     }
 
     fn get_dimensions(&self) -> Dimensions {

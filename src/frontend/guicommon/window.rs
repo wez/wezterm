@@ -37,8 +37,6 @@ pub trait TerminalWindow {
         cell_height: usize,
     ) -> Result<(), Error>;
     fn advise_renderer_of_resize(&mut self, width: u16, height: u16) -> Result<(), Error>;
-    fn tab_was_created(&mut self, tab: &Rc<Tab>) -> Result<(), Error>;
-    fn deregister_tab(&mut self, tab_id: TabId) -> Result<(), Error>;
     fn config(&self) -> &Arc<Config>;
     fn fonts(&self) -> &Rc<FontConfiguration>;
     fn get_dimensions(&self) -> Dimensions;
@@ -179,9 +177,6 @@ pub trait TerminalWindow {
             window.len()
         };
         self.activate_tab(len - 1)?;
-
-        self.tab_was_created(&tab)?;
-
         Ok(tab_id)
     }
 
@@ -273,7 +268,6 @@ pub trait TerminalWindow {
         }
         drop(window);
         self.update_title();
-        self.deregister_tab(tab_id).ok();
     }
 
     // let_and_return is needed here to satisfy the borrow checker

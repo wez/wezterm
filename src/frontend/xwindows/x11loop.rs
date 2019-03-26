@@ -135,10 +135,6 @@ impl GuiEventLoop {
         })
     }
 
-    pub fn register_tab(&self, tab: &Rc<Tab>) -> Result<(), Error> {
-        self.mux.add_tab(self.gui_executor(), tab)
-    }
-
     fn run(&self) -> Result<(), Error> {
         let mut events = Events::with_capacity(8);
 
@@ -216,7 +212,6 @@ impl GuiEventLoop {
         fonts: &Rc<FontConfiguration>,
     ) -> Result<(), Error> {
         let tab = self.mux.default_domain().spawn(PtySize::default(), None)?;
-        self.mux.add_tab(self.gui_executor(), &tab)?;
         let events = Self::get().expect("to be called on gui thread");
         let window = X11TerminalWindow::new(&events, &fonts, &config, &tab)?;
         events.add_window(window)

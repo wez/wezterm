@@ -72,12 +72,6 @@ impl TerminalWindow for X11TerminalWindow {
     fn recreate_texture_atlas(&mut self, size: u32) -> Result<(), Error> {
         self.renderer.recreate_atlas(&self.host.window, size)
     }
-    fn tab_was_created(&mut self, tab: &Rc<Tab>) -> Result<(), Error> {
-        self.host.event_loop.register_tab(tab)
-    }
-    fn deregister_tab(&mut self, _tab_id: TabId) -> Result<(), Error> {
-        Ok(())
-    }
     fn get_dimensions(&self) -> Dimensions {
         Dimensions {
             width: self.width,

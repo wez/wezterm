@@ -8,6 +8,7 @@
 use crate::config::Config;
 use crate::frontend::guicommon::localtab::LocalTab;
 use crate::mux::tab::Tab;
+use crate::mux::Mux;
 use failure::Error;
 use portable_pty::cmdbuilder::CommandBuilder;
 use portable_pty::{PtySize, PtySystem};
@@ -49,6 +50,10 @@ impl Domain for LocalDomain {
             self.config.hyperlink_rules.clone(),
         );
 
-        Ok(Rc::new(LocalTab::new(terminal, child, master)))
+        let tab: Rc<Tab> = Rc::new(LocalTab::new(terminal, child, master));
+
+        Mux::get().unwrap().add_tab(&tab)?;
+
+        Ok(tab)
     }
 }
