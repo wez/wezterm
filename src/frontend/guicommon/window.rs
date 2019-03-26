@@ -1,6 +1,6 @@
 use crate::config::Config;
 use crate::font::FontConfiguration;
-use crate::frontend::guicommon::localtab::LocalTab;
+use crate::mux::domain::{Domain, LocalDomain};
 use crate::mux::tab::{Tab, TabId};
 use crate::mux::window::WindowId;
 use crate::mux::Mux;
@@ -8,7 +8,7 @@ use crate::opengl::render::Renderer;
 use crate::opengl::textureatlas::OutOfTextureSpace;
 use failure::{format_err, Error};
 use glium;
-use portable_pty::{PtySize, PtySystemSelection};
+use portable_pty::PtySize;
 use std::rc::Rc;
 use std::sync::Arc;
 
@@ -157,35 +157,23 @@ pub trait TerminalWindow {
 
     fn spawn_tab(&mut self) -> Result<TabId, Error> {
         let config = self.config();
+        let domain = LocalDomain::new(config)?; // FIXME: Domain
 
         let dims = self.get_dimensions();
 
         let rows = (dims.height as usize + 1) / dims.cell_height;
         let cols = (dims.width as usize + 1) / dims.cell_width;
 
-        let pty_sys = PtySystemSelection::default().get()?;
-        let (pty, slave) = pty_sys.openpty(PtySize {
+        let size = PtySize {
             rows: rows as u16,
             cols: cols as u16,
             pixel_width: dims.width,
             pixel_height: dims.height,
-        })?;
-        let cmd = config.build_prog(None)?;
+        };
 
-        let process = slave.spawn_command(cmd)?;
-        eprintln!("spawned: {:?}", process);
-
-        let mux = Mux::get().unwrap();
-
-        let terminal = term::Terminal::new(
-            rows,
-            cols,
-            config.scrollback_lines.unwrap_or(3500),
-            config.hyperlink_rules.clone(),
-        );
-
-        let tab: Rc<Tab> = Rc::new(LocalTab::new(terminal, process, pty));
+        let tab = domain.spawn(size, None)?;
         let tab_id = tab.tab_id();
+        let mux = Mux::get().unwrap();
 
         let len = {
             let mut window = mux

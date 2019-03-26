@@ -15,10 +15,11 @@ mod frontend;
 mod mux;
 mod opengl;
 mod server;
-use crate::frontend::guicommon::localtab::LocalTab;
 use crate::frontend::{FrontEnd, FrontEndSelection};
+use crate::mux::domain::{Domain, LocalDomain};
 use crate::mux::tab::Tab;
 use crate::mux::Mux;
+use portable_pty::cmdbuilder::CommandBuilder;
 
 mod font;
 use crate::font::{FontConfiguration, FontSystemSelection};
@@ -118,7 +119,10 @@ fn run_terminal_gui(config: Arc<config::Config>, opts: &StartCommand) -> Result<
     let fontconfig = Rc::new(FontConfiguration::new(Arc::clone(&config), font_system));
 
     let cmd = if !opts.prog.is_empty() {
-        Some(opts.prog.iter().map(|x| x.as_os_str()).collect())
+        let argv: Vec<&std::ffi::OsStr> = opts.prog.iter().map(|x| x.as_os_str()).collect();
+        let mut builder = CommandBuilder::new(&argv[0]);
+        builder.args(&argv[1..]);
+        Some(builder)
     } else {
         None
     };
@@ -129,7 +133,9 @@ fn run_terminal_gui(config: Arc<config::Config>, opts: &StartCommand) -> Result<
     let front_end = opts.front_end.unwrap_or(config.front_end);
     let gui = front_end.try_new(&mux)?;
 
-    spawn_window(&mux, &*gui, cmd, &fontconfig)?;
+    let domain = LocalDomain::new(&config)?;
+
+    spawn_window(&mux, &domain, &*gui, cmd, &fontconfig)?;
     gui.run_forever()
 }
 
@@ -185,45 +191,19 @@ fn main() -> Result<(), Error> {
     }
 }
 
-fn spawn_tab(
-    config: &Arc<config::Config>,
-    cmd: Option<Vec<&std::ffi::OsStr>>,
-) -> Result<Rc<Tab>, Error> {
-    let cmd = config.build_prog(cmd)?;
-
-    let initial_cols = 80u16;
-    let initial_rows = 24u16;
-    let initial_pixel_width = 0;
-    let initial_pixel_height = 0;
-
-    let pty_sys = config.pty.get()?;
-    let (master, slave) = pty_sys.openpty(PtySize {
-        rows: initial_rows,
-        cols: initial_cols,
-        pixel_width: initial_pixel_width,
-        pixel_height: initial_pixel_height,
-    })?;
-
-    let child = slave.spawn_command(cmd)?;
-    eprintln!("spawned: {:?}", child);
-
-    let terminal = term::Terminal::new(
-        initial_rows as usize,
-        initial_cols as usize,
-        config.scrollback_lines.unwrap_or(3500),
-        config.hyperlink_rules.clone(),
-    );
-
-    Ok(Rc::new(LocalTab::new(terminal, child, master)))
+fn spawn_tab(config: &Arc<config::Config>) -> Result<Rc<Tab>, Error> {
+    let domain = LocalDomain::new(config)?;
+    domain.spawn(PtySize::default(), None)
 }
 
 fn spawn_window(
     mux: &Rc<Mux>,
+    domain: &Domain,
     gui: &FrontEnd,
-    cmd: Option<Vec<&std::ffi::OsStr>>,
+    cmd: Option<CommandBuilder>,
     fontconfig: &Rc<FontConfiguration>,
 ) -> Result<(), Error> {
-    let tab = spawn_tab(mux.config(), cmd)?;
+    let tab = domain.spawn(PtySize::default(), cmd)?;
     mux.add_tab(gui.gui_executor(), &tab)?;
 
     gui.spawn_new_window(mux.config(), &fontconfig, &tab)

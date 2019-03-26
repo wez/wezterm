@@ -64,6 +64,17 @@ pub struct PtySize {
     pub pixel_height: u16,
 }
 
+impl Default for PtySize {
+    fn default() -> Self {
+        PtySize {
+            rows: 24,
+            cols: 80,
+            pixel_width: 0,
+            pixel_height: 0,
+        }
+    }
+}
+
 /// Represents the master/control end of the pty
 pub trait MasterPty: std::io::Write {
     /// Inform the kernel and thus the child process that the window resized.

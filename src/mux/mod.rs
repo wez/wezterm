@@ -12,6 +12,7 @@ use std::thread;
 use term::TerminalHost;
 use termwiz::hyperlink::Hyperlink;
 
+pub mod domain;
 pub mod renderable;
 pub mod tab;
 pub mod window;

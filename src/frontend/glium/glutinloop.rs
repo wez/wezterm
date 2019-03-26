@@ -215,7 +215,7 @@ impl GuiEventLoop {
         config: &Arc<Config>,
         fonts: &Rc<FontConfiguration>,
     ) -> Result<(), Error> {
-        let tab = spawn_tab(&config, None)?;
+        let tab = spawn_tab(&config)?; // FIXME: Domain
         self.mux.add_tab(self.gui_executor(), &tab)?;
         let events = Self::get().expect("to be called on gui thread");
         let window = GliumTerminalWindow::new(&events, &fonts, &config, &tab)?;
