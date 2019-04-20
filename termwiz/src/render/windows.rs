@@ -280,6 +280,42 @@ impl WindowsConsoleRenderer {
                         info.dwCursorPosition.Y,
                     )?;
                 }
+                Change::ScrollRegionUp {
+                    first_row,
+                    region_size,
+                    scroll_count,
+                } => {
+                    if *region_size > 0 {
+                        let info = out.get_buffer_info()?;
+                        out.scroll_region(
+                            info.srWindow.Left,
+                            info.srWindow.Top + *first_row as i16,
+                            info.srWindow.Right,
+                            info.srWindow.Top + *first_row as i16 + *region_size as i16,
+                            0,
+                            -(*scroll_count as i16),
+                            to_attr_word(&self.current_attr),
+                        )?;
+                    }
+                }
+                Change::ScrollRegionDown {
+                    first_row,
+                    region_size,
+                    scroll_count,
+                } => {
+                    if *region_size > 0 {
+                        let info = out.get_buffer_info()?;
+                        out.scroll_region(
+                            info.srWindow.Left,
+                            info.srWindow.Top + *first_row as i16,
+                            info.srWindow.Right,
+                            info.srWindow.Top + *first_row as i16 + *region_size as i16,
+                            0,
+                            *scroll_count as i16,
+                            to_attr_word(&self.current_attr),
+                        )?;
+                    }
+                }
             }
         }
         out.flush()?;

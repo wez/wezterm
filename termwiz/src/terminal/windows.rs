@@ -1,5 +1,6 @@
 use crate::istty::IsTty;
 use failure::Error;
+use std::cmp::{max, min};
 use std::collections::VecDeque;
 use std::fs::OpenOptions;
 use std::io::{stdin, stdout, Error as IoError, Read, Result as IoResult, Write};
@@ -11,11 +12,11 @@ use winapi::um::handleapi::*;
 use winapi::um::processthreadsapi::GetCurrentProcess;
 use winapi::um::wincon::{
     FillConsoleOutputAttribute, FillConsoleOutputCharacterW, GetConsoleScreenBufferInfo,
-    SetConsoleCursorPosition, SetConsoleScreenBufferSize, SetConsoleTextAttribute,
-    SetConsoleWindowInfo, CONSOLE_SCREEN_BUFFER_INFO, COORD, DISABLE_NEWLINE_AUTO_RETURN,
-    ENABLE_ECHO_INPUT, ENABLE_LINE_INPUT, ENABLE_MOUSE_INPUT, ENABLE_PROCESSED_INPUT,
-    ENABLE_VIRTUAL_TERMINAL_INPUT, ENABLE_VIRTUAL_TERMINAL_PROCESSING, ENABLE_WINDOW_INPUT,
-    INPUT_RECORD, SMALL_RECT,
+    ScrollConsoleScreenBufferW, SetConsoleCursorPosition, SetConsoleScreenBufferSize,
+    SetConsoleTextAttribute, SetConsoleWindowInfo, CHAR_INFO, CONSOLE_SCREEN_BUFFER_INFO, COORD,
+    DISABLE_NEWLINE_AUTO_RETURN, ENABLE_ECHO_INPUT, ENABLE_LINE_INPUT, ENABLE_MOUSE_INPUT,
+    ENABLE_PROCESSED_INPUT, ENABLE_VIRTUAL_TERMINAL_INPUT, ENABLE_VIRTUAL_TERMINAL_PROCESSING,
+    ENABLE_WINDOW_INPUT, INPUT_RECORD, SMALL_RECT,
 };
 use winapi::um::winnt::DUPLICATE_SAME_ACCESS;
 
@@ -43,6 +44,16 @@ pub trait ConsoleOutputHandle {
     fn set_cursor_position(&mut self, x: i16, y: i16) -> Result<(), Error>;
     fn get_buffer_info(&mut self) -> Result<CONSOLE_SCREEN_BUFFER_INFO, Error>;
     fn set_viewport(&mut self, left: i16, top: i16, right: i16, bottom: i16) -> Result<(), Error>;
+    fn scroll_region(
+        &mut self,
+        left: i16,
+        top: i16,
+        right: i16,
+        bottom: i16,
+        dx: i16,
+        dy: i16,
+        attr: u16,
+    ) -> Result<(), Error>;
 }
 
 struct InputHandle {
@@ -305,6 +316,57 @@ impl ConsoleOutputHandle for OutputHandle {
         };
         if unsafe { SetConsoleWindowInfo(self.handle as *mut _, 1, &rect) } == 0 {
             bail!("SetConsoleWindowInfo failed: {}", IoError::last_os_error());
+        }
+        Ok(())
+    }
+
+    fn scroll_region(
+        &mut self,
+        left: i16,
+        top: i16,
+        right: i16,
+        bottom: i16,
+        dx: i16,
+        dy: i16,
+        attr: u16,
+    ) -> Result<(), Error> {
+        let scroll_rect = SMALL_RECT {
+            Left: max(left, left - dx),
+            Top: max(top, top - dy),
+            Right: min(right, right - dx),
+            Bottom: min(bottom, bottom - dy),
+        };
+        let clip_rect = SMALL_RECT {
+            Left: left,
+            Top: top,
+            Right: right,
+            Bottom: bottom,
+        };
+        let fill = unsafe {
+            let mut fill = CHAR_INFO {
+                Char: mem::zeroed(),
+                Attributes: attr,
+            };
+            *fill.Char.UnicodeChar_mut() = ' ' as u16;
+            fill
+        };
+        if unsafe {
+            ScrollConsoleScreenBufferW(
+                self.handle as *mut _,
+                &scroll_rect,
+                &clip_rect,
+                COORD {
+                    X: max(left, left + dx),
+                    Y: max(left, top + dy),
+                },
+                &fill,
+            )
+        } == 0
+        {
+            bail!(
+                "ScrollConsoleScreenBufferW failed: {}",
+                IoError::last_os_error()
+            );
         }
         Ok(())
     }

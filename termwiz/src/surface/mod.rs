@@ -251,6 +251,16 @@ impl Surface {
             Change::CursorColor(color) => self.cursor_color = *color,
             Change::CursorShape(shape) => self.cursor_shape = *shape,
             Change::Image(image) => self.add_image(image),
+            Change::ScrollRegionUp {
+                first_row,
+                region_size,
+                scroll_count,
+            } => self.scroll_region_up(*first_row, *region_size, *scroll_count),
+            Change::ScrollRegionDown {
+                first_row,
+                region_size,
+                scroll_count,
+            } => self.scroll_region_down(*first_row, *region_size, *scroll_count),
         }
     }
 
@@ -327,6 +337,28 @@ impl Surface {
     fn scroll_screen_up(&mut self) {
         self.lines.remove(0);
         self.lines.push(Line::with_width(self.width));
+    }
+
+    fn scroll_region_up(&mut self, start: usize, size: usize, count: usize) {
+        // Replace the first lines with empty lines
+        for index in start..start + min(count, size) {
+            self.lines[index] = Line::with_width(self.width);
+        }
+        // Rotate the remaining lines up the surface.
+        if 0 < count && count < size {
+            self.lines[start..start + size].rotate_left(count);
+        }
+    }
+
+    fn scroll_region_down(&mut self, start: usize, size: usize, count: usize) {
+        // Replace the last lines with empty lines
+        for index in start + size - min(count, size)..start + size {
+            self.lines[index] = Line::with_width(self.width);
+        }
+        // Rotate the remaining lines down the surface.
+        if 0 < count && count < size {
+            self.lines[start..start + size].rotate_right(count);
+        }
     }
 
     fn print_text(&mut self, text: &str) {

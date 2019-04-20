@@ -604,6 +604,66 @@ impl TerminfoRenderer {
                         self.cursor_up(image.height as u32, out)?;
                     }
                 }
+                Change::ScrollRegionUp {
+                    first_row,
+                    region_size,
+                    scroll_count,
+                } => {
+                    if *region_size > 0 {
+                        if let Some(csr) = self.get_capability::<cap::ChangeScrollRegion>() {
+                            let top = *first_row as u32;
+                            let bottom = (*first_row + *region_size - 1) as u32;
+                            let scroll_count = *scroll_count as u32;
+                            csr.expand().top(top).bottom(bottom).to(out.by_ref())?;
+                            if scroll_count > 0 {
+                                if let Some(scroll) = self.get_capability::<cap::ParmIndex>() {
+                                    scroll.expand().count(scroll_count).to(out.by_ref())?
+                                } else {
+                                    let scroll = self.get_capability::<cap::ScrollForward>();
+                                    let set_position = self.get_capability::<cap::CursorAddress>();
+                                    if let (Some(scroll), Some(set_position)) =
+                                        (scroll, set_position)
+                                    {
+                                        set_position.expand().x(0).y(bottom).to(out.by_ref())?;
+                                        for _ in 0..scroll_count {
+                                            scroll.expand().to(out.by_ref())?
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                Change::ScrollRegionDown {
+                    first_row,
+                    region_size,
+                    scroll_count,
+                } => {
+                    if *region_size > 0 {
+                        if let Some(csr) = self.get_capability::<cap::ChangeScrollRegion>() {
+                            let top = *first_row as u32;
+                            let bottom = (*first_row + *region_size - 1) as u32;
+                            let scroll_count = *scroll_count as u32;
+                            csr.expand().top(top).bottom(bottom).to(out.by_ref())?;
+                            if scroll_count > 0 {
+                                if let Some(scroll) = self.get_capability::<cap::ParmRindex>() {
+                                    scroll.expand().count(scroll_count).to(out.by_ref())?
+                                } else {
+                                    let scroll = self.get_capability::<cap::ScrollReverse>();
+                                    let set_position = self.get_capability::<cap::CursorAddress>();
+                                    if let (Some(scroll), Some(set_position)) =
+                                        (scroll, set_position)
+                                    {
+                                        set_position.expand().x(0).y(top).to(out.by_ref())?;
+                                        for _ in 0..scroll_count {
+                                            scroll.expand().to(out.by_ref())?
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
 
