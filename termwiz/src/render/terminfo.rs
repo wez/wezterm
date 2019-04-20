@@ -524,8 +524,15 @@ impl TerminfoRenderer {
                 }
                 Change::CursorShape(shape) => match shape {
                     CursorShape::Default => {
-                        if let Some(reset) = self.get_capability::<cap::ResetCursorStyle>() {
-                            reset.expand().to(out.by_ref())?;
+                        if let Some(normal) = self.get_capability::<cap::CursorNormal>() {
+                            normal.expand().to(out.by_ref())?;
+                        } else {
+                            if let Some(show) = self.get_capability::<cap::CursorVisible>() {
+                                show.expand().to(out.by_ref())?;
+                            }
+                            if let Some(reset) = self.get_capability::<cap::ResetCursorStyle>() {
+                                reset.expand().to(out.by_ref())?;
+                            }
                         }
                     }
                     CursorShape::Hidden => {
