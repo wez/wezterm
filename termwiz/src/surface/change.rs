@@ -41,7 +41,6 @@ pub enum Change {
     CursorColor(ColorAttribute),
     /// Change the cursor shape
     CursorShape(CursorShape),
-    /* ChangeScrollRegion{top: usize, bottom: usize}, */
     /// Place an image at the current cursor position.
     /// The image defines the dimensions in cells.
     /// TODO: check iterm rendering behavior when the image is larger than the width of the screen.
@@ -50,6 +49,38 @@ pub enum Change {
     /// The cursor Y position is unchanged by rendering the Image.
     /// The cursor X position will be incremented by `Image::width` cells.
     Image(Image),
+    /// Scroll the `region_size` lines starting at `first_row` upwards
+    /// by `scroll_count` lines.  The `scroll_count` lines at the top of
+    /// the region are overwritten.  The `scroll_count` lines at the
+    /// bottom of the region will become blank.
+    ///
+    /// After a region is scrolled, the cursor position is undefined,
+    /// and the terminal's scroll region is set to the range specified.
+    /// To restore scrolling behaviour to the full terminal window, an
+    /// additional `Change::ScrollRegionUp { first_row: 0, region_size:
+    /// height, scroll_count: 0 }`, where `height` is the height of the
+    /// terminal, should be emitted.
+    ScrollRegionUp {
+        first_row: usize,
+        region_size: usize,
+        scroll_count: usize,
+    },
+    /// Scroll the `region_size` lines starting at `first_row` downwards
+    /// by `scroll_count` lines.  The `scroll_count` lines at the bottom
+    /// the region are overwritten.  The `scroll_count` lines at the top
+    /// of the region will become blank.
+    ///
+    /// After a region is scrolled, the cursor position is undefined,
+    /// and the terminal's scroll region is set to the range specified.
+    /// To restore scrolling behaviour to the full terminal window, an
+    /// additional `Change::ScrollRegionDown { first_row: 0,
+    /// region_size: height, scroll_count: 0 }`, where `height` is the
+    /// height of the terminal, should be emitted.
+    ScrollRegionDown {
+        first_row: usize,
+        region_size: usize,
+        scroll_count: usize,
+    },
 }
 
 impl Change {
