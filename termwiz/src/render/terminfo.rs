@@ -811,6 +811,15 @@ mod test {
         fn set_raw_mode(&mut self) -> Result<(), Error> {
             bail!("not implemented");
         }
+
+        fn enter_alternate_screen(&mut self) -> Result<(), Error> {
+            bail!("not implemented");
+        }
+
+        fn exit_alternate_screen(&mut self) -> Result<(), Error> {
+            bail!("not implemented");
+        }
+
         fn render(&mut self, changes: &[Change]) -> Result<(), Error> {
             self.renderer
                 .render_to(changes, &mut self.read, &mut self.write)
@@ -825,6 +834,7 @@ mod test {
                 ypixel: cast(size.ws_ypixel)?,
             })
         }
+
         fn set_screen_size(&mut self, size: ScreenSize) -> Result<(), Error> {
             let size = winsize {
                 ws_row: cast(size.rows)?,
@@ -835,6 +845,7 @@ mod test {
 
             self.write.set_size(size)
         }
+
         fn flush(&mut self) -> Result<(), Error> {
             Ok(())
         }
