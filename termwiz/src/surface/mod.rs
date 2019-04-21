@@ -532,7 +532,9 @@ impl Surface {
     fn repaint_all(&self) -> Vec<Change> {
         let mut result = Vec::new();
 
-        // Home the cursor and clear the screen to defaults
+        // Home the cursor and clear the screen to defaults.  Hide the
+        // cursor while we're repainting.
+        result.push(Change::CursorShape(CursorShape::Hidden));
         result.push(Change::ClearScreen(Default::default()));
 
         let mut attr = CellAttributes::default();
@@ -644,18 +646,25 @@ impl Surface {
         // Place the cursor at its intended position, but only if we moved the
         // cursor.  We don't explicitly track movement but can infer it from the
         // size of the results: results will have an initial ClearScreen entry
-        // that homes the cursor.  If the screen is otherwise blank there will
-        // be no further entries and we don't need to emit cursor movement.
-        // However, in the optimization passes above, we may have removed
-        // some number of movement entries, so let's be sure to check the
-        // cursor position to make sure that we don't fail to emit movement.
+        // that homes the cursor and a CursorShape entry that hides the cursor.
+        // If the screen is otherwise blank there will be no further entries
+        // and we don't need to emit cursor movement.  However, in the
+        // optimization passes above, we may have removed some number of
+        // movement entries, so let's be sure to check the cursor position to
+        // make sure that we don't fail to emit movement.
 
-        let moved_cursor = result.len() != 1;
+        let moved_cursor = result.len() != 2;
         if moved_cursor || self.xpos != 0 || self.ypos != 0 {
             result.push(Change::CursorPosition {
                 x: Position::Absolute(self.xpos),
                 y: Position::Absolute(self.ypos),
             });
+        }
+
+        // Set the intended cursor shape.  We hid the cursor at the start
+        // of the repaint, so no need to hide it again.
+        if self.cursor_shape != CursorShape::Hidden {
+            result.push(Change::CursorShape(self.cursor_shape));
         }
 
         result
@@ -903,6 +912,7 @@ mod test {
         let (_seq, changes) = s.get_changes(0);
         assert_eq!(
             &[
+                Change::CursorShape(CursorShape::Hidden),
                 Change::ClearScreen(Default::default()),
                 Change::Text("hel".into()),
                 Change::CursorPosition {
@@ -914,6 +924,7 @@ mod test {
                     x: Position::Absolute(1),
                     y: Position::Absolute(1),
                 },
+                Change::CursorShape(CursorShape::Default),
             ],
             &*changes
         );
@@ -935,6 +946,7 @@ mod test {
         let (_seq, changes) = s.get_changes(0);
         assert_eq!(
             &[
+                Change::CursorShape(CursorShape::Hidden),
                 Change::ClearScreen(Default::default()),
                 Change::AllAttributes(
                     CellAttributes::default()
@@ -952,6 +964,7 @@ mod test {
                     x: Position::Absolute(1),
                     y: Position::Absolute(1),
                 },
+                Change::CursorShape(CursorShape::Default),
             ],
             &*changes
         );
@@ -967,6 +980,7 @@ mod test {
         let (_seq, changes) = s.get_changes(0);
         assert_eq!(
             &[
+                Change::CursorShape(CursorShape::Hidden),
                 Change::ClearScreen(Default::default()),
                 Change::AllAttributes(
                     CellAttributes::default()
@@ -988,6 +1002,7 @@ mod test {
                     x: Position::Absolute(3),
                     y: Position::Absolute(2),
                 },
+                Change::CursorShape(CursorShape::Default),
             ],
             &*changes
         );
@@ -1003,11 +1018,13 @@ mod test {
         let (_seq, changes) = s.get_changes(0);
         assert_eq!(
             &[
+                Change::CursorShape(CursorShape::Hidden),
                 Change::ClearScreen(Default::default()),
                 Change::CursorPosition {
                     x: Position::Absolute(3),
                     y: Position::Absolute(2),
                 },
+                Change::CursorShape(CursorShape::Default),
             ],
             &*changes
         );
@@ -1079,7 +1096,11 @@ mod test {
     fn empty_changes() {
         let s = Surface::new(4, 3);
 
-        let empty = &[Change::ClearScreen(Default::default())];
+        let empty = &[
+            Change::CursorShape(CursorShape::Hidden),
+            Change::ClearScreen(Default::default()),
+            Change::CursorShape(CursorShape::Default),
+        ];
 
         let (seq, changes) = s.get_changes(0);
         assert_eq!(seq, 0);
@@ -1109,12 +1130,14 @@ mod test {
         s.resize(2, 2);
 
         let full = &[
+            Change::CursorShape(CursorShape::Hidden),
             Change::ClearScreen(Default::default()),
             Change::Text("a".to_string()),
             Change::CursorPosition {
                 x: Position::Absolute(1),
                 y: Position::Absolute(0),
             },
+            Change::CursorShape(CursorShape::Default),
         ];
 
         let (_seq, changes) = s.get_changes(seq);
@@ -1132,6 +1155,7 @@ mod test {
         let (_seq, changes) = s.get_changes(0);
         assert_eq!(
             &[
+                Change::CursorShape(CursorShape::Hidden),
                 Change::ClearScreen(Default::default()),
                 Change::AllAttributes(
                     CellAttributes::default()
@@ -1143,6 +1167,7 @@ mod test {
                     x: Position::Absolute(2),
                     y: Position::Absolute(0),
                 },
+                Change::CursorShape(CursorShape::Default),
             ],
             &*changes
         );
@@ -1165,12 +1190,14 @@ mod test {
         assert_eq!(s.ypos, 1);
 
         let full = &[
+            Change::CursorShape(CursorShape::Hidden),
             Change::ClearScreen(Default::default()),
             Change::Text(" a".to_string()),
             Change::CursorPosition {
                 x: Position::Absolute(1),
                 y: Position::Absolute(1),
             },
+            Change::CursorShape(CursorShape::Default),
         ];
 
         let (_seq, changes) = s.get_changes(0);
@@ -1187,12 +1214,14 @@ mod test {
         s.flush_changes_older_than(1);
 
         let initial = &[
+            Change::CursorShape(CursorShape::Hidden),
             Change::ClearScreen(Default::default()),
             Change::Text("a".to_string()),
             Change::CursorPosition {
                 x: Position::Absolute(1),
                 y: Position::Absolute(0),
             },
+            Change::CursorShape(CursorShape::Default),
         ];
 
         let seq_pos = {
