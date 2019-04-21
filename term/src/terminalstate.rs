@@ -819,6 +819,10 @@ impl TerminalState {
             (LeftArrow, _, _, _, APPCURSOR) => "\x1bOD",
             (Home, _, _, _, APPCURSOR) => "\x1bOH",
             (End, _, _, _, APPCURSOR) => "\x1bOF",
+            (ApplicationUpArrow, ..) => "\x1bOA",
+            (ApplicationDownArrow, ..) => "\x1bOB",
+            (ApplicationRightArrow, ..) => "\x1bOC",
+            (ApplicationLeftArrow, ..) => "\x1bOD",
 
             (UpArrow, ..) => "\x1b[A",
             (DownArrow, ..) => "\x1b[B",
