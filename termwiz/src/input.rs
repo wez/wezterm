@@ -154,6 +154,10 @@ pub enum KeyCode {
     MediaPrevTrack,
     MediaStop,
     MediaPlayPause,
+    ApplicationLeftArrow,
+    ApplicationRightArrow,
+    ApplicationUpArrow,
+    ApplicationDownArrow,
 
     #[doc(hidden)]
     InternalPasteStart,
@@ -461,16 +465,6 @@ impl InputParser {
             (KeyCode::Home, b'H'),
             (KeyCode::End, b'F'),
         ] {
-            // Arrow keys in application cursor mode encoded using SS3
-            let app = [0x1b, b'O', *dir];
-            map.insert(
-                &app,
-                InputEvent::Key(KeyEvent {
-                    key: *keycode,
-                    modifiers: Modifiers::NONE,
-                }),
-            );
-
             // Arrow keys in normal mode encoded using CSI
             let arrow = [0x1b, b'[', *dir];
             map.insert(
@@ -500,6 +494,23 @@ impl InputParser {
                     }),
                 );
             }
+        }
+
+        for (keycode, dir) in &[
+            (KeyCode::ApplicationUpArrow, b'A'),
+            (KeyCode::ApplicationDownArrow, b'B'),
+            (KeyCode::ApplicationRightArrow, b'C'),
+            (KeyCode::ApplicationLeftArrow, b'D'),
+        ] {
+            // Arrow keys in application cursor mode encoded using SS3
+            let app = [0x1b, b'O', *dir];
+            map.insert(
+                &app,
+                InputEvent::Key(KeyEvent {
+                    key: *keycode,
+                    modifiers: Modifiers::NONE,
+                }),
+            );
         }
 
         // Function keys 1-4 with no modifiers encoded using SS3
@@ -902,19 +913,19 @@ mod test {
             vec![
                 InputEvent::Key(KeyEvent {
                     modifiers: Modifiers::NONE,
-                    key: KeyCode::UpArrow,
+                    key: KeyCode::ApplicationUpArrow,
                 }),
                 InputEvent::Key(KeyEvent {
                     modifiers: Modifiers::NONE,
-                    key: KeyCode::DownArrow,
+                    key: KeyCode::ApplicationDownArrow,
                 }),
                 InputEvent::Key(KeyEvent {
                     modifiers: Modifiers::NONE,
-                    key: KeyCode::RightArrow,
+                    key: KeyCode::ApplicationRightArrow,
                 }),
                 InputEvent::Key(KeyEvent {
                     modifiers: Modifiers::NONE,
-                    key: KeyCode::LeftArrow,
+                    key: KeyCode::ApplicationLeftArrow,
                 }),
             ],
             inputs
