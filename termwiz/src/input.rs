@@ -574,7 +574,7 @@ impl InputParser {
         map.insert(
             &[0x7f],
             InputEvent::Key(KeyEvent {
-                key: KeyCode::Delete,
+                key: KeyCode::Backspace,
                 modifiers: Modifiers::NONE,
             }),
         );
@@ -898,7 +898,7 @@ mod test {
                 }),
                 InputEvent::Key(KeyEvent {
                     modifiers: Modifiers::NONE,
-                    key: KeyCode::Delete,
+                    key: KeyCode::Backspace,
                 }),
             ],
             inputs
