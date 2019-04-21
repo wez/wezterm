@@ -614,16 +614,7 @@ impl Surface {
 
             let mut changes = line.changes(&attr);
 
-            let result_len = result.len();
-            if !changes.is_empty() && result[result_len - 1].is_text() && changes[0].is_text() {
-                // Assumption: that the output has working automatic margins.
-                // We can skip the cursor position change and just join the
-                // text items together
-                if let Change::Text(mut prefix) = result.remove(result_len - 1) {
-                    prefix.push_str(changes[0].text());
-                    changes[0] = Change::Text(prefix);
-                }
-            } else if idx != 0 {
+            if idx != 0 {
                 // We emit a relative move at the end of each
                 // line with the theory that this will translate
                 // to a short \r\n sequence rather than the longer
@@ -913,7 +904,12 @@ mod test {
         assert_eq!(
             &[
                 Change::ClearScreen(Default::default()),
-                Change::Text("helw".into()),
+                Change::Text("hel".into()),
+                Change::CursorPosition {
+                    x: Position::Absolute(0),
+                    y: Position::Relative(1),
+                },
+                Change::Text("w".into()),
                 Change::CursorPosition {
                     x: Position::Absolute(1),
                     y: Position::Absolute(1),
@@ -945,7 +941,12 @@ mod test {
                         .set_background(AnsiColor::Red)
                         .clone()
                 ),
-                Change::Text("helw".into()),
+                Change::Text("hel".into()),
+                Change::CursorPosition {
+                    x: Position::Absolute(0),
+                    y: Position::Relative(1),
+                },
+                Change::Text("w".into()),
                 Change::ClearToEndOfScreen(AnsiColor::Red.into()),
                 Change::CursorPosition {
                     x: Position::Absolute(1),
