@@ -467,6 +467,17 @@ impl Terminal for WindowsTerminal {
         )
     }
 
+    fn enter_alternate_screen(&mut self) -> Result<(), Error> {
+        // TODO: Implement using CreateConsoleScreenBuffer and
+        // SetConsoleActiveScreenBuffer.
+        Ok(())
+    }
+
+    fn exit_alternate_screen(&mut self) -> Result<(), Error> {
+        // TODO: Implement using SetConsoleActiveScreenBuffer.
+        Ok(())
+    }
+
     fn get_screen_size(&mut self) -> Result<ScreenSize, Error> {
         let info = self.output_handle.get_buffer_info()?;
 

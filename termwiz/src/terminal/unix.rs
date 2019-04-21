@@ -227,6 +227,7 @@ pub struct UnixTerminal {
     sigwinch_id: SigId,
     sigwinch_pipe: UnixStream,
     caps: Capabilities,
+    in_alternate_screen: bool,
 }
 
 impl UnixTerminal {
@@ -267,6 +268,7 @@ impl UnixTerminal {
             input_queue,
             sigwinch_pipe,
             sigwinch_id,
+            in_alternate_screen: false,
         })
     }
 
@@ -331,6 +333,34 @@ impl Terminal for UnixTerminal {
         }
         self.write.flush()?;
 
+        Ok(())
+    }
+
+    fn enter_alternate_screen(&mut self) -> Result<(), Error> {
+        if !self.in_alternate_screen {
+            write!(
+                self.write,
+                "{}",
+                CSI::Mode(Mode::SetDecPrivateMode(DecPrivateMode::Code(
+                    DecPrivateModeCode::ClearAndEnableAlternateScreen
+                )))
+            )?;
+            self.in_alternate_screen = true;
+        }
+        Ok(())
+    }
+
+    fn exit_alternate_screen(&mut self) -> Result<(), Error> {
+        if self.in_alternate_screen {
+            write!(
+                self.write,
+                "{}",
+                CSI::Mode(Mode::ResetDecPrivateMode(DecPrivateMode::Code(
+                    DecPrivateModeCode::ClearAndEnableAlternateScreen
+                )))
+            )?;
+            self.in_alternate_screen = false;
+        }
         Ok(())
     }
 
@@ -481,6 +511,7 @@ impl Drop for UnixTerminal {
             decreset!(SGRMouse);
             decreset!(AnyEventMouse);
         }
+        self.exit_alternate_screen().unwrap();
         self.write.flush().unwrap();
 
         signal_hook::unregister(self.sigwinch_id);

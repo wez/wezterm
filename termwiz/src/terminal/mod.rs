@@ -56,6 +56,13 @@ pub trait Terminal {
     /// output, and disables canonicalization of unix newlines to CRLF.
     fn set_raw_mode(&mut self) -> Result<(), Error>;
 
+    /// Enter the alternate screen.  The alternate screen will be left
+    /// automatically when the `Terminal` is dropped.
+    fn enter_alternate_screen(&mut self) -> Result<(), Error>;
+
+    /// Exit the alternate screen.
+    fn exit_alternate_screen(&mut self) -> Result<(), Error>;
+
     /// Queries the current screen size, returning width, height.
     fn get_screen_size(&mut self) -> Result<ScreenSize, Error>;
 
