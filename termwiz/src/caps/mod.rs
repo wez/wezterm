@@ -109,6 +109,19 @@ pub struct ProbeHints {
     mouse_reporting: Option<bool>,
 }
 
+impl ProbeHintsBuilder {
+    pub fn new_from_env() -> ProbeHintsBuilder {
+        let mut hints = ProbeHintsBuilder::default();
+        hints.term(var("TERM").ok());
+        hints.colorterm(var("COLORTERM").ok());
+        hints.colorterm_bce(var("COLORTERM_BCE").ok());
+        hints.term_program(var("TERM_PROGRAM").ok());
+        hints.term_program_version(var("TERM_PROGRAM_VERSION").ok());
+        hints.terminfo_db(terminfo::Database::from_env().ok());
+        hints
+    }
+}
+
 /// Describes the level of color support available
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ColorLevel {
@@ -150,14 +163,7 @@ impl Capabilities {
     /// This function inspects the environment variables to build
     /// up configuration hints.
     pub fn new_from_env() -> Result<Self, Error> {
-        let mut hints = ProbeHintsBuilder::default();
-        hints.term(var("TERM").ok());
-        hints.colorterm(var("COLORTERM").ok());
-        hints.colorterm_bce(var("COLORTERM_BCE").ok());
-        hints.term_program(var("TERM_PROGRAM").ok());
-        hints.term_program_version(var("TERM_PROGRAM_VERSION").ok());
-        hints.terminfo_db(terminfo::Database::from_env().ok());
-        Self::new_with_hints(hints.build().map_err(err_msg)?)
+        Self::new_with_hints(ProbeHintsBuilder::new_from_env().build().map_err(err_msg)?)
     }
 
     /// Build a `Capabilities` object based on the provided `ProbeHints` object.
