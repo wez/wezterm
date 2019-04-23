@@ -1,6 +1,18 @@
 use failure::{bail, Fallible};
 use std::os::unix::prelude::*;
 
+#[cfg(unix)]
+pub trait AsRawFileDescriptor: AsRawFd {}
+
+#[cfg(unix)]
+impl<T: AsRawFd> AsRawFileDescriptor for T {}
+
+#[cfg(windows)]
+pub trait AsRawFileDescriptor: AsRawHandle {}
+
+#[cfg(windows)]
+impl<T: AsRawHandle> AsRawFileDescriptor for T {}
+
 pub struct FileDescriptor {
     fd: RawFd,
 }
@@ -44,7 +56,7 @@ impl AsRawFd for FileDescriptor {
     }
 }
 
-fn dup(fd: RawFd) -> Fallible<FileDescriptor> {
+fn dup_fd(fd: RawFd) -> Fallible<FileDescriptor> {
     let duped = unsafe { libc::dup(fd) };
     if duped == -1 {
         bail!(
@@ -64,9 +76,14 @@ pub struct Pipes {
     pub write: FileDescriptor,
 }
 
+pub fn dup<F: AsRawFileDescriptor>(f: F) -> Fallible<FileDescriptor> {
+    #[cfg(unix)]
+    dup_fd(f.as_raw_fd())
+}
+
 impl FileDescriptor {
-    pub fn dup<F: AsRawFd>(f: F) -> Fallible<Self> {
-        dup(f.as_raw_fd())
+    pub fn dup<F: AsRawFileDescriptor>(f: F) -> Fallible<Self> {
+        dup(f)
     }
 
     pub fn pipe() -> Fallible<Pipes> {
@@ -106,7 +123,7 @@ impl FileDescriptor {
     }
 
     pub fn as_stdio(&self) -> Fallible<std::process::Stdio> {
-        let duped = dup(self.fd)?;
+        let duped = dup_fd(self.fd)?;
         let fd = duped.fd;
         let stdio = unsafe { std::process::Stdio::from_raw_fd(fd) };
         std::mem::forget(duped); // don't drop; stdio now owns it
