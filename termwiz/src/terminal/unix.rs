@@ -21,7 +21,7 @@ use crate::render::terminfo::TerminfoRenderer;
 use crate::surface::Change;
 use crate::terminal::{cast, Blocking, ScreenSize, Terminal};
 
-const BUF_SIZE: usize = 128;
+const BUF_SIZE: usize = 4096;
 
 /// Helper function to duplicate a file descriptor.
 /// The duplicated descriptor will have the close-on-exec flag set.
