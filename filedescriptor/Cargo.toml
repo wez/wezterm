@@ -1,0 +1,11 @@
+[package]
+name = "filedescriptor"
+version = "0.1.0"
+authors = ["Wez Furlong"]
+edition = "2018"
+
+[dependencies]
+failure = "0.1"
+failure_derive = "0.1"
+libc = "0.2"
+
