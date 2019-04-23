@@ -450,6 +450,12 @@ impl TerminfoRenderer {
                 }
                 Change::CursorPosition {
                     x: Position::Absolute(0),
+                    y: Position::Relative(0),
+                } => {
+                    out.by_ref().write_all(b"\r")?;
+                }
+                Change::CursorPosition {
+                    x: Position::Absolute(0),
                     y: Position::Absolute(0),
                 } => {
                     if let Some(attr) = self.get_capability::<cap::CursorHome>() {
