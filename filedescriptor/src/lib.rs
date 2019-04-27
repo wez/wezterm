@@ -13,6 +13,7 @@ pub trait AsRawFileDescriptor: AsRawHandle {}
 #[cfg(windows)]
 impl<T: AsRawHandle> AsRawFileDescriptor for T {}
 
+#[derive(Debug)]
 pub struct FileDescriptor {
     fd: RawFd,
 }
@@ -56,6 +57,12 @@ impl AsRawFd for FileDescriptor {
     }
 }
 
+impl AsRawFd for &FileDescriptor {
+    fn as_raw_fd(&self) -> RawFd {
+        self.fd
+    }
+}
+
 fn dup_fd(fd: RawFd) -> Fallible<FileDescriptor> {
     let duped = unsafe { libc::dup(fd) };
     if duped == -1 {
@@ -84,6 +91,10 @@ pub fn dup<F: AsRawFileDescriptor>(f: F) -> Fallible<FileDescriptor> {
 impl FileDescriptor {
     pub fn dup<F: AsRawFileDescriptor>(f: F) -> Fallible<Self> {
         dup(f)
+    }
+
+    pub fn clone(&self) -> Fallible<FileDescriptor> {
+        dup(self)
     }
 
     pub fn pipe() -> Fallible<Pipes> {
