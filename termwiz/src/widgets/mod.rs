@@ -238,7 +238,8 @@ impl<'widget> Ui<'widget> {
                     self.do_deliver(id, &WidgetEvent::Input(InputEvent::Mouse(m)))
                 }
                 WidgetEvent::Input(InputEvent::Paste(_))
-                | WidgetEvent::Input(InputEvent::Key(_)) => self.do_deliver(id, event),
+                | WidgetEvent::Input(InputEvent::Key(_))
+                | WidgetEvent::Input(InputEvent::Wake) => self.do_deliver(id, event),
             };
 
             if handled {
@@ -316,7 +317,8 @@ impl<'widget> Ui<'widget> {
                     }
                 }
                 WidgetEvent::Input(InputEvent::Key(_))
-                | WidgetEvent::Input(InputEvent::Paste(_)) => {
+                | WidgetEvent::Input(InputEvent::Paste(_))
+                | WidgetEvent::Input(InputEvent::Wake) => {
                     if let Some(focus) = self.focused {
                         self.deliver_event(focus, &event);
                     }

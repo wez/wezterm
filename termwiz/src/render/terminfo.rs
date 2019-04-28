@@ -689,11 +689,12 @@ mod test {
     use crate::input::InputEvent;
     use crate::terminal::unix::{Purge, SetAttributeWhen, UnixTty};
     use crate::terminal::ScreenSize;
-    use crate::terminal::{cast, Blocking, Terminal};
+    use crate::terminal::{cast, Terminal, TerminalWaker};
     use failure::Error;
     use libc::winsize;
     use std::io::{Error as IoError, ErrorKind, Read, Result as IoResult, Write};
     use std::mem;
+    use std::time::Duration;
     use terminfo;
     use termios::Termios;
 
@@ -856,8 +857,12 @@ mod test {
             Ok(())
         }
 
-        fn poll_input(&mut self, _blocking: Blocking) -> Result<Option<InputEvent>, Error> {
+        fn poll_input(&mut self, _wait: Option<Duration>) -> Result<Option<InputEvent>, Error> {
             bail!("not implemented");
+        }
+
+        fn waker(&self) -> TerminalWaker {
+            unimplemented!();
         }
     }
 

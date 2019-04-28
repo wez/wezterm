@@ -41,9 +41,12 @@ signal-hook = "~0.1"
 termios = "~0.3"
 [target."cfg(windows)".dependencies.winapi]
 features = [
+    "winbase",
+    "winerror",
     "winuser",
     "consoleapi",
     "handleapi",
     "fileapi",
+    "synchapi",
 ]
 version = "~0.3"

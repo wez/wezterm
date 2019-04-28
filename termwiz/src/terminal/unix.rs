@@ -9,6 +9,8 @@ use std::mem;
 use std::ops::Deref;
 use std::os::unix::io::{AsRawFd, RawFd};
 use std::os::unix::net::UnixStream;
+use std::sync::{Arc, Mutex};
+use std::time::Duration;
 use termios::{
     cfmakeraw, tcdrain, tcflush, tcsetattr, Termios, TCIFLUSH, TCIOFLUSH, TCOFLUSH, TCSADRAIN,
     TCSAFLUSH, TCSANOW,
@@ -223,9 +225,11 @@ pub struct UnixTerminal {
     saved_termios: Termios,
     renderer: TerminfoRenderer,
     input_parser: InputParser,
-    input_queue: Option<VecDeque<InputEvent>>,
+    input_queue: VecDeque<InputEvent>,
     sigwinch_id: SigId,
     sigwinch_pipe: UnixStream,
+    wake_pipe: UnixStream,
+    wake_pipe_write: Arc<Mutex<UnixStream>>,
     caps: Capabilities,
     in_alternate_screen: bool,
 }
@@ -250,11 +254,13 @@ impl UnixTerminal {
         let saved_termios = write.get_termios()?;
         let renderer = TerminfoRenderer::new(caps.clone());
         let input_parser = InputParser::new();
-        let input_queue = None;
+        let input_queue = VecDeque::new();
 
-        let (sigwinch_pipe, pipe_write) = UnixStream::pair()?;
-        let sigwinch_id = signal_hook::pipe::register(libc::SIGWINCH, pipe_write)?;
+        let (sigwinch_pipe, sigwinch_pipe_write) = UnixStream::pair()?;
+        let sigwinch_id = signal_hook::pipe::register(libc::SIGWINCH, sigwinch_pipe_write)?;
         sigwinch_pipe.set_nonblocking(true)?;
+        let (wake_pipe, wake_pipe_write) = UnixStream::pair()?;
+        wake_pipe.set_nonblocking(true)?;
 
         read.set_blocking(Blocking::DoNotWait)?;
 
@@ -268,6 +274,8 @@ impl UnixTerminal {
             input_queue,
             sigwinch_pipe,
             sigwinch_id,
+            wake_pipe,
+            wake_pipe_write: Arc::new(Mutex::new(wake_pipe_write)),
             in_alternate_screen: false,
         })
     }
@@ -301,6 +309,19 @@ impl UnixTerminal {
             }
             Err(e) => Err(format_err!("failed to read sigwinch pipe {}", e)),
         }
+    }
+}
+
+#[derive(Clone)]
+pub struct UnixTerminalWaker {
+    pipe: Arc<Mutex<UnixStream>>,
+}
+
+impl UnixTerminalWaker {
+    pub fn wake(&self) -> Result<(), IoError> {
+        let mut pipe = self.pipe.lock().unwrap();
+        pipe.write(b"W")?;
+        Ok(())
     }
 }
 
@@ -394,11 +415,9 @@ impl Terminal for UnixTerminal {
             .map_err(|e| format_err!("flush failed: {}", e))
     }
 
-    fn poll_input(&mut self, blocking: Blocking) -> Result<Option<InputEvent>, Error> {
-        if let Some(ref mut queue) = self.input_queue {
-            if let Some(event) = queue.pop_front() {
-                return Ok(Some(event));
-            }
+    fn poll_input(&mut self, wait: Option<Duration>) -> Result<Option<InputEvent>, Error> {
+        if let Some(event) = self.input_queue.pop_front() {
+            return Ok(Some(event));
         }
 
         // Some unfortunately verbose code here.  In order to safely hook and process
@@ -414,12 +433,17 @@ impl Terminal for UnixTerminal {
 
         let mut pfd = [
             pollfd {
+                fd: self.sigwinch_pipe.as_raw_fd(),
+                events: POLLIN,
+                revents: 0,
+            },
+            pollfd {
                 fd: self.read.fd.fd,
                 events: POLLIN,
                 revents: 0,
             },
             pollfd {
-                fd: self.sigwinch_pipe.as_raw_fd(),
+                fd: self.wake_pipe.as_raw_fd(),
                 events: POLLIN,
                 revents: 0,
             },
@@ -429,11 +453,8 @@ impl Terminal for UnixTerminal {
             poll(
                 pfd.as_mut_ptr(),
                 pfd.len() as _,
-                if blocking == Blocking::DoNotWait {
-                    0 // Immediate
-                } else {
-                    -1 // Infinite
-                },
+                wait.map(|wait| wait.as_millis() as libc::c_int)
+                    .unwrap_or(-1),
             )
         };
         if poll_result < 0 {
@@ -452,40 +473,45 @@ impl Terminal for UnixTerminal {
             return Err(format_err!("poll(2) error: {}", err));
         }
 
-        if pfd[1].revents != 0 {
+        if pfd[0].revents != 0 {
             // SIGWINCH received via our pipe?
             if let Some(resize) = self.caught_sigwinch()? {
                 return Ok(Some(resize));
             }
         }
 
-        if pfd[0].revents != 0 {
+        if pfd[1].revents != 0 {
             let mut buf = [0u8; 64];
             match self.read.read(&mut buf) {
                 Ok(n) => {
-                    // A little bit of a dance with moving the queue out of self
-                    // to appease the borrow checker.  We'll need to be sure to
-                    // move it back before we return!
-                    let mut queue = match self.input_queue.take() {
-                        Some(queue) => queue,
-                        None => VecDeque::new(),
-                    };
-                    self.input_parser
-                        .parse(&buf[0..n], |evt| queue.push_back(evt), n == buf.len());
-                    let result = queue.pop_front();
-                    // Move the queue back into self before we leave this scope
-                    self.input_queue = Some(queue);
-                    Ok(result)
+                    let input_queue = &mut self.input_queue;
+                    self.input_parser.parse(
+                        &buf[0..n],
+                        |evt| input_queue.push_back(evt),
+                        n == buf.len(),
+                    );
+                    return Ok(self.input_queue.pop_front());
                 }
                 Err(ref e)
-                    if e.kind() == ErrorKind::WouldBlock || e.kind() == ErrorKind::Interrupted =>
-                {
-                    Ok(None)
-                }
-                Err(e) => Err(format_err!("failed to read input {}", e)),
+                    if e.kind() == ErrorKind::WouldBlock || e.kind() == ErrorKind::Interrupted => {}
+                Err(e) => return Err(format_err!("failed to read input {}", e)),
             }
-        } else {
-            Ok(None)
+        }
+
+        if pfd[2].revents != 0 {
+            let mut buf = [0u8; 64];
+            match self.wake_pipe.read(&mut buf) {
+                Ok(_) => return Ok(Some(InputEvent::Wake)),
+                Err(_) => {}
+            }
+        }
+
+        Ok(None)
+    }
+
+    fn waker(&self) -> UnixTerminalWaker {
+        UnixTerminalWaker {
+            pipe: self.wake_pipe_write.clone(),
         }
     }
 }

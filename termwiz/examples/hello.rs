@@ -8,7 +8,7 @@ use termwiz::color::AnsiColor;
 use termwiz::input::{InputEvent, KeyCode, KeyEvent};
 use termwiz::surface::{Change, Position, Surface};
 use termwiz::terminal::buffered::BufferedTerminal;
-use termwiz::terminal::{new_terminal, Blocking, Terminal};
+use termwiz::terminal::{new_terminal, Terminal};
 
 fn main() -> Result<(), Error> {
     let caps = Capabilities::new_from_env()?;
@@ -38,7 +38,7 @@ fn main() -> Result<(), Error> {
 
     buf.terminal().set_raw_mode()?;
     loop {
-        match buf.terminal().poll_input(Blocking::Wait) {
+        match buf.terminal().poll_input(None) {
             Ok(Some(input)) => match input {
                 InputEvent::Key(KeyEvent {
                     key: KeyCode::Escape,
