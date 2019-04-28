@@ -5,11 +5,16 @@ use std::collections::VecDeque;
 use std::fs::OpenOptions;
 use std::io::{stdin, stdout, Error as IoError, Read, Result as IoResult, Write};
 use std::os::windows::io::{AsRawHandle, RawHandle};
+use std::sync::Arc;
+use std::time::Duration;
 use std::{mem, ptr};
+use winapi::shared::winerror::WAIT_TIMEOUT;
 use winapi::um::consoleapi;
 use winapi::um::fileapi::{ReadFile, WriteFile};
 use winapi::um::handleapi::*;
 use winapi::um::processthreadsapi::GetCurrentProcess;
+use winapi::um::synchapi::{CreateEventW, SetEvent, WaitForMultipleObjects};
+use winapi::um::winbase::{INFINITE, WAIT_FAILED, WAIT_OBJECT_0};
 use winapi::um::wincon::{
     FillConsoleOutputAttribute, FillConsoleOutputCharacterW, GetConsoleScreenBufferInfo,
     ScrollConsoleScreenBufferW, SetConsoleCursorPosition, SetConsoleScreenBufferSize,
@@ -24,7 +29,7 @@ use crate::caps::Capabilities;
 use crate::input::{InputEvent, InputParser};
 use crate::render::windows::WindowsConsoleRenderer;
 use crate::surface::Change;
-use crate::terminal::{cast, Blocking, ScreenSize, Terminal};
+use crate::terminal::{cast, ScreenSize, Terminal};
 
 const BUF_SIZE: usize = 128;
 
@@ -170,6 +175,40 @@ impl OutputHandle {
         Self {
             handle,
             write_buffer: Vec::with_capacity(BUF_SIZE),
+        }
+    }
+}
+
+struct EventHandle {
+    handle: RawHandle,
+}
+
+impl EventHandle {
+    fn new() -> IoResult<Self> {
+        let handle = unsafe { CreateEventW(ptr::null_mut(), 0, 0, ptr::null_mut()) };
+        if handle.is_null() {
+            Err(IoError::last_os_error())
+        } else {
+            Ok(Self {
+                handle: handle as *mut _,
+            })
+        }
+    }
+
+    fn set(&self) -> IoResult<()> {
+        let ok = unsafe { SetEvent(self.handle as *mut _) };
+        if ok == 0 {
+            Err(IoError::last_os_error())
+        } else {
+            Ok(())
+        }
+    }
+}
+
+impl Drop for EventHandle {
+    fn drop(&mut self) {
+        unsafe {
+            CloseHandle(self.handle as *mut _);
         }
     }
 }
@@ -375,6 +414,7 @@ impl ConsoleOutputHandle for OutputHandle {
 pub struct WindowsTerminal {
     input_handle: InputHandle,
     output_handle: OutputHandle,
+    waker_handle: Arc<EventHandle>,
     saved_input_mode: u32,
     saved_output_mode: u32,
     renderer: WindowsConsoleRenderer,
@@ -417,6 +457,7 @@ impl WindowsTerminal {
 
         let mut input_handle = InputHandle { handle: dup(read)? };
         let mut output_handle = OutputHandle::new(dup(write)?);
+        let waker_handle = Arc::new(EventHandle::new()?);
 
         let saved_input_mode = input_handle.get_input_mode()?;
         let saved_output_mode = output_handle.get_output_mode()?;
@@ -426,6 +467,7 @@ impl WindowsTerminal {
         Ok(Self {
             input_handle,
             output_handle,
+            waker_handle,
             saved_input_mode,
             saved_output_mode,
             renderer,
@@ -452,6 +494,18 @@ impl WindowsTerminal {
         let mode = self.input_handle.get_input_mode()?;
         self.input_handle
             .set_input_mode(mode | ENABLE_VIRTUAL_TERMINAL_INPUT)?;
+        Ok(())
+    }
+}
+
+#[derive(Clone)]
+pub struct WindowsTerminalWaker {
+    handle: Arc<EventHandle>,
+}
+
+impl WindowsTerminalWaker {
+    pub fn wake(&mut self) -> IoResult<()> {
+        self.handle.set()?;
         Ok(())
     }
 }
@@ -525,23 +579,54 @@ impl Terminal for WindowsTerminal {
             .map_err(|e| format_err!("flush failed: {}", e))
     }
 
-    fn poll_input(&mut self, blocking: Blocking) -> Result<Option<InputEvent>, Error> {
+    fn poll_input(&mut self, wait: Option<Duration>) -> Result<Option<InputEvent>, Error> {
         loop {
             if let Some(event) = self.input_queue.pop_front() {
                 return Ok(Some(event));
             }
 
-            let pending = match (self.input_handle.get_number_of_input_events()?, blocking) {
-                (0, Blocking::DoNotWait) => return Ok(None),
-                (0, Blocking::Wait) => 1,
-                (pending, _) => pending,
-            };
+            let mut pending = self.input_handle.get_number_of_input_events()?;
+
+            if pending == 0 {
+                let mut handles = [
+                    self.input_handle.handle as *mut _,
+                    self.waker_handle.handle as *mut _,
+                ];
+                let result = unsafe {
+                    WaitForMultipleObjects(
+                        2,
+                        handles.as_mut_ptr(),
+                        0,
+                        wait.map(|wait| wait.as_millis() as u32).unwrap_or(INFINITE),
+                    )
+                };
+                if result == WAIT_OBJECT_0 + 0 {
+                    pending = 1;
+                } else if result == WAIT_OBJECT_0 + 1 {
+                    return Ok(Some(InputEvent::Wake));
+                } else if result == WAIT_FAILED {
+                    bail!(
+                        "failed to WaitForMultipleObjects: {}",
+                        IoError::last_os_error()
+                    );
+                } else if result == WAIT_TIMEOUT {
+                    return Ok(None);
+                } else {
+                    return Ok(None);
+                }
+            }
 
             let records = self.input_handle.read_console_input(pending)?;
 
             let input_queue = &mut self.input_queue;
             self.input_parser
                 .decode_input_records(&records, &mut |evt| input_queue.push_back(evt));
+        }
+    }
+
+    fn waker(&self) -> WindowsTerminalWaker {
+        WindowsTerminalWaker {
+            handle: self.waker_handle.clone(),
         }
     }
 }

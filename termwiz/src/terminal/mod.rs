@@ -6,6 +6,7 @@ use crate::surface::Change;
 use failure::Error;
 use num::{self, NumCast};
 use std::fmt::Display;
+use std::time::Duration;
 
 #[cfg(unix)]
 pub mod unix;
@@ -15,9 +16,9 @@ pub mod windows;
 pub mod buffered;
 
 #[cfg(unix)]
-pub use self::unix::UnixTerminal;
+pub use self::unix::{UnixTerminal, UnixTerminalWaker as TerminalWaker};
 #[cfg(windows)]
-pub use self::windows::WindowsTerminal;
+pub use self::windows::{WindowsTerminal, WindowsTerminalWaker as TerminalWaker};
 
 /// Represents the size of the terminal screen.
 /// The number of rows and columns of character cells are expressed.
@@ -76,16 +77,20 @@ pub trait Terminal {
     fn flush(&mut self) -> Result<(), Error>;
 
     /// Check for a parsed input event.
-    /// `blocking` indicates the behavior in the case that no input is
-    /// immediately available.  If blocking == `Blocking::Wait` then
-    /// `poll_input` will not return until an event is available.
-    /// If blocking == `Blocking:DoNotWait` then `poll_input` will return
-    /// immediately with a value of `Ok(None)`.
+    /// `wait` indicates the behavior in the case that no input is
+    /// immediately available.  If wait is `None` then `poll_input`
+    /// will not return until an event is available.  If wait is
+    /// `Some(duration)` then `poll_input` will wait up to the given
+    /// duration for an event before returning with a value of
+    /// `Ok(None)`.  If wait is `Some(Duration::new(0, 0))` then
+    /// the poll is non-blocking.
     ///
     /// The possible values returned as `InputEvent`s depend on the
-    /// mode of the terminal.  Most modes are not returned unless
+    /// mode of the terminal.  Most values are not returned unless
     /// the terminal is set to raw mode.
-    fn poll_input(&mut self, blocking: Blocking) -> Result<Option<InputEvent>, Error>;
+    fn poll_input(&mut self, wait: Option<Duration>) -> Result<Option<InputEvent>, Error>;
+
+    fn waker(&self) -> TerminalWaker;
 }
 
 /// `SystemTerminal` is a concrete implementation of `Terminal`.

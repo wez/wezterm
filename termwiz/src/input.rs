@@ -49,6 +49,8 @@ pub enum InputEvent {
     /// For terminals that support Bracketed Paste mode,
     /// pastes are collected and reported as this variant.
     Paste(String),
+    /// The program has woken the input thread.
+    Wake,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

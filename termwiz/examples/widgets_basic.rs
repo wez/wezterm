@@ -10,7 +10,6 @@ use termwiz::color::{AnsiColor, ColorAttribute, RgbColor};
 use termwiz::input::*;
 use termwiz::surface::Change;
 use termwiz::terminal::buffered::BufferedTerminal;
-use termwiz::terminal::Blocking;
 use termwiz::terminal::{new_terminal, Terminal};
 use termwiz::widgets::*;
 
@@ -115,7 +114,7 @@ fn main() -> Result<(), Error> {
             buf.flush()?;
 
             // Wait for user input
-            match buf.terminal().poll_input(Blocking::Wait) {
+            match buf.terminal().poll_input(None) {
                 Ok(Some(InputEvent::Resized { rows, cols })) => {
                     // FIXME: this is working around a bug where we don't realize
                     // that we should redraw everything on resize in BufferedTerminal.
