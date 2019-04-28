@@ -379,7 +379,7 @@ pub struct WindowsTerminal {
     saved_output_mode: u32,
     renderer: WindowsConsoleRenderer,
     input_parser: InputParser,
-    input_queue: Option<VecDeque<InputEvent>>,
+    input_queue: VecDeque<InputEvent>,
 }
 
 impl Drop for WindowsTerminal {
@@ -430,7 +430,7 @@ impl WindowsTerminal {
             saved_output_mode,
             renderer,
             input_parser,
-            input_queue: None,
+            input_queue: VecDeque::new(),
         })
     }
 
@@ -526,33 +526,22 @@ impl Terminal for WindowsTerminal {
     }
 
     fn poll_input(&mut self, blocking: Blocking) -> Result<Option<InputEvent>, Error> {
-        if let Some(ref mut queue) = self.input_queue {
-            if let Some(event) = queue.pop_front() {
+        loop {
+            if let Some(event) = self.input_queue.pop_front() {
                 return Ok(Some(event));
             }
+
+            let pending = match (self.input_handle.get_number_of_input_events()?, blocking) {
+                (0, Blocking::DoNotWait) => return Ok(None),
+                (0, Blocking::Wait) => 1,
+                (pending, _) => pending,
+            };
+
+            let records = self.input_handle.read_console_input(pending)?;
+
+            let input_queue = &mut self.input_queue;
+            self.input_parser
+                .decode_input_records(&records, &mut |evt| input_queue.push_back(evt));
         }
-
-        let pending = match (self.input_handle.get_number_of_input_events()?, blocking) {
-            (0, Blocking::DoNotWait) => return Ok(None),
-            (0, Blocking::Wait) => 1,
-            (pending, _) => pending,
-        };
-
-        let records = self.input_handle.read_console_input(pending)?;
-
-        // A little bit of a dance with moving the queue out of self
-        // to appease the borrow checker.  We'll need to be sure to
-        // move it back before we return!
-        let mut queue = match self.input_queue.take() {
-            Some(queue) => queue,
-            None => VecDeque::new(),
-        };
-
-        self.input_parser
-            .decode_input_records(&records, &mut |evt| queue.push_back(evt));
-
-        let result = queue.pop_front();
-        self.input_queue = Some(queue);
-        Ok(result)
     }
 }
