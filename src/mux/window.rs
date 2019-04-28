@@ -1,7 +1,7 @@
 use crate::mux::{Tab, TabId};
 use std::rc::Rc;
 
-static WIN_ID: ::std::sync::atomic::AtomicUsize = ::std::sync::atomic::ATOMIC_USIZE_INIT;
+static WIN_ID: ::std::sync::atomic::AtomicUsize = ::std::sync::atomic::AtomicUsize::new(0);
 pub type WindowId = usize;
 
 pub struct Window {

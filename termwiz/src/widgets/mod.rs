@@ -113,7 +113,7 @@ impl ScreenRelativeCoords {
     }
 }
 
-static WIDGET_ID: ::std::sync::atomic::AtomicUsize = ::std::sync::atomic::ATOMIC_USIZE_INIT;
+static WIDGET_ID: ::std::sync::atomic::AtomicUsize = ::std::sync::atomic::AtomicUsize::new(0);
 
 /// The `WidgetId` uniquely describes an instance of a widget.
 /// Creating a new `WidgetId` generates a new unique identifier which can
