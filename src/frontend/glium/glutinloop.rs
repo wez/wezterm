@@ -13,40 +13,58 @@ use glium::glutin::WindowId;
 use promise::{Executor, Future, SpawnFunc};
 use std::cell::RefCell;
 use std::collections::HashMap;
+use std::collections::VecDeque;
 use std::rc::Rc;
 use std::sync::mpsc::{self, Receiver, SyncSender, TryRecvError};
 use std::sync::Arc;
 use std::thread;
 use std::time::{Duration, SystemTime};
 
-#[derive(Clone)]
-struct GuiSender<T: Send> {
-    tx: SyncSender<T>,
+/// The GuiSender is used as a handle that allows sending SpawnFunc
+/// instances to be executed on the gui thread.
+/// When `send` is called from a non-gui thread the funcs are queued
+/// via the bounded `tx` member.  The bounding is desirable to act
+/// as a brake in the case that eg: a pty is spewing a lot of output
+/// and where we want to allow the gui thread time to process other
+/// events.
+/// When `send` is called from the gui thread, we assume that the
+/// activity is something that is high priority and thus directly
+/// queue up the events into the `gui_thread_sends` in the
+/// executor itself.
+struct GuiSender {
+    tx: SyncSender<SpawnFunc>,
     proxy: EventsLoopProxy,
 }
 
-impl<T: Send> GuiSender<T> {
-    pub fn send(&self, what: T) -> Result<(), Error> {
-        match self.tx.send(what) {
-            Ok(_) => {}
-            Err(err) => bail!("send failed: {:?}", err),
+impl GuiSender {
+    pub fn send(&self, what: SpawnFunc) -> Result<(), Error> {
+        match GuiEventLoop::get() {
+            // If we can get a handle on the GuiEventLoop then we
+            // are in the gui thread and can queue up func directly.
+            Some(event_loop) => event_loop.spawn_func(what),
+            // Otherwise, send it through the bounded channel,
+            // which may block us
+            None => match self.tx.send(what) {
+                Ok(_) => {}
+                Err(err) => bail!("send failed: {:?}", err),
+            },
         };
         self.proxy.wakeup()?;
         Ok(())
     }
-}
 
-fn channel<T: Send>(proxy: EventsLoopProxy) -> (GuiSender<T>, Receiver<T>) {
-    // Set an upper bound on the number of items in the queue, so that
-    // we don't swamp the gui loop; this puts back pressure on the
-    // producer side so that we have a chance for eg: processing CTRL-C
-    let (tx, rx) = mpsc::sync_channel(64);
-    (GuiSender { tx, proxy }, rx)
+    fn new(proxy: EventsLoopProxy) -> (GuiSender, Receiver<SpawnFunc>) {
+        // Set an upper bound on the number of items in the queue, so that
+        // we don't swamp the gui loop; this puts back pressure on the
+        // producer side so that we have a chance for eg: processing CTRL-C
+        let (tx, rx) = mpsc::sync_channel(12);
+        (GuiSender { tx, proxy }, rx)
+    }
 }
 
 #[derive(Clone)]
 pub struct GlutinGuiExecutor {
-    tx: Arc<GuiSender<SpawnFunc>>,
+    tx: Arc<GuiSender>,
 }
 
 impl Executor for GlutinGuiExecutor {
@@ -73,8 +91,9 @@ struct Windows {
 pub struct GuiEventLoop {
     pub event_loop: RefCell<glium::glutin::EventsLoop>,
     windows: Rc<RefCell<Windows>>,
-    gui_tx: Arc<GuiSender<SpawnFunc>>,
+    gui_tx: Arc<GuiSender>,
     gui_rx: Receiver<SpawnFunc>,
+    gui_thread_sends: RefCell<VecDeque<SpawnFunc>>,
     tick_rx: Receiver<()>,
     mux: Rc<Mux>,
 }
@@ -140,14 +159,18 @@ impl GuiEventLoop {
     pub fn new(mux: &Rc<Mux>) -> Result<Self, Error> {
         let event_loop = glium::glutin::EventsLoop::new();
 
-        let (gui_tx, gui_rx) = channel(event_loop.create_proxy());
+        let (gui_tx, gui_rx) = GuiSender::new(event_loop.create_proxy());
 
         // The glutin/glium plumbing has no native tick/timer stuff, so
         // we implement one using a thread.  Nice.
-        let (tick_tx, tick_rx) = channel(event_loop.create_proxy());
+        let proxy = event_loop.create_proxy();
+        let (tick_tx, tick_rx) = mpsc::channel();
         thread::spawn(move || loop {
             std::thread::sleep(TICK_INTERVAL);
             if tick_tx.send(()).is_err() {
+                return;
+            }
+            if proxy.wakeup().is_err() {
                 return;
             }
         });
@@ -155,6 +178,7 @@ impl GuiEventLoop {
         Ok(Self {
             gui_rx,
             gui_tx: Arc::new(gui_tx),
+            gui_thread_sends: RefCell::new(VecDeque::new()),
             tick_rx,
             event_loop: RefCell::new(event_loop),
             windows: Rc::new(RefCell::new(Default::default())),
@@ -170,6 +194,10 @@ impl GuiEventLoop {
             }
         });
         res
+    }
+
+    fn spawn_func(&self, func: SpawnFunc) {
+        self.gui_thread_sends.borrow_mut().push_back(func);
     }
 
     fn gui_executor(&self) -> Box<Executor> {
@@ -300,6 +328,10 @@ impl GuiEventLoop {
     }
 
     fn process_gui_exec(&self) -> Result<(), Error> {
+        while let Some(func) = self.gui_thread_sends.borrow_mut().pop_front() {
+            func.call();
+        }
+
         let start = SystemTime::now();
         loop {
             match start.elapsed() {
