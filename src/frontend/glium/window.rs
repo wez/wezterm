@@ -136,6 +136,14 @@ impl TerminalWindow for GliumTerminalWindow {
     ) -> Result<(), Error> {
         self.cell_width = cell_width;
         self.cell_height = cell_height;
+
+        // Ensure that we can't resize smaller than 1x1 with the new
+        // scaling factor
+        let size = PhysicalSize::new(cell_width as f64, cell_height as f64);
+        let window = self.host.display.gl_window();
+        let dpi = window.get_hidpi_factor();
+        window.set_min_dimensions(Some(size.to_logical(dpi)));
+
         self.renderer.scaling_changed(&self.host.display)
     }
     fn advise_renderer_of_resize(&mut self, width: u16, height: u16) -> Result<(), Error> {
@@ -213,6 +221,7 @@ impl GliumTerminalWindow {
                 .with_vsync(true)
                 .with_pixel_format(24, 8);
             let window = glutin::WindowBuilder::new()
+                .with_min_dimensions(LogicalSize::new(cell_width as f64, cell_height as f64))
                 .with_dimensions(logical_size)
                 .with_window_icon(Some(glutin::Icon::from_bytes(include_bytes!(
                     "../../../assets/icon/terminal.png"
