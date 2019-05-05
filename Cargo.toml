@@ -81,6 +81,8 @@ xcb-util = { features = [ "icccm", "ewmh", "keysyms", ], version = "0.2" }
 xkbcommon = { version = "0.4", features = ["x11"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
+objc = "0.2"
+cocoa = "0.18"
 core-foundation = "0.6"
 core-graphics = "0.17"
 core-text = "13.1"
@@ -95,6 +97,11 @@ force-fontconfig = ["fontconfig"]
 glutin = { git = "https://github.com/yvt/glutin", branch="patch-macos-iscurrent" }
 # This allows using the git tab in the help output
 structopt-derive = { git = "https://github.com/wez/structopt", branch="vergen" }
+# For some macOS bindings https://github.com/servo/core-foundation-rs/pull/315
+cocoa = { git = "https://github.com/fanzeyi/core-foundation-rs", branch="add-nsbundle" }
+core-foundation = { git = "https://github.com/fanzeyi/core-foundation-rs", branch="add-nsbundle" }
+core-graphics = { git = "https://github.com/fanzeyi/core-foundation-rs", branch="add-nsbundle" }
+core-text = { git = "https://github.com/fanzeyi/core-foundation-rs", branch="add-nsbundle" }
 
 [workspace]
 

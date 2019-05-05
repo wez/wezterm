@@ -235,6 +235,11 @@ impl GliumTerminalWindow {
         };
         let window_position = display.gl_window().get_position();
 
+        #[cfg(target_os = "macos")]
+        unsafe {
+            Self::setup_macos_window();
+        }
+
         let host = HostImpl::new(Host {
             event_loop: Rc::clone(event_loop),
             display,
@@ -272,6 +277,37 @@ impl GliumTerminalWindow {
 
     pub fn window_id(&self) -> glutin::WindowId {
         self.host.display.gl_window().id()
+    }
+
+    #[cfg(target_os = "macos")]
+    unsafe fn setup_macos_window() {
+        use cocoa::appkit::{NSApp, NSApplication};
+        use cocoa::base::{id, nil, BOOL, YES};
+        use cocoa::foundation::{NSArray, NSBundle, NSString};
+        use objc::runtime::Object;
+        use objc::{class, msg_send, sel, sel_impl};
+
+        let app = NSApp();
+        let bundle: id = NSBundle::mainBundle();
+        let name = NSString::alloc(nil).init_str("menu");
+        let result: *mut *mut Object = msg_send![class!(NSObject), new];
+        let success = bundle.loadNibNamed_owner_topLevelObjects_(name, app, result);
+
+        let array = *result;
+
+        if success == YES {
+            let count = array.count();
+
+            for idx in 0..count {
+                let obj = array.objectAtIndex(idx);
+                let is_menu: BOOL = msg_send![obj, isKindOfClass: class!(NSMenu)];
+
+                if is_menu == YES {
+                    app.setMainMenu_(obj);
+                    break;
+                }
+            }
+        }
     }
 
     fn decode_modifiers(state: glium::glutin::ModifiersState) -> term::KeyModifiers {
