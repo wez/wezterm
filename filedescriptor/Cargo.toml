@@ -9,3 +9,10 @@ failure = "0.1"
 failure_derive = "0.1"
 libc = "0.2"
 
+[target."cfg(windows)".dependencies]
+winapi = { version = "0.3", features = [
+    "winuser",
+    "handleapi",
+    "fileapi",
+    "namedpipeapi",
+]}
