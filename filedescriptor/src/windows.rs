@@ -5,12 +5,12 @@ use crate::{
 use failure::{bail, Fallible};
 use std::io::{self, Error as IoError};
 use std::os::windows::prelude::*;
-use std::os::windows::raw::HANDLE;
 use std::ptr;
 use winapi::um::fileapi::*;
 use winapi::um::handleapi::*;
 use winapi::um::namedpipeapi::CreatePipe;
 use winapi::um::processthreadsapi::*;
+use winapi::um::winnt::HANDLE;
 
 /// `RawFileDescriptor` is a platform independent type alias for the
 /// underlying platform file descriptor type.  It is primarily useful
@@ -39,8 +39,8 @@ unsafe impl Send for OwnedHandle {}
 
 impl Drop for OwnedHandle {
     fn drop(&mut self) {
-        if self.handle != INVALID_HANDLE_VALUE && !self.handle.is_null() {
-            unsafe { CloseHandle(self.handle) };
+        if self.handle != INVALID_HANDLE_VALUE as _ && !self.handle.is_null() {
+            unsafe { CloseHandle(self.handle as _) };
         }
     }
 }
@@ -55,7 +55,7 @@ impl OwnedHandle {
     #[inline]
     pub(crate) fn dup_impl<F: AsRawFileDescriptor>(f: &F) -> Fallible<Self> {
         let handle = f.as_raw_file_descriptor();
-        if handle == INVALID_HANDLE_VALUE || handle.is_null() {
+        if handle == INVALID_HANDLE_VALUE as _ || handle.is_null() {
             return Ok(OwnedHandle { handle });
         }
 
@@ -83,13 +83,13 @@ impl OwnedHandle {
 }
 
 impl AsRawHandle for OwnedHandle {
-    fn as_raw_handle(&self) -> HANDLE {
+    fn as_raw_handle(&self) -> RawHandle {
         self.handle
     }
 }
 
 impl IntoRawHandle for OwnedHandle {
-    fn into_raw_handle(self) -> HANDLE {
+    fn into_raw_handle(self) -> RawHandle {
         let handle = self.handle;
         std::mem::forget(self);
         handle
@@ -107,13 +107,13 @@ impl FileDescriptor {
 }
 
 impl IntoRawHandle for FileDescriptor {
-    fn into_raw_handle(self) -> HANDLE {
+    fn into_raw_handle(self) -> RawHandle {
         self.handle.into_raw_handle()
     }
 }
 
 impl AsRawHandle for FileDescriptor {
-    fn as_raw_handle(&self) -> HANDLE {
+    fn as_raw_handle(&self) -> RawHandle {
         self.handle.as_raw_handle()
     }
 }
@@ -171,17 +171,17 @@ impl io::Write for FileDescriptor {
 
 impl Pipe {
     pub fn new() -> Fallible<Pipe> {
-        let mut read: HANDLE = INVALID_HANDLE_VALUE;
-        let mut write: HANDLE = INVALID_HANDLE_VALUE;
+        let mut read: HANDLE = INVALID_HANDLE_VALUE as _;
+        let mut write: HANDLE = INVALID_HANDLE_VALUE as _;
         if unsafe { CreatePipe(&mut read, &mut write, ptr::null_mut(), 0) } == 0 {
             bail!("CreatePipe failed: {}", IoError::last_os_error());
         }
         Ok(Pipe {
             read: FileDescriptor {
-                handle: OwnedHandle { handle: read },
+                handle: OwnedHandle { handle: read as _ },
             },
             write: FileDescriptor {
-                handle: OwnedHandle { handle: write },
+                handle: OwnedHandle { handle: write as _ },
             },
         })
     }

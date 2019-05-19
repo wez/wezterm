@@ -3,6 +3,10 @@ name = "filedescriptor"
 version = "0.1.0"
 authors = ["Wez Furlong"]
 edition = "2018"
+repository = "https://github.com/wez/wzsh"
+description = "More ergonomic wrappers around RawFd and RawHandle"
+license = "MIT"
+documentation = "https://docs.rs/filedescriptor"
 
 [dependencies]
 failure = "0.1"
@@ -15,4 +19,5 @@ winapi = { version = "0.3", features = [
     "handleapi",
     "fileapi",
     "namedpipeapi",
+    "processthreadsapi"
 ]}

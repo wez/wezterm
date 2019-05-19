@@ -1,3 +1,10 @@
+//! The purpose of this crate is to make it a bit more ergonomic for portable
+//! applications that need to work with the platform level `RawFd` and
+//! `RawHandle` types.
+//! Rather than conditionally using `RawFd` and `RawHandle`, the `FileDescriptor`
+//! type can be used to manage ownership, duplicate, read and write.
+//! The `Pipe` type makes it more convenient to create a pipe and manage
+//! the lifetime of both the read and write ends of that pipe.
 use failure::Fallible;
 #[cfg(unix)]
 mod unix;
