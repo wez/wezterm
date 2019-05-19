@@ -5,6 +5,9 @@ use crate::{
 use failure::{bail, Fallible};
 use std::os::unix::prelude::*;
 
+/// `RawFileDescriptor` is a platform independent type alias for the
+/// underlying platform file descriptor type.  It is primarily useful
+/// for avoiding using `cfg` blocks in platform independent code.
 pub type RawFileDescriptor = RawFd;
 
 impl<T: AsRawFd> AsRawFileDescriptor for T {
@@ -73,7 +76,8 @@ impl OwnedHandle {
         Ok(())
     }
 
-    pub fn dup<F: AsRawFileDescriptor>(fd: &F) -> Fallible<Self> {
+    #[inline]
+    pub(crate) fn dup_impl<F: AsRawFileDescriptor>(fd: &F) -> Fallible<Self> {
         let fd = fd.as_raw_file_descriptor();
         let duped = unsafe { libc::dup(fd) };
         if duped == -1 {

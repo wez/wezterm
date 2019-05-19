@@ -12,6 +12,9 @@ use winapi::um::handleapi::*;
 use winapi::um::namedpipeapi::CreatePipe;
 use winapi::um::processthreadsapi::*;
 
+/// `RawFileDescriptor` is a platform independent type alias for the
+/// underlying platform file descriptor type.  It is primarily useful
+/// for avoiding using `cfg` blocks in platform independent code.
 pub type RawFileDescriptor = RawHandle;
 
 impl<T: AsRawHandle> AsRawFileDescriptor for T {
@@ -49,7 +52,8 @@ impl FromRawHandle for OwnedHandle {
 }
 
 impl OwnedHandle {
-    pub fn dup<F: AsRawFileDescriptor>(f: &F) -> Fallible<Self> {
+    #[inline]
+    pub(crate) fn dup_impl<F: AsRawFileDescriptor>(f: &F) -> Fallible<Self> {
         let handle = f.as_raw_file_descriptor();
         if handle == INVALID_HANDLE_VALUE || handle.is_null() {
             return Ok(OwnedHandle { handle });
