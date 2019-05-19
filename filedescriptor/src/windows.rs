@@ -44,6 +44,14 @@ impl AsRawHandle for OwnedHandle {
     }
 }
 
+impl IntoRawHandle for OwnedHandle {
+    fn into_raw_handle(self) -> HANDLE {
+        let handle = self.handle;
+        std::mem::forget(self);
+        handle
+    }
+}
+
 #[derive(Debug)]
 pub struct FileDescriptor {
     handle: OwnedHandle,
@@ -92,11 +100,11 @@ impl FileDescriptor {
             .try_clone()
             .map(|handle| FileDescriptor { handle })
     }
+
     pub fn as_stdio(&self) -> Fallible<std::process::Stdio> {
         let duped = self.handle.try_clone()?;
-        let handle = duped.handle;
+        let handle = duped.into_raw_handle();
         let stdio = unsafe { std::process::Stdio::from_raw_handle(handle) };
-        std::mem::forget(duped); // don't drop; stdio now owns it
         Ok(stdio)
     }
 
@@ -117,6 +125,18 @@ impl FileDescriptor {
     }
     pub fn dup<F: AsRawFileDescriptor>(f: F) -> Fallible<Self> {
         dup(f)
+    }
+}
+
+impl IntoRawHandle for FileDescriptor {
+    fn into_raw_handle(self) -> HANDLE {
+        self.handle.into_raw_handle()
+    }
+}
+
+impl AsRawHandle for FileDescriptor {
+    fn as_raw_handle(&self) -> HANDLE {
+        self.handle.as_raw_handle()
     }
 }
 
