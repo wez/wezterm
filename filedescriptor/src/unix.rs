@@ -102,7 +102,7 @@ impl OwnedHandle {
     #[cfg(target_os = "linux")]
     pub(crate) fn dup_impl<F: AsRawFileDescriptor>(fd: &F) -> Fallible<Self> {
         let fd = fd.as_raw_file_descriptor();
-        let duped = unsafe { libc::fcntl(fd, libc::F_DUPFD_CLOEXEC) };
+        let duped = unsafe { libc::fcntl(fd, libc::F_DUPFD_CLOEXEC, 0) };
         if duped == -1 {
             let err = std::io::Error::last_os_error();
             if let Some(libc::EINVAL) = err.raw_os_error() {
