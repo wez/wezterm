@@ -296,6 +296,13 @@ impl GliumTerminalWindow {
         position: PhysicalPosition,
         modifiers: glium::glutin::ModifiersState,
     ) -> Result<(), Error> {
+        // On Windows, I've observed that we receive a continuous stream of
+        // CursorMoved events with the same coordinates.  Let's avoid
+        // doing any real work in that situation.
+        if position == self.last_mouse_coords {
+            return Ok(());
+        }
+
         let mux = Mux::get().unwrap();
         let tab = match mux.get_active_tab_for_window(self.get_mux_window_id()) {
             Some(tab) => tab,
