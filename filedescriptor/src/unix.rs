@@ -23,13 +23,93 @@ impl<T: FromRawFd> FromRawFileDescriptor for T {
 }
 
 #[derive(Debug)]
+pub struct OwnedHandle {
+    handle: RawFileDescriptor,
+}
+
+impl Drop for OwnedHandle {
+    fn drop(&mut self) {
+        unsafe {
+            libc::close(self.handle);
+        }
+    }
+}
+
+impl AsRawFd for OwnedHandle {
+    fn as_raw_fd(&self) -> RawFd {
+        self.handle
+    }
+}
+
+impl IntoRawFd for OwnedHandle {
+    fn into_raw_fd(self) -> RawFd {
+        let fd = self.handle;
+        std::mem::forget(self);
+        fd
+    }
+}
+
+impl FromRawFd for OwnedHandle {
+    unsafe fn from_raw_fd(fd: RawFd) -> Self {
+        Self { handle: fd }
+    }
+}
+
+impl OwnedHandle {
+    /// Helper function to set the close-on-exec flag for a raw descriptor
+    fn cloexec(&mut self) -> Fallible<()> {
+        let flags = unsafe { libc::fcntl(self.handle, libc::F_GETFD) };
+        if flags == -1 {
+            bail!(
+                "fcntl to read flags failed: {:?}",
+                std::io::Error::last_os_error()
+            );
+        }
+        let result = unsafe { libc::fcntl(self.handle, libc::F_SETFD, flags | libc::FD_CLOEXEC) };
+        if result == -1 {
+            bail!(
+                "fcntl to set CLOEXEC failed: {:?}",
+                std::io::Error::last_os_error()
+            );
+        }
+        Ok(())
+    }
+
+    pub fn new<F: IntoRawFileDescriptor>(f: F) -> Self {
+        Self {
+            handle: f.into_raw_file_descriptor(),
+        }
+    }
+
+    pub fn dup<F: AsRawFileDescriptor>(fd: &F) -> Fallible<Self> {
+        let fd = fd.as_raw_file_descriptor();
+        let duped = unsafe { libc::dup(fd) };
+        if duped == -1 {
+            bail!(
+                "dup of fd {} failed: {:?}",
+                fd,
+                std::io::Error::last_os_error()
+            )
+        } else {
+            let mut owned = OwnedHandle { handle: duped };
+            owned.cloexec()?;
+            Ok(owned)
+        }
+    }
+
+    pub fn try_clone(&self) -> Fallible<Self> {
+        Self::dup(self)
+    }
+}
+
+#[derive(Debug)]
 pub struct FileDescriptor {
-    fd: RawFd,
+    fd: OwnedHandle,
 }
 
 impl std::io::Read for FileDescriptor {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, std::io::Error> {
-        let size = unsafe { libc::read(self.fd, buf.as_mut_ptr() as *mut _, buf.len()) };
+        let size = unsafe { libc::read(self.fd.handle, buf.as_mut_ptr() as *mut _, buf.len()) };
         if size == -1 {
             Err(std::io::Error::last_os_error())
         } else {
@@ -40,7 +120,7 @@ impl std::io::Read for FileDescriptor {
 
 impl std::io::Write for FileDescriptor {
     fn write(&mut self, buf: &[u8]) -> Result<usize, std::io::Error> {
-        let size = unsafe { libc::write(self.fd, buf.as_ptr() as *const _, buf.len()) };
+        let size = unsafe { libc::write(self.fd.handle, buf.as_ptr() as *const _, buf.len()) };
         if size == -1 {
             Err(std::io::Error::last_os_error())
         } else {
@@ -52,60 +132,38 @@ impl std::io::Write for FileDescriptor {
     }
 }
 
-impl Drop for FileDescriptor {
-    fn drop(&mut self) {
-        unsafe {
-            libc::close(self.fd);
-        }
-    }
-}
-
 impl AsRawFd for FileDescriptor {
     fn as_raw_fd(&self) -> RawFd {
-        self.fd
+        self.fd.as_raw_fd()
     }
 }
 
-impl AsRawFd for &FileDescriptor {
-    fn as_raw_fd(&self) -> RawFd {
-        self.fd
-    }
-}
-
-fn dup_fd<F: AsRawFileDescriptor>(fd: &F) -> Fallible<FileDescriptor> {
-    let fd = fd.as_raw_file_descriptor();
-    let duped = unsafe { libc::dup(fd) };
-    if duped == -1 {
-        bail!(
-            "dup of fd {} failed: {:?}",
-            fd,
-            std::io::Error::last_os_error()
-        )
-    } else {
-        let mut owned = FileDescriptor { fd: duped };
-        owned.cloexec()?;
-        Ok(owned)
+impl IntoRawFd for FileDescriptor {
+    fn into_raw_fd(self) -> RawFd {
+        self.fd.into_raw_fd()
     }
 }
 
 impl FromRawFd for FileDescriptor {
     unsafe fn from_raw_fd(fd: RawFd) -> Self {
-        FileDescriptor { fd }
+        Self {
+            fd: OwnedHandle::from_raw_fd(fd),
+        }
     }
 }
 
 impl FileDescriptor {
     pub fn new<F: IntoRawFileDescriptor>(f: F) -> Self {
-        let fd = f.into_raw_file_descriptor();
+        let fd = OwnedHandle::new(f);
         Self { fd }
     }
 
     pub fn dup<F: AsRawFileDescriptor>(f: &F) -> Fallible<Self> {
-        dup_fd(f)
+        OwnedHandle::dup(f).map(|fd| Self { fd })
     }
 
     pub fn try_clone(&self) -> Fallible<Self> {
-        dup_fd(self)
+        self.fd.try_clone().map(|fd| Self { fd })
     }
 
     pub fn pipe() -> Fallible<Pipes> {
@@ -117,38 +175,22 @@ impl FileDescriptor {
                 std::io::Error::last_os_error()
             )
         } else {
-            let mut read = FileDescriptor { fd: fds[0] };
-            let mut write = FileDescriptor { fd: fds[1] };
-            read.cloexec()?;
-            write.cloexec()?;
+            let mut read = FileDescriptor {
+                fd: OwnedHandle { handle: fds[0] },
+            };
+            let mut write = FileDescriptor {
+                fd: OwnedHandle { handle: fds[1] },
+            };
+            read.fd.cloexec()?;
+            write.fd.cloexec()?;
             Ok(Pipes { read, write })
         }
     }
 
-    /// Helper function to set the close-on-exec flag for a raw descriptor
-    fn cloexec(&mut self) -> Fallible<()> {
-        let flags = unsafe { libc::fcntl(self.fd, libc::F_GETFD) };
-        if flags == -1 {
-            bail!(
-                "fcntl to read flags failed: {:?}",
-                std::io::Error::last_os_error()
-            );
-        }
-        let result = unsafe { libc::fcntl(self.fd, libc::F_SETFD, flags | libc::FD_CLOEXEC) };
-        if result == -1 {
-            bail!(
-                "fcntl to set CLOEXEC failed: {:?}",
-                std::io::Error::last_os_error()
-            );
-        }
-        Ok(())
-    }
-
     pub fn as_stdio(&self) -> Fallible<std::process::Stdio> {
-        let duped = dup_fd(self)?;
-        let fd = duped.fd;
+        let duped = OwnedHandle::dup(self)?;
+        let fd = duped.into_raw_fd();
         let stdio = unsafe { std::process::Stdio::from_raw_fd(fd) };
-        std::mem::forget(duped); // don't drop; stdio now owns it
         Ok(stdio)
     }
 }
