@@ -92,14 +92,6 @@ impl OwnedHandle {
     }
 
     #[inline]
-    #[cfg(not(target_os = "linux"))]
-    pub(crate) fn dup_impl<F: AsRawFileDescriptor>(fd: &F) -> Fallible<Self> {
-        let fd = fd.as_raw_file_descriptor();
-        Self::non_atomic_dup(fd)
-    }
-
-    #[inline]
-    #[cfg(target_os = "linux")]
     pub(crate) fn dup_impl<F: AsRawFileDescriptor>(fd: &F) -> Fallible<Self> {
         let fd = fd.as_raw_file_descriptor();
         let duped = unsafe { libc::fcntl(fd, libc::F_DUPFD_CLOEXEC, 0) };
