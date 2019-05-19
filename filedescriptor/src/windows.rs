@@ -68,7 +68,7 @@ impl OwnedHandle {
                 proc,
                 &mut duped,
                 0,
-                0,
+                0, // not inheritable
                 winapi::um::winnt::DUPLICATE_SAME_ACCESS,
             )
         };
