@@ -76,9 +76,7 @@ impl OwnedHandle {
         Ok(())
     }
 
-    #[inline]
-    pub(crate) fn dup_impl<F: AsRawFileDescriptor>(fd: &F) -> Fallible<Self> {
-        let fd = fd.as_raw_file_descriptor();
+    fn non_atomic_dup(fd: RawFd) -> Fallible<Self> {
         let duped = unsafe { libc::dup(fd) };
         if duped == -1 {
             bail!(
@@ -90,6 +88,32 @@ impl OwnedHandle {
             let mut owned = OwnedHandle { handle: duped };
             owned.cloexec()?;
             Ok(owned)
+        }
+    }
+
+    #[inline]
+    #[cfg(not(target_os = "linux"))]
+    pub(crate) fn dup_impl<F: AsRawFileDescriptor>(fd: &F) -> Fallible<Self> {
+        let fd = fd.as_raw_file_descriptor();
+        Self::non_atomic_dup(fd)
+    }
+
+    #[inline]
+    #[cfg(target_os = "linux")]
+    pub(crate) fn dup_impl<F: AsRawFileDescriptor>(fd: &F) -> Fallible<Self> {
+        let fd = fd.as_raw_file_descriptor();
+        let duped = unsafe { libc::fcntl(fd, libc::F_DUPFD_CLOEXEC) };
+        if duped == -1 {
+            let err = std::io::Error::last_os_error();
+            if let Some(libc::EINVAL) = err.raw_os_error() {
+                // We may be running on eg: WSL or an old kernel that
+                // doesn't support F_DUPFD_CLOEXEC; fall back.
+                return Self::non_atomic_dup(fd);
+            } else {
+                bail!("dup of fd {} failed: {:?}", fd, err)
+            }
+        } else {
+            Ok(OwnedHandle { handle: duped })
         }
     }
 }
