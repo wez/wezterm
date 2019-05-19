@@ -14,13 +14,13 @@ pub trait AsRawFileDescriptor: AsRawHandle {}
 impl<T: AsRawHandle> AsRawFileDescriptor for T {}
 
 #[derive(Debug)]
-pub struct FileDescriptor {
-    pub handle: HANDLE,
+pub struct OwnedHandle {
+    handle: HANDLE,
 }
 
-unsafe impl Send for FileDescriptor {}
+unsafe impl Send for OwnedHandle {}
 
-impl Drop for FileDescriptor {
+impl Drop for OwnedHandle {
     fn drop(&mut self) {
         if self.handle != INVALID_HANDLE_VALUE && !self.handle.is_null() {
             unsafe { CloseHandle(self.handle) };
@@ -28,9 +28,30 @@ impl Drop for FileDescriptor {
     }
 }
 
-fn dup_handle(handle: HANDLE) -> Fallible<FileDescriptor> {
+impl OwnedHandle {
+    pub fn new(handle: HANDLE) -> Self {
+        Self { handle }
+    }
+
+    pub fn try_clone(&self) -> Fallible<Self> {
+        dup_handle(self.handle)
+    }
+}
+
+impl AsRawHandle for OwnedHandle {
+    fn as_raw_handle(&self) -> HANDLE {
+        self.handle
+    }
+}
+
+#[derive(Debug)]
+pub struct FileDescriptor {
+    handle: OwnedHandle,
+}
+
+fn dup_handle(handle: HANDLE) -> Fallible<OwnedHandle> {
     if handle == INVALID_HANDLE_VALUE || handle.is_null() {
-        return Ok(FileDescriptor { handle: handle });
+        return Ok(OwnedHandle::new(handle));
     }
 
     let proc = unsafe { GetCurrentProcess() };
@@ -49,31 +70,36 @@ fn dup_handle(handle: HANDLE) -> Fallible<FileDescriptor> {
     if ok == 0 {
         Err(IoError::last_os_error().into())
     } else {
-        Ok(FileDescriptor {
+        Ok(OwnedHandle {
             handle: duped as *mut _,
         })
     }
 }
 
 pub fn dup<F: AsRawFileDescriptor>(f: F) -> Fallible<FileDescriptor> {
-    dup_handle(f.as_raw_handle())
+    dup_handle(f.as_raw_handle()).map(|handle| FileDescriptor { handle })
 }
 
 impl FileDescriptor {
     pub fn new(handle: HANDLE) -> Self {
-        Self { handle }
+        Self {
+            handle: OwnedHandle::new(handle),
+        }
     }
 
     pub fn try_clone(&self) -> Fallible<Self> {
-        dup_handle(self.handle)
+        self.handle
+            .try_clone()
+            .map(|handle| FileDescriptor { handle })
     }
     pub fn as_stdio(&self) -> Fallible<std::process::Stdio> {
-        let duped = dup_handle(self.handle)?;
+        let duped = self.handle.try_clone()?;
         let handle = duped.handle;
         let stdio = unsafe { std::process::Stdio::from_raw_handle(handle) };
         std::mem::forget(duped); // don't drop; stdio now owns it
         Ok(stdio)
     }
+
     pub fn pipe() -> Fallible<Pipes> {
         let mut read: HANDLE = INVALID_HANDLE_VALUE;
         let mut write: HANDLE = INVALID_HANDLE_VALUE;
@@ -81,8 +107,12 @@ impl FileDescriptor {
             bail!("CreatePipe failed: {}", IoError::last_os_error());
         }
         Ok(Pipes {
-            read: FileDescriptor { handle: read },
-            write: FileDescriptor { handle: write },
+            read: FileDescriptor {
+                handle: OwnedHandle::new(read),
+            },
+            write: FileDescriptor {
+                handle: OwnedHandle::new(write),
+            },
         })
     }
     pub fn dup<F: AsRawFileDescriptor>(f: F) -> Fallible<Self> {
@@ -95,7 +125,7 @@ impl io::Read for FileDescriptor {
         let mut num_read = 0;
         let ok = unsafe {
             ReadFile(
-                self.handle as *mut _,
+                self.handle.as_raw_handle() as *mut _,
                 buf.as_mut_ptr() as *mut _,
                 buf.len() as u32,
                 &mut num_read,
@@ -115,7 +145,7 @@ impl io::Write for FileDescriptor {
         let mut num_wrote = 0;
         let ok = unsafe {
             WriteFile(
-                self.handle as *mut _,
+                self.handle.as_raw_handle() as *mut _,
                 buf.as_ptr() as *const _,
                 buf.len() as u32,
                 &mut num_wrote,
