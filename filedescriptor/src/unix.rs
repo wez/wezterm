@@ -1,4 +1,7 @@
-use crate::{AsRawFileDescriptor, FromRawFileDescriptor, IntoRawFileDescriptor, Pipes};
+use crate::{
+    AsRawFileDescriptor, FileDescriptor, FromRawFileDescriptor, IntoRawFileDescriptor, OwnedHandle,
+    Pipes,
+};
 use failure::{bail, Fallible};
 use std::os::unix::prelude::*;
 
@@ -20,11 +23,6 @@ impl<T: FromRawFd> FromRawFileDescriptor for T {
     unsafe fn from_raw_file_descrptor(fd: RawFileDescriptor) -> Self {
         Self::from_raw_fd(fd)
     }
-}
-
-#[derive(Debug)]
-pub struct OwnedHandle {
-    handle: RawFileDescriptor,
 }
 
 impl Drop for OwnedHandle {
@@ -75,12 +73,6 @@ impl OwnedHandle {
         Ok(())
     }
 
-    pub fn new<F: IntoRawFileDescriptor>(f: F) -> Self {
-        Self {
-            handle: f.into_raw_file_descriptor(),
-        }
-    }
-
     pub fn dup<F: AsRawFileDescriptor>(fd: &F) -> Fallible<Self> {
         let fd = fd.as_raw_file_descriptor();
         let duped = unsafe { libc::dup(fd) };
@@ -96,15 +88,6 @@ impl OwnedHandle {
             Ok(owned)
         }
     }
-
-    pub fn try_clone(&self) -> Fallible<Self> {
-        Self::dup(self)
-    }
-}
-
-#[derive(Debug)]
-pub struct FileDescriptor {
-    handle: OwnedHandle,
 }
 
 impl std::io::Read for FileDescriptor {
@@ -153,19 +136,6 @@ impl FromRawFd for FileDescriptor {
 }
 
 impl FileDescriptor {
-    pub fn new<F: IntoRawFileDescriptor>(f: F) -> Self {
-        let handle = OwnedHandle::new(f);
-        Self { handle }
-    }
-
-    pub fn dup<F: AsRawFileDescriptor>(f: &F) -> Fallible<Self> {
-        OwnedHandle::dup(f).map(|handle| Self { handle })
-    }
-
-    pub fn try_clone(&self) -> Fallible<Self> {
-        self.handle.try_clone().map(|handle| Self { handle })
-    }
-
     pub fn pipe() -> Fallible<Pipes> {
         let mut fds = [-1i32; 2];
         let res = unsafe { libc::pipe(fds.as_mut_ptr()) };

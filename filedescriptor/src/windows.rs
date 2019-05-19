@@ -1,4 +1,7 @@
-use crate::{AsRawFileDescriptor, FromRawFileDescriptor, IntoRawFileDescriptor, Pipes};
+use crate::{
+    AsRawFileDescriptor, FileDescriptor, FromRawFileDescriptor, IntoRawFileDescriptor, OwnedHandle,
+    Pipes,
+};
 use failure::{bail, Fallible};
 use std::io::{self, Error as IoError};
 use std::os::windows::prelude::*;
@@ -29,11 +32,6 @@ impl<T: FromRawHandle> FromRawFileDescriptor for T {
     }
 }
 
-#[derive(Debug)]
-pub struct OwnedHandle {
-    handle: RawHandle,
-}
-
 unsafe impl Send for OwnedHandle {}
 
 impl Drop for OwnedHandle {
@@ -51,17 +49,32 @@ impl FromRawHandle for OwnedHandle {
 }
 
 impl OwnedHandle {
-    pub fn new<F: IntoRawFileDescriptor>(f: F) -> Self {
-        let handle = f.into_raw_file_descriptor();
-        Self { handle }
-    }
-
     pub fn dup<F: AsRawFileDescriptor>(f: &F) -> Fallible<Self> {
-        dup_handle(f.as_raw_file_descriptor())
-    }
+        let handle = f.as_raw_file_descriptor();
+        if handle == INVALID_HANDLE_VALUE || handle.is_null() {
+            return Ok(OwnedHandle { handle });
+        }
 
-    pub fn try_clone(&self) -> Fallible<Self> {
-        dup_handle(self.handle)
+        let proc = unsafe { GetCurrentProcess() };
+        let mut duped = INVALID_HANDLE_VALUE;
+        let ok = unsafe {
+            DuplicateHandle(
+                proc,
+                handle as *mut _,
+                proc,
+                &mut duped,
+                0,
+                0,
+                winapi::um::winnt::DUPLICATE_SAME_ACCESS,
+            )
+        };
+        if ok == 0 {
+            Err(IoError::last_os_error().into())
+        } else {
+            Ok(OwnedHandle {
+                handle: duped as *mut _,
+            })
+        }
     }
 }
 
@@ -79,58 +92,7 @@ impl IntoRawHandle for OwnedHandle {
     }
 }
 
-#[derive(Debug)]
-pub struct FileDescriptor {
-    handle: OwnedHandle,
-}
-
-fn dup_handle(handle: HANDLE) -> Fallible<OwnedHandle> {
-    if handle == INVALID_HANDLE_VALUE || handle.is_null() {
-        return Ok(OwnedHandle { handle });
-    }
-
-    let proc = unsafe { GetCurrentProcess() };
-    let mut duped = INVALID_HANDLE_VALUE;
-    let ok = unsafe {
-        DuplicateHandle(
-            proc,
-            handle as *mut _,
-            proc,
-            &mut duped,
-            0,
-            0,
-            winapi::um::winnt::DUPLICATE_SAME_ACCESS,
-        )
-    };
-    if ok == 0 {
-        Err(IoError::last_os_error().into())
-    } else {
-        Ok(OwnedHandle {
-            handle: duped as *mut _,
-        })
-    }
-}
-
-impl FromRawHandle for FileDescriptor {
-    unsafe fn from_raw_handle(handle: RawHandle) -> FileDescriptor {
-        Self {
-            handle: OwnedHandle::from_raw_handle(handle),
-        }
-    }
-}
-
 impl FileDescriptor {
-    pub fn new<F: IntoRawFileDescriptor>(f: F) -> Self {
-        let handle = OwnedHandle::new(f);
-        Self { handle }
-    }
-
-    pub fn try_clone(&self) -> Fallible<Self> {
-        self.handle
-            .try_clone()
-            .map(|handle| FileDescriptor { handle })
-    }
-
     pub fn as_stdio(&self) -> Fallible<std::process::Stdio> {
         let duped = self.handle.try_clone()?;
         let handle = duped.into_raw_handle();
@@ -153,10 +115,6 @@ impl FileDescriptor {
             },
         })
     }
-
-    pub fn dup<F: AsRawFileDescriptor>(f: &F) -> Fallible<Self> {
-        dup_handle(f.as_raw_file_descriptor()).map(|handle| FileDescriptor { handle })
-    }
 }
 
 impl IntoRawHandle for FileDescriptor {
@@ -168,6 +126,14 @@ impl IntoRawHandle for FileDescriptor {
 impl AsRawHandle for FileDescriptor {
     fn as_raw_handle(&self) -> HANDLE {
         self.handle.as_raw_handle()
+    }
+}
+
+impl FromRawHandle for FileDescriptor {
+    unsafe fn from_raw_handle(handle: RawHandle) -> FileDescriptor {
+        Self {
+            handle: OwnedHandle::from_raw_handle(handle),
+        }
     }
 }
 
