@@ -161,7 +161,8 @@ impl FileDescriptor {
         }
     }
 
-    pub fn as_stdio(&self) -> Fallible<std::process::Stdio> {
+    #[inline]
+    pub(crate) fn as_stdio_impl(&self) -> Fallible<std::process::Stdio> {
         let duped = OwnedHandle::dup(self)?;
         let fd = duped.into_raw_fd();
         let stdio = unsafe { std::process::Stdio::from_raw_fd(fd) };

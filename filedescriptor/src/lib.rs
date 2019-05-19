@@ -109,6 +109,14 @@ impl FileDescriptor {
     pub fn try_clone(&self) -> Fallible<Self> {
         self.handle.try_clone().map(|handle| Self { handle })
     }
+
+    /// A convenience method for creating a `std::process::Stdio` object
+    /// to be used for eg: redirecting the stdio streams of a child
+    /// process.  The `Stdio` is created using a duplicated handle so
+    /// that the source handle remains alive.
+    pub fn as_stdio(&self) -> Fallible<std::process::Stdio> {
+        self.as_stdio_impl()
+    }
 }
 
 pub struct Pipes {
