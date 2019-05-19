@@ -1,6 +1,6 @@
 use crate::{
     AsRawFileDescriptor, FileDescriptor, FromRawFileDescriptor, IntoRawFileDescriptor, OwnedHandle,
-    Pipes,
+    Pipe,
 };
 use failure::{bail, Fallible};
 use std::io::{self, Error as IoError};
@@ -104,22 +104,6 @@ impl FileDescriptor {
         let stdio = unsafe { std::process::Stdio::from_raw_handle(handle) };
         Ok(stdio)
     }
-
-    pub fn pipe() -> Fallible<Pipes> {
-        let mut read: HANDLE = INVALID_HANDLE_VALUE;
-        let mut write: HANDLE = INVALID_HANDLE_VALUE;
-        if unsafe { CreatePipe(&mut read, &mut write, ptr::null_mut(), 0) } == 0 {
-            bail!("CreatePipe failed: {}", IoError::last_os_error());
-        }
-        Ok(Pipes {
-            read: FileDescriptor {
-                handle: OwnedHandle { handle: read },
-            },
-            write: FileDescriptor {
-                handle: OwnedHandle { handle: write },
-            },
-        })
-    }
 }
 
 impl IntoRawHandle for FileDescriptor {
@@ -182,5 +166,23 @@ impl io::Write for FileDescriptor {
     }
     fn flush(&mut self) -> Result<(), io::Error> {
         Ok(())
+    }
+}
+
+impl Pipe {
+    pub fn new() -> Fallible<Pipe> {
+        let mut read: HANDLE = INVALID_HANDLE_VALUE;
+        let mut write: HANDLE = INVALID_HANDLE_VALUE;
+        if unsafe { CreatePipe(&mut read, &mut write, ptr::null_mut(), 0) } == 0 {
+            bail!("CreatePipe failed: {}", IoError::last_os_error());
+        }
+        Ok(Pipe {
+            read: FileDescriptor {
+                handle: OwnedHandle { handle: read },
+            },
+            write: FileDescriptor {
+                handle: OwnedHandle { handle: write },
+            },
+        })
     }
 }

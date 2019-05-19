@@ -119,7 +119,9 @@ impl FileDescriptor {
     }
 }
 
-pub struct Pipes {
+/// Represents the readable and writable ends of a pair of descriptors
+/// connected via a kernel pipe.
+pub struct Pipe {
     pub read: FileDescriptor,
     pub write: FileDescriptor,
 }

@@ -1,6 +1,6 @@
 use crate::{
     AsRawFileDescriptor, FileDescriptor, FromRawFileDescriptor, IntoRawFileDescriptor, OwnedHandle,
-    Pipes,
+    Pipe,
 };
 use failure::{bail, Fallible};
 use std::os::unix::prelude::*;
@@ -140,7 +140,17 @@ impl FromRawFd for FileDescriptor {
 }
 
 impl FileDescriptor {
-    pub fn pipe() -> Fallible<Pipes> {
+    #[inline]
+    pub(crate) fn as_stdio_impl(&self) -> Fallible<std::process::Stdio> {
+        let duped = OwnedHandle::dup(self)?;
+        let fd = duped.into_raw_fd();
+        let stdio = unsafe { std::process::Stdio::from_raw_fd(fd) };
+        Ok(stdio)
+    }
+}
+
+impl Pipe {
+    pub fn new() -> Fallible<Pipe> {
         let mut fds = [-1i32; 2];
         let res = unsafe { libc::pipe(fds.as_mut_ptr()) };
         if res == -1 {
@@ -157,15 +167,7 @@ impl FileDescriptor {
             };
             read.handle.cloexec()?;
             write.handle.cloexec()?;
-            Ok(Pipes { read, write })
+            Ok(Pipe { read, write })
         }
-    }
-
-    #[inline]
-    pub(crate) fn as_stdio_impl(&self) -> Fallible<std::process::Stdio> {
-        let duped = OwnedHandle::dup(self)?;
-        let fd = duped.into_raw_fd();
-        let stdio = unsafe { std::process::Stdio::from_raw_fd(fd) };
-        Ok(stdio)
     }
 }
