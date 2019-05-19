@@ -1,4 +1,4 @@
-use crate::Pipes;
+use crate::{AsRawFileDescriptor, FromRawFileDescriptor, IntoRawFileDescriptor, Pipes};
 use failure::{bail, Fallible};
 use std::io::{self, Error as IoError};
 use std::os::windows::prelude::*;
@@ -9,13 +9,29 @@ use winapi::um::handleapi::*;
 use winapi::um::namedpipeapi::CreatePipe;
 use winapi::um::processthreadsapi::*;
 
-pub trait AsRawFileDescriptor: AsRawHandle {}
+pub type RawFileDescriptor = RawHandle;
 
-impl<T: AsRawHandle> AsRawFileDescriptor for T {}
+impl<T: AsRawHandle> AsRawFileDescriptor for T {
+    fn as_raw_file_descriptor(&self) -> RawFileDescriptor {
+        self.as_raw_handle()
+    }
+}
+
+impl<T: IntoRawHandle> IntoRawFileDescriptor for T {
+    fn into_raw_file_descriptor(self) -> RawFileDescriptor {
+        self.into_raw_handle()
+    }
+}
+
+impl<T: FromRawHandle> FromRawFileDescriptor for T {
+    unsafe fn from_raw_file_descrptor(handle: RawHandle) -> Self {
+        Self::from_raw_handle(handle)
+    }
+}
 
 #[derive(Debug)]
 pub struct OwnedHandle {
-    handle: HANDLE,
+    handle: RawHandle,
 }
 
 unsafe impl Send for OwnedHandle {}
@@ -28,9 +44,20 @@ impl Drop for OwnedHandle {
     }
 }
 
+impl FromRawHandle for OwnedHandle {
+    unsafe fn from_raw_handle(handle: RawHandle) -> Self {
+        OwnedHandle { handle }
+    }
+}
+
 impl OwnedHandle {
-    pub fn new(handle: HANDLE) -> Self {
+    pub fn new<F: IntoRawFileDescriptor>(f: F) -> Self {
+        let handle = f.into_raw_file_descriptor();
         Self { handle }
+    }
+
+    pub fn dup<F: AsRawFileDescriptor>(f: &F) -> Fallible<Self> {
+        dup_handle(f.as_raw_file_descriptor())
     }
 
     pub fn try_clone(&self) -> Fallible<Self> {
@@ -59,7 +86,7 @@ pub struct FileDescriptor {
 
 fn dup_handle(handle: HANDLE) -> Fallible<OwnedHandle> {
     if handle == INVALID_HANDLE_VALUE || handle.is_null() {
-        return Ok(OwnedHandle::new(handle));
+        return Ok(OwnedHandle { handle });
     }
 
     let proc = unsafe { GetCurrentProcess() };
@@ -84,15 +111,18 @@ fn dup_handle(handle: HANDLE) -> Fallible<OwnedHandle> {
     }
 }
 
-pub fn dup<F: AsRawFileDescriptor>(f: F) -> Fallible<FileDescriptor> {
-    dup_handle(f.as_raw_handle()).map(|handle| FileDescriptor { handle })
+impl FromRawHandle for FileDescriptor {
+    unsafe fn from_raw_handle(handle: RawHandle) -> FileDescriptor {
+        Self {
+            handle: OwnedHandle::from_raw_handle(handle),
+        }
+    }
 }
 
 impl FileDescriptor {
-    pub fn new(handle: HANDLE) -> Self {
-        Self {
-            handle: OwnedHandle::new(handle),
-        }
+    pub fn new<F: IntoRawFileDescriptor>(f: F) -> Self {
+        let handle = OwnedHandle::new(f);
+        Self { handle }
     }
 
     pub fn try_clone(&self) -> Fallible<Self> {
@@ -116,15 +146,16 @@ impl FileDescriptor {
         }
         Ok(Pipes {
             read: FileDescriptor {
-                handle: OwnedHandle::new(read),
+                handle: OwnedHandle { handle: read },
             },
             write: FileDescriptor {
-                handle: OwnedHandle::new(write),
+                handle: OwnedHandle { handle: write },
             },
         })
     }
-    pub fn dup<F: AsRawFileDescriptor>(f: F) -> Fallible<Self> {
-        dup(f)
+
+    pub fn dup<F: AsRawFileDescriptor>(f: &F) -> Fallible<Self> {
+        dup_handle(f.as_raw_file_descriptor()).map(|handle| FileDescriptor { handle })
     }
 }
 

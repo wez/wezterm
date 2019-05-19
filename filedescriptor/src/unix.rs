@@ -1,10 +1,26 @@
-use crate::Pipes;
+use crate::{AsRawFileDescriptor, FromRawFileDescriptor, IntoRawFileDescriptor, Pipes};
 use failure::{bail, Fallible};
 use std::os::unix::prelude::*;
 
-pub trait AsRawFileDescriptor: AsRawFd {}
+pub type RawFileDescriptor = RawFd;
 
-impl<T: AsRawFd> AsRawFileDescriptor for T {}
+impl<T: AsRawFd> AsRawFileDescriptor for T {
+    fn as_raw_file_descriptor(&self) -> RawFileDescriptor {
+        self.as_raw_fd()
+    }
+}
+
+impl<T: IntoRawFd> IntoRawFileDescriptor for T {
+    fn into_raw_file_descriptor(self) -> RawFileDescriptor {
+        self.into_raw_fd()
+    }
+}
+
+impl<T: FromRawFd> FromRawFileDescriptor for T {
+    unsafe fn from_raw_file_descrptor(fd: RawFileDescriptor) -> Self {
+        Self::from_raw_fd(fd)
+    }
+}
 
 #[derive(Debug)]
 pub struct FileDescriptor {
@@ -56,7 +72,8 @@ impl AsRawFd for &FileDescriptor {
     }
 }
 
-fn dup_fd(fd: RawFd) -> Fallible<FileDescriptor> {
+fn dup_fd<F: AsRawFileDescriptor>(fd: &F) -> Fallible<FileDescriptor> {
+    let fd = fd.as_raw_file_descriptor();
     let duped = unsafe { libc::dup(fd) };
     if duped == -1 {
         bail!(
@@ -71,17 +88,24 @@ fn dup_fd(fd: RawFd) -> Fallible<FileDescriptor> {
     }
 }
 
-pub fn dup<F: AsRawFileDescriptor>(f: F) -> Fallible<FileDescriptor> {
-    dup_fd(f.as_raw_fd())
+impl FromRawFd for FileDescriptor {
+    unsafe fn from_raw_fd(fd: RawFd) -> Self {
+        FileDescriptor { fd }
+    }
 }
 
 impl FileDescriptor {
-    pub fn dup<F: AsRawFileDescriptor>(f: F) -> Fallible<Self> {
-        dup(f)
+    pub fn new<F: IntoRawFileDescriptor>(f: F) -> Self {
+        let fd = f.into_raw_file_descriptor();
+        Self { fd }
+    }
+
+    pub fn dup<F: AsRawFileDescriptor>(f: &F) -> Fallible<Self> {
+        dup_fd(f)
     }
 
     pub fn try_clone(&self) -> Fallible<Self> {
-        dup(self)
+        dup_fd(self)
     }
 
     pub fn pipe() -> Fallible<Pipes> {
@@ -121,7 +145,7 @@ impl FileDescriptor {
     }
 
     pub fn as_stdio(&self) -> Fallible<std::process::Stdio> {
-        let duped = dup_fd(self.fd)?;
+        let duped = dup_fd(self)?;
         let fd = duped.fd;
         let stdio = unsafe { std::process::Stdio::from_raw_fd(fd) };
         std::mem::forget(duped); // don't drop; stdio now owns it
