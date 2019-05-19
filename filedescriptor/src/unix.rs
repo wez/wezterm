@@ -150,6 +150,27 @@ impl FileDescriptor {
 }
 
 impl Pipe {
+    #[cfg(target_os = "linux")]
+    pub fn new() -> Fallible<Pipe> {
+        let mut fds = [-1i32; 2];
+        let res = unsafe { libc::pipe2(fds.as_mut_ptr(), libc::O_CLOEXEC) };
+        if res == -1 {
+            bail!(
+                "failed to create a pipe: {:?}",
+                std::io::Error::last_os_error()
+            )
+        } else {
+            let read = FileDescriptor {
+                handle: OwnedHandle { handle: fds[0] },
+            };
+            let write = FileDescriptor {
+                handle: OwnedHandle { handle: fds[1] },
+            };
+            Ok(Pipe { read, write })
+        }
+    }
+
+    #[cfg(not(target_os = "linux"))]
     pub fn new() -> Fallible<Pipe> {
         let mut fds = [-1i32; 2];
         let res = unsafe { libc::pipe(fds.as_mut_ptr()) };
