@@ -104,12 +104,12 @@ impl OwnedHandle {
 
 #[derive(Debug)]
 pub struct FileDescriptor {
-    fd: OwnedHandle,
+    handle: OwnedHandle,
 }
 
 impl std::io::Read for FileDescriptor {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, std::io::Error> {
-        let size = unsafe { libc::read(self.fd.handle, buf.as_mut_ptr() as *mut _, buf.len()) };
+        let size = unsafe { libc::read(self.handle.handle, buf.as_mut_ptr() as *mut _, buf.len()) };
         if size == -1 {
             Err(std::io::Error::last_os_error())
         } else {
@@ -120,7 +120,7 @@ impl std::io::Read for FileDescriptor {
 
 impl std::io::Write for FileDescriptor {
     fn write(&mut self, buf: &[u8]) -> Result<usize, std::io::Error> {
-        let size = unsafe { libc::write(self.fd.handle, buf.as_ptr() as *const _, buf.len()) };
+        let size = unsafe { libc::write(self.handle.handle, buf.as_ptr() as *const _, buf.len()) };
         if size == -1 {
             Err(std::io::Error::last_os_error())
         } else {
@@ -134,36 +134,36 @@ impl std::io::Write for FileDescriptor {
 
 impl AsRawFd for FileDescriptor {
     fn as_raw_fd(&self) -> RawFd {
-        self.fd.as_raw_fd()
+        self.handle.as_raw_fd()
     }
 }
 
 impl IntoRawFd for FileDescriptor {
     fn into_raw_fd(self) -> RawFd {
-        self.fd.into_raw_fd()
+        self.handle.into_raw_fd()
     }
 }
 
 impl FromRawFd for FileDescriptor {
     unsafe fn from_raw_fd(fd: RawFd) -> Self {
         Self {
-            fd: OwnedHandle::from_raw_fd(fd),
+            handle: OwnedHandle::from_raw_fd(fd),
         }
     }
 }
 
 impl FileDescriptor {
     pub fn new<F: IntoRawFileDescriptor>(f: F) -> Self {
-        let fd = OwnedHandle::new(f);
-        Self { fd }
+        let handle = OwnedHandle::new(f);
+        Self { handle }
     }
 
     pub fn dup<F: AsRawFileDescriptor>(f: &F) -> Fallible<Self> {
-        OwnedHandle::dup(f).map(|fd| Self { fd })
+        OwnedHandle::dup(f).map(|handle| Self { handle })
     }
 
     pub fn try_clone(&self) -> Fallible<Self> {
-        self.fd.try_clone().map(|fd| Self { fd })
+        self.handle.try_clone().map(|handle| Self { handle })
     }
 
     pub fn pipe() -> Fallible<Pipes> {
@@ -176,13 +176,13 @@ impl FileDescriptor {
             )
         } else {
             let mut read = FileDescriptor {
-                fd: OwnedHandle { handle: fds[0] },
+                handle: OwnedHandle { handle: fds[0] },
             };
             let mut write = FileDescriptor {
-                fd: OwnedHandle { handle: fds[1] },
+                handle: OwnedHandle { handle: fds[1] },
             };
-            read.fd.cloexec()?;
-            write.fd.cloexec()?;
+            read.handle.cloexec()?;
+            write.handle.cloexec()?;
             Ok(Pipes { read, write })
         }
     }
