@@ -1,4 +1,3 @@
-use super::ownedhandle::OwnedHandle;
 use super::WinChild;
 use crate::cmdbuilder::CommandBuilder;
 use crate::win::winpty::safe::{
@@ -6,6 +5,7 @@ use crate::win::winpty::safe::{
 };
 use crate::{Child, MasterPty, PtySize, PtySystem, SlavePty};
 use failure::{bail, Error};
+use filedescriptor::{FileDescriptor};
 use std::ffi::OsString;
 use std::os::windows::ffi::OsStringExt;
 use std::path::Path;
@@ -17,8 +17,8 @@ mod sys;
 struct Inner {
     pty: WinPty,
     size: PtySize,
-    reader: OwnedHandle,
-    writer: OwnedHandle,
+    reader: FileDescriptor,
+    writer: FileDescriptor,
 }
 
 #[derive(Clone)]

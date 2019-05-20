@@ -3,11 +3,12 @@
 //! https://github.com/rprichard/winpty/blob/master/src/include/winpty.h
 #![allow(dead_code)]
 use super::sys::*;
-use crate::win::ownedhandle::OwnedHandle;
 use bitflags::bitflags;
 use failure::{bail, ensure, format_err, Error};
+use filedescriptor::{FileDescriptor, OwnedHandle};
 use std::ffi::{OsStr, OsString};
 use std::os::windows::ffi::{OsStrExt, OsStringExt};
+use std::os::windows::io::{FromRawHandle};
 use std::ptr;
 use winapi::shared::minwindef::DWORD;
 use winapi::shared::ntdef::LPCWSTR;
@@ -129,7 +130,7 @@ impl Drop for WinPty {
     }
 }
 
-fn pipe_client(name: LPCWSTR, for_read: bool) -> Result<OwnedHandle, Error> {
+fn pipe_client(name: LPCWSTR, for_read: bool) -> Result<FileDescriptor, Error> {
     let handle = unsafe {
         CreateFileW(
             name,
@@ -149,7 +150,7 @@ fn pipe_client(name: LPCWSTR, for_read: bool) -> Result<OwnedHandle, Error> {
         let err = std::io::Error::last_os_error();
         bail!("failed to open {:?}: {}", wstr_to_string(name), err);
     } else {
-        Ok(OwnedHandle::new(handle))
+        Ok(unsafe { FileDescriptor::from_raw_handle(handle) })
     }
 }
 
@@ -158,15 +159,15 @@ impl WinPty {
         unsafe { (WINPTY.winpty_agent_process)(self.pty) }
     }
 
-    pub fn conin(&self) -> Result<OwnedHandle, Error> {
+    pub fn conin(&self) -> Result<FileDescriptor, Error> {
         pipe_client(unsafe { (WINPTY.winpty_conin_name)(self.pty) }, false)
     }
 
-    pub fn conout(&self) -> Result<OwnedHandle, Error> {
+    pub fn conout(&self) -> Result<FileDescriptor, Error> {
         pipe_client(unsafe { (WINPTY.winpty_conout_name)(self.pty) }, true)
     }
 
-    pub fn conerr(&self) -> Result<OwnedHandle, Error> {
+    pub fn conerr(&self) -> Result<FileDescriptor, Error> {
         pipe_client(unsafe { (WINPTY.winpty_conerr_name)(self.pty) }, true)
     }
 
@@ -192,8 +193,8 @@ impl WinPty {
                 &mut err,
             )
         };
-        let thread_handle = OwnedHandle::new(thread_handle);
-        let process_handle = OwnedHandle::new(process_handle);
+        let thread_handle = unsafe { OwnedHandle::from_raw_handle(thread_handle) };
+        let process_handle = unsafe { OwnedHandle::from_raw_handle(process_handle) };
         let result = check_err(err, result)?;
         if result == 0 {
             let err = std::io::Error::from_raw_os_error(create_process_error as _);

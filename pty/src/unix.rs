@@ -2,6 +2,7 @@
 
 use crate::{Child, CommandBuilder, MasterPty, PtySize, PtySystem, SlavePty};
 use failure::{bail, Error};
+use filedescriptor::FileDescriptor;
 use libc::{self, winsize};
 use std::io;
 use std::mem;
@@ -40,10 +41,10 @@ impl PtySystem for UnixPtySystem {
         }
 
         let master = UnixMasterPty {
-            fd: OwnedFd { fd: master },
+            fd: unsafe { FileDescriptor::from_raw_fd(master) },
         };
         let slave = UnixSlavePty {
-            fd: OwnedFd { fd: slave },
+            fd: unsafe { FileDescriptor::from_raw_fd(slave) },
         };
 
         // Ensure that these descriptors will get closed when we execute
@@ -57,90 +58,16 @@ impl PtySystem for UnixPtySystem {
     }
 }
 
-#[derive(Debug)]
-pub struct OwnedFd {
-    fd: RawFd,
-}
-
-impl OwnedFd {
-    fn try_clone(&self) -> Result<Self, Error> {
-        // Note that linux has a variant of the dup syscall that can set
-        // the CLOEXEC flag at dup time.  We could use that here but the
-        // additional code complexity isn't worth it: it's just a couple
-        // of syscalls at startup to do it the portable way below.
-        let new_fd = unsafe { libc::dup(self.fd) };
-        if new_fd == -1 {
-            bail!("dup of pty fd failed: {:?}", io::Error::last_os_error())
-        }
-        let new_fd = OwnedFd { fd: new_fd };
-        cloexec(new_fd.as_raw_fd())?;
-        Ok(new_fd)
-    }
-}
-
-impl Drop for OwnedFd {
-    fn drop(&mut self) {
-        unsafe {
-            libc::close(self.fd);
-        }
-    }
-}
-
-impl AsRawFd for OwnedFd {
-    fn as_raw_fd(&self) -> RawFd {
-        self.fd
-    }
-}
-
-impl IntoRawFd for OwnedFd {
-    fn into_raw_fd(self) -> RawFd {
-        let fd = self.fd;
-        mem::forget(self);
-        fd
-    }
-}
-
-impl FromRawFd for OwnedFd {
-    unsafe fn from_raw_fd(fd: RawFd) -> Self {
-        Self { fd }
-    }
-}
-
-impl io::Read for OwnedFd {
-    fn read(&mut self, buf: &mut [u8]) -> Result<usize, io::Error> {
-        let size = unsafe { libc::read(self.fd, buf.as_mut_ptr() as *mut _, buf.len()) };
-        if size == -1 {
-            Err(io::Error::last_os_error())
-        } else {
-            Ok(size as usize)
-        }
-    }
-}
-
-impl io::Write for OwnedFd {
-    fn write(&mut self, buf: &[u8]) -> Result<usize, io::Error> {
-        let size = unsafe { libc::write(self.fd, buf.as_ptr() as *const _, buf.len()) };
-        if size == -1 {
-            Err(io::Error::last_os_error())
-        } else {
-            Ok(size as usize)
-        }
-    }
-    fn flush(&mut self) -> Result<(), io::Error> {
-        Ok(())
-    }
-}
-
 /// Represents the master end of a pty.
 /// The file descriptor will be closed when the Pty is dropped.
 pub struct UnixMasterPty {
-    fd: OwnedFd,
+    fd: FileDescriptor,
 }
 
 /// Represents the slave end of a pty.
 /// The file descriptor will be closed when the Pty is dropped.
 pub struct UnixSlavePty {
-    fd: OwnedFd,
+    fd: FileDescriptor,
 }
 
 /// Helper function to set the close-on-exec flag for a raw descriptor

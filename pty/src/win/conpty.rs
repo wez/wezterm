@@ -1,14 +1,15 @@
-use super::ownedhandle::OwnedHandle;
 use super::WinChild;
 use crate::cmdbuilder::CommandBuilder;
 use crate::{Child, MasterPty, PtySize, PtySystem, SlavePty};
 use failure::{bail, ensure, Error};
+use filedescriptor::{FileDescriptor, OwnedHandle, Pipe};
 use lazy_static::lazy_static;
 use shared_library::shared_library;
 use std::ffi::OsString;
 use std::io::{self, Error as IoError};
 use std::mem;
 use std::os::windows::ffi::OsStringExt;
+use std::os::windows::io::{AsRawHandle, FromRawHandle};
 use std::os::windows::raw::HANDLE;
 use std::path::Path;
 use std::ptr;
@@ -16,7 +17,6 @@ use std::sync::{Arc, Mutex};
 use winapi::shared::minwindef::DWORD;
 use winapi::shared::winerror::{HRESULT, S_OK};
 use winapi::um::handleapi::*;
-use winapi::um::namedpipeapi::CreatePipe;
 use winapi::um::processthreadsapi::*;
 use winapi::um::winbase::EXTENDED_STARTUPINFO_PRESENT;
 use winapi::um::winbase::STARTUPINFOEXW;
@@ -27,23 +27,23 @@ const PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE: usize = 0x00020016;
 pub struct ConPtySystem {}
 impl PtySystem for ConPtySystem {
     fn openpty(&self, size: PtySize) -> Result<(Box<MasterPty>, Box<SlavePty>), Error> {
-        let (stdin_read, stdin_write) = pipe()?;
-        let (stdout_read, stdout_write) = pipe()?;
+        let stdin = Pipe::new()?;
+        let stdout = Pipe::new()?;
 
         let con = PsuedoCon::new(
             COORD {
                 X: size.cols as i16,
                 Y: size.rows as i16,
             },
-            &stdin_read,
-            &stdout_write,
+            &stdin.read,
+            &stdout.write,
         )?;
 
         let master = ConPtyMasterPty {
             inner: Arc::new(Mutex::new(Inner {
                 con,
-                readable: stdout_read,
-                writable: stdin_write,
+                readable: stdout.read,
+                writable: stdin.write,
                 size,
             })),
         };
@@ -151,10 +151,17 @@ impl Drop for PsuedoCon {
     }
 }
 impl PsuedoCon {
-    fn new(size: COORD, input: &OwnedHandle, output: &OwnedHandle) -> Result<Self, Error> {
+    fn new(size: COORD, input: &FileDescriptor, output: &FileDescriptor) -> Result<Self, Error> {
         let mut con: HPCON = INVALID_HANDLE_VALUE;
-        let result =
-            unsafe { (CONPTY.CreatePseudoConsole)(size, input.handle, output.handle, 0, &mut con) };
+        let result = unsafe {
+            (CONPTY.CreatePseudoConsole)(
+                size,
+                input.as_raw_handle(),
+                output.as_raw_handle(),
+                0,
+                &mut con,
+            )
+        };
         ensure!(
             result == S_OK,
             "failed to create psuedo console: HRESULT {}",
@@ -177,8 +184,8 @@ impl PsuedoCon {
 
 struct Inner {
     con: PsuedoCon,
-    readable: OwnedHandle,
-    writable: OwnedHandle,
+    readable: FileDescriptor,
+    writable: FileDescriptor,
     size: PtySize,
 }
 
@@ -279,18 +286,9 @@ impl SlavePty for ConPtySlavePty {
 
         // Make sure we close out the thread handle so we don't leak it;
         // we do this simply by making it owned
-        let _main_thread = OwnedHandle::new(pi.hThread);
-        let proc = OwnedHandle::new(pi.hProcess);
+        let _main_thread = unsafe { OwnedHandle::from_raw_handle(pi.hThread) };
+        let proc = unsafe { OwnedHandle::from_raw_handle(pi.hProcess) };
 
         Ok(Box::new(WinChild { proc }))
     }
-}
-
-fn pipe() -> Result<(OwnedHandle, OwnedHandle), Error> {
-    let mut read: HANDLE = INVALID_HANDLE_VALUE;
-    let mut write: HANDLE = INVALID_HANDLE_VALUE;
-    if unsafe { CreatePipe(&mut read, &mut write, ptr::null_mut(), 0) } == 0 {
-        bail!("CreatePipe failed: {}", IoError::last_os_error());
-    }
-    Ok((OwnedHandle { handle: read }, OwnedHandle { handle: write }))
 }
