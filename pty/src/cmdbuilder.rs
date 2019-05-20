@@ -4,6 +4,8 @@ use std::ffi::{OsStr, OsString};
 #[cfg(windows)]
 use std::os::windows::ffi::OsStrExt;
 
+/// `CommandBuilder` is used to prepare a command to be spawned into a pty.
+/// The interface is intentionally similar to that of `std::process::Command`.
 #[derive(Debug)]
 pub struct CommandBuilder {
     args: Vec<OsString>,
@@ -11,6 +13,8 @@ pub struct CommandBuilder {
 }
 
 impl CommandBuilder {
+    /// Create a new builder instance with argv[0] set to the specified
+    /// program.
     pub fn new<S: AsRef<OsStr>>(program: S) -> Self {
         Self {
             args: vec![program.as_ref().to_owned()],
@@ -18,10 +22,12 @@ impl CommandBuilder {
         }
     }
 
+    /// Append an argument to the current command line
     pub fn arg<S: AsRef<OsStr>>(&mut self, arg: S) {
         self.args.push(arg.as_ref().to_owned());
     }
 
+    /// Append a sequence of arguments to the current command line
     pub fn args<I, S>(&mut self, args: I)
     where
         I: IntoIterator<Item = S>,
@@ -32,6 +38,7 @@ impl CommandBuilder {
         }
     }
 
+    /// Override the value of an environmental variable
     pub fn env<K, V>(&mut self, key: K, val: V)
     where
         K: AsRef<OsStr>,
@@ -50,7 +57,8 @@ impl CommandBuilder {
 
 #[cfg(unix)]
 impl CommandBuilder {
-    pub fn as_command(&self) -> std::process::Command {
+    /// Convert the CommandBuilder to a `std::process::Command` instance.
+    pub(crate) fn as_command(&self) -> std::process::Command {
         let mut cmd = std::process::Command::new(&self.args[0]);
         cmd.args(&self.args[1..]);
         for (key, val) in &self.envs {
@@ -91,7 +99,7 @@ impl CommandBuilder {
         exe.to_owned()
     }
 
-    pub fn cmdline(&self) -> Result<(Vec<u16>, Vec<u16>), Error> {
+    pub(crate) fn cmdline(&self) -> Result<(Vec<u16>, Vec<u16>), Error> {
         let mut cmdline = Vec::<u16>::new();
 
         let exe = Self::search_path(&self.args[0]);

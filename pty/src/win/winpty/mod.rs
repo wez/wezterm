@@ -5,7 +5,7 @@ use crate::win::winpty::safe::{
 };
 use crate::{Child, MasterPty, PtySize, PtySystem, SlavePty};
 use failure::{bail, Error};
-use filedescriptor::{FileDescriptor};
+use filedescriptor::FileDescriptor;
 use std::ffi::OsString;
 use std::os::windows::ffi::OsStringExt;
 use std::path::Path;

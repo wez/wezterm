@@ -8,7 +8,7 @@ use failure::{bail, ensure, format_err, Error};
 use filedescriptor::{FileDescriptor, OwnedHandle};
 use std::ffi::{OsStr, OsString};
 use std::os::windows::ffi::{OsStrExt, OsStringExt};
-use std::os::windows::io::{FromRawHandle};
+use std::os::windows::io::FromRawHandle;
 use std::ptr;
 use winapi::shared::minwindef::DWORD;
 use winapi::shared::ntdef::LPCWSTR;
