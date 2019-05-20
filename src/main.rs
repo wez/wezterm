@@ -27,8 +27,7 @@ use crate::mux::Mux;
 mod font;
 use crate::font::{FontConfiguration, FontSystemSelection};
 
-mod pty;
-use pty::PtySize;
+use portable_pty::PtySize;
 use std::env;
 
 /// Determine which shell to run.

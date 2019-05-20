@@ -1,4 +1,4 @@
-use crate::pty::{Child, ExitStatus};
+use crate::{Child, ExitStatus};
 use std::io::{Error as IoError, Result as IoResult};
 use winapi::shared::minwindef::DWORD;
 use winapi::um::minwinbase::STILL_ACTIVE;

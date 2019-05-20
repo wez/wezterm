@@ -6,9 +6,9 @@ use crate::mux::window::WindowId;
 use crate::mux::Mux;
 use crate::opengl::render::Renderer;
 use crate::opengl::textureatlas::OutOfTextureSpace;
-use crate::pty::{PtySize, PtySystemSelection};
 use failure::Error;
 use glium;
+use portable_pty::{PtySize, PtySystemSelection};
 use std::rc::Rc;
 use std::sync::Arc;
 

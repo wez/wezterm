@@ -1,7 +1,7 @@
 //! Working with pseudo-terminals
 
-use crate::pty::{Child, CommandBuilder, MasterPty, PtySize, PtySystem, SlavePty};
-use failure::Error;
+use crate::{Child, CommandBuilder, MasterPty, PtySize, PtySystem, SlavePty};
+use failure::{bail, Error};
 use libc::{self, winsize};
 use std::io;
 use std::mem;

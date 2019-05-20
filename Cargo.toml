@@ -30,6 +30,7 @@ leb128 = "0.2"
 libc = "0.2"
 open = "1.2"
 palette = "0.4"
+portable-pty = { path = "pty", features = ["serde_support"]}
 promise = { path = "promise" }
 rayon = "1.0"
 serde = {version="1.0", features = ["rc"]}

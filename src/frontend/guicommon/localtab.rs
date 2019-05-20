@@ -1,7 +1,7 @@
 use crate::mux::renderable::Renderable;
 use crate::mux::tab::{alloc_tab_id, Tab, TabId};
-use crate::pty::{Child, MasterPty, PtySize};
 use failure::Error;
+use portable_pty::{Child, MasterPty, PtySize};
 use std::cell::{RefCell, RefMut};
 use term::{KeyCode, KeyModifiers, MouseEvent, Terminal, TerminalHost};
 

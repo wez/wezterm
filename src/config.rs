@@ -3,10 +3,9 @@
 use crate::font::FontSystemSelection;
 use crate::frontend::FrontEndSelection;
 use crate::get_shell;
-use crate::pty::CommandBuilder;
-use crate::pty::PtySystemSelection;
 use failure::{err_msg, Error};
 use lazy_static::lazy_static;
+use portable_pty::{CommandBuilder, PtySystemSelection};
 use serde_derive::*;
 use std;
 use std::ffi::OsStr;

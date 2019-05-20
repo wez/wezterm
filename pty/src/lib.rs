@@ -1,4 +1,5 @@
-use failure::Error;
+use failure::{bail, format_err, Error};
+#[cfg(feature = "serde_support")]
 use serde_derive::*;
 use std::io::Result as IoResult;
 
@@ -83,7 +84,8 @@ impl Child for std::process::Child {
 }
 
 #[allow(dead_code)]
-#[derive(Debug, Clone, Copy, Deserialize)]
+#[derive(Debug, Clone, Copy)]
+#[cfg_attr(feature = "serde_support", derive(Deserialize))]
 pub enum PtySystemSelection {
     Unix,
     ConPty,

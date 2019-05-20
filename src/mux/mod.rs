@@ -1,6 +1,6 @@
 use crate::config::Config;
-use crate::pty::ExitStatus;
 use failure::Error;
+use portable_pty::ExitStatus;
 use promise::{Executor, Future};
 use std::cell::{Ref, RefCell, RefMut};
 use std::collections::HashMap;

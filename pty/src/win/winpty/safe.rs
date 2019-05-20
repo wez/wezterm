@@ -3,7 +3,7 @@
 //! https://github.com/rprichard/winpty/blob/master/src/include/winpty.h
 #![allow(dead_code)]
 use super::sys::*;
-use crate::pty::win::ownedhandle::OwnedHandle;
+use crate::win::ownedhandle::OwnedHandle;
 use bitflags::bitflags;
 use failure::{format_err, Error};
 use std::ffi::{OsStr, OsString};

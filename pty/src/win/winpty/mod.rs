@@ -1,7 +1,7 @@
 use super::ownedhandle::OwnedHandle;
 use super::WinChild;
-use crate::pty::cmdbuilder::CommandBuilder;
-use crate::pty::{Child, MasterPty, PtySize, PtySystem, SlavePty};
+use crate::cmdbuilder::CommandBuilder;
+use crate::{Child, MasterPty, PtySize, PtySystem, SlavePty};
 use failure::Error;
 use safe::{AgentFlags, MouseMode, SpawnConfig, SpawnFlags, Timeout, WinPty, WinPtyConfig};
 use std::ffi::OsString;
