@@ -1,3 +1,41 @@
+//! This crate provides a cross platform API for working with the
+//! psuedo terminal (pty) interfaces provided by the system.
+//! Unlike other crates in this space, this crate provides a set
+//! of traits that allow selecting from different implementations
+//! at runtime, which is important on Windows systems.
+//! This crate is part of [wezterm](https://github.com/wez/wezterm).
+//!
+//! ```no_run
+//! use portable_pty::{CommandBuilder, PtySize, PtySystemSelection};
+//! use failure::Error;
+//!
+//! // Use the native pty implementation for the system
+//! let pty_system = PtySystemSelection::default().get()?;
+//!
+//! // Create a new pty
+//! let (mut master, slave) = pty_system.openpty(PtySize {
+//!     rows: 24,
+//!     cols: 80,
+//!     // Not all systems support pixel_width, pixel_height,
+//!     // but it is good practice to set it to something
+//!     // that matches the size of the selected font.  That
+//!     // is more complex than can be shown here in this
+//!     // brief example though!
+//!     pixel_width: 0,
+//!     pixel_height: 0,
+//! })?;
+//!
+//! // Spawn a shell into the pty
+//! let cmd = CommandBuilder::new("bash");
+//! let child = slave.spawn_command(cmd)?;
+//!
+//! // Read and parse output from the pty with reader
+//! let mut reader = master.try_clone_reader()?;
+//!
+//! // Send data to the pty by writing to the master
+//! writeln!(master, "ls -l\r\n")?;
+//! # Ok::<(), Error>(())
+//! ```
 use failure::{bail, format_err, Error};
 #[cfg(feature = "serde_support")]
 use serde_derive::*;
@@ -127,11 +165,11 @@ pub enum PtySystemSelection {
     /// The Windows 10+ native Console Pty interface
     ConPty,
     /// rprichard's WinPty interface to cygwin and msys pty.
-    /// This requires that winpty.dll be resolvable by the
+    /// This requires that `winpty.dll` be resolvable by the
     /// embedding application.  Instructions on obtaining
-    /// an appropriate implementation of winpty.dll can be
+    /// an appropriate implementation of `winpty.dll` can be
     /// found here:
-    /// https://github.com/rprichard/winpty
+    /// [winpty](https://github.com/rprichard/winpty)
     WinPty,
 }
 
