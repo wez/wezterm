@@ -1,9 +1,11 @@
 use super::ownedhandle::OwnedHandle;
 use super::WinChild;
 use crate::cmdbuilder::CommandBuilder;
+use crate::win::winpty::safe::{
+    AgentFlags, MouseMode, SpawnConfig, SpawnFlags, Timeout, WinPty, WinPtyConfig,
+};
 use crate::{Child, MasterPty, PtySize, PtySystem, SlavePty};
-use failure::Error;
-use safe::{AgentFlags, MouseMode, SpawnConfig, SpawnFlags, Timeout, WinPty, WinPtyConfig};
+use failure::{bail, Error};
 use std::ffi::OsString;
 use std::os::windows::ffi::OsStringExt;
 use std::path::Path;

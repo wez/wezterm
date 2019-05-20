@@ -5,7 +5,7 @@
 use super::sys::*;
 use crate::win::ownedhandle::OwnedHandle;
 use bitflags::bitflags;
-use failure::{format_err, Error};
+use failure::{bail, ensure, format_err, Error};
 use std::ffi::{OsStr, OsString};
 use std::os::windows::ffi::{OsStrExt, OsStringExt};
 use std::ptr;

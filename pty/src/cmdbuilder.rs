@@ -1,5 +1,5 @@
 #[cfg(windows)]
-use failure::Error;
+use failure::{ensure, Error};
 use std::ffi::{OsStr, OsString};
 #[cfg(windows)]
 use std::os::windows::ffi::OsStrExt;

@@ -2,7 +2,7 @@ use super::ownedhandle::OwnedHandle;
 use super::WinChild;
 use crate::cmdbuilder::CommandBuilder;
 use crate::{Child, MasterPty, PtySize, PtySystem, SlavePty};
-use failure::Error;
+use failure::{bail, ensure, Error};
 use lazy_static::lazy_static;
 use shared_library::shared_library;
 use std::ffi::OsString;
