@@ -260,11 +260,6 @@ impl SlavePty for ConPtySlavePty {
 
         let (mut exe, mut cmdline) = cmd.cmdline()?;
         let cmd_os = OsString::from_wide(&cmdline);
-        eprintln!(
-            "Running: module: {} {:?}",
-            Path::new(&OsString::from_wide(&exe)).display(),
-            cmd_os
-        );
         let res = unsafe {
             CreateProcessW(
                 exe.as_mut_slice().as_mut_ptr(),
