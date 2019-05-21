@@ -8,6 +8,7 @@ use std::os::windows::prelude::*;
 use std::ptr;
 use winapi::um::fileapi::*;
 use winapi::um::handleapi::*;
+use winapi::um::minwinbase::SECURITY_ATTRIBUTES;
 use winapi::um::namedpipeapi::CreatePipe;
 use winapi::um::processthreadsapi::*;
 use winapi::um::winnt::HANDLE;
@@ -171,9 +172,14 @@ impl io::Write for FileDescriptor {
 
 impl Pipe {
     pub fn new() -> Fallible<Pipe> {
+        let mut sa = SECURITY_ATTRIBUTES {
+            nLength: std::mem::size_of::<SECURITY_ATTRIBUTES>() as u32,
+            lpSecurityDescriptor: ptr::null_mut(),
+            bInheritHandle: 0,
+        };
         let mut read: HANDLE = INVALID_HANDLE_VALUE as _;
         let mut write: HANDLE = INVALID_HANDLE_VALUE as _;
-        if unsafe { CreatePipe(&mut read, &mut write, ptr::null_mut(), 0) } == 0 {
+        if unsafe { CreatePipe(&mut read, &mut write, &mut sa, 0) } == 0 {
             bail!("CreatePipe failed: {}", IoError::last_os_error());
         }
         Ok(Pipe {
