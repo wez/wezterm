@@ -31,7 +31,7 @@ unicode-width = "~0.1"
 vte = { git = "https://github.com/wez/vte", branch="oscbigbuf" }
 
 [dev-dependencies]
-bincode = "1.1"
+varbincode = { path = "../varbincode" }
 
 [dependencies.num-derive]
 features = ["full-syntax"]

@@ -244,8 +244,8 @@ mod tests {
 
     #[test]
     fn roundtrip_rgbcolor() {
-        let data = bincode::serialize(&RgbColor::from_named("DarkGreen").unwrap()).unwrap();
+        let data = varbincode::serialize(&RgbColor::from_named("DarkGreen").unwrap()).unwrap();
         eprintln!("serialized as {:?}", data);
-        let _decoded: RgbColor = bincode::deserialize(&data).unwrap();
+        let _decoded: RgbColor = varbincode::deserialize(data.as_slice()).unwrap();
     }
 }
