@@ -53,11 +53,6 @@ pub type VisibleRowIndex = i64;
 /// to want to scroll back or select more than ~2billion lines of scrollback.
 pub type ScrollbackOrVisibleRowIndex = i32;
 
-/// range.contains(), but that is unstable
-pub fn in_range<T: Ord + Copy>(value: T, range: &Range<T>) -> bool {
-    value >= range.start && value < range.end
-}
-
 /// Returns true if r1 intersects r2
 pub fn intersects_range<T: Ord + Copy>(r1: Range<T>, r2: Range<T>) -> bool {
     use std::cmp::{max, min};

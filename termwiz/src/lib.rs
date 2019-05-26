@@ -43,7 +43,6 @@ pub mod image;
 pub mod input;
 pub mod istty;
 pub mod keymap;
-mod range;
 mod readbuf;
 pub mod render;
 pub mod surface;

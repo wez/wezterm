@@ -1,7 +1,6 @@
 use crate::cell::{Cell, CellAttributes};
 use crate::cellcluster::CellCluster;
 use crate::hyperlink::Rule;
-use crate::range::in_range;
 use crate::surface::Change;
 use bitflags::bitflags;
 use serde_derive::*;
@@ -153,7 +152,7 @@ impl Line {
                     // Don't replace existing links
                     continue;
                 }
-                if in_range(byte_idx, &m.range) {
+                if m.range.contains(&byte_idx) {
                     let attrs = self.cells[cell_idx]
                         .attrs()
                         .clone()

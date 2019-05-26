@@ -1577,7 +1577,7 @@ impl TerminalState {
                 self.clear_selection_if_intersects(x..limit, y as ScrollbackOrVisibleRowIndex);
             }
             Edit::DeleteLine(n) => {
-                if in_range(self.cursor.y, &self.scroll_region) {
+                if self.scroll_region.contains(&self.cursor.y) {
                     let scroll_region = self.cursor.y..self.scroll_region.end;
                     self.screen_mut().scroll_up(&scroll_region, n as usize);
 
@@ -1629,7 +1629,7 @@ impl TerminalState {
                 self.clear_selection_if_intersects(x..limit, y as ScrollbackOrVisibleRowIndex);
             }
             Edit::InsertLine(n) => {
-                if in_range(self.cursor.y, &self.scroll_region) {
+                if self.scroll_region.contains(&self.cursor.y) {
                     let scroll_region = self.cursor.y..self.scroll_region.end;
                     self.screen_mut().scroll_down(&scroll_region, n as usize);
 

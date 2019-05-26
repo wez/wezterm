@@ -908,7 +908,7 @@ impl Renderer {
         fg_color: RgbaTuple,
         bg_color: RgbaTuple,
     ) -> (RgbaTuple, RgbaTuple) {
-        let selected = term::in_range(cell_idx, selection);
+        let selected = selection.contains(&cell_idx);
         let is_cursor = line_idx as i64 == cursor.y && cursor.x == cell_idx;
 
         let (fg_color, bg_color) = match (selected, is_cursor) {
