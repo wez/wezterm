@@ -1507,8 +1507,8 @@ impl<'a> CSIParser<'a> {
         if params.is_empty() {
             Err(())
         } else {
-            let arg1 = params.get(1).map(|x| *x);
-            let arg2 = params.get(2).map(|x| *x);
+            let arg1 = params.get(1).cloned();
+            let arg2 = params.get(2).cloned();
             match params[0] {
                 1 => Ok(Window::DeIconify),
                 2 => Ok(Window::Iconify),

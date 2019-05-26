@@ -34,6 +34,7 @@ pub struct MuxServerFrontEnd {
 }
 
 impl MuxServerFrontEnd {
+    #[cfg_attr(feature = "cargo-clippy", allow(clippy::new_ret_no_self))]
     fn new(mux: &Rc<Mux>, start_listener: bool) -> Result<Rc<FrontEnd>, Error> {
         let (tx, rx) = mpsc::sync_channel(4);
 

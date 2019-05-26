@@ -20,7 +20,7 @@ impl Executor for Box<Executor> {
 
 /// An executor for spawning futures into the rayon global
 /// thread pool
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct RayonExecutor {}
 
 impl RayonExecutor {
@@ -31,7 +31,7 @@ impl RayonExecutor {
 
 impl Executor for RayonExecutor {
     fn execute(&self, f: SpawnFunc) {
-        rayon::spawn(|| f());
+        rayon::spawn(f);
     }
     fn clone_executor(&self) -> Box<Executor> {
         Box::new(RayonExecutor::new())
@@ -65,6 +65,12 @@ pub struct Promise<T> {
 
 pub struct Future<T> {
     state: FutureState<T>,
+}
+
+impl<T> Default for Promise<T> {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl<T> Promise<T> {

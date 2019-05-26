@@ -290,6 +290,9 @@ pub trait TerminalWindow {
         self.update_title();
         self.deregister_tab(tab_id).ok();
     }
+
+    // let_and_return is needed here to satisfy the borrow checker
+    #[cfg_attr(feature = "cargo-clippy", allow(clippy::let_and_return))]
     fn test_for_child_exit(&mut self) -> bool {
         let mux = Mux::get().unwrap();
         let window = match mux.get_window(self.get_mux_window_id()) {

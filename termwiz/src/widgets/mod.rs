@@ -1,6 +1,6 @@
 // Ideally this would be scoped to WidgetId, but I can't seem to find the
 // right place for it to take effect
-#![allow(clippy::new_without_default_derive)]
+#![allow(clippy::new_without_default)]
 use crate::color::ColorAttribute;
 use crate::input::InputEvent;
 use crate::surface::{Change, CursorShape, Position, SequenceNo, Surface};
@@ -127,6 +127,12 @@ pub struct WidgetId(usize);
 impl WidgetId {
     pub fn new() -> Self {
         WidgetId(WIDGET_ID.fetch_add(1, ::std::sync::atomic::Ordering::Relaxed))
+    }
+}
+
+impl Default for WidgetId {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

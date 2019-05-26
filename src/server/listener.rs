@@ -150,7 +150,7 @@ impl Drop for UmaskSaver {
 /// we need to be sure that the directory that we create it in
 /// is owned by the user and has appropriate file permissions
 /// that prevent other users from manipulating its contents.
-fn safely_create_sock_path(sock_path: &String) -> Result<UnixListener, Error> {
+fn safely_create_sock_path(sock_path: &str) -> Result<UnixListener, Error> {
     let sock_path = Path::new(sock_path);
 
     eprintln!("setting up {}", sock_path.display());

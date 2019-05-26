@@ -171,7 +171,7 @@ impl OneBased {
 
     /// Map a value from an optional escape sequence parameter
     pub fn from_optional_esc_param(o: Option<&i64>) -> Result<Self, ()> {
-        Self::from_esc_param(o.map(|x| *x).unwrap_or(1))
+        Self::from_esc_param(o.cloned().unwrap_or(1))
     }
 
     /// Return the underlying value as a 0-based value

@@ -100,7 +100,7 @@ impl RgbColor {
     }
 
     /// Returns a string of the form `#RRGGBB`
-    pub fn to_rgb_string(&self) -> String {
+    pub fn to_rgb_string(self) -> String {
         format!("#{:02x}{:02x}{:02x}", self.red, self.green, self.blue)
     }
 

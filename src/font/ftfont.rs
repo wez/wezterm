@@ -1,3 +1,4 @@
+#![allow(clippy::cast_lossless)]
 use super::hbwrap as harfbuzz;
 use crate::font::{ftwrap, Font, FontMetrics, RasterizedGlyph};
 use failure::{bail, Error};

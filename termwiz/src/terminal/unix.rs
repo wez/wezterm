@@ -320,7 +320,7 @@ pub struct UnixTerminalWaker {
 impl UnixTerminalWaker {
     pub fn wake(&self) -> Result<(), IoError> {
         let mut pipe = self.pipe.lock().unwrap();
-        pipe.write(b"W")?;
+        let _ = pipe.write(b"W")?;
         Ok(())
     }
 }
@@ -500,9 +500,8 @@ impl Terminal for UnixTerminal {
 
         if pfd[2].revents != 0 {
             let mut buf = [0u8; 64];
-            match self.wake_pipe.read(&mut buf) {
-                Ok(_) => return Ok(Some(InputEvent::Wake)),
-                Err(_) => {}
+            if self.wake_pipe.read(&mut buf).is_ok() {
+                return Ok(Some(InputEvent::Wake));
             }
         }
 

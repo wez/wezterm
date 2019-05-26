@@ -509,7 +509,10 @@ impl GliumTerminalWindow {
         Some(code)
     }
 
-    #[cfg_attr(feature = "cargo-clippy", allow(clippy::cyclomatic_complexity))]
+    #[cfg_attr(
+        feature = "cargo-clippy",
+        allow(clippy::cyclomatic_complexity, clippy::cognitive_complexity)
+    )]
     fn normalize_keycode(code: glium::glutin::VirtualKeyCode, shifted: bool) -> Option<KeyCode> {
         use glium::glutin::VirtualKeyCode as V;
         macro_rules! shifted {

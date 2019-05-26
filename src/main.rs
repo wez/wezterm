@@ -160,7 +160,7 @@ fn main() -> Result<(), Error> {
     match opts
         .cmd
         .as_ref()
-        .map(|c| c.clone())
+        .cloned()
         .unwrap_or_else(|| SubCommand::Start(StartCommand::default()))
     {
         SubCommand::Start(start) => {

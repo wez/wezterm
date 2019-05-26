@@ -47,7 +47,10 @@ impl TerminfoRenderer {
         });
     }
 
-    #[cfg_attr(feature = "cargo-clippy", allow(clippy::cyclomatic_complexity))]
+    #[cfg_attr(
+        feature = "cargo-clippy",
+        allow(clippy::cyclomatic_complexity, clippy::cognitive_complexity)
+    )]
     fn flush_pending_attr<W: UnixTty + Write>(&mut self, out: &mut W) -> Fallible<()> {
         macro_rules! attr_on_off {
             ($cap_on:ident, $cap_off:ident, $attr:expr, $accesor:ident, $sgr:ident) => {
@@ -276,7 +279,10 @@ impl TerminfoRenderer {
 }
 
 impl TerminfoRenderer {
-    #[cfg_attr(feature = "cargo-clippy", allow(clippy::cyclomatic_complexity))]
+    #[cfg_attr(
+        feature = "cargo-clippy",
+        allow(clippy::cyclomatic_complexity, clippy::cognitive_complexity)
+    )]
     pub fn render_to<R: Read, W: UnixTty + Write>(
         &mut self,
         changes: &[Change],

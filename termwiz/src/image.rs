@@ -24,6 +24,7 @@ where
     NotNaN::new(value).map_err(|e| serde::de::Error::custom(format!("{:?}", e)))
 }
 
+#[cfg_attr(feature = "cargo-clippy", allow(clippy::trivially_copy_pass_by_ref))]
 fn serialize_notnan<S>(value: &NotNaN<f32>, serializer: S) -> Result<S::Ok, S::Error>
 where
     S: Serializer,

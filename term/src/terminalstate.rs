@@ -1914,13 +1914,11 @@ impl<'a> Performer<'a> {
 
             if self.insert {
                 x_offset += print_width;
+            } else if x + print_width < width {
+                self.cursor.x += print_width;
+                self.wrap_next = false;
             } else {
-                if x + print_width < width {
-                    self.cursor.x += print_width;
-                    self.wrap_next = false;
-                } else {
-                    self.wrap_next = true;
-                }
+                self.wrap_next = true;
             }
         }
     }
