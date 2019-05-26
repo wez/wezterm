@@ -11,7 +11,7 @@ A terminal emulator implemented in Rust, using OpenGL for rendering.
 
 ## Installing a package
 
-* macOS and Windows packages are available from [the Releases page](https://github.com/wez/wezterm/releases)
+* Linux, macOS and Windows packages are available from [the Releases page](https://github.com/wez/wezterm/releases)
 * Bleeding edge Windows package available from [Appveyor](https://ci.appveyor.com/project/wez/wezterm/build/artifacts?branch=master)
 
 ## Installing from source
