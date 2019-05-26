@@ -14,7 +14,6 @@ embed-resource = "1.1"
 [dependencies]
 base91 = { path = "base91" }
 bitflags = "1.0"
-boxfnonce = "0.1"
 clipboard = "0.5"
 dirs = "1.0"
 euclid = "0.19"

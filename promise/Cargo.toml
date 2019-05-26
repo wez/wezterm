@@ -6,5 +6,4 @@ edition = "2018"
 
 [dependencies]
 failure = "0.1"
-boxfnonce = "0.1"
 rayon = "1.0"

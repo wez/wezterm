@@ -329,7 +329,7 @@ impl GuiEventLoop {
 
     fn process_gui_exec(&self) -> Result<(), Error> {
         while let Some(func) = self.gui_thread_sends.borrow_mut().pop_front() {
-            func.call();
+            func();
         }
 
         let start = SystemTime::now();
@@ -344,7 +344,7 @@ impl GuiEventLoop {
                 _ => {}
             }
             match self.gui_rx.try_recv() {
-                Ok(func) => func.call(),
+                Ok(func) => func(),
                 Err(TryRecvError::Empty) => return Ok(()),
                 Err(err) => bail!("poll_rx disconnected {:?}", err),
             }

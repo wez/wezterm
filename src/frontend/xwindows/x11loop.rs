@@ -248,7 +248,7 @@ impl GuiEventLoop {
 
     fn process_gui_exec(&self) -> Result<(), Error> {
         match self.gui_rx.try_recv() {
-            Ok(func) => func.call(),
+            Ok(func) => func(),
             Err(TryRecvError::Empty) => return Ok(()),
             Err(err) => bail!("poll_rx disconnected {:?}", err),
         }

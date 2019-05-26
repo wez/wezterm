@@ -1,9 +1,8 @@
-use boxfnonce::SendBoxFnOnce;
-use failure::Error;
+use failure::{Error, Fallible};
 use std::sync::{Arc, Condvar, Mutex};
 
-type NextFunc<T> = SendBoxFnOnce<'static, (Result<T, Error>,)>;
-pub type SpawnFunc = SendBoxFnOnce<'static, ()>;
+type NextFunc<T> = Box<dyn FnOnce(Fallible<T>) + Send>;
+pub type SpawnFunc = Box<dyn FnOnce() + Send>;
 
 pub trait Executor: Send {
     fn execute(&self, f: SpawnFunc);
@@ -32,7 +31,7 @@ impl RayonExecutor {
 
 impl Executor for RayonExecutor {
     fn execute(&self, f: SpawnFunc) {
-        rayon::spawn(|| f.call());
+        rayon::spawn(|| f());
     }
     fn clone_executor(&self) -> Box<Executor> {
         Box::new(RayonExecutor::new())
@@ -103,7 +102,7 @@ impl<T> Promise<T> {
             PromiseState::Waiting(core) => {
                 let mut locked = core.data.lock().unwrap();
                 match locked.propagate.take() {
-                    Some(func) => func.call(result),
+                    Some(func) => func(result),
                     None => locked.result = Some(result),
                 }
                 core.cond.notify_one();
@@ -153,10 +152,10 @@ impl<T: Send + 'static> Future<T> {
         let mut promise = Promise::new();
         let future = promise.get_future().unwrap();
 
-        let func = SendBoxFnOnce::from(f);
-        let promise_chain = NextFunc::from(move |result| promise.result(result));
-        executor.execute(SpawnFunc::from(move || {
-            let future = func.call().into();
+        let func = Box::new(f);
+        let promise_chain = Box::new(move |result| promise.result(result));
+        executor.execute(Box::new(move || {
+            let future = func().into();
             future.chain(promise_chain);
         }));
         future
@@ -165,12 +164,12 @@ impl<T: Send + 'static> Future<T> {
     fn chain(self, f: NextFunc<T>) {
         match self.state {
             FutureState::Ready(result) => {
-                f.call(result);
+                f(result);
             }
             FutureState::Waiting(core) => {
                 let mut locked = core.data.lock().unwrap();
                 if let Some(result) = locked.result.take() {
-                    f.call(result);
+                    f(result);
                 } else {
                     locked.propagate = Some(f);
                 }
@@ -207,12 +206,12 @@ impl<T: Send + 'static> Future<T> {
     {
         let mut promise = Promise::new();
         let future = promise.get_future().unwrap();
-        let func = SendBoxFnOnce::from(f);
+        let func = Box::new(f);
 
-        let promise_chain = NextFunc::from(move |result| promise.result(result));
+        let promise_chain = Box::new(move |result| promise.result(result));
 
-        self.chain(SendBoxFnOnce::from(move |result| {
-            let future = func.call(result).into();
+        self.chain(Box::new(move |result| {
+            let future = func(result).into();
             future.chain(promise_chain);
         }));
         future
@@ -233,13 +232,13 @@ impl<T: Send + 'static> Future<T> {
     {
         let mut promise = Promise::new();
         let future = promise.get_future().unwrap();
-        let func = SendBoxFnOnce::from(f);
+        let func = Box::new(f);
 
-        let promise_chain = NextFunc::from(move |result| promise.result(result));
+        let promise_chain = Box::new(move |result| promise.result(result));
 
-        self.chain(SendBoxFnOnce::from(move |result| {
+        self.chain(Box::new(move |result| {
             let future = match result {
-                Ok(value) => func.call(value).into(),
+                Ok(value) => func(value).into(),
                 Err(err) => Err(err).into(),
             };
             future.chain(promise_chain);
@@ -261,14 +260,14 @@ impl<T: Send + 'static> Future<T> {
     {
         let mut promise = Promise::new();
         let future = promise.get_future().unwrap();
-        let func = SendBoxFnOnce::from(f);
+        let func = Box::new(f);
 
-        let promise_chain = NextFunc::from(move |result| promise.result(result));
+        let promise_chain = Box::new(move |result| promise.result(result));
 
-        self.chain(SendBoxFnOnce::from(move |result| {
+        self.chain(Box::new(move |result| {
             let future = match result {
                 Ok(value) => Ok(value).into(),
-                Err(err) => func.call(err).into(),
+                Err(err) => func(err).into(),
             };
             future.chain(promise_chain);
         }));

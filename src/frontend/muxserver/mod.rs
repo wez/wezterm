@@ -62,7 +62,7 @@ impl FrontEnd for MuxServerFrontEnd {
     fn run_forever(&self) -> Result<(), Error> {
         loop {
             match self.rx.recv() {
-                Ok(func) => func.call(),
+                Ok(func) => func(),
                 Err(err) => bail!("while waiting for events: {:?}", err),
             }
 
