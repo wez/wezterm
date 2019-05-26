@@ -7,7 +7,7 @@ edition = "2018"
 [dependencies]
 bitflags = "~1.0"
 failure = "~0.1"
-image = "~0.19"
+image = "0.21"
 ordered-float = "~0.5"
 unicode-segmentation = "~1.2"
 unicode-width = "~0.1"
