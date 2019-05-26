@@ -199,10 +199,10 @@ macro_rules! pdu {
     }
 }
 
-/// Defines the Pdu enum.
-/// Each struct has an explicit identifying number.
-/// This allows removal of obsolete structs,
-/// and defining newer structs as the protocol evolves.
+// Defines the Pdu enum.
+// Each struct has an explicit identifying number.
+// This allows removal of obsolete structs,
+// and defining newer structs as the protocol evolves.
 pdu! {
     Ping: 1,
     Pong: 2,
