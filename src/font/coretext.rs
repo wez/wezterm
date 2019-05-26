@@ -14,7 +14,7 @@ use core_text::font_collection::create_for_family;
 use core_text::font_descriptor::{
     kCTFontDefaultOrientation, SymbolicTraitAccessors, TraitAccessors,
 };
-use failure::Error;
+use failure::{format_err, Error};
 use std::ptr;
 
 #[allow(non_upper_case_globals)]
