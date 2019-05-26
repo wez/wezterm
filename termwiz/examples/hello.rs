@@ -1,6 +1,3 @@
-extern crate failure;
-extern crate termwiz;
-
 use failure::Error;
 use termwiz::caps::Capabilities;
 use termwiz::cell::AttributeChange;

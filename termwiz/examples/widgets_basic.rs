@@ -1,8 +1,5 @@
 //! This example shows how to make a basic widget that accumulates
 //! text input and renders it to the screen
-extern crate failure;
-extern crate termwiz;
-
 use failure::Error;
 use termwiz::caps::Capabilities;
 use termwiz::cell::AttributeChange;

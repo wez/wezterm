@@ -2,9 +2,6 @@
 //! up changes and then flush them.  `BufferedTerminal` enables
 //! optimizing the output sequence to update the screen, which is
 //! important on links with poor connectivity.
-extern crate failure;
-extern crate termwiz;
-
 use failure::Error;
 use termwiz::caps::Capabilities;
 use termwiz::cell::AttributeChange;

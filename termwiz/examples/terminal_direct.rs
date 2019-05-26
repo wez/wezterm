@@ -4,8 +4,6 @@
 //! Consider using the `Surface` struct to enable optimization;
 //! the `buffered_terminal.rs` example demonstrates a simple
 //! way to enable optimizations.
-extern crate failure;
-extern crate termwiz;
 
 use failure::Error;
 use termwiz::caps::Capabilities;
