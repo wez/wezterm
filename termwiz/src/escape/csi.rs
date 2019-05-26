@@ -3,6 +3,7 @@ use crate::cell::{Blink, Intensity, Underline};
 use crate::color::{AnsiColor, ColorSpec, RgbColor};
 use crate::input::{Modifiers, MouseButtons};
 use num::{self, ToPrimitive};
+use num_derive::*;
 use std::fmt::{Display, Error as FmtError, Formatter};
 
 #[derive(Debug, Clone, PartialEq, Eq)]

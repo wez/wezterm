@@ -3,7 +3,7 @@
 use crate::caps::Capabilities;
 use crate::input::InputEvent;
 use crate::surface::Change;
-use failure::Error;
+use failure::{format_err, Error};
 use num::{self, NumCast};
 use std::fmt::Display;
 use std::time::Duration;

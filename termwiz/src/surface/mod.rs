@@ -2,6 +2,7 @@ use crate::cell::{AttributeChange, Cell, CellAttributes};
 use crate::color::ColorAttribute;
 use crate::image::ImageCell;
 use ordered_float::NotNaN;
+use serde_derive::*;
 use std::borrow::Cow;
 use std::cmp::min;
 use unicode_segmentation::UnicodeSegmentation;

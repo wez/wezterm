@@ -5,7 +5,9 @@ use crate::escape::parser::Parser;
 use crate::escape::{Action, CSI};
 use crate::keymap::{Found, KeyMap};
 use crate::readbuf::ReadBuffer;
+use bitflags::bitflags;
 use std;
+
 #[cfg(windows)]
 use winapi::um::wincon::{
     INPUT_RECORD, KEY_EVENT, KEY_EVENT_RECORD, MOUSE_EVENT, MOUSE_EVENT_RECORD,

@@ -32,40 +32,6 @@
 //!   mode.
 //! * `Widget` trait allows composition of UI elements at a higher
 //!   level.
-#[macro_use]
-extern crate failure;
-extern crate base64;
-extern crate fnv;
-extern crate libc;
-extern crate palette;
-extern crate semver;
-extern crate serde;
-#[cfg(unix)]
-extern crate signal_hook;
-extern crate terminfo;
-#[cfg(unix)]
-extern crate termios;
-#[cfg(windows)]
-extern crate winapi;
-#[macro_use]
-extern crate serde_derive;
-extern crate num;
-extern crate vte;
-#[macro_use]
-extern crate num_derive;
-#[macro_use]
-extern crate derive_builder;
-#[macro_use]
-extern crate bitflags;
-
-extern crate cassowary;
-extern crate image as image_crate;
-extern crate memmem;
-extern crate ordered_float;
-extern crate regex;
-extern crate smallvec;
-extern crate unicode_segmentation;
-extern crate unicode_width;
 
 pub mod caps;
 pub mod cell;

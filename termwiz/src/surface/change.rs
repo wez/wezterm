@@ -2,6 +2,7 @@ use crate::cell::{AttributeChange, CellAttributes};
 use crate::color::ColorAttribute;
 pub use crate::image::{ImageData, TextureCoordinate};
 use crate::surface::{CursorShape, Position};
+use serde_derive::*;
 use std::sync::Arc;
 
 /// `Change` describes an update operation to be applied to a `Surface`.

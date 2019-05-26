@@ -22,7 +22,6 @@ pub trait IsTty {
 #[cfg(unix)]
 impl<S: AsRawFd> IsTty for S {
     fn is_tty(&self) -> bool {
-        use libc;
         let fd = self.as_raw_fd();
         unsafe { libc::isatty(fd) == 1 }
     }

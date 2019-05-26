@@ -2,9 +2,11 @@
 // for FromPrimitive
 #![cfg_attr(feature = "cargo-clippy", allow(clippy::useless_attribute))]
 
+use num_derive::*;
 use palette;
 use palette::{LinSrgba, Srgb, Srgba};
 use serde::{self, Deserialize, Deserializer, Serialize, Serializer};
+use serde_derive::*;
 use std::result::Result;
 
 #[derive(Debug, Clone, Copy, FromPrimitive)]

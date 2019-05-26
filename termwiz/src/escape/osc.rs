@@ -1,7 +1,9 @@
 pub use crate::hyperlink::Hyperlink;
 use base64;
-use failure::{self, err_msg, Error};
+use bitflags::bitflags;
+use failure::{self, bail, ensure, err_msg, Error};
 use num;
+use num_derive::*;
 use ordered_float::NotNaN;
 use std::collections::HashMap;
 use std::fmt::{Display, Error as FmtError, Formatter};

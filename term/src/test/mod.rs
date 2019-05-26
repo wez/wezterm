@@ -3,6 +3,7 @@
 
 use super::*;
 mod c0;
+use bitflags::bitflags;
 mod c1;
 mod csi;
 mod selection;

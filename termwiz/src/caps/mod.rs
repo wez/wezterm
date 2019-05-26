@@ -54,6 +54,7 @@
 //! implements some heuristics (a fancy word for guessing) to compute
 //! the terminal capabilities, but also offers a `ProbeHintsBuilder`
 //! that can be used by the embedding application to override those choices.
+use derive_builder::*;
 use failure::{err_msg, Error};
 use semver::Version;
 use std::env::var;

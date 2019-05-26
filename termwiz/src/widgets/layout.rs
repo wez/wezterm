@@ -4,7 +4,7 @@
 use cassowary::strength::{REQUIRED, STRONG, WEAK};
 use cassowary::WeightedRelation::*;
 use cassowary::{AddConstraintError, Expression, Solver, SuggestValueError, Variable};
-use failure::{err_msg, Error};
+use failure::{err_msg, format_err, Error};
 use std::collections::HashMap;
 
 use crate::widgets::{Rect, WidgetId};

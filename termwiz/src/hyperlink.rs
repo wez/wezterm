@@ -4,7 +4,7 @@
 //! We use that as the foundation of our hyperlink support, and the game
 //! plan is to then implicitly enable the hyperlink attribute for a cell
 //! as we recognize linkable input text during print() processing.
-use failure::{err_msg, Error};
+use failure::{ensure, err_msg, Error};
 use regex::{Captures, Regex};
 use serde::{self, Deserialize, Deserializer};
 use serde_derive::*;
