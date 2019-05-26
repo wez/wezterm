@@ -2,7 +2,7 @@ use crate::config::Config;
 use crate::mux::Mux;
 use crate::server::codec::*;
 use crate::server::{UnixListener, UnixStream};
-use failure::{err_msg, Error};
+use failure::{err_msg, format_err, Error};
 #[cfg(unix)]
 use libc::{mode_t, umask};
 use promise::{Executor, Future};
@@ -178,6 +178,7 @@ fn safely_create_sock_path(sock_path: &String) -> Result<UnixListener, Error> {
 
         let permissions = meta.permissions();
         if (permissions.mode() & 0o22) != 0 {
+            use failure::bail;
             bail!(
                 "The permissions for {} are insecure and currently
                 allow other users to write to it (permissions={:?})",

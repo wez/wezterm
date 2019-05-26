@@ -11,7 +11,7 @@
 #![allow(dead_code)]
 
 use crate::mux::tab::TabId;
-use failure::Error;
+use failure::{bail, Error};
 use leb128;
 use serde_derive::*;
 use std::collections::HashMap;

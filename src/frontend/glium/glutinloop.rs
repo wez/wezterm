@@ -6,7 +6,7 @@ use crate::frontend::FrontEnd;
 use crate::mux::tab::Tab;
 use crate::mux::{Mux, SessionTerminated};
 use crate::spawn_tab;
-use failure::Error;
+use failure::{bail, Error};
 use glium;
 use glium::glutin::EventsLoopProxy;
 use glium::glutin::WindowId;

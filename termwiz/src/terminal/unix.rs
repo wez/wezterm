@@ -1,5 +1,5 @@
 use crate::istty::IsTty;
-use failure::Error;
+use failure::{bail, ensure, format_err, Error};
 use libc::{self, poll, pollfd, winsize, POLLIN};
 use signal_hook::{self, SigId};
 use std::collections::VecDeque;

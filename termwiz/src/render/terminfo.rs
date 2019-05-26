@@ -8,7 +8,7 @@ use crate::escape::OneBased;
 use crate::image::TextureCoordinate;
 use crate::surface::{Change, CursorShape, Position};
 use crate::terminal::unix::UnixTty;
-use failure::{self, Error};
+use failure::Fallible;
 use std::io::{Read, Write};
 use terminfo::{capability as cap, Capability as TermInfoCapability};
 
@@ -48,10 +48,7 @@ impl TerminfoRenderer {
     }
 
     #[cfg_attr(feature = "cargo-clippy", allow(clippy::cyclomatic_complexity))]
-    fn flush_pending_attr<W: UnixTty + Write>(
-        &mut self,
-        out: &mut W,
-    ) -> Result<(), failure::Error> {
+    fn flush_pending_attr<W: UnixTty + Write>(&mut self, out: &mut W) -> Fallible<()> {
         macro_rules! attr_on_off {
             ($cap_on:ident, $cap_off:ident, $attr:expr, $accesor:ident, $sgr:ident) => {
                 let value = $attr.$accesor();
@@ -243,7 +240,7 @@ impl TerminfoRenderer {
         Ok(())
     }
 
-    fn cursor_up<W: UnixTty + Write>(&mut self, n: u32, out: &mut W) -> Result<(), Error> {
+    fn cursor_up<W: UnixTty + Write>(&mut self, n: u32, out: &mut W) -> Fallible<()> {
         if let Some(attr) = self.get_capability::<cap::ParmUpCursor>() {
             attr.expand().count(n).to(out.by_ref())?;
         } else {
@@ -251,7 +248,7 @@ impl TerminfoRenderer {
         }
         Ok(())
     }
-    fn cursor_down<W: UnixTty + Write>(&mut self, n: u32, out: &mut W) -> Result<(), Error> {
+    fn cursor_down<W: UnixTty + Write>(&mut self, n: u32, out: &mut W) -> Fallible<()> {
         if let Some(attr) = self.get_capability::<cap::ParmDownCursor>() {
             attr.expand().count(n).to(out.by_ref())?;
         } else {
@@ -260,7 +257,7 @@ impl TerminfoRenderer {
         Ok(())
     }
 
-    fn cursor_left<W: UnixTty + Write>(&mut self, n: u32, out: &mut W) -> Result<(), Error> {
+    fn cursor_left<W: UnixTty + Write>(&mut self, n: u32, out: &mut W) -> Fallible<()> {
         if let Some(attr) = self.get_capability::<cap::ParmLeftCursor>() {
             attr.expand().count(n).to(out.by_ref())?;
         } else {
@@ -268,7 +265,7 @@ impl TerminfoRenderer {
         }
         Ok(())
     }
-    fn cursor_right<W: UnixTty + Write>(&mut self, n: u32, out: &mut W) -> Result<(), Error> {
+    fn cursor_right<W: UnixTty + Write>(&mut self, n: u32, out: &mut W) -> Fallible<()> {
         if let Some(attr) = self.get_capability::<cap::ParmRightCursor>() {
             attr.expand().count(n).to(out.by_ref())?;
         } else {
@@ -285,7 +282,7 @@ impl TerminfoRenderer {
         changes: &[Change],
         _read: &mut R,
         out: &mut W,
-    ) -> Result<(), failure::Error> {
+    ) -> Fallible<()> {
         macro_rules! record {
             ($accesor:ident, $value:expr) => {
                 self.attr_apply(|attr| {
@@ -690,7 +687,7 @@ mod test {
     use crate::terminal::unix::{Purge, SetAttributeWhen, UnixTty};
     use crate::terminal::ScreenSize;
     use crate::terminal::{cast, Terminal, TerminalWaker};
-    use failure::Error;
+    use failure::{bail, Fallible};
     use libc::winsize;
     use std::io::{Error as IoError, ErrorKind, Read, Result as IoResult, Write};
     use std::mem;
@@ -748,25 +745,25 @@ mod test {
     }
 
     impl UnixTty for FakeTty {
-        fn get_size(&mut self) -> Result<winsize, Error> {
+        fn get_size(&mut self) -> Fallible<winsize> {
             Ok(self.size.clone())
         }
-        fn set_size(&mut self, size: winsize) -> Result<(), Error> {
+        fn set_size(&mut self, size: winsize) -> Fallible<()> {
             self.size = size.clone();
             Ok(())
         }
-        fn get_termios(&mut self) -> Result<Termios, Error> {
+        fn get_termios(&mut self) -> Fallible<Termios> {
             Ok(self.termios.clone())
         }
-        fn set_termios(&mut self, termios: &Termios, _when: SetAttributeWhen) -> Result<(), Error> {
+        fn set_termios(&mut self, termios: &Termios, _when: SetAttributeWhen) -> Fallible<()> {
             self.termios = termios.clone();
             Ok(())
         }
         /// Waits until all written data has been transmitted.
-        fn drain(&mut self) -> Result<(), Error> {
+        fn drain(&mut self) -> Fallible<()> {
             Ok(())
         }
-        fn purge(&mut self, _purge: Purge) -> Result<(), Error> {
+        fn purge(&mut self, _purge: Purge) -> Fallible<()> {
             Ok(())
         }
     }
@@ -815,24 +812,24 @@ mod test {
     }
 
     impl Terminal for FakeTerm {
-        fn set_raw_mode(&mut self) -> Result<(), Error> {
+        fn set_raw_mode(&mut self) -> Fallible<()> {
             bail!("not implemented");
         }
 
-        fn enter_alternate_screen(&mut self) -> Result<(), Error> {
+        fn enter_alternate_screen(&mut self) -> Fallible<()> {
             bail!("not implemented");
         }
 
-        fn exit_alternate_screen(&mut self) -> Result<(), Error> {
+        fn exit_alternate_screen(&mut self) -> Fallible<()> {
             bail!("not implemented");
         }
 
-        fn render(&mut self, changes: &[Change]) -> Result<(), Error> {
+        fn render(&mut self, changes: &[Change]) -> Fallible<()> {
             self.renderer
                 .render_to(changes, &mut self.read, &mut self.write)
         }
 
-        fn get_screen_size(&mut self) -> Result<ScreenSize, Error> {
+        fn get_screen_size(&mut self) -> Fallible<ScreenSize> {
             let size = self.write.get_size()?;
             Ok(ScreenSize {
                 rows: cast(size.ws_row)?,
@@ -842,7 +839,7 @@ mod test {
             })
         }
 
-        fn set_screen_size(&mut self, size: ScreenSize) -> Result<(), Error> {
+        fn set_screen_size(&mut self, size: ScreenSize) -> Fallible<()> {
             let size = winsize {
                 ws_row: cast(size.rows)?,
                 ws_col: cast(size.cols)?,
@@ -853,11 +850,11 @@ mod test {
             self.write.set_size(size)
         }
 
-        fn flush(&mut self) -> Result<(), Error> {
+        fn flush(&mut self) -> Fallible<()> {
             Ok(())
         }
 
-        fn poll_input(&mut self, _wait: Option<Duration>) -> Result<Option<InputEvent>, Error> {
+        fn poll_input(&mut self, _wait: Option<Duration>) -> Fallible<Option<InputEvent>> {
             bail!("not implemented");
         }
 

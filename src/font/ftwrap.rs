@@ -1,6 +1,6 @@
 //! Higher level freetype bindings
 
-use failure::Error;
+use failure::{bail, format_err, Error};
 pub use freetype::*;
 use std::ffi::CString;
 use std::ptr;

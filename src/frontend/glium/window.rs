@@ -1,7 +1,6 @@
 //! Generic system dependent windows via glium+glutin
 
 use crate::config::Config;
-use crate::failure::Error;
 use crate::font::FontConfiguration;
 use crate::frontend::glium::glutinloop::GuiEventLoop;
 use crate::frontend::guicommon::host::{HostHelper, HostImpl, TabHost};
@@ -10,6 +9,7 @@ use crate::mux::tab::{Tab, TabId};
 use crate::mux::window::WindowId;
 use crate::mux::{Mux, SessionTerminated};
 use crate::opengl::render::Renderer;
+use failure::{format_err, Error};
 use glium;
 use glium::glutin::dpi::{LogicalPosition, LogicalSize, PhysicalPosition, PhysicalSize};
 use glium::glutin::{self, ElementState, MouseCursor};

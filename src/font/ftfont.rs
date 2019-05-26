@@ -1,6 +1,6 @@
 use super::hbwrap as harfbuzz;
 use crate::font::{ftwrap, Font, FontMetrics, RasterizedGlyph};
-use failure::Error;
+use failure::{bail, Error};
 use std::cell::RefCell;
 use std::mem;
 use std::slice;

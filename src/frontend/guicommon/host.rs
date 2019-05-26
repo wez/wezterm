@@ -3,7 +3,7 @@ use crate::frontend::gui_executor;
 use crate::mux::tab::{Tab, TabId};
 use crate::mux::Mux;
 use clipboard::{ClipboardContext, ClipboardProvider};
-use failure::Error;
+use failure::{format_err, Error};
 use promise::Future;
 use std::ops::{Deref, DerefMut};
 use std::sync::{Arc, Mutex};

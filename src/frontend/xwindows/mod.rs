@@ -1,7 +1,7 @@
-use libc;
 use term::{KeyCode, KeyModifiers};
 mod keyboard;
 use egli;
+use failure::{bail, err_msg, format_err, Error};
 use gl;
 use glium;
 use glium::backend::Backend;
@@ -22,7 +22,6 @@ use xcb;
 use xcb_util;
 use xcb_util::ffi::keysyms::{xcb_key_symbols_alloc, xcb_key_symbols_free, xcb_key_symbols_t};
 
-use failure::{self, Error};
 pub type Result<T> = result::Result<T, Error>;
 
 mod xkeysyms;
@@ -143,7 +142,7 @@ impl Connection {
 
         let first_config = *configs
             .first()
-            .ok_or_else(|| failure::err_msg("no compatible EGL configuration was found"))?;
+            .ok_or_else(|| err_msg("no compatible EGL configuration was found"))?;
 
         let (keyboard, kbd_ev) = Keyboard::new(&conn)?;
         Ok(Connection {
@@ -226,7 +225,7 @@ impl Window {
             let screen = setup
                 .roots()
                 .nth(conn.screen_num() as usize)
-                .ok_or_else(|| failure::err_msg("no screen?"))?;
+                .ok_or_else(|| err_msg("no screen?"))?;
 
             let window_id = conn.conn().generate_id();
 

@@ -1,7 +1,7 @@
 use crate::config::Config;
 use crate::server::codec::*;
 use crate::server::UnixStream;
-use failure::{err_msg, Error};
+use failure::{bail, ensure, err_msg, Error};
 use std::path::Path;
 use std::sync::Arc;
 

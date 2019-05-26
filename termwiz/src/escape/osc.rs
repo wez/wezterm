@@ -1,7 +1,7 @@
 pub use crate::hyperlink::Hyperlink;
 use base64;
 use bitflags::bitflags;
-use failure::{self, bail, ensure, err_msg, Error};
+use failure::{bail, ensure, err_msg, Fallible};
 use num;
 use num_derive::*;
 use ordered_float::NotNaN;
@@ -44,7 +44,7 @@ pub struct Selection :u16{
 }
 
 impl Selection {
-    fn try_parse(buf: &[u8]) -> Result<Selection, Error> {
+    fn try_parse(buf: &[u8]) -> Fallible<Selection> {
         if buf == b"" {
             Ok(Selection::SELECT | Selection::CUT0)
         } else {
@@ -110,7 +110,7 @@ impl OperatingSystemCommand {
         })
     }
 
-    fn parse_selection(osc: &[&[u8]]) -> Result<Self, Error> {
+    fn parse_selection(osc: &[&[u8]]) -> Fallible<Self> {
         if osc.len() == 2 {
             Selection::try_parse(osc[1]).map(OperatingSystemCommand::ClearSelection)
         } else if osc.len() == 3 && osc[2] == b"?" {
@@ -125,12 +125,12 @@ impl OperatingSystemCommand {
         }
     }
 
-    fn internal_parse(osc: &[&[u8]]) -> Result<Self, failure::Error> {
+    fn internal_parse(osc: &[&[u8]]) -> Fallible<Self> {
         ensure!(!osc.is_empty(), "no params");
         let p1str = String::from_utf8_lossy(osc[0]);
         let code: i64 = p1str.parse()?;
         let osc_code: OperatingSystemCommandCode =
-            num::FromPrimitive::from_i64(code).ok_or_else(|| failure::err_msg("unknown code"))?;
+            num::FromPrimitive::from_i64(code).ok_or_else(|| err_msg("unknown code"))?;
 
         macro_rules! single_string {
             ($variant:ident) => {{
@@ -291,7 +291,7 @@ pub struct ITermFileData {
 }
 
 impl ITermFileData {
-    fn parse(osc: &[&[u8]]) -> Result<Self, Error> {
+    fn parse(osc: &[&[u8]]) -> Fallible<Self> {
         let mut params = HashMap::new();
 
         // Unfortunately, the encoding for the file download data is
@@ -430,7 +430,7 @@ impl Display for ITermDimension {
 }
 
 impl ITermDimension {
-    fn parse(s: &str) -> Result<Self, Error> {
+    fn parse(s: &str) -> Fallible<Self> {
         if s == "auto" {
             Ok(ITermDimension::Automatic)
         } else if s.ends_with("px") {
@@ -465,7 +465,7 @@ impl ITermDimension {
 
 impl ITermProprietary {
     #[cfg_attr(feature = "cargo-clippy", allow(clippy::cyclomatic_complexity))]
-    fn parse(osc: &[&[u8]]) -> Result<Self, Error> {
+    fn parse(osc: &[&[u8]]) -> Fallible<Self> {
         // iTerm has a number of different styles of OSC parameter
         // encodings, which makes this section of code a bit gnarly.
         ensure!(osc.len() > 1, "not enough args");

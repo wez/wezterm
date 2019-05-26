@@ -5,7 +5,7 @@ use crate::frontend::FrontEnd;
 use crate::mux::tab::Tab;
 use crate::mux::Mux;
 use crate::server::listener::spawn_listener;
-use failure::Error;
+use failure::{bail, Error};
 use promise::Executor;
 use promise::SpawnFunc;
 use std::rc::Rc;

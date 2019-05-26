@@ -5,7 +5,7 @@ use crate::font::ftfont::FreeTypeFontImpl;
 use crate::font::{
     ftwrap, shape_with_harfbuzz, FallbackIdx, Font, FontSystem, GlyphInfo, NamedFont,
 };
-use failure::Error;
+use failure::{format_err, Error};
 
 struct NamedFontImpl {
     _lib: ftwrap::Library,

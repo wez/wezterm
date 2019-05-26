@@ -1,4 +1,4 @@
-use failure::Error;
+use failure::{bail, format_err, Error};
 use serde_derive::*;
 mod ftfont;
 mod hbwrap;

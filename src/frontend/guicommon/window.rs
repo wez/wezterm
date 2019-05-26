@@ -6,7 +6,7 @@ use crate::mux::window::WindowId;
 use crate::mux::Mux;
 use crate::opengl::render::Renderer;
 use crate::opengl::textureatlas::OutOfTextureSpace;
-use failure::Error;
+use failure::{format_err, Error};
 use glium;
 use portable_pty::{PtySize, PtySystemSelection};
 use std::rc::Rc;

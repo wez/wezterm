@@ -2,6 +2,7 @@
 // and inclusive range
 #![cfg_attr(feature = "cargo-clippy", allow(clippy::range_plus_one))]
 use super::*;
+use failure::bail;
 use image::{self, GenericImageView};
 use ordered_float::NotNaN;
 use std::fmt::Write;

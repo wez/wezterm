@@ -1,6 +1,6 @@
 //! Slightly higher level helper for fontconfig
 
-use failure::{self, Error};
+use failure::{ensure, err_msg, format_err, Error};
 pub use fontconfig::*;
 use std::ffi::{CStr, CString};
 use std::mem;
@@ -72,11 +72,11 @@ impl FcResultWrap {
         // we did was import them from elsewhere
         #[allow(non_upper_case_globals)]
         match self.0 {
-            FcResultMatch => failure::err_msg("FcResultMatch"),
-            FcResultNoMatch => failure::err_msg("FcResultNoMatch"),
-            FcResultTypeMismatch => failure::err_msg("FcResultTypeMismatch"),
-            FcResultNoId => failure::err_msg("FcResultNoId"),
-            FcResultOutOfMemory => failure::err_msg("FcResultOutOfMemory"),
+            FcResultMatch => err_msg("FcResultMatch"),
+            FcResultNoMatch => err_msg("FcResultNoMatch"),
+            FcResultTypeMismatch => err_msg("FcResultTypeMismatch"),
+            FcResultNoId => err_msg("FcResultNoId"),
+            FcResultOutOfMemory => err_msg("FcResultOutOfMemory"),
             _ => format_err!("FcResult holds invalid value {}", self.0),
         }
     }

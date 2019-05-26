@@ -2,7 +2,7 @@ use crate::config::Config;
 use crate::font::FontConfiguration;
 use crate::mux::tab::Tab;
 use crate::mux::Mux;
-use failure::Error;
+use failure::{format_err, Error};
 use promise::Executor;
 use serde_derive::*;
 use std::cell::RefCell;
@@ -56,7 +56,7 @@ impl FrontEndSelection {
             #[cfg(all(unix, not(target_os = "macos")))]
             FrontEndSelection::X11 => xwindows::x11loop::X11FrontEnd::try_new(mux),
             #[cfg(not(all(unix, not(target_os = "macos"))))]
-            FrontEndSelection::X11 => bail!("X11 not compiled in"),
+            FrontEndSelection::X11 => failure::bail!("X11 not compiled in"),
             FrontEndSelection::MuxServer => muxserver::MuxServerFrontEnd::try_new(mux),
             FrontEndSelection::Null => muxserver::MuxServerFrontEnd::new_null(mux),
         }?;

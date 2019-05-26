@@ -1,7 +1,8 @@
-use super::libc;
 use super::xkeysyms::keysym_to_keycode;
 use super::Error;
 use super::{KeyCode, KeyModifiers};
+use failure::{ensure, format_err};
+use libc;
 use std::cell::RefCell;
 use std::ffi::CStr;
 use xkb::compose::Status as ComposeStatus;

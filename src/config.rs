@@ -3,7 +3,7 @@
 use crate::font::FontSystemSelection;
 use crate::frontend::FrontEndSelection;
 use crate::get_shell;
-use failure::{err_msg, Error};
+use failure::{bail, err_msg, format_err, Error};
 use lazy_static::lazy_static;
 use portable_pty::{CommandBuilder, PtySystemSelection};
 use serde_derive::*;

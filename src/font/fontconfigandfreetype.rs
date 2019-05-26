@@ -5,7 +5,7 @@ use crate::config::{Config, TextStyle};
 use crate::font::ftfont::FreeTypeFontImpl;
 use crate::font::{fcwrap, ftwrap};
 use crate::font::{shape_with_harfbuzz, FallbackIdx, Font, FontSystem, GlyphInfo, NamedFont};
-use failure::{self, Error};
+use failure::{bail, ensure, err_msg, Error};
 
 pub type FontSystemImpl = FontConfigAndFreeType;
 
@@ -115,7 +115,7 @@ impl NamedFontImpl {
             .font_list
             .iter()
             .nth(idx)
-            .ok_or_else(|| failure::err_msg("no more fallbacks"))?;
+            .ok_or_else(|| err_msg("no more fallbacks"))?;
         let pat = self.pattern.render_prepare(&pat)?;
         let file = pat.get_file()?;
 

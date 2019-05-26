@@ -1,5 +1,5 @@
 use crate::config::{Config, TextStyle};
-use failure::Error;
+use failure::{format_err, Error};
 use font_loader::system_fonts;
 
 pub fn load_system_fonts(

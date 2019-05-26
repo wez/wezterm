@@ -2,10 +2,6 @@
 #![windows_subsystem = "windows"]
 
 #[macro_use]
-extern crate failure;
-#[macro_use]
-extern crate failure_derive;
-#[macro_use]
 pub mod log;
 use failure::Error;
 use std::ffi::OsString;
@@ -41,6 +37,7 @@ fn get_shell() -> Result<String, Error> {
         if ent.is_null() {
             Ok("/bin/sh".into())
         } else {
+            use failure::format_err;
             use std::ffi::CStr;
             use std::str;
             let shell = unsafe { CStr::from_ptr((*ent).pw_shell) };
