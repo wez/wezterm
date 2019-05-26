@@ -7,6 +7,7 @@ use bitflags::bitflags;
 mod c1;
 mod csi;
 mod selection;
+use pretty_assertions::assert_eq;
 use std::sync::Arc;
 use termwiz::escape::csi::{Edit, EraseInDisplay, EraseInLine};
 use termwiz::escape::{OneBased, OperatingSystemCommand, CSI};
@@ -275,7 +276,13 @@ fn assert_lines_equal(lines: &[Line], expect_lines: &[Line], compare: Compare) {
         if compare.contains(Compare::ATTRS) {
             let line_attrs: Vec<_> = line.cells().iter().map(|c| c.attrs().clone()).collect();
             let expect_attrs: Vec<_> = expect.cells().iter().map(|c| c.attrs().clone()).collect();
-            assert_eq!(expect_attrs, line_attrs, "line {} attrs didn't match", idx,);
+            assert_eq!(
+                expect_attrs,
+                line_attrs,
+                "line {} `{}` attrs didn't match (left=expected, right=actual)",
+                idx,
+                line.as_str()
+            );
         }
         if compare.contains(Compare::TEXT) {
             let line_str = line.as_str();
@@ -519,9 +526,9 @@ fn test_hyperlinks() {
     assert_lines_equal(
         &term.screen().visible_lines(),
         &[
-            Line::from_text("hello", &linked),
-            "     ".into(),
-            "     ".into(),
+            Line::from_text_with_wrapped_last_col("hello", &linked),
+            Line::from_text("     ", &CellAttributes::default()),
+            Line::from_text("     ", &CellAttributes::default()),
         ],
         Compare::TEXT | Compare::ATTRS,
     );
@@ -535,8 +542,8 @@ fn test_hyperlinks() {
     assert_lines_equal(
         &term.screen().visible_lines(),
         &[
-            Line::from_text("hello", &linked),
-            Line::from_text("hey!!", &linked),
+            Line::from_text_with_wrapped_last_col("hello", &linked),
+            Line::from_text_with_wrapped_last_col("hey!!", &linked),
             "     ".into(),
         ],
         Compare::TEXT | Compare::ATTRS,
@@ -551,7 +558,8 @@ fn test_hyperlinks() {
     term.soft_reset();
     term.print("00t");
 
-    let mut partial_line: Line = "wo00t".into();
+    let mut partial_line =
+        Line::from_text_with_wrapped_last_col("wo00t", &CellAttributes::default());
     partial_line.set_cell(
         0,
         Cell::new(
@@ -574,8 +582,8 @@ fn test_hyperlinks() {
     assert_lines_equal(
         &term.screen().visible_lines(),
         &[
-            Line::from_text("hello", &linked),
-            Line::from_text("hey!!", &linked),
+            Line::from_text_with_wrapped_last_col("hello", &linked),
+            Line::from_text_with_wrapped_last_col("hey!!", &linked),
             partial_line,
         ],
         Compare::TEXT | Compare::ATTRS,

@@ -141,6 +141,7 @@ impl CellAttributes {
     bitfield!(reverse, set_reverse, 7);
     bitfield!(strikethrough, set_strikethrough, 8);
     bitfield!(invisible, set_invisible, 9);
+    bitfield!(wrapped, set_wrapped, 10);
 
     /// Returns true if the attribute bits in both objects are equal.
     /// This can be used to cheaply test whether the styles of the two
@@ -293,6 +294,10 @@ impl Cell {
     /// Returns the attributes of the cell
     pub fn attrs(&self) -> &CellAttributes {
         &self.attrs
+    }
+
+    pub fn attrs_mut(&mut self) -> &mut CellAttributes {
+        &mut self.attrs
     }
 }
 

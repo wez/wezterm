@@ -1,4 +1,5 @@
 use super::*;
+use pretty_assertions::assert_eq;
 
 /// Test basic dragging to select some text
 #[test]
@@ -71,7 +72,7 @@ fn double_click_wrapped_selection() {
     assert_visible_contents(&term, &["hello worl", "d         ", "          "]);
     term.click_n(7, 0, MouseButton::Left, 2);
 
-    assert_eq!(term.get_clipboard().unwrap(), "worl\nd");
+    assert_eq!(term.get_clipboard().unwrap(), "world");
 }
 
 /// Make sure that we adjust for the viewport offset when scrolling

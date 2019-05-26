@@ -15,6 +15,7 @@ use termwiz::escape::osc::{ITermFileData, ITermProprietary};
 use termwiz::escape::{Action, ControlCode, Esc, EscCode, OneBased, OperatingSystemCommand, CSI};
 use termwiz::hyperlink::Rule as HyperlinkRule;
 use termwiz::image::{ImageCell, ImageData, TextureCoordinate};
+use unicode_width::UnicodeWidthStr;
 
 struct TabStop {
     tabs: Vec<bool>,
@@ -295,13 +296,19 @@ impl TerminalState {
 
         if let Some(sel) = self.selection_range.as_ref().map(|r| r.normalize()) {
             let screen = self.screen();
+            let mut last_was_wrapped = false;
             for y in sel.rows() {
                 let idx = screen.scrollback_or_visible_row(y);
                 let cols = sel.cols_for_row(y);
-                if !s.is_empty() {
+                let last_col_idx = cols.end.min(screen.lines[idx].cells().len()) - 1;
+                if !s.is_empty() && !last_was_wrapped {
                     s.push('\n');
                 }
                 s.push_str(screen.lines[idx].columns_as_str(cols).trim_end());
+
+                let last_cell = &screen.lines[idx].cells()[last_col_idx];
+                // TODO: should really test for any unicode whitespace
+                last_was_wrapped = last_cell.attrs().wrapped() && last_cell.str() != " ";
             }
         }
 
@@ -452,7 +459,7 @@ impl TerminalState {
                     y,
                 },
                 end: SelectionCoordinate {
-                    x: click_range.end,
+                    x: click_range.end - 1,
                     y,
                 },
             },
@@ -463,7 +470,7 @@ impl TerminalState {
                 };
 
                 let mut end_coord = SelectionCoordinate {
-                    x: range_start.end,
+                    x: range_start.end - 1,
                     y,
                 };
 
@@ -474,7 +481,7 @@ impl TerminalState {
                         DoubleClickRange::Range(range_end) => {
                             if range_end.end > range_end.start {
                                 end_coord = SelectionCoordinate {
-                                    x: range_end.end,
+                                    x: range_end.end - 1,
                                     y: y + (y_cont - idx) as i32,
                                 };
                             }
@@ -482,7 +489,7 @@ impl TerminalState {
                         }
                         DoubleClickRange::RangeWithWrap(range_end) => {
                             end_coord = SelectionCoordinate {
-                                x: range_end.end,
+                                x: range_end.end - 1,
                                 y: y + (y_cont - idx) as i32,
                             };
                         }
@@ -1932,15 +1939,19 @@ impl<'a> Performer<'a> {
             let y = self.cursor.y;
             let width = self.screen().physical_cols;
 
-            let pen = self.pen.clone();
-
-            let cell = Cell::new_grapheme(g, pen.clone());
+            let mut pen = self.pen.clone();
             // the max(1) here is to ensure that we advance to the next cell
             // position for zero-width graphemes.  We want to make sure that
             // they occupy a cell so that we can re-emit them when we output them.
             // If we didn't do this, then we'd effectively filter them out from
             // the model, which seems like a lossy design choice.
-            let print_width = cell.width().max(1);
+            let print_width = UnicodeWidthStr::width(g).max(1);
+
+            if !self.insert && x + print_width >= width {
+                pen.set_wrapped(true);
+            }
+
+            let cell = Cell::new_grapheme(g, pen);
 
             if self.insert {
                 let screen = self.screen_mut();
