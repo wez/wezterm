@@ -30,6 +30,11 @@ pub struct Line {
     cells: Vec<Cell>,
 }
 
+pub enum DoubleClickRange {
+    Range(Range<usize>),
+    RangeWithWrap(Range<usize>),
+}
+
 impl Line {
     pub fn with_width(width: usize) -> Self {
         let mut cells = Vec::with_capacity(width);
@@ -186,7 +191,7 @@ impl Line {
         &self,
         click_col: usize,
         is_word: fn(s: &str) -> bool,
-    ) -> Range<usize> {
+    ) -> DoubleClickRange {
         let mut lower = click_col;
         let mut upper = click_col;
 
@@ -196,7 +201,7 @@ impl Line {
             if !is_word(cell.str()) {
                 break;
             }
-            upper = idx;
+            upper = idx + 1;
         }
         for (idx, cell) in self.cells.iter().enumerate().rev() {
             if idx > click_col {
@@ -208,7 +213,11 @@ impl Line {
             lower = idx;
         }
 
-        lower..upper
+        if upper == self.cells().len() {
+            DoubleClickRange::RangeWithWrap(lower..upper)
+        } else {
+            DoubleClickRange::Range(lower..upper)
+        }
     }
 
     /// Returns a substring from the line.

@@ -228,6 +228,20 @@ fn write_all(w: &mut std::io::Write, mut buf: &[u8]) -> std::io::Result<()> {
     Ok(())
 }
 
+fn is_double_click_word(s: &str) -> bool {
+    // TODO: add configuration for this
+    if s.len() > 1 {
+        true
+    } else if s.len() == 1 {
+        match s.chars().nth(0).unwrap() {
+            ' ' | '\t' | '\n' | '{' | '[' | '}' | ']' | '(' | ')' | '"' | '\'' => false,
+            _ => true,
+        }
+    } else {
+        false
+    }
+}
+
 impl TerminalState {
     pub fn new(
         physical_rows: usize,
@@ -429,34 +443,65 @@ impl TerminalState {
         let y = event.y as ScrollbackOrVisibleRowIndex
             - self.viewport_offset as ScrollbackOrVisibleRowIndex;
         let idx = self.screen().scrollback_or_visible_row(y);
-        let click_range = self.screen().lines[idx].compute_double_click_range(event.x, |s| {
-            // TODO: add configuration for this
-            if s.len() > 1 {
-                true
-            } else if s.len() == 1 {
-                match s.chars().nth(0).unwrap() {
-                    ' ' | '\t' | '\n' | '{' | '[' | '}' | ']' | '(' | ')' | '"' | '\'' => false,
-                    _ => true,
-                }
-            } else {
-                false
-            }
-        });
+        let selection_range = match self.screen().lines[idx]
+            .compute_double_click_range(event.x, is_double_click_word)
+        {
+            DoubleClickRange::Range(click_range) => SelectionRange {
+                start: SelectionCoordinate {
+                    x: click_range.start,
+                    y,
+                },
+                end: SelectionCoordinate {
+                    x: click_range.end,
+                    y,
+                },
+            },
+            DoubleClickRange::RangeWithWrap(range_start) => {
+                let start_coord = SelectionCoordinate {
+                    x: range_start.start,
+                    y,
+                };
 
-        self.selection_start = Some(SelectionCoordinate {
-            x: click_range.start,
-            y,
-        });
-        self.selection_range = Some(SelectionRange {
-            start: SelectionCoordinate {
-                x: click_range.start,
-                y,
-            },
-            end: SelectionCoordinate {
-                x: click_range.end,
-                y,
-            },
-        });
+                let mut end_coord = SelectionCoordinate {
+                    x: range_start.end,
+                    y,
+                };
+
+                for y_cont in idx + 1..self.screen().lines.len() {
+                    match self.screen().lines[y_cont]
+                        .compute_double_click_range(0, is_double_click_word)
+                    {
+                        DoubleClickRange::Range(range_end) => {
+                            if range_end.end > range_end.start {
+                                end_coord = SelectionCoordinate {
+                                    x: range_end.end,
+                                    y: y + (y_cont - idx) as i32,
+                                };
+                            }
+                            break;
+                        }
+                        DoubleClickRange::RangeWithWrap(range_end) => {
+                            end_coord = SelectionCoordinate {
+                                x: range_end.end,
+                                y: y + (y_cont - idx) as i32,
+                            };
+                        }
+                    }
+                }
+
+                SelectionRange {
+                    start: start_coord,
+                    end: end_coord,
+                }
+            }
+        };
+
+        // TODO: if selection_range.start.x == 0, search backwards for wrapping
+        // lines too.
+
+        self.selection_start = Some(selection_range.start);
+        self.selection_range = Some(selection_range);
+
         self.dirty_selection_lines();
         let text = self.get_selection_text();
         debug!(
