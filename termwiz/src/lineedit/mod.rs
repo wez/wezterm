@@ -29,6 +29,7 @@
 //! Ctrl-J, Ctrl-M, Enter | Finish line editing and accept the current line
 //! Ctrl-K        | Delete from cursor to end of line
 //! Ctrl-L        | Move the cursor to the top left, clear screen and repaint
+//! Ctrl-W        | Delete word leading up to cursor
 //! Alt-b, Alt-Left | Move the cursor backwards one word
 //! Alt-f, Alt-Right | Move the cursor forwards one word
 use crate::caps::{Capabilities, ProbeHintsBuilder};
@@ -159,6 +160,12 @@ impl<T: Terminal> LineEditor<T> {
                 key: KeyCode::LeftArrow,
                 modifiers: Modifiers::NONE,
             }) => Some(Action::Move(Movement::BackwardChar(1))),
+
+            InputEvent::Key(KeyEvent {
+                key: KeyCode::Char('W'),
+                modifiers: Modifiers::CTRL,
+            })
+             => Some(Action::Kill(Movement::BackwardWord(1))),
 
             InputEvent::Key(KeyEvent {
                 key: KeyCode::Char('b'),
