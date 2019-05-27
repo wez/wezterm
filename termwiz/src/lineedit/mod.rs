@@ -27,6 +27,7 @@
 //! Ctrl-F, Right | Move cursor one grapheme to the right
 //! Ctrl-H, Backspace | Delete the grapheme to the left of the cursor
 //! Ctrl-J, Ctrl-M, Enter | Finish line editing and accept the current line
+//! Ctrl-K        | Delete from cursor to end of line
 //! Ctrl-L        | Move the cursor to the top left, clear screen and repaint
 use crate::caps::{Capabilities, ProbeHintsBuilder};
 use crate::input::{InputEvent, KeyCode, KeyEvent, Modifiers};
@@ -189,6 +190,10 @@ impl<T: Terminal> LineEditor<T> {
                 key: KeyCode::Char('L'),
                 modifiers: Modifiers::CTRL,
             }) => Some(Action::Repaint),
+            InputEvent::Key(KeyEvent {
+                key: KeyCode::Char('K'),
+                modifiers: Modifiers::CTRL,
+            }) => Some(Action::Kill(Movement::EndOfLine)),
             _ => None,
         }
     }
@@ -241,11 +246,12 @@ impl<T: Terminal> LineEditor<T> {
             (self.cursor, new_cursor)
         };
 
-        for _ in lower..upper {
-            self.line.remove(lower);
-        }
+        self.line.replace_range(lower..upper, "");
 
-        self.cursor = new_cursor;
+        // Clamp to the line length, otherwise a kill to end of line
+        // command will leave the cursor way off beyond the end of
+        // the line.
+        self.cursor = new_cursor.min(self.line.len());
     }
 
     fn read_line_impl(&mut self) -> Fallible<String> {
