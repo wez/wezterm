@@ -27,6 +27,7 @@
 //! Ctrl-F, Right | Move cursor one grapheme to the right
 //! Ctrl-H, Backspace | Delete the grapheme to the left of the cursor
 //! Ctrl-J, Ctrl-M, Enter | Finish line editing and accept the current line
+//! Ctrl-L        | Move the cursor to the top left, clear screen and repaint
 use crate::caps::{Capabilities, ProbeHintsBuilder};
 use crate::input::{InputEvent, KeyCode, KeyEvent, Modifiers};
 use crate::surface::{Change, Position};
@@ -220,6 +221,13 @@ impl<T: Terminal> LineEditor<T> {
                 InputEvent::Paste(text) => {
                     self.line.insert_str(self.cursor, &text);
                     self.cursor += text.len();
+                }
+                InputEvent::Key(KeyEvent {
+                    key: KeyCode::Char('L'),
+                    modifiers: Modifiers::CTRL,
+                }) => {
+                    self.terminal
+                        .render(&[Change::ClearScreen(Default::default())])?;
                 }
                 _ => {}
             }
