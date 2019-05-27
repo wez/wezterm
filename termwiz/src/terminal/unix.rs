@@ -449,6 +449,12 @@ impl Terminal for UnixTerminal {
             },
         ];
 
+        self.read.set_blocking(if wait.is_none() {
+            Blocking::Wait
+        } else {
+            Blocking::DoNotWait
+        })?;
+
         let poll_result = unsafe {
             poll(
                 pfd.as_mut_ptr(),
