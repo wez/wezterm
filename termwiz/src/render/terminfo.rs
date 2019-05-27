@@ -503,6 +503,15 @@ impl TerminfoRenderer {
                     self.cursor_right(*n as u32, out)?;
                 }
                 Change::CursorPosition {
+                    x: Position::Absolute(n),
+                    y: Position::NoChange,
+                } => {
+                    out.by_ref().write_all(b"\r")?;
+                    if *n > 0 {
+                        self.cursor_right(*n as u32, out)?;
+                    }
+                }
+                Change::CursorPosition {
                     x: Position::Absolute(x),
                     y: Position::Absolute(y),
                 } => {
