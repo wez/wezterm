@@ -164,8 +164,7 @@ impl<T: Terminal> LineEditor<T> {
             InputEvent::Key(KeyEvent {
                 key: KeyCode::Char('W'),
                 modifiers: Modifiers::CTRL,
-            })
-             => Some(Action::Kill(Movement::BackwardWord(1))),
+            }) => Some(Action::Kill(Movement::BackwardWord(1))),
 
             InputEvent::Key(KeyEvent {
                 key: KeyCode::Char('b'),
