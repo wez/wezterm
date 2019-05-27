@@ -3,7 +3,7 @@
 use crate::caps::Capabilities;
 use crate::input::InputEvent;
 use crate::surface::Change;
-use failure::{format_err, Error};
+use failure::{format_err, Error, Fallible};
 use num::{self, NumCast};
 use std::fmt::Display;
 use std::time::Duration;
@@ -56,6 +56,7 @@ pub trait Terminal {
     /// pressed by the user do not implicitly render to the terminal
     /// output, and disables canonicalization of unix newlines to CRLF.
     fn set_raw_mode(&mut self) -> Result<(), Error>;
+    fn set_cooked_mode(&mut self) -> Fallible<()>;
 
     /// Enter the alternate screen.  The alternate screen will be left
     /// automatically when the `Terminal` is dropped.

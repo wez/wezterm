@@ -521,6 +521,17 @@ impl Terminal for WindowsTerminal {
         )
     }
 
+    fn set_cooked_mode(&mut self) -> Fallible<()> {
+        let mode = self.input_handle.get_input_mode()?;
+
+        self.input_handle.set_input_mode(
+            (mode & !(ENABLE_WINDOW_INPUT | ENABLE_WINDOW_INPUT))
+                | ENABLE_ECHO_INPUT
+                | ENABLE_LINE_INPUT
+                | ENABLE_PROCESSED_INPUT,
+        )
+    }
+
     fn enter_alternate_screen(&mut self) -> Result<(), Error> {
         // TODO: Implement using CreateConsoleScreenBuffer and
         // SetConsoleActiveScreenBuffer.

@@ -453,6 +453,10 @@ impl TerminfoRenderer {
                 }
                 Change::CursorPosition {
                     x: Position::Absolute(0),
+                    y: Position::NoChange,
+                }
+                | Change::CursorPosition {
+                    x: Position::Absolute(0),
                     y: Position::Relative(0),
                 } => {
                     out.by_ref().write_all(b"\r")?;

@@ -1,5 +1,5 @@
 use crate::istty::IsTty;
-use failure::{bail, ensure, format_err, Error};
+use failure::{bail, ensure, format_err, Error, Fallible};
 use libc::{self, poll, pollfd, winsize, POLLIN};
 use signal_hook::{self, SigId};
 use std::collections::VecDeque;
@@ -355,6 +355,11 @@ impl Terminal for UnixTerminal {
         self.write.flush()?;
 
         Ok(())
+    }
+
+    fn set_cooked_mode(&mut self) -> Fallible<()> {
+        self.write
+            .set_termios(&self.saved_termios, SetAttributeWhen::Now)
     }
 
     fn enter_alternate_screen(&mut self) -> Result<(), Error> {
