@@ -835,6 +835,10 @@ mod test {
             bail!("not implemented");
         }
 
+        fn set_cooked_mode(&mut self) -> Fallible<()> {
+            bail!("not implemented");
+        }
+
         fn enter_alternate_screen(&mut self) -> Fallible<()> {
             bail!("not implemented");
         }

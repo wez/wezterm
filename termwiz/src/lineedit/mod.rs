@@ -1,7 +1,7 @@
 //! The `LineEditor` struct provides line editing facilities similar
 //! to those in the unix shell.
 //!
-//! ```
+//! ```no_run
 //! use failure::Fallible;
 //! use termwiz::lineedit::line_editor;
 //!
@@ -37,7 +37,7 @@ use unicode_width::UnicodeWidthStr;
 
 /// The `LineEditor` struct provides line editing facilities similar
 /// to those in the unix shell.
-/// ```
+/// ```no_run
 /// use failure::Fallible;
 /// use termwiz::lineedit::line_editor;
 ///
@@ -66,7 +66,10 @@ impl<T: Terminal> LineEditor<T> {
     /// this snippet shows the recommended way to create a line
     /// editor:
     ///
-    /// ```
+    /// ```no_run
+    /// use termwiz::caps::{Capabilities, ProbeHintsBuilder};
+    /// use termwiz::terminal::new_terminal;
+    /// use failure::err_msg;
     /// // Disable mouse input in the line editor
     /// let hints = ProbeHintsBuilder::new_from_env()
     ///     .mouse_reporting(Some(false))
@@ -74,6 +77,7 @@ impl<T: Terminal> LineEditor<T> {
     ///     .map_err(err_msg)?;
     /// let caps = Capabilities::new_with_hints(hints)?;
     /// let terminal = new_terminal(caps)?;
+    /// # Ok::<(), failure::Error>(())
     /// ```
     pub fn new(terminal: T) -> Self {
         Self {
