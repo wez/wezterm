@@ -1,5 +1,5 @@
 use crate::istty::IsTty;
-use failure::{bail, format_err, Error};
+use failure::{bail, format_err, Error, Fallible};
 use std::cmp::{max, min};
 use std::collections::VecDeque;
 use std::fs::OpenOptions;
