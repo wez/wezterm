@@ -14,6 +14,7 @@ pub enum Movement {
 pub enum Action {
     AcceptLine,
     Cancel,
+    EndOfFile,
     InsertChar(RepeatCount, char),
     InsertText(RepeatCount, String),
     Repaint,

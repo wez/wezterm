@@ -26,6 +26,7 @@
 //! Ctrl-E, End   | Move cursor to the end of the line
 //! Ctrl-B, Left  | Move cursor one grapheme to the left
 //! Ctrl-C        | Cancel the line editor
+//! Ctrl-D        | Cancel the line editor with an End-of-File result
 //! Ctrl-F, Right | Move cursor one grapheme to the right
 //! Ctrl-H, Backspace | Delete the grapheme to the left of the cursor
 //! Ctrl-J, Ctrl-M, Enter | Finish line editing and accept the current line
@@ -171,6 +172,12 @@ impl<T: Terminal> LineEditor<T> {
                 key: KeyCode::Char('C'),
                 modifiers: Modifiers::CTRL,
             }) => Some(Action::Cancel),
+
+            InputEvent::Key(KeyEvent {
+                key: KeyCode::Char('D'),
+                modifiers: Modifiers::CTRL,
+            }) => Some(Action::EndOfFile),
+
             InputEvent::Key(KeyEvent {
                 key: KeyCode::Char('J'),
                 modifiers: Modifiers::CTRL,
@@ -409,6 +416,13 @@ impl<T: Terminal> LineEditor<T> {
             match self.resolve_action(&event) {
                 Some(Action::Cancel) => return Ok(None),
                 Some(Action::AcceptLine) => break,
+                Some(Action::EndOfFile) => {
+                    return Err(std::io::Error::new(
+                        std::io::ErrorKind::UnexpectedEof,
+                        "End Of File",
+                    )
+                    .into())
+                }
                 Some(Action::Kill(movement)) => self.kill_text(movement),
                 Some(Action::Move(movement)) => self.cursor = self.eval_movement(movement),
                 Some(Action::InsertChar(rep, c)) => {
