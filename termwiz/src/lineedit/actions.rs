@@ -19,4 +19,6 @@ pub enum Action {
     Repaint,
     Move(Movement),
     Kill(Movement),
+    HistoryPrevious,
+    HistoryNext,
 }

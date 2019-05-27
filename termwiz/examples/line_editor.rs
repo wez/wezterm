@@ -1,9 +1,12 @@
 use failure::Fallible;
 use termwiz::cell::AttributeChange;
 use termwiz::color::{AnsiColor, ColorAttribute, RgbColor};
-use termwiz::lineedit::{line_editor, LineEditorHost, OutputElement};
+use termwiz::lineedit::*;
 
-struct Host {}
+#[derive(Default)]
+struct Host {
+    history: BasicHistory,
+}
 
 impl LineEditorHost for Host {
     // Render the prompt with a darkslateblue background color if
@@ -20,14 +23,27 @@ impl LineEditorHost for Host {
             OutputElement::Text(prompt.to_owned()),
         ]
     }
+
+    fn history(&mut self) -> &mut History {
+        &mut self.history
+    }
 }
 
 fn main() -> Fallible<()> {
+    println!("Type `exit` to quit this example");
     let mut editor = line_editor()?;
 
-    let mut host = Host {};
-    let line = editor.read_line(&mut host)?;
-    println!("read line: {:?}", line);
+    let mut host = Host::default();
+    loop {
+        if let Some(line) = editor.read_line(&mut host)? {
+            println!("read line: {:?}", line);
+            if line == "exit" {
+                break;
+            }
+
+            host.history().add(&line);
+        }
+    }
 
     Ok(())
 }

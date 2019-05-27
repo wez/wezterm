@@ -3,11 +3,11 @@
 //!
 //! ```no_run
 //! use failure::Fallible;
-//! use termwiz::lineedit::{line_editor,NopLineEditorHost};
+//! use termwiz::lineedit::{line_editor, NopLineEditorHost};
 //!
 //! fn main() -> Fallible<()> {
 //!     let mut editor = line_editor()?;
-//!     let mut host = NopLineEditorHost{};
+//!     let mut host = NopLineEditorHost::default();
 //!
 //!     let line = editor.read_line(&mut host)?;
 //!     println!("read line: {:?}", line);
@@ -43,19 +43,21 @@ use unicode_segmentation::GraphemeCursor;
 use unicode_width::UnicodeWidthStr;
 
 mod actions;
+mod history;
 mod host;
 pub use actions::{Action, Movement, RepeatCount};
+pub use history::*;
 pub use host::*;
 
 /// The `LineEditor` struct provides line editing facilities similar
 /// to those in the unix shell.
 /// ```no_run
 /// use failure::Fallible;
-/// use termwiz::lineedit::{line_editor,NopLineEditorHost};
+/// use termwiz::lineedit::{line_editor, NopLineEditorHost};
 ///
 /// fn main() -> Fallible<()> {
 ///     let mut editor = line_editor()?;
-///     let mut host = NopLineEditorHost{};
+///     let mut host = NopLineEditorHost::default();
 ///
 ///     let line = editor.read_line(&mut host)?;
 ///     println!("read line: {:?}", line);
@@ -70,6 +72,9 @@ pub struct LineEditor<T: Terminal> {
     /// byte index into the UTF-8 string data of the insertion
     /// point.  This is NOT the number of graphemes!
     cursor: usize,
+
+    history_pos: Option<usize>,
+    bottom_line: Option<String>,
 }
 
 impl<T: Terminal> LineEditor<T> {
@@ -99,6 +104,8 @@ impl<T: Terminal> LineEditor<T> {
             prompt: "> ".to_owned(),
             line: String::new(),
             cursor: 0,
+            history_pos: None,
+            bottom_line: None,
         }
     }
 
@@ -184,6 +191,25 @@ impl<T: Terminal> LineEditor<T> {
                 key: KeyCode::Backspace,
                 modifiers: Modifiers::NONE,
             }) => Some(Action::Kill(Movement::BackwardChar(1))),
+
+            InputEvent::Key(KeyEvent {
+                key: KeyCode::Char('P'),
+                modifiers: Modifiers::CTRL,
+            })
+            | InputEvent::Key(KeyEvent {
+                key: KeyCode::UpArrow,
+                modifiers: Modifiers::NONE,
+            }) => Some(Action::HistoryPrevious),
+
+            InputEvent::Key(KeyEvent {
+                key: KeyCode::Char('N'),
+                modifiers: Modifiers::CTRL,
+            })
+            | InputEvent::Key(KeyEvent {
+                key: KeyCode::DownArrow,
+                modifiers: Modifiers::NONE,
+            }) => Some(Action::HistoryNext),
+
             InputEvent::Key(KeyEvent {
                 key: KeyCode::Char('B'),
                 modifiers: Modifiers::CTRL,
@@ -375,6 +401,8 @@ impl<T: Terminal> LineEditor<T> {
     fn read_line_impl(&mut self, host: &mut LineEditorHost) -> Fallible<Option<String>> {
         self.line.clear();
         self.cursor = 0;
+        self.history_pos = None;
+        self.bottom_line = None;
 
         self.render(host)?;
         while let Some(event) = self.terminal.poll_input(None)? {
@@ -402,7 +430,44 @@ impl<T: Terminal> LineEditor<T> {
                     self.terminal
                         .render(&[Change::ClearScreen(Default::default())])?;
                 }
-                _ => {}
+                Some(Action::HistoryPrevious) => {
+                    if let Some(cur_pos) = self.history_pos.as_ref() {
+                        let prior_idx = cur_pos.saturating_sub(1);
+                        if let Some(prior) = host.history().get(prior_idx) {
+                            self.history_pos = Some(prior_idx);
+                            self.line = prior.to_string();
+                            self.cursor = self.line.len();
+                        }
+                    } else {
+                        if let Some(last) = host.history().last() {
+                            self.bottom_line = Some(self.line.clone());
+                            self.history_pos = Some(last);
+                            self.line = host
+                                .history()
+                                .get(last)
+                                .expect("History::last and History::get to be consistent")
+                                .to_string();
+                            self.cursor = self.line.len();
+                        }
+                    }
+                }
+                Some(Action::HistoryNext) => {
+                    if let Some(cur_pos) = self.history_pos.as_ref() {
+                        let next_idx = cur_pos.saturating_add(1);
+                        if let Some(next) = host.history().get(next_idx) {
+                            self.history_pos = Some(next_idx);
+                            self.line = next.to_string();
+                            self.cursor = self.line.len();
+                        } else if let Some(bottom) = self.bottom_line.take() {
+                            self.line = bottom;
+                            self.cursor = self.line.len();
+                        } else {
+                            self.line.clear();
+                            self.cursor = 0;
+                        }
+                    }
+                }
+                None => {}
             }
             self.render(host)?;
         }

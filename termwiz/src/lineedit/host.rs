@@ -1,4 +1,5 @@
 use crate::cell::{AttributeChange, CellAttributes};
+use crate::lineedit::{BasicHistory, History};
 use crate::surface::Change;
 
 /// The `OutputElement` type allows returning graphic attribute changes
@@ -59,8 +60,18 @@ pub trait LineEditorHost {
     fn highlight_line(&self, line: &str, _cursor_position: usize) -> Vec<OutputElement> {
         vec![OutputElement::Text(line.to_owned())]
     }
+
+    /// Returns the history implementation
+    fn history(&mut self) -> &mut History;
 }
 
 /// A concrete implementation of `LineEditorHost` that uses the default behaviors.
-pub struct NopLineEditorHost {}
-impl LineEditorHost for NopLineEditorHost {}
+#[derive(Default)]
+pub struct NopLineEditorHost {
+    history: BasicHistory,
+}
+impl LineEditorHost for NopLineEditorHost {
+    fn history(&mut self) -> &mut History {
+        &mut self.history
+    }
+}
