@@ -3,13 +3,14 @@
 //!
 //! ```no_run
 //! use failure::Fallible;
-//! use termwiz::lineedit::line_editor;
+//! use termwiz::lineedit::{line_editor,NopLineEditorHost};
 //!
 //! fn main() -> Fallible<()> {
 //!     let mut editor = line_editor()?;
+//!     let mut host = NopLineEditorHost{};
 //!
-//!     let line = editor.read_line()?;
-//!     println!("read line: {}", line);
+//!     let line = editor.read_line(&mut host)?;
+//!     println!("read line: {:?}", line);
 //!
 //!     Ok(())
 //! }
@@ -42,25 +43,29 @@ use unicode_segmentation::GraphemeCursor;
 use unicode_width::UnicodeWidthStr;
 
 mod actions;
+mod host;
 pub use actions::{Action, Movement, RepeatCount};
+pub use host::*;
 
 /// The `LineEditor` struct provides line editing facilities similar
 /// to those in the unix shell.
 /// ```no_run
 /// use failure::Fallible;
-/// use termwiz::lineedit::line_editor;
+/// use termwiz::lineedit::{line_editor,NopLineEditorHost};
 ///
 /// fn main() -> Fallible<()> {
 ///     let mut editor = line_editor()?;
+///     let mut host = NopLineEditorHost{};
 ///
-///     let line = editor.read_line()?;
-///     println!("read line: {}", line);
+///     let line = editor.read_line(&mut host)?;
+///     println!("read line: {:?}", line);
 ///
 ///     Ok(())
 /// }
 /// ```
 pub struct LineEditor<T: Terminal> {
     terminal: T,
+    prompt: String,
     line: String,
     /// byte index into the UTF-8 string data of the insertion
     /// point.  This is NOT the number of graphemes!
@@ -91,12 +96,35 @@ impl<T: Terminal> LineEditor<T> {
     pub fn new(terminal: T) -> Self {
         Self {
             terminal,
+            prompt: "> ".to_owned(),
             line: String::new(),
             cursor: 0,
         }
     }
 
-    fn render(&mut self) -> Fallible<()> {
+    fn render(&mut self, host: &mut LineEditorHost) -> Fallible<()> {
+        let mut changes = vec![
+            Change::CursorPosition {
+                x: Position::Absolute(0),
+                y: Position::NoChange,
+            },
+            Change::ClearToEndOfScreen(Default::default()),
+            Change::AllAttributes(Default::default()),
+        ];
+
+        let mut prompt_width = 0;
+        for ele in host.render_prompt(&self.prompt) {
+            if let OutputElement::Text(ref t) = ele {
+                prompt_width += UnicodeWidthStr::width(t.as_str());
+            }
+            changes.push(ele.into());
+        }
+        changes.push(Change::AllAttributes(Default::default()));
+
+        for ele in host.highlight_line(&self.line, self.cursor) {
+            changes.push(ele.into());
+        }
+
         // In order to position the terminal cursor at the right spot,
         // we need to compute how many graphemes away from the start of
         // the line the current insertion point is.  We can do this by
@@ -105,28 +133,26 @@ impl<T: Terminal> LineEditor<T> {
         // the string, but this doesn't render correctly for glyphs that
         // are double-width.  Nothing about unicode is easy :-/
         let grapheme_count = UnicodeWidthStr::width(&self.line[0..self.cursor]);
-        self.terminal.render(&[
-            Change::CursorPosition {
-                x: Position::Absolute(0),
-                y: Position::NoChange,
-            },
-            Change::ClearToEndOfScreen(Default::default()),
-            Change::Text(self.line.clone()),
-            Change::CursorPosition {
-                x: Position::Absolute(grapheme_count),
-                y: Position::NoChange,
-            },
-        ])?;
+        changes.push(Change::CursorPosition {
+            x: Position::Absolute(prompt_width + grapheme_count),
+            y: Position::NoChange,
+        });
+
+        self.terminal.render(&changes)?;
         Ok(())
+    }
+
+    pub fn set_prompt(&mut self, prompt: &str) {
+        self.prompt = prompt.to_owned();
     }
 
     /// Enter line editing mode.
     /// Control is not returned to the caller until a line has been
     /// accepted, or until an error is detected.
     /// Returns Ok(None) if the editor was cancelled eg: via CTRL-C.
-    pub fn read_line(&mut self) -> Fallible<Option<String>> {
+    pub fn read_line(&mut self, host: &mut LineEditorHost) -> Fallible<Option<String>> {
         self.terminal.set_raw_mode()?;
-        let res = self.read_line_impl();
+        let res = self.read_line_impl(host);
         self.terminal.set_cooked_mode()?;
         println!();
         res
@@ -346,11 +372,11 @@ impl<T: Terminal> LineEditor<T> {
         self.cursor = new_cursor.min(self.line.len());
     }
 
-    fn read_line_impl(&mut self) -> Fallible<Option<String>> {
+    fn read_line_impl(&mut self, host: &mut LineEditorHost) -> Fallible<Option<String>> {
         self.line.clear();
         self.cursor = 0;
 
-        self.render()?;
+        self.render(host)?;
         while let Some(event) = self.terminal.poll_input(None)? {
             match self.resolve_action(&event) {
                 Some(Action::Cancel) => return Ok(None),
@@ -378,7 +404,7 @@ impl<T: Terminal> LineEditor<T> {
                 }
                 _ => {}
             }
-            self.render()?;
+            self.render(host)?;
         }
         Ok(Some(self.line.clone()))
     }
