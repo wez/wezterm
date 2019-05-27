@@ -1,24 +1,12 @@
 //! The `LineEditor` struct provides line editing facilities similar
 //! to those in the unix shell.
-//! It is recommended that a direct `Terminal` instance be used to
-//! construct the `LineEditor` (rather than a `BufferedTerminal`),
-//! and to disable mouse input:
 //!
 //! ```
-//! use failure::{err_msg, Fallible};
-//! use termwiz::caps::{Capabilities, ProbeHintsBuilder};
-//! use termwiz::lineedit::LineEditor;
-//! use termwiz::terminal::new_terminal;
+//! use failure::Fallible;
+//! use termwiz::lineedit::line_editor;
 //!
 //! fn main() -> Fallible<()> {
-//!     // Disable mouse input in the line editor
-//!     let hints = ProbeHintsBuilder::new_from_env()
-//!         .mouse_reporting(Some(false))
-//!         .build()
-//!         .map_err(err_msg)?;
-//!     let caps = Capabilities::new_with_hints(hints)?;
-//!     let terminal = new_terminal(caps)?;
-//!     let mut editor = LineEditor::new(terminal);
+//!     let mut editor = line_editor()?;
 //!
 //!     let line = editor.read_line()?;
 //!     println!("read line: {}", line);
@@ -39,13 +27,29 @@
 //! Ctrl-F, Right | Move cursor one grapheme to the right
 //! Ctrl-H, Backspace | Delete the grapheme to the left of the cursor
 //! Ctrl-J, Ctrl-M, Enter | Finish line editing and accept the current line
+use crate::caps::{Capabilities, ProbeHintsBuilder};
 use crate::input::{InputEvent, KeyCode, KeyEvent, Modifiers};
 use crate::surface::{Change, Position};
-use crate::terminal::Terminal;
-use failure::Fallible;
+use crate::terminal::{new_terminal, Terminal};
+use failure::{err_msg, Fallible};
 use unicode_segmentation::GraphemeCursor;
 use unicode_width::UnicodeWidthStr;
 
+/// The `LineEditor` struct provides line editing facilities similar
+/// to those in the unix shell.
+/// ```
+/// use failure::Fallible;
+/// use termwiz::lineedit::line_editor;
+///
+/// fn main() -> Fallible<()> {
+///     let mut editor = line_editor()?;
+///
+///     let line = editor.read_line()?;
+///     println!("read line: {}", line);
+///
+///     Ok(())
+/// }
+/// ```
 pub struct LineEditor<T: Terminal> {
     terminal: T,
     line: String,
@@ -56,7 +60,12 @@ pub struct LineEditor<T: Terminal> {
 
 impl<T: Terminal> LineEditor<T> {
     /// Create a new line editor.
-    /// It is recommended that the terminal be created this way:
+    /// In most cases, you'll want to use the `line_editor` function,
+    /// because it creates a `Terminal` instance with the recommended
+    /// settings, but if you need to decompose that for some reason,
+    /// this snippet shows the recommended way to create a line
+    /// editor:
+    ///
     /// ```
     /// // Disable mouse input in the line editor
     /// let hints = ProbeHintsBuilder::new_from_env()
@@ -214,4 +223,16 @@ impl<T: Terminal> LineEditor<T> {
         }
         Ok(self.line.clone())
     }
+}
+
+/// Create a `Terminal` with the recommended settings, and use that
+/// to create a `LineEditor` instance.
+pub fn line_editor() -> Fallible<LineEditor<impl Terminal>> {
+    let hints = ProbeHintsBuilder::new_from_env()
+        .mouse_reporting(Some(false))
+        .build()
+        .map_err(err_msg)?;
+    let caps = Capabilities::new_with_hints(hints)?;
+    let terminal = new_terminal(caps)?;
+    Ok(LineEditor::new(terminal))
 }
