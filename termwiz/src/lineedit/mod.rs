@@ -29,6 +29,8 @@
 //! Ctrl-J, Ctrl-M, Enter | Finish line editing and accept the current line
 //! Ctrl-K        | Delete from cursor to end of line
 //! Ctrl-L        | Move the cursor to the top left, clear screen and repaint
+//! Alt-b, Alt-Left | Move the cursor backwards one word
+//! Alt-f, Alt-Right | Move the cursor forwards one word
 use crate::caps::{Capabilities, ProbeHintsBuilder};
 use crate::input::{InputEvent, KeyCode, KeyEvent, Modifiers};
 use crate::surface::{Change, Position};
@@ -157,6 +159,25 @@ impl<T: Terminal> LineEditor<T> {
                 key: KeyCode::LeftArrow,
                 modifiers: Modifiers::NONE,
             }) => Some(Action::Move(Movement::BackwardChar(1))),
+
+            InputEvent::Key(KeyEvent {
+                key: KeyCode::Char('b'),
+                modifiers: Modifiers::ALT,
+            })
+            | InputEvent::Key(KeyEvent {
+                key: KeyCode::LeftArrow,
+                modifiers: Modifiers::ALT,
+            }) => Some(Action::Move(Movement::BackwardWord(1))),
+
+            InputEvent::Key(KeyEvent {
+                key: KeyCode::Char('f'),
+                modifiers: Modifiers::ALT,
+            })
+            | InputEvent::Key(KeyEvent {
+                key: KeyCode::RightArrow,
+                modifiers: Modifiers::ALT,
+            }) => Some(Action::Move(Movement::ForwardWord(1))),
+
             InputEvent::Key(KeyEvent {
                 key: KeyCode::Char('A'),
                 modifiers: Modifiers::CTRL,
@@ -212,6 +233,65 @@ impl<T: Terminal> LineEditor<T> {
                     }
                 }
                 position
+            }
+            Movement::BackwardWord(rep) => {
+                let char_indices: Vec<(usize, char)> = self.line.char_indices().collect();
+                if char_indices.is_empty() {
+                    return self.cursor;
+                }
+                let mut char_position = char_indices
+                    .iter()
+                    .position(|(idx, _)| *idx == self.cursor)
+                    .unwrap_or(char_indices.len() - 1);
+
+                for _ in 0..rep {
+                    if char_position == 0 {
+                        break;
+                    }
+
+                    let mut found = None;
+                    for prev in (0..char_position - 1).rev() {
+                        if char_indices[prev].1.is_whitespace() {
+                            found = Some(prev + 1);
+                            break;
+                        }
+                    }
+
+                    char_position = found.unwrap_or(0);
+                }
+                char_indices[char_position].0
+            }
+            Movement::ForwardWord(rep) => {
+                let char_indices: Vec<(usize, char)> = self.line.char_indices().collect();
+                if char_indices.is_empty() {
+                    return self.cursor;
+                }
+                let mut char_position = char_indices
+                    .iter()
+                    .position(|(idx, _)| *idx == self.cursor)
+                    .unwrap_or(char_indices.len());
+
+                for _ in 0..rep {
+                    // Skip any non-whitespace characters
+                    while char_position < char_indices.len()
+                        && !char_indices[char_position].1.is_whitespace()
+                    {
+                        char_position += 1;
+                    }
+
+                    // Skip any whitespace characters
+                    while char_position < char_indices.len()
+                        && char_indices[char_position].1.is_whitespace()
+                    {
+                        char_position += 1;
+                    }
+
+                    // We are now on the start of the next word
+                }
+                char_indices
+                    .get(char_position)
+                    .map(|(i, _)| *i)
+                    .unwrap_or(self.line.len())
             }
             Movement::ForwardChar(rep) => {
                 let mut position = self.cursor;

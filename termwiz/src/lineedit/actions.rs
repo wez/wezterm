@@ -3,7 +3,9 @@ pub type RepeatCount = usize;
 #[derive(Debug, Clone, Copy)]
 pub enum Movement {
     BackwardChar(RepeatCount),
+    BackwardWord(RepeatCount),
     ForwardChar(RepeatCount),
+    ForwardWord(RepeatCount),
     StartOfLine,
     EndOfLine,
 }
