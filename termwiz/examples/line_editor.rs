@@ -5,7 +5,7 @@ fn main() -> Fallible<()> {
     let mut editor = line_editor()?;
 
     let line = editor.read_line()?;
-    println!("read line: {}", line);
+    println!("read line: {:?}", line);
 
     Ok(())
 }

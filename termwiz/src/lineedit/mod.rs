@@ -24,6 +24,7 @@
 //! Ctrl-A, Home  | Move cursor to the beginning of the line
 //! Ctrl-E, End   | Move cursor to the end of the line
 //! Ctrl-B, Left  | Move cursor one grapheme to the left
+//! Ctrl-C        | Cancel the line editor
 //! Ctrl-F, Right | Move cursor one grapheme to the right
 //! Ctrl-H, Backspace | Delete the grapheme to the left of the cursor
 //! Ctrl-J, Ctrl-M, Enter | Finish line editing and accept the current line
@@ -122,7 +123,8 @@ impl<T: Terminal> LineEditor<T> {
     /// Enter line editing mode.
     /// Control is not returned to the caller until a line has been
     /// accepted, or until an error is detected.
-    pub fn read_line(&mut self) -> Fallible<String> {
+    /// Returns Ok(None) if the editor was cancelled eg: via CTRL-C.
+    pub fn read_line(&mut self) -> Fallible<Option<String>> {
         self.terminal.set_raw_mode()?;
         let res = self.read_line_impl();
         self.terminal.set_cooked_mode()?;
@@ -132,6 +134,10 @@ impl<T: Terminal> LineEditor<T> {
 
     fn resolve_action(&self, event: &InputEvent) -> Option<Action> {
         match event {
+            InputEvent::Key(KeyEvent {
+                key: KeyCode::Char('C'),
+                modifiers: Modifiers::CTRL,
+            }) => Some(Action::Cancel),
             InputEvent::Key(KeyEvent {
                 key: KeyCode::Char('J'),
                 modifiers: Modifiers::CTRL,
@@ -340,13 +346,14 @@ impl<T: Terminal> LineEditor<T> {
         self.cursor = new_cursor.min(self.line.len());
     }
 
-    fn read_line_impl(&mut self) -> Fallible<String> {
+    fn read_line_impl(&mut self) -> Fallible<Option<String>> {
         self.line.clear();
         self.cursor = 0;
 
         self.render()?;
         while let Some(event) = self.terminal.poll_input(None)? {
             match self.resolve_action(&event) {
+                Some(Action::Cancel) => return Ok(None),
                 Some(Action::AcceptLine) => break,
                 Some(Action::Kill(movement)) => self.kill_text(movement),
                 Some(Action::Move(movement)) => self.cursor = self.eval_movement(movement),
@@ -373,7 +380,7 @@ impl<T: Terminal> LineEditor<T> {
             }
             self.render()?;
         }
-        Ok(self.line.clone())
+        Ok(Some(self.line.clone()))
     }
 }
 

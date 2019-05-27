@@ -13,6 +13,7 @@ pub enum Movement {
 #[derive(Debug, Clone)]
 pub enum Action {
     AcceptLine,
+    Cancel,
     InsertChar(RepeatCount, char),
     InsertText(RepeatCount, String),
     Repaint,
