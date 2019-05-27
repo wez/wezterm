@@ -36,6 +36,9 @@ use failure::{err_msg, Fallible};
 use unicode_segmentation::GraphemeCursor;
 use unicode_width::UnicodeWidthStr;
 
+mod actions;
+pub use actions::{Action, Movement, RepeatCount};
+
 /// The `LineEditor` struct provides line editing facilities similar
 /// to those in the unix shell.
 /// ```no_run
@@ -123,109 +126,154 @@ impl<T: Terminal> LineEditor<T> {
         res
     }
 
+    fn resolve_action(&self, event: &InputEvent) -> Option<Action> {
+        match event {
+            InputEvent::Key(KeyEvent {
+                key: KeyCode::Char('J'),
+                modifiers: Modifiers::CTRL,
+            })
+            | InputEvent::Key(KeyEvent {
+                key: KeyCode::Char('M'),
+                modifiers: Modifiers::CTRL,
+            })
+            | InputEvent::Key(KeyEvent {
+                key: KeyCode::Enter,
+                modifiers: Modifiers::NONE,
+            }) => Some(Action::AcceptLine),
+            InputEvent::Key(KeyEvent {
+                key: KeyCode::Char('H'),
+                modifiers: Modifiers::CTRL,
+            })
+            | InputEvent::Key(KeyEvent {
+                key: KeyCode::Backspace,
+                modifiers: Modifiers::NONE,
+            }) => Some(Action::Kill(Movement::BackwardChar(1))),
+            InputEvent::Key(KeyEvent {
+                key: KeyCode::Char('B'),
+                modifiers: Modifiers::CTRL,
+            })
+            | InputEvent::Key(KeyEvent {
+                key: KeyCode::LeftArrow,
+                modifiers: Modifiers::NONE,
+            }) => Some(Action::Move(Movement::BackwardChar(1))),
+            InputEvent::Key(KeyEvent {
+                key: KeyCode::Char('A'),
+                modifiers: Modifiers::CTRL,
+            })
+            | InputEvent::Key(KeyEvent {
+                key: KeyCode::Home,
+                modifiers: Modifiers::NONE,
+            }) => Some(Action::Move(Movement::StartOfLine)),
+            InputEvent::Key(KeyEvent {
+                key: KeyCode::Char('E'),
+                modifiers: Modifiers::CTRL,
+            })
+            | InputEvent::Key(KeyEvent {
+                key: KeyCode::End,
+                modifiers: Modifiers::NONE,
+            }) => Some(Action::Move(Movement::EndOfLine)),
+            InputEvent::Key(KeyEvent {
+                key: KeyCode::Char('F'),
+                modifiers: Modifiers::CTRL,
+            })
+            | InputEvent::Key(KeyEvent {
+                key: KeyCode::RightArrow,
+                modifiers: Modifiers::NONE,
+            }) => Some(Action::Move(Movement::ForwardChar(1))),
+            InputEvent::Key(KeyEvent {
+                key: KeyCode::Char(c),
+                modifiers: Modifiers::NONE,
+            }) => Some(Action::InsertChar(1, *c)),
+            InputEvent::Paste(text) => Some(Action::InsertText(1, text.clone())),
+            InputEvent::Key(KeyEvent {
+                key: KeyCode::Char('L'),
+                modifiers: Modifiers::CTRL,
+            }) => Some(Action::Repaint),
+            _ => None,
+        }
+    }
+
+    /// Compute the cursor position after applying movement
+    fn eval_movement(&self, movement: Movement) -> usize {
+        match movement {
+            Movement::BackwardChar(rep) => {
+                let mut position = self.cursor;
+                for _ in 0..rep {
+                    let mut cursor = GraphemeCursor::new(position, self.line.len(), false);
+                    if let Ok(Some(pos)) = cursor.prev_boundary(&self.line, 0) {
+                        position = pos;
+                    } else {
+                        break;
+                    }
+                }
+                position
+            }
+            Movement::ForwardChar(rep) => {
+                let mut position = self.cursor;
+                for _ in 0..rep {
+                    let mut cursor = GraphemeCursor::new(position, self.line.len(), false);
+                    if let Ok(Some(pos)) = cursor.next_boundary(&self.line, 0) {
+                        position = pos;
+                    } else {
+                        break;
+                    }
+                }
+                position
+            }
+            Movement::StartOfLine => 0,
+            Movement::EndOfLine => {
+                let mut cursor = GraphemeCursor::new(self.line.len() - 1, self.line.len(), false);
+                if let Ok(Some(pos)) = cursor.next_boundary(&self.line, 0) {
+                    pos
+                } else {
+                    self.cursor
+                }
+            }
+        }
+    }
+
+    fn kill_text(&mut self, movement: Movement) {
+        let new_cursor = self.eval_movement(movement);
+
+        let (lower, upper) = if new_cursor < self.cursor {
+            (new_cursor, self.cursor)
+        } else {
+            (self.cursor, new_cursor)
+        };
+
+        for _ in lower..upper {
+            self.line.remove(lower);
+        }
+
+        self.cursor = new_cursor;
+    }
+
     fn read_line_impl(&mut self) -> Fallible<String> {
         self.line.clear();
         self.cursor = 0;
 
         self.render()?;
         while let Some(event) = self.terminal.poll_input(None)? {
-            match event {
-                InputEvent::Key(KeyEvent {
-                    key: KeyCode::Char('J'),
-                    modifiers: Modifiers::CTRL,
-                })
-                | InputEvent::Key(KeyEvent {
-                    key: KeyCode::Char('M'),
-                    modifiers: Modifiers::CTRL,
-                })
-                | InputEvent::Key(KeyEvent {
-                    key: KeyCode::Enter,
-                    modifiers: Modifiers::NONE,
-                }) => {
-                    break;
-                }
-                InputEvent::Key(KeyEvent {
-                    key: KeyCode::Char('H'),
-                    modifiers: Modifiers::CTRL,
-                })
-                | InputEvent::Key(KeyEvent {
-                    key: KeyCode::Backspace,
-                    modifiers: Modifiers::NONE,
-                }) => {
-                    let mut cursor = GraphemeCursor::new(self.cursor, self.line.len(), false);
-                    if let Ok(Some(pos)) = cursor.prev_boundary(&self.line, 0) {
-                        self.line.remove(pos);
-                        self.cursor = pos;
+            match self.resolve_action(&event) {
+                Some(Action::AcceptLine) => break,
+                Some(Action::Kill(movement)) => self.kill_text(movement),
+                Some(Action::Move(movement)) => self.cursor = self.eval_movement(movement),
+                Some(Action::InsertChar(rep, c)) => {
+                    for _ in 0..rep {
+                        self.line.insert(self.cursor, c);
+                        let mut cursor = GraphemeCursor::new(self.cursor, self.line.len(), false);
+                        if let Ok(Some(pos)) = cursor.next_boundary(&self.line, 0) {
+                            self.cursor = pos;
+                        }
                     }
                 }
-                InputEvent::Key(KeyEvent {
-                    key: KeyCode::Char('B'),
-                    modifiers: Modifiers::CTRL,
-                })
-                | InputEvent::Key(KeyEvent {
-                    key: KeyCode::LeftArrow,
-                    modifiers: Modifiers::NONE,
-                }) => {
-                    let mut cursor = GraphemeCursor::new(self.cursor, self.line.len(), false);
-                    if let Ok(Some(pos)) = cursor.prev_boundary(&self.line, 0) {
-                        self.cursor = pos;
+                Some(Action::InsertText(rep, text)) => {
+                    for _ in 0..rep {
+                        self.line.insert_str(self.cursor, &text);
+                        self.cursor += text.len();
                     }
                 }
-                InputEvent::Key(KeyEvent {
-                    key: KeyCode::Char('A'),
-                    modifiers: Modifiers::CTRL,
-                })
-                | InputEvent::Key(KeyEvent {
-                    key: KeyCode::Home,
-                    modifiers: Modifiers::NONE,
-                }) => {
-                    self.cursor = 0;
-                }
-                InputEvent::Key(KeyEvent {
-                    key: KeyCode::Char('E'),
-                    modifiers: Modifiers::CTRL,
-                })
-                | InputEvent::Key(KeyEvent {
-                    key: KeyCode::End,
-                    modifiers: Modifiers::NONE,
-                }) => {
-                    let mut cursor =
-                        GraphemeCursor::new(self.line.len() - 1, self.line.len(), false);
-                    if let Ok(Some(pos)) = cursor.next_boundary(&self.line, 0) {
-                        self.cursor = pos;
-                    }
-                }
-                InputEvent::Key(KeyEvent {
-                    key: KeyCode::Char('F'),
-                    modifiers: Modifiers::CTRL,
-                })
-                | InputEvent::Key(KeyEvent {
-                    key: KeyCode::RightArrow,
-                    modifiers: Modifiers::NONE,
-                }) => {
-                    let mut cursor = GraphemeCursor::new(self.cursor, self.line.len(), false);
-                    if let Ok(Some(pos)) = cursor.next_boundary(&self.line, 0) {
-                        self.cursor = pos;
-                    }
-                }
-                InputEvent::Key(KeyEvent {
-                    key: KeyCode::Char(c),
-                    modifiers: Modifiers::NONE,
-                }) => {
-                    self.line.insert(self.cursor, c);
-                    let mut cursor = GraphemeCursor::new(self.cursor, self.line.len(), false);
-                    if let Ok(Some(pos)) = cursor.next_boundary(&self.line, 0) {
-                        self.cursor = pos;
-                    }
-                }
-                InputEvent::Paste(text) => {
-                    self.line.insert_str(self.cursor, &text);
-                    self.cursor += text.len();
-                }
-                InputEvent::Key(KeyEvent {
-                    key: KeyCode::Char('L'),
-                    modifiers: Modifiers::CTRL,
-                }) => {
+                Some(Action::Repaint) => {
                     self.terminal
                         .render(&[Change::ClearScreen(Default::default())])?;
                 }
