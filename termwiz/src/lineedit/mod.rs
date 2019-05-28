@@ -76,6 +76,39 @@ pub struct LineEditor<T: Terminal> {
 
     history_pos: Option<usize>,
     bottom_line: Option<String>,
+
+    completion: Option<CompletionState>,
+}
+
+struct CompletionState {
+    candidates: Vec<CompletionCandidate>,
+    index: usize,
+    original_line: String,
+    original_cursor: usize,
+}
+
+impl CompletionState {
+    fn next(&mut self) {
+        self.index += 1;
+        if self.index >= self.candidates.len() {
+            self.index = 0;
+        }
+    }
+
+    fn current(&self) -> (usize, String) {
+        let mut line = self.original_line.clone();
+        let candidate = &self.candidates[self.index];
+        line.replace_range(candidate.range.clone(), &candidate.text);
+
+        // To figure the new cursor position do a little math:
+        // "he<TAB>" when the completion is "hello" will set the completion
+        // candidate to replace "he" with "hello", so the difference in the
+        // lengths of these two is how far the cursor needs to move.
+        let range_len = candidate.range.end - candidate.range.start;
+        let new_cursor = self.original_cursor + candidate.text.len() - range_len;
+
+        (new_cursor, line)
+    }
 }
 
 impl<T: Terminal> LineEditor<T> {
@@ -107,6 +140,7 @@ impl<T: Terminal> LineEditor<T> {
             cursor: 0,
             history_pos: None,
             bottom_line: None,
+            completion: None,
         }
     }
 
@@ -172,6 +206,11 @@ impl<T: Terminal> LineEditor<T> {
                 key: KeyCode::Char('C'),
                 modifiers: Modifiers::CTRL,
             }) => Some(Action::Cancel),
+
+            InputEvent::Key(KeyEvent {
+                key: KeyCode::Tab,
+                modifiers: Modifiers::NONE,
+            }) => Some(Action::Complete),
 
             InputEvent::Key(KeyEvent {
                 key: KeyCode::Char('D'),
@@ -389,6 +428,8 @@ impl<T: Terminal> LineEditor<T> {
     }
 
     fn kill_text(&mut self, movement: Movement) {
+        self.clear_completion();
+
         let new_cursor = self.eval_movement(movement);
 
         let (lower, upper) = if new_cursor < self.cursor {
@@ -405,11 +446,16 @@ impl<T: Terminal> LineEditor<T> {
         self.cursor = new_cursor.min(self.line.len());
     }
 
+    fn clear_completion(&mut self) {
+        self.completion = None;
+    }
+
     fn read_line_impl(&mut self, host: &mut LineEditorHost) -> Fallible<Option<String>> {
         self.line.clear();
         self.cursor = 0;
         self.history_pos = None;
         self.bottom_line = None;
+        self.clear_completion();
 
         self.render(host)?;
         while let Some(event) = self.terminal.poll_input(None)? {
@@ -424,8 +470,12 @@ impl<T: Terminal> LineEditor<T> {
                     .into())
                 }
                 Some(Action::Kill(movement)) => self.kill_text(movement),
-                Some(Action::Move(movement)) => self.cursor = self.eval_movement(movement),
+                Some(Action::Move(movement)) => {
+                    self.clear_completion();
+                    self.cursor = self.eval_movement(movement);
+                }
                 Some(Action::InsertChar(rep, c)) => {
+                    self.clear_completion();
                     for _ in 0..rep {
                         self.line.insert(self.cursor, c);
                         let mut cursor = GraphemeCursor::new(self.cursor, self.line.len(), false);
@@ -435,6 +485,7 @@ impl<T: Terminal> LineEditor<T> {
                     }
                 }
                 Some(Action::InsertText(rep, text)) => {
+                    self.clear_completion();
                     for _ in 0..rep {
                         self.line.insert_str(self.cursor, &text);
                         self.cursor += text.len();
@@ -445,6 +496,7 @@ impl<T: Terminal> LineEditor<T> {
                         .render(&[Change::ClearScreen(Default::default())])?;
                 }
                 Some(Action::HistoryPrevious) => {
+                    self.clear_completion();
                     if let Some(cur_pos) = self.history_pos.as_ref() {
                         let prior_idx = cur_pos.saturating_sub(1);
                         if let Some(prior) = host.history().get(prior_idx) {
@@ -466,6 +518,7 @@ impl<T: Terminal> LineEditor<T> {
                     }
                 }
                 Some(Action::HistoryNext) => {
+                    self.clear_completion();
                     if let Some(cur_pos) = self.history_pos.as_ref() {
                         let next_idx = cur_pos.saturating_add(1);
                         if let Some(next) = host.history().get(next_idx) {
@@ -479,6 +532,29 @@ impl<T: Terminal> LineEditor<T> {
                             self.line.clear();
                             self.cursor = 0;
                         }
+                    }
+                }
+                Some(Action::Complete) => {
+                    if self.completion.is_none() {
+                        let candidates = host.complete(&self.line, self.cursor);
+                        if !candidates.is_empty() {
+                            let state = CompletionState {
+                                candidates,
+                                index: 0,
+                                original_line: self.line.clone(),
+                                original_cursor: self.cursor,
+                            };
+
+                            let (cursor, line) = state.current();
+                            self.cursor = cursor;
+                            self.line = line;
+                            self.completion = Some(state);
+                        }
+                    } else if let Some(state) = self.completion.as_mut() {
+                        state.next();
+                        let (cursor, line) = state.current();
+                        self.cursor = cursor;
+                        self.line = line;
                     }
                 }
                 None => {}

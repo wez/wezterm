@@ -63,6 +63,26 @@ pub trait LineEditorHost {
 
     /// Returns the history implementation
     fn history(&mut self) -> &mut History;
+
+    /// Tab completion support.
+    /// The line and current cursor position are provided and it is up to the
+    /// embedding application to produce a list of completion candidates.
+    /// The default implementation is an empty list.
+    fn complete(&self, _line: &str, _cursor_position: usize) -> Vec<CompletionCandidate> {
+        vec![]
+    }
+}
+
+/// A candidate for tab completion.
+/// If the line and cursor look like "why he<CURSOR>" and if "hello" is a valid
+/// completion of "he" in that context, then the corresponding CompletionCandidate
+/// would have its range set to [4..6] (the "he" slice range) and its text
+/// set to "hello".
+pub struct CompletionCandidate {
+    /// The section of the input line to be replaced
+    pub range: std::ops::Range<usize>,
+    /// The replacement text
+    pub text: String,
 }
 
 /// A concrete implementation of `LineEditorHost` that uses the default behaviors.

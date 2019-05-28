@@ -22,4 +22,5 @@ pub enum Action {
     Kill(Movement),
     HistoryPrevious,
     HistoryNext,
+    Complete,
 }
