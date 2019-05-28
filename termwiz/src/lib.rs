@@ -32,6 +32,8 @@
 //!   mode.
 //! * `Widget` trait allows composition of UI elements at a higher
 //!   level.
+//! * `LineEditor` provides line editing facilities similar to those
+//!   in the unix shell.
 
 pub mod caps;
 pub mod cell;

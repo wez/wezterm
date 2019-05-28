@@ -3,6 +3,10 @@ authors = ["Wez Furlong"]
 name = "termwiz"
 version = "0.1.0"
 edition = "2018"
+repository = "https://github.com/wez/wezterm"
+description = "Terminal Wizardry for Unix and Windows"
+license = "MIT"
+documentation = "https://docs.rs/termwiz"
 
 [dependencies]
 base64 = "~0.9"

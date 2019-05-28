@@ -1,11 +1,11 @@
 # Terminal Wizardry
 
-This is a rust crate that provides a number of support functions
-for applications interesting in either displaying data to a terminal
-or in building a terminal emulator.
+This is a rust crate that provides a number of support functions for
+applications interested in either displaying data to a terminal or in building
+a terminal emulator.
 
-It is currently in active development and subject to fairly wild
-sweeping changes.
+It is currently in active development and subject to fairly wild sweeping
+changes.
 
 Included functionality:
 
@@ -31,25 +31,11 @@ Included functionality:
   mouse and keyboard inputs in both blocking or non-blocking
   mode.
 * `Widget` trait allows composition of UI elements at a higher level.
+* `LineEditor` implements shell-like line editing functionality.
 
 # Documentation
 
-Until this goes up on crates.io, run:
-
-```
-$ cargo doc --open
-```
-
-to build and browse the docs locally.
-
-## TODO
-
- * [ ] Load key mapping information from terminfo
- * [ ] Look at unicode width and graphemes for cells
- * [ ] ensure that sgr is reset to default on drop
- * [ ] Option to use alt screen when going raw
- * [x] Mouse reporting mode (and restore on drop)
- * [x] Bracketed paste mode (and restore on drop)
+https://docs.rs/termwiz
 
 ## Windows
 
