@@ -7,6 +7,7 @@ repository = "https://github.com/wez/wezterm"
 description = "Terminal Wizardry for Unix and Windows"
 license = "MIT"
 documentation = "https://docs.rs/termwiz"
+keywords = ["terminal", "readline", "console", "curses"]
 
 [dependencies]
 base64 = "~0.9"
