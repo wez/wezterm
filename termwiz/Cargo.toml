@@ -26,12 +26,10 @@ smallvec = "~0.6"
 terminfo = "~0.6"
 unicode-segmentation = "~1.2"
 unicode-width = "~0.1"
-
-# https://github.com/jwilm/vte/pull/20
-vte = { git = "https://github.com/wez/vte", branch="oscbigbuf" }
+vte = "0.3"
 
 [dev-dependencies]
-varbincode = { path = "../varbincode" }
+varbincode = "0.1"
 
 [dependencies.num-derive]
 features = ["full-syntax"]

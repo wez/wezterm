@@ -40,7 +40,7 @@ termwiz = { path = "termwiz"}
 toml = "0.4"
 unicode-normalization = "0.1"
 unicode-width = "0.1"
-varbincode = { path = "varbincode" }
+varbincode = "0.1"
 winit = "0.19"
 zstd = "0.4"
 
@@ -93,6 +93,8 @@ force-fontconfig = ["fontconfig"]
 [patch.crates-io]
 # This allows using the git version in the help output
 structopt-derive = { git = "https://github.com/wez/structopt", branch="vergen" }
+# https://github.com/jwilm/vte/pull/20
+#vte = { git = "https://github.com/wez/vte", branch="oscbigbuf" }
 
 [workspace]
 
