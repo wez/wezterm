@@ -1,7 +1,7 @@
 use crate::cell::{AttributeChange, Cell, CellAttributes};
 use crate::color::ColorAttribute;
 use crate::image::ImageCell;
-use ordered_float::NotNaN;
+use ordered_float::NotNan;
 use serde_derive::*;
 use std::borrow::Cow;
 use std::cmp::min;
@@ -277,9 +277,9 @@ impl Surface {
             self.ypos -= scroll;
         }
 
-        let mut ypos = NotNaN::new(0.0).unwrap();
+        let mut ypos = NotNan::new(0.0).unwrap();
         for y in 0..image.height {
-            let mut xpos = NotNaN::new(0.0).unwrap();
+            let mut xpos = NotNan::new(0.0).unwrap();
             for x in 0..image.width {
                 self.lines[self.ypos + y].set_cell(
                     self.xpos + x,

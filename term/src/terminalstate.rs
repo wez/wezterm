@@ -4,7 +4,7 @@
 use super::*;
 use failure::bail;
 use image::{self, GenericImageView};
-use ordered_float::NotNaN;
+use ordered_float::NotNan;
 use std::fmt::Write;
 use std::sync::Arc;
 use termwiz::escape::csi::{
@@ -1315,7 +1315,7 @@ impl TerminalState {
 
         let image_data = Arc::new(ImageData::with_raw_data(image.data));
 
-        let mut ypos = NotNaN::new(0.0).unwrap();
+        let mut ypos = NotNan::new(0.0).unwrap();
         let cursor_x = self.cursor.x;
         let x_delta = 1.0 / available_pixel_width as f32;
         let y_delta = 1.0 / available_pixel_height as f32;
@@ -1324,7 +1324,7 @@ impl TerminalState {
             width_in_cells, height_in_cells, width, height
         );
         for _ in 0..height_in_cells {
-            let mut xpos = NotNaN::new(0.0).unwrap();
+            let mut xpos = NotNan::new(0.0).unwrap();
             let cursor_y = self.cursor.y;
             eprintln!(
                 "setting cells for y={} x=[{}..{}]",

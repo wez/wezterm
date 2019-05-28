@@ -1,36 +1,37 @@
 [package]
 authors = ["Wez Furlong"]
 name = "termwiz"
-version = "0.1.0"
+version = "0.2"
 edition = "2018"
 repository = "https://github.com/wez/wezterm"
 description = "Terminal Wizardry for Unix and Windows"
 license = "MIT"
 documentation = "https://docs.rs/termwiz"
 keywords = ["terminal", "readline", "console", "curses"]
+readme = "README.md"
 
 [dependencies]
-base64 = "~0.9"
-bitflags = "~1.0"
-cassowary = "~0.3"
-derive_builder = "~0.5"
-failure = "~0.1"
-fnv = "~1.0"
+base64 = "0.10"
+bitflags = "1.0"
+cassowary = "0.3"
+derive_builder = "0.7"
+failure = "0.1"
+fnv = "1.0"
 image = "0.21"
-libc = "~0.2"
-memmem = "~0.1"
-num = "~0.2"
-num-traits = "~0.2"
-ordered-float = "~0.5"
-palette = "~0.4"
-regex = "~0.2"
+libc = "0.2"
+memmem = "0.1"
+num = "0.2"
+num-traits = "0.2"
+ordered-float = "1.0"
+palette = "0.4"
+regex = "0.2"
 semver = "0.9"
-serde = {version="~1.0", features = ["rc"]}
-serde_derive = "~1.0"
-smallvec = "~0.6"
-terminfo = "~0.6"
-unicode-segmentation = "~1.2"
-unicode-width = "~0.1"
+serde = {version="1.0", features = ["rc"]}
+serde_derive = "1.0"
+smallvec = "0.6"
+terminfo = "0.6"
+unicode-segmentation = "1.2"
+unicode-width = "0.1"
 vte = "0.3"
 
 [dev-dependencies]
@@ -38,10 +39,10 @@ varbincode = "0.1"
 
 [dependencies.num-derive]
 features = ["full-syntax"]
-version = "~0.2"
+version = "0.2"
 [target."cfg(unix)".dependencies]
-signal-hook = "~0.1"
-termios = "~0.3"
+signal-hook = "0.1"
+termios = "0.3"
 [target."cfg(windows)".dependencies.winapi]
 features = [
     "winbase",
@@ -52,4 +53,4 @@ features = [
     "fileapi",
     "synchapi",
 ]
-version = "~0.3"
+version = "0.3"

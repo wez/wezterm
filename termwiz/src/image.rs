@@ -11,21 +11,21 @@
 // protocol appears to track the images out of band as attachments with
 // z-order.
 
-use ordered_float::NotNaN;
+use ordered_float::NotNan;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_derive::*;
 use std::sync::Arc;
 
-fn deserialize_notnan<'de, D>(deserializer: D) -> Result<NotNaN<f32>, D::Error>
+fn deserialize_notnan<'de, D>(deserializer: D) -> Result<NotNan<f32>, D::Error>
 where
     D: Deserializer<'de>,
 {
     let value = f32::deserialize(deserializer)?;
-    NotNaN::new(value).map_err(|e| serde::de::Error::custom(format!("{:?}", e)))
+    NotNan::new(value).map_err(|e| serde::de::Error::custom(format!("{:?}", e)))
 }
 
 #[cfg_attr(feature = "cargo-clippy", allow(clippy::trivially_copy_pass_by_ref))]
-fn serialize_notnan<S>(value: &NotNaN<f32>, serializer: S) -> Result<S::Ok, S::Error>
+fn serialize_notnan<S>(value: &NotNan<f32>, serializer: S) -> Result<S::Ok, S::Error>
 where
     S: Serializer,
 {
@@ -38,22 +38,22 @@ pub struct TextureCoordinate {
         deserialize_with = "deserialize_notnan",
         serialize_with = "serialize_notnan"
     )]
-    pub x: NotNaN<f32>,
+    pub x: NotNan<f32>,
     #[serde(
         deserialize_with = "deserialize_notnan",
         serialize_with = "serialize_notnan"
     )]
-    pub y: NotNaN<f32>,
+    pub y: NotNan<f32>,
 }
 
 impl TextureCoordinate {
-    pub fn new(x: NotNaN<f32>, y: NotNaN<f32>) -> Self {
+    pub fn new(x: NotNan<f32>, y: NotNan<f32>) -> Self {
         Self { x, y }
     }
 
     pub fn new_f32(x: f32, y: f32) -> Self {
-        let x = NotNaN::new(x).unwrap();
-        let y = NotNaN::new(y).unwrap();
+        let x = NotNan::new(x).unwrap();
+        let y = NotNan::new(y).unwrap();
         Self::new(x, y)
     }
 }

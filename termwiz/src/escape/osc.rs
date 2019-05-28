@@ -4,7 +4,7 @@ use bitflags::bitflags;
 use failure::{bail, ensure, err_msg, Fallible};
 use num;
 use num_derive::*;
-use ordered_float::NotNaN;
+use ordered_float::NotNan;
 use std::collections::HashMap;
 use std::fmt::{Display, Error as FmtError, Formatter};
 use std::str;
@@ -251,8 +251,8 @@ pub enum ITermProprietary {
     /// The response to RequestCellSize.  The height and width are the dimensions
     /// of a cell measured in points
     ReportCellSize {
-        height_points: NotNaN<f32>,
-        width_points: NotNaN<f32>,
+        height_points: NotNan<f32>,
+        width_points: NotNan<f32>,
     },
     /// Place a string in the systems pasteboard
     Copy(String),
@@ -539,8 +539,8 @@ impl ITermProprietary {
         if osc.len() == 3 && keyword == "ReportCellSize" && p1.is_some() {
             if let Some(p1) = p1 {
                 return Ok(ITermProprietary::ReportCellSize {
-                    height_points: NotNaN::new(p1.parse()?)?,
-                    width_points: NotNaN::new(String::from_utf8_lossy(osc[2]).parse()?)?,
+                    height_points: NotNan::new(p1.parse()?)?,
+                    width_points: NotNan::new(String::from_utf8_lossy(osc[2]).parse()?)?,
                 });
             }
         }
@@ -728,8 +728,8 @@ mod test {
                 "\x1b]1337;ReportCellSize=12;15.5\x07"
             ),
             OperatingSystemCommand::ITermProprietary(ITermProprietary::ReportCellSize {
-                height_points: NotNaN::new(12.0).unwrap(),
-                width_points: NotNaN::new(15.5).unwrap()
+                height_points: NotNan::new(12.0).unwrap(),
+                width_points: NotNan::new(15.5).unwrap()
             })
         );
 
