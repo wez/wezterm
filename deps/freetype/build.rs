@@ -1,7 +1,7 @@
 use cmake::Config;
 use fs_extra;
 use std::env;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 fn zlib() {
     // The out-of-source build for zlib unfortunately modifies some of
@@ -19,7 +19,7 @@ fn zlib() {
 
     let mut config = Config::new(src_dir.join("zlib"));
     let dst = config.profile("Release").build();
-    println!("cargo:rustc-link-search=native={}/lib", dst.display());
+    emit_libdirs(&dst);
     if cfg!(unix) {
         println!("cargo:rustc-link-lib=static=z");
     } else {
@@ -27,10 +27,29 @@ fn zlib() {
     }
 }
 
+fn emit_libdirs(p: &Path) {
+    for d in &["lib64", "lib"] {
+        let libdir = p.join(d);
+        if libdir.is_dir() {
+            println!("cargo:rustc-link-search=native={}", libdir.display());
+        }
+    }
+}
+
+fn libpath(p: &Path, name: &str) -> PathBuf {
+    for d in &["lib64", "lib"] {
+        let libname = p.join(d).join(name);
+        if libname.is_file() {
+            return libname;
+        }
+    }
+    panic!("did not find {} in {}", name, p.display());
+}
+
 fn libpng() {
     let mut config = Config::new("libpng");
     let dst = config.profile("Release").build();
-    println!("cargo:rustc-link-search=native={}/lib", dst.display());
+    emit_libdirs(&dst);
     if cfg!(unix) {
         println!("cargo:rustc-link-lib=static=png");
     } else {
@@ -45,11 +64,11 @@ fn freetype() {
         .define("CMAKE_DISABLE_FIND_PACKAGE_BZip2", "TRUE")
         .profile("Release")
         .build();
-    println!("cargo:rustc-link-search=native={}/lib", dst.display());
+    emit_libdirs(&dst);
     println!("cargo:rustc-link-lib=static=freetype");
-    println!("cargo:rustc-link-search=native=/usr/lib");
+    emit_libdirs(Path::new("/usr"));
     println!("cargo:include={}/include/freetype2", dst.display());
-    println!("cargo:lib={}/lib/libfreetype.a", dst.display());
+    println!("cargo:lib={}", libpath(&dst, "libfreetype.a").display());
 }
 
 fn main() {

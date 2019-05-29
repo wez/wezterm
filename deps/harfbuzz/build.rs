@@ -1,5 +1,6 @@
 use cmake::Config;
 use std::env;
+use std::path::Path;
 
 fn harfbuzz() {
     let mut config = Config::new("harfbuzz");
@@ -28,10 +29,19 @@ fn harfbuzz() {
         )
         .profile("Release")
         .build();
-    println!("cargo:rustc-link-search=native={}/lib", ft_outdir);
-    println!("cargo:rustc-link-search=native={}/lib", dst.display());
+    emit_libdirs(Path::new(&ft_outdir));
+    emit_libdirs(&dst);
+    emit_libdirs(Path::new("/usr"));
     println!("cargo:rustc-link-lib=static=harfbuzz");
-    println!("cargo:rustc-link-search=native=/usr/lib");
+}
+
+fn emit_libdirs(p: &Path) {
+    for d in &["lib64", "lib"] {
+        let libdir = p.join(d);
+        if libdir.is_dir() {
+            println!("cargo:rustc-link-search=native={}", libdir.display());
+        }
+    }
 }
 
 fn main() {
