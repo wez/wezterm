@@ -38,9 +38,11 @@ fn emit_libdirs(p: &Path) {
 
 fn libpath(p: &Path, name: &str) -> PathBuf {
     for d in &["lib64", "lib"] {
-        let libname = p.join(d).join(name);
-        if libname.is_file() {
-            return libname;
+        for n in &[format!("lib{}.a", name), format!("{}.lib", name)] {
+            let libname = p.join(d).join(n);
+            if libname.is_file() {
+                return libname;
+            }
         }
     }
     panic!("did not find {} in {}", name, p.display());
@@ -68,7 +70,7 @@ fn freetype() {
     println!("cargo:rustc-link-lib=static=freetype");
     emit_libdirs(Path::new("/usr"));
     println!("cargo:include={}/include/freetype2", dst.display());
-    println!("cargo:lib={}", libpath(&dst, "libfreetype.a").display());
+    println!("cargo:lib={}", libpath(&dst, "freetype").display());
 }
 
 fn main() {
