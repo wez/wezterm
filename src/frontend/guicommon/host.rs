@@ -113,11 +113,11 @@ impl<H: HostHelper> HostImpl<H> {
             return Ok(true);
         }
 
-        if cfg!(target_os = "macos") && mods == KeyModifiers::SUPER && key == KeyCode::Char('c') {
+        if mods == KeyModifiers::SUPER && key == KeyCode::Char('c') {
             // Nominally copy, but that is implicit, so NOP
             return Ok(true);
         }
-        if (cfg!(target_os = "macos") && mods == KeyModifiers::SUPER && key == KeyCode::Char('v'))
+        if (mods == KeyModifiers::SUPER && key == KeyCode::Char('v'))
             || (mods == KeyModifiers::SHIFT && key == KeyCode::Insert)
         {
             let text = self.get_clipboard()?;
