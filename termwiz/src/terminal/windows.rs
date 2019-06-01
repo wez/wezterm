@@ -1,18 +1,16 @@
 use crate::istty::IsTty;
 use failure::{bail, format_err, Error, Fallible};
+use filedescriptor::{FileDescriptor, OwnedHandle};
 use std::cmp::{max, min};
 use std::collections::VecDeque;
 use std::fs::OpenOptions;
 use std::io::{stdin, stdout, Error as IoError, Read, Result as IoResult, Write};
-use std::os::windows::io::{AsRawHandle, RawHandle};
+use std::os::windows::io::{AsRawHandle, FromRawHandle};
 use std::sync::Arc;
 use std::time::Duration;
 use std::{mem, ptr};
 use winapi::shared::winerror::WAIT_TIMEOUT;
 use winapi::um::consoleapi;
-use winapi::um::fileapi::{ReadFile, WriteFile};
-use winapi::um::handleapi::*;
-use winapi::um::processthreadsapi::GetCurrentProcess;
 use winapi::um::synchapi::{CreateEventW, SetEvent, WaitForMultipleObjects};
 use winapi::um::winbase::{INFINITE, WAIT_FAILED, WAIT_OBJECT_0};
 use winapi::um::wincon::{
@@ -23,7 +21,6 @@ use winapi::um::wincon::{
     ENABLE_PROCESSED_INPUT, ENABLE_VIRTUAL_TERMINAL_INPUT, ENABLE_VIRTUAL_TERMINAL_PROCESSING,
     ENABLE_WINDOW_INPUT, INPUT_RECORD, SMALL_RECT,
 };
-use winapi::um::winnt::DUPLICATE_SAME_ACCESS;
 
 use crate::caps::Capabilities;
 use crate::input::{InputEvent, InputParser};
@@ -62,59 +59,18 @@ pub trait ConsoleOutputHandle {
 }
 
 struct InputHandle {
-    handle: RawHandle,
-}
-
-fn dup<H: AsRawHandle>(h: H) -> Result<RawHandle, Error> {
-    let proc = unsafe { GetCurrentProcess() };
-    let mut duped = INVALID_HANDLE_VALUE;
-    let ok = unsafe {
-        DuplicateHandle(
-            proc,
-            h.as_raw_handle() as *mut _,
-            proc,
-            &mut duped,
-            0,
-            0,
-            DUPLICATE_SAME_ACCESS,
-        )
-    };
-    if ok == 0 {
-        bail!("DuplicateHandle failed: {}", IoError::last_os_error())
-    } else {
-        Ok(duped as *mut _)
-    }
-}
-
-impl Drop for InputHandle {
-    fn drop(&mut self) {
-        unsafe { CloseHandle(self.handle as *mut _) };
-    }
+    handle: FileDescriptor,
 }
 
 impl Read for InputHandle {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, IoError> {
-        let mut num_read = 0;
-        let ok = unsafe {
-            ReadFile(
-                self.handle as *mut _,
-                buf.as_mut_ptr() as *mut _,
-                buf.len() as u32,
-                &mut num_read,
-                ptr::null_mut(),
-            )
-        };
-        if ok == 0 {
-            Err(IoError::last_os_error())
-        } else {
-            Ok(num_read as usize)
-        }
+        self.handle.read(buf)
     }
 }
 
 impl ConsoleInputHandle for InputHandle {
     fn set_input_mode(&mut self, mode: u32) -> Result<(), Error> {
-        if unsafe { consoleapi::SetConsoleMode(self.handle as *mut _, mode) } == 0 {
+        if unsafe { consoleapi::SetConsoleMode(self.handle.as_raw_handle() as *mut _, mode) } == 0 {
             bail!("SetConsoleMode failed: {}", IoError::last_os_error());
         }
         Ok(())
@@ -122,7 +78,9 @@ impl ConsoleInputHandle for InputHandle {
 
     fn get_input_mode(&mut self) -> Result<u32, Error> {
         let mut mode = 0;
-        if unsafe { consoleapi::GetConsoleMode(self.handle as *mut _, &mut mode) } == 0 {
+        if unsafe { consoleapi::GetConsoleMode(self.handle.as_raw_handle() as *mut _, &mut mode) }
+            == 0
+        {
             bail!("GetConsoleMode failed: {}", IoError::last_os_error());
         }
         Ok(mode)
@@ -130,8 +88,12 @@ impl ConsoleInputHandle for InputHandle {
 
     fn get_number_of_input_events(&mut self) -> Result<usize, Error> {
         let mut num = 0;
-        if unsafe { consoleapi::GetNumberOfConsoleInputEvents(self.handle as *mut _, &mut num) }
-            == 0
+        if unsafe {
+            consoleapi::GetNumberOfConsoleInputEvents(
+                self.handle.as_raw_handle() as *mut _,
+                &mut num,
+            )
+        } == 0
         {
             bail!(
                 "GetNumberOfConsoleInputEvents failed: {}",
@@ -150,7 +112,7 @@ impl ConsoleInputHandle for InputHandle {
 
         if unsafe {
             consoleapi::ReadConsoleInputW(
-                self.handle as *mut _,
+                self.handle.as_raw_handle() as *mut _,
                 res.as_mut_ptr(),
                 num_events as u32,
                 &mut num,
@@ -166,12 +128,12 @@ impl ConsoleInputHandle for InputHandle {
 }
 
 struct OutputHandle {
-    handle: RawHandle,
+    handle: FileDescriptor,
     write_buffer: Vec<u8>,
 }
 
 impl OutputHandle {
-    fn new(handle: RawHandle) -> Self {
+    fn new(handle: FileDescriptor) -> Self {
         Self {
             handle,
             write_buffer: Vec::with_capacity(BUF_SIZE),
@@ -180,7 +142,7 @@ impl OutputHandle {
 }
 
 struct EventHandle {
-    handle: RawHandle,
+    handle: OwnedHandle,
 }
 
 impl EventHandle {
@@ -190,50 +152,18 @@ impl EventHandle {
             Err(IoError::last_os_error())
         } else {
             Ok(Self {
-                handle: handle as *mut _,
+                handle: unsafe { OwnedHandle::from_raw_handle(handle as *mut _) },
             })
         }
     }
 
     fn set(&self) -> IoResult<()> {
-        let ok = unsafe { SetEvent(self.handle as *mut _) };
+        let ok = unsafe { SetEvent(self.handle.as_raw_handle() as *mut _) };
         if ok == 0 {
             Err(IoError::last_os_error())
         } else {
             Ok(())
         }
-    }
-}
-
-impl Drop for EventHandle {
-    fn drop(&mut self) {
-        unsafe {
-            CloseHandle(self.handle as *mut _);
-        }
-    }
-}
-
-fn do_write(handle: RawHandle, buf: &[u8]) -> IoResult<usize> {
-    let mut num_wrote = 0;
-    let ok = unsafe {
-        WriteFile(
-            handle as *mut _,
-            buf.as_ptr() as *const _,
-            buf.len() as u32,
-            &mut num_wrote,
-            ptr::null_mut(),
-        )
-    };
-    if ok == 0 {
-        Err(IoError::last_os_error())
-    } else {
-        Ok(num_wrote as usize)
-    }
-}
-
-impl Drop for OutputHandle {
-    fn drop(&mut self) {
-        unsafe { CloseHandle(self.handle as *mut _) };
     }
 }
 
@@ -243,7 +173,7 @@ impl Write for OutputHandle {
             self.flush()?;
         }
         if buf.len() >= self.write_buffer.capacity() {
-            do_write(self.handle, buf)
+            self.handle.write(buf)
         } else {
             self.write_buffer.write(buf)
         }
@@ -251,7 +181,7 @@ impl Write for OutputHandle {
 
     fn flush(&mut self) -> IoResult<()> {
         if self.write_buffer.len() > 0 {
-            do_write(self.handle, &self.write_buffer)?;
+            self.handle.write(&self.write_buffer)?;
             self.write_buffer.clear();
         }
         Ok(())
@@ -260,7 +190,7 @@ impl Write for OutputHandle {
 
 impl ConsoleOutputHandle for OutputHandle {
     fn set_output_mode(&mut self, mode: u32) -> Result<(), Error> {
-        if unsafe { consoleapi::SetConsoleMode(self.handle as *mut _, mode) } == 0 {
+        if unsafe { consoleapi::SetConsoleMode(self.handle.as_raw_handle() as *mut _, mode) } == 0 {
             bail!("SetConsoleMode failed: {}", IoError::last_os_error());
         }
         Ok(())
@@ -268,7 +198,9 @@ impl ConsoleOutputHandle for OutputHandle {
 
     fn get_output_mode(&mut self) -> Result<u32, Error> {
         let mut mode = 0;
-        if unsafe { consoleapi::GetConsoleMode(self.handle as *mut _, &mut mode) } == 0 {
+        if unsafe { consoleapi::GetConsoleMode(self.handle.as_raw_handle() as *mut _, &mut mode) }
+            == 0
+        {
             bail!("GetConsoleMode failed: {}", IoError::last_os_error());
         }
         Ok(mode)
@@ -278,7 +210,7 @@ impl ConsoleOutputHandle for OutputHandle {
         let mut wrote = 0;
         if unsafe {
             FillConsoleOutputCharacterW(
-                self.handle as *mut _,
+                self.handle.as_raw_handle() as *mut _,
                 text as u16,
                 len,
                 COORD { X: x, Y: y },
@@ -298,7 +230,7 @@ impl ConsoleOutputHandle for OutputHandle {
         let mut wrote = 0;
         if unsafe {
             FillConsoleOutputAttribute(
-                self.handle as *mut _,
+                self.handle.as_raw_handle() as *mut _,
                 attr,
                 len,
                 COORD { X: x, Y: y },
@@ -315,7 +247,7 @@ impl ConsoleOutputHandle for OutputHandle {
     }
 
     fn set_attr(&mut self, attr: u16) -> Result<(), Error> {
-        if unsafe { SetConsoleTextAttribute(self.handle as *mut _, attr) } == 0 {
+        if unsafe { SetConsoleTextAttribute(self.handle.as_raw_handle() as *mut _, attr) } == 0 {
             bail!(
                 "SetConsoleTextAttribute failed: {}",
                 IoError::last_os_error()
@@ -325,7 +257,10 @@ impl ConsoleOutputHandle for OutputHandle {
     }
 
     fn set_cursor_position(&mut self, x: i16, y: i16) -> Result<(), Error> {
-        if unsafe { SetConsoleCursorPosition(self.handle as *mut _, COORD { X: x, Y: y }) } == 0 {
+        if unsafe {
+            SetConsoleCursorPosition(self.handle.as_raw_handle() as *mut _, COORD { X: x, Y: y })
+        } == 0
+        {
             bail!(
                 "SetConsoleCursorPosition failed: {}",
                 IoError::last_os_error()
@@ -336,7 +271,9 @@ impl ConsoleOutputHandle for OutputHandle {
 
     fn get_buffer_info(&mut self) -> Result<CONSOLE_SCREEN_BUFFER_INFO, Error> {
         let mut info: CONSOLE_SCREEN_BUFFER_INFO = unsafe { mem::zeroed() };
-        let ok = unsafe { GetConsoleScreenBufferInfo(self.handle as *mut _, &mut info as *mut _) };
+        let ok = unsafe {
+            GetConsoleScreenBufferInfo(self.handle.as_raw_handle() as *mut _, &mut info as *mut _)
+        };
         if ok == 0 {
             bail!(
                 "GetConsoleScreenBufferInfo failed: {}",
@@ -353,7 +290,7 @@ impl ConsoleOutputHandle for OutputHandle {
             Right: right,
             Bottom: bottom,
         };
-        if unsafe { SetConsoleWindowInfo(self.handle as *mut _, 1, &rect) } == 0 {
+        if unsafe { SetConsoleWindowInfo(self.handle.as_raw_handle() as *mut _, 1, &rect) } == 0 {
             bail!("SetConsoleWindowInfo failed: {}", IoError::last_os_error());
         }
         Ok(())
@@ -391,7 +328,7 @@ impl ConsoleOutputHandle for OutputHandle {
         };
         if unsafe {
             ScrollConsoleScreenBufferW(
-                self.handle as *mut _,
+                self.handle.as_raw_handle() as *mut _,
                 &scroll_rect,
                 &clip_rect,
                 COORD {
@@ -455,8 +392,10 @@ impl WindowsTerminal {
             bail!("stdin and stdout must both be tty handles");
         }
 
-        let mut input_handle = InputHandle { handle: dup(read)? };
-        let mut output_handle = OutputHandle::new(dup(write)?);
+        let mut input_handle = InputHandle {
+            handle: FileDescriptor::dup(&read)?,
+        };
+        let mut output_handle = OutputHandle::new(FileDescriptor::dup(&write)?);
         let waker_handle = Arc::new(EventHandle::new()?);
 
         let saved_input_mode = input_handle.get_input_mode()?;
@@ -570,7 +509,7 @@ impl Terminal for WindowsTerminal {
             X: cast(size.cols + 1)?,
             Y: cast(size.rows)?,
         };
-        let handle = self.output_handle.handle;
+        let handle = self.output_handle.handle.as_raw_handle();
         if unsafe { SetConsoleScreenBufferSize(handle as *mut _, size) } != 1 {
             bail!(
                 "failed to SetConsoleScreenBufferSize: {}",
@@ -600,8 +539,8 @@ impl Terminal for WindowsTerminal {
 
             if pending == 0 {
                 let mut handles = [
-                    self.input_handle.handle as *mut _,
-                    self.waker_handle.handle as *mut _,
+                    self.input_handle.handle.as_raw_handle() as *mut _,
+                    self.waker_handle.handle.as_raw_handle() as *mut _,
                 ];
                 let result = unsafe {
                     WaitForMultipleObjects(
