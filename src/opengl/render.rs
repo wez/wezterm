@@ -15,7 +15,7 @@ use std::collections::HashMap;
 use std::mem;
 use std::ops::{Deref, Range};
 use std::rc::Rc;
-use term::color::RgbaTuple;
+use term::color::{ColorPalette, RgbaTuple};
 use term::{self, CursorPosition, Line, Underline};
 
 type Transform3D = euclid::Transform3D<f32>;
@@ -294,7 +294,6 @@ pub struct Renderer {
     projection: Transform3D,
     atlas: RefCell<Atlas>,
     underline_tex: SrgbTexture2d,
-    palette: term::color::ColorPalette,
 }
 
 impl Renderer {
@@ -303,7 +302,6 @@ impl Renderer {
         width: u16,
         height: u16,
         fonts: &Rc<FontConfiguration>,
-        palette: term::color::ColorPalette,
     ) -> Result<Self, Error> {
         let metrics = fonts.default_font_metrics()?;
         let (cell_height, cell_width, descender) =
@@ -340,7 +338,6 @@ impl Renderer {
         Ok(Self {
             atlas,
             program,
-            palette,
             glyph_vertex_buffer: RefCell::new(glyph_vertex_buffer),
             glyph_index_buffer,
             width,
@@ -656,6 +653,7 @@ impl Renderer {
         selection: Range<usize>,
         cursor: &CursorPosition,
         terminal: &Renderable,
+        palette: &ColorPalette,
     ) -> Result<(), Error> {
         let (_num_rows, num_cols) = terminal.physical_dimensions();
         let mut vb = self.glyph_vertex_buffer.borrow_mut();
@@ -680,13 +678,13 @@ impl Renderer {
             };
             let style = self.fonts.match_style(attrs);
 
-            let bg_color = self.palette.resolve_bg(attrs.background);
+            let bg_color = palette.resolve_bg(attrs.background);
             let fg_color = match attrs.foreground {
                 term::color::ColorAttribute::Default => {
                     if let Some(fg) = style.foreground {
                         fg
                     } else {
-                        self.palette.resolve_fg(attrs.foreground)
+                        palette.resolve_fg(attrs.foreground)
                     }
                 }
                 term::color::ColorAttribute::PaletteIndex(idx) if idx < 8 => {
@@ -698,10 +696,9 @@ impl Renderer {
                     } else {
                         idx
                     };
-                    self.palette
-                        .resolve_fg(term::color::ColorAttribute::PaletteIndex(idx))
+                    palette.resolve_fg(term::color::ColorAttribute::PaletteIndex(idx))
                 }
-                _ => self.palette.resolve_fg(attrs.foreground),
+                _ => palette.resolve_fg(attrs.foreground),
             };
 
             let (fg_color, bg_color) = {
@@ -778,6 +775,7 @@ impl Renderer {
                         &selection,
                         glyph_color,
                         bg_color,
+                        palette,
                     );
 
                     let vert_idx = cell_idx * VERTICES_PER_CELL;
@@ -880,8 +878,9 @@ impl Renderer {
                 cell_idx,
                 cursor,
                 &selection,
-                self.palette.foreground.to_tuple_rgba(),
-                self.palette.background.to_tuple_rgba(),
+                palette.foreground.to_tuple_rgba(),
+                palette.background.to_tuple_rgba(),
+                palette,
             );
 
             for vert in vert_slice.iter_mut() {
@@ -907,6 +906,7 @@ impl Renderer {
         selection: &Range<usize>,
         fg_color: RgbaTuple,
         bg_color: RgbaTuple,
+        palette: &ColorPalette,
     ) -> (RgbaTuple, RgbaTuple) {
         let selected = selection.contains(&cell_idx);
         let is_cursor = line_idx as i64 == cursor.y && cursor.x == cell_idx;
@@ -916,23 +916,26 @@ impl Renderer {
             (false, false) => (fg_color, bg_color),
             // Cursor cell overrides colors
             (_, true) => (
-                self.palette.cursor_fg.to_tuple_rgba(),
-                self.palette.cursor_bg.to_tuple_rgba(),
+                palette.cursor_fg.to_tuple_rgba(),
+                palette.cursor_bg.to_tuple_rgba(),
             ),
             // Selected text overrides colors
             (true, false) => (
-                self.palette.selection_fg.to_tuple_rgba(),
-                self.palette.selection_bg.to_tuple_rgba(),
+                palette.selection_fg.to_tuple_rgba(),
+                palette.selection_bg.to_tuple_rgba(),
             ),
         };
 
         (fg_color, bg_color)
     }
 
-    pub fn paint(&mut self, target: &mut glium::Frame, term: &mut Renderable) -> Result<(), Error> {
-        let background_color = self
-            .palette
-            .resolve_bg(term::color::ColorAttribute::Default);
+    pub fn paint(
+        &mut self,
+        target: &mut glium::Frame,
+        term: &mut Renderable,
+        palette: &ColorPalette,
+    ) -> Result<(), Error> {
+        let background_color = palette.resolve_bg(term::color::ColorAttribute::Default);
         let (r, g, b, a) = background_color.to_tuple_rgba();
         target.clear_color(r, g, b, a);
 
@@ -941,7 +944,7 @@ impl Renderer {
             let dirty_lines = term.get_dirty_lines();
 
             for (line_idx, line, selrange) in dirty_lines {
-                self.render_screen_line(line_idx, line, selrange, &cursor, term)?;
+                self.render_screen_line(line_idx, line, selrange, &cursor, term, palette)?;
             }
         }
 

@@ -145,7 +145,7 @@ impl X11TerminalWindow {
             fonts: Rc::clone(fonts),
         });
 
-        let renderer = Renderer::new(&host.window, width, height, fonts, tab.palette())?;
+        let renderer = Renderer::new(&host.window, width, height, fonts)?;
         let mux = Mux::get().unwrap();
         let mux_window_id = mux.add_new_window_with_tab(tab)?;
         host.window.show();

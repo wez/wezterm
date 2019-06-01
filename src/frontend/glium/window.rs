@@ -241,7 +241,7 @@ impl GliumTerminalWindow {
 
         let width = width as u16;
         let height = height as u16;
-        let renderer = Renderer::new(&host.display, width, height, fonts, tab.palette())?;
+        let renderer = Renderer::new(&host.display, width, height, fonts)?;
 
         let mux = Mux::get().unwrap();
         let mux_window_id = mux.add_new_window_with_tab(tab)?;

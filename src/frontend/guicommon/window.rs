@@ -127,7 +127,8 @@ pub trait TerminalWindow {
 
         let res = {
             let renderer = self.renderer();
-            renderer.paint(&mut target, &mut *tab.renderer())
+            let palette = tab.palette();
+            renderer.paint(&mut target, &mut *tab.renderer(), &palette)
         };
 
         // Ensure that we finish() the target before we let the
