@@ -1,13 +1,12 @@
-use crate::istty::IsTty;
-use failure::{bail, ensure, format_err, Error, Fallible};
+use failure::{bail, format_err, Error, Fallible};
+use filedescriptor::FileDescriptor;
 use libc::{self, poll, pollfd, winsize, POLLIN};
 use signal_hook::{self, SigId};
 use std::collections::VecDeque;
 use std::fs::OpenOptions;
 use std::io::{stdin, stdout, Error as IoError, ErrorKind, Read, Write};
 use std::mem;
-use std::ops::Deref;
-use std::os::unix::io::{AsRawFd, RawFd};
+use std::os::unix::io::AsRawFd;
 use std::os::unix::net::UnixStream;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -24,16 +23,6 @@ use crate::surface::Change;
 use crate::terminal::{cast, Blocking, ScreenSize, Terminal};
 
 const BUF_SIZE: usize = 4096;
-
-/// Helper function to duplicate a file descriptor.
-/// The duplicated descriptor will have the close-on-exec flag set.
-fn dup(fd: RawFd) -> Result<RawFd, Error> {
-    let new_fd = unsafe { libc::fcntl(fd, libc::F_DUPFD_CLOEXEC, 0) };
-    if new_fd == -1 {
-        bail!("dup of pty fd failed: {:?}", IoError::last_os_error())
-    }
-    Ok(new_fd)
-}
 
 pub enum Purge {
     InputQueue,
@@ -61,39 +50,12 @@ pub trait UnixTty {
     fn purge(&mut self, purge: Purge) -> Result<(), Error>;
 }
 
-struct Fd {
-    fd: RawFd,
-}
-
-impl Drop for Fd {
-    fn drop(&mut self) {
-        unsafe {
-            libc::close(self.fd);
-        }
-    }
-}
-
-impl Fd {
-    pub fn new<S: AsRawFd>(s: &S) -> Result<Self, Error> {
-        ensure!(s.is_tty(), "Can only construct a TtyHandle from a tty");
-        let fd = dup(s.as_raw_fd())?;
-        Ok(Self { fd })
-    }
-}
-
-impl Deref for Fd {
-    type Target = RawFd;
-    fn deref(&self) -> &RawFd {
-        &self.fd
-    }
-}
-
 pub struct TtyReadHandle {
-    fd: Fd,
+    fd: FileDescriptor,
 }
 
 impl TtyReadHandle {
-    fn new(fd: Fd) -> Self {
+    fn new(fd: FileDescriptor) -> Self {
         Self { fd }
     }
 
@@ -102,7 +64,7 @@ impl TtyReadHandle {
             Blocking::Wait => 0,
             Blocking::DoNotWait => 1,
         };
-        if unsafe { libc::ioctl(*self.fd, libc::FIONBIO, &value as *const _) } != 0 {
+        if unsafe { libc::ioctl(self.fd.as_raw_fd(), libc::FIONBIO, &value as *const _) } != 0 {
             bail!("failed to ioctl(FIONBIO): {:?}", IoError::last_os_error());
         }
         Ok(())
@@ -111,7 +73,8 @@ impl TtyReadHandle {
 
 impl Read for TtyReadHandle {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, IoError> {
-        let size = unsafe { libc::read(*self.fd, buf.as_mut_ptr() as *mut _, buf.len()) };
+        let size =
+            unsafe { libc::read(self.fd.as_raw_fd(), buf.as_mut_ptr() as *mut _, buf.len()) };
         if size == -1 {
             Err(IoError::last_os_error())
         } else {
@@ -121,12 +84,12 @@ impl Read for TtyReadHandle {
 }
 
 pub struct TtyWriteHandle {
-    fd: Fd,
+    fd: FileDescriptor,
     write_buffer: Vec<u8>,
 }
 
 impl TtyWriteHandle {
-    fn new(fd: Fd) -> Self {
+    fn new(fd: FileDescriptor) -> Self {
         Self {
             fd,
             write_buffer: Vec::with_capacity(BUF_SIZE),
@@ -135,19 +98,10 @@ impl TtyWriteHandle {
 
     fn flush_local_buffer(&mut self) -> Result<(), IoError> {
         if !self.write_buffer.is_empty() {
-            do_write(*self.fd, &self.write_buffer)?;
+            self.fd.write(&self.write_buffer)?;
             self.write_buffer.clear();
         }
         Ok(())
-    }
-}
-
-fn do_write(fd: RawFd, buf: &[u8]) -> Result<usize, IoError> {
-    let size = unsafe { libc::write(fd, buf.as_ptr() as *const _, buf.len()) };
-    if size == -1 {
-        Err(IoError::last_os_error())
-    } else {
-        Ok(size as usize)
     }
 }
 
@@ -157,7 +111,7 @@ impl Write for TtyWriteHandle {
             self.flush()?;
         }
         if buf.len() >= self.write_buffer.capacity() {
-            do_write(*self.fd, buf)
+            self.fd.write(buf)
         } else {
             self.write_buffer.write(buf)
         }
@@ -174,14 +128,14 @@ impl Write for TtyWriteHandle {
 impl UnixTty for TtyWriteHandle {
     fn get_size(&mut self) -> Result<winsize, Error> {
         let mut size: winsize = unsafe { mem::zeroed() };
-        if unsafe { libc::ioctl(*self.fd, libc::TIOCGWINSZ, &mut size) } != 0 {
+        if unsafe { libc::ioctl(self.fd.as_raw_fd(), libc::TIOCGWINSZ, &mut size) } != 0 {
             bail!("failed to ioctl(TIOCGWINSZ): {}", IoError::last_os_error());
         }
         Ok(size)
     }
 
     fn set_size(&mut self, size: winsize) -> Result<(), Error> {
-        if unsafe { libc::ioctl(*self.fd, libc::TIOCSWINSZ, &size as *const _) } != 0 {
+        if unsafe { libc::ioctl(self.fd.as_raw_fd(), libc::TIOCSWINSZ, &size as *const _) } != 0 {
             bail!(
                 "failed to ioctl(TIOCSWINSZ): {:?}",
                 IoError::last_os_error()
@@ -192,7 +146,7 @@ impl UnixTty for TtyWriteHandle {
     }
 
     fn get_termios(&mut self) -> Result<Termios, Error> {
-        Termios::from_fd(*self.fd).map_err(|e| format_err!("get_termios failed: {}", e))
+        Termios::from_fd(self.fd.as_raw_fd()).map_err(|e| format_err!("get_termios failed: {}", e))
     }
 
     fn set_termios(&mut self, termios: &Termios, when: SetAttributeWhen) -> Result<(), Error> {
@@ -201,11 +155,12 @@ impl UnixTty for TtyWriteHandle {
             SetAttributeWhen::AfterDrainOutputQueue => TCSADRAIN,
             SetAttributeWhen::AfterDrainOutputQueuePurgeInputQueue => TCSAFLUSH,
         };
-        tcsetattr(*self.fd, when, termios).map_err(|e| format_err!("set_termios failed: {}", e))
+        tcsetattr(self.fd.as_raw_fd(), when, termios)
+            .map_err(|e| format_err!("set_termios failed: {}", e))
     }
 
     fn drain(&mut self) -> Result<(), Error> {
-        tcdrain(*self.fd).map_err(|e| format_err!("tcdrain failed: {}", e))
+        tcdrain(self.fd.as_raw_fd()).map_err(|e| format_err!("tcdrain failed: {}", e))
     }
 
     fn purge(&mut self, purge: Purge) -> Result<(), Error> {
@@ -214,7 +169,7 @@ impl UnixTty for TtyWriteHandle {
             Purge::OutputQueue => TCOFLUSH,
             Purge::InputAndOutputQueue => TCIOFLUSH,
         };
-        tcflush(*self.fd, param).map_err(|e| format_err!("tcflush failed: {}", e))
+        tcflush(self.fd.as_raw_fd(), param).map_err(|e| format_err!("tcflush failed: {}", e))
     }
 }
 
@@ -249,8 +204,8 @@ impl UnixTerminal {
         read: &A,
         write: &B,
     ) -> Result<UnixTerminal, Error> {
-        let mut read = TtyReadHandle::new(Fd::new(read)?);
-        let mut write = TtyWriteHandle::new(Fd::new(write)?);
+        let mut read = TtyReadHandle::new(FileDescriptor::dup(read)?);
+        let mut write = TtyWriteHandle::new(FileDescriptor::dup(write)?);
         let saved_termios = write.get_termios()?;
         let renderer = TerminfoRenderer::new(caps.clone());
         let input_parser = InputParser::new();
@@ -443,7 +398,7 @@ impl Terminal for UnixTerminal {
                 revents: 0,
             },
             pollfd {
-                fd: self.read.fd.fd,
+                fd: self.read.fd.as_raw_fd(),
                 events: POLLIN,
                 revents: 0,
             },
