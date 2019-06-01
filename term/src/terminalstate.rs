@@ -2,6 +2,7 @@
 // and inclusive range
 #![cfg_attr(feature = "cargo-clippy", allow(clippy::range_plus_one))]
 use super::*;
+use crate::color::ColorPalette;
 use failure::bail;
 use image::{self, GenericImageView};
 use ordered_float::NotNan;
@@ -206,6 +207,7 @@ pub struct TerminalState {
 
     /// The terminal title string
     title: String,
+    palette: ColorPalette,
 }
 
 /// Like Write::write_all except that we keep looping
@@ -276,11 +278,16 @@ impl TerminalState {
             tabs: TabStop::new(physical_cols, 8),
             hyperlink_rules,
             title: "wezterm".to_string(),
+            palette: ColorPalette::default(),
         }
     }
 
     pub fn get_title(&self) -> &str {
         &self.title
+    }
+
+    pub fn palette(&self) -> &ColorPalette {
+        &self.palette
     }
 
     pub fn screen(&self) -> &Screen {
