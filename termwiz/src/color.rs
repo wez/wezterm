@@ -128,6 +128,16 @@ impl RgbColor {
             None
         }
     }
+
+    /// Construct a color from an SVG/CSS3 color name.
+    /// or from a string of the form `#RRGGBB` where
+    /// R, G and B are all hex digits.
+    /// Returns None if the supplied name is not recognized.
+    /// The list of names can be found here:
+    /// <https://ogeon.github.io/docs/palette/master/palette/named/index.html>
+    pub fn from_named_or_rgb_string(s: &str) -> Option<Self> {
+        RgbColor::from_rgb_str(&s).or_else(|| RgbColor::from_named(&s))
+    }
 }
 
 /// This is mildly unfortunate: in order to round trip RgbColor with serde
@@ -153,8 +163,7 @@ impl<'de> Deserialize<'de> for RgbColor {
         D: Deserializer<'de>,
     {
         let s = String::deserialize(deserializer)?;
-        RgbColor::from_rgb_str(&s)
-            .or_else(|| RgbColor::from_named(&s))
+        RgbColor::from_named_or_rgb_string(&s)
             .ok_or_else(|| format!("unknown color name: {}", s))
             .map_err(serde::de::Error::custom)
     }

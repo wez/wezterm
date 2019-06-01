@@ -1,3 +1,4 @@
+use crate::color::RgbColor;
 pub use crate::hyperlink::Hyperlink;
 use base64;
 use bitflags::bitflags;
@@ -20,6 +21,7 @@ pub enum OperatingSystemCommand {
     SetSelection(Selection, String),
     SystemNotification(String),
     ITermProprietary(ITermProprietary),
+    ChangeColorNumber(usize, RgbColor),
 
     Unspecified(Vec<Vec<u8>>),
 }
@@ -125,6 +127,17 @@ impl OperatingSystemCommand {
         }
     }
 
+    fn parse_change_color_number(osc: &[&[u8]]) -> Fallible<Self> {
+        ensure!(osc.len() == 3, "wrong number of params");
+
+        let index: usize = str::from_utf8(osc[1])?.parse()?;
+        let spec = str::from_utf8(osc[2])?;
+        let spec = RgbColor::from_named_or_rgb_string(spec)
+            .ok_or_else(|| err_msg("invalid color spec"))?;
+
+        Ok(OperatingSystemCommand::ChangeColorNumber(index, spec))
+    }
+
     fn internal_parse(osc: &[&[u8]]) -> Fallible<Self> {
         ensure!(!osc.is_empty(), "no params");
         let p1str = String::from_utf8_lossy(osc[0]);
@@ -154,6 +167,7 @@ impl OperatingSystemCommand {
             ITermProprietary => {
                 self::ITermProprietary::parse(osc).map(OperatingSystemCommand::ITermProprietary)
             }
+            ChangeColorNumber => Self::parse_change_color_number(osc),
 
             _ => bail!("not impl"),
         }
@@ -221,6 +235,7 @@ impl Display for OperatingSystemCommand {
             SetSelection(s, val) => write!(f, "52;{};{}", s, base64::encode(val))?,
             SystemNotification(s) => write!(f, "9;{}", s)?,
             ITermProprietary(i) => i.fmt(f)?,
+            ChangeColorNumber(index, spec) => write!(f, "4;{};{}", index, spec.to_rgb_string())?,
         };
         write!(f, "\x07")?;
         Ok(())

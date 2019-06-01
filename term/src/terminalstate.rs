@@ -2100,6 +2100,13 @@ impl<'a> Performer<'a> {
             OperatingSystemCommand::SystemNotification(message) => {
                 eprintln!("Application sends SystemNotification: {}", message);
             }
+            OperatingSystemCommand::ChangeColorNumber(palette_index, colorspec) => {
+                eprintln!(
+                    "ChangeColorNumber {} to {}",
+                    palette_index,
+                    colorspec.to_rgb_string()
+                );
+            }
         }
     }
 }
