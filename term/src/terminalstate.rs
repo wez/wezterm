@@ -2113,6 +2113,9 @@ impl<'a> Performer<'a> {
                     palette_index,
                     colorspec.to_rgb_string()
                 );
+                if palette_index < 256 {
+                    self.palette.colors.0[palette_index] = colorspec;
+                }
             }
         }
     }
