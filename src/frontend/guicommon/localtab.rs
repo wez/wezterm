@@ -3,6 +3,7 @@ use crate::mux::tab::{alloc_tab_id, Tab, TabId};
 use failure::Error;
 use portable_pty::{Child, MasterPty, PtySize};
 use std::cell::{RefCell, RefMut};
+use term::color::ColorPalette;
 use term::{KeyCode, KeyModifiers, MouseEvent, Terminal, TerminalHost};
 
 pub struct LocalTab {
@@ -79,6 +80,10 @@ impl Tab for LocalTab {
 
     fn get_title(&self) -> String {
         self.terminal.borrow_mut().get_title().to_string()
+    }
+
+    fn palette(&self) -> ColorPalette {
+        self.terminal.borrow().palette().clone()
     }
 }
 

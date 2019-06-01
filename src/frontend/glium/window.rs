@@ -196,12 +196,6 @@ impl GliumTerminalWindow {
         config: &Arc<Config>,
         tab: &Rc<Tab>,
     ) -> Result<GliumTerminalWindow, Error> {
-        let palette = config
-            .colors
-            .as_ref()
-            .map(|p| p.clone().into())
-            .unwrap_or_else(term::color::ColorPalette::default);
-
         let (physical_rows, physical_cols) = tab.renderer().physical_dimensions();
 
         let metrics = fonts.default_font_metrics()?;
@@ -247,7 +241,7 @@ impl GliumTerminalWindow {
 
         let width = width as u16;
         let height = height as u16;
-        let renderer = Renderer::new(&host.display, width, height, fonts, palette)?;
+        let renderer = Renderer::new(&host.display, width, height, fonts, tab.palette())?;
 
         let mux = Mux::get().unwrap();
         let mux_window_id = mux.add_new_window_with_tab(tab)?;

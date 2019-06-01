@@ -1,6 +1,7 @@
 use crate::mux::renderable::Renderable;
 use failure::Error;
 use std::cell::RefMut;
+use term::color::ColorPalette;
 use term::{KeyCode, KeyModifiers, MouseEvent, TerminalHost};
 
 static TAB_ID: ::std::sync::atomic::AtomicUsize = ::std::sync::atomic::AtomicUsize::new(0);
@@ -28,4 +29,5 @@ pub trait Tab {
     fn mouse_event(&self, event: MouseEvent, host: &mut TerminalHost) -> Result<(), Error>;
     fn advance_bytes(&self, buf: &[u8], host: &mut TerminalHost);
     fn is_dead(&self) -> bool;
+    fn palette(&self) -> ColorPalette;
 }
