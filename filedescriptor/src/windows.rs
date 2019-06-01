@@ -31,7 +31,7 @@ impl<T: IntoRawHandle> IntoRawFileDescriptor for T {
 }
 
 impl<T: FromRawHandle> FromRawFileDescriptor for T {
-    unsafe fn from_raw_file_descrptor(handle: RawHandle) -> Self {
+    unsafe fn from_raw_file_descriptor(handle: RawHandle) -> Self {
         Self::from_raw_handle(handle)
     }
 }

@@ -1,12 +1,13 @@
 [package]
 name = "filedescriptor"
-version = "0.1.1"
+version = "0.2.0"
 authors = ["Wez Furlong"]
 edition = "2018"
 repository = "https://github.com/wez/wzsh"
 description = "More ergonomic wrappers around RawFd and RawHandle"
 license = "MIT"
 documentation = "https://docs.rs/filedescriptor"
+readme = "README.md"
 
 [dependencies]
 failure = "0.1"

@@ -23,7 +23,7 @@ impl<T: IntoRawFd> IntoRawFileDescriptor for T {
 }
 
 impl<T: FromRawFd> FromRawFileDescriptor for T {
-    unsafe fn from_raw_file_descrptor(fd: RawFileDescriptor) -> Self {
+    unsafe fn from_raw_file_descriptor(fd: RawFileDescriptor) -> Self {
         Self::from_raw_fd(fd)
     }
 }

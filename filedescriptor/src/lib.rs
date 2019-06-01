@@ -1,10 +1,51 @@
 //! The purpose of this crate is to make it a bit more ergonomic for portable
 //! applications that need to work with the platform level `RawFd` and
 //! `RawHandle` types.
+//!
 //! Rather than conditionally using `RawFd` and `RawHandle`, the `FileDescriptor`
 //! type can be used to manage ownership, duplicate, read and write.
+//!
+//! ## FileDescriptor
+//!
+//! This is a bit of a contrived example, but demonstrates how to avoid
+//! the conditional code that would otherwise be required to deal with
+//! calling `as_raw_fd` and `as_raw_handle`:
+//!
+//! ```
+//! use filedescriptor::{FileDescriptor, FromRawFileDescriptor};
+//! use failure::Fallible;
+//! use std::io::Write;
+//!
+//! fn get_stdout() -> Fallible<FileDescriptor> {
+//!   let stdout = std::io::stdout();
+//!   let handle = stdout.lock();
+//!   FileDescriptor::dup(&handle)
+//! }
+//!
+//! fn print_something() -> Fallible<()> {
+//!    get_stdout()?.write(b"hello")?;
+//!    Ok(())
+//! }
+//! ```
+//!
+//! ## Pipe
 //! The `Pipe` type makes it more convenient to create a pipe and manage
 //! the lifetime of both the read and write ends of that pipe.
+//!
+//! ```
+//! use filedescriptor::Pipe;
+//! use std::io::{Read,Write};
+//! use failure::Error;
+//!
+//! let mut pipe = Pipe::new()?;
+//! pipe.write.write(b"hello")?;
+//! drop(pipe.write);
+//!
+//! let mut s = String::new();
+//! pipe.read.read_to_string(&mut s)?;
+//! assert_eq!(s, "hello");
+//! # Ok::<(), Error>(())
+//! ```
 use failure::Fallible;
 #[cfg(unix)]
 mod unix;
@@ -32,11 +73,11 @@ pub trait IntoRawFileDescriptor {
 /// `FromRawFileDescriptor` is a platform independent trait for creating
 /// an instance from the underlying platform file descriptor type.
 /// Because the platform file descriptor type has no inherent ownership
-/// management, the `from_raw_file_descrptor` function is marked as unsafe
+/// management, the `from_raw_file_descriptor` function is marked as unsafe
 /// to indicate that care must be taken by the caller to ensure that it
 /// is used appropriately.
 pub trait FromRawFileDescriptor {
-    unsafe fn from_raw_file_descrptor(fd: RawFileDescriptor) -> Self;
+    unsafe fn from_raw_file_descriptor(fd: RawFileDescriptor) -> Self;
 }
 
 /// `OwnedHandle` allows managing the lifetime of the platform `RawFileDescriptor`
@@ -69,7 +110,7 @@ impl OwnedHandle {
     }
 
     /// Attempt to duplicate the underlying handle from an object that is
-    /// representable as the systemm `RawFileDescriptor` type and return an
+    /// representable as the system `RawFileDescriptor` type and return an
     /// `OwnedHandle` wrapped around the duplicate.  Since the duplication
     /// requires kernel resources that may not be available, this is a
     /// potentially fallible operation.
@@ -82,6 +123,27 @@ impl OwnedHandle {
 
 /// `FileDescriptor` is a thin wrapper on top of the `OwnedHandle` type that
 /// exposes the ability to Read and Write to the platform `RawFileDescriptor`.
+///
+/// This is a bit of a contrived example, but demonstrates how to avoid
+/// the conditional code that would otherwise be required to deal with
+/// calling `as_raw_fd` and `as_raw_handle`:
+///
+/// ```
+/// use filedescriptor::{FileDescriptor, FromRawFileDescriptor};
+/// use failure::Fallible;
+/// use std::io::Write;
+///
+/// fn get_stdout() -> Fallible<FileDescriptor> {
+///   let stdout = std::io::stdout();
+///   let handle = stdout.lock();
+///   FileDescriptor::dup(&handle)
+/// }
+///
+/// fn print_something() -> Fallible<()> {
+///    get_stdout()?.write(b"hello")?;
+///    Ok(())
+/// }
+/// ```
 #[derive(Debug)]
 pub struct FileDescriptor {
     handle: OwnedHandle,
@@ -97,7 +159,7 @@ impl FileDescriptor {
     }
 
     /// Attempt to duplicate the underlying handle from an object that is
-    /// representable as the systemm `RawFileDescriptor` type and return a
+    /// representable as the system `RawFileDescriptor` type and return a
     /// `FileDescriptor` wrapped around the duplicate.  Since the duplication
     /// requires kernel resources that may not be available, this is a
     /// potentially fallible operation.
@@ -128,7 +190,24 @@ impl FileDescriptor {
 
 /// Represents the readable and writable ends of a pair of descriptors
 /// connected via a kernel pipe.
+///
+/// ```
+/// use filedescriptor::Pipe;
+/// use std::io::{Read,Write};
+/// use failure::Error;
+///
+/// let mut pipe = Pipe::new()?;
+/// pipe.write.write(b"hello")?;
+/// drop(pipe.write);
+///
+/// let mut s = String::new();
+/// pipe.read.read_to_string(&mut s)?;
+/// assert_eq!(s, "hello");
+/// # Ok::<(), Error>(())
+/// ```
 pub struct Pipe {
+    /// The readable end of the pipe
     pub read: FileDescriptor,
+    /// The writable end of the pipe
     pub write: FileDescriptor,
 }
