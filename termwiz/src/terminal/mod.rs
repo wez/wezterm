@@ -9,6 +9,8 @@ use std::fmt::Display;
 use std::time::Duration;
 
 #[cfg(unix)]
+pub mod poll;
+#[cfg(unix)]
 pub mod unix;
 #[cfg(windows)]
 pub mod windows;

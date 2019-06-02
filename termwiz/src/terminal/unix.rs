@@ -1,6 +1,6 @@
 use failure::{bail, format_err, Error, Fallible};
 use filedescriptor::FileDescriptor;
-use libc::{self, poll, pollfd, winsize, POLLIN};
+use libc::{self, pollfd, winsize, POLLIN, POLLNVAL};
 use signal_hook::{self, SigId};
 use std::collections::VecDeque;
 use std::fs::OpenOptions;
@@ -415,17 +415,7 @@ impl Terminal for UnixTerminal {
             Blocking::DoNotWait
         })?;
 
-        let poll_result = unsafe {
-            poll(
-                pfd.as_mut_ptr(),
-                pfd.len() as _,
-                wait.map(|wait| wait.as_millis() as libc::c_int)
-                    .unwrap_or(-1),
-            )
-        };
-        if poll_result < 0 {
-            let err = IoError::last_os_error();
-
+        if let Err(err) = super::poll::poll(&mut pfd, wait) {
             if err.kind() == ErrorKind::Interrupted {
                 // SIGWINCH may have been the source of the interrupt.
                 // Check for that now so that we reduce the latency of
@@ -437,7 +427,7 @@ impl Terminal for UnixTerminal {
                 return Ok(None);
             }
             return Err(format_err!("poll(2) error: {}", err));
-        }
+        };
 
         if pfd[0].revents != 0 {
             // SIGWINCH received via our pipe?
@@ -448,6 +438,9 @@ impl Terminal for UnixTerminal {
 
         if pfd[1].revents != 0 {
             let mut buf = [0u8; 64];
+            if pfd[1].revents & POLLNVAL != 0 {
+                bail!("poll reports POLLNVAL for tty input");
+            }
             match self.read.read(&mut buf) {
                 Ok(n) => {
                     let input_queue = &mut self.input_queue;
