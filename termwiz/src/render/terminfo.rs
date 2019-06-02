@@ -47,6 +47,7 @@ impl TerminfoRenderer {
         });
     }
 
+    #[cfg_attr(feature = "cargo-clippy", allow(clippy::cognitive_complexity))]
     fn flush_pending_attr<W: UnixTty + Write>(&mut self, out: &mut W) -> Fallible<()> {
         macro_rules! attr_on {
             ($cap:ident, $sgr:expr) => {
@@ -87,6 +88,14 @@ impl TerminfoRenderer {
                         Intensity::Bold => attr_on!(EnterBoldMode, Sgr::Intensity(Intensity::Bold)),
                         Intensity::Half => attr_on!(EnterDimMode, Sgr::Intensity(Intensity::Half)),
                         _ => {}
+                    }
+
+                    if attr.underline() == Underline::Single {
+                        attr_on!(Sgr::Underline(Underline::Single));
+                    }
+
+                    if attr.blink() == Blink::Slow {
+                        attr_on!(Sgr::Blink(Blink::Slow));
                     }
 
                     if attr.reverse() {
