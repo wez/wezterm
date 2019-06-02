@@ -47,31 +47,17 @@ impl TerminfoRenderer {
         });
     }
 
-    #[cfg_attr(
-        feature = "cargo-clippy",
-        allow(clippy::cyclomatic_complexity, clippy::cognitive_complexity)
-    )]
     fn flush_pending_attr<W: UnixTty + Write>(&mut self, out: &mut W) -> Fallible<()> {
-        macro_rules! attr_on_off {
-            ($cap_on:ident, $cap_off:ident, $attr:expr, $accesor:ident, $sgr:ident) => {
-                let value = $attr.$accesor();
-                if value != self.current_attr.$accesor() {
-                    let out = out.by_ref();
-                    let on: bool = value.into();
-                    if on {
-                        if let Some(attr) = self.get_capability::<cap::$cap_on>() {
-                            attr.expand().to(out)?;
-                        } else {
-                            write!(out, "{}", CSI::Sgr(Sgr::$sgr(value)))?;
-                        }
-                    } else {
-                        if let Some(attr) = self.get_capability::<cap::$cap_off>() {
-                            attr.expand().to(out)?;
-                        } else {
-                            write!(out, "{}", CSI::Sgr(Sgr::$sgr(value)))?;
-                        }
-                    }
+        macro_rules! attr_on {
+            ($cap:ident, $sgr:expr) => {
+                if let Some(attr) = self.get_capability::<cap::$cap>() {
+                    attr.expand().to(out.by_ref())?;
+                } else {
+                    write!(out, "{}", CSI::Sgr($sgr))?;
                 }
+            };
+            ($sgr:expr) => {
+                write!(out, "{}", CSI::Sgr($sgr))?;
             };
         }
 
@@ -83,88 +69,49 @@ impl TerminfoRenderer {
                 // Updating the attribute bits also resets the colors.
                 current_foreground = ColorAttribute::Default;
                 current_background = ColorAttribute::Default;
+
+                // The SetAttributes capability can only handle single underline and slow blink.
                 if let Some(sgr) = self.get_capability::<cap::SetAttributes>() {
                     sgr.expand()
                         .bold(attr.intensity() == Intensity::Bold)
                         .dim(attr.intensity() == Intensity::Half)
-                        .underline(attr.underline() != Underline::None)
-                        .blink(attr.blink() != Blink::None)
+                        .underline(attr.underline() == Underline::Single)
+                        .blink(attr.blink() == Blink::Slow)
                         .reverse(attr.reverse())
                         .invisible(attr.invisible())
                         .to(out.by_ref())?;
                 } else {
-                    if let Some(exit) = self.get_capability::<cap::ExitAttributeMode>() {
-                        exit.expand().to(out.by_ref())?;
-                    } else {
-                        write!(out, "{}", CSI::Sgr(Sgr::Reset))?;
+                    attr_on!(ExitAttributeMode, Sgr::Reset);
+
+                    match attr.intensity() {
+                        Intensity::Bold => attr_on!(EnterBoldMode, Sgr::Intensity(Intensity::Bold)),
+                        Intensity::Half => attr_on!(EnterDimMode, Sgr::Intensity(Intensity::Half)),
+                        _ => {}
                     }
 
-                    if attr.intensity() != self.current_attr.intensity() {
-                        match attr.intensity() {
-                            Intensity::Bold => {
-                                if let Some(bold) = self.get_capability::<cap::EnterBoldMode>() {
-                                    bold.expand().to(out.by_ref())?;
-                                } else {
-                                    write!(out, "{}", CSI::Sgr(Sgr::Intensity(attr.intensity())))?;
-                                }
-                            }
-                            Intensity::Half => {
-                                if let Some(dim) = self.get_capability::<cap::EnterDimMode>() {
-                                    dim.expand().to(out.by_ref())?;
-                                } else {
-                                    write!(out, "{}", CSI::Sgr(Sgr::Intensity(attr.intensity())))?;
-                                }
-                            }
-                            _ => {}
-                        }
+                    if attr.reverse() {
+                        attr_on!(EnterReverseMode, Sgr::Inverse(true));
                     }
 
-                    attr_on_off!(
-                        EnterUnderlineMode,
-                        ExitUnderlineMode,
-                        attr,
-                        underline,
-                        Underline
-                    );
-
-                    attr_on_off!(
-                        EnterUnderlineMode,
-                        ExitUnderlineMode,
-                        attr,
-                        underline,
-                        Underline
-                    );
-
-                    if attr.blink() != self.current_attr.blink() {
-                        if let Some(attr) = self.get_capability::<cap::EnterBlinkMode>() {
-                            attr.expand().to(out.by_ref())?;
-                        } else {
-                            write!(out, "{}", CSI::Sgr(Sgr::Blink(attr.blink())))?;
-                        }
-                    }
-
-                    if attr.reverse() != self.current_attr.reverse() {
-                        if let Some(attr) = self.get_capability::<cap::EnterReverseMode>() {
-                            attr.expand().to(out.by_ref())?;
-                        } else {
-                            write!(out, "{}", CSI::Sgr(Sgr::Inverse(attr.reverse())))?;
-                        }
-                    }
-
-                    if attr.invisible() != self.current_attr.invisible() {
-                        write!(out, "{}", CSI::Sgr(Sgr::Invisible(attr.invisible())))?;
+                    if attr.invisible() {
+                        attr_on!(Sgr::Invisible(true));
                     }
                 }
 
-                attr_on_off!(EnterItalicsMode, ExitItalicsMode, attr, italic, Italic);
+                if attr.underline() == Underline::Double {
+                    attr_on!(Sgr::Underline(Underline::Double));
+                }
 
-                // TODO: add strikethrough to Capabilities
-                if attr.strikethrough() != self.current_attr.strikethrough() {
-                    write!(
-                        out,
-                        "{}",
-                        CSI::Sgr(Sgr::StrikeThrough(attr.strikethrough()))
-                    )?;
+                if attr.blink() == Blink::Rapid {
+                    attr_on!(Sgr::Blink(Blink::Rapid));
+                }
+
+                if attr.italic() {
+                    attr_on!(EnterItalicsMode, Sgr::Italic(true));
+                }
+
+                if attr.strikethrough() {
+                    attr_on!(Sgr::StrikeThrough(true));
                 }
             }
 
