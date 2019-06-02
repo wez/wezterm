@@ -327,8 +327,12 @@ impl GuiEventLoop {
         }
     }
 
+    fn pop_gui_thread_send(&self) -> Option<SpawnFunc> {
+        self.gui_thread_sends.borrow_mut().pop_front()
+    }
+
     fn process_gui_exec(&self) -> Result<(), Error> {
-        while let Some(func) = self.gui_thread_sends.borrow_mut().pop_front() {
+        while let Some(func) = self.pop_gui_thread_send() {
             func();
         }
 
