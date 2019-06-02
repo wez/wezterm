@@ -2107,15 +2107,16 @@ impl<'a> Performer<'a> {
             OperatingSystemCommand::SystemNotification(message) => {
                 eprintln!("Application sends SystemNotification: {}", message);
             }
-            OperatingSystemCommand::ChangeColorNumber(palette_index, colorspec) => {
-                eprintln!(
-                    "ChangeColorNumber {} to {}",
-                    palette_index,
-                    colorspec.to_rgb_string()
-                );
-                if palette_index < 256 {
-                    self.palette.colors.0[palette_index] = colorspec;
+            OperatingSystemCommand::ChangeColorNumber(specs) => {
+                for pair in specs {
+                    eprintln!(
+                        "ChangeColorNumber {} to {}",
+                        pair.palette_index,
+                        pair.color.to_rgb_string()
+                    );
+                    self.palette.colors.0[pair.palette_index as usize] = pair.color;
                 }
+                self.make_all_lines_dirty();
             }
         }
     }

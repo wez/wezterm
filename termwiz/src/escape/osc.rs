@@ -21,9 +21,15 @@ pub enum OperatingSystemCommand {
     SetSelection(Selection, String),
     SystemNotification(String),
     ITermProprietary(ITermProprietary),
-    ChangeColorNumber(usize, RgbColor),
+    ChangeColorNumber(Vec<ChangeColorPair>),
 
     Unspecified(Vec<Vec<u8>>),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ChangeColorPair {
+    pub palette_index: u8,
+    pub color: RgbColor,
 }
 
 bitflags! {
@@ -128,14 +134,23 @@ impl OperatingSystemCommand {
     }
 
     fn parse_change_color_number(osc: &[&[u8]]) -> Fallible<Self> {
-        ensure!(osc.len() == 3, "wrong number of params");
+        let mut pairs = vec![];
+        let mut iter = osc.iter();
+        iter.next(); // skip the command word that we already know is present
 
-        let index: usize = str::from_utf8(osc[1])?.parse()?;
-        let spec = str::from_utf8(osc[2])?;
-        let spec = RgbColor::from_named_or_rgb_string(spec)
-            .ok_or_else(|| err_msg("invalid color spec"))?;
+        while let (Some(index), Some(spec)) = (iter.next(), iter.next()) {
+            let index: u8 = str::from_utf8(index)?.parse()?;
+            let spec = str::from_utf8(spec)?;
+            let spec = RgbColor::from_named_or_rgb_string(spec)
+                .ok_or_else(|| err_msg("invalid color spec"))?;
 
-        Ok(OperatingSystemCommand::ChangeColorNumber(index, spec))
+            pairs.push(ChangeColorPair {
+                palette_index: index,
+                color: spec,
+            });
+        }
+
+        Ok(OperatingSystemCommand::ChangeColorNumber(pairs))
     }
 
     fn internal_parse(osc: &[&[u8]]) -> Fallible<Self> {
@@ -235,7 +250,12 @@ impl Display for OperatingSystemCommand {
             SetSelection(s, val) => write!(f, "52;{};{}", s, base64::encode(val))?,
             SystemNotification(s) => write!(f, "9;{}", s)?,
             ITermProprietary(i) => i.fmt(f)?,
-            ChangeColorNumber(index, spec) => write!(f, "4;{};{}", index, spec.to_rgb_string())?,
+            ChangeColorNumber(specs) => {
+                write!(f, "4;")?;
+                for pair in specs {
+                    write!(f, "{};{}", pair.palette_index, pair.color.to_rgb_string())?
+                }
+            }
         };
         write!(f, "\x07")?;
         Ok(())
