@@ -22,8 +22,24 @@ pub enum OperatingSystemCommand {
     SystemNotification(String),
     ITermProprietary(ITermProprietary),
     ChangeColorNumber(Vec<ChangeColorPair>),
+    ChangeDynamicColors(DynamicColorNumber, Vec<RgbColor>),
 
     Unspecified(Vec<Vec<u8>>),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, FromPrimitive)]
+#[repr(u8)]
+pub enum DynamicColorNumber {
+    TextForegroundColor = 10,
+    TextBackgroundColor = 11,
+    TextCursorColor = 12,
+    MouseForegroundColor = 13,
+    MouseBackgroundColor = 14,
+    TektronixForegroundColor = 15,
+    TektronixBackgroundColor = 16,
+    HighlightBackgroundColor = 17,
+    TektronixCursorColor = 18,
+    HighlightForegroundColor = 19,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -153,6 +169,24 @@ impl OperatingSystemCommand {
         Ok(OperatingSystemCommand::ChangeColorNumber(pairs))
     }
 
+    fn parse_change_dynamic_color_number(idx: u8, osc: &[&[u8]]) -> Fallible<Self> {
+        let which_color: DynamicColorNumber = num::FromPrimitive::from_u8(idx)
+            .ok_or_else(|| err_msg("osc code is not a valid DynamicColorNumber!?"))?;
+        let mut colors = vec![];
+        for spec in osc.iter().skip(1) {
+            let spec = str::from_utf8(spec)?;
+            colors.push(
+                RgbColor::from_named_or_rgb_string(spec)
+                    .ok_or_else(|| err_msg("invalid color spec"))?,
+            );
+        }
+
+        Ok(OperatingSystemCommand::ChangeDynamicColors(
+            which_color,
+            colors,
+        ))
+    }
+
     fn internal_parse(osc: &[&[u8]]) -> Fallible<Self> {
         ensure!(!osc.is_empty(), "no params");
         let p1str = String::from_utf8_lossy(osc[0]);
@@ -184,6 +218,19 @@ impl OperatingSystemCommand {
             }
             ChangeColorNumber => Self::parse_change_color_number(osc),
 
+            SetTextForegroundColor
+            | SetTextBackgroundColor
+            | SetTextCursorColor
+            | SetMouseForegroundColor
+            | SetMouseBackgroundColor
+            | SetTektronixForegroundColor
+            | SetTektronixBackgroundColor
+            | SetHighlightBackgroundColor
+            | SetTektronixCursorColor
+            | SetHighlightForegroundColor => {
+                Self::parse_change_dynamic_color_number(osc_code as u8, osc)
+            }
+
             _ => bail!("not impl"),
         }
     }
@@ -210,8 +257,9 @@ pub enum OperatingSystemCommandCode {
     SetMouseBackgroundColor = 14,
     SetTektronixForegroundColor = 15,
     SetTektronixBackgroundColor = 16,
-    SetHighlightColor = 17,
+    SetHighlightBackgroundColor = 17,
     SetTektronixCursorColor = 18,
+    SetHighlightForegroundColor = 19,
     SetLogFileName = 46,
     SetFont = 50,
     EmacsShell = 51,
@@ -254,6 +302,12 @@ impl Display for OperatingSystemCommand {
                 write!(f, "4;")?;
                 for pair in specs {
                     write!(f, "{};{}", pair.palette_index, pair.color.to_rgb_string())?
+                }
+            }
+            ChangeDynamicColors(first_color, colors) => {
+                write!(f, "{}", *first_color as u8)?;
+                for color in colors {
+                    write!(f, ";{}", color.to_rgb_string())?
                 }
             }
         };

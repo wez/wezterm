@@ -2118,6 +2118,37 @@ impl<'a> Performer<'a> {
                 }
                 self.make_all_lines_dirty();
             }
+            OperatingSystemCommand::ChangeDynamicColors(first_color, colors) => {
+                use termwiz::escape::osc::DynamicColorNumber;
+                let mut idx: u8 = first_color as u8;
+                for color in colors {
+                    let which_color: Option<DynamicColorNumber> = num::FromPrimitive::from_u8(idx);
+                    if let Some(which_color) = which_color {
+                        match which_color {
+                            DynamicColorNumber::TextForegroundColor => {
+                                self.palette.foreground = color
+                            }
+                            DynamicColorNumber::TextBackgroundColor => {
+                                self.palette.background = color
+                            }
+                            DynamicColorNumber::TextCursorColor => self.palette.cursor_bg = color,
+                            DynamicColorNumber::HighlightForegroundColor => {
+                                self.palette.selection_fg = color
+                            }
+                            DynamicColorNumber::HighlightBackgroundColor => {
+                                self.palette.selection_bg = color
+                            }
+                            DynamicColorNumber::MouseForegroundColor
+                            | DynamicColorNumber::MouseBackgroundColor
+                            | DynamicColorNumber::TektronixForegroundColor
+                            | DynamicColorNumber::TektronixBackgroundColor
+                            | DynamicColorNumber::TektronixCursorColor => {}
+                        }
+                    }
+                    idx += 1;
+                }
+                self.make_all_lines_dirty();
+            }
         }
     }
 }
