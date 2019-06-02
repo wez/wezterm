@@ -1,6 +1,6 @@
 use failure::{bail, format_err, Error, Fallible};
 use filedescriptor::FileDescriptor;
-use libc::{self, pollfd, winsize, POLLIN, POLLNVAL};
+use libc::{self, pollfd, winsize, POLLIN};
 use signal_hook::{self, SigId};
 use std::collections::VecDeque;
 use std::fs::OpenOptions;
@@ -438,9 +438,6 @@ impl Terminal for UnixTerminal {
 
         if pfd[1].revents != 0 {
             let mut buf = [0u8; 64];
-            if pfd[1].revents & POLLNVAL != 0 {
-                bail!("poll reports POLLNVAL for tty input");
-            }
             match self.read.read(&mut buf) {
                 Ok(n) => {
                     let input_queue = &mut self.input_queue;
