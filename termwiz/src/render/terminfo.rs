@@ -76,7 +76,13 @@ impl TerminfoRenderer {
         }
 
         if let Some(attr) = self.pending_attr.take() {
+            let mut current_foreground = self.current_attr.foreground;
+            let mut current_background = self.current_attr.background;
+
             if !attr.attribute_bits_equal(&self.current_attr) {
+                // Updating the attribute bits also resets the colors.
+                current_foreground = ColorAttribute::Default;
+                current_background = ColorAttribute::Default;
                 if let Some(sgr) = self.get_capability::<cap::SetAttributes>() {
                     sgr.expand()
                         .bold(attr.intensity() == Intensity::Bold)
@@ -164,7 +170,7 @@ impl TerminfoRenderer {
 
             let has_true_color = self.caps.color_level() == ColorLevel::TrueColor;
 
-            if attr.foreground != self.current_attr.foreground {
+            if attr.foreground != current_foreground {
                 match (has_true_color, attr.foreground) {
                     (true, ColorAttribute::TrueColorWithPaletteFallback(tc, _))
                     | (true, ColorAttribute::TrueColorWithDefaultFallback(tc)) => {
@@ -195,7 +201,7 @@ impl TerminfoRenderer {
                 }
             }
 
-            if attr.background != self.current_attr.background {
+            if attr.background != current_background {
                 match (has_true_color, attr.background) {
                     (true, ColorAttribute::TrueColorWithPaletteFallback(tc, _))
                     | (true, ColorAttribute::TrueColorWithDefaultFallback(tc)) => {
@@ -1153,6 +1159,46 @@ mod test {
             CellAttributes::default()
                 .set_intensity(Intensity::Bold)
                 .set_foreground(AnsiColor::Red)
+                .clone()
+        );
+    }
+
+    #[test]
+    fn color_after_attribute_change() {
+        let mut out = FakeTerm::new(xterm_terminfo());
+        out.render(&[
+            Change::Attribute(AttributeChange::Foreground(AnsiColor::Maroon.into())),
+            Change::Attribute(AttributeChange::Intensity(Intensity::Bold)),
+            Change::Text("red".into()),
+            Change::Attribute(AttributeChange::Intensity(Intensity::Normal)),
+            Change::Text("2".into()),
+        ])
+        .unwrap();
+
+        let result = out.parse();
+        assert_eq!(
+            result,
+            vec![
+                Action::Esc(Esc::Code(EscCode::AsciiCharacterSet)),
+                Action::CSI(CSI::Sgr(Sgr::Reset)),
+                // Note that the render code rearranges (red,bold) to (bold,red)
+                Action::CSI(CSI::Sgr(Sgr::Intensity(Intensity::Bold))),
+                Action::CSI(CSI::Sgr(Sgr::Foreground(AnsiColor::Maroon.into()))),
+                Action::Print('r'),
+                Action::Print('e'),
+                Action::Print('d'),
+                // Turning off bold is translated into reset and set red again
+                Action::Esc(Esc::Code(EscCode::AsciiCharacterSet)),
+                Action::CSI(CSI::Sgr(Sgr::Reset)),
+                Action::CSI(CSI::Sgr(Sgr::Foreground(AnsiColor::Maroon.into()))),
+                Action::Print('2'),
+            ]
+        );
+
+        assert_eq!(
+            out.renderer.current_attr,
+            CellAttributes::default()
+                .set_foreground(AnsiColor::Maroon)
                 .clone()
         );
     }
