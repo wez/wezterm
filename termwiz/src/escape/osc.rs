@@ -11,6 +11,21 @@ use std::fmt::{Display, Error as FmtError, Formatter};
 use std::str;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ColorOrQuery {
+    Color(RgbColor),
+    Query,
+}
+
+impl Display for ColorOrQuery {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), FmtError> {
+        match self {
+            ColorOrQuery::Query => write!(f, "?"),
+            ColorOrQuery::Color(c) => write!(f, "{}", c.to_rgb_string()),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum OperatingSystemCommand {
     SetIconNameAndWindowTitle(String),
     SetWindowTitle(String),
@@ -22,7 +37,7 @@ pub enum OperatingSystemCommand {
     SystemNotification(String),
     ITermProprietary(ITermProprietary),
     ChangeColorNumber(Vec<ChangeColorPair>),
-    ChangeDynamicColors(DynamicColorNumber, Vec<RgbColor>),
+    ChangeDynamicColors(DynamicColorNumber, Vec<ColorOrQuery>),
 
     Unspecified(Vec<Vec<u8>>),
 }
@@ -45,7 +60,7 @@ pub enum DynamicColorNumber {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ChangeColorPair {
     pub palette_index: u8,
-    pub color: RgbColor,
+    pub color: ColorOrQuery,
 }
 
 bitflags! {
@@ -157,8 +172,14 @@ impl OperatingSystemCommand {
         while let (Some(index), Some(spec)) = (iter.next(), iter.next()) {
             let index: u8 = str::from_utf8(index)?.parse()?;
             let spec = str::from_utf8(spec)?;
-            let spec = RgbColor::from_named_or_rgb_string(spec)
-                .ok_or_else(|| err_msg("invalid color spec"))?;
+            let spec = if spec == "?" {
+                ColorOrQuery::Query
+            } else {
+                ColorOrQuery::Color(
+                    RgbColor::from_named_or_rgb_string(spec)
+                        .ok_or_else(|| err_msg("invalid color spec"))?,
+                )
+            };
 
             pairs.push(ChangeColorPair {
                 palette_index: index,
@@ -174,11 +195,15 @@ impl OperatingSystemCommand {
             .ok_or_else(|| err_msg("osc code is not a valid DynamicColorNumber!?"))?;
         let mut colors = vec![];
         for spec in osc.iter().skip(1) {
-            let spec = str::from_utf8(spec)?;
-            colors.push(
-                RgbColor::from_named_or_rgb_string(spec)
-                    .ok_or_else(|| err_msg("invalid color spec"))?,
-            );
+            if spec == b"?" {
+                colors.push(ColorOrQuery::Query);
+            } else {
+                let spec = str::from_utf8(spec)?;
+                colors.push(ColorOrQuery::Color(
+                    RgbColor::from_named_or_rgb_string(spec)
+                        .ok_or_else(|| err_msg("invalid color spec"))?,
+                ));
+            }
         }
 
         Ok(OperatingSystemCommand::ChangeDynamicColors(
@@ -301,13 +326,13 @@ impl Display for OperatingSystemCommand {
             ChangeColorNumber(specs) => {
                 write!(f, "4;")?;
                 for pair in specs {
-                    write!(f, "{};{}", pair.palette_index, pair.color.to_rgb_string())?
+                    write!(f, "{};{}", pair.palette_index, pair.color)?
                 }
             }
             ChangeDynamicColors(first_color, colors) => {
                 write!(f, "{}", *first_color as u8)?;
                 for color in colors {
-                    write!(f, ";{}", color.to_rgb_string())?
+                    write!(f, ";{}", color)?
                 }
             }
         };

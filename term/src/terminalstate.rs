@@ -12,7 +12,7 @@ use termwiz::escape::csi::{
     Cursor, DecPrivateMode, DecPrivateModeCode, Device, Edit, EraseInDisplay, EraseInLine, Mode,
     Sgr, TerminalMode, TerminalModeCode, Window,
 };
-use termwiz::escape::osc::{ITermFileData, ITermProprietary};
+use termwiz::escape::osc::{ChangeColorPair, ColorOrQuery, ITermFileData, ITermProprietary};
 use termwiz::escape::{Action, ControlCode, Esc, EscCode, OneBased, OperatingSystemCommand, CSI};
 use termwiz::hyperlink::Rule as HyperlinkRule;
 use termwiz::image::{ImageCell, ImageData, TextureCoordinate};
@@ -2108,35 +2108,56 @@ impl<'a> Performer<'a> {
                 eprintln!("Application sends SystemNotification: {}", message);
             }
             OperatingSystemCommand::ChangeColorNumber(specs) => {
+                eprintln!("ChangeColorNumber: {:?}", specs);
                 for pair in specs {
-                    eprintln!(
-                        "ChangeColorNumber {} to {}",
-                        pair.palette_index,
-                        pair.color.to_rgb_string()
-                    );
-                    self.palette.colors.0[pair.palette_index as usize] = pair.color;
+                    match pair.color {
+                        ColorOrQuery::Query => {
+                            let response =
+                                OperatingSystemCommand::ChangeColorNumber(vec![ChangeColorPair {
+                                    palette_index: pair.palette_index,
+                                    color: ColorOrQuery::Color(
+                                        self.palette.colors.0[pair.palette_index as usize],
+                                    ),
+                                }]);
+                            write!(self.host.writer(), "{}", response).ok();
+                        }
+                        ColorOrQuery::Color(c) => {
+                            self.palette.colors.0[pair.palette_index as usize] = c;
+                        }
+                    }
                 }
                 self.make_all_lines_dirty();
             }
             OperatingSystemCommand::ChangeDynamicColors(first_color, colors) => {
+                eprintln!("ChangeDynamicColors: {:?} {:?}", first_color, colors);
                 use termwiz::escape::osc::DynamicColorNumber;
                 let mut idx: u8 = first_color as u8;
                 for color in colors {
                     let which_color: Option<DynamicColorNumber> = num::FromPrimitive::from_u8(idx);
                     if let Some(which_color) = which_color {
+                        macro_rules! set_or_query {
+                            ($name:ident) => {
+                                match color {
+                                    ColorOrQuery::Query => {
+                                        let response = OperatingSystemCommand::ChangeDynamicColors(
+                                            which_color,
+                                            vec![ColorOrQuery::Color(self.palette.$name)],
+                                        );
+                                        write!(self.host.writer(), "{}", response).ok();
+                                    }
+                                    ColorOrQuery::Color(c) => self.palette.$name = c,
+                                }
+                            };
+                        }
                         match which_color {
-                            DynamicColorNumber::TextForegroundColor => {
-                                self.palette.foreground = color
-                            }
-                            DynamicColorNumber::TextBackgroundColor => {
-                                self.palette.background = color
-                            }
-                            DynamicColorNumber::TextCursorColor => self.palette.cursor_bg = color,
+                            DynamicColorNumber::TextForegroundColor => set_or_query!(foreground),
+                            DynamicColorNumber::TextBackgroundColor => set_or_query!(background),
+                            DynamicColorNumber::TextCursorColor => set_or_query!(cursor_bg),
                             DynamicColorNumber::HighlightForegroundColor => {
-                                self.palette.selection_fg = color
+                                set_or_query!(selection_fg)
                             }
                             DynamicColorNumber::HighlightBackgroundColor => {
-                                self.palette.selection_bg = color
+                                set_or_query!(selection_bg)
                             }
                             DynamicColorNumber::MouseForegroundColor
                             | DynamicColorNumber::MouseBackgroundColor
