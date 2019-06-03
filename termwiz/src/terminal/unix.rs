@@ -250,6 +250,7 @@ impl UnixTerminal {
         let mut buf = [0u8; 64];
 
         match self.sigwinch_pipe.read(&mut buf) {
+            Ok(0) => Ok(None),
             Ok(_) => {
                 let size = self.write.get_size()?;
                 Ok(Some(InputEvent::Resized {
