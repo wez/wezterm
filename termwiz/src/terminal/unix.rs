@@ -457,8 +457,10 @@ impl Terminal for UnixTerminal {
 
         if pfd[2].revents != 0 {
             let mut buf = [0u8; 64];
-            if self.wake_pipe.read(&mut buf).is_ok() {
-                return Ok(Some(InputEvent::Wake));
+            if let Ok(n) = self.wake_pipe.read(&mut buf) {
+                if n > 0 {
+                    return Ok(Some(InputEvent::Wake));
+                }
             }
         }
 
