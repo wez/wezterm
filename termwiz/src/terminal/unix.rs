@@ -217,7 +217,7 @@ impl UnixTerminal {
         let (wake_pipe, wake_pipe_write) = UnixStream::pair()?;
         wake_pipe.set_nonblocking(true)?;
 
-        read.set_blocking(Blocking::DoNotWait)?;
+        read.set_blocking(Blocking::Wait)?;
 
         Ok(UnixTerminal {
             caps,
@@ -409,12 +409,6 @@ impl Terminal for UnixTerminal {
                 revents: 0,
             },
         ];
-
-        self.read.set_blocking(if wait.is_none() {
-            Blocking::Wait
-        } else {
-            Blocking::DoNotWait
-        })?;
 
         if let Err(err) = super::poll::poll(&mut pfd, wait) {
             if err.kind() == ErrorKind::Interrupted {
