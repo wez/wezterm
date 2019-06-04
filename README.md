@@ -95,7 +95,7 @@ to change.  The code for configuration can be found in [`src/config.rs`](src/con
 
 I use the following in my `~/.wezterm.toml`:
 
-```
+```toml
 font_size = 10
 font = { font = [{family = "Operator Mono SSm Lig Medium"}] }
 # How many lines of scrollback to retain
@@ -132,7 +132,7 @@ You can configure colors with a section like this.  In addition to specifying
 SVG/CSS3 color names, you can use `#RRGGBB` to specify a color code using the
 usual hex notation; eg: `#000000` is equivalent to `black`:
 
-```
+```toml
 [colors]
 foreground = "silver"
 background = "black"
