@@ -141,13 +141,13 @@ ansi = ["black", "maroon", "green", "olive", "navy", "purple", "teal", "silver"]
 brights = ["grey", "red", "lime", "yellow", "blue", "fuchsia", "aqua", "white"]
 ```
 
-You can find a variety of color schemes [here](https://github.com/wez/iTerm2-Color-Schemes).
+You can find a variety of color schemes [here](https://github.com/mbadolato/iTerm2-Color-Schemes).
 There are two ways to use them with wezterm:
 
-* [The wezterm directory](https://github.com/wez/iTerm2-Color-Schemes/tree/master/wezterm) contains
+* [The wezterm directory](https://github.com/mbadolato/iTerm2-Color-Schemes/tree/master/wezterm) contains
   configuration snippets that you can copy and paste into your `wezterm.toml` file
   to set the default configuration.
-* [The dynamic-colors directory](https://github.com/wez/iTerm2-Color-Schemes/tree/master/dynamic-colors)
+* [The dynamic-colors directory](https://github.com/mbadolato/iTerm2-Color-Schemes/tree/master/dynamic-colors)
   contains shell scripts that can change the color scheme immediately on the fly.
   This is super convenient for trying out color schemes, and can be used in
   your own scripts to alter the terminal appearance programmatically.
