@@ -6,8 +6,6 @@ use crate::frontend::xwindows::Connection;
 use crate::frontend::FrontEnd;
 use crate::mux::tab::Tab;
 use crate::mux::Mux;
-use crate::spawn_tab;
-use failure::Error;
 use failure::{bail, Error};
 use mio::{Events, Poll, PollOpt, Ready, Token};
 use mio_extras::channel::{channel, Receiver as GuiReceiver, Sender as GuiSender};
