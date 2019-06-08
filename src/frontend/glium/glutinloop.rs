@@ -1,5 +1,5 @@
 use crate::config::Config;
-use crate::font::{FontConfiguration, FontSystemSelection};
+use crate::font::FontConfiguration;
 use crate::frontend::glium::window::GliumTerminalWindow;
 use crate::frontend::guicommon::window::TerminalWindow;
 use crate::frontend::FrontEnd;
@@ -9,7 +9,6 @@ use failure::{bail, Error};
 use glium;
 use glium::glutin::EventsLoopProxy;
 use glium::glutin::WindowId;
-use portable_pty::PtySize;
 use promise::{Executor, Future, SpawnFunc};
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -95,7 +94,6 @@ pub struct GuiEventLoop {
     gui_rx: Receiver<SpawnFunc>,
     gui_thread_sends: RefCell<VecDeque<SpawnFunc>>,
     tick_rx: Receiver<()>,
-    mux: Rc<Mux>,
 }
 
 const TICK_INTERVAL: Duration = Duration::from_millis(50);
@@ -156,7 +154,7 @@ impl FrontEnd for GlutinFrontEnd {
 }
 
 impl GuiEventLoop {
-    pub fn new(mux: &Rc<Mux>) -> Result<Self, Error> {
+    pub fn new(_mux: &Rc<Mux>) -> Result<Self, Error> {
         let event_loop = glium::glutin::EventsLoop::new();
 
         let (gui_tx, gui_rx) = GuiSender::new(event_loop.create_proxy());
@@ -182,7 +180,6 @@ impl GuiEventLoop {
             tick_rx,
             event_loop: RefCell::new(event_loop),
             windows: Rc::new(RefCell::new(Default::default())),
-            mux: Rc::clone(mux),
         })
     }
 
@@ -204,35 +201,6 @@ impl GuiEventLoop {
         Box::new(GlutinGuiExecutor {
             tx: self.gui_tx.clone(),
         })
-    }
-
-    fn do_spawn_new_window(
-        &self,
-        config: &Arc<Config>,
-        fonts: &Rc<FontConfiguration>,
-    ) -> Result<(), Error> {
-        let tab = self.mux.default_domain().spawn(PtySize::default(), None)?;
-        let events = Self::get().expect("to be called on gui thread");
-        let window = GliumTerminalWindow::new(&events, &fonts, &config, &tab)?;
-
-        events.add_window(window)
-    }
-
-    pub fn schedule_spawn_new_window(&self, config: &Arc<Config>) {
-        let config = Arc::clone(config);
-        Future::with_executor(
-            GlutinGuiExecutor {
-                tx: self.gui_tx.clone(),
-            },
-            move || {
-                let myself = Self::get().expect("to be called on gui thread");
-                let fonts = Rc::new(FontConfiguration::new(
-                    Arc::clone(&config),
-                    FontSystemSelection::get_default(),
-                ));
-                myself.do_spawn_new_window(&config, &fonts)
-            },
-        );
     }
 
     pub fn with_window<F: Send + 'static + Fn(&mut TerminalWindow) -> Result<(), Error>>(

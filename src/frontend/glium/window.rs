@@ -29,7 +29,6 @@ struct Host {
     /// if is_some, holds position to be restored after exiting
     /// fullscreen mode.
     is_fullscreen: Option<LogicalPosition>,
-    config: Arc<Config>,
 }
 
 impl HostHelper for Host {
@@ -71,7 +70,6 @@ impl HostHelper for Host {
 
 pub struct GliumTerminalWindow {
     host: HostImpl<Host>,
-    event_loop: Rc<GuiEventLoop>,
     config: Arc<Config>,
     fonts: Rc<FontConfiguration>,
     renderer: Renderer,
@@ -227,7 +225,6 @@ impl GliumTerminalWindow {
             display,
             window_position,
             is_fullscreen: None,
-            config: Arc::clone(config),
         });
 
         host.display.gl_window().set_cursor(MouseCursor::Text);
@@ -241,7 +238,6 @@ impl GliumTerminalWindow {
 
         Ok(GliumTerminalWindow {
             host,
-            event_loop: Rc::clone(event_loop),
             config: Arc::clone(config),
             fonts: Rc::clone(fonts),
             renderer,
@@ -632,11 +628,6 @@ impl GliumTerminalWindow {
             // debug!("event {:?} -> {:?}", event, key);
             match event.state {
                 ElementState::Pressed => {
-                    if mods == KeyModifiers::SUPER && key == KeyCode::Char('n') {
-                        self.event_loop.schedule_spawn_new_window(&self.host.config);
-                        return Ok(());
-                    }
-
                     if self.host.process_gui_shortcuts(&*tab, mods, key)? {
                         return Ok(());
                     }

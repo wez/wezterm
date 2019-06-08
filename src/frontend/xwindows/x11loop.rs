@@ -215,23 +215,6 @@ impl GuiEventLoop {
         events.add_window(window)
     }
 
-    pub fn schedule_spawn_new_window(&self, config: &Arc<Config>) {
-        let config = Arc::clone(config);
-        Future::with_executor(
-            X11GuiExecutor {
-                tx: self.gui_tx.clone(),
-            },
-            move || {
-                let myself = Self::get().expect("to be called on gui thread");
-                let fonts = Rc::new(FontConfiguration::new(
-                    Arc::clone(&config),
-                    FontSystemSelection::get_default(),
-                ));
-                myself.do_spawn_new_window(&config, &fonts)
-            },
-        );
-    }
-
     pub fn add_window(&self, window: X11TerminalWindow) -> Result<(), Error> {
         let window_id = window.window_id();
 

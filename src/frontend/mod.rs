@@ -6,6 +6,7 @@ use failure::{format_err, Error};
 use lazy_static::lazy_static;
 use promise::Executor;
 use serde_derive::*;
+use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 
@@ -38,6 +39,9 @@ impl Default for FrontEndSelection {
 lazy_static! {
     static ref EXECUTOR: Mutex<Option<Box<Executor>>> = Mutex::new(None);
 }
+thread_local! {
+    static FRONT_END: RefCell<Option<Rc<FrontEnd>>> = RefCell::new(None);
+}
 
 pub fn gui_executor() -> Option<Box<Executor>> {
     let locked = EXECUTOR.lock().unwrap();
@@ -45,6 +49,16 @@ pub fn gui_executor() -> Option<Box<Executor>> {
         Some(exec) => Some(exec.clone_executor()),
         None => None,
     }
+}
+
+pub fn front_end() -> Option<Rc<FrontEnd>> {
+    let mut res = None;
+    FRONT_END.with(|f| {
+        if let Some(me) = &*f.borrow() {
+            res = Some(Rc::clone(me));
+        }
+    });
+    res
 }
 
 impl FrontEndSelection {
@@ -60,6 +74,7 @@ impl FrontEndSelection {
         }?;
 
         EXECUTOR.lock().unwrap().replace(front_end.gui_executor());
+        FRONT_END.with(|f| *f.borrow_mut() = Some(Rc::clone(&front_end)));
 
         Ok(front_end)
     }

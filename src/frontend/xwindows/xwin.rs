@@ -202,13 +202,6 @@ impl X11TerminalWindow {
                     None => return Ok(()),
                 };
                 if let Some((code, mods)) = self.decode_key(key_press) {
-                    if mods == KeyModifiers::SUPER && code == KeyCode::Char('n') {
-                        self.host
-                            .event_loop
-                            .schedule_spawn_new_window(&self.host.config);
-                        return Ok(());
-                    }
-
                     if self.host.process_gui_shortcuts(&*tab, mods, code)? {
                         return Ok(());
                     }

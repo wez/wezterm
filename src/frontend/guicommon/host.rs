@@ -1,11 +1,14 @@
 use super::window::TerminalWindow;
-use crate::frontend::gui_executor;
+use crate::font::{FontConfiguration, FontSystemSelection};
+use crate::frontend::{front_end, gui_executor};
 use crate::mux::tab::{Tab, TabId};
 use crate::mux::Mux;
 use clipboard::{ClipboardContext, ClipboardProvider};
 use failure::{format_err, Error};
+use portable_pty::PtySize;
 use promise::Future;
 use std::ops::{Deref, DerefMut};
+use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use term::{KeyCode, KeyModifiers};
 use termwiz::hyperlink::Hyperlink;
@@ -95,6 +98,20 @@ impl<H: HostHelper> HostImpl<H> {
         self.get_clipboard().map(|_| ())
     }
 
+    pub fn spawn_new_window(&mut self) {
+        Future::with_executor(gui_executor().unwrap(), move || {
+            let mux = Mux::get().unwrap();
+            let fonts = Rc::new(FontConfiguration::new(
+                Arc::clone(mux.config()),
+                FontSystemSelection::get_default(),
+            ));
+            let tab = mux.default_domain().spawn(PtySize::default(), None)?;
+            let front_end = front_end().expect("to be called on gui thread");
+            front_end.spawn_new_window(mux.config(), &fonts, &tab)?;
+            Ok(())
+        });
+    }
+
     pub fn process_gui_shortcuts(
         &mut self,
         tab: &Tab,
@@ -103,6 +120,11 @@ impl<H: HostHelper> HostImpl<H> {
     ) -> Result<bool, Error> {
         if mods == KeyModifiers::SUPER && key == KeyCode::Char('t') {
             self.with_window(|win| win.spawn_tab().map(|_| ()));
+            return Ok(true);
+        }
+
+        if mods == KeyModifiers::SUPER && key == KeyCode::Char('n') {
+            self.spawn_new_window();
             return Ok(true);
         }
 
