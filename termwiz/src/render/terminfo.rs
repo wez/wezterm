@@ -9,6 +9,7 @@ use crate::image::TextureCoordinate;
 use crate::surface::{Change, CursorShape, Position};
 use crate::terminal::unix::UnixTty;
 use failure::Fallible;
+use log::error;
 use std::io::{Read, Write};
 use terminfo::{capability as cap, Capability as TermInfoCapability};
 
@@ -497,7 +498,7 @@ impl TerminfoRenderer {
                     }
                 }
                 Change::CursorPosition { .. } => {
-                    eprintln!(
+                    error!(
                         "unhandled CursorPosition in TerminfoRenderer::render_to: {:?}",
                         change
                     );

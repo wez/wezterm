@@ -1,4 +1,5 @@
 use crate::escape::{Action, DeviceControlMode, Esc, OperatingSystemCommand, CSI};
+use log::error;
 use num;
 use std::cell::RefCell;
 use vte;
@@ -93,7 +94,7 @@ impl<'a, F: FnMut(Action)> vte::Perform for Performer<'a, F> {
     fn execute(&mut self, byte: u8) {
         match num::FromPrimitive::from_u8(byte) {
             Some(code) => (self.callback)(Action::Control(code)),
-            None => eprintln!("impossible C0/C1 control code {:?} was dropped", byte),
+            None => error!("impossible C0/C1 control code {:?} was dropped", byte),
         }
     }
 

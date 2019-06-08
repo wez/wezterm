@@ -6,6 +6,7 @@ use crate::win::winpty::safe::{
 use crate::{Child, MasterPty, PtySize, PtySystem, SlavePty};
 use failure::{bail, Error};
 use filedescriptor::FileDescriptor;
+use log::debug;
 use std::ffi::OsString;
 use std::os::windows::ffi::OsStringExt;
 use std::path::Path;
@@ -63,7 +64,7 @@ impl SlavePty for WinPtySlavePty {
     fn spawn_command(&self, cmd: CommandBuilder) -> Result<Box<Child>, Error> {
         let (exe, cmdline) = cmd.cmdline()?;
         let cmd_os = OsString::from_wide(&cmdline);
-        eprintln!(
+        debug!(
             "Running: module: {} {:?}",
             Path::new(&OsString::from_wide(&exe)).display(),
             cmd_os

@@ -1,5 +1,7 @@
 #[cfg(windows)]
 use failure::{ensure, Error};
+#[cfg(windows)]
+use log::error;
 use std::ffi::{OsStr, OsString};
 #[cfg(windows)]
 use std::os::windows::ffi::OsStrExt;
@@ -47,7 +49,7 @@ impl CommandBuilder {
         self.envs
             .push((key.as_ref().to_owned(), val.as_ref().to_owned()));
         #[cfg(windows)]
-        eprintln!(
+        error!(
             "ignoring env {:?}={:?} for child; FIXME: implement this!",
             key.as_ref(),
             val.as_ref()
