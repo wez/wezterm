@@ -126,6 +126,124 @@ font = { font=[{family = "Operator Mono SSm Lig Light" }]}
 The default configuration will attempt to use whichever font is returned from
 fontconfig when `monospace` is requested.
 
+### Shortcut / Key Binding Assignments
+
+The default key bindings are:
+
+| Modifiers | Key | Action |
+| --------- | --- | ------ |
+| `SUPER`     | `v`   | `Paste`  |
+| `SHIFT`     | `Insert` | `Paste` |
+| `SUPER`     | `m`      | `Hide`  |
+| `SUPER`     | `n`      | `SpawnWindow` |
+| `ALT`       | `Enter`  | `ToggleFullScreen` |
+| `SUPER`     | `-`      | `DecreaseFontSize` |
+| `CTRL`      | `-`      | `DecreaseFontSize` |
+| `SUPER`     | `=`      | `IncreaseFontSize` |
+| `CTRL`      | `=`      | `IncreaseFontSize` |
+| `SUPER`     | `0`      | `ResetFontSize` |
+| `CTRL`      | `0`      | `ResetFontSize` |
+| `SUPER`     | `t`      | `SpawnTab` |
+| `SUPER`     | `1`      | `ActivateTab(0)` |
+| `SUPER`     | `2`      | `ActivateTab(1)` |
+| `SUPER`     | `3`      | `ActivateTab(2)` |
+| `SUPER`     | `4`      | `ActivateTab(3)` |
+| `SUPER`     | `5`      | `ActivateTab(4)` |
+| `SUPER`     | `6`      | `ActivateTab(5)` |
+| `SUPER`     | `7`      | `ActivateTab(6)` |
+| `SUPER`     | `8`      | `ActivateTab(7)` |
+| `SUPER`     | `9`      | `ActivateTab(8)` |
+| `SUPER|SHIFT` | `[`' | `ActivateTabRelative(-1)` |
+| `SUPER|SHIFT` | `]`' | `ActivateTabRelative(1)` |
+
+These can be overridden using the `keys` section in your `~/.wezterm.toml` config file.
+For example, you can disable a default assignment like this:
+
+```toml
+# Turn off the default CMD-m Hide action
+[[keys]]
+key = "m"
+mods = "CMD"
+action = "Nop"
+```
+
+The `key` value can be one of the following keycode identifiers.  Note that not
+all of these are meaningful on all platforms:
+
+`Hyper`, `Super`, `Meta`, `Cancel`, `Backspace`, `Tab`, `Clear`, `Enter`,
+`Shift`, `Escape`, `LeftShift`, `RightShift`, `Control`, `LeftControl`,
+`RightControl`, `Alt`, `LeftAlt`, `RightAlt`, `Menu`, `LeftMenu`, `RightMenu`,
+`Pause`, `CapsLock`, `PageUp`, `PageDown`, `End`, `Home`, `LeftArrow`,
+`RightArrow`, `UpArrow`, `DownArrow`, `Select`, `Print`, `Execute`,
+`PrintScreen`, `Insert`, `Delete`, `Help`, `LeftWindows`, `RightWindows`,
+`Applications`, `Sleep`, `Numpad0`, `Numpad1`, `Numpad2`, `Numpad3`,
+`Numpad4`, `Numpad5`, `Numpad6`, `Numpad7`, `Numpad8`, `Numpad9`, `Multiply`,
+`Add`, `Separator`, `Subtract`, `Decimal`, `Divide`, `NumLock`, `ScrollLock`,
+`BrowserBack`, `BrowserForward`, `BrowserRefresh`, `BrowserStop`,
+`BrowserSearch`, `BrowserFavorites`, `BrowserHome`, `VolumeMute`,
+`VolumeDown`, `VolumeUp`, `MediaNextTrack`, `MediaPrevTrack`, `MediaStop`,
+`MediaPlayPause`, `ApplicationLeftArrow`, `ApplicationRightArrow`,
+`ApplicationUpArrow`, `ApplicationDownArrow`.
+
+Alternatively, a single unicode character can be specified to indicate
+pressing the corresponding key.
+
+Possible Modifier labels are:
+
+ * `SUPER`, `CMD`, `WIN` - these are all equivalent: on macOS the `Command` key,
+   on Windows the `Windows` key, on Linux this can also be the `Super` or `Hyper`
+   key.  Left and right are equivalent.
+ * `SHIFT` - The shift key.  Left and right are equivalent.
+ * `ALT`, `OPT`, `META` - these are all equivalent: on macOS the `Option` key,
+   on other systems the `Alt` or `Meta` key.  Left and right are equivalent.
+
+You can combine modifiers using the `|` symbol (eg: `"CMD|CTRL"`).
+
+Possible actions are listed below.  Some actions require a parameter that is
+specified via the `arg` key; see examples below.
+
+| Name               | Effect             |
+| ------------------ | ------------------ |
+| `SpawnTab`         | Create a new tab in the current window |
+| `SpawnWindow`      | Create a new window |
+| `ToggleFullScreen` | Toggles full screen mode for current window between |
+| `Paste`            | Paste the clipboard to the current tab |
+| `ActivateTabRelative` | Activate a tab relative to the current tab.  The `arg` value specifies an offset. eg: `-1` activates the tab to the left of the current tab, while `1` activates the tab to the right. |
+| `ActivateTab` | Activate the tab specified by the `arg` value. eg: `0` activates the leftmost tab, while `1` activates the second tab from the left, and so on. |
+| `IncreaseFontSize` | Increases the font size of the current window by 10% |
+| `DecreaseFontSize` | Decreases the font size of the current window by 10% |
+| `ResetFontSize` | Reset the font size for the current window to the value in your configuration |
+| `SendString` | Sends the string specified by the `arg` value to the terminal in the current tab, as though that text were literally typed into the terminal. |
+| `Nop` | Does nothing.  This is useful to disable a default key assignment. |
+| `Hide` | Hides the current window |
+| `Show` | Shows the current window |
+
+Example:
+
+```toml
+# Turn off the default CMD-m Hide action
+[[keys]]
+key = "m"
+mods = "CMD"
+action = "Nop"
+
+# Macro for sending in some boiler plate.  This types `wtf!?` each
+# time CMD+SHIFT+W is pressed
+[[keys]]
+key = "W"
+mods = "CMD|SHIFT"
+action = "SendString"
+arg = "wtf!?"
+
+# CTRL+ALT+0 activates the leftmost tab
+[[keys]]
+key = "0"
+mods = "CTRL|ALT"
+action = "ActivateTab"
+# the tab number
+arg = "0"
+```
+
 ### Colors
 
 You can configure colors with a section like this.  In addition to specifying
