@@ -4,6 +4,7 @@ use crate::frontend::{front_end, gui_executor};
 use crate::mux::tab::{Tab, TabId};
 use crate::mux::Mux;
 use clipboard::{ClipboardContext, ClipboardProvider};
+use failure::Fallible;
 use failure::{format_err, Error};
 use portable_pty::PtySize;
 use promise::Future;
@@ -12,6 +13,21 @@ use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use term::{KeyCode, KeyModifiers};
 use termwiz::hyperlink::Hyperlink;
+
+pub enum KeyAssignment {
+    SpawnTab,
+    SpawnWindow,
+    ToggleFullScreen,
+    Copy,
+    Paste,
+    ActivateTabRelative(isize),
+    IncreaseFontSize,
+    DecreaseFontSize,
+    ResetFontSize,
+    ActivateTab(usize),
+    SendString(String),
+    Nop,
+}
 
 pub trait HostHelper {
     fn with_window<F: Send + 'static + Fn(&mut TerminalWindow) -> Result<(), Error>>(
@@ -112,89 +128,104 @@ impl<H: HostHelper> HostImpl<H> {
         });
     }
 
-    pub fn process_gui_shortcuts(
+    pub fn perform_key_assignment(
         &mut self,
         tab: &Tab,
-        mods: KeyModifiers,
-        key: KeyCode,
-    ) -> Result<bool, Error> {
+        assignment: &KeyAssignment,
+    ) -> Fallible<()> {
+        use KeyAssignment::*;
+        match assignment {
+            SpawnTab => self.with_window(|win| win.spawn_tab().map(|_| ())),
+            SpawnWindow => self.spawn_new_window(),
+            ToggleFullScreen => self.toggle_full_screen(),
+            Copy => {
+                // Nominally copy, but that is implicit, so NOP
+            }
+            Paste => {
+                let text = self.get_clipboard()?;
+                if text.len() <= PASTE_CHUNK_SIZE {
+                    // Send it all now
+                    tab.send_paste(&text)?;
+                } else {
+                    // It's pretty heavy, so we trickle it into the pty
+                    tab.send_paste(&text[0..PASTE_CHUNK_SIZE])?;
+                    trickle_paste(tab.tab_id(), text);
+                }
+            }
+            ActivateTabRelative(n) => self.activate_tab_relative(*n),
+            DecreaseFontSize => self.decrease_font_size(),
+            IncreaseFontSize => self.increase_font_size(),
+            ResetFontSize => self.reset_font_size(),
+            ActivateTab(n) => self.activate_tab(*n),
+            SendString(s) => tab.writer().write_all(s.as_bytes())?,
+            Nop => {}
+        }
+        Ok(())
+    }
+
+    fn key_assignment(&mut self, mods: KeyModifiers, key: KeyCode) -> Option<KeyAssignment> {
         if mods == KeyModifiers::SUPER && key == KeyCode::Char('t') {
-            self.with_window(|win| win.spawn_tab().map(|_| ()));
-            return Ok(true);
-        }
-
-        if mods == KeyModifiers::SUPER && key == KeyCode::Char('n') {
-            self.spawn_new_window();
-            return Ok(true);
-        }
-
-        if mods == KeyModifiers::ALT
+            Some(KeyAssignment::SpawnTab)
+        } else if mods == KeyModifiers::SUPER && key == KeyCode::Char('n') {
+            Some(KeyAssignment::SpawnWindow)
+        } else if mods == KeyModifiers::ALT
             && (key == KeyCode::Char('\r') || key == KeyCode::Char('\n') || key == KeyCode::Enter)
         {
-            self.toggle_full_screen();
-            return Ok(true);
-        }
-
-        if mods == KeyModifiers::SUPER && key == KeyCode::Char('c') {
-            // Nominally copy, but that is implicit, so NOP
-            return Ok(true);
-        }
-        if (mods == KeyModifiers::SUPER && key == KeyCode::Char('v'))
+            Some(KeyAssignment::ToggleFullScreen)
+        } else if mods == KeyModifiers::SUPER && key == KeyCode::Char('c') {
+            Some(KeyAssignment::Copy)
+        } else if (mods == KeyModifiers::SUPER && key == KeyCode::Char('v'))
             || (mods == KeyModifiers::SHIFT && key == KeyCode::Insert)
         {
-            let text = self.get_clipboard()?;
-            if text.len() <= PASTE_CHUNK_SIZE {
-                // Send it all now
-                tab.send_paste(&text)?;
-                return Ok(true);
-            }
-            // It's pretty heavy, so we trickle it into the pty
-            tab.send_paste(&text[0..PASTE_CHUNK_SIZE])?;
-            trickle_paste(tab.tab_id(), text);
-            return Ok(true);
-        }
-        if mods == (KeyModifiers::SUPER | KeyModifiers::SHIFT)
+            Some(KeyAssignment::Paste)
+        } else if mods == (KeyModifiers::SUPER | KeyModifiers::SHIFT)
             && (key == KeyCode::Char('[') || key == KeyCode::Char('{'))
         {
-            self.activate_tab_relative(-1);
-            return Ok(true);
-        }
-        if mods == (KeyModifiers::SUPER | KeyModifiers::SHIFT)
+            Some(KeyAssignment::ActivateTabRelative(-1))
+        } else if mods == (KeyModifiers::SUPER | KeyModifiers::SHIFT)
             && (key == KeyCode::Char(']') || key == KeyCode::Char('}'))
         {
-            self.activate_tab_relative(1);
-            return Ok(true);
-        }
-
-        if (mods == KeyModifiers::SUPER || mods == KeyModifiers::CTRL) && key == KeyCode::Char('-')
+            Some(KeyAssignment::ActivateTab(1))
+        } else if (mods == KeyModifiers::SUPER || mods == KeyModifiers::CTRL)
+            && key == KeyCode::Char('-')
         {
-            self.decrease_font_size();
-            return Ok(true);
-        }
-        if (mods == KeyModifiers::SUPER || mods == KeyModifiers::CTRL) && key == KeyCode::Char('=')
+            Some(KeyAssignment::DecreaseFontSize)
+        } else if (mods == KeyModifiers::SUPER || mods == KeyModifiers::CTRL)
+            && key == KeyCode::Char('=')
         {
-            self.increase_font_size();
-            return Ok(true);
-        }
-        if (mods == KeyModifiers::SUPER || mods == KeyModifiers::CTRL) && key == KeyCode::Char('0')
+            Some(KeyAssignment::IncreaseFontSize)
+        } else if (mods == KeyModifiers::SUPER || mods == KeyModifiers::CTRL)
+            && key == KeyCode::Char('0')
         {
-            self.reset_font_size();
-            return Ok(true);
-        }
-
-        if mods == KeyModifiers::SUPER {
+            Some(KeyAssignment::ResetFontSize)
+        } else if mods == KeyModifiers::SUPER {
             if let KeyCode::Char(c) = key {
                 if c >= '0' && c <= '9' {
                     let tab_number = c as u32 - 0x30;
                     // Treat 0 as 10 as that is physically right of 9 on
                     // a keyboard
                     let tab_number = if tab_number == 0 { 10 } else { tab_number - 1 };
-                    self.activate_tab(tab_number as usize);
-                    return Ok(true);
+                    return Some(KeyAssignment::ActivateTab(tab_number as usize));
                 }
             }
+            None
+        } else {
+            None
         }
-        Ok(false)
+    }
+
+    pub fn process_gui_shortcuts(
+        &mut self,
+        tab: &Tab,
+        mods: KeyModifiers,
+        key: KeyCode,
+    ) -> Result<bool, Error> {
+        if let Some(assignment) = self.key_assignment(mods, key) {
+            self.perform_key_assignment(tab, &assignment)?;
+            Ok(true)
+        } else {
+            Ok(false)
+        }
     }
 
     pub fn activate_tab(&mut self, tab: usize) {
