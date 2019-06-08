@@ -46,7 +46,7 @@ pub struct HostImpl<H: HostHelper> {
     /// macOS gets unhappy if we set up the clipboard too early,
     /// so we use an Option to defer it until we use it
     clipboard: Option<ClipboardContext>,
-    keys: HashMap<(KeyCode, KeyModifiers), KeyAssignment>,
+    keys: KeyMap,
 }
 
 const PASTE_CHUNK_SIZE: usize = 1024;
@@ -88,16 +88,87 @@ fn trickle_paste(tab_id: TabId, text: String) {
     schedule_next_paste(&paste);
 }
 
+type KeyMap = HashMap<(KeyCode, KeyModifiers), KeyAssignment>;
+
+fn key_bindings() -> KeyMap {
+    let mux = Mux::get().unwrap();
+    let mut map = mux
+        .config()
+        .key_bindings()
+        .expect("keys section of config to be valid");
+
+    macro_rules! m {
+        ($([$mod:expr, $code:expr, $action:expr]),* $(,)?) => {
+            $(
+            map.entry(($code, $mod)).or_insert($action);
+            )*
+        };
+    };
+
+    use KeyAssignment::*;
+
+    // Apply the default bindings; if the user has already mapped
+    // a given entry then that will take precedence.
+    m!(
+        // Clipboard
+        [KeyModifiers::SUPER, KeyCode::Char('c'), Copy],
+        [KeyModifiers::SUPER, KeyCode::Char('v'), Paste],
+        [KeyModifiers::SHIFT, KeyCode::Insert, Paste],
+        // Window management
+        [KeyModifiers::SUPER, KeyCode::Char('m'), Hide],
+        [KeyModifiers::SUPER, KeyCode::Char('n'), SpawnWindow],
+        [KeyModifiers::ALT, KeyCode::Char('\n'), ToggleFullScreen],
+        [KeyModifiers::ALT, KeyCode::Char('\r'), ToggleFullScreen],
+        [KeyModifiers::ALT, KeyCode::Enter, ToggleFullScreen],
+        // Font size manipulation
+        [KeyModifiers::SUPER, KeyCode::Char('-'), DecreaseFontSize],
+        [KeyModifiers::CTRL, KeyCode::Char('-'), DecreaseFontSize],
+        [KeyModifiers::SUPER, KeyCode::Char('='), IncreaseFontSize],
+        [KeyModifiers::CTRL, KeyCode::Char('='), IncreaseFontSize],
+        [KeyModifiers::SUPER, KeyCode::Char('0'), ResetFontSize],
+        [KeyModifiers::CTRL, KeyCode::Char('0'), ResetFontSize],
+        // Tab navigation and management
+        [KeyModifiers::SUPER, KeyCode::Char('t'), SpawnTab],
+        [KeyModifiers::SUPER, KeyCode::Char('1'), ActivateTab(0)],
+        [KeyModifiers::SUPER, KeyCode::Char('2'), ActivateTab(1)],
+        [KeyModifiers::SUPER, KeyCode::Char('3'), ActivateTab(2)],
+        [KeyModifiers::SUPER, KeyCode::Char('4'), ActivateTab(3)],
+        [KeyModifiers::SUPER, KeyCode::Char('5'), ActivateTab(4)],
+        [KeyModifiers::SUPER, KeyCode::Char('6'), ActivateTab(5)],
+        [KeyModifiers::SUPER, KeyCode::Char('7'), ActivateTab(6)],
+        [KeyModifiers::SUPER, KeyCode::Char('8'), ActivateTab(7)],
+        [KeyModifiers::SUPER, KeyCode::Char('9'), ActivateTab(8)],
+        [
+            KeyModifiers::SUPER | KeyModifiers::SHIFT,
+            KeyCode::Char('['),
+            ActivateTabRelative(-1)
+        ],
+        [
+            KeyModifiers::SUPER | KeyModifiers::SHIFT,
+            KeyCode::Char('{'),
+            ActivateTabRelative(-1)
+        ],
+        [
+            KeyModifiers::SUPER | KeyModifiers::SHIFT,
+            KeyCode::Char(']'),
+            ActivateTabRelative(1)
+        ],
+        [
+            KeyModifiers::SUPER | KeyModifiers::SHIFT,
+            KeyCode::Char('}'),
+            ActivateTabRelative(1)
+        ],
+    );
+
+    map
+}
+
 impl<H: HostHelper> HostImpl<H> {
     pub fn new(helper: H) -> Self {
-        let mux = Mux::get().unwrap();
         Self {
             helper,
             clipboard: None,
-            keys: mux
-                .config()
-                .key_bindings()
-                .expect("keys section of config to be valid"),
+            keys: key_bindings(),
         }
     }
 
@@ -175,57 +246,6 @@ impl<H: HostHelper> HostImpl<H> {
         Ok(())
     }
 
-    fn key_assignment(&mut self, mods: KeyModifiers, key: KeyCode) -> Option<KeyAssignment> {
-        if mods == KeyModifiers::SUPER && key == KeyCode::Char('t') {
-            Some(KeyAssignment::SpawnTab)
-        } else if mods == KeyModifiers::SUPER && key == KeyCode::Char('n') {
-            Some(KeyAssignment::SpawnWindow)
-        } else if mods == KeyModifiers::ALT
-            && (key == KeyCode::Char('\r') || key == KeyCode::Char('\n') || key == KeyCode::Enter)
-        {
-            Some(KeyAssignment::ToggleFullScreen)
-        } else if mods == KeyModifiers::SUPER && key == KeyCode::Char('c') {
-            Some(KeyAssignment::Copy)
-        } else if (mods == KeyModifiers::SUPER && key == KeyCode::Char('v'))
-            || (mods == KeyModifiers::SHIFT && key == KeyCode::Insert)
-        {
-            Some(KeyAssignment::Paste)
-        } else if mods == (KeyModifiers::SUPER | KeyModifiers::SHIFT)
-            && (key == KeyCode::Char('[') || key == KeyCode::Char('{'))
-        {
-            Some(KeyAssignment::ActivateTabRelative(-1))
-        } else if mods == (KeyModifiers::SUPER | KeyModifiers::SHIFT)
-            && (key == KeyCode::Char(']') || key == KeyCode::Char('}'))
-        {
-            Some(KeyAssignment::ActivateTab(1))
-        } else if (mods == KeyModifiers::SUPER || mods == KeyModifiers::CTRL)
-            && key == KeyCode::Char('-')
-        {
-            Some(KeyAssignment::DecreaseFontSize)
-        } else if (mods == KeyModifiers::SUPER || mods == KeyModifiers::CTRL)
-            && key == KeyCode::Char('=')
-        {
-            Some(KeyAssignment::IncreaseFontSize)
-        } else if (mods == KeyModifiers::SUPER || mods == KeyModifiers::CTRL)
-            && key == KeyCode::Char('0')
-        {
-            Some(KeyAssignment::ResetFontSize)
-        } else if mods == KeyModifiers::SUPER {
-            if let KeyCode::Char(c) = key {
-                if c >= '0' && c <= '9' {
-                    let tab_number = c as u32 - 0x30;
-                    // Treat 0 as 10 as that is physically right of 9 on
-                    // a keyboard
-                    let tab_number = if tab_number == 0 { 10 } else { tab_number - 1 };
-                    return Some(KeyAssignment::ActivateTab(tab_number as usize));
-                }
-            }
-            None
-        } else {
-            None
-        }
-    }
-
     pub fn process_gui_shortcuts(
         &mut self,
         tab: &Tab,
@@ -233,9 +253,6 @@ impl<H: HostHelper> HostImpl<H> {
         key: KeyCode,
     ) -> Result<bool, Error> {
         if let Some(assignment) = self.keys.get(&(key, mods)).cloned() {
-            self.perform_key_assignment(tab, &assignment)?;
-            Ok(true)
-        } else if let Some(assignment) = self.key_assignment(mods, key) {
             self.perform_key_assignment(tab, &assignment)?;
             Ok(true)
         } else {

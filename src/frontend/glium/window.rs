@@ -102,7 +102,6 @@ impl TerminalWindow for GliumTerminalWindow {
     }
 
     fn hide_window(&mut self) {
-        eprintln!("Hide");
         self.host.display.gl_window().hide();
     }
 
