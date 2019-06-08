@@ -101,6 +101,15 @@ impl TerminalWindow for GliumTerminalWindow {
         Ok(())
     }
 
+    fn hide_window(&mut self) {
+        eprintln!("Hide");
+        self.host.display.gl_window().hide();
+    }
+
+    fn show_window(&mut self) {
+        self.host.display.gl_window().show();
+    }
+
     fn frame(&self) -> glium::Frame {
         self.host.display.draw()
     }

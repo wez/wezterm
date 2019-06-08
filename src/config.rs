@@ -104,6 +104,8 @@ impl std::convert::TryInto<KeyAssignment> for &Key {
             KeyAction::ToggleFullScreen => KeyAssignment::ToggleFullScreen,
             KeyAction::Copy => KeyAssignment::Copy,
             KeyAction::Paste => KeyAssignment::Paste,
+            KeyAction::Hide => KeyAssignment::Hide,
+            KeyAction::Show => KeyAssignment::Show,
             KeyAction::IncreaseFontSize => KeyAssignment::IncreaseFontSize,
             KeyAction::DecreaseFontSize => KeyAssignment::DecreaseFontSize,
             KeyAction::ResetFontSize => KeyAssignment::ResetFontSize,
@@ -144,6 +146,8 @@ pub enum KeyAction {
     ActivateTab,
     SendString,
     Nop,
+    Hide,
+    Show,
 }
 
 fn de_keycode<'de, D>(deserializer: D) -> Result<KeyCode, D::Error>

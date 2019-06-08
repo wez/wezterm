@@ -29,6 +29,8 @@ pub enum KeyAssignment {
     ActivateTab(usize),
     SendString(String),
     Nop,
+    Hide,
+    Show,
 }
 
 pub trait HostHelper {
@@ -166,6 +168,8 @@ impl<H: HostHelper> HostImpl<H> {
             ResetFontSize => self.reset_font_size(),
             ActivateTab(n) => self.activate_tab(*n),
             SendString(s) => tab.writer().write_all(s.as_bytes())?,
+            Hide => self.hide_window(),
+            Show => self.show_window(),
             Nop => {}
         }
         Ok(())
@@ -268,6 +272,20 @@ impl<H: HostHelper> HostImpl<H> {
             let dims = win.get_dimensions();
             win.scaling_changed(Some(1.0), None, dims.width, dims.height)
         })
+    }
+
+    pub fn hide_window(&mut self) {
+        self.with_window(move |win| {
+            win.hide_window();
+            Ok(())
+        });
+    }
+
+    pub fn show_window(&mut self) {
+        self.with_window(move |win| {
+            win.show_window();
+            Ok(())
+        });
     }
 }
 

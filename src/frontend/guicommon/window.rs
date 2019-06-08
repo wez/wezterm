@@ -45,6 +45,9 @@ pub trait TerminalWindow {
         Ok(())
     }
 
+    fn hide_window(&mut self) {}
+    fn show_window(&mut self) {}
+
     fn activate_tab(&mut self, tab_idx: usize) -> Result<(), Error> {
         let mux = Mux::get().unwrap();
         let mut window = mux
