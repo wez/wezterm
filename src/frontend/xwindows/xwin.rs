@@ -10,6 +10,7 @@ use crate::mux::window::WindowId;
 use crate::mux::{Mux, SessionTerminated};
 use crate::opengl::render::Renderer;
 use failure::Error;
+use log::{debug, error};
 use std::rc::Rc;
 use std::sync::Arc;
 use term::{self, KeyCode, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
@@ -239,7 +240,7 @@ impl X11TerminalWindow {
                         4 => MouseButton::WheelUp,
                         5 => MouseButton::WheelDown,
                         _ => {
-                            eprintln!("button {} is not implemented", button_press.detail());
+                            error!("button {} is not implemented", button_press.detail());
                             return Ok(());
                         }
                     },
@@ -250,7 +251,7 @@ impl X11TerminalWindow {
             }
             xcb::CLIENT_MESSAGE => {
                 let msg: &xcb::ClientMessageEvent = unsafe { xcb::cast_event(event) };
-                println!("CLIENT_MESSAGE {:?}", msg.data().data32());
+                debug!("CLIENT_MESSAGE {:?}", msg.data().data32());
                 if msg.data().data32()[0] == self.conn.atom_delete() {
                     return Err(SessionTerminated::WindowClosed.into());
                 }

@@ -6,6 +6,7 @@ use crate::mux::tab::Tab;
 use crate::mux::Mux;
 use crate::server::listener::spawn_listener;
 use failure::{bail, Error};
+use log::info;
 use promise::Executor;
 use promise::SpawnFunc;
 use std::rc::Rc;
@@ -68,7 +69,7 @@ impl FrontEnd for MuxServerFrontEnd {
             }
 
             if Mux::get().unwrap().is_empty() {
-                eprintln!("No more tabs; all done!");
+                info!("No more tabs; all done!");
                 return Ok(());
             }
         }

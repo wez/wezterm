@@ -6,6 +6,7 @@ use crate::font::ftfont::FreeTypeFontImpl;
 use crate::font::{fcwrap, ftwrap};
 use crate::font::{shape_with_harfbuzz, FallbackIdx, Font, FontSystem, GlyphInfo, NamedFont};
 use failure::{bail, ensure, err_msg, Error};
+use log::error;
 
 pub type FontSystemImpl = FontConfigAndFreeType;
 
@@ -28,7 +29,7 @@ impl FontSystem for FontConfigAndFreeType {
         let mut pattern = if !fonts.is_empty() {
             let mut pattern = FontPattern::new()?;
             if fonts.len() > 1 {
-                eprintln!(
+                error!(
                     "FIXME: fontconfig loader currently only processes
                       the first in your set of fonts for {:?}",
                     style
@@ -88,7 +89,7 @@ impl NamedFontImpl {
         // care to abort the rest of what we're doing
         match lib.set_lcd_filter(ftwrap::FT_LcdFilter::FT_LCD_FILTER_DEFAULT) {
             Ok(_) => (),
-            Err(err) => eprintln!("Ignoring: FT_LcdFilter failed: {:?}", err),
+            Err(err) => error!("Ignoring: FT_LcdFilter failed: {:?}", err),
         };
 
         // Enable some filtering options and pull in the standard

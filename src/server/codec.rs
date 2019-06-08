@@ -13,6 +13,7 @@
 use crate::mux::tab::TabId;
 use failure::{bail, Error};
 use leb128;
+use log::debug;
 use serde_derive::*;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -88,7 +89,7 @@ fn decode_raw<R: std::io::Read>(mut r: R) -> Result<Decoded, std::io::Error> {
     } else {
         (len, false)
     };
-    eprintln!("decode_raw {} compressed={}", len, is_compressed);
+    debug!("decode_raw {} compressed={}", len, is_compressed);
     let serial = read_u64(r.by_ref())?;
     let ident = read_u64(r.by_ref())?;
     let data_len = len as usize - (encoded_length(ident) + encoded_length(serial));
@@ -127,7 +128,7 @@ fn serialize<T: serde::Serialize>(t: &T) -> Result<(Vec<u8>, bool), Error> {
     drop(encode);
     compress.finish()?;
 
-    eprintln!(
+    debug!(
         "serialized+compress len {} vs {}",
         compressed.len(),
         uncompressed.len()

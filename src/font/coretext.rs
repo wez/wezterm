@@ -15,6 +15,7 @@ use core_text::font_descriptor::{
     kCTFontDefaultOrientation, SymbolicTraitAccessors, TraitAccessors,
 };
 use failure::{format_err, Error};
+use log::debug;
 use std::ptr;
 
 #[allow(non_upper_case_globals)]
@@ -246,7 +247,7 @@ impl Font for CoreTextFontImpl {
         // freetype renderer.
         let bearing_x = rect.origin.x - AA_PADDING;
         let bearing_y = height as f64 + AA_PADDING + rect.origin.y;
-        eprintln!(
+        debug!(
             "rasterize_glyph {:?} -> {}x{} bearing_x={} bearing_y={}",
             rect, width, height, bearing_x, bearing_y
         );

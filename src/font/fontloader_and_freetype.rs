@@ -6,6 +6,7 @@ use crate::font::{
     ftwrap, shape_with_harfbuzz, FallbackIdx, Font, FontSystem, GlyphInfo, NamedFont,
 };
 use failure::{format_err, Error};
+use log::{debug, error};
 
 struct NamedFontImpl {
     _lib: ftwrap::Library,
@@ -41,13 +42,13 @@ impl FontSystem for FontLoaderAndFreeType {
         // care to abort the rest of what we're doing
         match lib.set_lcd_filter(ftwrap::FT_LcdFilter::FT_LCD_FILTER_DEFAULT) {
             Ok(_) => (),
-            Err(err) => eprintln!("Ignoring: FT_LcdFilter failed: {:?}", err),
+            Err(err) => error!("Ignoring: FT_LcdFilter failed: {:?}", err),
         };
 
         let mut fonts = Vec::new();
         let mut fontdata = Vec::new();
         for (data, idx) in fontloader::load_system_fonts(config, style)? {
-            eprintln!("want idx {} in bytes of len {}", idx, data.len());
+            debug!("want idx {} in bytes of len {}", idx, data.len());
 
             let face = lib.new_face_from_slice(&data, idx.into())?;
             fontdata.push(data);

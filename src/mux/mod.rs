@@ -2,6 +2,7 @@ use crate::config::Config;
 use crate::frontend::gui_executor;
 use failure::Error;
 use failure_derive::*;
+use log::{debug, error, warn};
 use portable_pty::ExitStatus;
 use promise::{Executor, Future};
 use std::cell::{Ref, RefCell, RefMut};
@@ -36,11 +37,11 @@ fn read_from_tab_pty(tab_id: TabId, mut reader: Box<std::io::Read>) {
     loop {
         match reader.read(&mut buf) {
             Ok(size) if size == 0 => {
-                eprintln!("read_pty EOF: tab_id {}", tab_id);
+                error!("read_pty EOF: tab_id {}", tab_id);
                 break;
             }
             Err(err) => {
-                eprintln!("read_pty failed: tab {} {:?}", tab_id, err);
+                error!("read_pty failed: tab {} {:?}", tab_id, err);
                 break;
             }
             Ok(size) => {
@@ -83,12 +84,12 @@ impl<'a> TerminalHost for Host<'a> {
     fn click_link(&mut self, link: &Arc<Hyperlink>) {
         match open::that(link.uri()) {
             Ok(_) => {}
-            Err(err) => eprintln!("failed to open {}: {:?}", link.uri(), err),
+            Err(err) => error!("failed to open {}: {:?}", link.uri(), err),
         }
     }
 
     fn get_clipboard(&mut self) -> Result<String, Error> {
-        eprintln!("peer requested clipboard; ignoring");
+        warn!("peer requested clipboard; ignoring");
         Ok("".into())
     }
 
@@ -152,7 +153,7 @@ impl Mux {
     }
 
     pub fn remove_tab(&self, tab_id: TabId) {
-        eprintln!("removing tab {}", tab_id);
+        debug!("removing tab {}", tab_id);
         self.tabs.borrow_mut().remove(&tab_id);
     }
 

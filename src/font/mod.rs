@@ -1,4 +1,5 @@
 use failure::{bail, format_err, Error};
+use log::{debug, error};
 use serde_derive::*;
 mod ftfont;
 mod hbwrap;
@@ -319,7 +320,7 @@ pub fn shape_with_harfbuzz(
             let mut shape = match shape_with_harfbuzz(font, font_idx + 1, substr) {
                 Ok(shape) => Ok(shape),
                 Err(e) => {
-                    eprintln!("{:?} for {:?}", e, substr);
+                    error!("{:?} for {:?}", e, substr);
                     if font_idx == 0 && s == "?" {
                         bail!("unable to find any usable glyphs for `?` in font_idx 0");
                     }
@@ -361,7 +362,7 @@ pub fn shape_with_harfbuzz(
         let mut shape = match shape_with_harfbuzz(font, font_idx + 1, substr) {
             Ok(shape) => Ok(shape),
             Err(e) => {
-                eprintln!("{:?} for {:?}", e, substr);
+                error!("{:?} for {:?}", e, substr);
                 if font_idx == 0 && s == "?" {
                     bail!("unable to find any usable glyphs for `?` in font_idx 0");
                 }

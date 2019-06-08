@@ -6,6 +6,7 @@ use crate::mux::Mux;
 use clipboard::{ClipboardContext, ClipboardProvider};
 use failure::Fallible;
 use failure::{format_err, Error};
+use log::error;
 use portable_pty::PtySize;
 use promise::Future;
 use std::collections::HashMap;
@@ -358,7 +359,7 @@ impl<'a, H: HostHelper> term::TerminalHost for TabHost<'a, H> {
     fn click_link(&mut self, link: &Arc<Hyperlink>) {
         match open::that(link.uri()) {
             Ok(_) => {}
-            Err(err) => eprintln!("failed to open {}: {:?}", link.uri(), err),
+            Err(err) => error!("failed to open {}: {:?}", link.uri(), err),
         }
     }
 

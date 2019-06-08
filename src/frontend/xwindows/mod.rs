@@ -1,3 +1,4 @@
+use log::debug;
 use term::{KeyCode, KeyModifiers};
 mod keyboard;
 use egli;
@@ -124,7 +125,7 @@ impl Connection {
         let egl_display = egli::Display::from_display_id(display as *mut _).map_err(egli_err)?;
 
         let egl_version = egl_display.initialize_and_get_version().map_err(egli_err)?;
-        println!("Using EGL {}", egl_version);
+        debug!("Using EGL {}", egl_version);
 
         let configs = egl_display
             .config_filter()

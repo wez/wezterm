@@ -10,6 +10,7 @@ use glium::backend::Facade;
 use glium::texture::SrgbTexture2d;
 use glium::{self, IndexBuffer, Surface, VertexBuffer};
 use glium::{implement_vertex, uniform};
+use log::debug;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::mem;

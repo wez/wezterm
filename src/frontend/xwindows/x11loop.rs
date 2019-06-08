@@ -7,6 +7,7 @@ use crate::frontend::FrontEnd;
 use crate::mux::tab::Tab;
 use crate::mux::Mux;
 use failure::{bail, Error};
+use log::debug;
 use mio::{Events, Poll, PollOpt, Ready, Token};
 use mio_extras::channel::{channel, Receiver as GuiReceiver, Sender as GuiSender};
 use portable_pty::PtySize;
@@ -234,7 +235,7 @@ impl GuiEventLoop {
     }
 
     fn schedule_window_close(&self, window_id: WindowId) -> Result<(), Error> {
-        eprintln!("schedule_window_close {:?}", window_id);
+        debug!("schedule_window_close {:?}", window_id);
 
         let mut windows = self.windows.borrow_mut();
         windows.by_id.remove(&window_id);

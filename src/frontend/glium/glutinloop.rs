@@ -9,6 +9,7 @@ use failure::{bail, Error};
 use glium;
 use glium::glutin::EventsLoopProxy;
 use glium::glutin::WindowId;
+use log::{debug, error};
 use promise::{Executor, Future, SpawnFunc};
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -368,7 +369,7 @@ impl GuiEventLoop {
                 }
                 Ok(Break) => Break,
                 Err(err) => {
-                    eprintln!("Error in event loop: {:?}", err);
+                    error!("Error in event loop: {:?}", err);
                     Break
                 }
             }

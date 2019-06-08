@@ -10,6 +10,7 @@ use crate::frontend::guicommon::localtab::LocalTab;
 use crate::mux::tab::Tab;
 use crate::mux::Mux;
 use failure::Error;
+use log::info;
 use portable_pty::cmdbuilder::CommandBuilder;
 use portable_pty::{PtySize, PtySystem};
 use std::rc::Rc;
@@ -41,7 +42,7 @@ impl Domain for LocalDomain {
         };
         let (master, slave) = self.pty_system.openpty(size)?;
         let child = slave.spawn_command(cmd)?;
-        eprintln!("spawned: {:?}", child);
+        info!("spawned: {:?}", child);
 
         let terminal = term::Terminal::new(
             size.rows as usize,

@@ -13,6 +13,7 @@ use failure::{format_err, Error};
 use glium;
 use glium::glutin::dpi::{LogicalPosition, LogicalSize, PhysicalPosition, PhysicalSize};
 use glium::glutin::{self, ElementState, MouseCursor};
+use log::{debug, error};
 use std::rc::Rc;
 use std::sync::Arc;
 use term;
@@ -175,7 +176,7 @@ impl TerminalWindow for GliumTerminalWindow {
             .ok_or_else(|| format_err!("failed to get inner window size"))?;
         let dpi_scale = self.host.display.gl_window().get_hidpi_factor();
         let (width, height): (u32, u32) = size.to_physical(dpi_scale).into();
-        eprintln!(
+        debug!(
             "resize {}x{}@{} -> {}x{}@{}",
             self.width, self.height, old_dpi_scale, width, height, dpi_scale
         );
@@ -207,7 +208,7 @@ impl GliumTerminalWindow {
         let height = cell_height * physical_rows;
 
         let logical_size = LogicalSize::new(width as f64, height as f64);
-        eprintln!("make window with {}x{}", width, height);
+        debug!("make window with {}x{}", width, height);
 
         let display = {
             let pref_context = glutin::ContextBuilder::new()
@@ -645,7 +646,7 @@ impl GliumTerminalWindow {
                 ElementState::Released => {}
             }
         } else {
-            eprintln!("event {:?} with no mapping", event);
+            error!("event {:?} with no mapping", event);
         }
         self.paint_if_needed()?;
         Ok(())
@@ -685,7 +686,7 @@ impl GliumTerminalWindow {
             } => {
                 // Coupled with logic in key_event which gates whether
                 // we allow processing unicode chars here
-                // eprintln!("ReceivedCharacter {} {:?}", c as u32, c);
+                // debug!("ReceivedCharacter {} {:?}", c as u32, c);
                 if self.allow_received_character {
                     self.allow_received_character = false;
                     let mux = Mux::get().unwrap();

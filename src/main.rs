@@ -1,9 +1,8 @@
 // Don't create a new standard console window when launched from the windows GUI.
 #![windows_subsystem = "windows"]
 
-#[macro_use]
-pub mod log;
 use failure::Error;
+use log::{error, info};
 use std::ffi::OsString;
 use structopt::StructOpt;
 
@@ -139,6 +138,7 @@ fn run_terminal_gui(config: Arc<config::Config>, opts: &StartCommand) -> Result<
 }
 
 fn main() -> Result<(), Error> {
+    env_logger::init();
     // This is a bit gross.
     // In order to not to automatically open a standard windows console when
     // we run, we use the windows_subsystem attribute at the top of this
@@ -169,21 +169,21 @@ fn main() -> Result<(), Error> {
         .unwrap_or_else(|| SubCommand::Start(StartCommand::default()))
     {
         SubCommand::Start(start) => {
-            println!("Using configuration: {:#?}\nopts: {:#?}", config, opts);
+            error!("Using configuration: {:#?}\nopts: {:#?}", config, opts);
             run_terminal_gui(config, &start)
         }
         SubCommand::Cli(_) => {
             use crate::server::client::Client;
             use crate::server::codec::*;
             let mut client = Client::new(&config)?;
-            eprintln!("ping: {:?}", client.ping()?);
+            info!("ping: {:?}", client.ping()?);
             let tabs = client.list_tabs()?;
             for (tab_id, title) in tabs.tabs.iter() {
-                eprintln!("tab {}: {}", tab_id, title);
+                info!("tab {}: {}", tab_id, title);
                 let _data = client.get_coarse_tab_renderable_data(GetCoarseTabRenderableData {
                     tab_id: *tab_id,
                 })?;
-                // eprintln!("coarse: {:?}", data);
+                // info!("coarse: {:?}", data);
             }
             Ok(())
         }

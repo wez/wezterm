@@ -2,6 +2,7 @@ use crate::config::Config;
 use crate::server::codec::*;
 use crate::server::UnixStream;
 use failure::{bail, ensure, err_msg, Error};
+use log::info;
 use std::path::Path;
 use std::sync::Arc;
 
@@ -43,7 +44,7 @@ impl Client {
                 .as_ref()
                 .ok_or_else(|| err_msg("no mux_server_unix_domain_socket_path"))?,
         );
-        eprintln!("connect to {}", sock_path.display());
+        info!("connect to {}", sock_path.display());
         let stream = UnixStream::connect(sock_path)?;
         Ok(Self { stream, serial: 0 })
     }

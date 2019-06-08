@@ -7,6 +7,7 @@ use crate::opengl::render::Renderer;
 use crate::opengl::textureatlas::OutOfTextureSpace;
 use failure::{ensure, format_err, Error};
 use glium;
+use log::{debug, error};
 use portable_pty::PtySize;
 use std::rc::Rc;
 use std::sync::Arc;
@@ -145,7 +146,7 @@ pub trait TerminalWindow {
         match res {
             Err(err) => {
                 if let Some(&OutOfTextureSpace { size }) = err.downcast_ref::<OutOfTextureSpace>() {
-                    eprintln!("out of texture space, allocating {}", size);
+                    error!("out of texture space, allocating {}", size);
                     self.recreate_texture_atlas(size)?;
                     tab.renderer().make_all_lines_dirty();
                     // Recursively initiate a new paint
@@ -225,7 +226,7 @@ pub trait TerminalWindow {
         let fonts = self.fonts();
         let dpi_scale = dpi_scale.unwrap_or_else(|| fonts.get_dpi_scale());
         let font_scale = font_scale.unwrap_or_else(|| fonts.get_font_scale());
-        eprintln!(
+        debug!(
             "TerminalWindow::scaling_changed dpi_scale={} font_scale={}",
             dpi_scale, font_scale
         );

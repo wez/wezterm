@@ -2,6 +2,7 @@
 use super::hbwrap as harfbuzz;
 use crate::font::{ftwrap, Font, FontMetrics, RasterizedGlyph};
 use failure::{bail, Error};
+use log::debug;
 use std::cell::RefCell;
 use std::mem;
 use std::slice;

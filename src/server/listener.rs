@@ -5,6 +5,7 @@ use crate::server::{UnixListener, UnixStream};
 use failure::{err_msg, format_err, Error};
 #[cfg(unix)]
 use libc::{mode_t, umask};
+use log::{debug, error};
 use promise::{Executor, Future};
 use std::collections::HashMap;
 use std::fs::{remove_file, DirBuilder};
@@ -33,7 +34,7 @@ impl Listener {
                     thread::spawn(move || session.run());
                 }
                 Err(err) => {
-                    eprintln!("accept failed: {}", err);
+                    error!("accept failed: {}", err);
                     return;
                 }
             }
@@ -54,7 +55,7 @@ impl ClientSession {
     fn process(&mut self) -> Result<(), Error> {
         loop {
             let decoded = Pdu::decode(&mut self.stream)?;
-            eprintln!("got pdu {:?} from client", decoded);
+            debug!("got pdu {:?} from client", decoded);
             match decoded.pdu {
                 Pdu::Ping(Ping {}) => {
                     Pdu::Pong(Pong {}).encode(&mut self.stream, decoded.serial)?;
@@ -153,7 +154,7 @@ impl Drop for UmaskSaver {
 fn safely_create_sock_path(sock_path: &str) -> Result<UnixListener, Error> {
     let sock_path = Path::new(sock_path);
 
-    eprintln!("setting up {}", sock_path.display());
+    debug!("setting up {}", sock_path.display());
 
     let _saver = UmaskSaver::new();
 
