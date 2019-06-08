@@ -5,7 +5,7 @@ use crate::mux::window::WindowId;
 use crate::mux::Mux;
 use crate::opengl::render::Renderer;
 use crate::opengl::textureatlas::OutOfTextureSpace;
-use failure::{format_err, Error};
+use failure::{ensure, format_err, Error};
 use glium;
 use portable_pty::PtySize;
 use std::rc::Rc;
@@ -71,6 +71,8 @@ pub trait TerminalWindow {
             .ok_or_else(|| format_err!("no such window"))?;
 
         let max = window.len();
+        ensure!(max > 0, "no more tabs");
+
         let active = window.get_active_idx() as isize;
         let tab = active + delta;
         let tab = if tab < 0 { max as isize + tab } else { tab };

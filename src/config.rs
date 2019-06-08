@@ -110,6 +110,7 @@ impl std::convert::TryInto<KeyAssignment> for &Key {
             KeyAction::DecreaseFontSize => KeyAssignment::DecreaseFontSize,
             KeyAction::ResetFontSize => KeyAssignment::ResetFontSize,
             KeyAction::Nop => KeyAssignment::Nop,
+            KeyAction::CloseCurrentTab => KeyAssignment::CloseCurrentTab,
             KeyAction::ActivateTab => KeyAssignment::ActivateTab(
                 self.arg
                     .as_ref()
@@ -148,6 +149,7 @@ pub enum KeyAction {
     Nop,
     Hide,
     Show,
+    CloseCurrentTab,
 }
 
 fn de_keycode<'de, D>(deserializer: D) -> Result<KeyCode, D::Error>

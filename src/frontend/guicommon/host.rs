@@ -31,6 +31,7 @@ pub enum KeyAssignment {
     Nop,
     Hide,
     Show,
+    CloseCurrentTab,
 }
 
 pub trait HostHelper {
@@ -129,6 +130,7 @@ fn key_bindings() -> KeyMap {
         [KeyModifiers::CTRL, KeyCode::Char('0'), ResetFontSize],
         // Tab navigation and management
         [KeyModifiers::SUPER, KeyCode::Char('t'), SpawnTab],
+        [KeyModifiers::SUPER, KeyCode::Char('w'), CloseCurrentTab],
         [KeyModifiers::SUPER, KeyCode::Char('1'), ActivateTab(0)],
         [KeyModifiers::SUPER, KeyCode::Char('2'), ActivateTab(1)],
         [KeyModifiers::SUPER, KeyCode::Char('3'), ActivateTab(2)],
@@ -241,6 +243,7 @@ impl<H: HostHelper> HostImpl<H> {
             SendString(s) => tab.writer().write_all(s.as_bytes())?,
             Hide => self.hide_window(),
             Show => self.show_window(),
+            CloseCurrentTab => self.close_current_tab(),
             Nop => {}
         }
         Ok(())
@@ -289,6 +292,21 @@ impl<H: HostHelper> HostImpl<H> {
             let dims = win.get_dimensions();
             win.scaling_changed(Some(1.0), None, dims.width, dims.height)
         })
+    }
+
+    pub fn close_current_tab(&mut self) {
+        self.with_window(move |win| {
+            let mux = Mux::get().unwrap();
+            let tab = match mux.get_active_tab_for_window(win.get_mux_window_id()) {
+                Some(tab) => tab,
+                None => return Ok(()),
+            };
+            mux.remove_tab(tab.tab_id());
+            if let Some(mut win) = mux.get_window_mut(win.get_mux_window_id()) {
+                win.remove_by_id(tab.tab_id());
+            }
+            win.activate_tab_relative(0)
+        });
     }
 
     pub fn hide_window(&mut self) {

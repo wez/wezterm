@@ -144,6 +144,7 @@ The default key bindings are:
 | `SUPER`     | `0`      | `ResetFontSize` |
 | `CTRL`      | `0`      | `ResetFontSize` |
 | `SUPER`     | `t`      | `SpawnTab` |
+| `SUPER`     | `w`      | `CloseCurrentTab` |
 | `SUPER`     | `1`      | `ActivateTab(0)` |
 | `SUPER`     | `2`      | `ActivateTab(1)` |
 | `SUPER`     | `3`      | `ActivateTab(2)` |
@@ -217,6 +218,7 @@ specified via the `arg` key; see examples below.
 | `Nop` | Does nothing.  This is useful to disable a default key assignment. |
 | `Hide` | Hides the current window |
 | `Show` | Shows the current window |
+| `CloseCurrentTab` | Equivalent to clicking the `x` on the window title bar to close it: Closes the current tab.  If that was the last tab, closes that window.  If that was the last window, wezterm terminates. |
 
 Example:
 
