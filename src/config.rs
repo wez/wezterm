@@ -1,13 +1,17 @@
 //! Configuration for the gui portion of the terminal
 
 use crate::font::FontSystemSelection;
+use crate::frontend::guicommon::host::KeyAssignment;
 use crate::frontend::FrontEndSelection;
 use crate::get_shell;
-use failure::{bail, err_msg, format_err, Error};
+use failure::{bail, err_msg, format_err, Error, Fallible};
 use lazy_static::lazy_static;
 use portable_pty::{CommandBuilder, PtySystemSelection};
+use serde::{Deserialize, Deserializer};
 use serde_derive::*;
 use std;
+use std::collections::HashMap;
+use std::convert::TryInto;
 use std::ffi::OsStr;
 use std::fs;
 use std::io::prelude::*;
@@ -15,6 +19,7 @@ use std::path::PathBuf;
 use term;
 use term::color::RgbColor;
 use termwiz::hyperlink;
+use termwiz::input::{KeyCode, Modifiers};
 use toml;
 
 #[derive(Debug, Deserialize, Clone)]
@@ -75,6 +80,213 @@ pub struct Config {
     /// When using the MuxServer, this specifies the path to the unix
     /// domain socket to use to communicate with the mux server.
     pub mux_server_unix_domain_socket_path: Option<String>,
+
+    #[serde(default)]
+    pub keys: Vec<Key>,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct Key {
+    #[serde(deserialize_with = "de_keycode")]
+    pub key: KeyCode,
+    #[serde(deserialize_with = "de_modifiers")]
+    pub mods: Modifiers,
+    pub action: KeyAction,
+    pub arg: Option<String>,
+}
+
+impl std::convert::TryInto<KeyAssignment> for &Key {
+    type Error = Error;
+    fn try_into(self) -> Result<KeyAssignment, Error> {
+        Ok(match self.action {
+            KeyAction::SpawnTab => KeyAssignment::SpawnTab,
+            KeyAction::SpawnWindow => KeyAssignment::SpawnWindow,
+            KeyAction::ToggleFullScreen => KeyAssignment::ToggleFullScreen,
+            KeyAction::Copy => KeyAssignment::Copy,
+            KeyAction::Paste => KeyAssignment::Paste,
+            KeyAction::IncreaseFontSize => KeyAssignment::IncreaseFontSize,
+            KeyAction::DecreaseFontSize => KeyAssignment::DecreaseFontSize,
+            KeyAction::ResetFontSize => KeyAssignment::ResetFontSize,
+            KeyAction::Nop => KeyAssignment::Nop,
+            KeyAction::ActivateTab => KeyAssignment::ActivateTab(
+                self.arg
+                    .as_ref()
+                    .ok_or_else(|| format_err!("missing arg for {:?}", self))?
+                    .parse()?,
+            ),
+            KeyAction::ActivateTabRelative => KeyAssignment::ActivateTabRelative(
+                self.arg
+                    .as_ref()
+                    .ok_or_else(|| format_err!("missing arg for {:?}", self))?
+                    .parse()?,
+            ),
+            KeyAction::SendString => KeyAssignment::SendString(
+                self.arg
+                    .as_ref()
+                    .ok_or_else(|| format_err!("missing arg for {:?}", self))?
+                    .to_owned(),
+            ),
+        })
+    }
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub enum KeyAction {
+    SpawnTab,
+    SpawnWindow,
+    ToggleFullScreen,
+    Copy,
+    Paste,
+    ActivateTabRelative,
+    IncreaseFontSize,
+    DecreaseFontSize,
+    ResetFontSize,
+    ActivateTab,
+    SendString,
+    Nop,
+}
+
+fn de_keycode<'de, D>(deserializer: D) -> Result<KeyCode, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let s = String::deserialize(deserializer)?;
+
+    macro_rules! m {
+        ($($val:ident),* $(,)?) => {
+            $(
+            if s == stringify!($val) {
+                return Ok(KeyCode::$val);
+            }
+            )*
+        }
+    }
+
+    m!(
+        Hyper,
+        Super,
+        Meta,
+        Cancel,
+        Backspace,
+        Tab,
+        Clear,
+        Enter,
+        Shift,
+        Escape,
+        LeftShift,
+        RightShift,
+        Control,
+        LeftControl,
+        RightControl,
+        Alt,
+        LeftAlt,
+        RightAlt,
+        Menu,
+        LeftMenu,
+        RightMenu,
+        Pause,
+        CapsLock,
+        PageUp,
+        PageDown,
+        End,
+        Home,
+        LeftArrow,
+        RightArrow,
+        UpArrow,
+        DownArrow,
+        Select,
+        Print,
+        Execute,
+        PrintScreen,
+        Insert,
+        Delete,
+        Help,
+        LeftWindows,
+        RightWindows,
+        Applications,
+        Sleep,
+        Numpad0,
+        Numpad1,
+        Numpad2,
+        Numpad3,
+        Numpad4,
+        Numpad5,
+        Numpad6,
+        Numpad7,
+        Numpad8,
+        Numpad9,
+        Multiply,
+        Add,
+        Separator,
+        Subtract,
+        Decimal,
+        Divide,
+        NumLock,
+        ScrollLock,
+        BrowserBack,
+        BrowserForward,
+        BrowserRefresh,
+        BrowserStop,
+        BrowserSearch,
+        BrowserFavorites,
+        BrowserHome,
+        VolumeMute,
+        VolumeDown,
+        VolumeUp,
+        MediaNextTrack,
+        MediaPrevTrack,
+        MediaStop,
+        MediaPlayPause,
+        ApplicationLeftArrow,
+        ApplicationRightArrow,
+        ApplicationUpArrow,
+        ApplicationDownArrow,
+    );
+
+    if s.len() > 1 && s.starts_with('F') {
+        let num: u8 = s[1..].parse().map_err(|_| {
+            serde::de::Error::custom(format!(
+                "expected F<NUMBER> function key string, got: {}",
+                s
+            ))
+        })?;
+        return Ok(KeyCode::Function(num));
+    }
+
+    let chars: Vec<char> = s.chars().collect();
+    if chars.len() == 1 {
+        Ok(KeyCode::Char(chars[0]))
+    } else {
+        Err(serde::de::Error::custom(format!(
+            "invalid KeyCode string {}",
+            s
+        )))
+    }
+}
+
+fn de_modifiers<'de, D>(deserializer: D) -> Result<Modifiers, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let s = String::deserialize(deserializer)?;
+    let mut mods = Modifiers::NONE;
+    for ele in s.split('|') {
+        if ele == "SHIFT" {
+            mods |= Modifiers::SHIFT;
+        } else if ele == "ALT" || ele == "OPT" || ele == "META" {
+            mods |= Modifiers::ALT;
+        } else if ele == "CTRL" {
+            mods |= Modifiers::CTRL;
+        } else if ele == "SUPER" || ele == "CMD" || ele == "WIN" {
+            mods |= Modifiers::SUPER;
+        } else {
+            return Err(serde::de::Error::custom(format!(
+                "invalid modifier name {} in {}",
+                ele, s
+            )));
+        }
+    }
+    Ok(mods)
 }
 
 fn default_hyperlink_rules() -> Vec<hyperlink::Rule> {
@@ -114,6 +326,7 @@ impl Default for Config {
             term: default_term(),
             default_prog: None,
             mux_server_unix_domain_socket_path: None,
+            keys: vec![],
         }
     }
 }
@@ -337,6 +550,10 @@ impl Config {
 
             let cfg: Self = toml::from_str(&s)
                 .map_err(|e| format_err!("Error parsing TOML from {}: {:?}", p.display(), e))?;
+
+            // Compute but discard the key bindings here so that we raise any
+            // problems earlier than we use them.
+            let _ = cfg.key_bindings()?;
             return Ok(cfg.compute_extra_defaults());
         }
 
@@ -345,6 +562,17 @@ impl Config {
 
     pub fn default_config() -> Self {
         Self::default().compute_extra_defaults()
+    }
+
+    pub fn key_bindings(&self) -> Fallible<HashMap<(KeyCode, Modifiers), KeyAssignment>> {
+        let mut map = HashMap::new();
+
+        for k in &self.keys {
+            let value = k.try_into()?;
+            map.insert((k.key, k.mods), value);
+        }
+
+        Ok(map)
     }
 
     /// In some cases we need to compute expanded values based

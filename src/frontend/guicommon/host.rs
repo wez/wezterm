@@ -8,12 +8,14 @@ use failure::Fallible;
 use failure::{format_err, Error};
 use portable_pty::PtySize;
 use promise::Future;
+use std::collections::HashMap;
 use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use term::{KeyCode, KeyModifiers};
 use termwiz::hyperlink::Hyperlink;
 
+#[derive(Debug, Clone)]
 pub enum KeyAssignment {
     SpawnTab,
     SpawnWindow,
@@ -42,6 +44,7 @@ pub struct HostImpl<H: HostHelper> {
     /// macOS gets unhappy if we set up the clipboard too early,
     /// so we use an Option to defer it until we use it
     clipboard: Option<ClipboardContext>,
+    keys: HashMap<(KeyCode, KeyModifiers), KeyAssignment>,
 }
 
 const PASTE_CHUNK_SIZE: usize = 1024;
@@ -85,9 +88,14 @@ fn trickle_paste(tab_id: TabId, text: String) {
 
 impl<H: HostHelper> HostImpl<H> {
     pub fn new(helper: H) -> Self {
+        let mux = Mux::get().unwrap();
         Self {
             helper,
             clipboard: None,
+            keys: mux
+                .config()
+                .key_bindings()
+                .expect("keys section of config to be valid"),
         }
     }
 
@@ -220,7 +228,10 @@ impl<H: HostHelper> HostImpl<H> {
         mods: KeyModifiers,
         key: KeyCode,
     ) -> Result<bool, Error> {
-        if let Some(assignment) = self.key_assignment(mods, key) {
+        if let Some(assignment) = self.keys.get(&(key, mods)).cloned() {
+            self.perform_key_assignment(tab, &assignment)?;
+            Ok(true)
+        } else if let Some(assignment) = self.key_assignment(mods, key) {
             self.perform_key_assignment(tab, &assignment)?;
             Ok(true)
         } else {
