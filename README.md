@@ -153,8 +153,8 @@ The default key bindings are:
 | `SUPER`     | `7`      | `ActivateTab(6)` |
 | `SUPER`     | `8`      | `ActivateTab(7)` |
 | `SUPER`     | `9`      | `ActivateTab(8)` |
-| `SUPER|SHIFT` | `[`' | `ActivateTabRelative(-1)` |
-| `SUPER|SHIFT` | `]`' | `ActivateTabRelative(1)` |
+| `SUPER\|SHIFT` | `[`' | `ActivateTabRelative(-1)` |
+| `SUPER\|SHIFT` | `]`' | `ActivateTabRelative(1)` |
 
 These can be overridden using the `keys` section in your `~/.wezterm.toml` config file.
 For example, you can disable a default assignment like this:
