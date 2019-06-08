@@ -138,7 +138,7 @@ fn run_terminal_gui(config: Arc<config::Config>, opts: &StartCommand) -> Result<
 }
 
 fn main() -> Result<(), Error> {
-    env_logger::init();
+    pretty_env_logger::init();
     // This is a bit gross.
     // In order to not to automatically open a standard windows console when
     // we run, we use the windows_subsystem attribute at the top of this

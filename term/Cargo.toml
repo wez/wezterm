@@ -8,6 +8,7 @@ edition = "2018"
 bitflags = "~1.0"
 failure = "~0.1"
 image = "0.21"
+log = "0.4"
 num = "0.2"
 ordered-float = "1.0"
 unicode-segmentation = "~1.2"
@@ -20,6 +21,3 @@ pretty_assertions = "0.6"
 
 [dependencies.termwiz]
 path = "../termwiz"
-
-[features]
-debug-escape-sequences = []

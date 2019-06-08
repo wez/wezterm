@@ -17,7 +17,7 @@ bitflags = "1.0"
 clipboard = "0.5"
 dirs = "1.0"
 euclid = "0.19"
-env_logger = "0.6"
+pretty_env_logger = "0.3"
 failure = "0.1"
 failure_derive = "0.1"
 foreign-types = "0.3"
@@ -88,7 +88,6 @@ core-graphics = "0.17"
 core-text = "13.2"
 
 [features]
-debug-escape-sequences = ["term/debug-escape-sequences"]
 force-glutin = []
 force-fontconfig = ["fontconfig"]
 

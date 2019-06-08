@@ -5,6 +5,7 @@ use super::*;
 use crate::color::ColorPalette;
 use failure::bail;
 use image::{self, GenericImageView};
+use log::{debug, error};
 use ordered_float::NotNan;
 use std::fmt::Write;
 use std::sync::Arc;
@@ -990,7 +991,7 @@ impl TerminalState {
             | (InternalPasteEnd, ..) => "",
         };
 
-        // eprintln!("sending {:?}", to_send);
+        // debug!("sending {:?}", to_send);
         write_all(writer, to_send.as_bytes())?;
 
         // Reset the viewport if we sent data to the parser
@@ -1238,7 +1239,7 @@ impl TerminalState {
 
     fn set_image(&mut self, image: ITermFileData) {
         if !image.inline {
-            eprintln!(
+            error!(
                 "Ignoring file download request name={:?} size={}",
                 image.name,
                 image.data.len()
@@ -1250,7 +1251,7 @@ impl TerminalState {
         let decoded_image = match image::load_from_memory(&image.data) {
             Ok(im) => im,
             Err(e) => {
-                eprintln!(
+                error!(
                     "Unable to decode image: {}: size={} {:?}",
                     e,
                     image.data.len(),
@@ -1326,14 +1327,14 @@ impl TerminalState {
         let cursor_x = self.cursor.x;
         let x_delta = 1.0 / available_pixel_width as f32;
         let y_delta = 1.0 / available_pixel_height as f32;
-        eprintln!(
+        debug!(
             "image is {}x{} cells, {}x{} pixels",
             width_in_cells, height_in_cells, width, height
         );
         for _ in 0..height_in_cells {
             let mut xpos = NotNan::new(0.0).unwrap();
             let cursor_y = self.cursor.y;
-            eprintln!(
+            debug!(
                 "setting cells for y={} x=[{}..{}]",
                 cursor_y,
                 cursor_x,
@@ -1374,7 +1375,7 @@ impl TerminalState {
 
     fn perform_device(&mut self, dev: Device, host: &mut TerminalHost) {
         match dev {
-            Device::DeviceAttributes(a) => eprintln!("unhandled: {:?}", a),
+            Device::DeviceAttributes(a) => error!("unhandled: {:?}", a),
             Device::SoftReset => {
                 self.pen = CellAttributes::default();
                 // TODO: see https://vt100.net/docs/vt510-rm/DECSTR.html
@@ -1502,23 +1503,23 @@ impl TerminalState {
             }
             Mode::SaveDecPrivateMode(DecPrivateMode::Code(_))
             | Mode::RestoreDecPrivateMode(DecPrivateMode::Code(_)) => {
-                eprintln!("save/restore dec mode unimplemented")
+                error!("save/restore dec mode unimplemented")
             }
 
             Mode::SetDecPrivateMode(DecPrivateMode::Unspecified(n))
             | Mode::ResetDecPrivateMode(DecPrivateMode::Unspecified(n))
             | Mode::SaveDecPrivateMode(DecPrivateMode::Unspecified(n))
             | Mode::RestoreDecPrivateMode(DecPrivateMode::Unspecified(n)) => {
-                eprintln!("unhandled DecPrivateMode {}", n);
+                error!("unhandled DecPrivateMode {}", n);
             }
 
             Mode::SetMode(TerminalMode::Unspecified(n))
             | Mode::ResetMode(TerminalMode::Unspecified(n)) => {
-                eprintln!("unhandled TerminalMode {}", n);
+                error!("unhandled TerminalMode {}", n);
             }
 
             Mode::SetMode(m) | Mode::ResetMode(m) => {
-                eprintln!("unhandled TerminalMode {:?}", m);
+                error!("unhandled TerminalMode {:?}", m);
             }
         }
     }
@@ -1580,7 +1581,7 @@ impl TerminalState {
             | Window::PushIconAndWindowTitle
             | Window::PushIconTitle
             | Window::PushWindowTitle => {}
-            _ => eprintln!("unhandled Window CSI {:?}", window),
+            _ => error!("unhandled Window CSI {:?}", window),
         }
     }
 
@@ -1600,7 +1601,7 @@ impl TerminalState {
             }
             EraseInDisplay::EraseDisplay => 0..rows,
             EraseInDisplay::EraseScrollback => {
-                eprintln!("TODO: ed: no support for xterm Erase Saved Lines yet");
+                error!("TODO: ed: no support for xterm Erase Saved Lines yet");
                 return;
             }
         };
@@ -1798,7 +1799,7 @@ impl TerminalState {
             }
             Cursor::SaveCursor => self.save_cursor(),
             Cursor::RestoreCursor => self.restore_cursor(),
-            Cursor::CursorStyle(style) => eprintln!("unhandled: CursorStyle {:?}", style),
+            Cursor::CursorStyle(style) => error!("unhandled: CursorStyle {:?}", style),
         }
     }
 
@@ -1991,7 +1992,7 @@ impl<'a> Performer<'a> {
         match action {
             Action::Print(c) => self.print(c),
             Action::Control(code) => self.control(code),
-            Action::DeviceControl(ctrl) => eprintln!("Unhandled {:?}", ctrl),
+            Action::DeviceControl(ctrl) => error!("Unhandled {:?}", ctrl),
             Action::OperatingSystemCommand(osc) => self.osc_dispatch(*osc),
             Action::Esc(esc) => self.esc_dispatch(esc),
             Action::CSI(csi) => self.csi_dispatch(csi),
@@ -2017,8 +2018,8 @@ impl<'a> Performer<'a> {
                 self.set_cursor_pos(&Position::Relative(-1), &Position::Relative(0));
             }
             ControlCode::HorizontalTab => self.c0_horizontal_tab(),
-            ControlCode::Bell => eprintln!("Ding! (this is the bell)"),
-            _ => println!("unhandled ControlCode {:?}", control),
+            ControlCode::Bell => error!("Ding! (this is the bell)"),
+            _ => error!("unhandled ControlCode {:?}", control),
         }
     }
 
@@ -2030,10 +2031,10 @@ impl<'a> Performer<'a> {
             CSI::Edit(edit) => self.state.perform_csi_edit(edit),
             CSI::Mode(mode) => self.state.perform_csi_mode(mode),
             CSI::Device(dev) => self.state.perform_device(*dev, self.host),
-            CSI::Mouse(mouse) => eprintln!("mouse report sent by app? {:?}", mouse),
+            CSI::Mouse(mouse) => error!("mouse report sent by app? {:?}", mouse),
             CSI::Window(window) => self.state.perform_csi_window(window, self.host),
             CSI::Unspecified(unspec) => {
-                eprintln!("unknown unspecified CSI: {:?}", format!("{}", unspec))
+                error!("unknown unspecified CSI: {:?}", format!("{}", unspec))
             }
         };
     }
@@ -2065,7 +2066,7 @@ impl<'a> Performer<'a> {
             }
             Esc::Code(EscCode::DecSaveCursorPosition) => self.save_cursor(),
             Esc::Code(EscCode::DecRestoreCursorPosition) => self.restore_cursor(),
-            _ => println!("ESC: unhandled {:?}", esc),
+            _ => error!("ESC: unhandled {:?}", esc),
         }
     }
 
@@ -2082,33 +2083,33 @@ impl<'a> Performer<'a> {
                 self.set_hyperlink(link);
             }
             OperatingSystemCommand::Unspecified(unspec) => {
-                eprint!("Unhandled OSC ");
+                let mut output = String::new();
+                write!(&mut output, "Unhandled OSC ").ok();
                 for item in unspec {
-                    eprint!(" {}", String::from_utf8_lossy(&item));
+                    write!(&mut output, " {}", String::from_utf8_lossy(&item)).ok();
                 }
-                eprintln!("");
+                error!("{}", output);
             }
 
             OperatingSystemCommand::ClearSelection(_) => {
                 self.host.set_clipboard(None).ok();
             }
             OperatingSystemCommand::QuerySelection(_) => {}
-            OperatingSystemCommand::SetSelection(_, selection_data) => match self
-                .host
-                .set_clipboard(Some(selection_data))
-            {
-                Ok(_) => (),
-                Err(err) => eprintln!("failed to set clipboard in response to OSC 52: {:?}", err),
-            },
+            OperatingSystemCommand::SetSelection(_, selection_data) => {
+                match self.host.set_clipboard(Some(selection_data)) {
+                    Ok(_) => (),
+                    Err(err) => error!("failed to set clipboard in response to OSC 52: {:?}", err),
+                }
+            }
             OperatingSystemCommand::ITermProprietary(iterm) => match iterm {
                 ITermProprietary::File(image) => self.set_image(*image),
-                _ => eprintln!("unhandled iterm2: {:?}", iterm),
+                _ => error!("unhandled iterm2: {:?}", iterm),
             },
             OperatingSystemCommand::SystemNotification(message) => {
-                eprintln!("Application sends SystemNotification: {}", message);
+                error!("Application sends SystemNotification: {}", message);
             }
             OperatingSystemCommand::ChangeColorNumber(specs) => {
-                eprintln!("ChangeColorNumber: {:?}", specs);
+                error!("ChangeColorNumber: {:?}", specs);
                 for pair in specs {
                     match pair.color {
                         ColorOrQuery::Query => {
@@ -2129,7 +2130,7 @@ impl<'a> Performer<'a> {
                 self.make_all_lines_dirty();
             }
             OperatingSystemCommand::ChangeDynamicColors(first_color, colors) => {
-                eprintln!("ChangeDynamicColors: {:?} {:?}", first_color, colors);
+                error!("ChangeDynamicColors: {:?} {:?}", first_color, colors);
                 use termwiz::escape::osc::DynamicColorNumber;
                 let mut idx: u8 = first_color as u8;
                 for color in colors {

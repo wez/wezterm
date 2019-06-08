@@ -5,9 +5,6 @@ use failure::Error;
 use std::ops::{Deref, DerefMut, Range};
 use std::str;
 
-#[macro_use]
-mod debug;
-
 pub mod input;
 pub use crate::input::*;
 

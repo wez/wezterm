@@ -1,4 +1,5 @@
 use super::*;
+use log::debug;
 use std::collections::VecDeque;
 
 /// Holds the model of a screen.  This can either be the primary screen
