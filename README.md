@@ -70,7 +70,7 @@ the middle of Feb 2018.  The following features are done:
 - [x] Render underline, double-underline, italic, bold, strikethrough
 - [x] Configuration file to specify fonts and colors
 - [x] Multiple Windows (Hotkey: `Super-N`)
-- [x] Tabs (Hotkey: `Super-T`, next/prev: `Super-[` and `Super-]`, go-to: `Super-[0-9]`)
+- [x] Tabs (Hotkey: `Super-T`, next/prev: `Super-[` and `Super-]`, go-to: `Super-[1-9]`)
 
 There's a good number of terminal escape sequences that are not yet implemented
 and that will get fleshed out as the applications I use uncover them, or as folks
@@ -207,7 +207,7 @@ specified via the `arg` key; see examples below.
 | ------------------ | ------------------ |
 | `SpawnTab`         | Create a new tab in the current window |
 | `SpawnWindow`      | Create a new window |
-| `ToggleFullScreen` | Toggles full screen mode for current window between |
+| `ToggleFullScreen` | Toggles full screen mode for current window |
 | `Paste`            | Paste the clipboard to the current tab |
 | `ActivateTabRelative` | Activate a tab relative to the current tab.  The `arg` value specifies an offset. eg: `-1` activates the tab to the left of the current tab, while `1` activates the tab to the right. |
 | `ActivateTab` | Activate the tab specified by the `arg` value. eg: `0` activates the leftmost tab, while `1` activates the second tab from the left, and so on. |
