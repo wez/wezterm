@@ -2,6 +2,7 @@ use crate::config::Config;
 use crate::font::FontConfiguration;
 use crate::mux::tab::Tab;
 use crate::mux::Mux;
+use downcast_rs::{impl_downcast, Downcast};
 use failure::{format_err, Error};
 use lazy_static::lazy_static;
 use promise::Executor;
@@ -102,7 +103,7 @@ impl std::str::FromStr for FrontEndSelection {
     }
 }
 
-pub trait FrontEnd {
+pub trait FrontEnd: Downcast {
     /// Run the event loop.  Does not return until there is either a fatal
     /// error, or until there are no more windows left to manage.
     fn run_forever(&self) -> Result<(), Error>;
@@ -116,3 +117,4 @@ pub trait FrontEnd {
 
     fn gui_executor(&self) -> Box<dyn Executor>;
 }
+impl_downcast!(FrontEnd);

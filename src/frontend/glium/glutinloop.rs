@@ -2,7 +2,7 @@ use crate::config::Config;
 use crate::font::FontConfiguration;
 use crate::frontend::glium::window::GliumTerminalWindow;
 use crate::frontend::guicommon::window::TerminalWindow;
-use crate::frontend::FrontEnd;
+use crate::frontend::{front_end, FrontEnd};
 use crate::mux::tab::Tab;
 use crate::mux::{Mux, SessionTerminated};
 use failure::{bail, Error};
@@ -38,10 +38,13 @@ struct GuiSender {
 
 impl GuiSender {
     pub fn send(&self, what: SpawnFunc) -> Result<(), Error> {
-        match GuiEventLoop::get() {
+        match front_end() {
             // If we can get a handle on the GuiEventLoop then we
             // are in the gui thread and can queue up func directly.
-            Some(event_loop) => event_loop.spawn_func(what),
+            Some(front_end) => match front_end.downcast_ref::<GlutinFrontEnd>() {
+                Some(f) => f.event_loop.spawn_func(what),
+                None => bail!("front_end was not a GlutinFrontEnd!?"),
+            },
             // Otherwise, send it through the bounded channel,
             // which may block us
             None => match self.tx.send(what) {
@@ -104,14 +107,9 @@ pub struct GlutinFrontEnd {
     event_loop: Rc<GuiEventLoop>,
 }
 
-thread_local! {
-    static GLUTIN_EVENT_LOOP: RefCell<Option<Rc<GuiEventLoop>>> = RefCell::new(None);
-}
-
 impl GlutinFrontEnd {
     pub fn try_new(mux: &Rc<Mux>) -> Result<Rc<dyn FrontEnd>, Error> {
         let event_loop = Rc::new(GuiEventLoop::new(mux)?);
-        GLUTIN_EVENT_LOOP.with(|f| *f.borrow_mut() = Some(Rc::clone(&event_loop)));
         Ok(Rc::new(Self { event_loop }))
     }
 }
@@ -184,16 +182,6 @@ impl GuiEventLoop {
         })
     }
 
-    pub fn get() -> Option<Rc<Self>> {
-        let mut res = None;
-        GLUTIN_EVENT_LOOP.with(|f| {
-            if let Some(me) = &*f.borrow() {
-                res = Some(Rc::clone(me));
-            }
-        });
-        res
-    }
-
     fn spawn_func(&self, func: SpawnFunc) {
         self.gui_thread_sends.borrow_mut().push_back(func);
     }
@@ -214,8 +202,11 @@ impl GuiEventLoop {
                 tx: self.gui_tx.clone(),
             },
             move || {
-                let myself = Self::get().expect("to be called on gui thread");
-                let mut windows = myself.windows.borrow_mut();
+                let front_end = front_end().expect("to be called on gui thread");
+                let front_end = front_end
+                    .downcast_ref::<GlutinFrontEnd>()
+                    .expect("front_end to be GlutinFrontEnd");
+                let mut windows = front_end.event_loop.windows.borrow_mut();
                 if let Some(window) = windows.by_id.get_mut(&window_id) {
                     func(window)
                 } else {
@@ -272,8 +263,12 @@ impl GuiEventLoop {
                 tx: self.gui_tx.clone(),
             },
             move || {
-                let events = Self::get().expect("to be called on gui thread");
-                let mut windows = events.windows.borrow_mut();
+                let front_end = front_end().expect("to be called on gui thread");
+                let front_end = front_end
+                    .downcast_ref::<GlutinFrontEnd>()
+                    .expect("front_end to be GlutinFrontEnd");
+
+                let mut windows = front_end.event_loop.windows.borrow_mut();
 
                 windows.by_id.remove(&window_id);
                 Ok(())

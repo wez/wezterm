@@ -16,6 +16,7 @@ base91 = { path = "base91" }
 bitflags = "1.0"
 clipboard = "0.5"
 dirs = "1.0"
+downcast-rs = "1.0"
 euclid = "0.19"
 pretty_env_logger = "0.3"
 failure = "0.1"
