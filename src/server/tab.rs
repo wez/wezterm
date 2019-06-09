@@ -65,7 +65,12 @@ impl Tab for ClientTab {
     }
 
     fn send_paste(&self, text: &str) -> Fallible<()> {
-        bail!("ClientTab::send_paste not impl");
+        let mut client = self.client.client.lock().unwrap();
+        client.send_paste(SendPaste {
+            tab_id: self.remote_tab_id,
+            data: text.to_owned(),
+        })?;
+        Ok(())
     }
 
     fn reader(&self) -> Fallible<Box<dyn std::io::Read + Send>> {

@@ -218,6 +218,7 @@ pdu! {
     UnitResponse: 10,
     SendKeyDown: 11,
     SendMouseEvent: 12,
+    SendPaste: 13,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
@@ -278,6 +279,12 @@ pub struct SpawnResponse {
 pub struct WriteToTab {
     pub tab_id: TabId,
     pub data: Vec<u8>,
+}
+
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct SendPaste {
+    pub tab_id: TabId,
+    pub data: String,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]

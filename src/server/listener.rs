@@ -147,6 +147,18 @@ impl ClientSession {
                     .wait()?;
                     Pdu::UnitResponse(UnitResponse {}).encode(&mut self.stream, decoded.serial)?;
                 }
+                Pdu::SendPaste(SendPaste { tab_id, data }) => {
+                    Future::with_executor(self.executor.clone_executor(), move || {
+                        let mux = Mux::get().unwrap();
+                        let tab = mux
+                            .get_tab(tab_id)
+                            .ok_or_else(|| format_err!("no such tab {}", tab_id))?;
+                        tab.send_paste(&data)?;
+                        Ok(())
+                    })
+                    .wait()?;
+                    Pdu::UnitResponse(UnitResponse {}).encode(&mut self.stream, decoded.serial)?;
+                }
 
                 Pdu::SendKeyDown(SendKeyDown { tab_id, event }) => {
                     Future::with_executor(self.executor.clone_executor(), move || {

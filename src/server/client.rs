@@ -72,6 +72,7 @@ impl Client {
     );
     rpc!(spawn, Spawn, SpawnResponse);
     rpc!(write_to_tab, WriteToTab, UnitResponse);
+    rpc!(send_paste, SendPaste, UnitResponse);
     rpc!(key_down, SendKeyDown, UnitResponse);
     rpc!(mouse_event, SendMouseEvent, UnitResponse);
 }
