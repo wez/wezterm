@@ -36,7 +36,7 @@ impl FontSystem for FontLoaderAndFreeType {
         config: &Config,
         style: &TextStyle,
         font_scale: f64,
-    ) -> Result<Box<NamedFont>, Error> {
+    ) -> Result<Box<dyn NamedFont>, Error> {
         let mut lib = ftwrap::Library::new()?;
         // Some systems don't support this mode, so if it fails, we don't
         // care to abort the rest of what we're doing
@@ -70,11 +70,11 @@ impl FontSystem for FontLoaderAndFreeType {
 }
 
 impl NamedFont for NamedFontImpl {
-    fn get_fallback(&mut self, idx: FallbackIdx) -> Result<&Font, Error> {
+    fn get_fallback(&mut self, idx: FallbackIdx) -> Result<&dyn Font, Error> {
         self.fonts
             .get(idx)
             .map(|f| {
-                let f: &Font = f;
+                let f: &dyn Font = f;
                 f
             })
             .ok_or_else(|| format_err!("no fallback fonts available (idx={})", idx))

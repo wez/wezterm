@@ -48,7 +48,7 @@ impl FontSystem for CoreTextSystem {
         config: &Config,
         style: &TextStyle,
         font_scale: f64,
-    ) -> Result<Box<NamedFont>, Error> {
+    ) -> Result<Box<dyn NamedFont>, Error> {
         let mut fonts = Vec::new();
         for font_attr in style.font_with_fallback() {
             let col = match create_for_family(&font_attr.family) {
@@ -80,11 +80,11 @@ impl FontSystem for CoreTextSystem {
 }
 
 impl NamedFont for NamedFontImpl {
-    fn get_fallback(&mut self, idx: FallbackIdx) -> Result<&Font, Error> {
+    fn get_fallback(&mut self, idx: FallbackIdx) -> Result<&dyn Font, Error> {
         self.fonts
             .get(idx)
             .map(|f| {
-                let f: &Font = f;
+                let f: &dyn Font = f;
                 f
             })
             .ok_or_else(|| format_err!("no fallback fonts available (idx={})", idx))
