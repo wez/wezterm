@@ -105,9 +105,24 @@ impl ClientSession {
                         .encode(&mut self.stream, decoded.serial)?;
                 }
 
+                Pdu::Spawn(spawn) => {
+                    let result = Future::with_executor(self.executor.clone_executor(), move || {
+                        let mux = Mux::get().unwrap();
+                        let domain = mux.get_domain(spawn.domain_id).ok_or_else(|| {
+                            format_err!("domain {} not found on this server", spawn.domain_id)
+                        })?;
+                        Ok(SpawnResponse {
+                            tab_id: domain.spawn(spawn.size, spawn.command)?.tab_id(),
+                        })
+                    })
+                    .wait()?;
+                    Pdu::SpawnResponse(result).encode(&mut self.stream, decoded.serial)?;
+                }
+
                 Pdu::Pong { .. }
                 | Pdu::ListTabsResponse { .. }
                 | Pdu::GetCoarseTabRenderableDataResponse { .. }
+                | Pdu::SpawnResponse { .. }
                 | Pdu::Invalid { .. } => {}
             }
         }

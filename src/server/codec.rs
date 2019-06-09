@@ -10,10 +10,12 @@
 //! manage unknown enum variants.
 #![allow(dead_code)]
 
+use crate::mux::domain::DomainId;
 use crate::mux::tab::TabId;
 use failure::{bail, Error};
 use leb128;
 use log::debug;
+use portable_pty::{CommandBuilder, PtySize};
 use serde_derive::*;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -211,6 +213,8 @@ pdu! {
     ListTabsResponse: 4,
     GetCoarseTabRenderableData: 5,
     GetCoarseTabRenderableDataResponse: 6,
+    Spawn: 7,
+    SpawnResponse: 8,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
@@ -250,6 +254,18 @@ pub struct GetCoarseTabRenderableDataResponse {
     pub physical_cols: usize,
     pub current_highlight: Option<Arc<Hyperlink>>,
     pub dirty_lines: Vec<DirtyLine>,
+}
+
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct Spawn {
+    pub domain_id: DomainId,
+    pub command: Option<CommandBuilder>,
+    pub size: PtySize,
+}
+
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct SpawnResponse {
+    pub tab_id: TabId,
 }
 
 #[cfg(test)]

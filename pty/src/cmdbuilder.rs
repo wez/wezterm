@@ -2,13 +2,14 @@
 use failure::{ensure, Error};
 #[cfg(windows)]
 use log::error;
+use serde_derive::*;
 use std::ffi::{OsStr, OsString};
 #[cfg(windows)]
 use std::os::windows::ffi::OsStrExt;
 
 /// `CommandBuilder` is used to prepare a command to be spawned into a pty.
 /// The interface is intentionally similar to that of `std::process::Command`.
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct CommandBuilder {
     args: Vec<OsString>,
     envs: Vec<(OsString, OsString)>,

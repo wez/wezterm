@@ -50,7 +50,7 @@ pub mod unix;
 pub mod win;
 
 /// Represents the size of the visible display area in the pty
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
 pub struct PtySize {
     /// The number of lines of text
     pub rows: u16,

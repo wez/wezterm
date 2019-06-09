@@ -70,4 +70,5 @@ impl Client {
         GetCoarseTabRenderableData,
         GetCoarseTabRenderableDataResponse
     );
+    rpc!(spawn, Spawn, SpawnResponse);
 }

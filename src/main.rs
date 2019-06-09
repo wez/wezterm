@@ -185,6 +185,14 @@ fn main() -> Result<(), Error> {
                 })?;
                 // info!("coarse: {:?}", data);
             }
+            error!(
+                "spawn: {:?}",
+                client.spawn(Spawn {
+                    domain_id: 0,
+                    size: PtySize::default(),
+                    command: None
+                })
+            );
             Ok(())
         }
     }
