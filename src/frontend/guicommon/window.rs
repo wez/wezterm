@@ -235,7 +235,12 @@ pub trait TerminalWindow {
                 .get_window(self.get_mux_window_id())
                 .ok_or_else(|| format_err!("no such window!?"))?;
             for tab in window.iter() {
-                tab.resize(rows, cols, width as u16, height as u16)?;
+                tab.resize(PtySize {
+                    rows,
+                    cols,
+                    pixel_width: width as u16,
+                    pixel_height: height as u16,
+                })?;
             }
 
             Ok(true)

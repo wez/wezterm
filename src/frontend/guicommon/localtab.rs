@@ -47,22 +47,11 @@ impl Tab for LocalTab {
             .key_down(key, mods, &mut *self.pty.borrow_mut())
     }
 
-    fn resize(
-        &self,
-        rows: u16,
-        cols: u16,
-        pixel_width: u16,
-        pixel_height: u16,
-    ) -> Result<(), Error> {
-        self.pty.borrow_mut().resize(PtySize {
-            rows,
-            cols,
-            pixel_width,
-            pixel_height,
-        })?;
+    fn resize(&self, size: PtySize) -> Result<(), Error> {
+        self.pty.borrow_mut().resize(size)?;
         self.terminal
             .borrow_mut()
-            .resize(rows as usize, cols as usize);
+            .resize(size.rows as usize, size.cols as usize);
         Ok(())
     }
 

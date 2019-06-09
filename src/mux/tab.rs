@@ -1,6 +1,7 @@
 use crate::mux::domain::DomainId;
 use crate::mux::renderable::Renderable;
 use failure::Error;
+use portable_pty::PtySize;
 use std::cell::RefMut;
 use term::color::ColorPalette;
 use term::{KeyCode, KeyModifiers, MouseEvent, TerminalHost};
@@ -19,13 +20,7 @@ pub trait Tab {
     fn send_paste(&self, text: &str) -> Result<(), Error>;
     fn reader(&self) -> Result<Box<dyn std::io::Read + Send>, Error>;
     fn writer(&self) -> RefMut<dyn std::io::Write>;
-    fn resize(
-        &self,
-        rows: u16,
-        cols: u16,
-        pixel_width: u16,
-        pixel_height: u16,
-    ) -> Result<(), Error>;
+    fn resize(&self, size: PtySize) -> Result<(), Error>;
     fn key_down(&self, key: KeyCode, mods: KeyModifiers) -> Result<(), Error>;
     fn mouse_event(&self, event: MouseEvent, host: &mut dyn TerminalHost) -> Result<(), Error>;
     fn advance_bytes(&self, buf: &[u8], host: &mut dyn TerminalHost);
