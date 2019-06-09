@@ -1532,7 +1532,7 @@ impl TerminalState {
             left, top, right, bottom
         );
         for y in top..=bottom {
-            let line_idx = screen.phys_row(y as VisibleRowIndex);
+            let line_idx = screen.phys_row(VisibleRowIndex::from(y));
             let line = screen.line_mut(line_idx);
             for (col, cell) in line.cells().iter().enumerate().skip(left as usize) {
                 if col > right as usize {
@@ -1542,7 +1542,7 @@ impl TerminalState {
                 let ch = cell.str().chars().nth(0).unwrap() as u32;
                 debug!("y={} col={} ch={:x} cell={:?}", y, col, ch, cell);
 
-                checksum += (ch as u8) as u16;
+                checksum += u16::from(ch as u8);
             }
         }
         checksum

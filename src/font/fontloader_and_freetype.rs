@@ -47,6 +47,8 @@ impl FontSystem for FontLoaderAndFreeType {
 
         let mut fonts = Vec::new();
         let mut fontdata = Vec::new();
+        // Clippy is dead wrong about this iterator being an identity_conversion
+        #[cfg_attr(feature = "cargo-clippy", allow(clippy::identity_conversion))]
         for (data, idx) in fontloader::load_system_fonts(config, style)? {
             debug!("want idx {} in bytes of len {}", idx, data.len());
 

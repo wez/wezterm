@@ -13,7 +13,7 @@
 //! let pty_system = PtySystemSelection::default().get()?;
 //!
 //! // Create a new pty
-//! let (mut master, slave) = pty_system.openpty(PtySize {
+//! let mut pair = pty_system.openpty(PtySize {
 //!     rows: 24,
 //!     cols: 80,
 //!     // Not all systems support pixel_width, pixel_height,
@@ -27,16 +27,16 @@
 //!
 //! // Spawn a shell into the pty
 //! let cmd = CommandBuilder::new("bash");
-//! let child = slave.spawn_command(cmd)?;
+//! let child = pair.slave.spawn_command(cmd)?;
 //!
 //! // Read and parse output from the pty with reader
-//! let mut reader = master.try_clone_reader()?;
+//! let mut reader = pair.master.try_clone_reader()?;
 //!
 //! // Send data to the pty by writing to the master
-//! writeln!(master, "ls -l\r\n")?;
+//! writeln!(pair.master, "ls -l\r\n")?;
 //! # Ok::<(), Error>(())
 //! ```
-use failure::{bail, format_err, Error};
+use failure::{bail, format_err, Error, Fallible};
 #[cfg(feature = "serde_support")]
 use serde_derive::*;
 use std::io::Result as IoResult;
@@ -122,7 +122,7 @@ impl ExitStatus {
     /// Construct an ExitStatus from a process return code
     pub fn with_exit_code(code: u32) -> Self {
         Self {
-            successful: if code == 0 { true } else { false },
+            successful: code == 0,
         }
     }
 
@@ -139,6 +139,11 @@ impl From<std::process::ExitStatus> for ExitStatus {
     }
 }
 
+pub struct PtyPair {
+    pub master: Box<dyn MasterPty>,
+    pub slave: Box<dyn SlavePty>,
+}
+
 /// The `PtySystem` trait allows an application to work with multiple
 /// possible Pty implementations at runtime.  This is important on
 /// Windows systems which have a variety of implementations.
@@ -146,7 +151,7 @@ pub trait PtySystem {
     /// Create a new Pty instance with the window size set to the specified
     /// dimensions.  Returns a (master, slave) Pty pair.  The master side
     /// is used to drive the slave side.
-    fn openpty(&self, size: PtySize) -> Result<(Box<dyn MasterPty>, Box<dyn SlavePty>), Error>;
+    fn openpty(&self, size: PtySize) -> Fallible<PtyPair>;
 }
 
 impl Child for std::process::Child {
@@ -188,7 +193,7 @@ impl PtySystemSelection {
     /// Construct an instance of PtySystem described by the enum value.
     /// Windows specific enum variants result in an error.
     #[cfg(unix)]
-    pub fn get(&self) -> Result<Box<dyn PtySystem>, Error> {
+    pub fn get(self) -> Result<Box<dyn PtySystem>, Error> {
         match self {
             PtySystemSelection::Unix => Ok(Box::new(unix::UnixPtySystem {})),
             _ => bail!("{:?} not available on unix", self),

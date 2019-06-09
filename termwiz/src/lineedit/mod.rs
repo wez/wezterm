@@ -379,7 +379,7 @@ impl<T: Terminal> LineEditor<T> {
                 let mut char_position = char_indices
                     .iter()
                     .position(|(idx, _)| *idx == self.cursor)
-                    .unwrap_or(char_indices.len());
+                    .unwrap_or_else(|| char_indices.len());
 
                 for _ in 0..rep {
                     // Skip any non-whitespace characters
@@ -401,7 +401,7 @@ impl<T: Terminal> LineEditor<T> {
                 char_indices
                     .get(char_position)
                     .map(|(i, _)| *i)
-                    .unwrap_or(self.line.len())
+                    .unwrap_or_else(|| self.line.len())
             }
             Movement::ForwardChar(rep) => {
                 let mut position = self.cursor;
@@ -504,17 +504,15 @@ impl<T: Terminal> LineEditor<T> {
                             self.line = prior.to_string();
                             self.cursor = self.line.len();
                         }
-                    } else {
-                        if let Some(last) = host.history().last() {
-                            self.bottom_line = Some(self.line.clone());
-                            self.history_pos = Some(last);
-                            self.line = host
-                                .history()
-                                .get(last)
-                                .expect("History::last and History::get to be consistent")
-                                .to_string();
-                            self.cursor = self.line.len();
-                        }
+                    } else if let Some(last) = host.history().last() {
+                        self.bottom_line = Some(self.line.clone());
+                        self.history_pos = Some(last);
+                        self.line = host
+                            .history()
+                            .get(last)
+                            .expect("History::last and History::get to be consistent")
+                            .to_string();
+                        self.cursor = self.line.len();
                     }
                 }
                 Some(Action::HistoryNext) => {

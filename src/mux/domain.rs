@@ -57,8 +57,8 @@ impl Domain for LocalDomain {
             Some(c) => c,
             None => self.config.build_prog(None)?,
         };
-        let (master, slave) = self.pty_system.openpty(size)?;
-        let child = slave.spawn_command(cmd)?;
+        let pair = self.pty_system.openpty(size)?;
+        let child = pair.slave.spawn_command(cmd)?;
         info!("spawned: {:?}", child);
 
         let terminal = term::Terminal::new(
@@ -68,7 +68,7 @@ impl Domain for LocalDomain {
             self.config.hyperlink_rules.clone(),
         );
 
-        let tab: Rc<dyn Tab> = Rc::new(LocalTab::new(terminal, child, master, self.id));
+        let tab: Rc<dyn Tab> = Rc::new(LocalTab::new(terminal, child, pair.master, self.id));
 
         Mux::get().unwrap().add_tab(&tab)?;
 

@@ -899,6 +899,7 @@ impl Renderer {
         Ok(())
     }
 
+    #[cfg_attr(feature = "cargo-clippy", allow(clippy::too_many_arguments))]
     fn compute_cell_fg_bg(
         &self,
         line_idx: usize,

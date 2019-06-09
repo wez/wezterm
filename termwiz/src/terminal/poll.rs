@@ -58,7 +58,7 @@ mod macos {
         }
     }
 
-    fn materialize<'a>(set: &'a mut Option<FdSet>) -> &'a mut FdSet {
+    fn materialize(set: &mut Option<FdSet>) -> &mut FdSet {
         set.get_or_insert_with(FdSet::new)
     }
 

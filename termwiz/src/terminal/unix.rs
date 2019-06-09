@@ -98,7 +98,7 @@ impl TtyWriteHandle {
 
     fn flush_local_buffer(&mut self) -> Result<(), IoError> {
         if !self.write_buffer.is_empty() {
-            self.fd.write(&self.write_buffer)?;
+            self.fd.write_all(&self.write_buffer)?;
             self.write_buffer.clear();
         }
         Ok(())

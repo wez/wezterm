@@ -3,8 +3,8 @@ use crate::cmdbuilder::CommandBuilder;
 use crate::win::winpty::safe::{
     AgentFlags, MouseMode, SpawnConfig, SpawnFlags, Timeout, WinPty, WinPtyConfig,
 };
-use crate::{Child, MasterPty, PtySize, PtySystem, SlavePty};
-use failure::{bail, Error};
+use crate::{Child, MasterPty, PtyPair, PtySize, PtySystem, SlavePty};
+use failure::{bail, Error, Fallible};
 use filedescriptor::FileDescriptor;
 use log::debug;
 use std::ffi::OsString;
@@ -91,7 +91,7 @@ impl SlavePty for WinPtySlavePty {
 
 pub struct WinPtySystem {}
 impl PtySystem for WinPtySystem {
-    fn openpty(&self, size: PtySize) -> Result<(Box<MasterPty>, Box<SlavePty>), Error> {
+    fn openpty(&self, size: PtySize) -> Fallible<PtyPair> {
         let mut config = WinPtyConfig::new(AgentFlags::empty())?;
 
         config.set_initial_size(size.cols as i32, size.rows as i32);
@@ -115,6 +115,9 @@ impl PtySystem for WinPtySystem {
         };
         let slave = WinPtySlavePty { inner };
 
-        Ok((Box::new(master), Box::new(slave)))
+        Ok(PtyPair {
+            master: Box::new(master),
+            slave: Box::new(slave),
+        })
     }
 }

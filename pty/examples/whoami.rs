@@ -24,7 +24,7 @@ fn read_until_eof_or_error<R: std::io::Read>(mut r: R) -> std::io::Result<Vec<u8
 fn main() {
     let pty_system = PtySystemSelection::default().get().unwrap();
 
-    let (master, slave) = pty_system
+    let pair = pty_system
         .openpty(PtySize {
             rows: 24,
             cols: 80,
@@ -34,12 +34,12 @@ fn main() {
         .unwrap();
 
     let cmd = CommandBuilder::new("whoami");
-    let mut child = slave.spawn_command(cmd).unwrap();
+    let mut child = pair.slave.spawn_command(cmd).unwrap();
     // Release any handles owned by the slave: we don't need it now
     // that we've spawned the child.
-    drop(slave);
+    drop(pair.slave);
 
-    let reader = master.try_clone_reader().unwrap();
+    let reader = pair.master.try_clone_reader().unwrap();
     println!("child status: {:?}", child.wait().unwrap());
     // We hold handles on the pty.  Now that the child is complete
     // there are no processes remaining that will write to it until
@@ -47,7 +47,7 @@ fn main() {
     // so we should close it down.  If we didn't drop it explicitly
     // here, then the attempt to read its output would block forever
     // waiting for a future child that will never be spawned.
-    drop(master);
+    drop(pair.master);
 
     // Consume the output from the child
     let buf = read_until_eof_or_error(reader).unwrap();

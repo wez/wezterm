@@ -1,7 +1,7 @@
 use super::WinChild;
 use crate::cmdbuilder::CommandBuilder;
-use crate::{Child, MasterPty, PtySize, PtySystem, SlavePty};
-use failure::{bail, ensure, Error};
+use crate::{Child, MasterPty, PtyPair, PtySize, PtySystem, SlavePty};
+use failure::{bail, ensure, Error, Fallible};
 use filedescriptor::{FileDescriptor, OwnedHandle, Pipe};
 use lazy_static::lazy_static;
 use shared_library::shared_library;
@@ -26,7 +26,7 @@ const PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE: usize = 0x00020016;
 
 pub struct ConPtySystem {}
 impl PtySystem for ConPtySystem {
-    fn openpty(&self, size: PtySize) -> Result<(Box<MasterPty>, Box<SlavePty>), Error> {
+    fn openpty(&self, size: PtySize) -> Fallible<PtyPair> {
         let stdin = Pipe::new()?;
         let stdout = Pipe::new()?;
 
@@ -52,7 +52,10 @@ impl PtySystem for ConPtySystem {
             inner: master.inner.clone(),
         };
 
-        Ok((Box::new(master), Box::new(slave)))
+        Ok(PtyPair {
+            master: Box::new(master),
+            slave: Box::new(slave),
+        })
     }
 }
 
