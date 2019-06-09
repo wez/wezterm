@@ -1,3 +1,4 @@
+use crate::mux::domain::DomainId;
 use crate::mux::renderable::Renderable;
 use failure::Error;
 use std::cell::RefMut;
@@ -30,4 +31,5 @@ pub trait Tab {
     fn advance_bytes(&self, buf: &[u8], host: &mut dyn TerminalHost);
     fn is_dead(&self) -> bool;
     fn palette(&self) -> ColorPalette;
+    fn domain_id(&self) -> DomainId;
 }

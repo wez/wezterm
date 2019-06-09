@@ -21,13 +21,14 @@ pub mod window;
 
 use crate::mux::tab::{Tab, TabId};
 use crate::mux::window::{Window, WindowId};
-use domain::Domain;
+use domain::{Domain, DomainId};
 
 pub struct Mux {
     tabs: RefCell<HashMap<TabId, Rc<dyn Tab>>>,
     windows: RefCell<HashMap<WindowId, Window>>,
     config: Arc<Config>,
     default_domain: Arc<dyn Domain>,
+    domains: RefCell<HashMap<DomainId, Arc<dyn Domain>>>,
 }
 
 fn read_from_tab_pty(tab_id: TabId, mut reader: Box<dyn std::io::Read>) {
@@ -106,16 +107,32 @@ thread_local! {
 
 impl Mux {
     pub fn new(config: &Arc<Config>, default_domain: &Arc<dyn Domain>) -> Self {
+        let mut domains = HashMap::new();
+        domains.insert(default_domain.domain_id(), Arc::clone(default_domain));
+
         Self {
             tabs: RefCell::new(HashMap::new()),
             windows: RefCell::new(HashMap::new()),
             config: Arc::clone(config),
             default_domain: Arc::clone(default_domain),
+            domains: RefCell::new(domains),
         }
     }
 
     pub fn default_domain(&self) -> &Arc<dyn Domain> {
         &self.default_domain
+    }
+
+    #[allow(dead_code)]
+    pub fn get_domain(&self, id: DomainId) -> Option<Arc<dyn Domain>> {
+        self.domains.borrow().get(&id).cloned()
+    }
+
+    #[allow(dead_code)]
+    pub fn add_domain(&self, domain: &Arc<dyn Domain>) {
+        self.domains
+            .borrow_mut()
+            .insert(domain.domain_id(), Arc::clone(domain));
     }
 
     pub fn config(&self) -> &Arc<Config> {

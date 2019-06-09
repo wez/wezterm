@@ -16,21 +16,38 @@ use portable_pty::{PtySize, PtySystem};
 use std::rc::Rc;
 use std::sync::Arc;
 
+static DOMAIN_ID: ::std::sync::atomic::AtomicUsize = ::std::sync::atomic::AtomicUsize::new(0);
+pub type DomainId = usize;
+
+pub fn alloc_domain_id() -> DomainId {
+    DOMAIN_ID.fetch_add(1, ::std::sync::atomic::Ordering::Relaxed)
+}
+
 pub trait Domain {
     /// Spawn a new command within this domain
     fn spawn(&self, size: PtySize, command: Option<CommandBuilder>) -> Result<Rc<dyn Tab>, Error>;
+
+    /// Returns the domain id, which is useful for obtaining
+    /// a handle on the domain later.
+    fn domain_id(&self) -> DomainId;
 }
 
 pub struct LocalDomain {
     pty_system: Box<dyn PtySystem>,
     config: Arc<Config>,
+    id: DomainId,
 }
 
 impl LocalDomain {
     pub fn new(config: &Arc<Config>) -> Result<Self, Error> {
         let config = Arc::clone(config);
         let pty_system = config.pty.get()?;
-        Ok(Self { pty_system, config })
+        let id = alloc_domain_id();
+        Ok(Self {
+            pty_system,
+            config,
+            id,
+        })
     }
 }
 
@@ -51,10 +68,14 @@ impl Domain for LocalDomain {
             self.config.hyperlink_rules.clone(),
         );
 
-        let tab: Rc<dyn Tab> = Rc::new(LocalTab::new(terminal, child, master));
+        let tab: Rc<dyn Tab> = Rc::new(LocalTab::new(terminal, child, master, self.id));
 
         Mux::get().unwrap().add_tab(&tab)?;
 
         Ok(tab)
+    }
+
+    fn domain_id(&self) -> DomainId {
+        self.id
     }
 }
