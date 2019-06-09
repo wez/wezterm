@@ -17,7 +17,7 @@ pub trait Renderable: Downcast {
     /// line_idx is relative to the top of the viewport.
     /// The selrange value is the column range representing the selected
     /// columns on this line.
-    fn get_dirty_lines(&self) -> Vec<(usize, &Line, Range<usize>)>;
+    fn get_dirty_lines(&self) -> Vec<(usize, Line, Range<usize>)>;
 
     fn has_dirty_lines(&self) -> bool;
 
@@ -40,8 +40,11 @@ impl Renderable for Terminal {
         self.cursor_pos()
     }
 
-    fn get_dirty_lines(&self) -> Vec<(usize, &Line, Range<usize>)> {
+    fn get_dirty_lines(&self) -> Vec<(usize, Line, Range<usize>)> {
         TerminalState::get_dirty_lines(self)
+            .into_iter()
+            .map(|(idx, line, range)| (idx, line.clone(), range))
+            .collect()
     }
 
     fn clean_dirty_lines(&mut self) {

@@ -946,7 +946,7 @@ impl Renderer {
             let dirty_lines = term.get_dirty_lines();
 
             for (line_idx, line, selrange) in dirty_lines {
-                self.render_screen_line(line_idx, line, selrange, &cursor, term, palette)?;
+                self.render_screen_line(line_idx, &line, selrange, &cursor, term, palette)?;
             }
         }
 

@@ -91,7 +91,6 @@ fn decode_raw<R: std::io::Read>(mut r: R) -> Result<Decoded, std::io::Error> {
     } else {
         (len, false)
     };
-    debug!("decode_raw {} compressed={}", len, is_compressed);
     let serial = read_u64(r.by_ref())?;
     let ident = read_u64(r.by_ref())?;
     let data_len = len as usize - (encoded_length(ident) + encoded_length(serial));

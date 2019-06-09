@@ -1,7 +1,9 @@
 use crate::mux::domain::DomainId;
 use crate::mux::renderable::Renderable;
 use crate::mux::tab::{alloc_tab_id, Tab, TabId};
-use crate::server::codec::WriteToTab;
+use crate::server::codec::{
+    GetCoarseTabRenderableData, GetCoarseTabRenderableDataResponse, WriteToTab,
+};
 use crate::server::domain::ClientInner;
 use failure::{bail, Fallible};
 use portable_pty::PtySize;
@@ -29,12 +31,17 @@ impl ClientTab {
             client: Arc::clone(client),
             remote_tab_id,
         };
+        let render = RenderableState {
+            client: Arc::clone(client),
+            remote_tab_id,
+            coarse: RefCell::new(None),
+        };
 
         Self {
             client: Arc::clone(client),
             remote_tab_id,
             local_tab_id,
-            renderable: RefCell::new(RenderableState { dirty: true }),
+            renderable: RefCell::new(render),
             writer: RefCell::new(writer),
         }
     }
@@ -94,36 +101,74 @@ impl Tab for ClientTab {
 }
 
 struct RenderableState {
-    dirty: bool,
+    client: Arc<ClientInner>,
+    remote_tab_id: TabId,
+    coarse: RefCell<Option<GetCoarseTabRenderableDataResponse>>,
 }
 
 impl Renderable for RenderableState {
     fn get_cursor_position(&self) -> CursorPosition {
-        CursorPosition::default()
+        let coarse = self.coarse.borrow();
+        if let Some(coarse) = coarse.as_ref() {
+            coarse.cursor_position.clone()
+        } else {
+            CursorPosition::default()
+        }
     }
 
-    fn get_dirty_lines(&self) -> Vec<(usize, &Line, Range<usize>)> {
-        vec![]
+    fn get_dirty_lines(&self) -> Vec<(usize, Line, Range<usize>)> {
+        let coarse = self.coarse.borrow();
+        if let Some(coarse) = coarse.as_ref() {
+            coarse
+                .dirty_lines
+                .iter()
+                .map(|dl| {
+                    (
+                        dl.line_idx,
+                        dl.line.clone(),
+                        dl.selection_col_from..dl.selection_col_to,
+                    )
+                })
+                .collect()
+        } else {
+            vec![]
+        }
     }
 
     fn has_dirty_lines(&self) -> bool {
-        self.dirty
+        let mut client = self.client.client.lock().unwrap();
+        if let Ok(resp) = client.get_coarse_tab_renderable_data(GetCoarseTabRenderableData {
+            tab_id: self.remote_tab_id,
+        }) {
+            let dirty = !resp.dirty_lines.is_empty();
+            self.coarse.borrow_mut().replace(resp);
+            dirty
+        } else {
+            self.coarse.borrow_mut().take();
+            false
+        }
     }
 
-    fn make_all_lines_dirty(&mut self) {
-        self.dirty = true;
-    }
+    fn make_all_lines_dirty(&mut self) {}
 
     fn clean_dirty_lines(&mut self) {
-        self.dirty = false;
+        self.coarse.borrow_mut().take();
     }
 
     fn current_highlight(&self) -> Option<Arc<Hyperlink>> {
-        None
+        let coarse = self.coarse.borrow();
+        coarse
+            .as_ref()
+            .and_then(|coarse| coarse.current_highlight.clone())
     }
 
     fn physical_dimensions(&self) -> (usize, usize) {
-        (24, 80)
+        let coarse = self.coarse.borrow();
+        if let Some(coarse) = coarse.as_ref() {
+            (coarse.physical_rows, coarse.physical_cols)
+        } else {
+            (24, 80)
+        }
     }
 }
 
