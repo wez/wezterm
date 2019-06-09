@@ -211,27 +211,6 @@ pub struct TerminalState {
     palette: ColorPalette,
 }
 
-/// Like Write::write_all except that we keep looping
-/// when we get WouldBlock
-fn write_all(w: &mut std::io::Write, mut buf: &[u8]) -> std::io::Result<()> {
-    use std::io::ErrorKind;
-    while !buf.is_empty() {
-        match w.write(buf) {
-            Ok(0) => {
-                return Err(std::io::Error::new(
-                    ErrorKind::WriteZero,
-                    "failed to write whole buffer",
-                ));
-            }
-            Ok(n) => buf = &buf[n..],
-            Err(ref e)
-                if e.kind() == ErrorKind::Interrupted || e.kind() == ErrorKind::WouldBlock => {}
-            Err(e) => return Err(e),
-        }
-    }
-    Ok(())
-}
-
 fn is_double_click_word(s: &str) -> bool {
     // TODO: add configuration for this
     if s.len() > 1 {
@@ -634,8 +613,7 @@ impl TerminalState {
         };
 
         if self.sgr_mouse {
-            write_all(
-                writer,
+            writer.write_all(
                 format!("\x1b[<{};{};{}M", report_button, event.x + 1, event.y + 1).as_bytes(),
             )?;
         } else if self.screen.is_alt_screen_active() {
@@ -660,8 +638,7 @@ impl TerminalState {
             _ => None,
         } {
             if self.sgr_mouse {
-                write_all(
-                    host.writer(),
+                host.writer().write_all(
                     format!("\x1b[<{};{};{}M", button, event.x + 1, event.y + 1).as_bytes(),
                 )?;
             } else if event.button == MouseButton::Middle {
@@ -811,9 +788,9 @@ impl TerminalState {
     pub fn send_paste(&mut self, text: &str, writer: &mut std::io::Write) -> Result<(), Error> {
         if self.bracketed_paste {
             let buf = format!("\x1b[200~{}\x1b[201~", text);
-            write_all(writer, buf.as_bytes())?;
+            writer.write_all(buf.as_bytes())?;
         } else {
-            write_all(writer, text.as_bytes())?;
+            writer.write_all(text.as_bytes())?;
         }
         Ok(())
     }
@@ -992,7 +969,7 @@ impl TerminalState {
         };
 
         // debug!("sending {:?}", to_send);
-        write_all(writer, to_send.as_bytes())?;
+        writer.write_all(to_send.as_bytes())?;
 
         // Reset the viewport if we sent data to the parser
         if !to_send.is_empty() && self.viewport_offset != 0 {
