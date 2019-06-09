@@ -5,7 +5,7 @@ use crate::server::{UnixListener, UnixStream};
 use failure::{err_msg, format_err, Error};
 #[cfg(unix)]
 use libc::{mode_t, umask};
-use log::{debug, error};
+use log::{debug, error, warn};
 use promise::{Executor, Future};
 use std::collections::HashMap;
 use std::fs::{remove_file, DirBuilder};
@@ -45,6 +45,36 @@ impl Listener {
 pub struct ClientSession {
     stream: UnixStream,
     executor: Box<dyn Executor>,
+}
+
+struct BufferedTerminalHost<'a> {
+    write: std::cell::RefMut<'a, dyn std::io::Write>,
+    clipboard: Option<Option<String>>,
+    title: Option<String>,
+}
+
+impl<'a> term::TerminalHost for BufferedTerminalHost<'a> {
+    fn writer(&mut self) -> &mut dyn std::io::Write {
+        &mut *self.write
+    }
+
+    fn click_link(&mut self, link: &Arc<term::cell::Hyperlink>) {
+        error!("ignoring url open of {:?}", link.uri());
+    }
+
+    fn get_clipboard(&mut self) -> Result<String, Error> {
+        warn!("peer requested clipboard; ignoring");
+        Ok("".into())
+    }
+
+    fn set_clipboard(&mut self, clip: Option<String>) -> Result<(), Error> {
+        self.clipboard.replace(clip);
+        Ok(())
+    }
+
+    fn set_title(&mut self, title: &str) {
+        self.title.replace(title.to_owned());
+    }
 }
 
 impl ClientSession {
@@ -112,6 +142,36 @@ impl ClientSession {
                             .get_tab(tab_id)
                             .ok_or_else(|| format_err!("no such tab {}", tab_id))?;
                         tab.writer().write_all(&data)?;
+                        Ok(())
+                    })
+                    .wait()?;
+                    Pdu::UnitResponse(UnitResponse {}).encode(&mut self.stream, decoded.serial)?;
+                }
+
+                Pdu::SendKeyDown(SendKeyDown { tab_id, event }) => {
+                    Future::with_executor(self.executor.clone_executor(), move || {
+                        let mux = Mux::get().unwrap();
+                        let tab = mux
+                            .get_tab(tab_id)
+                            .ok_or_else(|| format_err!("no such tab {}", tab_id))?;
+                        tab.key_down(event.key, event.modifiers)?;
+                        Ok(())
+                    })
+                    .wait()?;
+                    Pdu::UnitResponse(UnitResponse {}).encode(&mut self.stream, decoded.serial)?;
+                }
+                Pdu::SendMouseEvent(SendMouseEvent { tab_id, event }) => {
+                    Future::with_executor(self.executor.clone_executor(), move || {
+                        let mux = Mux::get().unwrap();
+                        let tab = mux
+                            .get_tab(tab_id)
+                            .ok_or_else(|| format_err!("no such tab {}", tab_id))?;
+                        let mut host = BufferedTerminalHost {
+                            write: tab.writer(),
+                            clipboard: None,
+                            title: None,
+                        };
+                        tab.mouse_event(event, &mut host)?;
                         Ok(())
                     })
                     .wait()?;

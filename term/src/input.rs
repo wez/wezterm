@@ -1,14 +1,14 @@
 // clippy hates bitflags
 #![cfg_attr(feature = "cargo-clippy", allow(clippy::suspicious_arithmetic_impl, clippy::redundant_field_names))]
 
-use std::time::{Duration, Instant};
-
 use super::VisibleRowIndex;
+use serde_derive::*;
+use std::time::{Duration, Instant};
 
 pub use termwiz::input::KeyCode;
 pub use termwiz::input::Modifiers as KeyModifiers;
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub enum MouseButton {
     Left,
     Middle,
@@ -18,14 +18,14 @@ pub enum MouseButton {
     None,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub enum MouseEventKind {
     Press,
     Release,
     Move,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub struct MouseEvent {
     pub kind: MouseEventKind,
     pub x: usize,

@@ -1,9 +1,7 @@
 use crate::mux::domain::DomainId;
 use crate::mux::renderable::Renderable;
 use crate::mux::tab::{alloc_tab_id, Tab, TabId};
-use crate::server::codec::{
-    GetCoarseTabRenderableData, GetCoarseTabRenderableDataResponse, WriteToTab,
-};
+use crate::server::codec::*;
 use crate::server::domain::ClientInner;
 use failure::{bail, Fallible};
 use filedescriptor::Pipe;
@@ -17,6 +15,7 @@ use term::color::ColorPalette;
 use term::{CursorPosition, Line};
 use term::{KeyCode, KeyModifiers, MouseEvent, TerminalHost};
 use termwiz::hyperlink::Hyperlink;
+use termwiz::input::KeyEvent;
 
 pub struct ClientTab {
     client: Arc<ClientInner>,
@@ -83,11 +82,24 @@ impl Tab for ClientTab {
     }
 
     fn key_down(&self, key: KeyCode, mods: KeyModifiers) -> Fallible<()> {
-        bail!("ClientTab::key_down not impl");
+        let mut client = self.client.client.lock().unwrap();
+        client.key_down(SendKeyDown {
+            tab_id: self.remote_tab_id,
+            event: KeyEvent {
+                key: key,
+                modifiers: mods,
+            },
+        })?;
+        Ok(())
     }
 
     fn mouse_event(&self, event: MouseEvent, host: &mut dyn TerminalHost) -> Fallible<()> {
-        bail!("ClientTab::mouse_event not impl");
+        let mut client = self.client.client.lock().unwrap();
+        client.mouse_event(SendMouseEvent {
+            tab_id: self.remote_tab_id,
+            event,
+        })?;
+        Ok(())
     }
 
     fn advance_bytes(&self, buf: &[u8], host: &mut dyn TerminalHost) {

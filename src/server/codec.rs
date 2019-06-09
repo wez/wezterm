@@ -216,6 +216,8 @@ pdu! {
     SpawnResponse: 8,
     WriteToTab: 9,
     UnitResponse: 10,
+    SendKeyDown: 11,
+    SendMouseEvent: 12,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
@@ -276,6 +278,18 @@ pub struct SpawnResponse {
 pub struct WriteToTab {
     pub tab_id: TabId,
     pub data: Vec<u8>,
+}
+
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct SendKeyDown {
+    pub tab_id: TabId,
+    pub event: termwiz::input::KeyEvent,
+}
+
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct SendMouseEvent {
+    pub tab_id: TabId,
+    pub event: term::input::MouseEvent,
 }
 
 #[cfg(test)]
