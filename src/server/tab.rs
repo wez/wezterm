@@ -6,6 +6,8 @@ use crate::server::codec::{
 };
 use crate::server::domain::ClientInner;
 use failure::{bail, Fallible};
+use filedescriptor::Pipe;
+use log::error;
 use portable_pty::PtySize;
 use std::cell::RefCell;
 use std::cell::RefMut;
@@ -22,6 +24,7 @@ pub struct ClientTab {
     remote_tab_id: TabId,
     renderable: RefCell<RenderableState>,
     writer: RefCell<TabWriter>,
+    reader: Pipe,
 }
 
 impl ClientTab {
@@ -37,12 +40,15 @@ impl ClientTab {
             coarse: RefCell::new(None),
         };
 
+        let reader = Pipe::new().expect("Pipe::new failed");
+
         Self {
             client: Arc::clone(client),
             remote_tab_id,
             local_tab_id,
             renderable: RefCell::new(render),
             writer: RefCell::new(writer),
+            reader,
         }
     }
 }
@@ -64,7 +70,8 @@ impl Tab for ClientTab {
     }
 
     fn reader(&self) -> Fallible<Box<dyn std::io::Read + Send>> {
-        bail!("ClientTab::reader not impl");
+        error!("made reader for ClientTab");
+        Ok(Box::new(self.reader.read.try_clone()?))
     }
 
     fn writer(&self) -> RefMut<dyn std::io::Write> {

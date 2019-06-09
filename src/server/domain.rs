@@ -1,5 +1,6 @@
 use crate::mux::domain::{alloc_domain_id, Domain, DomainId};
 use crate::mux::tab::Tab;
+use crate::mux::Mux;
 use crate::server::client::Client;
 use crate::server::codec::Spawn;
 use crate::server::tab::ClientTab;
@@ -56,7 +57,8 @@ impl Domain for ClientDomain {
                 })?
                 .tab_id
         };
-
-        Ok(Rc::new(ClientTab::new(&self.inner, remote_tab_id)))
+        let tab: Rc<dyn Tab> = Rc::new(ClientTab::new(&self.inner, remote_tab_id));
+        Mux::get().unwrap().add_tab(&tab)?;
+        Ok(tab)
     }
 }
