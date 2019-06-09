@@ -89,6 +89,11 @@ struct StartCommand {
     )]
     font_system: Option<FontSystemSelection>,
 
+    /// If true, use the incomplete multiplexer client as the
+    /// default domain for new tabs and windows
+    #[structopt(long = "broken-mux-client-as-default-domain")]
+    broken_mux_client_as_default_domain: bool,
+
     /// Instead of executing your shell, run PROG.
     /// For example: `wezterm start -- bash -l` will spawn bash
     /// as if it were a login shell.
@@ -125,7 +130,14 @@ fn run_terminal_gui(config: Arc<config::Config>, opts: &StartCommand) -> Result<
         None
     };
 
-    let domain: Arc<dyn Domain> = Arc::new(LocalDomain::new(&config)?);
+    let domain: Arc<dyn Domain> = if opts.broken_mux_client_as_default_domain {
+        use crate::server::client::Client;
+        use crate::server::domain::ClientDomain;
+        let client = Client::new(&config)?;
+        Arc::new(ClientDomain::new(client))
+    } else {
+        Arc::new(LocalDomain::new(&config)?)
+    };
 
     let mux = Rc::new(mux::Mux::new(&config, &domain));
     Mux::set_mux(&mux);
