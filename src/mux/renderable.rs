@@ -1,3 +1,4 @@
+use downcast_rs::{impl_downcast, Downcast};
 use std::ops::Range;
 use std::sync::Arc;
 use term::{CursorPosition, Line, Terminal, TerminalState};
@@ -6,7 +7,7 @@ use termwiz::hyperlink::Hyperlink;
 /// Renderable allows passing something that isn't an actual term::Terminal
 /// instance into the renderer, which opens up remoting of the terminal
 /// surfaces via a multiplexer.
-pub trait Renderable {
+pub trait Renderable: Downcast {
     /// Returns the 0-based cursor position relative to the top left of
     /// the visible screen
     fn get_cursor_position(&self) -> CursorPosition;
@@ -32,6 +33,7 @@ pub trait Renderable {
     /// terminal screen
     fn physical_dimensions(&self) -> (usize, usize);
 }
+impl_downcast!(Renderable);
 
 impl Renderable for Terminal {
     fn get_cursor_position(&self) -> CursorPosition {

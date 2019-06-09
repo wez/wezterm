@@ -1,5 +1,6 @@
 use crate::mux::domain::DomainId;
 use crate::mux::renderable::Renderable;
+use downcast_rs::{impl_downcast, Downcast};
 use failure::Error;
 use portable_pty::PtySize;
 use std::cell::RefMut;
@@ -13,7 +14,7 @@ pub fn alloc_tab_id() -> TabId {
     TAB_ID.fetch_add(1, ::std::sync::atomic::Ordering::Relaxed)
 }
 
-pub trait Tab {
+pub trait Tab: Downcast {
     fn tab_id(&self) -> TabId;
     fn renderer(&self) -> RefMut<dyn Renderable>;
     fn get_title(&self) -> String;
@@ -28,3 +29,4 @@ pub trait Tab {
     fn palette(&self) -> ColorPalette;
     fn domain_id(&self) -> DomainId;
 }
+impl_downcast!(Tab);

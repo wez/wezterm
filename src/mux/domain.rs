@@ -9,6 +9,7 @@ use crate::config::Config;
 use crate::frontend::guicommon::localtab::LocalTab;
 use crate::mux::tab::Tab;
 use crate::mux::Mux;
+use downcast_rs::{impl_downcast, Downcast};
 use failure::Error;
 use log::info;
 use portable_pty::cmdbuilder::CommandBuilder;
@@ -23,7 +24,7 @@ pub fn alloc_domain_id() -> DomainId {
     DOMAIN_ID.fetch_add(1, ::std::sync::atomic::Ordering::Relaxed)
 }
 
-pub trait Domain {
+pub trait Domain: Downcast {
     /// Spawn a new command within this domain
     fn spawn(&self, size: PtySize, command: Option<CommandBuilder>) -> Result<Rc<dyn Tab>, Error>;
 
@@ -31,6 +32,7 @@ pub trait Domain {
     /// a handle on the domain later.
     fn domain_id(&self) -> DomainId;
 }
+impl_downcast!(Domain);
 
 pub struct LocalDomain {
     pty_system: Box<dyn PtySystem>,
