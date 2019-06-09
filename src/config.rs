@@ -100,6 +100,7 @@ impl std::convert::TryInto<KeyAssignment> for &Key {
     fn try_into(self) -> Result<KeyAssignment, Error> {
         Ok(match self.action {
             KeyAction::SpawnTab => KeyAssignment::SpawnTab,
+            KeyAction::SpawnTabInCurrentTabDomain => KeyAssignment::SpawnTabInCurrentTabDomain,
             KeyAction::SpawnWindow => KeyAssignment::SpawnWindow,
             KeyAction::ToggleFullScreen => KeyAssignment::ToggleFullScreen,
             KeyAction::Copy => KeyAssignment::Copy,
@@ -136,6 +137,7 @@ impl std::convert::TryInto<KeyAssignment> for &Key {
 #[derive(Debug, Deserialize, Clone)]
 pub enum KeyAction {
     SpawnTab,
+    SpawnTabInCurrentTabDomain,
     SpawnWindow,
     ToggleFullScreen,
     Copy,

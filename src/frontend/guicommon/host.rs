@@ -1,5 +1,6 @@
 use super::window::TerminalWindow;
 use crate::font::{FontConfiguration, FontSystemSelection};
+use crate::frontend::guicommon::window::SpawnTabDomain;
 use crate::frontend::{front_end, gui_executor};
 use crate::mux::tab::{Tab, TabId};
 use crate::mux::Mux;
@@ -18,7 +19,10 @@ use termwiz::hyperlink::Hyperlink;
 
 #[derive(Debug, Clone)]
 pub enum KeyAssignment {
+    /// Spawn a tab in the default domain
     SpawnTab,
+    /// Spawn a tab in whichever domain the current tab belongs
+    SpawnTabInCurrentTabDomain,
     SpawnWindow,
     ToggleFullScreen,
     Copy,
@@ -219,7 +223,12 @@ impl<H: HostHelper> HostImpl<H> {
     ) -> Fallible<()> {
         use KeyAssignment::*;
         match assignment {
-            SpawnTab => self.with_window(|win| win.spawn_tab().map(|_| ())),
+            SpawnTab => {
+                self.with_window(|win| win.spawn_tab(SpawnTabDomain::DefaultDomain).map(|_| ()))
+            }
+            SpawnTabInCurrentTabDomain => {
+                self.with_window(|win| win.spawn_tab(SpawnTabDomain::CurrentTabDomain).map(|_| ()))
+            }
             SpawnWindow => self.spawn_new_window(),
             ToggleFullScreen => self.toggle_full_screen(),
             Copy => {

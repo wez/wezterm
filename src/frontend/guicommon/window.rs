@@ -1,16 +1,30 @@
 use crate::config::Config;
 use crate::font::FontConfiguration;
+use crate::mux::domain::DomainId;
 use crate::mux::tab::{Tab, TabId};
 use crate::mux::window::WindowId;
 use crate::mux::Mux;
 use crate::opengl::render::Renderer;
 use crate::opengl::textureatlas::OutOfTextureSpace;
-use failure::{ensure, format_err, Error};
+use failure::{bail, ensure, format_err, Error};
 use glium;
 use log::{debug, error};
 use portable_pty::PtySize;
 use std::rc::Rc;
 use std::sync::Arc;
+
+/// When spawning a tab, specify which domain should be used to
+/// host/spawn that tab.
+#[derive(Debug, Clone, Copy)]
+pub enum SpawnTabDomain {
+    /// Use the default domain
+    DefaultDomain,
+    /// Use the domain from the current tab in the associated window
+    CurrentTabDomain,
+    /// Use a specific domain
+    #[allow(dead_code)]
+    Domain(DomainId),
+}
 
 /// Reports the currently configured physical size of the display
 /// surface (physical pixels, not adjusted for dpi) and the current
@@ -158,7 +172,7 @@ pub trait TerminalWindow {
         }
     }
 
-    fn spawn_tab(&mut self) -> Result<TabId, Error> {
+    fn spawn_tab(&mut self, domain: SpawnTabDomain) -> Result<TabId, Error> {
         let dims = self.get_dimensions();
 
         let rows = (dims.height as usize + 1) / dims.cell_height;
@@ -172,7 +186,22 @@ pub trait TerminalWindow {
         };
 
         let mux = Mux::get().unwrap();
-        let tab = mux.default_domain().spawn(size, None)?;
+
+        let domain = match domain {
+            SpawnTabDomain::DefaultDomain => mux.default_domain().clone(),
+            SpawnTabDomain::CurrentTabDomain => {
+                let tab = match mux.get_active_tab_for_window(self.get_mux_window_id()) {
+                    Some(tab) => tab,
+                    None => bail!("window has no tabs?"),
+                };
+                mux.get_domain(tab.domain_id())
+                    .ok_or_else(|| format_err!("current tab has unresolvable domain id!?"))?
+            }
+            SpawnTabDomain::Domain(id) => mux
+                .get_domain(id)
+                .ok_or_else(|| format_err!("spawn_tab called with unresolvable domain id!?"))?,
+        };
+        let tab = domain.spawn(size, None)?;
         let tab_id = tab.tab_id();
 
         let len = {

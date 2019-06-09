@@ -123,7 +123,6 @@ impl Mux {
         &self.default_domain
     }
 
-    #[allow(dead_code)]
     pub fn get_domain(&self, id: DomainId) -> Option<Arc<dyn Domain>> {
         self.domains.borrow().get(&id).cloned()
     }
