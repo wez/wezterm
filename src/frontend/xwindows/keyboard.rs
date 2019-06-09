@@ -3,6 +3,7 @@ use super::Error;
 use super::{KeyCode, KeyModifiers};
 use failure::{ensure, format_err};
 use libc;
+use log::debug;
 use std::cell::RefCell;
 use std::ffi::CStr;
 use xkb::compose::Status as ComposeStatus;

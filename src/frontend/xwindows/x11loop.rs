@@ -1,5 +1,5 @@
 use crate::config::Config;
-use crate::font::{FontConfiguration, FontSystemSelection};
+use crate::font::FontConfiguration;
 use crate::frontend::guicommon::window::TerminalWindow;
 use crate::frontend::xwindows::xwin::X11TerminalWindow;
 use crate::frontend::xwindows::Connection;

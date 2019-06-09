@@ -5,7 +5,7 @@ use crate::font::FontConfiguration;
 use crate::frontend::guicommon::host::{HostHelper, HostImpl, TabHost};
 use crate::frontend::guicommon::window::{Dimensions, TerminalWindow};
 use crate::frontend::xwindows::x11loop::{GuiEventLoop, WindowId as X11WindowId};
-use crate::mux::tab::{Tab, TabId};
+use crate::mux::tab::Tab;
 use crate::mux::window::WindowId;
 use crate::mux::{Mux, SessionTerminated};
 use crate::opengl::render::Renderer;
