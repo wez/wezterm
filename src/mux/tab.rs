@@ -1,7 +1,7 @@
 use crate::mux::domain::DomainId;
 use crate::mux::renderable::Renderable;
 use downcast_rs::{impl_downcast, Downcast};
-use failure::Error;
+use failure::Fallible;
 use portable_pty::PtySize;
 use std::cell::RefMut;
 use term::color::ColorPalette;
@@ -18,12 +18,12 @@ pub trait Tab: Downcast {
     fn tab_id(&self) -> TabId;
     fn renderer(&self) -> RefMut<dyn Renderable>;
     fn get_title(&self) -> String;
-    fn send_paste(&self, text: &str) -> Result<(), Error>;
-    fn reader(&self) -> Result<Box<dyn std::io::Read + Send>, Error>;
+    fn send_paste(&self, text: &str) -> Fallible<()>;
+    fn reader(&self) -> Fallible<Box<dyn std::io::Read + Send>>;
     fn writer(&self) -> RefMut<dyn std::io::Write>;
-    fn resize(&self, size: PtySize) -> Result<(), Error>;
-    fn key_down(&self, key: KeyCode, mods: KeyModifiers) -> Result<(), Error>;
-    fn mouse_event(&self, event: MouseEvent, host: &mut dyn TerminalHost) -> Result<(), Error>;
+    fn resize(&self, size: PtySize) -> Fallible<()>;
+    fn key_down(&self, key: KeyCode, mods: KeyModifiers) -> Fallible<()>;
+    fn mouse_event(&self, event: MouseEvent, host: &mut dyn TerminalHost) -> Fallible<()>;
     fn advance_bytes(&self, buf: &[u8], host: &mut dyn TerminalHost);
     fn is_dead(&self) -> bool;
     fn palette(&self) -> ColorPalette;

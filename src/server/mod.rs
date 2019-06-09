@@ -7,3 +7,4 @@ pub mod client;
 pub mod codec;
 pub mod domain;
 pub mod listener;
+pub mod tab;
