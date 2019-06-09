@@ -105,6 +105,19 @@ impl ClientSession {
                         .encode(&mut self.stream, decoded.serial)?;
                 }
 
+                Pdu::WriteToTab(WriteToTab { tab_id, data }) => {
+                    Future::with_executor(self.executor.clone_executor(), move || {
+                        let mux = Mux::get().unwrap();
+                        let tab = mux
+                            .get_tab(tab_id)
+                            .ok_or_else(|| format_err!("no such tab {}", tab_id))?;
+                        tab.writer().write_all(&data)?;
+                        Ok(())
+                    })
+                    .wait()?;
+                    Pdu::UnitResponse(UnitResponse {}).encode(&mut self.stream, decoded.serial)?;
+                }
+
                 Pdu::Spawn(spawn) => {
                     let result = Future::with_executor(self.executor.clone_executor(), move || {
                         let mux = Mux::get().unwrap();
@@ -123,6 +136,7 @@ impl ClientSession {
                 | Pdu::ListTabsResponse { .. }
                 | Pdu::GetCoarseTabRenderableDataResponse { .. }
                 | Pdu::SpawnResponse { .. }
+                | Pdu::UnitResponse { .. }
                 | Pdu::Invalid { .. } => {}
             }
         }

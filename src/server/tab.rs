@@ -1,6 +1,7 @@
 use crate::mux::domain::DomainId;
 use crate::mux::renderable::Renderable;
 use crate::mux::tab::{alloc_tab_id, Tab, TabId};
+use crate::server::codec::WriteToTab;
 use crate::server::domain::ClientInner;
 use failure::{bail, Fallible};
 use portable_pty::PtySize;
@@ -18,16 +19,23 @@ pub struct ClientTab {
     local_tab_id: TabId,
     remote_tab_id: TabId,
     renderable: RefCell<RenderableState>,
+    writer: RefCell<TabWriter>,
 }
 
 impl ClientTab {
     pub fn new(client: &Arc<ClientInner>, remote_tab_id: TabId) -> Self {
         let local_tab_id = alloc_tab_id();
+        let writer = TabWriter {
+            client: Arc::clone(client),
+            remote_tab_id,
+        };
+
         Self {
             client: Arc::clone(client),
             remote_tab_id,
             local_tab_id,
             renderable: RefCell::new(RenderableState { dirty: true }),
+            writer: RefCell::new(writer),
         }
     }
 }
@@ -53,7 +61,7 @@ impl Tab for ClientTab {
     }
 
     fn writer(&self) -> RefMut<dyn std::io::Write> {
-        panic!("ClientTab::writer not impl");
+        self.writer.borrow_mut()
     }
 
     fn resize(&self, size: PtySize) -> Fallible<()> {
@@ -116,5 +124,27 @@ impl Renderable for RenderableState {
 
     fn physical_dimensions(&self) -> (usize, usize) {
         (24, 80)
+    }
+}
+
+struct TabWriter {
+    client: Arc<ClientInner>,
+    remote_tab_id: TabId,
+}
+
+impl std::io::Write for TabWriter {
+    fn write(&mut self, data: &[u8]) -> Result<usize, std::io::Error> {
+        let mut client = self.client.client.lock().unwrap();
+        client
+            .write_to_tab(WriteToTab {
+                tab_id: self.remote_tab_id,
+                data: data.to_vec(),
+            })
+            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, format!("{}", e)))?;
+        Ok(data.len())
+    }
+
+    fn flush(&mut self) -> Result<(), std::io::Error> {
+        Ok(())
     }
 }

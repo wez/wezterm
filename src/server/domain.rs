@@ -3,7 +3,7 @@ use crate::mux::tab::Tab;
 use crate::server::client::Client;
 use crate::server::codec::Spawn;
 use crate::server::tab::ClientTab;
-use failure::{bail, Fallible};
+use failure::Fallible;
 use portable_pty::{CommandBuilder, PtySize};
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};

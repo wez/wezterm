@@ -215,7 +215,12 @@ pdu! {
     GetCoarseTabRenderableDataResponse: 6,
     Spawn: 7,
     SpawnResponse: 8,
+    WriteToTab: 9,
+    UnitResponse: 10,
 }
+
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct UnitResponse {}
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
 pub struct Ping {}
@@ -266,6 +271,12 @@ pub struct Spawn {
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
 pub struct SpawnResponse {
     pub tab_id: TabId,
+}
+
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct WriteToTab {
+    pub tab_id: TabId,
+    pub data: Vec<u8>,
 }
 
 #[cfg(test)]

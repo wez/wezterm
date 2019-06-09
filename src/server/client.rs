@@ -71,4 +71,5 @@ impl Client {
         GetCoarseTabRenderableDataResponse
     );
     rpc!(spawn, Spawn, SpawnResponse);
+    rpc!(write_to_tab, WriteToTab, UnitResponse);
 }
