@@ -9,8 +9,8 @@ use term::{KeyCode, KeyModifiers, MouseEvent, Terminal, TerminalHost};
 pub struct LocalTab {
     tab_id: TabId,
     terminal: RefCell<Terminal>,
-    process: RefCell<Box<Child>>,
-    pty: RefCell<Box<MasterPty>>,
+    process: RefCell<Box<dyn Child>>,
+    pty: RefCell<Box<dyn MasterPty>>,
 }
 
 impl Tab for LocalTab {
@@ -19,7 +19,7 @@ impl Tab for LocalTab {
         self.tab_id
     }
 
-    fn renderer(&self) -> RefMut<Renderable> {
+    fn renderer(&self) -> RefMut<dyn Renderable> {
         RefMut::map(self.terminal.borrow_mut(), |t| &mut *t)
     }
 
@@ -31,11 +31,11 @@ impl Tab for LocalTab {
         }
     }
 
-    fn advance_bytes(&self, buf: &[u8], host: &mut TerminalHost) {
+    fn advance_bytes(&self, buf: &[u8], host: &mut dyn TerminalHost) {
         self.terminal.borrow_mut().advance_bytes(buf, host)
     }
 
-    fn mouse_event(&self, event: MouseEvent, host: &mut TerminalHost) -> Result<(), Error> {
+    fn mouse_event(&self, event: MouseEvent, host: &mut dyn TerminalHost) -> Result<(), Error> {
         self.terminal.borrow_mut().mouse_event(event, host)
     }
 
@@ -64,11 +64,11 @@ impl Tab for LocalTab {
         Ok(())
     }
 
-    fn writer(&self) -> RefMut<std::io::Write> {
+    fn writer(&self) -> RefMut<dyn std::io::Write> {
         self.pty.borrow_mut()
     }
 
-    fn reader(&self) -> Result<Box<std::io::Read + Send>, Error> {
+    fn reader(&self) -> Result<Box<dyn std::io::Read + Send>, Error> {
         self.pty.borrow_mut().try_clone_reader()
     }
 
@@ -88,7 +88,7 @@ impl Tab for LocalTab {
 }
 
 impl LocalTab {
-    pub fn new(terminal: Terminal, process: Box<Child>, pty: Box<MasterPty>) -> Self {
+    pub fn new(terminal: Terminal, process: Box<dyn Child>, pty: Box<dyn MasterPty>) -> Self {
         let tab_id = alloc_tab_id();
         Self {
             tab_id,

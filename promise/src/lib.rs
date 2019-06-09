@@ -6,14 +6,14 @@ pub type SpawnFunc = Box<dyn FnOnce() + Send>;
 
 pub trait Executor: Send {
     fn execute(&self, f: SpawnFunc);
-    fn clone_executor(&self) -> Box<Executor>;
+    fn clone_executor(&self) -> Box<dyn Executor>;
 }
 
-impl Executor for Box<Executor> {
+impl Executor for Box<dyn Executor> {
     fn execute(&self, f: SpawnFunc) {
         Executor::execute(&**self, f)
     }
-    fn clone_executor(&self) -> Box<Executor> {
+    fn clone_executor(&self) -> Box<dyn Executor> {
         Executor::clone_executor(&**self)
     }
 }
@@ -33,7 +33,7 @@ impl Executor for RayonExecutor {
     fn execute(&self, f: SpawnFunc) {
         rayon::spawn(f);
     }
-    fn clone_executor(&self) -> Box<Executor> {
+    fn clone_executor(&self) -> Box<dyn Executor> {
         Box::new(RayonExecutor::new())
     }
 }

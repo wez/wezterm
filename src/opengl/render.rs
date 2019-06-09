@@ -653,7 +653,7 @@ impl Renderer {
         line: &Line,
         selection: Range<usize>,
         cursor: &CursorPosition,
-        terminal: &Renderable,
+        terminal: &dyn Renderable,
         palette: &ColorPalette,
     ) -> Result<(), Error> {
         let (_num_rows, num_cols) = terminal.physical_dimensions();
@@ -933,7 +933,7 @@ impl Renderer {
     pub fn paint(
         &mut self,
         target: &mut glium::Frame,
-        term: &mut Renderable,
+        term: &mut dyn Renderable,
         palette: &ColorPalette,
     ) -> Result<(), Error> {
         let background_color = palette.resolve_bg(term::color::ColorAttribute::Default);

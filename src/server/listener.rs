@@ -17,11 +17,11 @@ use std::thread;
 
 pub struct Listener {
     acceptor: UnixListener,
-    executor: Box<Executor>,
+    executor: Box<dyn Executor>,
 }
 
 impl Listener {
-    pub fn new(acceptor: UnixListener, executor: Box<Executor>) -> Self {
+    pub fn new(acceptor: UnixListener, executor: Box<dyn Executor>) -> Self {
         Self { acceptor, executor }
     }
 
@@ -44,11 +44,11 @@ impl Listener {
 
 pub struct ClientSession {
     stream: UnixStream,
-    executor: Box<Executor>,
+    executor: Box<dyn Executor>,
 }
 
 impl ClientSession {
-    fn new(stream: UnixStream, executor: Box<Executor>) -> Self {
+    fn new(stream: UnixStream, executor: Box<dyn Executor>) -> Self {
         Self { stream, executor }
     }
 
@@ -197,7 +197,7 @@ fn safely_create_sock_path(sock_path: &str) -> Result<UnixListener, Error> {
         .map_err(|e| format_err!("Failed to bind to {}: {}", sock_path.display(), e))
 }
 
-pub fn spawn_listener(config: &Arc<Config>, executor: Box<Executor>) -> Result<(), Error> {
+pub fn spawn_listener(config: &Arc<Config>, executor: Box<dyn Executor>) -> Result<(), Error> {
     let sock_path = config
         .mux_server_unix_domain_socket_path
         .as_ref()

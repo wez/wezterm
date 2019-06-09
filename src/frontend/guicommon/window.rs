@@ -284,7 +284,7 @@ pub trait TerminalWindow {
             Some(window) => window,
             None => return true,
         };
-        let dead_tabs: Vec<Rc<Tab>> = window
+        let dead_tabs: Vec<Rc<dyn Tab>> = window
             .iter()
             .filter_map(|tab| {
                 if tab.is_dead() {

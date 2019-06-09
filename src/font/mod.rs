@@ -31,13 +31,13 @@ pub mod fontloader_and_freetype;
 use super::config::{Config, TextStyle};
 use term::CellAttributes;
 
-type FontPtr = Rc<RefCell<Box<NamedFont>>>;
+type FontPtr = Rc<RefCell<Box<dyn NamedFont>>>;
 
 /// Matches and loads fonts for a given input style
 pub struct FontConfiguration {
     config: Arc<Config>,
     fonts: RefCell<HashMap<TextStyle, FontPtr>>,
-    system: Rc<FontSystem>,
+    system: Rc<dyn FontSystem>,
     metrics: RefCell<Option<FontMetrics>>,
     dpi_scale: RefCell<f64>,
     font_scale: RefCell<f64>,
@@ -69,7 +69,7 @@ thread_local! {
 }
 
 impl FontSystemSelection {
-    fn new_font_system(self) -> Rc<FontSystem> {
+    fn new_font_system(self) -> Rc<dyn FontSystem> {
         match self {
             FontSystemSelection::FontConfigAndFreeType => {
                 #[cfg(all(unix, any(feature = "fontconfig", not(target_os = "macos"))))]
@@ -142,7 +142,7 @@ impl FontConfiguration {
 
     /// Given a text style, load (with caching) the font that best
     /// matches according to the fontconfig pattern.
-    pub fn cached_font(&self, style: &TextStyle) -> Result<Rc<RefCell<Box<NamedFont>>>, Error> {
+    pub fn cached_font(&self, style: &TextStyle) -> Result<Rc<RefCell<Box<dyn NamedFont>>>, Error> {
         let mut fonts = self.fonts.borrow_mut();
 
         if let Some(entry) = fonts.get(style) {
@@ -167,7 +167,7 @@ impl FontConfiguration {
     }
 
     /// Returns the baseline font specified in the configuration
-    pub fn default_font(&self) -> Result<Rc<RefCell<Box<NamedFont>>>, Error> {
+    pub fn default_font(&self) -> Result<Rc<RefCell<Box<dyn NamedFont>>>, Error> {
         self.cached_font(&self.config.font)
     }
 
@@ -234,7 +234,7 @@ impl FontConfiguration {
 
 #[allow(dead_code)]
 pub fn shape_with_harfbuzz(
-    font: &mut NamedFont,
+    font: &mut dyn NamedFont,
     font_idx: system::FallbackIdx,
     s: &str,
 ) -> Result<Vec<GlyphInfo>, Error> {

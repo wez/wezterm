@@ -33,7 +33,7 @@ struct Host {
 }
 
 impl HostHelper for Host {
-    fn with_window<F: Send + 'static + Fn(&mut TerminalWindow) -> Result<(), Error>>(
+    fn with_window<F: Send + 'static + Fn(&mut dyn TerminalWindow) -> Result<(), Error>>(
         &self,
         func: F,
     ) {
@@ -194,7 +194,7 @@ impl GliumTerminalWindow {
         event_loop: &Rc<GuiEventLoop>,
         fonts: &Rc<FontConfiguration>,
         config: &Arc<Config>,
-        tab: &Rc<Tab>,
+        tab: &Rc<dyn Tab>,
     ) -> Result<GliumTerminalWindow, Error> {
         let (physical_rows, physical_cols) = tab.renderer().physical_dimensions();
 

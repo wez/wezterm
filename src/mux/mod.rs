@@ -24,13 +24,13 @@ use crate::mux::window::{Window, WindowId};
 use domain::Domain;
 
 pub struct Mux {
-    tabs: RefCell<HashMap<TabId, Rc<Tab>>>,
+    tabs: RefCell<HashMap<TabId, Rc<dyn Tab>>>,
     windows: RefCell<HashMap<WindowId, Window>>,
     config: Arc<Config>,
-    default_domain: Arc<Domain>,
+    default_domain: Arc<dyn Domain>,
 }
 
-fn read_from_tab_pty(tab_id: TabId, mut reader: Box<std::io::Read>) {
+fn read_from_tab_pty(tab_id: TabId, mut reader: Box<dyn std::io::Read>) {
     let executor = gui_executor().expect("gui_executor was not registered yet!?");
     const BUFSIZE: usize = 32 * 1024;
     let mut buf = [0; BUFSIZE];
@@ -73,11 +73,11 @@ fn read_from_tab_pty(tab_id: TabId, mut reader: Box<std::io::Read>) {
 /// As such it only really has Host::writer get called.
 /// The GUI driven flows provide their own impl of TerminalHost.
 struct Host<'a> {
-    writer: &'a mut std::io::Write,
+    writer: &'a mut dyn std::io::Write,
 }
 
 impl<'a> TerminalHost for Host<'a> {
-    fn writer(&mut self) -> &mut std::io::Write {
+    fn writer(&mut self) -> &mut dyn std::io::Write {
         &mut self.writer
     }
 
@@ -105,7 +105,7 @@ thread_local! {
 }
 
 impl Mux {
-    pub fn new(config: &Arc<Config>, default_domain: &Arc<Domain>) -> Self {
+    pub fn new(config: &Arc<Config>, default_domain: &Arc<dyn Domain>) -> Self {
         Self {
             tabs: RefCell::new(HashMap::new()),
             windows: RefCell::new(HashMap::new()),
@@ -114,7 +114,7 @@ impl Mux {
         }
     }
 
-    pub fn default_domain(&self) -> &Arc<Domain> {
+    pub fn default_domain(&self) -> &Arc<dyn Domain> {
         &self.default_domain
     }
 
@@ -138,11 +138,11 @@ impl Mux {
         res
     }
 
-    pub fn get_tab(&self, tab_id: TabId) -> Option<Rc<Tab>> {
+    pub fn get_tab(&self, tab_id: TabId) -> Option<Rc<dyn Tab>> {
         self.tabs.borrow().get(&tab_id).map(Rc::clone)
     }
 
-    pub fn add_tab(&self, tab: &Rc<Tab>) -> Result<(), Error> {
+    pub fn add_tab(&self, tab: &Rc<dyn Tab>) -> Result<(), Error> {
         self.tabs.borrow_mut().insert(tab.tab_id(), Rc::clone(tab));
 
         let reader = tab.reader()?;
@@ -175,12 +175,12 @@ impl Mux {
         }))
     }
 
-    pub fn get_active_tab_for_window(&self, window_id: WindowId) -> Option<Rc<Tab>> {
+    pub fn get_active_tab_for_window(&self, window_id: WindowId) -> Option<Rc<dyn Tab>> {
         let window = self.get_window(window_id)?;
         window.get_active().map(Rc::clone)
     }
 
-    pub fn add_new_window_with_tab(&self, tab: &Rc<Tab>) -> Result<WindowId, Error> {
+    pub fn add_new_window_with_tab(&self, tab: &Rc<dyn Tab>) -> Result<WindowId, Error> {
         let window = Window::new(tab);
         let window_id = window.window_id();
         self.windows.borrow_mut().insert(window_id, window);
@@ -192,7 +192,7 @@ impl Mux {
         self.tabs.borrow().is_empty()
     }
 
-    pub fn iter_tabs(&self) -> Vec<Rc<Tab>> {
+    pub fn iter_tabs(&self) -> Vec<Rc<dyn Tab>> {
         self.tabs
             .borrow()
             .iter()

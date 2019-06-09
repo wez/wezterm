@@ -73,7 +73,7 @@ pub type FallbackIdx = usize;
 /// zero as the best/most preferred font.
 pub trait NamedFont {
     /// Get a reference to a numbered fallback Font instance
-    fn get_fallback(&mut self, idx: FallbackIdx) -> Result<&Font, Error>;
+    fn get_fallback(&mut self, idx: FallbackIdx) -> Result<&dyn Font, Error>;
 
     /// Shape text and return a vector of GlyphInfo
     fn shape(&mut self, text: &str) -> Result<Vec<GlyphInfo>, Error>;
@@ -88,7 +88,7 @@ pub trait FontSystem {
         config: &Config,
         style: &TextStyle,
         font_scale: f64,
-    ) -> Result<Box<NamedFont>, Error>;
+    ) -> Result<Box<dyn NamedFont>, Error>;
 }
 
 /// Describes the key font metrics that we use in rendering

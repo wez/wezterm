@@ -13,7 +13,7 @@ use std::ptr;
 
 pub struct UnixPtySystem {}
 impl PtySystem for UnixPtySystem {
-    fn openpty(&self, size: PtySize) -> Result<(Box<MasterPty>, Box<SlavePty>), Error> {
+    fn openpty(&self, size: PtySize) -> Result<(Box<dyn MasterPty>, Box<dyn SlavePty>), Error> {
         let mut master: RawFd = -1;
         let mut slave: RawFd = -1;
 
@@ -128,15 +128,15 @@ fn set_nonblocking(fd: RawFd) -> Result<(), Error> {
 }
 
 impl SlavePty for UnixSlavePty {
-    fn spawn_command(&self, builder: CommandBuilder) -> Result<Box<Child>, Error> {
+    fn spawn_command(&self, builder: CommandBuilder) -> Result<Box<dyn Child>, Error> {
         let mut cmd = builder.as_command();
 
-        cmd.stdin(self.as_stdio()?)
-            .stdout(self.as_stdio()?)
-            .stderr(self.as_stdio()?)
-            .before_exec(move || {
-                // Clean up a few things before we exec the program
-                unsafe {
+        unsafe {
+            cmd.stdin(self.as_stdio()?)
+                .stdout(self.as_stdio()?)
+                .stderr(self.as_stdio()?)
+                .pre_exec(move || {
+                    // Clean up a few things before we exec the program
                     // Clear out any potentially problematic signal
                     // dispositions that we might have inherited
                     for signo in &[
@@ -170,8 +170,8 @@ impl SlavePty for UnixSlavePty {
                         }
                     }
                     Ok(())
-                }
-            });
+                })
+        };
 
         let mut child = cmd.spawn()?;
 
@@ -232,7 +232,7 @@ impl MasterPty for UnixMasterPty {
         })
     }
 
-    fn try_clone_reader(&self) -> Result<Box<std::io::Read + Send>, Error> {
+    fn try_clone_reader(&self) -> Result<Box<dyn std::io::Read + Send>, Error> {
         let fd = self.fd.try_clone()?;
         Ok(Box::new(fd))
     }

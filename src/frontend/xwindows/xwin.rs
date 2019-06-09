@@ -25,7 +25,7 @@ struct Host {
 }
 
 impl HostHelper for Host {
-    fn with_window<F: Send + 'static + Fn(&mut TerminalWindow) -> Result<(), Error>>(
+    fn with_window<F: Send + 'static + Fn(&mut dyn TerminalWindow) -> Result<(), Error>>(
         &self,
         func: F,
     ) {
@@ -115,7 +115,7 @@ impl X11TerminalWindow {
         event_loop: &Rc<GuiEventLoop>,
         fonts: &Rc<FontConfiguration>,
         config: &Arc<Config>,
-        tab: &Rc<Tab>,
+        tab: &Rc<dyn Tab>,
     ) -> Result<X11TerminalWindow, Error> {
         let (physical_rows, physical_cols) = tab.renderer().physical_dimensions();
 

@@ -24,7 +24,7 @@ impl FontSystem for FontConfigAndFreeType {
         config: &Config,
         style: &TextStyle,
         font_scale: f64,
-    ) -> Result<Box<NamedFont>, Error> {
+    ) -> Result<Box<dyn NamedFont>, Error> {
         let fonts = style.font_with_fallback();
         let mut pattern = if !fonts.is_empty() {
             let mut pattern = FontPattern::new()?;
@@ -72,7 +72,7 @@ impl Drop for NamedFontImpl {
 }
 
 impl NamedFont for NamedFontImpl {
-    fn get_fallback(&mut self, idx: FallbackIdx) -> Result<&Font, Error> {
+    fn get_fallback(&mut self, idx: FallbackIdx) -> Result<&dyn Font, Error> {
         Ok(self.get_font(idx)?)
     }
     fn shape(&mut self, s: &str) -> Result<Vec<GlyphInfo>, Error> {

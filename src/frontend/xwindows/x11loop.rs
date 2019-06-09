@@ -10,7 +10,6 @@ use failure::{bail, Error};
 use log::debug;
 use mio::{Events, Poll, PollOpt, Ready, Token};
 use mio_extras::channel::{channel, Receiver as GuiReceiver, Sender as GuiSender};
-use portable_pty::PtySize;
 use promise::{Executor, Future, SpawnFunc};
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -36,7 +35,7 @@ impl Executor for X11GuiExecutor {
     fn execute(&self, f: SpawnFunc) {
         self.tx.send(f).expect("X11GuiExecutor execute failed");
     }
-    fn clone_executor(&self) -> Box<Executor> {
+    fn clone_executor(&self) -> Box<dyn Executor> {
         Box::new(X11GuiExecutor {
             tx: self.tx.clone(),
         })
@@ -60,7 +59,7 @@ pub struct X11FrontEnd {
     event_loop: Rc<GuiEventLoop>,
 }
 impl X11FrontEnd {
-    pub fn try_new(mux: &Rc<Mux>) -> Result<Rc<FrontEnd>, Error> {
+    pub fn try_new(mux: &Rc<Mux>) -> Result<Rc<dyn FrontEnd>, Error> {
         let event_loop = Rc::new(GuiEventLoop::new(mux)?);
         X11_EVENT_LOOP.with(|f| *f.borrow_mut() = Some(Rc::clone(&event_loop)));
         Ok(Rc::new(Self { event_loop }))
@@ -72,7 +71,7 @@ thread_local! {
 }
 
 impl FrontEnd for X11FrontEnd {
-    fn gui_executor(&self) -> Box<Executor> {
+    fn gui_executor(&self) -> Box<dyn Executor> {
         self.event_loop.gui_executor()
     }
 
@@ -83,7 +82,7 @@ impl FrontEnd for X11FrontEnd {
         &self,
         config: &Arc<Config>,
         fontconfig: &Rc<FontConfiguration>,
-        tab: &Rc<Tab>,
+        tab: &Rc<dyn Tab>,
     ) -> Result<(), Error> {
         let window = X11TerminalWindow::new(&self.event_loop, fontconfig, config, tab)?;
 
@@ -128,7 +127,7 @@ impl GuiEventLoop {
         res
     }
 
-    fn gui_executor(&self) -> Box<Executor> {
+    fn gui_executor(&self) -> Box<dyn Executor> {
         Box::new(X11GuiExecutor {
             tx: self.gui_tx.clone(),
         })
@@ -183,7 +182,7 @@ impl GuiEventLoop {
 
     /// Run a function with access to the mutable version of the window with
     /// the specified window id
-    pub fn with_window<F: Send + 'static + Fn(&mut TerminalWindow) -> Result<(), Error>>(
+    pub fn with_window<F: Send + 'static + Fn(&mut dyn TerminalWindow) -> Result<(), Error>>(
         &self,
         window_id: WindowId,
         func: F,
@@ -203,17 +202,6 @@ impl GuiEventLoop {
             },
         );
         Ok(())
-    }
-
-    fn do_spawn_new_window(
-        &self,
-        config: &Arc<Config>,
-        fonts: &Rc<FontConfiguration>,
-    ) -> Result<(), Error> {
-        let tab = self.mux.default_domain().spawn(PtySize::default(), None)?;
-        let events = Self::get().expect("to be called on gui thread");
-        let window = X11TerminalWindow::new(&events, &fonts, &config, &tab)?;
-        events.add_window(window)
     }
 
     pub fn add_window(&self, window: X11TerminalWindow) -> Result<(), Error> {

@@ -125,7 +125,7 @@ fn run_terminal_gui(config: Arc<config::Config>, opts: &StartCommand) -> Result<
         None
     };
 
-    let domain: Arc<Domain> = Arc::new(LocalDomain::new(&config)?);
+    let domain: Arc<dyn Domain> = Arc::new(LocalDomain::new(&config)?);
 
     let mux = Rc::new(mux::Mux::new(&config, &domain));
     Mux::set_mux(&mux);
@@ -192,7 +192,7 @@ fn main() -> Result<(), Error> {
 
 fn spawn_window(
     mux: &Rc<Mux>,
-    gui: &FrontEnd,
+    gui: &dyn FrontEnd,
     cmd: Option<CommandBuilder>,
     fontconfig: &Rc<FontConfiguration>,
 ) -> Result<(), Error> {

@@ -22,7 +22,7 @@ impl Executor for MuxExecutor {
     fn execute(&self, f: SpawnFunc) {
         self.tx.send(f).expect("MuxExecutor execute failed");
     }
-    fn clone_executor(&self) -> Box<Executor> {
+    fn clone_executor(&self) -> Box<dyn Executor> {
         Box::new(MuxExecutor {
             tx: self.tx.clone(),
         })
@@ -36,7 +36,7 @@ pub struct MuxServerFrontEnd {
 
 impl MuxServerFrontEnd {
     #[cfg_attr(feature = "cargo-clippy", allow(clippy::new_ret_no_self))]
-    fn new(mux: &Rc<Mux>, start_listener: bool) -> Result<Rc<FrontEnd>, Error> {
+    fn new(mux: &Rc<Mux>, start_listener: bool) -> Result<Rc<dyn FrontEnd>, Error> {
         let (tx, rx) = mpsc::sync_channel(4);
 
         if start_listener {
@@ -45,17 +45,17 @@ impl MuxServerFrontEnd {
         Ok(Rc::new(Self { tx, rx }))
     }
 
-    pub fn try_new(mux: &Rc<Mux>) -> Result<Rc<FrontEnd>, Error> {
+    pub fn try_new(mux: &Rc<Mux>) -> Result<Rc<dyn FrontEnd>, Error> {
         Self::new(mux, true)
     }
 
-    pub fn new_null(mux: &Rc<Mux>) -> Result<Rc<FrontEnd>, Error> {
+    pub fn new_null(mux: &Rc<Mux>) -> Result<Rc<dyn FrontEnd>, Error> {
         Self::new(mux, false)
     }
 }
 
 impl FrontEnd for MuxServerFrontEnd {
-    fn gui_executor(&self) -> Box<Executor> {
+    fn gui_executor(&self) -> Box<dyn Executor> {
         Box::new(MuxExecutor {
             tx: self.tx.clone(),
         })
@@ -79,7 +79,7 @@ impl FrontEnd for MuxServerFrontEnd {
         &self,
         _config: &Arc<Config>,
         _fontconfig: &Rc<FontConfiguration>,
-        _tab: &Rc<Tab>,
+        _tab: &Rc<dyn Tab>,
     ) -> Result<(), Error> {
         // The tab was already added to the mux, so we are a NOP
         Ok(())

@@ -37,13 +37,13 @@ impl Default for FrontEndSelection {
 }
 
 lazy_static! {
-    static ref EXECUTOR: Mutex<Option<Box<Executor>>> = Mutex::new(None);
+    static ref EXECUTOR: Mutex<Option<Box<dyn Executor>>> = Mutex::new(None);
 }
 thread_local! {
-    static FRONT_END: RefCell<Option<Rc<FrontEnd>>> = RefCell::new(None);
+    static FRONT_END: RefCell<Option<Rc<dyn FrontEnd>>> = RefCell::new(None);
 }
 
-pub fn gui_executor() -> Option<Box<Executor>> {
+pub fn gui_executor() -> Option<Box<dyn Executor>> {
     let locked = EXECUTOR.lock().unwrap();
     match locked.as_ref() {
         Some(exec) => Some(exec.clone_executor()),
@@ -51,7 +51,7 @@ pub fn gui_executor() -> Option<Box<Executor>> {
     }
 }
 
-pub fn front_end() -> Option<Rc<FrontEnd>> {
+pub fn front_end() -> Option<Rc<dyn FrontEnd>> {
     let mut res = None;
     FRONT_END.with(|f| {
         if let Some(me) = &*f.borrow() {
@@ -62,7 +62,7 @@ pub fn front_end() -> Option<Rc<FrontEnd>> {
 }
 
 impl FrontEndSelection {
-    pub fn try_new(self, mux: &Rc<Mux>) -> Result<Rc<FrontEnd>, Error> {
+    pub fn try_new(self, mux: &Rc<Mux>) -> Result<Rc<dyn FrontEnd>, Error> {
         let front_end = match self {
             FrontEndSelection::Glutin => glium::glutinloop::GlutinFrontEnd::try_new(mux),
             #[cfg(all(unix, not(target_os = "macos")))]
@@ -111,8 +111,8 @@ pub trait FrontEnd {
         &self,
         config: &Arc<Config>,
         fontconfig: &Rc<FontConfiguration>,
-        tab: &Rc<Tab>,
+        tab: &Rc<dyn Tab>,
     ) -> Result<(), Error>;
 
-    fn gui_executor(&self) -> Box<Executor>;
+    fn gui_executor(&self) -> Box<dyn Executor>;
 }

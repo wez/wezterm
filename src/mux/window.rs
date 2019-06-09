@@ -6,12 +6,12 @@ pub type WindowId = usize;
 
 pub struct Window {
     id: WindowId,
-    tabs: Vec<Rc<Tab>>,
+    tabs: Vec<Rc<dyn Tab>>,
     active: usize,
 }
 
 impl Window {
-    pub fn new(tab: &Rc<Tab>) -> Self {
+    pub fn new(tab: &Rc<dyn Tab>) -> Self {
         Self {
             id: WIN_ID.fetch_add(1, ::std::sync::atomic::Ordering::Relaxed),
             tabs: vec![Rc::clone(tab)],
@@ -23,7 +23,7 @@ impl Window {
         self.id
     }
 
-    pub fn push(&mut self, tab: &Rc<Tab>) {
+    pub fn push(&mut self, tab: &Rc<dyn Tab>) {
         self.tabs.push(Rc::clone(tab))
     }
 
@@ -35,7 +35,7 @@ impl Window {
         self.tabs.len()
     }
 
-    pub fn get_by_idx(&self, idx: usize) -> Option<&Rc<Tab>> {
+    pub fn get_by_idx(&self, idx: usize) -> Option<&Rc<dyn Tab>> {
         self.tabs.get(idx)
     }
 
@@ -58,7 +58,7 @@ impl Window {
         }
     }
 
-    pub fn get_active(&self) -> Option<&Rc<Tab>> {
+    pub fn get_active(&self) -> Option<&Rc<dyn Tab>> {
         self.get_by_idx(self.active)
     }
 
@@ -76,7 +76,7 @@ impl Window {
             .make_all_lines_dirty();
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = &Rc<Tab>> {
+    pub fn iter(&self) -> impl Iterator<Item = &Rc<dyn Tab>> {
         self.tabs.iter()
     }
 }

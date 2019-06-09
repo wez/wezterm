@@ -18,11 +18,11 @@ use std::sync::Arc;
 
 pub trait Domain {
     /// Spawn a new command within this domain
-    fn spawn(&self, size: PtySize, command: Option<CommandBuilder>) -> Result<Rc<Tab>, Error>;
+    fn spawn(&self, size: PtySize, command: Option<CommandBuilder>) -> Result<Rc<dyn Tab>, Error>;
 }
 
 pub struct LocalDomain {
-    pty_system: Box<PtySystem>,
+    pty_system: Box<dyn PtySystem>,
     config: Arc<Config>,
 }
 
@@ -35,7 +35,7 @@ impl LocalDomain {
 }
 
 impl Domain for LocalDomain {
-    fn spawn(&self, size: PtySize, command: Option<CommandBuilder>) -> Result<Rc<Tab>, Error> {
+    fn spawn(&self, size: PtySize, command: Option<CommandBuilder>) -> Result<Rc<dyn Tab>, Error> {
         let cmd = match command {
             Some(c) => c,
             None => self.config.build_prog(None)?,
@@ -51,7 +51,7 @@ impl Domain for LocalDomain {
             self.config.hyperlink_rules.clone(),
         );
 
-        let tab: Rc<Tab> = Rc::new(LocalTab::new(terminal, child, master));
+        let tab: Rc<dyn Tab> = Rc::new(LocalTab::new(terminal, child, master));
 
         Mux::get().unwrap().add_tab(&tab)?;
 

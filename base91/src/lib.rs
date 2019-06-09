@@ -63,14 +63,14 @@ const DECTAB: [u8; 256] = [
 /// maintains up to 2 bytes of pending data; the Drop impl will implicitly flush on
 /// your behalf, but will mask any error that may occur during the flush.
 pub struct Base91Encoder<'a> {
-    writer: &'a mut Write,
+    writer: &'a mut dyn Write,
     accumulator: u64,
     bits: u32,
 }
 
 impl<'a> Base91Encoder<'a> {
     /// Construct a Base91Encoder that writes encoded data to the supplied writer
-    pub fn new(writer: &'a mut Write) -> Self {
+    pub fn new(writer: &'a mut dyn Write) -> Self {
         Self {
             writer,
             accumulator: 0,
@@ -149,14 +149,14 @@ pub fn encode(buf: &[u8]) -> Vec<u8> {
 /// maintains up to 1 byte of pending data; the Drop impl will implicitly flush on
 /// your behalf, but will mask any error that may occur during the flush.
 pub struct Base91Decoder<'a> {
-    writer: &'a mut Write,
+    writer: &'a mut dyn Write,
     accumulator: u64,
     bits: u32,
     value: Option<u8>,
 }
 
 impl<'a> Base91Decoder<'a> {
-    pub fn new(writer: &'a mut Write) -> Self {
+    pub fn new(writer: &'a mut dyn Write) -> Self {
         Self {
             writer,
             accumulator: 0,

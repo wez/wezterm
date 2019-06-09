@@ -71,7 +71,7 @@ impl Executor for GlutinGuiExecutor {
     fn execute(&self, f: SpawnFunc) {
         self.tx.send(f).expect("GlutinExecutor execute failed");
     }
-    fn clone_executor(&self) -> Box<Executor> {
+    fn clone_executor(&self) -> Box<dyn Executor> {
         Box::new(GlutinGuiExecutor {
             tx: Arc::clone(&self.tx),
         })
@@ -109,7 +109,7 @@ thread_local! {
 }
 
 impl GlutinFrontEnd {
-    pub fn try_new(mux: &Rc<Mux>) -> Result<Rc<FrontEnd>, Error> {
+    pub fn try_new(mux: &Rc<Mux>) -> Result<Rc<dyn FrontEnd>, Error> {
         let event_loop = Rc::new(GuiEventLoop::new(mux)?);
         GLUTIN_EVENT_LOOP.with(|f| *f.borrow_mut() = Some(Rc::clone(&event_loop)));
         Ok(Rc::new(Self { event_loop }))
@@ -117,7 +117,7 @@ impl GlutinFrontEnd {
 }
 
 impl FrontEnd for GlutinFrontEnd {
-    fn gui_executor(&self) -> Box<Executor> {
+    fn gui_executor(&self) -> Box<dyn Executor> {
         self.event_loop.gui_executor()
     }
 
@@ -146,7 +146,7 @@ impl FrontEnd for GlutinFrontEnd {
         &self,
         config: &Arc<Config>,
         fontconfig: &Rc<FontConfiguration>,
-        tab: &Rc<Tab>,
+        tab: &Rc<dyn Tab>,
     ) -> Result<(), Error> {
         let window = GliumTerminalWindow::new(&self.event_loop, fontconfig, config, tab)?;
 
@@ -198,13 +198,13 @@ impl GuiEventLoop {
         self.gui_thread_sends.borrow_mut().push_back(func);
     }
 
-    fn gui_executor(&self) -> Box<Executor> {
+    fn gui_executor(&self) -> Box<dyn Executor> {
         Box::new(GlutinGuiExecutor {
             tx: self.gui_tx.clone(),
         })
     }
 
-    pub fn with_window<F: Send + 'static + Fn(&mut TerminalWindow) -> Result<(), Error>>(
+    pub fn with_window<F: Send + 'static + Fn(&mut dyn TerminalWindow) -> Result<(), Error>>(
         &self,
         window_id: WindowId,
         func: F,

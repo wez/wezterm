@@ -36,7 +36,7 @@ pub enum KeyAssignment {
 }
 
 pub trait HostHelper {
-    fn with_window<F: Send + 'static + Fn(&mut TerminalWindow) -> Result<(), Error>>(
+    fn with_window<F: Send + 'static + Fn(&mut dyn TerminalWindow) -> Result<(), Error>>(
         &self,
         func: F,
     );
@@ -214,7 +214,7 @@ impl<H: HostHelper> HostImpl<H> {
 
     pub fn perform_key_assignment(
         &mut self,
-        tab: &Tab,
+        tab: &dyn Tab,
         assignment: &KeyAssignment,
     ) -> Fallible<()> {
         use KeyAssignment::*;
@@ -252,7 +252,7 @@ impl<H: HostHelper> HostImpl<H> {
 
     pub fn process_gui_shortcuts(
         &mut self,
-        tab: &Tab,
+        tab: &dyn Tab,
         mods: KeyModifiers,
         key: KeyCode,
     ) -> Result<bool, Error> {
@@ -341,18 +341,18 @@ impl<H: HostHelper> DerefMut for HostImpl<H> {
 /// `TabHost` instances are short lived and borrow references to
 /// other state.
 pub struct TabHost<'a, H: HostHelper> {
-    writer: &'a mut std::io::Write,
+    writer: &'a mut dyn std::io::Write,
     host: &'a mut HostImpl<H>,
 }
 
 impl<'a, H: HostHelper> TabHost<'a, H> {
-    pub fn new(writer: &'a mut std::io::Write, host: &'a mut HostImpl<H>) -> Self {
+    pub fn new(writer: &'a mut dyn std::io::Write, host: &'a mut HostImpl<H>) -> Self {
         Self { writer, host }
     }
 }
 
 impl<'a, H: HostHelper> term::TerminalHost for TabHost<'a, H> {
-    fn writer(&mut self) -> &mut std::io::Write {
+    fn writer(&mut self) -> &mut dyn std::io::Write {
         &mut self.writer
     }
 

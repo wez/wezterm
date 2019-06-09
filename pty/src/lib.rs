@@ -85,7 +85,7 @@ pub trait MasterPty: std::io::Write {
     fn get_size(&self) -> Result<PtySize, Error>;
     /// Obtain a readable handle; output from the slave(s) is readable
     /// via this stream.
-    fn try_clone_reader(&self) -> Result<Box<std::io::Read + Send>, Error>;
+    fn try_clone_reader(&self) -> Result<Box<dyn std::io::Read + Send>, Error>;
 }
 
 /// Represents a child process spawned into the pty.
@@ -107,7 +107,7 @@ pub trait Child: std::fmt::Debug {
 /// Can be used to spawn processes into the pty.
 pub trait SlavePty {
     /// Spawns the command specified by the provided CommandBuilder
-    fn spawn_command(&self, cmd: CommandBuilder) -> Result<Box<Child>, Error>;
+    fn spawn_command(&self, cmd: CommandBuilder) -> Result<Box<dyn Child>, Error>;
 }
 
 /// Represents the exit status of a child process.
@@ -146,7 +146,7 @@ pub trait PtySystem {
     /// Create a new Pty instance with the window size set to the specified
     /// dimensions.  Returns a (master, slave) Pty pair.  The master side
     /// is used to drive the slave side.
-    fn openpty(&self, size: PtySize) -> Result<(Box<MasterPty>, Box<SlavePty>), Error>;
+    fn openpty(&self, size: PtySize) -> Result<(Box<dyn MasterPty>, Box<dyn SlavePty>), Error>;
 }
 
 impl Child for std::process::Child {
@@ -188,7 +188,7 @@ impl PtySystemSelection {
     /// Construct an instance of PtySystem described by the enum value.
     /// Windows specific enum variants result in an error.
     #[cfg(unix)]
-    pub fn get(&self) -> Result<Box<PtySystem>, Error> {
+    pub fn get(&self) -> Result<Box<dyn PtySystem>, Error> {
         match self {
             PtySystemSelection::Unix => Ok(Box::new(unix::UnixPtySystem {})),
             _ => bail!("{:?} not available on unix", self),
