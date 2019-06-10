@@ -75,4 +75,5 @@ impl Client {
     rpc!(send_paste, SendPaste, UnitResponse);
     rpc!(key_down, SendKeyDown, UnitResponse);
     rpc!(mouse_event, SendMouseEvent, UnitResponse);
+    rpc!(resize, Resize, UnitResponse);
 }

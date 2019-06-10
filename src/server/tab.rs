@@ -3,7 +3,7 @@ use crate::mux::renderable::Renderable;
 use crate::mux::tab::{alloc_tab_id, Tab, TabId};
 use crate::server::codec::*;
 use crate::server::domain::ClientInner;
-use failure::{bail, Fallible};
+use failure::Fallible;
 use filedescriptor::Pipe;
 use log::error;
 use portable_pty::PtySize;
@@ -83,7 +83,12 @@ impl Tab for ClientTab {
     }
 
     fn resize(&self, size: PtySize) -> Fallible<()> {
-        bail!("ClientTab::resize not impl");
+        let mut client = self.client.client.lock().unwrap();
+        client.resize(Resize {
+            tab_id: self.remote_tab_id,
+            size,
+        })?;
+        Ok(())
     }
 
     fn key_down(&self, key: KeyCode, mods: KeyModifiers) -> Fallible<()> {

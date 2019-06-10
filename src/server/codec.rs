@@ -219,6 +219,7 @@ pdu! {
     SendKeyDown: 11,
     SendMouseEvent: 12,
     SendPaste: 13,
+    Resize: 14,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
@@ -297,6 +298,12 @@ pub struct SendKeyDown {
 pub struct SendMouseEvent {
     pub tab_id: TabId,
     pub event: term::input::MouseEvent,
+}
+
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct Resize {
+    pub tab_id: TabId,
+    pub size: PtySize,
 }
 
 #[cfg(test)]
