@@ -223,6 +223,7 @@ pdu! {
     Resize: 14,
     IsTabDead: 15,
     IsTabDeadResponse: 16,
+    SendMouseEventResponse: 17,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
@@ -307,6 +308,11 @@ pub struct SendKeyDown {
 pub struct SendMouseEvent {
     pub tab_id: TabId,
     pub event: term::input::MouseEvent,
+}
+
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct SendMouseEventResponse {
+    pub clipboard: Option<String>,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]

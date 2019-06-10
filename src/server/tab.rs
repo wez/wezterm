@@ -106,12 +106,17 @@ impl Tab for ClientTab {
         Ok(())
     }
 
-    fn mouse_event(&self, event: MouseEvent, _host: &mut dyn TerminalHost) -> Fallible<()> {
+    fn mouse_event(&self, event: MouseEvent, host: &mut dyn TerminalHost) -> Fallible<()> {
         let mut client = self.client.client.lock().unwrap();
-        client.mouse_event(SendMouseEvent {
+        let resp = client.mouse_event(SendMouseEvent {
             tab_id: self.remote_tab_id,
             event,
         })?;
+
+        if resp.clipboard.is_some() {
+            host.set_clipboard(resp.clipboard)?;
+        }
+
         Ok(())
     }
 

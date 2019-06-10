@@ -204,7 +204,7 @@ impl ClientSession {
                 Pdu::UnitResponse(UnitResponse {})
             }
             Pdu::SendMouseEvent(SendMouseEvent { tab_id, event }) => {
-                Future::with_executor(self.executor.clone_executor(), move || {
+                let clipboard = Future::with_executor(self.executor.clone_executor(), move || {
                     let mux = Mux::get().unwrap();
                     let tab = mux
                         .get_tab(tab_id)
@@ -215,10 +215,10 @@ impl ClientSession {
                         title: None,
                     };
                     tab.mouse_event(event, &mut host)?;
-                    Ok(())
+                    Ok(host.clipboard)
                 })
                 .wait()?;
-                Pdu::UnitResponse(UnitResponse {})
+                Pdu::SendMouseEventResponse(SendMouseEventResponse { clipboard })
             }
 
             Pdu::Spawn(spawn) => {
@@ -238,6 +238,7 @@ impl ClientSession {
             Pdu::Invalid { .. } => bail!("invalid PDU {:?}", pdu),
             Pdu::Pong { .. }
             | Pdu::ListTabsResponse { .. }
+            | Pdu::SendMouseEventResponse { .. }
             | Pdu::GetCoarseTabRenderableDataResponse { .. }
             | Pdu::SpawnResponse { .. }
             | Pdu::IsTabDeadResponse { .. }
