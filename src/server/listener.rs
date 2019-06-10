@@ -49,7 +49,7 @@ pub struct ClientSession {
 
 struct BufferedTerminalHost<'a> {
     write: std::cell::RefMut<'a, dyn std::io::Write>,
-    clipboard: Option<Option<String>>,
+    clipboard: Option<String>,
     title: Option<String>,
 }
 
@@ -68,7 +68,9 @@ impl<'a> term::TerminalHost for BufferedTerminalHost<'a> {
     }
 
     fn set_clipboard(&mut self, clip: Option<String>) -> Result<(), Error> {
-        self.clipboard.replace(clip);
+        if let Some(clip) = clip {
+            self.clipboard.replace(clip);
+        }
         Ok(())
     }
 

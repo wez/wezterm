@@ -76,5 +76,5 @@ impl Client {
     rpc!(key_down, SendKeyDown, UnitResponse);
     rpc!(mouse_event, SendMouseEvent, UnitResponse);
     rpc!(resize, Resize, UnitResponse);
-    rpc!(is_tab_dead, IsTabDead, IsTabDeadResponse);
+    rpc!(check_tab_dead, IsTabDead, IsTabDeadResponse);
 }

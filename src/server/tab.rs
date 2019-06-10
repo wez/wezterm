@@ -96,7 +96,7 @@ impl Tab for ClientTab {
         client.key_down(SendKeyDown {
             tab_id: self.remote_tab_id,
             event: KeyEvent {
-                key: key,
+                key,
                 modifiers: mods,
             },
         })?;
@@ -119,7 +119,7 @@ impl Tab for ClientTab {
     fn is_dead(&self) -> bool {
         let mut client = self.client.client.lock().unwrap();
         let is_dead = client
-            .is_tab_dead(IsTabDead {
+            .check_tab_dead(IsTabDead {
                 tab_id: self.remote_tab_id,
             })
             .map(|r| r.is_dead)
@@ -158,7 +158,7 @@ impl Renderable for RenderableState {
     fn get_cursor_position(&self) -> CursorPosition {
         let coarse = self.coarse.borrow();
         if let Some(coarse) = coarse.as_ref() {
-            coarse.cursor_position.clone()
+            coarse.cursor_position
         } else {
             CursorPosition::default()
         }
