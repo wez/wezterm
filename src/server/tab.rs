@@ -103,7 +103,7 @@ impl Tab for ClientTab {
         Ok(())
     }
 
-    fn mouse_event(&self, event: MouseEvent, host: &mut dyn TerminalHost) -> Fallible<()> {
+    fn mouse_event(&self, event: MouseEvent, _host: &mut dyn TerminalHost) -> Fallible<()> {
         let mut client = self.client.client.lock().unwrap();
         client.mouse_event(SendMouseEvent {
             tab_id: self.remote_tab_id,
@@ -112,7 +112,7 @@ impl Tab for ClientTab {
         Ok(())
     }
 
-    fn advance_bytes(&self, buf: &[u8], host: &mut dyn TerminalHost) {
+    fn advance_bytes(&self, _buf: &[u8], _host: &mut dyn TerminalHost) {
         panic!("ClientTab::advance_bytes not impl");
     }
 
