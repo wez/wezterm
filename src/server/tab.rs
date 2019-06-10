@@ -157,7 +157,7 @@ struct RenderableState {
     last_poll: RefCell<Instant>,
 }
 
-const POLL_INTERVAL: Duration = Duration::from_millis(100);
+const POLL_INTERVAL: Duration = Duration::from_millis(50);
 
 impl RenderableState {
     fn poll(&self) -> Fallible<()> {
