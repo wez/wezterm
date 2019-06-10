@@ -194,6 +194,7 @@ fn main() -> Result<(), Error> {
                 info!("tab {}: {}", tab_id, title);
                 let _data = client.get_coarse_tab_renderable_data(GetCoarseTabRenderableData {
                     tab_id: *tab_id,
+                    dirty_all: true,
                 })?;
                 // info!("coarse: {:?}", data);
             }

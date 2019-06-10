@@ -39,6 +39,7 @@ impl ClientTab {
             remote_tab_id,
             coarse: RefCell::new(None),
             last_poll: RefCell::new(Instant::now()),
+            dirty_all: RefCell::new(true),
         };
 
         let reader = Pipe::new().expect("Pipe::new failed");
@@ -155,25 +156,32 @@ struct RenderableState {
     remote_tab_id: TabId,
     coarse: RefCell<Option<GetCoarseTabRenderableDataResponse>>,
     last_poll: RefCell<Instant>,
+    dirty_all: RefCell<bool>,
 }
 
 const POLL_INTERVAL: Duration = Duration::from_millis(50);
 
 impl RenderableState {
     fn poll(&self) -> Fallible<()> {
-        let last = *self.last_poll.borrow();
-        if last.elapsed() < POLL_INTERVAL {
-            return Ok(());
+        let dirty_all = *self.dirty_all.borrow();
+
+        if !dirty_all {
+            let last = *self.last_poll.borrow();
+            if last.elapsed() < POLL_INTERVAL {
+                return Ok(());
+            }
         }
 
         {
             let mut client = self.client.client.lock().unwrap();
             let coarse = client.get_coarse_tab_renderable_data(GetCoarseTabRenderableData {
                 tab_id: self.remote_tab_id,
+                dirty_all,
             })?;
             self.coarse.borrow_mut().replace(coarse);
         }
         *self.last_poll.borrow_mut() = Instant::now();
+        *self.dirty_all.borrow_mut() = false;
         Ok(())
     }
 }
@@ -219,7 +227,7 @@ impl Renderable for RenderableState {
     }
 
     fn make_all_lines_dirty(&mut self) {
-        // this is implicit as part of the poll
+        *self.dirty_all.borrow_mut() = true;
     }
 
     fn clean_dirty_lines(&mut self) {

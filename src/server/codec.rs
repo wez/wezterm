@@ -253,6 +253,7 @@ pub struct ListTabsResponse {
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
 pub struct GetCoarseTabRenderableData {
     pub tab_id: TabId,
+    pub dirty_all: bool,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]

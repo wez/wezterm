@@ -105,13 +105,17 @@ impl ClientSession {
                 .wait()?;
                 Pdu::ListTabsResponse(result)
             }
-            Pdu::GetCoarseTabRenderableData(GetCoarseTabRenderableData { tab_id }) => {
+            Pdu::GetCoarseTabRenderableData(GetCoarseTabRenderableData { tab_id, dirty_all }) => {
                 let result = Future::with_executor(self.executor.clone_executor(), move || {
                     let mux = Mux::get().unwrap();
                     let tab = mux
                         .get_tab(tab_id)
                         .ok_or_else(|| format_err!("no such tab {}", tab_id))?;
                     let mut renderable = tab.renderer();
+                    if dirty_all {
+                        renderable.make_all_lines_dirty();
+                    }
+
                     let dirty_lines = renderable
                         .get_dirty_lines()
                         .iter()
