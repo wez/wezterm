@@ -2,7 +2,7 @@ use crate::config::Config;
 use crate::mux::Mux;
 use crate::server::codec::*;
 use crate::server::{UnixListener, UnixStream};
-use failure::{err_msg, format_err, Error};
+use failure::{bail, err_msg, format_err, Error, Fallible};
 #[cfg(unix)]
 use libc::{mode_t, umask};
 use log::{debug, error, warn};
@@ -84,151 +84,177 @@ impl ClientSession {
 
     fn process(&mut self) -> Result<(), Error> {
         loop {
-            let decoded = Pdu::decode(&mut self.stream)?;
-            debug!("got pdu {:?} from client", decoded);
-            match decoded.pdu {
-                Pdu::Ping(Ping {}) => {
-                    Pdu::Pong(Pong {}).encode(&mut self.stream, decoded.serial)?;
-                }
-                Pdu::ListTabs(ListTabs {}) => {
-                    let result = Future::with_executor(self.executor.clone_executor(), move || {
-                        let mut tabs = HashMap::new();
-                        let mux = Mux::get().unwrap();
-                        for tab in mux.iter_tabs() {
-                            tabs.insert(tab.tab_id(), tab.get_title());
-                        }
-                        Ok(ListTabsResponse { tabs })
-                    })
-                    .wait()?;
-                    Pdu::ListTabsResponse(result).encode(&mut self.stream, decoded.serial)?;
-                }
-                Pdu::GetCoarseTabRenderableData(GetCoarseTabRenderableData { tab_id }) => {
-                    let result = Future::with_executor(self.executor.clone_executor(), move || {
-                        let mux = Mux::get().unwrap();
-                        let tab = mux
-                            .get_tab(tab_id)
-                            .ok_or_else(|| format_err!("no such tab {}", tab_id))?;
-                        let renderable = tab.renderer();
-                        let dirty_lines = renderable
-                            .get_dirty_lines()
-                            .iter()
-                            .map(|(line_idx, line, sel)| DirtyLine {
-                                line_idx: *line_idx,
-                                line: (*line).clone(),
-                                selection_col_from: sel.start,
-                                selection_col_to: sel.end,
-                            })
-                            .collect();
-
-                        let (physical_rows, physical_cols) = renderable.physical_dimensions();
-
-                        Ok(GetCoarseTabRenderableDataResponse {
-                            dirty_lines,
-                            current_highlight: renderable.current_highlight(),
-                            cursor_position: renderable.get_cursor_position(),
-                            physical_rows,
-                            physical_cols,
-                        })
-                    })
-                    .wait()?;
-                    Pdu::GetCoarseTabRenderableDataResponse(result)
-                        .encode(&mut self.stream, decoded.serial)?;
-                }
-
-                Pdu::WriteToTab(WriteToTab { tab_id, data }) => {
-                    Future::with_executor(self.executor.clone_executor(), move || {
-                        let mux = Mux::get().unwrap();
-                        let tab = mux
-                            .get_tab(tab_id)
-                            .ok_or_else(|| format_err!("no such tab {}", tab_id))?;
-                        tab.writer().write_all(&data)?;
-                        Ok(())
-                    })
-                    .wait()?;
-                    Pdu::UnitResponse(UnitResponse {}).encode(&mut self.stream, decoded.serial)?;
-                }
-                Pdu::SendPaste(SendPaste { tab_id, data }) => {
-                    Future::with_executor(self.executor.clone_executor(), move || {
-                        let mux = Mux::get().unwrap();
-                        let tab = mux
-                            .get_tab(tab_id)
-                            .ok_or_else(|| format_err!("no such tab {}", tab_id))?;
-                        tab.send_paste(&data)?;
-                        Ok(())
-                    })
-                    .wait()?;
-                    Pdu::UnitResponse(UnitResponse {}).encode(&mut self.stream, decoded.serial)?;
-                }
-
-                Pdu::Resize(Resize { tab_id, size }) => {
-                    Future::with_executor(self.executor.clone_executor(), move || {
-                        let mux = Mux::get().unwrap();
-                        let tab = mux
-                            .get_tab(tab_id)
-                            .ok_or_else(|| format_err!("no such tab {}", tab_id))?;
-                        tab.resize(size)?;
-                        Ok(())
-                    })
-                    .wait()?;
-                    Pdu::UnitResponse(UnitResponse {}).encode(&mut self.stream, decoded.serial)?;
-                }
-
-                Pdu::SendKeyDown(SendKeyDown { tab_id, event }) => {
-                    Future::with_executor(self.executor.clone_executor(), move || {
-                        let mux = Mux::get().unwrap();
-                        let tab = mux
-                            .get_tab(tab_id)
-                            .ok_or_else(|| format_err!("no such tab {}", tab_id))?;
-                        tab.key_down(event.key, event.modifiers)?;
-                        Ok(())
-                    })
-                    .wait()?;
-                    Pdu::UnitResponse(UnitResponse {}).encode(&mut self.stream, decoded.serial)?;
-                }
-                Pdu::SendMouseEvent(SendMouseEvent { tab_id, event }) => {
-                    Future::with_executor(self.executor.clone_executor(), move || {
-                        let mux = Mux::get().unwrap();
-                        let tab = mux
-                            .get_tab(tab_id)
-                            .ok_or_else(|| format_err!("no such tab {}", tab_id))?;
-                        let mut host = BufferedTerminalHost {
-                            write: tab.writer(),
-                            clipboard: None,
-                            title: None,
-                        };
-                        tab.mouse_event(event, &mut host)?;
-                        Ok(())
-                    })
-                    .wait()?;
-                    Pdu::UnitResponse(UnitResponse {}).encode(&mut self.stream, decoded.serial)?;
-                }
-
-                Pdu::Spawn(spawn) => {
-                    let result = Future::with_executor(self.executor.clone_executor(), move || {
-                        let mux = Mux::get().unwrap();
-                        let domain = mux.get_domain(spawn.domain_id).ok_or_else(|| {
-                            format_err!("domain {} not found on this server", spawn.domain_id)
-                        })?;
-                        Ok(SpawnResponse {
-                            tab_id: domain.spawn(spawn.size, spawn.command)?.tab_id(),
-                        })
-                    })
-                    .wait()?;
-                    Pdu::SpawnResponse(result).encode(&mut self.stream, decoded.serial)?;
-                }
-
-                Pdu::Pong { .. }
-                | Pdu::ListTabsResponse { .. }
-                | Pdu::GetCoarseTabRenderableDataResponse { .. }
-                | Pdu::SpawnResponse { .. }
-                | Pdu::UnitResponse { .. }
-                | Pdu::Invalid { .. } => {}
-            }
+            self.process_one()?;
         }
     }
 
+    fn process_pdu(&mut self, pdu: Pdu) -> Fallible<Pdu> {
+        Ok(match pdu {
+            Pdu::Ping(Ping {}) => Pdu::Pong(Pong {}),
+            Pdu::ListTabs(ListTabs {}) => {
+                let result = Future::with_executor(self.executor.clone_executor(), move || {
+                    let mut tabs = HashMap::new();
+                    let mux = Mux::get().unwrap();
+                    for tab in mux.iter_tabs() {
+                        tabs.insert(tab.tab_id(), tab.get_title());
+                    }
+                    Ok(ListTabsResponse { tabs })
+                })
+                .wait()?;
+                Pdu::ListTabsResponse(result)
+            }
+            Pdu::GetCoarseTabRenderableData(GetCoarseTabRenderableData { tab_id }) => {
+                let result = Future::with_executor(self.executor.clone_executor(), move || {
+                    let mux = Mux::get().unwrap();
+                    let tab = mux
+                        .get_tab(tab_id)
+                        .ok_or_else(|| format_err!("no such tab {}", tab_id))?;
+                    let renderable = tab.renderer();
+                    let dirty_lines = renderable
+                        .get_dirty_lines()
+                        .iter()
+                        .map(|(line_idx, line, sel)| DirtyLine {
+                            line_idx: *line_idx,
+                            line: (*line).clone(),
+                            selection_col_from: sel.start,
+                            selection_col_to: sel.end,
+                        })
+                        .collect();
+
+                    let (physical_rows, physical_cols) = renderable.physical_dimensions();
+
+                    Ok(GetCoarseTabRenderableDataResponse {
+                        dirty_lines,
+                        current_highlight: renderable.current_highlight(),
+                        cursor_position: renderable.get_cursor_position(),
+                        physical_rows,
+                        physical_cols,
+                    })
+                })
+                .wait()?;
+                Pdu::GetCoarseTabRenderableDataResponse(result)
+            }
+            Pdu::IsTabDead(IsTabDead { tab_id }) => {
+                let is_dead = Future::with_executor(self.executor.clone_executor(), move || {
+                    let mux = Mux::get().unwrap();
+                    let tab = mux
+                        .get_tab(tab_id)
+                        .ok_or_else(|| format_err!("no such tab {}", tab_id))?;
+                    Ok(tab.is_dead())
+                })
+                .wait()?;
+                Pdu::IsTabDeadResponse(IsTabDeadResponse { is_dead })
+            }
+
+            Pdu::WriteToTab(WriteToTab { tab_id, data }) => {
+                Future::with_executor(self.executor.clone_executor(), move || {
+                    let mux = Mux::get().unwrap();
+                    let tab = mux
+                        .get_tab(tab_id)
+                        .ok_or_else(|| format_err!("no such tab {}", tab_id))?;
+                    tab.writer().write_all(&data)?;
+                    Ok(())
+                })
+                .wait()?;
+                Pdu::UnitResponse(UnitResponse {})
+            }
+            Pdu::SendPaste(SendPaste { tab_id, data }) => {
+                Future::with_executor(self.executor.clone_executor(), move || {
+                    let mux = Mux::get().unwrap();
+                    let tab = mux
+                        .get_tab(tab_id)
+                        .ok_or_else(|| format_err!("no such tab {}", tab_id))?;
+                    tab.send_paste(&data)?;
+                    Ok(())
+                })
+                .wait()?;
+                Pdu::UnitResponse(UnitResponse {})
+            }
+
+            Pdu::Resize(Resize { tab_id, size }) => {
+                Future::with_executor(self.executor.clone_executor(), move || {
+                    let mux = Mux::get().unwrap();
+                    let tab = mux
+                        .get_tab(tab_id)
+                        .ok_or_else(|| format_err!("no such tab {}", tab_id))?;
+                    tab.resize(size)?;
+                    Ok(())
+                })
+                .wait()?;
+                Pdu::UnitResponse(UnitResponse {})
+            }
+
+            Pdu::SendKeyDown(SendKeyDown { tab_id, event }) => {
+                Future::with_executor(self.executor.clone_executor(), move || {
+                    let mux = Mux::get().unwrap();
+                    let tab = mux
+                        .get_tab(tab_id)
+                        .ok_or_else(|| format_err!("no such tab {}", tab_id))?;
+                    tab.key_down(event.key, event.modifiers)?;
+                    Ok(())
+                })
+                .wait()?;
+                Pdu::UnitResponse(UnitResponse {})
+            }
+            Pdu::SendMouseEvent(SendMouseEvent { tab_id, event }) => {
+                Future::with_executor(self.executor.clone_executor(), move || {
+                    let mux = Mux::get().unwrap();
+                    let tab = mux
+                        .get_tab(tab_id)
+                        .ok_or_else(|| format_err!("no such tab {}", tab_id))?;
+                    let mut host = BufferedTerminalHost {
+                        write: tab.writer(),
+                        clipboard: None,
+                        title: None,
+                    };
+                    tab.mouse_event(event, &mut host)?;
+                    Ok(())
+                })
+                .wait()?;
+                Pdu::UnitResponse(UnitResponse {})
+            }
+
+            Pdu::Spawn(spawn) => {
+                let result = Future::with_executor(self.executor.clone_executor(), move || {
+                    let mux = Mux::get().unwrap();
+                    let domain = mux.get_domain(spawn.domain_id).ok_or_else(|| {
+                        format_err!("domain {} not found on this server", spawn.domain_id)
+                    })?;
+                    Ok(SpawnResponse {
+                        tab_id: domain.spawn(spawn.size, spawn.command)?.tab_id(),
+                    })
+                })
+                .wait()?;
+                Pdu::SpawnResponse(result)
+            }
+
+            Pdu::Invalid { .. } => bail!("invalid PDU {:?}", pdu),
+            Pdu::Pong { .. }
+            | Pdu::ListTabsResponse { .. }
+            | Pdu::GetCoarseTabRenderableDataResponse { .. }
+            | Pdu::SpawnResponse { .. }
+            | Pdu::IsTabDeadResponse { .. }
+            | Pdu::UnitResponse { .. }
+            | Pdu::ErrorResponse { .. } => bail!("expected a request, got {:?}", pdu),
+        })
+    }
+
+    fn process_one(&mut self) -> Fallible<()> {
+        let decoded = Pdu::decode(&mut self.stream)?;
+        debug!("got pdu {:?} from client", decoded);
+        let response = self.process_pdu(decoded.pdu).unwrap_or_else(|e| {
+            Pdu::ErrorResponse(ErrorResponse {
+                reason: format!("Error: {}", e),
+            })
+        });
+        response.encode(&mut self.stream, decoded.serial)?;
+        Ok(())
+    }
+
     fn run(&mut self) {
-        self.process().ok();
+        if let Err(e) = self.process() {
+            error!("While processing session loop: {}", e);
+        }
     }
 }
 
@@ -293,7 +319,6 @@ fn safely_create_sock_path(sock_path: &str) -> Result<UnixListener, Error> {
 
         let permissions = meta.permissions();
         if (permissions.mode() & 0o22) != 0 {
-            use failure::bail;
             bail!(
                 "The permissions for {} are insecure and currently
                 allow other users to write to it (permissions={:?})",

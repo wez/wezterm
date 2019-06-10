@@ -29,6 +29,7 @@ impl Tab for LocalTab {
         if let Ok(None) = self.process.borrow_mut().try_wait() {
             false
         } else {
+            log::error!("is_dead: {:?}", self.tab_id);
             true
         }
     }

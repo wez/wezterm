@@ -117,7 +117,26 @@ impl Tab for ClientTab {
     }
 
     fn is_dead(&self) -> bool {
-        false
+        let mut client = self.client.client.lock().unwrap();
+        let is_dead = client
+            .is_tab_dead(IsTabDead {
+                tab_id: self.remote_tab_id,
+            })
+            .map(|r| r.is_dead)
+            .unwrap_or_else(|e| {
+                error!(
+                    "is_dead: local={} remote={} err={}",
+                    self.local_tab_id, self.remote_tab_id, e
+                );
+                true
+            });
+        if is_dead {
+            error!(
+                "is_dead local={} remote={} -> {}",
+                self.local_tab_id, self.remote_tab_id, is_dead
+            );
+        }
+        is_dead
     }
 
     fn palette(&self) -> ColorPalette {

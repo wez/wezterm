@@ -108,7 +108,10 @@ pub trait TerminalWindow {
         }
         let tab_no = window.get_active_idx();
 
-        let title = window.get_active().unwrap().get_title();
+        let title = match window.get_active() {
+            Some(tab) => tab.get_title(),
+            None => return,
+        };
 
         drop(window);
 

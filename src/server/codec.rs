@@ -206,6 +206,7 @@ macro_rules! pdu {
 // This allows removal of obsolete structs,
 // and defining newer structs as the protocol evolves.
 pdu! {
+    ErrorResponse: 0,
     Ping: 1,
     Pong: 2,
     ListTabs: 3,
@@ -220,10 +221,17 @@ pdu! {
     SendMouseEvent: 12,
     SendPaste: 13,
     Resize: 14,
+    IsTabDead: 15,
+    IsTabDeadResponse: 16,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
 pub struct UnitResponse {}
+
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct ErrorResponse {
+    pub reason: String,
+}
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
 pub struct Ping {}
@@ -304,6 +312,16 @@ pub struct SendMouseEvent {
 pub struct Resize {
     pub tab_id: TabId,
     pub size: PtySize,
+}
+
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct IsTabDead {
+    pub tab_id: TabId,
+}
+
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct IsTabDeadResponse {
+    pub is_dead: bool,
 }
 
 #[cfg(test)]
