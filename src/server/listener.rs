@@ -111,7 +111,7 @@ impl ClientSession {
                     let tab = mux
                         .get_tab(tab_id)
                         .ok_or_else(|| format_err!("no such tab {}", tab_id))?;
-                    let renderable = tab.renderer();
+                    let mut renderable = tab.renderer();
                     let dirty_lines = renderable
                         .get_dirty_lines()
                         .iter()
@@ -122,6 +122,7 @@ impl ClientSession {
                             selection_col_to: sel.end,
                         })
                         .collect();
+                    renderable.clean_dirty_lines();
 
                     let (physical_rows, physical_cols) = renderable.physical_dimensions();
 

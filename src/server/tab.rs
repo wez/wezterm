@@ -218,7 +218,9 @@ impl Renderable for RenderableState {
         }
     }
 
-    fn make_all_lines_dirty(&mut self) {}
+    fn make_all_lines_dirty(&mut self) {
+        // this is implicit as part of the poll
+    }
 
     fn clean_dirty_lines(&mut self) {
         if let Some(c) = self.coarse.borrow_mut().as_mut() {
