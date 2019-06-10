@@ -11,6 +11,7 @@ use std::cell::RefCell;
 use std::cell::RefMut;
 use std::ops::Range;
 use std::sync::Arc;
+use std::time::{Duration, Instant};
 use term::color::ColorPalette;
 use term::{CursorPosition, Line};
 use term::{KeyCode, KeyModifiers, MouseEvent, TerminalHost};
@@ -37,6 +38,7 @@ impl ClientTab {
             client: Arc::clone(client),
             remote_tab_id,
             coarse: RefCell::new(None),
+            last_poll: RefCell::new(Instant::now()),
         };
 
         let reader = Pipe::new().expect("Pipe::new failed");
@@ -152,6 +154,28 @@ struct RenderableState {
     client: Arc<ClientInner>,
     remote_tab_id: TabId,
     coarse: RefCell<Option<GetCoarseTabRenderableDataResponse>>,
+    last_poll: RefCell<Instant>,
+}
+
+const POLL_INTERVAL: Duration = Duration::from_millis(100);
+
+impl RenderableState {
+    fn poll(&self) -> Fallible<()> {
+        let last = *self.last_poll.borrow();
+        if last.elapsed() < POLL_INTERVAL {
+            return Ok(());
+        }
+
+        {
+            let mut client = self.client.client.lock().unwrap();
+            let coarse = client.get_coarse_tab_renderable_data(GetCoarseTabRenderableData {
+                tab_id: self.remote_tab_id,
+            })?;
+            self.coarse.borrow_mut().replace(coarse);
+        }
+        *self.last_poll.borrow_mut() = Instant::now();
+        Ok(())
+    }
 }
 
 impl Renderable for RenderableState {
@@ -184,15 +208,12 @@ impl Renderable for RenderableState {
     }
 
     fn has_dirty_lines(&self) -> bool {
-        let mut client = self.client.client.lock().unwrap();
-        if let Ok(resp) = client.get_coarse_tab_renderable_data(GetCoarseTabRenderableData {
-            tab_id: self.remote_tab_id,
-        }) {
-            let dirty = !resp.dirty_lines.is_empty();
-            self.coarse.borrow_mut().replace(resp);
-            dirty
+        self.poll().ok();
+
+        let coarse = self.coarse.borrow();
+        if let Some(coarse) = coarse.as_ref() {
+            !coarse.dirty_lines.is_empty()
         } else {
-            self.coarse.borrow_mut().take();
             false
         }
     }
@@ -200,7 +221,9 @@ impl Renderable for RenderableState {
     fn make_all_lines_dirty(&mut self) {}
 
     fn clean_dirty_lines(&mut self) {
-        self.coarse.borrow_mut().take();
+        if let Some(c) = self.coarse.borrow_mut().as_mut() {
+            c.dirty_lines.clear()
+        }
     }
 
     fn current_highlight(&self) -> Option<Arc<Hyperlink>> {
