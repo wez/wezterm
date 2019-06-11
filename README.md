@@ -60,7 +60,7 @@ the middle of Feb 2018.  The following features are done:
 - [x] Runs on
  * Linux under X (requires OpenGL ES 3)
  * macOS
- * Windows 10 with [ConPty](https://blogs.msdn.microsoft.com/commandline/2018/08/02/windows-command-line-introducing-the-windows-pseudo-console-conpty/)
+ * Windows 10 with [ConPty](https://blogs.msdn.microsoft.com/commandline/2018/08/02/windows-command-line-introducing-the-windows-pseudo-console-conpty/) or earlier systems with [winpty](https://github.com/rprichard/winpty) (set `pty = "WinPty"` in your `wezterm.toml` and make sure `winpty.dll` is in your path)
 - [x] True Color support
 - [x] Ligatures, Color Emoji and font fallback
 - [x] Hyperlinks per: https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5feda
