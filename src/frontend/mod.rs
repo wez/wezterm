@@ -1,6 +1,7 @@
 use crate::config::Config;
 use crate::font::FontConfiguration;
 use crate::mux::tab::Tab;
+use crate::mux::window::WindowId;
 use crate::mux::Mux;
 use downcast_rs::{impl_downcast, Downcast};
 use failure::{format_err, Error};
@@ -113,7 +114,7 @@ pub trait FrontEnd: Downcast {
         config: &Arc<Config>,
         fontconfig: &Rc<FontConfiguration>,
         tab: &Rc<dyn Tab>,
-    ) -> Result<(), Error>;
+    ) -> Result<WindowId, Error>;
 
     fn gui_executor(&self) -> Box<dyn Executor>;
 }

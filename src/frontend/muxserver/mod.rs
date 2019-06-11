@@ -3,6 +3,7 @@ use crate::config::Config;
 use crate::font::FontConfiguration;
 use crate::frontend::FrontEnd;
 use crate::mux::tab::Tab;
+use crate::mux::window::WindowId;
 use crate::mux::Mux;
 use crate::server::listener::spawn_listener;
 use failure::{bail, Error};
@@ -79,9 +80,8 @@ impl FrontEnd for MuxServerFrontEnd {
         &self,
         _config: &Arc<Config>,
         _fontconfig: &Rc<FontConfiguration>,
-        _tab: &Rc<dyn Tab>,
-    ) -> Result<(), Error> {
-        // The tab was already added to the mux, so we are a NOP
-        Ok(())
+        tab: &Rc<dyn Tab>,
+    ) -> Result<WindowId, Error> {
+        Mux::get().unwrap().add_new_window_with_tab(tab)
     }
 }

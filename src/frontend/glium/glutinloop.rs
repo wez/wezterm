@@ -4,6 +4,7 @@ use crate::frontend::glium::window::GliumTerminalWindow;
 use crate::frontend::guicommon::window::TerminalWindow;
 use crate::frontend::{front_end, FrontEnd};
 use crate::mux::tab::Tab;
+use crate::mux::window::WindowId as MuxWindowId;
 use crate::mux::{Mux, SessionTerminated};
 use failure::{bail, Error};
 use glium;
@@ -145,10 +146,12 @@ impl FrontEnd for GlutinFrontEnd {
         config: &Arc<Config>,
         fontconfig: &Rc<FontConfiguration>,
         tab: &Rc<dyn Tab>,
-    ) -> Result<(), Error> {
+    ) -> Result<MuxWindowId, Error> {
         let window = GliumTerminalWindow::new(&self.event_loop, fontconfig, config, tab)?;
 
-        self.event_loop.add_window(window)
+        let id = window.get_mux_window_id();
+        self.event_loop.add_window(window)?;
+        Ok(id)
     }
 }
 

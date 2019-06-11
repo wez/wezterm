@@ -10,7 +10,7 @@ use crate::frontend::guicommon::localtab::LocalTab;
 use crate::mux::tab::Tab;
 use crate::mux::Mux;
 use downcast_rs::{impl_downcast, Downcast};
-use failure::Error;
+use failure::{Error, Fallible};
 use log::info;
 use portable_pty::cmdbuilder::CommandBuilder;
 use portable_pty::{PtySize, PtySystem};
@@ -31,6 +31,9 @@ pub trait Domain: Downcast {
     /// Returns the domain id, which is useful for obtaining
     /// a handle on the domain later.
     fn domain_id(&self) -> DomainId;
+
+    /// Re-attach to any tabs that might be pre-existing in this domain
+    fn attach(&self) -> Fallible<()>;
 }
 impl_downcast!(Domain);
 
@@ -79,5 +82,9 @@ impl Domain for LocalDomain {
 
     fn domain_id(&self) -> DomainId {
         self.id
+    }
+
+    fn attach(&self) -> Fallible<()> {
+        Ok(())
     }
 }

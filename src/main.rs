@@ -14,7 +14,7 @@ mod frontend;
 mod mux;
 mod opengl;
 mod server;
-use crate::frontend::{FrontEnd, FrontEndSelection};
+use crate::frontend::FrontEndSelection;
 use crate::mux::domain::{Domain, LocalDomain};
 use crate::mux::Mux;
 use portable_pty::cmdbuilder::CommandBuilder;
@@ -145,7 +145,11 @@ fn run_terminal_gui(config: Arc<config::Config>, opts: &StartCommand) -> Result<
     let front_end = opts.front_end.unwrap_or(config.front_end);
     let gui = front_end.try_new(&mux)?;
 
-    spawn_window(&mux, &*gui, cmd, &fontconfig)?;
+    domain.attach()?;
+
+    let tab = mux.default_domain().spawn(PtySize::default(), cmd)?;
+    gui.spawn_new_window(mux.config(), &fontconfig, &tab)?;
+
     gui.run_forever()
 }
 
@@ -190,33 +194,19 @@ fn main() -> Result<(), Error> {
             let mut client = Client::new(&config)?;
             info!("ping: {:?}", client.ping()?);
             let tabs = client.list_tabs()?;
-            for (tab_id, title) in tabs.tabs.iter() {
-                info!("tab {}: {}", tab_id, title);
-                let _data = client.get_coarse_tab_renderable_data(GetCoarseTabRenderableData {
-                    tab_id: *tab_id,
-                    dirty_all: true,
-                })?;
-                // info!("coarse: {:?}", data);
+            for entry in tabs.tabs.iter() {
+                info!("tab {} {}: {}", entry.window_id, entry.tab_id, entry.title);
             }
             error!(
                 "spawn: {:?}",
                 client.spawn(Spawn {
                     domain_id: 0,
                     size: PtySize::default(),
-                    command: None
+                    command: None,
+                    window_id: None,
                 })
             );
             Ok(())
         }
     }
-}
-
-fn spawn_window(
-    mux: &Rc<Mux>,
-    gui: &dyn FrontEnd,
-    cmd: Option<CommandBuilder>,
-    fontconfig: &Rc<FontConfiguration>,
-) -> Result<(), Error> {
-    let tab = mux.default_domain().spawn(PtySize::default(), cmd)?;
-    gui.spawn_new_window(mux.config(), &fontconfig, &tab)
 }

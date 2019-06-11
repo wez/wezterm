@@ -171,6 +171,18 @@ impl Mux {
     pub fn remove_tab(&self, tab_id: TabId) {
         debug!("removing tab {}", tab_id);
         self.tabs.borrow_mut().remove(&tab_id);
+        let mut windows = self.windows.borrow_mut();
+        let mut dead_windows = vec![];
+        for (window_id, win) in windows.iter_mut() {
+            if win.remove_by_id(tab_id) && win.is_empty() {
+                dead_windows.push(*window_id);
+            }
+        }
+
+        for window_id in dead_windows {
+            debug!("removing window {}", window_id);
+            windows.remove(&window_id);
+        }
     }
 
     pub fn get_window(&self, window_id: WindowId) -> Option<Ref<Window>> {
@@ -208,12 +220,17 @@ impl Mux {
         self.tabs.borrow().is_empty()
     }
 
+    #[allow(dead_code)]
     pub fn iter_tabs(&self) -> Vec<Rc<dyn Tab>> {
         self.tabs
             .borrow()
             .iter()
             .map(|(_, v)| Rc::clone(v))
             .collect()
+    }
+
+    pub fn iter_windows(&self) -> Vec<WindowId> {
+        self.windows.borrow().keys().cloned().collect()
     }
 }
 

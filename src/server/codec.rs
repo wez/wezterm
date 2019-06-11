@@ -12,12 +12,12 @@
 
 use crate::mux::domain::DomainId;
 use crate::mux::tab::TabId;
+use crate::mux::window::WindowId;
 use failure::{bail, Error};
 use leb128;
 use log::debug;
 use portable_pty::{CommandBuilder, PtySize};
 use serde_derive::*;
-use std::collections::HashMap;
 use std::sync::Arc;
 use term::{CursorPosition, Line};
 use termwiz::hyperlink::Hyperlink;
@@ -243,8 +243,15 @@ pub struct Pong {}
 pub struct ListTabs {}
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct WindowAndTabEntry {
+    pub window_id: WindowId,
+    pub tab_id: TabId,
+    pub title: String,
+}
+
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
 pub struct ListTabsResponse {
-    pub tabs: HashMap<TabId, String>,
+    pub tabs: Vec<WindowAndTabEntry>,
 }
 
 /// This is a transitional request to get some basic
@@ -277,6 +284,8 @@ pub struct GetCoarseTabRenderableDataResponse {
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
 pub struct Spawn {
     pub domain_id: DomainId,
+    /// If None, create a new window for this new tab
+    pub window_id: Option<WindowId>,
     pub command: Option<CommandBuilder>,
     pub size: PtySize,
 }
@@ -284,6 +293,7 @@ pub struct Spawn {
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
 pub struct SpawnResponse {
     pub tab_id: TabId,
+    pub window_id: WindowId,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]

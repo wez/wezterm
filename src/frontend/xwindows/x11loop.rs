@@ -5,6 +5,7 @@ use crate::frontend::xwindows::xwin::X11TerminalWindow;
 use crate::frontend::xwindows::Connection;
 use crate::frontend::FrontEnd;
 use crate::mux::tab::Tab;
+use crate::mux::window::WindowId as MuxWindowId;
 use crate::mux::Mux;
 use failure::{bail, Error};
 use log::debug;
@@ -83,10 +84,12 @@ impl FrontEnd for X11FrontEnd {
         config: &Arc<Config>,
         fontconfig: &Rc<FontConfiguration>,
         tab: &Rc<dyn Tab>,
-    ) -> Result<(), Error> {
+    ) -> Result<MuxWindowId, Error> {
         let window = X11TerminalWindow::new(&self.event_loop, fontconfig, config, tab)?;
 
-        self.event_loop.add_window(window)
+        let id = window.get_mux_window_id();
+        self.event_loop.add_window(window)?;
+        Ok(id)
     }
 }
 

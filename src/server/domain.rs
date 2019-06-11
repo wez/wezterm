@@ -1,3 +1,5 @@
+use crate::font::{FontConfiguration, FontSystemSelection};
+use crate::frontend::front_end;
 use crate::mux::domain::{alloc_domain_id, Domain, DomainId};
 use crate::mux::tab::Tab;
 use crate::mux::Mux;
@@ -6,6 +8,7 @@ use crate::server::codec::Spawn;
 use crate::server::tab::ClientTab;
 use failure::Fallible;
 use portable_pty::{CommandBuilder, PtySize};
+use std::collections::HashMap;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 
@@ -52,6 +55,7 @@ impl Domain for ClientDomain {
             client
                 .spawn(Spawn {
                     domain_id: self.inner.remote_domain_id,
+                    window_id: None,
                     size,
                     command,
                 })?
@@ -60,5 +64,39 @@ impl Domain for ClientDomain {
         let tab: Rc<dyn Tab> = Rc::new(ClientTab::new(&self.inner, remote_tab_id));
         Mux::get().unwrap().add_tab(&tab)?;
         Ok(tab)
+    }
+
+    fn attach(&self) -> Fallible<()> {
+        let mux = Mux::get().unwrap();
+        let mut client = self.inner.client.lock().unwrap();
+        let tabs = client.list_tabs()?;
+
+        let mut windows = HashMap::new();
+
+        for entry in tabs.tabs.iter() {
+            log::error!("attaching to remote tab {} {}", entry.tab_id, entry.title);
+            let tab: Rc<dyn Tab> = Rc::new(ClientTab::new(&self.inner, entry.tab_id));
+            mux.add_tab(&tab)?;
+
+            windows
+                .entry(entry.window_id)
+                .and_modify(|local_window_id| {
+                    let mut window = mux
+                        .get_window_mut(*local_window_id)
+                        .expect("no such window!?");
+                    window.push(&tab);
+                })
+                .or_insert_with(|| {
+                    let fonts = Rc::new(FontConfiguration::new(
+                        Arc::clone(mux.config()),
+                        FontSystemSelection::get_default(),
+                    ));
+                    front_end()
+                        .unwrap()
+                        .spawn_new_window(mux.config(), &fonts, &tab)
+                        .unwrap()
+                });
+        }
+        Ok(())
     }
 }

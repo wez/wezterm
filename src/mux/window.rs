@@ -48,13 +48,16 @@ impl Window {
         None
     }
 
-    pub fn remove_by_id(&mut self, id: TabId) {
+    pub fn remove_by_id(&mut self, id: TabId) -> bool {
         if let Some(idx) = self.idx_by_id(id) {
             self.tabs.remove(idx);
             let len = self.tabs.len();
             if len > 0 && self.active == idx && idx >= len {
                 self.set_active(len - 1);
             }
+            true
+        } else {
+            false
         }
     }
 
