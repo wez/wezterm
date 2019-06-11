@@ -7,7 +7,7 @@ use crate::frontend::FrontEnd;
 use crate::mux::tab::Tab;
 use crate::mux::window::WindowId as MuxWindowId;
 use crate::mux::Mux;
-use failure::{bail, Error};
+use failure::{bail, Error, Fallible};
 use log::debug;
 use mio::{Events, Poll, PollOpt, Ready, Token};
 use mio_extras::channel::{channel, Receiver as GuiReceiver, Sender as GuiSender};
@@ -79,17 +79,16 @@ impl FrontEnd for X11FrontEnd {
     fn run_forever(&self) -> Result<(), Error> {
         self.event_loop.run()
     }
+
     fn spawn_new_window(
         &self,
         config: &Arc<Config>,
         fontconfig: &Rc<FontConfiguration>,
         tab: &Rc<dyn Tab>,
-    ) -> Result<MuxWindowId, Error> {
-        let window = X11TerminalWindow::new(&self.event_loop, fontconfig, config, tab)?;
-
-        let id = window.get_mux_window_id();
-        self.event_loop.add_window(window)?;
-        Ok(id)
+        window_id: MuxWindowId,
+    ) -> Fallible<()> {
+        let window = X11TerminalWindow::new(&self.event_loop, fontconfig, config, tab, window_id)?;
+        self.event_loop.add_window(window)
     }
 }
 
