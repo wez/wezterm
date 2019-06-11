@@ -147,11 +147,13 @@ fn run_terminal_gui(config: Arc<config::Config>, opts: &StartCommand) -> Result<
 
     domain.attach()?;
 
-    let window_id = mux.new_empty_window();
-    let tab = mux
-        .default_domain()
-        .spawn(PtySize::default(), cmd, window_id)?;
-    gui.spawn_new_window(mux.config(), &fontconfig, &tab, window_id)?;
+    if mux.is_empty() {
+        let window_id = mux.new_empty_window();
+        let tab = mux
+            .default_domain()
+            .spawn(PtySize::default(), cmd, window_id)?;
+        gui.spawn_new_window(mux.config(), &fontconfig, &tab, window_id)?;
+    }
 
     gui.run_forever()
 }
