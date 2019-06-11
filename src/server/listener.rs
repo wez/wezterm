@@ -118,6 +118,7 @@ impl ClientSession {
                     let tab = mux
                         .get_tab(tab_id)
                         .ok_or_else(|| format_err!("no such tab {}", tab_id))?;
+                    let title = tab.get_title();
                     let mut renderable = tab.renderer();
                     if dirty_all {
                         renderable.make_all_lines_dirty();
@@ -143,6 +144,7 @@ impl ClientSession {
                         cursor_position: renderable.get_cursor_position(),
                         physical_rows,
                         physical_cols,
+                        title,
                     })
                 })
                 .wait()?;

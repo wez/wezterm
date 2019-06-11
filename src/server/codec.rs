@@ -279,6 +279,7 @@ pub struct GetCoarseTabRenderableDataResponse {
     pub physical_cols: usize,
     pub current_highlight: Option<Arc<Hyperlink>>,
     pub dirty_lines: Vec<DirtyLine>,
+    pub title: String,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]

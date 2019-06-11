@@ -64,7 +64,15 @@ impl Tab for ClientTab {
     }
 
     fn get_title(&self) -> String {
-        "a client tab".to_owned()
+        let renderable = self.renderable.borrow();
+        let coarse = renderable.coarse.borrow();
+        format!(
+            "[muxed] {}",
+            coarse
+                .as_ref()
+                .map(|coarse| coarse.title.as_str())
+                .unwrap_or("")
+        )
     }
 
     fn send_paste(&self, text: &str) -> Fallible<()> {
