@@ -2,6 +2,7 @@ use crate::font::{FontConfiguration, FontSystemSelection};
 use crate::frontend::front_end;
 use crate::mux::domain::{alloc_domain_id, Domain, DomainId};
 use crate::mux::tab::Tab;
+use crate::mux::window::WindowId;
 use crate::mux::Mux;
 use crate::server::client::Client;
 use crate::server::codec::Spawn;
@@ -16,7 +17,40 @@ pub struct ClientInner {
     pub client: Mutex<Client>,
     pub local_domain_id: DomainId,
     pub remote_domain_id: DomainId,
+    remote_to_local_window: Mutex<HashMap<WindowId, WindowId>>,
 }
+
+impl ClientInner {
+    fn remote_to_local_window(&self, remote_window_id: WindowId) -> Option<WindowId> {
+        let map = self.remote_to_local_window.lock().unwrap();
+        map.get(&remote_window_id).cloned()
+    }
+
+    fn record_remote_to_local_window_mapping(
+        &self,
+        remote_window_id: WindowId,
+        local_window_id: WindowId,
+    ) {
+        let mut map = self.remote_to_local_window.lock().unwrap();
+        map.insert(remote_window_id, local_window_id);
+        log::error!(
+            "record_remote_to_local_window_mapping: {} -> {}",
+            remote_window_id,
+            local_window_id
+        );
+    }
+
+    fn local_to_remote_window(&self, local_window_id: WindowId) -> Option<WindowId> {
+        let map = self.remote_to_local_window.lock().unwrap();
+        for (remote, local) in map.iter() {
+            if *local == local_window_id {
+                return Some(*remote);
+            }
+        }
+        None
+    }
+}
+
 pub struct ClientDomain {
     inner: Arc<ClientInner>,
 }
@@ -33,6 +67,7 @@ impl ClientInner {
             client: Mutex::new(client),
             local_domain_id,
             remote_domain_id,
+            remote_to_local_window: Mutex::new(HashMap::new()),
         }
     }
 }
@@ -49,20 +84,32 @@ impl Domain for ClientDomain {
         self.inner.local_domain_id
     }
 
-    fn spawn(&self, size: PtySize, command: Option<CommandBuilder>) -> Fallible<Rc<dyn Tab>> {
+    fn spawn(
+        &self,
+        size: PtySize,
+        command: Option<CommandBuilder>,
+        window: WindowId,
+    ) -> Fallible<Rc<dyn Tab>> {
         let remote_tab_id = {
             let mut client = self.inner.client.lock().unwrap();
-            client
-                .spawn(Spawn {
-                    domain_id: self.inner.remote_domain_id,
-                    window_id: None,
-                    size,
-                    command,
-                })?
-                .tab_id
+
+            let result = client.spawn(Spawn {
+                domain_id: self.inner.remote_domain_id,
+                window_id: self.inner.local_to_remote_window(window),
+                size,
+                command,
+            })?;
+
+            self.inner
+                .record_remote_to_local_window_mapping(result.window_id, window);
+
+            result.tab_id
         };
         let tab: Rc<dyn Tab> = Rc::new(ClientTab::new(&self.inner, remote_tab_id));
-        Mux::get().unwrap().add_tab(&tab)?;
+        let mux = Mux::get().unwrap();
+        mux.add_tab(&tab)?;
+        mux.add_tab_to_window(&tab, window)?;
+
         Ok(tab)
     }
 
@@ -70,32 +117,40 @@ impl Domain for ClientDomain {
         let mux = Mux::get().unwrap();
         let mut client = self.inner.client.lock().unwrap();
         let tabs = client.list_tabs()?;
-
-        let mut windows = HashMap::new();
+        log::error!("ListTabs result {:#?}", tabs);
 
         for entry in tabs.tabs.iter() {
-            log::error!("attaching to remote tab {} {}", entry.tab_id, entry.title);
+            log::error!(
+                "attaching to remote tab {} in remote window {} {}",
+                entry.tab_id,
+                entry.window_id,
+                entry.title
+            );
             let tab: Rc<dyn Tab> = Rc::new(ClientTab::new(&self.inner, entry.tab_id));
             mux.add_tab(&tab)?;
 
-            windows
-                .entry(entry.window_id)
-                .and_modify(|local_window_id| {
-                    let mut window = mux
-                        .get_window_mut(*local_window_id)
-                        .expect("no such window!?");
-                    window.push(&tab);
-                })
-                .or_insert_with(|| {
-                    let fonts = Rc::new(FontConfiguration::new(
-                        Arc::clone(mux.config()),
-                        FontSystemSelection::get_default(),
-                    ));
-                    front_end()
-                        .unwrap()
-                        .spawn_new_window(mux.config(), &fonts, &tab)
-                        .unwrap()
-                });
+            if let Some(local_window_id) = self.inner.remote_to_local_window(entry.window_id) {
+                let mut window = mux
+                    .get_window_mut(local_window_id)
+                    .expect("no such window!?");
+                log::error!("already have a local window for this one");
+                window.push(&tab);
+            } else {
+                log::error!("spawn new local window");
+                let fonts = Rc::new(FontConfiguration::new(
+                    Arc::clone(mux.config()),
+                    FontSystemSelection::get_default(),
+                ));
+                let local_window_id = mux.new_empty_window();
+                self.inner
+                    .record_remote_to_local_window_mapping(entry.window_id, local_window_id);
+                mux.add_tab_to_window(&tab, local_window_id)?;
+
+                front_end()
+                    .unwrap()
+                    .spawn_new_window(mux.config(), &fonts, &tab, local_window_id)
+                    .unwrap();
+            }
         }
         Ok(())
     }

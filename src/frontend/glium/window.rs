@@ -195,6 +195,7 @@ impl GliumTerminalWindow {
         fonts: &Rc<FontConfiguration>,
         config: &Arc<Config>,
         tab: &Rc<dyn Tab>,
+        mux_window_id: WindowId,
     ) -> Result<GliumTerminalWindow, Error> {
         let (physical_rows, physical_cols) = tab.renderer().physical_dimensions();
 
@@ -241,9 +242,6 @@ impl GliumTerminalWindow {
         let width = width as u16;
         let height = height as u16;
         let renderer = Renderer::new(&host.display, width, height, fonts)?;
-
-        let mux = Mux::get().unwrap();
-        let mux_window_id = mux.add_new_window_with_tab(tab)?;
 
         Ok(GliumTerminalWindow {
             host,

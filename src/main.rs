@@ -17,6 +17,8 @@ mod server;
 use crate::frontend::FrontEndSelection;
 use crate::mux::domain::{Domain, LocalDomain};
 use crate::mux::Mux;
+use crate::server::client::Client;
+use crate::server::domain::ClientDomain;
 use portable_pty::cmdbuilder::CommandBuilder;
 
 mod font;
@@ -131,8 +133,6 @@ fn run_terminal_gui(config: Arc<config::Config>, opts: &StartCommand) -> Result<
     };
 
     let domain: Arc<dyn Domain> = if opts.broken_mux_client_as_default_domain {
-        use crate::server::client::Client;
-        use crate::server::domain::ClientDomain;
         let client = Client::new(&config)?;
         Arc::new(ClientDomain::new(client))
     } else {
@@ -147,8 +147,11 @@ fn run_terminal_gui(config: Arc<config::Config>, opts: &StartCommand) -> Result<
 
     domain.attach()?;
 
-    let tab = mux.default_domain().spawn(PtySize::default(), cmd)?;
-    gui.spawn_new_window(mux.config(), &fontconfig, &tab)?;
+    let window_id = mux.new_empty_window();
+    let tab = mux
+        .default_domain()
+        .spawn(PtySize::default(), cmd, window_id)?;
+    gui.spawn_new_window(mux.config(), &fontconfig, &tab, window_id)?;
 
     gui.run_forever()
 }
@@ -189,7 +192,6 @@ fn main() -> Result<(), Error> {
             run_terminal_gui(config, &start)
         }
         SubCommand::Cli(_) => {
-            use crate::server::client::Client;
             use crate::server::codec::*;
             let mut client = Client::new(&config)?;
             info!("ping: {:?}", client.ping()?);

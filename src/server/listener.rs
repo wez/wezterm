@@ -95,29 +95,18 @@ impl ClientSession {
             Pdu::ListTabs(ListTabs {}) => {
                 let result = Future::with_executor(self.executor.clone_executor(), move || {
                     let mux = Mux::get().unwrap();
-                    let tabs = mux
-                        .iter_windows()
-                        .into_iter()
-                        .flat_map(|window_id| {
-                            let window = mux.get_window(window_id).unwrap();
-                            let tabs: Vec<WindowAndTabEntry> = window
-                                .iter()
-                                .map(|tab| WindowAndTabEntry {
-                                    window_id,
-                                    tab_id: tab.tab_id(),
-                                    title: tab.get_title(),
-                                })
-                                .collect();
-                            log::error!(
-                                "ListTabs: window {} has {} tabs {:?}",
+                    let mut tabs = vec![];
+                    for window_id in mux.iter_windows().into_iter() {
+                        let window = mux.get_window(window_id).unwrap();
+                        for tab in window.iter() {
+                            tabs.push(WindowAndTabEntry {
                                 window_id,
-                                tabs.len(),
-                                tabs
-                            );
-
-                            tabs.into_iter()
-                        })
-                        .collect();
+                                tab_id: tab.tab_id(),
+                                title: tab.get_title(),
+                            });
+                        }
+                    }
+                    log::error!("ListTabs {:#?}", tabs);
                     Ok(ListTabsResponse { tabs })
                 })
                 .wait()?;
@@ -245,17 +234,17 @@ impl ClientSession {
                     let domain = mux.get_domain(spawn.domain_id).ok_or_else(|| {
                         format_err!("domain {} not found on this server", spawn.domain_id)
                     })?;
-                    let tab = domain.spawn(spawn.size, spawn.command)?;
+
                     let window_id = if let Some(window_id) = spawn.window_id {
-                        mux.get_window_mut(window_id)
-                            .ok_or_else(|| {
-                                format_err!("window_id {} not found on this server", window_id)
-                            })?
-                            .push(&tab);
+                        mux.get_window_mut(window_id).ok_or_else(|| {
+                            format_err!("window_id {} not found on this server", window_id)
+                        })?;
                         window_id
                     } else {
-                        mux.add_new_window_with_tab(&tab)?
+                        mux.new_empty_window()
                     };
+
+                    let tab = domain.spawn(spawn.size, spawn.command, window_id)?;
                     Ok(SpawnResponse {
                         tab_id: tab.tab_id(),
                         window_id,

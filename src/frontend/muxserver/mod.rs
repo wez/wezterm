@@ -6,7 +6,7 @@ use crate::mux::tab::Tab;
 use crate::mux::window::WindowId;
 use crate::mux::Mux;
 use crate::server::listener::spawn_listener;
-use failure::{bail, Error};
+use failure::{bail, Error, Fallible};
 use log::info;
 use promise::Executor;
 use promise::SpawnFunc;
@@ -80,8 +80,9 @@ impl FrontEnd for MuxServerFrontEnd {
         &self,
         _config: &Arc<Config>,
         _fontconfig: &Rc<FontConfiguration>,
-        tab: &Rc<dyn Tab>,
-    ) -> Result<WindowId, Error> {
-        Mux::get().unwrap().add_new_window_with_tab(tab)
+        _tab: &Rc<dyn Tab>,
+        _window_id: WindowId,
+    ) -> Fallible<()> {
+        Ok(())
     }
 }

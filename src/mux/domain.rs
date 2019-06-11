@@ -8,6 +8,7 @@
 use crate::config::Config;
 use crate::frontend::guicommon::localtab::LocalTab;
 use crate::mux::tab::Tab;
+use crate::mux::window::WindowId;
 use crate::mux::Mux;
 use downcast_rs::{impl_downcast, Downcast};
 use failure::{Error, Fallible};
@@ -26,7 +27,12 @@ pub fn alloc_domain_id() -> DomainId {
 
 pub trait Domain: Downcast {
     /// Spawn a new command within this domain
-    fn spawn(&self, size: PtySize, command: Option<CommandBuilder>) -> Result<Rc<dyn Tab>, Error>;
+    fn spawn(
+        &self,
+        size: PtySize,
+        command: Option<CommandBuilder>,
+        window: WindowId,
+    ) -> Result<Rc<dyn Tab>, Error>;
 
     /// Returns the domain id, which is useful for obtaining
     /// a handle on the domain later.
@@ -57,7 +63,12 @@ impl LocalDomain {
 }
 
 impl Domain for LocalDomain {
-    fn spawn(&self, size: PtySize, command: Option<CommandBuilder>) -> Result<Rc<dyn Tab>, Error> {
+    fn spawn(
+        &self,
+        size: PtySize,
+        command: Option<CommandBuilder>,
+        window: WindowId,
+    ) -> Result<Rc<dyn Tab>, Error> {
         let cmd = match command {
             Some(c) => c,
             None => self.config.build_prog(None)?,
@@ -75,7 +86,9 @@ impl Domain for LocalDomain {
 
         let tab: Rc<dyn Tab> = Rc::new(LocalTab::new(terminal, child, pair.master, self.id));
 
-        Mux::get().unwrap().add_tab(&tab)?;
+        let mux = Mux::get().unwrap();
+        mux.add_tab(&tab)?;
+        mux.add_tab_to_window(&tab, window)?;
 
         Ok(tab)
     }

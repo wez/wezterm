@@ -4,7 +4,7 @@ use crate::mux::tab::Tab;
 use crate::mux::window::WindowId;
 use crate::mux::Mux;
 use downcast_rs::{impl_downcast, Downcast};
-use failure::{format_err, Error};
+use failure::{format_err, Error, Fallible};
 use lazy_static::lazy_static;
 use promise::Executor;
 use serde_derive::*;
@@ -114,7 +114,8 @@ pub trait FrontEnd: Downcast {
         config: &Arc<Config>,
         fontconfig: &Rc<FontConfiguration>,
         tab: &Rc<dyn Tab>,
-    ) -> Result<WindowId, Error>;
+        window_id: WindowId,
+    ) -> Fallible<()>;
 
     fn gui_executor(&self) -> Box<dyn Executor>;
 }

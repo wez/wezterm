@@ -209,9 +209,12 @@ impl<H: HostHelper> HostImpl<H> {
                 Arc::clone(mux.config()),
                 FontSystemSelection::get_default(),
             ));
-            let tab = mux.default_domain().spawn(PtySize::default(), None)?;
+            let window_id = mux.new_empty_window();
+            let tab = mux
+                .default_domain()
+                .spawn(PtySize::default(), None, window_id)?;
             let front_end = front_end().expect("to be called on gui thread");
-            front_end.spawn_new_window(mux.config(), &fonts, &tab)?;
+            front_end.spawn_new_window(mux.config(), &fonts, &tab, window_id)?;
             Ok(())
         });
     }

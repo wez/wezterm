@@ -137,14 +137,13 @@ pub trait TerminalWindow {
     }
 
     fn paint(&mut self) -> Result<(), Error> {
-        let mut target = self.frame();
-
         let mux = Mux::get().unwrap();
         let tab = match mux.get_active_tab_for_window(self.get_mux_window_id()) {
             Some(tab) => tab,
             None => return Ok(()),
         };
 
+        let mut target = self.frame();
         let res = {
             let renderer = self.renderer();
             let palette = tab.palette();
@@ -204,14 +203,13 @@ pub trait TerminalWindow {
                 .get_domain(id)
                 .ok_or_else(|| format_err!("spawn_tab called with unresolvable domain id!?"))?,
         };
-        let tab = domain.spawn(size, None)?;
+        let tab = domain.spawn(size, None, self.get_mux_window_id())?;
         let tab_id = tab.tab_id();
 
         let len = {
-            let mut window = mux
-                .get_window_mut(self.get_mux_window_id())
+            let window = mux
+                .get_window(self.get_mux_window_id())
                 .ok_or_else(|| format_err!("no such window!?"))?;
-            window.push(&tab);
             window.len()
         };
         self.activate_tab(len - 1)?;

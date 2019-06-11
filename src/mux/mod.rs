@@ -1,6 +1,6 @@
 use crate::config::Config;
 use crate::frontend::gui_executor;
-use failure::Error;
+use failure::{format_err, Error, Fallible};
 use failure_derive::*;
 use log::{debug, error, warn};
 use portable_pty::ExitStatus;
@@ -208,11 +208,19 @@ impl Mux {
         window.get_active().map(Rc::clone)
     }
 
-    pub fn add_new_window_with_tab(&self, tab: &Rc<dyn Tab>) -> Result<WindowId, Error> {
-        let window = Window::new(tab);
+    pub fn new_empty_window(&self) -> WindowId {
+        let window = Window::new();
         let window_id = window.window_id();
         self.windows.borrow_mut().insert(window_id, window);
-        Ok(window_id)
+        window_id
+    }
+
+    pub fn add_tab_to_window(&self, tab: &Rc<dyn Tab>, window_id: WindowId) -> Fallible<()> {
+        let mut window = self
+            .get_window_mut(window_id)
+            .ok_or_else(|| format_err!("add_tab_to_window: no such window_id {}", window_id))?;
+        window.push(tab);
+        Ok(())
     }
 
     #[allow(dead_code)]

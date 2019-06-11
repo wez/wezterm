@@ -11,10 +11,10 @@ pub struct Window {
 }
 
 impl Window {
-    pub fn new(tab: &Rc<dyn Tab>) -> Self {
+    pub fn new() -> Self {
         Self {
             id: WIN_ID.fetch_add(1, ::std::sync::atomic::Ordering::Relaxed),
-            tabs: vec![Rc::clone(tab)],
+            tabs: vec![],
             active: 0,
         }
     }
@@ -24,6 +24,9 @@ impl Window {
     }
 
     pub fn push(&mut self, tab: &Rc<dyn Tab>) {
+        for t in &self.tabs {
+            assert_ne!(t.tab_id(), tab.tab_id(), "tab already added to this window");
+        }
         self.tabs.push(Rc::clone(tab))
     }
 
