@@ -221,8 +221,6 @@ pdu! {
     SendMouseEvent: 12,
     SendPaste: 13,
     Resize: 14,
-    IsTabDead: 15,
-    IsTabDeadResponse: 16,
     SendMouseEventResponse: 17,
 }
 
@@ -330,16 +328,6 @@ pub struct SendMouseEventResponse {
 pub struct Resize {
     pub tab_id: TabId,
     pub size: PtySize,
-}
-
-#[derive(Deserialize, Serialize, PartialEq, Debug)]
-pub struct IsTabDead {
-    pub tab_id: TabId,
-}
-
-#[derive(Deserialize, Serialize, PartialEq, Debug)]
-pub struct IsTabDeadResponse {
-    pub is_dead: bool,
 }
 
 #[cfg(test)]

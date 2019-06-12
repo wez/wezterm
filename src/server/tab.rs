@@ -40,6 +40,7 @@ impl ClientTab {
             coarse: RefCell::new(None),
             last_poll: RefCell::new(Instant::now()),
             dirty_all: RefCell::new(true),
+            dead: RefCell::new(false),
         };
 
         let reader = Pipe::new().expect("Pipe::new failed");
@@ -133,26 +134,9 @@ impl Tab for ClientTab {
     }
 
     fn is_dead(&self) -> bool {
-        let mut client = self.client.client.lock().unwrap();
-        let is_dead = client
-            .check_tab_dead(IsTabDead {
-                tab_id: self.remote_tab_id,
-            })
-            .map(|r| r.is_dead)
-            .unwrap_or_else(|e| {
-                error!(
-                    "is_dead: local={} remote={} err={}",
-                    self.local_tab_id, self.remote_tab_id, e
-                );
-                true
-            });
-        if is_dead {
-            error!(
-                "is_dead local={} remote={} -> {}",
-                self.local_tab_id, self.remote_tab_id, is_dead
-            );
-        }
-        is_dead
+        let renderable = self.renderable.borrow();
+        let dead = *renderable.dead.borrow();
+        dead
     }
 
     fn palette(&self) -> ColorPalette {
@@ -170,6 +154,7 @@ struct RenderableState {
     coarse: RefCell<Option<GetCoarseTabRenderableDataResponse>>,
     last_poll: RefCell<Instant>,
     dirty_all: RefCell<bool>,
+    dead: RefCell<bool>,
 }
 
 const POLL_INTERVAL: Duration = Duration::from_millis(50);
@@ -229,7 +214,9 @@ impl Renderable for RenderableState {
     }
 
     fn has_dirty_lines(&self) -> bool {
-        self.poll().ok();
+        if let Err(_) = self.poll() {
+            *self.dead.borrow_mut() = true;
+        }
 
         let coarse = self.coarse.borrow();
         if let Some(coarse) = coarse.as_ref() {

@@ -150,17 +150,6 @@ impl ClientSession {
                 .wait()?;
                 Pdu::GetCoarseTabRenderableDataResponse(result)
             }
-            Pdu::IsTabDead(IsTabDead { tab_id }) => {
-                let is_dead = Future::with_executor(self.executor.clone_executor(), move || {
-                    let mux = Mux::get().unwrap();
-                    let tab = mux
-                        .get_tab(tab_id)
-                        .ok_or_else(|| format_err!("no such tab {}", tab_id))?;
-                    Ok(tab.is_dead())
-                })
-                .wait()?;
-                Pdu::IsTabDeadResponse(IsTabDeadResponse { is_dead })
-            }
 
             Pdu::WriteToTab(WriteToTab { tab_id, data }) => {
                 Future::with_executor(self.executor.clone_executor(), move || {
@@ -262,7 +251,6 @@ impl ClientSession {
             | Pdu::SendMouseEventResponse { .. }
             | Pdu::GetCoarseTabRenderableDataResponse { .. }
             | Pdu::SpawnResponse { .. }
-            | Pdu::IsTabDeadResponse { .. }
             | Pdu::UnitResponse { .. }
             | Pdu::ErrorResponse { .. } => bail!("expected a request, got {:?}", pdu),
         })
