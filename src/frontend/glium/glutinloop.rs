@@ -360,10 +360,7 @@ impl GuiEventLoop {
             let result = self.process_gui_event(&event);
 
             match result {
-                Ok(Continue) => {
-                    self.do_paint();
-                    Continue
-                }
+                Ok(Continue) => Continue,
                 Ok(Break) => Break,
                 Err(err) => {
                     error!("Error in event loop: {:?}", err);
