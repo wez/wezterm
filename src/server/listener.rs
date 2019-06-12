@@ -331,17 +331,19 @@ fn safely_create_sock_path(sock_path: &str) -> Result<UnixListener, Error> {
 
     #[cfg(unix)]
     {
-        // Let's be sure that the ownership looks sane
-        let meta = sock_dir.symlink_metadata()?;
+        if !std::env::var_os("WEZTERM_SKIP_MUX_SOCK_PERMISSIONS_CHECK").is_some() {
+            // Let's be sure that the ownership looks sane
+            let meta = sock_dir.symlink_metadata()?;
 
-        let permissions = meta.permissions();
-        if (permissions.mode() & 0o22) != 0 {
-            bail!(
-                "The permissions for {} are insecure and currently
+            let permissions = meta.permissions();
+            if (permissions.mode() & 0o22) != 0 {
+                bail!(
+                    "The permissions for {} are insecure and currently
                 allow other users to write to it (permissions={:?})",
-                sock_dir.display(),
-                permissions
-            );
+                    sock_dir.display(),
+                    permissions
+                );
+            }
         }
     }
 
