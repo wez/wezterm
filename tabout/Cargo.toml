@@ -1,0 +1,12 @@
+[package]
+name = "tabout"
+version = "0.1.0"
+authors = ["Wez Furlong <wez@wezfurlong.org>"]
+edition = "2018"
+repository = "https://github.com/wez/wezterm"
+description = "Tabulate output for CLI programs"
+license = "MIT"
+documentation = "https://docs.rs/tabout"
+
+[dependencies]
+termwiz = { path = "../termwiz"}

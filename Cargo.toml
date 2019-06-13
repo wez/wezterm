@@ -39,6 +39,7 @@ rayon = "1.0"
 serde = {version="1.0", features = ["rc"]}
 serde_derive = "1.0"
 structopt = "0.2"
+tabout = { path = "tabout" }
 term = { path = "term" }
 termwiz = { path = "termwiz"}
 toml = "0.4"

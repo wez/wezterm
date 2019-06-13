@@ -5,6 +5,7 @@ use failure::Error;
 use log::{error, info};
 use std::ffi::OsString;
 use structopt::StructOpt;
+use tabout::{tabulate_output, Alignment, Column};
 
 use std::rc::Rc;
 use std::sync::Arc;
@@ -115,7 +116,17 @@ enum SubCommand {
 }
 
 #[derive(Debug, StructOpt, Clone)]
-struct CliCommand {}
+struct CliCommand {
+    #[structopt(subcommand)]
+    sub: CliSubCommand,
+}
+
+#[derive(Debug, StructOpt, Clone)]
+enum CliSubCommand {
+    #[structopt(name = "list", about = "list windows and tabs")]
+    #[structopt(raw(setting = "structopt::clap::AppSettings::ColoredHelp"))]
+    List,
+}
 
 fn run_terminal_gui(config: Arc<config::Config>, opts: &StartCommand) -> Result<(), Error> {
     let font_system = opts.font_system.unwrap_or(config.font_system);
@@ -193,23 +204,36 @@ fn main() -> Result<(), Error> {
             error!("Using configuration: {:#?}\nopts: {:#?}", config, opts);
             run_terminal_gui(config, &start)
         }
-        SubCommand::Cli(_) => {
-            use crate::server::codec::*;
+        SubCommand::Cli(cli) => {
             let mut client = Client::new(&config)?;
-            info!("ping: {:?}", client.ping()?);
-            let tabs = client.list_tabs()?;
-            for entry in tabs.tabs.iter() {
-                info!("tab {} {}: {}", entry.window_id, entry.tab_id, entry.title);
+            match cli.sub {
+                CliSubCommand::List => {
+                    let cols = vec![
+                        Column {
+                            name: "WINID".to_string(),
+                            alignment: Alignment::Right,
+                        },
+                        Column {
+                            name: "TABID".to_string(),
+                            alignment: Alignment::Right,
+                        },
+                        Column {
+                            name: "TITLE".to_string(),
+                            alignment: Alignment::Left,
+                        },
+                    ];
+                    let mut data = vec![];
+                    let tabs = client.list_tabs()?;
+                    for entry in tabs.tabs.iter() {
+                        data.push(vec![
+                            entry.window_id.to_string(),
+                            entry.tab_id.to_string(),
+                            entry.title.clone(),
+                        ]);
+                    }
+                    tabulate_output(&cols, &data, &mut std::io::stdout().lock())?;
+                }
             }
-            error!(
-                "spawn: {:?}",
-                client.spawn(Spawn {
-                    domain_id: 0,
-                    size: PtySize::default(),
-                    command: None,
-                    window_id: None,
-                })
-            );
             Ok(())
         }
     }
