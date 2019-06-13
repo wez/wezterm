@@ -96,8 +96,6 @@ force-fontconfig = ["fontconfig"]
 [patch.crates-io]
 # This allows using the git version in the help output
 structopt-derive = { git = "https://github.com/wez/structopt", branch="vergen" }
-# https://github.com/jwilm/vte/pull/20
-#vte = { git = "https://github.com/wez/vte", branch="oscbigbuf" }
 
 [workspace]
 
