@@ -1,7 +1,7 @@
 use crate::config::Config;
 use crate::mux::Mux;
 use crate::server::codec::*;
-use crate::server::{UnixListener, UnixStream};
+use crate::server::UnixListener;
 use failure::{bail, err_msg, format_err, Error, Fallible};
 #[cfg(unix)]
 use libc::{mode_t, umask};
@@ -41,8 +41,8 @@ impl Listener {
     }
 }
 
-pub struct ClientSession {
-    stream: UnixStream,
+pub struct ClientSession<S: std::io::Read + std::io::Write> {
+    stream: S,
     executor: Box<dyn Executor>,
 }
 
@@ -78,8 +78,8 @@ impl<'a> term::TerminalHost for BufferedTerminalHost<'a> {
     }
 }
 
-impl ClientSession {
-    fn new(stream: UnixStream, executor: Box<dyn Executor>) -> Self {
+impl<S: std::io::Read + std::io::Write> ClientSession<S> {
+    fn new(stream: S, executor: Box<dyn Executor>) -> Self {
         Self { stream, executor }
     }
 
