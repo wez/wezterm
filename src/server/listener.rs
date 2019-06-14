@@ -68,6 +68,62 @@ fn read_bytes<T: AsRef<Path>>(path: T) -> Fallible<Vec<u8>> {
     Ok(buf)
 }
 
+#[cfg(any(feature = "openssl", all(unix, not(target_os = "macos"))))]
+fn pem_files_to_identity(
+    key: PathBuf,
+    cert: Option<PathBuf>,
+    chain: Option<PathBuf>,
+) -> Fallible<Identity> {
+    // This is a bit of a redundant dance around;
+    // the native_tls interface only allows for pkcs12
+    // encoded identity information, but in my use case
+    // I only have pem encoded identity information.
+    // We can use openssl to convert the data to pkcs12
+    // so that we can then pass it on using the Identity
+    // type that native_tls requires.
+    use openssl::pkcs12::Pkcs12;
+    use openssl::pkey::PKey;
+    use openssl::x509::X509;
+    let key_bytes = read_bytes(&key)?;
+    let pkey = PKey::private_key_from_pem(&key_bytes)?;
+
+    let cert_bytes = read_bytes(cert.as_ref().unwrap_or(&key))?;
+    let x509_cert = X509::from_pem(&cert_bytes)?;
+
+    let chain_bytes = read_bytes(chain.as_ref().unwrap_or(&key))?;
+    let x509_chain = X509::stack_from_pem(&chain_bytes)?;
+
+    let password = "internal";
+    let mut ca_stack = openssl::stack::Stack::new()?;
+    for ca in x509_chain.into_iter() {
+        ca_stack.push(ca)?;
+    }
+    let mut builder = Pkcs12::builder();
+    builder.ca(ca_stack);
+    let pkcs12 = builder.build(password, "", &pkey, &x509_cert)?;
+
+    let der = pkcs12.to_der()?;
+    Identity::from_pkcs12(&der, password).map_err(|e| {
+        format_err!(
+            "error creating identity from pkcs12 generated \
+             from PemFiles {}, {:?}, {:?}: {}",
+            key.display(),
+            cert,
+            chain,
+            e
+        )
+    })
+}
+
+#[cfg(not(any(feature = "openssl", all(unix, not(target_os = "macos")))))]
+fn pem_files_to_identity(
+    _key: PathBuf,
+    _cert: Option<PathBuf>,
+    _chain: Option<PathBuf>,
+) -> Fallible<Identity> {
+    bail!("recompile wezterm using --features openssl")
+}
+
 impl TryFrom<IdentitySource> for Identity {
     type Error = Error;
 
@@ -79,50 +135,8 @@ impl TryFrom<IdentitySource> for Identity {
                     format_err!("error loading pkcs12 file '{}': {}", path.display(), e)
                 })
             }
-            #[cfg(not(feature = "openssl"))]
-            IdentitySource::PemFiles { .. } => bail!("recompile wezterm using --features openssl"),
-
-            #[cfg(feature = "openssl")]
             IdentitySource::PemFiles { key, cert, chain } => {
-                // This is a bit of a redundant dance around;
-                // the native_tls interface only allows for pkcs12
-                // encoded identity information, but in my use case
-                // I only have pem encoded identity information.
-                // We can use openssl to convert the data to pkcs12
-                // so that we can then pass it on using the Identity
-                // type that native_tls requires.
-                use openssl::pkcs12::Pkcs12;
-                use openssl::pkey::PKey;
-                use openssl::x509::X509;
-                let key_bytes = read_bytes(&key)?;
-                let pkey = PKey::private_key_from_pem(&key_bytes)?;
-
-                let cert_bytes = read_bytes(cert.as_ref().unwrap_or(&key))?;
-                let x509_cert = X509::from_pem(&cert_bytes)?;
-
-                let chain_bytes = read_bytes(chain.as_ref().unwrap_or(&key))?;
-                let x509_chain = X509::stack_from_pem(&chain_bytes)?;
-
-                let password = "internal";
-                let mut ca_stack = openssl::stack::Stack::new()?;
-                for ca in x509_chain.into_iter() {
-                    ca_stack.push(ca)?;
-                }
-                let mut builder = Pkcs12::builder();
-                builder.ca(ca_stack);
-                let pkcs12 = builder.build(password, "", &pkey, &x509_cert)?;
-
-                let der = pkcs12.to_der()?;
-                Identity::from_pkcs12(&der, password).map_err(|e| {
-                    format_err!(
-                        "error creating identity from pkcs12 generated \
-                         from PemFiles {}, {:?}, {:?}: {}",
-                        key.display(),
-                        cert,
-                        chain,
-                        e
-                    )
-                })
+                pem_files_to_identity(key, cert, chain)
             }
         }
     }
