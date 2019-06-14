@@ -54,18 +54,23 @@ fn encode_raw<W: std::io::Write>(
     mut w: W,
 ) -> Result<(), std::io::Error> {
     let len = data.len() + encoded_length(ident) + encoded_length(serial);
-    let len = len as u64;
-    leb128::write::unsigned(
-        w.by_ref(),
-        if is_compressed {
-            len | COMPRESSED_MASK
-        } else {
-            len
-        },
-    )?;
-    leb128::write::unsigned(w.by_ref(), serial)?;
-    leb128::write::unsigned(w.by_ref(), ident)?;
-    w.write_all(data)
+    let masked_len = if is_compressed {
+        (len as u64) | COMPRESSED_MASK
+    } else {
+        len as u64
+    };
+
+    // Double-buffer the data; since we run with nodelay enabled, it is
+    // desirable for the write to be a single packet (or at least, for
+    // the header portion to go out in a single packet)
+    let mut buffer = Vec::with_capacity(len + encoded_length(masked_len));
+
+    leb128::write::unsigned(&mut buffer, masked_len)?;
+    leb128::write::unsigned(&mut buffer, serial)?;
+    leb128::write::unsigned(&mut buffer, ident)?;
+    buffer.extend_from_slice(data);
+
+    w.write_all(&buffer)
 }
 
 /// Read a single leb128 encoded value from the stream

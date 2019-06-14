@@ -10,6 +10,7 @@ use std::convert::TryInto;
 use std::net::TcpStream;
 use std::path::Path;
 use std::sync::Arc;
+use std::time::Instant;
 
 pub trait ReadAndWrite: std::io::Read + std::io::Write {}
 impl ReadAndWrite for UnixStream {}
@@ -90,6 +91,7 @@ impl Client {
 
         let stream = TcpStream::connect(remote_address)
             .map_err(|e| format_err!("connecting to {}: {}", remote_address, e))?;
+        stream.set_nodelay(true)?;
 
         let stream = Box::new(connector.connect(remote_host_name, stream).map_err(|e| {
             format_err!(
@@ -106,8 +108,14 @@ impl Client {
     pub fn send_pdu(&mut self, pdu: Pdu) -> Result<Pdu, Error> {
         let serial = self.serial;
         self.serial += 1;
+
         pdu.encode(&mut self.stream, serial)?;
+        self.stream.flush()?;
+
+        let start = Instant::now();
         let decoded = Pdu::decode(&mut self.stream)?;
+        log::trace!("send_pdu recv: {:?} {:?}", pdu, start.elapsed());
+
         ensure!(
             decoded.serial == serial,
             "got out of order response (expected serial {} but got {:?}",

@@ -17,6 +17,7 @@ use std::os::unix::fs::{DirBuilderExt, PermissionsExt};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::thread;
+use std::time::Instant;
 
 struct LocalListener {
     listener: UnixListener,
@@ -146,6 +147,7 @@ impl NetListener {
         for stream in self.listener.incoming() {
             match stream {
                 Ok(stream) => {
+                    stream.set_nodelay(true).ok();
                     let executor = self.executor.clone_executor();
                     let acceptor = self.acceptor.clone();
                     thread::spawn(move || match acceptor.accept(stream) {
@@ -383,14 +385,23 @@ impl<S: std::io::Read + std::io::Write> ClientSession<S> {
     }
 
     fn process_one(&mut self) -> Fallible<()> {
+        let start = Instant::now();
         let decoded = Pdu::decode(&mut self.stream)?;
-        debug!("got pdu {:?} from client", decoded);
+        debug!("got pdu {:?} from client in {:?}", decoded, start.elapsed());
+
+        let start = Instant::now();
         let response = self.process_pdu(decoded.pdu).unwrap_or_else(|e| {
             Pdu::ErrorResponse(ErrorResponse {
                 reason: format!("Error: {}", e),
             })
         });
+        log::trace!("processing time {:?}", start.elapsed());
+
+        let start = Instant::now();
         response.encode(&mut self.stream, decoded.serial)?;
+        self.stream.flush()?;
+        log::trace!("encode and send in {:?}", start.elapsed());
+
         Ok(())
     }
 
