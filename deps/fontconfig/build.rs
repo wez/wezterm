@@ -1,5 +1,4 @@
 use pkg_config;
-use std::path::Path;
 
 fn main() {
     if let Ok(lib) = pkg_config::Config::new()
@@ -22,6 +21,9 @@ fn main() {
             println!("cargo:rustc-link-lib={}", libname);
         }
     } else {
-        panic!("no fontconfig");
+        // deliberately not erroring out here as fontconfig is an
+        // optional dependency that can be activated in test builds.
+        // I don't like this but don't want to solve this right now.
+        // panic!("no fontconfig");
     }
 }
