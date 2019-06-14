@@ -6,31 +6,152 @@ use failure::{bail, err_msg, format_err, Error, Fallible};
 #[cfg(unix)]
 use libc::{mode_t, umask};
 use log::{debug, error, warn};
+use native_tls::{Identity, TlsAcceptor};
+use openssl::pkcs12::Pkcs12;
+use openssl::pkey::PKey;
+use openssl::x509::X509;
 use promise::{Executor, Future};
+use std::convert::{TryFrom, TryInto};
 use std::fs::{remove_file, DirBuilder};
+use std::io::Read;
+use std::net::TcpListener;
 #[cfg(unix)]
 use std::os::unix::fs::{DirBuilderExt, PermissionsExt};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::thread;
 
-pub struct Listener {
-    acceptor: UnixListener,
+struct LocalListener {
+    listener: UnixListener,
     executor: Box<dyn Executor>,
 }
 
-impl Listener {
-    pub fn new(acceptor: UnixListener, executor: Box<dyn Executor>) -> Self {
-        Self { acceptor, executor }
+impl LocalListener {
+    pub fn new(listener: UnixListener, executor: Box<dyn Executor>) -> Self {
+        Self { listener, executor }
     }
 
     fn run(&mut self) {
-        for stream in self.acceptor.incoming() {
+        for stream in self.listener.incoming() {
             match stream {
                 Ok(stream) => {
                     let executor = self.executor.clone_executor();
                     let mut session = ClientSession::new(stream, executor);
                     thread::spawn(move || session.run());
+                }
+                Err(err) => {
+                    error!("accept failed: {}", err);
+                    return;
+                }
+            }
+        }
+    }
+}
+
+pub enum IdentitySource {
+    Pkcs12File {
+        path: PathBuf,
+        password: String,
+    },
+    PemFiles {
+        key: PathBuf,
+        cert: Option<PathBuf>,
+        chain: Option<PathBuf>,
+    },
+}
+
+fn read_bytes<T: AsRef<Path>>(path: T) -> Fallible<Vec<u8>> {
+    let path = path.as_ref();
+    let mut f = std::fs::File::open(path)
+        .map_err(|e| format_err!("opening file {}: {}", path.display(), e))?;
+    let mut buf = Vec::new();
+    f.read_to_end(&mut buf)?;
+    Ok(buf)
+}
+
+impl TryFrom<IdentitySource> for Identity {
+    type Error = Error;
+
+    fn try_from(source: IdentitySource) -> Fallible<Identity> {
+        match source {
+            IdentitySource::Pkcs12File { path, password } => {
+                let bytes = read_bytes(&path)?;
+                Identity::from_pkcs12(&bytes, &password).map_err(|e| {
+                    format_err!("error loading pkcs12 file '{}': {}", path.display(), e)
+                })
+            }
+            IdentitySource::PemFiles { key, cert, chain } => {
+                // This is a bit of a redundant dance around;
+                // the native_tls interface only allows for pkcs12
+                // encoded identity information, but in my use case
+                // I only have pem encoded identity information.
+                // We can use openssl to convert the data to pkcs12
+                // so that we can then pass it on using the Identity
+                // type that native_tls requires.
+                let key_bytes = read_bytes(&key)?;
+                let pkey = PKey::private_key_from_pem(&key_bytes)?;
+
+                let cert_bytes = read_bytes(cert.as_ref().unwrap_or(&key))?;
+                let x509_cert = X509::from_pem(&cert_bytes)?;
+
+                let chain_bytes = read_bytes(chain.as_ref().unwrap_or(&key))?;
+                let x509_chain = X509::stack_from_pem(&chain_bytes)?;
+
+                let password = "internal";
+                let mut ca_stack = openssl::stack::Stack::new()?;
+                for ca in x509_chain.into_iter() {
+                    ca_stack.push(ca)?;
+                }
+                let mut builder = Pkcs12::builder();
+                builder.ca(ca_stack);
+                let pkcs12 = builder.build(password, "", &pkey, &x509_cert)?;
+
+                let der = pkcs12.to_der()?;
+                Identity::from_pkcs12(&der, password).map_err(|e| {
+                    format_err!(
+                        "error creating identity from pkcs12 generated \
+                         from PemFiles {}, {:?}, {:?}: {}",
+                        key.display(),
+                        cert,
+                        chain,
+                        e
+                    )
+                })
+            }
+        }
+    }
+}
+
+struct NetListener {
+    acceptor: Arc<TlsAcceptor>,
+    listener: TcpListener,
+    executor: Box<dyn Executor>,
+}
+
+impl NetListener {
+    pub fn new(listener: TcpListener, acceptor: TlsAcceptor, executor: Box<dyn Executor>) -> Self {
+        Self {
+            listener,
+            acceptor: Arc::new(acceptor),
+            executor,
+        }
+    }
+
+    fn run(&mut self) {
+        for stream in self.listener.incoming() {
+            match stream {
+                Ok(stream) => {
+                    let executor = self.executor.clone_executor();
+                    let acceptor = self.acceptor.clone();
+                    thread::spawn(move || match acceptor.accept(stream) {
+                        Ok(stream) => {
+                            let mut session = ClientSession::new(stream, executor);
+                            session.run();
+                        }
+                        Err(e) => {
+                            error!("failed TlsAcceptor: {}", e);
+                        }
+                    });
                 }
                 Err(err) => {
                     error!("accept failed: {}", err);
@@ -360,9 +481,40 @@ pub fn spawn_listener(config: &Arc<Config>, executor: Box<dyn Executor>) -> Resu
         .mux_server_unix_domain_socket_path
         .as_ref()
         .ok_or_else(|| err_msg("no mux_server_unix_domain_socket_path"))?;
-    let mut listener = Listener::new(safely_create_sock_path(sock_path)?, executor);
+    let mut listener = LocalListener::new(
+        safely_create_sock_path(sock_path)?,
+        executor.clone_executor(),
+    );
     thread::spawn(move || {
         listener.run();
     });
+
+    if let Some(address) = &config.mux_server_bind_address {
+        let identity = IdentitySource::PemFiles {
+            key: config
+                .mux_server_pem_private_key
+                .as_ref()
+                .ok_or_else(|| err_msg("missing mux_server_pem_private_key config value"))?
+                .into(),
+            cert: config.mux_server_pem_cert.clone(),
+            chain: config.mux_server_pem_ca.clone(),
+        };
+
+        let mut net_listener = NetListener::new(
+            TcpListener::bind(address).map_err(|e| {
+                format_err!(
+                    "error binding to mux_server_bind_address {}: {}",
+                    address,
+                    e
+                )
+            })?,
+            TlsAcceptor::new(identity.try_into()?)?,
+            executor,
+        );
+        thread::spawn(move || {
+            net_listener.run();
+        });
+    }
+
     Ok(())
 }

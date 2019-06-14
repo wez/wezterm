@@ -32,6 +32,8 @@ leb128 = "0.2"
 libc = "0.2"
 log = "0.4"
 open = "1.2"
+openssl = "0.10"
+native-tls = "0.2"
 palette = "0.4"
 portable-pty = { path = "pty", features = ["serde_support"]}
 promise = { path = "promise" }

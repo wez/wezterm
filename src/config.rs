@@ -81,6 +81,22 @@ pub struct Config {
     /// domain socket to use to communicate with the mux server.
     pub mux_server_unix_domain_socket_path: Option<String>,
 
+    /// When using the MuxServer with the NetListener, specifies
+    /// the address and port combination on which it should listen
+    pub mux_server_bind_address: Option<String>,
+
+    /// When using the MuxServer with the NetListener, specifies
+    /// the path to an x509 PEM encoded private key file
+    pub mux_server_pem_private_key: Option<PathBuf>,
+
+    /// When using the MuxServer with the NetListener, specifies
+    /// the path to an x509 PEM encoded certificate file
+    pub mux_server_pem_cert: Option<PathBuf>,
+
+    /// When using the MuxServer with the NetListener, specifies
+    /// the path to an x509 PEM encoded CA chain file
+    pub mux_server_pem_ca: Option<PathBuf>,
+
     #[serde(default)]
     pub keys: Vec<Key>,
 }
@@ -334,6 +350,10 @@ impl Default for Config {
             term: default_term(),
             default_prog: None,
             mux_server_unix_domain_socket_path: None,
+            mux_server_bind_address: None,
+            mux_server_pem_private_key: None,
+            mux_server_pem_cert: None,
+            mux_server_pem_ca: None,
             keys: vec![],
         }
     }
