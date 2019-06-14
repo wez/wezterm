@@ -97,6 +97,31 @@ pub struct Config {
     /// the path to an x509 PEM encoded CA chain file
     pub mux_server_pem_ca: Option<PathBuf>,
 
+    /// When using the mux client domain, identifies the host:port
+    /// pair of the remote server.
+    pub mux_server_remote_address: Option<String>,
+
+    /// When using the mux client domain:
+    /// the path to an x509 PEM encoded private key file
+    pub mux_client_pem_private_key: Option<PathBuf>,
+
+    /// When using the mux client domain:
+    /// the path to an x509 PEM encoded certificate file
+    pub mux_client_pem_cert: Option<PathBuf>,
+
+    /// When using the mux client domain:
+    /// the path to an x509 PEM encoded CA chain file
+    pub mux_client_pem_ca: Option<PathBuf>,
+
+    /// When using the mux client domain, explicitly control whether
+    /// the client checks that the certificate presented by the
+    /// server matches the hostname portion of mux_server_remote_address.
+    /// The default is true.
+    /// This option is made available for troubleshooting purposes and
+    /// should not be used outside of a controlled environment as it
+    /// weakens the security of the TLS channel.
+    pub mux_client_accept_invalid_hostnames: Option<bool>,
+
     #[serde(default)]
     pub keys: Vec<Key>,
 }
@@ -354,6 +379,11 @@ impl Default for Config {
             mux_server_pem_private_key: None,
             mux_server_pem_cert: None,
             mux_server_pem_ca: None,
+            mux_server_remote_address: None,
+            mux_client_pem_private_key: None,
+            mux_client_pem_cert: None,
+            mux_client_pem_ca: None,
+            mux_client_accept_invalid_hostnames: None,
             keys: vec![],
         }
     }

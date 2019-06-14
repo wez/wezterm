@@ -96,6 +96,8 @@ struct StartCommand {
     /// default domain for new tabs and windows
     #[structopt(long = "mux-client-as-default-domain")]
     mux_client_as_default_domain: bool,
+    #[structopt(long = "mux-tls-client-as-default-domain")]
+    mux_tls_client_as_default_domain: bool,
 
     /// Instead of executing your shell, run PROG.
     /// For example: `wezterm start -- bash -l` will spawn bash
@@ -145,6 +147,9 @@ fn run_terminal_gui(config: Arc<config::Config>, opts: &StartCommand) -> Result<
 
     let domain: Arc<dyn Domain> = if opts.mux_client_as_default_domain {
         let client = Client::new_unix_domain(&config)?;
+        Arc::new(ClientDomain::new(client))
+    } else if opts.mux_tls_client_as_default_domain {
+        let client = Client::new_tls(&config)?;
         Arc::new(ClientDomain::new(client))
     } else {
         Arc::new(LocalDomain::new(&config)?)

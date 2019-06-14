@@ -48,6 +48,7 @@ impl LocalListener {
     }
 }
 
+#[derive(Debug)]
 pub enum IdentitySource {
     Pkcs12File {
         path: PathBuf,
