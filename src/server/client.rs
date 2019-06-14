@@ -2,13 +2,16 @@
 use crate::config::Config;
 use crate::server::codec::*;
 use crate::server::UnixStream;
-use failure::{bail, ensure, err_msg, Error};
+use failure::{bail, ensure, err_msg, Error, Fallible};
 use log::info;
 use std::path::Path;
 use std::sync::Arc;
 
+pub trait ReadAndWrite: std::io::Read + std::io::Write {}
+impl ReadAndWrite for UnixStream {}
+
 pub struct Client {
-    stream: UnixStream,
+    stream: Box<dyn ReadAndWrite>,
     serial: u64,
 }
 
@@ -38,7 +41,7 @@ macro_rules! rpc {
 }
 
 impl Client {
-    pub fn new(config: &Arc<Config>) -> Result<Self, Error> {
+    pub fn new_unix_domain(config: &Arc<Config>) -> Fallible<Self> {
         let sock_path = Path::new(
             config
                 .mux_server_unix_domain_socket_path
@@ -46,7 +49,7 @@ impl Client {
                 .ok_or_else(|| err_msg("no mux_server_unix_domain_socket_path"))?,
         );
         info!("connect to {}", sock_path.display());
-        let stream = UnixStream::connect(sock_path)?;
+        let stream = Box::new(UnixStream::connect(sock_path)?);
         Ok(Self { stream, serial: 0 })
     }
 
