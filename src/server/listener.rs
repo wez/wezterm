@@ -7,9 +7,6 @@ use failure::{bail, err_msg, format_err, Error, Fallible};
 use libc::{mode_t, umask};
 use log::{debug, error, warn};
 use native_tls::{Identity, TlsAcceptor};
-use openssl::pkcs12::Pkcs12;
-use openssl::pkey::PKey;
-use openssl::x509::X509;
 use promise::{Executor, Future};
 use std::convert::{TryFrom, TryInto};
 use std::fs::{remove_file, DirBuilder};
@@ -81,6 +78,10 @@ impl TryFrom<IdentitySource> for Identity {
                     format_err!("error loading pkcs12 file '{}': {}", path.display(), e)
                 })
             }
+            #[cfg(not(feature = "openssl"))]
+            IdentitySource::PemFiles { .. } => bail!("recompile wezterm using --features openssl"),
+
+            #[cfg(feature = "openssl")]
             IdentitySource::PemFiles { key, cert, chain } => {
                 // This is a bit of a redundant dance around;
                 // the native_tls interface only allows for pkcs12
@@ -89,6 +90,9 @@ impl TryFrom<IdentitySource> for Identity {
                 // We can use openssl to convert the data to pkcs12
                 // so that we can then pass it on using the Identity
                 // type that native_tls requires.
+                use openssl::pkcs12::Pkcs12;
+                use openssl::pkey::PKey;
+                use openssl::x509::X509;
                 let key_bytes = read_bytes(&key)?;
                 let pkey = PKey::private_key_from_pem(&key_bytes)?;
 

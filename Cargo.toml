@@ -32,7 +32,6 @@ leb128 = "0.2"
 libc = "0.2"
 log = "0.4"
 open = "1.2"
-openssl = "0.10"
 native-tls = "0.2"
 palette = "0.4"
 portable-pty = { path = "pty", features = ["serde_support"]}
@@ -59,6 +58,10 @@ mio-extras = "2.0"
 optional = true
 path = "deps/fontconfig"
 
+[dependencies.openssl]
+optional = true
+version = "0.10"
+
 # on linux, font-loader pulls in servo-font* crates which conflict with
 # our newer font related deps, so we avoid it on linux
 [target.'cfg(any(windows, target_os = "macos"))'.dependencies]
@@ -79,8 +82,8 @@ winapi = { version = "0.3", features = [
 [target.'cfg(any(target_os = "android", all(unix, not(target_os = "macos"))))'.dependencies]
 egli = "0.4"
 fontconfig = { path = "deps/fontconfig" }
+openssl = "0.10"
 x11 = {version ="2.18", features = ["xlib_xcb"]}
-
 
 [target.'cfg(all(unix, not(target_os = "macos")))'.dependencies]
 xcb = "0.8"
