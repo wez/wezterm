@@ -2,7 +2,7 @@
 #![windows_subsystem = "windows"]
 
 use failure::Error;
-use log::{error, info};
+use log::error;
 use std::ffi::OsString;
 use structopt::StructOpt;
 use tabout::{tabulate_output, Alignment, Column};
@@ -94,8 +94,8 @@ struct StartCommand {
 
     /// If true, use the incomplete multiplexer client as the
     /// default domain for new tabs and windows
-    #[structopt(long = "broken-mux-client-as-default-domain")]
-    broken_mux_client_as_default_domain: bool,
+    #[structopt(long = "mux-client-as-default-domain")]
+    mux_client_as_default_domain: bool,
 
     /// Instead of executing your shell, run PROG.
     /// For example: `wezterm start -- bash -l` will spawn bash
@@ -143,7 +143,7 @@ fn run_terminal_gui(config: Arc<config::Config>, opts: &StartCommand) -> Result<
         None
     };
 
-    let domain: Arc<dyn Domain> = if opts.broken_mux_client_as_default_domain {
+    let domain: Arc<dyn Domain> = if opts.mux_client_as_default_domain {
         let client = Client::new(&config)?;
         Arc::new(ClientDomain::new(client))
     } else {

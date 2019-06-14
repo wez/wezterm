@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use crate::config::Config;
 use crate::server::codec::*;
 use crate::server::UnixStream;
