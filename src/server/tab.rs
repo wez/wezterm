@@ -137,6 +137,8 @@ impl Tab for ClientTab {
         panic!("ClientTab::advance_bytes not impl");
     }
 
+    // clippy is wrong: the borrow checker hates returning the value directly
+    #[allow(clippy::let_and_return)]
     fn is_dead(&self) -> bool {
         let renderable = self.renderable.borrow();
         let dead = *renderable.dead.borrow();
@@ -238,7 +240,7 @@ impl Renderable for RenderableState {
     }
 
     fn has_dirty_lines(&self) -> bool {
-        if let Err(_) = self.poll() {
+        if self.poll().is_err() {
             *self.dead.borrow_mut() = true;
         }
 

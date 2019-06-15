@@ -482,7 +482,7 @@ fn safely_create_sock_path(sock_path: &str) -> Result<UnixListener, Error> {
 
     #[cfg(unix)]
     {
-        if !std::env::var_os("WEZTERM_SKIP_MUX_SOCK_PERMISSIONS_CHECK").is_some() {
+        if std::env::var_os("WEZTERM_SKIP_MUX_SOCK_PERMISSIONS_CHECK").is_none() {
             // Let's be sure that the ownership looks sane
             let meta = sock_dir.symlink_metadata()?;
 
