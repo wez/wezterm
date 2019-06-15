@@ -87,6 +87,7 @@ pub struct Surface {
     changes: Vec<Change>,
     cursor_shape: CursorShape,
     cursor_color: ColorAttribute,
+    title: String,
 }
 
 #[derive(Default)]
@@ -180,6 +181,10 @@ impl Surface {
         (self.xpos, self.ypos)
     }
 
+    pub fn title(&self) -> &str {
+        &self.title
+    }
+
     /// Resize the Surface to the specified width and height.
     /// If the width and/or height are smaller than previously, the rows and/or
     /// columns are truncated.  If the width and/or height are larger than
@@ -252,6 +257,7 @@ impl Surface {
             Change::CursorColor(color) => self.cursor_color = *color,
             Change::CursorShape(shape) => self.cursor_shape = *shape,
             Change::Image(image) => self.add_image(image),
+            Change::Title(text) => self.title = text.to_owned(),
             Change::ScrollRegionUp {
                 first_row,
                 region_size,
@@ -479,6 +485,10 @@ impl Surface {
         lines
     }
 
+    pub fn screen_lines(&self) -> Vec<Line> {
+        self.lines.clone()
+    }
+
     /// Returns a stream of changes suitable to update the screen
     /// to match the model.  The input `seq` argument should be 0
     /// on the first call, or in any situation where the screen
@@ -510,6 +520,14 @@ impl Surface {
         }
     }
 
+    pub fn has_changes(&self, seq: SequenceNo) -> bool {
+        self.seqno != seq
+    }
+
+    pub fn current_seqno(&self) -> SequenceNo {
+        self.seqno
+    }
+
     /// After having called `get_changes` and processed the resultant
     /// change stream, the caller can then pass the returned `SequenceNo`
     /// value to this call to prune the list of changes and free up
@@ -537,6 +555,10 @@ impl Surface {
         // cursor while we're repainting.
         result.push(Change::CursorShape(CursorShape::Hidden));
         result.push(Change::ClearScreen(Default::default()));
+
+        if !self.title.is_empty() {
+            result.push(Change::Title(self.title.to_owned()));
+        }
 
         let mut attr = CellAttributes::default();
 
@@ -725,6 +747,18 @@ impl Surface {
     pub fn diff_lines(&self, other_lines: Vec<&Line>) -> Vec<Change> {
         let mut diff_state = DiffState::default();
         for ((row_num, line), other_line) in self.lines.iter().enumerate().zip(other_lines.iter()) {
+            for ((col_num, cell), (_, other_cell)) in
+                line.visible_cells().zip(other_line.visible_cells())
+            {
+                diff_state.diff_cells(col_num, row_num, cell, other_cell);
+            }
+        }
+        diff_state.changes
+    }
+
+    pub fn diff_against_numbered_line(&self, row_num: usize, other_line: &Line) -> Vec<Change> {
+        let mut diff_state = DiffState::default();
+        if let Some(line) = self.lines.get(row_num) {
             for ((col_num, cell), (_, other_cell)) in
                 line.visible_cells().zip(other_line.visible_cells())
             {

@@ -21,6 +21,7 @@ use serde_derive::*;
 use std::sync::Arc;
 use term::{CursorPosition, Line};
 use termwiz::hyperlink::Hyperlink;
+use termwiz::surface::{Change, SequenceNo};
 use varbincode;
 
 /// Returns the encoded length of the leb128 representation of value
@@ -227,6 +228,8 @@ pdu! {
     SendPaste: 13,
     Resize: 14,
     SendMouseEventResponse: 17,
+    GetTabRenderChanges: 18,
+    GetTabRenderChangesResponse: 19,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
@@ -333,6 +336,18 @@ pub struct SendMouseEventResponse {
 pub struct Resize {
     pub tab_id: TabId,
     pub size: PtySize,
+}
+
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct GetTabRenderChanges {
+    pub tab_id: TabId,
+    pub sequence_no: SequenceNo,
+}
+
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct GetTabRenderChangesResponse {
+    pub sequence_no: SequenceNo,
+    pub changes: Vec<Change>,
 }
 
 #[cfg(test)]

@@ -1,4 +1,6 @@
 use crate::config::Config;
+use crate::mux::renderable::Renderable;
+use crate::mux::tab::TabId;
 use crate::mux::Mux;
 use crate::server::codec::*;
 use crate::server::UnixListener;
@@ -8,6 +10,7 @@ use libc::{mode_t, umask};
 use log::{debug, error, warn};
 use native_tls::{Identity, TlsAcceptor};
 use promise::{Executor, Future};
+use std::collections::HashMap;
 use std::convert::{TryFrom, TryInto};
 use std::fs::{remove_file, DirBuilder};
 use std::io::Read;
@@ -15,9 +18,10 @@ use std::net::TcpListener;
 #[cfg(unix)]
 use std::os::unix::fs::{DirBuilderExt, PermissionsExt};
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Instant;
+use termwiz::surface::{Change, Position, SequenceNo, Surface};
 
 struct LocalListener {
     listener: UnixListener,
@@ -186,6 +190,7 @@ impl NetListener {
 pub struct ClientSession<S: std::io::Read + std::io::Write> {
     stream: S,
     executor: Box<dyn Executor>,
+    surfaces_by_tab: Arc<Mutex<HashMap<TabId, Surface>>>,
 }
 
 struct BufferedTerminalHost<'a> {
@@ -220,9 +225,43 @@ impl<'a> term::TerminalHost for BufferedTerminalHost<'a> {
     }
 }
 
+fn update_surface_from_screen(
+    surface: &mut Surface,
+    renderable: &mut dyn Renderable,
+) -> SequenceNo {
+    let (rows, cols) = renderable.physical_dimensions();
+    let (surface_width, surface_height) = surface.dimensions();
+
+    if (rows != surface_height) || (cols != surface_width) {
+        surface.resize(cols, rows);
+        renderable.make_all_lines_dirty();
+    }
+
+    let (x, y) = surface.cursor_position();
+    let cursor = renderable.get_cursor_position();
+    if (x != cursor.x) || (y as i64 != cursor.y) {
+        surface.add_change(Change::CursorPosition {
+            x: Position::Absolute(cursor.x),
+            y: Position::Absolute(cursor.y as usize),
+        });
+    }
+
+    let mut changes = vec![];
+
+    for (line_idx, line, _selrange) in renderable.get_dirty_lines() {
+        changes.append(&mut surface.diff_against_numbered_line(line_idx, &line));
+    }
+
+    surface.add_changes(changes)
+}
+
 impl<S: std::io::Read + std::io::Write> ClientSession<S> {
     fn new(stream: S, executor: Box<dyn Executor>) -> Self {
-        Self { stream, executor }
+        Self {
+            stream,
+            executor,
+            surfaces_by_tab: Arc::new(Mutex::new(HashMap::new())),
+        }
     }
 
     fn process(&mut self) -> Result<(), Error> {
@@ -387,12 +426,53 @@ impl<S: std::io::Read + std::io::Write> ClientSession<S> {
                 Pdu::SpawnResponse(result)
             }
 
+            Pdu::GetTabRenderChanges(GetTabRenderChanges {
+                tab_id,
+                sequence_no,
+            }) => {
+                let surfaces = Arc::clone(&self.surfaces_by_tab);
+                Future::with_executor(self.executor.clone_executor(), move || {
+                    let mux = Mux::get().unwrap();
+                    let tab = mux
+                        .get_tab(tab_id)
+                        .ok_or_else(|| format_err!("no such tab {}", tab_id))?;
+                    let mut surfaces = surfaces.lock().unwrap();
+                    let (rows, cols) = tab.renderer().physical_dimensions();
+                    let surface = surfaces
+                        .entry(tab_id)
+                        .or_insert_with(|| Surface::new(cols, rows));
+                    update_surface_from_screen(surface, &mut *tab.renderer());
+                    let title = tab.get_title();
+                    if title != surface.title() {
+                        log::error!("recording surface title {}", title);
+                        surface.add_change(Change::Title(title));
+                    }
+
+                    let (new_seq, changes) = surface.get_changes(sequence_no);
+                    let changes = changes.into_owned();
+
+                    // Keep the change log in the surface bounded;
+                    // we don't completely blow away the log each time
+                    // so that multiple clients have an opportunity to
+                    // resync from a smaller delta
+                    surface.flush_changes_older_than(new_seq - (rows * cols * 2));
+                    Ok(Pdu::GetTabRenderChangesResponse(
+                        GetTabRenderChangesResponse {
+                            sequence_no: new_seq,
+                            changes,
+                        },
+                    ))
+                })
+                .wait()?
+            }
+
             Pdu::Invalid { .. } => bail!("invalid PDU {:?}", pdu),
             Pdu::Pong { .. }
             | Pdu::ListTabsResponse { .. }
             | Pdu::SendMouseEventResponse { .. }
             | Pdu::GetCoarseTabRenderableDataResponse { .. }
             | Pdu::SpawnResponse { .. }
+            | Pdu::GetTabRenderChangesResponse { .. }
             | Pdu::UnitResponse { .. }
             | Pdu::ErrorResponse { .. } => bail!("expected a request, got {:?}", pdu),
         })

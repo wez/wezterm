@@ -195,4 +195,9 @@ impl Client {
     rpc!(key_down, SendKeyDown, UnitResponse);
     rpc!(mouse_event, SendMouseEvent, SendMouseEventResponse);
     rpc!(resize, Resize, UnitResponse);
+    rpc!(
+        get_tab_render_changes,
+        GetTabRenderChanges,
+        GetTabRenderChangesResponse
+    );
 }

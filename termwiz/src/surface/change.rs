@@ -82,6 +82,9 @@ pub enum Change {
         region_size: usize,
         scroll_count: usize,
     },
+    /// Change the title of the window in which the surface will be
+    /// rendered.
+    Title(String),
 }
 
 impl Change {

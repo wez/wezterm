@@ -18,6 +18,7 @@ use term::{CursorPosition, Line};
 use term::{KeyCode, KeyModifiers, MouseEvent, TerminalHost};
 use termwiz::hyperlink::Hyperlink;
 use termwiz::input::KeyEvent;
+use termwiz::surface::{Change, SequenceNo, Surface};
 
 pub struct ClientTab {
     client: Arc<ClientInner>,
@@ -38,11 +39,12 @@ impl ClientTab {
         let render = RenderableState {
             client: Arc::clone(client),
             remote_tab_id,
-            coarse: RefCell::new(None),
             last_poll: RefCell::new(Instant::now()),
-            dirty_all: RefCell::new(true),
             dead: RefCell::new(false),
             poll_future: RefCell::new(None),
+            surface: RefCell::new(Surface::new(80, 24)),
+            remote_sequence: RefCell::new(0),
+            local_sequence: RefCell::new(0),
         };
 
         let reader = Pipe::new().expect("Pipe::new failed");
@@ -68,14 +70,8 @@ impl Tab for ClientTab {
 
     fn get_title(&self) -> String {
         let renderable = self.renderable.borrow();
-        let coarse = renderable.coarse.borrow();
-        format!(
-            "[muxed] {}",
-            coarse
-                .as_ref()
-                .map(|coarse| coarse.title.as_str())
-                .unwrap_or("")
-        )
+        let surface = renderable.surface.borrow();
+        format!("[muxed] {} {}", surface.current_seqno(), surface.title())
     }
 
     fn send_paste(&self, text: &str) -> Fallible<()> {
@@ -97,6 +93,11 @@ impl Tab for ClientTab {
     }
 
     fn resize(&self, size: PtySize) -> Fallible<()> {
+        self.renderable
+            .borrow()
+            .surface
+            .borrow_mut()
+            .resize(size.cols as usize, size.rows as usize);
         let mut client = self.client.client.lock().unwrap();
         client.resize(Resize {
             tab_id: self.remote_tab_id,
@@ -157,16 +158,25 @@ impl Tab for ClientTab {
 struct RenderableState {
     client: Arc<ClientInner>,
     remote_tab_id: TabId,
-    coarse: RefCell<Option<GetCoarseTabRenderableDataResponse>>,
     last_poll: RefCell<Instant>,
-    dirty_all: RefCell<bool>,
     dead: RefCell<bool>,
-    poll_future: RefCell<Option<Future<GetCoarseTabRenderableDataResponse>>>,
+    poll_future: RefCell<Option<Future<GetTabRenderChangesResponse>>>,
+    surface: RefCell<Surface>,
+    remote_sequence: RefCell<SequenceNo>,
+    local_sequence: RefCell<SequenceNo>,
 }
 
 const POLL_INTERVAL: Duration = Duration::from_millis(50);
 
 impl RenderableState {
+    fn apply_changes_to_surface(&self, remote_seq: SequenceNo, changes: Vec<Change>) {
+        if let Some(first) = changes.first().as_ref() {
+            log::trace!("{:?}", first);
+        }
+        self.surface.borrow_mut().add_changes(changes);
+        *self.remote_sequence.borrow_mut() = remote_seq;
+    }
+
     fn poll(&self) -> Fallible<()> {
         let ready = self
             .poll_future
@@ -175,107 +185,77 @@ impl RenderableState {
             .map(Future::is_ready)
             .unwrap_or(false);
         if ready {
-            let coarse = self.poll_future.borrow_mut().take().unwrap().wait()?;
-            self.coarse.borrow_mut().replace(coarse);
+            let delta = self.poll_future.borrow_mut().take().unwrap().wait()?;
+
             log::trace!(
-                "poll: got coarse data in {:?}",
+                "poll: got delta {} {} in {:?}",
+                delta.sequence_no,
+                delta.changes.len(),
                 self.last_poll.borrow().elapsed()
             );
+            self.apply_changes_to_surface(delta.sequence_no, delta.changes);
             *self.last_poll.borrow_mut() = Instant::now();
         } else if self.poll_future.borrow().is_some() {
             // We have a poll in progress
             return Ok(());
         }
 
-        let dirty_all = *self.dirty_all.borrow();
-
-        if !dirty_all {
-            let last = *self.last_poll.borrow();
-            if last.elapsed() < POLL_INTERVAL {
-                return Ok(());
-            }
+        let last = *self.last_poll.borrow();
+        if last.elapsed() < POLL_INTERVAL {
+            return Ok(());
         }
 
         {
             let mut client = self.client.client.lock().unwrap();
-            *self.poll_future.borrow_mut() = Some(client.get_coarse_tab_renderable_data(
-                GetCoarseTabRenderableData {
+            *self.last_poll.borrow_mut() = Instant::now();
+            *self.poll_future.borrow_mut() =
+                Some(client.get_tab_render_changes(GetTabRenderChanges {
                     tab_id: self.remote_tab_id,
-                    dirty_all,
-                },
-            ));
+                    sequence_no: *self.remote_sequence.borrow(),
+                }));
         }
-        *self.dirty_all.borrow_mut() = false;
         Ok(())
     }
 }
 
 impl Renderable for RenderableState {
     fn get_cursor_position(&self) -> CursorPosition {
-        let coarse = self.coarse.borrow();
-        if let Some(coarse) = coarse.as_ref() {
-            coarse.cursor_position
-        } else {
-            CursorPosition::default()
-        }
+        let (x, y) = self.surface.borrow().cursor_position();
+        CursorPosition { x, y: y as i64 }
     }
 
     fn get_dirty_lines(&self) -> Vec<(usize, Line, Range<usize>)> {
-        let coarse = self.coarse.borrow();
-        if let Some(coarse) = coarse.as_ref() {
-            coarse
-                .dirty_lines
-                .iter()
-                .map(|dl| {
-                    (
-                        dl.line_idx,
-                        dl.line.clone(),
-                        dl.selection_col_from..dl.selection_col_to,
-                    )
-                })
-                .collect()
-        } else {
-            vec![]
-        }
+        let mut surface = self.surface.borrow_mut();
+        let seq = surface.current_seqno();
+        surface.flush_changes_older_than(seq);
+        surface
+            .screen_lines()
+            .into_iter()
+            .enumerate()
+            .map(|(idx, line)| (idx, line, 0..0))
+            .collect()
     }
 
     fn has_dirty_lines(&self) -> bool {
         if self.poll().is_err() {
             *self.dead.borrow_mut() = true;
         }
-
-        let coarse = self.coarse.borrow();
-        if let Some(coarse) = coarse.as_ref() {
-            !coarse.dirty_lines.is_empty()
-        } else {
-            false
-        }
+        self.surface
+            .borrow()
+            .has_changes(*self.local_sequence.borrow())
     }
 
-    fn make_all_lines_dirty(&mut self) {
-        *self.dirty_all.borrow_mut() = true;
-    }
+    fn make_all_lines_dirty(&mut self) {}
 
-    fn clean_dirty_lines(&mut self) {
-        if let Some(c) = self.coarse.borrow_mut().as_mut() {
-            c.dirty_lines.clear()
-        }
-    }
+    fn clean_dirty_lines(&mut self) {}
 
     fn current_highlight(&self) -> Option<Arc<Hyperlink>> {
-        let coarse = self.coarse.borrow();
-        coarse
-            .as_ref()
-            .and_then(|coarse| coarse.current_highlight.clone())
+        None
     }
 
     fn physical_dimensions(&self) -> (usize, usize) {
-        let coarse = self.coarse.borrow();
-        if let Some(coarse) = coarse.as_ref() {
-            (coarse.physical_rows, coarse.physical_cols)
-        } else {
-            (24, 80)
-        }
+        let (cols, rows) = self.surface.borrow().dimensions();
+        (rows, cols)
     }
 }
 
