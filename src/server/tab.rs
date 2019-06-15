@@ -81,7 +81,7 @@ impl Tab for ClientTab {
         client.send_paste(SendPaste {
             tab_id: self.remote_tab_id,
             data: text.to_owned(),
-        })?;
+        });
         Ok(())
     }
 
@@ -99,7 +99,7 @@ impl Tab for ClientTab {
         client.resize(Resize {
             tab_id: self.remote_tab_id,
             size,
-        })?;
+        });
         Ok(())
     }
 
@@ -111,16 +111,18 @@ impl Tab for ClientTab {
                 key,
                 modifiers: mods,
             },
-        })?;
+        });
         Ok(())
     }
 
     fn mouse_event(&self, event: MouseEvent, host: &mut dyn TerminalHost) -> Fallible<()> {
         let mut client = self.client.client.lock().unwrap();
-        let resp = client.mouse_event(SendMouseEvent {
-            tab_id: self.remote_tab_id,
-            event,
-        })?;
+        let resp = client
+            .mouse_event(SendMouseEvent {
+                tab_id: self.remote_tab_id,
+                event,
+            })
+            .wait()?;
 
         if resp.clipboard.is_some() {
             host.set_clipboard(resp.clipboard)?;
@@ -172,10 +174,12 @@ impl RenderableState {
 
         {
             let mut client = self.client.client.lock().unwrap();
-            let coarse = client.get_coarse_tab_renderable_data(GetCoarseTabRenderableData {
-                tab_id: self.remote_tab_id,
-                dirty_all,
-            })?;
+            let coarse = client
+                .get_coarse_tab_renderable_data(GetCoarseTabRenderableData {
+                    tab_id: self.remote_tab_id,
+                    dirty_all,
+                })
+                .wait()?;
             self.coarse.borrow_mut().replace(coarse);
         }
         *self.last_poll.borrow_mut() = Instant::now();
@@ -266,6 +270,7 @@ impl std::io::Write for TabWriter {
                 tab_id: self.remote_tab_id,
                 data: data.to_vec(),
             })
+            .wait()
             .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, format!("{}", e)))?;
         Ok(data.len())
     }

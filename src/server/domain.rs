@@ -93,12 +93,14 @@ impl Domain for ClientDomain {
         let remote_tab_id = {
             let mut client = self.inner.client.lock().unwrap();
 
-            let result = client.spawn(Spawn {
-                domain_id: self.inner.remote_domain_id,
-                window_id: self.inner.local_to_remote_window(window),
-                size,
-                command,
-            })?;
+            let result = client
+                .spawn(Spawn {
+                    domain_id: self.inner.remote_domain_id,
+                    window_id: self.inner.local_to_remote_window(window),
+                    size,
+                    command,
+                })
+                .wait()?;
 
             self.inner
                 .record_remote_to_local_window_mapping(result.window_id, window);
@@ -116,7 +118,7 @@ impl Domain for ClientDomain {
     fn attach(&self) -> Fallible<()> {
         let mux = Mux::get().unwrap();
         let mut client = self.inner.client.lock().unwrap();
-        let tabs = client.list_tabs()?;
+        let tabs = client.list_tabs().wait()?;
         log::error!("ListTabs result {:#?}", tabs);
 
         for entry in tabs.tabs.iter() {

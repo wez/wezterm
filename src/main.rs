@@ -228,7 +228,7 @@ fn main() -> Result<(), Error> {
                         },
                     ];
                     let mut data = vec![];
-                    let tabs = client.list_tabs()?;
+                    let tabs = client.list_tabs().wait()?;
                     for entry in tabs.tabs.iter() {
                         data.push(vec![
                             entry.window_id.to_string(),

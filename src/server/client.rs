@@ -3,32 +3,40 @@ use crate::config::Config;
 use crate::server::codec::*;
 use crate::server::listener::IdentitySource;
 use crate::server::UnixStream;
-use failure::{bail, ensure, err_msg, format_err, Error, Fallible};
+use failure::{bail, err_msg, format_err, Fallible};
 use log::info;
 use native_tls::TlsConnector;
+use promise::{Future, Promise};
+use std::collections::HashMap;
 use std::convert::TryInto;
 use std::net::TcpStream;
 use std::path::Path;
+use std::sync::mpsc::{channel, Receiver, Sender, TryRecvError};
 use std::sync::Arc;
-use std::time::Instant;
+use std::thread;
 
-pub trait ReadAndWrite: std::io::Read + std::io::Write {}
+pub trait ReadAndWrite: std::io::Read + std::io::Write + Send {}
 impl ReadAndWrite for UnixStream {}
 impl ReadAndWrite for native_tls::TlsStream<std::net::TcpStream> {}
 
+enum ReaderMessage {
+    SendPdu { pdu: Pdu, promise: Promise<Pdu> },
+}
+
 pub struct Client {
-    stream: Box<dyn ReadAndWrite>,
-    serial: u64,
+    sender: Sender<ReaderMessage>,
 }
 
 macro_rules! rpc {
     ($method_name:ident, $request_type:ident, $response_type:ident) => {
-        pub fn $method_name(&mut self, pdu: $request_type) -> Result<$response_type, Error> {
-            let result = self.send_pdu(Pdu::$request_type(pdu))?;
+        pub fn $method_name(&mut self, pdu: $request_type) -> Future<$response_type> {
+            self.send_pdu(Pdu::$request_type(pdu)).then(|result| {
             match result {
-                Pdu::$response_type(res) => Ok(res),
-                _ => bail!("unexpected response {:?}", result),
+                Ok(Pdu::$response_type(res)) => Ok(res),
+                Ok(_) => bail!("unexpected response {:?}", result),
+                Err(err) => Err(err),
             }
+        })
         }
     };
 
@@ -36,17 +44,82 @@ macro_rules! rpc {
     // in the case where the struct is empty and present only for the purpose
     // of typing the request.
     ($method_name:ident, $request_type:ident=(), $response_type:ident) => {
-        pub fn $method_name(&mut self) -> Result<$response_type, Error> {
-            let result = self.send_pdu(Pdu::$request_type($request_type{}))?;
+        pub fn $method_name(&mut self) -> Future<$response_type> {
+            self.send_pdu(Pdu::$request_type($request_type{})).then(|result| {
             match result {
-                Pdu::$response_type(res) => Ok(res),
-                _ => bail!("unexpected response {:?}", result),
+                Ok(Pdu::$response_type(res)) => Ok(res),
+                Ok(_) => bail!("unexpected response {:?}", result),
+                Err(err) => Err(err),
             }
+            })
         }
     };
 }
 
+fn client_thread_inner(
+    mut stream: Box<dyn ReadAndWrite>,
+    rx: Receiver<ReaderMessage>,
+    promises: &mut HashMap<u64, Promise<Pdu>>,
+) -> Fallible<()> {
+    let mut next_serial = 0u64;
+    loop {
+        match rx.try_recv() {
+            Ok(msg) => match msg {
+                ReaderMessage::SendPdu { pdu, promise } => {
+                    let serial = next_serial;
+                    next_serial += 1;
+                    promises.insert(serial, promise);
+
+                    pdu.encode(&mut stream, serial)?;
+                    stream.flush()?;
+                }
+            },
+            Err(TryRecvError::Empty) => {}
+            Err(TryRecvError::Disconnected) => bail!("Client was destroyed"),
+        }
+
+        if !promises.is_empty() {
+            let decoded = Pdu::decode(&mut stream)?;
+            if let Some(mut promise) = promises.remove(&decoded.serial) {
+                promise.result(Ok(decoded.pdu));
+            } else {
+                log::error!(
+                    "got serial {} without a corresponding promise",
+                    decoded.serial
+                );
+            }
+        }
+    }
+}
+
+fn client_thread(stream: Box<dyn ReadAndWrite>, rx: Receiver<ReaderMessage>) -> Fallible<()> {
+    let mut promises = HashMap::new();
+
+    let res = client_thread_inner(stream, rx, &mut promises);
+
+    // be sure to fail any extant promises: on macos at least, the
+    // rust condvar implementation doesn't wake any waiters when
+    // it is destroyed, which can lead to a deadlock on shutdown.
+    for promise in promises.values_mut() {
+        promise.err(err_msg("client thread ended"));
+    }
+
+    res
+}
+
 impl Client {
+    pub fn new(stream: Box<dyn ReadAndWrite>) -> Self {
+        let (sender, receiver) = channel();
+
+        thread::spawn(move || {
+            if let Err(e) = client_thread(stream, receiver) {
+                log::error!("client thread ended: {}", e);
+            }
+        });
+
+        Self { sender }
+    }
+
     pub fn new_unix_domain(config: &Arc<Config>) -> Fallible<Self> {
         let sock_path = Path::new(
             config
@@ -56,7 +129,7 @@ impl Client {
         );
         info!("connect to {}", sock_path.display());
         let stream = Box::new(UnixStream::connect(sock_path)?);
-        Ok(Self { stream, serial: 0 })
+        Ok(Self::new(stream))
     }
 
     pub fn new_tls(config: &Arc<Config>) -> Fallible<Self> {
@@ -102,27 +175,16 @@ impl Client {
                 e
             )
         })?);
-        Ok(Self { stream, serial: 0 })
+        Ok(Self::new(stream))
     }
 
-    pub fn send_pdu(&mut self, pdu: Pdu) -> Result<Pdu, Error> {
-        let serial = self.serial;
-        self.serial += 1;
-
-        pdu.encode(&mut self.stream, serial)?;
-        self.stream.flush()?;
-
-        let start = Instant::now();
-        let decoded = Pdu::decode(&mut self.stream)?;
-        log::trace!("send_pdu recv: {:?} {:?}", pdu, start.elapsed());
-
-        ensure!(
-            decoded.serial == serial,
-            "got out of order response (expected serial {} but got {:?}",
-            serial,
-            decoded
-        );
-        Ok(decoded.pdu)
+    pub fn send_pdu(&mut self, pdu: Pdu) -> Future<Pdu> {
+        let mut promise = Promise::new();
+        let future = promise.get_future().expect("future already taken!?");
+        match self.sender.send(ReaderMessage::SendPdu { pdu, promise }) {
+            Ok(_) => future,
+            Err(err) => Future::err(format_err!("{}", err)),
+        }
     }
 
     rpc!(ping, Ping = (), Pong);
