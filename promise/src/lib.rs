@@ -199,6 +199,16 @@ impl<T: Send + 'static> Future<T> {
         }
     }
 
+    pub fn is_ready(&self) -> bool {
+        match &self.state {
+            FutureState::Waiting(core) => {
+                let locked = core.data.lock().unwrap();
+                locked.result.is_some()
+            }
+            FutureState::Ready(_) => true,
+        }
+    }
+
     /// When this future resolves, then map the result via the
     /// supplied lambda, which returns something that is convertible
     /// to a Future.

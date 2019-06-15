@@ -7,6 +7,7 @@ use failure::Fallible;
 use filedescriptor::Pipe;
 use log::error;
 use portable_pty::PtySize;
+use promise::Future;
 use std::cell::RefCell;
 use std::cell::RefMut;
 use std::ops::Range;
@@ -41,6 +42,7 @@ impl ClientTab {
             last_poll: RefCell::new(Instant::now()),
             dirty_all: RefCell::new(true),
             dead: RefCell::new(false),
+            poll_future: RefCell::new(None),
         };
 
         let reader = Pipe::new().expect("Pipe::new failed");
@@ -157,12 +159,32 @@ struct RenderableState {
     last_poll: RefCell<Instant>,
     dirty_all: RefCell<bool>,
     dead: RefCell<bool>,
+    poll_future: RefCell<Option<Future<GetCoarseTabRenderableDataResponse>>>,
 }
 
 const POLL_INTERVAL: Duration = Duration::from_millis(50);
 
 impl RenderableState {
     fn poll(&self) -> Fallible<()> {
+        let ready = self
+            .poll_future
+            .borrow()
+            .as_ref()
+            .map(Future::is_ready)
+            .unwrap_or(false);
+        if ready {
+            let coarse = self.poll_future.borrow_mut().take().unwrap().wait()?;
+            self.coarse.borrow_mut().replace(coarse);
+            log::trace!(
+                "poll: got coarse data in {:?}",
+                self.last_poll.borrow().elapsed()
+            );
+            *self.last_poll.borrow_mut() = Instant::now();
+        } else if self.poll_future.borrow().is_some() {
+            // We have a poll in progress
+            return Ok(());
+        }
+
         let dirty_all = *self.dirty_all.borrow();
 
         if !dirty_all {
@@ -174,15 +196,13 @@ impl RenderableState {
 
         {
             let mut client = self.client.client.lock().unwrap();
-            let coarse = client
-                .get_coarse_tab_renderable_data(GetCoarseTabRenderableData {
+            *self.poll_future.borrow_mut() = Some(client.get_coarse_tab_renderable_data(
+                GetCoarseTabRenderableData {
                     tab_id: self.remote_tab_id,
                     dirty_all,
-                })
-                .wait()?;
-            self.coarse.borrow_mut().replace(coarse);
+                },
+            ));
         }
-        *self.last_poll.borrow_mut() = Instant::now();
         *self.dirty_all.borrow_mut() = false;
         Ok(())
     }

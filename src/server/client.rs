@@ -63,8 +63,23 @@ fn client_thread_inner(
 ) -> Fallible<()> {
     let mut next_serial = 0u64;
     loop {
-        match rx.try_recv() {
-            Ok(msg) => match msg {
+        let msg = if promises.is_empty() {
+            // If we don't have any results to read back, then we can and
+            // should block on an incoming request, otherwise we'll busy
+            // wait in this loop
+            match rx.recv() {
+                Ok(msg) => Some(msg),
+                Err(err) => bail!("Client was destroyed: {}", err),
+            }
+        } else {
+            match rx.try_recv() {
+                Ok(msg) => Some(msg),
+                Err(TryRecvError::Empty) => None,
+                Err(TryRecvError::Disconnected) => bail!("Client was destroyed"),
+            }
+        };
+        if let Some(msg) = msg {
+            match msg {
                 ReaderMessage::SendPdu { pdu, promise } => {
                     let serial = next_serial;
                     next_serial += 1;
@@ -73,9 +88,7 @@ fn client_thread_inner(
                     pdu.encode(&mut stream, serial)?;
                     stream.flush()?;
                 }
-            },
-            Err(TryRecvError::Empty) => {}
-            Err(TryRecvError::Disconnected) => bail!("Client was destroyed"),
+            }
         }
 
         if !promises.is_empty() {
