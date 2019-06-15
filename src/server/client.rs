@@ -56,12 +56,9 @@ macro_rules! rpc {
     };
 }
 
-fn client_thread_inner(
-    mut stream: Box<dyn ReadAndWrite>,
-    rx: Receiver<ReaderMessage>,
-    promises: &mut HashMap<u64, Promise<Pdu>>,
-) -> Fallible<()> {
+fn client_thread(mut stream: Box<dyn ReadAndWrite>, rx: Receiver<ReaderMessage>) -> Fallible<()> {
     let mut next_serial = 0u64;
+    let mut promises = HashMap::new();
     loop {
         let msg = if promises.is_empty() {
             // If we don't have any results to read back, then we can and
@@ -103,21 +100,6 @@ fn client_thread_inner(
             }
         }
     }
-}
-
-fn client_thread(stream: Box<dyn ReadAndWrite>, rx: Receiver<ReaderMessage>) -> Fallible<()> {
-    let mut promises = HashMap::new();
-
-    let res = client_thread_inner(stream, rx, &mut promises);
-
-    // be sure to fail any extant promises: on macos at least, the
-    // rust condvar implementation doesn't wake any waiters when
-    // it is destroyed, which can lead to a deadlock on shutdown.
-    for promise in promises.values_mut() {
-        promise.err(err_msg("client thread ended"));
-    }
-
-    res
 }
 
 impl Client {

@@ -73,6 +73,21 @@ impl<T> Default for Promise<T> {
     }
 }
 
+impl<T> Drop for Promise<T> {
+    fn drop(&mut self) {
+        if let PromiseState::Waiting(core) = &mut self.state {
+            let err = Err(failure::err_msg("Promise was dropped before completion"));
+            let mut locked = core.data.lock().unwrap();
+            if let Some(func) = locked.propagate.take() {
+                func(err);
+            } else {
+                locked.result = Some(err);
+            }
+            core.cond.notify_one();
+        }
+    }
+}
+
 impl<T> Promise<T> {
     pub fn new() -> Self {
         let core = Arc::new(Core {
