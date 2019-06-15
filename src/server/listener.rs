@@ -383,7 +383,7 @@ impl<S: std::io::Read + std::io::Write> ClientSession<S> {
                 Pdu::UnitResponse(UnitResponse {})
             }
             Pdu::SendMouseEvent(SendMouseEvent { tab_id, event }) => {
-                let clipboard = Future::with_executor(self.executor.clone_executor(), move || {
+                Future::with_executor(self.executor.clone_executor(), move || {
                     let mux = Mux::get().unwrap();
                     let tab = mux
                         .get_tab(tab_id)
@@ -394,10 +394,12 @@ impl<S: std::io::Read + std::io::Write> ClientSession<S> {
                         title: None,
                     };
                     tab.mouse_event(event, &mut host)?;
-                    Ok(host.clipboard)
+                    Ok(Pdu::SendMouseEventResponse(SendMouseEventResponse {
+                        clipboard: host.clipboard,
+                        selection_range: tab.selection_range(),
+                    }))
                 })
-                .wait()?;
-                Pdu::SendMouseEventResponse(SendMouseEventResponse { clipboard })
+                .wait()?
             }
 
             Pdu::Spawn(spawn) => {

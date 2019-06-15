@@ -19,6 +19,7 @@ use log::debug;
 use portable_pty::{CommandBuilder, PtySize};
 use serde_derive::*;
 use std::sync::Arc;
+use term::selection::SelectionRange;
 use term::{CursorPosition, Line};
 use termwiz::hyperlink::Hyperlink;
 use termwiz::surface::{Change, SequenceNo};
@@ -330,6 +331,7 @@ pub struct SendMouseEvent {
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
 pub struct SendMouseEventResponse {
     pub clipboard: Option<String>,
+    pub selection_range: Option<SelectionRange>,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]

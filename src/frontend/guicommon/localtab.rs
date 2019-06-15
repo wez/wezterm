@@ -5,6 +5,7 @@ use failure::Error;
 use portable_pty::{Child, MasterPty, PtySize};
 use std::cell::{RefCell, RefMut};
 use term::color::ColorPalette;
+use term::selection::SelectionRange;
 use term::{KeyCode, KeyModifiers, MouseEvent, Terminal, TerminalHost};
 
 pub struct LocalTab {
@@ -80,6 +81,14 @@ impl Tab for LocalTab {
 
     fn domain_id(&self) -> DomainId {
         self.domain_id
+    }
+
+    fn selection_range(&self) -> Option<SelectionRange> {
+        let terminal = self.terminal.borrow();
+        let rows = terminal.screen().physical_rows;
+        terminal
+            .selection_range()
+            .map(|r| r.clip_to_viewport(terminal.get_viewport_offset(), rows))
     }
 }
 

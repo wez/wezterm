@@ -5,6 +5,7 @@ use failure::Fallible;
 use portable_pty::PtySize;
 use std::cell::RefMut;
 use term::color::ColorPalette;
+use term::selection::SelectionRange;
 use term::{KeyCode, KeyModifiers, MouseEvent, TerminalHost};
 
 static TAB_ID: ::std::sync::atomic::AtomicUsize = ::std::sync::atomic::AtomicUsize::new(0);
@@ -28,5 +29,10 @@ pub trait Tab: Downcast {
     fn is_dead(&self) -> bool;
     fn palette(&self) -> ColorPalette;
     fn domain_id(&self) -> DomainId;
+
+    /// Returns the selection range adjusted to the viewport
+    /// (eg: it has been normalized and had clip_to_viewport called
+    /// on it prior to being returned)
+    fn selection_range(&self) -> Option<SelectionRange>;
 }
 impl_downcast!(Tab);

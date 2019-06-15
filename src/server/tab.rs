@@ -14,6 +14,7 @@ use std::ops::Range;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use term::color::ColorPalette;
+use term::selection::SelectionRange;
 use term::{CursorPosition, Line};
 use term::{KeyCode, KeyModifiers, MouseEvent, TerminalHost};
 use termwiz::hyperlink::Hyperlink;
@@ -45,6 +46,7 @@ impl ClientTab {
             surface: RefCell::new(Surface::new(80, 24)),
             remote_sequence: RefCell::new(0),
             local_sequence: RefCell::new(0),
+            selection_range: RefCell::new(None),
         };
 
         let reader = Pipe::new().expect("Pipe::new failed");
@@ -130,6 +132,7 @@ impl Tab for ClientTab {
         if resp.clipboard.is_some() {
             host.set_clipboard(resp.clipboard)?;
         }
+        *self.renderable.borrow().selection_range.borrow_mut() = resp.selection_range;
 
         Ok(())
     }
@@ -153,6 +156,10 @@ impl Tab for ClientTab {
     fn domain_id(&self) -> DomainId {
         self.client.local_domain_id
     }
+
+    fn selection_range(&self) -> Option<SelectionRange> {
+        self.renderable.borrow().selection_range.borrow().clone()
+    }
 }
 
 struct RenderableState {
@@ -164,6 +171,7 @@ struct RenderableState {
     surface: RefCell<Surface>,
     remote_sequence: RefCell<SequenceNo>,
     local_sequence: RefCell<SequenceNo>,
+    selection_range: RefCell<Option<SelectionRange>>,
 }
 
 const POLL_INTERVAL: Duration = Duration::from_millis(50);
@@ -228,11 +236,18 @@ impl Renderable for RenderableState {
         let mut surface = self.surface.borrow_mut();
         let seq = surface.current_seqno();
         surface.flush_changes_older_than(seq);
+        let selection = *self.selection_range.borrow();
         surface
             .screen_lines()
             .into_iter()
             .enumerate()
-            .map(|(idx, line)| (idx, line, 0..0))
+            .map(|(idx, line)| {
+                let r = match selection {
+                    None => 0..0,
+                    Some(sel) => sel.cols_for_row(idx as i32),
+                };
+                (idx, line, r)
+            })
             .collect()
     }
 
