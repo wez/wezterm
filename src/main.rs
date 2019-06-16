@@ -146,10 +146,10 @@ fn run_terminal_gui(config: Arc<config::Config>, opts: &StartCommand) -> Result<
     };
 
     let domain: Arc<dyn Domain> = if opts.mux_client_as_default_domain {
-        let client = Client::new_unix_domain(&config)?;
+        let client = Client::new_unix_domain(&config, None)?;
         Arc::new(ClientDomain::new(client))
     } else if opts.mux_tls_client_as_default_domain {
-        let client = Client::new_tls(&config)?;
+        let client = Client::new_tls(&config, None)?;
         Arc::new(ClientDomain::new(client))
     } else {
         Arc::new(LocalDomain::new(&config)?)
@@ -210,7 +210,7 @@ fn main() -> Result<(), Error> {
             run_terminal_gui(config, &start)
         }
         SubCommand::Cli(cli) => {
-            let client = Client::new_unix_domain(&config)?;
+            let client = Client::new_unix_domain(&config, None)?;
             match cli.sub {
                 CliSubCommand::List => {
                     let cols = vec![

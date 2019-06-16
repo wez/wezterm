@@ -57,8 +57,12 @@ macro_rules! rpc {
     };
 }
 
-fn client_thread(mut stream: Box<dyn ReadAndWrite>, rx: Receiver<ReaderMessage>) -> Fallible<()> {
-    let mut next_serial = 0u64;
+fn client_thread(
+    mut stream: Box<dyn ReadAndWrite>,
+    rx: Receiver<ReaderMessage>,
+    _unilaterals: Option<Sender<Pdu>>,
+) -> Fallible<()> {
+    let mut next_serial = 1u64;
     let mut promises = HashMap::new();
     loop {
         let msg = if promises.is_empty() {
@@ -104,11 +108,11 @@ fn client_thread(mut stream: Box<dyn ReadAndWrite>, rx: Receiver<ReaderMessage>)
 }
 
 impl Client {
-    pub fn new(stream: Box<dyn ReadAndWrite>) -> Self {
+    pub fn new(stream: Box<dyn ReadAndWrite>, unilaterals: Option<Sender<Pdu>>) -> Self {
         let (sender, receiver) = channel();
 
         thread::spawn(move || {
-            if let Err(e) = client_thread(stream, receiver) {
+            if let Err(e) = client_thread(stream, receiver, unilaterals) {
                 log::error!("client thread ended: {}", e);
             }
         });
@@ -116,7 +120,10 @@ impl Client {
         Self { sender }
     }
 
-    pub fn new_unix_domain(config: &Arc<Config>) -> Fallible<Self> {
+    pub fn new_unix_domain(
+        config: &Arc<Config>,
+        unilaterals: Option<Sender<Pdu>>,
+    ) -> Fallible<Self> {
         let sock_path = Path::new(
             config
                 .mux_server_unix_domain_socket_path
@@ -125,10 +132,10 @@ impl Client {
         );
         info!("connect to {}", sock_path.display());
         let stream = Box::new(UnixStream::connect(sock_path)?);
-        Ok(Self::new(stream))
+        Ok(Self::new(stream, unilaterals))
     }
 
-    pub fn new_tls(config: &Arc<Config>) -> Fallible<Self> {
+    pub fn new_tls(config: &Arc<Config>, unilaterals: Option<Sender<Pdu>>) -> Fallible<Self> {
         let remote_address = config
             .mux_server_remote_address
             .as_ref()
@@ -171,7 +178,7 @@ impl Client {
                 e
             )
         })?);
-        Ok(Self::new(stream))
+        Ok(Self::new(stream, unilaterals))
     }
 
     pub fn send_pdu(&self, pdu: Pdu) -> Future<Pdu> {
