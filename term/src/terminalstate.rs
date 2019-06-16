@@ -270,6 +270,10 @@ impl TerminalState {
         &self.palette
     }
 
+    pub fn palette_mut(&mut self) -> &mut ColorPalette {
+        &mut self.palette
+    }
+
     pub fn screen(&self) -> &Screen {
         &self.screen
     }
