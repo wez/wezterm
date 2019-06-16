@@ -248,7 +248,7 @@ impl Pdu {
                 // constrained the offsets accordingly.
                 unsafe {
                     std::ptr::copy_nonoverlapping(
-                        buffer.as_ptr().offset(consumed as isize),
+                        buffer.as_ptr().add(consumed),
                         buffer.as_mut_ptr(),
                         remain,
                     );

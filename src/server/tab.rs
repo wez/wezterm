@@ -104,7 +104,7 @@ impl MouseState {
                     })
                     .then(move |resp| {
                         if let Ok(r) = resp.as_ref() {
-                            *selection_range.lock().unwrap() = r.selection_range.clone();
+                            *selection_range.lock().unwrap() = r.selection_range;
                             *something_changed.lock().unwrap() = true;
                         }
                         Future::with_executor(gui_executor().unwrap(), move || {
@@ -262,12 +262,7 @@ impl Tab for ClientTab {
     }
 
     fn selection_range(&self) -> Option<SelectionRange> {
-        self.renderable
-            .borrow()
-            .selection_range
-            .lock()
-            .unwrap()
-            .clone()
+        *self.renderable.borrow().selection_range.lock().unwrap()
     }
 }
 
