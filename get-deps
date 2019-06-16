@@ -5,6 +5,7 @@ if test -e /etc/centos-release || test -e /etc/fedora-release; then
   yum install -y \
     cmake \
     fontconfig-devel \
+    openssl-devel \
     libxcb-devel \
     libxkbcommon-devel \
     libxkbcommon-x11-devel \
@@ -21,6 +22,7 @@ case `lsb_release -ds` in
       bsdutils \
       cmake \
       libegl1-mesa-dev \
+      libssl-dev \
       libfontconfig1-dev \
       libxcb-ewmh-dev \
       libxcb-icccm4-dev \
