@@ -13,11 +13,12 @@
 use crate::mux::domain::DomainId;
 use crate::mux::tab::TabId;
 use crate::mux::window::WindowId;
-use failure::{bail, Error};
+use failure::{bail, Error, Fallible};
 use leb128;
 use log::debug;
 use portable_pty::{CommandBuilder, PtySize};
 use serde_derive::*;
+use std::io::Cursor;
 use std::sync::Arc;
 use term::selection::SelectionRange;
 use term::{CursorPosition, Line};
@@ -77,8 +78,10 @@ fn encode_raw<W: std::io::Write>(
 
 /// Read a single leb128 encoded value from the stream
 fn read_u64<R: std::io::Read>(mut r: R) -> Result<u64, std::io::Error> {
-    leb128::read::unsigned(&mut r)
-        .map_err(|err| std::io::Error::new(std::io::ErrorKind::Other, format!("{}", err)))
+    leb128::read::unsigned(&mut r).map_err(|err| match err {
+        leb128::read::Error::IoError(ioerr) => ioerr,
+        err => std::io::Error::new(std::io::ErrorKind::Other, format!("{}", err)),
+    })
 }
 
 #[derive(Debug)]
@@ -231,6 +234,62 @@ pdu! {
     SendMouseEventResponse: 17,
     GetTabRenderChanges: 18,
     GetTabRenderChangesResponse: 19,
+}
+
+impl Pdu {
+    pub fn stream_decode(buffer: &mut Vec<u8>) -> Fallible<Option<DecodedPdu>> {
+        let mut cursor = Cursor::new(buffer.as_slice());
+        match Self::decode(&mut cursor) {
+            Ok(decoded) => {
+                let consumed = cursor.position() as usize;
+                let remain = buffer.len() - consumed;
+                // Remove `consumed` bytes from the start of the vec.
+                // This is safe because the vec is just bytes and we are
+                // constrained the offsets accordingly.
+                unsafe {
+                    std::ptr::copy_nonoverlapping(
+                        buffer.as_ptr().offset(consumed as isize),
+                        buffer.as_mut_ptr(),
+                        remain,
+                    );
+                }
+                buffer.truncate(remain);
+                Ok(Some(decoded))
+            }
+            Err(err) => {
+                if let Some(ioerr) = err.downcast_ref::<std::io::Error>() {
+                    match ioerr.kind() {
+                        std::io::ErrorKind::UnexpectedEof | std::io::ErrorKind::WouldBlock => {
+                            return Ok(None);
+                        }
+                        _ => {}
+                    }
+                }
+                Err(err)
+            }
+        }
+    }
+
+    pub fn try_read_and_decode<R: std::io::Read>(
+        r: &mut R,
+        buffer: &mut Vec<u8>,
+    ) -> Fallible<Option<DecodedPdu>> {
+        loop {
+            if let Some(decoded) = Self::stream_decode(buffer)? {
+                return Ok(Some(decoded));
+            }
+
+            let mut buf = [0u8; 4096];
+            let size = r.read(&mut buf)?;
+            if size == 0 {
+                return Err(
+                    std::io::Error::new(std::io::ErrorKind::UnexpectedEof, "End Of File").into(),
+                );
+            }
+
+            buffer.extend_from_slice(&buf[0..size]);
+        }
+    }
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
@@ -394,6 +453,37 @@ mod test {
                 pdu: Pdu::Ping(Ping {})
             },
             Pdu::decode(encoded.as_slice()).unwrap()
+        );
+    }
+
+    #[test]
+    fn stream_decode() {
+        let mut encoded = Vec::new();
+        Pdu::Ping(Ping {}).encode(&mut encoded, 0x1).unwrap();
+        Pdu::Pong(Pong {}).encode(&mut encoded, 0x2).unwrap();
+        assert_eq!(encoded.len(), 6);
+
+        let mut cursor = Cursor::new(encoded.as_slice());
+        let mut read_buffer = Vec::new();
+
+        assert_eq!(
+            Pdu::try_read_and_decode(&mut cursor, &mut read_buffer).unwrap(),
+            Some(DecodedPdu {
+                serial: 1,
+                pdu: Pdu::Ping(Ping {})
+            })
+        );
+        assert_eq!(
+            Pdu::try_read_and_decode(&mut cursor, &mut read_buffer).unwrap(),
+            Some(DecodedPdu {
+                serial: 2,
+                pdu: Pdu::Pong(Pong {})
+            })
+        );
+        let err = Pdu::try_read_and_decode(&mut cursor, &mut read_buffer).unwrap_err();
+        assert_eq!(
+            err.downcast_ref::<std::io::Error>().unwrap().kind(),
+            std::io::ErrorKind::UnexpectedEof
         );
     }
 
