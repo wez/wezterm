@@ -380,19 +380,19 @@ impl GliumTerminalWindow {
         // We currently only care about vertical scrolling so the code
         // below will return early if all we have is horizontal scroll
         // components.
-        let (button, times) = match delta {
+        let button = match delta {
             glutin::MouseScrollDelta::LineDelta(_, lines) if lines > 0.0 => {
-                (MouseButton::WheelUp, lines.abs().ceil() as usize)
+                MouseButton::WheelUp(lines.abs().ceil() as usize)
             }
             glutin::MouseScrollDelta::LineDelta(_, lines) if lines < 0.0 => {
-                (MouseButton::WheelDown, lines.abs().ceil() as usize)
+                MouseButton::WheelDown(lines.abs().ceil() as usize)
             }
             glutin::MouseScrollDelta::PixelDelta(position) => {
                 let lines = position.y / self.cell_height as f64;
                 if lines > 0.0 {
-                    (MouseButton::WheelUp, lines.abs().ceil() as usize)
+                    MouseButton::WheelUp(lines.abs().ceil() as usize)
                 } else if lines < 0.0 {
-                    (MouseButton::WheelDown, lines.abs().ceil() as usize)
+                    MouseButton::WheelDown(lines.abs().ceil() as usize)
                 } else {
                     return Ok(());
                 }
@@ -405,18 +405,16 @@ impl GliumTerminalWindow {
             Some(tab) => tab,
             None => return Ok(()),
         };
-        for _ in 0..times {
-            tab.mouse_event(
-                term::MouseEvent {
-                    kind: MouseEventKind::Press,
-                    button,
-                    x: (self.last_mouse_coords.x as usize / self.cell_width) as usize,
-                    y: (self.last_mouse_coords.y as usize / self.cell_height) as i64,
-                    modifiers: Self::decode_modifiers(modifiers),
-                },
-                &mut TabHost::new(&mut *tab.writer(), &mut self.host),
-            )?;
-        }
+        tab.mouse_event(
+            term::MouseEvent {
+                kind: MouseEventKind::Press,
+                button,
+                x: (self.last_mouse_coords.x as usize / self.cell_width) as usize,
+                y: (self.last_mouse_coords.y as usize / self.cell_height) as i64,
+                modifiers: Self::decode_modifiers(modifiers),
+            },
+            &mut TabHost::new(&mut *tab.writer(), &mut self.host),
+        )?;
         self.paint_if_needed()?;
 
         Ok(())

@@ -1,6 +1,8 @@
+use crate::frontend::gui_executor;
 use crate::mux::domain::DomainId;
 use crate::mux::renderable::Renderable;
 use crate::mux::tab::{alloc_tab_id, Tab, TabId};
+use crate::server::client::Client;
 use crate::server::codec::*;
 use crate::server::domain::ClientInner;
 use failure::Fallible;
@@ -10,16 +12,112 @@ use portable_pty::PtySize;
 use promise::Future;
 use std::cell::RefCell;
 use std::cell::RefMut;
+use std::collections::VecDeque;
 use std::ops::Range;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use term::color::ColorPalette;
 use term::selection::SelectionRange;
 use term::{CursorPosition, Line};
-use term::{KeyCode, KeyModifiers, MouseEvent, TerminalHost};
+use term::{KeyCode, KeyModifiers, MouseButton, MouseEvent, MouseEventKind, TerminalHost};
 use termwiz::hyperlink::Hyperlink;
 use termwiz::input::KeyEvent;
 use termwiz::surface::{Change, SequenceNo, Surface};
+
+struct MouseState {
+    future: Option<Future<()>>,
+    queue: VecDeque<MouseEvent>,
+    selection_range: Arc<Mutex<Option<SelectionRange>>>,
+    something_changed: Arc<Mutex<bool>>,
+    client: Client,
+    remote_tab_id: TabId,
+}
+
+impl MouseState {
+    fn append(&mut self, event: MouseEvent) {
+        if let Some(last) = self.queue.back_mut() {
+            if last.modifiers == event.modifiers {
+                if last.kind == MouseEventKind::Move
+                    && event.kind == MouseEventKind::Move
+                    && last.button == event.button
+                {
+                    // Collapse any interim moves and just buffer up
+                    // the last of them
+                    *last = event;
+                    return;
+                }
+
+                // Similarly, for repeated wheel scrolls, add up the deltas
+                // rather than swamping the queue
+                match (&last.button, &event.button) {
+                    (MouseButton::WheelUp(a), MouseButton::WheelUp(b)) => {
+                        last.button = MouseButton::WheelUp(a + b);
+                        return;
+                    }
+                    (MouseButton::WheelDown(a), MouseButton::WheelDown(b)) => {
+                        last.button = MouseButton::WheelDown(a + b);
+                        return;
+                    }
+                    _ => {}
+                }
+            }
+        }
+        self.queue.push_back(event);
+        log::trace!("MouseEvent {}: queued", self.queue.len());
+    }
+
+    fn pop(&mut self) -> Fallible<Option<MouseEvent>> {
+        if self.can_send()? {
+            Ok(self.queue.pop_front())
+        } else {
+            Ok(None)
+        }
+    }
+
+    fn can_send(&mut self) -> Fallible<bool> {
+        if self.future.is_none() {
+            Ok(true)
+        } else {
+            let ready = self.future.as_ref().map(Future::is_ready).unwrap_or(false);
+            if ready {
+                self.future.take().unwrap().wait()?;
+                Ok(true)
+            } else {
+                Ok(false)
+            }
+        }
+    }
+
+    fn next(state: &Arc<Mutex<Self>>) -> Fallible<()> {
+        let mut mouse = state.lock().unwrap();
+        if let Some(event) = mouse.pop()? {
+            let selection_range = Arc::clone(&mouse.selection_range);
+            let something_changed = Arc::clone(&mouse.something_changed);
+            let state = Arc::clone(state);
+
+            mouse.future = Some(
+                mouse
+                    .client
+                    .mouse_event(SendMouseEvent {
+                        tab_id: mouse.remote_tab_id,
+                        event,
+                    })
+                    .then(move |resp| {
+                        if let Ok(r) = resp.as_ref() {
+                            *selection_range.lock().unwrap() = r.selection_range.clone();
+                            *something_changed.lock().unwrap() = true;
+                        }
+                        Future::with_executor(gui_executor().unwrap(), move || {
+                            Self::next(&state)?;
+                            Ok(())
+                        });
+                        Ok(())
+                    }),
+            );
+        }
+        Ok(())
+    }
+}
 
 pub struct ClientTab {
     client: Arc<ClientInner>,
@@ -28,6 +126,7 @@ pub struct ClientTab {
     renderable: RefCell<RenderableState>,
     writer: RefCell<TabWriter>,
     reader: Pipe,
+    mouse: Arc<Mutex<MouseState>>,
 }
 
 impl ClientTab {
@@ -37,6 +136,16 @@ impl ClientTab {
             client: Arc::clone(client),
             remote_tab_id,
         };
+        let selection_range = Arc::new(Mutex::new(None));
+        let something_changed = Arc::new(Mutex::new(true));
+        let mouse = Arc::new(Mutex::new(MouseState {
+            selection_range: Arc::clone(&selection_range),
+            something_changed: Arc::clone(&something_changed),
+            remote_tab_id,
+            client: client.client.clone(),
+            future: None,
+            queue: VecDeque::new(),
+        }));
         let render = RenderableState {
             client: Arc::clone(client),
             remote_tab_id,
@@ -46,13 +155,15 @@ impl ClientTab {
             surface: RefCell::new(Surface::new(80, 24)),
             remote_sequence: RefCell::new(0),
             local_sequence: RefCell::new(0),
-            selection_range: RefCell::new(None),
+            selection_range,
+            something_changed,
         };
 
         let reader = Pipe::new().expect("Pipe::new failed");
 
         Self {
             client: Arc::clone(client),
+            mouse,
             remote_tab_id,
             local_tab_id,
             renderable: RefCell::new(render),
@@ -77,8 +188,7 @@ impl Tab for ClientTab {
     }
 
     fn send_paste(&self, text: &str) -> Fallible<()> {
-        let mut client = self.client.client.lock().unwrap();
-        client.send_paste(SendPaste {
+        self.client.client.send_paste(SendPaste {
             tab_id: self.remote_tab_id,
             data: text.to_owned(),
         });
@@ -100,8 +210,7 @@ impl Tab for ClientTab {
             .surface
             .borrow_mut()
             .resize(size.cols as usize, size.rows as usize);
-        let mut client = self.client.client.lock().unwrap();
-        client.resize(Resize {
+        self.client.client.resize(Resize {
             tab_id: self.remote_tab_id,
             size,
         });
@@ -109,8 +218,7 @@ impl Tab for ClientTab {
     }
 
     fn key_down(&self, key: KeyCode, mods: KeyModifiers) -> Fallible<()> {
-        let mut client = self.client.client.lock().unwrap();
-        client.key_down(SendKeyDown {
+        self.client.client.key_down(SendKeyDown {
             tab_id: self.remote_tab_id,
             event: KeyEvent {
                 key,
@@ -120,21 +228,17 @@ impl Tab for ClientTab {
         Ok(())
     }
 
-    fn mouse_event(&self, event: MouseEvent, host: &mut dyn TerminalHost) -> Fallible<()> {
-        let mut client = self.client.client.lock().unwrap();
-        let resp = client
-            .mouse_event(SendMouseEvent {
-                tab_id: self.remote_tab_id,
-                event,
-            })
-            .wait()?;
+    fn mouse_event(&self, event: MouseEvent, _host: &mut dyn TerminalHost) -> Fallible<()> {
+        self.mouse.lock().unwrap().append(event);
+        MouseState::next(&self.mouse)?;
+        Ok(())
 
+        /*
         if resp.clipboard.is_some() {
             host.set_clipboard(resp.clipboard)?;
         }
-        *self.renderable.borrow().selection_range.borrow_mut() = resp.selection_range;
-
-        Ok(())
+        *self.renderable.borrow().selection_range.lock().unwrap() = resp.selection_range;
+        */
     }
 
     fn advance_bytes(&self, _buf: &[u8], _host: &mut dyn TerminalHost) {
@@ -158,7 +262,12 @@ impl Tab for ClientTab {
     }
 
     fn selection_range(&self) -> Option<SelectionRange> {
-        self.renderable.borrow().selection_range.borrow().clone()
+        self.renderable
+            .borrow()
+            .selection_range
+            .lock()
+            .unwrap()
+            .clone()
     }
 }
 
@@ -171,7 +280,8 @@ struct RenderableState {
     surface: RefCell<Surface>,
     remote_sequence: RefCell<SequenceNo>,
     local_sequence: RefCell<SequenceNo>,
-    selection_range: RefCell<Option<SelectionRange>>,
+    selection_range: Arc<Mutex<Option<SelectionRange>>>,
+    something_changed: Arc<Mutex<bool>>,
 }
 
 const POLL_INTERVAL: Duration = Duration::from_millis(50);
@@ -214,13 +324,13 @@ impl RenderableState {
         }
 
         {
-            let mut client = self.client.client.lock().unwrap();
             *self.last_poll.borrow_mut() = Instant::now();
-            *self.poll_future.borrow_mut() =
-                Some(client.get_tab_render_changes(GetTabRenderChanges {
+            *self.poll_future.borrow_mut() = Some(self.client.client.get_tab_render_changes(
+                GetTabRenderChanges {
                     tab_id: self.remote_tab_id,
                     sequence_no: *self.remote_sequence.borrow(),
-                }));
+                },
+            ));
         }
         Ok(())
     }
@@ -236,7 +346,8 @@ impl Renderable for RenderableState {
         let mut surface = self.surface.borrow_mut();
         let seq = surface.current_seqno();
         surface.flush_changes_older_than(seq);
-        let selection = *self.selection_range.borrow();
+        let selection = *self.selection_range.lock().unwrap();
+        *self.something_changed.lock().unwrap() = false;
         surface
             .screen_lines()
             .into_iter()
@@ -254,6 +365,9 @@ impl Renderable for RenderableState {
     fn has_dirty_lines(&self) -> bool {
         if self.poll().is_err() {
             *self.dead.borrow_mut() = true;
+        }
+        if *self.something_changed.lock().unwrap() {
+            return true;
         }
         self.surface
             .borrow()
@@ -281,8 +395,8 @@ struct TabWriter {
 
 impl std::io::Write for TabWriter {
     fn write(&mut self, data: &[u8]) -> Result<usize, std::io::Error> {
-        let mut client = self.client.client.lock().unwrap();
-        client
+        self.client
+            .client
             .write_to_tab(WriteToTab {
                 tab_id: self.remote_tab_id,
                 data: data.to_vec(),

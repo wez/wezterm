@@ -236,8 +236,8 @@ impl X11TerminalWindow {
                         1 => MouseButton::Left,
                         2 => MouseButton::Middle,
                         3 => MouseButton::Right,
-                        4 => MouseButton::WheelUp,
-                        5 => MouseButton::WheelDown,
+                        4 => MouseButton::WheelUp(1),
+                        5 => MouseButton::WheelDown(1),
                         _ => {
                             error!("button {} is not implemented", button_press.detail());
                             return Ok(());

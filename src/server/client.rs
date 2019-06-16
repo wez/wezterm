@@ -23,13 +23,14 @@ enum ReaderMessage {
     SendPdu { pdu: Pdu, promise: Promise<Pdu> },
 }
 
+#[derive(Clone)]
 pub struct Client {
     sender: Sender<ReaderMessage>,
 }
 
 macro_rules! rpc {
     ($method_name:ident, $request_type:ident, $response_type:ident) => {
-        pub fn $method_name(&mut self, pdu: $request_type) -> Future<$response_type> {
+        pub fn $method_name(&self, pdu: $request_type) -> Future<$response_type> {
             self.send_pdu(Pdu::$request_type(pdu)).then(|result| {
             match result {
                 Ok(Pdu::$response_type(res)) => Ok(res),
@@ -44,7 +45,7 @@ macro_rules! rpc {
     // in the case where the struct is empty and present only for the purpose
     // of typing the request.
     ($method_name:ident, $request_type:ident=(), $response_type:ident) => {
-        pub fn $method_name(&mut self) -> Future<$response_type> {
+        pub fn $method_name(&self) -> Future<$response_type> {
             self.send_pdu(Pdu::$request_type($request_type{})).then(|result| {
             match result {
                 Ok(Pdu::$response_type(res)) => Ok(res),
@@ -173,7 +174,7 @@ impl Client {
         Ok(Self::new(stream))
     }
 
-    pub fn send_pdu(&mut self, pdu: Pdu) -> Future<Pdu> {
+    pub fn send_pdu(&self, pdu: Pdu) -> Future<Pdu> {
         let mut promise = Promise::new();
         let future = promise.get_future().expect("future already taken!?");
         match self.sender.send(ReaderMessage::SendPdu { pdu, promise }) {

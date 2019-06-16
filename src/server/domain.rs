@@ -14,7 +14,7 @@ use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 
 pub struct ClientInner {
-    pub client: Mutex<Client>,
+    pub client: Client,
     pub local_domain_id: DomainId,
     pub remote_domain_id: DomainId,
     remote_to_local_window: Mutex<HashMap<WindowId, WindowId>>,
@@ -64,7 +64,7 @@ impl ClientInner {
         // this a bit rigorously.
         let remote_domain_id = 0;
         Self {
-            client: Mutex::new(client),
+            client,
             local_domain_id,
             remote_domain_id,
             remote_to_local_window: Mutex::new(HashMap::new()),
@@ -91,9 +91,9 @@ impl Domain for ClientDomain {
         window: WindowId,
     ) -> Fallible<Rc<dyn Tab>> {
         let remote_tab_id = {
-            let mut client = self.inner.client.lock().unwrap();
-
-            let result = client
+            let result = self
+                .inner
+                .client
                 .spawn(Spawn {
                     domain_id: self.inner.remote_domain_id,
                     window_id: self.inner.local_to_remote_window(window),
@@ -117,8 +117,7 @@ impl Domain for ClientDomain {
 
     fn attach(&self) -> Fallible<()> {
         let mux = Mux::get().unwrap();
-        let mut client = self.inner.client.lock().unwrap();
-        let tabs = client.list_tabs().wait()?;
+        let tabs = self.inner.client.list_tabs().wait()?;
         log::error!("ListTabs result {:#?}", tabs);
 
         for entry in tabs.tabs.iter() {

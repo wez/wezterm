@@ -614,10 +614,10 @@ impl TerminalState {
     }
 
     fn mouse_wheel(&mut self, event: MouseEvent, writer: &mut std::io::Write) -> Result<(), Error> {
-        let (report_button, scroll_delta, key) = if event.button == MouseButton::WheelUp {
-            (64, -1, KeyCode::UpArrow)
-        } else {
-            (65, 1, KeyCode::DownArrow)
+        let (report_button, scroll_delta, key) = match event.button {
+            MouseButton::WheelUp(amount) => (64, -(amount as i64), KeyCode::UpArrow),
+            MouseButton::WheelDown(amount) => (65, amount as i64, KeyCode::DownArrow),
+            _ => bail!("unexpected mouse event {:?}", event),
         };
 
         if self.sgr_mouse {
@@ -763,12 +763,12 @@ impl TerminalState {
         match event {
             MouseEvent {
                 kind: MouseEventKind::Press,
-                button: MouseButton::WheelUp,
+                button: MouseButton::WheelUp(_),
                 ..
             }
             | MouseEvent {
                 kind: MouseEventKind::Press,
-                button: MouseButton::WheelDown,
+                button: MouseButton::WheelDown(_),
                 ..
             } => self.mouse_wheel(event, host.writer()),
             MouseEvent {

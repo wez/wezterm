@@ -210,7 +210,7 @@ fn main() -> Result<(), Error> {
             run_terminal_gui(config, &start)
         }
         SubCommand::Cli(cli) => {
-            let mut client = Client::new_unix_domain(&config)?;
+            let client = Client::new_unix_domain(&config)?;
             match cli.sub {
                 CliSubCommand::List => {
                     let cols = vec![
