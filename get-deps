@@ -4,33 +4,33 @@
 if test -e /etc/centos-release || test -e /etc/fedora-release; then
   yum install -y \
     cmake \
+    fontconfig-devel \
     libxcb-devel \
-    xcb-util-keysyms-devel \
-    xcb-util-wm-devel \
     libxkbcommon-devel \
     libxkbcommon-x11-devel \
-    fontconfig-devel \
     mesa-libEGL-devel \
-    ragel
+    ragel \
+    xcb-util-keysyms-devel \
+    xcb-util-wm-devel
   exit $?
 fi
 
 case `lsb_release -ds` in
   Ubuntu*|Debian*)
     apt-get install -y \
-      cmake \
-      xorg-dev \
       bsdutils \
-      libxcb-icccm4-dev \
+      cmake \
+      libegl1-mesa-dev \
+      libfontconfig1-dev \
       libxcb-ewmh-dev \
+      libxcb-icccm4-dev \
       libxcb-keysyms1-dev \
       libxcb-xkb-dev \
       libxkbcommon-dev \
       libxkbcommon-x11-dev \
-      libfontconfig1-dev \
-      libegl1-mesa-dev \
+      ragel \
       xdg-utils \
-      ragel
+      xorg-dev
     ;;
   *)
     echo "Please contribute the commands to install the deps"
