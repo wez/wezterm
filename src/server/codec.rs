@@ -280,7 +280,15 @@ impl Pdu {
             }
 
             let mut buf = [0u8; 4096];
-            let size = r.read(&mut buf)?;
+            let size = match r.read(&mut buf) {
+                Ok(size) => size,
+                Err(err) => {
+                    if err.kind() == std::io::ErrorKind::WouldBlock {
+                        return Ok(None);
+                    }
+                    return Err(err.into());
+                }
+            };
             if size == 0 {
                 return Err(
                     std::io::Error::new(std::io::ErrorKind::UnexpectedEof, "End Of File").into(),

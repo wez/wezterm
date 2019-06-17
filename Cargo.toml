@@ -15,6 +15,7 @@ embed-resource = "1.1"
 base91 = { path = "base91" }
 bitflags = "1.0"
 clipboard = "0.5"
+crossbeam-channel = "0.3"
 dirs = "1.0"
 downcast-rs = "1.0"
 euclid = "0.19"
@@ -77,6 +78,7 @@ winapi = { version = "0.3", features = [
     "fileapi",
     "namedpipeapi",
     "synchapi",
+    "winsock2",
 ]}
 
 [target.'cfg(any(target_os = "android", all(unix, not(target_os = "macos"))))'.dependencies]

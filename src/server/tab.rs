@@ -343,6 +343,7 @@ impl Renderable for RenderableState {
         surface.flush_changes_older_than(seq);
         let selection = *self.selection_range.lock().unwrap();
         *self.something_changed.lock().unwrap() = false;
+        *self.local_sequence.borrow_mut() = seq;
         surface
             .screen_lines()
             .into_iter()
