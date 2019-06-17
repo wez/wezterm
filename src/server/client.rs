@@ -1,10 +1,13 @@
 #![allow(dead_code)]
 use crate::config::Config;
+use crate::frontend::gui_executor;
+use crate::mux::Mux;
 use crate::server::codec::*;
 use crate::server::listener::IdentitySource;
 use crate::server::pollable::*;
+use crate::server::tab::ClientTab;
 use crate::server::UnixStream;
-use crossbeam_channel::{Sender, TryRecvError};
+use crossbeam_channel::TryRecvError;
 use failure::{bail, err_msg, format_err, Fallible};
 use log::info;
 use native_tls::TlsConnector;
@@ -55,23 +58,32 @@ macro_rules! rpc {
     };
 }
 
+fn process_unilateral(decoded: DecodedPdu) -> Fallible<()> {
+    if let Some(tab_id) = decoded.pdu.tab_id() {
+        let pdu = decoded.pdu;
+        Future::with_executor(gui_executor().unwrap(), move || {
+            let mux = Mux::get().unwrap();
+            let tab = mux
+                .get_tab(tab_id)
+                .ok_or_else(|| format_err!("no such tab {}", tab_id))?;
+            let client_tab = tab.downcast_ref::<ClientTab>().unwrap();
+            client_tab.process_unilateral(pdu)
+        });
+    } else {
+        bail!("don't know how to handle {:?}", decoded);
+    }
+    Ok(())
+}
+
 fn client_thread(
     mut stream: Box<dyn ReadAndWrite>,
     rx: PollableReceiver<ReaderMessage>,
-    mut unilaterals: Option<Sender<Pdu>>,
 ) -> Fallible<()> {
     let mut next_serial = 1u64;
     let mut promises = HashMap::new();
     let mut read_buffer = Vec::with_capacity(1024);
     loop {
-        let mut poll_array = [rx.as_poll_fd(), stream.as_poll_fd()];
-        poll_for_read(&mut poll_array);
-        log::trace!(
-            "out: {}, in: {}",
-            poll_array[0].revents,
-            poll_array[1].revents
-        );
-        if poll_array[0].revents != 0 {
+        loop {
             match rx.try_recv() {
                 Ok(msg) => match msg {
                     ReaderMessage::SendPdu { pdu, promise } => {
@@ -83,49 +95,57 @@ fn client_thread(
                         stream.flush()?;
                     }
                 },
-                Err(TryRecvError::Empty) => {}
+                Err(TryRecvError::Empty) => break,
                 Err(TryRecvError::Disconnected) => bail!("Client was destroyed"),
             };
         }
 
-        if poll_array[1].revents != 0 {
+        let mut poll_array = [rx.as_poll_fd(), stream.as_poll_fd()];
+        poll_for_read(&mut poll_array);
+        log::trace!(
+            "out: {}, in: {}",
+            poll_array[0].revents,
+            poll_array[1].revents
+        );
+
+        if poll_array[1].revents != 0 || stream.has_read_buffered() {
             // When TLS is enabled on a stream, it may require a mixture of
             // reads AND writes in order to satisfy a given read or write.
             // As a result, we may appear ready to read a PDU, but may not
             // be able to read a complete PDU.
             // Set to non-blocking mode while we try to decode a packet to
             // avoid blocking.
-            stream.set_non_blocking(true)?;
-            let res = Pdu::try_read_and_decode(&mut stream, &mut read_buffer);
-            stream.set_non_blocking(false)?;
-            if let Some(decoded) = res? {
-                if decoded.serial == 0 {
-                    if let Some(uni) = unilaterals.as_mut() {
-                        uni.send(decoded.pdu)?;
+            loop {
+                stream.set_non_blocking(true)?;
+                let res = Pdu::try_read_and_decode(&mut stream, &mut read_buffer);
+                stream.set_non_blocking(false)?;
+                if let Some(decoded) = res? {
+                    log::trace!("decoded serial {}", decoded.serial);
+                    if decoded.serial == 0 {
+                        process_unilateral(decoded)?;
+                    } else if let Some(mut promise) = promises.remove(&decoded.serial) {
+                        promise.result(Ok(decoded.pdu));
                     } else {
-                        log::error!("got unilateral, but there is no handler");
+                        log::error!(
+                            "got serial {} without a corresponding promise",
+                            decoded.serial
+                        );
                     }
-                } else if let Some(mut promise) = promises.remove(&decoded.serial) {
-                    promise.result(Ok(decoded.pdu));
                 } else {
-                    log::error!(
-                        "got serial {} without a corresponding promise",
-                        decoded.serial
-                    );
+                    log::trace!("spurious/incomplete read wakeup");
+                    break;
                 }
-            } else {
-                log::trace!("spurious/incomplete read wakeup");
             }
         }
     }
 }
 
 impl Client {
-    pub fn new(stream: Box<dyn ReadAndWrite>, unilaterals: Option<Sender<Pdu>>) -> Self {
+    pub fn new(stream: Box<dyn ReadAndWrite>) -> Self {
         let (sender, receiver) = pollable_channel().expect("failed to create pollable_channel");
 
         thread::spawn(move || {
-            if let Err(e) = client_thread(stream, receiver, unilaterals) {
+            if let Err(e) = client_thread(stream, receiver) {
                 log::error!("client thread ended: {}", e);
             }
         });
@@ -133,10 +153,7 @@ impl Client {
         Self { sender }
     }
 
-    pub fn new_unix_domain(
-        config: &Arc<Config>,
-        unilaterals: Option<Sender<Pdu>>,
-    ) -> Fallible<Self> {
+    pub fn new_unix_domain(config: &Arc<Config>) -> Fallible<Self> {
         let sock_path = Path::new(
             config
                 .mux_server_unix_domain_socket_path
@@ -145,10 +162,10 @@ impl Client {
         );
         info!("connect to {}", sock_path.display());
         let stream = Box::new(UnixStream::connect(sock_path)?);
-        Ok(Self::new(stream, unilaterals))
+        Ok(Self::new(stream))
     }
 
-    pub fn new_tls(config: &Arc<Config>, unilaterals: Option<Sender<Pdu>>) -> Fallible<Self> {
+    pub fn new_tls(config: &Arc<Config>) -> Fallible<Self> {
         let remote_address = config
             .mux_server_remote_address
             .as_ref()
@@ -191,7 +208,7 @@ impl Client {
                 e
             )
         })?);
-        Ok(Self::new(stream, unilaterals))
+        Ok(Self::new(stream))
     }
 
     pub fn send_pdu(&self, pdu: Pdu) -> Future<Pdu> {
@@ -216,9 +233,5 @@ impl Client {
     rpc!(key_down, SendKeyDown, UnitResponse);
     rpc!(mouse_event, SendMouseEvent, SendMouseEventResponse);
     rpc!(resize, Resize, UnitResponse);
-    rpc!(
-        get_tab_render_changes,
-        GetTabRenderChanges,
-        GetTabRenderChangesResponse
-    );
+    rpc!(get_tab_render_changes, GetTabRenderChanges, UnitResponse);
 }

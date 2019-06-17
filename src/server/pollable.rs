@@ -12,17 +12,24 @@ use winapi::um::winsock2::{WSAPoll as poll, POLLERR, POLLIN, WSAPOLLFD as pollfd
 
 pub trait ReadAndWrite: std::io::Read + std::io::Write + Send + AsPollFd {
     fn set_non_blocking(&self, non_blocking: bool) -> Fallible<()>;
+    fn has_read_buffered(&self) -> bool;
 }
 impl ReadAndWrite for UnixStream {
     fn set_non_blocking(&self, non_blocking: bool) -> Fallible<()> {
         self.set_nonblocking(non_blocking)?;
         Ok(())
     }
+    fn has_read_buffered(&self) -> bool {
+        false
+    }
 }
 impl ReadAndWrite for native_tls::TlsStream<std::net::TcpStream> {
     fn set_non_blocking(&self, non_blocking: bool) -> Fallible<()> {
         self.get_ref().set_nonblocking(non_blocking)?;
         Ok(())
+    }
+    fn has_read_buffered(&self) -> bool {
+        self.buffered_read_size().unwrap_or(0) != 0
     }
 }
 

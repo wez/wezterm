@@ -5,7 +5,7 @@ use crate::mux::tab::{alloc_tab_id, Tab, TabId};
 use crate::server::client::Client;
 use crate::server::codec::*;
 use crate::server::domain::ClientInner;
-use failure::Fallible;
+use failure::{bail, Fallible};
 use filedescriptor::Pipe;
 use log::error;
 use portable_pty::PtySize;
@@ -171,6 +171,19 @@ impl ClientTab {
             reader,
         }
     }
+
+    pub fn process_unilateral(&self, pdu: Pdu) -> Fallible<()> {
+        match pdu {
+            Pdu::GetTabRenderChangesResponse(delta) => {
+                log::trace!("new delta {}", delta.sequence_no);
+                self.renderable
+                    .borrow()
+                    .apply_changes_to_surface(delta.sequence_no, delta.changes);
+            }
+            _ => bail!("unhandled unilateral pdu: {:?}", pdu),
+        };
+        Ok(())
+    }
 }
 
 impl Tab for ClientTab {
@@ -271,7 +284,7 @@ struct RenderableState {
     remote_tab_id: TabId,
     last_poll: RefCell<Instant>,
     dead: RefCell<bool>,
-    poll_future: RefCell<Option<Future<GetTabRenderChangesResponse>>>,
+    poll_future: RefCell<Option<Future<UnitResponse>>>,
     surface: RefCell<Surface>,
     remote_sequence: RefCell<SequenceNo>,
     local_sequence: RefCell<SequenceNo>,
@@ -298,15 +311,7 @@ impl RenderableState {
             .map(Future::is_ready)
             .unwrap_or(false);
         if ready {
-            let delta = self.poll_future.borrow_mut().take().unwrap().wait()?;
-
-            log::trace!(
-                "poll: got delta {} {} in {:?}",
-                delta.sequence_no,
-                delta.changes.len(),
-                self.last_poll.borrow().elapsed()
-            );
-            self.apply_changes_to_surface(delta.sequence_no, delta.changes);
+            self.poll_future.borrow_mut().take().unwrap().wait()?;
             *self.last_poll.borrow_mut() = Instant::now();
         } else if self.poll_future.borrow().is_some() {
             // We have a poll in progress

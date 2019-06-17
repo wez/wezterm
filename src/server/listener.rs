@@ -197,6 +197,34 @@ pub struct ClientSession<S: ReadAndWrite> {
     to_write_tx: PollableSender<DecodedPdu>,
 }
 
+fn maybe_push_tab_changes(
+    surfaces: &Arc<Mutex<HashMap<TabId, ClientSurfaceState>>>,
+    tab: &Rc<dyn Tab>,
+    sender: PollableSender<DecodedPdu>,
+) -> Fallible<()> {
+    let tab_id = tab.tab_id();
+    let mut surfaces = surfaces.lock().unwrap();
+    let (rows, cols) = tab.renderer().physical_dimensions();
+    let surface = surfaces
+        .entry(tab_id)
+        .or_insert_with(|| ClientSurfaceState::new(cols, rows));
+    surface.update_surface_from_screen(&tab);
+
+    let (new_seq, changes) = surface.get_and_flush_changes(surface.last_seq);
+    if !changes.is_empty() {
+        sender.send(DecodedPdu {
+            pdu: Pdu::GetTabRenderChangesResponse(GetTabRenderChangesResponse {
+                tab_id,
+                sequence_no: surface.last_seq,
+                changes,
+            }),
+            serial: 0,
+        })?;
+        surface.last_seq = new_seq;
+    }
+    Ok(())
+}
+
 struct ClientSurfaceState {
     surface: Surface,
     last_seq: SequenceNo,
@@ -315,26 +343,31 @@ impl<S: ReadAndWrite> ClientSession<S> {
     fn process(&mut self) -> Result<(), Error> {
         let mut read_buffer = Vec::with_capacity(1024);
         loop {
-            let mut poll_array = [self.to_write_rx.as_poll_fd(), self.stream.as_poll_fd()];
-            poll_for_read(&mut poll_array);
-
-            if poll_array[0].revents != 0 {
+            loop {
                 match self.to_write_rx.try_recv() {
                     Ok(decoded) => {
+                        log::trace!("writing pdu with serial {}", decoded.serial);
                         decoded.pdu.encode(&mut self.stream, decoded.serial)?;
                         self.stream.flush()?;
                     }
-                    Err(TryRecvError::Empty) => {}
+                    Err(TryRecvError::Empty) => break,
                     Err(TryRecvError::Disconnected) => bail!("ClientSession was destroyed"),
                 };
             }
 
-            if poll_array[1].revents != 0 {
-                self.stream.set_non_blocking(true)?;
-                let res = Pdu::try_read_and_decode(&mut self.stream, &mut read_buffer);
-                self.stream.set_non_blocking(false)?;
-                if let Some(decoded) = res? {
-                    self.process_one(decoded)?;
+            let mut poll_array = [self.to_write_rx.as_poll_fd(), self.stream.as_poll_fd()];
+            poll_for_read(&mut poll_array);
+
+            if poll_array[1].revents != 0 || self.stream.has_read_buffered() {
+                loop {
+                    self.stream.set_non_blocking(true)?;
+                    let res = Pdu::try_read_and_decode(&mut self.stream, &mut read_buffer);
+                    self.stream.set_non_blocking(false)?;
+                    if let Some(decoded) = res? {
+                        self.process_one(decoded)?;
+                    } else {
+                        break;
+                    }
                 }
             }
         }
@@ -351,7 +384,7 @@ impl<S: ReadAndWrite> ClientSession<S> {
                     reason: format!("Error: {}", err),
                 }),
             };
-            log::trace!("processing time {:?}", start.elapsed());
+            log::trace!("{} processing time {:?}", serial, start.elapsed());
             sender.send(DecodedPdu { pdu, serial })
         });
         Ok(())
@@ -418,22 +451,28 @@ impl<S: ReadAndWrite> ClientSession<S> {
             }
 
             Pdu::WriteToTab(WriteToTab { tab_id, data }) => {
+                let surfaces = Arc::clone(&self.surfaces_by_tab);
+                let sender = self.to_write_tx.clone();
                 Future::with_executor(self.executor.clone_executor(), move || {
                     let mux = Mux::get().unwrap();
                     let tab = mux
                         .get_tab(tab_id)
                         .ok_or_else(|| format_err!("no such tab {}", tab_id))?;
                     tab.writer().write_all(&data)?;
+                    maybe_push_tab_changes(&surfaces, &tab, sender)?;
                     Ok(Pdu::UnitResponse(UnitResponse {}))
                 })
             }
             Pdu::SendPaste(SendPaste { tab_id, data }) => {
+                let surfaces = Arc::clone(&self.surfaces_by_tab);
+                let sender = self.to_write_tx.clone();
                 Future::with_executor(self.executor.clone_executor(), move || {
                     let mux = Mux::get().unwrap();
                     let tab = mux
                         .get_tab(tab_id)
                         .ok_or_else(|| format_err!("no such tab {}", tab_id))?;
                     tab.send_paste(&data)?;
+                    maybe_push_tab_changes(&surfaces, &tab, sender)?;
                     Ok(Pdu::UnitResponse(UnitResponse {}))
                 })
             }
@@ -450,16 +489,21 @@ impl<S: ReadAndWrite> ClientSession<S> {
             }
 
             Pdu::SendKeyDown(SendKeyDown { tab_id, event }) => {
+                let surfaces = Arc::clone(&self.surfaces_by_tab);
+                let sender = self.to_write_tx.clone();
                 Future::with_executor(self.executor.clone_executor(), move || {
                     let mux = Mux::get().unwrap();
                     let tab = mux
                         .get_tab(tab_id)
                         .ok_or_else(|| format_err!("no such tab {}", tab_id))?;
                     tab.key_down(event.key, event.modifiers)?;
+                    maybe_push_tab_changes(&surfaces, &tab, sender)?;
                     Ok(Pdu::UnitResponse(UnitResponse {}))
                 })
             }
             Pdu::SendMouseEvent(SendMouseEvent { tab_id, event }) => {
+                let surfaces = Arc::clone(&self.surfaces_by_tab);
+                let sender = self.to_write_tx.clone();
                 Future::with_executor(self.executor.clone_executor(), move || {
                     let mux = Mux::get().unwrap();
                     let tab = mux
@@ -471,6 +515,8 @@ impl<S: ReadAndWrite> ClientSession<S> {
                         title: None,
                     };
                     tab.mouse_event(event, &mut host)?;
+                    maybe_push_tab_changes(&surfaces, &tab, sender)?;
+
                     Ok(Pdu::SendMouseEventResponse(SendMouseEventResponse {
                         clipboard: host.clipboard,
                         selection_range: tab.selection_range(),
@@ -500,31 +546,16 @@ impl<S: ReadAndWrite> ClientSession<S> {
                 }))
             }),
 
-            Pdu::GetTabRenderChanges(GetTabRenderChanges {
-                tab_id,
-                sequence_no,
-            }) => {
+            Pdu::GetTabRenderChanges(GetTabRenderChanges { tab_id, .. }) => {
                 let surfaces = Arc::clone(&self.surfaces_by_tab);
+                let sender = self.to_write_tx.clone();
                 Future::with_executor(self.executor.clone_executor(), move || {
                     let mux = Mux::get().unwrap();
                     let tab = mux
                         .get_tab(tab_id)
                         .ok_or_else(|| format_err!("no such tab {}", tab_id))?;
-                    let mut surfaces = surfaces.lock().unwrap();
-                    let (rows, cols) = tab.renderer().physical_dimensions();
-                    let surface = surfaces
-                        .entry(tab_id)
-                        .or_insert_with(|| ClientSurfaceState::new(cols, rows));
-                    surface.update_surface_from_screen(&tab);
-
-                    let (new_seq, changes) = surface.get_and_flush_changes(sequence_no);
-                    Ok(Pdu::GetTabRenderChangesResponse(
-                        GetTabRenderChangesResponse {
-                            tab_id,
-                            sequence_no: new_seq,
-                            changes,
-                        },
-                    ))
+                    maybe_push_tab_changes(&surfaces, &tab, sender)?;
+                    Ok(Pdu::UnitResponse(UnitResponse {}))
                 })
             }
 

@@ -298,6 +298,15 @@ impl Pdu {
             buffer.extend_from_slice(&buf[0..size]);
         }
     }
+
+    pub fn tab_id(&self) -> Option<TabId> {
+        match self {
+            Pdu::GetTabRenderChangesResponse(GetTabRenderChangesResponse { tab_id, .. }) => {
+                Some(*tab_id)
+            }
+            _ => None,
+        }
+    }
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
