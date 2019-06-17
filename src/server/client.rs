@@ -2,118 +2,20 @@
 use crate::config::Config;
 use crate::server::codec::*;
 use crate::server::listener::IdentitySource;
+use crate::server::pollable::*;
 use crate::server::UnixStream;
-use crossbeam_channel::{unbounded as channel, Receiver, Sender, TryRecvError};
+use crossbeam_channel::{Sender, TryRecvError};
 use failure::{bail, err_msg, format_err, Fallible};
-use filedescriptor::{AsRawFileDescriptor, FileDescriptor, RawFileDescriptor};
-#[cfg(unix)]
-use libc::{poll, pollfd, POLLERR, POLLIN};
 use log::info;
 use native_tls::TlsConnector;
 use promise::{Future, Promise};
-use std::cell::RefCell;
 use std::collections::HashMap;
 use std::convert::TryInto;
-use std::io::{Read, Write};
+use std::io::Write;
 use std::net::TcpStream;
 use std::path::Path;
 use std::sync::Arc;
 use std::thread;
-#[cfg(windows)]
-use winapi::um::winsock2::{WSAPoll as poll, POLLERR, POLLIN, WSAPOLLFD as pollfd};
-
-struct PollableSender<T> {
-    sender: Sender<T>,
-    write: RefCell<FileDescriptor>,
-}
-
-impl<T> PollableSender<T> {
-    pub fn send(&self, item: T) -> Fallible<()> {
-        self.write.borrow_mut().write(b"x")?;
-        self.sender.send(item).map_err(|e| format_err!("{}", e))?;
-        Ok(())
-    }
-}
-
-impl<T> Clone for PollableSender<T> {
-    fn clone(&self) -> Self {
-        Self {
-            sender: self.sender.clone(),
-            write: RefCell::new(
-                self.write
-                    .borrow()
-                    .try_clone()
-                    .expect("failed to clone PollableSender fd"),
-            ),
-        }
-    }
-}
-
-struct PollableReceiver<T> {
-    receiver: Receiver<T>,
-    read: RefCell<FileDescriptor>,
-}
-
-impl<T> PollableReceiver<T> {
-    pub fn try_recv(&self) -> Result<T, TryRecvError> {
-        let item = self.receiver.try_recv()?;
-        let mut byte = [0u8];
-        self.read.borrow_mut().read(&mut byte).ok();
-        Ok(item)
-    }
-}
-
-impl<T> AsPollFd for PollableReceiver<T> {
-    fn as_poll_fd(&self) -> pollfd {
-        self.read.borrow().as_raw_file_descriptor().as_poll_fd()
-    }
-}
-
-/// A channel that can be polled together with a socket.
-/// This uses the self-pipe trick but with a unix domain
-/// socketpair.
-/// In theory this should also work on windows, but will require
-/// windows 10 w/unix domain socket support.
-fn pollable_channel<T>() -> Fallible<(PollableSender<T>, PollableReceiver<T>)> {
-    let (sender, receiver) = channel();
-    let (write, read) = UnixStream::pair()?;
-    Ok((
-        PollableSender {
-            sender,
-            write: RefCell::new(FileDescriptor::new(write)),
-        },
-        PollableReceiver {
-            receiver,
-            read: RefCell::new(FileDescriptor::new(read)),
-        },
-    ))
-}
-
-pub trait AsPollFd {
-    fn as_poll_fd(&self) -> pollfd;
-}
-
-impl AsPollFd for RawFileDescriptor {
-    fn as_poll_fd(&self) -> pollfd {
-        pollfd {
-            fd: *self,
-            events: POLLIN | POLLERR,
-            revents: 0,
-        }
-    }
-}
-
-impl AsPollFd for native_tls::TlsStream<TcpStream> {
-    fn as_poll_fd(&self) -> pollfd {
-        self.get_ref().as_raw_file_descriptor().as_poll_fd()
-    }
-}
-
-impl AsPollFd for UnixStream {
-    fn as_poll_fd(&self) -> pollfd {
-        self.as_raw_file_descriptor().as_poll_fd()
-    }
-}
 
 pub trait ReadAndWrite: std::io::Read + std::io::Write + Send + AsPollFd {
     fn set_non_blocking(&self, non_blocking: bool) -> Fallible<()>;
@@ -179,7 +81,7 @@ fn client_thread(
     let mut read_buffer = Vec::with_capacity(1024);
     loop {
         let mut poll_array = [rx.as_poll_fd(), stream.as_poll_fd()];
-        unsafe { poll(poll_array.as_mut_ptr(), poll_array.len() as _, -1 as _) };
+        poll_for_read(&mut poll_array);
         log::trace!(
             "out: {}, in: {}",
             poll_array[0].revents,
