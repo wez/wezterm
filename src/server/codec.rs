@@ -415,6 +415,7 @@ pub struct GetTabRenderChanges {
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
 pub struct GetTabRenderChangesResponse {
+    pub tab_id: TabId,
     pub sequence_no: SequenceNo,
     pub changes: Vec<Change>,
 }

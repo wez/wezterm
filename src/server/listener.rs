@@ -1,6 +1,5 @@
 use crate::config::Config;
-use crate::mux::renderable::Renderable;
-use crate::mux::tab::TabId;
+use crate::mux::tab::{Tab, TabId};
 use crate::mux::Mux;
 use crate::server::codec::*;
 use crate::server::UnixListener;
@@ -18,6 +17,7 @@ use std::net::TcpListener;
 #[cfg(unix)]
 use std::os::unix::fs::{DirBuilderExt, PermissionsExt};
 use std::path::{Path, PathBuf};
+use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Instant;
@@ -190,7 +190,69 @@ impl NetListener {
 pub struct ClientSession<S: std::io::Read + std::io::Write> {
     stream: S,
     executor: Box<dyn Executor>,
-    surfaces_by_tab: Arc<Mutex<HashMap<TabId, Surface>>>,
+    surfaces_by_tab: Arc<Mutex<HashMap<TabId, ClientSurfaceState>>>,
+}
+
+struct ClientSurfaceState {
+    surface: Surface,
+    last_seq: SequenceNo,
+}
+
+impl ClientSurfaceState {
+    fn new(cols: usize, rows: usize) -> Self {
+        let surface = Surface::new(cols, rows);
+        Self {
+            surface,
+            last_seq: 0,
+        }
+    }
+
+    fn update_surface_from_screen(&mut self, tab: &Rc<dyn Tab>) {
+        let mut renderable = tab.renderer();
+        let (rows, cols) = renderable.physical_dimensions();
+        let (surface_width, surface_height) = self.surface.dimensions();
+
+        if (rows != surface_height) || (cols != surface_width) {
+            self.surface.resize(cols, rows);
+            renderable.make_all_lines_dirty();
+        }
+
+        let (x, y) = self.surface.cursor_position();
+        let cursor = renderable.get_cursor_position();
+        if (x != cursor.x) || (y as i64 != cursor.y) {
+            self.surface.add_change(Change::CursorPosition {
+                x: Position::Absolute(cursor.x),
+                y: Position::Absolute(cursor.y as usize),
+            });
+        }
+
+        let mut changes = vec![];
+
+        for (line_idx, line, _selrange) in renderable.get_dirty_lines() {
+            changes.append(&mut self.surface.diff_against_numbered_line(line_idx, &line));
+        }
+
+        self.surface.add_changes(changes);
+
+        let title = tab.get_title();
+        if title != self.surface.title() {
+            self.surface.add_change(Change::Title(title));
+        }
+    }
+
+    fn get_and_flush_changes(&mut self, seq: SequenceNo) -> (SequenceNo, Vec<Change>) {
+        let (new_seq, changes) = self.surface.get_changes(seq);
+        let changes = changes.into_owned();
+        let (rows, cols) = self.surface.dimensions();
+
+        // Keep the change log in the surface bounded;
+        // we don't completely blow away the log each time
+        // so that multiple clients have an opportunity to
+        // resync from a smaller delta
+        self.surface
+            .flush_changes_older_than(new_seq - (rows * cols * 2));
+        (new_seq, changes)
+    }
 }
 
 struct BufferedTerminalHost<'a> {
@@ -223,36 +285,6 @@ impl<'a> term::TerminalHost for BufferedTerminalHost<'a> {
     fn set_title(&mut self, title: &str) {
         self.title.replace(title.to_owned());
     }
-}
-
-fn update_surface_from_screen(
-    surface: &mut Surface,
-    renderable: &mut dyn Renderable,
-) -> SequenceNo {
-    let (rows, cols) = renderable.physical_dimensions();
-    let (surface_width, surface_height) = surface.dimensions();
-
-    if (rows != surface_height) || (cols != surface_width) {
-        surface.resize(cols, rows);
-        renderable.make_all_lines_dirty();
-    }
-
-    let (x, y) = surface.cursor_position();
-    let cursor = renderable.get_cursor_position();
-    if (x != cursor.x) || (y as i64 != cursor.y) {
-        surface.add_change(Change::CursorPosition {
-            x: Position::Absolute(cursor.x),
-            y: Position::Absolute(cursor.y as usize),
-        });
-    }
-
-    let mut changes = vec![];
-
-    for (line_idx, line, _selrange) in renderable.get_dirty_lines() {
-        changes.append(&mut surface.diff_against_numbered_line(line_idx, &line));
-    }
-
-    surface.add_changes(changes)
 }
 
 impl<S: std::io::Read + std::io::Write> ClientSession<S> {
@@ -442,24 +474,13 @@ impl<S: std::io::Read + std::io::Write> ClientSession<S> {
                     let (rows, cols) = tab.renderer().physical_dimensions();
                     let surface = surfaces
                         .entry(tab_id)
-                        .or_insert_with(|| Surface::new(cols, rows));
-                    update_surface_from_screen(surface, &mut *tab.renderer());
-                    let title = tab.get_title();
-                    if title != surface.title() {
-                        log::error!("recording surface title {}", title);
-                        surface.add_change(Change::Title(title));
-                    }
+                        .or_insert_with(|| ClientSurfaceState::new(cols, rows));
+                    surface.update_surface_from_screen(&tab);
 
-                    let (new_seq, changes) = surface.get_changes(sequence_no);
-                    let changes = changes.into_owned();
-
-                    // Keep the change log in the surface bounded;
-                    // we don't completely blow away the log each time
-                    // so that multiple clients have an opportunity to
-                    // resync from a smaller delta
-                    surface.flush_changes_older_than(new_seq - (rows * cols * 2));
+                    let (new_seq, changes) = surface.get_and_flush_changes(sequence_no);
                     Ok(Pdu::GetTabRenderChangesResponse(
                         GetTabRenderChangesResponse {
+                            tab_id,
                             sequence_no: new_seq,
                             changes,
                         },
