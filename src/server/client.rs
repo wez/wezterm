@@ -17,22 +17,6 @@ use std::path::Path;
 use std::sync::Arc;
 use std::thread;
 
-pub trait ReadAndWrite: std::io::Read + std::io::Write + Send + AsPollFd {
-    fn set_non_blocking(&self, non_blocking: bool) -> Fallible<()>;
-}
-impl ReadAndWrite for UnixStream {
-    fn set_non_blocking(&self, non_blocking: bool) -> Fallible<()> {
-        self.set_nonblocking(non_blocking)?;
-        Ok(())
-    }
-}
-impl ReadAndWrite for native_tls::TlsStream<std::net::TcpStream> {
-    fn set_non_blocking(&self, non_blocking: bool) -> Fallible<()> {
-        self.get_ref().set_nonblocking(non_blocking)?;
-        Ok(())
-    }
-}
-
 enum ReaderMessage {
     SendPdu { pdu: Pdu, promise: Promise<Pdu> },
 }

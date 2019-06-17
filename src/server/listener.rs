@@ -2,7 +2,9 @@ use crate::config::Config;
 use crate::mux::tab::{Tab, TabId};
 use crate::mux::Mux;
 use crate::server::codec::*;
+use crate::server::pollable::*;
 use crate::server::UnixListener;
+use crossbeam_channel::TryRecvError;
 use failure::{bail, err_msg, format_err, Error, Fallible};
 #[cfg(unix)]
 use libc::{mode_t, umask};
@@ -187,10 +189,12 @@ impl NetListener {
     }
 }
 
-pub struct ClientSession<S: std::io::Read + std::io::Write> {
+pub struct ClientSession<S: ReadAndWrite> {
     stream: S,
     executor: Box<dyn Executor>,
     surfaces_by_tab: Arc<Mutex<HashMap<TabId, ClientSurfaceState>>>,
+    to_write_rx: PollableReceiver<DecodedPdu>,
+    to_write_tx: PollableSender<DecodedPdu>,
 }
 
 struct ClientSurfaceState {
@@ -208,31 +212,33 @@ impl ClientSurfaceState {
     }
 
     fn update_surface_from_screen(&mut self, tab: &Rc<dyn Tab>) {
-        let mut renderable = tab.renderer();
-        let (rows, cols) = renderable.physical_dimensions();
-        let (surface_width, surface_height) = self.surface.dimensions();
+        {
+            let mut renderable = tab.renderer();
+            let (rows, cols) = renderable.physical_dimensions();
+            let (surface_width, surface_height) = self.surface.dimensions();
 
-        if (rows != surface_height) || (cols != surface_width) {
-            self.surface.resize(cols, rows);
-            renderable.make_all_lines_dirty();
+            if (rows != surface_height) || (cols != surface_width) {
+                self.surface.resize(cols, rows);
+                renderable.make_all_lines_dirty();
+            }
+
+            let (x, y) = self.surface.cursor_position();
+            let cursor = renderable.get_cursor_position();
+            if (x != cursor.x) || (y as i64 != cursor.y) {
+                self.surface.add_change(Change::CursorPosition {
+                    x: Position::Absolute(cursor.x),
+                    y: Position::Absolute(cursor.y as usize),
+                });
+            }
+
+            let mut changes = vec![];
+
+            for (line_idx, line, _selrange) in renderable.get_dirty_lines() {
+                changes.append(&mut self.surface.diff_against_numbered_line(line_idx, &line));
+            }
+
+            self.surface.add_changes(changes);
         }
-
-        let (x, y) = self.surface.cursor_position();
-        let cursor = renderable.get_cursor_position();
-        if (x != cursor.x) || (y as i64 != cursor.y) {
-            self.surface.add_change(Change::CursorPosition {
-                x: Position::Absolute(cursor.x),
-                y: Position::Absolute(cursor.y as usize),
-            });
-        }
-
-        let mut changes = vec![];
-
-        for (line_idx, line, _selrange) in renderable.get_dirty_lines() {
-            changes.append(&mut self.surface.diff_against_numbered_line(line_idx, &line));
-        }
-
-        self.surface.add_changes(changes);
 
         let title = tab.get_title();
         if title != self.surface.title() {
@@ -287,26 +293,75 @@ impl<'a> term::TerminalHost for BufferedTerminalHost<'a> {
     }
 }
 
-impl<S: std::io::Read + std::io::Write> ClientSession<S> {
+impl<S: ReadAndWrite> ClientSession<S> {
     fn new(stream: S, executor: Box<dyn Executor>) -> Self {
+        let (to_write_tx, to_write_rx) =
+            pollable_channel().expect("failed to create pollable_channel");
         Self {
             stream,
             executor,
             surfaces_by_tab: Arc::new(Mutex::new(HashMap::new())),
+            to_write_rx,
+            to_write_tx,
+        }
+    }
+
+    fn run(&mut self) {
+        if let Err(e) = self.process() {
+            error!("While processing session loop: {}", e);
         }
     }
 
     fn process(&mut self) -> Result<(), Error> {
+        let mut read_buffer = Vec::with_capacity(1024);
         loop {
-            self.process_one()?;
+            let mut poll_array = [self.to_write_rx.as_poll_fd(), self.stream.as_poll_fd()];
+            poll_for_read(&mut poll_array);
+
+            if poll_array[0].revents != 0 {
+                match self.to_write_rx.try_recv() {
+                    Ok(decoded) => {
+                        decoded.pdu.encode(&mut self.stream, decoded.serial)?;
+                        self.stream.flush()?;
+                    }
+                    Err(TryRecvError::Empty) => {}
+                    Err(TryRecvError::Disconnected) => bail!("ClientSession was destroyed"),
+                };
+            }
+
+            if poll_array[1].revents != 0 {
+                self.stream.set_non_blocking(true)?;
+                let res = Pdu::try_read_and_decode(&mut self.stream, &mut read_buffer);
+                self.stream.set_non_blocking(false)?;
+                if let Some(decoded) = res? {
+                    self.process_one(decoded)?;
+                }
+            }
         }
     }
 
-    fn process_pdu(&mut self, pdu: Pdu) -> Fallible<Pdu> {
-        Ok(match pdu {
-            Pdu::Ping(Ping {}) => Pdu::Pong(Pong {}),
+    fn process_one(&mut self, decoded: DecodedPdu) -> Fallible<()> {
+        let start = Instant::now();
+        let sender = self.to_write_tx.clone();
+        let serial = decoded.serial;
+        self.process_pdu(decoded.pdu).then(move |result| {
+            let pdu = match result {
+                Ok(pdu) => pdu,
+                Err(err) => Pdu::ErrorResponse(ErrorResponse {
+                    reason: format!("Error: {}", err),
+                }),
+            };
+            log::trace!("processing time {:?}", start.elapsed());
+            sender.send(DecodedPdu { pdu, serial })
+        });
+        Ok(())
+    }
+
+    fn process_pdu(&mut self, pdu: Pdu) -> Future<Pdu> {
+        match pdu {
+            Pdu::Ping(Ping {}) => Future::ok(Pdu::Pong(Pong {})),
             Pdu::ListTabs(ListTabs {}) => {
-                let result = Future::with_executor(self.executor.clone_executor(), move || {
+                Future::with_executor(self.executor.clone_executor(), move || {
                     let mux = Mux::get().unwrap();
                     let mut tabs = vec![];
                     for window_id in mux.iter_windows().into_iter() {
@@ -320,13 +375,11 @@ impl<S: std::io::Read + std::io::Write> ClientSession<S> {
                         }
                     }
                     log::error!("ListTabs {:#?}", tabs);
-                    Ok(ListTabsResponse { tabs })
+                    Ok(Pdu::ListTabsResponse(ListTabsResponse { tabs }))
                 })
-                .wait()?;
-                Pdu::ListTabsResponse(result)
             }
             Pdu::GetCoarseTabRenderableData(GetCoarseTabRenderableData { tab_id, dirty_all }) => {
-                let result = Future::with_executor(self.executor.clone_executor(), move || {
+                Future::with_executor(self.executor.clone_executor(), move || {
                     let mux = Mux::get().unwrap();
                     let tab = mux
                         .get_tab(tab_id)
@@ -351,17 +404,17 @@ impl<S: std::io::Read + std::io::Write> ClientSession<S> {
 
                     let (physical_rows, physical_cols) = renderable.physical_dimensions();
 
-                    Ok(GetCoarseTabRenderableDataResponse {
-                        dirty_lines,
-                        current_highlight: renderable.current_highlight(),
-                        cursor_position: renderable.get_cursor_position(),
-                        physical_rows,
-                        physical_cols,
-                        title,
-                    })
+                    Ok(Pdu::GetCoarseTabRenderableDataResponse(
+                        GetCoarseTabRenderableDataResponse {
+                            dirty_lines,
+                            current_highlight: renderable.current_highlight(),
+                            cursor_position: renderable.get_cursor_position(),
+                            physical_rows,
+                            physical_cols,
+                            title,
+                        },
+                    ))
                 })
-                .wait()?;
-                Pdu::GetCoarseTabRenderableDataResponse(result)
             }
 
             Pdu::WriteToTab(WriteToTab { tab_id, data }) => {
@@ -371,10 +424,8 @@ impl<S: std::io::Read + std::io::Write> ClientSession<S> {
                         .get_tab(tab_id)
                         .ok_or_else(|| format_err!("no such tab {}", tab_id))?;
                     tab.writer().write_all(&data)?;
-                    Ok(())
+                    Ok(Pdu::UnitResponse(UnitResponse {}))
                 })
-                .wait()?;
-                Pdu::UnitResponse(UnitResponse {})
             }
             Pdu::SendPaste(SendPaste { tab_id, data }) => {
                 Future::with_executor(self.executor.clone_executor(), move || {
@@ -383,10 +434,8 @@ impl<S: std::io::Read + std::io::Write> ClientSession<S> {
                         .get_tab(tab_id)
                         .ok_or_else(|| format_err!("no such tab {}", tab_id))?;
                     tab.send_paste(&data)?;
-                    Ok(())
+                    Ok(Pdu::UnitResponse(UnitResponse {}))
                 })
-                .wait()?;
-                Pdu::UnitResponse(UnitResponse {})
             }
 
             Pdu::Resize(Resize { tab_id, size }) => {
@@ -396,10 +445,8 @@ impl<S: std::io::Read + std::io::Write> ClientSession<S> {
                         .get_tab(tab_id)
                         .ok_or_else(|| format_err!("no such tab {}", tab_id))?;
                     tab.resize(size)?;
-                    Ok(())
+                    Ok(Pdu::UnitResponse(UnitResponse {}))
                 })
-                .wait()?;
-                Pdu::UnitResponse(UnitResponse {})
             }
 
             Pdu::SendKeyDown(SendKeyDown { tab_id, event }) => {
@@ -409,10 +456,8 @@ impl<S: std::io::Read + std::io::Write> ClientSession<S> {
                         .get_tab(tab_id)
                         .ok_or_else(|| format_err!("no such tab {}", tab_id))?;
                     tab.key_down(event.key, event.modifiers)?;
-                    Ok(())
+                    Ok(Pdu::UnitResponse(UnitResponse {}))
                 })
-                .wait()?;
-                Pdu::UnitResponse(UnitResponse {})
             }
             Pdu::SendMouseEvent(SendMouseEvent { tab_id, event }) => {
                 Future::with_executor(self.executor.clone_executor(), move || {
@@ -431,34 +476,29 @@ impl<S: std::io::Read + std::io::Write> ClientSession<S> {
                         selection_range: tab.selection_range(),
                     }))
                 })
-                .wait()?
             }
 
-            Pdu::Spawn(spawn) => {
-                let result = Future::with_executor(self.executor.clone_executor(), move || {
-                    let mux = Mux::get().unwrap();
-                    let domain = mux.get_domain(spawn.domain_id).ok_or_else(|| {
-                        format_err!("domain {} not found on this server", spawn.domain_id)
+            Pdu::Spawn(spawn) => Future::with_executor(self.executor.clone_executor(), move || {
+                let mux = Mux::get().unwrap();
+                let domain = mux.get_domain(spawn.domain_id).ok_or_else(|| {
+                    format_err!("domain {} not found on this server", spawn.domain_id)
+                })?;
+
+                let window_id = if let Some(window_id) = spawn.window_id {
+                    mux.get_window_mut(window_id).ok_or_else(|| {
+                        format_err!("window_id {} not found on this server", window_id)
                     })?;
+                    window_id
+                } else {
+                    mux.new_empty_window()
+                };
 
-                    let window_id = if let Some(window_id) = spawn.window_id {
-                        mux.get_window_mut(window_id).ok_or_else(|| {
-                            format_err!("window_id {} not found on this server", window_id)
-                        })?;
-                        window_id
-                    } else {
-                        mux.new_empty_window()
-                    };
-
-                    let tab = domain.spawn(spawn.size, spawn.command, window_id)?;
-                    Ok(SpawnResponse {
-                        tab_id: tab.tab_id(),
-                        window_id,
-                    })
-                })
-                .wait()?;
-                Pdu::SpawnResponse(result)
-            }
+                let tab = domain.spawn(spawn.size, spawn.command, window_id)?;
+                Ok(Pdu::SpawnResponse(SpawnResponse {
+                    tab_id: tab.tab_id(),
+                    window_id,
+                }))
+            }),
 
             Pdu::GetTabRenderChanges(GetTabRenderChanges {
                 tab_id,
@@ -486,10 +526,9 @@ impl<S: std::io::Read + std::io::Write> ClientSession<S> {
                         },
                     ))
                 })
-                .wait()?
             }
 
-            Pdu::Invalid { .. } => bail!("invalid PDU {:?}", pdu),
+            Pdu::Invalid { .. } => Future::err(format_err!("invalid PDU {:?}", pdu)),
             Pdu::Pong { .. }
             | Pdu::ListTabsResponse { .. }
             | Pdu::SendMouseEventResponse { .. }
@@ -497,34 +536,9 @@ impl<S: std::io::Read + std::io::Write> ClientSession<S> {
             | Pdu::SpawnResponse { .. }
             | Pdu::GetTabRenderChangesResponse { .. }
             | Pdu::UnitResponse { .. }
-            | Pdu::ErrorResponse { .. } => bail!("expected a request, got {:?}", pdu),
-        })
-    }
-
-    fn process_one(&mut self) -> Fallible<()> {
-        let start = Instant::now();
-        let decoded = Pdu::decode(&mut self.stream)?;
-        debug!("got pdu {:?} from client in {:?}", decoded, start.elapsed());
-
-        let start = Instant::now();
-        let response = self.process_pdu(decoded.pdu).unwrap_or_else(|e| {
-            Pdu::ErrorResponse(ErrorResponse {
-                reason: format!("Error: {}", e),
-            })
-        });
-        log::trace!("processing time {:?}", start.elapsed());
-
-        let start = Instant::now();
-        response.encode(&mut self.stream, decoded.serial)?;
-        self.stream.flush()?;
-        log::trace!("encode and send in {:?}", start.elapsed());
-
-        Ok(())
-    }
-
-    fn run(&mut self) {
-        if let Err(e) = self.process() {
-            error!("While processing session loop: {}", e);
+            | Pdu::ErrorResponse { .. } => {
+                Future::err(format_err!("expected a request, got {:?}", pdu))
+            }
         }
     }
 }
