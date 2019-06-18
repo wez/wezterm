@@ -12,6 +12,7 @@ use winapi::um::minwinbase::SECURITY_ATTRIBUTES;
 use winapi::um::namedpipeapi::CreatePipe;
 use winapi::um::processthreadsapi::*;
 use winapi::um::winnt::HANDLE;
+pub use winapi::um::winsock2::{POLLERR, POLLHUP, POLLIN, POLLOUT, WSAPOLLFD as pollfd};
 
 /// `RawFileDescriptor` is a platform independent type alias for the
 /// underlying platform file descriptor type.  It is primarily useful
@@ -190,5 +191,23 @@ impl Pipe {
                 handle: OwnedHandle { handle: write as _ },
             },
         })
+    }
+}
+
+#[doc(hidden)]
+pub fn poll_impl(pfd: &mut [pollfd], duration: Option<Duration>) -> Fallible<usize> {
+    let poll_result = unsafe {
+        WSAPoll(
+            pfd.as_mut_ptr(),
+            pfd.len() as _,
+            duration
+                .map(|wait| wait.as_millis() as libc::c_int)
+                .unwrap_or(-1),
+        )
+    };
+    if poll_result < 0 {
+        Err(std::io::Error::last_os_error())
+    } else {
+        Ok(poll_result as usize)
     }
 }

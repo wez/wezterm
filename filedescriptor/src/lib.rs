@@ -211,3 +211,33 @@ pub struct Pipe {
     /// The writable end of the pipe
     pub write: FileDescriptor,
 }
+
+use std::time::Duration;
+
+/// Examines a set of FileDescriptors to see if some of them are ready for I/O,
+/// or if certain events have occurred on them.
+///
+/// This uses the system native readiness checking mechanism, which on Windows
+/// means that it does NOT use IOCP and that this only works with sockets on
+/// Windows.  If you need IOCP then the `mio` crate is recommended for a much
+/// more scalable solution.
+///
+/// On macOS, the `poll(2)` implementation has problems when used with eg: pty
+/// descriptors, so this implementation of poll uses the `select(2)` interface
+/// under the covers.  That places a limit on the maximum file descriptor value
+/// that can be passed to poll.  If a file descriptor is out of range then an
+/// error will returned.  This limitation could potentially be lifted in the
+/// future.
+///
+/// If `duration` is `None`, then `poll` will block until any of the requested
+/// events are ready.  Otherwise, `duration` specifies how long to wait for
+/// readiness before giving up.
+///
+/// The return value is the number of entries that were satisfied; `0` means
+/// that none were ready after waiting for the specified duration.
+///
+/// The `pfd` array is mutated and the `revents` field is updated to indicate
+/// which of the events were received.
+pub fn poll(pfd: &mut [pollfd], duration: Option<Duration>) -> Fallible<usize> {
+    poll_impl(pfd, duration)
+}
