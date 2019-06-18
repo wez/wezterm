@@ -241,3 +241,10 @@ use std::time::Duration;
 pub fn poll(pfd: &mut [pollfd], duration: Option<Duration>) -> Fallible<usize> {
     poll_impl(pfd, duration)
 }
+
+/// Create a pair of connected sockets
+///
+/// This implementation creates a pair of SOCK_STREAM sockets.
+pub fn socketpair() -> Fallible<(FileDescriptor, FileDescriptor)> {
+    socketpair_impl()
+}

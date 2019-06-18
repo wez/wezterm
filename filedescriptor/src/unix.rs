@@ -209,6 +209,57 @@ impl Pipe {
     }
 }
 
+#[cfg(target_os = "linux")]
+#[doc(hidden)]
+pub fn socketpair_impl() -> Fallible<(FileDescriptor, FileDescriptor)> {
+    let mut fds = [-1i32; 2];
+    let res = unsafe {
+        libc::socketpair(
+            libc::PF_LOCAL,
+            libc::SOCK_STREAM | libc::SOCK_CLOEXEC,
+            0,
+            fds.as_mut_ptr(),
+        )
+    };
+    if res == -1 {
+        bail!(
+            "failed to create a socketpair: {:?}",
+            std::io::Error::last_os_error()
+        )
+    } else {
+        let mut read = FileDescriptor {
+            handle: OwnedHandle { handle: fds[0] },
+        };
+        let mut write = FileDescriptor {
+            handle: OwnedHandle { handle: fds[1] },
+        };
+        Ok((read, write))
+    }
+}
+
+#[cfg(not(target_os = "linux"))]
+#[doc(hidden)]
+pub fn socketpair_impl() -> Fallible<(FileDescriptor, FileDescriptor)> {
+    let mut fds = [-1i32; 2];
+    let res = unsafe { libc::socketpair(libc::PF_LOCAL, libc::SOCK_STREAM, 0, fds.as_mut_ptr()) };
+    if res == -1 {
+        bail!(
+            "failed to create a socketpair: {:?}",
+            std::io::Error::last_os_error()
+        )
+    } else {
+        let mut read = FileDescriptor {
+            handle: OwnedHandle { handle: fds[0] },
+        };
+        let mut write = FileDescriptor {
+            handle: OwnedHandle { handle: fds[1] },
+        };
+        read.handle.cloexec()?;
+        write.handle.cloexec()?;
+        Ok((read, write))
+    }
+}
+
 pub use libc::{pollfd, POLLERR, POLLHUP, POLLIN, POLLOUT};
 use std::time::Duration;
 
@@ -225,7 +276,7 @@ pub fn poll_impl(pfd: &mut [pollfd], duration: Option<Duration>) -> Fallible<usi
         )
     };
     if poll_result < 0 {
-        Err(std::io::Error::last_os_error())
+        Err(std::io::Error::last_os_error().into())
     } else {
         Ok(poll_result as usize)
     }

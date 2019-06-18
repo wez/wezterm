@@ -11,7 +11,9 @@ use winapi::um::handleapi::*;
 use winapi::um::minwinbase::SECURITY_ATTRIBUTES;
 use winapi::um::namedpipeapi::CreatePipe;
 use winapi::um::processthreadsapi::*;
+use winapi::um::winbase::{FILE_TYPE_CHAR, FILE_TYPE_DISK, FILE_TYPE_PIPE};
 use winapi::um::winnt::HANDLE;
+use winapi::um::winsock2::{closesocket, WSAPoll};
 pub use winapi::um::winsock2::{POLLERR, POLLHUP, POLLIN, POLLOUT, WSAPOLLFD as pollfd};
 
 /// `RawFileDescriptor` is a platform independent type alias for the
@@ -39,10 +41,44 @@ impl<T: FromRawHandle> FromRawFileDescriptor for T {
 
 unsafe impl Send for OwnedHandle {}
 
+enum HandleType {
+    Char,
+    Disk,
+    Pipe,
+    Socket,
+    Unknown,
+}
+
+fn handle_type(handle: HANDLE) -> HandleType {
+    match GetFileType(handle) {
+        FILE_TYPE_CHAR => HandleType::Char,
+        FILE_TYPE_DISK => HandleType::Disk,
+        FILE_TYPE_PIPE => {
+            // Could be a pipe or a socket.  Test if for pipeness
+            let mut flags = 0;
+            let mut out_buf = 0;
+            let mut in_buf = 0;
+            let mut inst = 0;
+            if GetNamedPipeInfo(handle, &mut flags, &mut out_buf, &mut in_buf, &mut inst) {
+                HandleType::Pipe
+            } else {
+                HandleType::Socket
+            }
+        }
+        _ => HandleType::Unknown,
+    }
+}
+
 impl Drop for OwnedHandle {
     fn drop(&mut self) {
         if self.handle != INVALID_HANDLE_VALUE as _ && !self.handle.is_null() {
-            unsafe { CloseHandle(self.handle as _) };
+            unsafe {
+                if handle_type(self.handle as _) == HandleType::Socket {
+                    closesocket(self.handle as _);
+                } else {
+                    CloseHandle(self.handle as _);
+                }
+            };
         }
     }
 }
@@ -194,6 +230,24 @@ impl Pipe {
     }
 }
 
+fn init_winsock() {
+    static START: Once = Once::new();
+    START.call_once(|| unsafe {
+        let mut data: WSADATA = mem::zeroed();
+        let ret = WSAStartup(
+            0x202, // version 2.2
+            &mut data,
+        );
+        assert_eq!(ret, 0, "failed to initialize winsock");
+    });
+}
+
+#[doc(hidden)]
+pub fn socketpair_impl() -> Fallible<(FileDescriptor, FileDescriptor)> {
+    init_winsock();
+    bail!("not implemented yet");
+}
+
 #[doc(hidden)]
 pub fn poll_impl(pfd: &mut [pollfd], duration: Option<Duration>) -> Fallible<usize> {
     let poll_result = unsafe {
@@ -206,7 +260,7 @@ pub fn poll_impl(pfd: &mut [pollfd], duration: Option<Duration>) -> Fallible<usi
         )
     };
     if poll_result < 0 {
-        Err(std::io::Error::last_os_error())
+        Err(std::io::Error::last_os_error().into())
     } else {
         Ok(poll_result as usize)
     }
