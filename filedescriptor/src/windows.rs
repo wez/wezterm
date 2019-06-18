@@ -6,14 +6,22 @@ use failure::{bail, Fallible};
 use std::io::{self, Error as IoError};
 use std::os::windows::prelude::*;
 use std::ptr;
+use std::sync::Once;
+use std::time::Duration;
+use winapi::shared::ws2def::AF_INET;
+use winapi::shared::ws2def::INADDR_LOOPBACK;
+use winapi::shared::ws2def::SOCKADDR_IN;
 use winapi::um::fileapi::*;
 use winapi::um::handleapi::*;
 use winapi::um::minwinbase::SECURITY_ATTRIBUTES;
-use winapi::um::namedpipeapi::CreatePipe;
+use winapi::um::namedpipeapi::{CreatePipe, GetNamedPipeInfo};
 use winapi::um::processthreadsapi::*;
 use winapi::um::winbase::{FILE_TYPE_CHAR, FILE_TYPE_DISK, FILE_TYPE_PIPE};
 use winapi::um::winnt::HANDLE;
-use winapi::um::winsock2::{closesocket, WSAPoll};
+use winapi::um::winsock2::{
+    accept, bind, closesocket, connect, getsockname, htonl, listen, WSAPoll, WSASocketW,
+    WSAStartup, INVALID_SOCKET, SOCK_STREAM, WSADATA, WSA_FLAG_NO_HANDLE_INHERIT,
+};
 pub use winapi::um::winsock2::{POLLERR, POLLHUP, POLLIN, POLLOUT, WSAPOLLFD as pollfd};
 
 /// `RawFileDescriptor` is a platform independent type alias for the
@@ -41,6 +49,7 @@ impl<T: FromRawHandle> FromRawFileDescriptor for T {
 
 unsafe impl Send for OwnedHandle {}
 
+#[derive(Clone, Copy, PartialEq, Eq)]
 enum HandleType {
     Char,
     Disk,
@@ -50,7 +59,7 @@ enum HandleType {
 }
 
 fn handle_type(handle: HANDLE) -> HandleType {
-    match GetFileType(handle) {
+    match unsafe { GetFileType(handle) } {
         FILE_TYPE_CHAR => HandleType::Char,
         FILE_TYPE_DISK => HandleType::Disk,
         FILE_TYPE_PIPE => {
@@ -59,7 +68,9 @@ fn handle_type(handle: HANDLE) -> HandleType {
             let mut out_buf = 0;
             let mut in_buf = 0;
             let mut inst = 0;
-            if GetNamedPipeInfo(handle, &mut flags, &mut out_buf, &mut in_buf, &mut inst) {
+            if unsafe { GetNamedPipeInfo(handle, &mut flags, &mut out_buf, &mut in_buf, &mut inst) }
+                != 0
+            {
                 HandleType::Pipe
             } else {
                 HandleType::Socket
@@ -233,7 +244,7 @@ impl Pipe {
 fn init_winsock() {
     static START: Once = Once::new();
     START.call_once(|| unsafe {
-        let mut data: WSADATA = mem::zeroed();
+        let mut data: WSADATA = std::mem::zeroed();
         let ret = WSAStartup(
             0x202, // version 2.2
             &mut data,
@@ -242,10 +253,91 @@ fn init_winsock() {
     });
 }
 
+fn socket(af: i32, sock_type: i32, proto: i32) -> Fallible<FileDescriptor> {
+    let s = unsafe {
+        WSASocketW(
+            af,
+            sock_type,
+            proto,
+            ptr::null_mut(),
+            0,
+            WSA_FLAG_NO_HANDLE_INHERIT,
+        )
+    };
+    if s == INVALID_SOCKET {
+        bail!("socket failed: {}", IoError::last_os_error());
+    }
+    Ok(FileDescriptor {
+        handle: OwnedHandle { handle: s as _ },
+    })
+}
+
 #[doc(hidden)]
 pub fn socketpair_impl() -> Fallible<(FileDescriptor, FileDescriptor)> {
     init_winsock();
-    bail!("not implemented yet");
+
+    let s = socket(AF_INET, SOCK_STREAM, 0)?;
+
+    let mut in_addr: SOCKADDR_IN = unsafe { std::mem::zeroed() };
+    in_addr.sin_family = AF_INET as _;
+    unsafe {
+        *in_addr.sin_addr.S_un.S_addr_mut() = htonl(INADDR_LOOPBACK);
+    }
+
+    unsafe {
+        if bind(
+            s.as_raw_handle() as _,
+            std::mem::transmute(&in_addr),
+            std::mem::size_of_val(&in_addr) as _,
+        ) != 0
+        {
+            bail!("bind failed: {}", IoError::last_os_error());
+        }
+    }
+
+    let mut addr_len = std::mem::size_of_val(&in_addr) as i32;
+
+    unsafe {
+        if getsockname(
+            s.as_raw_handle() as _,
+            std::mem::transmute(&mut in_addr),
+            &mut addr_len,
+        ) != 0
+        {
+            bail!("getsockname failed: {}", IoError::last_os_error());
+        }
+    }
+
+    unsafe {
+        if listen(s.as_raw_handle() as _, 1) != 0 {
+            bail!("listen failed: {}", IoError::last_os_error());
+        }
+    }
+
+    let client = socket(AF_INET, SOCK_STREAM, 0)?;
+
+    unsafe {
+        if connect(
+            client.as_raw_handle() as _,
+            std::mem::transmute(&in_addr),
+            addr_len,
+        ) != 0
+        {
+            bail!("connect failed: {}", IoError::last_os_error());
+        }
+    }
+
+    let server = unsafe { accept(s.as_raw_handle() as _, ptr::null_mut(), ptr::null_mut()) };
+    if server == INVALID_SOCKET {
+        bail!("socket failed: {}", IoError::last_os_error());
+    }
+    let server = FileDescriptor {
+        handle: OwnedHandle {
+            handle: server as _,
+        },
+    };
+
+    Ok((server, client))
 }
 
 #[doc(hidden)]
@@ -263,5 +355,19 @@ pub fn poll_impl(pfd: &mut [pollfd], duration: Option<Duration>) -> Fallible<usi
         Err(std::io::Error::last_os_error().into())
     } else {
         Ok(poll_result as usize)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use std::io::{Read, Write};
+
+    #[test]
+    fn socketpair() {
+        let (mut a, mut b) = super::socketpair_impl().unwrap();
+        a.write(b"hello").unwrap();
+        let mut buf = [0u8; 5];
+        assert_eq!(b.read(&mut buf).unwrap(), 5);
+        assert_eq!(&buf, b"hello");
     }
 }
