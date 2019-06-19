@@ -1,6 +1,6 @@
 use failure::{bail, format_err, Error, Fallible};
-use filedescriptor::FileDescriptor;
-use libc::{self, pollfd, winsize, POLLIN};
+use filedescriptor::{poll, pollfd, FileDescriptor, POLLIN};
+use libc::{self, winsize};
 use signal_hook::{self, SigId};
 use std::collections::VecDeque;
 use std::fs::OpenOptions;
@@ -410,18 +410,24 @@ impl Terminal for UnixTerminal {
             },
         ];
 
-        if let Err(err) = super::poll::poll(&mut pfd, wait) {
-            if err.kind() == ErrorKind::Interrupted {
-                // SIGWINCH may have been the source of the interrupt.
-                // Check for that now so that we reduce the latency of
-                // processing the resize
-                if let Some(resize) = self.caught_sigwinch()? {
-                    return Ok(Some(resize));
+        if let Err(err) = poll(&mut pfd, wait) {
+            return match err.downcast::<std::io::Error>() {
+                Ok(err) => {
+                    if err.kind() == ErrorKind::Interrupted {
+                        // SIGWINCH may have been the source of the interrupt.
+                        // Check for that now so that we reduce the latency of
+                        // processing the resize
+                        if let Some(resize) = self.caught_sigwinch()? {
+                            Ok(Some(resize))
+                        } else {
+                            Ok(None)
+                        }
+                    } else {
+                        Err(format_err!("poll(2) error: {}", err))
+                    }
                 }
-
-                return Ok(None);
-            }
-            return Err(format_err!("poll(2) error: {}", err));
+                Err(err) => Err(format_err!("poll(2) error: {}", err)),
+            };
         };
 
         if pfd[0].revents != 0 {

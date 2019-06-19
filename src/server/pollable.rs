@@ -1,14 +1,10 @@
 use crate::server::UnixStream;
 use crossbeam_channel::{unbounded as channel, Receiver, Sender, TryRecvError};
 use failure::{format_err, Fallible};
-use filedescriptor::{AsRawFileDescriptor, FileDescriptor, RawFileDescriptor};
-#[cfg(unix)]
-use libc::{poll, pollfd, POLLERR, POLLIN};
+use filedescriptor::*;
 use std::cell::RefCell;
 use std::io::{Read, Write};
 use std::net::TcpStream;
-#[cfg(windows)]
-use winapi::um::winsock2::{WSAPoll as poll, POLLERR, POLLIN, WSAPOLLFD as pollfd};
 
 pub trait ReadAndWrite: std::io::Read + std::io::Write + Send + AsPollFd {
     fn set_non_blocking(&self, non_blocking: bool) -> Fallible<()>;
@@ -127,5 +123,5 @@ impl AsPollFd for UnixStream {
 }
 
 pub fn poll_for_read(pfd: &mut [pollfd]) {
-    unsafe { poll(pfd.as_mut_ptr(), pfd.len() as _, -1 as _) };
+    poll(pfd, None).ok();
 }
