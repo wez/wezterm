@@ -1,5 +1,9 @@
 use crate::config::Config;
 use crate::frontend::gui_executor;
+use crate::mux::tab::{Tab, TabId};
+use crate::mux::window::{Window, WindowId};
+use crate::server::pollable::{pollable_channel, PollableReceiver, PollableSender};
+use domain::{Domain, DomainId};
 use failure::{format_err, Error, Fallible};
 use failure_derive::*;
 use log::{debug, error, warn};
@@ -9,6 +13,7 @@ use std::cell::{Ref, RefCell, RefMut};
 use std::collections::HashMap;
 use std::io::Read;
 use std::rc::Rc;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::thread;
 use term::TerminalHost;
@@ -19,9 +24,14 @@ pub mod renderable;
 pub mod tab;
 pub mod window;
 
-use crate::mux::tab::{Tab, TabId};
-use crate::mux::window::{Window, WindowId};
-use domain::{Domain, DomainId};
+#[derive(Clone, Debug)]
+pub enum MuxNotification {
+    TabOutput(TabId),
+}
+
+static SUB_ID: AtomicUsize = AtomicUsize::new(0);
+
+pub type MuxSubscriber = PollableReceiver<MuxNotification>;
 
 pub struct Mux {
     tabs: RefCell<HashMap<TabId, Rc<dyn Tab>>>,
@@ -29,6 +39,7 @@ pub struct Mux {
     config: Arc<Config>,
     default_domain: Arc<dyn Domain>,
     domains: RefCell<HashMap<DomainId, Arc<dyn Domain>>>,
+    subscribers: RefCell<HashMap<usize, PollableSender<MuxNotification>>>,
 }
 
 fn read_from_tab_pty(tab_id: TabId, mut reader: Box<dyn std::io::Read>) {
@@ -56,6 +67,7 @@ fn read_from_tab_pty(tab_id: TabId, mut reader: Box<dyn std::io::Read>) {
                                 writer: &mut *tab.writer(),
                             },
                         );
+                        mux.notify(MuxNotification::TabOutput(tab_id));
                     }
                     Ok(())
                 });
@@ -116,7 +128,20 @@ impl Mux {
             config: Arc::clone(config),
             default_domain: Arc::clone(default_domain),
             domains: RefCell::new(domains),
+            subscribers: RefCell::new(HashMap::new()),
         }
+    }
+
+    pub fn subscribe(&self) -> Fallible<MuxSubscriber> {
+        let sub_id = SUB_ID.fetch_add(1, Ordering::Relaxed);
+        let (tx, rx) = pollable_channel()?;
+        self.subscribers.borrow_mut().insert(sub_id, tx);
+        Ok(rx)
+    }
+
+    pub fn notify(&self, notification: MuxNotification) {
+        let mut subscribers = self.subscribers.borrow_mut();
+        subscribers.retain(|_, tx| tx.send(notification.clone()).is_ok());
     }
 
     pub fn default_domain(&self) -> &Arc<dyn Domain> {

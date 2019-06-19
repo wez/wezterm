@@ -1,6 +1,6 @@
 use crate::config::Config;
 use crate::mux::tab::{Tab, TabId};
-use crate::mux::Mux;
+use crate::mux::{Mux, MuxNotification, MuxSubscriber};
 use crate::server::codec::*;
 use crate::server::pollable::*;
 use crate::server::UnixListener;
@@ -40,8 +40,11 @@ impl LocalListener {
             match stream {
                 Ok(stream) => {
                     let executor = self.executor.clone_executor();
-                    let mut session = ClientSession::new(stream, executor);
-                    thread::spawn(move || session.run());
+                    Future::with_executor(executor.clone_executor(), move || {
+                        let mut session = ClientSession::new(stream, executor);
+                        thread::spawn(move || session.run());
+                        Ok(())
+                    });
                 }
                 Err(err) => {
                     error!("accept failed: {}", err);
@@ -195,6 +198,7 @@ pub struct ClientSession<S: ReadAndWrite> {
     surfaces_by_tab: Arc<Mutex<HashMap<TabId, ClientSurfaceState>>>,
     to_write_rx: PollableReceiver<DecodedPdu>,
     to_write_tx: PollableSender<DecodedPdu>,
+    mux_rx: MuxSubscriber,
 }
 
 fn maybe_push_tab_changes(
@@ -325,12 +329,15 @@ impl<S: ReadAndWrite> ClientSession<S> {
     fn new(stream: S, executor: Box<dyn Executor>) -> Self {
         let (to_write_tx, to_write_rx) =
             pollable_channel().expect("failed to create pollable_channel");
+        let mux = Mux::get().expect("to be running on gui thread");
+        let mux_rx = mux.subscribe().expect("Mux::subscribe to succeed");
         Self {
             stream,
             executor,
             surfaces_by_tab: Arc::new(Mutex::new(HashMap::new())),
             to_write_rx,
             to_write_tx,
+            mux_rx,
         }
     }
 
@@ -354,8 +361,32 @@ impl<S: ReadAndWrite> ClientSession<S> {
                     Err(TryRecvError::Disconnected) => bail!("ClientSession was destroyed"),
                 };
             }
+            loop {
+                match self.mux_rx.try_recv() {
+                    Ok(notif) => match notif {
+                        MuxNotification::TabOutput(tab_id) => {
+                            let surfaces = Arc::clone(&self.surfaces_by_tab);
+                            let sender = self.to_write_tx.clone();
+                            Future::with_executor(self.executor.clone_executor(), move || {
+                                let mux = Mux::get().unwrap();
+                                let tab = mux
+                                    .get_tab(tab_id)
+                                    .ok_or_else(|| format_err!("no such tab {}", tab_id))?;
+                                maybe_push_tab_changes(&surfaces, &tab, sender)?;
+                                Ok(())
+                            });
+                        }
+                    },
+                    Err(TryRecvError::Empty) => break,
+                    Err(TryRecvError::Disconnected) => bail!("ClientSession was destroyed"),
+                };
+            }
 
-            let mut poll_array = [self.to_write_rx.as_poll_fd(), self.stream.as_poll_fd()];
+            let mut poll_array = [
+                self.to_write_rx.as_poll_fd(),
+                self.stream.as_poll_fd(),
+                self.mux_rx.as_poll_fd(),
+            ];
             poll_for_read(&mut poll_array);
 
             if poll_array[1].revents != 0 || self.stream.has_read_buffered() {

@@ -152,6 +152,7 @@ impl ClientTab {
             last_poll: RefCell::new(Instant::now()),
             dead: RefCell::new(false),
             poll_future: RefCell::new(None),
+            poll_interval: RefCell::new(BASE_POLL_INTERVAL),
             surface: RefCell::new(Surface::new(80, 24)),
             remote_sequence: RefCell::new(0),
             local_sequence: RefCell::new(0),
@@ -288,17 +289,20 @@ struct RenderableState {
     surface: RefCell<Surface>,
     remote_sequence: RefCell<SequenceNo>,
     local_sequence: RefCell<SequenceNo>,
+    poll_interval: RefCell<Duration>,
     selection_range: Arc<Mutex<Option<SelectionRange>>>,
     something_changed: Arc<Mutex<bool>>,
 }
 
-const POLL_INTERVAL: Duration = Duration::from_millis(50);
+const MAX_POLL_INTERVAL: Duration = Duration::from_secs(30);
+const BASE_POLL_INTERVAL: Duration = Duration::from_millis(20);
 
 impl RenderableState {
     fn apply_changes_to_surface(&self, remote_seq: SequenceNo, changes: Vec<Change>) {
         if let Some(first) = changes.first().as_ref() {
             log::trace!("{:?}", first);
         }
+        *self.poll_interval.borrow_mut() = BASE_POLL_INTERVAL;
         self.surface.borrow_mut().add_changes(changes);
         *self.remote_sequence.borrow_mut() = remote_seq;
     }
@@ -312,6 +316,10 @@ impl RenderableState {
             .unwrap_or(false);
         if ready {
             self.poll_future.borrow_mut().take().unwrap().wait()?;
+            let interval = *self.poll_interval.borrow();
+            let interval = (interval + interval).min(MAX_POLL_INTERVAL);
+            *self.poll_interval.borrow_mut() = interval;
+
             *self.last_poll.borrow_mut() = Instant::now();
         } else if self.poll_future.borrow().is_some() {
             // We have a poll in progress
@@ -319,7 +327,7 @@ impl RenderableState {
         }
 
         let last = *self.last_poll.borrow();
-        if last.elapsed() < POLL_INTERVAL {
+        if last.elapsed() < *self.poll_interval.borrow() {
             return Ok(());
         }
 

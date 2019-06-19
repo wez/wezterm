@@ -102,11 +102,6 @@ fn client_thread(
 
         let mut poll_array = [rx.as_poll_fd(), stream.as_poll_fd()];
         poll_for_read(&mut poll_array);
-        log::trace!(
-            "out: {}, in: {}",
-            poll_array[0].revents,
-            poll_array[1].revents
-        );
 
         if poll_array[1].revents != 0 || stream.has_read_buffered() {
             // When TLS is enabled on a stream, it may require a mixture of
@@ -132,7 +127,6 @@ fn client_thread(
                         );
                     }
                 } else {
-                    log::trace!("spurious/incomplete read wakeup");
                     break;
                 }
             }

@@ -83,7 +83,7 @@ impl<T> AsPollFd for PollableReceiver<T> {
 /// windows 10 w/unix domain socket support.
 pub fn pollable_channel<T>() -> Fallible<(PollableSender<T>, PollableReceiver<T>)> {
     let (sender, receiver) = channel();
-    let (write, read) = UnixStream::pair()?;
+    let (write, read) = socketpair()?;
     Ok((
         PollableSender {
             sender,
