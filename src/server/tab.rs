@@ -383,7 +383,9 @@ impl Renderable for RenderableState {
             .has_changes(*self.local_sequence.borrow())
     }
 
-    fn make_all_lines_dirty(&mut self) {}
+    fn make_all_lines_dirty(&mut self) {
+        *self.something_changed.lock().unwrap() = true;
+    }
 
     fn clean_dirty_lines(&mut self) {}
 
