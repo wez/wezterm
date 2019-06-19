@@ -131,13 +131,13 @@ pub trait FromRawFileDescriptor {
 }
 
 pub trait AsRawSocketDescriptor {
-    fn as_raw_socket_descriptor(&self) -> SocketDescriptor;
+    fn as_socket_descriptor(&self) -> SocketDescriptor;
 }
 pub trait IntoRawSocketDescriptor {
-    fn into_raw_socket_descriptor(self) -> SocketDescriptor;
+    fn into_socket_descriptor(self) -> SocketDescriptor;
 }
 pub trait FromRawSocketDescriptor {
-    unsafe fn from_raw_socket_descriptor(fd: SocketDescriptor) -> Self;
+    unsafe fn from_socket_descriptor(fd: SocketDescriptor) -> Self;
 }
 
 /// `OwnedHandle` allows managing the lifetime of the platform `RawFileDescriptor`

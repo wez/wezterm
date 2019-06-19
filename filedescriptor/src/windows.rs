@@ -53,26 +53,26 @@ impl<T: FromRawHandle> FromRawFileDescriptor for T {
 }
 
 impl<T: AsRawSocket> AsRawSocketDescriptor for T {
-    fn as_raw_socket_descriptor(&self) -> SocketDescriptor {
+    fn as_socket_descriptor(&self) -> SocketDescriptor {
         self.as_raw_socket() as SocketDescriptor
     }
 }
 
 impl<T: IntoRawSocket> IntoRawSocketDescriptor for T {
-    fn into_raw_socket_descriptor(self) -> SocketDescriptor {
+    fn into_socket_descriptor(self) -> SocketDescriptor {
         self.into_raw_socket() as SocketDescriptor
     }
 }
 
 impl<T: FromRawSocket> FromRawSocketDescriptor for T {
-    unsafe fn from_raw_socket_descriptor(handle: SocketDescriptor) -> Self {
+    unsafe fn from_socket_descriptor(handle: SocketDescriptor) -> Self {
         Self::from_raw_socket(handle as _)
     }
 }
 
 unsafe impl Send for OwnedHandle {}
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum HandleType {
     Char,
     Disk,
@@ -194,6 +194,36 @@ impl FromRawHandle for FileDescriptor {
     unsafe fn from_raw_handle(handle: RawHandle) -> FileDescriptor {
         Self {
             handle: OwnedHandle::from_raw_handle(handle),
+        }
+    }
+}
+
+impl IntoRawSocket for FileDescriptor {
+    fn into_raw_socket(self) -> RawSocket {
+        // FIXME: this isn't a guaranteed conversion!
+        debug_assert_eq!(
+            handle_type(self.handle.as_raw_handle() as _),
+            HandleType::Socket
+        );
+        self.handle.into_raw_handle() as RawSocket
+    }
+}
+
+impl AsRawSocket for FileDescriptor {
+    fn as_raw_socket(&self) -> RawSocket {
+        // FIXME: this isn't a guaranteed conversion!
+        debug_assert_eq!(
+            handle_type(self.handle.as_raw_handle() as _),
+            HandleType::Socket
+        );
+        self.handle.as_raw_handle() as RawSocket
+    }
+}
+
+impl FromRawSocket for FileDescriptor {
+    unsafe fn from_raw_socket(handle: RawSocket) -> FileDescriptor {
+        Self {
+            handle: OwnedHandle::from_raw_handle(handle as RawHandle),
         }
     }
 }

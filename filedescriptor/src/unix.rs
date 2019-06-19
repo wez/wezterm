@@ -34,19 +34,19 @@ impl<T: FromRawFd> FromRawFileDescriptor for T {
 }
 
 impl<T: AsRawFd> AsRawSocketDescriptor for T {
-    fn as_raw_socket_descriptor(&self) -> SocketDescriptor {
+    fn as_socket_descriptor(&self) -> SocketDescriptor {
         self.as_raw_fd()
     }
 }
 
 impl<T: IntoRawFd> IntoRawSocketDescriptor for T {
-    fn into_raw_socket_descriptor(self) -> SocketDescriptor {
+    fn into_socket_descriptor(self) -> SocketDescriptor {
         self.into_raw_fd()
     }
 }
 
 impl<T: FromRawFd> FromRawSocketDescriptor for T {
-    unsafe fn from_raw_socket_descriptor(fd: SocketDescriptor) -> Self {
+    unsafe fn from_socket_descriptor(fd: SocketDescriptor) -> Self {
         Self::from_raw_fd(fd)
     }
 }
