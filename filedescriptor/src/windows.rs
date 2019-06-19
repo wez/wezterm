@@ -1,6 +1,6 @@
 use crate::{
-    AsRawFileDescriptor, FileDescriptor, FromRawFileDescriptor, IntoRawFileDescriptor, OwnedHandle,
-    Pipe,
+    AsRawFileDescriptor, AsRawSocketDescriptor, FileDescriptor, FromRawFileDescriptor,
+    FromRawSocketDescriptor, IntoRawFileDescriptor, IntoRawSocketDescriptor, OwnedHandle, Pipe,
 };
 use failure::{bail, Fallible};
 use std::io::{self, Error as IoError};
@@ -49,6 +49,24 @@ impl<T: IntoRawHandle> IntoRawFileDescriptor for T {
 impl<T: FromRawHandle> FromRawFileDescriptor for T {
     unsafe fn from_raw_file_descriptor(handle: RawHandle) -> Self {
         Self::from_raw_handle(handle)
+    }
+}
+
+impl<T: AsRawSocket> AsRawSocketDescriptor for T {
+    fn as_raw_socket_descriptor(&self) -> SocketDescriptor {
+        self.as_raw_socket() as SocketDescriptor
+    }
+}
+
+impl<T: IntoRawSocket> IntoRawSocketDescriptor for T {
+    fn into_raw_socket_descriptor(self) -> SocketDescriptor {
+        self.into_raw_socket() as SocketDescriptor
+    }
+}
+
+impl<T: FromRawSocket> FromRawSocketDescriptor for T {
+    unsafe fn from_raw_socket_descriptor(handle: SocketDescriptor) -> Self {
+        Self::from_raw_socket(handle as _)
     }
 }
 

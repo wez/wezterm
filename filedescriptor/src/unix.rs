@@ -1,6 +1,6 @@
 use crate::{
-    AsRawFileDescriptor, FileDescriptor, FromRawFileDescriptor, IntoRawFileDescriptor, OwnedHandle,
-    Pipe,
+    AsRawFileDescriptor, AsRawSocketDescriptor, FileDescriptor, FromRawFileDescriptor,
+    FromRawSocketDescriptor, IntoRawFileDescriptor, IntoRawSocketDescriptor, OwnedHandle, Pipe,
 };
 use failure::{bail, Fallible};
 use std::os::unix::prelude::*;
@@ -29,6 +29,24 @@ impl<T: IntoRawFd> IntoRawFileDescriptor for T {
 
 impl<T: FromRawFd> FromRawFileDescriptor for T {
     unsafe fn from_raw_file_descriptor(fd: RawFileDescriptor) -> Self {
+        Self::from_raw_fd(fd)
+    }
+}
+
+impl<T: AsRawFd> AsRawSocketDescriptor for T {
+    fn as_raw_socket_descriptor(&self) -> SocketDescriptor {
+        self.as_raw_fd()
+    }
+}
+
+impl<T: IntoRawFd> IntoRawSocketDescriptor for T {
+    fn into_raw_socket_descriptor(self) -> SocketDescriptor {
+        self.into_raw_fd()
+    }
+}
+
+impl<T: FromRawFd> FromRawSocketDescriptor for T {
+    unsafe fn from_raw_socket_descriptor(fd: SocketDescriptor) -> Self {
         Self::from_raw_fd(fd)
     }
 }
@@ -232,10 +250,10 @@ pub fn socketpair_impl() -> Fallible<(FileDescriptor, FileDescriptor)> {
             std::io::Error::last_os_error()
         )
     } else {
-        let mut read = FileDescriptor {
+        let read = FileDescriptor {
             handle: OwnedHandle { handle: fds[0] },
         };
-        let mut write = FileDescriptor {
+        let write = FileDescriptor {
             handle: OwnedHandle { handle: fds[1] },
         };
         Ok((read, write))

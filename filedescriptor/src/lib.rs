@@ -112,9 +112,6 @@ pub use crate::windows::*;
 /// type.
 pub trait AsRawFileDescriptor {
     fn as_raw_file_descriptor(&self) -> RawFileDescriptor;
-    fn as_socket_descriptor(&self) -> SocketDescriptor {
-        self.as_raw_file_descriptor() as SocketDescriptor
-    }
 }
 
 /// `IntoRawFileDescriptor` is a platform independent trait for converting
@@ -131,6 +128,16 @@ pub trait IntoRawFileDescriptor {
 /// is used appropriately.
 pub trait FromRawFileDescriptor {
     unsafe fn from_raw_file_descriptor(fd: RawFileDescriptor) -> Self;
+}
+
+pub trait AsRawSocketDescriptor {
+    fn as_raw_socket_descriptor(&self) -> SocketDescriptor;
+}
+pub trait IntoRawSocketDescriptor {
+    fn into_raw_socket_descriptor(self) -> SocketDescriptor;
+}
+pub trait FromRawSocketDescriptor {
+    unsafe fn from_raw_socket_descriptor(fd: SocketDescriptor) -> Self;
 }
 
 /// `OwnedHandle` allows managing the lifetime of the platform `RawFileDescriptor`
