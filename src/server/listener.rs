@@ -173,15 +173,19 @@ impl NetListener {
                     stream.set_nodelay(true).ok();
                     let executor = self.executor.clone_executor();
                     let acceptor = self.acceptor.clone();
-                    thread::spawn(move || match acceptor.accept(stream) {
+
+                    match acceptor.accept(stream) {
                         Ok(stream) => {
-                            let mut session = ClientSession::new(stream, executor);
-                            session.run();
+                            Future::with_executor(executor.clone_executor(), move || {
+                                let mut session = ClientSession::new(stream, executor);
+                                thread::spawn(move || session.run());
+                                Ok(())
+                            });
                         }
                         Err(e) => {
                             error!("failed TlsAcceptor: {}", e);
                         }
-                    });
+                    }
                 }
                 Err(err) => {
                     error!("accept failed: {}", err);
