@@ -188,7 +188,12 @@ impl io::Read for FileDescriptor {
             )
         };
         if ok == 0 {
-            Err(IoError::last_os_error())
+            let err = IoError::last_os_error();
+            if err.kind() == std::io::ErrorKind::BrokenPipe {
+                Ok(0)
+            } else {
+                Err(err)
+            }
         } else {
             Ok(num_read as usize)
         }
