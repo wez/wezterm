@@ -10,6 +10,11 @@ use std::os::unix::prelude::*;
 /// for avoiding using `cfg` blocks in platform independent code.
 pub type RawFileDescriptor = RawFd;
 
+/// `SocketDescriptor` is a platform independent type alias for the
+/// underlying platform socket descriptor type.  It is primarily useful
+/// for avoiding using `cfg` blocks in platform independent code.
+pub type SocketDescriptor = RawFd;
+
 impl<T: AsRawFd> AsRawFileDescriptor for T {
     fn as_raw_file_descriptor(&self) -> RawFileDescriptor {
         self.as_raw_fd()

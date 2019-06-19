@@ -20,7 +20,7 @@ use winapi::um::winbase::{FILE_TYPE_CHAR, FILE_TYPE_DISK, FILE_TYPE_PIPE};
 use winapi::um::winnt::HANDLE;
 use winapi::um::winsock2::{
     accept, bind, closesocket, connect, getsockname, htonl, listen, WSAPoll, WSASocketW,
-    WSAStartup, INVALID_SOCKET, SOCK_STREAM, WSADATA, WSA_FLAG_NO_HANDLE_INHERIT,
+    WSAStartup, INVALID_SOCKET, SOCKET, SOCK_STREAM, WSADATA, WSA_FLAG_NO_HANDLE_INHERIT,
 };
 pub use winapi::um::winsock2::{POLLERR, POLLHUP, POLLIN, POLLOUT, WSAPOLLFD as pollfd};
 
@@ -28,6 +28,11 @@ pub use winapi::um::winsock2::{POLLERR, POLLHUP, POLLIN, POLLOUT, WSAPOLLFD as p
 /// underlying platform file descriptor type.  It is primarily useful
 /// for avoiding using `cfg` blocks in platform independent code.
 pub type RawFileDescriptor = RawHandle;
+
+/// `SocketDescriptor` is a platform independent type alias for the
+/// underlying platform socket descriptor type.  It is primarily useful
+/// for avoiding using `cfg` blocks in platform independent code.
+pub type SocketDescriptor = SOCKET;
 
 impl<T: AsRawHandle> AsRawFileDescriptor for T {
     fn as_raw_file_descriptor(&self) -> RawFileDescriptor {

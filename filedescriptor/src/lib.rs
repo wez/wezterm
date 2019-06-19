@@ -34,7 +34,7 @@
 //!
 //! ```
 //! use filedescriptor::Pipe;
-//! use std::io::{Read,Write};
+//! use std::io::{Read, Write};
 //! use failure::Error;
 //!
 //! let mut pipe = Pipe::new()?;
@@ -44,6 +44,56 @@
 //! let mut s = String::new();
 //! pipe.read.read_to_string(&mut s)?;
 //! assert_eq!(s, "hello");
+//! # Ok::<(), Error>(())
+//! ```
+//!
+//! ## Socketpair
+//! The `socketpair` function returns a pair of connected `SOCK_STREAM`
+//! sockets and functions both on posix and windows systems.
+//!
+//! ```
+//! use std::io::{Read, Write};
+//! use failure::Error;
+//!
+//! let (mut a, mut b) = filedescriptor::socketpair()?;
+//! a.write(b"hello")?;
+//! drop(a);
+//!
+//! let mut s = String::new();
+//! b.read_to_string(&mut s)?;
+//! assert_eq!(s, "hello");
+//! # Ok::<(), Error>(())
+//! ```
+//!
+//! ## Polling
+//! The `mio` crate offers powerful and scalable IO multiplexing, but there
+//! are some situations where `mio` doesn't fit.  The `filedescriptor` crate
+//! offers a `poll(2)` compatible interface suitable for testing the readiness
+//! of a set of file descriptors.  On unix systems this is a very thin wrapper
+//! around `poll(2)`, except on macOS where it is actually a wrapper around
+//! the `select(2)` interface.  On Windows systems the winsock `WSAPoll`
+//! function is used instead.
+//!
+//! ```
+//! use filedescriptor::*;
+//! use failure::Error;
+//! use std::time::Duration;
+//! use std::io::{Read, Write};
+//!
+//! let (mut a, mut b) = filedescriptor::socketpair()?;
+//! let mut poll_array = [pollfd {
+//!    fd: a.as_socket_descriptor(),
+//!    events: POLLIN,
+//!    revents: 0
+//! }];
+//! // sleeps for 20 milliseconds because `a` is not yet ready
+//! assert_eq!(poll(&mut poll_array, Some(Duration::from_millis(20)))?, 0);
+//!
+//! b.write(b"hello")?;
+//!
+//! // Now a is ready for read
+//! assert_eq!(poll(&mut poll_array, Some(Duration::from_millis(20)))?, 1);
+//!
 //! # Ok::<(), Error>(())
 //! ```
 use failure::Fallible;
@@ -62,6 +112,9 @@ pub use crate::windows::*;
 /// type.
 pub trait AsRawFileDescriptor {
     fn as_raw_file_descriptor(&self) -> RawFileDescriptor;
+    fn as_socket_descriptor(&self) -> SocketDescriptor {
+        self.as_raw_file_descriptor() as SocketDescriptor
+    }
 }
 
 /// `IntoRawFileDescriptor` is a platform independent trait for converting
@@ -228,6 +281,9 @@ use std::time::Duration;
 /// that can be passed to poll.  If a file descriptor is out of range then an
 /// error will returned.  This limitation could potentially be lifted in the
 /// future.
+///
+/// On Windows, `WSAPoll` is used to implement readiness checking, which has
+/// the consequence that it can only be used with sockets.
 ///
 /// If `duration` is `None`, then `poll` will block until any of the requested
 /// events are ready.  Otherwise, `duration` specifies how long to wait for
