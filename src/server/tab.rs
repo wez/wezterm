@@ -1,4 +1,5 @@
 use crate::frontend::gui_executor;
+use crate::frontend::guicommon::clipboard::SystemClipboard;
 use crate::mux::domain::DomainId;
 use crate::mux::renderable::Renderable;
 use crate::mux::tab::{alloc_tab_id, Tab, TabId};
@@ -18,7 +19,7 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use term::color::ColorPalette;
 use term::selection::SelectionRange;
-use term::{CursorPosition, Line};
+use term::{Clipboard, CursorPosition, Line};
 use term::{KeyCode, KeyModifiers, MouseButton, MouseEvent, MouseEventKind, TerminalHost};
 use termwiz::hyperlink::Hyperlink;
 use termwiz::input::KeyEvent;
@@ -127,6 +128,7 @@ pub struct ClientTab {
     writer: RefCell<TabWriter>,
     reader: Pipe,
     mouse: Arc<Mutex<MouseState>>,
+    clipboard: Arc<Clipboard>,
 }
 
 impl ClientTab {
@@ -169,6 +171,11 @@ impl ClientTab {
             local_tab_id,
             renderable: RefCell::new(render),
             writer: RefCell::new(writer),
+            // FIXME: ideally we'd pass down an instance of Clipboard
+            // rather than creating a new SystemClipboard here.
+            // That will be important if we end up with multiple chained
+            // domains in the future.
+            clipboard: Arc::new(SystemClipboard::new()),
             reader,
         }
     }
@@ -180,6 +187,9 @@ impl ClientTab {
                 self.renderable
                     .borrow()
                     .apply_changes_to_surface(delta.sequence_no, delta.changes);
+            }
+            Pdu::SetClipboard(SetClipboard { clipboard, .. }) => {
+                self.clipboard.set_contents(clipboard)?;
             }
             _ => bail!("unhandled unilateral pdu: {:?}", pdu),
         };

@@ -234,6 +234,7 @@ pdu! {
     SendMouseEventResponse: 17,
     GetTabRenderChanges: 18,
     GetTabRenderChangesResponse: 19,
+    SetClipboard: 20,
 }
 
 impl Pdu {
@@ -304,6 +305,7 @@ impl Pdu {
             Pdu::GetTabRenderChangesResponse(GetTabRenderChangesResponse { tab_id, .. }) => {
                 Some(*tab_id)
             }
+            Pdu::SetClipboard(SetClipboard { tab_id, .. }) => Some(*tab_id),
             _ => None,
         }
     }
@@ -406,8 +408,13 @@ pub struct SendMouseEvent {
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
 pub struct SendMouseEventResponse {
-    pub clipboard: Option<String>,
     pub selection_range: Option<SelectionRange>,
+}
+
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct SetClipboard {
+    pub tab_id: TabId,
+    pub clipboard: Option<String>,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]

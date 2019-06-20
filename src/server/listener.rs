@@ -298,10 +298,33 @@ impl ClientSurfaceState {
     }
 }
 
+struct RemoteClipboard {
+    sender: PollableSender<DecodedPdu>,
+    tab_id: TabId,
+}
+
+impl Clipboard for RemoteClipboard {
+    fn get_contents(&self) -> Fallible<String> {
+        Ok("".to_owned())
+    }
+
+    fn set_contents(&self, clipboard: Option<String>) -> Fallible<()> {
+        self.sender.send(DecodedPdu {
+            serial: 0,
+            pdu: Pdu::SetClipboard(SetClipboard {
+                tab_id: self.tab_id,
+                clipboard,
+            }),
+        })?;
+        Ok(())
+    }
+}
+
 struct BufferedTerminalHost<'a> {
+    tab_id: TabId,
     write: std::cell::RefMut<'a, dyn std::io::Write>,
-    clipboard: Option<String>,
     title: Option<String>,
+    sender: PollableSender<DecodedPdu>,
 }
 
 impl<'a> term::TerminalHost for BufferedTerminalHost<'a> {
@@ -314,7 +337,10 @@ impl<'a> term::TerminalHost for BufferedTerminalHost<'a> {
     }
 
     fn get_clipboard(&mut self) -> Fallible<Arc<Clipboard>> {
-        bail!("peer requested clipboard; ignoring");
+        Ok(Arc::new(RemoteClipboard {
+            tab_id: self.tab_id,
+            sender: self.sender.clone(),
+        }))
     }
 
     fn set_title(&mut self, title: &str) {
@@ -538,15 +564,15 @@ impl<S: ReadAndWrite> ClientSession<S> {
                         .get_tab(tab_id)
                         .ok_or_else(|| format_err!("no such tab {}", tab_id))?;
                     let mut host = BufferedTerminalHost {
+                        tab_id,
                         write: tab.writer(),
-                        clipboard: None,
                         title: None,
+                        sender: sender.clone(),
                     };
                     tab.mouse_event(event, &mut host)?;
                     maybe_push_tab_changes(&surfaces, &tab, sender)?;
 
                     Ok(Pdu::SendMouseEventResponse(SendMouseEventResponse {
-                        clipboard: host.clipboard,
                         selection_range: tab.selection_range(),
                     }))
                 })
@@ -592,6 +618,7 @@ impl<S: ReadAndWrite> ClientSession<S> {
             | Pdu::ListTabsResponse { .. }
             | Pdu::SendMouseEventResponse { .. }
             | Pdu::GetCoarseTabRenderableDataResponse { .. }
+            | Pdu::SetClipboard { .. }
             | Pdu::SpawnResponse { .. }
             | Pdu::GetTabRenderChangesResponse { .. }
             | Pdu::UnitResponse { .. }
