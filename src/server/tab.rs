@@ -132,7 +132,7 @@ pub struct ClientTab {
 }
 
 impl ClientTab {
-    pub fn new(client: &Arc<ClientInner>, remote_tab_id: TabId) -> Self {
+    pub fn new(client: &Arc<ClientInner>, remote_tab_id: TabId, size: PtySize) -> Self {
         let local_tab_id = alloc_tab_id();
         let writer = TabWriter {
             client: Arc::clone(client),
@@ -155,7 +155,7 @@ impl ClientTab {
             dead: RefCell::new(false),
             poll_future: RefCell::new(None),
             poll_interval: RefCell::new(BASE_POLL_INTERVAL),
-            surface: RefCell::new(Surface::new(80, 24)),
+            surface: RefCell::new(Surface::new(size.cols as usize, size.rows as usize)),
             remote_sequence: RefCell::new(0),
             local_sequence: RefCell::new(0),
             selection_range,

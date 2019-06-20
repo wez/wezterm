@@ -332,6 +332,7 @@ pub struct WindowAndTabEntry {
     pub window_id: WindowId,
     pub tab_id: TabId,
     pub title: String,
+    pub size: PtySize,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]

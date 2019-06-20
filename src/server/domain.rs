@@ -107,7 +107,7 @@ impl Domain for ClientDomain {
 
             result.tab_id
         };
-        let tab: Rc<dyn Tab> = Rc::new(ClientTab::new(&self.inner, remote_tab_id));
+        let tab: Rc<dyn Tab> = Rc::new(ClientTab::new(&self.inner, remote_tab_id, size));
         let mux = Mux::get().unwrap();
         mux.add_tab(&tab)?;
         mux.add_tab_to_window(&tab, window)?;
@@ -127,7 +127,7 @@ impl Domain for ClientDomain {
                 entry.window_id,
                 entry.title
             );
-            let tab: Rc<dyn Tab> = Rc::new(ClientTab::new(&self.inner, entry.tab_id));
+            let tab: Rc<dyn Tab> = Rc::new(ClientTab::new(&self.inner, entry.tab_id, entry.size));
             mux.add_tab(&tab)?;
 
             if let Some(local_window_id) = self.inner.remote_to_local_window(entry.window_id) {

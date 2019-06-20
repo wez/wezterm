@@ -10,6 +10,7 @@ use failure::{bail, err_msg, format_err, Error, Fallible};
 use libc::{mode_t, umask};
 use log::{debug, error};
 use native_tls::{Identity, TlsAcceptor};
+use portable_pty::PtySize;
 use promise::{Executor, Future};
 use std::collections::HashMap;
 use std::convert::{TryFrom, TryInto};
@@ -454,10 +455,17 @@ impl<S: ReadAndWrite> ClientSession<S> {
                     for window_id in mux.iter_windows().into_iter() {
                         let window = mux.get_window(window_id).unwrap();
                         for tab in window.iter() {
+                            let (rows, cols) = tab.renderer().physical_dimensions();
                             tabs.push(WindowAndTabEntry {
                                 window_id,
                                 tab_id: tab.tab_id(),
                                 title: tab.get_title(),
+                                size: PtySize {
+                                    cols: cols as u16,
+                                    rows: rows as u16,
+                                    pixel_height: 0,
+                                    pixel_width: 0,
+                                },
                             });
                         }
                     }
