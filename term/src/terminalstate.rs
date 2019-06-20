@@ -429,7 +429,7 @@ impl TerminalState {
             y: event.y as ScrollbackOrVisibleRowIndex
                 - self.viewport_offset as ScrollbackOrVisibleRowIndex,
         });
-        host.set_clipboard(None)
+        host.get_clipboard()?.set_contents(None)
     }
 
     /// Double click to select a word on the current line
@@ -506,7 +506,7 @@ impl TerminalState {
             "finish 2click selection {:?} '{}'",
             self.selection_range, text
         );
-        host.set_clipboard(Some(text))
+        host.get_clipboard()?.set_contents(Some(text))
     }
 
     /// triple click to select the current line
@@ -531,7 +531,7 @@ impl TerminalState {
             "finish 3click selection {:?} '{}'",
             self.selection_range, text
         );
-        host.set_clipboard(Some(text))
+        host.get_clipboard()?.set_contents(Some(text))
     }
 
     fn mouse_press_left(
@@ -555,7 +555,7 @@ impl TerminalState {
             _ => {
                 self.selection_range = None;
                 self.selection_start = None;
-                host.set_clipboard(None)?;
+                host.get_clipboard()?.set_contents(None)?;
             }
         }
 
@@ -578,7 +578,7 @@ impl TerminalState {
                     "finish drag selection {:?} '{}'",
                     self.selection_range, text
                 );
-                host.set_clipboard(Some(text))?;
+                host.get_clipboard()?.set_contents(Some(text))?;
             } else if let Some(link) = self.current_highlight() {
                 // If the button release wasn't a drag, consider
                 // whether it was a click on a hyperlink
@@ -650,7 +650,7 @@ impl TerminalState {
                     format!("\x1b[<{};{};{}M", button, event.x + 1, event.y + 1).as_bytes(),
                 )?;
             } else if event.button == MouseButton::Middle {
-                let clip = host.get_clipboard()?;
+                let clip = host.get_clipboard()?.get_contents()?;
                 self.send_paste(&clip, host.writer())?
             }
         }
@@ -2077,13 +2077,19 @@ impl<'a> Performer<'a> {
             }
 
             OperatingSystemCommand::ClearSelection(_) => {
-                self.host.set_clipboard(None).ok();
+                if let Ok(clip) = self.host.get_clipboard() {
+                    clip.set_contents(None).ok();
+                }
             }
             OperatingSystemCommand::QuerySelection(_) => {}
             OperatingSystemCommand::SetSelection(_, selection_data) => {
-                match self.host.set_clipboard(Some(selection_data)) {
-                    Ok(_) => (),
-                    Err(err) => error!("failed to set clipboard in response to OSC 52: {:?}", err),
+                if let Ok(clip) = self.host.get_clipboard() {
+                    match clip.set_contents(Some(selection_data)) {
+                        Ok(_) => (),
+                        Err(err) => {
+                            error!("failed to set clipboard in response to OSC 52: {:?}", err)
+                        }
+                    }
                 }
             }
             OperatingSystemCommand::ITermProprietary(iterm) => match iterm {

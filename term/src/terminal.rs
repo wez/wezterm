@@ -1,7 +1,13 @@
 use super::*;
+use failure::Fallible;
 use std::sync::Arc;
 use termwiz::escape::parser::Parser;
 use termwiz::hyperlink::Rule as HyperlinkRule;
+
+pub trait Clipboard {
+    fn get_contents(&self) -> Fallible<String>;
+    fn set_contents(&self, data: Option<String>) -> Fallible<()>;
+}
 
 /// Represents the host of the terminal.
 /// Provides a means for sending data to the connected pty,
@@ -11,11 +17,8 @@ pub trait TerminalHost {
     /// slave end of the associated pty.
     fn writer(&mut self) -> &mut std::io::Write;
 
-    /// Returns the current clipboard contents
-    fn get_clipboard(&mut self) -> Result<String, Error>;
-
-    /// Adjust the contents of the clipboard
-    fn set_clipboard(&mut self, clip: Option<String>) -> Result<(), Error>;
+    /// Returns the clipboard manager
+    fn get_clipboard(&mut self) -> Fallible<Arc<Clipboard>>;
 
     /// Change the title of the window
     fn set_title(&mut self, title: &str);

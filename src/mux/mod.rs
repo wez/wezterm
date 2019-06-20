@@ -4,9 +4,9 @@ use crate::mux::tab::{Tab, TabId};
 use crate::mux::window::{Window, WindowId};
 use crate::server::pollable::{pollable_channel, PollableReceiver, PollableSender};
 use domain::{Domain, DomainId};
-use failure::{format_err, Error, Fallible};
+use failure::{bail, format_err, Error, Fallible};
 use failure_derive::*;
-use log::{debug, error, warn};
+use log::{debug, error};
 use portable_pty::ExitStatus;
 use promise::{Executor, Future};
 use std::cell::{Ref, RefCell, RefMut};
@@ -16,6 +16,7 @@ use std::rc::Rc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::thread;
+use term::terminal::Clipboard;
 use term::TerminalHost;
 use termwiz::hyperlink::Hyperlink;
 
@@ -101,13 +102,8 @@ impl<'a> TerminalHost for Host<'a> {
         }
     }
 
-    fn get_clipboard(&mut self) -> Result<String, Error> {
-        warn!("peer requested clipboard; ignoring");
-        Ok("".into())
-    }
-
-    fn set_clipboard(&mut self, _clip: Option<String>) -> Result<(), Error> {
-        Ok(())
+    fn get_clipboard(&mut self) -> Fallible<Arc<Clipboard>> {
+        bail!("peer requested clipboard; ignoring");
     }
 
     fn set_title(&mut self, _title: &str) {}

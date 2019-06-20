@@ -1,12 +1,12 @@
 use super::window::TerminalWindow;
 use crate::font::{FontConfiguration, FontSystemSelection};
+use crate::frontend::guicommon::clipboard::SystemClipboard;
 use crate::frontend::guicommon::window::SpawnTabDomain;
 use crate::frontend::{front_end, gui_executor};
 use crate::mux::tab::{Tab, TabId};
 use crate::mux::Mux;
-use clipboard::{ClipboardContext, ClipboardProvider};
+use failure::Error;
 use failure::Fallible;
-use failure::{format_err, Error};
 use log::error;
 use portable_pty::PtySize;
 use promise::Future;
@@ -14,6 +14,7 @@ use std::collections::HashMap;
 use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
+use term::terminal::Clipboard;
 use term::{KeyCode, KeyModifiers};
 use termwiz::hyperlink::Hyperlink;
 
@@ -49,9 +50,7 @@ pub trait HostHelper {
 
 pub struct HostImpl<H: HostHelper> {
     helper: H,
-    /// macOS gets unhappy if we set up the clipboard too early,
-    /// so we use an Option to defer it until we use it
-    clipboard: Option<ClipboardContext>,
+    clipboard: Arc<Clipboard>,
     keys: KeyMap,
 }
 
@@ -174,32 +173,13 @@ impl<H: HostHelper> HostImpl<H> {
     pub fn new(helper: H) -> Self {
         Self {
             helper,
-            clipboard: None,
+            clipboard: Arc::new(SystemClipboard::new()),
             keys: key_bindings(),
         }
     }
 
-    fn clipboard(&mut self) -> Result<&mut ClipboardContext, Error> {
-        if self.clipboard.is_none() {
-            self.clipboard = Some(ClipboardContext::new().map_err(|e| format_err!("{}", e))?);
-        }
-        Ok(self.clipboard.as_mut().unwrap())
-    }
-
-    pub fn get_clipboard(&mut self) -> Result<String, Error> {
-        self.clipboard()?
-            .get_contents()
-            .map_err(|e| format_err!("{}", e))
-    }
-
-    pub fn set_clipboard(&mut self, clip: Option<String>) -> Result<(), Error> {
-        self.clipboard()?
-            .set_contents(clip.unwrap_or_else(|| "".into()))
-            .map_err(|e| format_err!("{}", e))?;
-        // Request the clipboard contents we just set; on some systems
-        // if we copy and paste in wezterm, the clipboard isn't visible
-        // to us again until the second call to get_clipboard.
-        self.get_clipboard().map(|_| ())
+    pub fn get_clipboard(&mut self) -> Fallible<Arc<Clipboard>> {
+        Ok(Arc::clone(&self.clipboard))
     }
 
     pub fn spawn_new_window(&mut self) {
@@ -238,7 +218,7 @@ impl<H: HostHelper> HostImpl<H> {
                 // Nominally copy, but that is implicit, so NOP
             }
             Paste => {
-                let text = self.get_clipboard()?;
+                let text = self.get_clipboard()?.get_contents()?;
                 if text.len() <= PASTE_CHUNK_SIZE {
                     // Send it all now
                     tab.send_paste(&text)?;
@@ -375,12 +355,8 @@ impl<'a, H: HostHelper> term::TerminalHost for TabHost<'a, H> {
         }
     }
 
-    fn get_clipboard(&mut self) -> Result<String, Error> {
+    fn get_clipboard(&mut self) -> Fallible<Arc<Clipboard>> {
         self.host.get_clipboard()
-    }
-
-    fn set_clipboard(&mut self, clip: Option<String>) -> Result<(), Error> {
-        self.host.set_clipboard(clip)
     }
 
     fn set_title(&mut self, _title: &str) {

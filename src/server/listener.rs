@@ -8,7 +8,7 @@ use crossbeam_channel::TryRecvError;
 use failure::{bail, err_msg, format_err, Error, Fallible};
 #[cfg(unix)]
 use libc::{mode_t, umask};
-use log::{debug, error, warn};
+use log::{debug, error};
 use native_tls::{Identity, TlsAcceptor};
 use promise::{Executor, Future};
 use std::collections::HashMap;
@@ -23,6 +23,7 @@ use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Instant;
+use term::terminal::Clipboard;
 use termwiz::surface::{Change, Position, SequenceNo, Surface};
 
 struct LocalListener {
@@ -312,16 +313,8 @@ impl<'a> term::TerminalHost for BufferedTerminalHost<'a> {
         error!("ignoring url open of {:?}", link.uri());
     }
 
-    fn get_clipboard(&mut self) -> Result<String, Error> {
-        warn!("peer requested clipboard; ignoring");
-        Ok("".into())
-    }
-
-    fn set_clipboard(&mut self, clip: Option<String>) -> Result<(), Error> {
-        if let Some(clip) = clip {
-            self.clipboard.replace(clip);
-        }
-        Ok(())
+    fn get_clipboard(&mut self) -> Fallible<Arc<Clipboard>> {
+        bail!("peer requested clipboard; ignoring");
     }
 
     fn set_title(&mut self, title: &str) {
