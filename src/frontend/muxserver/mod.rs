@@ -11,12 +11,12 @@ use log::info;
 use promise::Executor;
 use promise::SpawnFunc;
 use std::rc::Rc;
-use std::sync::mpsc::{self, Receiver, SyncSender};
+use std::sync::mpsc::{self, Receiver, Sender};
 use std::sync::Arc;
 
 #[derive(Clone)]
 struct MuxExecutor {
-    tx: SyncSender<SpawnFunc>,
+    tx: Sender<SpawnFunc>,
 }
 
 impl Executor for MuxExecutor {
@@ -31,14 +31,14 @@ impl Executor for MuxExecutor {
 }
 
 pub struct MuxServerFrontEnd {
-    tx: SyncSender<SpawnFunc>,
+    tx: Sender<SpawnFunc>,
     rx: Receiver<SpawnFunc>,
 }
 
 impl MuxServerFrontEnd {
     #[cfg_attr(feature = "cargo-clippy", allow(clippy::new_ret_no_self))]
     fn new(mux: &Rc<Mux>, start_listener: bool) -> Result<Rc<dyn FrontEnd>, Error> {
-        let (tx, rx) = mpsc::sync_channel(4);
+        let (tx, rx) = mpsc::channel();
 
         if start_listener {
             spawn_listener(mux.config(), Box::new(MuxExecutor { tx: tx.clone() }))?;
