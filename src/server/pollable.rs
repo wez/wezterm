@@ -72,7 +72,7 @@ impl<T> PollableReceiver<T> {
 
 impl<T> AsPollFd for PollableReceiver<T> {
     fn as_poll_fd(&self) -> pollfd {
-        self.read.borrow().as_raw_file_descriptor().as_poll_fd()
+        self.read.borrow().as_socket_descriptor().as_poll_fd()
     }
 }
 
@@ -100,7 +100,7 @@ pub trait AsPollFd {
     fn as_poll_fd(&self) -> pollfd;
 }
 
-impl AsPollFd for RawFileDescriptor {
+impl AsPollFd for SocketDescriptor {
     fn as_poll_fd(&self) -> pollfd {
         pollfd {
             fd: *self,
@@ -112,13 +112,13 @@ impl AsPollFd for RawFileDescriptor {
 
 impl AsPollFd for native_tls::TlsStream<TcpStream> {
     fn as_poll_fd(&self) -> pollfd {
-        self.get_ref().as_raw_file_descriptor().as_poll_fd()
+        self.get_ref().as_socket_descriptor().as_poll_fd()
     }
 }
 
 impl AsPollFd for UnixStream {
     fn as_poll_fd(&self) -> pollfd {
-        self.as_raw_file_descriptor().as_poll_fd()
+        self.as_socket_descriptor().as_poll_fd()
     }
 }
 
