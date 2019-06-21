@@ -439,10 +439,14 @@ impl ClientSurfaceState {
             let (x, y) = self.surface.cursor_position();
             let cursor = renderable.get_cursor_position();
             if (x != cursor.x) || (y as i64 != cursor.y) {
-                self.surface.add_change(Change::CursorPosition {
-                    x: Position::Absolute(cursor.x),
-                    y: Position::Absolute(cursor.y as usize),
-                });
+                // Update the cursor, but if we're scrolled back
+                // and it is our of range, skip the update.
+                if cursor.y < rows as i64 {
+                    self.surface.add_change(Change::CursorPosition {
+                        x: Position::Absolute(cursor.x),
+                        y: Position::Absolute(cursor.y as usize),
+                    });
+                }
             }
 
             let mut changes = vec![];
