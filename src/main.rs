@@ -224,6 +224,10 @@ fn main() -> Result<(), Error> {
                             alignment: Alignment::Right,
                         },
                         Column {
+                            name: "SIZE".to_string(),
+                            alignment: Alignment::Left,
+                        },
+                        Column {
                             name: "TITLE".to_string(),
                             alignment: Alignment::Left,
                         },
@@ -234,6 +238,7 @@ fn main() -> Result<(), Error> {
                         data.push(vec![
                             entry.window_id.to_string(),
                             entry.tab_id.to_string(),
+                            format!("{}x{}", entry.size.cols, entry.size.rows),
                             entry.title.clone(),
                         ]);
                     }

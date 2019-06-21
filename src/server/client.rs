@@ -137,7 +137,7 @@ impl Client {
 
         thread::spawn(move || {
             if let Err(e) = client_thread(stream, receiver) {
-                log::error!("client thread ended: {}", e);
+                log::debug!("client thread ended: {}", e);
             }
         });
 
