@@ -256,13 +256,6 @@ impl Tab for ClientTab {
         self.mouse.lock().unwrap().append(event);
         MouseState::next(&self.mouse)?;
         Ok(())
-
-        /*
-        if resp.clipboard.is_some() {
-            host.set_clipboard(resp.clipboard)?;
-        }
-        *self.renderable.borrow().selection_range.lock().unwrap() = resp.selection_range;
-        */
     }
 
     fn advance_bytes(&self, _buf: &[u8], _host: &mut dyn TerminalHost) {
