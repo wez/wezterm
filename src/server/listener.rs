@@ -70,7 +70,7 @@ pub enum IdentitySource {
     },
 }
 
-fn read_bytes<T: AsRef<Path>>(path: T) -> Fallible<Vec<u8>> {
+pub fn read_bytes<T: AsRef<Path>>(path: T) -> Fallible<Vec<u8>> {
     let path = path.as_ref();
     let mut f = std::fs::File::open(path)
         .map_err(|e| format_err!("opening file {}: {}", path.display(), e))?;

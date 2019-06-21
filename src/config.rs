@@ -113,6 +113,8 @@ pub struct Config {
     /// the path to an x509 PEM encoded CA chain file
     pub mux_client_pem_ca: Option<PathBuf>,
 
+    pub mux_pem_root_certs: Option<Vec<PathBuf>>,
+
     /// When using the mux client domain, explicitly control whether
     /// the client checks that the certificate presented by the
     /// server matches the hostname portion of mux_server_remote_address.
@@ -121,6 +123,13 @@ pub struct Config {
     /// should not be used outside of a controlled environment as it
     /// weakens the security of the TLS channel.
     pub mux_client_accept_invalid_hostnames: Option<bool>,
+
+    /// When connecting to a mux server, the hostname string that we
+    /// expect to match against the common name field in the certificate
+    /// presented by the server.  This defaults to the hostname portion
+    /// of the `mux_server_bind_address` configuration and you should
+    /// not normally need to override this value.
+    pub mux_client_expected_cn: Option<String>,
 
     #[serde(default)]
     pub keys: Vec<Key>,
@@ -384,6 +393,8 @@ impl Default for Config {
             mux_client_pem_cert: None,
             mux_client_pem_ca: None,
             mux_client_accept_invalid_hostnames: None,
+            mux_client_expected_cn: None,
+            mux_pem_root_certs: None,
             keys: vec![],
         }
     }

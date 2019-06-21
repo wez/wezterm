@@ -29,6 +29,17 @@ impl ReadAndWrite for native_tls::TlsStream<std::net::TcpStream> {
     }
 }
 
+#[cfg(any(feature = "openssl", all(unix, not(target_os = "macos"))))]
+impl ReadAndWrite for openssl::ssl::SslStream<std::net::TcpStream> {
+    fn set_non_blocking(&self, non_blocking: bool) -> Fallible<()> {
+        self.get_ref().set_nonblocking(non_blocking)?;
+        Ok(())
+    }
+    fn has_read_buffered(&self) -> bool {
+        self.ssl().pending() != 0
+    }
+}
+
 pub struct PollableSender<T> {
     sender: Sender<T>,
     write: RefCell<FileDescriptor>,
@@ -111,6 +122,13 @@ impl AsPollFd for SocketDescriptor {
 }
 
 impl AsPollFd for native_tls::TlsStream<TcpStream> {
+    fn as_poll_fd(&self) -> pollfd {
+        self.get_ref().as_socket_descriptor().as_poll_fd()
+    }
+}
+
+#[cfg(any(feature = "openssl", all(unix, not(target_os = "macos"))))]
+impl AsPollFd for openssl::ssl::SslStream<TcpStream> {
     fn as_poll_fd(&self) -> pollfd {
         self.get_ref().as_socket_descriptor().as_poll_fd()
     }
