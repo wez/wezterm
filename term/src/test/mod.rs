@@ -6,21 +6,25 @@ mod c0;
 use bitflags::bitflags;
 mod c1;
 mod csi;
+use failure::Fallible;
 mod selection;
 use pretty_assertions::assert_eq;
+use std::cell::RefCell;
 use std::sync::Arc;
 use termwiz::escape::csi::{Edit, EraseInDisplay, EraseInLine};
 use termwiz::escape::{OneBased, OperatingSystemCommand, CSI};
 
-#[derive(Default, Debug)]
 struct TestHost {
     title: String,
-    clip: Option<String>,
+    clip: Arc<Clipboard>,
 }
 
 impl TestHost {
     fn new() -> Self {
-        Self::default()
+        Self {
+            title: String::new(),
+            clip: Arc::new(LocalClip::new()),
+        }
     }
 }
 
@@ -33,21 +37,41 @@ impl std::io::Write for TestHost {
     }
 }
 
+#[derive(Debug)]
+struct LocalClip {
+    clip: RefCell<Option<String>>,
+}
+
+impl LocalClip {
+    fn new() -> Self {
+        Self {
+            clip: RefCell::new(None),
+        }
+    }
+}
+
+impl Clipboard for LocalClip {
+    fn set_contents(&self, clip: Option<String>) -> Fallible<()> {
+        *self.clip.borrow_mut() = clip;
+        Ok(())
+    }
+
+    fn get_contents(&self) -> Fallible<String> {
+        self.clip
+            .borrow()
+            .as_ref()
+            .map(|c| c.clone())
+            .ok_or_else(|| failure::err_msg("no clipboard"))
+    }
+}
+
 impl TerminalHost for TestHost {
     fn set_title(&mut self, title: &str) {
         self.title = title.into();
     }
 
-    fn set_clipboard(&mut self, clip: Option<String>) -> Result<(), Error> {
-        self.clip = clip;
-        Ok(())
-    }
-
-    fn get_clipboard(&mut self) -> Result<String, Error> {
-        self.clip
-            .as_ref()
-            .map(|c| c.clone())
-            .ok_or_else(|| failure::err_msg("no clipboard"))
+    fn get_clipboard(&mut self) -> Fallible<Arc<Clipboard>> {
+        Ok(Arc::clone(&self.clip))
     }
 
     fn writer(&mut self) -> &mut std::io::Write {
@@ -130,8 +154,8 @@ impl TestTerm {
         self.term.mouse_event(event, &mut self.host)
     }
 
-    fn get_clipboard(&self) -> Option<&String> {
-        self.host.clip.as_ref()
+    fn get_clipboard(&self) -> Option<String> {
+        self.host.clip.get_contents().ok()
     }
 
     /// Inject n_times clicks of the button at the specified coordinates
@@ -172,7 +196,7 @@ impl TestTerm {
             modifiers: KeyModifiers::default(),
         })
         .unwrap();
-        assert!(self.host.clip.is_none());
+        assert!(self.get_clipboard().is_none());
 
         self.mouse(MouseEvent {
             kind: MouseEventKind::Move,
@@ -182,7 +206,7 @@ impl TestTerm {
             modifiers: KeyModifiers::default(),
         })
         .unwrap();
-        assert!(self.host.clip.is_none());
+        assert!(self.get_clipboard().is_none());
 
         self.mouse(MouseEvent {
             kind: MouseEventKind::Release,
