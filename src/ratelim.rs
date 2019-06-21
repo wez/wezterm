@@ -15,6 +15,10 @@ impl RateLimiter {
         }
     }
 
+    pub fn non_blocking_admittance_check(&mut self, amount: u32) -> bool {
+        self.lim.check_n(amount).is_ok()
+    }
+
     pub fn blocking_admittance_check(&mut self, amount: u32) {
         loop {
             match self.lim.check_n(amount) {

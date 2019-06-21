@@ -139,6 +139,18 @@ pub struct Config {
     /// The default value is 2MB/s.
     pub ratelimit_output_bytes_per_second: Option<u32>,
 
+    /// Constrains the rate at which the multiplexer server will
+    /// unilaterally push data to the client.
+    /// This helps to avoid saturating the link between the client
+    /// and server.
+    /// Each time the screen is updated as a result of the child
+    /// command outputting data (rather than in response to input
+    /// from the client), the server considers whether to push
+    /// the result to the client.
+    /// That decision is throttled by this configuration value
+    /// which has a default value of 10/s
+    pub ratelimit_mux_output_pushes_per_second: Option<u32>,
+
     #[serde(default)]
     pub keys: Vec<Key>,
 }
@@ -403,6 +415,7 @@ impl Default for Config {
             mux_client_accept_invalid_hostnames: None,
             mux_client_expected_cn: None,
             ratelimit_output_bytes_per_second: None,
+            ratelimit_mux_output_pushes_per_second: None,
             mux_pem_root_certs: None,
             keys: vec![],
         }

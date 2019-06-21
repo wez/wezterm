@@ -1,6 +1,7 @@
 use crate::config::Config;
 use crate::mux::tab::{Tab, TabId};
 use crate::mux::{Mux, MuxNotification, MuxSubscriber};
+use crate::ratelim::RateLimiter;
 use crate::server::codec::*;
 use crate::server::pollable::*;
 use crate::server::UnixListener;
@@ -12,7 +13,7 @@ use log::{debug, error};
 use native_tls::Identity;
 use portable_pty::PtySize;
 use promise::{Executor, Future};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::convert::TryFrom;
 use std::fs::{remove_file, DirBuilder};
 use std::io::Read;
@@ -381,6 +382,7 @@ pub struct ClientSession<S: ReadAndWrite> {
     to_write_rx: PollableReceiver<DecodedPdu>,
     to_write_tx: PollableSender<DecodedPdu>,
     mux_rx: MuxSubscriber,
+    push_limiter: RateLimiter,
 }
 
 fn maybe_push_tab_changes(
@@ -535,6 +537,11 @@ impl<S: ReadAndWrite> ClientSession<S> {
             pollable_channel().expect("failed to create pollable_channel");
         let mux = Mux::get().expect("to be running on gui thread");
         let mux_rx = mux.subscribe().expect("Mux::subscribe to succeed");
+        let push_limiter = RateLimiter::new(
+            mux.config()
+                .ratelimit_mux_output_pushes_per_second
+                .unwrap_or(10),
+        );
         Self {
             stream,
             executor,
@@ -542,6 +549,7 @@ impl<S: ReadAndWrite> ClientSession<S> {
             to_write_rx,
             to_write_tx,
             mux_rx,
+            push_limiter,
         }
     }
 
@@ -553,6 +561,8 @@ impl<S: ReadAndWrite> ClientSession<S> {
 
     fn process(&mut self) -> Result<(), Error> {
         let mut read_buffer = Vec::with_capacity(1024);
+        let mut tabs_to_output = HashSet::new();
+
         loop {
             loop {
                 match self.to_write_rx.try_recv() {
@@ -568,22 +578,28 @@ impl<S: ReadAndWrite> ClientSession<S> {
             loop {
                 match self.mux_rx.try_recv() {
                     Ok(notif) => match notif {
-                        MuxNotification::TabOutput(tab_id) => {
-                            let surfaces = Arc::clone(&self.surfaces_by_tab);
-                            let sender = self.to_write_tx.clone();
-                            Future::with_executor(self.executor.clone_executor(), move || {
-                                let mux = Mux::get().unwrap();
-                                let tab = mux
-                                    .get_tab(tab_id)
-                                    .ok_or_else(|| format_err!("no such tab {}", tab_id))?;
-                                maybe_push_tab_changes(&surfaces, &tab, sender)?;
-                                Ok(())
-                            });
-                        }
+                        // Coalesce multiple TabOutputs for the same tab
+                        MuxNotification::TabOutput(tab_id) => tabs_to_output.insert(tab_id),
                     },
                     Err(TryRecvError::Empty) => break,
                     Err(TryRecvError::Disconnected) => bail!("ClientSession was destroyed"),
                 };
+
+                // Process any TabOutput notifications, subject to throttling
+                for tab_id in tabs_to_output.drain() {
+                    if self.push_limiter.non_blocking_admittance_check(1) {
+                        let surfaces = Arc::clone(&self.surfaces_by_tab);
+                        let sender = self.to_write_tx.clone();
+                        Future::with_executor(self.executor.clone_executor(), move || {
+                            let mux = Mux::get().unwrap();
+                            let tab = mux
+                                .get_tab(tab_id)
+                                .ok_or_else(|| format_err!("no such tab {}", tab_id))?;
+                            maybe_push_tab_changes(&surfaces, &tab, sender)?;
+                            Ok(())
+                        });
+                    }
+                }
             }
 
             let mut poll_array = [
