@@ -162,6 +162,8 @@ impl Client {
         use openssl::ssl::{SslConnector, SslFiletype, SslMethod};
         use openssl::x509::X509;
 
+        openssl::init();
+
         let remote_address = config
             .mux_server_remote_address
             .as_ref()
