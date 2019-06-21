@@ -382,7 +382,6 @@ pub struct ClientSession<S: ReadAndWrite> {
     to_write_rx: PollableReceiver<DecodedPdu>,
     to_write_tx: PollableSender<DecodedPdu>,
     mux_rx: MuxSubscriber,
-    push_limiter: RateLimiter,
 }
 
 fn maybe_push_tab_changes(
@@ -416,18 +415,37 @@ fn maybe_push_tab_changes(
 struct ClientSurfaceState {
     surface: Surface,
     last_seq: SequenceNo,
+    push_limiter: RateLimiter,
+    update_limiter: RateLimiter,
 }
 
 impl ClientSurfaceState {
     fn new(cols: usize, rows: usize) -> Self {
+        let mux = Mux::get().expect("to be running on gui thread");
+        let push_limiter = RateLimiter::new(
+            mux.config()
+                .ratelimit_mux_output_pushes_per_second
+                .unwrap_or(10),
+        );
+        let update_limiter = RateLimiter::new(
+            mux.config()
+                .ratelimit_mux_output_scans_per_second
+                .unwrap_or(100),
+        );
         let surface = Surface::new(cols, rows);
         Self {
             surface,
             last_seq: 0,
+            push_limiter,
+            update_limiter,
         }
     }
 
     fn update_surface_from_screen(&mut self, tab: &Rc<dyn Tab>) {
+        if !self.update_limiter.non_blocking_admittance_check(1) {
+            return;
+        }
+
         {
             let mut renderable = tab.renderer();
             let (rows, cols) = renderable.physical_dimensions();
@@ -468,6 +486,12 @@ impl ClientSurfaceState {
 
     fn get_and_flush_changes(&mut self, seq: SequenceNo) -> (SequenceNo, Vec<Change>) {
         let (new_seq, changes) = self.surface.get_changes(seq);
+
+        if !changes.is_empty() && !self.push_limiter.non_blocking_admittance_check(1) {
+            // Pretend that there are no changes
+            return (seq, vec![]);
+        }
+
         let changes = changes.into_owned();
         let (rows, cols) = self.surface.dimensions();
 
@@ -537,11 +561,6 @@ impl<S: ReadAndWrite> ClientSession<S> {
             pollable_channel().expect("failed to create pollable_channel");
         let mux = Mux::get().expect("to be running on gui thread");
         let mux_rx = mux.subscribe().expect("Mux::subscribe to succeed");
-        let push_limiter = RateLimiter::new(
-            mux.config()
-                .ratelimit_mux_output_pushes_per_second
-                .unwrap_or(10),
-        );
         Self {
             stream,
             executor,
@@ -549,7 +568,6 @@ impl<S: ReadAndWrite> ClientSession<S> {
             to_write_rx,
             to_write_tx,
             mux_rx,
-            push_limiter,
         }
     }
 
@@ -585,20 +603,17 @@ impl<S: ReadAndWrite> ClientSession<S> {
                     Err(TryRecvError::Disconnected) => bail!("ClientSession was destroyed"),
                 };
 
-                // Process any TabOutput notifications, subject to throttling
                 for tab_id in tabs_to_output.drain() {
-                    if self.push_limiter.non_blocking_admittance_check(1) {
-                        let surfaces = Arc::clone(&self.surfaces_by_tab);
-                        let sender = self.to_write_tx.clone();
-                        Future::with_executor(self.executor.clone_executor(), move || {
-                            let mux = Mux::get().unwrap();
-                            let tab = mux
-                                .get_tab(tab_id)
-                                .ok_or_else(|| format_err!("no such tab {}", tab_id))?;
-                            maybe_push_tab_changes(&surfaces, &tab, sender)?;
-                            Ok(())
-                        });
-                    }
+                    let surfaces = Arc::clone(&self.surfaces_by_tab);
+                    let sender = self.to_write_tx.clone();
+                    Future::with_executor(self.executor.clone_executor(), move || {
+                        let mux = Mux::get().unwrap();
+                        let tab = mux
+                            .get_tab(tab_id)
+                            .ok_or_else(|| format_err!("no such tab {}", tab_id))?;
+                        maybe_push_tab_changes(&surfaces, &tab, sender)?;
+                        Ok(())
+                    });
                 }
             }
 

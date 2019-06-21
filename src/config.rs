@@ -151,6 +151,11 @@ pub struct Config {
     /// which has a default value of 10/s
     pub ratelimit_mux_output_pushes_per_second: Option<u32>,
 
+    /// Constrain how often the mux server scans the terminal
+    /// model to compute a diff to send to the mux client.
+    /// The default value is 100/s
+    pub ratelimit_mux_output_scans_per_second: Option<u32>,
+
     #[serde(default)]
     pub keys: Vec<Key>,
 }
@@ -416,6 +421,7 @@ impl Default for Config {
             mux_client_expected_cn: None,
             ratelimit_output_bytes_per_second: None,
             ratelimit_mux_output_pushes_per_second: None,
+            ratelimit_mux_output_scans_per_second: None,
             mux_pem_root_certs: None,
             keys: vec![],
         }
