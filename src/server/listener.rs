@@ -79,7 +79,7 @@ pub fn read_bytes<T: AsRef<Path>>(path: T) -> Fallible<Vec<u8>> {
     Ok(buf)
 }
 
-#[cfg(any(feature = "openssl", all(unix, not(target_os = "macos"))))]
+#[cfg(any(feature = "openssl", unix))]
 fn pem_files_to_identity(
     key: PathBuf,
     cert: Option<PathBuf>,
@@ -126,7 +126,7 @@ fn pem_files_to_identity(
     })
 }
 
-#[cfg(not(any(feature = "openssl", all(unix, not(target_os = "macos")))))]
+#[cfg(not(any(feature = "openssl", unix)))]
 fn pem_files_to_identity(
     _key: PathBuf,
     _cert: Option<PathBuf>,

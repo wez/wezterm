@@ -29,7 +29,7 @@ impl ReadAndWrite for native_tls::TlsStream<std::net::TcpStream> {
     }
 }
 
-#[cfg(any(feature = "openssl", all(unix, not(target_os = "macos"))))]
+#[cfg(any(feature = "openssl", unix))]
 impl ReadAndWrite for openssl::ssl::SslStream<std::net::TcpStream> {
     fn set_non_blocking(&self, non_blocking: bool) -> Fallible<()> {
         self.get_ref().set_nonblocking(non_blocking)?;
@@ -127,7 +127,7 @@ impl AsPollFd for native_tls::TlsStream<TcpStream> {
     }
 }
 
-#[cfg(any(feature = "openssl", all(unix, not(target_os = "macos"))))]
+#[cfg(any(feature = "openssl", unix))]
 impl AsPollFd for openssl::ssl::SslStream<TcpStream> {
     fn as_poll_fd(&self) -> pollfd {
         self.get_ref().as_socket_descriptor().as_poll_fd()

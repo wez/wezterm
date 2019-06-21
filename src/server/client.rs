@@ -156,7 +156,7 @@ impl Client {
         Ok(Self::new(stream))
     }
 
-    #[cfg(any(feature = "openssl", all(unix, not(target_os = "macos"))))]
+    #[cfg(any(feature = "openssl", unix))]
     pub fn new_tls(config: &Arc<Config>) -> Fallible<Self> {
         use crate::server::listener::read_bytes;
         use openssl::ssl::{SslConnector, SslFiletype, SslMethod};
@@ -236,7 +236,7 @@ impl Client {
         Ok(Self::new(stream))
     }
 
-    #[cfg(not(any(feature = "openssl", all(unix, not(target_os = "macos")))))]
+    #[cfg(not(any(feature = "openssl", unix)))]
     pub fn new_tls(config: &Arc<Config>) -> Fallible<Self> {
         use crate::server::listener::IdentitySource;
         use native_tls::TlsConnector;
