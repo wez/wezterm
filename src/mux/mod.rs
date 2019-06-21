@@ -2,6 +2,7 @@ use crate::config::Config;
 use crate::frontend::gui_executor;
 use crate::mux::tab::{Tab, TabId};
 use crate::mux::window::{Window, WindowId};
+use crate::ratelim::RateLimiter;
 use crate::server::pollable::{pollable_channel, PollableReceiver, PollableSender};
 use domain::{Domain, DomainId};
 use failure::{bail, format_err, Error, Fallible};
@@ -43,10 +44,17 @@ pub struct Mux {
     subscribers: RefCell<HashMap<usize, PollableSender<MuxNotification>>>,
 }
 
-fn read_from_tab_pty(tab_id: TabId, mut reader: Box<dyn std::io::Read>) {
+fn read_from_tab_pty(config: Arc<Config>, tab_id: TabId, mut reader: Box<dyn std::io::Read>) {
     let executor = gui_executor().expect("gui_executor was not registered yet!?");
     const BUFSIZE: usize = 32 * 1024;
     let mut buf = [0; BUFSIZE];
+
+    let mut lim = RateLimiter::new(
+        config
+            .ratelimit_output_bytes_per_second
+            .unwrap_or(2 * 1024 * 1024),
+    );
+
     loop {
         match reader.read(&mut buf) {
             Ok(size) if size == 0 => {
@@ -58,6 +66,7 @@ fn read_from_tab_pty(tab_id: TabId, mut reader: Box<dyn std::io::Read>) {
                 break;
             }
             Ok(size) => {
+                lim.blocking_admittance_check(size as u32);
                 let data = buf[0..size].to_vec();
                 Future::with_executor(executor.clone_executor(), move || {
                     let mux = Mux::get().unwrap();
@@ -184,7 +193,8 @@ impl Mux {
 
         let reader = tab.reader()?;
         let tab_id = tab.tab_id();
-        thread::spawn(move || read_from_tab_pty(tab_id, reader));
+        let config = Arc::clone(&self.config);
+        thread::spawn(move || read_from_tab_pty(config, tab_id, reader));
 
         Ok(())
     }

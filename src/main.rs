@@ -14,6 +14,7 @@ mod config;
 mod frontend;
 mod mux;
 mod opengl;
+mod ratelim;
 mod server;
 use crate::frontend::FrontEndSelection;
 use crate::mux::domain::{Domain, LocalDomain};

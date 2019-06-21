@@ -131,6 +131,14 @@ pub struct Config {
     /// not normally need to override this value.
     pub mux_client_expected_cn: Option<String>,
 
+    /// Constrains the rate at which output from a child command is
+    /// processed and applied to the terminal model.
+    /// This acts as a brake in the case of a command spewing a
+    /// ton of output and allows for the UI to remain responsive
+    /// so that you can hit CTRL-C to interrupt it if desired.
+    /// The default value is 2MB/s.
+    pub ratelimit_output_bytes_per_second: Option<u32>,
+
     #[serde(default)]
     pub keys: Vec<Key>,
 }
@@ -394,6 +402,7 @@ impl Default for Config {
             mux_client_pem_ca: None,
             mux_client_accept_invalid_hostnames: None,
             mux_client_expected_cn: None,
+            ratelimit_output_bytes_per_second: None,
             mux_pem_root_certs: None,
             keys: vec![],
         }
