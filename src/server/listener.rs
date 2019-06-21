@@ -649,44 +649,6 @@ impl<S: ReadAndWrite> ClientSession<S> {
                     Ok(Pdu::ListTabsResponse(ListTabsResponse { tabs }))
                 })
             }
-            Pdu::GetCoarseTabRenderableData(GetCoarseTabRenderableData { tab_id, dirty_all }) => {
-                Future::with_executor(self.executor.clone_executor(), move || {
-                    let mux = Mux::get().unwrap();
-                    let tab = mux
-                        .get_tab(tab_id)
-                        .ok_or_else(|| format_err!("no such tab {}", tab_id))?;
-                    let title = tab.get_title();
-                    let mut renderable = tab.renderer();
-                    if dirty_all {
-                        renderable.make_all_lines_dirty();
-                    }
-
-                    let dirty_lines = renderable
-                        .get_dirty_lines()
-                        .iter()
-                        .map(|(line_idx, line, sel)| DirtyLine {
-                            line_idx: *line_idx,
-                            line: (*line).clone(),
-                            selection_col_from: sel.start,
-                            selection_col_to: sel.end,
-                        })
-                        .collect();
-                    renderable.clean_dirty_lines();
-
-                    let (physical_rows, physical_cols) = renderable.physical_dimensions();
-
-                    Ok(Pdu::GetCoarseTabRenderableDataResponse(
-                        GetCoarseTabRenderableDataResponse {
-                            dirty_lines,
-                            current_highlight: renderable.current_highlight(),
-                            cursor_position: renderable.get_cursor_position(),
-                            physical_rows,
-                            physical_cols,
-                            title,
-                        },
-                    ))
-                })
-            }
 
             Pdu::WriteToTab(WriteToTab { tab_id, data }) => {
                 let surfaces = Arc::clone(&self.surfaces_by_tab);
@@ -801,7 +763,6 @@ impl<S: ReadAndWrite> ClientSession<S> {
             Pdu::Pong { .. }
             | Pdu::ListTabsResponse { .. }
             | Pdu::SendMouseEventResponse { .. }
-            | Pdu::GetCoarseTabRenderableDataResponse { .. }
             | Pdu::SetClipboard { .. }
             | Pdu::SpawnResponse { .. }
             | Pdu::GetTabRenderChangesResponse { .. }

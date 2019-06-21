@@ -19,10 +19,7 @@ use log::debug;
 use portable_pty::{CommandBuilder, PtySize};
 use serde_derive::*;
 use std::io::Cursor;
-use std::sync::Arc;
 use term::selection::SelectionRange;
-use term::{CursorPosition, Line};
-use termwiz::hyperlink::Hyperlink;
 use termwiz::surface::{Change, SequenceNo};
 use varbincode;
 
@@ -221,8 +218,6 @@ pdu! {
     Pong: 2,
     ListTabs: 3,
     ListTabsResponse: 4,
-    GetCoarseTabRenderableData: 5,
-    GetCoarseTabRenderableDataResponse: 6,
     Spawn: 7,
     SpawnResponse: 8,
     WriteToTab: 9,
@@ -338,34 +333,6 @@ pub struct WindowAndTabEntry {
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
 pub struct ListTabsResponse {
     pub tabs: Vec<WindowAndTabEntry>,
-}
-
-/// This is a transitional request to get some basic
-/// remoting working.  The ideal is to produce Change
-/// objects instead of the coarse response data in
-/// GetCoarseTabRenderableDataResponse
-#[derive(Deserialize, Serialize, PartialEq, Debug)]
-pub struct GetCoarseTabRenderableData {
-    pub tab_id: TabId,
-    pub dirty_all: bool,
-}
-
-#[derive(Deserialize, Serialize, PartialEq, Debug)]
-pub struct DirtyLine {
-    pub line_idx: usize,
-    pub line: Line,
-    pub selection_col_from: usize,
-    pub selection_col_to: usize,
-}
-
-#[derive(Deserialize, Serialize, PartialEq, Debug)]
-pub struct GetCoarseTabRenderableDataResponse {
-    pub cursor_position: CursorPosition,
-    pub physical_rows: usize,
-    pub physical_cols: usize,
-    pub current_highlight: Option<Arc<Hyperlink>>,
-    pub dirty_lines: Vec<DirtyLine>,
-    pub title: String,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]

@@ -300,11 +300,6 @@ impl Client {
 
     rpc!(ping, Ping = (), Pong);
     rpc!(list_tabs, ListTabs = (), ListTabsResponse);
-    rpc!(
-        get_coarse_tab_renderable_data,
-        GetCoarseTabRenderableData,
-        GetCoarseTabRenderableDataResponse
-    );
     rpc!(spawn, Spawn, SpawnResponse);
     rpc!(write_to_tab, WriteToTab, UnitResponse);
     rpc!(send_paste, SendPaste, UnitResponse);
