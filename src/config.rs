@@ -118,6 +118,9 @@ pub struct Config {
 
     #[serde(default)]
     pub keys: Vec<Key>,
+
+    #[serde(default)]
+    pub daemon_options: DaemonOptions,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -362,6 +365,36 @@ fn default_dpi() -> f64 {
     96.0
 }
 
+#[derive(Default, Debug, Clone, Deserialize)]
+pub struct DaemonOptions {
+    pub pid_file: Option<PathBuf>,
+    pub stdout: Option<PathBuf>,
+    pub stderr: Option<PathBuf>,
+}
+
+impl DaemonOptions {
+    pub fn pid_file(&self) -> PathBuf {
+        self.pid_file
+            .as_ref()
+            .cloned()
+            .unwrap_or_else(|| RUNTIME_DIR.join("pid"))
+    }
+
+    pub fn stdout(&self) -> PathBuf {
+        self.stdout
+            .as_ref()
+            .cloned()
+            .unwrap_or_else(|| RUNTIME_DIR.join("log"))
+    }
+
+    pub fn stderr(&self) -> PathBuf {
+        self.stderr
+            .as_ref()
+            .cloned()
+            .unwrap_or_else(|| RUNTIME_DIR.join("log"))
+    }
+}
+
 /// Configures an instance of a multiplexer that can be communicated
 /// with via a unix domain socket
 #[derive(Default, Debug, Clone, Deserialize)]
@@ -483,6 +516,7 @@ impl Default for Config {
             keys: vec![],
             tls_servers: vec![],
             tls_clients: vec![],
+            daemon_options: Default::default(),
         }
     }
 }

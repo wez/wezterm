@@ -55,6 +55,7 @@ zstd = "0.4"
 [target.'cfg(unix)'.dependencies]
 mio = "0.6"
 mio-extras = "2.0"
+daemonize = "0.4"
 
 [dependencies.fontconfig]
 optional = true

@@ -98,6 +98,10 @@ struct StartCommand {
     #[structopt(long = "no-auto-connect")]
     no_auto_connect: bool,
 
+    /// Detach from the foreground and become a background process
+    #[structopt(long = "daemonize")]
+    daemonize: bool,
+
     /// Instead of executing your shell, run PROG.
     /// For example: `wezterm start -- bash -l` will spawn bash
     /// as if it were a login shell.
@@ -129,7 +133,23 @@ enum CliSubCommand {
     List,
 }
 
-fn run_terminal_gui(config: Arc<config::Config>, opts: &StartCommand) -> Result<(), Error> {
+fn run_terminal_gui(config: Arc<config::Config>, opts: &StartCommand) -> Fallible<()> {
+    #[cfg(unix)]
+    {
+        if opts.daemonize {
+            use std::fs::OpenOptions;
+            let mut options = OpenOptions::new();
+            options.write(true).create(true).append(true);
+            let stdout = options.open(config.daemon_options.stdout())?;
+            let stderr = options.open(config.daemon_options.stderr())?;
+            daemonize::Daemonize::new()
+                .stdout(stdout)
+                .stderr(stderr)
+                .pid_file(config.daemon_options.pid_file())
+                .start()?;
+        }
+    }
+
     let font_system = opts.font_system.unwrap_or(config.font_system);
     font_system.set_default();
 
