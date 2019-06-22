@@ -82,21 +82,10 @@ pub struct Config {
     #[serde(default = "UnixDomain::default_unix_domains")]
     pub unix_domains: Vec<UnixDomain>,
 
-    /// When using the MuxServer with the NetListener, specifies
-    /// the address and port combination on which it should listen
-    pub mux_server_bind_address: Option<String>,
-
-    /// When using the MuxServer with the NetListener, specifies
-    /// the path to an x509 PEM encoded private key file
-    pub mux_server_pem_private_key: Option<PathBuf>,
-
-    /// When using the MuxServer with the NetListener, specifies
-    /// the path to an x509 PEM encoded certificate file
-    pub mux_server_pem_cert: Option<PathBuf>,
-
-    /// When using the MuxServer with the NetListener, specifies
-    /// the path to an x509 PEM encoded CA chain file
-    pub mux_server_pem_ca: Option<PathBuf>,
+    /// When running in server mode, defines configuration for
+    /// each of the endpoints that we'll listen for connections
+    #[serde(default)]
+    pub tls_servers: Vec<TlsDomainServer>,
 
     /// When using the mux client domain, identifies the host:port
     /// pair of the remote server.
@@ -431,6 +420,30 @@ impl UnixDomain {
     }
 }
 
+#[derive(Default, Debug, Clone, Deserialize)]
+pub struct TlsDomainServer {
+    /// The address:port combination on which the server will listen
+    /// for client connections
+    pub bind_address: String,
+
+    /// the path to an x509 PEM encoded private key file
+    pub pem_private_key: Option<PathBuf>,
+
+    /// the path to an x509 PEM encoded certificate file
+    pub pem_cert: Option<PathBuf>,
+
+    /// the path to an x509 PEM encoded CA chain file
+    pub pem_ca: Option<PathBuf>,
+
+    /// A set of paths to load additional CA certificates.
+    /// Each entry can be either the path to a directory
+    /// or to a PEM encoded CA file.  If an entry is a directory,
+    /// then its contents will be loaded as CA certs and added
+    /// to the trust store.
+    #[serde(default)]
+    pub pem_root_certs: Vec<PathBuf>,
+}
+
 impl Default for Config {
     fn default() -> Self {
         Self {
@@ -446,10 +459,6 @@ impl Default for Config {
             hyperlink_rules: default_hyperlink_rules(),
             term: default_term(),
             default_prog: None,
-            mux_server_bind_address: None,
-            mux_server_pem_private_key: None,
-            mux_server_pem_cert: None,
-            mux_server_pem_ca: None,
             mux_server_remote_address: None,
             mux_client_pem_private_key: None,
             mux_client_pem_cert: None,
@@ -462,6 +471,7 @@ impl Default for Config {
             mux_pem_root_certs: None,
             unix_domains: UnixDomain::default_unix_domains(),
             keys: vec![],
+            tls_servers: vec![],
         }
     }
 }

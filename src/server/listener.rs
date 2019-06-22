@@ -1,4 +1,4 @@
-use crate::config::Config;
+use crate::config::{Config, TlsDomainServer};
 use crate::mux::tab::{Tab, TabId};
 use crate::mux::{Mux, MuxNotification, MuxSubscriber};
 use crate::ratelim::RateLimiter;
@@ -316,61 +316,58 @@ mod ossl {
     }
 
     pub fn spawn_tls_listener(
-        config: &Arc<Config>,
+        _config: &Arc<Config>,
         executor: Box<dyn Executor>,
+        tls_server: &TlsDomainServer,
     ) -> Result<(), Error> {
-        if let Some(address) = &config.mux_server_bind_address {
-            openssl::init();
+        openssl::init();
 
-            let mut acceptor = SslAcceptor::mozilla_modern(SslMethod::tls())?;
+        let mut acceptor = SslAcceptor::mozilla_modern(SslMethod::tls())?;
 
-            if let Some(cert_file) = config.mux_server_pem_cert.as_ref() {
-                acceptor.set_certificate_file(cert_file, SslFiletype::PEM)?;
-            }
-            if let Some(chain_file) = config.mux_server_pem_ca.as_ref() {
-                acceptor.set_certificate_chain_file(chain_file)?;
-            }
-            if let Some(key_file) = config.mux_server_pem_private_key.as_ref() {
-                acceptor.set_private_key_file(key_file, SslFiletype::PEM)?;
-            }
-            if let Some(root_certs) = config.mux_pem_root_certs.as_ref() {
-                fn load_cert(name: &Path) -> Fallible<X509> {
-                    let cert_bytes = read_bytes(name)?;
-                    log::trace!("loaded {}", name.display());
-                    Ok(X509::from_pem(&cert_bytes)?)
-                }
-                for name in root_certs {
-                    if name.is_dir() {
-                        for entry in std::fs::read_dir(name)? {
-                            if let Ok(cert) = load_cert(&entry?.path()) {
-                                acceptor.cert_store_mut().add_cert(cert).ok();
-                            }
-                        }
-                    } else {
-                        acceptor.cert_store_mut().add_cert(load_cert(name)?)?;
+        if let Some(cert_file) = tls_server.pem_cert.as_ref() {
+            acceptor.set_certificate_file(cert_file, SslFiletype::PEM)?;
+        }
+        if let Some(chain_file) = tls_server.pem_ca.as_ref() {
+            acceptor.set_certificate_chain_file(chain_file)?;
+        }
+        if let Some(key_file) = tls_server.pem_private_key.as_ref() {
+            acceptor.set_private_key_file(key_file, SslFiletype::PEM)?;
+        }
+        fn load_cert(name: &Path) -> Fallible<X509> {
+            let cert_bytes = read_bytes(name)?;
+            log::trace!("loaded {}", name.display());
+            Ok(X509::from_pem(&cert_bytes)?)
+        }
+        for name in &tls_server.pem_root_certs {
+            if name.is_dir() {
+                for entry in std::fs::read_dir(name)? {
+                    if let Ok(cert) = load_cert(&entry?.path()) {
+                        acceptor.cert_store_mut().add_cert(cert).ok();
                     }
                 }
+            } else {
+                acceptor.cert_store_mut().add_cert(load_cert(name)?)?;
             }
-
-            acceptor.set_verify(SslVerifyMode::PEER | SslVerifyMode::FAIL_IF_NO_PEER_CERT);
-
-            let acceptor = acceptor.build();
-
-            let mut net_listener = OpenSSLNetListener::new(
-                TcpListener::bind(address).map_err(|e| {
-                    format_err!(
-                        "error binding to mux_server_bind_address {}: {}",
-                        address,
-                        e
-                    )
-                })?,
-                acceptor,
-                executor,
-            );
-            thread::spawn(move || {
-                net_listener.run();
-            });
         }
+
+        acceptor.set_verify(SslVerifyMode::PEER | SslVerifyMode::FAIL_IF_NO_PEER_CERT);
+
+        let acceptor = acceptor.build();
+
+        let mut net_listener = OpenSSLNetListener::new(
+            TcpListener::bind(&tls_server.bind_address).map_err(|e| {
+                format_err!(
+                    "error binding to mux_server_bind_address {}: {}",
+                    tls_server.bind_address,
+                    e
+                )
+            })?,
+            acceptor,
+            executor,
+        );
+        thread::spawn(move || {
+            net_listener.run();
+        });
         Ok(())
     }
 }
@@ -900,39 +897,45 @@ fn safely_create_sock_path(sock_path: &Path) -> Result<UnixListener, Error> {
 }
 
 #[cfg(any(feature = "openssl", unix))]
-fn spawn_tls_listener(config: &Arc<Config>, executor: Box<dyn Executor>) -> Fallible<()> {
-    ossl::spawn_tls_listener(config, executor)
+fn spawn_tls_listener(
+    config: &Arc<Config>,
+    executor: Box<dyn Executor>,
+    tls_server: &TlsDomainServer,
+) -> Fallible<()> {
+    ossl::spawn_tls_listener(config, executor, tls_server)
 }
 
 #[cfg(not(any(feature = "openssl", unix)))]
-fn spawn_tls_listener(config: &Arc<Config>, executor: Box<dyn Executor>) -> Fallible<()> {
+fn spawn_tls_listener(
+    config: &Arc<Config>,
+    executor: Box<dyn Executor>,
+    tls_server: &TlsDomainServer,
+) -> Fallible<()> {
     use std::convert::TryInto;
-    if let Some(address) = &config.mux_server_bind_address {
-        let identity = IdentitySource::PemFiles {
-            key: config
-                .mux_server_pem_private_key
-                .as_ref()
-                .ok_or_else(|| err_msg("missing mux_server_pem_private_key config value"))?
-                .into(),
-            cert: config.mux_server_pem_cert.clone(),
-            chain: config.mux_server_pem_ca.clone(),
-        };
+    let identity = IdentitySource::PemFiles {
+        key: tls_server
+            .pem_private_key
+            .as_ref()
+            .ok_or_else(|| err_msg("missing mux_server_pem_private_key config value"))?
+            .into(),
+        cert: tls_server.pem_cert.clone(),
+        chain: tls_server.pem_ca.clone(),
+    };
 
-        let mut net_listener = NetListener::new(
-            TcpListener::bind(address).map_err(|e| {
-                format_err!(
-                    "error binding to mux_server_bind_address {}: {}",
-                    address,
-                    e
-                )
-            })?,
-            TlsAcceptor::new(identity.try_into()?)?,
-            executor,
-        );
-        thread::spawn(move || {
-            net_listener.run();
-        });
-    }
+    let mut net_listener = NetListener::new(
+        TcpListener::bind(&tls_server.bind_address).map_err(|e| {
+            format_err!(
+                "error binding to mux_server_bind_address {}: {}",
+                tls_server.bind_address,
+                e
+            )
+        })?,
+        TlsAcceptor::new(identity.try_into()?)?,
+        executor,
+    );
+    thread::spawn(move || {
+        net_listener.run();
+    });
     Ok(())
 }
 
@@ -947,6 +950,8 @@ pub fn spawn_listener(config: &Arc<Config>, executor: Box<dyn Executor>) -> Fall
         });
     }
 
-    spawn_tls_listener(config, executor.clone_executor())?;
+    for tls_server in &config.tls_servers {
+        spawn_tls_listener(config, executor.clone_executor(), tls_server)?;
+    }
     Ok(())
 }
