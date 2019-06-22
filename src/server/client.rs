@@ -1,5 +1,5 @@
 #![allow(dead_code)]
-use crate::config::{Config, UnixDomain};
+use crate::config::{Config, TlsDomainClient, UnixDomain};
 use crate::frontend::gui_executor;
 use crate::mux::Mux;
 use crate::server::codec::*;
@@ -7,7 +7,7 @@ use crate::server::pollable::*;
 use crate::server::tab::ClientTab;
 use crate::server::UnixStream;
 use crossbeam_channel::TryRecvError;
-use failure::{bail, err_msg, format_err, Fallible};
+use failure::{bail, format_err, Fallible};
 use log::info;
 use promise::{Future, Promise};
 use std::collections::HashMap;
@@ -159,17 +159,14 @@ impl Client {
     }
 
     #[cfg(any(feature = "openssl", unix))]
-    pub fn new_tls(config: &Arc<Config>) -> Fallible<Self> {
+    pub fn new_tls(_config: &Arc<Config>, tls_client: &TlsDomainClient) -> Fallible<Self> {
         use crate::server::listener::read_bytes;
         use openssl::ssl::{SslConnector, SslFiletype, SslMethod};
         use openssl::x509::X509;
 
         openssl::init();
 
-        let remote_address = config
-            .mux_server_remote_address
-            .as_ref()
-            .ok_or_else(|| err_msg("missing mux_server_remote_address config value"))?;
+        let remote_address = &tls_client.remote_address;
 
         let remote_host_name = remote_address.split(':').next().ok_or_else(|| {
             format_err!(
@@ -180,38 +177,36 @@ impl Client {
 
         let mut connector = SslConnector::builder(SslMethod::tls())?;
 
-        if let Some(cert_file) = config.mux_client_pem_cert.as_ref() {
+        if let Some(cert_file) = tls_client.pem_cert.as_ref() {
             connector.set_certificate_file(cert_file, SslFiletype::PEM)?;
         }
-        if let Some(chain_file) = config.mux_client_pem_ca.as_ref() {
+        if let Some(chain_file) = tls_client.pem_ca.as_ref() {
             connector.set_certificate_chain_file(chain_file)?;
         }
-        if let Some(key_file) = config.mux_client_pem_private_key.as_ref() {
+        if let Some(key_file) = tls_client.pem_private_key.as_ref() {
             connector.set_private_key_file(key_file, SslFiletype::PEM)?;
         }
-        if let Some(root_certs) = config.mux_pem_root_certs.as_ref() {
-            fn load_cert(name: &Path) -> Fallible<X509> {
-                let cert_bytes = read_bytes(name)?;
-                log::trace!("loaded {}", name.display());
-                Ok(X509::from_pem(&cert_bytes)?)
-            }
-            for name in root_certs {
-                if name.is_dir() {
-                    for entry in std::fs::read_dir(name)? {
-                        if let Ok(cert) = load_cert(&entry?.path()) {
-                            connector.cert_store_mut().add_cert(cert).ok();
-                        }
+        fn load_cert(name: &Path) -> Fallible<X509> {
+            let cert_bytes = read_bytes(name)?;
+            log::trace!("loaded {}", name.display());
+            Ok(X509::from_pem(&cert_bytes)?)
+        }
+        for name in &tls_client.pem_root_certs {
+            if name.is_dir() {
+                for entry in std::fs::read_dir(name)? {
+                    if let Ok(cert) = load_cert(&entry?.path()) {
+                        connector.cert_store_mut().add_cert(cert).ok();
                     }
-                } else {
-                    connector.cert_store_mut().add_cert(load_cert(name)?)?;
                 }
+            } else {
+                connector.cert_store_mut().add_cert(load_cert(name)?)?;
             }
         }
 
         let connector = connector.build();
         let connector = connector
             .configure()?
-            .verify_hostname(!config.mux_client_accept_invalid_hostnames.unwrap_or(false));
+            .verify_hostname(!tls_client.accept_invalid_hostnames);
 
         let stream = TcpStream::connect(remote_address)
             .map_err(|e| format_err!("connecting to {}: {}", remote_address, e))?;
@@ -220,8 +215,8 @@ impl Client {
         let stream = Box::new(
             connector
                 .connect(
-                    config
-                        .mux_client_expected_cn
+                    tls_client
+                        .expected_cn
                         .as_ref()
                         .map(String::as_str)
                         .unwrap_or(remote_host_name),
@@ -241,15 +236,12 @@ impl Client {
     }
 
     #[cfg(not(any(feature = "openssl", unix)))]
-    pub fn new_tls(config: &Arc<Config>) -> Fallible<Self> {
+    pub fn new_tls(_config: &Arc<Config>, tls_client: &TlsDomainClient) -> Fallible<Self> {
         use crate::server::listener::IdentitySource;
         use native_tls::TlsConnector;
         use std::convert::TryInto;
 
-        let remote_address = config
-            .mux_server_remote_address
-            .as_ref()
-            .ok_or_else(|| err_msg("missing mux_server_remote_address config value"))?;
+        let remote_address = &tls_client.remote_address;
 
         let remote_host_name = remote_address.split(':').next().ok_or_else(|| {
             format_err!(
@@ -259,20 +251,18 @@ impl Client {
         })?;
 
         let identity = IdentitySource::PemFiles {
-            key: config
-                .mux_client_pem_private_key
+            key: tls_client
+                .pem_private_key
                 .as_ref()
-                .ok_or_else(|| err_msg("missing mux_client_pem_private_key config value"))?
+                .ok_or_else(|| failure::err_msg("missing mux_client_pem_private_key config value"))?
                 .into(),
-            cert: config.mux_client_pem_cert.clone(),
-            chain: config.mux_client_pem_ca.clone(),
+            cert: tls_client.pem_cert.clone(),
+            chain: tls_client.pem_ca.clone(),
         };
 
         let connector = TlsConnector::builder()
             .identity(identity.try_into()?)
-            .danger_accept_invalid_hostnames(
-                config.mux_client_accept_invalid_hostnames.unwrap_or(false),
-            )
+            .danger_accept_invalid_hostnames(tls_client.accept_invalid_hostnames.unwrap_or(false))
             .build()?;
 
         let stream = TcpStream::connect(remote_address)

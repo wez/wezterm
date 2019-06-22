@@ -150,7 +150,11 @@ fn run_terminal_gui(config: Arc<config::Config>, opts: &StartCommand) -> Result<
         let client = Client::new_default_unix_domain(&config)?;
         Arc::new(ClientDomain::new(client))
     } else if opts.mux_tls_client_as_default_domain {
-        let client = Client::new_tls(&config)?;
+        let tls_client = config
+            .tls_clients
+            .first()
+            .expect("tls clients to be configured");
+        let client = Client::new_tls(&config, tls_client)?;
         Arc::new(ClientDomain::new(client))
     } else {
         Arc::new(LocalDomain::new(&config)?)
