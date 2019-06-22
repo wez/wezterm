@@ -854,9 +854,7 @@ impl Drop for UmaskSaver {
 /// we need to be sure that the directory that we create it in
 /// is owned by the user and has appropriate file permissions
 /// that prevent other users from manipulating its contents.
-fn safely_create_sock_path(sock_path: &str) -> Result<UnixListener, Error> {
-    let sock_path = Path::new(sock_path);
-
+fn safely_create_sock_path(sock_path: &Path) -> Result<UnixListener, Error> {
     debug!("setting up {}", sock_path.display());
 
     let _saver = UmaskSaver::new();
@@ -939,17 +937,15 @@ fn spawn_tls_listener(config: &Arc<Config>, executor: Box<dyn Executor>) -> Fall
 }
 
 pub fn spawn_listener(config: &Arc<Config>, executor: Box<dyn Executor>) -> Fallible<()> {
-    let sock_path = config
-        .mux_server_unix_domain_socket_path
-        .as_ref()
-        .ok_or_else(|| err_msg("no mux_server_unix_domain_socket_path"))?;
-    let mut listener = LocalListener::new(
-        safely_create_sock_path(sock_path)?,
-        executor.clone_executor(),
-    );
-    thread::spawn(move || {
-        listener.run();
-    });
+    for unix_dom in &config.unix_domains {
+        let mut listener = LocalListener::new(
+            safely_create_sock_path(&unix_dom.socket_path())?,
+            executor.clone_executor(),
+        );
+        thread::spawn(move || {
+            listener.run();
+        });
+    }
 
     spawn_tls_listener(config, executor.clone_executor())?;
     Ok(())

@@ -78,9 +78,9 @@ pub struct Config {
     #[serde(default)]
     pub pty: PtySystemSelection,
 
-    /// When using the MuxServer, this specifies the path to the unix
-    /// domain socket to use to communicate with the mux server.
-    pub mux_server_unix_domain_socket_path: Option<String>,
+    /// The set of unix domains
+    #[serde(default = "UnixDomain::default_unix_domains")]
+    pub unix_domains: Vec<UnixDomain>,
 
     /// When using the MuxServer with the NetListener, specifies
     /// the address and port combination on which it should listen
@@ -403,6 +403,34 @@ fn default_dpi() -> f64 {
     96.0
 }
 
+/// Configures an instance of a multiplexer that can be communicated
+/// with via a unix domain socket
+#[derive(Default, Debug, Clone, Deserialize)]
+pub struct UnixDomain {
+    /// The path to the socket.  If unspecified, a resonable default
+    /// value will be computed.
+    pub socket_path: Option<PathBuf>,
+
+    /// If true, connect to this domain automatically at startup
+    pub connect_automatically: bool,
+}
+
+impl UnixDomain {
+    pub fn socket_path(&self) -> PathBuf {
+        self.socket_path
+            .as_ref()
+            .cloned()
+            .unwrap_or_else(|| RUNTIME_DIR.join("sock"))
+    }
+
+    fn default_unix_domains() -> Vec<Self> {
+        vec![UnixDomain {
+            socket_path: None,
+            connect_automatically: false,
+        }]
+    }
+}
+
 impl Default for Config {
     fn default() -> Self {
         Self {
@@ -418,7 +446,6 @@ impl Default for Config {
             hyperlink_rules: default_hyperlink_rules(),
             term: default_term(),
             default_prog: None,
-            mux_server_unix_domain_socket_path: None,
             mux_server_bind_address: None,
             mux_server_pem_private_key: None,
             mux_server_pem_cert: None,
@@ -433,6 +460,7 @@ impl Default for Config {
             ratelimit_mux_output_pushes_per_second: None,
             ratelimit_mux_output_scans_per_second: None,
             mux_pem_root_certs: None,
+            unix_domains: UnixDomain::default_unix_domains(),
             keys: vec![],
         }
     }
@@ -686,11 +714,6 @@ impl Config {
     /// on those provided by the user.  This is where we do that.
     fn compute_extra_defaults(&self) -> Self {
         let mut cfg = self.clone();
-
-        if cfg.mux_server_unix_domain_socket_path.is_none() {
-            cfg.mux_server_unix_domain_socket_path =
-                RUNTIME_DIR.join("sock").to_str().map(str::to_owned);
-        }
 
         if cfg.font_rules.is_empty() {
             // Expand out some reasonable default font rules

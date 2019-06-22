@@ -1,5 +1,5 @@
 #![allow(dead_code)]
-use crate::config::Config;
+use crate::config::{Config, UnixDomain};
 use crate::frontend::gui_executor;
 use crate::mux::Mux;
 use crate::server::codec::*;
@@ -144,13 +144,15 @@ impl Client {
         Self { sender }
     }
 
-    pub fn new_unix_domain(config: &Arc<Config>) -> Fallible<Self> {
-        let sock_path = Path::new(
-            config
-                .mux_server_unix_domain_socket_path
-                .as_ref()
-                .ok_or_else(|| err_msg("no mux_server_unix_domain_socket_path"))?,
-        );
+    pub fn new_default_unix_domain(config: &Arc<Config>) -> Fallible<Self> {
+        for unix_dom in &config.unix_domains {
+            return Self::new_unix_domain(config, unix_dom);
+        }
+        bail!("no default unix domain is configured");
+    }
+
+    pub fn new_unix_domain(_config: &Arc<Config>, unix_dom: &UnixDomain) -> Fallible<Self> {
+        let sock_path = unix_dom.socket_path();
         info!("connect to {}", sock_path.display());
         let stream = Box::new(UnixStream::connect(sock_path)?);
         Ok(Self::new(stream))
