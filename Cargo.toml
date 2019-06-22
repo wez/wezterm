@@ -65,6 +65,9 @@ path = "deps/fontconfig"
 optional = true
 version = "0.10"
 
+[target.'cfg(target_os = "macos")'.dependencies]
+openssl = { version = "0.10", features = ["vendored"] }
+
 [target.'cfg(not(windows))'.dependencies]
 openssl = "0.10"
 
