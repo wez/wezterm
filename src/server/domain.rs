@@ -1,7 +1,7 @@
 use crate::font::{FontConfiguration, FontSystemSelection};
 use crate::frontend::front_end;
-use crate::mux::domain::{alloc_domain_id, Domain, DomainId};
-use crate::mux::tab::Tab;
+use crate::mux::domain::{Domain, DomainId};
+use crate::mux::tab::{Tab, TabId};
 use crate::mux::window::WindowId;
 use crate::mux::Mux;
 use crate::server::client::Client;
@@ -18,6 +18,7 @@ pub struct ClientInner {
     pub local_domain_id: DomainId,
     pub remote_domain_id: DomainId,
     remote_to_local_window: Mutex<HashMap<WindowId, WindowId>>,
+    remote_to_local_tab: Mutex<HashMap<TabId, TabId>>,
 }
 
 impl ClientInner {
@@ -57,7 +58,7 @@ pub struct ClientDomain {
 
 impl ClientInner {
     pub fn new(client: Client) -> Self {
-        let local_domain_id = alloc_domain_id();
+        let local_domain_id = client.local_domain_id();
         // Assumption: that the domain id on the other end is
         // always the first created default domain.  In the future
         // we'll add a way to discover/enumerate domains to populate
@@ -68,6 +69,7 @@ impl ClientInner {
             local_domain_id,
             remote_domain_id,
             remote_to_local_window: Mutex::new(HashMap::new()),
+            remote_to_local_tab: Mutex::new(HashMap::new()),
         }
     }
 }
@@ -76,6 +78,27 @@ impl ClientDomain {
     pub fn new(client: Client) -> Self {
         let inner = Arc::new(ClientInner::new(client));
         Self { inner }
+    }
+
+    pub fn remote_to_local_tab_id(&self, remote_tab_id: TabId) -> Option<TabId> {
+        let mut tab_map = self.inner.remote_to_local_tab.lock().unwrap();
+
+        if let Some(id) = tab_map.get(&remote_tab_id) {
+            return Some(*id);
+        }
+
+        let mux = Mux::get().unwrap();
+
+        for tab in mux.iter_tabs() {
+            if let Some(tab) = tab.downcast_ref::<ClientTab>() {
+                if tab.remote_tab_id() == remote_tab_id {
+                    let local_tab_id = tab.tab_id();
+                    tab_map.insert(remote_tab_id, local_tab_id);
+                    return Some(local_tab_id);
+                }
+            }
+        }
+        None
     }
 }
 

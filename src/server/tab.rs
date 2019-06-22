@@ -214,6 +214,10 @@ impl ClientTab {
         };
         Ok(())
     }
+
+    pub fn remote_tab_id(&self) -> TabId {
+        self.remote_tab_id
+    }
 }
 
 impl Tab for ClientTab {

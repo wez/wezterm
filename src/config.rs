@@ -371,6 +371,7 @@ pub struct UnixDomain {
     pub socket_path: Option<PathBuf>,
 
     /// If true, connect to this domain automatically at startup
+    #[serde(default)]
     pub connect_automatically: bool,
 }
 
@@ -449,6 +450,10 @@ pub struct TlsDomainClient {
     /// the hostname portion of the `remote_address` configuration and you
     /// should not normally need to override this value.
     pub expected_cn: Option<String>,
+
+    /// If true, connect to this domain automatically at startup
+    #[serde(default)]
+    pub connect_automatically: bool,
 }
 
 impl Default for Config {

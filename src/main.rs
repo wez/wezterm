@@ -1,7 +1,7 @@
 // Don't create a new standard console window when launched from the windows GUI.
 #![windows_subsystem = "windows"]
 
-use failure::Error;
+use failure::{Error, Fallible};
 use log::error;
 use std::ffi::OsString;
 use structopt::StructOpt;
@@ -17,7 +17,7 @@ mod opengl;
 mod ratelim;
 mod server;
 use crate::frontend::FrontEndSelection;
-use crate::mux::domain::{Domain, LocalDomain};
+use crate::mux::domain::{alloc_domain_id, Domain, LocalDomain};
 use crate::mux::Mux;
 use crate::server::client::Client;
 use crate::server::domain::ClientDomain;
@@ -146,27 +146,41 @@ fn run_terminal_gui(config: Arc<config::Config>, opts: &StartCommand) -> Result<
         None
     };
 
-    let domain: Arc<dyn Domain> = if opts.mux_client_as_default_domain {
-        let client = Client::new_default_unix_domain(&config)?;
-        Arc::new(ClientDomain::new(client))
-    } else if opts.mux_tls_client_as_default_domain {
-        let tls_client = config
-            .tls_clients
-            .first()
-            .expect("tls clients to be configured");
-        let client = Client::new_tls(&config, tls_client)?;
-        Arc::new(ClientDomain::new(client))
-    } else {
-        Arc::new(LocalDomain::new(&config)?)
-    };
-
+    let domain: Arc<dyn Domain> = Arc::new(LocalDomain::new(&config)?);
     let mux = Rc::new(mux::Mux::new(&config, &domain));
     Mux::set_mux(&mux);
 
     let front_end = opts.front_end.unwrap_or(config.front_end);
     let gui = front_end.try_new(&mux)?;
-
     domain.attach()?;
+
+    fn attach_client(mux: &Rc<Mux>, client: ClientDomain) -> Fallible<()> {
+        let domain: Arc<dyn Domain> = Arc::new(client);
+        mux.add_domain(&domain);
+        domain.attach()
+    }
+
+    if front_end != FrontEndSelection::MuxServer {
+        for unix_dom in &config.unix_domains {
+            if unix_dom.connect_automatically {
+                let domain_id = alloc_domain_id();
+                attach_client(
+                    &mux,
+                    ClientDomain::new(Client::new_unix_domain(domain_id, &config, unix_dom)?),
+                )?;
+            }
+        }
+
+        for tls_client in &config.tls_clients {
+            if tls_client.connect_automatically {
+                let domain_id = alloc_domain_id();
+                attach_client(
+                    &mux,
+                    ClientDomain::new(Client::new_tls(domain_id, &config, tls_client)?),
+                )?;
+            }
+        }
+    }
 
     if mux.is_empty() {
         let window_id = mux.new_empty_window();

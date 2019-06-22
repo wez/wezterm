@@ -157,7 +157,6 @@ impl Mux {
         self.domains.borrow().get(&id).cloned()
     }
 
-    #[allow(dead_code)]
     pub fn add_domain(&self, domain: &Arc<dyn Domain>) {
         self.domains
             .borrow_mut()
@@ -259,7 +258,6 @@ impl Mux {
         self.tabs.borrow().is_empty()
     }
 
-    #[allow(dead_code)]
     pub fn iter_tabs(&self) -> Vec<Rc<dyn Tab>> {
         self.tabs
             .borrow()

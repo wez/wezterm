@@ -1,8 +1,11 @@
 #![allow(dead_code)]
 use crate::config::{Config, TlsDomainClient, UnixDomain};
 use crate::frontend::gui_executor;
+use crate::mux::domain::alloc_domain_id;
+use crate::mux::domain::DomainId;
 use crate::mux::Mux;
 use crate::server::codec::*;
+use crate::server::domain::ClientDomain;
 use crate::server::pollable::*;
 use crate::server::tab::ClientTab;
 use crate::server::UnixStream;
@@ -24,6 +27,7 @@ enum ReaderMessage {
 #[derive(Clone)]
 pub struct Client {
     sender: PollableSender<ReaderMessage>,
+    local_domain_id: DomainId,
 }
 
 macro_rules! rpc {
@@ -55,15 +59,42 @@ macro_rules! rpc {
     };
 }
 
-fn process_unilateral(decoded: DecodedPdu) -> Fallible<()> {
+fn process_unilateral(local_domain_id: DomainId, decoded: DecodedPdu) -> Fallible<()> {
     if let Some(tab_id) = decoded.pdu.tab_id() {
         let pdu = decoded.pdu;
         Future::with_executor(gui_executor().unwrap(), move || {
             let mux = Mux::get().unwrap();
+            let client_domain = mux
+                .get_domain(local_domain_id)
+                .ok_or_else(|| format_err!("no such domain {}", local_domain_id))?;
+            let client_domain = client_domain
+                .downcast_ref::<ClientDomain>()
+                .ok_or_else(|| {
+                    format_err!("domain {} is not a ClientDomain instance", local_domain_id)
+                })?;
+
+            let local_tab_id = client_domain
+                .remote_to_local_tab_id(tab_id)
+                .ok_or_else(|| {
+                    format_err!("remote tab id {} does not have a local tab id", tab_id)
+                })?;
             let tab = mux
-                .get_tab(tab_id)
-                .ok_or_else(|| format_err!("no such tab {}", tab_id))?;
-            let client_tab = tab.downcast_ref::<ClientTab>().unwrap();
+                .get_tab(local_tab_id)
+                .ok_or_else(|| format_err!("no such tab {}", local_tab_id))?;
+            let client_tab = tab.downcast_ref::<ClientTab>().ok_or_else(|| {
+                log::error!(
+                    "received unilateral PDU for tab {} which is \
+                     not an instance of ClientTab: {:?}",
+                    local_tab_id,
+                    pdu
+                );
+                format_err!(
+                    "received unilateral PDU for tab {} which is \
+                     not an instance of ClientTab: {:?}",
+                    local_tab_id,
+                    pdu
+                )
+            })?;
             client_tab.process_unilateral(pdu)
         });
     } else {
@@ -74,6 +105,7 @@ fn process_unilateral(decoded: DecodedPdu) -> Fallible<()> {
 
 fn client_thread(
     mut stream: Box<dyn ReadAndWrite>,
+    local_domain_id: DomainId,
     rx: PollableReceiver<ReaderMessage>,
 ) -> Fallible<()> {
     let mut next_serial = 1u64;
@@ -114,7 +146,7 @@ fn client_thread(
                 if let Some(decoded) = res? {
                     log::trace!("decoded serial {}", decoded.serial);
                     if decoded.serial == 0 {
-                        process_unilateral(decoded)?;
+                        process_unilateral(local_domain_id, decoded)?;
                     } else if let Some(mut promise) = promises.remove(&decoded.serial) {
                         promise.result(Ok(decoded.pdu));
                     } else {
@@ -132,34 +164,49 @@ fn client_thread(
 }
 
 impl Client {
-    pub fn new(stream: Box<dyn ReadAndWrite>) -> Self {
+    pub fn new(local_domain_id: DomainId, stream: Box<dyn ReadAndWrite>) -> Self {
         let (sender, receiver) = pollable_channel().expect("failed to create pollable_channel");
 
         thread::spawn(move || {
-            if let Err(e) = client_thread(stream, receiver) {
+            if let Err(e) = client_thread(stream, local_domain_id, receiver) {
                 log::debug!("client thread ended: {}", e);
             }
         });
 
-        Self { sender }
+        Self {
+            sender,
+            local_domain_id,
+        }
+    }
+
+    pub fn local_domain_id(&self) -> DomainId {
+        self.local_domain_id
     }
 
     pub fn new_default_unix_domain(config: &Arc<Config>) -> Fallible<Self> {
         for unix_dom in &config.unix_domains {
-            return Self::new_unix_domain(config, unix_dom);
+            return Self::new_unix_domain(alloc_domain_id(), config, unix_dom);
         }
         bail!("no default unix domain is configured");
     }
 
-    pub fn new_unix_domain(_config: &Arc<Config>, unix_dom: &UnixDomain) -> Fallible<Self> {
+    pub fn new_unix_domain(
+        local_domain_id: DomainId,
+        _config: &Arc<Config>,
+        unix_dom: &UnixDomain,
+    ) -> Fallible<Self> {
         let sock_path = unix_dom.socket_path();
         info!("connect to {}", sock_path.display());
         let stream = Box::new(UnixStream::connect(sock_path)?);
-        Ok(Self::new(stream))
+        Ok(Self::new(local_domain_id, stream))
     }
 
     #[cfg(any(feature = "openssl", unix))]
-    pub fn new_tls(_config: &Arc<Config>, tls_client: &TlsDomainClient) -> Fallible<Self> {
+    pub fn new_tls(
+        local_domain_id: DomainId,
+        _config: &Arc<Config>,
+        tls_client: &TlsDomainClient,
+    ) -> Fallible<Self> {
         use crate::server::listener::read_bytes;
         use openssl::ssl::{SslConnector, SslFiletype, SslMethod};
         use openssl::x509::X509;
@@ -232,11 +279,15 @@ impl Client {
                     )
                 })?,
         );
-        Ok(Self::new(stream))
+        Ok(Self::new(local_domain_id, stream))
     }
 
     #[cfg(not(any(feature = "openssl", unix)))]
-    pub fn new_tls(_config: &Arc<Config>, tls_client: &TlsDomainClient) -> Fallible<Self> {
+    pub fn new_tls(
+        local_domain_id: DomainId,
+        _config: &Arc<Config>,
+        tls_client: &TlsDomainClient,
+    ) -> Fallible<Self> {
         use crate::server::listener::IdentitySource;
         use native_tls::TlsConnector;
         use std::convert::TryInto;
@@ -278,7 +329,7 @@ impl Client {
                 e
             )
         })?);
-        Ok(Self::new(stream))
+        Ok(Self::new(local_domain_id, stream))
     }
 
     pub fn send_pdu(&self, pdu: Pdu) -> Future<Pdu> {

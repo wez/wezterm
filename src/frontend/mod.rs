@@ -18,7 +18,7 @@ pub mod muxserver;
 #[cfg(all(unix, not(feature = "force-glutin"), not(target_os = "macos")))]
 pub mod xwindows;
 
-#[derive(Debug, Deserialize, Clone, Copy)]
+#[derive(Debug, Deserialize, Clone, Copy, PartialEq, Eq)]
 pub enum FrontEndSelection {
     Glutin,
     X11,
