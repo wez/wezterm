@@ -47,7 +47,7 @@ pub struct PollableSender<T> {
 
 impl<T> PollableSender<T> {
     pub fn send(&self, item: T) -> Fallible<()> {
-        self.write.borrow_mut().write(b"x")?;
+        self.write.borrow_mut().write_all(b"x")?;
         self.sender.send(item).map_err(|e| format_err!("{}", e))?;
         Ok(())
     }

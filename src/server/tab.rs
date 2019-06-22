@@ -16,6 +16,7 @@ use std::cell::RefCell;
 use std::cell::RefMut;
 use std::collections::VecDeque;
 use std::ops::Range;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use term::color::ColorPalette;
@@ -30,7 +31,7 @@ struct MouseState {
     future: Option<Future<()>>,
     queue: VecDeque<MouseEvent>,
     selection_range: Arc<Mutex<Option<SelectionRange>>>,
-    something_changed: Arc<Mutex<bool>>,
+    something_changed: Arc<AtomicBool>,
     highlight: Arc<Mutex<Option<Arc<Hyperlink>>>>,
     client: Client,
     remote_tab_id: TabId,
@@ -110,7 +111,7 @@ impl MouseState {
                         if let Ok(r) = resp.as_ref() {
                             *selection_range.lock().unwrap() = r.selection_range;
                             *highlight.lock().unwrap() = r.highlight.clone();
-                            *something_changed.lock().unwrap() = true;
+                            something_changed.store(true, Ordering::SeqCst);
                         }
                         Future::with_executor(gui_executor().unwrap(), move || {
                             Self::next(&state)?;
@@ -143,7 +144,7 @@ impl ClientTab {
             remote_tab_id,
         };
         let selection_range = Arc::new(Mutex::new(None));
-        let something_changed = Arc::new(Mutex::new(true));
+        let something_changed = Arc::new(AtomicBool::new(true));
         let highlight = Arc::new(Mutex::new(None));
 
         let mouse = Arc::new(Mutex::new(MouseState {
@@ -312,7 +313,7 @@ struct RenderableState {
     local_sequence: RefCell<SequenceNo>,
     poll_interval: RefCell<Duration>,
     selection_range: Arc<Mutex<Option<SelectionRange>>>,
-    something_changed: Arc<Mutex<bool>>,
+    something_changed: Arc<AtomicBool>,
     highlight: Arc<Mutex<Option<Arc<Hyperlink>>>>,
 }
 
@@ -377,7 +378,7 @@ impl Renderable for RenderableState {
         let seq = surface.current_seqno();
         surface.flush_changes_older_than(seq);
         let selection = *self.selection_range.lock().unwrap();
-        *self.something_changed.lock().unwrap() = false;
+        self.something_changed.store(false, Ordering::SeqCst);
         *self.local_sequence.borrow_mut() = seq;
         surface
             .screen_lines()
@@ -397,7 +398,7 @@ impl Renderable for RenderableState {
         if self.poll().is_err() {
             *self.dead.borrow_mut() = true;
         }
-        if *self.something_changed.lock().unwrap() {
+        if self.something_changed.load(Ordering::SeqCst) {
             return true;
         }
         self.surface
@@ -406,7 +407,7 @@ impl Renderable for RenderableState {
     }
 
     fn make_all_lines_dirty(&mut self) {
-        *self.something_changed.lock().unwrap() = true;
+        self.something_changed.store(true, Ordering::SeqCst);
     }
 
     fn clean_dirty_lines(&mut self) {}
