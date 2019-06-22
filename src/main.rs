@@ -93,12 +93,10 @@ struct StartCommand {
     )]
     font_system: Option<FontSystemSelection>,
 
-    /// If true, use the incomplete multiplexer client as the
-    /// default domain for new tabs and windows
-    #[structopt(long = "mux-client-as-default-domain")]
-    mux_client_as_default_domain: bool,
-    #[structopt(long = "mux-tls-client-as-default-domain")]
-    mux_tls_client_as_default_domain: bool,
+    /// If true, do not connect to domains marked as connect_automatically
+    /// in your wezterm.toml configuration file.
+    #[structopt(long = "no-auto-connect")]
+    no_auto_connect: bool,
 
     /// Instead of executing your shell, run PROG.
     /// For example: `wezterm start -- bash -l` will spawn bash
@@ -160,7 +158,7 @@ fn run_terminal_gui(config: Arc<config::Config>, opts: &StartCommand) -> Result<
         domain.attach()
     }
 
-    if front_end != FrontEndSelection::MuxServer {
+    if front_end != FrontEndSelection::MuxServer && !opts.no_auto_connect {
         for unix_dom in &config.unix_domains {
             if unix_dom.connect_automatically {
                 let domain_id = alloc_domain_id();
