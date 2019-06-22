@@ -10,7 +10,7 @@ use crate::server::pollable::*;
 use crate::server::tab::ClientTab;
 use crate::server::UnixStream;
 use crossbeam_channel::TryRecvError;
-use failure::{bail, format_err, Fallible};
+use failure::{bail, err_msg, format_err, Fallible};
 use log::info;
 use promise::{Future, Promise};
 use std::collections::HashMap;
@@ -184,10 +184,11 @@ impl Client {
     }
 
     pub fn new_default_unix_domain(config: &Arc<Config>) -> Fallible<Self> {
-        for unix_dom in &config.unix_domains {
-            return Self::new_unix_domain(alloc_domain_id(), config, unix_dom);
-        }
-        bail!("no default unix domain is configured");
+        let unix_dom = config
+            .unix_domains
+            .first()
+            .ok_or_else(|| err_msg("no default unix domain is configured"))?;
+        Self::new_unix_domain(alloc_domain_id(), config, unix_dom)
     }
 
     pub fn new_unix_domain(
