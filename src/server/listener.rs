@@ -158,6 +158,8 @@ impl TryFrom<IdentitySource> for Identity {
 mod not_ossl {
     use super::*;
     use native_tls::TlsAcceptor;
+    use std::convert::TryInto;
+
     struct NetListener {
         acceptor: Arc<TlsAcceptor>,
         listener: TcpListener,
@@ -206,6 +208,39 @@ mod not_ossl {
             }
         }
     }
+
+    pub fn spawn_tls_listener(
+        _config: &Arc<Config>,
+        executor: Box<dyn Executor>,
+        tls_server: &TlsDomainServer,
+    ) -> Fallible<()> {
+        let identity = IdentitySource::PemFiles {
+            key: tls_server
+                .pem_private_key
+                .as_ref()
+                .ok_or_else(|| err_msg("missing pem_private_key config value"))?
+                .into(),
+            cert: tls_server.pem_cert.clone(),
+            chain: tls_server.pem_ca.clone(),
+        };
+
+        let mut net_listener = NetListener::new(
+            TcpListener::bind(&tls_server.bind_address).map_err(|e| {
+                format_err!(
+                    "error binding to bind_address {}: {}",
+                    tls_server.bind_address,
+                    e
+                )
+            })?,
+            TlsAcceptor::new(identity.try_into()?)?,
+            executor,
+        );
+        thread::spawn(move || {
+            net_listener.run();
+        });
+        Ok(())
+    }
+
 }
 
 #[cfg(any(feature = "openssl", unix))]
@@ -912,32 +947,7 @@ fn spawn_tls_listener(
     executor: Box<dyn Executor>,
     tls_server: &TlsDomainServer,
 ) -> Fallible<()> {
-    use std::convert::TryInto;
-    let identity = IdentitySource::PemFiles {
-        key: tls_server
-            .pem_private_key
-            .as_ref()
-            .ok_or_else(|| err_msg("missing mux_server_pem_private_key config value"))?
-            .into(),
-        cert: tls_server.pem_cert.clone(),
-        chain: tls_server.pem_ca.clone(),
-    };
-
-    let mut net_listener = NetListener::new(
-        TcpListener::bind(&tls_server.bind_address).map_err(|e| {
-            format_err!(
-                "error binding to mux_server_bind_address {}: {}",
-                tls_server.bind_address,
-                e
-            )
-        })?,
-        TlsAcceptor::new(identity.try_into()?)?,
-        executor,
-    );
-    thread::spawn(move || {
-        net_listener.run();
-    });
-    Ok(())
+    not_ossl::spawn_tls_listener(config, executor, tls_server)
 }
 
 pub fn spawn_listener(config: &Arc<Config>, executor: Box<dyn Executor>) -> Fallible<()> {

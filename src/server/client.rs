@@ -342,7 +342,7 @@ impl Client {
             key: tls_client
                 .pem_private_key
                 .as_ref()
-                .ok_or_else(|| failure::err_msg("missing mux_client_pem_private_key config value"))?
+                .ok_or_else(|| failure::err_msg("missing pem_private_key config value"))?
                 .into(),
             cert: tls_client.pem_cert.clone(),
             chain: tls_client.pem_ca.clone(),
@@ -350,7 +350,7 @@ impl Client {
 
         let connector = TlsConnector::builder()
             .identity(identity.try_into()?)
-            .danger_accept_invalid_hostnames(tls_client.accept_invalid_hostnames.unwrap_or(false))
+            .danger_accept_invalid_hostnames(tls_client.accept_invalid_hostnames)
             .build()?;
 
         let stream = TcpStream::connect(remote_address)
