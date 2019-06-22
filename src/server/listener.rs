@@ -497,7 +497,7 @@ impl ClientSurfaceState {
         // so that multiple clients have an opportunity to
         // resync from a smaller delta
         self.surface
-            .flush_changes_older_than(new_seq - (rows * cols * 2));
+            .flush_changes_older_than(new_seq.saturating_sub(rows * cols * 2));
         (new_seq, changes)
     }
 }
