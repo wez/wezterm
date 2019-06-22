@@ -191,6 +191,16 @@ impl ClientTab {
             Pdu::SetClipboard(SetClipboard { clipboard, .. }) => {
                 self.clipboard.set_contents(clipboard)?;
             }
+            Pdu::OpenURL(OpenURL { url, .. }) => {
+                // FIXME: ideally we'd have a provider that we can
+                // capture (like the clipboard) so that we can propagate
+                // the click back to the ultimate client, but for now
+                // we just do a single stage
+                match open::that(&url) {
+                    Ok(_) => {}
+                    Err(err) => error!("failed to open {}: {:?}", url, err),
+                }
+            }
             _ => bail!("unhandled unilateral pdu: {:?}", pdu),
         };
         Ok(())

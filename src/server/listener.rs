@@ -540,7 +540,15 @@ impl<'a> term::TerminalHost for BufferedTerminalHost<'a> {
     }
 
     fn click_link(&mut self, link: &Arc<term::cell::Hyperlink>) {
-        error!("ignoring url open of {:?}", link.uri());
+        self.sender
+            .send(DecodedPdu {
+                serial: 0,
+                pdu: Pdu::OpenURL(OpenURL {
+                    tab_id: self.tab_id,
+                    url: link.uri().to_string(),
+                }),
+            })
+            .ok();
     }
 
     fn get_clipboard(&mut self) -> Fallible<Arc<Clipboard>> {
@@ -799,6 +807,7 @@ impl<S: ReadAndWrite> ClientSession<S> {
             | Pdu::ListTabsResponse { .. }
             | Pdu::SendMouseEventResponse { .. }
             | Pdu::SetClipboard { .. }
+            | Pdu::OpenURL { .. }
             | Pdu::SpawnResponse { .. }
             | Pdu::GetTabRenderChangesResponse { .. }
             | Pdu::UnitResponse { .. }

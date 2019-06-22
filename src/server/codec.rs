@@ -230,6 +230,7 @@ pdu! {
     GetTabRenderChanges: 18,
     GetTabRenderChangesResponse: 19,
     SetClipboard: 20,
+    OpenURL: 21,
 }
 
 impl Pdu {
@@ -301,6 +302,7 @@ impl Pdu {
                 Some(*tab_id)
             }
             Pdu::SetClipboard(SetClipboard { tab_id, .. }) => Some(*tab_id),
+            Pdu::OpenURL(OpenURL { tab_id, .. }) => Some(*tab_id),
             _ => None,
         }
     }
@@ -383,6 +385,12 @@ pub struct SendMouseEventResponse {
 pub struct SetClipboard {
     pub tab_id: TabId,
     pub clipboard: Option<String>,
+}
+
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct OpenURL {
+    pub tab_id: TabId,
+    pub url: String,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
