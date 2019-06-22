@@ -2,6 +2,7 @@
 
 use crate::font::FontSystemSelection;
 use crate::frontend::guicommon::host::KeyAssignment;
+use crate::frontend::guicommon::window::SpawnTabDomain;
 use crate::frontend::FrontEndSelection;
 use crate::get_shell;
 use failure::{bail, err_msg, format_err, Error, Fallible};
@@ -174,8 +175,16 @@ impl std::convert::TryInto<KeyAssignment> for &Key {
     type Error = Error;
     fn try_into(self) -> Result<KeyAssignment, Error> {
         Ok(match self.action {
-            KeyAction::SpawnTab => KeyAssignment::SpawnTab,
-            KeyAction::SpawnTabInCurrentTabDomain => KeyAssignment::SpawnTabInCurrentTabDomain,
+            KeyAction::SpawnTab => KeyAssignment::SpawnTab(SpawnTabDomain::DefaultDomain),
+            KeyAction::SpawnTabInCurrentTabDomain => {
+                KeyAssignment::SpawnTab(SpawnTabDomain::CurrentTabDomain)
+            }
+            KeyAction::SpawnTabInDomain => KeyAssignment::SpawnTab(SpawnTabDomain::Domain(
+                self.arg
+                    .as_ref()
+                    .ok_or_else(|| format_err!("missing arg for {:?}", self))?
+                    .parse()?,
+            )),
             KeyAction::SpawnWindow => KeyAssignment::SpawnWindow,
             KeyAction::ToggleFullScreen => KeyAssignment::ToggleFullScreen,
             KeyAction::Copy => KeyAssignment::Copy,
@@ -213,6 +222,7 @@ impl std::convert::TryInto<KeyAssignment> for &Key {
 pub enum KeyAction {
     SpawnTab,
     SpawnTabInCurrentTabDomain,
+    SpawnTabInDomain,
     SpawnWindow,
     ToggleFullScreen,
     Copy,

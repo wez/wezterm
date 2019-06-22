@@ -20,10 +20,7 @@ use termwiz::hyperlink::Hyperlink;
 
 #[derive(Debug, Clone)]
 pub enum KeyAssignment {
-    /// Spawn a tab in the default domain
-    SpawnTab,
-    /// Spawn a tab in whichever domain the current tab belongs
-    SpawnTabInCurrentTabDomain,
+    SpawnTab(SpawnTabDomain),
     SpawnWindow,
     ToggleFullScreen,
     Copy,
@@ -133,7 +130,16 @@ fn key_bindings() -> KeyMap {
         [KeyModifiers::SUPER, KeyCode::Char('0'), ResetFontSize],
         [KeyModifiers::CTRL, KeyCode::Char('0'), ResetFontSize],
         // Tab navigation and management
-        [KeyModifiers::SUPER, KeyCode::Char('t'), SpawnTab],
+        [
+            KeyModifiers::SUPER,
+            KeyCode::Char('t'),
+            SpawnTab(SpawnTabDomain::DefaultDomain)
+        ],
+        [
+            KeyModifiers::SUPER | KeyModifiers::SHIFT,
+            KeyCode::Char('T'),
+            SpawnTab(SpawnTabDomain::CurrentTabDomain)
+        ],
         [KeyModifiers::SUPER, KeyCode::Char('w'), CloseCurrentTab],
         [KeyModifiers::SUPER, KeyCode::Char('1'), ActivateTab(0)],
         [KeyModifiers::SUPER, KeyCode::Char('2'), ActivateTab(1)],
@@ -206,11 +212,9 @@ impl<H: HostHelper> HostImpl<H> {
     ) -> Fallible<()> {
         use KeyAssignment::*;
         match assignment {
-            SpawnTab => {
-                self.with_window(|win| win.spawn_tab(SpawnTabDomain::DefaultDomain).map(|_| ()))
-            }
-            SpawnTabInCurrentTabDomain => {
-                self.with_window(|win| win.spawn_tab(SpawnTabDomain::CurrentTabDomain).map(|_| ()))
+            SpawnTab(spawn_where) => {
+                let spawn_where = *spawn_where;
+                self.with_window(move |win| win.spawn_tab(spawn_where).map(|_| ()))
             }
             SpawnWindow => self.spawn_new_window(),
             ToggleFullScreen => self.toggle_full_screen(),

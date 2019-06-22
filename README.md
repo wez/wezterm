@@ -143,7 +143,8 @@ The default key bindings are:
 | `CTRL`      | `=`      | `IncreaseFontSize` |
 | `SUPER`     | `0`      | `ResetFontSize` |
 | `CTRL`      | `0`      | `ResetFontSize` |
-| `SUPER`     | `t`      | `SpawnTab` |
+| `SUPER`     | `t`      | `SpawnTabInCurrentTabDomain` |
+| `SUPER|SHIFT` | `T`    | `SpawnTab` |
 | `SUPER`     | `w`      | `CloseCurrentTab` |
 | `SUPER`     | `1`      | `ActivateTab(0)` |
 | `SUPER`     | `2`      | `ActivateTab(1)` |
@@ -205,7 +206,9 @@ specified via the `arg` key; see examples below.
 
 | Name               | Effect             |
 | ------------------ | ------------------ |
-| `SpawnTab`         | Create a new tab in the current window |
+| `SpawnTab`         | Create a new local tab in the current window |
+| `SpawnTabInCurrentTabDomain` | Create a new tab in the current window. The tab will be spawned in the same domain as the currently active tab |
+| `SpawnTabInDomain` | Create a new tab in the current window. The tab will be spawned in the domain specified by the `arg` value |
 | `SpawnWindow`      | Create a new window |
 | `ToggleFullScreen` | Toggles full screen mode for current window |
 | `Paste`            | Paste the clipboard to the current tab |
@@ -244,6 +247,14 @@ mods = "CTRL|ALT"
 action = "ActivateTab"
 # the tab number
 arg = "0"
+
+# CMD+y spawns a new tab in Domain 1
+[[keys]]
+key = "y"
+mods = "CMD"
+action = "SpawnTabInDomain"
+# the domain ID
+arg = "1"
 ```
 
 ### Colors

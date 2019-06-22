@@ -22,7 +22,6 @@ pub enum SpawnTabDomain {
     /// Use the domain from the current tab in the associated window
     CurrentTabDomain,
     /// Use a specific domain
-    #[allow(dead_code)]
     Domain(DomainId),
 }
 
