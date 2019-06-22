@@ -163,6 +163,22 @@ fn client_thread(
     }
 }
 
+fn unix_connect_with_retry(path: &Path) -> Result<UnixStream, std::io::Error> {
+    let mut error = std::io::Error::last_os_error();
+
+    for iter in 0..10 {
+        if iter > 0 {
+            std::thread::sleep(std::time::Duration::from_millis(iter * 10));
+        }
+        match UnixStream::connect(path) {
+            Ok(stream) => return Ok(stream),
+            Err(err) => error = err,
+        }
+    }
+
+    Err(error)
+}
+
 impl Client {
     pub fn new(local_domain_id: DomainId, stream: Box<dyn ReadAndWrite>) -> Self {
         let (sender, receiver) = pollable_channel().expect("failed to create pollable_channel");
@@ -198,7 +214,27 @@ impl Client {
     ) -> Fallible<Self> {
         let sock_path = unix_dom.socket_path();
         info!("connect to {}", sock_path.display());
-        let stream = Box::new(UnixStream::connect(sock_path)?);
+
+        let stream = match unix_connect_with_retry(&sock_path) {
+            Ok(stream) => stream,
+            Err(e) => {
+                if unix_dom.no_serve_automatically {
+                    bail!("failed to connect to {}: {}", sock_path.display(), e);
+                }
+                log::error!(
+                    "While connecting to {}: {}.  Will try spawning the server.",
+                    sock_path.display(),
+                    e
+                );
+                let mut child = std::process::Command::new(std::env::current_exe()?)
+                    .args(&["start", "--daemonize", "--front-end", "MuxServer"])
+                    .spawn()?;
+                child.wait()?;
+                unix_connect_with_retry(&sock_path)?
+            }
+        };
+
+        let stream: Box<dyn ReadAndWrite> = Box::new(stream);
         Ok(Self::new(local_domain_id, stream))
     }
 

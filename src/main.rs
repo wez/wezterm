@@ -2,7 +2,6 @@
 #![windows_subsystem = "windows"]
 
 use failure::{Error, Fallible};
-use log::error;
 use std::ffi::OsString;
 use structopt::StructOpt;
 use tabout::{tabulate_output, Alignment, Column};
@@ -243,7 +242,7 @@ fn main() -> Result<(), Error> {
         .unwrap_or_else(|| SubCommand::Start(StartCommand::default()))
     {
         SubCommand::Start(start) => {
-            error!("Using configuration: {:#?}\nopts: {:#?}", config, opts);
+            log::info!("Using configuration: {:#?}\nopts: {:#?}", config, opts);
             run_terminal_gui(config, &start)
         }
         SubCommand::Cli(cli) => {

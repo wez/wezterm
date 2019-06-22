@@ -407,6 +407,11 @@ pub struct UnixDomain {
     #[serde(default)]
     pub connect_automatically: bool,
 
+    /// If true, do not attempt to start this server if we try and fail to
+    /// connect to it.
+    #[serde(default)]
+    pub no_serve_automatically: bool,
+
     /// If true, bypass checking for secure ownership of the
     /// socket_path.  This is not recommended on a multi-user
     /// system, but is useful for example when running the
