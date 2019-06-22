@@ -30,6 +30,7 @@ struct MouseState {
     queue: VecDeque<MouseEvent>,
     selection_range: Arc<Mutex<Option<SelectionRange>>>,
     something_changed: Arc<Mutex<bool>>,
+    highlight: Arc<Mutex<Option<Arc<Hyperlink>>>>,
     client: Client,
     remote_tab_id: TabId,
 }
@@ -94,6 +95,7 @@ impl MouseState {
         if let Some(event) = mouse.pop()? {
             let selection_range = Arc::clone(&mouse.selection_range);
             let something_changed = Arc::clone(&mouse.something_changed);
+            let highlight = Arc::clone(&mouse.highlight);
             let state = Arc::clone(state);
 
             mouse.future = Some(
@@ -106,6 +108,7 @@ impl MouseState {
                     .then(move |resp| {
                         if let Ok(r) = resp.as_ref() {
                             *selection_range.lock().unwrap() = r.selection_range;
+                            *highlight.lock().unwrap() = r.highlight.clone();
                             *something_changed.lock().unwrap() = true;
                         }
                         Future::with_executor(gui_executor().unwrap(), move || {
@@ -140,9 +143,12 @@ impl ClientTab {
         };
         let selection_range = Arc::new(Mutex::new(None));
         let something_changed = Arc::new(Mutex::new(true));
+        let highlight = Arc::new(Mutex::new(None));
+
         let mouse = Arc::new(Mutex::new(MouseState {
             selection_range: Arc::clone(&selection_range),
             something_changed: Arc::clone(&something_changed),
+            highlight: Arc::clone(&highlight),
             remote_tab_id,
             client: client.client.clone(),
             future: None,
@@ -160,6 +166,7 @@ impl ClientTab {
             local_sequence: RefCell::new(0),
             selection_range,
             something_changed,
+            highlight,
         };
 
         let reader = Pipe::new().expect("Pipe::new failed");
@@ -305,6 +312,7 @@ struct RenderableState {
     poll_interval: RefCell<Duration>,
     selection_range: Arc<Mutex<Option<SelectionRange>>>,
     something_changed: Arc<Mutex<bool>>,
+    highlight: Arc<Mutex<Option<Arc<Hyperlink>>>>,
 }
 
 const MAX_POLL_INTERVAL: Duration = Duration::from_secs(30);
@@ -403,7 +411,7 @@ impl Renderable for RenderableState {
     fn clean_dirty_lines(&mut self) {}
 
     fn current_highlight(&self) -> Option<Arc<Hyperlink>> {
-        None
+        self.highlight.lock().unwrap().as_ref().cloned()
     }
 
     fn physical_dimensions(&self) -> (usize, usize) {

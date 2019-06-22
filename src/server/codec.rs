@@ -19,7 +19,9 @@ use log::debug;
 use portable_pty::{CommandBuilder, PtySize};
 use serde_derive::*;
 use std::io::Cursor;
+use std::sync::Arc;
 use term::selection::SelectionRange;
+use termwiz::hyperlink::Hyperlink;
 use termwiz::surface::{Change, SequenceNo};
 use varbincode;
 
@@ -379,6 +381,7 @@ pub struct SendMouseEvent {
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
 pub struct SendMouseEventResponse {
     pub selection_range: Option<SelectionRange>,
+    pub highlight: Option<Arc<Hyperlink>>,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]

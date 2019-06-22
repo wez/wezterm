@@ -761,8 +761,11 @@ impl<S: ReadAndWrite> ClientSession<S> {
                     tab.mouse_event(event, &mut host)?;
                     maybe_push_tab_changes(&surfaces, &tab, sender)?;
 
+                    let highlight = tab.renderer().current_highlight().as_ref().cloned();
+
                     Ok(Pdu::SendMouseEventResponse(SendMouseEventResponse {
                         selection_range: tab.selection_range(),
+                        highlight,
                     }))
                 })
             }
