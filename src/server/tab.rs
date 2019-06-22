@@ -11,6 +11,7 @@ use filedescriptor::Pipe;
 use log::error;
 use portable_pty::PtySize;
 use promise::Future;
+use std::borrow::Cow;
 use std::cell::RefCell;
 use std::cell::RefMut;
 use std::collections::VecDeque;
@@ -371,7 +372,7 @@ impl Renderable for RenderableState {
         CursorPosition { x, y: y as i64 }
     }
 
-    fn get_dirty_lines(&self) -> Vec<(usize, Line, Range<usize>)> {
+    fn get_dirty_lines(&self) -> Vec<(usize, Cow<Line>, Range<usize>)> {
         let mut surface = self.surface.borrow_mut();
         let seq = surface.current_seqno();
         surface.flush_changes_older_than(seq);
@@ -387,7 +388,7 @@ impl Renderable for RenderableState {
                     None => 0..0,
                     Some(sel) => sel.cols_for_row(idx as i32),
                 };
-                (idx, line, r)
+                (idx, Cow::Owned(line.into_owned()), r)
             })
             .collect()
     }

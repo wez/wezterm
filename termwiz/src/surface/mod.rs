@@ -485,8 +485,8 @@ impl Surface {
         lines
     }
 
-    pub fn screen_lines(&self) -> Vec<Line> {
-        self.lines.clone()
+    pub fn screen_lines(&self) -> Vec<Cow<Line>> {
+        self.lines.iter().map(|line| Cow::Borrowed(line)).collect()
     }
 
     /// Returns a stream of changes suitable to update the screen

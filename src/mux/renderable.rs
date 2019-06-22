@@ -1,4 +1,5 @@
 use downcast_rs::{impl_downcast, Downcast};
+use std::borrow::Cow;
 use std::ops::Range;
 use std::sync::Arc;
 use term::{CursorPosition, Line, Terminal, TerminalState};
@@ -17,7 +18,7 @@ pub trait Renderable: Downcast {
     /// line_idx is relative to the top of the viewport.
     /// The selrange value is the column range representing the selected
     /// columns on this line.
-    fn get_dirty_lines(&self) -> Vec<(usize, Line, Range<usize>)>;
+    fn get_dirty_lines(&self) -> Vec<(usize, Cow<Line>, Range<usize>)>;
 
     fn has_dirty_lines(&self) -> bool;
 
@@ -40,10 +41,10 @@ impl Renderable for Terminal {
         self.cursor_pos()
     }
 
-    fn get_dirty_lines(&self) -> Vec<(usize, Line, Range<usize>)> {
+    fn get_dirty_lines(&self) -> Vec<(usize, Cow<Line>, Range<usize>)> {
         TerminalState::get_dirty_lines(self)
             .into_iter()
-            .map(|(idx, line, range)| (idx, line.clone(), range))
+            .map(|(idx, line, range)| (idx, Cow::Borrowed(line), range))
             .collect()
     }
 
