@@ -373,6 +373,14 @@ pub struct UnixDomain {
     /// If true, connect to this domain automatically at startup
     #[serde(default)]
     pub connect_automatically: bool,
+
+    /// If true, bypass checking for secure ownership of the
+    /// socket_path.  This is not recommended on a multi-user
+    /// system, but is useful for example when running the
+    /// server inside a WSL container but with the socket
+    /// on the host NTFS volume.
+    #[serde(default)]
+    pub skip_permissions_check: bool,
 }
 
 impl UnixDomain {
@@ -384,10 +392,7 @@ impl UnixDomain {
     }
 
     fn default_unix_domains() -> Vec<Self> {
-        vec![UnixDomain {
-            socket_path: None,
-            connect_automatically: false,
-        }]
+        vec![UnixDomain::default()]
     }
 }
 

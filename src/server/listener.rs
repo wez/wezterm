@@ -1,4 +1,4 @@
-use crate::config::{Config, TlsDomainServer};
+use crate::config::{Config, TlsDomainServer, UnixDomain};
 use crate::mux::tab::{Tab, TabId};
 use crate::mux::{Mux, MuxNotification, MuxSubscriber};
 use crate::ratelim::RateLimiter;
@@ -851,7 +851,8 @@ impl Drop for UmaskSaver {
 /// we need to be sure that the directory that we create it in
 /// is owned by the user and has appropriate file permissions
 /// that prevent other users from manipulating its contents.
-fn safely_create_sock_path(sock_path: &Path) -> Result<UnixListener, Error> {
+fn safely_create_sock_path(unix_dom: &UnixDomain) -> Result<UnixListener, Error> {
+    let sock_path = &unix_dom.socket_path();
     debug!("setting up {}", sock_path.display());
 
     let _saver = UmaskSaver::new();
@@ -872,15 +873,15 @@ fn safely_create_sock_path(sock_path: &Path) -> Result<UnixListener, Error> {
 
     #[cfg(unix)]
     {
-        if std::env::var_os("WEZTERM_SKIP_MUX_SOCK_PERMISSIONS_CHECK").is_none() {
+        if !unix_dom.skip_permissions_check {
             // Let's be sure that the ownership looks sane
             let meta = sock_dir.symlink_metadata()?;
 
             let permissions = meta.permissions();
             if (permissions.mode() & 0o22) != 0 {
                 bail!(
-                    "The permissions for {} are insecure and currently
-                allow other users to write to it (permissions={:?})",
+                    "The permissions for {} are insecure and currently \
+                     allow other users to write to it (permissions={:?})",
                     sock_dir.display(),
                     permissions
                 );
@@ -942,7 +943,7 @@ fn spawn_tls_listener(
 pub fn spawn_listener(config: &Arc<Config>, executor: Box<dyn Executor>) -> Fallible<()> {
     for unix_dom in &config.unix_domains {
         let mut listener = LocalListener::new(
-            safely_create_sock_path(&unix_dom.socket_path())?,
+            safely_create_sock_path(unix_dom)?,
             executor.clone_executor(),
         );
         thread::spawn(move || {
