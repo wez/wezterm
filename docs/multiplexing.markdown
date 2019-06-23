@@ -77,6 +77,12 @@ socket_path = "/mnt/c/Users/USERNAME/.local/share/wezterm/sock"
 skip_permissions_check = true
 ```
 
+and then start the server:
+
+```bash
+$ wezterm start --front-end MuxServer --daemonize
+```
+
 In the host win32 configuration, use this snippet:
 
 ```toml
@@ -166,6 +172,6 @@ At this time, `wezterm` doesn't provide a convenient way to automatically
 start the server, so you will need to manually log in to the server host
 and start it up:
 
-```
+```bash
 $ wezterm start --front-end MuxServer --daemonize
 ```
