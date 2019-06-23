@@ -151,7 +151,7 @@ jobs:
         condition: succeeded()
         #condition: and(succeeded(), startsWith(variables['Build.SourceBranch'], 'refs/tags/'))
         inputs:
-          gitHubConnection: 'wez'
+          gitHubConnection: 'release'
           repositoryName: 'wez/wezterm'
           action: 'edit'
           target: '$(build.sourceVersion)'
