@@ -4,6 +4,13 @@ trigger:
   tags:
     include: ['*']
 
+schedules:
+- cron: "0 0 * * *"
+  displayName: Daily build
+  branches:
+    include:
+    - master
+
 jobs:
   - job: 'Clippy'
     pool:
@@ -141,17 +148,17 @@ jobs:
         condition: succeeded()
         #condition: and(succeeded(), startsWith(variables['Build.SourceBranch'], 'refs/tags/'))
         inputs:
-          gitHubConnection: 'release'
-          repositoryName: 'wez/wezterm'
-          action: 'edit'
-          target: '$(build.sourceVersion)'
+          gitHubConnection: release
+          repositoryName: wez/wezterm
+          action: edit
+          target: $(build.sourceVersion)
           tagSource: 'manual'
-          tag: 'azure-test-$(wezterm.tagname)'
+          tag: azure-test-$(wezterm.tagname)
           assets: |
             $(Build.SourcesDirectory)/*.zip
             $(Build.SourcesDirectory)/*.deb
-          title: 'Azure test: $(wezterm.tagname)'
-          assetUploadMode: 'replace'
+          title: Azure test: $(wezterm.tagname)
+          assetUploadMode: replace
           addChangeLog: false
           isPreRelease: true
           isDraft: true
