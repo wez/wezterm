@@ -1,5 +1,6 @@
 #!/bin/bash
 set -x
+set -e
 
 if [[ "$TRAVIS" != "" ]] ; then
   DEPLOY_ENV_TYPE="travis"
@@ -7,6 +8,8 @@ if [[ "$TRAVIS" != "" ]] ; then
 elif [[ "$APPVEYOR" != "" ]] ; then
   DEPLOY_ENV_TYPE="appveyor"
   TAG_NAME=$APPVEYOR_REPO_TAG_NAME
+elif [[ "$TF_BUILD" != "" ]] ; then
+  DEPLOY_ENV_TYPE="azure"
 else
   DEPLOY_ENV_TYPE="adhoc"
 fi
