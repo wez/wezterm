@@ -24,16 +24,19 @@ steps:
       git submodule update --init
     displayName: Update submodules
   - script: |
-      curl https://sh.rustup.rs -sSf | sh -s -- -yv --default-toolchain $RUSTUP_TOOLCHAIN
-      echo "##vso[task.setvariable variable=PATH;]$PATH:$HOME/.cargo/bin"
+      curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain $RUSTUP_TOOLCHAIN
+      echo "##vso[task.setvariable variable=PATH;]$HOME/.cargo/bin:$PATH"
     displayName: Install rust
     condition: ne( variables['Agent.OS'], 'Windows_NT' )
   - script: |
       curl -sSf -o rustup-init.exe https://win.rustup.rs
       rustup-init.exe -yv --default-toolchain %RUSTUP_TOOLCHAIN%
-      echo "##vso[task.setvariable variable=PATH;]%PATH%;%USERPROFILE%\.cargo\bin"
+      echo "##vso[task.setvariable variable=PATH;]%USERPROFILE%\.cargo\bin;%PATH%"
     displayName: Windows install rust
     condition: eq( variables['Agent.OS'], 'Windows_NT' )
+  - script: |
+      rustup update
+    displayName: Update rust toolchains
   - script: |
       rustc -vV
       cargo -vV
