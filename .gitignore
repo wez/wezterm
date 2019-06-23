@@ -1,4 +1,5 @@
 .DS_Store
+/docs/_site
 /WezTerm*.zip
 /wezterm*.deb
 /pkg
