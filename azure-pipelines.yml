@@ -112,16 +112,6 @@ jobs:
       - checkout: self
         submodules: true
       - script: |
-          DATE="$(date +%Y%m%d-%H%M%S)"
-          echo "##vso[task.setvariable variable=build.date]$DATE"
-        displayName: "Create date variable"
-      - script: |
-          MY_TAG="$(Build.SourceBranch)"
-          MY_TAG=${MY_TAG#refs/tags/}
-          echo $MY_TAG
-          echo "##vso[task.setvariable variable=build.my_tag]$MY_TAG"
-        displayName: "Create my tag variable"
-      - script: |
           curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain $RUSTUP_TOOLCHAIN
           echo "##vso[task.setvariable variable=PATH;]$HOME/.cargo/bin:$PATH"
         displayName: Install rust (posix)
@@ -156,11 +146,11 @@ jobs:
           action: 'edit'
           target: '$(build.sourceVersion)'
           tagSource: 'manual'
-          tag: 'azure-test-$(build.my_tag)'
+          tag: 'azure-test-$(wezterm.tagname)'
           assets: |
             $(Build.SourcesDirectory)/*.zip
             $(Build.SourcesDirectory)/*.deb
-          title: 'Azure test: $(build.my_tag) - $(build.date)'
+          title: 'Azure test: $(wezterm.tagname)'
           assetUploadMode: 'replace'
           addChangeLog: false
           isPreRelease: true

@@ -17,6 +17,9 @@ fi
 TAG_NAME=${TAG_NAME:-$(git describe --tags)}
 TAG_NAME=${TAG_NAME:-$(date +'%Y%m%d-%H%M%S')-$(git log --format=%h -1)}
 
+# Emit the tagname variable for azure to pick up
+echo "##vso[task.setvariable variable=wezterm.tagname]$TAG_NAME"
+
 HERE=$(pwd)
 
 case $OSTYPE in
