@@ -152,12 +152,12 @@ jobs:
           repositoryName: wez/wezterm
           action: edit
           target: $(build.sourceVersion)
-          tagSource: 'manual'
+          tagSource: manual
           tag: azure-test-$(wezterm.tagname)
           assets: |
             $(Build.SourcesDirectory)/*.zip
             $(Build.SourcesDirectory)/*.deb
-          title: Azure test: $(wezterm.tagname)
+          title: "Azure test: $(wezterm.tagname)"
           assetUploadMode: replace
           addChangeLog: false
           isPreRelease: true
