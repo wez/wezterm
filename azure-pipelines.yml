@@ -31,7 +31,15 @@ steps:
       echo "##vso[task.setvariable variable=PATH;]%PATH%;%USERPROFILE%\.cargo\bin"
     displayName: Windows install rust
     condition: eq( variables['Agent.OS'], 'Windows_NT' )
+  - script: |
+      sudo ./get-deps
+    displayName: Install system dependencies
+    condition: ne( variables['Agent.OS'], 'Windows_NT' )
+  - script: |
+      git submodule update --init
+    displayName: Update submodules
   - script: cargo build --all
     displayName: Cargo build
   - script: cargo test --all
     displayName: Cargo test
+
