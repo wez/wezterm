@@ -4,9 +4,10 @@ title: Wez's Terminal
 
 *A GPU-accelerated cross-platform terminal emulator and multiplexer written by <a href="https://github.com/wez/">@wez</a> and implemented in <a href="https://www.rust-lang.org/">Rust</a>*
 
-<a href="https://github.com/wez/wezterm/releases/latest" class="github-button"
-data-icon="octicon-cloud-download" data-size="large" aria-label="Download wez/wezterm on GitHub">Download</a>
-<script async defer src="https://buttons.github.io/buttons.js"></script>
+<div>
+<a href="https://github.com/wez/wezterm/releases/latest" class="btn" style="margin-right:1em"
+>Download</a> <a href="installation.html">installation instructions</a>
+</div>
 
 ## Features
 
