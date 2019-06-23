@@ -284,7 +284,8 @@ arg = "1"
 ### Colors
 
 You can configure colors with a section like this.  In addition to specifying
-SVG/CSS3 color names, you can use `#RRGGBB` to specify a color code using the
+[SVG/CSS3 color names](https://docs.rs/palette/0.4.1/palette/named/index.html#constants),
+you can use `#RRGGBB` to specify a color code using the
 usual hex notation; eg: `#000000` is equivalent to `black`:
 
 ```toml
@@ -305,6 +306,14 @@ There are two ways to use them with wezterm:
 * [The dynamic-colors directory](https://github.com/mbadolato/iTerm2-Color-Schemes/tree/master/dynamic-colors)
   contains shell scripts that can change the color scheme immediately on the fly.
   This is super convenient for trying out color schemes, and can be used in
-  your own scripts to alter the terminal appearance programmatically.
+  your own scripts to alter the terminal appearance programmatically:
 
+```bash
+$ git clone https://github.com/mbadolato/iTerm2-Color-Schemes.git
+$ cd iTerm2-Color-Schemes/dynamic-colors
+$ for scheme in *.sh ; do ; echo $scheme ; \
+   bash "$scheme" ; ../tools/screenshotTable.sh; sleep 0.5; done
+```
+
+  <video width="80%" controls src="screenshots/wezterm-dynamic-colors.mp4" loop></video>
 
