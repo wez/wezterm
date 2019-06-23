@@ -19,7 +19,7 @@ can also be configured to start or connect to any number of additional domains.
 
 Once connected to a domain, `wezterm` can attach its windows and tabs to the
 local native UI, providing a more natural experience for interacting with
-the mouse and scrollback features of the terminal.
+the mouse, clipboard and scrollback features of the terminal.
 
 Key bindings allow you to spawn new tabs in the default local domain,
 the domain of the current tab, or a specific numbered domain.
