@@ -4,7 +4,6 @@
 
 User facing home page at: https://wezfurlong.org/wezterm/
 
-[![Build Status](https://travis-ci.org/wez/wezterm.svg?branch=master)](https://travis-ci.org/wez/wezterm)
 [![Build status](https://ci.appveyor.com/api/projects/status/4ys3pb1vb1ja8b7h/branch/master?svg=true)](https://ci.appveyor.com/project/wez/wezterm/branch/master)
 [![Build Status](https://dev.azure.com/wez0788/wezterm/_apis/build/status/wez.wezterm?branchName=master)](https://dev.azure.com/wez0788/wezterm/_build/latest?definitionId=1&branchName=master)
 
