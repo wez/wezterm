@@ -8,10 +8,16 @@ jobs:
   - job: 'Clippy'
     pool:
       vmImage: 'ubuntu-16.04'
-    container: 'rust:latest'
     steps:
       - checkout: self
         submodules: true
+      - script: |
+          curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain $RUSTUP_TOOLCHAIN
+          echo "##vso[task.setvariable variable=PATH;]$HOME/.cargo/bin:$PATH"
+        displayName: Install rust
+      - script: |
+          rustup update
+        displayName: Update rust toolchains
       - script: rustup component add clippy
         displayName: Install clippy
       - script: |
@@ -23,8 +29,14 @@ jobs:
   - job: 'Rustfmt'
     pool:
       vmImage: 'ubuntu-16.04'
-    container: 'rust:latest'
     steps:
+      - script: |
+          curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain $RUSTUP_TOOLCHAIN
+          echo "##vso[task.setvariable variable=PATH;]$HOME/.cargo/bin:$PATH"
+        displayName: Install rust
+      - script: |
+          rustup update
+        displayName: Update rust toolchains
       - script: rustup component add rustfmt
         displayName: Install Rustfmt
       - script: cargo fmt --all -- --check
@@ -55,19 +67,16 @@ jobs:
     steps:
       - checkout: self
         submodules: true
-      #- script: |
-      #    git submodule update --init
-      #  displayName: Update submodules
       - script: |
           curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain $RUSTUP_TOOLCHAIN
           echo "##vso[task.setvariable variable=PATH;]$HOME/.cargo/bin:$PATH"
-        displayName: Install rust
+        displayName: Install rust (posix)
         condition: ne( variables['Agent.OS'], 'Windows_NT' )
       - script: |
           curl -sSf -o rustup-init.exe https://win.rustup.rs
           rustup-init.exe -yv --default-toolchain %RUSTUP_TOOLCHAIN%
           echo "##vso[task.setvariable variable=PATH;]%USERPROFILE%\.cargo\bin;%PATH%"
-        displayName: Windows install rust
+        displayName: Install rust (windows)
         condition: eq( variables['Agent.OS'], 'Windows_NT' )
       - script: |
           rustup update
@@ -102,9 +111,16 @@ jobs:
     steps:
       - checkout: self
         submodules: true
-      #- script: |
-      #    git submodule update --init
-      #  displayName: Update submodules
+      - script: |
+          DATE="$(date +%Y%m%d-%H%M%S)"
+          echo "##vso[task.setvariable variable=build.date]$DATE"
+        displayName: "Create date variable"
+      - script: |
+          MY_TAG="$(Build.SourceBranch)"
+          MY_TAG=${MY_TAG#refs/tags/}
+          echo $MY_TAG
+          echo "##vso[task.setvariable variable=build.my_tag]$MY_TAG"
+        displayName: "Create my tag variable"
       - script: |
           curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain $RUSTUP_TOOLCHAIN
           echo "##vso[task.setvariable variable=PATH;]$HOME/.cargo/bin:$PATH"
@@ -129,6 +145,23 @@ jobs:
         condition: ne( variables['Agent.OS'], 'Windows_NT' )
       - script: cargo build --release --all
         displayName: Build in release mode
-      - script: ci/deploy.sh
+      - script: bash ci/deploy.sh
         displayName: Packaging
-        condition: ne( variables['Agent.OS'], 'Windows_NT' )
+      - task: GithubRelease@0
+        condition: succeeded()
+        #condition: and(succeeded(), startsWith(variables['Build.SourceBranch'], 'refs/tags/'))
+        inputs:
+          gitHubConnection: 'wez'
+          repositoryName: 'wez/wezterm'
+          action: 'edit'
+          target: '$(build.sourceVersion)'
+          tagSource: 'manual'
+          tag: 'azure-test-$(build.my_tag)'
+          assets:
+            - '*.zip'
+            - '*.deb'
+          title: 'Azure test: $(build.my_tag) - $(build.date)'
+          assetUploadMode: 'replace'
+          addChangeLog: false
+          isPreRelease: true
+          isDraft: true
