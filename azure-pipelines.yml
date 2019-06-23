@@ -1,3 +1,5 @@
+# vim:et:sw=2:ts=2:
+
 trigger:
   branches:
     include: ['master']
@@ -142,23 +144,41 @@ jobs:
         condition: ne( variables['Agent.OS'], 'Windows_NT' )
       - script: cargo build --release --all
         displayName: Build in release mode
-      - script: bash ci/deploy.sh
+      - bash: ci/deploy.sh
         displayName: Packaging
       - task: GithubRelease@0
-        condition: succeeded()
-        #condition: and(succeeded(), startsWith(variables['Build.SourceBranch'], 'refs/tags/'))
+        condition: and(succeeded(), ne(variables['BUILD_REASON'], 'Schedule'), startsWith(variables['Build.SourceBranch'], 'refs/tags/'))
+        displayName: Release from tag
         inputs:
           gitHubConnection: release
           repositoryName: wez/wezterm
           action: edit
           target: $(build.sourceVersion)
           tagSource: manual
-          tag: azure-test-$(wezterm.tagname)
+          tag: $(wezterm.tagname)
           assets: |
             $(Build.SourcesDirectory)/*.zip
             $(Build.SourcesDirectory)/*.deb
-          title: "Azure test: $(wezterm.tagname)"
+          title: $(wezterm.tagname)
+          assetUploadMode: replace
+          addChangeLog: false
+          isPreRelease: false
+          isDraft: false
+      - task: GithubRelease@0
+        condition: and(succeeded(), eq(variables['BUILD_REASON'], 'Schedule'))
+        displayName: Release from nightly build
+        inputs:
+          gitHubConnection: release
+          repositoryName: wez/wezterm
+          action: edit
+          target: $(build.sourceVersion)
+          tagSource: manual
+          tag: nightly-$(wezterm.tagname)
+          assets: |
+            $(Build.SourcesDirectory)/*.zip
+            $(Build.SourcesDirectory)/*.deb
+          title: "Nightly Pre-Release: $(wezterm.tagname)"
           assetUploadMode: replace
           addChangeLog: false
           isPreRelease: true
-          isDraft: true
+          isDraft: false
