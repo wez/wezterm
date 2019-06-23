@@ -1,10 +1,12 @@
+# A list of vmImage names can be found at:
+# https://docs.microsoft.com/en-us/azure/devops/pipelines/agents/hosted?view=azure-devops#use-a-microsoft-hosted-agent
 strategy:
   matrix:
     windows-stable:
       imageName: 'vs2017-win2016'
       rustup_toolchain: stable
     mac-stable:
-      imageName: 'macos-10.13'
+      imageName: 'macos-10.14'
       rustup_toolchain: stable
     linux-stable:
       imageName: 'ubuntu-16.04'
@@ -36,6 +38,7 @@ steps:
     condition: eq( variables['Agent.OS'], 'Windows_NT' )
   - script: |
       rustup update
+      rustup component add rustfmt
     displayName: Update rust toolchains
   - script: |
       rustc -vV
@@ -49,4 +52,8 @@ steps:
     displayName: Cargo build
   - script: cargo test --all
     displayName: Cargo test
-
+  - script: cargo fmt --all -- --check
+    displayName: Run Rustfmt
+  - script: ci/deploy.sh
+    displayName: Packaging
+    condition: ne( variables['Agent.OS'], 'Windows_NT' )

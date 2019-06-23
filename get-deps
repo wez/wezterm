@@ -21,6 +21,7 @@ case `lsb_release -ds` in
     apt-get install -y \
       bsdutils \
       cmake \
+      fakeroot \
       libegl1-mesa-dev \
       libssl-dev \
       libfontconfig1-dev \
