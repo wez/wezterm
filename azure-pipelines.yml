@@ -157,9 +157,9 @@ jobs:
           target: '$(build.sourceVersion)'
           tagSource: 'manual'
           tag: 'azure-test-$(build.my_tag)'
-          assets:
-            - '*.zip'
-            - '*.deb'
+          assets: |
+            $(Build.SourcesDirectory)/*.zip
+            $(Build.SourcesDirectory)/*.deb
           title: 'Azure test: $(build.my_tag) - $(build.date)'
           assetUploadMode: 'replace'
           addChangeLog: false
