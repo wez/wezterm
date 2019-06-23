@@ -10,8 +10,13 @@ jobs:
       vmImage: 'ubuntu-16.04'
     container: 'rust:latest'
     steps:
+      - checkout: self
+        submodules: true
       - script: rustup component add clippy
         displayName: Install clippy
+      - script: |
+          sudo ./get-deps
+        displayName: Install system dependencies
       - script: cargo clippy --all
         displayName: Run Clippy
 
@@ -79,9 +84,6 @@ jobs:
         displayName: Cargo build
       - script: cargo test --all
         displayName: Cargo test
-      - script: ci/deploy.sh
-        displayName: Packaging
-        condition: ne( variables['Agent.OS'], 'Windows_NT' )
 
   - job: 'Package'
     strategy:
@@ -106,13 +108,13 @@ jobs:
       - script: |
           curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain $RUSTUP_TOOLCHAIN
           echo "##vso[task.setvariable variable=PATH;]$HOME/.cargo/bin:$PATH"
-        displayName: Install rust
+        displayName: Install rust (posix)
         condition: ne( variables['Agent.OS'], 'Windows_NT' )
       - script: |
           curl -sSf -o rustup-init.exe https://win.rustup.rs
           rustup-init.exe -yv --default-toolchain %RUSTUP_TOOLCHAIN%
           echo "##vso[task.setvariable variable=PATH;]%USERPROFILE%\.cargo\bin;%PATH%"
-        displayName: Windows install rust
+        displayName: install rust (windows)
         condition: eq( variables['Agent.OS'], 'Windows_NT' )
       - script: |
           rustup update
@@ -126,7 +128,7 @@ jobs:
         displayName: Install system dependencies
         condition: ne( variables['Agent.OS'], 'Windows_NT' )
       - script: cargo build --release --all
-        displayName: Cargo build
+        displayName: Build in release mode
       - script: ci/deploy.sh
         displayName: Packaging
         condition: ne( variables['Agent.OS'], 'Windows_NT' )
