@@ -9,8 +9,9 @@ layout: notoc
   {% for page in site.html_pages %}
     {% if page.url contains "toc.html" %}
     {% else %}
-      <li><a href="{{ page.url }}">{{ page.title }}</a></li>
-        {% include toc.html baseurl=page.url sanitize=true html=page.content class="toc" %}
+      {% assign p_url = page.url | absolute_url %}
+      <li><a href="{{ p_url }}">{{ page.title }}</a></li>
+        {% include toc.html baseurl=p_url sanitize=true html=page.content class="toc" %}
     {% endif %}
   {% endfor %}
 </ul>

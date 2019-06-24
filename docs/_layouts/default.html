@@ -14,7 +14,8 @@
   {% for p in site.html_pages %}
     {% if p.url contains "toc.html" %}
     {% else %}
-      <li><a href="{{ p.url }}">{{ p.title }}</a></li>
+      {% assign p_url = p.url | absolute_url %}
+      <li><a href="{{ p_url }}">{{ p.title }}</a></li>
     {% comment %}
       This fine mess is a workaround for inconsistent values of page.content.
       Relevant GH issues are:
@@ -36,7 +37,7 @@
       {% assign curlyend = '}' %}
       {% assign p_content = p.content | markdownify | replace: "{%", "<!--" | replace: curlyend, "-->" %}
       {% endif %}
-      {% include toc.html sanitize=true baseurl=p.url html=p_content %}
+      {% include toc.html sanitize=true baseurl=p_url html=p_content %}
     {% endif %}
   {% endfor %}
 </ul>
