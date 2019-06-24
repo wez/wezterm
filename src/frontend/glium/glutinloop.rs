@@ -14,61 +14,38 @@ use log::{debug, error};
 use promise::{Executor, Future, SpawnFunc};
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::collections::VecDeque;
 use std::rc::Rc;
-use std::sync::mpsc::{self, Receiver, SyncSender, TryRecvError};
+use std::sync::mpsc::{self, Receiver, Sender, TryRecvError};
 use std::sync::Arc;
 use std::thread;
 use std::time::{Duration, SystemTime};
 
 /// The GuiSender is used as a handle that allows sending SpawnFunc
 /// instances to be executed on the gui thread.
-/// When `send` is called from a non-gui thread the funcs are queued
-/// via the bounded `tx` member.  The bounding is desirable to act
-/// as a brake in the case that eg: a pty is spewing a lot of output
-/// and where we want to allow the gui thread time to process other
-/// events.
-/// When `send` is called from the gui thread, we assume that the
-/// activity is something that is high priority and thus directly
-/// queue up the events into the `gui_thread_sends` in the
-/// executor itself.
+#[derive(Clone)]
 struct GuiSender {
-    tx: SyncSender<SpawnFunc>,
+    tx: Sender<SpawnFunc>,
     proxy: EventsLoopProxy,
 }
 
 impl GuiSender {
     pub fn send(&self, what: SpawnFunc) -> Result<(), Error> {
-        match front_end() {
-            // If we can get a handle on the GuiEventLoop then we
-            // are in the gui thread and can queue up func directly.
-            Some(front_end) => match front_end.downcast_ref::<GlutinFrontEnd>() {
-                Some(f) => f.event_loop.spawn_func(what),
-                None => bail!("front_end was not a GlutinFrontEnd!?"),
-            },
-            // Otherwise, send it through the bounded channel,
-            // which may block us
-            None => match self.tx.send(what) {
-                Ok(_) => {}
-                Err(err) => bail!("send failed: {:?}", err),
-            },
-        };
+        if let Err(err) = self.tx.send(what) {
+            bail!("send failed: {:?}", err);
+        }
         self.proxy.wakeup()?;
         Ok(())
     }
 
     fn new(proxy: EventsLoopProxy) -> (GuiSender, Receiver<SpawnFunc>) {
-        // Set an upper bound on the number of items in the queue, so that
-        // we don't swamp the gui loop; this puts back pressure on the
-        // producer side so that we have a chance for eg: processing CTRL-C
-        let (tx, rx) = mpsc::sync_channel(12);
+        let (tx, rx) = mpsc::channel();
         (GuiSender { tx, proxy }, rx)
     }
 }
 
 #[derive(Clone)]
 pub struct GlutinGuiExecutor {
-    tx: Arc<GuiSender>,
+    tx: GuiSender,
 }
 
 impl Executor for GlutinGuiExecutor {
@@ -77,7 +54,7 @@ impl Executor for GlutinGuiExecutor {
     }
     fn clone_executor(&self) -> Box<dyn Executor> {
         Box::new(GlutinGuiExecutor {
-            tx: Arc::clone(&self.tx),
+            tx: self.tx.clone(),
         })
     }
 }
@@ -95,9 +72,8 @@ struct Windows {
 pub struct GuiEventLoop {
     pub event_loop: RefCell<glium::glutin::EventsLoop>,
     windows: Rc<RefCell<Windows>>,
-    gui_tx: Arc<GuiSender>,
+    gui_tx: GuiSender,
     gui_rx: Receiver<SpawnFunc>,
-    gui_thread_sends: RefCell<VecDeque<SpawnFunc>>,
     tick_rx: Receiver<()>,
 }
 
@@ -176,16 +152,11 @@ impl GuiEventLoop {
 
         Ok(Self {
             gui_rx,
-            gui_tx: Arc::new(gui_tx),
-            gui_thread_sends: RefCell::new(VecDeque::new()),
+            gui_tx,
             tick_rx,
             event_loop: RefCell::new(event_loop),
             windows: Rc::new(RefCell::new(Default::default())),
         })
-    }
-
-    fn spawn_func(&self, func: SpawnFunc) {
-        self.gui_thread_sends.borrow_mut().push_back(func);
     }
 
     fn gui_executor(&self) -> Box<dyn Executor> {
@@ -288,15 +259,7 @@ impl GuiEventLoop {
         }
     }
 
-    fn pop_gui_thread_send(&self) -> Option<SpawnFunc> {
-        self.gui_thread_sends.borrow_mut().pop_front()
-    }
-
     fn process_gui_exec(&self) -> Result<(), Error> {
-        while let Some(func) = self.pop_gui_thread_send() {
-            func();
-        }
-
         let start = SystemTime::now();
         loop {
             match start.elapsed() {
