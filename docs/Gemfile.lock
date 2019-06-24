@@ -248,6 +248,7 @@ PLATFORMS
 
 DEPENDENCIES
   github-pages
+  jekyll-avatar
   jekyll-octicons
   jekyll-redirect-from
 

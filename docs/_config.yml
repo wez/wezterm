@@ -1,3 +1,5 @@
 theme: jekyll-theme-primer
 gems:
   - jekyll-octicons
+  - jekyll-sitemap
+  - jekyll-avatar
