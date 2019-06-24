@@ -2,7 +2,7 @@
 title: Feature list | Wez's Terminal
 ---
 
-## Available Features
+## {% octicon list-unordered height:24 %} Available Features
 
 * Runs on Linux, macOS and Windows 10
 * [Multiplex terminal tabs and windows on local and remote hosts, with native mouse and scrollback](multiplexing.html)
