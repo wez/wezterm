@@ -1,5 +1,5 @@
 theme: jekyll-theme-primer
-gems:
+plugins:
   - jekyll-octicons
   - jekyll-sitemap
   - jekyll-avatar

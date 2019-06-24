@@ -48,4 +48,25 @@ a.btn svg {
   fill: white;
 }
 
+#toc {
+  width: 250px;
+  position: fixed;
+  background-color: #eee;
+  border: solid 1px #ddd;
+  padding: 1.1em;
+  overflow-y: auto;
+  max-height: 100%;
+}
+
+#toc li {
+  list-style: square;
+}
+
+#toc ul li {
+  margin-left: 1em;
+}
+
+#container {
+  margin-left: 250px;
+}
 

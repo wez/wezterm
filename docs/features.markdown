@@ -1,5 +1,5 @@
 ---
-title: Feature list | Wez's Terminal
+title: Feature list
 ---
 
 ## {% octicon list-unordered height:24 %} Available Features

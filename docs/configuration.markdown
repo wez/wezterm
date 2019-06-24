@@ -1,5 +1,5 @@
 ---
-title: Configuration | Wez's Terminal
+title: Configuration
 ---
 
 ## Configuration

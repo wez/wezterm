@@ -1,5 +1,6 @@
 ---
 title: Wez's Terminal
+layout: notoc
 ---
 
 *A GPU-accelerated cross-platform terminal emulator and multiplexer written by <a href="https://github.com/wez/">@wez</a> and implemented in <a href="https://www.rust-lang.org/">Rust</a>*

@@ -9,51 +9,19 @@
     <link rel="stylesheet" href="{{ "/assets/css/style.css?v=" | append: site.github.build_revision | relative_url }}">
   </head>
   <body>
-
-<ul id="toc">
-  {% for p in site.html_pages %}
-    {% if p.url contains "toc.html" %}
-    {% else %}
-      <li><a href="{{ p.url }}">{{ p.title }}</a></li>
-    {% comment %}
-      This fine mess is a workaround for inconsistent values of page.content.
-      Relevant GH issues are:
-         https://github.com/jekyll/jekyll-archives/issues/28
-         https://github.com/jekyll/jekyll/issues/6209
-      The brief summary is that at the time that this layout is processed,
-      the various `page` objects may or may not have had their `content`
-      transformed into html.  Those that have not been transformed will
-      still be in raw markdown, which we can transform to html but not
-      apply any other filters/plugins for highlighting or eg: octicons.
-      As a result, we manually test to see if the content looks like
-      html and apply a simple transformation to markdown, and then
-      convert any liquid open/close tags to html comments so that
-      they don't appear in our TOC.
-    {% endcomment %}
-      {% if p.content contains '<html>' %}
-      {% assign p_content = p.content %}
-      {% else %}
-      {% assign curlyend = '}' %}
-      {% assign p_content = p.content | markdownify | replace: "{%", "<!--" | replace: curlyend, "-->" %}
-      {% endif %}
-      {% include toc.html sanitize=true baseurl=p.url html=p_content %}
-    {% endif %}
-  {% endfor %}
-</ul>
-
-    <div id="container" class="container-lg px-3 my-5 markdown-body">
+    <div class="container-lg px-3 my-5 markdown-body">
       {% if site.title and site.title != page.title %}
       <h1><a href="{{ "/" | absolute_url }}">{{ site.title }}</a></h1>
       {% endif %}
 
 {% include anchor_headings.html html=content %}
-
       <div class="footer border-top border-gray-light mt-5 pt-3 text-gray">
           <a style="float:left" href="toc.html">Full Table of Contents</a>
         <div class="text-right">
         <a href="{{ site.github.repository_url }}">{{ site.github.repository_name }}</a> is maintained by <a href="{{ site.github.owner_url }}">{{ site.github.owner_name }}</a>.
         </div>
       </div>
+
     </div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/anchor-js/4.1.0/anchor.min.js"
       integrity="sha256-lZaRhKri35AyJSypXXs4o6OPFTbTmUoltBbDCbdzegg="
@@ -71,4 +39,3 @@
     {% endif %}
   </body>
 </html>
-
