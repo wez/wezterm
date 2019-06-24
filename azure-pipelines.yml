@@ -9,6 +9,7 @@ trigger:
 schedules:
 - cron: "0 0 * * *"
   displayName: Daily build
+  always: true
   branches:
     include:
     - master
