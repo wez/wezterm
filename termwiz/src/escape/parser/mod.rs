@@ -80,6 +80,26 @@ impl Parser {
         self.parse(bytes, |action| result.push(action));
         result
     }
+
+    /// Similar to `parse_first` but collects all actions from the first sequence.
+    pub fn parse_first_as_vec(&mut self, bytes: &[u8]) -> Option<(Vec<Action>, usize)> {
+        let mut actions = Vec::new();
+        let mut first_idx = None;
+        for (idx, b) in bytes.iter().enumerate() {
+            self.state_machine.advance(
+                &mut Performer {
+                    callback: &mut |action| actions.push(action),
+                },
+                *b,
+            );
+            if !actions.is_empty() {
+                // if we recognized any actions, record the iterator index
+                first_idx = Some(idx);
+                break;
+            }
+        }
+        first_idx.map(|idx| (actions, idx + 1))
+    }
 }
 
 struct Performer<'a, F: FnMut(Action) + 'a> {
