@@ -85,4 +85,25 @@ impl Window {
     pub fn iter(&self) -> impl Iterator<Item = &Rc<dyn Tab>> {
         self.tabs.iter()
     }
+
+    pub fn prune_dead_tabs(&mut self, live_tab_ids: &[TabId]) {
+        let dead: Vec<TabId> = self
+            .tabs
+            .iter()
+            .filter_map(|tab| {
+                if live_tab_ids
+                    .iter()
+                    .find(|&&id| id == tab.tab_id())
+                    .is_none()
+                {
+                    Some(tab.tab_id())
+                } else {
+                    None
+                }
+            })
+            .collect();
+        for tab_id in dead {
+            self.remove_by_id(tab_id);
+        }
+    }
 }

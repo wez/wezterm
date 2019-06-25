@@ -99,6 +99,8 @@ impl ClientDomain {
     pub fn perform_detach(&self) {
         log::error!("detached domain {}", self.local_domain_id);
         self.inner.borrow_mut().take();
+        let mux = Mux::get().unwrap();
+        mux.domain_was_detached(self.local_domain_id);
     }
 
     pub fn remote_to_local_tab_id(&self, remote_tab_id: TabId) -> Option<TabId> {

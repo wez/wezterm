@@ -201,10 +201,16 @@ impl Mux {
     pub fn remove_tab(&self, tab_id: TabId) {
         debug!("removing tab {}", tab_id);
         self.tabs.borrow_mut().remove(&tab_id);
+        self.prune_dead_windows();
+    }
+
+    pub fn prune_dead_windows(&self) {
+        let live_tab_ids: Vec<TabId> = self.tabs.borrow().keys().cloned().collect();
         let mut windows = self.windows.borrow_mut();
         let mut dead_windows = vec![];
         for (window_id, win) in windows.iter_mut() {
-            if win.remove_by_id(tab_id) && win.is_empty() {
+            win.prune_dead_tabs(&live_tab_ids);
+            if win.is_empty() {
                 dead_windows.push(*window_id);
             }
         }
@@ -272,6 +278,15 @@ impl Mux {
 
     pub fn iter_domains(&self) -> Vec<Arc<dyn Domain>> {
         self.domains.borrow().values().cloned().collect()
+    }
+
+    pub fn domain_was_detached(&self, domain: DomainId) {
+        self.tabs
+            .borrow_mut()
+            .retain(|_tab_id, tab| tab.domain_id() != domain);
+        // Ideally we'd do this here, but that seems to cause problems
+        // at the moment:
+        // self.prune_dead_windows();
     }
 }
 
