@@ -13,9 +13,6 @@ schedules:
   branches:
     include: ['master']
 
-pool:
-  vmImage: 'ubuntu-latest'
-
 jobs:
   - job: 'Clippy'
     pool:
