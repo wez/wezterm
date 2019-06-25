@@ -269,6 +269,10 @@ impl Mux {
     pub fn iter_windows(&self) -> Vec<WindowId> {
         self.windows.borrow().keys().cloned().collect()
     }
+
+    pub fn iter_domains(&self) -> Vec<Arc<dyn Domain>> {
+        self.domains.borrow().values().cloned().collect()
+    }
 }
 
 #[derive(Debug, Fail)]

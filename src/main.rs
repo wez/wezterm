@@ -16,10 +16,10 @@ mod opengl;
 mod ratelim;
 mod server;
 use crate::frontend::FrontEndSelection;
-use crate::mux::domain::{alloc_domain_id, Domain, LocalDomain};
+use crate::mux::domain::{Domain, LocalDomain};
 use crate::mux::Mux;
 use crate::server::client::Client;
-use crate::server::domain::ClientDomain;
+use crate::server::domain::{ClientDomain, ClientDomainConfig};
 use portable_pty::cmdbuilder::CommandBuilder;
 
 mod font;
@@ -171,30 +171,30 @@ fn run_terminal_gui(config: Arc<config::Config>, opts: &StartCommand) -> Fallibl
     let gui = front_end.try_new(&mux)?;
     domain.attach()?;
 
-    fn attach_client(mux: &Rc<Mux>, client: ClientDomain) -> Fallible<()> {
+    fn record_domain(mux: &Rc<Mux>, client: ClientDomain) -> Fallible<Arc<dyn Domain>> {
         let domain: Arc<dyn Domain> = Arc::new(client);
         mux.add_domain(&domain);
-        domain.attach()
+        Ok(domain)
     }
 
     if front_end != FrontEndSelection::MuxServer && !opts.no_auto_connect {
         for unix_dom in &config.unix_domains {
+            let dom = record_domain(
+                &mux,
+                ClientDomain::new(ClientDomainConfig::Unix(unix_dom.clone())),
+            )?;
             if unix_dom.connect_automatically {
-                let domain_id = alloc_domain_id();
-                attach_client(
-                    &mux,
-                    ClientDomain::new(Client::new_unix_domain(domain_id, &config, unix_dom)?),
-                )?;
+                dom.attach()?;
             }
         }
 
         for tls_client in &config.tls_clients {
+            let dom = record_domain(
+                &mux,
+                ClientDomain::new(ClientDomainConfig::Tls(tls_client.clone())),
+            )?;
             if tls_client.connect_automatically {
-                let domain_id = alloc_domain_id();
-                attach_client(
-                    &mux,
-                    ClientDomain::new(Client::new_tls(domain_id, &config, tls_client)?),
-                )?;
+                dom.attach()?;
             }
         }
     }
@@ -205,6 +205,10 @@ fn run_terminal_gui(config: Arc<config::Config>, opts: &StartCommand) -> Fallibl
             .default_domain()
             .spawn(PtySize::default(), cmd, window_id)?;
         gui.spawn_new_window(mux.config(), &fontconfig, &tab, window_id)?;
+    }
+
+    for dom in mux.iter_domains() {
+        log::error!("domain {} state {:?}", dom.domain_id(), dom.state());
     }
 
     gui.run_forever()
