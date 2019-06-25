@@ -11,8 +11,7 @@ schedules:
   displayName: Daily build
   always: true
   branches:
-    include:
-    - master
+    include: ['master']
 
 jobs:
   - job: 'Clippy'
