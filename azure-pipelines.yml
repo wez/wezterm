@@ -7,11 +7,14 @@ trigger:
     include: ['*']
 
 schedules:
-- cron: "0 0 * * *"
-  displayName: Daily build
-  always: true
+- cron: "0 */6 * * *"
+  displayName: "scheduled build"
+  always: "true"
   branches:
     include: ['master']
+
+pool:
+  vmImage: 'ubuntu-latest'
 
 jobs:
   - job: 'Clippy'
