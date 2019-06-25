@@ -96,6 +96,11 @@ impl ClientDomain {
         self.inner.borrow().as_ref().map(|i| Arc::clone(i))
     }
 
+    pub fn perform_detach(&self) {
+        log::error!("detached domain {}", self.local_domain_id);
+        self.inner.borrow_mut().take();
+    }
+
     pub fn remote_to_local_tab_id(&self, remote_tab_id: TabId) -> Option<TabId> {
         let inner = self.inner()?;
         let mut tab_map = inner.remote_to_local_tab.lock().unwrap();
