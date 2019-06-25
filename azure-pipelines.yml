@@ -7,11 +7,11 @@ trigger:
     include: ['*']
 
 schedules:
-- cron: "0 * * * *"
-  displayName: "scheduled build"
-  always: "true"
-  branches:
-    include: ['master']
+  - cron: "0 * * * *"
+    displayName: "scheduled build"
+    always: "true"
+    branches:
+      include: ['master']
 
 jobs:
   - job: 'Clippy'
