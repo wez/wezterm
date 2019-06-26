@@ -54,6 +54,7 @@ impl ClientInner {
     }
 }
 
+#[derive(Clone, Debug)]
 pub enum ClientDomainConfig {
     Unix(UnixDomain),
     Tls(TlsDomainClient),
