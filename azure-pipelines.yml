@@ -166,7 +166,7 @@ jobs:
           isPreRelease: false
           isDraft: false
       - task: GithubRelease@0
-        condition: and(succeeded(), eq(variables['BUILD_REASON'], 'Schedule'))
+        condition: and(succeeded(), eq(variables['Build.Reason'], 'Schedule'))
         displayName: Release from nightly build
         inputs:
           gitHubConnection: wez
