@@ -5,6 +5,7 @@ trigger:
     include: ['master']
   tags:
     include: ['*']
+    exclude: ['nightly*']
 
 schedules:
   - cron: '10 * * * *'
