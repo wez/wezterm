@@ -6,6 +6,7 @@ trigger:
   tags:
     include: ['*']
 
+#
 schedules:
   - cron: '0,20,40 * * * *'
     displayName: "scheduled build"
