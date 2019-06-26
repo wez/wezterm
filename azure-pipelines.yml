@@ -6,11 +6,9 @@ trigger:
   tags:
     include: ['*']
 
-#
 schedules:
-  - cron: '0,20,40 * * * *'
+  - cron: '0 0 * * *'
     displayName: "scheduled build"
-    always: 'false'
     branches:
       include: ['master']
 
