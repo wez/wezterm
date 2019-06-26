@@ -148,7 +148,7 @@ jobs:
       - bash: ci/deploy.sh
         displayName: Packaging
       - task: GithubRelease@0
-        condition: and(succeeded(), ne(variables['BUILD_REASON'], 'Schedule'), startsWith(variables['Build.SourceBranch'], 'refs/tags/'))
+        condition: and(succeeded(), ne(variables['Build.Reason'], 'Schedule'), startsWith(variables['Build.SourceBranch'], 'refs/tags/'))
         displayName: Release from tag
         inputs:
           gitHubConnection: wez
