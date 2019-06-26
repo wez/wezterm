@@ -48,7 +48,7 @@ case $OSTYPE in
         mkdir -p pkg/debian/usr/bin pkg/debian/DEBIAN
         cat > pkg/debian/DEBIAN/control <<EOF
 Package: wezterm
-Version: ${TAG_NAME}
+Version: ${TAG_NAME#nightly-}
 Architecture: amd64
 Maintainer: Wez Furlong <wez@wezfurlong.org>
 Section: utils

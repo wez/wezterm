@@ -7,7 +7,7 @@ trigger:
     include: ['*']
 
 schedules:
-  - cron: '0 0 * * *'
+  - cron: '10 * * * *'
     displayName: "scheduled build"
     branches:
       include: ['master']
@@ -146,7 +146,7 @@ jobs:
       - bash: ci/deploy.sh
         displayName: Packaging
       - task: GithubRelease@0
-        condition: and(succeeded(), ne(variables['Build.Reason'], 'Schedule'), startsWith(variables['Build.SourceBranch'], 'refs/tags/'))
+        condition: and(succeeded(), ne(variables['Build.Reason'], 'Schedule'), startsWith(variables['Build.SourceBranch'], 'refs/tags/'), not(startsWith(variables['Build.SourceBranch'], 'refs/tags/nightly')))
         displayName: Release from tag
         inputs:
           gitHubConnection: wez
