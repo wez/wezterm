@@ -25,5 +25,3 @@ This is a spare time project, so please bear with me.  There are two channels fo
 The gitter room is probably better suited to questions than it is to bug
 reports, but don't be afraid to use whichever you are most comfortable using
 and we'll work it out.
-
-
