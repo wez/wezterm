@@ -19,6 +19,7 @@ use std::net::TcpStream;
 use std::path::Path;
 use std::sync::Arc;
 use std::thread;
+use std::time::Duration;
 
 enum ReaderMessage {
     SendPdu { pdu: Pdu, promise: Promise<Pdu> },
@@ -104,9 +105,9 @@ fn process_unilateral(local_domain_id: DomainId, decoded: DecodedPdu) -> Fallibl
 }
 
 fn client_thread(
-    mut reconnectable: Reconnectable,
+    reconnectable: &mut Reconnectable,
     local_domain_id: DomainId,
-    rx: PollableReceiver<ReaderMessage>,
+    rx: &mut PollableReceiver<ReaderMessage>,
 ) -> Fallible<()> {
     let mut next_serial = 1u64;
     let mut promises = HashMap::new();
@@ -191,6 +192,24 @@ impl Reconnectable {
 
     fn stream(&mut self) -> &mut Box<dyn ReadAndWrite> {
         self.stream.as_mut().unwrap()
+    }
+
+    fn reconnectable(&mut self) -> bool {
+        match &self.config {
+            // It doesn't make sense to reconnect to a unix socket; we only
+            // get disconnected it it dies, so respawning it would not preserve
+            // the set of tabs and we'd have confusing and inconsistent state
+            ClientDomainConfig::Unix(_) => false,
+            ClientDomainConfig::Tls(_) => true,
+        }
+    }
+
+    fn reconnect(&mut self) -> Fallible<bool> {
+        if !self.reconnectable() {
+            return Ok(false);
+        }
+        self.connect()?;
+        Ok(true)
     }
 
     fn connect(&mut self) -> Fallible<()> {
@@ -355,30 +374,57 @@ impl Reconnectable {
 }
 
 impl Client {
-    fn new(local_domain_id: DomainId, reconnectable: Reconnectable) -> Self {
-        let (sender, receiver) = pollable_channel().expect("failed to create pollable_channel");
+    fn new(local_domain_id: DomainId, mut reconnectable: Reconnectable) -> Self {
+        let (sender, mut receiver) = pollable_channel().expect("failed to create pollable_channel");
 
         thread::spawn(move || {
-            if let Err(e) = client_thread(reconnectable, local_domain_id, receiver) {
-                log::debug!("client thread ended: {}", e);
-                Future::with_executor(gui_executor().unwrap(), move || {
-                    let mux = Mux::get().unwrap();
-                    let client_domain = mux
-                        .get_domain(local_domain_id)
-                        .ok_or_else(|| format_err!("no such domain {}", local_domain_id))?;
-                    let client_domain =
-                        client_domain
-                            .downcast_ref::<ClientDomain>()
-                            .ok_or_else(|| {
-                                format_err!(
-                                    "domain {} is not a ClientDomain instance",
-                                    local_domain_id
-                                )
-                            })?;
-                    client_domain.perform_detach();
-                    Ok(())
-                });
+            const BASE_INTERVAL: Duration = Duration::from_secs(1);
+            const MAX_INTERVAL: Duration = Duration::from_secs(10);
+
+            let mut backoff = BASE_INTERVAL;
+            loop {
+                if let Err(e) = client_thread(&mut reconnectable, local_domain_id, &mut receiver) {
+                    if !reconnectable.reconnectable() {
+                        log::debug!("client thread ended: {}", e);
+                        break;
+                    }
+
+                    log::error!("client disconnected {}; will reconnect in {:?}", e, backoff);
+
+                    loop {
+                        std::thread::sleep(backoff);
+                        match reconnectable.connect() {
+                            Ok(_) => {
+                                backoff = BASE_INTERVAL;
+                                log::error!("Reconnected!");
+                                break;
+                            }
+                            Err(err) => {
+                                backoff = (backoff + backoff).min(MAX_INTERVAL);
+                                log::error!(
+                                    "problem reconnecting: {}; will reconnect in {:?}",
+                                    err,
+                                    backoff
+                                );
+                            }
+                        }
+                    }
+                }
             }
+            Future::with_executor(gui_executor().unwrap(), move || {
+                let mux = Mux::get().unwrap();
+                let client_domain = mux
+                    .get_domain(local_domain_id)
+                    .ok_or_else(|| format_err!("no such domain {}", local_domain_id))?;
+                let client_domain =
+                    client_domain
+                        .downcast_ref::<ClientDomain>()
+                        .ok_or_else(|| {
+                            format_err!("domain {} is not a ClientDomain instance", local_domain_id)
+                        })?;
+                client_domain.perform_detach();
+                Ok(())
+            });
         });
 
         Self {
