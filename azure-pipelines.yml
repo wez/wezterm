@@ -7,9 +7,9 @@ trigger:
     include: ['*']
 
 schedules:
-  - cron: "0,20,40 * * * *"
+  - cron: '0,20,40 * * * *'
     displayName: "scheduled build"
-    always: "true"
+    always: 'true'
     branches:
       include: ['master']
 
