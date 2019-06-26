@@ -2,55 +2,74 @@
 title: Installation
 ---
 
+{% for r in site.github.releases %}
+{%   if r.prerelease and prerelease == nil %}
+{%     assign prerelease = r %}
+{%   elsif r.prerelease == false and release == nil %}
+{%     assign release = r %}
+{%   endif %}
+{% endfor %}
+{% for asset in release.assets %}
+{%   if asset.name contains 'windows' and windows_stable == nil %}
+{%     assign windows_stable = asset.browser_download_url %}
+{%   endif %}
+{%   if asset.name contains 'macos' and macos_stable == nil %}
+{%     assign macos_stable = asset.browser_download_url %}
+{%   endif %}
+{%   if asset.name contains '.deb' and deb_stable == nil %}
+{%     assign deb_stable = asset.browser_download_url %}
+{%   endif %}
+{% endfor %}
+{% for asset in prerelease.assets %}
+{%   if asset.name contains 'windows' and windows_pre == nil %}
+{%     assign windows_pre = asset.browser_download_url %}
+{%   endif %}
+{%   if asset.name contains 'macos' and macos_pre == nil %}
+{%     assign macos_pre = asset.browser_download_url %}
+{%   endif %}
+{%   if asset.name contains '.deb' and deb_pre == nil %}
+{%     assign deb_pre = asset.browser_download_url %}
+{%   endif %}
+{% endfor %}
+
+
 ## {% octicon cloud-download height:24 %} Installing a pre-built package on Windows
 
 Windows 10 or later is required to run WezTerm.
 
-{% for asset in site.github.latest_release.assets %}
-  {% if asset.name contains 'azure' and asset.name contains 'windows' %}
-<a href="{{ asset.browser_download_url }}" class="btn">{% octicon cloud-download %} Download for Windows</a>
-1. Download <a href="{{ asset.browser_download_url }}">{{ asset.name }}</a>
+<a href="{{ windows_stable }}" class="btn">{% octicon cloud-download %} Download for Windows</a>
+<a href="{{ windows_pre }}" class="btn">{% octicon beaker %} Nightly for Windows</a>
+1. Download <a href="{{ windows_stable }}">Release</a>
 2. Extract the zipfile and double-click `wezterm.exe` to run the UI
 3. Configuration instructions can be [found here](configuration.html)
-  {% endif %}
-{% endfor %}
 
 ## {% octicon cloud-download height:24 %} Installing a pre-built package on macOS
 
 The CI system builds the package on macOS Mojave (10.14).  It may run on earlier
 versions of macOS, but that has not been tested.
 
-{% for asset in site.github.latest_release.assets %}
-  {% if asset.name contains 'azure' and asset.name contains 'macos' %}
-<a href="{{ asset.browser_download_url }}" class="btn">{% octicon cloud-download %} Download for macOS</a>
-1. Download <a href="{{ asset.browser_download_url }}">{{ asset.name }}</a>
+<a href="{{ macos_stable }}" class="btn">{% octicon cloud-download %} Download for macOS</a>
+<a href="{{ macos_pre }}" class="btn">{% octicon beaker %} Nightly for macOS</a>
+1. Download <a href="{{ macos_stable }}">Release</a>
 2. Extract the zipfile and drag the `WezTerm.app` bundle to your `Applications` folder
 3. First time around, you may need to right click and select `Open` to allow launching
    the application that your just downloaded from the internet.
 3. Subsequently, a simple double-click will launch the UI
 4. Configuration instructions can be [found here](configuration.html)
-  {% endif %}
-{% endfor %}
 
 ## {% octicon cloud-download height:24 %} Installing a pre-built package on Ubuntu
 
 The CI system builds a `.deb` file on Ubuntu 16.04.  It may be compatible with other
 debian style systems.
 
-{% for asset in site.github.latest_release.assets %}
-  {% if asset.name contains '.deb' %}
-
-<a href="{{ asset.browser_download_url }}" class="btn">{% octicon cloud-download %} Download for Ubuntu</a>
-* <tt>curl -LO <a href="{{ asset.browser_download_url }}">{{ asset.browser_download_url }}</a></tt>
+<a href="{{ deb_stable }}" class="btn">{% octicon cloud-download %} Download for Ubuntu</a>
+{% if deb_pre %}
+<a href="{{ deb_pre }}" class="btn">{% octicon beaker %} Nightly for Ubuntu</a>
+{% endif %}
+* <tt>curl -LO <a href="{{ deb_stable }}">{{ deb_stable }}</a></tt>
 * `sudo dpkg -i {{ asset.name }}`
 * The package installs `/usr/bin/wezterm`
 * Configuration instructions can be [found here](configuration.html)
-  {% endif %}
-{% endfor %}
-
-## {% octicon beaker height:24 %} Nightly builds
-
-Bleeding edge nightly pre-release builds may be available from [the releases page](https://github.com/wez/wezterm/releases).
 
 ## {% octicon git-branch height:24 %} Installing from source
 
