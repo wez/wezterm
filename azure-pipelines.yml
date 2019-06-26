@@ -151,7 +151,7 @@ jobs:
         condition: and(succeeded(), ne(variables['BUILD_REASON'], 'Schedule'), startsWith(variables['Build.SourceBranch'], 'refs/tags/'))
         displayName: Release from tag
         inputs:
-          gitHubConnection: release
+          gitHubConnection: wez
           repositoryName: wez/wezterm
           action: edit
           target: $(build.sourceVersion)
@@ -169,7 +169,7 @@ jobs:
         condition: and(succeeded(), eq(variables['BUILD_REASON'], 'Schedule'))
         displayName: Release from nightly build
         inputs:
-          gitHubConnection: release
+          gitHubConnection: wez
           repositoryName: wez/wezterm
           action: edit
           target: $(build.sourceVersion)
