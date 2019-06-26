@@ -10,7 +10,7 @@ trigger:
 schedules:
   - cron: '0,20,40 * * * *'
     displayName: "scheduled build"
-    always: 'true'
+    always: 'false'
     branches:
       include: ['master']
 
