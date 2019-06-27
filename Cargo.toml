@@ -41,7 +41,7 @@ ratelimit_meter = "4.1"
 rayon = "1.0"
 serde = {version="1.0", features = ["rc"]}
 serde_derive = "1.0"
-structopt = "0.2.17"
+structopt = "0.2"
 tabout = { path = "tabout" }
 term = { path = "term" }
 termwiz = { path = "termwiz"}
@@ -99,10 +99,6 @@ core-text = "13.2"
 [features]
 force-glutin = []
 force-fontconfig = ["fontconfig"]
-
-[patch.crates-io]
-# This allows using the git version in the help output
-structopt-derive = { git = "https://github.com/wez/structopt", branch="vergen" }
 
 [workspace]
 

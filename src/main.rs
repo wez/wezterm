@@ -62,7 +62,10 @@ fn get_shell() -> Result<String, Error> {
 
 #[derive(Debug, StructOpt)]
 #[structopt(about = "Wez's Terminal Emulator\nhttp://github.com/wez/wezterm")]
-#[structopt(raw(setting = "structopt::clap::AppSettings::ColoredHelp"))]
+#[structopt(raw(
+    global_setting = "structopt::clap::AppSettings::ColoredHelp",
+    version = r#"env!("VERGEN_SEMVER_LIGHTWEIGHT")"#,
+))]
 struct Opt {
     /// Skip loading ~/.wezterm.toml
     #[structopt(short = "n")]
@@ -111,11 +114,9 @@ struct StartCommand {
 #[derive(Debug, StructOpt, Clone)]
 enum SubCommand {
     #[structopt(name = "start", about = "Start a front-end")]
-    #[structopt(raw(setting = "structopt::clap::AppSettings::ColoredHelp"))]
     Start(StartCommand),
 
     #[structopt(name = "cli", about = "Interact with experimental mux server")]
-    #[structopt(raw(setting = "structopt::clap::AppSettings::ColoredHelp"))]
     Cli(CliCommand),
 }
 
@@ -128,7 +129,6 @@ struct CliCommand {
 #[derive(Debug, StructOpt, Clone)]
 enum CliSubCommand {
     #[structopt(name = "list", about = "list windows and tabs")]
-    #[structopt(raw(setting = "structopt::clap::AppSettings::ColoredHelp"))]
     List,
 }
 
