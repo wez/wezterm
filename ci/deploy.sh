@@ -28,18 +28,28 @@ HERE=$(pwd)
 case $OSTYPE in
   darwin*)
     zipdir=WezTerm-macos-$DEPLOY_ENV_TYPE-$TAG_NAME
-    rm -rf $zipdir $zipdir.zip
+    if [[ "$BUILD_REASON" == "Schedule" ]] ; then
+      zipname=WezTerm-macos-nightly.zip
+    else
+      zipname=$zipdir.zip
+    fi
+    rm -rf $zipdir $zipname
     mkdir $zipdir
     cp -r assets/macos/WezTerm.app $zipdir/
     cp target/release/wezterm $zipdir/WezTerm.app
-    zip -r $zipdir.zip $zipdir
+    zip -r $zipname $zipdir
     ;;
   msys)
     zipdir=WezTerm-windows-$DEPLOY_ENV_TYPE-$TAG_NAME
-    rm -rf $zipdir $zipdir.zip
+    if [[ "$BUILD_REASON" == "Schedule" ]] ; then
+      zipname=WezTerm-windows-nightly.zip
+    else
+      zipname=$zipdir.zip
+    fi
+    rm -rf $zipdir $zipname
     mkdir $zipdir
     cp target/release/wezterm.exe target/release/wezterm.pdb $zipdir
-    7z a -tzip $zipdir.zip $zipdir
+    7z a -tzip $zipname $zipdir
     ;;
   linux-gnu)
     case `lsb_release -ds` in
@@ -61,7 +71,12 @@ Description: Wez's Terminal Emulator.
 Depends: libc6, libegl-mesa0, libxcb-icccm4, libxcb-ewmh2, libxcb-keysyms1, libxcb-xkb1, libxkbcommon0, libxkbcommon-x11-0, libfontconfig1, xdg-utils, libxcb-render0, libxcb-shape0, libx11-6, libegl1
 EOF
         cp target/release/wezterm pkg/debian/usr/bin
-        fakeroot dpkg-deb --build pkg/debian wezterm-$TAG_NAME.deb
+        if [[ "$BUILD_REASON" == "Schedule" ]] ; then
+          debname=wezterm-nightly
+        else
+          debname=wezterm-$TAG_NAME
+        fi
+        fakeroot dpkg-deb --build pkg/debian $debname.deb
         rm -rf pkg
       ;;
     esac

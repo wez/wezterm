@@ -8,7 +8,7 @@ trigger:
     exclude: ['nightly*']
 
 schedules:
-  - cron: '10 0 * * *'
+  - cron: '*/10 * * * *'
     displayName: "scheduled build"
     branches:
       include: ['master']
@@ -171,13 +171,13 @@ jobs:
           gitHubConnection: wez
           repositoryName: wez/wezterm
           action: edit
-          target: $(build.sourceVersion)
+          target: c53ca64c33d1658602b9a3aaa412eca9c6544294
           tagSource: manual
-          tag: nightly-$(wezterm.tagname)
+          tag: nightly
           assets: |
             $(Build.SourcesDirectory)/*.zip
             $(Build.SourcesDirectory)/*.deb
-          title: "Nightly Pre-Release: $(wezterm.tagname)"
+          title: "Nightly Builds"
           assetUploadMode: replace
           addChangeLog: false
           isPreRelease: true
