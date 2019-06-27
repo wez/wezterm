@@ -2,14 +2,22 @@
 title: Installation
 ---
 
-{% for r in site.github.releases %}
-{%   if r.prerelease and prerelease == nil %}
-{%     assign prerelease = r %}
-{%   elsif r.prerelease == false and release == nil %}
-{%     assign release = r %}
+{% assign releases = site.github.releases | sort:"created_at" | reverse %}
+{% for r in releases %}
+{% if r.prerelease %}
+{% for asset in r.assets %}
+{%   if asset.name contains 'windows' and windows_pre == nil %}
+{%     assign windows_pre = asset.browser_download_url %}
+{%   endif %}
+{%   if asset.name contains 'macos' and macos_pre == nil %}
+{%     assign macos_pre = asset.browser_download_url %}
+{%   endif %}
+{%   if asset.name contains '.deb' and deb_pre == nil %}
+{%     assign deb_pre = asset.browser_download_url %}
 {%   endif %}
 {% endfor %}
-{% for asset in release.assets %}
+{% else %}
+{% for asset in r.assets %}
 {%   if asset.name contains 'windows' and windows_stable == nil %}
 {%     assign windows_stable = asset.browser_download_url %}
 {%   endif %}
@@ -20,16 +28,7 @@ title: Installation
 {%     assign deb_stable = asset.browser_download_url %}
 {%   endif %}
 {% endfor %}
-{% for asset in prerelease.assets %}
-{%   if asset.name contains 'windows' and windows_pre == nil %}
-{%     assign windows_pre = asset.browser_download_url %}
-{%   endif %}
-{%   if asset.name contains 'macos' and macos_pre == nil %}
-{%     assign macos_pre = asset.browser_download_url %}
-{%   endif %}
-{%   if asset.name contains '.deb' and deb_pre == nil %}
-{%     assign deb_pre = asset.browser_download_url %}
-{%   endif %}
+{% endif %}
 {% endfor %}
 
 
@@ -63,9 +62,7 @@ The CI system builds a `.deb` file on Ubuntu 16.04.  It may be compatible with o
 debian style systems.
 
 <a href="{{ deb_stable }}" class="btn">{% octicon cloud-download %} Download for Ubuntu</a>
-{% if deb_pre %}
 <a href="{{ deb_pre }}" class="btn">{% octicon beaker %} Nightly for Ubuntu</a>
-{% endif %}
 * <tt>curl -LO <a href="{{ deb_stable }}">{{ deb_stable }}</a></tt>
 * `sudo dpkg -i {{ asset.name }}`
 * The package installs `/usr/bin/wezterm`
