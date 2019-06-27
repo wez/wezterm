@@ -182,6 +182,6 @@ jobs:
           addChangeLog: false
           isPreRelease: true
           isDraft: false
-      - bash: curl -u wez:$(github.pat) -X POST https://api.github.com/repos/wez/wezterm/pages/builds -H "Accept: application/vnd.github.mister-fantastic-preview+json"
+      - bash: 'curl -u wez:$(github.pat) -X POST https://api.github.com/repos/wez/wezterm/pages/builds -H "Accept: application/vnd.github.mister-fantastic-preview+json"'
         displayName: request github pages rebuild
 
