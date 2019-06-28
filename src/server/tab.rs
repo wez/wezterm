@@ -157,18 +157,20 @@ impl ClientTab {
             queue: VecDeque::new(),
         }));
         let render = RenderableState {
-            client: Arc::clone(client),
-            remote_tab_id,
-            last_poll: RefCell::new(Instant::now()),
-            dead: RefCell::new(false),
-            poll_future: RefCell::new(None),
-            poll_interval: RefCell::new(BASE_POLL_INTERVAL),
-            surface: RefCell::new(Surface::new(size.cols as usize, size.rows as usize)),
-            remote_sequence: RefCell::new(0),
-            local_sequence: RefCell::new(0),
-            selection_range,
-            something_changed,
-            highlight,
+            inner: RefCell::new(RenderableInner {
+                client: Arc::clone(client),
+                remote_tab_id,
+                last_poll: Instant::now(),
+                dead: false,
+                poll_future: None,
+                poll_interval: BASE_POLL_INTERVAL,
+                surface: Surface::new(size.cols as usize, size.rows as usize),
+                remote_sequence: 0,
+                local_sequence: 0,
+                selection_range,
+                something_changed,
+                highlight,
+            }),
         };
 
         let reader = Pipe::new().expect("Pipe::new failed");
@@ -195,6 +197,8 @@ impl ClientTab {
                 log::trace!("new delta {}", delta.sequence_no);
                 self.renderable
                     .borrow()
+                    .inner
+                    .borrow_mut()
                     .apply_changes_to_surface(delta.sequence_no, delta.changes);
             }
             Pdu::SetClipboard(SetClipboard { clipboard, .. }) => {
@@ -230,7 +234,7 @@ impl Tab for ClientTab {
 
     fn get_title(&self) -> String {
         let renderable = self.renderable.borrow();
-        let surface = renderable.surface.borrow();
+        let surface = &renderable.inner.borrow().surface;
         format!("[muxed] {} {}", surface.current_seqno(), surface.title())
     }
 
@@ -254,8 +258,9 @@ impl Tab for ClientTab {
     fn resize(&self, size: PtySize) -> Fallible<()> {
         self.renderable
             .borrow()
-            .surface
+            .inner
             .borrow_mut()
+            .surface
             .resize(size.cols as usize, size.rows as usize);
         self.client.client.resize(Resize {
             tab_id: self.remote_tab_id,
@@ -285,12 +290,8 @@ impl Tab for ClientTab {
         panic!("ClientTab::advance_bytes not impl");
     }
 
-    // clippy is wrong: the borrow checker hates returning the value directly
-    #[allow(clippy::let_and_return)]
     fn is_dead(&self) -> bool {
-        let renderable = self.renderable.borrow();
-        let dead = *renderable.dead.borrow();
-        dead
+        self.renderable.borrow().inner.borrow().dead
     }
 
     fn palette(&self) -> ColorPalette {
@@ -302,68 +303,78 @@ impl Tab for ClientTab {
     }
 
     fn selection_range(&self) -> Option<SelectionRange> {
-        *self.renderable.borrow().selection_range.lock().unwrap()
+        *self
+            .renderable
+            .borrow()
+            .inner
+            .borrow()
+            .selection_range
+            .lock()
+            .unwrap()
     }
 }
 
-struct RenderableState {
+struct RenderableInner {
     client: Arc<ClientInner>,
     remote_tab_id: TabId,
-    last_poll: RefCell<Instant>,
-    dead: RefCell<bool>,
-    poll_future: RefCell<Option<Future<UnitResponse>>>,
-    surface: RefCell<Surface>,
-    remote_sequence: RefCell<SequenceNo>,
-    local_sequence: RefCell<SequenceNo>,
-    poll_interval: RefCell<Duration>,
+    last_poll: Instant,
+    dead: bool,
+    poll_future: Option<Future<UnitResponse>>,
+    surface: Surface,
+    remote_sequence: SequenceNo,
+    local_sequence: SequenceNo,
+    poll_interval: Duration,
     selection_range: Arc<Mutex<Option<SelectionRange>>>,
     something_changed: Arc<AtomicBool>,
     highlight: Arc<Mutex<Option<Arc<Hyperlink>>>>,
 }
 
+struct RenderableState {
+    inner: RefCell<RenderableInner>,
+}
+
 const MAX_POLL_INTERVAL: Duration = Duration::from_secs(30);
 const BASE_POLL_INTERVAL: Duration = Duration::from_millis(20);
 
-impl RenderableState {
-    fn apply_changes_to_surface(&self, remote_seq: SequenceNo, changes: Vec<Change>) {
+impl RenderableInner {
+    fn apply_changes_to_surface(&mut self, remote_seq: SequenceNo, changes: Vec<Change>) {
         if let Some(first) = changes.first().as_ref() {
             log::trace!("{:?}", first);
         }
-        *self.poll_interval.borrow_mut() = BASE_POLL_INTERVAL;
-        self.surface.borrow_mut().add_changes(changes);
-        *self.remote_sequence.borrow_mut() = remote_seq;
+        self.poll_interval = BASE_POLL_INTERVAL;
+        self.surface.add_changes(changes);
+        self.remote_sequence = remote_seq;
     }
 
-    fn poll(&self) -> Fallible<()> {
+    fn poll(&mut self) -> Fallible<()> {
         let ready = self
             .poll_future
-            .borrow()
             .as_ref()
             .map(Future::is_ready)
             .unwrap_or(false);
         if ready {
-            self.poll_future.borrow_mut().take().unwrap().wait()?;
-            let interval = *self.poll_interval.borrow();
+            self.poll_future.take().unwrap().wait()?;
+            let interval = self.poll_interval;
             let interval = (interval + interval).min(MAX_POLL_INTERVAL);
-            *self.poll_interval.borrow_mut() = interval;
+            self.poll_interval = interval;
 
-            *self.last_poll.borrow_mut() = Instant::now();
-        } else if self.poll_future.borrow().is_some() {
+            self.last_poll = Instant::now();
+        } else if self.poll_future.is_some() {
             // We have a poll in progress
             return Ok(());
         }
 
-        let last = *self.last_poll.borrow();
-        if last.elapsed() < *self.poll_interval.borrow() {
+        let last = self.last_poll;
+        if last.elapsed() < self.poll_interval {
             return Ok(());
         }
 
         {
-            *self.last_poll.borrow_mut() = Instant::now();
-            *self.poll_future.borrow_mut() = Some(self.client.client.get_tab_render_changes(
+            self.last_poll = Instant::now();
+            self.poll_future = Some(self.client.client.get_tab_render_changes(
                 GetTabRenderChanges {
                     tab_id: self.remote_tab_id,
-                    sequence_no: *self.remote_sequence.borrow(),
+                    sequence_no: self.remote_sequence,
                 },
             ));
         }
@@ -373,18 +384,19 @@ impl RenderableState {
 
 impl Renderable for RenderableState {
     fn get_cursor_position(&self) -> CursorPosition {
-        let (x, y) = self.surface.borrow().cursor_position();
+        let (x, y) = self.inner.borrow().surface.cursor_position();
         CursorPosition { x, y: y as i64 }
     }
 
     fn get_dirty_lines(&self) -> Vec<(usize, Cow<Line>, Range<usize>)> {
-        let mut surface = self.surface.borrow_mut();
-        let seq = surface.current_seqno();
-        surface.flush_changes_older_than(seq);
-        let selection = *self.selection_range.lock().unwrap();
-        self.something_changed.store(false, Ordering::SeqCst);
-        *self.local_sequence.borrow_mut() = seq;
-        surface
+        let mut inner = self.inner.borrow_mut();
+        let seq = inner.surface.current_seqno();
+        inner.surface.flush_changes_older_than(seq);
+        let selection = inner.selection_range.lock().unwrap().clone();
+        inner.something_changed.store(false, Ordering::SeqCst);
+        inner.local_sequence = seq;
+        inner
+            .surface
             .screen_lines()
             .into_iter()
             .enumerate()
@@ -399,29 +411,37 @@ impl Renderable for RenderableState {
     }
 
     fn has_dirty_lines(&self) -> bool {
-        if self.poll().is_err() {
-            *self.dead.borrow_mut() = true;
+        let mut inner = self.inner.borrow_mut();
+        if inner.poll().is_err() {
+            inner.dead = true;
         }
-        if self.something_changed.load(Ordering::SeqCst) {
+        if inner.something_changed.load(Ordering::SeqCst) {
             return true;
         }
-        self.surface
-            .borrow()
-            .has_changes(*self.local_sequence.borrow())
+        inner.surface.has_changes(inner.local_sequence)
     }
 
     fn make_all_lines_dirty(&mut self) {
-        self.something_changed.store(true, Ordering::SeqCst);
+        self.inner
+            .borrow()
+            .something_changed
+            .store(true, Ordering::SeqCst);
     }
 
     fn clean_dirty_lines(&mut self) {}
 
     fn current_highlight(&self) -> Option<Arc<Hyperlink>> {
-        self.highlight.lock().unwrap().as_ref().cloned()
+        self.inner
+            .borrow()
+            .highlight
+            .lock()
+            .unwrap()
+            .as_ref()
+            .cloned()
     }
 
     fn physical_dimensions(&self) -> (usize, usize) {
-        let (cols, rows) = self.surface.borrow().dimensions();
+        let (cols, rows) = self.inner.borrow().surface.dimensions();
         (rows, cols)
     }
 }
