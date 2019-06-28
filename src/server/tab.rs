@@ -10,7 +10,7 @@ use failure::{bail, Fallible};
 use filedescriptor::Pipe;
 use log::error;
 use portable_pty::PtySize;
-use promise::Future;
+use promise::{BrokenPromise, Future};
 use std::borrow::Cow;
 use std::cell::RefCell;
 use std::cell::RefMut;
@@ -412,8 +412,15 @@ impl Renderable for RenderableState {
 
     fn has_dirty_lines(&self) -> bool {
         let mut inner = self.inner.borrow_mut();
-        if inner.poll().is_err() {
-            inner.dead = true;
+        if let Err(err) = inner.poll() {
+            // We allow for BrokenPromise here for now; for a TLS backed
+            // session it indicates that we'll retry.  For a local unix
+            // domain session it is terminal... but we will detect that
+            // terminal condition elsewhere
+            if let Err(err) = err.downcast::<BrokenPromise>() {
+                log::error!("remote tab poll failed: {}, marking as dead", err);
+                inner.dead = true;
+            }
         }
         if inner.something_changed.load(Ordering::SeqCst) {
             return true;

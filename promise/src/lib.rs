@@ -1,8 +1,13 @@
 use failure::{Error, Fallible};
+use failure_derive::*;
 use std::sync::{Arc, Condvar, Mutex};
 
 type NextFunc<T> = Box<dyn FnOnce(Fallible<T>) + Send>;
 pub type SpawnFunc = Box<dyn FnOnce() + Send>;
+
+#[derive(Debug, Fail)]
+#[fail(display = "Promise was dropped before completion")]
+pub struct BrokenPromise {}
 
 pub trait Executor: Send {
     fn execute(&self, f: SpawnFunc);
@@ -76,7 +81,7 @@ impl<T> Default for Promise<T> {
 impl<T> Drop for Promise<T> {
     fn drop(&mut self) {
         if let PromiseState::Waiting(core) = &mut self.state {
-            let err = Err(failure::err_msg("Promise was dropped before completion"));
+            let err = Err(BrokenPromise {}.into());
             let mut locked = core.data.lock().unwrap();
             if let Some(func) = locked.propagate.take() {
                 func(err);

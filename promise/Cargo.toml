@@ -6,4 +6,5 @@ edition = "2018"
 
 [dependencies]
 failure = "0.1"
+failure_derive = "0.1"
 rayon = "1.0"
