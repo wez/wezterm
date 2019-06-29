@@ -17,6 +17,7 @@ pub enum Action {
     OscStart = 12,
     OscPut = 13,
     OscEnd = 14,
+    Utf8 = 15,
 }
 
 impl Action {
@@ -46,6 +47,7 @@ pub enum State {
     OscString = 12,
     SosPmApcString = 13,
     Anywhere = 14,
+    Utf8Sequence = 15,
 }
 
 impl State {

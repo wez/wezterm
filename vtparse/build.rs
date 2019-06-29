@@ -36,7 +36,6 @@ macro_rules! sparse_table {
 
 fn apply_anywhere(anywhere: &StateMap, mut map: StateMap) -> StateMap {
     for (k, v) in anywhere {
-        assert!(!map.contains_key(k));
         map.insert(*k, *v);
     }
     map
@@ -79,6 +78,13 @@ fn build_tables() -> Tables {
                 r(0x19)     => (Execute, Ground),
                 0x1c..=0x1f => (Execute, Ground),
                 0x20..=0x7f => (Print, Ground),
+                // The following three ranges allow for
+                // UTF-8 multibyte sequences to be recognized
+                // and emitted as byte sequences in the ground
+                // state.
+                0xc2..=0xdf => (Utf8, Utf8Sequence),
+                0xe0..=0xef => (Utf8, Utf8Sequence),
+                0xf0..=0xf4 => (Utf8, Utf8Sequence),
             },
         ),
     );
@@ -308,6 +314,10 @@ fn build_tables() -> Tables {
                 r(0x19)     => (Ignore, OscString),
                 0x1c..=0x1f => (Ignore, OscString),
                 0x20..=0x7f => (OscPut, OscString),
+                // This extended range allows for UTF-8 characters
+                // to be embedded in OSC parameters.  It is not
+                // part of the base state machine.
+                0x80..=0xff => (OscPut, OscString),
             },
         ),
     );

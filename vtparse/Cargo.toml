@@ -5,6 +5,7 @@ version = "0.1.0"
 edition = "2018"
 
 [dependencies]
+utf8parse = "0.1"
 
 [dev-dependencies]
 pretty_assertions = "0.6"

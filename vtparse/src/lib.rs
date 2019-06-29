@@ -1,5 +1,6 @@
 //! An implementation of the state machine described by
 //! https://vt100.net/emu/dec_ansi_parser
+use utf8parse::Parser as Utf8Parser;
 mod enums;
 use crate::enums::*;
 
@@ -38,7 +39,7 @@ pub trait VTActor {
     /// ignore 7F. The VT320 introduced ISO Latin-1, which has 96 characters in its supplemental
     /// set, so emulators with a VT320 compatibility mode need to treat 7F as a printable
     /// character.
-    fn print_byte(&mut self, b: u8);
+    fn print(&mut self, b: char);
 
     /// The C0 or C1 control function should be executed, which may have any one of a variety of
     /// effects, including changing the cursor position, suspending or resuming communications or
@@ -82,7 +83,7 @@ pub trait VTActor {
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum VTAction {
-    PrintByte(u8),
+    Print(char),
     ExecuteC0orC1(u8),
     DcsHook {
         params: Vec<i64>,
@@ -127,8 +128,8 @@ impl CollectingVTActor {
 }
 
 impl VTActor for CollectingVTActor {
-    fn print_byte(&mut self, b: u8) {
-        self.actions.push(VTAction::PrintByte(b));
+    fn print(&mut self, b: char) {
+        self.actions.push(VTAction::Print(b));
     }
 
     fn execute_c0_or_c1(&mut self, control: u8) {
@@ -197,7 +198,6 @@ const MAX_INTERMEDIATES: usize = 2;
 const MAX_OSC: usize = 16;
 const MAX_PARAMS: usize = 16;
 
-#[derive(Debug)]
 pub struct VTParser {
     state: State,
 
@@ -214,6 +214,8 @@ pub struct VTParser {
     num_params: usize,
     current_param: Option<i64>,
     params_full: bool,
+
+    utf8_parser: Utf8Parser,
 }
 
 impl VTParser {
@@ -237,6 +239,8 @@ impl VTParser {
             num_params: 0,
             params_full: false,
             current_param: None,
+
+            utf8_parser: Utf8Parser::new(),
         }
     }
 
@@ -253,7 +257,7 @@ impl VTParser {
         eprintln!("action {:?} {}", action, param);
         match action {
             Action::None | Action::Ignore => {}
-            Action::Print => actor.print_byte(param),
+            Action::Print => actor.print(param as char),
             Action::Execute => actor.execute_c0_or_c1(param),
             Action::Clear => {
                 self.num_intermediates = 0;
@@ -273,7 +277,6 @@ impl VTParser {
                 }
             }
             Action::Param => {
-                dbg!(&self);
                 if self.params_full {
                     return;
                 }
@@ -328,7 +331,6 @@ impl VTParser {
                 self.osc_full = false;
             }
             Action::OscPut => {
-                dbg!(&self);
                 if param == b';' {
                     match self.osc_num_params {
                         MAX_OSC => {
@@ -365,11 +367,53 @@ impl VTParser {
                     actor.osc_dispatch(&params[0..limit]);
                 }
             }
+            Action::Utf8 => self.next_utf8(actor, param),
         }
+    }
+
+    // Process a utf-8 multi-byte sequence.
+    // The state tables emit Action::Utf8 to initiate a multi-byte
+    // sequence, and once we're in the utf-8 state we'll defer to
+    // this method for each byte until the Decode struct is signalled
+    // that we're done.
+    // We use the REPLACEMENT_CHARACTER for invalid sequences.
+    // We return to the ground state after each codepoint, successful
+    // or otherwise.
+    fn next_utf8(&mut self, actor: &mut dyn VTActor, byte: u8) {
+        struct Decoder<'a> {
+            state: &'a mut State,
+            actor: &'a mut dyn VTActor,
+        }
+
+        impl<'a> utf8parse::Receiver for Decoder<'a> {
+            fn codepoint(&mut self, c: char) {
+                self.actor.print(c);
+                *self.state = State::Ground;
+            }
+
+            fn invalid_sequence(&mut self) {
+                self.codepoint(std::char::REPLACEMENT_CHARACTER);
+            }
+        }
+
+        let mut decoder = Decoder {
+            state: &mut self.state,
+            actor,
+        };
+        self.utf8_parser.advance(&mut decoder, byte);
     }
 
     pub fn parse(&mut self, bytes: &[u8], actor: &mut dyn VTActor) {
         for b in bytes {
+            // While in utf-8 parsing mode, co-opt the vt state
+            // table and instead use the utf-8 state table from the
+            // parser.  It will drop us back into the Ground state
+            // after each recognized (or invalid) codepoint.
+            if self.state == State::Utf8Sequence {
+                self.next_utf8(actor, *b);
+                continue;
+            }
+
             let (action, state) = lookup(self.state, *b);
 
             if state != self.state {
@@ -401,8 +445,8 @@ mod test {
         assert_eq!(
             parse_as_vec(b"yo\x07\x1b[32mwoot\x1b[0mdone"),
             vec![
-                VTAction::PrintByte(b'y'),
-                VTAction::PrintByte(b'o'),
+                VTAction::Print('y'),
+                VTAction::Print('o'),
                 VTAction::ExecuteC0orC1(0x07,),
                 VTAction::CsiDispatch {
                     params: vec![32],
@@ -410,20 +454,20 @@ mod test {
                     ignored_excess_intermediates: false,
                     byte: b'm',
                 },
-                VTAction::PrintByte(b'w',),
-                VTAction::PrintByte(b'o',),
-                VTAction::PrintByte(b'o',),
-                VTAction::PrintByte(b't',),
+                VTAction::Print('w',),
+                VTAction::Print('o',),
+                VTAction::Print('o',),
+                VTAction::Print('t',),
                 VTAction::CsiDispatch {
                     params: vec![0],
                     intermediates: vec![],
                     ignored_excess_intermediates: false,
                     byte: b'm',
                 },
-                VTAction::PrintByte(b'd',),
-                VTAction::PrintByte(b'o',),
-                VTAction::PrintByte(b'n',),
-                VTAction::PrintByte(b'e',),
+                VTAction::Print('d',),
+                VTAction::Print('o',),
+                VTAction::Print('n',),
+                VTAction::Print('e',),
             ]
         );
     }
@@ -432,7 +476,7 @@ mod test {
     fn test_print() {
         assert_eq!(
             parse_as_vec(b"yo"),
-            vec![VTAction::PrintByte(b'y'), VTAction::PrintByte(b'o')]
+            vec![VTAction::Print('y'), VTAction::Print('o')]
         );
     }
 
@@ -569,6 +613,22 @@ mod test {
                 ignored_excess_intermediates: true,
                 byte: b'p'
             }]
+        );
+    }
+
+    #[test]
+    fn osc_utf8() {
+        assert_eq!(
+            parse_as_vec("\x1b]\u{af}\x07".as_bytes()),
+            vec![VTAction::OscDispatch(vec!["\u{af}".as_bytes().to_vec()])]
+        );
+    }
+
+    #[test]
+    fn print_utf8() {
+        assert_eq!(
+            parse_as_vec("\u{af}".as_bytes()),
+            vec![VTAction::Print('\u{af}')]
         );
     }
 }
