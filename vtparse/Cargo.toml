@@ -1,0 +1,10 @@
+[package]
+authors = ["Wez Furlong <wez@wezfurlong.org>"]
+name = "vtparse"
+version = "0.1.0"
+edition = "2018"
+
+[dependencies]
+
+[dev-dependencies]
+pretty_assertions = "0.6"

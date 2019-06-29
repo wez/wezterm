@@ -36,6 +36,7 @@ unicode-segmentation = "1.2"
 unicode-width = "0.1"
 # https://github.com/jwilm/vte/pull/20
 vte = { git = "https://github.com/wez/vte", branch="oscbigbuf" }
+vtparse = { path="../vtparse"}
 
 [dev-dependencies]
 varbincode = "0.1"
