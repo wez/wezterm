@@ -1859,7 +1859,7 @@ impl TerminalState {
     }
 }
 
-/// A helper struct for implementing `vte::Perform` while compartmentalizing
+/// A helper struct for implementing `vtparse::VTActor` while compartmentalizing
 /// the terminal state and the embedding/host terminal interface
 pub(crate) struct Performer<'a> {
     pub state: &'a mut TerminalState,
@@ -2029,7 +2029,7 @@ impl<'a> Performer<'a> {
         match esc {
             Esc::Code(EscCode::StringTerminator) => {
                 // String Terminator (ST); explicitly has nothing to do here, as its purpose is
-                // handled by vte::Parser
+                // handled implicitly through a state transition in the vtparse state tables.
             }
             Esc::Code(EscCode::DecApplicationKeyPad) => {
                 debug!("DECKPAM on");

@@ -2,7 +2,7 @@ use crate::escape::{Action, DeviceControlMode, Esc, OperatingSystemCommand, CSI}
 use log::error;
 use num;
 use std::cell::RefCell;
-use vte;
+use vtparse::{VTActor, VTParser};
 
 /// The `Parser` struct holds the state machine that is used to decode
 /// a sequence of bytes.  The byte sequence can be streaming into the
@@ -11,7 +11,7 @@ use vte;
 /// decoded, or have it return a `Vec<Action>` holding zero-or-more
 /// decoded actions.
 pub struct Parser {
-    state_machine: vte::Parser,
+    state_machine: VTParser,
 }
 
 impl Default for Parser {
@@ -23,7 +23,7 @@ impl Default for Parser {
 impl Parser {
     pub fn new() -> Self {
         Self {
-            state_machine: vte::Parser::new(),
+            state_machine: VTParser::new(),
         }
     }
 
@@ -31,9 +31,7 @@ impl Parser {
         let mut perform = Performer {
             callback: &mut callback,
         };
-        for b in bytes {
-            self.state_machine.advance(&mut perform, *b);
-        }
+        self.state_machine.parse(bytes, &mut perform);
     }
 
     /// A specialized version of the parser that halts after recognizing the
@@ -58,7 +56,7 @@ impl Parser {
                 },
             };
             for (idx, b) in bytes.iter().enumerate() {
-                self.state_machine.advance(&mut perform, *b);
+                self.state_machine.parse_byte(*b, &mut perform);
                 if first.borrow().is_some() {
                     // if we recognized an action, record the iterator index
                     first_idx = Some(idx);
@@ -86,11 +84,11 @@ impl Parser {
         let mut actions = Vec::new();
         let mut first_idx = None;
         for (idx, b) in bytes.iter().enumerate() {
-            self.state_machine.advance(
+            self.state_machine.parse_byte(
+                *b,
                 &mut Performer {
                     callback: &mut |action| actions.push(action),
                 },
-                *b,
             );
             if !actions.is_empty() {
                 // if we recognized any actions, record the iterator index
@@ -106,19 +104,24 @@ struct Performer<'a, F: FnMut(Action) + 'a> {
     callback: &'a mut F,
 }
 
-impl<'a, F: FnMut(Action)> vte::Perform for Performer<'a, F> {
+impl<'a, F: FnMut(Action)> VTActor for Performer<'a, F> {
     fn print(&mut self, c: char) {
         (self.callback)(Action::Print(c));
     }
 
-    fn execute(&mut self, byte: u8) {
+    fn execute_c0_or_c1(&mut self, byte: u8) {
         match num::FromPrimitive::from_u8(byte) {
             Some(code) => (self.callback)(Action::Control(code)),
             None => error!("impossible C0/C1 control code {:?} was dropped", byte),
         }
     }
 
-    fn hook(&mut self, params: &[i64], intermediates: &[u8], ignored_extra_intermediates: bool) {
+    fn dcs_hook(
+        &mut self,
+        params: &[i64],
+        intermediates: &[u8],
+        ignored_extra_intermediates: bool,
+    ) {
         (self.callback)(Action::DeviceControl(Box::new(DeviceControlMode::Enter {
             params: params.to_vec(),
             intermediates: intermediates.to_vec(),
@@ -126,13 +129,13 @@ impl<'a, F: FnMut(Action)> vte::Perform for Performer<'a, F> {
         })));
     }
 
-    fn put(&mut self, data: u8) {
+    fn dcs_put(&mut self, data: u8) {
         (self.callback)(Action::DeviceControl(Box::new(DeviceControlMode::Data(
             data,
         ))));
     }
 
-    fn unhook(&mut self) {
+    fn dcs_unhook(&mut self) {
         (self.callback)(Action::DeviceControl(Box::new(DeviceControlMode::Exit)));
     }
 
@@ -146,9 +149,14 @@ impl<'a, F: FnMut(Action)> vte::Perform for Performer<'a, F> {
         params: &[i64],
         intermediates: &[u8],
         ignored_extra_intermediates: bool,
-        control: char,
+        control: u8,
     ) {
-        for action in CSI::parse(params, intermediates, ignored_extra_intermediates, control) {
+        for action in CSI::parse(
+            params,
+            intermediates,
+            ignored_extra_intermediates,
+            control as char,
+        ) {
             (self.callback)(Action::CSI(action));
         }
     }

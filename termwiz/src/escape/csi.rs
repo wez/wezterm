@@ -1108,7 +1108,7 @@ pub enum Font {
 /// it parses them out from the input sequence.
 struct CSIParser<'a> {
     intermediates: &'a [u8],
-    /// From vte::Perform: this flag is set when more than two intermediates
+    /// this flag is set when more than two intermediates
     /// arrived and subsequent characters were ignored.
     ignored_extra_intermediates: bool,
     control: char,

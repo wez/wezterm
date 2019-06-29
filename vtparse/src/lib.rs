@@ -254,7 +254,6 @@ impl VTParser {
     }
 
     fn action(&mut self, action: Action, param: u8, actor: &mut dyn VTActor) {
-        eprintln!("action {:?} {}", action, param);
         match action {
             Action::None | Action::Ignore => {}
             Action::Print => actor.print(param as char),
@@ -403,27 +402,32 @@ impl VTParser {
         self.utf8_parser.advance(&mut decoder, byte);
     }
 
+    #[inline(always)]
+    pub fn parse_byte(&mut self, byte: u8, actor: &mut dyn VTActor) {
+        // While in utf-8 parsing mode, co-opt the vt state
+        // table and instead use the utf-8 state table from the
+        // parser.  It will drop us back into the Ground state
+        // after each recognized (or invalid) codepoint.
+        if self.state == State::Utf8Sequence {
+            self.next_utf8(actor, byte);
+            return;
+        }
+
+        let (action, state) = lookup(self.state, byte);
+
+        if state != self.state {
+            self.action(lookup_exit(self.state), 0, actor);
+            self.action(action, byte, actor);
+            self.action(lookup_entry(state), 0, actor);
+            self.state = state;
+        } else {
+            self.action(action, byte, actor);
+        }
+    }
+
     pub fn parse(&mut self, bytes: &[u8], actor: &mut dyn VTActor) {
         for b in bytes {
-            // While in utf-8 parsing mode, co-opt the vt state
-            // table and instead use the utf-8 state table from the
-            // parser.  It will drop us back into the Ground state
-            // after each recognized (or invalid) codepoint.
-            if self.state == State::Utf8Sequence {
-                self.next_utf8(actor, *b);
-                continue;
-            }
-
-            let (action, state) = lookup(self.state, *b);
-
-            if state != self.state {
-                self.action(lookup_exit(self.state), 0, actor);
-                self.action(action, *b, actor);
-                self.action(lookup_entry(state), 0, actor);
-                self.state = state;
-            } else {
-                self.action(action, *b, actor);
-            }
+            self.parse_byte(*b, actor);
         }
     }
 }
