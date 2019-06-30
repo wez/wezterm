@@ -3,6 +3,12 @@ authors = ["Wez Furlong <wez@wezfurlong.org>"]
 name = "vtparse"
 version = "0.1.0"
 edition = "2018"
+repository = "https://github.com/wez/wezterm"
+description = "Low level escape sequence parser"
+license = "MIT"
+documentation = "https://docs.rs/termwiz"
+keywords = ["terminal", "escape", "ansi", "sequence", "parser"]
+readme = "README.md"
 
 [dependencies]
 utf8parse = "0.1"

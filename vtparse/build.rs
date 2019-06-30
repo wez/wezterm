@@ -335,7 +335,7 @@ fn pack(action: Action, state: State) -> u8 {
 
 fn write_tables(dest_path: std::path::PathBuf, tables: &Tables) -> std::io::Result<()> {
     let mut f = std::fs::File::create(&dest_path)?;
-    writeln!(f, "pub static TRANSITIONS: [[u8; 256]; 14] = [")?;
+    writeln!(f, "static TRANSITIONS: [[u8; 256]; 14] = [")?;
     for state_num in State::Ground as u8..State::Anywhere as u8 {
         let this_state = State::from_u8(state_num);
         writeln!(f, "  // State: {:?}", this_state)?;
@@ -365,7 +365,7 @@ fn event_table(
     f: &mut std::fs::File,
     table: &HashMap<State, Action>,
 ) -> std::io::Result<()> {
-    writeln!(f, "pub static {}: [Action; 14] = [", label)?;
+    writeln!(f, "static {}: [Action; 14] = [", label)?;
     for state_num in State::Ground as u8..State::Anywhere as u8 {
         let this_state = State::from_u8(state_num);
         let action = table.get(&this_state).cloned().unwrap_or(Action::None);
