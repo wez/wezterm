@@ -392,7 +392,7 @@ impl Renderable for RenderableState {
         let mut inner = self.inner.borrow_mut();
         let seq = inner.surface.current_seqno();
         inner.surface.flush_changes_older_than(seq);
-        let selection = inner.selection_range.lock().unwrap().clone();
+        let selection = *inner.selection_range.lock().unwrap();
         inner.something_changed.store(false, Ordering::SeqCst);
         inner.local_sequence = seq;
         inner

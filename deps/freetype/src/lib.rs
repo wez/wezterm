@@ -3,6 +3,7 @@
 #![allow(non_snake_case)]
 #![allow(non_camel_case_types)]
 #![allow(non_upper_case_globals)]
+#![allow(clippy::unreadable_literal)]
 pub type FT_Int16 = i16;
 pub type FT_UInt16 = u16;
 pub type FT_Int32 = i32;

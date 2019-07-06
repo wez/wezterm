@@ -190,6 +190,10 @@ impl Reconnectable {
         Self { config, stream }
     }
 
+    // Clippy thinks we should return &ReadAndWrite here, but the caller
+    // needs to know the size of the returned type in a number of situations,
+    // so suppress that lint
+    #[allow(clippy::borrowed_box)]
     fn stream(&mut self) -> &mut Box<dyn ReadAndWrite> {
         self.stream.as_mut().unwrap()
     }

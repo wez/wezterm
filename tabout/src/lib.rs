@@ -58,7 +58,7 @@ fn emit_column<W: std::io::Write>(
 /// will be assumed.
 pub fn tabulate_output<S: std::string::ToString, W: std::io::Write>(
     columns: &[Column],
-    rows: &Vec<Vec<S>>,
+    rows: &[Vec<S>],
     output: &mut W,
 ) -> Result<(), std::io::Error> {
     let mut col_widths: Vec<usize> = columns.iter().map(|c| c.name.len()).collect();
@@ -83,11 +83,11 @@ pub fn tabulate_output<S: std::string::ToString, W: std::io::Write>(
 
         emit_column(&col.name, col_widths[idx], col.alignment, output)?;
     }
-    write!(output, "\n")?;
+    writeln!(output)?;
 
     for row in &display_rows {
         for (idx, col) in row.iter().enumerate() {
-            let max_width = col_widths.get(idx).cloned().unwrap_or(col.len());
+            let max_width = col_widths.get(idx).cloned().unwrap_or_else(|| col.len());
             let alignment = columns
                 .get(idx)
                 .map(|c| c.alignment)
@@ -99,7 +99,7 @@ pub fn tabulate_output<S: std::string::ToString, W: std::io::Write>(
 
             emit_column(col, max_width, alignment, output)?;
         }
-        write!(output, "\n")?;
+        writeln!(output)?;
     }
 
     Ok(())
@@ -109,7 +109,7 @@ pub fn tabulate_output<S: std::string::ToString, W: std::io::Write>(
 /// the formatted data.
 pub fn tabulate_output_as_string<S: std::string::ToString>(
     columns: &[Column],
-    rows: &Vec<Vec<S>>,
+    rows: &[Vec<S>],
 ) -> Result<String, std::io::Error> {
     let mut output: Vec<u8> = vec![];
     tabulate_output(columns, rows, &mut output)?;
