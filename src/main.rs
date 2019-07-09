@@ -135,12 +135,21 @@ enum CliSubCommand {
 fn run_terminal_gui(config: Arc<config::Config>, opts: &StartCommand) -> Fallible<()> {
     #[cfg(unix)]
     {
-        if opts.daemonize {
-            use std::fs::OpenOptions;
+        use failure::format_err;
+        use std::fs::OpenOptions;
+        use std::path::PathBuf;
+
+        fn open_log(path: PathBuf) -> Fallible<std::fs::File> {
             let mut options = OpenOptions::new();
             options.write(true).create(true).append(true);
-            let stdout = options.open(config.daemon_options.stdout())?;
-            let stderr = options.open(config.daemon_options.stderr())?;
+            options
+                .open(&path)
+                .map_err(|e| format_err!("failed to open log stream: {}: {}", path.display(), e))
+        }
+
+        if opts.daemonize {
+            let stdout = open_log(config.daemon_options.stdout())?;
+            let stderr = open_log(config.daemon_options.stderr())?;
             daemonize::Daemonize::new()
                 .stdout(stdout)
                 .stderr(stderr)
