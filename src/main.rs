@@ -1,7 +1,7 @@
 // Don't create a new standard console window when launched from the windows GUI.
 #![windows_subsystem = "windows"]
 
-use failure::{Error, Fallible};
+use failure::{err_msg, Error, Fallible};
 use std::ffi::OsString;
 use std::fs::DirBuilder;
 #[cfg(unix)]
@@ -152,28 +152,13 @@ pub fn create_user_owned_dirs(p: &Path) -> Fallible<()> {
 fn run_terminal_gui(config: Arc<config::Config>, opts: &StartCommand) -> Fallible<()> {
     #[cfg(unix)]
     {
-        use failure::format_err;
-        use std::fs::OpenOptions;
-        use std::path::PathBuf;
-
-        fn open_log(path: PathBuf) -> Fallible<std::fs::File> {
-            create_user_owned_dirs(
-                path.parent()
-                    .ok_or_else(|| format_err!("path {} has no parent dir!?", path.display()))?,
-            )?;
-            let mut options = OpenOptions::new();
-            options.write(true).create(true).append(true);
-            options
-                .open(&path)
-                .map_err(|e| format_err!("failed to open log stream: {}: {}", path.display(), e))
-        }
-
         if opts.daemonize {
-            let stdout = open_log(config.daemon_options.stdout())?;
-            let stderr = open_log(config.daemon_options.stderr())?;
+            let stdout = config.daemon_options.open_stdout()?;
+            let stderr = config.daemon_options.open_stderr()?;
             daemonize::Daemonize::new()
                 .stdout(stdout)
                 .stderr(stderr)
+                .working_directory(dirs::home_dir().ok_or_else(|| err_msg("can't find home dir"))?)
                 .pid_file(config.daemon_options.pid_file())
                 .start()?;
         }
@@ -245,7 +230,13 @@ fn run_terminal_gui(config: Arc<config::Config>, opts: &StartCommand) -> Fallibl
 }
 
 fn main() -> Result<(), Error> {
-    pretty_env_logger::init();
+    let opts = Opt::from_args();
+    let config = Arc::new(if opts.skip_config {
+        config::Config::default_config()
+    } else {
+        config::Config::load()?
+    });
+
     // This is a bit gross.
     // In order to not to automatically open a standard windows console when
     // we run, we use the windows_subsystem attribute at the top of this
@@ -259,15 +250,36 @@ fn main() -> Result<(), Error> {
     // input but didn't know to re-draw the prompt.
     #[cfg(windows)]
     unsafe {
-        winapi::um::wincon::AttachConsole(winapi::um::wincon::ATTACH_PARENT_PROCESS)
-    };
+        if winapi::um::wincon::AttachConsole(winapi::um::wincon::ATTACH_PARENT_PROCESS) == 0 {
+            // If we failed to attach the console then we're running in
+            // a gui only context.  To aid in troubleshooting, let's redirect
+            // the stdio streams to a log file
+            let stdout = config.daemon_options.open_stdout()?;
+            let stderr = config.daemon_options.open_stderr()?;
+            use filedescriptor::IntoRawFileDescriptor;
+            use winapi::um::processenv::SetStdHandle;
+            use winapi::um::winbase::{STD_ERROR_HANDLE, STD_OUTPUT_HANDLE};
+            SetStdHandle(STD_OUTPUT_HANDLE, stdout.into_raw_file_descriptor());
+            SetStdHandle(STD_ERROR_HANDLE, stderr.into_raw_file_descriptor());
 
-    let opts = Opt::from_args();
-    let config = Arc::new(if opts.skip_config {
-        config::Config::default_config()
-    } else {
-        config::Config::load()?
-    });
+            std::env::set_current_dir(
+                dirs::home_dir().ok_or_else(|| err_msg("can't find home dir"))?,
+            )?;
+        }
+    };
+    pretty_env_logger::init();
+    {
+        log::error!("args:");
+        for a in std::env::args() {
+            log::error!("{}", a);
+        }
+        log::error!("--");
+        log::error!("env:");
+        for (k, v) in std::env::vars() {
+            log::error!("{}={}", k, v);
+        }
+        log::error!("--");
+    }
 
     match opts
         .cmd

@@ -238,11 +238,24 @@ impl Reconnectable {
                     sock_path.display(),
                     e
                 );
+
                 let argv = unix_dom.serve_command()?;
-                let mut child = std::process::Command::new(&argv[0])
-                    .args(&argv[1..])
-                    .spawn()?;
-                child.wait()?;
+
+                // We need to use a pty to spawn the command because,
+                // on Windows, when spawned from the gui with no pre-existing
+                // conhost.exe, `wsl.exe` will fail to start up correctly.
+                // This also has a nice side effect of not flashing up a
+                // console window when we first spin up the wsl instance.
+                let pty_system = portable_pty::PtySystemSelection::default().get()?;
+                let pair = pty_system.openpty(Default::default())?;
+                let mut cmd = portable_pty::CommandBuilder::new(&argv[0]);
+                cmd.args(&argv[1..]);
+                let mut child = pair.slave.spawn_command(cmd)?;
+                let status = child.wait()?;
+                if !status.success() {
+                    log::error!("{:?} failed with status {:?}", argv, status);
+                }
+
                 unix_connect_with_retry(&sock_path)?
             }
         };

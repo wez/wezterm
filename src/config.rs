@@ -4,7 +4,7 @@ use crate::font::FontSystemSelection;
 use crate::frontend::guicommon::host::KeyAssignment;
 use crate::frontend::guicommon::window::SpawnTabDomain;
 use crate::frontend::FrontEndSelection;
-use crate::get_shell;
+use crate::{create_user_owned_dirs, get_shell};
 use failure::{bail, err_msg, format_err, Error, Fallible};
 use lazy_static::lazy_static;
 use portable_pty::{CommandBuilder, PtySystemSelection};
@@ -15,6 +15,7 @@ use std::collections::HashMap;
 use std::convert::TryInto;
 use std::ffi::{OsStr, OsString};
 use std::fs;
+use std::fs::{File, OpenOptions};
 use std::io::prelude::*;
 use std::path::PathBuf;
 use term;
@@ -372,6 +373,18 @@ pub struct DaemonOptions {
     pub stderr: Option<PathBuf>,
 }
 
+fn open_log(path: PathBuf) -> Fallible<std::fs::File> {
+    create_user_owned_dirs(
+        path.parent()
+            .ok_or_else(|| format_err!("path {} has no parent dir!?", path.display()))?,
+    )?;
+    let mut options = OpenOptions::new();
+    options.write(true).create(true).append(true);
+    options
+        .open(&path)
+        .map_err(|e| format_err!("failed to open log stream: {}: {}", path.display(), e))
+}
+
 impl DaemonOptions {
     #[cfg_attr(windows, allow(dead_code))]
     pub fn pid_file(&self) -> PathBuf {
@@ -381,7 +394,6 @@ impl DaemonOptions {
             .unwrap_or_else(|| RUNTIME_DIR.join("pid"))
     }
 
-    #[cfg_attr(windows, allow(dead_code))]
     pub fn stdout(&self) -> PathBuf {
         self.stdout
             .as_ref()
@@ -389,12 +401,19 @@ impl DaemonOptions {
             .unwrap_or_else(|| RUNTIME_DIR.join("log"))
     }
 
-    #[cfg_attr(windows, allow(dead_code))]
     pub fn stderr(&self) -> PathBuf {
         self.stderr
             .as_ref()
             .cloned()
             .unwrap_or_else(|| RUNTIME_DIR.join("log"))
+    }
+
+    pub fn open_stdout(&self) -> Fallible<File> {
+        open_log(self.stdout())
+    }
+
+    pub fn open_stderr(&self) -> Fallible<File> {
+        open_log(self.stderr())
     }
 }
 
