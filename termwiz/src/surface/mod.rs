@@ -534,11 +534,11 @@ impl Surface {
     /// resources from the change log.
     pub fn flush_changes_older_than(&mut self, seq: SequenceNo) {
         let first = self.seqno.saturating_sub(self.changes.len());
-        let idx = seq - first;
+        let idx = seq.saturating_sub(first);
         if idx > self.changes.len() {
             return;
         }
-        self.changes = self.changes.split_off(seq - first);
+        self.changes = self.changes.split_off(idx);
     }
 
     /// Without allocating resources, estimate how many Change entries
