@@ -5,6 +5,8 @@ use crate::{
 use failure::{bail, Fallible};
 use std::os::unix::prelude::*;
 
+pub(crate) type HandleType = ();
+
 /// `RawFileDescriptor` is a platform independent type alias for the
 /// underlying platform file descriptor type.  It is primarily useful
 /// for avoiding using `cfg` blocks in platform independent code.
@@ -75,7 +77,10 @@ impl IntoRawFd for OwnedHandle {
 
 impl FromRawFd for OwnedHandle {
     unsafe fn from_raw_fd(fd: RawFd) -> Self {
-        Self { handle: fd }
+        Self {
+            handle: fd,
+            handle_type: (),
+        }
     }
 }
 
@@ -108,14 +113,20 @@ impl OwnedHandle {
                 std::io::Error::last_os_error()
             )
         } else {
-            let mut owned = OwnedHandle { handle: duped };
+            let mut owned = OwnedHandle {
+                handle: duped,
+                handle_type: (),
+            };
             owned.cloexec()?;
             Ok(owned)
         }
     }
 
     #[inline]
-    pub(crate) fn dup_impl<F: AsRawFileDescriptor>(fd: &F) -> Fallible<Self> {
+    pub(crate) fn dup_impl<F: AsRawFileDescriptor>(
+        fd: &F,
+        handle_type: HandleType,
+    ) -> Fallible<Self> {
         let fd = fd.as_raw_file_descriptor();
         let duped = unsafe { libc::fcntl(fd, libc::F_DUPFD_CLOEXEC, 0) };
         if duped == -1 {
@@ -128,8 +139,15 @@ impl OwnedHandle {
                 bail!("dup of fd {} failed: {:?}", fd, err)
             }
         } else {
-            Ok(OwnedHandle { handle: duped })
+            Ok(OwnedHandle {
+                handle: duped,
+                handle_type,
+            })
         }
+    }
+
+    pub(crate) fn probe_handle_type(_handle: RawFileDescriptor) -> HandleType {
+        ()
     }
 }
 
@@ -200,10 +218,16 @@ impl Pipe {
             )
         } else {
             let read = FileDescriptor {
-                handle: OwnedHandle { handle: fds[0] },
+                handle: OwnedHandle {
+                    handle: fds[0],
+                    handle_type: (),
+                },
             };
             let write = FileDescriptor {
-                handle: OwnedHandle { handle: fds[1] },
+                handle: OwnedHandle {
+                    handle: fds[1],
+                    handle_type: (),
+                },
             };
             Ok(Pipe { read, write })
         }
@@ -251,10 +275,16 @@ pub fn socketpair_impl() -> Fallible<(FileDescriptor, FileDescriptor)> {
         )
     } else {
         let read = FileDescriptor {
-            handle: OwnedHandle { handle: fds[0] },
+            handle: OwnedHandle {
+                handle: fds[0],
+                handle_type: (),
+            },
         };
         let write = FileDescriptor {
-            handle: OwnedHandle { handle: fds[1] },
+            handle: OwnedHandle {
+                handle: fds[1],
+                handle_type: (),
+            },
         };
         Ok((read, write))
     }

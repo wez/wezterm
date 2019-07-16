@@ -97,6 +97,7 @@
 //! # Ok::<(), Error>(())
 //! ```
 use failure::Fallible;
+
 #[cfg(unix)]
 mod unix;
 #[cfg(unix)]
@@ -147,6 +148,7 @@ pub trait FromRawSocketDescriptor {
 #[derive(Debug)]
 pub struct OwnedHandle {
     handle: RawFileDescriptor,
+    handle_type: HandleType,
 }
 
 impl OwnedHandle {
@@ -154,8 +156,10 @@ impl OwnedHandle {
     /// the system `RawFileDescriptor` type.  This consumes the parameter
     /// and replaces it with an `OwnedHandle` instance.
     pub fn new<F: IntoRawFileDescriptor>(f: F) -> Self {
+        let handle = f.into_raw_file_descriptor();
         Self {
-            handle: f.into_raw_file_descriptor(),
+            handle,
+            handle_type: Self::probe_handle_type(handle),
         }
     }
 
@@ -166,7 +170,7 @@ impl OwnedHandle {
     /// The returned handle has a separate lifetime from the source, but
     /// references the same object at the kernel level.
     pub fn try_clone(&self) -> Fallible<Self> {
-        Self::dup(self)
+        Self::dup_impl(self, self.handle_type)
     }
 
     /// Attempt to duplicate the underlying handle from an object that is
@@ -177,7 +181,7 @@ impl OwnedHandle {
     /// The returned handle has a separate lifetime from the source, but
     /// references the same object at the kernel level.
     pub fn dup<F: AsRawFileDescriptor>(f: &F) -> Fallible<Self> {
-        Self::dup_impl(f)
+        Self::dup_impl(f, Default::default())
     }
 }
 

@@ -34,6 +34,21 @@ pub type RawFileDescriptor = RawHandle;
 /// for avoiding using `cfg` blocks in platform independent code.
 pub type SocketDescriptor = SOCKET;
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum HandleType {
+    Char,
+    Disk,
+    Pipe,
+    Socket,
+    Unknown,
+}
+
+impl Default for HandleType {
+    fn default() -> Self {
+        HandleType::Unknown
+    }
+}
+
 impl<T: AsRawHandle> AsRawFileDescriptor for T {
     fn as_raw_file_descriptor(&self) -> RawFileDescriptor {
         self.as_raw_handle()
@@ -72,34 +87,43 @@ impl<T: FromRawSocket> FromRawSocketDescriptor for T {
 
 unsafe impl Send for OwnedHandle {}
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum HandleType {
-    Char,
-    Disk,
-    Pipe,
-    Socket,
-    Unknown,
-}
-
-fn handle_type(handle: HANDLE) -> HandleType {
-    match unsafe { GetFileType(handle) } {
-        FILE_TYPE_CHAR => HandleType::Char,
-        FILE_TYPE_DISK => HandleType::Disk,
-        FILE_TYPE_PIPE => {
-            // Could be a pipe or a socket.  Test if for pipeness
-            let mut flags = 0;
-            let mut out_buf = 0;
-            let mut in_buf = 0;
-            let mut inst = 0;
-            if unsafe { GetNamedPipeInfo(handle, &mut flags, &mut out_buf, &mut in_buf, &mut inst) }
-                != 0
-            {
-                HandleType::Pipe
-            } else {
-                HandleType::Socket
-            }
+impl OwnedHandle {
+    fn probe_handle_type_if_unknown(handle: HANDLE, handle_type: HandleType) -> HandleType {
+        match handle_type {
+            HandleType::Unknown => Self::probe_handle_type(handle),
+            t => t,
         }
-        _ => HandleType::Unknown,
+    }
+
+    pub(crate) fn probe_handle_type(handle: HANDLE) -> HandleType {
+        match unsafe { GetFileType(handle) } {
+            FILE_TYPE_CHAR => HandleType::Char,
+            FILE_TYPE_DISK => HandleType::Disk,
+            FILE_TYPE_PIPE => {
+                // Could be a pipe or a socket.  Test if for pipeness
+                let mut flags = 0;
+                let mut out_buf = 0;
+                let mut in_buf = 0;
+                let mut inst = 0;
+                if unsafe {
+                    GetNamedPipeInfo(handle, &mut flags, &mut out_buf, &mut in_buf, &mut inst)
+                } != 0
+                {
+                    HandleType::Pipe
+                } else {
+                    HandleType::Socket
+                }
+            }
+            _ => HandleType::Unknown,
+        }
+    }
+
+    fn is_socket_handle(&self) -> bool {
+        match self.handle_type {
+            HandleType::Socket => true,
+            HandleType::Unknown => Self::probe_handle_type(self.handle) == HandleType::Socket,
+            _ => false,
+        }
     }
 }
 
@@ -107,7 +131,7 @@ impl Drop for OwnedHandle {
     fn drop(&mut self) {
         if self.handle != INVALID_HANDLE_VALUE as _ && !self.handle.is_null() {
             unsafe {
-                if handle_type(self.handle as _) == HandleType::Socket {
+                if self.is_socket_handle() {
                     closesocket(self.handle as _);
                 } else {
                     CloseHandle(self.handle as _);
@@ -119,17 +143,28 @@ impl Drop for OwnedHandle {
 
 impl FromRawHandle for OwnedHandle {
     unsafe fn from_raw_handle(handle: RawHandle) -> Self {
-        OwnedHandle { handle }
+        OwnedHandle {
+            handle,
+            handle_type: Self::probe_handle_type(handle),
+        }
     }
 }
 
 impl OwnedHandle {
     #[inline]
-    pub(crate) fn dup_impl<F: AsRawFileDescriptor>(f: &F) -> Fallible<Self> {
+    pub(crate) fn dup_impl<F: AsRawFileDescriptor>(
+        f: &F,
+        handle_type: HandleType,
+    ) -> Fallible<Self> {
         let handle = f.as_raw_file_descriptor();
         if handle == INVALID_HANDLE_VALUE as _ || handle.is_null() {
-            return Ok(OwnedHandle { handle });
+            return Ok(OwnedHandle {
+                handle,
+                handle_type,
+            });
         }
+
+        let handle_type = Self::probe_handle_type_if_unknown(handle, handle_type);
 
         let proc = unsafe { GetCurrentProcess() };
         let mut duped = INVALID_HANDLE_VALUE;
@@ -149,6 +184,7 @@ impl OwnedHandle {
         } else {
             Ok(OwnedHandle {
                 handle: duped as *mut _,
+                handle_type,
             })
         }
     }
@@ -201,10 +237,7 @@ impl FromRawHandle for FileDescriptor {
 impl IntoRawSocket for FileDescriptor {
     fn into_raw_socket(self) -> RawSocket {
         // FIXME: this isn't a guaranteed conversion!
-        debug_assert_eq!(
-            handle_type(self.handle.as_raw_handle() as _),
-            HandleType::Socket
-        );
+        debug_assert!(self.handle.is_socket_handle());
         self.handle.into_raw_handle() as RawSocket
     }
 }
@@ -212,10 +245,7 @@ impl IntoRawSocket for FileDescriptor {
 impl AsRawSocket for FileDescriptor {
     fn as_raw_socket(&self) -> RawSocket {
         // FIXME: this isn't a guaranteed conversion!
-        debug_assert_eq!(
-            handle_type(self.handle.as_raw_handle() as _),
-            HandleType::Socket
-        );
+        debug_assert!(self.handle.is_socket_handle());
         self.handle.as_raw_handle() as RawSocket
     }
 }
@@ -290,10 +320,16 @@ impl Pipe {
         }
         Ok(Pipe {
             read: FileDescriptor {
-                handle: OwnedHandle { handle: read as _ },
+                handle: OwnedHandle {
+                    handle: read as _,
+                    handle_type: HandleType::Pipe,
+                },
             },
             write: FileDescriptor {
-                handle: OwnedHandle { handle: write as _ },
+                handle: OwnedHandle {
+                    handle: write as _,
+                    handle_type: HandleType::Pipe,
+                },
             },
         })
     }
@@ -326,7 +362,10 @@ fn socket(af: i32, sock_type: i32, proto: i32) -> Fallible<FileDescriptor> {
         bail!("socket failed: {}", IoError::last_os_error());
     }
     Ok(FileDescriptor {
-        handle: OwnedHandle { handle: s as _ },
+        handle: OwnedHandle {
+            handle: s as _,
+            handle_type: HandleType::Socket,
+        },
     })
 }
 
@@ -392,6 +431,7 @@ pub fn socketpair_impl() -> Fallible<(FileDescriptor, FileDescriptor)> {
     let server = FileDescriptor {
         handle: OwnedHandle {
             handle: server as _,
+            handle_type: HandleType::Socket,
         },
     };
 
