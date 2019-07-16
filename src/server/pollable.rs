@@ -115,7 +115,7 @@ impl AsPollFd for SocketDescriptor {
     fn as_poll_fd(&self) -> pollfd {
         pollfd {
             fd: *self,
-            events: POLLIN | POLLERR,
+            events: POLLIN,
             revents: 0,
         }
     }
@@ -141,5 +141,7 @@ impl AsPollFd for UnixStream {
 }
 
 pub fn poll_for_read(pfd: &mut [pollfd]) {
-    poll(pfd, None).ok();
+    if let Err(e) = poll(pfd, None) {
+        log::error!("poll failed for {}", e);
+    }
 }
