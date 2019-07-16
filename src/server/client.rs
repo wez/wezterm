@@ -238,8 +238,9 @@ impl Reconnectable {
                     sock_path.display(),
                     e
                 );
-                let mut child = std::process::Command::new(std::env::current_exe()?)
-                    .args(&["start", "--daemonize", "--front-end", "MuxServer"])
+                let argv = unix_dom.serve_command()?;
+                let mut child = std::process::Command::new(&argv[0])
+                    .args(&argv[1..])
                     .spawn()?;
                 child.wait()?;
                 unix_connect_with_retry(&sock_path)?

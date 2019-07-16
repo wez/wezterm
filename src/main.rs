@@ -3,6 +3,10 @@
 
 use failure::{Error, Fallible};
 use std::ffi::OsString;
+use std::fs::DirBuilder;
+#[cfg(unix)]
+use std::os::unix::fs::DirBuilderExt;
+use std::path::Path;
 use structopt::StructOpt;
 use tabout::{tabulate_output, Alignment, Column};
 
@@ -132,6 +136,19 @@ enum CliSubCommand {
     List,
 }
 
+pub fn create_user_owned_dirs(p: &Path) -> Fallible<()> {
+    let mut builder = DirBuilder::new();
+    builder.recursive(true);
+
+    #[cfg(unix)]
+    {
+        builder.mode(0o700);
+    }
+
+    builder.create(p)?;
+    Ok(())
+}
+
 fn run_terminal_gui(config: Arc<config::Config>, opts: &StartCommand) -> Fallible<()> {
     #[cfg(unix)]
     {
@@ -140,6 +157,10 @@ fn run_terminal_gui(config: Arc<config::Config>, opts: &StartCommand) -> Fallibl
         use std::path::PathBuf;
 
         fn open_log(path: PathBuf) -> Fallible<std::fs::File> {
+            create_user_owned_dirs(
+                path.parent()
+                    .ok_or_else(|| format_err!("path {} has no parent dir!?", path.display()))?,
+            )?;
             let mut options = OpenOptions::new();
             options.write(true).create(true).append(true);
             options

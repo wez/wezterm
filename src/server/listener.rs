@@ -1,4 +1,5 @@
 use crate::config::{Config, TlsDomainServer, UnixDomain};
+use crate::create_user_owned_dirs;
 use crate::mux::tab::{Tab, TabId};
 use crate::mux::{Mux, MuxNotification, MuxSubscriber};
 use crate::ratelim::RateLimiter;
@@ -15,11 +16,9 @@ use portable_pty::PtySize;
 use promise::{Executor, Future};
 use std::collections::{HashMap, HashSet};
 use std::convert::TryFrom;
-use std::fs::{remove_file, DirBuilder};
+use std::fs::remove_file;
 use std::io::Read;
 use std::net::TcpListener;
-#[cfg(unix)]
-use std::os::unix::fs::{DirBuilderExt, PermissionsExt};
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
@@ -896,18 +895,11 @@ fn safely_create_sock_path(unix_dom: &UnixDomain) -> Result<UnixListener, Error>
         .parent()
         .ok_or_else(|| format_err!("sock_path {} has no parent dir", sock_path.display()))?;
 
-    let mut builder = DirBuilder::new();
-    builder.recursive(true);
+    create_user_owned_dirs(sock_dir)?;
 
     #[cfg(unix)]
     {
-        builder.mode(0o700);
-    }
-
-    builder.create(sock_dir)?;
-
-    #[cfg(unix)]
-    {
+        use std::os::unix::fs::PermissionsExt;
         if !unix_dom.skip_permissions_check {
             // Let's be sure that the ownership looks sane
             let meta = sock_dir.symlink_metadata()?;

@@ -13,7 +13,7 @@ use serde_derive::*;
 use std;
 use std::collections::HashMap;
 use std::convert::TryInto;
-use std::ffi::OsStr;
+use std::ffi::{OsStr, OsString};
 use std::fs;
 use std::io::prelude::*;
 use std::path::PathBuf;
@@ -415,6 +415,14 @@ pub struct UnixDomain {
     #[serde(default)]
     pub no_serve_automatically: bool,
 
+    /// If we decide that we need to start the server, the command to run
+    /// to set that up.  The default is to spawn:
+    /// `wezterm --daemonize --front-end MuxServer`
+    /// but it can be useful to set this to eg:
+    /// `wsl -e wezterm --daemonize --front-end MuxServer` to start up
+    /// a unix domain inside a wsl container.
+    pub serve_command: Option<Vec<String>>,
+
     /// If true, bypass checking for secure ownership of the
     /// socket_path.  This is not recommended on a multi-user
     /// system, but is useful for example when running the
@@ -434,6 +442,19 @@ impl UnixDomain {
 
     fn default_unix_domains() -> Vec<Self> {
         vec![UnixDomain::default()]
+    }
+
+    pub fn serve_command(&self) -> Fallible<Vec<OsString>> {
+        match self.serve_command.as_ref() {
+            Some(cmd) => Ok(cmd.iter().map(Into::into).collect()),
+            None => Ok(vec![
+                std::env::current_exe()?.into_os_string(),
+                OsString::from("start"),
+                OsString::from("--daemonize"),
+                OsString::from("--front-end"),
+                OsString::from("MuxServer"),
+            ]),
+        }
     }
 }
 
