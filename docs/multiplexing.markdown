@@ -77,17 +77,12 @@ socket_path = "/mnt/c/Users/USERNAME/.local/share/wezterm/sock"
 skip_permissions_check = true
 ```
 
-and then start the server:
-
-```bash
-$ wezterm start --front-end MuxServer --daemonize
-```
-
 In the host win32 configuration, use this snippet:
 
 ```toml
 [[unix_domains]]
 connect_automatically = true
+serve_command = ["wsl", "wezterm", "start", "--daemonize", "--front-end", "MuxServer"]
 ```
 
 Now when you start wezterm you'll be presented with a WSL tab.
