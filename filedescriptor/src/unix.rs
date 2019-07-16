@@ -244,10 +244,16 @@ impl Pipe {
             )
         } else {
             let mut read = FileDescriptor {
-                handle: OwnedHandle { handle: fds[0] },
+                handle: OwnedHandle {
+                    handle: fds[0],
+                    handle_type: (),
+                },
             };
             let mut write = FileDescriptor {
-                handle: OwnedHandle { handle: fds[1] },
+                handle: OwnedHandle {
+                    handle: fds[1],
+                    handle_type: (),
+                },
             };
             read.handle.cloexec()?;
             write.handle.cloexec()?;
@@ -302,10 +308,16 @@ pub fn socketpair_impl() -> Fallible<(FileDescriptor, FileDescriptor)> {
         )
     } else {
         let mut read = FileDescriptor {
-            handle: OwnedHandle { handle: fds[0] },
+            handle: OwnedHandle {
+                handle: fds[0],
+                handle_type: (),
+            },
         };
         let mut write = FileDescriptor {
-            handle: OwnedHandle { handle: fds[1] },
+            handle: OwnedHandle {
+                handle: fds[1],
+                handle_type: (),
+            },
         };
         read.handle.cloexec()?;
         write.handle.cloexec()?;
