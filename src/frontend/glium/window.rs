@@ -16,6 +16,7 @@ use glium::glutin::{self, ElementState, MouseCursor};
 use log::{debug, error};
 use std::rc::Rc;
 use std::sync::Arc;
+use std::time::{Duration, Instant};
 use term;
 use term::KeyCode;
 use term::KeyModifiers;
@@ -83,6 +84,7 @@ pub struct GliumTerminalWindow {
     allow_received_character: bool,
     mux_window_id: WindowId,
     have_pending_resize_check: bool,
+    focus_instant: Instant,
 }
 
 impl TerminalWindow for GliumTerminalWindow {
@@ -257,6 +259,7 @@ impl GliumTerminalWindow {
             allow_received_character: false,
             mux_window_id,
             have_pending_resize_check: false,
+            focus_instant: Instant::now(),
         })
     }
 
@@ -671,6 +674,14 @@ impl GliumTerminalWindow {
                 }
             }
             Event::WindowEvent {
+                event: WindowEvent::Focused(focus),
+                ..
+            } => {
+                if focus {
+                    self.focus_instant = Instant::now();
+                }
+            }
+            Event::WindowEvent {
                 event: WindowEvent::Moved(position),
                 ..
             } => {
@@ -723,7 +734,14 @@ impl GliumTerminalWindow {
                     },
                 ..
             } => {
-                self.mouse_click(state, button, modifiers)?;
+                // When focusing the window, allow a brief grace period and ignore
+                // clicks within that interval.  If we don't do this, the click will
+                // clear the current selection which is super annoying if you just
+                // copied some text in another app, and then clicked on the terminal
+                // to paste it.
+                if Instant::now() - self.focus_instant > Duration::from_millis(200) {
+                    self.mouse_click(state, button, modifiers)?;
+                }
             }
             Event::WindowEvent {
                 event:
