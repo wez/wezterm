@@ -140,8 +140,10 @@ impl From<std::process::ExitStatus> for ExitStatus {
 }
 
 pub struct PtyPair {
-    pub master: Box<dyn MasterPty>,
+    // slave is listed first so that it is dropped first.
+    // The drop order is stable and specified by rust rfc 1857
     pub slave: Box<dyn SlavePty>,
+    pub master: Box<dyn MasterPty>,
 }
 
 /// The `PtySystem` trait allows an application to work with multiple
