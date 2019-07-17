@@ -268,18 +268,6 @@ fn main() -> Result<(), Error> {
         }
     };
     pretty_env_logger::init();
-    {
-        log::error!("args:");
-        for a in std::env::args() {
-            log::error!("{}", a);
-        }
-        log::error!("--");
-        log::error!("env:");
-        for (k, v) in std::env::vars() {
-            log::error!("{}={}", k, v);
-        }
-        log::error!("--");
-    }
 
     match opts
         .cmd
