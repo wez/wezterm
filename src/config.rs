@@ -394,6 +394,7 @@ impl DaemonOptions {
             .unwrap_or_else(|| RUNTIME_DIR.join("pid"))
     }
 
+    #[cfg_attr(windows, allow(dead_code))]
     pub fn stdout(&self) -> PathBuf {
         self.stdout
             .as_ref()
@@ -401,6 +402,7 @@ impl DaemonOptions {
             .unwrap_or_else(|| RUNTIME_DIR.join("log"))
     }
 
+    #[cfg_attr(windows, allow(dead_code))]
     pub fn stderr(&self) -> PathBuf {
         self.stderr
             .as_ref()
@@ -408,10 +410,12 @@ impl DaemonOptions {
             .unwrap_or_else(|| RUNTIME_DIR.join("log"))
     }
 
+    #[cfg_attr(windows, allow(dead_code))]
     pub fn open_stdout(&self) -> Fallible<File> {
         open_log(self.stdout())
     }
 
+    #[cfg_attr(windows, allow(dead_code))]
     pub fn open_stderr(&self) -> Fallible<File> {
         open_log(self.stderr())
     }

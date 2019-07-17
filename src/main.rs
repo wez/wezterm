@@ -251,6 +251,7 @@ fn main() -> Result<(), Error> {
     #[cfg(windows)]
     unsafe {
         if winapi::um::wincon::AttachConsole(winapi::um::wincon::ATTACH_PARENT_PROCESS) == 0 {
+            /*
             // If we failed to attach the console then we're running in
             // a gui only context.  To aid in troubleshooting, let's redirect
             // the stdio streams to a log file
@@ -261,6 +262,7 @@ fn main() -> Result<(), Error> {
             use winapi::um::winbase::{STD_ERROR_HANDLE, STD_OUTPUT_HANDLE};
             SetStdHandle(STD_OUTPUT_HANDLE, stdout.into_raw_file_descriptor());
             SetStdHandle(STD_ERROR_HANDLE, stderr.into_raw_file_descriptor());
+            */
 
             std::env::set_current_dir(
                 dirs::home_dir().ok_or_else(|| err_msg("can't find home dir"))?,
