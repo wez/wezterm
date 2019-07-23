@@ -204,9 +204,7 @@ struct GlState {
     display: Rc<egli::Display>,
     surface: egli::Surface,
     egl_context: egli::Context,
-    // It's not dead, it's owning a ref for gl
-    #[allow(dead_code)]
-    window: Rc<WindowHolder>,
+    _window: Rc<WindowHolder>,
 }
 
 /// A Window!
@@ -297,7 +295,7 @@ impl Window {
             display: Rc::clone(&conn.egl_display),
             egl_context,
             surface,
-            window: Rc::clone(&window),
+            _window: Rc::clone(&window),
         });
 
         let glium_context = unsafe {
