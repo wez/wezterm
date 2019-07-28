@@ -1,4 +1,4 @@
-use crate::config::{TlsDomainClient, UnixDomain};
+use crate::config::{SshDomain, TlsDomainClient, UnixDomain};
 use crate::font::{FontConfiguration, FontSystemSelection};
 use crate::frontend::front_end;
 use crate::mux::domain::{alloc_domain_id, Domain, DomainId, DomainState};
@@ -58,6 +58,7 @@ impl ClientInner {
 pub enum ClientDomainConfig {
     Unix(UnixDomain),
     Tls(TlsDomainClient),
+    Ssh(SshDomain),
 }
 
 impl ClientInner {
@@ -172,6 +173,9 @@ impl Domain for ClientDomain {
             }
             ClientDomainConfig::Tls(tls) => {
                 Client::new_tls(self.local_domain_id, mux.config(), tls)?
+            }
+            ClientDomainConfig::Ssh(ssh) => {
+                Client::new_ssh(self.local_domain_id, mux.config(), ssh)?
             }
         };
 

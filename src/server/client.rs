@@ -1,5 +1,5 @@
 #![allow(dead_code)]
-use crate::config::{Config, TlsDomainClient, UnixDomain};
+use crate::config::{Config, SshDomain, TlsDomainClient, UnixDomain};
 use crate::frontend::gui_executor;
 use crate::mux::domain::alloc_domain_id;
 use crate::mux::domain::DomainId;
@@ -11,9 +11,10 @@ use crate::server::tab::ClientTab;
 use crate::server::UnixStream;
 use crossbeam_channel::TryRecvError;
 use failure::{bail, err_msg, format_err, Fallible};
+use filedescriptor::{pollfd, AsRawSocketDescriptor};
 use log::info;
 use promise::{Future, Promise};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::io::Write;
 use std::net::TcpStream;
 use std::path::Path;
@@ -164,7 +165,7 @@ fn client_thread(
     }
 }
 
-fn unix_connect_with_retry(path: &Path) -> Result<UnixStream, std::io::Error> {
+pub fn unix_connect_with_retry(path: &Path) -> Result<UnixStream, std::io::Error> {
     let mut error = std::io::Error::last_os_error();
 
     for iter in 0..10 {
@@ -183,6 +184,54 @@ fn unix_connect_with_retry(path: &Path) -> Result<UnixStream, std::io::Error> {
 struct Reconnectable {
     config: ClientDomainConfig,
     stream: Option<Box<dyn ReadAndWrite>>,
+}
+
+struct SshStream {
+    chan: ssh2::Channel,
+    sess: ssh2::Session,
+}
+
+// This is a bit horrible, but is needed because the Channel type embeds
+// a raw pointer to chan and that trips the borrow checker.
+// Since we move both the session and channel together, it is safe
+// to mark SshStream as Send.
+unsafe impl Send for SshStream {}
+
+impl std::io::Read for SshStream {
+    fn read(&mut self, buf: &mut [u8]) -> Result<usize, std::io::Error> {
+        self.chan.read(buf)
+    }
+}
+
+impl AsPollFd for SshStream {
+    fn as_poll_fd(&self) -> pollfd {
+        self.sess
+            .tcp_stream()
+            .as_ref()
+            .unwrap()
+            .as_socket_descriptor()
+            .as_poll_fd()
+    }
+}
+
+impl std::io::Write for SshStream {
+    fn write(&mut self, buf: &[u8]) -> Result<usize, std::io::Error> {
+        self.chan.write(buf)
+    }
+    fn flush(&mut self) -> Result<(), std::io::Error> {
+        self.chan.flush()
+    }
+}
+
+impl ReadAndWrite for SshStream {
+    fn set_non_blocking(&self, non_blocking: bool) -> Fallible<()> {
+        self.sess.set_blocking(!non_blocking);
+        Ok(())
+    }
+
+    fn has_read_buffered(&self) -> bool {
+        false
+    }
 }
 
 impl Reconnectable {
@@ -205,6 +254,7 @@ impl Reconnectable {
             // the set of tabs and we'd have confusing and inconsistent state
             ClientDomainConfig::Unix(_) => false,
             ClientDomainConfig::Tls(_) => true,
+            ClientDomainConfig::Ssh(_) => false,
         }
     }
 
@@ -220,7 +270,191 @@ impl Reconnectable {
         match self.config.clone() {
             ClientDomainConfig::Unix(unix_dom) => self.unix_connect(unix_dom),
             ClientDomainConfig::Tls(tls) => self.tls_connect(tls),
+            ClientDomainConfig::Ssh(ssh) => self.ssh_connect(ssh),
         }
+    }
+
+    fn ssh_connect(&mut self, ssh_dom: SshDomain) -> Fallible<()> {
+        let mut sess = ssh2::Session::new()?;
+
+        let tcp = TcpStream::connect(&ssh_dom.remote_address)?;
+        sess.handshake(tcp)?;
+
+        if let Ok(mut known_hosts) = sess.known_hosts() {
+            let file = Path::new(&std::env::var("HOME").unwrap()).join(".ssh/known_hosts");
+            if file.exists() {
+                known_hosts
+                    .read_file(&file, ssh2::KnownHostFileKind::OpenSSH)
+                    .map_err(|e| {
+                        failure::format_err!("reading known_hosts file {}: {}", file.display(), e)
+                    })?;
+            }
+
+            let remote_host_name = ssh_dom.remote_address.split(':').next().ok_or_else(|| {
+                format_err!(
+                    "expected remote_address to have the form 'host:port', but have {}",
+                    ssh_dom.remote_address
+                )
+            })?;
+
+            let (key, key_type) = sess
+                .host_key()
+                .ok_or_else(|| failure::err_msg("failed to get ssh host key"))?;
+
+            let fingerprint = sess
+                .host_key_hash(ssh2::HashType::Sha256)
+                .ok_or_else(|| failure::err_msg("failed to get host fingerprint"))?;
+            let fingerprint = format!(
+                "SHA256:{}",
+                base64::encode_config(
+                    fingerprint,
+                    base64::Config::new(base64::CharacterSet::Standard, false)
+                )
+            );
+
+            use ssh2::CheckResult;
+            match known_hosts.check(&remote_host_name, key) {
+                CheckResult::Match => {}
+                CheckResult::NotFound => {
+                    let allow = tinyfiledialogs::message_box_yes_no(
+                        "wezterm",
+                        &format!(
+                            "SSH host {} is not yet trusted.\n\
+                             {:?} Fingerprint: {}.\n\
+                             Trust and continue connecting?",
+                            ssh_dom.remote_address, key_type, fingerprint
+                        ),
+                        tinyfiledialogs::MessageBoxIcon::Question,
+                        tinyfiledialogs::YesNo::No,
+                    );
+
+                    if tinyfiledialogs::YesNo::No == allow {
+                        bail!("user declined to trust host");
+                    }
+
+                    known_hosts
+                        .add(
+                            remote_host_name,
+                            key,
+                            &ssh_dom.remote_address,
+                            key_type.into(),
+                        )
+                        .map_err(|e| {
+                            failure::format_err!("adding known_hosts entry in memory: {}", e)
+                        })?;
+
+                    known_hosts
+                        .write_file(&file, ssh2::KnownHostFileKind::OpenSSH)
+                        .map_err(|e| {
+                            failure::format_err!(
+                                "writing known_hosts file {}: {}",
+                                file.display(),
+                                e
+                            )
+                        })?;
+                }
+                CheckResult::Mismatch => {
+                    tinyfiledialogs::message_box_ok(
+                        "wezterm",
+                        &format!(
+                            "host key mismatch for ssh server {}.\n\
+                             Got fingerprint {} instead of expected value from known_hosts\n\
+                             file {}.\n\
+                             Refusing to connect.",
+                            ssh_dom.remote_address,
+                            fingerprint,
+                            file.display()
+                        ),
+                        tinyfiledialogs::MessageBoxIcon::Error,
+                    );
+                    bail!("host mismatch, man in the middle attack?!");
+                }
+                CheckResult::Failure => {
+                    tinyfiledialogs::message_box_ok(
+                        "wezterm",
+                        "Failed to load and check known ssh hosts",
+                        tinyfiledialogs::MessageBoxIcon::Error,
+                    );
+                    bail!("failed to check the known hosts");
+                }
+            }
+        }
+
+        let methods: HashSet<&str> = sess.auth_methods(&ssh_dom.username)?.split(',').collect();
+
+        if !sess.authenticated() && methods.contains("publickey") {
+            if let Err(err) = sess.userauth_agent(&ssh_dom.username) {
+                log::info!("while attempting agent auth: {}", err);
+            }
+        }
+
+        fn password_prompt(instructions: &str, prompt: &str, dom: &SshDomain) -> Option<String> {
+            let text = format!(
+                "SSH Authentication for {} @ {}\n{}\n{}",
+                dom.username, dom.remote_address, instructions, prompt
+            );
+            tinyfiledialogs::password_box("wezterm", &text)
+        }
+
+        fn input_prompt(instructions: &str, prompt: &str, dom: &SshDomain) -> Option<String> {
+            let text = format!(
+                "SSH Authentication for {} @ {}\n{}\n{}",
+                dom.username, dom.remote_address, instructions, prompt
+            );
+            tinyfiledialogs::input_box("wezterm", &text, "")
+        }
+
+        if !sess.authenticated() && methods.contains("keyboard-interactive") {
+            struct Prompt<'a> {
+                dom: &'a SshDomain,
+            }
+
+            let mut prompt = Prompt { dom: &ssh_dom };
+            impl<'a> ssh2::KeyboardInteractivePrompt for Prompt<'a> {
+                fn prompt<'b>(
+                    &mut self,
+                    _username: &str,
+                    instructions: &str,
+                    prompts: &[ssh2::Prompt<'b>],
+                ) -> Vec<String> {
+                    prompts
+                        .iter()
+                        .map(|p| {
+                            let func = if p.echo {
+                                input_prompt
+                            } else {
+                                password_prompt
+                            };
+
+                            func(instructions, &p.text, &self.dom).unwrap_or_else(String::new)
+                        })
+                        .collect()
+                }
+            }
+
+            if let Err(err) = sess.userauth_keyboard_interactive(&ssh_dom.username, &mut prompt) {
+                log::error!("while attempting keyboard-interactive auth: {}", err);
+            }
+        }
+
+        if !sess.authenticated() && methods.contains("password") {
+            let pass = password_prompt("", "Password", &ssh_dom)
+                .ok_or_else(|| failure::err_msg("password entry was cancelled"))?;
+            if let Err(err) = sess.userauth_password(&ssh_dom.username, &pass) {
+                log::error!("while attempting password auth: {}", err);
+            }
+        }
+
+        if !sess.authenticated() {
+            failure::bail!("unable to authenticate session");
+        }
+
+        let mut chan = sess.channel_session()?;
+        chan.exec("wezterm cli proxy")?;
+
+        let stream: Box<dyn ReadAndWrite> = Box::new(SshStream { sess, chan });
+        self.stream.replace(stream);
+        Ok(())
     }
 
     fn unix_connect(&mut self, unix_dom: UnixDomain) -> Fallible<()> {
@@ -493,6 +727,16 @@ impl Client {
     ) -> Fallible<Self> {
         let mut reconnectable =
             Reconnectable::new(ClientDomainConfig::Tls(tls_client.clone()), None);
+        reconnectable.connect()?;
+        Ok(Self::new(local_domain_id, reconnectable))
+    }
+
+    pub fn new_ssh(
+        local_domain_id: DomainId,
+        _config: &Arc<Config>,
+        ssh_dom: &SshDomain,
+    ) -> Fallible<Self> {
+        let mut reconnectable = Reconnectable::new(ClientDomainConfig::Ssh(ssh_dom.clone()), None);
         reconnectable.connect()?;
         Ok(Self::new(local_domain_id, reconnectable))
     }

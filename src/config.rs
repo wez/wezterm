@@ -83,6 +83,8 @@ pub struct Config {
     #[serde(default = "UnixDomain::default_unix_domains")]
     pub unix_domains: Vec<UnixDomain>,
 
+    pub ssh_domains: Vec<SshDomain>,
+
     /// When running in server mode, defines configuration for
     /// each of the endpoints that we'll listen for connections
     #[serde(default)]
@@ -421,6 +423,23 @@ impl DaemonOptions {
     }
 }
 
+#[derive(Default, Debug, Clone, Deserialize)]
+pub struct SshDomain {
+    /// identifies the host:port pair of the remote server.
+    pub remote_address: String,
+
+    /// Whether agent auth should be disabled
+    #[serde(default)]
+    pub no_agent_auth: bool,
+
+    /// The username to use for authenticating with the remote host
+    pub username: String,
+
+    /// If true, connect to this domain automatically at startup
+    #[serde(default)]
+    pub connect_automatically: bool,
+}
+
 /// Configures an instance of a multiplexer that can be communicated
 /// with via a unix domain socket
 #[derive(Default, Debug, Clone, Deserialize)]
@@ -565,6 +584,7 @@ impl Default for Config {
             ratelimit_mux_output_pushes_per_second: None,
             ratelimit_mux_output_scans_per_second: None,
             unix_domains: UnixDomain::default_unix_domains(),
+            ssh_domains: vec![],
             keys: vec![],
             tls_servers: vec![],
             tls_clients: vec![],

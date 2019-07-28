@@ -4,6 +4,7 @@
 use failure::{err_msg, Error, Fallible};
 use std::ffi::OsString;
 use std::fs::DirBuilder;
+use std::io::{Read, Write};
 #[cfg(unix)]
 use std::os::unix::fs::DirBuilderExt;
 use std::path::Path;
@@ -22,7 +23,7 @@ mod server;
 use crate::frontend::FrontEndSelection;
 use crate::mux::domain::{Domain, LocalDomain};
 use crate::mux::Mux;
-use crate::server::client::Client;
+use crate::server::client::{unix_connect_with_retry, Client};
 use crate::server::domain::{ClientDomain, ClientDomainConfig};
 use portable_pty::cmdbuilder::CommandBuilder;
 
@@ -134,6 +135,9 @@ struct CliCommand {
 enum CliSubCommand {
     #[structopt(name = "list", about = "list windows and tabs")]
     List,
+
+    #[structopt(name = "proxy", about = "start rpc proxy pipe")]
+    Proxy,
 }
 
 pub fn create_user_owned_dirs(p: &Path) -> Fallible<()> {
@@ -199,6 +203,16 @@ fn run_terminal_gui(config: Arc<config::Config>, opts: &StartCommand) -> Fallibl
                 ClientDomain::new(ClientDomainConfig::Unix(unix_dom.clone())),
             )?;
             if unix_dom.connect_automatically {
+                dom.attach()?;
+            }
+        }
+
+        for ssh_dom in &config.ssh_domains {
+            let dom = record_domain(
+                &mux,
+                ClientDomain::new(ClientDomainConfig::Ssh(ssh_dom.clone())),
+            )?;
+            if ssh_dom.connect_automatically {
                 dom.attach()?;
             }
         }
@@ -315,8 +329,44 @@ fn main() -> Result<(), Error> {
                     }
                     tabulate_output(&cols, &data, &mut std::io::stdout().lock())?;
                 }
+                CliSubCommand::Proxy => {
+                    // The client object we created above will have spawned
+                    // the server if needed, so now all we need to do is turn
+                    // ourselves into basically netcat.
+                    drop(client);
+
+                    let unix_dom = config.unix_domains.first().unwrap();
+                    let sock_path = unix_dom.socket_path();
+                    let stream = unix_connect_with_retry(&sock_path)?;
+
+                    // Spawn a thread to pull data from the socket and write
+                    // it to stdout
+                    let duped = stream.try_clone()?;
+                    std::thread::spawn(move || {
+                        let stdout = std::io::stdout();
+                        consume_stream(duped, stdout.lock()).ok();
+                    });
+
+                    // and pull data from stdin and write it to the socket
+                    let stdin = std::io::stdin();
+                    consume_stream(stdin.lock(), stream)?;
+                }
             }
             Ok(())
         }
     }
+}
+
+fn consume_stream<F: Read, T: Write>(mut from_stream: F, mut to_stream: T) -> Fallible<()> {
+    let mut buf = [0u8; 8192];
+
+    loop {
+        let size = from_stream.read(&mut buf)?;
+        if size == 0 {
+            break;
+        }
+        to_stream.write_all(&buf[0..size])?;
+        to_stream.flush()?;
+    }
+    Ok(())
 }
