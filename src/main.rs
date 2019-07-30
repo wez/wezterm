@@ -244,13 +244,21 @@ fn run_terminal_gui(config: Arc<config::Config>, opts: &StartCommand) -> Fallibl
 }
 
 fn main() -> Result<(), Error> {
-    let opts = Opt::from_args();
-    let config = Arc::new(if opts.skip_config {
-        config::Config::default_config()
-    } else {
-        config::Config::load()?
-    });
+    let result = run();
+    if let Err(e) = &result {
+        let message = e.to_string();
 
+        tinyfiledialogs::message_box_ok(
+            "wezterm",
+            &message,
+            tinyfiledialogs::MessageBoxIcon::Error,
+        );
+        log::error!("{}", message);
+    }
+    result
+}
+
+fn run() -> Result<(), Error> {
     // This is a bit gross.
     // In order to not to automatically open a standard windows console when
     // we run, we use the windows_subsystem attribute at the top of this
@@ -284,6 +292,13 @@ fn main() -> Result<(), Error> {
         }
     };
     pretty_env_logger::init();
+
+    let opts = Opt::from_args();
+    let config = Arc::new(if opts.skip_config {
+        config::Config::default_config()
+    } else {
+        config::Config::load()?
+    });
 
     match opts
         .cmd

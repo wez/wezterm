@@ -83,6 +83,7 @@ pub struct Config {
     #[serde(default = "UnixDomain::default_unix_domains")]
     pub unix_domains: Vec<UnixDomain>,
 
+    #[serde(default)]
     pub ssh_domains: Vec<SshDomain>,
 
     /// When running in server mode, defines configuration for
@@ -803,7 +804,7 @@ impl Config {
                 Ok(file) => file,
                 Err(err) => match err.kind() {
                     std::io::ErrorKind::NotFound => continue,
-                    _ => bail!("Error opening {}: {:?}", p.display(), err),
+                    _ => bail!("Error opening {}: {}", p.display(), err),
                 },
             };
 
@@ -811,7 +812,7 @@ impl Config {
             file.read_to_string(&mut s)?;
 
             let cfg: Self = toml::from_str(&s)
-                .map_err(|e| format_err!("Error parsing TOML from {}: {:?}", p.display(), e))?;
+                .map_err(|e| format_err!("Error parsing TOML from {}: {}", p.display(), e))?;
 
             // Compute but discard the key bindings here so that we raise any
             // problems earlier than we use them.
