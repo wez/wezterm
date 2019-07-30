@@ -281,7 +281,11 @@ impl Reconnectable {
         sess.handshake(tcp)?;
 
         if let Ok(mut known_hosts) = sess.known_hosts() {
-            let file = Path::new(&std::env::var("HOME").unwrap()).join(".ssh/known_hosts");
+            let varname = if cfg!(windows) { "USERPROFILE" } else { "HOME" };
+            let var = std::env::var_os(varname).ok_or_else(|| {
+                failure::format_err!("environment variable {} is missing", varname)
+            })?;
+            let file = Path::new(&var).join(".ssh/known_hosts");
             if file.exists() {
                 known_hosts
                     .read_file(&file, ssh2::KnownHostFileKind::OpenSSH)
