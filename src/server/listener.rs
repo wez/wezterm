@@ -1,11 +1,11 @@
 use crate::config::{Config, TlsDomainServer, UnixDomain};
-use crate::create_user_owned_dirs;
 use crate::mux::tab::{Tab, TabId};
 use crate::mux::{Mux, MuxNotification, MuxSubscriber};
 use crate::ratelim::RateLimiter;
 use crate::server::codec::*;
 use crate::server::pollable::*;
 use crate::server::UnixListener;
+use crate::{create_user_owned_dirs, running_under_wsl};
 use crossbeam_channel::TryRecvError;
 use failure::{bail, err_msg, format_err, Error, Fallible};
 #[cfg(unix)]
@@ -900,7 +900,7 @@ fn safely_create_sock_path(unix_dom: &UnixDomain) -> Result<UnixListener, Error>
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
-        if !unix_dom.skip_permissions_check {
+        if !running_under_wsl() && !unix_dom.skip_permissions_check {
             // Let's be sure that the ownership looks sane
             let meta = sock_dir.symlink_metadata()?;
 

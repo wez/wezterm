@@ -153,18 +153,41 @@ pub fn create_user_owned_dirs(p: &Path) -> Fallible<()> {
     Ok(())
 }
 
+pub fn running_under_wsl() -> bool {
+    #[cfg(unix)]
+    unsafe {
+        let mut name: libc::utsname = std::mem::zeroed();
+        if libc::uname(&mut name) == 0 {
+            let version = std::ffi::CStr::from_ptr(name.version.as_ptr())
+                .to_string_lossy()
+                .into_owned();
+            return version.contains("Microsoft");
+        }
+    };
+
+    false
+}
+
 fn run_terminal_gui(config: Arc<config::Config>, opts: &StartCommand) -> Fallible<()> {
     #[cfg(unix)]
     {
         if opts.daemonize {
             let stdout = config.daemon_options.open_stdout()?;
             let stderr = config.daemon_options.open_stderr()?;
-            daemonize::Daemonize::new()
+            let mut daemonize = daemonize::Daemonize::new()
                 .stdout(stdout)
                 .stderr(stderr)
-                .working_directory(dirs::home_dir().ok_or_else(|| err_msg("can't find home dir"))?)
-                .pid_file(config.daemon_options.pid_file())
-                .start()?;
+                .working_directory(dirs::home_dir().ok_or_else(|| err_msg("can't find home dir"))?);
+
+            if !running_under_wsl() {
+                // pid file locking is only partly function when running under
+                // WSL 1; it is possible for the pid file to exist after a reboot
+                // and for attempts to open and lock it to fail when there are no
+                // other processes that might possibly hold a lock on it.
+                // So, we only use a pid file when not under WSL.
+                daemonize = daemonize.pid_file(config.daemon_options.pid_file());
+            }
+            daemonize.start()?;
         }
     }
 

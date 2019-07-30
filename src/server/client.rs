@@ -502,7 +502,9 @@ impl Reconnectable {
                 // wezterm is terminated, but it otherwise invisible.
                 std::mem::forget(pair.master);
 
-                unix_connect_with_retry(&sock_path)?
+                unix_connect_with_retry(&sock_path).map_err(|e| {
+                    format_err!("failed to connect to {}: {}", sock_path.display(), e)
+                })?
             }
         };
 
