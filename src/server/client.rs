@@ -278,7 +278,8 @@ impl Reconnectable {
         let mut sess = ssh2::Session::new()?;
 
         let tcp = TcpStream::connect(&ssh_dom.remote_address)?;
-        sess.handshake(tcp)?;
+        sess.set_tcp_stream(tcp);
+        sess.handshake()?;
 
         if let Ok(mut known_hosts) = sess.known_hosts() {
             let varname = if cfg!(windows) { "USERPROFILE" } else { "HOME" };
@@ -307,14 +308,29 @@ impl Reconnectable {
 
             let fingerprint = sess
                 .host_key_hash(ssh2::HashType::Sha256)
+                .map(|fingerprint| {
+                    format!(
+                        "SHA256:{}",
+                        base64::encode_config(
+                            fingerprint,
+                            base64::Config::new(base64::CharacterSet::Standard, false)
+                        )
+                    )
+                })
+                .or_else(|| {
+                    // Querying for the Sha256 can fail if for example we were linked
+                    // against libssh < 1.9, so let's fall back to Sha1 in that case.
+                    sess.host_key_hash(ssh2::HashType::Sha1)
+                        .map(|fingerprint| {
+                            let mut res = vec![];
+                            write!(&mut res, "SHA1").ok();
+                            for b in fingerprint {
+                                write!(&mut res, ":{:02x}", *b).ok();
+                            }
+                            String::from_utf8(res).unwrap()
+                        })
+                })
                 .ok_or_else(|| failure::err_msg("failed to get host fingerprint"))?;
-            let fingerprint = format!(
-                "SHA256:{}",
-                base64::encode_config(
-                    fingerprint,
-                    base64::Config::new(base64::CharacterSet::Standard, false)
-                )
-            );
 
             use ssh2::CheckResult;
             match known_hosts.check(&remote_host_name, key) {
