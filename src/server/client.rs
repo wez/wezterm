@@ -320,15 +320,14 @@ impl Reconnectable {
                 .or_else(|| {
                     // Querying for the Sha256 can fail if for example we were linked
                     // against libssh < 1.9, so let's fall back to Sha1 in that case.
-                    sess.host_key_hash(ssh2::HashType::Sha1)
-                        .map(|fingerprint| {
-                            let mut res = vec![];
-                            write!(&mut res, "SHA1").ok();
-                            for b in fingerprint {
-                                write!(&mut res, ":{:02x}", *b).ok();
-                            }
-                            String::from_utf8(res).unwrap()
-                        })
+                    sess.host_key_hash(ssh2::HashType::Sha1).map(|fingerprint| {
+                        let mut res = vec![];
+                        write!(&mut res, "SHA1").ok();
+                        for b in fingerprint {
+                            write!(&mut res, ":{:02x}", *b).ok();
+                        }
+                        String::from_utf8(res).unwrap()
+                    })
                 })
                 .ok_or_else(|| failure::err_msg("failed to get host fingerprint"))?;
 
