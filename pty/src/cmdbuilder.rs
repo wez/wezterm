@@ -58,6 +58,27 @@ impl CommandBuilder {
             val.as_ref()
         );
     }
+
+    #[cfg(feature = "ssh")]
+    pub(crate) fn iter_env_as_str(&self) -> impl Iterator<Item = (&str, &str)> {
+        self.envs.iter().filter_map(|(key, val)| {
+            let key = key.to_str()?;
+            let val = val.to_str()?;
+            Some((key, val))
+        })
+    }
+
+    #[cfg(feature = "ssh")]
+    pub(crate) fn as_unix_command_line(&self) -> failure::Fallible<String> {
+        let mut strs = vec![];
+        for arg in &self.args {
+            let s = arg
+                .to_str()
+                .ok_or_else(|| failure::err_msg("argument cannot be represented as utf8"))?;
+            strs.push(s);
+        }
+        Ok(shell_words::join(strs))
+    }
 }
 
 #[cfg(unix)]

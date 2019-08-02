@@ -36,6 +36,13 @@
 //! writeln!(pair.master, "ls -l\r\n")?;
 //! # Ok::<(), Error>(())
 //! ```
+//!
+//! ## ssh2
+//!
+//! If the `ssh` feature is enabled, this crate exposes an
+//! `ssh::SshSession` type that can wrap an established ssh
+//! session with an implementation of `PtySystem`, allowing
+//! you to use the same pty interface with remote ptys.
 use failure::{bail, format_err, Error, Fallible};
 #[cfg(feature = "serde_support")]
 use serde_derive::*;
@@ -48,6 +55,9 @@ pub use cmdbuilder::CommandBuilder;
 pub mod unix;
 #[cfg(windows)]
 pub mod win;
+
+#[cfg(feature = "ssh")]
+pub mod ssh;
 
 /// Represents the size of the visible display area in the pty
 #[derive(Debug, Clone, Copy, PartialEq)]

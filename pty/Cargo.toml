@@ -14,12 +14,16 @@ failure_derive = "0.1"
 filedescriptor = "0.5"
 log = "0.4"
 libc = "0.2"
+shell-words = "0.1"
 serde_derive = {version="1.0", optional=true}
 serde = {version="1.0", optional=true}
+ssh2 = {optional=true, git="https://github.com/wez/ssh2-rs"}
+#ssh2 = {optional=true, path="../../ssh2-rs"}
 
 [features]
 default = []
 serde_support = ["serde", "serde_derive"]
+ssh = ["ssh2"]
 
 [target."cfg(windows)".dependencies]
 bitflags = "1.0"
