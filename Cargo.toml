@@ -36,7 +36,7 @@ log = "0.4"
 open = "1.2"
 native-tls = "0.2"
 palette = "0.4"
-portable-pty = { path = "pty", features = ["serde_support"]}
+portable-pty = { path = "pty", features = ["serde_support", "ssh"]}
 promise = { path = "promise" }
 ratelimit_meter = "4.1"
 rayon = "1.0"

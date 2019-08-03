@@ -30,12 +30,52 @@ fn input_prompt(
     tinyfiledialogs::input_box("wezterm", &text, "")
 }
 
+struct Prompt<'a> {
+    username: &'a str,
+    remote_address: &'a str,
+}
+
+impl<'a> ssh2::KeyboardInteractivePrompt for Prompt<'a> {
+    fn prompt<'b>(
+        &mut self,
+        _username: &str,
+        instructions: &str,
+        prompts: &[ssh2::Prompt<'b>],
+    ) -> Vec<String> {
+        prompts
+            .iter()
+            .map(|p| {
+                let func = if p.echo {
+                    input_prompt
+                } else {
+                    password_prompt
+                };
+
+                func(instructions, &p.text, &self.username, &self.remote_address)
+                    .unwrap_or_else(String::new)
+            })
+            .collect()
+    }
+}
+
 pub fn ssh_connect(remote_address: &str, username: &str) -> Fallible<ssh2::Session> {
     let mut sess = ssh2::Session::new()?;
 
-    let tcp = TcpStream::connect(&remote_address)?;
+    let (remote_address, remote_host_name, port) = {
+        let parts: Vec<&str> = remote_address.split(':').collect();
+
+        if parts.len() == 2 {
+            (remote_address.to_string(), parts[0], parts[1].parse()?)
+        } else {
+            (format!("{}:22", remote_address), remote_address, 22)
+        }
+    };
+
+    let tcp = TcpStream::connect(&remote_address)
+        .map_err(|e| format_err!("connecting to {}: {}", remote_address, e))?;
     sess.set_tcp_stream(tcp);
-    sess.handshake()?;
+    sess.handshake()
+        .map_err(|e| format_err!("ssh handshake with {}: {}", remote_address, e))?;
 
     if let Ok(mut known_hosts) = sess.known_hosts() {
         let varname = if cfg!(windows) { "USERPROFILE" } else { "HOME" };
@@ -49,13 +89,6 @@ pub fn ssh_connect(remote_address: &str, username: &str) -> Fallible<ssh2::Sessi
                     failure::format_err!("reading known_hosts file {}: {}", file.display(), e)
                 })?;
         }
-
-        let remote_host_name = remote_address.split(':').next().ok_or_else(|| {
-            format_err!(
-                "expected remote_address to have the form 'host:port', but have {}",
-                remote_address
-            )
-        })?;
 
         let (key, key_type) = sess
             .host_key()
@@ -87,7 +120,7 @@ pub fn ssh_connect(remote_address: &str, username: &str) -> Fallible<ssh2::Sessi
             .ok_or_else(|| failure::err_msg("failed to get host fingerprint"))?;
 
         use ssh2::CheckResult;
-        match known_hosts.check(&remote_host_name, key) {
+        match known_hosts.check_port(&remote_host_name, port, key) {
             CheckResult::Match => {}
             CheckResult::NotFound => {
                 let allow = tinyfiledialogs::message_box_yes_no(
@@ -154,37 +187,10 @@ pub fn ssh_connect(remote_address: &str, username: &str) -> Fallible<ssh2::Sessi
     }
 
     if !sess.authenticated() && methods.contains("keyboard-interactive") {
-        struct Prompt<'a> {
-            username: &'a str,
-            remote_address: &'a str,
-        }
-
         let mut prompt = Prompt {
             username,
-            remote_address,
+            remote_address: &remote_address,
         };
-        impl<'a> ssh2::KeyboardInteractivePrompt for Prompt<'a> {
-            fn prompt<'b>(
-                &mut self,
-                _username: &str,
-                instructions: &str,
-                prompts: &[ssh2::Prompt<'b>],
-            ) -> Vec<String> {
-                prompts
-                    .iter()
-                    .map(|p| {
-                        let func = if p.echo {
-                            input_prompt
-                        } else {
-                            password_prompt
-                        };
-
-                        func(instructions, &p.text, &self.username, &self.remote_address)
-                            .unwrap_or_else(String::new)
-                    })
-                    .collect()
-            }
-        }
 
         if let Err(err) = sess.userauth_keyboard_interactive(&username, &mut prompt) {
             log::error!("while attempting keyboard-interactive auth: {}", err);
@@ -192,7 +198,7 @@ pub fn ssh_connect(remote_address: &str, username: &str) -> Fallible<ssh2::Sessi
     }
 
     if !sess.authenticated() && methods.contains("password") {
-        let pass = password_prompt("", "Password", username, remote_address)
+        let pass = password_prompt("", "Password", username, &remote_address)
             .ok_or_else(|| failure::err_msg("password entry was cancelled"))?;
         if let Err(err) = sess.userauth_password(username, &pass) {
             log::error!("while attempting password auth: {}", err);

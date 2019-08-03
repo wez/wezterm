@@ -439,6 +439,11 @@ pub struct SshDomain {
     /// If true, connect to this domain automatically at startup
     #[serde(default)]
     pub connect_automatically: bool,
+
+    /// If true, establish a direct SSH pty rather than attempt to spawn
+    /// wezterm as a multiplexer on the remote host
+    #[serde(default)]
+    pub direct_pty: bool,
 }
 
 /// Configures an instance of a multiplexer that can be communicated

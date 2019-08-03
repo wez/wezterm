@@ -63,14 +63,18 @@ pub struct LocalDomain {
 
 impl LocalDomain {
     pub fn new(config: &Arc<Config>) -> Result<Self, Error> {
-        let config = Arc::clone(config);
         let pty_system = config.pty.get()?;
+        Ok(Self::with_pty_system(config, pty_system))
+    }
+
+    pub fn with_pty_system(config: &Arc<Config>, pty_system: Box<dyn PtySystem>) -> Self {
+        let config = Arc::clone(config);
         let id = alloc_domain_id();
-        Ok(Self {
+        Self {
             pty_system,
             config,
             id,
-        })
+        }
     }
 }
 
