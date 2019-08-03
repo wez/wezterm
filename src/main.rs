@@ -20,6 +20,8 @@ mod mux;
 mod opengl;
 mod ratelim;
 mod server;
+mod ssh;
+
 use crate::frontend::FrontEndSelection;
 use crate::mux::domain::{Domain, LocalDomain};
 use crate::mux::Mux;
