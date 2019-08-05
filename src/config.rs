@@ -145,12 +145,18 @@ impl std::convert::TryInto<KeyAssignment> for &Key {
             KeyAction::SpawnTabInCurrentTabDomain => {
                 KeyAssignment::SpawnTab(SpawnTabDomain::CurrentTabDomain)
             }
-            KeyAction::SpawnTabInDomain => KeyAssignment::SpawnTab(SpawnTabDomain::Domain(
-                self.arg
+            KeyAction::SpawnTabInDomain => {
+                let arg = self
+                    .arg
                     .as_ref()
-                    .ok_or_else(|| format_err!("missing arg for {:?}", self))?
-                    .parse()?,
-            )),
+                    .ok_or_else(|| format_err!("missing arg for {:?}", self))?;
+
+                if let Ok(id) = arg.parse() {
+                    KeyAssignment::SpawnTab(SpawnTabDomain::Domain(id))
+                } else {
+                    KeyAssignment::SpawnTab(SpawnTabDomain::DomainName(arg.to_string()))
+                }
+            }
             KeyAction::SpawnWindow => KeyAssignment::SpawnWindow,
             KeyAction::ToggleFullScreen => KeyAssignment::ToggleFullScreen,
             KeyAction::Copy => KeyAssignment::Copy,

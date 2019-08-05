@@ -15,14 +15,16 @@ use std::sync::Arc;
 
 /// When spawning a tab, specify which domain should be used to
 /// host/spawn that tab.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub enum SpawnTabDomain {
     /// Use the default domain
     DefaultDomain,
     /// Use the domain from the current tab in the associated window
     CurrentTabDomain,
-    /// Use a specific domain
+    /// Use a specific domain by id
     Domain(DomainId),
+    /// Use a specific domain by name
+    DomainName(String),
 }
 
 /// Reports the currently configured physical size of the display
@@ -173,7 +175,7 @@ pub trait TerminalWindow {
         }
     }
 
-    fn spawn_tab(&mut self, domain: SpawnTabDomain) -> Result<TabId, Error> {
+    fn spawn_tab(&mut self, domain: &SpawnTabDomain) -> Result<TabId, Error> {
         let dims = self.get_dimensions();
 
         let rows = (dims.height as usize + 1) / dims.cell_height;
@@ -199,8 +201,11 @@ pub trait TerminalWindow {
                     .ok_or_else(|| format_err!("current tab has unresolvable domain id!?"))?
             }
             SpawnTabDomain::Domain(id) => mux
-                .get_domain(id)
+                .get_domain(*id)
                 .ok_or_else(|| format_err!("spawn_tab called with unresolvable domain id!?"))?,
+            SpawnTabDomain::DomainName(name) => mux.get_domain_by_name(&name).ok_or_else(|| {
+                format_err!("spawn_tab called with unresolvable domain name {}", name)
+            })?,
         };
         let tab = domain.spawn(size, None, self.get_mux_window_id())?;
         let tab_id = tab.tab_id();

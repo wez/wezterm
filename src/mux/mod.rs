@@ -41,6 +41,7 @@ pub struct Mux {
     config: Arc<Config>,
     default_domain: Arc<dyn Domain>,
     domains: RefCell<HashMap<DomainId, Arc<dyn Domain>>>,
+    domains_by_name: RefCell<HashMap<String, Arc<dyn Domain>>>,
     subscribers: RefCell<HashMap<usize, PollableSender<MuxNotification>>>,
 }
 
@@ -127,11 +128,18 @@ impl Mux {
         let mut domains = HashMap::new();
         domains.insert(default_domain.domain_id(), Arc::clone(default_domain));
 
+        let mut domains_by_name = HashMap::new();
+        domains_by_name.insert(
+            default_domain.domain_name().to_string(),
+            Arc::clone(default_domain),
+        );
+
         Self {
             tabs: RefCell::new(HashMap::new()),
             windows: RefCell::new(HashMap::new()),
             config: Arc::clone(config),
             default_domain: Arc::clone(default_domain),
+            domains_by_name: RefCell::new(domains_by_name),
             domains: RefCell::new(domains),
             subscribers: RefCell::new(HashMap::new()),
         }
@@ -157,10 +165,17 @@ impl Mux {
         self.domains.borrow().get(&id).cloned()
     }
 
+    pub fn get_domain_by_name(&self, name: &str) -> Option<Arc<dyn Domain>> {
+        self.domains_by_name.borrow().get(name).cloned()
+    }
+
     pub fn add_domain(&self, domain: &Arc<dyn Domain>) {
         self.domains
             .borrow_mut()
             .insert(domain.domain_id(), Arc::clone(domain));
+        self.domains_by_name
+            .borrow_mut()
+            .insert(domain.domain_name().to_string(), Arc::clone(domain));
     }
 
     pub fn config(&self) -> &Arc<Config> {

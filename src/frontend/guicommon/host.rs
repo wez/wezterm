@@ -213,8 +213,8 @@ impl<H: HostHelper> HostImpl<H> {
         use KeyAssignment::*;
         match assignment {
             SpawnTab(spawn_where) => {
-                let spawn_where = *spawn_where;
-                self.with_window(move |win| win.spawn_tab(spawn_where).map(|_| ()))
+                let spawn_where = spawn_where.clone();
+                self.with_window(move |win| win.spawn_tab(&spawn_where).map(|_| ()))
             }
             SpawnWindow => self.spawn_new_window(),
             ToggleFullScreen => self.toggle_full_screen(),
