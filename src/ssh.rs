@@ -1,8 +1,19 @@
+use crate::config::Config;
+use crate::frontend::guicommon::localtab::LocalTab;
+use crate::mux::domain::{alloc_domain_id, Domain, DomainId, DomainState};
+use crate::mux::tab::Tab;
+use crate::mux::window::WindowId;
+use crate::mux::Mux;
+use failure::Error;
 use failure::{bail, format_err, Fallible};
+use portable_pty::cmdbuilder::CommandBuilder;
+use portable_pty::{PtySize, PtySystem};
 use std::collections::HashSet;
 use std::io::Write;
 use std::net::TcpStream;
 use std::path::Path;
+use std::rc::Rc;
+use std::sync::Arc;
 
 fn password_prompt(
     instructions: &str,
@@ -210,4 +221,75 @@ pub fn ssh_connect(remote_address: &str, username: &str) -> Fallible<ssh2::Sessi
     }
 
     Ok(sess)
+}
+
+pub struct RemoteSshDomain {
+    pty_system: Box<dyn PtySystem>,
+    config: Arc<Config>,
+    id: DomainId,
+}
+
+impl RemoteSshDomain {
+    pub fn with_pty_system(config: &Arc<Config>, pty_system: Box<dyn PtySystem>) -> Self {
+        let config = Arc::clone(config);
+        let id = alloc_domain_id();
+        Self {
+            pty_system,
+            config,
+            id,
+        }
+    }
+}
+
+impl Domain for RemoteSshDomain {
+    fn spawn(
+        &self,
+        size: PtySize,
+        command: Option<CommandBuilder>,
+        window: WindowId,
+    ) -> Result<Rc<dyn Tab>, Error> {
+        let cmd = match command {
+            Some(c) => c,
+            None => CommandBuilder::new("bash"),
+        };
+        let pair = self.pty_system.openpty(size)?;
+        let child = pair.slave.spawn_command(cmd)?;
+        log::info!("spawned: {:?}", child);
+
+        let mut terminal = term::Terminal::new(
+            size.rows as usize,
+            size.cols as usize,
+            self.config.scrollback_lines.unwrap_or(3500),
+            self.config.hyperlink_rules.clone(),
+        );
+
+        let mux = Mux::get().unwrap();
+
+        if let Some(palette) = mux.config().colors.as_ref() {
+            *terminal.palette_mut() = palette.clone().into();
+        }
+
+        let tab: Rc<dyn Tab> = Rc::new(LocalTab::new(terminal, child, pair.master, self.id));
+
+        mux.add_tab(&tab)?;
+        mux.add_tab_to_window(&tab, window)?;
+
+        Ok(tab)
+    }
+
+    fn domain_id(&self) -> DomainId {
+        self.id
+    }
+
+    fn attach(&self) -> Fallible<()> {
+        Ok(())
+    }
+
+    fn detach(&self) -> Fallible<()> {
+        failure::bail!("detach not implemented");
+    }
+
+    fn state(&self) -> DomainState {
+        DomainState::Attached
+    }
 }

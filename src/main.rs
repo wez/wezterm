@@ -1,7 +1,7 @@
 // Don't create a new standard console window when launched from the windows GUI.
 #![windows_subsystem = "windows"]
 
-use failure::{err_msg, Error, Fallible};
+use failure::{err_msg, format_err, Error, Fallible};
 use std::ffi::OsString;
 use std::fs::DirBuilder;
 use std::io::{Read, Write};
@@ -46,7 +46,6 @@ fn get_shell() -> Result<String, Error> {
         if ent.is_null() {
             Ok("/bin/sh".into())
         } else {
-            use failure::format_err;
             use std::ffi::CStr;
             use std::str;
             let shell = unsafe { CStr::from_ptr((*ent).pw_shell) };
@@ -123,6 +122,9 @@ enum SubCommand {
     #[structopt(name = "start", about = "Start a front-end")]
     Start(StartCommand),
 
+    #[structopt(name = "ssh", about = "Establish an ssh session")]
+    Ssh(SshCommand),
+
     #[structopt(name = "cli", about = "Interact with experimental mux server")]
     Cli(CliCommand),
 }
@@ -140,6 +142,41 @@ enum CliSubCommand {
 
     #[structopt(name = "proxy", about = "start rpc proxy pipe")]
     Proxy,
+}
+
+#[derive(Debug, StructOpt, Clone)]
+struct SshCommand {
+    #[structopt(
+        long = "front-end",
+        raw(
+            possible_values = "&FrontEndSelection::variants()",
+            case_insensitive = "true"
+        )
+    )]
+    front_end: Option<FrontEndSelection>,
+
+    #[structopt(
+        long = "font-system",
+        raw(
+            possible_values = "&FontSystemSelection::variants()",
+            case_insensitive = "true"
+        )
+    )]
+    font_system: Option<FontSystemSelection>,
+
+    /// Specifies the remote system using the form:
+    /// `[username@]host[:port]`.
+    /// If `username@` is omitted, then your local $USER is used
+    /// instead.
+    /// If `:port` is omitted, then the standard ssh port (22) is
+    /// used instead.
+    user_at_host_and_port: String,
+
+    /// Instead of executing your shell, run PROG.
+    /// For example: `wezterm ssh user@host -- bash -l` will spawn bash
+    /// as if it were a login shell.
+    #[structopt(parse(from_os_str))]
+    prog: Vec<OsString>,
 }
 
 pub fn create_user_owned_dirs(p: &Path) -> Fallible<()> {
@@ -168,6 +205,66 @@ pub fn running_under_wsl() -> bool {
     };
 
     false
+}
+
+struct SshParameters {
+    username: String,
+    host_and_port: String,
+}
+
+impl SshParameters {
+    fn parse(host: &str) -> Fallible<Self> {
+        let parts: Vec<&str> = host.split('@').collect();
+
+        if parts.len() == 2 {
+            Ok(Self {
+                username: parts[0].to_string(),
+                host_and_port: parts[1].to_string(),
+            })
+        } else if parts.len() == 1 {
+            Ok(Self {
+                username: std::env::var("USER")?,
+                host_and_port: parts[0].to_string(),
+            })
+        } else {
+            failure::bail!("failed to parse ssh parameters from `{}`", host);
+        }
+    }
+}
+
+fn run_ssh(config: Arc<config::Config>, opts: &SshCommand) -> Fallible<()> {
+    let font_system = opts.font_system.unwrap_or(config.font_system);
+    font_system.set_default();
+
+    let fontconfig = Rc::new(FontConfiguration::new(Arc::clone(&config), font_system));
+    let cmd = if !opts.prog.is_empty() {
+        let argv: Vec<&std::ffi::OsStr> = opts.prog.iter().map(|x| x.as_os_str()).collect();
+        let mut builder = CommandBuilder::new(&argv[0]);
+        builder.args(&argv[1..]);
+        Some(builder)
+    } else {
+        None
+    };
+
+    let params = SshParameters::parse(&opts.user_at_host_and_port)?;
+
+    let sess = ssh::ssh_connect(&params.host_and_port, &params.username)?;
+    let pty_system = Box::new(portable_pty::ssh::SshSession::new(sess));
+    let domain: Arc<dyn Domain> =
+        Arc::new(ssh::RemoteSshDomain::with_pty_system(&config, pty_system));
+
+    let mux = Rc::new(mux::Mux::new(&config, &domain));
+    Mux::set_mux(&mux);
+
+    let front_end = opts.front_end.unwrap_or(config.front_end);
+    let gui = front_end.try_new(&mux)?;
+    domain.attach()?;
+
+    let window_id = mux.new_empty_window();
+    let tab = domain.spawn(PtySize::default(), cmd, window_id)?;
+    gui.spawn_new_window(mux.config(), &fontconfig, &tab, window_id)?;
+
+    gui.run_forever()
 }
 
 fn run_terminal_gui(config: Arc<config::Config>, opts: &StartCommand) -> Fallible<()> {
@@ -344,6 +441,7 @@ fn run() -> Result<(), Error> {
             log::info!("Using configuration: {:#?}\nopts: {:#?}", config, opts);
             run_terminal_gui(config, &start)
         }
+        SubCommand::Ssh(ssh) => run_ssh(config, &ssh),
         SubCommand::Cli(cli) => {
             let client = Client::new_default_unix_domain(&config)?;
             match cli.sub {
