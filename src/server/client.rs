@@ -276,7 +276,7 @@ impl Reconnectable {
     }
 
     fn ssh_connect(&mut self, ssh_dom: SshDomain) -> Fallible<()> {
-        let sess = ssh_connect(&ssh_dom.username, &ssh_dom.remote_address)?;
+        let sess = ssh_connect(&ssh_dom.remote_address, &ssh_dom.username)?;
 
         let mut chan = sess.channel_session()?;
         chan.exec("wezterm cli proxy")?;

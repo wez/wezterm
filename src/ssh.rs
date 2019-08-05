@@ -83,7 +83,7 @@ pub fn ssh_connect(remote_address: &str, username: &str) -> Fallible<ssh2::Sessi
     };
 
     let tcp = TcpStream::connect(&remote_address)
-        .map_err(|e| format_err!("connecting to {}: {}", remote_address, e))?;
+        .map_err(|e| format_err!("ssh connecting to {}: {}", remote_address, e))?;
     sess.set_tcp_stream(tcp);
     sess.handshake()
         .map_err(|e| format_err!("ssh handshake with {}: {}", remote_address, e))?;
