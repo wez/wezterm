@@ -191,7 +191,8 @@ impl Domain for ClientDomain {
         let mux = Mux::get().unwrap();
         let client = match &self.config {
             ClientDomainConfig::Unix(unix) => {
-                Client::new_unix_domain(self.local_domain_id, mux.config(), unix)?
+                let initial = true;
+                Client::new_unix_domain(self.local_domain_id, mux.config(), unix, initial)?
             }
             ClientDomainConfig::Tls(tls) => {
                 Client::new_tls(self.local_domain_id, mux.config(), tls)?

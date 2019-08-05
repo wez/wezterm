@@ -134,6 +134,10 @@ enum SubCommand {
 
 #[derive(Debug, StructOpt, Clone)]
 struct CliCommand {
+    /// Don't automatically start the server
+    #[structopt(long = "no-auto-start")]
+    no_auto_start: bool,
+
     #[structopt(subcommand)]
     sub: CliSubCommand,
 }
@@ -522,7 +526,8 @@ fn run() -> Result<(), Error> {
         SubCommand::Ssh(ssh) => run_ssh(config, &ssh),
         SubCommand::Connect(connect) => run_mux_client(config, &connect),
         SubCommand::Cli(cli) => {
-            let client = Client::new_default_unix_domain(&config)?;
+            let initial = true;
+            let client = Client::new_default_unix_domain(&config, initial)?;
             match cli.sub {
                 CliSubCommand::List => {
                     let cols = vec![

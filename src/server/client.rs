@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 use crate::config::{Config, SshDomain, TlsDomainClient, UnixDomain};
 use crate::frontend::gui_executor;
 use crate::mux::domain::alloc_domain_id;
@@ -50,6 +49,7 @@ macro_rules! rpc {
     // in the case where the struct is empty and present only for the purpose
     // of typing the request.
     ($method_name:ident, $request_type:ident=(), $response_type:ident) => {
+        #[allow(dead_code)]
         pub fn $method_name(&self) -> Future<$response_type> {
             self.send_pdu(Pdu::$request_type($request_type{})).then(|result| {
             match result {
@@ -255,45 +255,48 @@ impl Reconnectable {
             // the set of tabs and we'd have confusing and inconsistent state
             ClientDomainConfig::Unix(_) => false,
             ClientDomainConfig::Tls(_) => true,
+            // It *does* make sense to reconnect with an ssh session, but we
+            // need to grow some smarts about whether the disconnect was because
+            // we sent CTRL-D to close the last session, or whether it was a network
+            // level disconnect, because we will otherwise throw up authentication
+            // dialogs that would be annoying
             ClientDomainConfig::Ssh(_) => false,
         }
     }
 
-    fn reconnect(&mut self) -> Fallible<bool> {
-        if !self.reconnectable() {
-            return Ok(false);
-        }
-        self.connect()?;
-        Ok(true)
-    }
-
-    fn connect(&mut self) -> Fallible<()> {
+    fn connect(&mut self, initial: bool) -> Fallible<()> {
         match self.config.clone() {
-            ClientDomainConfig::Unix(unix_dom) => self.unix_connect(unix_dom),
+            ClientDomainConfig::Unix(unix_dom) => self.unix_connect(unix_dom, initial),
             ClientDomainConfig::Tls(tls) => self.tls_connect(tls),
-            ClientDomainConfig::Ssh(ssh) => self.ssh_connect(ssh),
+            ClientDomainConfig::Ssh(ssh) => self.ssh_connect(ssh, initial),
         }
     }
 
-    fn ssh_connect(&mut self, ssh_dom: SshDomain) -> Fallible<()> {
+    fn ssh_connect(&mut self, ssh_dom: SshDomain, initial: bool) -> Fallible<()> {
         let sess = ssh_connect(&ssh_dom.remote_address, &ssh_dom.username)?;
 
         let mut chan = sess.channel_session()?;
-        chan.exec("wezterm cli proxy")?;
+        let cmd = if initial {
+            "wezterm cli proxy"
+        } else {
+            "wezterm cli --no-auto-start proxy"
+        };
+        log::error!("going to run {}", cmd);
+        chan.exec(cmd)?;
 
         let stream: Box<dyn ReadAndWrite> = Box::new(SshStream { sess, chan });
         self.stream.replace(stream);
         Ok(())
     }
 
-    fn unix_connect(&mut self, unix_dom: UnixDomain) -> Fallible<()> {
+    fn unix_connect(&mut self, unix_dom: UnixDomain, initial: bool) -> Fallible<()> {
         let sock_path = unix_dom.socket_path();
         info!("connect to {}", sock_path.display());
 
         let stream = match unix_connect_with_retry(&sock_path) {
             Ok(stream) => stream,
             Err(e) => {
-                if unix_dom.no_serve_automatically {
+                if unix_dom.no_serve_automatically || !initial {
                     bail!("failed to connect to {}: {}", sock_path.display(), e);
                 }
                 log::error!(
@@ -488,7 +491,7 @@ impl Client {
 
                     loop {
                         std::thread::sleep(backoff);
-                        match reconnectable.connect() {
+                        match reconnectable.connect(false) {
                             Ok(_) => {
                                 backoff = BASE_INTERVAL;
                                 log::error!("Reconnected!");
@@ -528,26 +531,28 @@ impl Client {
         }
     }
 
+    #[allow(dead_code)]
     pub fn local_domain_id(&self) -> DomainId {
         self.local_domain_id
     }
 
-    pub fn new_default_unix_domain(config: &Arc<Config>) -> Fallible<Self> {
+    pub fn new_default_unix_domain(config: &Arc<Config>, initial: bool) -> Fallible<Self> {
         let unix_dom = config
             .unix_domains
             .first()
             .ok_or_else(|| err_msg("no default unix domain is configured"))?;
-        Self::new_unix_domain(alloc_domain_id(), config, unix_dom)
+        Self::new_unix_domain(alloc_domain_id(), config, unix_dom, initial)
     }
 
     pub fn new_unix_domain(
         local_domain_id: DomainId,
         _config: &Arc<Config>,
         unix_dom: &UnixDomain,
+        initial: bool,
     ) -> Fallible<Self> {
         let mut reconnectable =
             Reconnectable::new(ClientDomainConfig::Unix(unix_dom.clone()), None);
-        reconnectable.connect()?;
+        reconnectable.connect(initial)?;
         Ok(Self::new(local_domain_id, reconnectable))
     }
 
@@ -558,7 +563,7 @@ impl Client {
     ) -> Fallible<Self> {
         let mut reconnectable =
             Reconnectable::new(ClientDomainConfig::Tls(tls_client.clone()), None);
-        reconnectable.connect()?;
+        reconnectable.connect(true)?;
         Ok(Self::new(local_domain_id, reconnectable))
     }
 
@@ -568,7 +573,7 @@ impl Client {
         ssh_dom: &SshDomain,
     ) -> Fallible<Self> {
         let mut reconnectable = Reconnectable::new(ClientDomainConfig::Ssh(ssh_dom.clone()), None);
-        reconnectable.connect()?;
+        reconnectable.connect(true)?;
         Ok(Self::new(local_domain_id, reconnectable))
     }
 
