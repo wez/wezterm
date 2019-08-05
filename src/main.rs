@@ -212,6 +212,15 @@ struct SshParameters {
     host_and_port: String,
 }
 
+fn username_from_env() -> Fallible<String> {
+    #[cfg(unix)]
+    const USER: &str = "USER";
+    #[cfg(windows)]
+    const USER: &str = "USERNAME";
+
+    std::env::var(USER).map_err(|e| format_err!("while resolving {} env var: {}", USER, e))
+}
+
 impl SshParameters {
     fn parse(host: &str) -> Fallible<Self> {
         let parts: Vec<&str> = host.split('@').collect();
@@ -223,7 +232,7 @@ impl SshParameters {
             })
         } else if parts.len() == 1 {
             Ok(Self {
-                username: std::env::var("USER")?,
+                username: username_from_env()?,
                 host_and_port: parts[0].to_string(),
             })
         } else {
