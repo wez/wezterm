@@ -339,19 +339,10 @@ fn run_terminal_gui(config: Arc<config::Config>, opts: &StartCommand) -> Fallibl
         }
 
         for ssh_dom in &config.ssh_domains {
-            let dom = if ssh_dom.direct_pty {
-                let sess = ssh::ssh_connect(&ssh_dom.remote_address, &ssh_dom.username)?;
-                let pty_system = Box::new(portable_pty::ssh::SshSession::new(sess));
-                let domain: Arc<dyn Domain> =
-                    Arc::new(LocalDomain::with_pty_system(&config, pty_system));
-                mux.add_domain(&domain);
-                domain
-            } else {
-                record_domain(
-                    &mux,
-                    ClientDomain::new(ClientDomainConfig::Ssh(ssh_dom.clone())),
-                )?
-            };
+            let dom = record_domain(
+                &mux,
+                ClientDomain::new(ClientDomainConfig::Ssh(ssh_dom.clone())),
+            )?;
             if ssh_dom.connect_automatically {
                 dom.attach()?;
             }
