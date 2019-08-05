@@ -61,6 +61,16 @@ pub enum ClientDomainConfig {
     Ssh(SshDomain),
 }
 
+impl ClientDomainConfig {
+    fn name(&self) -> &str {
+        match self {
+            ClientDomainConfig::Unix(unix) => &unix.name,
+            ClientDomainConfig::Tls(tls) => &tls.name,
+            ClientDomainConfig::Ssh(ssh) => &ssh.name,
+        }
+    }
+}
+
 impl ClientInner {
     pub fn new(local_domain_id: DomainId, client: Client) -> Self {
         // Assumption: that the domain id on the other end is
@@ -131,6 +141,10 @@ impl ClientDomain {
 impl Domain for ClientDomain {
     fn domain_id(&self) -> DomainId {
         self.local_domain_id
+    }
+
+    fn domain_name(&self) -> &str {
+        self.config.name()
     }
 
     fn spawn(

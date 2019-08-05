@@ -44,6 +44,9 @@ pub trait Domain: Downcast {
     /// a handle on the domain later.
     fn domain_id(&self) -> DomainId;
 
+    /// Returns the name of the domain
+    fn domain_name(&self) -> &str;
+
     /// Re-attach to any tabs that might be pre-existing in this domain
     fn attach(&self) -> Fallible<()>;
 
@@ -59,21 +62,27 @@ pub struct LocalDomain {
     pty_system: Box<dyn PtySystem>,
     config: Arc<Config>,
     id: DomainId,
+    name: String,
 }
 
 impl LocalDomain {
-    pub fn new(config: &Arc<Config>) -> Result<Self, Error> {
+    pub fn new(name: &str, config: &Arc<Config>) -> Result<Self, Error> {
         let pty_system = config.pty.get()?;
-        Ok(Self::with_pty_system(config, pty_system))
+        Ok(Self::with_pty_system(name, config, pty_system))
     }
 
-    pub fn with_pty_system(config: &Arc<Config>, pty_system: Box<dyn PtySystem>) -> Self {
+    pub fn with_pty_system(
+        name: &str,
+        config: &Arc<Config>,
+        pty_system: Box<dyn PtySystem>,
+    ) -> Self {
         let config = Arc::clone(config);
         let id = alloc_domain_id();
         Self {
             pty_system,
             config,
             id,
+            name: name.to_string(),
         }
     }
 }
@@ -116,6 +125,10 @@ impl Domain for LocalDomain {
 
     fn domain_id(&self) -> DomainId {
         self.id
+    }
+
+    fn domain_name(&self) -> &str {
+        &self.name
     }
 
     fn attach(&self) -> Fallible<()> {

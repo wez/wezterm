@@ -259,8 +259,11 @@ fn run_ssh(config: Arc<config::Config>, opts: &SshCommand) -> Fallible<()> {
 
     let sess = ssh::ssh_connect(&params.host_and_port, &params.username)?;
     let pty_system = Box::new(portable_pty::ssh::SshSession::new(sess));
-    let domain: Arc<dyn Domain> =
-        Arc::new(ssh::RemoteSshDomain::with_pty_system(&config, pty_system));
+    let domain: Arc<dyn Domain> = Arc::new(ssh::RemoteSshDomain::with_pty_system(
+        &opts.user_at_host_and_port,
+        &config,
+        pty_system,
+    ));
 
     let mux = Rc::new(mux::Mux::new(&config, &domain));
     Mux::set_mux(&mux);
@@ -313,7 +316,7 @@ fn run_terminal_gui(config: Arc<config::Config>, opts: &StartCommand) -> Fallibl
         None
     };
 
-    let domain: Arc<dyn Domain> = Arc::new(LocalDomain::new(&config)?);
+    let domain: Arc<dyn Domain> = Arc::new(LocalDomain::new("local", &config)?);
     let mux = Rc::new(mux::Mux::new(&config, &domain));
     Mux::set_mux(&mux);
 

@@ -227,16 +227,22 @@ pub struct RemoteSshDomain {
     pty_system: Box<dyn PtySystem>,
     config: Arc<Config>,
     id: DomainId,
+    name: String,
 }
 
 impl RemoteSshDomain {
-    pub fn with_pty_system(config: &Arc<Config>, pty_system: Box<dyn PtySystem>) -> Self {
+    pub fn with_pty_system(
+        name: &str,
+        config: &Arc<Config>,
+        pty_system: Box<dyn PtySystem>,
+    ) -> Self {
         let config = Arc::clone(config);
         let id = alloc_domain_id();
         Self {
             pty_system,
             config,
             id,
+            name: name.to_string(),
         }
     }
 }
@@ -279,6 +285,10 @@ impl Domain for RemoteSshDomain {
 
     fn domain_id(&self) -> DomainId {
         self.id
+    }
+
+    fn domain_name(&self) -> &str {
+        &self.name
     }
 
     fn attach(&self) -> Fallible<()> {

@@ -426,6 +426,10 @@ impl DaemonOptions {
 
 #[derive(Default, Debug, Clone, Deserialize)]
 pub struct SshDomain {
+    /// The name of this specific domain.  Must be unique amongst
+    /// all types of domain in the configuration file.
+    pub name: String,
+
     /// identifies the host:port pair of the remote server.
     pub remote_address: String,
 
@@ -445,6 +449,10 @@ pub struct SshDomain {
 /// with via a unix domain socket
 #[derive(Default, Debug, Clone, Deserialize)]
 pub struct UnixDomain {
+    /// The name of this specific domain.  Must be unique amongst
+    /// all types of domain in the configuration file.
+    pub name: String,
+
     /// The path to the socket.  If unspecified, a resonable default
     /// value will be computed.
     pub socket_path: Option<PathBuf>,
@@ -527,6 +535,10 @@ pub struct TlsDomainServer {
 
 #[derive(Default, Debug, Clone, Deserialize)]
 pub struct TlsDomainClient {
+    /// The name of this specific domain.  Must be unique amongst
+    /// all types of domain in the configuration file.
+    pub name: String,
+
     /// identifies the host:port pair of the remote server.
     pub remote_address: String,
 
