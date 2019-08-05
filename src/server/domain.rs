@@ -62,7 +62,7 @@ pub enum ClientDomainConfig {
 }
 
 impl ClientDomainConfig {
-    fn name(&self) -> &str {
+    pub fn name(&self) -> &str {
         match self {
             ClientDomainConfig::Unix(unix) => &unix.name,
             ClientDomainConfig::Tls(tls) => &tls.name,

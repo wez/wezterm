@@ -125,6 +125,9 @@ enum SubCommand {
     #[structopt(name = "ssh", about = "Establish an ssh session")]
     Ssh(SshCommand),
 
+    #[structopt(name = "connect", about = "Connect to wezterm multiplexer")]
+    Connect(ConnectCommand),
+
     #[structopt(name = "cli", about = "Interact with experimental mux server")]
     Cli(CliCommand),
 }
@@ -174,6 +177,37 @@ struct SshCommand {
 
     /// Instead of executing your shell, run PROG.
     /// For example: `wezterm ssh user@host -- bash -l` will spawn bash
+    /// as if it were a login shell.
+    #[structopt(parse(from_os_str))]
+    prog: Vec<OsString>,
+}
+
+#[derive(Debug, StructOpt, Clone)]
+struct ConnectCommand {
+    #[structopt(
+        long = "front-end",
+        raw(
+            possible_values = "&FrontEndSelection::variants()",
+            case_insensitive = "true"
+        )
+    )]
+    front_end: Option<FrontEndSelection>,
+
+    #[structopt(
+        long = "font-system",
+        raw(
+            possible_values = "&FontSystemSelection::variants()",
+            case_insensitive = "true"
+        )
+    )]
+    font_system: Option<FontSystemSelection>,
+
+    /// Name of the multiplexer domain section from the configuration
+    /// to which you'd like to connect
+    domain_name: String,
+
+    /// Instead of executing your shell, run PROG.
+    /// For example: `wezterm start -- bash -l` will spawn bash
     /// as if it were a login shell.
     #[structopt(parse(from_os_str))]
     prog: Vec<OsString>,
@@ -275,6 +309,69 @@ fn run_ssh(config: Arc<config::Config>, opts: &SshCommand) -> Fallible<()> {
     let window_id = mux.new_empty_window();
     let tab = domain.spawn(PtySize::default(), cmd, window_id)?;
     gui.spawn_new_window(mux.config(), &fontconfig, &tab, window_id)?;
+
+    gui.run_forever()
+}
+
+fn client_domains(config: &Arc<config::Config>) -> Vec<ClientDomainConfig> {
+    let mut domains = vec![];
+    for unix_dom in &config.unix_domains {
+        domains.push(ClientDomainConfig::Unix(unix_dom.clone()));
+    }
+
+    for ssh_dom in &config.ssh_domains {
+        domains.push(ClientDomainConfig::Ssh(ssh_dom.clone()));
+    }
+
+    for tls_client in &config.tls_clients {
+        domains.push(ClientDomainConfig::Tls(tls_client.clone()));
+    }
+    domains
+}
+
+fn run_mux_client(config: Arc<config::Config>, opts: &ConnectCommand) -> Fallible<()> {
+    let client_config = client_domains(&config)
+        .into_iter()
+        .find(|c| c.name() == opts.domain_name)
+        .ok_or_else(|| {
+            format_err!(
+                "no multiplexer domain with name `{}` was found in the configuration",
+                opts.domain_name
+            )
+        })?;
+
+    let font_system = opts.font_system.unwrap_or(config.font_system);
+    font_system.set_default();
+
+    let fontconfig = Rc::new(FontConfiguration::new(Arc::clone(&config), font_system));
+
+    let domain: Arc<dyn Domain> = Arc::new(ClientDomain::new(client_config));
+    let mux = Rc::new(mux::Mux::new(&config, &domain));
+    Mux::set_mux(&mux);
+
+    let front_end = opts.front_end.unwrap_or(config.front_end);
+    let gui = front_end.try_new(&mux)?;
+    domain.attach()?;
+
+    if mux.is_empty() {
+        let cmd = if !opts.prog.is_empty() {
+            let argv: Vec<&std::ffi::OsStr> = opts.prog.iter().map(|x| x.as_os_str()).collect();
+            let mut builder = CommandBuilder::new(&argv[0]);
+            builder.args(&argv[1..]);
+            Some(builder)
+        } else {
+            None
+        };
+        let window_id = mux.new_empty_window();
+        let tab = mux
+            .default_domain()
+            .spawn(PtySize::default(), cmd, window_id)?;
+        gui.spawn_new_window(mux.config(), &fontconfig, &tab, window_id)?;
+    }
+
+    for dom in mux.iter_domains() {
+        log::error!("domain {} state {:?}", dom.domain_id(), dom.state());
+    }
 
     gui.run_forever()
 }
@@ -445,6 +542,7 @@ fn run() -> Result<(), Error> {
             run_terminal_gui(config, &start)
         }
         SubCommand::Ssh(ssh) => run_ssh(config, &ssh),
+        SubCommand::Connect(connect) => run_mux_client(config, &connect),
         SubCommand::Cli(cli) => {
             let client = Client::new_default_unix_domain(&config)?;
             match cli.sub {
