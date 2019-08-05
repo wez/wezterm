@@ -17,7 +17,7 @@ libc = "0.2"
 shell-words = "0.1"
 serde_derive = {version="1.0", optional=true}
 serde = {version="1.0", optional=true}
-ssh2 = {optional=true, git="https://github.com/wez/ssh2-rs"}
+ssh2 = {optional=true, git="https://github.com/wez/ssh2-rs", branch="win10dh"}
 #ssh2 = {optional=true, path="../../ssh2-rs"}
 
 [features]
