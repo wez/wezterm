@@ -69,6 +69,14 @@ impl ClientDomainConfig {
             ClientDomainConfig::Ssh(ssh) => &ssh.name,
         }
     }
+
+    pub fn connect_automatically(&self) -> bool {
+        match self {
+            ClientDomainConfig::Unix(unix) => unix.connect_automatically,
+            ClientDomainConfig::Tls(tls) => tls.connect_automatically,
+            ClientDomainConfig::Ssh(ssh) => ssh.connect_automatically,
+        }
+    }
 }
 
 impl ClientInner {

@@ -428,32 +428,10 @@ fn run_terminal_gui(config: Arc<config::Config>, opts: &StartCommand) -> Fallibl
     }
 
     if front_end != FrontEndSelection::MuxServer && !opts.no_auto_connect {
-        for unix_dom in &config.unix_domains {
-            let dom = record_domain(
-                &mux,
-                ClientDomain::new(ClientDomainConfig::Unix(unix_dom.clone())),
-            )?;
-            if unix_dom.connect_automatically {
-                dom.attach()?;
-            }
-        }
-
-        for ssh_dom in &config.ssh_domains {
-            let dom = record_domain(
-                &mux,
-                ClientDomain::new(ClientDomainConfig::Ssh(ssh_dom.clone())),
-            )?;
-            if ssh_dom.connect_automatically {
-                dom.attach()?;
-            }
-        }
-
-        for tls_client in &config.tls_clients {
-            let dom = record_domain(
-                &mux,
-                ClientDomain::new(ClientDomainConfig::Tls(tls_client.clone())),
-            )?;
-            if tls_client.connect_automatically {
+        for client_config in client_domains(&config) {
+            let connect_automatically = client_config.connect_automatically();
+            let dom = record_domain(&mux, ClientDomain::new(client_config))?;
+            if connect_automatically {
                 dom.attach()?;
             }
         }
