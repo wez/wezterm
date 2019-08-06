@@ -241,6 +241,9 @@ impl GliumTerminalWindow {
 
         host.display.gl_window().set_cursor(MouseCursor::Text);
 
+        #[cfg(windows)]
+        enable_dark_mode(&host.display.gl_window());
+
         let width = width as u16;
         let height = height as u16;
         let renderer = Renderer::new(&host.display, width, height, fonts)?;
@@ -767,5 +770,46 @@ impl GliumTerminalWindow {
             _ => {}
         }
         Ok(())
+    }
+}
+
+#[cfg(windows)]
+fn enable_dark_mode(window: &winit::Window) {
+    // Prefer to run in dark mode. This could be made configurable without
+    // a huge amount of effort, but I think it's fine to just be always
+    // dark mode by default :-p
+    // Note that the MS terminal app uses the logic found here for this
+    // stuff:
+    // https://github.com/microsoft/terminal/blob/9b92986b49bed8cc41fde4d6ef080921c41e6d9e/src/interactivity/win32/windowtheme.cpp#L62
+    use std::ffi::OsStr;
+    use std::os::windows::ffi::OsStrExt;
+    use winapi::shared::minwindef::{BOOL, DWORD};
+    use winapi::um::dwmapi::DwmSetWindowAttribute;
+    use winapi::um::uxtheme::SetWindowTheme;
+    use winit::os::windows::WindowExt;
+
+    fn wide_str(s: &str) -> Vec<u16> {
+        OsStr::new(s)
+            .encode_wide()
+            .chain(std::iter::once(0))
+            .collect()
+    }
+
+    let hwnd = window.get_hwnd();
+    const DWMWA_USE_IMMERSIVE_DARK_MODE: DWORD = 19;
+    unsafe {
+        SetWindowTheme(
+            hwnd as _,
+            wide_str("DarkMode_Explorer").as_slice().as_ptr(),
+            std::ptr::null_mut(),
+        );
+
+        let enabled: BOOL = 1;
+        DwmSetWindowAttribute(
+            hwnd as _,
+            DWMWA_USE_IMMERSIVE_DARK_MODE,
+            &enabled as *const _ as *const _,
+            std::mem::size_of_val(&enabled) as u32,
+        );
     }
 }
