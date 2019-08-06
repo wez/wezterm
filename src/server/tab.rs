@@ -235,7 +235,7 @@ impl Tab for ClientTab {
     fn get_title(&self) -> String {
         let renderable = self.renderable.borrow();
         let surface = &renderable.inner.borrow().surface;
-        format!("[muxed] {} {}", surface.current_seqno(), surface.title())
+        surface.title().to_string()
     }
 
     fn send_paste(&self, text: &str) -> Fallible<()> {
