@@ -1,7 +1,5 @@
 #[cfg(windows)]
 use failure::{ensure, Error};
-#[cfg(windows)]
-use log::error;
 #[cfg(feature = "serde_support")]
 use serde_derive::*;
 use std::ffi::{OsStr, OsString};
@@ -51,12 +49,6 @@ impl CommandBuilder {
     {
         self.envs
             .push((key.as_ref().to_owned(), val.as_ref().to_owned()));
-        #[cfg(windows)]
-        error!(
-            "ignoring env {:?}={:?} for child; FIXME: implement this!",
-            key.as_ref(),
-            val.as_ref()
-        );
     }
 
     #[cfg(feature = "ssh")]
@@ -123,6 +115,34 @@ impl CommandBuilder {
         }
 
         exe.to_owned()
+    }
+
+    /// Constructs an environment block for this spawn attempt.
+    /// Uses the current process environment as the base and then
+    /// adds/replaces the environment that was specified via the
+    /// `env` methods.
+    pub(crate) fn environment_block(&self) -> Vec<u16> {
+        // Take the current environment as the base
+        let mut env_hash: std::collections::HashMap<_, _> = std::env::vars_os().collect();
+
+        // override with the specified values
+        for (k, v) in &self.envs {
+            env_hash.insert(k.to_owned(), v.to_owned());
+        }
+
+        // and now encode it as wide characters
+        let mut block = vec![];
+
+        for (k, v) in env_hash {
+            block.extend(k.encode_wide());
+            block.push(b'=' as u16);
+            block.extend(v.encode_wide());
+            block.push(0);
+        }
+        // and a final terminator for CreateProcessW
+        block.push(0);
+
+        block
     }
 
     pub(crate) fn cmdline(&self) -> Result<(Vec<u16>, Vec<u16>), Error> {

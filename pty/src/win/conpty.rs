@@ -18,8 +18,8 @@ use winapi::shared::minwindef::DWORD;
 use winapi::shared::winerror::{HRESULT, S_OK};
 use winapi::um::handleapi::*;
 use winapi::um::processthreadsapi::*;
-use winapi::um::winbase::EXTENDED_STARTUPINFO_PRESENT;
 use winapi::um::winbase::STARTUPINFOEXW;
+use winapi::um::winbase::{CREATE_UNICODE_ENVIRONMENT, EXTENDED_STARTUPINFO_PRESENT};
 use winapi::um::wincon::COORD;
 
 const PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE: usize = 0x00020016;
@@ -270,8 +270,8 @@ impl SlavePty for ConPtySlavePty {
                 ptr::null_mut(),
                 ptr::null_mut(),
                 0,
-                EXTENDED_STARTUPINFO_PRESENT,
-                ptr::null_mut(), // FIXME: env
+                EXTENDED_STARTUPINFO_PRESENT | CREATE_UNICODE_ENVIRONMENT,
+                cmd.environment_block().as_mut_slice().as_mut_ptr() as *mut _,
                 ptr::null_mut(),
                 &mut si.StartupInfo,
                 &mut pi,
