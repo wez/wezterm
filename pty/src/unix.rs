@@ -92,44 +92,6 @@ fn cloexec(fd: RawFd) -> Result<(), Error> {
     Ok(())
 }
 
-#[allow(dead_code)]
-fn clear_nonblocking(fd: RawFd) -> Result<(), Error> {
-    let flags = unsafe { libc::fcntl(fd, libc::F_GETFL, 0) };
-    if flags == -1 {
-        bail!(
-            "fcntl to read flags failed: {:?}",
-            io::Error::last_os_error()
-        );
-    }
-    let result = unsafe { libc::fcntl(fd, libc::F_SETFL, flags & !libc::O_NONBLOCK) };
-    if result == -1 {
-        bail!(
-            "fcntl to set NONBLOCK failed: {:?}",
-            io::Error::last_os_error()
-        );
-    }
-    Ok(())
-}
-
-#[allow(dead_code)]
-fn set_nonblocking(fd: RawFd) -> Result<(), Error> {
-    let flags = unsafe { libc::fcntl(fd, libc::F_GETFL, 0) };
-    if flags == -1 {
-        bail!(
-            "fcntl to read flags failed: {:?}",
-            io::Error::last_os_error()
-        );
-    }
-    let result = unsafe { libc::fcntl(fd, libc::F_SETFL, flags | libc::O_NONBLOCK) };
-    if result == -1 {
-        bail!(
-            "fcntl to set NONBLOCK failed: {:?}",
-            io::Error::last_os_error()
-        );
-    }
-    Ok(())
-}
-
 impl SlavePty for UnixSlavePty {
     fn spawn_command(&self, builder: CommandBuilder) -> Result<Box<dyn Child>, Error> {
         let mut cmd = builder.as_command();
