@@ -30,6 +30,7 @@ struct SessionInner {
     session: Session,
     ptys: HashMap<usize, SshPty>,
     next_channel_id: usize,
+    term: String,
 }
 
 // An anemic impl of Debug to satisfy some indirect trait bounds
@@ -63,12 +64,15 @@ impl SshSession {
     /// The `ssh2::Session` must be pre-connected (eg: `ssh2::Session::handshake`
     /// must have been successfully completed) and pre-authenticated so that
     /// internal calls made to `ssh2::Channel::exec` can be made.
-    pub fn new(session: Session) -> Self {
+    /// The `term` parameter specifies the term name for the remote host in
+    /// the case that a pty needs to be allocated.
+    pub fn new(session: Session, term: &str) -> Self {
         Self {
             inner: Arc::new(Mutex::new(SessionInner {
                 session,
                 ptys: HashMap::new(),
                 next_channel_id: 1,
+                term: term.to_string(),
             })),
         }
     }
@@ -80,12 +84,7 @@ impl PtySystem for SshSession {
         let mut channel = inner.session.channel_session()?;
         channel.handle_extended_data(ssh2::ExtendedData::Merge)?;
         channel.request_pty(
-            // Unfortunately we need to pass in *something* for the
-            // terminal name here to satisfy the ssh spec.
-            // We don't know what the TERM environment might be
-            // until we get to `SlavePty::spawn_command`.
-            // We use xterm here because it is pretty ubiquitous.
-            "xterm",
+            &inner.term,
             None,
             Some((
                 size.cols.into(),

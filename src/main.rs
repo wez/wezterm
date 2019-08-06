@@ -296,7 +296,7 @@ fn run_ssh(config: Arc<config::Config>, opts: &SshCommand) -> Fallible<()> {
     let params = SshParameters::parse(&opts.user_at_host_and_port)?;
 
     let sess = ssh::ssh_connect(&params.host_and_port, &params.username)?;
-    let pty_system = Box::new(portable_pty::ssh::SshSession::new(sess));
+    let pty_system = Box::new(portable_pty::ssh::SshSession::new(sess, &config.term));
     let domain: Arc<dyn Domain> = Arc::new(ssh::RemoteSshDomain::with_pty_system(
         &opts.user_at_host_and_port,
         &config,
