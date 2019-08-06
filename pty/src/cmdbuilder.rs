@@ -1,5 +1,7 @@
 #[cfg(windows)]
 use failure::{ensure, Error};
+#[cfg(unix)]
+use failure::{format_err, Fallible};
 #[cfg(feature = "serde_support")]
 use serde_derive::*;
 use std::ffi::{OsStr, OsString};
@@ -25,8 +27,26 @@ impl CommandBuilder {
         }
     }
 
-    /// Append an argument to the current command line
+    /// Create a new builder instance that will run some idea of a default
+    /// program.  Such a builder will panic if `arg` is called on it.
+    pub fn new_default_prog() -> Self {
+        Self {
+            args: vec![],
+            envs: vec![],
+        }
+    }
+
+    /// Returns true if this builder was created via `new_default_prog`
+    pub fn is_default_prog(&self) -> bool {
+        self.args.is_empty()
+    }
+
+    /// Append an argument to the current command line.
+    /// Will panic if called on a builder created via `new_default_prog`.
     pub fn arg<S: AsRef<OsStr>>(&mut self, arg: S) {
+        if self.is_default_prog() {
+            panic!("attempted to add args to a default_prog builder");
+        }
         self.args.push(arg.as_ref().to_owned());
     }
 
@@ -76,14 +96,60 @@ impl CommandBuilder {
 #[cfg(unix)]
 impl CommandBuilder {
     /// Convert the CommandBuilder to a `std::process::Command` instance.
-    pub(crate) fn as_command(&self) -> std::process::Command {
-        let mut cmd = std::process::Command::new(&self.args[0]);
-        cmd.args(&self.args[1..]);
+    pub(crate) fn as_command(&self) -> Fallible<std::process::Command> {
+        let mut cmd = if self.is_default_prog() {
+            let mut cmd = std::process::Command::new(&Self::get_shell()?);
+            cmd.current_dir(Self::get_home_dir()?);
+            cmd
+        } else {
+            let mut cmd = std::process::Command::new(&self.args[0]);
+            cmd.args(&self.args[1..]);
+            cmd
+        };
+
         for (key, val) in &self.envs {
             cmd.env(key, val);
         }
 
-        cmd
+        Ok(cmd)
+    }
+
+    /// Determine which shell to run.
+    /// We take the contents of the $SHELL env var first, then
+    /// fall back to looking it up from the password database.
+    fn get_shell() -> Fallible<String> {
+        std::env::var("SHELL").or_else(|_| {
+            let ent = unsafe { libc::getpwuid(libc::getuid()) };
+
+            if ent.is_null() {
+                Ok("/bin/sh".into())
+            } else {
+                use std::ffi::CStr;
+                use std::str;
+                let shell = unsafe { CStr::from_ptr((*ent).pw_shell) };
+                shell
+                    .to_str()
+                    .map(str::to_owned)
+                    .map_err(|e| format_err!("failed to resolve shell: {:?}", e))
+            }
+        })
+    }
+
+    fn get_home_dir() -> Fallible<String> {
+        std::env::var("HOME").or_else(|_| {
+            let ent = unsafe { libc::getpwuid(libc::getuid()) };
+
+            if ent.is_null() {
+                Ok("/".into())
+            } else {
+                use std::ffi::CStr;
+                use std::str;
+                let home = unsafe { CStr::from_ptr((*ent).pw_dir) };
+                home.to_str()
+                    .map(str::to_owned)
+                    .map_err(|e| format_err!("failed to resolve home dir: {:?}", e))
+            }
+        })
     }
 }
 
@@ -148,7 +214,12 @@ impl CommandBuilder {
     pub(crate) fn cmdline(&self) -> Result<(Vec<u16>, Vec<u16>), Error> {
         let mut cmdline = Vec::<u16>::new();
 
-        let exe = Self::search_path(&self.args[0]);
+        let exe = if self.is_default_prog() {
+            std::env::var_os("ComSpec").unwrap_or("cmd.exe".into())
+        } else {
+            Self::search_path(&self.args[0])
+        };
+
         Self::append_quoted(&exe, &mut cmdline);
 
         // Ensure that we nul terminate the module name, otherwise we'll

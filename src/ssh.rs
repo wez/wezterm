@@ -256,7 +256,7 @@ impl Domain for RemoteSshDomain {
     ) -> Result<Rc<dyn Tab>, Error> {
         let cmd = match command {
             Some(c) => c,
-            None => CommandBuilder::new("bash"),
+            None => CommandBuilder::new_default_prog(),
         };
         let pair = self.pty_system.openpty(size)?;
         let child = pair.slave.spawn_command(cmd)?;

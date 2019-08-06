@@ -28,39 +28,10 @@ use crate::mux::Mux;
 use crate::server::client::{unix_connect_with_retry, Client};
 use crate::server::domain::{ClientDomain, ClientDomainConfig};
 use portable_pty::cmdbuilder::CommandBuilder;
+use portable_pty::PtySize;
 
 mod font;
 use crate::font::{FontConfiguration, FontSystemSelection};
-
-use portable_pty::PtySize;
-use std::env;
-
-/// Determine which shell to run.
-/// We take the contents of the $SHELL env var first, then
-/// fall back to looking it up from the password database.
-#[cfg(unix)]
-fn get_shell() -> Result<String, Error> {
-    env::var("SHELL").or_else(|_| {
-        let ent = unsafe { libc::getpwuid(libc::getuid()) };
-
-        if ent.is_null() {
-            Ok("/bin/sh".into())
-        } else {
-            use std::ffi::CStr;
-            use std::str;
-            let shell = unsafe { CStr::from_ptr((*ent).pw_shell) };
-            shell
-                .to_str()
-                .map(str::to_owned)
-                .map_err(|e| format_err!("failed to resolve shell: {:?}", e))
-        }
-    })
-}
-
-#[cfg(windows)]
-fn get_shell() -> Result<String, Error> {
-    Ok(env::var("ComSpec").unwrap_or("cmd.exe".into()))
-}
 
 //    let message = "; ❤ 😍🤢\n\x1b[91;mw00t\n\x1b[37;104;m bleet\x1b[0;m.";
 //    terminal.advance_bytes(message);

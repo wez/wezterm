@@ -1,10 +1,10 @@
 //! Configuration for the gui portion of the terminal
 
+use crate::create_user_owned_dirs;
 use crate::font::FontSystemSelection;
 use crate::frontend::guicommon::host::KeyAssignment;
 use crate::frontend::guicommon::window::SpawnTabDomain;
 use crate::frontend::FrontEndSelection;
-use crate::{create_user_owned_dirs, get_shell};
 use failure::{bail, err_msg, format_err, Error, Fallible};
 use lazy_static::lazy_static;
 use portable_pty::{CommandBuilder, PtySystemSelection};
@@ -890,42 +890,6 @@ impl Config {
         cfg
     }
 
-    /// On macOS, we get launched from: eg: spotlight or alfred
-    /// or the finder with whatever SHELL was set to at login time
-    /// (which have been subsequently changed via `chsh`) and with
-    /// a cwd=/.
-    /// That feels a bit broken, so we follow the lead of
-    /// Terminal.app and use `login -pf $USER` as the default
-    /// program to run.
-    /// This function computes and returns that command.
-    /// We don't do this on Linux because the linux `login`
-    /// program refuses to run except when started by root.
-    #[cfg(target_os = "macos")]
-    fn macos_login() -> Result<Vec<String>, Error> {
-        let ent = unsafe { libc::getpwuid(libc::getuid()) };
-        if ent.is_null() {
-            bail!("unable to resolve my own uid");
-        } else {
-            let name = unsafe { std::ffi::CStr::from_ptr((*ent).pw_name) };
-            let name = name.to_str().map(str::to_owned)?;
-            Ok(vec!["login".to_owned(), "-pf".to_owned(), name])
-        }
-    }
-
-    pub fn default_prog(&self) -> Result<Vec<String>, Error> {
-        if let Some(prog) = self.default_prog.as_ref() {
-            Ok(prog.clone())
-        } else {
-            #[cfg(target_os = "macos")]
-            {
-                if let Ok(login) = Self::macos_login() {
-                    return Ok(login);
-                }
-            }
-            Ok(vec![get_shell()?])
-        }
-    }
-
     pub fn build_prog(&self, prog: Option<Vec<&OsStr>>) -> Result<CommandBuilder, Error> {
         let mut cmd = match prog {
             Some(args) => {
@@ -935,11 +899,14 @@ impl Config {
                 cmd
             }
             None => {
-                let prog = self.default_prog()?;
-                let mut args = prog.iter();
-                let mut cmd = CommandBuilder::new(args.next().expect("executable name"));
-                cmd.args(args);
-                cmd
+                if let Some(prog) = self.default_prog.as_ref() {
+                    let mut args = prog.iter();
+                    let mut cmd = CommandBuilder::new(args.next().expect("executable name"));
+                    cmd.args(args);
+                    cmd
+                } else {
+                    CommandBuilder::new_default_prog()
+                }
             }
         };
 

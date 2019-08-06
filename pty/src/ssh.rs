@@ -191,8 +191,12 @@ impl SlavePty for SshSlave {
                     .map_err(|e| format_err!("ssh: setenv {}={} failed: {}", key, val, e))?;
             }
 
-            let command = cmd.as_unix_command_line()?;
-            channel.exec(&command)?;
+            if cmd.is_default_prog() {
+                channel.shell()?;
+            } else {
+                let command = cmd.as_unix_command_line()?;
+                channel.exec(&command)?;
+            }
 
             let child: Box<dyn Child> = Box::new(SshChild {
                 pty: self.pty.clone(),

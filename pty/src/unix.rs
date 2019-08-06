@@ -94,7 +94,7 @@ fn cloexec(fd: RawFd) -> Result<(), Error> {
 
 impl SlavePty for UnixSlavePty {
     fn spawn_command(&self, builder: CommandBuilder) -> Result<Box<dyn Child>, Error> {
-        let mut cmd = builder.as_command();
+        let mut cmd = builder.as_command()?;
 
         unsafe {
             cmd.stdin(self.as_stdio()?)
