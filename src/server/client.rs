@@ -15,7 +15,7 @@ use filedescriptor::{pollfd, AsRawSocketDescriptor};
 use log::info;
 use promise::{Future, Promise};
 use std::collections::HashMap;
-use std::io::Write;
+use std::io::{Read, Write};
 use std::net::TcpStream;
 use std::path::Path;
 use std::sync::Arc;
@@ -198,8 +198,39 @@ struct SshStream {
 // to mark SshStream as Send.
 unsafe impl Send for SshStream {}
 
-impl std::io::Read for SshStream {
+impl SshStream {
+    fn process_stderr(&mut self) {
+        let blocking = self.sess.is_blocking();
+        self.sess.set_blocking(false);
+
+        loop {
+            let mut buf = [0u8; 1024];
+            match self.chan.stderr().read(&mut buf) {
+                Ok(size) => {
+                    if size == 0 {
+                        break;
+                    } else {
+                        let stderr = &buf[0..size];
+                        log::error!("ssh stderr: {}", String::from_utf8_lossy(stderr));
+                    }
+                }
+                Err(e) => {
+                    if e.kind() != std::io::ErrorKind::WouldBlock {
+                        log::error!("ssh error reading stderr: {}", e);
+                    }
+                    break;
+                }
+            }
+        }
+
+        self.sess.set_blocking(blocking);
+    }
+}
+
+impl Read for SshStream {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, std::io::Error> {
+        // Take the opportunity to read and show data from stderr
+        self.process_stderr();
         self.chan.read(buf)
     }
 }
@@ -215,7 +246,7 @@ impl AsPollFd for SshStream {
     }
 }
 
-impl std::io::Write for SshStream {
+impl Write for SshStream {
     fn write(&mut self, buf: &[u8]) -> Result<usize, std::io::Error> {
         self.chan.write(buf)
     }

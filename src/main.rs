@@ -432,12 +432,19 @@ fn main() -> Result<(), Error> {
     if let Err(e) = &result {
         let message = e.to_string();
 
-        tinyfiledialogs::message_box_ok(
-            "wezterm",
-            &message,
-            tinyfiledialogs::MessageBoxIcon::Error,
-        );
         log::error!("{}", message);
+
+        // Avoid showing a modal dialog for IO errors such as
+        // BrokenPipe; those can manifest with the `cli proxy` subcommand
+        // running on the remote host, and no one would ever see those
+        // dialogs anyway
+        if e.downcast_ref::<std::io::Error>().is_none() {
+            tinyfiledialogs::message_box_ok(
+                "wezterm",
+                &message,
+                tinyfiledialogs::MessageBoxIcon::Error,
+            );
+        }
     }
     result
 }
