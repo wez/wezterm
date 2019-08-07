@@ -96,6 +96,9 @@ enum SubCommand {
     #[structopt(name = "ssh", about = "Establish an ssh session")]
     Ssh(SshCommand),
 
+    #[structopt(name = "serial", about = "Open a serial port")]
+    Serial(SerialCommand),
+
     #[structopt(name = "connect", about = "Connect to wezterm multiplexer")]
     Connect(ConnectCommand),
 
@@ -155,6 +158,37 @@ struct SshCommand {
     /// as if it were a login shell.
     #[structopt(parse(from_os_str))]
     prog: Vec<OsString>,
+}
+
+#[derive(Debug, StructOpt, Clone)]
+struct SerialCommand {
+    #[structopt(
+        long = "front-end",
+        raw(
+            possible_values = "&FrontEndSelection::variants()",
+            case_insensitive = "true"
+        )
+    )]
+    front_end: Option<FrontEndSelection>,
+
+    #[structopt(
+        long = "font-system",
+        raw(
+            possible_values = "&FontSystemSelection::variants()",
+            case_insensitive = "true"
+        )
+    )]
+    font_system: Option<FontSystemSelection>,
+
+    /// Set the baud rate.  The default is 9600 baud.
+    #[structopt(long = "baud")]
+    baud: Option<usize>,
+
+    /// Specifies the serial device name.
+    /// On Windows systems this can be a name like `COM0`.
+    /// On posix systems this will be something like `/dev/ttyUSB0`
+    #[structopt(parse(from_os_str))]
+    port: OsString,
 }
 
 #[derive(Debug, StructOpt, Clone)]
@@ -283,6 +317,34 @@ fn run_ssh(config: Arc<config::Config>, opts: &SshCommand) -> Fallible<()> {
 
     let window_id = mux.new_empty_window();
     let tab = domain.spawn(PtySize::default(), cmd, window_id)?;
+    gui.spawn_new_window(mux.config(), &fontconfig, &tab, window_id)?;
+
+    gui.run_forever()
+}
+
+fn run_serial(config: Arc<config::Config>, opts: &SerialCommand) -> Fallible<()> {
+    let font_system = opts.font_system.unwrap_or(config.font_system);
+    font_system.set_default();
+
+    let fontconfig = Rc::new(FontConfiguration::new(Arc::clone(&config), font_system));
+
+    let mut serial = portable_pty::serial::SerialTty::new(&opts.port);
+    if let Some(baud) = opts.baud {
+        serial.set_baud_rate(serial::BaudRate::from_speed(baud));
+    }
+
+    let pty_system = Box::new(portable_pty::serial::SerialTty::new(&opts.port));
+    let domain: Arc<dyn Domain> =
+        Arc::new(LocalDomain::with_pty_system("local", &config, pty_system));
+    let mux = Rc::new(mux::Mux::new(&config, &domain));
+    Mux::set_mux(&mux);
+
+    let front_end = opts.front_end.unwrap_or(config.front_end);
+    let gui = front_end.try_new(&mux)?;
+    domain.attach()?;
+
+    let window_id = mux.new_empty_window();
+    let tab = domain.spawn(PtySize::default(), None, window_id)?;
     gui.spawn_new_window(mux.config(), &fontconfig, &tab, window_id)?;
 
     gui.run_forever()
@@ -502,6 +564,7 @@ fn run() -> Result<(), Error> {
             run_terminal_gui(config, &start)
         }
         SubCommand::Ssh(ssh) => run_ssh(config, &ssh),
+        SubCommand::Serial(serial) => run_serial(config, &serial),
         SubCommand::Connect(connect) => run_mux_client(config, &connect),
         SubCommand::Cli(cli) => {
             let initial = true;

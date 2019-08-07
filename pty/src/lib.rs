@@ -59,6 +59,8 @@ pub mod win;
 #[cfg(feature = "ssh")]
 pub mod ssh;
 
+pub mod serial;
+
 /// Represents the size of the visible display area in the pty
 #[derive(Debug, Clone, Copy, PartialEq)]
 #[cfg_attr(feature = "serde_support", derive(Serialize, Deserialize))]
