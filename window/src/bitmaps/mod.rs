@@ -142,6 +142,24 @@ pub trait BitmapImage {
     fn image_dimensions(&self) -> (usize, usize);
 
     #[inline]
+    fn pixels(&self) -> &[u32] {
+        let (width, height) = self.image_dimensions();
+        unsafe {
+            let first = self.pixel_data() as *const u32;
+            std::slice::from_raw_parts(first, width * height)
+        }
+    }
+
+    #[inline]
+    fn pixels_mut(&mut self) -> &mut [u32] {
+        let (width, height) = self.image_dimensions();
+        unsafe {
+            let first = self.pixel_data_mut() as *mut u32;
+            std::slice::from_raw_parts_mut(first, width * height)
+        }
+    }
+
+    #[inline]
     /// Obtain a mutable reference to the raw bgra pixel at the specified coordinates
     fn pixel_mut(&mut self, x: usize, y: usize) -> &mut u32 {
         let (width, height) = self.image_dimensions();
@@ -154,19 +172,30 @@ pub trait BitmapImage {
 
     #[inline]
     /// Read the raw bgra pixel at the specified coordinates
-    fn pixel(&self, x: usize, y: usize) -> u32 {
+    fn pixel(&self, x: usize, y: usize) -> &u32 {
         let (width, height) = self.image_dimensions();
         debug_assert!(x < width && y < height);
         unsafe {
             let offset = (y * width * 4) + (x * 4);
-            *(self.pixel_data().offset(offset as isize) as *const u32)
+            &*(self.pixel_data().offset(offset as isize) as *const u32)
         }
+    }
+
+    #[inline]
+    fn horizontal_pixel_range(&self, x1: usize, x2: usize, y: usize) -> &[u32] {
+        unsafe { std::slice::from_raw_parts(self.pixel(x1, y), x2 - x1) }
+    }
+
+    #[inline]
+    fn horizontal_pixel_range_mut(&mut self, x1: usize, x2: usize, y: usize) -> &mut [u32] {
+        unsafe { std::slice::from_raw_parts_mut(self.pixel_mut(x1, y), x2 - x1) }
     }
 
     /// Clear the entire image to the specific color
     fn clear(&mut self, color: Color) {
-        let (width, height) = self.image_dimensions();
-        self.clear_rect(0, 0, width, height, color);
+        for c in self.pixels_mut() {
+            *c = color.0;
+        }
     }
 
     fn clear_rect(
@@ -178,23 +207,16 @@ pub trait BitmapImage {
         color: Color,
     ) {
         let (dim_width, dim_height) = self.image_dimensions();
-        for y in 0..height {
-            let dest_y = y as isize + dest_y;
-            if dest_y < 0 {
-                continue;
-            }
-            if dest_y as usize >= dim_height {
-                break;
-            }
-            for x in 0..width {
-                let dest_x = x as isize + dest_x;
-                if dest_x < 0 {
-                    continue;
-                }
-                if dest_x as usize >= dim_width {
-                    break;
-                }
-                *self.pixel_mut(dest_x as usize, dest_y as usize) = color.0;
+        let max_x = (dest_x + width as isize).min(dim_width as isize) as usize;
+        let max_y = (dest_y + height as isize).min(dim_height as isize) as usize;
+
+        let dest_x = dest_x.max(0) as usize;
+        let dest_y = dest_y.max(0) as usize;
+
+        for y in dest_y..max_y {
+            let range = self.horizontal_pixel_range_mut(dest_x, max_x, y);
+            for c in range {
+                *c = color.0;
             }
         }
     }
@@ -302,7 +324,7 @@ pub trait BitmapImage {
                 if dest_x as usize >= dim_width {
                     break;
                 }
-                let src = Color(im.pixel(x, y));
+                let src = Color(*im.pixel(x, y));
                 let dst = self.pixel_mut(dest_x as usize, dest_y as usize);
                 *dst = src.composite(Color(*dst), &operator).0;
             }
