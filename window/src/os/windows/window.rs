@@ -8,9 +8,16 @@ use winapi::shared::windef::*;
 use winapi::um::libloaderapi::GetModuleHandleW;
 use winapi::um::winuser::*;
 
+pub trait WindowCallbacks {
+    fn can_close(&mut self) -> bool {
+        true
+    }
+}
+
 struct WindowInner {
     /// Non-owning reference to the window handle
     hwnd: HWND,
+    callbacks: Box<WindowCallbacks>,
 }
 
 pub struct Window {
@@ -125,8 +132,12 @@ impl Window {
         name: &str,
         width: usize,
         height: usize,
+        callbacks: Box<WindowCallbacks>,
     ) -> Fallible<Window> {
-        let inner = Arc::new(Mutex::new(WindowInner { hwnd: null_mut() }));
+        let inner = Arc::new(Mutex::new(WindowInner {
+            hwnd: null_mut(),
+            callbacks,
+        }));
 
         // Careful: `raw` owns a ref to inner, but there is no Drop impl
         let raw = arc_to_pointer(&inner);
@@ -149,6 +160,9 @@ impl Window {
     }
 }
 
+/// Set up bidirectional pointers:
+/// hwnd.USERDATA -> WindowInner
+/// WindowInner.hwnd -> hwnd
 unsafe fn wm_nccreate(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> LRESULT {
     let create: &CREATESTRUCTW = &*(lparam as *const CREATESTRUCTW);
     let inner = arc_from_pointer(create.lpCreateParams);
@@ -158,6 +172,9 @@ unsafe fn wm_nccreate(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> 
     DefWindowProcW(hwnd, msg, wparam, lparam)
 }
 
+/// Called when the window is being destroyed.
+/// Goal is to release the WindowInner reference that was stashed
+/// in the window by wm_nccreate.
 unsafe fn wm_ncdestroy(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> LRESULT {
     let raw = GetWindowLongPtrW(hwnd, GWLP_USERDATA) as LPVOID;
     if !raw.is_null() {
@@ -174,8 +191,13 @@ unsafe fn do_wnd_proc(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> 
         WM_NCCREATE => return wm_nccreate(hwnd, msg, wparam, lparam),
         WM_NCDESTROY => return wm_ncdestroy(hwnd, msg, wparam, lparam),
         WM_CLOSE => {
-            // FIXME: definitely want the application to control this!
-            PostQuitMessage(0);
+            if let Some(inner) = arc_from_hwnd(hwnd) {
+                let mut inner = inner.lock().unwrap();
+                if !inner.callbacks.can_close() {
+                    // Don't let it close
+                    return 0;
+                }
+            }
         }
         _ => {}
     }
@@ -209,5 +231,11 @@ pub fn run_message_loop() -> Fallible<()> {
             TranslateMessage(&mut msg);
             DispatchMessageW(&mut msg);
         }
+    }
+}
+
+pub fn terminate_message_loop() {
+    unsafe {
+        PostQuitMessage(0);
     }
 }
