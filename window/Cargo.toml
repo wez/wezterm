@@ -10,7 +10,9 @@ license = "MIT"
 [dependencies]
 failure = "0.1"
 failure_derive = "0.1"
+palette = "0.4"
 promise = { path = "../promise" }
+resize = "0.3"
 
 [features]
 
