@@ -15,16 +15,12 @@ promise = { path = "../promise" }
 [features]
 
 [target."cfg(windows)".dependencies]
-lazy_static = "1.3"
-shared_library = "0.1"
-uds_windows = "0.1"
 winapi = { version = "0.3", features = [
     "dwmapi",
-    "winuser",
-    "consoleapi",
     "handleapi",
-    "fileapi",
-    "namedpipeapi",
+    "libloaderapi",
     "synchapi",
+    "winerror",
+    "winuser",
 ]}
 
