@@ -1,6 +1,8 @@
 use super::gdi::*;
 use super::*;
 use crate::bitmaps::*;
+use crate::color::Color;
+use crate::{Dimensions, Operator, PaintContext};
 use failure::Fallible;
 use std::io::Error as IoError;
 use std::ptr::{null, null_mut};
@@ -21,6 +23,10 @@ pub trait WindowCallbacks {
 
     /// Called when the window is being destroyed by the gui system
     fn destroy(&mut self) {}
+
+    fn paint(&mut self, context: &mut dyn PaintContext) {
+        // context.clear(Color::rgb(0, 0, 0));
+    }
 }
 
 struct WindowInner {
@@ -238,8 +244,55 @@ fn enable_dark_mode(hwnd: HWND) {
     }
 }
 
+struct GdiGraphicsContext {
+    bitmap: GdiBitmap,
+}
+
+impl PaintContext for GdiGraphicsContext {
+    fn clear_rect(
+        &mut self,
+        dest_x: isize,
+        dest_y: isize,
+        width: usize,
+        height: usize,
+        color: Color,
+    ) {
+        self.bitmap.clear_rect(dest_x, dest_y, width, height, color)
+    }
+
+    fn clear(&mut self, color: Color) {
+        self.bitmap.clear(color);
+    }
+
+    fn get_dimensions(&self) -> Dimensions {
+        let (pixel_width, pixel_height) = self.bitmap.image_dimensions();
+        Dimensions {
+            pixel_width,
+            pixel_height,
+            dpi: 96,
+        }
+    }
+
+    fn draw_image_subset(
+        &mut self,
+        dest_x: isize,
+        dest_y: isize,
+        src_x: usize,
+        src_y: usize,
+        width: usize,
+        height: usize,
+        im: &dyn BitmapImage,
+        operator: Operator,
+    ) {
+        self.bitmap
+            .draw_image_subset(dest_x, dest_y, src_x, src_y, width, height, im, operator)
+    }
+}
+
 unsafe fn wm_paint(hwnd: HWND, _msg: UINT, _wparam: WPARAM, _lparam: LPARAM) -> Option<LRESULT> {
-    if let Some(_inner) = arc_from_hwnd(hwnd) {
+    if let Some(inner) = arc_from_hwnd(hwnd) {
+        let mut inner = inner.lock().unwrap();
+
         let dc = GetDC(hwnd);
 
         let mut rect = RECT {
@@ -252,20 +305,23 @@ unsafe fn wm_paint(hwnd: HWND, _msg: UINT, _wparam: WPARAM, _lparam: LPARAM) -> 
         let width = rect_width(&rect) as usize;
         let height = rect_height(&rect) as usize;
 
-        let mut bitmap = GdiBitmap::new_compatible(width, height, dc).unwrap();
+        if width > 0 && height > 0 {
+            let bitmap = GdiBitmap::new_compatible(width, height, dc).unwrap();
+            let mut context = GdiGraphicsContext { bitmap };
 
-        bitmap.clear(Color::rgb(0, 0, 0));
-        BitBlt(
-            dc,
-            0,
-            0,
-            width as i32,
-            height as i32,
-            bitmap.hdc(),
-            0,
-            0,
-            SRCCOPY,
-        );
+            inner.callbacks.paint(&mut context);
+            BitBlt(
+                dc,
+                0,
+                0,
+                width as i32,
+                height as i32,
+                context.bitmap.hdc(),
+                0,
+                0,
+                SRCCOPY,
+            );
+        }
         ValidateRect(hwnd, std::ptr::null());
 
         Some(0)
