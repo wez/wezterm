@@ -24,6 +24,7 @@ pub trait WindowCallbacks {
     /// Called when the window is being destroyed by the gui system
     fn destroy(&mut self) {}
 
+    #[allow(unused_variables)]
     fn paint(&mut self, context: &mut dyn PaintContext) {
         // context.clear(Color::rgb(0, 0, 0));
     }
@@ -293,7 +294,20 @@ unsafe fn wm_paint(hwnd: HWND, _msg: UINT, _wparam: WPARAM, _lparam: LPARAM) -> 
     if let Some(inner) = arc_from_hwnd(hwnd) {
         let mut inner = inner.lock().unwrap();
 
-        let dc = GetDC(hwnd);
+        let mut ps = PAINTSTRUCT {
+            fErase: 0,
+            fIncUpdate: 0,
+            fRestore: 0,
+            hdc: std::ptr::null_mut(),
+            rcPaint: RECT {
+                left: 0,
+                top: 0,
+                right: 0,
+                bottom: 0,
+            },
+            rgbReserved: [0; 32],
+        };
+        let dc = BeginPaint(hwnd, &mut ps);
 
         let mut rect = RECT {
             left: 0,
@@ -322,7 +336,8 @@ unsafe fn wm_paint(hwnd: HWND, _msg: UINT, _wparam: WPARAM, _lparam: LPARAM) -> 
                 SRCCOPY,
             );
         }
-        ValidateRect(hwnd, std::ptr::null());
+
+        EndPaint(hwnd, &mut ps);
 
         Some(0)
     } else {
