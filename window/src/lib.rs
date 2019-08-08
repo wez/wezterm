@@ -5,6 +5,9 @@ pub mod os;
 pub use bitmaps::BitmapImage;
 pub use color::Color;
 
+#[cfg(windows)]
+pub use os::windows::window::*;
+
 /// Compositing operator.
 /// We implement a small subset of possible compositing operators.
 /// More information on these and their temrinology can be found
@@ -76,4 +79,21 @@ pub trait PaintContext {
         im: &dyn BitmapImage,
         operator: Operator,
     );
+}
+
+pub trait WindowCallbacks {
+    /// Called when the window close button is clicked.
+    /// Return true to allow the close to continue, false to
+    /// prevent it from continuing.
+    fn can_close(&mut self) -> bool {
+        true
+    }
+
+    /// Called when the window is being destroyed by the gui system
+    fn destroy(&mut self) {}
+
+    #[allow(unused_variables)]
+    fn paint(&mut self, context: &mut dyn PaintContext) {
+        // context.clear(Color::rgb(0, 0, 0));
+    }
 }

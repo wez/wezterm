@@ -1,5 +1,5 @@
 use failure::Fallible;
-use window::os::windows::window::*;
+use window::*;
 
 struct MyWindow {
     allow_close: bool,

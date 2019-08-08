@@ -2,7 +2,7 @@ use super::gdi::*;
 use super::*;
 use crate::bitmaps::*;
 use crate::color::Color;
-use crate::{Dimensions, Operator, PaintContext};
+use crate::{Dimensions, Operator, PaintContext, WindowCallbacks};
 use failure::Fallible;
 use std::io::Error as IoError;
 use std::ptr::{null, null_mut};
@@ -12,23 +12,6 @@ use winapi::shared::windef::*;
 use winapi::um::libloaderapi::GetModuleHandleW;
 use winapi::um::wingdi::*;
 use winapi::um::winuser::*;
-
-pub trait WindowCallbacks {
-    /// Called when the window close button is clicked.
-    /// Return true to allow the close to continue, false to
-    /// prevent it from continuing.
-    fn can_close(&mut self) -> bool {
-        true
-    }
-
-    /// Called when the window is being destroyed by the gui system
-    fn destroy(&mut self) {}
-
-    #[allow(unused_variables)]
-    fn paint(&mut self, context: &mut dyn PaintContext) {
-        // context.clear(Color::rgb(0, 0, 0));
-    }
-}
 
 struct WindowInner {
     /// Non-owning reference to the window handle
