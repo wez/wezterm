@@ -142,7 +142,7 @@ impl Window {
         // Careful: `raw` owns a ref to inner, but there is no Drop impl
         let raw = arc_to_pointer(&inner);
 
-        match Self::create_window(class_name, name, width, height, raw) {
+        let hwnd = match Self::create_window(class_name, name, width, height, raw) {
             Ok(hwnd) => hwnd,
             Err(err) => {
                 // Ensure that we drop the extra ref to raw before we return
@@ -150,6 +150,8 @@ impl Window {
                 return Err(err);
             }
         };
+
+        enable_dark_mode(hwnd);
 
         Ok(Window { inner })
     }
@@ -184,6 +186,34 @@ unsafe fn wm_ncdestroy(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) ->
     }
 
     DefWindowProcW(hwnd, msg, wparam, lparam)
+}
+
+fn enable_dark_mode(hwnd: HWND) {
+    // Prefer to run in dark mode. This could be made configurable without
+    // a huge amount of effort, but I think it's fine to just be always
+    // dark mode by default :-p
+    // Note that the MS terminal app uses the logic found here for this
+    // stuff:
+    // https://github.com/microsoft/terminal/blob/9b92986b49bed8cc41fde4d6ef080921c41e6d9e/src/interactivity/win32/windowtheme.cpp#L62
+    use winapi::um::dwmapi::DwmSetWindowAttribute;
+    use winapi::um::uxtheme::SetWindowTheme;
+
+    const DWMWA_USE_IMMERSIVE_DARK_MODE: DWORD = 19;
+    unsafe {
+        SetWindowTheme(
+            hwnd as _,
+            wide_string("DarkMode_Explorer").as_slice().as_ptr(),
+            std::ptr::null_mut(),
+        );
+
+        let enabled: BOOL = 1;
+        DwmSetWindowAttribute(
+            hwnd as _,
+            DWMWA_USE_IMMERSIVE_DARK_MODE,
+            &enabled as *const _ as *const _,
+            std::mem::size_of_val(&enabled) as u32,
+        );
+    }
 }
 
 unsafe fn do_wnd_proc(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> LRESULT {
