@@ -98,6 +98,12 @@ impl Window {
         height: usize,
         lparam: *const Mutex<WindowInner>,
     ) -> Fallible<HWND> {
+        // Jamming this in here; it should really live in the application manifest,
+        // but having it here means that we don't have to create a manifest
+        unsafe {
+            SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
+        }
+
         let class_name = wide_string(class_name);
         let class = WNDCLASSW {
             style: CS_HREDRAW | CS_VREDRAW | CS_OWNDC,
@@ -247,6 +253,7 @@ fn enable_dark_mode(hwnd: HWND) {
 
 struct GdiGraphicsContext {
     bitmap: GdiBitmap,
+    dpi: u32,
 }
 
 impl PaintContext for GdiGraphicsContext {
@@ -270,7 +277,7 @@ impl PaintContext for GdiGraphicsContext {
         Dimensions {
             pixel_width,
             pixel_height,
-            dpi: 96,
+            dpi: self.dpi as usize,
         }
     }
 
@@ -320,8 +327,9 @@ unsafe fn wm_paint(hwnd: HWND, _msg: UINT, _wparam: WPARAM, _lparam: LPARAM) -> 
         let height = rect_height(&rect) as usize;
 
         if width > 0 && height > 0 {
+            let dpi = GetDpiForWindow(hwnd);
             let bitmap = GdiBitmap::new_compatible(width, height, dc).unwrap();
-            let mut context = GdiGraphicsContext { bitmap };
+            let mut context = GdiGraphicsContext { dpi, bitmap };
 
             inner.callbacks.paint(&mut context);
             BitBlt(
