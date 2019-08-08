@@ -171,19 +171,24 @@ impl Window {
 /// Set up bidirectional pointers:
 /// hwnd.USERDATA -> WindowInner
 /// WindowInner.hwnd -> hwnd
-unsafe fn wm_nccreate(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> LRESULT {
+unsafe fn wm_nccreate(hwnd: HWND, _msg: UINT, _wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
     let create: &CREATESTRUCTW = &*(lparam as *const CREATESTRUCTW);
     let inner = arc_from_pointer(create.lpCreateParams);
     SetWindowLongPtrW(hwnd, GWLP_USERDATA, create.lpCreateParams as _);
     inner.lock().unwrap().hwnd = hwnd;
 
-    DefWindowProcW(hwnd, msg, wparam, lparam)
+    None
 }
 
 /// Called when the window is being destroyed.
 /// Goal is to release the WindowInner reference that was stashed
 /// in the window by wm_nccreate.
-unsafe fn wm_ncdestroy(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> LRESULT {
+unsafe fn wm_ncdestroy(
+    hwnd: HWND,
+    _msg: UINT,
+    _wparam: WPARAM,
+    _lparam: LPARAM,
+) -> Option<LRESULT> {
     let raw = GetWindowLongPtrW(hwnd, GWLP_USERDATA) as LPVOID;
     if !raw.is_null() {
         let inner = take_arc_from_pointer(raw);
@@ -193,7 +198,7 @@ unsafe fn wm_ncdestroy(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) ->
         SetWindowLongPtrW(hwnd, GWLP_USERDATA, 0);
     }
 
-    DefWindowProcW(hwnd, msg, wparam, lparam)
+    None
 }
 
 fn enable_dark_mode(hwnd: HWND) {
@@ -224,7 +229,7 @@ fn enable_dark_mode(hwnd: HWND) {
     }
 }
 
-unsafe fn do_wnd_proc(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> LRESULT {
+unsafe fn do_wnd_proc(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
     match msg {
         WM_NCCREATE => return wm_nccreate(hwnd, msg, wparam, lparam),
         WM_NCDESTROY => return wm_ncdestroy(hwnd, msg, wparam, lparam),
@@ -233,13 +238,13 @@ unsafe fn do_wnd_proc(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> 
                 let mut inner = inner.lock().unwrap();
                 if !inner.callbacks.can_close() {
                     // Don't let it close
-                    return 0;
+                    return Some(0);
                 }
             }
+            None
         }
-        _ => {}
+        _ => None,
     }
-    DefWindowProcW(hwnd, msg, wparam, lparam)
 }
 
 unsafe extern "system" fn wnd_proc(
@@ -248,9 +253,12 @@ unsafe extern "system" fn wnd_proc(
     wparam: WPARAM,
     lparam: LPARAM,
 ) -> LRESULT {
-    match std::panic::catch_unwind(|| do_wnd_proc(hwnd, msg, wparam, lparam)) {
+    match std::panic::catch_unwind(|| {
+        do_wnd_proc(hwnd, msg, wparam, lparam)
+            .unwrap_or_else(|| DefWindowProcW(hwnd, msg, wparam, lparam))
+    }) {
         Ok(result) => result,
-        Err(_) => DefWindowProcW(hwnd, msg, wparam, lparam),
+        Err(_) => std::process::exit(1),
     }
 }
 
