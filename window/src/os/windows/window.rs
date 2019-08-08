@@ -9,9 +9,15 @@ use winapi::um::libloaderapi::GetModuleHandleW;
 use winapi::um::winuser::*;
 
 pub trait WindowCallbacks {
+    /// Called when the window close button is clicked.
+    /// Return true to allow the close to continue, false to
+    /// prevent it from continuing.
     fn can_close(&mut self) -> bool {
         true
     }
+
+    /// Called when the window is being destroyed by the gui system
+    fn destroy(&mut self) {}
 }
 
 struct WindowInner {
@@ -181,7 +187,9 @@ unsafe fn wm_ncdestroy(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) ->
     let raw = GetWindowLongPtrW(hwnd, GWLP_USERDATA) as LPVOID;
     if !raw.is_null() {
         let inner = take_arc_from_pointer(raw);
-        inner.lock().unwrap().hwnd = null_mut();
+        let mut inner = inner.lock().unwrap();
+        inner.callbacks.destroy();
+        inner.hwnd = null_mut();
         SetWindowLongPtrW(hwnd, GWLP_USERDATA, 0);
     }
 
