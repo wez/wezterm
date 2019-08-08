@@ -1,3 +1,4 @@
+pub mod gdi;
 pub mod window;
 
 /// Convert a rust string to a windows wide string

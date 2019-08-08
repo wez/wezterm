@@ -1,4 +1,6 @@
+use super::gdi::*;
 use super::*;
+use crate::bitmaps::*;
 use failure::Fallible;
 use std::io::Error as IoError;
 use std::ptr::{null, null_mut};
@@ -6,6 +8,7 @@ use std::sync::{Arc, Mutex};
 use winapi::shared::minwindef::*;
 use winapi::shared::windef::*;
 use winapi::um::libloaderapi::GetModuleHandleW;
+use winapi::um::wingdi::*;
 use winapi::um::winuser::*;
 
 pub trait WindowCallbacks {
@@ -30,6 +33,14 @@ pub struct Window {
     inner: Arc<Mutex<WindowInner>>,
 }
 
+fn rect_width(r: &RECT) -> i32 {
+    r.right - r.left
+}
+
+fn rect_height(r: &RECT) -> i32 {
+    r.bottom - r.top
+}
+
 fn adjust_client_to_window_dimensions(width: usize, height: usize) -> (i32, i32) {
     let mut rect = RECT {
         left: 0,
@@ -39,9 +50,7 @@ fn adjust_client_to_window_dimensions(width: usize, height: usize) -> (i32, i32)
     };
     unsafe { AdjustWindowRect(&mut rect, WS_POPUP | WS_SYSMENU | WS_CAPTION, 0) };
 
-    let width = rect.right - rect.left;
-    let height = rect.bottom - rect.top;
-    (width, height)
+    (rect_width(&rect), rect_height(&rect))
 }
 
 fn arc_to_pointer(arc: &Arc<Mutex<WindowInner>>) -> *const Mutex<WindowInner> {
@@ -229,10 +238,47 @@ fn enable_dark_mode(hwnd: HWND) {
     }
 }
 
+unsafe fn wm_paint(hwnd: HWND, _msg: UINT, _wparam: WPARAM, _lparam: LPARAM) -> Option<LRESULT> {
+    if let Some(_inner) = arc_from_hwnd(hwnd) {
+        let dc = GetDC(hwnd);
+
+        let mut rect = RECT {
+            left: 0,
+            bottom: 0,
+            right: 0,
+            top: 0,
+        };
+        GetClientRect(hwnd, &mut rect);
+        let width = rect_width(&rect) as usize;
+        let height = rect_height(&rect) as usize;
+
+        let mut bitmap = GdiBitmap::new_compatible(width, height, dc).unwrap();
+
+        bitmap.clear(Color::rgb(0, 0, 0));
+        BitBlt(
+            dc,
+            0,
+            0,
+            width as i32,
+            height as i32,
+            bitmap.hdc(),
+            0,
+            0,
+            SRCCOPY,
+        );
+        ValidateRect(hwnd, std::ptr::null());
+
+        Some(0)
+    } else {
+        None
+    }
+}
+
 unsafe fn do_wnd_proc(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
     match msg {
-        WM_NCCREATE => return wm_nccreate(hwnd, msg, wparam, lparam),
-        WM_NCDESTROY => return wm_ncdestroy(hwnd, msg, wparam, lparam),
+        WM_NCCREATE => wm_nccreate(hwnd, msg, wparam, lparam),
+        WM_NCDESTROY => wm_ncdestroy(hwnd, msg, wparam, lparam),
+        WM_PAINT => wm_paint(hwnd, msg, wparam, lparam),
         WM_CLOSE => {
             if let Some(inner) = arc_from_hwnd(hwnd) {
                 let mut inner = inner.lock().unwrap();
