@@ -168,8 +168,10 @@ impl Window {
     }
 
     pub fn show(&self) {
-        let inner = self.inner.lock().unwrap();
-        unsafe { ShowWindow(inner.hwnd, SW_NORMAL) };
+        // ShowWindow can call to the window proc and may attempt
+        // to lock inner, so take care here!
+        let hwnd = self.inner.lock().unwrap().hwnd;
+        unsafe { ShowWindow(hwnd, SW_NORMAL) };
     }
 }
 
@@ -280,6 +282,20 @@ impl PaintContext for GdiGraphicsContext {
     }
 }
 
+unsafe fn wm_size(hwnd: HWND, _msg: UINT, _wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
+    if let Some(inner) = arc_from_hwnd(hwnd) {
+        let mut inner = inner.lock().unwrap();
+        let pixel_width = LOWORD(lparam as DWORD) as usize;
+        let pixel_height = HIWORD(lparam as DWORD) as usize;
+        inner.callbacks.resize(Dimensions {
+            pixel_width,
+            pixel_height,
+            dpi: GetDpiForWindow(hwnd) as usize,
+        });
+    }
+    None
+}
+
 unsafe fn wm_paint(hwnd: HWND, _msg: UINT, _wparam: WPARAM, _lparam: LPARAM) -> Option<LRESULT> {
     if let Some(inner) = arc_from_hwnd(hwnd) {
         let mut inner = inner.lock().unwrap();
@@ -341,6 +357,7 @@ unsafe fn do_wnd_proc(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> 
         WM_NCCREATE => wm_nccreate(hwnd, msg, wparam, lparam),
         WM_NCDESTROY => wm_ncdestroy(hwnd, msg, wparam, lparam),
         WM_PAINT => wm_paint(hwnd, msg, wparam, lparam),
+        WM_SIZE => wm_size(hwnd, msg, wparam, lparam),
         WM_CLOSE => {
             if let Some(inner) = arc_from_hwnd(hwnd) {
                 let mut inner = inner.lock().unwrap();

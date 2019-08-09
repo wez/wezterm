@@ -209,6 +209,11 @@ impl WindowInner {
                 let cfg: &xcb::ConfigureNotifyEvent = unsafe { xcb::cast_event(event) };
                 self.width = cfg.width();
                 self.height = cfg.height();
+                self.callbacks.resize(Dimensions {
+                    pixel_width: self.width,
+                    pixel_height: self.height,
+                    dpi: 96,
+                })
             }
             xcb::KEY_PRESS => {
                 let key_press: &xcb::KeyPressEvent = unsafe { xcb::cast_event(event) };

@@ -83,7 +83,7 @@ pub trait PaintContext {
 pub trait WindowCallbacks {
     /// Called when the window close button is clicked.
     /// Return true to allow the close to continue, false to
-    /// prevent it from continuing.
+    /// prevent it from closing.
     fn can_close(&mut self) -> bool {
         true
     }
@@ -91,8 +91,13 @@ pub trait WindowCallbacks {
     /// Called when the window is being destroyed by the gui system
     fn destroy(&mut self) {}
 
+    /// Called when the window is resized, or when the dpi has changed
+    #[allow(unused_variables)]
+    fn resize(&mut self, dimensions: Dimensions) {}
+
+    /// Called when the window contents need painting
     #[allow(unused_variables)]
     fn paint(&mut self, context: &mut dyn PaintContext) {
-        // context.clear(Color::rgb(0, 0, 0));
+        context.clear(Color::rgb(0x20, 0x40, 0x60));
     }
 }

@@ -28,7 +28,11 @@ impl WindowCallbacks for MyWindow {
     }
 
     fn paint(&mut self, context: &mut dyn PaintContext) {
-        context.clear(Color::rgb(0x40, 0, 0));
+        context.clear(Color::rgb(0x40, 0x20, 0x60));
+    }
+
+    fn resize(&mut self, dims: Dimensions) {
+        eprintln!("resize {:?}", dims);
     }
 }
 
