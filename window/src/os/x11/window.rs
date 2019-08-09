@@ -210,8 +210,8 @@ impl WindowInner {
                 self.width = cfg.width();
                 self.height = cfg.height();
                 self.callbacks.resize(Dimensions {
-                    pixel_width: self.width,
-                    pixel_height: self.height,
+                    pixel_width: self.width as usize,
+                    pixel_height: self.height as usize,
                     dpi: 96,
                 })
             }
