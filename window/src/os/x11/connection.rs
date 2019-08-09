@@ -261,11 +261,9 @@ impl Connection {
         // Take care here: xcb_shm_query_version can successfully return
         // a nullptr, and a subsequent deref will segfault, so we need
         // to check the ptr before accessing it!
-        /*
         let reply = xcb::shm::query_version(&conn).get_reply()?;
         let shm_available = !reply.ptr.is_null() && reply.shared_pixmaps();
-        */
-        let shm_available = false;
+        eprintln!("shm_available: {}", shm_available);
 
         let conn = Arc::new(Connection {
             display,

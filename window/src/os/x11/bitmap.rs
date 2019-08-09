@@ -231,3 +231,48 @@ impl Drawable for ShmImage {
         self.draw_id
     }
 }
+
+pub enum BufferImage {
+    Image(Image),
+    Shared(ShmImage),
+}
+
+impl BitmapImage for BufferImage {
+    fn image_dimensions(&self) -> (usize, usize) {
+        match self {
+            BufferImage::Image(im) => im.image_dimensions(),
+            BufferImage::Shared(im) => im.image_dimensions(),
+        }
+    }
+
+    unsafe fn pixel_data(&self) -> *const u8 {
+        match self {
+            BufferImage::Image(im) => im.pixel_data(),
+            BufferImage::Shared(im) => im.pixel_data(),
+        }
+    }
+
+    unsafe fn pixel_data_mut(&mut self) -> *mut u8 {
+        match self {
+            BufferImage::Image(im) => im.pixel_data_mut(),
+            BufferImage::Shared(im) => im.pixel_data_mut(),
+        }
+    }
+}
+
+impl BufferImage {
+    pub fn new(
+        conn: &Arc<Connection>,
+        drawable: xcb::xproto::Drawable,
+        width: usize,
+        height: usize,
+    ) -> BufferImage {
+        match ShmImage::new(conn, drawable, width, height) {
+            Ok(shm) => BufferImage::Shared(shm),
+            Err(err) => {
+                eprintln!("X server doesn't support shm: {}", err);
+                BufferImage::Image(Image::new(width, height))
+            }
+        }
+    }
+}

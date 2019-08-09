@@ -72,7 +72,7 @@ impl Drop for WindowInner {
 }
 
 struct X11GraphicsContext<'a> {
-    buffer: &'a mut Image,
+    buffer: &'a mut BitmapImage,
 }
 
 impl<'a> PaintContext for X11GraphicsContext<'a> {
@@ -145,7 +145,12 @@ impl WindowInner {
 
             eprintln!("paint {:?}", rect);
 
-            let mut buffer = Image::new(self.width as usize, self.height as usize);
+            let mut buffer = BufferImage::new(
+                &self.conn,
+                self.window_id,
+                self.width as usize,
+                self.height as usize,
+            );
 
             let mut context = X11GraphicsContext {
                 buffer: &mut buffer,
@@ -153,24 +158,40 @@ impl WindowInner {
 
             self.callbacks.paint(&mut context);
 
-            if rect == window_dimensions {
-                self.window_context.put_image(0, 0, &buffer);
-            } else {
-                let mut im = Image::new(rect.width as usize, rect.height as usize);
+            match &buffer {
+                BufferImage::Shared(ref im) => {
+                    self.window_context.copy_area(
+                        im,
+                        rect.x as i16,
+                        rect.y as i16,
+                        &self.window_id,
+                        rect.x as i16,
+                        rect.y as i16,
+                        rect.width,
+                        rect.height,
+                    );
+                }
+                BufferImage::Image(ref buffer) => {
+                    if rect == window_dimensions {
+                        self.window_context.put_image(0, 0, buffer);
+                    } else {
+                        let mut im = Image::new(rect.width as usize, rect.height as usize);
 
-                im.draw_image_subset(
-                    0,
-                    0,
-                    rect.x as usize,
-                    rect.y as usize,
-                    rect.width as usize,
-                    rect.height as usize,
-                    &buffer,
-                    Operator::Source,
-                );
+                        im.draw_image_subset(
+                            0,
+                            0,
+                            rect.x as usize,
+                            rect.y as usize,
+                            rect.width as usize,
+                            rect.height as usize,
+                            buffer,
+                            Operator::Source,
+                        );
 
-                self.window_context
-                    .put_image(rect.x as i16, rect.y as i16, &im);
+                        self.window_context
+                            .put_image(rect.x as i16, rect.y as i16, &im);
+                    }
+                }
             }
         }
 
