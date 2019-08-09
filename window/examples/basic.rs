@@ -1,5 +1,5 @@
+use ::window::*;
 use failure::Fallible;
-use window::*;
 
 struct MyWindow {
     allow_close: bool,
@@ -9,7 +9,7 @@ impl WindowCallbacks for MyWindow {
     fn can_close(&mut self) -> bool {
         eprintln!("can I close?");
         if self.allow_close {
-            terminate_message_loop();
+            Connection::get().unwrap().terminate_message_loop();
             true
         } else {
             self.allow_close = true;
@@ -19,6 +19,8 @@ impl WindowCallbacks for MyWindow {
 }
 
 fn main() -> Fallible<()> {
+    let conn = Connection::init()?;
+
     let win = Window::new_window(
         "myclass",
         "the title",
@@ -29,5 +31,5 @@ fn main() -> Fallible<()> {
 
     win.show();
 
-    run_message_loop()
+    conn.run_message_loop()
 }

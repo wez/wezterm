@@ -369,27 +369,3 @@ unsafe extern "system" fn wnd_proc(
         Err(_) => std::process::exit(1),
     }
 }
-
-pub fn run_message_loop() -> Fallible<()> {
-    let mut msg: MSG = unsafe { std::mem::zeroed() };
-    loop {
-        let res = unsafe { GetMessageW(&mut msg, null_mut(), 0, 0) };
-        if res == -1 {
-            return Err(IoError::last_os_error().into());
-        }
-        if res == 0 {
-            return Ok(());
-        }
-
-        unsafe {
-            TranslateMessage(&mut msg);
-            DispatchMessageW(&mut msg);
-        }
-    }
-}
-
-pub fn terminate_message_loop() {
-    unsafe {
-        PostQuitMessage(0);
-    }
-}

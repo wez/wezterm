@@ -5,8 +5,7 @@ pub mod os;
 pub use bitmaps::BitmapImage;
 pub use color::Color;
 
-#[cfg(windows)]
-pub use os::windows::window::*;
+pub use os::*;
 
 /// Compositing operator.
 /// We implement a small subset of possible compositing operators.
