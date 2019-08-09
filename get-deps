@@ -28,6 +28,7 @@ case `lsb_release -ds` in
       libxcb-ewmh-dev \
       libxcb-icccm4-dev \
       libxcb-keysyms1-dev \
+      libxcb-shm0-dev \
       libxcb-xkb-dev \
       libxkbcommon-dev \
       libxkbcommon-x11-dev \

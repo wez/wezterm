@@ -29,10 +29,11 @@ winapi = { version = "0.3", features = [
 [target.'cfg(all(unix, not(target_os = "macos")))'.dependencies]
 x11 = {version ="2.18", features = ["xlib_xcb"]}
 xcb = "0.8"
-xcb-util = { features = [ "icccm", "ewmh", "keysyms", ], version = "0.2" }
+xcb-util = { features = [ "icccm", "ewmh", "keysyms", "shm"], version = "0.2" }
 xkbcommon = { version = "0.4", features = ["x11"] }
 mio = "0.6"
 mio-extras = "2.0"
+libc = "0.2"
 
 [target.'cfg(target_os="macos")'.dependencies]
 cocoa = "0.19"

@@ -1,11 +1,12 @@
 use crate::Window;
 use failure::Fallible;
 use mio::unix::EventedFd;
-use mio::{Evented, Poll, PollOpt, Ready, Token};
+use mio::{Evented, Events, Poll, PollOpt, Ready, Token};
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::os::unix::io::AsRawFd;
 use std::sync::Arc;
+use std::time::{Duration, Instant};
 use xcb_util::ffi::keysyms::{xcb_key_symbols_alloc, xcb_key_symbols_free, xcb_key_symbols_t};
 
 pub struct Connection {
@@ -21,6 +22,7 @@ pub struct Connection {
     keysyms: *mut xcb_key_symbols_t,
     pub(crate) windows: RefCell<HashMap<xcb::xproto::Window, Window>>,
     should_terminate: RefCell<bool>,
+    pub(crate) shm_available: bool,
 }
 
 impl std::ops::Deref for Connection {
@@ -118,15 +120,79 @@ impl Connection {
 
     pub fn run_message_loop(&self) -> Fallible<()> {
         self.conn.flush();
-        while let Some(event) = self.conn.wait_for_event() {
-            self.process_xcb_event(&event)?;
-            self.conn.flush();
-            if *self.should_terminate.borrow() {
-                break;
+
+        const TOK_XCB: usize = 0xffff_fffc;
+        let tok_xcb = Token(TOK_XCB);
+
+        let poll = Poll::new()?;
+        let mut events = Events::with_capacity(8);
+        poll.register(self, tok_xcb, Ready::readable(), PollOpt::level())?;
+
+        let paint_interval = Duration::from_millis(50);
+        let mut last_interval = Instant::now();
+
+        while !*self.should_terminate.borrow() {
+            let now = Instant::now();
+            let diff = now - last_interval;
+            let period = if diff >= paint_interval {
+                self.do_paint();
+                last_interval = now;
+                paint_interval
+            } else {
+                paint_interval - diff
+            };
+
+            // Process any events that might have accumulated in the local
+            // buffer (eg: due to a flush) before we potentially go to sleep.
+            // The locally queued events won't mark the fd as ready, so we
+            // could potentially sleep when there is work to be done if we
+            // relied solely on that.
+            self.process_queued_xcb()?;
+
+            match poll.poll(&mut events, Some(period)) {
+                Ok(_) => {
+                    for event in &events {
+                        let t = event.token();
+                        if t == tok_xcb {
+                            self.process_queued_xcb()?;
+                        } else {
+                        }
+                    }
+                    // self.process_sigchld();
+                }
+
+                Err(err) => {
+                    failure::bail!("polling for events: {:?}", err);
+                }
             }
         }
 
         Ok(())
+    }
+
+    fn process_queued_xcb(&self) -> Fallible<()> {
+        match self.conn.poll_for_event() {
+            None => match self.conn.has_error() {
+                Ok(_) => (),
+                Err(err) => {
+                    failure::bail!("X11 connection is broken: {:?}", err);
+                }
+            },
+            Some(event) => {
+                if let Err(err) = self.process_xcb_event(&event) {
+                    return Err(err);
+                }
+            }
+        }
+        self.conn.flush();
+
+        loop {
+            match self.conn.poll_for_queued_event() {
+                None => return Ok(()),
+                Some(event) => self.process_xcb_event(&event)?,
+            }
+            self.conn.flush();
+        }
     }
 
     fn process_xcb_event(&self, event: &xcb::GenericEvent) -> Fallible<()> {
@@ -192,6 +258,15 @@ impl Connection {
 
         let keysyms = unsafe { xcb_key_symbols_alloc(conn.get_raw_conn()) };
 
+        // Take care here: xcb_shm_query_version can successfully return
+        // a nullptr, and a subsequent deref will segfault, so we need
+        // to check the ptr before accessing it!
+        /*
+        let reply = xcb::shm::query_version(&conn).get_reply()?;
+        let shm_available = !reply.ptr.is_null() && reply.shared_pixmaps();
+        */
+        let shm_available = false;
+
         let conn = Arc::new(Connection {
             display,
             conn,
@@ -205,6 +280,7 @@ impl Connection {
             atom_targets,
             windows: RefCell::new(HashMap::new()),
             should_terminate: RefCell::new(false),
+            shm_available,
         });
 
         CONN.with(|m| *m.borrow_mut() = Some(Arc::clone(&conn)));
@@ -221,6 +297,15 @@ impl Connection {
 
     pub fn atom_delete(&self) -> xcb::Atom {
         self.atom_delete
+    }
+
+    /// Run through all of the windows and cause them to paint if they need it.
+    /// This happens ~50ms or so.
+    fn do_paint(&self) {
+        for window in self.windows.borrow().values() {
+            window.paint_if_needed().unwrap();
+        }
+        self.conn.flush();
     }
 }
 

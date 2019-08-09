@@ -26,6 +26,10 @@ impl WindowCallbacks for MyWindow {
         eprintln!("destroy was called!");
         Connection::get().unwrap().terminate_message_loop();
     }
+
+    fn paint(&mut self, context: &mut dyn PaintContext) {
+        context.clear(Color::rgb(0x40, 0, 0));
+    }
 }
 
 fn main() -> Fallible<()> {
