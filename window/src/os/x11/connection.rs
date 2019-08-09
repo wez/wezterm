@@ -128,7 +128,7 @@ impl Connection {
         let mut events = Events::with_capacity(8);
         poll.register(self, tok_xcb, Ready::readable(), PollOpt::level())?;
 
-        let paint_interval = Duration::from_millis(50);
+        let paint_interval = Duration::from_millis(25);
         let mut last_interval = Instant::now();
 
         while !*self.should_terminate.borrow() {
@@ -298,7 +298,6 @@ impl Connection {
     }
 
     /// Run through all of the windows and cause them to paint if they need it.
-    /// This happens ~50ms or so.
     fn do_paint(&self) {
         for window in self.windows.borrow().values() {
             window.paint_if_needed().unwrap();

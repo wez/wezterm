@@ -63,6 +63,7 @@ struct WindowInner {
     height: u16,
     expose: VecDeque<Rect>,
     paint_all: bool,
+    buffer_image: BufferImage,
 }
 
 impl Drop for WindowInner {
@@ -129,6 +130,19 @@ impl WindowInner {
             self.paint_all = false;
             self.expose.clear();
             self.expose.push_back(window_dimensions);
+        } else if self.expose.is_empty() {
+            return Ok(());
+        }
+
+        let (buf_width, buf_height) = self.buffer_image.image_dimensions();
+        if buf_width != self.width.into() || buf_height != self.height.into() {
+            // Window was resized, so we need to update our buffer
+            self.buffer_image = BufferImage::new(
+                &self.conn,
+                self.window_id,
+                self.width as usize,
+                self.height as usize,
+            );
         }
 
         for rect in self.expose.drain(..) {
@@ -145,20 +159,13 @@ impl WindowInner {
 
             eprintln!("paint {:?}", rect);
 
-            let mut buffer = BufferImage::new(
-                &self.conn,
-                self.window_id,
-                self.width as usize,
-                self.height as usize,
-            );
-
             let mut context = X11GraphicsContext {
-                buffer: &mut buffer,
+                buffer: &mut self.buffer_image,
             };
 
             self.callbacks.paint(&mut context);
 
-            match &buffer {
+            match &self.buffer_image {
                 BufferImage::Shared(ref im) => {
                     self.window_context.copy_area(
                         im,
@@ -386,6 +393,8 @@ impl Window {
 
             let window_context = Context::new(&conn, &window_id);
 
+            let buffer_image = BufferImage::new(&conn, window_id, width, height);
+
             Arc::new(Mutex::new(WindowInner {
                 window_id,
                 conn: Arc::clone(&conn),
@@ -395,6 +404,7 @@ impl Window {
                 height: height.try_into()?,
                 expose: VecDeque::new(),
                 paint_all: true,
+                buffer_image,
             }))
         };
 
