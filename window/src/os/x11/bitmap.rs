@@ -269,10 +269,7 @@ impl BufferImage {
     ) -> BufferImage {
         match ShmImage::new(conn, drawable, width, height) {
             Ok(shm) => BufferImage::Shared(shm),
-            Err(err) => {
-                eprintln!("X server doesn't support shm: {}", err);
-                BufferImage::Image(Image::new(width, height))
-            }
+            Err(err) => BufferImage::Image(Image::new(width, height)),
         }
     }
 }
