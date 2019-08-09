@@ -206,6 +206,15 @@ impl Window {
                     }
                 }
             }
+            xcb::DESTROY_NOTIFY => {
+                eprintln!("DESTROY");
+                self.window.callbacks.lock().unwrap().destroy();
+                self.window
+                    .conn
+                    .windows
+                    .borrow_mut()
+                    .remove(&self.window.window_id);
+            }
             _ => {
                 eprintln!("unhandled: {:x}", r);
             }
@@ -215,11 +224,6 @@ impl Window {
     }
 
     pub fn close_window(&self) {
-        self.window
-            .conn
-            .windows
-            .borrow_mut()
-            .remove(&self.window.window_id);
         xcb::destroy_window(self.window.conn.conn(), self.window.window_id);
     }
 }

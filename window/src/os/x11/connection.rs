@@ -93,6 +93,10 @@ fn window_id_from_event(event: &xcb::GenericEvent) -> Option<xcb::xproto::Window
             let msg: &xcb::ClientMessageEvent = unsafe { xcb::cast_event(event) };
             Some(msg.window())
         }
+        xcb::DESTROY_NOTIFY => {
+            let msg: &xcb::DestroyNotifyEvent = unsafe { xcb::cast_event(event) };
+            Some(msg.window())
+        }
         _ => None,
     }
 }
