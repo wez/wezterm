@@ -2,7 +2,7 @@ use super::gdi::*;
 use super::*;
 use crate::bitmaps::*;
 use crate::color::Color;
-use crate::{Dimensions, Operator, PaintContext, WindowCallbacks};
+use crate::{Dimensions, KeyCode, KeyEvent, Modifiers, Operator, PaintContext, WindowCallbacks};
 use failure::Fallible;
 use std::io::Error as IoError;
 use std::ptr::{null, null_mut};
@@ -352,12 +352,180 @@ unsafe fn wm_paint(hwnd: HWND, _msg: UINT, _wparam: WPARAM, _lparam: LPARAM) -> 
     }
 }
 
+unsafe fn key(hwnd: HWND, _msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
+    if let Some(inner) = arc_from_hwnd(hwnd) {
+        let mut inner = inner.lock().unwrap();
+        let repeat = (lparam & 0xffff) as u16;
+        let scan_code = ((lparam >> 16) & 0xff) as u8;
+        let releasing = (lparam & (1 << 31)) != 0;
+
+        /*
+        let alt_pressed = (lparam & (1 << 29)) != 0;
+        let was_down = (lparam & (1 << 30)) != 0;
+        let label = match msg {
+            WM_CHAR => "WM_CHAR",
+            WM_KEYDOWN => "WM_KEYDOWN",
+            WM_KEYUP => "WM_KEYUP",
+            WM_SYSKEYUP => "WM_SYSKEYUP",
+            WM_SYSKEYDOWN => "WM_SYSKEYDOWN",
+            _ => "WAT",
+        };
+        eprintln!(
+            "{} c=`{}` repeat={} scan={} alt_pressed={} was_down={} releasing={}",
+            label, wparam, repeat, scan_code, alt_pressed, was_down, releasing
+        );
+        */
+
+        let mut keys = [0u8; 256];
+        GetKeyboardState(keys.as_mut_ptr());
+
+        let mut modifiers = Modifiers::default();
+        if keys[VK_CONTROL as usize] & 0x80 != 0 {
+            modifiers |= Modifiers::CTRL;
+        }
+        if keys[VK_SHIFT as usize] & 0x80 != 0 {
+            modifiers |= Modifiers::SHIFT;
+        }
+        if keys[VK_MENU as usize] & 0x80 != 0 {
+            modifiers |= Modifiers::ALT;
+        }
+        if keys[VK_LWIN as usize] & 0x80 != 0 || keys[VK_RWIN as usize] & 0x80 != 0 {
+            modifiers |= Modifiers::SUPER;
+        }
+
+        // If control is pressed, clear the shift state.
+        // That gives us a normalized, unshifted/lowercase version of the
+        // key for processing elsewhere.
+        if modifiers.contains(Modifiers::CTRL) {
+            keys[VK_CONTROL as usize] = 0;
+            keys[VK_LCONTROL as usize] = 0;
+            keys[VK_RCONTROL as usize] = 0;
+            keys[VK_SHIFT as usize] = 0;
+            keys[VK_LSHIFT as usize] = 0;
+            keys[VK_RSHIFT as usize] = 0;
+        }
+
+        let mut out = [0u16; 16];
+        let res = ToUnicode(
+            wparam as u32,
+            scan_code as u32,
+            keys.as_ptr(),
+            out.as_mut_ptr(),
+            out.len() as i32,
+            0,
+        );
+        let key = match res {
+            // dead key
+            -1 => None,
+            0 => {
+                // No unicode translation, so map the scan code to a virtual key
+                // code, and from there map it to our KeyCode type
+                match MapVirtualKeyW(scan_code.into(), MAPVK_VSC_TO_VK_EX) as i32 {
+                    0 => None,
+                    VK_CANCEL => Some(KeyCode::Cancel),
+                    VK_BACK => Some(KeyCode::Char('\u{8}')),
+                    VK_TAB => Some(KeyCode::Char('\t')),
+                    VK_CLEAR => Some(KeyCode::Clear),
+                    VK_RETURN => Some(KeyCode::Enter),
+                    VK_SHIFT => Some(KeyCode::Shift),
+                    VK_CONTROL => Some(KeyCode::Control),
+                    VK_MENU => Some(KeyCode::Alt),
+                    VK_PAUSE => Some(KeyCode::Pause),
+                    VK_CAPITAL => Some(KeyCode::CapsLock),
+                    VK_ESCAPE => Some(KeyCode::Char('\u{1b}')),
+                    VK_SPACE => Some(KeyCode::Char(' ')),
+                    VK_PRIOR => Some(KeyCode::PageUp),
+                    VK_NEXT => Some(KeyCode::PageDown),
+                    VK_END => Some(KeyCode::End),
+                    VK_HOME => Some(KeyCode::Home),
+                    VK_LEFT => Some(KeyCode::LeftArrow),
+                    VK_UP => Some(KeyCode::UpArrow),
+                    VK_RIGHT => Some(KeyCode::RightArrow),
+                    VK_DOWN => Some(KeyCode::DownArrow),
+                    VK_SELECT => Some(KeyCode::Select),
+                    VK_PRINT => Some(KeyCode::Print),
+                    VK_EXECUTE => Some(KeyCode::Execute),
+                    VK_SNAPSHOT => Some(KeyCode::PrintScreen),
+                    VK_INSERT => Some(KeyCode::Insert),
+                    VK_DELETE => Some(KeyCode::Char('\u{7f}')),
+                    VK_HELP => Some(KeyCode::Help),
+                    // 0-9 happen to overlap with ascii
+                    i @ 0x30..=0x39 => Some(KeyCode::Char(i as u8 as char)),
+                    // a-z also overlap with ascii
+                    i @ 0x41..=0x5a => Some(KeyCode::Char(i as u8 as char)),
+                    VK_LWIN => Some(KeyCode::LeftWindows),
+                    VK_RWIN => Some(KeyCode::RightWindows),
+                    VK_APPS => Some(KeyCode::Applications),
+                    VK_SLEEP => Some(KeyCode::Sleep),
+                    i @ VK_NUMPAD0..=VK_NUMPAD9 => Some(KeyCode::Numpad((i - VK_NUMPAD0) as u8)),
+                    VK_MULTIPLY => Some(KeyCode::Multiply),
+                    VK_ADD => Some(KeyCode::Add),
+                    VK_SEPARATOR => Some(KeyCode::Separator),
+                    VK_SUBTRACT => Some(KeyCode::Subtract),
+                    VK_DECIMAL => Some(KeyCode::Decimal),
+                    VK_DIVIDE => Some(KeyCode::Divide),
+                    i @ VK_F1..=VK_F24 => Some(KeyCode::Function((1 + i - VK_F1) as u8)),
+                    VK_NUMLOCK => Some(KeyCode::NumLock),
+                    VK_SCROLL => Some(KeyCode::ScrollLock),
+                    VK_LSHIFT => Some(KeyCode::LeftShift),
+                    VK_RSHIFT => Some(KeyCode::RightShift),
+                    VK_LCONTROL => Some(KeyCode::LeftControl),
+                    VK_RCONTROL => Some(KeyCode::RightControl),
+                    VK_LMENU => Some(KeyCode::LeftAlt),
+                    VK_RMENU => Some(KeyCode::RightAlt),
+                    VK_BROWSER_BACK => Some(KeyCode::BrowserBack),
+                    VK_BROWSER_FORWARD => Some(KeyCode::BrowserForward),
+                    VK_BROWSER_REFRESH => Some(KeyCode::BrowserRefresh),
+                    VK_BROWSER_STOP => Some(KeyCode::BrowserStop),
+                    VK_BROWSER_SEARCH => Some(KeyCode::BrowserSearch),
+                    VK_BROWSER_FAVORITES => Some(KeyCode::BrowserFavorites),
+                    VK_BROWSER_HOME => Some(KeyCode::BrowserHome),
+                    VK_VOLUME_MUTE => Some(KeyCode::VolumeMute),
+                    VK_VOLUME_DOWN => Some(KeyCode::VolumeDown),
+                    VK_VOLUME_UP => Some(KeyCode::VolumeUp),
+                    VK_MEDIA_NEXT_TRACK => Some(KeyCode::MediaNextTrack),
+                    VK_MEDIA_PREV_TRACK => Some(KeyCode::MediaPrevTrack),
+                    VK_MEDIA_STOP => Some(KeyCode::MediaStop),
+                    VK_MEDIA_PLAY_PAUSE => Some(KeyCode::MediaPlayPause),
+                    _ => None,
+                }
+            }
+            1 => Some(KeyCode::Char(std::char::from_u32_unchecked(out[0] as u32))),
+            n => {
+                let s = &out[0..n as usize];
+                match String::from_utf16(s) {
+                    Ok(s) => Some(KeyCode::Composed(s)),
+                    Err(err) => {
+                        eprintln!("translated to {} WCHARS, err: {}", n, err);
+                        None
+                    }
+                }
+            }
+        };
+
+        if let Some(key) = key {
+            let key = KeyEvent {
+                key,
+                modifiers,
+                repeat_count: repeat,
+                key_is_down: !releasing,
+            };
+            eprintln!("{:?}", key);
+            if inner.callbacks.key_event(&key) {
+                return Some(0);
+            }
+        }
+    }
+    None
+}
+
 unsafe fn do_wnd_proc(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
     match msg {
         WM_NCCREATE => wm_nccreate(hwnd, msg, wparam, lparam),
         WM_NCDESTROY => wm_ncdestroy(hwnd, msg, wparam, lparam),
         WM_PAINT => wm_paint(hwnd, msg, wparam, lparam),
         WM_SIZE => wm_size(hwnd, msg, wparam, lparam),
+        WM_KEYDOWN | WM_KEYUP | WM_SYSKEYUP | WM_SYSKEYDOWN => key(hwnd, msg, wparam, lparam),
         WM_CLOSE => {
             if let Some(inner) = arc_from_hwnd(hwnd) {
                 let mut inner = inner.lock().unwrap();

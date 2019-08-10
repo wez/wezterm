@@ -82,6 +82,7 @@ pub trait PaintContext {
     );
 }
 
+#[allow(unused_variables)]
 pub trait WindowCallbacks {
     /// Called when the window close button is clicked.
     /// Return true to allow the close to continue, false to
@@ -94,12 +95,18 @@ pub trait WindowCallbacks {
     fn destroy(&mut self) {}
 
     /// Called when the window is resized, or when the dpi has changed
-    #[allow(unused_variables)]
     fn resize(&mut self, dimensions: Dimensions) {}
 
     /// Called when the window contents need painting
-    #[allow(unused_variables)]
     fn paint(&mut self, context: &mut dyn PaintContext) {
         context.clear(Color::rgb(0x20, 0x40, 0x60));
+    }
+
+    /// Called to handle a key event.
+    /// If your window didn't handle the event, you must return false.
+    /// This is particularly important for eg: ALT keys on windows,
+    /// otherwise standard key assignments may not function in your window.
+    fn key_event(&mut self, key: &KeyEvent) -> bool {
+        false
     }
 }
