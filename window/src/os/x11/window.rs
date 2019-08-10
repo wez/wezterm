@@ -1,7 +1,9 @@
-use super::xkeysyms::*;
 use super::*;
 use crate::bitmaps::*;
-use crate::{Color, Dimensions, KeyEvent, Operator, PaintContext, WindowCallbacks};
+use crate::{
+    Color, Dimensions, KeyEvent, MouseButtons, MouseEvent, MouseEventKind, MousePress, Operator,
+    PaintContext, WindowCallbacks,
+};
 use failure::Fallible;
 use std::collections::VecDeque;
 use std::convert::TryInto;
@@ -259,48 +261,54 @@ impl WindowInner {
 
             xcb::MOTION_NOTIFY => {
                 let motion: &xcb::MotionNotifyEvent = unsafe { xcb::cast_event(event) };
-                //eprintln!("MOTION_NOTIFY");
-                /*
 
                 let event = MouseEvent {
                     kind: MouseEventKind::Move,
-                    button: MouseButton::None,
-                    x: (motion.event_x() as usize / self.cell_width) as usize,
-                    y: (motion.event_y() as usize / self.cell_height) as i64,
+                    x: motion.event_x().max(0) as u16,
+                    y: motion.event_y().max(0) as u16,
                     modifiers: xkeysyms::modifiers_from_state(motion.state()),
+                    mouse_buttons: MouseButtons::default(),
                 };
-                self.mouse_event(event)?;
-                */
+                self.callbacks.mouse_event(&event);
             }
             xcb::BUTTON_PRESS | xcb::BUTTON_RELEASE => {
                 let button_press: &xcb::ButtonPressEvent = unsafe { xcb::cast_event(event) };
-                eprintln!("BUTTON_PRESS");
-                /*
 
-                let event = MouseEvent {
-                    kind: match r {
-                        xcb::BUTTON_PRESS => MouseEventKind::Press,
-                        xcb::BUTTON_RELEASE => MouseEventKind::Release,
-                        _ => unreachable!("button event mismatch"),
-                    },
-                    x: (button_press.event_x() as usize / self.cell_width) as usize,
-                    y: (button_press.event_y() as usize / self.cell_height) as i64,
-                    button: match button_press.detail() {
-                        1 => MouseButton::Left,
-                        2 => MouseButton::Middle,
-                        3 => MouseButton::Right,
-                        4 => MouseButton::WheelUp(1),
-                        5 => MouseButton::WheelDown(1),
-                        _ => {
-                            error!("button {} is not implemented", button_press.detail());
+                let kind = match button_press.detail() {
+                    b @ 1..=3 => {
+                        let button = match b {
+                            1 => MousePress::Left,
+                            2 => MousePress::Middle,
+                            3 => MousePress::Right,
+                            _ => unreachable!(),
+                        };
+                        if r == xcb::BUTTON_PRESS {
+                            MouseEventKind::Press(button)
+                        } else {
+                            MouseEventKind::Release(button)
+                        }
+                    }
+                    b @ 4..=5 => {
+                        if r == xcb::BUTTON_RELEASE {
                             return Ok(());
                         }
-                    },
-                    modifiers: xkeysyms::modifiers_from_state(button_press.state()),
+                        MouseEventKind::VertWheel(if b == 4 { 1 } else { -1 })
+                    }
+                    _ => {
+                        eprintln!("button {} is not implemented", button_press.detail());
+                        return Ok(());
+                    }
                 };
 
-                self.mouse_event(event)?;
-                */
+                let event = MouseEvent {
+                    kind,
+                    x: button_press.event_x().max(0) as u16,
+                    y: button_press.event_y().max(0) as u16,
+                    modifiers: xkeysyms::modifiers_from_state(button_press.state()),
+                    mouse_buttons: MouseButtons::default(),
+                };
+
+                self.callbacks.mouse_event(&event);
             }
             xcb::CLIENT_MESSAGE => {
                 let msg: &xcb::ClientMessageEvent = unsafe { xcb::cast_event(event) };
