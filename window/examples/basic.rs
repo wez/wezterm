@@ -39,6 +39,10 @@ impl WindowCallbacks for MyWindow {
         eprintln!("{:?}", key);
         false
     }
+
+    fn mouse_event(&mut self, event: &MouseEvent) {
+        eprintln!("{:?}", event);
+    }
 }
 
 fn main() -> Fallible<()> {

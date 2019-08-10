@@ -2,7 +2,10 @@ use super::gdi::*;
 use super::*;
 use crate::bitmaps::*;
 use crate::color::Color;
-use crate::{Dimensions, KeyCode, KeyEvent, Modifiers, Operator, PaintContext, WindowCallbacks};
+use crate::{
+    Dimensions, KeyCode, KeyEvent, Modifiers, MouseButtons, MouseEvent, MouseEventKind, MousePress,
+    Operator, PaintContext, WindowCallbacks,
+};
 use failure::Fallible;
 use std::io::Error as IoError;
 use std::ptr::{null, null_mut};
@@ -89,7 +92,7 @@ impl Window {
 
         let class_name = wide_string(class_name);
         let class = WNDCLASSW {
-            style: CS_HREDRAW | CS_VREDRAW | CS_OWNDC,
+            style: CS_HREDRAW | CS_VREDRAW | CS_OWNDC | CS_DBLCLKS,
             lpfnWndProc: Some(wnd_proc),
             cbClsExtra: 0,
             cbWndExtra: 0,
@@ -352,6 +355,110 @@ unsafe fn wm_paint(hwnd: HWND, _msg: UINT, _wparam: WPARAM, _lparam: LPARAM) -> 
     }
 }
 
+fn mods_and_buttons(wparam: WPARAM) -> (Modifiers, MouseButtons) {
+    let mut modifiers = Modifiers::default();
+    let mut buttons = MouseButtons::default();
+    if wparam & MK_CONTROL != 0 {
+        modifiers |= Modifiers::CTRL;
+    }
+    if wparam & MK_SHIFT != 0 {
+        modifiers |= Modifiers::SHIFT;
+    }
+    if wparam & MK_LBUTTON != 0 {
+        buttons |= MouseButtons::LEFT;
+    }
+    if wparam & MK_MBUTTON != 0 {
+        buttons |= MouseButtons::MIDDLE;
+    }
+    if wparam & MK_RBUTTON != 0 {
+        buttons |= MouseButtons::RIGHT;
+    }
+    // TODO: XBUTTON1 and XBUTTON2?
+    (modifiers, buttons)
+}
+
+fn mouse_coords(lparam: LPARAM) -> (u16, u16) {
+    // These are signed, but we only care about things inside the window...
+    let x = (lparam & 0xffff) as i16;
+    let y = ((lparam >> 16) & 0xffff) as i16;
+
+    // ... so we truncate to positive values only
+    (x.max(0) as u16, y.max(0) as u16)
+}
+
+unsafe fn mouse_button(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
+    if let Some(inner) = arc_from_hwnd(hwnd) {
+        let (modifiers, mouse_buttons) = mods_and_buttons(wparam);
+        let (x, y) = mouse_coords(lparam);
+        let event = MouseEvent {
+            kind: match msg {
+                WM_LBUTTONDOWN => MouseEventKind::Press(MousePress::Left),
+                WM_LBUTTONUP => MouseEventKind::Release(MousePress::Left),
+                WM_RBUTTONDOWN => MouseEventKind::Press(MousePress::Right),
+                WM_RBUTTONUP => MouseEventKind::Release(MousePress::Right),
+                WM_MBUTTONDOWN => MouseEventKind::Press(MousePress::Middle),
+                WM_MBUTTONUP => MouseEventKind::Release(MousePress::Middle),
+                WM_LBUTTONDBLCLK => MouseEventKind::DoubleClick(MousePress::Left),
+                WM_RBUTTONDBLCLK => MouseEventKind::DoubleClick(MousePress::Right),
+                WM_MBUTTONDBLCLK => MouseEventKind::DoubleClick(MousePress::Middle),
+                _ => return None,
+            },
+            x,
+            y,
+            mouse_buttons,
+            modifiers,
+        };
+        let mut inner = inner.lock().unwrap();
+        inner.callbacks.mouse_event(&event);
+        Some(0)
+    } else {
+        None
+    }
+}
+
+unsafe fn mouse_move(hwnd: HWND, _msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
+    if let Some(inner) = arc_from_hwnd(hwnd) {
+        let (modifiers, mouse_buttons) = mods_and_buttons(wparam);
+        let (x, y) = mouse_coords(lparam);
+        let event = MouseEvent {
+            kind: MouseEventKind::Move,
+            x,
+            y,
+            mouse_buttons,
+            modifiers,
+        };
+        let mut inner = inner.lock().unwrap();
+        inner.callbacks.mouse_event(&event);
+        Some(0)
+    } else {
+        None
+    }
+}
+
+unsafe fn mouse_wheel(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
+    if let Some(inner) = arc_from_hwnd(hwnd) {
+        let (modifiers, mouse_buttons) = mods_and_buttons(wparam);
+        let (x, y) = mouse_coords(lparam);
+        let position = ((wparam >> 16) & 0xffff) as i16 / WHEEL_DELTA;
+        let event = MouseEvent {
+            kind: if msg == WM_MOUSEHWHEEL {
+                MouseEventKind::HorzWheel(position)
+            } else {
+                MouseEventKind::VertWheel(position)
+            },
+            x,
+            y,
+            mouse_buttons,
+            modifiers,
+        };
+        let mut inner = inner.lock().unwrap();
+        inner.callbacks.mouse_event(&event);
+        Some(0)
+    } else {
+        None
+    }
+}
+
 unsafe fn key(hwnd: HWND, _msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
     if let Some(inner) = arc_from_hwnd(hwnd) {
         let mut inner = inner.lock().unwrap();
@@ -525,6 +632,12 @@ unsafe fn do_wnd_proc(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> 
         WM_PAINT => wm_paint(hwnd, msg, wparam, lparam),
         WM_SIZE => wm_size(hwnd, msg, wparam, lparam),
         WM_KEYDOWN | WM_KEYUP | WM_SYSKEYUP | WM_SYSKEYDOWN => key(hwnd, msg, wparam, lparam),
+        WM_MOUSEMOVE => mouse_move(hwnd, msg, wparam, lparam),
+        WM_MOUSEHWHEEL | WM_MOUSEWHEEL => mouse_wheel(hwnd, msg, wparam, lparam),
+        WM_LBUTTONDBLCLK | WM_RBUTTONDBLCLK | WM_MBUTTONDBLCLK | WM_LBUTTONDOWN | WM_LBUTTONUP
+        | WM_RBUTTONDOWN | WM_RBUTTONUP | WM_MBUTTONDOWN | WM_MBUTTONUP => {
+            mouse_button(hwnd, msg, wparam, lparam)
+        }
         WM_CLOSE => {
             if let Some(inner) = arc_from_hwnd(hwnd) {
                 let mut inner = inner.lock().unwrap();

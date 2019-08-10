@@ -100,16 +100,29 @@ bitflags! {
         const LEFT = 1<<1;
         const RIGHT = 1<<2;
         const MIDDLE = 1<<3;
-        const VERT_WHEEL = 1<<4;
-        const HORZ_WHEEL = 1<<5;
-        /// if set then the wheel movement was in the positive
-        /// direction, else the negative direction
-        const WHEEL_POSITIVE = 1<<6;
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub enum MousePress {
+    Left,
+    Right,
+    Middle,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum MouseEventKind {
+    Move,
+    Press(MousePress),
+    Release(MousePress),
+    DoubleClick(MousePress),
+    VertWheel(i16),
+    HorzWheel(i16),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MouseEvent {
+    pub kind: MouseEventKind,
     pub x: u16,
     pub y: u16,
     pub mouse_buttons: MouseButtons,

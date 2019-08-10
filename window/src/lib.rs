@@ -109,4 +109,6 @@ pub trait WindowCallbacks {
     fn key_event(&mut self, key: &KeyEvent) -> bool {
         false
     }
+
+    fn mouse_event(&mut self, event: &MouseEvent) {}
 }
