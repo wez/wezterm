@@ -40,8 +40,9 @@ impl WindowCallbacks for MyWindow {
         false
     }
 
-    fn mouse_event(&mut self, event: &MouseEvent) {
+    fn mouse_event(&mut self, event: &MouseEvent) -> Option<MouseCursor> {
         eprintln!("{:?}", event);
+        Some(MouseCursor::Text)
     }
 }
 

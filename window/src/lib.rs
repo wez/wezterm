@@ -82,6 +82,13 @@ pub trait PaintContext {
     );
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MouseCursor {
+    Arrow,
+    Hand,
+    Text,
+}
+
 #[allow(unused_variables)]
 pub trait WindowCallbacks {
     /// Called when the window close button is clicked.
@@ -110,5 +117,7 @@ pub trait WindowCallbacks {
         false
     }
 
-    fn mouse_event(&mut self, event: &MouseEvent) {}
+    fn mouse_event(&mut self, event: &MouseEvent) -> Option<MouseCursor> {
+        Some(MouseCursor::Arrow)
+    }
 }

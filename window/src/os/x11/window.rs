@@ -1,8 +1,8 @@
 use super::*;
 use crate::bitmaps::*;
 use crate::{
-    Color, Dimensions, KeyEvent, MouseButtons, MouseEvent, MouseEventKind, MousePress, Operator,
-    PaintContext, WindowCallbacks,
+    Color, Dimensions, KeyEvent, MouseButtons, MouseCursor, MouseEvent, MouseEventKind, MousePress,
+    Operator, PaintContext, WindowCallbacks,
 };
 use failure::Fallible;
 use std::collections::VecDeque;
@@ -67,6 +67,7 @@ struct WindowInner {
     expose: VecDeque<Rect>,
     paint_all: bool,
     buffer_image: BufferImage,
+    cursor: Option<MouseCursor>,
 }
 
 impl Drop for WindowInner {
@@ -229,6 +230,51 @@ impl WindowInner {
         self.expose.push_back(expose);
     }
 
+    fn do_mouse_event(&mut self, event: &MouseEvent) -> Fallible<()> {
+        let cursor = self.callbacks.mouse_event(&event);
+        self.set_cursor(cursor)?;
+        Ok(())
+    }
+
+    fn set_cursor(&mut self, cursor: Option<MouseCursor>) -> Fallible<()> {
+        if cursor == self.cursor {
+            return Ok(());
+        }
+
+        let id_no = match cursor.unwrap_or(MouseCursor::Arrow) {
+            // `/usr/include/X11/cursorfont.h`
+            MouseCursor::Arrow => 2,
+            MouseCursor::Hand => 58,
+            MouseCursor::Text => 152,
+        };
+
+        let cursor_id: xcb::ffi::xcb_cursor_t = self.conn.generate_id().into();
+        xcb::create_glyph_cursor(
+            &self.conn,
+            cursor_id,
+            self.conn.cursor_font_id,
+            self.conn.cursor_font_id,
+            id_no,
+            id_no + 1,
+            0xffff,
+            0xffff,
+            0xffff,
+            0,
+            0,
+            0,
+        );
+
+        xcb::change_window_attributes(
+            &self.conn,
+            self.window_id,
+            &[(xcb::ffi::XCB_CW_CURSOR, cursor_id)],
+        );
+
+        xcb::free_cursor(&self.conn, cursor_id);
+
+        Ok(())
+    }
+
     fn dispatch_event(&mut self, event: &xcb::GenericEvent) -> Fallible<()> {
         let r = event.response_type() & 0x7f;
         match r {
@@ -269,7 +315,7 @@ impl WindowInner {
                     modifiers: xkeysyms::modifiers_from_state(motion.state()),
                     mouse_buttons: MouseButtons::default(),
                 };
-                self.callbacks.mouse_event(&event);
+                self.do_mouse_event(&event)?;
             }
             xcb::BUTTON_PRESS | xcb::BUTTON_RELEASE => {
                 let button_press: &xcb::ButtonPressEvent = unsafe { xcb::cast_event(event) };
@@ -307,8 +353,7 @@ impl WindowInner {
                     modifiers: xkeysyms::modifiers_from_state(button_press.state()),
                     mouse_buttons: MouseButtons::default(),
                 };
-
-                self.callbacks.mouse_event(&event);
+                self.do_mouse_event(&event)?;
             }
             xcb::CLIENT_MESSAGE => {
                 let msg: &xcb::ClientMessageEvent = unsafe { xcb::cast_event(event) };
@@ -406,6 +451,7 @@ impl Window {
                 expose: VecDeque::new(),
                 paint_all: true,
                 buffer_image,
+                cursor: None,
             }))
         };
 

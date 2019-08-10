@@ -3,8 +3,8 @@ use super::*;
 use crate::bitmaps::*;
 use crate::color::Color;
 use crate::{
-    Dimensions, KeyCode, KeyEvent, Modifiers, MouseButtons, MouseEvent, MouseEventKind, MousePress,
-    Operator, PaintContext, WindowCallbacks,
+    Dimensions, KeyCode, KeyEvent, Modifiers, MouseButtons, MouseCursor, MouseEvent,
+    MouseEventKind, MousePress, Operator, PaintContext, WindowCallbacks,
 };
 use failure::Fallible;
 use std::io::Error as IoError;
@@ -386,6 +386,28 @@ fn mouse_coords(lparam: LPARAM) -> (u16, u16) {
     (x.max(0) as u16, y.max(0) as u16)
 }
 
+fn apply_mouse_cursor(cursor: Option<MouseCursor>) {
+    match cursor {
+        None => unsafe {
+            SetCursor(null_mut());
+        },
+        Some(cursor) => unsafe {
+            SetCursor(LoadCursorW(
+                null_mut(),
+                match cursor {
+                    MouseCursor::Arrow => IDC_ARROW,
+                    MouseCursor::Hand => IDC_HAND,
+                    MouseCursor::Text => IDC_IBEAM,
+                },
+            ));
+        },
+    }
+}
+
+fn do_mouse_event(inner: &mut WindowInner, event: &MouseEvent) {
+    apply_mouse_cursor(inner.callbacks.mouse_event(event))
+}
+
 unsafe fn mouse_button(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
     if let Some(inner) = arc_from_hwnd(hwnd) {
         let (modifiers, mouse_buttons) = mods_and_buttons(wparam);
@@ -409,7 +431,7 @@ unsafe fn mouse_button(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) ->
             modifiers,
         };
         let mut inner = inner.lock().unwrap();
-        inner.callbacks.mouse_event(&event);
+        do_mouse_event(&mut inner, &event);
         Some(0)
     } else {
         None
@@ -428,7 +450,7 @@ unsafe fn mouse_move(hwnd: HWND, _msg: UINT, wparam: WPARAM, lparam: LPARAM) -> 
             modifiers,
         };
         let mut inner = inner.lock().unwrap();
-        inner.callbacks.mouse_event(&event);
+        do_mouse_event(&mut inner, &event);
         Some(0)
     } else {
         None
@@ -452,7 +474,7 @@ unsafe fn mouse_wheel(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> 
             modifiers,
         };
         let mut inner = inner.lock().unwrap();
-        inner.callbacks.mouse_event(&event);
+        do_mouse_event(&mut inner, &event);
         Some(0)
     } else {
         None

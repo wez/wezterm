@@ -82,6 +82,7 @@ pub struct Connection {
     pub keyboard: Keyboard,
     pub kbd_ev: u8,
     pub atom_protocols: xcb::Atom,
+    pub cursor_font_id: xcb::ffi::xcb_font_t,
     pub atom_delete: xcb::Atom,
     pub atom_utf8_string: xcb::Atom,
     pub atom_xsel_data: xcb::Atom,
@@ -371,9 +372,14 @@ impl Connection {
 
         let (keyboard, kbd_ev) = Keyboard::new(&conn)?;
 
+        let cursor_font_id = conn.generate_id().into();
+        let cursor_font_name = "cursor";
+        xcb::open_font_checked(&conn, cursor_font_id, cursor_font_name);
+
         let conn = Arc::new(Connection {
             display,
             conn,
+            cursor_font_id,
             screen_num,
             atom_protocols,
             atom_clipboard,
