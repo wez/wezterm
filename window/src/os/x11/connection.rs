@@ -1,13 +1,74 @@
 use crate::Window;
 use failure::Fallible;
+use filedescriptor::{FileDescriptor, Pipe};
 use mio::unix::EventedFd;
 use mio::{Evented, Events, Poll, PollOpt, Ready, Token};
+use promise::{Executor, SpawnFunc};
 use std::cell::RefCell;
 use std::collections::HashMap;
+use std::collections::VecDeque;
+use std::io::{Read, Write};
 use std::os::unix::io::AsRawFd;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use xcb_util::ffi::keysyms::{xcb_key_symbols_alloc, xcb_key_symbols_free, xcb_key_symbols_t};
+
+struct SpawnQueue {
+    spawned_funcs: Mutex<VecDeque<SpawnFunc>>,
+    write: Mutex<FileDescriptor>,
+    read: RefCell<FileDescriptor>,
+}
+
+impl SpawnQueue {
+    fn new() -> Fallible<Self> {
+        let pipe = Pipe::new()?;
+        Ok(Self {
+            spawned_funcs: Mutex::new(VecDeque::new()),
+            write: Mutex::new(pipe.write),
+            read: RefCell::new(pipe.read),
+        })
+    }
+
+    fn spawn(&self, f: SpawnFunc) {
+        self.spawned_funcs.lock().unwrap().push_back(f);
+        self.write.lock().unwrap().write(b"x").ok();
+    }
+
+    fn run(&self) {
+        while let Some(func) = self.spawned_funcs.lock().unwrap().pop_front() {
+            func();
+
+            let mut byte = [0u8];
+            self.read.borrow_mut().read(&mut byte).ok();
+        }
+    }
+}
+
+impl Evented for SpawnQueue {
+    fn register(
+        &self,
+        poll: &Poll,
+        token: Token,
+        interest: Ready,
+        opts: PollOpt,
+    ) -> std::io::Result<()> {
+        EventedFd(&self.read.borrow().as_raw_fd()).register(poll, token, interest, opts)
+    }
+
+    fn reregister(
+        &self,
+        poll: &Poll,
+        token: Token,
+        interest: Ready,
+        opts: PollOpt,
+    ) -> std::io::Result<()> {
+        EventedFd(&self.read.borrow().as_raw_fd()).reregister(poll, token, interest, opts)
+    }
+
+    fn deregister(&self, poll: &Poll) -> std::io::Result<()> {
+        EventedFd(&self.read.borrow().as_raw_fd()).deregister(poll)
+    }
+}
 
 pub struct Connection {
     pub display: *mut x11::xlib::Display,
@@ -23,6 +84,8 @@ pub struct Connection {
     pub(crate) windows: RefCell<HashMap<xcb::xproto::Window, Window>>,
     should_terminate: RefCell<bool>,
     pub(crate) shm_available: bool,
+
+    spawn_queue: Arc<SpawnQueue>,
 }
 
 impl std::ops::Deref for Connection {
@@ -155,11 +218,19 @@ impl Connection {
         self.conn.flush();
 
         const TOK_XCB: usize = 0xffff_fffc;
+        const TOK_SPAWN: usize = 0xffff_fffd;
         let tok_xcb = Token(TOK_XCB);
+        let tok_spawn = Token(TOK_SPAWN);
 
         let poll = Poll::new()?;
         let mut events = Events::with_capacity(8);
         poll.register(self, tok_xcb, Ready::readable(), PollOpt::level())?;
+        poll.register(
+            &self.spawn_queue,
+            tok_spawn,
+            Ready::readable(),
+            PollOpt::level(),
+        )?;
 
         let paint_interval = Duration::from_millis(25);
         let mut last_interval = Instant::now();
@@ -188,6 +259,8 @@ impl Connection {
                         let t = event.token();
                         if t == tok_xcb {
                             self.process_queued_xcb()?;
+                        } else if t == tok_spawn {
+                            self.spawn_queue.run();
                         } else {
                         }
                     }
@@ -294,6 +367,8 @@ impl Connection {
         let shm_available = server_supports_shm();
         eprintln!("shm_available: {}", shm_available);
 
+        let spawn_queue = Arc::new(SpawnQueue::new()?);
+
         let conn = Arc::new(Connection {
             display,
             conn,
@@ -308,6 +383,7 @@ impl Connection {
             windows: RefCell::new(HashMap::new()),
             should_terminate: RefCell::new(false),
             shm_available,
+            spawn_queue,
         });
 
         CONN.with(|m| *m.borrow_mut() = Some(Arc::clone(&conn)));
@@ -332,6 +408,10 @@ impl Connection {
             window.paint_if_needed().unwrap();
         }
         self.conn.flush();
+    }
+
+    pub fn execute(&self, f: SpawnFunc) {
+        self.spawn_queue.spawn(f);
     }
 }
 
