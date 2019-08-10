@@ -312,16 +312,13 @@ impl WindowInner {
             }
             xcb::CLIENT_MESSAGE => {
                 let msg: &xcb::ClientMessageEvent = unsafe { xcb::cast_event(event) };
-                eprintln!("CLIENT_MESSAGE {:?}", msg.data().data32());
                 if msg.data().data32()[0] == self.conn.atom_delete() {
-                    eprintln!("close requested");
                     if self.callbacks.can_close() {
                         xcb::destroy_window(self.conn.conn(), self.window_id);
                     }
                 }
             }
             xcb::DESTROY_NOTIFY => {
-                eprintln!("DESTROY");
                 self.callbacks.destroy();
                 self.conn.windows.borrow_mut().remove(&self.window_id);
             }
