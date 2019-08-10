@@ -2,7 +2,6 @@
 use super::EventHandle;
 use failure::Fallible;
 use promise::{BasicExecutor, SpawnFunc};
-use std::cell::RefCell;
 use std::collections::VecDeque;
 use std::ptr::null_mut;
 use std::sync::{Arc, Mutex};
@@ -14,30 +13,26 @@ pub struct Connection {
     event_handle: EventHandle,
 }
 
-thread_local! {
-    static CONN: RefCell<Option<Arc<Connection>>> = RefCell::new(None);
+lazy_static::lazy_static! {
+    static ref CONN: Arc<Connection> = Arc::new(Connection::new());
 }
 
 impl Connection {
     pub fn get() -> Option<Arc<Self>> {
-        let mut res = None;
-        CONN.with(|m| {
-            if let Some(mux) = &*m.borrow() {
-                res = Some(Arc::clone(mux));
-            }
-        });
-        res
+        Some(Arc::clone(&CONN))
+    }
+
+    fn new() -> Self {
+        let spawned_funcs = Mutex::new(VecDeque::new());
+        let event_handle = EventHandle::new_manual_reset().expect("EventHandle creation failed");
+        Self {
+            spawned_funcs,
+            event_handle,
+        }
     }
 
     pub fn init() -> Fallible<Arc<Self>> {
-        let spawned_funcs = Mutex::new(VecDeque::new());
-        let event_handle = EventHandle::new_manual_reset()?;
-        let conn = Arc::new(Self {
-            spawned_funcs,
-            event_handle,
-        });
-        CONN.with(|m| *m.borrow_mut() = Some(Arc::clone(&conn)));
-        Ok(conn)
+        Ok(Arc::clone(&CONN))
     }
 
     pub fn terminate_message_loop(&self) {
@@ -87,6 +82,17 @@ impl Connection {
     fn spawn(&self, f: SpawnFunc) {
         self.spawned_funcs.lock().unwrap().push_back(f);
         self.event_handle.set_event();
+    }
+
+    pub fn executor() -> impl BasicExecutor {
+        SpawnQueueExecutor {}
+    }
+}
+
+struct SpawnQueueExecutor;
+impl BasicExecutor for SpawnQueueExecutor {
+    fn execute(&self, f: SpawnFunc) {
+        CONN.spawn(f)
     }
 }
 

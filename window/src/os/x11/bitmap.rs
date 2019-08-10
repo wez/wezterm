@@ -269,7 +269,7 @@ impl BufferImage {
     ) -> BufferImage {
         match ShmImage::new(conn, drawable, width, height) {
             Ok(shm) => BufferImage::Shared(shm),
-            Err(err) => BufferImage::Image(Image::new(width, height)),
+            Err(_) => BufferImage::Image(Image::new(width, height)),
         }
     }
 }
