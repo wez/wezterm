@@ -9,15 +9,21 @@ pub type SpawnFunc = Box<dyn FnOnce() + Send>;
 #[fail(display = "Promise was dropped before completion")]
 pub struct BrokenPromise {}
 
-pub trait Executor: Send {
+pub trait BasicExecutor {
     fn execute(&self, f: SpawnFunc);
+}
+
+pub trait Executor: BasicExecutor + Send {
     fn clone_executor(&self) -> Box<dyn Executor>;
 }
 
-impl Executor for Box<dyn Executor> {
+impl BasicExecutor for Box<dyn Executor> {
     fn execute(&self, f: SpawnFunc) {
-        Executor::execute(&**self, f)
+        BasicExecutor::execute(&**self, f)
     }
+}
+
+impl Executor for Box<dyn Executor> {
     fn clone_executor(&self) -> Box<dyn Executor> {
         Executor::clone_executor(&**self)
     }
@@ -34,10 +40,12 @@ impl RayonExecutor {
     }
 }
 
-impl Executor for RayonExecutor {
+impl BasicExecutor for RayonExecutor {
     fn execute(&self, f: SpawnFunc) {
         rayon::spawn(f);
     }
+}
+impl Executor for RayonExecutor {
     fn clone_executor(&self) -> Box<dyn Executor> {
         Box::new(RayonExecutor::new())
     }
@@ -173,7 +181,7 @@ impl<T: Send + 'static> Future<T> {
         IF: Into<Future<T>>,
         IF: 'static,
         F: Send + 'static,
-        EXEC: Executor + Send + 'static,
+        EXEC: BasicExecutor,
     {
         let mut promise = Promise::new();
         let future = promise.get_future().unwrap();

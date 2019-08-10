@@ -11,7 +11,7 @@ use glium;
 use glium::glutin::EventsLoopProxy;
 use glium::glutin::WindowId;
 use log::{debug, error};
-use promise::{Executor, Future, SpawnFunc};
+use promise::{BasicExecutor, Executor, Future, SpawnFunc};
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
@@ -48,10 +48,12 @@ pub struct GlutinGuiExecutor {
     tx: GuiSender,
 }
 
-impl Executor for GlutinGuiExecutor {
+impl BasicExecutor for GlutinGuiExecutor {
     fn execute(&self, f: SpawnFunc) {
         self.tx.send(f).expect("GlutinExecutor execute failed");
     }
+}
+impl Executor for GlutinGuiExecutor {
     fn clone_executor(&self) -> Box<dyn Executor> {
         Box::new(GlutinGuiExecutor {
             tx: self.tx.clone(),

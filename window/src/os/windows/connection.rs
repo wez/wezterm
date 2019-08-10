@@ -1,7 +1,7 @@
 //! The connection to the GUI subsystem
 use super::EventHandle;
 use failure::Fallible;
-use promise::{Executor, SpawnFunc};
+use promise::{BasicExecutor, SpawnFunc};
 use std::cell::RefCell;
 use std::collections::VecDeque;
 use std::ptr::null_mut;
@@ -90,22 +90,7 @@ impl Connection {
     }
 }
 
-struct ConnectionExecutor(Arc<Connection>);
-impl Executor for ConnectionExecutor {
-    fn clone_executor(&self) -> Box<dyn Executor> {
-        Box::new(ConnectionExecutor(Connection::get().unwrap()))
-    }
-
-    fn execute(&self, f: SpawnFunc) {
-        self.0.spawn(f);
-    }
-}
-
-impl Executor for Connection {
-    fn clone_executor(&self) -> Box<dyn Executor> {
-        Box::new(ConnectionExecutor(Connection::get().unwrap()))
-    }
-
+impl BasicExecutor for Connection {
     fn execute(&self, f: SpawnFunc) {
         self.spawn(f);
     }

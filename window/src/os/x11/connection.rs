@@ -3,7 +3,7 @@ use failure::Fallible;
 use filedescriptor::{FileDescriptor, Pipe};
 use mio::unix::EventedFd;
 use mio::{Evented, Events, Poll, PollOpt, Ready, Token};
-use promise::{Executor, SpawnFunc};
+use promise::{BasicExecutor, SpawnFunc};
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::collections::VecDeque;
@@ -409,8 +409,10 @@ impl Connection {
         }
         self.conn.flush();
     }
+}
 
-    pub fn execute(&self, f: SpawnFunc) {
+impl BasicExecutor for Connection {
+    fn execute(&self, f: SpawnFunc) {
         self.spawn_queue.spawn(f);
     }
 }

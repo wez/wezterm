@@ -8,8 +8,7 @@ use crate::mux::Mux;
 use crate::server::listener::spawn_listener;
 use failure::{bail, Error, Fallible};
 use log::info;
-use promise::Executor;
-use promise::SpawnFunc;
+use promise::*;
 use std::rc::Rc;
 use std::sync::mpsc::{self, Receiver, Sender};
 use std::sync::Arc;
@@ -19,10 +18,13 @@ struct MuxExecutor {
     tx: Sender<SpawnFunc>,
 }
 
-impl Executor for MuxExecutor {
+impl BasicExecutor for MuxExecutor {
     fn execute(&self, f: SpawnFunc) {
         self.tx.send(f).expect("MuxExecutor execute failed");
     }
+}
+
+impl Executor for MuxExecutor {
     fn clone_executor(&self) -> Box<dyn Executor> {
         Box::new(MuxExecutor {
             tx: self.tx.clone(),

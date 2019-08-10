@@ -10,7 +10,6 @@ license = "MIT"
 [dependencies]
 failure = "0.1"
 failure_derive = "0.1"
-filedescriptor = "0.5"
 palette = "0.4"
 promise = { path = "../promise" }
 resize = "0.3"
@@ -28,6 +27,7 @@ winapi = { version = "0.3", features = [
 ]}
 
 [target.'cfg(all(unix, not(target_os = "macos")))'.dependencies]
+filedescriptor = "0.5"
 x11 = {version ="2.18", features = ["xlib_xcb"]}
 xcb = "0.8"
 xcb-util = { features = [ "icccm", "ewmh", "keysyms", "shm"], version = "0.2" }

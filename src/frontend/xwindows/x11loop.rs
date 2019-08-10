@@ -11,7 +11,7 @@ use failure::{bail, Error, Fallible};
 use log::debug;
 use mio::{Events, Poll, PollOpt, Ready, Token};
 use mio_extras::channel::{channel, Receiver as GuiReceiver, Sender as GuiSender};
-use promise::{Executor, Future, SpawnFunc};
+use promise::{BasicExecutor, Executor, Future, SpawnFunc};
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
@@ -32,10 +32,12 @@ pub struct X11GuiExecutor {
     tx: GuiSender<SpawnFunc>,
 }
 
-impl Executor for X11GuiExecutor {
+impl BasicExecutor for X11GuiExecutor {
     fn execute(&self, f: SpawnFunc) {
         self.tx.send(f).expect("X11GuiExecutor execute failed");
     }
+}
+impl Executor for X11GuiExecutor {
     fn clone_executor(&self) -> Box<dyn Executor> {
         Box::new(X11GuiExecutor {
             tx: self.tx.clone(),
