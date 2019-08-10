@@ -1,8 +1,10 @@
 pub mod connection;
+pub mod event;
 pub mod gdi;
 pub mod window;
 
 pub use connection::*;
+pub use event::*;
 pub use gdi::*;
 pub use window::*;
 

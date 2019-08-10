@@ -1,12 +1,18 @@
 //! The connection to the GUI subsystem
+use super::EventHandle;
 use failure::Fallible;
+use promise::{Executor, SpawnFunc};
 use std::cell::RefCell;
-use std::io::Error as IoError;
+use std::collections::VecDeque;
 use std::ptr::null_mut;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
+use winapi::um::winbase::INFINITE;
 use winapi::um::winuser::*;
 
-pub struct Connection {}
+pub struct Connection {
+    spawned_funcs: Mutex<VecDeque<SpawnFunc>>,
+    event_handle: EventHandle,
+}
 
 thread_local! {
     static CONN: RefCell<Option<Arc<Connection>>> = RefCell::new(None);
@@ -24,7 +30,12 @@ impl Connection {
     }
 
     pub fn init() -> Fallible<Arc<Self>> {
-        let conn = Arc::new(Self {});
+        let spawned_funcs = Mutex::new(VecDeque::new());
+        let event_handle = EventHandle::new_manual_reset()?;
+        let conn = Arc::new(Self {
+            spawned_funcs,
+            event_handle,
+        });
         CONN.with(|m| *m.borrow_mut() = Some(Arc::clone(&conn)));
         Ok(conn)
     }
@@ -38,18 +49,64 @@ impl Connection {
     pub fn run_message_loop(&self) -> Fallible<()> {
         let mut msg: MSG = unsafe { std::mem::zeroed() };
         loop {
-            let res = unsafe { GetMessageW(&mut msg, null_mut(), 0, 0) };
-            if res == -1 {
-                return Err(IoError::last_os_error().into());
-            }
-            if res == 0 {
-                return Ok(());
-            }
+            self.process_spawns();
 
-            unsafe {
-                TranslateMessage(&mut msg);
-                DispatchMessageW(&mut msg);
+            let res = unsafe { PeekMessageW(&mut msg, null_mut(), 0, 0, PM_REMOVE) };
+            if res != 0 {
+                if msg.message == WM_QUIT {
+                    return Ok(());
+                }
+
+                unsafe {
+                    TranslateMessage(&mut msg);
+                    DispatchMessageW(&mut msg);
+                }
+            } else {
+                self.wait_message();
             }
         }
+    }
+
+    fn wait_message(&self) {
+        unsafe {
+            MsgWaitForMultipleObjects(1, &self.event_handle.0, 0, INFINITE, QS_ALLEVENTS);
+        }
+    }
+
+    fn process_spawns(&self) {
+        self.event_handle.reset_event();
+        loop {
+            if let Some(func) = self.spawned_funcs.lock().unwrap().pop_front() {
+                func();
+            } else {
+                return;
+            }
+        }
+    }
+
+    fn spawn(&self, f: SpawnFunc) {
+        self.spawned_funcs.lock().unwrap().push_back(f);
+        self.event_handle.set_event();
+    }
+}
+
+struct ConnectionExecutor(Arc<Connection>);
+impl Executor for ConnectionExecutor {
+    fn clone_executor(&self) -> Box<dyn Executor> {
+        Box::new(ConnectionExecutor(Connection::get().unwrap()))
+    }
+
+    fn execute(&self, f: SpawnFunc) {
+        self.0.spawn(f);
+    }
+}
+
+impl Executor for Connection {
+    fn clone_executor(&self) -> Box<dyn Executor> {
+        Box::new(ConnectionExecutor(Connection::get().unwrap()))
+    }
+
+    fn execute(&self, f: SpawnFunc) {
+        self.spawn(f);
     }
 }
