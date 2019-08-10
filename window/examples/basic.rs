@@ -34,6 +34,11 @@ impl WindowCallbacks for MyWindow {
     fn resize(&mut self, dims: Dimensions) {
         eprintln!("resize {:?}", dims);
     }
+
+    fn key_event(&mut self, key: &KeyEvent) -> bool {
+        eprintln!("{:?}", key);
+        false
+    }
 }
 
 fn main() -> Fallible<()> {

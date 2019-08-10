@@ -19,9 +19,7 @@ pub enum KeyCode {
 
     // There is no `Tab`; use `Char('\t')` instead
     Clear,
-    // FIXME: Replace `Enter` with canonical Char(\n), but on
-    // windows we get \r.  Figure out what other systems do.
-    Enter,
+    // There is no `Enter`; use `Char('\r')` instead
     Shift,
     // There is no `Escape`; use `Char('\u{1b}') instead
     LeftShift,

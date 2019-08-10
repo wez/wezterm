@@ -1,3 +1,4 @@
+use super::keyboard::Keyboard;
 use crate::Window;
 use failure::Fallible;
 use filedescriptor::{FileDescriptor, Pipe};
@@ -78,6 +79,8 @@ pub struct Connection {
     pub display: *mut x11::xlib::Display,
     conn: xcb::Connection,
     screen_num: i32,
+    pub keyboard: Keyboard,
+    pub kbd_ev: u8,
     pub atom_protocols: xcb::Atom,
     pub atom_delete: xcb::Atom,
     pub atom_utf8_string: xcb::Atom,
@@ -306,16 +309,14 @@ impl Connection {
         if let Some(window_id) = window_id_from_event(event) {
             self.process_window_event(window_id, event)?;
         } else {
-            /*
             let r = event.response_type() & 0x7f;
-            if r == self.conn.kbd_ev {
+            if r == self.kbd_ev {
                 // key press/release are not processed here.
                 // xkbcommon depends on those events in order to:
                 //    - update modifiers state
                 //    - update keymap/state on keyboard changes
-                self.conn.keyboard.process_xkb_event(&self.conn, event)?;
+                self.keyboard.process_xkb_event(&self.conn, event)?;
             }
-            */
         }
         Ok(())
     }
@@ -368,6 +369,8 @@ impl Connection {
         let shm_available = server_supports_shm();
         eprintln!("shm_available: {}", shm_available);
 
+        let (keyboard, kbd_ev) = Keyboard::new(&conn)?;
+
         let conn = Arc::new(Connection {
             display,
             conn,
@@ -376,6 +379,8 @@ impl Connection {
             atom_clipboard,
             atom_delete,
             keysyms,
+            keyboard,
+            kbd_ev,
             atom_utf8_string,
             atom_xsel_data,
             atom_targets,

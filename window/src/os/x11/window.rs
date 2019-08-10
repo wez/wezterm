@@ -1,6 +1,7 @@
+use super::xkeysyms::*;
 use super::*;
 use crate::bitmaps::*;
-use crate::{Color, Dimensions, Operator, PaintContext, WindowCallbacks};
+use crate::{Color, Dimensions, KeyEvent, Operator, PaintContext, WindowCallbacks};
 use failure::Fallible;
 use std::collections::VecDeque;
 use std::convert::TryInto;
@@ -243,24 +244,19 @@ impl WindowInner {
                     dpi: 96,
                 })
             }
-            xcb::KEY_PRESS => {
+            xcb::KEY_PRESS | xcb::KEY_RELEASE => {
                 let key_press: &xcb::KeyPressEvent = unsafe { xcb::cast_event(event) };
-                eprintln!("KEY_PRESS");
-                /*
-                let mux = Mux::get().unwrap();
-                let tab = match mux.get_active_tab_for_window(self.get_mux_window_id()) {
-                    Some(tab) => tab,
-                    None => return Ok(()),
-                };
-                if let Some((code, mods)) = self.decode_key(key_press) {
-                    if self.host.process_gui_shortcuts(&*tab, mods, code)? {
-                        return Ok(());
-                    }
-
-                    tab.key_down(code, mods)?;
+                if let Some((code, mods)) = self.conn.keyboard.process_key_event(key_press) {
+                    let key = KeyEvent {
+                        key: code,
+                        modifiers: mods,
+                        repeat_count: 1,
+                        key_is_down: r == xcb::KEY_PRESS,
+                    };
+                    self.callbacks.key_event(&key);
                 }
-                */
             }
+
             xcb::MOTION_NOTIFY => {
                 let motion: &xcb::MotionNotifyEvent = unsafe { xcb::cast_event(event) };
                 //eprintln!("MOTION_NOTIFY");

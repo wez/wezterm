@@ -426,7 +426,7 @@ unsafe fn key(hwnd: HWND, _msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<
                     VK_BACK => Some(KeyCode::Char('\u{8}')),
                     VK_TAB => Some(KeyCode::Char('\t')),
                     VK_CLEAR => Some(KeyCode::Clear),
-                    VK_RETURN => Some(KeyCode::Enter),
+                    VK_RETURN => Some(KeyCode::Char('\r')),
                     VK_SHIFT => Some(KeyCode::Shift),
                     VK_CONTROL => Some(KeyCode::Control),
                     VK_MENU => Some(KeyCode::Alt),
@@ -510,7 +510,6 @@ unsafe fn key(hwnd: HWND, _msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<
                 repeat_count: repeat,
                 key_is_down: !releasing,
             };
-            eprintln!("{:?}", key);
             if inner.callbacks.key_event(&key) {
                 return Some(0);
             }
