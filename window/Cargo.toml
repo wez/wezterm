@@ -8,6 +8,7 @@ description = "Cross platform window setup and render"
 license = "MIT"
 
 [dependencies]
+bitflags = "1.0"
 failure = "0.1"
 failure_derive = "0.1"
 lazy_static = "1.3"

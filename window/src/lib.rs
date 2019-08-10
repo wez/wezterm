@@ -1,10 +1,12 @@
 pub mod bitmaps;
 pub mod color;
+pub mod input;
 pub mod os;
 
 pub use bitmaps::BitmapImage;
 pub use color::Color;
 
+pub use input::*;
 pub use os::*;
 
 /// Compositing operator.
