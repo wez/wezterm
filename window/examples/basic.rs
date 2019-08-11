@@ -70,12 +70,14 @@ impl WindowCallbacks for MyWindow {
         self.cursor_pos = (event.x, event.y);
         ctx.invalidate();
         ctx.set_cursor(Some(MouseCursor::Arrow));
+
+        if event.kind == MouseEventKind::Press(MousePress::Left) {
+            spawn_window().unwrap();
+        }
     }
 }
 
-fn main() -> Fallible<()> {
-    let conn = Connection::init()?;
-
+fn spawn_window() -> Fallible<()> {
     let win = Window::new_window(
         "myclass",
         "the title",
@@ -88,7 +90,11 @@ fn main() -> Fallible<()> {
     )?;
 
     win.show();
-    drop(win);
+    Ok(())
+}
 
+fn main() -> Fallible<()> {
+    let conn = Connection::init()?;
+    spawn_window()?;
     conn.run_message_loop()
 }
