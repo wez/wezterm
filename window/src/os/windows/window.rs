@@ -4,7 +4,7 @@ use crate::bitmaps::*;
 use crate::color::Color;
 use crate::{
     Dimensions, KeyCode, KeyEvent, Modifiers, MouseButtons, MouseCursor, MouseEvent,
-    MouseEventKind, MousePress, Operator, PaintContext, WindowCallbacks,
+    MouseEventKind, MousePress, Operator, PaintContext, WindowCallbacks, WindowContext,
 };
 use failure::Fallible;
 use std::io::Error as IoError;
@@ -417,8 +417,16 @@ fn apply_mouse_cursor(cursor: Option<MouseCursor>) {
     }
 }
 
-fn do_mouse_event(inner: &mut WindowInner, event: &MouseEvent) {
-    apply_mouse_cursor(inner.callbacks.mouse_event(event))
+fn apply_context(inner: &mut WindowInner, mut context: WindowContext) {
+    if let Some(cursor) = context.cursor.take() {
+        apply_mouse_cursor(cursor);
+    }
+
+    if context.invalidate {
+        unsafe {
+            InvalidateRect(inner.hwnd, null(), 1);
+        }
+    }
 }
 
 unsafe fn mouse_button(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
@@ -443,8 +451,10 @@ unsafe fn mouse_button(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) ->
             mouse_buttons,
             modifiers,
         };
+        let mut ctx = WindowContext::default();
         let mut inner = inner.lock().unwrap();
-        do_mouse_event(&mut inner, &event);
+        inner.callbacks.mouse_event(&event, &mut ctx);
+        apply_context(&mut inner, ctx);
         Some(0)
     } else {
         None
@@ -462,8 +472,11 @@ unsafe fn mouse_move(hwnd: HWND, _msg: UINT, wparam: WPARAM, lparam: LPARAM) -> 
             mouse_buttons,
             modifiers,
         };
+
+        let mut ctx = WindowContext::default();
         let mut inner = inner.lock().unwrap();
-        do_mouse_event(&mut inner, &event);
+        inner.callbacks.mouse_event(&event, &mut ctx);
+        apply_context(&mut inner, ctx);
         Some(0)
     } else {
         None
@@ -486,8 +499,10 @@ unsafe fn mouse_wheel(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> 
             mouse_buttons,
             modifiers,
         };
+        let mut ctx = WindowContext::default();
         let mut inner = inner.lock().unwrap();
-        do_mouse_event(&mut inner, &event);
+        inner.callbacks.mouse_event(&event, &mut ctx);
+        apply_context(&mut inner, ctx);
         Some(0)
     } else {
         None
@@ -652,7 +667,11 @@ unsafe fn key(hwnd: HWND, _msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<
                 repeat_count: repeat,
                 key_is_down: !releasing,
             };
-            if inner.callbacks.key_event(&key) {
+            let mut ctx = WindowContext::default();
+            let handled = inner.callbacks.key_event(&key, &mut ctx);
+            apply_context(&mut inner, ctx);
+
+            if handled {
                 return Some(0);
             }
         }

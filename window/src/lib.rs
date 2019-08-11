@@ -123,11 +123,34 @@ pub trait WindowCallbacks {
     /// If your window didn't handle the event, you must return false.
     /// This is particularly important for eg: ALT keys on windows,
     /// otherwise standard key assignments may not function in your window.
-    fn key_event(&mut self, key: &KeyEvent) -> bool {
+    fn key_event(&mut self, key: &KeyEvent, context: &mut WindowContext) -> bool {
         false
     }
 
-    fn mouse_event(&mut self, event: &MouseEvent) -> Option<MouseCursor> {
-        Some(MouseCursor::Arrow)
+    fn mouse_event(&mut self, event: &MouseEvent, context: &mut WindowContext) {
+        context.set_cursor(Some(MouseCursor::Arrow));
+    }
+}
+
+/// The WindowContext is used to buffer up requests to operate on the window
+/// that might arise during processing of events within that window.
+/// The requests will be dispatched shortly after returning from the
+/// WindowCallbacks function(s).
+#[derive(Default)]
+pub struct WindowContext {
+    cursor: Option<Option<MouseCursor>>,
+    invalidate: bool,
+}
+
+impl WindowContext {
+    /// Change the cursor
+    pub fn set_cursor(&mut self, cursor: Option<MouseCursor>) {
+        self.cursor = Some(cursor);
+    }
+
+    /// Invalidate the window so that the entire client area will
+    /// be repainted shortly
+    pub fn invalidate(&mut self) {
+        self.invalidate = true;
     }
 }

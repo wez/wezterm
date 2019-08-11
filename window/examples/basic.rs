@@ -3,6 +3,7 @@ use failure::Fallible;
 
 struct MyWindow {
     allow_close: bool,
+    cursor_pos: (u16, u16),
 }
 
 impl Drop for MyWindow {
@@ -40,7 +41,16 @@ impl WindowCallbacks for MyWindow {
             0,
             200,
             120,
-            Color::rgb(0xff, 0xff, 0xff),
+            Color::rgb(0xff, 0x80, 0xff),
+            Operator::Over,
+        );
+
+        context.draw_line(
+            0,
+            0,
+            self.cursor_pos.0 as isize,
+            self.cursor_pos.1 as isize,
+            Color::rgb(0xff, 0xff, 0x80),
             Operator::Over,
         );
     }
@@ -49,14 +59,17 @@ impl WindowCallbacks for MyWindow {
         eprintln!("resize {:?}", dims);
     }
 
-    fn key_event(&mut self, key: &KeyEvent) -> bool {
+    fn key_event(&mut self, key: &KeyEvent, ctx: &mut WindowContext) -> bool {
         eprintln!("{:?}", key);
+        ctx.set_cursor(Some(MouseCursor::Text));
         false
     }
 
-    fn mouse_event(&mut self, event: &MouseEvent) -> Option<MouseCursor> {
+    fn mouse_event(&mut self, event: &MouseEvent, ctx: &mut WindowContext) {
         eprintln!("{:?}", event);
-        Some(MouseCursor::Text)
+        self.cursor_pos = (event.x, event.y);
+        ctx.invalidate();
+        ctx.set_cursor(Some(MouseCursor::Arrow));
     }
 }
 
@@ -68,7 +81,10 @@ fn main() -> Fallible<()> {
         "the title",
         800,
         600,
-        Box::new(MyWindow { allow_close: false }),
+        Box::new(MyWindow {
+            allow_close: false,
+            cursor_pos: (100, 200),
+        }),
     )?;
 
     win.show();

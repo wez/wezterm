@@ -2,7 +2,7 @@ use super::*;
 use crate::bitmaps::*;
 use crate::{
     Color, Dimensions, KeyEvent, MouseButtons, MouseCursor, MouseEvent, MouseEventKind, MousePress,
-    Operator, PaintContext, WindowCallbacks,
+    Operator, PaintContext, WindowCallbacks, WindowContext,
 };
 use failure::Fallible;
 use std::collections::VecDeque;
@@ -243,9 +243,19 @@ impl WindowInner {
         self.expose.push_back(expose);
     }
 
+    fn apply_context(&mut self, mut ctx: WindowContext) {
+        if let Some(cursor) = ctx.cursor.take() {
+            self.set_cursor(cursor);
+        }
+        if ctx.invalidate {
+            self.paint_all = true;
+        }
+    }
+
     fn do_mouse_event(&mut self, event: &MouseEvent) -> Fallible<()> {
-        let cursor = self.callbacks.mouse_event(&event);
-        self.set_cursor(cursor)?;
+        let mut ctx = WindowContext::default();
+        self.callbacks.mouse_event(&event, &mut ctx);
+        self.apply_context(ctx);
         Ok(())
     }
 
@@ -256,7 +266,7 @@ impl WindowInner {
 
         let id_no = match cursor.unwrap_or(MouseCursor::Arrow) {
             // `/usr/include/X11/cursorfont.h`
-            MouseCursor::Arrow => 2,
+            MouseCursor::Arrow => 132,
             MouseCursor::Hand => 58,
             MouseCursor::Text => 152,
         };
@@ -314,7 +324,9 @@ impl WindowInner {
                         repeat_count: 1,
                         key_is_down: r == xcb::KEY_PRESS,
                     };
-                    self.callbacks.key_event(&key);
+                    let mut ctx = WindowContext::default();
+                    self.callbacks.key_event(&key, &mut ctx);
+                    self.apply_context(ctx);
                 }
             }
 
