@@ -60,7 +60,10 @@ impl GdiBitmap {
                 biPlanes: 1,
                 biBitCount: 32,
                 biWidth: width as i32,
-                biHeight: height as i32,
+                // Windows bitmaps are upside-down vs. the rest of the world, so
+                // we need to supply a negative height here:
+                // https://stackoverflow.com/a/9023702/149111
+                biHeight: -(height as i32),
                 biClrImportant: 0,
                 biClrUsed: 0,
                 biCompression: 0,

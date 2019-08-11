@@ -80,6 +80,16 @@ pub trait PaintContext {
         im: &dyn BitmapImage,
         operator: Operator,
     );
+
+    fn draw_line(
+        &mut self,
+        start_x: isize,
+        start_y: isize,
+        dest_x: isize,
+        dest_y: isize,
+        color: Color,
+        operator: Operator,
+    );
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

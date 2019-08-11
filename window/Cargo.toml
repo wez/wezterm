@@ -12,6 +12,7 @@ bitflags = "1.0"
 failure = "0.1"
 failure_derive = "0.1"
 lazy_static = "1.3"
+line_drawing = "0.8"
 palette = "0.4"
 promise = { path = "../promise" }
 resize = "0.3"

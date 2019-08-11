@@ -1,5 +1,6 @@
 use crate::color::Color;
 use crate::Operator;
+use palette::Srgba;
 
 /// A bitmap in big endian bgra32 color format with abstract
 /// storage filled in by the trait implementation.
@@ -93,52 +94,36 @@ pub trait BitmapImage {
         }
     }
 
-    fn draw_vertical_line(
+    /// Draw a line starting at (start_x, start_y) and ending at (dest_x, dest_y).
+    /// The line will be anti-aliased and applied to the surface using the
+    /// specified Operator.
+    fn draw_line(
         &mut self,
+        start_x: isize,
+        start_y: isize,
         dest_x: isize,
         dest_y: isize,
-        height: usize,
         color: Color,
         operator: Operator,
     ) {
         let (dim_width, dim_height) = self.image_dimensions();
-        if dest_x < 0 || dest_x >= dim_width as isize {
-            return;
-        }
-        for y in 0..height {
-            let dest_y = y as isize + dest_y;
-            if dest_y < 0 {
-                continue;
-            }
-            if dest_y >= dim_height as isize {
-                break;
-            }
-            let pix = self.pixel_mut(dest_x as usize, dest_y as usize);
-            *pix = color.composite(Color(*pix), &operator).0;
-        }
-    }
+        let srgba: Srgba = color.into();
+        let linear = srgba.into_linear();
+        let (red, green, blue, alpha) = linear.into_components();
 
-    fn draw_horizontal_line(
-        &mut self,
-        dest_x: isize,
-        dest_y: isize,
-        width: usize,
-        color: Color,
-        operator: Operator,
-    ) {
-        let (dim_width, dim_height) = self.image_dimensions();
-        if dest_y < 0 || dest_y >= dim_height as isize {
-            return;
-        }
-        for x in 0..width {
-            let dest_x = x as isize + dest_x;
-            if dest_x < 0 {
+        for ((x, y), value) in line_drawing::XiaolinWu::<f32, isize>::new(
+            (start_x as f32, start_y as f32),
+            (dest_x as f32, dest_y as f32),
+        ) {
+            if y < 0 || x < 0 {
                 continue;
             }
-            if dest_x >= dim_width as isize {
-                break;
+            if y >= dim_height as isize || x >= dim_width as isize {
+                continue;
             }
-            let pix = self.pixel_mut(dest_x as usize, dest_y as usize);
+            let pix = self.pixel_mut(x as usize, y as usize);
+
+            let color: Color = Srgba::from_components((red, green, blue, alpha * value)).into();
             *pix = color.composite(Color(*pix), &operator).0;
         }
     }
@@ -146,19 +131,22 @@ pub trait BitmapImage {
     /// Draw a 1-pixel wide rectangle
     fn draw_rect(
         &mut self,
-        dest_x: isize,
-        dest_y: isize,
+        left: isize,
+        top: isize,
         width: usize,
         height: usize,
         color: Color,
         operator: Operator,
     ) {
+        let bottom = top + height as isize;
+        let right = left + width as isize;
+
         // Draw the vertical lines down either side
-        self.draw_vertical_line(dest_x, dest_y, height, color, operator);
-        self.draw_vertical_line(dest_x + width as isize, dest_y, height, color, operator);
+        self.draw_line(left, top, left, bottom, color, operator);
+        self.draw_line(right, top, right, bottom, color, operator);
         // And the horizontals for the top and bottom
-        self.draw_horizontal_line(dest_x, dest_y, width, color, operator);
-        self.draw_horizontal_line(dest_x, dest_y + height as isize, width, color, operator);
+        self.draw_line(left, top, right, top, color, operator);
+        self.draw_line(left, bottom, right, bottom, color, operator);
     }
 
     fn draw_image(

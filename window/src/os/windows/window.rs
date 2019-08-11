@@ -283,6 +283,19 @@ impl PaintContext for GdiGraphicsContext {
         self.bitmap
             .draw_image_subset(dest_x, dest_y, src_x, src_y, width, height, im, operator)
     }
+
+    fn draw_line(
+        &mut self,
+        start_x: isize,
+        start_y: isize,
+        dest_x: isize,
+        dest_y: isize,
+        color: Color,
+        operator: Operator,
+    ) {
+        self.bitmap
+            .draw_line(start_x, start_y, dest_x, dest_y, color, operator);
+    }
 }
 
 unsafe fn wm_size(hwnd: HWND, _msg: UINT, _wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
