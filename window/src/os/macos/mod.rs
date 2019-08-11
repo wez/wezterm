@@ -2,9 +2,11 @@ use cocoa::base::nil;
 use cocoa::foundation::NSString;
 use objc::rc::StrongPtr;
 
+pub mod bitmap;
 pub mod connection;
 pub mod window;
 
+pub use bitmap::*;
 pub use connection::*;
 pub use window::*;
 

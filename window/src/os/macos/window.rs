@@ -1,11 +1,14 @@
 use super::nsstring;
-use crate::WindowCallbacks;
+use crate::bitmaps::Image;
+use crate::os::macos::bitmap::BitmapRef;
+use crate::{BitmapImage, Color, Dimensions, Operator, PaintContext, WindowCallbacks};
 use cocoa::appkit::{
     NSApplicationActivateIgnoringOtherApps, NSBackingStoreBuffered, NSRunningApplication, NSView,
-    NSWindow, NSWindowStyleMask,
+    NSViewHeightSizable, NSViewWidthSizable, NSWindow, NSWindowStyleMask,
 };
 use cocoa::base::*;
 use cocoa::foundation::{NSPoint, NSRect, NSSize};
+use core_graphics::image::CGImageRef;
 use failure::Fallible;
 use objc::declare::ClassDecl;
 use objc::rc::{StrongPtr, WeakPtr};
@@ -61,14 +64,12 @@ impl Window {
             window.setTitle_(*nsstring(&name));
             window.setAcceptsMouseMovedEvents_(YES);
 
-            let content_view = window.contentView();
-            let frame = NSView::frame(content_view);
-
             let view = WindowView::alloc(&inner)?;
-            view.initWithFrame_(frame);
-            content_view.addSubview_(*view);
+            view.initWithFrame_(rect);
+            view.setAutoresizingMask_(NSViewHeightSizable | NSViewWidthSizable);
 
-            let () = msg_send![*window, setDelegate: *view];
+            window.setContentView_(*view);
+            window.setDelegate_(*view);
 
             Ok(Self { window, view })
         }
@@ -110,6 +111,51 @@ pub fn superclass(this: &Object) -> &'static Class {
     unsafe {
         let superclass: id = msg_send![this, superclass];
         &*(superclass as *const _)
+    }
+}
+
+struct MacGraphicsContext<'a> {
+    buffer: &'a mut BitmapImage,
+}
+
+impl<'a> PaintContext for MacGraphicsContext<'a> {
+    fn clear_rect(
+        &mut self,
+        dest_x: isize,
+        dest_y: isize,
+        width: usize,
+        height: usize,
+        color: Color,
+    ) {
+        self.buffer.clear_rect(dest_x, dest_y, width, height, color)
+    }
+
+    fn clear(&mut self, color: Color) {
+        self.buffer.clear(color);
+    }
+
+    fn get_dimensions(&self) -> Dimensions {
+        let (pixel_width, pixel_height) = self.buffer.image_dimensions();
+        Dimensions {
+            pixel_width,
+            pixel_height,
+            dpi: 96,
+        }
+    }
+
+    fn draw_image_subset(
+        &mut self,
+        dest_x: isize,
+        dest_y: isize,
+        src_x: usize,
+        src_y: usize,
+        width: usize,
+        height: usize,
+        im: &dyn BitmapImage,
+        operator: Operator,
+    ) {
+        self.buffer
+            .draw_image_subset(dest_x, dest_y, src_x, src_y, width, height, im, operator)
     }
 }
 
@@ -155,6 +201,11 @@ impl WindowView {
 
     extern "C" fn window_should_close(this: &mut Object, _sel: Sel, _id: id) -> BOOL {
         eprintln!("window_should_close");
+
+        unsafe {
+            let () = msg_send![this, setNeedsDisplay: YES];
+        }
+
         if let Some(this) = Self::get_this(this) {
             if this.inner.lock().unwrap().callbacks.can_close() {
                 YES
@@ -166,6 +217,11 @@ impl WindowView {
         }
     }
 
+    // Switch the coordinate system to have 0,0 in the top left
+    extern "C" fn is_flipped(_this: &Object, _sel: Sel) -> BOOL {
+        YES
+    }
+
     extern "C" fn window_will_close(this: &mut Object, _sel: Sel, _id: id) {
         eprintln!("window_will_close");
         if let Some(this) = Self::get_this(this) {
@@ -175,6 +231,34 @@ impl WindowView {
 
         // Release and zero out the inner member
         Self::drop_inner(this);
+    }
+
+    extern "C" fn draw_rect(this: &mut Object, _sel: Sel, _dirty_rect: NSRect) {
+        let frame = unsafe { NSView::frame(this as *mut _) };
+        let width = frame.size.width;
+        let height = frame.size.height;
+
+        let mut im = Image::new(width as usize, height as usize);
+
+        if let Some(this) = Self::get_this(this) {
+            let mut ctx = MacGraphicsContext { buffer: &mut im };
+            this.inner.lock().unwrap().callbacks.paint(&mut ctx);
+        }
+
+        let cg_image = BitmapRef::with_image(&im);
+
+        fn nsimage_from_cgimage(cg: &CGImageRef, size: NSSize) -> StrongPtr {
+            unsafe {
+                let ns_image: id = msg_send![class!(NSImage), alloc];
+                StrongPtr::new(msg_send![ns_image, initWithCGImage: cg size:size])
+            }
+        }
+
+        let ns_image = nsimage_from_cgimage(cg_image.as_ref(), NSSize::new(0., 0.));
+
+        unsafe {
+            let () = msg_send![*ns_image, drawInRect: frame];
+        }
     }
 
     fn get_this(this: &Object) -> Option<&mut Self> {
@@ -230,6 +314,16 @@ impl WindowView {
             cls.add_method(
                 sel!(windowShouldClose:),
                 Self::window_should_close as extern "C" fn(&mut Object, Sel, id) -> BOOL,
+            );
+
+            cls.add_method(
+                sel!(drawRect:),
+                Self::draw_rect as extern "C" fn(&mut Object, Sel, NSRect),
+            );
+
+            cls.add_method(
+                sel!(isFlipped),
+                Self::is_flipped as extern "C" fn(&Object, Sel) -> BOOL,
             );
         }
 
