@@ -243,19 +243,20 @@ impl WindowInner {
         self.expose.push_back(expose);
     }
 
-    fn apply_context(&mut self, mut ctx: WindowContext) {
+    fn apply_context(&mut self, mut ctx: WindowContext) -> Fallible<()> {
         if let Some(cursor) = ctx.cursor.take() {
-            self.set_cursor(cursor);
+            self.set_cursor(cursor)?;
         }
         if ctx.invalidate {
             self.paint_all = true;
         }
+        Ok(())
     }
 
     fn do_mouse_event(&mut self, event: &MouseEvent) -> Fallible<()> {
         let mut ctx = WindowContext::default();
         self.callbacks.mouse_event(&event, &mut ctx);
-        self.apply_context(ctx);
+        self.apply_context(ctx)?;
         Ok(())
     }
 
@@ -326,7 +327,7 @@ impl WindowInner {
                     };
                     let mut ctx = WindowContext::default();
                     self.callbacks.key_event(&key, &mut ctx);
-                    self.apply_context(ctx);
+                    self.apply_context(ctx)?;
                 }
             }
 
