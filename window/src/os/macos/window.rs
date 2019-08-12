@@ -14,8 +14,9 @@ use objc::declare::ClassDecl;
 use objc::rc::{StrongPtr, WeakPtr};
 use objc::runtime::{Class, Object, Sel};
 use objc::*;
+use std::cell::RefCell;
 use std::ffi::c_void;
-use std::sync::{Arc, Mutex};
+use std::rc::Rc;
 
 pub struct Window {
     window: StrongPtr,
@@ -46,7 +47,7 @@ impl Window {
                 NSSize::new(width as f64, height as f64),
             );
 
-            let inner = Arc::new(Mutex::new(Inner {
+            let inner = Rc::new(RefCell::new(Inner {
                 callbacks,
                 view_id: None,
             }));
@@ -98,7 +99,7 @@ impl Drop for Inner {
 const CLS_NAME: &str = "WezTermWindowView";
 
 struct WindowView {
-    inner: Arc<Mutex<Inner>>,
+    inner: Rc<RefCell<Inner>>,
 }
 
 impl Drop for WindowView {
@@ -174,7 +175,7 @@ impl<'a> PaintContext for MacGraphicsContext<'a> {
 
 impl WindowView {
     fn view_id(&self) -> id {
-        let inner = self.inner.lock().unwrap();
+        let inner = self.inner.borrow_mut();
         inner.view_id.as_ref().map(|w| *w.load()).unwrap_or(nil)
     }
 
@@ -220,7 +221,7 @@ impl WindowView {
         }
 
         if let Some(this) = Self::get_this(this) {
-            if this.inner.lock().unwrap().callbacks.can_close() {
+            if this.inner.borrow_mut().callbacks.can_close() {
                 YES
             } else {
                 NO
@@ -239,7 +240,7 @@ impl WindowView {
         eprintln!("window_will_close");
         if let Some(this) = Self::get_this(this) {
             // Advise the window of its impending death
-            this.inner.lock().unwrap().callbacks.destroy();
+            this.inner.borrow_mut().callbacks.destroy();
         }
 
         // Release and zero out the inner member
@@ -255,7 +256,7 @@ impl WindowView {
 
         if let Some(this) = Self::get_this(this) {
             let mut ctx = MacGraphicsContext { buffer: &mut im };
-            this.inner.lock().unwrap().callbacks.paint(&mut ctx);
+            this.inner.borrow_mut().callbacks.paint(&mut ctx);
         }
 
         let cg_image = BitmapRef::with_image(&im);
@@ -285,15 +286,15 @@ impl WindowView {
         }
     }
 
-    fn alloc(inner: &Arc<Mutex<Inner>>) -> Fallible<StrongPtr> {
+    fn alloc(inner: &Rc<RefCell<Inner>>) -> Fallible<StrongPtr> {
         let cls = Self::get_class();
 
         let view_id: StrongPtr = unsafe { StrongPtr::new(msg_send![cls, new]) };
 
-        inner.lock().unwrap().view_id.replace(view_id.weak());
+        inner.borrow_mut().view_id.replace(view_id.weak());
 
         let view = Box::into_raw(Box::new(Self {
-            inner: Arc::clone(&inner),
+            inner: Rc::clone(&inner),
         }));
 
         unsafe {
