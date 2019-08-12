@@ -1,9 +1,9 @@
-use super::nsstring;
+use super::{nsstring, nsstring_to_str};
 use crate::bitmaps::Image;
 use crate::os::macos::bitmap::BitmapRef;
 use crate::{
-    BitmapImage, Color, Dimensions, Modifiers, MouseButtons, MouseEvent, MouseEventKind,
-    MousePress, Operator, PaintContext, WindowCallbacks,
+    BitmapImage, Color, Dimensions, KeyCode, KeyEvent, Modifiers, MouseButtons, MouseEvent,
+    MouseEventKind, MousePress, Operator, PaintContext, WindowCallbacks,
 };
 use cocoa::appkit::{
     NSApplicationActivateIgnoringOtherApps, NSBackingStoreBuffered, NSEvent, NSEventModifierFlags,
@@ -338,7 +338,47 @@ impl WindowView {
         Self::mouse_common(this, nsevent, MouseEventKind::Move);
     }
 
-    extern "C" fn did_resize(this: &mut Object, _sel: Sel, notification: id) {
+    fn key_common(this: &mut Object, nsevent: id, key_is_down: bool) {
+        let chars = unsafe { nsstring_to_str(nsevent.characters()) };
+        // let unmod = unsafe {nsstring_to_str(nsevent.charactersIgnoringModifiers())};
+        let modifiers = unsafe { key_modifiers(nsevent.modifierFlags()) };
+
+        let mut char_iter = chars.chars();
+        if let Some(first_char) = char_iter.next() {
+            let key = if char_iter.next().is_none() {
+                // A single unicode char
+                KeyCode::Char(first_char)
+            } else {
+                KeyCode::Composed(chars.to_owned())
+            };
+
+            // FIXME: CTRL-C is 0x3, should it be normalized to C here
+            // using the unmod string?  Or should be normalize the 0x3
+            // as the canonical representation of that input?
+
+            let event = KeyEvent {
+                key,
+                modifiers,
+                repeat_count: 1,
+                key_is_down,
+            };
+
+            if let Some(myself) = Self::get_this(this) {
+                eprintln!("{:?}", event);
+                // myself.inner.borrow_mut().callbacks.key_event(&event, &window);
+            }
+        }
+    }
+
+    extern "C" fn key_down(this: &mut Object, _sel: Sel, nsevent: id) {
+        Self::key_common(this, nsevent, true);
+    }
+
+    extern "C" fn key_up(this: &mut Object, _sel: Sel, nsevent: id) {
+        Self::key_common(this, nsevent, false);
+    }
+
+    extern "C" fn did_resize(this: &mut Object, _sel: Sel, _notification: id) {
         let frame = unsafe { NSView::frame(this as *mut _) };
         let width = frame.size.width;
         let height = frame.size.height;
@@ -476,6 +516,15 @@ impl WindowView {
             cls.add_method(
                 sel!(rightMouseUp:),
                 Self::right_mouse_up as extern "C" fn(&mut Object, Sel, id),
+            );
+
+            cls.add_method(
+                sel!(keyDown:),
+                Self::key_down as extern "C" fn(&mut Object, Sel, id),
+            );
+            cls.add_method(
+                sel!(keyUp:),
+                Self::key_up as extern "C" fn(&mut Object, Sel, id),
             );
 
             cls.add_method(
