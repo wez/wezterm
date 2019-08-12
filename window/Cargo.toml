@@ -42,4 +42,5 @@ libc = "0.2"
 [target.'cfg(target_os="macos")'.dependencies]
 cocoa = "0.19"
 objc = "0.2"
+core-foundation = "0.6"
 core-graphics = "0.17"

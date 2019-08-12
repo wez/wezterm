@@ -2,8 +2,9 @@ use super::{nsstring, nsstring_to_str};
 use crate::bitmaps::Image;
 use crate::os::macos::bitmap::BitmapRef;
 use crate::{
-    BitmapImage, Color, Dimensions, KeyCode, KeyEvent, Modifiers, MouseButtons, MouseEvent,
-    MouseEventKind, MousePress, Operator, PaintContext, WindowCallbacks,
+    BitmapImage, Color, Connection, Dimensions, KeyCode, KeyEvent, Modifiers, MouseButtons,
+    MouseCursor, MouseEvent, MouseEventKind, MousePress, Operator, PaintContext, WindowCallbacks,
+    WindowOps, WindowOpsMut,
 };
 use cocoa::appkit::{
     NSApplicationActivateIgnoringOtherApps, NSBackingStoreBuffered, NSEvent, NSEventModifierFlags,
@@ -22,16 +23,14 @@ use std::cell::RefCell;
 use std::ffi::c_void;
 use std::rc::Rc;
 
-pub struct Window {
+pub(crate) struct WindowInner {
+    window_id: usize,
     window: StrongPtr,
     view: StrongPtr,
 }
 
-impl Drop for Window {
-    fn drop(&mut self) {
-        eprintln!("drop Window");
-    }
-}
+#[derive(Debug, Clone)]
+pub struct Window(usize);
 
 impl Window {
     pub fn new_window(
@@ -51,9 +50,14 @@ impl Window {
                 NSSize::new(width as f64, height as f64),
             );
 
+            let conn = Connection::get().expect("Connection::init has not been called");
+
+            let window_id = conn.next_window_id();
+
             let inner = Rc::new(RefCell::new(Inner {
                 callbacks,
                 view_id: None,
+                window_id,
             }));
 
             let window = StrongPtr::new(
@@ -76,22 +80,70 @@ impl Window {
             window.setContentView_(*view);
             window.setDelegate_(*view);
 
-            Ok(Self { window, view })
+            let window_inner = Rc::new(RefCell::new(WindowInner {
+                window_id,
+                window,
+                view,
+            }));
+            conn.windows
+                .borrow_mut()
+                .insert(window_id, Rc::clone(&window_inner));
+
+            let window = Window(window_id);
+
+            inner.borrow_mut().callbacks.created(&window);
+
+            Ok(window)
         }
     }
+}
 
-    pub fn show(&self) {
+impl WindowOps for Window {
+    fn hide(&self) {
+        Connection::with_window_inner(self.0, |inner| inner.hide());
+    }
+    fn show(&self) {
+        eprintln!("schedule show");
+        Connection::with_window_inner(self.0, |inner| inner.show());
+    }
+    fn set_cursor(&self, cursor: Option<MouseCursor>) {
+        Connection::with_window_inner(self.0, move |inner| {
+            let _ = inner.set_cursor(cursor);
+        });
+    }
+    fn invalidate(&self) {
+        Connection::with_window_inner(self.0, |inner| inner.invalidate());
+    }
+    fn set_title(&self, title: &str) {
+        let title = title.to_owned();
+        Connection::with_window_inner(self.0, move |inner| inner.set_title(&title));
+    }
+}
+
+impl WindowOpsMut for WindowInner {
+    fn show(&mut self) {
+        eprintln!("do show");
         unsafe {
             let current_app = NSRunningApplication::currentApplication(nil);
             current_app.activateWithOptions_(NSApplicationActivateIgnoringOtherApps);
             self.window.makeKeyAndOrderFront_(nil)
         }
     }
+
+    fn hide(&mut self) {}
+    fn set_cursor(&mut self, cursor: Option<MouseCursor>) {}
+    fn invalidate(&mut self) {
+        unsafe {
+            let () = msg_send![*self.view, setNeedsDisplay: YES];
+        }
+    }
+    fn set_title(&mut self, title: &str) {}
 }
 
 struct Inner {
     callbacks: Box<WindowCallbacks>,
     view_id: Option<WeakPtr>,
+    window_id: usize,
 }
 
 impl Drop for Inner {
@@ -314,8 +366,9 @@ impl WindowView {
         };
 
         if let Some(myself) = Self::get_this(this) {
-            eprintln!("{:?}", event);
-            // myself.inner.borrow_mut().callbacks.mouse_event(&event, &window);
+            let mut inner = myself.inner.borrow_mut();
+            let window = Window(inner.window_id);
+            inner.callbacks.mouse_event(&event, &window);
         }
     }
 
@@ -364,8 +417,9 @@ impl WindowView {
             };
 
             if let Some(myself) = Self::get_this(this) {
-                eprintln!("{:?}", event);
-                // myself.inner.borrow_mut().callbacks.key_event(&event, &window);
+                let mut inner = myself.inner.borrow_mut();
+                let window = Window(inner.window_id);
+                inner.callbacks.key_event(&event, &window);
             }
         }
     }
