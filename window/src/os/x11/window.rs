@@ -2,11 +2,12 @@ use super::*;
 use crate::bitmaps::*;
 use crate::{
     Color, Dimensions, KeyEvent, MouseButtons, MouseCursor, MouseEvent, MouseEventKind, MousePress,
-    Operator, PaintContext, WindowCallbacks, WindowContext,
+    Operator, PaintContext, WindowCallbacks, WindowOps, WindowOpsMut,
 };
 use failure::Fallible;
 use std::collections::VecDeque;
 use std::convert::TryInto;
+use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -57,9 +58,9 @@ impl Rect {
     }
 }
 
-struct WindowInner {
+pub(crate) struct WindowInner {
     window_id: xcb::xproto::Window,
-    conn: Arc<Connection>,
+    conn: Rc<Connection>,
     callbacks: Box<WindowCallbacks>,
     window_context: Context,
     width: u16,
@@ -135,7 +136,7 @@ impl<'a> PaintContext for X11GraphicsContext<'a> {
 }
 
 impl WindowInner {
-    fn paint(&mut self) -> Fallible<()> {
+    pub fn paint(&mut self) -> Fallible<()> {
         let window_dimensions = Rect {
             x: 0,
             y: 0,
@@ -243,20 +244,9 @@ impl WindowInner {
         self.expose.push_back(expose);
     }
 
-    fn apply_context(&mut self, mut ctx: WindowContext) -> Fallible<()> {
-        if let Some(cursor) = ctx.cursor.take() {
-            self.set_cursor(cursor)?;
-        }
-        if ctx.invalidate {
-            self.paint_all = true;
-        }
-        Ok(())
-    }
-
     fn do_mouse_event(&mut self, event: &MouseEvent) -> Fallible<()> {
-        let mut ctx = WindowContext::default();
-        self.callbacks.mouse_event(&event, &mut ctx);
-        self.apply_context(ctx)?;
+        self.callbacks
+            .mouse_event(&event, &Window::from_id(self.window_id));
         Ok(())
     }
 
@@ -299,7 +289,7 @@ impl WindowInner {
         Ok(())
     }
 
-    fn dispatch_event(&mut self, event: &xcb::GenericEvent) -> Fallible<()> {
+    pub fn dispatch_event(&mut self, event: &xcb::GenericEvent) -> Fallible<()> {
         let r = event.response_type() & 0x7f;
         match r {
             xcb::EXPOSE => {
@@ -325,9 +315,8 @@ impl WindowInner {
                         repeat_count: 1,
                         key_is_down: r == xcb::KEY_PRESS,
                     };
-                    let mut ctx = WindowContext::default();
-                    self.callbacks.key_event(&key, &mut ctx);
-                    self.apply_context(ctx)?;
+                    self.callbacks
+                        .key_event(&key, &Window::from_id(self.window_id));
                 }
             }
 
@@ -403,12 +392,14 @@ impl WindowInner {
 }
 
 /// A Window!
-#[derive(Clone)]
-pub struct Window {
-    window: Arc<Mutex<WindowInner>>,
-}
+#[derive(Debug, Clone)]
+pub struct Window(xcb::xproto::Window);
 
 impl Window {
+    pub(crate) fn from_id(id: xcb::xproto::Window) -> Self {
+        Self(id)
+    }
+
     /// Create a new window on the specified screen with the specified
     /// dimensions
     pub fn new_window(
@@ -469,7 +460,7 @@ impl Window {
 
             Arc::new(Mutex::new(WindowInner {
                 window_id,
-                conn: Arc::clone(&conn),
+                conn: Rc::clone(&conn),
                 callbacks: callbacks,
                 window_context,
                 width: width.try_into()?,
@@ -491,39 +482,60 @@ impl Window {
             &[conn.atom_delete],
         );
 
-        let window = Window { window };
+        let window_handle = Window::from_id(window_id);
+
+        window.lock().unwrap().callbacks.created(&window_handle);
 
         conn.windows.borrow_mut().insert(window_id, window.clone());
 
-        window.set_title(name);
-        window.show();
+        window_handle.set_title(name);
+        window_handle.show();
 
-        Ok(window)
-    }
-
-    /// Change the title for the window manager
-    pub fn set_title(&self, title: &str) {
-        let window = self.window.lock().unwrap();
-        xcb_util::icccm::set_wm_name(window.conn.conn(), window.window_id, title);
-    }
-
-    /// Display the window
-    pub fn show(&self) {
-        let window = self.window.lock().unwrap();
-        xcb::map_window(window.conn.conn(), window.window_id);
-    }
-
-    pub fn dispatch_event(&self, event: &xcb::GenericEvent) -> Fallible<()> {
-        self.window.lock().unwrap().dispatch_event(event)
-    }
-
-    pub(crate) fn paint_if_needed(&self) -> Fallible<()> {
-        self.window.lock().unwrap().paint()
+        Ok(window_handle)
     }
 }
 
 impl Drawable for Window {
     fn as_drawable(&self) -> xcb::xproto::Drawable {
-        self.window.lock().unwrap().window_id
+        self.0
+    }
+}
+
+impl WindowOpsMut for WindowInner {
+    fn hide(&mut self) {}
+    fn show(&mut self) {
+        xcb::map_window(self.conn.conn(), self.window_id);
+    }
+    fn set_cursor(&mut self, cursor: Option<MouseCursor>) {
+        WindowInner::set_cursor(self, cursor).unwrap();
+    }
+    fn invalidate(&mut self) {
+        self.paint_all = true;
+    }
+
+    /// Change the title for the window manager
+    fn set_title(&mut self, title: &str) {
+        xcb_util::icccm::set_wm_name(self.conn.conn(), self.window_id, title);
+    }
+}
+
+impl WindowOps for Window {
+    fn hide(&self) {
+        Connection::with_window_inner(self.0, |inner| inner.hide());
+    }
+    fn show(&self) {
+        Connection::with_window_inner(self.0, |inner| inner.show());
+    }
+    fn set_cursor(&self, cursor: Option<MouseCursor>) {
+        Connection::with_window_inner(self.0, move |inner| {
+            let _ = inner.set_cursor(cursor);
+        });
+    }
+    fn invalidate(&self) {
+        Connection::with_window_inner(self.0, |inner| inner.invalidate());
+    }
+    fn set_title(&self, title: &str) {
+        let title = title.to_owned();
+        Connection::with_window_inner(self.0, move |inner| inner.set_title(&title));
     }
 }

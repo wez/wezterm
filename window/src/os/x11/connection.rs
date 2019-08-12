@@ -1,5 +1,5 @@
 use super::keyboard::Keyboard;
-use crate::Window;
+use crate::WindowInner;
 use failure::Fallible;
 use filedescriptor::{FileDescriptor, Pipe};
 use mio::unix::EventedFd;
@@ -10,41 +10,45 @@ use std::collections::HashMap;
 use std::collections::VecDeque;
 use std::io::{Read, Write};
 use std::os::unix::io::AsRawFd;
+use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use xcb_util::ffi::keysyms::{xcb_key_symbols_alloc, xcb_key_symbols_free, xcb_key_symbols_t};
 
 lazy_static::lazy_static! {
-    static ref SPAWN_QUEUE: Arc<Mutex<SpawnQueue>> = Arc::new(Mutex::new(SpawnQueue::new().expect("failed to create SpawnQueue")));
+    static ref SPAWN_QUEUE: Arc<SpawnQueue> = Arc::new(SpawnQueue::new().expect("failed to create SpawnQueue"));
+}
+thread_local! {
+    static CONN: RefCell<Option<Rc<Connection>>> = RefCell::new(None);
 }
 
 struct SpawnQueue {
-    spawned_funcs: VecDeque<SpawnFunc>,
-    write: FileDescriptor,
-    read: FileDescriptor,
+    spawned_funcs: Mutex<VecDeque<SpawnFunc>>,
+    write: Mutex<FileDescriptor>,
+    read: Mutex<FileDescriptor>,
 }
 
 impl SpawnQueue {
     fn new() -> Fallible<Self> {
         let pipe = Pipe::new()?;
         Ok(Self {
-            spawned_funcs: VecDeque::new(),
-            write: pipe.write,
-            read: pipe.read,
+            spawned_funcs: Mutex::new(VecDeque::new()),
+            write: Mutex::new(pipe.write),
+            read: Mutex::new(pipe.read),
         })
     }
 
-    fn spawn(&mut self, f: SpawnFunc) {
-        self.spawned_funcs.push_back(f);
-        self.write.write(b"x").ok();
+    fn spawn(&self, f: SpawnFunc) {
+        self.spawned_funcs.lock().unwrap().push_back(f);
+        self.write.lock().unwrap().write(b"x").ok();
     }
 
-    fn run(&mut self) {
-        while let Some(func) = self.spawned_funcs.pop_front() {
+    fn run(&self) {
+        while let Some(func) = self.spawned_funcs.lock().unwrap().pop_front() {
             func();
 
             let mut byte = [0u8];
-            self.read.read(&mut byte).ok();
+            self.read.lock().unwrap().read(&mut byte).ok();
         }
     }
 }
@@ -57,7 +61,7 @@ impl Evented for SpawnQueue {
         interest: Ready,
         opts: PollOpt,
     ) -> std::io::Result<()> {
-        EventedFd(&self.read.as_raw_fd()).register(poll, token, interest, opts)
+        EventedFd(&self.read.lock().unwrap().as_raw_fd()).register(poll, token, interest, opts)
     }
 
     fn reregister(
@@ -67,11 +71,11 @@ impl Evented for SpawnQueue {
         interest: Ready,
         opts: PollOpt,
     ) -> std::io::Result<()> {
-        EventedFd(&self.read.as_raw_fd()).reregister(poll, token, interest, opts)
+        EventedFd(&self.read.lock().unwrap().as_raw_fd()).reregister(poll, token, interest, opts)
     }
 
     fn deregister(&self, poll: &Poll) -> std::io::Result<()> {
-        EventedFd(&self.read.as_raw_fd()).deregister(poll)
+        EventedFd(&self.read.lock().unwrap().as_raw_fd()).deregister(poll)
     }
 }
 
@@ -89,7 +93,7 @@ pub struct Connection {
     pub atom_targets: xcb::Atom,
     pub atom_clipboard: xcb::Atom,
     keysyms: *mut xcb_key_symbols_t,
-    pub(crate) windows: RefCell<HashMap<xcb::xproto::Window, Window>>,
+    pub(crate) windows: RefCell<HashMap<xcb::xproto::Window, Arc<Mutex<WindowInner>>>>,
     should_terminate: RefCell<bool>,
     pub(crate) shm_available: bool,
 }
@@ -132,10 +136,6 @@ impl Evented for Connection {
 extern "C" {
     fn XGetXCBConnection(display: *mut x11::xlib::Display) -> *mut xcb::ffi::xcb_connection_t;
     fn XSetEventQueueOwner(display: *mut x11::xlib::Display, owner: i32);
-}
-
-thread_local! {
-    static CONN: RefCell<Option<Arc<Connection>>> = RefCell::new(None);
 }
 
 fn window_id_from_event(event: &xcb::GenericEvent) -> Option<xcb::xproto::Window> {
@@ -205,11 +205,11 @@ fn server_supports_shm() -> bool {
 }
 
 impl Connection {
-    pub fn get() -> Option<Arc<Self>> {
+    pub fn get() -> Option<Rc<Self>> {
         let mut res = None;
         CONN.with(|m| {
             if let Some(mux) = &*m.borrow() {
-                res = Some(Arc::clone(mux));
+                res = Some(Rc::clone(mux));
             }
         });
         res
@@ -231,7 +231,7 @@ impl Connection {
         let mut events = Events::with_capacity(8);
         poll.register(self, tok_xcb, Ready::readable(), PollOpt::level())?;
         poll.register(
-            &*SPAWN_QUEUE.lock().unwrap(),
+            &*SPAWN_QUEUE,
             tok_spawn,
             Ready::readable(),
             PollOpt::level(),
@@ -265,7 +265,7 @@ impl Connection {
                         if t == tok_xcb {
                             self.process_queued_xcb()?;
                         } else if t == tok_spawn {
-                            SPAWN_QUEUE.lock().unwrap().run();
+                            SPAWN_QUEUE.run();
                         } else {
                         }
                     }
@@ -322,8 +322,8 @@ impl Connection {
         Ok(())
     }
 
-    fn window_by_id(&self, window_id: xcb::xproto::Window) -> Option<Window> {
-        self.windows.borrow().get(&window_id).cloned()
+    fn window_by_id(&self, window_id: xcb::xproto::Window) -> Option<Arc<Mutex<WindowInner>>> {
+        self.windows.borrow().get(&window_id).map(Arc::clone)
     }
 
     fn process_window_event(
@@ -332,12 +332,13 @@ impl Connection {
         event: &xcb::GenericEvent,
     ) -> Fallible<()> {
         if let Some(window) = self.window_by_id(window_id) {
-            window.dispatch_event(event)?;
+            let mut inner = window.lock().unwrap();
+            inner.dispatch_event(event)?;
         }
         Ok(())
     }
 
-    pub fn init() -> Fallible<Arc<Connection>> {
+    pub fn init() -> Fallible<Rc<Connection>> {
         let display = unsafe { x11::xlib::XOpenDisplay(std::ptr::null()) };
         if display.is_null() {
             failure::bail!("failed to open display");
@@ -376,7 +377,7 @@ impl Connection {
         let cursor_font_name = "cursor";
         xcb::open_font_checked(&conn, cursor_font_id, cursor_font_name);
 
-        let conn = Arc::new(Connection {
+        let conn = Rc::new(Connection {
             display,
             conn,
             cursor_font_id,
@@ -395,7 +396,7 @@ impl Connection {
             shm_available,
         });
 
-        CONN.with(|m| *m.borrow_mut() = Some(Arc::clone(&conn)));
+        CONN.with(|m| *m.borrow_mut() = Some(Rc::clone(&conn)));
         Ok(conn)
     }
 
@@ -414,7 +415,7 @@ impl Connection {
     /// Run through all of the windows and cause them to paint if they need it.
     fn do_paint(&self) {
         for window in self.windows.borrow().values() {
-            window.paint_if_needed().unwrap();
+            window.lock().unwrap().paint().unwrap();
         }
         self.conn.flush();
     }
@@ -422,12 +423,24 @@ impl Connection {
     pub fn executor() -> impl BasicExecutor {
         SpawnQueueExecutor {}
     }
+
+    pub(crate) fn with_window_inner<F: FnMut(&mut WindowInner) + Send + 'static>(
+        window: xcb::xproto::Window,
+        mut f: F,
+    ) {
+        SpawnQueueExecutor {}.execute(Box::new(move || {
+            if let Some(handle) = Connection::get().unwrap().window_by_id(window) {
+                let mut inner = handle.lock().unwrap();
+                f(&mut inner);
+            }
+        }));
+    }
 }
 
 struct SpawnQueueExecutor;
 impl BasicExecutor for SpawnQueueExecutor {
     fn execute(&self, f: SpawnFunc) {
-        SPAWN_QUEUE.lock().unwrap().spawn(f);
+        SPAWN_QUEUE.spawn(f);
     }
 }
 

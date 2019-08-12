@@ -59,13 +59,13 @@ impl WindowCallbacks for MyWindow {
         eprintln!("resize {:?}", dims);
     }
 
-    fn key_event(&mut self, key: &KeyEvent, ctx: &mut WindowContext) -> bool {
+    fn key_event(&mut self, key: &KeyEvent, ctx: &dyn WindowOps) -> bool {
         eprintln!("{:?}", key);
         ctx.set_cursor(Some(MouseCursor::Text));
         false
     }
 
-    fn mouse_event(&mut self, event: &MouseEvent, ctx: &mut WindowContext) {
+    fn mouse_event(&mut self, event: &MouseEvent, ctx: &dyn WindowOps) {
         eprintln!("{:?}", event);
         self.cursor_pos = (event.x, event.y);
         ctx.invalidate();

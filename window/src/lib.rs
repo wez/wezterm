@@ -123,34 +123,51 @@ pub trait WindowCallbacks {
     /// If your window didn't handle the event, you must return false.
     /// This is particularly important for eg: ALT keys on windows,
     /// otherwise standard key assignments may not function in your window.
-    fn key_event(&mut self, key: &KeyEvent, context: &mut WindowContext) -> bool {
+    fn key_event(&mut self, key: &KeyEvent, context: &dyn WindowOps) -> bool {
         false
     }
 
-    fn mouse_event(&mut self, event: &MouseEvent, context: &mut WindowContext) {
+    fn mouse_event(&mut self, event: &MouseEvent, context: &dyn WindowOps) {
         context.set_cursor(Some(MouseCursor::Arrow));
     }
+
+    /// Called when the window is created and allows the embedding
+    /// app to reference the window and operate upon it.
+    fn created(&mut self, window: &Window) {}
 }
 
-/// The WindowContext is used to buffer up requests to operate on the window
-/// that might arise during processing of events within that window.
-/// The requests will be dispatched shortly after returning from the
-/// WindowCallbacks function(s).
-#[derive(Default)]
-pub struct WindowContext {
-    cursor: Option<Option<MouseCursor>>,
-    invalidate: bool,
-}
+pub trait WindowOps {
+    /// Show a hidden window
+    fn show(&self);
 
-impl WindowContext {
+    /// Hide a visible window
+    fn hide(&self);
+
     /// Change the cursor
-    pub fn set_cursor(&mut self, cursor: Option<MouseCursor>) {
-        self.cursor = Some(cursor);
-    }
+    fn set_cursor(&self, cursor: Option<MouseCursor>);
 
     /// Invalidate the window so that the entire client area will
     /// be repainted shortly
-    pub fn invalidate(&mut self) {
-        self.invalidate = true;
-    }
+    fn invalidate(&self);
+
+    /// Change the titlebar text for the window
+    fn set_title(&self, title: &str);
+}
+
+pub trait WindowOpsMut {
+    /// Show a hidden window
+    fn show(&mut self);
+
+    /// Hide a visible window
+    fn hide(&mut self);
+
+    /// Change the cursor
+    fn set_cursor(&mut self, cursor: Option<MouseCursor>);
+
+    /// Invalidate the window so that the entire client area will
+    /// be repainted shortly
+    fn invalidate(&mut self);
+
+    /// Change the titlebar text for the window
+    fn set_title(&mut self, title: &str);
 }

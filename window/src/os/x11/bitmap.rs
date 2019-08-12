@@ -1,7 +1,7 @@
 use super::*;
 use crate::bitmaps::*;
 use failure::{bail, Fallible};
-use std::sync::Arc;
+use std::rc::Rc;
 
 /// The X protocol allows referencing a number of drawable
 /// objects.  This trait marks those objects here in code.
@@ -17,18 +17,18 @@ impl Drawable for xcb::xproto::Window {
 
 pub struct Context {
     gc_id: xcb::xproto::Gcontext,
-    conn: Arc<Connection>,
+    conn: Rc<Connection>,
     drawable: xcb::xproto::Drawable,
 }
 
 impl Context {
-    pub fn new(conn: &Arc<Connection>, d: &Drawable) -> Context {
+    pub fn new(conn: &Rc<Connection>, d: &Drawable) -> Context {
         let gc_id = conn.conn().generate_id();
         let drawable = d.as_drawable();
         xcb::create_gc(conn.conn(), gc_id, drawable, &[]);
         Context {
             gc_id,
-            conn: Arc::clone(conn),
+            conn: Rc::clone(conn),
             drawable,
         }
     }
@@ -156,14 +156,14 @@ pub struct ShmImage {
     data: ShmData,
     seg_id: xcb::shm::Seg,
     draw_id: u32,
-    conn: Arc<Connection>,
+    conn: Rc<Connection>,
     width: usize,
     height: usize,
 }
 
 impl ShmImage {
     pub fn new(
-        conn: &Arc<Connection>,
+        conn: &Rc<Connection>,
         drawable: xcb::xproto::Drawable,
         width: usize,
         height: usize,
@@ -198,7 +198,7 @@ impl ShmImage {
             data,
             seg_id,
             draw_id,
-            conn: Arc::clone(conn),
+            conn: Rc::clone(conn),
             width,
             height,
         })
@@ -262,7 +262,7 @@ impl BitmapImage for BufferImage {
 
 impl BufferImage {
     pub fn new(
-        conn: &Arc<Connection>,
+        conn: &Rc<Connection>,
         drawable: xcb::xproto::Drawable,
         width: usize,
         height: usize,

@@ -4,27 +4,33 @@ use crate::bitmaps::*;
 use crate::color::Color;
 use crate::{
     Dimensions, KeyCode, KeyEvent, Modifiers, MouseButtons, MouseCursor, MouseEvent,
-    MouseEventKind, MousePress, Operator, PaintContext, WindowCallbacks, WindowContext,
+    MouseEventKind, MousePress, Operator, PaintContext, WindowCallbacks, WindowOps, WindowOpsMut,
 };
 use failure::Fallible;
+use promise::Future;
+use std::cell::RefCell;
 use std::io::Error as IoError;
 use std::ptr::{null, null_mut};
-use std::sync::{Arc, Mutex};
+use std::rc::Rc;
 use winapi::shared::minwindef::*;
 use winapi::shared::windef::*;
 use winapi::um::libloaderapi::GetModuleHandleW;
 use winapi::um::wingdi::*;
 use winapi::um::winuser::*;
 
-struct WindowInner {
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub(crate) struct HWindow(HWND);
+unsafe impl Send for HWindow {}
+unsafe impl Sync for HWindow {}
+
+pub(crate) struct WindowInner {
     /// Non-owning reference to the window handle
-    hwnd: HWND,
+    hwnd: HWindow,
     callbacks: Box<WindowCallbacks>,
 }
 
-pub struct Window {
-    inner: Arc<Mutex<WindowInner>>,
-}
+#[derive(Debug, Clone)]
+pub struct Window(HWindow);
 
 fn rect_width(r: &RECT) -> i32 {
     r.right - r.left
@@ -46,43 +52,47 @@ fn adjust_client_to_window_dimensions(width: usize, height: usize) -> (i32, i32)
     (rect_width(&rect), rect_height(&rect))
 }
 
-fn arc_to_pointer(arc: &Arc<Mutex<WindowInner>>) -> *const Mutex<WindowInner> {
-    let cloned = Arc::clone(arc);
-    Arc::into_raw(cloned)
+fn rc_to_pointer(arc: &Rc<RefCell<WindowInner>>) -> *const RefCell<WindowInner> {
+    let cloned = Rc::clone(arc);
+    Rc::into_raw(cloned)
 }
 
-fn arc_from_pointer(lparam: LPVOID) -> Arc<Mutex<WindowInner>> {
-    // Turn it into an arc
-    let arc = unsafe { Arc::from_raw(std::mem::transmute(lparam)) };
+fn rc_from_pointer(lparam: LPVOID) -> Rc<RefCell<WindowInner>> {
+    // Turn it into an Rc
+    let arc = unsafe { Rc::from_raw(std::mem::transmute(lparam)) };
     // Add a ref for the caller
-    let cloned = Arc::clone(&arc);
+    let cloned = Rc::clone(&arc);
 
     // We must not drop this ref though; turn it back into a raw pointer!
-    Arc::into_raw(arc);
+    Rc::into_raw(arc);
 
     cloned
 }
 
-fn arc_from_hwnd(hwnd: HWND) -> Option<Arc<Mutex<WindowInner>>> {
+fn rc_from_hwnd(hwnd: HWND) -> Option<Rc<RefCell<WindowInner>>> {
     let raw = unsafe { GetWindowLongPtrW(hwnd, GWLP_USERDATA) as LPVOID };
     if raw.is_null() {
         None
     } else {
-        Some(arc_from_pointer(raw))
+        Some(rc_from_pointer(raw))
     }
 }
 
-fn take_arc_from_pointer(lparam: LPVOID) -> Arc<Mutex<WindowInner>> {
-    unsafe { Arc::from_raw(std::mem::transmute(lparam)) }
+fn take_rc_from_pointer(lparam: LPVOID) -> Rc<RefCell<WindowInner>> {
+    unsafe { Rc::from_raw(std::mem::transmute(lparam)) }
 }
 
 impl Window {
+    fn from_hwnd(hwnd: HWND) -> Self {
+        Self(HWindow(hwnd))
+    }
+
     fn create_window(
         class_name: &str,
         name: &str,
         width: usize,
         height: usize,
-        lparam: *const Mutex<WindowInner>,
+        lparam: *const RefCell<WindowInner>,
     ) -> Fallible<HWND> {
         // Jamming this in here; it should really live in the application manifest,
         // but having it here means that we don't have to create a manifest
@@ -148,33 +158,95 @@ impl Window {
         height: usize,
         callbacks: Box<WindowCallbacks>,
     ) -> Fallible<Window> {
-        let inner = Arc::new(Mutex::new(WindowInner {
-            hwnd: null_mut(),
+        let inner = Rc::new(RefCell::new(WindowInner {
+            hwnd: HWindow(null_mut()),
             callbacks,
         }));
 
         // Careful: `raw` owns a ref to inner, but there is no Drop impl
-        let raw = arc_to_pointer(&inner);
+        let raw = rc_to_pointer(&inner);
 
         let hwnd = match Self::create_window(class_name, name, width, height, raw) {
-            Ok(hwnd) => hwnd,
+            Ok(hwnd) => HWindow(hwnd),
             Err(err) => {
                 // Ensure that we drop the extra ref to raw before we return
-                drop(unsafe { Arc::from_raw(raw) });
+                drop(unsafe { Rc::from_raw(raw) });
                 return Err(err);
             }
         };
 
-        enable_dark_mode(hwnd);
+        enable_dark_mode(hwnd.0);
 
-        Ok(Window { inner })
+        Connection::get()
+            .expect("Connection::init was not called")
+            .windows
+            .lock()
+            .unwrap()
+            .insert(hwnd.clone(), Rc::clone(&inner));
+
+        let window = Window(hwnd);
+        inner.borrow_mut().callbacks.created(&window);
+
+        Ok(window)
+    }
+}
+
+fn schedule_show_window(hwnd: HWindow, show: bool) {
+    // ShowWindow can call to the window proc and may attempt
+    // to lock inner, so we avoid locking it ourselves here
+    Future::with_executor(Connection::executor(), move || {
+        unsafe {
+            ShowWindow(hwnd.0, if show { SW_NORMAL } else { SW_HIDE });
+        }
+        Ok(())
+    });
+}
+
+impl WindowOpsMut for WindowInner {
+    fn show(&mut self) {
+        schedule_show_window(self.hwnd, true);
     }
 
-    pub fn show(&self) {
-        // ShowWindow can call to the window proc and may attempt
-        // to lock inner, so take care here!
-        let hwnd = self.inner.lock().unwrap().hwnd;
-        unsafe { ShowWindow(hwnd, SW_NORMAL) };
+    fn hide(&mut self) {
+        schedule_show_window(self.hwnd, false);
+    }
+
+    fn set_cursor(&mut self, cursor: Option<MouseCursor>) {
+        apply_mouse_cursor(cursor);
+    }
+
+    fn invalidate(&mut self) {
+        unsafe {
+            InvalidateRect(self.hwnd.0, null(), 1);
+        }
+    }
+
+    fn set_title(&mut self, title: &str) {
+        let title = wide_string(title);
+        unsafe {
+            SetWindowTextW(self.hwnd.0, title.as_ptr());
+        }
+    }
+}
+
+impl WindowOps for Window {
+    fn show(&self) {
+        schedule_show_window(self.0, true);
+    }
+
+    fn hide(&self) {
+        schedule_show_window(self.0, false);
+    }
+
+    fn set_cursor(&self, cursor: Option<MouseCursor>) {
+        Connection::with_window_inner(self.0, move |inner| inner.set_cursor(cursor));
+    }
+    fn invalidate(&self) {
+        Connection::with_window_inner(self.0, |inner| inner.invalidate());
+    }
+    fn set_title(&self, title: &str) {
+        let title = title.to_owned();
+        Connection::with_window_inner(self.0, move |inner| inner.set_title(&title));
     }
 }
 
@@ -183,9 +255,9 @@ impl Window {
 /// WindowInner.hwnd -> hwnd
 unsafe fn wm_nccreate(hwnd: HWND, _msg: UINT, _wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
     let create: &CREATESTRUCTW = &*(lparam as *const CREATESTRUCTW);
-    let inner = arc_from_pointer(create.lpCreateParams);
+    let inner = rc_from_pointer(create.lpCreateParams);
     SetWindowLongPtrW(hwnd, GWLP_USERDATA, create.lpCreateParams as _);
-    inner.lock().unwrap().hwnd = hwnd;
+    inner.borrow_mut().hwnd = HWindow(hwnd);
 
     None
 }
@@ -201,10 +273,10 @@ unsafe fn wm_ncdestroy(
 ) -> Option<LRESULT> {
     let raw = GetWindowLongPtrW(hwnd, GWLP_USERDATA) as LPVOID;
     if !raw.is_null() {
-        let inner = take_arc_from_pointer(raw);
-        let mut inner = inner.lock().unwrap();
+        let inner = take_rc_from_pointer(raw);
+        let mut inner = inner.borrow_mut();
         inner.callbacks.destroy();
-        inner.hwnd = null_mut();
+        inner.hwnd = HWindow(null_mut());
         SetWindowLongPtrW(hwnd, GWLP_USERDATA, 0);
     }
 
@@ -299,8 +371,8 @@ impl PaintContext for GdiGraphicsContext {
 }
 
 unsafe fn wm_size(hwnd: HWND, _msg: UINT, _wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
-    if let Some(inner) = arc_from_hwnd(hwnd) {
-        let mut inner = inner.lock().unwrap();
+    if let Some(inner) = rc_from_hwnd(hwnd) {
+        let mut inner = inner.borrow_mut();
         let pixel_width = LOWORD(lparam as DWORD) as usize;
         let pixel_height = HIWORD(lparam as DWORD) as usize;
         inner.callbacks.resize(Dimensions {
@@ -313,8 +385,8 @@ unsafe fn wm_size(hwnd: HWND, _msg: UINT, _wparam: WPARAM, lparam: LPARAM) -> Op
 }
 
 unsafe fn wm_paint(hwnd: HWND, _msg: UINT, _wparam: WPARAM, _lparam: LPARAM) -> Option<LRESULT> {
-    if let Some(inner) = arc_from_hwnd(hwnd) {
-        let mut inner = inner.lock().unwrap();
+    if let Some(inner) = rc_from_hwnd(hwnd) {
+        let mut inner = inner.borrow_mut();
 
         let mut ps = PAINTSTRUCT {
             fErase: 0,
@@ -417,20 +489,8 @@ fn apply_mouse_cursor(cursor: Option<MouseCursor>) {
     }
 }
 
-fn apply_context(inner: &mut WindowInner, mut context: WindowContext) {
-    if let Some(cursor) = context.cursor.take() {
-        apply_mouse_cursor(cursor);
-    }
-
-    if context.invalidate {
-        unsafe {
-            InvalidateRect(inner.hwnd, null(), 1);
-        }
-    }
-}
-
 unsafe fn mouse_button(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
-    if let Some(inner) = arc_from_hwnd(hwnd) {
+    if let Some(inner) = rc_from_hwnd(hwnd) {
         let (modifiers, mouse_buttons) = mods_and_buttons(wparam);
         let (x, y) = mouse_coords(lparam);
         let event = MouseEvent {
@@ -451,10 +511,10 @@ unsafe fn mouse_button(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) ->
             mouse_buttons,
             modifiers,
         };
-        let mut ctx = WindowContext::default();
-        let mut inner = inner.lock().unwrap();
-        inner.callbacks.mouse_event(&event, &mut ctx);
-        apply_context(&mut inner, ctx);
+        let mut inner = inner.borrow_mut();
+        inner
+            .callbacks
+            .mouse_event(&event, &Window::from_hwnd(hwnd));
         Some(0)
     } else {
         None
@@ -462,7 +522,7 @@ unsafe fn mouse_button(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) ->
 }
 
 unsafe fn mouse_move(hwnd: HWND, _msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
-    if let Some(inner) = arc_from_hwnd(hwnd) {
+    if let Some(inner) = rc_from_hwnd(hwnd) {
         let (modifiers, mouse_buttons) = mods_and_buttons(wparam);
         let (x, y) = mouse_coords(lparam);
         let event = MouseEvent {
@@ -473,10 +533,10 @@ unsafe fn mouse_move(hwnd: HWND, _msg: UINT, wparam: WPARAM, lparam: LPARAM) -> 
             modifiers,
         };
 
-        let mut ctx = WindowContext::default();
-        let mut inner = inner.lock().unwrap();
-        inner.callbacks.mouse_event(&event, &mut ctx);
-        apply_context(&mut inner, ctx);
+        let mut inner = inner.borrow_mut();
+        inner
+            .callbacks
+            .mouse_event(&event, &Window::from_hwnd(hwnd));
         Some(0)
     } else {
         None
@@ -484,7 +544,7 @@ unsafe fn mouse_move(hwnd: HWND, _msg: UINT, wparam: WPARAM, lparam: LPARAM) -> 
 }
 
 unsafe fn mouse_wheel(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
-    if let Some(inner) = arc_from_hwnd(hwnd) {
+    if let Some(inner) = rc_from_hwnd(hwnd) {
         let (modifiers, mouse_buttons) = mods_and_buttons(wparam);
         let (x, y) = mouse_coords(lparam);
         let position = ((wparam >> 16) & 0xffff) as i16 / WHEEL_DELTA;
@@ -499,10 +559,10 @@ unsafe fn mouse_wheel(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> 
             mouse_buttons,
             modifiers,
         };
-        let mut ctx = WindowContext::default();
-        let mut inner = inner.lock().unwrap();
-        inner.callbacks.mouse_event(&event, &mut ctx);
-        apply_context(&mut inner, ctx);
+        let mut inner = inner.borrow_mut();
+        inner
+            .callbacks
+            .mouse_event(&event, &Window::from_hwnd(hwnd));
         Some(0)
     } else {
         None
@@ -510,8 +570,8 @@ unsafe fn mouse_wheel(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> 
 }
 
 unsafe fn key(hwnd: HWND, _msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
-    if let Some(inner) = arc_from_hwnd(hwnd) {
-        let mut inner = inner.lock().unwrap();
+    if let Some(inner) = rc_from_hwnd(hwnd) {
+        let mut inner = inner.borrow_mut();
         let repeat = (lparam & 0xffff) as u16;
         let scan_code = ((lparam >> 16) & 0xff) as u8;
         let releasing = (lparam & (1 << 31)) != 0;
@@ -667,9 +727,7 @@ unsafe fn key(hwnd: HWND, _msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<
                 repeat_count: repeat,
                 key_is_down: !releasing,
             };
-            let mut ctx = WindowContext::default();
-            let handled = inner.callbacks.key_event(&key, &mut ctx);
-            apply_context(&mut inner, ctx);
+            let handled = inner.callbacks.key_event(&key, &Window::from_hwnd(hwnd));
 
             if handled {
                 return Some(0);
@@ -693,8 +751,8 @@ unsafe fn do_wnd_proc(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> 
             mouse_button(hwnd, msg, wparam, lparam)
         }
         WM_CLOSE => {
-            if let Some(inner) = arc_from_hwnd(hwnd) {
-                let mut inner = inner.lock().unwrap();
+            if let Some(inner) = rc_from_hwnd(hwnd) {
+                let mut inner = inner.borrow_mut();
                 if !inner.callbacks.can_close() {
                     // Don't let it close
                     return Some(0);

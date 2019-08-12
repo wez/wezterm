@@ -15,6 +15,7 @@ use std::sync::{Arc, Mutex};
 pub mod glium;
 pub mod guicommon;
 pub mod muxserver;
+pub mod software;
 #[cfg(all(unix, not(feature = "force-glutin"), not(target_os = "macos")))]
 pub mod xwindows;
 
@@ -24,6 +25,7 @@ pub enum FrontEndSelection {
     X11,
     MuxServer,
     Null,
+    Software,
 }
 
 impl Default for FrontEndSelection {
@@ -73,6 +75,7 @@ impl FrontEndSelection {
             FrontEndSelection::X11 => failure::bail!("X11 not compiled in"),
             FrontEndSelection::MuxServer => muxserver::MuxServerFrontEnd::try_new(mux),
             FrontEndSelection::Null => muxserver::MuxServerFrontEnd::new_null(mux),
+            FrontEndSelection::Software => software::SoftwareFrontEnd::try_new(mux),
         }?;
 
         EXECUTOR.lock().unwrap().replace(front_end.gui_executor());
@@ -83,7 +86,7 @@ impl FrontEndSelection {
 
     // TODO: find or build a proc macro for this
     pub fn variants() -> Vec<&'static str> {
-        vec!["Glutin", "X11", "MuxServer", "Null"]
+        vec!["Glutin", "X11", "MuxServer", "Null", "Software"]
     }
 }
 
@@ -95,6 +98,7 @@ impl std::str::FromStr for FrontEndSelection {
             "x11" => Ok(FrontEndSelection::X11),
             "muxserver" => Ok(FrontEndSelection::MuxServer),
             "null" => Ok(FrontEndSelection::Null),
+            "software" => Ok(FrontEndSelection::Software),
             _ => Err(format_err!(
                 "{} is not a valid FrontEndSelection variant, possible values are {:?}",
                 s,
