@@ -247,6 +247,19 @@ impl WindowView {
         Self::drop_inner(this);
     }
 
+    extern "C" fn did_resize(this: &mut Object, _sel: Sel, notification: id) {
+        let frame = unsafe { NSView::frame(this as *mut _) };
+        let width = frame.size.width;
+        let height = frame.size.height;
+        if let Some(this) = Self::get_this(this) {
+            this.inner.borrow_mut().callbacks.resize(Dimensions {
+                pixel_width: width as usize,
+                pixel_height: height as usize,
+                dpi: 96,
+            });
+        }
+    }
+
     extern "C" fn draw_rect(this: &mut Object, _sel: Sel, _dirty_rect: NSRect) {
         let frame = unsafe { NSView::frame(this as *mut _) };
         let width = frame.size.width;
@@ -338,6 +351,11 @@ impl WindowView {
             cls.add_method(
                 sel!(isFlipped),
                 Self::is_flipped as extern "C" fn(&Object, Sel) -> BOOL,
+            );
+
+            cls.add_method(
+                sel!(windowDidResize:),
+                Self::did_resize as extern "C" fn(&mut Object, Sel, id),
             );
         }
 
