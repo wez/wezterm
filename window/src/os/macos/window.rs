@@ -1,10 +1,14 @@
 use super::nsstring;
 use crate::bitmaps::Image;
 use crate::os::macos::bitmap::BitmapRef;
-use crate::{BitmapImage, Color, Dimensions, Operator, PaintContext, WindowCallbacks};
+use crate::{
+    BitmapImage, Color, Dimensions, Modifiers, MouseButtons, MouseEvent, MouseEventKind,
+    MousePress, Operator, PaintContext, WindowCallbacks,
+};
 use cocoa::appkit::{
-    NSApplicationActivateIgnoringOtherApps, NSBackingStoreBuffered, NSRunningApplication, NSView,
-    NSViewHeightSizable, NSViewWidthSizable, NSWindow, NSWindowStyleMask,
+    NSApplicationActivateIgnoringOtherApps, NSBackingStoreBuffered, NSEvent, NSEventModifierFlags,
+    NSRunningApplication, NSView, NSViewHeightSizable, NSViewWidthSizable, NSWindow,
+    NSWindowStyleMask,
 };
 use cocoa::base::*;
 use cocoa::foundation::{NSPoint, NSRect, NSSize};
@@ -173,6 +177,46 @@ impl<'a> PaintContext for MacGraphicsContext<'a> {
     }
 }
 
+fn decode_mouse_buttons(mask: u64) -> MouseButtons {
+    let mut buttons = MouseButtons::NONE;
+
+    if (mask & (1 << 0)) != 0 {
+        buttons |= MouseButtons::LEFT;
+    }
+    if (mask & (1 << 1)) != 0 {
+        buttons |= MouseButtons::RIGHT;
+    }
+    if (mask & (1 << 2)) != 0 {
+        buttons |= MouseButtons::MIDDLE;
+    }
+    if (mask & (1 << 3)) != 0 {
+        buttons |= MouseButtons::X1;
+    }
+    if (mask & (1 << 4)) != 0 {
+        buttons |= MouseButtons::X2;
+    }
+    buttons
+}
+
+fn key_modifiers(flags: NSEventModifierFlags) -> Modifiers {
+    let mut mods = Modifiers::NONE;
+
+    if flags.contains(NSEventModifierFlags::NSShiftKeyMask) {
+        mods |= Modifiers::SHIFT;
+    }
+    if flags.contains(NSEventModifierFlags::NSAlternateKeyMask) {
+        mods |= Modifiers::ALT;
+    }
+    if flags.contains(NSEventModifierFlags::NSControlKeyMask) {
+        mods |= Modifiers::CTRL;
+    }
+    if flags.contains(NSEventModifierFlags::NSCommandKeyMask) {
+        mods |= Modifiers::SUPER;
+    }
+
+    mods
+}
+
 impl WindowView {
     fn view_id(&self) -> id {
         let inner = self.inner.borrow_mut();
@@ -213,6 +257,10 @@ impl WindowView {
         }
     }
 
+    extern "C" fn accepts_first_responder(_this: &mut Object, _sel: Sel) -> BOOL {
+        YES
+    }
+
     extern "C" fn window_should_close(this: &mut Object, _sel: Sel, _id: id) -> BOOL {
         eprintln!("window_should_close");
 
@@ -245,6 +293,49 @@ impl WindowView {
 
         // Release and zero out the inner member
         Self::drop_inner(this);
+    }
+
+    fn mouse_common(this: &mut Object, nsevent: id, kind: MouseEventKind) {
+        let view = this as id;
+        let coords;
+        let mouse_buttons;
+        let modifiers;
+        unsafe {
+            coords = NSView::convertPoint_fromView_(view, nsevent.locationInWindow(), nil);
+            mouse_buttons = decode_mouse_buttons(NSEvent::pressedMouseButtons(nsevent));
+            modifiers = key_modifiers(nsevent.modifierFlags());
+        }
+        let event = MouseEvent {
+            kind,
+            x: coords.x.max(0.0) as u16,
+            y: coords.y.max(0.0) as u16,
+            mouse_buttons,
+            modifiers,
+        };
+
+        if let Some(myself) = Self::get_this(this) {
+            eprintln!("{:?}", event);
+            // myself.inner.borrow_mut().callbacks.mouse_event(&event, &window);
+        }
+    }
+
+    extern "C" fn mouse_up(this: &mut Object, _sel: Sel, nsevent: id) {
+        Self::mouse_common(this, nsevent, MouseEventKind::Release(MousePress::Left));
+    }
+
+    extern "C" fn mouse_down(this: &mut Object, _sel: Sel, nsevent: id) {
+        Self::mouse_common(this, nsevent, MouseEventKind::Press(MousePress::Left));
+    }
+    extern "C" fn right_mouse_up(this: &mut Object, _sel: Sel, nsevent: id) {
+        Self::mouse_common(this, nsevent, MouseEventKind::Release(MousePress::Right));
+    }
+
+    extern "C" fn right_mouse_down(this: &mut Object, _sel: Sel, nsevent: id) {
+        Self::mouse_common(this, nsevent, MouseEventKind::Press(MousePress::Right));
+    }
+
+    extern "C" fn mouse_moved_or_dragged(this: &mut Object, _sel: Sel, nsevent: id) {
+        Self::mouse_common(this, nsevent, MouseEventKind::Move);
     }
 
     extern "C" fn did_resize(this: &mut Object, _sel: Sel, notification: id) {
@@ -356,6 +447,40 @@ impl WindowView {
             cls.add_method(
                 sel!(windowDidResize:),
                 Self::did_resize as extern "C" fn(&mut Object, Sel, id),
+            );
+
+            cls.add_method(
+                sel!(mouseMoved:),
+                Self::mouse_moved_or_dragged as extern "C" fn(&mut Object, Sel, id),
+            );
+            cls.add_method(
+                sel!(mouseDragged:),
+                Self::mouse_moved_or_dragged as extern "C" fn(&mut Object, Sel, id),
+            );
+            cls.add_method(
+                sel!(rightMouseDragged:),
+                Self::mouse_moved_or_dragged as extern "C" fn(&mut Object, Sel, id),
+            );
+            cls.add_method(
+                sel!(mouseDown:),
+                Self::mouse_down as extern "C" fn(&mut Object, Sel, id),
+            );
+            cls.add_method(
+                sel!(mouseUp:),
+                Self::mouse_up as extern "C" fn(&mut Object, Sel, id),
+            );
+            cls.add_method(
+                sel!(rightMouseDown:),
+                Self::right_mouse_down as extern "C" fn(&mut Object, Sel, id),
+            );
+            cls.add_method(
+                sel!(rightMouseUp:),
+                Self::right_mouse_up as extern "C" fn(&mut Object, Sel, id),
+            );
+
+            cls.add_method(
+                sel!(acceptsFirstResponder),
+                Self::accepts_first_responder as extern "C" fn(&mut Object, Sel) -> BOOL,
             );
         }
 

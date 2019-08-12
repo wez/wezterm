@@ -97,9 +97,11 @@ bitflags! {
     #[derive(Default)]
     pub struct MouseButtons: u8 {
         const NONE = 0;
-        const LEFT = 1<<1;
-        const RIGHT = 1<<2;
-        const MIDDLE = 1<<3;
+        const LEFT = 1<<0;
+        const RIGHT = 1<<1;
+        const MIDDLE = 1<<2;
+        const X1 = 1<<3;
+        const X2 = 1<<4;
     }
 }
 
