@@ -137,7 +137,12 @@ impl WindowOpsMut for WindowInner {
             let () = msg_send![*self.view, setNeedsDisplay: YES];
         }
     }
-    fn set_title(&mut self, title: &str) {}
+    fn set_title(&mut self, title: &str) {
+        let title = nsstring(title);
+        unsafe {
+            NSWindow::setTitle_(*self.window, *title);
+        }
+    }
 }
 
 struct Inner {
