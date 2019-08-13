@@ -73,7 +73,8 @@ impl Window {
             window.setTitle_(*nsstring(&name));
             window.setAcceptsMouseMovedEvents_(YES);
 
-            let view = WindowView::alloc(&inner)?;
+            let buffer = Image::new(width, height);
+            let view = WindowView::alloc(&inner, buffer)?;
             view.initWithFrame_(rect);
             view.setAutoresizingMask_(NSViewHeightSizable | NSViewWidthSizable);
 
@@ -175,6 +176,7 @@ const CLS_NAME: &str = "WezTermWindowView";
 
 struct WindowView {
     inner: Rc<RefCell<Inner>>,
+    buffer: RefCell<Image>,
 }
 
 impl Drop for WindowView {
@@ -468,27 +470,35 @@ impl WindowView {
         let frame = unsafe { NSView::frame(this as *mut _) };
         let width = frame.size.width;
         let height = frame.size.height;
-
-        let mut im = Image::new(width as usize, height as usize);
-
         if let Some(this) = Self::get_this(this) {
-            let mut ctx = MacGraphicsContext { buffer: &mut im };
-            this.inner.borrow_mut().callbacks.paint(&mut ctx);
-        }
+            let mut inner = this.inner.borrow_mut();
+            let mut buffer = this.buffer.borrow_mut();
 
-        let cg_image = BitmapRef::with_image(&im);
-
-        fn nsimage_from_cgimage(cg: &CGImageRef, size: NSSize) -> StrongPtr {
-            unsafe {
-                let ns_image: id = msg_send![class!(NSImage), alloc];
-                StrongPtr::new(msg_send![ns_image, initWithCGImage: cg size:size])
+            let (pixel_width, pixel_height) = buffer.image_dimensions();
+            if width as usize != pixel_width || height as usize != pixel_height {
+                *buffer = Image::new(width as usize, height as usize);
             }
-        }
 
-        let ns_image = nsimage_from_cgimage(cg_image.as_ref(), NSSize::new(0., 0.));
+            let mut ctx = MacGraphicsContext {
+                buffer: &mut *buffer,
+            };
 
-        unsafe {
-            let () = msg_send![*ns_image, drawInRect: frame];
+            inner.callbacks.paint(&mut ctx);
+
+            let cg_image = BitmapRef::with_image(&mut *buffer);
+
+            fn nsimage_from_cgimage(cg: &CGImageRef, size: NSSize) -> StrongPtr {
+                unsafe {
+                    let ns_image: id = msg_send![class!(NSImage), alloc];
+                    StrongPtr::new(msg_send![ns_image, initWithCGImage: cg size:size])
+                }
+            }
+
+            let ns_image = nsimage_from_cgimage(cg_image.as_ref(), NSSize::new(0., 0.));
+
+            unsafe {
+                let () = msg_send![*ns_image, drawInRect: frame];
+            }
         }
     }
 
@@ -503,7 +513,7 @@ impl WindowView {
         }
     }
 
-    fn alloc(inner: &Rc<RefCell<Inner>>) -> Fallible<StrongPtr> {
+    fn alloc(inner: &Rc<RefCell<Inner>>, buffer: Image) -> Fallible<StrongPtr> {
         let cls = Self::get_class();
 
         let view_id: StrongPtr = unsafe { StrongPtr::new(msg_send![cls, new]) };
@@ -512,6 +522,7 @@ impl WindowView {
 
         let view = Box::into_raw(Box::new(Self {
             inner: Rc::clone(&inner),
+            buffer: RefCell::new(buffer),
         }));
 
         unsafe {
