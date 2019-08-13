@@ -131,7 +131,21 @@ impl WindowOpsMut for WindowInner {
     }
 
     fn hide(&mut self) {}
-    fn set_cursor(&mut self, cursor: Option<MouseCursor>) {}
+
+    fn set_cursor(&mut self, cursor: Option<MouseCursor>) {
+        unsafe {
+            let ns_cursor_cls = class!(NSCursor);
+            if let Some(cursor) = cursor {
+                let instance: id = match cursor {
+                    MouseCursor::Arrow => msg_send![ns_cursor_cls, arrowCursor],
+                    MouseCursor::Text => msg_send![ns_cursor_cls, IBeamCursor],
+                    MouseCursor::Hand => msg_send![ns_cursor_cls, pointingHandCursor],
+                };
+                let () = msg_send![instance, set];
+            }
+        }
+    }
+
     fn invalidate(&mut self) {
         unsafe {
             let () = msg_send![*self.view, setNeedsDisplay: YES];
