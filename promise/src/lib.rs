@@ -1,6 +1,8 @@
 use failure::{Error, Fallible};
 use failure_derive::*;
+use std::pin::Pin;
 use std::sync::{Arc, Condvar, Mutex};
+use std::task::{Context, Poll};
 
 type NextFunc<T> = Box<dyn FnOnce(Fallible<T>) + Send>;
 pub type SpawnFunc = Box<dyn FnOnce() + Send>;
@@ -59,6 +61,7 @@ enum PromiseState<T> {
 enum FutureState<T> {
     Waiting(Arc<Core<T>>),
     Ready(Result<T, Error>),
+    Resolved,
 }
 
 struct CoreData<T> {
@@ -208,6 +211,7 @@ impl<T: Send + 'static> Future<T> {
                     locked.propagate = Some(f);
                 }
             }
+            FutureState::Resolved => panic!("cannot chain a Resolved future"),
         }
     }
 
@@ -224,6 +228,7 @@ impl<T: Send + 'static> Future<T> {
                 }
             }
             FutureState::Ready(result) => result,
+            FutureState::Resolved => failure::bail!("Future is already Resolved"),
         }
     }
 
@@ -233,7 +238,7 @@ impl<T: Send + 'static> Future<T> {
                 let locked = core.data.lock().unwrap();
                 locked.result.is_some()
             }
-            FutureState::Ready(_) => true,
+            FutureState::Ready(_) | FutureState::Resolved => true,
         }
     }
 
@@ -316,6 +321,32 @@ impl<T: Send + 'static> Future<T> {
             future.chain(promise_chain);
         }));
         future
+    }
+}
+
+impl<T: Send + 'static> std::future::Future for Future<T> {
+    type Output = Result<T, Error>;
+
+    fn poll(self: Pin<&mut Self>, _ctx: &mut Context) -> Poll<Self::Output> {
+        // This should be safe because we're not moving the Future,
+        // but instead replacing a field, and since no one is able to
+        // reference the state field, we should be ok with moving that.
+        let myself = unsafe { Pin::get_unchecked_mut(self) };
+
+        let state = std::mem::replace(&mut myself.state, FutureState::Resolved);
+        match state {
+            FutureState::Waiting(core) => {
+                let mut locked = core.data.lock().unwrap();
+                if let Some(result) = locked.result.take() {
+                    return Poll::Ready(result);
+                }
+                drop(locked);
+                myself.state = FutureState::Waiting(core);
+                Poll::Pending
+            }
+            FutureState::Ready(result) => Poll::Ready(result),
+            FutureState::Resolved => panic!("polling a Resolved Future"),
+        }
     }
 }
 
