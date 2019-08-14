@@ -1,3 +1,4 @@
+use std::any::Any;
 pub mod bitmaps;
 pub mod color;
 pub mod input;
@@ -100,7 +101,7 @@ pub enum MouseCursor {
 }
 
 #[allow(unused_variables)]
-pub trait WindowCallbacks {
+pub trait WindowCallbacks: Any {
     /// Called when the window close button is clicked.
     /// Return true to allow the close to continue, false to
     /// prevent it from closing.
@@ -134,6 +135,13 @@ pub trait WindowCallbacks {
     /// Called when the window is created and allows the embedding
     /// app to reference the window and operate upon it.
     fn created(&mut self, window: &Window) {}
+
+    /// An unfortunate bit of boilerplate; you need to provie an impl
+    /// of this method that returns `self` in order for the downcast_ref
+    /// method of the Any trait to be usable on WindowCallbacks.
+    /// https://stackoverflow.com/q/46045298/149111 and others have
+    /// some rationale on why Rust works this way.
+    fn as_any(&mut self) -> &mut dyn Any;
 }
 
 pub trait WindowOps {
@@ -152,6 +160,14 @@ pub trait WindowOps {
 
     /// Change the titlebar text for the window
     fn set_title(&self, title: &str);
+
+    /// Schedule a callback on the data associated with the window.
+    /// The `Any` that is passed in corresponds to the WindowCallbacks
+    /// impl you passed to `new_window`, pre-converted to Any so that
+    /// you can `downcast_ref` or `downcast_mut` it and operate on it.
+    fn apply<F: Send + 'static + Fn(&mut dyn Any, &dyn WindowOps)>(&self, func: F)
+    where
+        Self: Sized;
 }
 
 pub trait WindowOpsMut {

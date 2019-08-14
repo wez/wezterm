@@ -1,5 +1,6 @@
 use ::window::*;
 use failure::Fallible;
+use std::any::Any;
 
 struct MyWindow {
     allow_close: bool,
@@ -75,6 +76,10 @@ impl WindowCallbacks for MyWindow {
             spawn_window().unwrap();
         }
     }
+
+    fn as_any(&mut self) -> &mut dyn Any {
+        self
+    }
 }
 
 fn spawn_window() -> Fallible<()> {
@@ -90,6 +95,14 @@ fn spawn_window() -> Fallible<()> {
     )?;
 
     win.show();
+    win.apply(|myself, win| {
+        if let Some(myself) = myself.downcast_ref::<MyWindow>() {
+            eprintln!(
+                "got myself; allow_close={}, cursor_pos:{:?}",
+                myself.allow_close, myself.cursor_pos
+            );
+        }
+    });
     Ok(())
 }
 

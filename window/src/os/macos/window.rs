@@ -19,6 +19,7 @@ use objc::declare::ClassDecl;
 use objc::rc::{StrongPtr, WeakPtr};
 use objc::runtime::{Class, Object, Sel};
 use objc::*;
+use std::any::Any;
 use std::cell::RefCell;
 use std::ffi::c_void;
 use std::rc::Rc;
@@ -118,6 +119,19 @@ impl WindowOps for Window {
     fn set_title(&self, title: &str) {
         let title = title.to_owned();
         Connection::with_window_inner(self.0, move |inner| inner.set_title(&title));
+    }
+
+    fn apply<F: Send + 'static + Fn(&mut dyn Any, &dyn WindowOps)>(&self, func: F)
+    where
+        Self: Sized,
+    {
+        Connection::with_window_inner(self.0, move |inner| {
+            let window = Window(inner.window_id);
+
+            if let Some(window_view) = WindowView::get_this(unsafe { &**inner.view }) {
+                func(window_view.inner.borrow_mut().callbacks.as_any(), &window);
+            }
+        });
     }
 }
 

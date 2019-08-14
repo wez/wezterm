@@ -1,19 +1,20 @@
 use crate::config::Config;
 use crate::font::FontConfiguration;
 use crate::frontend::guicommon::host::{HostHelper, HostImpl, TabHost};
-use crate::frontend::guicommon::window::TerminalWindow;
 use crate::mux::tab::Tab;
 use crate::mux::window::WindowId as MuxWindowId;
 use crate::mux::Mux;
 use ::window::*;
 use failure::Fallible;
 use promise::Future;
+use std::any::Any;
 use std::rc::Rc;
 use std::sync::Arc;
 
 pub struct TermWindow {
-    config: Arc<Config>,
+    window: Option<Window>,
     fonts: Rc<FontConfiguration>,
+    config: Arc<Config>,
     width: usize,
     height: usize,
     cell_height: usize,
@@ -22,6 +23,10 @@ pub struct TermWindow {
 }
 
 impl WindowCallbacks for TermWindow {
+    fn created(&mut self, window: &Window) {
+        self.window.replace(window.clone());
+    }
+
     fn can_close(&mut self) -> bool {
         // self.host.close_current_tab();
         true
@@ -37,6 +42,13 @@ impl WindowCallbacks for TermWindow {
         });
         */
         Connection::get().unwrap().terminate_message_loop();
+    }
+
+    fn as_any(&mut self) -> &mut dyn Any {
+        self
+    }
+
+    fn paint(&mut self, ctx: &mut dyn PaintContext) {
     }
 }
 
@@ -72,6 +84,7 @@ impl TermWindow {
             width,
             height,
             Box::new(Self {
+                window: None,
                 width,
                 height,
                 cell_height,
