@@ -206,6 +206,12 @@ pub struct Image {
     height: usize,
 }
 
+impl Into<Vec<u8>> for Image {
+    fn into(self) -> Vec<u8> {
+        self.data
+    }
+}
+
 impl Image {
     /// Create a new bgra32 image buffer with the specified dimensions.
     /// The buffer is initialized to all zeroes.

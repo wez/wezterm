@@ -48,8 +48,7 @@ impl WindowCallbacks for TermWindow {
         self
     }
 
-    fn paint(&mut self, ctx: &mut dyn PaintContext) {
-    }
+    fn paint(&mut self, ctx: &mut dyn PaintContext) {}
 }
 
 impl Drop for TermWindow {

@@ -18,6 +18,8 @@ use std::ops::{Deref, Range};
 use std::rc::Rc;
 use term::color::{ColorPalette, RgbaTuple};
 use term::{self, CursorPosition, Line, Underline};
+use window::bitmaps::{BitmapImage, Image};
+use window::Operator;
 
 type Transform3D = euclid::Transform3D<f32>;
 
@@ -353,6 +355,128 @@ impl Renderer {
         })
     }
 
+    fn compute_underlines_bitmap(cell_width: f64, cell_height: f64, descender: f64) -> Image {
+        let cell_width = cell_width.ceil() as isize;
+        let cell_height = cell_height.ceil() as isize;
+        let descender = if descender.is_sign_positive() {
+            (descender / 64.0).ceil() as isize
+        } else {
+            (descender / 64.0).floor() as isize
+        };
+
+        let width = 5 * cell_width;
+
+        let white = window::color::Color::rgb(0xff, 0xff, 0xff);
+        let mut underline_data = Image::new(width as usize, cell_height as usize);
+
+        let descender_row = cell_height as isize + descender;
+        let descender_plus_one = (1 + descender_row).min(cell_height - 1);
+        let descender_plus_two = (2 + descender_row).min(cell_height - 1);
+        let strike_row = descender_row / 2;
+
+        // First, the single underline.
+        // We place this just under the descender position.
+        {
+            let col = 0;
+            let left = col * cell_width;
+            underline_data.draw_line(
+                left,
+                descender_plus_one,
+                left + cell_width,
+                descender_plus_one,
+                white,
+                Operator::Source,
+            );
+        }
+        // Double underline,
+        // We place this at and just below the descender
+        {
+            let col = 1;
+            let left = col * cell_width;
+            underline_data.draw_line(
+                left,
+                descender_row,
+                left + cell_width,
+                descender_row,
+                white,
+                Operator::Source,
+            );
+            underline_data.draw_line(
+                left,
+                descender_plus_two,
+                left + cell_width,
+                descender_row,
+                white,
+                Operator::Source,
+            );
+        }
+        // Strikethrough
+        {
+            let col = 2;
+            let left = col * cell_width;
+            underline_data.draw_line(
+                left,
+                strike_row,
+                left + cell_width,
+                strike_row,
+                white,
+                Operator::Source,
+            );
+        }
+        // Strikethrough and single underline
+        {
+            let col = 3;
+            let left = col * cell_width;
+            underline_data.draw_line(
+                left,
+                descender_plus_one,
+                left + cell_width,
+                descender_plus_one,
+                white,
+                Operator::Source,
+            );
+            underline_data.draw_line(
+                left,
+                strike_row,
+                left + cell_width,
+                strike_row,
+                white,
+                Operator::Source,
+            );
+        }
+        // Strikethrough and double underline
+        {
+            let col = 4;
+            let left = col * cell_width;
+
+            underline_data.draw_line(
+                left,
+                descender_row,
+                left + cell_width,
+                descender_row,
+                white,
+                Operator::Source,
+            );
+            underline_data.draw_line(
+                left,
+                strike_row,
+                left + cell_width,
+                strike_row,
+                white,
+                Operator::Source,
+            );
+            underline_data.draw_line(
+                left,
+                descender_plus_two,
+                left + cell_width,
+                descender_plus_two,
+                white,
+                Operator::Source,
+            );
+        }
+        underline_data
+    }
+
     /// Create the texture atlas for the line decoration layer.
     /// This is a bitmap with columns to accomodate the U_XXX
     /// constants defined above.
@@ -362,79 +486,11 @@ impl Renderer {
         cell_height: f64,
         descender: f64,
     ) -> Result<SrgbTexture2d, glium::texture::TextureCreationError> {
-        let cell_width = cell_width.ceil() as usize;
-        let cell_height = cell_height.ceil() as usize;
-        let descender = if descender.is_sign_positive() {
-            (descender / 64.0).ceil() as isize
-        } else {
-            (descender / 64.0).floor() as isize
-        };
-
-        let width = 5 * cell_width;
-        let mut underline_data = vec![0u8; width * cell_height * 4];
-
-        let descender_row = (cell_height as isize + descender) as usize;
-        let descender_plus_one = (1 + descender_row).min(cell_height - 1);
-        let descender_plus_two = (2 + descender_row).min(cell_height - 1);
-        let strike_row = descender_row / 2;
-
-        // First, the single underline.
-        // We place this just under the descender position.
-        {
-            let col = 0;
-            let offset = ((width * 4) * descender_plus_one) + (col * 4 * cell_width);
-            for i in 0..4 * cell_width {
-                underline_data[offset + i] = 0xff;
-            }
-        }
-        // Double underline,
-        // We place this at and just below the descender
-        {
-            let col = 1;
-            let offset_one = ((width * 4) * (descender_row)) + (col * 4 * cell_width);
-            let offset_two = ((width * 4) * (descender_plus_two)) + (col * 4 * cell_width);
-            for i in 0..4 * cell_width {
-                underline_data[offset_one + i] = 0xff;
-                underline_data[offset_two + i] = 0xff;
-            }
-        }
-        // Strikethrough
-        {
-            let col = 2;
-            let offset = (width * 4) * strike_row + (col * 4 * cell_width);
-            for i in 0..4 * cell_width {
-                underline_data[offset + i] = 0xff;
-            }
-        }
-        // Strikethrough and single underline
-        {
-            let col = 3;
-            let offset_one = ((width * 4) * descender_plus_one) + (col * 4 * cell_width);
-            let offset_two = ((width * 4) * strike_row) + (col * 4 * cell_width);
-            for i in 0..4 * cell_width {
-                underline_data[offset_one + i] = 0xff;
-                underline_data[offset_two + i] = 0xff;
-            }
-        }
-        // Strikethrough and double underline
-        {
-            let col = 4;
-            let offset_one = ((width * 4) * (descender_row)) + (col * 4 * cell_width);
-            let offset_two = ((width * 4) * strike_row) + (col * 4 * cell_width);
-            let offset_three = ((width * 4) * (descender_plus_two)) + (col * 4 * cell_width);
-            for i in 0..4 * cell_width {
-                underline_data[offset_one + i] = 0xff;
-                underline_data[offset_two + i] = 0xff;
-                underline_data[offset_three + i] = 0xff;
-            }
-        }
-
+        let data = Self::compute_underlines_bitmap(cell_width, cell_height, descender);
+        let (width, height) = data.image_dimensions();
         glium::texture::SrgbTexture2d::new(
             facade,
-            glium::texture::RawImage2d::from_raw_rgba(
-                underline_data,
-                (width as u32, cell_height as u32),
-            ),
+            glium::texture::RawImage2d::from_raw_rgba(data.into(), (width as u32, height as u32)),
         )
     }
 
