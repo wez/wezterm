@@ -3,17 +3,16 @@ use crate::os::windows::event::EventHandle;
 #[cfg(target_os = "macos")]
 use core_foundation::runloop::*;
 use failure::Fallible;
-#[cfg(all(unix, not(target_os = "macos")))]
-use filedescriptor::{FileDescriptor, Pipe};
-#[cfg(all(unix, not(target_os = "macos")))]
-use mio::unix::EventedFd;
-#[cfg(all(unix, not(target_os = "macos")))]
-use mio::{Evented, Poll, PollOpt, Ready, Token};
 use promise::{BasicExecutor, SpawnFunc};
 use std::collections::VecDeque;
-#[cfg(all(unix, not(target_os = "macos")))]
-use std::os::unix::io::AsRawFd;
 use std::sync::{Arc, Mutex};
+#[cfg(all(unix, not(target_os = "macos")))]
+use {
+    filedescriptor::{FileDescriptor, Pipe},
+    mio::unix::EventedFd,
+    mio::{Evented, Poll, PollOpt, Ready, Token},
+    std::os::unix::io::AsRawFd,
+};
 
 lazy_static::lazy_static! {
     pub(crate) static ref SPAWN_QUEUE: Arc<SpawnQueue> = Arc::new(SpawnQueue::new().expect("failed to create SpawnQueue"));
