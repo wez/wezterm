@@ -1,4 +1,5 @@
 use super::window::WindowInner;
+use crate::tasks::{Task, Tasks};
 use cocoa::appkit::{NSApp, NSApplication, NSApplicationActivationPolicyRegular};
 use cocoa::base::{id, nil};
 use core_foundation::runloop::*;
@@ -16,6 +17,7 @@ pub struct Connection {
     ns_app: id,
     pub(crate) windows: RefCell<HashMap<usize, Rc<RefCell<WindowInner>>>>,
     pub(crate) next_window_id: AtomicUsize,
+    tasks: Tasks,
 }
 
 struct SpawnQueue {
@@ -65,13 +67,16 @@ impl SpawnQueue {
         }
     }
 
+    // This needs to be a separate function from the loop in `run`
+    // in order for the lock to be released before we call the
+    // returned function
+    fn pop_func(&self) -> Option<SpawnFunc> {
+        self.spawned_funcs.lock().unwrap().pop_front()
+    }
+
     fn run(&self) {
-        loop {
-            if let Some(func) = self.spawned_funcs.lock().unwrap().pop_front() {
-                func();
-            } else {
-                return;
-            }
+        while let Some(func) = self.pop_func() {
+            func();
         }
     }
 }
@@ -98,6 +103,7 @@ impl Connection {
             let conn = Rc::new(Self {
                 ns_app,
                 windows: RefCell::new(HashMap::new()),
+                tasks: Default::default(),
                 next_window_id: AtomicUsize::new(1),
             });
             CONN.with(|m| *m.borrow_mut() = Some(Rc::clone(&conn)));
@@ -115,6 +121,7 @@ impl Connection {
         unsafe {
             self.ns_app.run();
         }
+        self.windows.borrow_mut().clear();
         Ok(())
     }
 
@@ -140,6 +147,18 @@ impl Connection {
                 let mut inner = handle.borrow_mut();
                 f(&mut inner);
             }
+        }));
+    }
+
+    pub fn spawn_task<F: std::future::Future<Output = ()> + 'static>(&self, future: F) {
+        let id = self.tasks.add_task(Task(Box::pin(future)));
+        Self::wake_task_by_id(id);
+    }
+
+    pub(crate) fn wake_task_by_id(slot: usize) {
+        SpawnQueueExecutor {}.execute(Box::new(move || {
+            let conn = Connection::get().unwrap();
+            conn.tasks.poll_by_slot(slot);
         }));
     }
 }

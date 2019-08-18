@@ -3,6 +3,7 @@ pub mod bitmaps;
 pub mod color;
 pub mod input;
 pub mod os;
+mod tasks;
 
 pub use bitmaps::BitmapImage;
 pub use color::Color;

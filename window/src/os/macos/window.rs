@@ -26,8 +26,8 @@ use std::rc::Rc;
 
 pub(crate) struct WindowInner {
     window_id: usize,
-    window: StrongPtr,
     view: StrongPtr,
+    window: StrongPtr,
 }
 
 #[derive(Debug, Clone)]
@@ -70,6 +70,7 @@ impl Window {
                 ),
             );
 
+            window.setReleasedWhenClosed_(NO);
             window.cascadeTopLeftFromPoint_(NSPoint::new(20.0, 20.0));
             window.setTitle_(*nsstring(&name));
             window.setAcceptsMouseMovedEvents_(YES);
@@ -105,7 +106,6 @@ impl WindowOps for Window {
         Connection::with_window_inner(self.0, |inner| inner.hide());
     }
     fn show(&self) {
-        eprintln!("schedule show");
         Connection::with_window_inner(self.0, |inner| inner.show());
     }
     fn set_cursor(&self, cursor: Option<MouseCursor>) {
@@ -137,7 +137,6 @@ impl WindowOps for Window {
 
 impl WindowOpsMut for WindowInner {
     fn show(&mut self) {
-        eprintln!("do show");
         unsafe {
             let current_app = NSRunningApplication::currentApplication(nil);
             current_app.activateWithOptions_(NSApplicationActivateIgnoringOtherApps);
@@ -180,23 +179,11 @@ struct Inner {
     window_id: usize,
 }
 
-impl Drop for Inner {
-    fn drop(&mut self) {
-        eprintln!("dropping Inner");
-    }
-}
-
 const CLS_NAME: &str = "WezTermWindowView";
 
 struct WindowView {
     inner: Rc<RefCell<Inner>>,
     buffer: RefCell<Image>,
-}
-
-impl Drop for WindowView {
-    fn drop(&mut self) {
-        eprintln!("dropping WindowView");
-    }
 }
 
 pub fn superclass(this: &Object) -> &'static Class {
@@ -315,7 +302,6 @@ impl WindowView {
     }
 
     extern "C" fn dealloc(this: &mut Object, _sel: Sel) {
-        eprintln!("WindowView::dealloc");
         Self::drop_inner(this);
         unsafe {
             let superclass = superclass(this);
@@ -349,8 +335,6 @@ impl WindowView {
     }
 
     extern "C" fn window_should_close(this: &mut Object, _sel: Sel, _id: id) -> BOOL {
-        eprintln!("window_should_close");
-
         unsafe {
             let () = msg_send![this, setNeedsDisplay: YES];
         }
@@ -372,7 +356,6 @@ impl WindowView {
     }
 
     extern "C" fn window_will_close(this: &mut Object, _sel: Sel, _id: id) {
-        eprintln!("window_will_close");
         if let Some(this) = Self::get_this(this) {
             // Advise the window of its impending death
             this.inner.borrow_mut().callbacks.destroy();
