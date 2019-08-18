@@ -9,14 +9,13 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::ptr::null_mut;
 use std::rc::Rc;
-use std::sync::Mutex;
 use winapi::um::winbase::INFINITE;
 use winapi::um::winnt::HANDLE;
 use winapi::um::winuser::*;
 
 pub struct Connection {
     event_handle: HANDLE,
-    pub(crate) windows: Mutex<HashMap<HWindow, Rc<RefCell<WindowInner>>>>,
+    pub(crate) windows: RefCell<HashMap<HWindow, Rc<RefCell<WindowInner>>>>,
     tasks: Tasks,
 }
 
@@ -38,7 +37,7 @@ impl ConnectionOps for Connection {
                     // Clear our state before we exit, otherwise we can
                     // trigger `drop` handlers during shutdown and that
                     // can have bad interactions
-                    self.windows.lock().unwrap().clear();
+                    self.windows.borrow_mut().clear();
                     return Ok(());
                 }
 
@@ -70,7 +69,7 @@ impl Connection {
         let event_handle = SPAWN_QUEUE.event_handle.0;
         Ok(Self {
             event_handle,
-            windows: Mutex::new(HashMap::new()),
+            windows: RefCell::new(HashMap::new()),
             tasks: Default::default(),
         })
     }
@@ -86,7 +85,7 @@ impl Connection {
     }
 
     fn get_window(&self, handle: HWindow) -> Option<Rc<RefCell<WindowInner>>> {
-        self.windows.lock().unwrap().get(&handle).map(Rc::clone)
+        self.windows.borrow().get(&handle).map(Rc::clone)
     }
 
     pub(crate) fn with_window_inner<F: FnMut(&mut WindowInner) + Send + 'static>(

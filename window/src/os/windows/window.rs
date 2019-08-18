@@ -182,8 +182,7 @@ impl Window {
         Connection::get()
             .expect("Connection::init was not called")
             .windows
-            .lock()
-            .unwrap()
+            .borrow_mut()
             .insert(hwnd.clone(), Rc::clone(&inner));
 
         let window = Window(hwnd);
