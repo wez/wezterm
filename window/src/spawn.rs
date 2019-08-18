@@ -1,5 +1,7 @@
 #[cfg(windows)]
 use crate::os::windows::event::EventHandle;
+#[cfg(target_os = "macos")]
+use core_foundation::runloop::*;
 use failure::Fallible;
 #[cfg(all(unix, not(target_os = "macos")))]
 use filedescriptor::{FileDescriptor, Pipe};

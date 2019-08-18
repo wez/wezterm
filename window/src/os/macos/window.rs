@@ -293,15 +293,6 @@ fn key_modifiers(flags: NSEventModifierFlags) -> Modifiers {
 }
 
 impl WindowView {
-    fn view_id(&self) -> id {
-        let inner = self.inner.borrow_mut();
-        inner.view_id.as_ref().map(|w| *w.load()).unwrap_or(nil)
-    }
-
-    fn window_id(&self) -> id {
-        unsafe { msg_send![self.view_id(), window] }
-    }
-
     extern "C" fn dealloc(this: &mut Object, _sel: Sel) {
         Self::drop_inner(this);
         unsafe {

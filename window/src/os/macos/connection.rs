@@ -4,16 +4,13 @@ use crate::spawn::*;
 use crate::tasks::{Task, Tasks};
 use cocoa::appkit::{NSApp, NSApplication, NSApplicationActivationPolicyRegular};
 use cocoa::base::{id, nil};
-use core_foundation::runloop::*;
 use failure::Fallible;
 use objc::*;
-use promise::{BasicExecutor, SpawnFunc};
+use promise::BasicExecutor;
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::collections::VecDeque;
 use std::rc::Rc;
 use std::sync::atomic::AtomicUsize;
-use std::sync::{Arc, Mutex};
 
 pub struct Connection {
     ns_app: id,
