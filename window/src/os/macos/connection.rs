@@ -1,4 +1,5 @@
 use super::window::WindowInner;
+use crate::connection::ConnectionOps;
 use crate::tasks::{Task, Tasks};
 use cocoa::appkit::{NSApp, NSApplication, NSApplicationActivationPolicyRegular};
 use cocoa::base::{id, nil};
@@ -24,9 +25,6 @@ struct SpawnQueue {
     spawned_funcs: Mutex<VecDeque<SpawnFunc>>,
 }
 
-thread_local! {
-    static CONN: RefCell<Option<Rc<Connection>>> = RefCell::new(None);
-}
 lazy_static::lazy_static! {
     static ref SPAWN_QUEUE: Arc<SpawnQueue> = Arc::new(SpawnQueue::new().expect("failed to create SpawnQueue"));
 }
@@ -82,17 +80,7 @@ impl SpawnQueue {
 }
 
 impl Connection {
-    pub fn get() -> Option<Rc<Self>> {
-        let mut res = None;
-        CONN.with(|m| {
-            if let Some(mux) = &*m.borrow() {
-                res = Some(Rc::clone(mux));
-            }
-        });
-        res
-    }
-
-    pub fn init() -> Fallible<Rc<Self>> {
+    pub(crate) fn create_new() -> Fallible<Self> {
         // Ensure that the SPAWN_QUEUE is created; it will have nothing
         // to run right now.
         SPAWN_QUEUE.run();
@@ -100,33 +88,14 @@ impl Connection {
         unsafe {
             let ns_app = NSApp();
             ns_app.setActivationPolicy_(NSApplicationActivationPolicyRegular);
-            let conn = Rc::new(Self {
+            let conn = Self {
                 ns_app,
                 windows: RefCell::new(HashMap::new()),
                 tasks: Default::default(),
                 next_window_id: AtomicUsize::new(1),
-            });
-            CONN.with(|m| *m.borrow_mut() = Some(Rc::clone(&conn)));
+            };
             Ok(conn)
         }
-    }
-
-    pub fn terminate_message_loop(&self) {
-        unsafe {
-            let () = msg_send![NSApp(), stop: nil];
-        }
-    }
-
-    pub fn run_message_loop(&self) -> Fallible<()> {
-        unsafe {
-            self.ns_app.run();
-        }
-        self.windows.borrow_mut().clear();
-        Ok(())
-    }
-
-    pub fn executor() -> impl BasicExecutor {
-        SpawnQueueExecutor {}
     }
 
     pub(crate) fn next_window_id(&self) -> usize {
@@ -150,16 +119,32 @@ impl Connection {
         }));
     }
 
-    pub fn spawn_task<F: std::future::Future<Output = ()> + 'static>(&self, future: F) {
-        let id = self.tasks.add_task(Task(Box::pin(future)));
-        Self::wake_task_by_id(id);
-    }
-
     pub(crate) fn wake_task_by_id(slot: usize) {
         SpawnQueueExecutor {}.execute(Box::new(move || {
             let conn = Connection::get().unwrap();
             conn.tasks.poll_by_slot(slot);
         }));
+    }
+}
+
+impl ConnectionOps for Connection {
+    fn terminate_message_loop(&self) {
+        unsafe {
+            let () = msg_send![NSApp(), stop: nil];
+        }
+    }
+
+    fn run_message_loop(&self) -> Fallible<()> {
+        unsafe {
+            self.ns_app.run();
+        }
+        self.windows.borrow_mut().clear();
+        Ok(())
+    }
+
+    fn spawn_task<F: std::future::Future<Output = ()> + 'static>(&self, future: F) {
+        let id = self.tasks.add_task(Task(Box::pin(future)));
+        Self::wake_task_by_id(id);
     }
 }
 

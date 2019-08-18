@@ -1,5 +1,6 @@
 use super::{nsstring, nsstring_to_str};
 use crate::bitmaps::Image;
+use crate::connection::ConnectionOps;
 use crate::os::macos::bitmap::BitmapRef;
 use crate::{
     BitmapImage, Color, Connection, Dimensions, KeyCode, KeyEvent, Modifiers, MouseButtons,

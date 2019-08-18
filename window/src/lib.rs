@@ -1,13 +1,14 @@
 use std::any::Any;
 pub mod bitmaps;
 pub mod color;
+pub mod connection;
 pub mod input;
 pub mod os;
 mod tasks;
 
 pub use bitmaps::BitmapImage;
 pub use color::Color;
-
+pub use connection::*;
 pub use input::*;
 pub use os::*;
 
