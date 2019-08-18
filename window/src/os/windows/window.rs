@@ -28,7 +28,7 @@ unsafe impl Sync for HWindow {}
 pub(crate) struct WindowInner {
     /// Non-owning reference to the window handle
     hwnd: HWindow,
-    callbacks: Box<WindowCallbacks>,
+    callbacks: Box<dyn WindowCallbacks>,
 }
 
 #[derive(Debug, Clone)]
@@ -158,7 +158,7 @@ impl Window {
         name: &str,
         width: usize,
         height: usize,
-        callbacks: Box<WindowCallbacks>,
+        callbacks: Box<dyn WindowCallbacks>,
     ) -> Fallible<Window> {
         let inner = Rc::new(RefCell::new(WindowInner {
             hwnd: HWindow(null_mut()),

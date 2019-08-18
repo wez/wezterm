@@ -1,16 +1,15 @@
 //! The connection to the GUI subsystem
-use super::EventHandle;
 use super::{HWindow, WindowInner};
 use crate::connection::ConnectionOps;
 use crate::spawn::*;
+use crate::tasks::{Task, Tasks};
 use failure::Fallible;
-use promise::{BasicExecutor, SpawnFunc};
+use promise::BasicExecutor;
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::collections::VecDeque;
 use std::ptr::null_mut;
 use std::rc::Rc;
-use std::sync::{Arc, Mutex};
+use std::sync::Mutex;
 use winapi::um::winbase::INFINITE;
 use winapi::um::winnt::HANDLE;
 use winapi::um::winuser::*;
@@ -18,6 +17,7 @@ use winapi::um::winuser::*;
 pub struct Connection {
     event_handle: HANDLE,
     pub(crate) windows: Mutex<HashMap<HWindow, Rc<RefCell<WindowInner>>>>,
+    tasks: Tasks,
 }
 
 impl ConnectionOps for Connection {
@@ -53,11 +53,15 @@ impl ConnectionOps for Connection {
     }
 
     fn spawn_task<F: std::future::Future<Output = ()> + 'static>(&self, future: F) {
-        unimplemented!();
+        let id = self.tasks.add_task(Task(Box::pin(future)));
+        Self::wake_task_by_id(id);
     }
 
     fn wake_task_by_id(slot: usize) {
-        unimplemented!();
+        SpawnQueueExecutor {}.execute(Box::new(move || {
+            let conn = Connection::get().unwrap();
+            conn.tasks.poll_by_slot(slot);
+        }));
     }
 }
 
@@ -67,6 +71,7 @@ impl Connection {
         Ok(Self {
             event_handle,
             windows: Mutex::new(HashMap::new()),
+            tasks: Default::default(),
         })
     }
 

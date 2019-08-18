@@ -63,7 +63,7 @@ impl Rect {
 pub(crate) struct WindowInner {
     window_id: xcb::xproto::Window,
     conn: Rc<Connection>,
-    callbacks: Box<WindowCallbacks>,
+    callbacks: Box<dyn WindowCallbacks>,
     window_context: Context,
     width: u16,
     height: u16,
@@ -80,7 +80,7 @@ impl Drop for WindowInner {
 }
 
 struct X11GraphicsContext<'a> {
-    buffer: &'a mut BitmapImage,
+    buffer: &'a mut dyn BitmapImage,
 }
 
 impl<'a> PaintContext for X11GraphicsContext<'a> {
@@ -409,7 +409,7 @@ impl Window {
         name: &str,
         width: usize,
         height: usize,
-        callbacks: Box<WindowCallbacks>,
+        callbacks: Box<dyn WindowCallbacks>,
     ) -> Fallible<Window> {
         let conn = Connection::get().ok_or_else(|| {
             failure::err_msg(

@@ -61,13 +61,6 @@ impl Connection {
             }
         }));
     }
-
-    pub(crate) fn wake_task_by_id(slot: usize) {
-        SpawnQueueExecutor {}.execute(Box::new(move || {
-            let conn = Connection::get().unwrap();
-            conn.tasks.poll_by_slot(slot);
-        }));
-    }
 }
 
 impl ConnectionOps for Connection {
@@ -88,5 +81,12 @@ impl ConnectionOps for Connection {
     fn spawn_task<F: std::future::Future<Output = ()> + 'static>(&self, future: F) {
         let id = self.tasks.add_task(Task(Box::pin(future)));
         Self::wake_task_by_id(id);
+    }
+
+    fn wake_task_by_id(slot: usize) {
+        SpawnQueueExecutor {}.execute(Box::new(move || {
+            let conn = Connection::get().unwrap();
+            conn.tasks.poll_by_slot(slot);
+        }));
     }
 }

@@ -6,7 +6,7 @@ use filedescriptor::{FileDescriptor, Pipe};
 #[cfg(all(unix, not(target_os = "macos")))]
 use mio::unix::EventedFd;
 #[cfg(all(unix, not(target_os = "macos")))]
-use mio::{Evented, Events, Poll, PollOpt, Ready, Token};
+use mio::{Evented, Poll, PollOpt, Ready, Token};
 use promise::{BasicExecutor, SpawnFunc};
 use std::collections::VecDeque;
 #[cfg(all(unix, not(target_os = "macos")))]

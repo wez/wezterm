@@ -1,16 +1,14 @@
 use super::keyboard::Keyboard;
 use crate::connection::ConnectionOps;
 use crate::spawn::*;
+use crate::tasks::{Task, Tasks};
 use crate::WindowInner;
 use failure::Fallible;
-use filedescriptor::{FileDescriptor, Pipe};
 use mio::unix::EventedFd;
 use mio::{Evented, Events, Poll, PollOpt, Ready, Token};
-use promise::{BasicExecutor, SpawnFunc};
+use promise::BasicExecutor;
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::collections::VecDeque;
-use std::io::{Read, Write};
 use std::os::unix::io::AsRawFd;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
@@ -33,6 +31,7 @@ pub struct Connection {
     pub(crate) windows: RefCell<HashMap<xcb::xproto::Window, Arc<Mutex<WindowInner>>>>,
     should_terminate: RefCell<bool>,
     pub(crate) shm_available: bool,
+    tasks: Tasks,
 }
 
 impl std::ops::Deref for Connection {
@@ -143,11 +142,15 @@ fn server_supports_shm() -> bool {
 
 impl ConnectionOps for Connection {
     fn spawn_task<F: std::future::Future<Output = ()> + 'static>(&self, future: F) {
-        unimplemented!();
+        let id = self.tasks.add_task(Task(Box::pin(future)));
+        Self::wake_task_by_id(id);
     }
 
     fn wake_task_by_id(slot: usize) {
-        unimplemented!();
+        SpawnQueueExecutor {}.execute(Box::new(move || {
+            let conn = Connection::get().unwrap();
+            conn.tasks.poll_by_slot(slot);
+        }));
     }
 
     fn terminate_message_loop(&self) {
@@ -331,6 +334,7 @@ impl Connection {
             windows: RefCell::new(HashMap::new()),
             should_terminate: RefCell::new(false),
             shm_available,
+            tasks: Default::default(),
         };
 
         Ok(conn)

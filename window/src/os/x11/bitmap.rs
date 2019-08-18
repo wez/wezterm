@@ -22,7 +22,7 @@ pub struct Context {
 }
 
 impl Context {
-    pub fn new(conn: &Rc<Connection>, d: &Drawable) -> Context {
+    pub fn new(conn: &Rc<Connection>, d: &dyn Drawable) -> Context {
         let gc_id = conn.conn().generate_id();
         let drawable = d.as_drawable();
         xcb::create_gc(conn.conn(), gc_id, drawable, &[]);
@@ -37,10 +37,10 @@ impl Context {
     /// defined in this context.
     pub fn copy_area(
         &self,
-        src: &Drawable,
+        src: &dyn Drawable,
         src_x: i16,
         src_y: i16,
-        dest: &Drawable,
+        dest: &dyn Drawable,
         dest_x: i16,
         dest_y: i16,
         width: u16,
