@@ -1,6 +1,7 @@
 //! The connection to the GUI subsystem
 use super::EventHandle;
 use super::{HWindow, WindowInner};
+use crate::connection::ConnectionOps;
 use failure::Fallible;
 use promise::{BasicExecutor, SpawnFunc};
 use std::cell::RefCell;
@@ -15,10 +16,6 @@ use winapi::um::winuser::*;
 
 lazy_static::lazy_static! {
     static ref SPAWN_QUEUE: Arc<SpawnQueue> = Arc::new(SpawnQueue::new().expect("failed to create SpawnQueue"));
-}
-
-thread_local! {
-    static CONN: RefCell<Option<Rc<Connection>>> = RefCell::new(None);
 }
 
 struct SpawnQueue {
@@ -58,38 +55,14 @@ pub struct Connection {
     pub(crate) windows: Mutex<HashMap<HWindow, Rc<RefCell<WindowInner>>>>,
 }
 
-impl Connection {
-    pub fn get() -> Option<Rc<Self>> {
-        let mut res = None;
-        CONN.with(|m| {
-            if let Some(mux) = &*m.borrow() {
-                res = Some(Rc::clone(mux));
-            }
-        });
-        res
-    }
-
-    fn new() -> Self {
-        let event_handle = SPAWN_QUEUE.event_handle.0;
-        Self {
-            event_handle,
-            windows: Mutex::new(HashMap::new()),
-        }
-    }
-
-    pub fn init() -> Fallible<Rc<Self>> {
-        let conn = Rc::new(Self::new());
-        CONN.with(|m| *m.borrow_mut() = Some(Rc::clone(&conn)));
-        Ok(conn)
-    }
-
-    pub fn terminate_message_loop(&self) {
+impl ConnectionOps for Connection {
+    fn terminate_message_loop(&self) {
         unsafe {
             PostQuitMessage(0);
         }
     }
 
-    pub fn run_message_loop(&self) -> Fallible<()> {
+    fn run_message_loop(&self) -> Fallible<()> {
         let mut msg: MSG = unsafe { std::mem::zeroed() };
         loop {
             SPAWN_QUEUE.run();
@@ -112,6 +85,24 @@ impl Connection {
                 self.wait_message();
             }
         }
+    }
+
+    fn spawn_task<F: std::future::Future<Output = ()> + 'static>(&self, future: F) {
+        unimplemented!();
+    }
+
+    fn wake_task_by_id(slot: usize) {
+        unimplemented!();
+    }
+}
+
+impl Connection {
+    pub(crate) fn create_new() -> Fallible<Self> {
+        let event_handle = SPAWN_QUEUE.event_handle.0;
+        Ok(Self {
+            event_handle,
+            windows: Mutex::new(HashMap::new()),
+        })
     }
 
     fn wait_message(&self) {

@@ -2,12 +2,14 @@ use super::gdi::*;
 use super::*;
 use crate::bitmaps::*;
 use crate::color::Color;
+use crate::connection::ConnectionOps;
 use crate::{
     Dimensions, KeyCode, KeyEvent, Modifiers, MouseButtons, MouseCursor, MouseEvent,
     MouseEventKind, MousePress, Operator, PaintContext, WindowCallbacks, WindowOps, WindowOpsMut,
 };
 use failure::Fallible;
 use promise::Future;
+use std::any::Any;
 use std::cell::RefCell;
 use std::io::Error as IoError;
 use std::ptr::{null, null_mut};
@@ -247,6 +249,16 @@ impl WindowOps for Window {
     fn set_title(&self, title: &str) {
         let title = title.to_owned();
         Connection::with_window_inner(self.0, move |inner| inner.set_title(&title));
+    }
+
+    fn apply<F: Send + 'static + Fn(&mut dyn Any, &dyn WindowOps)>(&self, func: F)
+    where
+        Self: Sized,
+    {
+        Connection::with_window_inner(self.0, move |inner| {
+            let window = Window(inner.hwnd);
+            func(inner.callbacks.as_any(), &window);
+        });
     }
 }
 
