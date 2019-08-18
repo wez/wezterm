@@ -8,7 +8,7 @@ use failure::Fallible;
 use promise::{BasicExecutor, Executor, SpawnFunc};
 use std::rc::Rc;
 use std::sync::Arc;
-use window::Connection;
+use ::window::*;
 
 mod termwindow;
 
