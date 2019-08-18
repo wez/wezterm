@@ -27,4 +27,5 @@ pub trait ConnectionOps {
     fn terminate_message_loop(&self);
     fn run_message_loop(&self) -> Fallible<()>;
     fn spawn_task<F: std::future::Future<Output = ()> + 'static>(&self, future: F);
+    fn wake_task_by_id(slot: usize);
 }

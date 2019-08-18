@@ -1,4 +1,5 @@
 use super::keyboard::Keyboard;
+use crate::connection::ConnectionOps;
 use crate::WindowInner;
 use failure::Fallible;
 use filedescriptor::{FileDescriptor, Pipe};
@@ -10,16 +11,12 @@ use std::collections::HashMap;
 use std::collections::VecDeque;
 use std::io::{Read, Write};
 use std::os::unix::io::AsRawFd;
-use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use xcb_util::ffi::keysyms::{xcb_key_symbols_alloc, xcb_key_symbols_free, xcb_key_symbols_t};
 
 lazy_static::lazy_static! {
     static ref SPAWN_QUEUE: Arc<SpawnQueue> = Arc::new(SpawnQueue::new().expect("failed to create SpawnQueue"));
-}
-thread_local! {
-    static CONN: RefCell<Option<Rc<Connection>>> = RefCell::new(None);
 }
 
 struct SpawnQueue {
@@ -204,22 +201,20 @@ fn server_supports_shm() -> bool {
     }
 }
 
-impl Connection {
-    pub fn get() -> Option<Rc<Self>> {
-        let mut res = None;
-        CONN.with(|m| {
-            if let Some(mux) = &*m.borrow() {
-                res = Some(Rc::clone(mux));
-            }
-        });
-        res
+impl ConnectionOps for Connection {
+    fn spawn_task<F: std::future::Future<Output = ()> + 'static>(&self, future: F) {
+        unimplemented!();
     }
 
-    pub fn terminate_message_loop(&self) {
+    fn wake_task_by_id(slot: usize) {
+        unimplemented!();
+    }
+
+    fn terminate_message_loop(&self) {
         *self.should_terminate.borrow_mut() = true;
     }
 
-    pub fn run_message_loop(&self) -> Fallible<()> {
+    fn run_message_loop(&self) -> Fallible<()> {
         self.conn.flush();
 
         const TOK_XCB: usize = 0xffff_fffc;
@@ -280,7 +275,9 @@ impl Connection {
 
         Ok(())
     }
+}
 
+impl Connection {
     fn process_queued_xcb(&self) -> Fallible<()> {
         match self.conn.poll_for_event() {
             None => match self.conn.has_error() {
@@ -338,7 +335,7 @@ impl Connection {
         Ok(())
     }
 
-    pub fn init() -> Fallible<Rc<Connection>> {
+    pub(crate) fn create_new() -> Fallible<Connection> {
         let display = unsafe { x11::xlib::XOpenDisplay(std::ptr::null()) };
         if display.is_null() {
             failure::bail!("failed to open display");
@@ -377,7 +374,7 @@ impl Connection {
         let cursor_font_name = "cursor";
         xcb::open_font_checked(&conn, cursor_font_id, cursor_font_name);
 
-        let conn = Rc::new(Connection {
+        let conn = Connection {
             display,
             conn,
             cursor_font_id,
@@ -394,9 +391,8 @@ impl Connection {
             windows: RefCell::new(HashMap::new()),
             should_terminate: RefCell::new(false),
             shm_available,
-        });
+        };
 
-        CONN.with(|m| *m.borrow_mut() = Some(Rc::clone(&conn)));
         Ok(conn)
     }
 

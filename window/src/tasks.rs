@@ -1,3 +1,4 @@
+use crate::connection::ConnectionOps;
 use crate::Connection;
 use std::cell::{Cell, RefCell};
 use std::future::Future;

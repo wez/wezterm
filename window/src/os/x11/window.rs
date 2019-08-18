@@ -1,10 +1,12 @@
 use super::*;
 use crate::bitmaps::*;
+use crate::connection::ConnectionOps;
 use crate::{
     Color, Dimensions, KeyEvent, MouseButtons, MouseCursor, MouseEvent, MouseEventKind, MousePress,
     Operator, PaintContext, WindowCallbacks, WindowOps, WindowOpsMut,
 };
 use failure::Fallible;
+use std::any::Any;
 use std::collections::VecDeque;
 use std::convert::TryInto;
 use std::rc::Rc;
@@ -537,5 +539,14 @@ impl WindowOps for Window {
     fn set_title(&self, title: &str) {
         let title = title.to_owned();
         Connection::with_window_inner(self.0, move |inner| inner.set_title(&title));
+    }
+    fn apply<F: Send + 'static + Fn(&mut dyn Any, &dyn WindowOps)>(&self, func: F)
+    where
+        Self: Sized,
+    {
+        Connection::with_window_inner(self.0, move |inner| {
+            let window = Window(inner.window_id);
+            func(inner.callbacks.as_any(), &window);
+        });
     }
 }
