@@ -373,13 +373,6 @@ impl Connection {
     }
 }
 
-struct SpawnQueueExecutor;
-impl BasicExecutor for SpawnQueueExecutor {
-    fn execute(&self, f: SpawnFunc) {
-        SPAWN_QUEUE.spawn(f);
-    }
-}
-
 impl Drop for Connection {
     fn drop(&mut self) {
         unsafe {

@@ -1,5 +1,6 @@
 use super::window::WindowInner;
 use crate::connection::ConnectionOps;
+use crate::spawn::*;
 use crate::tasks::{Task, Tasks};
 use cocoa::appkit::{NSApp, NSApplication, NSApplicationActivationPolicyRegular};
 use cocoa::base::{id, nil};
@@ -19,64 +20,6 @@ pub struct Connection {
     pub(crate) windows: RefCell<HashMap<usize, Rc<RefCell<WindowInner>>>>,
     pub(crate) next_window_id: AtomicUsize,
     tasks: Tasks,
-}
-
-struct SpawnQueue {
-    spawned_funcs: Mutex<VecDeque<SpawnFunc>>,
-}
-
-lazy_static::lazy_static! {
-    static ref SPAWN_QUEUE: Arc<SpawnQueue> = Arc::new(SpawnQueue::new().expect("failed to create SpawnQueue"));
-}
-
-impl Drop for SpawnQueue {
-    fn drop(&mut self) {}
-}
-
-impl SpawnQueue {
-    fn new() -> Fallible<Self> {
-        let spawned_funcs = Mutex::new(VecDeque::new());
-
-        let observer = unsafe {
-            CFRunLoopObserverCreate(
-                std::ptr::null(),
-                kCFRunLoopAllActivities,
-                1,
-                0,
-                SpawnQueue::trigger,
-                std::ptr::null_mut(),
-            )
-        };
-        unsafe {
-            CFRunLoopAddObserver(CFRunLoopGetMain(), observer, kCFRunLoopCommonModes);
-        }
-
-        Ok(Self { spawned_funcs })
-    }
-
-    extern "C" fn trigger(_observer: *mut __CFRunLoopObserver, _: u32, _: *mut std::ffi::c_void) {
-        SPAWN_QUEUE.run();
-    }
-
-    fn spawn(&self, f: SpawnFunc) {
-        self.spawned_funcs.lock().unwrap().push_back(f);
-        unsafe {
-            CFRunLoopWakeUp(CFRunLoopGetMain());
-        }
-    }
-
-    // This needs to be a separate function from the loop in `run`
-    // in order for the lock to be released before we call the
-    // returned function
-    fn pop_func(&self) -> Option<SpawnFunc> {
-        self.spawned_funcs.lock().unwrap().pop_front()
-    }
-
-    fn run(&self) {
-        while let Some(func) = self.pop_func() {
-            func();
-        }
-    }
 }
 
 impl Connection {
@@ -145,12 +88,5 @@ impl ConnectionOps for Connection {
     fn spawn_task<F: std::future::Future<Output = ()> + 'static>(&self, future: F) {
         let id = self.tasks.add_task(Task(Box::pin(future)));
         Self::wake_task_by_id(id);
-    }
-}
-
-struct SpawnQueueExecutor;
-impl BasicExecutor for SpawnQueueExecutor {
-    fn execute(&self, f: SpawnFunc) {
-        SPAWN_QUEUE.spawn(f)
     }
 }
