@@ -2,6 +2,7 @@
 use super::EventHandle;
 use super::{HWindow, WindowInner};
 use crate::connection::ConnectionOps;
+use crate::spawn::*;
 use failure::Fallible;
 use promise::{BasicExecutor, SpawnFunc};
 use std::cell::RefCell;
@@ -13,42 +14,6 @@ use std::sync::{Arc, Mutex};
 use winapi::um::winbase::INFINITE;
 use winapi::um::winnt::HANDLE;
 use winapi::um::winuser::*;
-
-lazy_static::lazy_static! {
-    static ref SPAWN_QUEUE: Arc<SpawnQueue> = Arc::new(SpawnQueue::new().expect("failed to create SpawnQueue"));
-}
-
-struct SpawnQueue {
-    spawned_funcs: Mutex<VecDeque<SpawnFunc>>,
-    event_handle: EventHandle,
-}
-
-impl SpawnQueue {
-    fn new() -> Fallible<Self> {
-        let spawned_funcs = Mutex::new(VecDeque::new());
-        let event_handle = EventHandle::new_manual_reset().expect("EventHandle creation failed");
-        Ok(Self {
-            spawned_funcs,
-            event_handle,
-        })
-    }
-
-    fn spawn(&self, f: SpawnFunc) {
-        self.spawned_funcs.lock().unwrap().push_back(f);
-        self.event_handle.set_event();
-    }
-
-    fn run(&self) {
-        self.event_handle.reset_event();
-        loop {
-            if let Some(func) = self.spawned_funcs.lock().unwrap().pop_front() {
-                func();
-            } else {
-                return;
-            }
-        }
-    }
-}
 
 pub struct Connection {
     event_handle: HANDLE,

@@ -4,6 +4,7 @@ pub mod color;
 pub mod connection;
 pub mod input;
 pub mod os;
+mod spawn;
 mod tasks;
 
 pub use bitmaps::BitmapImage;

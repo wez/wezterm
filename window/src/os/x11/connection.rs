@@ -1,5 +1,6 @@
 use super::keyboard::Keyboard;
 use crate::connection::ConnectionOps;
+use crate::spawn::*;
 use crate::WindowInner;
 use failure::Fallible;
 use filedescriptor::{FileDescriptor, Pipe};
@@ -14,67 +15,6 @@ use std::os::unix::io::AsRawFd;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use xcb_util::ffi::keysyms::{xcb_key_symbols_alloc, xcb_key_symbols_free, xcb_key_symbols_t};
-
-lazy_static::lazy_static! {
-    static ref SPAWN_QUEUE: Arc<SpawnQueue> = Arc::new(SpawnQueue::new().expect("failed to create SpawnQueue"));
-}
-
-struct SpawnQueue {
-    spawned_funcs: Mutex<VecDeque<SpawnFunc>>,
-    write: Mutex<FileDescriptor>,
-    read: Mutex<FileDescriptor>,
-}
-
-impl SpawnQueue {
-    fn new() -> Fallible<Self> {
-        let pipe = Pipe::new()?;
-        Ok(Self {
-            spawned_funcs: Mutex::new(VecDeque::new()),
-            write: Mutex::new(pipe.write),
-            read: Mutex::new(pipe.read),
-        })
-    }
-
-    fn spawn(&self, f: SpawnFunc) {
-        self.spawned_funcs.lock().unwrap().push_back(f);
-        self.write.lock().unwrap().write(b"x").ok();
-    }
-
-    fn run(&self) {
-        while let Some(func) = self.spawned_funcs.lock().unwrap().pop_front() {
-            func();
-
-            let mut byte = [0u8];
-            self.read.lock().unwrap().read(&mut byte).ok();
-        }
-    }
-}
-
-impl Evented for SpawnQueue {
-    fn register(
-        &self,
-        poll: &Poll,
-        token: Token,
-        interest: Ready,
-        opts: PollOpt,
-    ) -> std::io::Result<()> {
-        EventedFd(&self.read.lock().unwrap().as_raw_fd()).register(poll, token, interest, opts)
-    }
-
-    fn reregister(
-        &self,
-        poll: &Poll,
-        token: Token,
-        interest: Ready,
-        opts: PollOpt,
-    ) -> std::io::Result<()> {
-        EventedFd(&self.read.lock().unwrap().as_raw_fd()).reregister(poll, token, interest, opts)
-    }
-
-    fn deregister(&self, poll: &Poll) -> std::io::Result<()> {
-        EventedFd(&self.read.lock().unwrap().as_raw_fd()).deregister(poll)
-    }
-}
 
 pub struct Connection {
     pub display: *mut x11::xlib::Display,
