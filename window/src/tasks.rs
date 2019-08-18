@@ -89,7 +89,7 @@ impl TaskWaker {
         Connection::wake_task_by_id(id);
     }
 
-    unsafe fn waker_drop(p: *const ()) {
+    unsafe fn waker_drop(_p: *const ()) {
         /* no action required */
     }
 }

@@ -39,7 +39,7 @@ impl Window {
         name: &str,
         width: usize,
         height: usize,
-        callbacks: Box<WindowCallbacks>,
+        callbacks: Box<dyn WindowCallbacks>,
     ) -> Fallible<Window> {
         unsafe {
             let style_mask = NSWindowStyleMask::NSTitledWindowMask
@@ -174,7 +174,7 @@ impl WindowOpsMut for WindowInner {
 }
 
 struct Inner {
-    callbacks: Box<WindowCallbacks>,
+    callbacks: Box<dyn WindowCallbacks>,
     view_id: Option<WeakPtr>,
     window_id: usize,
 }
@@ -194,7 +194,7 @@ pub fn superclass(this: &Object) -> &'static Class {
 }
 
 struct MacGraphicsContext<'a> {
-    buffer: &'a mut BitmapImage,
+    buffer: &'a mut dyn BitmapImage,
 }
 
 impl<'a> PaintContext for MacGraphicsContext<'a> {
