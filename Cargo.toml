@@ -43,8 +43,7 @@ rayon = "1.0"
 serde = {version="1.0", features = ["rc"]}
 serde_derive = "1.0"
 serial = "0.4"
-#ssh2 = {path="../ssh2-rs"}
-ssh2 = {git="https://github.com/wez/ssh2-rs", branch="win10dh"}
+ssh2 = "0.4"
 structopt = "0.2"
 tabout = { path = "tabout" }
 term = { path = "term" }
