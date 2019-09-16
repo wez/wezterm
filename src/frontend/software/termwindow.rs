@@ -33,14 +33,6 @@ impl WindowCallbacks for TermWindow {
     }
 
     fn destroy(&mut self) {
-        /*
-        Future::with_executor(Connection::executor(), move || {
-        if Mux::get().unwrap().is_empty() {
-            Connection::get().unwrap().terminate_message_loop();
-        }
-        Ok(())
-        });
-        */
         Connection::get().unwrap().terminate_message_loop();
     }
 
@@ -48,7 +40,9 @@ impl WindowCallbacks for TermWindow {
         self
     }
 
-    fn paint(&mut self, ctx: &mut dyn PaintContext) {}
+    fn paint(&mut self, ctx: &mut dyn PaintContext) {
+        ctx.clear(Color::rgb(0, 0, 0));
+    }
 }
 
 impl Drop for TermWindow {
