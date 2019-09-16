@@ -4,11 +4,11 @@ use crate::frontend::FrontEnd;
 use crate::mux::tab::Tab;
 use crate::mux::window::WindowId as MuxWindowId;
 use crate::mux::Mux;
+use ::window::*;
 use failure::Fallible;
 use promise::{BasicExecutor, Executor, SpawnFunc};
 use std::rc::Rc;
 use std::sync::Arc;
-use ::window::*;
 
 mod termwindow;
 

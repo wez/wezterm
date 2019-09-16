@@ -58,6 +58,10 @@ impl Connection {
             }
         }));
     }
+
+    pub fn executor() -> impl BasicExecutor {
+        SpawnQueueExecutor {}
+    }
 }
 
 impl ConnectionOps for Connection {
