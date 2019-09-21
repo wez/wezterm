@@ -34,28 +34,6 @@ impl WindowCallbacks for MyWindow {
     fn paint(&mut self, context: &mut dyn PaintContext) {
         // Pick a purple background color
         context.clear(Color::rgb(0x40, 0x20, 0x60));
-
-        // This line doesn't need anti-aliasing
-        context.draw_line(0, 0, 100, 100, Color::rgb(0xff, 0xff, 0xff), Operator::Over);
-
-        // This shallower line should need some
-        context.draw_line(
-            100,
-            0,
-            200,
-            120,
-            Color::rgb(0xff, 0x80, 0xff),
-            Operator::Over,
-        );
-
-        context.draw_line(
-            0,
-            0,
-            self.cursor_pos.0 as isize,
-            self.cursor_pos.1 as isize,
-            Color::rgb(0xff, 0xff, 0x80),
-            Operator::Over,
-        );
     }
 
     fn resize(&mut self, dims: Dimensions) {

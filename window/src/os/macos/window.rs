@@ -4,8 +4,8 @@ use crate::connection::ConnectionOps;
 use crate::os::macos::bitmap::BitmapRef;
 use crate::{
     BitmapImage, Color, Connection, Dimensions, KeyCode, KeyEvent, Modifiers, MouseButtons,
-    MouseCursor, MouseEvent, MouseEventKind, MousePress, Operator, PaintContext, WindowCallbacks,
-    WindowOps, WindowOpsMut,
+    MouseCursor, MouseEvent, MouseEventKind, MousePress, Operator, PaintContext, Point, Rect,
+    WindowCallbacks, WindowOps, WindowOpsMut,
 };
 use cocoa::appkit::{
     NSApplicationActivateIgnoringOtherApps, NSBackingStoreBuffered, NSEvent, NSEventModifierFlags,
@@ -199,15 +199,8 @@ struct MacGraphicsContext<'a> {
 }
 
 impl<'a> PaintContext for MacGraphicsContext<'a> {
-    fn clear_rect(
-        &mut self,
-        dest_x: isize,
-        dest_y: isize,
-        width: usize,
-        height: usize,
-        color: Color,
-    ) {
-        self.buffer.clear_rect(dest_x, dest_y, width, height, color)
+    fn clear_rect(&mut self, rect: Rect, color: Color) {
+        self.buffer.clear_rect(rect, color)
     }
 
     fn clear(&mut self, color: Color) {
@@ -225,30 +218,17 @@ impl<'a> PaintContext for MacGraphicsContext<'a> {
 
     fn draw_image_subset(
         &mut self,
-        dest_x: isize,
-        dest_y: isize,
-        src_x: usize,
-        src_y: usize,
-        width: usize,
-        height: usize,
+        dest_top_left: Point,
+        src_rect: Rect,
         im: &dyn BitmapImage,
         operator: Operator,
     ) {
         self.buffer
-            .draw_image_subset(dest_x, dest_y, src_x, src_y, width, height, im, operator)
+            .draw_image_subset(dest_top_left, src_rect, im, operator)
     }
 
-    fn draw_line(
-        &mut self,
-        start_x: isize,
-        start_y: isize,
-        dest_x: isize,
-        dest_y: isize,
-        color: Color,
-        operator: Operator,
-    ) {
-        self.buffer
-            .draw_line(start_x, start_y, dest_x, dest_y, color, operator);
+    fn draw_line(&mut self, start: Point, end: Point, color: Color, operator: Operator) {
+        self.buffer.draw_line(start, end, color, operator);
     }
 }
 

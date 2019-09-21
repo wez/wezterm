@@ -43,57 +43,61 @@ pub struct Dimensions {
     pub dpi: usize,
 }
 
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub struct Point {
+    pub x: isize,
+    pub y: isize,
+}
+
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub struct Rect {
+    pub top_left: Point,
+    pub width: usize,
+    pub height: usize,
+}
+
 pub trait PaintContext {
     fn get_dimensions(&self) -> Dimensions;
 
     /// Clear the entire context to the specified color
     fn clear(&mut self, color: Color) {
         let dims = self.get_dimensions();
-        self.clear_rect(0, 0, dims.pixel_width, dims.pixel_height, color);
+        self.clear_rect(
+            Rect {
+                top_left: Point { x: 0, y: 0 },
+                width: dims.pixel_width,
+                height: dims.pixel_height,
+            },
+            color,
+        );
     }
 
     /// Clear a rectangle to the specified color
-    fn clear_rect(
-        &mut self,
-        dest_x: isize,
-        dest_y: isize,
-        width: usize,
-        height: usize,
-        color: Color,
-    );
+    fn clear_rect(&mut self, rect: Rect, color: Color);
 
-    fn draw_image(
-        &mut self,
-        dest_x: isize,
-        dest_y: isize,
-        im: &dyn BitmapImage,
-        operator: Operator,
-    ) {
-        let (dest_width, dest_height) = im.image_dimensions();
-        self.draw_image_subset(dest_x, dest_y, 0, 0, dest_width, dest_height, im, operator)
+    fn draw_image(&mut self, top_left: Point, im: &dyn BitmapImage, operator: Operator) {
+        let (width, height) = im.image_dimensions();
+        self.draw_image_subset(
+            top_left,
+            Rect {
+                top_left: Point { x: 0, y: 0 },
+                width,
+                height,
+            },
+            im,
+            operator,
+        )
     }
 
     fn draw_image_subset(
         &mut self,
-        dest_x: isize,
-        dest_y: isize,
-        src_x: usize,
-        src_y: usize,
-        width: usize,
-        height: usize,
+        dest_top_left: Point,
+        src_rect: Rect,
         im: &dyn BitmapImage,
         operator: Operator,
     );
 
-    fn draw_line(
-        &mut self,
-        start_x: isize,
-        start_y: isize,
-        dest_x: isize,
-        dest_y: isize,
-        color: Color,
-        operator: Operator,
-    );
+    fn draw_line(&mut self, start: Point, end: Point, color: Color, operator: Operator);
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

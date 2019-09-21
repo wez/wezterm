@@ -1,5 +1,5 @@
 use crate::color::Color;
-use crate::Operator;
+use crate::{Operator, Point, Rect};
 use palette::Srgba;
 
 /// A bitmap in big endian bgra32 color format with abstract
@@ -71,20 +71,13 @@ pub trait BitmapImage {
         }
     }
 
-    fn clear_rect(
-        &mut self,
-        dest_x: isize,
-        dest_y: isize,
-        width: usize,
-        height: usize,
-        color: Color,
-    ) {
+    fn clear_rect(&mut self, rect: Rect, color: Color) {
         let (dim_width, dim_height) = self.image_dimensions();
-        let max_x = (dest_x + width as isize).min(dim_width as isize) as usize;
-        let max_y = (dest_y + height as isize).min(dim_height as isize) as usize;
+        let max_x = (rect.top_left.x + rect.width as isize).min(dim_width as isize) as usize;
+        let max_y = (rect.top_left.y + rect.height as isize).min(dim_height as isize) as usize;
 
-        let dest_x = dest_x.max(0) as usize;
-        let dest_y = dest_y.max(0) as usize;
+        let dest_x = rect.top_left.x.max(0) as usize;
+        let dest_y = rect.top_left.y.max(0) as usize;
 
         for y in dest_y..max_y {
             let range = self.horizontal_pixel_range_mut(dest_x, max_x, y);
@@ -97,23 +90,15 @@ pub trait BitmapImage {
     /// Draw a line starting at (start_x, start_y) and ending at (dest_x, dest_y).
     /// The line will be anti-aliased and applied to the surface using the
     /// specified Operator.
-    fn draw_line(
-        &mut self,
-        start_x: isize,
-        start_y: isize,
-        dest_x: isize,
-        dest_y: isize,
-        color: Color,
-        operator: Operator,
-    ) {
+    fn draw_line(&mut self, start: Point, end: Point, color: Color, operator: Operator) {
         let (dim_width, dim_height) = self.image_dimensions();
         let srgba: Srgba = color.into();
         let linear = srgba.into_linear();
         let (red, green, blue, alpha) = linear.into_components();
 
         for ((x, y), value) in line_drawing::XiaolinWu::<f32, isize>::new(
-            (start_x as f32, start_y as f32),
-            (dest_x as f32, dest_y as f32),
+            (start.x as f32, start.y as f32),
+            (end.x as f32, end.y as f32),
         ) {
             if y < 0 || x < 0 {
                 continue;
@@ -129,61 +114,86 @@ pub trait BitmapImage {
     }
 
     /// Draw a 1-pixel wide rectangle
-    fn draw_rect(
-        &mut self,
-        left: isize,
-        top: isize,
-        width: usize,
-        height: usize,
-        color: Color,
-        operator: Operator,
-    ) {
-        let bottom = top + height as isize;
-        let right = left + width as isize;
+    fn draw_rect(&mut self, rect: Rect, color: Color, operator: Operator) {
+        let bottom_right = Point {
+            x: rect.top_left.x + rect.width as isize,
+            y: rect.top_left.y + rect.height as isize,
+        };
 
         // Draw the vertical lines down either side
-        self.draw_line(left, top, left, bottom, color, operator);
-        self.draw_line(right, top, right, bottom, color, operator);
+        self.draw_line(
+            rect.top_left,
+            Point {
+                x: rect.top_left.x,
+                y: bottom_right.y,
+            },
+            color,
+            operator,
+        );
+        self.draw_line(
+            Point {
+                x: bottom_right.x,
+                y: rect.top_left.y,
+            },
+            bottom_right,
+            color,
+            operator,
+        );
         // And the horizontals for the top and bottom
-        self.draw_line(left, top, right, top, color, operator);
-        self.draw_line(left, bottom, right, bottom, color, operator);
+        self.draw_line(
+            rect.top_left,
+            Point {
+                x: bottom_right.x,
+                y: rect.top_left.y,
+            },
+            color,
+            operator,
+        );
+        self.draw_line(
+            Point {
+                x: rect.top_left.x,
+                y: bottom_right.y,
+            },
+            bottom_right,
+            color,
+            operator,
+        );
     }
 
-    fn draw_image(
-        &mut self,
-        dest_x: isize,
-        dest_y: isize,
-        im: &dyn BitmapImage,
-        operator: Operator,
-    ) {
-        let (dest_width, dest_height) = im.image_dimensions();
-        self.draw_image_subset(dest_x, dest_y, 0, 0, dest_width, dest_height, im, operator)
+    fn draw_image(&mut self, top_left: Point, im: &dyn BitmapImage, operator: Operator) {
+        let (width, height) = im.image_dimensions();
+        self.draw_image_subset(
+            top_left,
+            Rect {
+                top_left: Point { x: 0, y: 0 },
+                width,
+                height,
+            },
+            im,
+            operator,
+        )
     }
 
     fn draw_image_subset(
         &mut self,
-        dest_x: isize,
-        dest_y: isize,
-        src_x: usize,
-        src_y: usize,
-        width: usize,
-        height: usize,
+        dest_top_left: Point,
+        src_rect: Rect,
         im: &dyn BitmapImage,
         operator: Operator,
     ) {
         let (dest_width, dest_height) = im.image_dimensions();
         let (dim_width, dim_height) = self.image_dimensions();
-        debug_assert!(width <= dest_width && height <= dest_height);
-        for y in src_y..src_y + height {
-            let dest_y = y as isize + dest_y - src_y as isize;
+        debug_assert!(src_rect.width <= dest_width && src_rect.height <= dest_height);
+        for y in src_rect.top_left.y as usize..src_rect.top_left.y as usize + src_rect.height {
+            let dest_y = y as isize + dest_top_left.y - src_rect.top_left.y as isize;
             if dest_y < 0 {
                 continue;
             }
             if dest_y as usize >= dim_height {
                 break;
             }
-            for x in src_x..src_x + width {
-                let dest_x = x as isize + dest_x - src_x as isize;
+            for x in src_rect.top_left.x as usize..src_rect.top_left.x as usize + src_rect.width {
+                let dest_x = x as isize + dest_top_left.x - src_rect.top_left.x as isize;
                 if dest_x < 0 {
                     continue;
                 }
