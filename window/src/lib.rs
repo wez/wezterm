@@ -56,13 +56,62 @@ pub struct Rect {
     pub height: usize,
 }
 
+fn value_in_range(value: isize, min: isize, max: isize) -> bool {
+    value >= min && value <= max
+}
+
 impl Rect {
     #[inline]
     pub fn bottom_right(&self) -> Point {
         Point {
-            x: self.top_left.x + self.width as isize,
-            y: self.top_left.y + self.height as isize,
+            x: self.right(),
+            y: self.bottom(),
         }
+    }
+
+    #[inline]
+    fn left(&self) -> isize {
+        self.top_left.x
+    }
+
+    #[inline]
+    fn top(&self) -> isize {
+        self.top_left.y
+    }
+
+    #[inline]
+    fn right(&self) -> isize {
+        self.top_left.x + self.width as isize
+    }
+
+    #[inline]
+    fn bottom(&self) -> isize {
+        self.top_left.y + self.height as isize
+    }
+
+    fn enclosing_boundary_with(&self, other: &Rect) -> Self {
+        let left = self.left().min(other.left());
+        let right = self.right().max(other.right());
+
+        let top = self.top().min(other.top());
+        let bottom = self.bottom().max(other.bottom());
+
+        Self {
+            top_left: Point { x: left, y: top },
+            width: (right - left as isize) as usize,
+            height: (bottom - top as isize) as usize,
+        }
+    }
+
+    // https://stackoverflow.com/a/306379/149111
+    fn intersects_with(&self, other: &Rect) -> bool {
+        let x_overlaps = value_in_range(self.left(), other.left(), other.right())
+            || value_in_range(other.left(), self.left(), self.right());
+
+        let y_overlaps = value_in_range(self.top(), other.top(), other.bottom())
+            || value_in_range(other.top(), self.top(), self.bottom());
+
+        x_overlaps && y_overlaps
     }
 }
 

@@ -3,7 +3,7 @@ use crate::bitmaps::*;
 use crate::connection::ConnectionOps;
 use crate::{
     Color, Dimensions, KeyEvent, MouseButtons, MouseCursor, MouseEvent, MouseEventKind, MousePress,
-    Operator, PaintContext, WindowCallbacks, WindowOps, WindowOpsMut,
+    Operator, PaintContext, Point, Rect, WindowCallbacks, WindowOps, WindowOpsMut,
 };
 use failure::Fallible;
 use std::any::Any;
@@ -11,54 +11,6 @@ use std::collections::VecDeque;
 use std::convert::TryInto;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct Rect {
-    x: u16,
-    y: u16,
-    width: u16,
-    height: u16,
-}
-
-fn value_in_range(value: u16, min: u16, max: u16) -> bool {
-    value >= min && value <= max
-}
-
-impl Rect {
-    fn right(&self) -> u16 {
-        self.x + self.width
-    }
-
-    fn bottom(&self) -> u16 {
-        self.y + self.height
-    }
-
-    fn enclosing_boundary_with(&self, other: &Rect) -> Self {
-        let left = self.x.min(other.x);
-        let right = self.right().max(other.right());
-
-        let top = self.y.min(other.y);
-        let bottom = self.bottom().max(other.bottom());
-
-        Self {
-            x: left,
-            y: top,
-            width: right - left,
-            height: bottom - top,
-        }
-    }
-
-    // https://stackoverflow.com/a/306379/149111
-    fn intersects_with(&self, other: &Rect) -> bool {
-        let x_overlaps = value_in_range(self.x, other.x, other.right())
-            || value_in_range(other.x, self.x, self.right());
-
-        let y_overlaps = value_in_range(self.y, other.y, other.bottom())
-            || value_in_range(other.y, self.x, self.bottom());
-
-        x_overlaps && y_overlaps
-    }
-}
 
 pub(crate) struct WindowInner {
     window_id: xcb::xproto::Window,
@@ -120,10 +72,9 @@ impl<'a> PaintContext for X11GraphicsContext<'a> {
 impl WindowInner {
     pub fn paint(&mut self) -> Fallible<()> {
         let window_dimensions = Rect {
-            x: 0,
-            y: 0,
-            width: self.width,
-            height: self.height,
+            top_left: Point { x: 0, y: 0 },
+            width: self.width.into(),
+            height: self.height.into(),
         };
 
         if self.paint_all {
@@ -151,10 +102,9 @@ impl WindowInner {
             // through a series of resize exposures during a live resize, and we're
             // now sized smaller then when we queued the exposure.
             let rect = Rect {
-                x: rect.x,
-                y: rect.y,
-                width: rect.width.min(self.width),
-                height: rect.height.min(self.height),
+                top_left: rect.top_left,
+                width: rect.width.min(self.width.into()),
+                height: rect.height.min(self.height.into()),
             };
 
             eprintln!("paint {:?}", rect);
@@ -169,13 +119,13 @@ impl WindowInner {
                 BufferImage::Shared(ref im) => {
                     self.window_context.copy_area(
                         im,
-                        rect.x as i16,
-                        rect.y as i16,
+                        rect.top_left.x as i16,
+                        rect.top_left.y as i16,
                         &self.window_id,
-                        rect.x as i16,
-                        rect.y as i16,
-                        rect.width,
-                        rect.height,
+                        rect.top_left.x as i16,
+                        rect.top_left.y as i16,
+                        rect.width as u16,
+                        rect.height as u16,
                     );
                 }
                 BufferImage::Image(ref buffer) => {
@@ -186,8 +136,11 @@ impl WindowInner {
 
                         im.draw_image(Point { x: 0, y: 0 }, Some(rect), buffer, Operator::Source);
 
-                        self.window_context
-                            .put_image(rect.x as i16, rect.y as i16, &im);
+                        self.window_context.put_image(
+                            rect.top_left.x as i16,
+                            rect.top_left.y as i16,
+                            &im,
+                        );
                     }
                 }
             }
@@ -203,10 +156,12 @@ impl WindowInner {
     /// of increasing rectangles when resizing larger or smaller.
     fn expose(&mut self, x: u16, y: u16, width: u16, height: u16) {
         let expose = Rect {
-            x,
-            y,
-            width,
-            height,
+            top_left: Point {
+                x: x as isize,
+                y: y as isize,
+            },
+            width: width as usize,
+            height: height as usize,
         };
         if let Some(prior) = self.expose.back_mut() {
             if prior.intersects_with(&expose) {
