@@ -3,7 +3,7 @@ use crate::bitmaps::*;
 use crate::connection::ConnectionOps;
 use crate::{
     Color, Dimensions, KeyEvent, MouseButtons, MouseCursor, MouseEvent, MouseEventKind, MousePress,
-    Operator, PaintContext, Point, Rect, WindowCallbacks, WindowOps, WindowOpsMut,
+    Operator, PaintContext, Point, Rect, Size, WindowCallbacks, WindowOps, WindowOpsMut,
 };
 use failure::Fallible;
 use std::any::Any;
@@ -23,6 +23,16 @@ pub(crate) struct WindowInner {
     paint_all: bool,
     buffer_image: BufferImage,
     cursor: Option<MouseCursor>,
+}
+
+fn enclosing_boundary_with(a: &Rect, b: &Rect) -> Rect {
+    let left = a.min_x().min(b.min_x());
+    let right = a.max_x().max(b.max_x());
+
+    let top = a.min_y().min(b.min_y());
+    let bottom = a.max_y().max(b.max_y());
+
+    Rect::new(Point::new(left, top), Size::new(right - left, bottom - top))
 }
 
 impl Drop for WindowInner {
@@ -71,11 +81,8 @@ impl<'a> PaintContext for X11GraphicsContext<'a> {
 
 impl WindowInner {
     pub fn paint(&mut self) -> Fallible<()> {
-        let window_dimensions = Rect {
-            top_left: Point { x: 0, y: 0 },
-            width: self.width.into(),
-            height: self.height.into(),
-        };
+        let window_dimensions =
+            Rect::from_size(Size::new(self.width as isize, self.height as isize));
 
         if self.paint_all {
             self.paint_all = false;
@@ -101,11 +108,13 @@ impl WindowInner {
             // It can be larger than the window size in the case where we are working
             // through a series of resize exposures during a live resize, and we're
             // now sized smaller then when we queued the exposure.
-            let rect = Rect {
-                top_left: rect.top_left,
-                width: rect.width.min(self.width.into()),
-                height: rect.height.min(self.height.into()),
-            };
+            let rect = Rect::new(
+                rect.origin,
+                Size::new(
+                    rect.size.width.min(self.width as isize),
+                    rect.size.height.min(self.height as isize),
+                ),
+            );
 
             eprintln!("paint {:?}", rect);
 
@@ -119,26 +128,27 @@ impl WindowInner {
                 BufferImage::Shared(ref im) => {
                     self.window_context.copy_area(
                         im,
-                        rect.top_left.x as i16,
-                        rect.top_left.y as i16,
+                        rect.origin.x as i16,
+                        rect.origin.y as i16,
                         &self.window_id,
-                        rect.top_left.x as i16,
-                        rect.top_left.y as i16,
-                        rect.width as u16,
-                        rect.height as u16,
+                        rect.origin.x as i16,
+                        rect.origin.y as i16,
+                        rect.size.width as u16,
+                        rect.size.height as u16,
                     );
                 }
                 BufferImage::Image(ref buffer) => {
                     if rect == window_dimensions {
                         self.window_context.put_image(0, 0, buffer);
                     } else {
-                        let mut im = Image::new(rect.width as usize, rect.height as usize);
+                        let mut im =
+                            Image::new(rect.size.width as usize, rect.size.height as usize);
 
-                        im.draw_image(Point { x: 0, y: 0 }, Some(rect), buffer, Operator::Source);
+                        im.draw_image(Point::new(0, 0), Some(rect), buffer, Operator::Source);
 
                         self.window_context.put_image(
-                            rect.top_left.x as i16,
-                            rect.top_left.y as i16,
+                            rect.origin.x as i16,
+                            rect.origin.y as i16,
                             &im,
                         );
                     }
@@ -155,17 +165,13 @@ impl WindowInner {
     /// it to encompass both.  This avoids bloating the list with a series
     /// of increasing rectangles when resizing larger or smaller.
     fn expose(&mut self, x: u16, y: u16, width: u16, height: u16) {
-        let expose = Rect {
-            top_left: Point {
-                x: x as isize,
-                y: y as isize,
-            },
-            width: width as usize,
-            height: height as usize,
-        };
+        let expose = Rect::new(
+            Point::new(x as isize, y as isize),
+            Size::new(width as isize, height as isize),
+        );
         if let Some(prior) = self.expose.back_mut() {
-            if prior.intersects_with(&expose) {
-                *prior = prior.enclosing_boundary_with(&expose);
+            if prior.intersects(&expose) {
+                *prior = enclosing_boundary_with(&prior, &expose);
                 return;
             }
         }
