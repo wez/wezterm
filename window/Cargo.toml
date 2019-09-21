@@ -9,6 +9,7 @@ license = "MIT"
 
 [dependencies]
 bitflags = "1.0"
+euclid = "0.20"
 failure = "0.1"
 failure_derive = "0.1"
 lazy_static = "1.3"

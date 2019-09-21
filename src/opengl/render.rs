@@ -21,10 +21,10 @@ use term::{self, CursorPosition, Line, Underline};
 use window::bitmaps::{BitmapImage, Image};
 use window::Operator;
 
-type Transform3D = euclid::Transform3D<f32>;
+type Transform3D = euclid::Transform3D<f32, f32, f32>;
 
 #[derive(Copy, Clone, Debug)]
-struct Point(euclid::Point2D<f32>);
+struct Point(euclid::default::Point2D<f32>);
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 struct GlyphKey {
@@ -53,7 +53,7 @@ impl Default for Point {
 }
 
 impl Deref for Point {
-    type Target = euclid::Point2D<f32>;
+    type Target = euclid::default::Point2D<f32>;
     fn deref(&self) -> &Self::Target {
         &self.0
     }
