@@ -1,5 +1,5 @@
 use crate::color::Color;
-use crate::{Operator, Point, Rect};
+use crate::{Operator, Point, Rect, Size};
 use palette::Srgba;
 
 pub mod atlas;
@@ -95,11 +95,11 @@ pub trait BitmapImage {
 
     fn clear_rect(&mut self, rect: Rect, color: Color) {
         let (dim_width, dim_height) = self.image_dimensions();
-        let max_x = (rect.top_left.x + rect.width as isize).min(dim_width as isize) as usize;
-        let max_y = (rect.top_left.y + rect.height as isize).min(dim_height as isize) as usize;
+        let max_x = (rect.origin.x + rect.size.width as isize).min(dim_width as isize) as usize;
+        let max_y = (rect.origin.y + rect.size.height as isize).min(dim_height as isize) as usize;
 
-        let dest_x = rect.top_left.x.max(0) as usize;
-        let dest_y = rect.top_left.y.max(0) as usize;
+        let dest_x = rect.origin.x.max(0) as usize;
+        let dest_y = rect.origin.y.max(0) as usize;
 
         for y in dest_y..max_y {
             let range = self.horizontal_pixel_range_mut(dest_x, max_x, y);
@@ -137,42 +137,30 @@ pub trait BitmapImage {
 
     /// Draw a 1-pixel wide rectangle
     fn draw_rect(&mut self, rect: Rect, color: Color, operator: Operator) {
-        let bottom_right = rect.bottom_right();
+        let bottom_right = rect.origin.add_size(&rect.size);
 
         // Draw the vertical lines down either side
         self.draw_line(
-            rect.top_left,
-            Point {
-                x: rect.top_left.x,
-                y: bottom_right.y,
-            },
+            rect.origin,
+            Point::new(rect.origin.x, bottom_right.y),
             color,
             operator,
         );
         self.draw_line(
-            Point {
-                x: bottom_right.x,
-                y: rect.top_left.y,
-            },
+            Point::new(bottom_right.x, rect.origin.y),
             bottom_right,
             color,
             operator,
         );
         // And the horizontals for the top and bottom
         self.draw_line(
-            rect.top_left,
-            Point {
-                x: bottom_right.x,
-                y: rect.top_left.y,
-            },
+            rect.origin,
+            Point::new(bottom_right.x, rect.origin.y),
             color,
             operator,
         );
         self.draw_line(
-            Point {
-                x: rect.top_left.x,
-                y: bottom_right.y,
-            },
+            Point::new(rect.origin.x, bottom_right.y),
             bottom_right,
             color,
             operator,
@@ -187,31 +175,30 @@ pub trait BitmapImage {
         operator: Operator,
     ) {
         let (im_width, im_height) = im.image_dimensions();
-        let src_rect = src_rect.unwrap_or_else(|| Rect {
-            top_left: Point { x: 0, y: 0 },
-            width: im_width,
-            height: im_height,
-        });
+        let src_rect = src_rect
+            .unwrap_or_else(|| Rect::from_size(Size::new(im_width as isize, im_height as isize)));
 
         let (dim_width, dim_height) = self.image_dimensions();
-        debug_assert!(src_rect.width <= im_width && src_rect.height <= im_height);
-        for y in src_rect.top_left.y as usize..src_rect.top_left.y as usize + src_rect.height {
-            let dest_y = y as isize + dest_top_left.y - src_rect.top_left.y as isize;
+        debug_assert!(
+            src_rect.size.width <= im_width as isize && src_rect.size.height <= im_height as isize
+        );
+        for y in src_rect.origin.y..src_rect.origin.y + src_rect.size.height {
+            let dest_y = y as isize + dest_top_left.y - src_rect.origin.y as isize;
             if dest_y < 0 {
                 continue;
             }
             if dest_y as usize >= dim_height {
                 break;
             }
-            for x in src_rect.top_left.x as usize..src_rect.top_left.x as usize + src_rect.width {
-                let dest_x = x as isize + dest_top_left.x - src_rect.top_left.x as isize;
+            for x in src_rect.origin.x..src_rect.origin.x + src_rect.size.width {
+                let dest_x = x as isize + dest_top_left.x - src_rect.origin.x as isize;
                 if dest_x < 0 {
                     continue;
                 }
                 if dest_x as usize >= dim_width {
                     break;
                 }
-                let src = Color(*im.pixel(x, y));
+                let src = Color(*im.pixel(x as usize, y as usize));
                 let dst = self.pixel_mut(dest_x as usize, dest_y as usize);
                 *dst = src.composite(Color(*dst), &operator).0;
             }

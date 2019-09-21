@@ -1,5 +1,5 @@
 use crate::bitmaps::{BitmapImage, Texture2d};
-use crate::{Point, Rect};
+use crate::{Point, Rect, Size};
 use failure::{ensure, Fallible};
 use failure_derive::*;
 use std::rc::Rc;
@@ -88,14 +88,10 @@ impl Atlas {
             });
         }
 
-        let rect = Rect {
-            top_left: Point {
-                x: self.left as isize + 1,
-                y: self.bottom as isize + 1,
-            },
-            width,
-            height,
-        };
+        let rect = Rect::new(
+            Point::new(self.left as isize + 1, self.bottom as isize + 1),
+            Size::new(width as isize, height as isize),
+        );
 
         self.texture.write(rect, im);
 
@@ -139,7 +135,7 @@ impl Sprite {
     /// This is 0 for the first slice and increases by the slice_width
     /// as we work through the slices.
     pub fn left_pix(&self, slice: &SpriteSlice) -> f32 {
-        let width = self.coords.width as f32 * slice.scale;
+        let width = self.coords.size.width as f32 * slice.scale;
         if slice.num_cells == 1 || slice.cell_idx == 0 {
             0.0
         } else {
@@ -162,7 +158,7 @@ impl Sprite {
     /// This is nominally the cell_width but can be modified by being the first
     /// or last in a sequence of potentially oversized sprite slices.
     pub fn slice_width(&self, slice: &SpriteSlice) -> f32 {
-        let width = self.coords.width as f32 * slice.scale;
+        let width = self.coords.size.width as f32 * slice.scale;
 
         if slice.num_cells == 1 {
             width
@@ -182,14 +178,14 @@ impl Sprite {
     /// Returns the left coordinate for a slice in texture coordinate space
     #[inline]
     pub fn left(&self, slice: &SpriteSlice) -> f32 {
-        let left = self.coords.left() as f32 + (self.left_pix(slice) / slice.scale);
+        let left = self.coords.min_x() as f32 + (self.left_pix(slice) / slice.scale);
         left / self.texture.width() as f32
     }
 
     /// Returns the right coordinate for a slice in texture coordinate space
     #[inline]
     pub fn right(&self, slice: &SpriteSlice) -> f32 {
-        let right = self.coords.left() as f32
+        let right = self.coords.min_x() as f32
             + ((self.left_pix(slice) + self.slice_width(slice)) as f32 / slice.scale);
         right / self.texture.width() as f32
     }
@@ -197,13 +193,14 @@ impl Sprite {
     /// Returns the top coordinate for a slice in texture coordinate space
     #[inline]
     pub fn top(&self, _slice: &SpriteSlice) -> f32 {
-        self.coords.bottom() as f32 / self.texture.height() as f32
+        self.coords.max_y() as f32 / self.texture.height() as f32
     }
 
     /// Returns the bottom coordinate for a slice in texture coordinate space
     #[inline]
     pub fn bottom(&self, _slice: &SpriteSlice) -> f32 {
-        (self.coords.bottom() + self.coords.height as isize) as f32 / self.texture.height() as f32
+        (self.coords.max_y() + self.coords.size.height as isize) as f32
+            / self.texture.height() as f32
     }
 
     /// Returns the top-left coordinate for a slice in texture coordinate space

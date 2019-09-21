@@ -43,77 +43,10 @@ pub struct Dimensions {
     pub dpi: usize,
 }
 
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
-pub struct Point {
-    pub x: isize,
-    pub y: isize,
-}
-
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
-pub struct Rect {
-    pub top_left: Point,
-    pub width: usize,
-    pub height: usize,
-}
-
-fn value_in_range(value: isize, min: isize, max: isize) -> bool {
-    value >= min && value <= max
-}
-
-impl Rect {
-    #[inline]
-    pub fn bottom_right(&self) -> Point {
-        Point {
-            x: self.right(),
-            y: self.bottom(),
-        }
-    }
-
-    #[inline]
-    pub fn left(&self) -> isize {
-        self.top_left.x
-    }
-
-    #[inline]
-    pub fn top(&self) -> isize {
-        self.top_left.y
-    }
-
-    #[inline]
-    pub fn right(&self) -> isize {
-        self.top_left.x + self.width as isize
-    }
-
-    #[inline]
-    pub fn bottom(&self) -> isize {
-        self.top_left.y + self.height as isize
-    }
-
-    pub fn enclosing_boundary_with(&self, other: &Rect) -> Self {
-        let left = self.left().min(other.left());
-        let right = self.right().max(other.right());
-
-        let top = self.top().min(other.top());
-        let bottom = self.bottom().max(other.bottom());
-
-        Self {
-            top_left: Point { x: left, y: top },
-            width: (right - left as isize) as usize,
-            height: (bottom - top as isize) as usize,
-        }
-    }
-
-    // https://stackoverflow.com/a/306379/149111
-    pub fn intersects_with(&self, other: &Rect) -> bool {
-        let x_overlaps = value_in_range(self.left(), other.left(), other.right())
-            || value_in_range(other.left(), self.left(), self.right());
-
-        let y_overlaps = value_in_range(self.top(), other.top(), other.bottom())
-            || value_in_range(other.top(), self.top(), self.bottom());
-
-        x_overlaps && y_overlaps
-    }
-}
+pub struct PixelUnit;
+pub type Point = euclid::Point2D<isize, PixelUnit>;
+pub type Rect = euclid::Rect<isize, PixelUnit>;
+pub type Size = euclid::Size2D<isize, PixelUnit>;
 
 pub trait PaintContext {
     fn get_dimensions(&self) -> Dimensions;
@@ -122,11 +55,10 @@ pub trait PaintContext {
     fn clear(&mut self, color: Color) {
         let dims = self.get_dimensions();
         self.clear_rect(
-            Rect {
-                top_left: Point { x: 0, y: 0 },
-                width: dims.pixel_width,
-                height: dims.pixel_height,
-            },
+            Rect::from_size(Size::new(
+                dims.pixel_width as isize,
+                dims.pixel_height as isize,
+            )),
             color,
         );
     }
