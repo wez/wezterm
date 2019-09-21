@@ -85,24 +85,10 @@ pub trait PaintContext {
     /// Clear a rectangle to the specified color
     fn clear_rect(&mut self, rect: Rect, color: Color);
 
-    fn draw_image(&mut self, top_left: Point, im: &dyn BitmapImage, operator: Operator) {
-        let (width, height) = im.image_dimensions();
-        self.draw_image_subset(
-            top_left,
-            Rect {
-                top_left: Point { x: 0, y: 0 },
-                width,
-                height,
-            },
-            im,
-            operator,
-        )
-    }
-
-    fn draw_image_subset(
+    fn draw_image(
         &mut self,
         dest_top_left: Point,
-        src_rect: Rect,
+        src_rect: Option<Rect>,
         im: &dyn BitmapImage,
         operator: Operator,
     );

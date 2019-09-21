@@ -345,15 +345,15 @@ impl PaintContext for GdiGraphicsContext {
         }
     }
 
-    fn draw_image_subset(
+    fn draw_image(
         &mut self,
         dest_top_left: Point,
-        src_rect: Rect,
+        src_rect: Option<Rect>,
         im: &dyn BitmapImage,
         operator: Operator,
     ) {
         self.buffer
-            .draw_image_subset(dest_top_left, src_rect, im, operator)
+            .draw_image(dest_top_left, src_rect, im, operator)
     }
 
     fn draw_line(&mut self, start: Point, end: Point, color: Color, operator: Operator) {

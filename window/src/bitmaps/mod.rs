@@ -87,7 +87,7 @@ pub trait BitmapImage {
         }
     }
 
-    /// Draw a line starting at (start_x, start_y) and ending at (dest_x, dest_y).
+    /// Draw a line starting at `start` and ending at `end`.
     /// The line will be anti-aliased and applied to the surface using the
     /// specified Operator.
     fn draw_line(&mut self, start: Point, end: Point, color: Color, operator: Operator) {
@@ -157,30 +157,22 @@ pub trait BitmapImage {
         );
     }
 
-    fn draw_image(&mut self, top_left: Point, im: &dyn BitmapImage, operator: Operator) {
-        let (width, height) = im.image_dimensions();
-        self.draw_image_subset(
-            top_left,
-            Rect {
-                top_left: Point { x: 0, y: 0 },
-                width,
-                height,
-            },
-            im,
-            operator,
-        )
-    }
-
-    fn draw_image_subset(
+    fn draw_image(
         &mut self,
         dest_top_left: Point,
-        src_rect: Rect,
+        src_rect: Option<Rect>,
         im: &dyn BitmapImage,
         operator: Operator,
     ) {
-        let (dest_width, dest_height) = im.image_dimensions();
+        let (im_width, im_height) = im.image_dimensions();
+        let src_rect = src_rect.unwrap_or_else(|| Rect {
+            top_left: Point { x: 0, y: 0 },
+            width: im_width,
+            height: im_height,
+        });
+
         let (dim_width, dim_height) = self.image_dimensions();
-        debug_assert!(src_rect.width <= dest_width && src_rect.height <= dest_height);
+        debug_assert!(src_rect.width <= im_width && src_rect.height <= im_height);
         for y in src_rect.top_left.y as usize..src_rect.top_left.y as usize + src_rect.height {
             let dest_y = y as isize + dest_top_left.y - src_rect.top_left.y as isize;
             if dest_y < 0 {
