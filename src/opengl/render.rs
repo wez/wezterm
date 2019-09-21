@@ -19,12 +19,13 @@ use std::rc::Rc;
 use term::color::{ColorPalette, RgbaTuple};
 use term::{self, CursorPosition, Line, Underline};
 use window::bitmaps::{BitmapImage, Image};
-use window::Operator;
+use window::{Operator, Point};
 
 type Transform3D = euclid::Transform3D<f32, f32, f32>;
 
+struct TextureUnit;
 #[derive(Copy, Clone, Debug)]
-struct Point(euclid::default::Point2D<f32>);
+struct TexturePoint(euclid::Point2D<f32, TextureUnit>);
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 struct GlyphKey {
@@ -46,27 +47,27 @@ struct CachedGlyph {
     scale: f64,
 }
 
-impl Default for Point {
-    fn default() -> Point {
-        Point::new(0.0, 0.0)
+impl Default for TexturePoint {
+    fn default() -> Self {
+        TexturePoint::new(0.0, 0.0)
     }
 }
 
-impl Deref for Point {
-    type Target = euclid::default::Point2D<f32>;
+impl Deref for TexturePoint {
+    type Target = euclid::Point2D<f32, TextureUnit>;
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 
-unsafe impl glium::vertex::Attribute for Point {
+unsafe impl glium::vertex::Attribute for TexturePoint {
     #[inline]
     fn get_type() -> glium::vertex::AttributeType {
         glium::vertex::AttributeType::F32F32
     }
 }
 
-impl Point {
+impl TexturePoint {
     fn new(x: f32, y: f32) -> Self {
         Self {
             0: euclid::point2(x, y),
@@ -85,9 +86,9 @@ const V_BOT_RIGHT: usize = 3;
 #[derive(Copy, Clone, Debug, Default)]
 struct Vertex {
     // pre-computed by compute_vertices and changed only on resize
-    position: Point,
+    position: TexturePoint,
     // adjustment for glyph size, recomputed each time the cell changes
-    adjust: Point,
+    adjust: TexturePoint,
     // texture coords are updated as the screen contents change
     tex: (f32, f32),
     // cell foreground and background color
@@ -380,10 +381,8 @@ impl Renderer {
             let col = 0;
             let left = col * cell_width;
             underline_data.draw_line(
-                left,
-                descender_plus_one,
-                left + cell_width,
-                descender_plus_one,
+                Point::new(left, descender_plus_one),
+                Point::new(left + cell_width, descender_plus_one),
                 white,
                 Operator::Source,
             );
@@ -394,18 +393,14 @@ impl Renderer {
             let col = 1;
             let left = col * cell_width;
             underline_data.draw_line(
-                left,
-                descender_row,
-                left + cell_width,
-                descender_row,
+                Point::new(left, descender_row),
+                Point::new(left + cell_width, descender_row),
                 white,
                 Operator::Source,
             );
             underline_data.draw_line(
-                left,
-                descender_plus_two,
-                left + cell_width,
-                descender_row,
+                Point::new(left, descender_plus_two),
+                Point::new(left + cell_width, descender_row),
                 white,
                 Operator::Source,
             );
@@ -415,10 +410,8 @@ impl Renderer {
             let col = 2;
             let left = col * cell_width;
             underline_data.draw_line(
-                left,
-                strike_row,
-                left + cell_width,
-                strike_row,
+                Point::new(left, strike_row),
+                Point::new(left + cell_width, strike_row),
                 white,
                 Operator::Source,
             );
@@ -428,18 +421,14 @@ impl Renderer {
             let col = 3;
             let left = col * cell_width;
             underline_data.draw_line(
-                left,
-                descender_plus_one,
-                left + cell_width,
-                descender_plus_one,
+                Point::new(left, descender_plus_one),
+                Point::new(left + cell_width, descender_plus_one),
                 white,
                 Operator::Source,
             );
             underline_data.draw_line(
-                left,
-                strike_row,
-                left + cell_width,
-                strike_row,
+                Point::new(left, strike_row),
+                Point::new(left + cell_width, strike_row),
                 white,
                 Operator::Source,
             );
@@ -450,26 +439,20 @@ impl Renderer {
             let left = col * cell_width;
 
             underline_data.draw_line(
-                left,
-                descender_row,
-                left + cell_width,
-                descender_row,
+                Point::new(left, descender_row),
+                Point::new(left + cell_width, descender_row),
                 white,
                 Operator::Source,
             );
             underline_data.draw_line(
-                left,
-                strike_row,
-                left + cell_width,
-                strike_row,
+                Point::new(left, strike_row),
+                Point::new(left + cell_width, strike_row),
                 white,
                 Operator::Source,
             );
             underline_data.draw_line(
-                left,
-                descender_plus_two,
-                left + cell_width,
-                descender_plus_two,
+                Point::new(left, descender_plus_two),
+                Point::new(left + cell_width, descender_plus_two),
                 white,
                 Operator::Source,
             );
@@ -648,25 +631,25 @@ impl Renderer {
                 let idx = verts.len() as u32;
                 verts.push(Vertex {
                     // Top left
-                    position: Point::new(x_pos, y_pos),
+                    position: TexturePoint::new(x_pos, y_pos),
                     v_idx: V_TOP_LEFT as f32,
                     ..Default::default()
                 });
                 verts.push(Vertex {
                     // Top Right
-                    position: Point::new(x_pos + cell_width, y_pos),
+                    position: TexturePoint::new(x_pos + cell_width, y_pos),
                     v_idx: V_TOP_RIGHT as f32,
                     ..Default::default()
                 });
                 verts.push(Vertex {
                     // Bottom Left
-                    position: Point::new(x_pos, y_pos + cell_height),
+                    position: TexturePoint::new(x_pos, y_pos + cell_height),
                     v_idx: V_BOT_LEFT as f32,
                     ..Default::default()
                 });
                 verts.push(Vertex {
                     // Bottom Right
-                    position: Point::new(x_pos + cell_width, y_pos + cell_height),
+                    position: TexturePoint::new(x_pos + cell_width, y_pos + cell_height),
                     v_idx: V_BOT_RIGHT as f32,
                     ..Default::default()
                 });
@@ -873,16 +856,16 @@ impl Renderer {
                                 - self.cell_height as f32;
 
                             vert[V_TOP_LEFT].tex = texture.top_left(&slice);
-                            vert[V_TOP_LEFT].adjust = Point::new(left, top);
+                            vert[V_TOP_LEFT].adjust = TexturePoint::new(left, top);
 
                             vert[V_TOP_RIGHT].tex = texture.top_right(&slice);
-                            vert[V_TOP_RIGHT].adjust = Point::new(right, top);
+                            vert[V_TOP_RIGHT].adjust = TexturePoint::new(right, top);
 
                             vert[V_BOT_LEFT].tex = texture.bottom_left(&slice);
-                            vert[V_BOT_LEFT].adjust = Point::new(left, bottom);
+                            vert[V_BOT_LEFT].adjust = TexturePoint::new(left, bottom);
 
                             vert[V_BOT_RIGHT].tex = texture.bottom_right(&slice);
-                            vert[V_BOT_RIGHT].adjust = Point::new(right, bottom);
+                            vert[V_BOT_RIGHT].adjust = TexturePoint::new(right, bottom);
 
                             let has_color = if glyph.has_color { 1.0 } else { 0.0 };
                             vert[V_TOP_LEFT].has_color = has_color;
