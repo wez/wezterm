@@ -56,6 +56,16 @@ pub struct Rect {
     pub height: usize,
 }
 
+impl Rect {
+    #[inline]
+    pub fn bottom_right(&self) -> Point {
+        Point {
+            x: self.top_left.x + self.width as isize,
+            y: self.top_left.y + self.height as isize,
+        }
+    }
+}
+
 pub trait PaintContext {
     fn get_dimensions(&self) -> Dimensions;
 

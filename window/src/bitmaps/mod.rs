@@ -115,10 +115,7 @@ pub trait BitmapImage {
 
     /// Draw a 1-pixel wide rectangle
     fn draw_rect(&mut self, rect: Rect, color: Color, operator: Operator) {
-        let bottom_right = Point {
-            x: rect.top_left.x + rect.width as isize,
-            y: rect.top_left.y + rect.height as isize,
-        };
+        let bottom_right = rect.bottom_right();
 
         // Draw the vertical lines down either side
         self.draw_line(
