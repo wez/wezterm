@@ -112,7 +112,7 @@ impl<'a> TerminalHost for Host<'a> {
         }
     }
 
-    fn get_clipboard(&mut self) -> Fallible<Arc<Clipboard>> {
+    fn get_clipboard(&mut self) -> Fallible<Arc<dyn Clipboard>> {
         bail!("peer requested clipboard; ignoring");
     }
 

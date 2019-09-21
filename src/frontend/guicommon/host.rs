@@ -47,7 +47,7 @@ pub trait HostHelper {
 
 pub struct HostImpl<H: HostHelper> {
     helper: H,
-    clipboard: Arc<Clipboard>,
+    clipboard: Arc<dyn Clipboard>,
     keys: KeyMap,
 }
 
@@ -184,7 +184,7 @@ impl<H: HostHelper> HostImpl<H> {
         }
     }
 
-    pub fn get_clipboard(&mut self) -> Fallible<Arc<Clipboard>> {
+    pub fn get_clipboard(&mut self) -> Fallible<Arc<dyn Clipboard>> {
         Ok(Arc::clone(&self.clipboard))
     }
 
@@ -359,7 +359,7 @@ impl<'a, H: HostHelper> term::TerminalHost for TabHost<'a, H> {
         }
     }
 
-    fn get_clipboard(&mut self) -> Fallible<Arc<Clipboard>> {
+    fn get_clipboard(&mut self) -> Fallible<Arc<dyn Clipboard>> {
         self.host.get_clipboard()
     }
 

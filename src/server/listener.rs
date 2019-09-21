@@ -582,7 +582,7 @@ impl<'a> term::TerminalHost for BufferedTerminalHost<'a> {
             .ok();
     }
 
-    fn get_clipboard(&mut self) -> Fallible<Arc<Clipboard>> {
+    fn get_clipboard(&mut self) -> Fallible<Arc<dyn Clipboard>> {
         Ok(Arc::new(RemoteClipboard {
             tab_id: self.tab_id,
             sender: self.sender.clone(),

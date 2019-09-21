@@ -133,7 +133,7 @@ pub struct ClientTab {
     writer: RefCell<TabWriter>,
     reader: Pipe,
     mouse: Arc<Mutex<MouseState>>,
-    clipboard: Arc<Clipboard>,
+    clipboard: Arc<dyn Clipboard>,
 }
 
 impl ClientTab {
