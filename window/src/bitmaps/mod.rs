@@ -2,6 +2,28 @@ use crate::color::Color;
 use crate::{Operator, Point, Rect};
 use palette::Srgba;
 
+pub mod atlas;
+
+/// Represents a big endian bgra32 bitmap that may not be present
+/// in local RAM, but may be addressable in eg: video RAM
+pub trait Texture2d {
+    /// Copy the bits from the source bitmap to the texture at the location
+    /// specified by the rectangle.
+    /// The dimensions of the rectangle must match the source image
+    fn write(&self, rect: Rect, im: &dyn BitmapImage);
+
+    /// Copy the bits from the texture at the location specified by the rectangle
+    /// into the bitmap image.
+    /// The dimensions of the rectangle must match the source image
+    fn read(&self, rect: Rect, im: &mut dyn BitmapImage);
+
+    /// Returns the width of the texture in pixels
+    fn width(&self) -> usize;
+
+    /// Returns the height of the texture in pixels
+    fn height(&self) -> usize;
+}
+
 /// A bitmap in big endian bgra32 color format with abstract
 /// storage filled in by the trait implementation.
 pub trait BitmapImage {
