@@ -70,26 +70,26 @@ impl Rect {
     }
 
     #[inline]
-    fn left(&self) -> isize {
+    pub fn left(&self) -> isize {
         self.top_left.x
     }
 
     #[inline]
-    fn top(&self) -> isize {
+    pub fn top(&self) -> isize {
         self.top_left.y
     }
 
     #[inline]
-    fn right(&self) -> isize {
+    pub fn right(&self) -> isize {
         self.top_left.x + self.width as isize
     }
 
     #[inline]
-    fn bottom(&self) -> isize {
+    pub fn bottom(&self) -> isize {
         self.top_left.y + self.height as isize
     }
 
-    fn enclosing_boundary_with(&self, other: &Rect) -> Self {
+    pub fn enclosing_boundary_with(&self, other: &Rect) -> Self {
         let left = self.left().min(other.left());
         let right = self.right().max(other.right());
 
@@ -104,7 +104,7 @@ impl Rect {
     }
 
     // https://stackoverflow.com/a/306379/149111
-    fn intersects_with(&self, other: &Rect) -> bool {
+    pub fn intersects_with(&self, other: &Rect) -> bool {
         let x_overlaps = value_in_range(self.left(), other.left(), other.right())
             || value_in_range(other.left(), self.left(), self.right());
 
