@@ -110,6 +110,24 @@ pub struct Sprite {
     pub coords: Rect,
 }
 
+pub struct TextureUnit;
+pub type TextureCoord = euclid::Point2D<f32, TextureUnit>;
+pub type TextureRect = euclid::Rect<f32, TextureUnit>;
+pub type TextureSize = euclid::Size2D<f32, TextureUnit>;
+
+impl Sprite {
+    /// Returns the texture coordinates of the sprite
+    pub fn texture_coords(&self) -> TextureRect {
+        let coords = self.coords.to_f32();
+        let width = self.texture.width() as f32;
+        let height = self.texture.height() as f32;
+        TextureRect::new(
+            TextureCoord::new(coords.min_x() / width, coords.min_y() / height),
+            TextureSize::new(coords.size.width / width, coords.size.height / height),
+        )
+    }
+}
+
 /// Represents a vertical slice through a sprite.
 /// These are used to handle multi-cell wide glyphs.
 /// Each cell is nominally `cell_width` wide but font metrics
@@ -130,25 +148,25 @@ pub struct SpriteSlice {
     pub left_offset: f32,
 }
 
-impl Sprite {
+impl SpriteSlice {
     /// Returns the scaled offset to the left most pixel in a slice.
     /// This is 0 for the first slice and increases by the slice_width
     /// as we work through the slices.
-    pub fn left_pix(&self, slice: &SpriteSlice) -> f32 {
-        let width = self.coords.size.width as f32 * slice.scale;
-        if slice.num_cells == 1 || slice.cell_idx == 0 {
+    pub fn left_pix(&self, sprite: &Sprite) -> f32 {
+        let width = sprite.coords.size.width as f32 * self.scale;
+        if self.num_cells == 1 || self.cell_idx == 0 {
             0.0
         } else {
             // Width of the first cell
-            let cell_0 = width.min((slice.cell_width as f32) - slice.left_offset);
+            let cell_0 = width.min((self.cell_width as f32) - self.left_offset);
 
-            if slice.cell_idx == slice.num_cells - 1 {
+            if self.cell_idx == self.num_cells - 1 {
                 // Width of all the other cells
-                let middle = slice.cell_width * (slice.num_cells - 2);
+                let middle = self.cell_width * (self.num_cells - 2);
                 cell_0 + middle as f32
             } else {
                 // Width of all the preceding cells
-                let prev = slice.cell_width * slice.cell_idx;
+                let prev = self.cell_width * self.cell_idx;
                 cell_0 + prev as f32
             }
         }
@@ -157,75 +175,75 @@ impl Sprite {
     /// Returns the (scaled) pixel width of a slice.
     /// This is nominally the cell_width but can be modified by being the first
     /// or last in a sequence of potentially oversized sprite slices.
-    pub fn slice_width(&self, slice: &SpriteSlice) -> f32 {
-        let width = self.coords.size.width as f32 * slice.scale;
+    pub fn slice_width(&self, sprite: &Sprite) -> f32 {
+        let width = sprite.coords.size.width as f32 * self.scale;
 
-        if slice.num_cells == 1 {
+        if self.num_cells == 1 {
             width
-        } else if slice.cell_idx == 0 {
+        } else if self.cell_idx == 0 {
             // The first slice can extend (or recede) to the left based
             // on the slice.left_offset value.
-            width.min((slice.cell_width as f32) - slice.left_offset)
-        } else if slice.cell_idx == slice.num_cells - 1 {
-            width - self.left_pix(slice)
+            width.min((self.cell_width as f32) - self.left_offset)
+        } else if self.cell_idx == self.num_cells - 1 {
+            width - self.left_pix(sprite)
         } else {
             // somewhere in the middle of the sequence, the width is
             // simply the cell_width
-            slice.cell_width as f32
+            self.cell_width as f32
         }
     }
 
     /// Returns the left coordinate for a slice in texture coordinate space
     #[inline]
-    pub fn left(&self, slice: &SpriteSlice) -> f32 {
-        let left = self.coords.min_x() as f32 + (self.left_pix(slice) / slice.scale);
-        left / self.texture.width() as f32
+    fn left(&self, sprite: &Sprite) -> f32 {
+        let left = sprite.coords.min_x() as f32 + (self.left_pix(sprite) / self.scale);
+        left / sprite.texture.width() as f32
     }
 
     /// Returns the right coordinate for a slice in texture coordinate space
     #[inline]
-    pub fn right(&self, slice: &SpriteSlice) -> f32 {
-        let right = self.coords.min_x() as f32
-            + ((self.left_pix(slice) + self.slice_width(slice)) as f32 / slice.scale);
-        right / self.texture.width() as f32
+    fn right(&self, sprite: &Sprite) -> f32 {
+        let right = sprite.coords.min_x() as f32
+            + ((self.left_pix(sprite) + self.slice_width(sprite)) as f32 / self.scale);
+        right / sprite.texture.width() as f32
     }
 
     /// Returns the top coordinate for a slice in texture coordinate space
     #[inline]
-    pub fn top(&self, _slice: &SpriteSlice) -> f32 {
-        self.coords.max_y() as f32 / self.texture.height() as f32
+    fn top(&self, sprite: &Sprite) -> f32 {
+        sprite.coords.max_y() as f32 / sprite.texture.height() as f32
     }
 
     /// Returns the bottom coordinate for a slice in texture coordinate space
     #[inline]
-    pub fn bottom(&self, _slice: &SpriteSlice) -> f32 {
-        (self.coords.max_y() + self.coords.size.height as isize) as f32
-            / self.texture.height() as f32
+    fn bottom(&self, sprite: &Sprite) -> f32 {
+        (sprite.coords.max_y() + sprite.coords.size.height as isize) as f32
+            / sprite.texture.height() as f32
     }
 
     /// Returns the top-left coordinate for a slice in texture coordinate space
     #[inline]
-    pub fn top_left(&self, slice: &SpriteSlice) -> (f32, f32) {
-        (self.left(slice), self.top(slice))
+    pub fn top_left(&self, sprite: &Sprite) -> TextureCoord {
+        TextureCoord::new(self.left(sprite), self.top(sprite))
     }
 
     /// Returns the bottom-left coordinate for a slice in texture coordinate
     /// space
     #[inline]
-    pub fn bottom_left(&self, slice: &SpriteSlice) -> (f32, f32) {
-        (self.left(slice), self.bottom(slice))
+    pub fn bottom_left(&self, sprite: &Sprite) -> TextureCoord {
+        TextureCoord::new(self.left(sprite), self.bottom(sprite))
     }
 
     /// Returns the bottom-right coordinate for a slice in texture coordinate
     /// space
     #[inline]
-    pub fn bottom_right(&self, slice: &SpriteSlice) -> (f32, f32) {
-        (self.right(slice), self.bottom(slice))
+    pub fn bottom_right(&self, sprite: &Sprite) -> TextureCoord {
+        TextureCoord::new(self.right(sprite), self.bottom(sprite))
     }
 
     /// Returns the top-right coordinate for a slice in texture coordinate space
     #[inline]
-    pub fn top_right(&self, slice: &SpriteSlice) -> (f32, f32) {
-        (self.right(slice), self.top(slice))
+    pub fn top_right(&self, sprite: &Sprite) -> TextureCoord {
+        TextureCoord::new(self.right(sprite), self.top(sprite))
     }
 }
