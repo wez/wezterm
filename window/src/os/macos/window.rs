@@ -373,6 +373,17 @@ impl WindowView {
         Self::mouse_common(this, nsevent, MouseEventKind::Release(MousePress::Right));
     }
 
+    extern "C" fn scroll_wheel(this: &mut Object, _sel: Sel, nsevent: id) {
+        let vert_delta = unsafe { nsevent.scrollingDeltaY() };
+        let horz_delta = unsafe { nsevent.scrollingDeltaX() };
+        let kind = if vert_delta.abs() > horz_delta.abs() {
+            MouseEventKind::VertWheel(vert_delta as i16)
+        } else {
+            MouseEventKind::HorzWheel(horz_delta as i16)
+        };
+        Self::mouse_common(this, nsevent, kind);
+    }
+
     extern "C" fn right_mouse_down(this: &mut Object, _sel: Sel, nsevent: id) {
         Self::mouse_common(this, nsevent, MouseEventKind::Press(MousePress::Right));
     }
@@ -579,6 +590,10 @@ impl WindowView {
             cls.add_method(
                 sel!(rightMouseUp:),
                 Self::right_mouse_up as extern "C" fn(&mut Object, Sel, id),
+            );
+            cls.add_method(
+                sel!(scrollWheel:),
+                Self::scroll_wheel as extern "C" fn(&mut Object, Sel, id),
             );
 
             cls.add_method(
