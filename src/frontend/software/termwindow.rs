@@ -1,23 +1,21 @@
 use crate::config::Config;
 use crate::config::TextStyle;
 use crate::font::{FontConfiguration, GlyphInfo};
-use crate::frontend::guicommon::host::{HostHelper, HostImpl, TabHost};
 use crate::mux::renderable::Renderable;
-use crate::mux::tab::{Tab, TabId};
+use crate::mux::tab::Tab;
 use crate::mux::window::WindowId as MuxWindowId;
 use crate::mux::Mux;
 use ::window::bitmaps::atlas::{Atlas, Sprite, SpriteSlice};
-use ::window::bitmaps::{Image, ImageTexture, Texture2d};
+use ::window::bitmaps::{Image, ImageTexture};
 use ::window::*;
 use failure::Fallible;
-use promise::Future;
 use std::any::Any;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::ops::Range;
 use std::rc::Rc;
 use std::sync::Arc;
-use term::color::{ColorPalette, RgbaTuple};
+use term::color::ColorPalette;
 use term::{CursorPosition, Line, Underline};
 use termwiz::color::RgbColor;
 
@@ -43,9 +41,7 @@ struct CachedGlyph {
 pub struct TermWindow {
     window: Option<Window>,
     fonts: Rc<FontConfiguration>,
-    config: Arc<Config>,
-    width: usize,
-    height: usize,
+    _config: Arc<Config>,
     cell_size: Size,
     mux_window_id: MuxWindowId,
     descender: f64,
@@ -139,11 +135,9 @@ impl TermWindow {
             height,
             Box::new(Self {
                 window: None,
-                width,
-                height,
                 cell_size: Size::new(cell_width as isize, cell_height as isize),
                 mux_window_id,
-                config: Arc::clone(config),
+                _config: Arc::clone(config),
                 fonts: Rc::clone(fontconfig),
                 descender: metrics.descender,
                 glyph_cache: RefCell::new(HashMap::new()),
@@ -186,13 +180,6 @@ impl TermWindow {
             }
         }
 
-        let cursor_rect = Rect::new(
-            Point::new(
-                cursor.x as isize * self.cell_size.width,
-                cursor.y as isize * self.cell_size.height,
-            ),
-            self.cell_size,
-        );
         term.clean_dirty_lines();
     }
 
@@ -378,7 +365,11 @@ impl TermWindow {
                             ),
                             Some(texture.coords),
                             &*texture.texture.image.borrow(),
-                            Operator::MultiplyThenOver(glyph_color),
+                            if glyph.has_color {
+                                Operator::Source
+                            } else {
+                                Operator::MultiplyThenOver(glyph_color)
+                            },
                         );
                         /* TODO: SpriteSlice for double-width
                         let slice = SpriteSlice {
@@ -432,7 +423,7 @@ impl TermWindow {
             // Even though we don't have a cell for these, they still
             // hold the cursor or the selection so we need to compute
             // the colors in the usual way.
-            let (glyph_color, bg_color) = self.compute_cell_fg_bg(
+            let (_glyph_color, bg_color) = self.compute_cell_fg_bg(
                 line_idx,
                 cell_idx,
                 cursor,
