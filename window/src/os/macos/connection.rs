@@ -4,6 +4,8 @@ use crate::spawn::*;
 use crate::tasks::{Task, Tasks};
 use cocoa::appkit::{NSApp, NSApplication, NSApplicationActivationPolicyRegular};
 use cocoa::base::{id, nil};
+use core_foundation::date::CFAbsoluteTimeGetCurrent;
+use core_foundation::runloop::*;
 use failure::Fallible;
 use objc::*;
 use promise::BasicExecutor;
@@ -89,5 +91,49 @@ impl ConnectionOps for Connection {
             let conn = Connection::get().unwrap();
             conn.tasks.poll_by_slot(slot);
         }));
+    }
+
+    fn schedule_timer<F: FnMut() + 'static>(&self, interval: std::time::Duration, callback: F) {
+        let secs_f64 =
+            (interval.as_secs() as f64) + (interval.subsec_nanos() as f64 / 1_000_000_000_f64);
+
+        let callback = Box::into_raw(Box::new(callback));
+
+        extern "C" fn timer_callback<F: FnMut()>(
+            _timer_ref: CFRunLoopTimerRef,
+            callback_ptr: *mut std::ffi::c_void,
+        ) {
+            unsafe {
+                let callback: *mut F = callback_ptr as _;
+                (*callback)();
+            }
+        }
+
+        extern "C" fn release_callback<F: FnMut()>(info: *const std::ffi::c_void) {
+            let callback: Box<F> = unsafe { Box::from_raw(std::mem::transmute(info)) };
+            drop(callback);
+        }
+
+        let timer_ref = unsafe {
+            CFRunLoopTimerCreate(
+                std::ptr::null(),
+                CFAbsoluteTimeGetCurrent(),
+                secs_f64,
+                0,
+                0,
+                timer_callback::<F>,
+                &mut CFRunLoopTimerContext {
+                    copyDescription: std::mem::transmute(0usize),
+                    info: callback as _,
+                    release: release_callback::<F>,
+                    retain: std::mem::transmute(0usize),
+                    version: 0,
+                },
+            )
+        };
+
+        unsafe {
+            CFRunLoopAddTimer(CFRunLoopGetCurrent(), timer_ref, kCFRunLoopCommonModes);
+        }
     }
 }

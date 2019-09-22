@@ -20,8 +20,6 @@ pub struct TermWindow {
     height: usize,
     cell_size: Size,
     mux_window_id: MuxWindowId,
-
-    last_painted_tab_id: Option<TabId>,
 }
 
 impl WindowCallbacks for TermWindow {
@@ -43,6 +41,7 @@ impl WindowCallbacks for TermWindow {
     }
 
     fn paint(&mut self, ctx: &mut dyn PaintContext) {
+        log::error!("paint called");
         let mux = Mux::get().unwrap();
         let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
             Some(tab) => tab,
@@ -70,6 +69,10 @@ impl TermWindow {
         tab: &Rc<dyn Tab>,
         mux_window_id: MuxWindowId,
     ) -> Fallible<()> {
+        log::error!(
+            "TermWindow::new_window called with mux_window_id {}",
+            mux_window_id
+        );
         let (physical_rows, physical_cols) = tab.renderer().physical_dimensions();
 
         let metrics = fontconfig.default_font_metrics()?;
@@ -94,9 +97,24 @@ impl TermWindow {
                 mux_window_id,
                 config: Arc::clone(config),
                 fonts: Rc::clone(fontconfig),
-                last_painted_tab_id: None,
             }),
         )?;
+
+        let cloned_window = window.clone();
+
+        Connection::get().unwrap().schedule_timer(
+            std::time::Duration::from_millis(35),
+            move || {
+                let mux = Mux::get().unwrap();
+                if let Some(tab) = mux.get_active_tab_for_window(mux_window_id) {
+                    if tab.renderer().has_dirty_lines() {
+                        cloned_window.invalidate();
+                    }
+                } else {
+                    // TODO: destroy the window here
+                }
+            },
+        );
 
         window.show();
         Ok(())
@@ -108,7 +126,7 @@ impl TermWindow {
             rgbcolor_to_window_color(palette.resolve_bg(term::color::ColorAttribute::Default));
         ctx.clear(background_color);
 
-        let term = tab.renderer();
+        let mut term = tab.renderer();
         let cursor = term.get_cursor_position();
 
         let cursor_rect = Rect::new(
@@ -119,6 +137,7 @@ impl TermWindow {
             self.cell_size,
         );
         ctx.clear_rect(cursor_rect, rgbcolor_to_window_color(palette.cursor_bg));
+        term.clean_dirty_lines();
     }
 }
 
