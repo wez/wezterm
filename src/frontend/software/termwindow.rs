@@ -1,6 +1,7 @@
 use crate::config::Config;
 use crate::config::TextStyle;
 use crate::font::{FontConfiguration, GlyphInfo};
+use crate::frontend::guicommon::clipboard::SystemClipboard;
 use crate::mux::renderable::Renderable;
 use crate::mux::tab::Tab;
 use crate::mux::window::WindowId as MuxWindowId;
@@ -51,6 +52,34 @@ pub struct TermWindow {
     strike_row: isize,
     glyph_cache: RefCell<HashMap<GlyphKey, Rc<CachedGlyph>>>,
     atlas: RefCell<Atlas<ImageTexture>>,
+    clipboard: Arc<dyn term::Clipboard>,
+}
+
+struct Host<'a> {
+    writer: &'a mut dyn std::io::Write,
+    context: &'a dyn WindowOps,
+    clipboard: &'a Arc<dyn term::Clipboard>,
+}
+
+impl<'a> term::TerminalHost for Host<'a> {
+    fn writer(&mut self) -> &mut dyn std::io::Write {
+        self.writer
+    }
+
+    fn get_clipboard(&mut self) -> Fallible<Arc<dyn term::Clipboard>> {
+        Ok(Arc::clone(self.clipboard))
+    }
+
+    fn set_title(&mut self, title: &str) {
+        self.context.set_title(title);
+    }
+
+    fn click_link(&mut self, link: &Arc<term::cell::Hyperlink>) {
+        log::error!("clicking {}", link.uri());
+        if let Err(err) = open::that(link.uri()) {
+            log::error!("failed to open {}: {:?}", link.uri(), err);
+        }
+    }
 }
 
 impl WindowCallbacks for TermWindow {
@@ -79,6 +108,81 @@ impl WindowCallbacks for TermWindow {
         self
     }
 
+    fn mouse_event(&mut self, event: &MouseEvent, context: &dyn WindowOps) {
+        let mux = Mux::get().unwrap();
+        let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
+            Some(tab) => tab,
+            None => return,
+        };
+
+        use ::term::input::MouseButton as TMB;
+        use ::term::input::MouseEventKind as TMEK;
+        use ::window::MouseButtons as WMB;
+        use ::window::MouseEventKind as WMEK;
+        tab.mouse_event(
+            term::MouseEvent {
+                kind: match event.kind {
+                    WMEK::Move => TMEK::Move,
+                    WMEK::VertWheel(_)
+                    | WMEK::HorzWheel(_)
+                    | WMEK::DoubleClick(_)
+                    | WMEK::Press(_) => TMEK::Press,
+                    WMEK::Release(_) => TMEK::Release,
+                },
+                button: match event.kind {
+                    WMEK::Release(ref press)
+                    | WMEK::Press(ref press)
+                    | WMEK::DoubleClick(ref press) => match press {
+                        MousePress::Left => TMB::Left,
+                        MousePress::Middle => TMB::Middle,
+                        MousePress::Right => TMB::Right,
+                    },
+                    WMEK::Move => {
+                        if event.mouse_buttons == WMB::LEFT {
+                            TMB::Left
+                        } else if event.mouse_buttons == WMB::RIGHT {
+                            TMB::Right
+                        } else if event.mouse_buttons == WMB::MIDDLE {
+                            TMB::Middle
+                        } else {
+                            TMB::None
+                        }
+                    }
+                    WMEK::VertWheel(amount) => {
+                        if amount > 0 {
+                            TMB::WheelUp(amount as usize)
+                        } else {
+                            TMB::WheelDown((-amount) as usize)
+                        }
+                    }
+                    WMEK::HorzWheel(_) => TMB::None,
+                },
+                x: (event.x as isize / self.cell_size.width) as usize,
+                y: (event.y as isize / self.cell_size.height) as i64,
+                modifiers: window_mods_to_termwiz_mods(event.modifiers),
+            },
+            &mut Host {
+                writer: &mut *tab.writer(),
+                context,
+                clipboard: &self.clipboard,
+            },
+        )
+        .ok();
+
+        match event.kind {
+            WMEK::Move => {}
+            _ => context.invalidate(),
+        }
+
+        // When hovering over a hyperlink, show an appropriate
+        // mouse cursor to give the cue that it is clickable
+        context.set_cursor(Some(if tab.renderer().current_highlight().is_some() {
+            MouseCursor::Hand
+        } else {
+            MouseCursor::Text
+        }));
+    }
+
     fn resize(&mut self, dimensions: Dimensions) {
         let mux = Mux::get().unwrap();
         if let Some(window) = mux.get_window(self.mux_window_id) {
@@ -94,7 +198,7 @@ impl WindowCallbacks for TermWindow {
         };
     }
 
-    fn key_event(&mut self, key: &KeyEvent, context: &dyn WindowOps) -> bool {
+    fn key_event(&mut self, key: &KeyEvent, _context: &dyn WindowOps) -> bool {
         if !key.key_is_down {
             return false;
         }
@@ -116,7 +220,6 @@ impl WindowCallbacks for TermWindow {
                 WK::LeftArrow => Some(KC::LeftArrow),
                 WK::RightArrow => Some(KC::RightArrow),
                 WK::UpArrow => Some(KC::UpArrow),
-                WK::DownArrow => Some(KC::DownArrow),
                 WK::DownArrow => Some(KC::DownArrow),
                 WK::Home => Some(KC::Home),
                 WK::End => Some(KC::End),
@@ -205,6 +308,7 @@ impl TermWindow {
                 strike_row,
                 glyph_cache: RefCell::new(HashMap::new()),
                 atlas,
+                clipboard: Arc::new(SystemClipboard::new()),
             }),
         )?;
 
