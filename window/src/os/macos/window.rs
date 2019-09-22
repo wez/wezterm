@@ -390,7 +390,17 @@ impl WindowView {
         if let Some(first_char) = char_iter.next() {
             let key = if char_iter.next().is_none() {
                 // A single unicode char
-                KeyCode::Char(first_char)
+                match first_char {
+                    '\u{f700}' => KeyCode::UpArrow,
+                    '\u{f701}' => KeyCode::DownArrow,
+                    '\u{f702}' => KeyCode::LeftArrow,
+                    '\u{f703}' => KeyCode::RightArrow,
+                    '\u{f729}' => KeyCode::Home,
+                    '\u{f72b}' => KeyCode::End,
+                    '\u{f72c}' => KeyCode::PageUp,
+                    '\u{f72d}' => KeyCode::PageDown,
+                    _ => KeyCode::Char(first_char),
+                }
             } else {
                 KeyCode::Composed(chars.to_owned())
             };

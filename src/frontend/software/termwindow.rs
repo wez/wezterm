@@ -94,6 +94,48 @@ impl WindowCallbacks for TermWindow {
         };
     }
 
+    fn key_event(&mut self, key: &KeyEvent, context: &dyn WindowOps) -> bool {
+        if !key.key_is_down {
+            return false;
+        }
+
+        let mux = Mux::get().unwrap();
+        if let Some(tab) = mux.get_active_tab_for_window(self.mux_window_id) {
+            let modifiers = window_mods_to_termwiz_mods(key.modifiers);
+
+            use ::termwiz::input::KeyCode as KC;
+            use ::window::KeyCode as WK;
+
+            let key_down = match key.key {
+                WK::Char(c) => Some(KC::Char(c)),
+                WK::Composed(ref s) => {
+                    tab.writer().write_all(s.as_bytes()).ok();
+                    return true;
+                }
+                WK::Function(f) => Some(KC::Function(f)),
+                WK::LeftArrow => Some(KC::LeftArrow),
+                WK::RightArrow => Some(KC::RightArrow),
+                WK::UpArrow => Some(KC::UpArrow),
+                WK::DownArrow => Some(KC::DownArrow),
+                WK::DownArrow => Some(KC::DownArrow),
+                WK::Home => Some(KC::Home),
+                WK::End => Some(KC::End),
+                WK::PageUp => Some(KC::PageUp),
+                WK::PageDown => Some(KC::PageDown),
+                // TODO: more keys (eg: numpad!)
+                _ => None,
+            };
+
+            if let Some(key) = key_down {
+                if tab.key_down(key, modifiers).is_ok() {
+                    return true;
+                }
+            }
+        }
+
+        false
+    }
+
     fn paint(&mut self, ctx: &mut dyn PaintContext) {
         let mux = Mux::get().unwrap();
         let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
@@ -584,4 +626,21 @@ impl TermWindow {
 
 fn rgbcolor_to_window_color(color: RgbColor) -> Color {
     Color::rgba(color.red, color.green, color.blue, 0xff)
+}
+
+fn window_mods_to_termwiz_mods(modifiers: ::window::Modifiers) -> termwiz::input::Modifiers {
+    let mut result = termwiz::input::Modifiers::NONE;
+    if modifiers.contains(::window::Modifiers::SHIFT) {
+        result.insert(termwiz::input::Modifiers::SHIFT);
+    }
+    if modifiers.contains(::window::Modifiers::ALT) {
+        result.insert(termwiz::input::Modifiers::ALT);
+    }
+    if modifiers.contains(::window::Modifiers::CTRL) {
+        result.insert(termwiz::input::Modifiers::CTRL);
+    }
+    if modifiers.contains(::window::Modifiers::SUPER) {
+        result.insert(termwiz::input::Modifiers::SUPER);
+    }
+    result
 }
