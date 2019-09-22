@@ -45,6 +45,10 @@ pub struct TermWindow {
     cell_size: Size,
     mux_window_id: MuxWindowId,
     descender: f64,
+    descender_row: isize,
+    descender_plus_one: isize,
+    descender_plus_two: isize,
+    strike_row: isize,
     glyph_cache: RefCell<HashMap<GlyphKey, Rc<CachedGlyph>>>,
     atlas: RefCell<Atlas<ImageTexture>>,
 }
@@ -128,6 +132,11 @@ impl TermWindow {
         let surface = Rc::new(ImageTexture::new(4096, 4096));
         let atlas = RefCell::new(Atlas::new(&surface)?);
 
+        let descender_row = (cell_height as f64 + metrics.descender) as isize;
+        let descender_plus_one = (1 + descender_row).min(cell_height as isize - 1);
+        let descender_plus_two = (2 + descender_row).min(cell_height as isize - 1);
+        let strike_row = descender_row / 2;
+
         let window = Window::new_window(
             "wezterm",
             "wezterm",
@@ -140,6 +149,10 @@ impl TermWindow {
                 _config: Arc::clone(config),
                 fonts: Rc::clone(fontconfig),
                 descender: metrics.descender,
+                descender_row,
+                descender_plus_one,
+                descender_plus_two,
+                strike_row,
                 glyph_cache: RefCell::new(HashMap::new()),
                 atlas,
             }),
@@ -267,10 +280,6 @@ impl TermWindow {
                     (true, Underline::None) => Underline::Single,
                     (_, underline) => underline,
                 };
-                let descender_row = (self.cell_size.height as f64 + self.descender) as isize;
-                let descender_plus_one = (1 + descender_row).min(self.cell_size.height - 1);
-                let descender_plus_two = (2 + descender_row).min(self.cell_size.height - 1);
-                let strike_row = descender_row / 2;
 
                 // Iterate each cell that comprises this glyph.  There is usually
                 // a single cell per glyph but combining characters, ligatures
@@ -310,11 +319,11 @@ impl TermWindow {
                             ctx.draw_line(
                                 Point::new(
                                     cell_rect.origin.x,
-                                    cell_rect.origin.y + descender_plus_one,
+                                    cell_rect.origin.y + self.descender_plus_one,
                                 ),
                                 Point::new(
                                     cell_rect.origin.x + self.cell_size.width,
-                                    cell_rect.origin.y + descender_plus_one,
+                                    cell_rect.origin.y + self.descender_plus_one,
                                 ),
                                 glyph_color,
                                 Operator::Over,
@@ -322,10 +331,13 @@ impl TermWindow {
                         }
                         Underline::Double => {
                             ctx.draw_line(
-                                Point::new(cell_rect.origin.x, cell_rect.origin.y + descender_row),
+                                Point::new(
+                                    cell_rect.origin.x,
+                                    cell_rect.origin.y + self.descender_row,
+                                ),
                                 Point::new(
                                     cell_rect.origin.x + self.cell_size.width,
-                                    cell_rect.origin.y + descender_row,
+                                    cell_rect.origin.y + self.descender_row,
                                 ),
                                 glyph_color,
                                 Operator::Over,
@@ -333,11 +345,11 @@ impl TermWindow {
                             ctx.draw_line(
                                 Point::new(
                                     cell_rect.origin.x,
-                                    cell_rect.origin.y + descender_plus_two,
+                                    cell_rect.origin.y + self.descender_plus_two,
                                 ),
                                 Point::new(
                                     cell_rect.origin.x + self.cell_size.width,
-                                    cell_rect.origin.y + descender_plus_two,
+                                    cell_rect.origin.y + self.descender_plus_two,
                                 ),
                                 glyph_color,
                                 Operator::Over,
@@ -347,10 +359,10 @@ impl TermWindow {
                     }
                     if attrs.strikethrough() {
                         ctx.draw_line(
-                            Point::new(cell_rect.origin.x, cell_rect.origin.y + strike_row),
+                            Point::new(cell_rect.origin.x, cell_rect.origin.y + self.strike_row),
                             Point::new(
                                 cell_rect.origin.x + self.cell_size.width,
-                                cell_rect.origin.y + strike_row,
+                                cell_rect.origin.y + self.strike_row,
                             ),
                             glyph_color,
                             Operator::Over,
