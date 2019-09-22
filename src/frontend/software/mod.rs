@@ -43,6 +43,15 @@ impl FrontEnd for SoftwareFrontEnd {
     }
 
     fn run_forever(&self) -> Fallible<()> {
+        self.connection
+            .schedule_timer(std::time::Duration::from_millis(200), move || {
+                let mux = Mux::get().unwrap();
+                mux.prune_dead_windows();
+                if mux.is_empty() {
+                    Connection::get().unwrap().terminate_message_loop();
+                }
+            });
+
         self.connection.run_message_loop()
     }
 

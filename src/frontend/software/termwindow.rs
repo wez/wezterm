@@ -59,12 +59,20 @@ impl WindowCallbacks for TermWindow {
     }
 
     fn can_close(&mut self) -> bool {
-        // self.host.close_current_tab();
+        // can_close triggers the current tab to be closed.
+        // If we have no tabs left then we can close the whole window.
+        // If we're in a weird state, then we allow the window to close too.
+        let mux = Mux::get().unwrap();
+        let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
+            Some(tab) => tab,
+            None => return true,
+        };
+        mux.remove_tab(tab.tab_id());
+        if let Some(mut win) = mux.get_window_mut(self.mux_window_id) {
+            win.remove_by_id(tab.tab_id());
+            return win.is_empty();
+        };
         true
-    }
-
-    fn destroy(&mut self) {
-        Connection::get().unwrap().terminate_message_loop();
     }
 
     fn as_any(&mut self) -> &mut dyn Any {
