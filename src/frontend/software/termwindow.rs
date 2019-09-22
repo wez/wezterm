@@ -1,7 +1,7 @@
 use crate::config::Config;
 use crate::font::FontConfiguration;
 use crate::frontend::guicommon::host::{HostHelper, HostImpl, TabHost};
-use crate::mux::tab::Tab;
+use crate::mux::tab::{Tab, TabId};
 use crate::mux::window::WindowId as MuxWindowId;
 use crate::mux::Mux;
 use ::window::*;
@@ -10,6 +10,7 @@ use promise::Future;
 use std::any::Any;
 use std::rc::Rc;
 use std::sync::Arc;
+use termwiz::color::RgbColor;
 
 pub struct TermWindow {
     window: Option<Window>,
@@ -17,9 +18,10 @@ pub struct TermWindow {
     config: Arc<Config>,
     width: usize,
     height: usize,
-    cell_height: usize,
-    cell_width: usize,
+    cell_size: Size,
     mux_window_id: MuxWindowId,
+
+    last_painted_tab_id: Option<TabId>,
 }
 
 impl WindowCallbacks for TermWindow {
@@ -41,7 +43,15 @@ impl WindowCallbacks for TermWindow {
     }
 
     fn paint(&mut self, ctx: &mut dyn PaintContext) {
-        ctx.clear(Color::rgb(0, 0, 0));
+        let mux = Mux::get().unwrap();
+        let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
+            Some(tab) => tab,
+            None => {
+                ctx.clear(Color::rgb(0, 0, 0));
+                return;
+            }
+        };
+        self.paint_tab(&tab, ctx);
     }
 }
 
@@ -80,15 +90,38 @@ impl TermWindow {
                 window: None,
                 width,
                 height,
-                cell_height,
-                cell_width,
+                cell_size: Size::new(cell_width as isize, cell_height as isize),
                 mux_window_id,
                 config: Arc::clone(config),
                 fonts: Rc::clone(fontconfig),
+                last_painted_tab_id: None,
             }),
         )?;
 
         window.show();
         Ok(())
     }
+
+    fn paint_tab(&mut self, tab: &Rc<dyn Tab>, ctx: &mut dyn PaintContext) {
+        let palette = tab.palette();
+        let background_color =
+            rgbcolor_to_window_color(palette.resolve_bg(term::color::ColorAttribute::Default));
+        ctx.clear(background_color);
+
+        let term = tab.renderer();
+        let cursor = term.get_cursor_position();
+
+        let cursor_rect = Rect::new(
+            Point::new(
+                cursor.x as isize * self.cell_size.width,
+                cursor.y as isize * self.cell_size.height,
+            ),
+            self.cell_size,
+        );
+        ctx.clear_rect(cursor_rect, rgbcolor_to_window_color(palette.cursor_bg));
+    }
+}
+
+fn rgbcolor_to_window_color(color: RgbColor) -> Color {
+    Color::rgba(color.red, color.green, color.blue, 0xff)
 }
