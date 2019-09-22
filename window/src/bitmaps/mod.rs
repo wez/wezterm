@@ -1,6 +1,7 @@
 use crate::color::Color;
 use crate::{Operator, Point, Rect, Size};
 use palette::Srgba;
+use std::cell::RefCell;
 
 pub mod atlas;
 
@@ -331,5 +332,41 @@ impl BitmapImage for Image {
 
     fn image_dimensions(&self) -> (usize, usize) {
         (self.width, self.height)
+    }
+}
+
+pub struct ImageTexture {
+    pub image: RefCell<Image>,
+}
+
+impl ImageTexture {
+    pub fn new(width: usize, height: usize) -> Self {
+        let im = Image::new(width, height);
+        Self {
+            image: RefCell::new(im),
+        }
+    }
+}
+
+impl Texture2d for ImageTexture {
+    fn write(&self, rect: Rect, im: &dyn BitmapImage) {
+        let mut image = self.image.borrow_mut();
+        image.draw_image(rect.origin, None, im, Operator::Source);
+    }
+
+    fn read(&self, rect: Rect, im: &mut dyn BitmapImage) {
+        unimplemented!();
+    }
+
+    /// Returns the width of the texture in pixels
+    fn width(&self) -> usize {
+        let (width, _height) = self.image.borrow().image_dimensions();
+        width
+    }
+
+    /// Returns the height of the texture in pixels
+    fn height(&self) -> usize {
+        let (_width, height) = self.image.borrow().image_dimensions();
+        height
     }
 }

@@ -17,8 +17,11 @@ pub struct OutOfTextureSpace {
 /// bottom left corner and working to the right until we run out of
 /// space, then we move up to the logical row above.  Since sprites can
 /// have varying height the height of the rows can also vary.
-pub struct Atlas {
-    texture: Rc<dyn Texture2d>,
+pub struct Atlas<T>
+where
+    T: Texture2d,
+{
+    texture: Rc<T>,
 
     /// Dimensions of the texture
     side: usize,
@@ -33,8 +36,11 @@ pub struct Atlas {
     left: usize,
 }
 
-impl Atlas {
-    pub fn new(texture: &Rc<dyn Texture2d>) -> Fallible<Self> {
+impl<T> Atlas<T>
+where
+    T: Texture2d,
+{
+    pub fn new(texture: &Rc<T>) -> Fallible<Self> {
         ensure!(
             texture.width() == texture.height(),
             "texture must be square!"
@@ -49,12 +55,12 @@ impl Atlas {
     }
 
     #[inline]
-    pub fn texture(&self) -> Rc<dyn Texture2d> {
+    pub fn texture(&self) -> Rc<T> {
         Rc::clone(&self.texture)
     }
 
     /// Reserve space for a sprite of the given size
-    pub fn allocate(&mut self, im: &dyn BitmapImage) -> Result<Sprite, OutOfTextureSpace> {
+    pub fn allocate(&mut self, im: &dyn BitmapImage) -> Result<Sprite<T>, OutOfTextureSpace> {
         let (width, height) = im.image_dimensions();
 
         // We pad each sprite reservation with blank space to avoid
@@ -105,8 +111,11 @@ impl Atlas {
     }
 }
 
-pub struct Sprite {
-    pub texture: Rc<dyn Texture2d>,
+pub struct Sprite<T>
+where
+    T: Texture2d,
+{
+    pub texture: Rc<T>,
     pub coords: Rect,
 }
 
@@ -115,7 +124,10 @@ pub type TextureCoord = euclid::Point2D<f32, TextureUnit>;
 pub type TextureRect = euclid::Rect<f32, TextureUnit>;
 pub type TextureSize = euclid::Size2D<f32, TextureUnit>;
 
-impl Sprite {
+impl<T> Sprite<T>
+where
+    T: Texture2d,
+{
     /// Returns the texture coordinates of the sprite
     pub fn texture_coords(&self) -> TextureRect {
         let coords = self.coords.to_f32();
@@ -152,7 +164,7 @@ impl SpriteSlice {
     /// Returns the scaled offset to the left most pixel in a slice.
     /// This is 0 for the first slice and increases by the slice_width
     /// as we work through the slices.
-    pub fn left_pix(&self, sprite: &Sprite) -> f32 {
+    pub fn left_pix<T: Texture2d>(&self, sprite: &Sprite<T>) -> f32 {
         let width = sprite.coords.size.width as f32 * self.scale;
         if self.num_cells == 1 || self.cell_idx == 0 {
             0.0
@@ -175,7 +187,7 @@ impl SpriteSlice {
     /// Returns the (scaled) pixel width of a slice.
     /// This is nominally the cell_width but can be modified by being the first
     /// or last in a sequence of potentially oversized sprite slices.
-    pub fn slice_width(&self, sprite: &Sprite) -> f32 {
+    pub fn slice_width<T: Texture2d>(&self, sprite: &Sprite<T>) -> f32 {
         let width = sprite.coords.size.width as f32 * self.scale;
 
         if self.num_cells == 1 {
@@ -195,14 +207,14 @@ impl SpriteSlice {
 
     /// Returns the left coordinate for a slice in texture coordinate space
     #[inline]
-    fn left(&self, sprite: &Sprite) -> f32 {
+    fn left<T: Texture2d>(&self, sprite: &Sprite<T>) -> f32 {
         let left = sprite.coords.min_x() as f32 + (self.left_pix(sprite) / self.scale);
         left / sprite.texture.width() as f32
     }
 
     /// Returns the right coordinate for a slice in texture coordinate space
     #[inline]
-    fn right(&self, sprite: &Sprite) -> f32 {
+    fn right<T: Texture2d>(&self, sprite: &Sprite<T>) -> f32 {
         let right = sprite.coords.min_x() as f32
             + ((self.left_pix(sprite) + self.slice_width(sprite)) as f32 / self.scale);
         right / sprite.texture.width() as f32
@@ -210,40 +222,40 @@ impl SpriteSlice {
 
     /// Returns the top coordinate for a slice in texture coordinate space
     #[inline]
-    fn top(&self, sprite: &Sprite) -> f32 {
+    fn top<T: Texture2d>(&self, sprite: &Sprite<T>) -> f32 {
         sprite.coords.max_y() as f32 / sprite.texture.height() as f32
     }
 
     /// Returns the bottom coordinate for a slice in texture coordinate space
     #[inline]
-    fn bottom(&self, sprite: &Sprite) -> f32 {
+    fn bottom<T: Texture2d>(&self, sprite: &Sprite<T>) -> f32 {
         (sprite.coords.max_y() + sprite.coords.size.height as isize) as f32
             / sprite.texture.height() as f32
     }
 
     /// Returns the top-left coordinate for a slice in texture coordinate space
     #[inline]
-    pub fn top_left(&self, sprite: &Sprite) -> TextureCoord {
+    pub fn top_left<T: Texture2d>(&self, sprite: &Sprite<T>) -> TextureCoord {
         TextureCoord::new(self.left(sprite), self.top(sprite))
     }
 
     /// Returns the bottom-left coordinate for a slice in texture coordinate
     /// space
     #[inline]
-    pub fn bottom_left(&self, sprite: &Sprite) -> TextureCoord {
+    pub fn bottom_left<T: Texture2d>(&self, sprite: &Sprite<T>) -> TextureCoord {
         TextureCoord::new(self.left(sprite), self.bottom(sprite))
     }
 
     /// Returns the bottom-right coordinate for a slice in texture coordinate
     /// space
     #[inline]
-    pub fn bottom_right(&self, sprite: &Sprite) -> TextureCoord {
+    pub fn bottom_right<T: Texture2d>(&self, sprite: &Sprite<T>) -> TextureCoord {
         TextureCoord::new(self.right(sprite), self.bottom(sprite))
     }
 
     /// Returns the top-right coordinate for a slice in texture coordinate space
     #[inline]
-    pub fn top_right(&self, sprite: &Sprite) -> TextureCoord {
+    pub fn top_right<T: Texture2d>(&self, sprite: &Sprite<T>) -> TextureCoord {
         TextureCoord::new(self.right(sprite), self.top(sprite))
     }
 }
