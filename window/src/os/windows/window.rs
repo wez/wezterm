@@ -5,7 +5,8 @@ use crate::color::Color;
 use crate::connection::ConnectionOps;
 use crate::{
     Dimensions, KeyCode, KeyEvent, Modifiers, MouseButtons, MouseCursor, MouseEvent,
-    MouseEventKind, MousePress, Operator, PaintContext, WindowCallbacks, WindowOps, WindowOpsMut,
+    MouseEventKind, MousePress, Operator, PaintContext, Point, Rect, WindowCallbacks, WindowOps,
+    WindowOpsMut,
 };
 use failure::Fallible;
 use promise::Future;
@@ -329,7 +330,7 @@ struct GdiGraphicsContext {
 
 impl PaintContext for GdiGraphicsContext {
     fn clear_rect(&mut self, rect: Rect, color: Color) {
-        self.buffer.clear_rect(rect, color)
+        self.bitmap.clear_rect(rect, color)
     }
 
     fn clear(&mut self, color: Color) {
@@ -352,12 +353,12 @@ impl PaintContext for GdiGraphicsContext {
         im: &dyn BitmapImage,
         operator: Operator,
     ) {
-        self.buffer
+        self.bitmap
             .draw_image(dest_top_left, src_rect, im, operator)
     }
 
     fn draw_line(&mut self, start: Point, end: Point, color: Color, operator: Operator) {
-        self.buffer.draw_line(start, end, color, operator);
+        self.bitmap.draw_line(start, end, color, operator);
     }
 }
 
