@@ -354,7 +354,7 @@ impl Texture2d for ImageTexture {
         image.draw_image(rect.origin, None, im, Operator::Source);
     }
 
-    fn read(&self, rect: Rect, im: &mut dyn BitmapImage) {
+    fn read(&self, _rect: Rect, _im: &mut dyn BitmapImage) {
         unimplemented!();
     }
 

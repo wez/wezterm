@@ -17,7 +17,7 @@ pub struct SoftwareFrontEnd {
 }
 
 impl SoftwareFrontEnd {
-    pub fn try_new(mux: &Rc<Mux>) -> Fallible<Rc<dyn FrontEnd>> {
+    pub fn try_new(_mux: &Rc<Mux>) -> Fallible<Rc<dyn FrontEnd>> {
         let connection = Connection::init()?;
         let front_end = Rc::new(SoftwareFrontEnd { connection });
         Ok(front_end)
