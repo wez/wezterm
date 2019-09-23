@@ -35,26 +35,23 @@ impl WindowCallbacks for MyWindow {
 
         // This line doesn't need anti-aliasing
         context.draw_line(
-            Point { x: 0, y: 0 },
-            Point { x: 100, y: 100 },
+            Point::new(0, 0),
+            Point::new(100, 100),
             Color::rgb(0xff, 0xff, 0xff),
             Operator::Over,
         );
 
         // This shallower line should need some
         context.draw_line(
-            Point { x: 100, y: 0 },
-            Point { x: 200, y: 120 },
+            Point::new(100, 0),
+            Point::new(200, 120),
             Color::rgb(0xff, 0x80, 0xff),
             Operator::Over,
         );
 
         context.draw_line(
-            Point { x: 0, y: 0 },
-            Point {
-                x: self.cursor_pos.0 as isize,
-                y: self.cursor_pos.1 as isize,
-            },
+            Point::new(0, 0),
+            Point::new(self.cursor_pos.0 as isize, self.cursor_pos.1 as isize),
             Color::rgb(0xff, 0xff, 0x80),
             Operator::Over,
         );
