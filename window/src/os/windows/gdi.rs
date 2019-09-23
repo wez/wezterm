@@ -46,6 +46,17 @@ impl GdiBitmap {
         self.hbitmap
     }
 
+    /// A helper for initializing a window
+    pub(crate) fn new_empty() -> Self {
+        Self {
+            hdc: std::ptr::null_mut(),
+            hbitmap: std::ptr::null_mut(),
+            data: std::ptr::null_mut(),
+            width: 0,
+            height: 0,
+        }
+    }
+
     pub fn new_compatible(width: usize, height: usize, hdc: HDC) -> Fallible<Self> {
         let hdc = unsafe { CreateCompatibleDC(hdc) };
         if hdc.is_null() {

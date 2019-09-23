@@ -29,7 +29,8 @@ unsafe impl Sync for HWindow {}
 pub(crate) struct WindowInner {
     /// Non-owning reference to the window handle
     hwnd: HWindow,
-    callbacks: Box<dyn WindowCallbacks>,
+    callbacks: RefCell<Box<dyn WindowCallbacks>>,
+    bitmap: RefCell<GdiBitmap>,
 }
 
 #[derive(Debug, Clone)]
@@ -163,7 +164,8 @@ impl Window {
     ) -> Fallible<Window> {
         let inner = Rc::new(RefCell::new(WindowInner {
             hwnd: HWindow(null_mut()),
-            callbacks,
+            callbacks: RefCell::new(callbacks),
+            bitmap: RefCell::new(GdiBitmap::new_empty()),
         }));
 
         // Careful: `raw` owns a ref to inner, but there is no Drop impl
@@ -187,7 +189,7 @@ impl Window {
             .insert(hwnd.clone(), Rc::clone(&inner));
 
         let window = Window(hwnd);
-        inner.borrow_mut().callbacks.created(&window);
+        inner.borrow_mut().callbacks.borrow_mut().created(&window);
 
         Ok(window)
     }
@@ -257,7 +259,7 @@ impl WindowOps for Window {
     {
         Connection::with_window_inner(self.0, move |inner| {
             let window = Window(inner.hwnd);
-            func(inner.callbacks.as_any(), &window);
+            func(inner.callbacks.borrow_mut().as_any(), &window);
         });
     }
 }
@@ -287,7 +289,7 @@ unsafe fn wm_ncdestroy(
     if !raw.is_null() {
         let inner = take_rc_from_pointer(raw);
         let mut inner = inner.borrow_mut();
-        inner.callbacks.destroy();
+        inner.callbacks.borrow_mut().destroy();
         inner.hwnd = HWindow(null_mut());
         SetWindowLongPtrW(hwnd, GWLP_USERDATA, 0);
     }
@@ -323,12 +325,12 @@ fn enable_dark_mode(hwnd: HWND) {
     }
 }
 
-struct GdiGraphicsContext {
-    bitmap: GdiBitmap,
+struct GdiGraphicsContext<'a> {
+    bitmap: &'a mut GdiBitmap,
     dpi: u32,
 }
 
-impl PaintContext for GdiGraphicsContext {
+impl<'a> PaintContext for GdiGraphicsContext<'a> {
     fn clear_rect(&mut self, rect: Rect, color: Color) {
         self.bitmap.clear_rect(rect, color)
     }
@@ -364,10 +366,10 @@ impl PaintContext for GdiGraphicsContext {
 
 unsafe fn wm_size(hwnd: HWND, _msg: UINT, _wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
     if let Some(inner) = rc_from_hwnd(hwnd) {
-        let mut inner = inner.borrow_mut();
+        let inner = inner.borrow();
         let pixel_width = LOWORD(lparam as DWORD) as usize;
         let pixel_height = HIWORD(lparam as DWORD) as usize;
-        inner.callbacks.resize(Dimensions {
+        inner.callbacks.borrow_mut().resize(Dimensions {
             pixel_width,
             pixel_height,
             dpi: GetDpiForWindow(hwnd) as usize,
@@ -378,7 +380,7 @@ unsafe fn wm_size(hwnd: HWND, _msg: UINT, _wparam: WPARAM, lparam: LPARAM) -> Op
 
 unsafe fn wm_paint(hwnd: HWND, _msg: UINT, _wparam: WPARAM, _lparam: LPARAM) -> Option<LRESULT> {
     if let Some(inner) = rc_from_hwnd(hwnd) {
-        let mut inner = inner.borrow_mut();
+        let inner = inner.borrow();
 
         let mut ps = PAINTSTRUCT {
             fErase: 0,
@@ -406,11 +408,18 @@ unsafe fn wm_paint(hwnd: HWND, _msg: UINT, _wparam: WPARAM, _lparam: LPARAM) -> 
         let height = rect_height(&rect) as usize;
 
         if width > 0 && height > 0 {
+            let mut bitmap = inner.bitmap.borrow_mut();
+            let (bm_width, bm_height) = bitmap.image_dimensions();
+            if bm_width != width || bm_height != height {
+                *bitmap = GdiBitmap::new_compatible(width, height, dc).unwrap();
+            }
             let dpi = GetDpiForWindow(hwnd);
-            let bitmap = GdiBitmap::new_compatible(width, height, dc).unwrap();
-            let mut context = GdiGraphicsContext { dpi, bitmap };
+            let mut context = GdiGraphicsContext {
+                dpi,
+                bitmap: &mut bitmap,
+            };
 
-            inner.callbacks.paint(&mut context);
+            inner.callbacks.borrow_mut().paint(&mut context);
             BitBlt(
                 dc,
                 0,
@@ -503,9 +512,10 @@ unsafe fn mouse_button(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) ->
             mouse_buttons,
             modifiers,
         };
-        let mut inner = inner.borrow_mut();
+        let inner = inner.borrow();
         inner
             .callbacks
+            .borrow_mut()
             .mouse_event(&event, &Window::from_hwnd(hwnd));
         Some(0)
     } else {
@@ -525,9 +535,10 @@ unsafe fn mouse_move(hwnd: HWND, _msg: UINT, wparam: WPARAM, lparam: LPARAM) -> 
             modifiers,
         };
 
-        let mut inner = inner.borrow_mut();
+        let inner = inner.borrow();
         inner
             .callbacks
+            .borrow_mut()
             .mouse_event(&event, &Window::from_hwnd(hwnd));
         Some(0)
     } else {
@@ -551,9 +562,10 @@ unsafe fn mouse_wheel(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> 
             mouse_buttons,
             modifiers,
         };
-        let mut inner = inner.borrow_mut();
+        let inner = inner.borrow();
         inner
             .callbacks
+            .borrow_mut()
             .mouse_event(&event, &Window::from_hwnd(hwnd));
         Some(0)
     } else {
@@ -563,7 +575,7 @@ unsafe fn mouse_wheel(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> 
 
 unsafe fn key(hwnd: HWND, _msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
     if let Some(inner) = rc_from_hwnd(hwnd) {
-        let mut inner = inner.borrow_mut();
+        let inner = inner.borrow();
         let repeat = (lparam & 0xffff) as u16;
         let scan_code = ((lparam >> 16) & 0xff) as u8;
         let releasing = (lparam & (1 << 31)) != 0;
@@ -719,7 +731,10 @@ unsafe fn key(hwnd: HWND, _msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<
                 repeat_count: repeat,
                 key_is_down: !releasing,
             };
-            let handled = inner.callbacks.key_event(&key, &Window::from_hwnd(hwnd));
+            let handled = inner
+                .callbacks
+                .borrow_mut()
+                .key_event(&key, &Window::from_hwnd(hwnd));
 
             if handled {
                 return Some(0);
@@ -744,8 +759,8 @@ unsafe fn do_wnd_proc(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> 
         }
         WM_CLOSE => {
             if let Some(inner) = rc_from_hwnd(hwnd) {
-                let mut inner = inner.borrow_mut();
-                if !inner.callbacks.can_close() {
+                let inner = inner.borrow();
+                if !inner.callbacks.borrow_mut().can_close() {
                     // Don't let it close
                     return Some(0);
                 }
