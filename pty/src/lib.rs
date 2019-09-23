@@ -208,7 +208,7 @@ impl PtySystemSelection {
     /// Construct an instance of PtySystem described by the enum value.
     /// Windows specific enum variants result in an error.
     #[cfg(unix)]
-    pub fn get(self) -> Result<Box<dyn PtySystem>, Error> {
+    pub fn get(self) -> Fallible<Box<dyn PtySystem>> {
         match self {
             PtySystemSelection::Unix => Ok(Box::new(unix::UnixPtySystem {})),
             _ => bail!("{:?} not available on unix", self),
@@ -218,7 +218,7 @@ impl PtySystemSelection {
     /// Construct an instance of PtySystem described by the enum value.
     /// Unix specific enum variants result in an error.
     #[cfg(windows)]
-    pub fn get(&self) -> Result<Box<PtySystem>, Error> {
+    pub fn get(&self) -> Fallible<Box<dyn PtySystem>> {
         match self {
             PtySystemSelection::ConPty => Ok(Box::new(win::conpty::ConPtySystem {})),
             PtySystemSelection::WinPty => Ok(Box::new(win::winpty::WinPtySystem {})),

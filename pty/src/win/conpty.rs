@@ -224,7 +224,7 @@ pub struct ConPtySlavePty {
 }
 
 impl MasterPty for ConPtyMasterPty {
-    fn resize(&self, size: PtySize) -> Result<(), Error> {
+    fn resize(&self, size: PtySize) -> Fallible<()> {
         let mut inner = self.inner.lock().unwrap();
         inner.resize(size.rows, size.cols, size.pixel_width, size.pixel_height)
     }
@@ -234,7 +234,7 @@ impl MasterPty for ConPtyMasterPty {
         Ok(inner.size.clone())
     }
 
-    fn try_clone_reader(&self) -> Result<Box<std::io::Read + Send>, Error> {
+    fn try_clone_reader(&self) -> Fallible<Box<dyn std::io::Read + Send>> {
         Ok(Box::new(self.inner.lock().unwrap().readable.try_clone()?))
     }
 }
@@ -249,7 +249,7 @@ impl io::Write for ConPtyMasterPty {
 }
 
 impl SlavePty for ConPtySlavePty {
-    fn spawn_command(&self, cmd: CommandBuilder) -> Result<Box<Child>, Error> {
+    fn spawn_command(&self, cmd: CommandBuilder) -> Fallible<Box<dyn Child>> {
         let inner = self.inner.lock().unwrap();
 
         let mut si: STARTUPINFOEXW = unsafe { mem::zeroed() };
