@@ -7,8 +7,12 @@ use failure::Fallible;
 use promise::BasicExecutor;
 use std::cell::RefCell;
 use std::collections::HashMap;
+use std::convert::TryInto;
 use std::ptr::null_mut;
 use std::rc::Rc;
+use winapi::shared::basetsd::UINT_PTR;
+use winapi::shared::minwindef::*;
+use winapi::shared::windef::*;
 use winapi::um::winbase::INFINITE;
 use winapi::um::winnt::HANDLE;
 use winapi::um::winuser::*;
@@ -17,6 +21,7 @@ pub struct Connection {
     event_handle: HANDLE,
     pub(crate) windows: RefCell<HashMap<HWindow, Rc<RefCell<WindowInner>>>>,
     tasks: Tasks,
+    timers: RefCell<HashMap<UINT_PTR, UINT_PTR>>,
 }
 
 impl ConnectionOps for Connection {
@@ -62,6 +67,41 @@ impl ConnectionOps for Connection {
             conn.tasks.poll_by_slot(slot);
         }));
     }
+
+    fn schedule_timer<F: FnMut() + 'static>(&self, interval: std::time::Duration, callback: F) {
+        let millis = interval
+            .as_millis()
+            .try_into()
+            .expect("duration is too large to fit in 32 bits");
+        let callback = Box::into_raw(Box::new(callback));
+
+        extern "system" fn timer_proc<F: FnMut()>(
+            _hwnd: HWND,
+            _msg: UINT,
+            timer_id: UINT_PTR,
+            _lparam: DWORD,
+        ) {
+            let conn = Connection::get().unwrap();
+            if let Some(cb) = conn.timers.borrow().get(&timer_id).map(|cb| *cb) {
+                unsafe {
+                    let callback: *mut F = cb as _;
+                    (*callback)();
+                }
+            };
+        }
+
+        let timer_id = unsafe {
+            SetTimer(
+                std::ptr::null_mut(),
+                callback as UINT_PTR,
+                millis,
+                Some(timer_proc::<F>),
+            )
+        };
+        self.timers
+            .borrow_mut()
+            .insert(timer_id, callback as UINT_PTR);
+    }
 }
 
 impl Connection {
@@ -70,6 +110,7 @@ impl Connection {
         Ok(Self {
             event_handle,
             windows: RefCell::new(HashMap::new()),
+            timers: RefCell::new(HashMap::new()),
             tasks: Default::default(),
         })
     }
