@@ -8,11 +8,80 @@ use mio::unix::EventedFd;
 use mio::{Evented, Events, Poll, PollOpt, Ready, Token};
 use promise::BasicExecutor;
 use std::cell::RefCell;
-use std::collections::HashMap;
+use std::cmp::Ordering;
+use std::collections::{HashMap, VecDeque};
 use std::os::unix::io::AsRawFd;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use xcb_util::ffi::keysyms::{xcb_key_symbols_alloc, xcb_key_symbols_free, xcb_key_symbols_t};
+
+struct TimerEntry {
+    callback: Box<dyn FnMut()>,
+    due: Instant,
+    interval: Duration,
+}
+
+#[derive(Default)]
+struct TimerList {
+    timers: VecDeque<TimerEntry>,
+}
+
+impl TimerList {
+    pub fn new() -> Self {
+        Default::default()
+    }
+
+    fn find_index_after(&self, due: &Instant) -> usize {
+        for (idx, entry) in self.timers.iter().enumerate() {
+            if entry.due.cmp(due) == Ordering::Greater {
+                return idx;
+            }
+        }
+        self.timers.len()
+    }
+
+    pub fn insert(&mut self, mut entry: TimerEntry) {
+        entry.due = Instant::now() + entry.interval;
+        let idx = self.find_index_after(&entry.due);
+        self.timers.insert(idx, entry);
+    }
+
+    pub fn time_until_due(&self, now: Instant) -> Option<Duration> {
+        self.timers.front().map(|entry| {
+            if entry.due <= now {
+                Duration::from_secs(0)
+            } else {
+                entry.due - now
+            }
+        })
+    }
+
+    fn first_is_ready(&self, now: Instant) -> bool {
+        if let Some(first) = self.timers.front() {
+            if first.due > now {
+                false
+            } else {
+                true
+            }
+        } else {
+            false
+        }
+    }
+
+    pub fn run_ready(&mut self) {
+        let now = Instant::now();
+        let mut requeue = vec![];
+        while self.first_is_ready(now) {
+            let mut first = self.timers.pop_front().expect("first_is_ready");
+            (first.callback)();
+            requeue.push(first);
+        }
+
+        for entry in requeue.into_iter() {
+            self.insert(entry);
+        }
+    }
+}
 
 pub struct Connection {
     pub display: *mut x11::xlib::Display,
@@ -32,6 +101,7 @@ pub struct Connection {
     should_terminate: RefCell<bool>,
     pub(crate) shm_available: bool,
     tasks: Tasks,
+    timers: RefCell<TimerList>,
 }
 
 impl std::ops::Deref for Connection {
@@ -179,6 +249,8 @@ impl ConnectionOps for Connection {
         let mut last_interval = Instant::now();
 
         while !*self.should_terminate.borrow() {
+            self.timers.borrow_mut().run_ready();
+
             let now = Instant::now();
             let diff = now - last_interval;
             let period = if diff >= paint_interval {
@@ -195,6 +267,13 @@ impl ConnectionOps for Connection {
             // could potentially sleep when there is work to be done if we
             // relied solely on that.
             self.process_queued_xcb()?;
+
+            let period = self
+                .timers
+                .borrow()
+                .time_until_due(Instant::now())
+                .map(|duration| duration.min(period))
+                .unwrap_or(period);
 
             match poll.poll(&mut events, Some(period)) {
                 Ok(_) => {
@@ -217,6 +296,14 @@ impl ConnectionOps for Connection {
         }
 
         Ok(())
+    }
+
+    fn schedule_timer<F: FnMut() + 'static>(&self, interval: std::time::Duration, callback: F) {
+        self.timers.borrow_mut().insert(TimerEntry {
+            callback: Box::new(callback),
+            due: Instant::now(),
+            interval,
+        });
     }
 }
 
@@ -335,6 +422,7 @@ impl Connection {
             should_terminate: RefCell::new(false),
             shm_available,
             tasks: Default::default(),
+            timers: RefCell::new(TimerList::new()),
         };
 
         Ok(conn)
