@@ -391,6 +391,20 @@ impl TermWindow {
         }
 
         term.clean_dirty_lines();
+
+        // Fill any marginal area below the last row
+        let (num_rows, _num_cols) = term.physical_dimensions();
+        let pixel_height_of_cells = num_rows * self.cell_size.height as usize;
+        ctx.clear_rect(
+            Rect::new(
+                Point::new(0, pixel_height_of_cells as isize),
+                Size::new(
+                    self.dimensions.pixel_width as isize,
+                    (self.dimensions.pixel_height - pixel_height_of_cells) as isize,
+                ),
+            ),
+            rgbcolor_to_window_color(palette.background),
+        );
     }
 
     fn render_screen_line(
@@ -651,6 +665,22 @@ impl TermWindow {
             );
             ctx.clear_rect(cell_rect, bg_color);
         }
+
+        // Fill any marginal area to the right of the last cell
+        let pixel_width_of_cells = num_cols * self.cell_size.width as usize;
+        ctx.clear_rect(
+            Rect::new(
+                Point::new(
+                    pixel_width_of_cells as isize,
+                    self.cell_size.height * line_idx as isize,
+                ),
+                Size::new(
+                    (self.dimensions.pixel_width - pixel_width_of_cells) as isize,
+                    self.cell_size.height,
+                ),
+            ),
+            rgbcolor_to_window_color(palette.background),
+        );
 
         Ok(())
     }
