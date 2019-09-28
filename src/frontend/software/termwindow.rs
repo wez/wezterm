@@ -44,6 +44,7 @@ pub struct TermWindow {
     fonts: Rc<FontConfiguration>,
     _config: Arc<Config>,
     cell_size: Size,
+    dimensions: Dimensions,
     mux_window_id: MuxWindowId,
     descender: f64,
     descender_row: isize,
@@ -186,6 +187,40 @@ impl WindowCallbacks for TermWindow {
     fn resize(&mut self, dimensions: Dimensions) {
         let mux = Mux::get().unwrap();
         if let Some(window) = mux.get_window(self.mux_window_id) {
+            if dimensions.dpi != self.dimensions.dpi {
+                self.fonts.change_scaling(1., dimensions.dpi as f64 / 96.);
+                let metrics = self
+                    .fonts
+                    .default_font_metrics()
+                    .expect("failed to get font metrics!?");
+
+                let (cell_height, cell_width) = (
+                    metrics.cell_height.ceil() as usize,
+                    metrics.cell_width.ceil() as usize,
+                );
+
+                let surface = Rc::new(ImageTexture::new(4096, 4096));
+                let atlas =
+                    RefCell::new(Atlas::new(&surface).expect("failed to create new texture atlas"));
+
+                let descender_row = (cell_height as f64 + metrics.descender) as isize;
+                let descender_plus_one = (1 + descender_row).min(cell_height as isize - 1);
+                let descender_plus_two = (2 + descender_row).min(cell_height as isize - 1);
+                let strike_row = descender_row / 2;
+
+                self.descender = metrics.descender;
+                self.descender_row = descender_row;
+                self.descender_plus_one = descender_plus_one;
+                self.descender_plus_two = descender_plus_two;
+                self.strike_row = strike_row;
+                self.glyph_cache.borrow_mut().clear();
+                self.atlas = atlas;
+
+                self.cell_size = Size::new(cell_width as isize, cell_height as isize);
+            }
+
+            self.dimensions = dimensions;
+
             let size = portable_pty::PtySize {
                 rows: dimensions.pixel_height as u16 / self.cell_size.height as u16,
                 cols: dimensions.pixel_width as u16 / self.cell_size.width as u16,
@@ -306,6 +341,14 @@ impl TermWindow {
                 descender_plus_one,
                 descender_plus_two,
                 strike_row,
+                dimensions: Dimensions {
+                    pixel_width: width,
+                    pixel_height: height,
+                    // This is the default dpi; we'll get a resize
+                    // event to inform us of the true dpi if it is
+                    // different from this value
+                    dpi: 96,
+                },
                 glyph_cache: RefCell::new(HashMap::new()),
                 atlas,
                 clipboard: Arc::new(SystemClipboard::new()),

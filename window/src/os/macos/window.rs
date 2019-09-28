@@ -84,6 +84,11 @@ impl Window {
             window.setContentView_(*view);
             window.setDelegate_(*view);
 
+            let frame = NSView::frame(*view);
+            let backing_frame = NSView::convertRectToBacking(*view, frame);
+            let width = backing_frame.size.width;
+            let height = backing_frame.size.height;
+
             let window_inner = Rc::new(RefCell::new(WindowInner {
                 window_id,
                 window,
@@ -96,6 +101,14 @@ impl Window {
             let window = Window(window_id);
 
             inner.borrow_mut().callbacks.created(&window);
+            // Synthesize a resize event immediately; this allows
+            // the embedding application an opportunity to discover
+            // the dpi and adjust for display scaling
+            inner.borrow_mut().callbacks.resize(Dimensions {
+                pixel_width: width as usize,
+                pixel_height: height as usize,
+                dpi: (96.0 * (backing_frame.size.width / frame.size.width)) as usize,
+            });
 
             Ok(window)
         }
@@ -196,6 +209,7 @@ pub fn superclass(this: &Object) -> &'static Class {
 
 struct MacGraphicsContext<'a> {
     buffer: &'a mut dyn BitmapImage,
+    dpi: usize,
 }
 
 impl<'a> PaintContext for MacGraphicsContext<'a> {
@@ -212,7 +226,7 @@ impl<'a> PaintContext for MacGraphicsContext<'a> {
         Dimensions {
             pixel_width,
             pixel_height,
-            dpi: 96,
+            dpi: self.dpi,
         }
     }
 
@@ -445,21 +459,25 @@ impl WindowView {
 
     extern "C" fn did_resize(this: &mut Object, _sel: Sel, _notification: id) {
         let frame = unsafe { NSView::frame(this as *mut _) };
-        let width = frame.size.width;
-        let height = frame.size.height;
+        let backing_frame = unsafe { NSView::convertRectToBacking(this as *mut _, frame) };
+        let width = backing_frame.size.width;
+        let height = backing_frame.size.height;
         if let Some(this) = Self::get_this(this) {
             this.inner.borrow_mut().callbacks.resize(Dimensions {
                 pixel_width: width as usize,
                 pixel_height: height as usize,
-                dpi: 96,
+                dpi: (96.0 * (backing_frame.size.width / frame.size.width)) as usize,
             });
         }
     }
 
     extern "C" fn draw_rect(this: &mut Object, _sel: Sel, _dirty_rect: NSRect) {
         let frame = unsafe { NSView::frame(this as *mut _) };
-        let width = frame.size.width;
-        let height = frame.size.height;
+        let backing_frame = unsafe { NSView::convertRectToBacking(this as *mut _, frame) };
+
+        let width = backing_frame.size.width;
+        let height = backing_frame.size.height;
+
         if let Some(this) = Self::get_this(this) {
             let mut inner = this.inner.borrow_mut();
             let mut buffer = this.buffer.borrow_mut();
@@ -471,6 +489,7 @@ impl WindowView {
 
             let mut ctx = MacGraphicsContext {
                 buffer: &mut *buffer,
+                dpi: (96.0 * backing_frame.size.width / frame.size.width) as usize,
             };
 
             inner.callbacks.paint(&mut ctx);
