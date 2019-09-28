@@ -1,9 +1,12 @@
 use crate::config::Config;
 use crate::config::TextStyle;
-use crate::font::{FontConfiguration, GlyphInfo};
+use crate::font::{FontConfiguration, FontSystemSelection, GlyphInfo};
 use crate::frontend::guicommon::clipboard::SystemClipboard;
+use crate::frontend::guicommon::host::{KeyAssignment, KeyMap};
+use crate::frontend::guicommon::window::SpawnTabDomain;
+use crate::frontend::{front_end, gui_executor};
 use crate::mux::renderable::Renderable;
-use crate::mux::tab::Tab;
+use crate::mux::tab::{Tab, TabId};
 use crate::mux::window::WindowId as MuxWindowId;
 use crate::mux::Mux;
 use ::window::bitmaps::atlas::{Atlas, Sprite, SpriteSlice};
@@ -54,6 +57,7 @@ pub struct TermWindow {
     glyph_cache: RefCell<HashMap<GlyphKey, Rc<CachedGlyph>>>,
     atlas: RefCell<Atlas<ImageTexture>>,
     clipboard: Arc<dyn term::Clipboard>,
+    keys: KeyMap,
 }
 
 struct Host<'a> {
@@ -265,7 +269,10 @@ impl WindowCallbacks for TermWindow {
             };
 
             if let Some(key) = key_down {
-                if tab.key_down(key, modifiers).is_ok() {
+                if let Some(assignment) = self.keys.lookup(key, modifiers) {
+                    self.perform_key_assignment(&tab, &assignment).ok();
+                    return true;
+                } else if tab.key_down(key, modifiers).is_ok() {
                     return true;
                 }
             }
@@ -284,6 +291,7 @@ impl WindowCallbacks for TermWindow {
             }
         };
         self.paint_tab(&tab, ctx);
+        self.update_title();
     }
 }
 
@@ -352,6 +360,7 @@ impl TermWindow {
                 glyph_cache: RefCell::new(HashMap::new()),
                 atlas,
                 clipboard: Arc::new(SystemClipboard::new()),
+                keys: KeyMap::new(),
             }),
         )?;
 
@@ -373,6 +382,198 @@ impl TermWindow {
 
         window.show();
         Ok(())
+    }
+
+    fn update_title(&mut self) {
+        let mux = Mux::get().unwrap();
+        let window = match mux.get_window(self.mux_window_id) {
+            Some(window) => window,
+            _ => return,
+        };
+        let num_tabs = window.len();
+
+        if num_tabs == 0 {
+            return;
+        }
+        let tab_no = window.get_active_idx();
+
+        let title = match window.get_active() {
+            Some(tab) => tab.get_title(),
+            None => return,
+        };
+
+        drop(window);
+
+        if let Some(window) = self.window.as_ref() {
+            if num_tabs == 1 {
+                window.set_title(&title);
+            } else {
+                window.set_title(&format!("[{}/{}] {}", tab_no + 1, num_tabs, title));
+            }
+        }
+    }
+
+    fn activate_tab(&mut self, tab_idx: usize) -> Fallible<()> {
+        let mux = Mux::get().unwrap();
+        let mut window = mux
+            .get_window_mut(self.mux_window_id)
+            .ok_or_else(|| failure::format_err!("no such window"))?;
+
+        let max = window.len();
+        if tab_idx < max {
+            window.set_active(tab_idx);
+
+            drop(window);
+            self.update_title();
+        }
+        Ok(())
+    }
+
+    fn activate_tab_relative(&mut self, delta: isize) -> Fallible<()> {
+        let mux = Mux::get().unwrap();
+        let window = mux
+            .get_window(self.mux_window_id)
+            .ok_or_else(|| failure::format_err!("no such window"))?;
+
+        let max = window.len();
+        failure::ensure!(max > 0, "no more tabs");
+
+        let active = window.get_active_idx() as isize;
+        let tab = active + delta;
+        let tab = if tab < 0 { max as isize + tab } else { tab };
+        drop(window);
+        self.activate_tab(tab as usize % max)
+    }
+
+    fn spawn_tab(&mut self, domain: &SpawnTabDomain) -> Fallible<TabId> {
+        let rows = (self.dimensions.pixel_height as usize + 1) / self.cell_size.height as usize;
+        let cols = (self.dimensions.pixel_width as usize + 1) / self.cell_size.width as usize;
+
+        let size = portable_pty::PtySize {
+            rows: rows as u16,
+            cols: cols as u16,
+            pixel_width: self.dimensions.pixel_width as u16,
+            pixel_height: self.dimensions.pixel_height as u16,
+        };
+
+        let mux = Mux::get().unwrap();
+
+        let domain = match domain {
+            SpawnTabDomain::DefaultDomain => mux.default_domain().clone(),
+            SpawnTabDomain::CurrentTabDomain => {
+                let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
+                    Some(tab) => tab,
+                    None => failure::bail!("window has no tabs?"),
+                };
+                mux.get_domain(tab.domain_id()).ok_or_else(|| {
+                    failure::format_err!("current tab has unresolvable domain id!?")
+                })?
+            }
+            SpawnTabDomain::Domain(id) => mux.get_domain(*id).ok_or_else(|| {
+                failure::format_err!("spawn_tab called with unresolvable domain id!?")
+            })?,
+            SpawnTabDomain::DomainName(name) => mux.get_domain_by_name(&name).ok_or_else(|| {
+                failure::format_err!("spawn_tab called with unresolvable domain name {}", name)
+            })?,
+        };
+        let tab = domain.spawn(size, None, self.mux_window_id)?;
+        let tab_id = tab.tab_id();
+
+        let len = {
+            let window = mux
+                .get_window(self.mux_window_id)
+                .ok_or_else(|| failure::format_err!("no such window!?"))?;
+            window.len()
+        };
+        self.activate_tab(len - 1)?;
+        Ok(tab_id)
+    }
+
+    fn perform_key_assignment(
+        &mut self,
+        tab: &Rc<dyn Tab>,
+        assignment: &KeyAssignment,
+    ) -> Fallible<()> {
+        use KeyAssignment::*;
+        match assignment {
+            SpawnTab(spawn_where) => {
+                self.spawn_tab(spawn_where)?;
+            }
+            SpawnWindow => {
+                self.spawn_new_window();
+            }
+            ToggleFullScreen => {
+                // self.toggle_full_screen(),
+            }
+            Copy => {
+                // Nominally copy, but that is implicit, so NOP
+            }
+            Paste => {
+                /*
+                let text = self.get_clipboard()?.get_contents()?;
+                if text.len() <= PASTE_CHUNK_SIZE {
+                    // Send it all now
+                    tab.send_paste(&text)?;
+                } else {
+                    // It's pretty heavy, so we trickle it into the pty
+                    tab.send_paste(&text[0..PASTE_CHUNK_SIZE])?;
+                    trickle_paste(tab.tab_id(), text);
+                }
+                */
+            }
+            ActivateTabRelative(n) => {
+                self.activate_tab_relative(*n)?;
+            }
+            DecreaseFontSize => self.decrease_font_size(),
+            IncreaseFontSize => self.increase_font_size(),
+            ResetFontSize => self.reset_font_size(),
+            ActivateTab(n) => {
+                self.activate_tab(*n)?;
+            }
+            SendString(s) => tab.writer().write_all(s.as_bytes())?,
+            Hide => {
+                self.window.as_ref().map(|w| w.hide());
+            }
+            Show => {
+                self.window.as_ref().map(|w| w.show());
+            }
+            CloseCurrentTab => self.close_current_tab(),
+            Nop => {}
+        };
+        Ok(())
+    }
+
+    pub fn spawn_new_window(&mut self) {
+        promise::Future::with_executor(gui_executor().unwrap(), move || {
+            let mux = Mux::get().unwrap();
+            let fonts = Rc::new(FontConfiguration::new(
+                Arc::clone(mux.config()),
+                FontSystemSelection::get_default(),
+            ));
+            let window_id = mux.new_empty_window();
+            let tab =
+                mux.default_domain()
+                    .spawn(portable_pty::PtySize::default(), None, window_id)?;
+            let front_end = front_end().expect("to be called on gui thread");
+            front_end.spawn_new_window(mux.config(), &fonts, &tab, window_id)?;
+            Ok(())
+        });
+    }
+
+    fn decrease_font_size(&mut self) {}
+    fn increase_font_size(&mut self) {}
+    fn reset_font_size(&mut self) {}
+    fn close_current_tab(&mut self) {
+        let mux = Mux::get().unwrap();
+        let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
+            Some(tab) => tab,
+            None => return,
+        };
+        mux.remove_tab(tab.tab_id());
+        if let Some(mut win) = mux.get_window_mut(self.mux_window_id) {
+            win.remove_by_id(tab.tab_id());
+        }
+        self.activate_tab_relative(0).ok();
     }
 
     fn paint_tab(&mut self, tab: &Rc<dyn Tab>, ctx: &mut dyn PaintContext) {
