@@ -30,7 +30,6 @@ struct GlyphKey {
 /// Caches a rendered glyph.
 /// The image data may be None for whitespace glyphs.
 struct CachedGlyph {
-    has_color: bool,
     x_offset: f64,
     y_offset: f64,
     bearing_x: f64,
@@ -581,55 +580,24 @@ impl TermWindow {
                     }
 
                     if let Some(ref texture) = glyph.texture {
+                        let slice = SpriteSlice {
+                            cell_idx: glyph_idx,
+                            num_cells: info.num_cells as usize,
+                            cell_width: self.cell_size.width as usize,
+                            scale: glyph.scale as f32,
+                            left_offset: left,
+                        };
+                        let left = if glyph_idx == 0 { left } else { 0.0 };
+
                         ctx.draw_image(
                             Point::new(
                                 (cell_rect.origin.x as f32 + left) as isize,
                                 (cell_rect.origin.y as f32 + top) as isize,
                             ),
-                            Some(texture.coords),
+                            Some(slice.pixel_rect(texture)),
                             &*texture.texture.image.borrow(),
-                            if glyph.has_color {
-                                Operator::Source
-                            } else {
-                                Operator::MultiplyThenOver(glyph_color)
-                            },
+                            Operator::MultiplyThenOver(glyph_color),
                         );
-                        /* TODO: SpriteSlice for double-width
-                        let slice = SpriteSlice {
-                            cell_idx: glyph_idx,
-                            num_cells: info.num_cells as usize,
-                            cell_width: self.cell_width.ceil() as usize,
-                            scale: glyph.scale as f32,
-                            left_offset: left,
-                        };
-
-                        // How much of the width of this glyph we can use here
-                        let slice_width = texture.slice_width(&slice);
-
-                        let left = if glyph_idx == 0 { left } else { 0.0 };
-                        let right = (slice_width as f32 + left) - self.cell_width as f32;
-
-                        let bottom = (texture.coords.height as f32 * glyph.scale as f32 + top)
-                            - self.cell_height as f32;
-
-                        vert[V_TOP_LEFT].tex = texture.top_left(&slice);
-                        vert[V_TOP_LEFT].adjust = TexturePoint::new(left, top);
-
-                        vert[V_TOP_RIGHT].tex = texture.top_right(&slice);
-                        vert[V_TOP_RIGHT].adjust = TexturePoint::new(right, top);
-
-                        vert[V_BOT_LEFT].tex = texture.bottom_left(&slice);
-                        vert[V_BOT_LEFT].adjust = TexturePoint::new(left, bottom);
-
-                        vert[V_BOT_RIGHT].tex = texture.bottom_right(&slice);
-                        vert[V_BOT_RIGHT].adjust = TexturePoint::new(right, bottom);
-
-                        let has_color = if glyph.has_color { 1.0 } else { 0.0 };
-                        vert[V_TOP_LEFT].has_color = has_color;
-                        vert[V_TOP_RIGHT].has_color = has_color;
-                        vert[V_BOT_LEFT].has_color = has_color;
-                        vert[V_BOT_RIGHT].has_color = has_color;
-                        */
                     }
                 }
             }
@@ -738,14 +706,13 @@ impl TermWindow {
 
     /// Perform the load and render of a glyph
     fn load_glyph(&self, info: &GlyphInfo, style: &TextStyle) -> Fallible<Rc<CachedGlyph>> {
-        let (has_color, glyph, cell_width, cell_height) = {
+        let (glyph, cell_width, cell_height) = {
             let font = self.fonts.cached_font(style)?;
             let mut font = font.borrow_mut();
             let metrics = font.get_fallback(0)?.metrics();
             let active_font = font.get_fallback(info.font_idx)?;
-            let has_color = active_font.has_color();
             let glyph = active_font.rasterize_glyph(info.glyph_pos)?;
-            (has_color, glyph, metrics.cell_width, metrics.cell_height)
+            (glyph, metrics.cell_width, metrics.cell_height)
         };
 
         let scale = if (info.x_advance / f64::from(info.num_cells)).floor() > cell_width {
@@ -766,7 +733,6 @@ impl TermWindow {
             // a whitespace glyph
             CachedGlyph {
                 texture: None,
-                has_color,
                 x_offset,
                 y_offset,
                 bearing_x: 0.0,
@@ -774,7 +740,7 @@ impl TermWindow {
                 scale,
             }
         } else {
-            let raw_im = Image::with_bgra32(
+            let raw_im = Image::with_rgba32(
                 glyph.width as usize,
                 glyph.height as usize,
                 4 * glyph.width as usize,
@@ -788,7 +754,6 @@ impl TermWindow {
 
             CachedGlyph {
                 texture: Some(tex),
-                has_color,
                 x_offset,
                 y_offset,
                 bearing_x,

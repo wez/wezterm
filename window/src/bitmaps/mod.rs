@@ -5,6 +5,11 @@ use std::cell::RefCell;
 
 pub mod atlas;
 
+pub struct TextureUnit;
+pub type TextureCoord = euclid::Point2D<f32, TextureUnit>;
+pub type TextureRect = euclid::Rect<f32, TextureUnit>;
+pub type TextureSize = euclid::Size2D<f32, TextureUnit>;
+
 /// Represents a big endian bgra32 bitmap that may not be present
 /// in local RAM, but may be addressable in eg: video RAM
 pub trait Texture2d {
@@ -23,6 +28,17 @@ pub trait Texture2d {
 
     /// Returns the height of the texture in pixels
     fn height(&self) -> usize;
+
+    /// Converts a rect in pixel coordinates to texture coordinates
+    fn to_texture_coords(&self, coords: Rect) -> TextureRect {
+        let coords = coords.to_f32();
+        let width = self.width() as f32;
+        let height = self.height() as f32;
+        TextureRect::new(
+            TextureCoord::new(coords.min_x() / width, coords.min_y() / height),
+            TextureSize::new(coords.size.width / width, coords.size.height / height),
+        )
+    }
 }
 
 /// A bitmap in big endian bgra32 color format with abstract
@@ -267,6 +283,27 @@ impl Image {
                 let blue = data[src_offset + (x * 4) + 0];
                 let green = data[src_offset + (x * 4) + 1];
                 let red = data[src_offset + (x * 4) + 2];
+                let alpha = data[src_offset + (x * 4) + 3];
+                image.data[dest_offset + (x * 4) + 0] = blue;
+                image.data[dest_offset + (x * 4) + 1] = green;
+                image.data[dest_offset + (x * 4) + 2] = red;
+                image.data[dest_offset + (x * 4) + 3] = alpha;
+            }
+        }
+        image
+    }
+
+    /// Create a new bgra32 image buffer with the specified dimensions.
+    /// The buffer is populated with the source data in rgba32 format.
+    pub fn with_rgba32(width: usize, height: usize, stride: usize, data: &[u8]) -> Image {
+        let mut image = Image::new(width, height);
+        for y in 0..height {
+            let src_offset = y * stride;
+            let dest_offset = y * width * 4;
+            for x in 0..width {
+                let red = data[src_offset + (x * 4) + 0];
+                let green = data[src_offset + (x * 4) + 1];
+                let blue = data[src_offset + (x * 4) + 2];
                 let alpha = data[src_offset + (x * 4) + 3];
                 image.data[dest_offset + (x * 4) + 0] = blue;
                 image.data[dest_offset + (x * 4) + 1] = green;
