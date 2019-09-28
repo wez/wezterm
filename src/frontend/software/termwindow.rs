@@ -30,6 +30,7 @@ struct GlyphKey {
 /// Caches a rendered glyph.
 /// The image data may be None for whitespace glyphs.
 struct CachedGlyph {
+    has_color: bool,
     x_offset: f64,
     y_offset: f64,
     bearing_x: f64,
@@ -596,7 +597,14 @@ impl TermWindow {
                             ),
                             Some(slice.pixel_rect(texture)),
                             &*texture.texture.image.borrow(),
-                            Operator::MultiplyThenOver(glyph_color),
+                            if glyph.has_color {
+                                // For full color glyphs, always use their color.
+                                // This avoids rendering a black mask when the text
+                                // selection moves over the glyph
+                                Operator::Over
+                            } else {
+                                Operator::MultiplyThenOver(glyph_color)
+                            },
                         );
                     }
                 }
@@ -706,13 +714,14 @@ impl TermWindow {
 
     /// Perform the load and render of a glyph
     fn load_glyph(&self, info: &GlyphInfo, style: &TextStyle) -> Fallible<Rc<CachedGlyph>> {
-        let (glyph, cell_width, cell_height) = {
+        let (has_color, glyph, cell_width, cell_height) = {
             let font = self.fonts.cached_font(style)?;
             let mut font = font.borrow_mut();
             let metrics = font.get_fallback(0)?.metrics();
             let active_font = font.get_fallback(info.font_idx)?;
+            let has_color = active_font.has_color();
             let glyph = active_font.rasterize_glyph(info.glyph_pos)?;
-            (glyph, metrics.cell_width, metrics.cell_height)
+            (has_color, glyph, metrics.cell_width, metrics.cell_height)
         };
 
         let scale = if (info.x_advance / f64::from(info.num_cells)).floor() > cell_width {
@@ -732,6 +741,7 @@ impl TermWindow {
         let glyph = if glyph.width == 0 || glyph.height == 0 {
             // a whitespace glyph
             CachedGlyph {
+                has_color,
                 texture: None,
                 x_offset,
                 y_offset,
@@ -759,6 +769,7 @@ impl TermWindow {
             let tex = self.atlas.borrow_mut().allocate(&raw_im)?;
 
             CachedGlyph {
+                has_color,
                 texture: Some(tex),
                 x_offset,
                 y_offset,
