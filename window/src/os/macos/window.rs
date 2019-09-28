@@ -357,7 +357,10 @@ impl WindowView {
         let mouse_buttons;
         let modifiers;
         unsafe {
-            coords = NSView::convertPoint_fromView_(view, nsevent.locationInWindow(), nil);
+            let point = NSView::convertPoint_fromView_(view, nsevent.locationInWindow(), nil);
+            let rect = NSRect::new(NSPoint::new(0., 0.), NSSize::new(point.x, point.y));
+            let backing_rect = NSView::convertRectToBacking(view, rect);
+            coords = NSPoint::new(backing_rect.size.width, backing_rect.size.height);
             mouse_buttons = decode_mouse_buttons(NSEvent::pressedMouseButtons(nsevent));
             modifiers = key_modifiers(nsevent.modifierFlags());
         }
