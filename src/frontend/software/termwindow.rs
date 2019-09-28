@@ -189,52 +189,7 @@ impl WindowCallbacks for TermWindow {
     }
 
     fn resize(&mut self, dimensions: Dimensions) {
-        let mux = Mux::get().unwrap();
-        if let Some(window) = mux.get_window(self.mux_window_id) {
-            if dimensions.dpi != self.dimensions.dpi {
-                self.fonts.change_scaling(1., dimensions.dpi as f64 / 96.);
-                let metrics = self
-                    .fonts
-                    .default_font_metrics()
-                    .expect("failed to get font metrics!?");
-
-                let (cell_height, cell_width) = (
-                    metrics.cell_height.ceil() as usize,
-                    metrics.cell_width.ceil() as usize,
-                );
-
-                let surface = Rc::new(ImageTexture::new(4096, 4096));
-                let atlas =
-                    RefCell::new(Atlas::new(&surface).expect("failed to create new texture atlas"));
-
-                let descender_row = (cell_height as f64 + metrics.descender) as isize;
-                let descender_plus_one = (1 + descender_row).min(cell_height as isize - 1);
-                let descender_plus_two = (2 + descender_row).min(cell_height as isize - 1);
-                let strike_row = descender_row / 2;
-
-                self.descender = metrics.descender;
-                self.descender_row = descender_row;
-                self.descender_plus_one = descender_plus_one;
-                self.descender_plus_two = descender_plus_two;
-                self.strike_row = strike_row;
-                self.glyph_cache.borrow_mut().clear();
-                self.atlas = atlas;
-
-                self.cell_size = Size::new(cell_width as isize, cell_height as isize);
-            }
-
-            self.dimensions = dimensions;
-
-            let size = portable_pty::PtySize {
-                rows: dimensions.pixel_height as u16 / self.cell_size.height as u16,
-                cols: dimensions.pixel_width as u16 / self.cell_size.width as u16,
-                pixel_height: dimensions.pixel_height as u16,
-                pixel_width: dimensions.pixel_width as u16,
-            };
-            for tab in window.iter() {
-                tab.resize(size).ok();
-            }
-        };
+        self.scaling_changed(dimensions, self.fonts.get_font_scale());
     }
 
     fn key_event(&mut self, key: &KeyEvent, _context: &dyn WindowOps) -> bool {
@@ -550,9 +505,66 @@ impl TermWindow {
         });
     }
 
-    fn decrease_font_size(&mut self) {}
-    fn increase_font_size(&mut self) {}
-    fn reset_font_size(&mut self) {}
+    fn scaling_changed(&mut self, dimensions: Dimensions, font_scale: f64) {
+        let mux = Mux::get().unwrap();
+        if let Some(window) = mux.get_window(self.mux_window_id) {
+            if dimensions.dpi != self.dimensions.dpi || font_scale != self.fonts.get_font_scale() {
+                self.fonts
+                    .change_scaling(font_scale, dimensions.dpi as f64 / 96.);
+                let metrics = self
+                    .fonts
+                    .default_font_metrics()
+                    .expect("failed to get font metrics!?");
+
+                let (cell_height, cell_width) = (
+                    metrics.cell_height.ceil() as usize,
+                    metrics.cell_width.ceil() as usize,
+                );
+
+                let surface = Rc::new(ImageTexture::new(4096, 4096));
+                let atlas =
+                    RefCell::new(Atlas::new(&surface).expect("failed to create new texture atlas"));
+
+                let descender_row = (cell_height as f64 + metrics.descender) as isize;
+                let descender_plus_one = (1 + descender_row).min(cell_height as isize - 1);
+                let descender_plus_two = (2 + descender_row).min(cell_height as isize - 1);
+                let strike_row = descender_row / 2;
+
+                self.descender = metrics.descender;
+                self.descender_row = descender_row;
+                self.descender_plus_one = descender_plus_one;
+                self.descender_plus_two = descender_plus_two;
+                self.strike_row = strike_row;
+                self.glyph_cache.borrow_mut().clear();
+                self.atlas = atlas;
+
+                self.cell_size = Size::new(cell_width as isize, cell_height as isize);
+            }
+
+            self.dimensions = dimensions;
+
+            let size = portable_pty::PtySize {
+                rows: dimensions.pixel_height as u16 / self.cell_size.height as u16,
+                cols: dimensions.pixel_width as u16 / self.cell_size.width as u16,
+                pixel_height: dimensions.pixel_height as u16,
+                pixel_width: dimensions.pixel_width as u16,
+            };
+            for tab in window.iter() {
+                tab.resize(size).ok();
+            }
+        };
+    }
+
+    fn decrease_font_size(&mut self) {
+        self.scaling_changed(self.dimensions.clone(), self.fonts.get_font_scale() * 0.9);
+    }
+    fn increase_font_size(&mut self) {
+        self.scaling_changed(self.dimensions.clone(), self.fonts.get_font_scale() * 1.1);
+    }
+    fn reset_font_size(&mut self) {
+        self.scaling_changed(self.dimensions.clone(), 1.);
+    }
+
     fn close_current_tab(&mut self) {
         let mux = Mux::get().unwrap();
         let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
