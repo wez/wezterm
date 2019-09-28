@@ -3,7 +3,7 @@ use crate::font::{FontConfiguration, FontSystemSelection};
 use crate::frontend::guicommon::clipboard::SystemClipboard;
 use crate::frontend::guicommon::window::SpawnTabDomain;
 use crate::frontend::{front_end, gui_executor};
-use crate::mux::tab::{Tab, TabId};
+use crate::mux::tab::Tab;
 use crate::mux::Mux;
 use failure::Error;
 use failure::Fallible;
@@ -13,7 +13,7 @@ use promise::Future;
 use std::collections::HashMap;
 use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use term::terminal::Clipboard;
 use term::{KeyCode, KeyModifiers};
 use termwiz::hyperlink::Hyperlink;
@@ -49,45 +49,6 @@ pub struct HostImpl<H: HostHelper> {
     helper: H,
     clipboard: Arc<dyn Clipboard>,
     keys: KeyMap,
-}
-
-const PASTE_CHUNK_SIZE: usize = 1024;
-
-struct Paste {
-    tab_id: TabId,
-    text: String,
-    offset: usize,
-}
-
-fn schedule_next_paste(paste: &Arc<Mutex<Paste>>) {
-    let paste = Arc::clone(paste);
-    Future::with_executor(gui_executor().unwrap(), move || {
-        let mut locked = paste.lock().unwrap();
-        let mux = Mux::get().unwrap();
-        let tab = mux.get_tab(locked.tab_id).unwrap();
-
-        let remain = locked.text.len() - locked.offset;
-        let chunk = remain.min(PASTE_CHUNK_SIZE);
-        let text_slice = &locked.text[locked.offset..locked.offset + chunk];
-        tab.send_paste(text_slice).unwrap();
-
-        if chunk < remain {
-            // There is more to send
-            locked.offset += chunk;
-            schedule_next_paste(&paste);
-        }
-
-        Ok(())
-    });
-}
-
-fn trickle_paste(tab_id: TabId, text: String) {
-    let paste = Arc::new(Mutex::new(Paste {
-        tab_id,
-        text,
-        offset: PASTE_CHUNK_SIZE,
-    }));
-    schedule_next_paste(&paste);
 }
 
 pub struct KeyMap(HashMap<(KeyCode, KeyModifiers), KeyAssignment>);
@@ -228,15 +189,7 @@ impl<H: HostHelper> HostImpl<H> {
                 // Nominally copy, but that is implicit, so NOP
             }
             Paste => {
-                let text = self.get_clipboard()?.get_contents()?;
-                if text.len() <= PASTE_CHUNK_SIZE {
-                    // Send it all now
-                    tab.send_paste(&text)?;
-                } else {
-                    // It's pretty heavy, so we trickle it into the pty
-                    tab.send_paste(&text[0..PASTE_CHUNK_SIZE])?;
-                    trickle_paste(tab.tab_id(), text);
-                }
+                tab.trickle_paste(self.get_clipboard()?.get_contents()?)?;
             }
             ActivateTabRelative(n) => self.activate_tab_relative(*n),
             DecreaseFontSize => self.decrease_font_size(),

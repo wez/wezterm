@@ -509,17 +509,7 @@ impl TermWindow {
                 // Nominally copy, but that is implicit, so NOP
             }
             Paste => {
-                /*
-                let text = self.get_clipboard()?.get_contents()?;
-                if text.len() <= PASTE_CHUNK_SIZE {
-                    // Send it all now
-                    tab.send_paste(&text)?;
-                } else {
-                    // It's pretty heavy, so we trickle it into the pty
-                    tab.send_paste(&text[0..PASTE_CHUNK_SIZE])?;
-                    trickle_paste(tab.tab_id(), text);
-                }
-                */
+                tab.trickle_paste(self.clipboard.get_contents()?)?;
             }
             ActivateTabRelative(n) => {
                 self.activate_tab_relative(*n)?;
