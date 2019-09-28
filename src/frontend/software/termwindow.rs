@@ -747,10 +747,16 @@ impl TermWindow {
                 &glyph.data,
             );
 
-            let tex = self.atlas.borrow_mut().allocate(&raw_im)?;
-
             let bearing_x = glyph.bearing_x * scale;
             let bearing_y = glyph.bearing_y * scale;
+
+            let (scale, raw_im) = if scale != 1.0 {
+                (1.0, raw_im.scale_by(scale))
+            } else {
+                (scale, raw_im)
+            };
+
+            let tex = self.atlas.borrow_mut().allocate(&raw_im)?;
 
             CachedGlyph {
                 texture: Some(tex),
