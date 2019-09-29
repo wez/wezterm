@@ -944,16 +944,43 @@ impl TerminalState {
             }
 
             // TODO: emit numpad sequences
-            (Numpad0, ..) | (Numpad1, ..) | (Numpad2, ..) | (Numpad3, ..) | (Numpad4, ..)
-            | (Numpad5, ..) | (Numpad6, ..) | (Numpad7, ..) | (Numpad8, ..) | (Numpad9, ..)
-            | (Multiply, ..) | (Add, ..) | (Separator, ..) | (Subtract, ..) | (Decimal, ..)
+            (Numpad0, ..)
+            | (Numpad1, ..)
+            | (Numpad2, ..)
+            | (Numpad3, ..)
+            | (Numpad4, ..)
+            | (Numpad5, ..)
+            | (Numpad6, ..)
+            | (Numpad7, ..)
+            | (Numpad8, ..)
+            | (Numpad9, ..)
+            | (Multiply, ..)
+            | (Add, ..)
+            | (Separator, ..)
+            | (Subtract, ..)
+            | (Decimal, ..)
             | (Divide, ..) => "",
 
             // Modifier keys pressed on their own don't expand to anything
-            (Control, ..) | (LeftControl, ..) | (RightControl, ..) | (Alt, ..) | (LeftAlt, ..)
-            | (RightAlt, ..) | (Menu, ..) | (LeftMenu, ..) | (RightMenu, ..) | (Super, ..)
-            | (Hyper, ..) | (Shift, ..) | (LeftShift, ..) | (RightShift, ..) | (Meta, ..)
-            | (LeftWindows, ..) | (RightWindows, ..) | (NumLock, ..) | (ScrollLock, ..) => "",
+            (Control, ..)
+            | (LeftControl, ..)
+            | (RightControl, ..)
+            | (Alt, ..)
+            | (LeftAlt, ..)
+            | (RightAlt, ..)
+            | (Menu, ..)
+            | (LeftMenu, ..)
+            | (RightMenu, ..)
+            | (Super, ..)
+            | (Hyper, ..)
+            | (Shift, ..)
+            | (LeftShift, ..)
+            | (RightShift, ..)
+            | (Meta, ..)
+            | (LeftWindows, ..)
+            | (RightWindows, ..)
+            | (NumLock, ..)
+            | (ScrollLock, ..) => "",
 
             (Cancel, ..)
             | (Clear, ..)

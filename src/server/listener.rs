@@ -239,7 +239,6 @@ mod not_ossl {
         });
         Ok(())
     }
-
 }
 
 #[cfg(any(feature = "openssl", unix))]
