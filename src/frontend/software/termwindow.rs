@@ -250,14 +250,6 @@ impl WindowCallbacks for TermWindow {
     }
 }
 
-impl Drop for TermWindow {
-    fn drop(&mut self) {
-        if Mux::get().unwrap().is_empty() {
-            Connection::get().unwrap().terminate_message_loop();
-        }
-    }
-}
-
 impl TermWindow {
     pub fn new_window(
         config: &Arc<Config>,
