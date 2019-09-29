@@ -19,6 +19,7 @@ promise = { path = "../promise" }
 resize = "0.3"
 
 [features]
+async_await = []
 
 [target."cfg(windows)".dependencies]
 winapi = { version = "0.3", features = [
