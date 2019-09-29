@@ -62,7 +62,7 @@ pub trait LineEditorHost {
     }
 
     /// Returns the history implementation
-    fn history(&mut self) -> &mut History;
+    fn history(&mut self) -> &mut dyn History;
 
     /// Tab completion support.
     /// The line and current cursor position are provided and it is up to the
@@ -91,7 +91,7 @@ pub struct NopLineEditorHost {
     history: BasicHistory,
 }
 impl LineEditorHost for NopLineEditorHost {
-    fn history(&mut self) -> &mut History {
+    fn history(&mut self) -> &mut dyn History {
         &mut self.history
     }
 }

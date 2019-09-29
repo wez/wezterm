@@ -144,7 +144,7 @@ impl<T: Terminal> LineEditor<T> {
         }
     }
 
-    fn render(&mut self, host: &mut LineEditorHost) -> Fallible<()> {
+    fn render(&mut self, host: &mut dyn LineEditorHost) -> Fallible<()> {
         let mut changes = vec![
             Change::CursorPosition {
                 x: Position::Absolute(0),
@@ -192,7 +192,7 @@ impl<T: Terminal> LineEditor<T> {
     /// Control is not returned to the caller until a line has been
     /// accepted, or until an error is detected.
     /// Returns Ok(None) if the editor was cancelled eg: via CTRL-C.
-    pub fn read_line(&mut self, host: &mut LineEditorHost) -> Fallible<Option<String>> {
+    pub fn read_line(&mut self, host: &mut dyn LineEditorHost) -> Fallible<Option<String>> {
         self.terminal.set_raw_mode()?;
         let res = self.read_line_impl(host);
         self.terminal.set_cooked_mode()?;
@@ -450,7 +450,7 @@ impl<T: Terminal> LineEditor<T> {
         self.completion = None;
     }
 
-    fn read_line_impl(&mut self, host: &mut LineEditorHost) -> Fallible<Option<String>> {
+    fn read_line_impl(&mut self, host: &mut dyn LineEditorHost) -> Fallible<Option<String>> {
         self.line.clear();
         self.cursor = 0;
         self.history_pos = None;

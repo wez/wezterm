@@ -140,7 +140,7 @@ struct RenderData<'widget> {
     surface: Surface,
     cursor: CursorShapeAndPosition,
     coordinates: ParentRelativeCoords,
-    widget: Box<Widget + 'widget>,
+    widget: Box<dyn Widget + 'widget>,
 }
 
 #[derive(Default)]

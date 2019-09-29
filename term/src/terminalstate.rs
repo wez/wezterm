@@ -419,7 +419,7 @@ impl TerminalState {
     fn mouse_single_click_left(
         &mut self,
         event: MouseEvent,
-        host: &mut TerminalHost,
+        host: &mut dyn TerminalHost,
     ) -> Result<(), Error> {
         // Prepare to start a new selection.
         // We don't form the selection until the mouse drags.
@@ -436,7 +436,7 @@ impl TerminalState {
     fn mouse_double_click_left(
         &mut self,
         event: MouseEvent,
-        host: &mut TerminalHost,
+        host: &mut dyn TerminalHost,
     ) -> Result<(), Error> {
         let y = event.y as ScrollbackOrVisibleRowIndex
             - self.viewport_offset as ScrollbackOrVisibleRowIndex;
@@ -513,7 +513,7 @@ impl TerminalState {
     fn mouse_triple_click_left(
         &mut self,
         event: MouseEvent,
-        host: &mut TerminalHost,
+        host: &mut dyn TerminalHost,
     ) -> Result<(), Error> {
         let y = event.y as ScrollbackOrVisibleRowIndex
             - self.viewport_offset as ScrollbackOrVisibleRowIndex;
@@ -537,7 +537,7 @@ impl TerminalState {
     fn mouse_press_left(
         &mut self,
         event: MouseEvent,
-        host: &mut TerminalHost,
+        host: &mut dyn TerminalHost,
     ) -> Result<(), Error> {
         self.current_mouse_button = MouseButton::Left;
         self.dirty_selection_lines();
@@ -565,7 +565,7 @@ impl TerminalState {
     fn mouse_release_left(
         &mut self,
         event: MouseEvent,
-        host: &mut TerminalHost,
+        host: &mut dyn TerminalHost,
     ) -> Result<(), Error> {
         // Finish selecting a region, update clipboard
         self.current_mouse_button = MouseButton::None;
@@ -613,7 +613,11 @@ impl TerminalState {
         Ok(())
     }
 
-    fn mouse_wheel(&mut self, event: MouseEvent, writer: &mut std::io::Write) -> Result<(), Error> {
+    fn mouse_wheel(
+        &mut self,
+        event: MouseEvent,
+        writer: &mut dyn std::io::Write,
+    ) -> Result<(), Error> {
         let (report_button, scroll_delta, key) = match event.button {
             MouseButton::WheelUp(amount) => (64, -(amount as i64), KeyCode::UpArrow),
             MouseButton::WheelDown(amount) => (65, amount as i64, KeyCode::DownArrow),
@@ -636,7 +640,7 @@ impl TerminalState {
     fn mouse_button_press(
         &mut self,
         event: MouseEvent,
-        host: &mut TerminalHost,
+        host: &mut dyn TerminalHost,
     ) -> Result<(), Error> {
         self.current_mouse_button = event.button;
         if let Some(button) = match event.button {
@@ -661,7 +665,7 @@ impl TerminalState {
     fn mouse_button_release(
         &mut self,
         event: MouseEvent,
-        writer: &mut std::io::Write,
+        writer: &mut dyn std::io::Write,
     ) -> Result<(), Error> {
         if self.current_mouse_button != MouseButton::None {
             self.current_mouse_button = MouseButton::None;
@@ -673,7 +677,11 @@ impl TerminalState {
         Ok(())
     }
 
-    fn mouse_move(&mut self, event: MouseEvent, writer: &mut std::io::Write) -> Result<(), Error> {
+    fn mouse_move(
+        &mut self,
+        event: MouseEvent,
+        writer: &mut dyn std::io::Write,
+    ) -> Result<(), Error> {
         if let Some(button) = match (self.current_mouse_button, self.button_event_mouse) {
             (MouseButton::Left, true) => Some(32),
             (MouseButton::Middle, true) => Some(33),
@@ -690,7 +698,7 @@ impl TerminalState {
     pub fn mouse_event(
         &mut self,
         mut event: MouseEvent,
-        host: &mut TerminalHost,
+        host: &mut dyn TerminalHost,
     ) -> Result<(), Error> {
         // Clamp the mouse coordinates to the size of the model.
         // This situation can trigger for example when the
@@ -793,7 +801,7 @@ impl TerminalState {
     /// Send text to the terminal that is the result of pasting.
     /// If bracketed paste mode is enabled, the paste is enclosed
     /// in the bracketing, otherwise it is fed to the pty as-is.
-    pub fn send_paste(&mut self, text: &str, writer: &mut std::io::Write) -> Result<(), Error> {
+    pub fn send_paste(&mut self, text: &str, writer: &mut dyn std::io::Write) -> Result<(), Error> {
         if self.bracketed_paste {
             let buf = format!("\x1b[200~{}\x1b[201~", text);
             writer.write_all(buf.as_bytes())?;
@@ -811,7 +819,7 @@ impl TerminalState {
         &mut self,
         key: KeyCode,
         mods: KeyModifiers,
-        writer: &mut std::io::Write,
+        writer: &mut dyn std::io::Write,
     ) -> Result<(), Error> {
         const CTRL: KeyModifiers = KeyModifiers::CTRL;
         const SHIFT: KeyModifiers = KeyModifiers::SHIFT;
@@ -1358,7 +1366,7 @@ impl TerminalState {
         */
     }
 
-    fn perform_device(&mut self, dev: Device, host: &mut TerminalHost) {
+    fn perform_device(&mut self, dev: Device, host: &mut dyn TerminalHost) {
         match dev {
             Device::DeviceAttributes(a) => error!("unhandled: {:?}", a),
             Device::SoftReset => {
@@ -1533,7 +1541,7 @@ impl TerminalState {
         checksum
     }
 
-    fn perform_csi_window(&mut self, window: Window, host: &mut TerminalHost) {
+    fn perform_csi_window(&mut self, window: Window, host: &mut dyn TerminalHost) {
         match window {
             Window::ReportTextAreaSizeCells => {
                 let screen = self.screen();
@@ -1701,7 +1709,7 @@ impl TerminalState {
         }
     }
 
-    fn perform_csi_cursor(&mut self, cursor: Cursor, host: &mut TerminalHost) {
+    fn perform_csi_cursor(&mut self, cursor: Cursor, host: &mut dyn TerminalHost) {
         match cursor {
             Cursor::SetTopAndBottomMargins { top, bottom } => {
                 let rows = self.screen().physical_rows;
@@ -1863,7 +1871,7 @@ impl TerminalState {
 /// the terminal state and the embedding/host terminal interface
 pub(crate) struct Performer<'a> {
     pub state: &'a mut TerminalState,
-    pub host: &'a mut TerminalHost,
+    pub host: &'a mut dyn TerminalHost,
     print: Option<String>,
 }
 
@@ -1888,7 +1896,7 @@ impl<'a> Drop for Performer<'a> {
 }
 
 impl<'a> Performer<'a> {
-    pub fn new(state: &'a mut TerminalState, host: &'a mut TerminalHost) -> Self {
+    pub fn new(state: &'a mut TerminalState, host: &'a mut dyn TerminalHost) -> Self {
         Self {
             state,
             host,

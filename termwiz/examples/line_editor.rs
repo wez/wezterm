@@ -24,7 +24,7 @@ impl LineEditorHost for Host {
         ]
     }
 
-    fn history(&mut self) -> &mut History {
+    fn history(&mut self) -> &mut dyn History {
         &mut self.history
     }
 

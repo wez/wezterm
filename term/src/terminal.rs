@@ -15,10 +15,10 @@ pub trait Clipboard {
 pub trait TerminalHost {
     /// Returns an object that can be used to send data to the
     /// slave end of the associated pty.
-    fn writer(&mut self) -> &mut std::io::Write;
+    fn writer(&mut self) -> &mut dyn std::io::Write;
 
     /// Returns the clipboard manager
-    fn get_clipboard(&mut self) -> Fallible<Arc<Clipboard>>;
+    fn get_clipboard(&mut self) -> Fallible<Arc<dyn Clipboard>>;
 
     /// Change the title of the window
     fn set_title(&mut self, title: &str);
@@ -85,7 +85,7 @@ impl Terminal {
     }
 
     /// Feed the terminal parser a slice of bytes of input.
-    pub fn advance_bytes<B: AsRef<[u8]>>(&mut self, bytes: B, host: &mut TerminalHost) {
+    pub fn advance_bytes<B: AsRef<[u8]>>(&mut self, bytes: B, host: &mut dyn TerminalHost) {
         let bytes = bytes.as_ref();
 
         let mut performer = Performer::new(&mut self.state, host);

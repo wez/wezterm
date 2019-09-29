@@ -96,7 +96,7 @@ fn spawn_window() -> Fallible<()> {
     )?;
 
     win.show();
-    win.apply(|myself, win| {
+    win.apply(|myself, _win| {
         if let Some(myself) = myself.downcast_ref::<MyWindow>() {
             eprintln!(
                 "got myself; allow_close={}, cursor_pos:{:?}",

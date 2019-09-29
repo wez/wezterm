@@ -16,7 +16,7 @@ use termwiz::escape::{OneBased, OperatingSystemCommand, CSI};
 
 struct TestHost {
     title: String,
-    clip: Arc<Clipboard>,
+    clip: Arc<dyn Clipboard>,
 }
 
 impl TestHost {
@@ -70,11 +70,11 @@ impl TerminalHost for TestHost {
         self.title = title.into();
     }
 
-    fn get_clipboard(&mut self) -> Fallible<Arc<Clipboard>> {
+    fn get_clipboard(&mut self) -> Fallible<Arc<dyn Clipboard>> {
         Ok(Arc::clone(&self.clip))
     }
 
-    fn writer(&mut self) -> &mut std::io::Write {
+    fn writer(&mut self) -> &mut dyn std::io::Write {
         self
     }
 
