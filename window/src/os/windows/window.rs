@@ -207,6 +207,16 @@ fn schedule_show_window(hwnd: HWindow, show: bool) {
 }
 
 impl WindowOpsMut for WindowInner {
+    fn close(&mut self) {
+        let hwnd = self.hwnd;
+        Future::with_executor(Connection::executor(), move || {
+            unsafe {
+                DestroyWindow(hwnd.0);
+            }
+            Ok(())
+        });
+    }
+
     fn show(&mut self) {
         schedule_show_window(self.hwnd, true);
     }
@@ -234,6 +244,10 @@ impl WindowOpsMut for WindowInner {
 }
 
 impl WindowOps for Window {
+    fn close(&self) {
+        Connection::with_window_inner(self.0, |inner| inner.close());
+    }
+
     fn show(&self) {
         schedule_show_window(self.0, true);
     }
