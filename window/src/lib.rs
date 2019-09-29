@@ -135,6 +135,9 @@ pub trait WindowOps {
     /// Hide a visible window
     fn hide(&self);
 
+    /// Schedule the window to be closed
+    fn close(&self);
+
     /// Change the cursor
     fn set_cursor(&self, cursor: Option<MouseCursor>);
 
@@ -160,6 +163,9 @@ pub trait WindowOpsMut {
 
     /// Hide a visible window
     fn hide(&mut self);
+
+    /// Schedule the window to be closed
+    fn close(&mut self);
 
     /// Change the cursor
     fn set_cursor(&mut self, cursor: Option<MouseCursor>);

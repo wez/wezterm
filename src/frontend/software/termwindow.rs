@@ -330,7 +330,7 @@ impl TermWindow {
                         cloned_window.invalidate();
                     }
                 } else {
-                    // TODO: destroy the window here
+                    cloned_window.close();
                 }
             },
         );

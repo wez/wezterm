@@ -116,6 +116,10 @@ impl Window {
 }
 
 impl WindowOps for Window {
+    fn close(&self) {
+        Connection::with_window_inner(self.0, |inner| inner.close());
+    }
+
     fn hide(&self) {
         Connection::with_window_inner(self.0, |inner| inner.hide());
     }
@@ -155,6 +159,12 @@ impl WindowOpsMut for WindowInner {
             let current_app = NSRunningApplication::currentApplication(nil);
             current_app.activateWithOptions_(NSApplicationActivateIgnoringOtherApps);
             self.window.makeKeyAndOrderFront_(nil)
+        }
+    }
+
+    fn close(&mut self) {
+        unsafe {
+            self.window.close();
         }
     }
 
