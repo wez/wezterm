@@ -109,6 +109,10 @@ where
             coords: rect,
         })
     }
+
+    pub fn size(&self) -> usize {
+        self.side
+    }
 }
 
 pub struct Sprite<T>

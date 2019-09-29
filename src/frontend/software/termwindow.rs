@@ -9,7 +9,7 @@ use crate::mux::renderable::Renderable;
 use crate::mux::tab::{Tab, TabId};
 use crate::mux::window::WindowId as MuxWindowId;
 use crate::mux::Mux;
-use ::window::bitmaps::atlas::{Atlas, Sprite, SpriteSlice};
+use ::window::bitmaps::atlas::{Atlas, OutOfTextureSpace, Sprite, SpriteSlice};
 use ::window::bitmaps::{Image, ImageTexture};
 use ::window::*;
 use failure::Fallible;
@@ -245,7 +245,22 @@ impl WindowCallbacks for TermWindow {
                 return;
             }
         };
-        self.paint_tab(&tab, ctx);
+        let start = std::time::Instant::now();
+        if let Err(err) = self.paint_tab(&tab, ctx) {
+            if let Some(&OutOfTextureSpace { size }) = err.downcast_ref::<OutOfTextureSpace>() {
+                log::error!("out of texture space, allocating {}", size);
+                match self.recreate_texture_atlas(size) {
+                    Ok(_) => {
+                        tab.renderer().make_all_lines_dirty();
+                        // Recursively initiate a new paint
+                        return self.paint(ctx);
+                    }
+                    Err(err) => log::error!("failed recreate atlas: {}", err),
+                };
+            }
+            log::error!("paint failed: {}", err);
+        }
+        log::debug!("paint_tab elapsed={:?}", start.elapsed());
         self.update_title();
     }
 }
@@ -328,6 +343,14 @@ impl TermWindow {
         );
 
         window.show();
+        Ok(())
+    }
+
+    fn recreate_texture_atlas(&mut self, size: usize) -> Fallible<()> {
+        let surface = Rc::new(ImageTexture::new(size, size));
+        let atlas = RefCell::new(Atlas::new(&surface).expect("failed to create new texture atlas"));
+        self.glyph_cache.borrow_mut().clear();
+        self.atlas = atlas;
         Ok(())
     }
 
@@ -513,9 +536,9 @@ impl TermWindow {
                     metrics.cell_width.ceil() as usize,
                 );
 
-                let surface = Rc::new(ImageTexture::new(4096, 4096));
-                let atlas =
-                    RefCell::new(Atlas::new(&surface).expect("failed to create new texture atlas"));
+                let atlas_size = self.atlas.borrow().size();
+                self.recreate_texture_atlas(atlas_size)
+                    .expect("failed to recreate atlas");
 
                 let descender_row = (cell_height as f64 + metrics.descender) as isize;
                 let descender_plus_one = (1 + descender_row).min(cell_height as isize - 1);
@@ -527,8 +550,6 @@ impl TermWindow {
                 self.descender_plus_one = descender_plus_one;
                 self.descender_plus_two = descender_plus_two;
                 self.strike_row = strike_row;
-                self.glyph_cache.borrow_mut().clear();
-                self.atlas = atlas;
 
                 self.cell_size = Size::new(cell_width as isize, cell_height as isize);
             }
@@ -570,7 +591,7 @@ impl TermWindow {
         self.activate_tab_relative(0).ok();
     }
 
-    fn paint_tab(&mut self, tab: &Rc<dyn Tab>, ctx: &mut dyn PaintContext) {
+    fn paint_tab(&mut self, tab: &Rc<dyn Tab>, ctx: &mut dyn PaintContext) -> Fallible<()> {
         let palette = tab.palette();
 
         let mut term = tab.renderer();
@@ -580,8 +601,7 @@ impl TermWindow {
             let dirty_lines = term.get_dirty_lines();
 
             for (line_idx, line, selrange) in dirty_lines {
-                self.render_screen_line(ctx, line_idx, &line, selrange, &cursor, &*term, &palette)
-                    .ok();
+                self.render_screen_line(ctx, line_idx, &line, selrange, &cursor, &*term, &palette)?;
             }
         }
 
@@ -600,6 +620,7 @@ impl TermWindow {
             ),
             rgbcolor_to_window_color(palette.background),
         );
+        Ok(())
     }
 
     fn render_screen_line(

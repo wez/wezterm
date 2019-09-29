@@ -144,6 +144,7 @@ pub trait TerminalWindow {
             None => return Ok(()),
         };
 
+        let start = std::time::Instant::now();
         let mut target = self.frame();
         let res = {
             let renderer = self.renderer();
@@ -156,6 +157,7 @@ pub trait TerminalWindow {
         target
             .finish()
             .expect("target.finish failed and we don't know how to recover");
+        log::debug!("paint elapsed={:?}", start.elapsed());
 
         // The only error we want to catch is texture space related;
         // when that happens we need to blow our glyph cache and
