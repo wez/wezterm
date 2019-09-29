@@ -436,6 +436,9 @@ impl Drawable for Window {
 }
 
 impl WindowOpsMut for WindowInner {
+    fn close(&mut self) {
+        xcb::destroy_window(self.conn.conn(), self.window_id);
+    }
     fn hide(&mut self) {}
     fn show(&mut self) {
         xcb::map_window(self.conn.conn(), self.window_id);
@@ -454,6 +457,9 @@ impl WindowOpsMut for WindowInner {
 }
 
 impl WindowOps for Window {
+    fn close(&self) {
+        Connection::with_window_inner(self.0, |inner| inner.close());
+    }
     fn hide(&self) {
         Connection::with_window_inner(self.0, |inner| inner.hide());
     }
