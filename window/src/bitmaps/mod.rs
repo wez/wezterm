@@ -284,7 +284,7 @@ pub trait BitmapImage {
         let src_rect = src_rect
             .unwrap_or_else(|| Rect::from_size(Size::new(im_width as isize, im_height as isize)));
 
-        let (dim_width, dim_height) = self.image_dimensions();
+        let (_dim_width, dim_height) = self.image_dimensions();
         debug_assert!(
             src_rect.size.width <= im_width as isize && src_rect.size.height <= im_height as isize
         );
@@ -296,17 +296,19 @@ pub trait BitmapImage {
             if dest_y as usize >= dim_height {
                 break;
             }
-            for x in src_rect.origin.x..src_rect.origin.x + src_rect.size.width {
-                let dest_x = x as isize + dest_top_left.x - src_rect.origin.x as isize;
-                if dest_x < 0 {
-                    continue;
-                }
-                if dest_x as usize >= dim_width {
-                    break;
-                }
-                let src = Color(*im.pixel(x as usize, y as usize));
-                let dst = self.pixel_mut(dest_x as usize, dest_y as usize);
-                *dst = src.composite(Color(*dst), &operator).0;
+
+            let src_pixels = im.horizontal_pixel_range(
+                src_rect.min_x() as usize,
+                src_rect.max_x() as usize,
+                y as usize,
+            );
+            let dest_pixels = self.horizontal_pixel_range_mut(
+                dest_top_left.x.max(0) as usize,
+                (dest_top_left.x + src_rect.size.width).max(0) as usize,
+                dest_y as usize,
+            );
+            for (src_pix, dest_pix) in src_pixels.iter().zip(dest_pixels.iter_mut()) {
+                *dest_pix = Color(*src_pix).composite(Color(*dest_pix), &operator).0;
             }
         }
     }
