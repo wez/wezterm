@@ -109,3 +109,4 @@ force-fontconfig = ["fontconfig"]
 
 [profile.release]
 debug = true
+opt-level = 3

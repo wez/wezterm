@@ -41,6 +41,66 @@ pub trait Texture2d {
     }
 }
 
+#[cfg(target_arch = "x86_64")]
+mod avx2 {
+    use super::*;
+    #[inline]
+    fn align_lo(size: usize, align: usize) -> usize {
+        size & !(align - 1)
+    }
+
+    #[inline]
+    fn is_aligned(size: usize, align: usize) -> bool {
+        size == align_lo(size, align)
+    }
+
+    pub unsafe fn fill_pixel(
+        mut dest: *mut u8,
+        stride_bytes: usize,
+        width_pixels: usize,
+        height_pixels: usize,
+        color: Color,
+    ) {
+        // This holds 8 copies of the pixel value
+        let bgra256 = std::arch::x86_64::_mm256_set1_epi32(color.0 as _);
+        let aligned_width = align_lo(width_pixels, 8);
+
+        if is_aligned(dest as usize, 32) {
+            for _row in 0..height_pixels {
+                for col in (0..aligned_width).step_by(8) {
+                    std::arch::x86_64::_mm256_store_si256(
+                        dest.offset(4 * col as isize) as *mut _,
+                        bgra256,
+                    );
+                }
+                if width_pixels != aligned_width {
+                    std::arch::x86_64::_mm256_storeu_si256(
+                        dest.offset(4 * (width_pixels as isize - 8)) as *mut _,
+                        bgra256,
+                    );
+                }
+                dest = dest.offset(stride_bytes as isize);
+            }
+        } else {
+            for _row in 0..height_pixels {
+                for col in (0..aligned_width).step_by(8) {
+                    std::arch::x86_64::_mm256_storeu_si256(
+                        dest.offset(4 * col as isize) as *mut _,
+                        bgra256,
+                    );
+                }
+                if width_pixels != aligned_width {
+                    std::arch::x86_64::_mm256_storeu_si256(
+                        dest.offset(4 * (width_pixels as isize - 8)) as *mut _,
+                        bgra256,
+                    );
+                }
+                dest = dest.offset(stride_bytes as isize);
+            }
+        }
+    }
+}
+
 /// A bitmap in big endian bgra32 color format with abstract
 /// storage filled in by the trait implementation.
 pub trait BitmapImage {
@@ -105,6 +165,18 @@ pub trait BitmapImage {
 
     /// Clear the entire image to the specific color
     fn clear(&mut self, color: Color) {
+        let (width, height) = self.image_dimensions();
+
+        #[cfg(target_arch = "x86_64")]
+        {
+            if is_x86_feature_detected!("avx2") {
+                unsafe {
+                    avx2::fill_pixel(self.pixel_data_mut(), width * 4, width, height, color);
+                }
+                return;
+            }
+        }
+
         for c in self.pixels_mut() {
             *c = color.0;
         }
@@ -117,6 +189,23 @@ pub trait BitmapImage {
 
         let dest_x = rect.origin.x.max(0) as usize;
         let dest_y = rect.origin.y.max(0) as usize;
+
+        #[cfg(target_arch = "x86_64")]
+        {
+            if is_x86_feature_detected!("avx2") {
+                unsafe {
+                    avx2::fill_pixel(
+                        self.pixel_data_mut()
+                            .offset(4 * ((dest_y * dim_width) + dest_x) as isize),
+                        dim_width * 4,
+                        max_x - dest_x,
+                        max_y - dest_y,
+                        color,
+                    );
+                }
+                return;
+            }
+        }
 
         for y in dest_y..max_y {
             let range = self.horizontal_pixel_range_mut(dest_x, max_x, y);

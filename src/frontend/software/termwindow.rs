@@ -260,7 +260,7 @@ impl WindowCallbacks for TermWindow {
             }
             log::error!("paint failed: {}", err);
         }
-        log::debug!("paint_tab elapsed={:?}", start.elapsed());
+        log::error!("paint_tab elapsed={:?}", start.elapsed());
         self.update_title();
     }
 }
