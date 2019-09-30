@@ -49,6 +49,7 @@ mod avx2 {
         size & !(align - 1)
     }
 
+    #[allow(dead_code)]
     #[inline]
     fn is_aligned(size: usize, align: usize) -> bool {
         size == align_lo(size, align)
@@ -65,6 +66,7 @@ mod avx2 {
         let bgra256 = std::arch::x86_64::_mm256_set1_epi32(color.0 as _);
         let aligned_width = align_lo(width_pixels, 8);
 
+        /* disabled for now; I think there is something fishy about the alignment check
         if is_aligned(dest as usize, 32) {
             for _row in 0..height_pixels {
                 for col in (0..aligned_width).step_by(8) {
@@ -81,7 +83,9 @@ mod avx2 {
                 }
                 dest = dest.offset(stride_bytes as isize);
             }
-        } else {
+        } else
+        */
+        {
             for _row in 0..height_pixels {
                 for col in (0..aligned_width).step_by(8) {
                     std::arch::x86_64::_mm256_storeu_si256(
