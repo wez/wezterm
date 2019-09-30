@@ -42,7 +42,7 @@ pub trait Texture2d {
 }
 
 #[cfg(target_arch = "x86_64")]
-mod avx2 {
+mod avx {
     use super::*;
     #[inline]
     fn align_lo(size: usize, align: usize) -> usize {
@@ -173,9 +173,9 @@ pub trait BitmapImage {
 
         #[cfg(target_arch = "x86_64")]
         {
-            if is_x86_feature_detected!("avx2") {
+            if is_x86_feature_detected!("avx") {
                 unsafe {
-                    avx2::fill_pixel(self.pixel_data_mut(), width * 4, width, height, color);
+                    avx::fill_pixel(self.pixel_data_mut(), width * 4, width, height, color);
                 }
                 return;
             }
@@ -196,9 +196,9 @@ pub trait BitmapImage {
 
         #[cfg(target_arch = "x86_64")]
         {
-            if is_x86_feature_detected!("avx2") {
+            if is_x86_feature_detected!("avx") {
                 unsafe {
-                    avx2::fill_pixel(
+                    avx::fill_pixel(
                         self.pixel_data_mut()
                             .offset(4 * ((dest_y * dim_width) + dest_x) as isize),
                         dim_width * 4,
