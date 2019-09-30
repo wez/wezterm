@@ -1,5 +1,27 @@
 use crate::Operator;
-use palette::{Blend, Srgb, Srgba};
+use palette::{Blend, LinSrgb, LinSrgba, Srgb, Srgba};
+
+lazy_static::lazy_static! {
+    static ref SRGB_TO_F32_TABLE: [f32;256] = generate_srgb8_to_linear_f32_table();
+}
+
+fn generate_srgb8_to_linear_f32_table() -> [f32; 256] {
+    let mut table = [0.; 256];
+    for val in 0..256 {
+        let c = (val as f32) / 255.0;
+        let f = if c < 0.04045 {
+            c / 12.92
+        } else {
+            ((c + 0.055) / 1.055).powf(2.4)
+        };
+        table[val] = f;
+    }
+    table
+}
+
+fn srgb8_to_linear_f32(val: u8) -> f32 {
+    unsafe { *SRGB_TO_F32_TABLE.get_unchecked(val as usize) }
+}
 
 /// A color stored as big endian bgra32
 #[derive(Copy, Clone, Debug)]
@@ -20,6 +42,31 @@ impl From<Srgba> for Color {
         let b: Srgba<u8> = s.into_format();
         let b = b.into_components();
         Color::rgba(b.0, b.1, b.2, b.3)
+    }
+}
+
+impl From<Color> for LinSrgb {
+    #[inline]
+    fn from(c: Color) -> LinSrgb {
+        let c = c.as_rgba();
+        LinSrgb::new(
+            srgb8_to_linear_f32(c.0),
+            srgb8_to_linear_f32(c.1),
+            srgb8_to_linear_f32(c.2),
+        )
+    }
+}
+
+impl From<Color> for LinSrgba {
+    #[inline]
+    fn from(c: Color) -> LinSrgba {
+        let c = c.as_rgba();
+        LinSrgba::new(
+            srgb8_to_linear_f32(c.0),
+            srgb8_to_linear_f32(c.1),
+            srgb8_to_linear_f32(c.2),
+            srgb8_to_linear_f32(c.3),
+        )
     }
 }
 
@@ -70,30 +117,29 @@ impl Color {
     pub fn composite(&self, dest: Color, operator: &Operator) -> Color {
         match operator {
             &Operator::Over => {
-                let src: Srgba = (*self).into();
-                let dest: Srgba = dest.into();
-                Srgba::from_linear(src.into_linear().over(dest.into_linear())).into()
+                let src: LinSrgba = (*self).into();
+                let dest: LinSrgba = dest.into();
+                Srgba::from_linear(src.over(dest)).into()
             }
             &Operator::Source => *self,
             &Operator::Multiply => {
-                let src: Srgba = (*self).into();
-                let dest: Srgba = dest.into();
-                let result: Color =
-                    Srgba::from_linear(src.into_linear().multiply(dest.into_linear())).into();
+                let src: LinSrgba = (*self).into();
+                let dest: LinSrgba = dest.into();
+                let result: Color = Srgba::from_linear(src.multiply(dest)).into();
                 result.into()
             }
             &Operator::MultiplyThenOver(ref tint) => {
                 // First multiply by the tint color.  This colorizes the glyph.
-                let src: Srgba = (*self).into();
-                let tint: Srgba = (*tint).into();
-                let mut tinted = src.into_linear().multiply(tint.into_linear());
+                let src: LinSrgba = (*self).into();
+                let tint: LinSrgba = (*tint).into();
+                let mut tinted = src.multiply(tint);
                 // We take the alpha from the source.  This is important because
                 // we're using Multiply to tint the glyph and if we don't reset the
                 // alpha we tend to end up with a background square of the tint color.
                 tinted.alpha = src.alpha;
                 // Then blend the tinted glyph over the destination background
-                let dest: Srgba = dest.into();
-                Srgba::from_linear(tinted.over(dest.into_linear())).into()
+                let dest: LinSrgba = dest.into();
+                Srgba::from_linear(tinted.over(dest)).into()
             }
         }
     }
