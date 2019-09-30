@@ -1,6 +1,6 @@
 use crate::color::Color;
 use crate::{Operator, Point, Rect, Size};
-use palette::Srgba;
+use palette::LinSrgba;
 use std::cell::RefCell;
 
 pub mod atlas;
@@ -221,8 +221,7 @@ pub trait BitmapImage {
     /// specified Operator.
     fn draw_line(&mut self, start: Point, end: Point, color: Color, operator: Operator) {
         let (dim_width, dim_height) = self.image_dimensions();
-        let srgba: Srgba = color.into();
-        let linear = srgba.into_linear();
+        let linear: LinSrgba = color.into();
         let (red, green, blue, alpha) = linear.into_components();
 
         for ((x, y), value) in line_drawing::XiaolinWu::<f32, isize>::new(
@@ -237,7 +236,7 @@ pub trait BitmapImage {
             }
             let pix = self.pixel_mut(x as usize, y as usize);
 
-            let color: Color = Srgba::from_components((red, green, blue, alpha * value)).into();
+            let color: Color = LinSrgba::from_components((red, green, blue, alpha * value)).into();
             *pix = color.composite(Color(*pix), &operator).0;
         }
     }
