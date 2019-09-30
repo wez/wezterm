@@ -66,8 +66,7 @@ mod avx {
         let bgra256 = std::arch::x86_64::_mm256_set1_epi32(color.0 as _);
         let aligned_width = align_lo(width_pixels, 8);
 
-        /* disabled for now; I think there is something fishy about the alignment check
-        if is_aligned(dest as usize, 32) {
+        if is_aligned(dest as usize, 32) && is_aligned(stride_bytes, 32) {
             for _row in 0..height_pixels {
                 for col in (0..aligned_width).step_by(8) {
                     std::arch::x86_64::_mm256_store_si256(
@@ -83,9 +82,7 @@ mod avx {
                 }
                 dest = dest.offset(stride_bytes as isize);
             }
-        } else
-        */
-        {
+        } else {
             for _row in 0..height_pixels {
                 for col in (0..aligned_width).step_by(8) {
                     std::arch::x86_64::_mm256_storeu_si256(
