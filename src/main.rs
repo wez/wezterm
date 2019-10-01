@@ -419,10 +419,11 @@ fn run_terminal_gui(config: Arc<config::Config>, opts: &StartCommand) -> Fallibl
         if opts.daemonize {
             let stdout = config.daemon_options.open_stdout()?;
             let stderr = config.daemon_options.open_stderr()?;
+            let home_dir = dirs::home_dir().ok_or_else(|| err_msg("can't find home dir"))?;
             let mut daemonize = daemonize::Daemonize::new()
                 .stdout(stdout)
                 .stderr(stderr)
-                .working_directory(dirs::home_dir().ok_or_else(|| err_msg("can't find home dir"))?);
+                .working_directory(home_dir.clone());
 
             if !running_under_wsl() {
                 // pid file locking is only partly function when running under
@@ -432,7 +433,21 @@ fn run_terminal_gui(config: Arc<config::Config>, opts: &StartCommand) -> Fallibl
                 // So, we only use a pid file when not under WSL.
                 daemonize = daemonize.pid_file(config.daemon_options.pid_file());
             }
-            daemonize.start()?;
+            if let Err(err) = daemonize.start() {
+                use daemonize::DaemonizeError;
+                match err {
+                    DaemonizeError::OpenPidfile
+                    | DaemonizeError::LockPidfile(_)
+                    | DaemonizeError::ChownPidfile(_)
+                    | DaemonizeError::WritePid => {
+                        failure::bail!("{} {}", err, config.daemon_options.pid_file().display());
+                    }
+                    DaemonizeError::ChangeDirectory => {
+                        failure::bail!("{} {}", err, home_dir.display());
+                    }
+                    _ => return Err(err.into()),
+                }
+            }
         }
     }
 
