@@ -97,6 +97,7 @@ bitflags! {
     #[derive(Default)]
     pub struct MouseButtons: u8 {
         const NONE = 0;
+        #[allow(clippy::identity_op)]
         const LEFT = 1<<0;
         const RIGHT = 1<<1;
         const MIDDLE = 1<<2;

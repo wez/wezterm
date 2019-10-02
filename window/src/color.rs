@@ -8,18 +8,18 @@ lazy_static::lazy_static! {
 
 fn generate_srgb8_to_linear_f32_table() -> [f32; 256] {
     let mut table = [0.; 256];
-    for val in 0..256 {
+    for (val, entry) in table.iter_mut().enumerate() {
         let c = (val as f32) / 255.0;
-        let f = if c < 0.04045 {
+        *entry = if c < 0.04045 {
             c / 12.92
         } else {
             ((c + 0.055) / 1.055).powf(2.4)
         };
-        table[val] = f;
     }
     table
 }
 
+#[allow(clippy::unreadable_literal)]
 fn generate_linear_f32_to_srgb8_table() -> [u32; 104] {
     // My intent was to generate this array on the fly using the code that is commented
     // out below.  It is based on this gist:
@@ -107,7 +107,9 @@ fn linear_f32_to_srgbf32(f: f32) -> f32 {
 }
 */
 
+#[allow(clippy::unreadable_literal)]
 const ALMOST_ONE: u32 = 0x3f7fffff;
+#[allow(clippy::unreadable_literal)]
 const MINVAL: u32 = (127 - 13) << 23;
 
 fn linear_f32_to_srgb8_using_table(f: f32) -> u8 {
@@ -133,6 +135,7 @@ fn linear_f32_to_srgb8_using_table(f: f32) -> u8 {
 }
 
 #[cfg(target_arch = "x86_64")]
+#[allow(clippy::unreadable_literal)]
 fn linear_f32_to_srgb8_vec(s: LinSrgba) -> Color {
     use std::arch::x86_64::*;
 
@@ -189,6 +192,7 @@ pub struct Color(pub u32);
 
 impl From<LinSrgba> for Color {
     #[inline]
+    #[allow(clippy::many_single_char_names)]
     fn from(s: LinSrgba) -> Color {
         if is_x86_feature_detected!("sse2") {
             linear_f32_to_srgb8_vec(s)
@@ -271,12 +275,13 @@ impl Color {
 
     #[inline]
     pub fn rgba(red: u8, green: u8, blue: u8, alpha: u8) -> Color {
+        #[allow(clippy::cast_lossless)]
         let word = (blue as u32) << 24 | (green as u32) << 16 | (red as u32) << 8 | alpha as u32;
         Color(word.to_be())
     }
 
     #[inline]
-    pub fn as_rgba(&self) -> (u8, u8, u8, u8) {
+    pub fn as_rgba(self) -> (u8, u8, u8, u8) {
         let host = u32::from_be(self.0);
         (
             (host >> 8) as u8,
@@ -289,23 +294,23 @@ impl Color {
     /// Compute the composite of two colors according to the supplied operator.
     /// self is the src operand, dest is the dest operand.
     #[inline]
-    pub fn composite(&self, dest: Color, operator: &Operator) -> Color {
+    pub fn composite(self, dest: Color, operator: Operator) -> Color {
         match operator {
-            &Operator::Over => {
-                let src: LinSrgba = (*self).into();
+            Operator::Over => {
+                let src: LinSrgba = self.into();
                 let dest: LinSrgba = dest.into();
                 src.over(dest).into()
             }
-            &Operator::Source => *self,
-            &Operator::Multiply => {
-                let src: LinSrgba = (*self).into();
+            Operator::Source => self,
+            Operator::Multiply => {
+                let src: LinSrgba = self.into();
                 let dest: LinSrgba = dest.into();
                 let result: Color = src.multiply(dest).into();
                 result
             }
-            &Operator::MultiplyThenOver(ref tint) => {
+            Operator::MultiplyThenOver(ref tint) => {
                 // First multiply by the tint color.  This colorizes the glyph.
-                let src: LinSrgba = (*self).into();
+                let src: LinSrgba = self.into();
                 let tint: LinSrgba = (*tint).into();
                 let mut tinted = src.multiply(tint);
                 // We take the alpha from the source.  This is important because

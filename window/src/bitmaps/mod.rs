@@ -55,6 +55,7 @@ mod avx {
         size == align_lo(size, align)
     }
 
+    #[allow(clippy::cast_ptr_alignment)]
     pub unsafe fn fill_pixel(
         mut dest: *mut u8,
         stride_bytes: usize,
@@ -69,34 +70,28 @@ mod avx {
         if is_aligned(dest as usize, 32) && is_aligned(stride_bytes, 32) {
             for _row in 0..height_pixels {
                 for col in (0..aligned_width).step_by(8) {
-                    std::arch::x86_64::_mm256_store_si256(
-                        dest.offset(4 * col as isize) as *mut _,
-                        bgra256,
-                    );
+                    std::arch::x86_64::_mm256_store_si256(dest.add(4 * col) as *mut _, bgra256);
                 }
                 if width_pixels != aligned_width {
                     std::arch::x86_64::_mm256_storeu_si256(
-                        dest.offset(4 * (width_pixels as isize - 8)) as *mut _,
+                        dest.add(4 * (width_pixels - 8)) as *mut _,
                         bgra256,
                     );
                 }
-                dest = dest.offset(stride_bytes as isize);
+                dest = dest.add(stride_bytes);
             }
         } else {
             for _row in 0..height_pixels {
                 for col in (0..aligned_width).step_by(8) {
-                    std::arch::x86_64::_mm256_storeu_si256(
-                        dest.offset(4 * col as isize) as *mut _,
-                        bgra256,
-                    );
+                    std::arch::x86_64::_mm256_storeu_si256(dest.add(4 * col) as *mut _, bgra256);
                 }
                 if width_pixels != aligned_width {
                     std::arch::x86_64::_mm256_storeu_si256(
-                        dest.offset(4 * (width_pixels as isize - 8)) as *mut _,
+                        dest.add(4 * (width_pixels - 8)) as *mut _,
                         bgra256,
                     );
                 }
-                dest = dest.offset(stride_bytes as isize);
+                dest = dest.add(stride_bytes);
             }
         }
     }
@@ -118,6 +113,7 @@ pub trait BitmapImage {
     fn pixels(&self) -> &[u32] {
         let (width, height) = self.image_dimensions();
         unsafe {
+            #[allow(clippy::cast_ptr_alignment)]
             let first = self.pixel_data() as *const u32;
             std::slice::from_raw_parts(first, width * height)
         }
@@ -127,6 +123,7 @@ pub trait BitmapImage {
     fn pixels_mut(&mut self) -> &mut [u32] {
         let (width, height) = self.image_dimensions();
         unsafe {
+            #[allow(clippy::cast_ptr_alignment)]
             let first = self.pixel_data_mut() as *mut u32;
             std::slice::from_raw_parts_mut(first, width * height)
         }
@@ -139,7 +136,8 @@ pub trait BitmapImage {
         debug_assert!(x < width && y < height);
         unsafe {
             let offset = (y * width * 4) + (x * 4);
-            &mut *(self.pixel_data_mut().offset(offset as isize) as *mut u32)
+            #[allow(clippy::cast_ptr_alignment)]
+            &mut *(self.pixel_data_mut().add(offset) as *mut u32)
         }
     }
 
@@ -150,7 +148,8 @@ pub trait BitmapImage {
         debug_assert!(x < width && y < height);
         unsafe {
             let offset = (y * width * 4) + (x * 4);
-            &*(self.pixel_data().offset(offset as isize) as *const u32)
+            #[allow(clippy::cast_ptr_alignment)]
+            &*(self.pixel_data().add(offset) as *const u32)
         }
     }
 
@@ -197,7 +196,7 @@ pub trait BitmapImage {
                 unsafe {
                     avx::fill_pixel(
                         self.pixel_data_mut()
-                            .offset(4 * ((dest_y * dim_width) + dest_x) as isize),
+                            .add(4 * ((dest_y * dim_width) + dest_x)),
                         dim_width * 4,
                         max_x - dest_x,
                         max_y - dest_y,
@@ -237,7 +236,7 @@ pub trait BitmapImage {
             let pix = self.pixel_mut(x as usize, y as usize);
 
             let color: Color = LinSrgba::from_components((red, green, blue, alpha * value)).into();
-            *pix = color.composite(Color(*pix), &operator).0;
+            *pix = color.composite(Color(*pix), operator).0;
         }
     }
 
@@ -308,7 +307,7 @@ pub trait BitmapImage {
                 dest_y as usize,
             );
             for (src_pix, dest_pix) in src_pixels.iter().zip(dest_pixels.iter_mut()) {
-                *dest_pix = Color(*src_pix).composite(Color(*dest_pix), &operator).0;
+                *dest_pix = Color(*src_pix).composite(Color(*dest_pix), operator).0;
             }
         }
     }
@@ -333,7 +332,7 @@ impl Image {
     /// The buffer is initialized to all zeroes.
     pub fn new(width: usize, height: usize) -> Image {
         let size = height * width * 4;
-        let mut data = Vec::with_capacity(size);
+        let mut data = vec![0; size];
         data.resize(size, 0);
         Image {
             data,
@@ -349,6 +348,7 @@ impl Image {
         for y in 0..height {
             let src_offset = y * stride;
             let dest_offset = y * width * 4;
+            #[allow(clippy::identity_op)]
             for x in 0..width {
                 let blue = data[src_offset + (x * 3) + 0];
                 let green = data[src_offset + (x * 3) + 1];
@@ -370,6 +370,7 @@ impl Image {
         for y in 0..height {
             let src_offset = y * stride;
             let dest_offset = y * width * 4;
+            #[allow(clippy::identity_op)]
             for x in 0..width {
                 let blue = data[src_offset + (x * 4) + 0];
                 let green = data[src_offset + (x * 4) + 1];
@@ -391,6 +392,7 @@ impl Image {
         for y in 0..height {
             let src_offset = y * stride;
             let dest_offset = y * width * 4;
+            #[allow(clippy::identity_op)]
             for x in 0..width {
                 let red = data[src_offset + (x * 4) + 0];
                 let green = data[src_offset + (x * 4) + 1];
@@ -410,6 +412,7 @@ impl Image {
         for y in 0..height {
             let src_offset = y * stride;
             let dest_offset = y * width * 4;
+            #[allow(clippy::identity_op)]
             for x in 0..width {
                 let gray = data[src_offset + x];
                 image.data[dest_offset + (x * 4) + 0] = gray;

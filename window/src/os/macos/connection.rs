@@ -1,3 +1,6 @@
+// let () = msg_send! is a common pattern for objc
+#![allow(clippy::let_unit_value)]
+
 use super::window::WindowInner;
 use crate::connection::ConnectionOps;
 use crate::spawn::*;
@@ -95,7 +98,7 @@ impl ConnectionOps for Connection {
 
     fn schedule_timer<F: FnMut() + 'static>(&self, interval: std::time::Duration, callback: F) {
         let secs_f64 =
-            (interval.as_secs() as f64) + (interval.subsec_nanos() as f64 / 1_000_000_000_f64);
+            (interval.as_secs() as f64) + (f64::from(interval.subsec_nanos()) / 1_000_000_000_f64);
 
         let callback = Box::into_raw(Box::new(callback));
 
@@ -110,7 +113,7 @@ impl ConnectionOps for Connection {
         }
 
         extern "C" fn release_callback<F: FnMut()>(info: *const std::ffi::c_void) {
-            let callback: Box<F> = unsafe { Box::from_raw(std::mem::transmute(info)) };
+            let callback: Box<F> = unsafe { Box::from_raw(info as *mut F) };
             drop(callback);
         }
 

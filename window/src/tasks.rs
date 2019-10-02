@@ -72,7 +72,7 @@ static VTBL: RawWakerVTable = RawWakerVTable::new(
 
 impl TaskWaker {
     fn new_waker(slot: usize) -> Waker {
-        let raw = RawWaker::new(unsafe { std::mem::transmute(slot) }, &VTBL);
+        let raw = RawWaker::new(slot as *const (), &VTBL);
         unsafe { Waker::from_raw(raw) }
     }
 

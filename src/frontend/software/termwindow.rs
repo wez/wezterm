@@ -492,10 +492,14 @@ impl TermWindow {
             }
             SendString(s) => tab.writer().write_all(s.as_bytes())?,
             Hide => {
-                self.window.as_ref().map(|w| w.hide());
+                if let Some(w) = self.window.as_ref() {
+                    w.hide();
+                }
             }
             Show => {
-                self.window.as_ref().map(|w| w.show());
+                if let Some(w) = self.window.as_ref() {
+                    w.show();
+                }
             }
             CloseCurrentTab => self.close_current_tab(),
             Nop => {}
@@ -520,6 +524,7 @@ impl TermWindow {
         });
     }
 
+    #[allow(clippy::float_cmp)]
     fn scaling_changed(&mut self, dimensions: Dimensions, font_scale: f64) {
         let mux = Mux::get().unwrap();
         if let Some(window) = mux.get_window(self.mux_window_id) {
@@ -569,13 +574,13 @@ impl TermWindow {
     }
 
     fn decrease_font_size(&mut self) {
-        self.scaling_changed(self.dimensions.clone(), self.fonts.get_font_scale() * 0.9);
+        self.scaling_changed(self.dimensions, self.fonts.get_font_scale() * 0.9);
     }
     fn increase_font_size(&mut self) {
-        self.scaling_changed(self.dimensions.clone(), self.fonts.get_font_scale() * 1.1);
+        self.scaling_changed(self.dimensions, self.fonts.get_font_scale() * 1.1);
     }
     fn reset_font_size(&mut self) {
-        self.scaling_changed(self.dimensions.clone(), 1.);
+        self.scaling_changed(self.dimensions, 1.);
     }
 
     fn close_current_tab(&mut self) {
@@ -623,6 +628,7 @@ impl TermWindow {
         Ok(())
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn render_screen_line(
         &self,
         ctx: &mut dyn PaintContext,
@@ -877,6 +883,7 @@ impl TermWindow {
         Ok(())
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn compute_cell_fg_bg(
         &self,
         line_idx: usize,
@@ -929,6 +936,7 @@ impl TermWindow {
     }
 
     /// Perform the load and render of a glyph
+    #[allow(clippy::float_cmp)]
     fn load_glyph(&self, info: &GlyphInfo, style: &TextStyle) -> Fallible<Rc<CachedGlyph>> {
         let (has_color, glyph, cell_width, cell_height) = {
             let font = self.fonts.cached_font(style)?;
@@ -947,7 +955,6 @@ impl TermWindow {
         } else {
             1.0f64
         };
-        #[cfg_attr(feature = "cargo-clippy", allow(clippy::float_cmp))]
         let (x_offset, y_offset) = if scale != 1.0 {
             (info.x_offset * scale, info.y_offset * scale)
         } else {

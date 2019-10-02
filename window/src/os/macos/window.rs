@@ -1,3 +1,6 @@
+// let () = msg_send! is a common pattern for objc
+#![allow(clippy::let_unit_value)]
+
 use super::{nsstring, nsstring_to_str};
 use crate::bitmaps::Image;
 use crate::connection::ConnectionOps;
@@ -256,6 +259,7 @@ impl<'a> PaintContext for MacGraphicsContext<'a> {
     }
 }
 
+#[allow(clippy::identity_op)]
 fn decode_mouse_buttons(mask: u64) -> MouseButtons {
     let mut buttons = MouseButtons::NONE;
 
@@ -507,7 +511,7 @@ impl WindowView {
 
             inner.callbacks.paint(&mut ctx);
 
-            let cg_image = BitmapRef::with_image(&mut *buffer);
+            let cg_image = BitmapRef::with_image(&*buffer);
 
             fn nsimage_from_cgimage(cg: &CGImageRef, size: NSSize) -> StrongPtr {
                 unsafe {
