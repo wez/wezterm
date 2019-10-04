@@ -8,12 +8,14 @@ use crate::frontend::FrontEndSelection;
 use failure::{bail, err_msg, format_err, Error, Fallible};
 use lazy_static::lazy_static;
 use portable_pty::{CommandBuilder, PtySystemSelection};
+use serde::de::{self, Visitor};
 use serde::{Deserialize, Deserializer};
 use serde_derive::*;
 use std;
 use std::collections::HashMap;
 use std::convert::TryInto;
 use std::ffi::{OsStr, OsString};
+use std::fmt;
 use std::fs;
 use std::fs::{File, OpenOptions};
 use std::io::prelude::*;
@@ -128,13 +130,36 @@ pub struct Config {
 }
 
 #[derive(Debug, Deserialize, Clone)]
+pub enum ActionArgs {
+    String(String),
+    ByteArray(Vec<u8>),
+}
+
+impl ActionArgs {
+    fn as_str(&self) -> Fallible<&str> {
+        match self {
+            Self::String(s) => Ok(&s),
+            Self::ByteArray(_) => Err(err_msg("Expecting a string")),
+        }
+    }
+
+    fn into_bytes(self) -> Fallible<Vec<u8>> {
+        match self {
+            Self::String(_) => Err(err_msg("Expecting a string")),
+            Self::ByteArray(arr) => Ok(arr),
+        }
+    }
+}
+
+#[derive(Debug, Deserialize, Clone)]
 pub struct Key {
     #[serde(deserialize_with = "de_keycode")]
     pub key: KeyCode,
     #[serde(deserialize_with = "de_modifiers")]
     pub mods: Modifiers,
     pub action: KeyAction,
-    pub arg: Option<String>,
+    #[serde(deserialize_with = "de_action_args")]
+    pub arg: Option<ActionArgs>,
 }
 
 impl std::convert::TryInto<KeyAssignment> for &Key {
@@ -149,7 +174,8 @@ impl std::convert::TryInto<KeyAssignment> for &Key {
                 let arg = self
                     .arg
                     .as_ref()
-                    .ok_or_else(|| format_err!("missing arg for {:?}", self))?;
+                    .ok_or_else(|| format_err!("missing arg for {:?}", self))?
+                    .as_str()?;
 
                 if let Ok(id) = arg.parse() {
                     KeyAssignment::SpawnTab(SpawnTabDomain::Domain(id))
@@ -172,19 +198,29 @@ impl std::convert::TryInto<KeyAssignment> for &Key {
                 self.arg
                     .as_ref()
                     .ok_or_else(|| format_err!("missing arg for {:?}", self))?
+                    .as_str()?
                     .parse()?,
             ),
             KeyAction::ActivateTabRelative => KeyAssignment::ActivateTabRelative(
                 self.arg
                     .as_ref()
                     .ok_or_else(|| format_err!("missing arg for {:?}", self))?
+                    .as_str()?
                     .parse()?,
             ),
             KeyAction::SendString => KeyAssignment::SendString(
                 self.arg
                     .as_ref()
                     .ok_or_else(|| format_err!("missing arg for {:?}", self))?
+                    .as_str()?
                     .to_owned(),
+            ),
+            KeyAction::SendByte => KeyAssignment::SendByte(
+                self.arg
+                    .as_ref()
+                    .ok_or_else(|| format_err!("missing arg for {:?}", self))?
+                    .clone()
+                    .into_bytes()?,
             ),
         })
     }
@@ -205,6 +241,7 @@ pub enum KeyAction {
     ResetFontSize,
     ActivateTab,
     SendString,
+    SendByte,
     Nop,
     Hide,
     Show,
@@ -352,6 +389,43 @@ where
         }
     }
     Ok(mods)
+}
+
+fn de_action_args<'de, D>(deserializer: D) -> Result<Option<ActionArgs>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    struct ActionArgsDeserializer;
+
+    impl<'de> Visitor<'de> for ActionArgsDeserializer {
+        type Value = ActionArgs;
+
+        fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+            formatter.write_str("string or array")
+        }
+
+        fn visit_string<E: de::Error>(self, value: String) -> Result<Self::Value, E> {
+            Ok(ActionArgs::String(value))
+        }
+
+        fn visit_seq<A>(self, mut value: A) -> Result<Self::Value, A::Error>
+        where
+            A: de::SeqAccess<'de>,
+        {
+            let mut bytes = Vec::new();
+            // TODO: need handle type errors here
+            while let Ok(Some(b)) = value.next_element::<u8>() {
+                bytes.push(b);
+            }
+            Ok(ActionArgs::ByteArray(bytes))
+        }
+    }
+
+    if let Ok(s) = deserializer.deserialize_any(ActionArgsDeserializer {}) {
+        Ok(Some(s))
+    } else {
+        Ok(None)
+    }
 }
 
 fn default_hyperlink_rules() -> Vec<hyperlink::Rule> {

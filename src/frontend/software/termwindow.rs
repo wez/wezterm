@@ -491,6 +491,7 @@ impl TermWindow {
                 self.activate_tab(*n)?;
             }
             SendString(s) => tab.writer().write_all(s.as_bytes())?,
+            SendByte(b) => tab.writer().write_all(b)?,
             Hide => {
                 if let Some(w) = self.window.as_ref() {
                     w.hide();
