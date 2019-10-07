@@ -343,6 +343,11 @@ impl TermWindow {
         );
 
         window.show();
+
+        if super::is_opengl_enabled() {
+            log::error!("I should use opengl");
+        }
+
         Ok(())
     }
 

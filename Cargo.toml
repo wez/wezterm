@@ -54,7 +54,7 @@ unicode-normalization = "0.1"
 unicode-width = "0.1"
 varbincode = "0.1"
 winit = "0.19"
-window = { path = "window" }
+window = { path = "window", features=["opengl"]}
 zstd = "0.4"
 
 [target.'cfg(unix)'.dependencies]

@@ -26,6 +26,7 @@ pub enum FrontEndSelection {
     MuxServer,
     Null,
     Software,
+    OpenGL,
 }
 
 impl Default for FrontEndSelection {
@@ -75,7 +76,8 @@ impl FrontEndSelection {
             FrontEndSelection::X11 => failure::bail!("X11 not compiled in"),
             FrontEndSelection::MuxServer => muxserver::MuxServerFrontEnd::try_new(mux),
             FrontEndSelection::Null => muxserver::MuxServerFrontEnd::new_null(mux),
-            FrontEndSelection::Software => software::SoftwareFrontEnd::try_new(mux),
+            FrontEndSelection::Software => software::SoftwareFrontEnd::try_new_no_opengl(mux),
+            FrontEndSelection::OpenGL => software::SoftwareFrontEnd::try_new(mux),
         }?;
 
         EXECUTOR.lock().unwrap().replace(front_end.gui_executor());
@@ -86,7 +88,7 @@ impl FrontEndSelection {
 
     // TODO: find or build a proc macro for this
     pub fn variants() -> Vec<&'static str> {
-        vec!["Glutin", "X11", "MuxServer", "Null", "Software"]
+        vec!["Glutin", "X11", "MuxServer", "Null", "Software", "OpenGL"]
     }
 }
 
@@ -99,6 +101,7 @@ impl std::str::FromStr for FrontEndSelection {
             "muxserver" => Ok(FrontEndSelection::MuxServer),
             "null" => Ok(FrontEndSelection::Null),
             "software" => Ok(FrontEndSelection::Software),
+            "opengl" => Ok(FrontEndSelection::OpenGL),
             _ => Err(format_err!(
                 "{} is not a valid FrontEndSelection variant, possible values are {:?}",
                 s,

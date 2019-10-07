@@ -7,6 +7,9 @@ pub mod os;
 mod spawn;
 mod tasks;
 
+#[cfg(feature = "opengl")]
+pub use glium;
+
 pub use bitmaps::BitmapImage;
 pub use color::Color;
 pub use connection::*;

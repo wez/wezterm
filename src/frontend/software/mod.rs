@@ -8,7 +8,7 @@ use ::window::*;
 use failure::Fallible;
 use promise::{BasicExecutor, Executor, SpawnFunc};
 use std::rc::Rc;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 mod termwindow;
 
@@ -16,7 +16,20 @@ pub struct SoftwareFrontEnd {
     connection: Rc<Connection>,
 }
 
+lazy_static::lazy_static! {
+static ref USE_OPENGL: Mutex<bool> = Mutex::new(true);
+}
+
+pub fn is_opengl_enabled() -> bool {
+    *USE_OPENGL.lock().unwrap()
+}
+
 impl SoftwareFrontEnd {
+    pub fn try_new_no_opengl(mux: &Rc<Mux>) -> Fallible<Rc<dyn FrontEnd>> {
+        *USE_OPENGL.lock().unwrap() = false;
+        Self::try_new(mux)
+    }
+
     pub fn try_new(_mux: &Rc<Mux>) -> Fallible<Rc<dyn FrontEnd>> {
         let connection = Connection::init()?;
         let front_end = Rc::new(SoftwareFrontEnd { connection });
