@@ -180,10 +180,8 @@ impl<T: Send + 'static> Future<T> {
     /// the provided executor
     pub fn with_executor<F, IF, EXEC>(executor: EXEC, f: F) -> Future<T>
     where
-        F: FnOnce() -> IF,
-        IF: Into<Future<T>>,
-        IF: 'static,
-        F: Send + 'static,
+        F: FnOnce() -> IF + Send + 'static,
+        IF: Into<Future<T>> + 'static,
         EXEC: BasicExecutor,
     {
         let mut promise = Promise::new();
@@ -247,10 +245,8 @@ impl<T: Send + 'static> Future<T> {
     /// to a Future.
     pub fn then<U, F, IF>(self, f: F) -> Future<U>
     where
-        F: FnOnce(Result<T, Error>) -> IF,
-        IF: Into<Future<U>>,
-        IF: 'static,
-        F: Send + 'static,
+        F: FnOnce(Result<T, Error>) -> IF + Send + 'static,
+        IF: Into<Future<U>> + 'static,
         U: Send + 'static,
     {
         let mut promise = Promise::new();
@@ -273,10 +269,8 @@ impl<T: Send + 'static> Future<T> {
     /// along as the error value of the returned future.
     pub fn map<U, F, IF>(self, f: F) -> Future<U>
     where
-        F: FnOnce(T) -> IF,
-        IF: Into<Future<U>>,
-        IF: 'static,
-        F: Send + 'static,
+        F: FnOnce(T) -> IF + Send + 'static,
+        IF: Into<Future<U>> + 'static,
         U: Send + 'static,
     {
         let mut promise = Promise::new();
@@ -302,10 +296,8 @@ impl<T: Send + 'static> Future<T> {
     /// along as the Ok value of the returned future.
     pub fn map_err<F, IF>(self, f: F) -> Future<T>
     where
-        F: FnOnce(Error) -> IF,
-        IF: Into<Future<T>>,
-        IF: 'static,
-        F: Send + 'static,
+        F: FnOnce(Error) -> IF + Send + 'static,
+        IF: Into<Future<T>> + 'static,
     {
         let mut promise = Promise::new();
         let future = promise.get_future().unwrap();
