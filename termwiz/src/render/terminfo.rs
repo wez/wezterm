@@ -3,6 +3,7 @@ use crate::caps::{Capabilities, ColorLevel};
 use crate::cell::{AttributeChange, Blink, CellAttributes, Intensity, Underline};
 use crate::color::{ColorAttribute, ColorSpec};
 use crate::escape::csi::{Cursor, Edit, EraseInDisplay, EraseInLine, Sgr, CSI};
+use crate::escape::esc::{Esc, EscCode};
 use crate::escape::osc::{ITermDimension, ITermFileData, ITermProprietary, OperatingSystemCommand};
 use crate::escape::OneBased;
 use crate::image::TextureCoordinate;
@@ -80,6 +81,7 @@ impl TerminfoRenderer {
                         .blink(attr.blink() == Blink::Slow)
                         .reverse(attr.reverse())
                         .invisible(attr.invisible())
+                        .alt_charset(attr.line_drawing())
                         .to(out.by_ref())?;
                 } else {
                     attr_on!(ExitAttributeMode, Sgr::Reset);
@@ -104,6 +106,10 @@ impl TerminfoRenderer {
 
                     if attr.invisible() {
                         attr_on!(Sgr::Invisible(true));
+                    }
+
+                    if attr.line_drawing() {
+                        write!(out, "{}", Esc::Code(EscCode::DecLineDrawing))?;
                     }
                 }
 
@@ -399,6 +405,9 @@ impl TerminfoRenderer {
                 }
                 Change::Attribute(AttributeChange::Hyperlink(link)) => {
                     self.attr_apply(|attr| attr.hyperlink = link.clone());
+                }
+                Change::Attribute(AttributeChange::LineDrawing(value)) => {
+                    record!(set_line_drawing, value);
                 }
                 Change::AllAttributes(all) => {
                     self.pending_attr = Some(all.clone());
@@ -1217,6 +1226,56 @@ mod test {
                 ))),
                 Action::Print('A'),
             ]
+        );
+    }
+
+    #[test]
+    fn line_drawing() {
+        let mut out = FakeTerm::new_with_size(xterm_terminfo(), 4, 3);
+        out.render(&[
+            Change::Attribute(AttributeChange::LineDrawing(true)),
+            Change::Text("a".into()),
+        ])
+        .unwrap();
+
+        let result = out.parse();
+        assert_eq!(
+            result,
+            vec![
+                Action::Esc(Esc::Code(EscCode::DecLineDrawing)),
+                Action::CSI(CSI::Sgr(Sgr::Reset)),
+                Action::Print('a'),
+            ]
+        );
+
+        assert_eq!(
+            out.renderer.current_attr,
+            CellAttributes::default().set_line_drawing(true).clone()
+        );
+    }
+
+    #[test]
+    fn line_drawing_no_terminfo() {
+        let mut out = FakeTerm::new_with_size(no_terminfo_all_enabled(), 4, 3);
+        out.render(&[
+            Change::Attribute(AttributeChange::LineDrawing(true)),
+            Change::Text("a".into()),
+        ])
+        .unwrap();
+
+        let result = out.parse();
+        assert_eq!(
+            result,
+            vec![
+                Action::CSI(CSI::Sgr(Sgr::Reset)),
+                Action::Esc(Esc::Code(EscCode::DecLineDrawing)),
+                Action::Print('a'),
+            ]
+        );
+
+        assert_eq!(
+            out.renderer.current_attr,
+            CellAttributes::default().set_line_drawing(true).clone()
         );
     }
 }

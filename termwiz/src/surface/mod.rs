@@ -463,6 +463,9 @@ impl Surface {
             Foreground(value) => self.attributes.foreground = *value,
             Background(value) => self.attributes.background = *value,
             Hyperlink(value) => self.attributes.hyperlink = value.clone(),
+            LineDrawing(value) => {
+                self.attributes.set_line_drawing(*value);
+            }
         }
     }
 

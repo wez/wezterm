@@ -154,6 +154,7 @@ impl CellAttributes {
     bitfield!(strikethrough, set_strikethrough, 8);
     bitfield!(invisible, set_invisible, 9);
     bitfield!(wrapped, set_wrapped, 10);
+    bitfield!(line_drawing, set_line_drawing, 11);
 
     /// Returns true if the attribute bits in both objects are equal.
     /// This can be used to cheaply test whether the styles of the two
@@ -353,6 +354,7 @@ pub enum AttributeChange {
     Foreground(ColorAttribute),
     Background(ColorAttribute),
     Hyperlink(Option<Arc<Hyperlink>>),
+    LineDrawing(bool),
 }
 
 #[cfg(test)]

@@ -256,6 +256,9 @@ impl WindowsConsoleRenderer {
                 Change::Attribute(AttributeChange::Hyperlink(link)) => {
                     self.current_attr.hyperlink = link.clone();
                 }
+                Change::Attribute(AttributeChange::LineDrawing(value)) => {
+                    self.current_attr.set_line_drawing(*value);
+                }
                 Change::AllAttributes(all) => {
                     self.current_attr = all.clone();
                 }
