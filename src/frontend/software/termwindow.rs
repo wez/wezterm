@@ -10,7 +10,7 @@ use crate::mux::tab::{Tab, TabId};
 use crate::mux::window::WindowId as MuxWindowId;
 use crate::mux::Mux;
 use ::window::bitmaps::atlas::{Atlas, OutOfTextureSpace, Sprite, SpriteSlice};
-use ::window::bitmaps::{Image, ImageTexture};
+use ::window::bitmaps::{Image, ImageTexture, Texture2d};
 use ::window::*;
 use failure::Fallible;
 use std::any::Any;
@@ -32,14 +32,127 @@ struct GlyphKey {
 
 /// Caches a rendered glyph.
 /// The image data may be None for whitespace glyphs.
-struct CachedGlyph {
+struct CachedGlyph<T: Texture2d> {
     has_color: bool,
     x_offset: f64,
     y_offset: f64,
     bearing_x: f64,
     bearing_y: f64,
-    texture: Option<Sprite<ImageTexture>>,
+    texture: Option<Sprite<T>>,
     scale: f64,
+}
+
+struct GlyphCache<T: Texture2d> {
+    glyph_cache: HashMap<GlyphKey, Rc<CachedGlyph<T>>>,
+    atlas: Atlas<T>,
+    fonts: Rc<FontConfiguration>,
+}
+
+impl GlyphCache<ImageTexture> {
+    pub fn new(fonts: &Rc<FontConfiguration>, size: usize) -> Self {
+        let surface = Rc::new(ImageTexture::new(size, size));
+        let atlas = Atlas::new(&surface).expect("failed to create new texture atlas");
+
+        Self {
+            fonts: Rc::clone(fonts),
+            glyph_cache: HashMap::new(),
+            atlas,
+        }
+    }
+}
+
+impl<T: Texture2d> GlyphCache<T> {
+    /// Resolve a glyph from the cache, rendering the glyph on-demand if
+    /// the cache doesn't already hold the desired glyph.
+    pub fn cached_glyph(
+        &mut self,
+        info: &GlyphInfo,
+        style: &TextStyle,
+    ) -> Fallible<Rc<CachedGlyph<T>>> {
+        let key = GlyphKey {
+            font_idx: info.font_idx,
+            glyph_pos: info.glyph_pos,
+            style: style.clone(),
+        };
+
+        if let Some(entry) = self.glyph_cache.get(&key) {
+            return Ok(Rc::clone(entry));
+        }
+
+        let glyph = self.load_glyph(info, style)?;
+        self.glyph_cache.insert(key, Rc::clone(&glyph));
+        Ok(glyph)
+    }
+
+    /// Perform the load and render of a glyph
+    #[allow(clippy::float_cmp)]
+    fn load_glyph(&mut self, info: &GlyphInfo, style: &TextStyle) -> Fallible<Rc<CachedGlyph<T>>> {
+        let (has_color, glyph, cell_width, cell_height) = {
+            let font = self.fonts.cached_font(style)?;
+            let mut font = font.borrow_mut();
+            let metrics = font.get_fallback(0)?.metrics();
+            let active_font = font.get_fallback(info.font_idx)?;
+            let has_color = active_font.has_color();
+            let glyph = active_font.rasterize_glyph(info.glyph_pos)?;
+            (has_color, glyph, metrics.cell_width, metrics.cell_height)
+        };
+
+        let scale = if (info.x_advance / f64::from(info.num_cells)).floor() > cell_width {
+            f64::from(info.num_cells) * (cell_width / info.x_advance)
+        } else if glyph.height as f64 > cell_height {
+            cell_height / glyph.height as f64
+        } else {
+            1.0f64
+        };
+        let (x_offset, y_offset) = if scale != 1.0 {
+            (info.x_offset * scale, info.y_offset * scale)
+        } else {
+            (info.x_offset, info.y_offset)
+        };
+
+        let glyph = if glyph.width == 0 || glyph.height == 0 {
+            // a whitespace glyph
+            CachedGlyph {
+                has_color,
+                texture: None,
+                x_offset,
+                y_offset,
+                bearing_x: 0.0,
+                bearing_y: 0.0,
+                scale,
+            }
+        } else {
+            let raw_im = Image::with_rgba32(
+                glyph.width as usize,
+                glyph.height as usize,
+                4 * glyph.width as usize,
+                &glyph.data,
+            );
+
+            let bearing_x = glyph.bearing_x * scale;
+            let bearing_y = glyph.bearing_y * scale;
+
+            let (scale, raw_im) = if scale != 1.0 {
+                (1.0, raw_im.scale_by(scale))
+            } else {
+                (scale, raw_im)
+            };
+
+            let tex = self.atlas.allocate(&raw_im)?;
+
+            CachedGlyph {
+                has_color,
+                texture: Some(tex),
+                x_offset,
+                y_offset,
+                bearing_x,
+                bearing_y,
+                scale,
+            }
+        };
+
+        Ok(Rc::new(glyph))
+    }
 }
 
 pub struct TermWindow {
@@ -54,8 +167,8 @@ pub struct TermWindow {
     descender_plus_one: isize,
     descender_plus_two: isize,
     strike_row: isize,
-    glyph_cache: RefCell<HashMap<GlyphKey, Rc<CachedGlyph>>>,
-    atlas: RefCell<Atlas<ImageTexture>>,
+    glyph_cache: RefCell<GlyphCache<ImageTexture>>,
+    //atlas: RefCell<Atlas<ImageTexture>>,
     clipboard: Arc<dyn term::Clipboard>,
     keys: KeyMap,
 }
@@ -287,8 +400,7 @@ impl TermWindow {
         let width = cell_width * physical_cols;
         let height = cell_height * physical_rows;
 
-        let surface = Rc::new(ImageTexture::new(4096, 4096));
-        let atlas = RefCell::new(Atlas::new(&surface)?);
+        let glyph_cache = RefCell::new(GlyphCache::new(fontconfig, 4096));
 
         let descender_row = (cell_height as f64 + metrics.descender) as isize;
         let descender_plus_one = (1 + descender_row).min(cell_height as isize - 1);
@@ -319,8 +431,7 @@ impl TermWindow {
                     // different from this value
                     dpi: 96,
                 },
-                glyph_cache: RefCell::new(HashMap::new()),
-                atlas,
+                glyph_cache,
                 clipboard: Arc::new(SystemClipboard::new()),
                 keys: KeyMap::new(),
             }),
@@ -352,10 +463,8 @@ impl TermWindow {
     }
 
     fn recreate_texture_atlas(&mut self, size: usize) -> Fallible<()> {
-        let surface = Rc::new(ImageTexture::new(size, size));
-        let atlas = RefCell::new(Atlas::new(&surface).expect("failed to create new texture atlas"));
-        self.glyph_cache.borrow_mut().clear();
-        self.atlas = atlas;
+        let glyph_cache = GlyphCache::new(&self.fonts, size);
+        *self.glyph_cache.borrow_mut() = glyph_cache;
         Ok(())
     }
 
@@ -546,7 +655,7 @@ impl TermWindow {
                     metrics.cell_width.ceil() as usize,
                 );
 
-                let atlas_size = self.atlas.borrow().size();
+                let atlas_size = self.glyph_cache.borrow().atlas.size();
                 self.recreate_texture_atlas(atlas_size)
                     .expect("failed to recreate atlas");
 
@@ -704,7 +813,7 @@ impl TermWindow {
 
             for info in &glyph_info {
                 let cell_idx = cluster.byte_to_cell_idx[info.cluster as usize];
-                let glyph = self.cached_glyph(info, style)?;
+                let glyph = self.glyph_cache.borrow_mut().cached_glyph(info, style)?;
 
                 let left = (glyph.x_offset + glyph.bearing_x) as f32;
                 let top = ((self.cell_size.height as f64 + self.descender)
@@ -918,96 +1027,6 @@ impl TermWindow {
         };
 
         (fg_color, bg_color)
-    }
-
-    /// Resolve a glyph from the cache, rendering the glyph on-demand if
-    /// the cache doesn't already hold the desired glyph.
-    fn cached_glyph(&self, info: &GlyphInfo, style: &TextStyle) -> Fallible<Rc<CachedGlyph>> {
-        let key = GlyphKey {
-            font_idx: info.font_idx,
-            glyph_pos: info.glyph_pos,
-            style: style.clone(),
-        };
-
-        let mut cache = self.glyph_cache.borrow_mut();
-
-        if let Some(entry) = cache.get(&key) {
-            return Ok(Rc::clone(entry));
-        }
-
-        let glyph = self.load_glyph(info, style)?;
-        cache.insert(key, Rc::clone(&glyph));
-        Ok(glyph)
-    }
-
-    /// Perform the load and render of a glyph
-    #[allow(clippy::float_cmp)]
-    fn load_glyph(&self, info: &GlyphInfo, style: &TextStyle) -> Fallible<Rc<CachedGlyph>> {
-        let (has_color, glyph, cell_width, cell_height) = {
-            let font = self.fonts.cached_font(style)?;
-            let mut font = font.borrow_mut();
-            let metrics = font.get_fallback(0)?.metrics();
-            let active_font = font.get_fallback(info.font_idx)?;
-            let has_color = active_font.has_color();
-            let glyph = active_font.rasterize_glyph(info.glyph_pos)?;
-            (has_color, glyph, metrics.cell_width, metrics.cell_height)
-        };
-
-        let scale = if (info.x_advance / f64::from(info.num_cells)).floor() > cell_width {
-            f64::from(info.num_cells) * (cell_width / info.x_advance)
-        } else if glyph.height as f64 > cell_height {
-            cell_height / glyph.height as f64
-        } else {
-            1.0f64
-        };
-        let (x_offset, y_offset) = if scale != 1.0 {
-            (info.x_offset * scale, info.y_offset * scale)
-        } else {
-            (info.x_offset, info.y_offset)
-        };
-
-        let glyph = if glyph.width == 0 || glyph.height == 0 {
-            // a whitespace glyph
-            CachedGlyph {
-                has_color,
-                texture: None,
-                x_offset,
-                y_offset,
-                bearing_x: 0.0,
-                bearing_y: 0.0,
-                scale,
-            }
-        } else {
-            let raw_im = Image::with_rgba32(
-                glyph.width as usize,
-                glyph.height as usize,
-                4 * glyph.width as usize,
-                &glyph.data,
-            );
-
-            let bearing_x = glyph.bearing_x * scale;
-            let bearing_y = glyph.bearing_y * scale;
-
-            let (scale, raw_im) = if scale != 1.0 {
-                (1.0, raw_im.scale_by(scale))
-            } else {
-                (scale, raw_im)
-            };
-
-            let tex = self.atlas.borrow_mut().allocate(&raw_im)?;
-
-            CachedGlyph {
-                has_color,
-                texture: Some(tex),
-                x_offset,
-                y_offset,
-                bearing_x,
-                bearing_y,
-                scale,
-            }
-        };
-
-        Ok(Rc::new(glyph))
     }
 }
 
