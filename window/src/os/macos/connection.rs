@@ -48,7 +48,7 @@ impl Connection {
             .fetch_add(1, ::std::sync::atomic::Ordering::Relaxed)
     }
 
-    fn window_by_id(&self, window_id: usize) -> Option<Rc<RefCell<WindowInner>>> {
+    pub(crate) fn window_by_id(&self, window_id: usize) -> Option<Rc<RefCell<WindowInner>>> {
         self.windows.borrow().get(&window_id).map(Rc::clone)
     }
 

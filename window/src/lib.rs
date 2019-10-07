@@ -99,9 +99,20 @@ pub trait WindowCallbacks: Any {
     /// Called when the window is resized, or when the dpi has changed
     fn resize(&mut self, dimensions: Dimensions) {}
 
-    /// Called when the window contents need painting
+    /// Called when the window contents need painting.
+    /// This is used only when the software renderer is enabled (which
+    /// is the default).  When the window is set to opengl mode, the
+    /// `paint_opengl` function is called instead.
     fn paint(&mut self, context: &mut dyn PaintContext) {
         context.clear(Color::rgb(0x20, 0x40, 0x60));
+    }
+
+    /// Called when the window has opengl mode enabled and the window
+    /// contents need painting.
+    #[cfg(feature = "opengl")]
+    fn paint_opengl(&mut self, frame: &mut glium::Frame) {
+        use glium::Surface;
+        frame.clear_color(0.25, 0.125, 0.375, 1.0);
     }
 
     /// Called to handle a key event.
@@ -155,6 +166,11 @@ pub trait WindowOps {
     fn apply<F: Send + 'static + Fn(&mut dyn Any, &dyn WindowOps)>(&self, func: F)
     where
         Self: Sized;
+
+    #[cfg(feature = "opengl")]
+    fn enable_opengl(&self) -> failure::Fallible<std::rc::Rc<glium::backend::Context>> {
+        failure::bail!("opengl support is not implemented");
+    }
 }
 
 pub trait WindowOpsMut {

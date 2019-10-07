@@ -28,6 +28,119 @@ use std::cell::RefCell;
 use std::ffi::c_void;
 use std::rc::Rc;
 
+#[cfg(feature = "opengl")]
+mod opengl {
+    use super::*;
+    use cocoa::appkit::{self, NSOpenGLContext, NSOpenGLPixelFormat};
+    use cocoa::foundation::NSAutoreleasePool;
+    use core_foundation::base::TCFType;
+    use core_foundation::bundle::{
+        CFBundleGetBundleWithIdentifier, CFBundleGetFunctionPointerForName,
+    };
+    use core_foundation::string::CFString;
+    use std::str::FromStr;
+
+    pub struct GlState {
+        _pixel_format: StrongPtr,
+        gl_context: StrongPtr,
+    }
+
+    impl GlState {
+        pub fn create(view: id) -> Fallible<Self> {
+            let pixel_format = unsafe {
+                StrongPtr::new(NSOpenGLPixelFormat::alloc(nil).initWithAttributes_(&[
+                    appkit::NSOpenGLPFAOpenGLProfile as u32,
+                    appkit::NSOpenGLProfileVersionLegacy as u32,
+                    appkit::NSOpenGLPFAClosestPolicy as u32,
+                    appkit::NSOpenGLPFAColorSize as u32,
+                    32,
+                    appkit::NSOpenGLPFAAlphaSize as u32,
+                    8,
+                    appkit::NSOpenGLPFADepthSize as u32,
+                    24,
+                    appkit::NSOpenGLPFAStencilSize as u32,
+                    8,
+                    appkit::NSOpenGLPFAAllowOfflineRenderers as u32,
+                    appkit::NSOpenGLPFAAccelerated as u32,
+                    appkit::NSOpenGLPFADoubleBuffer as u32,
+                    0,
+                ]))
+            };
+            failure::ensure!(
+                !pixel_format.is_null(),
+                "failed to create NSOpenGLPixelFormat"
+            );
+
+            let gl_context = unsafe {
+                StrongPtr::new(
+                    NSOpenGLContext::alloc(nil).initWithFormat_shareContext_(*pixel_format, nil),
+                )
+            };
+            failure::ensure!(!gl_context.is_null(), "failed to create NSOpenGLContext");
+            unsafe {
+                gl_context.setView_(view);
+            }
+
+            Ok(Self {
+                _pixel_format: pixel_format,
+                gl_context,
+            })
+        }
+    }
+
+    unsafe impl glium::backend::Backend for GlState {
+        fn swap_buffers(&self) -> Result<(), glium::SwapBuffersError> {
+            unsafe {
+                let pool = NSAutoreleasePool::new(nil);
+                self.gl_context.flushBuffer();
+                let _: () = msg_send![pool, release];
+            }
+            Ok(())
+        }
+
+        unsafe fn get_proc_address(&self, symbol: &str) -> *const c_void {
+            let symbol_name: CFString = FromStr::from_str(symbol).unwrap();
+            let framework_name: CFString = FromStr::from_str("com.apple.opengl").unwrap();
+            let framework = CFBundleGetBundleWithIdentifier(framework_name.as_concrete_TypeRef());
+            let symbol =
+                CFBundleGetFunctionPointerForName(framework, symbol_name.as_concrete_TypeRef());
+            symbol as *const _
+        }
+
+        fn get_framebuffer_dimensions(&self) -> (u32, u32) {
+            unsafe {
+                let view = self.gl_context.view();
+                let frame = NSView::frame(view);
+                let backing_frame = NSView::convertRectToBacking(view, frame);
+                (
+                    backing_frame.size.width as u32,
+                    backing_frame.size.height as u32,
+                )
+            }
+        }
+
+        fn is_current(&self) -> bool {
+            unsafe {
+                let pool = NSAutoreleasePool::new(nil);
+                let current = NSOpenGLContext::currentContext(nil);
+                let res = if current != nil {
+                    let is_equal: BOOL = msg_send![current, isEqual: *self.gl_context];
+                    is_equal != NO
+                } else {
+                    false
+                };
+                let _: () = msg_send![pool, release];
+                res
+            }
+        }
+
+        unsafe fn make_current(&self) {
+            let _: () = msg_send![*self.gl_context, update];
+            self.gl_context.makeCurrentContext();
+        }
+    }
+}
+
 pub(crate) struct WindowInner {
     window_id: usize,
     view: StrongPtr,
@@ -63,6 +176,8 @@ impl Window {
                 callbacks,
                 view_id: None,
                 window_id,
+                #[cfg(feature = "opengl")]
+                gl_context: None,
             }));
 
             let window = StrongPtr::new(
@@ -154,6 +269,34 @@ impl WindowOps for Window {
             }
         });
     }
+
+    #[cfg(feature = "opengl")]
+    fn enable_opengl(&self) -> Fallible<Rc<glium::backend::Context>> {
+        if let Some(handle) = Connection::get().unwrap().window_by_id(self.0) {
+            let inner = handle.borrow_mut();
+            let gl_state = opengl::GlState::create(*inner.view)?;
+
+            let glium_context = unsafe {
+                glium::backend::Context::new(
+                    Rc::new(gl_state),
+                    true,
+                    if cfg!(debug_assertions) {
+                        glium::debug::DebugCallbackBehavior::DebugMessageOnError
+                    } else {
+                        glium::debug::DebugCallbackBehavior::Ignore
+                    },
+                )?
+            };
+
+            if let Some(window_view) = WindowView::get_this(unsafe { &**inner.view }) {
+                window_view.inner.borrow_mut().gl_context = Some(Rc::clone(&glium_context));
+            }
+
+            Ok(glium_context)
+        } else {
+            failure::bail!("invalid window?");
+        }
+    }
 }
 
 impl WindowOpsMut for WindowInner {
@@ -204,6 +347,8 @@ struct Inner {
     callbacks: Box<dyn WindowCallbacks>,
     view_id: Option<WeakPtr>,
     window_id: usize,
+    #[cfg(feature = "opengl")]
+    gl_context: Option<Rc<glium::backend::Context>>,
 }
 
 const CLS_NAME: &str = "WezTermWindowView";
@@ -498,6 +643,20 @@ impl WindowView {
         if let Some(this) = Self::get_this(this) {
             let mut inner = this.inner.borrow_mut();
             let mut buffer = this.buffer.borrow_mut();
+
+            #[cfg(feature = "opengl")]
+            {
+                if let Some(gl_context) = inner.gl_context.as_ref() {
+                    let mut frame =
+                        glium::Frame::new(Rc::clone(gl_context), (width as u32, height as u32));
+
+                    inner.callbacks.paint_opengl(&mut frame);
+                    frame
+                        .finish()
+                        .expect("frame.finish failed and we don't know how to recover");
+                    return;
+                }
+            }
 
             let (pixel_width, pixel_height) = buffer.image_dimensions();
             if width as usize != pixel_width || height as usize != pixel_height {
