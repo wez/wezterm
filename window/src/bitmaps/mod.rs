@@ -169,7 +169,7 @@ pub trait BitmapImage {
 
         #[cfg(target_arch = "x86_64")]
         {
-            if is_x86_feature_detected!("avx") {
+            if is_x86_feature_detected!("avx") && width >= 8 {
                 unsafe {
                     avx::fill_pixel(self.pixel_data_mut(), width * 4, width, height, color);
                 }
@@ -192,7 +192,7 @@ pub trait BitmapImage {
 
         #[cfg(target_arch = "x86_64")]
         {
-            if is_x86_feature_detected!("avx") {
+            if is_x86_feature_detected!("avx") && (max_x - dest_x) > 8 {
                 unsafe {
                     avx::fill_pixel(
                         self.pixel_data_mut()
