@@ -227,9 +227,124 @@ struct SoftwareRenderState {
     glyph_cache: RefCell<GlyphCache<ImageTexture>>,
 }
 
+struct UtilSprites<T: Texture2d> {
+    white_space: Sprite<T>,
+    single_underline: Sprite<T>,
+    double_underline: Sprite<T>,
+    strike_through: Sprite<T>,
+    single_and_strike: Sprite<T>,
+    double_and_strike: Sprite<T>,
+}
+
+impl<T: Texture2d> UtilSprites<T> {
+    fn new(
+        glyph_cache: &mut GlyphCache<T>,
+        metrics: &RenderMetrics,
+    ) -> Result<Self, OutOfTextureSpace> {
+        let mut buffer = Image::new(
+            metrics.cell_size.width as usize,
+            metrics.cell_size.height as usize,
+        );
+
+        let black = ::window::color::Color::rgb(0, 0, 0);
+        let white = ::window::color::Color::rgb(0xff, 0xff, 0xff);
+
+        let cell_rect = Rect::new(Point::new(0, 0), metrics.cell_size);
+
+        buffer.clear_rect(cell_rect, black);
+        let white_space = glyph_cache.atlas.allocate(&buffer)?;
+
+        let draw_single = |buffer: &mut Image| {
+            buffer.draw_line(
+                Point::new(
+                    cell_rect.origin.x,
+                    cell_rect.origin.y + metrics.descender_plus_one,
+                ),
+                Point::new(
+                    cell_rect.origin.x + metrics.cell_size.width,
+                    cell_rect.origin.y + metrics.descender_plus_one,
+                ),
+                white,
+                Operator::Source,
+            );
+        };
+
+        let draw_double = |buffer: &mut Image| {
+            buffer.draw_line(
+                Point::new(
+                    cell_rect.origin.x,
+                    cell_rect.origin.y + metrics.descender_row,
+                ),
+                Point::new(
+                    cell_rect.origin.x + metrics.cell_size.width,
+                    cell_rect.origin.y + metrics.descender_row,
+                ),
+                white,
+                Operator::Source,
+            );
+            buffer.draw_line(
+                Point::new(
+                    cell_rect.origin.x,
+                    cell_rect.origin.y + metrics.descender_plus_two,
+                ),
+                Point::new(
+                    cell_rect.origin.x + metrics.cell_size.width,
+                    cell_rect.origin.y + metrics.descender_plus_two,
+                ),
+                white,
+                Operator::Source,
+            );
+        };
+
+        let draw_strike = |buffer: &mut Image| {
+            buffer.draw_line(
+                Point::new(cell_rect.origin.x, cell_rect.origin.y + metrics.strike_row),
+                Point::new(
+                    cell_rect.origin.x + metrics.cell_size.width,
+                    cell_rect.origin.y + metrics.strike_row,
+                ),
+                white,
+                Operator::Source,
+            );
+        };
+
+        buffer.clear_rect(cell_rect, black);
+        draw_single(&mut buffer);
+        let single_underline = glyph_cache.atlas.allocate(&buffer)?;
+
+        buffer.clear_rect(cell_rect, black);
+        draw_double(&mut buffer);
+        let double_underline = glyph_cache.atlas.allocate(&buffer)?;
+
+        buffer.clear_rect(cell_rect, black);
+        draw_strike(&mut buffer);
+        let strike_through = glyph_cache.atlas.allocate(&buffer)?;
+
+        buffer.clear_rect(cell_rect, black);
+        draw_single(&mut buffer);
+        draw_strike(&mut buffer);
+        let single_and_strike = glyph_cache.atlas.allocate(&buffer)?;
+
+        buffer.clear_rect(cell_rect, black);
+        draw_double(&mut buffer);
+        draw_strike(&mut buffer);
+        let double_and_strike = glyph_cache.atlas.allocate(&buffer)?;
+
+        Ok(Self {
+            white_space,
+            single_underline,
+            double_underline,
+            strike_through,
+            single_and_strike,
+            double_and_strike,
+        })
+    }
+}
+
 struct OpenGLRenderState {
     context: Rc<GliumContext>,
     glyph_cache: RefCell<GlyphCache<SrgbTexture2d>>,
+    util_sprites: UtilSprites<SrgbTexture2d>,
 }
 
 enum RenderState {
@@ -241,6 +356,7 @@ impl RenderState {
     pub fn recreate_texture_atlas(
         &mut self,
         fonts: &Rc<FontConfiguration>,
+        metrics: &RenderMetrics,
         size: Option<usize>,
     ) -> Fallible<()> {
         match self {
@@ -251,7 +367,8 @@ impl RenderState {
             }
             RenderState::GL(gl) => {
                 let size = size.unwrap_or(gl.glyph_cache.borrow().atlas.size());
-                let glyph_cache = GlyphCache::new_gl(&gl.context, fonts, size)?;
+                let mut glyph_cache = GlyphCache::new_gl(&gl.context, fonts, size)?;
+                gl.util_sprites = UtilSprites::new(&mut glyph_cache, metrics)?;
                 *gl.glyph_cache.borrow_mut() = glyph_cache;
             }
         };
@@ -564,7 +681,8 @@ impl TermWindow {
     }
 
     fn recreate_texture_atlas(&mut self, size: Option<usize>) -> Fallible<()> {
-        self.render_state.recreate_texture_atlas(&self.fonts, size)
+        self.render_state
+            .recreate_texture_atlas(&self.fonts, &self.render_metrics, size)
     }
 
     fn update_title(&mut self) {
