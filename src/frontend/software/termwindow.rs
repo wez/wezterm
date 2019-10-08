@@ -472,14 +472,18 @@ impl WindowCallbacks for TermWindow {
         if let Err(err) = self.paint_tab(&tab, ctx) {
             if let Some(&OutOfTextureSpace { size }) = err.downcast_ref::<OutOfTextureSpace>() {
                 log::error!("out of texture space, allocating {}", size);
-                match self.recreate_texture_atlas(Some(size)) {
-                    Ok(_) => {
-                        tab.renderer().make_all_lines_dirty();
-                        // Recursively initiate a new paint
-                        return self.paint(ctx);
-                    }
-                    Err(err) => log::error!("failed recreate atlas: {}", err),
-                };
+                if let Err(err) = self.recreate_texture_atlas(Some(size)) {
+                    log::error!("failed recreate atlas with size {}: {}", size, err);
+                    // Failed to increase the size.
+                    // This might happen if a lot of images have been displayed in the
+                    // terminal over time and we've hit a texture size limit.
+                    // Let's just try recreating at the current size.
+                    self.recreate_texture_atlas(None)
+                        .expect("OutOfTextureSpace and failed to recreate atlas");
+                }
+                tab.renderer().make_all_lines_dirty();
+                // Recursively initiate a new paint
+                return self.paint(ctx);
             }
             log::error!("paint failed: {}", err);
         }
