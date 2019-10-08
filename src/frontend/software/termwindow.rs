@@ -11,6 +11,8 @@ use crate::mux::window::WindowId as MuxWindowId;
 use crate::mux::Mux;
 use ::window::bitmaps::atlas::{Atlas, OutOfTextureSpace, Sprite, SpriteSlice};
 use ::window::bitmaps::{Image, ImageTexture, Texture2d};
+use ::window::glium::backend::Context as GliumContext;
+use ::window::glium::texture::SrgbTexture2d;
 use ::window::*;
 use failure::Fallible;
 use std::any::Any;
@@ -58,6 +60,29 @@ impl GlyphCache<ImageTexture> {
             glyph_cache: HashMap::new(),
             atlas,
         }
+    }
+}
+
+impl GlyphCache<SrgbTexture2d> {
+    pub fn new_gl(
+        backend: &Rc<GliumContext>,
+        fonts: &Rc<FontConfiguration>,
+        size: usize,
+    ) -> Fallible<Self> {
+        let surface = Rc::new(SrgbTexture2d::empty_with_format(
+            backend,
+            glium::texture::SrgbFormat::U8U8U8U8,
+            glium::texture::MipmapsOption::NoMipmap,
+            size as u32,
+            size as u32,
+        )?);
+        let atlas = Atlas::new(&surface).expect("failed to create new texture atlas");
+
+        Ok(Self {
+            fonts: Rc::clone(fonts),
+            glyph_cache: HashMap::new(),
+            atlas,
+        })
     }
 }
 
@@ -155,6 +180,13 @@ impl<T: Texture2d> GlyphCache<T> {
     }
 }
 
+#[derive(Copy, Clone)]
+struct Vertex {
+    position: (f32, f32),
+    tex: (f32, f32),
+}
+::window::glium::implement_vertex!(Vertex, position, tex);
+
 struct RenderMetrics {
     descender: f64,
     descender_row: isize,
@@ -191,6 +223,54 @@ impl RenderMetrics {
     }
 }
 
+struct SoftwareRenderState {
+    glyph_cache: RefCell<GlyphCache<ImageTexture>>,
+}
+
+struct OpenGLRenderState {
+    context: Rc<GliumContext>,
+    glyph_cache: RefCell<GlyphCache<SrgbTexture2d>>,
+}
+
+enum RenderState {
+    Software(SoftwareRenderState),
+    GL(OpenGLRenderState),
+}
+
+impl RenderState {
+    pub fn recreate_texture_atlas(
+        &mut self,
+        fonts: &Rc<FontConfiguration>,
+        size: Option<usize>,
+    ) -> Fallible<()> {
+        match self {
+            RenderState::Software(software) => {
+                let size = size.unwrap_or(software.glyph_cache.borrow().atlas.size());
+                let glyph_cache = GlyphCache::new(fonts, size);
+                *software.glyph_cache.borrow_mut() = glyph_cache;
+            }
+            RenderState::GL(gl) => {
+                let size = size.unwrap_or(gl.glyph_cache.borrow().atlas.size());
+                let glyph_cache = GlyphCache::new_gl(&gl.context, fonts, size)?;
+                *gl.glyph_cache.borrow_mut() = glyph_cache;
+            }
+        };
+        Ok(())
+    }
+
+    pub fn cached_software_glyph(
+        &self,
+        info: &GlyphInfo,
+        style: &TextStyle,
+    ) -> Fallible<Rc<CachedGlyph<ImageTexture>>> {
+        if let RenderState::Software(software) = self {
+            software.glyph_cache.borrow_mut().cached_glyph(info, style)
+        } else {
+            failure::bail!("attempted to call cached_software_glyph when in gl mode")
+        }
+    }
+}
+
 pub struct TermWindow {
     window: Option<Window>,
     fonts: Rc<FontConfiguration>,
@@ -198,8 +278,7 @@ pub struct TermWindow {
     dimensions: Dimensions,
     mux_window_id: MuxWindowId,
     render_metrics: RenderMetrics,
-    glyph_cache: RefCell<GlyphCache<ImageTexture>>,
-    //atlas: RefCell<Atlas<ImageTexture>>,
+    render_state: RenderState,
     clipboard: Arc<dyn term::Clipboard>,
     keys: KeyMap,
 }
@@ -393,7 +472,7 @@ impl WindowCallbacks for TermWindow {
         if let Err(err) = self.paint_tab(&tab, ctx) {
             if let Some(&OutOfTextureSpace { size }) = err.downcast_ref::<OutOfTextureSpace>() {
                 log::error!("out of texture space, allocating {}", size);
-                match self.recreate_texture_atlas(size) {
+                match self.recreate_texture_atlas(Some(size)) {
                     Ok(_) => {
                         tab.renderer().make_all_lines_dirty();
                         // Recursively initiate a new paint
@@ -428,6 +507,7 @@ impl TermWindow {
         let height = render_metrics.cell_size.height as usize * physical_rows;
 
         let glyph_cache = RefCell::new(GlyphCache::new(fontconfig, 4096));
+        let render_state = RenderState::Software(SoftwareRenderState { glyph_cache });
 
         let window = Window::new_window(
             "wezterm",
@@ -448,7 +528,7 @@ impl TermWindow {
                     // different from this value
                     dpi: 96,
                 },
-                glyph_cache,
+                render_state,
                 clipboard: Arc::new(SystemClipboard::new()),
                 keys: KeyMap::new(),
             }),
@@ -479,10 +559,8 @@ impl TermWindow {
         Ok(())
     }
 
-    fn recreate_texture_atlas(&mut self, size: usize) -> Fallible<()> {
-        let glyph_cache = GlyphCache::new(&self.fonts, size);
-        *self.glyph_cache.borrow_mut() = glyph_cache;
-        Ok(())
+    fn recreate_texture_atlas(&mut self, size: Option<usize>) -> Fallible<()> {
+        self.render_state.recreate_texture_atlas(&self.fonts, size)
     }
 
     fn update_title(&mut self) {
@@ -666,8 +744,7 @@ impl TermWindow {
                     .change_scaling(font_scale, dimensions.dpi as f64 / 96.);
                 self.render_metrics = RenderMetrics::new(&self.fonts);
 
-                let atlas_size = self.glyph_cache.borrow().atlas.size();
-                self.recreate_texture_atlas(atlas_size)
+                self.recreate_texture_atlas(None)
                     .expect("failed to recreate atlas");
             }
 
@@ -811,7 +888,7 @@ impl TermWindow {
 
             for info in &glyph_info {
                 let cell_idx = cluster.byte_to_cell_idx[info.cluster as usize];
-                let glyph = self.glyph_cache.borrow_mut().cached_glyph(info, style)?;
+                let glyph = self.render_state.cached_software_glyph(info, style)?;
 
                 let left = (glyph.x_offset + glyph.bearing_x) as f32;
                 let top = ((self.render_metrics.cell_size.height as f64
