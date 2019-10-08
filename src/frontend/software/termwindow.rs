@@ -155,18 +155,49 @@ impl<T: Texture2d> GlyphCache<T> {
     }
 }
 
-pub struct TermWindow {
-    window: Option<Window>,
-    fonts: Rc<FontConfiguration>,
-    _config: Arc<Config>,
-    cell_size: Size,
-    dimensions: Dimensions,
-    mux_window_id: MuxWindowId,
+struct RenderMetrics {
     descender: f64,
     descender_row: isize,
     descender_plus_one: isize,
     descender_plus_two: isize,
     strike_row: isize,
+    cell_size: Size,
+}
+
+impl RenderMetrics {
+    fn new(fonts: &Rc<FontConfiguration>) -> Self {
+        let metrics = fonts
+            .default_font_metrics()
+            .expect("failed to get font metrics!?");
+
+        let (cell_height, cell_width) = (
+            metrics.cell_height.ceil() as usize,
+            metrics.cell_width.ceil() as usize,
+        );
+
+        let descender_row = (cell_height as f64 + metrics.descender) as isize;
+        let descender_plus_one = (1 + descender_row).min(cell_height as isize - 1);
+        let descender_plus_two = (2 + descender_row).min(cell_height as isize - 1);
+        let strike_row = descender_row / 2;
+
+        Self {
+            descender: metrics.descender,
+            descender_row,
+            descender_plus_one,
+            descender_plus_two,
+            strike_row,
+            cell_size: Size::new(cell_width as isize, cell_height as isize),
+        }
+    }
+}
+
+pub struct TermWindow {
+    window: Option<Window>,
+    fonts: Rc<FontConfiguration>,
+    _config: Arc<Config>,
+    dimensions: Dimensions,
+    mux_window_id: MuxWindowId,
+    render_metrics: RenderMetrics,
     glyph_cache: RefCell<GlyphCache<ImageTexture>>,
     //atlas: RefCell<Atlas<ImageTexture>>,
     clipboard: Arc<dyn term::Clipboard>,
@@ -275,8 +306,8 @@ impl WindowCallbacks for TermWindow {
                     }
                     WMEK::HorzWheel(_) => TMB::None,
                 },
-                x: (event.x as isize / self.cell_size.width) as usize,
-                y: (event.y as isize / self.cell_size.height) as i64,
+                x: (event.x as isize / self.render_metrics.cell_size.width) as usize,
+                y: (event.y as isize / self.render_metrics.cell_size.height) as i64,
                 modifiers: window_mods_to_termwiz_mods(event.modifiers),
             },
             &mut Host {
@@ -391,21 +422,12 @@ impl TermWindow {
         );
         let (physical_rows, physical_cols) = tab.renderer().physical_dimensions();
 
-        let metrics = fontconfig.default_font_metrics()?;
-        let (cell_height, cell_width) = (
-            metrics.cell_height.ceil() as usize,
-            metrics.cell_width.ceil() as usize,
-        );
+        let render_metrics = RenderMetrics::new(fontconfig);
 
-        let width = cell_width * physical_cols;
-        let height = cell_height * physical_rows;
+        let width = render_metrics.cell_size.width as usize * physical_cols;
+        let height = render_metrics.cell_size.height as usize * physical_rows;
 
         let glyph_cache = RefCell::new(GlyphCache::new(fontconfig, 4096));
-
-        let descender_row = (cell_height as f64 + metrics.descender) as isize;
-        let descender_plus_one = (1 + descender_row).min(cell_height as isize - 1);
-        let descender_plus_two = (2 + descender_row).min(cell_height as isize - 1);
-        let strike_row = descender_row / 2;
 
         let window = Window::new_window(
             "wezterm",
@@ -414,15 +436,10 @@ impl TermWindow {
             height,
             Box::new(Self {
                 window: None,
-                cell_size: Size::new(cell_width as isize, cell_height as isize),
                 mux_window_id,
                 _config: Arc::clone(config),
                 fonts: Rc::clone(fontconfig),
-                descender: metrics.descender,
-                descender_row,
-                descender_plus_one,
-                descender_plus_two,
-                strike_row,
+                render_metrics,
                 dimensions: Dimensions {
                     pixel_width: width,
                     pixel_height: height,
@@ -530,8 +547,10 @@ impl TermWindow {
     }
 
     fn spawn_tab(&mut self, domain: &SpawnTabDomain) -> Fallible<TabId> {
-        let rows = (self.dimensions.pixel_height as usize + 1) / self.cell_size.height as usize;
-        let cols = (self.dimensions.pixel_width as usize + 1) / self.cell_size.width as usize;
+        let rows = (self.dimensions.pixel_height as usize + 1)
+            / self.render_metrics.cell_size.height as usize;
+        let cols = (self.dimensions.pixel_width as usize + 1)
+            / self.render_metrics.cell_size.width as usize;
 
         let size = portable_pty::PtySize {
             rows: rows as u16,
@@ -645,39 +664,18 @@ impl TermWindow {
             if dimensions.dpi != self.dimensions.dpi || font_scale != self.fonts.get_font_scale() {
                 self.fonts
                     .change_scaling(font_scale, dimensions.dpi as f64 / 96.);
-                let metrics = self
-                    .fonts
-                    .default_font_metrics()
-                    .expect("failed to get font metrics!?");
-
-                let (cell_height, cell_width) = (
-                    metrics.cell_height.ceil() as usize,
-                    metrics.cell_width.ceil() as usize,
-                );
+                self.render_metrics = RenderMetrics::new(&self.fonts);
 
                 let atlas_size = self.glyph_cache.borrow().atlas.size();
                 self.recreate_texture_atlas(atlas_size)
                     .expect("failed to recreate atlas");
-
-                let descender_row = (cell_height as f64 + metrics.descender) as isize;
-                let descender_plus_one = (1 + descender_row).min(cell_height as isize - 1);
-                let descender_plus_two = (2 + descender_row).min(cell_height as isize - 1);
-                let strike_row = descender_row / 2;
-
-                self.descender = metrics.descender;
-                self.descender_row = descender_row;
-                self.descender_plus_one = descender_plus_one;
-                self.descender_plus_two = descender_plus_two;
-                self.strike_row = strike_row;
-
-                self.cell_size = Size::new(cell_width as isize, cell_height as isize);
             }
 
             self.dimensions = dimensions;
 
             let size = portable_pty::PtySize {
-                rows: dimensions.pixel_height as u16 / self.cell_size.height as u16,
-                cols: dimensions.pixel_width as u16 / self.cell_size.width as u16,
+                rows: dimensions.pixel_height as u16 / self.render_metrics.cell_size.height as u16,
+                cols: dimensions.pixel_width as u16 / self.render_metrics.cell_size.width as u16,
                 pixel_height: dimensions.pixel_height as u16,
                 pixel_width: dimensions.pixel_width as u16,
             };
@@ -728,7 +726,7 @@ impl TermWindow {
 
         // Fill any marginal area below the last row
         let (num_rows, _num_cols) = term.physical_dimensions();
-        let pixel_height_of_cells = num_rows * self.cell_size.height as usize;
+        let pixel_height_of_cells = num_rows * self.render_metrics.cell_size.height as usize;
         ctx.clear_rect(
             Rect::new(
                 Point::new(0, pixel_height_of_cells as isize),
@@ -816,7 +814,8 @@ impl TermWindow {
                 let glyph = self.glyph_cache.borrow_mut().cached_glyph(info, style)?;
 
                 let left = (glyph.x_offset + glyph.bearing_x) as f32;
-                let top = ((self.cell_size.height as f64 + self.descender)
+                let top = ((self.render_metrics.cell_size.height as f64
+                    + self.render_metrics.descender)
                     - (glyph.y_offset + glyph.bearing_y)) as f32;
 
                 // underline and strikethrough
@@ -854,10 +853,10 @@ impl TermWindow {
 
                     let cell_rect = Rect::new(
                         Point::new(
-                            cell_idx as isize * self.cell_size.width,
-                            self.cell_size.height * line_idx as isize,
+                            cell_idx as isize * self.render_metrics.cell_size.width,
+                            self.render_metrics.cell_size.height * line_idx as isize,
                         ),
-                        self.cell_size,
+                        self.render_metrics.cell_size,
                     );
                     ctx.clear_rect(cell_rect, bg_color);
 
@@ -866,11 +865,11 @@ impl TermWindow {
                             ctx.draw_line(
                                 Point::new(
                                     cell_rect.origin.x,
-                                    cell_rect.origin.y + self.descender_plus_one,
+                                    cell_rect.origin.y + self.render_metrics.descender_plus_one,
                                 ),
                                 Point::new(
-                                    cell_rect.origin.x + self.cell_size.width,
-                                    cell_rect.origin.y + self.descender_plus_one,
+                                    cell_rect.origin.x + self.render_metrics.cell_size.width,
+                                    cell_rect.origin.y + self.render_metrics.descender_plus_one,
                                 ),
                                 glyph_color,
                                 Operator::Over,
@@ -880,11 +879,11 @@ impl TermWindow {
                             ctx.draw_line(
                                 Point::new(
                                     cell_rect.origin.x,
-                                    cell_rect.origin.y + self.descender_row,
+                                    cell_rect.origin.y + self.render_metrics.descender_row,
                                 ),
                                 Point::new(
-                                    cell_rect.origin.x + self.cell_size.width,
-                                    cell_rect.origin.y + self.descender_row,
+                                    cell_rect.origin.x + self.render_metrics.cell_size.width,
+                                    cell_rect.origin.y + self.render_metrics.descender_row,
                                 ),
                                 glyph_color,
                                 Operator::Over,
@@ -892,11 +891,11 @@ impl TermWindow {
                             ctx.draw_line(
                                 Point::new(
                                     cell_rect.origin.x,
-                                    cell_rect.origin.y + self.descender_plus_two,
+                                    cell_rect.origin.y + self.render_metrics.descender_plus_two,
                                 ),
                                 Point::new(
-                                    cell_rect.origin.x + self.cell_size.width,
-                                    cell_rect.origin.y + self.descender_plus_two,
+                                    cell_rect.origin.x + self.render_metrics.cell_size.width,
+                                    cell_rect.origin.y + self.render_metrics.descender_plus_two,
                                 ),
                                 glyph_color,
                                 Operator::Over,
@@ -906,10 +905,13 @@ impl TermWindow {
                     }
                     if attrs.strikethrough() {
                         ctx.draw_line(
-                            Point::new(cell_rect.origin.x, cell_rect.origin.y + self.strike_row),
                             Point::new(
-                                cell_rect.origin.x + self.cell_size.width,
-                                cell_rect.origin.y + self.strike_row,
+                                cell_rect.origin.x,
+                                cell_rect.origin.y + self.render_metrics.strike_row,
+                            ),
+                            Point::new(
+                                cell_rect.origin.x + self.render_metrics.cell_size.width,
+                                cell_rect.origin.y + self.render_metrics.strike_row,
                             ),
                             glyph_color,
                             Operator::Over,
@@ -920,7 +922,7 @@ impl TermWindow {
                         let slice = SpriteSlice {
                             cell_idx: glyph_idx,
                             num_cells: info.num_cells as usize,
-                            cell_width: self.cell_size.width as usize,
+                            cell_width: self.render_metrics.cell_size.width as usize,
                             scale: glyph.scale as f32,
                             left_offset: left,
                         };
@@ -970,25 +972,25 @@ impl TermWindow {
 
             let cell_rect = Rect::new(
                 Point::new(
-                    cell_idx as isize * self.cell_size.width,
-                    self.cell_size.height * line_idx as isize,
+                    cell_idx as isize * self.render_metrics.cell_size.width,
+                    self.render_metrics.cell_size.height * line_idx as isize,
                 ),
-                self.cell_size,
+                self.render_metrics.cell_size,
             );
             ctx.clear_rect(cell_rect, bg_color);
         }
 
         // Fill any marginal area to the right of the last cell
-        let pixel_width_of_cells = num_cols * self.cell_size.width as usize;
+        let pixel_width_of_cells = num_cols * self.render_metrics.cell_size.width as usize;
         ctx.clear_rect(
             Rect::new(
                 Point::new(
                     pixel_width_of_cells as isize,
-                    self.cell_size.height * line_idx as isize,
+                    self.render_metrics.cell_size.height * line_idx as isize,
                 ),
                 Size::new(
                     (self.dimensions.pixel_width - pixel_width_of_cells) as isize,
-                    self.cell_size.height,
+                    self.render_metrics.cell_size.height,
                 ),
             ),
             rgbcolor_to_window_color(palette.background),
