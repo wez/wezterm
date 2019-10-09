@@ -225,6 +225,22 @@ impl RenderMetrics {
 
 struct SoftwareRenderState {
     glyph_cache: RefCell<GlyphCache<ImageTexture>>,
+    util_sprites: UtilSprites<ImageTexture>,
+}
+
+impl SoftwareRenderState {
+    pub fn new(
+        fonts: &Rc<FontConfiguration>,
+        metrics: &RenderMetrics,
+        size: usize,
+    ) -> Fallible<Self> {
+        let glyph_cache = RefCell::new(GlyphCache::new(fonts, size));
+        let util_sprites = UtilSprites::new(&mut glyph_cache.borrow_mut(), metrics)?;
+        Ok(Self {
+            glyph_cache,
+            util_sprites,
+        })
+    }
 }
 
 struct UtilSprites<T: Texture2d> {
@@ -362,7 +378,8 @@ impl RenderState {
         match self {
             RenderState::Software(software) => {
                 let size = size.unwrap_or(software.glyph_cache.borrow().atlas.size());
-                let glyph_cache = GlyphCache::new(fonts, size);
+                let mut glyph_cache = GlyphCache::new(fonts, size);
+                software.util_sprites = UtilSprites::new(&mut glyph_cache, metrics)?;
                 *software.glyph_cache.borrow_mut() = glyph_cache;
             }
             RenderState::GL(gl) => {
@@ -384,6 +401,13 @@ impl RenderState {
             software.glyph_cache.borrow_mut().cached_glyph(info, style)
         } else {
             failure::bail!("attempted to call cached_software_glyph when in gl mode")
+        }
+    }
+
+    pub fn software(&self) -> &SoftwareRenderState {
+        match self {
+            RenderState::Software(software) => software,
+            _ => panic!("only valid for software render mode"),
         }
     }
 }
@@ -627,8 +651,8 @@ impl TermWindow {
         let width = render_metrics.cell_size.width as usize * physical_cols;
         let height = render_metrics.cell_size.height as usize * physical_rows;
 
-        let glyph_cache = RefCell::new(GlyphCache::new(fontconfig, 4096));
-        let render_state = RenderState::Software(SoftwareRenderState { glyph_cache });
+        let render_state =
+            RenderState::Software(SoftwareRenderState::new(fontconfig, &render_metrics, 4096)?);
 
         let window = Window::new_window(
             "wezterm",
@@ -1061,59 +1085,35 @@ impl TermWindow {
 
                     match underline {
                         Underline::Single => {
-                            ctx.draw_line(
-                                Point::new(
-                                    cell_rect.origin.x,
-                                    cell_rect.origin.y + self.render_metrics.descender_plus_one,
-                                ),
-                                Point::new(
-                                    cell_rect.origin.x + self.render_metrics.cell_size.width,
-                                    cell_rect.origin.y + self.render_metrics.descender_plus_one,
-                                ),
-                                glyph_color,
-                                Operator::Over,
+                            let software = self.render_state.software();
+                            let sprite = &software.util_sprites.single_underline;
+                            ctx.draw_image(
+                                cell_rect.origin,
+                                Some(sprite.coords),
+                                &*sprite.texture.image.borrow(),
+                                Operator::MultiplyThenOver(glyph_color),
                             );
                         }
                         Underline::Double => {
-                            ctx.draw_line(
-                                Point::new(
-                                    cell_rect.origin.x,
-                                    cell_rect.origin.y + self.render_metrics.descender_row,
-                                ),
-                                Point::new(
-                                    cell_rect.origin.x + self.render_metrics.cell_size.width,
-                                    cell_rect.origin.y + self.render_metrics.descender_row,
-                                ),
-                                glyph_color,
-                                Operator::Over,
-                            );
-                            ctx.draw_line(
-                                Point::new(
-                                    cell_rect.origin.x,
-                                    cell_rect.origin.y + self.render_metrics.descender_plus_two,
-                                ),
-                                Point::new(
-                                    cell_rect.origin.x + self.render_metrics.cell_size.width,
-                                    cell_rect.origin.y + self.render_metrics.descender_plus_two,
-                                ),
-                                glyph_color,
-                                Operator::Over,
+                            let software = self.render_state.software();
+                            let sprite = &software.util_sprites.double_underline;
+                            ctx.draw_image(
+                                cell_rect.origin,
+                                Some(sprite.coords),
+                                &*sprite.texture.image.borrow(),
+                                Operator::MultiplyThenOver(glyph_color),
                             );
                         }
                         Underline::None => {}
                     }
                     if attrs.strikethrough() {
-                        ctx.draw_line(
-                            Point::new(
-                                cell_rect.origin.x,
-                                cell_rect.origin.y + self.render_metrics.strike_row,
-                            ),
-                            Point::new(
-                                cell_rect.origin.x + self.render_metrics.cell_size.width,
-                                cell_rect.origin.y + self.render_metrics.strike_row,
-                            ),
-                            glyph_color,
-                            Operator::Over,
+                        let software = self.render_state.software();
+                        let sprite = &software.util_sprites.strike_through;
+                        ctx.draw_image(
+                            cell_rect.origin,
+                            Some(sprite.coords),
+                            &*sprite.texture.image.borrow(),
+                            Operator::MultiplyThenOver(glyph_color),
                         );
                     }
 
