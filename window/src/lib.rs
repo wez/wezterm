@@ -171,9 +171,15 @@ pub trait WindowOps {
         Self: Sized;
 
     #[cfg(feature = "opengl")]
-    fn enable_opengl(&self) -> failure::Fallible<std::rc::Rc<glium::backend::Context>> {
-        failure::bail!("opengl support is not implemented");
-    }
+    fn enable_opengl<
+        F: Send
+            + 'static
+            + Fn(&mut dyn Any, &dyn WindowOps, failure::Fallible<std::rc::Rc<glium::backend::Context>>),
+    >(
+        &self,
+        func: F,
+    ) where
+        Self: Sized;
 }
 
 pub trait WindowOpsMut {

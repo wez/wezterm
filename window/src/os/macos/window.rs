@@ -271,31 +271,44 @@ impl WindowOps for Window {
     }
 
     #[cfg(feature = "opengl")]
-    fn enable_opengl(&self) -> Fallible<Rc<glium::backend::Context>> {
-        if let Some(handle) = Connection::get().unwrap().window_by_id(self.0) {
-            let inner = handle.borrow_mut();
-            let gl_state = opengl::GlState::create(*inner.view)?;
+    fn enable_opengl<
+        F: Send
+            + 'static
+            + Fn(&mut dyn Any, &dyn WindowOps, failure::Fallible<std::rc::Rc<glium::backend::Context>>),
+    >(
+        &self,
+        func: F,
+    ) where
+        Self: Sized,
+    {
+        Connection::with_window_inner(self.0, move |inner| {
+            let window = Window(inner.window_id);
 
-            let glium_context = unsafe {
-                glium::backend::Context::new(
-                    Rc::new(gl_state),
-                    true,
-                    if cfg!(debug_assertions) {
-                        glium::debug::DebugCallbackBehavior::DebugMessageOnError
-                    } else {
-                        glium::debug::DebugCallbackBehavior::Ignore
-                    },
-                )?
-            };
+            let glium_context = opengl::GlState::create(*inner.view).and_then(|gl_state| {
+                Ok(unsafe {
+                    glium::backend::Context::new(
+                        Rc::new(gl_state),
+                        true,
+                        if cfg!(debug_assertions) {
+                            glium::debug::DebugCallbackBehavior::DebugMessageOnError
+                        } else {
+                            glium::debug::DebugCallbackBehavior::Ignore
+                        },
+                    )?
+                })
+            });
 
             if let Some(window_view) = WindowView::get_this(unsafe { &**inner.view }) {
-                window_view.inner.borrow_mut().gl_context = Some(Rc::clone(&glium_context));
-            }
+                window_view.inner.borrow_mut().gl_context =
+                    glium_context.as_ref().map(Rc::clone).ok();
 
-            Ok(glium_context)
-        } else {
-            failure::bail!("invalid window?");
-        }
+                func(
+                    window_view.inner.borrow_mut().callbacks.as_any(),
+                    &window,
+                    glium_context,
+                );
+            }
+        });
     }
 }
 

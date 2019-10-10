@@ -187,6 +187,7 @@ struct Vertex {
 }
 ::window::glium::implement_vertex!(Vertex, position, tex);
 
+#[derive(Copy, Clone)]
 struct RenderMetrics {
     descender: f64,
     descender_row: isize,
@@ -361,6 +362,23 @@ struct OpenGLRenderState {
     context: Rc<GliumContext>,
     glyph_cache: RefCell<GlyphCache<SrgbTexture2d>>,
     util_sprites: UtilSprites<SrgbTexture2d>,
+}
+
+impl OpenGLRenderState {
+    pub fn new(
+        context: Rc<GliumContext>,
+        fonts: &Rc<FontConfiguration>,
+        metrics: &RenderMetrics,
+        size: usize,
+    ) -> Fallible<Self> {
+        let glyph_cache = RefCell::new(GlyphCache::new_gl(&context, fonts, size)?);
+        let util_sprites = UtilSprites::new(&mut *glyph_cache.borrow_mut(), metrics)?;
+        Ok(Self {
+            context,
+            glyph_cache,
+            util_sprites,
+        })
+    }
 }
 
 enum RenderState {
@@ -651,8 +669,12 @@ impl TermWindow {
         let width = render_metrics.cell_size.width as usize * physical_cols;
         let height = render_metrics.cell_size.height as usize * physical_rows;
 
-        let render_state =
-            RenderState::Software(SoftwareRenderState::new(fontconfig, &render_metrics, 4096)?);
+        const ATLAS_SIZE: usize = 4096;
+        let render_state = RenderState::Software(SoftwareRenderState::new(
+            fontconfig,
+            &render_metrics,
+            ATLAS_SIZE,
+        )?);
 
         let window = Window::new_window(
             "wezterm",
@@ -698,7 +720,29 @@ impl TermWindow {
         window.show();
 
         if super::is_opengl_enabled() {
-            log::error!("I should use opengl");
+            window.enable_opengl(|any, window, maybe_ctx| {
+                let termwindow = any.downcast_ref::<TermWindow>().expect("to be TermWindow");
+
+                log::error!("I should use opengl");
+                match maybe_ctx {
+                    Ok(ctx) => {
+                        match OpenGLRenderState::new(
+                            ctx,
+                            &termwindow.fonts,
+                            &termwindow.render_metrics,
+                            ATLAS_SIZE,
+                        ) {
+                            Ok(gl) => {
+                                log::error!("OpenGL initialized!");
+                            }
+                            Err(err) => {
+                                log::error!("OpenGL init failed: {}", err);
+                            }
+                        }
+                    }
+                    Err(err) => log::error!("OpenGL init failed: {}", err),
+                }
+            });
         }
 
         Ok(())
