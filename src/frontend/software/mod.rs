@@ -8,7 +8,8 @@ use ::window::*;
 use failure::Fallible;
 use promise::{BasicExecutor, Executor, SpawnFunc};
 use std::rc::Rc;
-use std::sync::{Arc, Mutex};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 
 mod termwindow;
 
@@ -17,16 +18,16 @@ pub struct SoftwareFrontEnd {
 }
 
 lazy_static::lazy_static! {
-static ref USE_OPENGL: Mutex<bool> = Mutex::new(true);
+static ref USE_OPENGL: AtomicBool = AtomicBool::new(true);
 }
 
 pub fn is_opengl_enabled() -> bool {
-    *USE_OPENGL.lock().unwrap()
+    USE_OPENGL.load(Ordering::Acquire)
 }
 
 impl SoftwareFrontEnd {
     pub fn try_new_no_opengl(mux: &Rc<Mux>) -> Fallible<Rc<dyn FrontEnd>> {
-        *USE_OPENGL.lock().unwrap() = false;
+        USE_OPENGL.store(false, Ordering::Release);
         Self::try_new(mux)
     }
 

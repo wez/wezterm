@@ -395,13 +395,13 @@ impl RenderState {
     ) -> Fallible<()> {
         match self {
             RenderState::Software(software) => {
-                let size = size.unwrap_or(software.glyph_cache.borrow().atlas.size());
+                let size = size.unwrap_or_else(|| software.glyph_cache.borrow().atlas.size());
                 let mut glyph_cache = GlyphCache::new(fonts, size);
                 software.util_sprites = UtilSprites::new(&mut glyph_cache, metrics)?;
                 *software.glyph_cache.borrow_mut() = glyph_cache;
             }
             RenderState::GL(gl) => {
-                let size = size.unwrap_or(gl.glyph_cache.borrow().atlas.size());
+                let size = size.unwrap_or_else(|| gl.glyph_cache.borrow().atlas.size());
                 let mut glyph_cache = GlyphCache::new_gl(&gl.context, fonts, size)?;
                 gl.util_sprites = UtilSprites::new(&mut glyph_cache, metrics)?;
                 *gl.glyph_cache.borrow_mut() = glyph_cache;
@@ -720,7 +720,7 @@ impl TermWindow {
         window.show();
 
         if super::is_opengl_enabled() {
-            window.enable_opengl(|any, window, maybe_ctx| {
+            window.enable_opengl(|any, _window, maybe_ctx| {
                 let termwindow = any.downcast_ref::<TermWindow>().expect("to be TermWindow");
 
                 log::error!("I should use opengl");
@@ -732,7 +732,7 @@ impl TermWindow {
                             &termwindow.render_metrics,
                             ATLAS_SIZE,
                         ) {
-                            Ok(gl) => {
+                            Ok(_) => {
                                 log::error!("OpenGL initialized!");
                             }
                             Err(err) => {
