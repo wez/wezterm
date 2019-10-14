@@ -70,13 +70,14 @@ Description: Wez's Terminal Emulator.
  windows.
 Depends: libc6, libegl-mesa0, libxcb-icccm4, libxcb-ewmh2, libxcb-keysyms1, libxcb-xkb1, libxkbcommon0, libxkbcommon-x11-0, libfontconfig1, xdg-utils, libxcb-render0, libxcb-shape0, libx11-6, libegl1
 EOF
-        cp target/release/wezterm pkg/debian/usr/bin
+        install -Dsm755 target/release/wezterm pkg/debian/usr/bin
         if [[ "$BUILD_REASON" == "Schedule" ]] ; then
           debname=wezterm-nightly
         else
           debname=wezterm-$TAG_NAME
         fi
         fakeroot dpkg-deb --build pkg/debian $debname.deb
+        tar cJf $debname.tar.xz -C pkg/debian/usr/bin wezterm
         rm -rf pkg
       ;;
     esac
