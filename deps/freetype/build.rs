@@ -74,9 +74,16 @@ fn freetype() {
 }
 
 fn main() {
-    zlib();
-    libpng();
-    freetype();
+    println!("cargo:rerun-if-env-changed=WEZRERM_SYSDEPS");
+    if cfg!(unix) && env::var("WEZRERM_SYSDEPS").map(|x| x == "1").unwrap_or(false) {
+        println!("cargo:rustc-link-lib=z");
+        println!("cargo:rustc-link-lib=png");
+        println!("cargo:rustc-link-lib=freetype");
+    } else {
+        zlib();
+        libpng();
+        freetype();
+    }
     let out_dir = env::var("OUT_DIR").unwrap();
     println!("cargo:outdir={}", out_dir);
 }
