@@ -177,6 +177,7 @@ jobs:
           assets: |
             $(Build.SourcesDirectory)/*.zip
             $(Build.SourcesDirectory)/*.deb
+            $(Build.SourcesDirectory)/*.tar.xz
           title: "Nightly Builds"
           assetUploadMode: replace
           addChangeLog: false
