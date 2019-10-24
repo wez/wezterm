@@ -116,8 +116,6 @@ impl WindowInner {
                 ),
             );
 
-            eprintln!("paint {:?}", rect);
-
             let mut context = X11GraphicsContext {
                 buffer: &mut self.buffer_image,
             };
