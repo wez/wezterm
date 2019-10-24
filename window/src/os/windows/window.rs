@@ -276,6 +276,27 @@ impl WindowOps for Window {
             func(inner.callbacks.borrow_mut().as_any(), &window);
         });
     }
+
+    #[cfg(feature = "opengl")]
+    fn enable_opengl<
+        F: Send
+            + 'static
+            + Fn(&mut dyn Any, &dyn WindowOps, failure::Fallible<std::rc::Rc<glium::backend::Context>>),
+    >(
+        &self,
+        func: F,
+    ) where
+        Self: Sized,
+    {
+        Connection::with_window_inner(self.0, move |inner| {
+            let window = Window(inner.hwnd);
+            func(
+                inner.callbacks.borrow_mut().as_any(),
+                &window,
+                Err(failure::err_msg("opengl not supported in this build")),
+            );
+        });
+    }
 }
 
 /// Set up bidirectional pointers:
