@@ -501,6 +501,10 @@ impl WindowOps for Window {
     {
         Connection::with_window_inner(self.0, move |inner| {
             let window = Window(inner.window_id);
+            match crate::egl::GlState::create(Some(inner.conn.display as *const _)) {
+                Ok(_) => eprintln!("EGL initialized!?"),
+                Err(err) => eprintln!("EGL: {}", err),
+            };
             func(
                 inner.callbacks.as_any(),
                 &window,

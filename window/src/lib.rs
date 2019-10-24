@@ -7,6 +7,9 @@ pub mod os;
 mod spawn;
 mod tasks;
 
+#[cfg(all(not(target_os = "macos"), feature = "opengl"))]
+mod egl;
+
 #[cfg(feature = "opengl")]
 pub use glium;
 

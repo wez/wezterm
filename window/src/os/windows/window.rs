@@ -290,6 +290,13 @@ impl WindowOps for Window {
     {
         Connection::with_window_inner(self.0, move |inner| {
             let window = Window(inner.hwnd);
+
+            let dc = unsafe { GetDC(std::mem::transmute(inner.hwnd)) };
+            match crate::egl::GlState::create(Some(dc as *const _)) {
+                Ok(_) => eprintln!("EGL initialized!?"),
+                Err(err) => eprintln!("EGL: {}", err),
+            };
+
             func(
                 inner.callbacks.borrow_mut().as_any(),
                 &window,
