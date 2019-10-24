@@ -13,6 +13,7 @@ use ::window::bitmaps::atlas::{Atlas, OutOfTextureSpace, Sprite, SpriteSlice};
 use ::window::bitmaps::{Image, ImageTexture, Texture2d};
 use ::window::glium::backend::Context as GliumContext;
 use ::window::glium::texture::SrgbTexture2d;
+use ::window::glium::{uniform, IndexBuffer, Surface, VertexBuffer};
 use ::window::*;
 use failure::Fallible;
 use std::any::Any;
@@ -24,6 +25,14 @@ use std::sync::Arc;
 use term::color::ColorPalette;
 use term::{CursorPosition, Line, Underline};
 use termwiz::color::RgbColor;
+
+/// Each cell is composed of two triangles built from 4 vertices.
+/// The buffer is organized row by row.
+const VERTICES_PER_CELL: usize = 4;
+const V_TOP_LEFT: usize = 0;
+const V_TOP_RIGHT: usize = 1;
+const V_BOT_LEFT: usize = 2;
+const V_BOT_RIGHT: usize = 3;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 struct GlyphKey {
@@ -180,12 +189,19 @@ impl<T: Texture2d> GlyphCache<T> {
     }
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Default)]
 struct Vertex {
+    // Physical position of the corner of the character cell
     position: (f32, f32),
+    // bearing offset within the cell
+    adjust: (f32, f32),
     tex: (f32, f32),
+    bg_color: (f32, f32, f32, f32),
+    fg_color: (f32, f32, f32, f32),
+    // "bool can't be an in in the vertex shader"
+    has_color: f32,
 }
-::window::glium::implement_vertex!(Vertex, position, tex);
+::window::glium::implement_vertex!(Vertex, position, adjust, tex, bg_color, fg_color, has_color);
 
 #[derive(Copy, Clone)]
 struct RenderMetrics {
@@ -263,7 +279,7 @@ impl<T: Texture2d> UtilSprites<T> {
             metrics.cell_size.height as usize,
         );
 
-        let black = ::window::color::Color::rgb(0, 0, 0);
+        let black = ::window::color::Color::rgba(0, 0, 0, 0);
         let white = ::window::color::Color::rgb(0xff, 0xff, 0xff);
 
         let cell_rect = Rect::new(Point::new(0, 0), metrics.cell_size);
@@ -362,6 +378,9 @@ struct OpenGLRenderState {
     context: Rc<GliumContext>,
     glyph_cache: RefCell<GlyphCache<SrgbTexture2d>>,
     util_sprites: UtilSprites<SrgbTexture2d>,
+    program: glium::Program,
+    glyph_vertex_buffer: RefCell<VertexBuffer<Vertex>>,
+    glyph_index_buffer: IndexBuffer<u32>,
 }
 
 impl OpenGLRenderState {
@@ -370,14 +389,128 @@ impl OpenGLRenderState {
         fonts: &Rc<FontConfiguration>,
         metrics: &RenderMetrics,
         size: usize,
+        pixel_width: usize,
+        pixel_height: usize,
     ) -> Fallible<Self> {
         let glyph_cache = RefCell::new(GlyphCache::new_gl(&context, fonts, size)?);
         let util_sprites = UtilSprites::new(&mut *glyph_cache.borrow_mut(), metrics)?;
+
+        let source = glium::program::ProgramCreationInput::SourceCode {
+            vertex_shader: Self::vertex_shader(),
+            fragment_shader: Self::fragment_shader(),
+            outputs_srgb: true,
+            tessellation_control_shader: None,
+            tessellation_evaluation_shader: None,
+            transform_feedback_varyings: None,
+            uses_point_size: false,
+            geometry_shader: None,
+        };
+        let program = glium::Program::new(&context, source)?;
+
+        let (glyph_vertex_buffer, glyph_index_buffer) =
+            Self::compute_vertices(&context, metrics, pixel_width as f32, pixel_height as f32)?;
+
         Ok(Self {
             context,
             glyph_cache,
             util_sprites,
+            program,
+            glyph_vertex_buffer: RefCell::new(glyph_vertex_buffer),
+            glyph_index_buffer,
         })
+    }
+
+    pub fn advise_of_window_size_change(
+        &mut self,
+        metrics: &RenderMetrics,
+        pixel_width: usize,
+        pixel_height: usize,
+    ) -> Fallible<()> {
+        let (glyph_vertex_buffer, glyph_index_buffer) = Self::compute_vertices(
+            &self.context,
+            metrics,
+            pixel_width as f32,
+            pixel_height as f32,
+        )?;
+
+        *self.glyph_vertex_buffer.borrow_mut() = glyph_vertex_buffer;
+        self.glyph_index_buffer = glyph_index_buffer;
+        Ok(())
+    }
+
+    fn vertex_shader() -> &'static str {
+        include_str!("vertex.glsl")
+    }
+
+    fn fragment_shader() -> &'static str {
+        include_str!("fragment.glsl")
+    }
+
+    /// Compute a vertex buffer to hold the quads that comprise the visible
+    /// portion of the screen.   We recreate this when the screen is resized.
+    /// The idea is that we want to minimize and heavy lifting and computation
+    /// and instead just poke some attributes into the offset that corresponds
+    /// to a changed cell when we need to repaint the screen, and then just
+    /// let the GPU figure out the rest.
+    fn compute_vertices(
+        context: &Rc<GliumContext>,
+        metrics: &RenderMetrics,
+        width: f32,
+        height: f32,
+    ) -> Fallible<(VertexBuffer<Vertex>, IndexBuffer<u32>)> {
+        let cell_width = metrics.cell_size.width as f32;
+        let cell_height = metrics.cell_size.height as f32;
+        let mut verts = Vec::new();
+        let mut indices = Vec::new();
+
+        let num_cols = (width as usize + 1) / cell_width as usize;
+        let num_rows = (height as usize + 1) / cell_height as usize;
+
+        for y in 0..num_rows {
+            for x in 0..num_cols {
+                let y_pos = (height / -2.0) + (y as f32 * cell_height);
+                let x_pos = (width / -2.0) + (x as f32 * cell_width);
+                // Remember starting index for this position
+                let idx = verts.len() as u32;
+                verts.push(Vertex {
+                    // Top left
+                    position: (x_pos, y_pos),
+                    ..Default::default()
+                });
+                verts.push(Vertex {
+                    // Top Right
+                    position: (x_pos + cell_width, y_pos),
+                    ..Default::default()
+                });
+                verts.push(Vertex {
+                    // Bottom Left
+                    position: (x_pos, y_pos + cell_height),
+                    ..Default::default()
+                });
+                verts.push(Vertex {
+                    // Bottom Right
+                    position: (x_pos + cell_width, y_pos + cell_height),
+                    ..Default::default()
+                });
+
+                // Emit two triangles to form the glyph quad
+                indices.push(idx);
+                indices.push(idx + 1);
+                indices.push(idx + 2);
+                indices.push(idx + 1);
+                indices.push(idx + 2);
+                indices.push(idx + 3);
+            }
+        }
+
+        Ok((
+            VertexBuffer::dynamic(context, &verts)?,
+            IndexBuffer::new(
+                context,
+                glium::index::PrimitiveType::TrianglesList,
+                &indices,
+            )?,
+        ))
     }
 }
 
@@ -410,6 +543,18 @@ impl RenderState {
         Ok(())
     }
 
+    pub fn advise_of_window_size_change(
+        &mut self,
+        metrics: &RenderMetrics,
+        pixel_width: usize,
+        pixel_height: usize,
+    ) -> Fallible<()> {
+        if let RenderState::GL(gl) = self {
+            gl.advise_of_window_size_change(metrics, pixel_width, pixel_height)?;
+        }
+        Ok(())
+    }
+
     pub fn cached_software_glyph(
         &self,
         info: &GlyphInfo,
@@ -426,6 +571,13 @@ impl RenderState {
         match self {
             RenderState::Software(software) => software,
             _ => panic!("only valid for software render mode"),
+        }
+    }
+
+    pub fn opengl(&self) -> &OpenGLRenderState {
+        match self {
+            RenderState::GL(gl) => gl,
+            _ => panic!("only valid for opengl render mode"),
         }
     }
 }
@@ -649,6 +801,38 @@ impl WindowCallbacks for TermWindow {
         log::error!("paint_tab elapsed={:?}", start.elapsed());
         self.update_title();
     }
+
+    fn paint_opengl(&mut self, frame: &mut glium::Frame) {
+        let mux = Mux::get().unwrap();
+        let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
+            Some(tab) => tab,
+            None => {
+                frame.clear_color(0., 0., 0., 1.);
+                return;
+            }
+        };
+        let start = std::time::Instant::now();
+        if let Err(err) = self.paint_tab_opengl(&tab, frame) {
+            if let Some(&OutOfTextureSpace { size }) = err.downcast_ref::<OutOfTextureSpace>() {
+                log::error!("out of texture space, allocating {}", size);
+                if let Err(err) = self.recreate_texture_atlas(Some(size)) {
+                    log::error!("failed recreate atlas with size {}: {}", size, err);
+                    // Failed to increase the size.
+                    // This might happen if a lot of images have been displayed in the
+                    // terminal over time and we've hit a texture size limit.
+                    // Let's just try recreating at the current size.
+                    self.recreate_texture_atlas(None)
+                        .expect("OutOfTextureSpace and failed to recreate atlas");
+                }
+                tab.renderer().make_all_lines_dirty();
+                // Recursively initiate a new paint
+                return self.paint_opengl(frame);
+            }
+            log::error!("paint_tab_opengl failed: {}", err);
+        }
+        log::error!("paint_tab_opengl elapsed={:?}", start.elapsed());
+        self.update_title();
+    }
 }
 
 impl TermWindow {
@@ -721,9 +905,8 @@ impl TermWindow {
 
         if super::is_opengl_enabled() {
             window.enable_opengl(|any, _window, maybe_ctx| {
-                let termwindow = any.downcast_ref::<TermWindow>().expect("to be TermWindow");
+                let mut termwindow = any.downcast_mut::<TermWindow>().expect("to be TermWindow");
 
-                log::error!("I should use opengl");
                 match maybe_ctx {
                     Ok(ctx) => {
                         match OpenGLRenderState::new(
@@ -731,9 +914,12 @@ impl TermWindow {
                             &termwindow.fonts,
                             &termwindow.render_metrics,
                             ATLAS_SIZE,
+                            termwindow.dimensions.pixel_width,
+                            termwindow.dimensions.pixel_height,
                         ) {
-                            Ok(_) => {
+                            Ok(gl) => {
                                 log::error!("OpenGL initialized!");
+                                termwindow.render_state = RenderState::GL(gl);
                             }
                             Err(err) => {
                                 log::error!("OpenGL init failed: {}", err);
@@ -940,6 +1126,14 @@ impl TermWindow {
 
             self.dimensions = dimensions;
 
+            self.render_state
+                .advise_of_window_size_change(
+                    &self.render_metrics,
+                    dimensions.pixel_width,
+                    dimensions.pixel_height,
+                )
+                .expect("failed to advise of resize");
+
             let size = portable_pty::PtySize {
                 rows: dimensions.pixel_height as u16 / self.render_metrics.cell_size.height as u16,
                 cols: dimensions.pixel_width as u16 / self.render_metrics.cell_size.width as u16,
@@ -1004,6 +1198,330 @@ impl TermWindow {
             ),
             rgbcolor_to_window_color(palette.background),
         );
+        Ok(())
+    }
+
+    fn paint_tab_opengl(&mut self, tab: &Rc<dyn Tab>, frame: &mut glium::Frame) -> Fallible<()> {
+        let palette = tab.palette();
+
+        let background_color = palette.resolve_bg(term::color::ColorAttribute::Default);
+        let (r, g, b, a) = background_color.to_tuple_rgba();
+        frame.clear_color(r, g, b, a);
+
+        let mut term = tab.renderer();
+        let cursor = term.get_cursor_position();
+
+        {
+            let dirty_lines = term.get_dirty_lines();
+
+            for (line_idx, line, selrange) in dirty_lines {
+                self.render_screen_line_opengl(
+                    line_idx, &line, selrange, &cursor, &*term, &palette,
+                )?;
+            }
+        }
+
+        let gl_state = self.render_state.opengl();
+        let tex = gl_state.glyph_cache.borrow().atlas.texture();
+        let projection = euclid::Transform3D::<f32, f32, f32>::ortho(
+            -(self.dimensions.pixel_width as f32) / 2.0,
+            self.dimensions.pixel_width as f32 / 2.0,
+            self.dimensions.pixel_height as f32 / 2.0,
+            -(self.dimensions.pixel_height as f32) / 2.0,
+            -1.0,
+            1.0,
+        )
+        .to_column_arrays();
+
+        // Pass 1: Draw backgrounds, strikethrough and underline
+        frame.draw(
+            &*gl_state.glyph_vertex_buffer.borrow(),
+            &gl_state.glyph_index_buffer,
+            &gl_state.program,
+            &uniform! {
+                projection: projection,
+                glyph_tex: &*tex,
+                bg_and_line_layer: true,
+            },
+            &glium::DrawParameters {
+                blend: glium::Blend::alpha_blending(),
+                ..Default::default()
+            },
+        )?;
+
+        // Pass 2: Draw glyphs
+        frame.draw(
+            &*gl_state.glyph_vertex_buffer.borrow(),
+            &gl_state.glyph_index_buffer,
+            &gl_state.program,
+            &uniform! {
+                projection: projection,
+                glyph_tex: &*tex,
+                bg_and_line_layer: false,
+            },
+            &glium::DrawParameters {
+                blend: glium::Blend::alpha_blending(),
+                ..Default::default()
+            },
+        )?;
+
+        term.clean_dirty_lines();
+
+        Ok(())
+    }
+
+    /// "Render" a line of the terminal screen into the vertex buffer.
+    /// This is nominally a matter of setting the fg/bg color and the
+    /// texture coordinates for a given glyph.  There's a little bit
+    /// of extra complexity to deal with multi-cell glyphs.
+    fn render_screen_line_opengl(
+        &self,
+        line_idx: usize,
+        line: &Line,
+        selection: Range<usize>,
+        cursor: &CursorPosition,
+        terminal: &dyn Renderable,
+        palette: &ColorPalette,
+    ) -> Fallible<()> {
+        let gl_state = self.render_state.opengl();
+
+        let (_num_rows, num_cols) = terminal.physical_dimensions();
+        let mut vb = gl_state.glyph_vertex_buffer.borrow_mut();
+        let mut vertices = {
+            let per_line = num_cols * VERTICES_PER_CELL;
+            let start_pos = line_idx * per_line;
+            vb.slice_mut(start_pos..start_pos + per_line)
+                .ok_or_else(|| failure::err_msg("we're confused about the screen size"))?
+                .map()
+        };
+
+        let current_highlight = terminal.current_highlight();
+
+        // Break the line into clusters of cells with the same attributes
+        let cell_clusters = line.cluster();
+        let mut last_cell_idx = 0;
+        for cluster in cell_clusters {
+            let attrs = &cluster.attrs;
+            let is_highlited_hyperlink = match (&attrs.hyperlink, &current_highlight) {
+                (&Some(ref this), &Some(ref highlight)) => this == highlight,
+                _ => false,
+            };
+            let style = self.fonts.match_style(attrs);
+
+            let bg_color = palette.resolve_bg(attrs.background);
+            let fg_color = match attrs.foreground {
+                term::color::ColorAttribute::Default => {
+                    if let Some(fg) = style.foreground {
+                        fg
+                    } else {
+                        palette.resolve_fg(attrs.foreground)
+                    }
+                }
+                term::color::ColorAttribute::PaletteIndex(idx) if idx < 8 => {
+                    // For compatibility purposes, switch to a brighter version
+                    // of one of the standard ANSI colors when Bold is enabled.
+                    // This lifts black to dark grey.
+                    let idx = if attrs.intensity() == term::Intensity::Bold {
+                        idx + 8
+                    } else {
+                        idx
+                    };
+                    palette.resolve_fg(term::color::ColorAttribute::PaletteIndex(idx))
+                }
+                _ => palette.resolve_fg(attrs.foreground),
+            };
+
+            let (fg_color, bg_color) = {
+                let mut fg = fg_color;
+                let mut bg = bg_color;
+
+                if attrs.reverse() {
+                    std::mem::swap(&mut fg, &mut bg);
+                }
+
+                (fg, bg)
+            };
+
+            let glyph_color = fg_color;
+            let bg_color = bg_color;
+
+            // Shape the printable text from this cluster
+            let glyph_info = {
+                let font = self.fonts.cached_font(style)?;
+                let mut font = font.borrow_mut();
+                font.shape(&cluster.text)?
+            };
+
+            for info in &glyph_info {
+                let cell_idx = cluster.byte_to_cell_idx[info.cluster as usize];
+                let glyph = gl_state
+                    .glyph_cache
+                    .borrow_mut()
+                    .cached_glyph(info, style)?;
+
+                let left = (glyph.x_offset + glyph.bearing_x) as f32;
+                let top = ((self.render_metrics.cell_size.height as f64
+                    + self.render_metrics.descender)
+                    - (glyph.y_offset + glyph.bearing_y)) as f32;
+
+                /*
+                // underline and strikethrough
+                // Figure out what we're going to draw for the underline.
+                // If the current cell is part of the current URL highlight
+                // then we want to show the underline.
+                #[cfg_attr(feature = "cargo-clippy", allow(clippy::match_same_arms))]
+                let underline: f32 = match (
+                    is_highlited_hyperlink,
+                    attrs.strikethrough(),
+                    attrs.underline(),
+                ) {
+                    (true, false, Underline::None) => U_ONE,
+                    (true, false, Underline::Single) => U_TWO,
+                    (true, false, Underline::Double) => U_ONE,
+                    (true, true, Underline::None) => U_STRIKE_ONE,
+                    (true, true, Underline::Single) => U_STRIKE_TWO,
+                    (true, true, Underline::Double) => U_STRIKE_ONE,
+                    (false, false, Underline::None) => U_NONE,
+                    (false, false, Underline::Single) => U_ONE,
+                    (false, false, Underline::Double) => U_TWO,
+                    (false, true, Underline::None) => U_STRIKE,
+                    (false, true, Underline::Single) => U_STRIKE_ONE,
+                    (false, true, Underline::Double) => U_STRIKE_TWO,
+                };
+                */
+
+                // Iterate each cell that comprises this glyph.  There is usually
+                // a single cell per glyph but combining characters, ligatures
+                // and emoji can be 2 or more cells wide.
+                for glyph_idx in 0..info.num_cells as usize {
+                    let cell_idx = cell_idx + glyph_idx;
+
+                    if cell_idx >= num_cols {
+                        // terminal line data is wider than the window.
+                        // This happens for example while live resizing the window
+                        // smaller than the terminal.
+                        break;
+                    }
+                    last_cell_idx = cell_idx;
+
+                    let (glyph_color, bg_color) = self.compute_cell_fg_bg(
+                        line_idx,
+                        cell_idx,
+                        cursor,
+                        &selection,
+                        rgbcolor_to_window_color(glyph_color),
+                        rgbcolor_to_window_color(bg_color),
+                        palette,
+                    );
+
+                    let vert_idx = cell_idx * VERTICES_PER_CELL;
+                    let vert = &mut vertices[vert_idx..vert_idx + VERTICES_PER_CELL];
+
+                    let glyph_color = glyph_color.to_tuple_rgba();
+
+                    vert[V_TOP_LEFT].fg_color = glyph_color;
+                    vert[V_TOP_RIGHT].fg_color = glyph_color;
+                    vert[V_BOT_LEFT].fg_color = glyph_color;
+                    vert[V_BOT_RIGHT].fg_color = glyph_color;
+
+                    let bg_color = bg_color.to_tuple_rgba();
+
+                    vert[V_TOP_LEFT].bg_color = bg_color;
+                    vert[V_TOP_RIGHT].bg_color = bg_color;
+                    vert[V_BOT_LEFT].bg_color = bg_color;
+                    vert[V_BOT_RIGHT].bg_color = bg_color;
+
+                    /*
+                    vert[V_TOP_LEFT].underline = underline;
+                    vert[V_TOP_RIGHT].underline = underline;
+                    vert[V_BOT_LEFT].underline = underline;
+                    vert[V_BOT_RIGHT].underline = underline;
+                    */
+
+                    let texture = glyph
+                        .texture
+                        .as_ref()
+                        .unwrap_or(&gl_state.util_sprites.white_space);
+
+                    let slice = SpriteSlice {
+                        cell_idx: glyph_idx,
+                        num_cells: info.num_cells as usize,
+                        cell_width: self.render_metrics.cell_size.width as usize,
+                        scale: glyph.scale as f32,
+                        left_offset: left,
+                    };
+
+                    let pixel_rect = slice.pixel_rect(texture);
+                    let texture_rect = texture.texture.to_texture_coords(pixel_rect);
+
+                    let left = if glyph_idx == 0 { left } else { 0.0 };
+                    /*
+                    let right = left + pixel_rect.max_x() as f32;
+                    */
+                    let bottom = top + pixel_rect.max_y() as f32
+                        - self.render_metrics.cell_size.height as f32;
+                    let right = pixel_rect.size.width as f32 + left
+                        - self.render_metrics.cell_size.width as f32;
+
+                    vert[V_TOP_LEFT].tex = (texture_rect.min_x(), texture_rect.min_y());
+                    vert[V_TOP_LEFT].adjust = (left, top);
+
+                    vert[V_TOP_RIGHT].tex = (texture_rect.max_x(), texture_rect.min_y());
+                    vert[V_TOP_RIGHT].adjust = (right, top); //(left, top);
+
+                    vert[V_BOT_LEFT].tex = (texture_rect.min_x(), texture_rect.max_y());
+                    vert[V_BOT_LEFT].adjust = (left, bottom); //(left, top);
+
+                    vert[V_BOT_RIGHT].tex = (texture_rect.max_x(), texture_rect.max_y());
+                    vert[V_BOT_RIGHT].adjust = (right, bottom); //(left, top);
+
+                    let has_color = if glyph.has_color { 1.0 } else { 0.0 };
+                    vert[V_TOP_LEFT].has_color = has_color;
+                    vert[V_TOP_RIGHT].has_color = has_color;
+                    vert[V_BOT_LEFT].has_color = has_color;
+                    vert[V_BOT_RIGHT].has_color = has_color;
+                }
+            }
+        }
+
+        // Clear any remaining cells to the right of the clusters we
+        // found above, otherwise we leave artifacts behind.  The easiest
+        // reproduction for the artifacts is to maximize the window and
+        // open a vim split horizontally.  Backgrounding vim would leave
+        // the right pane with its prior contents instead of showing the
+        // cleared lines from the shell in the main screen.
+
+        for cell_idx in last_cell_idx + 1..num_cols {
+            let vert_idx = cell_idx * VERTICES_PER_CELL;
+            let vert_slice = &mut vertices[vert_idx..vert_idx + 4];
+
+            // Even though we don't have a cell for these, they still
+            // hold the cursor or the selection so we need to compute
+            // the colors in the usual way.
+            let (glyph_color, bg_color) = self.compute_cell_fg_bg(
+                line_idx,
+                cell_idx,
+                cursor,
+                &selection,
+                rgbcolor_to_window_color(palette.foreground),
+                rgbcolor_to_window_color(palette.background),
+                palette,
+            );
+
+            for vert in vert_slice.iter_mut() {
+                vert.bg_color = bg_color.to_tuple_rgba();
+                vert.fg_color = glyph_color.to_tuple_rgba();
+                /*
+                // vert.underline = U_NONE;
+                // Note: these 0 coords refer to the blank pixel
+                // in the bottom left of the underline texture!
+                vert.tex = (0.0, 0.0);
+                vert.adjust = Default::default();
+                vert.has_color = 0.0;
+                */
+            }
+        }
+
         Ok(())
     }
 

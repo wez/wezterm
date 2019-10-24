@@ -171,7 +171,14 @@ pub trait BitmapImage {
     /// Obtain a mutable reference to the raw bgra pixel at the specified coordinates
     fn pixel_mut(&mut self, x: usize, y: usize) -> &mut u32 {
         let (width, height) = self.image_dimensions();
-        debug_assert!(x < width && y < height);
+        debug_assert!(
+            x < width && y < height,
+            "x={} width={} y={} height={}",
+            x,
+            width,
+            y,
+            height
+        );
         unsafe {
             let offset = (y * width * 4) + (x * 4);
             #[allow(clippy::cast_ptr_alignment)]
@@ -222,15 +229,18 @@ pub trait BitmapImage {
 
     fn clear_rect(&mut self, rect: Rect, color: Color) {
         let (dim_width, dim_height) = self.image_dimensions();
-        let max_x = (rect.origin.x + rect.size.width as isize).min(dim_width as isize) as usize;
-        let max_y = (rect.origin.y + rect.size.height as isize).min(dim_height as isize) as usize;
+        let max_x = rect.max_x().min(dim_width as isize) as usize;
+        let max_y = rect.max_y().min(dim_height as isize) as usize;
 
         let dest_x = rect.origin.x.max(0) as usize;
+        if dest_x >= dim_width {
+            return;
+        }
         let dest_y = rect.origin.y.max(0) as usize;
 
         #[cfg(target_arch = "x86_64")]
         {
-            if is_x86_feature_detected!("avx") && (max_x - dest_x) > 8 {
+            if is_x86_feature_detected!("avx") && (max_x - dest_x) >= 8 {
                 unsafe {
                     avx::fill_pixel(
                         self.pixel_data_mut()

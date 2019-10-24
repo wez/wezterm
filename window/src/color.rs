@@ -291,6 +291,12 @@ impl Color {
         )
     }
 
+    #[inline]
+    pub fn to_tuple_rgba(self) -> (f32, f32, f32, f32) {
+        let c: Srgba = self.into();
+        c.into_format().into_components()
+    }
+
     /// Compute the composite of two colors according to the supplied operator.
     /// self is the src operand, dest is the dest operand.
     #[inline]

@@ -40,6 +40,32 @@ mod opengl {
     use core_foundation::string::CFString;
     use std::str::FromStr;
 
+    #[derive(Clone)]
+    pub struct GlContextPair {
+        pub context: Rc<glium::backend::Context>,
+        pub backend: Rc<GlState>,
+    }
+
+    impl GlContextPair {
+        pub fn create(view: id) -> Fallible<Self> {
+            let backend = Rc::new(GlState::create(view)?);
+
+            let context = unsafe {
+                glium::backend::Context::new(
+                    Rc::clone(&backend),
+                    true,
+                    if cfg!(debug_assertions) {
+                        glium::debug::DebugCallbackBehavior::DebugMessageOnError
+                    } else {
+                        glium::debug::DebugCallbackBehavior::Ignore
+                    },
+                )
+            }?;
+
+            Ok(Self { context, backend })
+        }
+    }
+
     pub struct GlState {
         _pixel_format: StrongPtr,
         gl_context: StrongPtr,
@@ -50,7 +76,7 @@ mod opengl {
             let pixel_format = unsafe {
                 StrongPtr::new(NSOpenGLPixelFormat::alloc(nil).initWithAttributes_(&[
                     appkit::NSOpenGLPFAOpenGLProfile as u32,
-                    appkit::NSOpenGLProfileVersionLegacy as u32,
+                    appkit::NSOpenGLProfileVersion3_2Core as u32,
                     appkit::NSOpenGLPFAClosestPolicy as u32,
                     appkit::NSOpenGLPFAColorSize as u32,
                     32,
@@ -71,6 +97,12 @@ mod opengl {
                 "failed to create NSOpenGLPixelFormat"
             );
 
+            // Allow using retina resolutions; without this we're forced into low res
+            // and the system will scale us up, resulting in blurry rendering
+            unsafe {
+                let _: () = msg_send![view, setWantsBestResolutionOpenGLSurface: YES];
+            }
+
             let gl_context = unsafe {
                 StrongPtr::new(
                     NSOpenGLContext::alloc(nil).initWithFormat_shareContext_(*pixel_format, nil),
@@ -85,6 +117,13 @@ mod opengl {
                 _pixel_format: pixel_format,
                 gl_context,
             })
+        }
+
+        /// Calls NSOpenGLContext update; we need to do this on resize
+        pub fn update(&self) {
+            unsafe {
+                let _: () = msg_send![*self.gl_context, update];
+            }
         }
     }
 
@@ -177,7 +216,7 @@ impl Window {
                 view_id: None,
                 window_id,
                 #[cfg(feature = "opengl")]
-                gl_context: None,
+                gl_context_pair: None,
             }));
 
             let window = StrongPtr::new(
@@ -284,28 +323,16 @@ impl WindowOps for Window {
         Connection::with_window_inner(self.0, move |inner| {
             let window = Window(inner.window_id);
 
-            let glium_context = opengl::GlState::create(*inner.view).and_then(|gl_state| {
-                Ok(unsafe {
-                    glium::backend::Context::new(
-                        Rc::new(gl_state),
-                        true,
-                        if cfg!(debug_assertions) {
-                            glium::debug::DebugCallbackBehavior::DebugMessageOnError
-                        } else {
-                            glium::debug::DebugCallbackBehavior::Ignore
-                        },
-                    )?
-                })
-            });
+            let glium_context = opengl::GlContextPair::create(*inner.view);
 
             if let Some(window_view) = WindowView::get_this(unsafe { &**inner.view }) {
-                window_view.inner.borrow_mut().gl_context =
-                    glium_context.as_ref().map(Rc::clone).ok();
+                window_view.inner.borrow_mut().gl_context_pair =
+                    glium_context.as_ref().map(Clone::clone).ok();
 
                 func(
                     window_view.inner.borrow_mut().callbacks.as_any(),
                     &window,
-                    glium_context,
+                    glium_context.map(|pair| pair.context),
                 );
             }
         });
@@ -361,7 +388,7 @@ struct Inner {
     view_id: Option<WeakPtr>,
     window_id: usize,
     #[cfg(feature = "opengl")]
-    gl_context: Option<Rc<glium::backend::Context>>,
+    gl_context_pair: Option<opengl::GlContextPair>,
 }
 
 const CLS_NAME: &str = "WezTermWindowView";
@@ -633,6 +660,17 @@ impl WindowView {
     }
 
     extern "C" fn did_resize(this: &mut Object, _sel: Sel, _notification: id) {
+        #[cfg(feature = "opengl")]
+        {
+            if let Some(this) = Self::get_this(this) {
+                let inner = this.inner.borrow_mut();
+
+                if let Some(gl_context_pair) = inner.gl_context_pair.as_ref() {
+                    gl_context_pair.backend.update();
+                }
+            }
+        }
+
         let frame = unsafe { NSView::frame(this as *mut _) };
         let backing_frame = unsafe { NSView::convertRectToBacking(this as *mut _, frame) };
         let width = backing_frame.size.width;
@@ -659,9 +697,11 @@ impl WindowView {
 
             #[cfg(feature = "opengl")]
             {
-                if let Some(gl_context) = inner.gl_context.as_ref() {
-                    let mut frame =
-                        glium::Frame::new(Rc::clone(gl_context), (width as u32, height as u32));
+                if let Some(gl_context_pair) = inner.gl_context_pair.as_ref() {
+                    let mut frame = glium::Frame::new(
+                        Rc::clone(&gl_context_pair.context),
+                        (width as u32, height as u32),
+                    );
 
                     inner.callbacks.paint_opengl(&mut frame);
                     frame
