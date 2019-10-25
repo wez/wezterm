@@ -1,5 +1,4 @@
-#version 330
-
+precision mediump float;
 in vec2 position;
 in vec2 adjust;
 in vec2 tex;

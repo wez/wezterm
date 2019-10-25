@@ -395,17 +395,32 @@ impl OpenGLRenderState {
         let glyph_cache = RefCell::new(GlyphCache::new_gl(&context, fonts, size)?);
         let util_sprites = UtilSprites::new(&mut *glyph_cache.borrow_mut(), metrics)?;
 
-        let source = glium::program::ProgramCreationInput::SourceCode {
-            vertex_shader: Self::vertex_shader(),
-            fragment_shader: Self::fragment_shader(),
-            outputs_srgb: true,
-            tessellation_control_shader: None,
-            tessellation_evaluation_shader: None,
-            transform_feedback_varyings: None,
-            uses_point_size: false,
-            geometry_shader: None,
-        };
-        let program = glium::Program::new(&context, source)?;
+        let mut errors = vec![];
+        let mut program = None;
+        for version in &["330", "300 es"] {
+            let source = glium::program::ProgramCreationInput::SourceCode {
+                vertex_shader: &Self::vertex_shader(version),
+                fragment_shader: &Self::fragment_shader(version),
+                outputs_srgb: true,
+                tessellation_control_shader: None,
+                tessellation_evaluation_shader: None,
+                transform_feedback_varyings: None,
+                uses_point_size: false,
+                geometry_shader: None,
+            };
+            log::error!("compiling a prog with version {}", version);
+            match glium::Program::new(&context, source) {
+                Ok(prog) => {
+                    program = Some(prog);
+                    break;
+                }
+                Err(err) => errors.push(err.to_string()),
+            };
+        }
+
+        let program = program.ok_or_else(|| {
+            failure::format_err!("Failed to compile shaders: {}", errors.join("\n"))
+        })?;
 
         let (glyph_vertex_buffer, glyph_index_buffer) =
             Self::compute_vertices(&context, metrics, pixel_width as f32, pixel_height as f32)?;
@@ -438,12 +453,12 @@ impl OpenGLRenderState {
         Ok(())
     }
 
-    fn vertex_shader() -> &'static str {
-        include_str!("vertex.glsl")
+    fn vertex_shader(version: &str) -> String {
+        format!("#version {}\n{}", version, include_str!("vertex.glsl"))
     }
 
-    fn fragment_shader() -> &'static str {
-        include_str!("fragment.glsl")
+    fn fragment_shader(version: &str) -> String {
+        format!("#version {}\n{}", version, include_str!("fragment.glsl"))
     }
 
     /// Compute a vertex buffer to hold the quads that comprise the visible

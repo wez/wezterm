@@ -45,6 +45,9 @@ struct EglWrapper {
 
 pub struct GlState {
     egl: EglWrapper,
+    display: ffi::types::EGLDisplay,
+    surface: ffi::types::EGLSurface,
+    context: ffi::types::EGLContext,
 }
 
 type GetProcAddressFunc =
@@ -111,10 +114,95 @@ impl EglWrapper {
             }
         }
     }
+
+    pub fn choose_config(
+        &self,
+        display: ffi::types::EGLDisplay,
+        attributes: &[u32],
+    ) -> Fallible<Vec<ffi::types::EGLConfig>> {
+        failure::ensure!(
+            attributes.len() > 0 && attributes[attributes.len() - 1] == ffi::NONE,
+            "attributes list must be terminated with ffi::NONE"
+        );
+
+        let mut num_configs = 0;
+        if unsafe {
+            self.egl
+                .GetConfigs(display, std::ptr::null_mut(), 0, &mut num_configs)
+        } != 1
+        {
+            return Err(self.error("egl GetConfigs to count possible number of configurations"));
+        }
+
+        let mut configs = vec![std::ptr::null(); num_configs as usize];
+
+        if unsafe {
+            self.egl.ChooseConfig(
+                display,
+                attributes.as_ptr() as *const ffi::EGLint,
+                configs.as_mut_ptr(),
+                configs.len() as ffi::EGLint,
+                &mut num_configs,
+            )
+        } != 1
+        {
+            return Err(self.error("egl ChooseConfig to select configurations"));
+        }
+
+        configs.resize(num_configs as usize, std::ptr::null());
+
+        Ok(configs)
+    }
+
+    pub fn create_window_surface(
+        &self,
+        display: ffi::types::EGLDisplay,
+        config: ffi::types::EGLConfig,
+        window: ffi::EGLNativeWindowType,
+    ) -> Fallible<ffi::types::EGLSurface> {
+        let surface = unsafe {
+            self.egl
+                .CreateWindowSurface(display, config, window, std::ptr::null())
+        };
+        if surface.is_null() {
+            Err(self.error("EGL CreateWindowSurface"))
+        } else {
+            Ok(surface)
+        }
+    }
+
+    pub fn create_context(
+        &self,
+        display: ffi::types::EGLDisplay,
+        config: ffi::types::EGLConfig,
+        share_context: ffi::types::EGLContext,
+        attributes: &[u32],
+    ) -> Fallible<ffi::types::EGLConfig> {
+        failure::ensure!(
+            attributes.len() > 0 && attributes[attributes.len() - 1] == ffi::NONE,
+            "attributes list must be terminated with ffi::NONE"
+        );
+        let context = unsafe {
+            self.egl.CreateContext(
+                display,
+                config,
+                share_context,
+                attributes.as_ptr() as *const i32,
+            )
+        };
+        if context.is_null() {
+            Err(self.error("EGL CreateContext"))
+        } else {
+            Ok(context)
+        }
+    }
 }
 
 impl GlState {
-    pub fn create(display: Option<ffi::EGLNativeDisplayType>) -> Fallible<Self> {
+    pub fn create(
+        display: Option<ffi::EGLNativeDisplayType>,
+        window: ffi::EGLNativeWindowType,
+    ) -> Fallible<Self> {
         let paths = [
             // While EGL is cross platform, it isn't available on macOS nor is it
             // available on my nvidia based system
@@ -136,7 +224,48 @@ impl GlState {
                     let (major, minor) = egl.initialize_and_get_version(egl_display)?;
                     eprintln!("initialized EGL version {}.{}", major, minor);
 
-                    return Ok(Self { egl });
+                    let configs = egl.choose_config(
+                        egl_display,
+                        &[
+                            ffi::ALPHA_SIZE,
+                            8,
+                            ffi::RED_SIZE,
+                            8,
+                            ffi::GREEN_SIZE,
+                            8,
+                            ffi::BLUE_SIZE,
+                            8,
+                            ffi::DEPTH_SIZE,
+                            24,
+                            ffi::CONFORMANT,
+                            ffi::OPENGL_ES3_BIT,
+                            ffi::RENDERABLE_TYPE,
+                            ffi::OPENGL_ES3_BIT,
+                            ffi::SURFACE_TYPE,
+                            ffi::WINDOW_BIT | ffi::PBUFFER_BIT | ffi::PIXMAP_BIT,
+                            ffi::NONE,
+                        ],
+                    )?;
+
+                    let first_config = *configs.first().ok_or_else(|| {
+                        failure::err_msg("no compatible EGL configuration was found")
+                    })?;
+
+                    let surface = egl.create_window_surface(egl_display, first_config, window)?;
+
+                    let context = egl.create_context(
+                        egl_display,
+                        first_config,
+                        std::ptr::null(),
+                        &[ffi::CONTEXT_MAJOR_VERSION, 3, ffi::NONE],
+                    )?;
+
+                    return Ok(Self {
+                        egl,
+                        display: egl_display,
+                        context,
+                        surface,
+                    });
                 }
             }
         }
@@ -146,7 +275,12 @@ impl GlState {
 
 unsafe impl glium::backend::Backend for GlState {
     fn swap_buffers(&self) -> Result<(), glium::SwapBuffersError> {
-        unimplemented!();
+        let res = unsafe { self.egl.egl.SwapBuffers(self.display, self.surface) };
+        if res != 1 {
+            Err(glium::SwapBuffersError::AlreadySwapped)
+        } else {
+            Ok(())
+        }
     }
 
     unsafe fn get_proc_address(&self, symbol: &str) -> *const c_void {
@@ -155,14 +289,29 @@ unsafe impl glium::backend::Backend for GlState {
     }
 
     fn get_framebuffer_dimensions(&self) -> (u32, u32) {
-        unimplemented!();
+        let mut width = 0;
+        let mut height = 0;
+
+        unsafe {
+            self.egl
+                .egl
+                .QuerySurface(self.display, self.surface, ffi::WIDTH as i32, &mut width);
+        }
+        unsafe {
+            self.egl
+                .egl
+                .QuerySurface(self.display, self.surface, ffi::HEIGHT as i32, &mut height);
+        }
+        (width as u32, height as u32)
     }
 
     fn is_current(&self) -> bool {
-        unimplemented!();
+        unsafe { self.egl.egl.GetCurrentContext() == self.context }
     }
 
     unsafe fn make_current(&self) {
-        unimplemented!();
+        self.egl
+            .egl
+            .MakeCurrent(self.display, self.surface, self.surface, self.context);
     }
 }

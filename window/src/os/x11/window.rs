@@ -23,6 +23,8 @@ pub(crate) struct WindowInner {
     paint_all: bool,
     buffer_image: BufferImage,
     cursor: Option<MouseCursor>,
+    #[cfg(feature = "opengl")]
+    gl_state: Option<Rc<glium::backend::Context>>,
 }
 
 fn enclosing_boundary_with(a: &Rect, b: &Rect) -> Rect {
@@ -90,6 +92,22 @@ impl WindowInner {
             self.expose.push_back(window_dimensions);
         } else if self.expose.is_empty() {
             return Ok(());
+        }
+
+        #[cfg(feature = "opengl")]
+        {
+            if let Some(gl_context) = self.gl_state.as_ref() {
+                self.expose.clear();
+
+                let mut frame = glium::Frame::new(
+                    Rc::clone(&gl_context),
+                    (self.width as u32, self.height as u32),
+                );
+
+                self.callbacks.paint_opengl(&mut frame);
+                frame.finish()?;
+                return Ok(());
+            }
         }
 
         let (buf_width, buf_height) = self.buffer_image.image_dimensions();
@@ -401,6 +419,8 @@ impl Window {
                 paint_all: true,
                 buffer_image,
                 cursor: None,
+                #[cfg(feature = "opengl")]
+                gl_state: None,
             }))
         };
 
@@ -499,15 +519,27 @@ impl WindowOps for Window {
     {
         Connection::with_window_inner(self.0, move |inner| {
             let window = Window(inner.window_id);
-            match crate::egl::GlState::create(Some(inner.conn.display as *const _)) {
-                Ok(_) => eprintln!("EGL initialized!?"),
-                Err(err) => eprintln!("EGL: {}", err),
-            };
-            func(
-                inner.callbacks.as_any(),
-                &window,
-                Err(failure::err_msg("opengl not supported in this build")),
-            );
+
+            let gl_state = crate::egl::GlState::create(
+                Some(inner.conn.display as *const _),
+                inner.window_id as *mut _,
+            )
+            .map(Rc::new)
+            .and_then(|state| unsafe {
+                Ok(glium::backend::Context::new(
+                    Rc::clone(&state),
+                    true,
+                    if cfg!(debug_assertions) {
+                        glium::debug::DebugCallbackBehavior::DebugMessageOnError
+                    } else {
+                        glium::debug::DebugCallbackBehavior::Ignore
+                    },
+                )?)
+            });
+
+            inner.gl_state = gl_state.as_ref().map(Rc::clone).ok();
+
+            func(inner.callbacks.as_any(), &window, gl_state);
         });
     }
 }
