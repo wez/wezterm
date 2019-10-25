@@ -291,8 +291,8 @@ impl WindowOps for Window {
         Connection::with_window_inner(self.0, move |inner| {
             let window = Window(inner.hwnd);
 
-            let dc = unsafe { GetDC(std::mem::transmute(inner.hwnd)) };
-            match crate::egl::GlState::create(Some(dc as *const _)) {
+            let dc = unsafe { GetDC(inner.hwnd.0) };
+            match crate::egl::GlState::create(Some(dc as *const _), inner.hwnd.0) {
                 Ok(_) => eprintln!("EGL initialized!?"),
                 Err(err) => eprintln!("EGL: {}", err),
             };
