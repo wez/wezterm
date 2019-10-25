@@ -1,0 +1,54 @@
+name: package_posix
+
+on:
+  push:
+    branches:
+    - master
+  pull_request:
+    branches:
+    - master
+  schedule:
+    - cron: "10 3 * * *"
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [vs2017-win2016]
+        rust_toolchain: [stable]
+    runs-on: ${{ matrix.os }}
+    steps:
+    - uses: actions/checkout@v1
+    - name: Update submodules
+      run: git submodule update --init
+    - name: Install System Deps
+      run: sudo ./get-deps
+    - name: Install Rust
+      run: curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain ${{ matrix.rust_toolchain }}
+    - name: Package
+      run: |
+        source $HOME/.cargo/env
+        cargo build --release --all
+        bash ci/deploy.sh
+    - name: Move macOS Package
+      if: contains(matrix.os, 'macos')
+      run: |
+        mkdir pkg_
+        mv *.zip pkg_
+    - name: Move Linux Package
+      if: contains(matrix.os, 'ubuntu')
+      run: |
+        mkdir pkg_
+        mv *.deb pkg_
+        mv *.xz pkg_
+    - uses: actions/upload-artifact@master
+      if: contains(matrix.os, 'macos')
+      with:
+        name: macos
+        path: pkg_
+    - uses: actions/upload-artifact@master
+      if: contains(matrix.os, 'ubuntu')
+      with:
+        name: linux
+        path: pkg_

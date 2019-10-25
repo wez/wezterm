@@ -7,8 +7,6 @@ on:
   pull_request:
     branches:
     - master
-  schedule:
-    - cron: "10 3 * * *"
 
 jobs:
   build:
@@ -45,30 +43,3 @@ jobs:
       run: |
         source $HOME/.cargo/env
         cargo test --all
-    - name: Package
-      if: matrix.rust_toolchain == 'stable'
-      run: |
-        source $HOME/.cargo/env
-        cargo build --release --all
-        bash ci/deploy.sh
-    - name: Move macOS Package
-      if: matrix.rust_toolchain == 'stable' && contains(matrix.os, 'macos')
-      run: |
-        mkdir macos_
-        mv *.zip macos_
-    - name: Move Linux Package
-      if: matrix.rust_toolchain == 'stable' && contains(matrix.os, 'ubuntu') 
-      run: |
-        mkdir linux_
-        mv *.deb linux_
-        mv *.xz linux_
-    - uses: actions/upload-artifact@master
-      if: matrix.rust_toolchain == 'stable' && contains(matrix.os, 'macos') 
-      with:
-        name: macos
-        path: macos_
-    - uses: actions/upload-artifact@master
-      if: matrix.rust_toolchain == 'stable' && contains(matrix.os, 'ubuntu') 
-      with:
-        name: linux
-        path: linux_
