@@ -1,6 +1,7 @@
 pub mod connection;
 pub mod event;
 pub mod gdi;
+mod wgl;
 pub mod window;
 
 pub use connection::*;

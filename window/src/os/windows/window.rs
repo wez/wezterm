@@ -31,6 +31,8 @@ pub(crate) struct WindowInner {
     hwnd: HWindow,
     callbacks: RefCell<Box<dyn WindowCallbacks>>,
     bitmap: RefCell<GdiBitmap>,
+    #[cfg(feature = "opengl")]
+    gl_state: Option<Rc<glium::backend::Context>>,
 }
 
 #[derive(Debug, Clone)]
@@ -166,6 +168,8 @@ impl Window {
             hwnd: HWindow(null_mut()),
             callbacks: RefCell::new(callbacks),
             bitmap: RefCell::new(GdiBitmap::new_empty()),
+            #[cfg(feature = "opengl")]
+            gl_state: None,
         }));
 
         // Careful: `raw` owns a ref to inner, but there is no Drop impl
@@ -291,17 +295,23 @@ impl WindowOps for Window {
         Connection::with_window_inner(self.0, move |inner| {
             let window = Window(inner.hwnd);
 
-            let dc = unsafe { GetDC(inner.hwnd.0) };
-            match crate::egl::GlState::create(Some(dc as *const _), inner.hwnd.0) {
-                Ok(_) => eprintln!("EGL initialized!?"),
-                Err(err) => eprintln!("EGL: {}", err),
-            };
+            let gl_state = super::wgl::GlState::create(inner.hwnd.0)
+                .map(Rc::new)
+                .and_then(|state| unsafe {
+                    Ok(glium::backend::Context::new(
+                        Rc::clone(&state),
+                        true,
+                        if cfg!(debug_assertions) {
+                            glium::debug::DebugCallbackBehavior::DebugMessageOnError
+                        } else {
+                            glium::debug::DebugCallbackBehavior::Ignore
+                        },
+                    )?)
+                });
 
-            func(
-                inner.callbacks.borrow_mut().as_any(),
-                &window,
-                Err(failure::err_msg("opengl not supported in this build")),
-            );
+            inner.gl_state = gl_state.as_ref().map(Rc::clone).ok();
+
+            func(inner.callbacks.borrow_mut().as_any(), &window, gl_state);
         });
     }
 }
@@ -448,6 +458,19 @@ unsafe fn wm_paint(hwnd: HWND, _msg: UINT, _wparam: WPARAM, _lparam: LPARAM) -> 
         GetClientRect(hwnd, &mut rect);
         let width = rect_width(&rect) as usize;
         let height = rect_height(&rect) as usize;
+
+        #[cfg(feature = "opengl")]
+        {
+            if let Some(gl_context) = inner.gl_state.as_ref() {
+                let mut frame =
+                    glium::Frame::new(Rc::clone(&gl_context), (width as u32, height as u32));
+
+                inner.callbacks.borrow_mut().paint_opengl(&mut frame);
+                frame.finish().expect("frame.finish failed");
+                EndPaint(hwnd, &mut ps);
+                return Some(0);
+            }
+        }
 
         if width > 0 && height > 0 {
             let mut bitmap = inner.bitmap.borrow_mut();
