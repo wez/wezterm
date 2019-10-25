@@ -15,11 +15,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-16.04, ubuntu-18.04, macos-10.14]
+        os: [ubuntu-16.04, macos-10.14]
         rust_toolchain: [stable, nightly, beta]
     runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v1
+    - name: Update submodules
+      run: git submodule update --init
     - name: Install System Deps
       run: sudo ./get-deps
     - name: Install Rust
@@ -29,11 +31,33 @@ jobs:
         source $HOME/.cargo/env
         rustc -V
         cargo -V
+    - name: Check formatting
+      run: |
+        source $HOME/.cargo/env
+        rustup component add rustfmt
+        cargo fmt --all -- --check
     - name: Build
       run: |
         source $HOME/.cargo/env
         cargo build --all
-    - name: Rest
+    - name: Test
       run: |
         source $HOME/.cargo/env
         cargo test --all
+    - name: Package
+      run: |
+        source $HOME/.cargo/env
+        cargo build --release --all
+        bash ci/deploy.sh
+        mkdir macos_ linux_
+        mv *.zip macos_
+        mv *.dev linux_
+    - uses: actions/upload-artifact@master
+      with:
+        name: macos
+        path: macos_
+    - uses: actions/upload-artifact@master
+      with:
+        name: linux
+        path: linux_
+      
