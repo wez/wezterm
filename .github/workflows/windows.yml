@@ -1,0 +1,70 @@
+name: windows
+
+on:
+  push:
+    branches:
+    - master
+  pull_request:
+    branches:
+    - master
+  schedule:
+    - cron: "10 * * * *"
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [vs2017-win2016]
+        rust_toolchain: [stable, nightly]
+    runs-on: ${{ matrix.os }}
+    steps:
+    - uses: actions/checkout@v1
+    - name: Update submodules
+      run: git submodule update --init
+    - name: Install Rust
+      shell: cmd
+      run: |
+          curl -sSf -o rustup-init.exe https://win.rustup.rs
+          rustup-init.exe -yv --default-toolchain ${{ matrix.rust_toolchain }}
+    - name: Show versions
+      shell: cmd
+      run: |
+        set path "%USERPROFILE%\.cargo\bin;%PATH"
+        rustc -V
+        cargo -V
+    - name: Check formatting
+      if: matrix.rust_toolchain == 'stable'
+      shell: cmd
+      run: |
+        set path "%USERPROFILE%\.cargo\bin;%PATH"
+        rustup component add rustfmt
+        cargo fmt --all -- --check
+    - name: Build
+      shell: cmd
+      run: |
+        set path "%USERPROFILE%\.cargo\bin;%PATH"
+        cargo build --all
+    - name: Test
+      shell: cmd
+      run: |
+        set path "%USERPROFILE%\.cargo\bin;%PATH"
+        cargo test --all
+    - name: Package
+      shell: cmd
+      if: matrix.rust_toolchain == 'stable'
+      run: |
+        set path "%USERPROFILE%\.cargo\bin;%PATH"
+        cargo build --release --all
+        bash ci/deploy.sh
+    - name: Move Windows Package
+      shell: bash
+      if: matrix.rust_toolchain == 'stable'
+      run: |
+        mkdir pkg_
+        mv *.zip pkg_
+    - uses: actions/upload-artifact@master
+      if: matrix.rust_toolchain == 'stable'
+      with:
+        name: windows
+        path: pkg_
