@@ -738,6 +738,11 @@ impl WindowCallbacks for TermWindow {
     }
 
     fn resize(&mut self, dimensions: Dimensions) {
+        if dimensions.pixel_width == 0 || dimensions.pixel_height == 0 {
+            // on windows, this can happen when minimizing the window.
+            // NOP!
+            return;
+        }
         self.scaling_changed(dimensions, self.fonts.get_font_scale());
     }
 

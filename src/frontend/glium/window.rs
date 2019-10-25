@@ -178,6 +178,13 @@ impl TerminalWindow for GliumTerminalWindow {
             .ok_or_else(|| format_err!("failed to get inner window size"))?;
         let dpi_scale = self.host.display.gl_window().get_hidpi_factor();
         let (width, height): (u32, u32) = size.to_physical(dpi_scale).into();
+
+        if width == 0 || height == 0 {
+            // on windows, this can happen when minimizing the window.
+            // NOP!
+            return Ok(());
+        }
+
         debug!(
             "resize {}x{}@{} -> {}x{}@{}",
             self.width, self.height, old_dpi_scale, width, height, dpi_scale
