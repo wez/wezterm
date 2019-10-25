@@ -93,6 +93,21 @@ impl Window {
             .tabs
             .iter()
             .filter_map(|tab| {
+                if tab.is_dead() {
+                    Some(tab.tab_id())
+                } else {
+                    None
+                }
+            })
+            .collect();
+        for tab_id in dead {
+            self.remove_by_id(tab_id);
+        }
+
+        let dead: Vec<TabId> = self
+            .tabs
+            .iter()
+            .filter_map(|tab| {
                 if live_tab_ids
                     .iter()
                     .find(|&&id| id == tab.tab_id())

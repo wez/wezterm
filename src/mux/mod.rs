@@ -230,8 +230,19 @@ impl Mux {
             }
         }
 
+        let dead_tab_ids: Vec<TabId> = self
+            .tabs
+            .borrow()
+            .iter()
+            .filter_map(|(&id, tab)| if tab.is_dead() { Some(id) } else { None })
+            .collect();
+
+        for tab_id in dead_tab_ids {
+            self.tabs.borrow_mut().remove(&tab_id);
+        }
+
         for window_id in dead_windows {
-            debug!("removing window {}", window_id);
+            error!("removing window {}", window_id);
             windows.remove(&window_id);
         }
     }
@@ -274,7 +285,6 @@ impl Mux {
         Ok(())
     }
 
-    #[allow(dead_code)]
     pub fn is_empty(&self) -> bool {
         self.tabs.borrow().is_empty()
     }
