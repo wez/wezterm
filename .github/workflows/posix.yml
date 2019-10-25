@@ -32,6 +32,7 @@ jobs:
         rustc -V
         cargo -V
     - name: Check formatting
+      if: matrix.rust_toolchain == "stable"
       run: |
         source $HOME/.cargo/env
         rustup component add rustfmt
@@ -45,18 +46,21 @@ jobs:
         source $HOME/.cargo/env
         cargo test --all
     - name: Package
+      if: matrix.rust_toolchain == "stable"
       run: |
         source $HOME/.cargo/env
         cargo build --release --all
         bash ci/deploy.sh
         mkdir macos_ linux_
         mv *.zip macos_
-        mv *.dev linux_
+        mv *.deb linux_
     - uses: actions/upload-artifact@master
+      if: matrix.rust_toolchain == "stable"
       with:
         name: macos
         path: macos_
     - uses: actions/upload-artifact@master
+      if: matrix.rust_toolchain == "stable"
       with:
         name: linux
         path: linux_
