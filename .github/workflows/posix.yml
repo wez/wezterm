@@ -51,16 +51,21 @@ jobs:
         source $HOME/.cargo/env
         cargo build --release --all
         bash ci/deploy.sh
-        mkdir macos_ linux_
+    - name: Move macOS Package
+      if: matrix.rust_toolchain == 'stable' && contains(matrix.os, 'macos') 
+        mkdir macos_
         mv *.zip macos_
+    - name: Move Linux Package
+      if: matrix.rust_toolchain == 'stable' && contains(matrix.os, 'ubuntu') 
+        mkdir linux_
         mv *.deb linux_
     - uses: actions/upload-artifact@master
-      if: matrix.rust_toolchain == 'stable'
+      if: matrix.rust_toolchain == 'stable' && contains(matrix.os, 'macos') 
       with:
         name: macos
         path: macos_
     - uses: actions/upload-artifact@master
-      if: matrix.rust_toolchain == 'stable'
+      if: matrix.rust_toolchain == 'stable' && contains(matrix.os, 'ubuntu') 
       with:
         name: linux
         path: linux_
