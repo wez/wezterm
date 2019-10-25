@@ -16,7 +16,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-16.04, macos-10.14]
-        rust_toolchain: [stable, nightly, beta]
+        rust_toolchain: [stable, nightly]
     runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v1
@@ -52,11 +52,13 @@ jobs:
         cargo build --release --all
         bash ci/deploy.sh
     - name: Move macOS Package
-      if: matrix.rust_toolchain == 'stable' && contains(matrix.os, 'macos') 
+      if: matrix.rust_toolchain == 'stable' && contains(matrix.os, 'macos')
+      run: | 
         mkdir macos_
         mv *.zip macos_
     - name: Move Linux Package
       if: matrix.rust_toolchain == 'stable' && contains(matrix.os, 'ubuntu') 
+      run: | 
         mkdir linux_
         mv *.deb linux_
     - uses: actions/upload-artifact@master
