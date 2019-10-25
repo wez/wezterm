@@ -1,0 +1,39 @@
+name: posix
+
+on:
+  push:
+    branches:
+    - master
+  pull_request:
+    branches:
+    - master
+  schedule:
+    - cron: "10 * * * *"
+      
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-16.04, ubuntu-18.04, macos-10.14]
+        rust_toolchain: [stable, nightly, beta]
+    runs-on: ${{ matrix.os }}
+    steps:
+    - uses: actions/checkout@v1
+    - name: Install System Deps
+      run: sudo ./get-deps
+    - name: Install Rust
+      run: curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain ${{ matrix.rust_toolchain }}
+    - name: Show versions
+      run: |
+        source $HOME/.cargo/env
+        rustc -V
+        cargo -V
+    - name: Build
+      run: |
+        source $HOME/.cargo/env
+        cargo build --all
+    - name: Rest
+      run: |
+        source $HOME/.cargo/env
+        cargo test --all
