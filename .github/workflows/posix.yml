@@ -9,7 +9,7 @@ on:
     - master
   schedule:
     - cron: "10 * * * *"
-      
+
 jobs:
   build:
     strategy:
@@ -71,4 +71,3 @@ jobs:
       with:
         name: linux
         path: linux_
-      
