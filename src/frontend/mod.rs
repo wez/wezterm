@@ -16,7 +16,7 @@ pub mod glium;
 pub mod guicommon;
 pub mod muxserver;
 pub mod software;
-#[cfg(all(unix, not(feature = "force-glutin"), not(target_os = "macos")))]
+#[cfg(all(unix, not(target_os = "macos")))]
 pub mod xwindows;
 
 #[derive(Debug, Deserialize, Clone, Copy, PartialEq, Eq)]
@@ -31,9 +31,7 @@ pub enum FrontEndSelection {
 
 impl Default for FrontEndSelection {
     fn default() -> Self {
-        if cfg!(feature = "force-glutin") {
-            FrontEndSelection::Glutin
-        } else if cfg!(all(unix, not(target_os = "macos"))) {
+        if cfg!(all(unix, not(target_os = "macos"))) {
             FrontEndSelection::X11
         } else {
             FrontEndSelection::Glutin

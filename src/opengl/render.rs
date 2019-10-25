@@ -121,11 +121,7 @@ struct ShaderSource {
 
 impl ShaderSource {
     pub fn new() -> Self {
-        let es = cfg!(not(any(
-            windows,
-            feature = "force-glutin",
-            target_os = "macos"
-        )));
+        let es = cfg!(not(any(windows, target_os = "macos")));
 
         if es {
             Self { version: "300 es" }
