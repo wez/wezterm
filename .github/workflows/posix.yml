@@ -53,14 +53,15 @@ jobs:
         bash ci/deploy.sh
     - name: Move macOS Package
       if: matrix.rust_toolchain == 'stable' && contains(matrix.os, 'macos')
-      run: | 
+      run: |
         mkdir macos_
         mv *.zip macos_
     - name: Move Linux Package
       if: matrix.rust_toolchain == 'stable' && contains(matrix.os, 'ubuntu') 
-      run: | 
+      run: |
         mkdir linux_
         mv *.deb linux_
+        mv *.xz linux_
     - uses: actions/upload-artifact@master
       if: matrix.rust_toolchain == 'stable' && contains(matrix.os, 'macos') 
       with:
