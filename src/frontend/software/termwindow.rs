@@ -1,3 +1,4 @@
+use super::glyphcache::{CachedGlyph, GlyphCache};
 use crate::config::Config;
 use crate::config::TextStyle;
 use crate::font::{FontConfiguration, FontSystemSelection, GlyphInfo};
@@ -8,7 +9,7 @@ use crate::mux::renderable::Renderable;
 use crate::mux::tab::{Tab, TabId};
 use crate::mux::window::WindowId as MuxWindowId;
 use crate::mux::Mux;
-use ::window::bitmaps::atlas::{Atlas, OutOfTextureSpace, Sprite, SpriteSlice};
+use ::window::bitmaps::atlas::{OutOfTextureSpace, Sprite, SpriteSlice};
 use ::window::bitmaps::{Image, ImageTexture, Texture2d, TextureRect};
 use ::window::glium::backend::Context as GliumContext;
 use ::window::glium::texture::SrgbTexture2d;
@@ -17,7 +18,6 @@ use ::window::*;
 use failure::Fallible;
 use std::any::Any;
 use std::cell::RefCell;
-use std::collections::HashMap;
 use std::ops::Range;
 use std::rc::Rc;
 use std::sync::Arc;
@@ -32,169 +32,6 @@ const V_TOP_LEFT: usize = 0;
 const V_TOP_RIGHT: usize = 1;
 const V_BOT_LEFT: usize = 2;
 const V_BOT_RIGHT: usize = 3;
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-struct GlyphKey {
-    font_idx: usize,
-    glyph_pos: u32,
-    style: TextStyle,
-}
-
-/// Caches a rendered glyph.
-/// The image data may be None for whitespace glyphs.
-struct CachedGlyph<T: Texture2d> {
-    has_color: bool,
-    x_offset: f64,
-    y_offset: f64,
-    bearing_x: f64,
-    bearing_y: f64,
-    texture: Option<Sprite<T>>,
-    scale: f64,
-}
-
-struct GlyphCache<T: Texture2d> {
-    glyph_cache: HashMap<GlyphKey, Rc<CachedGlyph<T>>>,
-    atlas: Atlas<T>,
-    fonts: Rc<FontConfiguration>,
-    byte_swap: bool,
-}
-
-impl GlyphCache<ImageTexture> {
-    pub fn new(fonts: &Rc<FontConfiguration>, size: usize) -> Self {
-        let surface = Rc::new(ImageTexture::new(size, size));
-        let atlas = Atlas::new(&surface).expect("failed to create new texture atlas");
-
-        Self {
-            fonts: Rc::clone(fonts),
-            glyph_cache: HashMap::new(),
-            atlas,
-            byte_swap: true,
-        }
-    }
-}
-
-impl GlyphCache<SrgbTexture2d> {
-    pub fn new_gl(
-        backend: &Rc<GliumContext>,
-        fonts: &Rc<FontConfiguration>,
-        size: usize,
-    ) -> Fallible<Self> {
-        let surface = Rc::new(SrgbTexture2d::empty_with_format(
-            backend,
-            glium::texture::SrgbFormat::U8U8U8U8,
-            glium::texture::MipmapsOption::NoMipmap,
-            size as u32,
-            size as u32,
-        )?);
-        let atlas = Atlas::new(&surface).expect("failed to create new texture atlas");
-
-        Ok(Self {
-            fonts: Rc::clone(fonts),
-            glyph_cache: HashMap::new(),
-            atlas,
-            byte_swap: false,
-        })
-    }
-}
-
-impl<T: Texture2d> GlyphCache<T> {
-    /// Resolve a glyph from the cache, rendering the glyph on-demand if
-    /// the cache doesn't already hold the desired glyph.
-    pub fn cached_glyph(
-        &mut self,
-        info: &GlyphInfo,
-        style: &TextStyle,
-    ) -> Fallible<Rc<CachedGlyph<T>>> {
-        let key = GlyphKey {
-            font_idx: info.font_idx,
-            glyph_pos: info.glyph_pos,
-            style: style.clone(),
-        };
-
-        if let Some(entry) = self.glyph_cache.get(&key) {
-            return Ok(Rc::clone(entry));
-        }
-
-        let glyph = self.load_glyph(info, style)?;
-        self.glyph_cache.insert(key, Rc::clone(&glyph));
-        Ok(glyph)
-    }
-
-    /// Perform the load and render of a glyph
-    #[allow(clippy::float_cmp)]
-    fn load_glyph(&mut self, info: &GlyphInfo, style: &TextStyle) -> Fallible<Rc<CachedGlyph<T>>> {
-        let (has_color, glyph, cell_width, cell_height) = {
-            let font = self.fonts.cached_font(style)?;
-            let mut font = font.borrow_mut();
-            let metrics = font.get_fallback(0)?.metrics();
-            let active_font = font.get_fallback(info.font_idx)?;
-            let has_color = active_font.has_color();
-            let glyph = active_font.rasterize_glyph(info.glyph_pos)?;
-            (has_color, glyph, metrics.cell_width, metrics.cell_height)
-        };
-
-        let scale = if (info.x_advance / f64::from(info.num_cells)).floor() > cell_width {
-            f64::from(info.num_cells) * (cell_width / info.x_advance)
-        } else if glyph.height as f64 > cell_height {
-            cell_height / glyph.height as f64
-        } else {
-            1.0f64
-        };
-        let glyph = if glyph.width == 0 || glyph.height == 0 {
-            // a whitespace glyph
-            CachedGlyph {
-                has_color,
-                texture: None,
-                x_offset: info.x_offset * scale,
-                y_offset: info.y_offset * scale,
-                bearing_x: 0.0,
-                bearing_y: 0.0,
-                scale,
-            }
-        } else {
-            let raw_im = if self.byte_swap {
-                Image::with_rgba32(
-                    glyph.width as usize,
-                    glyph.height as usize,
-                    4 * glyph.width as usize,
-                    &glyph.data,
-                )
-            } else {
-                Image::with_bgra32(
-                    glyph.width as usize,
-                    glyph.height as usize,
-                    4 * glyph.width as usize,
-                    &glyph.data,
-                )
-            };
-
-            let bearing_x = glyph.bearing_x * scale;
-            let bearing_y = glyph.bearing_y * scale;
-            let x_offset = info.x_offset * scale;
-            let y_offset = info.y_offset * scale;
-
-            let (scale, raw_im) = if scale != 1.0 {
-                (1.0, raw_im.scale_by(scale))
-            } else {
-                (scale, raw_im)
-            };
-
-            let tex = self.atlas.allocate(&raw_im)?;
-
-            CachedGlyph {
-                has_color,
-                texture: Some(tex),
-                x_offset,
-                y_offset,
-                bearing_x,
-                bearing_y,
-                scale,
-            }
-        };
-
-        Ok(Rc::new(glyph))
-    }
-}
 
 #[derive(Copy, Clone, Default)]
 struct Vertex {

@@ -11,6 +11,7 @@ use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
+mod glyphcache;
 mod termwindow;
 
 pub struct SoftwareFrontEnd {
