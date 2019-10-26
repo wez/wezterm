@@ -140,19 +140,13 @@ impl<T: Texture2d> GlyphCache<T> {
         } else {
             1.0f64
         };
-        let (x_offset, y_offset) = if scale != 1.0 {
-            (info.x_offset * scale, info.y_offset * scale)
-        } else {
-            (info.x_offset, info.y_offset)
-        };
-
         let glyph = if glyph.width == 0 || glyph.height == 0 {
             // a whitespace glyph
             CachedGlyph {
                 has_color,
                 texture: None,
-                x_offset,
-                y_offset,
+                x_offset: info.x_offset * scale,
+                y_offset: info.y_offset * scale,
                 bearing_x: 0.0,
                 bearing_y: 0.0,
                 scale,
@@ -176,6 +170,8 @@ impl<T: Texture2d> GlyphCache<T> {
 
             let bearing_x = glyph.bearing_x * scale;
             let bearing_y = glyph.bearing_y * scale;
+            let x_offset = info.x_offset * scale;
+            let y_offset = info.y_offset * scale;
 
             let (scale, raw_im) = if scale != 1.0 {
                 (1.0, raw_im.scale_by(scale))
