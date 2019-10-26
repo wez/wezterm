@@ -56,8 +56,8 @@ window = { path = "window", features=["opengl"]}
 zstd = "0.4"
 
 [target.'cfg(unix)'.dependencies]
-mio = "0.6"
-mio-extras = "2.0"
+mio = {version="0.6", optional=true}
+mio-extras = {version="2.0", optional=true}
 daemonize = "0.4"
 
 [dependencies.fontconfig]
@@ -102,7 +102,7 @@ core-text = "13.2"
 [features]
 default = ["enable-winit"]
 force-fontconfig = ["fontconfig"]
-enable-winit = ["winit", "glium"]
+enable-winit = ["winit", "glium", "mio", "mio-extras"]
 
 [workspace]
 
