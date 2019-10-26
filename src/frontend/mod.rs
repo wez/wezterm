@@ -17,13 +17,10 @@ pub mod glium;
 pub mod guicommon;
 pub mod muxserver;
 pub mod software;
-#[cfg(all(unix, feature = "enable-winit", not(target_os = "macos")))]
-pub mod xwindows;
 
 #[derive(Debug, Deserialize, Clone, Copy, PartialEq, Eq)]
 pub enum FrontEndSelection {
     Glutin,
-    X11,
     MuxServer,
     Null,
     Software,
@@ -32,12 +29,8 @@ pub enum FrontEndSelection {
 
 impl Default for FrontEndSelection {
     fn default() -> Self {
-        if cfg!(all(
-            unix,
-            feature = "enable-winit",
-            not(target_os = "macos")
-        )) {
-            FrontEndSelection::X11
+        if cfg!(all(unix, not(target_os = "macos"))) {
+            FrontEndSelection::OpenGL
         } else if cfg!(feature = "enable-winit") {
             FrontEndSelection::Glutin
         } else {
@@ -78,10 +71,6 @@ impl FrontEndSelection {
             FrontEndSelection::Glutin => glium::glutinloop::GlutinFrontEnd::try_new(mux),
             #[cfg(not(feature = "enable-winit"))]
             FrontEndSelection::Glutin => failure::bail!("Glutin not compiled in"),
-            #[cfg(all(unix, feature = "enable-winit", not(target_os = "macos")))]
-            FrontEndSelection::X11 => xwindows::x11loop::X11FrontEnd::try_new(mux),
-            #[cfg(not(all(unix, feature = "enable-winit", not(target_os = "macos"))))]
-            FrontEndSelection::X11 => failure::bail!("X11 not compiled in"),
             FrontEndSelection::MuxServer => muxserver::MuxServerFrontEnd::try_new(mux),
             FrontEndSelection::Null => muxserver::MuxServerFrontEnd::new_null(mux),
             FrontEndSelection::Software => software::SoftwareFrontEnd::try_new_no_opengl(mux),
@@ -96,7 +85,7 @@ impl FrontEndSelection {
 
     // TODO: find or build a proc macro for this
     pub fn variants() -> Vec<&'static str> {
-        vec!["Glutin", "X11", "MuxServer", "Null", "Software", "OpenGL"]
+        vec!["Glutin", "MuxServer", "Null", "Software", "OpenGL"]
     }
 }
 
@@ -105,7 +94,6 @@ impl std::str::FromStr for FrontEndSelection {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_ref() {
             "glutin" => Ok(FrontEndSelection::Glutin),
-            "x11" => Ok(FrontEndSelection::X11),
             "muxserver" => Ok(FrontEndSelection::MuxServer),
             "null" => Ok(FrontEndSelection::Null),
             "software" => Ok(FrontEndSelection::Software),

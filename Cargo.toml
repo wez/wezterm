@@ -56,8 +56,6 @@ window = { path = "window", features=["opengl"]}
 zstd = "0.4"
 
 [target.'cfg(unix)'.dependencies]
-mio = {version="0.6", optional=true}
-mio-extras = {version="2.0", optional=true}
 daemonize = "0.4"
 
 [dependencies.fontconfig]
@@ -83,14 +81,9 @@ winapi = { version = "0.3", features = [
 ]}
 
 [target.'cfg(any(target_os = "android", all(unix, not(target_os = "macos"))))'.dependencies]
-egli = "0.4"
 fontconfig = { path = "deps/fontconfig" }
-x11 = {version ="2.18", features = ["xlib_xcb"]}
 
 [target.'cfg(all(unix, not(target_os = "macos")))'.dependencies]
-xcb = "0.8"
-xcb-util = { features = [ "icccm", "ewmh", "keysyms", ], version = "0.2" }
-xkbcommon = { version = "0.4", features = ["x11"] }
 openssl = "0.10"
 
 [target.'cfg(target_os = "macos")'.dependencies]
@@ -102,7 +95,7 @@ core-text = "13.2"
 [features]
 default = ["enable-winit"]
 force-fontconfig = ["fontconfig"]
-enable-winit = ["winit", "glium", "mio", "mio-extras"]
+enable-winit = ["winit", "glium"]
 
 [workspace]
 
