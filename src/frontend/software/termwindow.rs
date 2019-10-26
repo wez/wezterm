@@ -56,6 +56,7 @@ struct GlyphCache<T: Texture2d> {
     glyph_cache: HashMap<GlyphKey, Rc<CachedGlyph<T>>>,
     atlas: Atlas<T>,
     fonts: Rc<FontConfiguration>,
+    byte_swap: bool,
 }
 
 impl GlyphCache<ImageTexture> {
@@ -67,6 +68,7 @@ impl GlyphCache<ImageTexture> {
             fonts: Rc::clone(fonts),
             glyph_cache: HashMap::new(),
             atlas,
+            byte_swap: true,
         }
     }
 }
@@ -90,6 +92,7 @@ impl GlyphCache<SrgbTexture2d> {
             fonts: Rc::clone(fonts),
             glyph_cache: HashMap::new(),
             atlas,
+            byte_swap: false,
         })
     }
 }
@@ -155,12 +158,21 @@ impl<T: Texture2d> GlyphCache<T> {
                 scale,
             }
         } else {
-            let raw_im = Image::with_rgba32(
-                glyph.width as usize,
-                glyph.height as usize,
-                4 * glyph.width as usize,
-                &glyph.data,
-            );
+            let raw_im = if self.byte_swap {
+                Image::with_rgba32(
+                    glyph.width as usize,
+                    glyph.height as usize,
+                    4 * glyph.width as usize,
+                    &glyph.data,
+                )
+            } else {
+                Image::with_bgra32(
+                    glyph.width as usize,
+                    glyph.height as usize,
+                    4 * glyph.width as usize,
+                    &glyph.data,
+                )
+            };
 
             let bearing_x = glyph.bearing_x * scale;
             let bearing_y = glyph.bearing_y * scale;
