@@ -17,7 +17,7 @@ pub mod glium;
 pub mod guicommon;
 pub mod muxserver;
 pub mod software;
-#[cfg(all(unix, not(target_os = "macos")))]
+#[cfg(all(unix, feature = "enable-winit", not(target_os = "macos")))]
 pub mod xwindows;
 
 #[derive(Debug, Deserialize, Clone, Copy, PartialEq, Eq)]
@@ -74,9 +74,9 @@ impl FrontEndSelection {
             FrontEndSelection::Glutin => glium::glutinloop::GlutinFrontEnd::try_new(mux),
             #[cfg(not(feature = "enable-winit"))]
             FrontEndSelection::Glutin => failure::bail!("Glutin not compiled in"),
-            #[cfg(all(unix, not(target_os = "macos")))]
+            #[cfg(all(unix, feature = "enable-winit", not(target_os = "macos")))]
             FrontEndSelection::X11 => xwindows::x11loop::X11FrontEnd::try_new(mux),
-            #[cfg(not(all(unix, not(target_os = "macos"))))]
+            #[cfg(not(all(unix, feature = "enable-winit", not(target_os = "macos"))))]
             FrontEndSelection::X11 => failure::bail!("X11 not compiled in"),
             FrontEndSelection::MuxServer => muxserver::MuxServerFrontEnd::try_new(mux),
             FrontEndSelection::Null => muxserver::MuxServerFrontEnd::new_null(mux),
