@@ -1500,11 +1500,14 @@ impl TermWindow {
                     - (glyph.y_offset + glyph.bearing_y)) as f32;
 
                 // underline and strikethrough
-                let underline = gl_state.util_sprites.select_sprite(
-                    is_highlited_hyperlink,
-                    attrs.strikethrough(),
-                    attrs.underline(),
-                );
+                let underline_tex_rect = gl_state
+                    .util_sprites
+                    .select_sprite(
+                        is_highlited_hyperlink,
+                        attrs.strikethrough(),
+                        attrs.underline(),
+                    )
+                    .texture_coords();
 
                 // Iterate each cell that comprises this glyph.  There is usually
                 // a single cell per glyph but combining characters, ligatures
@@ -1545,7 +1548,6 @@ impl TermWindow {
 
                     let pixel_rect = slice.pixel_rect(texture);
                     let texture_rect = texture.texture.to_texture_coords(pixel_rect);
-                    let underline_tex_rect = underline.texture_coords();
 
                     let left = if glyph_idx == 0 { left } else { 0.0 };
                     let bottom = top + pixel_rect.max_y() as f32
