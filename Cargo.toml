@@ -24,7 +24,6 @@ filedescriptor = "0.5"
 pretty_env_logger = "0.3"
 failure = "0.1"
 failure_derive = "0.1"
-foreign-types = "0.3"
 freetype = { path = "deps/freetype" }
 glium = { optional=true, version = "0.24", default-features = false, features = ["glutin", "icon_loading"]}
 harfbuzz = { path = "deps/harfbuzz" }
