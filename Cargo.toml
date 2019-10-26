@@ -58,10 +58,6 @@ zstd = "0.4"
 [target.'cfg(unix)'.dependencies]
 daemonize = "0.4"
 
-[dependencies.fontconfig]
-optional = true
-path = "deps/fontconfig"
-
 # on linux, font-loader pulls in servo-font* crates which conflict with
 # our newer font related deps, so we avoid it on linux
 [target.'cfg(any(windows, target_os = "macos"))'.dependencies]
@@ -94,7 +90,6 @@ core-text = "13.2"
 
 [features]
 default = ["enable-winit"]
-force-fontconfig = ["fontconfig"]
 enable-winit = ["winit", "glium"]
 
 [workspace]
