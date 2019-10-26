@@ -938,7 +938,11 @@ impl TermWindow {
                             termwindow.dimensions.pixel_height,
                         ) {
                             Ok(gl) => {
-                                log::error!("OpenGL initialized!");
+                                log::error!(
+                                    "OpenGL initialized! {} {}",
+                                    gl.context.get_opengl_renderer_string(),
+                                    gl.context.get_opengl_version_string()
+                                );
                                 termwindow.render_state = RenderState::GL(gl);
                             }
                             Err(err) => {
