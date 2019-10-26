@@ -195,13 +195,18 @@ struct Vertex {
     position: (f32, f32),
     // bearing offset within the cell
     adjust: (f32, f32),
+    // glyph texture
     tex: (f32, f32),
+    // underline texture
+    underline: (f32, f32),
     bg_color: (f32, f32, f32, f32),
     fg_color: (f32, f32, f32, f32),
     // "bool can't be an in in the vertex shader"
     has_color: f32,
 }
-::window::glium::implement_vertex!(Vertex, position, adjust, tex, bg_color, fg_color, has_color);
+::window::glium::implement_vertex!(
+    Vertex, position, adjust, tex, underline, bg_color, fg_color, has_color
+);
 
 #[derive(Copy, Clone)]
 struct RenderMetrics {
@@ -383,6 +388,31 @@ impl<T: Texture2d> UtilSprites<T> {
             single_and_strike,
             double_and_strike,
         })
+    }
+
+    /// Figure out what we're going to draw for the underline.
+    /// If the current cell is part of the current URL highlight
+    /// then we want to show the underline.
+    pub fn select_sprite(
+        &self,
+        is_highlited_hyperlink: bool,
+        is_strike_through: bool,
+        underline: Underline,
+    ) -> &Sprite<T> {
+        match (is_highlited_hyperlink, is_strike_through, underline) {
+            (true, false, Underline::None) => &self.single_underline,
+            (true, false, Underline::Single) => &self.double_underline,
+            (true, false, Underline::Double) => &self.single_underline,
+            (true, true, Underline::None) => &self.strike_through,
+            (true, true, Underline::Single) => &self.single_and_strike,
+            (true, true, Underline::Double) => &self.double_and_strike,
+            (false, false, Underline::None) => &self.white_space,
+            (false, false, Underline::Single) => &self.single_underline,
+            (false, false, Underline::Double) => &self.double_underline,
+            (false, true, Underline::None) => &self.strike_through,
+            (false, true, Underline::Single) => &self.single_and_strike,
+            (false, true, Underline::Double) => &self.double_and_strike,
+        }
     }
 }
 
@@ -1400,31 +1430,12 @@ impl TermWindow {
                     + self.render_metrics.descender)
                     - (glyph.y_offset + glyph.bearing_y)) as f32;
 
-                /*
                 // underline and strikethrough
-                // Figure out what we're going to draw for the underline.
-                // If the current cell is part of the current URL highlight
-                // then we want to show the underline.
-                #[cfg_attr(feature = "cargo-clippy", allow(clippy::match_same_arms))]
-                let underline: f32 = match (
+                let underline = gl_state.util_sprites.select_sprite(
                     is_highlited_hyperlink,
                     attrs.strikethrough(),
                     attrs.underline(),
-                ) {
-                    (true, false, Underline::None) => U_ONE,
-                    (true, false, Underline::Single) => U_TWO,
-                    (true, false, Underline::Double) => U_ONE,
-                    (true, true, Underline::None) => U_STRIKE_ONE,
-                    (true, true, Underline::Single) => U_STRIKE_TWO,
-                    (true, true, Underline::Double) => U_STRIKE_ONE,
-                    (false, false, Underline::None) => U_NONE,
-                    (false, false, Underline::Single) => U_ONE,
-                    (false, false, Underline::Double) => U_TWO,
-                    (false, true, Underline::None) => U_STRIKE,
-                    (false, true, Underline::Single) => U_STRIKE_ONE,
-                    (false, true, Underline::Double) => U_STRIKE_TWO,
-                };
-                */
+                );
 
                 // Iterate each cell that comprises this glyph.  There is usually
                 // a single cell per glyph but combining characters, ligatures
@@ -1467,13 +1478,6 @@ impl TermWindow {
                     vert[V_BOT_LEFT].bg_color = bg_color;
                     vert[V_BOT_RIGHT].bg_color = bg_color;
 
-                    /*
-                    vert[V_TOP_LEFT].underline = underline;
-                    vert[V_TOP_RIGHT].underline = underline;
-                    vert[V_BOT_LEFT].underline = underline;
-                    vert[V_BOT_RIGHT].underline = underline;
-                    */
-
                     let texture = glyph
                         .texture
                         .as_ref()
@@ -1489,6 +1493,7 @@ impl TermWindow {
 
                     let pixel_rect = slice.pixel_rect(texture);
                     let texture_rect = texture.texture.to_texture_coords(pixel_rect);
+                    let underline_tex_rect = underline.texture_coords();
 
                     let left = if glyph_idx == 0 { left } else { 0.0 };
                     /*
@@ -1500,15 +1505,23 @@ impl TermWindow {
                         - self.render_metrics.cell_size.width as f32;
 
                     vert[V_TOP_LEFT].tex = (texture_rect.min_x(), texture_rect.min_y());
+                    vert[V_TOP_LEFT].underline =
+                        (underline_tex_rect.min_x(), underline_tex_rect.min_y());
                     vert[V_TOP_LEFT].adjust = (left, top);
 
                     vert[V_TOP_RIGHT].tex = (texture_rect.max_x(), texture_rect.min_y());
+                    vert[V_TOP_RIGHT].underline =
+                        (underline_tex_rect.max_x(), underline_tex_rect.min_y());
                     vert[V_TOP_RIGHT].adjust = (right, top); //(left, top);
 
                     vert[V_BOT_LEFT].tex = (texture_rect.min_x(), texture_rect.max_y());
+                    vert[V_BOT_LEFT].underline =
+                        (underline_tex_rect.min_x(), underline_tex_rect.max_y());
                     vert[V_BOT_LEFT].adjust = (left, bottom); //(left, top);
 
                     vert[V_BOT_RIGHT].tex = (texture_rect.max_x(), texture_rect.max_y());
+                    vert[V_BOT_RIGHT].underline =
+                        (underline_tex_rect.max_x(), underline_tex_rect.max_y());
                     vert[V_BOT_RIGHT].adjust = (right, bottom); //(left, top);
 
                     let has_color = if glyph.has_color { 1.0 } else { 0.0 };
@@ -1527,9 +1540,11 @@ impl TermWindow {
         // the right pane with its prior contents instead of showing the
         // cleared lines from the shell in the main screen.
 
+        let white_space = gl_state.util_sprites.white_space.texture_coords();
+
         for cell_idx in last_cell_idx + 1..num_cols {
             let vert_idx = cell_idx * VERTICES_PER_CELL;
-            let vert_slice = &mut vertices[vert_idx..vert_idx + 4];
+            let vert = &mut vertices[vert_idx..vert_idx + 4];
 
             // Even though we don't have a cell for these, they still
             // hold the cursor or the selection so we need to compute
@@ -1544,18 +1559,36 @@ impl TermWindow {
                 palette,
             );
 
-            for vert in vert_slice.iter_mut() {
-                vert.bg_color = bg_color.to_tuple_rgba();
-                vert.fg_color = glyph_color.to_tuple_rgba();
-                /*
-                // vert.underline = U_NONE;
-                // Note: these 0 coords refer to the blank pixel
-                // in the bottom left of the underline texture!
-                vert.tex = (0.0, 0.0);
-                vert.adjust = Default::default();
-                vert.has_color = 0.0;
-                */
-            }
+            let bg_color = bg_color.to_tuple_rgba();
+            let fg_color = glyph_color.to_tuple_rgba();
+
+            vert[V_TOP_LEFT].tex = (white_space.min_x(), white_space.min_y());
+            vert[V_TOP_LEFT].underline = vert[V_TOP_LEFT].tex;
+            vert[V_TOP_LEFT].adjust = (0., 0.);
+            vert[V_TOP_LEFT].has_color = 0.0;
+            vert[V_TOP_LEFT].bg_color = bg_color;
+            vert[V_TOP_LEFT].fg_color = fg_color;
+
+            vert[V_TOP_RIGHT].tex = (white_space.max_x(), white_space.min_y());
+            vert[V_TOP_RIGHT].underline = vert[V_TOP_RIGHT].tex;
+            vert[V_TOP_RIGHT].adjust = (0., 0.);
+            vert[V_TOP_RIGHT].has_color = 0.0;
+            vert[V_TOP_RIGHT].bg_color = bg_color;
+            vert[V_TOP_RIGHT].fg_color = fg_color;
+
+            vert[V_BOT_LEFT].tex = (white_space.min_x(), white_space.max_y());
+            vert[V_BOT_LEFT].underline = vert[V_BOT_LEFT].tex;
+            vert[V_BOT_LEFT].adjust = (0., 0.);
+            vert[V_BOT_LEFT].has_color = 0.0;
+            vert[V_BOT_LEFT].bg_color = bg_color;
+            vert[V_BOT_LEFT].fg_color = fg_color;
+
+            vert[V_BOT_RIGHT].tex = (white_space.max_x(), white_space.max_y());
+            vert[V_BOT_RIGHT].underline = vert[V_BOT_RIGHT].tex;
+            vert[V_BOT_RIGHT].adjust = (0., 0.);
+            vert[V_BOT_RIGHT].has_color = 0.0;
+            vert[V_BOT_RIGHT].bg_color = bg_color;
+            vert[V_BOT_RIGHT].fg_color = fg_color;
         }
 
         Ok(())
