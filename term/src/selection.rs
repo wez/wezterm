@@ -37,7 +37,7 @@ impl SelectionRange {
         height: usize,
     ) -> SelectionRange {
         let offset = -viewport_offset as ScrollbackOrVisibleRowIndex;
-        let res = SelectionRange {
+        SelectionRange {
             start: SelectionCoordinate {
                 x: self.start.x,
                 y: self.start.y.max(offset) - offset,
@@ -50,8 +50,7 @@ impl SelectionRange {
                     .min(offset + height as ScrollbackOrVisibleRowIndex)
                     - offset,
             },
-        };
-        res
+        }
     }
 
     /// Returns an extended selection that it ends at the specified location

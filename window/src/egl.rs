@@ -1,7 +1,7 @@
 use failure::Fallible;
 use std::ffi::c_void;
 
-#[allow(non_camel_case_types)]
+#[allow(non_camel_case_types, clippy::unreadable_literal)]
 pub mod ffi {
     // gl_generator emits these weird cyclical and redundant type references;
     // the types appear to have to be in a module and need to reference super,
@@ -121,7 +121,7 @@ impl EglWrapper {
         attributes: &[u32],
     ) -> Fallible<Vec<ffi::types::EGLConfig>> {
         failure::ensure!(
-            attributes.len() > 0 && attributes[attributes.len() - 1] == ffi::NONE,
+            !attributes.is_empty() && attributes[attributes.len() - 1] == ffi::NONE,
             "attributes list must be terminated with ffi::NONE"
         );
 
@@ -179,7 +179,7 @@ impl EglWrapper {
         attributes: &[u32],
     ) -> Fallible<ffi::types::EGLConfig> {
         failure::ensure!(
-            attributes.len() > 0 && attributes[attributes.len() - 1] == ffi::NONE,
+            !attributes.is_empty() && attributes[attributes.len() - 1] == ffi::NONE,
             "attributes list must be terminated with ffi::NONE"
         );
         let context = unsafe {
@@ -285,7 +285,7 @@ unsafe impl glium::backend::Backend for GlState {
 
     unsafe fn get_proc_address(&self, symbol: &str) -> *const c_void {
         let sym_name = std::ffi::CString::new(symbol).expect("symbol to be cstring compatible");
-        std::mem::transmute(self.egl.egl.GetProcAddress(sym_name.as_ptr()))
+        self.egl.egl.GetProcAddress(sym_name.as_ptr()) as *const c_void
     }
 
     fn get_framebuffer_dimensions(&self) -> (u32, u32) {

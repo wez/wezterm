@@ -101,7 +101,7 @@ impl WindowInner {
 
                 let mut frame = glium::Frame::new(
                     Rc::clone(&gl_context),
-                    (self.width as u32, self.height as u32),
+                    (u32::from(self.width), u32::from(self.height)),
                 );
 
                 self.callbacks.paint_opengl(&mut frame);
@@ -212,7 +212,7 @@ impl WindowInner {
             MouseCursor::Text => 152,
         };
 
-        let cursor_id: xcb::ffi::xcb_cursor_t = self.conn.generate_id().into();
+        let cursor_id: xcb::ffi::xcb_cursor_t = self.conn.generate_id();
         xcb::create_glyph_cursor(
             &self.conn,
             cursor_id,
@@ -322,10 +322,8 @@ impl WindowInner {
             }
             xcb::CLIENT_MESSAGE => {
                 let msg: &xcb::ClientMessageEvent = unsafe { xcb::cast_event(event) };
-                if msg.data().data32()[0] == self.conn.atom_delete() {
-                    if self.callbacks.can_close() {
-                        xcb::destroy_window(self.conn.conn(), self.window_id);
-                    }
+                if msg.data().data32()[0] == self.conn.atom_delete() && self.callbacks.can_close() {
+                    xcb::destroy_window(self.conn.conn(), self.window_id);
                 }
             }
             xcb::DESTROY_NOTIFY => {
@@ -411,7 +409,7 @@ impl Window {
             Arc::new(Mutex::new(WindowInner {
                 window_id,
                 conn: Rc::clone(&conn),
-                callbacks: callbacks,
+                callbacks,
                 window_context,
                 width: width.try_into()?,
                 height: height.try_into()?,

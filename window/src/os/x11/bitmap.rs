@@ -35,6 +35,7 @@ impl Context {
 
     /// Copy an area from one drawable to another using the settings
     /// defined in this context.
+    #[allow(clippy::too_many_arguments)]
     pub fn copy_area(
         &self,
         src: &dyn Drawable,

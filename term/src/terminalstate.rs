@@ -591,7 +591,7 @@ impl TerminalState {
     }
 
     pub fn selection_range(&self) -> Option<SelectionRange> {
-        self.selection_range.clone().map(|r| r.normalize())
+        self.selection_range.map(|r| r.normalize())
     }
 
     fn mouse_drag_left(&mut self, event: MouseEvent) -> Result<(), Error> {

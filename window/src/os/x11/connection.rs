@@ -58,11 +58,7 @@ impl TimerList {
 
     fn first_is_ready(&self, now: Instant) -> bool {
         if let Some(first) = self.timers.front() {
-            if first.due > now {
-                false
-            } else {
-                true
-            }
+            first.due <= now
         } else {
             false
         }
@@ -200,8 +196,7 @@ fn server_supports_shm() -> bool {
                 eprintln!("While probing for X SHM support: {}", err);
                 return false;
             }
-            let shm_available = !reply.ptr.is_null() && reply.shared_pixmaps();
-            shm_available
+            !reply.ptr.is_null() && reply.shared_pixmaps()
         }
         Err(err) => {
             eprintln!("While probing for X SHM support: {}", err);
@@ -400,7 +395,7 @@ impl Connection {
 
         let (keyboard, kbd_ev) = Keyboard::new(&conn)?;
 
-        let cursor_font_id = conn.generate_id().into();
+        let cursor_font_id = conn.generate_id();
         let cursor_font_name = "cursor";
         xcb::open_font_checked(&conn, cursor_font_id, cursor_font_name);
 

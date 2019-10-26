@@ -639,6 +639,7 @@ impl OpenGLRenderState {
     }
 }
 
+#[allow(clippy::large_enum_variant)]
 enum RenderState {
     Software(SoftwareRenderState),
     GL(OpenGLRenderState),
