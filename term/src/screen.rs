@@ -32,6 +32,9 @@ impl Screen {
     /// The Cells in the viewable portion of the screen are set to the
     /// default cell attributes.
     pub fn new(physical_rows: usize, physical_cols: usize, scrollback_size: usize) -> Screen {
+        let physical_rows = physical_rows.max(1);
+        let physical_cols = physical_cols.max(1);
+
         let mut lines = VecDeque::with_capacity(physical_rows + scrollback_size);
         for _ in 0..physical_rows {
             lines.push_back(Line::with_width(physical_cols));
@@ -47,6 +50,9 @@ impl Screen {
 
     /// Resize the physical, viewable portion of the screen
     pub fn resize(&mut self, physical_rows: usize, physical_cols: usize) {
+        let physical_rows = physical_rows.max(1);
+        let physical_cols = physical_cols.max(1);
+
         let capacity = physical_rows + self.scrollback_size;
         let current_capacity = self.lines.capacity();
         if capacity > current_capacity {
