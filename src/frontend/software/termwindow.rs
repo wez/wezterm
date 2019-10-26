@@ -921,7 +921,7 @@ impl WindowCallbacks for TermWindow {
             }
             log::error!("paint failed: {}", err);
         }
-        log::error!("paint_tab elapsed={:?}", start.elapsed());
+        log::debug!("paint_tab elapsed={:?}", start.elapsed());
         self.update_title();
     }
 
@@ -953,7 +953,7 @@ impl WindowCallbacks for TermWindow {
             }
             log::error!("paint_tab_opengl failed: {}", err);
         }
-        log::error!("paint_tab_opengl elapsed={:?}", start.elapsed());
+        log::debug!("paint_tab_opengl elapsed={:?}", start.elapsed());
         self.update_title();
     }
 }
