@@ -32,7 +32,11 @@ pub enum FrontEndSelection {
 
 impl Default for FrontEndSelection {
     fn default() -> Self {
-        if cfg!(all(unix, not(target_os = "macos"))) {
+        if cfg!(all(
+            unix,
+            feature = "enable-winit",
+            not(target_os = "macos")
+        )) {
             FrontEndSelection::X11
         } else if cfg!(feature = "enable-winit") {
             FrontEndSelection::Glutin
