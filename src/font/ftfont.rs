@@ -89,12 +89,15 @@ impl Font for FreeTypeFontImpl {
 
     fn metrics(&self) -> FontMetrics {
         let face = self.face.borrow();
+        let y_scale = unsafe { (*(*face.face).size).metrics.y_scale as f64 / 65536.0 };
         FontMetrics {
             cell_height: self.cell_height,
             cell_width: self.cell_width,
             // Note: face.face.descender is useless, we have to go through
             // face.face.size.metrics to get to the real descender!
             descender: unsafe { (*(*face.face).size).metrics.descender as f64 } / 64.0,
+            underline_thickness: unsafe { (*face.face).underline_thickness as f64 } * y_scale / 64.,
+            underline_position: unsafe { (*face.face).underline_position as f64 } * y_scale / 64.,
         }
     }
 

@@ -101,6 +101,13 @@ pub struct FontMetrics {
     /// Added to the bottom y coord to find the baseline.
     /// descender is typically negative.
     pub descender: f64,
+
+    /// Vertical size of underline/strikethrough in pixels
+    pub underline_thickness: f64,
+
+    /// Position of underline relative to descender. Negative
+    /// values are below the descender.
+    pub underline_position: f64,
 }
 
 /// Represents a concrete instance of a font.

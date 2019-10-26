@@ -137,6 +137,8 @@ fn metrics(codepoint: char, ct_font: &CTFont) -> Option<Metrics> {
             // render.rs divides this value by 64 because freetype returns
             // a scaled integer value, so compensate here
             descender: -descent,
+            underline_thickness: 1.0,
+            underline_position: 0.0,
         },
         ascent,
         descent,

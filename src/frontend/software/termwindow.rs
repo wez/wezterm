@@ -207,8 +207,8 @@ struct Vertex {
 struct RenderMetrics {
     descender: f64,
     descender_row: isize,
-    descender_plus_one: isize,
     descender_plus_two: isize,
+    underline_height: isize,
     strike_row: isize,
     cell_size: Size,
 }
@@ -224,18 +224,21 @@ impl RenderMetrics {
             metrics.cell_width.ceil() as usize,
         );
 
-        let descender_row = (cell_height as f64 + metrics.descender) as isize;
-        let descender_plus_one = (1 + descender_row).min(cell_height as isize - 1);
-        let descender_plus_two = (2 + descender_row).min(cell_height as isize - 1);
+        let underline_height = metrics.underline_thickness.round() as isize;
+
+        let descender_row =
+            (cell_height as f64 + metrics.descender - metrics.underline_position) as isize;
+        let descender_plus_two =
+            (2 * underline_height + descender_row).min(cell_height as isize - 1);
         let strike_row = descender_row / 2;
 
         Self {
             descender: metrics.descender,
             descender_row,
-            descender_plus_one,
             descender_plus_two,
             strike_row,
             cell_size: Size::new(cell_width as isize, cell_height as isize),
+            underline_height,
         }
     }
 }
@@ -288,57 +291,66 @@ impl<T: Texture2d> UtilSprites<T> {
         let white_space = glyph_cache.atlas.allocate(&buffer)?;
 
         let draw_single = |buffer: &mut Image| {
-            buffer.draw_line(
-                Point::new(
-                    cell_rect.origin.x,
-                    cell_rect.origin.y + metrics.descender_plus_one,
-                ),
-                Point::new(
-                    cell_rect.origin.x + metrics.cell_size.width,
-                    cell_rect.origin.y + metrics.descender_plus_one,
-                ),
-                white,
-                Operator::Source,
-            );
+            for row in 0..metrics.underline_height {
+                buffer.draw_line(
+                    Point::new(
+                        cell_rect.origin.x,
+                        cell_rect.origin.y + metrics.descender_row + row,
+                    ),
+                    Point::new(
+                        cell_rect.origin.x + metrics.cell_size.width,
+                        cell_rect.origin.y + metrics.descender_row + row,
+                    ),
+                    white,
+                    Operator::Source,
+                );
+            }
         };
 
         let draw_double = |buffer: &mut Image| {
-            buffer.draw_line(
-                Point::new(
-                    cell_rect.origin.x,
-                    cell_rect.origin.y + metrics.descender_row,
-                ),
-                Point::new(
-                    cell_rect.origin.x + metrics.cell_size.width,
-                    cell_rect.origin.y + metrics.descender_row,
-                ),
-                white,
-                Operator::Source,
-            );
-            buffer.draw_line(
-                Point::new(
-                    cell_rect.origin.x,
-                    cell_rect.origin.y + metrics.descender_plus_two,
-                ),
-                Point::new(
-                    cell_rect.origin.x + metrics.cell_size.width,
-                    cell_rect.origin.y + metrics.descender_plus_two,
-                ),
-                white,
-                Operator::Source,
-            );
+            for row in 0..metrics.underline_height {
+                buffer.draw_line(
+                    Point::new(
+                        cell_rect.origin.x,
+                        cell_rect.origin.y + metrics.descender_row + row,
+                    ),
+                    Point::new(
+                        cell_rect.origin.x + metrics.cell_size.width,
+                        cell_rect.origin.y + metrics.descender_row + row,
+                    ),
+                    white,
+                    Operator::Source,
+                );
+                buffer.draw_line(
+                    Point::new(
+                        cell_rect.origin.x,
+                        cell_rect.origin.y + metrics.descender_plus_two + row,
+                    ),
+                    Point::new(
+                        cell_rect.origin.x + metrics.cell_size.width,
+                        cell_rect.origin.y + metrics.descender_plus_two + row,
+                    ),
+                    white,
+                    Operator::Source,
+                );
+            }
         };
 
         let draw_strike = |buffer: &mut Image| {
-            buffer.draw_line(
-                Point::new(cell_rect.origin.x, cell_rect.origin.y + metrics.strike_row),
-                Point::new(
-                    cell_rect.origin.x + metrics.cell_size.width,
-                    cell_rect.origin.y + metrics.strike_row,
-                ),
-                white,
-                Operator::Source,
-            );
+            for row in 0..metrics.underline_height {
+                buffer.draw_line(
+                    Point::new(
+                        cell_rect.origin.x,
+                        cell_rect.origin.y + metrics.strike_row + row,
+                    ),
+                    Point::new(
+                        cell_rect.origin.x + metrics.cell_size.width,
+                        cell_rect.origin.y + metrics.strike_row + row,
+                    ),
+                    white,
+                    Operator::Source,
+                );
+            }
         };
 
         buffer.clear_rect(cell_rect, black);
