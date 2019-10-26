@@ -1,22 +1,36 @@
 #[cfg(feature = "enable-winit")]
 use super::window::TerminalWindow;
+#[cfg(feature = "enable-winit")]
 use crate::font::{FontConfiguration, FontSystemSelection};
+#[cfg(feature = "enable-winit")]
 use crate::frontend::guicommon::clipboard::SystemClipboard;
 use crate::frontend::guicommon::window::SpawnTabDomain;
+#[cfg(feature = "enable-winit")]
 use crate::frontend::{front_end, gui_executor};
+#[cfg(feature = "enable-winit")]
 use crate::mux::tab::Tab;
 use crate::mux::Mux;
+#[cfg(feature = "enable-winit")]
 use failure::Error;
+#[cfg(feature = "enable-winit")]
 use failure::Fallible;
+#[cfg(feature = "enable-winit")]
 use log::error;
+#[cfg(feature = "enable-winit")]
 use portable_pty::PtySize;
+#[cfg(feature = "enable-winit")]
 use promise::Future;
 use std::collections::HashMap;
+#[cfg(feature = "enable-winit")]
 use std::ops::{Deref, DerefMut};
+#[cfg(feature = "enable-winit")]
 use std::rc::Rc;
+#[cfg(feature = "enable-winit")]
 use std::sync::Arc;
+#[cfg(feature = "enable-winit")]
 use term::terminal::Clipboard;
 use term::{KeyCode, KeyModifiers};
+#[cfg(feature = "enable-winit")]
 use termwiz::hyperlink::Hyperlink;
 
 #[derive(Debug, Clone)]

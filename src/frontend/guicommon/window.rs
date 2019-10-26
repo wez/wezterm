@@ -1,19 +1,25 @@
+#[cfg(feature = "enable-winit")]
 use crate::config::Config;
+#[cfg(feature = "enable-winit")]
 use crate::font::FontConfiguration;
 use crate::mux::domain::DomainId;
+#[cfg(feature = "enable-winit")]
 use crate::mux::tab::{Tab, TabId};
+#[cfg(feature = "enable-winit")]
 use crate::mux::window::WindowId;
+#[cfg(feature = "enable-winit")]
 use crate::mux::Mux;
 #[cfg(feature = "enable-winit")]
 use crate::opengl::render::Renderer;
 #[cfg(feature = "enable-winit")]
 use crate::opengl::textureatlas::OutOfTextureSpace;
-use failure::{bail, ensure, format_err, Error};
 #[cfg(feature = "enable-winit")]
 use glium;
-use log::{debug, error};
+#[cfg(feature = "enable-winit")]
 use portable_pty::PtySize;
+#[cfg(feature = "enable-winit")]
 use std::rc::Rc;
+#[cfg(feature = "enable-winit")]
 use std::sync::Arc;
 
 /// When spawning a tab, specify which domain should be used to
@@ -33,6 +39,7 @@ pub enum SpawnTabDomain {
 /// Reports the currently configured physical size of the display
 /// surface (physical pixels, not adjusted for dpi) and the current
 /// cell dimensions, also in physical pixels
+#[cfg(feature = "enable-winit")]
 pub struct Dimensions {
     pub width: u16,
     pub height: u16,
@@ -46,33 +53,33 @@ pub struct Dimensions {
 /// unlock the use of the provided methods towards the bottom of the trait.
 #[cfg(feature = "enable-winit")]
 pub trait TerminalWindow {
-    fn set_window_title(&mut self, title: &str) -> Result<(), Error>;
+    fn set_window_title(&mut self, title: &str) -> failure::Fallible<()>;
     fn get_mux_window_id(&self) -> WindowId;
     fn frame(&self) -> glium::Frame;
     fn renderer(&mut self) -> &mut Renderer;
-    fn recreate_texture_atlas(&mut self, size: u32) -> Result<(), Error>;
+    fn recreate_texture_atlas(&mut self, size: u32) -> failure::Fallible<()>;
     fn advise_renderer_that_scaling_has_changed(
         &mut self,
         cell_width: usize,
         cell_height: usize,
-    ) -> Result<(), Error>;
-    fn advise_renderer_of_resize(&mut self, width: u16, height: u16) -> Result<(), Error>;
+    ) -> failure::Fallible<()>;
+    fn advise_renderer_of_resize(&mut self, width: u16, height: u16) -> failure::Fallible<()>;
     fn config(&self) -> &Arc<Config>;
     fn fonts(&self) -> &Rc<FontConfiguration>;
     fn get_dimensions(&self) -> Dimensions;
-    fn resize_if_not_full_screen(&mut self, width: u16, height: u16) -> Result<bool, Error>;
-    fn check_for_resize(&mut self) -> Result<(), Error> {
+    fn resize_if_not_full_screen(&mut self, width: u16, height: u16) -> failure::Fallible<bool>;
+    fn check_for_resize(&mut self) -> failure::Fallible<()> {
         Ok(())
     }
 
     fn hide_window(&mut self) {}
     fn show_window(&mut self) {}
 
-    fn activate_tab(&mut self, tab_idx: usize) -> Result<(), Error> {
+    fn activate_tab(&mut self, tab_idx: usize) -> failure::Fallible<()> {
         let mux = Mux::get().unwrap();
         let mut window = mux
             .get_window_mut(self.get_mux_window_id())
-            .ok_or_else(|| format_err!("no such window"))?;
+            .ok_or_else(|| failure::format_err!("no such window"))?;
 
         let max = window.len();
         if tab_idx < max {
@@ -84,14 +91,14 @@ pub trait TerminalWindow {
         Ok(())
     }
 
-    fn activate_tab_relative(&mut self, delta: isize) -> Result<(), Error> {
+    fn activate_tab_relative(&mut self, delta: isize) -> failure::Fallible<()> {
         let mux = Mux::get().unwrap();
         let window = mux
             .get_window(self.get_mux_window_id())
-            .ok_or_else(|| format_err!("no such window"))?;
+            .ok_or_else(|| failure::format_err!("no such window"))?;
 
         let max = window.len();
-        ensure!(max > 0, "no more tabs");
+        failure::ensure!(max > 0, "no more tabs");
 
         let active = window.get_active_idx() as isize;
         let tab = active + delta;
@@ -128,7 +135,7 @@ pub trait TerminalWindow {
         }
     }
 
-    fn paint_if_needed(&mut self) -> Result<(), Error> {
+    fn paint_if_needed(&mut self) -> failure::Fallible<()> {
         let mux = Mux::get().unwrap();
         let tab = match mux.get_active_tab_for_window(self.get_mux_window_id()) {
             Some(tab) => tab,
@@ -141,7 +148,7 @@ pub trait TerminalWindow {
         Ok(())
     }
 
-    fn paint(&mut self) -> Result<(), Error> {
+    fn paint(&mut self) -> failure::Fallible<()> {
         let mux = Mux::get().unwrap();
         let tab = match mux.get_active_tab_for_window(self.get_mux_window_id()) {
             Some(tab) => tab,
@@ -169,7 +176,7 @@ pub trait TerminalWindow {
         match res {
             Err(err) => {
                 if let Some(&OutOfTextureSpace { size }) = err.downcast_ref::<OutOfTextureSpace>() {
-                    error!("out of texture space, allocating {}", size);
+                    log::error!("out of texture space, allocating {}", size);
                     self.recreate_texture_atlas(size)?;
                     tab.renderer().make_all_lines_dirty();
                     // Recursively initiate a new paint
@@ -181,7 +188,7 @@ pub trait TerminalWindow {
         }
     }
 
-    fn spawn_tab(&mut self, domain: &SpawnTabDomain) -> Result<TabId, Error> {
+    fn spawn_tab(&mut self, domain: &SpawnTabDomain) -> failure::Fallible<TabId> {
         let dims = self.get_dimensions();
 
         let rows = (dims.height as usize + 1) / dims.cell_height;
@@ -201,16 +208,17 @@ pub trait TerminalWindow {
             SpawnTabDomain::CurrentTabDomain => {
                 let tab = match mux.get_active_tab_for_window(self.get_mux_window_id()) {
                     Some(tab) => tab,
-                    None => bail!("window has no tabs?"),
+                    None => failure::bail!("window has no tabs?"),
                 };
-                mux.get_domain(tab.domain_id())
-                    .ok_or_else(|| format_err!("current tab has unresolvable domain id!?"))?
+                mux.get_domain(tab.domain_id()).ok_or_else(|| {
+                    failure::format_err!("current tab has unresolvable domain id!?")
+                })?
             }
-            SpawnTabDomain::Domain(id) => mux
-                .get_domain(*id)
-                .ok_or_else(|| format_err!("spawn_tab called with unresolvable domain id!?"))?,
+            SpawnTabDomain::Domain(id) => mux.get_domain(*id).ok_or_else(|| {
+                failure::format_err!("spawn_tab called with unresolvable domain id!?")
+            })?,
             SpawnTabDomain::DomainName(name) => mux.get_domain_by_name(&name).ok_or_else(|| {
-                format_err!("spawn_tab called with unresolvable domain name {}", name)
+                failure::format_err!("spawn_tab called with unresolvable domain name {}", name)
             })?,
         };
         let tab = domain.spawn(size, None, self.get_mux_window_id())?;
@@ -219,18 +227,18 @@ pub trait TerminalWindow {
         let len = {
             let window = mux
                 .get_window(self.get_mux_window_id())
-                .ok_or_else(|| format_err!("no such window!?"))?;
+                .ok_or_else(|| failure::format_err!("no such window!?"))?;
             window.len()
         };
         self.activate_tab(len - 1)?;
         Ok(tab_id)
     }
 
-    fn resize_surfaces(&mut self, width: u16, height: u16, force: bool) -> Result<bool, Error> {
+    fn resize_surfaces(&mut self, width: u16, height: u16, force: bool) -> failure::Fallible<bool> {
         let dims = self.get_dimensions();
 
         if force || width != dims.width || height != dims.height {
-            debug!("resize {},{}", width, height);
+            log::debug!("resize {},{}", width, height);
 
             self.advise_renderer_of_resize(width, height)?;
 
@@ -244,7 +252,7 @@ pub trait TerminalWindow {
             let mux = Mux::get().unwrap();
             let window = mux
                 .get_window(self.get_mux_window_id())
-                .ok_or_else(|| format_err!("no such window!?"))?;
+                .ok_or_else(|| failure::format_err!("no such window!?"))?;
             for tab in window.iter() {
                 tab.resize(PtySize {
                     rows,
@@ -256,7 +264,7 @@ pub trait TerminalWindow {
 
             Ok(true)
         } else {
-            debug!("ignoring extra resize");
+            log::debug!("ignoring extra resize");
             Ok(false)
         }
     }
@@ -267,13 +275,14 @@ pub trait TerminalWindow {
         dpi_scale: Option<f64>,
         width: u16,
         height: u16,
-    ) -> Result<(), Error> {
+    ) -> failure::Fallible<()> {
         let fonts = self.fonts();
         let dpi_scale = dpi_scale.unwrap_or_else(|| fonts.get_dpi_scale());
         let font_scale = font_scale.unwrap_or_else(|| fonts.get_font_scale());
-        debug!(
+        log::debug!(
             "TerminalWindow::scaling_changed dpi_scale={} font_scale={}",
-            dpi_scale, font_scale
+            dpi_scale,
+            font_scale
         );
         let mux = Mux::get().unwrap();
         let tab = match mux.get_active_tab_for_window(self.get_mux_window_id()) {
