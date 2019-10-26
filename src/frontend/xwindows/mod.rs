@@ -3,7 +3,6 @@ use term::{KeyCode, KeyModifiers};
 mod keyboard;
 use egli;
 use failure::{bail, err_msg, format_err, Error};
-use gl;
 use glium;
 use glium::backend::Backend;
 use keyboard::Keyboard;
@@ -288,8 +287,6 @@ impl Window {
         conn.egl_display
             .make_current(&surface, &surface, &egl_context)
             .map_err(egli_err)?;
-
-        gl::load_with(|s| unsafe { mem::transmute(egli::egl::get_proc_address(s)) });
 
         let gl_state = Rc::new(GlState {
             display: Rc::clone(&conn.egl_display),

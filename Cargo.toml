@@ -26,7 +26,6 @@ failure = "0.1"
 failure_derive = "0.1"
 foreign-types = "0.3"
 freetype = { path = "deps/freetype" }
-gl = "0.11"
 glium = { version = "0.24", default-features = false, features = ["glutin", "icon_loading"]}
 harfbuzz = { path = "deps/harfbuzz" }
 lazy_static = "1.3"
