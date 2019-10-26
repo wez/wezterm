@@ -1550,7 +1550,7 @@ impl TermWindow {
                     let texture_rect = texture.texture.to_texture_coords(pixel_rect);
 
                     let left = if glyph_idx == 0 { left } else { 0.0 };
-                    let bottom = top + pixel_rect.max_y() as f32
+                    let bottom = (pixel_rect.size.height as f32 * glyph.scale as f32) + top
                         - self.render_metrics.cell_size.height as f32;
                     let right = pixel_rect.size.width as f32 + left
                         - self.render_metrics.cell_size.width as f32;
