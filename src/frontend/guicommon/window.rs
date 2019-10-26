@@ -4,9 +4,12 @@ use crate::mux::domain::DomainId;
 use crate::mux::tab::{Tab, TabId};
 use crate::mux::window::WindowId;
 use crate::mux::Mux;
+#[cfg(feature = "enable-winit")]
 use crate::opengl::render::Renderer;
+#[cfg(feature = "enable-winit")]
 use crate::opengl::textureatlas::OutOfTextureSpace;
 use failure::{bail, ensure, format_err, Error};
+#[cfg(feature = "enable-winit")]
 use glium;
 use log::{debug, error};
 use portable_pty::PtySize;
@@ -41,6 +44,7 @@ pub struct Dimensions {
 /// the different GUI systems.
 /// A number of methods need to be provided by the window in order to
 /// unlock the use of the provided methods towards the bottom of the trait.
+#[cfg(feature = "enable-winit")]
 pub trait TerminalWindow {
     fn set_window_title(&mut self, title: &str) -> Result<(), Error>;
     fn get_mux_window_id(&self) -> WindowId;

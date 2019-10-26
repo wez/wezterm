@@ -26,7 +26,7 @@ failure = "0.1"
 failure_derive = "0.1"
 foreign-types = "0.3"
 freetype = { path = "deps/freetype" }
-glium = { version = "0.24", default-features = false, features = ["glutin", "icon_loading"]}
+glium = { optional=true, version = "0.24", default-features = false, features = ["glutin", "icon_loading"]}
 harfbuzz = { path = "deps/harfbuzz" }
 lazy_static = "1.3"
 leb128 = "0.2"
@@ -52,7 +52,7 @@ toml = "0.4"
 unicode-normalization = "0.1"
 unicode-width = "0.1"
 varbincode = "0.1"
-winit = "0.19"
+winit = {version="0.19",optional=true}
 window = { path = "window", features=["opengl"]}
 zstd = "0.4"
 
@@ -101,7 +101,9 @@ core-graphics = "0.17"
 core-text = "13.2"
 
 [features]
+default = ["enable-winit"]
 force-fontconfig = ["fontconfig"]
+enable-winit = ["winit", "glium"]
 
 [workspace]
 

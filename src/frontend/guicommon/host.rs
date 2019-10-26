@@ -1,3 +1,4 @@
+#[cfg(feature = "enable-winit")]
 use super::window::TerminalWindow;
 use crate::font::{FontConfiguration, FontSystemSelection};
 use crate::frontend::guicommon::clipboard::SystemClipboard;
@@ -37,6 +38,7 @@ pub enum KeyAssignment {
     CloseCurrentTab,
 }
 
+#[cfg(feature = "enable-winit")]
 pub trait HostHelper {
     fn with_window<F: Send + 'static + Fn(&mut dyn TerminalWindow) -> Result<(), Error>>(
         &self,
@@ -45,6 +47,7 @@ pub trait HostHelper {
     fn toggle_full_screen(&mut self);
 }
 
+#[cfg(feature = "enable-winit")]
 pub struct HostImpl<H: HostHelper> {
     helper: H,
     clipboard: Arc<dyn Clipboard>,
@@ -142,6 +145,7 @@ impl KeyMap {
     }
 }
 
+#[cfg(feature = "enable-winit")]
 impl<H: HostHelper> HostImpl<H> {
     pub fn new(helper: H) -> Self {
         Self {
@@ -280,12 +284,15 @@ impl<H: HostHelper> HostImpl<H> {
     }
 }
 
+#[cfg(feature = "enable-winit")]
 impl<H: HostHelper> Deref for HostImpl<H> {
     type Target = H;
     fn deref(&self) -> &H {
         &self.helper
     }
 }
+
+#[cfg(feature = "enable-winit")]
 impl<H: HostHelper> DerefMut for HostImpl<H> {
     fn deref_mut(&mut self) -> &mut H {
         &mut self.helper
@@ -295,17 +302,20 @@ impl<H: HostHelper> DerefMut for HostImpl<H> {
 /// Implements `TerminalHost` for a Tab.
 /// `TabHost` instances are short lived and borrow references to
 /// other state.
+#[cfg(feature = "enable-winit")]
 pub struct TabHost<'a, H: HostHelper> {
     writer: &'a mut dyn std::io::Write,
     host: &'a mut HostImpl<H>,
 }
 
+#[cfg(feature = "enable-winit")]
 impl<'a, H: HostHelper> TabHost<'a, H> {
     pub fn new(writer: &'a mut dyn std::io::Write, host: &'a mut HostImpl<H>) -> Self {
         Self { writer, host }
     }
 }
 
+#[cfg(feature = "enable-winit")]
 impl<'a, H: HostHelper> term::TerminalHost for TabHost<'a, H> {
     fn writer(&mut self) -> &mut dyn std::io::Write {
         &mut self.writer

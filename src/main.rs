@@ -17,6 +17,8 @@ use std::sync::Arc;
 mod config;
 mod frontend;
 mod mux;
+
+#[cfg(feature = "enable-winit")]
 mod opengl;
 mod ratelim;
 mod server;

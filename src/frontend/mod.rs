@@ -12,6 +12,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 
+#[cfg(feature = "enable-winit")]
 pub mod glium;
 pub mod guicommon;
 pub mod muxserver;
@@ -33,8 +34,10 @@ impl Default for FrontEndSelection {
     fn default() -> Self {
         if cfg!(all(unix, not(target_os = "macos"))) {
             FrontEndSelection::X11
-        } else {
+        } else if cfg!(feature = "enable-winit") {
             FrontEndSelection::Glutin
+        } else {
+            FrontEndSelection::OpenGL
         }
     }
 }
@@ -67,7 +70,10 @@ pub fn front_end() -> Option<Rc<dyn FrontEnd>> {
 impl FrontEndSelection {
     pub fn try_new(self, mux: &Rc<Mux>) -> Result<Rc<dyn FrontEnd>, Error> {
         let front_end = match self {
+            #[cfg(feature = "enable-winit")]
             FrontEndSelection::Glutin => glium::glutinloop::GlutinFrontEnd::try_new(mux),
+            #[cfg(not(feature = "enable-winit"))]
+            FrontEndSelection::Glutin => failure::bail!("Glutin not compiled in"),
             #[cfg(all(unix, not(target_os = "macos")))]
             FrontEndSelection::X11 => xwindows::x11loop::X11FrontEnd::try_new(mux),
             #[cfg(not(all(unix, not(target_os = "macos"))))]
