@@ -10,7 +10,7 @@ use crate::mux::tab::{Tab, TabId};
 use crate::mux::window::WindowId as MuxWindowId;
 use crate::mux::Mux;
 use ::window::bitmaps::atlas::{Atlas, OutOfTextureSpace, Sprite, SpriteSlice};
-use ::window::bitmaps::{Image, ImageTexture, Texture2d};
+use ::window::bitmaps::{Image, ImageTexture, Texture2d, TextureRect};
 use ::window::glium::backend::Context as GliumContext;
 use ::window::glium::texture::SrgbTexture2d;
 use ::window::glium::{uniform, IndexBuffer, Surface, VertexBuffer};
@@ -207,6 +207,67 @@ struct Vertex {
 ::window::glium::implement_vertex!(
     Vertex, position, adjust, tex, underline, bg_color, fg_color, has_color
 );
+
+/// A helper for updating the 4 vertices that compose a glyph cell
+struct Quad<'a> {
+    vert: &'a mut [Vertex],
+}
+
+impl<'a> Quad<'a> {
+    /// Returns a reference to the Quad for the given cell column index
+    /// into the set of vertices for a line.
+    pub fn for_cell(cell_idx: usize, vertices: &'a mut [Vertex]) -> Self {
+        let vert_idx = cell_idx * VERTICES_PER_CELL;
+        let vert = &mut vertices[vert_idx..vert_idx + VERTICES_PER_CELL];
+        Self { vert }
+    }
+
+    /// Assign the texture coordinates
+    pub fn set_texture(&mut self, coords: TextureRect) {
+        self.vert[V_TOP_LEFT].tex = (coords.min_x(), coords.min_y());
+        self.vert[V_TOP_RIGHT].tex = (coords.max_x(), coords.min_y());
+        self.vert[V_BOT_LEFT].tex = (coords.min_x(), coords.max_y());
+        self.vert[V_BOT_RIGHT].tex = (coords.max_x(), coords.max_y());
+    }
+
+    /// Apply bearing adjustment for the glyph texture.
+    pub fn set_texture_adjust(&mut self, left: f32, top: f32, right: f32, bottom: f32) {
+        self.vert[V_TOP_LEFT].adjust = (left, top);
+        self.vert[V_TOP_RIGHT].adjust = (right, top);
+        self.vert[V_BOT_LEFT].adjust = (left, bottom);
+        self.vert[V_BOT_RIGHT].adjust = (right, bottom);
+    }
+
+    /// Set the color glyph "flag"
+    pub fn set_has_color(&mut self, has_color: bool) {
+        let has_color = if has_color { 1. } else { 0. };
+        for v in self.vert.iter_mut() {
+            v.has_color = has_color;
+        }
+    }
+
+    pub fn set_fg_color(&mut self, color: Color) {
+        let color = color.to_tuple_rgba();
+        for v in self.vert.iter_mut() {
+            v.fg_color = color;
+        }
+    }
+
+    pub fn set_bg_color(&mut self, color: Color) {
+        let color = color.to_tuple_rgba();
+        for v in self.vert.iter_mut() {
+            v.bg_color = color;
+        }
+    }
+
+    /// Assign the underline texture coordinates for the cell
+    pub fn set_underline(&mut self, coords: TextureRect) {
+        self.vert[V_TOP_LEFT].underline = (coords.min_x(), coords.min_y());
+        self.vert[V_TOP_RIGHT].underline = (coords.max_x(), coords.min_y());
+        self.vert[V_BOT_LEFT].underline = (coords.min_x(), coords.max_y());
+        self.vert[V_BOT_RIGHT].underline = (coords.max_x(), coords.max_y());
+    }
+}
 
 #[derive(Copy, Clone)]
 struct RenderMetrics {
@@ -1461,23 +1522,6 @@ impl TermWindow {
                         palette,
                     );
 
-                    let vert_idx = cell_idx * VERTICES_PER_CELL;
-                    let vert = &mut vertices[vert_idx..vert_idx + VERTICES_PER_CELL];
-
-                    let glyph_color = glyph_color.to_tuple_rgba();
-
-                    vert[V_TOP_LEFT].fg_color = glyph_color;
-                    vert[V_TOP_RIGHT].fg_color = glyph_color;
-                    vert[V_BOT_LEFT].fg_color = glyph_color;
-                    vert[V_BOT_RIGHT].fg_color = glyph_color;
-
-                    let bg_color = bg_color.to_tuple_rgba();
-
-                    vert[V_TOP_LEFT].bg_color = bg_color;
-                    vert[V_TOP_RIGHT].bg_color = bg_color;
-                    vert[V_BOT_LEFT].bg_color = bg_color;
-                    vert[V_BOT_RIGHT].bg_color = bg_color;
-
                     let texture = glyph
                         .texture
                         .as_ref()
@@ -1496,39 +1540,19 @@ impl TermWindow {
                     let underline_tex_rect = underline.texture_coords();
 
                     let left = if glyph_idx == 0 { left } else { 0.0 };
-                    /*
-                    let right = left + pixel_rect.max_x() as f32;
-                    */
                     let bottom = top + pixel_rect.max_y() as f32
                         - self.render_metrics.cell_size.height as f32;
                     let right = pixel_rect.size.width as f32 + left
                         - self.render_metrics.cell_size.width as f32;
 
-                    vert[V_TOP_LEFT].tex = (texture_rect.min_x(), texture_rect.min_y());
-                    vert[V_TOP_LEFT].underline =
-                        (underline_tex_rect.min_x(), underline_tex_rect.min_y());
-                    vert[V_TOP_LEFT].adjust = (left, top);
+                    let mut quad = Quad::for_cell(cell_idx, &mut vertices);
 
-                    vert[V_TOP_RIGHT].tex = (texture_rect.max_x(), texture_rect.min_y());
-                    vert[V_TOP_RIGHT].underline =
-                        (underline_tex_rect.max_x(), underline_tex_rect.min_y());
-                    vert[V_TOP_RIGHT].adjust = (right, top); //(left, top);
-
-                    vert[V_BOT_LEFT].tex = (texture_rect.min_x(), texture_rect.max_y());
-                    vert[V_BOT_LEFT].underline =
-                        (underline_tex_rect.min_x(), underline_tex_rect.max_y());
-                    vert[V_BOT_LEFT].adjust = (left, bottom); //(left, top);
-
-                    vert[V_BOT_RIGHT].tex = (texture_rect.max_x(), texture_rect.max_y());
-                    vert[V_BOT_RIGHT].underline =
-                        (underline_tex_rect.max_x(), underline_tex_rect.max_y());
-                    vert[V_BOT_RIGHT].adjust = (right, bottom); //(left, top);
-
-                    let has_color = if glyph.has_color { 1.0 } else { 0.0 };
-                    vert[V_TOP_LEFT].has_color = has_color;
-                    vert[V_TOP_RIGHT].has_color = has_color;
-                    vert[V_BOT_LEFT].has_color = has_color;
-                    vert[V_BOT_RIGHT].has_color = has_color;
+                    quad.set_fg_color(glyph_color);
+                    quad.set_bg_color(bg_color);
+                    quad.set_texture(texture_rect);
+                    quad.set_texture_adjust(left, top, right, bottom);
+                    quad.set_underline(underline_tex_rect);
+                    quad.set_has_color(glyph.has_color);
                 }
             }
         }
@@ -1543,9 +1567,6 @@ impl TermWindow {
         let white_space = gl_state.util_sprites.white_space.texture_coords();
 
         for cell_idx in last_cell_idx + 1..num_cols {
-            let vert_idx = cell_idx * VERTICES_PER_CELL;
-            let vert = &mut vertices[vert_idx..vert_idx + 4];
-
             // Even though we don't have a cell for these, they still
             // hold the cursor or the selection so we need to compute
             // the colors in the usual way.
@@ -1559,36 +1580,14 @@ impl TermWindow {
                 palette,
             );
 
-            let bg_color = bg_color.to_tuple_rgba();
-            let fg_color = glyph_color.to_tuple_rgba();
+            let mut quad = Quad::for_cell(cell_idx, &mut vertices);
 
-            vert[V_TOP_LEFT].tex = (white_space.min_x(), white_space.min_y());
-            vert[V_TOP_LEFT].underline = vert[V_TOP_LEFT].tex;
-            vert[V_TOP_LEFT].adjust = (0., 0.);
-            vert[V_TOP_LEFT].has_color = 0.0;
-            vert[V_TOP_LEFT].bg_color = bg_color;
-            vert[V_TOP_LEFT].fg_color = fg_color;
-
-            vert[V_TOP_RIGHT].tex = (white_space.max_x(), white_space.min_y());
-            vert[V_TOP_RIGHT].underline = vert[V_TOP_RIGHT].tex;
-            vert[V_TOP_RIGHT].adjust = (0., 0.);
-            vert[V_TOP_RIGHT].has_color = 0.0;
-            vert[V_TOP_RIGHT].bg_color = bg_color;
-            vert[V_TOP_RIGHT].fg_color = fg_color;
-
-            vert[V_BOT_LEFT].tex = (white_space.min_x(), white_space.max_y());
-            vert[V_BOT_LEFT].underline = vert[V_BOT_LEFT].tex;
-            vert[V_BOT_LEFT].adjust = (0., 0.);
-            vert[V_BOT_LEFT].has_color = 0.0;
-            vert[V_BOT_LEFT].bg_color = bg_color;
-            vert[V_BOT_LEFT].fg_color = fg_color;
-
-            vert[V_BOT_RIGHT].tex = (white_space.max_x(), white_space.max_y());
-            vert[V_BOT_RIGHT].underline = vert[V_BOT_RIGHT].tex;
-            vert[V_BOT_RIGHT].adjust = (0., 0.);
-            vert[V_BOT_RIGHT].has_color = 0.0;
-            vert[V_BOT_RIGHT].bg_color = bg_color;
-            vert[V_BOT_RIGHT].fg_color = fg_color;
+            quad.set_bg_color(bg_color);
+            quad.set_fg_color(glyph_color);
+            quad.set_texture(white_space);
+            quad.set_texture_adjust(0., 0., 0., 0.);
+            quad.set_underline(white_space);
+            quad.set_has_color(false);
         }
 
         Ok(())
