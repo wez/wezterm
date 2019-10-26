@@ -13,6 +13,7 @@ use std::sync::Arc;
 
 mod glyphcache;
 mod termwindow;
+mod utilsprites;
 
 pub struct SoftwareFrontEnd {
     connection: Rc<Connection>,
