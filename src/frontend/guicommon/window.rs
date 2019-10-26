@@ -1,45 +1,20 @@
-#[cfg(feature = "enable-winit")]
+#![cfg(feature = "enable-winit")]
 use crate::config::Config;
-#[cfg(feature = "enable-winit")]
 use crate::font::FontConfiguration;
-use crate::mux::domain::DomainId;
-#[cfg(feature = "enable-winit")]
+use crate::keyassignment::SpawnTabDomain;
 use crate::mux::tab::{Tab, TabId};
-#[cfg(feature = "enable-winit")]
 use crate::mux::window::WindowId;
-#[cfg(feature = "enable-winit")]
 use crate::mux::Mux;
-#[cfg(feature = "enable-winit")]
 use crate::opengl::render::Renderer;
-#[cfg(feature = "enable-winit")]
 use crate::opengl::textureatlas::OutOfTextureSpace;
-#[cfg(feature = "enable-winit")]
 use glium;
-#[cfg(feature = "enable-winit")]
 use portable_pty::PtySize;
-#[cfg(feature = "enable-winit")]
 use std::rc::Rc;
-#[cfg(feature = "enable-winit")]
 use std::sync::Arc;
-
-/// When spawning a tab, specify which domain should be used to
-/// host/spawn that tab.
-#[derive(Debug, Clone)]
-pub enum SpawnTabDomain {
-    /// Use the default domain
-    DefaultDomain,
-    /// Use the domain from the current tab in the associated window
-    CurrentTabDomain,
-    /// Use a specific domain by id
-    Domain(DomainId),
-    /// Use a specific domain by name
-    DomainName(String),
-}
 
 /// Reports the currently configured physical size of the display
 /// surface (physical pixels, not adjusted for dpi) and the current
 /// cell dimensions, also in physical pixels
-#[cfg(feature = "enable-winit")]
 pub struct Dimensions {
     pub width: u16,
     pub height: u16,
@@ -51,7 +26,6 @@ pub struct Dimensions {
 /// the different GUI systems.
 /// A number of methods need to be provided by the window in order to
 /// unlock the use of the provided methods towards the bottom of the trait.
-#[cfg(feature = "enable-winit")]
 pub trait TerminalWindow {
     fn set_window_title(&mut self, title: &str) -> failure::Fallible<()>;
     fn get_mux_window_id(&self) -> WindowId;

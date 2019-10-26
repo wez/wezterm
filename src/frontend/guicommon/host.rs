@@ -1,58 +1,23 @@
-#[cfg(feature = "enable-winit")]
+#![cfg(feature = "enable-winit")]
 use super::window::TerminalWindow;
-#[cfg(feature = "enable-winit")]
 use crate::font::{FontConfiguration, FontSystemSelection};
-#[cfg(feature = "enable-winit")]
 use crate::frontend::guicommon::clipboard::SystemClipboard;
-use crate::frontend::guicommon::window::SpawnTabDomain;
-#[cfg(feature = "enable-winit")]
 use crate::frontend::{front_end, gui_executor};
-#[cfg(feature = "enable-winit")]
+use crate::keyassignment::{KeyAssignment, KeyMap};
 use crate::mux::tab::Tab;
 use crate::mux::Mux;
-#[cfg(feature = "enable-winit")]
 use failure::Error;
-#[cfg(feature = "enable-winit")]
 use failure::Fallible;
-#[cfg(feature = "enable-winit")]
 use log::error;
-#[cfg(feature = "enable-winit")]
 use portable_pty::PtySize;
-#[cfg(feature = "enable-winit")]
 use promise::Future;
-use std::collections::HashMap;
-#[cfg(feature = "enable-winit")]
 use std::ops::{Deref, DerefMut};
-#[cfg(feature = "enable-winit")]
 use std::rc::Rc;
-#[cfg(feature = "enable-winit")]
 use std::sync::Arc;
-#[cfg(feature = "enable-winit")]
 use term::terminal::Clipboard;
 use term::{KeyCode, KeyModifiers};
-#[cfg(feature = "enable-winit")]
 use termwiz::hyperlink::Hyperlink;
 
-#[derive(Debug, Clone)]
-pub enum KeyAssignment {
-    SpawnTab(SpawnTabDomain),
-    SpawnWindow,
-    ToggleFullScreen,
-    Copy,
-    Paste,
-    ActivateTabRelative(isize),
-    IncreaseFontSize,
-    DecreaseFontSize,
-    ResetFontSize,
-    ActivateTab(usize),
-    SendString(String),
-    Nop,
-    Hide,
-    Show,
-    CloseCurrentTab,
-}
-
-#[cfg(feature = "enable-winit")]
 pub trait HostHelper {
     fn with_window<F: Send + 'static + Fn(&mut dyn TerminalWindow) -> Result<(), Error>>(
         &self,
@@ -61,105 +26,12 @@ pub trait HostHelper {
     fn toggle_full_screen(&mut self);
 }
 
-#[cfg(feature = "enable-winit")]
 pub struct HostImpl<H: HostHelper> {
     helper: H,
     clipboard: Arc<dyn Clipboard>,
     keys: KeyMap,
 }
 
-pub struct KeyMap(HashMap<(KeyCode, KeyModifiers), KeyAssignment>);
-
-impl KeyMap {
-    pub fn new() -> Self {
-        let mux = Mux::get().unwrap();
-        let mut map = mux
-            .config()
-            .key_bindings()
-            .expect("keys section of config to be valid");
-
-        macro_rules! m {
-            ($([$mod:expr, $code:expr, $action:expr]),* $(,)?) => {
-                $(
-                map.entry(($code, $mod)).or_insert($action);
-                )*
-            };
-        };
-
-        use KeyAssignment::*;
-
-        // Apply the default bindings; if the user has already mapped
-        // a given entry then that will take precedence.
-        m!(
-            // Clipboard
-            [KeyModifiers::SUPER, KeyCode::Char('c'), Copy],
-            [KeyModifiers::SUPER, KeyCode::Char('v'), Paste],
-            [KeyModifiers::SHIFT, KeyCode::Insert, Paste],
-            // Window management
-            [KeyModifiers::SUPER, KeyCode::Char('m'), Hide],
-            [KeyModifiers::SUPER, KeyCode::Char('n'), SpawnWindow],
-            [KeyModifiers::ALT, KeyCode::Char('\n'), ToggleFullScreen],
-            [KeyModifiers::ALT, KeyCode::Char('\r'), ToggleFullScreen],
-            [KeyModifiers::ALT, KeyCode::Enter, ToggleFullScreen],
-            // Font size manipulation
-            [KeyModifiers::SUPER, KeyCode::Char('-'), DecreaseFontSize],
-            [KeyModifiers::CTRL, KeyCode::Char('-'), DecreaseFontSize],
-            [KeyModifiers::SUPER, KeyCode::Char('='), IncreaseFontSize],
-            [KeyModifiers::CTRL, KeyCode::Char('='), IncreaseFontSize],
-            [KeyModifiers::SUPER, KeyCode::Char('0'), ResetFontSize],
-            [KeyModifiers::CTRL, KeyCode::Char('0'), ResetFontSize],
-            // Tab navigation and management
-            [
-                KeyModifiers::SUPER,
-                KeyCode::Char('t'),
-                SpawnTab(SpawnTabDomain::DefaultDomain)
-            ],
-            [
-                KeyModifiers::SUPER | KeyModifiers::SHIFT,
-                KeyCode::Char('T'),
-                SpawnTab(SpawnTabDomain::CurrentTabDomain)
-            ],
-            [KeyModifiers::SUPER, KeyCode::Char('w'), CloseCurrentTab],
-            [KeyModifiers::SUPER, KeyCode::Char('1'), ActivateTab(0)],
-            [KeyModifiers::SUPER, KeyCode::Char('2'), ActivateTab(1)],
-            [KeyModifiers::SUPER, KeyCode::Char('3'), ActivateTab(2)],
-            [KeyModifiers::SUPER, KeyCode::Char('4'), ActivateTab(3)],
-            [KeyModifiers::SUPER, KeyCode::Char('5'), ActivateTab(4)],
-            [KeyModifiers::SUPER, KeyCode::Char('6'), ActivateTab(5)],
-            [KeyModifiers::SUPER, KeyCode::Char('7'), ActivateTab(6)],
-            [KeyModifiers::SUPER, KeyCode::Char('8'), ActivateTab(7)],
-            [KeyModifiers::SUPER, KeyCode::Char('9'), ActivateTab(8)],
-            [
-                KeyModifiers::SUPER | KeyModifiers::SHIFT,
-                KeyCode::Char('['),
-                ActivateTabRelative(-1)
-            ],
-            [
-                KeyModifiers::SUPER | KeyModifiers::SHIFT,
-                KeyCode::Char('{'),
-                ActivateTabRelative(-1)
-            ],
-            [
-                KeyModifiers::SUPER | KeyModifiers::SHIFT,
-                KeyCode::Char(']'),
-                ActivateTabRelative(1)
-            ],
-            [
-                KeyModifiers::SUPER | KeyModifiers::SHIFT,
-                KeyCode::Char('}'),
-                ActivateTabRelative(1)
-            ],
-        );
-
-        Self(map)
-    }
-
-    pub fn lookup(&self, key: KeyCode, mods: KeyModifiers) -> Option<KeyAssignment> {
-        self.0.get(&(key, mods)).cloned()
-    }
-}
-
-#[cfg(feature = "enable-winit")]
 impl<H: HostHelper> HostImpl<H> {
     pub fn new(helper: H) -> Self {
         Self {
@@ -298,7 +170,6 @@ impl<H: HostHelper> HostImpl<H> {
     }
 }
 
-#[cfg(feature = "enable-winit")]
 impl<H: HostHelper> Deref for HostImpl<H> {
     type Target = H;
     fn deref(&self) -> &H {
@@ -306,7 +177,6 @@ impl<H: HostHelper> Deref for HostImpl<H> {
     }
 }
 
-#[cfg(feature = "enable-winit")]
 impl<H: HostHelper> DerefMut for HostImpl<H> {
     fn deref_mut(&mut self) -> &mut H {
         &mut self.helper
@@ -316,20 +186,17 @@ impl<H: HostHelper> DerefMut for HostImpl<H> {
 /// Implements `TerminalHost` for a Tab.
 /// `TabHost` instances are short lived and borrow references to
 /// other state.
-#[cfg(feature = "enable-winit")]
 pub struct TabHost<'a, H: HostHelper> {
     writer: &'a mut dyn std::io::Write,
     host: &'a mut HostImpl<H>,
 }
 
-#[cfg(feature = "enable-winit")]
 impl<'a, H: HostHelper> TabHost<'a, H> {
     pub fn new(writer: &'a mut dyn std::io::Write, host: &'a mut HostImpl<H>) -> Self {
         Self { writer, host }
     }
 }
 
-#[cfg(feature = "enable-winit")]
 impl<'a, H: HostHelper> term::TerminalHost for TabHost<'a, H> {
     fn writer(&mut self) -> &mut dyn std::io::Write {
         &mut self.writer

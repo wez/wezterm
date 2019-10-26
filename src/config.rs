@@ -2,9 +2,8 @@
 
 use crate::create_user_owned_dirs;
 use crate::font::FontSystemSelection;
-use crate::frontend::guicommon::host::KeyAssignment;
-use crate::frontend::guicommon::window::SpawnTabDomain;
 use crate::frontend::FrontEndSelection;
+use crate::keyassignment::{KeyAssignment, SpawnTabDomain};
 use failure::{bail, err_msg, format_err, Error, Fallible};
 use lazy_static::lazy_static;
 use portable_pty::{CommandBuilder, PtySystemSelection};

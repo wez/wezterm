@@ -16,6 +16,7 @@ use std::sync::Arc;
 
 mod config;
 mod frontend;
+mod keyassignment;
 mod mux;
 
 #[cfg(feature = "enable-winit")]
