@@ -47,8 +47,20 @@ pub trait Texture2d {
 impl Texture2d for SrgbTexture2d {
     fn write(&self, rect: Rect, im: &dyn BitmapImage) {
         let (im_width, im_height) = im.image_dimensions();
+
+        // This is a little unfortunate: glium only exposes GL_RGBA
+        // surfaces but our data is GL_BGRA.  We need to allocate
+        // a temporary buffer to hold the transformed data just for
+        // the duration of the write request.
         let source = glium::texture::RawImage2d {
-            data: std::borrow::Cow::Borrowed(im.pixels()),
+            data: im
+                .pixels()
+                .iter()
+                .map(|&p| {
+                    let (r, g, b, a) = Color(p).as_rgba();
+                    Color::rgba(b, g, r, a).0
+                })
+                .collect(),
             width: im_width as u32,
             height: im_height as u32,
             format: glium::texture::ClientFormat::U8U8U8U8,

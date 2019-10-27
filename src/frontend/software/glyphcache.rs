@@ -34,7 +34,6 @@ pub struct GlyphCache<T: Texture2d> {
     glyph_cache: HashMap<GlyphKey, Rc<CachedGlyph<T>>>,
     pub atlas: Atlas<T>,
     fonts: Rc<FontConfiguration>,
-    byte_swap: bool,
     image_cache: HashMap<usize, Sprite<T>>,
 }
 
@@ -48,7 +47,6 @@ impl GlyphCache<ImageTexture> {
             glyph_cache: HashMap::new(),
             image_cache: HashMap::new(),
             atlas,
-            byte_swap: true,
         }
     }
 }
@@ -73,7 +71,6 @@ impl GlyphCache<SrgbTexture2d> {
             glyph_cache: HashMap::new(),
             image_cache: HashMap::new(),
             atlas,
-            byte_swap: false,
         })
     }
 }
@@ -133,21 +130,12 @@ impl<T: Texture2d> GlyphCache<T> {
                 scale,
             }
         } else {
-            let raw_im = if self.byte_swap {
-                Image::with_rgba32(
-                    glyph.width as usize,
-                    glyph.height as usize,
-                    4 * glyph.width as usize,
-                    &glyph.data,
-                )
-            } else {
-                Image::with_bgra32(
-                    glyph.width as usize,
-                    glyph.height as usize,
-                    4 * glyph.width as usize,
-                    &glyph.data,
-                )
-            };
+            let raw_im = Image::with_rgba32(
+                glyph.width as usize,
+                glyph.height as usize,
+                4 * glyph.width as usize,
+                &glyph.data,
+            );
 
             let bearing_x = glyph.bearing_x * scale;
             let bearing_y = glyph.bearing_y * scale;
@@ -176,31 +164,18 @@ impl<T: Texture2d> GlyphCache<T> {
         Ok(Rc::new(glyph))
     }
 
-    pub fn cached_image(
-        &mut self,
-        image_data: &Arc<ImageData>,
-        byte_swap: bool,
-    ) -> Fallible<Sprite<T>> {
+    pub fn cached_image(&mut self, image_data: &Arc<ImageData>) -> Fallible<Sprite<T>> {
         if let Some(sprite) = self.image_cache.get(&image_data.id()) {
             return Ok(sprite.clone());
         }
 
         let decoded_image = image::load_from_memory(image_data.data())?.to_bgra();
         let (width, height) = decoded_image.dimensions();
-        let image = if byte_swap {
-            Image::with_rgba32(
-                width as usize,
-                height as usize,
-                4 * width as usize,
-                &decoded_image.to_vec(),
-            )
-        } else {
-            ::window::bitmaps::Image::from_raw(
-                width as usize,
-                height as usize,
-                decoded_image.to_vec(),
-            )
-        };
+        let image = ::window::bitmaps::Image::from_raw(
+            width as usize,
+            height as usize,
+            decoded_image.to_vec(),
+        );
 
         let sprite = self.atlas.allocate(&image)?;
 
