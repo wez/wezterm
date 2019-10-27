@@ -249,12 +249,16 @@ impl Font for FreeTypeFontImpl {
                     bearing_x: (f64::from(ft_glyph.bitmap_left)
                         * (dest_width as f64 / width as f64)),
 
-                    // Fudge alert: this may be font specific, but I've found
+                    // Fudge alert: this is font specific: I've found
                     // that the emoji font on macOS doesn't account for the
                     // descender in its metrics, so we're adding that offset
                     // here to avoid rendering the glyph too high
-                    bearing_y: descender
-                        + (f64::from(ft_glyph.bitmap_top) * (dest_height as f64 / height as f64)),
+                    bearing_y: if cfg!(target_os = "macos") {
+                        descender
+                    } else {
+                        0.
+                    } + (f64::from(ft_glyph.bitmap_top)
+                        * (dest_height as f64 / height as f64)),
                 }
             }
             ftwrap::FT_Pixel_Mode::FT_PIXEL_MODE_GRAY => {
