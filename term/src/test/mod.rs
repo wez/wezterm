@@ -89,7 +89,14 @@ struct TestTerm {
 impl TestTerm {
     fn new(height: usize, width: usize, scrollback: usize) -> Self {
         Self {
-            term: Terminal::new(height, width, scrollback, Vec::new()),
+            term: Terminal::new(
+                height,
+                width,
+                height * 16,
+                width * 8,
+                scrollback,
+                Vec::new(),
+            ),
             host: TestHost::new(),
         }
     }

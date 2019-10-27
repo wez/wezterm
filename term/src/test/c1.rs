@@ -39,7 +39,7 @@ fn test_hts() {
     term.assert_cursor_pos(8, 1, None);
 
     // Check that tabs are expanded if we resize
-    term.resize(4, 80);
+    term.resize(4, 80, 4 * 16, 80 * 8);
     term.cup(0, 1);
     term.print("\t");
     term.assert_cursor_pos(3, 1, None);

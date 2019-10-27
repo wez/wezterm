@@ -7,9 +7,9 @@ pub mod bitmap;
 pub mod connection;
 pub mod window;
 
+pub use self::window::*;
 pub use bitmap::*;
 pub use connection::*;
-pub use window::*;
 
 /// Convert a rust string to a cocoa string
 fn nsstring(s: &str) -> StrongPtr {
