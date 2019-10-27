@@ -51,9 +51,12 @@ impl Tab for LocalTab {
 
     fn resize(&self, size: PtySize) -> Result<(), Error> {
         self.pty.borrow_mut().resize(size)?;
-        self.terminal
-            .borrow_mut()
-            .resize(size.rows as usize, size.cols as usize);
+        self.terminal.borrow_mut().resize(
+            size.rows as usize,
+            size.cols as usize,
+            size.pixel_width as usize,
+            size.pixel_height as usize,
+        );
         Ok(())
     }
 

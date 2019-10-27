@@ -209,6 +209,9 @@ pub struct TerminalState {
     /// The terminal title string
     title: String,
     palette: ColorPalette,
+
+    pixel_width: usize,
+    pixel_height: usize,
 }
 
 fn is_double_click_word(s: &str) -> bool {
@@ -229,6 +232,8 @@ impl TerminalState {
     pub fn new(
         physical_rows: usize,
         physical_cols: usize,
+        pixel_width: usize,
+        pixel_height: usize,
         scrollback_size: usize,
         hyperlink_rules: Vec<HyperlinkRule>,
     ) -> TerminalState {
@@ -259,6 +264,8 @@ impl TerminalState {
             hyperlink_rules,
             title: "wezterm".to_string(),
             palette: ColorPalette::default(),
+            pixel_height,
+            pixel_width,
         }
     }
 
@@ -1023,9 +1030,17 @@ impl TerminalState {
         Ok(())
     }
 
-    pub fn resize(&mut self, physical_rows: usize, physical_cols: usize) {
+    pub fn resize(
+        &mut self,
+        physical_rows: usize,
+        physical_cols: usize,
+        pixel_width: usize,
+        pixel_height: usize,
+    ) {
         self.screen.resize(physical_rows, physical_cols);
         self.scroll_region = 0..physical_rows as i64;
+        self.pixel_height = pixel_height;
+        self.pixel_width = pixel_width;
         self.tabs.resize(physical_cols);
         self.set_scroll_viewport(0);
         // Ensure that the cursor is within the new bounds of the screen
@@ -1282,17 +1297,13 @@ impl TerminalState {
         };
 
         // Figure out the dimensions.
-        // TODO: we need to understand pixels here, and we don't today,
-        // so "guess" using the values that I see in my setup.
-        let cell_pixel_width = 8 * 2;
-        let cell_pixel_height = 15 * 2;
+        let physical_cols = self.screen().physical_cols;
+        let physical_rows = self.screen().physical_rows;
+        let cell_pixel_width = self.pixel_width / physical_cols;
+        let cell_pixel_height = self.pixel_height / physical_rows;
 
-        let width = image
-            .width
-            .to_pixels(cell_pixel_width, self.screen().physical_cols);
-        let height = image
-            .height
-            .to_pixels(cell_pixel_height, self.screen().physical_rows);
+        let width = image.width.to_pixels(cell_pixel_width, physical_cols);
+        let height = image.height.to_pixels(cell_pixel_height, physical_rows);
 
         // Compute any Automatic dimensions
         let (width, height) = match (width, height) {
@@ -1316,13 +1327,11 @@ impl TerminalState {
         let width_in_cells = width / cell_pixel_width;
         let height_in_cells = height / cell_pixel_height;
 
+        // TODO: defer this to the actual renderer
         /*
         let available_pixel_width = width_in_cells * cell_pixel_width;
         let available_pixel_height = height_in_cells * cell_pixel_height;
-        */
 
-        // TODO: defer this to the actual renderer
-        /*
         let resized_image = if image.preserve_aspect_ratio {
             let resized = decoded_image.resize(
                 available_pixel_width as u32,
@@ -1347,8 +1356,8 @@ impl TerminalState {
 
         let mut ypos = NotNan::new(0.0).unwrap();
         let cursor_x = self.cursor.x;
-        let x_delta = 1.0 / width_in_cells as f32;
-        let y_delta = 1.0 / height_in_cells as f32;
+        let x_delta = 1.0 / (width as f32 / (self.pixel_width as f32 / physical_cols as f32));
+        let y_delta = 1.0 / (height as f32 / (self.pixel_height as f32 / physical_rows as f32));
         debug!(
             "image is {}x{} cells, {}x{} pixels",
             width_in_cells, height_in_cells, width, height

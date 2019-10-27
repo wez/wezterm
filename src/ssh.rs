@@ -265,6 +265,8 @@ impl Domain for RemoteSshDomain {
         let mut terminal = term::Terminal::new(
             size.rows as usize,
             size.cols as usize,
+            size.pixel_width as usize,
+            size.pixel_height as usize,
             self.config.scrollback_lines.unwrap_or(3500),
             self.config.hyperlink_rules.clone(),
         );

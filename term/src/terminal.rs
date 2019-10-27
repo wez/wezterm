@@ -70,6 +70,8 @@ impl Terminal {
     pub fn new(
         physical_rows: usize,
         physical_cols: usize,
+        pixel_width: usize,
+        pixel_height: usize,
         scrollback_size: usize,
         hyperlink_rules: Vec<HyperlinkRule>,
     ) -> Terminal {
@@ -77,6 +79,8 @@ impl Terminal {
             state: TerminalState::new(
                 physical_rows,
                 physical_cols,
+                pixel_height,
+                pixel_width,
                 scrollback_size,
                 hyperlink_rules,
             ),
