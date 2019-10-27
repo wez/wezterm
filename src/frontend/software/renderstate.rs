@@ -137,8 +137,8 @@ impl OpenGLRenderState {
         let mut verts = Vec::new();
         let mut indices = Vec::new();
 
-        let num_cols = (width as usize + 1) / cell_width as usize;
-        let num_rows = (height as usize + 1) / cell_height as usize;
+        let num_cols = width as usize / cell_width as usize;
+        let num_rows = height as usize / cell_height as usize;
 
         for y in 0..num_rows {
             for x in 0..num_cols {
