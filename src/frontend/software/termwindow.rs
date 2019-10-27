@@ -847,6 +847,48 @@ impl TermWindow {
                         palette,
                     );
 
+                    if let Some(image) = attrs.image.as_ref() {
+                        // Render iTerm2 style image attributes
+
+                        if let Ok(sprite) = gl_state
+                            .glyph_cache
+                            .borrow_mut()
+                            // FIXME: byteswap!
+                            .cached_image(image.image_data())
+                        {
+                            let width = sprite.coords.size.width;
+                            let height = sprite.coords.size.height;
+
+                            let top_left = image.top_left();
+                            let bottom_right = image.bottom_right();
+                            let origin = Point::new(
+                                sprite.coords.origin.x + (*top_left.x * width as f32) as isize,
+                                sprite.coords.origin.y + (*top_left.y * height as f32) as isize,
+                            );
+
+                            let coords = Rect::new(
+                                origin,
+                                Size::new(
+                                    ((*bottom_right.x - *top_left.x) * width as f32) as isize,
+                                    ((*bottom_right.y - *top_left.y) * height as f32) as isize,
+                                ),
+                            );
+
+                            let texture_rect = sprite.texture.to_texture_coords(coords);
+
+                            let mut quad = Quad::for_cell(cell_idx, &mut vertices);
+
+                            quad.set_fg_color(glyph_color);
+                            quad.set_bg_color(bg_color);
+                            quad.set_texture(texture_rect);
+                            quad.set_texture_adjust(0., 0., 0., 0.);
+                            quad.set_underline(gl_state.util_sprites.white_space.texture_coords());
+                            quad.set_has_color(true);
+
+                            continue;
+                        }
+                    }
+
                     let texture = glyph
                         .texture
                         .as_ref()
@@ -1098,6 +1140,7 @@ impl TermWindow {
                             },
                         );
                     } else if let Some(image) = attrs.image.as_ref() {
+                        // Render iTerm2 style image attributes
                         let software = self.render_state.software();
                         if let Ok(sprite) = software
                             .glyph_cache
