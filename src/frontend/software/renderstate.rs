@@ -11,7 +11,7 @@ use failure::Fallible;
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use super::quad::Vertex;
+use super::quad::*;
 
 pub struct SoftwareRenderState {
     pub glyph_cache: RefCell<GlyphCache<ImageTexture>>,
@@ -168,12 +168,13 @@ impl OpenGLRenderState {
                 });
 
                 // Emit two triangles to form the glyph quad
-                indices.push(idx);
-                indices.push(idx + 1);
-                indices.push(idx + 2);
-                indices.push(idx + 1);
-                indices.push(idx + 2);
-                indices.push(idx + 3);
+                indices.push(idx + V_TOP_LEFT as u32);
+                indices.push(idx + V_TOP_RIGHT as u32);
+                indices.push(idx + V_BOT_LEFT as u32);
+
+                indices.push(idx + V_TOP_RIGHT as u32);
+                indices.push(idx + V_BOT_LEFT as u32);
+                indices.push(idx + V_BOT_RIGHT as u32);
             }
         }
 

@@ -4,10 +4,10 @@ use ::window::*;
 /// Each cell is composed of two triangles built from 4 vertices.
 /// The buffer is organized row by row.
 pub const VERTICES_PER_CELL: usize = 4;
-const V_TOP_LEFT: usize = 0;
-const V_TOP_RIGHT: usize = 1;
-const V_BOT_LEFT: usize = 2;
-const V_BOT_RIGHT: usize = 3;
+pub const V_TOP_LEFT: usize = 0;
+pub const V_TOP_RIGHT: usize = 1;
+pub const V_BOT_LEFT: usize = 2;
+pub const V_BOT_RIGHT: usize = 3;
 
 #[derive(Copy, Clone, Default)]
 pub struct Vertex {
