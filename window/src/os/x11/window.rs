@@ -387,7 +387,7 @@ impl Window {
                 // border width
                 0,
                 xcb::WINDOW_CLASS_INPUT_OUTPUT as u16,
-                screen.root_visual(),
+                conn.visual.visual_id(), // screen.root_visual(),
                 &[(
                     xcb::CW_EVENT_MASK,
                     xcb::EVENT_MASK_EXPOSURE

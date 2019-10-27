@@ -98,6 +98,7 @@ pub struct Connection {
     pub(crate) shm_available: bool,
     tasks: Tasks,
     timers: RefCell<TimerList>,
+    pub(crate) visual: xcb::xproto::Visualtype,
 }
 
 impl std::ops::Deref for Connection {
@@ -393,6 +394,31 @@ impl Connection {
         let shm_available = server_supports_shm();
         eprintln!("shm_available: {}", shm_available);
 
+        let screen = conn
+            .get_setup()
+            .roots()
+            .nth(screen_num as usize)
+            .ok_or_else(|| failure::err_msg("no screen?"))?;
+
+        let visual = screen
+            .allowed_depths()
+            .filter(|depth| depth.depth() == 24)
+            .flat_map(|depth| depth.visuals())
+            .filter_map(|vis| {
+                if vis.class() == xcb::xproto::VISUAL_CLASS_TRUE_COLOR as _ {
+                    Some(vis.clone())
+                } else {
+                    None
+                }
+            })
+            .nth(0)
+            .ok_or_else(|| failure::err_msg("did not find 24-bit visual"))?;
+        eprintln!(
+            "picked visual {:x}, screen root visual is {:x}",
+            visual.visual_id(),
+            screen.root_visual()
+        );
+
         let (keyboard, kbd_ev) = Keyboard::new(&conn)?;
 
         let cursor_font_id = conn.generate_id();
@@ -418,6 +444,7 @@ impl Connection {
             shm_available,
             tasks: Default::default(),
             timers: RefCell::new(TimerList::new()),
+            visual,
         };
 
         Ok(conn)
