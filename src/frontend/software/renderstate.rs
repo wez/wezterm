@@ -11,7 +11,7 @@ use failure::Fallible;
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use super::termwindow::Vertex;
+use super::quad::Vertex;
 
 pub struct SoftwareRenderState {
     pub glyph_cache: RefCell<GlyphCache<ImageTexture>>,

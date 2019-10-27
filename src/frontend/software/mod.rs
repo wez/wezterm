@@ -12,6 +12,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
 mod glyphcache;
+mod quad;
 mod renderstate;
 mod termwindow;
 mod utilsprites;
