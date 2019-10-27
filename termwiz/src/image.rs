@@ -32,7 +32,7 @@ where
     value.into_inner().serialize(serializer)
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TextureCoordinate {
     #[serde(
         deserialize_with = "deserialize_notnan",
@@ -86,6 +86,18 @@ impl ImageCell {
             bottom_right,
             data,
         }
+    }
+
+    pub fn top_left(&self) -> TextureCoordinate {
+        self.top_left
+    }
+
+    pub fn bottom_right(&self) -> TextureCoordinate {
+        self.bottom_right
+    }
+
+    pub fn image_data(&self) -> &Arc<ImageData> {
+        &self.data
     }
 }
 

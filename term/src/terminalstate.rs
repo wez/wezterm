@@ -1284,8 +1284,8 @@ impl TerminalState {
         // Figure out the dimensions.
         // TODO: we need to understand pixels here, and we don't today,
         // so "guess" using the values that I see in my setup.
-        let cell_pixel_width = 8;
-        let cell_pixel_height = 15;
+        let cell_pixel_width = 8 * 2;
+        let cell_pixel_height = 15 * 2;
 
         let width = image
             .width
@@ -1316,8 +1316,10 @@ impl TerminalState {
         let width_in_cells = width / cell_pixel_width;
         let height_in_cells = height / cell_pixel_height;
 
+        /*
         let available_pixel_width = width_in_cells * cell_pixel_width;
         let available_pixel_height = height_in_cells * cell_pixel_height;
+        */
 
         // TODO: defer this to the actual renderer
         /*
@@ -1345,8 +1347,8 @@ impl TerminalState {
 
         let mut ypos = NotNan::new(0.0).unwrap();
         let cursor_x = self.cursor.x;
-        let x_delta = 1.0 / available_pixel_width as f32;
-        let y_delta = 1.0 / available_pixel_height as f32;
+        let x_delta = 1.0 / width_in_cells as f32;
+        let y_delta = 1.0 / height_in_cells as f32;
         debug!(
             "image is {}x{} cells, {}x{} pixels",
             width_in_cells, height_in_cells, width, height
@@ -1369,10 +1371,7 @@ impl TerminalState {
                         CellAttributes::default()
                             .set_image(Some(Box::new(ImageCell::new(
                                 TextureCoordinate::new(xpos, ypos),
-                                TextureCoordinate::new(
-                                    xpos + cell_pixel_width as f32,
-                                    ypos + cell_pixel_height as f32,
-                                ),
+                                TextureCoordinate::new(xpos + x_delta, ypos + y_delta),
                                 image_data.clone(),
                             ))))
                             .clone(),

@@ -123,6 +123,18 @@ where
     pub coords: Rect,
 }
 
+impl<T> Clone for Sprite<T>
+where
+    T: Texture2d,
+{
+    fn clone(&self) -> Self {
+        Self {
+            texture: Rc::clone(&self.texture),
+            coords: self.coords,
+        }
+    }
+}
+
 impl<T> Sprite<T>
 where
     T: Texture2d,

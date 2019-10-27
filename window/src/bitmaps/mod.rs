@@ -389,6 +389,14 @@ impl Image {
         }
     }
 
+    pub fn from_raw(width: usize, height: usize, data: Vec<u8>) -> Self {
+        Self {
+            data,
+            width,
+            height,
+        }
+    }
+
     /// Create a new bgra32 image buffer with the specified dimensions.
     /// The buffer is populated with the source data in bgr24 format.
     pub fn with_bgr24(width: usize, height: usize, stride: usize, data: &[u8]) -> Image {
