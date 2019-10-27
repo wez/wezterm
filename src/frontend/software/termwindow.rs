@@ -853,8 +853,7 @@ impl TermWindow {
                         if let Ok(sprite) = gl_state
                             .glyph_cache
                             .borrow_mut()
-                            // FIXME: byteswap!
-                            .cached_image(image.image_data())
+                            .cached_image(image.image_data(), true)
                         {
                             let width = sprite.coords.size.width;
                             let height = sprite.coords.size.height;
@@ -1145,7 +1144,7 @@ impl TermWindow {
                         if let Ok(sprite) = software
                             .glyph_cache
                             .borrow_mut()
-                            .cached_image(image.image_data())
+                            .cached_image(image.image_data(), false)
                         {
                             let width = sprite.coords.size.width;
                             let height = sprite.coords.size.height;

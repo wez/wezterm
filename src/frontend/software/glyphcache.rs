@@ -176,18 +176,31 @@ impl<T: Texture2d> GlyphCache<T> {
         Ok(Rc::new(glyph))
     }
 
-    pub fn cached_image(&mut self, image_data: &Arc<ImageData>) -> Fallible<Sprite<T>> {
+    pub fn cached_image(
+        &mut self,
+        image_data: &Arc<ImageData>,
+        byte_swap: bool,
+    ) -> Fallible<Sprite<T>> {
         if let Some(sprite) = self.image_cache.get(&image_data.id()) {
             return Ok(sprite.clone());
         }
 
         let decoded_image = image::load_from_memory(image_data.data())?.to_bgra();
         let (width, height) = decoded_image.dimensions();
-        let image = ::window::bitmaps::Image::from_raw(
-            width as usize,
-            height as usize,
-            decoded_image.to_vec(),
-        );
+        let image = if byte_swap {
+            Image::with_rgba32(
+                width as usize,
+                height as usize,
+                4 * width as usize,
+                &decoded_image.to_vec(),
+            )
+        } else {
+            ::window::bitmaps::Image::from_raw(
+                width as usize,
+                height as usize,
+                decoded_image.to_vec(),
+            )
+        };
 
         let sprite = self.atlas.allocate(&image)?;
 
