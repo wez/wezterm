@@ -626,6 +626,8 @@ impl WindowView {
                     '\u{f72b}' => KeyCode::End,
                     '\u{f72c}' => KeyCode::PageUp,
                     '\u{f72d}' => KeyCode::PageDown,
+                    // rewrite Del to Backspace
+                    '\u{7f}' => KeyCode::Char('\u{8}'),
                     _ => KeyCode::Char(first_char),
                 }
             } else {
