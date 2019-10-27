@@ -683,6 +683,11 @@ impl TermWindow {
         )
         .to_column_arrays();
 
+        let draw_params = glium::DrawParameters {
+            blend: glium::Blend::alpha_blending(),
+            ..Default::default()
+        };
+
         // Pass 1: Draw backgrounds, strikethrough and underline
         frame.draw(
             &*gl_state.glyph_vertex_buffer.borrow(),
@@ -693,10 +698,7 @@ impl TermWindow {
                 glyph_tex: &*tex,
                 bg_and_line_layer: true,
             },
-            &glium::DrawParameters {
-                blend: glium::Blend::alpha_blending(),
-                ..Default::default()
-            },
+            &draw_params,
         )?;
 
         // Pass 2: Draw glyphs
@@ -709,10 +711,7 @@ impl TermWindow {
                 glyph_tex: &*tex,
                 bg_and_line_layer: false,
             },
-            &glium::DrawParameters {
-                blend: glium::Blend::alpha_blending(),
-                ..Default::default()
-            },
+            &draw_params,
         )?;
 
         term.clean_dirty_lines();
