@@ -122,6 +122,7 @@ impl Font for FreeTypeFontImpl {
         // single threaded and don't load any other glyphs in the body of
         // this load_glyph() function.
         let mut face = self.face.borrow_mut();
+        let descender = unsafe { (*(*face.face).size).metrics.descender as f64 / 64.0 };
         let ft_glyph = face.load_and_render_glyph(glyph_pos, load_flags, render_mode)?;
 
         let mode: ftwrap::FT_Pixel_Mode =
@@ -247,8 +248,13 @@ impl Font for FreeTypeFontImpl {
                     width: dest_width,
                     bearing_x: (f64::from(ft_glyph.bitmap_left)
                         * (dest_width as f64 / width as f64)),
-                    bearing_y: (f64::from(ft_glyph.bitmap_top)
-                        * (dest_height as f64 / height as f64)),
+
+                    // Fudge alert: this may be font specific, but I've found
+                    // that the emoji font on macOS doesn't account for the
+                    // descender in its metrics, so we're adding that offset
+                    // here to avoid rendering the glyph too high
+                    bearing_y: descender
+                        + (f64::from(ft_glyph.bitmap_top) * (dest_height as f64 / height as f64)),
                 }
             }
             ftwrap::FT_Pixel_Mode::FT_PIXEL_MODE_GRAY => {

@@ -101,14 +101,18 @@ impl<T: Texture2d> GlyphCache<T> {
     /// Perform the load and render of a glyph
     #[allow(clippy::float_cmp)]
     fn load_glyph(&mut self, info: &GlyphInfo, style: &TextStyle) -> Fallible<Rc<CachedGlyph<T>>> {
-        let (has_color, glyph, cell_width, cell_height) = {
+        let metrics;
+        let glyph;
+        let has_color;
+
+        let (cell_width, cell_height) = {
             let font = self.fonts.cached_font(style)?;
             let mut font = font.borrow_mut();
-            let metrics = font.get_fallback(0)?.metrics();
+            metrics = font.get_fallback(0)?.metrics();
             let active_font = font.get_fallback(info.font_idx)?;
-            let has_color = active_font.has_color();
-            let glyph = active_font.rasterize_glyph(info.glyph_pos)?;
-            (has_color, glyph, metrics.cell_width, metrics.cell_height)
+            has_color = active_font.has_color();
+            glyph = active_font.rasterize_glyph(info.glyph_pos)?;
+            (metrics.cell_width, metrics.cell_height)
         };
 
         let scale = if (info.x_advance / f64::from(info.num_cells)).floor() > cell_width {
