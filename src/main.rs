@@ -14,11 +14,11 @@ use tabout::{tabulate_output, Alignment, Column};
 use std::rc::Rc;
 use std::sync::Arc;
 
+mod clipboard;
 mod config;
 mod frontend;
 mod keyassignment;
 mod mux;
-
 mod ratelim;
 mod server;
 mod ssh;

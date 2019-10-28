@@ -1,5 +1,5 @@
+use crate::clipboard::SystemClipboard;
 use crate::frontend::gui_executor;
-use crate::frontend::guicommon::clipboard::SystemClipboard;
 use crate::mux::domain::DomainId;
 use crate::mux::renderable::Renderable;
 use crate::mux::tab::{alloc_tab_id, Tab, TabId};

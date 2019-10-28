@@ -1,9 +1,9 @@
 use super::quad::*;
 use super::renderstate::*;
 use super::utilsprites::RenderMetrics;
+use crate::clipboard::SystemClipboard;
 use crate::config::Config;
 use crate::font::{FontConfiguration, FontSystemSelection};
-use crate::frontend::guicommon::clipboard::SystemClipboard;
 use crate::frontend::{front_end, gui_executor};
 use crate::keyassignment::{KeyAssignment, KeyMap, SpawnTabDomain};
 use crate::mux::renderable::Renderable;
