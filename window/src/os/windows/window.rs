@@ -239,7 +239,22 @@ impl WindowOpsMut for WindowInner {
         }
     }
 
-    fn set_inner_size(&self, _width: usize, _height: usize) {}
+    fn set_inner_size(&self, width: usize, height: usize) {
+        let (width, height) = adjust_client_to_window_dimensions(width, height);
+        let hwnd = self.hwnd;
+        Future::with_executor(Connection::executor(), move || unsafe {
+            SetWindowPos(
+                hwnd.0,
+                hwnd.0,
+                0,
+                0,
+                width,
+                height,
+                SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOZORDER,
+            );
+            Ok(())
+        });
+    }
 
     fn set_title(&mut self, title: &str) {
         let title = wide_string(title);
@@ -273,7 +288,9 @@ impl WindowOps for Window {
         Connection::with_window_inner(self.0, move |inner| inner.set_title(&title));
     }
 
-    fn set_inner_size(&self, _width: usize, _height: usize) {}
+    fn set_inner_size(&self, width: usize, height: usize) {
+        Connection::with_window_inner(self.0, move |inner| inner.set_inner_size(width, height));
+    }
 
     fn apply<F: Send + 'static + Fn(&mut dyn Any, &dyn WindowOps)>(&self, func: F)
     where
