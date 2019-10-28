@@ -1,4 +1,4 @@
-use crate::frontend::gui_executor;
+use crate::frontend::executor;
 use crate::mux::domain::DomainId;
 use crate::mux::renderable::Renderable;
 use crate::mux::Mux;
@@ -28,7 +28,7 @@ struct Paste {
 
 fn schedule_next_paste(paste: &Arc<Mutex<Paste>>) {
     let paste = Arc::clone(paste);
-    promise::Future::with_executor(gui_executor().unwrap(), move || {
+    promise::Future::with_executor(executor(), move || {
         let mut locked = paste.lock().unwrap();
         let mux = Mux::get().unwrap();
         let tab = mux.get_tab(locked.tab_id).unwrap();

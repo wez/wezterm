@@ -1,5 +1,5 @@
 use crate::config::{Config, SshDomain, TlsDomainClient, UnixDomain};
-use crate::frontend::gui_executor;
+use crate::frontend::executor;
 use crate::mux::domain::alloc_domain_id;
 use crate::mux::domain::DomainId;
 use crate::mux::Mux;
@@ -65,7 +65,7 @@ macro_rules! rpc {
 fn process_unilateral(local_domain_id: DomainId, decoded: DecodedPdu) -> Fallible<()> {
     if let Some(tab_id) = decoded.pdu.tab_id() {
         let pdu = decoded.pdu;
-        Future::with_executor(gui_executor().unwrap(), move || {
+        Future::with_executor(executor(), move || {
             let mux = Mux::get().unwrap();
             let client_domain = mux
                 .get_domain(local_domain_id)
@@ -540,7 +540,7 @@ impl Client {
                     }
                 }
             }
-            Future::with_executor(gui_executor().unwrap(), move || {
+            Future::with_executor(executor(), move || {
                 let mux = Mux::get().unwrap();
                 let client_domain = mux
                     .get_domain(local_domain_id)

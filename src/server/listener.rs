@@ -1,6 +1,6 @@
 use crate::config::{Config, TlsDomainServer, UnixDomain};
 use crate::create_user_owned_dirs;
-use crate::frontend::gui_executor;
+use crate::frontend::executor;
 use crate::mux::tab::{Tab, TabId};
 use crate::mux::{Mux, MuxNotification, MuxSubscriber};
 use crate::ratelim::RateLimiter;
@@ -41,7 +41,7 @@ impl LocalListener {
         for stream in self.listener.incoming() {
             match stream {
                 Ok(stream) => {
-                    Future::with_executor(gui_executor().unwrap(), move || {
+                    Future::with_executor(executor(), move || {
                         let mut session = ClientSession::new(stream);
                         thread::spawn(move || session.run());
                         Ok(())
@@ -182,12 +182,12 @@ mod not_ossl {
                 match stream {
                     Ok(stream) => {
                         stream.set_nodelay(true).ok();
-                        let executor = gui_executor().unwrap();
+                        let executor = executor();
                         let acceptor = self.acceptor.clone();
 
                         match acceptor.accept(stream) {
                             Ok(stream) => {
-                                Future::with_executor(gui_executor().unwrap(), move || {
+                                Future::with_executor(executor(), move || {
                                     let mut session = ClientSession::new(stream, executor);
                                     thread::spawn(move || session.run());
                                     Ok(())
@@ -320,7 +320,7 @@ mod ossl {
                                     break;
                                 }
 
-                                Future::with_executor(gui_executor().unwrap(), move || {
+                                Future::with_executor(executor(), move || {
                                     let mut session = ClientSession::new(stream);
                                     thread::spawn(move || session.run());
                                     Ok(())
@@ -632,7 +632,7 @@ impl<S: ReadAndWrite> ClientSession<S> {
                 for tab_id in tabs_to_output.drain() {
                     let surfaces = Arc::clone(&self.surfaces_by_tab);
                     let sender = self.to_write_tx.clone();
-                    Future::with_executor(gui_executor().unwrap(), move || {
+                    Future::with_executor(executor(), move || {
                         let mux = Mux::get().unwrap();
                         let tab = mux
                             .get_tab(tab_id)
@@ -685,36 +685,34 @@ impl<S: ReadAndWrite> ClientSession<S> {
     fn process_pdu(&mut self, pdu: Pdu) -> Future<Pdu> {
         match pdu {
             Pdu::Ping(Ping {}) => Future::ok(Pdu::Pong(Pong {})),
-            Pdu::ListTabs(ListTabs {}) => {
-                Future::with_executor(gui_executor().unwrap(), move || {
-                    let mux = Mux::get().unwrap();
-                    let mut tabs = vec![];
-                    for window_id in mux.iter_windows().into_iter() {
-                        let window = mux.get_window(window_id).unwrap();
-                        for tab in window.iter() {
-                            let (rows, cols) = tab.renderer().physical_dimensions();
-                            tabs.push(WindowAndTabEntry {
-                                window_id,
-                                tab_id: tab.tab_id(),
-                                title: tab.get_title(),
-                                size: PtySize {
-                                    cols: cols as u16,
-                                    rows: rows as u16,
-                                    pixel_height: 0,
-                                    pixel_width: 0,
-                                },
-                            });
-                        }
+            Pdu::ListTabs(ListTabs {}) => Future::with_executor(executor(), move || {
+                let mux = Mux::get().unwrap();
+                let mut tabs = vec![];
+                for window_id in mux.iter_windows().into_iter() {
+                    let window = mux.get_window(window_id).unwrap();
+                    for tab in window.iter() {
+                        let (rows, cols) = tab.renderer().physical_dimensions();
+                        tabs.push(WindowAndTabEntry {
+                            window_id,
+                            tab_id: tab.tab_id(),
+                            title: tab.get_title(),
+                            size: PtySize {
+                                cols: cols as u16,
+                                rows: rows as u16,
+                                pixel_height: 0,
+                                pixel_width: 0,
+                            },
+                        });
                     }
-                    log::error!("ListTabs {:#?}", tabs);
-                    Ok(Pdu::ListTabsResponse(ListTabsResponse { tabs }))
-                })
-            }
+                }
+                log::error!("ListTabs {:#?}", tabs);
+                Ok(Pdu::ListTabsResponse(ListTabsResponse { tabs }))
+            }),
 
             Pdu::WriteToTab(WriteToTab { tab_id, data }) => {
                 let surfaces = Arc::clone(&self.surfaces_by_tab);
                 let sender = self.to_write_tx.clone();
-                Future::with_executor(gui_executor().unwrap(), move || {
+                Future::with_executor(executor(), move || {
                     let mux = Mux::get().unwrap();
                     let tab = mux
                         .get_tab(tab_id)
@@ -727,7 +725,7 @@ impl<S: ReadAndWrite> ClientSession<S> {
             Pdu::SendPaste(SendPaste { tab_id, data }) => {
                 let surfaces = Arc::clone(&self.surfaces_by_tab);
                 let sender = self.to_write_tx.clone();
-                Future::with_executor(gui_executor().unwrap(), move || {
+                Future::with_executor(executor(), move || {
                     let mux = Mux::get().unwrap();
                     let tab = mux
                         .get_tab(tab_id)
@@ -738,21 +736,19 @@ impl<S: ReadAndWrite> ClientSession<S> {
                 })
             }
 
-            Pdu::Resize(Resize { tab_id, size }) => {
-                Future::with_executor(gui_executor().unwrap(), move || {
-                    let mux = Mux::get().unwrap();
-                    let tab = mux
-                        .get_tab(tab_id)
-                        .ok_or_else(|| format_err!("no such tab {}", tab_id))?;
-                    tab.resize(size)?;
-                    Ok(Pdu::UnitResponse(UnitResponse {}))
-                })
-            }
+            Pdu::Resize(Resize { tab_id, size }) => Future::with_executor(executor(), move || {
+                let mux = Mux::get().unwrap();
+                let tab = mux
+                    .get_tab(tab_id)
+                    .ok_or_else(|| format_err!("no such tab {}", tab_id))?;
+                tab.resize(size)?;
+                Ok(Pdu::UnitResponse(UnitResponse {}))
+            }),
 
             Pdu::SendKeyDown(SendKeyDown { tab_id, event }) => {
                 let surfaces = Arc::clone(&self.surfaces_by_tab);
                 let sender = self.to_write_tx.clone();
-                Future::with_executor(gui_executor().unwrap(), move || {
+                Future::with_executor(executor(), move || {
                     let mux = Mux::get().unwrap();
                     let tab = mux
                         .get_tab(tab_id)
@@ -765,7 +761,7 @@ impl<S: ReadAndWrite> ClientSession<S> {
             Pdu::SendMouseEvent(SendMouseEvent { tab_id, event }) => {
                 let surfaces = Arc::clone(&self.surfaces_by_tab);
                 let sender = self.to_write_tx.clone();
-                Future::with_executor(gui_executor().unwrap(), move || {
+                Future::with_executor(executor(), move || {
                     let mux = Mux::get().unwrap();
                     let tab = mux
                         .get_tab(tab_id)
@@ -788,7 +784,7 @@ impl<S: ReadAndWrite> ClientSession<S> {
                 })
             }
 
-            Pdu::Spawn(spawn) => Future::with_executor(gui_executor().unwrap(), move || {
+            Pdu::Spawn(spawn) => Future::with_executor(executor(), move || {
                 let mux = Mux::get().unwrap();
                 let domain = mux.get_domain(spawn.domain_id).ok_or_else(|| {
                     format_err!("domain {} not found on this server", spawn.domain_id)
@@ -813,7 +809,7 @@ impl<S: ReadAndWrite> ClientSession<S> {
             Pdu::GetTabRenderChanges(GetTabRenderChanges { tab_id, .. }) => {
                 let surfaces = Arc::clone(&self.surfaces_by_tab);
                 let sender = self.to_write_tx.clone();
-                Future::with_executor(gui_executor().unwrap(), move || {
+                Future::with_executor(executor(), move || {
                     let mux = Mux::get().unwrap();
                     let tab = mux
                         .get_tab(tab_id)

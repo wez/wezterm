@@ -1,5 +1,5 @@
 use crate::clipboard::SystemClipboard;
-use crate::frontend::gui_executor;
+use crate::frontend::executor;
 use crate::mux::domain::DomainId;
 use crate::mux::renderable::Renderable;
 use crate::mux::tab::{alloc_tab_id, Tab, TabId};
@@ -113,7 +113,7 @@ impl MouseState {
                             *highlight.lock().unwrap() = r.highlight.clone();
                             something_changed.store(true, Ordering::SeqCst);
                         }
-                        Future::with_executor(gui_executor().unwrap(), move || {
+                        Future::with_executor(executor(), move || {
                             Self::next(&state)?;
                             Ok(())
                         });

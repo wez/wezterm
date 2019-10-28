@@ -56,7 +56,7 @@ impl Executor for GuiExecutor {
 }
 
 impl FrontEnd for GuiFrontEnd {
-    fn gui_executor(&self) -> Box<dyn Executor> {
+    fn executor(&self) -> Box<dyn Executor> {
         Box::new(GuiExecutor {})
     }
 

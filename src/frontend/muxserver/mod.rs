@@ -58,7 +58,7 @@ impl MuxServerFrontEnd {
 }
 
 impl FrontEnd for MuxServerFrontEnd {
-    fn gui_executor(&self) -> Box<dyn Executor> {
+    fn executor(&self) -> Box<dyn Executor> {
         Box::new(MuxExecutor {
             tx: self.tx.clone(),
         })

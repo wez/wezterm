@@ -36,11 +36,11 @@ thread_local! {
     static FRONT_END: RefCell<Option<Rc<dyn FrontEnd>>> = RefCell::new(None);
 }
 
-pub fn gui_executor() -> Option<Box<dyn Executor>> {
+pub fn executor() -> Box<dyn Executor> {
     let locked = EXECUTOR.lock().unwrap();
     match locked.as_ref() {
-        Some(exec) => Some(exec.clone_executor()),
-        None => None,
+        Some(exec) => exec.clone_executor(),
+        None => panic!("executor machinery not yet configured"),
     }
 }
 
@@ -63,7 +63,7 @@ impl FrontEndSelection {
             FrontEndSelection::OpenGL => gui::GuiFrontEnd::try_new(mux),
         }?;
 
-        EXECUTOR.lock().unwrap().replace(front_end.gui_executor());
+        EXECUTOR.lock().unwrap().replace(front_end.executor());
         FRONT_END.with(|f| *f.borrow_mut() = Some(Rc::clone(&front_end)));
 
         Ok(front_end)
@@ -105,6 +105,6 @@ pub trait FrontEnd: Downcast {
         window_id: WindowId,
     ) -> Fallible<()>;
 
-    fn gui_executor(&self) -> Box<dyn Executor>;
+    fn executor(&self) -> Box<dyn Executor>;
 }
 impl_downcast!(FrontEnd);
