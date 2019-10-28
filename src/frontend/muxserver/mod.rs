@@ -43,7 +43,7 @@ impl MuxServerFrontEnd {
         let (tx, rx) = mpsc::channel();
 
         if start_listener {
-            spawn_listener(mux.config(), Box::new(MuxExecutor { tx: tx.clone() }))?;
+            spawn_listener(mux.config())?;
         }
         Ok(Rc::new(Self { tx, rx }))
     }

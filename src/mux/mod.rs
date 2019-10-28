@@ -9,7 +9,7 @@ use failure::{bail, format_err, Error, Fallible};
 use failure_derive::*;
 use log::{debug, error};
 use portable_pty::ExitStatus;
-use promise::{Executor, Future};
+use promise::Future;
 use std::cell::{Ref, RefCell, RefMut};
 use std::collections::HashMap;
 use std::io::Read;
@@ -46,7 +46,6 @@ pub struct Mux {
 }
 
 fn read_from_tab_pty(config: Arc<Config>, tab_id: TabId, mut reader: Box<dyn std::io::Read>) {
-    let executor = gui_executor().expect("gui_executor was not registered yet!?");
     const BUFSIZE: usize = 32 * 1024;
     let mut buf = [0; BUFSIZE];
 
@@ -69,7 +68,7 @@ fn read_from_tab_pty(config: Arc<Config>, tab_id: TabId, mut reader: Box<dyn std
             Ok(size) => {
                 lim.blocking_admittance_check(size as u32);
                 let data = buf[0..size].to_vec();
-                Future::with_executor(executor.clone_executor(), move || {
+                Future::with_executor(gui_executor().unwrap(), move || {
                     let mux = Mux::get().unwrap();
                     if let Some(tab) = mux.get_tab(tab_id) {
                         tab.advance_bytes(
@@ -85,7 +84,7 @@ fn read_from_tab_pty(config: Arc<Config>, tab_id: TabId, mut reader: Box<dyn std
             }
         }
     }
-    Future::with_executor(executor.clone_executor(), move || {
+    Future::with_executor(gui_executor().unwrap(), move || {
         let mux = Mux::get().unwrap();
         mux.remove_tab(tab_id);
         Ok(())

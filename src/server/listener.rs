@@ -1,5 +1,6 @@
 use crate::config::{Config, TlsDomainServer, UnixDomain};
 use crate::create_user_owned_dirs;
+use crate::frontend::gui_executor;
 use crate::mux::tab::{Tab, TabId};
 use crate::mux::{Mux, MuxNotification, MuxSubscriber};
 use crate::ratelim::RateLimiter;
@@ -13,7 +14,7 @@ use libc::{mode_t, umask};
 use log::{debug, error};
 use native_tls::Identity;
 use portable_pty::PtySize;
-use promise::{Executor, Future};
+use promise::Future;
 use std::collections::{HashMap, HashSet};
 use std::convert::TryFrom;
 use std::fs::remove_file;
@@ -29,21 +30,19 @@ use termwiz::surface::{Change, Position, SequenceNo, Surface};
 
 struct LocalListener {
     listener: UnixListener,
-    executor: Box<dyn Executor>,
 }
 
 impl LocalListener {
-    pub fn new(listener: UnixListener, executor: Box<dyn Executor>) -> Self {
-        Self { listener, executor }
+    pub fn new(listener: UnixListener) -> Self {
+        Self { listener }
     }
 
     fn run(&mut self) {
         for stream in self.listener.incoming() {
             match stream {
                 Ok(stream) => {
-                    let executor = self.executor.clone_executor();
-                    Future::with_executor(executor.clone_executor(), move || {
-                        let mut session = ClientSession::new(stream, executor);
+                    Future::with_executor(gui_executor().unwrap(), move || {
+                        let mut session = ClientSession::new(stream);
                         thread::spawn(move || session.run());
                         Ok(())
                     });
@@ -183,12 +182,12 @@ mod not_ossl {
                 match stream {
                     Ok(stream) => {
                         stream.set_nodelay(true).ok();
-                        let executor = self.executor.clone_executor();
+                        let executor = gui_executor().unwrap();
                         let acceptor = self.acceptor.clone();
 
                         match acceptor.accept(stream) {
                             Ok(stream) => {
-                                Future::with_executor(executor.clone_executor(), move || {
+                                Future::with_executor(gui_executor().unwrap(), move || {
                                     let mut session = ClientSession::new(stream, executor);
                                     thread::spawn(move || session.run());
                                     Ok(())
@@ -250,19 +249,13 @@ mod ossl {
     struct OpenSSLNetListener {
         acceptor: Arc<SslAcceptor>,
         listener: TcpListener,
-        executor: Box<dyn Executor>,
     }
 
     impl OpenSSLNetListener {
-        pub fn new(
-            listener: TcpListener,
-            acceptor: SslAcceptor,
-            executor: Box<dyn Executor>,
-        ) -> Self {
+        pub fn new(listener: TcpListener, acceptor: SslAcceptor) -> Self {
             Self {
                 listener,
                 acceptor: Arc::new(acceptor),
-                executor,
             }
         }
 
@@ -318,7 +311,6 @@ mod ossl {
                 match stream {
                     Ok(stream) => {
                         stream.set_nodelay(true).ok();
-                        let executor = self.executor.clone_executor();
                         let acceptor = self.acceptor.clone();
 
                         match acceptor.accept(stream) {
@@ -328,8 +320,8 @@ mod ossl {
                                     break;
                                 }
 
-                                Future::with_executor(executor.clone_executor(), move || {
-                                    let mut session = ClientSession::new(stream, executor);
+                                Future::with_executor(gui_executor().unwrap(), move || {
+                                    let mut session = ClientSession::new(stream);
                                     thread::spawn(move || session.run());
                                     Ok(())
                                 });
@@ -350,7 +342,6 @@ mod ossl {
 
     pub fn spawn_tls_listener(
         _config: &Arc<Config>,
-        executor: Box<dyn Executor>,
         tls_server: &TlsDomainServer,
     ) -> Result<(), Error> {
         openssl::init();
@@ -396,7 +387,6 @@ mod ossl {
                 )
             })?,
             acceptor,
-            executor,
         );
         thread::spawn(move || {
             net_listener.run();
@@ -407,7 +397,6 @@ mod ossl {
 
 pub struct ClientSession<S: ReadAndWrite> {
     stream: S,
-    executor: Box<dyn Executor>,
     surfaces_by_tab: Arc<Mutex<HashMap<TabId, ClientSurfaceState>>>,
     to_write_rx: PollableReceiver<DecodedPdu>,
     to_write_tx: PollableSender<DecodedPdu>,
@@ -594,14 +583,13 @@ impl<'a> term::TerminalHost for BufferedTerminalHost<'a> {
 }
 
 impl<S: ReadAndWrite> ClientSession<S> {
-    fn new(stream: S, executor: Box<dyn Executor>) -> Self {
+    fn new(stream: S) -> Self {
         let (to_write_tx, to_write_rx) =
             pollable_channel().expect("failed to create pollable_channel");
         let mux = Mux::get().expect("to be running on gui thread");
         let mux_rx = mux.subscribe().expect("Mux::subscribe to succeed");
         Self {
             stream,
-            executor,
             surfaces_by_tab: Arc::new(Mutex::new(HashMap::new())),
             to_write_rx,
             to_write_tx,
@@ -644,7 +632,7 @@ impl<S: ReadAndWrite> ClientSession<S> {
                 for tab_id in tabs_to_output.drain() {
                     let surfaces = Arc::clone(&self.surfaces_by_tab);
                     let sender = self.to_write_tx.clone();
-                    Future::with_executor(self.executor.clone_executor(), move || {
+                    Future::with_executor(gui_executor().unwrap(), move || {
                         let mux = Mux::get().unwrap();
                         let tab = mux
                             .get_tab(tab_id)
@@ -698,7 +686,7 @@ impl<S: ReadAndWrite> ClientSession<S> {
         match pdu {
             Pdu::Ping(Ping {}) => Future::ok(Pdu::Pong(Pong {})),
             Pdu::ListTabs(ListTabs {}) => {
-                Future::with_executor(self.executor.clone_executor(), move || {
+                Future::with_executor(gui_executor().unwrap(), move || {
                     let mux = Mux::get().unwrap();
                     let mut tabs = vec![];
                     for window_id in mux.iter_windows().into_iter() {
@@ -726,7 +714,7 @@ impl<S: ReadAndWrite> ClientSession<S> {
             Pdu::WriteToTab(WriteToTab { tab_id, data }) => {
                 let surfaces = Arc::clone(&self.surfaces_by_tab);
                 let sender = self.to_write_tx.clone();
-                Future::with_executor(self.executor.clone_executor(), move || {
+                Future::with_executor(gui_executor().unwrap(), move || {
                     let mux = Mux::get().unwrap();
                     let tab = mux
                         .get_tab(tab_id)
@@ -739,7 +727,7 @@ impl<S: ReadAndWrite> ClientSession<S> {
             Pdu::SendPaste(SendPaste { tab_id, data }) => {
                 let surfaces = Arc::clone(&self.surfaces_by_tab);
                 let sender = self.to_write_tx.clone();
-                Future::with_executor(self.executor.clone_executor(), move || {
+                Future::with_executor(gui_executor().unwrap(), move || {
                     let mux = Mux::get().unwrap();
                     let tab = mux
                         .get_tab(tab_id)
@@ -751,7 +739,7 @@ impl<S: ReadAndWrite> ClientSession<S> {
             }
 
             Pdu::Resize(Resize { tab_id, size }) => {
-                Future::with_executor(self.executor.clone_executor(), move || {
+                Future::with_executor(gui_executor().unwrap(), move || {
                     let mux = Mux::get().unwrap();
                     let tab = mux
                         .get_tab(tab_id)
@@ -764,7 +752,7 @@ impl<S: ReadAndWrite> ClientSession<S> {
             Pdu::SendKeyDown(SendKeyDown { tab_id, event }) => {
                 let surfaces = Arc::clone(&self.surfaces_by_tab);
                 let sender = self.to_write_tx.clone();
-                Future::with_executor(self.executor.clone_executor(), move || {
+                Future::with_executor(gui_executor().unwrap(), move || {
                     let mux = Mux::get().unwrap();
                     let tab = mux
                         .get_tab(tab_id)
@@ -777,7 +765,7 @@ impl<S: ReadAndWrite> ClientSession<S> {
             Pdu::SendMouseEvent(SendMouseEvent { tab_id, event }) => {
                 let surfaces = Arc::clone(&self.surfaces_by_tab);
                 let sender = self.to_write_tx.clone();
-                Future::with_executor(self.executor.clone_executor(), move || {
+                Future::with_executor(gui_executor().unwrap(), move || {
                     let mux = Mux::get().unwrap();
                     let tab = mux
                         .get_tab(tab_id)
@@ -800,7 +788,7 @@ impl<S: ReadAndWrite> ClientSession<S> {
                 })
             }
 
-            Pdu::Spawn(spawn) => Future::with_executor(self.executor.clone_executor(), move || {
+            Pdu::Spawn(spawn) => Future::with_executor(gui_executor().unwrap(), move || {
                 let mux = Mux::get().unwrap();
                 let domain = mux.get_domain(spawn.domain_id).ok_or_else(|| {
                     format_err!("domain {} not found on this server", spawn.domain_id)
@@ -825,7 +813,7 @@ impl<S: ReadAndWrite> ClientSession<S> {
             Pdu::GetTabRenderChanges(GetTabRenderChanges { tab_id, .. }) => {
                 let surfaces = Arc::clone(&self.surfaces_by_tab);
                 let sender = self.to_write_tx.clone();
-                Future::with_executor(self.executor.clone_executor(), move || {
+                Future::with_executor(gui_executor().unwrap(), move || {
                     let mux = Mux::get().unwrap();
                     let tab = mux
                         .get_tab(tab_id)
@@ -926,36 +914,25 @@ fn safely_create_sock_path(unix_dom: &UnixDomain) -> Result<UnixListener, Error>
 }
 
 #[cfg(any(feature = "openssl", unix))]
-fn spawn_tls_listener(
-    config: &Arc<Config>,
-    executor: Box<dyn Executor>,
-    tls_server: &TlsDomainServer,
-) -> Fallible<()> {
-    ossl::spawn_tls_listener(config, executor, tls_server)
+fn spawn_tls_listener(config: &Arc<Config>, tls_server: &TlsDomainServer) -> Fallible<()> {
+    ossl::spawn_tls_listener(config, tls_server)
 }
 
 #[cfg(not(any(feature = "openssl", unix)))]
-fn spawn_tls_listener(
-    config: &Arc<Config>,
-    executor: Box<dyn Executor>,
-    tls_server: &TlsDomainServer,
-) -> Fallible<()> {
-    not_ossl::spawn_tls_listener(config, executor, tls_server)
+fn spawn_tls_listener(config: &Arc<Config>, tls_server: &TlsDomainServer) -> Fallible<()> {
+    not_ossl::spawn_tls_listener(config, tls_server)
 }
 
-pub fn spawn_listener(config: &Arc<Config>, executor: Box<dyn Executor>) -> Fallible<()> {
+pub fn spawn_listener(config: &Arc<Config>) -> Fallible<()> {
     for unix_dom in &config.unix_domains {
-        let mut listener = LocalListener::new(
-            safely_create_sock_path(unix_dom)?,
-            executor.clone_executor(),
-        );
+        let mut listener = LocalListener::new(safely_create_sock_path(unix_dom)?);
         thread::spawn(move || {
             listener.run();
         });
     }
 
     for tls_server in &config.tls_servers {
-        spawn_tls_listener(config, executor.clone_executor(), tls_server)?;
+        spawn_tls_listener(config, tls_server)?;
     }
     Ok(())
 }
