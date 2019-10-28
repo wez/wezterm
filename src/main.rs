@@ -19,8 +19,6 @@ mod frontend;
 mod keyassignment;
 mod mux;
 
-#[cfg(feature = "enable-winit")]
-mod opengl;
 mod ratelim;
 mod server;
 mod ssh;

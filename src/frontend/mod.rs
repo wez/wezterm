@@ -12,30 +12,21 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 
-#[cfg(feature = "enable-winit")]
-pub mod glium;
 pub mod guicommon;
 pub mod muxserver;
 pub mod software;
 
 #[derive(Debug, Deserialize, Clone, Copy, PartialEq, Eq)]
 pub enum FrontEndSelection {
-    Glutin,
+    OpenGL,
+    Software,
     MuxServer,
     Null,
-    Software,
-    OpenGL,
 }
 
 impl Default for FrontEndSelection {
     fn default() -> Self {
-        if cfg!(all(unix, not(target_os = "macos"))) {
-            FrontEndSelection::OpenGL
-        } else if cfg!(feature = "enable-winit") {
-            FrontEndSelection::Glutin
-        } else {
-            FrontEndSelection::OpenGL
-        }
+        FrontEndSelection::OpenGL
     }
 }
 
@@ -67,10 +58,6 @@ pub fn front_end() -> Option<Rc<dyn FrontEnd>> {
 impl FrontEndSelection {
     pub fn try_new(self, mux: &Rc<Mux>) -> Result<Rc<dyn FrontEnd>, Error> {
         let front_end = match self {
-            #[cfg(feature = "enable-winit")]
-            FrontEndSelection::Glutin => glium::glutinloop::GlutinFrontEnd::try_new(mux),
-            #[cfg(not(feature = "enable-winit"))]
-            FrontEndSelection::Glutin => failure::bail!("Glutin not compiled in"),
             FrontEndSelection::MuxServer => muxserver::MuxServerFrontEnd::try_new(mux),
             FrontEndSelection::Null => muxserver::MuxServerFrontEnd::new_null(mux),
             FrontEndSelection::Software => software::SoftwareFrontEnd::try_new_no_opengl(mux),
@@ -85,7 +72,7 @@ impl FrontEndSelection {
 
     // TODO: find or build a proc macro for this
     pub fn variants() -> Vec<&'static str> {
-        vec!["Glutin", "MuxServer", "Null", "Software", "OpenGL"]
+        vec!["OpenGL", "Software", "MuxServer", "Null"]
     }
 }
 
@@ -93,7 +80,6 @@ impl std::str::FromStr for FrontEndSelection {
     type Err = Error;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_ref() {
-            "glutin" => Ok(FrontEndSelection::Glutin),
             "muxserver" => Ok(FrontEndSelection::MuxServer),
             "null" => Ok(FrontEndSelection::Null),
             "software" => Ok(FrontEndSelection::Software),

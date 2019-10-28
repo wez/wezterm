@@ -25,7 +25,6 @@ pretty_env_logger = "0.3"
 failure = "0.1"
 failure_derive = "0.1"
 freetype = { path = "deps/freetype" }
-glium = { optional=true, version = "0.24", default-features = false, features = ["glutin", "icon_loading"]}
 image = "0.21"
 harfbuzz = { path = "deps/harfbuzz" }
 lazy_static = "1.3"
@@ -52,7 +51,6 @@ toml = "0.4"
 unicode-normalization = "0.1"
 unicode-width = "0.1"
 varbincode = "0.1"
-winit = {version="0.19",optional=true}
 window = { path = "window", features=["opengl"]}
 zstd = "0.4"
 
@@ -88,10 +86,6 @@ openssl = { version = "0.10", features = ["vendored"] }
 core-foundation = "0.6"
 core-graphics = "0.17"
 core-text = "13.2"
-
-[features]
-default = ["enable-winit"]
-enable-winit = ["winit", "glium"]
 
 [workspace]
 
