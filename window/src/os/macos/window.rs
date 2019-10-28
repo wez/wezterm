@@ -296,6 +296,10 @@ impl WindowOps for Window {
         Connection::with_window_inner(self.0, move |inner| inner.set_title(&title));
     }
 
+    fn set_inner_size(&self, width: usize, height: usize) {
+        Connection::with_window_inner(self.0, move |inner| inner.set_inner_size(width, height));
+    }
+
     fn apply<F: Send + 'static + Fn(&mut dyn Any, &dyn WindowOps)>(&self, func: F)
     where
         Self: Sized,
@@ -379,6 +383,19 @@ impl WindowOpsMut for WindowInner {
         let title = nsstring(title);
         unsafe {
             NSWindow::setTitle_(*self.window, *title);
+        }
+    }
+
+    fn set_inner_size(&self, width: usize, height: usize) {
+        unsafe {
+            let frame = NSView::frame(*self.view as *mut _);
+            let backing_frame = NSView::convertRectToBacking(*self.view as *mut _, frame);
+            let scale = backing_frame.size.width / frame.size.width;
+
+            NSWindow::setContentSize_(
+                *self.window,
+                NSSize::new(width as f64 / scale, height as f64 / scale),
+            );
         }
     }
 }

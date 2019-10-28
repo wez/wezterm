@@ -565,7 +565,13 @@ impl TermWindow {
     fn scaling_changed(&mut self, dimensions: Dimensions, font_scale: f64) {
         let mux = Mux::get().unwrap();
         if let Some(window) = mux.get_window(self.mux_window_id) {
-            if dimensions.dpi != self.dimensions.dpi || font_scale != self.fonts.get_font_scale() {
+            let cols = self.dimensions.pixel_width / self.render_metrics.cell_size.width as usize;
+            let rows = self.dimensions.pixel_height / self.render_metrics.cell_size.height as usize;
+
+            let scale_changed =
+                dimensions.dpi != self.dimensions.dpi || font_scale != self.fonts.get_font_scale();
+
+            if scale_changed {
                 self.fonts
                     .change_scaling(font_scale, dimensions.dpi as f64 / 96.);
                 self.render_metrics = RenderMetrics::new(&self.fonts);
@@ -592,6 +598,16 @@ impl TermWindow {
             };
             for tab in window.iter() {
                 tab.resize(size).ok();
+            }
+
+            // Queue up a speculative resize in order to preserve the number of rows+cols
+            if scale_changed {
+                if let Some(window) = self.window.as_ref() {
+                    window.set_inner_size(
+                        cols * self.render_metrics.cell_size.width as usize,
+                        rows * self.render_metrics.cell_size.height as usize,
+                    );
+                }
             }
         };
     }

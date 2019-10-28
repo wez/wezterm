@@ -169,6 +169,9 @@ pub trait WindowOps {
     /// Change the titlebar text for the window
     fn set_title(&self, title: &str);
 
+    /// Resize the inner or client area of the window
+    fn set_inner_size(&self, width: usize, height: usize);
+
     /// Schedule a callback on the data associated with the window.
     /// The `Any` that is passed in corresponds to the WindowCallbacks
     /// impl you passed to `new_window`, pre-converted to Any so that
@@ -208,4 +211,7 @@ pub trait WindowOpsMut {
 
     /// Change the titlebar text for the window
     fn set_title(&mut self, title: &str);
+
+    /// Resize the inner or client area of the window
+    fn set_inner_size(&self, width: usize, height: usize);
 }

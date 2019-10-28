@@ -239,6 +239,8 @@ impl WindowOpsMut for WindowInner {
         }
     }
 
+    fn set_inner_size(&self, _width: usize, _height: usize) {}
+
     fn set_title(&mut self, title: &str) {
         let title = wide_string(title);
         unsafe {
@@ -270,6 +272,8 @@ impl WindowOps for Window {
         let title = title.to_owned();
         Connection::with_window_inner(self.0, move |inner| inner.set_title(&title));
     }
+
+    fn set_inner_size(&self, _width: usize, _height: usize) {}
 
     fn apply<F: Send + 'static + Fn(&mut dyn Any, &dyn WindowOps)>(&self, func: F)
     where
