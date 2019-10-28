@@ -466,7 +466,16 @@ impl WindowOpsMut for WindowInner {
         self.paint_all = true;
     }
 
-    fn set_inner_size(&self, _width: usize, _height: usize) {}
+    fn set_inner_size(&self, width: usize, height: usize) {
+        xcb::configure_window(
+            self.conn.conn(),
+            self.window_id,
+            &[
+                (xcb::CONFIG_WINDOW_WIDTH as u16, width as u32),
+                (xcb::CONFIG_WINDOW_HEIGHT as u16, height as u32),
+            ],
+        );
+    }
 
     /// Change the title for the window manager
     fn set_title(&mut self, title: &str) {
@@ -497,7 +506,9 @@ impl WindowOps for Window {
         Connection::with_window_inner(self.0, move |inner| inner.set_title(&title));
     }
 
-    fn set_inner_size(&self, _width: usize, _height: usize) {}
+    fn set_inner_size(&self, width: usize, height: usize) {
+        Connection::with_window_inner(self.0, move |inner| inner.set_inner_size(width, height));
+    }
 
     fn apply<F: Send + 'static + Fn(&mut dyn Any, &dyn WindowOps)>(&self, func: F)
     where
