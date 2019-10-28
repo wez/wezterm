@@ -185,6 +185,13 @@ impl WindowCallbacks for TermWindow {
             use ::window::KeyCode as WK;
 
             let key_down = match key.key {
+                // TODO: consider eliminating these codes from termwiz::input::KeyCode
+                WK::Char('\r') | WK::Char('\n') => Some(KC::Enter),
+                WK::Char('\t') => Some(KC::Tab),
+                WK::Char('\u{08}') => Some(KC::Backspace),
+                WK::Char('\u{1b}') => Some(KC::Escape),
+                WK::Char('\u{7f}') => Some(KC::Delete),
+
                 WK::Char(c) => Some(KC::Char(c)),
                 WK::Composed(ref s) => {
                     tab.writer().write_all(s.as_bytes()).ok();
