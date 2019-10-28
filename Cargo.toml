@@ -85,7 +85,7 @@ openssl = "0.10"
 openssl = { version = "0.10", features = ["vendored"] }
 core-foundation = "0.6"
 core-graphics = "0.17"
-core-text = "13.2"
+core-text = "13.3"
 
 [workspace]
 
