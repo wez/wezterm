@@ -850,7 +850,8 @@ impl TerminalState {
             (Escape, ..) => "\x1b",
             // Delete
             (Char('\x7f'), _, _, _, false) | (Delete, _, _, _, false) => "\x7f",
-            (Char('\x7f'), ..) | (Delete, ..) => "\x1b[3~",
+            // TODO: application delete key? See https://github.com/wez/wezterm/issues/52
+            (Char('\x7f'), _, _, _, true) | (Delete, _, _, _, true) => "\x7f", // "\x1b[3~"
 
             (Char(c), CTRL, _, SHIFT, _) if c <= 0xff as char && c > 0x40 as char => {
                 // If shift is held we have C == 0x43 and want to translate
