@@ -17,7 +17,7 @@ mod renderstate;
 mod termwindow;
 mod utilsprites;
 
-pub struct SoftwareFrontEnd {
+pub struct GuiFrontEnd {
     connection: Rc<Connection>,
 }
 
@@ -29,7 +29,7 @@ pub fn is_opengl_enabled() -> bool {
     USE_OPENGL.load(Ordering::Acquire)
 }
 
-impl SoftwareFrontEnd {
+impl GuiFrontEnd {
     pub fn try_new_no_opengl(mux: &Rc<Mux>) -> Fallible<Rc<dyn FrontEnd>> {
         USE_OPENGL.store(false, Ordering::Release);
         Self::try_new(mux)
@@ -37,7 +37,7 @@ impl SoftwareFrontEnd {
 
     pub fn try_new(_mux: &Rc<Mux>) -> Fallible<Rc<dyn FrontEnd>> {
         let connection = Connection::init()?;
-        let front_end = Rc::new(SoftwareFrontEnd { connection });
+        let front_end = Rc::new(GuiFrontEnd { connection });
         Ok(front_end)
     }
 }
@@ -55,7 +55,7 @@ impl Executor for GuiExecutor {
     }
 }
 
-impl FrontEnd for SoftwareFrontEnd {
+impl FrontEnd for GuiFrontEnd {
     fn gui_executor(&self) -> Box<dyn Executor> {
         Box::new(GuiExecutor {})
     }

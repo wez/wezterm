@@ -12,8 +12,8 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 
+pub mod gui;
 pub mod muxserver;
-pub mod software;
 
 #[derive(Debug, Deserialize, Clone, Copy, PartialEq, Eq)]
 pub enum FrontEndSelection {
@@ -59,8 +59,8 @@ impl FrontEndSelection {
         let front_end = match self {
             FrontEndSelection::MuxServer => muxserver::MuxServerFrontEnd::try_new(mux),
             FrontEndSelection::Null => muxserver::MuxServerFrontEnd::new_null(mux),
-            FrontEndSelection::Software => software::SoftwareFrontEnd::try_new_no_opengl(mux),
-            FrontEndSelection::OpenGL => software::SoftwareFrontEnd::try_new(mux),
+            FrontEndSelection::Software => gui::GuiFrontEnd::try_new_no_opengl(mux),
+            FrontEndSelection::OpenGL => gui::GuiFrontEnd::try_new(mux),
         }?;
 
         EXECUTOR.lock().unwrap().replace(front_end.gui_executor());
