@@ -18,6 +18,7 @@ mod clipboard;
 mod config;
 mod frontend;
 mod keyassignment;
+mod localtab;
 mod mux;
 mod ratelim;
 mod server;

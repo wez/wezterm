@@ -1,5 +1,5 @@
 use crate::config::Config;
-use crate::frontend::guicommon::localtab::LocalTab;
+use crate::localtab::LocalTab;
 use crate::mux::domain::{alloc_domain_id, Domain, DomainId, DomainState};
 use crate::mux::tab::Tab;
 use crate::mux::window::WindowId;

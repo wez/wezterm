@@ -6,7 +6,7 @@
 //! of an ssh session somewhere.
 
 use crate::config::Config;
-use crate::frontend::guicommon::localtab::LocalTab;
+use crate::localtab::LocalTab;
 use crate::mux::tab::Tab;
 use crate::mux::window::WindowId;
 use crate::mux::Mux;
