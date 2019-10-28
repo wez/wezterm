@@ -31,28 +31,6 @@ impl Executor for Box<dyn Executor> {
     }
 }
 
-/// An executor for spawning futures into the rayon global
-/// thread pool
-#[derive(Clone, Default)]
-pub struct RayonExecutor {}
-
-impl RayonExecutor {
-    pub fn new() -> Self {
-        Self {}
-    }
-}
-
-impl BasicExecutor for RayonExecutor {
-    fn execute(&self, f: SpawnFunc) {
-        rayon::spawn(f);
-    }
-}
-impl Executor for RayonExecutor {
-    fn clone_executor(&self) -> Box<dyn Executor> {
-        Box::new(RayonExecutor::new())
-    }
-}
-
 enum PromiseState<T> {
     Waiting(Arc<Core<T>>),
     Fulfilled,
@@ -435,11 +413,5 @@ mod test {
         let f2 = f.then(move |result| Ok(result.unwrap() * 2));
 
         assert_eq!(f2.wait().unwrap(), 246);
-    }
-
-    #[test]
-    fn via_rayon() {
-        let f = Future::with_executor(RayonExecutor::new(), || Ok(true));
-        assert_eq!(f.wait().unwrap(), true);
     }
 }
