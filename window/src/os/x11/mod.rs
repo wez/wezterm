@@ -7,4 +7,4 @@ pub mod xkeysyms;
 pub use bitmap::*;
 pub use connection::*;
 pub use keyboard::*;
-pub use window::*;
+pub use self::window::*;
