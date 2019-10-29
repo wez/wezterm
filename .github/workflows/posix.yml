@@ -18,8 +18,6 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v1
-    - name: Update submodules
-      run: git submodule update --init
     - name: Install System Deps
       run: sudo ./get-deps
     - name: Install Rust
