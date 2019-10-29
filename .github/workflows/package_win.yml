@@ -20,8 +20,6 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v1
-    - name: Update submodules
-      run: git submodule update --init
     - name: Install Rust
       shell: cmd
       run: |

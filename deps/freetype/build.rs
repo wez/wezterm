@@ -4,6 +4,10 @@ use std::env;
 use std::path::{Path, PathBuf};
 
 fn zlib() {
+    if !Path::new("zlib/.git").exists() {
+        git_submodule_update();
+    }
+
     // The out-of-source build for zlib unfortunately modifies some of
     // the sources, leaving the repo with a dirty status.  Let's take
     // a copy of the sources so that we don't trigger this.
@@ -49,6 +53,10 @@ fn libpath(p: &Path, name: &str) -> PathBuf {
 }
 
 fn libpng() {
+    if !Path::new("libpng/.git").exists() {
+        git_submodule_update();
+    }
+
     let mut config = Config::new("libpng");
     let dst = config.profile("Release").build();
     emit_libdirs(&dst);
@@ -60,6 +68,10 @@ fn libpng() {
 }
 
 fn freetype() {
+    if !Path::new("freetype2/.git").exists() {
+        git_submodule_update();
+    }
+
     let mut config = Config::new("freetype2");
     let dst = config
         .define("FT_WITH_PNG", "ON")
@@ -71,6 +83,12 @@ fn freetype() {
     emit_libdirs(Path::new("/usr"));
     println!("cargo:include={}/include/freetype2", dst.display());
     println!("cargo:lib={}", libpath(&dst, "freetype").display());
+}
+
+fn git_submodule_update() {
+    let _ = std::process::Command::new("git")
+        .args(&["submodule", "update", "--init"])
+        .status();
 }
 
 fn main() {

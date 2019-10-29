@@ -3,6 +3,10 @@ use std::env;
 use std::path::Path;
 
 fn harfbuzz() {
+    if !Path::new("harfbuzz/.git").exists() {
+        git_submodule_update();
+    }
+
     let mut config = Config::new("harfbuzz");
     for (key, value) in std::env::vars() {
         println!("{}: {}", key, value);
@@ -42,6 +46,12 @@ fn emit_libdirs(p: &Path) {
             println!("cargo:rustc-link-search=native={}", libdir.display());
         }
     }
+}
+
+fn git_submodule_update() {
+    let _ = std::process::Command::new("git")
+        .args(&["submodule", "update", "--init"])
+        .status();
 }
 
 fn main() {
