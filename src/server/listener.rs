@@ -161,19 +161,13 @@ mod not_ossl {
     struct NetListener {
         acceptor: Arc<TlsAcceptor>,
         listener: TcpListener,
-        executor: Box<dyn Executor>,
     }
 
     impl NetListener {
-        pub fn new(
-            listener: TcpListener,
-            acceptor: TlsAcceptor,
-            executor: Box<dyn Executor>,
-        ) -> Self {
+        pub fn new(listener: TcpListener, acceptor: TlsAcceptor) -> Self {
             Self {
                 listener,
                 acceptor: Arc::new(acceptor),
-                executor,
             }
         }
 
@@ -182,13 +176,12 @@ mod not_ossl {
                 match stream {
                     Ok(stream) => {
                         stream.set_nodelay(true).ok();
-                        let executor = executor();
                         let acceptor = self.acceptor.clone();
 
                         match acceptor.accept(stream) {
                             Ok(stream) => {
                                 Future::with_executor(executor(), move || {
-                                    let mut session = ClientSession::new(stream, executor);
+                                    let mut session = ClientSession::new(stream);
                                     thread::spawn(move || session.run());
                                     Ok(())
                                 });
@@ -207,11 +200,7 @@ mod not_ossl {
         }
     }
 
-    pub fn spawn_tls_listener(
-        _config: &Arc<Config>,
-        executor: Box<dyn Executor>,
-        tls_server: &TlsDomainServer,
-    ) -> Fallible<()> {
+    pub fn spawn_tls_listener(_config: &Arc<Config>, tls_server: &TlsDomainServer) -> Fallible<()> {
         let identity = IdentitySource::PemFiles {
             key: tls_server
                 .pem_private_key
@@ -231,7 +220,6 @@ mod not_ossl {
                 )
             })?,
             TlsAcceptor::new(identity.try_into()?)?,
-            executor,
         );
         thread::spawn(move || {
             net_listener.run();
