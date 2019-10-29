@@ -816,8 +816,8 @@ impl TermWindow {
                 (fg, bg)
             };
 
-            let glyph_color = fg_color;
-            let bg_color = bg_color;
+            let glyph_color = rgbcolor_to_window_color(fg_color);
+            let bg_color = rgbcolor_to_window_color(bg_color);
 
             // Shape the printable text from this cluster
             let glyph_info = {
@@ -867,8 +867,8 @@ impl TermWindow {
                         cell_idx,
                         cursor,
                         &selection,
-                        rgbcolor_to_window_color(glyph_color),
-                        rgbcolor_to_window_color(bg_color),
+                        glyph_color,
+                        bg_color,
                         palette,
                     );
 
