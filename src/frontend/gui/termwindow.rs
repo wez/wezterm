@@ -354,10 +354,8 @@ impl TermWindow {
             },
         );
 
-        window.show();
-
         if super::is_opengl_enabled() {
-            window.enable_opengl(|any, _window, maybe_ctx| {
+            window.enable_opengl(|any, window, maybe_ctx| {
                 let mut termwindow = any.downcast_mut::<TermWindow>().expect("to be TermWindow");
 
                 match maybe_ctx {
@@ -384,8 +382,12 @@ impl TermWindow {
                         }
                     }
                     Err(err) => log::error!("OpenGL init failed: {}", err),
-                }
+                };
+
+                window.show();
             });
+        } else {
+            window.show();
         }
 
         Ok(())
