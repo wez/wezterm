@@ -10,4 +10,4 @@ build = "build.rs"
 freetype = { path = "../freetype" }
 
 [build-dependencies]
-cmake = "0.1"
+cc = {version="1.0", features = ["parallel"]}

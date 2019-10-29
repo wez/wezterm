@@ -9,5 +9,4 @@ build = "build.rs"
 [dependencies]
 
 [build-dependencies]
-cmake = "0.1"
-fs_extra = "1.1.0"
+cc = {version="1.0", features = ["parallel"]}
