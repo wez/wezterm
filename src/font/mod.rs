@@ -254,7 +254,10 @@ pub fn shape_with_harfbuzz(
     buf.add_str(s);
 
     {
-        let fallback = font.get_fallback(font_idx)?;
+        let fallback = font.get_fallback(font_idx).map_err(|e| {
+            let chars: Vec<u32> = s.chars().map(|c| c as u32).collect();
+            e.context(format!("while shaping {:x?}", chars))
+        })?;
         fallback.harfbuzz_shape(&mut buf, Some(features.as_slice()));
     }
 

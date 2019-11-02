@@ -108,8 +108,13 @@ impl<T: Texture2d> GlyphCache<T> {
         let (cell_width, cell_height) = {
             let font = self.fonts.cached_font(style)?;
             let mut font = font.borrow_mut();
-            metrics = font.get_fallback(0)?.metrics();
-            let active_font = font.get_fallback(info.font_idx)?;
+            metrics = font
+                .get_fallback(0)
+                .map_err(|e| e.context(format!("glyph {:?}", info)))?
+                .metrics();
+            let active_font = font
+                .get_fallback(info.font_idx)
+                .map_err(|e| e.context(format!("glyph {:?}", info)))?;
             has_color = active_font.has_color();
             glyph = active_font.rasterize_glyph(info.glyph_pos)?;
             (metrics.cell_width, metrics.cell_height)
