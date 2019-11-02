@@ -13,13 +13,22 @@ use promise::Future;
 use std::any::Any;
 use std::cell::RefCell;
 use std::io::Error as IoError;
+use std::os::windows::ffi::OsStringExt;
 use std::ptr::{null, null_mut};
 use std::rc::Rc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use winapi::shared::minwindef::*;
+use winapi::shared::ntdef::*;
 use winapi::shared::windef::*;
+use winapi::um::imm::*;
 use winapi::um::libloaderapi::GetModuleHandleW;
 use winapi::um::wingdi::*;
 use winapi::um::winuser::*;
+
+const GCS_RESULTSTR: DWORD = 0x800;
+extern "system" {
+    pub fn ImmGetCompositionStringW(himc: HIMC, index: DWORD, buf: LPVOID, buflen: DWORD) -> LONG;
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub(crate) struct HWindow(HWND);
@@ -31,6 +40,7 @@ pub(crate) struct WindowInner {
     hwnd: HWindow,
     callbacks: RefCell<Box<dyn WindowCallbacks>>,
     bitmap: RefCell<GdiBitmap>,
+    ime_active: AtomicBool,
     #[cfg(feature = "opengl")]
     gl_state: Option<Rc<glium::backend::Context>>,
 }
@@ -168,6 +178,7 @@ impl Window {
             hwnd: HWindow(null_mut()),
             callbacks: RefCell::new(callbacks),
             bitmap: RefCell::new(GdiBitmap::new_empty()),
+            ime_active: AtomicBool::new(false),
             #[cfg(feature = "opengl")]
             gl_state: None,
         }));
@@ -442,6 +453,10 @@ unsafe fn wm_size(hwnd: HWND, _msg: UINT, _wparam: WPARAM, lparam: LPARAM) -> Op
         let inner = inner.borrow();
         let pixel_width = LOWORD(lparam as DWORD) as usize;
         let pixel_height = HIWORD(lparam as DWORD) as usize;
+
+        let imc = ImmContext::get(hwnd);
+        imc.set_position(0, 0);
+
         inner.callbacks.borrow_mut().resize(Dimensions {
             pixel_width,
             pixel_height,
@@ -659,18 +674,132 @@ unsafe fn mouse_wheel(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> 
     }
 }
 
-unsafe fn key(hwnd: HWND, _msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
+/// Helper for managing the IME Manager
+struct ImmContext {
+    hwnd: HWND,
+    imc: HIMC,
+}
+
+impl ImmContext {
+    /// Obtain the IMM context; it will be released automatically
+    /// when dropped
+    pub fn get(hwnd: HWND) -> Self {
+        Self {
+            hwnd,
+            imc: unsafe { ImmGetContext(hwnd) },
+        }
+    }
+
+    /// Set the position of the IME window relative to the top left
+    /// of this window
+    pub fn set_position(&self, x: i32, y: i32) {
+        let mut cf = COMPOSITIONFORM {
+            dwStyle: CFS_POINT,
+            ptCurrentPos: POINT { x, y },
+            rcArea: RECT {
+                bottom: 0,
+                left: 0,
+                right: 0,
+                top: 0,
+            },
+        };
+        unsafe {
+            ImmSetCompositionWindow(self.imc, &mut cf);
+        }
+    }
+}
+
+impl Drop for ImmContext {
+    fn drop(&mut self) {
+        unsafe {
+            ImmReleaseContext(self.hwnd, self.imc);
+        }
+    }
+}
+
+unsafe fn ime_endcomposition(
+    hwnd: HWND,
+    _msg: UINT,
+    _wparam: WPARAM,
+    _lparam: LPARAM,
+) -> Option<LRESULT> {
+    if let Some(inner) = rc_from_hwnd(hwnd) {
+        let inner = inner.borrow();
+        // Note that we are no longer in the IME composer
+        inner.ime_active.store(false, Ordering::Relaxed);
+    }
+    None
+}
+
+unsafe fn ime_composition(
+    hwnd: HWND,
+    _msg: UINT,
+    _wparam: WPARAM,
+    lparam: LPARAM,
+) -> Option<LRESULT> {
+    if let Some(inner) = rc_from_hwnd(hwnd) {
+        let inner = inner.borrow();
+
+        // Note that we are now composing.
+        // the WM_IME_ENDCOMPOSITION message will call ime_endcomposition
+        // and turn this off when the IME is dismissed
+        inner.ime_active.store(true, Ordering::Relaxed);
+
+        if (lparam as DWORD) & GCS_RESULTSTR == 0 {
+            // No finished result; continue with the default
+            // processing
+            return None;
+        }
+
+        let imc = ImmContext::get(hwnd);
+
+        // This returns a size in bytes even though it is for a buffer of u16!
+        let byte_size = ImmGetCompositionStringW(imc.imc, GCS_RESULTSTR, std::ptr::null_mut(), 0);
+        if byte_size > 0 {
+            let word_size = byte_size as usize / 2;
+            let mut wide_buf = vec![0u16; word_size];
+            ImmGetCompositionStringW(
+                imc.imc,
+                GCS_RESULTSTR,
+                wide_buf.as_mut_ptr() as *mut _,
+                byte_size as u32,
+            );
+            match std::ffi::OsString::from_wide(&wide_buf).into_string() {
+                Ok(s) => {
+                    let key = KeyEvent {
+                        key: KeyCode::Composed(s),
+                        modifiers: Modifiers::default(),
+                        repeat_count: 1,
+                        key_is_down: true,
+                    };
+                    inner
+                        .callbacks
+                        .borrow_mut()
+                        .key_event(&key, &Window::from_hwnd(hwnd));
+
+                    return Some(1);
+                }
+                Err(_) => eprintln!("cannot represent IME as unicode string!?"),
+            };
+        }
+    }
+    None
+}
+
+unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
     if let Some(inner) = rc_from_hwnd(hwnd) {
         let inner = inner.borrow();
         let repeat = (lparam & 0xffff) as u16;
         let scan_code = ((lparam >> 16) & 0xff) as u8;
         let releasing = (lparam & (1 << 31)) != 0;
+        let ime_active = inner.ime_active.load(Ordering::Relaxed);
 
         /*
         let alt_pressed = (lparam & (1 << 29)) != 0;
         let was_down = (lparam & (1 << 30)) != 0;
         let label = match msg {
             WM_CHAR => "WM_CHAR",
+            WM_IME_CHAR => "WM_IME_CHAR",
             WM_KEYDOWN => "WM_KEYDOWN",
             WM_KEYUP => "WM_KEYUP",
             WM_SYSKEYUP => "WM_SYSKEYUP",
@@ -678,10 +807,17 @@ unsafe fn key(hwnd: HWND, _msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<
             _ => "WAT",
         };
         eprintln!(
-            "{} c=`{}` repeat={} scan={} alt_pressed={} was_down={} releasing={}",
-            label, wparam, repeat, scan_code, alt_pressed, was_down, releasing
+            "{} c=`{}` repeat={} scan={} alt_pressed={} was_down={} releasing={} IME={}",
+            label, wparam, repeat, scan_code, alt_pressed, was_down, releasing, ime_active
         );
         */
+
+        if ime_active {
+            // If the IME is active, allow Windows to perform default processing
+            // to drive it forwards.  It will generate a call to `ime_composition`
+            // or `ime_endcomposition` when it completes.
+            return None;
+        }
 
         let mut keys = [0u8; 256];
         GetKeyboardState(keys.as_mut_ptr());
@@ -712,101 +848,115 @@ unsafe fn key(hwnd: HWND, _msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<
             keys[VK_RSHIFT as usize] = 0;
         }
 
-        let mut out = [0u16; 16];
-        let res = ToUnicode(
-            wparam as u32,
-            scan_code as u32,
-            keys.as_ptr(),
-            out.as_mut_ptr(),
-            out.len() as i32,
-            0,
-        );
-        let key = match res {
-            // dead key
-            -1 => None,
-            0 => {
-                // No unicode translation, so map the scan code to a virtual key
-                // code, and from there map it to our KeyCode type
-                match MapVirtualKeyW(scan_code.into(), MAPVK_VSC_TO_VK_EX) as i32 {
-                    0 => None,
-                    VK_CANCEL => Some(KeyCode::Cancel),
-                    VK_BACK => Some(KeyCode::Char('\u{8}')),
-                    VK_TAB => Some(KeyCode::Char('\t')),
-                    VK_CLEAR => Some(KeyCode::Clear),
-                    VK_RETURN => Some(KeyCode::Char('\r')),
-                    VK_SHIFT => Some(KeyCode::Shift),
-                    VK_CONTROL => Some(KeyCode::Control),
-                    VK_MENU => Some(KeyCode::Alt),
-                    VK_PAUSE => Some(KeyCode::Pause),
-                    VK_CAPITAL => Some(KeyCode::CapsLock),
-                    VK_ESCAPE => Some(KeyCode::Char('\u{1b}')),
-                    VK_SPACE => Some(KeyCode::Char(' ')),
-                    VK_PRIOR => Some(KeyCode::PageUp),
-                    VK_NEXT => Some(KeyCode::PageDown),
-                    VK_END => Some(KeyCode::End),
-                    VK_HOME => Some(KeyCode::Home),
-                    VK_LEFT => Some(KeyCode::LeftArrow),
-                    VK_UP => Some(KeyCode::UpArrow),
-                    VK_RIGHT => Some(KeyCode::RightArrow),
-                    VK_DOWN => Some(KeyCode::DownArrow),
-                    VK_SELECT => Some(KeyCode::Select),
-                    VK_PRINT => Some(KeyCode::Print),
-                    VK_EXECUTE => Some(KeyCode::Execute),
-                    VK_SNAPSHOT => Some(KeyCode::PrintScreen),
-                    VK_INSERT => Some(KeyCode::Insert),
-                    VK_DELETE => Some(KeyCode::Char('\u{7f}')),
-                    VK_HELP => Some(KeyCode::Help),
-                    // 0-9 happen to overlap with ascii
-                    i @ 0x30..=0x39 => Some(KeyCode::Char(i as u8 as char)),
-                    // a-z also overlap with ascii
-                    i @ 0x41..=0x5a => Some(KeyCode::Char(i as u8 as char)),
-                    VK_LWIN => Some(KeyCode::LeftWindows),
-                    VK_RWIN => Some(KeyCode::RightWindows),
-                    VK_APPS => Some(KeyCode::Applications),
-                    VK_SLEEP => Some(KeyCode::Sleep),
-                    i @ VK_NUMPAD0..=VK_NUMPAD9 => Some(KeyCode::Numpad((i - VK_NUMPAD0) as u8)),
-                    VK_MULTIPLY => Some(KeyCode::Multiply),
-                    VK_ADD => Some(KeyCode::Add),
-                    VK_SEPARATOR => Some(KeyCode::Separator),
-                    VK_SUBTRACT => Some(KeyCode::Subtract),
-                    VK_DECIMAL => Some(KeyCode::Decimal),
-                    VK_DIVIDE => Some(KeyCode::Divide),
-                    i @ VK_F1..=VK_F24 => Some(KeyCode::Function((1 + i - VK_F1) as u8)),
-                    VK_NUMLOCK => Some(KeyCode::NumLock),
-                    VK_SCROLL => Some(KeyCode::ScrollLock),
-                    VK_LSHIFT => Some(KeyCode::LeftShift),
-                    VK_RSHIFT => Some(KeyCode::RightShift),
-                    VK_LCONTROL => Some(KeyCode::LeftControl),
-                    VK_RCONTROL => Some(KeyCode::RightControl),
-                    VK_LMENU => Some(KeyCode::LeftAlt),
-                    VK_RMENU => Some(KeyCode::RightAlt),
-                    VK_BROWSER_BACK => Some(KeyCode::BrowserBack),
-                    VK_BROWSER_FORWARD => Some(KeyCode::BrowserForward),
-                    VK_BROWSER_REFRESH => Some(KeyCode::BrowserRefresh),
-                    VK_BROWSER_STOP => Some(KeyCode::BrowserStop),
-                    VK_BROWSER_SEARCH => Some(KeyCode::BrowserSearch),
-                    VK_BROWSER_FAVORITES => Some(KeyCode::BrowserFavorites),
-                    VK_BROWSER_HOME => Some(KeyCode::BrowserHome),
-                    VK_VOLUME_MUTE => Some(KeyCode::VolumeMute),
-                    VK_VOLUME_DOWN => Some(KeyCode::VolumeDown),
-                    VK_VOLUME_UP => Some(KeyCode::VolumeUp),
-                    VK_MEDIA_NEXT_TRACK => Some(KeyCode::MediaNextTrack),
-                    VK_MEDIA_PREV_TRACK => Some(KeyCode::MediaPrevTrack),
-                    VK_MEDIA_STOP => Some(KeyCode::MediaStop),
-                    VK_MEDIA_PLAY_PAUSE => Some(KeyCode::MediaPlayPause),
-                    _ => None,
-                }
-            }
-            1 => Some(KeyCode::Char(std::char::from_u32_unchecked(out[0] as u32))),
-            n => {
-                let s = &out[0..n as usize];
-                match String::from_utf16(s) {
-                    Ok(s) => Some(KeyCode::Composed(s)),
-                    Err(err) => {
-                        eprintln!("translated to {} WCHARS, err: {}", n, err);
-                        None
+        let key = if msg == WM_IME_CHAR || msg == WM_CHAR {
+            Some(KeyCode::Char(std::char::from_u32_unchecked(wparam as u32)))
+        } else {
+            let mut out = [0u16; 16];
+            let res = ToUnicode(
+                wparam as u32,
+                scan_code as u32,
+                keys.as_ptr(),
+                out.as_mut_ptr(),
+                out.len() as i32,
+                0,
+            );
+            let key = match res {
+                // dead key
+                -1 => None,
+                0 => {
+                    // No unicode translation, so map the scan code to a virtual key
+                    // code, and from there map it to our KeyCode type
+                    match MapVirtualKeyW(scan_code.into(), MAPVK_VSC_TO_VK_EX) as i32 {
+                        0 => None,
+                        VK_CANCEL => Some(KeyCode::Cancel),
+                        VK_BACK => Some(KeyCode::Char('\u{8}')),
+                        VK_TAB => Some(KeyCode::Char('\t')),
+                        VK_CLEAR => Some(KeyCode::Clear),
+                        VK_RETURN => Some(KeyCode::Char('\r')),
+                        VK_SHIFT => Some(KeyCode::Shift),
+                        VK_CONTROL => Some(KeyCode::Control),
+                        VK_MENU => Some(KeyCode::Alt),
+                        VK_PAUSE => Some(KeyCode::Pause),
+                        VK_CAPITAL => Some(KeyCode::CapsLock),
+                        VK_ESCAPE => Some(KeyCode::Char('\u{1b}')),
+                        VK_SPACE => Some(KeyCode::Char(' ')),
+                        VK_PRIOR => Some(KeyCode::PageUp),
+                        VK_NEXT => Some(KeyCode::PageDown),
+                        VK_END => Some(KeyCode::End),
+                        VK_HOME => Some(KeyCode::Home),
+                        VK_LEFT => Some(KeyCode::LeftArrow),
+                        VK_UP => Some(KeyCode::UpArrow),
+                        VK_RIGHT => Some(KeyCode::RightArrow),
+                        VK_DOWN => Some(KeyCode::DownArrow),
+                        VK_SELECT => Some(KeyCode::Select),
+                        VK_PRINT => Some(KeyCode::Print),
+                        VK_EXECUTE => Some(KeyCode::Execute),
+                        VK_SNAPSHOT => Some(KeyCode::PrintScreen),
+                        VK_INSERT => Some(KeyCode::Insert),
+                        VK_DELETE => Some(KeyCode::Char('\u{7f}')),
+                        VK_HELP => Some(KeyCode::Help),
+                        // 0-9 happen to overlap with ascii
+                        i @ 0x30..=0x39 => Some(KeyCode::Char(i as u8 as char)),
+                        // a-z also overlap with ascii
+                        i @ 0x41..=0x5a => Some(KeyCode::Char(i as u8 as char)),
+                        VK_LWIN => Some(KeyCode::LeftWindows),
+                        VK_RWIN => Some(KeyCode::RightWindows),
+                        VK_APPS => Some(KeyCode::Applications),
+                        VK_SLEEP => Some(KeyCode::Sleep),
+                        i @ VK_NUMPAD0..=VK_NUMPAD9 => {
+                            Some(KeyCode::Numpad((i - VK_NUMPAD0) as u8))
+                        }
+                        VK_MULTIPLY => Some(KeyCode::Multiply),
+                        VK_ADD => Some(KeyCode::Add),
+                        VK_SEPARATOR => Some(KeyCode::Separator),
+                        VK_SUBTRACT => Some(KeyCode::Subtract),
+                        VK_DECIMAL => Some(KeyCode::Decimal),
+                        VK_DIVIDE => Some(KeyCode::Divide),
+                        i @ VK_F1..=VK_F24 => Some(KeyCode::Function((1 + i - VK_F1) as u8)),
+                        VK_NUMLOCK => Some(KeyCode::NumLock),
+                        VK_SCROLL => Some(KeyCode::ScrollLock),
+                        VK_LSHIFT => Some(KeyCode::LeftShift),
+                        VK_RSHIFT => Some(KeyCode::RightShift),
+                        VK_LCONTROL => Some(KeyCode::LeftControl),
+                        VK_RCONTROL => Some(KeyCode::RightControl),
+                        VK_LMENU => Some(KeyCode::LeftAlt),
+                        VK_RMENU => Some(KeyCode::RightAlt),
+                        VK_BROWSER_BACK => Some(KeyCode::BrowserBack),
+                        VK_BROWSER_FORWARD => Some(KeyCode::BrowserForward),
+                        VK_BROWSER_REFRESH => Some(KeyCode::BrowserRefresh),
+                        VK_BROWSER_STOP => Some(KeyCode::BrowserStop),
+                        VK_BROWSER_SEARCH => Some(KeyCode::BrowserSearch),
+                        VK_BROWSER_FAVORITES => Some(KeyCode::BrowserFavorites),
+                        VK_BROWSER_HOME => Some(KeyCode::BrowserHome),
+                        VK_VOLUME_MUTE => Some(KeyCode::VolumeMute),
+                        VK_VOLUME_DOWN => Some(KeyCode::VolumeDown),
+                        VK_VOLUME_UP => Some(KeyCode::VolumeUp),
+                        VK_MEDIA_NEXT_TRACK => Some(KeyCode::MediaNextTrack),
+                        VK_MEDIA_PREV_TRACK => Some(KeyCode::MediaPrevTrack),
+                        VK_MEDIA_STOP => Some(KeyCode::MediaStop),
+                        VK_MEDIA_PLAY_PAUSE => Some(KeyCode::MediaPlayPause),
+                        _ => None,
                     }
                 }
+                1 => Some(KeyCode::Char(std::char::from_u32_unchecked(out[0] as u32))),
+                n => {
+                    let s = &out[0..n as usize];
+                    match String::from_utf16(s) {
+                        Ok(s) => Some(KeyCode::Composed(s)),
+                        Err(err) => {
+                            eprintln!("translated to {} WCHARS, err: {}", n, err);
+                            None
+                        }
+                    }
+                }
+            };
+
+            // If we decoded the input to a single character, skip processing it
+            // here because it will be a duplicate of the WM_CHAR or WM_IME_CHAR
+            // message that we're going to receive as well
+            match key {
+                Some(KeyCode::Char(_)) => None,
+                key @ _ => key,
             }
         };
 
@@ -836,7 +986,11 @@ unsafe fn do_wnd_proc(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> 
         WM_NCDESTROY => wm_ncdestroy(hwnd, msg, wparam, lparam),
         WM_PAINT => wm_paint(hwnd, msg, wparam, lparam),
         WM_SIZE => wm_size(hwnd, msg, wparam, lparam),
-        WM_KEYDOWN | WM_KEYUP | WM_SYSKEYUP | WM_SYSKEYDOWN => key(hwnd, msg, wparam, lparam),
+        WM_KEYDOWN | WM_CHAR | WM_IME_CHAR | WM_KEYUP | WM_SYSKEYUP | WM_SYSKEYDOWN => {
+            key(hwnd, msg, wparam, lparam)
+        }
+        WM_IME_COMPOSITION => ime_composition(hwnd, msg, wparam, lparam),
+        WM_IME_ENDCOMPOSITION => ime_endcomposition(hwnd, msg, wparam, lparam),
         WM_MOUSEMOVE => mouse_move(hwnd, msg, wparam, lparam),
         WM_MOUSEHWHEEL | WM_MOUSEWHEEL => mouse_wheel(hwnd, msg, wparam, lparam),
         WM_LBUTTONDBLCLK | WM_RBUTTONDBLCLK | WM_MBUTTONDBLCLK | WM_LBUTTONDOWN | WM_LBUTTONUP

@@ -32,6 +32,7 @@ opengl = ["cgl", "glium", "gl_generator", "libloading"]
 winapi = { version = "0.3", features = [
     "dwmapi",
     "handleapi",
+    "imm",
     "libloaderapi",
     "synchapi",
     "winerror",
