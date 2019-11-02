@@ -49,18 +49,23 @@ impl FontSystem for FontLoaderAndFreeType {
         let mut fontdata = Vec::new();
         // Clippy is dead wrong about this iterator being an identity_conversion
         #[cfg_attr(feature = "cargo-clippy", allow(clippy::identity_conversion))]
-        for (data, idx) in fontloader::load_system_fonts(config, style)? {
-            debug!("want idx {} in bytes of len {}", idx, data.len());
+        for ((data, idx), attr) in fontloader::load_system_fonts(config, style)? {
+            debug!("want {:?} idx {} in bytes of len {}", attr, idx, data.len());
 
-            let face = lib.new_face_from_slice(&data, idx.into())?;
-            fontdata.push(data);
+            match lib.new_face_from_slice(&data, idx.into()) {
+                Ok(face) => {
+                    fontdata.push(data);
 
-            fonts.push(FreeTypeFontImpl::with_face_size_and_dpi(
-                face,
-                config.font_size * font_scale,
-                config.dpi as u32,
-            )?);
+                    fonts.push(FreeTypeFontImpl::with_face_size_and_dpi(
+                        face,
+                        config.font_size * font_scale,
+                        config.dpi as u32,
+                    )?);
+                }
+                Err(err) => log::error!("Failed to load font {:?}, ignoring it: {}", attr, err),
+            }
         }
+        failure::ensure!(!fonts.is_empty(), "unable to load any matching fonts");
         Ok(Box::new(NamedFontImpl {
             fonts,
             _lib: lib,

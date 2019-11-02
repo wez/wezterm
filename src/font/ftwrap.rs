@@ -1,6 +1,6 @@
 //! Higher level freetype bindings
 
-use failure::{bail, format_err, Error};
+use failure::{bail, format_err, Error, Fallible, ResultExt};
 pub use freetype::*;
 use std::ffi::CString;
 use std::ptr;
@@ -54,11 +54,12 @@ impl Face {
     }
 
     #[allow(unused)]
-    pub fn set_pixel_sizes(&mut self, char_width: u32, char_height: u32) -> Result<(), Error> {
+    pub fn set_pixel_sizes(&mut self, char_width: u32, char_height: u32) -> Fallible<()> {
         ft_result(
             unsafe { FT_Set_Pixel_Sizes(self.face, char_width, char_height) },
             (),
         )
+        .map_err(|e| e.context("set_pixel_sizes").into())
     }
 
     pub fn select_size(&mut self, idx: usize) -> Result<(), Error> {
@@ -121,7 +122,7 @@ impl Library {
     pub fn new() -> Result<Library, Error> {
         let mut lib = ptr::null_mut();
         let res = unsafe { FT_Init_FreeType(&mut lib as *mut _) };
-        let lib = ft_result(res, lib)?;
+        let lib = ft_result(res, lib).context("FT_Init_FreeType")?;
         Ok(Library { lib })
     }
 
@@ -135,7 +136,7 @@ impl Library {
 
         let res = unsafe { FT_New_Face(self.lib, path.as_ptr(), face_index, &mut face as *mut _) };
         Ok(Face {
-            face: ft_result(res, face)?,
+            face: ft_result(res, face).context("FT_New_Face")?,
         })
     }
 
@@ -153,7 +154,8 @@ impl Library {
             )
         };
         Ok(Face {
-            face: ft_result(res, face)?,
+            face: ft_result(res, face)
+                .map_err(|e| e.context(format!("FT_New_Memory_Face for index {}", face_index)))?,
         })
     }
 

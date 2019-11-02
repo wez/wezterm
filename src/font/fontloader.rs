@@ -1,11 +1,11 @@
-use crate::config::{Config, TextStyle};
+use crate::config::{Config, FontAttributes, TextStyle};
 use failure::{format_err, Error};
 use font_loader::system_fonts;
 
 pub fn load_system_fonts(
     _config: &Config,
     style: &TextStyle,
-) -> Result<Vec<(Vec<u8>, i32)>, Error> {
+) -> Result<Vec<((Vec<u8>, i32), FontAttributes)>, Error> {
     let mut fonts = Vec::new();
     for font_attr in style.font_with_fallback() {
         let mut font_props = system_fonts::FontPropertyBuilder::new()
@@ -23,10 +23,11 @@ pub fn load_system_fonts(
         };
         let font_props = font_props.build();
 
-        fonts.push(
+        fonts.push((
             system_fonts::get(&font_props)
                 .ok_or_else(|| format_err!("no font matching {:?}", font_attr))?,
-        );
+            font_attr,
+        ));
     }
     Ok(fonts)
 }
