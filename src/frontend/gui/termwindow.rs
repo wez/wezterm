@@ -184,39 +184,98 @@ impl WindowCallbacks for TermWindow {
             use ::termwiz::input::KeyCode as KC;
             use ::window::KeyCode as WK;
 
-            let key_down = match key.key {
+            let key = match key.key {
                 // TODO: consider eliminating these codes from termwiz::input::KeyCode
-                WK::Char('\r') | WK::Char('\n') => Some(KC::Enter),
-                WK::Char('\t') => Some(KC::Tab),
-                WK::Char('\u{08}') => Some(KC::Backspace),
-                WK::Char('\u{1b}') => Some(KC::Escape),
-                WK::Char('\u{7f}') => Some(KC::Delete),
+                WK::Char('\r') | WK::Char('\n') => KC::Enter,
+                WK::Char('\t') => KC::Tab,
+                WK::Char('\u{08}') => KC::Backspace,
+                WK::Char('\u{1b}') => KC::Escape,
+                WK::Char('\u{7f}') => KC::Delete,
 
-                WK::Char(c) => Some(KC::Char(c)),
+                WK::Char(c) => KC::Char(c),
                 WK::Composed(ref s) => {
                     tab.writer().write_all(s.as_bytes()).ok();
                     return true;
                 }
-                WK::Function(f) => Some(KC::Function(f)),
-                WK::LeftArrow => Some(KC::LeftArrow),
-                WK::RightArrow => Some(KC::RightArrow),
-                WK::UpArrow => Some(KC::UpArrow),
-                WK::DownArrow => Some(KC::DownArrow),
-                WK::Home => Some(KC::Home),
-                WK::End => Some(KC::End),
-                WK::PageUp => Some(KC::PageUp),
-                WK::PageDown => Some(KC::PageDown),
-                // TODO: more keys (eg: numpad!)
-                _ => None,
+                WK::Function(f) => KC::Function(f),
+                WK::LeftArrow => KC::LeftArrow,
+                WK::RightArrow => KC::RightArrow,
+                WK::UpArrow => KC::UpArrow,
+                WK::DownArrow => KC::DownArrow,
+                WK::Home => KC::Home,
+                WK::End => KC::End,
+                WK::PageUp => KC::PageUp,
+                WK::PageDown => KC::PageDown,
+                WK::Insert => KC::Insert,
+                WK::Hyper => KC::Hyper,
+                WK::Super => KC::Super,
+                WK::Meta => KC::Meta,
+                WK::Cancel => KC::Cancel,
+                WK::Clear => KC::Clear,
+                WK::Shift => KC::Shift,
+                WK::LeftShift => KC::LeftShift,
+                WK::RightShift => KC::RightShift,
+                WK::Control => KC::Control,
+                WK::LeftControl => KC::LeftControl,
+                WK::RightControl => KC::RightControl,
+                WK::Alt => KC::Alt,
+                WK::LeftAlt => KC::LeftAlt,
+                WK::RightAlt => KC::RightAlt,
+                WK::Pause => KC::Pause,
+                WK::CapsLock => KC::CapsLock,
+                WK::Select => KC::Select,
+                WK::Print => KC::Print,
+                WK::Execute => KC::Execute,
+                WK::PrintScreen => KC::PrintScreen,
+                WK::Help => KC::Help,
+                WK::LeftWindows => KC::LeftWindows,
+                WK::RightWindows => KC::RightWindows,
+                WK::Sleep => KC::Sleep,
+                WK::Multiply => KC::Multiply,
+                WK::Applications => KC::Applications,
+                WK::Add => KC::Add,
+                WK::Numpad(0) => KC::Numpad0,
+                WK::Numpad(1) => KC::Numpad1,
+                WK::Numpad(2) => KC::Numpad2,
+                WK::Numpad(3) => KC::Numpad3,
+                WK::Numpad(4) => KC::Numpad4,
+                WK::Numpad(5) => KC::Numpad5,
+                WK::Numpad(6) => KC::Numpad6,
+                WK::Numpad(7) => KC::Numpad7,
+                WK::Numpad(8) => KC::Numpad8,
+                WK::Numpad(9) => KC::Numpad9,
+                WK::Numpad(_) => return false,
+                WK::Separator => KC::Separator,
+                WK::Subtract => KC::Subtract,
+                WK::Decimal => KC::Decimal,
+                WK::Divide => KC::Divide,
+                WK::NumLock => KC::NumLock,
+                WK::ScrollLock => KC::ScrollLock,
+                WK::BrowserBack => KC::BrowserBack,
+                WK::BrowserForward => KC::BrowserForward,
+                WK::BrowserRefresh => KC::BrowserRefresh,
+                WK::BrowserStop => KC::BrowserStop,
+                WK::BrowserSearch => KC::BrowserSearch,
+                WK::BrowserFavorites => KC::BrowserFavorites,
+                WK::BrowserHome => KC::BrowserHome,
+                WK::VolumeMute => KC::VolumeMute,
+                WK::VolumeDown => KC::VolumeDown,
+                WK::VolumeUp => KC::VolumeUp,
+                WK::MediaNextTrack => KC::MediaNextTrack,
+                WK::MediaPrevTrack => KC::MediaPrevTrack,
+                WK::MediaStop => KC::MediaStop,
+                WK::MediaPlayPause => KC::MediaPlayPause,
+                WK::ApplicationLeftArrow => KC::ApplicationLeftArrow,
+                WK::ApplicationRightArrow => KC::ApplicationRightArrow,
+                WK::ApplicationUpArrow => KC::ApplicationUpArrow,
+                WK::ApplicationDownArrow => KC::ApplicationDownArrow,
             };
 
-            if let Some(key) = key_down {
-                if let Some(assignment) = self.keys.lookup(key, modifiers) {
-                    self.perform_key_assignment(&tab, &assignment).ok();
-                    return true;
-                } else if tab.key_down(key, modifiers).is_ok() {
-                    return true;
-                }
+            if let Some(assignment) = self.keys.lookup(key, modifiers) {
+                self.perform_key_assignment(&tab, &assignment).ok();
+                return true;
+            } else if tab.key_down(key, modifiers).is_ok() {
+                return true;
             }
         }
 
