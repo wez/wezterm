@@ -955,7 +955,9 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
             // here because it will be a duplicate of the WM_CHAR or WM_IME_CHAR
             // message that we're going to receive as well
             match key {
-                Some(KeyCode::Char(_)) => None,
+                Some(KeyCode::Char(_)) if modifiers.is_empty() || modifiers == Modifiers::SHIFT => {
+                    None
+                }
                 key @ _ => key,
             }
         };
