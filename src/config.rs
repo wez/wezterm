@@ -727,6 +727,14 @@ impl TextStyle {
             bold: None,
             italic: None,
         });
+
+        // Fallback font that has unicode replacement character
+        #[cfg(windows)]
+        font.push(FontAttributes {
+            family: "Segoe UI".into(),
+            bold: None,
+            italic: None,
+        });
         #[cfg(windows)]
         font.push(FontAttributes {
             family: "Segoe UI Emoji".into(),
