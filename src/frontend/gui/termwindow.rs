@@ -186,7 +186,7 @@ impl WindowCallbacks for TermWindow {
 
             let key = match key.key {
                 // TODO: consider eliminating these codes from termwiz::input::KeyCode
-                WK::Char('\r') | WK::Char('\n') => KC::Enter,
+                WK::Char('\r') => KC::Enter,
                 WK::Char('\t') => KC::Tab,
                 WK::Char('\u{08}') => KC::Backspace,
                 WK::Char('\u{1b}') => KC::Escape,
