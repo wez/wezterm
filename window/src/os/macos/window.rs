@@ -828,10 +828,6 @@ impl WindowView {
         let unmod = unsafe { nsstring_to_str(nsevent.charactersIgnoringModifiers()) };
         let modifiers = unsafe { key_modifiers(nsevent.modifierFlags()) };
 
-        eprintln!(
-            "key_common ENTER (down={} chars={:?} unmod={:?} modifiers={:?}",
-            key_is_down, chars, unmod, modifiers
-        );
         if modifiers.is_empty() && key_is_down {
             unsafe {
                 let input_context: id = msg_send![this, inputContext];
@@ -861,6 +857,10 @@ impl WindowView {
                 repeat_count: 1,
                 key_is_down,
             };
+            eprintln!(
+                "key_common {:?} (chars={:?} unmod={:?} modifiers={:?}",
+                event, chars, unmod, modifiers
+            );
 
             if let Some(myself) = Self::get_this(this) {
                 let mut inner = myself.inner.borrow_mut();
