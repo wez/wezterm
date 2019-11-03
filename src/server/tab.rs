@@ -403,7 +403,7 @@ impl Renderable for RenderableState {
             .map(|(idx, line)| {
                 let r = match selection {
                     None => 0..0,
-                    Some(sel) => sel.cols_for_row(idx as i32),
+                    Some(sel) => sel.normalize().cols_for_row(idx as i32),
                 };
                 (idx, Cow::Owned(line.into_owned()), r)
             })

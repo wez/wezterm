@@ -342,6 +342,7 @@ impl TerminalState {
         let sel = self.selection_range.take();
         match sel {
             Some(sel) => {
+                let sel = sel.normalize();
                 let sel_cols = sel.cols_for_row(row);
                 if intersects_range(cols, sel_cols) {
                     // Intersects, so clear the selection
