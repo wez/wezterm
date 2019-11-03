@@ -601,7 +601,6 @@ impl WindowView {
     // sequences
     extern "C" fn do_command_by_selector(this: &mut Object, _sel: Sel, a_selector: Sel) {
         let selector = format!("{:?}", a_selector);
-        eprintln!("do_command_by_selector: {:?}", selector);
         let key = match selector.as_ref() {
             "deleteBackward:" => KeyCode::Char('\x08'),
             "cancelOperation:" => KeyCode::Char('\x1b'),
@@ -615,7 +614,10 @@ impl WindowView {
             "scrollToEndOfDocument:" => KeyCode::End,
             "scrollPageUp:" => KeyCode::PageUp,
             "scrollPageDown:" => KeyCode::PageDown,
-            _ => return,
+            _ => {
+                eprintln!("UNHANDLED: do_command_by_selector: {:?}", selector);
+                return;
+            }
         };
 
         let event = KeyEvent {
