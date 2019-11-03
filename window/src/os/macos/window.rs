@@ -225,6 +225,31 @@ pub(crate) struct WindowInner {
     window: StrongPtr,
 }
 
+fn function_key_to_keycode(function_key: char) -> KeyCode {
+    use cocoa::appkit;
+    match function_key as u16 {
+        appkit::NSUpArrowFunctionKey => KeyCode::UpArrow,
+        appkit::NSDownArrowFunctionKey => KeyCode::DownArrow,
+        appkit::NSLeftArrowFunctionKey => KeyCode::LeftArrow,
+        appkit::NSRightArrowFunctionKey => KeyCode::RightArrow,
+        appkit::NSHomeFunctionKey => KeyCode::Home,
+        appkit::NSEndFunctionKey => KeyCode::End,
+        appkit::NSPageUpFunctionKey => KeyCode::PageUp,
+        appkit::NSPageDownFunctionKey => KeyCode::PageDown,
+        value @ appkit::NSF1FunctionKey..=appkit::NSF35FunctionKey => {
+            KeyCode::Function((value - appkit::NSF1FunctionKey + 1) as u8)
+        }
+        appkit::NSInsertFunctionKey => KeyCode::Insert,
+        appkit::NSDeleteFunctionKey => KeyCode::Char('\u{7f}'),
+        appkit::NSPrintScreenFunctionKey => KeyCode::PrintScreen,
+        appkit::NSScrollLockFunctionKey => KeyCode::ScrollLock,
+        appkit::NSPauseFunctionKey => KeyCode::Pause,
+        appkit::NSBreakFunctionKey => KeyCode::Cancel,
+        appkit::NSPrintFunctionKey => KeyCode::Print,
+        _ => KeyCode::Char(function_key),
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Window(usize);
 
@@ -821,17 +846,7 @@ impl WindowView {
         if let Some(first_char) = char_iter.next() {
             let key = if char_iter.next().is_none() {
                 // A single unicode char
-                match first_char {
-                    '\u{f700}' => KeyCode::UpArrow,
-                    '\u{f701}' => KeyCode::DownArrow,
-                    '\u{f702}' => KeyCode::LeftArrow,
-                    '\u{f703}' => KeyCode::RightArrow,
-                    '\u{f729}' => KeyCode::Home,
-                    '\u{f72b}' => KeyCode::End,
-                    '\u{f72c}' => KeyCode::PageUp,
-                    '\u{f72d}' => KeyCode::PageDown,
-                    _ => KeyCode::Char(first_char),
-                }
+                function_key_to_keycode(first_char)
             } else {
                 KeyCode::Composed(chars.to_owned())
             };
