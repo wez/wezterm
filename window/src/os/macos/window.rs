@@ -825,7 +825,7 @@ impl WindowView {
 
     fn key_common(this: &mut Object, nsevent: id, key_is_down: bool) {
         let chars = unsafe { nsstring_to_str(nsevent.characters()) };
-        let unmod = unsafe { nsstring_to_str(nsevent.charactersIgnoringModifiers()) };
+        // let unmod = unsafe { nsstring_to_str(nsevent.charactersIgnoringModifiers()) };
         let modifiers = unsafe { key_modifiers(nsevent.modifierFlags()) };
 
         if modifiers.is_empty() && key_is_down {
@@ -857,10 +857,13 @@ impl WindowView {
                 repeat_count: 1,
                 key_is_down,
             };
+
+            /*
             eprintln!(
                 "key_common {:?} (chars={:?} unmod={:?} modifiers={:?}",
                 event, chars, unmod, modifiers
             );
+            */
 
             if let Some(myself) = Self::get_this(this) {
                 let mut inner = myself.inner.borrow_mut();
