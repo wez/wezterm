@@ -16,7 +16,6 @@ use std::io::Error as IoError;
 use std::os::windows::ffi::OsStringExt;
 use std::ptr::{null, null_mut};
 use std::rc::Rc;
-use std::sync::atomic::{AtomicBool, Ordering};
 use winapi::shared::minwindef::*;
 use winapi::shared::ntdef::*;
 use winapi::shared::windef::*;
@@ -40,7 +39,6 @@ pub(crate) struct WindowInner {
     hwnd: HWindow,
     callbacks: RefCell<Box<dyn WindowCallbacks>>,
     bitmap: RefCell<GdiBitmap>,
-    ime_active: AtomicBool,
     #[cfg(feature = "opengl")]
     gl_state: Option<Rc<glium::backend::Context>>,
 }
@@ -178,7 +176,6 @@ impl Window {
             hwnd: HWindow(null_mut()),
             callbacks: RefCell::new(callbacks),
             bitmap: RefCell::new(GdiBitmap::new_empty()),
-            ime_active: AtomicBool::new(false),
             #[cfg(feature = "opengl")]
             gl_state: None,
         }));
@@ -717,20 +714,6 @@ impl Drop for ImmContext {
     }
 }
 
-unsafe fn ime_endcomposition(
-    hwnd: HWND,
-    _msg: UINT,
-    _wparam: WPARAM,
-    _lparam: LPARAM,
-) -> Option<LRESULT> {
-    if let Some(inner) = rc_from_hwnd(hwnd) {
-        let inner = inner.borrow();
-        // Note that we are no longer in the IME composer
-        inner.ime_active.store(false, Ordering::Relaxed);
-    }
-    None
-}
-
 unsafe fn ime_composition(
     hwnd: HWND,
     _msg: UINT,
@@ -739,11 +722,6 @@ unsafe fn ime_composition(
 ) -> Option<LRESULT> {
     if let Some(inner) = rc_from_hwnd(hwnd) {
         let inner = inner.borrow();
-
-        // Note that we are now composing.
-        // the WM_IME_ENDCOMPOSITION message will call ime_endcomposition
-        // and turn this off when the IME is dismissed
-        inner.ime_active.store(true, Ordering::Relaxed);
 
         if (lparam as DWORD) & GCS_RESULTSTR == 0 {
             // No finished result; continue with the default
@@ -792,7 +770,7 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
         let repeat = (lparam & 0xffff) as u16;
         let scan_code = ((lparam >> 16) & 0xff) as u8;
         let releasing = (lparam & (1 << 31)) != 0;
-        let ime_active = inner.ime_active.load(Ordering::Relaxed);
+        let ime_active = wparam == VK_PROCESSKEY as _;
 
         /*
         let alt_pressed = (lparam & (1 << 29)) != 0;
@@ -860,7 +838,7 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
                 out.len() as i32,
                 0,
             );
-            let key = match res {
+            match res {
                 // dead key
                 -1 => None,
                 0 => {
@@ -949,16 +927,6 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
                         }
                     }
                 }
-            };
-
-            // If we decoded the input to a single character, skip processing it
-            // here because it will be a duplicate of the WM_CHAR or WM_IME_CHAR
-            // message that we're going to receive as well
-            match key {
-                Some(KeyCode::Char(_)) if modifiers.is_empty() || modifiers == Modifiers::SHIFT => {
-                    None
-                }
-                key @ _ => key,
             }
         };
 
@@ -992,7 +960,6 @@ unsafe fn do_wnd_proc(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> 
             key(hwnd, msg, wparam, lparam)
         }
         WM_IME_COMPOSITION => ime_composition(hwnd, msg, wparam, lparam),
-        WM_IME_ENDCOMPOSITION => ime_endcomposition(hwnd, msg, wparam, lparam),
         WM_MOUSEMOVE => mouse_move(hwnd, msg, wparam, lparam),
         WM_MOUSEHWHEEL | WM_MOUSEWHEEL => mouse_wheel(hwnd, msg, wparam, lparam),
         WM_LBUTTONDBLCLK | WM_RBUTTONDBLCLK | WM_MBUTTONDBLCLK | WM_LBUTTONDOWN | WM_LBUTTONUP

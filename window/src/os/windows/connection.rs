@@ -47,7 +47,9 @@ impl ConnectionOps for Connection {
                 }
 
                 unsafe {
-                    TranslateMessage(&mut msg);
+                    // We don't use TranslateMessage because we don't
+                    // want to generate WM_CHAR internally
+                    // TranslateMessage(&mut msg);
                     DispatchMessageW(&mut msg);
                 }
             } else {
