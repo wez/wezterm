@@ -175,10 +175,6 @@ impl FontConfiguration {
         *self.font_scale.borrow()
     }
 
-    pub fn get_dpi_scale(&self) -> f64 {
-        *self.dpi_scale.borrow()
-    }
-
     pub fn default_font_metrics(&self) -> Result<FontMetrics, Error> {
         {
             let metrics = self.metrics.borrow();
