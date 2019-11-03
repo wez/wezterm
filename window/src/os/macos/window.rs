@@ -16,17 +16,56 @@ use cocoa::appkit::{
     NSWindowStyleMask,
 };
 use cocoa::base::*;
-use cocoa::foundation::{NSPoint, NSRect, NSSize};
+use cocoa::foundation::{NSArray, NSNotFound, NSPoint, NSRect, NSSize, NSUInteger};
 use core_graphics::image::CGImageRef;
 use failure::Fallible;
 use objc::declare::ClassDecl;
 use objc::rc::{StrongPtr, WeakPtr};
-use objc::runtime::{Class, Object, Sel};
+use objc::runtime::{Class, Object, Protocol, Sel};
 use objc::*;
 use std::any::Any;
 use std::cell::RefCell;
 use std::ffi::c_void;
 use std::rc::Rc;
+
+#[repr(C)]
+struct NSRange(cocoa::foundation::NSRange);
+
+#[derive(Debug)]
+#[repr(C)]
+struct NSRangePointer(*mut NSRange);
+
+impl std::fmt::Debug for NSRange {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::result::Result<(), std::fmt::Error> {
+        fmt.debug_struct("NSRange")
+            .field("location", &self.0.location)
+            .field("length", &self.0.length)
+            .finish()
+    }
+}
+
+unsafe impl objc::Encode for NSRange {
+    fn encode() -> objc::Encoding {
+        let encoding = format!(
+            "{{NSRange={}{}}}",
+            NSUInteger::encode().as_str(),
+            NSUInteger::encode().as_str()
+        );
+        unsafe { objc::Encoding::from_str(&encoding) }
+    }
+}
+
+unsafe impl objc::Encode for NSRangePointer {
+    fn encode() -> objc::Encoding {
+        unsafe { objc::Encoding::from_str(&format!("^{}", NSRange::encode().as_str())) }
+    }
+}
+
+impl NSRange {
+    fn new(location: u64, length: u64) -> Self {
+        Self(cocoa::foundation::NSRange { location, length })
+    }
+}
 
 #[cfg(feature = "opengl")]
 mod opengl {
@@ -532,6 +571,140 @@ impl WindowView {
         }
     }
 
+    // Called by the inputContext manager when the IME processes events.
+    // We need to translate the selector back into appropriate key
+    // sequences
+    extern "C" fn do_command_by_selector(this: &mut Object, _sel: Sel, a_selector: Sel) {
+        let selector = format!("{:?}", a_selector);
+        eprintln!("do_command_by_selector: {:?}", selector);
+        let key = match selector.as_ref() {
+            "deleteBackward:" => KeyCode::Char('\x08'),
+            "insertNewline:" => KeyCode::Char('\n'),
+            "moveLeft:" => KeyCode::LeftArrow,
+            "moveRight:" => KeyCode::RightArrow,
+            "moveUp:" => KeyCode::UpArrow,
+            "moveDown:" => KeyCode::DownArrow,
+            "scrollToBeginningOfDocument:" => KeyCode::Home,
+            "scrollToEndOfDocument:" => KeyCode::End,
+            "scrollPageUp:" => KeyCode::PageUp,
+            "scrollPageDown:" => KeyCode::PageDown,
+            _ => return,
+        };
+
+        let event = KeyEvent {
+            key,
+            modifiers: Modifiers::default(),
+            repeat_count: 1,
+            key_is_down: true,
+        };
+
+        if let Some(myself) = Self::get_this(this) {
+            let mut inner = myself.inner.borrow_mut();
+            let window = Window(inner.window_id);
+            inner.callbacks.key_event(&event, &window);
+        }
+    }
+
+    extern "C" fn has_marked_text(_this: &mut Object, _sel: Sel) -> BOOL {
+        NO
+    }
+
+    extern "C" fn marked_range(_this: &mut Object, _sel: Sel) -> NSRange {
+        NSRange::new(NSNotFound as _, 0)
+    }
+
+    extern "C" fn selected_range(_this: &mut Object, _sel: Sel) -> NSRange {
+        NSRange::new(NSNotFound as _, 0)
+    }
+
+    // Called by the IME when inserting composed text and/or emoji
+    extern "C" fn insert_text_replacement_range(
+        this: &mut Object,
+        _sel: Sel,
+        astring: id,
+        _replacement_range: NSRange,
+    ) {
+        let s = unsafe { nsstring_to_str(astring) };
+
+        let event = KeyEvent {
+            key: KeyCode::Composed(s.to_string()),
+            modifiers: Modifiers::default(),
+            repeat_count: 1,
+            key_is_down: true,
+        };
+
+        if let Some(myself) = Self::get_this(this) {
+            let mut inner = myself.inner.borrow_mut();
+            let window = Window(inner.window_id);
+            inner.callbacks.key_event(&event, &window);
+        }
+    }
+
+    extern "C" fn set_marked_text_selected_range_replacement_range(
+        _this: &mut Object,
+        _sel: Sel,
+        _astring: id,
+        selected_range: NSRange,
+        replacement_range: NSRange,
+    ) {
+        let s = unsafe { nsstring_to_str(_astring) };
+        eprintln!(
+            "set_marked_text_selected_range_replacement_range {} {:?} {:?}",
+            s, selected_range, replacement_range
+        );
+    }
+
+    extern "C" fn unmark_text(_this: &mut Object, _sel: Sel) {
+        eprintln!("unmarkText");
+    }
+
+    extern "C" fn valid_attributes_for_marked_text(_this: &mut Object, _sel: Sel) -> id {
+        // FIXME: returns NSArray<NSAttributedStringKey> *
+        // eprintln!("valid_attributes_for_marked_text");
+        // nil
+        unsafe { NSArray::arrayWithObjects(nil, &[]) }
+    }
+
+    extern "C" fn attributed_substring_for_proposed_range(
+        _this: &mut Object,
+        _sel: Sel,
+        _proposed_range: NSRange,
+        _actual_range: NSRangePointer,
+    ) -> id {
+        eprintln!(
+            "attributedSubstringForProposedRange {:?} {:?}",
+            _proposed_range, _actual_range
+        );
+        nil
+    }
+
+    extern "C" fn character_index_for_point(
+        _this: &mut Object,
+        _sel: Sel,
+        _point: NSPoint,
+    ) -> NSUInteger {
+        NSNotFound as _
+    }
+
+    extern "C" fn first_rect_for_character_range(
+        this: &mut Object,
+        _sel: Sel,
+        range: NSRange,
+        actual: NSRangePointer,
+    ) -> NSRect {
+        // Returns a rect in screen coordinates; this is used to place
+        // the input method editor
+        eprintln!(
+            "firstRectForCharacterRange: range:{:?} actual:{:?}",
+            range, actual
+        );
+        unsafe {
+            let window: id = msg_send![this, window];
+            let frame = NSWindow::frame(window);
+            frame
+        }
+    }
+
     extern "C" fn accepts_first_responder(_this: &mut Object, _sel: Sel) -> BOOL {
         YES
     }
@@ -627,8 +800,22 @@ impl WindowView {
 
     fn key_common(this: &mut Object, nsevent: id, key_is_down: bool) {
         let chars = unsafe { nsstring_to_str(nsevent.characters()) };
-        // let unmod = unsafe {nsstring_to_str(nsevent.charactersIgnoringModifiers())};
+        let unmod = unsafe { nsstring_to_str(nsevent.charactersIgnoringModifiers()) };
         let modifiers = unsafe { key_modifiers(nsevent.modifierFlags()) };
+
+        eprintln!(
+            "key_common ENTER (down={} chars={:?} unmod={:?} modifiers={:?}",
+            key_is_down, chars, unmod, modifiers
+        );
+        if modifiers.is_empty() && key_is_down {
+            unsafe {
+                let input_context: id = msg_send![this, inputContext];
+                let res: BOOL = msg_send![input_context, handleEvent: nsevent];
+                if res == YES {
+                    return;
+                }
+            }
+        }
 
         let mut char_iter = chars.chars();
         if let Some(first_char) = char_iter.next() {
@@ -796,6 +983,9 @@ impl WindowView {
             ClassDecl::new(CLS_NAME, class!(NSView)).expect("Unable to register WindowView class");
 
         cls.add_ivar::<*mut c_void>(CLS_NAME);
+        cls.add_protocol(
+            Protocol::get("NSTextInputClient").expect("failed to get NSTextInputClient protocol"),
+        );
 
         unsafe {
             cls.add_method(
@@ -873,6 +1063,59 @@ impl WindowView {
             cls.add_method(
                 sel!(acceptsFirstResponder),
                 Self::accepts_first_responder as extern "C" fn(&mut Object, Sel) -> BOOL,
+            );
+
+            // NSTextInputClient
+
+            cls.add_method(
+                sel!(hasMarkedText),
+                Self::has_marked_text as extern "C" fn(&mut Object, Sel) -> BOOL,
+            );
+            cls.add_method(
+                sel!(markedRange),
+                Self::marked_range as extern "C" fn(&mut Object, Sel) -> NSRange,
+            );
+            cls.add_method(
+                sel!(selectedRange),
+                Self::selected_range as extern "C" fn(&mut Object, Sel) -> NSRange,
+            );
+            cls.add_method(
+                sel!(setMarkedText:selectedRange:replacementRange:),
+                Self::set_marked_text_selected_range_replacement_range
+                    as extern "C" fn(&mut Object, Sel, id, NSRange, NSRange),
+            );
+            cls.add_method(
+                sel!(unmarkText),
+                Self::unmark_text as extern "C" fn(&mut Object, Sel),
+            );
+            cls.add_method(
+                sel!(validAttributesForMarkedText),
+                Self::valid_attributes_for_marked_text as extern "C" fn(&mut Object, Sel) -> id,
+            );
+            cls.add_method(
+                sel!(doCommandBySelector:),
+                Self::do_command_by_selector as extern "C" fn(&mut Object, Sel, Sel),
+            );
+
+            cls.add_method(
+                sel!( attributedSubstringForProposedRange:actualRange:),
+                Self::attributed_substring_for_proposed_range
+                    as extern "C" fn(&mut Object, Sel, NSRange, NSRangePointer) -> id,
+            );
+            cls.add_method(
+                sel!(insertText:replacementRange:),
+                Self::insert_text_replacement_range as extern "C" fn(&mut Object, Sel, id, NSRange),
+            );
+
+            cls.add_method(
+                sel!(characterIndexForPoint:),
+                Self::character_index_for_point
+                    as extern "C" fn(&mut Object, Sel, NSPoint) -> NSUInteger,
+            );
+            cls.add_method(
+                sel!(firstRectForCharacterRange:actualRange:),
+                Self::first_rect_for_character_range
+                    as extern "C" fn(&mut Object, Sel, NSRange, NSRangePointer) -> NSRect,
             );
         }
 
