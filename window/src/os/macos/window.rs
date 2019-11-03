@@ -604,7 +604,9 @@ impl WindowView {
         eprintln!("do_command_by_selector: {:?}", selector);
         let key = match selector.as_ref() {
             "deleteBackward:" => KeyCode::Char('\x08'),
+            "cancelOperation:" => KeyCode::Char('\x1b'),
             "insertNewline:" => KeyCode::Char('\n'),
+            "insertTab:" => KeyCode::Char('\t'),
             "moveLeft:" => KeyCode::LeftArrow,
             "moveRight:" => KeyCode::RightArrow,
             "moveUp:" => KeyCode::UpArrow,
