@@ -270,6 +270,11 @@ impl WindowOpsMut for WindowInner {
             SetWindowTextW(self.hwnd.0, title.as_ptr());
         }
     }
+
+    fn set_text_cursor_position(&mut self, cursor: Rect) {
+        let imc = ImmContext::get(self.hwnd.0);
+        imc.set_position(cursor.origin.x.max(0) as i32, cursor.origin.y.max(0) as i32);
+    }
 }
 
 impl WindowOps for Window {
@@ -294,6 +299,9 @@ impl WindowOps for Window {
     fn set_title(&self, title: &str) {
         let title = title.to_owned();
         Connection::with_window_inner(self.0, move |inner| inner.set_title(&title));
+    }
+    fn set_text_cursor_position(&self, cursor: Rect) {
+        Connection::with_window_inner(self.0, move |inner| inner.set_text_cursor_position(cursor));
     }
 
     fn set_inner_size(&self, width: usize, height: usize) {
