@@ -291,6 +291,9 @@ impl WindowCallbacks for TermWindow {
                 return;
             }
         };
+
+        self.update_text_cursor(&tab);
+
         let start = std::time::Instant::now();
         if let Err(err) = self.paint_tab(&tab, ctx) {
             if let Some(&OutOfTextureSpace { size }) = err.downcast_ref::<OutOfTextureSpace>() {
@@ -323,6 +326,7 @@ impl WindowCallbacks for TermWindow {
                 return;
             }
         };
+        self.update_text_cursor(&tab);
         let start = std::time::Instant::now();
         if let Err(err) = self.paint_tab_opengl(&tab, frame) {
             if let Some(&OutOfTextureSpace { size }) = err.downcast_ref::<OutOfTextureSpace>() {
@@ -483,6 +487,21 @@ impl TermWindow {
             } else {
                 window.set_title(&format!("[{}/{}] {}", tab_no + 1, num_tabs, title));
             }
+        }
+    }
+
+    fn update_text_cursor(&mut self, tab: &Rc<dyn Tab>) {
+        let term = tab.renderer();
+        let cursor = term.get_cursor_position();
+        if let Some(win) = self.window.as_ref() {
+            let r = Rect::new(
+                Point::new(
+                    cursor.x.max(0) as isize * self.render_metrics.cell_size.width,
+                    cursor.y.max(0) as isize * self.render_metrics.cell_size.height,
+                ),
+                self.render_metrics.cell_size,
+            );
+            win.set_text_cursor_position(r);
         }
     }
 
