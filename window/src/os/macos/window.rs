@@ -828,11 +828,12 @@ impl WindowView {
     }
 
     fn key_common(this: &mut Object, nsevent: id, key_is_down: bool) {
+        let is_a_repeat = unsafe { nsevent.isARepeat() == YES };
         let chars = unsafe { nsstring_to_str(nsevent.characters()) };
         // let unmod = unsafe { nsstring_to_str(nsevent.charactersIgnoringModifiers()) };
         let modifiers = unsafe { key_modifiers(nsevent.modifierFlags()) };
 
-        if modifiers.is_empty() && key_is_down {
+        if modifiers.is_empty() && !is_a_repeat {
             unsafe {
                 let input_context: id = msg_send![this, inputContext];
                 let res: BOOL = msg_send![input_context, handleEvent: nsevent];
@@ -881,9 +882,11 @@ impl WindowView {
         Self::key_common(this, nsevent, true);
     }
 
+    /*
     extern "C" fn key_up(this: &mut Object, _sel: Sel, nsevent: id) {
         Self::key_common(this, nsevent, false);
     }
+    */
 
     extern "C" fn did_resize(this: &mut Object, _sel: Sel, _notification: id) {
         #[cfg(feature = "opengl")]
@@ -1077,10 +1080,15 @@ impl WindowView {
                 sel!(keyDown:),
                 Self::key_down as extern "C" fn(&mut Object, Sel, id),
             );
+            /* keyUp events mess up the IME and we generally only care
+             * about the down events anyway.  Leaving this un-plumbed
+             * means that we'll fall back to the default behavior for
+             * keyUp which helps make key repeat work.
             cls.add_method(
                 sel!(keyUp:),
                 Self::key_up as extern "C" fn(&mut Object, Sel, id),
             );
+            */
 
             cls.add_method(
                 sel!(acceptsFirstResponder),
