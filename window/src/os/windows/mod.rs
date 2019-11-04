@@ -4,10 +4,10 @@ pub mod gdi;
 mod wgl;
 pub mod window;
 
+pub use self::window::*;
 pub use connection::*;
 pub use event::*;
 pub use gdi::*;
-pub use window::*;
 
 /// Convert a rust string to a windows wide string
 fn wide_string(s: &str) -> Vec<u16> {
