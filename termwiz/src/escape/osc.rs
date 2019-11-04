@@ -741,6 +741,11 @@ mod test {
             OperatingSystemCommand::SetIconNameAndWindowTitle("hello".into())
         );
 
+        assert_eq!(
+            parse(&["0", "hello \u{1f915}"], "\x1b]0;hello \u{1f915}\x07"),
+            OperatingSystemCommand::SetIconNameAndWindowTitle("hello \u{1f915}".into())
+        );
+
         // Missing title parameter
         assert_eq!(
             parse(&["0"], "\x1b]0\x07"),

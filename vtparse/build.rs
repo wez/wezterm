@@ -317,7 +317,9 @@ fn build_tables() -> Tables {
                 // This extended range allows for UTF-8 characters
                 // to be embedded in OSC parameters.  It is not
                 // part of the base state machine.
-                0x80..=0xff => (OscPut, OscString),
+                0xc2..=0xdf => (Utf8, Utf8Sequence),
+                0xe0..=0xef => (Utf8, Utf8Sequence),
+                0xf0..=0xf4 => (Utf8, Utf8Sequence),
             },
         ),
     );

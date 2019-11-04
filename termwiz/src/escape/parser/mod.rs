@@ -268,6 +268,20 @@ mod test {
     }
 
     #[test]
+    fn test_emoji_title_osc() {
+        let input = "\x1b]0;\u{1f915}\x07";
+        let mut p = Parser::new();
+        let actions = p.parse_as_vec(input.as_bytes());
+        assert_eq!(
+            vec![Action::OperatingSystemCommand(Box::new(
+                OperatingSystemCommand::SetIconNameAndWindowTitle("\u{1f915}".to_owned()),
+            ))],
+            actions
+        );
+        assert_eq!(encode(&actions), input);
+    }
+
+    #[test]
     fn basic_esc() {
         let mut p = Parser::new();
         let actions = p.parse_as_vec(b"\x1bH");

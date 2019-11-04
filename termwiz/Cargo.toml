@@ -34,7 +34,7 @@ smallvec = "0.6"
 terminfo = "0.6"
 unicode-segmentation = "1.2"
 unicode-width = "0.1"
-vtparse = "0.1"
+vtparse = { version="0.1", path="../vtparse" }
 
 [dev-dependencies]
 varbincode = "0.1"
