@@ -61,7 +61,6 @@ fn libpng() {
         .file("libpng/pngrtran.c")
         .file("libpng/pngrutil.c")
         .file("libpng/pngset.c")
-        .file("libpng/pngtest.c")
         .file("libpng/pngtrans.c")
         .file("libpng/pngwio.c")
         .file("libpng/pngwrite.c")
