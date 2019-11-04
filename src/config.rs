@@ -727,6 +727,12 @@ impl TextStyle {
             bold: None,
             italic: None,
         });
+        #[cfg(target_os = "macos")]
+        font.push(FontAttributes {
+            family: "Apple LiGothic".into(),
+            bold: None,
+            italic: None,
+        });
 
         // Fallback font that has unicode replacement character
         #[cfg(windows)]
