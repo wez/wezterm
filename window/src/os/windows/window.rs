@@ -115,13 +115,17 @@ impl Window {
         }
 
         let class_name = wide_string(class_name);
+        let h_inst = unsafe { GetModuleHandleW(null()) };
         let class = WNDCLASSW {
             style: CS_HREDRAW | CS_VREDRAW | CS_OWNDC | CS_DBLCLKS,
             lpfnWndProc: Some(wnd_proc),
             cbClsExtra: 0,
             cbWndExtra: 0,
-            hInstance: unsafe { GetModuleHandleW(null()) },
-            hIcon: null_mut(),
+            hInstance: h_inst,
+            // FIXME: this resource is specific to the wezterm build and this should
+            // really be made generic for other sorts of windows.
+            // The ID is defined in assets/windows/resource.rc
+            hIcon: unsafe { LoadIconW(h_inst, MAKEINTRESOURCEW(0x101)) },
             hCursor: null_mut(),
             hbrBackground: null_mut(),
             lpszMenuName: null(),

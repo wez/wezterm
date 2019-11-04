@@ -1,3 +1,4 @@
+// This ID is coupled with code in window/src/os/windows/window.rs
 #define IDI_ICON 0x101
 IDI_ICON ICON "terminal.ico"
 #define RT_MANIFEST 24
