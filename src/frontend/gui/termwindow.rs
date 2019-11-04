@@ -55,10 +55,17 @@ impl<'a> term::TerminalHost for Host<'a> {
     }
 
     fn click_link(&mut self, link: &Arc<term::cell::Hyperlink>) {
-        log::error!("clicking {}", link.uri());
-        if let Err(err) = open::that(link.uri()) {
-            log::error!("failed to open {}: {:?}", link.uri(), err);
-        }
+        // Ensure that we spawn the `open` call outside of the context
+        // of our window loop; on Windows it can cause a panic due to
+        // triggering our WndProc recursively.
+        let link = link.clone();
+        promise::Future::with_executor(executor(), move || {
+            log::error!("clicking {}", link.uri());
+            if let Err(err) = open::that(link.uri()) {
+                log::error!("failed to open {}: {:?}", link.uri(), err);
+            }
+            Ok(())
+        });
     }
 }
 
