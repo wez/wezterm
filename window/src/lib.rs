@@ -172,6 +172,11 @@ pub trait WindowOps {
     /// Resize the inner or client area of the window
     fn set_inner_size(&self, width: usize, height: usize);
 
+    /// inform the windowing system of the current textual
+    /// cursor input location.  This is used primarily for
+    /// the platform specific input method editor
+    fn set_text_cursor_position(&self, _cursor: Rect) {}
+
     /// Schedule a callback on the data associated with the window.
     /// The `Any` that is passed in corresponds to the WindowCallbacks
     /// impl you passed to `new_window`, pre-converted to Any so that
@@ -214,4 +219,9 @@ pub trait WindowOpsMut {
 
     /// Resize the inner or client area of the window
     fn set_inner_size(&self, width: usize, height: usize);
+
+    /// inform the windowing system of the current textual
+    /// cursor input location.  This is used primarily for
+    /// the platform specific input method editor
+    fn set_text_cursor_position(&mut self, _cursor: Rect) {}
 }

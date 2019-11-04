@@ -7,7 +7,7 @@ use crate::connection::ConnectionOps;
 use crate::os::macos::bitmap::BitmapRef;
 use crate::{
     BitmapImage, Color, Connection, Dimensions, KeyCode, KeyEvent, Modifiers, MouseButtons,
-    MouseCursor, MouseEvent, MouseEventKind, MousePress, Operator, PaintContext, Point, Rect,
+    MouseCursor, MouseEvent, MouseEventKind, MousePress, Operator, PaintContext, Point, Rect, Size,
     WindowCallbacks, WindowOps, WindowOpsMut,
 };
 use cocoa::appkit::{
@@ -281,6 +281,7 @@ impl Window {
                 window_id,
                 #[cfg(feature = "opengl")]
                 gl_context_pair: None,
+                text_cursor_position: Rect::new(Point::new(0, 0), Size::new(0, 0)),
             }));
 
             let window = StrongPtr::new(
@@ -362,6 +363,10 @@ impl WindowOps for Window {
 
     fn set_inner_size(&self, width: usize, height: usize) {
         Connection::with_window_inner(self.0, move |inner| inner.set_inner_size(width, height));
+    }
+
+    fn set_text_cursor_position(&self, cursor: Rect) {
+        Connection::with_window_inner(self.0, move |inner| inner.set_text_cursor_position(cursor));
     }
 
     fn apply<F: Send + 'static + Fn(&mut dyn Any, &dyn WindowOps)>(&self, func: F)
@@ -462,6 +467,16 @@ impl WindowOpsMut for WindowInner {
             );
         }
     }
+
+    fn set_text_cursor_position(&mut self, cursor: Rect) {
+        if let Some(window_view) = WindowView::get_this(unsafe { &**self.view }) {
+            window_view.inner.borrow_mut().text_cursor_position = cursor;
+        }
+        unsafe {
+            let input_context: id = msg_send![&**self.view, inputContext];
+            let () = msg_send![input_context, invalidateCharacterCoordinates];
+        }
+    }
 }
 
 struct Inner {
@@ -470,6 +485,7 @@ struct Inner {
     window_id: usize,
     #[cfg(feature = "opengl")]
     gl_context_pair: Option<opengl::GlContextPair>,
+    text_cursor_position: Rect,
 }
 
 const CLS_NAME: &str = "WezTermWindowView";
@@ -727,9 +743,29 @@ impl WindowView {
             "firstRectForCharacterRange: range:{:?} actual:{:?}",
             range, actual
         );
-        unsafe {
+        let frame = unsafe {
             let window: id = msg_send![this, window];
-            let frame = NSWindow::frame(window);
+            NSWindow::frame(window)
+        };
+        let backing_frame: NSRect = unsafe { msg_send![this, convertRectToBacking: frame] };
+        let scale = frame.size.width / backing_frame.size.width;
+
+        if let Some(this) = Self::get_this(this) {
+            let cursor_pos = this
+                .inner
+                .borrow()
+                .text_cursor_position
+                .to_f64()
+                .scale(scale, scale);
+
+            NSRect::new(
+                NSPoint::new(
+                    frame.origin.x + cursor_pos.origin.x,
+                    frame.origin.y + frame.size.height - cursor_pos.origin.y,
+                ),
+                NSSize::new(cursor_pos.size.width, cursor_pos.size.height),
+            )
+        } else {
             frame
         }
     }
