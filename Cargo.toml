@@ -9,7 +9,7 @@ build = "build.rs"
 vergen = "3"
 
 [target.'cfg(windows)'.build-dependencies]
-embed-resource = "1.1"
+embed-resource = "1.3"
 
 [dependencies]
 base64 = "0.10"
