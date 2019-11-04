@@ -278,6 +278,38 @@ const MAX_INTERMEDIATES: usize = 2;
 const MAX_OSC: usize = 16;
 const MAX_PARAMS: usize = 16;
 
+struct OscState {
+    buffer: Vec<u8>,
+    param_indices: [usize; MAX_OSC],
+    num_params: usize,
+    full: bool,
+}
+
+impl OscState {
+    fn put(&mut self, param: char) {
+        if param == ';' {
+            match self.num_params {
+                MAX_OSC => {
+                    self.full = true;
+                    return;
+                }
+                num => {
+                    self.param_indices[num - 1] = self.buffer.len();
+                    self.num_params += 1;
+                }
+            }
+        } else if !self.full {
+            if self.num_params == 0 {
+                self.num_params = 1;
+            }
+
+            let mut buf = [0u8; 8];
+            self.buffer
+                .extend_from_slice(param.encode_utf8(&mut buf).as_bytes());
+        }
+    }
+}
+
 /// The virtual terminal parser.  It works together with an implementation of `VTActor`.
 pub struct VTParser {
     state: State,
@@ -286,10 +318,7 @@ pub struct VTParser {
     num_intermediates: usize,
     ignored_excess_intermediates: bool,
 
-    osc_buffer: Vec<u8>,
-    osc_param_indices: [usize; MAX_OSC],
-    osc_num_params: usize,
-    osc_full: bool,
+    osc: OscState,
 
     params: [i64; MAX_PARAMS],
     num_params: usize,
@@ -297,24 +326,28 @@ pub struct VTParser {
     params_full: bool,
 
     utf8_parser: Utf8Parser,
+    utf8_return_state: State,
 }
 
 impl VTParser {
     pub fn new() -> Self {
-        let osc_param_indices = [0usize; MAX_OSC];
+        let param_indices = [0usize; MAX_OSC];
         let params = [0i64; MAX_PARAMS];
 
         Self {
             state: State::Ground,
+            utf8_return_state: State::Ground,
 
             intermediates: [0, 0],
             num_intermediates: 0,
             ignored_excess_intermediates: false,
 
-            osc_buffer: Vec::new(),
-            osc_param_indices,
-            osc_num_params: 0,
-            osc_full: false,
+            osc: OscState {
+                buffer: Vec::new(),
+                param_indices,
+                num_params: 0,
+                full: false,
+            },
 
             params,
             num_params: 0,
@@ -342,8 +375,8 @@ impl VTParser {
             Action::Clear => {
                 self.num_intermediates = 0;
                 self.ignored_excess_intermediates = false;
-                self.osc_num_params = 0;
-                self.osc_full = false;
+                self.osc.num_params = 0;
+                self.osc.full = false;
                 self.num_params = 0;
                 self.params_full = false;
                 self.current_param.take();
@@ -406,47 +439,31 @@ impl VTParser {
             }
             Action::Unhook => actor.dcs_unhook(),
             Action::OscStart => {
-                self.osc_buffer.clear();
-                self.osc_num_params = 0;
-                self.osc_full = false;
+                self.osc.buffer.clear();
+                self.osc.num_params = 0;
+                self.osc.full = false;
             }
-            Action::OscPut => {
-                if param == b';' {
-                    match self.osc_num_params {
-                        MAX_OSC => {
-                            self.osc_full = true;
-                            return;
-                        }
-                        num => {
-                            self.osc_param_indices[num - 1] = self.osc_buffer.len();
-                            self.osc_num_params += 1;
-                        }
-                    }
-                } else if !self.osc_full {
-                    if self.osc_num_params == 0 {
-                        self.osc_num_params = 1;
-                    }
-                    self.osc_buffer.push(param);
-                }
-            }
+            Action::OscPut => self.osc.put(param as char),
+
             Action::OscEnd => {
-                if self.osc_num_params == 0 {
+                if self.osc.num_params == 0 {
                     actor.osc_dispatch(&[]);
                 } else {
                     let mut params: [&[u8]; MAX_OSC] = [b""; MAX_OSC];
                     let mut offset = 0usize;
-                    let mut slice = self.osc_buffer.as_slice();
-                    let limit = self.osc_num_params.min(MAX_OSC);
+                    let mut slice = self.osc.buffer.as_slice();
+                    let limit = self.osc.num_params.min(MAX_OSC);
                     for i in 0..limit - 1 {
-                        let (a, b) = slice.split_at(self.osc_param_indices[i] - offset);
+                        let (a, b) = slice.split_at(self.osc.param_indices[i] - offset);
                         params[i] = a;
                         slice = b;
-                        offset = self.osc_param_indices[i];
+                        offset = self.osc.param_indices[i];
                     }
                     params[limit - 1] = slice;
                     actor.osc_dispatch(&params[0..limit]);
                 }
             }
+
             Action::Utf8 => self.next_utf8(actor, param),
         }
     }
@@ -463,12 +480,18 @@ impl VTParser {
         struct Decoder<'a> {
             state: &'a mut State,
             actor: &'a mut dyn VTActor,
+            return_state: State,
+            osc: &'a mut OscState,
         }
 
         impl<'a> utf8parse::Receiver for Decoder<'a> {
             fn codepoint(&mut self, c: char) {
-                self.actor.print(c);
-                *self.state = State::Ground;
+                match self.return_state {
+                    State::Ground => self.actor.print(c),
+                    State::OscString => self.osc.put(c),
+                    state => panic!("unreachable state {:?}", state),
+                };
+                *self.state = self.return_state;
             }
 
             fn invalid_sequence(&mut self) {
@@ -479,6 +502,8 @@ impl VTParser {
         let mut decoder = Decoder {
             state: &mut self.state,
             actor,
+            return_state: self.utf8_return_state,
+            osc: &mut self.osc,
         };
         self.utf8_parser.advance(&mut decoder, byte);
     }
@@ -499,9 +524,12 @@ impl VTParser {
         let (action, state) = lookup(self.state, byte);
 
         if state != self.state {
-            self.action(lookup_exit(self.state), 0, actor);
+            if state != State::Utf8Sequence {
+                self.action(lookup_exit(self.state), 0, actor);
+            }
             self.action(action, byte, actor);
             self.action(lookup_entry(state), 0, actor);
+            self.utf8_return_state = self.state;
             self.state = state;
         } else {
             self.action(action, byte, actor);
