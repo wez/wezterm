@@ -58,7 +58,23 @@ impl Texture2d for SrgbTexture2d {
                 .iter()
                 .map(|&p| {
                     let (r, g, b, a) = Color(p).as_rgba();
-                    Color::rgba(b, g, r, a).0
+                    // convert from linear to srgb.
+                    // This brightens up the emoji glyphs so that the
+                    // colors match those of the software renderer and
+                    // other terminal emulators.
+                    // I haven't run down exactly why this is needed but
+                    // suspect that it would be resolved if we could teach
+                    // glium to use SRGB for the texture.
+                    fn conv(v: u8) -> u8 {
+                        let f = (v as f32) / 255.;
+                        let c = if f <= 0.0031308 {
+                            f * 12.92
+                        } else {
+                            f.powf(1.0 / 2.4) * 1.055 - 0.055
+                        };
+                        (c * 255.).ceil() as u8
+                    }
+                    Color::rgba(conv(b), conv(g), conv(r), conv(a)).0
                 })
                 .collect(),
             width: im_width as u32,
