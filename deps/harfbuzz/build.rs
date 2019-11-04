@@ -112,8 +112,13 @@ fn harfbuzz() {
     if target.contains("windows") {
         cfg.define("HAVE_DIRECTWRITE", None);
         cfg.file("harfbuzz/src/hb-directwrite.cc");
+        println!("cargo:rustc-link-lib=dwrite");
+
         cfg.define("HAVE_UNISCRIBE", None);
         cfg.file("harfbuzz/src/hb-uniscribe.cc");
+        println!("cargo:rustc-link-lib=usp10");
+
+        println!("cargo:rustc-link-lib=rpcrt4");
     }
 
     // Import the include dirs exported from deps/freetype/build.rs

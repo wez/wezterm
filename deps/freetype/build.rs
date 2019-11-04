@@ -32,7 +32,10 @@ fn zlib() {
     cfg.define("HAVE_SYS_TYPES_H", None);
     cfg.define("HAVE_STDINT_H", None);
     cfg.define("HAVE_STDDEF_H", None);
-    cfg.define("_LARGEFILE64_SOURCE", Some("1"));
+    let target = env::var("TARGET").unwrap();
+    if !target.contains("windows") {
+        cfg.define("_LARGEFILE64_SOURCE", Some("1"));
+    }
     cfg.compile("z");
 }
 
@@ -65,11 +68,23 @@ fn libpng() {
         .file("libpng/pngwtran.c")
         .file("libpng/pngwutil.c");
 
+    cfg.include("zlib");
     cfg.include("libpng");
+    cfg.include(&build_dir);
     cfg.define("HAVE_SYS_TYPES_H", None);
     cfg.define("HAVE_STDINT_H", None);
     cfg.define("HAVE_STDDEF_H", None);
-    cfg.define("_LARGEFILE64_SOURCE", Some("1"));
+    let target = env::var("TARGET").unwrap();
+    if !target.contains("windows") {
+        cfg.define("_LARGEFILE64_SOURCE", Some("1"));
+    }
+
+    fs::write(
+        build_dir.join("pnglibconf.h"),
+        fs::read_to_string("libpng/scripts/pnglibconf.h.prebuilt").unwrap(),
+    )
+    .unwrap();
+
     cfg.compile("png");
 }
 
@@ -84,6 +99,9 @@ fn freetype() {
     let build_dir = out_dir.join("freetype-build");
     fs::create_dir_all(&build_dir).unwrap();
     cfg.out_dir(&build_dir);
+    cfg.include("zlib");
+    cfg.include("libpng");
+    cfg.include(out_dir.join("png-build"));
 
     fs::create_dir_all(build_dir.join("freetype2/include/freetype/config")).unwrap();
     cfg.include(format!("{}/freetype2/include", build_dir.display()));
@@ -170,8 +188,7 @@ fn freetype() {
     }
 
     if target.contains("windows") {
-        cfg.file("freetype2/builds/windows/ftdebug.c")
-            .file("freetype2/src/base/ftver.rc");
+        cfg.file("freetype2/builds/windows/ftdebug.c");
     } else {
         cfg.file("freetype2/src/base/ftdebug.c");
     }
