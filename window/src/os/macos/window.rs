@@ -618,9 +618,9 @@ impl WindowView {
     extern "C" fn do_command_by_selector(this: &mut Object, _sel: Sel, a_selector: Sel) {
         let selector = format!("{:?}", a_selector);
         let key = match selector.as_ref() {
-            "deleteBackward:" => KeyCode::Char('\x08'),
+            "deleteBackward:" => KeyCode::Char('\x7f'),
             "cancelOperation:" => KeyCode::Char('\x1b'),
-            "insertNewline:" => KeyCode::Char('\n'),
+            "insertNewline:" => KeyCode::Char('\r'),
             "insertTab:" => KeyCode::Char('\t'),
             "moveLeft:" => KeyCode::LeftArrow,
             "moveRight:" => KeyCode::RightArrow,
