@@ -137,7 +137,12 @@ pub struct ClientTab {
 }
 
 impl ClientTab {
-    pub fn new(client: &Arc<ClientInner>, remote_tab_id: TabId, size: PtySize) -> Self {
+    pub fn new(
+        client: &Arc<ClientInner>,
+        remote_tab_id: TabId,
+        size: PtySize,
+        palette: ColorPalette,
+    ) -> Self {
         let local_tab_id = alloc_tab_id();
         let writer = TabWriter {
             client: Arc::clone(client),
@@ -170,6 +175,7 @@ impl ClientTab {
                 selection_range,
                 something_changed,
                 highlight,
+                palette,
             }),
         };
 
@@ -295,7 +301,7 @@ impl Tab for ClientTab {
     }
 
     fn palette(&self) -> ColorPalette {
-        Default::default()
+        self.renderable.borrow().inner.borrow().palette.clone()
     }
 
     fn domain_id(&self) -> DomainId {
@@ -327,6 +333,7 @@ struct RenderableInner {
     selection_range: Arc<Mutex<Option<SelectionRange>>>,
     something_changed: Arc<AtomicBool>,
     highlight: Arc<Mutex<Option<Arc<Hyperlink>>>>,
+    palette: ColorPalette,
 }
 
 struct RenderableState {

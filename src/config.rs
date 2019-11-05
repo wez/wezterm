@@ -927,6 +927,13 @@ impl Config {
 
         Ok(cmd)
     }
+
+    pub fn palette(&self) -> term::color::ColorPalette {
+        self.colors
+            .as_ref()
+            .map(Into::into)
+            .unwrap_or_else(Default::default)
+    }
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -948,8 +955,8 @@ pub struct Palette {
     pub brights: Option<[RgbColor; 8]>,
 }
 
-impl From<Palette> for term::color::ColorPalette {
-    fn from(cfg: Palette) -> term::color::ColorPalette {
+impl From<&Palette> for term::color::ColorPalette {
+    fn from(cfg: &Palette) -> term::color::ColorPalette {
         let mut p = term::color::ColorPalette::default();
         macro_rules! apply_color {
             ($name:ident) => {
@@ -976,5 +983,11 @@ impl From<Palette> for term::color::ColorPalette {
             }
         }
         p
+    }
+}
+
+impl From<Palette> for term::color::ColorPalette {
+    fn from(cfg: Palette) -> term::color::ColorPalette {
+        (&cfg).into()
     }
 }
