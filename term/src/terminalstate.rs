@@ -866,7 +866,12 @@ impl TerminalState {
                 buf.push((c as u8 - 0x60) as char);
                 buf.as_str()
             }
-            (Char(c), _, ALT, ..) => {
+            // When alt is pressed, send escape first to indicate to the peer that
+            // ALT is pressed.  We do this only for ascii alnum characters because
+            // eg: on macOS generates altgr style glyphs and keeps the ALT key
+            // in the modifier set.  This confuses eg: zsh which then just displays
+            // <fffffffff> as the input, so we want to avoid that.
+            (Char(c), _, ALT, ..) if c.is_ascii_alphanumeric() => {
                 buf.push(0x1b as char);
                 buf.push(c);
                 buf.as_str()
@@ -1020,7 +1025,7 @@ impl TerminalState {
             | (InternalPasteEnd, ..) => "",
         };
 
-        // debug!("sending {:?}", to_send);
+        // debug!("sending {:?}, {:?}", to_send, key);
         writer.write_all(to_send.as_bytes())?;
 
         // Reset the viewport if we sent data to the parser
