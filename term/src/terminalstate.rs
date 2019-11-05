@@ -846,6 +846,7 @@ impl TerminalState {
         let to_send = match (key, ctrl, alt, shift, self.application_cursor_keys) {
             (Tab, ..) => "\t",
             (Enter, ..) => "\r",
+            (Backspace, _, ALT, ..) => "\x1b\x08",
             (Backspace, ..) => "\x08",
             (Escape, ..) => "\x1b",
             // Delete
