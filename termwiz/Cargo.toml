@@ -32,7 +32,7 @@ serde = {version="1.0", features = ["rc"]}
 serde_derive = "1.0"
 smallvec = "0.6"
 terminfo = "0.6"
-unicode-segmentation = "1.2"
+unicode-segmentation = "1.5"
 unicode-width = "0.1"
 vtparse = { version="0.1", path="../vtparse" }
 

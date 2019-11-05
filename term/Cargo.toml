@@ -5,16 +5,16 @@ version = "0.1.0"
 edition = "2018"
 
 [dependencies]
-bitflags = "~1.0"
-failure = "~0.1"
+bitflags = "1.0"
+failure = "0.1"
 image = "0.21"
 log = "0.4"
 num = "0.2"
 ordered-float = "1.0"
-unicode-segmentation = "~1.2"
-unicode-width = "~0.1"
-serde = {version="~1.0", features = ["rc"]}
-serde_derive = "~1.0"
+unicode-segmentation = "1.5"
+unicode-width = "0.1"
+serde = {version="1.0", features = ["rc"]}
+serde_derive = "1.0"
 
 [dev-dependencies]
 pretty_assertions = "0.6"
