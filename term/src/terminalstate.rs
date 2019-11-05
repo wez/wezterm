@@ -17,7 +17,6 @@ use termwiz::escape::osc::{ChangeColorPair, ColorOrQuery, ITermFileData, ITermPr
 use termwiz::escape::{Action, ControlCode, Esc, EscCode, OneBased, OperatingSystemCommand, CSI};
 use termwiz::hyperlink::Rule as HyperlinkRule;
 use termwiz::image::{ImageCell, ImageData, TextureCoordinate};
-use unicode_width::UnicodeWidthStr;
 
 struct TabStop {
     tabs: Vec<bool>,
@@ -1988,7 +1987,7 @@ impl<'a> Performer<'a> {
             // they occupy a cell so that we can re-emit them when we output them.
             // If we didn't do this, then we'd effectively filter them out from
             // the model, which seems like a lossy design choice.
-            let print_width = UnicodeWidthStr::width(g).max(1);
+            let print_width = unicode_column_width(g).max(1);
 
             if !self.insert && x + print_width >= width {
                 pen.set_wrapped(true);

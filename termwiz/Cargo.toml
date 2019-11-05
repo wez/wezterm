@@ -34,6 +34,7 @@ smallvec = "0.6"
 terminfo = "0.6"
 unicode-segmentation = "1.5"
 unicode-width = "0.1"
+xi-unicode = "0.2"
 vtparse = { version="0.1", path="../vtparse" }
 
 [dev-dependencies]

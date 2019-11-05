@@ -46,8 +46,8 @@ impl GlyphInfo {
         info: &harfbuzz::hb_glyph_info_t,
         pos: &harfbuzz::hb_glyph_position_t,
     ) -> GlyphInfo {
-        use unicode_width::UnicodeWidthStr;
-        let num_cells = UnicodeWidthStr::width(text) as u8;
+        use termwiz::cell::unicode_column_width;
+        let num_cells = unicode_column_width(text) as u8;
         GlyphInfo {
             #[cfg(debug_assertions)]
             text: text.into(),

@@ -318,7 +318,14 @@ fn assert_lines_equal(lines: &[Line], expect_lines: &[Line], compare: Compare) {
         if compare.contains(Compare::TEXT) {
             let line_str = line.as_str();
             let expect_str = expect.as_str();
-            assert_eq!(line_str, expect_str, "line {} text didn't match", idx,);
+            assert_eq!(
+                line_str,
+                expect_str,
+                "line {} text didn't match '{}' vs '{}'",
+                idx,
+                line_str.escape_default(),
+                expect_str.escape_default()
+            );
         }
     }
 
@@ -541,6 +548,26 @@ fn test_scroll_margins() {
     term.cup(0, 1);
     term.print("W\n");
     assert_all_contents(&term, &["1", "2", "3", "W", " ", "a"]);
+}
+
+#[test]
+fn test_emoji_with_modifier() {
+    let waving_hand = "\u{1f44b}";
+    let waving_hand_dark_tone = "\u{1f44b}\u{1f3ff}";
+
+    let mut term = TestTerm::new(3, 5, 0);
+    term.print(waving_hand);
+    term.print("\r\n");
+    term.print(waving_hand_dark_tone);
+
+    assert_all_contents(
+        &term,
+        &[
+            &format!("{}   ", waving_hand),
+            &format!("{}   ", waving_hand_dark_tone),
+            "     ",
+        ],
+    );
 }
 
 #[test]

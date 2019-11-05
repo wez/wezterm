@@ -288,7 +288,7 @@ impl Cell {
 
     /// Returns the number of cells visually occupied by this grapheme
     pub fn width(&self) -> usize {
-        UnicodeWidthStr::width(self.str())
+        grapheme_column_width(self.str())
     }
 
     /// Returns the attributes of the cell
@@ -299,6 +299,31 @@ impl Cell {
     pub fn attrs_mut(&mut self) -> &mut CellAttributes {
         &mut self.attrs
     }
+}
+
+/// Returns the number of cells visually occupied by a sequence
+/// of graphemes
+pub fn unicode_column_width(s: &str) -> usize {
+    use unicode_segmentation::UnicodeSegmentation;
+    s.graphemes(true).map(grapheme_column_width).sum()
+}
+
+/// Returns the number of cells visually occupied by a grapheme.
+/// The input string must be a single grapheme.
+pub fn grapheme_column_width(s: &str) -> usize {
+    // Due to this issue:
+    // https://github.com/unicode-rs/unicode-width/issues/4
+    // we cannot simply use the unicode-width crate to compute
+    // the desired value.
+    // Let's check for emoji-ness for ourselves first
+    use xi_unicode::EmojiExt;
+    for c in s.chars() {
+        if c.is_emoji_modifier_base() || c.is_emoji_modifier() {
+            // treat modifier sequences as double wide
+            return 2;
+        }
+    }
+    UnicodeWidthStr::width(s)
 }
 
 /// Models a change in the attributes of a cell in a stream of changes.
@@ -333,5 +358,39 @@ mod test {
             let cell = Cell::new_grapheme(g, CellAttributes::default());
             assert_eq!(cell.str(), " ");
         }
+    }
+
+    #[test]
+    fn test_width() {
+        let foot = "\u{1f9b6}";
+        eprintln!("foot chars");
+        for c in foot.chars() {
+            eprintln!("char: {:?}", c);
+            use xi_unicode::EmojiExt;
+            eprintln!("xi emoji: {}", c.is_emoji());
+            eprintln!("xi emoji_mod: {}", c.is_emoji_modifier());
+            eprintln!("xi emoji_mod_base: {}", c.is_emoji_modifier_base());
+        }
+        assert_eq!(unicode_column_width(foot), 2, "{} should be 2", foot);
+
+        let women_holding_hands_dark_skin_tone_medium_light_skin_tone =
+            "\u{1F469}\u{1F3FF}\u{200D}\u{1F91D}\u{200D}\u{1F469}\u{1F3FC}";
+
+        // Ensure that we can hold this longer grapheme sequence in the cell
+        // and correctly return its string contents!
+        let cell = Cell::new_grapheme(
+            women_holding_hands_dark_skin_tone_medium_light_skin_tone,
+            CellAttributes::default(),
+        );
+        assert_eq!(
+            cell.str(),
+            women_holding_hands_dark_skin_tone_medium_light_skin_tone
+        );
+        assert_eq!(
+            cell.width(),
+            2,
+            "width of {} should be 2",
+            women_holding_hands_dark_skin_tone_medium_light_skin_tone
+        );
     }
 }

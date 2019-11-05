@@ -36,12 +36,12 @@
 //! Alt-b, Alt-Left | Move the cursor backwards one word
 //! Alt-f, Alt-Right | Move the cursor forwards one word
 use crate::caps::{Capabilities, ProbeHintsBuilder};
+use crate::cell::unicode_column_width;
 use crate::input::{InputEvent, KeyCode, KeyEvent, Modifiers};
 use crate::surface::{Change, Position};
 use crate::terminal::{new_terminal, Terminal};
 use failure::{err_msg, Fallible};
 use unicode_segmentation::GraphemeCursor;
-use unicode_width::UnicodeWidthStr;
 
 mod actions;
 mod history;
@@ -157,7 +157,7 @@ impl<T: Terminal> LineEditor<T> {
         let mut prompt_width = 0;
         for ele in host.render_prompt(&self.prompt) {
             if let OutputElement::Text(ref t) = ele {
-                prompt_width += UnicodeWidthStr::width(t.as_str());
+                prompt_width += unicode_column_width(t.as_str());
             }
             changes.push(ele.into());
         }
@@ -174,7 +174,7 @@ impl<T: Terminal> LineEditor<T> {
         // It might feel more right to count the number of graphemes in
         // the string, but this doesn't render correctly for glyphs that
         // are double-width.  Nothing about unicode is easy :-/
-        let grapheme_count = UnicodeWidthStr::width(&self.line[0..self.cursor]);
+        let grapheme_count = unicode_column_width(&self.line[0..self.cursor]);
         changes.push(Change::CursorPosition {
             x: Position::Absolute(prompt_width + grapheme_count),
             y: Position::NoChange,
