@@ -876,6 +876,17 @@ impl WindowView {
         let modifiers = unsafe { key_modifiers(nsevent.modifierFlags()) };
         let virtual_key = unsafe { nsevent.keyCode() };
 
+        // `Delete` on macos is really Backspace and emits BS.
+        // `Fn-Delete` emits DEL.
+        // Alt-Delete is mapped by the IME to be equivalent to Fn-Delete.
+        // We want to emit Alt-BS in that situation.
+        let unmod =
+            if virtual_key == super::keycodes::kVK_Delete && modifiers.contains(Modifiers::ALT) {
+                "\x08"
+            } else {
+                unmod
+            };
+
         if modifiers.is_empty() && !is_a_repeat {
             unsafe {
                 let input_context: id = msg_send![this, inputContext];
@@ -950,6 +961,9 @@ impl WindowView {
                 keycodes::kVK_ANSI_Slash => KeyCode::Char('/'),
                 keycodes::kVK_ANSI_Period => KeyCode::Char('.'),
                 keycodes::kVK_ANSI_Grave => KeyCode::Char('`'),
+
+                keycodes::kVK_Delete => KeyCode::Char('\x08'),
+                keycodes::kVK_ForwardDelete => KeyCode::Char('\x7f'),
                 _ => kc,
             }
         }
