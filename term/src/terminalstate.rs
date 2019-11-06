@@ -849,7 +849,7 @@ impl TerminalState {
             // eg: on macOS generates altgr style glyphs and keeps the ALT key
             // in the modifier set.  This confuses eg: zsh which then just displays
             // <fffffffff> as the input, so we want to avoid that.
-            (Char(c), _, ALT, ..) if c.is_ascii_alphanumeric() => {
+            (Char(c), _, ALT, ..) if c.is_ascii_alphanumeric() || c.is_ascii_punctuation() => {
                 buf.push(0x1b as char);
                 buf.push(c);
                 buf.as_str()
