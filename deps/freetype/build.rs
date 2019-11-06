@@ -10,6 +10,7 @@ fn zlib() {
     let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
 
     let mut cfg = cc::Build::new();
+    cfg.warnings(false);
     let build_dir = out_dir.join("zlib-build");
     fs::create_dir_all(&build_dir).unwrap();
     cfg.out_dir(&build_dir);
@@ -47,6 +48,7 @@ fn libpng() {
     let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
 
     let mut cfg = cc::Build::new();
+    cfg.warnings(false);
     let build_dir = out_dir.join("png-build");
     fs::create_dir_all(&build_dir).unwrap();
     cfg.out_dir(&build_dir);
@@ -95,6 +97,7 @@ fn freetype() {
     let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
 
     let mut cfg = cc::Build::new();
+    cfg.warnings(false);
     let build_dir = out_dir.join("freetype-build");
     fs::create_dir_all(&build_dir).unwrap();
     cfg.out_dir(&build_dir);
