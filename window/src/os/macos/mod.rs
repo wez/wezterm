@@ -7,6 +7,8 @@ pub mod bitmap;
 pub mod connection;
 pub mod window;
 
+mod keycodes;
+
 pub use self::window::*;
 pub use bitmap::*;
 pub use connection::*;

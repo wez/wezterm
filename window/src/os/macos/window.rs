@@ -873,6 +873,7 @@ impl WindowView {
         let chars = unsafe { nsstring_to_str(nsevent.characters()) };
         let unmod = unsafe { nsstring_to_str(nsevent.charactersIgnoringModifiers()) };
         let modifiers = unsafe { key_modifiers(nsevent.modifierFlags()) };
+        let virtual_key = unsafe { nsevent.keyCode() };
 
         if modifiers.is_empty() && !is_a_repeat {
             unsafe {
@@ -898,11 +899,66 @@ impl WindowView {
             }
         }
 
+        fn normalize_shifted_unmodified_key(kc: KeyCode, virtual_key: u16) -> KeyCode {
+            use super::keycodes;
+            match virtual_key {
+                keycodes::kVK_ANSI_A => KeyCode::Char('a'),
+                keycodes::kVK_ANSI_B => KeyCode::Char('b'),
+                keycodes::kVK_ANSI_C => KeyCode::Char('c'),
+                keycodes::kVK_ANSI_D => KeyCode::Char('d'),
+                keycodes::kVK_ANSI_E => KeyCode::Char('e'),
+                keycodes::kVK_ANSI_F => KeyCode::Char('f'),
+                keycodes::kVK_ANSI_G => KeyCode::Char('g'),
+                keycodes::kVK_ANSI_H => KeyCode::Char('h'),
+                keycodes::kVK_ANSI_I => KeyCode::Char('i'),
+                keycodes::kVK_ANSI_J => KeyCode::Char('j'),
+                keycodes::kVK_ANSI_K => KeyCode::Char('k'),
+                keycodes::kVK_ANSI_L => KeyCode::Char('l'),
+                keycodes::kVK_ANSI_M => KeyCode::Char('m'),
+                keycodes::kVK_ANSI_N => KeyCode::Char('n'),
+                keycodes::kVK_ANSI_O => KeyCode::Char('o'),
+                keycodes::kVK_ANSI_P => KeyCode::Char('p'),
+                keycodes::kVK_ANSI_Q => KeyCode::Char('q'),
+                keycodes::kVK_ANSI_R => KeyCode::Char('r'),
+                keycodes::kVK_ANSI_S => KeyCode::Char('s'),
+                keycodes::kVK_ANSI_T => KeyCode::Char('t'),
+                keycodes::kVK_ANSI_U => KeyCode::Char('u'),
+                keycodes::kVK_ANSI_V => KeyCode::Char('v'),
+                keycodes::kVK_ANSI_W => KeyCode::Char('w'),
+                keycodes::kVK_ANSI_X => KeyCode::Char('x'),
+                keycodes::kVK_ANSI_Y => KeyCode::Char('y'),
+                keycodes::kVK_ANSI_Z => KeyCode::Char('z'),
+                keycodes::kVK_ANSI_0 => KeyCode::Char('0'),
+                keycodes::kVK_ANSI_1 => KeyCode::Char('1'),
+                keycodes::kVK_ANSI_2 => KeyCode::Char('2'),
+                keycodes::kVK_ANSI_3 => KeyCode::Char('3'),
+                keycodes::kVK_ANSI_4 => KeyCode::Char('4'),
+                keycodes::kVK_ANSI_5 => KeyCode::Char('5'),
+                keycodes::kVK_ANSI_6 => KeyCode::Char('6'),
+                keycodes::kVK_ANSI_7 => KeyCode::Char('7'),
+                keycodes::kVK_ANSI_8 => KeyCode::Char('8'),
+                keycodes::kVK_ANSI_9 => KeyCode::Char('9'),
+                keycodes::kVK_ANSI_Equal => KeyCode::Char('='),
+                keycodes::kVK_ANSI_Minus => KeyCode::Char('-'),
+                keycodes::kVK_ANSI_LeftBracket => KeyCode::Char('['),
+                keycodes::kVK_ANSI_RightBracket => KeyCode::Char(']'),
+                keycodes::kVK_ANSI_Quote => KeyCode::Char('\''),
+                keycodes::kVK_ANSI_Semicolon => KeyCode::Char(';'),
+                keycodes::kVK_ANSI_Backslash => KeyCode::Char('\\'),
+                keycodes::kVK_ANSI_Comma => KeyCode::Char(','),
+                keycodes::kVK_ANSI_Slash => KeyCode::Char('/'),
+                keycodes::kVK_ANSI_Period => KeyCode::Char('.'),
+                keycodes::kVK_ANSI_Grave => KeyCode::Char('`'),
+                _ => kc,
+            }
+        }
+
         if let Some(key) = key_string_to_key_code(chars) {
             let raw_key = if chars == unmod {
                 None
             } else {
                 key_string_to_key_code(unmod)
+                    .map(|kc| normalize_shifted_unmodified_key(kc, virtual_key))
             };
 
             let event = KeyEvent {
