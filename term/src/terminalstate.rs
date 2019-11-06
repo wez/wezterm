@@ -844,9 +844,24 @@ impl TerminalState {
         // TODO: also respect self.application_keypad
 
         let to_send = match (key, ctrl, alt, shift, self.application_cursor_keys) {
+            // When alt is pressed, send escape first to indicate to the peer that
+            // ALT is pressed.  We do this only for ascii alnum characters because
+            // eg: on macOS generates altgr style glyphs and keeps the ALT key
+            // in the modifier set.  This confuses eg: zsh which then just displays
+            // <fffffffff> as the input, so we want to avoid that.
+            (Char(c), _, ALT, ..) if c.is_ascii_alphanumeric() => {
+                buf.push(0x1b as char);
+                buf.push(c);
+                buf.as_str()
+            }
+            (Backspace, _, ALT, ..) => "\x1b\x08",
+            (UpArrow, _, ALT, ..) => "\x1b\x1b[A",
+            (DownArrow, _, ALT, ..) => "\x1b\x1b[B",
+            (RightArrow, _, ALT, ..) => "\x1b\x1b[C",
+            (LeftArrow, _, ALT, ..) => "\x1b\x1b[D",
+
             (Tab, ..) => "\t",
             (Enter, ..) => "\r",
-            (Backspace, _, ALT, ..) => "\x1b\x08",
             (Backspace, ..) => "\x08",
             (Escape, ..) => "\x1b",
             // Delete
@@ -864,16 +879,6 @@ impl TerminalState {
                 // If shift is not held we have C == 0x63 and want to translate
                 // that into 0x03
                 buf.push((c as u8 - 0x60) as char);
-                buf.as_str()
-            }
-            // When alt is pressed, send escape first to indicate to the peer that
-            // ALT is pressed.  We do this only for ascii alnum characters because
-            // eg: on macOS generates altgr style glyphs and keeps the ALT key
-            // in the modifier set.  This confuses eg: zsh which then just displays
-            // <fffffffff> as the input, so we want to avoid that.
-            (Char(c), _, ALT, ..) if c.is_ascii_alphanumeric() => {
-                buf.push(0x1b as char);
-                buf.push(c);
                 buf.as_str()
             }
             (Char(c), ..) => {
