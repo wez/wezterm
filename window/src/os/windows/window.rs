@@ -758,6 +758,7 @@ unsafe fn ime_composition(
                 Ok(s) => {
                     let key = KeyEvent {
                         key: KeyCode::Composed(s),
+                        raw_key: None,
                         modifiers: Modifiers::default(),
                         repeat_count: 1,
                         key_is_down: true,
@@ -945,6 +946,7 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
         if let Some(key) = key {
             let key = KeyEvent {
                 key,
+                raw_key: None,
                 modifiers,
                 repeat_count: repeat,
                 key_is_down: !releasing,

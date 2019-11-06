@@ -226,6 +226,9 @@ pub(crate) struct WindowInner {
 }
 
 fn function_key_to_keycode(function_key: char) -> KeyCode {
+    // FIXME: CTRL-C is 0x3, should it be normalized to C here
+    // using the unmod string?  Or should be normalize the 0x3
+    // as the canonical representation of that input?
     use cocoa::appkit;
     match function_key as u16 {
         appkit::NSUpArrowFunctionKey => KeyCode::UpArrow,
@@ -638,6 +641,7 @@ impl WindowView {
 
         let event = KeyEvent {
             key,
+            raw_key: None,
             modifiers: Modifiers::default(),
             repeat_count: 1,
             key_is_down: true,
@@ -673,6 +677,7 @@ impl WindowView {
 
         let event = KeyEvent {
             key: KeyCode::Composed(s.to_string()),
+            raw_key: None,
             modifiers: Modifiers::default(),
             repeat_count: 1,
             key_is_down: true,
@@ -866,7 +871,7 @@ impl WindowView {
     fn key_common(this: &mut Object, nsevent: id, key_is_down: bool) {
         let is_a_repeat = unsafe { nsevent.isARepeat() == YES };
         let chars = unsafe { nsstring_to_str(nsevent.characters()) };
-        // let unmod = unsafe { nsstring_to_str(nsevent.charactersIgnoringModifiers()) };
+        let unmod = unsafe { nsstring_to_str(nsevent.charactersIgnoringModifiers()) };
         let modifiers = unsafe { key_modifiers(nsevent.modifierFlags()) };
 
         if modifiers.is_empty() && !is_a_repeat {
@@ -879,21 +884,30 @@ impl WindowView {
             }
         }
 
-        let mut char_iter = chars.chars();
-        if let Some(first_char) = char_iter.next() {
-            let key = if char_iter.next().is_none() {
-                // A single unicode char
-                function_key_to_keycode(first_char)
+        fn key_string_to_key_code(s: &str) -> Option<KeyCode> {
+            let mut char_iter = s.chars();
+            if let Some(first_char) = char_iter.next() {
+                if char_iter.next().is_none() {
+                    // A single unicode char
+                    Some(function_key_to_keycode(first_char))
+                } else {
+                    Some(KeyCode::Composed(s.to_owned()))
+                }
             } else {
-                KeyCode::Composed(chars.to_owned())
-            };
+                None
+            }
+        }
 
-            // FIXME: CTRL-C is 0x3, should it be normalized to C here
-            // using the unmod string?  Or should be normalize the 0x3
-            // as the canonical representation of that input?
+        if let Some(key) = key_string_to_key_code(chars) {
+            let raw_key = if chars == unmod {
+                None
+            } else {
+                key_string_to_key_code(unmod)
+            };
 
             let event = KeyEvent {
                 key,
+                raw_key,
                 modifiers,
                 repeat_count: 1,
                 key_is_down,

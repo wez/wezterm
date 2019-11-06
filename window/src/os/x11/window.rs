@@ -261,6 +261,7 @@ impl WindowInner {
                 if let Some((code, mods)) = self.conn.keyboard.process_key_event(key_press) {
                     let key = KeyEvent {
                         key: code,
+                        raw_key: None,
                         modifiers: mods,
                         repeat_count: 1,
                         key_is_down: r == xcb::KEY_PRESS,

@@ -184,14 +184,19 @@ impl WindowCallbacks for TermWindow {
             return false;
         }
 
-        let mux = Mux::get().unwrap();
-        if let Some(tab) = mux.get_active_tab_for_window(self.mux_window_id) {
-            let modifiers = window_mods_to_termwiz_mods(key.modifiers);
+        // log::error!("key_event {:?}", key);
 
+        enum Key {
+            Code(::termwiz::input::KeyCode),
+            Composed(String),
+            None,
+        }
+
+        fn win_key_code_to_termwiz_key_code(key: &::window::KeyCode) -> Key {
             use ::termwiz::input::KeyCode as KC;
             use ::window::KeyCode as WK;
 
-            let key = match key.key {
+            let code = match key {
                 // TODO: consider eliminating these codes from termwiz::input::KeyCode
                 WK::Char('\r') => KC::Enter,
                 WK::Char('\t') => KC::Tab,
@@ -199,12 +204,11 @@ impl WindowCallbacks for TermWindow {
                 WK::Char('\u{1b}') => KC::Escape,
                 WK::Char('\u{7f}') => KC::Delete,
 
-                WK::Char(c) => KC::Char(c),
+                WK::Char(c) => KC::Char(*c),
                 WK::Composed(ref s) => {
-                    tab.writer().write_all(s.as_bytes()).ok();
-                    return true;
+                    return Key::Composed(s.to_owned());
                 }
-                WK::Function(f) => KC::Function(f),
+                WK::Function(f) => KC::Function(*f),
                 WK::LeftArrow => KC::LeftArrow,
                 WK::RightArrow => KC::RightArrow,
                 WK::UpArrow => KC::UpArrow,
@@ -251,7 +255,7 @@ impl WindowCallbacks for TermWindow {
                 WK::Numpad(7) => KC::Numpad7,
                 WK::Numpad(8) => KC::Numpad8,
                 WK::Numpad(9) => KC::Numpad9,
-                WK::Numpad(_) => return false,
+                WK::Numpad(_) => return Key::None,
                 WK::Separator => KC::Separator,
                 WK::Subtract => KC::Subtract,
                 WK::Decimal => KC::Decimal,
@@ -277,12 +281,39 @@ impl WindowCallbacks for TermWindow {
                 WK::ApplicationUpArrow => KC::ApplicationUpArrow,
                 WK::ApplicationDownArrow => KC::ApplicationDownArrow,
             };
+            Key::Code(code)
+        }
 
-            if let Some(assignment) = self.keys.lookup(key, modifiers) {
-                self.perform_key_assignment(&tab, &assignment).ok();
-                return true;
-            } else if tab.key_down(key, modifiers).is_ok() {
-                return true;
+        let mux = Mux::get().unwrap();
+        if let Some(tab) = mux.get_active_tab_for_window(self.mux_window_id) {
+            let modifiers = window_mods_to_termwiz_mods(key.modifiers);
+
+            // First chance to operate on the raw key; if it matches a
+            // user-defined key binding then we execute it and stop there.
+            if let Some(key) = &key.raw_key {
+                if let Key::Code(key) = win_key_code_to_termwiz_key_code(&key) {
+                    if let Some(assignment) = self.keys.lookup(key, modifiers) {
+                        self.perform_key_assignment(&tab, &assignment).ok();
+                        return true;
+                    }
+                }
+            }
+
+            let key = win_key_code_to_termwiz_key_code(&key.key);
+            match key {
+                Key::Code(key) => {
+                    if let Some(assignment) = self.keys.lookup(key, modifiers) {
+                        self.perform_key_assignment(&tab, &assignment).ok();
+                        return true;
+                    } else if tab.key_down(key, modifiers).is_ok() {
+                        return true;
+                    }
+                }
+                Key::Composed(s) => {
+                    tab.writer().write_all(s.as_bytes()).ok();
+                    return true;
+                }
+                Key::None => {}
             }
         }
 

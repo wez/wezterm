@@ -135,8 +135,14 @@ pub struct MouseEvent {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct KeyEvent {
-    /// Which key was pressed
+    /// Which key was pressed.
+    /// This is the potentially processed/composed version
+    /// of the input.
     pub key: KeyCode,
+
+    /// The raw unprocessed key press if it was different from
+    /// the processed/composed version
+    pub raw_key: Option<KeyCode>,
 
     /// Which modifiers are down
     pub modifiers: Modifiers,
