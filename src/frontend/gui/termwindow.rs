@@ -26,7 +26,7 @@ use termwiz::color::RgbColor;
 pub struct TermWindow {
     window: Option<Window>,
     fonts: Rc<FontConfiguration>,
-    _config: Arc<Config>,
+    config: Arc<Config>,
     dimensions: Dimensions,
     mux_window_id: MuxWindowId,
     render_metrics: RenderMetrics,
@@ -296,6 +296,14 @@ impl WindowCallbacks for TermWindow {
                         self.perform_key_assignment(&tab, &assignment).ok();
                         return true;
                     }
+
+                    if !self.config.send_composed_key_when_alt_is_pressed
+                        && modifiers.contains(::termwiz::input::Modifiers::ALT)
+                    {
+                        if tab.key_down(key, modifiers).is_ok() {
+                            return true;
+                        }
+                    }
                 }
             }
 
@@ -422,7 +430,7 @@ impl TermWindow {
             Box::new(Self {
                 window: None,
                 mux_window_id,
-                _config: Arc::clone(config),
+                config: Arc::clone(config),
                 fonts: Rc::clone(fontconfig),
                 render_metrics,
                 dimensions: Dimensions {
