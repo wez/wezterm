@@ -23,6 +23,7 @@ jobs:
       run: |
           curl -sSf -o rustup-init.exe https://win.rustup.rs
           rustup-init.exe -yv --default-toolchain ${{ matrix.rust_toolchain }}
+          rustup update ${{ matrix.rust_toolchain }}
     - name: Show versions
       shell: cmd
       run: |
