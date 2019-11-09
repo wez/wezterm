@@ -15,7 +15,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-16.04, macos-10.14]
+        os: [ubuntu-16.04, macos-latest]
         rust_toolchain: [stable]
     runs-on: ${{ matrix.os }}
     steps:
