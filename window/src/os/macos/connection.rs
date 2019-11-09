@@ -126,10 +126,10 @@ impl ConnectionOps for Connection {
                 0,
                 timer_callback::<F>,
                 &mut CFRunLoopTimerContext {
-                    copyDescription: std::mem::transmute(0usize),
+                    copyDescription: std::mem::MaybeUninit::zeroed().assume_init(),
                     info: callback as _,
                     release: release_callback::<F>,
-                    retain: std::mem::transmute(0usize),
+                    retain: std::mem::MaybeUninit::zeroed().assume_init(),
                     version: 0,
                 },
             )
