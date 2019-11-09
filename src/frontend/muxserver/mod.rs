@@ -39,21 +39,22 @@ pub struct MuxServerFrontEnd {
 
 impl MuxServerFrontEnd {
     #[cfg_attr(feature = "cargo-clippy", allow(clippy::new_ret_no_self))]
-    fn new(mux: &Rc<Mux>, start_listener: bool) -> Result<Rc<dyn FrontEnd>, Error> {
+    fn new(start_listener: bool) -> Result<Rc<dyn FrontEnd>, Error> {
         let (tx, rx) = mpsc::channel();
 
         if start_listener {
+            let mux = Mux::get().unwrap();
             spawn_listener(mux.config())?;
         }
         Ok(Rc::new(Self { tx, rx }))
     }
 
-    pub fn try_new(mux: &Rc<Mux>) -> Result<Rc<dyn FrontEnd>, Error> {
-        Self::new(mux, true)
+    pub fn try_new() -> Result<Rc<dyn FrontEnd>, Error> {
+        Self::new(true)
     }
 
-    pub fn new_null(mux: &Rc<Mux>) -> Result<Rc<dyn FrontEnd>, Error> {
-        Self::new(mux, false)
+    pub fn new_null() -> Result<Rc<dyn FrontEnd>, Error> {
+        Self::new(false)
     }
 }
 

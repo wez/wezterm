@@ -163,18 +163,14 @@ impl<T: Terminal> LineEditor<T> {
         }
         changes.push(Change::AllAttributes(Default::default()));
 
+        let mut grapheme_count = 0;
         for ele in host.highlight_line(&self.line, self.cursor) {
+            if let OutputElement::Text(ref t) = ele {
+                grapheme_count += unicode_column_width(t);
+            }
             changes.push(ele.into());
         }
 
-        // In order to position the terminal cursor at the right spot,
-        // we need to compute how many graphemes away from the start of
-        // the line the current insertion point is.  We can do this by
-        // slicing into the string and requesting its unicode width.
-        // It might feel more right to count the number of graphemes in
-        // the string, but this doesn't render correctly for glyphs that
-        // are double-width.  Nothing about unicode is easy :-/
-        let grapheme_count = unicode_column_width(&self.line[0..self.cursor]);
         changes.push(Change::CursorPosition {
             x: Position::Absolute(prompt_width + grapheme_count),
             y: Position::NoChange,
@@ -313,6 +309,10 @@ impl<T: Terminal> LineEditor<T> {
                 modifiers: Modifiers::NONE,
             }) => Some(Action::Move(Movement::ForwardChar(1))),
             InputEvent::Key(KeyEvent {
+                key: KeyCode::Char(c),
+                modifiers: Modifiers::SHIFT,
+            })
+            | InputEvent::Key(KeyEvent {
                 key: KeyCode::Char(c),
                 modifiers: Modifiers::NONE,
             }) => Some(Action::InsertChar(1, *c)),

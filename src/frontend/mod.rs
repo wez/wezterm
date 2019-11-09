@@ -2,7 +2,6 @@ use crate::config::Config;
 use crate::font::FontConfiguration;
 use crate::mux::tab::Tab;
 use crate::mux::window::WindowId;
-use crate::mux::Mux;
 use downcast_rs::{impl_downcast, Downcast};
 use failure::{format_err, Error, Fallible};
 use lazy_static::lazy_static;
@@ -55,12 +54,12 @@ pub fn front_end() -> Option<Rc<dyn FrontEnd>> {
 }
 
 impl FrontEndSelection {
-    pub fn try_new(self, mux: &Rc<Mux>) -> Result<Rc<dyn FrontEnd>, Error> {
+    pub fn try_new(self) -> Result<Rc<dyn FrontEnd>, Error> {
         let front_end = match self {
-            FrontEndSelection::MuxServer => muxserver::MuxServerFrontEnd::try_new(mux),
-            FrontEndSelection::Null => muxserver::MuxServerFrontEnd::new_null(mux),
-            FrontEndSelection::Software => gui::GuiFrontEnd::try_new_no_opengl(mux),
-            FrontEndSelection::OpenGL => gui::GuiFrontEnd::try_new(mux),
+            FrontEndSelection::MuxServer => muxserver::MuxServerFrontEnd::try_new(),
+            FrontEndSelection::Null => muxserver::MuxServerFrontEnd::new_null(),
+            FrontEndSelection::Software => gui::GuiFrontEnd::try_new_no_opengl(),
+            FrontEndSelection::OpenGL => gui::GuiFrontEnd::try_new(),
         }?;
 
         EXECUTOR.lock().unwrap().replace(front_end.executor());

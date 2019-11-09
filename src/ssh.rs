@@ -4,6 +4,7 @@ use crate::mux::domain::{alloc_domain_id, Domain, DomainId, DomainState};
 use crate::mux::tab::Tab;
 use crate::mux::window::WindowId;
 use crate::mux::Mux;
+use crate::termwiztermtab;
 use failure::Error;
 use failure::{bail, format_err, Fallible};
 use portable_pty::cmdbuilder::CommandBuilder;
@@ -14,6 +15,10 @@ use std::net::TcpStream;
 use std::path::Path;
 use std::rc::Rc;
 use std::sync::Arc;
+use termwiz::cell::{unicode_column_width, AttributeChange, Intensity};
+use termwiz::lineedit::*;
+use termwiz::surface::Change;
+use termwiz::terminal::*;
 
 fn password_prompt(
     instructions: &str,
@@ -21,11 +26,58 @@ fn password_prompt(
     username: &str,
     remote_address: &str,
 ) -> Option<String> {
+    let title = format!("🔐 wezterm: SSH authentication");
     let text = format!(
-        "SSH Authentication for {} @ {}\n{}\n{}",
+        "🔐 SSH Authentication for {} @ {}\n{}\n{}",
         username, remote_address, instructions, prompt
     );
-    tinyfiledialogs::password_box("wezterm", &text)
+
+    #[derive(Default)]
+    struct PasswordPromptHost {
+        history: BasicHistory,
+    }
+    impl LineEditorHost for PasswordPromptHost {
+        fn history(&mut self) -> &mut dyn History {
+            &mut self.history
+        }
+
+        // Rewrite the input so that we can obscure the password
+        // characters when output to the terminal widget
+        fn highlight_line(&self, line: &str, _cursor_position: usize) -> Vec<OutputElement> {
+            let grapheme_count = unicode_column_width(line);
+            let mut output = vec![];
+            for _ in 0..grapheme_count {
+                output.push(OutputElement::Text("🔑".to_string()));
+            }
+            output
+        }
+    }
+    match termwiztermtab::run(60, 10, move |mut term| {
+        term.render(&[
+            // Change::Attribute(AttributeChange::Intensity(Intensity::Bold)),
+            Change::Title(title.to_string()),
+            Change::Text(text.to_string()),
+            Change::Attribute(AttributeChange::Intensity(Intensity::Normal)),
+        ])?;
+
+        let mut editor = LineEditor::new(term);
+        editor.set_prompt("Password: ");
+
+        let mut host = PasswordPromptHost::default();
+        if let Some(line) = editor.read_line(&mut host)? {
+            Ok(line)
+        } else {
+            bail!("prompt cancelled");
+        }
+    })
+    .wait()
+    {
+        Ok(p) => Some(p),
+        Err(p) => {
+            log::error!("failed to prompt for pw: {}", p);
+            None
+        }
+    }
 }
 
 fn input_prompt(
@@ -34,11 +86,35 @@ fn input_prompt(
     username: &str,
     remote_address: &str,
 ) -> Option<String> {
+    let title = format!("🔐 wezterm: SSH authentication");
     let text = format!(
         "SSH Authentication for {} @ {}\n{}\n{}",
         username, remote_address, instructions, prompt
     );
-    tinyfiledialogs::input_box("wezterm", &text, "")
+    match termwiztermtab::run(60, 10, move |mut term| {
+        term.render(&[
+            Change::Title(title.to_string()),
+            Change::Text(text.to_string()),
+            Change::Attribute(AttributeChange::Intensity(Intensity::Normal)),
+        ])?;
+
+        let mut editor = LineEditor::new(term);
+
+        let mut host = NopLineEditorHost::default();
+        if let Some(line) = editor.read_line(&mut host)? {
+            Ok(line)
+        } else {
+            bail!("prompt cancelled");
+        }
+    })
+    .wait()
+    {
+        Ok(p) => Some(p),
+        Err(p) => {
+            log::error!("failed to prompt for pw: {}", p);
+            None
+        }
+    }
 }
 
 struct Prompt<'a> {

@@ -39,7 +39,7 @@ pub struct Mux {
     tabs: RefCell<HashMap<TabId, Rc<dyn Tab>>>,
     windows: RefCell<HashMap<WindowId, Window>>,
     config: Arc<Config>,
-    default_domain: Arc<dyn Domain>,
+    default_domain: RefCell<Option<Arc<dyn Domain>>>,
     domains: RefCell<HashMap<DomainId, Arc<dyn Domain>>>,
     domains_by_name: RefCell<HashMap<String, Arc<dyn Domain>>>,
     subscribers: RefCell<HashMap<usize, PollableSender<MuxNotification>>>,
@@ -134,21 +134,23 @@ thread_local! {
 }
 
 impl Mux {
-    pub fn new(config: &Arc<Config>, default_domain: &Arc<dyn Domain>) -> Self {
+    pub fn new(config: &Arc<Config>, default_domain: Option<Arc<dyn Domain>>) -> Self {
         let mut domains = HashMap::new();
-        domains.insert(default_domain.domain_id(), Arc::clone(default_domain));
-
         let mut domains_by_name = HashMap::new();
-        domains_by_name.insert(
-            default_domain.domain_name().to_string(),
-            Arc::clone(default_domain),
-        );
+        if let Some(default_domain) = default_domain.as_ref() {
+            domains.insert(default_domain.domain_id(), Arc::clone(default_domain));
+
+            domains_by_name.insert(
+                default_domain.domain_name().to_string(),
+                Arc::clone(default_domain),
+            );
+        }
 
         Self {
             tabs: RefCell::new(HashMap::new()),
             windows: RefCell::new(HashMap::new()),
             config: Arc::clone(config),
-            default_domain: Arc::clone(default_domain),
+            default_domain: RefCell::new(default_domain),
             domains_by_name: RefCell::new(domains_by_name),
             domains: RefCell::new(domains),
             subscribers: RefCell::new(HashMap::new()),
@@ -167,8 +169,16 @@ impl Mux {
         subscribers.retain(|_, tx| tx.send(notification.clone()).is_ok());
     }
 
-    pub fn default_domain(&self) -> &Arc<dyn Domain> {
-        &self.default_domain
+    pub fn default_domain(&self) -> Arc<dyn Domain> {
+        self.default_domain
+            .borrow()
+            .as_ref()
+            .map(Arc::clone)
+            .unwrap()
+    }
+
+    pub fn set_default_domain(&self, domain: &Arc<dyn Domain>) {
+        *self.default_domain.borrow_mut() = Some(Arc::clone(domain));
     }
 
     pub fn get_domain(&self, id: DomainId) -> Option<Arc<dyn Domain>> {
@@ -180,6 +190,9 @@ impl Mux {
     }
 
     pub fn add_domain(&self, domain: &Arc<dyn Domain>) {
+        if self.default_domain.borrow().is_none() {
+            *self.default_domain.borrow_mut() = Some(Arc::clone(domain));
+        }
         self.domains
             .borrow_mut()
             .insert(domain.domain_id(), Arc::clone(domain));
