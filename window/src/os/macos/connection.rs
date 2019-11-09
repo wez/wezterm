@@ -120,7 +120,7 @@ impl ConnectionOps for Connection {
         let timer_ref = unsafe {
             CFRunLoopTimerCreate(
                 std::ptr::null(),
-                CFAbsoluteTimeGetCurrent(),
+                CFAbsoluteTimeGetCurrent() + secs_f64,
                 secs_f64,
                 0,
                 0,
