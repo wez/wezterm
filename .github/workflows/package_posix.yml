@@ -23,7 +23,10 @@ jobs:
     - name: Install System Deps
       run: sudo ./get-deps
     - name: Install Rust
-      run: curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain ${{ matrix.rust_toolchain }}
+      run: |
+        curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain ${{ matrix.rust_toolchain }}
+        source $HOME/.cargo/env
+        rustup update ${{ matrix.rust_toolchain }}
     - name: Package
       run: |
         source $HOME/.cargo/env
