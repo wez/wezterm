@@ -531,6 +531,12 @@ pub enum ITermDimension {
     Percent(i64),
 }
 
+impl Default for ITermDimension {
+    fn default() -> Self {
+        Self::Automatic
+    }
+}
+
 impl Display for ITermDimension {
     fn fmt(&self, f: &mut Formatter) -> Result<(), FmtError> {
         use self::ITermDimension::*;
@@ -540,6 +546,13 @@ impl Display for ITermDimension {
             Pixels(n) => write!(f, "{}px", n),
             Percent(n) => write!(f, "{}%", n),
         }
+    }
+}
+
+impl std::str::FromStr for ITermDimension {
+    type Err = failure::Error;
+    fn from_str(s: &str) -> Fallible<Self> {
+        ITermDimension::parse(s)
     }
 }
 

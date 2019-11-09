@@ -109,6 +109,9 @@ enum SubCommand {
 
     #[structopt(name = "cli", about = "Interact with experimental mux server")]
     Cli(CliCommand),
+
+    #[structopt(name = "imgcat", about = "Output an image to the terminal")]
+    ImageCat(ImgCatCommand),
 }
 
 #[derive(Debug, StructOpt, Clone)]
@@ -225,6 +228,56 @@ struct ConnectCommand {
     /// as if it were a login shell.
     #[structopt(parse(from_os_str))]
     prog: Vec<OsString>,
+}
+
+use termwiz::escape::osc::{
+    ITermDimension, ITermFileData, ITermProprietary, OperatingSystemCommand,
+};
+
+#[derive(Debug, StructOpt, Clone)]
+struct ImgCatCommand {
+    /// Specify the display width; defaults to "auto" which automatically selects
+    /// an appropriate size.  You may also use an integer value `N` to specify the
+    /// number of cells, or `Npx` to specify the number of pixels, or `N%` to
+    /// size relative to the terminal width.
+    #[structopt(long = "width")]
+    width: Option<ITermDimension>,
+    /// Specify the display height; defaults to "auto" which automatically selects
+    /// an appropriate size.  You may also use an integer value `N` to specify the
+    /// number of cells, or `Npx` to specify the number of pixels, or `N%` to
+    /// size relative to the terminal height.
+    #[structopt(long = "height")]
+    height: Option<ITermDimension>,
+    /// Do not respect the aspect ratio.  The default is to respect the aspect
+    /// ratio
+    #[structopt(long = "preserve-aspect-ratio")]
+    no_preserve_aspect_ratio: bool,
+    /// The name of the image file to be displayed
+    #[structopt(parse(from_os_str))]
+    file_name: OsString,
+}
+
+impl ImgCatCommand {
+    fn run(&self) -> Fallible<()> {
+        let mut f = std::fs::File::open(&self.file_name)?;
+        let mut data = Vec::new();
+        f.read_to_end(&mut data)?;
+
+        let osc = OperatingSystemCommand::ITermProprietary(ITermProprietary::File(Box::new(
+            ITermFileData {
+                name: None,
+                size: Some(data.len()),
+                width: self.width.unwrap_or_else(Default::default),
+                height: self.height.unwrap_or_else(Default::default),
+                preserve_aspect_ratio: !self.no_preserve_aspect_ratio,
+                inline: true,
+                data,
+            },
+        )));
+        println!("{}", osc);
+
+        Ok(())
+    }
 }
 
 pub fn create_user_owned_dirs(p: &Path) -> Fallible<()> {
@@ -617,6 +670,7 @@ fn run() -> Result<(), Error> {
         SubCommand::Ssh(ssh) => run_ssh(config, &ssh),
         SubCommand::Serial(serial) => run_serial(config, &serial),
         SubCommand::Connect(connect) => run_mux_client(config, &connect),
+        SubCommand::ImageCat(cmd) => cmd.run(),
         SubCommand::Cli(cli) => {
             let initial = true;
             let client = Client::new_default_unix_domain(&config, initial)?;
