@@ -189,7 +189,11 @@ pub trait WindowOps {
     fn enable_opengl<
         F: Send
             + 'static
-            + Fn(&mut dyn Any, &dyn WindowOps, failure::Fallible<std::rc::Rc<glium::backend::Context>>),
+            + Fn(
+                &mut dyn Any,
+                &dyn WindowOps,
+                failure::Fallible<std::rc::Rc<glium::backend::Context>>,
+            ),
     >(
         &self,
         func: F,
