@@ -41,7 +41,7 @@ rayon = "1.0"
 serde = {version="1.0", features = ["rc"]}
 serde_derive = "1.0"
 serial = "0.4"
-ssh2 = "0.4"
+ssh2 = "0.5"
 structopt = "0.2"
 tabout = { path = "tabout" }
 term = { path = "term" }
