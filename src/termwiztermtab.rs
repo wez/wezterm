@@ -28,9 +28,9 @@ use term::selection::SelectionRange;
 use term::{CursorPosition, KeyCode, KeyModifiers, Line, MouseEvent, TerminalHost};
 use termwiz::hyperlink::Hyperlink;
 use termwiz::input::{InputEvent, KeyEvent};
+use termwiz::lineedit::*;
 use termwiz::surface::{Change, SequenceNo, Surface};
-use termwiz::terminal::ScreenSize;
-use termwiz::terminal::TerminalWaker;
+use termwiz::terminal::{ScreenSize, Terminal, TerminalWaker};
 
 struct RenderableInner {
     surface: Surface,
@@ -442,4 +442,25 @@ pub fn run<T: Send + 'static, F: Send + 'static + Fn(TermWizTerminal) -> Fallibl
     });
 
     future
+}
+
+pub fn message_box_ok(message: &str) {
+    let title = "wezterm";
+    let message = message.to_string();
+
+    run(60, 10, move |mut term| {
+        term.render(&[
+            Change::Title(title.to_string()),
+            Change::Text(message.to_string()),
+        ])?;
+
+        let mut editor = LineEditor::new(term);
+        editor.set_prompt("press enter to continue.");
+
+        let mut host = NopLineEditorHost::default();
+        editor.read_line(&mut host).ok();
+        Ok(())
+    })
+    .wait()
+    .ok();
 }

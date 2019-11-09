@@ -28,9 +28,10 @@ fn password_prompt(
 ) -> Option<String> {
     let title = format!("🔐 wezterm: SSH authentication");
     let text = format!(
-        "🔐 SSH Authentication for {} @ {}\n{}\n{}",
-        username, remote_address, instructions, prompt
+        "🔐 SSH Authentication for {} @ {}\r\n{}\r\n",
+        username, remote_address, instructions
     );
+    let prompt = prompt.to_string();
 
     #[derive(Default)]
     struct PasswordPromptHost {
@@ -61,7 +62,7 @@ fn password_prompt(
         ])?;
 
         let mut editor = LineEditor::new(term);
-        editor.set_prompt("Password: ");
+        editor.set_prompt(&format!("{}: ", prompt));
 
         let mut host = PasswordPromptHost::default();
         if let Some(line) = editor.read_line(&mut host)? {
@@ -88,7 +89,7 @@ fn input_prompt(
 ) -> Option<String> {
     let title = format!("🔐 wezterm: SSH authentication");
     let text = format!(
-        "SSH Authentication for {} @ {}\n{}\n{}",
+        "SSH Authentication for {} @ {}\r\n{}\r\n{}\r\n",
         username, remote_address, instructions, prompt
     );
     match termwiztermtab::run(60, 10, move |mut term| {
@@ -210,19 +211,36 @@ pub fn ssh_connect(remote_address: &str, username: &str) -> Fallible<ssh2::Sessi
         match known_hosts.check_port(&remote_host_name, port, key) {
             CheckResult::Match => {}
             CheckResult::NotFound => {
-                let allow = tinyfiledialogs::message_box_yes_no(
-                    "wezterm",
-                    &format!(
-                        "SSH host {} is not yet trusted.\n\
-                         {:?} Fingerprint: {}.\n\
-                         Trust and continue connecting?",
-                        remote_address, key_type, fingerprint
-                    ),
-                    tinyfiledialogs::MessageBoxIcon::Question,
-                    tinyfiledialogs::YesNo::No,
+                let message = format!(
+                    "SSH host {} is not yet trusted.\r\n\
+                     {:?} Fingerprint: {}.\r\n\
+                     Trust and continue connecting?\r\n",
+                    remote_address, key_type, fingerprint
                 );
 
-                if tinyfiledialogs::YesNo::No == allow {
+                let allow = termwiztermtab::run(80, 10, move |mut term| {
+                    let title = format!("🔐 wezterm: SSH authentication");
+                    term.render(&[Change::Title(title), Change::Text(message.to_string())])?;
+
+                    let mut editor = LineEditor::new(term);
+                    editor.set_prompt("Enter [Y/n]> ");
+
+                    let mut host = NopLineEditorHost::default();
+                    loop {
+                        let line = match editor.read_line(&mut host) {
+                            Ok(Some(line)) => line,
+                            Ok(None) | Err(_) => return Ok(false),
+                        };
+                        match line.as_ref() {
+                            "y" | "Y" | "yes" | "YES" => return Ok(true),
+                            "n" | "N" | "no" | "NO" => return Ok(false),
+                            _ => continue,
+                        }
+                    }
+                })
+                .wait()?;
+
+                if !allow {
                     bail!("user declined to trust host");
                 }
 
@@ -239,27 +257,19 @@ pub fn ssh_connect(remote_address: &str, username: &str) -> Fallible<ssh2::Sessi
                     })?;
             }
             CheckResult::Mismatch => {
-                tinyfiledialogs::message_box_ok(
-                    "wezterm",
-                    &format!(
-                        "host key mismatch for ssh server {}.\n\
-                         Got fingerprint {} instead of expected value from known_hosts\n\
-                         file {}.\n\
-                         Refusing to connect.",
-                        remote_address,
-                        fingerprint,
-                        file.display()
-                    ),
-                    tinyfiledialogs::MessageBoxIcon::Error,
-                );
+                termwiztermtab::message_box_ok(&format!(
+                    "🛑 host key mismatch for ssh server {}.\n\
+                     Got fingerprint {} instead of expected value from known_hosts\n\
+                     file {}.\n\
+                     Refusing to connect.",
+                    remote_address,
+                    fingerprint,
+                    file.display()
+                ));
                 bail!("host mismatch, man in the middle attack?!");
             }
             CheckResult::Failure => {
-                tinyfiledialogs::message_box_ok(
-                    "wezterm",
-                    "Failed to load and check known ssh hosts",
-                    tinyfiledialogs::MessageBoxIcon::Error,
-                );
+                termwiztermtab::message_box_ok("🛑 Failed to load and check known ssh hosts");
                 bail!("failed to check the known hosts");
             }
         }
