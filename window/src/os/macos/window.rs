@@ -297,7 +297,8 @@ impl Window {
             );
 
             window.setReleasedWhenClosed_(NO);
-            window.cascadeTopLeftFromPoint_(NSPoint::new(20.0, 20.0));
+            // window.cascadeTopLeftFromPoint_(NSPoint::new(20.0, 20.0));
+            window.center();
             window.setTitle_(*nsstring(&name));
             window.setAcceptsMouseMovedEvents_(YES);
 
