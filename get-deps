@@ -3,14 +3,14 @@
 # Centos may not have lsb_release installed
 if test -e /etc/centos-release || test -e /etc/fedora-release; then
   yum install -y \
-    cmake \
+    make \
+    g++ \
     fontconfig-devel \
     openssl-devel \
     libxcb-devel \
     libxkbcommon-devel \
     libxkbcommon-x11-devel \
     mesa-libEGL-devel \
-    ragel \
     xcb-util-keysyms-devel \
     xcb-util-wm-devel
   exit $?
@@ -32,7 +32,6 @@ case `lsb_release -ds` in
       libxcb-xkb-dev \
       libxkbcommon-dev \
       libxkbcommon-x11-dev \
-      ragel \
       xdg-utils \
       xorg-dev
     ;;
