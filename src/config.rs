@@ -762,6 +762,13 @@ impl TextStyle {
             italic: None,
         });
 
+        #[cfg(all(unix, not(target_os = "macos")))]
+        font.push(FontAttributes {
+            family: "Noto Color Emoji".into(),
+            bold: None,
+            italic: None,
+        });
+
         font
     }
 }
