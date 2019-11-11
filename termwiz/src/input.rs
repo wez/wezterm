@@ -170,6 +170,25 @@ pub enum KeyCode {
     InternalPasteEnd,
 }
 
+impl KeyCode {
+    /// if SHIFT is held and we have KeyCode::Char('c') we want to normalize
+    /// that keycode to KeyCode::Char('C'); that is what this function does.
+    /// In theory we should give the same treatment to keys like `[` -> `{`
+    /// but that assumes something about the keyboard layout and is probably
+    /// better done in the gui frontend rather than this layer.
+    /// In fact, this function might be better off if it lived elsewhere.
+    pub fn normalize_shift_to_upper_case(self, modifiers: Modifiers) -> KeyCode {
+        if modifiers.contains(Modifiers::SHIFT) {
+            match self {
+                KeyCode::Char(c) if c.is_ascii_lowercase() => KeyCode::Char(c.to_ascii_uppercase()),
+                _ => self,
+            }
+        } else {
+            self
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum InputState {
     Normal,

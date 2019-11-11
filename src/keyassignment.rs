@@ -65,16 +65,16 @@ impl KeyMap {
             [KeyModifiers::SHIFT, KeyCode::Insert, Paste],
             [KeyModifiers::SUPER, KeyCode::Char('c'), Copy],
             [KeyModifiers::SUPER, KeyCode::Char('v'), Paste],
-            [ctrl_shift, KeyCode::Char('c'), Copy],
-            [ctrl_shift, KeyCode::Char('v'), Paste],
+            [ctrl_shift, KeyCode::Char('C'), Copy],
+            [ctrl_shift, KeyCode::Char('V'), Paste],
             // Window management
             [KeyModifiers::ALT, KeyCode::Char('\n'), ToggleFullScreen],
             [KeyModifiers::ALT, KeyCode::Char('\r'), ToggleFullScreen],
             [KeyModifiers::ALT, KeyCode::Enter, ToggleFullScreen],
             [KeyModifiers::SUPER, KeyCode::Char('m'), Hide],
             [KeyModifiers::SUPER, KeyCode::Char('n'), SpawnWindow],
-            [ctrl_shift, KeyCode::Char('m'), Hide],
-            [ctrl_shift, KeyCode::Char('n'), SpawnWindow],
+            [ctrl_shift, KeyCode::Char('M'), Hide],
+            [ctrl_shift, KeyCode::Char('N'), SpawnWindow],
             // Font size manipulation
             [KeyModifiers::CTRL, KeyCode::Char('-'), DecreaseFontSize],
             [KeyModifiers::CTRL, KeyCode::Char('0'), ResetFontSize],
@@ -90,7 +90,7 @@ impl KeyMap {
             ],
             [
                 ctrl_shift,
-                KeyCode::Char('t'),
+                KeyCode::Char('T'),
                 SpawnTab(SpawnTabDomain::DefaultDomain)
             ],
             [
@@ -117,7 +117,7 @@ impl KeyMap {
             [ctrl_shift, KeyCode::Char('7'), ActivateTab(6)],
             [ctrl_shift, KeyCode::Char('8'), ActivateTab(7)],
             [ctrl_shift, KeyCode::Char('9'), ActivateTab(8)],
-            [ctrl_shift, KeyCode::Char('w'), CloseCurrentTab],
+            [ctrl_shift, KeyCode::Char('W'), CloseCurrentTab],
             [
                 KeyModifiers::SUPER | KeyModifiers::SHIFT,
                 KeyCode::Char('['),
@@ -144,6 +144,8 @@ impl KeyMap {
     }
 
     pub fn lookup(&self, key: KeyCode, mods: KeyModifiers) -> Option<KeyAssignment> {
-        self.0.get(&(key, mods)).cloned()
+        self.0
+            .get(&(key.normalize_shift_to_upper_case(mods), mods))
+            .cloned()
     }
 }
