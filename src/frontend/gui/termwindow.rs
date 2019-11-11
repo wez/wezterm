@@ -646,7 +646,7 @@ impl TermWindow {
                 // self.toggle_full_screen(),
             }
             Copy => {
-                // Nominally copy, but that is implicit, so NOP
+                self.clipboard.set_contents(tab.selection_text())?;
             }
             Paste => {
                 tab.trickle_paste(self.clipboard.get_contents()?)?;

@@ -294,6 +294,11 @@ impl Tab for TermWizTerminalTab {
             .lock()
             .unwrap()
     }
+
+    fn selection_text(&self) -> Option<String> {
+        // FIXME: grab it from the surface
+        None
+    }
 }
 
 pub struct TermWizTerminal {

@@ -312,6 +312,11 @@ impl Tab for ClientTab {
             .lock()
             .unwrap()
     }
+
+    fn selection_text(&self) -> Option<String> {
+        // FIXME: get selection from peer or the surface
+        None
+    }
 }
 
 struct RenderableInner {

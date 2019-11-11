@@ -67,6 +67,7 @@ pub trait Tab: Downcast {
     /// (eg: it has been normalized and had clip_to_viewport called
     /// on it prior to being returned)
     fn selection_range(&self) -> Option<SelectionRange>;
+    fn selection_text(&self) -> Option<String>;
 
     fn trickle_paste(&self, text: String) -> Fallible<()> {
         if text.len() <= PASTE_CHUNK_SIZE {

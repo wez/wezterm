@@ -93,6 +93,11 @@ impl Tab for LocalTab {
             .selection_range()
             .map(|r| r.clip_to_viewport(terminal.get_viewport_offset(), rows))
     }
+
+    fn selection_text(&self) -> Option<String> {
+        let terminal = self.terminal.borrow();
+        Some(terminal.get_selection_text())
+    }
 }
 
 impl LocalTab {
