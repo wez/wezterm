@@ -6,7 +6,7 @@ use crate::font::ftfont::FreeTypeFontImpl;
 use crate::font::{fcwrap, ftwrap};
 use crate::font::{shape_with_harfbuzz, FallbackIdx, Font, FontSystem, GlyphInfo, NamedFont};
 use failure::{bail, ensure, err_msg, Error};
-use log::{debug, error, warn};
+use log::{debug, warn};
 
 pub type FontSystemImpl = FontConfigAndFreeType;
 
