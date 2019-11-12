@@ -69,6 +69,45 @@ impl Connection {
     }
 }
 
+/* Begin: workaround UB in CFRunLoopTimerContext struct.
+ * This can be removed once an equivalent change is upstreamed to the
+ * core_foundation crate */
+
+use core_foundation::string::__CFString;
+use std::ffi::c_void;
+
+#[repr(transparent)]
+pub struct __CFRunLoopTimer(c_void);
+
+#[repr(C)]
+#[allow(non_snake_case)]
+pub struct CFRunLoopTimerContext {
+    pub version: i64,
+    pub info: *mut c_void,
+    pub retain: Option<extern "C" fn(*const c_void) -> *const c_void>,
+    pub release: Option<extern "C" fn(*const c_void)>,
+    pub copyDescription: Option<extern "C" fn(*const c_void) -> *const __CFString>,
+}
+
+extern "C" {
+    fn CFRunLoopTimerCreate(
+        allocator: *const c_void,
+        fireDate: f64,
+        interval: f64,
+        flags: u32,
+        order: i64,
+        callout: extern "C" fn(*mut __CFRunLoopTimer, *mut c_void),
+        context: *mut CFRunLoopTimerContext,
+    ) -> *mut __CFRunLoopTimer;
+    fn CFRunLoopAddTimer(
+        rl: *mut __CFRunLoop,
+        timer: *mut __CFRunLoopTimer,
+        mode: *const __CFString,
+    );
+}
+
+/* End: UB workaround */
+
 impl ConnectionOps for Connection {
     fn terminate_message_loop(&self) {
         unsafe {
@@ -103,7 +142,7 @@ impl ConnectionOps for Connection {
         let callback = Box::into_raw(Box::new(callback));
 
         extern "C" fn timer_callback<F: FnMut()>(
-            _timer_ref: CFRunLoopTimerRef,
+            _timer_ref: *mut __CFRunLoopTimer,
             callback_ptr: *mut std::ffi::c_void,
         ) {
             unsafe {
@@ -126,10 +165,10 @@ impl ConnectionOps for Connection {
                 0,
                 timer_callback::<F>,
                 &mut CFRunLoopTimerContext {
-                    copyDescription: std::mem::MaybeUninit::zeroed().assume_init(),
+                    copyDescription: None,
                     info: callback as _,
-                    release: release_callback::<F>,
-                    retain: std::mem::MaybeUninit::zeroed().assume_init(),
+                    release: Some(release_callback::<F>),
+                    retain: None,
                     version: 0,
                 },
             )
