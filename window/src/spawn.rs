@@ -153,7 +153,11 @@ impl SpawnQueue {
         Ok(Self { spawned_funcs })
     }
 
-    extern "C" fn trigger(_observer: *mut __CFRunLoopObserver, _: u32, _: *mut std::ffi::c_void) {
+    extern "C" fn trigger(
+        _observer: *mut __CFRunLoopObserver,
+        _: CFRunLoopActivity,
+        _: *mut std::ffi::c_void,
+    ) {
         SPAWN_QUEUE.run();
     }
 
