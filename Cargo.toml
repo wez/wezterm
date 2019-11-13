@@ -83,9 +83,9 @@ openssl = "0.10"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 openssl = { version = "0.10", features = ["vendored"] }
-core-foundation = "0.6"
-core-graphics = "0.17"
-core-text = "13.3"
+core-foundation = "0.7"
+core-graphics = "0.19"
+core-text = "15.0"
 
 [workspace]
 
