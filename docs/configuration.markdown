@@ -156,10 +156,14 @@ The default key bindings are:
 
 | Modifiers | Key | Action |
 | --------- | --- | ------ |
+| `SUPER`     | `c`   | `Copy`  |
 | `SUPER`     | `v`   | `Paste`  |
+| `CTRL|SHIFT`     | `c`   | `Copy`  |
+| `CTRL|SHIFT`     | `v`   | `Paste`  |
 | `SHIFT`     | `Insert` | `Paste` |
 | `SUPER`     | `m`      | `Hide`  |
 | `SUPER`     | `n`      | `SpawnWindow` |
+| `CTRL|SHIFT`     | `n`      | `SpawnWindow` |
 | `ALT`       | `Enter`  | `ToggleFullScreen` |
 | `SUPER`     | `-`      | `DecreaseFontSize` |
 | `CTRL`      | `-`      | `DecreaseFontSize` |
@@ -168,6 +172,7 @@ The default key bindings are:
 | `SUPER`     | `0`      | `ResetFontSize` |
 | `CTRL`      | `0`      | `ResetFontSize` |
 | `SUPER`     | `t`      | `SpawnTabInCurrentTabDomain` |
+| `CTRL|SHIFT`     | `t`      | `SpawnTabInCurrentTabDomain` |
 | `SUPER|SHIFT` | `T`    | `SpawnTab` |
 | `SUPER`     | `w`      | `CloseCurrentTab` |
 | `SUPER`     | `1`      | `ActivateTab(0)` |
@@ -179,6 +184,16 @@ The default key bindings are:
 | `SUPER`     | `7`      | `ActivateTab(6)` |
 | `SUPER`     | `8`      | `ActivateTab(7)` |
 | `SUPER`     | `9`      | `ActivateTab(8)` |
+| `CTRL|SHIFT`     | `w`      | `CloseCurrentTab` |
+| `CTRL|SHIFT`     | `1`      | `ActivateTab(0)` |
+| `CTRL|SHIFT`     | `2`      | `ActivateTab(1)` |
+| `CTRL|SHIFT`     | `3`      | `ActivateTab(2)` |
+| `CTRL|SHIFT`     | `4`      | `ActivateTab(3)` |
+| `CTRL|SHIFT`     | `5`      | `ActivateTab(4)` |
+| `CTRL|SHIFT`     | `6`      | `ActivateTab(5)` |
+| `CTRL|SHIFT`     | `7`      | `ActivateTab(6)` |
+| `CTRL|SHIFT`     | `8`      | `ActivateTab(7)` |
+| `CTRL|SHIFT`     | `9`      | `ActivateTab(8)` |
 | `SUPER\|SHIFT` | `[` | `ActivateTabRelative(-1)` |
 | `SUPER\|SHIFT` | `]` | `ActivateTabRelative(1)` |
 
