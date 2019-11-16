@@ -834,17 +834,70 @@ impl TerminalState {
         // Normalize the modifier state for Char's that are uppercase; remove
         // the SHIFT modifier so that reduce ambiguity below
         let mods = match key {
-            Char(c) if c.is_ascii_uppercase() && mods.contains(KeyModifiers::SHIFT) => {
+            Char(c)
+                if (c.is_ascii_punctuation() || c.is_ascii_uppercase())
+                    && mods.contains(KeyModifiers::SHIFT) =>
+            {
                 mods & !KeyModifiers::SHIFT
             }
             _ => mods,
         };
 
+        fn encode_modifiers(mods: KeyModifiers) -> u8 {
+            let mut number = 0;
+            if mods.contains(KeyModifiers::SHIFT) {
+                number |= 1;
+            }
+            if mods.contains(KeyModifiers::ALT) {
+                number |= 2;
+            }
+            if mods.contains(KeyModifiers::CTRL) {
+                number |= 4;
+            }
+            number
+        }
+
         let mut buf = String::new();
 
         // TODO: also respect self.application_keypad
 
+        fn csi_u_encode(buf: &mut String, c: char, mods: KeyModifiers) -> Result<(), Error> {
+            write!(buf, "\x1b[{};{}u", c as u32, 1 + encode_modifiers(mods))?;
+            Ok(())
+        }
+
+        /// characters that when masked for CTRL could be an ascii control character
+        /// or could be a key that a user legitimately wants to process in their
+        /// terminal application
+        fn is_ambiguous_ascii_ctrl(c: char) -> bool {
+            match c {
+                'i' | 'I' | 'm' | 'M' | '[' | '{' | '@' => true,
+                _ => false,
+            }
+        }
+
         let to_send = match key {
+            Char(c) if is_ambiguous_ascii_ctrl(c) && mods.contains(KeyModifiers::CTRL) => {
+                csi_u_encode(&mut buf, c, mods)?;
+                buf.as_str()
+            }
+            Char(c) if c.is_ascii_uppercase() && mods.contains(KeyModifiers::CTRL) => {
+                csi_u_encode(&mut buf, c, mods)?;
+                buf.as_str()
+            }
+
+            Char(c)
+                if (c.is_ascii_alphanumeric() || c.is_ascii_punctuation())
+                    && mods.contains(KeyModifiers::CTRL) =>
+            {
+                let c = ((c as u8) & 0x1f) as char;
+                if mods.contains(KeyModifiers::ALT) {
+                    buf.push(0x1b as char);
+                }
+                buf.push(c);
+                buf.as_str()
+            }
+
             // When alt is pressed, send escape first to indicate to the peer that
             // ALT is pressed.  We do this only for ascii alnum characters because
             // eg: on macOS generates altgr style glyphs and keeps the ALT key
@@ -858,76 +911,124 @@ impl TerminalState {
                 buf.push(c);
                 buf.as_str()
             }
-            Backspace if mods.contains(KeyModifiers::ALT) => "\x1b\x08",
-            Backspace => "\x08",
 
-            Tab => "\t",
-            Enter => "\r",
-            Escape => "\x1b",
-
-            // Delete
-            // TODO: application delete key? See https://github.com/wez/wezterm/issues/52
-            Char('\x7f') | Delete => "\x7f", // "\x1b[3~"
-
-            Char(c)
-                if c <= 0xff as char
-                    && c > 0x40 as char
-                    && mods == KeyModifiers::CTRL | KeyModifiers::SHIFT =>
-            {
-                // If shift is held we have C == 0x43 and want to translate
-                // that into 0x03
-                buf.push((c as u8 - 0x40) as char);
+            Enter | Escape | Backspace | Char('\x08') | Delete | Char('\x7f') => {
+                let c = match key {
+                    Enter => '\r',
+                    Escape => '\x1b',
+                    Char('\x08') | Backspace => '\x08',
+                    Char('\x7f') | Delete => '\x7f',
+                    _ => unreachable!(),
+                };
+                if mods.contains(KeyModifiers::SHIFT) || mods.contains(KeyModifiers::CTRL) {
+                    csi_u_encode(&mut buf, c, mods)?;
+                } else {
+                    if mods.contains(KeyModifiers::ALT) && key != Escape {
+                        buf.push(0x1b as char);
+                    }
+                    buf.push(c);
+                }
                 buf.as_str()
             }
-            Char(c)
-                if c <= 0xff as char && c > 0x60 as char && mods.contains(KeyModifiers::CTRL) =>
-            {
-                // If shift is not held we have C == 0x63 and want to translate
-                // that into 0x03
-                buf.push((c as u8 - 0x60) as char);
+
+            Tab => {
+                if mods.contains(KeyModifiers::ALT) {
+                    buf.push(0x1b as char);
+                }
+                let mods = mods & !KeyModifiers::ALT;
+                if mods == KeyModifiers::CTRL {
+                    buf.push_str("\x1b[9;5u");
+                } else if mods == KeyModifiers::CTRL | KeyModifiers::SHIFT {
+                    buf.push_str("\x1b[1;5Z");
+                } else if mods == KeyModifiers::SHIFT {
+                    buf.push_str("\x1b[Z");
+                } else {
+                    buf.push('\t');
+                }
                 buf.as_str()
             }
+
             Char(c) => {
-                buf.push(c);
+                if mods.is_empty() {
+                    buf.push(c);
+                } else {
+                    csi_u_encode(&mut buf, c, mods)?;
+                }
                 buf.as_str()
             }
 
-            UpArrow if mods.contains(KeyModifiers::ALT) => "\x1b\x1b[A",
-            DownArrow if mods.contains(KeyModifiers::ALT) => "\x1b\x1b[B",
-            RightArrow if mods.contains(KeyModifiers::ALT) => "\x1b\x1b[C",
-            LeftArrow if mods.contains(KeyModifiers::ALT) => "\x1b\x1b[D",
-            UpArrow if self.application_cursor_keys => "\x1bOA",
-            DownArrow if self.application_cursor_keys => "\x1bOB",
-            RightArrow if self.application_cursor_keys => "\x1bOC",
-            LeftArrow if self.application_cursor_keys => "\x1bOD",
-            UpArrow => "\x1b[A",
-            DownArrow => "\x1b[B",
-            RightArrow => "\x1b[C",
-            LeftArrow => "\x1b[D",
-            ApplicationUpArrow => "\x1bOA",
-            ApplicationDownArrow => "\x1bOB",
-            ApplicationRightArrow => "\x1bOC",
-            ApplicationLeftArrow => "\x1bOD",
+            Home
+            | End
+            | UpArrow
+            | DownArrow
+            | RightArrow
+            | LeftArrow
+            | ApplicationUpArrow
+            | ApplicationDownArrow
+            | ApplicationRightArrow
+            | ApplicationLeftArrow => {
+                let (force_app, c) = match key {
+                    UpArrow => (false, 'A'),
+                    DownArrow => (false, 'B'),
+                    RightArrow => (false, 'C'),
+                    LeftArrow => (false, 'D'),
+                    Home => (false, 'H'),
+                    End => (false, 'F'),
+                    ApplicationUpArrow => (true, 'A'),
+                    ApplicationDownArrow => (true, 'B'),
+                    ApplicationRightArrow => (true, 'C'),
+                    ApplicationLeftArrow => (true, 'D'),
+                    _ => unreachable!(),
+                };
 
-            PageUp if mods.contains(KeyModifiers::SHIFT) => {
+                let csi_or_ss3 = if force_app || self.application_cursor_keys {
+                    // Use SS3 in application mode
+                    "\x1bO"
+                } else {
+                    // otherwise use regular CSI
+                    "\x1b["
+                };
+
+                if mods.contains(KeyModifiers::SHIFT) || mods.contains(KeyModifiers::CTRL) {
+                    write!(buf, "{}1;{}{}", csi_or_ss3, 1 + encode_modifiers(mods), c)?;
+                } else {
+                    if mods.contains(KeyModifiers::ALT) {
+                        buf.push(0x1b as char);
+                    }
+                    write!(buf, "{}{}", csi_or_ss3, c)?;
+                }
+                buf.as_str()
+            }
+
+            PageUp if mods == KeyModifiers::SHIFT => {
                 let rows = self.screen().physical_rows as i64;
                 self.scroll_viewport(-rows);
                 ""
             }
-            PageDown if mods.contains(KeyModifiers::SHIFT) => {
+            PageDown if mods == KeyModifiers::SHIFT => {
                 let rows = self.screen().physical_rows as i64;
                 self.scroll_viewport(rows);
                 ""
             }
-            PageUp => "\x1b[5~",
-            PageDown => "\x1b[6~",
 
-            Home if self.application_cursor_keys => "\x1bOH",
-            End if self.application_cursor_keys => "\x1bOF",
-            Home => "\x1b[H",
-            End => "\x1b[F",
+            PageUp | PageDown | Insert => {
+                let c = match key {
+                    Insert => 2,
+                    PageUp => 5,
+                    PageDown => 6,
+                    _ => unreachable!(),
+                };
 
-            Insert => "\x1b[2~",
+                if mods.contains(KeyModifiers::SHIFT) || mods.contains(KeyModifiers::CTRL) {
+                    write!(buf, "\x1b[{};{}~", c, 1 + encode_modifiers(mods))?;
+                } else {
+                    if mods.contains(KeyModifiers::ALT) {
+                        buf.push(0x1b as char);
+                    }
+                    write!(buf, "\x1b[{}~", c)?;
+                }
+                buf.as_str()
+            }
 
             Function(n) => {
                 if mods.is_empty() && n < 5 {
@@ -957,7 +1058,7 @@ impl TerminalState {
                         12 => "\x1b[24",
                         _ => bail!("unhandled fkey number {}", n),
                     };
-                    write!(buf, "{};{}~", intro, 1 + mods.bits())?;
+                    write!(buf, "{};{}~", intro, 1 + encode_modifiers(mods))?;
                     buf.as_str()
                 }
             }

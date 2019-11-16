@@ -458,9 +458,21 @@ impl InputParser {
     fn build_basic_key_map() -> KeyMap<InputEvent> {
         let mut map = KeyMap::new();
 
+        let modifier_combos = &[
+            ("", Modifiers::NONE),
+            (";1", Modifiers::NONE),
+            (";2", Modifiers::SHIFT),
+            (";3", Modifiers::ALT),
+            (";4", Modifiers::ALT | Modifiers::SHIFT),
+            (";5", Modifiers::CTRL),
+            (";6", Modifiers::CTRL | Modifiers::SHIFT),
+            (";7", Modifiers::CTRL | Modifiers::ALT),
+            (";8", Modifiers::CTRL | Modifiers::ALT | Modifiers::SHIFT),
+        ];
+
         for alpha in b'A'..=b'Z' {
             // Ctrl-[A..=Z] are sent as 1..=26
-            let ctrl = [alpha - 0x40];
+            let ctrl = [alpha & 0x1f];
             map.insert(
                 &ctrl,
                 InputEvent::Key(KeyEvent {
@@ -478,6 +490,21 @@ impl InputParser {
                     modifiers: Modifiers::ALT,
                 }),
             );
+        }
+
+        // `CSI u` encodings for the ascii range;
+        // see http://www.leonerd.org.uk/hacks/fixterms/
+        for c in 0..=0x7fu8 {
+            for (suffix, modifiers) in modifier_combos {
+                let key = format!("\x1b[{}{}u", c, suffix);
+                map.insert(
+                    key,
+                    InputEvent::Key(KeyEvent {
+                        key: KeyCode::Char(c as char),
+                        modifiers: *modifiers,
+                    }),
+                );
+            }
         }
 
         // Common arrow keys
@@ -499,16 +526,7 @@ impl InputParser {
                 }),
             );
 
-            // TODO: check compat; this happens to match up to iterm in my setup
-            for (suffix, modifiers) in &[
-                (";2", Modifiers::SHIFT),
-                (";3", Modifiers::ALT),
-                (";4", Modifiers::ALT | Modifiers::SHIFT),
-                (";5", Modifiers::CTRL),
-                (";6", Modifiers::CTRL | Modifiers::SHIFT),
-                (";7", Modifiers::CTRL | Modifiers::ALT),
-                (";8", Modifiers::CTRL | Modifiers::ALT | Modifiers::SHIFT),
-            ] {
+            for (suffix, modifiers) in modifier_combos {
                 let key = format!("\x1b[1{}{}", suffix, *dir as char);
                 map.insert(
                     key,
@@ -535,6 +553,16 @@ impl InputParser {
                     modifiers: Modifiers::NONE,
                 }),
             );
+            for (suffix, modifiers) in modifier_combos {
+                let key = format!("\x1bO1{}{}", suffix, *dir as char);
+                map.insert(
+                    key,
+                    InputEvent::Key(KeyEvent {
+                        key: *keycode,
+                        modifiers: *modifiers,
+                    }),
+                );
+            }
         }
 
         // Function keys 1-4 with no modifiers encoded using SS3
@@ -556,16 +584,7 @@ impl InputParser {
 
         // Function keys with modifiers encoded using CSI
         for n in 1..=12 {
-            for (suffix, modifiers) in &[
-                ("", Modifiers::NONE),
-                (";2", Modifiers::SHIFT),
-                (";3", Modifiers::ALT),
-                (";4", Modifiers::ALT | Modifiers::SHIFT),
-                (";5", Modifiers::CTRL),
-                (";6", Modifiers::CTRL | Modifiers::SHIFT),
-                (";7", Modifiers::CTRL | Modifiers::ALT),
-                (";8", Modifiers::CTRL | Modifiers::ALT | Modifiers::SHIFT),
-            ] {
+            for (suffix, modifiers) in modifier_combos {
                 let key = format!("\x1b[{code}{suffix}~", code = n + 10, suffix = suffix);
                 map.insert(
                     key,

@@ -625,9 +625,16 @@ impl WindowView {
     // sequences
     extern "C" fn do_command_by_selector(this: &mut Object, _sel: Sel, a_selector: Sel) {
         let selector = format!("{:?}", a_selector);
+        let mut modifiers = Modifiers::default();
         let key = match selector.as_ref() {
             "deleteBackward:" => KeyCode::Char('\x08'),
             "deleteForward:" => KeyCode::Char('\x7f'),
+            "cancel:" => {
+                // FIXME: this isn't scalable to various keys
+                // and we lose eg: SHIFT if that is also pressed at the same time
+                modifiers = Modifiers::CTRL;
+                KeyCode::Char('\x1b')
+            }
             "cancelOperation:" => KeyCode::Char('\x1b'),
             "insertNewline:" => KeyCode::Char('\r'),
             "insertTab:" => KeyCode::Char('\t'),
@@ -648,7 +655,7 @@ impl WindowView {
         let event = KeyEvent {
             key,
             raw_key: None,
-            modifiers: Modifiers::default(),
+            modifiers,
             repeat_count: 1,
             key_is_down: true,
         };
@@ -888,6 +895,8 @@ impl WindowView {
         let unmod =
             if virtual_key == super::keycodes::kVK_Delete && modifiers.contains(Modifiers::ALT) {
                 "\x08"
+            } else if virtual_key == super::keycodes::kVK_Tab {
+                "\t"
             } else {
                 unmod
             };
@@ -974,11 +983,16 @@ impl WindowView {
         }
 
         if let Some(key) = key_string_to_key_code(chars) {
-            let raw_key = if chars == unmod {
-                None
+            let (key, raw_key) = if chars == unmod {
+                (key, None)
             } else {
-                key_string_to_key_code(unmod)
-                    .map(|kc| normalize_shifted_unmodified_key(kc, virtual_key))
+                let raw = key_string_to_key_code(unmod)
+                    .map(|kc| normalize_shifted_unmodified_key(kc, virtual_key));
+
+                match (&key, &raw) {
+                    (KeyCode::Char(c), Some(raw)) if c.is_ascii_control() => (raw.clone(), None),
+                    _ => (key, raw),
+                }
             };
 
             let event = KeyEvent {

@@ -436,6 +436,13 @@ impl TermWindow {
 
             WK::Char(c) => KC::Char(*c),
             WK::Composed(ref s) => {
+                let mut chars = s.chars();
+                if let Some(first_char) = chars.next() {
+                    if chars.next().is_none() {
+                        // Was just a single char after all
+                        return self.win_key_code_to_termwiz_key_code(&WK::Char(first_char));
+                    }
+                }
                 return Key::Composed(s.to_owned());
             }
             WK::Function(f) => KC::Function(*f),
