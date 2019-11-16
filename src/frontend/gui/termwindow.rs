@@ -69,6 +69,12 @@ impl<'a> term::TerminalHost for Host<'a> {
     }
 }
 
+enum Key {
+    Code(::termwiz::input::KeyCode),
+    Composed(String),
+    None,
+}
+
 impl WindowCallbacks for TermWindow {
     fn created(&mut self, window: &Window) {
         self.window.replace(window.clone());
@@ -186,104 +192,6 @@ impl WindowCallbacks for TermWindow {
 
         // log::error!("key_event {:?}", key);
 
-        enum Key {
-            Code(::termwiz::input::KeyCode),
-            Composed(String),
-            None,
-        }
-
-        fn win_key_code_to_termwiz_key_code(key: &::window::KeyCode) -> Key {
-            use ::termwiz::input::KeyCode as KC;
-            use ::window::KeyCode as WK;
-
-            let code = match key {
-                // TODO: consider eliminating these codes from termwiz::input::KeyCode
-                WK::Char('\r') => KC::Enter,
-                WK::Char('\t') => KC::Tab,
-                WK::Char('\u{08}') => KC::Backspace,
-                WK::Char('\u{1b}') => KC::Escape,
-                WK::Char('\u{7f}') => KC::Delete,
-
-                WK::Char(c) => KC::Char(*c),
-                WK::Composed(ref s) => {
-                    return Key::Composed(s.to_owned());
-                }
-                WK::Function(f) => KC::Function(*f),
-                WK::LeftArrow => KC::LeftArrow,
-                WK::RightArrow => KC::RightArrow,
-                WK::UpArrow => KC::UpArrow,
-                WK::DownArrow => KC::DownArrow,
-                WK::Home => KC::Home,
-                WK::End => KC::End,
-                WK::PageUp => KC::PageUp,
-                WK::PageDown => KC::PageDown,
-                WK::Insert => KC::Insert,
-                WK::Hyper => KC::Hyper,
-                WK::Super => KC::Super,
-                WK::Meta => KC::Meta,
-                WK::Cancel => KC::Cancel,
-                WK::Clear => KC::Clear,
-                WK::Shift => KC::Shift,
-                WK::LeftShift => KC::LeftShift,
-                WK::RightShift => KC::RightShift,
-                WK::Control => KC::Control,
-                WK::LeftControl => KC::LeftControl,
-                WK::RightControl => KC::RightControl,
-                WK::Alt => KC::Alt,
-                WK::LeftAlt => KC::LeftAlt,
-                WK::RightAlt => KC::RightAlt,
-                WK::Pause => KC::Pause,
-                WK::CapsLock => KC::CapsLock,
-                WK::Select => KC::Select,
-                WK::Print => KC::Print,
-                WK::Execute => KC::Execute,
-                WK::PrintScreen => KC::PrintScreen,
-                WK::Help => KC::Help,
-                WK::LeftWindows => KC::LeftWindows,
-                WK::RightWindows => KC::RightWindows,
-                WK::Sleep => KC::Sleep,
-                WK::Multiply => KC::Multiply,
-                WK::Applications => KC::Applications,
-                WK::Add => KC::Add,
-                WK::Numpad(0) => KC::Numpad0,
-                WK::Numpad(1) => KC::Numpad1,
-                WK::Numpad(2) => KC::Numpad2,
-                WK::Numpad(3) => KC::Numpad3,
-                WK::Numpad(4) => KC::Numpad4,
-                WK::Numpad(5) => KC::Numpad5,
-                WK::Numpad(6) => KC::Numpad6,
-                WK::Numpad(7) => KC::Numpad7,
-                WK::Numpad(8) => KC::Numpad8,
-                WK::Numpad(9) => KC::Numpad9,
-                WK::Numpad(_) => return Key::None,
-                WK::Separator => KC::Separator,
-                WK::Subtract => KC::Subtract,
-                WK::Decimal => KC::Decimal,
-                WK::Divide => KC::Divide,
-                WK::NumLock => KC::NumLock,
-                WK::ScrollLock => KC::ScrollLock,
-                WK::BrowserBack => KC::BrowserBack,
-                WK::BrowserForward => KC::BrowserForward,
-                WK::BrowserRefresh => KC::BrowserRefresh,
-                WK::BrowserStop => KC::BrowserStop,
-                WK::BrowserSearch => KC::BrowserSearch,
-                WK::BrowserFavorites => KC::BrowserFavorites,
-                WK::BrowserHome => KC::BrowserHome,
-                WK::VolumeMute => KC::VolumeMute,
-                WK::VolumeDown => KC::VolumeDown,
-                WK::VolumeUp => KC::VolumeUp,
-                WK::MediaNextTrack => KC::MediaNextTrack,
-                WK::MediaPrevTrack => KC::MediaPrevTrack,
-                WK::MediaStop => KC::MediaStop,
-                WK::MediaPlayPause => KC::MediaPlayPause,
-                WK::ApplicationLeftArrow => KC::ApplicationLeftArrow,
-                WK::ApplicationRightArrow => KC::ApplicationRightArrow,
-                WK::ApplicationUpArrow => KC::ApplicationUpArrow,
-                WK::ApplicationDownArrow => KC::ApplicationDownArrow,
-            };
-            Key::Code(code)
-        }
-
         let mux = Mux::get().unwrap();
         if let Some(tab) = mux.get_active_tab_for_window(self.mux_window_id) {
             let modifiers = window_mods_to_termwiz_mods(key.modifiers);
@@ -291,7 +199,7 @@ impl WindowCallbacks for TermWindow {
             // First chance to operate on the raw key; if it matches a
             // user-defined key binding then we execute it and stop there.
             if let Some(key) = &key.raw_key {
-                if let Key::Code(key) = win_key_code_to_termwiz_key_code(&key) {
+                if let Key::Code(key) = self.win_key_code_to_termwiz_key_code(&key) {
                     if let Some(assignment) = self.keys.lookup(key, modifiers) {
                         self.perform_key_assignment(&tab, &assignment).ok();
                         return true;
@@ -307,7 +215,7 @@ impl WindowCallbacks for TermWindow {
                 }
             }
 
-            let key = win_key_code_to_termwiz_key_code(&key.key);
+            let key = self.win_key_code_to_termwiz_key_code(&key.key);
             match key {
                 Key::Code(key) => {
                     if let Some(assignment) = self.keys.lookup(key, modifiers) {
@@ -500,6 +408,110 @@ impl TermWindow {
         }
 
         Ok(())
+    }
+
+    fn win_key_code_to_termwiz_key_code(&self, key: &::window::KeyCode) -> Key {
+        use ::termwiz::input::KeyCode as KC;
+        use ::window::KeyCode as WK;
+
+        let code = match key {
+            // TODO: consider eliminating these codes from termwiz::input::KeyCode
+            WK::Char('\r') => KC::Enter,
+            WK::Char('\t') => KC::Tab,
+            WK::Char('\u{08}') => {
+                if self.config.swap_backspace_and_delete {
+                    KC::Delete
+                } else {
+                    KC::Backspace
+                }
+            }
+            WK::Char('\u{7f}') => {
+                if self.config.swap_backspace_and_delete {
+                    KC::Backspace
+                } else {
+                    KC::Delete
+                }
+            }
+            WK::Char('\u{1b}') => KC::Escape,
+
+            WK::Char(c) => KC::Char(*c),
+            WK::Composed(ref s) => {
+                return Key::Composed(s.to_owned());
+            }
+            WK::Function(f) => KC::Function(*f),
+            WK::LeftArrow => KC::LeftArrow,
+            WK::RightArrow => KC::RightArrow,
+            WK::UpArrow => KC::UpArrow,
+            WK::DownArrow => KC::DownArrow,
+            WK::Home => KC::Home,
+            WK::End => KC::End,
+            WK::PageUp => KC::PageUp,
+            WK::PageDown => KC::PageDown,
+            WK::Insert => KC::Insert,
+            WK::Hyper => KC::Hyper,
+            WK::Super => KC::Super,
+            WK::Meta => KC::Meta,
+            WK::Cancel => KC::Cancel,
+            WK::Clear => KC::Clear,
+            WK::Shift => KC::Shift,
+            WK::LeftShift => KC::LeftShift,
+            WK::RightShift => KC::RightShift,
+            WK::Control => KC::Control,
+            WK::LeftControl => KC::LeftControl,
+            WK::RightControl => KC::RightControl,
+            WK::Alt => KC::Alt,
+            WK::LeftAlt => KC::LeftAlt,
+            WK::RightAlt => KC::RightAlt,
+            WK::Pause => KC::Pause,
+            WK::CapsLock => KC::CapsLock,
+            WK::Select => KC::Select,
+            WK::Print => KC::Print,
+            WK::Execute => KC::Execute,
+            WK::PrintScreen => KC::PrintScreen,
+            WK::Help => KC::Help,
+            WK::LeftWindows => KC::LeftWindows,
+            WK::RightWindows => KC::RightWindows,
+            WK::Sleep => KC::Sleep,
+            WK::Multiply => KC::Multiply,
+            WK::Applications => KC::Applications,
+            WK::Add => KC::Add,
+            WK::Numpad(0) => KC::Numpad0,
+            WK::Numpad(1) => KC::Numpad1,
+            WK::Numpad(2) => KC::Numpad2,
+            WK::Numpad(3) => KC::Numpad3,
+            WK::Numpad(4) => KC::Numpad4,
+            WK::Numpad(5) => KC::Numpad5,
+            WK::Numpad(6) => KC::Numpad6,
+            WK::Numpad(7) => KC::Numpad7,
+            WK::Numpad(8) => KC::Numpad8,
+            WK::Numpad(9) => KC::Numpad9,
+            WK::Numpad(_) => return Key::None,
+            WK::Separator => KC::Separator,
+            WK::Subtract => KC::Subtract,
+            WK::Decimal => KC::Decimal,
+            WK::Divide => KC::Divide,
+            WK::NumLock => KC::NumLock,
+            WK::ScrollLock => KC::ScrollLock,
+            WK::BrowserBack => KC::BrowserBack,
+            WK::BrowserForward => KC::BrowserForward,
+            WK::BrowserRefresh => KC::BrowserRefresh,
+            WK::BrowserStop => KC::BrowserStop,
+            WK::BrowserSearch => KC::BrowserSearch,
+            WK::BrowserFavorites => KC::BrowserFavorites,
+            WK::BrowserHome => KC::BrowserHome,
+            WK::VolumeMute => KC::VolumeMute,
+            WK::VolumeDown => KC::VolumeDown,
+            WK::VolumeUp => KC::VolumeUp,
+            WK::MediaNextTrack => KC::MediaNextTrack,
+            WK::MediaPrevTrack => KC::MediaPrevTrack,
+            WK::MediaStop => KC::MediaStop,
+            WK::MediaPlayPause => KC::MediaPlayPause,
+            WK::ApplicationLeftArrow => KC::ApplicationLeftArrow,
+            WK::ApplicationRightArrow => KC::ApplicationRightArrow,
+            WK::ApplicationUpArrow => KC::ApplicationUpArrow,
+            WK::ApplicationDownArrow => KC::ApplicationDownArrow,
+        };
+        Key::Code(code)
     }
 
     fn recreate_texture_atlas(&mut self, size: Option<usize>) -> Fallible<()> {

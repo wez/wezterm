@@ -131,6 +131,17 @@ pub struct Config {
     /// encoded as ESC followed by the key).
     #[serde(default)]
     pub send_composed_key_when_alt_is_pressed: bool,
+
+    /// If true, the `Backspace` and `Delete` keys generate `Delete` and `Backspace`
+    /// keypresses, respectively, rather than their normal keycodes.
+    /// On macOS the default for this is true because its Backspace key
+    /// is labeled as Delete and things are backwards.
+    #[serde(default = "default_swap_backspace_and_delete")]
+    pub swap_backspace_and_delete: bool,
+}
+
+fn default_swap_backspace_and_delete() -> bool {
+    cfg!(target_os = "macos")
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -615,6 +626,7 @@ impl Default for Config {
             tls_clients: vec![],
             daemon_options: Default::default(),
             send_composed_key_when_alt_is_pressed: false,
+            swap_backspace_and_delete: default_swap_backspace_and_delete(),
         }
     }
 }
