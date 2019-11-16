@@ -163,16 +163,12 @@ impl<T: Terminal> LineEditor<T> {
         }
         changes.push(Change::AllAttributes(Default::default()));
 
-        let mut grapheme_count = 0;
-        for ele in host.highlight_line(&self.line, self.cursor) {
-            if let OutputElement::Text(ref t) = ele {
-                grapheme_count += unicode_column_width(t);
-            }
+        let (elements, cursor_x_pos) = host.highlight_line(&self.line, self.cursor);
+        for ele in elements {
             changes.push(ele.into());
         }
-
         changes.push(Change::CursorPosition {
-            x: Position::Absolute(prompt_width + grapheme_count),
+            x: Position::Absolute(prompt_width + cursor_x_pos),
             y: Position::NoChange,
         });
 
