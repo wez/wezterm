@@ -828,109 +828,109 @@ impl TerminalState {
         mods: KeyModifiers,
         writer: &mut dyn std::io::Write,
     ) -> Result<(), Error> {
-        const CTRL: KeyModifiers = KeyModifiers::CTRL;
-        const SHIFT: KeyModifiers = KeyModifiers::SHIFT;
-        const ALT: KeyModifiers = KeyModifiers::ALT;
-        const NO: KeyModifiers = KeyModifiers::NONE;
-        const APPCURSOR: bool = true;
         use crate::KeyCode::*;
 
-        let ctrl = mods & CTRL;
-        let shift = mods & SHIFT;
-        let alt = mods & ALT;
+        let key = key.normalize_shift_to_upper_case(mods);
+        // Normalize the modifier state for Char's that are uppercase; remove
+        // the SHIFT modifier so that reduce ambiguity below
+        let mods = match key {
+            Char(c) if c.is_ascii_uppercase() && mods.contains(KeyModifiers::SHIFT) => {
+                mods & !KeyModifiers::SHIFT
+            }
+            _ => mods,
+        };
 
         let mut buf = String::new();
 
         // TODO: also respect self.application_keypad
 
-        let to_send = match (key, ctrl, alt, shift, self.application_cursor_keys) {
+        let to_send = match key {
             // When alt is pressed, send escape first to indicate to the peer that
             // ALT is pressed.  We do this only for ascii alnum characters because
             // eg: on macOS generates altgr style glyphs and keeps the ALT key
             // in the modifier set.  This confuses eg: zsh which then just displays
             // <fffffffff> as the input, so we want to avoid that.
-            (Char(c), _, ALT, ..) if c.is_ascii_alphanumeric() || c.is_ascii_punctuation() => {
+            Char(c)
+                if (c.is_ascii_alphanumeric() || c.is_ascii_punctuation())
+                    && mods.contains(KeyModifiers::ALT) =>
+            {
                 buf.push(0x1b as char);
                 buf.push(c);
                 buf.as_str()
             }
-            (Backspace, _, ALT, ..) => "\x1b\x08",
-            (UpArrow, _, ALT, ..) => "\x1b\x1b[A",
-            (DownArrow, _, ALT, ..) => "\x1b\x1b[B",
-            (RightArrow, _, ALT, ..) => "\x1b\x1b[C",
-            (LeftArrow, _, ALT, ..) => "\x1b\x1b[D",
+            Backspace if mods.contains(KeyModifiers::ALT) => "\x1b\x08",
+            Backspace => "\x08",
 
-            (Tab, ..) => "\t",
-            (Enter, ..) => "\r",
-            (Backspace, ..) => "\x08",
-            (Escape, ..) => "\x1b",
+            Tab => "\t",
+            Enter => "\r",
+            Escape => "\x1b",
+
             // Delete
-            (Char('\x7f'), _, _, _, false) | (Delete, _, _, _, false) => "\x7f",
             // TODO: application delete key? See https://github.com/wez/wezterm/issues/52
-            (Char('\x7f'), _, _, _, true) | (Delete, _, _, _, true) => "\x7f", // "\x1b[3~"
+            Char('\x7f') | Delete => "\x7f", // "\x1b[3~"
 
-            (Char(c), CTRL, _, SHIFT, _) if c <= 0xff as char && c > 0x40 as char => {
+            Char(c)
+                if c <= 0xff as char
+                    && c > 0x40 as char
+                    && mods == KeyModifiers::CTRL | KeyModifiers::SHIFT =>
+            {
                 // If shift is held we have C == 0x43 and want to translate
                 // that into 0x03
                 buf.push((c as u8 - 0x40) as char);
                 buf.as_str()
             }
-            (Char(c), CTRL, ..) if c <= 0xff as char && c > 0x60 as char => {
+            Char(c)
+                if c <= 0xff as char && c > 0x60 as char && mods.contains(KeyModifiers::CTRL) =>
+            {
                 // If shift is not held we have C == 0x63 and want to translate
                 // that into 0x03
                 buf.push((c as u8 - 0x60) as char);
                 buf.as_str()
             }
-            (Char(c), ..) => {
+            Char(c) => {
                 buf.push(c);
                 buf.as_str()
             }
 
-            (UpArrow, _, _, _, APPCURSOR) => "\x1bOA",
-            (DownArrow, _, _, _, APPCURSOR) => "\x1bOB",
-            (RightArrow, _, _, _, APPCURSOR) => "\x1bOC",
-            (LeftArrow, _, _, _, APPCURSOR) => "\x1bOD",
-            (Home, _, _, _, APPCURSOR) => "\x1bOH",
-            (End, _, _, _, APPCURSOR) => "\x1bOF",
-            (ApplicationUpArrow, ..) => "\x1bOA",
-            (ApplicationDownArrow, ..) => "\x1bOB",
-            (ApplicationRightArrow, ..) => "\x1bOC",
-            (ApplicationLeftArrow, ..) => "\x1bOD",
+            UpArrow if mods.contains(KeyModifiers::ALT) => "\x1b\x1b[A",
+            DownArrow if mods.contains(KeyModifiers::ALT) => "\x1b\x1b[B",
+            RightArrow if mods.contains(KeyModifiers::ALT) => "\x1b\x1b[C",
+            LeftArrow if mods.contains(KeyModifiers::ALT) => "\x1b\x1b[D",
+            UpArrow if self.application_cursor_keys => "\x1bOA",
+            DownArrow if self.application_cursor_keys => "\x1bOB",
+            RightArrow if self.application_cursor_keys => "\x1bOC",
+            LeftArrow if self.application_cursor_keys => "\x1bOD",
+            UpArrow => "\x1b[A",
+            DownArrow => "\x1b[B",
+            RightArrow => "\x1b[C",
+            LeftArrow => "\x1b[D",
+            ApplicationUpArrow => "\x1bOA",
+            ApplicationDownArrow => "\x1bOB",
+            ApplicationRightArrow => "\x1bOC",
+            ApplicationLeftArrow => "\x1bOD",
 
-            (UpArrow, ..) => "\x1b[A",
-            (DownArrow, ..) => "\x1b[B",
-            (RightArrow, ..) => "\x1b[C",
-            (LeftArrow, ..) => "\x1b[D",
-            (PageUp, _, _, SHIFT, _) => {
+            PageUp if mods.contains(KeyModifiers::SHIFT) => {
                 let rows = self.screen().physical_rows as i64;
                 self.scroll_viewport(-rows);
                 ""
             }
-            (PageDown, _, _, SHIFT, _) => {
+            PageDown if mods.contains(KeyModifiers::SHIFT) => {
                 let rows = self.screen().physical_rows as i64;
                 self.scroll_viewport(rows);
                 ""
             }
-            (PageUp, ..) => "\x1b[5~",
-            (PageDown, ..) => "\x1b[6~",
-            (Home, ..) => "\x1b[H",
-            (End, ..) => "\x1b[F",
-            (Insert, ..) => "\x1b[2~",
+            PageUp => "\x1b[5~",
+            PageDown => "\x1b[6~",
 
-            (Function(n), ..) => {
-                let modifier = match (ctrl, alt, shift) {
-                    (NO, NO, NO) => "",
-                    (NO, NO, SHIFT) => ";2",
-                    (NO, ALT, NO) => ";3",
-                    (NO, ALT, SHIFT) => ";4",
-                    (CTRL, NO, NO) => ";5",
-                    (CTRL, NO, SHIFT) => ";6",
-                    (CTRL, ALT, NO) => ";7",
-                    (CTRL, ALT, SHIFT) => ";8",
-                    _ => unreachable!("invalid modifiers!?"),
-                };
+            Home if self.application_cursor_keys => "\x1bOH",
+            End if self.application_cursor_keys => "\x1bOF",
+            Home => "\x1b[H",
+            End => "\x1b[F",
 
-                if modifier.is_empty() && n < 5 {
+            Insert => "\x1b[2~",
+
+            Function(n) => {
+                if mods.is_empty() && n < 5 {
                     // F1-F4 are encoded using SS3 if there are no modifiers
                     match n {
                         1 => "\x1bOP",
@@ -957,77 +957,25 @@ impl TerminalState {
                         12 => "\x1b[24",
                         _ => bail!("unhandled fkey number {}", n),
                     };
-                    write!(buf, "{}{}~", intro, modifier)?;
+                    write!(buf, "{};{}~", intro, 1 + mods.bits())?;
                     buf.as_str()
                 }
             }
 
             // TODO: emit numpad sequences
-            (Numpad0, ..)
-            | (Numpad1, ..)
-            | (Numpad2, ..)
-            | (Numpad3, ..)
-            | (Numpad4, ..)
-            | (Numpad5, ..)
-            | (Numpad6, ..)
-            | (Numpad7, ..)
-            | (Numpad8, ..)
-            | (Numpad9, ..)
-            | (Multiply, ..)
-            | (Add, ..)
-            | (Separator, ..)
-            | (Subtract, ..)
-            | (Decimal, ..)
-            | (Divide, ..) => "",
+            Numpad0 | Numpad1 | Numpad2 | Numpad3 | Numpad4 | Numpad5 | Numpad6 | Numpad7
+            | Numpad8 | Numpad9 | Multiply | Add | Separator | Subtract | Decimal | Divide => "",
 
             // Modifier keys pressed on their own don't expand to anything
-            (Control, ..)
-            | (LeftControl, ..)
-            | (RightControl, ..)
-            | (Alt, ..)
-            | (LeftAlt, ..)
-            | (RightAlt, ..)
-            | (Menu, ..)
-            | (LeftMenu, ..)
-            | (RightMenu, ..)
-            | (Super, ..)
-            | (Hyper, ..)
-            | (Shift, ..)
-            | (LeftShift, ..)
-            | (RightShift, ..)
-            | (Meta, ..)
-            | (LeftWindows, ..)
-            | (RightWindows, ..)
-            | (NumLock, ..)
-            | (ScrollLock, ..) => "",
+            Control | LeftControl | RightControl | Alt | LeftAlt | RightAlt | Menu | LeftMenu
+            | RightMenu | Super | Hyper | Shift | LeftShift | RightShift | Meta | LeftWindows
+            | RightWindows | NumLock | ScrollLock => "",
 
-            (Cancel, ..)
-            | (Clear, ..)
-            | (Pause, ..)
-            | (CapsLock, ..)
-            | (Select, ..)
-            | (Print, ..)
-            | (PrintScreen, ..)
-            | (Execute, ..)
-            | (Help, ..)
-            | (Applications, ..)
-            | (Sleep, ..)
-            | (BrowserBack, ..)
-            | (BrowserForward, ..)
-            | (BrowserRefresh, ..)
-            | (BrowserStop, ..)
-            | (BrowserSearch, ..)
-            | (BrowserFavorites, ..)
-            | (BrowserHome, ..)
-            | (VolumeMute, ..)
-            | (VolumeDown, ..)
-            | (VolumeUp, ..)
-            | (MediaNextTrack, ..)
-            | (MediaPrevTrack, ..)
-            | (MediaStop, ..)
-            | (MediaPlayPause, ..)
-            | (InternalPasteStart, ..)
-            | (InternalPasteEnd, ..) => "",
+            Cancel | Clear | Pause | CapsLock | Select | Print | PrintScreen | Execute | Help
+            | Applications | Sleep | BrowserBack | BrowserForward | BrowserRefresh
+            | BrowserStop | BrowserSearch | BrowserFavorites | BrowserHome | VolumeMute
+            | VolumeDown | VolumeUp | MediaNextTrack | MediaPrevTrack | MediaStop
+            | MediaPlayPause | InternalPasteStart | InternalPasteEnd => "",
         };
 
         // debug!("sending {:?}, {:?}", to_send, key);
