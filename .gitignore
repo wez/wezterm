@@ -2,6 +2,7 @@
 /docs/_site
 /WezTerm*.zip
 /wezterm*.deb
+/wezterm*.tar.xz
 /pkg
 /Cargo.lock
 /target/

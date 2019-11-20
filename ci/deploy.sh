@@ -55,7 +55,7 @@ case $OSTYPE in
     case `lsb_release -ds` in
       Ubuntu*|Debian*)
         rm -rf pkg
-        mkdir -p pkg/debian/usr/bin pkg/debian/DEBIAN
+        mkdir -p pkg/debian/usr/bin pkg/debian/DEBIAN pkg/debian/usr/share/{applications,wezterm}
         cat > pkg/debian/DEBIAN/control <<EOF
 Package: wezterm
 Version: ${TAG_NAME#nightly-}
@@ -71,6 +71,8 @@ Description: Wez's Terminal Emulator.
 Depends: libc6, libegl-mesa0, libxcb-icccm4, libxcb-ewmh2, libxcb-keysyms1, libxcb-xkb1, libxkbcommon0, libxkbcommon-x11-0, libfontconfig1, xdg-utils, libxcb-render0, libxcb-shape0, libx11-6, libegl1
 EOF
         install -Dsm755 target/release/wezterm pkg/debian/usr/bin
+        install -Dm644 assets/icon/terminal.png pkg/debian/usr/share/wezterm/terminal.png
+        install -Dm644 assets/wezterm.desktop pkg/debian/usr/share/applications/wezterm.desktop
         if [[ "$BUILD_REASON" == "Schedule" ]] ; then
           debname=wezterm-nightly
         else

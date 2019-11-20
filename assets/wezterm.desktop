@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=WezTerm
+Comment=Wez's Terminal Emulator
+Icon=/usr/share/wezterm/terminal.png
+Exec=wezterm
+Type=Application
+Categories=Terminal
