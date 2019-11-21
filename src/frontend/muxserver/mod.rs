@@ -65,6 +65,10 @@ impl FrontEnd for MuxServerFrontEnd {
         })
     }
 
+    fn low_pri_executor(&self) -> Box<dyn Executor> {
+        self.executor()
+    }
+
     fn run_forever(&self) -> Result<(), Error> {
         loop {
             match self.rx.recv() {

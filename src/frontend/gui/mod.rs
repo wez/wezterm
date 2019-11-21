@@ -57,8 +57,25 @@ impl Executor for GuiExecutor {
     }
 }
 
+struct LowPriGuiExecutor {}
+impl BasicExecutor for LowPriGuiExecutor {
+    fn execute(&self, f: SpawnFunc) {
+        Connection::low_pri_executor().execute(f)
+    }
+}
+
+impl Executor for LowPriGuiExecutor {
+    fn clone_executor(&self) -> Box<dyn Executor> {
+        Box::new(Self {})
+    }
+}
+
 impl FrontEnd for GuiFrontEnd {
     fn executor(&self) -> Box<dyn Executor> {
+        Box::new(GuiExecutor {})
+    }
+
+    fn low_pri_executor(&self) -> Box<dyn Executor> {
         Box::new(GuiExecutor {})
     }
 

@@ -67,6 +67,10 @@ impl Connection {
     pub fn executor() -> impl BasicExecutor {
         SpawnQueueExecutor {}
     }
+
+    pub fn low_pri_executor() -> impl BasicExecutor {
+        LowPriSpawnQueueExecutor {}
+    }
 }
 
 impl ConnectionOps for Connection {

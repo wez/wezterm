@@ -1,5 +1,5 @@
 use crate::config::Config;
-use crate::frontend::executor;
+use crate::frontend::{executor, low_pri_executor};
 use crate::mux::tab::{Tab, TabId};
 use crate::mux::window::{Window, WindowId};
 use crate::ratelim::RateLimiter;
@@ -75,7 +75,7 @@ fn read_from_tab_pty(config: Arc<Config>, tab_id: TabId, mut reader: Box<dyn std
                             let len = len as usize;
                             let data = buf[pos..pos + len].to_vec();
                             pos += len;
-                            Future::with_executor(executor(), move || {
+                            Future::with_executor(low_pri_executor(), move || {
                                 let mux = Mux::get().unwrap();
                                 if let Some(tab) = mux.get_tab(tab_id) {
                                     tab.advance_bytes(

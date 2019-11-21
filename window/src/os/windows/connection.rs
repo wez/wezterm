@@ -127,6 +127,10 @@ impl Connection {
         SpawnQueueExecutor {}
     }
 
+    pub fn low_pri_executor() -> impl BasicExecutor {
+        LowPriSpawnQueueExecutor {}
+    }
+
     fn get_window(&self, handle: HWindow) -> Option<Rc<RefCell<WindowInner>>> {
         self.windows.borrow().get(&handle).map(Rc::clone)
     }

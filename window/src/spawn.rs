@@ -20,6 +20,7 @@ lazy_static::lazy_static! {
 
 pub(crate) struct SpawnQueue {
     spawned_funcs: Mutex<VecDeque<SpawnFunc>>,
+    spawned_funcs_low_pri: Mutex<VecDeque<SpawnFunc>>,
 
     #[cfg(windows)]
     pub event_handle: EventHandle,
@@ -36,7 +37,7 @@ impl SpawnQueue {
     }
 
     pub fn spawn(&self, f: SpawnFunc) {
-        self.spawn_impl(f)
+        self.spawn_impl(f, true)
     }
 
     pub fn run(&self) -> bool {
@@ -47,7 +48,20 @@ impl SpawnQueue {
     // in order for the lock to be released before we call the
     // returned function
     fn pop_func(&self) -> Option<SpawnFunc> {
-        self.spawned_funcs.lock().unwrap().pop_front()
+        if let Some(func) = self.spawned_funcs.lock().unwrap().pop_front() {
+            Some(func)
+        } else {
+            self.spawned_funcs_low_pri.lock().unwrap().pop_front()
+        }
+    }
+
+    fn queue_func(&self, f: SpawnFunc, high_pri: bool) {
+        if high_pri {
+            self.spawned_funcs.lock().unwrap()
+        } else {
+            self.spawned_funcs_low_pri.lock().unwrap()
+        }
+        .push_back(f);
     }
 }
 
@@ -62,8 +76,8 @@ impl SpawnQueue {
         })
     }
 
-    fn spawn_impl(&self, f: SpawnFunc) {
-        self.spawned_funcs.lock().unwrap().push_back(f);
+    fn spawn_impl(&self, f: SpawnFunc, high_pri: bool) {
+        self.queue_func(f, high_pri);
         self.event_handle.set_event();
     }
 
@@ -99,15 +113,16 @@ impl SpawnQueue {
         }
         Ok(Self {
             spawned_funcs: Mutex::new(VecDeque::new()),
+            spawned_funcs_low_pri: Mutex::new(VecDeque::new()),
             write: Mutex::new(pipe.write),
             read: Mutex::new(pipe.read),
         })
     }
 
-    fn spawn_impl(&self, f: SpawnFunc) {
+    fn spawn_impl(&self, f: SpawnFunc, high_pri: bool) {
         use std::io::Write;
 
-        self.spawned_funcs.lock().unwrap().push_back(f);
+        self.queue_func(f, high_pri);
         self.write.lock().unwrap().write(b"x").ok();
     }
 
@@ -193,8 +208,8 @@ impl SpawnQueue {
         }
     }
 
-    fn spawn_impl(&self, f: SpawnFunc) {
-        self.spawned_funcs.lock().unwrap().push_back(f);
+    fn spawn_impl(&self, f: SpawnFunc, high_pri: bool) {
+        self.queue_func(f, high_pri);
         self.queue_wakeup();
     }
 
@@ -212,5 +227,12 @@ pub struct SpawnQueueExecutor;
 impl BasicExecutor for SpawnQueueExecutor {
     fn execute(&self, f: SpawnFunc) {
         SPAWN_QUEUE.spawn(f)
+    }
+}
+
+pub struct LowPriSpawnQueueExecutor;
+impl BasicExecutor for LowPriSpawnQueueExecutor {
+    fn execute(&self, f: SpawnFunc) {
+        SPAWN_QUEUE.spawn_impl(f, false)
     }
 }

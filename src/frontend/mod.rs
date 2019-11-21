@@ -30,6 +30,7 @@ impl Default for FrontEndSelection {
 
 lazy_static! {
     static ref EXECUTOR: Mutex<Option<Box<dyn Executor>>> = Mutex::new(None);
+    static ref LOW_PRI_EXECUTOR: Mutex<Option<Box<dyn Executor>>> = Mutex::new(None);
 }
 thread_local! {
     static FRONT_END: RefCell<Option<Rc<dyn FrontEnd>>> = RefCell::new(None);
@@ -37,6 +38,14 @@ thread_local! {
 
 pub fn executor() -> Box<dyn Executor> {
     let locked = EXECUTOR.lock().unwrap();
+    match locked.as_ref() {
+        Some(exec) => exec.clone_executor(),
+        None => panic!("executor machinery not yet configured"),
+    }
+}
+
+pub fn low_pri_executor() -> Box<dyn Executor> {
+    let locked = LOW_PRI_EXECUTOR.lock().unwrap();
     match locked.as_ref() {
         Some(exec) => exec.clone_executor(),
         None => panic!("executor machinery not yet configured"),
@@ -63,6 +72,10 @@ impl FrontEndSelection {
         }?;
 
         EXECUTOR.lock().unwrap().replace(front_end.executor());
+        LOW_PRI_EXECUTOR
+            .lock()
+            .unwrap()
+            .replace(front_end.low_pri_executor());
         FRONT_END.with(|f| *f.borrow_mut() = Some(Rc::clone(&front_end)));
 
         Ok(front_end)
@@ -105,5 +118,6 @@ pub trait FrontEnd: Downcast {
     ) -> Fallible<()>;
 
     fn executor(&self) -> Box<dyn Executor>;
+    fn low_pri_executor(&self) -> Box<dyn Executor>;
 }
 impl_downcast!(FrontEnd);

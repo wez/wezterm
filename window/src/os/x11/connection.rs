@@ -482,6 +482,10 @@ impl Connection {
         SpawnQueueExecutor {}
     }
 
+    pub fn low_pri_executor() -> impl BasicExecutor {
+        LowPriSpawnQueueExecutor {}
+    }
+
     pub(crate) fn with_window_inner<F: FnMut(&mut WindowInner) + Send + 'static>(
         window: xcb::xproto::Window,
         mut f: F,
