@@ -197,7 +197,9 @@ impl WindowCallbacks for TermWindow {
 
         // When hovering over a hyperlink, show an appropriate
         // mouse cursor to give the cue that it is clickable
-        context.set_cursor(Some(if tab.renderer().current_highlight().is_some() {
+        context.set_cursor(Some(if self.show_tab_bar && y == 0 {
+            MouseCursor::Arrow
+        } else if tab.renderer().current_highlight().is_some() {
             MouseCursor::Hand
         } else {
             MouseCursor::Text
