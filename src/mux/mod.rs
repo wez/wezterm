@@ -66,32 +66,34 @@ fn read_from_tab_pty(config: Arc<Config>, tab_id: TabId, mut reader: Box<dyn std
                 break;
             }
             Ok(size) => {
-                lim.blocking_admittance_check(size as u32);
-                let data = buf[0..size].to_vec();
-                /*
-                match std::str::from_utf8(&data) {
-                    Ok(s) => {
-                        let chars: Vec<u32> = s.chars().map(|c| c as u32).collect();
-                        error!("read chars: {:x?}", chars);
+                for chunk in buf[..size].chunks(lim.capacity_per_second()) {
+                    lim.blocking_admittance_check(chunk.len() as u32);
+                    let data = chunk.to_vec();
+                    /*
+                    match std::str::from_utf8(&data) {
+                        Ok(s) => {
+                            let chars: Vec<u32> = s.chars().map(|c| c as u32).collect();
+                            error!("read chars: {:x?}", chars);
+                        }
+                        Err(e) => {
+                            error!("couldn't convert to string: {:?}", e);
+                        }
                     }
-                    Err(e) => {
-                        error!("couldn't convert to string: {:?}", e);
-                    }
+                    */
+                    Future::with_executor(executor(), move || {
+                        let mux = Mux::get().unwrap();
+                        if let Some(tab) = mux.get_tab(tab_id) {
+                            tab.advance_bytes(
+                                &data,
+                                &mut Host {
+                                    writer: &mut *tab.writer(),
+                                },
+                            );
+                            mux.notify(MuxNotification::TabOutput(tab_id));
+                        }
+                        Ok(())
+                    });
                 }
-                */
-                Future::with_executor(executor(), move || {
-                    let mux = Mux::get().unwrap();
-                    if let Some(tab) = mux.get_tab(tab_id) {
-                        tab.advance_bytes(
-                            &data,
-                            &mut Host {
-                                writer: &mut *tab.writer(),
-                            },
-                        );
-                        mux.notify(MuxNotification::TabOutput(tab_id));
-                    }
-                    Ok(())
-                });
             }
         }
     }
