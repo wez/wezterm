@@ -368,6 +368,8 @@ where
             mods |= Modifiers::CTRL;
         } else if ele == "SUPER" || ele == "CMD" || ele == "WIN" {
             mods |= Modifiers::SUPER;
+        } else if ele == "NONE" || ele == "" {
+            mods |= Modifiers::NONE;
         } else {
             return Err(serde::de::Error::custom(format!(
                 "invalid modifier name {} in {}",
