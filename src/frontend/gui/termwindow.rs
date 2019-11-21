@@ -382,7 +382,7 @@ impl TermWindow {
                 keys: KeyMap::new(),
                 show_tab_bar: config.enable_tab_bar,
                 tab_bar: TabBarState::default(),
-                last_mouse_coords: (0, 0),
+                last_mouse_coords: (0, -1),
             }),
         )?;
 
