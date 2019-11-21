@@ -15,6 +15,7 @@ use std::time::{Duration, Instant};
 mod glyphcache;
 mod quad;
 mod renderstate;
+mod tabbar;
 mod termwindow;
 mod utilsprites;
 

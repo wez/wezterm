@@ -138,6 +138,12 @@ pub struct Config {
     /// is labeled as Delete and things are backwards.
     #[serde(default = "default_swap_backspace_and_delete")]
     pub swap_backspace_and_delete: bool,
+
+    /// If true, display the tab bar UI at the top of the window.
+    /// The tab bar shows the titles of the tabs and which is the
+    /// active tab.  Clicking on a tab activates it.
+    #[serde(default)]
+    pub enable_tab_bar: bool,
 }
 
 fn default_swap_backspace_and_delete() -> bool {
@@ -627,6 +633,7 @@ impl Default for Config {
             daemon_options: Default::default(),
             send_composed_key_when_alt_is_pressed: false,
             swap_backspace_and_delete: default_swap_backspace_and_delete(),
+            enable_tab_bar: false,
         }
     }
 }

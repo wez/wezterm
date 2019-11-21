@@ -4,6 +4,7 @@ use super::utilsprites::RenderMetrics;
 use crate::clipboard::SystemClipboard;
 use crate::config::Config;
 use crate::font::{FontConfiguration, FontSystemSelection};
+use crate::frontend::gui::tabbar::TabBarState;
 use crate::frontend::{executor, front_end};
 use crate::keyassignment::{KeyAssignment, KeyMap, SpawnTabDomain};
 use crate::mux::renderable::Renderable;
@@ -33,6 +34,9 @@ pub struct TermWindow {
     render_state: RenderState,
     clipboard: Arc<dyn term::Clipboard>,
     keys: KeyMap,
+    show_tab_bar: bool,
+    tab_bar: TabBarState,
+    last_mouse_coords: (usize, i64),
 }
 
 struct Host<'a> {
@@ -102,68 +106,92 @@ impl WindowCallbacks for TermWindow {
     }
 
     fn mouse_event(&mut self, event: &MouseEvent, context: &dyn WindowOps) {
+        use ::term::input::MouseButton as TMB;
+        use ::term::input::MouseEventKind as TMEK;
+        use ::window::MouseButtons as WMB;
+        use ::window::MouseEventKind as WMEK;
+
         let mux = Mux::get().unwrap();
         let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
             Some(tab) => tab,
             None => return,
         };
 
-        use ::term::input::MouseButton as TMB;
-        use ::term::input::MouseEventKind as TMEK;
-        use ::window::MouseButtons as WMB;
-        use ::window::MouseEventKind as WMEK;
-        tab.mouse_event(
-            term::MouseEvent {
-                kind: match event.kind {
-                    WMEK::Move => TMEK::Move,
-                    WMEK::VertWheel(_)
-                    | WMEK::HorzWheel(_)
-                    | WMEK::DoubleClick(_)
-                    | WMEK::Press(_) => TMEK::Press,
-                    WMEK::Release(_) => TMEK::Release,
-                },
-                button: match event.kind {
-                    WMEK::Release(ref press)
-                    | WMEK::Press(ref press)
-                    | WMEK::DoubleClick(ref press) => match press {
-                        MousePress::Left => TMB::Left,
-                        MousePress::Middle => TMB::Middle,
-                        MousePress::Right => TMB::Right,
+        let x = (event.x as isize / self.render_metrics.cell_size.width) as usize;
+        let y = (event.y as isize / self.render_metrics.cell_size.height) as i64;
+
+        let first_line_offset = if self.show_tab_bar { 1 } else { 0 };
+        self.last_mouse_coords = (x, y);
+
+        if self.show_tab_bar && y == 0 {
+            if let Some(tab_idx) = self.tab_bar.hit_test(x) {
+                match event.kind {
+                    WMEK::Press(MousePress::Left) => {
+                        self.activate_tab(tab_idx).ok();
+                    }
+                    _ => {}
+                }
+            }
+        } else {
+            let y = y.saturating_sub(first_line_offset);
+
+            tab.mouse_event(
+                term::MouseEvent {
+                    kind: match event.kind {
+                        WMEK::Move => TMEK::Move,
+                        WMEK::VertWheel(_)
+                        | WMEK::HorzWheel(_)
+                        | WMEK::DoubleClick(_)
+                        | WMEK::Press(_) => TMEK::Press,
+                        WMEK::Release(_) => TMEK::Release,
                     },
-                    WMEK::Move => {
-                        if event.mouse_buttons == WMB::LEFT {
-                            TMB::Left
-                        } else if event.mouse_buttons == WMB::RIGHT {
-                            TMB::Right
-                        } else if event.mouse_buttons == WMB::MIDDLE {
-                            TMB::Middle
-                        } else {
-                            TMB::None
+                    button: match event.kind {
+                        WMEK::Release(ref press)
+                        | WMEK::Press(ref press)
+                        | WMEK::DoubleClick(ref press) => match press {
+                            MousePress::Left => TMB::Left,
+                            MousePress::Middle => TMB::Middle,
+                            MousePress::Right => TMB::Right,
+                        },
+                        WMEK::Move => {
+                            if event.mouse_buttons == WMB::LEFT {
+                                TMB::Left
+                            } else if event.mouse_buttons == WMB::RIGHT {
+                                TMB::Right
+                            } else if event.mouse_buttons == WMB::MIDDLE {
+                                TMB::Middle
+                            } else {
+                                TMB::None
+                            }
                         }
-                    }
-                    WMEK::VertWheel(amount) => {
-                        if amount > 0 {
-                            TMB::WheelUp(amount as usize)
-                        } else {
-                            TMB::WheelDown((-amount) as usize)
+                        WMEK::VertWheel(amount) => {
+                            if amount > 0 {
+                                TMB::WheelUp(amount as usize)
+                            } else {
+                                TMB::WheelDown((-amount) as usize)
+                            }
                         }
-                    }
-                    WMEK::HorzWheel(_) => TMB::None,
+                        WMEK::HorzWheel(_) => TMB::None,
+                    },
+                    x,
+                    y,
+                    modifiers: window_mods_to_termwiz_mods(event.modifiers),
                 },
-                x: (event.x as isize / self.render_metrics.cell_size.width) as usize,
-                y: (event.y as isize / self.render_metrics.cell_size.height) as i64,
-                modifiers: window_mods_to_termwiz_mods(event.modifiers),
-            },
-            &mut Host {
-                writer: &mut *tab.writer(),
-                context,
-                clipboard: &self.clipboard,
-            },
-        )
-        .ok();
+                &mut Host {
+                    writer: &mut *tab.writer(),
+                    context,
+                    clipboard: &self.clipboard,
+                },
+            )
+            .ok();
+        }
 
         match event.kind {
-            WMEK::Move => {}
+            WMEK::Move => {
+                if self.show_tab_bar && y <= 1 {
+                    self.update_title();
+                }
+            }
             _ => context.invalidate(),
         }
 
@@ -247,6 +275,7 @@ impl WindowCallbacks for TermWindow {
         };
 
         self.update_text_cursor(&tab);
+        self.update_title();
 
         let start = std::time::Instant::now();
         if let Err(err) = self.paint_tab(&tab, ctx) {
@@ -268,7 +297,6 @@ impl WindowCallbacks for TermWindow {
             log::error!("paint failed: {}", err);
         }
         log::debug!("paint_tab elapsed={:?}", start.elapsed());
-        self.update_title();
     }
 
     fn paint_opengl(&mut self, frame: &mut glium::Frame) {
@@ -352,6 +380,9 @@ impl TermWindow {
                 render_state,
                 clipboard: Arc::new(SystemClipboard::new()),
                 keys: KeyMap::new(),
+                show_tab_bar: config.enable_tab_bar,
+                tab_bar: TabBarState::default(),
+                last_mouse_coords: (0, 0),
             }),
         )?;
 
@@ -361,6 +392,7 @@ impl TermWindow {
             std::time::Duration::from_millis(35),
             move || {
                 let mux = Mux::get().unwrap();
+
                 if let Some(tab) = mux.get_active_tab_for_window(mux_window_id) {
                     if tab.renderer().has_dirty_lines() {
                         cloned_window.invalidate();
@@ -532,11 +564,28 @@ impl TermWindow {
             Some(window) => window,
             _ => return,
         };
+        let new_tab_bar = TabBarState::new(
+            self.dimensions.pixel_width / self.render_metrics.cell_size.width as usize,
+            if self.last_mouse_coords.1 == 0 {
+                Some(self.last_mouse_coords.0)
+            } else {
+                None
+            },
+            &window,
+        );
+        if new_tab_bar != self.tab_bar {
+            self.tab_bar = new_tab_bar;
+            if let Some(window) = self.window.as_ref() {
+                window.invalidate();
+            }
+        }
+
         let num_tabs = window.len();
 
         if num_tabs == 0 {
             return;
         }
+
         let tab_no = window.get_active_idx();
 
         let title = match window.get_active() {
@@ -603,13 +652,18 @@ impl TermWindow {
     }
 
     fn spawn_tab(&mut self, domain: &SpawnTabDomain) -> Fallible<TabId> {
-        let rows = (self.dimensions.pixel_height as usize + 1)
-            / self.render_metrics.cell_size.height as usize;
-        let cols = (self.dimensions.pixel_width as usize + 1)
-            / self.render_metrics.cell_size.width as usize;
+        let rows =
+            (self.dimensions.pixel_height as usize) / self.render_metrics.cell_size.height as usize;
+        let cols =
+            (self.dimensions.pixel_width as usize) / self.render_metrics.cell_size.width as usize;
+        let tab_bar_adjusted_rows = if self.show_tab_bar {
+            rows.saturating_sub(1)
+        } else {
+            rows
+        };
 
         let size = portable_pty::PtySize {
-            rows: rows as u16,
+            rows: tab_bar_adjusted_rows as u16,
             cols: cols as u16,
             pixel_width: self.dimensions.pixel_width as u16,
             pixel_height: self.dimensions.pixel_height as u16,
@@ -717,9 +771,6 @@ impl TermWindow {
     fn scaling_changed(&mut self, dimensions: Dimensions, font_scale: f64) {
         let mux = Mux::get().unwrap();
         if let Some(window) = mux.get_window(self.mux_window_id) {
-            let cols = self.dimensions.pixel_width / self.render_metrics.cell_size.width as usize;
-            let rows = self.dimensions.pixel_height / self.render_metrics.cell_size.height as usize;
-
             let scale_changed =
                 dimensions.dpi != self.dimensions.dpi || font_scale != self.fonts.get_font_scale();
 
@@ -742,15 +793,24 @@ impl TermWindow {
                 )
                 .expect("failed to advise of resize");
 
+            let rows = dimensions.pixel_height / self.render_metrics.cell_size.height as usize;
+            let cols = dimensions.pixel_width / self.render_metrics.cell_size.width as usize;
+            let tab_bar_adjusted_rows = if self.show_tab_bar {
+                rows.saturating_sub(1)
+            } else {
+                rows
+            };
             let size = portable_pty::PtySize {
-                rows: dimensions.pixel_height as u16 / self.render_metrics.cell_size.height as u16,
-                cols: dimensions.pixel_width as u16 / self.render_metrics.cell_size.width as u16,
-                pixel_height: dimensions.pixel_height as u16,
+                rows: tab_bar_adjusted_rows as u16,
+                cols: cols as u16,
+                pixel_height: dimensions.pixel_height as u16, // FIXME: adjust for tab bar
                 pixel_width: dimensions.pixel_width as u16,
             };
+
             for tab in window.iter() {
                 tab.resize(size).ok();
             }
+            self.update_title();
 
             // Queue up a speculative resize in order to preserve the number of rows+cols
             if scale_changed {
@@ -789,15 +849,34 @@ impl TermWindow {
 
     fn paint_tab(&mut self, tab: &Rc<dyn Tab>, ctx: &mut dyn PaintContext) -> Fallible<()> {
         let palette = tab.palette();
+        let first_line_offset = if self.show_tab_bar { 1 } else { 0 };
 
         let mut term = tab.renderer();
-        let cursor = term.get_cursor_position();
+        let cursor = {
+            let cursor = term.get_cursor_position();
+            CursorPosition {
+                x: cursor.x,
+                y: cursor.y + first_line_offset as i64,
+            }
+        };
+
+        if self.show_tab_bar {
+            self.render_screen_line(ctx, 0, self.tab_bar.line(), 0..0, &cursor, &*term, &palette)?;
+        }
 
         {
             let dirty_lines = term.get_dirty_lines();
 
             for (line_idx, line, selrange) in dirty_lines {
-                self.render_screen_line(ctx, line_idx, &line, selrange, &cursor, &*term, &palette)?;
+                self.render_screen_line(
+                    ctx,
+                    line_idx + first_line_offset,
+                    &line,
+                    selrange,
+                    &cursor,
+                    &*term,
+                    &palette,
+                )?;
             }
         }
 
@@ -805,7 +884,8 @@ impl TermWindow {
 
         // Fill any marginal area below the last row
         let (num_rows, _num_cols) = term.physical_dimensions();
-        let pixel_height_of_cells = num_rows * self.render_metrics.cell_size.height as usize;
+        let pixel_height_of_cells =
+            (num_rows + first_line_offset) * self.render_metrics.cell_size.height as usize;
         ctx.clear_rect(
             Rect::new(
                 Point::new(0, pixel_height_of_cells as isize),
@@ -826,15 +906,39 @@ impl TermWindow {
         let (r, g, b, a) = background_color.to_tuple_rgba();
         frame.clear_color(r, g, b, a);
 
+        let first_line_offset = if self.show_tab_bar { 1 } else { 0 };
+
         let mut term = tab.renderer();
-        let cursor = term.get_cursor_position();
+        let cursor = {
+            let cursor = term.get_cursor_position();
+            CursorPosition {
+                x: cursor.x,
+                y: cursor.y + first_line_offset as i64,
+            }
+        };
+
+        if self.show_tab_bar {
+            self.render_screen_line_opengl(
+                0,
+                self.tab_bar.line(),
+                0..0,
+                &cursor,
+                &*term,
+                &palette,
+            )?;
+        }
 
         {
             let dirty_lines = term.get_dirty_lines();
 
             for (line_idx, line, selrange) in dirty_lines {
                 self.render_screen_line_opengl(
-                    line_idx, &line, selrange, &cursor, &*term, &palette,
+                    line_idx + first_line_offset,
+                    &line,
+                    selrange,
+                    &cursor,
+                    &*term,
+                    &palette,
                 )?;
             }
         }

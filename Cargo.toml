@@ -49,6 +49,7 @@ termwiz = { path = "termwiz"}
 tinyfiledialogs = "3.3"
 toml = "0.4"
 unicode-normalization = "0.1"
+unicode-segmentation = "1.5"
 unicode-width = "0.1"
 varbincode = "0.1"
 window = { path = "window", features=["opengl"]}
