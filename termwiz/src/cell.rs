@@ -94,6 +94,12 @@ pub enum Intensity {
     Half = 2,
 }
 
+impl Default for Intensity {
+    fn default() -> Self {
+        Self::Normal
+    }
+}
+
 /// Specify just how underlined you want your `Cell` to be
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[repr(u16)]
@@ -104,6 +110,12 @@ pub enum Underline {
     Single = 1,
     /// The cell is underlined with two lines
     Double = 2,
+}
+
+impl Default for Underline {
+    fn default() -> Self {
+        Self::None
+    }
 }
 
 /// Allow converting to boolean; true means some kind of

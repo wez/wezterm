@@ -572,6 +572,7 @@ impl TermWindow {
                 None
             },
             &window,
+            self.config.colors.as_ref().and_then(|c| c.tab_bar.as_ref()),
         );
         if new_tab_bar != self.tab_bar {
             self.tab_bar = new_tab_bar;

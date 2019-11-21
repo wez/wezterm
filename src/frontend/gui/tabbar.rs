@@ -1,9 +1,10 @@
+use crate::config::TabBarColors;
 use crate::mux::window::Window as MuxWindow;
 use std::cell::Ref;
 use term::Line;
 use termwiz::cell::unicode_column_width;
 use termwiz::cell::{Cell, CellAttributes};
-use termwiz::color::{ColorSpec, RgbColor};
+use termwiz::color::ColorSpec;
 use unicode_segmentation::UnicodeSegmentation;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -28,7 +29,12 @@ impl TabBarState {
     /// mouse_x is some if the mouse is on the same row as the tab bar.
     /// title_width is the total number of cell columns in the window.
     /// window allows access to the tabs associated with the window.
-    pub fn new(title_width: usize, mouse_x: Option<usize>, window: &Ref<MuxWindow>) -> Self {
+    pub fn new(
+        title_width: usize,
+        mouse_x: Option<usize>,
+        window: &Ref<MuxWindow>,
+        colors: Option<&TabBarColors>,
+    ) -> Self {
         // We ultimately want to produce a line looking like this:
         // ` | tab1-title x | tab2-title x |  +      . - X `
         // Where the `+` sign will spawn a new tab (or show a context
@@ -50,31 +56,7 @@ impl TabBarState {
             available_cells / number_of_tabs
         };
 
-        let black = RgbColor::new(0x05, 0x05, 0x05);
-        let white = RgbColor::new(0xe7, 0xe7, 0xe7);
-        let hover_gray = RgbColor::new(0x20, 0x20, 0x20);
-        let active_gray = RgbColor::new(0x30, 0x30, 0x30);
-        let black_cell = Cell::new(
-            ' ',
-            CellAttributes::default()
-                .set_background(ColorSpec::TrueColor(black))
-                .set_foreground(ColorSpec::TrueColor(white))
-                .clone(),
-        );
-        let hover_cell = Cell::new(
-            ' ',
-            CellAttributes::default()
-                .set_background(ColorSpec::TrueColor(hover_gray))
-                .set_foreground(ColorSpec::TrueColor(white))
-                .clone(),
-        );
-        let active_cell = Cell::new(
-            ' ',
-            CellAttributes::default()
-                .set_background(ColorSpec::TrueColor(active_gray))
-                .set_foreground(ColorSpec::TrueColor(white))
-                .clone(),
-        );
+        let colors = colors.cloned().unwrap_or_else(|| TabBarColors::default());
 
         let mut line = Line::with_width(title_width);
 
@@ -90,17 +72,17 @@ impl TabBarState {
                 .unwrap_or(false);
             let active = tab_idx == active_tab_no;
 
-            let bg_cell = if active {
-                active_cell.clone()
+            let cell_attrs = if active {
+                colors.active_tab.as_cell_attributes()
             } else if hover {
-                hover_cell.clone()
+                colors.inactive_tab_hover.as_cell_attributes()
             } else {
-                black_cell.clone()
+                colors.inactive_tab.as_cell_attributes()
             };
 
             let tab_start_idx = x;
 
-            line.set_cell(x, bg_cell.clone());
+            line.set_cell(x, Cell::new(' ', cell_attrs.clone()));
             x += 1;
 
             for (idx, sub) in tab_title.graphemes(true).enumerate() {
@@ -108,16 +90,22 @@ impl TabBarState {
                     break;
                 }
 
-                line.set_cell(x, Cell::new_grapheme(sub, bg_cell.attrs().clone()));
+                line.set_cell(x, Cell::new_grapheme(sub, cell_attrs.clone()));
                 x += 1;
             }
 
             widths.push(x - tab_start_idx);
 
-            line.set_cell(x, bg_cell.clone());
+            line.set_cell(x, Cell::new(' ', cell_attrs));
             x += 1;
         }
 
+        let black_cell = Cell::new(
+            ' ',
+            CellAttributes::default()
+                .set_background(ColorSpec::TrueColor(colors.background))
+                .clone(),
+        );
         for idx in x..title_width {
             line.set_cell(idx, black_cell.clone());
         }

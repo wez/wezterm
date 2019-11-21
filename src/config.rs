@@ -18,7 +18,8 @@ use std::fs::{File, OpenOptions};
 use std::io::prelude::*;
 use std::path::PathBuf;
 use term;
-use term::color::RgbColor;
+use termwiz::cell::CellAttributes;
+use termwiz::color::{ColorSpec, RgbColor};
 use termwiz::hyperlink;
 use termwiz::input::{KeyCode, Modifiers};
 use toml;
@@ -980,6 +981,8 @@ pub struct Palette {
     /// A list of 8 colors corresponding to bright versions of the
     /// ANSI palette
     pub brights: Option<[RgbColor; 8]>,
+    /// Configure the colors and styling of the tab bar
+    pub tab_bar: Option<TabBarColors>,
 }
 
 impl From<Palette> for term::color::ColorPalette {
@@ -1010,5 +1013,83 @@ impl From<Palette> for term::color::ColorPalette {
             }
         }
         p
+    }
+}
+
+/// Specify the text styling for a tab in the tab bar
+#[derive(Debug, Deserialize, Clone, Default)]
+pub struct TabBarColor {
+    /// Specifies the intensity attribute for the tab title text
+    #[serde(default)]
+    pub intensity: term::Intensity,
+    /// Specifies the underline attribute for the tab title text
+    #[serde(default)]
+    pub underline: term::Underline,
+    /// Specifies the italic attribute for the tab title text
+    #[serde(default)]
+    pub italic: bool,
+    /// Specifies the strikethrough attribute for the tab title text
+    #[serde(default)]
+    pub strikethrough: bool,
+    /// The background color for the tab
+    pub bg_color: RgbColor,
+    /// The forgeground/text color for the tab
+    pub fg_color: RgbColor,
+}
+
+impl TabBarColor {
+    pub fn as_cell_attributes(&self) -> CellAttributes {
+        let mut attr = CellAttributes::default();
+        attr.set_intensity(self.intensity)
+            .set_underline(self.underline)
+            .set_italic(self.italic)
+            .set_strikethrough(self.strikethrough)
+            .set_background(ColorSpec::TrueColor(self.bg_color))
+            .set_foreground(ColorSpec::TrueColor(self.fg_color));
+        attr
+    }
+}
+
+/// Specifies the colors to use for the tab bar portion of the UI.
+/// These are not part of the terminal model and cannot be updated
+/// in the same way that the dynamic color schemes are.
+#[derive(Debug, Deserialize, Clone)]
+pub struct TabBarColors {
+    /// The background color for the tab bar
+    pub background: RgbColor,
+
+    /// Styling for the active tab
+    pub active_tab: TabBarColor,
+    /// Styling for other inactive tabs
+    pub inactive_tab: TabBarColor,
+    /// Styling for an inactive tab with a mouse hovering
+    pub inactive_tab_hover: TabBarColor,
+}
+
+impl Default for TabBarColors {
+    fn default() -> Self {
+        let black = RgbColor::new(0x05, 0x05, 0x05);
+        let hover_gray = RgbColor::new(0x20, 0x20, 0x20);
+        let active_gray = RgbColor::new(0x30, 0x30, 0x30);
+        let fg_color = RgbColor::new(0xd0, 0xd0, 0xd0);
+        let fg_hover = RgbColor::new(0xe7, 0xe7, 0xe7);
+        Self {
+            background: black,
+            inactive_tab: TabBarColor {
+                bg_color: black,
+                fg_color,
+                ..TabBarColor::default()
+            },
+            inactive_tab_hover: TabBarColor {
+                bg_color: hover_gray,
+                fg_color: fg_hover,
+                ..TabBarColor::default()
+            },
+            active_tab: TabBarColor {
+                bg_color: active_gray,
+                fg_color,
+                ..TabBarColor::default()
+            },
+        }
     }
 }
