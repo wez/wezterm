@@ -11,6 +11,7 @@ use log::{debug, error};
 use portable_pty::ExitStatus;
 use promise::Future;
 use std::cell::{Ref, RefCell, RefMut};
+use std::cmp::min;
 use std::collections::HashMap;
 use std::io::Read;
 use std::rc::Rc;
@@ -46,6 +47,7 @@ pub struct Mux {
 }
 
 fn read_from_tab_pty(config: Arc<Config>, tab_id: TabId, mut reader: Box<dyn std::io::Read>) {
+    const MIN_CHUNKSIZE: u32 = 200;
     const BUFSIZE: usize = 32 * 1024;
     let mut buf = [0; BUFSIZE];
 
@@ -66,9 +68,15 @@ fn read_from_tab_pty(config: Arc<Config>, tab_id: TabId, mut reader: Box<dyn std
                 break;
             }
             Ok(size) => {
-                for chunk in buf[..size].chunks(lim.capacity_per_second()) {
-                    lim.blocking_admittance_check(chunk.len() as u32);
-                    let data = chunk.to_vec();
+                let mut reminder = &buf[..size];
+                while reminder.len() > 0 {
+                    let len = reminder.len() as u32;
+                    let min_amount = min(MIN_CHUNKSIZE, len);
+                    lim.blocking_admittance_check(min_amount);
+                    let extra_amount = lim.non_blocking_admittance_check_max(len - min_amount);
+                    let allowed = (min_amount + extra_amount) as usize;
+                    let data = reminder[..allowed].to_vec();
+                    reminder = &reminder[allowed..];
                     /*
                     match std::str::from_utf8(&data) {
                         Ok(s) => {
