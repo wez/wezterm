@@ -39,7 +39,7 @@ impl SpawnQueue {
         self.spawn_impl(f)
     }
 
-    pub fn run(&self) {
+    pub fn run(&self) -> bool {
         self.run_impl()
     }
 
@@ -67,18 +67,36 @@ impl SpawnQueue {
         self.event_handle.set_event();
     }
 
-    fn run_impl(&self) {
+    fn run_impl(&self) -> bool {
         self.event_handle.reset_event();
+        let mut did_any = false;
         while let Some(func) = self.pop_func() {
             func();
+            did_any = true;
         }
+        did_any
     }
 }
 
 #[cfg(all(unix, not(target_os = "macos")))]
 impl SpawnQueue {
     fn new_impl() -> Fallible<Self> {
+        // On linux we have a slightly sloppy wakeup mechanism;
+        // we have a non-blocking pipe that we can use to get
+        // woken up after some number of enqueues.  We don't
+        // guarantee a 1:1 enqueue to wakeup with this mechanism
+        // but in practical terms it does guarantee a wakeup
+        // if the main thread is asleep and we enqueue some
+        // number of items.
+        // We can't affort to use a blocking pipe for the wakeup
+        // because the write needs to hold a mutex and that
+        // can block reads as well as other writers.
         let pipe = Pipe::new()?;
+        let on = 1;
+        unsafe {
+            libc::ioctl(pipe.write.as_raw_fd(), libc::FIONBIO, &on);
+            libc::ioctl(pipe.read.as_raw_fd(), libc::FIONBIO, &on);
+        }
         Ok(Self {
             spawned_funcs: Mutex::new(VecDeque::new()),
             write: Mutex::new(pipe.write),
@@ -93,13 +111,19 @@ impl SpawnQueue {
         self.write.lock().unwrap().write(b"x").ok();
     }
 
-    fn run_impl(&self) {
+    fn run_impl(&self) -> bool {
+        // On linux we only ever process one at at time, so that
+        // we can return to the main loop and process messages
+        // from the X server
         use std::io::Read;
-        while let Some(func) = self.pop_func() {
+        if let Some(func) = self.pop_func() {
             func();
 
             let mut byte = [0u8];
             self.read.lock().unwrap().read(&mut byte).ok();
+            true
+        } else {
+            false
         }
     }
 }
@@ -168,10 +192,13 @@ impl SpawnQueue {
         }
     }
 
-    fn run_impl(&self) {
+    fn run_impl(&self) -> bool {
+        let mut did_any = false;
         while let Some(func) = self.pop_func() {
             func();
+            did_any = true;
         }
+        did_any
     }
 }
 

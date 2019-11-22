@@ -264,12 +264,21 @@ impl ConnectionOps for Connection {
             // relied solely on that.
             self.process_queued_xcb()?;
 
-            let period = self
-                .timers
-                .borrow()
-                .time_until_due(Instant::now())
-                .map(|duration| duration.min(period))
-                .unwrap_or(period);
+            // Check the spawn queue before we try to sleep; there may
+            // be work pending and we don't guarantee that there is a
+            // 1:1 wakeup to queued function, so we need to be assertive
+            // in order to avoid missing wakeups
+            let period = if SPAWN_QUEUE.run() {
+                // if we processed one, we don't want to sleep because
+                // there may be others to deal with
+                Duration::new(0, 0)
+            } else {
+                self.timers
+                    .borrow()
+                    .time_until_due(Instant::now())
+                    .map(|duration| duration.min(period))
+                    .unwrap_or(period)
+            };
 
             match poll.poll(&mut events, Some(period)) {
                 Ok(_) => {
@@ -282,7 +291,6 @@ impl ConnectionOps for Connection {
                         } else {
                         }
                     }
-                    // self.process_sigchld();
                 }
 
                 Err(err) => {
