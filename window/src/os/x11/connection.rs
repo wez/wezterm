@@ -282,15 +282,9 @@ impl ConnectionOps for Connection {
 
             match poll.poll(&mut events, Some(period)) {
                 Ok(_) => {
-                    for event in &events {
-                        let t = event.token();
-                        if t == tok_xcb {
-                            self.process_queued_xcb()?;
-                        } else if t == tok_spawn {
-                            SPAWN_QUEUE.run();
-                        } else {
-                        }
-                    }
+                    // We process both event sources unconditionally
+                    // in the loop above anyway; we're just using
+                    // this to get woken up.
                 }
 
                 Err(err) => {

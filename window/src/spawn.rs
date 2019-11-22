@@ -141,13 +141,21 @@ impl SpawnQueue {
         // On linux we only ever process one at at time, so that
         // we can return to the main loop and process messages
         // from the X server
-        use std::io::Read;
         if let Some(func) = self.pop_func() {
             func();
-
-            let mut byte = [0u8];
-            self.read.lock().unwrap().read(&mut byte).ok();
         }
+
+        // try to drain the pipe.
+        // We do this regardless of whether we popped an item
+        // so that we avoid being in a perpetually signalled state.
+        // It is ok if we completely drain the pipe because the
+        // main loop uses the return value to set the sleep
+        // interval and will unconditionally call us on each
+        // iteration.
+        let mut byte = [0u8; 64];
+        use std::io::Read;
+        self.read.lock().unwrap().read(&mut byte).ok();
+
         self.has_any_queued()
     }
 }
