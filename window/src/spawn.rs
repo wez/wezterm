@@ -182,23 +182,29 @@ impl SpawnQueue {
         _: CFRunLoopActivity,
         _: *mut std::ffi::c_void,
     ) {
-        SPAWN_QUEUE.run();
+        if SPAWN_QUEUE.run() {
+            self.queue_wakeup();
+        }
     }
 
-    fn spawn_impl(&self, f: SpawnFunc) {
-        self.spawned_funcs.lock().unwrap().push_back(f);
+    fn queue_wakeup(&self) {
         unsafe {
             CFRunLoopWakeUp(CFRunLoopGetMain());
         }
     }
 
+    fn spawn_impl(&self, f: SpawnFunc) {
+        self.spawned_funcs.lock().unwrap().push_back(f);
+        self.queue_wakeup();
+    }
+
     fn run_impl(&self) -> bool {
-        let mut did_any = false;
-        while let Some(func) = self.pop_func() {
+        if let Some(func) = self.pop_func() {
             func();
-            did_any = true;
+            true
+        } else {
+            false
         }
-        did_any
     }
 }
 
