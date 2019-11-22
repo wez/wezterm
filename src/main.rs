@@ -596,9 +596,7 @@ fn run_terminal_gui(config: Arc<config::Config>, opts: &StartCommand) -> Fallibl
 fn main() -> Result<(), Error> {
     let result = run();
     if let Err(e) = &result {
-        let message = e.to_string();
-
-        log::error!("{}", message);
+        log::error!("{}", e);
     }
     result
 }
