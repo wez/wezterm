@@ -612,32 +612,10 @@ pub struct TlsDomainClient {
 
 impl Default for Config {
     fn default() -> Self {
-        Self {
-            font_size: default_font_size(),
-            dpi: default_dpi(),
-            font: TextStyle::default(),
-            font_rules: Vec::new(),
-            font_system: FontSystemSelection::default(),
-            front_end: FrontEndSelection::default(),
-            pty: PtySystemSelection::default(),
-            colors: None,
-            scrollback_lines: None,
-            hyperlink_rules: default_hyperlink_rules(),
-            term: default_term(),
-            default_prog: None,
-            ratelimit_output_bytes_per_second: None,
-            ratelimit_mux_output_pushes_per_second: None,
-            ratelimit_mux_output_scans_per_second: None,
-            unix_domains: UnixDomain::default_unix_domains(),
-            ssh_domains: vec![],
-            keys: vec![],
-            tls_servers: vec![],
-            tls_clients: vec![],
-            daemon_options: Default::default(),
-            send_composed_key_when_alt_is_pressed: false,
-            swap_backspace_and_delete: default_swap_backspace_and_delete(),
-            enable_tab_bar: false,
-        }
+        // Ask serde to provide the defaults based on the attributes
+        // specified in the struct so that we don't have to repeat
+        // the same thing in a different form down here
+        toml::from_str("").unwrap()
     }
 }
 
@@ -668,14 +646,10 @@ impl Default for FontAttributes {
     }
 }
 
-fn empty_font_attributes() -> Vec<FontAttributes> {
-    Vec::new()
-}
-
 /// Represents textual styling.
 #[derive(Debug, Deserialize, Clone, PartialEq, Eq, Hash)]
 pub struct TextStyle {
-    #[serde(default = "empty_font_attributes")]
+    #[serde(default)]
     pub font: Vec<FontAttributes>,
 
     /// If set, when rendering text that is set to the default
