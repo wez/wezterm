@@ -65,10 +65,13 @@ impl SpawnQueue {
     }
 
     fn has_any_queued(&self) -> bool {
-        if !self.spawned_funcs.lock().unwrap().is_empty() {
+        let len = self.spawned_funcs.lock().unwrap().len();
+        let low_len = self.spawned_funcs_low_pri.lock().unwrap().len();
+        if len + low_len > 0 {
+            // eprintln!("{} + {} queued spawns", len, low_len);
             true
         } else {
-            !self.spawned_funcs_low_pri.lock().unwrap().is_empty()
+            false
         }
     }
 }
