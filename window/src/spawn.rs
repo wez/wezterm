@@ -77,9 +77,11 @@ impl SpawnQueue {
 impl SpawnQueue {
     fn new_impl() -> Fallible<Self> {
         let spawned_funcs = Mutex::new(VecDeque::new());
+        let spawned_funcs_low_pri = Mutex::new(VecDeque::new());
         let event_handle = EventHandle::new_manual_reset().expect("EventHandle creation failed");
         Ok(Self {
             spawned_funcs,
+            spawned_funcs_low_pri,
             event_handle,
         })
     }
@@ -178,6 +180,7 @@ impl Evented for SpawnQueue {
 impl SpawnQueue {
     fn new_impl() -> Fallible<Self> {
         let spawned_funcs = Mutex::new(VecDeque::new());
+        let spawned_funcs_low_pri = Mutex::new(VecDeque::new());
 
         let observer = unsafe {
             CFRunLoopObserverCreate(
@@ -193,7 +196,10 @@ impl SpawnQueue {
             CFRunLoopAddObserver(CFRunLoopGetMain(), observer, kCFRunLoopCommonModes);
         }
 
-        Ok(Self { spawned_funcs })
+        Ok(Self {
+            spawned_funcs,
+            spawned_funcs_low_pri,
+        })
     }
 
     extern "C" fn trigger(
@@ -202,11 +208,11 @@ impl SpawnQueue {
         _: *mut std::ffi::c_void,
     ) {
         if SPAWN_QUEUE.run() {
-            self.queue_wakeup();
+            Self::queue_wakeup();
         }
     }
 
-    fn queue_wakeup(&self) {
+    fn queue_wakeup() {
         unsafe {
             CFRunLoopWakeUp(CFRunLoopGetMain());
         }
@@ -214,7 +220,7 @@ impl SpawnQueue {
 
     fn spawn_impl(&self, f: SpawnFunc, high_pri: bool) {
         self.queue_func(f, high_pri);
-        self.queue_wakeup();
+        Self::queue_wakeup();
     }
 
     fn run_impl(&self) -> bool {
