@@ -63,6 +63,14 @@ impl SpawnQueue {
         }
         .push_back(f);
     }
+
+    fn has_any_queued(&self) -> bool {
+        if !self.spawned_funcs.lock().unwrap().is_empty() {
+            true
+        } else {
+            !self.spawned_funcs_low_pri.lock().unwrap().is_empty()
+        }
+    }
 }
 
 #[cfg(windows)]
@@ -83,12 +91,10 @@ impl SpawnQueue {
 
     fn run_impl(&self) -> bool {
         self.event_handle.reset_event();
-        let mut did_any = false;
         while let Some(func) = self.pop_func() {
             func();
-            did_any = true;
         }
-        did_any
+        self.has_any_queued()
     }
 }
 
@@ -136,10 +142,8 @@ impl SpawnQueue {
 
             let mut byte = [0u8];
             self.read.lock().unwrap().read(&mut byte).ok();
-            true
-        } else {
-            false
         }
+        self.has_any_queued()
     }
 }
 
@@ -216,10 +220,8 @@ impl SpawnQueue {
     fn run_impl(&self) -> bool {
         if let Some(func) = self.pop_func() {
             func();
-            true
-        } else {
-            false
         }
+        self.has_any_queued()
     }
 }
 
