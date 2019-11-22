@@ -888,13 +888,16 @@ impl TermWindow {
         // Fill any marginal area below the last row
         let (num_rows, _num_cols) = term.physical_dimensions();
         let pixel_height_of_cells =
-            (num_rows + first_line_offset) * self.render_metrics.cell_size.height as usize;
+            (num_rows - first_line_offset) * self.render_metrics.cell_size.height as usize;
         ctx.clear_rect(
             Rect::new(
                 Point::new(0, pixel_height_of_cells as isize),
                 Size::new(
                     self.dimensions.pixel_width as isize,
-                    (self.dimensions.pixel_height - pixel_height_of_cells) as isize,
+                    (self
+                        .dimensions
+                        .pixel_height
+                        .saturating_sub(pixel_height_of_cells)) as isize,
                 ),
             ),
             rgbcolor_to_window_color(palette.background),
