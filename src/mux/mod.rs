@@ -49,11 +49,7 @@ fn read_from_tab_pty(config: Arc<Config>, tab_id: TabId, mut reader: Box<dyn std
     const BUFSIZE: usize = 32 * 1024;
     let mut buf = [0; BUFSIZE];
 
-    let mut lim = RateLimiter::new(
-        config
-            .ratelimit_output_bytes_per_second
-            .unwrap_or(2 * 1024 * 1024),
-    );
+    let mut lim = RateLimiter::new(config.ratelimit_output_bytes_per_second.unwrap_or(10_000));
 
     loop {
         match reader.read(&mut buf) {

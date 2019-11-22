@@ -129,8 +129,8 @@ term = "xterm-256color"
 # This acts as a brake in the case of a command spewing a
 # ton of output and allows for the UI to remain responsive
 # so that you can hit CTRL-C to interrupt it if desired.
-# The default value is 2MB/s.
-ratelimit_output_bytes_per_second = 2097152
+# The default value is 10,000 bytes/s.
+ratelimit_output_bytes_per_second = 10000
 
 # Constrains the rate at which the multiplexer server will
 # unilaterally push data to the client.
