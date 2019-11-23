@@ -7,12 +7,12 @@ use crate::connection::ConnectionOps;
 use crate::os::macos::bitmap::BitmapRef;
 use crate::{
     BitmapImage, Color, Connection, Dimensions, KeyCode, KeyEvent, Modifiers, MouseButtons,
-    MouseCursor, MouseEvent, MouseEventKind, MousePress, Operator, PaintContext, Point, Rect, Size,
-    WindowCallbacks, WindowOps, WindowOpsMut,
+    MouseCursor, MouseEvent, MouseEventKind, MousePress, Operator, PaintContext, Point, Rect,
+    ScreenPoint, Size, WindowCallbacks, WindowOps, WindowOpsMut,
 };
 use cocoa::appkit::{
     NSApplicationActivateIgnoringOtherApps, NSBackingStoreBuffered, NSEvent, NSEventModifierFlags,
-    NSRunningApplication, NSView, NSViewHeightSizable, NSViewWidthSizable, NSWindow,
+    NSRunningApplication, NSScreen, NSView, NSViewHeightSizable, NSViewWidthSizable, NSWindow,
     NSWindowStyleMask,
 };
 use cocoa::base::*;
@@ -393,6 +393,13 @@ impl WindowOps for Window {
         })
     }
 
+    fn set_window_position(&self, coords: ScreenPoint) -> Future<()> {
+        Connection::with_window_inner(self.0, move |inner| {
+            inner.set_window_position(coords);
+            Ok(())
+        })
+    }
+
     fn set_text_cursor_position(&self, cursor: Rect) -> Future<()> {
         Connection::with_window_inner(self.0, move |inner| {
             inner.set_text_cursor_position(cursor);
@@ -458,6 +465,38 @@ impl WindowOps for Window {
     }
 }
 
+/// Convert from a macOS screen coordinate with the origin in the bottom left
+/// to a pixel coordinate with its origin in the top left
+fn cartesian_to_screen_point(cartesian: NSPoint) -> ScreenPoint {
+    unsafe {
+        let screens = NSScreen::screens(nil);
+        let primary = screens.objectAtIndex(0);
+        let frame = NSScreen::frame(primary);
+        let backing_frame = NSScreen::convertRectToBacking_(primary, frame);
+        let scale = backing_frame.size.height / frame.size.height;
+        ScreenPoint::new(
+            (cartesian.x * scale) as isize,
+            ((frame.size.height - cartesian.y) * scale) as isize,
+        )
+    }
+}
+
+/// Convert from a pixel coordinate in the top left to a macOS screen
+/// coordinate with its origin in the bottom left
+fn screen_point_to_cartesian(point: ScreenPoint) -> NSPoint {
+    unsafe {
+        let screens = NSScreen::screens(nil);
+        let primary = screens.objectAtIndex(0);
+        let frame = NSScreen::frame(primary);
+        let backing_frame = NSScreen::convertRectToBacking_(primary, frame);
+        let scale = backing_frame.size.height / frame.size.height;
+        NSPoint::new(
+            point.x as f64 / scale,
+            frame.size.height - (point.y as f64 / scale),
+        )
+    }
+}
+
 impl WindowOpsMut for WindowInner {
     fn show(&mut self) {
         unsafe {
@@ -511,6 +550,21 @@ impl WindowOpsMut for WindowInner {
                 *self.window,
                 NSSize::new(width as f64 / scale, height as f64 / scale),
             );
+        }
+    }
+
+    fn set_window_position(&self, coords: ScreenPoint) {
+        unsafe {
+            let cartesian = screen_point_to_cartesian(coords);
+            let frame = NSWindow::frame(*self.window);
+            let content_frame = NSWindow::contentRectForFrameRect_(*self.window, frame);
+            let delta_x = content_frame.origin.x - frame.origin.x;
+            let delta_y = content_frame.origin.y - frame.origin.y;
+            let point = NSPoint::new(
+                cartesian.x as f64 - delta_x,
+                cartesian.y as f64 - delta_y - content_frame.size.height,
+            );
+            NSWindow::setFrameOrigin_(*self.window, point);
         }
     }
 
@@ -866,6 +920,7 @@ impl WindowView {
         let coords;
         let mouse_buttons;
         let modifiers;
+        let screen_coords;
         unsafe {
             let point = NSView::convertPoint_fromView_(view, nsevent.locationInWindow(), nil);
             let rect = NSRect::new(NSPoint::new(0., 0.), NSSize::new(point.x, point.y));
@@ -873,10 +928,12 @@ impl WindowView {
             coords = NSPoint::new(backing_rect.size.width, backing_rect.size.height);
             mouse_buttons = decode_mouse_buttons(NSEvent::pressedMouseButtons(nsevent));
             modifiers = key_modifiers(nsevent.modifierFlags());
+            screen_coords = NSEvent::mouseLocation(nsevent);
         }
         let event = MouseEvent {
             kind,
-            coords: Point::new(coords.x, coords.y),
+            coords: Point::new(coords.x as isize, coords.y as isize),
+            screen_coords: cartesian_to_screen_point(screen_coords),
             mouse_buttons,
             modifiers,
         };
