@@ -604,13 +604,11 @@ fn mods_and_buttons(wparam: WPARAM) -> (Modifiers, MouseButtons) {
     (modifiers, buttons)
 }
 
-fn mouse_coords(lparam: LPARAM) -> (u16, u16) {
-    // These are signed, but we only care about things inside the window...
-    let x = (lparam & 0xffff) as i16;
-    let y = ((lparam >> 16) & 0xffff) as i16;
+fn mouse_coords(lparam: LPARAM) -> Point {
+    let x = (lparam & 0xffff) as isize;
+    let y = ((lparam >> 16) & 0xffff) as isize;
 
-    // ... so we truncate to positive values only
-    (x.max(0) as u16, y.max(0) as u16)
+    Point::new(x, y)
 }
 
 fn apply_mouse_cursor(cursor: Option<MouseCursor>) {
@@ -634,7 +632,7 @@ fn apply_mouse_cursor(cursor: Option<MouseCursor>) {
 unsafe fn mouse_button(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
     if let Some(inner) = rc_from_hwnd(hwnd) {
         let (modifiers, mouse_buttons) = mods_and_buttons(wparam);
-        let (x, y) = mouse_coords(lparam);
+        let coords = mouse_coords(lparam);
         let event = MouseEvent {
             kind: match msg {
                 WM_LBUTTONDOWN => MouseEventKind::Press(MousePress::Left),
@@ -648,8 +646,7 @@ unsafe fn mouse_button(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) ->
                 WM_MBUTTONDBLCLK => MouseEventKind::DoubleClick(MousePress::Middle),
                 _ => return None,
             },
-            x,
-            y,
+            coords,
             mouse_buttons,
             modifiers,
         };
@@ -667,11 +664,10 @@ unsafe fn mouse_button(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) ->
 unsafe fn mouse_move(hwnd: HWND, _msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
     if let Some(inner) = rc_from_hwnd(hwnd) {
         let (modifiers, mouse_buttons) = mods_and_buttons(wparam);
-        let (x, y) = mouse_coords(lparam);
+        let coords = mouse_coords(lparam);
         let event = MouseEvent {
             kind: MouseEventKind::Move,
-            x,
-            y,
+            coords,
             mouse_buttons,
             modifiers,
         };
@@ -690,7 +686,7 @@ unsafe fn mouse_move(hwnd: HWND, _msg: UINT, wparam: WPARAM, lparam: LPARAM) -> 
 unsafe fn mouse_wheel(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
     if let Some(inner) = rc_from_hwnd(hwnd) {
         let (modifiers, mouse_buttons) = mods_and_buttons(wparam);
-        let (x, y) = mouse_coords(lparam);
+        let coords = mouse_coords(lparam);
         let position = ((wparam >> 16) & 0xffff) as i16 / WHEEL_DELTA;
         let event = MouseEvent {
             kind: if msg == WM_MOUSEHWHEEL {
@@ -698,8 +694,7 @@ unsafe fn mouse_wheel(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> 
             } else {
                 MouseEventKind::VertWheel(position)
             },
-            x,
-            y,
+            coords,
             mouse_buttons,
             modifiers,
         };

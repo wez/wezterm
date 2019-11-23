@@ -127,8 +127,7 @@ pub enum MouseEventKind {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MouseEvent {
     pub kind: MouseEventKind,
-    pub x: u16,
-    pub y: u16,
+    pub coords: crate::Point,
     pub mouse_buttons: MouseButtons,
     pub modifiers: Modifiers,
 }

@@ -277,8 +277,10 @@ impl WindowInner {
 
                 let event = MouseEvent {
                     kind: MouseEventKind::Move,
-                    x: motion.event_x().max(0) as u16,
-                    y: motion.event_y().max(0) as u16,
+                    coords: Point::new(
+                        motion.event_x().try_into().unwrap(),
+                        motion.event_y().try_into().unwrap(),
+                    ),
                     modifiers: xkeysyms::modifiers_from_state(motion.state()),
                     mouse_buttons: MouseButtons::default(),
                 };
@@ -315,8 +317,10 @@ impl WindowInner {
 
                 let event = MouseEvent {
                     kind,
-                    x: button_press.event_x().max(0) as u16,
-                    y: button_press.event_y().max(0) as u16,
+                    coords: Point::new(
+                        button_press.event_x().try_into().unwrap(),
+                        button_press.event_y().try_into().unwrap(),
+                    ),
                     modifiers: xkeysyms::modifiers_from_state(button_press.state()),
                     mouse_buttons: MouseButtons::default(),
                 };

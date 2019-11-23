@@ -876,8 +876,7 @@ impl WindowView {
         }
         let event = MouseEvent {
             kind,
-            x: coords.x.max(0.0) as u16,
-            y: coords.y.max(0.0) as u16,
+            coords: Point::new(coords.x, coords.y),
             mouse_buttons,
             modifiers,
         };

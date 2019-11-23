@@ -117,8 +117,8 @@ impl WindowCallbacks for TermWindow {
             None => return,
         };
 
-        let x = (event.x as isize / self.render_metrics.cell_size.width) as usize;
-        let y = (event.y as isize / self.render_metrics.cell_size.height) as i64;
+        let x = (event.coords.x.max(0) / self.render_metrics.cell_size.width) as usize;
+        let y = (event.coords.y.max(0) / self.render_metrics.cell_size.height) as i64;
 
         let first_line_offset = if self.show_tab_bar { 1 } else { 0 };
         self.last_mouse_coords = (x, y);
