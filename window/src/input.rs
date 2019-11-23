@@ -127,7 +127,10 @@ pub enum MouseEventKind {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MouseEvent {
     pub kind: MouseEventKind,
+    /// Coordinates of the mouse relative to the top left of the window
     pub coords: crate::Point,
+    /// The mouse position in screen coordinates
+    pub screen_coords: crate::ScreenPoint,
     pub mouse_buttons: MouseButtons,
     pub modifiers: Modifiers,
 }

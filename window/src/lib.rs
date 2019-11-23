@@ -59,6 +59,9 @@ pub type Point = euclid::Point2D<isize, PixelUnit>;
 pub type Rect = euclid::Rect<isize, PixelUnit>;
 pub type Size = euclid::Size2D<isize, PixelUnit>;
 
+pub struct ScreenPixelUnit;
+pub type ScreenPoint = euclid::Point2D<isize, ScreenPixelUnit>;
+
 pub trait PaintContext {
     fn get_dimensions(&self) -> Dimensions;
 
@@ -173,6 +176,13 @@ pub trait WindowOps {
     /// Resize the inner or client area of the window
     fn set_inner_size(&self, width: usize, height: usize) -> Future<()>;
 
+    /// Changes the location of the window on the screen.
+    /// The coordinates are of the top left pixel of the
+    /// client area.
+    fn set_window_position(&self, _coords: ScreenPoint) -> Future<()> {
+        Future::ok(())
+    }
+
     /// inform the windowing system of the current textual
     /// cursor input location.  This is used primarily for
     /// the platform specific input method editor
@@ -238,4 +248,9 @@ pub trait WindowOpsMut {
     /// cursor input location.  This is used primarily for
     /// the platform specific input method editor
     fn set_text_cursor_position(&mut self, _cursor: Rect) {}
+
+    /// Changes the location of the window on the screen.
+    /// The coordinates are of the top left pixel of the
+    /// client area.
+    fn set_window_position(&self, _coords: ScreenPoint) {}
 }

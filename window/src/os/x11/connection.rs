@@ -81,8 +81,8 @@ impl TimerList {
 
 pub struct Connection {
     pub display: *mut x11::xlib::Display,
-    conn: xcb::Connection,
-    screen_num: i32,
+    conn: xcb_util::ewmh::Connection,
+    pub screen_num: i32,
     pub keyboard: Keyboard,
     pub kbd_ev: u8,
     pub atom_protocols: xcb::Atom,
@@ -370,6 +370,8 @@ impl Connection {
         }
         let screen_num = unsafe { x11::xlib::XDefaultScreen(display) };
         let conn = unsafe { xcb::Connection::from_raw_conn(XGetXCBConnection(display)) };
+        let conn = xcb_util::ewmh::Connection::connect(conn)
+            .map_err(|_| failure::err_msg("failed to init ewmh"))?;
         unsafe { XSetEventQueueOwner(display, 1) };
 
         let atom_protocols = xcb::intern_atom(&conn, false, "WM_PROTOCOLS")
@@ -391,7 +393,7 @@ impl Connection {
             .get_reply()?
             .atom();
 
-        let keysyms = unsafe { xcb_key_symbols_alloc(conn.get_raw_conn()) };
+        let keysyms = unsafe { xcb_key_symbols_alloc((*conn).get_raw_conn()) };
 
         let shm_available = server_supports_shm();
         eprintln!("shm_available: {}", shm_available);
@@ -452,8 +454,12 @@ impl Connection {
         Ok(conn)
     }
 
-    pub fn conn(&self) -> &xcb::Connection {
+    pub fn ewmh_conn(&self) -> &xcb_util::ewmh::Connection {
         &self.conn
+    }
+
+    pub fn conn(&self) -> &xcb::Connection {
+        &*self.conn
     }
 
     pub fn screen_num(&self) -> i32 {

@@ -3,7 +3,8 @@ use crate::bitmaps::*;
 use crate::connection::ConnectionOps;
 use crate::{
     Color, Dimensions, KeyEvent, MouseButtons, MouseCursor, MouseEvent, MouseEventKind, MousePress,
-    Operator, PaintContext, Point, Rect, Size, WindowCallbacks, WindowOps, WindowOpsMut,
+    Operator, PaintContext, Point, Rect, ScreenPoint, Size, WindowCallbacks, WindowOps,
+    WindowOpsMut,
 };
 use failure::Fallible;
 use promise::Future;
@@ -281,6 +282,10 @@ impl WindowInner {
                         motion.event_x().try_into().unwrap(),
                         motion.event_y().try_into().unwrap(),
                     ),
+                    screen_coords: ScreenPoint::new(
+                        motion.root_x().try_into().unwrap(),
+                        motion.root_y().try_into().unwrap(),
+                    ),
                     modifiers: xkeysyms::modifiers_from_state(motion.state()),
                     mouse_buttons: MouseButtons::default(),
                 };
@@ -321,6 +326,10 @@ impl WindowInner {
                         button_press.event_x().try_into().unwrap(),
                         button_press.event_y().try_into().unwrap(),
                     ),
+                    screen_coords: ScreenPoint::new(
+                        button_press.root_x().try_into().unwrap(),
+                        button_press.root_y().try_into().unwrap(),
+                    ),
                     modifiers: xkeysyms::modifiers_from_state(button_press.state()),
                     mouse_buttons: MouseButtons::default(),
                 };
@@ -341,6 +350,54 @@ impl WindowInner {
             }
         }
 
+        Ok(())
+    }
+
+    #[allow(dead_code)]
+    fn disable_decorations(&mut self) -> Fallible<()> {
+        // Set the motif hints to disable decorations.
+        // See https://stackoverflow.com/a/1909708
+        #[repr(C)]
+        struct MwmHints {
+            flags: u32,
+            functions: u32,
+            decorations: u32,
+            input_mode: i32,
+            status: u32,
+        }
+
+        const HINTS_FUNCTIONS: u32 = 1 << 0;
+        const HINTS_DECORATIONS: u32 = 1 << 1;
+        const FUNC_ALL: u32 = 1 << 0;
+        const FUNC_RESIZE: u32 = 1 << 1;
+        const FUNC_MOVE: u32 = 1 << 2;
+        const FUNC_MINIMIZE: u32 = 1 << 3;
+        const FUNC_MAXIMIZE: u32 = 1 << 4;
+        const FUNC_CLOSE: u32 = 1 << 5;
+
+        let hints = MwmHints {
+            flags: HINTS_DECORATIONS,
+            functions: 0,
+            decorations: 0, // off
+            input_mode: 0,
+            status: 0,
+        };
+
+        let hints_slice =
+            unsafe { std::slice::from_raw_parts(&hints as *const _ as *const u32, 5) };
+
+        let atom = xcb::intern_atom(self.conn.conn(), false, "_MOTIF_WM_HINTS")
+            .get_reply()?
+            .atom();
+        xcb::change_property(
+            self.conn.conn(),
+            xcb::PROP_MODE_REPLACE as u8,
+            self.window_id,
+            atom,
+            atom,
+            32,
+            hints_slice,
+        );
         Ok(())
     }
 }
@@ -438,6 +495,8 @@ impl Window {
             &[conn.atom_delete],
         );
 
+        // window.lock().unwrap().disable_decorations()?;
+
         let window_handle = Window::from_id(window_id);
 
         window.lock().unwrap().callbacks.created(&window_handle);
@@ -481,6 +540,43 @@ impl WindowOpsMut for WindowInner {
                 (xcb::CONFIG_WINDOW_HEIGHT as u16, height as u32),
             ],
         );
+    }
+
+    fn set_window_position(&self, coords: ScreenPoint) {
+        // We ask the window manager to move the window for us so that
+        // we don't have to deal with adjusting for the frame size.
+        // Note that neither this technique or the configure_window
+        // approach below will successfully move a window running
+        // under the crostini environment on a chromebook :-(
+        xcb_util::ewmh::request_move_resize_window(
+            self.conn.ewmh_conn(),
+            self.conn.screen_num,
+            self.window_id,
+            xcb::xproto::GRAVITY_STATIC,
+            1, // normal program
+            xcb_util::ewmh::MOVE_RESIZE_MOVE
+                | xcb_util::ewmh::MOVE_RESIZE_WINDOW_X
+                | xcb_util::ewmh::MOVE_RESIZE_WINDOW_Y,
+            coords.x as u32,
+            coords.y as u32,
+            // these dimensions are ignored because we're not
+            // passing the relevant MOVE_RESIZE_XX flags above,
+            // but are preserved here for clarity on what these
+            // parameters do
+            self.width as u32,
+            self.height as u32,
+        );
+
+        /*
+        xcb::configure_window(
+            self.conn.conn(),
+            self.window_id,
+            &[
+                (xcb::CONFIG_WINDOW_X as u16, coords.x as u32),
+                (xcb::CONFIG_WINDOW_Y as u16, coords.y as u32),
+            ],
+        );
+        */
     }
 
     /// Change the title for the window manager
@@ -536,6 +632,13 @@ impl WindowOps for Window {
     fn set_inner_size(&self, width: usize, height: usize) -> Future<()> {
         Connection::with_window_inner(self.0, move |inner| {
             inner.set_inner_size(width, height);
+            Ok(())
+        })
+    }
+
+    fn set_window_position(&self, coords: ScreenPoint) -> Future<()> {
+        Connection::with_window_inner(self.0, move |inner| {
+            inner.set_window_position(coords);
             Ok(())
         })
     }

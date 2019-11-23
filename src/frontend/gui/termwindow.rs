@@ -37,6 +37,7 @@ pub struct TermWindow {
     show_tab_bar: bool,
     tab_bar: TabBarState,
     last_mouse_coords: (usize, i64),
+    drag_start_coords: Option<Point>,
 }
 
 struct Host<'a> {
@@ -117,6 +118,19 @@ impl WindowCallbacks for TermWindow {
             None => return,
         };
 
+        match event.kind {
+            WMEK::Release(MousePress::Left) => self.drag_start_coords = None,
+            WMEK::Move => {
+                if let Some(drag) = self.drag_start_coords.as_ref() {
+                    context.set_window_position(ScreenPoint::new(
+                        event.screen_coords.x - drag.x,
+                        event.screen_coords.y - drag.y,
+                    ));
+                }
+            }
+            _ => {}
+        }
+
         let x = (event.coords.x.max(0) / self.render_metrics.cell_size.width) as usize;
         let y = (event.coords.y.max(0) / self.render_metrics.cell_size.height) as i64;
 
@@ -124,6 +138,11 @@ impl WindowCallbacks for TermWindow {
         self.last_mouse_coords = (x, y);
 
         if self.show_tab_bar && y == 0 {
+            match event.kind {
+                WMEK::Press(MousePress::Left) => self.drag_start_coords = Some(event.coords),
+                _ => {}
+            }
+
             if let Some(tab_idx) = self.tab_bar.hit_test(x) {
                 match event.kind {
                     WMEK::Press(MousePress::Left) => {
@@ -387,6 +406,7 @@ impl TermWindow {
                 show_tab_bar: config.enable_tab_bar,
                 tab_bar: TabBarState::default(),
                 last_mouse_coords: (0, -1),
+                drag_start_coords: None,
             }),
         )?;
 
