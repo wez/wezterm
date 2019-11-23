@@ -1,5 +1,3 @@
-#![cfg_attr(feature = "async_await", feature(async_await))]
-
 use ::window::*;
 use failure::Fallible;
 use std::any::Any;
@@ -61,7 +59,6 @@ impl WindowCallbacks for MyWindow {
     }
 }
 
-#[cfg(feature = "async_await")]
 async fn spawn_window() -> Result<(), Box<dyn std::error::Error>> {
     let win = Window::new_window(
         "myclass",
@@ -90,7 +87,6 @@ async fn spawn_window() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-#[cfg(feature = "async_await")]
 fn main() -> Fallible<()> {
     let conn = Connection::init()?;
     conn.spawn_task(async {
@@ -98,10 +94,4 @@ fn main() -> Fallible<()> {
         spawn_window().await.ok();
     });
     conn.run_message_loop()
-}
-
-#[cfg(not(feature = "async_await"))]
-fn main() {
-    eprintln!("Run me with rust 1.39 or later, or a current nightly build");
-    eprintln!("   cargo +nightly run --example async --features async_await");
 }
