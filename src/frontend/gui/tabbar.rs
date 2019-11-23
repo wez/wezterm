@@ -10,14 +10,28 @@ use unicode_segmentation::UnicodeSegmentation;
 #[derive(Clone, Debug, PartialEq)]
 pub struct TabBarState {
     line: Line,
-    widths: Vec<usize>,
+    items: Vec<TabEntry>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum TabBarItem {
+    None,
+    Tab(usize),
+    NewTabButton,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+struct TabEntry {
+    item: TabBarItem,
+    x: usize,
+    width: usize,
 }
 
 impl TabBarState {
     pub fn default() -> Self {
         Self {
             line: Line::with_width(1),
-            widths: vec![],
+            items: vec![],
         }
     }
 
@@ -41,7 +55,7 @@ impl TabBarState {
         // menu with tab creation options) and the other three chars
         // are symbols representing minimize, maximize and close.
         let per_tab_overhead = 2;
-        let system_overhead = 0;
+        let system_overhead = 3;
 
         let tab_titles: Vec<_> = window.iter().map(|w| w.get_title()).collect();
         let titles_len: usize = tab_titles.iter().map(|s| unicode_column_width(s)).sum();
@@ -62,7 +76,7 @@ impl TabBarState {
 
         let active_tab_no = window.get_active_idx();
         let mut x = 0;
-        let mut widths = vec![];
+        let mut items = vec![];
 
         for (tab_idx, tab_title) in tab_titles.iter().enumerate() {
             let tab_title_len = unicode_column_width(tab_title).min(tab_width_max);
@@ -94,10 +108,38 @@ impl TabBarState {
                 x += 1;
             }
 
-            widths.push(x - tab_start_idx);
-
             line.set_cell(x, Cell::new(' ', cell_attrs));
             x += 1;
+
+            items.push(TabEntry {
+                item: TabBarItem::Tab(tab_idx),
+                x: tab_start_idx,
+                width: x - tab_start_idx,
+            });
+        }
+
+        // New tab button
+        {
+            let hover = mouse_x
+                .map(|mouse_x| mouse_x >= x && mouse_x < x + 3)
+                .unwrap_or(false);
+
+            let cell_attrs = if hover {
+                colors.inactive_tab_hover.as_cell_attributes()
+            } else {
+                colors.inactive_tab.as_cell_attributes()
+            };
+
+            items.push(TabEntry {
+                item: TabBarItem::NewTabButton,
+                x,
+                width: 3,
+            });
+
+            line.set_cell(x, Cell::new(' ', cell_attrs.clone()));
+            line.set_cell(x + 1, Cell::new('+', cell_attrs.clone()));
+            line.set_cell(x + 2, Cell::new(' ', cell_attrs.clone()));
+            x += 3;
         }
 
         let black_cell = Cell::new(
@@ -110,19 +152,16 @@ impl TabBarState {
             line.set_cell(idx, black_cell.clone());
         }
 
-        Self { line, widths }
+        Self { line, items }
     }
 
-    /// Test whether a mouse coordinate is within one of the tab headers.
-    /// If so, returns `Some(tab_idx)`
-    pub fn hit_test(&self, mouse_x: usize) -> Option<usize> {
-        let mut x = 0;
-        for (tab_idx, width) in self.widths.iter().enumerate() {
-            if mouse_x >= x && mouse_x < x + width {
-                return Some(tab_idx);
+    /// Determine which component the mouse is over
+    pub fn hit_test(&self, mouse_x: usize) -> TabBarItem {
+        for entry in self.items.iter() {
+            if mouse_x >= entry.x && mouse_x < entry.x + entry.width {
+                return entry.item;
             }
-            x += width;
         }
-        None
+        TabBarItem::None
     }
 }

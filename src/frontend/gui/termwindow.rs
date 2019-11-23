@@ -4,7 +4,7 @@ use super::utilsprites::RenderMetrics;
 use crate::clipboard::SystemClipboard;
 use crate::config::Config;
 use crate::font::{FontConfiguration, FontSystemSelection};
-use crate::frontend::gui::tabbar::TabBarState;
+use crate::frontend::gui::tabbar::{TabBarItem, TabBarState};
 use crate::frontend::{executor, front_end};
 use crate::keyassignment::{KeyAssignment, KeyMap, SpawnTabDomain};
 use crate::mux::renderable::Renderable;
@@ -143,13 +143,17 @@ impl WindowCallbacks for TermWindow {
                 _ => {}
             }
 
-            if let Some(tab_idx) = self.tab_bar.hit_test(x) {
-                match event.kind {
-                    WMEK::Press(MousePress::Left) => {
+            match event.kind {
+                WMEK::Press(MousePress::Left) => match self.tab_bar.hit_test(x) {
+                    TabBarItem::Tab(tab_idx) => {
                         self.activate_tab(tab_idx).ok();
                     }
-                    _ => {}
-                }
+                    TabBarItem::NewTabButton => {
+                        self.spawn_tab(&SpawnTabDomain::CurrentTabDomain).ok();
+                    }
+                    TabBarItem::None => {}
+                },
+                _ => {}
             }
         } else {
             let y = y.saturating_sub(first_line_offset);
