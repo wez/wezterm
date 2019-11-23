@@ -135,18 +135,25 @@ impl Connection {
         self.windows.borrow().get(&handle).map(Rc::clone)
     }
 
-    pub(crate) fn with_window_inner<F: FnMut(&mut WindowInner) + Send + 'static>(
+    pub(crate) fn with_window_inner<R, F: FnMut(&mut WindowInner) -> Fallible<R> + Send + 'static>(
         window: HWindow,
         mut f: F,
-    ) {
+    ) -> promise::Future<R>
+    where
+        R: Send + 'static,
+    {
+        let mut prom = promise::Promise::new();
+        let future = prom.get_future().unwrap();
         SpawnQueueExecutor {}.execute(Box::new(move || {
             if let Some(handle) = Connection::get()
                 .expect("Connection::init has not been called")
                 .get_window(window)
             {
                 let mut inner = handle.borrow_mut();
-                f(&mut inner);
+                prom.result(f(&mut inner));
             }
         }));
+
+        future
     }
 }

@@ -71,9 +71,9 @@ async fn spawn_window() -> Result<(), Box<dyn std::error::Error>> {
         }),
     )?;
 
-    eprintln!("here I am");
-    win.show();
-    eprintln!("and here");
+    eprintln!("before show");
+    win.show().await?;
+    eprintln!("after show");
     win.apply(|myself, _win| {
         eprintln!("doing apply");
         if let Some(myself) = myself.downcast_ref::<MyWindow>() {
@@ -82,7 +82,9 @@ async fn spawn_window() -> Result<(), Box<dyn std::error::Error>> {
                 myself.allow_close, myself.cursor_pos
             );
         }
-    });
+        Ok(())
+    })
+    .await?;
     eprintln!("done with spawn_window");
     Ok(())
 }
@@ -92,6 +94,7 @@ fn main() -> Fallible<()> {
     conn.spawn_task(async {
         eprintln!("running this async block");
         spawn_window().await.ok();
+        eprintln!("end of async block");
     });
     conn.run_message_loop()
 }

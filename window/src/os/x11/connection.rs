@@ -480,16 +480,24 @@ impl Connection {
         LowPriSpawnQueueExecutor {}
     }
 
-    pub(crate) fn with_window_inner<F: FnMut(&mut WindowInner) + Send + 'static>(
+    pub(crate) fn with_window_inner<R, F: FnMut(&mut WindowInner) -> Fallible<R> + Send + 'static>(
         window: xcb::xproto::Window,
         mut f: F,
-    ) {
+    ) -> promise::Future<R>
+    where
+        R: Send + 'static,
+    {
+        let mut prom = promise::Promise::new();
+        let future = prom.get_future().unwrap();
+
         SpawnQueueExecutor {}.execute(Box::new(move || {
             if let Some(handle) = Connection::get().unwrap().window_by_id(window) {
                 let mut inner = handle.lock().unwrap();
-                f(&mut inner);
+                prom.result(f(&mut inner));
             }
         }));
+
+        future
     }
 }
 

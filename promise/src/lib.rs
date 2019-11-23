@@ -45,6 +45,7 @@ enum FutureState<T> {
 struct CoreData<T> {
     result: Option<Result<T, Error>>,
     propagate: Option<NextFunc<T>>,
+    waker: Option<std::task::Waker>,
 }
 
 struct Core<T> {
@@ -78,6 +79,9 @@ impl<T> Drop for Promise<T> {
                 locked.result = Some(err);
             }
             core.cond.notify_one();
+            if let Some(waker) = locked.waker.take() {
+                waker.wake();
+            }
         }
     }
 }
@@ -88,6 +92,7 @@ impl<T> Promise<T> {
             data: Mutex::new(CoreData {
                 result: None,
                 propagate: None,
+                waker: None,
             }),
             cond: Condvar::new(),
         });
@@ -118,7 +123,12 @@ impl<T> Promise<T> {
                 let mut locked = core.data.lock().unwrap();
                 match locked.propagate.take() {
                     Some(func) => func(result),
-                    None => locked.result = Some(result),
+                    None => {
+                        locked.result = Some(result);
+                        if let Some(waker) = locked.waker.take() {
+                            waker.wake();
+                        }
+                    }
                 }
                 core.cond.notify_one();
             }
@@ -297,7 +307,7 @@ impl<T: Send + 'static> Future<T> {
 impl<T: Send + 'static> std::future::Future for Future<T> {
     type Output = Result<T, Error>;
 
-    fn poll(self: Pin<&mut Self>, _ctx: &mut Context) -> Poll<Self::Output> {
+    fn poll(self: Pin<&mut Self>, ctx: &mut Context) -> Poll<Self::Output> {
         // This should be safe because we're not moving the Future,
         // but instead replacing a field, and since no one is able to
         // reference the state field, we should be ok with moving that.
@@ -309,6 +319,8 @@ impl<T: Send + 'static> std::future::Future for Future<T> {
                 let mut locked = core.data.lock().unwrap();
                 if let Some(result) = locked.result.take() {
                     return Poll::Ready(result);
+                } else {
+                    locked.waker = Some(ctx.waker().clone());
                 }
                 drop(locked);
                 myself.state = FutureState::Waiting(core);

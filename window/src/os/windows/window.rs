@@ -211,7 +211,7 @@ impl Window {
     }
 }
 
-fn schedule_show_window(hwnd: HWindow, show: bool) {
+fn schedule_show_window(hwnd: HWindow, show: bool) -> Future<()> {
     // ShowWindow can call to the window proc and may attempt
     // to lock inner, so we avoid locking it ourselves here
     Future::with_executor(Connection::executor(), move || {
@@ -219,7 +219,7 @@ fn schedule_show_window(hwnd: HWindow, show: bool) {
             ShowWindow(hwnd.0, if show { SW_NORMAL } else { SW_HIDE });
         }
         Ok(())
-    });
+    })
 }
 
 impl WindowOpsMut for WindowInner {
@@ -282,60 +282,87 @@ impl WindowOpsMut for WindowInner {
 }
 
 impl WindowOps for Window {
-    fn close(&self) {
-        Connection::with_window_inner(self.0, |inner| inner.close());
+    fn close(&self) -> Future<()> {
+        Connection::with_window_inner(self.0, |inner| {
+            inner.close();
+            Ok(())
+        })
     }
 
-    fn show(&self) {
-        schedule_show_window(self.0, true);
+    fn show(&self) -> Future<()> {
+        schedule_show_window(self.0, true)
     }
 
-    fn hide(&self) {
-        schedule_show_window(self.0, false);
+    fn hide(&self) -> Future<()> {
+        schedule_show_window(self.0, false)
     }
 
-    fn set_cursor(&self, cursor: Option<MouseCursor>) {
-        Connection::with_window_inner(self.0, move |inner| inner.set_cursor(cursor));
+    fn set_cursor(&self, cursor: Option<MouseCursor>) -> Future<()> {
+        Connection::with_window_inner(self.0, move |inner| {
+            inner.set_cursor(cursor);
+            Ok(())
+        })
     }
-    fn invalidate(&self) {
-        Connection::with_window_inner(self.0, |inner| inner.invalidate());
+
+    fn invalidate(&self) -> Future<()> {
+        Connection::with_window_inner(self.0, |inner| {
+            inner.invalidate();
+            Ok(())
+        })
     }
-    fn set_title(&self, title: &str) {
+
+    fn set_title(&self, title: &str) -> Future<()> {
         let title = title.to_owned();
-        Connection::with_window_inner(self.0, move |inner| inner.set_title(&title));
-    }
-    fn set_text_cursor_position(&self, cursor: Rect) {
-        Connection::with_window_inner(self.0, move |inner| inner.set_text_cursor_position(cursor));
-    }
-
-    fn set_inner_size(&self, width: usize, height: usize) {
-        Connection::with_window_inner(self.0, move |inner| inner.set_inner_size(width, height));
+        Connection::with_window_inner(self.0, move |inner| {
+            inner.set_title(&title);
+            Ok(())
+        })
     }
 
-    fn apply<F: Send + 'static + Fn(&mut dyn Any, &dyn WindowOps)>(&self, func: F)
+    fn set_text_cursor_position(&self, cursor: Rect) -> Future<()> {
+        Connection::with_window_inner(self.0, move |inner| {
+            inner.set_text_cursor_position(cursor);
+            Ok(())
+        })
+    }
+
+    fn set_inner_size(&self, width: usize, height: usize) -> Future<()> {
+        Connection::with_window_inner(self.0, move |inner| {
+            inner.set_inner_size(width, height);
+            Ok(())
+        })
+    }
+    fn apply<R, F: Send + 'static + Fn(&mut dyn Any, &dyn WindowOps) -> Fallible<R>>(
+        &self,
+        func: F,
+    ) -> promise::Future<R>
     where
         Self: Sized,
+        R: Send + 'static,
     {
         Connection::with_window_inner(self.0, move |inner| {
             let window = Window(inner.hwnd);
-            func(inner.callbacks.borrow_mut().as_any(), &window);
-        });
+            func(inner.callbacks.borrow_mut().as_any(), &window)
+        })
     }
 
     #[cfg(feature = "opengl")]
     fn enable_opengl<
+        R,
         F: Send
             + 'static
             + Fn(
                 &mut dyn Any,
                 &dyn WindowOps,
                 failure::Fallible<std::rc::Rc<glium::backend::Context>>,
-            ),
+            ) -> failure::Fallible<R>,
     >(
         &self,
         func: F,
-    ) where
+    ) -> promise::Future<R>
+    where
         Self: Sized,
+        R: Send + 'static,
     {
         Connection::with_window_inner(self.0, move |inner| {
             let window = Window(inner.hwnd);
@@ -356,8 +383,8 @@ impl WindowOps for Window {
 
             inner.gl_state = gl_state.as_ref().map(Rc::clone).ok();
 
-            func(inner.callbacks.borrow_mut().as_any(), &window, gl_state);
-        });
+            func(inner.callbacks.borrow_mut().as_any(), &window, gl_state)
+        })
     }
 }
 

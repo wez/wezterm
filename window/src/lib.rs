@@ -1,3 +1,4 @@
+use promise::Future;
 use std::any::Any;
 pub mod bitmaps;
 pub mod color;
@@ -151,54 +152,63 @@ pub trait WindowCallbacks: Any {
 
 pub trait WindowOps {
     /// Show a hidden window
-    fn show(&self);
+    fn show(&self) -> Future<()>;
 
     /// Hide a visible window
-    fn hide(&self);
+    fn hide(&self) -> Future<()>;
 
     /// Schedule the window to be closed
-    fn close(&self);
+    fn close(&self) -> Future<()>;
 
     /// Change the cursor
-    fn set_cursor(&self, cursor: Option<MouseCursor>);
+    fn set_cursor(&self, cursor: Option<MouseCursor>) -> Future<()>;
 
     /// Invalidate the window so that the entire client area will
     /// be repainted shortly
-    fn invalidate(&self);
+    fn invalidate(&self) -> Future<()>;
 
     /// Change the titlebar text for the window
-    fn set_title(&self, title: &str);
+    fn set_title(&self, title: &str) -> Future<()>;
 
     /// Resize the inner or client area of the window
-    fn set_inner_size(&self, width: usize, height: usize);
+    fn set_inner_size(&self, width: usize, height: usize) -> Future<()>;
 
     /// inform the windowing system of the current textual
     /// cursor input location.  This is used primarily for
     /// the platform specific input method editor
-    fn set_text_cursor_position(&self, _cursor: Rect) {}
+    fn set_text_cursor_position(&self, _cursor: Rect) -> Future<()> {
+        Future::ok(())
+    }
 
     /// Schedule a callback on the data associated with the window.
     /// The `Any` that is passed in corresponds to the WindowCallbacks
     /// impl you passed to `new_window`, pre-converted to Any so that
     /// you can `downcast_ref` or `downcast_mut` it and operate on it.
-    fn apply<F: Send + 'static + Fn(&mut dyn Any, &dyn WindowOps)>(&self, func: F)
+    fn apply<R, F: Send + 'static + Fn(&mut dyn Any, &dyn WindowOps) -> failure::Fallible<R>>(
+        &self,
+        func: F,
+    ) -> promise::Future<R>
     where
-        Self: Sized;
+        Self: Sized,
+        R: Send + 'static;
 
     #[cfg(feature = "opengl")]
     fn enable_opengl<
+        R,
         F: Send
             + 'static
             + Fn(
                 &mut dyn Any,
                 &dyn WindowOps,
                 failure::Fallible<std::rc::Rc<glium::backend::Context>>,
-            ),
+            ) -> failure::Fallible<R>,
     >(
         &self,
         func: F,
-    ) where
-        Self: Sized;
+    ) -> promise::Future<R>
+    where
+        Self: Sized,
+        R: Send + 'static;
 }
 
 pub trait WindowOpsMut {
