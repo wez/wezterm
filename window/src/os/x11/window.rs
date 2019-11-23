@@ -17,6 +17,8 @@ pub(crate) struct WindowInner {
     conn: Rc<Connection>,
     callbacks: Box<dyn WindowCallbacks>,
     window_context: Context,
+    x: i16,
+    y: i16,
     width: u16,
     height: u16,
     expose: VecDeque<Rect>,
@@ -248,6 +250,9 @@ impl WindowInner {
             }
             xcb::CONFIGURE_NOTIFY => {
                 let cfg: &xcb::ConfigureNotifyEvent = unsafe { xcb::cast_event(event) };
+                // TODO: subtract cfg.border_width()?
+                self.x = cfg.x();
+                self.y = cfg.y();
                 self.width = cfg.width();
                 self.height = cfg.height();
                 self.callbacks.resize(Dimensions {
@@ -374,14 +379,17 @@ impl Window {
 
             window_id = conn.conn().generate_id();
 
+            let x = 0;
+            let y = 0;
+
             xcb::create_window_checked(
                 conn.conn(),
                 xcb::COPY_FROM_PARENT as u8,
                 window_id,
                 screen.root(),
                 // x, y
-                0,
-                0,
+                x,
+                y,
                 // width, height
                 width.try_into()?,
                 height.try_into()?,
@@ -412,6 +420,8 @@ impl Window {
                 conn: Rc::clone(&conn),
                 callbacks,
                 window_context,
+                x,
+                y,
                 width: width.try_into()?,
                 height: height.try_into()?,
                 expose: VecDeque::new(),
