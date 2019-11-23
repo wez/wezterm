@@ -862,7 +862,12 @@ impl TerminalState {
         // TODO: also respect self.application_keypad
 
         fn csi_u_encode(buf: &mut String, c: char, mods: KeyModifiers) -> Result<(), Error> {
-            write!(buf, "\x1b[{};{}u", c as u32, 1 + encode_modifiers(mods))?;
+            // FIXME: provide an option to enable this, because it is super annoying
+            // in vim when accidentally pressing shift-space and it emits a sequence
+            // that undoes some number of commands
+            if false {
+                write!(buf, "\x1b[{};{}u", c as u32, 1 + encode_modifiers(mods))?;
+            }
             Ok(())
         }
 
