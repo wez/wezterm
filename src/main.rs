@@ -593,12 +593,11 @@ fn run_terminal_gui(config: Arc<config::Config>, opts: &StartCommand) -> Fallibl
     gui.run_forever()
 }
 
-fn main() -> Result<(), Error> {
-    let result = run();
-    if let Err(e) = &result {
+fn main() {
+    if let Err(e) = run() {
         log::error!("{}", e);
+        std::process::exit(1);
     }
-    result
 }
 
 fn run() -> Result<(), Error> {
