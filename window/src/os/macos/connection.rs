@@ -52,16 +52,23 @@ impl Connection {
         self.windows.borrow().get(&window_id).map(Rc::clone)
     }
 
-    pub(crate) fn with_window_inner<F: FnMut(&mut WindowInner) + Send + 'static>(
+    pub(crate) fn with_window_inner<R, F: FnMut(&mut WindowInner) -> Fallible<R> + Send + 'static>(
         window_id: usize,
         mut f: F,
-    ) {
+    ) -> promise::Future<R>
+    where
+        R: Send + 'static,
+    {
+        let mut prom = promise::Promise::new();
+        let future = prom.get_future().unwrap();
         SpawnQueueExecutor {}.execute(Box::new(move || {
             if let Some(handle) = Connection::get().unwrap().window_by_id(window_id) {
                 let mut inner = handle.borrow_mut();
-                f(&mut inner);
+                prom.result(f(&mut inner));
             }
         }));
+
+        future
     }
 
     pub fn executor() -> impl BasicExecutor {

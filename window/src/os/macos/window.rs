@@ -23,6 +23,7 @@ use objc::declare::ClassDecl;
 use objc::rc::{StrongPtr, WeakPtr};
 use objc::runtime::{Class, Object, Protocol, Sel};
 use objc::*;
+use promise::Future;
 use std::any::Any;
 use std::cell::RefCell;
 use std::ffi::c_void;
@@ -342,64 +343,99 @@ impl Window {
 }
 
 impl WindowOps for Window {
-    fn close(&self) {
-        Connection::with_window_inner(self.0, |inner| inner.close());
+    fn close(&self) -> Future<()> {
+        Connection::with_window_inner(self.0, |inner| {
+            inner.close();
+            Ok(())
+        })
     }
 
-    fn hide(&self) {
-        Connection::with_window_inner(self.0, |inner| inner.hide());
+    fn hide(&self) -> Future<()> {
+        Connection::with_window_inner(self.0, |inner| {
+            inner.hide();
+            Ok(())
+        })
     }
-    fn show(&self) {
-        Connection::with_window_inner(self.0, |inner| inner.show());
+
+    fn show(&self) -> Future<()> {
+        Connection::with_window_inner(self.0, |inner| {
+            inner.show();
+            Ok(())
+        })
     }
-    fn set_cursor(&self, cursor: Option<MouseCursor>) {
+
+    fn set_cursor(&self, cursor: Option<MouseCursor>) -> Future<()> {
         Connection::with_window_inner(self.0, move |inner| {
             let _ = inner.set_cursor(cursor);
-        });
+            Ok(())
+        })
     }
-    fn invalidate(&self) {
-        Connection::with_window_inner(self.0, |inner| inner.invalidate());
+
+    fn invalidate(&self) -> Future<()> {
+        Connection::with_window_inner(self.0, |inner| {
+            inner.invalidate();
+            Ok(())
+        })
     }
-    fn set_title(&self, title: &str) {
+
+    fn set_title(&self, title: &str) -> Future<()> {
         let title = title.to_owned();
-        Connection::with_window_inner(self.0, move |inner| inner.set_title(&title));
+        Connection::with_window_inner(self.0, move |inner| {
+            inner.set_title(&title);
+            Ok(())
+        })
     }
 
-    fn set_inner_size(&self, width: usize, height: usize) {
-        Connection::with_window_inner(self.0, move |inner| inner.set_inner_size(width, height));
+    fn set_inner_size(&self, width: usize, height: usize) -> Future<()> {
+        Connection::with_window_inner(self.0, move |inner| {
+            inner.set_inner_size(width, height);
+            Ok(())
+        })
     }
 
-    fn set_text_cursor_position(&self, cursor: Rect) {
-        Connection::with_window_inner(self.0, move |inner| inner.set_text_cursor_position(cursor));
+    fn set_text_cursor_position(&self, cursor: Rect) -> Future<()> {
+        Connection::with_window_inner(self.0, move |inner| {
+            inner.set_text_cursor_position(cursor);
+            Ok(())
+        })
     }
 
-    fn apply<F: Send + 'static + Fn(&mut dyn Any, &dyn WindowOps)>(&self, func: F)
+    fn apply<R, F: Send + 'static + Fn(&mut dyn Any, &dyn WindowOps) -> Fallible<R>>(
+        &self,
+        func: F,
+    ) -> promise::Future<R>
     where
         Self: Sized,
+        R: Send + 'static,
     {
         Connection::with_window_inner(self.0, move |inner| {
             let window = Window(inner.window_id);
 
             if let Some(window_view) = WindowView::get_this(unsafe { &**inner.view }) {
-                func(window_view.inner.borrow_mut().callbacks.as_any(), &window);
+                func(window_view.inner.borrow_mut().callbacks.as_any(), &window)
+            } else {
+                failure::bail!("apply: window is invalid");
             }
-        });
+        })
     }
 
     #[cfg(feature = "opengl")]
     fn enable_opengl<
+        R,
         F: Send
             + 'static
             + Fn(
                 &mut dyn Any,
                 &dyn WindowOps,
                 failure::Fallible<std::rc::Rc<glium::backend::Context>>,
-            ),
+            ) -> failure::Fallible<R>,
     >(
         &self,
         func: F,
-    ) where
+    ) -> promise::Future<R>
+    where
         Self: Sized,
+        R: Send + 'static,
     {
         Connection::with_window_inner(self.0, move |inner| {
             let window = Window(inner.window_id);
@@ -414,9 +450,11 @@ impl WindowOps for Window {
                     window_view.inner.borrow_mut().callbacks.as_any(),
                     &window,
                     glium_context.map(|pair| pair.context),
-                );
+                )
+            } else {
+                failure::bail!("enable_opengl: window is invalid");
             }
-        });
+        })
     }
 }
 

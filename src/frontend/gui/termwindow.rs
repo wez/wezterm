@@ -192,7 +192,9 @@ impl WindowCallbacks for TermWindow {
                     self.update_title();
                 }
             }
-            _ => context.invalidate(),
+            _ => {
+                context.invalidate();
+            }
         }
 
         // When hovering over a hyperlink, show an appropriate
@@ -436,6 +438,7 @@ impl TermWindow {
                 };
 
                 window.show();
+                Ok(())
             });
         } else {
             window.show();

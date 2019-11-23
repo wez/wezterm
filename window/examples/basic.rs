@@ -103,6 +103,7 @@ fn spawn_window() -> Fallible<()> {
                 myself.allow_close, myself.cursor_pos
             );
         }
+        Ok(())
     });
     Ok(())
 }

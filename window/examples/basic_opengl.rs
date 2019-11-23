@@ -42,9 +42,12 @@ fn spawn_window() -> Fallible<()> {
     )?;
 
     #[cfg(feature = "opengl")]
-    win.enable_opengl(|_any, _window, maybe_ctx| match maybe_ctx {
-        Ok(_ctx) => eprintln!("opengl enabled!"),
-        Err(err) => eprintln!("opengl fail: {}", err),
+    win.enable_opengl(|_any, _window, maybe_ctx| {
+        match maybe_ctx {
+            Ok(_ctx) => eprintln!("opengl enabled!"),
+            Err(err) => eprintln!("opengl fail: {}", err),
+        };
+        Ok(())
     });
 
     #[cfg(not(feature = "opengl"))]
@@ -60,6 +63,7 @@ fn spawn_window() -> Fallible<()> {
                 myself.allow_close, myself.cursor_pos
             );
         }
+        Ok(())
     });
     Ok(())
 }
