@@ -16,8 +16,6 @@ use std::fs;
 use std::io::prelude::*;
 use std::path::PathBuf;
 use term;
-use termwiz::cell::CellAttributes;
-use termwiz::color::{ColorSpec, RgbColor};
 use termwiz::hyperlink;
 use termwiz::input::{KeyCode, Modifiers};
 use toml;

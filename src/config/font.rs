@@ -1,4 +1,5 @@
 use crate::config::*;
+use termwiz::color::RgbColor;
 
 #[cfg(target_os = "macos")]
 const FONT_FAMILY: &str = "Menlo";

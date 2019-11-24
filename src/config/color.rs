@@ -1,4 +1,6 @@
 use crate::config::*;
+use termwiz::cell::CellAttributes;
+use termwiz::color::{ColorSpec, RgbColor};
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct Palette {
