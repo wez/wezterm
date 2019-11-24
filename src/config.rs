@@ -143,8 +143,12 @@ pub struct Config {
     /// If true, display the tab bar UI at the top of the window.
     /// The tab bar shows the titles of the tabs and which is the
     /// active tab.  Clicking on a tab activates it.
-    #[serde(default)]
+    #[serde(default = "default_true")]
     pub enable_tab_bar: bool,
+}
+
+fn default_true() -> bool {
+    true
 }
 
 fn default_swap_backspace_and_delete() -> bool {
@@ -1044,26 +1048,22 @@ pub struct TabBarColors {
 
 impl Default for TabBarColors {
     fn default() -> Self {
-        let black = RgbColor::new(0x05, 0x05, 0x05);
-        let hover_gray = RgbColor::new(0x20, 0x20, 0x20);
-        let active_gray = RgbColor::new(0x30, 0x30, 0x30);
-        let fg_color = RgbColor::new(0xd0, 0xd0, 0xd0);
-        let fg_hover = RgbColor::new(0xe7, 0xe7, 0xe7);
         Self {
-            background: black,
+            background: RgbColor::new(0x0b, 0x00, 0x22),
             inactive_tab: TabBarColor {
-                bg_color: black,
-                fg_color,
+                bg_color: RgbColor::new(0x1b, 0x10, 0x32),
+                fg_color: RgbColor::new(0x80, 0x80, 0x80),
                 ..TabBarColor::default()
             },
             inactive_tab_hover: TabBarColor {
-                bg_color: hover_gray,
-                fg_color: fg_hover,
+                bg_color: RgbColor::new(0x3b, 0x30, 0x52),
+                fg_color: RgbColor::new(0x90, 0x90, 0x90),
+                italic: true,
                 ..TabBarColor::default()
             },
             active_tab: TabBarColor {
-                bg_color: active_gray,
-                fg_color,
+                bg_color: RgbColor::new(0x2b, 0x20, 0x42),
+                fg_color: RgbColor::new(0xc0, 0xc0, 0xc0),
                 ..TabBarColor::default()
             },
         }
