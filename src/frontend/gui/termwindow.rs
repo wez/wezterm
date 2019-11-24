@@ -37,6 +37,7 @@ pub struct TermWindow {
     tab_bar: TabBarState,
     last_mouse_coords: (usize, i64),
     drag_start_coords: Option<Point>,
+    config_generation: usize,
 }
 
 struct Host<'a> {
@@ -295,6 +296,7 @@ impl WindowCallbacks for TermWindow {
             }
         };
 
+        self.check_for_config_reload();
         self.update_text_cursor(&tab);
         self.update_title();
 
@@ -329,6 +331,7 @@ impl WindowCallbacks for TermWindow {
                 return;
             }
         };
+        self.check_for_config_reload();
         self.update_text_cursor(&tab);
         let start = std::time::Instant::now();
         if let Err(err) = self.paint_tab_opengl(&tab, frame) {
@@ -404,17 +407,33 @@ impl TermWindow {
                 tab_bar: TabBarState::default(),
                 last_mouse_coords: (0, -1),
                 drag_start_coords: None,
+                config_generation: config.generation(),
             }),
         )?;
 
         let cloned_window = window.clone();
 
+        let mut last_config_generation = config.generation();
         Connection::get().unwrap().schedule_timer(
             std::time::Duration::from_millis(35),
             move || {
                 let mux = Mux::get().unwrap();
 
                 if let Some(tab) = mux.get_active_tab_for_window(mux_window_id) {
+                    // If the config was reloaded, ask the window to apply
+                    // and render any changes
+                    let current_generation = configuration().generation();
+                    if current_generation != last_config_generation {
+                        last_config_generation = current_generation;
+                        cloned_window.apply(|myself, _| {
+                            if let Some(myself) = myself.downcast_mut::<Self>() {
+                                myself.config_was_reloaded();
+                            }
+                            Ok(())
+                        });
+                    }
+
+                    // If the model is dirty, arrange to re-paint
                     if tab.renderer().has_dirty_lines() {
                         cloned_window.invalidate();
                     }
@@ -578,6 +597,22 @@ impl TermWindow {
     fn recreate_texture_atlas(&mut self, size: Option<usize>) -> Fallible<()> {
         self.render_state
             .recreate_texture_atlas(&self.fonts, &self.render_metrics, size)
+    }
+
+    fn check_for_config_reload(&mut self) {
+        if self.config_generation != configuration().generation() {
+            self.config_was_reloaded();
+        }
+    }
+
+    fn config_was_reloaded(&mut self) {
+        self.config_generation = configuration().generation();
+        let dimensions = self.dimensions;
+        self.apply_scale_change(&dimensions, self.fonts.get_font_scale());
+        self.apply_dimensions(&dimensions, true);
+        if let Some(window) = self.window.as_ref() {
+            window.invalidate();
+        }
     }
 
     fn update_title(&mut self) {
@@ -791,61 +826,69 @@ impl TermWindow {
         });
     }
 
-    #[allow(clippy::float_cmp)]
-    fn scaling_changed(&mut self, dimensions: Dimensions, font_scale: f64) {
+    fn apply_scale_change(&mut self, dimensions: &Dimensions, font_scale: f64) {
+        self.fonts
+            .change_scaling(font_scale, dimensions.dpi as f64 / 96.);
+        self.render_metrics = RenderMetrics::new(&self.fonts);
+
+        self.recreate_texture_atlas(None)
+            .expect("failed to recreate atlas");
+    }
+
+    fn apply_dimensions(&mut self, dimensions: &Dimensions, scale_changed: bool) {
+        self.dimensions = *dimensions;
+
+        self.render_state
+            .advise_of_window_size_change(
+                &self.render_metrics,
+                dimensions.pixel_width,
+                dimensions.pixel_height,
+            )
+            .expect("failed to advise of resize");
+
+        let rows = dimensions.pixel_height / self.render_metrics.cell_size.height as usize;
+        let cols = dimensions.pixel_width / self.render_metrics.cell_size.width as usize;
+        let tab_bar_adjusted_rows = if self.show_tab_bar {
+            rows.saturating_sub(1)
+        } else {
+            rows
+        };
+        let size = portable_pty::PtySize {
+            rows: tab_bar_adjusted_rows as u16,
+            cols: cols as u16,
+            pixel_height: dimensions.pixel_height as u16, // FIXME: adjust for tab bar
+            pixel_width: dimensions.pixel_width as u16,
+        };
+
         let mux = Mux::get().unwrap();
         if let Some(window) = mux.get_window(self.mux_window_id) {
-            let scale_changed =
-                dimensions.dpi != self.dimensions.dpi || font_scale != self.fonts.get_font_scale();
-
-            if scale_changed {
-                self.fonts
-                    .change_scaling(font_scale, dimensions.dpi as f64 / 96.);
-                self.render_metrics = RenderMetrics::new(&self.fonts);
-
-                self.recreate_texture_atlas(None)
-                    .expect("failed to recreate atlas");
-            }
-
-            self.dimensions = dimensions;
-
-            self.render_state
-                .advise_of_window_size_change(
-                    &self.render_metrics,
-                    dimensions.pixel_width,
-                    dimensions.pixel_height,
-                )
-                .expect("failed to advise of resize");
-
-            let rows = dimensions.pixel_height / self.render_metrics.cell_size.height as usize;
-            let cols = dimensions.pixel_width / self.render_metrics.cell_size.width as usize;
-            let tab_bar_adjusted_rows = if self.show_tab_bar {
-                rows.saturating_sub(1)
-            } else {
-                rows
-            };
-            let size = portable_pty::PtySize {
-                rows: tab_bar_adjusted_rows as u16,
-                cols: cols as u16,
-                pixel_height: dimensions.pixel_height as u16, // FIXME: adjust for tab bar
-                pixel_width: dimensions.pixel_width as u16,
-            };
-
             for tab in window.iter() {
                 tab.resize(size).ok();
             }
-            self.update_title();
-
-            // Queue up a speculative resize in order to preserve the number of rows+cols
-            if scale_changed {
-                if let Some(window) = self.window.as_ref() {
-                    window.set_inner_size(
-                        cols * self.render_metrics.cell_size.width as usize,
-                        rows * self.render_metrics.cell_size.height as usize,
-                    );
-                }
-            }
         };
+        self.update_title();
+
+        // Queue up a speculative resize in order to preserve the number of rows+cols
+        if scale_changed {
+            if let Some(window) = self.window.as_ref() {
+                window.set_inner_size(
+                    cols * self.render_metrics.cell_size.width as usize,
+                    rows * self.render_metrics.cell_size.height as usize,
+                );
+            }
+        }
+    }
+
+    #[allow(clippy::float_cmp)]
+    fn scaling_changed(&mut self, dimensions: Dimensions, font_scale: f64) {
+        let scale_changed =
+            dimensions.dpi != self.dimensions.dpi || font_scale != self.fonts.get_font_scale();
+
+        if scale_changed {
+            self.apply_scale_change(&dimensions, font_scale);
+        }
+
+        self.apply_dimensions(&dimensions, scale_changed);
     }
 
     fn decrease_font_size(&mut self) {

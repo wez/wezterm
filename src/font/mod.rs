@@ -39,6 +39,7 @@ pub struct FontConfiguration {
     metrics: RefCell<Option<FontMetrics>>,
     dpi_scale: RefCell<f64>,
     font_scale: RefCell<f64>,
+    config_generation: RefCell<usize>,
 }
 
 #[derive(Debug, Deserialize, Clone, Copy)]
@@ -134,6 +135,7 @@ impl FontConfiguration {
             metrics: RefCell::new(None),
             font_scale: RefCell::new(1.0),
             dpi_scale: RefCell::new(1.0),
+            config_generation: RefCell::new(configuration().generation()),
         }
     }
 
@@ -142,16 +144,21 @@ impl FontConfiguration {
     pub fn cached_font(&self, style: &TextStyle) -> Result<Rc<RefCell<Box<dyn NamedFont>>>, Error> {
         let mut fonts = self.fonts.borrow_mut();
 
+        let config = configuration();
+        let current_generation = config.generation();
+        if current_generation != *self.config_generation.borrow() {
+            // Config was reloaded, invalidate our caches
+            fonts.clear();
+            self.metrics.borrow_mut().take();
+            *self.config_generation.borrow_mut() = current_generation;
+        }
+
         if let Some(entry) = fonts.get(style) {
             return Ok(Rc::clone(entry));
         }
 
         let scale = *self.dpi_scale.borrow() * *self.font_scale.borrow();
-        let font = Rc::new(RefCell::new(self.system.load_font(
-            &configuration(),
-            style,
-            scale,
-        )?));
+        let font = Rc::new(RefCell::new(self.system.load_font(&config, style, scale)?));
         fonts.insert(style.clone(), Rc::clone(&font));
         Ok(font)
     }
