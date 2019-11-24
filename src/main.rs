@@ -636,11 +636,11 @@ fn run() -> Result<(), Error> {
     pretty_env_logger::init();
 
     let opts = Opt::from_args();
-    let config = Arc::new(if opts.skip_config {
-        config::Config::default_config()
-    } else {
-        config::Config::load()?
-    });
+
+    if opts.skip_config {
+        config::use_default_configuration();
+    }
+    let config = config::configuration_result()?;
 
     match opts
         .cmd

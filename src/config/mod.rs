@@ -15,6 +15,7 @@ use std::ffi::{OsStr, OsString};
 use std::fs;
 use std::io::prelude::*;
 use std::path::PathBuf;
+use std::sync::{Arc, Mutex};
 use term;
 use termwiz::hyperlink;
 use termwiz::input::{KeyCode, Modifiers};
@@ -38,6 +39,118 @@ pub use unix::*;
 lazy_static! {
     static ref HOME_DIR: PathBuf = dirs::home_dir().expect("can't find HOME dir");
     static ref RUNTIME_DIR: PathBuf = compute_runtime_dir().unwrap();
+    static ref CONFIG: ConfigHandle = ConfigHandle::new();
+}
+
+/// Discard the current configuration and replace it with
+/// the default configuration
+pub fn use_default_configuration() {
+    CONFIG.use_defaults();
+}
+
+/// Returns a handle to the current configuration
+pub fn configuration() -> Arc<Config> {
+    CONFIG.get()
+}
+
+/// If there was an error loading the preferred configuration,
+/// return it, otherwise return the current configuration
+pub fn configuration_result() -> Result<Arc<Config>, Error> {
+    if let Some(error) = CONFIG.get_error() {
+        failure::bail!("{}", error);
+    }
+    Ok(CONFIG.get())
+}
+
+struct ConfigInner {
+    config: Arc<Config>,
+    error: Option<String>,
+}
+
+impl ConfigInner {
+    /// Attempt to load the user's configuration.
+    /// On failure, capture the error message and load the
+    /// default configuration instead.
+    fn load() -> Self {
+        match Config::load() {
+            Ok(config) => Self {
+                config: Arc::new(config),
+                error: None,
+            },
+            Err(err) => Self {
+                config: Arc::new(Config::default_config()),
+                error: Some(err.to_string()),
+            },
+        }
+    }
+
+    /// Attempt to load the user's configuration.
+    /// On success, clear any error and replace the current
+    /// configuration.
+    /// On failure, retain the existing configuration but
+    /// replace any captured error message.
+    fn reload(&mut self) {
+        match Config::load() {
+            Ok(config) => {
+                self.config = Arc::new(config);
+                self.error.take();
+            }
+            Err(err) => {
+                self.error.replace(err.to_string());
+            }
+        }
+    }
+
+    /// Discard the current configuration and any recorded
+    /// error message; replace them with the default
+    /// configuration
+    fn use_defaults(&mut self) {
+        self.config = Arc::new(Config::default_config());
+        self.error.take();
+    }
+}
+
+pub struct ConfigHandle {
+    inner: Mutex<ConfigInner>,
+}
+
+impl ConfigHandle {
+    pub fn new() -> Self {
+        Self {
+            inner: Mutex::new(ConfigInner::load()),
+        }
+    }
+
+    /// Returns the effective configuration.
+    pub fn get(&self) -> Arc<Config> {
+        Arc::clone(&self.inner.lock().unwrap().config)
+    }
+
+    /// Reset the configuration to defaults
+    pub fn use_defaults(&self) {
+        let mut inner = self.inner.lock().unwrap();
+        inner.use_defaults();
+    }
+
+    /// Reload the configuration
+    pub fn reload(&self) {
+        let mut inner = self.inner.lock().unwrap();
+        inner.reload();
+    }
+
+    /// Returns a copy of any captured error message.
+    /// The error message is not cleared.
+    pub fn get_error(&self) -> Option<String> {
+        let inner = self.inner.lock().unwrap();
+        inner.error.as_ref().cloned()
+    }
+
+    /// Returns any captured error message, and clears
+    /// it from the config state.
+    pub fn clear_error(&self) -> Option<String> {
+        let mut inner = self.inner.lock().unwrap();
+        inner.error.take()
+    }
 }
 
 #[derive(Debug, Deserialize, Clone)]
