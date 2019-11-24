@@ -79,7 +79,7 @@ impl NamedFontListImpl {
             if candidate < f.font_list_size {
                 return Some((f, candidate));
             }
-            candidate = candidate - f.font_list_size;
+            candidate -= f.font_list_size;
         }
         None
     }

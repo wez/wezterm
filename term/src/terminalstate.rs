@@ -227,6 +227,40 @@ fn is_double_click_word(s: &str) -> bool {
     }
 }
 
+fn encode_modifiers(mods: KeyModifiers) -> u8 {
+    let mut number = 0;
+    if mods.contains(KeyModifiers::SHIFT) {
+        number |= 1;
+    }
+    if mods.contains(KeyModifiers::ALT) {
+        number |= 2;
+    }
+    if mods.contains(KeyModifiers::CTRL) {
+        number |= 4;
+    }
+    number
+}
+
+fn csi_u_encode(buf: &mut String, c: char, mods: KeyModifiers) -> Result<(), Error> {
+    // FIXME: provide an option to enable this, because it is super annoying
+    // in vim when accidentally pressing shift-space and it emits a sequence
+    // that undoes some number of commands
+    if false {
+        write!(buf, "\x1b[{};{}u", c as u32, 1 + encode_modifiers(mods))?;
+    }
+    Ok(())
+}
+
+/// characters that when masked for CTRL could be an ascii control character
+/// or could be a key that a user legitimately wants to process in their
+/// terminal application
+fn is_ambiguous_ascii_ctrl(c: char) -> bool {
+    match c {
+        'i' | 'I' | 'm' | 'M' | '[' | '{' | '@' => true,
+        _ => false,
+    }
+}
+
 impl TerminalState {
     pub fn new(
         physical_rows: usize,
@@ -822,6 +856,7 @@ impl TerminalState {
     /// that is embedding the Terminal.  This method translates the
     /// keycode into a sequence of bytes to send to the slave end
     /// of the pty via the `Write`-able object provided by the caller.
+    #[allow(clippy::cognitive_complexity)]
     pub fn key_down(
         &mut self,
         key: KeyCode,
@@ -843,43 +878,9 @@ impl TerminalState {
             _ => mods,
         };
 
-        fn encode_modifiers(mods: KeyModifiers) -> u8 {
-            let mut number = 0;
-            if mods.contains(KeyModifiers::SHIFT) {
-                number |= 1;
-            }
-            if mods.contains(KeyModifiers::ALT) {
-                number |= 2;
-            }
-            if mods.contains(KeyModifiers::CTRL) {
-                number |= 4;
-            }
-            number
-        }
-
         let mut buf = String::new();
 
         // TODO: also respect self.application_keypad
-
-        fn csi_u_encode(buf: &mut String, c: char, mods: KeyModifiers) -> Result<(), Error> {
-            // FIXME: provide an option to enable this, because it is super annoying
-            // in vim when accidentally pressing shift-space and it emits a sequence
-            // that undoes some number of commands
-            if false {
-                write!(buf, "\x1b[{};{}u", c as u32, 1 + encode_modifiers(mods))?;
-            }
-            Ok(())
-        }
-
-        /// characters that when masked for CTRL could be an ascii control character
-        /// or could be a key that a user legitimately wants to process in their
-        /// terminal application
-        fn is_ambiguous_ascii_ctrl(c: char) -> bool {
-            match c {
-                'i' | 'I' | 'm' | 'M' | '[' | '{' | '@' => true,
-                _ => false,
-            }
-        }
 
         let to_send = match key {
             Char(c) if is_ambiguous_ascii_ctrl(c) && mods.contains(KeyModifiers::CTRL) => {

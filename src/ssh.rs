@@ -26,7 +26,7 @@ fn password_prompt(
     username: &str,
     remote_address: &str,
 ) -> Option<String> {
-    let title = format!("🔐 wezterm: SSH authentication");
+    let title = "🔐 wezterm: SSH authentication".to_string();
     let text = format!(
         "🔐 SSH Authentication for {} @ {}\r\n{}\r\n",
         username, remote_address, instructions
@@ -92,7 +92,7 @@ fn input_prompt(
     username: &str,
     remote_address: &str,
 ) -> Option<String> {
-    let title = format!("🔐 wezterm: SSH authentication");
+    let title = "🔐 wezterm: SSH authentication".to_string();
     let text = format!(
         "SSH Authentication for {} @ {}\r\n{}\r\n{}\r\n",
         username, remote_address, instructions, prompt
@@ -224,7 +224,7 @@ pub fn ssh_connect(remote_address: &str, username: &str) -> Fallible<ssh2::Sessi
                 );
 
                 let allow = termwiztermtab::run(80, 10, move |mut term| {
-                    let title = format!("🔐 wezterm: SSH authentication");
+                    let title = "🔐 wezterm: SSH authentication".to_string();
                     term.render(&[Change::Title(title), Change::Text(message.to_string())])?;
 
                     let mut editor = LineEditor::new(term);

@@ -408,13 +408,7 @@ impl Connection {
             .allowed_depths()
             .filter(|depth| depth.depth() == 24)
             .flat_map(|depth| depth.visuals())
-            .filter_map(|vis| {
-                if vis.class() == xcb::xproto::VISUAL_CLASS_TRUE_COLOR as _ {
-                    Some(vis.clone())
-                } else {
-                    None
-                }
-            })
+            .filter(|vis| vis.class() == xcb::xproto::VISUAL_CLASS_TRUE_COLOR as _)
             .nth(0)
             .ok_or_else(|| failure::err_msg("did not find 24-bit visual"))?;
         eprintln!(

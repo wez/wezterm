@@ -353,7 +353,7 @@ impl WindowInner {
         Ok(())
     }
 
-    #[allow(dead_code)]
+    #[allow(dead_code, clippy::identity_op)]
     fn disable_decorations(&mut self) -> Fallible<()> {
         // Set the motif hints to disable decorations.
         // See https://stackoverflow.com/a/1909708

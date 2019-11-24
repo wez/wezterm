@@ -70,7 +70,7 @@ impl TabBarState {
             available_cells / number_of_tabs
         };
 
-        let colors = colors.cloned().unwrap_or_else(|| TabBarColors::default());
+        let colors = colors.cloned().unwrap_or_else(TabBarColors::default);
 
         let mut line = Line::with_width(title_width);
 

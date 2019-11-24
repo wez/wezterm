@@ -67,7 +67,7 @@ impl Texture2d for SrgbTexture2d {
                     // glium to use SRGB for the texture.
                     fn conv(v: u8) -> u8 {
                         let f = (v as f32) / 255.;
-                        let c = if f <= 0.0031308 {
+                        let c = if f <= 0.003_130_8 {
                             f * 12.92
                         } else {
                             f.powf(1.0 / 2.4) * 1.055 - 0.055
@@ -121,6 +121,9 @@ mod avx {
         size == align_lo(size, align)
     }
 
+    /// # Safety
+    /// It is up to the caller to ensure that the destination pointer,
+    /// stride, width and height all result in valid memory operations.
     #[allow(clippy::cast_ptr_alignment)]
     pub unsafe fn fill_pixel(
         mut dest: *mut u8,

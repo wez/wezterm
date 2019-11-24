@@ -1,3 +1,7 @@
+// Clippy hates the implement_vertex macro and won't let me scope
+// this warning to its use
+#![allow(clippy::unneeded_field_pattern)]
+
 use ::window::bitmaps::TextureRect;
 use ::window::*;
 

@@ -41,7 +41,7 @@ impl RateLimiter {
             // we use a 32k buffer which means that in the worst case
             // (where the buffer is 100% full), we'll take ~15 iterations
             // to reach a decision of a single byte or a sleep delay.
-            amount = amount / 2;
+            amount /= 2;
         }
     }
 }

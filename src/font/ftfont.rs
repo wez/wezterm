@@ -101,6 +101,7 @@ impl Font for FreeTypeFontImpl {
         }
     }
 
+    #[allow(clippy::cognitive_complexity)]
     fn rasterize_glyph(&self, glyph_pos: u32) -> Result<RasterizedGlyph, Error> {
         let render_mode = //ftwrap::FT_Render_Mode::FT_RENDER_MODE_NORMAL;
  //       ftwrap::FT_Render_Mode::FT_RENDER_MODE_LCD;

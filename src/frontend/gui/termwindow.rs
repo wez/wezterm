@@ -138,13 +138,10 @@ impl WindowCallbacks for TermWindow {
         self.last_mouse_coords = (x, y);
 
         if self.show_tab_bar && y == 0 {
-            match event.kind {
-                WMEK::Press(MousePress::Left) => self.drag_start_coords = Some(event.coords),
-                _ => {}
-            }
+            if let WMEK::Press(MousePress::Left) = event.kind {
+                self.drag_start_coords = Some(event.coords);
 
-            match event.kind {
-                WMEK::Press(MousePress::Left) => match self.tab_bar.hit_test(x) {
+                match self.tab_bar.hit_test(x) {
                     TabBarItem::Tab(tab_idx) => {
                         self.activate_tab(tab_idx).ok();
                     }
@@ -152,8 +149,7 @@ impl WindowCallbacks for TermWindow {
                         self.spawn_tab(&SpawnTabDomain::CurrentTabDomain).ok();
                     }
                     TabBarItem::None => {}
-                },
-                _ => {}
+                }
             }
         } else {
             let y = y.saturating_sub(first_line_offset);
@@ -262,10 +258,9 @@ impl WindowCallbacks for TermWindow {
 
                     if !self.config.send_composed_key_when_alt_is_pressed
                         && modifiers.contains(::termwiz::input::Modifiers::ALT)
+                        && tab.key_down(key, modifiers).is_ok()
                     {
-                        if tab.key_down(key, modifiers).is_ok() {
-                            return true;
-                        }
+                        return true;
                     }
                 }
             }
