@@ -269,6 +269,33 @@ impl WindowOpsMut for WindowInner {
         });
     }
 
+    fn set_window_position(&self, coords: ScreenPoint) {
+        let hwnd = self.hwnd;
+
+        let mut rect = RECT {
+            left: 0,
+            bottom: 0,
+            right: 0,
+            top: 0,
+        };
+        unsafe {
+            GetWindowRect(hwnd.0, &mut rect);
+
+            let origin = client_to_screen(hwnd.0, Point::new(0, 0));
+            let delta_x = origin.x as i32 - rect.left;
+            let delta_y = origin.y as i32 - rect.top;
+
+            MoveWindow(
+                hwnd.0,
+                coords.x as i32 - delta_x,
+                coords.y as i32 - delta_y,
+                rect_width(&rect),
+                rect_height(&rect),
+                1,
+            );
+        }
+    }
+
     fn set_title(&mut self, title: &str) {
         let title = wide_string(title);
         unsafe {
@@ -333,6 +360,14 @@ impl WindowOps for Window {
             Ok(())
         })
     }
+
+    fn set_window_position(&self, coords: ScreenPoint) -> Future<()> {
+        Connection::with_window_inner(self.0, move |inner| {
+            inner.set_window_position(coords);
+            Ok(())
+        })
+    }
+
     fn apply<R, F: Send + 'static + Fn(&mut dyn Any, &dyn WindowOps) -> Fallible<R>>(
         &self,
         func: F,
@@ -606,8 +641,9 @@ fn mods_and_buttons(wparam: WPARAM) -> (Modifiers, MouseButtons) {
 }
 
 fn mouse_coords(lparam: LPARAM) -> Point {
-    let x = (lparam & 0xffff) as isize;
-    let y = ((lparam >> 16) & 0xffff) as isize;
+    // Take care to get the signedness correct!
+    let x = (lparam & 0xffff) as u16 as i16 as isize;
+    let y = ((lparam >> 16) & 0xffff) as u16 as i16 as isize;
 
     Point::new(x, y)
 }
@@ -641,6 +677,15 @@ fn apply_mouse_cursor(cursor: Option<MouseCursor>) {
 
 unsafe fn mouse_button(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
     if let Some(inner) = rc_from_hwnd(hwnd) {
+        // To support dragging the window, capture when the left
+        // button goes down and release when it goes up.
+        // Without this, the drag state can be confused when dragging
+        // the mouse up outside of the client area.
+        if msg == WM_LBUTTONDOWN {
+            SetCapture(hwnd);
+        } else if msg == WM_LBUTTONUP {
+            ReleaseCapture();
+        }
         let (modifiers, mouse_buttons) = mods_and_buttons(wparam);
         let coords = mouse_coords(lparam);
         let event = MouseEvent {
