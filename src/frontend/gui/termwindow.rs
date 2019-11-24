@@ -2,7 +2,7 @@ use super::quad::*;
 use super::renderstate::*;
 use super::utilsprites::RenderMetrics;
 use crate::clipboard::SystemClipboard;
-use crate::config::Config;
+use crate::config::{configuration, Config};
 use crate::font::{FontConfiguration, FontSystemSelection};
 use crate::frontend::gui::tabbar::{TabBarItem, TabBarState};
 use crate::frontend::{executor, front_end};
@@ -27,7 +27,6 @@ use termwiz::color::RgbColor;
 pub struct TermWindow {
     window: Option<Window>,
     fonts: Rc<FontConfiguration>,
-    config: Arc<Config>,
     dimensions: Dimensions,
     mux_window_id: MuxWindowId,
     render_metrics: RenderMetrics,
@@ -256,7 +255,7 @@ impl WindowCallbacks for TermWindow {
                         return true;
                     }
 
-                    if !self.config.send_composed_key_when_alt_is_pressed
+                    if !configuration().send_composed_key_when_alt_is_pressed
                         && modifiers.contains(::termwiz::input::Modifiers::ALT)
                         && tab.key_down(key, modifiers).is_ok()
                     {
@@ -388,7 +387,6 @@ impl TermWindow {
             Box::new(Self {
                 window: None,
                 mux_window_id,
-                config: Arc::clone(config),
                 fonts: Rc::clone(fontconfig),
                 render_metrics,
                 dimensions: Dimensions {
@@ -475,14 +473,14 @@ impl TermWindow {
             WK::Char('\r') => KC::Enter,
             WK::Char('\t') => KC::Tab,
             WK::Char('\u{08}') => {
-                if self.config.swap_backspace_and_delete {
+                if configuration().swap_backspace_and_delete {
                     KC::Delete
                 } else {
                     KC::Backspace
                 }
             }
             WK::Char('\u{7f}') => {
-                if self.config.swap_backspace_and_delete {
+                if configuration().swap_backspace_and_delete {
                     KC::Backspace
                 } else {
                     KC::Delete
@@ -596,7 +594,10 @@ impl TermWindow {
                 None
             },
             &window,
-            self.config.colors.as_ref().and_then(|c| c.tab_bar.as_ref()),
+            configuration()
+                .colors
+                .as_ref()
+                .and_then(|c| c.tab_bar.as_ref()),
         );
         if new_tab_bar != self.tab_bar {
             self.tab_bar = new_tab_bar;
@@ -778,16 +779,13 @@ impl TermWindow {
     pub fn spawn_new_window(&mut self) {
         promise::Future::with_executor(executor(), move || {
             let mux = Mux::get().unwrap();
-            let fonts = Rc::new(FontConfiguration::new(
-                Arc::clone(mux.config()),
-                FontSystemSelection::get_default(),
-            ));
+            let fonts = Rc::new(FontConfiguration::new(FontSystemSelection::get_default()));
             let window_id = mux.new_empty_window();
             let tab =
                 mux.default_domain()
                     .spawn(portable_pty::PtySize::default(), None, window_id)?;
             let front_end = front_end().expect("to be called on gui thread");
-            front_end.spawn_new_window(mux.config(), &fonts, &tab, window_id)?;
+            front_end.spawn_new_window(&fonts, &tab, window_id)?;
             Ok(())
         });
     }
@@ -1049,13 +1047,14 @@ impl TermWindow {
         // Break the line into clusters of cells with the same attributes
         let cell_clusters = line.cluster();
         let mut last_cell_idx = 0;
+        let config = configuration();
         for cluster in cell_clusters {
             let attrs = &cluster.attrs;
             let is_highlited_hyperlink = match (&attrs.hyperlink, &current_highlight) {
                 (&Some(ref this), &Some(ref highlight)) => this == highlight,
                 _ => false,
             };
-            let style = self.fonts.match_style(attrs);
+            let style = self.fonts.match_style(&config, attrs);
 
             let bg_color = palette.resolve_bg(attrs.background);
             let fg_color = match attrs.foreground {
@@ -1269,6 +1268,8 @@ impl TermWindow {
         terminal: &dyn Renderable,
         palette: &ColorPalette,
     ) -> Fallible<()> {
+        let config = configuration();
+
         let (_num_rows, num_cols) = terminal.physical_dimensions();
         let current_highlight = terminal.current_highlight();
 
@@ -1281,7 +1282,7 @@ impl TermWindow {
                 (&Some(ref this), &Some(ref highlight)) => this == highlight,
                 _ => false,
             };
-            let style = self.fonts.match_style(attrs);
+            let style = self.fonts.match_style(&config, attrs);
 
             let bg_color = palette.resolve_bg(attrs.background);
             let fg_color = match attrs.foreground {

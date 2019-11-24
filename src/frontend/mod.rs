@@ -1,4 +1,3 @@
-use crate::config::Config;
 use crate::font::FontConfiguration;
 use crate::mux::tab::Tab;
 use crate::mux::window::WindowId;
@@ -9,7 +8,7 @@ use promise::Executor;
 use serde_derive::*;
 use std::cell::RefCell;
 use std::rc::Rc;
-use std::sync::{Arc, Mutex};
+use std::sync::Mutex;
 
 pub mod gui;
 pub mod muxserver;
@@ -111,7 +110,6 @@ pub trait FrontEnd: Downcast {
 
     fn spawn_new_window(
         &self,
-        config: &Arc<Config>,
         fontconfig: &Rc<FontConfiguration>,
         tab: &Rc<dyn Tab>,
         window_id: WindowId,

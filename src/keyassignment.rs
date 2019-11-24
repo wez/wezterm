@@ -1,5 +1,5 @@
+use crate::config::configuration;
 use crate::mux::domain::DomainId;
-use crate::mux::Mux;
 use std::collections::HashMap;
 use term::{KeyCode, KeyModifiers};
 
@@ -40,9 +40,7 @@ pub struct KeyMap(HashMap<(KeyCode, KeyModifiers), KeyAssignment>);
 
 impl KeyMap {
     pub fn new() -> Self {
-        let mux = Mux::get().unwrap();
-        let mut map = mux
-            .config()
+        let mut map = configuration()
             .key_bindings()
             .expect("keys section of config to be valid");
 

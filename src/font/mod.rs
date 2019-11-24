@@ -28,14 +28,13 @@ pub mod fontloader;
 #[cfg(any(target_os = "macos", windows))]
 pub mod fontloader_and_freetype;
 
-use super::config::{Config, TextStyle};
+use super::config::{configuration, Config, TextStyle};
 use term::CellAttributes;
 
 type FontPtr = Rc<RefCell<Box<dyn NamedFont>>>;
 
 /// Matches and loads fonts for a given input style
 pub struct FontConfiguration {
-    config: Arc<Config>,
     fonts: RefCell<HashMap<TextStyle, FontPtr>>,
     system: Rc<dyn FontSystem>,
     metrics: RefCell<Option<FontMetrics>>,
@@ -129,9 +128,8 @@ impl std::str::FromStr for FontSystemSelection {
 
 impl FontConfiguration {
     /// Create a new empty configuration
-    pub fn new(config: Arc<Config>, system: FontSystemSelection) -> Self {
+    pub fn new(system: FontSystemSelection) -> Self {
         Self {
-            config,
             fonts: RefCell::new(HashMap::new()),
             system: system.new_font_system(),
             metrics: RefCell::new(None),
@@ -151,7 +149,7 @@ impl FontConfiguration {
 
         let scale = *self.dpi_scale.borrow() * *self.font_scale.borrow();
         let font = Rc::new(RefCell::new(self.system.load_font(
-            &self.config,
+            &configuration(),
             style,
             scale,
         )?));
@@ -168,7 +166,7 @@ impl FontConfiguration {
 
     /// Returns the baseline font specified in the configuration
     pub fn default_font(&self) -> Result<Rc<RefCell<Box<dyn NamedFont>>>, Error> {
-        self.cached_font(&self.config.font)
+        self.cached_font(&configuration().font)
     }
 
     pub fn get_font_scale(&self) -> f64 {
@@ -194,7 +192,11 @@ impl FontConfiguration {
     /// Apply the defined font_rules from the user configuration to
     /// produce the text style that best matches the supplied input
     /// cell attributes.
-    pub fn match_style(&self, attrs: &CellAttributes) -> &TextStyle {
+    pub fn match_style<'a>(
+        &self,
+        config: &'a Arc<Config>,
+        attrs: &CellAttributes,
+    ) -> &'a TextStyle {
         // a little macro to avoid boilerplate for matching the rules.
         // If the rule doesn't specify a value for an attribute then
         // it will implicitly match.  If it specifies an attribute
@@ -211,7 +213,7 @@ impl FontConfiguration {
             };
         };
 
-        for rule in &self.config.font_rules {
+        for rule in &config.font_rules {
             attr_match!(intensity, &rule);
             attr_match!(underline, &rule);
             attr_match!(italic, &rule);
@@ -224,7 +226,7 @@ impl FontConfiguration {
             // so we therefore assume that it did match overall.
             return &rule.font;
         }
-        &self.config.font
+        &config.font
     }
 }
 

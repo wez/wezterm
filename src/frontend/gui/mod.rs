@@ -1,4 +1,4 @@
-use crate::config::Config;
+use crate::config::configuration;
 use crate::font::FontConfiguration;
 use crate::frontend::FrontEnd;
 use crate::mux::tab::Tab;
@@ -121,11 +121,10 @@ impl FrontEnd for GuiFrontEnd {
 
     fn spawn_new_window(
         &self,
-        config: &Arc<Config>,
         fontconfig: &Rc<FontConfiguration>,
         tab: &Rc<dyn Tab>,
         window_id: MuxWindowId,
     ) -> Fallible<()> {
-        termwindow::TermWindow::new_window(config, fontconfig, tab, window_id)
+        termwindow::TermWindow::new_window(&configuration(), fontconfig, tab, window_id)
     }
 }

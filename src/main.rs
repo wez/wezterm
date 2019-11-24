@@ -352,7 +352,7 @@ fn run_ssh(config: Arc<config::Config>, opts: &SshCommand) -> Fallible<()> {
     // Set up the mux with no default domain; there's a good chance that
     // we'll need to show authentication UI and we don't want its domain
     // to become the default domain.
-    let mux = Rc::new(mux::Mux::new(&config, None));
+    let mux = Rc::new(mux::Mux::new(None));
     Mux::set_mux(&mux);
 
     // Initiate an ssh connection; since that is a blocking process with
@@ -379,7 +379,7 @@ fn run_ssh(config: Arc<config::Config>, opts: &SshCommand) -> Fallible<()> {
             let font_system = opts.font_system.unwrap_or(config.font_system);
             font_system.set_default();
 
-            let fontconfig = Rc::new(FontConfiguration::new(Arc::clone(&config), font_system));
+            let fontconfig = Rc::new(FontConfiguration::new(font_system));
             let cmd = if !opts.prog.is_empty() {
                 let argv: Vec<&std::ffi::OsStr> = opts.prog.iter().map(|x| x.as_os_str()).collect();
                 let mut builder = CommandBuilder::new(&argv[0]);
@@ -392,7 +392,6 @@ fn run_ssh(config: Arc<config::Config>, opts: &SshCommand) -> Fallible<()> {
             let pty_system = Box::new(portable_pty::ssh::SshSession::new(sess, &config.term));
             let domain: Arc<dyn Domain> = Arc::new(ssh::RemoteSshDomain::with_pty_system(
                 &opts.user_at_host_and_port,
-                &config,
                 pty_system,
             ));
 
@@ -403,7 +402,7 @@ fn run_ssh(config: Arc<config::Config>, opts: &SshCommand) -> Fallible<()> {
 
             let window_id = mux.new_empty_window();
             let tab = domain.spawn(PtySize::default(), cmd, window_id)?;
-            gui.spawn_new_window(mux.config(), &fontconfig, &tab, window_id)?;
+            gui.spawn_new_window(&fontconfig, &tab, window_id)?;
             Ok(())
         });
     });
@@ -415,7 +414,7 @@ fn run_serial(config: Arc<config::Config>, opts: &SerialCommand) -> Fallible<()>
     let font_system = opts.font_system.unwrap_or(config.font_system);
     font_system.set_default();
 
-    let fontconfig = Rc::new(FontConfiguration::new(Arc::clone(&config), font_system));
+    let fontconfig = Rc::new(FontConfiguration::new(font_system));
 
     let mut serial = portable_pty::serial::SerialTty::new(&opts.port);
     if let Some(baud) = opts.baud {
@@ -423,9 +422,8 @@ fn run_serial(config: Arc<config::Config>, opts: &SerialCommand) -> Fallible<()>
     }
 
     let pty_system = Box::new(portable_pty::serial::SerialTty::new(&opts.port));
-    let domain: Arc<dyn Domain> =
-        Arc::new(LocalDomain::with_pty_system("local", &config, pty_system));
-    let mux = Rc::new(mux::Mux::new(&config, Some(domain.clone())));
+    let domain: Arc<dyn Domain> = Arc::new(LocalDomain::with_pty_system("local", pty_system));
+    let mux = Rc::new(mux::Mux::new(Some(domain.clone())));
     Mux::set_mux(&mux);
 
     let front_end = opts.front_end.unwrap_or(config.front_end);
@@ -434,7 +432,7 @@ fn run_serial(config: Arc<config::Config>, opts: &SerialCommand) -> Fallible<()>
 
     let window_id = mux.new_empty_window();
     let tab = domain.spawn(PtySize::default(), None, window_id)?;
-    gui.spawn_new_window(mux.config(), &fontconfig, &tab, window_id)?;
+    gui.spawn_new_window(&fontconfig, &tab, window_id)?;
 
     gui.run_forever()
 }
@@ -469,10 +467,10 @@ fn run_mux_client(config: Arc<config::Config>, opts: &ConnectCommand) -> Fallibl
     let font_system = opts.font_system.unwrap_or(config.font_system);
     font_system.set_default();
 
-    let fontconfig = Rc::new(FontConfiguration::new(Arc::clone(&config), font_system));
+    let fontconfig = Rc::new(FontConfiguration::new(font_system));
 
     let domain: Arc<dyn Domain> = Arc::new(ClientDomain::new(client_config));
-    let mux = Rc::new(mux::Mux::new(&config, Some(domain.clone())));
+    let mux = Rc::new(mux::Mux::new(Some(domain.clone())));
     Mux::set_mux(&mux);
 
     let front_end = opts.front_end.unwrap_or(config.front_end);
@@ -492,7 +490,7 @@ fn run_mux_client(config: Arc<config::Config>, opts: &ConnectCommand) -> Fallibl
         let tab = mux
             .default_domain()
             .spawn(PtySize::default(), cmd, window_id)?;
-        gui.spawn_new_window(mux.config(), &fontconfig, &tab, window_id)?;
+        gui.spawn_new_window(&fontconfig, &tab, window_id)?;
     }
 
     for dom in mux.iter_domains() {
@@ -543,7 +541,7 @@ fn run_terminal_gui(config: Arc<config::Config>, opts: &StartCommand) -> Fallibl
     let font_system = opts.font_system.unwrap_or(config.font_system);
     font_system.set_default();
 
-    let fontconfig = Rc::new(FontConfiguration::new(Arc::clone(&config), font_system));
+    let fontconfig = Rc::new(FontConfiguration::new(font_system));
 
     let cmd = if !opts.prog.is_empty() {
         let argv: Vec<&std::ffi::OsStr> = opts.prog.iter().map(|x| x.as_os_str()).collect();
@@ -554,8 +552,8 @@ fn run_terminal_gui(config: Arc<config::Config>, opts: &StartCommand) -> Fallibl
         None
     };
 
-    let domain: Arc<dyn Domain> = Arc::new(LocalDomain::new("local", &config)?);
-    let mux = Rc::new(mux::Mux::new(&config, Some(domain.clone())));
+    let domain: Arc<dyn Domain> = Arc::new(LocalDomain::new("local")?);
+    let mux = Rc::new(mux::Mux::new(Some(domain.clone())));
     Mux::set_mux(&mux);
 
     let front_end = opts.front_end.unwrap_or(config.front_end);
@@ -583,7 +581,7 @@ fn run_terminal_gui(config: Arc<config::Config>, opts: &StartCommand) -> Fallibl
         let tab = mux
             .default_domain()
             .spawn(PtySize::default(), cmd, window_id)?;
-        gui.spawn_new_window(mux.config(), &fontconfig, &tab, window_id)?;
+        gui.spawn_new_window(&fontconfig, &tab, window_id)?;
     }
 
     for dom in mux.iter_domains() {
@@ -658,7 +656,7 @@ fn run() -> Result<(), Error> {
         SubCommand::ImageCat(cmd) => cmd.run(),
         SubCommand::Cli(cli) => {
             let initial = true;
-            let client = Client::new_default_unix_domain(&config, initial)?;
+            let client = Client::new_default_unix_domain(initial)?;
             match cli.sub {
                 CliSubCommand::List => {
                     let cols = vec![

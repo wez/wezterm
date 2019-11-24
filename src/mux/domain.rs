@@ -5,7 +5,7 @@
 //! container or actually remote, running on the other end
 //! of an ssh session somewhere.
 
-use crate::config::Config;
+use crate::config::configuration;
 use crate::localtab::LocalTab;
 use crate::mux::tab::Tab;
 use crate::mux::window::WindowId;
@@ -16,7 +16,6 @@ use log::info;
 use portable_pty::cmdbuilder::CommandBuilder;
 use portable_pty::{PtySize, PtySystem};
 use std::rc::Rc;
-use std::sync::Arc;
 
 static DOMAIN_ID: ::std::sync::atomic::AtomicUsize = ::std::sync::atomic::AtomicUsize::new(0);
 pub type DomainId = usize;
@@ -60,27 +59,20 @@ impl_downcast!(Domain);
 
 pub struct LocalDomain {
     pty_system: Box<dyn PtySystem>,
-    config: Arc<Config>,
     id: DomainId,
     name: String,
 }
 
 impl LocalDomain {
-    pub fn new(name: &str, config: &Arc<Config>) -> Result<Self, Error> {
-        let pty_system = config.pty.get()?;
-        Ok(Self::with_pty_system(name, config, pty_system))
+    pub fn new(name: &str) -> Result<Self, Error> {
+        let pty_system = configuration().pty.get()?;
+        Ok(Self::with_pty_system(name, pty_system))
     }
 
-    pub fn with_pty_system(
-        name: &str,
-        config: &Arc<Config>,
-        pty_system: Box<dyn PtySystem>,
-    ) -> Self {
-        let config = Arc::clone(config);
+    pub fn with_pty_system(name: &str, pty_system: Box<dyn PtySystem>) -> Self {
         let id = alloc_domain_id();
         Self {
             pty_system,
-            config,
             id,
             name: name.to_string(),
         }
@@ -94,9 +86,10 @@ impl Domain for LocalDomain {
         command: Option<CommandBuilder>,
         window: WindowId,
     ) -> Result<Rc<dyn Tab>, Error> {
+        let config = configuration();
         let cmd = match command {
             Some(c) => c,
-            None => self.config.build_prog(None)?,
+            None => config.build_prog(None)?,
         };
         let pair = self.pty_system.openpty(size)?;
         let child = pair.slave.spawn_command(cmd)?;
@@ -107,13 +100,13 @@ impl Domain for LocalDomain {
             size.cols as usize,
             size.pixel_width as usize,
             size.pixel_height as usize,
-            self.config.scrollback_lines.unwrap_or(3500),
-            self.config.hyperlink_rules.clone(),
+            config.scrollback_lines.unwrap_or(3500),
+            config.hyperlink_rules.clone(),
         );
 
         let mux = Mux::get().unwrap();
 
-        if let Some(palette) = mux.config().colors.as_ref() {
+        if let Some(palette) = config.colors.as_ref() {
             *terminal.palette_mut() = palette.clone().into();
         }
 

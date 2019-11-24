@@ -1,4 +1,4 @@
-use crate::config::{Config, TlsDomainServer, UnixDomain};
+use crate::config::{configuration, TlsDomainServer, UnixDomain};
 use crate::create_user_owned_dirs;
 use crate::frontend::executor;
 use crate::mux::tab::{Tab, TabId};
@@ -200,7 +200,7 @@ mod not_ossl {
         }
     }
 
-    pub fn spawn_tls_listener(_config: &Arc<Config>, tls_server: &TlsDomainServer) -> Fallible<()> {
+    pub fn spawn_tls_listener(tls_server: &TlsDomainServer) -> Fallible<()> {
         let identity = IdentitySource::PemFiles {
             key: tls_server
                 .pem_private_key
@@ -328,10 +328,7 @@ mod ossl {
         }
     }
 
-    pub fn spawn_tls_listener(
-        _config: &Arc<Config>,
-        tls_server: &TlsDomainServer,
-    ) -> Result<(), Error> {
+    pub fn spawn_tls_listener(tls_server: &TlsDomainServer) -> Result<(), Error> {
         openssl::init();
 
         let mut acceptor = SslAcceptor::mozilla_modern(SslMethod::tls())?;
@@ -428,9 +425,9 @@ struct ClientSurfaceState {
 
 impl ClientSurfaceState {
     fn new(cols: usize, rows: usize) -> Self {
-        let mux = Mux::get().expect("to be running on gui thread");
-        let push_limiter = RateLimiter::new(mux.config().ratelimit_mux_output_pushes_per_second);
-        let update_limiter = RateLimiter::new(mux.config().ratelimit_mux_output_scans_per_second);
+        let push_limiter = RateLimiter::new(configuration().ratelimit_mux_output_pushes_per_second);
+        let update_limiter =
+            RateLimiter::new(configuration().ratelimit_mux_output_scans_per_second);
         let surface = Surface::new(cols, rows);
         Self {
             surface,
@@ -890,16 +887,17 @@ fn safely_create_sock_path(unix_dom: &UnixDomain) -> Result<UnixListener, Error>
 }
 
 #[cfg(any(feature = "openssl", unix))]
-fn spawn_tls_listener(config: &Arc<Config>, tls_server: &TlsDomainServer) -> Fallible<()> {
-    ossl::spawn_tls_listener(config, tls_server)
+fn spawn_tls_listener(tls_server: &TlsDomainServer) -> Fallible<()> {
+    ossl::spawn_tls_listener(tls_server)
 }
 
 #[cfg(not(any(feature = "openssl", unix)))]
-fn spawn_tls_listener(config: &Arc<Config>, tls_server: &TlsDomainServer) -> Fallible<()> {
-    not_ossl::spawn_tls_listener(config, tls_server)
+fn spawn_tls_listener(tls_server: &TlsDomainServer) -> Fallible<()> {
+    not_ossl::spawn_tls_listener(tls_server)
 }
 
-pub fn spawn_listener(config: &Arc<Config>) -> Fallible<()> {
+pub fn spawn_listener() -> Fallible<()> {
+    let config = configuration();
     for unix_dom in &config.unix_domains {
         let mut listener = LocalListener::new(safely_create_sock_path(unix_dom)?);
         thread::spawn(move || {
@@ -908,7 +906,7 @@ pub fn spawn_listener(config: &Arc<Config>) -> Fallible<()> {
     }
 
     for tls_server in &config.tls_servers {
-        spawn_tls_listener(config, tls_server)?;
+        spawn_tls_listener(tls_server)?;
     }
     Ok(())
 }

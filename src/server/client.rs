@@ -1,4 +1,4 @@
-use crate::config::{Config, SshDomain, TlsDomainClient, UnixDomain};
+use crate::config::{configuration, SshDomain, TlsDomainClient, UnixDomain};
 use crate::frontend::executor;
 use crate::mux::domain::alloc_domain_id;
 use crate::mux::domain::DomainId;
@@ -18,7 +18,6 @@ use std::collections::HashMap;
 use std::io::{Read, Write};
 use std::net::TcpStream;
 use std::path::Path;
-use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 
@@ -567,17 +566,17 @@ impl Client {
         self.local_domain_id
     }
 
-    pub fn new_default_unix_domain(config: &Arc<Config>, initial: bool) -> Fallible<Self> {
+    pub fn new_default_unix_domain(initial: bool) -> Fallible<Self> {
+        let config = configuration();
         let unix_dom = config
             .unix_domains
             .first()
             .ok_or_else(|| err_msg("no default unix domain is configured"))?;
-        Self::new_unix_domain(alloc_domain_id(), config, unix_dom, initial)
+        Self::new_unix_domain(alloc_domain_id(), unix_dom, initial)
     }
 
     pub fn new_unix_domain(
         local_domain_id: DomainId,
-        _config: &Arc<Config>,
         unix_dom: &UnixDomain,
         initial: bool,
     ) -> Fallible<Self> {
@@ -587,22 +586,14 @@ impl Client {
         Ok(Self::new(local_domain_id, reconnectable))
     }
 
-    pub fn new_tls(
-        local_domain_id: DomainId,
-        _config: &Arc<Config>,
-        tls_client: &TlsDomainClient,
-    ) -> Fallible<Self> {
+    pub fn new_tls(local_domain_id: DomainId, tls_client: &TlsDomainClient) -> Fallible<Self> {
         let mut reconnectable =
             Reconnectable::new(ClientDomainConfig::Tls(tls_client.clone()), None);
         reconnectable.connect(true)?;
         Ok(Self::new(local_domain_id, reconnectable))
     }
 
-    pub fn new_ssh(
-        local_domain_id: DomainId,
-        _config: &Arc<Config>,
-        ssh_dom: &SshDomain,
-    ) -> Fallible<Self> {
+    pub fn new_ssh(local_domain_id: DomainId, ssh_dom: &SshDomain) -> Fallible<Self> {
         let mut reconnectable = Reconnectable::new(ClientDomainConfig::Ssh(ssh_dom.clone()), None);
         reconnectable.connect(true)?;
         Ok(Self::new(local_domain_id, reconnectable))

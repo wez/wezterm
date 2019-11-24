@@ -1,4 +1,4 @@
-use crate::config::Config;
+use crate::config::configuration;
 use crate::localtab::LocalTab;
 use crate::mux::domain::{alloc_domain_id, Domain, DomainId, DomainState};
 use crate::mux::tab::Tab;
@@ -14,7 +14,6 @@ use std::io::Write;
 use std::net::TcpStream;
 use std::path::Path;
 use std::rc::Rc;
-use std::sync::Arc;
 use termwiz::cell::{unicode_column_width, AttributeChange, Intensity};
 use termwiz::lineedit::*;
 use termwiz::surface::Change;
@@ -316,22 +315,15 @@ pub fn ssh_connect(remote_address: &str, username: &str) -> Fallible<ssh2::Sessi
 
 pub struct RemoteSshDomain {
     pty_system: Box<dyn PtySystem>,
-    config: Arc<Config>,
     id: DomainId,
     name: String,
 }
 
 impl RemoteSshDomain {
-    pub fn with_pty_system(
-        name: &str,
-        config: &Arc<Config>,
-        pty_system: Box<dyn PtySystem>,
-    ) -> Self {
-        let config = Arc::clone(config);
+    pub fn with_pty_system(name: &str, pty_system: Box<dyn PtySystem>) -> Self {
         let id = alloc_domain_id();
         Self {
             pty_system,
-            config,
             id,
             name: name.to_string(),
         }
@@ -353,18 +345,20 @@ impl Domain for RemoteSshDomain {
         let child = pair.slave.spawn_command(cmd)?;
         log::info!("spawned: {:?}", child);
 
+        let config = configuration();
+
         let mut terminal = term::Terminal::new(
             size.rows as usize,
             size.cols as usize,
             size.pixel_width as usize,
             size.pixel_height as usize,
-            self.config.scrollback_lines.unwrap_or(3500),
-            self.config.hyperlink_rules.clone(),
+            config.scrollback_lines.unwrap_or(3500),
+            config.hyperlink_rules.clone(),
         );
 
         let mux = Mux::get().unwrap();
 
-        if let Some(palette) = mux.config().colors.as_ref() {
+        if let Some(palette) = configuration().colors.as_ref() {
             *terminal.palette_mut() = palette.clone().into();
         }
 

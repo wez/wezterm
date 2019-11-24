@@ -192,14 +192,10 @@ impl Domain for ClientDomain {
         let client = match &self.config {
             ClientDomainConfig::Unix(unix) => {
                 let initial = true;
-                Client::new_unix_domain(self.local_domain_id, mux.config(), unix, initial)?
+                Client::new_unix_domain(self.local_domain_id, unix, initial)?
             }
-            ClientDomainConfig::Tls(tls) => {
-                Client::new_tls(self.local_domain_id, mux.config(), tls)?
-            }
-            ClientDomainConfig::Ssh(ssh) => {
-                Client::new_ssh(self.local_domain_id, mux.config(), ssh)?
-            }
+            ClientDomainConfig::Tls(tls) => Client::new_tls(self.local_domain_id, tls)?,
+            ClientDomainConfig::Ssh(ssh) => Client::new_ssh(self.local_domain_id, ssh)?,
         };
 
         let inner = Arc::new(ClientInner::new(self.local_domain_id, client));
@@ -226,17 +222,14 @@ impl Domain for ClientDomain {
                 window.push(&tab);
             } else {
                 log::error!("spawn new local window");
-                let fonts = Rc::new(FontConfiguration::new(
-                    Arc::clone(mux.config()),
-                    FontSystemSelection::get_default(),
-                ));
+                let fonts = Rc::new(FontConfiguration::new(FontSystemSelection::get_default()));
                 let local_window_id = mux.new_empty_window();
                 inner.record_remote_to_local_window_mapping(entry.window_id, local_window_id);
                 mux.add_tab_to_window(&tab, local_window_id)?;
 
                 front_end()
                     .unwrap()
-                    .spawn_new_window(mux.config(), &fonts, &tab, local_window_id)
+                    .spawn_new_window(&fonts, &tab, local_window_id)
                     .unwrap();
             }
         }

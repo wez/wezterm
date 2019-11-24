@@ -1,4 +1,4 @@
-use crate::config::Config;
+use crate::config::configuration;
 use crate::frontend::{executor, low_pri_executor};
 use crate::mux::tab::{Tab, TabId};
 use crate::mux::window::{Window, WindowId};
@@ -38,18 +38,17 @@ pub type MuxSubscriber = PollableReceiver<MuxNotification>;
 pub struct Mux {
     tabs: RefCell<HashMap<TabId, Rc<dyn Tab>>>,
     windows: RefCell<HashMap<WindowId, Window>>,
-    config: Arc<Config>,
     default_domain: RefCell<Option<Arc<dyn Domain>>>,
     domains: RefCell<HashMap<DomainId, Arc<dyn Domain>>>,
     domains_by_name: RefCell<HashMap<String, Arc<dyn Domain>>>,
     subscribers: RefCell<HashMap<usize, PollableSender<MuxNotification>>>,
 }
 
-fn read_from_tab_pty(config: Arc<Config>, tab_id: TabId, mut reader: Box<dyn std::io::Read>) {
+fn read_from_tab_pty(tab_id: TabId, mut reader: Box<dyn std::io::Read>) {
     const BUFSIZE: usize = 32 * 1024;
     let mut buf = [0; BUFSIZE];
 
-    let mut lim = RateLimiter::new(config.ratelimit_output_bytes_per_second);
+    let mut lim = RateLimiter::new(configuration().ratelimit_output_bytes_per_second);
 
     loop {
         match reader.read(&mut buf) {
@@ -133,7 +132,7 @@ thread_local! {
 }
 
 impl Mux {
-    pub fn new(config: &Arc<Config>, default_domain: Option<Arc<dyn Domain>>) -> Self {
+    pub fn new(default_domain: Option<Arc<dyn Domain>>) -> Self {
         let mut domains = HashMap::new();
         let mut domains_by_name = HashMap::new();
         if let Some(default_domain) = default_domain.as_ref() {
@@ -148,7 +147,6 @@ impl Mux {
         Self {
             tabs: RefCell::new(HashMap::new()),
             windows: RefCell::new(HashMap::new()),
-            config: Arc::clone(config),
             default_domain: RefCell::new(default_domain),
             domains_by_name: RefCell::new(domains_by_name),
             domains: RefCell::new(domains),
@@ -200,10 +198,6 @@ impl Mux {
             .insert(domain.domain_name().to_string(), Arc::clone(domain));
     }
 
-    pub fn config(&self) -> &Arc<Config> {
-        &self.config
-    }
-
     pub fn set_mux(mux: &Rc<Mux>) {
         MUX.with(|m| {
             *m.borrow_mut() = Some(Rc::clone(mux));
@@ -229,8 +223,7 @@ impl Mux {
 
         let reader = tab.reader()?;
         let tab_id = tab.tab_id();
-        let config = Arc::clone(&self.config);
-        thread::spawn(move || read_from_tab_pty(config, tab_id, reader));
+        thread::spawn(move || read_from_tab_pty(tab_id, reader));
 
         Ok(())
     }

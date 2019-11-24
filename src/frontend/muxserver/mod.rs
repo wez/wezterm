@@ -1,5 +1,4 @@
 //! Implements the multiplexer server frontend
-use crate::config::Config;
 use crate::font::FontConfiguration;
 use crate::frontend::FrontEnd;
 use crate::mux::tab::Tab;
@@ -11,7 +10,6 @@ use log::info;
 use promise::*;
 use std::rc::Rc;
 use std::sync::mpsc::{self, Receiver, Sender};
-use std::sync::Arc;
 
 #[derive(Clone)]
 struct MuxExecutor {
@@ -43,8 +41,7 @@ impl MuxServerFrontEnd {
         let (tx, rx) = mpsc::channel();
 
         if start_listener {
-            let mux = Mux::get().unwrap();
-            spawn_listener(mux.config())?;
+            spawn_listener()?;
         }
         Ok(Rc::new(Self { tx, rx }))
     }
@@ -85,7 +82,6 @@ impl FrontEnd for MuxServerFrontEnd {
 
     fn spawn_new_window(
         &self,
-        _config: &Arc<Config>,
         _fontconfig: &Rc<FontConfiguration>,
         _tab: &Rc<dyn Tab>,
         _window_id: WindowId,
