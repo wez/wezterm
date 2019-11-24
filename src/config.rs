@@ -100,8 +100,9 @@ pub struct Config {
     /// This acts as a brake in the case of a command spewing a
     /// ton of output and allows for the UI to remain responsive
     /// so that you can hit CTRL-C to interrupt it if desired.
-    /// The default value is 2MB/s.
-    pub ratelimit_output_bytes_per_second: Option<u32>,
+    /// The default value is 200K/s.
+    #[serde(default = "default_ratelimit_output_bytes_per_second")]
+    pub ratelimit_output_bytes_per_second: u32,
 
     /// Constrains the rate at which the multiplexer server will
     /// unilaterally push data to the client.
@@ -113,12 +114,14 @@ pub struct Config {
     /// the result to the client.
     /// That decision is throttled by this configuration value
     /// which has a default value of 10/s
-    pub ratelimit_mux_output_pushes_per_second: Option<u32>,
+    #[serde(default = "default_ratelimit_mux_output_pushes_per_second")]
+    pub ratelimit_mux_output_pushes_per_second: u32,
 
     /// Constrain how often the mux server scans the terminal
     /// model to compute a diff to send to the mux client.
     /// The default value is 100/s
-    pub ratelimit_mux_output_scans_per_second: Option<u32>,
+    #[serde(default = "default_ratelimit_mux_output_scans_per_second")]
+    pub ratelimit_mux_output_scans_per_second: u32,
 
     #[serde(default)]
     pub keys: Vec<Key>,
@@ -145,6 +148,18 @@ pub struct Config {
     /// active tab.  Clicking on a tab activates it.
     #[serde(default = "default_true")]
     pub enable_tab_bar: bool,
+}
+
+fn default_ratelimit_mux_output_scans_per_second() -> u32 {
+    100
+}
+
+fn default_ratelimit_mux_output_pushes_per_second() -> u32 {
+    10
+}
+
+fn default_ratelimit_output_bytes_per_second() -> u32 {
+    200_000
 }
 
 fn default_true() -> bool {
