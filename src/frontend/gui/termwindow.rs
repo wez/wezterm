@@ -772,6 +772,7 @@ impl TermWindow {
             }
             CloseCurrentTab => self.close_current_tab(),
             Nop => {}
+            ReloadConfiguration => crate::config::reload(),
         };
         Ok(())
     }

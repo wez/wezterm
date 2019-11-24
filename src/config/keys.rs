@@ -63,6 +63,7 @@ impl std::convert::TryInto<KeyAssignment> for &Key {
                     .ok_or_else(|| format_err!("missing arg for {:?}", self))?
                     .to_owned(),
             ),
+            KeyAction::ReloadConfiguration => KeyAssignment::ReloadConfiguration,
         })
     }
 }
@@ -86,6 +87,7 @@ pub enum KeyAction {
     Hide,
     Show,
     CloseCurrentTab,
+    ReloadConfiguration,
 }
 
 fn de_keycode<'de, D>(deserializer: D) -> Result<KeyCode, D::Error>

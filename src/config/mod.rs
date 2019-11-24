@@ -53,6 +53,10 @@ pub fn configuration() -> ConfigHandle {
     CONFIG.get()
 }
 
+pub fn reload() {
+    CONFIG.reload();
+}
+
 /// If there was an error loading the preferred configuration,
 /// return it, otherwise return the current configuration
 pub fn configuration_result() -> Result<ConfigHandle, Error> {
@@ -98,8 +102,10 @@ impl ConfigInner {
                 self.config = Arc::new(config);
                 self.error.take();
                 self.generation += 1;
+                log::error!("Reloaded configuration! generation={}", self.generation);
             }
             Err(err) => {
+                log::error!("While reloading configuration: {}", err);
                 self.error.replace(err.to_string());
             }
         }

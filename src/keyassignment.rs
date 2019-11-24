@@ -34,6 +34,7 @@ pub enum KeyAssignment {
     Hide,
     Show,
     CloseCurrentTab,
+    ReloadConfiguration,
 }
 
 pub struct KeyMap(HashMap<(KeyCode, KeyModifiers), KeyAssignment>);
@@ -136,6 +137,8 @@ impl KeyMap {
                 KeyCode::Char('}'),
                 ActivateTabRelative(1)
             ],
+            [KeyModifiers::SUPER, KeyCode::Char('r'), ReloadConfiguration],
+            [ctrl_shift, KeyCode::Char('R'), ReloadConfiguration],
         );
 
         Self(map)
