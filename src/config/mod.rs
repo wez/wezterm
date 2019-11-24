@@ -35,6 +35,11 @@ pub use ssh::*;
 pub use tls::*;
 pub use unix::*;
 
+lazy_static! {
+    static ref HOME_DIR: PathBuf = dirs::home_dir().expect("can't find HOME dir");
+    static ref RUNTIME_DIR: PathBuf = compute_runtime_dir().unwrap();
+}
+
 #[derive(Debug, Deserialize, Clone)]
 pub struct Config {
     /// The font size, measured in points
@@ -168,11 +173,6 @@ impl Default for Config {
         // the same thing in a different form down here
         toml::from_str("").unwrap()
     }
-}
-
-lazy_static! {
-    static ref HOME_DIR: PathBuf = dirs::home_dir().expect("can't find HOME dir");
-    static ref RUNTIME_DIR: PathBuf = compute_runtime_dir().unwrap();
 }
 
 impl Config {
