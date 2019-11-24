@@ -5,6 +5,9 @@ use failure::Error;
 use std::ops::{Deref, DerefMut, Range};
 use std::str;
 
+pub mod config;
+pub use config::TerminalConfiguration;
+
 pub mod input;
 pub use crate::input::*;
 

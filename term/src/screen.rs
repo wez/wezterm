@@ -1,6 +1,7 @@
 use super::*;
 use log::debug;
 use std::collections::VecDeque;
+use std::sync::Arc;
 
 /// Holds the model of a screen.  This can either be the primary screen
 /// which includes lines of scrollback text, or the alternate screen
@@ -18,8 +19,9 @@ pub struct Screen {
     /// would otherwise have exceeded the line capacity
     pub lines: VecDeque<Line>,
 
-    /// Maximum number of lines of scrollback
-    pub scrollback_size: usize,
+    /// config so we can access Maximum number of lines of scrollback
+    config: Arc<dyn TerminalConfiguration>,
+    allow_scrollback: bool,
 
     /// Physical, visible height of the screen (not including scrollback)
     pub physical_rows: usize,
@@ -27,25 +29,44 @@ pub struct Screen {
     pub physical_cols: usize,
 }
 
+fn scrollback_size(config: &Arc<dyn TerminalConfiguration>, allow_scrollback: bool) -> usize {
+    if allow_scrollback {
+        config.scrollback_size()
+    } else {
+        0
+    }
+}
+
 impl Screen {
     /// Create a new Screen with the specified dimensions.
     /// The Cells in the viewable portion of the screen are set to the
     /// default cell attributes.
-    pub fn new(physical_rows: usize, physical_cols: usize, scrollback_size: usize) -> Screen {
+    pub fn new(
+        physical_rows: usize,
+        physical_cols: usize,
+        config: &Arc<dyn TerminalConfiguration>,
+        allow_scrollback: bool,
+    ) -> Screen {
         let physical_rows = physical_rows.max(1);
         let physical_cols = physical_cols.max(1);
 
-        let mut lines = VecDeque::with_capacity(physical_rows + scrollback_size);
+        let mut lines =
+            VecDeque::with_capacity(physical_rows + scrollback_size(config, allow_scrollback));
         for _ in 0..physical_rows {
             lines.push_back(Line::with_width(physical_cols));
         }
 
         Screen {
             lines,
-            scrollback_size,
+            config: Arc::clone(config),
+            allow_scrollback,
             physical_rows,
             physical_cols,
         }
+    }
+
+    fn scrollback_size(&self) -> usize {
+        scrollback_size(&self.config, self.allow_scrollback)
     }
 
     /// Resize the physical, viewable portion of the screen
@@ -53,7 +74,7 @@ impl Screen {
         let physical_rows = physical_rows.max(1);
         let physical_cols = physical_cols.max(1);
 
-        let capacity = physical_rows + self.scrollback_size;
+        let capacity = physical_rows + self.scrollback_size();
         let current_capacity = self.lines.capacity();
         if capacity > current_capacity {
             self.lines.reserve(capacity - current_capacity);
@@ -209,7 +230,7 @@ impl Screen {
             // Remove the scrolled lines
             num_rows
         } else {
-            let max_allowed = self.physical_rows + self.scrollback_size;
+            let max_allowed = self.physical_rows + self.scrollback_size();
             if self.lines.len() + num_rows >= max_allowed {
                 (self.lines.len() + num_rows) - max_allowed
             } else {

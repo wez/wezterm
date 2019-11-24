@@ -86,6 +86,16 @@ struct TestTerm {
     host: TestHost,
 }
 
+#[derive(Debug)]
+struct TestTermConfig {
+    scrollback: usize,
+}
+impl TerminalConfiguration for TestTermConfig {
+    fn scrollback_size(&self) -> usize {
+        self.scrollback
+    }
+}
+
 impl TestTerm {
     fn new(height: usize, width: usize, scrollback: usize) -> Self {
         Self {
@@ -94,8 +104,8 @@ impl TestTerm {
                 width,
                 height * 16,
                 width * 8,
-                scrollback,
                 Vec::new(),
+                Arc::new(TestTermConfig { scrollback }),
             ),
             host: TestHost::new(),
         }

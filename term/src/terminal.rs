@@ -72,8 +72,8 @@ impl Terminal {
         physical_cols: usize,
         pixel_width: usize,
         pixel_height: usize,
-        scrollback_size: usize,
         hyperlink_rules: Vec<HyperlinkRule>,
+        config: Arc<dyn TerminalConfiguration>,
     ) -> Terminal {
         Terminal {
             state: TerminalState::new(
@@ -81,8 +81,8 @@ impl Terminal {
                 physical_cols,
                 pixel_height,
                 pixel_width,
-                scrollback_size,
                 hyperlink_rules,
+                config,
             ),
             parser: Parser::new(),
         }

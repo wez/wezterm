@@ -26,6 +26,7 @@ mod daemon;
 mod font;
 mod keys;
 mod ssh;
+mod terminal;
 mod tls;
 mod unix;
 pub use color::*;
@@ -33,6 +34,7 @@ pub use daemon::*;
 pub use font::*;
 pub use keys::*;
 pub use ssh::*;
+pub use terminal::*;
 pub use tls::*;
 pub use unix::*;
 
@@ -214,7 +216,8 @@ pub struct Config {
     pub colors: Option<Palette>,
 
     /// How many lines of scrollback you want to retain
-    pub scrollback_lines: Option<usize>,
+    #[serde(default = "default_scrollback_lines")]
+    pub scrollback_lines: usize,
 
     /// If no `prog` is specified on the command line, use this
     /// instead of running the user's shell.
@@ -457,6 +460,10 @@ fn default_true() -> bool {
 
 fn default_swap_backspace_and_delete() -> bool {
     cfg!(target_os = "macos")
+}
+
+fn default_scrollback_lines() -> usize {
+    3500
 }
 
 fn default_hyperlink_rules() -> Vec<hyperlink::Rule> {

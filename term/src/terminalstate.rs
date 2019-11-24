@@ -100,9 +100,13 @@ impl DerefMut for ScreenOrAlt {
 }
 
 impl ScreenOrAlt {
-    pub fn new(physical_rows: usize, physical_cols: usize, scrollback_size: usize) -> Self {
-        let screen = Screen::new(physical_rows, physical_cols, scrollback_size);
-        let alt_screen = Screen::new(physical_rows, physical_cols, 0);
+    pub fn new(
+        physical_rows: usize,
+        physical_cols: usize,
+        config: &Arc<dyn TerminalConfiguration>,
+    ) -> Self {
+        let screen = Screen::new(physical_rows, physical_cols, config, true);
+        let alt_screen = Screen::new(physical_rows, physical_cols, config, false);
 
         Self {
             screen,
@@ -140,6 +144,8 @@ impl ScreenOrAlt {
 }
 
 pub struct TerminalState {
+    config: Arc<dyn TerminalConfiguration>,
+
     screen: ScreenOrAlt,
     /// The current set of attributes in effect for the next
     /// attempt to print to the display
@@ -203,6 +209,7 @@ pub struct TerminalState {
 
     tabs: TabStop,
 
+    /// FIXME: replace hyperlink_rules with config access
     hyperlink_rules: Vec<HyperlinkRule>,
 
     /// The terminal title string
@@ -211,20 +218,6 @@ pub struct TerminalState {
 
     pixel_width: usize,
     pixel_height: usize,
-}
-
-fn is_double_click_word(s: &str) -> bool {
-    // TODO: add configuration for this
-    if s.len() > 1 {
-        true
-    } else if s.len() == 1 {
-        match s.chars().nth(0).unwrap() {
-            ' ' | '\t' | '\n' | '{' | '[' | '}' | ']' | '(' | ')' | '"' | '\'' => false,
-            _ => true,
-        }
-    } else {
-        false
-    }
 }
 
 fn encode_modifiers(mods: KeyModifiers) -> u8 {
@@ -267,12 +260,13 @@ impl TerminalState {
         physical_cols: usize,
         pixel_width: usize,
         pixel_height: usize,
-        scrollback_size: usize,
         hyperlink_rules: Vec<HyperlinkRule>,
+        config: Arc<dyn TerminalConfiguration>,
     ) -> TerminalState {
-        let screen = ScreenOrAlt::new(physical_rows, physical_cols, scrollback_size);
+        let screen = ScreenOrAlt::new(physical_rows, physical_cols, &config);
 
         TerminalState {
+            config,
             screen,
             pen: CellAttributes::default(),
             cursor: CursorPosition::default(),
@@ -483,7 +477,7 @@ impl TerminalState {
             - self.viewport_offset as ScrollbackOrVisibleRowIndex;
         let idx = self.screen().scrollback_or_visible_row(y);
         let selection_range = match self.screen().lines[idx]
-            .compute_double_click_range(event.x, is_double_click_word)
+            .compute_double_click_range(event.x, |s| self.config.is_double_click_word(s))
         {
             DoubleClickRange::Range(click_range) => SelectionRange {
                 start: SelectionCoordinate {
@@ -508,7 +502,7 @@ impl TerminalState {
 
                 for y_cont in idx + 1..self.screen().lines.len() {
                     match self.screen().lines[y_cont]
-                        .compute_double_click_range(0, is_double_click_word)
+                        .compute_double_click_range(0, |s| self.config.is_double_click_word(s))
                     {
                         DoubleClickRange::Range(range_end) => {
                             if range_end.end > range_end.start {
@@ -1089,8 +1083,10 @@ impl TerminalState {
         writer.write_all(to_send.as_bytes())?;
 
         // Reset the viewport if we sent data to the parser
-        if !to_send.is_empty() && self.viewport_offset != 0 {
-            // TODO: some folks like to configure this behavior.
+        if !to_send.is_empty()
+            && self.viewport_offset != 0
+            && self.config.scroll_to_bottom_on_key_input()
+        {
             self.set_scroll_viewport(0);
         }
 

@@ -195,10 +195,10 @@ impl Line {
         s
     }
 
-    pub fn compute_double_click_range(
+    pub fn compute_double_click_range<F: Fn(&str) -> bool>(
         &self,
         click_col: usize,
-        is_word: fn(s: &str) -> bool,
+        is_word: F,
     ) -> DoubleClickRange {
         let mut lower = click_col;
         let mut upper = click_col;

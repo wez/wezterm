@@ -100,8 +100,8 @@ impl Domain for LocalDomain {
             size.cols as usize,
             size.pixel_width as usize,
             size.pixel_height as usize,
-            config.scrollback_lines.unwrap_or(3500),
             config.hyperlink_rules.clone(),
+            std::sync::Arc::new(crate::config::TermConfig {}),
         );
 
         let mux = Mux::get().unwrap();
