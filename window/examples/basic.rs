@@ -4,7 +4,7 @@ use std::any::Any;
 
 struct MyWindow {
     allow_close: bool,
-    cursor_pos: (u16, u16),
+    cursor_pos: Point,
 }
 
 impl Drop for MyWindow {
@@ -51,7 +51,7 @@ impl WindowCallbacks for MyWindow {
 
         context.draw_line(
             Point::new(0, 0),
-            Point::new(self.cursor_pos.0 as isize, self.cursor_pos.1 as isize),
+            self.cursor_pos,
             Color::rgb(0xff, 0xff, 0x80),
             Operator::Over,
         );
@@ -69,7 +69,7 @@ impl WindowCallbacks for MyWindow {
 
     fn mouse_event(&mut self, event: &MouseEvent, ctx: &dyn WindowOps) {
         eprintln!("{:?}", event);
-        self.cursor_pos = (event.x, event.y);
+        self.cursor_pos = event.coords;
         ctx.invalidate();
         ctx.set_cursor(Some(MouseCursor::Arrow));
 
@@ -91,7 +91,7 @@ fn spawn_window() -> Fallible<()> {
         600,
         Box::new(MyWindow {
             allow_close: false,
-            cursor_pos: (100, 200),
+            cursor_pos: Point::new(100, 200),
         }),
     )?;
 

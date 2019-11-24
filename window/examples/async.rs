@@ -4,7 +4,7 @@ use std::any::Any;
 
 struct MyWindow {
     allow_close: bool,
-    cursor_pos: (u16, u16),
+    cursor_pos: Point,
 }
 
 impl Drop for MyWindow {
@@ -45,7 +45,7 @@ impl WindowCallbacks for MyWindow {
     }
 
     fn mouse_event(&mut self, event: &MouseEvent, ctx: &dyn WindowOps) {
-        self.cursor_pos = (event.x, event.y);
+        self.cursor_pos = event.coords;
         ctx.invalidate();
         ctx.set_cursor(Some(MouseCursor::Arrow));
 
@@ -67,7 +67,7 @@ async fn spawn_window() -> Result<(), Box<dyn std::error::Error>> {
         600,
         Box::new(MyWindow {
             allow_close: false,
-            cursor_pos: (100, 200),
+            cursor_pos: Point::new(100, 200),
         }),
     )?;
 
