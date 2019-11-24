@@ -209,8 +209,8 @@ pub struct TerminalState {
 
     tabs: TabStop,
 
-    /// FIXME: replace hyperlink_rules with config access
     hyperlink_rules: Vec<HyperlinkRule>,
+    hyperlink_rules_generation: usize,
 
     /// The terminal title string
     title: String,
@@ -260,10 +260,11 @@ impl TerminalState {
         physical_cols: usize,
         pixel_width: usize,
         pixel_height: usize,
-        hyperlink_rules: Vec<HyperlinkRule>,
         config: Arc<dyn TerminalConfiguration>,
     ) -> TerminalState {
         let screen = ScreenOrAlt::new(physical_rows, physical_cols, &config);
+
+        let (hyperlink_rules_generation, hyperlink_rules) = config.hyperlink_rules();
 
         TerminalState {
             config,
@@ -289,6 +290,7 @@ impl TerminalState {
             selection_start: None,
             tabs: TabStop::new(physical_cols, 8),
             hyperlink_rules,
+            hyperlink_rules_generation,
             title: "wezterm".to_string(),
             palette: ColorPalette::default(),
             pixel_height,
@@ -440,9 +442,29 @@ impl TerminalState {
         }
     }
 
+    /// If the configuration changed, obtain the new hyperlink rules
+    /// from it and invalidate any implicit hyperlinks so that we
+    /// re-apply the rules to the display
+    fn refresh_hyperlink_rules(&mut self) {
+        if self.config.generation() != self.hyperlink_rules_generation {
+            let (generation, rules) = self.config.hyperlink_rules();
+            self.hyperlink_rules = rules;
+            self.hyperlink_rules_generation = generation;
+
+            // dirty all lines as any of them may have changed
+            // their hyperlinkyness
+            let screen = self.screen_mut();
+            for line in &mut screen.lines {
+                line.invalidate_implicit_hyperlinks();
+                line.set_dirty();
+            }
+        }
+    }
+
     /// Called after a mouse move or viewport scroll to recompute the
     /// current highlight
     fn recompute_highlight(&mut self) {
+        self.refresh_hyperlink_rules();
         let line_idx = self.mouse_position.y as ScrollbackOrVisibleRowIndex
             - self.viewport_offset as ScrollbackOrVisibleRowIndex;
         let x = self.mouse_position.x;

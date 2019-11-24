@@ -2,7 +2,6 @@ use super::*;
 use failure::Fallible;
 use std::sync::Arc;
 use termwiz::escape::parser::Parser;
-use termwiz::hyperlink::Rule as HyperlinkRule;
 
 pub trait Clipboard {
     fn get_contents(&self) -> Fallible<String>;
@@ -72,7 +71,6 @@ impl Terminal {
         physical_cols: usize,
         pixel_width: usize,
         pixel_height: usize,
-        hyperlink_rules: Vec<HyperlinkRule>,
         config: Arc<dyn TerminalConfiguration>,
     ) -> Terminal {
         Terminal {
@@ -81,7 +79,6 @@ impl Terminal {
                 physical_cols,
                 pixel_height,
                 pixel_width,
-                hyperlink_rules,
                 config,
             ),
             parser: Parser::new(),

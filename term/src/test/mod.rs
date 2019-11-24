@@ -104,7 +104,6 @@ impl TestTerm {
                 width,
                 height * 16,
                 width * 8,
-                Vec::new(),
                 Arc::new(TestTermConfig { scrollback }),
             ),
             host: TestHost::new(),

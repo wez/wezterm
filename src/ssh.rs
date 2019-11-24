@@ -345,14 +345,11 @@ impl Domain for RemoteSshDomain {
         let child = pair.slave.spawn_command(cmd)?;
         log::info!("spawned: {:?}", child);
 
-        let config = configuration();
-
         let mut terminal = term::Terminal::new(
             size.rows as usize,
             size.cols as usize,
             size.pixel_width as usize,
             size.pixel_height as usize,
-            config.hyperlink_rules.clone(),
             std::sync::Arc::new(crate::config::TermConfig {}),
         );
 

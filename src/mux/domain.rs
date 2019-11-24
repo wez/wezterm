@@ -100,7 +100,6 @@ impl Domain for LocalDomain {
             size.cols as usize,
             size.pixel_width as usize,
             size.pixel_height as usize,
-            config.hyperlink_rules.clone(),
             std::sync::Arc::new(crate::config::TermConfig {}),
         );
 
