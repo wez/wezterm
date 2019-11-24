@@ -5,13 +5,14 @@ use crate::color::Color;
 use crate::connection::ConnectionOps;
 use crate::{
     Dimensions, KeyCode, KeyEvent, Modifiers, MouseButtons, MouseCursor, MouseEvent,
-    MouseEventKind, MousePress, Operator, PaintContext, Point, Rect, WindowCallbacks, WindowOps,
-    WindowOpsMut,
+    MouseEventKind, MousePress, Operator, PaintContext, Point, Rect, ScreenPoint, WindowCallbacks,
+    WindowOps, WindowOpsMut,
 };
 use failure::Fallible;
 use promise::Future;
 use std::any::Any;
 use std::cell::RefCell;
+use std::convert::TryInto;
 use std::io::Error as IoError;
 use std::os::windows::ffi::OsStringExt;
 use std::ptr::{null, null_mut};
@@ -611,6 +612,15 @@ fn mouse_coords(lparam: LPARAM) -> Point {
     Point::new(x, y)
 }
 
+fn client_to_screen(hwnd: HWND, point: Point) -> ScreenPoint {
+    let mut point = POINT {
+        x: point.x.try_into().unwrap(),
+        y: point.y.try_into().unwrap(),
+    };
+    unsafe { ClientToScreen(hwnd, &mut point as *mut _) };
+    ScreenPoint::new(point.x.try_into().unwrap(), point.y.try_into().unwrap())
+}
+
 fn apply_mouse_cursor(cursor: Option<MouseCursor>) {
     match cursor {
         None => unsafe {
@@ -647,6 +657,7 @@ unsafe fn mouse_button(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) ->
                 _ => return None,
             },
             coords,
+            screen_coords: client_to_screen(hwnd, coords),
             mouse_buttons,
             modifiers,
         };
@@ -668,6 +679,7 @@ unsafe fn mouse_move(hwnd: HWND, _msg: UINT, wparam: WPARAM, lparam: LPARAM) -> 
         let event = MouseEvent {
             kind: MouseEventKind::Move,
             coords,
+            screen_coords: client_to_screen(hwnd, coords),
             mouse_buttons,
             modifiers,
         };
@@ -695,6 +707,7 @@ unsafe fn mouse_wheel(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> 
                 MouseEventKind::VertWheel(position)
             },
             coords,
+            screen_coords: client_to_screen(hwnd, coords),
             mouse_buttons,
             modifiers,
         };
