@@ -8,7 +8,6 @@ use self::hbwrap as harfbuzz;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
-use std::sync::Arc;
 
 pub mod system;
 pub use self::system::*;
@@ -28,7 +27,7 @@ pub mod fontloader;
 #[cfg(any(target_os = "macos", windows))]
 pub mod fontloader_and_freetype;
 
-use super::config::{configuration, Config, TextStyle};
+use super::config::{configuration, ConfigHandle, TextStyle};
 use term::CellAttributes;
 
 type FontPtr = Rc<RefCell<Box<dyn NamedFont>>>;
@@ -194,7 +193,7 @@ impl FontConfiguration {
     /// cell attributes.
     pub fn match_style<'a>(
         &self,
-        config: &'a Arc<Config>,
+        config: &'a ConfigHandle,
         attrs: &CellAttributes,
     ) -> &'a TextStyle {
         // a little macro to avoid boilerplate for matching the rules.

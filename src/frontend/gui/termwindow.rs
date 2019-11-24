@@ -2,7 +2,7 @@ use super::quad::*;
 use super::renderstate::*;
 use super::utilsprites::RenderMetrics;
 use crate::clipboard::SystemClipboard;
-use crate::config::{configuration, Config};
+use crate::config::{configuration, ConfigHandle};
 use crate::font::{FontConfiguration, FontSystemSelection};
 use crate::frontend::gui::tabbar::{TabBarItem, TabBarState};
 use crate::frontend::{executor, front_end};
@@ -356,7 +356,7 @@ impl WindowCallbacks for TermWindow {
 
 impl TermWindow {
     pub fn new_window(
-        config: &Arc<Config>,
+        config: &ConfigHandle,
         fontconfig: &Rc<FontConfiguration>,
         tab: &Rc<dyn Tab>,
         mux_window_id: MuxWindowId,

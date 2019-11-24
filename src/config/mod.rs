@@ -39,7 +39,7 @@ pub use unix::*;
 lazy_static! {
     static ref HOME_DIR: PathBuf = dirs::home_dir().expect("can't find HOME dir");
     static ref RUNTIME_DIR: PathBuf = compute_runtime_dir().unwrap();
-    static ref CONFIG: ConfigHandle = ConfigHandle::new();
+    static ref CONFIG: Configuration = Configuration::new();
 }
 
 /// Discard the current configuration and replace it with
@@ -49,13 +49,13 @@ pub fn use_default_configuration() {
 }
 
 /// Returns a handle to the current configuration
-pub fn configuration() -> Arc<Config> {
+pub fn configuration() -> ConfigHandle {
     CONFIG.get()
 }
 
 /// If there was an error loading the preferred configuration,
 /// return it, otherwise return the current configuration
-pub fn configuration_result() -> Result<Arc<Config>, Error> {
+pub fn configuration_result() -> Result<ConfigHandle, Error> {
     if let Some(error) = CONFIG.get_error() {
         failure::bail!("{}", error);
     }
@@ -65,6 +65,7 @@ pub fn configuration_result() -> Result<Arc<Config>, Error> {
 struct ConfigInner {
     config: Arc<Config>,
     error: Option<String>,
+    generation: usize,
 }
 
 impl ConfigInner {
@@ -76,10 +77,12 @@ impl ConfigInner {
             Ok(config) => Self {
                 config: Arc::new(config),
                 error: None,
+                generation: 0,
             },
             Err(err) => Self {
                 config: Arc::new(Config::default_config()),
                 error: Some(err.to_string()),
+                generation: 0,
             },
         }
     }
@@ -94,6 +97,7 @@ impl ConfigInner {
             Ok(config) => {
                 self.config = Arc::new(config);
                 self.error.take();
+                self.generation += 1;
             }
             Err(err) => {
                 self.error.replace(err.to_string());
@@ -107,14 +111,15 @@ impl ConfigInner {
     fn use_defaults(&mut self) {
         self.config = Arc::new(Config::default_config());
         self.error.take();
+        self.generation += 1;
     }
 }
 
-pub struct ConfigHandle {
+pub struct Configuration {
     inner: Mutex<ConfigInner>,
 }
 
-impl ConfigHandle {
+impl Configuration {
     pub fn new() -> Self {
         Self {
             inner: Mutex::new(ConfigInner::load()),
@@ -122,8 +127,12 @@ impl ConfigHandle {
     }
 
     /// Returns the effective configuration.
-    pub fn get(&self) -> Arc<Config> {
-        Arc::clone(&self.inner.lock().unwrap().config)
+    pub fn get(&self) -> ConfigHandle {
+        let inner = self.inner.lock().unwrap();
+        ConfigHandle {
+            config: Arc::clone(&inner.config),
+            generation: inner.generation,
+        }
     }
 
     /// Reset the configuration to defaults
@@ -150,6 +159,29 @@ impl ConfigHandle {
     pub fn clear_error(&self) -> Option<String> {
         let mut inner = self.inner.lock().unwrap();
         inner.error.take()
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct ConfigHandle {
+    config: Arc<Config>,
+    generation: usize,
+}
+
+impl ConfigHandle {
+    /// Returns the generation number for the configuration,
+    /// allowing consuming code to know whether the config
+    /// has been reloading since they last derived some
+    /// information from the configuration
+    pub fn generation(&self) -> usize {
+        self.generation
+    }
+}
+
+impl std::ops::Deref for ConfigHandle {
+    type Target = Config;
+    fn deref(&self) -> &Config {
+        &*self.config
     }
 }
 

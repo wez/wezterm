@@ -342,7 +342,7 @@ impl SshParameters {
     }
 }
 
-fn run_ssh(config: Arc<config::Config>, opts: &SshCommand) -> Fallible<()> {
+fn run_ssh(config: config::ConfigHandle, opts: &SshCommand) -> Fallible<()> {
     let front_end_selection = opts.front_end.unwrap_or(config.front_end);
     let gui = front_end_selection.try_new()?;
 
@@ -410,7 +410,7 @@ fn run_ssh(config: Arc<config::Config>, opts: &SshCommand) -> Fallible<()> {
     gui.run_forever()
 }
 
-fn run_serial(config: Arc<config::Config>, opts: &SerialCommand) -> Fallible<()> {
+fn run_serial(config: config::ConfigHandle, opts: &SerialCommand) -> Fallible<()> {
     let font_system = opts.font_system.unwrap_or(config.font_system);
     font_system.set_default();
 
@@ -437,7 +437,7 @@ fn run_serial(config: Arc<config::Config>, opts: &SerialCommand) -> Fallible<()>
     gui.run_forever()
 }
 
-fn client_domains(config: &Arc<config::Config>) -> Vec<ClientDomainConfig> {
+fn client_domains(config: &config::ConfigHandle) -> Vec<ClientDomainConfig> {
     let mut domains = vec![];
     for unix_dom in &config.unix_domains {
         domains.push(ClientDomainConfig::Unix(unix_dom.clone()));
@@ -453,7 +453,7 @@ fn client_domains(config: &Arc<config::Config>) -> Vec<ClientDomainConfig> {
     domains
 }
 
-fn run_mux_client(config: Arc<config::Config>, opts: &ConnectCommand) -> Fallible<()> {
+fn run_mux_client(config: config::ConfigHandle, opts: &ConnectCommand) -> Fallible<()> {
     let client_config = client_domains(&config)
         .into_iter()
         .find(|c| c.name() == opts.domain_name)
@@ -500,7 +500,7 @@ fn run_mux_client(config: Arc<config::Config>, opts: &ConnectCommand) -> Fallibl
     gui.run_forever()
 }
 
-fn run_terminal_gui(config: Arc<config::Config>, opts: &StartCommand) -> Fallible<()> {
+fn run_terminal_gui(config: config::ConfigHandle, opts: &StartCommand) -> Fallible<()> {
     #[cfg(unix)]
     {
         if opts.daemonize {
