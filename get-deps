@@ -17,7 +17,7 @@ if test -e /etc/centos-release || test -e /etc/fedora-release; then
 fi
 
 case `lsb_release -ds` in
-  Ubuntu*|Debian*)
+  Ubuntu*|Debian*|PureOS*)
     apt-get install -y \
       bsdutils \
       cmake \
