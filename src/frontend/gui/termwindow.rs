@@ -606,6 +606,7 @@ impl TermWindow {
     }
 
     fn config_was_reloaded(&mut self) {
+        self.keys = KeyMap::new();
         self.config_generation = configuration().generation();
         let dimensions = self.dimensions;
         self.apply_scale_change(&dimensions, self.fonts.get_font_scale());
