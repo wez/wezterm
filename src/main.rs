@@ -634,9 +634,8 @@ fn run() -> Result<(), Error> {
     pretty_env_logger::init();
 
     let opts = Opt::from_args();
-
-    if opts.skip_config {
-        config::use_default_configuration();
+    if !opts.skip_config {
+        config::reload();
     }
     let config = config::configuration_result()?;
 

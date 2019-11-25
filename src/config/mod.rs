@@ -46,6 +46,7 @@ lazy_static! {
 
 /// Discard the current configuration and replace it with
 /// the default configuration
+#[allow(dead_code)]
 pub fn use_default_configuration() {
     CONFIG.use_defaults();
 }
@@ -72,25 +73,59 @@ struct ConfigInner {
     config: Arc<Config>,
     error: Option<String>,
     generation: usize,
+    watcher: Option<notify::RecommendedWatcher>,
 }
 
 impl ConfigInner {
-    /// Attempt to load the user's configuration.
-    /// On failure, capture the error message and load the
-    /// default configuration instead.
-    fn load() -> Self {
-        match Config::load() {
-            Ok(config) => Self {
-                config: Arc::new(config),
-                error: None,
-                generation: 0,
-            },
-            Err(err) => Self {
-                config: Arc::new(Config::default_config()),
-                error: Some(err.to_string()),
-                generation: 0,
-            },
+    fn new() -> Self {
+        Self {
+            config: Arc::new(Config::default_config()),
+            error: None,
+            generation: 0,
+            watcher: None,
         }
+    }
+
+    fn watch_path(&mut self, path: PathBuf) {
+        if self.watcher.is_none() {
+            let (tx, rx) = std::sync::mpsc::channel();
+            let watcher = notify::watcher(tx, std::time::Duration::from_millis(200)).unwrap();
+            std::thread::spawn(move || {
+                // block until we get an event
+                use notify::DebouncedEvent;
+
+                fn extract_path(event: DebouncedEvent) -> Option<PathBuf> {
+                    match event {
+                        // Defer acting until `Write`, otherwise we'll
+                        // reload twice in quick succession
+                        DebouncedEvent::NoticeWrite(_) => None,
+                        DebouncedEvent::NoticeRemove(path)
+                        | DebouncedEvent::Create(path)
+                        | DebouncedEvent::Write(path)
+                        | DebouncedEvent::Chmod(path)
+                        | DebouncedEvent::Remove(path)
+                        | DebouncedEvent::Rename(path, _) => Some(path),
+                        DebouncedEvent::Error(_, path) => path,
+                        DebouncedEvent::Rescan => None,
+                    }
+                }
+
+                while let Ok(event) = rx.recv() {
+                    log::trace!("event:{:?}", event);
+                    if let Some(path) = extract_path(event) {
+                        log::error!("path {} changed, reload config", path.display());
+                        reload();
+                    }
+                }
+            });
+            self.watcher.replace(watcher);
+        }
+        self.watcher.as_mut().map(|watcher| {
+            use notify::Watcher;
+            watcher
+                .watch(path, notify::RecursiveMode::NonRecursive)
+                .ok();
+        });
     }
 
     /// Attempt to load the user's configuration.
@@ -100,11 +135,14 @@ impl ConfigInner {
     /// replace any captured error message.
     fn reload(&mut self) {
         match Config::load() {
-            Ok(config) => {
+            Ok((config, path)) => {
                 self.config = Arc::new(config);
                 self.error.take();
                 self.generation += 1;
                 log::error!("Reloaded configuration! generation={}", self.generation);
+                if let Some(path) = path {
+                    self.watch_path(path);
+                }
             }
             Err(err) => {
                 log::error!("While reloading configuration: {}", err);
@@ -130,7 +168,7 @@ pub struct Configuration {
 impl Configuration {
     pub fn new() -> Self {
         Self {
-            inner: Mutex::new(ConfigInner::load()),
+            inner: Mutex::new(ConfigInner::new()),
         }
     }
 
@@ -164,6 +202,7 @@ impl Configuration {
 
     /// Returns any captured error message, and clears
     /// it from the config state.
+    #[allow(dead_code)]
     pub fn clear_error(&self) -> Option<String> {
         let mut inner = self.inner.lock().unwrap();
         inner.error.take()
@@ -330,7 +369,7 @@ impl Default for Config {
 }
 
 impl Config {
-    pub fn load() -> Result<Self, Error> {
+    pub fn load() -> Result<(Self, Option<PathBuf>), Error> {
         // Note that the directories crate has methods for locating project
         // specific config directories, but only returns one of them, not
         // multiple.  In addition, it spawns a lot of subprocesses,
@@ -361,10 +400,10 @@ impl Config {
             // Compute but discard the key bindings here so that we raise any
             // problems earlier than we use them.
             let _ = cfg.key_bindings()?;
-            return Ok(cfg.compute_extra_defaults());
+            return Ok((cfg.compute_extra_defaults(), Some(p.to_path_buf())));
         }
 
-        Ok(Self::default().compute_extra_defaults())
+        Ok((Self::default().compute_extra_defaults(), None))
     }
 
     pub fn default_config() -> Self {

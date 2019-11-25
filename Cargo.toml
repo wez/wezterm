@@ -33,6 +33,7 @@ libc = "0.2"
 log = "0.4"
 open = "1.2"
 native-tls = "0.2"
+notify = "4.0"
 palette = "0.4"
 portable-pty = { path = "pty", features = ["serde_support", "ssh"]}
 promise = { path = "promise" }
