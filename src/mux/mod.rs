@@ -1,4 +1,3 @@
-use crate::config::configuration;
 use crate::frontend::{executor, low_pri_executor};
 use crate::mux::tab::{Tab, TabId};
 use crate::mux::window::{Window, WindowId};
@@ -48,7 +47,7 @@ fn read_from_tab_pty(tab_id: TabId, mut reader: Box<dyn std::io::Read>) {
     const BUFSIZE: usize = 32 * 1024;
     let mut buf = [0; BUFSIZE];
 
-    let mut lim = RateLimiter::new(configuration().ratelimit_output_bytes_per_second);
+    let mut lim = RateLimiter::new(|config| config.ratelimit_output_bytes_per_second);
 
     loop {
         match reader.read(&mut buf) {

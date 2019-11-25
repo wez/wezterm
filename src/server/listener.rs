@@ -425,9 +425,9 @@ struct ClientSurfaceState {
 
 impl ClientSurfaceState {
     fn new(cols: usize, rows: usize) -> Self {
-        let push_limiter = RateLimiter::new(configuration().ratelimit_mux_output_pushes_per_second);
+        let push_limiter = RateLimiter::new(|config| config.ratelimit_mux_output_pushes_per_second);
         let update_limiter =
-            RateLimiter::new(configuration().ratelimit_mux_output_scans_per_second);
+            RateLimiter::new(|config| config.ratelimit_mux_output_scans_per_second);
         let surface = Surface::new(cols, rows);
         Self {
             surface,
