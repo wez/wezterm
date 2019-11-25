@@ -7,8 +7,12 @@ title: Configuration
 `wezterm` will look for a TOML configuration file in `$HOME/.config/wezterm/wezterm.toml`,
 and then in `$HOME/.wezterm.toml`, stopping at the first file it finds.
 
+`wezterm` will watch the config file that it loads; if/when it changes, the configuration
+will be automatically reloaded and the majority of options will take effect immediately.
+
 Configuration is currently very simple and the format is considered unstable and subject
 to change.  The code for configuration can be found in [`src/config.rs`](https://github.com/wez/wezterm/blob/master/src/config.rs).
+
 
 ### Font Related Configuration
 
