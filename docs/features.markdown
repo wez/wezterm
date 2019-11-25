@@ -12,14 +12,16 @@ title: Feature list
 * xterm style selection of text with mouse; paste selection via `Shift-Insert` (bracketed paste is supported!)
 * SGR style mouse reporting (works in vim and tmux)
 * Render underline, double-underline, italic, bold, strikethrough (most other terminal emulators do not support as many render attributes)
-* Configuration via a <a href="configuration.html">configuration file</a>
+* Configuration via a <a href="configuration.html">configuration file</a> with hot reloading
 * Multiple Windows (Hotkey: `Super-N`)
 * Tabs (Hotkey: `Super-T`, next/prev: `Super-[` and `Super-]`, go-to: `Super-[1-9]`)
   <video width="80%" controls src="screenshots/wezterm-tabs.mp4" loop></video>
+* [SSH client with native tabs](ssh.html)
+* [Connect to serial ports for embedded/Arduino work](serial.html)
 * Connect to a local multiplexer server over unix domain sockets
-* Conenct to a remote multiplexer using TLS over TCP/IP
+* Connect to a remote multiplexer using SSH or TLS over TCP/IP
+* iTerm2 compatible image protocol support, and built-in [imgcat command](imgcat.html)
 
 ## Features for the Future
 
-* iTerm2 compatible image support
 * Sixel graphics support
