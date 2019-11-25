@@ -606,8 +606,11 @@ impl TermWindow {
     }
 
     fn config_was_reloaded(&mut self) {
+        let config = configuration();
+
+        self.show_tab_bar = config.enable_tab_bar;
         self.keys = KeyMap::new();
-        self.config_generation = configuration().generation();
+        self.config_generation = config.generation();
         let dimensions = self.dimensions;
         self.apply_scale_change(&dimensions, self.fonts.get_font_scale());
         self.apply_dimensions(&dimensions, true);
