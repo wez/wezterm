@@ -24,6 +24,43 @@ the mouse, clipboard and scrollback features of the terminal.
 Key bindings allow you to spawn new tabs in the default local domain,
 the domain of the current tab, or a specific numbered domain.
 
+## SSH Domains
+
+*wezterm also supports [regular ad-hoc ssh connections](ssh.html).
+This section of the docs refers to running a wezterm daemon on the remote end
+of a multiplexing session that uses ssh as a channel*
+
+A connection to a remote wezterm multiplexer made via an ssh connection is
+referred to as an *SSH domain*.  **A compatible version of wezterm must be
+installed on the remote system in order to use SSH domains**.
+SSH domains are supported on all systems via libssh2.
+
+To configure an SSH domain, place something like the following in
+your `wezterm.toml` file:
+
+```
+[[ssh_domains]]
+# This name identifies the domain
+name = "my.server"
+# The address to connect to
+remote_address = "192.168.1.1"
+# The username to use on the remote host
+username = "wez"
+```
+
+To connect to the system, run:
+
+```
+$ wezterm connect my.server
+```
+
+This will launch an SSH session that connects to the specified address
+and may pop up authentication dialogs (using SSH keys for auth is
+strongly recommended!).  Once connected, it will attempt to spawn
+the wezterm multiplexer daemon on the remote host and connect to
+it via a unix domain socket using a similar mechanism to that
+described in the *Unix Domains* section below.
+
 ## Unix Domains
 
 A connection to a multiplexer made via a unix socket is referred to
@@ -37,13 +74,22 @@ when wezterm is launched:
 
 ```toml
 [[unix_domains]]
+name = "unix"
 connect_automatically = true
+```
+
+If you prefer to connect manually, omit the `connect_automatically` setting
+(or set it to `false`) and then run:
+
+```
+$ wezterm connect unix
 ```
 
 The possible configuration values are:
 
 ```toml
 [[unix_domains]]
+name = "unix"
 # If true, connect to this unix domain when `wezterm` is started
 connect_automatically = true
 
@@ -69,6 +115,7 @@ Inside your WSL instance, configure `wezterm.toml` with this snippet:
 
 ```toml
 [[unix_domains]]
+name = "wsl"
 # Override the default path to match the default on the host win32
 # filesystem.  This will allow the host to connect into the WSL
 # container.
@@ -81,11 +128,20 @@ In the host win32 configuration, use this snippet:
 
 ```toml
 [[unix_domains]]
+name = "wsl"
 connect_automatically = true
 serve_command = ["wsl", "wezterm", "start", "--daemonize", "--front-end", "MuxServer"]
 ```
 
 Now when you start wezterm you'll be presented with a WSL tab.
+
+You can also set `connect_automatically = false` and use:
+
+```
+$ wezterm connect wsl
+```
+
+to manually connect into your WSL instance.
 
 ## TLS Domains
 
@@ -120,6 +176,7 @@ For each server that you wish to connect to, add a client section like this:
 
 ```toml
 [[tls_clients]]
+name = "server.name"
 # The host:port for the remote host
 remote_address = "server.hostname:8080"
 # The client private key for your user.  Guard this carefully as
