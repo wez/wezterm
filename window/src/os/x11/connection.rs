@@ -1,9 +1,10 @@
 use super::keyboard::Keyboard;
 use crate::connection::ConnectionOps;
+use crate::os::x11::window::XWindowInner;
+use crate::os::Connection;
 use crate::spawn::*;
 use crate::tasks::{Task, Tasks};
 use crate::timerlist::{TimerEntry, TimerList};
-use crate::WindowInner;
 use failure::Fallible;
 use mio::unix::EventedFd;
 use mio::{Evented, Events, Poll, PollOpt, Ready, Token};
@@ -15,7 +16,7 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use xcb_util::ffi::keysyms::{xcb_key_symbols_alloc, xcb_key_symbols_free, xcb_key_symbols_t};
 
-pub struct Connection {
+pub struct XConnection {
     pub display: *mut x11::xlib::Display,
     conn: xcb_util::ewmh::Connection,
     pub screen_num: i32,
@@ -29,15 +30,15 @@ pub struct Connection {
     pub atom_targets: xcb::Atom,
     pub atom_clipboard: xcb::Atom,
     keysyms: *mut xcb_key_symbols_t,
-    pub(crate) windows: RefCell<HashMap<xcb::xproto::Window, Arc<Mutex<WindowInner>>>>,
+    pub(crate) windows: RefCell<HashMap<xcb::xproto::Window, Arc<Mutex<XWindowInner>>>>,
     should_terminate: RefCell<bool>,
     pub(crate) shm_available: bool,
-    tasks: Tasks,
+    pub(crate) tasks: Tasks,
     timers: RefCell<TimerList>,
     pub(crate) visual: xcb::xproto::Visualtype,
 }
 
-impl std::ops::Deref for Connection {
+impl std::ops::Deref for XConnection {
     type Target = xcb::Connection;
 
     fn deref(&self) -> &xcb::Connection {
@@ -45,7 +46,7 @@ impl std::ops::Deref for Connection {
     }
 }
 
-impl Evented for Connection {
+impl Evented for XConnection {
     fn register(
         &self,
         poll: &Poll,
@@ -142,17 +143,14 @@ fn server_supports_shm() -> bool {
     }
 }
 
-impl ConnectionOps for Connection {
+impl ConnectionOps for XConnection {
     fn spawn_task<F: std::future::Future<Output = ()> + 'static>(&self, future: F) {
         let id = self.tasks.add_task(Task(Box::pin(future)));
         Self::wake_task_by_id(id);
     }
 
-    fn wake_task_by_id(slot: usize) {
-        SpawnQueueExecutor {}.execute(Box::new(move || {
-            let conn = Connection::get().unwrap();
-            conn.tasks.poll_by_slot(slot);
-        }));
+    fn wake_task_by_id(_slot: usize) {
+        panic!("call wake_task_by_id on Connection rather than XConnection");
     }
 
     fn terminate_message_loop(&self) {
@@ -241,7 +239,7 @@ impl ConnectionOps for Connection {
     }
 }
 
-impl Connection {
+impl XConnection {
     fn process_queued_xcb(&self) -> Fallible<()> {
         match self.conn.poll_for_event() {
             None => match self.conn.has_error() {
@@ -283,7 +281,7 @@ impl Connection {
         Ok(())
     }
 
-    fn window_by_id(&self, window_id: xcb::xproto::Window) -> Option<Arc<Mutex<WindowInner>>> {
+    fn window_by_id(&self, window_id: xcb::xproto::Window) -> Option<Arc<Mutex<XWindowInner>>> {
         self.windows.borrow().get(&window_id).map(Arc::clone)
     }
 
@@ -299,7 +297,7 @@ impl Connection {
         Ok(())
     }
 
-    pub(crate) fn create_new() -> Fallible<Connection> {
+    pub(crate) fn create_new() -> Fallible<XConnection> {
         let display = unsafe { x11::xlib::XOpenDisplay(std::ptr::null()) };
         if display.is_null() {
             failure::bail!("failed to open display");
@@ -359,7 +357,7 @@ impl Connection {
         let cursor_font_name = "cursor";
         xcb::open_font_checked(&conn, cursor_font_id, cursor_font_name);
 
-        let conn = Connection {
+        let conn = XConnection {
             display,
             conn,
             cursor_font_id,
@@ -416,7 +414,10 @@ impl Connection {
         LowPriSpawnQueueExecutor {}
     }
 
-    pub(crate) fn with_window_inner<R, F: FnMut(&mut WindowInner) -> Fallible<R> + Send + 'static>(
+    pub(crate) fn with_window_inner<
+        R,
+        F: FnMut(&mut XWindowInner) -> Fallible<R> + Send + 'static,
+    >(
         window: xcb::xproto::Window,
         mut f: F,
     ) -> promise::Future<R>
@@ -427,7 +428,7 @@ impl Connection {
         let future = prom.get_future().unwrap();
 
         SpawnQueueExecutor {}.execute(Box::new(move || {
-            if let Some(handle) = Connection::get().unwrap().window_by_id(window) {
+            if let Some(handle) = Connection::get().unwrap().x11().window_by_id(window) {
                 let mut inner = handle.lock().unwrap();
                 prom.result(f(&mut inner));
             }
@@ -437,7 +438,7 @@ impl Connection {
     }
 }
 
-impl Drop for Connection {
+impl Drop for XConnection {
     fn drop(&mut self) {
         unsafe {
             xcb_key_symbols_free(self.keysyms);

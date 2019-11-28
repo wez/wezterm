@@ -2,6 +2,7 @@ use super::*;
 use crate::bitmaps::*;
 use crate::connection::ConnectionOps;
 use crate::os::xkeysyms;
+use crate::os::{Connection, Window};
 use crate::{
     Color, Dimensions, KeyEvent, MouseButtons, MouseCursor, MouseEvent, MouseEventKind, MousePress,
     Operator, PaintContext, Point, Rect, ScreenPoint, Size, WindowCallbacks, WindowOps,
@@ -15,9 +16,9 @@ use std::convert::TryInto;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 
-pub(crate) struct WindowInner {
+pub(crate) struct XWindowInner {
     window_id: xcb::xproto::Window,
-    conn: Rc<Connection>,
+    conn: Rc<XConnection>,
     callbacks: Box<dyn WindowCallbacks>,
     window_context: Context,
     width: u16,
@@ -40,7 +41,7 @@ fn enclosing_boundary_with(a: &Rect, b: &Rect) -> Rect {
     Rect::new(Point::new(left, top), Size::new(right - left, bottom - top))
 }
 
-impl Drop for WindowInner {
+impl Drop for XWindowInner {
     fn drop(&mut self) {
         xcb::destroy_window(self.conn.conn(), self.window_id);
     }
@@ -84,7 +85,7 @@ impl<'a> PaintContext for X11GraphicsContext<'a> {
     }
 }
 
-impl WindowInner {
+impl XWindowInner {
     pub fn paint(&mut self) -> Fallible<()> {
         let window_dimensions =
             Rect::from_size(Size::new(self.width as isize, self.height as isize));
@@ -199,7 +200,7 @@ impl WindowInner {
 
     fn do_mouse_event(&mut self, event: &MouseEvent) -> Fallible<()> {
         self.callbacks
-            .mouse_event(&event, &Window::from_id(self.window_id));
+            .mouse_event(&event, &XWindow::from_id(self.window_id));
         Ok(())
     }
 
@@ -270,7 +271,7 @@ impl WindowInner {
                         key_is_down: r == xcb::KEY_PRESS,
                     };
                     self.callbacks
-                        .key_event(&key, &Window::from_id(self.window_id));
+                        .key_event(&key, &XWindow::from_id(self.window_id));
                 }
             }
 
@@ -405,9 +406,9 @@ impl WindowInner {
 
 /// A Window!
 #[derive(Debug, Clone)]
-pub struct Window(xcb::xproto::Window);
+pub struct XWindow(xcb::xproto::Window);
 
-impl Window {
+impl XWindow {
     pub(crate) fn from_id(id: xcb::xproto::Window) -> Self {
         Self(id)
     }
@@ -421,11 +422,13 @@ impl Window {
         height: usize,
         callbacks: Box<dyn WindowCallbacks>,
     ) -> Fallible<Window> {
-        let conn = Connection::get().ok_or_else(|| {
-            failure::err_msg(
+        let conn = Connection::get()
+            .ok_or_else(|| {
+                failure::err_msg(
                 "new_window must be called on the gui thread after Connection::init has succeeded",
             )
-        })?;
+            })?
+            .x11();
 
         let window_id;
         let window = {
@@ -470,7 +473,7 @@ impl Window {
 
             let buffer_image = BufferImage::new(&conn, window_id, width, height);
 
-            Arc::new(Mutex::new(WindowInner {
+            Arc::new(Mutex::new(XWindowInner {
                 window_id,
                 conn: Rc::clone(&conn),
                 callbacks,
@@ -498,7 +501,7 @@ impl Window {
 
         // window.lock().unwrap().disable_decorations()?;
 
-        let window_handle = Window::from_id(window_id);
+        let window_handle = Window::X11(XWindow::from_id(window_id));
 
         window.lock().unwrap().callbacks.created(&window_handle);
 
@@ -511,13 +514,13 @@ impl Window {
     }
 }
 
-impl Drawable for Window {
+impl Drawable for XWindow {
     fn as_drawable(&self) -> xcb::xproto::Drawable {
         self.0
     }
 }
 
-impl WindowOpsMut for WindowInner {
+impl WindowOpsMut for XWindowInner {
     fn close(&mut self) {
         xcb::destroy_window(self.conn.conn(), self.window_id);
     }
@@ -526,7 +529,7 @@ impl WindowOpsMut for WindowInner {
         xcb::map_window(self.conn.conn(), self.window_id);
     }
     fn set_cursor(&mut self, cursor: Option<MouseCursor>) {
-        WindowInner::set_cursor(self, cursor).unwrap();
+        XWindowInner::set_cursor(self, cursor).unwrap();
     }
     fn invalidate(&mut self) {
         self.paint_all = true;
@@ -586,37 +589,37 @@ impl WindowOpsMut for WindowInner {
     }
 }
 
-impl WindowOps for Window {
+impl WindowOps for XWindow {
     fn close(&self) -> Future<()> {
-        Connection::with_window_inner(self.0, |inner| {
+        XConnection::with_window_inner(self.0, |inner| {
             inner.close();
             Ok(())
         })
     }
 
     fn hide(&self) -> Future<()> {
-        Connection::with_window_inner(self.0, |inner| {
+        XConnection::with_window_inner(self.0, |inner| {
             inner.hide();
             Ok(())
         })
     }
 
     fn show(&self) -> Future<()> {
-        Connection::with_window_inner(self.0, |inner| {
+        XConnection::with_window_inner(self.0, |inner| {
             inner.show();
             Ok(())
         })
     }
 
     fn set_cursor(&self, cursor: Option<MouseCursor>) -> Future<()> {
-        Connection::with_window_inner(self.0, move |inner| {
+        XConnection::with_window_inner(self.0, move |inner| {
             let _ = inner.set_cursor(cursor);
             Ok(())
         })
     }
 
     fn invalidate(&self) -> Future<()> {
-        Connection::with_window_inner(self.0, |inner| {
+        XConnection::with_window_inner(self.0, |inner| {
             inner.invalidate();
             Ok(())
         })
@@ -624,21 +627,21 @@ impl WindowOps for Window {
 
     fn set_title(&self, title: &str) -> Future<()> {
         let title = title.to_owned();
-        Connection::with_window_inner(self.0, move |inner| {
+        XConnection::with_window_inner(self.0, move |inner| {
             inner.set_title(&title);
             Ok(())
         })
     }
 
     fn set_inner_size(&self, width: usize, height: usize) -> Future<()> {
-        Connection::with_window_inner(self.0, move |inner| {
+        XConnection::with_window_inner(self.0, move |inner| {
             inner.set_inner_size(width, height);
             Ok(())
         })
     }
 
     fn set_window_position(&self, coords: ScreenPoint) -> Future<()> {
-        Connection::with_window_inner(self.0, move |inner| {
+        XConnection::with_window_inner(self.0, move |inner| {
             inner.set_window_position(coords);
             Ok(())
         })
@@ -652,8 +655,8 @@ impl WindowOps for Window {
         Self: Sized,
         R: Send + 'static,
     {
-        Connection::with_window_inner(self.0, move |inner| {
-            let window = Window(inner.window_id);
+        XConnection::with_window_inner(self.0, move |inner| {
+            let window = XWindow(inner.window_id);
             func(inner.callbacks.as_any(), &window)
         })
     }
@@ -676,8 +679,8 @@ impl WindowOps for Window {
         Self: Sized,
         R: Send + 'static,
     {
-        Connection::with_window_inner(self.0, move |inner| {
-            let window = Window(inner.window_id);
+        XConnection::with_window_inner(self.0, move |inner| {
+            let window = XWindow(inner.window_id);
 
             let gl_state = crate::egl::GlState::create(
                 Some(inner.conn.display as *const _),

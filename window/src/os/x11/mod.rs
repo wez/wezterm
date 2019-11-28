@@ -1,4 +1,4 @@
-#![cfg(all(unix, not(feature="wayland"), not(target_os = "macos")))]
+#![cfg(all(unix, not(target_os = "macos")))]
 pub mod bitmap;
 pub mod connection;
 pub mod keyboard;

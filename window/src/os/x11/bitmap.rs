@@ -17,12 +17,12 @@ impl Drawable for xcb::xproto::Window {
 
 pub struct Context {
     gc_id: xcb::xproto::Gcontext,
-    conn: Rc<Connection>,
+    conn: Rc<XConnection>,
     drawable: xcb::xproto::Drawable,
 }
 
 impl Context {
-    pub fn new(conn: &Rc<Connection>, d: &dyn Drawable) -> Context {
+    pub fn new(conn: &Rc<XConnection>, d: &dyn Drawable) -> Context {
         let gc_id = conn.conn().generate_id();
         let drawable = d.as_drawable();
         xcb::create_gc(conn.conn(), gc_id, drawable, &[]);
@@ -157,14 +157,14 @@ pub struct ShmImage {
     data: ShmData,
     seg_id: xcb::shm::Seg,
     draw_id: u32,
-    conn: Rc<Connection>,
+    conn: Rc<XConnection>,
     width: usize,
     height: usize,
 }
 
 impl ShmImage {
     pub fn new(
-        conn: &Rc<Connection>,
+        conn: &Rc<XConnection>,
         drawable: xcb::xproto::Drawable,
         width: usize,
         height: usize,
@@ -263,7 +263,7 @@ impl BitmapImage for BufferImage {
 
 impl BufferImage {
     pub fn new(
-        conn: &Rc<Connection>,
+        conn: &Rc<XConnection>,
         drawable: xcb::xproto::Drawable,
         width: usize,
         height: usize,

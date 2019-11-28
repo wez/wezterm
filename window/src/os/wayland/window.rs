@@ -2,9 +2,10 @@ use crate::bitmaps::BitmapImage;
 use crate::color::Color;
 use crate::connection::ConnectionOps;
 use crate::input::*;
+use crate::os::wayland::connection::WaylandConnection;
 use crate::os::xkeysyms::keysym_to_keycode;
 use crate::{
-    Connection, Dimensions, MouseCursor, Operator, PaintContext, Point, Rect, ScreenPoint,
+    Connection, Dimensions, MouseCursor, Operator, PaintContext, Point, Rect, ScreenPoint, Window,
     WindowCallbacks, WindowOps, WindowOpsMut,
 };
 use failure::Fallible;
@@ -212,7 +213,7 @@ impl toolkit::window::Theme for MyTheme {
     }
 }
 
-pub struct WindowInner {
+pub struct WaylandWindowInner {
     window_id: usize,
     callbacks: Box<dyn WindowCallbacks>,
     surface: WlSurface,
@@ -227,9 +228,9 @@ pub struct WindowInner {
 }
 
 #[derive(Clone, Debug)]
-pub struct Window(usize);
+pub struct WaylandWindow(usize);
 
-impl Window {
+impl WaylandWindow {
     pub fn new_window(
         class_name: &str,
         name: &str,
@@ -237,11 +238,13 @@ impl Window {
         height: usize,
         callbacks: Box<dyn WindowCallbacks>,
     ) -> Fallible<Window> {
-        let conn = Connection::get().ok_or_else(|| {
-            failure::err_msg(
+        let conn = WaylandConnection::get()
+            .ok_or_else(|| {
+                failure::err_msg(
                 "new_window must be called on the gui thread after Connection::init has succeeded",
             )
-        })?;
+            })?
+            .wayland();
 
         let window_id = conn.next_window_id();
 
@@ -258,7 +261,7 @@ impl Window {
             surface.clone(),
             dimensions,
             move |evt| {
-                Connection::with_window_inner(window_id, move |inner| {
+                WaylandConnection::with_window_inner(window_id, move |inner| {
                     inner.handle_event(evt.clone());
                     Ok(())
                 });
@@ -285,7 +288,7 @@ impl Window {
             ptr.implement_closure(
                 move |evt, _| {
                     let evt: SendablePointerEvent = evt.into();
-                    Connection::with_window_inner(window_id, move |inner| {
+                    WaylandConnection::with_window_inner(window_id, move |inner| {
                         inner.handle_pointer(evt);
                         Ok(())
                     });
@@ -306,14 +309,14 @@ impl Window {
                     utf8,
                     ..
                 } => {
-                    Connection::with_window_inner(window_id, move |inner| {
+                    WaylandConnection::with_window_inner(window_id, move |inner| {
                         inner.handle_key(state == KeyState::Pressed, rawkey, keysym, utf8.clone());
                         Ok(())
                     });
                 }
                 KbEvent::Modifiers { modifiers } => {
                     let mods = modifier_keys(modifiers);
-                    Connection::with_window_inner(window_id, move |inner| {
+                    WaylandConnection::with_window_inner(window_id, move |inner| {
                         inner.handle_modifiers(mods);
                         Ok(())
                     });
@@ -321,7 +324,7 @@ impl Window {
                 _ => {}
             },
             move |event: KeyRepeatEvent, _| {
-                Connection::with_window_inner(window_id, move |inner| {
+                WaylandConnection::with_window_inner(window_id, move |inner| {
                     inner.handle_key(true, event.rawkey, event.keysym, event.utf8.clone());
                     Ok(())
                 });
@@ -329,7 +332,7 @@ impl Window {
         )
         .map_err(|_| failure::format_err!("Failed to configure keyboard callback"))?;
 
-        let inner = Rc::new(RefCell::new(WindowInner {
+        let inner = Rc::new(RefCell::new(WaylandWindowInner {
             window_id,
             callbacks,
             surface,
@@ -343,7 +346,7 @@ impl Window {
             modifiers: Modifiers::NONE,
         }));
 
-        let window_handle = Window(window_id);
+        let window_handle = Window::Wayland(WaylandWindow(window_id));
 
         conn.windows.borrow_mut().insert(window_id, inner.clone());
 
@@ -353,7 +356,7 @@ impl Window {
     }
 }
 
-impl WindowInner {
+impl WaylandWindowInner {
     fn handle_key(&mut self, key_is_down: bool, rawkey: u32, keysym: u32, utf8: Option<String>) {
         let raw_key = keysym_to_keycode(keysym);
         let (key, raw_key) = match utf8 {
@@ -384,7 +387,7 @@ impl WindowInner {
             repeat_count: 1,
         };
         self.callbacks
-            .key_event(&key_event, &Window(self.window_id));
+            .key_event(&key_event, &Window::Wayland(WaylandWindow(self.window_id)));
     }
 
     fn handle_modifiers(&mut self, modifiers: Modifiers) {
@@ -420,7 +423,8 @@ impl WindowInner {
                     mouse_buttons: self.mouse_buttons,
                     modifiers: self.modifiers,
                 };
-                self.callbacks.mouse_event(&event, &Window(self.window_id));
+                self.callbacks
+                    .mouse_event(&event, &Window::Wayland(WaylandWindow(self.window_id)));
             }
             SendablePointerEvent::Button { button, state, .. } => {
                 fn linux_button(b: u32) -> Option<MousePress> {
@@ -462,7 +466,8 @@ impl WindowInner {
                     mouse_buttons: self.mouse_buttons,
                     modifiers: self.modifiers,
                 };
-                self.callbacks.mouse_event(&event, &Window(self.window_id));
+                self.callbacks
+                    .mouse_event(&event, &Window::Wayland(WaylandWindow(self.window_id)));
             }
             SendablePointerEvent::Axis { .. } => {}
         }
@@ -612,37 +617,37 @@ impl<'a> PaintContext for MmapImage<'a> {
     }
 }
 
-impl WindowOps for Window {
+impl WindowOps for WaylandWindow {
     fn close(&self) -> Future<()> {
-        Connection::with_window_inner(self.0, |inner| {
+        WaylandConnection::with_window_inner(self.0, |inner| {
             inner.close();
             Ok(())
         })
     }
 
     fn hide(&self) -> Future<()> {
-        Connection::with_window_inner(self.0, |inner| {
+        WaylandConnection::with_window_inner(self.0, |inner| {
             inner.hide();
             Ok(())
         })
     }
 
     fn show(&self) -> Future<()> {
-        Connection::with_window_inner(self.0, |inner| {
+        WaylandConnection::with_window_inner(self.0, |inner| {
             inner.show();
             Ok(())
         })
     }
 
     fn set_cursor(&self, cursor: Option<MouseCursor>) -> Future<()> {
-        Connection::with_window_inner(self.0, move |inner| {
+        WaylandConnection::with_window_inner(self.0, move |inner| {
             let _ = inner.set_cursor(cursor);
             Ok(())
         })
     }
 
     fn invalidate(&self) -> Future<()> {
-        Connection::with_window_inner(self.0, |inner| {
+        WaylandConnection::with_window_inner(self.0, |inner| {
             inner.invalidate();
             Ok(())
         })
@@ -650,21 +655,21 @@ impl WindowOps for Window {
 
     fn set_title(&self, title: &str) -> Future<()> {
         let title = title.to_owned();
-        Connection::with_window_inner(self.0, move |inner| {
+        WaylandConnection::with_window_inner(self.0, move |inner| {
             inner.set_title(&title);
             Ok(())
         })
     }
 
     fn set_inner_size(&self, width: usize, height: usize) -> Future<()> {
-        Connection::with_window_inner(self.0, move |inner| {
+        WaylandConnection::with_window_inner(self.0, move |inner| {
             inner.set_inner_size(width, height);
             Ok(())
         })
     }
 
     fn set_window_position(&self, coords: ScreenPoint) -> Future<()> {
-        Connection::with_window_inner(self.0, move |inner| {
+        WaylandConnection::with_window_inner(self.0, move |inner| {
             inner.set_window_position(coords);
             Ok(())
         })
@@ -678,8 +683,8 @@ impl WindowOps for Window {
         Self: Sized,
         R: Send + 'static,
     {
-        Connection::with_window_inner(self.0, move |inner| {
-            let window = Window(inner.window_id);
+        WaylandConnection::with_window_inner(self.0, move |inner| {
+            let window = Window::Wayland(WaylandWindow(inner.window_id));
             func(inner.callbacks.as_any(), &window)
         })
     }
@@ -702,8 +707,8 @@ impl WindowOps for Window {
         Self: Sized,
         R: Send + 'static,
     {
-        Connection::with_window_inner(self.0, move |inner| {
-            let window = Window(inner.window_id);
+        WaylandConnection::with_window_inner(self.0, move |inner| {
+            let window = Window::Wayland(WaylandWindow(inner.window_id));
 
             /*
             let gl_state = crate::egl::GlState::create(
@@ -736,7 +741,7 @@ impl WindowOps for Window {
     }
 }
 
-impl WindowOpsMut for WindowInner {
+impl WindowOpsMut for WaylandWindowInner {
     fn close(&mut self) {
         self.callbacks.destroy();
         self.window.take();
@@ -746,7 +751,7 @@ impl WindowOpsMut for WindowInner {
         if self.window.is_none() {
             return;
         }
-        let conn = Connection::get().unwrap();
+        let conn = Connection::get().unwrap().wayland();
 
         if !conn.environment.borrow().shell.needs_configure() {
             self.do_paint().unwrap();

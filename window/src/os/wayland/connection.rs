@@ -4,6 +4,7 @@ use crate::connection::ConnectionOps;
 use crate::spawn::*;
 use crate::tasks::{Task, Tasks};
 use crate::timerlist::{TimerEntry, TimerList};
+use crate::Connection;
 use failure::Fallible;
 use mio::unix::EventedFd;
 use mio::{Evented, Events, Poll, PollOpt, Ready, Token};
@@ -17,18 +18,18 @@ use std::time::{Duration, Instant};
 use toolkit::reexports::client::{Display, EventQueue};
 use toolkit::Environment;
 
-pub struct Connection {
+pub struct WaylandConnection {
     display: RefCell<Display>,
     event_q: RefCell<EventQueue>,
     pub(crate) environment: RefCell<Environment>,
     should_terminate: RefCell<bool>,
     timers: RefCell<TimerList>,
-    tasks: Tasks,
+    pub(crate) tasks: Tasks,
     pub(crate) next_window_id: AtomicUsize,
-    pub(crate) windows: RefCell<HashMap<usize, Rc<RefCell<WindowInner>>>>,
+    pub(crate) windows: RefCell<HashMap<usize, Rc<RefCell<WaylandWindowInner>>>>,
 }
 
-impl Evented for Connection {
+impl Evented for WaylandConnection {
     fn register(
         &self,
         poll: &Poll,
@@ -55,7 +56,7 @@ impl Evented for Connection {
     }
 }
 
-impl Connection {
+impl WaylandConnection {
     pub fn create_new() -> Fallible<Self> {
         let (display, mut event_q) = Display::connect_to_env()?;
         let environment = Environment::from_display(&*display, &mut event_q)?;
@@ -111,11 +112,14 @@ impl Connection {
         Ok(())
     }
 
-    pub(crate) fn window_by_id(&self, window_id: usize) -> Option<Rc<RefCell<WindowInner>>> {
+    pub(crate) fn window_by_id(&self, window_id: usize) -> Option<Rc<RefCell<WaylandWindowInner>>> {
         self.windows.borrow().get(&window_id).map(Rc::clone)
     }
 
-    pub(crate) fn with_window_inner<R, F: FnMut(&mut WindowInner) -> Fallible<R> + Send + 'static>(
+    pub(crate) fn with_window_inner<
+        R,
+        F: FnMut(&mut WaylandWindowInner) -> Fallible<R> + Send + 'static,
+    >(
         window: usize,
         mut f: F,
     ) -> promise::Future<R>
@@ -126,7 +130,7 @@ impl Connection {
         let future = prom.get_future().unwrap();
 
         SpawnQueueExecutor {}.execute(Box::new(move || {
-            if let Some(handle) = Connection::get().unwrap().window_by_id(window) {
+            if let Some(handle) = Connection::get().unwrap().wayland().window_by_id(window) {
                 let mut inner = handle.borrow_mut();
                 prom.result(f(&mut inner));
             }
@@ -136,17 +140,14 @@ impl Connection {
     }
 }
 
-impl ConnectionOps for Connection {
+impl ConnectionOps for WaylandConnection {
     fn spawn_task<F: std::future::Future<Output = ()> + 'static>(&self, future: F) {
         let id = self.tasks.add_task(Task(Box::pin(future)));
         Self::wake_task_by_id(id);
     }
 
-    fn wake_task_by_id(slot: usize) {
-        SpawnQueueExecutor {}.execute(Box::new(move || {
-            let conn = Connection::get().unwrap();
-            conn.tasks.poll_by_slot(slot);
-        }));
+    fn wake_task_by_id(_slot: usize) {
+        panic!("use Connection::wake_task_by_id instead of WaylandConnection::wake_task_by_id");
     }
 
     fn terminate_message_loop(&self) {
