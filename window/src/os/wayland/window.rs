@@ -24,6 +24,7 @@ use toolkit::reexports::client::protocol::wl_pointer::{
 use toolkit::reexports::client::protocol::wl_seat::WlSeat;
 use toolkit::reexports::client::protocol::wl_surface::WlSurface;
 use toolkit::reexports::client::NewProxy;
+use toolkit::shell::ShellSurface;
 use toolkit::utils::MemPool;
 use toolkit::window::Event;
 
@@ -471,6 +472,7 @@ impl WaylandWindowInner {
             }
             SendablePointerEvent::Axis { .. } => {}
         }
+        self.refresh_frame();
     }
 
     fn handle_event(&mut self, evt: Event) {
@@ -501,9 +503,15 @@ impl WaylandWindowInner {
                         dpi: 96 * factor as usize,
                     });
                 }
-                self.window.as_mut().unwrap().refresh();
+                self.refresh_frame();
                 self.do_paint().unwrap();
             }
+        }
+    }
+
+    fn refresh_frame(&mut self) {
+        if let Some(window) = self.window.as_mut() {
+            window.refresh();
         }
     }
 
@@ -540,7 +548,7 @@ impl WaylandWindowInner {
         self.damage();
 
         self.surface.commit();
-        self.window.as_mut().unwrap().refresh();
+        self.refresh_frame();
         self.need_paint = false;
 
         Ok(())
@@ -746,7 +754,13 @@ impl WindowOpsMut for WaylandWindowInner {
         self.callbacks.destroy();
         self.window.take();
     }
-    fn hide(&mut self) {}
+
+    fn hide(&mut self) {
+        if let Some(window) = self.window.as_ref() {
+            window.set_minimized();
+        }
+    }
+
     fn show(&mut self) {
         if self.window.is_none() {
             return;
@@ -756,7 +770,7 @@ impl WindowOpsMut for WaylandWindowInner {
         if !conn.environment.borrow().shell.needs_configure() {
             self.do_paint().unwrap();
         } else {
-            self.window.as_mut().unwrap().refresh();
+            self.refresh_frame();
         }
     }
 
@@ -776,5 +790,6 @@ impl WindowOpsMut for WaylandWindowInner {
         if let Some(window) = self.window.as_ref() {
             window.set_title(title.to_string());
         }
+        self.refresh_frame();
     }
 }
