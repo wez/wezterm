@@ -1,3 +1,5 @@
+#![cfg(all(unix, not(target_os = "macos")))]
+
 use crate::{KeyCode, Modifiers};
 
 pub fn modifiers_from_state(state: u16) -> Modifiers {

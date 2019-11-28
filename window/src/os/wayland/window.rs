@@ -1,6 +1,8 @@
 use crate::bitmaps::BitmapImage;
 use crate::color::Color;
 use crate::connection::ConnectionOps;
+use crate::input::*;
+use crate::os::xkeysyms::keysym_to_keycode;
 use crate::{
     Connection, Dimensions, MouseCursor, Operator, PaintContext, Point, Rect, ScreenPoint,
     WindowCallbacks, WindowOps, WindowOpsMut,
@@ -11,31 +13,202 @@ use smithay_client_toolkit as toolkit;
 use std::any::Any;
 use std::cell::RefCell;
 use std::rc::Rc;
+use toolkit::keyboard::{
+    map_keyboard_auto_with_repeat, Event as KbEvent, KeyRepeatEvent, KeyRepeatKind, KeyState,
+    ModifiersState,
+};
+use toolkit::reexports::client::protocol::wl_pointer::{
+    self, Axis, AxisSource, Event as PointerEvent,
+};
 use toolkit::reexports::client::protocol::wl_seat::WlSeat;
 use toolkit::reexports::client::protocol::wl_surface::WlSurface;
 use toolkit::reexports::client::NewProxy;
-use toolkit::utils::DoubleMemPool;
+use toolkit::utils::MemPool;
 use toolkit::window::Event;
+
+fn modifier_keys(state: ModifiersState) -> Modifiers {
+    let mut mods = Modifiers::NONE;
+    if state.ctrl {
+        mods |= Modifiers::CTRL;
+    }
+    if state.alt {
+        mods |= Modifiers::ALT;
+    }
+    if state.shift {
+        mods |= Modifiers::SHIFT;
+    }
+    if state.logo {
+        mods |= Modifiers::SUPER;
+    }
+    mods
+}
+
+#[derive(Clone, Debug, Copy, PartialEq, Eq)]
+enum DebuggableButtonState {
+    Released,
+    Pressed,
+}
+
+impl From<wl_pointer::ButtonState> for DebuggableButtonState {
+    fn from(state: wl_pointer::ButtonState) -> DebuggableButtonState {
+        match state {
+            wl_pointer::ButtonState::Released => Self::Released,
+            wl_pointer::ButtonState::Pressed => Self::Pressed,
+            _ => unreachable!(),
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+enum SendablePointerEvent {
+    Enter {
+        serial: u32,
+        surface_x: f64,
+        surface_y: f64,
+    },
+    Leave {
+        serial: u32,
+    },
+    Motion {
+        time: u32,
+        surface_x: f64,
+        surface_y: f64,
+    },
+    Button {
+        serial: u32,
+        time: u32,
+        button: u32,
+        state: DebuggableButtonState,
+    },
+    Axis {
+        time: u32,
+        axis: Axis,
+        value: f64,
+    },
+    Frame,
+    AxisSource {
+        axis_source: AxisSource,
+    },
+    AxisStop {
+        time: u32,
+        axis: Axis,
+    },
+    AxisDiscrete {
+        axis: Axis,
+        discrete: i32,
+    },
+}
+
+impl From<PointerEvent> for SendablePointerEvent {
+    fn from(event: PointerEvent) -> Self {
+        match event {
+            PointerEvent::Enter {
+                serial,
+                surface_x,
+                surface_y,
+                ..
+            } => SendablePointerEvent::Enter {
+                serial,
+                surface_x,
+                surface_y,
+            },
+            PointerEvent::Leave { serial, .. } => SendablePointerEvent::Leave { serial },
+            PointerEvent::Motion {
+                time,
+                surface_x,
+                surface_y,
+            } => SendablePointerEvent::Motion {
+                time,
+                surface_x,
+                surface_y,
+            },
+            PointerEvent::Button {
+                serial,
+                time,
+                button,
+                state,
+                ..
+            } => SendablePointerEvent::Button {
+                serial,
+                time,
+                button,
+                state: state.into(),
+            },
+            PointerEvent::Axis { time, axis, value } => {
+                SendablePointerEvent::Axis { time, axis, value }
+            }
+            PointerEvent::Frame => SendablePointerEvent::Frame,
+            PointerEvent::AxisSource { axis_source, .. } => {
+                SendablePointerEvent::AxisSource { axis_source }
+            }
+            PointerEvent::AxisStop { axis, time } => SendablePointerEvent::AxisStop { axis, time },
+            PointerEvent::AxisDiscrete { axis, discrete } => {
+                SendablePointerEvent::AxisDiscrete { axis, discrete }
+            }
+            _ => unreachable!(),
+        }
+    }
+}
 
 struct MyTheme;
 use toolkit::window::ButtonState;
+
+const DARK_PURPLE: [u8; 4] = [0xff, 0x2b, 0x20, 0x42];
+const PURPLE: [u8; 4] = [0xff, 0x3b, 0x30, 0x52];
+const WHITE: [u8; 4] = [0xff, 0xff, 0xff, 0xff];
+const GRAY: [u8; 4] = [0x80, 0x80, 0x80, 0x80];
+
 impl toolkit::window::Theme for MyTheme {
     fn get_primary_color(&self, _active: bool) -> [u8; 4] {
-        [0xff, 0x80, 0x80, 0x80]
+        DARK_PURPLE
     }
 
     fn get_secondary_color(&self, _active: bool) -> [u8; 4] {
-        [0xff, 0x60, 0x60, 0x60]
+        DARK_PURPLE
     }
 
-    fn get_close_button_color(&self, _status: ButtonState) -> [u8; 4] {
-        [0xff, 0xff, 0xff, 0xff]
+    fn get_close_button_color(&self, status: ButtonState) -> [u8; 4] {
+        if let ButtonState::Hovered = status {
+            PURPLE
+        } else {
+            DARK_PURPLE
+        }
     }
-    fn get_maximize_button_color(&self, _status: ButtonState) -> [u8; 4] {
-        [0xff, 0xff, 0xff, 0xff]
+    fn get_maximize_button_color(&self, status: ButtonState) -> [u8; 4] {
+        if let ButtonState::Hovered = status {
+            PURPLE
+        } else {
+            DARK_PURPLE
+        }
     }
-    fn get_minimize_button_color(&self, _status: ButtonState) -> [u8; 4] {
-        [0xff, 0xff, 0xff, 0xff]
+    fn get_minimize_button_color(&self, status: ButtonState) -> [u8; 4] {
+        if let ButtonState::Hovered = status {
+            PURPLE
+        } else {
+            DARK_PURPLE
+        }
+    }
+
+    fn get_close_button_icon_color(&self, status: ButtonState) -> [u8; 4] {
+        if let ButtonState::Hovered = status {
+            WHITE
+        } else {
+            GRAY
+        }
+    }
+    fn get_maximize_button_icon_color(&self, status: ButtonState) -> [u8; 4] {
+        if let ButtonState::Hovered = status {
+            WHITE
+        } else {
+            GRAY
+        }
+    }
+    fn get_minimize_button_icon_color(&self, status: ButtonState) -> [u8; 4] {
+        if let ButtonState::Hovered = status {
+            WHITE
+        } else {
+            GRAY
+        }
     }
 }
 
@@ -45,10 +218,15 @@ pub struct WindowInner {
     surface: WlSurface,
     seat: WlSeat,
     window: toolkit::window::Window<toolkit::window::ConceptFrame>,
-    pool: DoubleMemPool,
+    pool: MemPool,
     dimensions: (u32, u32),
+    need_paint: bool,
+    last_mouse_coords: Point,
+    mouse_buttons: MouseButtons,
+    modifiers: Modifiers,
 }
 
+#[derive(Clone, Debug)]
 pub struct Window(usize);
 
 impl Window {
@@ -70,9 +248,9 @@ impl Window {
         let surface = conn
             .environment
             .borrow_mut()
-            .compositor
-            .create_surface(NewProxy::implement_dummy)
-            .map_err(|_| failure::err_msg("new_window: failed to create a surface"))?;
+            .create_surface(|dpi, _surface| {
+                println!("surface dpi changed to {}", dpi);
+            });
 
         let dimensions = (width as u32, height as u32);
         let mut window = toolkit::window::Window::<toolkit::window::ConceptFrame>::init_from_env(
@@ -93,7 +271,7 @@ impl Window {
         window.set_resizable(true);
         window.set_theme(MyTheme {});
 
-        let pool = DoubleMemPool::new(&conn.environment.borrow().shm, || {})?;
+        let pool = MemPool::new(&conn.environment.borrow().shm, || {})?;
 
         let seat = conn
             .environment
@@ -103,6 +281,62 @@ impl Window {
             .map_err(|_| failure::format_err!("Failed to create seat"))?;
         window.new_seat(&seat);
 
+        seat.get_pointer(move |ptr| {
+            ptr.implement_closure(
+                move |evt, _| {
+                    let evt: SendablePointerEvent = evt.into();
+                    Connection::with_window_inner(window_id, move |inner| {
+                        inner.handle_pointer(evt);
+                        Ok(())
+                    });
+                },
+                (),
+            )
+        })
+        .map_err(|_| failure::format_err!("Failed to configure pointer callback"))?;
+
+        map_keyboard_auto_with_repeat(
+            &seat,
+            KeyRepeatKind::System,
+            move |event: KbEvent, _| {
+                println!("key event");
+                match event {
+                    KbEvent::Key {
+                        rawkey,
+                        keysym,
+                        state,
+                        utf8,
+                        ..
+                    } => {
+                        Connection::with_window_inner(window_id, move |inner| {
+                            inner.handle_key(
+                                state == KeyState::Pressed,
+                                rawkey,
+                                keysym,
+                                utf8.clone(),
+                            );
+                            Ok(())
+                        });
+                    }
+                    KbEvent::Modifiers { modifiers } => {
+                        let mods = modifier_keys(modifiers);
+                        Connection::with_window_inner(window_id, move |inner| {
+                            inner.handle_modifiers(mods);
+                            Ok(())
+                        });
+                    }
+                    _ => {}
+                }
+            },
+            move |event: KeyRepeatEvent, _| {
+                Connection::with_window_inner(window_id, move |inner| {
+                    inner.handle_key(true, event.rawkey, event.keysym, event.utf8.clone());
+                    Ok(())
+                });
+            },
+        )
+        .map_err(|_| failure::format_err!("Failed to configure keyboard callback"))?;
+
         let inner = Rc::new(RefCell::new(WindowInner {
             window_id,
             callbacks,
@@ -111,6 +345,10 @@ impl Window {
             window,
             pool,
             dimensions,
+            need_paint: true,
+            last_mouse_coords: Point::new(0, 0),
+            mouse_buttons: MouseButtons::NONE,
+            modifiers: Modifiers::NONE,
         }));
 
         let window_handle = Window(window_id);
@@ -124,6 +362,107 @@ impl Window {
 }
 
 impl WindowInner {
+    fn handle_key(&mut self, key_is_down: bool, rawkey: u32, keysym: u32, utf8: Option<String>) {
+        let key = match utf8 {
+            Some(text) if text.chars().count() == 1 => KeyCode::Char(text.chars().nth(0).unwrap()),
+            Some(text) => KeyCode::Composed(text),
+            None => {
+                println!("no mapping for keysym {} and rawkey {}", keysym, rawkey);
+                return;
+            }
+        };
+        let key_event = KeyEvent {
+            key_is_down,
+            key,
+            raw_key: None,
+            modifiers: self.modifiers,
+            repeat_count: 1,
+        };
+        self.callbacks
+            .key_event(&key_event, &Window(self.window_id));
+    }
+
+    fn handle_modifiers(&mut self, modifiers: Modifiers) {
+        self.modifiers = modifiers;
+    }
+
+    fn handle_pointer(&mut self, evt: SendablePointerEvent) {
+        match evt {
+            SendablePointerEvent::Enter { .. } => {}
+            SendablePointerEvent::Leave { .. } => {}
+            SendablePointerEvent::AxisSource { .. } => {}
+            SendablePointerEvent::AxisStop { .. } => {}
+            SendablePointerEvent::AxisDiscrete { .. } => {}
+            SendablePointerEvent::Frame => {}
+            SendablePointerEvent::Motion {
+                time,
+                surface_x,
+                surface_y,
+            } => {
+                let factor = toolkit::surface::get_dpi_factor(&self.surface);
+                let coords = Point::new(
+                    surface_x as isize * factor as isize,
+                    surface_y as isize * factor as isize,
+                );
+                self.last_mouse_coords = coords;
+                let event = MouseEvent {
+                    kind: MouseEventKind::Move,
+                    coords,
+                    screen_coords: ScreenPoint::new(
+                        coords.x + self.dimensions.0 as isize,
+                        coords.y + self.dimensions.1 as isize,
+                    ),
+                    mouse_buttons: self.mouse_buttons,
+                    modifiers: self.modifiers,
+                };
+                self.callbacks.mouse_event(&event, &Window(self.window_id));
+            }
+            SendablePointerEvent::Button { button, state, .. } => {
+                fn linux_button(b: u32) -> Option<MousePress> {
+                    // See BTN_LEFT and friends in <linux/input-event-codes.h>
+                    match b {
+                        0x110 => Some(MousePress::Left),
+                        0x111 => Some(MousePress::Right),
+                        0x112 => Some(MousePress::Middle),
+                        _ => None,
+                    }
+                }
+                let button = match linux_button(button) {
+                    Some(button) => button,
+                    None => return,
+                };
+
+                let button_mask = match button {
+                    MousePress::Left => MouseButtons::LEFT,
+                    MousePress::Right => MouseButtons::RIGHT,
+                    MousePress::Middle => MouseButtons::MIDDLE,
+                };
+
+                if state == DebuggableButtonState::Pressed {
+                    self.mouse_buttons |= button_mask;
+                } else {
+                    self.mouse_buttons -= button_mask;
+                }
+
+                let event = MouseEvent {
+                    kind: match state {
+                        DebuggableButtonState::Pressed => MouseEventKind::Press(button),
+                        DebuggableButtonState::Released => MouseEventKind::Release(button),
+                    },
+                    coords: self.last_mouse_coords,
+                    screen_coords: ScreenPoint::new(
+                        self.last_mouse_coords.x + self.dimensions.0 as isize,
+                        self.last_mouse_coords.y + self.dimensions.1 as isize,
+                    ),
+                    mouse_buttons: self.mouse_buttons,
+                    modifiers: self.modifiers,
+                };
+                self.callbacks.mouse_event(&event, &Window(self.window_id));
+            }
+            SendablePointerEvent::Axis { .. } => {}
+        }
+    }
+
     fn handle_event(&mut self, evt: Event) {
         match evt {
             Event::Close => {
@@ -132,13 +471,21 @@ impl WindowInner {
                 }
             }
             Event::Refresh => {
-                self.window.refresh();
-                self.window.surface().commit();
+                self.do_paint().unwrap();
             }
-            Event::Configure { new_size, states } => {
+            Event::Configure { new_size, .. } => {
                 if let Some((w, h)) = new_size {
+                    let factor = toolkit::surface::get_dpi_factor(&self.surface);
+                    self.surface.set_buffer_scale(factor);
                     self.window.resize(w, h);
+                    let w = w * factor as u32;
+                    let h = h * factor as u32;
                     self.dimensions = (w, h);
+                    self.callbacks.resize(Dimensions {
+                        pixel_width: w as usize,
+                        pixel_height: h as usize,
+                        dpi: 96 * factor as usize,
+                    });
                 }
                 self.window.refresh();
                 self.do_paint().unwrap();
@@ -147,23 +494,22 @@ impl WindowInner {
     }
 
     fn do_paint(&mut self) -> Fallible<()> {
-        let pool = match self.pool.pool() {
-            Some(pool) => pool,
-            None => {
-                // Buffer still in use by server; retry later
-                return Ok(());
-            }
-        };
+        if self.pool.is_used() {
+            // Buffer still in use by server; retry later
+            return Ok(());
+        }
 
-        pool.resize((4 * self.dimensions.0 * self.dimensions.1) as usize)?;
+        self.pool
+            .resize((4 * self.dimensions.0 * self.dimensions.1) as usize)?;
 
         let mut context = MmapImage {
-            mmap: pool.mmap(),
+            mmap: self.pool.mmap(),
             dimensions: (self.dimensions.0 as usize, self.dimensions.1 as usize),
         };
         self.callbacks.paint(&mut context);
+        context.mmap.flush()?;
 
-        let buffer = pool.buffer(
+        let buffer = self.pool.buffer(
             0,
             self.dimensions.0 as i32,
             self.dimensions.1 as i32,
@@ -172,10 +518,31 @@ impl WindowInner {
         );
 
         self.surface.attach(Some(&buffer), 0, 0);
+        self.damage();
+
         self.surface.commit();
         self.window.refresh();
+        self.need_paint = false;
 
         Ok(())
+    }
+
+    fn damage(&mut self) {
+        if self.surface.as_ref().version() >= 4 {
+            self.surface
+                .damage_buffer(0, 0, self.dimensions.0 as i32, self.dimensions.1 as i32);
+        } else {
+            // Older versions use the surface size which is the pre-scaled
+            // dimensions.  Since we store the scaled dimensions, we need
+            // to compensate here.
+            let factor = toolkit::surface::get_dpi_factor(&self.surface);
+            self.surface.damage(
+                0,
+                0,
+                self.dimensions.0 as i32 / factor,
+                self.dimensions.1 as i32 / factor,
+            );
+        }
     }
 }
 
@@ -324,6 +691,7 @@ impl WindowOps for Window {
         Connection::with_window_inner(self.0, move |inner| {
             let window = Window(inner.window_id);
 
+            /*
             let gl_state = crate::egl::GlState::create(
                 Some(inner.conn.display as *const _),
                 inner.window_id as *mut _,
@@ -344,6 +712,12 @@ impl WindowOps for Window {
             inner.gl_state = gl_state.as_ref().map(Rc::clone).ok();
 
             func(inner.callbacks.as_any(), &window, gl_state)
+            */
+            func(
+                inner.callbacks.as_any(),
+                &window,
+                Err(failure::err_msg("no opengl")),
+            )
         })
     }
 }
@@ -364,9 +738,8 @@ impl WindowOpsMut for WindowInner {
     fn set_cursor(&mut self, cursor: Option<MouseCursor>) {}
 
     fn invalidate(&mut self) {
-        self.window
-            .surface()
-            .damage(0, 0, self.dimensions.0 as i32, self.dimensions.1 as i32);
+        self.need_paint = true;
+        self.do_paint().unwrap();
     }
 
     fn set_inner_size(&self, width: usize, height: usize) {}

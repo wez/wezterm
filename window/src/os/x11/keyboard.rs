@@ -1,4 +1,4 @@
-use super::xkeysyms::keysym_to_keycode;
+use crate::os::xkeysyms::keysym_to_keycode;
 use crate::{KeyCode, Modifiers};
 use failure::{ensure, format_err, Fallible};
 use libc;

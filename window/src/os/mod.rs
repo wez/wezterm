@@ -5,6 +5,7 @@ pub use windows::*;
 
 pub mod wayland;
 pub mod x11;
+pub mod xkeysyms;
 
 #[cfg(all(unix, feature = "wayland", not(target_os = "macos")))]
 pub use self::wayland::*;

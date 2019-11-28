@@ -74,7 +74,7 @@ impl WindowCallbacks for MyWindow {
         ctx.set_cursor(Some(MouseCursor::Arrow));
 
         if event.kind == MouseEventKind::Press(MousePress::Left) {
-            spawn_window().unwrap();
+            // spawn_window().unwrap();
         }
     }
 

@@ -1,6 +1,7 @@
 use super::*;
 use crate::bitmaps::*;
 use crate::connection::ConnectionOps;
+use crate::os::xkeysyms;
 use crate::{
     Color, Dimensions, KeyEvent, MouseButtons, MouseCursor, MouseEvent, MouseEventKind, MousePress,
     Operator, PaintContext, Point, Rect, ScreenPoint, Size, WindowCallbacks, WindowOps,

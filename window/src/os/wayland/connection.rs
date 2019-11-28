@@ -76,6 +76,14 @@ impl Connection {
             .fetch_add(1, ::std::sync::atomic::Ordering::Relaxed)
     }
 
+    pub fn executor() -> impl BasicExecutor {
+        SpawnQueueExecutor {}
+    }
+
+    pub fn low_pri_executor() -> impl BasicExecutor {
+        LowPriSpawnQueueExecutor {}
+    }
+
     fn flush(&self) -> Fallible<()> {
         if let Err(e) = self.display.borrow_mut().flush() {
             if e.kind() != ::std::io::ErrorKind::WouldBlock {
