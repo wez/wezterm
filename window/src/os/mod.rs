@@ -3,9 +3,12 @@ pub mod windows;
 #[cfg(windows)]
 pub use windows::*;
 
-#[cfg(all(unix, not(target_os = "macos")))]
+pub mod wayland;
 pub mod x11;
-#[cfg(all(unix, not(target_os = "macos")))]
+
+#[cfg(all(unix, feature = "wayland", not(target_os = "macos")))]
+pub use self::wayland::*;
+#[cfg(all(unix, not(feature = "wayland"), not(target_os = "macos")))]
 pub use self::x11::*;
 
 #[cfg(target_os = "macos")]

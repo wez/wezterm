@@ -27,6 +27,7 @@ glium = { version = "0.26.0-alpha3", optional=true, default-features = false}
 [features]
 async_await = []
 opengl = ["cgl", "glium", "gl_generator", "libloading"]
+wayland = ["smithay-client-toolkit", "memmap"]
 
 [target."cfg(windows)".dependencies]
 winapi = { version = "0.3", features = [
@@ -48,6 +49,8 @@ xkbcommon = { version = "0.4", features = ["x11"] }
 mio = "0.6"
 mio-extras = "2.0"
 libc = "0.2"
+smithay-client-toolkit = {version = "0.6", optional = true}
+memmap = {version="0.7", optional=true}
 
 [target.'cfg(target_os="macos")'.dependencies]
 cocoa = "0.20"
