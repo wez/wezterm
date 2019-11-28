@@ -298,35 +298,27 @@ impl Window {
         map_keyboard_auto_with_repeat(
             &seat,
             KeyRepeatKind::System,
-            move |event: KbEvent, _| {
-                println!("key event");
-                match event {
-                    KbEvent::Key {
-                        rawkey,
-                        keysym,
-                        state,
-                        utf8,
-                        ..
-                    } => {
-                        Connection::with_window_inner(window_id, move |inner| {
-                            inner.handle_key(
-                                state == KeyState::Pressed,
-                                rawkey,
-                                keysym,
-                                utf8.clone(),
-                            );
-                            Ok(())
-                        });
-                    }
-                    KbEvent::Modifiers { modifiers } => {
-                        let mods = modifier_keys(modifiers);
-                        Connection::with_window_inner(window_id, move |inner| {
-                            inner.handle_modifiers(mods);
-                            Ok(())
-                        });
-                    }
-                    _ => {}
+            move |event: KbEvent, _| match event {
+                KbEvent::Key {
+                    rawkey,
+                    keysym,
+                    state,
+                    utf8,
+                    ..
+                } => {
+                    Connection::with_window_inner(window_id, move |inner| {
+                        inner.handle_key(state == KeyState::Pressed, rawkey, keysym, utf8.clone());
+                        Ok(())
+                    });
                 }
+                KbEvent::Modifiers { modifiers } => {
+                    let mods = modifier_keys(modifiers);
+                    Connection::with_window_inner(window_id, move |inner| {
+                        inner.handle_modifiers(mods);
+                        Ok(())
+                    });
+                }
+                _ => {}
             },
             move |event: KeyRepeatEvent, _| {
                 Connection::with_window_inner(window_id, move |inner| {
@@ -363,18 +355,31 @@ impl Window {
 
 impl WindowInner {
     fn handle_key(&mut self, key_is_down: bool, rawkey: u32, keysym: u32, utf8: Option<String>) {
-        let key = match utf8 {
-            Some(text) if text.chars().count() == 1 => KeyCode::Char(text.chars().nth(0).unwrap()),
-            Some(text) => KeyCode::Composed(text),
-            None => {
-                println!("no mapping for keysym {} and rawkey {}", keysym, rawkey);
-                return;
+        let raw_key = keysym_to_keycode(keysym);
+        let (key, raw_key) = match utf8 {
+            Some(text) if text.chars().count() == 1 => {
+                (KeyCode::Char(text.chars().nth(0).unwrap()), raw_key)
             }
+            Some(text) => (KeyCode::Composed(text), raw_key),
+            None => match raw_key {
+                Some(key) => (key, None),
+                None => {
+                    println!("no mapping for keysym {:x} and rawkey {:x}", keysym, rawkey);
+                    return;
+                }
+            },
+        };
+        // Avoid redundant key == raw_key
+        let (key, raw_key) = match (key, raw_key) {
+            // Avoid eg: \x01 when we can use CTRL-A
+            (KeyCode::Char(c), Some(raw)) if c.is_ascii_control() => (raw.clone(), None),
+            (key, Some(raw)) if key == raw => (key, None),
+            pair => pair,
         };
         let key_event = KeyEvent {
             key_is_down,
             key,
-            raw_key: None,
+            raw_key,
             modifiers: self.modifiers,
             repeat_count: 1,
         };

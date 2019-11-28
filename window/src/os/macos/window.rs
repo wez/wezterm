@@ -1084,6 +1084,7 @@ impl WindowView {
                     .map(|kc| normalize_shifted_unmodified_key(kc, virtual_key));
 
                 match (&key, &raw) {
+                    // Avoid eg: \x01 when we can use CTRL-A
                     (KeyCode::Char(c), Some(raw)) if c.is_ascii_control() => (raw.clone(), None),
                     _ => (key, raw),
                 }

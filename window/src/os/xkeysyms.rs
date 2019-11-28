@@ -28,6 +28,16 @@ pub fn modifiers_from_state(state: u16) -> Modifiers {
 /// for missing keys, look into `/usr/include/X11/keysymdef.h`
 /// and/or define them in KeyCode.
 pub fn keysym_to_keycode(keysym: u32) -> Option<KeyCode> {
+    let utf32 = xkbcommon::xkb::keysym_to_utf32(keysym);
+    if utf32 >= 0x20 {
+        // Unsafety: this is ok because we trust that keysym_to_utf32
+        // is only going to return valid utf32 codepoints.
+        // Note that keysym_to_utf32 returns 0 for no match.
+        unsafe {
+            return Some(KeyCode::Char(std::char::from_u32_unchecked(utf32)));
+        }
+    }
+
     use xkbcommon::xkb::keysyms::*;
     #[allow(non_upper_case_globals)]
     Some(match keysym {
@@ -41,6 +51,9 @@ pub fn keysym_to_keycode(keysym: u32) -> Option<KeyCode> {
         KEY_Clear => KeyCode::Clear,
         KEY_Pause => KeyCode::Pause,
         KEY_Print => KeyCode::Print,
+
+        // latin-1
+        i @ KEY_space..=KEY_ydiaeresis => KeyCode::Char(i as u8 as char),
 
         // cursor movement
         KEY_Home => KeyCode::Home,
