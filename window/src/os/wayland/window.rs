@@ -217,7 +217,7 @@ pub struct WindowInner {
     callbacks: Box<dyn WindowCallbacks>,
     surface: WlSurface,
     seat: WlSeat,
-    window: toolkit::window::Window<toolkit::window::ConceptFrame>,
+    window: Option<toolkit::window::Window<toolkit::window::ConceptFrame>>,
     pool: MemPool,
     dimensions: (u32, u32),
     need_paint: bool,
@@ -334,7 +334,7 @@ impl Window {
             callbacks,
             surface,
             seat,
-            window,
+            window: Some(window),
             pool,
             dimensions,
             need_paint: true,
@@ -472,17 +472,21 @@ impl WindowInner {
         match evt {
             Event::Close => {
                 if self.callbacks.can_close() {
-                    println!("FIXME: I should destroy all refs to the window now");
+                    self.callbacks.destroy();
+                    self.window.take();
                 }
             }
             Event::Refresh => {
                 self.do_paint().unwrap();
             }
             Event::Configure { new_size, .. } => {
+                if self.window.is_none() {
+                    return;
+                }
                 if let Some((w, h)) = new_size {
                     let factor = toolkit::surface::get_dpi_factor(&self.surface);
                     self.surface.set_buffer_scale(factor);
-                    self.window.resize(w, h);
+                    self.window.as_mut().unwrap().resize(w, h);
                     let w = w * factor as u32;
                     let h = h * factor as u32;
                     self.dimensions = (w, h);
@@ -492,7 +496,7 @@ impl WindowInner {
                         dpi: 96 * factor as usize,
                     });
                 }
-                self.window.refresh();
+                self.window.as_mut().unwrap().refresh();
                 self.do_paint().unwrap();
             }
         }
@@ -501,6 +505,11 @@ impl WindowInner {
     fn do_paint(&mut self) -> Fallible<()> {
         if self.pool.is_used() {
             // Buffer still in use by server; retry later
+            return Ok(());
+        }
+
+        if self.window.is_none() {
+            // Window has been closed; complete gracefully
             return Ok(());
         }
 
@@ -526,7 +535,7 @@ impl WindowInner {
         self.damage();
 
         self.surface.commit();
-        self.window.refresh();
+        self.window.as_mut().unwrap().refresh();
         self.need_paint = false;
 
         Ok(())
@@ -728,15 +737,21 @@ impl WindowOps for Window {
 }
 
 impl WindowOpsMut for WindowInner {
-    fn close(&mut self) {}
+    fn close(&mut self) {
+        self.callbacks.destroy();
+        self.window.take();
+    }
     fn hide(&mut self) {}
     fn show(&mut self) {
+        if self.window.is_none() {
+            return;
+        }
         let conn = Connection::get().unwrap();
 
         if !conn.environment.borrow().shell.needs_configure() {
             self.do_paint().unwrap();
         } else {
-            self.window.refresh();
+            self.window.as_mut().unwrap().refresh();
         }
     }
 
@@ -753,6 +768,8 @@ impl WindowOpsMut for WindowInner {
 
     /// Change the title for the window manager
     fn set_title(&mut self, title: &str) {
-        self.window.set_title(title.to_string());
+        if let Some(window) = self.window.as_ref() {
+            window.set_title(title.to_string());
+        }
     }
 }

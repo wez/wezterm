@@ -223,6 +223,7 @@ impl ConnectionOps for Connection {
                 }
             }
         }
+        self.windows.borrow_mut().clear();
 
         Ok(())
     }
