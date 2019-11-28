@@ -271,7 +271,10 @@ pub trait BitmapImage {
 
         #[cfg(target_arch = "x86_64")]
         {
-            if is_x86_feature_detected!("avx") && (max_x - dest_x) >= 8 {
+            if is_x86_feature_detected!("avx")
+                && max_x.saturating_sub(dest_x) >= 8
+                && max_y.saturating_sub(dest_y) > 0
+            {
                 unsafe {
                     avx::fill_pixel(
                         self.pixel_data_mut()
