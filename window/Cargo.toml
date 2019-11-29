@@ -57,6 +57,7 @@ memmap = {version="0.7", optional=true}
 [target.'cfg(target_os="macos")'.dependencies]
 cocoa = "0.20"
 objc = "0.2"
+clipboard = "0.5"
 core-foundation = "0.7"
 core-graphics = "0.19"
 cgl = { version = "0.3", optional = true }

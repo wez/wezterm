@@ -463,6 +463,24 @@ impl WindowOps for Window {
             }
         })
     }
+
+    fn get_clipboard(&self) -> Future<String> {
+        use clipboard::ClipboardProvider;
+        Future::result(
+            clipboard::ClipboardContext::new()
+                .and_then(|mut ctx| ctx.get_contents())
+                .map_err(|e| failure::format_err!("Failed to get clipboard: {}", e)),
+        )
+    }
+
+    fn set_clipboard(&self, text: String) -> Future<()> {
+        use clipboard::ClipboardProvider;
+        Future::result(
+            clipboard::ClipboardContext::new()
+                .and_then(|mut ctx| ctx.set_contents(text))
+                .map_err(|e| failure::format_err!("Failed to set clipboard: {}", e)),
+        )
+    }
 }
 
 /// Convert from a macOS screen coordinate with the origin in the bottom left
