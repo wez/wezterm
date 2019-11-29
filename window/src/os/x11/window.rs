@@ -9,12 +9,19 @@ use crate::{
     WindowOpsMut,
 };
 use failure::Fallible;
-use promise::Future;
+use promise::{Future, Promise};
 use std::any::Any;
 use std::collections::VecDeque;
 use std::convert::TryInto;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
+
+#[derive(Default)]
+struct CopyAndPaste {
+    owned: Option<String>,
+    request: Option<Promise<String>>,
+    time: u32,
+}
 
 pub(crate) struct XWindowInner {
     window_id: xcb::xproto::Window,
@@ -27,6 +34,7 @@ pub(crate) struct XWindowInner {
     paint_all: bool,
     buffer_image: BufferImage,
     cursor: Option<MouseCursor>,
+    copy_and_paste: CopyAndPaste,
     #[cfg(feature = "opengl")]
     gl_state: Option<Rc<glium::backend::Context>>,
 }
@@ -262,6 +270,7 @@ impl XWindowInner {
             }
             xcb::KEY_PRESS | xcb::KEY_RELEASE => {
                 let key_press: &xcb::KeyPressEvent = unsafe { xcb::cast_event(event) };
+                self.copy_and_paste.time = key_press.time();
                 if let Some((code, mods)) = self.conn.keyboard.process_key_event(key_press) {
                     let key = KeyEvent {
                         key: code,
@@ -295,6 +304,7 @@ impl XWindowInner {
             }
             xcb::BUTTON_PRESS | xcb::BUTTON_RELEASE => {
                 let button_press: &xcb::ButtonPressEvent = unsafe { xcb::cast_event(event) };
+                self.copy_and_paste.time = button_press.time();
 
                 let kind = match button_press.detail() {
                     b @ 1..=3 => {
@@ -347,11 +357,185 @@ impl XWindowInner {
                 self.callbacks.destroy();
                 self.conn.windows.borrow_mut().remove(&self.window_id);
             }
+            xcb::SELECTION_CLEAR => {
+                self.selection_clear()?;
+            }
+            xcb::SELECTION_REQUEST => {
+                self.selection_request(unsafe { xcb::cast_event(event) })?;
+            }
+            xcb::SELECTION_NOTIFY => {
+                self.selection_notify(unsafe { xcb::cast_event(event) })?;
+            }
+            xcb::PROPERTY_NOTIFY => {
+                let msg: &xcb::PropertyNotifyEvent = unsafe { xcb::cast_event(event) };
+                log::trace!(
+                    "PropertyNotifyEvent atom={} xsel={}",
+                    msg.atom(),
+                    self.conn.atom_xsel_data
+                );
+            }
             _ => {
                 eprintln!("unhandled: {:x}", r);
             }
         }
 
+        Ok(())
+    }
+
+    /// If we own the selection, make sure that the X server reflects
+    /// that and vice versa.
+    fn update_selection_owner(&mut self) {
+        for &selection in &[xcb::ATOM_PRIMARY, self.conn.atom_clipboard] {
+            let current_owner = xcb::get_selection_owner(&self.conn, selection)
+                .get_reply()
+                .unwrap()
+                .owner();
+            if self.copy_and_paste.owned.is_none() && current_owner == self.window_id {
+                // We don't have a selection but X thinks we do; disown it!
+                xcb::set_selection_owner(
+                    &self.conn,
+                    xcb::NONE,
+                    selection,
+                    self.copy_and_paste.time,
+                );
+            } else if self.copy_and_paste.owned.is_some() && current_owner != self.window_id {
+                // We have the selection but X doesn't think we do; assert it!
+                xcb::set_selection_owner(
+                    &self.conn,
+                    self.window_id,
+                    selection,
+                    self.copy_and_paste.time,
+                );
+            }
+        }
+        self.conn.flush();
+    }
+
+    fn selection_clear(&mut self) -> Fallible<()> {
+        self.copy_and_paste.owned.take();
+        self.copy_and_paste.request.take();
+        self.update_selection_owner();
+        Ok(())
+    }
+
+    /// A selection request is made to us after we've announced that we own the selection
+    /// and when another client wants to copy it.
+    fn selection_request(&mut self, request: &xcb::SelectionRequestEvent) -> Fallible<()> {
+        log::trace!(
+            "SEL: time={} owner={} requestor={} selection={} target={} property={}",
+            request.time(),
+            request.owner(),
+            request.requestor(),
+            request.selection(),
+            request.target(),
+            request.property()
+        );
+        log::trace!(
+            "XSEL={}, UTF8={} PRIMARY={} clip={}",
+            self.conn.atom_xsel_data,
+            self.conn.atom_utf8_string,
+            xcb::ATOM_PRIMARY,
+            self.conn.atom_clipboard,
+        );
+
+        let selprop = if request.target() == self.conn.atom_targets {
+            // They want to know which targets we support
+            let atoms: [u32; 1] = [self.conn.atom_utf8_string];
+            xcb::xproto::change_property(
+                &self.conn,
+                xcb::xproto::PROP_MODE_REPLACE as u8,
+                request.requestor(),
+                request.property(),
+                xcb::xproto::ATOM_ATOM,
+                32, /* 32-bit atom value */
+                &atoms,
+            );
+
+            // let the requestor know that we set their property
+            request.property()
+        } else if request.target() == self.conn.atom_utf8_string
+            || request.target() == xcb::xproto::ATOM_STRING
+        {
+            // We'll accept requests for UTF-8 or STRING data.
+            // We don't and won't do any conversion from UTF-8 to
+            // whatever STRING represents; let's just assume that
+            // the other end is going to handle it correctly.
+            if let Some(text) = self.copy_and_paste.owned.as_ref() {
+                xcb::xproto::change_property(
+                    &self.conn,
+                    xcb::xproto::PROP_MODE_REPLACE as u8,
+                    request.requestor(),
+                    request.property(),
+                    request.target(),
+                    8, /* 8-bit string data */
+                    text.as_bytes(),
+                );
+                // let the requestor know that we set their property
+                request.property()
+            } else {
+                // We have no clipboard so there is nothing to report
+                xcb::NONE
+            }
+        } else {
+            // We didn't support their request, so there is nothing
+            // we can report back to them.
+            xcb::NONE
+        };
+        log::trace!("responding with selprop={}", selprop);
+
+        xcb::xproto::send_event(
+            &self.conn,
+            true,
+            request.requestor(),
+            0,
+            &xcb::xproto::SelectionNotifyEvent::new(
+                request.time(),
+                request.requestor(),
+                request.selection(),
+                request.target(),
+                selprop, // the disposition from the operation above
+            ),
+        );
+
+        Ok(())
+    }
+
+    fn selection_notify(&mut self, selection: &xcb::SelectionNotifyEvent) -> Fallible<()> {
+        log::trace!(
+            "SELECTION_NOTIFY received selection={} (prim={} clip={}) target={} property={}",
+            selection.selection(),
+            xcb::ATOM_PRIMARY,
+            self.conn.atom_clipboard,
+            selection.target(),
+            selection.property()
+        );
+
+        if (selection.selection() == xcb::ATOM_PRIMARY
+            || selection.selection() == self.conn.atom_clipboard)
+            && selection.property() != xcb::NONE
+        {
+            match xcb_util::icccm::get_text_property(
+                &self.conn,
+                selection.requestor(),
+                selection.property(),
+            )
+            .get_reply()
+            {
+                Ok(prop) => {
+                    if let Some(mut promise) = self.copy_and_paste.request.take() {
+                        promise.ok(prop.name().to_owned());
+                    }
+                    xcb::delete_property(&self.conn, self.window_id, self.conn.atom_xsel_data);
+                }
+                Err(err) => {
+                    log::error!("clipboard: err while getting clipboard property: {:?}", err);
+                }
+            }
+        } else {
+            if let Some(mut promise) = self.copy_and_paste.request.take() {
+                promise.ok("".to_owned());
+            }
+        }
         Ok(())
     }
 
@@ -458,12 +642,14 @@ impl XWindow {
                 &[(
                     xcb::CW_EVENT_MASK,
                     xcb::EVENT_MASK_EXPOSURE
+                        | xcb::EVENT_MASK_FOCUS_CHANGE
                         | xcb::EVENT_MASK_KEY_PRESS
                         | xcb::EVENT_MASK_BUTTON_PRESS
                         | xcb::EVENT_MASK_BUTTON_RELEASE
                         | xcb::EVENT_MASK_POINTER_MOTION
                         | xcb::EVENT_MASK_BUTTON_MOTION
                         | xcb::EVENT_MASK_KEY_RELEASE
+                        | xcb::EVENT_MASK_PROPERTY_CHANGE
                         | xcb::EVENT_MASK_STRUCTURE_NOTIFY,
                 )],
             )
@@ -482,6 +668,7 @@ impl XWindow {
                 height: height.try_into()?,
                 expose: VecDeque::new(),
                 paint_all: true,
+                copy_and_paste: CopyAndPaste::default(),
                 buffer_image,
                 cursor: None,
                 #[cfg(feature = "opengl")]
@@ -702,6 +889,51 @@ impl WindowOps for XWindow {
             inner.gl_state = gl_state.as_ref().map(Rc::clone).ok();
 
             func(inner.callbacks.as_any(), &window, gl_state)
+        })
+    }
+
+    /// Initiate textual transfer from the clipboard
+    fn get_clipboard(&self) -> Future<String> {
+        let mut promise = Promise::new();
+        let future = promise.get_future().unwrap();
+        let mut promise = Some(promise);
+        XConnection::with_window_inner(self.0, move |inner| {
+            let mut promise = promise.take().unwrap();
+            if let Some(text) = inner.copy_and_paste.owned.as_ref() {
+                promise.ok(text.to_owned());
+
+                // Cancel any outstanding promise from the other branch
+                // below.
+                inner.copy_and_paste.request.take();
+            } else {
+                log::error!("prepare promise, time={}", inner.copy_and_paste.time);
+                inner.copy_and_paste.request.replace(promise);
+                // Find the owner and ask them to send us the buffer
+                xcb::convert_selection(
+                    &inner.conn,
+                    inner.window_id,
+                    // Important: we request the clipboard rather than the
+                    // primary selection because, under wayland, access to the
+                    // primary selection is forbidden by default citing a security
+                    // concern.
+                    inner.conn.atom_clipboard,
+                    inner.conn.atom_utf8_string,
+                    inner.conn.atom_xsel_data,
+                    inner.copy_and_paste.time,
+                );
+            }
+            Ok(())
+        });
+
+        future
+    }
+
+    /// Set some text in the clipboard
+    fn set_clipboard(&self, text: String) -> Future<()> {
+        XConnection::with_window_inner(self.0, move |inner| {
+            inner.copy_and_paste.owned.replace(text.clone());
+            inner.update_selection_owner();
+            Ok(())
         })
     }
 }

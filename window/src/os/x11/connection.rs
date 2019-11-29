@@ -108,6 +108,22 @@ fn window_id_from_event(event: &xcb::GenericEvent) -> Option<xcb::xproto::Window
             let msg: &xcb::DestroyNotifyEvent = unsafe { xcb::cast_event(event) };
             Some(msg.window())
         }
+        xcb::SELECTION_CLEAR => {
+            let msg: &xcb::SelectionClearEvent = unsafe { xcb::cast_event(event) };
+            Some(msg.owner())
+        }
+        xcb::PROPERTY_NOTIFY => {
+            let msg: &xcb::PropertyNotifyEvent = unsafe { xcb::cast_event(event) };
+            Some(msg.window())
+        }
+        xcb::SELECTION_NOTIFY => {
+            let msg: &xcb::SelectionNotifyEvent = unsafe { xcb::cast_event(event) };
+            Some(msg.requestor())
+        }
+        xcb::SELECTION_REQUEST => {
+            let msg: &xcb::SelectionRequestEvent = unsafe { xcb::cast_event(event) };
+            Some(msg.owner())
+        }
         _ => None,
     }
 }
@@ -146,7 +162,7 @@ fn server_supports_shm() -> bool {
 impl ConnectionOps for XConnection {
     fn spawn_task<F: std::future::Future<Output = ()> + 'static>(&self, future: F) {
         let id = self.tasks.add_task(Task(Box::pin(future)));
-        Self::wake_task_by_id(id);
+        Connection::wake_task_by_id(id);
     }
 
     fn wake_task_by_id(_slot: usize) {
