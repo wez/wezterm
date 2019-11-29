@@ -40,6 +40,7 @@ winapi = { version = "0.3", features = [
     "winerror",
     "winuser",
 ]}
+clipboard-win = "2.2"
 
 [target.'cfg(all(unix, not(target_os = "macos")))'.dependencies]
 filedescriptor = "0.5"

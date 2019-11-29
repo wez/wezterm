@@ -1,3 +1,4 @@
+#![cfg(all(unix, not(target_os = "macos")))]
 use std::cmp::Ordering;
 use std::collections::VecDeque;
 use std::time::{Duration, Instant};

@@ -422,6 +422,20 @@ impl WindowOps for Window {
             func(inner.callbacks.borrow_mut().as_any(), &window, gl_state)
         })
     }
+
+    fn get_clipboard(&self) -> Future<String> {
+        Future::result(
+            clipboard_win::get_clipboard_string()
+                .map_err(|e| failure::format_err!("Error getting clipboard: {}", e)),
+        )
+    }
+
+    fn set_clipboard(&self, text: String) -> Future<()> {
+        Future::result(
+            clipboard_win::set_clipboard_string(&text)
+                .map_err(|e| failure::format_err!("Error setting clipboard: {}", e)),
+        )
+    }
 }
 
 /// Set up bidirectional pointers:
