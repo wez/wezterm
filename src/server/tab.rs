@@ -1,4 +1,3 @@
-use crate::clipboard::SystemClipboard;
 use crate::frontend::executor;
 use crate::mux::domain::DomainId;
 use crate::mux::renderable::Renderable;
@@ -21,7 +20,7 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use term::color::ColorPalette;
 use term::selection::SelectionRange;
-use term::{Clipboard, CursorPosition, Line};
+use term::{CursorPosition, Line};
 use term::{KeyCode, KeyModifiers, MouseButton, MouseEvent, MouseEventKind, TerminalHost};
 use termwiz::hyperlink::Hyperlink;
 use termwiz::input::KeyEvent;
@@ -133,7 +132,6 @@ pub struct ClientTab {
     writer: RefCell<TabWriter>,
     reader: Pipe,
     mouse: Arc<Mutex<MouseState>>,
-    clipboard: Arc<dyn Clipboard>,
 }
 
 impl ClientTab {
@@ -182,11 +180,6 @@ impl ClientTab {
             local_tab_id,
             renderable: RefCell::new(render),
             writer: RefCell::new(writer),
-            // FIXME: ideally we'd pass down an instance of Clipboard
-            // rather than creating a new SystemClipboard here.
-            // That will be important if we end up with multiple chained
-            // domains in the future.
-            clipboard: Arc::new(SystemClipboard::new()),
             reader,
         }
     }
@@ -202,7 +195,7 @@ impl ClientTab {
                     .apply_changes_to_surface(delta.sequence_no, delta.changes);
             }
             Pdu::SetClipboard(SetClipboard { clipboard, .. }) => {
-                self.clipboard.set_contents(clipboard)?;
+                log::error!("Ignoring SetClipboard request {:?}", clipboard);
             }
             Pdu::OpenURL(OpenURL { url, .. }) => {
                 // FIXME: ideally we'd have a provider that we can

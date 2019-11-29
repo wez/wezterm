@@ -251,4 +251,19 @@ impl WindowOps for Window {
             Self::Wayland(w) => w.enable_opengl(func),
         }
     }
+
+    fn get_clipboard(&self) -> Future<String> {
+        match self {
+            Self::X11(x) => x.get_clipboard(),
+            #[cfg(feature = "wayland")]
+            Self::Wayland(w) => w.get_clipboard(),
+        }
+    }
+    fn set_clipboard(&self, text: String) -> Future<()> {
+        match self {
+            Self::X11(x) => x.set_clipboard(text),
+            #[cfg(feature = "wayland")]
+            Self::Wayland(w) => w.set_clipboard(text),
+        }
+    }
 }

@@ -10,6 +10,7 @@ if test -e /etc/centos-release || test -e /etc/fedora-release; then
     libxcb-devel \
     libxkbcommon-devel \
     libxkbcommon-x11-devel \
+    wayland-devel \
     mesa-libEGL-devel \
     xcb-util-keysyms-devel \
     xcb-util-wm-devel

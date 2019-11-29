@@ -8,6 +8,16 @@ pub trait Clipboard {
     fn set_contents(&self, data: Option<String>) -> Fallible<()>;
 }
 
+impl Clipboard for Box<dyn Clipboard> {
+    fn get_contents(&self) -> Fallible<String> {
+        self.as_ref().get_contents()
+    }
+
+    fn set_contents(&self, data: Option<String>) -> Fallible<()> {
+        self.as_ref().set_contents(data)
+    }
+}
+
 /// Represents the host of the terminal.
 /// Provides a means for sending data to the connected pty,
 /// and for operating on the clipboard

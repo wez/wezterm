@@ -1,7 +1,6 @@
 use super::quad::*;
 use super::renderstate::*;
 use super::utilsprites::RenderMetrics;
-use crate::clipboard::SystemClipboard;
 use crate::config::{configuration, ConfigHandle};
 use crate::font::{FontConfiguration, FontSystemSelection};
 use crate::frontend::gui::tabbar::{TabBarItem, TabBarState};
@@ -24,6 +23,23 @@ use term::color::ColorPalette;
 use term::{CursorPosition, Line, Underline};
 use termwiz::color::RgbColor;
 
+/// ClipboardHelper bridges between the window crate clipboard
+/// manipulation and the term crate clipboard interface
+struct ClipboardHelper {
+    window: Window,
+}
+
+impl term::Clipboard for ClipboardHelper {
+    fn get_contents(&self) -> Fallible<String> {
+        self.window.get_clipboard().wait()
+    }
+
+    fn set_contents(&self, data: Option<String>) -> Fallible<()> {
+        self.window.set_clipboard(data.unwrap_or_else(String::new));
+        Ok(())
+    }
+}
+
 pub struct TermWindow {
     window: Option<Window>,
     fonts: Rc<FontConfiguration>,
@@ -31,7 +47,6 @@ pub struct TermWindow {
     mux_window_id: MuxWindowId,
     render_metrics: RenderMetrics,
     render_state: RenderState,
-    clipboard: Arc<dyn term::Clipboard>,
     keys: KeyMap,
     show_tab_bar: bool,
     tab_bar: TabBarState,
@@ -43,7 +58,7 @@ pub struct TermWindow {
 struct Host<'a> {
     writer: &'a mut dyn std::io::Write,
     context: &'a dyn WindowOps,
-    clipboard: &'a Arc<dyn term::Clipboard>,
+    clipboard: Arc<dyn term::Clipboard>,
 }
 
 impl<'a> term::TerminalHost for Host<'a> {
@@ -52,7 +67,7 @@ impl<'a> term::TerminalHost for Host<'a> {
     }
 
     fn get_clipboard(&mut self) -> Fallible<Arc<dyn term::Clipboard>> {
-        Ok(Arc::clone(self.clipboard))
+        Ok(Arc::clone(&self.clipboard))
     }
 
     fn set_title(&mut self, title: &str) {
@@ -199,7 +214,9 @@ impl WindowCallbacks for TermWindow {
                 &mut Host {
                     writer: &mut *tab.writer(),
                     context,
-                    clipboard: &self.clipboard,
+                    clipboard: Arc::new(ClipboardHelper {
+                        window: self.window.as_ref().unwrap().clone(),
+                    }),
                 },
             )
             .ok();
@@ -401,7 +418,6 @@ impl TermWindow {
                     dpi: 96,
                 },
                 render_state,
-                clipboard: Arc::new(SystemClipboard::new()),
                 keys: KeyMap::new(),
                 show_tab_bar: config.enable_tab_bar,
                 tab_bar: TabBarState::default(),
@@ -784,10 +800,26 @@ impl TermWindow {
                 // self.toggle_full_screen(),
             }
             Copy => {
-                self.clipboard.set_contents(tab.selection_text())?;
+                //    self.clipboard.set_contents(tab.selection_text())?;
+                log::error!("Copy pressed");
+                if let Some(text) = tab.selection_text() {
+                    self.window.as_ref().unwrap().set_clipboard(text);
+                }
             }
             Paste => {
-                tab.trickle_paste(self.clipboard.get_contents()?)?;
+                let tab_id = tab.tab_id();
+                let future = self.window.as_ref().unwrap().get_clipboard();
+                Connection::get().unwrap().spawn_task(async move {
+                    if let Ok(clip) = future.await {
+                        promise::Future::with_executor(executor(), move || {
+                            let mux = Mux::get().unwrap();
+                            if let Some(tab) = mux.get_tab(tab_id) {
+                                tab.trickle_paste(clip)?;
+                            }
+                            Ok(())
+                        });
+                    }
+                });
             }
             ActivateTabRelative(n) => {
                 self.activate_tab_relative(*n)?;

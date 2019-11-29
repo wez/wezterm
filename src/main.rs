@@ -16,7 +16,6 @@ use window::{Connection, ConnectionOps};
 use std::rc::Rc;
 use std::sync::Arc;
 
-mod clipboard;
 mod config;
 mod frontend;
 mod keyassignment;

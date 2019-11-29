@@ -220,6 +220,16 @@ pub trait WindowOps {
     where
         Self: Sized,
         R: Send + 'static;
+
+    /// Initiate textual transfer from the clipboard
+    fn get_clipboard(&self) -> Future<String> {
+        Future::err(failure::err_msg("no clip"))
+    }
+
+    /// Set some text in the clipboard
+    fn set_clipboard(&self, _text: String) -> Future<()> {
+        Future::err(failure::err_msg("no clip"))
+    }
 }
 
 pub trait WindowOpsMut {

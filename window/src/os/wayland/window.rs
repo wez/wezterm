@@ -9,22 +9,31 @@ use crate::{
     WindowCallbacks, WindowOps, WindowOpsMut,
 };
 use failure::Fallible;
-use promise::Future;
+use filedescriptor::{FileDescriptor, Pipe};
+use promise::{Future, Promise};
 use smithay_client_toolkit as toolkit;
 use std::any::Any;
 use std::cell::RefCell;
+use std::io::{Read, Write};
+use std::os::unix::io::{AsRawFd, FromRawFd};
 use std::rc::Rc;
+use std::sync::{Arc, Mutex};
 use toolkit::keyboard::{
     map_keyboard_auto_with_repeat, Event as KbEvent, KeyRepeatEvent, KeyRepeatKind, KeyState,
     ModifiersState,
 };
+use toolkit::reexports::client::protocol::wl_data_device::{
+    Event as DataDeviceEvent, WlDataDevice,
+};
+use toolkit::reexports::client::protocol::wl_data_offer::{Event as DataOfferEvent, WlDataOffer};
+use toolkit::reexports::client::protocol::wl_data_source::{
+    Event as DataSourceEvent, WlDataSource,
+};
 use toolkit::reexports::client::protocol::wl_pointer::{
     self, Axis, AxisSource, Event as PointerEvent,
 };
-use toolkit::reexports::client::protocol::wl_seat::WlSeat;
+use toolkit::reexports::client::protocol::wl_seat::{Event as SeatEvent, WlSeat};
 use toolkit::reexports::client::protocol::wl_surface::WlSurface;
-use toolkit::reexports::client::NewProxy;
-use toolkit::shell::ShellSurface;
 use toolkit::utils::MemPool;
 use toolkit::window::Event;
 
@@ -214,11 +223,70 @@ impl toolkit::window::Theme for MyTheme {
     }
 }
 
+struct CopyAndPaste {
+    data_offer: Option<WlDataOffer>,
+    last_serial: u32,
+    data_device: Option<WlDataDevice>,
+}
+
+const TEXT_MIME_TYPE: &str = "text/plain;charset=utf-8";
+
+impl CopyAndPaste {
+    fn update_last_serial(&mut self, serial: u32) {
+        if serial != 0 {
+            self.last_serial = serial;
+        }
+    }
+
+    fn get_clipboard_data(&mut self) -> Fallible<FileDescriptor> {
+        let offer = self
+            .data_offer
+            .as_ref()
+            .ok_or_else(|| failure::err_msg("no data offer"))?;
+        let pipe = Pipe::new()?;
+        offer.receive(TEXT_MIME_TYPE.to_string(), pipe.write.as_raw_fd());
+        Ok(pipe.read)
+    }
+
+    fn handle_data_offer(&mut self, event: DataOfferEvent, offer: WlDataOffer) {
+        match event {
+            DataOfferEvent::Offer { mime_type } => {
+                if mime_type == TEXT_MIME_TYPE {
+                    offer.accept(self.last_serial, Some(mime_type));
+                    self.data_offer.replace(offer);
+                } else {
+                    // Refuse other mime types
+                    offer.accept(self.last_serial, None);
+                }
+            }
+            DataOfferEvent::SourceActions { source_actions } => {
+                log::error!("Offer source_actions {}", source_actions);
+            }
+            DataOfferEvent::Action { dnd_action } => {
+                log::error!("Offer dnd_action {}", dnd_action);
+            }
+            _ => {}
+        }
+    }
+
+    fn confirm_selection(&mut self, offer: WlDataOffer) {
+        self.data_offer.replace(offer);
+    }
+
+    fn set_selection(&mut self, source: WlDataSource) {
+        if let Some(dev) = self.data_device.as_ref() {
+            dev.set_selection(Some(&source), self.last_serial);
+        }
+    }
+}
+
 pub struct WaylandWindowInner {
     window_id: usize,
     callbacks: Box<dyn WindowCallbacks>,
     surface: WlSurface,
+    #[allow(dead_code)]
     seat: WlSeat,
+    copy_and_paste: Arc<Mutex<CopyAndPaste>>,
     window: Option<toolkit::window::Window<toolkit::window::ConceptFrame>>,
     pool: MemPool,
     dimensions: (u32, u32),
@@ -273,6 +341,7 @@ impl WaylandWindow {
         window.set_app_id(class_name.to_string());
         window.set_decorate(true);
         window.set_resizable(true);
+        window.set_title(name.to_string());
         window.set_theme(MyTheme {});
 
         let pool = MemPool::new(&conn.environment.borrow().shm, || {})?;
@@ -281,9 +350,85 @@ impl WaylandWindow {
             .environment
             .borrow()
             .manager
-            .instantiate_range(1, 6, NewProxy::implement_dummy)
+            .instantiate_range(1, 6, move |seat| {
+                seat.implement_closure(
+                    move |event, _seat| {
+                        if let SeatEvent::Name { name } = event {
+                            log::error!("seat name is {}", name);
+                        }
+                    },
+                    (),
+                )
+            })
             .map_err(|_| failure::format_err!("Failed to create seat"))?;
+
         window.new_seat(&seat);
+
+        let copy_and_paste = Arc::new(Mutex::new(CopyAndPaste {
+            data_offer: None,
+            last_serial: 0,
+            data_device: None,
+        }));
+
+        let data_device = conn
+            .environment
+            .borrow()
+            .data_device_manager
+            .get_data_device(&seat, {
+                let copy_and_paste = Arc::clone(&copy_and_paste);
+                move |device| {
+                    device.implement_closure(
+                        {
+                            let copy_and_paste = Arc::clone(&copy_and_paste);
+                            move |event, _device| match event {
+                                DataDeviceEvent::DataOffer { id } => {
+                                    log::error!("DataDeviceEvent DataOffer");
+                                    id.implement_closure(
+                                        {
+                                            let copy_and_paste = Arc::clone(&copy_and_paste);
+                                            move |event, offer| {
+                                                copy_and_paste
+                                                    .lock()
+                                                    .unwrap()
+                                                    .handle_data_offer(event, offer);
+                                            }
+                                        },
+                                        (),
+                                    );
+                                }
+                                DataDeviceEvent::Enter { .. } => {
+                                    log::error!("DataDeviceEvent Enter")
+                                }
+                                DataDeviceEvent::Leave { .. } => {
+                                    log::error!("DataDeviceEvent Leave")
+                                }
+                                DataDeviceEvent::Motion { .. } => {
+                                    log::error!("DataDeviceEvent Motion")
+                                }
+                                DataDeviceEvent::Drop => log::error!("DataDeviceEvent Drop"),
+                                DataDeviceEvent::Selection { id } => {
+                                    log::error!(
+                                        "DataDeviceEvent Selection {}",
+                                        if id.is_some() { "Y" } else { "None" }
+                                    );
+                                    if let Some(offer) = id {
+                                        copy_and_paste.lock().unwrap().confirm_selection(offer);
+                                    }
+                                }
+                                _ => {}
+                            }
+                        },
+                        (),
+                    )
+                }
+            })
+            .map_err(|_| failure::format_err!("Failed to configure data_device"))?;
+
+        copy_and_paste
+            .lock()
+            .unwrap()
+            .data_device
+            .replace(data_device);
 
         seat.get_pointer(move |ptr| {
             ptr.implement_closure(
@@ -302,31 +447,44 @@ impl WaylandWindow {
         map_keyboard_auto_with_repeat(
             &seat,
             KeyRepeatKind::System,
-            move |event: KbEvent, _| match event {
-                KbEvent::Key {
-                    rawkey,
-                    keysym,
-                    state,
-                    utf8,
-                    ..
-                } => {
-                    WaylandConnection::with_window_inner(window_id, move |inner| {
-                        inner.handle_key(state == KeyState::Pressed, rawkey, keysym, utf8.clone());
-                        Ok(())
-                    });
+            {
+                let copy_and_paste = Arc::clone(&copy_and_paste);
+                move |event: KbEvent, _| match event {
+                    KbEvent::Enter { serial, .. } => {
+                        copy_and_paste.lock().unwrap().update_last_serial(serial);
+                    }
+                    KbEvent::Key {
+                        rawkey,
+                        keysym,
+                        state,
+                        utf8,
+                        serial,
+                        ..
+                    } => {
+                        WaylandConnection::with_window_inner(window_id, move |inner| {
+                            inner.handle_key(
+                                serial,
+                                state == KeyState::Pressed,
+                                rawkey,
+                                keysym,
+                                utf8.clone(),
+                            );
+                            Ok(())
+                        });
+                    }
+                    KbEvent::Modifiers { modifiers } => {
+                        let mods = modifier_keys(modifiers);
+                        WaylandConnection::with_window_inner(window_id, move |inner| {
+                            inner.handle_modifiers(mods);
+                            Ok(())
+                        });
+                    }
+                    _ => {}
                 }
-                KbEvent::Modifiers { modifiers } => {
-                    let mods = modifier_keys(modifiers);
-                    WaylandConnection::with_window_inner(window_id, move |inner| {
-                        inner.handle_modifiers(mods);
-                        Ok(())
-                    });
-                }
-                _ => {}
             },
             move |event: KeyRepeatEvent, _| {
                 WaylandConnection::with_window_inner(window_id, move |inner| {
-                    inner.handle_key(true, event.rawkey, event.keysym, event.utf8.clone());
+                    inner.handle_key(0, true, event.rawkey, event.keysym, event.utf8.clone());
                     Ok(())
                 });
             },
@@ -334,6 +492,7 @@ impl WaylandWindow {
         .map_err(|_| failure::format_err!("Failed to configure keyboard callback"))?;
 
         let inner = Rc::new(RefCell::new(WaylandWindowInner {
+            copy_and_paste,
             window_id,
             callbacks,
             surface,
@@ -358,7 +517,18 @@ impl WaylandWindow {
 }
 
 impl WaylandWindowInner {
-    fn handle_key(&mut self, key_is_down: bool, rawkey: u32, keysym: u32, utf8: Option<String>) {
+    fn handle_key(
+        &mut self,
+        serial: u32,
+        key_is_down: bool,
+        rawkey: u32,
+        keysym: u32,
+        utf8: Option<String>,
+    ) {
+        self.copy_and_paste
+            .lock()
+            .unwrap()
+            .update_last_serial(serial);
         let raw_key = keysym_to_keycode(keysym);
         let (key, raw_key) = match utf8 {
             Some(text) if text.chars().count() == 1 => {
@@ -397,16 +567,21 @@ impl WaylandWindowInner {
 
     fn handle_pointer(&mut self, evt: SendablePointerEvent) {
         match evt {
-            SendablePointerEvent::Enter { .. } => {}
+            SendablePointerEvent::Enter { serial, .. } => {
+                self.copy_and_paste
+                    .lock()
+                    .unwrap()
+                    .update_last_serial(serial);
+            }
             SendablePointerEvent::Leave { .. } => {}
             SendablePointerEvent::AxisSource { .. } => {}
             SendablePointerEvent::AxisStop { .. } => {}
             SendablePointerEvent::AxisDiscrete { .. } => {}
             SendablePointerEvent::Frame => {}
             SendablePointerEvent::Motion {
-                time,
                 surface_x,
                 surface_y,
+                ..
             } => {
                 let factor = toolkit::surface::get_dpi_factor(&self.surface);
                 let coords = Point::new(
@@ -427,7 +602,16 @@ impl WaylandWindowInner {
                 self.callbacks
                     .mouse_event(&event, &Window::Wayland(WaylandWindow(self.window_id)));
             }
-            SendablePointerEvent::Button { button, state, .. } => {
+            SendablePointerEvent::Button {
+                button,
+                state,
+                serial,
+                ..
+            } => {
+                self.copy_and_paste
+                    .lock()
+                    .unwrap()
+                    .update_last_serial(serial);
                 fn linux_button(b: u32) -> Option<MousePress> {
                     // See BTN_LEFT and friends in <linux/input-event-codes.h>
                     match b {
@@ -747,6 +931,126 @@ impl WindowOps for WaylandWindow {
             )
         })
     }
+
+    fn get_clipboard(&self) -> Future<String> {
+        let mut promise = Promise::new();
+        let future = promise.get_future().unwrap();
+        let promise = Arc::new(Mutex::new(promise));
+        WaylandConnection::with_window_inner(self.0, move |inner| {
+            let read = inner.copy_and_paste.lock().unwrap().get_clipboard_data()?;
+            let promise = Arc::clone(&promise);
+            std::thread::spawn(move || {
+                let mut promise = promise.lock().unwrap();
+                match read_pipe_with_timeout(read) {
+                    Ok(result) => {
+                        promise.ok(result);
+                    }
+                    Err(e) => {
+                        log::error!("while reading clipboard: {}", e);
+                        promise.err(failure::format_err!("{}", e));
+                    }
+                };
+            });
+            Ok(())
+        });
+        future
+    }
+
+    fn set_clipboard(&self, text: String) -> Future<()> {
+        WaylandConnection::with_window_inner(self.0, move |inner| {
+            let text = text.clone();
+            let conn = Connection::get().unwrap().wayland();
+            let source = conn
+                .environment
+                .borrow()
+                .data_device_manager
+                .create_data_source(move |source| {
+                    source.implement_closure(
+                        move |event, _source| match event {
+                            DataSourceEvent::Send { fd, .. } => {
+                                let fd = unsafe { FileDescriptor::from_raw_fd(fd) };
+                                if let Err(e) = write_pipe_with_timeout(fd, text.as_bytes()) {
+                                    log::error!("while sending paste to pipe: {}", e);
+                                }
+                            }
+                            _ => {}
+                        },
+                        (),
+                    )
+                })
+                .map_err(|_| failure::format_err!("failed to create data source"))?;
+            source.offer(TEXT_MIME_TYPE.to_string());
+            inner.copy_and_paste.lock().unwrap().set_selection(source);
+
+            Ok(())
+        })
+    }
+}
+
+fn write_pipe_with_timeout(mut file: FileDescriptor, data: &[u8]) -> Fallible<()> {
+    let on: libc::c_int = 1;
+    unsafe {
+        libc::ioctl(file.as_raw_fd(), libc::FIONBIO, &on);
+    }
+    let mut pfd = libc::pollfd {
+        fd: file.as_raw_fd(),
+        events: libc::POLLOUT,
+        revents: 0,
+    };
+
+    let mut buf = data;
+
+    while !buf.is_empty() {
+        if unsafe { libc::poll(&mut pfd, 1, 3000) == 1 } {
+            match file.write(buf) {
+                Ok(size) if size == 0 => {
+                    failure::bail!("zero byte write");
+                }
+                Ok(size) => {
+                    buf = &buf[size..];
+                }
+                Err(e) => failure::bail!("error writing to pipe: {}", e),
+            }
+        } else {
+            failure::bail!("timed out writing to pipe");
+        }
+    }
+
+    Ok(())
+}
+
+fn read_pipe_with_timeout(mut file: FileDescriptor) -> Fallible<String> {
+    let mut result = Vec::new();
+
+    let on: libc::c_int = 1;
+    unsafe {
+        libc::ioctl(file.as_raw_fd(), libc::FIONBIO, &on);
+    }
+    let mut pfd = libc::pollfd {
+        fd: file.as_raw_fd(),
+        events: libc::POLLIN,
+        revents: 0,
+    };
+
+    let mut buf = [0u8; 8192];
+
+    loop {
+        if unsafe { libc::poll(&mut pfd, 1, 3000) == 1 } {
+            match file.read(&mut buf) {
+                Ok(size) if size == 0 => {
+                    break;
+                }
+                Ok(size) => {
+                    result.extend_from_slice(&buf[..size]);
+                }
+                Err(e) => failure::bail!("error reading from pipe: {}", e),
+            }
+        } else {
+            failure::bail!("timed out reading from pipe");
+        }
+    }
+
+    Ok(String::from_utf8(result)?)
 }
 
 impl WindowOpsMut for WaylandWindowInner {
@@ -774,16 +1078,16 @@ impl WindowOpsMut for WaylandWindowInner {
         }
     }
 
-    fn set_cursor(&mut self, cursor: Option<MouseCursor>) {}
+    fn set_cursor(&mut self, _cursor: Option<MouseCursor>) {}
 
     fn invalidate(&mut self) {
         self.need_paint = true;
         self.do_paint().unwrap();
     }
 
-    fn set_inner_size(&self, width: usize, height: usize) {}
+    fn set_inner_size(&self, _width: usize, _height: usize) {}
 
-    fn set_window_position(&self, coords: ScreenPoint) {}
+    fn set_window_position(&self, _coords: ScreenPoint) {}
 
     /// Change the title for the window manager
     fn set_title(&mut self, title: &str) {
