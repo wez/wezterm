@@ -19,8 +19,17 @@ struct Inner {
 
 impl Inner {
     fn handle_event(&mut self, evt: KbEvent) {
+        // Track the most recently entered window surface.
+        // We manually filter to the keys of surface_to_window_id
+        // because we may have auxilliary surfaces on our connection
+        // that were created by the window decorations and we don't
+        // want to suppress keyboard input if the user clicked in
+        // the titlebar.
         if let KbEvent::Enter { surface, .. } = &evt {
-            self.active_surface_id = surface.as_ref().id();
+            let id = surface.as_ref().id();
+            if self.surface_to_window_id.contains_key(&id) {
+                self.active_surface_id = id;
+            }
         }
 
         if let Some(event) = KeyboardEvent::from_event(evt) {
