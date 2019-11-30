@@ -438,7 +438,6 @@ impl WaylandWindow {
                             let copy_and_paste = Arc::clone(&copy_and_paste);
                             move |event, _device| match event {
                                 DataDeviceEvent::DataOffer { id } => {
-                                    log::error!("DataDeviceEvent DataOffer");
                                     id.implement_closure(
                                         {
                                             let copy_and_paste = Arc::clone(&copy_and_paste);
@@ -452,21 +451,12 @@ impl WaylandWindow {
                                         (),
                                     );
                                 }
-                                DataDeviceEvent::Enter { .. } => {
-                                    log::error!("DataDeviceEvent Enter")
-                                }
-                                DataDeviceEvent::Leave { .. } => {
-                                    log::error!("DataDeviceEvent Leave")
-                                }
-                                DataDeviceEvent::Motion { .. } => {
-                                    log::error!("DataDeviceEvent Motion")
-                                }
-                                DataDeviceEvent::Drop => log::error!("DataDeviceEvent Drop"),
+                                DataDeviceEvent::Enter { .. }
+                                | DataDeviceEvent::Leave { .. }
+                                | DataDeviceEvent::Motion { .. }
+                                | DataDeviceEvent::Drop => {}
+
                                 DataDeviceEvent::Selection { id } => {
-                                    log::error!(
-                                        "DataDeviceEvent Selection {}",
-                                        if id.is_some() { "Y" } else { "None" }
-                                    );
                                     if let Some(offer) = id {
                                         copy_and_paste.lock().unwrap().confirm_selection(offer);
                                     }
