@@ -1,4 +1,6 @@
+use super::copy_and_paste::*;
 use super::keyboard::KeyboardEvent;
+use super::pointer::*;
 use crate::bitmaps::BitmapImage;
 use crate::color::Color;
 use crate::connection::ConnectionOps;
@@ -10,7 +12,7 @@ use crate::{
     WindowCallbacks, WindowOps, WindowOpsMut,
 };
 use failure::Fallible;
-use filedescriptor::{FileDescriptor, Pipe};
+use filedescriptor::FileDescriptor;
 use promise::{Future, Promise};
 use smithay_client_toolkit as toolkit;
 use std::any::Any;
@@ -19,128 +21,12 @@ use std::io::{Read, Write};
 use std::os::unix::io::{AsRawFd, FromRawFd};
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
-use toolkit::reexports::client::protocol::wl_data_device::{
-    Event as DataDeviceEvent, WlDataDevice,
-};
-use toolkit::reexports::client::protocol::wl_data_offer::{Event as DataOfferEvent, WlDataOffer};
-use toolkit::reexports::client::protocol::wl_data_source::{
-    Event as DataSourceEvent, WlDataSource,
-};
-use toolkit::reexports::client::protocol::wl_pointer::{
-    self, Axis, AxisSource, Event as PointerEvent,
-};
+use toolkit::reexports::client::protocol::wl_data_source::Event as DataSourceEvent;
 use toolkit::reexports::client::protocol::wl_surface::WlSurface;
 use toolkit::utils::MemPool;
 use toolkit::window::Event;
 #[cfg(feature = "opengl")]
 use wayland_client::egl::{is_available as egl_is_available, WlEglSurface};
-
-#[derive(Clone, Debug, Copy, PartialEq, Eq)]
-enum DebuggableButtonState {
-    Released,
-    Pressed,
-}
-
-impl From<wl_pointer::ButtonState> for DebuggableButtonState {
-    fn from(state: wl_pointer::ButtonState) -> DebuggableButtonState {
-        match state {
-            wl_pointer::ButtonState::Released => Self::Released,
-            wl_pointer::ButtonState::Pressed => Self::Pressed,
-            _ => unreachable!(),
-        }
-    }
-}
-
-#[derive(Clone, Copy, Debug)]
-enum SendablePointerEvent {
-    Enter {
-        serial: u32,
-        surface_x: f64,
-        surface_y: f64,
-    },
-    Leave {
-        serial: u32,
-    },
-    Motion {
-        time: u32,
-        surface_x: f64,
-        surface_y: f64,
-    },
-    Button {
-        serial: u32,
-        time: u32,
-        button: u32,
-        state: DebuggableButtonState,
-    },
-    Axis {
-        time: u32,
-        axis: Axis,
-        value: f64,
-    },
-    Frame,
-    AxisSource {
-        axis_source: AxisSource,
-    },
-    AxisStop {
-        time: u32,
-        axis: Axis,
-    },
-    AxisDiscrete {
-        axis: Axis,
-        discrete: i32,
-    },
-}
-
-impl From<PointerEvent> for SendablePointerEvent {
-    fn from(event: PointerEvent) -> Self {
-        match event {
-            PointerEvent::Enter {
-                serial,
-                surface_x,
-                surface_y,
-                ..
-            } => SendablePointerEvent::Enter {
-                serial,
-                surface_x,
-                surface_y,
-            },
-            PointerEvent::Leave { serial, .. } => SendablePointerEvent::Leave { serial },
-            PointerEvent::Motion {
-                time,
-                surface_x,
-                surface_y,
-            } => SendablePointerEvent::Motion {
-                time,
-                surface_x,
-                surface_y,
-            },
-            PointerEvent::Button {
-                serial,
-                time,
-                button,
-                state,
-                ..
-            } => SendablePointerEvent::Button {
-                serial,
-                time,
-                button,
-                state: state.into(),
-            },
-            PointerEvent::Axis { time, axis, value } => {
-                SendablePointerEvent::Axis { time, axis, value }
-            }
-            PointerEvent::Frame => SendablePointerEvent::Frame,
-            PointerEvent::AxisSource { axis_source, .. } => {
-                SendablePointerEvent::AxisSource { axis_source }
-            }
-            PointerEvent::AxisStop { axis, time } => SendablePointerEvent::AxisStop { axis, time },
-            PointerEvent::AxisDiscrete { axis, discrete } => {
-                SendablePointerEvent::AxisDiscrete { axis, discrete }
-            }
-            _ => unreachable!(),
-        }
-    }
-}
 
 struct MyTheme;
 use toolkit::window::ButtonState;
@@ -193,63 +79,6 @@ impl toolkit::window::Theme for MyTheme {
     }
 }
 
-struct CopyAndPaste {
-    data_offer: Option<WlDataOffer>,
-    last_serial: u32,
-    data_device: Option<WlDataDevice>,
-}
-
-const TEXT_MIME_TYPE: &str = "text/plain;charset=utf-8";
-
-impl CopyAndPaste {
-    fn update_last_serial(&mut self, serial: u32) {
-        if serial != 0 {
-            self.last_serial = serial;
-        }
-    }
-
-    fn get_clipboard_data(&mut self) -> Fallible<FileDescriptor> {
-        let offer = self
-            .data_offer
-            .as_ref()
-            .ok_or_else(|| failure::err_msg("no data offer"))?;
-        let pipe = Pipe::new()?;
-        offer.receive(TEXT_MIME_TYPE.to_string(), pipe.write.as_raw_fd());
-        Ok(pipe.read)
-    }
-
-    fn handle_data_offer(&mut self, event: DataOfferEvent, offer: WlDataOffer) {
-        match event {
-            DataOfferEvent::Offer { mime_type } => {
-                if mime_type == TEXT_MIME_TYPE {
-                    offer.accept(self.last_serial, Some(mime_type));
-                    self.data_offer.replace(offer);
-                } else {
-                    // Refuse other mime types
-                    offer.accept(self.last_serial, None);
-                }
-            }
-            DataOfferEvent::SourceActions { source_actions } => {
-                log::error!("Offer source_actions {}", source_actions);
-            }
-            DataOfferEvent::Action { dnd_action } => {
-                log::error!("Offer dnd_action {}", dnd_action);
-            }
-            _ => {}
-        }
-    }
-
-    fn confirm_selection(&mut self, offer: WlDataOffer) {
-        self.data_offer.replace(offer);
-    }
-
-    fn set_selection(&mut self, source: WlDataSource) {
-        if let Some(dev) = self.data_device.as_ref() {
-            dev.set_selection(Some(&source), self.last_serial);
-        }
-    }
-}
-
 pub struct WaylandWindowInner {
     window_id: usize,
     callbacks: Box<dyn WindowCallbacks>,
@@ -271,104 +100,6 @@ pub struct WaylandWindowInner {
     wegl_surface: Option<WlEglSurface>,
     #[cfg(feature = "opengl")]
     gl_state: Option<Rc<glium::backend::Context>>,
-}
-
-#[derive(Clone)]
-struct PendingMouse {
-    copy_and_paste: Arc<Mutex<CopyAndPaste>>,
-    surface_coords: Option<(f64, f64)>,
-    button: Vec<(MousePress, DebuggableButtonState)>,
-    scroll: Option<(f64, f64)>,
-}
-
-impl PendingMouse {
-    // Return true if we need to queue up a call to act on the event,
-    // false if we think there is already a pending event
-    fn queue(&mut self, evt: SendablePointerEvent) -> bool {
-        match evt {
-            SendablePointerEvent::Enter { serial, .. } => {
-                self.copy_and_paste
-                    .lock()
-                    .unwrap()
-                    .update_last_serial(serial);
-                false
-            }
-            SendablePointerEvent::Motion {
-                surface_x,
-                surface_y,
-                ..
-            } => {
-                let changed = self.surface_coords.is_none();
-                self.surface_coords.replace((surface_x, surface_y));
-                changed
-            }
-            SendablePointerEvent::Button {
-                button,
-                state,
-                serial,
-                ..
-            } => {
-                self.copy_and_paste
-                    .lock()
-                    .unwrap()
-                    .update_last_serial(serial);
-                fn linux_button(b: u32) -> Option<MousePress> {
-                    // See BTN_LEFT and friends in <linux/input-event-codes.h>
-                    match b {
-                        0x110 => Some(MousePress::Left),
-                        0x111 => Some(MousePress::Right),
-                        0x112 => Some(MousePress::Middle),
-                        _ => None,
-                    }
-                }
-                let button = match linux_button(button) {
-                    Some(button) => button,
-                    None => return false,
-                };
-                let changed = self.button.is_empty();
-                self.button.push((button, state));
-                changed
-            }
-            SendablePointerEvent::Axis {
-                axis: Axis::VerticalScroll,
-                value,
-                ..
-            } => {
-                let changed = self.scroll.is_none();
-                let (x, y) = self.scroll.take().unwrap_or((0., 0.));
-                self.scroll.replace((x, y + value));
-                changed
-            }
-            SendablePointerEvent::Axis {
-                axis: Axis::HorizontalScroll,
-                value,
-                ..
-            } => {
-                let changed = self.scroll.is_none();
-                let (x, y) = self.scroll.take().unwrap_or((0., 0.));
-                self.scroll.replace((x + value, y));
-                changed
-            }
-            _ => false,
-        }
-    }
-
-    fn next_button(pending: &Arc<Mutex<Self>>) -> Option<(MousePress, DebuggableButtonState)> {
-        let mut pending = pending.lock().unwrap();
-        if pending.button.is_empty() {
-            None
-        } else {
-            Some(pending.button.remove(0))
-        }
-    }
-
-    fn coords(pending: &Arc<Mutex<Self>>) -> Option<(f64, f64)> {
-        pending.lock().unwrap().surface_coords.take()
-    }
-
-    fn scroll(pending: &Arc<Mutex<Self>>) -> Option<(f64, f64)> {
-        pending.lock().unwrap().scroll.take()
-    }
 }
 
 #[derive(Default, Clone, Debug)]
@@ -480,98 +211,10 @@ impl WaylandWindow {
         window.new_seat(&conn.seat);
         conn.keyboard.add_window(window_id, &surface);
 
-        let copy_and_paste = Arc::new(Mutex::new(CopyAndPaste {
-            data_offer: None,
-            last_serial: 0,
-            data_device: None,
-        }));
+        let copy_and_paste = CopyAndPaste::create();
+        let pending_mouse = PendingMouse::create(window_id, &copy_and_paste);
 
-        let pending_mouse = Arc::new(Mutex::new(PendingMouse {
-            copy_and_paste: Arc::clone(&copy_and_paste),
-            button: vec![],
-            scroll: None,
-            surface_coords: None,
-        }));
-
-        let data_device = conn
-            .environment
-            .borrow()
-            .data_device_manager
-            .get_data_device(&conn.seat, {
-                let copy_and_paste = Arc::clone(&copy_and_paste);
-                move |device| {
-                    device.implement_closure(
-                        {
-                            let copy_and_paste = Arc::clone(&copy_and_paste);
-                            move |event, _device| match event {
-                                DataDeviceEvent::DataOffer { id } => {
-                                    id.implement_closure(
-                                        {
-                                            let copy_and_paste = Arc::clone(&copy_and_paste);
-                                            move |event, offer| {
-                                                copy_and_paste
-                                                    .lock()
-                                                    .unwrap()
-                                                    .handle_data_offer(event, offer);
-                                            }
-                                        },
-                                        (),
-                                    );
-                                }
-                                DataDeviceEvent::Enter { .. }
-                                | DataDeviceEvent::Leave { .. }
-                                | DataDeviceEvent::Motion { .. }
-                                | DataDeviceEvent::Drop => {}
-
-                                DataDeviceEvent::Selection { id } => {
-                                    if let Some(offer) = id {
-                                        copy_and_paste.lock().unwrap().confirm_selection(offer);
-                                    }
-                                }
-                                _ => {}
-                            }
-                        },
-                        (),
-                    )
-                }
-            })
-            .map_err(|_| failure::format_err!("Failed to configure data_device"))?;
-
-        copy_and_paste
-            .lock()
-            .unwrap()
-            .data_device
-            .replace(data_device);
-
-        conn.seat
-            .get_pointer({
-                let pending_mouse = Arc::clone(&pending_mouse);
-                move |ptr| {
-                    ptr.implement_closure(
-                        {
-                            let pending_mouse = Arc::clone(&pending_mouse);
-                            move |evt, _| {
-                                if let PointerEvent::Enter { surface, .. } = &evt {
-                                    log::error!(
-                                        "window_id {} Pointer entering surface id {}",
-                                        window_id,
-                                        surface.as_ref().id()
-                                    );
-                                }
-                                let evt: SendablePointerEvent = evt.into();
-                                if pending_mouse.lock().unwrap().queue(evt) {
-                                    WaylandConnection::with_window_inner(window_id, move |inner| {
-                                        inner.dispatch_pending_mouse();
-                                        Ok(())
-                                    });
-                                }
-                            }
-                        },
-                        (),
-                    )
-                }
-            })
-            .map_err(|_| failure::format_err!("Failed to configure pointer callback"))?;
+        conn.pointer.add_window(&surface, &pending_mouse);
 
         let inner = Rc::new(RefCell::new(WaylandWindowInner {
             copy_and_paste,
@@ -655,7 +298,7 @@ impl WaylandWindowInner {
         }
     }
 
-    fn dispatch_pending_mouse(&mut self) {
+    pub(crate) fn dispatch_pending_mouse(&mut self) {
         // Dancing around the borrow checker and the call to self.refresh_frame()
         let pending_mouse = Arc::clone(&self.pending_mouse);
 

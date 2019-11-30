@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 use super::keyboard::KeyboardDispatcher;
+use super::pointer::*;
 use super::window::*;
 use crate::connection::ConnectionOps;
 use crate::spawn::*;
@@ -31,6 +32,7 @@ pub struct WaylandConnection {
     pub(crate) windows: RefCell<HashMap<usize, Rc<RefCell<WaylandWindowInner>>>>,
     pub(crate) seat: WlSeat,
     pub(crate) keyboard: KeyboardDispatcher,
+    pub(crate) pointer: PointerDispatcher,
 }
 
 impl Evented for WaylandConnection {
@@ -79,6 +81,7 @@ impl WaylandConnection {
             })
             .map_err(|_| failure::format_err!("Failed to create seat"))?;
         let keyboard = KeyboardDispatcher::register(&seat)?;
+        let pointer = PointerDispatcher::register(&seat, &environment.data_device_manager)?;
 
         Ok(Self {
             display: RefCell::new(display),
@@ -91,6 +94,7 @@ impl WaylandConnection {
             windows: RefCell::new(HashMap::new()),
             seat,
             keyboard,
+            pointer,
         })
     }
 
