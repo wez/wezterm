@@ -1,3 +1,4 @@
+use super::keyboard::KeyboardEvent;
 use crate::bitmaps::BitmapImage;
 use crate::color::Color;
 use crate::connection::ConnectionOps;
@@ -18,10 +19,6 @@ use std::io::{Read, Write};
 use std::os::unix::io::{AsRawFd, FromRawFd};
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
-use toolkit::keyboard::{
-    map_keyboard_auto_with_repeat, Event as KbEvent, KeyRepeatEvent, KeyRepeatKind, KeyState,
-    ModifiersState,
-};
 use toolkit::reexports::client::protocol::wl_data_device::{
     Event as DataDeviceEvent, WlDataDevice,
 };
@@ -32,28 +29,11 @@ use toolkit::reexports::client::protocol::wl_data_source::{
 use toolkit::reexports::client::protocol::wl_pointer::{
     self, Axis, AxisSource, Event as PointerEvent,
 };
-use toolkit::reexports::client::protocol::wl_seat::{Event as SeatEvent, WlSeat};
 use toolkit::reexports::client::protocol::wl_surface::WlSurface;
 use toolkit::utils::MemPool;
 use toolkit::window::Event;
+#[cfg(feature = "opengl")]
 use wayland_client::egl::{is_available as egl_is_available, WlEglSurface};
-
-fn modifier_keys(state: ModifiersState) -> Modifiers {
-    let mut mods = Modifiers::NONE;
-    if state.ctrl {
-        mods |= Modifiers::CTRL;
-    }
-    if state.alt {
-        mods |= Modifiers::ALT;
-    }
-    if state.shift {
-        mods |= Modifiers::SHIFT;
-    }
-    if state.logo {
-        mods |= Modifiers::SUPER;
-    }
-    mods
-}
 
 #[derive(Clone, Debug, Copy, PartialEq, Eq)]
 enum DebuggableButtonState {
@@ -274,8 +254,6 @@ pub struct WaylandWindowInner {
     window_id: usize,
     callbacks: Box<dyn WindowCallbacks>,
     surface: WlSurface,
-    #[allow(dead_code)]
-    seat: WlSeat,
     copy_and_paste: Arc<Mutex<CopyAndPaste>>,
     window: Option<toolkit::window::Window<toolkit::window::ConceptFrame>>,
     pool: MemPool,
@@ -458,9 +436,18 @@ impl WaylandWindow {
         let surface = conn
             .environment
             .borrow_mut()
-            .create_surface(|dpi, _surface| {
-                println!("surface dpi changed to {}", dpi);
+            .create_surface(|dpi, surface| {
+                log::error!(
+                    "surface id={} dpi changed to {}",
+                    surface.as_ref().id(),
+                    dpi
+                );
             });
+        log::error!(
+            "window_id {} made new surface id={}",
+            window_id,
+            surface.as_ref().id()
+        );
 
         let dimensions = (width as u32, height as u32);
         let pending_event = Arc::new(Mutex::new(PendingEvent::default()));
@@ -490,23 +477,8 @@ impl WaylandWindow {
 
         let pool = MemPool::new(&conn.environment.borrow().shm, || {})?;
 
-        let seat = conn
-            .environment
-            .borrow()
-            .manager
-            .instantiate_range(1, 6, move |seat| {
-                seat.implement_closure(
-                    move |event, _seat| {
-                        if let SeatEvent::Name { name } = event {
-                            log::error!("seat name is {}", name);
-                        }
-                    },
-                    (),
-                )
-            })
-            .map_err(|_| failure::format_err!("Failed to create seat"))?;
-
-        window.new_seat(&seat);
+        window.new_seat(&conn.seat);
+        conn.keyboard.add_window(window_id, &surface);
 
         let copy_and_paste = Arc::new(Mutex::new(CopyAndPaste {
             data_offer: None,
@@ -525,7 +497,7 @@ impl WaylandWindow {
             .environment
             .borrow()
             .data_device_manager
-            .get_data_device(&seat, {
+            .get_data_device(&conn.seat, {
                 let copy_and_paste = Arc::clone(&copy_and_paste);
                 move |device| {
                     device.implement_closure(
@@ -571,81 +543,41 @@ impl WaylandWindow {
             .data_device
             .replace(data_device);
 
-        seat.get_pointer({
-            let pending_mouse = Arc::clone(&pending_mouse);
-            move |ptr| {
-                ptr.implement_closure(
-                    {
-                        let pending_mouse = Arc::clone(&pending_mouse);
-                        move |evt, _| {
-                            let evt: SendablePointerEvent = evt.into();
-                            if pending_mouse.lock().unwrap().queue(evt) {
-                                WaylandConnection::with_window_inner(window_id, move |inner| {
-                                    inner.dispatch_pending_mouse();
-                                    Ok(())
-                                });
+        conn.seat
+            .get_pointer({
+                let pending_mouse = Arc::clone(&pending_mouse);
+                move |ptr| {
+                    ptr.implement_closure(
+                        {
+                            let pending_mouse = Arc::clone(&pending_mouse);
+                            move |evt, _| {
+                                if let PointerEvent::Enter { surface, .. } = &evt {
+                                    log::error!(
+                                        "window_id {} Pointer entering surface id {}",
+                                        window_id,
+                                        surface.as_ref().id()
+                                    );
+                                }
+                                let evt: SendablePointerEvent = evt.into();
+                                if pending_mouse.lock().unwrap().queue(evt) {
+                                    WaylandConnection::with_window_inner(window_id, move |inner| {
+                                        inner.dispatch_pending_mouse();
+                                        Ok(())
+                                    });
+                                }
                             }
-                        }
-                    },
-                    (),
-                )
-            }
-        })
-        .map_err(|_| failure::format_err!("Failed to configure pointer callback"))?;
-
-        map_keyboard_auto_with_repeat(
-            &seat,
-            KeyRepeatKind::System,
-            {
-                let copy_and_paste = Arc::clone(&copy_and_paste);
-                move |event: KbEvent, _| match event {
-                    KbEvent::Enter { serial, .. } => {
-                        copy_and_paste.lock().unwrap().update_last_serial(serial);
-                    }
-                    KbEvent::Key {
-                        rawkey,
-                        keysym,
-                        state,
-                        utf8,
-                        serial,
-                        ..
-                    } => {
-                        WaylandConnection::with_window_inner(window_id, move |inner| {
-                            inner.handle_key(
-                                serial,
-                                state == KeyState::Pressed,
-                                rawkey,
-                                keysym,
-                                utf8.clone(),
-                            );
-                            Ok(())
-                        });
-                    }
-                    KbEvent::Modifiers { modifiers } => {
-                        let mods = modifier_keys(modifiers);
-                        WaylandConnection::with_window_inner(window_id, move |inner| {
-                            inner.handle_modifiers(mods);
-                            Ok(())
-                        });
-                    }
-                    _ => {}
+                        },
+                        (),
+                    )
                 }
-            },
-            move |event: KeyRepeatEvent, _| {
-                WaylandConnection::with_window_inner(window_id, move |inner| {
-                    inner.handle_key(0, true, event.rawkey, event.keysym, event.utf8.clone());
-                    Ok(())
-                });
-            },
-        )
-        .map_err(|_| failure::format_err!("Failed to configure keyboard callback"))?;
+            })
+            .map_err(|_| failure::format_err!("Failed to configure pointer callback"))?;
 
         let inner = Rc::new(RefCell::new(WaylandWindowInner {
             copy_and_paste,
             window_id,
             callbacks,
             surface,
-            seat,
             window: Some(window),
             pool,
             dimensions,
@@ -672,52 +604,55 @@ impl WaylandWindow {
 }
 
 impl WaylandWindowInner {
-    fn handle_key(
-        &mut self,
-        serial: u32,
-        key_is_down: bool,
-        rawkey: u32,
-        keysym: u32,
-        utf8: Option<String>,
-    ) {
-        self.copy_and_paste
-            .lock()
-            .unwrap()
-            .update_last_serial(serial);
-        let raw_key = keysym_to_keycode(keysym);
-        let (key, raw_key) = match utf8 {
-            Some(text) if text.chars().count() == 1 => {
-                (KeyCode::Char(text.chars().nth(0).unwrap()), raw_key)
-            }
-            Some(text) => (KeyCode::Composed(text), raw_key),
-            None => match raw_key {
-                Some(key) => (key, None),
-                None => {
-                    println!("no mapping for keysym {:x} and rawkey {:x}", keysym, rawkey);
-                    return;
-                }
-            },
-        };
-        // Avoid redundant key == raw_key
-        let (key, raw_key) = match (key, raw_key) {
-            // Avoid eg: \x01 when we can use CTRL-A
-            (KeyCode::Char(c), Some(raw)) if c.is_ascii_control() => (raw.clone(), None),
-            (key, Some(raw)) if key == raw => (key, None),
-            pair => pair,
-        };
-        let key_event = KeyEvent {
-            key_is_down,
-            key,
-            raw_key,
-            modifiers: self.modifiers,
-            repeat_count: 1,
-        };
-        self.callbacks
-            .key_event(&key_event, &Window::Wayland(WaylandWindow(self.window_id)));
-    }
+    pub(crate) fn handle_keyboard_event(&mut self, evt: KeyboardEvent) {
+        log::error!("window: {} key: {:?}", self.window_id, evt);
 
-    fn handle_modifiers(&mut self, modifiers: Modifiers) {
-        self.modifiers = modifiers;
+        match evt {
+            KeyboardEvent::Key {
+                rawkey,
+                keysym,
+                is_down,
+                utf8,
+                serial,
+            } => {
+                self.copy_and_paste
+                    .lock()
+                    .unwrap()
+                    .update_last_serial(serial);
+                let raw_key = keysym_to_keycode(keysym);
+                let (key, raw_key) = match utf8 {
+                    Some(text) if text.chars().count() == 1 => {
+                        (KeyCode::Char(text.chars().nth(0).unwrap()), raw_key)
+                    }
+                    Some(text) => (KeyCode::Composed(text), raw_key),
+                    None => match raw_key {
+                        Some(key) => (key, None),
+                        None => {
+                            println!("no mapping for keysym {:x} and rawkey {:x}", keysym, rawkey);
+                            return;
+                        }
+                    },
+                };
+                // Avoid redundant key == raw_key
+                let (key, raw_key) = match (key, raw_key) {
+                    // Avoid eg: \x01 when we can use CTRL-A
+                    (KeyCode::Char(c), Some(raw)) if c.is_ascii_control() => (raw.clone(), None),
+                    (key, Some(raw)) if key == raw => (key, None),
+                    pair => pair,
+                };
+                let key_event = KeyEvent {
+                    key_is_down: is_down,
+                    key,
+                    raw_key,
+                    modifiers: self.modifiers,
+                    repeat_count: 1,
+                };
+                self.callbacks
+                    .key_event(&key_event, &Window::Wayland(WaylandWindow(self.window_id)));
+            }
+            KeyboardEvent::Modifiers { modifiers } => self.modifiers = modifiers,
+            KeyboardEvent::Enter { .. } | KeyboardEvent::Leave { .. } => {}
+        }
     }
 
     fn dispatch_pending_mouse(&mut self) {

@@ -109,6 +109,7 @@ fn spawn_window() -> Fallible<()> {
 }
 
 fn main() -> Fallible<()> {
+    pretty_env_logger::init();
     let conn = Connection::init()?;
     spawn_window()?;
     conn.run_message_loop()

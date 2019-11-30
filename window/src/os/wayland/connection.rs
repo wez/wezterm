@@ -1,4 +1,5 @@
 #![allow(dead_code)]
+use super::keyboard::KeyboardDispatcher;
 use super::window::*;
 use crate::connection::ConnectionOps;
 use crate::spawn::*;
@@ -15,6 +16,7 @@ use std::collections::HashMap;
 use std::rc::Rc;
 use std::sync::atomic::AtomicUsize;
 use std::time::{Duration, Instant};
+use toolkit::reexports::client::protocol::wl_seat::{Event as SeatEvent, WlSeat};
 use toolkit::reexports::client::{Display, EventQueue};
 use toolkit::Environment;
 
@@ -27,6 +29,8 @@ pub struct WaylandConnection {
     pub(crate) tasks: Tasks,
     pub(crate) next_window_id: AtomicUsize,
     pub(crate) windows: RefCell<HashMap<usize, Rc<RefCell<WaylandWindowInner>>>>,
+    pub(crate) seat: WlSeat,
+    pub(crate) keyboard: KeyboardDispatcher,
 }
 
 impl Evented for WaylandConnection {
@@ -60,6 +64,22 @@ impl WaylandConnection {
     pub fn create_new() -> Fallible<Self> {
         let (display, mut event_q) = Display::connect_to_env()?;
         let environment = Environment::from_display(&*display, &mut event_q)?;
+
+        let seat = environment
+            .manager
+            .instantiate_range(1, 6, move |seat| {
+                seat.implement_closure(
+                    move |event, _seat| {
+                        if let SeatEvent::Name { name } = event {
+                            log::error!("seat name is {}", name);
+                        }
+                    },
+                    (),
+                )
+            })
+            .map_err(|_| failure::format_err!("Failed to create seat"))?;
+        let keyboard = KeyboardDispatcher::register(&seat)?;
+
         Ok(Self {
             display: RefCell::new(display),
             event_q: RefCell::new(event_q),
@@ -69,6 +89,8 @@ impl WaylandConnection {
             tasks: Default::default(),
             next_window_id: AtomicUsize::new(1),
             windows: RefCell::new(HashMap::new()),
+            seat,
+            keyboard,
         })
     }
 
