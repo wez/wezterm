@@ -36,6 +36,7 @@ use toolkit::reexports::client::protocol::wl_seat::{Event as SeatEvent, WlSeat};
 use toolkit::reexports::client::protocol::wl_surface::WlSurface;
 use toolkit::utils::MemPool;
 use toolkit::window::Event;
+use wayland_client::egl::{is_available as egl_is_available, WlEglSurface};
 
 fn modifier_keys(state: ModifiersState) -> Modifiers {
     let mut mods = Modifiers::NONE;
@@ -294,6 +295,13 @@ pub struct WaylandWindowInner {
     last_mouse_coords: Point,
     mouse_buttons: MouseButtons,
     modifiers: Modifiers,
+    // wegl_surface is listed before gl_state because it
+    // must be dropped before gl_state otherwise the underlying
+    // libraries will segfault on shutdown
+    #[cfg(feature = "opengl")]
+    wegl_surface: Option<WlEglSurface>,
+    #[cfg(feature = "opengl")]
+    gl_state: Option<Rc<glium::backend::Context>>,
 }
 
 #[derive(Clone, Debug)]
@@ -504,6 +512,10 @@ impl WaylandWindow {
             last_mouse_coords: Point::new(0, 0),
             mouse_buttons: MouseButtons::NONE,
             modifiers: Modifiers::NONE,
+            #[cfg(feature = "opengl")]
+            gl_state: None,
+            #[cfg(feature = "opengl")]
+            wegl_surface: None,
         }));
 
         let window_handle = Window::Wayland(WaylandWindow(window_id));
@@ -681,6 +693,12 @@ impl WaylandWindowInner {
                     let w = w * factor as u32;
                     let h = h * factor as u32;
                     self.dimensions = (w, h);
+                    #[cfg(feature = "opengl")]
+                    {
+                        if let Some(wegl_surface) = self.wegl_surface.as_mut() {
+                            wegl_surface.resize(w as i32, h as i32, 0, 0);
+                        }
+                    }
                     self.callbacks.resize(Dimensions {
                         pixel_width: w as usize,
                         pixel_height: h as usize,
@@ -700,6 +718,24 @@ impl WaylandWindowInner {
     }
 
     fn do_paint(&mut self) -> Fallible<()> {
+        #[cfg(feature = "opengl")]
+        {
+            if let Some(gl_context) = self.gl_state.as_ref() {
+                let mut frame = glium::Frame::new(
+                    Rc::clone(&gl_context),
+                    (u32::from(self.dimensions.0), u32::from(self.dimensions.1)),
+                );
+
+                self.callbacks.paint_opengl(&mut frame);
+                frame.finish()?;
+                // self.damage();
+                self.surface.commit();
+                self.refresh_frame();
+                self.need_paint = false;
+                return Ok(());
+            }
+        }
+
         if self.pool.is_used() {
             // Buffer still in use by server; retry later
             return Ok(());
@@ -901,12 +937,23 @@ impl WindowOps for WaylandWindow {
     {
         WaylandConnection::with_window_inner(self.0, move |inner| {
             let window = Window::Wayland(WaylandWindow(inner.window_id));
+            let wayland_conn = Connection::get().unwrap().wayland();
+            let mut wegl_surface = None;
 
-            /*
-            let gl_state = crate::egl::GlState::create(
-                Some(inner.conn.display as *const _),
-                inner.window_id as *mut _,
-            )
+            let gl_state = if !egl_is_available() {
+                Err(failure::err_msg("!egl_is_available"))
+            } else {
+                wegl_surface = Some(WlEglSurface::new(
+                    &inner.surface,
+                    inner.dimensions.0 as i32,
+                    inner.dimensions.1 as i32,
+                ));
+
+                crate::egl::GlState::create_wayland(
+                    Some(wayland_conn.display.borrow().get_display_ptr() as *const _),
+                    wegl_surface.as_ref().unwrap(),
+                )
+            }
             .map(Rc::new)
             .and_then(|state| unsafe {
                 Ok(glium::backend::Context::new(
@@ -921,14 +968,9 @@ impl WindowOps for WaylandWindow {
             });
 
             inner.gl_state = gl_state.as_ref().map(Rc::clone).ok();
+            inner.wegl_surface = wegl_surface;
 
             func(inner.callbacks.as_any(), &window, gl_state)
-            */
-            func(
-                inner.callbacks.as_any(),
-                &window,
-                Err(failure::err_msg("no opengl")),
-            )
         })
     }
 

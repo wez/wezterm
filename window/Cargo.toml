@@ -8,6 +8,9 @@ description = "Cross platform window setup and render"
 license = "MIT"
 build = "build.rs"
 
+[dev-dependencies]
+pretty_env_logger = "0.3"
+
 [build-dependencies]
 gl_generator = {version="0.13", optional=true}
 
@@ -28,7 +31,7 @@ glium = { version = "0.26.0-alpha3", optional=true, default-features = false}
 [features]
 async_await = []
 opengl = ["cgl", "glium", "gl_generator", "libloading"]
-wayland = ["smithay-client-toolkit", "memmap"]
+wayland = ["smithay-client-toolkit", "memmap", "wayland-client"]
 
 [target."cfg(windows)".dependencies]
 winapi = { version = "0.3", features = [
@@ -53,6 +56,7 @@ mio-extras = "2.0"
 libc = "0.2"
 smithay-client-toolkit = {version = "0.6", optional = true}
 memmap = {version="0.7", optional=true}
+wayland-client = {version="0.23", optional=true, features=["egl"]}
 
 [target.'cfg(target_os="macos")'.dependencies]
 cocoa = "0.20"

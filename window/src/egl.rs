@@ -199,10 +199,7 @@ impl EglWrapper {
 }
 
 impl GlState {
-    pub fn create(
-        display: Option<ffi::EGLNativeDisplayType>,
-        window: ffi::EGLNativeWindowType,
-    ) -> Fallible<Self> {
+    fn with_egl_lib<F: FnMut(EglWrapper) -> Fallible<Self>>(mut func: F) -> Fallible<Self> {
         let paths = [
             // While EGL is cross platform, it isn't available on macOS nor is it
             // available on my nvidia based system
@@ -216,60 +213,136 @@ impl GlState {
             "libEGL.so",
         ];
         for path in &paths {
-            eprintln!("trying {}", path);
             if let Ok(lib) = libloading::Library::new(path) {
-                if let Ok(egl) = EglWrapper::load_egl(lib) {
-                    let egl_display = egl.get_display(display)?;
-
-                    let (major, minor) = egl.initialize_and_get_version(egl_display)?;
-                    eprintln!("initialized EGL version {}.{}", major, minor);
-
-                    let configs = egl.choose_config(
-                        egl_display,
-                        &[
-                            ffi::ALPHA_SIZE,
-                            8,
-                            ffi::RED_SIZE,
-                            8,
-                            ffi::GREEN_SIZE,
-                            8,
-                            ffi::BLUE_SIZE,
-                            8,
-                            ffi::DEPTH_SIZE,
-                            24,
-                            ffi::CONFORMANT,
-                            ffi::OPENGL_ES3_BIT,
-                            ffi::RENDERABLE_TYPE,
-                            ffi::OPENGL_ES3_BIT,
-                            ffi::SURFACE_TYPE,
-                            ffi::WINDOW_BIT | ffi::PBUFFER_BIT | ffi::PIXMAP_BIT,
-                            ffi::NONE,
-                        ],
-                    )?;
-
-                    let first_config = *configs.first().ok_or_else(|| {
-                        failure::err_msg("no compatible EGL configuration was found")
-                    })?;
-
-                    let surface = egl.create_window_surface(egl_display, first_config, window)?;
-
-                    let context = egl.create_context(
-                        egl_display,
-                        first_config,
-                        std::ptr::null(),
-                        &[ffi::CONTEXT_MAJOR_VERSION, 3, ffi::NONE],
-                    )?;
-
-                    return Ok(Self {
-                        egl,
-                        display: egl_display,
-                        context,
-                        surface,
-                    });
+                match EglWrapper::load_egl(lib) {
+                    Ok(egl) => match func(egl) {
+                        Ok(result) => {
+                            log::error!("initialized {}", path);
+                            return Ok(result);
+                        }
+                        Err(e) => {
+                            log::error!("with_egl_lib failed: {}", e);
+                        }
+                    },
+                    Err(e) => {
+                        log::error!("load_egl failed: {}", e);
+                    }
                 }
             }
         }
         failure::bail!("EGL library not found")
+    }
+
+    #[cfg(all(unix, feature = "wayland", not(target_os = "macos")))]
+    pub fn create_wayland(
+        display: Option<ffi::EGLNativeDisplayType>,
+        wegl_surface: &wayland_client::egl::WlEglSurface,
+    ) -> Fallible<Self> {
+        Self::with_egl_lib(move |egl| {
+            let egl_display = egl.get_display(display)?;
+
+            let (major, minor) = egl.initialize_and_get_version(egl_display)?;
+            log::error!("initialized EGL version {}.{}", major, minor);
+
+            let configs = egl.choose_config(
+                egl_display,
+                &[
+                    ffi::ALPHA_SIZE,
+                    8,
+                    ffi::RED_SIZE,
+                    8,
+                    ffi::GREEN_SIZE,
+                    8,
+                    ffi::BLUE_SIZE,
+                    8,
+                    ffi::DEPTH_SIZE,
+                    24,
+                    ffi::CONFORMANT,
+                    ffi::OPENGL_ES3_BIT,
+                    ffi::RENDERABLE_TYPE,
+                    ffi::OPENGL_ES3_BIT,
+                    ffi::SURFACE_TYPE,
+                    ffi::WINDOW_BIT, // | ffi::PBUFFER_BIT | ffi::PIXMAP_BIT,
+                    ffi::NONE,
+                ],
+            )?;
+
+            let first_config = *configs
+                .first()
+                .ok_or_else(|| failure::err_msg("no compatible EGL configuration was found"))?;
+
+            let window = wegl_surface.ptr();
+            let surface = egl.create_window_surface(egl_display, first_config, window)?;
+
+            let context = egl.create_context(
+                egl_display,
+                first_config,
+                std::ptr::null(),
+                &[ffi::CONTEXT_MAJOR_VERSION, 3, ffi::NONE],
+            )?;
+
+            return Ok(Self {
+                egl,
+                display: egl_display,
+                context,
+                surface,
+            });
+        })
+    }
+
+    pub fn create(
+        display: Option<ffi::EGLNativeDisplayType>,
+        window: ffi::EGLNativeWindowType,
+    ) -> Fallible<Self> {
+        Self::with_egl_lib(|egl| {
+            let egl_display = egl.get_display(display)?;
+
+            let (major, minor) = egl.initialize_and_get_version(egl_display)?;
+            log::error!("initialized EGL version {}.{}", major, minor);
+
+            let configs = egl.choose_config(
+                egl_display,
+                &[
+                    ffi::ALPHA_SIZE,
+                    8,
+                    ffi::RED_SIZE,
+                    8,
+                    ffi::GREEN_SIZE,
+                    8,
+                    ffi::BLUE_SIZE,
+                    8,
+                    ffi::DEPTH_SIZE,
+                    24,
+                    ffi::CONFORMANT,
+                    ffi::OPENGL_ES3_BIT,
+                    ffi::RENDERABLE_TYPE,
+                    ffi::OPENGL_ES3_BIT,
+                    ffi::SURFACE_TYPE,
+                    ffi::WINDOW_BIT | ffi::PBUFFER_BIT | ffi::PIXMAP_BIT,
+                    ffi::NONE,
+                ],
+            )?;
+
+            let first_config = *configs
+                .first()
+                .ok_or_else(|| failure::err_msg("no compatible EGL configuration was found"))?;
+
+            let surface = egl.create_window_surface(egl_display, first_config, window)?;
+
+            let context = egl.create_context(
+                egl_display,
+                first_config,
+                std::ptr::null(),
+                &[ffi::CONTEXT_MAJOR_VERSION, 3, ffi::NONE],
+            )?;
+
+            return Ok(Self {
+                egl,
+                display: egl_display,
+                context,
+                surface,
+            });
+        })
     }
 }
 

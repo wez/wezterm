@@ -19,7 +19,7 @@ use toolkit::reexports::client::{Display, EventQueue};
 use toolkit::Environment;
 
 pub struct WaylandConnection {
-    display: RefCell<Display>,
+    pub(crate) display: RefCell<Display>,
     event_q: RefCell<EventQueue>,
     pub(crate) environment: RefCell<Environment>,
     should_terminate: RefCell<bool>,
