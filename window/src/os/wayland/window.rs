@@ -296,6 +296,7 @@ pub struct WaylandWindowInner {
     mouse_buttons: MouseButtons,
     modifiers: Modifiers,
     pending_event: Arc<Mutex<PendingEvent>>,
+    pending_mouse: Arc<Mutex<PendingMouse>>,
     // wegl_surface is listed before gl_state because it
     // must be dropped before gl_state otherwise the underlying
     // libraries will segfault on shutdown
@@ -303,6 +304,104 @@ pub struct WaylandWindowInner {
     wegl_surface: Option<WlEglSurface>,
     #[cfg(feature = "opengl")]
     gl_state: Option<Rc<glium::backend::Context>>,
+}
+
+#[derive(Clone)]
+struct PendingMouse {
+    copy_and_paste: Arc<Mutex<CopyAndPaste>>,
+    surface_coords: Option<(f64, f64)>,
+    button: Vec<(MousePress, DebuggableButtonState)>,
+    scroll: Option<(f64, f64)>,
+}
+
+impl PendingMouse {
+    // Return true if we need to queue up a call to act on the event,
+    // false if we think there is already a pending event
+    fn queue(&mut self, evt: SendablePointerEvent) -> bool {
+        match evt {
+            SendablePointerEvent::Enter { serial, .. } => {
+                self.copy_and_paste
+                    .lock()
+                    .unwrap()
+                    .update_last_serial(serial);
+                false
+            }
+            SendablePointerEvent::Motion {
+                surface_x,
+                surface_y,
+                ..
+            } => {
+                let changed = self.surface_coords.is_none();
+                self.surface_coords.replace((surface_x, surface_y));
+                changed
+            }
+            SendablePointerEvent::Button {
+                button,
+                state,
+                serial,
+                ..
+            } => {
+                self.copy_and_paste
+                    .lock()
+                    .unwrap()
+                    .update_last_serial(serial);
+                fn linux_button(b: u32) -> Option<MousePress> {
+                    // See BTN_LEFT and friends in <linux/input-event-codes.h>
+                    match b {
+                        0x110 => Some(MousePress::Left),
+                        0x111 => Some(MousePress::Right),
+                        0x112 => Some(MousePress::Middle),
+                        _ => None,
+                    }
+                }
+                let button = match linux_button(button) {
+                    Some(button) => button,
+                    None => return false,
+                };
+                let changed = self.button.is_empty();
+                self.button.push((button, state));
+                changed
+            }
+            SendablePointerEvent::Axis {
+                axis: Axis::VerticalScroll,
+                value,
+                ..
+            } => {
+                let changed = self.scroll.is_none();
+                let (x, y) = self.scroll.take().unwrap_or((0., 0.));
+                self.scroll.replace((x, y + value));
+                changed
+            }
+            SendablePointerEvent::Axis {
+                axis: Axis::HorizontalScroll,
+                value,
+                ..
+            } => {
+                let changed = self.scroll.is_none();
+                let (x, y) = self.scroll.take().unwrap_or((0., 0.));
+                self.scroll.replace((x + value, y));
+                changed
+            }
+            _ => false,
+        }
+    }
+
+    fn next_button(pending: &Arc<Mutex<Self>>) -> Option<(MousePress, DebuggableButtonState)> {
+        let mut pending = pending.lock().unwrap();
+        if pending.button.is_empty() {
+            None
+        } else {
+            Some(pending.button.remove(0))
+        }
+    }
+
+    fn coords(pending: &Arc<Mutex<Self>>) -> Option<(f64, f64)> {
+        pending.lock().unwrap().surface_coords.take()
+    }
+
+    fn scroll(pending: &Arc<Mutex<Self>>) -> Option<(f64, f64)> {
+        pending.lock().unwrap().scroll.take()
+    }
 }
 
 #[derive(Default, Clone, Debug)]
@@ -426,6 +525,13 @@ impl WaylandWindow {
             data_device: None,
         }));
 
+        let pending_mouse = Arc::new(Mutex::new(PendingMouse {
+            copy_and_paste: Arc::clone(&copy_and_paste),
+            button: vec![],
+            scroll: None,
+            surface_coords: None,
+        }));
+
         let data_device = conn
             .environment
             .borrow()
@@ -476,17 +582,25 @@ impl WaylandWindow {
             .data_device
             .replace(data_device);
 
-        seat.get_pointer(move |ptr| {
-            ptr.implement_closure(
-                move |evt, _| {
-                    let evt: SendablePointerEvent = evt.into();
-                    WaylandConnection::with_window_inner(window_id, move |inner| {
-                        inner.handle_pointer(evt);
-                        Ok(())
-                    });
-                },
-                (),
-            )
+        seat.get_pointer({
+            let pending_mouse = Arc::clone(&pending_mouse);
+            move |ptr| {
+                ptr.implement_closure(
+                    {
+                        let pending_mouse = Arc::clone(&pending_mouse);
+                        move |evt, _| {
+                            let evt: SendablePointerEvent = evt.into();
+                            if pending_mouse.lock().unwrap().queue(evt) {
+                                WaylandConnection::with_window_inner(window_id, move |inner| {
+                                    inner.dispatch_pending_mouse();
+                                    Ok(())
+                                });
+                            }
+                        }
+                    },
+                    (),
+                )
+            }
         })
         .map_err(|_| failure::format_err!("Failed to configure pointer callback"))?;
 
@@ -551,6 +665,7 @@ impl WaylandWindow {
             mouse_buttons: MouseButtons::NONE,
             modifiers: Modifiers::NONE,
             pending_event,
+            pending_mouse,
             #[cfg(feature = "opengl")]
             gl_state: None,
             #[cfg(feature = "opengl")]
@@ -616,84 +731,64 @@ impl WaylandWindowInner {
         self.modifiers = modifiers;
     }
 
-    fn handle_pointer(&mut self, evt: SendablePointerEvent) {
-        match evt {
-            SendablePointerEvent::Enter { serial, .. } => {
-                self.copy_and_paste
-                    .lock()
-                    .unwrap()
-                    .update_last_serial(serial);
+    fn dispatch_pending_mouse(&mut self) {
+        // Dancing around the borrow checker and the call to self.refresh_frame()
+        let pending_mouse = Arc::clone(&self.pending_mouse);
+
+        if let Some((x, y)) = PendingMouse::coords(&pending_mouse) {
+            let factor = toolkit::surface::get_dpi_factor(&self.surface);
+            let coords = Point::new(x as isize * factor as isize, y as isize * factor as isize);
+            self.last_mouse_coords = coords;
+            let event = MouseEvent {
+                kind: MouseEventKind::Move,
+                coords,
+                screen_coords: ScreenPoint::new(
+                    coords.x + self.dimensions.0 as isize,
+                    coords.y + self.dimensions.1 as isize,
+                ),
+                mouse_buttons: self.mouse_buttons,
+                modifiers: self.modifiers,
+            };
+            self.callbacks
+                .mouse_event(&event, &Window::Wayland(WaylandWindow(self.window_id)));
+            self.refresh_frame();
+        }
+
+        while let Some((button, state)) = PendingMouse::next_button(&pending_mouse) {
+            let button_mask = match button {
+                MousePress::Left => MouseButtons::LEFT,
+                MousePress::Right => MouseButtons::RIGHT,
+                MousePress::Middle => MouseButtons::MIDDLE,
+            };
+
+            if state == DebuggableButtonState::Pressed {
+                self.mouse_buttons |= button_mask;
+            } else {
+                self.mouse_buttons -= button_mask;
             }
-            SendablePointerEvent::Leave { .. } => {}
-            SendablePointerEvent::AxisSource { .. } => {}
-            SendablePointerEvent::AxisStop { .. } => {}
-            SendablePointerEvent::AxisDiscrete { .. } => {}
-            SendablePointerEvent::Frame => {}
-            SendablePointerEvent::Motion {
-                surface_x,
-                surface_y,
-                ..
-            } => {
-                let factor = toolkit::surface::get_dpi_factor(&self.surface);
-                let coords = Point::new(
-                    surface_x as isize * factor as isize,
-                    surface_y as isize * factor as isize,
-                );
-                self.last_mouse_coords = coords;
+
+            let event = MouseEvent {
+                kind: match state {
+                    DebuggableButtonState::Pressed => MouseEventKind::Press(button),
+                    DebuggableButtonState::Released => MouseEventKind::Release(button),
+                },
+                coords: self.last_mouse_coords,
+                screen_coords: ScreenPoint::new(
+                    self.last_mouse_coords.x + self.dimensions.0 as isize,
+                    self.last_mouse_coords.y + self.dimensions.1 as isize,
+                ),
+                mouse_buttons: self.mouse_buttons,
+                modifiers: self.modifiers,
+            };
+            self.callbacks
+                .mouse_event(&event, &Window::Wayland(WaylandWindow(self.window_id)));
+        }
+
+        if let Some((value_x, value_y)) = PendingMouse::scroll(&pending_mouse) {
+            let discrete_x = value_x.trunc();
+            if discrete_x != 0. {
                 let event = MouseEvent {
-                    kind: MouseEventKind::Move,
-                    coords,
-                    screen_coords: ScreenPoint::new(
-                        coords.x + self.dimensions.0 as isize,
-                        coords.y + self.dimensions.1 as isize,
-                    ),
-                    mouse_buttons: self.mouse_buttons,
-                    modifiers: self.modifiers,
-                };
-                self.callbacks
-                    .mouse_event(&event, &Window::Wayland(WaylandWindow(self.window_id)));
-            }
-            SendablePointerEvent::Button {
-                button,
-                state,
-                serial,
-                ..
-            } => {
-                self.copy_and_paste
-                    .lock()
-                    .unwrap()
-                    .update_last_serial(serial);
-                fn linux_button(b: u32) -> Option<MousePress> {
-                    // See BTN_LEFT and friends in <linux/input-event-codes.h>
-                    match b {
-                        0x110 => Some(MousePress::Left),
-                        0x111 => Some(MousePress::Right),
-                        0x112 => Some(MousePress::Middle),
-                        _ => None,
-                    }
-                }
-                let button = match linux_button(button) {
-                    Some(button) => button,
-                    None => return,
-                };
-
-                let button_mask = match button {
-                    MousePress::Left => MouseButtons::LEFT,
-                    MousePress::Right => MouseButtons::RIGHT,
-                    MousePress::Middle => MouseButtons::MIDDLE,
-                };
-
-                if state == DebuggableButtonState::Pressed {
-                    self.mouse_buttons |= button_mask;
-                } else {
-                    self.mouse_buttons -= button_mask;
-                }
-
-                let event = MouseEvent {
-                    kind: match state {
-                        DebuggableButtonState::Pressed => MouseEventKind::Press(button),
-                        DebuggableButtonState::Released => MouseEventKind::Release(button),
-                    },
+                    kind: MouseEventKind::HorzWheel(-discrete_x as i16),
                     coords: self.last_mouse_coords,
                     screen_coords: ScreenPoint::new(
                         self.last_mouse_coords.x + self.dimensions.0 as isize,
@@ -705,9 +800,23 @@ impl WaylandWindowInner {
                 self.callbacks
                     .mouse_event(&event, &Window::Wayland(WaylandWindow(self.window_id)));
             }
-            SendablePointerEvent::Axis { .. } => {}
+
+            let discrete_y = value_y.trunc();
+            if discrete_y != 0. {
+                let event = MouseEvent {
+                    kind: MouseEventKind::VertWheel(-discrete_y as i16),
+                    coords: self.last_mouse_coords,
+                    screen_coords: ScreenPoint::new(
+                        self.last_mouse_coords.x + self.dimensions.0 as isize,
+                        self.last_mouse_coords.y + self.dimensions.1 as isize,
+                    ),
+                    mouse_buttons: self.mouse_buttons,
+                    modifiers: self.modifiers,
+                };
+                self.callbacks
+                    .mouse_event(&event, &Window::Wayland(WaylandWindow(self.window_id)));
+            }
         }
-        self.refresh_frame();
     }
 
     fn dispatch_pending_event(&mut self) {
