@@ -892,6 +892,7 @@ impl WaylandWindowInner {
         let mut context = MmapImage {
             mmap: self.pool.mmap(),
             dimensions: (self.dimensions.0 as usize, self.dimensions.1 as usize),
+            dpi: 96 * toolkit::surface::get_dpi_factor(&self.surface) as usize,
         };
         self.callbacks.paint(&mut context);
         context.mmap.flush()?;
@@ -936,6 +937,7 @@ impl WaylandWindowInner {
 struct MmapImage<'a> {
     mmap: &'a mut memmap::MmapMut,
     dimensions: (usize, usize),
+    dpi: usize,
 }
 
 impl<'a> BitmapImage for MmapImage<'a> {
@@ -966,7 +968,7 @@ impl<'a> PaintContext for MmapImage<'a> {
         Dimensions {
             pixel_width,
             pixel_height,
-            dpi: 96,
+            dpi: self.dpi,
         }
     }
 
