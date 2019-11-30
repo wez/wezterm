@@ -165,62 +165,51 @@ impl From<PointerEvent> for SendablePointerEvent {
 struct MyTheme;
 use toolkit::window::ButtonState;
 
+const DARK_GRAY: [u8; 4] = [0xff, 0x35, 0x35, 0x35];
 const DARK_PURPLE: [u8; 4] = [0xff, 0x2b, 0x20, 0x42];
 const PURPLE: [u8; 4] = [0xff, 0x3b, 0x30, 0x52];
 const WHITE: [u8; 4] = [0xff, 0xff, 0xff, 0xff];
 const GRAY: [u8; 4] = [0x80, 0x80, 0x80, 0x80];
 
 impl toolkit::window::Theme for MyTheme {
-    fn get_primary_color(&self, _active: bool) -> [u8; 4] {
-        DARK_PURPLE
+    fn get_primary_color(&self, active: bool) -> [u8; 4] {
+        if active {
+            DARK_PURPLE
+        } else {
+            DARK_GRAY
+        }
     }
 
-    fn get_secondary_color(&self, _active: bool) -> [u8; 4] {
-        DARK_PURPLE
+    fn get_secondary_color(&self, active: bool) -> [u8; 4] {
+        self.get_primary_color(active)
     }
 
     fn get_close_button_color(&self, status: ButtonState) -> [u8; 4] {
-        if let ButtonState::Hovered = status {
-            PURPLE
-        } else {
-            DARK_PURPLE
+        match status {
+            ButtonState::Hovered => PURPLE,
+            ButtonState::Idle => DARK_PURPLE,
+            ButtonState::Disabled => DARK_GRAY,
         }
     }
     fn get_maximize_button_color(&self, status: ButtonState) -> [u8; 4] {
-        if let ButtonState::Hovered = status {
-            PURPLE
-        } else {
-            DARK_PURPLE
-        }
+        self.get_close_button_color(status)
     }
     fn get_minimize_button_color(&self, status: ButtonState) -> [u8; 4] {
-        if let ButtonState::Hovered = status {
-            PURPLE
-        } else {
-            DARK_PURPLE
-        }
+        self.get_close_button_color(status)
     }
 
     fn get_close_button_icon_color(&self, status: ButtonState) -> [u8; 4] {
-        if let ButtonState::Hovered = status {
-            WHITE
-        } else {
-            GRAY
+        match status {
+            ButtonState::Hovered => WHITE,
+            ButtonState::Idle => GRAY,
+            ButtonState::Disabled => DARK_GRAY,
         }
     }
     fn get_maximize_button_icon_color(&self, status: ButtonState) -> [u8; 4] {
-        if let ButtonState::Hovered = status {
-            WHITE
-        } else {
-            GRAY
-        }
+        self.get_close_button_icon_color(status)
     }
     fn get_minimize_button_icon_color(&self, status: ButtonState) -> [u8; 4] {
-        if let ButtonState::Hovered = status {
-            WHITE
-        } else {
-            GRAY
-        }
+        self.get_close_button_icon_color(status)
     }
 }
 
