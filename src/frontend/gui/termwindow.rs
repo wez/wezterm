@@ -152,7 +152,7 @@ impl WindowCallbacks for TermWindow {
         let first_line_offset = if self.show_tab_bar { 1 } else { 0 };
         self.last_mouse_coords = (x, y);
 
-        if self.show_tab_bar && y == 0 {
+        if self.show_tab_bar && y == 0 && event.coords.y >= 0 {
             if let WMEK::Press(MousePress::Left) = event.kind {
                 self.drag_start_coords = Some(event.coords);
 
