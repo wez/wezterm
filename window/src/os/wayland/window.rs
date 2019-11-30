@@ -174,11 +174,6 @@ impl WaylandWindow {
                     dpi
                 );
             });
-        log::error!(
-            "window_id {} made new surface id={}",
-            window_id,
-            surface.as_ref().id()
-        );
 
         let dimensions = (width as u32, height as u32);
         let pending_event = Arc::new(Mutex::new(PendingEvent::default()));
@@ -248,8 +243,6 @@ impl WaylandWindow {
 
 impl WaylandWindowInner {
     pub(crate) fn handle_keyboard_event(&mut self, evt: KeyboardEvent) {
-        log::error!("window: {} key: {:?}", self.window_id, evt);
-
         match evt {
             KeyboardEvent::Key {
                 rawkey,
