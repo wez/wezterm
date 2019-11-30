@@ -295,6 +295,7 @@ pub struct WaylandWindowInner {
     last_mouse_coords: Point,
     mouse_buttons: MouseButtons,
     modifiers: Modifiers,
+    pending_event: Arc<Mutex<PendingEvent>>,
     // wegl_surface is listed before gl_state because it
     // must be dropped before gl_state otherwise the underlying
     // libraries will segfault on shutdown
@@ -302,6 +303,47 @@ pub struct WaylandWindowInner {
     wegl_surface: Option<WlEglSurface>,
     #[cfg(feature = "opengl")]
     gl_state: Option<Rc<glium::backend::Context>>,
+}
+
+#[derive(Default, Clone, Debug)]
+struct PendingEvent {
+    close: bool,
+    refresh: bool,
+    configure: Option<(u32, u32)>,
+}
+
+impl PendingEvent {
+    fn queue(&mut self, evt: Event) -> bool {
+        match evt {
+            Event::Close => {
+                if !self.close {
+                    self.close = true;
+                    true
+                } else {
+                    false
+                }
+            }
+            Event::Refresh => {
+                if !self.refresh {
+                    self.refresh = true;
+                    true
+                } else {
+                    false
+                }
+            }
+            Event::Configure { new_size, .. } => {
+                let changed;
+                if let Some(new_size) = new_size {
+                    changed = self.configure.is_none();
+                    self.configure.replace(new_size);
+                } else {
+                    changed = !self.refresh;
+                    self.refresh = true;
+                }
+                changed
+            }
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -333,15 +375,21 @@ impl WaylandWindow {
             });
 
         let dimensions = (width as u32, height as u32);
+        let pending_event = Arc::new(Mutex::new(PendingEvent::default()));
         let mut window = toolkit::window::Window::<toolkit::window::ConceptFrame>::init_from_env(
             &*conn.environment.borrow(),
             surface.clone(),
             dimensions,
-            move |evt| {
-                WaylandConnection::with_window_inner(window_id, move |inner| {
-                    inner.handle_event(evt.clone());
-                    Ok(())
-                });
+            {
+                let pending_event = Arc::clone(&pending_event);
+                move |evt| {
+                    if pending_event.lock().unwrap().queue(evt) {
+                        WaylandConnection::with_window_inner(window_id, move |inner| {
+                            inner.dispatch_pending_event();
+                            Ok(())
+                        });
+                    }
+                }
             },
         )
         .map_err(|e| failure::format_err!("Failed to create window: {}", e))?;
@@ -512,6 +560,7 @@ impl WaylandWindow {
             last_mouse_coords: Point::new(0, 0),
             mouse_buttons: MouseButtons::NONE,
             modifiers: Modifiers::NONE,
+            pending_event,
             #[cfg(feature = "opengl")]
             gl_state: None,
             #[cfg(feature = "opengl")]
@@ -671,41 +720,44 @@ impl WaylandWindowInner {
         self.refresh_frame();
     }
 
-    fn handle_event(&mut self, evt: Event) {
-        match evt {
-            Event::Close => {
-                if self.callbacks.can_close() {
-                    self.callbacks.destroy();
-                    self.window.take();
-                }
+    fn dispatch_pending_event(&mut self) {
+        let mut pending;
+        {
+            let mut pending_events = self.pending_event.lock().unwrap();
+            pending = pending_events.clone();
+            *pending_events = PendingEvent::default();
+        }
+        if pending.close {
+            if self.callbacks.can_close() {
+                self.callbacks.destroy();
+                self.window.take();
             }
-            Event::Refresh => {
-                self.do_paint().unwrap();
-            }
-            Event::Configure { new_size, .. } => {
-                if self.window.is_none() {
-                    return;
-                }
-                if let Some((w, h)) = new_size {
-                    let factor = toolkit::surface::get_dpi_factor(&self.surface);
-                    self.surface.set_buffer_scale(factor);
-                    self.window.as_mut().unwrap().resize(w, h);
-                    let w = w * factor as u32;
-                    let h = h * factor as u32;
-                    self.dimensions = (w, h);
-                    #[cfg(feature = "opengl")]
-                    {
-                        if let Some(wegl_surface) = self.wegl_surface.as_mut() {
-                            wegl_surface.resize(w as i32, h as i32, 0, 0);
-                        }
+        }
+        if let Some((w, h)) = pending.configure.take() {
+            if self.window.is_some() {
+                let factor = toolkit::surface::get_dpi_factor(&self.surface);
+                self.surface.set_buffer_scale(factor);
+                self.window.as_mut().unwrap().resize(w, h);
+                let w = w * factor as u32;
+                let h = h * factor as u32;
+                self.dimensions = (w, h);
+                #[cfg(feature = "opengl")]
+                {
+                    if let Some(wegl_surface) = self.wegl_surface.as_mut() {
+                        wegl_surface.resize(w as i32, h as i32, 0, 0);
                     }
-                    self.callbacks.resize(Dimensions {
-                        pixel_width: w as usize,
-                        pixel_height: h as usize,
-                        dpi: 96 * factor as usize,
-                    });
                 }
+                self.callbacks.resize(Dimensions {
+                    pixel_width: w as usize,
+                    pixel_height: h as usize,
+                    dpi: 96 * factor as usize,
+                });
                 self.refresh_frame();
+                pending.refresh = true;
+            }
+        }
+        if pending.refresh {
+            if self.window.is_some() {
                 self.do_paint().unwrap();
             }
         }
