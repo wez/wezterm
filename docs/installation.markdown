@@ -73,7 +73,7 @@ debian style systems, including Debian 9 (Stretch) and later versions.
 
 * Install `rustup` to get the `rust` compiler installed on your system.
   [Install rustup](https://www.rust-lang.org/en-US/install.html)
-* Rust version 1.35 or later is required
+* Rust version 1.39 or later is required
 * Build in release mode: `cargo build --release`
 * Run it via either `cargo run --release` or `target/release/wezterm`
 
@@ -85,7 +85,7 @@ attempt to install them for you.  If it doesn't know about your system,
 $ curl https://sh.rustup.rs -sSf | sh -s
 $ git clone --depth=1 --branch=master --recursive https://github.com/wez/wezterm.git
 $ cd wezterm
-$ git submodule update --init
+$ git submodule update --init --recursive
 $ sudo ./get-deps
 $ cargo build --release
 $ cargo run --release -- start
