@@ -113,7 +113,7 @@ impl ConfigInner {
                 while let Ok(event) = rx.recv() {
                     log::trace!("event:{:?}", event);
                     if let Some(path) = extract_path(event) {
-                        log::error!("path {} changed, reload config", path.display());
+                        log::debug!("path {} changed, reload config", path.display());
                         reload();
                     }
                 }
@@ -139,7 +139,7 @@ impl ConfigInner {
                 self.config = Arc::new(config);
                 self.error.take();
                 self.generation += 1;
-                log::error!("Reloaded configuration! generation={}", self.generation);
+                log::debug!("Reloaded configuration! generation={}", self.generation);
                 if let Some(path) = path {
                     self.watch_path(path);
                 }
