@@ -140,6 +140,14 @@ impl OpenGLRenderState {
         let num_cols = width as usize / cell_width as usize;
         let num_rows = height as usize / cell_height as usize;
 
+        log::error!(
+            "compute_vertices {}x{} {}x{}",
+            num_cols,
+            num_rows,
+            width,
+            height
+        );
+
         for y in 0..num_rows {
             for x in 0..num_cols {
                 let y_pos = (height / -2.0) + (y as f32 * cell_height);

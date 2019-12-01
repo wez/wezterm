@@ -398,7 +398,8 @@ impl TermWindow {
         let render_metrics = RenderMetrics::new(fontconfig);
 
         let width = render_metrics.cell_size.width as usize * physical_cols;
-        let height = render_metrics.cell_size.height as usize * physical_rows;
+        let height = render_metrics.cell_size.height as usize
+            * (physical_rows + if config.enable_tab_bar { 1 } else { 0 });
 
         log::error!(
             "TermWindow::new_window called with mux_window_id {} {}x{} cells, {}x{}",
@@ -896,14 +897,6 @@ impl TermWindow {
     ) {
         self.dimensions = *dimensions;
 
-        self.render_state
-            .advise_of_window_size_change(
-                &self.render_metrics,
-                dimensions.pixel_width,
-                dimensions.pixel_height,
-            )
-            .expect("failed to advise of resize");
-
         // Technically speaking, we should compute the rows and cols
         // from the new dimensions and apply those to the tabs, and
         // then for the scaling changed case, try to re-apply the
@@ -928,18 +921,30 @@ impl TermWindow {
             }
         };
 
-        let size = if self.show_tab_bar {
+        let (size, pixel_height_including_tab_bar) = if self.show_tab_bar {
+            let pixel_height_including_tab_bar = size.pixel_height;
             let rows = size.rows.saturating_sub(1);
             let height = self.render_metrics.cell_size.height as u16 * rows;
-            PtySize {
-                rows: rows,
-                cols: size.cols,
-                pixel_height: height,
-                pixel_width: size.pixel_width,
-            }
+            (
+                PtySize {
+                    rows: rows,
+                    cols: size.cols,
+                    pixel_height: height,
+                    pixel_width: size.pixel_width,
+                },
+                pixel_height_including_tab_bar,
+            )
         } else {
-            size
+            (size, size.pixel_height)
         };
+
+        self.render_state
+            .advise_of_window_size_change(
+                &self.render_metrics,
+                size.pixel_width as usize,
+                pixel_height_including_tab_bar as usize,
+            )
+            .expect("failed to advise of resize");
 
         let mux = Mux::get().unwrap();
         if let Some(window) = mux.get_window(self.mux_window_id) {
@@ -1174,7 +1179,16 @@ impl TermWindow {
             let per_line = num_cols * VERTICES_PER_CELL;
             let start_pos = line_idx * per_line;
             vb.slice_mut(start_pos..start_pos + per_line)
-                .ok_or_else(|| failure::err_msg("we're confused about the screen size"))?
+                .ok_or_else(|| {
+                    failure::format_err!(
+                        "we're confused about the screen size; \
+                         line_idx={} start_pos={} per_line={} num_cols={}",
+                        line_idx,
+                        start_pos,
+                        per_line,
+                        num_cols
+                    )
+                })?
                 .map()
         };
 
