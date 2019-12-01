@@ -26,6 +26,7 @@ title: Installation
 {%   endif %}
 {%   if asset.name contains '.deb' and deb_stable == nil %}
 {%     assign deb_stable = asset.browser_download_url %}
+{%     assign deb_stable_asset = asset.name %}
 {%   endif %}
 {% endfor %}
 {% endif %}
@@ -58,14 +59,14 @@ versions of macOS, but that has not been tested.
 
 ## {% octicon cloud-download height:24 %} Installing a pre-built package on Ubuntu
 
-The CI system builds a `.deb` file on Ubuntu 16.04.  It may be compatible with other
-debian style systems.
+The CI system builds a `.deb` file on Ubuntu 16.04.  It is compatible with other
+debian style systems, including Debian 9 (Stretch) and later versions.
 
 <a href="{{ deb_stable }}" class="btn">{% octicon cloud-download %} Download for Ubuntu</a>
 <a href="{{ deb_pre }}" class="btn">{% octicon beaker %} Nightly for Ubuntu</a>
 * <tt>curl -LO <a href="{{ deb_stable }}">{{ deb_stable }}</a></tt>
-* `sudo dpkg -i {{ asset.name }}`
-* The package installs `/usr/bin/wezterm`
+* `sudo apt install -y ./{{ deb_stable_asset }}`
+* The package installs `/usr/bin/wezterm` and `/usr/share/applications/wezterm.desktop`
 * Configuration instructions can be [found here](configuration.html)
 
 ## {% octicon git-branch height:24 %} Installing from source
