@@ -357,6 +357,14 @@ pub struct Config {
     /// active tab.  Clicking on a tab activates it.
     #[serde(default = "default_true")]
     pub enable_tab_bar: bool,
+
+    /// If false, do not try to use a Wayland protocol connection
+    /// when starting the gui frontend, and instead use X11.
+    /// This option is only considered on X11/Wayland systems and
+    /// has no effect on macOS or Windows.
+    /// The default is true.
+    #[serde(default = "default_true")]
+    pub enable_wayland: bool,
 }
 
 impl Default for Config {

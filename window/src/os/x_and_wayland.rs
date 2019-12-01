@@ -13,6 +13,7 @@ use failure::Fallible;
 use promise::*;
 use std::any::Any;
 use std::rc::Rc;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 pub enum Connection {
     X11(Rc<XConnection>),
@@ -27,17 +28,31 @@ pub enum Window {
     Wayland(WaylandWindow),
 }
 
+lazy_static::lazy_static! {
+static ref ALLOW_WAYLAND: AtomicBool = AtomicBool::new(true);
+}
+
 impl Connection {
+    pub fn disable_wayland() {
+        ALLOW_WAYLAND.store(false, Ordering::Release);
+    }
+
+    pub fn is_wayland_enabled() -> bool {
+        ALLOW_WAYLAND.load(Ordering::Acquire)
+    }
+
     pub(crate) fn create_new() -> Fallible<Connection> {
         #[cfg(feature = "wayland")]
         {
-            match WaylandConnection::create_new() {
-                Ok(w) => {
-                    log::debug!("Using wayland connection!");
-                    return Ok(Connection::Wayland(Rc::new(w)));
-                }
-                Err(e) => {
-                    log::error!("Failed to init wayland: {}", e);
+            if Self::is_wayland_enabled() {
+                match WaylandConnection::create_new() {
+                    Ok(w) => {
+                        log::debug!("Using wayland connection!");
+                        return Ok(Connection::Wayland(Rc::new(w)));
+                    }
+                    Err(e) => {
+                        log::error!("Failed to init wayland: {}", e);
+                    }
                 }
             }
         }
