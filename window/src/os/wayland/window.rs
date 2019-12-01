@@ -397,7 +397,10 @@ impl WaylandWindowInner {
     }
 
     fn pixels_to_surface(&self, pixels: i32) -> i32 {
-        pixels / self.get_dpi_factor()
+        // Take care to round up, otherwise we can lose a pixel
+        // and that can effectively lose the final row of the
+        // terminal
+        ((pixels as f64) / (self.get_dpi_factor() as f64)).ceil() as i32
     }
 
     fn dispatch_pending_event(&mut self) {
