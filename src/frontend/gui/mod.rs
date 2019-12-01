@@ -38,7 +38,7 @@ impl GuiFrontEnd {
     }
 
     pub fn try_new() -> Fallible<Rc<dyn FrontEnd>> {
-        #![cfg(all(unix, not(target_os = "macos")))]
+        #[cfg(all(unix, not(target_os = "macos")))]
         {
             if !configuration().enable_wayland {
                 Connection::disable_wayland();

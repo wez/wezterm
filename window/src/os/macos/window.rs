@@ -386,7 +386,7 @@ impl WindowOps for Window {
         })
     }
 
-    fn set_inner_size(&mut self, width: usize, height: usize) -> Future<()> {
+    fn set_inner_size(&self, width: usize, height: usize) -> Future<()> {
         Connection::with_window_inner(self.0, move |inner| {
             inner.set_inner_size(width, height);
             Ok(())
@@ -558,7 +558,7 @@ impl WindowOpsMut for WindowInner {
         }
     }
 
-    fn set_inner_size(&self, width: usize, height: usize) {
+    fn set_inner_size(&mut self, width: usize, height: usize) {
         unsafe {
             let frame = NSView::frame(*self.view as *mut _);
             let backing_frame = NSView::convertRectToBacking(*self.view as *mut _, frame);
