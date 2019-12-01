@@ -722,7 +722,7 @@ impl WindowOpsMut for XWindowInner {
         self.paint_all = true;
     }
 
-    fn set_inner_size(&self, width: usize, height: usize) {
+    fn set_inner_size(&mut self, width: usize, height: usize) {
         xcb::configure_window(
             self.conn.conn(),
             self.window_id,

@@ -16,12 +16,19 @@ use ::window::glium::{uniform, Surface};
 use ::window::*;
 use failure::Fallible;
 use std::any::Any;
+use std::convert::TryInto;
 use std::ops::Range;
 use std::rc::Rc;
 use std::sync::Arc;
 use term::color::ColorPalette;
 use term::{CursorPosition, Line, Underline};
 use termwiz::color::RgbColor;
+
+#[derive(Debug, Clone, Copy)]
+struct RowsAndCols {
+    rows: usize,
+    cols: usize,
+}
 
 /// ClipboardHelper bridges between the window crate clipboard
 /// manipulation and the term crate clipboard interface
@@ -245,6 +252,11 @@ impl WindowCallbacks for TermWindow {
     }
 
     fn resize(&mut self, dimensions: Dimensions) {
+        log::error!(
+            "resize event, current cells: {:?}, new dims: {:?}",
+            self.current_cell_dimensions(),
+            dimensions
+        );
         if dimensions.pixel_width == 0 || dimensions.pixel_height == 0 {
             // on windows, this can happen when minimizing the window.
             // NOP!
@@ -381,16 +393,21 @@ impl TermWindow {
         tab: &Rc<dyn Tab>,
         mux_window_id: MuxWindowId,
     ) -> Fallible<()> {
-        log::error!(
-            "TermWindow::new_window called with mux_window_id {}",
-            mux_window_id
-        );
         let (physical_rows, physical_cols) = tab.renderer().physical_dimensions();
 
         let render_metrics = RenderMetrics::new(fontconfig);
 
         let width = render_metrics.cell_size.width as usize * physical_cols;
         let height = render_metrics.cell_size.height as usize * physical_rows;
+
+        log::error!(
+            "TermWindow::new_window called with mux_window_id {} {}x{} cells, {}x{}",
+            mux_window_id,
+            physical_cols,
+            physical_rows,
+            width,
+            height
+        );
 
         const ATLAS_SIZE: usize = 4096;
         let render_state = RenderState::Software(SoftwareRenderState::new(
@@ -628,8 +645,9 @@ impl TermWindow {
         self.keys = KeyMap::new();
         self.config_generation = config.generation();
         let dimensions = self.dimensions;
+        let cell_dims = self.current_cell_dimensions();
         self.apply_scale_change(&dimensions, self.fonts.get_font_scale());
-        self.apply_dimensions(&dimensions, true);
+        self.apply_dimensions(&dimensions, Some(cell_dims));
         if let Some(window) = self.window.as_ref() {
             window.invalidate();
         }
@@ -871,7 +889,11 @@ impl TermWindow {
             .expect("failed to recreate atlas");
     }
 
-    fn apply_dimensions(&mut self, dimensions: &Dimensions, scale_changed: bool) {
+    fn apply_dimensions(
+        &mut self,
+        dimensions: &Dimensions,
+        scale_changed_cells: Option<RowsAndCols>,
+    ) {
         self.dimensions = *dimensions;
 
         self.render_state
@@ -892,7 +914,13 @@ impl TermWindow {
         let size = portable_pty::PtySize {
             rows: tab_bar_adjusted_rows as u16,
             cols: cols as u16,
-            pixel_height: dimensions.pixel_height as u16, // FIXME: adjust for tab bar
+            pixel_height: dimensions
+                .pixel_height
+                .saturating_sub(if self.show_tab_bar {
+                    self.render_metrics.cell_size.height.try_into().unwrap()
+                } else {
+                    0
+                }) as u16,
             pixel_width: dimensions.pixel_width as u16,
         };
 
@@ -905,14 +933,21 @@ impl TermWindow {
         self.update_title();
 
         // Queue up a speculative resize in order to preserve the number of rows+cols
-        if scale_changed {
+        if let Some(cell_dims) = scale_changed_cells {
             if let Some(window) = self.window.as_ref() {
+                log::error!("scale changed so resize to {:?}", cell_dims);
                 window.set_inner_size(
-                    cols * self.render_metrics.cell_size.width as usize,
-                    rows * self.render_metrics.cell_size.height as usize,
+                    cell_dims.cols * self.render_metrics.cell_size.width as usize,
+                    cell_dims.rows * self.render_metrics.cell_size.height as usize,
                 );
             }
         }
+    }
+
+    fn current_cell_dimensions(&self) -> RowsAndCols {
+        let rows = self.dimensions.pixel_height / self.render_metrics.cell_size.height as usize;
+        let cols = self.dimensions.pixel_width / self.render_metrics.cell_size.width as usize;
+        RowsAndCols { rows, cols }
     }
 
     #[allow(clippy::float_cmp)]
@@ -920,11 +955,15 @@ impl TermWindow {
         let scale_changed =
             dimensions.dpi != self.dimensions.dpi || font_scale != self.fonts.get_font_scale();
 
-        if scale_changed {
+        let scale_changed_cells = if scale_changed {
+            let cell_dims = self.current_cell_dimensions();
             self.apply_scale_change(&dimensions, font_scale);
-        }
+            Some(cell_dims)
+        } else {
+            None
+        };
 
-        self.apply_dimensions(&dimensions, scale_changed);
+        self.apply_dimensions(&dimensions, scale_changed_cells);
     }
 
     fn decrease_font_size(&mut self) {

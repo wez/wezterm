@@ -249,7 +249,7 @@ pub trait WindowOpsMut {
     fn set_title(&mut self, title: &str);
 
     /// Resize the inner or client area of the window
-    fn set_inner_size(&self, width: usize, height: usize);
+    fn set_inner_size(&mut self, width: usize, height: usize);
 
     /// inform the windowing system of the current textual
     /// cursor input location.  This is used primarily for

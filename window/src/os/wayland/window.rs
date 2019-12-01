@@ -121,12 +121,13 @@ impl PendingEvent {
                 }
             }
             Event::Refresh => {
-                if !self.refresh {
+                let changed = if !self.refresh {
                     self.refresh = true;
                     true
                 } else {
                     false
-                }
+                };
+                changed
             }
             Event::Configure { new_size, .. } => {
                 let changed;
@@ -850,7 +851,39 @@ impl WindowOpsMut for WaylandWindowInner {
         self.do_paint().unwrap();
     }
 
-    fn set_inner_size(&self, _width: usize, _height: usize) {}
+    fn set_inner_size(&mut self, width: usize, height: usize) {
+        if let Some(window) = self.window.as_mut() {
+            let factor = toolkit::surface::get_dpi_factor(&self.surface) as usize;
+            let scaled_width = (width / factor) as u32;
+            let scaled_height = (height / factor) as u32;
+
+            // The resize call doesn't generate a configure event,
+            // so we're going to fake one up, otherwise the window
+            // contents don't reflect the real size until eg:
+            // the focus is changed.  We do this before the resize
+            // call in case it does actually generate a configure
+            // event and suggests an alternate size.
+            self.pending_event
+                .lock()
+                .unwrap()
+                .configure
+                .replace((scaled_width, scaled_height));
+
+            window.resize(scaled_width, scaled_height);
+            // The resize must be followed by a refresh call.
+            window.refresh();
+            // In addition, resize doesn't take effect until
+            // the suface is commited
+            self.surface.commit();
+
+            // Finally, queue up processing for the configure
+            // event that we synthesized above
+            WaylandConnection::with_window_inner(self.window_id, move |inner| {
+                inner.dispatch_pending_event();
+                Ok(())
+            });
+        }
+    }
 
     fn set_window_position(&self, _coords: ScreenPoint) {}
 

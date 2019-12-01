@@ -252,7 +252,7 @@ impl WindowOpsMut for WindowInner {
         }
     }
 
-    fn set_inner_size(&self, width: usize, height: usize) {
+    fn set_inner_size(&mut self, width: usize, height: usize) {
         let (width, height) = adjust_client_to_window_dimensions(width, height);
         let hwnd = self.hwnd;
         Future::with_executor(Connection::executor(), move || unsafe {
