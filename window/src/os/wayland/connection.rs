@@ -22,17 +22,25 @@ use toolkit::reexports::client::{Display, EventQueue};
 use toolkit::Environment;
 
 pub struct WaylandConnection {
-    pub(crate) display: RefCell<Display>,
-    event_q: RefCell<EventQueue>,
-    pub(crate) environment: RefCell<Environment>,
     should_terminate: RefCell<bool>,
     timers: RefCell<TimerList>,
     pub(crate) tasks: Tasks,
     pub(crate) next_window_id: AtomicUsize,
     pub(crate) windows: RefCell<HashMap<usize, Rc<RefCell<WaylandWindowInner>>>>,
-    pub(crate) seat: WlSeat,
-    pub(crate) keyboard: KeyboardDispatcher,
+
+    // Take care with the destruction order: the underlying wayland
+    // libraries are not safe and require destruction in reverse
+    // creation order.  This list of fields must reflect that otherwise
+    // we'll segfault on shutdown.
+    // Rust guarantees that struct fields are dropped in the order
+    // they appear in the struct, so the Display must be at the
+    // bottom of this list.
     pub(crate) pointer: PointerDispatcher,
+    pub(crate) keyboard: KeyboardDispatcher,
+    pub(crate) seat: WlSeat,
+    pub(crate) environment: RefCell<Environment>,
+    event_q: RefCell<EventQueue>,
+    pub(crate) display: RefCell<Display>,
 }
 
 impl Evented for WaylandConnection {
