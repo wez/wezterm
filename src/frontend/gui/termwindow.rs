@@ -15,8 +15,8 @@ use ::window::bitmaps::Texture2d;
 use ::window::glium::{uniform, Surface};
 use ::window::*;
 use failure::Fallible;
+use portable_pty::PtySize;
 use std::any::Any;
-use std::convert::TryInto;
 use std::ops::Range;
 use std::rc::Rc;
 use std::sync::Arc;
@@ -252,7 +252,7 @@ impl WindowCallbacks for TermWindow {
     }
 
     fn resize(&mut self, dimensions: Dimensions) {
-        log::error!(
+        log::trace!(
             "resize event, current cells: {:?}, new dims: {:?}",
             self.current_cell_dimensions(),
             dimensions
@@ -904,24 +904,41 @@ impl TermWindow {
             )
             .expect("failed to advise of resize");
 
-        let rows = dimensions.pixel_height / self.render_metrics.cell_size.height as usize;
-        let cols = dimensions.pixel_width / self.render_metrics.cell_size.width as usize;
-        let tab_bar_adjusted_rows = if self.show_tab_bar {
-            rows.saturating_sub(1)
+        // Technically speaking, we should compute the rows and cols
+        // from the new dimensions and apply those to the tabs, and
+        // then for the scaling changed case, try to re-apply the
+        // original rows and cols, but if we do that we end up
+        // double resizing the tabs, so we speculatively apply the
+        // final size, which in that case should result in a NOP
+        // change to the tab size.
+
+        let size = if let Some(cell_dims) = scale_changed_cells {
+            PtySize {
+                rows: cell_dims.rows as u16,
+                cols: cell_dims.cols as u16,
+                pixel_height: cell_dims.rows as u16 * self.render_metrics.cell_size.height as u16,
+                pixel_width: cell_dims.cols as u16 * self.render_metrics.cell_size.width as u16,
+            }
         } else {
-            rows
+            PtySize {
+                rows: dimensions.pixel_height as u16 / self.render_metrics.cell_size.height as u16,
+                cols: dimensions.pixel_width as u16 / self.render_metrics.cell_size.width as u16,
+                pixel_height: dimensions.pixel_height as u16,
+                pixel_width: dimensions.pixel_width as u16,
+            }
         };
-        let size = portable_pty::PtySize {
-            rows: tab_bar_adjusted_rows as u16,
-            cols: cols as u16,
-            pixel_height: dimensions
-                .pixel_height
-                .saturating_sub(if self.show_tab_bar {
-                    self.render_metrics.cell_size.height.try_into().unwrap()
-                } else {
-                    0
-                }) as u16,
-            pixel_width: dimensions.pixel_width as u16,
+
+        let size = if self.show_tab_bar {
+            let rows = size.rows.saturating_sub(1);
+            let height = self.render_metrics.cell_size.height as u16 * rows;
+            PtySize {
+                rows: rows,
+                cols: size.cols,
+                pixel_height: height,
+                pixel_width: size.pixel_width,
+            }
+        } else {
+            size
         };
 
         let mux = Mux::get().unwrap();
