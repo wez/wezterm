@@ -17,6 +17,7 @@ use promise::{Future, Promise};
 use smithay_client_toolkit as toolkit;
 use std::any::Any;
 use std::cell::RefCell;
+use std::convert::TryInto;
 use std::io::{Read, Write};
 use std::os::unix::io::{AsRawFd, FromRawFd};
 use std::rc::Rc;
@@ -297,8 +298,10 @@ impl WaylandWindowInner {
         let pending_mouse = Arc::clone(&self.pending_mouse);
 
         if let Some((x, y)) = PendingMouse::coords(&pending_mouse) {
-            let factor = toolkit::surface::get_dpi_factor(&self.surface);
-            let coords = Point::new(x as isize * factor as isize, y as isize * factor as isize);
+            let coords = Point::new(
+                self.surface_to_pixels(x as i32) as isize,
+                self.surface_to_pixels(y as i32) as isize,
+            );
             self.last_mouse_coords = coords;
             let event = MouseEvent {
                 kind: MouseEventKind::Move,
@@ -346,7 +349,7 @@ impl WaylandWindowInner {
         }
 
         if let Some((value_x, value_y)) = PendingMouse::scroll(&pending_mouse) {
-            let factor = toolkit::surface::get_dpi_factor(&self.surface) as f64;
+            let factor = self.get_dpi_factor() as f64;
             let discrete_x = value_x.trunc() * factor;
             if discrete_x != 0. {
                 let event = MouseEvent {
@@ -381,6 +384,22 @@ impl WaylandWindowInner {
         }
     }
 
+    fn get_dpi_factor(&self) -> i32 {
+        toolkit::surface::get_dpi_factor(&self.surface)
+    }
+
+    fn get_dpi(&self) -> usize {
+        96 * self.get_dpi_factor() as usize
+    }
+
+    fn surface_to_pixels(&self, surface: i32) -> i32 {
+        surface * self.get_dpi_factor()
+    }
+
+    fn pixels_to_surface(&self, pixels: i32) -> i32 {
+        pixels / self.get_dpi_factor()
+    }
+
     fn dispatch_pending_event(&mut self) {
         let mut pending;
         {
@@ -396,23 +415,37 @@ impl WaylandWindowInner {
         }
         if let Some((w, h)) = pending.configure.take() {
             if self.window.is_some() {
-                let factor = toolkit::surface::get_dpi_factor(&self.surface);
+                let factor = self.get_dpi_factor();
+                let pixel_width = self.surface_to_pixels(w.try_into().unwrap());
+                let pixel_height = self.surface_to_pixels(h.try_into().unwrap());
+
+                // Avoid blurring by matching the scaling factor of the
+                // compositor; if it is going to double the size then
+                // we render at double the size anyway and tell it that
+                // the buffer is already doubled
                 self.surface.set_buffer_scale(factor);
+
+                // Update the window decoration size
                 self.window.as_mut().unwrap().resize(w, h);
-                let w = w * factor as u32;
-                let h = h * factor as u32;
-                self.dimensions = (w, h);
+
+                // Store the new pixel dimensions
+                self.dimensions = (
+                    pixel_width.try_into().unwrap(),
+                    pixel_height.try_into().unwrap(),
+                );
+
+                self.callbacks.resize(Dimensions {
+                    pixel_width: pixel_width.try_into().unwrap(),
+                    pixel_height: pixel_height.try_into().unwrap(),
+                    dpi: self.get_dpi(),
+                });
                 #[cfg(feature = "opengl")]
                 {
                     if let Some(wegl_surface) = self.wegl_surface.as_mut() {
-                        wegl_surface.resize(w as i32, h as i32, 0, 0);
+                        wegl_surface.resize(pixel_width, pixel_height, 0, 0);
                     }
                 }
-                self.callbacks.resize(Dimensions {
-                    pixel_width: w as usize,
-                    pixel_height: h as usize,
-                    dpi: 96 * factor as usize,
-                });
+
                 self.refresh_frame();
                 pending.refresh = true;
             }
@@ -434,16 +467,13 @@ impl WaylandWindowInner {
         #[cfg(feature = "opengl")]
         {
             if let Some(gl_context) = self.gl_state.as_ref() {
-                let mut frame = glium::Frame::new(
-                    Rc::clone(&gl_context),
-                    (u32::from(self.dimensions.0), u32::from(self.dimensions.1)),
-                );
+                let mut frame = glium::Frame::new(Rc::clone(&gl_context), self.dimensions);
 
                 self.callbacks.paint_opengl(&mut frame);
                 frame.finish()?;
                 // self.damage();
-                self.surface.commit();
                 self.refresh_frame();
+                self.surface.commit();
                 self.need_paint = false;
                 return Ok(());
             }
@@ -462,10 +492,11 @@ impl WaylandWindowInner {
         self.pool
             .resize((4 * self.dimensions.0 * self.dimensions.1) as usize)?;
 
+        let dpi = self.get_dpi();
         let mut context = MmapImage {
             mmap: self.pool.mmap(),
             dimensions: (self.dimensions.0 as usize, self.dimensions.1 as usize),
-            dpi: 96 * toolkit::surface::get_dpi_factor(&self.surface) as usize,
+            dpi,
         };
         self.callbacks.paint(&mut context);
         context.mmap.flush()?;
@@ -496,12 +527,11 @@ impl WaylandWindowInner {
             // Older versions use the surface size which is the pre-scaled
             // dimensions.  Since we store the scaled dimensions, we need
             // to compensate here.
-            let factor = toolkit::surface::get_dpi_factor(&self.surface);
             self.surface.damage(
                 0,
                 0,
-                self.dimensions.0 as i32 / factor,
-                self.dimensions.1 as i32 / factor,
+                self.pixels_to_surface(self.dimensions.0 as i32),
+                self.pixels_to_surface(self.dimensions.1 as i32),
             );
         }
     }
@@ -852,36 +882,30 @@ impl WindowOpsMut for WaylandWindowInner {
     }
 
     fn set_inner_size(&mut self, width: usize, height: usize) {
+        let pixel_width = width as i32;
+        let pixel_height = height as i32;
+        let surface_width = self.pixels_to_surface(pixel_width) as u32;
+        let surface_height = self.pixels_to_surface(pixel_height) as u32;
+        // window.resize() doesn't generate a configure event,
+        // so we're going to fake one up, otherwise the window
+        // contents don't reflect the real size until eg:
+        // the focus is changed.
+        self.pending_event
+            .lock()
+            .unwrap()
+            .configure
+            .replace((surface_width, surface_height));
+        // apply the synthetic configure event to the inner surfaces
+        self.dispatch_pending_event();
+
+        // and update the window decorations
         if let Some(window) = self.window.as_mut() {
-            let factor = toolkit::surface::get_dpi_factor(&self.surface) as usize;
-            let scaled_width = (width / factor) as u32;
-            let scaled_height = (height / factor) as u32;
-
-            // The resize call doesn't generate a configure event,
-            // so we're going to fake one up, otherwise the window
-            // contents don't reflect the real size until eg:
-            // the focus is changed.  We do this before the resize
-            // call in case it does actually generate a configure
-            // event and suggests an alternate size.
-            self.pending_event
-                .lock()
-                .unwrap()
-                .configure
-                .replace((scaled_width, scaled_height));
-
-            window.resize(scaled_width, scaled_height);
+            window.resize(surface_width, surface_height);
             // The resize must be followed by a refresh call.
             window.refresh();
             // In addition, resize doesn't take effect until
             // the suface is commited
             self.surface.commit();
-
-            // Finally, queue up processing for the configure
-            // event that we synthesized above
-            WaylandConnection::with_window_inner(self.window_id, move |inner| {
-                inner.dispatch_pending_event();
-                Ok(())
-            });
         }
     }
 
