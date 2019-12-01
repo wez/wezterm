@@ -27,10 +27,6 @@ impl Window {
         self.clipboard.replace(Arc::clone(clipboard));
     }
 
-    pub fn get_clipboard(&self) -> Option<&Arc<dyn Clipboard>> {
-        self.clipboard.as_ref()
-    }
-
     pub fn window_id(&self) -> WindowId {
         self.id
     }
