@@ -16,14 +16,12 @@ use termwiz::escape::{OneBased, OperatingSystemCommand, CSI};
 
 struct TestHost {
     title: String,
-    clip: Arc<dyn Clipboard>,
 }
 
 impl TestHost {
     fn new() -> Self {
         Self {
             title: String::new(),
-            clip: Arc::new(LocalClip::new()),
         }
     }
 }
@@ -70,10 +68,6 @@ impl TerminalHost for TestHost {
         self.title = title.into();
     }
 
-    fn get_clipboard(&mut self) -> Fallible<Arc<dyn Clipboard>> {
-        Ok(Arc::clone(&self.clip))
-    }
-
     fn writer(&mut self) -> &mut dyn std::io::Write {
         self
     }
@@ -84,6 +78,7 @@ impl TerminalHost for TestHost {
 struct TestTerm {
     term: Terminal,
     host: TestHost,
+    clip: Arc<dyn Clipboard>,
 }
 
 #[derive(Debug)]
@@ -98,15 +93,20 @@ impl TerminalConfiguration for TestTermConfig {
 
 impl TestTerm {
     fn new(height: usize, width: usize, scrollback: usize) -> Self {
+        let mut term = Terminal::new(
+            height,
+            width,
+            height * 16,
+            width * 8,
+            Arc::new(TestTermConfig { scrollback }),
+        );
+        let clip: Arc<dyn Clipboard> = Arc::new(LocalClip::new());
+        term.set_clipboard(&clip);
+
         Self {
-            term: Terminal::new(
-                height,
-                width,
-                height * 16,
-                width * 8,
-                Arc::new(TestTermConfig { scrollback }),
-            ),
+            term,
             host: TestHost::new(),
+            clip,
         }
     }
 
@@ -171,7 +171,7 @@ impl TestTerm {
     }
 
     fn get_clipboard(&self) -> Option<String> {
-        self.host.clip.get_contents().ok()
+        self.clip.get_contents().ok()
     }
 
     /// Inject n_times clicks of the button at the specified coordinates

@@ -4,7 +4,7 @@ use crate::mux::window::{Window, WindowId};
 use crate::ratelim::RateLimiter;
 use crate::server::pollable::{pollable_channel, PollableReceiver, PollableSender};
 use domain::{Domain, DomainId};
-use failure::{bail, format_err, Error, Fallible};
+use failure::{format_err, Error, Fallible};
 use failure_derive::*;
 use log::{debug, error};
 use portable_pty::ExitStatus;
@@ -16,7 +16,6 @@ use std::rc::Rc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::thread;
-use term::terminal::Clipboard;
 use term::TerminalHost;
 use termwiz::hyperlink::Hyperlink;
 
@@ -117,10 +116,6 @@ impl<'a> TerminalHost for Host<'a> {
             Ok(_) => {}
             Err(err) => error!("failed to open {}: {:?}", link.uri(), err),
         }
-    }
-
-    fn get_clipboard(&mut self) -> Fallible<Arc<dyn Clipboard>> {
-        bail!("peer requested clipboard; ignoring");
     }
 
     fn set_title(&mut self, _title: &str) {}

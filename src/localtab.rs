@@ -4,9 +4,10 @@ use crate::mux::tab::{alloc_tab_id, Tab, TabId};
 use failure::Error;
 use portable_pty::{Child, MasterPty, PtySize};
 use std::cell::{RefCell, RefMut};
+use std::sync::Arc;
 use term::color::ColorPalette;
 use term::selection::SelectionRange;
-use term::{KeyCode, KeyModifiers, MouseEvent, Terminal, TerminalHost};
+use term::{Clipboard, KeyCode, KeyModifiers, MouseEvent, Terminal, TerminalHost};
 
 pub struct LocalTab {
     tab_id: TabId,
@@ -33,6 +34,10 @@ impl Tab for LocalTab {
             log::error!("is_dead: {:?}", self.tab_id);
             true
         }
+    }
+
+    fn set_clipboard(&self, clipboard: &Arc<dyn Clipboard>) {
+        self.terminal.borrow_mut().set_clipboard(clipboard);
     }
 
     fn advance_bytes(&self, buf: &[u8], host: &mut dyn TerminalHost) {

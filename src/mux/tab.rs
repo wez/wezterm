@@ -9,7 +9,7 @@ use std::cell::RefMut;
 use std::sync::{Arc, Mutex};
 use term::color::ColorPalette;
 use term::selection::SelectionRange;
-use term::{KeyCode, KeyModifiers, MouseEvent, TerminalHost};
+use term::{Clipboard, KeyCode, KeyModifiers, MouseEvent, TerminalHost};
 
 static TAB_ID: ::std::sync::atomic::AtomicUsize = ::std::sync::atomic::AtomicUsize::new(0);
 pub type TabId = usize;
@@ -62,6 +62,8 @@ pub trait Tab: Downcast {
     fn is_dead(&self) -> bool;
     fn palette(&self) -> ColorPalette;
     fn domain_id(&self) -> DomainId;
+
+    fn set_clipboard(&self, _clipboard: &Arc<dyn Clipboard>) {}
 
     /// Returns the selection range adjusted to the viewport
     /// (eg: it has been normalized and had clip_to_viewport called

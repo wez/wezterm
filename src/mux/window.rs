@@ -1,5 +1,7 @@
 use crate::mux::{Tab, TabId};
 use std::rc::Rc;
+use std::sync::Arc;
+use term::Clipboard;
 
 static WIN_ID: ::std::sync::atomic::AtomicUsize = ::std::sync::atomic::AtomicUsize::new(0);
 pub type WindowId = usize;
@@ -8,6 +10,7 @@ pub struct Window {
     id: WindowId,
     tabs: Vec<Rc<dyn Tab>>,
     active: usize,
+    clipboard: Option<Arc<dyn Clipboard>>,
 }
 
 impl Window {
@@ -16,7 +19,16 @@ impl Window {
             id: WIN_ID.fetch_add(1, ::std::sync::atomic::Ordering::Relaxed),
             tabs: vec![],
             active: 0,
+            clipboard: None,
         }
+    }
+
+    pub fn set_clipboard(&mut self, clipboard: &Arc<dyn Clipboard>) {
+        self.clipboard.replace(Arc::clone(clipboard));
+    }
+
+    pub fn get_clipboard(&self) -> Option<&Arc<dyn Clipboard>> {
+        self.clipboard.as_ref()
     }
 
     pub fn window_id(&self) -> WindowId {
@@ -26,6 +38,9 @@ impl Window {
     pub fn push(&mut self, tab: &Rc<dyn Tab>) {
         for t in &self.tabs {
             assert_ne!(t.tab_id(), tab.tab_id(), "tab already added to this window");
+        }
+        if let Some(clip) = self.clipboard.as_ref() {
+            tab.set_clipboard(clip);
         }
         self.tabs.push(Rc::clone(tab))
     }

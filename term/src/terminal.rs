@@ -26,9 +26,6 @@ pub trait TerminalHost {
     /// slave end of the associated pty.
     fn writer(&mut self) -> &mut dyn std::io::Write;
 
-    /// Returns the clipboard manager
-    fn get_clipboard(&mut self) -> Fallible<Arc<dyn Clipboard>>;
-
     /// Change the title of the window
     fn set_title(&mut self, title: &str);
 

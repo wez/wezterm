@@ -20,7 +20,7 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use term::color::ColorPalette;
 use term::selection::SelectionRange;
-use term::{CursorPosition, Line};
+use term::{Clipboard, CursorPosition, Line};
 use term::{KeyCode, KeyModifiers, MouseButton, MouseEvent, MouseEventKind, TerminalHost};
 use termwiz::hyperlink::Hyperlink;
 use termwiz::input::KeyEvent;
@@ -132,6 +132,7 @@ pub struct ClientTab {
     writer: RefCell<TabWriter>,
     reader: Pipe,
     mouse: Arc<Mutex<MouseState>>,
+    clipboard: RefCell<Option<Arc<dyn Clipboard>>>,
 }
 
 impl ClientTab {
@@ -181,6 +182,7 @@ impl ClientTab {
             renderable: RefCell::new(render),
             writer: RefCell::new(writer),
             reader,
+            clipboard: RefCell::new(None),
         }
     }
 
@@ -195,7 +197,14 @@ impl ClientTab {
                     .apply_changes_to_surface(delta.sequence_no, delta.changes);
             }
             Pdu::SetClipboard(SetClipboard { clipboard, .. }) => {
-                log::error!("Ignoring SetClipboard request {:?}", clipboard);
+                match self.clipboard.borrow().as_ref() {
+                    Some(clip) => {
+                        clip.set_contents(clipboard)?;
+                    }
+                    None => {
+                        log::error!("ClientTab: Ignoring SetClipboard request {:?}", clipboard);
+                    }
+                }
             }
             Pdu::OpenURL(OpenURL { url, .. }) => {
                 // FIXME: ideally we'd have a provider that we can
@@ -223,6 +232,10 @@ impl Tab for ClientTab {
     }
     fn renderer(&self) -> RefMut<dyn Renderable> {
         self.renderable.borrow_mut()
+    }
+
+    fn set_clipboard(&self, clipboard: &Arc<dyn Clipboard>) {
+        self.clipboard.borrow_mut().replace(Arc::clone(clipboard));
     }
 
     fn get_title(&self) -> String {

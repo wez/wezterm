@@ -65,16 +65,11 @@ pub struct TermWindow {
 struct Host<'a> {
     writer: &'a mut dyn std::io::Write,
     context: &'a dyn WindowOps,
-    clipboard: Arc<dyn term::Clipboard>,
 }
 
 impl<'a> term::TerminalHost for Host<'a> {
     fn writer(&mut self) -> &mut dyn std::io::Write {
         self.writer
-    }
-
-    fn get_clipboard(&mut self) -> Fallible<Arc<dyn term::Clipboard>> {
-        Ok(Arc::clone(&self.clipboard))
     }
 
     fn set_title(&mut self, title: &str) {
@@ -221,9 +216,6 @@ impl WindowCallbacks for TermWindow {
                 &mut Host {
                     writer: &mut *tab.writer(),
                     context,
-                    clipboard: Arc::new(ClipboardHelper {
-                        window: self.window.as_ref().unwrap().clone(),
-                    }),
                 },
             )
             .ok();
@@ -476,6 +468,16 @@ impl TermWindow {
                 }
             },
         );
+
+        let clipboard: Arc<dyn term::Clipboard> = Arc::new(ClipboardHelper {
+            window: window.clone(),
+        });
+        tab.set_clipboard(&clipboard);
+        Mux::get()
+            .unwrap()
+            .get_window_mut(mux_window_id)
+            .unwrap()
+            .set_clipboard(&clipboard);
 
         if super::is_opengl_enabled() {
             window.enable_opengl(|any, window, maybe_ctx| {
@@ -792,6 +794,11 @@ impl TermWindow {
         let tab = domain.spawn(size, None, self.mux_window_id)?;
         let tab_id = tab.tab_id();
 
+        let clipboard: Arc<dyn term::Clipboard> = Arc::new(ClipboardHelper {
+            window: self.window.as_ref().unwrap().clone(),
+        });
+        tab.set_clipboard(&clipboard);
+
         let len = {
             let window = mux
                 .get_window(self.mux_window_id)
@@ -819,8 +826,6 @@ impl TermWindow {
                 // self.toggle_full_screen(),
             }
             Copy => {
-                //    self.clipboard.set_contents(tab.selection_text())?;
-                log::error!("Copy pressed");
                 if let Some(text) = tab.selection_text() {
                     self.window.as_ref().unwrap().set_clipboard(text);
                 }

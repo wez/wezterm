@@ -3,7 +3,7 @@
 #![cfg_attr(feature = "cargo-clippy", allow(clippy::range_plus_one))]
 use super::*;
 use crate::color::ColorPalette;
-use failure::bail;
+use failure::{bail, Fallible};
 use image::{self, GenericImageView};
 use log::{debug, error};
 use ordered_float::NotNan;
@@ -218,6 +218,8 @@ pub struct TerminalState {
 
     pixel_width: usize,
     pixel_height: usize,
+
+    clipboard: Option<Arc<dyn Clipboard>>,
 }
 
 fn encode_modifiers(mods: KeyModifiers) -> u8 {
@@ -295,7 +297,12 @@ impl TerminalState {
             palette: ColorPalette::default(),
             pixel_height,
             pixel_width,
+            clipboard: None,
         }
+    }
+
+    pub fn set_clipboard(&mut self, clipboard: &Arc<dyn Clipboard>) {
+        self.clipboard.replace(Arc::clone(clipboard));
     }
 
     pub fn get_title(&self) -> &str {
@@ -472,12 +479,23 @@ impl TerminalState {
         self.invalidate_hyperlinks();
     }
 
+    fn set_clipboard_contents(&self, text: Option<String>) -> Fallible<()> {
+        if let Some(clip) = self.clipboard.as_ref() {
+            clip.set_contents(text)?;
+        }
+        Ok(())
+    }
+
+    fn get_clipboard_contents(&self) -> Fallible<String> {
+        if let Some(clip) = self.clipboard.as_ref() {
+            clip.get_contents()
+        } else {
+            Ok(String::new())
+        }
+    }
+
     /// Single click prepares the start of a new selection
-    fn mouse_single_click_left(
-        &mut self,
-        event: MouseEvent,
-        host: &mut dyn TerminalHost,
-    ) -> Result<(), Error> {
+    fn mouse_single_click_left(&mut self, event: MouseEvent) -> Result<(), Error> {
         // Prepare to start a new selection.
         // We don't form the selection until the mouse drags.
         self.selection_range = None;
@@ -486,15 +504,11 @@ impl TerminalState {
             y: event.y as ScrollbackOrVisibleRowIndex
                 - self.viewport_offset as ScrollbackOrVisibleRowIndex,
         });
-        host.get_clipboard()?.set_contents(None)
+        self.set_clipboard_contents(None)
     }
 
     /// Double click to select a word on the current line
-    fn mouse_double_click_left(
-        &mut self,
-        event: MouseEvent,
-        host: &mut dyn TerminalHost,
-    ) -> Result<(), Error> {
+    fn mouse_double_click_left(&mut self, event: MouseEvent) -> Result<(), Error> {
         let y = event.y as ScrollbackOrVisibleRowIndex
             - self.viewport_offset as ScrollbackOrVisibleRowIndex;
         let idx = self.screen().scrollback_or_visible_row(y);
@@ -563,15 +577,11 @@ impl TerminalState {
             "finish 2click selection {:?} '{}'",
             self.selection_range, text
         );
-        host.get_clipboard()?.set_contents(Some(text))
+        self.set_clipboard_contents(Some(text))
     }
 
     /// triple click to select the current line
-    fn mouse_triple_click_left(
-        &mut self,
-        event: MouseEvent,
-        host: &mut dyn TerminalHost,
-    ) -> Result<(), Error> {
+    fn mouse_triple_click_left(&mut self, event: MouseEvent) -> Result<(), Error> {
         let y = event.y as ScrollbackOrVisibleRowIndex
             - self.viewport_offset as ScrollbackOrVisibleRowIndex;
         self.selection_start = Some(SelectionCoordinate { x: event.x, y });
@@ -588,31 +598,27 @@ impl TerminalState {
             "finish 3click selection {:?} '{}'",
             self.selection_range, text
         );
-        host.get_clipboard()?.set_contents(Some(text))
+        self.set_clipboard_contents(Some(text))
     }
 
-    fn mouse_press_left(
-        &mut self,
-        event: MouseEvent,
-        host: &mut dyn TerminalHost,
-    ) -> Result<(), Error> {
+    fn mouse_press_left(&mut self, event: MouseEvent) -> Result<(), Error> {
         self.current_mouse_button = MouseButton::Left;
         self.dirty_selection_lines();
         match self.last_mouse_click.as_ref() {
             Some(&LastMouseClick { streak: 1, .. }) => {
-                self.mouse_single_click_left(event, host)?;
+                self.mouse_single_click_left(event)?;
             }
             Some(&LastMouseClick { streak: 2, .. }) => {
-                self.mouse_double_click_left(event, host)?;
+                self.mouse_double_click_left(event)?;
             }
             Some(&LastMouseClick { streak: 3, .. }) => {
-                self.mouse_triple_click_left(event, host)?;
+                self.mouse_triple_click_left(event)?;
             }
             // otherwise, clear out the selection
             _ => {
                 self.selection_range = None;
                 self.selection_start = None;
-                host.get_clipboard()?.set_contents(None)?;
+                self.set_clipboard_contents(None)?;
             }
         }
 
@@ -635,7 +641,7 @@ impl TerminalState {
                     "finish drag selection {:?} '{}'",
                     self.selection_range, text
                 );
-                host.get_clipboard()?.set_contents(Some(text))?;
+                self.set_clipboard_contents(Some(text))?;
             } else if let Some(link) = self.current_highlight() {
                 // If the button release wasn't a drag, consider
                 // whether it was a click on a hyperlink
@@ -711,7 +717,7 @@ impl TerminalState {
                     format!("\x1b[<{};{};{}M", button, event.x + 1, event.y + 1).as_bytes(),
                 )?;
             } else if event.button == MouseButton::Middle {
-                let clip = host.get_clipboard()?.get_contents()?;
+                let clip = self.get_clipboard_contents()?;
                 self.send_paste(&clip, host.writer())?
             }
         }
@@ -800,7 +806,7 @@ impl TerminalState {
                     },
                     _,
                 ) => {
-                    return self.mouse_press_left(event, host);
+                    return self.mouse_press_left(event);
                 }
                 (
                     MouseEvent {
@@ -2205,19 +2211,13 @@ impl<'a> Performer<'a> {
             }
 
             OperatingSystemCommand::ClearSelection(_) => {
-                if let Ok(clip) = self.host.get_clipboard() {
-                    clip.set_contents(None).ok();
-                }
+                self.set_clipboard_contents(None).ok();
             }
             OperatingSystemCommand::QuerySelection(_) => {}
             OperatingSystemCommand::SetSelection(_, selection_data) => {
-                if let Ok(clip) = self.host.get_clipboard() {
-                    match clip.set_contents(Some(selection_data)) {
-                        Ok(_) => (),
-                        Err(err) => {
-                            error!("failed to set clipboard in response to OSC 52: {:?}", err)
-                        }
-                    }
+                match self.set_clipboard_contents(Some(selection_data)) {
+                    Ok(_) => (),
+                    Err(err) => error!("failed to set clipboard in response to OSC 52: {:?}", err),
                 }
             }
             OperatingSystemCommand::ITermProprietary(iterm) => match iterm {

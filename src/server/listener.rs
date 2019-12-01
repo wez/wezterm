@@ -547,13 +547,6 @@ impl<'a> term::TerminalHost for BufferedTerminalHost<'a> {
             .ok();
     }
 
-    fn get_clipboard(&mut self) -> Fallible<Arc<dyn Clipboard>> {
-        Ok(Arc::new(RemoteClipboard {
-            tab_id: self.tab_id,
-            sender: self.sender.clone(),
-        }))
-    }
-
     fn set_title(&mut self, title: &str) {
         self.title.replace(title.to_owned());
     }
@@ -761,26 +754,36 @@ impl<S: ReadAndWrite> ClientSession<S> {
                 })
             }
 
-            Pdu::Spawn(spawn) => Future::with_executor(executor(), move || {
-                let mux = Mux::get().unwrap();
-                let domain = mux.get_domain(spawn.domain_id).ok_or_else(|| {
-                    format_err!("domain {} not found on this server", spawn.domain_id)
-                })?;
-
-                let window_id = if let Some(window_id) = spawn.window_id {
-                    mux.get_window_mut(window_id).ok_or_else(|| {
-                        format_err!("window_id {} not found on this server", window_id)
+            Pdu::Spawn(spawn) => Future::with_executor(executor(), {
+                let sender = self.to_write_tx.clone();
+                move || {
+                    let mux = Mux::get().unwrap();
+                    let domain = mux.get_domain(spawn.domain_id).ok_or_else(|| {
+                        format_err!("domain {} not found on this server", spawn.domain_id)
                     })?;
-                    window_id
-                } else {
-                    mux.new_empty_window()
-                };
 
-                let tab = domain.spawn(spawn.size, spawn.command, window_id)?;
-                Ok(Pdu::SpawnResponse(SpawnResponse {
-                    tab_id: tab.tab_id(),
-                    window_id,
-                }))
+                    let window_id = if let Some(window_id) = spawn.window_id {
+                        mux.get_window_mut(window_id).ok_or_else(|| {
+                            format_err!("window_id {} not found on this server", window_id)
+                        })?;
+                        window_id
+                    } else {
+                        mux.new_empty_window()
+                    };
+
+                    let tab = domain.spawn(spawn.size, spawn.command, window_id)?;
+
+                    let clip: Arc<dyn Clipboard> = Arc::new(RemoteClipboard {
+                        tab_id: tab.tab_id(),
+                        sender,
+                    });
+                    tab.set_clipboard(&clip);
+
+                    Ok(Pdu::SpawnResponse(SpawnResponse {
+                        tab_id: tab.tab_id(),
+                        window_id,
+                    }))
+                }
             }),
 
             Pdu::GetTabRenderChanges(GetTabRenderChanges { tab_id, .. }) => {
