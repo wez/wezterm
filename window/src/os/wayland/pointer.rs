@@ -5,6 +5,7 @@ use failure::Fallible;
 use smithay_client_toolkit as toolkit;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
+use toolkit::pointer::{AutoPointer, AutoThemer};
 use toolkit::reexports::client::protocol::wl_data_device::{
     Event as DataDeviceEvent, WlDataDevice,
 };
@@ -13,13 +14,16 @@ use toolkit::reexports::client::protocol::wl_pointer::{
     self, Axis, AxisSource, Event as PointerEvent,
 };
 use toolkit::reexports::client::protocol::wl_surface::WlSurface;
+use wayland_client::protocol::wl_compositor::WlCompositor;
 use wayland_client::protocol::wl_data_device_manager::WlDataDeviceManager;
 use wayland_client::protocol::wl_seat::WlSeat;
+use wayland_client::protocol::wl_shm::WlShm;
 
 #[derive(Default)]
 struct Inner {
     active_surface_id: u32,
     surface_to_pending: HashMap<u32, Arc<Mutex<PendingMouse>>>,
+    serial: u32,
 }
 
 impl Inner {
@@ -28,6 +32,9 @@ impl Inner {
             self.active_surface_id = surface.as_ref().id();
         }
         let evt: SendablePointerEvent = evt.into();
+        if let Some(serial) = evt.serial() {
+            self.serial = serial;
+        }
         if let Some(pending) = self.surface_to_pending.get(&self.active_surface_id) {
             let mut pending = pending.lock().unwrap();
             if pending.queue(evt) {
@@ -87,10 +94,12 @@ impl Inner {
     }
 }
 
-#[derive(Clone)]
 pub struct PointerDispatcher {
     inner: Arc<Mutex<Inner>>,
     pub(crate) data_device: WlDataDevice,
+    auto_pointer: AutoPointer,
+    #[allow(dead_code)]
+    themer: AutoThemer,
 }
 
 #[derive(Clone)]
@@ -203,23 +212,32 @@ impl PendingMouse {
 }
 
 impl PointerDispatcher {
-    pub fn register(seat: &WlSeat, dev_mgr: &WlDataDeviceManager) -> Fallible<Self> {
+    pub fn register(
+        seat: &WlSeat,
+        compositor: WlCompositor,
+        shm: &WlShm,
+        dev_mgr: &WlDataDeviceManager,
+    ) -> Fallible<Self> {
         let inner = Arc::new(Mutex::new(Inner::default()));
-        seat.get_pointer({
-            let inner = Arc::clone(&inner);
-            move |ptr| {
-                ptr.implement_closure(
-                    {
-                        let inner = Arc::clone(&inner);
-                        move |evt, _| {
-                            inner.lock().unwrap().handle_event(evt);
-                        }
-                    },
-                    (),
-                )
-            }
-        })
-        .map_err(|_| failure::format_err!("Failed to configure pointer callback"))?;
+        let pointer = seat
+            .get_pointer({
+                let inner = Arc::clone(&inner);
+                move |ptr| {
+                    ptr.implement_closure(
+                        {
+                            let inner = Arc::clone(&inner);
+                            move |evt, _| {
+                                inner.lock().unwrap().handle_event(evt);
+                            }
+                        },
+                        (),
+                    )
+                }
+            })
+            .map_err(|_| failure::format_err!("Failed to configure pointer callback"))?;
+
+        let themer = AutoThemer::init(None, compositor, shm);
+        let auto_pointer = themer.theme_pointer(pointer);
 
         let data_device = dev_mgr
             .get_data_device(seat, {
@@ -238,7 +256,12 @@ impl PointerDispatcher {
             })
             .map_err(|_| failure::format_err!("Failed to configure data_device"))?;
 
-        Ok(Self { inner, data_device })
+        Ok(Self {
+            inner,
+            data_device,
+            themer,
+            auto_pointer,
+        })
     }
 
     pub fn add_window(&self, surface: &WlSurface, pending: &Arc<Mutex<PendingMouse>>) {
@@ -246,6 +269,12 @@ impl PointerDispatcher {
         inner
             .surface_to_pending
             .insert(surface.as_ref().id(), Arc::clone(pending));
+    }
+
+    pub fn set_cursor(&self, name: &str, serial: Option<u32>) {
+        let inner = self.inner.lock().unwrap();
+        let serial = serial.unwrap_or(inner.serial);
+        self.auto_pointer.set_cursor(name, Some(serial)).ok();
     }
 }
 
@@ -303,6 +332,17 @@ pub enum SendablePointerEvent {
         axis: Axis,
         discrete: i32,
     },
+}
+
+impl SendablePointerEvent {
+    fn serial(&self) -> Option<u32> {
+        Some(*match self {
+            Self::Enter { serial, .. } => serial,
+            Self::Leave { serial } => serial,
+            Self::Button { serial, .. } => serial,
+            _ => return None,
+        })
+    }
 }
 
 impl From<PointerEvent> for SendablePointerEvent {

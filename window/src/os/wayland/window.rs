@@ -834,7 +834,16 @@ impl WindowOpsMut for WaylandWindowInner {
         }
     }
 
-    fn set_cursor(&mut self, _cursor: Option<MouseCursor>) {}
+    fn set_cursor(&mut self, cursor: Option<MouseCursor>) {
+        let cursor = match cursor {
+            Some(MouseCursor::Arrow) => "arrow",
+            Some(MouseCursor::Hand) => "hand",
+            Some(MouseCursor::Text) => "text",
+            None => return,
+        };
+        let conn = Connection::get().unwrap().wayland();
+        conn.pointer.set_cursor(cursor, None);
+    }
 
     fn invalidate(&mut self) {
         self.need_paint = true;

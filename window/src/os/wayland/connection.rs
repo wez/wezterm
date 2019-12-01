@@ -81,7 +81,13 @@ impl WaylandConnection {
             })
             .map_err(|_| failure::format_err!("Failed to create seat"))?;
         let keyboard = KeyboardDispatcher::register(&seat)?;
-        let pointer = PointerDispatcher::register(&seat, &environment.data_device_manager)?;
+
+        let pointer = PointerDispatcher::register(
+            &seat,
+            environment.compositor.clone(),
+            &environment.shm,
+            &environment.data_device_manager,
+        )?;
 
         Ok(Self {
             display: RefCell::new(display),
