@@ -12,6 +12,15 @@ pub struct CopyAndPaste {
     last_serial: u32,
 }
 
+impl std::fmt::Debug for CopyAndPaste {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+        fmt.debug_struct("CopyAndPaste")
+            .field("last_serial", &self.last_serial)
+            .field("data_offer", &self.data_offer.is_some())
+            .finish()
+    }
+}
+
 pub const TEXT_MIME_TYPE: &str = "text/plain;charset=utf-8";
 
 impl CopyAndPaste {

@@ -102,7 +102,7 @@ pub struct PointerDispatcher {
     themer: AutoThemer,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct PendingMouse {
     window_id: usize,
     copy_and_paste: Arc<Mutex<CopyAndPaste>>,
