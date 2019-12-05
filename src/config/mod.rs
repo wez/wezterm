@@ -146,6 +146,17 @@ impl ConfigInner {
             }
             Err(err) => {
                 log::error!("While reloading configuration: {}", err);
+
+                #[cfg(not(windows))]
+                {
+                    notify_rust::Notification::new()
+                        .summary("Wezterm Configuration")
+                        .body(&format!("{}", err))
+                        // timeout isn't respected on macos
+                        .timeout(0)
+                        .show().ok();
+                }
+
                 self.error.replace(err.to_string());
             }
         }

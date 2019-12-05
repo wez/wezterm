@@ -32,6 +32,7 @@ libc = "0.2"
 log = "0.4"
 open = "1.2"
 native-tls = "0.2"
+# file change notification
 notify = "4.0"
 palette = "0.4"
 portable-pty = { path = "pty", features = ["serde_support", "ssh"]}
@@ -56,6 +57,10 @@ zstd = "0.4"
 
 [target.'cfg(unix)'.dependencies]
 daemonize = "0.4"
+
+[target.'cfg(not(windows))'.dependencies]
+# show a notification
+notify-rust = "3"
 
 # on linux, font-loader pulls in servo-font* crates which conflict with
 # our newer font related deps, so we avoid it on linux
