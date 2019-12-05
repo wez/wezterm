@@ -16,6 +16,7 @@ use std::fs;
 use std::io::prelude::*;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
+use std::time::Duration;
 use term;
 use termwiz::hyperlink;
 use termwiz::input::{KeyCode, Modifiers};
@@ -89,7 +90,7 @@ impl ConfigInner {
     fn watch_path(&mut self, path: PathBuf) {
         if self.watcher.is_none() {
             let (tx, rx) = std::sync::mpsc::channel();
-            let watcher = notify::watcher(tx, std::time::Duration::from_millis(200)).unwrap();
+            let watcher = notify::watcher(tx, Duration::from_millis(200)).unwrap();
             std::thread::spawn(move || {
                 // block until we get an event
                 use notify::DebouncedEvent;
@@ -99,8 +100,13 @@ impl ConfigInner {
                         // Defer acting until `Write`, otherwise we'll
                         // reload twice in quick succession
                         DebouncedEvent::NoticeWrite(_) => None,
-                        DebouncedEvent::NoticeRemove(path)
-                        | DebouncedEvent::Create(path)
+                        // Likewise, defer processing a remove until after
+                        // we've debounced the event.  That will give us
+                        // time to pick up the new version of the config if
+                        // the user's editor removes the file before writing
+                        // out a new version.
+                        DebouncedEvent::NoticeRemove(_) => None,
+                        DebouncedEvent::Create(path)
                         | DebouncedEvent::Write(path)
                         | DebouncedEvent::Chmod(path)
                         | DebouncedEvent::Remove(path)
