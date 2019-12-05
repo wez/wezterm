@@ -56,14 +56,12 @@ impl FontSystem for CoreTextSystem {
                 None => continue,
             };
             if let Some(desc) = col.get_descriptors() {
-                let want_bold = *font_attr.bold.as_ref().unwrap_or(&false);
-                let want_italic = *font_attr.italic.as_ref().unwrap_or(&false);
                 for d in desc.iter() {
                     let traits = d.traits().symbolic_traits();
-                    if want_bold != traits.is_bold() {
+                    if font_attr.bold != traits.is_bold() {
                         continue;
                     }
-                    if want_italic != traits.is_italic() {
+                    if font_attr.italic != traits.is_italic() {
                         continue;
                     }
                     let has_color = (traits & kCTFontTraitColorGlyphs) == kCTFontTraitColorGlyphs;

@@ -29,10 +29,10 @@ impl FontSystem for FontConfigAndFreeType {
         for attr in style.font_with_fallback() {
             let mut pattern = FontPattern::new()?;
             pattern.family(&attr.family)?;
-            if *attr.bold.as_ref().unwrap_or(&false) {
+            if attr.bold {
                 pattern.add_integer("weight", 200)?;
             }
-            if *attr.italic.as_ref().unwrap_or(&false) {
+            if attr.italic {
                 pattern.add_integer("slant", 100)?;
             }
             pattern.add_double("size", config.font_size * font_scale)?;
