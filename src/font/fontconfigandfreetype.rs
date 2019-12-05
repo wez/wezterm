@@ -154,14 +154,15 @@ impl NamedFontImpl {
 
         // Some systems don't support this mode, so if it fails, we don't
         // care to abort the rest of what we're doing
-        match lib.set_lcd_filter(ftwrap::FT_LcdFilter::FT_LCD_FILTER_DEFAULT) {
-            Ok(_) => (),
-            Err(err) => warn!("Ignoring: FT_LcdFilter failed: {:?}", err),
+        if let Err(err) = lib.set_lcd_filter(ftwrap::FT_LcdFilter::FT_LCD_FILTER_DEFAULT) {
+            warn!("Ignoring: FT_LcdFilter failed: {:?}", err);
         };
 
         // Enable some filtering options and pull in the standard
         // fallback font selection from the user configuration
         pattern.monospace()?;
+        debug!("Base pattern {:?}", pattern);
+
         pattern.config_substitute(fcwrap::MatchKind::Pattern)?;
         pattern.default_substitute();
 
