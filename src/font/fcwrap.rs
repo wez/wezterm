@@ -3,6 +3,7 @@
 use failure::{ensure, err_msg, format_err, Error};
 pub use fontconfig::*;
 use std::ffi::{CStr, CString};
+use std::fmt;
 use std::mem;
 use std::ptr;
 
@@ -17,6 +18,12 @@ impl Drop for FontSet {
         unsafe {
             FcFontSetDestroy(self.fonts);
         }
+    }
+}
+
+impl fmt::Debug for FontSet {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        fmt.debug_list().entries(self.iter()).finish()
     }
 }
 
@@ -252,5 +259,15 @@ impl Drop for Pattern {
         unsafe {
             FcPatternDestroy(self.pat);
         }
+    }
+}
+
+impl fmt::Debug for Pattern {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        fmt.write_str(
+            &self
+                .format("Pattern(%{+family,style,weight,slant,spacing{%{=unparse}}})")
+                .unwrap(),
+        )
     }
 }
