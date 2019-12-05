@@ -67,7 +67,7 @@ impl OpenGLRenderState {
                 uses_point_size: false,
                 geometry_shader: None,
             };
-            log::error!("compiling a prog with version {}", version);
+            log::info!("compiling a prog with version {}", version);
             match glium::Program::new(&context, source) {
                 Ok(prog) => {
                     program = Some(prog);

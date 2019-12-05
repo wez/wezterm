@@ -81,7 +81,7 @@ impl WaylandConnection {
                 seat.implement_closure(
                     move |event, _seat| {
                         if let SeatEvent::Name { name } = event {
-                            log::error!("seat name is {}", name);
+                            log::info!("seat name is {}", name);
                         }
                     },
                     (),

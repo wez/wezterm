@@ -493,7 +493,7 @@ fn run_mux_client(config: config::ConfigHandle, opts: &ConnectCommand) -> Fallib
     }
 
     for dom in mux.iter_domains() {
-        log::error!("domain {} state {:?}", dom.domain_id(), dom.state());
+        log::info!("domain {} state {:?}", dom.domain_id(), dom.state());
     }
 
     gui.run_forever()
@@ -584,7 +584,7 @@ fn run_terminal_gui(config: config::ConfigHandle, opts: &StartCommand) -> Fallib
     }
 
     for dom in mux.iter_domains() {
-        log::error!("domain {} state {:?}", dom.domain_id(), dom.state());
+        log::info!("domain {} state {:?}", dom.domain_id(), dom.state());
     }
 
     gui.run_forever()
