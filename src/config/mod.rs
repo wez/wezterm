@@ -154,7 +154,8 @@ impl ConfigInner {
                         .body(&format!("{}", err))
                         // timeout isn't respected on macos
                         .timeout(0)
-                        .show().ok();
+                        .show()
+                        .ok();
                 }
 
                 self.error.replace(err.to_string());

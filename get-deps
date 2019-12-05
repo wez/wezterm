@@ -5,6 +5,7 @@ if test -e /etc/centos-release || test -e /etc/fedora-release; then
   yum install -y \
     make \
     g++ \
+    dbus-devel \
     fontconfig-devel \
     openssl-devel \
     libxcb-devel \
@@ -23,6 +24,7 @@ case `lsb_release -ds` in
       bsdutils \
       cmake \
       fakeroot \
+      libdbus-1-dev \
       libegl1-mesa-dev \
       libssl-dev \
       libfontconfig1-dev \
