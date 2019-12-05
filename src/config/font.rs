@@ -13,17 +13,19 @@ pub struct FontAttributes {
     /// The font family name
     pub family: String,
     /// Whether the font should be a bold variant
-    pub bold: Option<bool>,
+    #[serde(default)]
+    pub bold: bool,
     /// Whether the font should be an italic variant
-    pub italic: Option<bool>,
+    #[serde(default)]
+    pub italic: bool,
 }
 
 impl Default for FontAttributes {
     fn default() -> Self {
         Self {
             family: FONT_FAMILY.into(),
-            bold: None,
-            italic: None,
+            bold: false,
+            italic: false,
         }
     }
 }
@@ -60,7 +62,7 @@ impl TextStyle {
                 .iter()
                 .map(|attr| {
                     let mut attr = attr.clone();
-                    attr.bold = Some(true);
+                    attr.bold = true;
                     attr
                 })
                 .collect(),
@@ -76,7 +78,7 @@ impl TextStyle {
                 .iter()
                 .map(|attr| {
                     let mut attr = attr.clone();
-                    attr.italic = Some(true);
+                    attr.italic = true;
                     attr
                 })
                 .collect(),
@@ -98,53 +100,53 @@ impl TextStyle {
         #[cfg(target_os = "macos")]
         font.push(FontAttributes {
             family: "Apple Color Emoji".into(),
-            bold: None,
-            italic: None,
+            bold: false,
+            italic: false,
         });
         #[cfg(target_os = "macos")]
         font.push(FontAttributes {
             family: "Apple Symbols".into(),
-            bold: None,
-            italic: None,
+            bold: false,
+            italic: false,
         });
         #[cfg(target_os = "macos")]
         font.push(FontAttributes {
             family: "Zapf Dingbats".into(),
-            bold: None,
-            italic: None,
+            bold: false,
+            italic: false,
         });
         #[cfg(target_os = "macos")]
         font.push(FontAttributes {
             family: "Apple LiGothic".into(),
-            bold: None,
-            italic: None,
+            bold: false,
+            italic: false,
         });
 
         // Fallback font that has unicode replacement character
         #[cfg(windows)]
         font.push(FontAttributes {
             family: "Segoe UI".into(),
-            bold: None,
-            italic: None,
+            bold: false,
+            italic: false,
         });
         #[cfg(windows)]
         font.push(FontAttributes {
             family: "Segoe UI Emoji".into(),
-            bold: None,
-            italic: None,
+            bold: false,
+            italic: false,
         });
         #[cfg(windows)]
         font.push(FontAttributes {
             family: "Segoe UI Symbol".into(),
-            bold: None,
-            italic: None,
+            bold: false,
+            italic: false,
         });
 
         #[cfg(all(unix, not(target_os = "macos")))]
         font.push(FontAttributes {
             family: "Noto Color Emoji".into(),
-            bold: None,
-            italic: None,
+            bold: false,
+            italic: false,
         });
 
         font
