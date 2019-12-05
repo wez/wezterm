@@ -7,7 +7,7 @@ use crate::server::codec::*;
 use crate::server::domain::ClientInner;
 use failure::{bail, Fallible};
 use filedescriptor::Pipe;
-use log::error;
+use log::{error, info};
 use portable_pty::PtySize;
 use promise::{BrokenPromise, Future};
 use std::borrow::Cow;
@@ -253,7 +253,7 @@ impl Tab for ClientTab {
     }
 
     fn reader(&self) -> Fallible<Box<dyn std::io::Read + Send>> {
-        error!("made reader for ClientTab");
+        info!("made reader for ClientTab");
         Ok(Box::new(self.reader.read.try_clone()?))
     }
 

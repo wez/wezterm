@@ -36,7 +36,7 @@ impl ClientInner {
     ) {
         let mut map = self.remote_to_local_window.lock().unwrap();
         map.insert(remote_window_id, local_window_id);
-        log::error!(
+        log::info!(
             "record_remote_to_local_window_mapping: {} -> {}",
             remote_window_id,
             local_window_id
@@ -117,7 +117,7 @@ impl ClientDomain {
     }
 
     pub fn perform_detach(&self) {
-        log::error!("detached domain {}", self.local_domain_id);
+        log::info!("detached domain {}", self.local_domain_id);
         self.inner.borrow_mut().take();
         let mux = Mux::get().unwrap();
         mux.domain_was_detached(self.local_domain_id);
@@ -202,10 +202,10 @@ impl Domain for ClientDomain {
         *self.inner.borrow_mut() = Some(Arc::clone(&inner));
 
         let tabs = inner.client.list_tabs().wait()?;
-        log::error!("ListTabs result {:#?}", tabs);
+        log::debug!("ListTabs result {:#?}", tabs);
 
         for entry in tabs.tabs.iter() {
-            log::error!(
+            log::info!(
                 "attaching to remote tab {} in remote window {} {}",
                 entry.tab_id,
                 entry.window_id,
@@ -218,10 +218,10 @@ impl Domain for ClientDomain {
                 let mut window = mux
                     .get_window_mut(local_window_id)
                     .expect("no such window!?");
-                log::error!("already have a local window for this one");
+                log::info!("already have a local window for this one");
                 window.push(&tab);
             } else {
-                log::error!("spawn new local window");
+                log::info!("spawn new local window");
                 let fonts = Rc::new(FontConfiguration::new(FontSystemSelection::get_default()));
                 let local_window_id = mux.new_empty_window();
                 inner.record_remote_to_local_window_mapping(entry.window_id, local_window_id);

@@ -393,7 +393,7 @@ impl TermWindow {
         let height = render_metrics.cell_size.height as usize
             * (physical_rows + if config.enable_tab_bar { 1 } else { 0 });
 
-        log::error!(
+        log::info!(
             "TermWindow::new_window called with mux_window_id {} {}x{} cells, {}x{}",
             mux_window_id,
             physical_cols,
@@ -494,7 +494,7 @@ impl TermWindow {
                             termwindow.dimensions.pixel_height,
                         ) {
                             Ok(gl) => {
-                                log::error!(
+                                log::info!(
                                     "OpenGL initialized! {} {}",
                                     gl.context.get_opengl_renderer_string(),
                                     gl.context.get_opengl_version_string()

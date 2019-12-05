@@ -217,7 +217,7 @@ impl GlState {
                 match EglWrapper::load_egl(lib) {
                     Ok(egl) => match func(egl) {
                         Ok(result) => {
-                            log::error!("initialized {}", path);
+                            log::info!("initialized {}", path);
                             return Ok(result);
                         }
                         Err(e) => {
@@ -242,7 +242,7 @@ impl GlState {
             let egl_display = egl.get_display(display)?;
 
             let (major, minor) = egl.initialize_and_get_version(egl_display)?;
-            log::error!("initialized EGL version {}.{}", major, minor);
+            log::info!("initialized EGL version {}.{}", major, minor);
 
             let configs = egl.choose_config(
                 egl_display,
