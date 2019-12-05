@@ -152,6 +152,8 @@ impl ConfigInner {
                     notify_rust::Notification::new()
                         .summary("Wezterm Configuration")
                         .body(&format!("{}", err))
+                        // Stay on the screen until dismissed
+                        .hint(notify_rust::Hint::Resident(true))
                         // timeout isn't respected on macos
                         .timeout(0)
                         .show()

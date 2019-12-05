@@ -60,7 +60,7 @@ daemonize = "0.4"
 
 [target.'cfg(not(windows))'.dependencies]
 # show a notification
-notify-rust = "3"
+notify-rust = "4.0.0-alpha.2"
 
 # on linux, font-loader pulls in servo-font* crates which conflict with
 # our newer font related deps, so we avoid it on linux
