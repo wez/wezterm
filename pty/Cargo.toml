@@ -18,7 +18,7 @@ shell-words = "0.1"
 serde_derive = {version="1.0", optional=true}
 serde = {version="1.0", optional=true}
 serial = "0.4"
-ssh2 = {optional=true, version="0.5"}
+ssh2 = {optional=true, version="0.6"}
 
 [features]
 default = []
