@@ -402,15 +402,31 @@ impl Config {
         // specific config directories, but only returns one of them, not
         // multiple.  In addition, it spawns a lot of subprocesses,
         // so we do this bit "by-hand"
-        let paths = [
+        let mut paths = vec![
             HOME_DIR
                 .join(".config")
                 .join("wezterm")
                 .join("wezterm.toml"),
             HOME_DIR.join(".wezterm.toml"),
         ];
+        if cfg!(windows) {
+            // On Windows, a common use case is to maintain a thumb drive
+            // with a set of portable tools that don't need to be installed
+            // to run on a target system.  In that scenario, the user would
+            // like to run with the config from their thumbdrive because
+            // either the target system won't have any config, or will have
+            // the config of another user.
+            // So we prioritize that here: if there is a config in the same
+            // dir as the executable that will take precedence.
+            if let Ok(exe_name) = std::env::current_exe() {
+                if let Some(exe_dir) = exe_name.parent() {
+                    paths.insert(0, exe_dir.join("wezterm.toml"));
+                }
+            }
+        }
 
         for p in &paths {
+            log::trace!("consider config: {}", p.display());
             let mut file = match fs::File::open(p) {
                 Ok(file) => file,
                 Err(err) => match err.kind() {
