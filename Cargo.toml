@@ -79,6 +79,7 @@ winapi = { version = "0.3", features = [
     "synchapi",
     "winsock2",
 ]}
+winrt-notification = "0.2"
 
 [target.'cfg(any(target_os = "android", all(unix, not(target_os = "macos"))))'.dependencies]
 fontconfig = { path = "deps/fontconfig" }
