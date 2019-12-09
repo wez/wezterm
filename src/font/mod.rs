@@ -71,12 +71,9 @@ impl LoadedFont {
     }
 }
 
-type FontPtr = Rc<RefCell<Box<dyn NamedFont>>>;
-
 /// Matches and loads fonts for a given input style
 pub struct FontConfiguration {
-    fonts: RefCell<HashMap<TextStyle, FontPtr>>,
-    new_fonts: RefCell<HashMap<TextStyle, Rc<LoadedFont>>>,
+    fonts: RefCell<HashMap<TextStyle, Rc<LoadedFont>>>,
     system: Rc<dyn FontSystem>,
     metrics: RefCell<Option<FontMetrics>>,
     dpi_scale: RefCell<f64>,
@@ -194,7 +191,6 @@ impl FontConfiguration {
         Self {
             fonts: RefCell::new(HashMap::new()),
             loader,
-            new_fonts: RefCell::new(HashMap::new()),
             system: system.new_font_system(),
             metrics: RefCell::new(None),
             font_scale: RefCell::new(1.0),
@@ -203,8 +199,20 @@ impl FontConfiguration {
         }
     }
 
+    /// Given a text style, load (with caching) the font that best
+    /// matches according to the fontconfig pattern.
     pub fn resolve_font(&self, style: &TextStyle) -> Fallible<Rc<LoadedFont>> {
-        let mut fonts = self.new_fonts.borrow_mut();
+        let mut fonts = self.fonts.borrow_mut();
+
+        let config = configuration();
+        let current_generation = config.generation();
+        if current_generation != *self.config_generation.borrow() {
+            // Config was reloaded, invalidate our caches
+            fonts.clear();
+            self.metrics.borrow_mut().take();
+            *self.config_generation.borrow_mut() = current_generation;
+        }
+
         if let Some(entry) = fonts.get(style) {
             return Ok(Rc::clone(entry));
         }
@@ -235,30 +243,6 @@ impl FontConfiguration {
         Ok(loaded)
     }
 
-    /// Given a text style, load (with caching) the font that best
-    /// matches according to the fontconfig pattern.
-    pub fn cached_font(&self, style: &TextStyle) -> Result<Rc<RefCell<Box<dyn NamedFont>>>, Error> {
-        let mut fonts = self.fonts.borrow_mut();
-
-        let config = configuration();
-        let current_generation = config.generation();
-        if current_generation != *self.config_generation.borrow() {
-            // Config was reloaded, invalidate our caches
-            fonts.clear();
-            self.metrics.borrow_mut().take();
-            *self.config_generation.borrow_mut() = current_generation;
-        }
-
-        if let Some(entry) = fonts.get(style) {
-            return Ok(Rc::clone(entry));
-        }
-
-        let scale = *self.dpi_scale.borrow() * *self.font_scale.borrow();
-        let font = Rc::new(RefCell::new(self.system.load_font(&config, style, scale)?));
-        fonts.insert(style.clone(), Rc::clone(&font));
-        Ok(font)
-    }
-
     pub fn change_scaling(&self, font_scale: f64, dpi_scale: f64) {
         *self.dpi_scale.borrow_mut() = dpi_scale;
         *self.font_scale.borrow_mut() = font_scale;
@@ -267,8 +251,8 @@ impl FontConfiguration {
     }
 
     /// Returns the baseline font specified in the configuration
-    pub fn default_font(&self) -> Result<Rc<RefCell<Box<dyn NamedFont>>>, Error> {
-        self.cached_font(&configuration().font)
+    pub fn default_font(&self) -> Fallible<Rc<LoadedFont>> {
+        self.resolve_font(&configuration().font)
     }
 
     pub fn get_font_scale(&self) -> f64 {
@@ -284,7 +268,7 @@ impl FontConfiguration {
         }
 
         let font = self.default_font()?;
-        let metrics = font.borrow_mut().get_fallback(0)?.metrics();
+        let metrics = font.metrics();
 
         *self.metrics.borrow_mut() = Some(metrics);
 
