@@ -124,7 +124,7 @@ impl FontKitFontSystem {
         let sources = MultiSource::from_sources(vec![dir_source, system_source]);
         let mut handles = vec![];
 
-        for font in &style.font {
+        for font in style.font_with_fallback() {
             let mut props = Properties::new();
             if font.bold {
                 props.weight(font_kit::properties::Weight::BOLD);
