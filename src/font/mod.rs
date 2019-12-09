@@ -11,6 +11,7 @@ use std::rc::Rc;
 
 pub mod loader;
 pub mod rasterizer;
+pub mod shaper;
 
 pub mod system;
 pub use self::system::*;
