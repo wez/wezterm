@@ -3,6 +3,7 @@ use crate::font::ftfont::FreeTypeFontImpl;
 use crate::font::ftwrap;
 use crate::font::hbwrap as harfbuzz;
 use crate::font::system::*;
+use euclid::Point2D;
 use failure::{Error, Fallible};
 use font_kit::error::SelectionError;
 use font_kit::family_handle::FamilyHandle;
@@ -98,6 +99,12 @@ impl FontKitFontSystem {
     ) -> Result<Box<dyn NamedFont>, Error> {
         let mut fonts = vec![];
 
+        log::error!(
+            "load font scale={} dpi={} size={}",
+            font_scale,
+            config.dpi,
+            config.font_size
+        );
         let point_size = (font_scale * config.font_size) as f32;
 
         for handle in self.locate_matches(config, style) {
@@ -250,7 +257,7 @@ impl NamedFont for FontKitNamedFont {
 
 impl Font for FontKitFont {
     fn has_color(&self) -> bool {
-        true
+        false
     }
 
     fn harfbuzz_shape(
@@ -258,24 +265,21 @@ impl Font for FontKitFont {
         buf: &mut harfbuzz::Buffer,
         features: Option<&[harfbuzz::hb_feature_t]>,
     ) {
-        log::error!("shaping");
         self.hb.borrow_mut().shape(buf, features);
-        log::error!("shaped");
     }
 
     fn metrics(&self) -> FontMetrics {
         let glyph = self
             .font
-            .glyph_for_char('h')
+            .glyph_for_char('_')
             .expect("font to have a W char to get its metrics");
-        let origin = self.font.origin(glyph).expect("to get origin for W glyph");
         let bounds = self
             .font
             .raster_bounds(
                 glyph,
                 self.point_size,
                 &font_kit::loader::FontTransform::identity(),
-                &origin,
+                &Point2D::zero(),
                 font_kit::hinting::HintingOptions::Full(self.point_size),
                 font_kit::canvas::RasterizationOptions::SubpixelAa,
             )
@@ -287,15 +291,15 @@ impl Font for FontKitFont {
         let scale =
             (self.point_size * configuration().dpi as f32 / 72.) / metrics.units_per_em as f32;
         log::error!(
-            "origin={}\nbounds: {:#?}\nmetrics: {:#?}\nscale={}",
-            origin,
+            "bounds: point_size={} {:#?}\nmetrics: {:#?}\nscale={}",
+            self.point_size,
             bounds,
             metrics,
             scale
         );
         let fm = FontMetrics {
-            cell_width: bounds.max_x() - bounds.min_x(),
-            cell_height: bounds.max_y() - bounds.min_y(),
+            cell_width: bounds.size.width,
+            cell_height: ((metrics.cap_height - metrics.descent) * scale) as f64, // bounds.size.height,
             descender: (metrics.descent * scale) as f64,
             underline_thickness: (metrics.underline_thickness * scale) as f64,
             underline_position: (metrics.underline_position * scale) as f64,
@@ -307,8 +311,6 @@ impl Font for FontKitFont {
     }
 
     fn rasterize_glyph(&self, glyph_pos: u32) -> Result<RasterizedGlyph, Error> {
-        let origin = self.font.origin(glyph_pos)?;
-
         let transform = font_kit::loader::FontTransform::identity();
         let hinting = font_kit::hinting::HintingOptions::Full(self.point_size);
         let raster = font_kit::canvas::RasterizationOptions::SubpixelAa;
@@ -319,31 +321,55 @@ impl Font for FontKitFont {
                 glyph_pos,
                 self.point_size,
                 &transform,
-                &origin,
+                &Point2D::zero(),
                 hinting,
                 raster,
             )?
-            .to_u32();
+            .to_i32();
 
-        let mut canvas =
-            font_kit::canvas::Canvas::new(&bounds.size, font_kit::canvas::Format::Rgba32);
-
-        self.font.rasterize_glyph(
-            &mut canvas,
+        log::error!(
+            "rasterize glyph {} create canvas with size: {:?}",
             glyph_pos,
-            self.point_size,
-            &transform,
-            &origin,
-            hinting,
-            raster,
-        )?;
+            bounds
+        );
 
-        Ok(RasterizedGlyph {
-            data: canvas.pixels,
-            height: canvas.size.height as usize,
-            width: canvas.size.width as usize,
-            bearing_x: 0.,
-            bearing_y: 0.,
-        })
+        if bounds.size.width == 0 || bounds.size.height == 0 {
+            Ok(RasterizedGlyph {
+                data: vec![],
+                height: 0,
+                width: 0,
+                bearing_x: 0.,
+                bearing_y: 0.,
+            })
+        } else {
+            let size = bounds.size.to_u32();
+            let mut canvas = font_kit::canvas::Canvas::new(&size, font_kit::canvas::Format::Rgba32);
+
+            let origin = Point2D::new(0, bounds.size.height).to_f32();
+            log::error!(
+                "adjusted origin={}, size={:?}, canvas size reported as {:?}",
+                origin,
+                size,
+                canvas.size
+            );
+
+            self.font.rasterize_glyph(
+                &mut canvas,
+                glyph_pos,
+                self.point_size,
+                &transform,
+                &origin,
+                hinting,
+                raster,
+            )?;
+
+            Ok(RasterizedGlyph {
+                data: canvas.pixels,
+                height: canvas.size.height as usize,
+                width: canvas.size.width as usize,
+                bearing_x: -bounds.origin.x as f64,
+                bearing_y: origin.y as f64, //+ bounds.origin.y as f64,
+            })
+        }
     }
 }
