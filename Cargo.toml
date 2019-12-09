@@ -67,9 +67,9 @@ notify-rust = "3"
 # our newer font related deps, so we avoid it on linux
 [target.'cfg(any(windows, target_os = "macos"))'.dependencies]
 font-loader = { version = "0.8" }
+font-kit = "0.5"
 
 [target."cfg(windows)".dependencies]
-font-kit = "0.5"
 dwrote = "0.9"
 shared_library = "0.1"
 uds_windows = "0.1"

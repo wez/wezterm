@@ -224,9 +224,7 @@ fn load_handle_using_system_loader(handle: Handle, point_size: f32) -> Fallible<
         font.full_name()
     );
 
-    let hb = RefCell::new(harfbuzz::Font::new_directwrite(
-        &font.native_font().dwrite_font_face,
-    ));
+    let hb = RefCell::new(harfbuzz::Font::new_from_fontkit(&font));
     Ok(FontKitFont {
         font,
         point_size,

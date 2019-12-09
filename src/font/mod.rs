@@ -27,7 +27,7 @@ pub mod fontloader;
 #[cfg(any(target_os = "macos", windows))]
 pub mod fontloader_and_freetype;
 
-#[cfg(windows)]
+#[cfg(any(target_os = "macos", windows))]
 pub mod fontkit;
 
 use super::config::{configuration, ConfigHandle, TextStyle};
@@ -94,15 +94,15 @@ impl FontSystemSelection {
                 panic!("coretext not compiled in");
             }
             FontSystemSelection::FontKit => {
-                #[cfg(windows)]
+                #[cfg(any(target_os = "macos", windows))]
                 return Rc::new(crate::font::fontkit::FontSystemImpl::new(true));
-                #[cfg(not(windows))]
+                #[cfg(not(any(target_os = "macos", windows)))]
                 panic!("fontkit not compiled in");
             }
             FontSystemSelection::FontKitAndFreeType => {
-                #[cfg(windows)]
+                #[cfg(any(target_os = "macos", windows))]
                 return Rc::new(crate::font::fontkit::FontSystemImpl::new(false));
-                #[cfg(not(windows))]
+                #[cfg(not(any(target_os = "macos", windows)))]
                 panic!("fontkit not compiled in");
             }
         }

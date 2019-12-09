@@ -159,6 +159,16 @@ impl Font {
         }
     }
 
+    #[cfg(windows)]
+    pub fn new_from_fontkit(font: &font_kit::font::Font) -> Font {
+        Self::new_directwrite(&font.native_font().dwrite_font_face)
+    }
+
+    #[cfg(target_os = "macos")]
+    pub fn new_from_fontkit(font: &font_kit::font::Font) -> Font {
+        Self::new_coretext(&font.native_font())
+    }
+
     /// Create a font from raw data
     /// Harfbuzz doesn't know how to interpret this without registering
     /// some callbacks
