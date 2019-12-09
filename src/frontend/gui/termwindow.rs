@@ -1672,7 +1672,9 @@ impl TermWindow {
                     self.render_metrics.cell_size.height * line_idx as isize,
                 ),
                 Size::new(
-                    (self.dimensions.pixel_width - pixel_width_of_cells) as isize,
+                    self.dimensions
+                        .pixel_width
+                        .saturating_sub(pixel_width_of_cells) as isize,
                     self.render_metrics.cell_size.height,
                 ),
             ),
