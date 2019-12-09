@@ -1,5 +1,6 @@
 //! Higher level freetype bindings
 
+use crate::font::loader::FontDataHandle;
 use failure::{bail, format_err, Error, Fallible, ResultExt};
 pub use freetype::*;
 use std::ffi::CString;
@@ -17,6 +18,15 @@ fn ft_result<T>(err: FT_Error, t: T) -> Result<T, Error> {
     } else {
         Err(format_err!("FreeType error {:?} 0x{:x}", err, err))
     }
+}
+
+pub fn compute_load_flags_for_mode(render_mode: FT_Render_Mode) -> i32 {
+    FT_LOAD_COLOR as i32 |
+            // enable FT_LOAD_TARGET bits.  There are no flags defined
+            // for these in the bindings so we do some bit magic for
+            // ourselves.  This is how the FT_LOAD_TARGET_() macro
+            // assembles these bits.
+            (render_mode as i32) << 16
 }
 
 pub struct Face {
@@ -170,6 +180,15 @@ impl Library {
         let res = unsafe { FT_Init_FreeType(&mut lib as *mut _) };
         let lib = ft_result(res, lib).context("FT_Init_FreeType")?;
         Ok(Library { lib })
+    }
+
+    pub fn face_from_locator(&self, handle: &FontDataHandle) -> Fallible<Face> {
+        match handle {
+            FontDataHandle::OnDisk { path, index } => {
+                self.new_face(path.to_str().unwrap(), *index as _)
+            }
+            FontDataHandle::Memory { data, index } => self.new_face_from_slice(&data, *index as _),
+        }
     }
 
     #[cfg(any(target_os = "macos", windows))]

@@ -34,19 +34,28 @@ pub mod fontloader_and_freetype;
 #[cfg(any(target_os = "macos", windows))]
 pub mod fontkit;
 
+use crate::font::loader::{FontLocator, FontLocatorSelection};
+
 use super::config::{configuration, ConfigHandle, TextStyle};
 use term::CellAttributes;
+
+pub struct LoadedFont {
+    rasterizer: Box<dyn rasterizer::FontRasterizer>,
+    shaper: Box<dyn shaper::FontShaper>,
+}
 
 type FontPtr = Rc<RefCell<Box<dyn NamedFont>>>;
 
 /// Matches and loads fonts for a given input style
 pub struct FontConfiguration {
     fonts: RefCell<HashMap<TextStyle, FontPtr>>,
+    new_fonts: RefCell<HashMap<TextStyle, Rc<LoadedFont>>>,
     system: Rc<dyn FontSystem>,
     metrics: RefCell<Option<FontMetrics>>,
     dpi_scale: RefCell<f64>,
     font_scale: RefCell<f64>,
     config_generation: RefCell<usize>,
+    loader: Box<dyn FontLocator>,
 }
 
 #[derive(Debug, Deserialize, Clone, Copy)]
@@ -111,6 +120,7 @@ impl FontSystemSelection {
             }
         }
     }
+
     pub fn variants() -> Vec<&'static str> {
         vec![
             "FontConfigAndFreeType",
@@ -153,8 +163,11 @@ impl std::str::FromStr for FontSystemSelection {
 impl FontConfiguration {
     /// Create a new empty configuration
     pub fn new(system: FontSystemSelection) -> Self {
+        let loader = FontLocatorSelection::get_default().new_locator();
         Self {
             fonts: RefCell::new(HashMap::new()),
+            loader,
+            new_fonts: RefCell::new(HashMap::new()),
             system: system.new_font_system(),
             metrics: RefCell::new(None),
             font_scale: RefCell::new(1.0),

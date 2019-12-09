@@ -1,5 +1,6 @@
 use crate::font::ftwrap;
 use crate::font::hbwrap as harfbuzz;
+use crate::font::loader::FontDataHandle;
 use crate::font::shaper::FontShaper;
 use crate::font::system::GlyphInfo;
 use failure::{bail, Fallible};
@@ -13,9 +14,24 @@ struct FontPair {
 
 pub struct HarfbuzzShaper {
     fonts: Vec<RefCell<FontPair>>,
+    lib: ftwrap::Library,
 }
 
 impl HarfbuzzShaper {
+    pub fn new(handles: &[FontDataHandle]) -> Fallible<Self> {
+        let lib = ftwrap::Library::new()?;
+        let mut fonts = vec![];
+        for handle in handles {
+            let face = lib.face_from_locator(handle)?;
+            let mut font = harfbuzz::Font::new(face.face);
+            let render_mode = ftwrap::FT_Render_Mode::FT_RENDER_MODE_LIGHT;
+            let load_flags = ftwrap::compute_load_flags_for_mode(render_mode);
+            font.set_load_flags(load_flags);
+            fonts.push(RefCell::new(FontPair { face, font }));
+        }
+        Ok(Self { fonts, lib })
+    }
+
     fn do_shape(
         &self,
         font_idx: crate::font::system::FallbackIdx,

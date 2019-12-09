@@ -78,13 +78,7 @@ impl Font for FreeTypeFontImpl {
         // when changing the load flags, we also need
         // to change them for harfbuzz otherwise it won't
         // hint correctly
-        let load_flags = (ftwrap::FT_LOAD_COLOR) as i32 |
-            // enable FT_LOAD_TARGET bits.  There are no flags defined
-            // for these in the bindings so we do some bit magic for
-            // ourselves.  This is how the FT_LOAD_TARGET_() macro
-            // assembles these bits.
-            (render_mode as i32) << 16;
-
+        let load_flags = ftwrap::compute_load_flags_for_mode(render_mode);
         self.font.borrow_mut().set_load_flags(load_flags);
 
         // This clone is conceptually unsafe, but ok in practice as we are

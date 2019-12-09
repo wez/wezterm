@@ -19,12 +19,7 @@ impl FontRasterizer for FreeTypeRasterizer {
  //       ftwrap::FT_Render_Mode::FT_RENDER_MODE_LCD;
         ftwrap::FT_Render_Mode::FT_RENDER_MODE_LIGHT;
 
-        let load_flags = (ftwrap::FT_LOAD_COLOR) as i32 |
-            // enable FT_LOAD_TARGET bits.  There are no flags defined
-            // for these in the bindings so we do some bit magic for
-            // ourselves.  This is how the FT_LOAD_TARGET_() macro
-            // assembles these bits.
-            (render_mode as i32) << 16;
+        let load_flags = ftwrap::compute_load_flags_for_mode(render_mode);
 
         let mut face = self.face.borrow_mut();
         let descender = unsafe { (*(*face.face).size).metrics.descender as f64 / 64.0 };
@@ -268,9 +263,7 @@ impl FreeTypeRasterizer {
         }
     }
 
-    pub fn with_face_size_and_dpi(mut face: ftwrap::Face, size: f64, dpi: u32) -> Fallible<Self> {
-        face.set_font_size(size, dpi)?;
-
+    pub fn with_face(face: ftwrap::Face) -> Fallible<Self> {
         let has_color = unsafe {
             (((*face.face).face_flags as u32) & (ftwrap::FT_FACE_FLAG_COLOR as u32)) != 0
         };
