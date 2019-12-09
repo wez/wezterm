@@ -44,6 +44,31 @@ use term::CellAttributes;
 pub struct LoadedFont {
     rasterizers: Vec<Box<dyn FontRasterizer>>,
     shaper: Box<dyn FontShaper>,
+    metrics: FontMetrics,
+    font_size: f64,
+    dpi: u32,
+}
+
+impl LoadedFont {
+    pub fn metrics(&self) -> FontMetrics {
+        self.metrics
+    }
+
+    pub fn shape(&self, text: &str) -> Fallible<Vec<GlyphInfo>> {
+        self.shaper.shape(text, self.font_size, self.dpi)
+    }
+
+    pub fn rasterize_glyph(
+        &self,
+        glyph_pos: u32,
+        fallback: FallbackIdx,
+    ) -> Fallible<RasterizedGlyph> {
+        let rasterizer = self
+            .rasterizers
+            .get(fallback)
+            .ok_or_else(|| format_err!("no such fallback index: {}", fallback))?;
+        rasterizer.rasterize_glyph(glyph_pos, self.font_size, self.dpi)
+    }
 }
 
 type FontPtr = Rc<RefCell<Box<dyn NamedFont>>>;
@@ -192,9 +217,17 @@ impl FontConfiguration {
         }
         let shaper = FontShaperSelection::get_default().new_shaper(&handles)?;
 
+        let config = configuration();
+        let font_size = config.font_size * *self.font_scale.borrow();
+        let dpi = config.dpi as u32;
+        let metrics = shaper.metrics(font_size, dpi)?;
+
         let loaded = Rc::new(LoadedFont {
             rasterizers,
             shaper,
+            metrics,
+            font_size,
+            dpi,
         });
 
         fonts.insert(style.clone(), Rc::clone(&loaded));

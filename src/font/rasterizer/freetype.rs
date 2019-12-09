@@ -8,9 +8,9 @@ use std::mem;
 use std::slice;
 
 pub struct FreeTypeRasterizer {
-    face: RefCell<ftwrap::Face>,
-    lib: ftwrap::Library,
     has_color: bool,
+    face: RefCell<ftwrap::Face>,
+    _lib: ftwrap::Library,
 }
 
 impl FontRasterizer for FreeTypeRasterizer {
@@ -272,7 +272,7 @@ impl FreeTypeRasterizer {
             (((*face.face).face_flags as u32) & (ftwrap::FT_FACE_FLAG_COLOR as u32)) != 0
         };
         Ok(Self {
-            lib,
+            _lib: lib,
             face: RefCell::new(face),
             has_color,
         })

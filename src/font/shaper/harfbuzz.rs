@@ -14,7 +14,7 @@ struct FontPair {
 
 pub struct HarfbuzzShaper {
     fonts: Vec<RefCell<FontPair>>,
-    lib: ftwrap::Library,
+    _lib: ftwrap::Library,
 }
 
 impl HarfbuzzShaper {
@@ -29,7 +29,7 @@ impl HarfbuzzShaper {
             font.set_load_flags(load_flags);
             fonts.push(RefCell::new(FontPair { face, font }));
         }
-        Ok(Self { fonts, lib })
+        Ok(Self { fonts, _lib: lib })
     }
 
     fn do_shape(

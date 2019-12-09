@@ -103,22 +103,13 @@ impl<T: Texture2d> GlyphCache<T> {
     fn load_glyph(&mut self, info: &GlyphInfo, style: &TextStyle) -> Fallible<Rc<CachedGlyph<T>>> {
         let metrics;
         let glyph;
-        let has_color;
 
-        let (cell_width, cell_height) = {
-            let font = self.fonts.cached_font(style)?;
-            let mut font = font.borrow_mut();
-            metrics = font
-                .get_fallback(0)
-                .map_err(|e| e.context(format!("glyph {:?}", info)))?
-                .metrics();
-            let active_font = font
-                .get_fallback(info.font_idx)
-                .map_err(|e| e.context(format!("glyph {:?}", info)))?;
-            has_color = active_font.has_color();
-            glyph = active_font.rasterize_glyph(info.glyph_pos)?;
-            (metrics.cell_width, metrics.cell_height)
-        };
+        {
+            let font = self.fonts.resolve_font(style)?;
+            metrics = font.metrics();
+            glyph = font.rasterize_glyph(info.glyph_pos, info.font_idx)?;
+        }
+        let (cell_width, cell_height) = (metrics.cell_width, metrics.cell_height);
 
         let scale = if (info.x_advance / f64::from(info.num_cells)).floor() > cell_width {
             f64::from(info.num_cells) * (cell_width / info.x_advance)
@@ -130,7 +121,7 @@ impl<T: Texture2d> GlyphCache<T> {
         let glyph = if glyph.width == 0 || glyph.height == 0 {
             // a whitespace glyph
             CachedGlyph {
-                has_color,
+                has_color: glyph.has_color,
                 texture: None,
                 x_offset: info.x_offset * scale,
                 y_offset: info.y_offset * scale,
@@ -160,7 +151,7 @@ impl<T: Texture2d> GlyphCache<T> {
             let tex = self.atlas.allocate(&raw_im)?;
 
             CachedGlyph {
-                has_color,
+                has_color: glyph.has_color,
                 texture: Some(tex),
                 x_offset,
                 y_offset,

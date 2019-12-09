@@ -1250,8 +1250,7 @@ impl TermWindow {
 
             // Shape the printable text from this cluster
             let glyph_info = {
-                let font = self.fonts.cached_font(style)?;
-                let mut font = font.borrow_mut();
+                let font = self.fonts.resolve_font(style)?;
                 font.shape(&cluster.text)?
             };
 
@@ -1478,8 +1477,7 @@ impl TermWindow {
 
             // Shape the printable text from this cluster
             let glyph_info = {
-                let font = self.fonts.cached_font(style)?;
-                let mut font = font.borrow_mut();
+                let font = self.fonts.resolve_font(style)?;
                 font.shape(&cluster.text)?
             };
 
