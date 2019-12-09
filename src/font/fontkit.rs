@@ -112,7 +112,6 @@ impl FontKitFontSystem {
     }
 
     fn locate_matches(&self, config: &Config, style: &TextStyle) -> Vec<Handle> {
-        // TODO: allow loading from a directory also
         let dir_source = Box::new(FileSystemDirectorySource::new(&config.font_dirs));
         let system_source = Box::new(SystemSource::new());
         let sources = MultiSource::from_sources(vec![dir_source, system_source]);
