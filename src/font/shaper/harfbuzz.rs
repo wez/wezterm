@@ -2,7 +2,7 @@ use crate::font::ftwrap;
 use crate::font::hbwrap as harfbuzz;
 use crate::font::loader::FontDataHandle;
 use crate::font::shaper::FontShaper;
-use crate::font::system::GlyphInfo;
+use crate::font::system::{FontMetrics, GlyphInfo};
 use failure::{bail, Fallible};
 use log::{debug, error};
 use std::cell::RefCell;
@@ -195,5 +195,22 @@ impl HarfbuzzShaper {
 impl FontShaper for HarfbuzzShaper {
     fn shape(&self, text: &str, size: f64, dpi: u32) -> Fallible<Vec<GlyphInfo>> {
         self.do_shape(0, text, size, dpi)
+    }
+
+    fn metrics(&self, size: f64, dpi: u32) -> Fallible<FontMetrics> {
+        let mut pair = self.fonts[0].borrow_mut();
+        let (cell_width, cell_height) = pair.face.set_font_size(size, dpi)?;
+        let y_scale = unsafe { (*(*pair.face.face).size).metrics.y_scale as f64 / 65536.0 };
+        Ok(FontMetrics {
+            cell_height,
+            cell_width,
+            // Note: face.face.descender is useless, we have to go through
+            // face.face.size.metrics to get to the real descender!
+            descender: unsafe { (*(*pair.face.face).size).metrics.descender as f64 } / 64.0,
+            underline_thickness: unsafe { (*pair.face.face).underline_thickness as f64 } * y_scale
+                / 64.,
+            underline_position: unsafe { (*pair.face.face).underline_position as f64 } * y_scale
+                / 64.,
+        })
     }
 }

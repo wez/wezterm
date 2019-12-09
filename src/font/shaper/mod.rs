@@ -1,5 +1,5 @@
 use crate::font::loader::FontDataHandle;
-use crate::font::system::GlyphInfo;
+use crate::font::system::{FontMetrics, GlyphInfo};
 use failure::{format_err, Error, Fallible};
 use serde_derive::*;
 use std::sync::Mutex;
@@ -9,6 +9,10 @@ pub mod harfbuzz;
 pub trait FontShaper {
     /// Shape text and return a vector of GlyphInfo
     fn shape(&self, text: &str, size: f64, dpi: u32) -> Fallible<Vec<GlyphInfo>>;
+
+    /// Compute the font metrics for the preferred font
+    /// at the specified size.
+    fn metrics(&self, size: f64, dpi: u32) -> Fallible<FontMetrics>;
 }
 
 #[derive(Debug, Deserialize, Clone, Copy)]
