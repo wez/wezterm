@@ -340,6 +340,7 @@ impl Font for FontKitFont {
                 width: 0,
                 bearing_x: 0.,
                 bearing_y: 0.,
+                has_color: false,
             })
         } else {
             let size = bounds.size.to_u32();
@@ -369,6 +370,7 @@ impl Font for FontKitFont {
                 width: canvas.size.width as usize,
                 bearing_x: -bounds.origin.x as f64,
                 bearing_y: origin.y as f64, //+ bounds.origin.y as f64,
+                has_color: false,
             })
         }
     }

@@ -10,6 +10,7 @@ use std::collections::HashMap;
 use std::rc::Rc;
 
 pub mod loader;
+pub mod rasterizer;
 
 pub mod system;
 pub use self::system::*;

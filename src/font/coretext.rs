@@ -201,6 +201,7 @@ impl Font for CoreTextFontImpl {
                 width: 0,
                 bearing_x: 0.0,
                 bearing_y: 0.0,
+                has_color: self.has_color,
             });
         }
 
@@ -258,6 +259,7 @@ impl Font for CoreTextFontImpl {
             width,
             bearing_x,
             bearing_y,
+            has_color: self.has_color,
         })
     }
 }

@@ -15,6 +15,7 @@ pub struct FreeTypeFontImpl {
     cell_height: f64,
     /// nominal monospace cell width
     cell_width: f64,
+    has_color: bool,
 }
 
 impl FreeTypeFontImpl {
@@ -65,11 +66,16 @@ impl FreeTypeFontImpl {
         debug!("metrics: width={} height={}", cell_width, cell_height);
         let font = harfbuzz::Font::new(face.face);
 
+        let has_color = unsafe {
+            (((*face.face).face_flags as u32) & (ftwrap::FT_FACE_FLAG_COLOR as u32)) != 0
+        };
+
         Ok(FreeTypeFontImpl {
             face: RefCell::new(face),
             font: RefCell::new(font),
             cell_height,
             cell_width,
+            has_color,
         })
     }
 }
@@ -83,8 +89,7 @@ impl Font for FreeTypeFontImpl {
         self.font.borrow_mut().shape(buf, features)
     }
     fn has_color(&self) -> bool {
-        let face = self.face.borrow();
-        unsafe { (((*face.face).face_flags as u32) & (ftwrap::FT_FACE_FLAG_COLOR as u32)) != 0 }
+        self.has_color
     }
 
     fn metrics(&self) -> FontMetrics {
@@ -165,6 +170,7 @@ impl Font for FreeTypeFontImpl {
                     width,
                     bearing_x: ft_glyph.bitmap_left as f64,
                     bearing_y: ft_glyph.bitmap_top as f64,
+                    has_color: self.has_color,
                 }
             }
             ftwrap::FT_Pixel_Mode::FT_PIXEL_MODE_BGRA => {
@@ -260,6 +266,8 @@ impl Font for FreeTypeFontImpl {
                         0.
                     } + (f64::from(ft_glyph.bitmap_top)
                         * (dest_height as f64 / height as f64)),
+
+                    has_color: self.has_color,
                 }
             }
             ftwrap::FT_Pixel_Mode::FT_PIXEL_MODE_GRAY => {
@@ -285,6 +293,7 @@ impl Font for FreeTypeFontImpl {
                     width,
                     bearing_x: ft_glyph.bitmap_left as f64,
                     bearing_y: ft_glyph.bitmap_top as f64,
+                    has_color: false,
                 }
             }
             ftwrap::FT_Pixel_Mode::FT_PIXEL_MODE_MONO => {
@@ -321,6 +330,7 @@ impl Font for FreeTypeFontImpl {
                     width,
                     bearing_x: ft_glyph.bitmap_left as f64,
                     bearing_y: ft_glyph.bitmap_top as f64,
+                    has_color: false,
                 }
             }
             mode => bail!("unhandled pixel mode: {:?}", mode),

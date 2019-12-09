@@ -12,6 +12,7 @@ pub struct RasterizedGlyph {
     pub width: usize,
     pub bearing_x: f64,
     pub bearing_y: f64,
+    pub has_color: bool,
 }
 
 /// Holds information about a shaped glyph
