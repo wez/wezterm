@@ -4,24 +4,88 @@ use crate::font::ftwrap;
 use crate::font::hbwrap as harfbuzz;
 use crate::font::system::*;
 use failure::{Error, Fallible};
+use font_kit::error::SelectionError;
+use font_kit::family_handle::FamilyHandle;
 use font_kit::family_name::FamilyName;
 use font_kit::handle::Handle;
 use font_kit::properties::Properties;
 use font_kit::source::SystemSource;
+use font_kit::sources::mem::MemSource;
 use font_kit::sources::multi::MultiSource;
 use std::cell::RefCell;
 use std::collections::HashMap;
+use std::path::PathBuf;
 
 pub type FontSystemImpl = FontKitFontSystem;
 pub struct FontKitFontSystem {
     use_fontkit_loader: bool,
 }
 
+struct FileSystemDirectorySource {
+    mem_source: MemSource,
+}
+
+impl FileSystemDirectorySource {
+    pub fn new(paths: &[PathBuf]) -> Self {
+        let mut fonts = vec![];
+
+        for path in paths {
+            for entry in walkdir::WalkDir::new(path).into_iter() {
+                let entry = match entry {
+                    Ok(entry) => entry,
+                    Err(_) => continue,
+                };
+
+                let path = entry.path();
+                let mut file = match std::fs::File::open(path) {
+                    Err(_) => continue,
+                    Ok(file) => file,
+                };
+
+                use font_kit::file_type::FileType;
+                match font_kit::font::Font::analyze_file(&mut file) {
+                    Err(_) => continue,
+                    Ok(FileType::Single) => fonts.push(Handle::from_path(path.to_owned(), 0)),
+                    Ok(FileType::Collection(font_count)) => {
+                        for font_index in 0..font_count {
+                            fonts.push(Handle::from_path(path.to_owned(), font_index))
+                        }
+                    }
+                }
+            }
+        }
+
+        Self {
+            mem_source: MemSource::from_fonts(fonts.into_iter()).unwrap(),
+        }
+    }
+}
+
+impl font_kit::source::Source for FileSystemDirectorySource {
+    fn all_fonts(&self) -> Result<Vec<Handle>, SelectionError> {
+        self.mem_source.all_fonts()
+    }
+
+    fn all_families(&self) -> Result<Vec<String>, SelectionError> {
+        self.mem_source.all_families()
+    }
+
+    fn select_family_by_name(&self, family_name: &str) -> Result<FamilyHandle, SelectionError> {
+        self.mem_source.select_family_by_name(family_name)
+    }
+
+    fn select_by_postscript_name(&self, postscript_name: &str) -> Result<Handle, SelectionError> {
+        self.mem_source.select_by_postscript_name(postscript_name)
+    }
+}
+
 impl FontKitFontSystem {
     pub fn new(use_fontkit_loader: bool) -> Self {
         if use_fontkit_loader {
-            log::error!("DANGER: the FontKit fontsystem currently has \
-                        issues.  Use FontKitAndFreeType instead");
+            log::error!(
+                "DANGER: the FontKit fontsystem currently has \
+                 issues.  Use FontKitAndFreeType instead"
+            );
         }
         Self { use_fontkit_loader }
     }
@@ -49,8 +113,9 @@ impl FontKitFontSystem {
 
     fn locate_matches(&self, config: &Config, style: &TextStyle) -> Vec<Handle> {
         // TODO: allow loading from a directory also
-        let source = Box::new(SystemSource::new());
-        let sources = MultiSource::from_sources(vec![source]);
+        let dir_source = Box::new(FileSystemDirectorySource::new(&config.font_dirs));
+        let system_source = Box::new(SystemSource::new());
+        let sources = MultiSource::from_sources(vec![dir_source, system_source]);
         let mut handles = vec![];
 
         for font in &style.font {

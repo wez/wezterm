@@ -14,7 +14,7 @@ use std::convert::TryInto;
 use std::ffi::{OsStr, OsString};
 use std::fs;
 use std::io::prelude::*;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use term;
@@ -271,6 +271,13 @@ pub struct Config {
     #[serde(default = "default_font_size")]
     pub font_size: f64,
 
+    /// When using FontKitXXX font systems, a set of directories to
+    /// search ahead of the standard font locations for fonts.
+    /// Relative paths are taken to be relative to the directory
+    /// from which the config was loaded.
+    #[serde(default)]
+    pub font_dirs: Vec<PathBuf>,
+
     /// The DPI to assume
     #[serde(default = "default_dpi")]
     pub dpi: f64,
@@ -457,14 +464,14 @@ impl Config {
             // Compute but discard the key bindings here so that we raise any
             // problems earlier than we use them.
             let _ = cfg.key_bindings()?;
-            return Ok((cfg.compute_extra_defaults(), Some(p.to_path_buf())));
+            return Ok((cfg.compute_extra_defaults(Some(p)), Some(p.to_path_buf())));
         }
 
-        Ok((Self::default().compute_extra_defaults(), None))
+        Ok((Self::default().compute_extra_defaults(None), None))
     }
 
     pub fn default_config() -> Self {
-        Self::default().compute_extra_defaults()
+        Self::default().compute_extra_defaults(None)
     }
 
     pub fn key_bindings(&self) -> Fallible<HashMap<(KeyCode, Modifiers), KeyAssignment>> {
@@ -480,8 +487,18 @@ impl Config {
 
     /// In some cases we need to compute expanded values based
     /// on those provided by the user.  This is where we do that.
-    fn compute_extra_defaults(&self) -> Self {
+    fn compute_extra_defaults(&self, config_path: Option<&Path>) -> Self {
         let mut cfg = self.clone();
+
+        // Convert any relative font dirs to their config file relative locations
+        if let Some(config_dir) = config_path.as_ref().and_then(|p| p.parent()) {
+            for font_dir in &mut cfg.font_dirs {
+                if !font_dir.is_absolute() {
+                    let dir = config_dir.join(&font_dir);
+                    *font_dir = dir;
+                }
+            }
+        }
 
         if cfg.font_rules.is_empty() {
             // Expand out some reasonable default font rules
