@@ -1,6 +1,5 @@
 use failure::{bail, format_err, Error, Fallible};
 use log::{debug, error};
-use serde_derive::*;
 mod ftfont;
 mod hbwrap;
 use self::hbwrap as harfbuzz;
@@ -74,7 +73,6 @@ impl LoadedFont {
 /// Matches and loads fonts for a given input style
 pub struct FontConfiguration {
     fonts: RefCell<HashMap<TextStyle, Rc<LoadedFont>>>,
-    system: Rc<dyn FontSystem>,
     metrics: RefCell<Option<FontMetrics>>,
     dpi_scale: RefCell<f64>,
     font_scale: RefCell<f64>,
@@ -82,116 +80,13 @@ pub struct FontConfiguration {
     loader: Box<dyn FontLocator>,
 }
 
-#[derive(Debug, Deserialize, Clone, Copy)]
-pub enum FontSystemSelection {
-    FontConfigAndFreeType,
-    FontLoaderAndFreeType,
-    FontKitAndFreeType,
-    FontKit,
-    CoreText,
-}
-
-impl Default for FontSystemSelection {
-    fn default() -> Self {
-        if cfg!(all(unix, not(target_os = "macos"),)) {
-            FontSystemSelection::FontConfigAndFreeType
-        /*
-        } else if cfg!(target_os = "macos") {
-            FontSystemSelection::CoreText
-        */
-        } else {
-            FontSystemSelection::FontLoaderAndFreeType
-        }
-    }
-}
-
-thread_local! {
-    static DEFAULT_FONT_SYSTEM: RefCell<FontSystemSelection> = RefCell::new(Default::default());
-}
-
-impl FontSystemSelection {
-    fn new_font_system(self) -> Rc<dyn FontSystem> {
-        match self {
-            FontSystemSelection::FontConfigAndFreeType => {
-                #[cfg(all(unix, any(feature = "fontconfig", not(target_os = "macos"))))]
-                return Rc::new(fontconfigandfreetype::FontSystemImpl::new());
-                #[cfg(not(all(unix, any(feature = "fontconfig", not(target_os = "macos")))))]
-                panic!("fontconfig not compiled in");
-            }
-            FontSystemSelection::FontLoaderAndFreeType => {
-                #[cfg(any(target_os = "macos", windows))]
-                return Rc::new(fontloader_and_freetype::FontSystemImpl::new());
-                #[cfg(not(any(target_os = "macos", windows)))]
-                panic!("font-loader not compiled in");
-            }
-            FontSystemSelection::CoreText => {
-                #[cfg(target_os = "macos")]
-                return Rc::new(coretext::FontSystemImpl::new());
-                #[cfg(not(target_os = "macos"))]
-                panic!("coretext not compiled in");
-            }
-            FontSystemSelection::FontKit => {
-                #[cfg(any(target_os = "macos", windows))]
-                return Rc::new(crate::font::fontkit::FontSystemImpl::new(true));
-                #[cfg(not(any(target_os = "macos", windows)))]
-                panic!("fontkit not compiled in");
-            }
-            FontSystemSelection::FontKitAndFreeType => {
-                #[cfg(any(target_os = "macos", windows))]
-                return Rc::new(crate::font::fontkit::FontSystemImpl::new(false));
-                #[cfg(not(any(target_os = "macos", windows)))]
-                panic!("fontkit not compiled in");
-            }
-        }
-    }
-
-    pub fn variants() -> Vec<&'static str> {
-        vec![
-            "FontConfigAndFreeType",
-            "FontLoaderAndFreeType",
-            "FontKitAndFreeType",
-            "FontKit",
-            "CoreText",
-        ]
-    }
-
-    pub fn set_default(self) {
-        DEFAULT_FONT_SYSTEM.with(|def| {
-            *def.borrow_mut() = self;
-        });
-    }
-
-    pub fn get_default() -> Self {
-        DEFAULT_FONT_SYSTEM.with(|def| *def.borrow())
-    }
-}
-
-impl std::str::FromStr for FontSystemSelection {
-    type Err = Error;
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s.to_lowercase().as_ref() {
-            "fontconfigandfreetype" => Ok(FontSystemSelection::FontConfigAndFreeType),
-            "fontloaderandfreetype" => Ok(FontSystemSelection::FontLoaderAndFreeType),
-            "coretext" => Ok(FontSystemSelection::CoreText),
-            "fontkit" => Ok(FontSystemSelection::FontKit),
-            "fontkitandfreetype" => Ok(FontSystemSelection::FontKitAndFreeType),
-            _ => Err(format_err!(
-                "{} is not a valid FontSystemSelection variant, possible values are {:?}",
-                s,
-                FontSystemSelection::variants()
-            )),
-        }
-    }
-}
-
 impl FontConfiguration {
     /// Create a new empty configuration
-    pub fn new(system: FontSystemSelection) -> Self {
+    pub fn new() -> Self {
         let loader = FontLocatorSelection::get_default().new_locator();
         Self {
             fonts: RefCell::new(HashMap::new()),
             loader,
-            system: system.new_font_system(),
             metrics: RefCell::new(None),
             font_scale: RefCell::new(1.0),
             dpi_scale: RefCell::new(1.0),

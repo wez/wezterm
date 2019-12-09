@@ -1,5 +1,5 @@
 use crate::config::{SshDomain, TlsDomainClient, UnixDomain};
-use crate::font::{FontConfiguration, FontSystemSelection};
+use crate::font::FontConfiguration;
 use crate::frontend::front_end;
 use crate::mux::domain::{alloc_domain_id, Domain, DomainId, DomainState};
 use crate::mux::tab::{Tab, TabId};
@@ -222,7 +222,7 @@ impl Domain for ClientDomain {
                 window.push(&tab);
             } else {
                 log::info!("spawn new local window");
-                let fonts = Rc::new(FontConfiguration::new(FontSystemSelection::get_default()));
+                let fonts = Rc::new(FontConfiguration::new());
                 let local_window_id = mux.new_empty_window();
                 inner.record_remote_to_local_window_mapping(entry.window_id, local_window_id);
                 mux.add_tab_to_window(&tab, local_window_id)?;

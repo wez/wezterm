@@ -431,9 +431,7 @@ pub fn run<T: Send + 'static, F: Send + 'static + Fn(TermWizTerminal) -> Fallibl
         mux.add_tab(&tab)?;
         mux.add_tab_to_window(&tab, window_id)?;
 
-        let fontconfig = Rc::new(FontConfiguration::new(
-            crate::font::FontSystemSelection::get_default(),
-        ));
+        let fontconfig = Rc::new(FontConfiguration::new());
 
         let gui = front_end().unwrap();
         gui.spawn_new_window(&fontconfig, &tab, window_id)?;

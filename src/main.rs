@@ -35,7 +35,10 @@ use portable_pty::cmdbuilder::CommandBuilder;
 use portable_pty::PtySize;
 
 mod font;
-use crate::font::{FontConfiguration, FontSystemSelection};
+use crate::font::loader::FontLocatorSelection;
+use crate::font::rasterizer::FontRasterizerSelection;
+use crate::font::shaper::FontShaperSelection;
+use crate::font::FontConfiguration;
 
 //    let message = "; ❤ 😍🤢\n\x1b[91;mw00t\n\x1b[37;104;m bleet\x1b[0;m.";
 //    terminal.advance_bytes(message);
@@ -68,13 +71,31 @@ struct StartCommand {
     front_end: Option<FrontEndSelection>,
 
     #[structopt(
-        long = "font-system",
+        long = "font-locator",
         raw(
-            possible_values = "&FontSystemSelection::variants()",
+            possible_values = "&FontLocatorSelection::variants()",
             case_insensitive = "true"
         )
     )]
-    font_system: Option<FontSystemSelection>,
+    font_locator: Option<FontLocatorSelection>,
+
+    #[structopt(
+        long = "font-rasterizer",
+        raw(
+            possible_values = "&FontRasterizerSelection::variants()",
+            case_insensitive = "true"
+        )
+    )]
+    font_rasterizer: Option<FontRasterizerSelection>,
+
+    #[structopt(
+        long = "font-shaper",
+        raw(
+            possible_values = "&FontShaperSelection::variants()",
+            case_insensitive = "true"
+        )
+    )]
+    font_shaper: Option<FontShaperSelection>,
 
     /// If true, do not connect to domains marked as connect_automatically
     /// in your wezterm.toml configuration file.
@@ -143,15 +164,6 @@ struct SshCommand {
     )]
     front_end: Option<FrontEndSelection>,
 
-    #[structopt(
-        long = "font-system",
-        raw(
-            possible_values = "&FontSystemSelection::variants()",
-            case_insensitive = "true"
-        )
-    )]
-    font_system: Option<FontSystemSelection>,
-
     /// Specifies the remote system using the form:
     /// `[username@]host[:port]`.
     /// If `username@` is omitted, then your local $USER is used
@@ -178,15 +190,6 @@ struct SerialCommand {
     )]
     front_end: Option<FrontEndSelection>,
 
-    #[structopt(
-        long = "font-system",
-        raw(
-            possible_values = "&FontSystemSelection::variants()",
-            case_insensitive = "true"
-        )
-    )]
-    font_system: Option<FontSystemSelection>,
-
     /// Set the baud rate.  The default is 9600 baud.
     #[structopt(long = "baud")]
     baud: Option<usize>,
@@ -208,15 +211,6 @@ struct ConnectCommand {
         )
     )]
     front_end: Option<FrontEndSelection>,
-
-    #[structopt(
-        long = "font-system",
-        raw(
-            possible_values = "&FontSystemSelection::variants()",
-            case_insensitive = "true"
-        )
-    )]
-    font_system: Option<FontSystemSelection>,
 
     /// Name of the multiplexer domain section from the configuration
     /// to which you'd like to connect
@@ -375,10 +369,7 @@ fn run_ssh(config: config::ConfigHandle, opts: &SshCommand) -> Fallible<()> {
         Future::with_executor(executor(), move || {
             let gui = front_end().unwrap();
 
-            let font_system = opts.font_system.unwrap_or(config.font_system);
-            font_system.set_default();
-
-            let fontconfig = Rc::new(FontConfiguration::new(font_system));
+            let fontconfig = Rc::new(FontConfiguration::new());
             let cmd = if !opts.prog.is_empty() {
                 let argv: Vec<&std::ffi::OsStr> = opts.prog.iter().map(|x| x.as_os_str()).collect();
                 let mut builder = CommandBuilder::new(&argv[0]);
@@ -410,10 +401,7 @@ fn run_ssh(config: config::ConfigHandle, opts: &SshCommand) -> Fallible<()> {
 }
 
 fn run_serial(config: config::ConfigHandle, opts: &SerialCommand) -> Fallible<()> {
-    let font_system = opts.font_system.unwrap_or(config.font_system);
-    font_system.set_default();
-
-    let fontconfig = Rc::new(FontConfiguration::new(font_system));
+    let fontconfig = Rc::new(FontConfiguration::new());
 
     let mut serial = portable_pty::serial::SerialTty::new(&opts.port);
     if let Some(baud) = opts.baud {
@@ -463,10 +451,7 @@ fn run_mux_client(config: config::ConfigHandle, opts: &ConnectCommand) -> Fallib
             )
         })?;
 
-    let font_system = opts.font_system.unwrap_or(config.font_system);
-    font_system.set_default();
-
-    let fontconfig = Rc::new(FontConfiguration::new(font_system));
+    let fontconfig = Rc::new(FontConfiguration::new());
 
     let domain: Arc<dyn Domain> = Arc::new(ClientDomain::new(client_config));
     let mux = Rc::new(mux::Mux::new(Some(domain.clone())));
@@ -537,10 +522,15 @@ fn run_terminal_gui(config: config::ConfigHandle, opts: &StartCommand) -> Fallib
         }
     }
 
-    let font_system = opts.font_system.unwrap_or(config.font_system);
-    font_system.set_default();
+    opts.font_locator
+        .unwrap_or(config.font_locator)
+        .set_default();
+    opts.font_shaper.unwrap_or(config.font_shaper).set_default();
+    opts.font_rasterizer
+        .unwrap_or(config.font_rasterizer)
+        .set_default();
 
-    let fontconfig = Rc::new(FontConfiguration::new(font_system));
+    let fontconfig = Rc::new(FontConfiguration::new());
 
     let cmd = if !opts.prog.is_empty() {
         let argv: Vec<&std::ffi::OsStr> = opts.prog.iter().map(|x| x.as_os_str()).collect();

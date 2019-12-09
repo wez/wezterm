@@ -2,7 +2,7 @@ use super::quad::*;
 use super::renderstate::*;
 use super::utilsprites::RenderMetrics;
 use crate::config::{configuration, ConfigHandle};
-use crate::font::{FontConfiguration, FontSystemSelection};
+use crate::font::FontConfiguration;
 use crate::frontend::gui::tabbar::{TabBarItem, TabBarState};
 use crate::frontend::{executor, front_end};
 use crate::keyassignment::{KeyAssignment, KeyMap, SpawnTabDomain};
@@ -875,7 +875,7 @@ impl TermWindow {
     pub fn spawn_new_window(&mut self) {
         promise::Future::with_executor(executor(), move || {
             let mux = Mux::get().unwrap();
-            let fonts = Rc::new(FontConfiguration::new(FontSystemSelection::get_default()));
+            let fonts = Rc::new(FontConfiguration::new());
             let window_id = mux.new_empty_window();
             let tab =
                 mux.default_domain()

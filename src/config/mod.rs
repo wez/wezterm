@@ -1,7 +1,9 @@
 //! Configuration for the gui portion of the terminal
 
 use crate::create_user_owned_dirs;
-use crate::font::FontSystemSelection;
+use crate::font::loader::FontLocatorSelection;
+use crate::font::rasterizer::FontRasterizerSelection;
+use crate::font::shaper::FontShaperSelection;
 use crate::frontend::FrontEndSelection;
 use crate::keyassignment::KeyAssignment;
 use failure::{bail, err_msg, format_err, Error, Fallible};
@@ -320,7 +322,11 @@ pub struct Config {
     pub term: String,
 
     #[serde(default)]
-    pub font_system: FontSystemSelection,
+    pub font_locator: FontLocatorSelection,
+    #[serde(default)]
+    pub font_rasterizer: FontRasterizerSelection,
+    #[serde(default)]
+    pub font_shaper: FontShaperSelection,
 
     #[serde(default)]
     pub front_end: FrontEndSelection,
