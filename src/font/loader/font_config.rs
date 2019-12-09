@@ -1,17 +1,19 @@
 use crate::config::FontAttributes;
+use crate::font::fcwrap;
 use crate::font::loader::{FontDataHandle, FontLocator};
 use failure::Fallible;
+use fcwrap::Pattern as FontPattern;
 
 /// A FontLocator implemented using the system font loading
 /// functions provided by font-config
 pub struct FontConfigFontLocator {}
 
-impl FontLocator for FontLoaderFontLocator {
+impl FontLocator for FontConfigFontLocator {
     fn load_fonts(&self, fonts_selection: &[FontAttributes]) -> Fallible<Vec<FontDataHandle>> {
         let mut fonts = vec![];
         let mut fallback = vec![];
 
-        for attr in style.font_with_fallback() {
+        for attr in fonts_selection {
             let mut pattern = FontPattern::new()?;
             pattern.family(&attr.family)?;
             if attr.bold {
@@ -45,14 +47,14 @@ impl FontLocator for FontLoaderFontLocator {
                 // The additional items in this loop are fallback fonts
                 // suggested by fontconfig and are lower precedence
                 if idx == 0 {
-                    self.fonts.push(handle);
+                    fonts.push(handle);
                 } else {
-                    self.fallback.push(handle);
+                    fallback.push(handle);
                 }
             }
         }
 
-        fonts.extend_from_slice(&mut fallback);
+        fonts.append(&mut fallback);
 
         Ok(fonts)
     }
