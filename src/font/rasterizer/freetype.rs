@@ -1,3 +1,4 @@
+use crate::font::loader::FontDataHandle;
 use crate::font::rasterizer::FontRasterizer;
 use crate::font::{ftwrap, RasterizedGlyph};
 use ::freetype::FT_GlyphSlotRec_;
@@ -8,6 +9,7 @@ use std::slice;
 
 pub struct FreeTypeRasterizer {
     face: RefCell<ftwrap::Face>,
+    lib: ftwrap::Library,
     has_color: bool,
 }
 
@@ -263,12 +265,14 @@ impl FreeTypeRasterizer {
         }
     }
 
-    pub fn with_face(face: ftwrap::Face) -> Fallible<Self> {
+    pub fn from_locator(handle: &FontDataHandle) -> Fallible<Self> {
+        let lib = ftwrap::Library::new()?;
+        let face = lib.face_from_locator(handle)?;
         let has_color = unsafe {
             (((*face.face).face_flags as u32) & (ftwrap::FT_FACE_FLAG_COLOR as u32)) != 0
         };
-
         Ok(Self {
+            lib,
             face: RefCell::new(face),
             has_color,
         })

@@ -1,4 +1,4 @@
-use failure::{bail, format_err, Error};
+use failure::{bail, format_err, Error, Fallible};
 use log::{debug, error};
 use serde_derive::*;
 mod ftfont;
@@ -35,13 +35,15 @@ pub mod fontloader_and_freetype;
 pub mod fontkit;
 
 use crate::font::loader::{FontLocator, FontLocatorSelection};
+use crate::font::rasterizer::{FontRasterizer, FontRasterizerSelection};
+use crate::font::shaper::{FontShaper, FontShaperSelection};
 
 use super::config::{configuration, ConfigHandle, TextStyle};
 use term::CellAttributes;
 
 pub struct LoadedFont {
-    rasterizer: Box<dyn rasterizer::FontRasterizer>,
-    shaper: Box<dyn shaper::FontShaper>,
+    rasterizers: Vec<Box<dyn FontRasterizer>>,
+    shaper: Box<dyn FontShaper>,
 }
 
 type FontPtr = Rc<RefCell<Box<dyn NamedFont>>>;
@@ -174,6 +176,30 @@ impl FontConfiguration {
             dpi_scale: RefCell::new(1.0),
             config_generation: RefCell::new(configuration().generation()),
         }
+    }
+
+    pub fn resolve_font(&self, style: &TextStyle) -> Fallible<Rc<LoadedFont>> {
+        let mut fonts = self.new_fonts.borrow_mut();
+        if let Some(entry) = fonts.get(style) {
+            return Ok(Rc::clone(entry));
+        }
+
+        let attributes = style.font_with_fallback();
+        let handles = self.loader.load_fonts(&attributes)?;
+        let mut rasterizers = vec![];
+        for handle in &handles {
+            rasterizers.push(FontRasterizerSelection::get_default().new_rasterizer(&handle)?);
+        }
+        let shaper = FontShaperSelection::get_default().new_shaper(&handles)?;
+
+        let loaded = Rc::new(LoadedFont {
+            rasterizers,
+            shaper,
+        });
+
+        fonts.insert(style.clone(), Rc::clone(&loaded));
+
+        Ok(loaded)
     }
 
     /// Given a text style, load (with caching) the font that best
