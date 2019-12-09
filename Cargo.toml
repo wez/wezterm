@@ -68,6 +68,8 @@ notify-rust = "3"
 font-loader = { version = "0.8" }
 
 [target."cfg(windows)".dependencies]
+font-kit = "0.5"
+dwrote = "0.9"
 shared_library = "0.1"
 uds_windows = "0.1"
 winapi = { version = "0.3", features = [

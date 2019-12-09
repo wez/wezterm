@@ -8,10 +8,15 @@ use crate::font::{
 use failure::{format_err, Error};
 use log::{debug, warn};
 
-struct NamedFontImpl {
+pub struct NamedFontImpl {
     _lib: ftwrap::Library,
     fonts: Vec<FreeTypeFontImpl>,
-    _fontdata: Vec<Vec<u8>>,
+}
+
+impl NamedFontImpl {
+    pub fn new(lib: ftwrap::Library, fonts: Vec<FreeTypeFontImpl>) -> Self {
+        Self { _lib: lib, fonts }
+    }
 }
 
 impl Drop for NamedFontImpl {
@@ -46,7 +51,6 @@ impl FontSystem for FontLoaderAndFreeType {
         };
 
         let mut fonts = Vec::new();
-        let mut fontdata = Vec::new();
         // Clippy is dead wrong about this iterator being an identity_conversion
         #[cfg_attr(feature = "cargo-clippy", allow(clippy::identity_conversion))]
         for ((data, idx), attr) in fontloader::load_system_fonts(config, style)? {
@@ -54,8 +58,6 @@ impl FontSystem for FontLoaderAndFreeType {
 
             match lib.new_face_from_slice(&data, idx.into()) {
                 Ok(face) => {
-                    fontdata.push(data);
-
                     fonts.push(FreeTypeFontImpl::with_face_size_and_dpi(
                         face,
                         config.font_size * font_scale,
@@ -66,11 +68,7 @@ impl FontSystem for FontLoaderAndFreeType {
             }
         }
         failure::ensure!(!fonts.is_empty(), "unable to load any matching fonts");
-        Ok(Box::new(NamedFontImpl {
-            fonts,
-            _lib: lib,
-            _fontdata: fontdata,
-        }))
+        Ok(Box::new(NamedFontImpl::new(lib, fonts)))
     }
 }
 

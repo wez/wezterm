@@ -27,6 +27,9 @@ pub mod fontloader;
 #[cfg(any(target_os = "macos", windows))]
 pub mod fontloader_and_freetype;
 
+#[cfg(windows)]
+pub mod fontkit;
+
 use super::config::{configuration, ConfigHandle, TextStyle};
 use term::CellAttributes;
 
@@ -46,6 +49,8 @@ pub struct FontConfiguration {
 pub enum FontSystemSelection {
     FontConfigAndFreeType,
     FontLoaderAndFreeType,
+    FontKitAndFreeType,
+    FontKit,
     CoreText,
 }
 
@@ -88,13 +93,26 @@ impl FontSystemSelection {
                 #[cfg(not(target_os = "macos"))]
                 panic!("coretext not compiled in");
             }
+            FontSystemSelection::FontKit => {
+                #[cfg(windows)]
+                return Rc::new(crate::font::fontkit::FontSystemImpl::new(true));
+                #[cfg(not(windows))]
+                panic!("fontkit not compiled in");
+            }
+            FontSystemSelection::FontKitAndFreeType => {
+                #[cfg(windows)]
+                return Rc::new(crate::font::fontkit::FontSystemImpl::new(false));
+                #[cfg(not(windows))]
+                panic!("fontkit not compiled in");
+            }
         }
     }
     pub fn variants() -> Vec<&'static str> {
         vec![
             "FontConfigAndFreeType",
             "FontLoaderAndFreeType",
-            "FontLoaderAndRustType",
+            "FontKitAndFreeType",
+            "FontKit",
             "CoreText",
         ]
     }
@@ -117,6 +135,8 @@ impl std::str::FromStr for FontSystemSelection {
             "fontconfigandfreetype" => Ok(FontSystemSelection::FontConfigAndFreeType),
             "fontloaderandfreetype" => Ok(FontSystemSelection::FontLoaderAndFreeType),
             "coretext" => Ok(FontSystemSelection::CoreText),
+            "fontkit" => Ok(FontSystemSelection::FontKit),
+            "fontkitandfreetype" => Ok(FontSystemSelection::FontKitAndFreeType),
             _ => Err(format_err!(
                 "{} is not a valid FontSystemSelection variant, possible values are {:?}",
                 s,

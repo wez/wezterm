@@ -21,6 +21,7 @@ fn ft_result<T>(err: FT_Error, t: T) -> Result<T, Error> {
 
 pub struct Face {
     pub face: FT_Face,
+    _bytes: Vec<u8>,
 }
 
 impl Drop for Face {
@@ -126,6 +127,19 @@ impl Library {
         Ok(Library { lib })
     }
 
+    #[cfg(windows)]
+    pub fn load_font_kit_handle(&self, handle: &font_kit::handle::Handle) -> Result<Face, Error> {
+        use font_kit::handle::Handle;
+        match handle {
+            Handle::Path { path, font_index } => {
+                self.new_face(path.to_str().unwrap(), *font_index as i32)
+            }
+            Handle::Memory { bytes, font_index } => {
+                self.new_face_from_slice(&bytes, *font_index as i32)
+            }
+        }
+    }
+
     #[allow(dead_code)]
     pub fn new_face<P>(&self, path: P, face_index: FT_Long) -> Result<Face, Error>
     where
@@ -137,11 +151,13 @@ impl Library {
         let res = unsafe { FT_New_Face(self.lib, path.as_ptr(), face_index, &mut face as *mut _) };
         Ok(Face {
             face: ft_result(res, face).context("FT_New_Face")?,
+            _bytes: Vec::new(),
         })
     }
 
     #[allow(dead_code)]
     pub fn new_face_from_slice(&self, data: &[u8], face_index: FT_Long) -> Result<Face, Error> {
+        let data = data.to_vec();
         let mut face = ptr::null_mut();
 
         let res = unsafe {
@@ -156,6 +172,7 @@ impl Library {
         Ok(Face {
             face: ft_result(res, face)
                 .map_err(|e| e.context(format!("FT_New_Memory_Face for index {}", face_index)))?,
+            _bytes: data,
         })
     }
 

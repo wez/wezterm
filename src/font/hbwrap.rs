@@ -14,6 +14,11 @@ use std::slice;
 extern "C" {
     fn hb_ft_font_set_load_flags(font: *mut hb_font_t, load_flags: i32);
 }
+#[cfg(windows)]
+extern "C" {
+    fn hb_directwrite_face_create(face: *mut winapi::um::dwrite::IDWriteFontFace)
+        -> *mut hb_font_t;
+}
 #[cfg(target_os = "macos")]
 extern "C" {
     fn hb_coretext_font_create(ct_font: CTFontRef) -> *mut hb_font_t;
@@ -144,6 +149,13 @@ impl Font {
         use core_foundation::base::TCFType;
         Font {
             font: unsafe { hb_coretext_font_create(ct_font.as_concrete_TypeRef()) },
+        }
+    }
+
+    #[cfg(windows)]
+    pub fn new_directwrite(face: &dwrote::FontFace) -> Font {
+        Font {
+            font: unsafe { hb_directwrite_face_create(face.as_ptr()) },
         }
     }
 
