@@ -179,7 +179,13 @@ impl Library {
         let mut lib = ptr::null_mut();
         let res = unsafe { FT_Init_FreeType(&mut lib as *mut _) };
         let lib = ft_result(res, lib).context("FT_Init_FreeType")?;
-        Ok(Library { lib })
+        let mut lib = Library { lib };
+
+        // Some systems don't support this mode, so if it fails, we don't
+        // care to abort the rest of what we're doing
+        lib.set_lcd_filter(FT_LcdFilter::FT_LCD_FILTER_DEFAULT).ok();
+
+        Ok(lib)
     }
 
     pub fn face_from_locator(&self, handle: &FontDataHandle) -> Fallible<Face> {

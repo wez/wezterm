@@ -124,6 +124,7 @@ impl Pattern {
         }
     }
 
+    #[allow(dead_code)]
     pub fn add_double(&mut self, key: &str, value: f64) -> Result<(), Error> {
         let key = CString::new(key)?;
         unsafe {
@@ -215,6 +216,7 @@ impl Pattern {
         self.get_string("file")
     }
 
+    #[allow(dead_code)]
     pub fn get_double(&self, key: &str) -> Result<f64, Error> {
         unsafe {
             let key = CString::new(key)?;

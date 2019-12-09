@@ -19,8 +19,6 @@ pub mod ftwrap;
 
 #[cfg(all(unix, any(feature = "fontconfig", not(target_os = "macos"))))]
 pub mod fcwrap;
-#[cfg(all(unix, any(feature = "fontconfig", not(target_os = "macos"))))]
-pub mod fontconfigandfreetype;
 
 #[cfg(target_os = "macos")]
 pub mod coretext;
