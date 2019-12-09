@@ -33,6 +33,51 @@ impl Drop for Face {
 }
 
 impl Face {
+    /// This is a wrapper around set_char_size and select_size
+    /// that accounts for some weirdness with eg: color emoji
+    pub fn set_font_size(&mut self, size: f64, dpi: u32) -> Fallible<(f64, f64)> {
+        log::debug!("set_char_size {} dpi={}", size, dpi);
+        // Scaling before truncating to integer minimizes the chances of hitting
+        // the fallback code for set_pixel_sizes below.
+        let size = (size * 64.0) as FT_F26Dot6;
+
+        let (cell_width, cell_height) = match self.set_char_size(size, size, dpi, dpi) {
+            Ok(_) => {
+                // Compute metrics for the nominal monospace cell
+                self.cell_metrics()
+            }
+            Err(err) => {
+                let sizes = unsafe {
+                    let rec = &(*self.face);
+                    std::slice::from_raw_parts(rec.available_sizes, rec.num_fixed_sizes as usize)
+                };
+                if sizes.is_empty() {
+                    return Err(err);
+                }
+                // Find the best matching size.
+                // We just take the biggest.
+                let mut best = 0;
+                let mut best_size = 0;
+                let mut cell_width = 0;
+                let mut cell_height = 0;
+
+                for (idx, info) in sizes.iter().enumerate() {
+                    let size = best_size.max(info.height);
+                    if size > best_size {
+                        best = idx;
+                        best_size = size;
+                        cell_width = info.width;
+                        cell_height = info.height;
+                    }
+                }
+                self.select_size(best)?;
+                (f64::from(cell_width), f64::from(cell_height))
+            }
+        };
+
+        Ok((cell_width, cell_height))
+    }
+
     pub fn set_char_size(
         &mut self,
         char_width: FT_F26Dot6,

@@ -24,44 +24,7 @@ impl FreeTypeFontImpl {
         size: f64,
         dpi: u32,
     ) -> Result<Self, Error> {
-        debug!("set_char_size {} dpi={}", size, dpi);
-        // Scaling before truncating to integer minimizes the chances of hitting
-        // the fallback code for set_pixel_sizes below.
-        let size = (size * 64.0) as ftwrap::FT_F26Dot6;
-
-        let (cell_width, cell_height) = match face.set_char_size(size, size, dpi, dpi) {
-            Ok(_) => {
-                // Compute metrics for the nominal monospace cell
-                face.cell_metrics()
-            }
-            Err(err) => {
-                let sizes = unsafe {
-                    let rec = &(*face.face);
-                    slice::from_raw_parts(rec.available_sizes, rec.num_fixed_sizes as usize)
-                };
-                if sizes.is_empty() {
-                    return Err(err);
-                }
-                // Find the best matching size.
-                // We just take the biggest.
-                let mut best = 0;
-                let mut best_size = 0;
-                let mut cell_width = 0;
-                let mut cell_height = 0;
-
-                for (idx, info) in sizes.iter().enumerate() {
-                    let size = best_size.max(info.height);
-                    if size > best_size {
-                        best = idx;
-                        best_size = size;
-                        cell_width = info.width;
-                        cell_height = info.height;
-                    }
-                }
-                face.select_size(best)?;
-                (f64::from(cell_width), f64::from(cell_height))
-            }
-        };
+        let (cell_width, cell_height) = face.set_font_size(size, dpi)?;
 
         debug!("metrics: width={} height={}", cell_width, cell_height);
         let font = harfbuzz::Font::new(face.face);
