@@ -1,11 +1,32 @@
 use crate::font::ftwrap;
 use crate::font::hbwrap as harfbuzz;
 use crate::font::loader::FontDataHandle;
-use crate::font::shaper::FontShaper;
-use crate::font::system::{FontMetrics, GlyphInfo};
+use crate::font::shaper::{FallbackIdx, FontMetrics, FontShaper, GlyphInfo};
 use failure::{bail, Fallible};
 use log::{debug, error};
 use std::cell::RefCell;
+
+fn make_glyphinfo(
+    text: &str,
+    font_idx: usize,
+    info: &harfbuzz::hb_glyph_info_t,
+    pos: &harfbuzz::hb_glyph_position_t,
+) -> GlyphInfo {
+    use termwiz::cell::unicode_column_width;
+    let num_cells = unicode_column_width(text) as u8;
+    GlyphInfo {
+        #[cfg(debug_assertions)]
+        text: text.into(),
+        num_cells,
+        font_idx,
+        glyph_pos: info.codepoint,
+        cluster: info.cluster,
+        x_advance: f64::from(pos.x_advance) / 64.0,
+        y_advance: f64::from(pos.y_advance) / 64.0,
+        x_offset: f64::from(pos.x_offset) / 64.0,
+        y_offset: f64::from(pos.y_offset) / 64.0,
+    }
+}
 
 struct FontPair {
     face: ftwrap::Face,
@@ -34,7 +55,7 @@ impl HarfbuzzShaper {
 
     fn do_shape(
         &self,
-        font_idx: crate::font::system::FallbackIdx,
+        font_idx: FallbackIdx,
         s: &str,
         font_size: f64,
         dpi: u32,
@@ -150,7 +171,7 @@ impl HarfbuzzShaper {
                 if s.is_char_boundary(pos) && s.is_char_boundary(pos + sizes[i]) {
                     let text = &s[pos..pos + sizes[i]];
                     //debug!("glyph from `{}`", text);
-                    cluster.push(GlyphInfo::new(text, font_idx, info, &positions[i]));
+                    cluster.push(make_glyphinfo(text, font_idx, info, &positions[i]));
                 } else {
                     cluster.append(&mut self.do_shape(0, "?", font_size, dpi)?);
                 }

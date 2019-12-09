@@ -1,10 +1,20 @@
 use crate::font::loader::FontDataHandle;
-use crate::font::system::RasterizedGlyph;
 use failure::{bail, format_err, Error, Fallible};
 use serde_derive::*;
 use std::sync::Mutex;
 
 pub mod freetype;
+
+/// A bitmap representation of a glyph.
+/// The data is stored as pre-multiplied RGBA 32bpp.
+pub struct RasterizedGlyph {
+    pub data: Vec<u8>,
+    pub height: usize,
+    pub width: usize,
+    pub bearing_x: f64,
+    pub bearing_y: f64,
+    pub has_color: bool,
+}
 
 /// Rasterizes the specified glyph index in the associated font
 /// and returns the generated bitmap

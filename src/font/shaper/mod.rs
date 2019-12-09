@@ -1,10 +1,57 @@
 use crate::font::loader::FontDataHandle;
-use crate::font::system::{FontMetrics, GlyphInfo};
 use failure::{format_err, Error, Fallible};
 use serde_derive::*;
 use std::sync::Mutex;
 
 pub mod harfbuzz;
+
+/// Holds information about a shaped glyph
+#[derive(Clone, Debug)]
+pub struct GlyphInfo {
+    /// We only retain text in debug mode for diagnostic purposes
+    #[cfg(debug_assertions)]
+    pub text: String,
+    /// Offset within text
+    pub cluster: u32,
+    /// How many cells/columns this glyph occupies horizontally
+    pub num_cells: u8,
+    /// Which font alternative to use; index into Font.fonts
+    pub font_idx: FallbackIdx,
+    /// Which freetype glyph to load
+    pub glyph_pos: u32,
+    /// How far to advance the render cursor after drawing this glyph
+    pub x_advance: f64,
+    /// How far to advance the render cursor after drawing this glyph
+    pub y_advance: f64,
+    /// Destination render offset
+    pub x_offset: f64,
+    /// Destination render offset
+    pub y_offset: f64,
+}
+
+/// Represents a numbered index in the fallback sequence for a `NamedFont`.
+/// 0 is the first, best match.  If a glyph isn't present then we will
+/// want to search for a fallback in later indices.
+pub type FallbackIdx = usize;
+
+/// Describes the key font metrics that we use in rendering
+#[derive(Copy, Clone, Debug, Default)]
+pub struct FontMetrics {
+    /// Width of a character cell in pixels
+    pub cell_width: f64,
+    /// Height of a character cell in pixels
+    pub cell_height: f64,
+    /// Added to the bottom y coord to find the baseline.
+    /// descender is typically negative.
+    pub descender: f64,
+
+    /// Vertical size of underline/strikethrough in pixels
+    pub underline_thickness: f64,
+
+    /// Position of underline relative to descender. Negative
+    /// values are below the descender.
+    pub underline_position: f64,
+}
 
 pub trait FontShaper {
     /// Shape text and return a vector of GlyphInfo
