@@ -8,15 +8,13 @@ use std::slice;
 
 pub struct FreeTypeRasterizer {
     face: RefCell<ftwrap::Face>,
-    /// nominal monospace cell height
-    cell_height: f64,
-    /// nominal monospace cell width
-    cell_width: f64,
     has_color: bool,
 }
 
 impl FontRasterizer for FreeTypeRasterizer {
-    fn rasterize_glyph(&self, glyph_pos: u32) -> Fallible<RasterizedGlyph> {
+    fn rasterize_glyph(&self, glyph_pos: u32, size: f64, dpi: u32) -> Fallible<RasterizedGlyph> {
+        self.face.borrow_mut().set_font_size(size, dpi)?;
+
         let render_mode = //ftwrap::FT_Render_Mode::FT_RENDER_MODE_NORMAL;
  //       ftwrap::FT_Render_Mode::FT_RENDER_MODE_LCD;
         ftwrap::FT_Render_Mode::FT_RENDER_MODE_LIGHT;
@@ -271,46 +269,7 @@ impl FreeTypeRasterizer {
     }
 
     pub fn with_face_size_and_dpi(mut face: ftwrap::Face, size: f64, dpi: u32) -> Fallible<Self> {
-        log::debug!("set_char_size {} dpi={}", size, dpi);
-        // Scaling before truncating to integer minimizes the chances of hitting
-        // the fallback code for set_pixel_sizes below.
-        let size = (size * 64.0) as ftwrap::FT_F26Dot6;
-
-        let (cell_width, cell_height) = match face.set_char_size(size, size, dpi, dpi) {
-            Ok(_) => {
-                // Compute metrics for the nominal monospace cell
-                face.cell_metrics()
-            }
-            Err(err) => {
-                let sizes = unsafe {
-                    let rec = &(*face.face);
-                    slice::from_raw_parts(rec.available_sizes, rec.num_fixed_sizes as usize)
-                };
-                if sizes.is_empty() {
-                    return Err(err);
-                }
-                // Find the best matching size.
-                // We just take the biggest.
-                let mut best = 0;
-                let mut best_size = 0;
-                let mut cell_width = 0;
-                let mut cell_height = 0;
-
-                for (idx, info) in sizes.iter().enumerate() {
-                    let size = best_size.max(info.height);
-                    if size > best_size {
-                        best = idx;
-                        best_size = size;
-                        cell_width = info.width;
-                        cell_height = info.height;
-                    }
-                }
-                face.select_size(best)?;
-                (f64::from(cell_width), f64::from(cell_height))
-            }
-        };
-
-        log::debug!("metrics: width={} height={}", cell_width, cell_height);
+        face.set_font_size(size, dpi)?;
 
         let has_color = unsafe {
             (((*face.face).face_flags as u32) & (ftwrap::FT_FACE_FLAG_COLOR as u32)) != 0
@@ -318,8 +277,6 @@ impl FreeTypeRasterizer {
 
         Ok(Self {
             face: RefCell::new(face),
-            cell_height,
-            cell_width,
             has_color,
         })
     }

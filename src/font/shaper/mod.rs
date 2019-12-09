@@ -5,5 +5,5 @@ pub mod harfbuzz;
 
 pub trait FontShaper {
     /// Shape text and return a vector of GlyphInfo
-    fn shape(&self, text: &str) -> Fallible<Vec<GlyphInfo>>;
+    fn shape(&self, text: &str, size: f64, dpi: u32) -> Fallible<Vec<GlyphInfo>>;
 }

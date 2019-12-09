@@ -20,6 +20,8 @@ impl HarfbuzzShaper {
         &self,
         font_idx: crate::font::system::FallbackIdx,
         s: &str,
+        font_size: f64,
+        dpi: u32,
     ) -> Fallible<Vec<GlyphInfo>> {
         let features = vec![
             // kerning
@@ -39,9 +41,9 @@ impl HarfbuzzShaper {
         {
             match self.fonts.get(font_idx) {
                 Some(pair) => {
-                    pair.borrow_mut()
-                        .font
-                        .shape(&mut buf, Some(features.as_slice()));
+                    let mut pair = pair.borrow_mut();
+                    pair.face.set_font_size(font_size, dpi)?;
+                    pair.font.shape(&mut buf, Some(features.as_slice()));
                 }
                 None => {
                     let chars: Vec<u32> = s.chars().map(|c| c as u32).collect();
@@ -109,14 +111,14 @@ impl HarfbuzzShaper {
                 //debug!("range: {:?}-{:?} needs fallback", start, pos);
 
                 let substr = &s[start_pos..pos];
-                let mut shape = match self.do_shape(font_idx + 1, substr) {
+                let mut shape = match self.do_shape(font_idx + 1, substr, font_size, dpi) {
                     Ok(shape) => Ok(shape),
                     Err(e) => {
                         error!("{:?} for {:?}", e, substr);
                         if font_idx == 0 && s == "?" {
                             bail!("unable to find any usable glyphs for `?` in font_idx 0");
                         }
-                        self.do_shape(0, "?")
+                        self.do_shape(0, "?", font_size, dpi)
                     }
                 }?;
 
@@ -134,7 +136,7 @@ impl HarfbuzzShaper {
                     //debug!("glyph from `{}`", text);
                     cluster.push(GlyphInfo::new(text, font_idx, info, &positions[i]));
                 } else {
-                    cluster.append(&mut self.do_shape(0, "?")?);
+                    cluster.append(&mut self.do_shape(0, "?", font_size, dpi)?);
                 }
             }
         }
@@ -151,14 +153,14 @@ impl HarfbuzzShaper {
                     substr,
                 );
             }
-            let mut shape = match self.do_shape(font_idx + 1, substr) {
+            let mut shape = match self.do_shape(font_idx + 1, substr, font_size, dpi) {
                 Ok(shape) => Ok(shape),
                 Err(e) => {
                     error!("{:?} for {:?}", e, substr);
                     if font_idx == 0 && s == "?" {
                         bail!("unable to find any usable glyphs for `?` in font_idx 0");
                     }
-                    self.do_shape(0, "?")
+                    self.do_shape(0, "?", font_size, dpi)
                 }
             }?;
             // Fixup the cluster member to match our current offset
@@ -175,7 +177,7 @@ impl HarfbuzzShaper {
 }
 
 impl FontShaper for HarfbuzzShaper {
-    fn shape(&self, text: &str) -> Fallible<Vec<GlyphInfo>> {
-        self.do_shape(0, text)
+    fn shape(&self, text: &str, size: f64, dpi: u32) -> Fallible<Vec<GlyphInfo>> {
+        self.do_shape(0, text, size, dpi)
     }
 }
