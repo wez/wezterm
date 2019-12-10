@@ -11,7 +11,7 @@ pub mod parser;
 pub mod rasterizer;
 pub mod shaper;
 
-#[cfg(all(unix, any(feature = "fontconfig", not(target_os = "macos"))))]
+#[cfg(all(unix, not(target_os = "macos")))]
 pub mod fcwrap;
 
 use crate::font::locator::{FontLocator, FontLocatorSelection};

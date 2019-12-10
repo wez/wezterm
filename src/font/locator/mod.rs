@@ -4,7 +4,7 @@ use serde_derive::*;
 use std::path::PathBuf;
 use std::sync::Mutex;
 
-#[cfg(all(unix, any(feature = "fontconfig", not(target_os = "macos"))))]
+#[cfg(all(unix, not(target_os = "macos")))]
 pub mod font_config;
 #[cfg(any(target_os = "macos", windows))]
 pub mod font_kit;
@@ -84,9 +84,9 @@ impl FontLocatorSelection {
     pub fn new_locator(self) -> Box<dyn FontLocator> {
         match self {
             Self::FontConfig => {
-                #[cfg(all(unix, any(feature = "fontconfig", not(target_os = "macos"))))]
+                #[cfg(all(unix, not(target_os = "macos")))]
                 return Box::new(font_config::FontConfigFontLocator {});
-                #[cfg(not(all(unix, any(feature = "fontconfig", not(target_os = "macos")))))]
+                #[cfg(not(all(unix, not(target_os = "macos"))))]
                 panic!("fontconfig not compiled in");
             }
             Self::FontLoader => {
