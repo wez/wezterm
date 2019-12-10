@@ -61,7 +61,8 @@ impl TabBarState {
         let titles_len: usize = tab_titles.iter().map(|s| unicode_column_width(s)).sum();
         let number_of_tabs = tab_titles.len();
 
-        let available_cells = title_width - ((number_of_tabs * per_tab_overhead) + system_overhead);
+        let available_cells =
+            title_width.saturating_sub((number_of_tabs * per_tab_overhead) + system_overhead);
         let tab_width_max = if available_cells >= titles_len {
             // We can render each title with its full width
             usize::max_value()
