@@ -96,7 +96,8 @@ impl FontConfiguration {
         }
 
         let attributes = style.font_with_fallback();
-        let handles = self.locator.load_fonts(&attributes)?;
+        let mut handles = parser::ParsedFont::load_fonts(&config, &attributes)?;
+        handles.append(&mut self.locator.load_fonts(&attributes)?);
         let mut rasterizers = vec![];
         for handle in &handles {
             rasterizers.push(FontRasterizerSelection::get_default().new_rasterizer(&handle)?);

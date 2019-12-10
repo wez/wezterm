@@ -43,16 +43,6 @@ impl HarfbuzzShaper {
         let lib = ftwrap::Library::new()?;
         let mut fonts = vec![];
         for handle in handles {
-            match crate::font::parser::ParsedFont::from_locator(handle) {
-                Ok(p) => {
-                    let names = p.names();
-                    log::error!("name: {:?}", names);
-                }
-                Err(err) => {
-                    log::error!("failed to parse font: {:?} {}", handle, err);
-                }
-            }
-
             let face = lib.face_from_locator(handle)?;
             let mut font = harfbuzz::Font::new(face.face);
             let render_mode = ftwrap::FT_Render_Mode::FT_RENDER_MODE_LIGHT;
