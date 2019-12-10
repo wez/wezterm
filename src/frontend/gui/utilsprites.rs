@@ -1,4 +1,5 @@
 use super::glyphcache::GlyphCache;
+use crate::font::units::*;
 use crate::font::FontConfiguration;
 use ::window::bitmaps::atlas::{OutOfTextureSpace, Sprite};
 use ::window::bitmaps::{BitmapImage, Image, Texture2d};
@@ -8,11 +9,11 @@ use term::Underline;
 
 #[derive(Copy, Clone)]
 pub struct RenderMetrics {
-    pub descender: f64,
-    pub descender_row: isize,
-    pub descender_plus_two: isize,
-    pub underline_height: isize,
-    pub strike_row: isize,
+    pub descender: PixelLength,
+    pub descender_row: IntPixelLength,
+    pub descender_plus_two: IntPixelLength,
+    pub underline_height: IntPixelLength,
+    pub strike_row: IntPixelLength,
     pub cell_size: Size,
 }
 
@@ -23,14 +24,14 @@ impl RenderMetrics {
             .expect("failed to get font metrics!?");
 
         let (cell_height, cell_width) = (
-            metrics.cell_height.ceil() as usize,
-            metrics.cell_width.ceil() as usize,
+            metrics.cell_height.get().ceil() as usize,
+            metrics.cell_width.get().ceil() as usize,
         );
 
-        let underline_height = metrics.underline_thickness.round() as isize;
+        let underline_height = metrics.underline_thickness.get().round() as isize;
 
         let descender_row =
-            (cell_height as f64 + metrics.descender - metrics.underline_position) as isize;
+            (cell_height as f64 + (metrics.descender - metrics.underline_position).get()) as isize;
         let descender_plus_two =
             (2 * underline_height + descender_row).min(cell_height as isize - 1);
         let strike_row = descender_row / 2;

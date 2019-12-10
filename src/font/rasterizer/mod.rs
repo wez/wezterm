@@ -1,4 +1,5 @@
 use crate::font::locator::FontDataHandle;
+use crate::font::units::*;
 use failure::{bail, format_err, Error, Fallible};
 use serde_derive::*;
 use std::sync::Mutex;
@@ -11,8 +12,8 @@ pub struct RasterizedGlyph {
     pub data: Vec<u8>,
     pub height: usize,
     pub width: usize,
-    pub bearing_x: f64,
-    pub bearing_y: f64,
+    pub bearing_x: PixelLength,
+    pub bearing_y: PixelLength,
     pub has_color: bool,
 }
 

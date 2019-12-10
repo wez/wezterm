@@ -1,10 +1,12 @@
 use crate::config::TextStyle;
+use crate::font::units::*;
 use crate::font::{FontConfiguration, GlyphInfo};
 use ::window::bitmaps::atlas::{Atlas, Sprite};
 use ::window::bitmaps::{Image, ImageTexture, Texture2d};
 use ::window::glium::backend::Context as GliumContext;
 use ::window::glium::texture::SrgbTexture2d;
 use ::window::*;
+use euclid::num::Zero;
 use failure::Fallible;
 use std::collections::HashMap;
 use std::rc::Rc;
@@ -22,10 +24,10 @@ pub struct GlyphKey {
 /// The image data may be None for whitespace glyphs.
 pub struct CachedGlyph<T: Texture2d> {
     pub has_color: bool,
-    pub x_offset: f64,
-    pub y_offset: f64,
-    pub bearing_x: f64,
-    pub bearing_y: f64,
+    pub x_offset: PixelLength,
+    pub y_offset: PixelLength,
+    pub bearing_x: PixelLength,
+    pub bearing_y: PixelLength,
     pub texture: Option<Sprite<T>>,
     pub scale: f64,
 }
@@ -111,10 +113,11 @@ impl<T: Texture2d> GlyphCache<T> {
         }
         let (cell_width, cell_height) = (metrics.cell_width, metrics.cell_height);
 
-        let scale = if (info.x_advance / f64::from(info.num_cells)).floor() > cell_width {
-            f64::from(info.num_cells) * (cell_width / info.x_advance)
-        } else if glyph.height as f64 > cell_height {
-            cell_height / glyph.height as f64
+        let scale = if (info.x_advance / f64::from(info.num_cells)).get().floor() > cell_width.get()
+        {
+            f64::from(info.num_cells) * (cell_width / info.x_advance).get()
+        } else if PixelLength::new(glyph.height as f64) > cell_height {
+            cell_height.get() / glyph.height as f64
         } else {
             1.0f64
         };
@@ -125,8 +128,8 @@ impl<T: Texture2d> GlyphCache<T> {
                 texture: None,
                 x_offset: info.x_offset * scale,
                 y_offset: info.y_offset * scale,
-                bearing_x: 0.0,
-                bearing_y: 0.0,
+                bearing_x: PixelLength::zero(),
+                bearing_y: PixelLength::zero(),
                 scale,
             }
         } else {

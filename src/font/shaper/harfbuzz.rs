@@ -2,6 +2,7 @@ use crate::font::ftwrap;
 use crate::font::hbwrap as harfbuzz;
 use crate::font::locator::FontDataHandle;
 use crate::font::shaper::{FallbackIdx, FontMetrics, FontShaper, GlyphInfo};
+use crate::font::units::*;
 use failure::{bail, Fallible};
 use log::{debug, error};
 use std::cell::RefCell;
@@ -21,10 +22,10 @@ fn make_glyphinfo(
         font_idx,
         glyph_pos: info.codepoint,
         cluster: info.cluster,
-        x_advance: f64::from(pos.x_advance) / 64.0,
-        y_advance: f64::from(pos.y_advance) / 64.0,
-        x_offset: f64::from(pos.x_offset) / 64.0,
-        y_offset: f64::from(pos.y_offset) / 64.0,
+        x_advance: PixelLength::new(f64::from(pos.x_advance) / 64.0),
+        y_advance: PixelLength::new(f64::from(pos.y_advance) / 64.0),
+        x_offset: PixelLength::new(f64::from(pos.x_offset) / 64.0),
+        y_offset: PixelLength::new(f64::from(pos.y_offset) / 64.0),
     }
 }
 
@@ -223,15 +224,19 @@ impl FontShaper for HarfbuzzShaper {
         let (cell_width, cell_height) = pair.face.set_font_size(size, dpi)?;
         let y_scale = unsafe { (*(*pair.face.face).size).metrics.y_scale as f64 / 65536.0 };
         Ok(FontMetrics {
-            cell_height,
-            cell_width,
+            cell_height: PixelLength::new(cell_height),
+            cell_width: PixelLength::new(cell_width),
             // Note: face.face.descender is useless, we have to go through
             // face.face.size.metrics to get to the real descender!
-            descender: unsafe { (*(*pair.face.face).size).metrics.descender as f64 } / 64.0,
-            underline_thickness: unsafe { (*pair.face.face).underline_thickness as f64 } * y_scale
-                / 64.,
-            underline_position: unsafe { (*pair.face.face).underline_position as f64 } * y_scale
-                / 64.,
+            descender: PixelLength::new(
+                unsafe { (*(*pair.face.face).size).metrics.descender as f64 } / 64.0,
+            ),
+            underline_thickness: PixelLength::new(
+                unsafe { (*pair.face.face).underline_thickness as f64 } * y_scale / 64.,
+            ),
+            underline_position: PixelLength::new(
+                unsafe { (*pair.face.face).underline_position as f64 } * y_scale / 64.,
+            ),
         })
     }
 }

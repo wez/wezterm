@@ -2,6 +2,7 @@ use super::quad::*;
 use super::renderstate::*;
 use super::utilsprites::RenderMetrics;
 use crate::config::{configuration, ConfigHandle};
+use crate::font::units::*;
 use crate::font::FontConfiguration;
 use crate::frontend::gui::tabbar::{TabBarItem, TabBarState};
 use crate::frontend::{executor, front_end};
@@ -1261,10 +1262,11 @@ impl TermWindow {
                     .borrow_mut()
                     .cached_glyph(info, style)?;
 
-                let left = (glyph.x_offset + glyph.bearing_x) as f32;
-                let top = ((self.render_metrics.cell_size.height as f64
+                let left = (glyph.x_offset + glyph.bearing_x).get() as f32;
+                let top = ((PixelLength::new(self.render_metrics.cell_size.height as f64)
                     + self.render_metrics.descender)
-                    - (glyph.y_offset + glyph.bearing_y)) as f32;
+                    - (glyph.y_offset + glyph.bearing_y))
+                    .get() as f32;
 
                 // underline and strikethrough
                 let underline_tex_rect = gl_state
@@ -1485,10 +1487,11 @@ impl TermWindow {
                 let cell_idx = cluster.byte_to_cell_idx[info.cluster as usize];
                 let glyph = self.render_state.cached_software_glyph(info, style)?;
 
-                let left = (glyph.x_offset + glyph.bearing_x) as f32;
-                let top = ((self.render_metrics.cell_size.height as f64
+                let left = (glyph.x_offset + glyph.bearing_x).get() as f32;
+                let top = ((PixelLength::new(self.render_metrics.cell_size.to_f64().height)
                     + self.render_metrics.descender)
-                    - (glyph.y_offset + glyph.bearing_y)) as f32;
+                    - (glyph.y_offset + glyph.bearing_y))
+                    .get() as f32;
 
                 // underline and strikethrough
                 // Figure out what we're going to draw for the underline.

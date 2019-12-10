@@ -1,5 +1,6 @@
 use crate::font::locator::FontDataHandle;
 use crate::font::rasterizer::FontRasterizer;
+use crate::font::units::*;
 use crate::font::{ftwrap, RasterizedGlyph};
 use ::freetype::FT_GlyphSlotRec_;
 use failure::Fallible;
@@ -90,8 +91,8 @@ impl FreeTypeRasterizer {
             data: rgba,
             height,
             width,
-            bearing_x: ft_glyph.bitmap_left as f64,
-            bearing_y: ft_glyph.bitmap_top as f64,
+            bearing_x: PixelLength::new(ft_glyph.bitmap_left as f64),
+            bearing_y: PixelLength::new(ft_glyph.bitmap_top as f64),
             has_color: false,
         }
     }
@@ -122,8 +123,8 @@ impl FreeTypeRasterizer {
             data: rgba,
             height,
             width,
-            bearing_x: ft_glyph.bitmap_left as f64,
-            bearing_y: ft_glyph.bitmap_top as f64,
+            bearing_x: PixelLength::new(ft_glyph.bitmap_left as f64),
+            bearing_y: PixelLength::new(ft_glyph.bitmap_top as f64),
             has_color: false,
         }
     }
@@ -157,8 +158,8 @@ impl FreeTypeRasterizer {
             data: rgba,
             height,
             width,
-            bearing_x: ft_glyph.bitmap_left as f64,
-            bearing_y: ft_glyph.bitmap_top as f64,
+            bearing_x: PixelLength::new(ft_glyph.bitmap_left as f64),
+            bearing_y: PixelLength::new(ft_glyph.bitmap_top as f64),
             has_color: self.has_color,
         }
     }
@@ -249,17 +250,21 @@ impl FreeTypeRasterizer {
             data: rgba,
             height: dest_height,
             width: dest_width,
-            bearing_x: (f64::from(ft_glyph.bitmap_left) * (dest_width as f64 / width as f64)),
+            bearing_x: PixelLength::new(
+                f64::from(ft_glyph.bitmap_left) * (dest_width as f64 / width as f64),
+            ),
 
             // Fudge alert: this is font specific: I've found
             // that the emoji font on macOS doesn't account for the
             // descender in its metrics, so we're adding that offset
             // here to avoid rendering the glyph too high
-            bearing_y: if cfg!(target_os = "macos") {
-                descender
-            } else {
-                0.
-            } + (f64::from(ft_glyph.bitmap_top) * (dest_height as f64 / height as f64)),
+            bearing_y: PixelLength::new(
+                if cfg!(target_os = "macos") {
+                    descender
+                } else {
+                    0.
+                } + (f64::from(ft_glyph.bitmap_top) * (dest_height as f64 / height as f64)),
+            ),
 
             has_color: self.has_color,
         }

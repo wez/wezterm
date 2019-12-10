@@ -1,4 +1,5 @@
 use crate::font::locator::FontDataHandle;
+use crate::font::units::PixelLength;
 use failure::{format_err, Error, Fallible};
 use serde_derive::*;
 use std::sync::Mutex;
@@ -20,13 +21,13 @@ pub struct GlyphInfo {
     /// Which freetype glyph to load
     pub glyph_pos: u32,
     /// How far to advance the render cursor after drawing this glyph
-    pub x_advance: f64,
+    pub x_advance: PixelLength,
     /// How far to advance the render cursor after drawing this glyph
-    pub y_advance: f64,
+    pub y_advance: PixelLength,
     /// Destination render offset
-    pub x_offset: f64,
+    pub x_offset: PixelLength,
     /// Destination render offset
-    pub y_offset: f64,
+    pub y_offset: PixelLength,
 }
 
 /// Represents a numbered index in the fallback sequence for a `NamedFont`.
@@ -35,22 +36,22 @@ pub struct GlyphInfo {
 pub type FallbackIdx = usize;
 
 /// Describes the key font metrics that we use in rendering
-#[derive(Copy, Clone, Debug, Default)]
+#[derive(Copy, Clone, Debug)]
 pub struct FontMetrics {
     /// Width of a character cell in pixels
-    pub cell_width: f64,
+    pub cell_width: PixelLength,
     /// Height of a character cell in pixels
-    pub cell_height: f64,
+    pub cell_height: PixelLength,
     /// Added to the bottom y coord to find the baseline.
     /// descender is typically negative.
-    pub descender: f64,
+    pub descender: PixelLength,
 
     /// Vertical size of underline/strikethrough in pixels
-    pub underline_thickness: f64,
+    pub underline_thickness: PixelLength,
 
     /// Position of underline relative to descender. Negative
     /// values are below the descender.
-    pub underline_position: f64,
+    pub underline_position: PixelLength,
 }
 
 pub trait FontShaper {
