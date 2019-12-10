@@ -1,6 +1,7 @@
 //! This module uses the allsorts crate to parse font data.
 //! At this time it is used only to extract name information,
 //! but in the future I'd like to use its shaping functionality
+#![allow(dead_code)]
 use crate::config::Config;
 use crate::config::FontAttributes;
 use crate::font::locator::FontDataHandle;

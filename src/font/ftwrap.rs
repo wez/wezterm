@@ -197,19 +197,6 @@ impl Library {
         }
     }
 
-    #[cfg(any(target_os = "macos", windows))]
-    pub fn load_font_kit_handle(&self, handle: &font_kit::handle::Handle) -> Result<Face, Error> {
-        use font_kit::handle::Handle;
-        match handle {
-            Handle::Path { path, font_index } => {
-                self.new_face(path.to_str().unwrap(), *font_index as _)
-            }
-            Handle::Memory { bytes, font_index } => {
-                self.new_face_from_slice(&bytes, *font_index as _)
-            }
-        }
-    }
-
     #[allow(dead_code)]
     pub fn new_face<P>(&self, path: P, face_index: FT_Long) -> Result<Face, Error>
     where

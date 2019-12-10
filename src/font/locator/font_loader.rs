@@ -1,5 +1,5 @@
 use crate::config::FontAttributes;
-use crate::font::loader::{FontDataHandle, FontLocator};
+use crate::font::locator::{FontDataHandle, FontLocator};
 use ::font_loader::system_fonts;
 use failure::Fallible;
 

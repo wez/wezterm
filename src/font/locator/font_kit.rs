@@ -1,13 +1,10 @@
 use crate::config::FontAttributes;
-use crate::font::loader::{FontDataHandle, FontLocator};
-use ::font_kit::error::SelectionError;
-use ::font_kit::family_handle::FamilyHandle;
+use crate::font::locator::{FontDataHandle, FontLocator};
 use ::font_kit::family_name::FamilyName;
 use ::font_kit::handle::Handle;
 use ::font_kit::properties::Properties;
 use ::font_kit::source::Source;
 use failure::Fallible;
-use std::path::PathBuf;
 
 /// A FontLocator implemented using the font loading
 /// functions provided by Source's from font-kit crate.
