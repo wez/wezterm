@@ -22,6 +22,23 @@ pub enum FontDataHandle {
     Memory { data: Vec<u8>, index: u32 },
 }
 
+impl std::fmt::Debug for FontDataHandle {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+        match self {
+            Self::OnDisk { path, index } => fmt
+                .debug_struct("OnDisk")
+                .field("path", &path)
+                .field("index", &index)
+                .finish(),
+            Self::Memory { data, index } => fmt
+                .debug_struct("Memory")
+                .field("data_len", &data.len())
+                .field("index", &index)
+                .finish(),
+        }
+    }
+}
+
 pub trait FontLocator {
     /// Given a font selection, return the list of successfully loadable
     /// FontDataHandle's that correspond to it

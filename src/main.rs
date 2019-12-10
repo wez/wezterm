@@ -1,6 +1,9 @@
 // Don't create a new standard console window when launched from the windows GUI.
 #![windows_subsystem = "windows"]
 
+#[macro_use]
+extern crate rental;
+
 use failure::{err_msg, format_err, Error, Fallible};
 use promise::Future;
 use std::ffi::OsString;

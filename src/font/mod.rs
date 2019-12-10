@@ -7,6 +7,7 @@ use std::rc::Rc;
 
 pub mod ftwrap;
 pub mod loader;
+pub mod parser;
 pub mod rasterizer;
 pub mod shaper;
 
