@@ -1,6 +1,6 @@
 use crate::font::ftwrap;
 use crate::font::hbwrap as harfbuzz;
-use crate::font::loader::FontDataHandle;
+use crate::font::locator::FontDataHandle;
 use crate::font::shaper::{FallbackIdx, FontMetrics, FontShaper, GlyphInfo};
 use failure::{bail, Fallible};
 use log::{debug, error};

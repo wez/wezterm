@@ -1,6 +1,6 @@
 //! Higher level freetype bindings
 
-use crate::font::loader::FontDataHandle;
+use crate::font::locator::FontDataHandle;
 use failure::{bail, format_err, Error, Fallible, ResultExt};
 pub use freetype::*;
 use std::ffi::CString;

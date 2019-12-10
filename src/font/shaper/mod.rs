@@ -1,4 +1,4 @@
-use crate::font::loader::FontDataHandle;
+use crate::font::locator::FontDataHandle;
 use failure::{format_err, Error, Fallible};
 use serde_derive::*;
 use std::sync::Mutex;

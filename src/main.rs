@@ -38,7 +38,7 @@ use portable_pty::cmdbuilder::CommandBuilder;
 use portable_pty::PtySize;
 
 mod font;
-use crate::font::loader::FontLocatorSelection;
+use crate::font::locator::FontLocatorSelection;
 use crate::font::rasterizer::FontRasterizerSelection;
 use crate::font::shaper::FontShaperSelection;
 use crate::font::FontConfiguration;

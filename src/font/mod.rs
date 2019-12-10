@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use std::rc::Rc;
 
 pub mod ftwrap;
-pub mod loader;
+pub mod locator;
 pub mod parser;
 pub mod rasterizer;
 pub mod shaper;
@@ -14,7 +14,7 @@ pub mod shaper;
 #[cfg(all(unix, any(feature = "fontconfig", not(target_os = "macos"))))]
 pub mod fcwrap;
 
-use crate::font::loader::{FontLocator, FontLocatorSelection};
+use crate::font::locator::{FontLocator, FontLocatorSelection};
 pub use crate::font::rasterizer::RasterizedGlyph;
 use crate::font::rasterizer::{FontRasterizer, FontRasterizerSelection};
 pub use crate::font::shaper::{FallbackIdx, FontMetrics, GlyphInfo};
@@ -60,16 +60,16 @@ pub struct FontConfiguration {
     dpi_scale: RefCell<f64>,
     font_scale: RefCell<f64>,
     config_generation: RefCell<usize>,
-    loader: Box<dyn FontLocator>,
+    locator: Box<dyn FontLocator>,
 }
 
 impl FontConfiguration {
     /// Create a new empty configuration
     pub fn new() -> Self {
-        let loader = FontLocatorSelection::get_default().new_locator();
+        let locator = FontLocatorSelection::get_default().new_locator();
         Self {
             fonts: RefCell::new(HashMap::new()),
-            loader,
+            locator,
             metrics: RefCell::new(None),
             font_scale: RefCell::new(1.0),
             dpi_scale: RefCell::new(1.0),
@@ -96,7 +96,7 @@ impl FontConfiguration {
         }
 
         let attributes = style.font_with_fallback();
-        let handles = self.loader.load_fonts(&attributes)?;
+        let handles = self.locator.load_fonts(&attributes)?;
         let mut rasterizers = vec![];
         for handle in &handles {
             rasterizers.push(FontRasterizerSelection::get_default().new_rasterizer(&handle)?);

@@ -1,7 +1,7 @@
 //! Configuration for the gui portion of the terminal
 
 use crate::create_user_owned_dirs;
-use crate::font::loader::FontLocatorSelection;
+use crate::font::locator::FontLocatorSelection;
 use crate::font::rasterizer::FontRasterizerSelection;
 use crate::font::shaper::FontShaperSelection;
 use crate::frontend::FrontEndSelection;

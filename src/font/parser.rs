@@ -1,7 +1,7 @@
 //! This module uses the allsorts crate to parse font data.
 //! At this time it is used only to extract name information,
 //! but in the future I'd like to use its shaping functionality
-use crate::font::loader::FontDataHandle;
+use crate::font::locator::FontDataHandle;
 use allsorts::fontfile::FontFile;
 use allsorts::tables::{
     FontTableProvider, HeadTable, MaxpTable, NameTable, OffsetTable, OpenTypeFont, TTCHeader,

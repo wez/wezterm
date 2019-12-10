@@ -1,4 +1,4 @@
-use crate::font::loader::FontDataHandle;
+use crate::font::locator::FontDataHandle;
 use crate::font::rasterizer::FontRasterizer;
 use crate::font::{ftwrap, RasterizedGlyph};
 use ::freetype::FT_GlyphSlotRec_;
