@@ -5,6 +5,7 @@
 use crate::config::Config;
 use crate::config::FontAttributes;
 use crate::font::locator::FontDataHandle;
+use allsorts::binary::read::{ReadScope, ReadScopeOwned};
 use allsorts::fontfile::FontFile;
 use allsorts::tables::{
     FontTableProvider, HeadTable, MaxpTable, NameTable, OffsetTable, OpenTypeFont, TTCHeader,
@@ -16,8 +17,11 @@ use std::path::{Path, PathBuf};
 /// Represents a parsed font
 pub struct ParsedFont {
     index: usize,
-    file: gah::OwnedFontFile,
+    file: FontFile<'static>,
     names: Names,
+
+    // Must be last: this keeps the 'static items alive
+    _scope: ReadScopeOwned,
 }
 
 #[derive(Debug)]
@@ -97,44 +101,25 @@ impl ParsedFont {
 
         let index = index as usize;
 
-        let file = parse(data)?;
+        let owned_scope = ReadScopeOwned::new(ReadScope::new(&data));
 
-        let names = file.rent(|file| -> Fallible<Names> {
-            let name_table = name_table_data(file, index)?;
-            let names = Names::from_name_table_data(name_table)?;
-            Ok(names)
-        })?;
+        let file: FontFile<'static> =
+            unsafe { std::mem::transmute(owned_scope.scope().read::<FontFile>()?) };
 
-        Ok(Self { index, file, names })
+        let name_table = name_table_data(&file, index)?;
+        let names = Names::from_name_table_data(name_table)?;
+
+        Ok(Self {
+            index,
+            file,
+            names,
+            _scope: owned_scope,
+        })
     }
 
     pub fn names(&self) -> &Names {
         &self.names
     }
-}
-
-rental! {
-    /// This is horrible, but I don't see an obvious way to
-    /// end up with an owned FontFile instance from the standard
-    /// set of functions exported by allsorts
-    mod gah {
-        use super::*;
-        #[rental]
-        pub struct OwnedFontFile {
-            head: Vec<u8>,
-            file: FontFile<'head>,
-        }
-    }
-}
-
-/// Parse bytes into an OwnedFontFile
-fn parse(data: Vec<u8>) -> Fallible<gah::OwnedFontFile> {
-    gah::OwnedFontFile::try_new(data, |data| {
-        let scope = allsorts::binary::read::ReadScope::new(&data);
-        let file = scope.read::<FontFile>()?;
-        Ok(file)
-    })
-    .map_err(|e| e.0)
 }
 
 fn collect_font_info(

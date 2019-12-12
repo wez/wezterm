@@ -32,7 +32,6 @@ leb128 = "0.2"
 libc = "0.2"
 log = "0.4"
 open = "1.2"
-rental = "0.5"
 native-tls = "0.2"
 # file change notification
 notify = "4.0"
