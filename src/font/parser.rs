@@ -8,7 +8,8 @@ use crate::font::locator::FontDataHandle;
 use allsorts::binary::read::{ReadScope, ReadScopeOwned};
 use allsorts::fontfile::FontFile;
 use allsorts::tables::{
-    FontTableProvider, HeadTable, MaxpTable, NameTable, OffsetTable, OpenTypeFont, TTCHeader,
+    FontTableProvider, HeadTable, MaxpTable, NameTable, OffsetTable, OpenTypeFile, OpenTypeFont,
+    TTCHeader,
 };
 use failure::{bail, format_err, Fallible};
 use std::convert::TryInto;
@@ -17,7 +18,8 @@ use std::path::{Path, PathBuf};
 /// Represents a parsed font
 pub struct ParsedFont {
     index: usize,
-    file: FontFile<'static>,
+    file: OpenTypeFile<'static>,
+    otf: OffsetTable<'static>,
     names: Names,
 
     // Must be last: this keeps the 'static items alive
@@ -103,15 +105,17 @@ impl ParsedFont {
 
         let owned_scope = ReadScopeOwned::new(ReadScope::new(&data));
 
-        let file: FontFile<'static> =
-            unsafe { std::mem::transmute(owned_scope.scope().read::<FontFile>()?) };
+        let file: OpenTypeFile<'static> =
+            unsafe { std::mem::transmute(owned_scope.scope().read::<OpenTypeFile>()?) };
 
-        let name_table = name_table_data(&file, index)?;
+        let otf = locate_offset_table(&file, index)?;
+        let name_table = name_table_data(&otf, &file.scope)?;
         let names = Names::from_name_table_data(name_table)?;
 
         Ok(Self {
             index,
             file,
+            otf,
             names,
             _scope: owned_scope,
         })
@@ -160,61 +164,55 @@ fn parse_and_collect_font_info(
 ) -> Fallible<()> {
     let data = std::fs::read(path)?;
     let scope = allsorts::binary::read::ReadScope::new(&data);
-    let file = scope.read::<FontFile>()?;
+    let file = scope.read::<OpenTypeFile>()?;
 
-    match file {
-        FontFile::OpenType(f) => match &f.font {
-            OpenTypeFont::Single(ttf) => {
+    match &file.font {
+        OpenTypeFont::Single(ttf) => {
+            let data = ttf
+                .read_table(&file.scope, allsorts::tag::NAME)?
+                .ok_or_else(|| format_err!("name table is not present"))?;
+            collect_font_info(data.data(), path, 0, font_info)?;
+        }
+        OpenTypeFont::Collection(ttc) => {
+            for (index, offset_table_offset) in ttc.offset_tables.iter().enumerate() {
+                let ttf = file
+                    .scope
+                    .offset(offset_table_offset as usize)
+                    .read::<OffsetTable>()?;
                 let data = ttf
-                    .read_table(&f.scope, allsorts::tag::NAME)?
+                    .read_table(&file.scope, allsorts::tag::NAME)?
                     .ok_or_else(|| format_err!("name table is not present"))?;
-                collect_font_info(data.data(), path, 0, font_info)?;
+                collect_font_info(data.data(), path, index, font_info).ok();
             }
-            OpenTypeFont::Collection(ttc) => {
-                for (index, offset_table_offset) in ttc.offset_tables.iter().enumerate() {
-                    let ttf = f
-                        .scope
-                        .offset(offset_table_offset as usize)
-                        .read::<OffsetTable>()?;
-                    let data = ttf
-                        .read_table(&f.scope, allsorts::tag::NAME)?
-                        .ok_or_else(|| format_err!("name table is not present"))?;
-                    collect_font_info(data.data(), path, index, font_info).ok();
-                }
-            }
-        },
-        _ => bail!("WOFFs not supported"),
+        }
     }
 
     Ok(())
 }
 
-/// Extract the name table data from a font
-fn name_table_data<'a>(font_file: &FontFile<'a>, idx: usize) -> Fallible<&'a [u8]> {
-    match font_file {
-        FontFile::OpenType(f) => match &f.font {
-            OpenTypeFont::Single(ttf) => {
-                let data = ttf
-                    .read_table(&f.scope, allsorts::tag::NAME)?
-                    .ok_or_else(|| format_err!("name table is not present"))?;
-                Ok(data.data())
-            }
-            OpenTypeFont::Collection(ttc) => {
-                let offset_table_offset = ttc.offset_tables.read_item(idx).map_err(|e| {
-                    format_err!("font idx={} is not present in ttc file: {}", idx, e)
-                })?;
-                let ttf = f
-                    .scope
-                    .offset(offset_table_offset as usize)
-                    .read::<OffsetTable>()?;
-                let data = ttf
-                    .read_table(&f.scope, allsorts::tag::NAME)?
-                    .ok_or_else(|| format_err!("name table is not present"))?;
-                Ok(data.data())
-            }
-        },
-        _ => bail!("WOFFs not supported"),
+fn locate_offset_table<'a>(f: &OpenTypeFile<'a>, idx: usize) -> Fallible<OffsetTable<'a>> {
+    match &f.font {
+        OpenTypeFont::Single(ttf) => Ok(ttf.clone()),
+        OpenTypeFont::Collection(ttc) => {
+            let offset_table_offset = ttc
+                .offset_tables
+                .read_item(idx)
+                .map_err(|e| format_err!("font idx={} is not present in ttc file: {}", idx, e))?;
+            let ttf = f
+                .scope
+                .offset(offset_table_offset as usize)
+                .read::<OffsetTable>()?;
+            Ok(ttf.clone())
+        }
     }
+}
+
+/// Extract the name table data from a font
+fn name_table_data<'a>(otf: &OffsetTable<'a>, scope: &ReadScope<'a>) -> Fallible<&'a [u8]> {
+    let data = otf
+        .read_table(scope, allsorts::tag::NAME)?
+        .ok_or_else(|| format_err!("name table is not present"))?;
+    Ok(data.data())
 }
 
 /// Extract a name from the name table
