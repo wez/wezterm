@@ -5,22 +5,36 @@
 use crate::config::Config;
 use crate::config::FontAttributes;
 use crate::font::locator::FontDataHandle;
+use crate::font::shaper::{FallbackIdx, FontMetrics, GlyphInfo};
 use allsorts::binary::read::{ReadScope, ReadScopeOwned};
+use allsorts::font_data_impl::read_cmap_subtable;
 use allsorts::fontfile::FontFile;
+use allsorts::gpos::{gpos_apply, Info, Placement};
+use allsorts::gsub::{gsub_apply_default, GlyphOrigin, RawGlyph};
+use allsorts::layout::{new_layout_cache, GDEFTable, LayoutCache, LayoutTable, GPOS, GSUB};
+use allsorts::tables::cmap::{Cmap, CmapSubtable};
 use allsorts::tables::{
-    FontTableProvider, HeadTable, MaxpTable, NameTable, OffsetTable, OpenTypeFile, OpenTypeFont,
-    TTCHeader,
+    FontTableProvider, HeadTable, HheaTable, HmtxTable, MaxpTable, NameTable, OffsetTable,
+    OpenTypeFile, OpenTypeFont, TTCHeader,
 };
+use allsorts::tag;
 use failure::{bail, format_err, Fallible};
 use std::convert::TryInto;
 use std::path::{Path, PathBuf};
 
 /// Represents a parsed font
 pub struct ParsedFont {
-    index: usize,
-    file: OpenTypeFile<'static>,
     otf: OffsetTable<'static>,
     names: Names,
+
+    cmap_subtable: CmapSubtable<'static>,
+    gpos_cache: Option<LayoutCache<GPOS>>,
+    gsub_cache: LayoutCache<GSUB>,
+    gdef_table: Option<GDEFTable>,
+    hmtx: HmtxTable<'static>,
+    hhea: HheaTable,
+    num_glyphs: u16,
+    units_per_em: u16,
 
     // Must be last: this keeps the 'static items alive
     _scope: ReadScopeOwned,
@@ -105,6 +119,10 @@ impl ParsedFont {
 
         let owned_scope = ReadScopeOwned::new(ReadScope::new(&data));
 
+        // This unsafe block and transmute are present so that we can
+        // extend the lifetime of the OpenTypeFile that we produce here.
+        // That in turn allows us to store all of these derived items
+        // into a struct and manage their lifetimes together.
         let file: OpenTypeFile<'static> =
             unsafe { std::mem::transmute(owned_scope.scope().read::<OpenTypeFile>()?) };
 
@@ -112,17 +130,81 @@ impl ParsedFont {
         let name_table = name_table_data(&otf, &file.scope)?;
         let names = Names::from_name_table_data(name_table)?;
 
+        let head = otf
+            .read_table(&file.scope, tag::HEAD)?
+            .ok_or_else(|| format_err!("HEAD table missing or broken"))?
+            .read::<HeadTable>()?;
+        let cmap = otf
+            .read_table(&file.scope, tag::CMAP)?
+            .ok_or_else(|| format_err!("CMAP table missing or broken"))?
+            .read::<Cmap>()?;
+        let cmap_subtable: CmapSubtable<'static> =
+            read_cmap_subtable(&cmap)?.ok_or_else(|| format_err!("CMAP subtable not found"))?;
+
+        let maxp = otf
+            .read_table(&file.scope, tag::MAXP)?
+            .ok_or_else(|| format_err!("MAXP table not found"))?
+            .read::<MaxpTable>()?;
+        let num_glyphs = maxp.num_glyphs;
+
+        let hhea = otf
+            .read_table(&file.scope, tag::HHEA)?
+            .ok_or_else(|| format_err!("HHEA table not found"))?
+            .read::<HheaTable>()?;
+        let hmtx = otf
+            .read_table(&file.scope, tag::HMTX)?
+            .ok_or_else(|| format_err!("HMTX table not found"))?
+            .read_dep::<HmtxTable>((
+                usize::from(maxp.num_glyphs),
+                usize::from(hhea.num_h_metrics),
+            ))?;
+
+        let gsub_table = otf
+            .find_table_record(tag::GSUB)
+            .ok_or_else(|| format_err!("GSUB table record not found"))?
+            .read_table(&file.scope)?
+            .read::<LayoutTable<GSUB>>()?;
+        let gdef_table: Option<GDEFTable> = otf
+            .find_table_record(tag::GDEF)
+            .map(|gdef_record| -> Fallible<GDEFTable> {
+                Ok(gdef_record.read_table(&file.scope)?.read::<GDEFTable>()?)
+            })
+            .transpose()?;
+        let opt_gpos_table = otf
+            .find_table_record(tag::GPOS)
+            .map(|gpos_record| -> Fallible<LayoutTable<GPOS>> {
+                Ok(gpos_record
+                    .read_table(&file.scope)?
+                    .read::<LayoutTable<GPOS>>()?)
+            })
+            .transpose()?;
+        let gsub_cache = new_layout_cache(gsub_table);
+        let gpos_cache = opt_gpos_table.map(new_layout_cache);
+
         Ok(Self {
-            index,
-            file,
             otf,
             names,
+            cmap_subtable,
+            hmtx,
+            hhea,
+            gpos_cache,
+            gsub_cache,
+            gdef_table,
+            num_glyphs,
+            units_per_em: head.units_per_em,
             _scope: owned_scope,
         })
     }
 
     pub fn names(&self) -> &Names {
         &self.names
+    }
+
+    /// Resolve a char to the corresponding glyph in the font
+    pub fn glyph_index_for_char(&self, c: char) -> Fallible<Option<u16>> {
+        self.cmap_subtable
+            .map_glyph(c as u32)
+            .map_err(|e| format_err!("Error while looking up glyph {}: {}", c, e))
     }
 }
 
