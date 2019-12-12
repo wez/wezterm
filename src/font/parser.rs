@@ -6,12 +6,14 @@ use crate::config::Config;
 use crate::config::FontAttributes;
 use crate::font::locator::FontDataHandle;
 use crate::font::shaper::{FallbackIdx, FontMetrics, GlyphInfo};
+use crate::font::units::*;
 use allsorts::binary::read::{ReadScope, ReadScopeOwned};
 use allsorts::font_data_impl::read_cmap_subtable;
 use allsorts::fontfile::FontFile;
 use allsorts::gpos::{gpos_apply, Info, Placement};
 use allsorts::gsub::{gsub_apply_default, GlyphOrigin, RawGlyph};
 use allsorts::layout::{new_layout_cache, GDEFTable, LayoutCache, LayoutTable, GPOS, GSUB};
+use allsorts::post::PostTable;
 use allsorts::tables::cmap::{Cmap, CmapSubtable};
 use allsorts::tables::{
     FontTableProvider, HeadTable, HheaTable, HmtxTable, MaxpTable, NameTable, OffsetTable,
@@ -21,6 +23,13 @@ use allsorts::tag;
 use failure::{bail, format_err, Fallible};
 use std::convert::TryInto;
 use std::path::{Path, PathBuf};
+use termwiz::cell::unicode_column_width;
+
+#[derive(Debug)]
+enum MaybeShaped {
+    Resolved(GlyphInfo),
+    Unresolved(RawGlyph<()>),
+}
 
 /// Represents a parsed font
 pub struct ParsedFont {
@@ -32,6 +41,7 @@ pub struct ParsedFont {
     gsub_cache: LayoutCache<GSUB>,
     gdef_table: Option<GDEFTable>,
     hmtx: HmtxTable<'static>,
+    post: PostTable<'static>,
     hhea: HheaTable,
     num_glyphs: u16,
     units_per_em: u16,
@@ -147,6 +157,11 @@ impl ParsedFont {
             .read::<MaxpTable>()?;
         let num_glyphs = maxp.num_glyphs;
 
+        let post = otf
+            .read_table(&file.scope, tag::POST)?
+            .ok_or_else(|| format_err!("POST table not found"))?
+            .read::<PostTable>()?;
+
         let hhea = otf
             .read_table(&file.scope, tag::HHEA)?
             .ok_or_else(|| format_err!("HHEA table not found"))?
@@ -185,6 +200,7 @@ impl ParsedFont {
             otf,
             names,
             cmap_subtable,
+            post,
             hmtx,
             hhea,
             gpos_cache,
@@ -205,6 +221,151 @@ impl ParsedFont {
         self.cmap_subtable
             .map_glyph(c as u32)
             .map_err(|e| format_err!("Error while looking up glyph {}: {}", c, e))
+    }
+
+    pub fn get_metrics(&self, point_size: f64, dpi: u32) -> FontMetrics {
+        let pixel_scale = (dpi as f64 / 72.) * point_size / self.units_per_em as f64;
+        let underline_thickness =
+            PixelLength::new(self.post.header.underline_thickness as f64 * pixel_scale);
+        let underline_position =
+            PixelLength::new(self.post.header.underline_position as f64 * pixel_scale);
+        let descender = PixelLength::new(self.hhea.descender as f64 * pixel_scale);
+        let cell_height = PixelLength::new(self.hhea.line_gap as f64 * pixel_scale);
+
+        // FIXME: for freetype/harfbuzz, we look at a number of glyphs and compute this for
+        // ourselves
+        let cell_width = PixelLength::new(self.hhea.advance_width_max as f64 * pixel_scale);
+
+        FontMetrics {
+            cell_width,
+            cell_height,
+            descender,
+            underline_thickness,
+            underline_position,
+        }
+    }
+
+    pub fn shape_text<T: AsRef<str>>(
+        &self,
+        text: T,
+        font_index: usize,
+        script: u32,
+        lang: u32,
+        point_size: f64,
+        dpi: u32,
+    ) -> Fallible<Vec<MaybeShaped>> {
+        let mut glyphs = vec![];
+        for c in text.as_ref().chars() {
+            glyphs.push(RawGlyph {
+                unicodes: vec![c],
+                glyph_index: self.glyph_index_for_char(c)?,
+                liga_component_pos: 0,
+                glyph_origin: GlyphOrigin::Char(c),
+                small_caps: false,
+                multi_subst_dup: false,
+                is_vert_alt: false,
+                fake_bold: false,
+                fake_italic: false,
+                extra_data: (),
+            });
+        }
+
+        let vertical = false;
+
+        gsub_apply_default(
+            &|| vec![], //map_char('\u{25cc}')],
+            &self.gsub_cache,
+            self.gdef_table.as_ref(),
+            script,
+            lang,
+            vertical,
+            self.num_glyphs,
+            &mut glyphs,
+        )?;
+
+        // Note: init_from_glyphs silently elides entries that
+        // have no glyph in the current font!  we need to deal
+        // with this so that we can perform font fallback, so
+        // we pass a copy of the glyphs here and detect this
+        // during below.
+        let mut infos = Info::init_from_glyphs(self.gdef_table.as_ref(), glyphs.clone())?;
+        if let Some(gpos_cache) = self.gpos_cache.as_ref() {
+            let kerning = true;
+
+            gpos_apply(
+                gpos_cache,
+                self.gdef_table.as_ref(),
+                kerning,
+                script,
+                lang,
+                &mut infos,
+            )?;
+        }
+
+        let mut pos = Vec::new();
+        let mut glyph_iter = glyphs.into_iter();
+
+        for (cluster, glyph_info) in infos.into_iter().enumerate() {
+            let mut input_glyph = glyph_iter
+                .next()
+                .ok_or_else(|| format_err!("more output infos than input glyphs!"))?;
+
+            while input_glyph.unicodes != glyph_info.glyph.unicodes {
+                // Info::init_from_glyphs skipped the input glyph, so let's be
+                // sure to emit a placeholder for it
+                pos.push(MaybeShaped::Unresolved(input_glyph));
+
+                input_glyph = glyph_iter.next().ok_or_else(|| {
+                    format_err!("more output infos than input glyphs! (loop bottom)")
+                })?;
+            }
+
+            let glyph_index = glyph_info
+                .glyph
+                .glyph_index
+                .ok_or_else(|| format_err!("no mapped glyph_index for {:?}", glyph_info))?;
+
+            let horizontal_advance = i32::from(
+                self.hmtx
+                    .horizontal_advance(glyph_index, self.hhea.num_h_metrics)?,
+            );
+
+            /*
+            let width = if glyph_info.kerning != 0 {
+                horizontal_advance + i32::from(glyph_info.kerning)
+            } else {
+                horizontal_advance
+            };
+            */
+
+            // Adjust for distance placement
+            let (x_advance, y_advance) = match glyph_info.placement {
+                Placement::Distance(dx, dy) => (horizontal_advance + dx, dy),
+                Placement::Anchor(_, _) | Placement::None => (horizontal_advance, 0),
+            };
+
+            let pixel_scale = (dpi as f64 / 72.) * point_size / self.units_per_em as f64;
+            let x_advance = PixelLength::new(x_advance as f64 * pixel_scale);
+            let y_advance = PixelLength::new(y_advance as f64 * pixel_scale);
+
+            let text: String = glyph_info.glyph.unicodes.iter().collect();
+            let num_cells = unicode_column_width(&text);
+
+            pos.push(MaybeShaped::Resolved(GlyphInfo {
+                #[cfg(debug_assertions)]
+                text,
+                cluster: cluster as u32,
+                num_cells: num_cells as u8,
+                font_idx: font_index,
+                glyph_pos: glyph_index as u32,
+                x_advance,
+                y_advance,
+                x_offset: PixelLength::new(0.),
+                y_offset: PixelLength::new(0.),
+            }));
+        }
+
+        Ok(pos)
     }
 }
 
