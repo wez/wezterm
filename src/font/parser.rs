@@ -236,7 +236,7 @@ impl ParsedFont {
         let cell_height = PixelLength::new(
             (self.hhea.ascender - self.hhea.descender + self.hhea.line_gap) as f64 * pixel_scale,
         );
-        log::error!(
+        log::trace!(
             "hhea: ascender={} descender={} line_gap={} \
              advance_width_max={} min_lsb={} min_rsb={} \
              x_max_extent={}",
@@ -261,7 +261,11 @@ impl ParsedFont {
                 }
             }
         }
-        let cell_width = PixelLength::new(cell_width as f64) * pixel_scale;
+        let cell_width = PixelLength::new(
+            (PixelLength::new(cell_width as f64) * pixel_scale)
+                .get()
+                .floor(),
+        );
 
         let metrics = FontMetrics {
             cell_width,
@@ -271,7 +275,7 @@ impl ParsedFont {
             underline_position,
         };
 
-        log::error!("metrics: {:?}", metrics);
+        log::trace!("metrics: {:?}", metrics);
 
         metrics
     }
@@ -398,15 +402,6 @@ impl ParsedFont {
 
             // let num_cells = glyph_info.glyph.unicodes.len();
             let num_cells = unicode_column_width(&text);
-            if num_cells != 1 {
-                log::error!(
-                    "x_advance={} num_cells={} font_idx={} kern={}",
-                    x_advance,
-                    num_cells,
-                    font_index,
-                    glyph_info.kerning
-                );
-            }
 
             let info = GlyphInfo {
                 #[cfg(debug_assertions)]
@@ -422,10 +417,6 @@ impl ParsedFont {
             };
 
             cluster += text_len;
-
-            if num_cells != 1 {
-                log::error!("{:?}", info);
-            }
 
             pos.push(MaybeShaped::Resolved(info));
         }

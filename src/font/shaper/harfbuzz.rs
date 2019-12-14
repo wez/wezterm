@@ -223,7 +223,7 @@ impl FontShaper for HarfbuzzShaper {
         let mut pair = self.fonts[0].borrow_mut();
         let (cell_width, cell_height) = pair.face.set_font_size(size, dpi)?;
         let y_scale = unsafe { (*(*pair.face.face).size).metrics.y_scale as f64 / 65536.0 };
-        Ok(FontMetrics {
+        let metrics = FontMetrics {
             cell_height: PixelLength::new(cell_height),
             cell_width: PixelLength::new(cell_width),
             // Note: face.face.descender is useless, we have to go through
@@ -237,6 +237,10 @@ impl FontShaper for HarfbuzzShaper {
             underline_position: PixelLength::new(
                 unsafe { (*pair.face.face).underline_position as f64 } * y_scale / 64.,
             ),
-        })
+        };
+
+        log::trace!("metrics: {:?}", metrics);
+
+        Ok(metrics)
     }
 }

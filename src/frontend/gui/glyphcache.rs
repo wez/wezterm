@@ -126,10 +126,10 @@ impl<T: Texture2d> GlyphCache<T> {
             glyph = font.rasterize_glyph(info.glyph_pos, info.font_idx)?;
         }
         let (cell_width, cell_height) = (metrics.cell_width, metrics.cell_height);
+        let nominal_width = cell_width.get() * info.num_cells as f64;
 
-        let scale = if (info.x_advance / f64::from(info.num_cells)).get().floor() > cell_width.get()
-        {
-            f64::from(info.num_cells) * (cell_width / info.x_advance).get()
+        let scale = if glyph.width as f64 > nominal_width {
+            nominal_width / glyph.width as f64
         } else if PixelLength::new(glyph.height as f64) > cell_height {
             cell_height.get() / glyph.height as f64
         } else {
@@ -167,7 +167,7 @@ impl<T: Texture2d> GlyphCache<T> {
 
             let tex = self.atlas.allocate(&raw_im)?;
 
-            CachedGlyph {
+            let g = CachedGlyph {
                 has_color: glyph.has_color,
                 texture: Some(tex),
                 x_offset,
@@ -175,7 +175,15 @@ impl<T: Texture2d> GlyphCache<T> {
                 bearing_x,
                 bearing_y,
                 scale,
+            };
+
+            if info.font_idx != 0 {
+                // It's generally interesting to examine eg: emoji or ligatures
+                // that we might have fallen back to
+                log::trace!("{:?} {:?}", info, g);
             }
+
+            g
         };
 
         Ok(Rc::new(glyph))

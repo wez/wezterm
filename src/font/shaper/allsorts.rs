@@ -93,7 +93,7 @@ impl AllsortsShaper {
                     // There was no glyph in that font, so we'll need to shape
                     // using a fallback.  Let's collect together any potential
                     // run of unresolved entries first
-                    fallback_start_pos = slice_start + slice_index;
+                    fallback_start_pos = slice_start;
                     for &c in &raw.unicodes {
                         fallback_run.push(c);
                     }
@@ -109,7 +109,7 @@ impl AllsortsShaper {
                                 self.shape_into(
                                     font_index + 1,
                                     &fallback_run,
-                                    fallback_start_pos,
+                                    fallback_start_pos + slice_index,
                                     script,
                                     lang,
                                     font_size,
@@ -118,6 +118,7 @@ impl AllsortsShaper {
                                 )?;
                                 fallback_run.clear();
                                 results.push(info);
+                                break;
                             }
                         }
                     }
@@ -129,7 +130,7 @@ impl AllsortsShaper {
             self.shape_into(
                 font_index + 1,
                 &fallback_run,
-                fallback_start_pos,
+                fallback_start_pos + slice_index,
                 script,
                 lang,
                 font_size,
@@ -148,6 +149,7 @@ impl FontShaper for AllsortsShaper {
         let script = allsorts::tag::LATN;
         let lang = allsorts::tag::DFLT;
         self.shape_into(0, text, 0, script, lang, size, dpi, &mut results)?;
+        // log::error!("shape {} into {:?}", text, results);
         Ok(results)
     }
 
