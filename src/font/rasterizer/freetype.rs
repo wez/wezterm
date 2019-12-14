@@ -271,6 +271,7 @@ impl FreeTypeRasterizer {
     }
 
     pub fn from_locator(handle: &FontDataHandle) -> Fallible<Self> {
+        log::trace!("Rasterizier wants {:?}", handle);
         let lib = ftwrap::Library::new()?;
         let face = lib.face_from_locator(handle)?;
         let has_color = unsafe {

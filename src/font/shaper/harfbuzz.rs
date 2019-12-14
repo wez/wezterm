@@ -66,6 +66,7 @@ impl HarfbuzzShaper {
             Some(opt_pair) => {
                 let mut opt_pair = opt_pair.borrow_mut();
                 if opt_pair.is_none() {
+                    log::trace!("shaper wants {} {:?}", font_idx, &self.handles[font_idx]);
                     let face = self.lib.face_from_locator(&self.handles[font_idx])?;
                     let mut font = harfbuzz::Font::new(face.face);
                     let render_mode = ftwrap::FT_Render_Mode::FT_RENDER_MODE_LIGHT;

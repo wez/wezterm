@@ -15,7 +15,7 @@ pub mod units;
 #[cfg(all(unix, not(target_os = "macos")))]
 pub mod fcwrap;
 
-use crate::font::locator::{FontLocator, FontLocatorSelection};
+use crate::font::locator::{FontDataHandle, FontLocator, FontLocatorSelection};
 pub use crate::font::rasterizer::RasterizedGlyph;
 use crate::font::rasterizer::{FontRasterizer, FontRasterizerSelection};
 pub use crate::font::shaper::{FallbackIdx, FontMetrics, GlyphInfo};
@@ -25,7 +25,8 @@ use super::config::{configuration, ConfigHandle, TextStyle};
 use term::CellAttributes;
 
 pub struct LoadedFont {
-    rasterizers: Vec<Box<dyn FontRasterizer>>,
+    rasterizers: Vec<RefCell<Option<Box<dyn FontRasterizer>>>>,
+    handles: Vec<FontDataHandle>,
     shaper: Box<dyn FontShaper>,
     metrics: FontMetrics,
     font_size: f64,
@@ -46,11 +47,21 @@ impl LoadedFont {
         glyph_pos: u32,
         fallback: FallbackIdx,
     ) -> Fallible<RasterizedGlyph> {
-        let rasterizer = self
+        let cell = self
             .rasterizers
             .get(fallback)
             .ok_or_else(|| format_err!("no such fallback index: {}", fallback))?;
-        rasterizer.rasterize_glyph(glyph_pos, self.font_size, self.dpi)
+        let mut opt_raster = cell.borrow_mut();
+        if opt_raster.is_none() {
+            let raster =
+                FontRasterizerSelection::get_default().new_rasterizer(&self.handles[fallback])?;
+            opt_raster.replace(raster);
+        }
+
+        opt_raster
+            .as_ref()
+            .unwrap()
+            .rasterize_glyph(glyph_pos, self.font_size, self.dpi)
     }
 }
 
@@ -100,8 +111,8 @@ impl FontConfiguration {
         let mut handles = parser::ParsedFont::load_fonts(&config, &attributes)?;
         handles.append(&mut self.locator.load_fonts(&attributes)?);
         let mut rasterizers = vec![];
-        for handle in &handles {
-            rasterizers.push(FontRasterizerSelection::get_default().new_rasterizer(&handle)?);
+        for _ in &handles {
+            rasterizers.push(RefCell::new(None));
         }
         let shaper = FontShaperSelection::get_default().new_shaper(&handles)?;
 
@@ -112,6 +123,7 @@ impl FontConfiguration {
 
         let loaded = Rc::new(LoadedFont {
             rasterizers,
+            handles,
             shaper,
             metrics,
             font_size,
