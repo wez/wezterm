@@ -3,7 +3,6 @@
 use crate::font::locator::FontDataHandle;
 use failure::{bail, format_err, Error, Fallible, ResultExt};
 pub use freetype::*;
-use std::ffi::CString;
 use std::ptr;
 
 #[inline]
@@ -203,15 +202,35 @@ impl Library {
     #[allow(dead_code)]
     pub fn new_face<P>(&self, path: P, face_index: FT_Long) -> Result<Face, Error>
     where
-        P: Into<Vec<u8>>,
+        P: AsRef<std::path::Path>,
     {
         let mut face = ptr::null_mut();
-        let path = CString::new(path.into())?;
+        let path = path.as_ref();
 
-        let res = unsafe { FT_New_Face(self.lib, path.as_ptr(), face_index, &mut face as *mut _) };
+        // We open the file for ourselves and treat it as a memory based
+        // face because freetype doesn't use O_CLOEXEC and keeps the fd
+        // floating around for a long time!
+        let data = std::fs::read(path)?;
+        log::error!("Loading {} for freetype!", path.display());
+
+        let res = unsafe {
+            FT_New_Memory_Face(
+                self.lib,
+                data.as_ptr(),
+                data.len() as _,
+                face_index,
+                &mut face as *mut _,
+            )
+        };
         Ok(Face {
-            face: ft_result(res, face).context("FT_New_Face")?,
-            _bytes: Vec::new(),
+            face: ft_result(res, face).map_err(|e| {
+                e.context(format!(
+                    "FT_New_Memory_Face for {} index {}",
+                    path.display(),
+                    face_index
+                ))
+            })?,
+            _bytes: data,
         })
     }
 
