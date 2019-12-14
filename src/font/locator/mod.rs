@@ -18,8 +18,15 @@ pub mod font_loader;
 /// collection if the data represents a collection of
 /// fonts.
 pub enum FontDataHandle {
-    OnDisk { path: PathBuf, index: u32 },
-    Memory { data: Vec<u8>, index: u32 },
+    OnDisk {
+        path: PathBuf,
+        index: u32,
+    },
+    #[allow(dead_code)]
+    Memory {
+        data: Vec<u8>,
+        index: u32,
+    },
 }
 
 impl std::fmt::Debug for FontDataHandle {

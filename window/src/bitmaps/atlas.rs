@@ -66,8 +66,6 @@ where
         // We pad each sprite reservation with blank space to avoid
         // surprising and unexpected artifacts when the texture is
         // interpolated on to the render surface.
-        // In addition, we need to ensure that the bottom left pixel
-        // is blank as we use that for whitespace glyphs.
         let reserve_width = width + 2;
         let reserve_height = height + 2;
 
