@@ -149,6 +149,9 @@ impl Face {
             let mut width = 0.0;
             for i in 32..128 {
                 let glyph_pos = FT_Get_Char_Index(self.face, i);
+                if glyph_pos == 0 {
+                    continue;
+                }
                 let res = FT_Load_Glyph(self.face, glyph_pos, FT_LOAD_COLOR as i32);
                 if succeeded(res) {
                     let glyph = &(*(*self.face).glyph);
