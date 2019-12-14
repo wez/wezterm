@@ -17,6 +17,7 @@ pub mod font_loader;
 /// The `index` parameter is the index into a font
 /// collection if the data represents a collection of
 /// fonts.
+#[derive(Clone)]
 pub enum FontDataHandle {
     OnDisk {
         path: PathBuf,

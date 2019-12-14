@@ -3,9 +3,9 @@ use crate::font::hbwrap as harfbuzz;
 use crate::font::locator::FontDataHandle;
 use crate::font::shaper::{FallbackIdx, FontMetrics, FontShaper, GlyphInfo};
 use crate::font::units::*;
-use failure::{bail, Fallible};
+use failure::{bail, format_err, Fallible};
 use log::{debug, error};
-use std::cell::RefCell;
+use std::cell::{RefCell, RefMut};
 
 fn make_glyphinfo(
     text: &str,
@@ -32,26 +32,58 @@ fn make_glyphinfo(
 struct FontPair {
     face: ftwrap::Face,
     font: harfbuzz::Font,
+    size: f64,
+    dpi: u32,
 }
 
 pub struct HarfbuzzShaper {
-    fonts: Vec<RefCell<FontPair>>,
-    _lib: ftwrap::Library,
+    handles: Vec<FontDataHandle>,
+    fonts: Vec<RefCell<Option<FontPair>>>,
+    lib: ftwrap::Library,
 }
 
 impl HarfbuzzShaper {
     pub fn new(handles: &[FontDataHandle]) -> Fallible<Self> {
         let lib = ftwrap::Library::new()?;
+        let handles = handles.to_vec();
         let mut fonts = vec![];
-        for handle in handles {
-            let face = lib.face_from_locator(handle)?;
-            let mut font = harfbuzz::Font::new(face.face);
-            let render_mode = ftwrap::FT_Render_Mode::FT_RENDER_MODE_LIGHT;
-            let load_flags = ftwrap::compute_load_flags_for_mode(render_mode);
-            font.set_load_flags(load_flags);
-            fonts.push(RefCell::new(FontPair { face, font }));
+        for _ in 0..handles.len() {
+            fonts.push(RefCell::new(None));
         }
-        Ok(Self { fonts, _lib: lib })
+        Ok(Self {
+            fonts,
+            handles,
+            lib,
+        })
+    }
+
+    fn load_fallback(&self, font_idx: FallbackIdx) -> Fallible<Option<RefMut<FontPair>>> {
+        if font_idx >= self.handles.len() {
+            return Ok(None);
+        }
+        match self.fonts.get(font_idx) {
+            None => Ok(None),
+            Some(opt_pair) => {
+                let mut opt_pair = opt_pair.borrow_mut();
+                if opt_pair.is_none() {
+                    let face = self.lib.face_from_locator(&self.handles[font_idx])?;
+                    let mut font = harfbuzz::Font::new(face.face);
+                    let render_mode = ftwrap::FT_Render_Mode::FT_RENDER_MODE_LIGHT;
+                    let load_flags = ftwrap::compute_load_flags_for_mode(render_mode);
+                    font.set_load_flags(load_flags);
+                    *opt_pair = Some(FontPair {
+                        face,
+                        font,
+                        size: 0.,
+                        dpi: 0,
+                    });
+                }
+
+                Ok(Some(RefMut::map(opt_pair, |opt_pair| {
+                    opt_pair.as_mut().unwrap()
+                })))
+            }
+        }
     }
 
     fn do_shape(
@@ -77,10 +109,13 @@ impl HarfbuzzShaper {
         buf.add_str(s);
 
         {
-            match self.fonts.get(font_idx) {
-                Some(pair) => {
-                    let mut pair = pair.borrow_mut();
-                    pair.face.set_font_size(font_size, dpi)?;
+            match self.load_fallback(font_idx)? {
+                Some(mut pair) => {
+                    if pair.size != font_size || pair.dpi != dpi {
+                        pair.face.set_font_size(font_size, dpi)?;
+                        pair.size = font_size;
+                        pair.dpi = dpi;
+                    }
                     pair.font.shape(&mut buf, Some(features.as_slice()));
                 }
                 None => {
@@ -220,7 +255,9 @@ impl FontShaper for HarfbuzzShaper {
     }
 
     fn metrics(&self, size: f64, dpi: u32) -> Fallible<FontMetrics> {
-        let mut pair = self.fonts[0].borrow_mut();
+        let mut pair = self
+            .load_fallback(0)?
+            .ok_or_else(|| format_err!("unable to load first font!?"))?;
         let (cell_width, cell_height) = pair.face.set_font_size(size, dpi)?;
         let y_scale = unsafe { (*(*pair.face.face).size).metrics.y_scale as f64 / 65536.0 };
         let metrics = FontMetrics {
