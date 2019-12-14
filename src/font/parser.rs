@@ -9,26 +9,27 @@ use crate::font::shaper::{FallbackIdx, FontMetrics, GlyphInfo};
 use crate::font::units::*;
 use allsorts::binary::read::{ReadScope, ReadScopeOwned};
 use allsorts::font_data_impl::read_cmap_subtable;
-use allsorts::fontfile::FontFile;
 use allsorts::gpos::{gpos_apply, Info, Placement};
 use allsorts::gsub::{gsub_apply_default, GlyphOrigin, RawGlyph};
 use allsorts::layout::{new_layout_cache, GDEFTable, LayoutCache, LayoutTable, GPOS, GSUB};
 use allsorts::post::PostTable;
 use allsorts::tables::cmap::{Cmap, CmapSubtable};
 use allsorts::tables::{
-    FontTableProvider, HeadTable, HheaTable, HmtxTable, MaxpTable, NameTable, OffsetTable,
-    OpenTypeFile, OpenTypeFont, TTCHeader,
+    HeadTable, HheaTable, HmtxTable, MaxpTable, OffsetTable, OpenTypeFile, OpenTypeFont,
 };
 use allsorts::tag;
-use failure::{bail, format_err, Fallible};
+use failure::{format_err, Fallible};
 use std::convert::TryInto;
 use std::path::{Path, PathBuf};
 use termwiz::cell::unicode_column_width;
 
 #[derive(Debug)]
-enum MaybeShaped {
+pub enum MaybeShaped {
     Resolved(GlyphInfo),
-    Unresolved(RawGlyph<()>),
+    Unresolved {
+        raw: RawGlyph<()>,
+        slice_start: usize,
+    },
 }
 
 /// Represents a parsed font
@@ -38,7 +39,7 @@ pub struct ParsedFont {
 
     cmap_subtable: CmapSubtable<'static>,
     gpos_cache: Option<LayoutCache<GPOS>>,
-    gsub_cache: LayoutCache<GSUB>,
+    gsub_cache: Option<LayoutCache<GSUB>>,
     gdef_table: Option<GDEFTable>,
     hmtx: HmtxTable<'static>,
     post: PostTable<'static>,
@@ -174,11 +175,6 @@ impl ParsedFont {
                 usize::from(hhea.num_h_metrics),
             ))?;
 
-        let gsub_table = otf
-            .find_table_record(tag::GSUB)
-            .ok_or_else(|| format_err!("GSUB table record not found"))?
-            .read_table(&file.scope)?
-            .read::<LayoutTable<GSUB>>()?;
         let gdef_table: Option<GDEFTable> = otf
             .find_table_record(tag::GDEF)
             .map(|gdef_record| -> Fallible<GDEFTable> {
@@ -193,8 +189,15 @@ impl ParsedFont {
                     .read::<LayoutTable<GPOS>>()?)
             })
             .transpose()?;
-        let gsub_cache = new_layout_cache(gsub_table);
         let gpos_cache = opt_gpos_table.map(new_layout_cache);
+
+        let gsub_cache = otf
+            .find_table_record(tag::GSUB)
+            .map(|gsub| -> Fallible<LayoutTable<GSUB>> {
+                Ok(gsub.read_table(&file.scope)?.read::<LayoutTable<GSUB>>()?)
+            })
+            .transpose()?
+            .map(new_layout_cache);
 
         Ok(Self {
             otf,
@@ -230,25 +233,54 @@ impl ParsedFont {
         let underline_position =
             PixelLength::new(self.post.header.underline_position as f64 * pixel_scale);
         let descender = PixelLength::new(self.hhea.descender as f64 * pixel_scale);
-        let cell_height = PixelLength::new(self.hhea.line_gap as f64 * pixel_scale);
+        let cell_height = PixelLength::new(
+            (self.hhea.ascender - self.hhea.descender + self.hhea.line_gap) as f64 * pixel_scale,
+        );
+        log::error!(
+            "hhea: ascender={} descender={} line_gap={} \
+             advance_width_max={} min_lsb={} min_rsb={} \
+             x_max_extent={}",
+            self.hhea.ascender,
+            self.hhea.descender,
+            self.hhea.line_gap,
+            self.hhea.advance_width_max,
+            self.hhea.min_left_side_bearing,
+            self.hhea.min_right_side_bearing,
+            self.hhea.x_max_extent
+        );
 
-        // FIXME: for freetype/harfbuzz, we look at a number of glyphs and compute this for
-        // ourselves
-        let cell_width = PixelLength::new(self.hhea.advance_width_max as f64 * pixel_scale);
+        let mut cell_width = 0;
+        // Compute the max width based on ascii chars
+        for i in 0x20..0x7fu8 {
+            if let Ok(Some(glyph_index)) = self.glyph_index_for_char(i as char) {
+                if let Ok(h) = self
+                    .hmtx
+                    .horizontal_advance(glyph_index, self.hhea.num_h_metrics)
+                {
+                    cell_width = cell_width.max(h);
+                }
+            }
+        }
+        let cell_width = PixelLength::new(cell_width as f64) * pixel_scale;
 
-        FontMetrics {
+        let metrics = FontMetrics {
             cell_width,
             cell_height,
             descender,
             underline_thickness,
             underline_position,
-        }
+        };
+
+        log::error!("metrics: {:?}", metrics);
+
+        metrics
     }
 
     pub fn shape_text<T: AsRef<str>>(
         &self,
         text: T,
-        font_index: usize,
+        slice_index: usize,
+        font_index: FallbackIdx,
         script: u32,
         lang: u32,
         point_size: f64,
@@ -272,16 +304,18 @@ impl ParsedFont {
 
         let vertical = false;
 
-        gsub_apply_default(
-            &|| vec![], //map_char('\u{25cc}')],
-            &self.gsub_cache,
-            self.gdef_table.as_ref(),
-            script,
-            lang,
-            vertical,
-            self.num_glyphs,
-            &mut glyphs,
-        )?;
+        if let Some(gsub_cache) = self.gsub_cache.as_ref() {
+            gsub_apply_default(
+                &|| vec![], //map_char('\u{25cc}')],
+                gsub_cache,
+                self.gdef_table.as_ref(),
+                script,
+                lang,
+                vertical,
+                self.num_glyphs,
+                &mut glyphs,
+            )?;
+        }
 
         // Note: init_from_glyphs silently elides entries that
         // have no glyph in the current font!  we need to deal
@@ -304,8 +338,13 @@ impl ParsedFont {
 
         let mut pos = Vec::new();
         let mut glyph_iter = glyphs.into_iter();
+        let mut cluster = slice_index;
 
-        for (cluster, glyph_info) in infos.into_iter().enumerate() {
+        fn reverse_engineer_glyph_text(glyph: &RawGlyph<()>) -> String {
+            glyph.unicodes.iter().collect()
+        }
+
+        for glyph_info in infos.into_iter() {
             let mut input_glyph = glyph_iter
                 .next()
                 .ok_or_else(|| format_err!("more output infos than input glyphs!"))?;
@@ -313,7 +352,13 @@ impl ParsedFont {
             while input_glyph.unicodes != glyph_info.glyph.unicodes {
                 // Info::init_from_glyphs skipped the input glyph, so let's be
                 // sure to emit a placeholder for it
-                pos.push(MaybeShaped::Unresolved(input_glyph));
+                let text = reverse_engineer_glyph_text(&input_glyph);
+                pos.push(MaybeShaped::Unresolved {
+                    raw: input_glyph,
+                    slice_start: cluster,
+                });
+
+                cluster += text.len();
 
                 input_glyph = glyph_iter.next().ok_or_else(|| {
                     format_err!("more output infos than input glyphs! (loop bottom)")
@@ -348,10 +393,22 @@ impl ParsedFont {
             let x_advance = PixelLength::new(x_advance as f64 * pixel_scale);
             let y_advance = PixelLength::new(y_advance as f64 * pixel_scale);
 
-            let text: String = glyph_info.glyph.unicodes.iter().collect();
-            let num_cells = unicode_column_width(&text);
+            let text = reverse_engineer_glyph_text(&glyph_info.glyph);
+            let text_len = text.len();
 
-            pos.push(MaybeShaped::Resolved(GlyphInfo {
+            // let num_cells = glyph_info.glyph.unicodes.len();
+            let num_cells = unicode_column_width(&text);
+            if num_cells != 1 {
+                log::error!(
+                    "x_advance={} num_cells={} font_idx={} kern={}",
+                    x_advance,
+                    num_cells,
+                    font_index,
+                    glyph_info.kerning
+                );
+            }
+
+            let info = GlyphInfo {
                 #[cfg(debug_assertions)]
                 text,
                 cluster: cluster as u32,
@@ -362,7 +419,15 @@ impl ParsedFont {
                 y_advance,
                 x_offset: PixelLength::new(0.),
                 y_offset: PixelLength::new(0.),
-            }));
+            };
+
+            cluster += text_len;
+
+            if num_cells != 1 {
+                log::error!("{:?}", info);
+            }
+
+            pos.push(MaybeShaped::Resolved(info));
         }
 
         Ok(pos)

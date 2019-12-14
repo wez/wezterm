@@ -123,6 +123,16 @@ where
     pub coords: Rect,
 }
 
+impl<T: Texture2d> std::fmt::Debug for Sprite<T> {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::result::Result<(), std::fmt::Error> {
+        fmt.debug_struct("Sprite")
+            .field("coords", &self.coords)
+            .field("texture_width", &self.texture.width())
+            .field("texture_height", &self.texture.height())
+            .finish()
+    }
+}
+
 impl<T> Clone for Sprite<T>
 where
     T: Texture2d,
@@ -149,6 +159,7 @@ where
 /// These are used to handle multi-cell wide glyphs.
 /// Each cell is nominally `cell_width` wide but font metrics
 /// may result in the glyphs being wider than this.
+#[derive(Debug)]
 pub struct SpriteSlice {
     /// This is glyph X out of num_cells
     pub cell_idx: usize,

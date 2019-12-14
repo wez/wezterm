@@ -5,6 +5,7 @@ pub use fontconfig::*;
 use std::ffi::{CStr, CString};
 use std::fmt;
 use std::mem;
+use std::os::raw::c_int;
 use std::ptr;
 
 static FC_MONO: i32 = 100;
@@ -77,13 +78,12 @@ impl FcResultWrap {
     pub fn as_err(&self) -> Error {
         // the compiler thinks we defined these globals, when all
         // we did was import them from elsewhere
-        #[allow(non_upper_case_globals)]
         match self.0 {
-            FcResultMatch => err_msg("FcResultMatch"),
-            FcResultNoMatch => err_msg("FcResultNoMatch"),
-            FcResultTypeMismatch => err_msg("FcResultTypeMismatch"),
-            FcResultNoId => err_msg("FcResultNoId"),
-            FcResultOutOfMemory => err_msg("FcResultOutOfMemory"),
+            fontconfig::FcResultMatch => err_msg("FcResultMatch"),
+            fontconfig::FcResultNoMatch => err_msg("FcResultNoMatch"),
+            fontconfig::FcResultTypeMismatch => err_msg("FcResultTypeMismatch"),
+            fontconfig::FcResultNoId => err_msg("FcResultNoId"),
+            fontconfig::FcResultOutOfMemory => err_msg("FcResultOutOfMemory"),
             _ => format_err!("FcResult holds invalid value {}", self.0),
         }
     }
@@ -235,6 +235,24 @@ impl Pattern {
         }
     }
 
+    pub fn get_integer(&self, key: &str) -> Result<c_int, Error> {
+        unsafe {
+            let key = CString::new(key)?;
+            let mut ival: c_int = 0;
+            let res = FcResultWrap(FcPatternGetInteger(
+                self.pat,
+                key.as_ptr(),
+                0,
+                &mut ival as *mut _,
+            ));
+            if !res.succeeded() {
+                Err(res.as_err())
+            } else {
+                Ok(ival)
+            }
+        }
+    }
+
     pub fn get_string(&self, key: &str) -> Result<String, Error> {
         unsafe {
             let key = CString::new(key)?;
@@ -266,9 +284,10 @@ impl Drop for Pattern {
 
 impl fmt::Debug for Pattern {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        // unsafe{FcPatternPrint(self.pat);}
         fmt.write_str(
             &self
-                .format("Pattern(%{+family,style,weight,slant,spacing{%{=unparse}}})")
+                .format("Pattern(%{+family,style,weight,slant,spacing,file,index,fontformat{%{=unparse}}})")
                 .unwrap(),
         )
     }

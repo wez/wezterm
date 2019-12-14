@@ -3,6 +3,7 @@ use crate::font::fcwrap;
 use crate::font::locator::{FontDataHandle, FontLocator};
 use failure::Fallible;
 use fcwrap::Pattern as FontPattern;
+use std::convert::TryInto;
 
 /// A FontLocator implemented using the system font loading
 /// functions provided by font-config
@@ -16,12 +17,8 @@ impl FontLocator for FontConfigFontLocator {
         for attr in fonts_selection {
             let mut pattern = FontPattern::new()?;
             pattern.family(&attr.family)?;
-            if attr.bold {
-                pattern.add_integer("weight", 200)?;
-            }
-            if attr.italic {
-                pattern.add_integer("slant", 100)?;
-            }
+            pattern.add_integer("weight", if attr.bold { 200 } else { 80 })?;
+            pattern.add_integer("slant", if attr.italic { 100 } else { 0 })?;
             /*
             pattern.add_double("size", config.font_size * font_scale)?;
             pattern.add_double("dpi", config.dpi)?;
@@ -39,7 +36,7 @@ impl FontLocator for FontConfigFontLocator {
 
                 let handle = FontDataHandle::OnDisk {
                     path: file.into(),
-                    index: 0, // FIXME: extract this from pat!
+                    index: pat.get_integer("index")?.try_into()?,
                 };
 
                 // When it comes to handling fallback, we prefer our

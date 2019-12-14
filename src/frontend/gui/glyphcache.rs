@@ -32,6 +32,20 @@ pub struct CachedGlyph<T: Texture2d> {
     pub scale: f64,
 }
 
+impl<T: Texture2d> std::fmt::Debug for CachedGlyph<T> {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::result::Result<(), std::fmt::Error> {
+        fmt.debug_struct("CachedGlyph")
+            .field("has_color", &self.has_color)
+            .field("x_offset", &self.x_offset)
+            .field("y_offset", &self.y_offset)
+            .field("bearing_x", &self.bearing_x)
+            .field("bearing_y", &self.bearing_y)
+            .field("scale", &self.scale)
+            .field("texture", &self.texture)
+            .finish()
+    }
+}
+
 pub struct GlyphCache<T: Texture2d> {
     glyph_cache: HashMap<GlyphKey, Rc<CachedGlyph<T>>>,
     pub atlas: Atlas<T>,

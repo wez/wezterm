@@ -4,6 +4,7 @@ use failure::{format_err, Error, Fallible};
 use serde_derive::*;
 use std::sync::Mutex;
 
+pub mod allsorts;
 pub mod harfbuzz;
 
 /// Holds information about a shaped glyph
@@ -65,6 +66,7 @@ pub trait FontShaper {
 
 #[derive(Debug, Deserialize, Clone, Copy)]
 pub enum FontShaperSelection {
+    Allsorts,
     Harfbuzz,
 }
 
@@ -90,12 +92,13 @@ impl FontShaperSelection {
     }
 
     pub fn variants() -> Vec<&'static str> {
-        vec!["Harfbuzz"]
+        vec!["Harfbuzz", "AllSorts"]
     }
 
     pub fn new_shaper(self, handles: &[FontDataHandle]) -> Fallible<Box<dyn FontShaper>> {
         match self {
             Self::Harfbuzz => Ok(Box::new(harfbuzz::HarfbuzzShaper::new(handles)?)),
+            Self::Allsorts => Ok(Box::new(allsorts::AllsortsShaper::new(handles)?)),
         }
     }
 }
@@ -105,6 +108,7 @@ impl std::str::FromStr for FontShaperSelection {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_ref() {
             "harfbuzz" => Ok(Self::Harfbuzz),
+            "allsorts" => Ok(Self::Allsorts),
             _ => Err(format_err!(
                 "{} is not a valid FontShaperSelection variant, possible values are {:?}",
                 s,
