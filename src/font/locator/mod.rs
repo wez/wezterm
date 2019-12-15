@@ -56,9 +56,16 @@ pub trait FontLocator {
 
 #[derive(Debug, Deserialize, Clone, Copy)]
 pub enum FontLocatorSelection {
+    /// Use fontconfig APIs to resolve fonts (!macos, posix systems)
     FontConfig,
+    /// Use the fontloader crate to use a system specific method of
+    /// resolving fonts
     FontLoader,
+    /// Use the fontkit crate to use a different system specific
+    /// method of resolving fonts
     FontKit,
+    /// Use only the font_dirs configuration to locate fonts
+    ConfigDirsOnly,
 }
 
 lazy_static::lazy_static! {
@@ -87,7 +94,7 @@ impl FontLocatorSelection {
     }
 
     pub fn variants() -> Vec<&'static str> {
-        vec!["FontConfig", "FontLoader", "FontKit"]
+        vec!["FontConfig", "FontLoader", "FontKit", "ConfigDirsOnly"]
     }
 
     pub fn new_locator(self) -> Box<dyn FontLocator> {
@@ -110,6 +117,7 @@ impl FontLocatorSelection {
                 #[cfg(not(any(target_os = "macos", windows)))]
                 panic!("fontkit not compiled in");
             }
+            Self::ConfigDirsOnly => return Box::new(NopSystemSource {}),
         }
     }
 }
@@ -121,11 +129,23 @@ impl std::str::FromStr for FontLocatorSelection {
             "fontconfig" => Ok(Self::FontConfig),
             "fontloader" => Ok(Self::FontLoader),
             "fontkit" => Ok(Self::FontKit),
+            "configdirsonly" => Ok(Self::ConfigDirsOnly),
             _ => Err(anyhow!(
                 "{} is not a valid FontLocatorSelection variant, possible values are {:?}",
                 s,
                 Self::variants()
             )),
         }
+    }
+}
+
+struct NopSystemSource {}
+
+impl FontLocator for NopSystemSource {
+    fn load_fonts(
+        &self,
+        _fonts_selection: &[FontAttributes],
+    ) -> anyhow::Result<Vec<FontDataHandle>> {
+        Ok(vec![])
     }
 }
