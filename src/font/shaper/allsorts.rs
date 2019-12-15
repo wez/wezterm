@@ -29,6 +29,7 @@ impl AllsortsShaper {
         Ok(Self { fonts })
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn shape_into(
         &self,
         font_index: FallbackIdx,
@@ -98,6 +99,8 @@ impl AllsortsShaper {
                         fallback_run.push(c);
                     }
 
+                    // Clippy can't see that we're nested
+                    #[allow(clippy::while_let_on_iterator)]
                     while let Some(item) = item_iter.next() {
                         match item {
                             MaybeShaped::Unresolved { raw, .. } => {

@@ -1,4 +1,5 @@
 //! Slightly higher level helper for fontconfig
+#![allow(clippy::mutex_atomic)]
 
 use failure::{ensure, err_msg, format_err, Error};
 pub use fontconfig::*;
@@ -28,7 +29,7 @@ lazy_static::lazy_static! {
 
 fn add_object() {
     let mut num = NUM_OBJECTS.lock().unwrap();
-    *num = *num + 1;
+    *num += 1;
     log::trace!("fc object count + -> {}", *num);
 }
 

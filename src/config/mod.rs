@@ -128,12 +128,12 @@ impl ConfigInner {
             });
             self.watcher.replace(watcher);
         }
-        self.watcher.as_mut().map(|watcher| {
+        if let Some(watcher) = self.watcher.as_mut() {
             use notify::Watcher;
             watcher
                 .watch(path, notify::RecursiveMode::NonRecursive)
                 .ok();
-        });
+        }
     }
 
     /// Attempt to load the user's configuration.

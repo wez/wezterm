@@ -933,7 +933,7 @@ impl TermWindow {
             let height = self.render_metrics.cell_size.height as u16 * rows;
             (
                 PtySize {
-                    rows: rows,
+                    rows,
                     cols: size.cols,
                     pixel_height: height,
                     pixel_width: size.pixel_width,

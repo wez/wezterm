@@ -280,6 +280,7 @@ impl ParsedFont {
         metrics
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn shape_text<T: AsRef<str>>(
         &self,
         text: T,

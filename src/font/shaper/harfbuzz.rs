@@ -111,6 +111,7 @@ impl HarfbuzzShaper {
 
         {
             match self.load_fallback(font_idx)? {
+                #[allow(clippy::float_cmp)]
                 Some(mut pair) => {
                     if pair.size != font_size || pair.dpi != dpi {
                         pair.face.set_font_size(font_size, dpi)?;
