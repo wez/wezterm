@@ -87,7 +87,7 @@ impl Face {
         Ok((cell_width, cell_height))
     }
 
-    pub fn set_char_size(
+    fn set_char_size(
         &mut self,
         char_width: FT_F26Dot6,
         char_height: FT_F26Dot6,
@@ -108,16 +108,7 @@ impl Face {
         )
     }
 
-    #[allow(unused)]
-    pub fn set_pixel_sizes(&mut self, char_width: u32, char_height: u32) -> anyhow::Result<()> {
-        ft_result(
-            unsafe { FT_Set_Pixel_Sizes(self.face, char_width, char_height) },
-            (),
-        )
-        .with_context(|| format!("set_pixel_sizes {}x{}", char_width, char_height))
-    }
-
-    pub fn select_size(&mut self, idx: usize) -> anyhow::Result<()> {
+    fn select_size(&mut self, idx: usize) -> anyhow::Result<()> {
         ft_result(unsafe { FT_Select_Size(self.face, idx as i32) }, ())
     }
 
@@ -199,7 +190,6 @@ impl Library {
         }
     }
 
-    #[allow(dead_code)]
     pub fn new_face<P>(&self, path: P, face_index: FT_Long) -> anyhow::Result<Face>
     where
         P: AsRef<std::path::Path>,
@@ -211,7 +201,7 @@ impl Library {
         // face because freetype doesn't use O_CLOEXEC and keeps the fd
         // floating around for a long time!
         let data = std::fs::read(path)?;
-        log::error!("Loading {} for freetype!", path.display());
+        log::trace!("Loading {} for freetype!", path.display());
 
         let res = unsafe {
             FT_New_Memory_Face(
@@ -234,7 +224,6 @@ impl Library {
         })
     }
 
-    #[allow(dead_code)]
     pub fn new_face_from_slice(&self, data: &[u8], face_index: FT_Long) -> anyhow::Result<Face> {
         let data = data.to_vec();
         let mut face = ptr::null_mut();
