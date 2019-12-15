@@ -1,7 +1,6 @@
 use crate::config::FontAttributes;
 use crate::font::fcwrap;
 use crate::font::locator::{FontDataHandle, FontLocator};
-use failure::Fallible;
 use fcwrap::Pattern as FontPattern;
 use std::convert::TryInto;
 
@@ -10,7 +9,10 @@ use std::convert::TryInto;
 pub struct FontConfigFontLocator {}
 
 impl FontLocator for FontConfigFontLocator {
-    fn load_fonts(&self, fonts_selection: &[FontAttributes]) -> Fallible<Vec<FontDataHandle>> {
+    fn load_fonts(
+        &self,
+        fonts_selection: &[FontAttributes],
+    ) -> anyhow::Result<Vec<FontDataHandle>> {
         let mut fonts = vec![];
         let mut fallback = vec![];
 

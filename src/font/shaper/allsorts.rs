@@ -1,14 +1,14 @@
 use crate::font::locator::FontDataHandle;
 use crate::font::parser::*;
 use crate::font::shaper::{FallbackIdx, FontMetrics, FontShaper, GlyphInfo};
-use failure::{bail, format_err, Fallible};
+use anyhow::{anyhow, bail};
 
 pub struct AllsortsShaper {
     fonts: Vec<Option<ParsedFont>>,
 }
 
 impl AllsortsShaper {
-    pub fn new(handles: &[FontDataHandle]) -> Fallible<Self> {
+    pub fn new(handles: &[FontDataHandle]) -> anyhow::Result<Self> {
         let mut fonts = vec![];
         let mut success = false;
         for handle in handles {
@@ -40,7 +40,7 @@ impl AllsortsShaper {
         font_size: f64,
         dpi: u32,
         results: &mut Vec<GlyphInfo>,
-    ) -> Fallible<()> {
+    ) -> anyhow::Result<()> {
         let font = match self.fonts.get(font_index) {
             Some(Some(font)) => font,
             Some(None) => {
@@ -65,7 +65,7 @@ impl AllsortsShaper {
                 }
                 if alt_text == s {
                     // We already tried to fallback to this and failed
-                    return Err(format_err!("could not fallback to ? character"));
+                    return Err(anyhow!("could not fallback to ? character"));
                 }
                 return self.shape_into(
                     0,
@@ -147,7 +147,7 @@ impl AllsortsShaper {
 }
 
 impl FontShaper for AllsortsShaper {
-    fn shape(&self, text: &str, size: f64, dpi: u32) -> Fallible<Vec<GlyphInfo>> {
+    fn shape(&self, text: &str, size: f64, dpi: u32) -> anyhow::Result<Vec<GlyphInfo>> {
         let mut results = vec![];
         let script = allsorts::tag::LATN;
         let lang = allsorts::tag::DFLT;
@@ -156,7 +156,7 @@ impl FontShaper for AllsortsShaper {
         Ok(results)
     }
 
-    fn metrics(&self, size: f64, dpi: u32) -> Fallible<FontMetrics> {
+    fn metrics(&self, size: f64, dpi: u32) -> anyhow::Result<FontMetrics> {
         for font in &self.fonts {
             if let Some(font) = font {
                 return Ok(font.get_metrics(size, dpi));

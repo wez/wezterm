@@ -5,7 +5,7 @@ use crate::mux::tab::Tab;
 use crate::mux::window::WindowId;
 use crate::mux::Mux;
 use crate::server::listener::spawn_listener;
-use failure::{bail, Error, Fallible};
+use anyhow::{bail, Error};
 use log::info;
 use promise::*;
 use std::rc::Rc;
@@ -85,7 +85,7 @@ impl FrontEnd for MuxServerFrontEnd {
         _fontconfig: &Rc<FontConfiguration>,
         _tab: &Rc<dyn Tab>,
         _window_id: WindowId,
-    ) -> Fallible<()> {
+    ) -> anyhow::Result<()> {
         Ok(())
     }
 }

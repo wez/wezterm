@@ -10,6 +10,7 @@ use crate::{
     MouseCursor, MouseEvent, MouseEventKind, MousePress, Operator, PaintContext, Point, Rect,
     ScreenPoint, Size, WindowCallbacks, WindowOps, WindowOpsMut,
 };
+use anyhow::{bail, ensure, Context};
 use cocoa::appkit::{
     NSApplicationActivateIgnoringOtherApps, NSBackingStoreBuffered, NSEvent, NSEventModifierFlags,
     NSRunningApplication, NSScreen, NSView, NSViewHeightSizable, NSViewWidthSizable, NSWindow,
@@ -18,7 +19,6 @@ use cocoa::appkit::{
 use cocoa::base::*;
 use cocoa::foundation::{NSArray, NSNotFound, NSPoint, NSRect, NSSize, NSUInteger};
 use core_graphics::image::CGImageRef;
-use failure::Fallible;
 use objc::declare::ClassDecl;
 use objc::rc::{StrongPtr, WeakPtr};
 use objc::runtime::{Class, Object, Protocol, Sel};
@@ -87,7 +87,7 @@ mod opengl {
     }
 
     impl GlContextPair {
-        pub fn create(view: id) -> Fallible<Self> {
+        pub fn create(view: id) -> anyhow::Result<Self> {
             let backend = Rc::new(GlState::create(view)?);
 
             let context = unsafe {
@@ -112,7 +112,7 @@ mod opengl {
     }
 
     impl GlState {
-        pub fn create(view: id) -> Fallible<Self> {
+        pub fn create(view: id) -> anyhow::Result<Self> {
             let pixel_format = unsafe {
                 StrongPtr::new(NSOpenGLPixelFormat::alloc(nil).initWithAttributes_(&[
                     appkit::NSOpenGLPFAOpenGLProfile as u32,
@@ -132,7 +132,7 @@ mod opengl {
                     0,
                 ]))
             };
-            failure::ensure!(
+            ensure!(
                 !pixel_format.is_null(),
                 "failed to create NSOpenGLPixelFormat"
             );
@@ -148,7 +148,7 @@ mod opengl {
                     NSOpenGLContext::alloc(nil).initWithFormat_shareContext_(*pixel_format, nil),
                 )
             };
-            failure::ensure!(!gl_context.is_null(), "failed to create NSOpenGLContext");
+            ensure!(!gl_context.is_null(), "failed to create NSOpenGLContext");
             unsafe {
                 gl_context.setView_(view);
             }
@@ -264,7 +264,7 @@ impl Window {
         width: usize,
         height: usize,
         callbacks: Box<dyn WindowCallbacks>,
-    ) -> Fallible<Window> {
+    ) -> anyhow::Result<Window> {
         unsafe {
             let style_mask = NSWindowStyleMask::NSTitledWindowMask
                 | NSWindowStyleMask::NSClosableWindowMask
@@ -407,7 +407,7 @@ impl WindowOps for Window {
         })
     }
 
-    fn apply<R, F: Send + 'static + Fn(&mut dyn Any, &dyn WindowOps) -> Fallible<R>>(
+    fn apply<R, F: Send + 'static + Fn(&mut dyn Any, &dyn WindowOps) -> anyhow::Result<R>>(
         &self,
         func: F,
     ) -> promise::Future<R>
@@ -421,7 +421,7 @@ impl WindowOps for Window {
             if let Some(window_view) = WindowView::get_this(unsafe { &**inner.view }) {
                 func(window_view.inner.borrow_mut().callbacks.as_any(), &window)
             } else {
-                failure::bail!("apply: window is invalid");
+                bail!("apply: window is invalid");
             }
         })
     }
@@ -434,8 +434,8 @@ impl WindowOps for Window {
             + Fn(
                 &mut dyn Any,
                 &dyn WindowOps,
-                failure::Fallible<std::rc::Rc<glium::backend::Context>>,
-            ) -> failure::Fallible<R>,
+                anyhow::Result<std::rc::Rc<glium::backend::Context>>,
+            ) -> anyhow::Result<R>,
     >(
         &self,
         func: F,
@@ -459,7 +459,7 @@ impl WindowOps for Window {
                     glium_context.map(|pair| pair.context),
                 )
             } else {
-                failure::bail!("enable_opengl: window is invalid");
+                bail!("enable_opengl: window is invalid");
             }
         })
     }
@@ -469,7 +469,7 @@ impl WindowOps for Window {
         Future::result(
             clipboard::ClipboardContext::new()
                 .and_then(|mut ctx| ctx.get_contents())
-                .map_err(|e| failure::format_err!("Failed to get clipboard: {}", e)),
+                .with_context(|| format!("Failed to get clipboard: {}", e)),
         )
     }
 
@@ -478,7 +478,7 @@ impl WindowOps for Window {
         Future::result(
             clipboard::ClipboardContext::new()
                 .and_then(|mut ctx| ctx.set_contents(text))
-                .map_err(|e| failure::format_err!("Failed to set clipboard: {}", e)),
+                .with_context(|| format!("Failed to set clipboard: {}", e)),
         )
     }
 }
@@ -1233,7 +1233,7 @@ impl WindowView {
         }
     }
 
-    fn alloc(inner: &Rc<RefCell<Inner>>, buffer: Image) -> Fallible<StrongPtr> {
+    fn alloc(inner: &Rc<RefCell<Inner>>, buffer: Image) -> anyhow::Result<StrongPtr> {
         let cls = Self::get_class();
 
         let view_id: StrongPtr = unsafe { StrongPtr::new(msg_send![cls, new]) };

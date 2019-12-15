@@ -1,5 +1,5 @@
 use crate::bitmaps::BitmapImage;
-use failure::Fallible;
+use anyhow::bail;
 use std::io::Error as IoError;
 use winapi::shared::windef::*;
 use winapi::um::wingdi::*;
@@ -57,11 +57,11 @@ impl GdiBitmap {
         }
     }
 
-    pub fn new_compatible(width: usize, height: usize, hdc: HDC) -> Fallible<Self> {
+    pub fn new_compatible(width: usize, height: usize, hdc: HDC) -> anyhow::Result<Self> {
         let hdc = unsafe { CreateCompatibleDC(hdc) };
         if hdc.is_null() {
             let err = IoError::last_os_error();
-            failure::bail!("CreateCompatibleDC: {}", err);
+            bail!("CreateCompatibleDC: {}", err);
         }
 
         let mut data = std::ptr::null_mut();
@@ -102,7 +102,7 @@ impl GdiBitmap {
 
         if hbitmap.is_null() {
             let err = IoError::last_os_error();
-            failure::bail!("CreateDIBSection: {}", err);
+            bail!("CreateDIBSection: {}", err);
         }
 
         unsafe {

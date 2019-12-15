@@ -8,7 +8,7 @@ use crate::mux::Mux;
 use crate::server::client::Client;
 use crate::server::codec::Spawn;
 use crate::server::tab::ClientTab;
-use failure::{err_msg, Fallible};
+use anyhow::{anyhow, bail};
 use portable_pty::{CommandBuilder, PtySize};
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -160,10 +160,10 @@ impl Domain for ClientDomain {
         size: PtySize,
         command: Option<CommandBuilder>,
         window: WindowId,
-    ) -> Fallible<Rc<dyn Tab>> {
+    ) -> anyhow::Result<Rc<dyn Tab>> {
         let inner = self
             .inner()
-            .ok_or_else(|| err_msg("domain is not attached"))?;
+            .ok_or_else(|| anyhow!("domain is not attached"))?;
         let remote_tab_id = {
             let result = inner
                 .client
@@ -187,7 +187,7 @@ impl Domain for ClientDomain {
         Ok(tab)
     }
 
-    fn attach(&self) -> Fallible<()> {
+    fn attach(&self) -> anyhow::Result<()> {
         let mux = Mux::get().unwrap();
         let client = match &self.config {
             ClientDomainConfig::Unix(unix) => {
@@ -237,8 +237,8 @@ impl Domain for ClientDomain {
         Ok(())
     }
 
-    fn detach(&self) -> Fallible<()> {
-        failure::bail!("detach not implemented");
+    fn detach(&self) -> anyhow::Result<()> {
+        bail!("detach not implemented");
     }
 
     fn state(&self) -> DomainState {

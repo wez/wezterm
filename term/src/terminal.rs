@@ -1,19 +1,18 @@
 use super::*;
-use failure::Fallible;
 use std::sync::Arc;
 use termwiz::escape::parser::Parser;
 
 pub trait Clipboard {
-    fn get_contents(&self) -> Fallible<String>;
-    fn set_contents(&self, data: Option<String>) -> Fallible<()>;
+    fn get_contents(&self) -> anyhow::Result<String>;
+    fn set_contents(&self, data: Option<String>) -> anyhow::Result<()>;
 }
 
 impl Clipboard for Box<dyn Clipboard> {
-    fn get_contents(&self) -> Fallible<String> {
+    fn get_contents(&self) -> anyhow::Result<String> {
         self.as_ref().get_contents()
     }
 
-    fn set_contents(&self, data: Option<String>) -> Fallible<()> {
+    fn set_contents(&self, data: Option<String>) -> anyhow::Result<()> {
         self.as_ref().set_contents(data)
     }
 }

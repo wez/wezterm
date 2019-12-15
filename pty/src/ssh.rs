@@ -5,7 +5,7 @@
 //! initiate a connection somewhere and to authenticate that session
 //! before we can get to a point where `openpty` will be able to run.
 use crate::{Child, CommandBuilder, ExitStatus, MasterPty, PtyPair, PtySize, PtySystem, SlavePty};
-use failure::{format_err, Fallible};
+use anyhow::Context;
 use filedescriptor::AsRawSocketDescriptor;
 use ssh2::{Channel, Session};
 use std::collections::HashMap;
@@ -79,7 +79,7 @@ impl SshSession {
 }
 
 impl PtySystem for SshSession {
-    fn openpty(&self, size: PtySize) -> Fallible<PtyPair> {
+    fn openpty(&self, size: PtySize) -> anyhow::Result<PtyPair> {
         let mut inner = self.inner.lock().unwrap();
         let mut channel = inner.session.channel_session()?;
         channel.handle_extended_data(ssh2::ExtendedData::Merge)?;
@@ -154,7 +154,7 @@ impl Write for SshMaster {
 }
 
 impl MasterPty for SshMaster {
-    fn resize(&self, size: PtySize) -> Fallible<()> {
+    fn resize(&self, size: PtySize) -> anyhow::Result<()> {
         self.pty.with_pty(|pty| {
             pty.channel.request_pty_size(
                 size.cols.into(),
@@ -167,11 +167,11 @@ impl MasterPty for SshMaster {
         })
     }
 
-    fn get_size(&self) -> Fallible<PtySize> {
+    fn get_size(&self) -> anyhow::Result<PtySize> {
         Ok(self.pty.with_pty(|pty| pty.size))
     }
 
-    fn try_clone_reader(&self) -> Fallible<Box<dyn std::io::Read + Send>> {
+    fn try_clone_reader(&self) -> anyhow::Result<Box<dyn std::io::Read + Send>> {
         Ok(Box::new(SshReader {
             pty: self.pty.clone(),
         }))
@@ -183,12 +183,12 @@ struct SshSlave {
 }
 
 impl SlavePty for SshSlave {
-    fn spawn_command(&self, cmd: CommandBuilder) -> Fallible<Box<dyn Child>> {
+    fn spawn_command(&self, cmd: CommandBuilder) -> anyhow::Result<Box<dyn Child>> {
         self.pty.with_channel(|channel| {
             for (key, val) in cmd.iter_env_as_str() {
                 channel
                     .setenv(key, val)
-                    .map_err(|e| format_err!("ssh: setenv {}={} failed: {}", key, val, e))?;
+                    .with_context(|| format!("ssh: setenv {}={} failed", key, val))?;
             }
 
             if cmd.is_default_prog() {

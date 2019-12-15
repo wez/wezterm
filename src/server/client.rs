@@ -9,8 +9,8 @@ use crate::server::pollable::*;
 use crate::server::tab::ClientTab;
 use crate::server::UnixStream;
 use crate::ssh::ssh_connect;
+use anyhow::{anyhow, bail, Context, Error};
 use crossbeam_channel::TryRecvError;
-use failure::{bail, err_msg, format_err, Fallible};
 use filedescriptor::{pollfd, AsRawSocketDescriptor};
 use log::info;
 use promise::{Future, Promise};
@@ -61,28 +61,26 @@ macro_rules! rpc {
     };
 }
 
-fn process_unilateral(local_domain_id: DomainId, decoded: DecodedPdu) -> Fallible<()> {
+fn process_unilateral(local_domain_id: DomainId, decoded: DecodedPdu) -> anyhow::Result<()> {
     if let Some(tab_id) = decoded.pdu.tab_id() {
         let pdu = decoded.pdu;
         Future::with_executor(executor(), move || {
             let mux = Mux::get().unwrap();
             let client_domain = mux
                 .get_domain(local_domain_id)
-                .ok_or_else(|| format_err!("no such domain {}", local_domain_id))?;
+                .ok_or_else(|| anyhow!("no such domain {}", local_domain_id))?;
             let client_domain = client_domain
                 .downcast_ref::<ClientDomain>()
                 .ok_or_else(|| {
-                    format_err!("domain {} is not a ClientDomain instance", local_domain_id)
+                    anyhow!("domain {} is not a ClientDomain instance", local_domain_id)
                 })?;
 
             let local_tab_id = client_domain
                 .remote_to_local_tab_id(tab_id)
-                .ok_or_else(|| {
-                    format_err!("remote tab id {} does not have a local tab id", tab_id)
-                })?;
+                .ok_or_else(|| anyhow!("remote tab id {} does not have a local tab id", tab_id))?;
             let tab = mux
                 .get_tab(local_tab_id)
-                .ok_or_else(|| format_err!("no such tab {}", local_tab_id))?;
+                .ok_or_else(|| anyhow!("no such tab {}", local_tab_id))?;
             let client_tab = tab.downcast_ref::<ClientTab>().ok_or_else(|| {
                 log::error!(
                     "received unilateral PDU for tab {} which is \
@@ -90,7 +88,7 @@ fn process_unilateral(local_domain_id: DomainId, decoded: DecodedPdu) -> Fallibl
                     local_tab_id,
                     pdu
                 );
-                format_err!(
+                anyhow!(
                     "received unilateral PDU for tab {} which is \
                      not an instance of ClientTab: {:?}",
                     local_tab_id,
@@ -109,7 +107,7 @@ fn client_thread(
     reconnectable: &mut Reconnectable,
     local_domain_id: DomainId,
     rx: &mut PollableReceiver<ReaderMessage>,
-) -> Fallible<()> {
+) -> anyhow::Result<()> {
     let mut next_serial = 1u64;
     let mut promises = HashMap::new();
     let mut read_buffer = Vec::with_capacity(1024);
@@ -255,7 +253,7 @@ impl Write for SshStream {
 }
 
 impl ReadAndWrite for SshStream {
-    fn set_non_blocking(&self, non_blocking: bool) -> Fallible<()> {
+    fn set_non_blocking(&self, non_blocking: bool) -> anyhow::Result<()> {
         self.sess.set_blocking(!non_blocking);
         Ok(())
     }
@@ -294,7 +292,7 @@ impl Reconnectable {
         }
     }
 
-    fn connect(&mut self, initial: bool) -> Fallible<()> {
+    fn connect(&mut self, initial: bool) -> anyhow::Result<()> {
         match self.config.clone() {
             ClientDomainConfig::Unix(unix_dom) => self.unix_connect(unix_dom, initial),
             ClientDomainConfig::Tls(tls) => self.tls_connect(tls),
@@ -302,7 +300,7 @@ impl Reconnectable {
         }
     }
 
-    fn ssh_connect(&mut self, ssh_dom: SshDomain, initial: bool) -> Fallible<()> {
+    fn ssh_connect(&mut self, ssh_dom: SshDomain, initial: bool) -> anyhow::Result<()> {
         let sess = ssh_connect(&ssh_dom.remote_address, &ssh_dom.username)?;
 
         let mut chan = sess.channel_session()?;
@@ -319,7 +317,7 @@ impl Reconnectable {
         Ok(())
     }
 
-    fn unix_connect(&mut self, unix_dom: UnixDomain, initial: bool) -> Fallible<()> {
+    fn unix_connect(&mut self, unix_dom: UnixDomain, initial: bool) -> anyhow::Result<()> {
         let sock_path = unix_dom.socket_path();
         info!("connect to {}", sock_path.display());
 
@@ -364,9 +362,8 @@ impl Reconnectable {
                 // wezterm is terminated, but it otherwise invisible.
                 std::mem::forget(pair.master);
 
-                unix_connect_with_retry(&sock_path).map_err(|e| {
-                    format_err!("failed to connect to {}: {}", sock_path.display(), e)
-                })?
+                unix_connect_with_retry(&sock_path)
+                    .with_context(|| format!("failed to connect to {}", sock_path.display()))?
             }
         };
 
@@ -376,7 +373,7 @@ impl Reconnectable {
     }
 
     #[cfg(any(feature = "openssl", unix))]
-    pub fn tls_connect(&mut self, tls_client: TlsDomainClient) -> Fallible<()> {
+    pub fn tls_connect(&mut self, tls_client: TlsDomainClient) -> anyhow::Result<()> {
         use crate::server::listener::read_bytes;
         use openssl::ssl::{SslConnector, SslFiletype, SslMethod};
         use openssl::x509::X509;
@@ -386,7 +383,7 @@ impl Reconnectable {
         let remote_address = &tls_client.remote_address;
 
         let remote_host_name = remote_address.split(':').next().ok_or_else(|| {
-            format_err!(
+            anyhow!(
                 "expected mux_server_remote_address to have the form 'host:port', but have {}",
                 remote_address
             )
@@ -403,7 +400,7 @@ impl Reconnectable {
         if let Some(key_file) = tls_client.pem_private_key.as_ref() {
             connector.set_private_key_file(key_file, SslFiletype::PEM)?;
         }
-        fn load_cert(name: &Path) -> Fallible<X509> {
+        fn load_cert(name: &Path) -> anyhow::Result<X509> {
             let cert_bytes = read_bytes(name)?;
             log::trace!("loaded {}", name.display());
             Ok(X509::from_pem(&cert_bytes)?)
@@ -426,7 +423,7 @@ impl Reconnectable {
             .verify_hostname(!tls_client.accept_invalid_hostnames);
 
         let stream = TcpStream::connect(remote_address)
-            .map_err(|e| format_err!("connecting to {}: {}", remote_address, e))?;
+            .with_context(|| format!("connecting to {}", remote_address))?;
         stream.set_nodelay(true)?;
 
         let stream = Box::new(
@@ -439,13 +436,10 @@ impl Reconnectable {
                         .unwrap_or(remote_host_name),
                     stream,
                 )
-                .map_err(|e| {
-                    format_err!(
-                        "SslConnector for {} with host name {}: {} ({:?})",
-                        remote_address,
-                        remote_host_name,
-                        e,
-                        e
+                .with_context(|| {
+                    format!(
+                        "SslConnector for {} with host name {}",
+                        remote_address, remote_host_name,
                     )
                 })?,
         );
@@ -454,7 +448,7 @@ impl Reconnectable {
     }
 
     #[cfg(not(any(feature = "openssl", unix)))]
-    pub fn tls_connect(&mut self, tls_client: TlsDomainClient) -> Fallible<()> {
+    pub fn tls_connect(&mut self, tls_client: TlsDomainClient) -> anyhow::Result<()> {
         use crate::server::listener::IdentitySource;
         use native_tls::TlsConnector;
         use std::convert::TryInto;
@@ -462,7 +456,7 @@ impl Reconnectable {
         let remote_address = &tls_client.remote_address;
 
         let remote_host_name = remote_address.split(':').next().ok_or_else(|| {
-            format_err!(
+            anyhow!(
                 "expected mux_server_remote_address to have the form 'host:port', but have {}",
                 remote_address
             )
@@ -472,7 +466,7 @@ impl Reconnectable {
             key: tls_client
                 .pem_private_key
                 .as_ref()
-                .ok_or_else(|| failure::err_msg("missing pem_private_key config value"))?
+                .ok_or_else(|| anyhow!("missing pem_private_key config value"))?
                 .into(),
             cert: tls_client.pem_cert.clone(),
             chain: tls_client.pem_ca.clone(),
@@ -484,18 +478,19 @@ impl Reconnectable {
             .build()?;
 
         let stream = TcpStream::connect(remote_address)
-            .map_err(|e| format_err!("connecting to {}: {}", remote_address, e))?;
+            .with_context(|| format!("connecting to {}", remote_address))?;
         stream.set_nodelay(true)?;
 
-        let stream = Box::new(connector.connect(remote_host_name, stream).map_err(|e| {
-            format_err!(
-                "TlsConnector for {} with host name {}: {} ({:?})",
-                remote_address,
-                remote_host_name,
-                e,
-                e
-            )
-        })?);
+        let stream = Box::new(
+            connector
+                .connect(remote_host_name, stream)
+                .with_context(|| {
+                    format!(
+                        "TlsConnector for {} with host name {}",
+                        remote_address, remote_host_name,
+                    )
+                })?,
+        );
         self.stream.replace(stream);
         Ok(())
     }
@@ -543,12 +538,12 @@ impl Client {
                 let mux = Mux::get().unwrap();
                 let client_domain = mux
                     .get_domain(local_domain_id)
-                    .ok_or_else(|| format_err!("no such domain {}", local_domain_id))?;
+                    .ok_or_else(|| anyhow!("no such domain {}", local_domain_id))?;
                 let client_domain =
                     client_domain
                         .downcast_ref::<ClientDomain>()
                         .ok_or_else(|| {
-                            format_err!("domain {} is not a ClientDomain instance", local_domain_id)
+                            anyhow!("domain {} is not a ClientDomain instance", local_domain_id)
                         })?;
                 client_domain.perform_detach();
                 Ok(())
@@ -566,12 +561,12 @@ impl Client {
         self.local_domain_id
     }
 
-    pub fn new_default_unix_domain(initial: bool) -> Fallible<Self> {
+    pub fn new_default_unix_domain(initial: bool) -> anyhow::Result<Self> {
         let config = configuration();
         let unix_dom = config
             .unix_domains
             .first()
-            .ok_or_else(|| err_msg("no default unix domain is configured"))?;
+            .ok_or_else(|| anyhow!("no default unix domain is configured"))?;
         Self::new_unix_domain(alloc_domain_id(), unix_dom, initial)
     }
 
@@ -579,21 +574,24 @@ impl Client {
         local_domain_id: DomainId,
         unix_dom: &UnixDomain,
         initial: bool,
-    ) -> Fallible<Self> {
+    ) -> anyhow::Result<Self> {
         let mut reconnectable =
             Reconnectable::new(ClientDomainConfig::Unix(unix_dom.clone()), None);
         reconnectable.connect(initial)?;
         Ok(Self::new(local_domain_id, reconnectable))
     }
 
-    pub fn new_tls(local_domain_id: DomainId, tls_client: &TlsDomainClient) -> Fallible<Self> {
+    pub fn new_tls(
+        local_domain_id: DomainId,
+        tls_client: &TlsDomainClient,
+    ) -> anyhow::Result<Self> {
         let mut reconnectable =
             Reconnectable::new(ClientDomainConfig::Tls(tls_client.clone()), None);
         reconnectable.connect(true)?;
         Ok(Self::new(local_domain_id, reconnectable))
     }
 
-    pub fn new_ssh(local_domain_id: DomainId, ssh_dom: &SshDomain) -> Fallible<Self> {
+    pub fn new_ssh(local_domain_id: DomainId, ssh_dom: &SshDomain) -> anyhow::Result<Self> {
         let mut reconnectable = Reconnectable::new(ClientDomainConfig::Ssh(ssh_dom.clone()), None);
         reconnectable.connect(true)?;
         Ok(Self::new(local_domain_id, reconnectable))
@@ -604,7 +602,7 @@ impl Client {
         let future = promise.get_future().expect("future already taken!?");
         match self.sender.send(ReaderMessage::SendPdu { pdu, promise }) {
             Ok(_) => future,
-            Err(err) => Future::err(format_err!("{}", err)),
+            Err(err) => Future::err(Error::msg(err)),
         }
     }
 

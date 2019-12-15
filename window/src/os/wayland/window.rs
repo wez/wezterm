@@ -11,7 +11,7 @@ use crate::{
     Connection, Dimensions, MouseCursor, Operator, PaintContext, Point, Rect, ScreenPoint, Window,
     WindowCallbacks, WindowOps, WindowOpsMut,
 };
-use failure::Fallible;
+use anyhow::{anyhow, bail, Context};
 use filedescriptor::FileDescriptor;
 use promise::{Future, Promise};
 use smithay_client_toolkit as toolkit;
@@ -155,10 +155,10 @@ impl WaylandWindow {
         width: usize,
         height: usize,
         callbacks: Box<dyn WindowCallbacks>,
-    ) -> Fallible<Window> {
+    ) -> anyhow::Result<Window> {
         let conn = WaylandConnection::get()
             .ok_or_else(|| {
-                failure::err_msg(
+                anyhow!(
                 "new_window must be called on the gui thread after Connection::init has succeeded",
             )
             })?
@@ -195,7 +195,7 @@ impl WaylandWindow {
                 }
             },
         )
-        .map_err(|e| failure::format_err!("Failed to create window: {}", e))?;
+        .context("Failed to create window")?;
 
         window.set_app_id(class_name.to_string());
         window.set_decorate(true);
@@ -466,7 +466,7 @@ impl WaylandWindowInner {
         }
     }
 
-    fn do_paint(&mut self) -> Fallible<()> {
+    fn do_paint(&mut self) -> anyhow::Result<()> {
         #[cfg(feature = "opengl")]
         {
             if let Some(gl_context) = self.gl_state.as_ref() {
@@ -651,7 +651,7 @@ impl WindowOps for WaylandWindow {
         })
     }
 
-    fn apply<R, F: Send + 'static + Fn(&mut dyn Any, &dyn WindowOps) -> Fallible<R>>(
+    fn apply<R, F: Send + 'static + Fn(&mut dyn Any, &dyn WindowOps) -> anyhow::Result<R>>(
         &self,
         func: F,
     ) -> promise::Future<R>
@@ -673,8 +673,8 @@ impl WindowOps for WaylandWindow {
             + Fn(
                 &mut dyn Any,
                 &dyn WindowOps,
-                failure::Fallible<std::rc::Rc<glium::backend::Context>>,
-            ) -> failure::Fallible<R>,
+                anyhow::Result<std::rc::Rc<glium::backend::Context>>,
+            ) -> anyhow::Result<R>,
     >(
         &self,
         func: F,
@@ -689,7 +689,7 @@ impl WindowOps for WaylandWindow {
             let mut wegl_surface = None;
 
             let gl_state = if !egl_is_available() {
-                Err(failure::err_msg("!egl_is_available"))
+                Err(anyhow!("!egl_is_available"))
             } else {
                 wegl_surface = Some(WlEglSurface::new(
                     &inner.surface,
@@ -737,7 +737,7 @@ impl WindowOps for WaylandWindow {
                     }
                     Err(e) => {
                         log::error!("while reading clipboard: {}", e);
-                        promise.err(failure::format_err!("{}", e));
+                        promise.err(anyhow!("{}", e));
                     }
                 };
             });
@@ -768,7 +768,7 @@ impl WindowOps for WaylandWindow {
                         (),
                     )
                 })
-                .map_err(|_| failure::format_err!("failed to create data source"))?;
+                .map_err(|()| anyhow!("failed to create data source"))?;
             source.offer(TEXT_MIME_TYPE.to_string());
             inner.copy_and_paste.lock().unwrap().set_selection(source);
 
@@ -777,7 +777,7 @@ impl WindowOps for WaylandWindow {
     }
 }
 
-fn write_pipe_with_timeout(mut file: FileDescriptor, data: &[u8]) -> Fallible<()> {
+fn write_pipe_with_timeout(mut file: FileDescriptor, data: &[u8]) -> anyhow::Result<()> {
     let on: libc::c_int = 1;
     unsafe {
         libc::ioctl(file.as_raw_fd(), libc::FIONBIO, &on);
@@ -794,22 +794,22 @@ fn write_pipe_with_timeout(mut file: FileDescriptor, data: &[u8]) -> Fallible<()
         if unsafe { libc::poll(&mut pfd, 1, 3000) == 1 } {
             match file.write(buf) {
                 Ok(size) if size == 0 => {
-                    failure::bail!("zero byte write");
+                    bail!("zero byte write");
                 }
                 Ok(size) => {
                     buf = &buf[size..];
                 }
-                Err(e) => failure::bail!("error writing to pipe: {}", e),
+                Err(e) => bail!("error writing to pipe: {}", e),
             }
         } else {
-            failure::bail!("timed out writing to pipe");
+            bail!("timed out writing to pipe");
         }
     }
 
     Ok(())
 }
 
-fn read_pipe_with_timeout(mut file: FileDescriptor) -> Fallible<String> {
+fn read_pipe_with_timeout(mut file: FileDescriptor) -> anyhow::Result<String> {
     let mut result = Vec::new();
 
     let on: libc::c_int = 1;
@@ -833,10 +833,10 @@ fn read_pipe_with_timeout(mut file: FileDescriptor) -> Fallible<String> {
                 Ok(size) => {
                     result.extend_from_slice(&buf[..size]);
                 }
-                Err(e) => failure::bail!("error reading from pipe: {}", e),
+                Err(e) => bail!("error reading from pipe: {}", e),
             }
         } else {
-            failure::bail!("timed out reading from pipe");
+            bail!("timed out reading from pipe");
         }
     }
 

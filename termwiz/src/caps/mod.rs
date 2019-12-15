@@ -54,8 +54,8 @@
 //! implements some heuristics (a fancy word for guessing) to compute
 //! the terminal capabilities, but also offers a `ProbeHintsBuilder`
 //! that can be used by the embedding application to override those choices.
+use anyhow::Error;
 use derive_builder::*;
-use failure::{err_msg, Error};
 use semver::Version;
 use std::env::var;
 use terminfo::{self, capability as cap};
@@ -164,7 +164,11 @@ impl Capabilities {
     /// This function inspects the environment variables to build
     /// up configuration hints.
     pub fn new_from_env() -> Result<Self, Error> {
-        Self::new_with_hints(ProbeHintsBuilder::new_from_env().build().map_err(err_msg)?)
+        Self::new_with_hints(
+            ProbeHintsBuilder::new_from_env()
+                .build()
+                .map_err(Error::msg)?,
+        )
     }
 
     /// Build a `Capabilities` object based on the provided `ProbeHints` object.

@@ -7,7 +7,7 @@ use crate::spawn::*;
 use crate::tasks::{Task, Tasks};
 use crate::timerlist::{TimerEntry, TimerList};
 use crate::Connection;
-use failure::Fallible;
+use anyhow::{bail, Context};
 use mio::unix::EventedFd;
 use mio::{Evented, Events, Poll, PollOpt, Ready, Token};
 use promise::BasicExecutor;
@@ -71,7 +71,7 @@ impl Evented for WaylandConnection {
 }
 
 impl WaylandConnection {
-    pub fn create_new() -> Fallible<Self> {
+    pub fn create_new() -> anyhow::Result<Self> {
         let (display, mut event_q) = Display::connect_to_env()?;
         let environment = Environment::from_display(&*display, &mut event_q)?;
 
@@ -87,7 +87,7 @@ impl WaylandConnection {
                     (),
                 )
             })
-            .map_err(|_| failure::format_err!("Failed to create seat"))?;
+            .with_context(|| format!("Failed to create seat"))?;
         let keyboard = KeyboardDispatcher::register(&seat)?;
 
         let pointer = PointerDispatcher::register(
@@ -125,10 +125,10 @@ impl WaylandConnection {
         LowPriSpawnQueueExecutor {}
     }
 
-    fn flush(&self) -> Fallible<()> {
+    fn flush(&self) -> anyhow::Result<()> {
         if let Err(e) = self.display.borrow_mut().flush() {
             if e.kind() != ::std::io::ErrorKind::WouldBlock {
-                failure::bail!("Error while flushing display: {}", e);
+                bail!("Error while flushing display: {}", e);
             }
         }
         Ok(())
@@ -136,13 +136,13 @@ impl WaylandConnection {
 
     fn do_paint(&self) {}
 
-    fn process_queued_events(&self) -> Fallible<()> {
+    fn process_queued_events(&self) -> anyhow::Result<()> {
         {
             let mut event_q = self.event_q.borrow_mut();
             if let Some(guard) = event_q.prepare_read() {
                 if let Err(e) = guard.read_events() {
                     if e.kind() != ::std::io::ErrorKind::WouldBlock {
-                        failure::bail!("Error while reading events: {}", e);
+                        bail!("Error while reading events: {}", e);
                     }
                 }
             }
@@ -158,7 +158,7 @@ impl WaylandConnection {
 
     pub(crate) fn with_window_inner<
         R,
-        F: FnMut(&mut WaylandWindowInner) -> Fallible<R> + Send + 'static,
+        F: FnMut(&mut WaylandWindowInner) -> anyhow::Result<R> + Send + 'static,
     >(
         window: usize,
         mut f: F,
@@ -194,7 +194,7 @@ impl ConnectionOps for WaylandConnection {
         *self.should_terminate.borrow_mut() = true;
     }
 
-    fn run_message_loop(&self) -> Fallible<()> {
+    fn run_message_loop(&self) -> anyhow::Result<()> {
         println!("run_message_loop:flush");
         self.flush()?;
 
@@ -260,7 +260,7 @@ impl ConnectionOps for WaylandConnection {
                 }
 
                 Err(err) => {
-                    failure::bail!("polling for events: {:?}", err);
+                    bail!("polling for events: {:?}", err);
                 }
             }
         }

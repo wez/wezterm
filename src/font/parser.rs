@@ -18,7 +18,7 @@ use allsorts::tables::{
     HeadTable, HheaTable, HmtxTable, MaxpTable, OffsetTable, OpenTypeFile, OpenTypeFont,
 };
 use allsorts::tag;
-use failure::{format_err, Fallible};
+use anyhow::anyhow;
 use std::convert::TryInto;
 use std::path::{Path, PathBuf};
 use termwiz::cell::unicode_column_width;
@@ -61,7 +61,7 @@ pub struct Names {
 }
 
 impl Names {
-    fn from_name_table_data(name_table: &[u8]) -> Fallible<Names> {
+    fn from_name_table_data(name_table: &[u8]) -> anyhow::Result<Names> {
         Ok(Names {
             full_name: get_name(name_table, 4)?,
             unique: get_name(name_table, 3).ok(),
@@ -78,7 +78,7 @@ impl ParsedFont {
     pub fn load_fonts(
         config: &Config,
         fonts_selection: &[FontAttributes],
-    ) -> Fallible<Vec<FontDataHandle>> {
+    ) -> anyhow::Result<Vec<FontDataHandle>> {
         // First discover the available fonts
         let mut font_info = vec![];
         for path in &config.font_dirs {
@@ -117,7 +117,7 @@ impl ParsedFont {
         Ok(handles)
     }
 
-    pub fn from_locator(handle: &FontDataHandle) -> Fallible<Self> {
+    pub fn from_locator(handle: &FontDataHandle) -> anyhow::Result<Self> {
         let (data, index) = match handle {
             FontDataHandle::Memory { data, index } => (data.to_vec(), *index),
             FontDataHandle::OnDisk { path, index } => {
@@ -143,33 +143,33 @@ impl ParsedFont {
 
         let head = otf
             .read_table(&file.scope, tag::HEAD)?
-            .ok_or_else(|| format_err!("HEAD table missing or broken"))?
+            .ok_or_else(|| anyhow!("HEAD table missing or broken"))?
             .read::<HeadTable>()?;
         let cmap = otf
             .read_table(&file.scope, tag::CMAP)?
-            .ok_or_else(|| format_err!("CMAP table missing or broken"))?
+            .ok_or_else(|| anyhow!("CMAP table missing or broken"))?
             .read::<Cmap>()?;
         let cmap_subtable: CmapSubtable<'static> =
-            read_cmap_subtable(&cmap)?.ok_or_else(|| format_err!("CMAP subtable not found"))?;
+            read_cmap_subtable(&cmap)?.ok_or_else(|| anyhow!("CMAP subtable not found"))?;
 
         let maxp = otf
             .read_table(&file.scope, tag::MAXP)?
-            .ok_or_else(|| format_err!("MAXP table not found"))?
+            .ok_or_else(|| anyhow!("MAXP table not found"))?
             .read::<MaxpTable>()?;
         let num_glyphs = maxp.num_glyphs;
 
         let post = otf
             .read_table(&file.scope, tag::POST)?
-            .ok_or_else(|| format_err!("POST table not found"))?
+            .ok_or_else(|| anyhow!("POST table not found"))?
             .read::<PostTable>()?;
 
         let hhea = otf
             .read_table(&file.scope, tag::HHEA)?
-            .ok_or_else(|| format_err!("HHEA table not found"))?
+            .ok_or_else(|| anyhow!("HHEA table not found"))?
             .read::<HheaTable>()?;
         let hmtx = otf
             .read_table(&file.scope, tag::HMTX)?
-            .ok_or_else(|| format_err!("HMTX table not found"))?
+            .ok_or_else(|| anyhow!("HMTX table not found"))?
             .read_dep::<HmtxTable>((
                 usize::from(maxp.num_glyphs),
                 usize::from(hhea.num_h_metrics),
@@ -177,13 +177,13 @@ impl ParsedFont {
 
         let gdef_table: Option<GDEFTable> = otf
             .find_table_record(tag::GDEF)
-            .map(|gdef_record| -> Fallible<GDEFTable> {
+            .map(|gdef_record| -> anyhow::Result<GDEFTable> {
                 Ok(gdef_record.read_table(&file.scope)?.read::<GDEFTable>()?)
             })
             .transpose()?;
         let opt_gpos_table = otf
             .find_table_record(tag::GPOS)
-            .map(|gpos_record| -> Fallible<LayoutTable<GPOS>> {
+            .map(|gpos_record| -> anyhow::Result<LayoutTable<GPOS>> {
                 Ok(gpos_record
                     .read_table(&file.scope)?
                     .read::<LayoutTable<GPOS>>()?)
@@ -193,7 +193,7 @@ impl ParsedFont {
 
         let gsub_cache = otf
             .find_table_record(tag::GSUB)
-            .map(|gsub| -> Fallible<LayoutTable<GSUB>> {
+            .map(|gsub| -> anyhow::Result<LayoutTable<GSUB>> {
                 Ok(gsub.read_table(&file.scope)?.read::<LayoutTable<GSUB>>()?)
             })
             .transpose()?
@@ -220,10 +220,10 @@ impl ParsedFont {
     }
 
     /// Resolve a char to the corresponding glyph in the font
-    pub fn glyph_index_for_char(&self, c: char) -> Fallible<Option<u16>> {
+    pub fn glyph_index_for_char(&self, c: char) -> anyhow::Result<Option<u16>> {
         self.cmap_subtable
             .map_glyph(c as u32)
-            .map_err(|e| format_err!("Error while looking up glyph {}: {}", c, e))
+            .map_err(|e| anyhow!("Error while looking up glyph {}: {}", c, e))
     }
 
     pub fn get_metrics(&self, point_size: f64, dpi: u32) -> FontMetrics {
@@ -290,7 +290,7 @@ impl ParsedFont {
         lang: u32,
         point_size: f64,
         dpi: u32,
-    ) -> Fallible<Vec<MaybeShaped>> {
+    ) -> anyhow::Result<Vec<MaybeShaped>> {
         let mut glyphs = vec![];
         for c in text.as_ref().chars() {
             glyphs.push(RawGlyph {
@@ -352,7 +352,7 @@ impl ParsedFont {
         for glyph_info in infos.into_iter() {
             let mut input_glyph = glyph_iter
                 .next()
-                .ok_or_else(|| format_err!("more output infos than input glyphs!"))?;
+                .ok_or_else(|| anyhow!("more output infos than input glyphs!"))?;
 
             while input_glyph.unicodes != glyph_info.glyph.unicodes {
                 // Info::init_from_glyphs skipped the input glyph, so let's be
@@ -365,15 +365,15 @@ impl ParsedFont {
 
                 cluster += text.len();
 
-                input_glyph = glyph_iter.next().ok_or_else(|| {
-                    format_err!("more output infos than input glyphs! (loop bottom)")
-                })?;
+                input_glyph = glyph_iter
+                    .next()
+                    .ok_or_else(|| anyhow!("more output infos than input glyphs! (loop bottom)"))?;
             }
 
             let glyph_index = glyph_info
                 .glyph
                 .glyph_index
-                .ok_or_else(|| format_err!("no mapped glyph_index for {:?}", glyph_info))?;
+                .ok_or_else(|| anyhow!("no mapped glyph_index for {:?}", glyph_info))?;
 
             let horizontal_advance = i32::from(
                 self.hmtx
@@ -431,7 +431,7 @@ fn collect_font_info(
     path: &Path,
     index: usize,
     infos: &mut Vec<(Names, PathBuf, usize)>,
-) -> Fallible<()> {
+) -> anyhow::Result<()> {
     let names = Names::from_name_table_data(name_table_data)?;
     infos.push((names, path.to_path_buf(), index));
     Ok(())
@@ -461,7 +461,7 @@ fn font_info_matches(attr: &FontAttributes, names: &Names) -> bool {
 fn parse_and_collect_font_info(
     path: &Path,
     font_info: &mut Vec<(Names, PathBuf, usize)>,
-) -> Fallible<()> {
+) -> anyhow::Result<()> {
     let data = std::fs::read(path)?;
     let scope = allsorts::binary::read::ReadScope::new(&data);
     let file = scope.read::<OpenTypeFile>()?;
@@ -470,7 +470,7 @@ fn parse_and_collect_font_info(
         OpenTypeFont::Single(ttf) => {
             let data = ttf
                 .read_table(&file.scope, allsorts::tag::NAME)?
-                .ok_or_else(|| format_err!("name table is not present"))?;
+                .ok_or_else(|| anyhow!("name table is not present"))?;
             collect_font_info(data.data(), path, 0, font_info)?;
         }
         OpenTypeFont::Collection(ttc) => {
@@ -481,7 +481,7 @@ fn parse_and_collect_font_info(
                     .read::<OffsetTable>()?;
                 let data = ttf
                     .read_table(&file.scope, allsorts::tag::NAME)?
-                    .ok_or_else(|| format_err!("name table is not present"))?;
+                    .ok_or_else(|| anyhow!("name table is not present"))?;
                 collect_font_info(data.data(), path, index, font_info).ok();
             }
         }
@@ -490,14 +490,14 @@ fn parse_and_collect_font_info(
     Ok(())
 }
 
-fn locate_offset_table<'a>(f: &OpenTypeFile<'a>, idx: usize) -> Fallible<OffsetTable<'a>> {
+fn locate_offset_table<'a>(f: &OpenTypeFile<'a>, idx: usize) -> anyhow::Result<OffsetTable<'a>> {
     match &f.font {
         OpenTypeFont::Single(ttf) => Ok(ttf.clone()),
         OpenTypeFont::Collection(ttc) => {
             let offset_table_offset = ttc
                 .offset_tables
                 .read_item(idx)
-                .map_err(|e| format_err!("font idx={} is not present in ttc file: {}", idx, e))?;
+                .map_err(|e| anyhow!("font idx={} is not present in ttc file: {}", idx, e))?;
             let ttf = f
                 .scope
                 .offset(offset_table_offset as usize)
@@ -508,17 +508,17 @@ fn locate_offset_table<'a>(f: &OpenTypeFile<'a>, idx: usize) -> Fallible<OffsetT
 }
 
 /// Extract the name table data from a font
-fn name_table_data<'a>(otf: &OffsetTable<'a>, scope: &ReadScope<'a>) -> Fallible<&'a [u8]> {
+fn name_table_data<'a>(otf: &OffsetTable<'a>, scope: &ReadScope<'a>) -> anyhow::Result<&'a [u8]> {
     let data = otf
         .read_table(scope, allsorts::tag::NAME)?
-        .ok_or_else(|| format_err!("name table is not present"))?;
+        .ok_or_else(|| anyhow!("name table is not present"))?;
     Ok(data.data())
 }
 
 /// Extract a name from the name table
-fn get_name(name_table_data: &[u8], name_id: u16) -> Fallible<String> {
+fn get_name(name_table_data: &[u8], name_id: u16) -> anyhow::Result<String> {
     let cstr = allsorts::get_name::fontcode_get_name(name_table_data, name_id)?
-        .ok_or_else(|| format_err!("name_id {} not found", name_id))?;
+        .ok_or_else(|| anyhow!("name_id {} not found", name_id))?;
     cstr.into_string()
-        .map_err(|e| format_err!("name_id {} is not representable as String: {}", name_id, e))
+        .map_err(|e| anyhow!("name_id {} is not representable as String: {}", name_id, e))
 }

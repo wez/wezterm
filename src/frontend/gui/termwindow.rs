@@ -15,7 +15,7 @@ use ::window::bitmaps::atlas::{OutOfTextureSpace, SpriteSlice};
 use ::window::bitmaps::Texture2d;
 use ::window::glium::{uniform, Surface};
 use ::window::*;
-use failure::Fallible;
+use anyhow::{anyhow, bail, ensure};
 use portable_pty::PtySize;
 use std::any::Any;
 use std::ops::Range;
@@ -38,11 +38,11 @@ struct ClipboardHelper {
 }
 
 impl term::Clipboard for ClipboardHelper {
-    fn get_contents(&self) -> Fallible<String> {
+    fn get_contents(&self) -> anyhow::Result<String> {
         self.window.get_clipboard().wait()
     }
 
-    fn set_contents(&self, data: Option<String>) -> Fallible<()> {
+    fn set_contents(&self, data: Option<String>) -> anyhow::Result<()> {
         self.window.set_clipboard(data.unwrap_or_else(String::new));
         Ok(())
     }
@@ -385,7 +385,7 @@ impl TermWindow {
         fontconfig: &Rc<FontConfiguration>,
         tab: &Rc<dyn Tab>,
         mux_window_id: MuxWindowId,
-    ) -> Fallible<()> {
+    ) -> anyhow::Result<()> {
         let (physical_rows, physical_cols) = tab.renderer().physical_dimensions();
 
         let render_metrics = RenderMetrics::new(fontconfig);
@@ -631,7 +631,7 @@ impl TermWindow {
         Key::Code(code)
     }
 
-    fn recreate_texture_atlas(&mut self, size: Option<usize>) -> Fallible<()> {
+    fn recreate_texture_atlas(&mut self, size: Option<usize>) -> anyhow::Result<()> {
         self.render_state
             .recreate_texture_atlas(&self.fonts, &self.render_metrics, size)
     }
@@ -722,11 +722,11 @@ impl TermWindow {
         }
     }
 
-    fn activate_tab(&mut self, tab_idx: usize) -> Fallible<()> {
+    fn activate_tab(&mut self, tab_idx: usize) -> anyhow::Result<()> {
         let mux = Mux::get().unwrap();
         let mut window = mux
             .get_window_mut(self.mux_window_id)
-            .ok_or_else(|| failure::format_err!("no such window"))?;
+            .ok_or_else(|| anyhow!("no such window"))?;
 
         let max = window.len();
         if tab_idx < max {
@@ -738,14 +738,14 @@ impl TermWindow {
         Ok(())
     }
 
-    fn activate_tab_relative(&mut self, delta: isize) -> Fallible<()> {
+    fn activate_tab_relative(&mut self, delta: isize) -> anyhow::Result<()> {
         let mux = Mux::get().unwrap();
         let window = mux
             .get_window(self.mux_window_id)
-            .ok_or_else(|| failure::format_err!("no such window"))?;
+            .ok_or_else(|| anyhow!("no such window"))?;
 
         let max = window.len();
-        failure::ensure!(max > 0, "no more tabs");
+        ensure!(max > 0, "no more tabs");
 
         let active = window.get_active_idx() as isize;
         let tab = active + delta;
@@ -754,7 +754,7 @@ impl TermWindow {
         self.activate_tab(tab as usize % max)
     }
 
-    fn spawn_tab(&mut self, domain: &SpawnTabDomain) -> Fallible<TabId> {
+    fn spawn_tab(&mut self, domain: &SpawnTabDomain) -> anyhow::Result<TabId> {
         let rows =
             (self.dimensions.pixel_height as usize) / self.render_metrics.cell_size.height as usize;
         let cols =
@@ -779,17 +779,16 @@ impl TermWindow {
             SpawnTabDomain::CurrentTabDomain => {
                 let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
                     Some(tab) => tab,
-                    None => failure::bail!("window has no tabs?"),
+                    None => bail!("window has no tabs?"),
                 };
-                mux.get_domain(tab.domain_id()).ok_or_else(|| {
-                    failure::format_err!("current tab has unresolvable domain id!?")
-                })?
+                mux.get_domain(tab.domain_id())
+                    .ok_or_else(|| anyhow!("current tab has unresolvable domain id!?"))?
             }
-            SpawnTabDomain::Domain(id) => mux.get_domain(*id).ok_or_else(|| {
-                failure::format_err!("spawn_tab called with unresolvable domain id!?")
-            })?,
+            SpawnTabDomain::Domain(id) => mux
+                .get_domain(*id)
+                .ok_or_else(|| anyhow!("spawn_tab called with unresolvable domain id!?"))?,
             SpawnTabDomain::DomainName(name) => mux.get_domain_by_name(&name).ok_or_else(|| {
-                failure::format_err!("spawn_tab called with unresolvable domain name {}", name)
+                anyhow!("spawn_tab called with unresolvable domain name {}", name)
             })?,
         };
         let tab = domain.spawn(size, None, self.mux_window_id)?;
@@ -803,7 +802,7 @@ impl TermWindow {
         let len = {
             let window = mux
                 .get_window(self.mux_window_id)
-                .ok_or_else(|| failure::format_err!("no such window!?"))?;
+                .ok_or_else(|| anyhow!("no such window!?"))?;
             window.len()
         };
         self.activate_tab(len - 1)?;
@@ -814,7 +813,7 @@ impl TermWindow {
         &mut self,
         tab: &Rc<dyn Tab>,
         assignment: &KeyAssignment,
-    ) -> Fallible<()> {
+    ) -> anyhow::Result<()> {
         use KeyAssignment::*;
         match assignment {
             SpawnTab(spawn_where) => {
@@ -1017,7 +1016,7 @@ impl TermWindow {
         self.activate_tab_relative(0).ok();
     }
 
-    fn paint_tab(&mut self, tab: &Rc<dyn Tab>, ctx: &mut dyn PaintContext) -> Fallible<()> {
+    fn paint_tab(&mut self, tab: &Rc<dyn Tab>, ctx: &mut dyn PaintContext) -> anyhow::Result<()> {
         let palette = tab.palette();
         let first_line_offset = if self.show_tab_bar { 1 } else { 0 };
 
@@ -1072,7 +1071,11 @@ impl TermWindow {
         Ok(())
     }
 
-    fn paint_tab_opengl(&mut self, tab: &Rc<dyn Tab>, frame: &mut glium::Frame) -> Fallible<()> {
+    fn paint_tab_opengl(
+        &mut self,
+        tab: &Rc<dyn Tab>,
+        frame: &mut glium::Frame,
+    ) -> anyhow::Result<()> {
         let palette = tab.palette();
 
         let background_color = palette.resolve_bg(term::color::ColorAttribute::Default);
@@ -1176,7 +1179,7 @@ impl TermWindow {
         cursor: &CursorPosition,
         terminal: &dyn Renderable,
         palette: &ColorPalette,
-    ) -> Fallible<()> {
+    ) -> anyhow::Result<()> {
         let gl_state = self.render_state.opengl();
 
         let (_num_rows, num_cols) = terminal.physical_dimensions();
@@ -1186,7 +1189,7 @@ impl TermWindow {
             let start_pos = line_idx * per_line;
             vb.slice_mut(start_pos..start_pos + per_line)
                 .ok_or_else(|| {
-                    failure::format_err!(
+                    anyhow!(
                         "we're confused about the screen size; \
                          line_idx={} start_pos={} per_line={} num_cols={}",
                         line_idx,
@@ -1423,7 +1426,7 @@ impl TermWindow {
         cursor: &CursorPosition,
         terminal: &dyn Renderable,
         palette: &ColorPalette,
-    ) -> Fallible<()> {
+    ) -> anyhow::Result<()> {
         let config = configuration();
 
         let (_num_rows, num_cols) = terminal.physical_dimensions();

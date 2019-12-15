@@ -4,7 +4,6 @@ use ::font_kit::family_name::FamilyName;
 use ::font_kit::handle::Handle;
 use ::font_kit::properties::Properties;
 use ::font_kit::source::Source;
-use failure::Fallible;
 
 /// A FontLocator implemented using the font loading
 /// functions provided by Source's from font-kit crate.
@@ -12,7 +11,10 @@ impl<S> FontLocator for S
 where
     S: Source,
 {
-    fn load_fonts(&self, fonts_selection: &[FontAttributes]) -> Fallible<Vec<FontDataHandle>> {
+    fn load_fonts(
+        &self,
+        fonts_selection: &[FontAttributes],
+    ) -> anyhow::Result<Vec<FontDataHandle>> {
         let mut handles = vec![];
 
         for font in fonts_selection {

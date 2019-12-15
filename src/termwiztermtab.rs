@@ -10,8 +10,8 @@ use crate::mux::renderable::Renderable;
 use crate::mux::tab::{alloc_tab_id, Tab, TabId};
 use crate::mux::window::WindowId;
 use crate::mux::Mux;
+use anyhow::{bail, Error};
 use crossbeam_channel::{unbounded as channel, Receiver, Sender};
-use failure::*;
 use filedescriptor::Pipe;
 use portable_pty::*;
 use promise::{Future, Promise};
@@ -155,7 +155,7 @@ impl Domain for TermWizTerminalDomain {
         _size: PtySize,
         _command: Option<CommandBuilder>,
         _window: WindowId,
-    ) -> Fallible<Rc<dyn Tab>> {
+    ) -> anyhow::Result<Rc<dyn Tab>> {
         bail!("cannot spawn tabs in a TermWizTerminalTab");
     }
 
@@ -166,11 +166,11 @@ impl Domain for TermWizTerminalDomain {
     fn domain_name(&self) -> &str {
         "TermWizTerminalDomain"
     }
-    fn attach(&self) -> Fallible<()> {
+    fn attach(&self) -> anyhow::Result<()> {
         Ok(())
     }
 
-    fn detach(&self) -> Fallible<()> {
+    fn detach(&self) -> anyhow::Result<()> {
         bail!("detach not implemented for TermWizTerminalDomain");
     }
 
@@ -223,7 +223,7 @@ impl Tab for TermWizTerminalTab {
         surface.title().to_string()
     }
 
-    fn send_paste(&self, text: &str) -> Fallible<()> {
+    fn send_paste(&self, text: &str) -> anyhow::Result<()> {
         let paste = InputEvent::Paste(text.to_string());
         self.renderable
             .borrow_mut()
@@ -234,7 +234,7 @@ impl Tab for TermWizTerminalTab {
         Ok(())
     }
 
-    fn reader(&self) -> Fallible<Box<dyn std::io::Read + Send>> {
+    fn reader(&self) -> anyhow::Result<Box<dyn std::io::Read + Send>> {
         Ok(Box::new(self.reader.read.try_clone()?))
     }
 
@@ -242,7 +242,7 @@ impl Tab for TermWizTerminalTab {
         self.renderable.borrow_mut()
     }
 
-    fn resize(&self, size: PtySize) -> Fallible<()> {
+    fn resize(&self, size: PtySize) -> anyhow::Result<()> {
         self.renderable
             .borrow()
             .inner
@@ -252,7 +252,7 @@ impl Tab for TermWizTerminalTab {
         Ok(())
     }
 
-    fn key_down(&self, key: KeyCode, modifiers: KeyModifiers) -> Fallible<()> {
+    fn key_down(&self, key: KeyCode, modifiers: KeyModifiers) -> anyhow::Result<()> {
         let event = InputEvent::Key(KeyEvent { key, modifiers });
         self.renderable
             .borrow_mut()
@@ -263,7 +263,7 @@ impl Tab for TermWizTerminalTab {
         Ok(())
     }
 
-    fn mouse_event(&self, _event: MouseEvent, _host: &mut dyn TerminalHost) -> Fallible<()> {
+    fn mouse_event(&self, _event: MouseEvent, _host: &mut dyn TerminalHost) -> anyhow::Result<()> {
         // FIXME: send mouse events through
         Ok(())
     }
@@ -308,7 +308,7 @@ pub struct TermWizTerminal {
 }
 
 impl TermWizTerminal {
-    fn do_input_poll(&mut self, wait: Option<Duration>) -> Fallible<Option<InputEvent>> {
+    fn do_input_poll(&mut self, wait: Option<Duration>) -> anyhow::Result<Option<InputEvent>> {
         if let Some(timeout) = wait {
             match self.input_rx.recv_timeout(timeout) {
                 Ok(input) => Ok(Some(input)),
@@ -328,40 +328,40 @@ impl TermWizTerminal {
 }
 
 impl termwiz::terminal::Terminal for TermWizTerminal {
-    fn set_raw_mode(&mut self) -> Fallible<()> {
+    fn set_raw_mode(&mut self) -> anyhow::Result<()> {
         Ok(())
     }
 
-    fn set_cooked_mode(&mut self) -> Fallible<()> {
+    fn set_cooked_mode(&mut self) -> anyhow::Result<()> {
         Ok(())
     }
 
-    fn enter_alternate_screen(&mut self) -> Fallible<()> {
+    fn enter_alternate_screen(&mut self) -> anyhow::Result<()> {
         bail!("TermWizTerminalTab has no alt screen");
     }
 
-    fn exit_alternate_screen(&mut self) -> Fallible<()> {
+    fn exit_alternate_screen(&mut self) -> anyhow::Result<()> {
         bail!("TermWizTerminalTab has no alt screen");
     }
 
-    fn get_screen_size(&mut self) -> Fallible<ScreenSize> {
+    fn get_screen_size(&mut self) -> anyhow::Result<ScreenSize> {
         Ok(self.screen_size)
     }
 
-    fn set_screen_size(&mut self, _size: ScreenSize) -> Fallible<()> {
+    fn set_screen_size(&mut self, _size: ScreenSize) -> anyhow::Result<()> {
         bail!("TermWizTerminalTab cannot set screen size");
     }
 
-    fn render(&mut self, changes: &[Change]) -> Fallible<()> {
+    fn render(&mut self, changes: &[Change]) -> anyhow::Result<()> {
         self.render_tx.send(changes.to_vec())?;
         Ok(())
     }
 
-    fn flush(&mut self) -> Fallible<()> {
+    fn flush(&mut self) -> anyhow::Result<()> {
         Ok(())
     }
 
-    fn poll_input(&mut self, wait: Option<Duration>) -> Fallible<Option<InputEvent>> {
+    fn poll_input(&mut self, wait: Option<Duration>) -> anyhow::Result<Option<InputEvent>> {
         self.do_input_poll(wait).map(|i| {
             if let Some(InputEvent::Resized { cols, rows }) = i.as_ref() {
                 self.screen_size.cols = *cols;
@@ -384,7 +384,7 @@ impl termwiz::terminal::Terminal for TermWizTerminal {
 /// from the terminal window.
 /// When it completes its loop it will fulfil a promise and yield
 /// the return value from the function.
-pub fn run<T: Send + 'static, F: Send + 'static + Fn(TermWizTerminal) -> Fallible<T>>(
+pub fn run<T: Send + 'static, F: Send + 'static + Fn(TermWizTerminal) -> anyhow::Result<T>>(
     width: usize,
     height: usize,
     f: F,
@@ -454,7 +454,8 @@ pub fn message_box_ok(message: &str) {
         term.render(&[
             Change::Title(title.to_string()),
             Change::Text(message.to_string()),
-        ])?;
+        ])
+        .map_err(Error::msg)?;
 
         let mut editor = LineEditor::new(term);
         editor.set_prompt("press enter to continue.");

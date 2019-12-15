@@ -6,7 +6,7 @@ edition = "2018"
 
 [dependencies]
 bitflags = "1.0"
-failure = "0.1"
+anyhow = "1.0"
 image = "0.21"
 log = "0.4"
 num = "0.2"

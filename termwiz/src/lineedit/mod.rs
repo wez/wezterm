@@ -2,10 +2,9 @@
 //! to those in the unix shell.
 //!
 //! ```no_run
-//! use failure::Fallible;
 //! use termwiz::lineedit::{line_editor, NopLineEditorHost};
 //!
-//! fn main() -> Fallible<()> {
+//! fn main() -> anyhow::Result<()> {
 //!     let mut editor = line_editor()?;
 //!     let mut host = NopLineEditorHost::default();
 //!
@@ -40,7 +39,7 @@ use crate::cell::unicode_column_width;
 use crate::input::{InputEvent, KeyCode, KeyEvent, Modifiers};
 use crate::surface::{Change, Position};
 use crate::terminal::{new_terminal, Terminal};
-use failure::{err_msg, Fallible};
+use anyhow::Error;
 use unicode_segmentation::GraphemeCursor;
 
 mod actions;
@@ -53,10 +52,9 @@ pub use host::*;
 /// The `LineEditor` struct provides line editing facilities similar
 /// to those in the unix shell.
 /// ```no_run
-/// use failure::Fallible;
 /// use termwiz::lineedit::{line_editor, NopLineEditorHost};
 ///
-/// fn main() -> Fallible<()> {
+/// fn main() -> anyhow::Result<()> {
 ///     let mut editor = line_editor()?;
 ///     let mut host = NopLineEditorHost::default();
 ///
@@ -122,15 +120,15 @@ impl<T: Terminal> LineEditor<T> {
     /// ```no_run
     /// use termwiz::caps::{Capabilities, ProbeHintsBuilder};
     /// use termwiz::terminal::new_terminal;
-    /// use failure::err_msg;
+    /// use anyhow::Error;
     /// // Disable mouse input in the line editor
     /// let hints = ProbeHintsBuilder::new_from_env()
     ///     .mouse_reporting(Some(false))
     ///     .build()
-    ///     .map_err(err_msg)?;
+    ///     .map_err(Error::msg)?;
     /// let caps = Capabilities::new_with_hints(hints)?;
     /// let terminal = new_terminal(caps)?;
-    /// # Ok::<(), failure::Error>(())
+    /// # Ok::<(), Error>(())
     /// ```
     pub fn new(terminal: T) -> Self {
         Self {
@@ -144,7 +142,7 @@ impl<T: Terminal> LineEditor<T> {
         }
     }
 
-    fn render(&mut self, host: &mut dyn LineEditorHost) -> Fallible<()> {
+    fn render(&mut self, host: &mut dyn LineEditorHost) -> anyhow::Result<()> {
         let mut changes = vec![
             Change::CursorPosition {
                 x: Position::Absolute(0),
@@ -184,7 +182,7 @@ impl<T: Terminal> LineEditor<T> {
     /// Control is not returned to the caller until a line has been
     /// accepted, or until an error is detected.
     /// Returns Ok(None) if the editor was cancelled eg: via CTRL-C.
-    pub fn read_line(&mut self, host: &mut dyn LineEditorHost) -> Fallible<Option<String>> {
+    pub fn read_line(&mut self, host: &mut dyn LineEditorHost) -> anyhow::Result<Option<String>> {
         self.terminal.set_raw_mode()?;
         let res = self.read_line_impl(host);
         self.terminal.set_cooked_mode()?;
@@ -446,7 +444,7 @@ impl<T: Terminal> LineEditor<T> {
         self.completion = None;
     }
 
-    fn read_line_impl(&mut self, host: &mut dyn LineEditorHost) -> Fallible<Option<String>> {
+    fn read_line_impl(&mut self, host: &mut dyn LineEditorHost) -> anyhow::Result<Option<String>> {
         self.line.clear();
         self.cursor = 0;
         self.history_pos = None;
@@ -561,11 +559,11 @@ impl<T: Terminal> LineEditor<T> {
 
 /// Create a `Terminal` with the recommended settings, and use that
 /// to create a `LineEditor` instance.
-pub fn line_editor() -> Fallible<LineEditor<impl Terminal>> {
+pub fn line_editor() -> anyhow::Result<LineEditor<impl Terminal>> {
     let hints = ProbeHintsBuilder::new_from_env()
         .mouse_reporting(Some(false))
         .build()
-        .map_err(err_msg)?;
+        .map_err(Error::msg)?;
     let caps = Capabilities::new_with_hints(hints)?;
     let terminal = new_terminal(caps)?;
     Ok(LineEditor::new(terminal))

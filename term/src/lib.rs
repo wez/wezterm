@@ -1,7 +1,7 @@
 //! Terminal model
 use serde_derive::*;
 
-use failure::Error;
+use anyhow::Error;
 use std::ops::{Deref, DerefMut, Range};
 use std::str;
 

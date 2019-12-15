@@ -1,4 +1,4 @@
-use failure::{bail, format_err, Error, Fallible};
+use anyhow::{anyhow, bail, Context, Error};
 use filedescriptor::{poll, pollfd, FileDescriptor, POLLIN};
 use libc::{self, winsize};
 use signal_hook::{self, SigId};
@@ -146,7 +146,7 @@ impl UnixTty for TtyWriteHandle {
     }
 
     fn get_termios(&mut self) -> Result<Termios, Error> {
-        Termios::from_fd(self.fd.as_raw_fd()).map_err(|e| format_err!("get_termios failed: {}", e))
+        Termios::from_fd(self.fd.as_raw_fd()).context("get_termios failed")
     }
 
     fn set_termios(&mut self, termios: &Termios, when: SetAttributeWhen) -> Result<(), Error> {
@@ -155,12 +155,11 @@ impl UnixTty for TtyWriteHandle {
             SetAttributeWhen::AfterDrainOutputQueue => TCSADRAIN,
             SetAttributeWhen::AfterDrainOutputQueuePurgeInputQueue => TCSAFLUSH,
         };
-        tcsetattr(self.fd.as_raw_fd(), when, termios)
-            .map_err(|e| format_err!("set_termios failed: {}", e))
+        tcsetattr(self.fd.as_raw_fd(), when, termios).context("set_termios failed")
     }
 
     fn drain(&mut self) -> Result<(), Error> {
-        tcdrain(self.fd.as_raw_fd()).map_err(|e| format_err!("tcdrain failed: {}", e))
+        tcdrain(self.fd.as_raw_fd()).context("tcdrain failed")
     }
 
     fn purge(&mut self, purge: Purge) -> Result<(), Error> {
@@ -169,7 +168,7 @@ impl UnixTty for TtyWriteHandle {
             Purge::OutputQueue => TCOFLUSH,
             Purge::InputAndOutputQueue => TCIOFLUSH,
         };
-        tcflush(self.fd.as_raw_fd(), param).map_err(|e| format_err!("tcflush failed: {}", e))
+        tcflush(self.fd.as_raw_fd(), param).context("tcflush failed")
     }
 }
 
@@ -263,7 +262,7 @@ impl UnixTerminal {
             {
                 Ok(None)
             }
-            Err(e) => Err(format_err!("failed to read sigwinch pipe {}", e)),
+            Err(e) => Err(anyhow!("failed to read sigwinch pipe {}", e)),
         }
     }
 }
@@ -287,7 +286,7 @@ impl Terminal for UnixTerminal {
         cfmakeraw(&mut raw);
         self.write
             .set_termios(&raw, SetAttributeWhen::AfterDrainOutputQueuePurgeInputQueue)
-            .map_err(|e| format_err!("failed to set raw mode: {}", e))?;
+            .context("failed to set raw mode")?;
 
         macro_rules! decset {
             ($variant:ident) => {
@@ -313,7 +312,7 @@ impl Terminal for UnixTerminal {
         Ok(())
     }
 
-    fn set_cooked_mode(&mut self) -> Fallible<()> {
+    fn set_cooked_mode(&mut self) -> anyhow::Result<()> {
         self.write
             .set_termios(&self.saved_termios, SetAttributeWhen::Now)
     }
@@ -371,9 +370,7 @@ impl Terminal for UnixTerminal {
             .render_to(changes, &mut self.read, &mut self.write)
     }
     fn flush(&mut self) -> Result<(), Error> {
-        self.write
-            .flush()
-            .map_err(|e| format_err!("flush failed: {}", e))
+        self.write.flush().context("flush failed")
     }
 
     fn poll_input(&mut self, wait: Option<Duration>) -> Result<Option<InputEvent>, Error> {
@@ -423,10 +420,10 @@ impl Terminal for UnixTerminal {
                             Ok(None)
                         }
                     } else {
-                        Err(format_err!("poll(2) error: {}", err))
+                        Err(anyhow!("poll(2) error: {}", err))
                     }
                 }
-                Err(err) => Err(format_err!("poll(2) error: {}", err)),
+                Err(err) => Err(anyhow!("poll(2) error: {}", err)),
             };
         };
 
@@ -451,7 +448,7 @@ impl Terminal for UnixTerminal {
                 }
                 Err(ref e)
                     if e.kind() == ErrorKind::WouldBlock || e.kind() == ErrorKind::Interrupted => {}
-                Err(e) => return Err(format_err!("failed to read input {}", e)),
+                Err(e) => return Err(anyhow!("failed to read input {}", e)),
             }
         }
 

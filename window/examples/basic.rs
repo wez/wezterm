@@ -1,5 +1,4 @@
 use ::window::*;
-use failure::Fallible;
 use std::any::Any;
 
 struct MyWindow {
@@ -83,7 +82,7 @@ impl WindowCallbacks for MyWindow {
     }
 }
 
-fn spawn_window() -> Fallible<()> {
+fn spawn_window() -> anyhow::Result<()> {
     let win = Window::new_window(
         "myclass",
         "the title",
@@ -108,7 +107,7 @@ fn spawn_window() -> Fallible<()> {
     Ok(())
 }
 
-fn main() -> Fallible<()> {
+fn main() -> anyhow::Result<()> {
     pretty_env_logger::init();
     let conn = Connection::init()?;
     spawn_window()?;

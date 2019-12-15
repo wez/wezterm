@@ -6,7 +6,6 @@ mod c0;
 use bitflags::bitflags;
 mod c1;
 mod csi;
-use failure::Fallible;
 mod selection;
 use pretty_assertions::assert_eq;
 use std::cell::RefCell;
@@ -49,17 +48,17 @@ impl LocalClip {
 }
 
 impl Clipboard for LocalClip {
-    fn set_contents(&self, clip: Option<String>) -> Fallible<()> {
+    fn set_contents(&self, clip: Option<String>) -> anyhow::Result<()> {
         *self.clip.borrow_mut() = clip;
         Ok(())
     }
 
-    fn get_contents(&self) -> Fallible<String> {
+    fn get_contents(&self) -> anyhow::Result<String> {
         self.clip
             .borrow()
             .as_ref()
             .map(|c| c.clone())
-            .ok_or_else(|| failure::err_msg("no clipboard"))
+            .ok_or_else(|| anyhow::anyhow!("no clipboard"))
     }
 }
 

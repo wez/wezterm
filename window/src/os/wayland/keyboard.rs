@@ -1,6 +1,6 @@
 use crate::input::*;
 use crate::os::wayland::connection::WaylandConnection;
-use failure::Fallible;
+use anyhow::anyhow;
 use smithay_client_toolkit as toolkit;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
@@ -64,7 +64,7 @@ pub struct KeyboardDispatcher {
 }
 
 impl KeyboardDispatcher {
-    pub fn register(seat: &WlSeat) -> Fallible<Self> {
+    pub fn register(seat: &WlSeat) -> anyhow::Result<Self> {
         let inner = Arc::new(Mutex::new(Inner::default()));
 
         map_keyboard_auto_with_repeat(
@@ -86,7 +86,7 @@ impl KeyboardDispatcher {
                 }
             },
         )
-        .map_err(|_| failure::format_err!("Failed to configure keyboard callback"))?;
+        .map_err(|e| anyhow!("Failed to configure keyboard callback: {:?}", e))?;
 
         Ok(Self { inner })
     }

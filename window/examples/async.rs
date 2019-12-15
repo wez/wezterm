@@ -1,5 +1,4 @@
 use ::window::*;
-use failure::Fallible;
 use std::any::Any;
 
 struct MyWindow {
@@ -89,7 +88,7 @@ async fn spawn_window() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-fn main() -> Fallible<()> {
+fn main() -> anyhow::Result<()> {
     let conn = Connection::init()?;
     conn.spawn_task(async {
         eprintln!("running this async block");

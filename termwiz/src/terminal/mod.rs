@@ -3,7 +3,7 @@
 use crate::caps::Capabilities;
 use crate::input::InputEvent;
 use crate::surface::Change;
-use failure::{format_err, Error, Fallible};
+use anyhow::{anyhow, Error};
 use num::{self, NumCast};
 use std::fmt::Display;
 use std::time::Duration;
@@ -56,7 +56,7 @@ pub trait Terminal {
     /// pressed by the user do not implicitly render to the terminal
     /// output, and disables canonicalization of unix newlines to CRLF.
     fn set_raw_mode(&mut self) -> Result<(), Error>;
-    fn set_cooked_mode(&mut self) -> Fallible<()>;
+    fn set_cooked_mode(&mut self) -> anyhow::Result<()>;
 
     /// Enter the alternate screen.  The alternate screen will be left
     /// automatically when the `Terminal` is dropped.
@@ -117,5 +117,5 @@ pub fn new_terminal(caps: Capabilities) -> Result<impl Terminal, Error> {
 }
 
 pub(crate) fn cast<T: NumCast + Display + Copy, U: NumCast>(n: T) -> Result<U, Error> {
-    num::cast(n).ok_or_else(|| format_err!("{} is out of bounds for this system", n))
+    num::cast(n).ok_or_else(|| anyhow!("{} is out of bounds for this system", n))
 }

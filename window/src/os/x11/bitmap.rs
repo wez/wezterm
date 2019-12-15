@@ -1,6 +1,6 @@
 use super::*;
 use crate::bitmaps::*;
-use failure::{bail, Fallible};
+use anyhow::bail;
 use std::rc::Rc;
 
 /// The X protocol allows referencing a number of drawable
@@ -106,7 +106,7 @@ struct ShmData {
 
 impl ShmId {
     /// Create a new private shared memory segment of the specified size
-    fn new(size: usize) -> Fallible<ShmId> {
+    fn new(size: usize) -> anyhow::Result<ShmId> {
         let id = unsafe { libc::shmget(libc::IPC_PRIVATE, size, libc::IPC_CREAT | 0o600) };
         if id == -1 {
             bail!(
@@ -119,7 +119,7 @@ impl ShmId {
     }
 
     /// Attach the segment to our address space
-    fn attach(&self) -> Fallible<ShmData> {
+    fn attach(&self) -> anyhow::Result<ShmData> {
         let data = unsafe { libc::shmat(self.id, std::ptr::null(), 0) };
         if data as usize == !0 {
             bail!(
@@ -168,7 +168,7 @@ impl ShmImage {
         drawable: xcb::xproto::Drawable,
         width: usize,
         height: usize,
-    ) -> Fallible<ShmImage> {
+    ) -> anyhow::Result<ShmImage> {
         if !conn.shm_available {
             bail!("SHM not available");
         }

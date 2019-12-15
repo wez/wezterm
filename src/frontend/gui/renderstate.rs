@@ -7,7 +7,7 @@ use ::window::glium::backend::Context as GliumContext;
 use ::window::glium::texture::SrgbTexture2d;
 use ::window::glium::{IndexBuffer, VertexBuffer};
 use ::window::*;
-use failure::Fallible;
+use anyhow::{anyhow, bail};
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -23,7 +23,7 @@ impl SoftwareRenderState {
         fonts: &Rc<FontConfiguration>,
         metrics: &RenderMetrics,
         size: usize,
-    ) -> Fallible<Self> {
+    ) -> anyhow::Result<Self> {
         let glyph_cache = RefCell::new(GlyphCache::new(fonts, size));
         let util_sprites = UtilSprites::new(&mut glyph_cache.borrow_mut(), metrics)?;
         Ok(Self {
@@ -50,7 +50,7 @@ impl OpenGLRenderState {
         size: usize,
         pixel_width: usize,
         pixel_height: usize,
-    ) -> Fallible<Self> {
+    ) -> anyhow::Result<Self> {
         let glyph_cache = RefCell::new(GlyphCache::new_gl(&context, fonts, size)?);
         let util_sprites = UtilSprites::new(&mut *glyph_cache.borrow_mut(), metrics)?;
 
@@ -77,9 +77,8 @@ impl OpenGLRenderState {
             };
         }
 
-        let program = program.ok_or_else(|| {
-            failure::format_err!("Failed to compile shaders: {}", errors.join("\n"))
-        })?;
+        let program =
+            program.ok_or_else(|| anyhow!("Failed to compile shaders: {}", errors.join("\n")))?;
 
         let (glyph_vertex_buffer, glyph_index_buffer) =
             Self::compute_vertices(&context, metrics, pixel_width as f32, pixel_height as f32)?;
@@ -99,7 +98,7 @@ impl OpenGLRenderState {
         metrics: &RenderMetrics,
         pixel_width: usize,
         pixel_height: usize,
-    ) -> Fallible<()> {
+    ) -> anyhow::Result<()> {
         let (glyph_vertex_buffer, glyph_index_buffer) = Self::compute_vertices(
             &self.context,
             metrics,
@@ -131,7 +130,7 @@ impl OpenGLRenderState {
         metrics: &RenderMetrics,
         width: f32,
         height: f32,
-    ) -> Fallible<(VertexBuffer<Vertex>, IndexBuffer<u32>)> {
+    ) -> anyhow::Result<(VertexBuffer<Vertex>, IndexBuffer<u32>)> {
         let cell_width = metrics.cell_size.width as f32;
         let cell_height = metrics.cell_size.height as f32;
         let mut verts = Vec::new();
@@ -209,7 +208,7 @@ impl RenderState {
         fonts: &Rc<FontConfiguration>,
         metrics: &RenderMetrics,
         size: Option<usize>,
-    ) -> Fallible<()> {
+    ) -> anyhow::Result<()> {
         match self {
             RenderState::Software(software) => {
                 let size = size.unwrap_or_else(|| software.glyph_cache.borrow().atlas.size());
@@ -232,7 +231,7 @@ impl RenderState {
         metrics: &RenderMetrics,
         pixel_width: usize,
         pixel_height: usize,
-    ) -> Fallible<()> {
+    ) -> anyhow::Result<()> {
         if let RenderState::GL(gl) = self {
             gl.advise_of_window_size_change(metrics, pixel_width, pixel_height)?;
         }
@@ -243,11 +242,11 @@ impl RenderState {
         &self,
         info: &GlyphInfo,
         style: &TextStyle,
-    ) -> Fallible<Rc<CachedGlyph<ImageTexture>>> {
+    ) -> anyhow::Result<Rc<CachedGlyph<ImageTexture>>> {
         if let RenderState::Software(software) = self {
             software.glyph_cache.borrow_mut().cached_glyph(info, style)
         } else {
-            failure::bail!("attempted to call cached_software_glyph when in gl mode")
+            bail!("attempted to call cached_software_glyph when in gl mode")
         }
     }
 

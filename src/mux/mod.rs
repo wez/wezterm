@@ -3,9 +3,8 @@ use crate::mux::tab::{Tab, TabId};
 use crate::mux::window::{Window, WindowId};
 use crate::ratelim::RateLimiter;
 use crate::server::pollable::{pollable_channel, PollableReceiver, PollableSender};
+use anyhow::{anyhow, Error};
 use domain::{Domain, DomainId};
-use failure::{format_err, Error, Fallible};
-use failure_derive::*;
 use log::{debug, error};
 use portable_pty::ExitStatus;
 use promise::Future;
@@ -18,6 +17,7 @@ use std::sync::Arc;
 use std::thread;
 use term::TerminalHost;
 use termwiz::hyperlink::Hyperlink;
+use thiserror::*;
 
 pub mod domain;
 pub mod renderable;
@@ -148,7 +148,7 @@ impl Mux {
         }
     }
 
-    pub fn subscribe(&self) -> Fallible<MuxSubscriber> {
+    pub fn subscribe(&self) -> anyhow::Result<MuxSubscriber> {
         let sub_id = SUB_ID.fetch_add(1, Ordering::Relaxed);
         let (tx, rx) = pollable_channel()?;
         self.subscribers.borrow_mut().insert(sub_id, tx);
@@ -286,10 +286,10 @@ impl Mux {
         window_id
     }
 
-    pub fn add_tab_to_window(&self, tab: &Rc<dyn Tab>, window_id: WindowId) -> Fallible<()> {
+    pub fn add_tab_to_window(&self, tab: &Rc<dyn Tab>, window_id: WindowId) -> anyhow::Result<()> {
         let mut window = self
             .get_window_mut(window_id)
-            .ok_or_else(|| format_err!("add_tab_to_window: no such window_id {}", window_id))?;
+            .ok_or_else(|| anyhow!("add_tab_to_window: no such window_id {}", window_id))?;
         window.push(tab);
         Ok(())
     }
@@ -324,13 +324,13 @@ impl Mux {
     }
 }
 
-#[derive(Debug, Fail)]
+#[derive(Debug, Error)]
 #[allow(dead_code)]
 pub enum SessionTerminated {
-    #[fail(display = "Process exited: {:?}", status)]
+    #[error("Process exited: {:?}", status)]
     ProcessStatus { status: ExitStatus },
-    #[fail(display = "Error: {:?}", err)]
+    #[error("Error: {:?}", err)]
     Error { err: Error },
-    #[fail(display = "Window Closed")]
+    #[error("Window Closed")]
     WindowClosed,
 }

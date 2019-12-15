@@ -1,10 +1,10 @@
 //! This module provides some automatic layout functionality for widgets.
 //! The parameters are similar to those that you may have encountered
 //! in HTML, but do not fully recreate the layout model.
+use anyhow::{anyhow, Error};
 use cassowary::strength::{REQUIRED, STRONG, WEAK};
 use cassowary::WeightedRelation::*;
 use cassowary::{AddConstraintError, Expression, Solver, SuggestValueError, Variable};
-use failure::{err_msg, format_err, Error};
 use std::collections::HashMap;
 
 use crate::widgets::{Rect, WidgetId};
@@ -185,13 +185,13 @@ pub struct LaidOutWidget {
 
 fn suggesterr(e: SuggestValueError) -> Error {
     match e {
-        SuggestValueError::UnknownEditVariable => err_msg("Unknown edit variable"),
-        SuggestValueError::InternalSolverError(e) => format_err!("Internal solver error: {}", e),
+        SuggestValueError::UnknownEditVariable => anyhow!("Unknown edit variable"),
+        SuggestValueError::InternalSolverError(e) => anyhow!("Internal solver error: {}", e),
     }
 }
 
 fn adderr(e: AddConstraintError) -> Error {
-    format_err!("{:?}", e)
+    anyhow!("{:?}", e)
 }
 
 impl Default for LayoutState {
@@ -283,7 +283,7 @@ impl LayoutState {
         let state = self
             .widget_states
             .get(&widget)
-            .ok_or_else(|| err_msg("widget has no solver state"))?;
+            .ok_or_else(|| anyhow!("widget has no solver state"))?;
         let width = self.solver.get_value(state.width) as usize;
         let height = self.solver.get_value(state.height) as usize;
         let left = self.solver.get_value(state.left) as usize;
@@ -317,7 +317,7 @@ impl LayoutState {
         let state = self
             .widget_states
             .get(&widget)
-            .ok_or_else(|| err_msg("widget has no solver state"))?
+            .ok_or_else(|| anyhow!("widget has no solver state"))?
             .clone();
 
         let is_root_widget = parent_left.is_none();

@@ -1,6 +1,6 @@
 use crate::font::locator::FontDataHandle;
 use crate::font::units::PixelLength;
-use failure::{format_err, Error, Fallible};
+use anyhow::{anyhow, Error};
 use serde_derive::*;
 use std::sync::Mutex;
 
@@ -57,11 +57,11 @@ pub struct FontMetrics {
 
 pub trait FontShaper {
     /// Shape text and return a vector of GlyphInfo
-    fn shape(&self, text: &str, size: f64, dpi: u32) -> Fallible<Vec<GlyphInfo>>;
+    fn shape(&self, text: &str, size: f64, dpi: u32) -> anyhow::Result<Vec<GlyphInfo>>;
 
     /// Compute the font metrics for the preferred font
     /// at the specified size.
-    fn metrics(&self, size: f64, dpi: u32) -> Fallible<FontMetrics>;
+    fn metrics(&self, size: f64, dpi: u32) -> anyhow::Result<FontMetrics>;
 }
 
 #[derive(Debug, Deserialize, Clone, Copy)]
@@ -95,7 +95,7 @@ impl FontShaperSelection {
         vec!["Harfbuzz", "AllSorts"]
     }
 
-    pub fn new_shaper(self, handles: &[FontDataHandle]) -> Fallible<Box<dyn FontShaper>> {
+    pub fn new_shaper(self, handles: &[FontDataHandle]) -> anyhow::Result<Box<dyn FontShaper>> {
         match self {
             Self::Harfbuzz => Ok(Box::new(harfbuzz::HarfbuzzShaper::new(handles)?)),
             Self::Allsorts => Ok(Box::new(allsorts::AllsortsShaper::new(handles)?)),
@@ -109,7 +109,7 @@ impl std::str::FromStr for FontShaperSelection {
         match s.to_lowercase().as_ref() {
             "harfbuzz" => Ok(Self::Harfbuzz),
             "allsorts" => Ok(Self::Allsorts),
-            _ => Err(format_err!(
+            _ => Err(anyhow!(
                 "{} is not a valid FontShaperSelection variant, possible values are {:?}",
                 s,
                 Self::variants()

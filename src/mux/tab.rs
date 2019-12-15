@@ -3,7 +3,6 @@ use crate::mux::domain::DomainId;
 use crate::mux::renderable::Renderable;
 use crate::mux::Mux;
 use downcast_rs::{impl_downcast, Downcast};
-use failure::Fallible;
 use portable_pty::PtySize;
 use std::cell::RefMut;
 use std::sync::{Arc, Mutex};
@@ -52,12 +51,12 @@ pub trait Tab: Downcast {
     fn tab_id(&self) -> TabId;
     fn renderer(&self) -> RefMut<dyn Renderable>;
     fn get_title(&self) -> String;
-    fn send_paste(&self, text: &str) -> Fallible<()>;
-    fn reader(&self) -> Fallible<Box<dyn std::io::Read + Send>>;
+    fn send_paste(&self, text: &str) -> anyhow::Result<()>;
+    fn reader(&self) -> anyhow::Result<Box<dyn std::io::Read + Send>>;
     fn writer(&self) -> RefMut<dyn std::io::Write>;
-    fn resize(&self, size: PtySize) -> Fallible<()>;
-    fn key_down(&self, key: KeyCode, mods: KeyModifiers) -> Fallible<()>;
-    fn mouse_event(&self, event: MouseEvent, host: &mut dyn TerminalHost) -> Fallible<()>;
+    fn resize(&self, size: PtySize) -> anyhow::Result<()>;
+    fn key_down(&self, key: KeyCode, mods: KeyModifiers) -> anyhow::Result<()>;
+    fn mouse_event(&self, event: MouseEvent, host: &mut dyn TerminalHost) -> anyhow::Result<()>;
     fn advance_bytes(&self, buf: &[u8], host: &mut dyn TerminalHost);
     fn is_dead(&self) -> bool;
     fn palette(&self) -> ColorPalette;
@@ -71,7 +70,7 @@ pub trait Tab: Downcast {
     fn selection_range(&self) -> Option<SelectionRange>;
     fn selection_text(&self) -> Option<String>;
 
-    fn trickle_paste(&self, text: String) -> Fallible<()> {
+    fn trickle_paste(&self, text: String) -> anyhow::Result<()> {
         if text.len() <= PASTE_CHUNK_SIZE {
             // Send it all now
             self.send_paste(&text)?;

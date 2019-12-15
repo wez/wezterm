@@ -9,9 +9,8 @@ license = "MIT"
 documentation = "https://docs.rs/portable-pty"
 
 [dependencies]
-failure = "0.1"
-failure_derive = "0.1"
-filedescriptor = "0.5"
+anyhow = "1.0"
+filedescriptor = "0.6"
 log = "0.4"
 libc = "0.2"
 shell-words = "0.1"

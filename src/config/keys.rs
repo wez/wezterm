@@ -1,5 +1,5 @@
 use crate::keyassignment::{KeyAssignment, SpawnTabDomain};
-use failure::{format_err, Error};
+use anyhow::{anyhow, Error};
 use serde::{Deserialize, Deserializer};
 use serde_derive::*;
 use termwiz::input::{KeyCode, Modifiers};
@@ -26,7 +26,7 @@ impl std::convert::TryInto<KeyAssignment> for &Key {
                 let arg = self
                     .arg
                     .as_ref()
-                    .ok_or_else(|| format_err!("missing arg for {:?}", self))?;
+                    .ok_or_else(|| anyhow!("missing arg for {:?}", self))?;
 
                 if let Ok(id) = arg.parse() {
                     KeyAssignment::SpawnTab(SpawnTabDomain::Domain(id))
@@ -48,19 +48,19 @@ impl std::convert::TryInto<KeyAssignment> for &Key {
             KeyAction::ActivateTab => KeyAssignment::ActivateTab(
                 self.arg
                     .as_ref()
-                    .ok_or_else(|| format_err!("missing arg for {:?}", self))?
+                    .ok_or_else(|| anyhow!("missing arg for {:?}", self))?
                     .parse()?,
             ),
             KeyAction::ActivateTabRelative => KeyAssignment::ActivateTabRelative(
                 self.arg
                     .as_ref()
-                    .ok_or_else(|| format_err!("missing arg for {:?}", self))?
+                    .ok_or_else(|| anyhow!("missing arg for {:?}", self))?
                     .parse()?,
             ),
             KeyAction::SendString => KeyAssignment::SendString(
                 self.arg
                     .as_ref()
-                    .ok_or_else(|| format_err!("missing arg for {:?}", self))?
+                    .ok_or_else(|| anyhow!("missing arg for {:?}", self))?
                     .to_owned(),
             ),
             KeyAction::ReloadConfiguration => KeyAssignment::ReloadConfiguration,

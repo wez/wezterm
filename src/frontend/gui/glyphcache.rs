@@ -7,7 +7,6 @@ use ::window::glium::backend::Context as GliumContext;
 use ::window::glium::texture::SrgbTexture2d;
 use ::window::*;
 use euclid::num::Zero;
-use failure::Fallible;
 use std::collections::HashMap;
 use std::rc::Rc;
 use std::sync::Arc;
@@ -72,7 +71,7 @@ impl GlyphCache<SrgbTexture2d> {
         backend: &Rc<GliumContext>,
         fonts: &Rc<FontConfiguration>,
         size: usize,
-    ) -> Fallible<Self> {
+    ) -> anyhow::Result<Self> {
         let surface = Rc::new(SrgbTexture2d::empty_with_format(
             backend,
             glium::texture::SrgbFormat::U8U8U8U8,
@@ -98,7 +97,7 @@ impl<T: Texture2d> GlyphCache<T> {
         &mut self,
         info: &GlyphInfo,
         style: &TextStyle,
-    ) -> Fallible<Rc<CachedGlyph<T>>> {
+    ) -> anyhow::Result<Rc<CachedGlyph<T>>> {
         let key = GlyphKey {
             font_idx: info.font_idx,
             glyph_pos: info.glyph_pos,
@@ -116,7 +115,11 @@ impl<T: Texture2d> GlyphCache<T> {
 
     /// Perform the load and render of a glyph
     #[allow(clippy::float_cmp)]
-    fn load_glyph(&mut self, info: &GlyphInfo, style: &TextStyle) -> Fallible<Rc<CachedGlyph<T>>> {
+    fn load_glyph(
+        &mut self,
+        info: &GlyphInfo,
+        style: &TextStyle,
+    ) -> anyhow::Result<Rc<CachedGlyph<T>>> {
         let metrics;
         let glyph;
 
@@ -189,7 +192,7 @@ impl<T: Texture2d> GlyphCache<T> {
         Ok(Rc::new(glyph))
     }
 
-    pub fn cached_image(&mut self, image_data: &Arc<ImageData>) -> Fallible<Sprite<T>> {
+    pub fn cached_image(&mut self, image_data: &Arc<ImageData>) -> anyhow::Result<Sprite<T>> {
         if let Some(sprite) = self.image_cache.get(&image_data.id()) {
             return Ok(sprite.clone());
         }

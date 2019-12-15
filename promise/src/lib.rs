@@ -1,14 +1,14 @@
-use failure::{Error, Fallible};
-use failure_derive::*;
+use anyhow::{bail, Error, Result as Fallible};
 use std::pin::Pin;
 use std::sync::{Arc, Condvar, Mutex};
 use std::task::{Context, Poll};
+use thiserror::*;
 
 type NextFunc<T> = Box<dyn FnOnce(Fallible<T>) + Send>;
 pub type SpawnFunc = Box<dyn FnOnce() + Send>;
 
-#[derive(Debug, Fail)]
-#[fail(display = "Promise was dropped before completion")]
+#[derive(Debug, Error)]
+#[error("Promise was dropped before completion")]
 pub struct BrokenPromise {}
 
 pub trait BasicExecutor {
@@ -214,7 +214,7 @@ impl<T: Send + 'static> Future<T> {
                 }
             }
             FutureState::Ready(result) => result,
-            FutureState::Resolved => failure::bail!("Future is already Resolved"),
+            FutureState::Resolved => bail!("Future is already Resolved"),
         }
     }
 
@@ -335,7 +335,7 @@ impl<T: Send + 'static> std::future::Future for Future<T> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use failure::{err_msg, format_err};
+    use anyhow::anyhow;
     #[test]
     fn basic_promise() {
         let mut p = Promise::new();
@@ -377,8 +377,8 @@ mod test {
         let f: Future<usize> = p
             .get_future()
             .unwrap()
-            .map(|_value| Err(err_msg("boo")))
-            .map_err(|err| Err(format_err!("whoops: {}", err)));
+            .map(|_value| Err(anyhow!("boo")))
+            .map_err(|err| Err(anyhow!("whoops: {}", err)));
         p.ok(1);
         assert_eq!(format!("{}", f.wait().unwrap_err()), "whoops: boo");
     }

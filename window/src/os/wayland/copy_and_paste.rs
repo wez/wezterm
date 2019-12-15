@@ -1,4 +1,4 @@
-use failure::Fallible;
+use anyhow::{anyhow, Error};
 use filedescriptor::{FileDescriptor, Pipe};
 use smithay_client_toolkit as toolkit;
 use std::os::unix::io::AsRawFd;
@@ -34,12 +34,12 @@ impl CopyAndPaste {
         }
     }
 
-    pub fn get_clipboard_data(&mut self) -> Fallible<FileDescriptor> {
+    pub fn get_clipboard_data(&mut self) -> anyhow::Result<FileDescriptor> {
         let offer = self
             .data_offer
             .as_ref()
-            .ok_or_else(|| failure::err_msg("no data offer"))?;
-        let pipe = Pipe::new()?;
+            .ok_or_else(|| anyhow!("no data offer"))?;
+        let pipe = Pipe::new().map_err(Error::msg)?;
         offer.receive(TEXT_MIME_TYPE.to_string(), pipe.write.as_raw_fd());
         Ok(pipe.read)
     }

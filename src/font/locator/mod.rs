@@ -1,5 +1,5 @@
 use crate::config::FontAttributes;
-use failure::{format_err, Error, Fallible};
+use anyhow::{anyhow, Error};
 use serde_derive::*;
 use std::path::PathBuf;
 use std::sync::Mutex;
@@ -50,7 +50,8 @@ impl std::fmt::Debug for FontDataHandle {
 pub trait FontLocator {
     /// Given a font selection, return the list of successfully loadable
     /// FontDataHandle's that correspond to it
-    fn load_fonts(&self, fonts_selection: &[FontAttributes]) -> Fallible<Vec<FontDataHandle>>;
+    fn load_fonts(&self, fonts_selection: &[FontAttributes])
+        -> anyhow::Result<Vec<FontDataHandle>>;
 }
 
 #[derive(Debug, Deserialize, Clone, Copy)]
@@ -120,7 +121,7 @@ impl std::str::FromStr for FontLocatorSelection {
             "fontconfig" => Ok(Self::FontConfig),
             "fontloader" => Ok(Self::FontLoader),
             "fontkit" => Ok(Self::FontKit),
-            _ => Err(format_err!(
+            _ => Err(anyhow!(
                 "{} is not a valid FontLocatorSelection variant, possible values are {:?}",
                 s,
                 Self::variants()

@@ -7,7 +7,7 @@
 //!
 //! ```no_run
 //! use portable_pty::{CommandBuilder, PtySize, PtySystemSelection};
-//! use failure::Error;
+//! use anyhow::Error;
 //!
 //! // Use the native pty implementation for the system
 //! let pty_system = PtySystemSelection::default().get()?;
@@ -43,7 +43,7 @@
 //! `ssh::SshSession` type that can wrap an established ssh
 //! session with an implementation of `PtySystem`, allowing
 //! you to use the same pty interface with remote ptys.
-use failure::{bail, format_err, Error, Fallible};
+use anyhow::{anyhow, bail, Error};
 #[cfg(feature = "serde_support")]
 use serde_derive::*;
 use std::io::Result as IoResult;
@@ -166,7 +166,7 @@ pub trait PtySystem {
     /// Create a new Pty instance with the window size set to the specified
     /// dimensions.  Returns a (master, slave) Pty pair.  The master side
     /// is used to drive the slave side.
-    fn openpty(&self, size: PtySize) -> Fallible<PtyPair>;
+    fn openpty(&self, size: PtySize) -> anyhow::Result<PtyPair>;
 }
 
 impl Child for std::process::Child {
@@ -208,7 +208,7 @@ impl PtySystemSelection {
     /// Construct an instance of PtySystem described by the enum value.
     /// Windows specific enum variants result in an error.
     #[cfg(unix)]
-    pub fn get(self) -> Fallible<Box<dyn PtySystem>> {
+    pub fn get(self) -> anyhow::Result<Box<dyn PtySystem>> {
         match self {
             PtySystemSelection::Unix => Ok(Box::new(unix::UnixPtySystem {})),
             _ => bail!("{:?} not available on unix", self),
@@ -218,7 +218,7 @@ impl PtySystemSelection {
     /// Construct an instance of PtySystem described by the enum value.
     /// Unix specific enum variants result in an error.
     #[cfg(windows)]
-    pub fn get(&self) -> Fallible<Box<dyn PtySystem>> {
+    pub fn get(&self) -> anyhow::Result<Box<dyn PtySystem>> {
         match self {
             PtySystemSelection::ConPty => Ok(Box::new(win::conpty::ConPtySystem {})),
             PtySystemSelection::WinPty => Ok(Box::new(win::winpty::WinPtySystem {})),
@@ -244,7 +244,7 @@ impl std::str::FromStr for PtySystemSelection {
             "unix" => Ok(PtySystemSelection::Unix),
             "winpty" => Ok(PtySystemSelection::WinPty),
             "conpty" => Ok(PtySystemSelection::ConPty),
-            _ => Err(format_err!(
+            _ => Err(anyhow!(
                 "{} is not a valid PtySystemSelection variant, possible values are {:?}",
                 s,
                 PtySystemSelection::variants()

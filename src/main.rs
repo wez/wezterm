@@ -1,7 +1,7 @@
 // Don't create a new standard console window when launched from the windows GUI.
 #![windows_subsystem = "windows"]
 
-use failure::{err_msg, format_err, Error, Fallible};
+use anyhow::{anyhow, bail, Context, Error};
 use promise::Future;
 use std::ffi::OsString;
 use std::fs::DirBuilder;
@@ -251,7 +251,7 @@ struct ImgCatCommand {
 }
 
 impl ImgCatCommand {
-    fn run(&self) -> Fallible<()> {
+    fn run(&self) -> anyhow::Result<()> {
         let mut f = std::fs::File::open(&self.file_name)?;
         let mut data = Vec::new();
         f.read_to_end(&mut data)?;
@@ -273,7 +273,7 @@ impl ImgCatCommand {
     }
 }
 
-pub fn create_user_owned_dirs(p: &Path) -> Fallible<()> {
+pub fn create_user_owned_dirs(p: &Path) -> anyhow::Result<()> {
     let mut builder = DirBuilder::new();
     builder.recursive(true);
 
@@ -306,17 +306,17 @@ struct SshParameters {
     host_and_port: String,
 }
 
-fn username_from_env() -> Fallible<String> {
+fn username_from_env() -> anyhow::Result<String> {
     #[cfg(unix)]
     const USER: &str = "USER";
     #[cfg(windows)]
     const USER: &str = "USERNAME";
 
-    std::env::var(USER).map_err(|e| format_err!("while resolving {} env var: {}", USER, e))
+    std::env::var(USER).with_context(|| format!("while resolving {} env var", USER))
 }
 
 impl SshParameters {
-    fn parse(host: &str) -> Fallible<Self> {
+    fn parse(host: &str) -> anyhow::Result<Self> {
         let parts: Vec<&str> = host.split('@').collect();
 
         if parts.len() == 2 {
@@ -330,12 +330,12 @@ impl SshParameters {
                 host_and_port: parts[0].to_string(),
             })
         } else {
-            failure::bail!("failed to parse ssh parameters from `{}`", host);
+            bail!("failed to parse ssh parameters from `{}`", host);
         }
     }
 }
 
-fn run_ssh(config: config::ConfigHandle, opts: &SshCommand) -> Fallible<()> {
+fn run_ssh(config: config::ConfigHandle, opts: &SshCommand) -> anyhow::Result<()> {
     let front_end_selection = opts.front_end.unwrap_or(config.front_end);
     let gui = front_end_selection.try_new()?;
 
@@ -400,7 +400,7 @@ fn run_ssh(config: config::ConfigHandle, opts: &SshCommand) -> Fallible<()> {
     gui.run_forever()
 }
 
-fn run_serial(config: config::ConfigHandle, opts: &SerialCommand) -> Fallible<()> {
+fn run_serial(config: config::ConfigHandle, opts: &SerialCommand) -> anyhow::Result<()> {
     let fontconfig = Rc::new(FontConfiguration::new());
 
     let mut serial = portable_pty::serial::SerialTty::new(&opts.port);
@@ -440,12 +440,12 @@ fn client_domains(config: &config::ConfigHandle) -> Vec<ClientDomainConfig> {
     domains
 }
 
-fn run_mux_client(config: config::ConfigHandle, opts: &ConnectCommand) -> Fallible<()> {
+fn run_mux_client(config: config::ConfigHandle, opts: &ConnectCommand) -> anyhow::Result<()> {
     let client_config = client_domains(&config)
         .into_iter()
         .find(|c| c.name() == opts.domain_name)
         .ok_or_else(|| {
-            format_err!(
+            anyhow!(
                 "no multiplexer domain with name `{}` was found in the configuration",
                 opts.domain_name
             )
@@ -484,13 +484,13 @@ fn run_mux_client(config: config::ConfigHandle, opts: &ConnectCommand) -> Fallib
     gui.run_forever()
 }
 
-fn run_terminal_gui(config: config::ConfigHandle, opts: &StartCommand) -> Fallible<()> {
+fn run_terminal_gui(config: config::ConfigHandle, opts: &StartCommand) -> anyhow::Result<()> {
     #[cfg(unix)]
     {
         if opts.daemonize {
             let stdout = config.daemon_options.open_stdout()?;
             let stderr = config.daemon_options.open_stderr()?;
-            let home_dir = dirs::home_dir().ok_or_else(|| err_msg("can't find home dir"))?;
+            let home_dir = dirs::home_dir().ok_or_else(|| anyhow!("can't find home dir"))?;
             let mut daemonize = daemonize::Daemonize::new()
                 .stdout(stdout)
                 .stderr(stderr)
@@ -511,10 +511,10 @@ fn run_terminal_gui(config: config::ConfigHandle, opts: &StartCommand) -> Fallib
                     | DaemonizeError::LockPidfile(_)
                     | DaemonizeError::ChownPidfile(_)
                     | DaemonizeError::WritePid => {
-                        failure::bail!("{} {}", err, config.daemon_options.pid_file().display());
+                        anyhow!("{} {}", err, config.daemon_options.pid_file().display());
                     }
                     DaemonizeError::ChangeDirectory => {
-                        failure::bail!("{} {}", err, home_dir.display());
+                        anyhow!("{} {}", err, home_dir.display());
                     }
                     _ => return Err(err.into()),
                 }
@@ -541,15 +541,15 @@ fn run_terminal_gui(config: config::ConfigHandle, opts: &StartCommand) -> Fallib
         None
     };
 
-    let domain: Arc<dyn Domain> = Arc::new(LocalDomain::new("local")?);
+    let domain: Arc<dyn Domain> = Arc::new(LocalDomain::new("local").map_err(Error::msg)?);
     let mux = Rc::new(mux::Mux::new(Some(domain.clone())));
     Mux::set_mux(&mux);
 
     let front_end = opts.front_end.unwrap_or(config.front_end);
-    let gui = front_end.try_new()?;
+    let gui = front_end.try_new().map_err(Error::msg)?;
     domain.attach()?;
 
-    fn record_domain(mux: &Rc<Mux>, client: ClientDomain) -> Fallible<Arc<dyn Domain>> {
+    fn record_domain(mux: &Rc<Mux>, client: ClientDomain) -> anyhow::Result<Arc<dyn Domain>> {
         let domain: Arc<dyn Domain> = Arc::new(client);
         mux.add_domain(&domain);
         Ok(domain)
@@ -587,7 +587,7 @@ fn main() {
     }
 }
 
-fn run() -> Result<(), Error> {
+fn run() -> anyhow::Result<()> {
     // This is a bit gross.
     // In order to not to automatically open a standard windows console when
     // we run, we use the windows_subsystem attribute at the top of this
@@ -616,7 +616,7 @@ fn run() -> Result<(), Error> {
             */
 
             std::env::set_current_dir(
-                dirs::home_dir().ok_or_else(|| err_msg("can't find home dir"))?,
+                dirs::home_dir().ok_or_else(|| anyhow!("can't find home dir"))?,
             )?;
         }
     };
@@ -626,7 +626,7 @@ fn run() -> Result<(), Error> {
     if !opts.skip_config {
         config::reload();
     }
-    let config = config::configuration_result()?;
+    let config = config::configuration_result().map_err(Error::msg)?;
 
     match opts
         .cmd
@@ -638,13 +638,13 @@ fn run() -> Result<(), Error> {
             log::info!("Using configuration: {:#?}\nopts: {:#?}", config, opts);
             run_terminal_gui(config, &start)
         }
-        SubCommand::Ssh(ssh) => run_ssh(config, &ssh),
-        SubCommand::Serial(serial) => run_serial(config, &serial),
-        SubCommand::Connect(connect) => run_mux_client(config, &connect),
-        SubCommand::ImageCat(cmd) => cmd.run(),
+        SubCommand::Ssh(ssh) => run_ssh(config, &ssh).map_err(Error::msg),
+        SubCommand::Serial(serial) => run_serial(config, &serial).map_err(Error::msg),
+        SubCommand::Connect(connect) => run_mux_client(config, &connect).map_err(Error::msg),
+        SubCommand::ImageCat(cmd) => cmd.run().map_err(Error::msg),
         SubCommand::Cli(cli) => {
             let initial = true;
-            let client = Client::new_default_unix_domain(initial)?;
+            let client = Client::new_default_unix_domain(initial).map_err(Error::msg)?;
             match cli.sub {
                 CliSubCommand::List => {
                     let cols = vec![
@@ -666,7 +666,7 @@ fn run() -> Result<(), Error> {
                         },
                     ];
                     let mut data = vec![];
-                    let tabs = client.list_tabs().wait()?;
+                    let tabs = client.list_tabs().wait().map_err(Error::msg)?;
                     for entry in tabs.tabs.iter() {
                         data.push(vec![
                             entry.window_id.to_string(),
@@ -697,7 +697,7 @@ fn run() -> Result<(), Error> {
 
                     // and pull data from stdin and write it to the socket
                     let stdin = std::io::stdin();
-                    consume_stream(stdin.lock(), stream)?;
+                    consume_stream(stdin.lock(), stream).map_err(Error::msg)?;
                 }
             }
             Ok(())
@@ -705,7 +705,7 @@ fn run() -> Result<(), Error> {
     }
 }
 
-fn consume_stream<F: Read, T: Write>(mut from_stream: F, mut to_stream: T) -> Fallible<()> {
+fn consume_stream<F: Read, T: Write>(mut from_stream: F, mut to_stream: T) -> anyhow::Result<()> {
     let mut buf = [0u8; 8192];
 
     loop {

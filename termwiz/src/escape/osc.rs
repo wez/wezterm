@@ -1,8 +1,8 @@
 use crate::color::RgbColor;
 pub use crate::hyperlink::Hyperlink;
+use anyhow::{anyhow, bail, ensure};
 use base64;
 use bitflags::bitflags;
-use failure::{bail, ensure, err_msg, Fallible};
 use num;
 use num_derive::*;
 use ordered_float::NotNan;
@@ -83,7 +83,7 @@ pub struct Selection :u16{
 }
 
 impl Selection {
-    fn try_parse(buf: &[u8]) -> Fallible<Selection> {
+    fn try_parse(buf: &[u8]) -> anyhow::Result<Selection> {
         if buf == b"" {
             Ok(Selection::SELECT | Selection::CUT0)
         } else {
@@ -149,7 +149,7 @@ impl OperatingSystemCommand {
         })
     }
 
-    fn parse_selection(osc: &[&[u8]]) -> Fallible<Self> {
+    fn parse_selection(osc: &[&[u8]]) -> anyhow::Result<Self> {
         if osc.len() == 2 {
             Selection::try_parse(osc[1]).map(OperatingSystemCommand::ClearSelection)
         } else if osc.len() == 3 && osc[2] == b"?" {
@@ -164,7 +164,7 @@ impl OperatingSystemCommand {
         }
     }
 
-    fn parse_change_color_number(osc: &[&[u8]]) -> Fallible<Self> {
+    fn parse_change_color_number(osc: &[&[u8]]) -> anyhow::Result<Self> {
         let mut pairs = vec![];
         let mut iter = osc.iter();
         iter.next(); // skip the command word that we already know is present
@@ -177,7 +177,7 @@ impl OperatingSystemCommand {
             } else {
                 ColorOrQuery::Color(
                     RgbColor::from_named_or_rgb_string(spec)
-                        .ok_or_else(|| err_msg("invalid color spec"))?,
+                        .ok_or_else(|| anyhow!("invalid color spec"))?,
                 )
             };
 
@@ -190,9 +190,9 @@ impl OperatingSystemCommand {
         Ok(OperatingSystemCommand::ChangeColorNumber(pairs))
     }
 
-    fn parse_change_dynamic_color_number(idx: u8, osc: &[&[u8]]) -> Fallible<Self> {
+    fn parse_change_dynamic_color_number(idx: u8, osc: &[&[u8]]) -> anyhow::Result<Self> {
         let which_color: DynamicColorNumber = num::FromPrimitive::from_u8(idx)
-            .ok_or_else(|| err_msg("osc code is not a valid DynamicColorNumber!?"))?;
+            .ok_or_else(|| anyhow!("osc code is not a valid DynamicColorNumber!?"))?;
         let mut colors = vec![];
         for spec in osc.iter().skip(1) {
             if spec == b"?" {
@@ -201,7 +201,7 @@ impl OperatingSystemCommand {
                 let spec = str::from_utf8(spec)?;
                 colors.push(ColorOrQuery::Color(
                     RgbColor::from_named_or_rgb_string(spec)
-                        .ok_or_else(|| err_msg("invalid color spec"))?,
+                        .ok_or_else(|| anyhow!("invalid color spec"))?,
                 ));
             }
         }
@@ -212,12 +212,12 @@ impl OperatingSystemCommand {
         ))
     }
 
-    fn internal_parse(osc: &[&[u8]]) -> Fallible<Self> {
+    fn internal_parse(osc: &[&[u8]]) -> anyhow::Result<Self> {
         ensure!(!osc.is_empty(), "no params");
         let p1str = String::from_utf8_lossy(osc[0]);
         let code: i64 = p1str.parse()?;
         let osc_code: OperatingSystemCommandCode =
-            num::FromPrimitive::from_i64(code).ok_or_else(|| err_msg("unknown code"))?;
+            num::FromPrimitive::from_i64(code).ok_or_else(|| anyhow!("unknown code"))?;
 
         macro_rules! single_string {
             ($variant:ident) => {{
@@ -405,7 +405,7 @@ pub struct ITermFileData {
 }
 
 impl ITermFileData {
-    fn parse(osc: &[&[u8]]) -> Fallible<Self> {
+    fn parse(osc: &[&[u8]]) -> anyhow::Result<Self> {
         let mut params = HashMap::new();
 
         // Unfortunately, the encoding for the file download data is
@@ -468,7 +468,7 @@ impl ITermFileData {
             .map(|s| *s != "0")
             .unwrap_or(true);
         let inline = params.get("inline").map(|s| *s != "0").unwrap_or(false);
-        let data = data.ok_or_else(|| err_msg("didn't set data"))?;
+        let data = data.ok_or_else(|| anyhow!("didn't set data"))?;
         Ok(Self {
             name,
             size,
@@ -550,14 +550,14 @@ impl Display for ITermDimension {
 }
 
 impl std::str::FromStr for ITermDimension {
-    type Err = failure::Error;
-    fn from_str(s: &str) -> Fallible<Self> {
+    type Err = anyhow::Error;
+    fn from_str(s: &str) -> anyhow::Result<Self> {
         ITermDimension::parse(s)
     }
 }
 
 impl ITermDimension {
-    fn parse(s: &str) -> Fallible<Self> {
+    fn parse(s: &str) -> anyhow::Result<Self> {
         if s == "auto" {
             Ok(ITermDimension::Automatic)
         } else if s.ends_with("px") {
@@ -595,7 +595,7 @@ impl ITermProprietary {
         feature = "cargo-clippy",
         allow(clippy::cyclomatic_complexity, clippy::cognitive_complexity)
     )]
-    fn parse(osc: &[&[u8]]) -> Fallible<Self> {
+    fn parse(osc: &[&[u8]]) -> anyhow::Result<Self> {
         // iTerm has a number of different styles of OSC parameter
         // encodings, which makes this section of code a bit gnarly.
         ensure!(osc.len() > 1, "not enough args");
@@ -603,7 +603,7 @@ impl ITermProprietary {
         let param = String::from_utf8_lossy(osc[1]);
 
         let mut iter = param.splitn(2, '=');
-        let keyword = iter.next().ok_or_else(|| err_msg("bad params"))?;
+        let keyword = iter.next().ok_or_else(|| anyhow!("bad params"))?;
         let p1 = iter.next();
 
         macro_rules! single {

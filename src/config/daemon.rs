@@ -9,16 +9,16 @@ pub struct DaemonOptions {
     pub stderr: Option<PathBuf>,
 }
 
-fn open_log(path: PathBuf) -> Fallible<File> {
+fn open_log(path: PathBuf) -> anyhow::Result<File> {
     create_user_owned_dirs(
         path.parent()
-            .ok_or_else(|| format_err!("path {} has no parent dir!?", path.display()))?,
+            .ok_or_else(|| anyhow!("path {} has no parent dir!?", path.display()))?,
     )?;
     let mut options = OpenOptions::new();
     options.write(true).create(true).append(true);
     options
         .open(&path)
-        .map_err(|e| format_err!("failed to open log stream: {}: {}", path.display(), e))
+        .map_err(|e| anyhow!("failed to open log stream: {}: {}", path.display(), e))
 }
 
 impl DaemonOptions {
@@ -47,12 +47,12 @@ impl DaemonOptions {
     }
 
     #[cfg_attr(windows, allow(dead_code))]
-    pub fn open_stdout(&self) -> Fallible<File> {
+    pub fn open_stdout(&self) -> anyhow::Result<File> {
         open_log(self.stdout())
     }
 
     #[cfg_attr(windows, allow(dead_code))]
-    pub fn open_stderr(&self) -> Fallible<File> {
+    pub fn open_stderr(&self) -> anyhow::Result<File> {
         open_log(self.stderr())
     }
 }

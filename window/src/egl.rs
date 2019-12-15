@@ -1,4 +1,4 @@
-use failure::Fallible;
+use anyhow::{anyhow, bail, ensure, Error};
 use std::ffi::c_void;
 
 #[allow(non_camel_case_types, clippy::unreadable_literal)]
@@ -54,7 +54,7 @@ type GetProcAddressFunc =
     unsafe extern "C" fn(*const std::os::raw::c_char) -> *const std::os::raw::c_void;
 
 impl EglWrapper {
-    pub fn load_egl(lib: libloading::Library) -> Fallible<Self> {
+    pub fn load_egl(lib: libloading::Library) -> anyhow::Result<Self> {
         let get_proc_address: libloading::Symbol<GetProcAddressFunc> =
             unsafe { lib.get(b"eglGetProcAddress\0")? };
         let egl = ffi::Egl::load_with(|s: &'static str| {
@@ -70,7 +70,7 @@ impl EglWrapper {
     pub fn get_display(
         &self,
         display: Option<ffi::EGLNativeDisplayType>,
-    ) -> Fallible<ffi::types::EGLDisplay> {
+    ) -> anyhow::Result<ffi::types::EGLDisplay> {
         let display = unsafe { self.egl.GetDisplay(display.unwrap_or(ffi::DEFAULT_DISPLAY)) };
         if display.is_null() {
             Err(self.error("egl GetDisplay"))
@@ -79,7 +79,7 @@ impl EglWrapper {
         }
     }
 
-    pub fn error(&self, context: &str) -> failure::Error {
+    pub fn error(&self, context: &str) -> Error {
         let label = match unsafe { self.egl.GetError() } as u32 {
             ffi::NOT_INITIALIZED => "NOT_INITIALIZED".into(),
             ffi::BAD_ACCESS => "BAD_ACCESS".into(),
@@ -97,13 +97,13 @@ impl EglWrapper {
             ffi::SUCCESS => "Failed but with error code: SUCCESS".into(),
             err => format!("EGL Error code: {}", err),
         };
-        failure::format_err!("{}: {}", context, label)
+        anyhow!("{}: {}", context, label)
     }
 
     pub fn initialize_and_get_version(
         &self,
         display: ffi::types::EGLDisplay,
-    ) -> Fallible<(ffi::EGLint, ffi::EGLint)> {
+    ) -> anyhow::Result<(ffi::EGLint, ffi::EGLint)> {
         let mut major = 0;
         let mut minor = 0;
         unsafe {
@@ -119,8 +119,8 @@ impl EglWrapper {
         &self,
         display: ffi::types::EGLDisplay,
         attributes: &[u32],
-    ) -> Fallible<Vec<ffi::types::EGLConfig>> {
-        failure::ensure!(
+    ) -> anyhow::Result<Vec<ffi::types::EGLConfig>> {
+        ensure!(
             !attributes.is_empty() && attributes[attributes.len() - 1] == ffi::NONE,
             "attributes list must be terminated with ffi::NONE"
         );
@@ -159,7 +159,7 @@ impl EglWrapper {
         display: ffi::types::EGLDisplay,
         config: ffi::types::EGLConfig,
         window: ffi::EGLNativeWindowType,
-    ) -> Fallible<ffi::types::EGLSurface> {
+    ) -> anyhow::Result<ffi::types::EGLSurface> {
         let surface = unsafe {
             self.egl
                 .CreateWindowSurface(display, config, window, std::ptr::null())
@@ -177,8 +177,8 @@ impl EglWrapper {
         config: ffi::types::EGLConfig,
         share_context: ffi::types::EGLContext,
         attributes: &[u32],
-    ) -> Fallible<ffi::types::EGLConfig> {
-        failure::ensure!(
+    ) -> anyhow::Result<ffi::types::EGLConfig> {
+        ensure!(
             !attributes.is_empty() && attributes[attributes.len() - 1] == ffi::NONE,
             "attributes list must be terminated with ffi::NONE"
         );
@@ -199,7 +199,9 @@ impl EglWrapper {
 }
 
 impl GlState {
-    fn with_egl_lib<F: FnMut(EglWrapper) -> Fallible<Self>>(mut func: F) -> Fallible<Self> {
+    fn with_egl_lib<F: FnMut(EglWrapper) -> anyhow::Result<Self>>(
+        mut func: F,
+    ) -> anyhow::Result<Self> {
         let paths = [
             // While EGL is cross platform, it isn't available on macOS nor is it
             // available on my nvidia based system
@@ -230,14 +232,14 @@ impl GlState {
                 }
             }
         }
-        failure::bail!("EGL library not found")
+        bail!("EGL library not found")
     }
 
     #[cfg(all(unix, feature = "wayland", not(target_os = "macos")))]
     pub fn create_wayland(
         display: Option<ffi::EGLNativeDisplayType>,
         wegl_surface: &wayland_client::egl::WlEglSurface,
-    ) -> Fallible<Self> {
+    ) -> anyhow::Result<Self> {
         Self::with_egl_lib(move |egl| {
             let egl_display = egl.get_display(display)?;
 
@@ -269,7 +271,7 @@ impl GlState {
 
             let first_config = *configs
                 .first()
-                .ok_or_else(|| failure::err_msg("no compatible EGL configuration was found"))?;
+                .ok_or_else(|| anyhow!("no compatible EGL configuration was found"))?;
 
             let window = wegl_surface.ptr();
             let surface = egl.create_window_surface(egl_display, first_config, window)?;
@@ -293,7 +295,7 @@ impl GlState {
     pub fn create(
         display: Option<ffi::EGLNativeDisplayType>,
         window: ffi::EGLNativeWindowType,
-    ) -> Fallible<Self> {
+    ) -> anyhow::Result<Self> {
         Self::with_egl_lib(|egl| {
             let egl_display = egl.get_display(display)?;
 
@@ -325,7 +327,7 @@ impl GlState {
 
             let first_config = *configs
                 .first()
-                .ok_or_else(|| failure::err_msg("no compatible EGL configuration was found"))?;
+                .ok_or_else(|| anyhow!("no compatible EGL configuration was found"))?;
 
             let surface = egl.create_window_surface(egl_display, first_config, window)?;
 

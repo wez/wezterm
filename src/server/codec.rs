@@ -13,7 +13,7 @@
 use crate::mux::domain::DomainId;
 use crate::mux::tab::TabId;
 use crate::mux::window::WindowId;
-use failure::{bail, Error, Fallible};
+use anyhow::{bail, Error};
 use leb128;
 use log::debug;
 use portable_pty::{CommandBuilder, PtySize};
@@ -236,7 +236,7 @@ pdu! {
 }
 
 impl Pdu {
-    pub fn stream_decode(buffer: &mut Vec<u8>) -> Fallible<Option<DecodedPdu>> {
+    pub fn stream_decode(buffer: &mut Vec<u8>) -> anyhow::Result<Option<DecodedPdu>> {
         let mut cursor = Cursor::new(buffer.as_slice());
         match Self::decode(&mut cursor) {
             Ok(decoded) => {
@@ -272,7 +272,7 @@ impl Pdu {
     pub fn try_read_and_decode<R: std::io::Read>(
         r: &mut R,
         buffer: &mut Vec<u8>,
-    ) -> Fallible<Option<DecodedPdu>> {
+    ) -> anyhow::Result<Option<DecodedPdu>> {
         loop {
             if let Some(decoded) = Self::stream_decode(buffer)? {
                 return Ok(Some(decoded));

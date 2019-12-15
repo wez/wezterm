@@ -9,7 +9,6 @@ use crate::os::x11::connection::XConnection;
 use crate::os::x11::window::XWindow;
 use crate::spawn::*;
 use crate::{MouseCursor, ScreenPoint, WindowCallbacks, WindowOps};
-use failure::Fallible;
 use promise::*;
 use std::any::Any;
 use std::rc::Rc;
@@ -41,7 +40,7 @@ impl Connection {
         ALLOW_WAYLAND.load(Ordering::Acquire)
     }
 
-    pub(crate) fn create_new() -> Fallible<Connection> {
+    pub(crate) fn create_new() -> anyhow::Result<Connection> {
         #[cfg(feature = "wayland")]
         {
             if Self::is_wayland_enabled() {
@@ -66,7 +65,7 @@ impl Connection {
         width: usize,
         height: usize,
         callbacks: Box<dyn WindowCallbacks>,
-    ) -> Fallible<Window> {
+    ) -> anyhow::Result<Window> {
         match self {
             Self::X11(_) => XWindow::new_window(class_name, name, width, height, callbacks),
             #[cfg(feature = "wayland")]
@@ -132,7 +131,7 @@ impl ConnectionOps for Connection {
         }
     }
 
-    fn run_message_loop(&self) -> Fallible<()> {
+    fn run_message_loop(&self) -> anyhow::Result<()> {
         match self {
             Self::X11(x) => x.run_message_loop(),
             #[cfg(feature = "wayland")]
@@ -155,7 +154,7 @@ impl Window {
         width: usize,
         height: usize,
         callbacks: Box<dyn WindowCallbacks>,
-    ) -> Fallible<Window> {
+    ) -> anyhow::Result<Window> {
         Connection::get()
             .unwrap()
             .new_window(class_name, name, width, height, callbacks)
@@ -227,7 +226,7 @@ impl WindowOps for Window {
         }
     }
 
-    fn apply<R, F: Send + 'static + Fn(&mut dyn Any, &dyn WindowOps) -> Fallible<R>>(
+    fn apply<R, F: Send + 'static + Fn(&mut dyn Any, &dyn WindowOps) -> anyhow::Result<R>>(
         &self,
         func: F,
     ) -> promise::Future<R>
@@ -250,8 +249,8 @@ impl WindowOps for Window {
             + Fn(
                 &mut dyn Any,
                 &dyn WindowOps,
-                failure::Fallible<std::rc::Rc<glium::backend::Context>>,
-            ) -> failure::Fallible<R>,
+                anyhow::Result<std::rc::Rc<glium::backend::Context>>,
+            ) -> anyhow::Result<R>,
     >(
         &self,
         func: F,

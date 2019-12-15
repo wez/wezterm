@@ -9,7 +9,6 @@ use cocoa::appkit::{NSApp, NSApplication, NSApplicationActivationPolicyRegular};
 use cocoa::base::{id, nil};
 use core_foundation::date::CFAbsoluteTimeGetCurrent;
 use core_foundation::runloop::*;
-use failure::Fallible;
 use objc::*;
 use promise::BasicExecutor;
 use std::cell::RefCell;
@@ -25,7 +24,7 @@ pub struct Connection {
 }
 
 impl Connection {
-    pub(crate) fn create_new() -> Fallible<Self> {
+    pub(crate) fn create_new() -> anyhow::Result<Self> {
         // Ensure that the SPAWN_QUEUE is created; it will have nothing
         // to run right now.
         SPAWN_QUEUE.run();
@@ -52,7 +51,10 @@ impl Connection {
         self.windows.borrow().get(&window_id).map(Rc::clone)
     }
 
-    pub(crate) fn with_window_inner<R, F: FnMut(&mut WindowInner) -> Fallible<R> + Send + 'static>(
+    pub(crate) fn with_window_inner<
+        R,
+        F: FnMut(&mut WindowInner) -> anyhow::Result<R> + Send + 'static,
+    >(
         window_id: usize,
         mut f: F,
     ) -> promise::Future<R>
@@ -87,7 +89,7 @@ impl ConnectionOps for Connection {
         }
     }
 
-    fn run_message_loop(&self) -> Fallible<()> {
+    fn run_message_loop(&self) -> anyhow::Result<()> {
         unsafe {
             self.ns_app.run();
         }

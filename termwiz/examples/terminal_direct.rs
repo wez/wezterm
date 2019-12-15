@@ -5,7 +5,7 @@
 //! the `buffered_terminal.rs` example demonstrates a simple
 //! way to enable optimizations.
 
-use failure::Error;
+use anyhow::Error;
 use termwiz::caps::Capabilities;
 use termwiz::cell::AttributeChange;
 use termwiz::color::AnsiColor;

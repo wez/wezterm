@@ -8,7 +8,7 @@ use crate::{
     Operator, PaintContext, Point, Rect, ScreenPoint, Size, WindowCallbacks, WindowOps,
     WindowOpsMut,
 };
-use failure::Fallible;
+use anyhow::anyhow;
 use promise::{Future, Promise};
 use std::any::Any;
 use std::collections::VecDeque;
@@ -94,7 +94,7 @@ impl<'a> PaintContext for X11GraphicsContext<'a> {
 }
 
 impl XWindowInner {
-    pub fn paint(&mut self) -> Fallible<()> {
+    pub fn paint(&mut self) -> anyhow::Result<()> {
         let window_dimensions =
             Rect::from_size(Size::new(self.width as isize, self.height as isize));
 
@@ -206,13 +206,13 @@ impl XWindowInner {
         self.expose.push_back(expose);
     }
 
-    fn do_mouse_event(&mut self, event: &MouseEvent) -> Fallible<()> {
+    fn do_mouse_event(&mut self, event: &MouseEvent) -> anyhow::Result<()> {
         self.callbacks
             .mouse_event(&event, &XWindow::from_id(self.window_id));
         Ok(())
     }
 
-    fn set_cursor(&mut self, cursor: Option<MouseCursor>) -> Fallible<()> {
+    fn set_cursor(&mut self, cursor: Option<MouseCursor>) -> anyhow::Result<()> {
         if cursor == self.cursor {
             return Ok(());
         }
@@ -251,7 +251,7 @@ impl XWindowInner {
         Ok(())
     }
 
-    pub fn dispatch_event(&mut self, event: &xcb::GenericEvent) -> Fallible<()> {
+    pub fn dispatch_event(&mut self, event: &xcb::GenericEvent) -> anyhow::Result<()> {
         let r = event.response_type() & 0x7f;
         match r {
             xcb::EXPOSE => {
@@ -411,7 +411,7 @@ impl XWindowInner {
         self.conn.flush();
     }
 
-    fn selection_clear(&mut self) -> Fallible<()> {
+    fn selection_clear(&mut self) -> anyhow::Result<()> {
         self.copy_and_paste.owned.take();
         self.copy_and_paste.request.take();
         self.update_selection_owner();
@@ -420,7 +420,7 @@ impl XWindowInner {
 
     /// A selection request is made to us after we've announced that we own the selection
     /// and when another client wants to copy it.
-    fn selection_request(&mut self, request: &xcb::SelectionRequestEvent) -> Fallible<()> {
+    fn selection_request(&mut self, request: &xcb::SelectionRequestEvent) -> anyhow::Result<()> {
         log::trace!(
             "SEL: time={} owner={} requestor={} selection={} target={} property={}",
             request.time(),
@@ -500,7 +500,7 @@ impl XWindowInner {
         Ok(())
     }
 
-    fn selection_notify(&mut self, selection: &xcb::SelectionNotifyEvent) -> Fallible<()> {
+    fn selection_notify(&mut self, selection: &xcb::SelectionNotifyEvent) -> anyhow::Result<()> {
         log::trace!(
             "SELECTION_NOTIFY received selection={} (prim={} clip={}) target={} property={}",
             selection.selection(),
@@ -540,7 +540,7 @@ impl XWindowInner {
     }
 
     #[allow(dead_code, clippy::identity_op)]
-    fn disable_decorations(&mut self) -> Fallible<()> {
+    fn disable_decorations(&mut self) -> anyhow::Result<()> {
         // Set the motif hints to disable decorations.
         // See https://stackoverflow.com/a/1909708
         #[repr(C)]
@@ -605,10 +605,10 @@ impl XWindow {
         width: usize,
         height: usize,
         callbacks: Box<dyn WindowCallbacks>,
-    ) -> Fallible<Window> {
+    ) -> anyhow::Result<Window> {
         let conn = Connection::get()
             .ok_or_else(|| {
-                failure::err_msg(
+                anyhow!(
                 "new_window must be called on the gui thread after Connection::init has succeeded",
             )
             })?
@@ -620,7 +620,7 @@ impl XWindow {
             let screen = setup
                 .roots()
                 .nth(conn.screen_num() as usize)
-                .ok_or_else(|| failure::err_msg("no screen?"))?;
+                .ok_or_else(|| anyhow!("no screen?"))?;
 
             window_id = conn.conn().generate_id();
 
@@ -834,7 +834,7 @@ impl WindowOps for XWindow {
         })
     }
 
-    fn apply<R, F: Send + 'static + Fn(&mut dyn Any, &dyn WindowOps) -> Fallible<R>>(
+    fn apply<R, F: Send + 'static + Fn(&mut dyn Any, &dyn WindowOps) -> anyhow::Result<R>>(
         &self,
         func: F,
     ) -> promise::Future<R>
@@ -856,8 +856,8 @@ impl WindowOps for XWindow {
             + Fn(
                 &mut dyn Any,
                 &dyn WindowOps,
-                failure::Fallible<std::rc::Rc<glium::backend::Context>>,
-            ) -> failure::Fallible<R>,
+                anyhow::Result<std::rc::Rc<glium::backend::Context>>,
+            ) -> anyhow::Result<R>,
     >(
         &self,
         func: F,

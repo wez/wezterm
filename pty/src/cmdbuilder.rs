@@ -1,7 +1,5 @@
-#[cfg(windows)]
-use failure::{ensure, Error};
 #[cfg(unix)]
-use failure::{format_err, Fallible};
+use anyhow::Context;
 #[cfg(feature = "serde_support")]
 use serde_derive::*;
 use std::ffi::{OsStr, OsString};
@@ -81,12 +79,12 @@ impl CommandBuilder {
     }
 
     #[cfg(feature = "ssh")]
-    pub(crate) fn as_unix_command_line(&self) -> failure::Fallible<String> {
+    pub(crate) fn as_unix_command_line(&self) -> anyhow::Result<String> {
         let mut strs = vec![];
         for arg in &self.args {
             let s = arg
                 .to_str()
-                .ok_or_else(|| failure::err_msg("argument cannot be represented as utf8"))?;
+                .ok_or_else(|| anyhow::anyhow!("argument cannot be represented as utf8"))?;
             strs.push(s);
         }
         Ok(shell_words::join(strs))
@@ -96,7 +94,7 @@ impl CommandBuilder {
 #[cfg(unix)]
 impl CommandBuilder {
     /// Convert the CommandBuilder to a `std::process::Command` instance.
-    pub(crate) fn as_command(&self) -> Fallible<std::process::Command> {
+    pub(crate) fn as_command(&self) -> anyhow::Result<std::process::Command> {
         let mut cmd = if self.is_default_prog() {
             let mut cmd = std::process::Command::new(&Self::get_shell()?);
             cmd.current_dir(Self::get_home_dir()?);
@@ -117,7 +115,7 @@ impl CommandBuilder {
     /// Determine which shell to run.
     /// We take the contents of the $SHELL env var first, then
     /// fall back to looking it up from the password database.
-    fn get_shell() -> Fallible<String> {
+    fn get_shell() -> anyhow::Result<String> {
         std::env::var("SHELL").or_else(|_| {
             let ent = unsafe { libc::getpwuid(libc::getuid()) };
 
@@ -130,12 +128,12 @@ impl CommandBuilder {
                 shell
                     .to_str()
                     .map(str::to_owned)
-                    .map_err(|e| format_err!("failed to resolve shell: {:?}", e))
+                    .context("failed to resolve shell")
             }
         })
     }
 
-    fn get_home_dir() -> Fallible<String> {
+    fn get_home_dir() -> anyhow::Result<String> {
         std::env::var("HOME").or_else(|_| {
             let ent = unsafe { libc::getpwuid(libc::getuid()) };
 
@@ -147,7 +145,7 @@ impl CommandBuilder {
                 let home = unsafe { CStr::from_ptr((*ent).pw_dir) };
                 home.to_str()
                     .map(str::to_owned)
-                    .map_err(|e| format_err!("failed to resolve home dir: {:?}", e))
+                    .context("failed to resolve home dir")
             }
         })
     }
@@ -211,7 +209,7 @@ impl CommandBuilder {
         block
     }
 
-    pub(crate) fn cmdline(&self) -> Result<(Vec<u16>, Vec<u16>), Error> {
+    pub(crate) fn cmdline(&self) -> anyhow::Result<(Vec<u16>, Vec<u16>)> {
         let mut cmdline = Vec::<u16>::new();
 
         let exe = if self.is_default_prog() {
@@ -229,7 +227,7 @@ impl CommandBuilder {
 
         for arg in self.args.iter().skip(1) {
             cmdline.push(' ' as u16);
-            ensure!(
+            anyhow::ensure!(
                 !arg.encode_wide().any(|c| c == 0),
                 "invalid encoding for command line argument {:?}",
                 arg

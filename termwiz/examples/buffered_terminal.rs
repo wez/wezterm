@@ -2,7 +2,7 @@
 //! up changes and then flush them.  `BufferedTerminal` enables
 //! optimizing the output sequence to update the screen, which is
 //! important on links with poor connectivity.
-use failure::Error;
+use anyhow::Error;
 use termwiz::caps::Capabilities;
 use termwiz::cell::AttributeChange;
 use termwiz::color::AnsiColor;

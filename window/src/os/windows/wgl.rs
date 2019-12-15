@@ -1,6 +1,5 @@
 #![cfg(feature = "opengl")]
 
-use failure::Fallible;
 use std::os::raw::c_void;
 use winapi::shared::windef::*;
 use winapi::um::wingdi::*;
@@ -19,7 +18,7 @@ type GetProcAddressFunc =
     unsafe extern "system" fn(*const std::os::raw::c_char) -> *const std::os::raw::c_void;
 
 impl WglWrapper {
-    pub fn create() -> Fallible<Self> {
+    pub fn create() -> anyhow::Result<Self> {
         let lib = libloading::Library::new("opengl32.dll")?;
 
         let get_proc_address: libloading::Symbol<GetProcAddressFunc> =
@@ -42,7 +41,7 @@ pub struct GlState {
 }
 
 impl GlState {
-    pub fn create(window: HWND) -> Fallible<Self> {
+    pub fn create(window: HWND) -> anyhow::Result<Self> {
         let wgl = WglWrapper::create()?;
 
         let hdc = unsafe { GetDC(window) };

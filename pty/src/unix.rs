@@ -1,7 +1,7 @@
 //! Working with pseudo-terminals
 
 use crate::{Child, CommandBuilder, MasterPty, PtyPair, PtySize, PtySystem, SlavePty};
-use failure::{bail, Error, Fallible};
+use anyhow::{bail, Error};
 use filedescriptor::FileDescriptor;
 use libc::{self, winsize};
 use std::io;
@@ -13,7 +13,7 @@ use std::ptr;
 
 pub struct UnixPtySystem {}
 impl PtySystem for UnixPtySystem {
-    fn openpty(&self, size: PtySize) -> Fallible<PtyPair> {
+    fn openpty(&self, size: PtySize) -> anyhow::Result<PtyPair> {
         let mut master: RawFd = -1;
         let mut slave: RawFd = -1;
 

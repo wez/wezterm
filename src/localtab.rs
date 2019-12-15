@@ -1,7 +1,7 @@
 use crate::mux::domain::DomainId;
 use crate::mux::renderable::Renderable;
 use crate::mux::tab::{alloc_tab_id, Tab, TabId};
-use failure::Error;
+use anyhow::Error;
 use portable_pty::{Child, MasterPty, PtySize};
 use std::cell::{RefCell, RefMut};
 use std::sync::Arc;

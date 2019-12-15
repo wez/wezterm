@@ -1,4 +1,4 @@
-use failure::Error;
+use anyhow::Error;
 use termwiz::caps::Capabilities;
 use termwiz::cell::AttributeChange;
 use termwiz::color::AnsiColor;

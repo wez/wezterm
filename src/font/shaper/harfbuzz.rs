@@ -3,7 +3,7 @@ use crate::font::hbwrap as harfbuzz;
 use crate::font::locator::FontDataHandle;
 use crate::font::shaper::{FallbackIdx, FontMetrics, FontShaper, GlyphInfo};
 use crate::font::units::*;
-use failure::{bail, format_err, Fallible};
+use anyhow::{anyhow, bail};
 use log::{debug, error};
 use std::cell::{RefCell, RefMut};
 
@@ -43,7 +43,7 @@ pub struct HarfbuzzShaper {
 }
 
 impl HarfbuzzShaper {
-    pub fn new(handles: &[FontDataHandle]) -> Fallible<Self> {
+    pub fn new(handles: &[FontDataHandle]) -> anyhow::Result<Self> {
         let lib = ftwrap::Library::new()?;
         let handles = handles.to_vec();
         let mut fonts = vec![];
@@ -57,7 +57,7 @@ impl HarfbuzzShaper {
         })
     }
 
-    fn load_fallback(&self, font_idx: FallbackIdx) -> Fallible<Option<RefMut<FontPair>>> {
+    fn load_fallback(&self, font_idx: FallbackIdx) -> anyhow::Result<Option<RefMut<FontPair>>> {
         if font_idx >= self.handles.len() {
             return Ok(None);
         }
@@ -93,7 +93,7 @@ impl HarfbuzzShaper {
         s: &str,
         font_size: f64,
         dpi: u32,
-    ) -> Fallible<Vec<GlyphInfo>> {
+    ) -> anyhow::Result<Vec<GlyphInfo>> {
         let features = vec![
             // kerning
             harfbuzz::feature_from_string("kern")?,
@@ -252,14 +252,14 @@ impl HarfbuzzShaper {
 }
 
 impl FontShaper for HarfbuzzShaper {
-    fn shape(&self, text: &str, size: f64, dpi: u32) -> Fallible<Vec<GlyphInfo>> {
+    fn shape(&self, text: &str, size: f64, dpi: u32) -> anyhow::Result<Vec<GlyphInfo>> {
         self.do_shape(0, text, size, dpi)
     }
 
-    fn metrics(&self, size: f64, dpi: u32) -> Fallible<FontMetrics> {
+    fn metrics(&self, size: f64, dpi: u32) -> anyhow::Result<FontMetrics> {
         let mut pair = self
             .load_fallback(0)?
-            .ok_or_else(|| format_err!("unable to load first font!?"))?;
+            .ok_or_else(|| anyhow!("unable to load first font!?"))?;
         let (cell_width, cell_height) = pair.face.set_font_size(size, dpi)?;
         let y_scale = unsafe { (*(*pair.face.face).size).metrics.y_scale as f64 / 65536.0 };
         let metrics = FontMetrics {

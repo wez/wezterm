@@ -10,8 +10,8 @@ use crate::localtab::LocalTab;
 use crate::mux::tab::Tab;
 use crate::mux::window::WindowId;
 use crate::mux::Mux;
+use anyhow::{bail, Error};
 use downcast_rs::{impl_downcast, Downcast};
-use failure::{Error, Fallible};
 use log::info;
 use portable_pty::cmdbuilder::CommandBuilder;
 use portable_pty::{PtySize, PtySystem};
@@ -47,10 +47,10 @@ pub trait Domain: Downcast {
     fn domain_name(&self) -> &str;
 
     /// Re-attach to any tabs that might be pre-existing in this domain
-    fn attach(&self) -> Fallible<()>;
+    fn attach(&self) -> anyhow::Result<()>;
 
     /// Detach all tabs
-    fn detach(&self) -> Fallible<()>;
+    fn detach(&self) -> anyhow::Result<()>;
 
     /// Indicates the state of the domain
     fn state(&self) -> DomainState;
@@ -125,12 +125,12 @@ impl Domain for LocalDomain {
         &self.name
     }
 
-    fn attach(&self) -> Fallible<()> {
+    fn attach(&self) -> anyhow::Result<()> {
         Ok(())
     }
 
-    fn detach(&self) -> Fallible<()> {
-        failure::bail!("detach not implemented");
+    fn detach(&self) -> anyhow::Result<()> {
+        bail!("detach not implemented");
     }
 
     fn state(&self) -> DomainState {

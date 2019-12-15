@@ -1,7 +1,7 @@
 //! Slightly higher level helper for fontconfig
 #![allow(clippy::mutex_atomic)]
 
-use failure::{ensure, err_msg, format_err, Error};
+use anyhow::{anyhow, ensure, Error};
 pub use fontconfig::*;
 use std::ffi::{CStr, CString};
 use std::fmt;
@@ -121,12 +121,12 @@ impl FcResultWrap {
         // the compiler thinks we defined these globals, when all
         // we did was import them from elsewhere
         match self.0 {
-            fontconfig::FcResultMatch => err_msg("FcResultMatch"),
-            fontconfig::FcResultNoMatch => err_msg("FcResultNoMatch"),
-            fontconfig::FcResultTypeMismatch => err_msg("FcResultTypeMismatch"),
-            fontconfig::FcResultNoId => err_msg("FcResultNoId"),
-            fontconfig::FcResultOutOfMemory => err_msg("FcResultOutOfMemory"),
-            _ => format_err!("FcResult holds invalid value {}", self.0),
+            fontconfig::FcResultMatch => anyhow!("FcResultMatch"),
+            fontconfig::FcResultNoMatch => anyhow!("FcResultNoMatch"),
+            fontconfig::FcResultTypeMismatch => anyhow!("FcResultTypeMismatch"),
+            fontconfig::FcResultNoId => anyhow!("FcResultNoId"),
+            fontconfig::FcResultOutOfMemory => anyhow!("FcResultOutOfMemory"),
+            _ => anyhow!("FcResult holds invalid value {}", self.0),
         }
     }
 

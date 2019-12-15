@@ -6,7 +6,7 @@ use freetype;
 
 pub use harfbuzz::*;
 
-use failure::{ensure, Error};
+use anyhow::{ensure, Error};
 use std::mem;
 use std::ptr;
 use std::slice;

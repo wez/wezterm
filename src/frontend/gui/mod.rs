@@ -5,7 +5,6 @@ use crate::mux::tab::Tab;
 use crate::mux::window::WindowId as MuxWindowId;
 use crate::mux::Mux;
 use ::window::*;
-use failure::Fallible;
 use promise::{BasicExecutor, Executor, SpawnFunc};
 use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -32,12 +31,12 @@ pub fn is_opengl_enabled() -> bool {
 }
 
 impl GuiFrontEnd {
-    pub fn try_new_no_opengl() -> Fallible<Rc<dyn FrontEnd>> {
+    pub fn try_new_no_opengl() -> anyhow::Result<Rc<dyn FrontEnd>> {
         USE_OPENGL.store(false, Ordering::Release);
         Self::try_new()
     }
 
-    pub fn try_new() -> Fallible<Rc<dyn FrontEnd>> {
+    pub fn try_new() -> anyhow::Result<Rc<dyn FrontEnd>> {
         #[cfg(all(unix, not(target_os = "macos")))]
         {
             if !configuration().enable_wayland {
@@ -85,7 +84,7 @@ impl FrontEnd for GuiFrontEnd {
         Box::new(GuiExecutor {})
     }
 
-    fn run_forever(&self) -> Fallible<()> {
+    fn run_forever(&self) -> anyhow::Result<()> {
         // We run until we've run out of windows in the Mux.
         // When we're running ssh we have a transient window
         // or two during authentication and we want to de-bounce
@@ -130,7 +129,7 @@ impl FrontEnd for GuiFrontEnd {
         fontconfig: &Rc<FontConfiguration>,
         tab: &Rc<dyn Tab>,
         window_id: MuxWindowId,
-    ) -> Fallible<()> {
+    ) -> anyhow::Result<()> {
         termwindow::TermWindow::new_window(&configuration(), fontconfig, tab, window_id)
     }
 }

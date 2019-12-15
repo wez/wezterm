@@ -5,8 +5,7 @@ use crate::mux::tab::Tab;
 use crate::mux::window::WindowId;
 use crate::mux::Mux;
 use crate::termwiztermtab;
-use failure::Error;
-use failure::{bail, format_err, Fallible};
+use anyhow::{anyhow, bail, Context, Error};
 use portable_pty::cmdbuilder::CommandBuilder;
 use portable_pty::{PtySize, PtySystem};
 use std::collections::HashSet;
@@ -150,7 +149,7 @@ impl<'a> ssh2::KeyboardInteractivePrompt for Prompt<'a> {
     }
 }
 
-pub fn ssh_connect(remote_address: &str, username: &str) -> Fallible<ssh2::Session> {
+pub fn ssh_connect(remote_address: &str, username: &str) -> anyhow::Result<ssh2::Session> {
     let mut sess = ssh2::Session::new()?;
 
     let (remote_address, remote_host_name, port) = {
@@ -164,28 +163,26 @@ pub fn ssh_connect(remote_address: &str, username: &str) -> Fallible<ssh2::Sessi
     };
 
     let tcp = TcpStream::connect(&remote_address)
-        .map_err(|e| format_err!("ssh connecting to {}: {}", remote_address, e))?;
+        .with_context(|| format!("ssh connecting to {}", remote_address))?;
     tcp.set_nodelay(true)?;
     sess.set_tcp_stream(tcp);
     sess.handshake()
-        .map_err(|e| format_err!("ssh handshake with {}: {}", remote_address, e))?;
+        .with_context(|| format!("ssh handshake with {}", remote_address))?;
 
     if let Ok(mut known_hosts) = sess.known_hosts() {
         let varname = if cfg!(windows) { "USERPROFILE" } else { "HOME" };
         let var = std::env::var_os(varname)
-            .ok_or_else(|| failure::format_err!("environment variable {} is missing", varname))?;
+            .ok_or_else(|| anyhow!("environment variable {} is missing", varname))?;
         let file = Path::new(&var).join(".ssh/known_hosts");
         if file.exists() {
             known_hosts
                 .read_file(&file, ssh2::KnownHostFileKind::OpenSSH)
-                .map_err(|e| {
-                    failure::format_err!("reading known_hosts file {}: {}", file.display(), e)
-                })?;
+                .with_context(|| format!("reading known_hosts file {}", file.display()))?;
         }
 
         let (key, key_type) = sess
             .host_key()
-            .ok_or_else(|| failure::err_msg("failed to get ssh host key"))?;
+            .ok_or_else(|| anyhow!("failed to get ssh host key"))?;
 
         let fingerprint = sess
             .host_key_hash(ssh2::HashType::Sha256)
@@ -210,7 +207,7 @@ pub fn ssh_connect(remote_address: &str, username: &str) -> Fallible<ssh2::Sessi
                     String::from_utf8(res).unwrap()
                 })
             })
-            .ok_or_else(|| failure::err_msg("failed to get host fingerprint"))?;
+            .ok_or_else(|| anyhow!("failed to get host fingerprint"))?;
 
         use ssh2::CheckResult;
         match known_hosts.check_port(&remote_host_name, port, key) {
@@ -251,15 +248,11 @@ pub fn ssh_connect(remote_address: &str, username: &str) -> Fallible<ssh2::Sessi
 
                 known_hosts
                     .add(remote_host_name, key, &remote_address, key_type.into())
-                    .map_err(|e| {
-                        failure::format_err!("adding known_hosts entry in memory: {}", e)
-                    })?;
+                    .context("adding known_hosts entry in memory")?;
 
                 known_hosts
                     .write_file(&file, ssh2::KnownHostFileKind::OpenSSH)
-                    .map_err(|e| {
-                        failure::format_err!("writing known_hosts file {}: {}", file.display(), e)
-                    })?;
+                    .with_context(|| format!("writing known_hosts file {}", file.display()))?;
             }
             CheckResult::Mismatch => {
                 termwiztermtab::message_box_ok(&format!(
@@ -301,14 +294,14 @@ pub fn ssh_connect(remote_address: &str, username: &str) -> Fallible<ssh2::Sessi
 
     if !sess.authenticated() && methods.contains("password") {
         let pass = password_prompt("", "Password", username, &remote_address)
-            .ok_or_else(|| failure::err_msg("password entry was cancelled"))?;
+            .ok_or_else(|| anyhow!("password entry was cancelled"))?;
         if let Err(err) = sess.userauth_password(username, &pass) {
             log::error!("while attempting password auth: {}", err);
         }
     }
 
     if !sess.authenticated() {
-        failure::bail!("unable to authenticate session");
+        bail!("unable to authenticate session");
     }
 
     Ok(sess)
@@ -376,12 +369,12 @@ impl Domain for RemoteSshDomain {
         &self.name
     }
 
-    fn attach(&self) -> Fallible<()> {
+    fn attach(&self) -> anyhow::Result<()> {
         Ok(())
     }
 
-    fn detach(&self) -> Fallible<()> {
-        failure::bail!("detach not implemented");
+    fn detach(&self) -> anyhow::Result<()> {
+        bail!("detach not implemented");
     }
 
     fn state(&self) -> DomainState {

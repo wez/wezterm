@@ -1,6 +1,6 @@
 use crate::os::xkeysyms::keysym_to_keycode;
 use crate::{KeyCode, Modifiers};
-use failure::{ensure, format_err, Fallible};
+use anyhow::{anyhow, ensure};
 use libc;
 use std::cell::RefCell;
 use std::ffi::CStr;
@@ -17,13 +17,13 @@ pub struct Keyboard {
 }
 
 impl Keyboard {
-    pub fn new(connection: &xcb::Connection) -> Fallible<(Keyboard, u8)> {
+    pub fn new(connection: &xcb::Connection) -> anyhow::Result<(Keyboard, u8)> {
         connection.prefetch_extension_data(xcb::xkb::id());
 
         let first_ev = connection
             .get_extension_data(xcb::xkb::id())
             .map(|r| r.first_event())
-            .ok_or_else(|| format_err!("could not get xkb extension data"))?;
+            .ok_or_else(|| anyhow!("could not get xkb extension data"))?;
 
         {
             let cookie = xcb::xkb::use_extension(
@@ -60,7 +60,7 @@ impl Keyboard {
             locale.to_str()?,
             xkb::compose::COMPILE_NO_FLAGS,
         )
-        .map_err(|()| format_err!("Failed to acquire compose table from locale"))?;
+        .map_err(|_| anyhow!("Failed to acquire compose table from locale"))?;
         let compose_state = xkb::compose::State::new(&table, xkb::compose::STATE_NO_FLAGS);
 
         {
@@ -185,7 +185,7 @@ impl Keyboard {
         &self,
         connection: &xcb::Connection,
         event: &xcb::GenericEvent,
-    ) -> Fallible<()> {
+    ) -> anyhow::Result<()> {
         let xkb_ev: &XkbGenericEvent = unsafe { xcb::cast_event(&event) };
 
         if xkb_ev.device_id() == self.get_device_id() as u8 {
@@ -213,7 +213,7 @@ impl Keyboard {
         );
     }
 
-    pub fn update_keymap(&self, connection: &xcb::Connection) -> Fallible<()> {
+    pub fn update_keymap(&self, connection: &xcb::Connection) -> anyhow::Result<()> {
         let new_keymap = xkb::x11::keymap_new_from_device(
             &self.context,
             &connection,
@@ -238,7 +238,7 @@ impl Keyboard {
     }
 }
 
-fn query_lc_ctype() -> Fallible<&'static CStr> {
+fn query_lc_ctype() -> anyhow::Result<&'static CStr> {
     let ptr = unsafe { libc::setlocale(libc::LC_CTYPE, std::ptr::null()) };
     ensure!(!ptr.is_null(), "failed to query locale");
     unsafe { Ok(CStr::from_ptr(ptr)) }

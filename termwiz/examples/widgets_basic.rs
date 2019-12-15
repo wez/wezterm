@@ -1,6 +1,6 @@
 //! This example shows how to make a basic widget that accumulates
 //! text input and renders it to the screen
-use failure::Error;
+use anyhow::Error;
 use termwiz::caps::Capabilities;
 use termwiz::cell::AttributeChange;
 use termwiz::color::{AnsiColor, ColorAttribute, RgbColor};

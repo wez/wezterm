@@ -1,4 +1,3 @@
-use failure::Fallible;
 use termwiz::cell::AttributeChange;
 use termwiz::color::{AnsiColor, ColorAttribute, RgbColor};
 use termwiz::lineedit::*;
@@ -91,7 +90,7 @@ fn word_at_cursor(line: &str, cursor_position: usize) -> Option<(std::ops::Range
     }
 }
 
-fn main() -> Fallible<()> {
+fn main() -> anyhow::Result<()> {
     println!("Type `exit` to quit this example, or start a word with `h` and press Tab.");
     let mut editor = line_editor()?;
 

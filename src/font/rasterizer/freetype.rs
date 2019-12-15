@@ -3,7 +3,7 @@ use crate::font::rasterizer::FontRasterizer;
 use crate::font::units::*;
 use crate::font::{ftwrap, RasterizedGlyph};
 use ::freetype::FT_GlyphSlotRec_;
-use failure::Fallible;
+use anyhow::bail;
 use std::cell::RefCell;
 use std::mem;
 use std::slice;
@@ -15,7 +15,12 @@ pub struct FreeTypeRasterizer {
 }
 
 impl FontRasterizer for FreeTypeRasterizer {
-    fn rasterize_glyph(&self, glyph_pos: u32, size: f64, dpi: u32) -> Fallible<RasterizedGlyph> {
+    fn rasterize_glyph(
+        &self,
+        glyph_pos: u32,
+        size: f64,
+        dpi: u32,
+    ) -> anyhow::Result<RasterizedGlyph> {
         self.face.borrow_mut().set_font_size(size, dpi)?;
 
         let render_mode = //ftwrap::FT_Render_Mode::FT_RENDER_MODE_NORMAL;
@@ -47,7 +52,7 @@ impl FontRasterizer for FreeTypeRasterizer {
             }
             ftwrap::FT_Pixel_Mode::FT_PIXEL_MODE_GRAY => self.rasterize_gray(pitch, ft_glyph, data),
             ftwrap::FT_Pixel_Mode::FT_PIXEL_MODE_MONO => self.rasterize_mono(pitch, ft_glyph, data),
-            mode => failure::bail!("unhandled pixel mode: {:?}", mode),
+            mode => bail!("unhandled pixel mode: {:?}", mode),
         };
         Ok(glyph)
     }
@@ -270,7 +275,7 @@ impl FreeTypeRasterizer {
         }
     }
 
-    pub fn from_locator(handle: &FontDataHandle) -> Fallible<Self> {
+    pub fn from_locator(handle: &FontDataHandle) -> anyhow::Result<Self> {
         log::trace!("Rasterizier wants {:?}", handle);
         let lib = ftwrap::Library::new()?;
         let face = lib.face_from_locator(handle)?;

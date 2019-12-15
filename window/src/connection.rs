@@ -1,5 +1,5 @@
 use crate::Connection;
-use failure::Fallible;
+use anyhow::Result as Fallible;
 use std::cell::RefCell;
 use std::rc::Rc;
 

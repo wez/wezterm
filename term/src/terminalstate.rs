@@ -3,7 +3,7 @@
 #![cfg_attr(feature = "cargo-clippy", allow(clippy::range_plus_one))]
 use super::*;
 use crate::color::ColorPalette;
-use failure::{bail, Fallible};
+use anyhow::bail;
 use image::{self, GenericImageView};
 use log::{debug, error};
 use ordered_float::NotNan;
@@ -479,14 +479,14 @@ impl TerminalState {
         self.invalidate_hyperlinks();
     }
 
-    fn set_clipboard_contents(&self, text: Option<String>) -> Fallible<()> {
+    fn set_clipboard_contents(&self, text: Option<String>) -> anyhow::Result<()> {
         if let Some(clip) = self.clipboard.as_ref() {
             clip.set_contents(text)?;
         }
         Ok(())
     }
 
-    fn get_clipboard_contents(&self) -> Fallible<String> {
+    fn get_clipboard_contents(&self) -> anyhow::Result<String> {
         if let Some(clip) = self.clipboard.as_ref() {
             clip.get_contents()
         } else {

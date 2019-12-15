@@ -6,7 +6,7 @@
 //! On most (all?) systems, attempting to open multiple instances of
 //! the same serial port will fail.
 use crate::{Child, CommandBuilder, ExitStatus, MasterPty, PtyPair, PtySize, PtySystem, SlavePty};
-use failure::{format_err, Fallible};
+use anyhow::{ensure, Context};
 use filedescriptor::FileDescriptor;
 use serial::{BaudRate, CharSize, FlowControl, Parity, SerialPort, StopBits, SystemPort};
 use std::ffi::{OsStr, OsString};
@@ -60,9 +60,9 @@ impl SerialTty {
 }
 
 impl PtySystem for SerialTty {
-    fn openpty(&self, _size: PtySize) -> Fallible<PtyPair> {
+    fn openpty(&self, _size: PtySize) -> anyhow::Result<PtyPair> {
         let mut port = serial::open(&self.port)
-            .map_err(|e| format_err!("openpty on serial port {:?}: {}", self.port, e))?;
+            .with_context(|| format!("openpty on serial port {:?}", self.port))?;
 
         port.reconfigure(&|settings| {
             settings.set_baud_rate(self.baud)?;
@@ -95,8 +95,8 @@ struct Slave {
 }
 
 impl SlavePty for Slave {
-    fn spawn_command(&self, cmd: CommandBuilder) -> Fallible<Box<dyn Child>> {
-        failure::ensure!(
+    fn spawn_command(&self, cmd: CommandBuilder) -> anyhow::Result<Box<dyn Child>> {
+        ensure!(
             cmd.is_default_prog(),
             "can only use default prog commands with serial tty implementations"
         );
@@ -151,17 +151,17 @@ impl Write for Master {
 }
 
 impl MasterPty for Master {
-    fn resize(&self, _size: PtySize) -> Fallible<()> {
+    fn resize(&self, _size: PtySize) -> anyhow::Result<()> {
         // Serial ports have no concept of size
         Ok(())
     }
 
-    fn get_size(&self) -> Fallible<PtySize> {
+    fn get_size(&self) -> anyhow::Result<PtySize> {
         // Serial ports have no concept of size
         Ok(PtySize::default())
     }
 
-    fn try_clone_reader(&self) -> Fallible<Box<dyn std::io::Read + Send>> {
+    fn try_clone_reader(&self) -> anyhow::Result<Box<dyn std::io::Read + Send>> {
         // We rely on the fact that SystemPort implements the traits
         // that expose the underlying file descriptor, and that direct
         // reads from that return the raw data that we want

@@ -6,7 +6,7 @@ use crate::font::rasterizer::FontRasterizerSelection;
 use crate::font::shaper::FontShaperSelection;
 use crate::frontend::FrontEndSelection;
 use crate::keyassignment::KeyAssignment;
-use failure::{bail, err_msg, format_err, Error, Fallible};
+use anyhow::{anyhow, bail, Context, Error};
 use lazy_static::lazy_static;
 use portable_pty::{CommandBuilder, PtySystemSelection};
 use serde_derive::*;
@@ -67,7 +67,7 @@ pub fn reload() {
 /// return it, otherwise return the current configuration
 pub fn configuration_result() -> Result<ConfigHandle, Error> {
     if let Some(error) = CONFIG.get_error() {
-        failure::bail!("{}", error);
+        bail!("{}", error);
     }
     Ok(CONFIG.get())
 }
@@ -153,7 +153,7 @@ impl ConfigInner {
                 }
             }
             Err(err) => {
-                let err = err.to_string();
+                let err = err.to_string().to_string();
                 log::error!("While reloading configuration: {}", err);
 
                 #[cfg(not(windows))]
@@ -465,7 +465,7 @@ impl Config {
             file.read_to_string(&mut s)?;
 
             let cfg: Self = toml::from_str(&s)
-                .map_err(|e| format_err!("Error parsing TOML from {}: {}", p.display(), e))?;
+                .with_context(|| format!("Error parsing TOML from {}", p.display()))?;
 
             // Compute but discard the key bindings here so that we raise any
             // problems earlier than we use them.
@@ -480,7 +480,7 @@ impl Config {
         Self::default().compute_extra_defaults(None)
     }
 
-    pub fn key_bindings(&self) -> Fallible<HashMap<(KeyCode, Modifiers), KeyAssignment>> {
+    pub fn key_bindings(&self) -> anyhow::Result<HashMap<(KeyCode, Modifiers), KeyAssignment>> {
         let mut map = HashMap::new();
 
         for k in &self.keys {
@@ -611,6 +611,6 @@ fn compute_runtime_dir() -> Result<PathBuf, Error> {
         return Ok(runtime.join("wezterm"));
     }
 
-    let home = dirs::home_dir().ok_or_else(|| err_msg("can't find home dir"))?;
+    let home = dirs::home_dir().ok_or_else(|| anyhow!("can't find home dir"))?;
     Ok(home.join(".local/share/wezterm"))
 }

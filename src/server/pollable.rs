@@ -1,17 +1,17 @@
 use crate::server::UnixStream;
+use anyhow::Error;
 use crossbeam_channel::{unbounded as channel, Receiver, Sender, TryRecvError};
-use failure::{format_err, Fallible};
 use filedescriptor::*;
 use std::cell::RefCell;
 use std::io::{Read, Write};
 use std::net::TcpStream;
 
 pub trait ReadAndWrite: std::io::Read + std::io::Write + Send + AsPollFd {
-    fn set_non_blocking(&self, non_blocking: bool) -> Fallible<()>;
+    fn set_non_blocking(&self, non_blocking: bool) -> anyhow::Result<()>;
     fn has_read_buffered(&self) -> bool;
 }
 impl ReadAndWrite for UnixStream {
-    fn set_non_blocking(&self, non_blocking: bool) -> Fallible<()> {
+    fn set_non_blocking(&self, non_blocking: bool) -> anyhow::Result<()> {
         self.set_nonblocking(non_blocking)?;
         Ok(())
     }
@@ -20,7 +20,7 @@ impl ReadAndWrite for UnixStream {
     }
 }
 impl ReadAndWrite for native_tls::TlsStream<std::net::TcpStream> {
-    fn set_non_blocking(&self, non_blocking: bool) -> Fallible<()> {
+    fn set_non_blocking(&self, non_blocking: bool) -> anyhow::Result<()> {
         self.get_ref().set_nonblocking(non_blocking)?;
         Ok(())
     }
@@ -31,7 +31,7 @@ impl ReadAndWrite for native_tls::TlsStream<std::net::TcpStream> {
 
 #[cfg(any(feature = "openssl", unix))]
 impl ReadAndWrite for openssl::ssl::SslStream<std::net::TcpStream> {
-    fn set_non_blocking(&self, non_blocking: bool) -> Fallible<()> {
+    fn set_non_blocking(&self, non_blocking: bool) -> anyhow::Result<()> {
         self.get_ref().set_nonblocking(non_blocking)?;
         Ok(())
     }
@@ -45,10 +45,10 @@ pub struct PollableSender<T> {
     write: RefCell<FileDescriptor>,
 }
 
-impl<T> PollableSender<T> {
-    pub fn send(&self, item: T) -> Fallible<()> {
+impl<T: Send + Sync + 'static> PollableSender<T> {
+    pub fn send(&self, item: T) -> anyhow::Result<()> {
         self.write.borrow_mut().write_all(b"x")?;
-        self.sender.send(item).map_err(|e| format_err!("{}", e))?;
+        self.sender.send(item).map_err(Error::msg)?;
         Ok(())
     }
 }
@@ -92,7 +92,7 @@ impl<T> AsPollFd for PollableReceiver<T> {
 /// socketpair.
 /// In theory this should also work on windows, but will require
 /// windows 10 w/unix domain socket support.
-pub fn pollable_channel<T>() -> Fallible<(PollableSender<T>, PollableReceiver<T>)> {
+pub fn pollable_channel<T>() -> anyhow::Result<(PollableSender<T>, PollableReceiver<T>)> {
     let (sender, receiver) = channel();
     let (write, read) = socketpair()?;
     Ok((

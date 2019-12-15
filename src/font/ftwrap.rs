@@ -1,7 +1,7 @@
 //! Higher level freetype bindings
 
 use crate::font::locator::FontDataHandle;
-use failure::{bail, format_err, Error, Fallible, ResultExt};
+use anyhow::{anyhow, bail, Context};
 pub use freetype::*;
 use std::ptr;
 
@@ -11,11 +11,11 @@ pub fn succeeded(error: FT_Error) -> bool {
 }
 
 /// Translate an error and value into a result
-fn ft_result<T>(err: FT_Error, t: T) -> Result<T, Error> {
+fn ft_result<T>(err: FT_Error, t: T) -> anyhow::Result<T> {
     if succeeded(err) {
         Ok(t)
     } else {
-        Err(format_err!("FreeType error {:?} 0x{:x}", err, err))
+        Err(anyhow!("FreeType error {:?} 0x{:x}", err, err))
     }
 }
 
@@ -44,7 +44,7 @@ impl Drop for Face {
 impl Face {
     /// This is a wrapper around set_char_size and select_size
     /// that accounts for some weirdness with eg: color emoji
-    pub fn set_font_size(&mut self, size: f64, dpi: u32) -> Fallible<(f64, f64)> {
+    pub fn set_font_size(&mut self, size: f64, dpi: u32) -> anyhow::Result<(f64, f64)> {
         log::debug!("set_char_size {} dpi={}", size, dpi);
         // Scaling before truncating to integer minimizes the chances of hitting
         // the fallback code for set_pixel_sizes below.
@@ -93,7 +93,7 @@ impl Face {
         char_height: FT_F26Dot6,
         horz_resolution: FT_UInt,
         vert_resolution: FT_UInt,
-    ) -> Result<(), Error> {
+    ) -> anyhow::Result<()> {
         ft_result(
             unsafe {
                 FT_Set_Char_Size(
@@ -109,15 +109,15 @@ impl Face {
     }
 
     #[allow(unused)]
-    pub fn set_pixel_sizes(&mut self, char_width: u32, char_height: u32) -> Fallible<()> {
+    pub fn set_pixel_sizes(&mut self, char_width: u32, char_height: u32) -> anyhow::Result<()> {
         ft_result(
             unsafe { FT_Set_Pixel_Sizes(self.face, char_width, char_height) },
             (),
         )
-        .map_err(|e| e.context("set_pixel_sizes").into())
+        .with_context(|| format!("set_pixel_sizes {}x{}", char_width, char_height))
     }
 
-    pub fn select_size(&mut self, idx: usize) -> Result<(), Error> {
+    pub fn select_size(&mut self, idx: usize) -> anyhow::Result<()> {
         ft_result(unsafe { FT_Select_Size(self.face, idx as i32) }, ())
     }
 
@@ -126,7 +126,7 @@ impl Face {
         glyph_index: FT_UInt,
         load_flags: FT_Int32,
         render_mode: FT_Render_Mode,
-    ) -> Result<&FT_GlyphSlotRec_, Error> {
+    ) -> anyhow::Result<&FT_GlyphSlotRec_> {
         unsafe {
             let res = FT_Load_Glyph(self.face, glyph_index, load_flags);
             if succeeded(res) {
@@ -177,7 +177,7 @@ impl Drop for Library {
 }
 
 impl Library {
-    pub fn new() -> Result<Library, Error> {
+    pub fn new() -> anyhow::Result<Library> {
         let mut lib = ptr::null_mut();
         let res = unsafe { FT_Init_FreeType(&mut lib as *mut _) };
         let lib = ft_result(res, lib).context("FT_Init_FreeType")?;
@@ -190,7 +190,7 @@ impl Library {
         Ok(lib)
     }
 
-    pub fn face_from_locator(&self, handle: &FontDataHandle) -> Fallible<Face> {
+    pub fn face_from_locator(&self, handle: &FontDataHandle) -> anyhow::Result<Face> {
         match handle {
             FontDataHandle::OnDisk { path, index } => {
                 self.new_face(path.to_str().unwrap(), *index as _)
@@ -200,7 +200,7 @@ impl Library {
     }
 
     #[allow(dead_code)]
-    pub fn new_face<P>(&self, path: P, face_index: FT_Long) -> Result<Face, Error>
+    pub fn new_face<P>(&self, path: P, face_index: FT_Long) -> anyhow::Result<Face>
     where
         P: AsRef<std::path::Path>,
     {
@@ -223,19 +223,19 @@ impl Library {
             )
         };
         Ok(Face {
-            face: ft_result(res, face).map_err(|e| {
-                e.context(format!(
+            face: ft_result(res, face).with_context(|| {
+                format!(
                     "FT_New_Memory_Face for {} index {}",
                     path.display(),
                     face_index
-                ))
+                )
             })?,
             _bytes: data,
         })
     }
 
     #[allow(dead_code)]
-    pub fn new_face_from_slice(&self, data: &[u8], face_index: FT_Long) -> Result<Face, Error> {
+    pub fn new_face_from_slice(&self, data: &[u8], face_index: FT_Long) -> anyhow::Result<Face> {
         let data = data.to_vec();
         let mut face = ptr::null_mut();
 
@@ -250,12 +250,12 @@ impl Library {
         };
         Ok(Face {
             face: ft_result(res, face)
-                .map_err(|e| e.context(format!("FT_New_Memory_Face for index {}", face_index)))?,
+                .with_context(|| format!("FT_New_Memory_Face for index {}", face_index))?,
             _bytes: data,
         })
     }
 
-    pub fn set_lcd_filter(&mut self, filter: FT_LcdFilter) -> Result<(), Error> {
+    pub fn set_lcd_filter(&mut self, filter: FT_LcdFilter) -> anyhow::Result<()> {
         unsafe { ft_result(FT_Library_SetLcdFilter(self.lib, filter), ()) }
     }
 }

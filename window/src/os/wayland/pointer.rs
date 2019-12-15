@@ -1,7 +1,7 @@
 use super::copy_and_paste::*;
 use crate::input::*;
 use crate::os::wayland::connection::WaylandConnection;
-use failure::Fallible;
+use anyhow::anyhow;
 use smithay_client_toolkit as toolkit;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
@@ -217,7 +217,7 @@ impl PointerDispatcher {
         compositor: WlCompositor,
         shm: &WlShm,
         dev_mgr: &WlDataDeviceManager,
-    ) -> Fallible<Self> {
+    ) -> anyhow::Result<Self> {
         let inner = Arc::new(Mutex::new(Inner::default()));
         let pointer = seat
             .get_pointer({
@@ -234,7 +234,7 @@ impl PointerDispatcher {
                     )
                 }
             })
-            .map_err(|_| failure::format_err!("Failed to configure pointer callback"))?;
+            .map_err(|()| anyhow!("Failed to configure pointer callback"))?;
 
         let themer = AutoThemer::init(None, compositor, shm);
         let auto_pointer = themer.theme_pointer(pointer);
@@ -254,7 +254,7 @@ impl PointerDispatcher {
                     )
                 }
             })
-            .map_err(|_| failure::format_err!("Failed to configure data_device"))?;
+            .map_err(|()| anyhow!("Failed to configure data_device"))?;
 
         Ok(Self {
             inner,

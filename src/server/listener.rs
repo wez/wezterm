@@ -7,8 +7,8 @@ use crate::ratelim::RateLimiter;
 use crate::server::codec::*;
 use crate::server::pollable::*;
 use crate::server::UnixListener;
+use anyhow::{anyhow, bail, Context, Error};
 use crossbeam_channel::TryRecvError;
-use failure::{bail, err_msg, format_err, Error, Fallible};
 #[cfg(unix)]
 use libc::{mode_t, umask};
 use log::{debug, error};
@@ -69,10 +69,10 @@ pub enum IdentitySource {
     },
 }
 
-pub fn read_bytes<T: AsRef<Path>>(path: T) -> Fallible<Vec<u8>> {
+pub fn read_bytes<T: AsRef<Path>>(path: T) -> anyhow::Result<Vec<u8>> {
     let path = path.as_ref();
-    let mut f = std::fs::File::open(path)
-        .map_err(|e| format_err!("opening file {}: {}", path.display(), e))?;
+    let mut f =
+        std::fs::File::open(path).with_context(|| format!("opening file {}", path.display()))?;
     let mut buf = Vec::new();
     f.read_to_end(&mut buf)?;
     Ok(buf)
@@ -83,7 +83,7 @@ fn pem_files_to_identity(
     key: PathBuf,
     cert: Option<PathBuf>,
     chain: Option<PathBuf>,
-) -> Fallible<Identity> {
+) -> anyhow::Result<Identity> {
     // This is a bit of a redundant dance around;
     // the native_tls interface only allows for pkcs12
     // encoded identity information, but in my use case
@@ -113,14 +113,13 @@ fn pem_files_to_identity(
     let pkcs12 = builder.build(password, "", &pkey, &x509_cert)?;
 
     let der = pkcs12.to_der()?;
-    Identity::from_pkcs12(&der, password).map_err(|e| {
-        format_err!(
+    Identity::from_pkcs12(&der, password).with_context(|| {
+        format!(
             "error creating identity from pkcs12 generated \
-             from PemFiles {}, {:?}, {:?}: {}",
+             from PemFiles {}, {:?}, {:?}",
             key.display(),
             cert,
             chain,
-            e
         )
     })
 }
@@ -130,20 +129,19 @@ fn pem_files_to_identity(
     _key: PathBuf,
     _cert: Option<PathBuf>,
     _chain: Option<PathBuf>,
-) -> Fallible<Identity> {
+) -> anyhow::Result<Identity> {
     bail!("recompile wezterm using --features openssl")
 }
 
 impl TryFrom<IdentitySource> for Identity {
     type Error = Error;
 
-    fn try_from(source: IdentitySource) -> Fallible<Identity> {
+    fn try_from(source: IdentitySource) -> anyhow::Result<Identity> {
         match source {
             IdentitySource::Pkcs12File { path, password } => {
                 let bytes = read_bytes(&path)?;
-                Identity::from_pkcs12(&bytes, &password).map_err(|e| {
-                    format_err!("error loading pkcs12 file '{}': {}", path.display(), e)
-                })
+                Identity::from_pkcs12(&bytes, &password)
+                    .with_context(|| format!("error loading pkcs12 file '{}'", path.display()))
             }
             IdentitySource::PemFiles { key, cert, chain } => {
                 pem_files_to_identity(key, cert, chain)
@@ -200,24 +198,20 @@ mod not_ossl {
         }
     }
 
-    pub fn spawn_tls_listener(tls_server: &TlsDomainServer) -> Fallible<()> {
+    pub fn spawn_tls_listener(tls_server: &TlsDomainServer) -> anyhow::Result<()> {
         let identity = IdentitySource::PemFiles {
             key: tls_server
                 .pem_private_key
                 .as_ref()
-                .ok_or_else(|| err_msg("missing pem_private_key config value"))?
+                .ok_or_else(|| anyhow!("missing pem_private_key config value"))?
                 .into(),
             cert: tls_server.pem_cert.clone(),
             chain: tls_server.pem_ca.clone(),
         };
 
         let mut net_listener = NetListener::new(
-            TcpListener::bind(&tls_server.bind_address).map_err(|e| {
-                format_err!(
-                    "error binding to bind_address {}: {}",
-                    tls_server.bind_address,
-                    e
-                )
+            TcpListener::bind(&tls_server.bind_address).with_context(|| {
+                format!("error binding to bind_address {}", tls_server.bind_address,)
             })?,
             TlsAcceptor::new(identity.try_into()?)?,
         );
@@ -256,16 +250,16 @@ mod ossl {
         ///   user running this mux server instance, or must match
         ///   a special encoded prefix set up by a proprietary PKI
         ///   infrastructure in an environment used by the author.
-        fn verify_peer_cert<T>(stream: &SslStream<T>) -> Fallible<()> {
+        fn verify_peer_cert<T>(stream: &SslStream<T>) -> anyhow::Result<()> {
             let cert = stream
                 .ssl()
                 .peer_certificate()
-                .ok_or_else(|| err_msg("no peer cert"))?;
+                .ok_or_else(|| anyhow!("no peer cert"))?;
             let subject = cert.subject_name();
             let cn = subject
                 .entries_by_nid(openssl::nid::Nid::COMMONNAME)
                 .next()
-                .ok_or_else(|| err_msg("cert has no CN"))?;
+                .ok_or_else(|| anyhow!("cert has no CN"))?;
             let cn_str = cn.data().as_utf8()?.to_string();
 
             let wanted_unix_name = std::env::var("USER")?;
@@ -342,7 +336,7 @@ mod ossl {
         if let Some(key_file) = tls_server.pem_private_key.as_ref() {
             acceptor.set_private_key_file(key_file, SslFiletype::PEM)?;
         }
-        fn load_cert(name: &Path) -> Fallible<X509> {
+        fn load_cert(name: &Path) -> anyhow::Result<X509> {
             let cert_bytes = read_bytes(name)?;
             log::trace!("loaded {}", name.display());
             Ok(X509::from_pem(&cert_bytes)?)
@@ -364,11 +358,10 @@ mod ossl {
         let acceptor = acceptor.build();
 
         let mut net_listener = OpenSSLNetListener::new(
-            TcpListener::bind(&tls_server.bind_address).map_err(|e| {
-                format_err!(
-                    "error binding to mux_server_bind_address {}: {}",
+            TcpListener::bind(&tls_server.bind_address).with_context(|| {
+                format!(
+                    "error binding to mux_server_bind_address {}",
                     tls_server.bind_address,
-                    e
                 )
             })?,
             acceptor,
@@ -392,7 +385,7 @@ fn maybe_push_tab_changes(
     surfaces: &Arc<Mutex<HashMap<TabId, ClientSurfaceState>>>,
     tab: &Rc<dyn Tab>,
     sender: PollableSender<DecodedPdu>,
-) -> Fallible<()> {
+) -> anyhow::Result<()> {
     let tab_id = tab.tab_id();
     let mut surfaces = surfaces.lock().unwrap();
     let (rows, cols) = tab.renderer().physical_dimensions();
@@ -507,11 +500,11 @@ struct RemoteClipboard {
 }
 
 impl Clipboard for RemoteClipboard {
-    fn get_contents(&self) -> Fallible<String> {
+    fn get_contents(&self) -> anyhow::Result<String> {
         Ok("".to_owned())
     }
 
-    fn set_contents(&self, clipboard: Option<String>) -> Fallible<()> {
+    fn set_contents(&self, clipboard: Option<String>) -> anyhow::Result<()> {
         self.sender.send(DecodedPdu {
             serial: 0,
             pdu: Pdu::SetClipboard(SetClipboard {
@@ -606,7 +599,7 @@ impl<S: ReadAndWrite> ClientSession<S> {
                         let mux = Mux::get().unwrap();
                         let tab = mux
                             .get_tab(tab_id)
-                            .ok_or_else(|| format_err!("no such tab {}", tab_id))?;
+                            .ok_or_else(|| anyhow!("no such tab {}", tab_id))?;
                         maybe_push_tab_changes(&surfaces, &tab, sender)?;
                         Ok(())
                     });
@@ -635,7 +628,7 @@ impl<S: ReadAndWrite> ClientSession<S> {
         }
     }
 
-    fn process_one(&mut self, decoded: DecodedPdu) -> Fallible<()> {
+    fn process_one(&mut self, decoded: DecodedPdu) -> anyhow::Result<()> {
         let start = Instant::now();
         let sender = self.to_write_tx.clone();
         let serial = decoded.serial;
@@ -686,7 +679,7 @@ impl<S: ReadAndWrite> ClientSession<S> {
                     let mux = Mux::get().unwrap();
                     let tab = mux
                         .get_tab(tab_id)
-                        .ok_or_else(|| format_err!("no such tab {}", tab_id))?;
+                        .ok_or_else(|| anyhow!("no such tab {}", tab_id))?;
                     tab.writer().write_all(&data)?;
                     maybe_push_tab_changes(&surfaces, &tab, sender)?;
                     Ok(Pdu::UnitResponse(UnitResponse {}))
@@ -699,7 +692,7 @@ impl<S: ReadAndWrite> ClientSession<S> {
                     let mux = Mux::get().unwrap();
                     let tab = mux
                         .get_tab(tab_id)
-                        .ok_or_else(|| format_err!("no such tab {}", tab_id))?;
+                        .ok_or_else(|| anyhow!("no such tab {}", tab_id))?;
                     tab.send_paste(&data)?;
                     maybe_push_tab_changes(&surfaces, &tab, sender)?;
                     Ok(Pdu::UnitResponse(UnitResponse {}))
@@ -710,7 +703,7 @@ impl<S: ReadAndWrite> ClientSession<S> {
                 let mux = Mux::get().unwrap();
                 let tab = mux
                     .get_tab(tab_id)
-                    .ok_or_else(|| format_err!("no such tab {}", tab_id))?;
+                    .ok_or_else(|| anyhow!("no such tab {}", tab_id))?;
                 tab.resize(size)?;
                 Ok(Pdu::UnitResponse(UnitResponse {}))
             }),
@@ -722,7 +715,7 @@ impl<S: ReadAndWrite> ClientSession<S> {
                     let mux = Mux::get().unwrap();
                     let tab = mux
                         .get_tab(tab_id)
-                        .ok_or_else(|| format_err!("no such tab {}", tab_id))?;
+                        .ok_or_else(|| anyhow!("no such tab {}", tab_id))?;
                     tab.key_down(event.key, event.modifiers)?;
                     maybe_push_tab_changes(&surfaces, &tab, sender)?;
                     Ok(Pdu::UnitResponse(UnitResponse {}))
@@ -735,7 +728,7 @@ impl<S: ReadAndWrite> ClientSession<S> {
                     let mux = Mux::get().unwrap();
                     let tab = mux
                         .get_tab(tab_id)
-                        .ok_or_else(|| format_err!("no such tab {}", tab_id))?;
+                        .ok_or_else(|| anyhow!("no such tab {}", tab_id))?;
                     let mut host = BufferedTerminalHost {
                         tab_id,
                         write: tab.writer(),
@@ -759,12 +752,12 @@ impl<S: ReadAndWrite> ClientSession<S> {
                 move || {
                     let mux = Mux::get().unwrap();
                     let domain = mux.get_domain(spawn.domain_id).ok_or_else(|| {
-                        format_err!("domain {} not found on this server", spawn.domain_id)
+                        anyhow!("domain {} not found on this server", spawn.domain_id)
                     })?;
 
                     let window_id = if let Some(window_id) = spawn.window_id {
                         mux.get_window_mut(window_id).ok_or_else(|| {
-                            format_err!("window_id {} not found on this server", window_id)
+                            anyhow!("window_id {} not found on this server", window_id)
                         })?;
                         window_id
                     } else {
@@ -793,13 +786,13 @@ impl<S: ReadAndWrite> ClientSession<S> {
                     let mux = Mux::get().unwrap();
                     let tab = mux
                         .get_tab(tab_id)
-                        .ok_or_else(|| format_err!("no such tab {}", tab_id))?;
+                        .ok_or_else(|| anyhow!("no such tab {}", tab_id))?;
                     maybe_push_tab_changes(&surfaces, &tab, sender)?;
                     Ok(Pdu::UnitResponse(UnitResponse {}))
                 })
             }
 
-            Pdu::Invalid { .. } => Future::err(format_err!("invalid PDU {:?}", pdu)),
+            Pdu::Invalid { .. } => Future::err(anyhow!("invalid PDU {:?}", pdu)),
             Pdu::Pong { .. }
             | Pdu::ListTabsResponse { .. }
             | Pdu::SendMouseEventResponse { .. }
@@ -809,7 +802,7 @@ impl<S: ReadAndWrite> ClientSession<S> {
             | Pdu::GetTabRenderChangesResponse { .. }
             | Pdu::UnitResponse { .. }
             | Pdu::ErrorResponse { .. } => {
-                Future::err(format_err!("expected a request, got {:?}", pdu))
+                Future::err(anyhow!("expected a request, got {:?}", pdu))
             }
         }
     }
@@ -856,7 +849,7 @@ fn safely_create_sock_path(unix_dom: &UnixDomain) -> Result<UnixListener, Error>
 
     let sock_dir = sock_path
         .parent()
-        .ok_or_else(|| format_err!("sock_path {} has no parent dir", sock_path.display()))?;
+        .ok_or_else(|| anyhow!("sock_path {} has no parent dir", sock_path.display()))?;
 
     create_user_owned_dirs(sock_dir)?;
 
@@ -886,20 +879,20 @@ fn safely_create_sock_path(unix_dom: &UnixDomain) -> Result<UnixListener, Error>
     }
 
     UnixListener::bind(sock_path)
-        .map_err(|e| format_err!("Failed to bind to {}: {}", sock_path.display(), e))
+        .with_context(|| format!("Failed to bind to {}", sock_path.display()))
 }
 
 #[cfg(any(feature = "openssl", unix))]
-fn spawn_tls_listener(tls_server: &TlsDomainServer) -> Fallible<()> {
+fn spawn_tls_listener(tls_server: &TlsDomainServer) -> anyhow::Result<()> {
     ossl::spawn_tls_listener(tls_server)
 }
 
 #[cfg(not(any(feature = "openssl", unix)))]
-fn spawn_tls_listener(tls_server: &TlsDomainServer) -> Fallible<()> {
+fn spawn_tls_listener(tls_server: &TlsDomainServer) -> anyhow::Result<()> {
     not_ossl::spawn_tls_listener(tls_server)
 }
 
-pub fn spawn_listener() -> Fallible<()> {
+pub fn spawn_listener() -> anyhow::Result<()> {
     let config = configuration();
     for unix_dom in &config.unix_domains {
         let mut listener = LocalListener::new(safely_create_sock_path(unix_dom)?);

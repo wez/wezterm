@@ -5,7 +5,7 @@ use crate::os::Connection;
 use crate::spawn::*;
 use crate::tasks::{Task, Tasks};
 use crate::timerlist::{TimerEntry, TimerList};
-use failure::Fallible;
+use anyhow::{anyhow, bail};
 use mio::unix::EventedFd;
 use mio::{Evented, Events, Poll, PollOpt, Ready, Token};
 use promise::BasicExecutor;
@@ -173,7 +173,7 @@ impl ConnectionOps for XConnection {
         *self.should_terminate.borrow_mut() = true;
     }
 
-    fn run_message_loop(&self) -> Fallible<()> {
+    fn run_message_loop(&self) -> anyhow::Result<()> {
         self.conn.flush();
 
         const TOK_XCB: usize = 0xffff_fffc;
@@ -238,7 +238,7 @@ impl ConnectionOps for XConnection {
                 }
 
                 Err(err) => {
-                    failure::bail!("polling for events: {:?}", err);
+                    bail!("polling for events: {:?}", err);
                 }
             }
         }
@@ -256,12 +256,12 @@ impl ConnectionOps for XConnection {
 }
 
 impl XConnection {
-    fn process_queued_xcb(&self) -> Fallible<()> {
+    fn process_queued_xcb(&self) -> anyhow::Result<()> {
         match self.conn.poll_for_event() {
             None => match self.conn.has_error() {
                 Ok(_) => (),
                 Err(err) => {
-                    failure::bail!("X11 connection is broken: {:?}", err);
+                    bail!("X11 connection is broken: {:?}", err);
                 }
             },
             Some(event) => {
@@ -281,7 +281,7 @@ impl XConnection {
         }
     }
 
-    fn process_xcb_event(&self, event: &xcb::GenericEvent) -> Fallible<()> {
+    fn process_xcb_event(&self, event: &xcb::GenericEvent) -> anyhow::Result<()> {
         if let Some(window_id) = window_id_from_event(event) {
             self.process_window_event(window_id, event)?;
         } else {
@@ -305,7 +305,7 @@ impl XConnection {
         &self,
         window_id: xcb::xproto::Window,
         event: &xcb::GenericEvent,
-    ) -> Fallible<()> {
+    ) -> anyhow::Result<()> {
         if let Some(window) = self.window_by_id(window_id) {
             let mut inner = window.lock().unwrap();
             inner.dispatch_event(event)?;
@@ -313,15 +313,15 @@ impl XConnection {
         Ok(())
     }
 
-    pub(crate) fn create_new() -> Fallible<XConnection> {
+    pub(crate) fn create_new() -> anyhow::Result<XConnection> {
         let display = unsafe { x11::xlib::XOpenDisplay(std::ptr::null()) };
         if display.is_null() {
-            failure::bail!("failed to open display");
+            bail!("failed to open display");
         }
         let screen_num = unsafe { x11::xlib::XDefaultScreen(display) };
         let conn = unsafe { xcb::Connection::from_raw_conn(XGetXCBConnection(display)) };
         let conn = xcb_util::ewmh::Connection::connect(conn)
-            .map_err(|_| failure::err_msg("failed to init ewmh"))?;
+            .map_err(|_| anyhow!("failed to init ewmh"))?;
         unsafe { XSetEventQueueOwner(display, 1) };
 
         let atom_protocols = xcb::intern_atom(&conn, false, "WM_PROTOCOLS")
@@ -352,7 +352,7 @@ impl XConnection {
             .get_setup()
             .roots()
             .nth(screen_num as usize)
-            .ok_or_else(|| failure::err_msg("no screen?"))?;
+            .ok_or_else(|| anyhow!("no screen?"))?;
 
         let visual = screen
             .allowed_depths()
@@ -360,7 +360,7 @@ impl XConnection {
             .flat_map(|depth| depth.visuals())
             .filter(|vis| vis.class() == xcb::xproto::VISUAL_CLASS_TRUE_COLOR as _)
             .nth(0)
-            .ok_or_else(|| failure::err_msg("did not find 24-bit visual"))?;
+            .ok_or_else(|| anyhow!("did not find 24-bit visual"))?;
         eprintln!(
             "picked visual {:x}, screen root visual is {:x}",
             visual.visual_id(),
@@ -432,7 +432,7 @@ impl XConnection {
 
     pub(crate) fn with_window_inner<
         R,
-        F: FnMut(&mut XWindowInner) -> Fallible<R> + Send + 'static,
+        F: FnMut(&mut XWindowInner) -> anyhow::Result<R> + Send + 'static,
     >(
         window: xcb::xproto::Window,
         mut f: F,

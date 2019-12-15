@@ -5,7 +5,7 @@ use crate::mux::tab::{alloc_tab_id, Tab, TabId};
 use crate::server::client::Client;
 use crate::server::codec::*;
 use crate::server::domain::ClientInner;
-use failure::{bail, Fallible};
+use anyhow::bail;
 use filedescriptor::Pipe;
 use log::{error, info};
 use portable_pty::PtySize;
@@ -69,7 +69,7 @@ impl MouseState {
         log::trace!("MouseEvent {}: queued", self.queue.len());
     }
 
-    fn pop(&mut self) -> Fallible<Option<MouseEvent>> {
+    fn pop(&mut self) -> anyhow::Result<Option<MouseEvent>> {
         if self.can_send()? {
             Ok(self.queue.pop_front())
         } else {
@@ -77,7 +77,7 @@ impl MouseState {
         }
     }
 
-    fn can_send(&mut self) -> Fallible<bool> {
+    fn can_send(&mut self) -> anyhow::Result<bool> {
         if self.future.is_none() {
             Ok(true)
         } else {
@@ -91,7 +91,7 @@ impl MouseState {
         }
     }
 
-    fn next(state: &Arc<Mutex<Self>>) -> Fallible<()> {
+    fn next(state: &Arc<Mutex<Self>>) -> anyhow::Result<()> {
         let mut mouse = state.lock().unwrap();
         if let Some(event) = mouse.pop()? {
             let selection_range = Arc::clone(&mouse.selection_range);
@@ -186,7 +186,7 @@ impl ClientTab {
         }
     }
 
-    pub fn process_unilateral(&self, pdu: Pdu) -> Fallible<()> {
+    pub fn process_unilateral(&self, pdu: Pdu) -> anyhow::Result<()> {
         match pdu {
             Pdu::GetTabRenderChangesResponse(delta) => {
                 log::trace!("new delta {}", delta.sequence_no);
@@ -244,7 +244,7 @@ impl Tab for ClientTab {
         surface.title().to_string()
     }
 
-    fn send_paste(&self, text: &str) -> Fallible<()> {
+    fn send_paste(&self, text: &str) -> anyhow::Result<()> {
         self.client.client.send_paste(SendPaste {
             tab_id: self.remote_tab_id,
             data: text.to_owned(),
@@ -252,7 +252,7 @@ impl Tab for ClientTab {
         Ok(())
     }
 
-    fn reader(&self) -> Fallible<Box<dyn std::io::Read + Send>> {
+    fn reader(&self) -> anyhow::Result<Box<dyn std::io::Read + Send>> {
         info!("made reader for ClientTab");
         Ok(Box::new(self.reader.read.try_clone()?))
     }
@@ -261,7 +261,7 @@ impl Tab for ClientTab {
         self.writer.borrow_mut()
     }
 
-    fn resize(&self, size: PtySize) -> Fallible<()> {
+    fn resize(&self, size: PtySize) -> anyhow::Result<()> {
         self.renderable
             .borrow()
             .inner
@@ -275,7 +275,7 @@ impl Tab for ClientTab {
         Ok(())
     }
 
-    fn key_down(&self, key: KeyCode, mods: KeyModifiers) -> Fallible<()> {
+    fn key_down(&self, key: KeyCode, mods: KeyModifiers) -> anyhow::Result<()> {
         self.client.client.key_down(SendKeyDown {
             tab_id: self.remote_tab_id,
             event: KeyEvent {
@@ -286,7 +286,7 @@ impl Tab for ClientTab {
         Ok(())
     }
 
-    fn mouse_event(&self, event: MouseEvent, _host: &mut dyn TerminalHost) -> Fallible<()> {
+    fn mouse_event(&self, event: MouseEvent, _host: &mut dyn TerminalHost) -> anyhow::Result<()> {
         self.mouse.lock().unwrap().append(event);
         MouseState::next(&self.mouse)?;
         Ok(())
@@ -357,7 +357,7 @@ impl RenderableInner {
         self.remote_sequence = remote_seq;
     }
 
-    fn poll(&mut self) -> Fallible<()> {
+    fn poll(&mut self) -> anyhow::Result<()> {
         let ready = self
             .poll_future
             .as_ref()

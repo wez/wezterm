@@ -2,7 +2,7 @@
 
 use crate::surface::{SequenceNo, Surface};
 use crate::terminal::Terminal;
-use failure::Error;
+use anyhow::Error;
 use std::ops::{Deref, DerefMut};
 
 /// `BufferedTerminal` is a convenience wrapper around both

@@ -1,8 +1,8 @@
 use crate::font::FontConfiguration;
 use crate::mux::tab::Tab;
 use crate::mux::window::WindowId;
+use anyhow::{anyhow, Error};
 use downcast_rs::{impl_downcast, Downcast};
-use failure::{format_err, Error, Fallible};
 use lazy_static::lazy_static;
 use promise::Executor;
 use serde_derive::*;
@@ -94,7 +94,7 @@ impl std::str::FromStr for FrontEndSelection {
             "null" => Ok(FrontEndSelection::Null),
             "software" => Ok(FrontEndSelection::Software),
             "opengl" => Ok(FrontEndSelection::OpenGL),
-            _ => Err(format_err!(
+            _ => Err(anyhow!(
                 "{} is not a valid FrontEndSelection variant, possible values are {:?}",
                 s,
                 FrontEndSelection::variants()
@@ -106,14 +106,14 @@ impl std::str::FromStr for FrontEndSelection {
 pub trait FrontEnd: Downcast {
     /// Run the event loop.  Does not return until there is either a fatal
     /// error, or until there are no more windows left to manage.
-    fn run_forever(&self) -> Result<(), Error>;
+    fn run_forever(&self) -> anyhow::Result<()>;
 
     fn spawn_new_window(
         &self,
         fontconfig: &Rc<FontConfiguration>,
         tab: &Rc<dyn Tab>,
         window_id: WindowId,
-    ) -> Fallible<()>;
+    ) -> anyhow::Result<()>;
 
     fn executor(&self) -> Box<dyn Executor>;
     fn low_pri_executor(&self) -> Box<dyn Executor>;

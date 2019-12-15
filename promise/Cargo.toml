@@ -1,9 +1,9 @@
 [package]
 authors = ["Wez Furlong <wez@wezfurlong.org>"]
 name = "promise"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2018"
 
 [dependencies]
-failure = "0.1"
-failure_derive = "0.1"
+anyhow = "1.0"
+thiserror = "1.0"

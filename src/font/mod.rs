@@ -1,4 +1,4 @@
-use failure::{format_err, Error, Fallible};
+use anyhow::{anyhow, Error};
 mod hbwrap;
 
 use std::cell::RefCell;
@@ -38,7 +38,7 @@ impl LoadedFont {
         self.metrics
     }
 
-    pub fn shape(&self, text: &str) -> Fallible<Vec<GlyphInfo>> {
+    pub fn shape(&self, text: &str) -> anyhow::Result<Vec<GlyphInfo>> {
         self.shaper.shape(text, self.font_size, self.dpi)
     }
 
@@ -46,11 +46,11 @@ impl LoadedFont {
         &self,
         glyph_pos: u32,
         fallback: FallbackIdx,
-    ) -> Fallible<RasterizedGlyph> {
+    ) -> anyhow::Result<RasterizedGlyph> {
         let cell = self
             .rasterizers
             .get(fallback)
-            .ok_or_else(|| format_err!("no such fallback index: {}", fallback))?;
+            .ok_or_else(|| anyhow!("no such fallback index: {}", fallback))?;
         let mut opt_raster = cell.borrow_mut();
         if opt_raster.is_none() {
             let raster =
@@ -91,7 +91,7 @@ impl FontConfiguration {
 
     /// Given a text style, load (with caching) the font that best
     /// matches according to the fontconfig pattern.
-    pub fn resolve_font(&self, style: &TextStyle) -> Fallible<Rc<LoadedFont>> {
+    pub fn resolve_font(&self, style: &TextStyle) -> anyhow::Result<Rc<LoadedFont>> {
         let mut fonts = self.fonts.borrow_mut();
 
         let config = configuration();
@@ -143,7 +143,7 @@ impl FontConfiguration {
     }
 
     /// Returns the baseline font specified in the configuration
-    pub fn default_font(&self) -> Fallible<Rc<LoadedFont>> {
+    pub fn default_font(&self) -> anyhow::Result<Rc<LoadedFont>> {
         self.resolve_font(&configuration().font)
     }
 

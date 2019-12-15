@@ -2,7 +2,6 @@
 use crate::os::windows::event::EventHandle;
 #[cfg(target_os = "macos")]
 use core_foundation::runloop::*;
-use failure::Fallible;
 use promise::{BasicExecutor, SpawnFunc};
 use std::collections::VecDeque;
 use std::sync::{Arc, Mutex};
@@ -32,7 +31,7 @@ pub(crate) struct SpawnQueue {
 }
 
 impl SpawnQueue {
-    pub fn new() -> Fallible<Self> {
+    pub fn new() -> anyhow::Result<Self> {
         Self::new_impl()
     }
 
@@ -72,7 +71,7 @@ impl SpawnQueue {
 
 #[cfg(windows)]
 impl SpawnQueue {
-    fn new_impl() -> Fallible<Self> {
+    fn new_impl() -> anyhow::Result<Self> {
         let spawned_funcs = Mutex::new(VecDeque::new());
         let spawned_funcs_low_pri = Mutex::new(VecDeque::new());
         let event_handle = EventHandle::new_manual_reset().expect("EventHandle creation failed");
@@ -99,7 +98,7 @@ impl SpawnQueue {
 
 #[cfg(all(unix, not(target_os = "macos")))]
 impl SpawnQueue {
-    fn new_impl() -> Fallible<Self> {
+    fn new_impl() -> anyhow::Result<Self> {
         // On linux we have a slightly sloppy wakeup mechanism;
         // we have a non-blocking pipe that we can use to get
         // woken up after some number of enqueues.  We don't
@@ -110,7 +109,7 @@ impl SpawnQueue {
         // We can't affort to use a blocking pipe for the wakeup
         // because the write needs to hold a mutex and that
         // can block reads as well as other writers.
-        let pipe = Pipe::new()?;
+        let pipe = Pipe::new().map_err(anyhow::Error::msg)?;
         let on = 1;
         unsafe {
             libc::ioctl(pipe.write.as_raw_fd(), libc::FIONBIO, &on);
@@ -183,7 +182,7 @@ impl Evented for SpawnQueue {
 
 #[cfg(target_os = "macos")]
 impl SpawnQueue {
-    fn new_impl() -> Fallible<Self> {
+    fn new_impl() -> anyhow::Result<Self> {
         let spawned_funcs = Mutex::new(VecDeque::new());
         let spawned_funcs_low_pri = Mutex::new(VecDeque::new());
 

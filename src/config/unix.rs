@@ -51,7 +51,7 @@ impl UnixDomain {
         vec![UnixDomain::default()]
     }
 
-    pub fn serve_command(&self) -> Fallible<Vec<OsString>> {
+    pub fn serve_command(&self) -> anyhow::Result<Vec<OsString>> {
         match self.serve_command.as_ref() {
             Some(cmd) => Ok(cmd.iter().map(Into::into).collect()),
             None => Ok(vec![

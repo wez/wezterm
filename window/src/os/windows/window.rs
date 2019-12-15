@@ -8,7 +8,6 @@ use crate::{
     MouseEventKind, MousePress, Operator, PaintContext, Point, Rect, ScreenPoint, WindowCallbacks,
     WindowOps, WindowOpsMut,
 };
-use failure::Fallible;
 use promise::Future;
 use std::any::Any;
 use std::cell::RefCell;
@@ -108,7 +107,7 @@ impl Window {
         width: usize,
         height: usize,
         lparam: *const RefCell<WindowInner>,
-    ) -> Fallible<HWND> {
+    ) -> anyhow::Result<HWND> {
         // Jamming this in here; it should really live in the application manifest,
         // but having it here means that we don't have to create a manifest
         unsafe {
@@ -164,7 +163,7 @@ impl Window {
 
         if hwnd.is_null() {
             let err = IoError::last_os_error();
-            failure::bail!("CreateWindowExW: {}", err);
+            bail!("CreateWindowExW: {}", err);
         }
 
         Ok(hwnd)
@@ -176,7 +175,7 @@ impl Window {
         width: usize,
         height: usize,
         callbacks: Box<dyn WindowCallbacks>,
-    ) -> Fallible<Window> {
+    ) -> anyhow::Result<Window> {
         let inner = Rc::new(RefCell::new(WindowInner {
             hwnd: HWindow(null_mut()),
             callbacks: RefCell::new(callbacks),
@@ -368,7 +367,7 @@ impl WindowOps for Window {
         })
     }
 
-    fn apply<R, F: Send + 'static + Fn(&mut dyn Any, &dyn WindowOps) -> Fallible<R>>(
+    fn apply<R, F: Send + 'static + Fn(&mut dyn Any, &dyn WindowOps) -> anyhow::Result<R>>(
         &self,
         func: F,
     ) -> promise::Future<R>
@@ -390,8 +389,8 @@ impl WindowOps for Window {
             + Fn(
                 &mut dyn Any,
                 &dyn WindowOps,
-                failure::Fallible<std::rc::Rc<glium::backend::Context>>,
-            ) -> failure::Fallible<R>,
+                anyhow::Result<std::rc::Rc<glium::backend::Context>>,
+            ) -> anyhow::Result<R>,
     >(
         &self,
         func: F,
@@ -424,16 +423,12 @@ impl WindowOps for Window {
     }
 
     fn get_clipboard(&self) -> Future<String> {
-        Future::result(
-            clipboard_win::get_clipboard_string()
-                .map_err(|e| failure::format_err!("Error getting clipboard: {}", e)),
-        )
+        Future::result(clipboard_win::get_clipboard_string().context("Error getting clipboard: {}"))
     }
 
     fn set_clipboard(&self, text: String) -> Future<()> {
         Future::result(
-            clipboard_win::set_clipboard_string(&text)
-                .map_err(|e| failure::format_err!("Error setting clipboard: {}", e)),
+            clipboard_win::set_clipboard_string(&text).context("Error setting clipboard"),
         )
     }
 }

@@ -3,7 +3,6 @@ use super::{HWindow, WindowInner};
 use crate::connection::ConnectionOps;
 use crate::spawn::*;
 use crate::tasks::{Task, Tasks};
-use failure::Fallible;
 use promise::BasicExecutor;
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -31,7 +30,7 @@ impl ConnectionOps for Connection {
         }
     }
 
-    fn run_message_loop(&self) -> Fallible<()> {
+    fn run_message_loop(&self) -> anyhow::Result<()> {
         let mut msg: MSG = unsafe { std::mem::zeroed() };
         loop {
             SPAWN_QUEUE.run();
@@ -107,7 +106,7 @@ impl ConnectionOps for Connection {
 }
 
 impl Connection {
-    pub(crate) fn create_new() -> Fallible<Self> {
+    pub(crate) fn create_new() -> anyhow::Result<Self> {
         let event_handle = SPAWN_QUEUE.event_handle.0;
         Ok(Self {
             event_handle,
@@ -135,7 +134,10 @@ impl Connection {
         self.windows.borrow().get(&handle).map(Rc::clone)
     }
 
-    pub(crate) fn with_window_inner<R, F: FnMut(&mut WindowInner) -> Fallible<R> + Send + 'static>(
+    pub(crate) fn with_window_inner<
+        R,
+        F: FnMut(&mut WindowInner) -> anyhow::Result<R> + Send + 'static,
+    >(
         window: HWindow,
         mut f: F,
     ) -> promise::Future<R>

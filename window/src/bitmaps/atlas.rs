@@ -1,13 +1,13 @@
 use crate::bitmaps::{BitmapImage, Texture2d, TextureRect};
 use crate::{Point, Rect, Size};
-use failure::{ensure, Fallible};
-use failure_derive::*;
+use anyhow::{ensure, Result as Fallible};
 use std::rc::Rc;
+use thiserror::*;
 
 pub const TEX_SIZE: u32 = 4096;
 
-#[derive(Debug, Fail)]
-#[fail(display = "Texture Size exceeded, need {}", size)]
+#[derive(Debug, Error)]
+#[error("Texture Size exceeded, need {}", size)]
 pub struct OutOfTextureSpace {
     pub size: usize,
 }
