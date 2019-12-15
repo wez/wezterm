@@ -531,10 +531,8 @@ impl XWindowInner {
                     log::error!("clipboard: err while getting clipboard property: {:?}", err);
                 }
             }
-        } else {
-            if let Some(mut promise) = self.copy_and_paste.request.take() {
-                promise.ok("".to_owned());
-            }
+        } else if let Some(mut promise) = self.copy_and_paste.request.take() {
+            promise.ok("".to_owned());
         }
         Ok(())
     }

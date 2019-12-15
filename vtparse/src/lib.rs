@@ -291,7 +291,6 @@ impl OscState {
             match self.num_params {
                 MAX_OSC => {
                     self.full = true;
-                    return;
                 }
                 num => {
                     self.param_indices[num - 1] = self.buffer.len();
@@ -330,6 +329,7 @@ pub struct VTParser {
 }
 
 impl VTParser {
+    #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         let param_indices = [0usize; MAX_OSC];
         let params = [0i64; MAX_PARAMS];
@@ -453,6 +453,7 @@ impl VTParser {
                     let mut offset = 0usize;
                     let mut slice = self.osc.buffer.as_slice();
                     let limit = self.osc.num_params.min(MAX_OSC);
+                    #[allow(clippy::needless_range_loop)]
                     for i in 0..limit - 1 {
                         let (a, b) = slice.split_at(self.osc.param_indices[i] - offset);
                         params[i] = a;

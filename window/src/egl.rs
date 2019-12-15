@@ -283,12 +283,12 @@ impl GlState {
                 &[ffi::CONTEXT_MAJOR_VERSION, 3, ffi::NONE],
             )?;
 
-            return Ok(Self {
+            Ok(Self {
                 egl,
                 display: egl_display,
                 context,
                 surface,
-            });
+            })
         })
     }
 
@@ -338,12 +338,12 @@ impl GlState {
                 &[ffi::CONTEXT_MAJOR_VERSION, 3, ffi::NONE],
             )?;
 
-            return Ok(Self {
+            Ok(Self {
                 egl,
                 display: egl_display,
                 context,
                 surface,
-            });
+            })
         })
     }
 }

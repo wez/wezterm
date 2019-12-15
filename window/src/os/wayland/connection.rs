@@ -87,7 +87,7 @@ impl WaylandConnection {
                     (),
                 )
             })
-            .with_context(|| format!("Failed to create seat"))?;
+            .context("Failed to create seat")?;
         let keyboard = KeyboardDispatcher::register(&seat)?;
 
         let pointer = PointerDispatcher::register(

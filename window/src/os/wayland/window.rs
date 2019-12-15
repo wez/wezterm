@@ -122,13 +122,12 @@ impl PendingEvent {
                 }
             }
             Event::Refresh => {
-                let changed = if !self.refresh {
+                if !self.refresh {
                     self.refresh = true;
                     true
                 } else {
                     false
-                };
-                changed
+                }
             }
             Event::Configure { new_size, .. } => {
                 let changed;
@@ -410,11 +409,9 @@ impl WaylandWindowInner {
             pending = pending_events.clone();
             *pending_events = PendingEvent::default();
         }
-        if pending.close {
-            if self.callbacks.can_close() {
-                self.callbacks.destroy();
-                self.window.take();
-            }
+        if pending.close && self.callbacks.can_close() {
+            self.callbacks.destroy();
+            self.window.take();
         }
         if let Some((w, h)) = pending.configure.take() {
             if self.window.is_some() {
@@ -453,10 +450,8 @@ impl WaylandWindowInner {
                 pending.refresh = true;
             }
         }
-        if pending.refresh {
-            if self.window.is_some() {
-                self.do_paint().unwrap();
-            }
+        if pending.refresh && self.window.is_some() {
+            self.do_paint().unwrap();
         }
     }
 
@@ -617,7 +612,7 @@ impl WindowOps for WaylandWindow {
 
     fn set_cursor(&self, cursor: Option<MouseCursor>) -> Future<()> {
         WaylandConnection::with_window_inner(self.0, move |inner| {
-            let _ = inner.set_cursor(cursor);
+            inner.set_cursor(cursor);
             Ok(())
         })
     }
@@ -756,14 +751,13 @@ impl WindowOps for WaylandWindow {
                 .data_device_manager
                 .create_data_source(move |source| {
                     source.implement_closure(
-                        move |event, _source| match event {
-                            DataSourceEvent::Send { fd, .. } => {
+                        move |event, _source| {
+                            if let DataSourceEvent::Send { fd, .. } = event {
                                 let fd = unsafe { FileDescriptor::from_raw_fd(fd) };
                                 if let Err(e) = write_pipe_with_timeout(fd, text.as_bytes()) {
                                     log::error!("while sending paste to pipe: {}", e);
                                 }
                             }
-                            _ => {}
                         },
                         (),
                     )
