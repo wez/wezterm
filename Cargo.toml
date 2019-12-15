@@ -41,7 +41,6 @@ palette = "0.4"
 portable-pty = { path = "pty", features = ["serde_support", "ssh"]}
 promise = { path = "promise" }
 ratelimit_meter = "5.0"
-rayon = "1.0"
 serde = {version="1.0", features = ["rc"]}
 serde_derive = "1.0"
 serial = "0.4"
