@@ -10,7 +10,7 @@ use crate::{
     MouseCursor, MouseEvent, MouseEventKind, MousePress, Operator, PaintContext, Point, Rect,
     ScreenPoint, Size, WindowCallbacks, WindowOps, WindowOpsMut,
 };
-use anyhow::{bail, ensure, Context};
+use anyhow::{anyhow, bail, ensure};
 use cocoa::appkit::{
     NSApplicationActivateIgnoringOtherApps, NSBackingStoreBuffered, NSEvent, NSEventModifierFlags,
     NSRunningApplication, NSScreen, NSView, NSViewHeightSizable, NSViewWidthSizable, NSWindow,

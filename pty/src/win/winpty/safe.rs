@@ -3,7 +3,7 @@
 //! https://github.com/rprichard/winpty/blob/master/src/include/winpty.h
 #![allow(dead_code)]
 use super::sys::*;
-use anyhow::{bail, ensure, Error};
+use anyhow::{anyhow, bail, ensure, Error};
 use bitflags::bitflags;
 use filedescriptor::{FileDescriptor, OwnedHandle};
 use std::ffi::{OsStr, OsString};
