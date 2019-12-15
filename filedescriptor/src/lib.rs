@@ -13,16 +13,15 @@
 //!
 //! ```
 //! use filedescriptor::{FileDescriptor, FromRawFileDescriptor};
-//! use failure::Fallible;
 //! use std::io::Write;
 //!
-//! fn get_stdout() -> Fallible<FileDescriptor> {
+//! fn get_stdout() -> anyhow::Result<FileDescriptor> {
 //!   let stdout = std::io::stdout();
 //!   let handle = stdout.lock();
 //!   FileDescriptor::dup(&handle)
 //! }
 //!
-//! fn print_something() -> Fallible<()> {
+//! fn print_something() -> anyhow::Result<()> {
 //!    get_stdout()?.write(b"hello")?;
 //!    Ok(())
 //! }
@@ -35,7 +34,7 @@
 //! ```
 //! use filedescriptor::Pipe;
 //! use std::io::{Read, Write};
-//! use failure::Error;
+//! use anyhow::Error;
 //!
 //! let mut pipe = Pipe::new()?;
 //! pipe.write.write(b"hello")?;
@@ -53,7 +52,7 @@
 //!
 //! ```
 //! use std::io::{Read, Write};
-//! use failure::Error;
+//! use anyhow::Error;
 //!
 //! let (mut a, mut b) = filedescriptor::socketpair()?;
 //! a.write(b"hello")?;
@@ -76,7 +75,7 @@
 //!
 //! ```
 //! use filedescriptor::*;
-//! use failure::Error;
+//! use anyhow::Error;
 //! use std::time::Duration;
 //! use std::io::{Read, Write};
 //!
@@ -96,7 +95,6 @@
 //!
 //! # Ok::<(), Error>(())
 //! ```
-use failure::Fallible;
 
 #[cfg(unix)]
 mod unix;
@@ -169,7 +167,7 @@ impl OwnedHandle {
     /// potentially fallible operation.
     /// The returned handle has a separate lifetime from the source, but
     /// references the same object at the kernel level.
-    pub fn try_clone(&self) -> Fallible<Self> {
+    pub fn try_clone(&self) -> anyhow::Result<Self> {
         Self::dup_impl(self, self.handle_type)
     }
 
@@ -180,7 +178,7 @@ impl OwnedHandle {
     /// potentially fallible operation.
     /// The returned handle has a separate lifetime from the source, but
     /// references the same object at the kernel level.
-    pub fn dup<F: AsRawFileDescriptor>(f: &F) -> Fallible<Self> {
+    pub fn dup<F: AsRawFileDescriptor>(f: &F) -> anyhow::Result<Self> {
         Self::dup_impl(f, Default::default())
     }
 }
@@ -194,16 +192,15 @@ impl OwnedHandle {
 ///
 /// ```
 /// use filedescriptor::{FileDescriptor, FromRawFileDescriptor};
-/// use failure::Fallible;
 /// use std::io::Write;
 ///
-/// fn get_stdout() -> Fallible<FileDescriptor> {
+/// fn get_stdout() -> anyhow::Result<FileDescriptor> {
 ///   let stdout = std::io::stdout();
 ///   let handle = stdout.lock();
 ///   FileDescriptor::dup(&handle)
 /// }
 ///
-/// fn print_something() -> Fallible<()> {
+/// fn print_something() -> anyhow::Result<()> {
 ///    get_stdout()?.write(b"hello")?;
 ///    Ok(())
 /// }
@@ -229,7 +226,7 @@ impl FileDescriptor {
     /// potentially fallible operation.
     /// The returned handle has a separate lifetime from the source, but
     /// references the same object at the kernel level.
-    pub fn dup<F: AsRawFileDescriptor>(f: &F) -> Fallible<Self> {
+    pub fn dup<F: AsRawFileDescriptor>(f: &F) -> anyhow::Result<Self> {
         OwnedHandle::dup(f).map(|handle| Self { handle })
     }
 
@@ -239,7 +236,7 @@ impl FileDescriptor {
     /// potentially fallible operation.
     /// The returned handle has a separate lifetime from the source, but
     /// references the same object at the kernel level.
-    pub fn try_clone(&self) -> Fallible<Self> {
+    pub fn try_clone(&self) -> anyhow::Result<Self> {
         self.handle.try_clone().map(|handle| Self { handle })
     }
 
@@ -247,7 +244,7 @@ impl FileDescriptor {
     /// to be used for eg: redirecting the stdio streams of a child
     /// process.  The `Stdio` is created using a duplicated handle so
     /// that the source handle remains alive.
-    pub fn as_stdio(&self) -> Fallible<std::process::Stdio> {
+    pub fn as_stdio(&self) -> anyhow::Result<std::process::Stdio> {
         self.as_stdio_impl()
     }
 }
@@ -258,7 +255,7 @@ impl FileDescriptor {
 /// ```
 /// use filedescriptor::Pipe;
 /// use std::io::{Read,Write};
-/// use failure::Error;
+/// use anyhow::Error;
 ///
 /// let mut pipe = Pipe::new()?;
 /// pipe.write.write(b"hello")?;
@@ -305,13 +302,13 @@ use std::time::Duration;
 ///
 /// The `pfd` array is mutated and the `revents` field is updated to indicate
 /// which of the events were received.
-pub fn poll(pfd: &mut [pollfd], duration: Option<Duration>) -> Fallible<usize> {
+pub fn poll(pfd: &mut [pollfd], duration: Option<Duration>) -> anyhow::Result<usize> {
     poll_impl(pfd, duration)
 }
 
 /// Create a pair of connected sockets
 ///
 /// This implementation creates a pair of SOCK_STREAM sockets.
-pub fn socketpair() -> Fallible<(FileDescriptor, FileDescriptor)> {
+pub fn socketpair() -> anyhow::Result<(FileDescriptor, FileDescriptor)> {
     socketpair_impl()
 }

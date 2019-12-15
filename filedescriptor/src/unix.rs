@@ -2,7 +2,7 @@ use crate::{
     AsRawFileDescriptor, AsRawSocketDescriptor, FileDescriptor, FromRawFileDescriptor,
     FromRawSocketDescriptor, IntoRawFileDescriptor, IntoRawSocketDescriptor, OwnedHandle, Pipe,
 };
-use failure::{bail, Fallible};
+use anyhow::bail;
 use std::os::unix::prelude::*;
 
 pub(crate) type HandleType = ();
@@ -86,7 +86,7 @@ impl FromRawFd for OwnedHandle {
 
 impl OwnedHandle {
     /// Helper function to set the close-on-exec flag for a raw descriptor
-    fn cloexec(&mut self) -> Fallible<()> {
+    fn cloexec(&mut self) -> anyhow::Result<()> {
         let flags = unsafe { libc::fcntl(self.handle, libc::F_GETFD) };
         if flags == -1 {
             bail!(
@@ -104,7 +104,7 @@ impl OwnedHandle {
         Ok(())
     }
 
-    fn non_atomic_dup(fd: RawFd) -> Fallible<Self> {
+    fn non_atomic_dup(fd: RawFd) -> anyhow::Result<Self> {
         let duped = unsafe { libc::dup(fd) };
         if duped == -1 {
             bail!(
@@ -126,7 +126,7 @@ impl OwnedHandle {
     pub(crate) fn dup_impl<F: AsRawFileDescriptor>(
         fd: &F,
         handle_type: HandleType,
-    ) -> Fallible<Self> {
+    ) -> anyhow::Result<Self> {
         let fd = fd.as_raw_file_descriptor();
         let duped = unsafe { libc::fcntl(fd, libc::F_DUPFD_CLOEXEC, 0) };
         if duped == -1 {
@@ -198,7 +198,7 @@ impl FromRawFd for FileDescriptor {
 
 impl FileDescriptor {
     #[inline]
-    pub(crate) fn as_stdio_impl(&self) -> Fallible<std::process::Stdio> {
+    pub(crate) fn as_stdio_impl(&self) -> anyhow::Result<std::process::Stdio> {
         let duped = OwnedHandle::dup(self)?;
         let fd = duped.into_raw_fd();
         let stdio = unsafe { std::process::Stdio::from_raw_fd(fd) };
@@ -208,7 +208,7 @@ impl FileDescriptor {
 
 impl Pipe {
     #[cfg(target_os = "linux")]
-    pub fn new() -> Fallible<Pipe> {
+    pub fn new() -> anyhow::Result<Pipe> {
         let mut fds = [-1i32; 2];
         let res = unsafe { libc::pipe2(fds.as_mut_ptr(), libc::O_CLOEXEC) };
         if res == -1 {
@@ -234,7 +234,7 @@ impl Pipe {
     }
 
     #[cfg(not(target_os = "linux"))]
-    pub fn new() -> Fallible<Pipe> {
+    pub fn new() -> anyhow::Result<Pipe> {
         let mut fds = [-1i32; 2];
         let res = unsafe { libc::pipe(fds.as_mut_ptr()) };
         if res == -1 {
@@ -264,7 +264,7 @@ impl Pipe {
 
 #[cfg(target_os = "linux")]
 #[doc(hidden)]
-pub fn socketpair_impl() -> Fallible<(FileDescriptor, FileDescriptor)> {
+pub fn socketpair_impl() -> anyhow::Result<(FileDescriptor, FileDescriptor)> {
     let mut fds = [-1i32; 2];
     let res = unsafe {
         libc::socketpair(
@@ -298,7 +298,7 @@ pub fn socketpair_impl() -> Fallible<(FileDescriptor, FileDescriptor)> {
 
 #[cfg(not(target_os = "linux"))]
 #[doc(hidden)]
-pub fn socketpair_impl() -> Fallible<(FileDescriptor, FileDescriptor)> {
+pub fn socketpair_impl() -> anyhow::Result<(FileDescriptor, FileDescriptor)> {
     let mut fds = [-1i32; 2];
     let res = unsafe { libc::socketpair(libc::PF_LOCAL, libc::SOCK_STREAM, 0, fds.as_mut_ptr()) };
     if res == -1 {
@@ -330,7 +330,7 @@ use std::time::Duration;
 
 #[cfg(not(target_os = "macos"))]
 #[doc(hidden)]
-pub fn poll_impl(pfd: &mut [pollfd], duration: Option<Duration>) -> Fallible<usize> {
+pub fn poll_impl(pfd: &mut [pollfd], duration: Option<Duration>) -> anyhow::Result<usize> {
     let poll_result = unsafe {
         libc::poll(
             pfd.as_mut_ptr(),
@@ -359,9 +359,9 @@ mod macos {
     }
 
     #[inline]
-    fn check_fd(fd: RawFd) -> Fallible<()> {
-        failure::ensure!(fd >= 0, "illegal fd value");
-        failure::ensure!(
+    fn check_fd(fd: RawFd) -> anyhow::Result<()> {
+        anyhow::ensure!(fd >= 0, "illegal fd value");
+        anyhow::ensure!(
             (fd as usize) < FD_SETSIZE,
             "fd value is too large to use with select(2) on macos"
         );
@@ -377,7 +377,7 @@ mod macos {
             }
         }
 
-        pub fn add(&mut self, fd: RawFd) -> Fallible<()> {
+        pub fn add(&mut self, fd: RawFd) -> anyhow::Result<()> {
             check_fd(fd)?;
             unsafe {
                 FD_SET(fd, &mut self.set);
@@ -405,7 +405,7 @@ mod macos {
         set.as_mut().map(|s| s.contains(fd)).unwrap_or(false)
     }
 
-    pub fn poll_impl(pfd: &mut [pollfd], duration: Option<Duration>) -> Fallible<usize> {
+    pub fn poll_impl(pfd: &mut [pollfd], duration: Option<Duration>) -> anyhow::Result<usize> {
         let mut read_set = None;
         let mut write_set = None;
         let mut exception_set = None;

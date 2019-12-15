@@ -2,7 +2,7 @@ use crate::{
     AsRawFileDescriptor, AsRawSocketDescriptor, FileDescriptor, FromRawFileDescriptor,
     FromRawSocketDescriptor, IntoRawFileDescriptor, IntoRawSocketDescriptor, OwnedHandle, Pipe,
 };
-use failure::{bail, Fallible};
+use anyhow::bail;
 use std::io::{self, Error as IoError};
 use std::os::windows::prelude::*;
 use std::ptr;
@@ -155,7 +155,7 @@ impl OwnedHandle {
     pub(crate) fn dup_impl<F: AsRawFileDescriptor>(
         f: &F,
         handle_type: HandleType,
-    ) -> Fallible<Self> {
+    ) -> anyhow::Result<Self> {
         let handle = f.as_raw_file_descriptor();
         if handle == INVALID_HANDLE_VALUE as _ || handle.is_null() {
             return Ok(OwnedHandle {
@@ -206,7 +206,7 @@ impl IntoRawHandle for OwnedHandle {
 
 impl FileDescriptor {
     #[inline]
-    pub(crate) fn as_stdio_impl(&self) -> Fallible<std::process::Stdio> {
+    pub(crate) fn as_stdio_impl(&self) -> anyhow::Result<std::process::Stdio> {
         let duped = self.handle.try_clone()?;
         let handle = duped.into_raw_handle();
         let stdio = unsafe { std::process::Stdio::from_raw_handle(handle) };
@@ -307,7 +307,7 @@ impl io::Write for FileDescriptor {
 }
 
 impl Pipe {
-    pub fn new() -> Fallible<Pipe> {
+    pub fn new() -> anyhow::Result<Pipe> {
         let mut sa = SECURITY_ATTRIBUTES {
             nLength: std::mem::size_of::<SECURITY_ATTRIBUTES>() as u32,
             lpSecurityDescriptor: ptr::null_mut(),
@@ -347,7 +347,7 @@ fn init_winsock() {
     });
 }
 
-fn socket(af: i32, sock_type: i32, proto: i32) -> Fallible<FileDescriptor> {
+fn socket(af: i32, sock_type: i32, proto: i32) -> anyhow::Result<FileDescriptor> {
     let s = unsafe {
         WSASocketW(
             af,
@@ -370,7 +370,7 @@ fn socket(af: i32, sock_type: i32, proto: i32) -> Fallible<FileDescriptor> {
 }
 
 #[doc(hidden)]
-pub fn socketpair_impl() -> Fallible<(FileDescriptor, FileDescriptor)> {
+pub fn socketpair_impl() -> anyhow::Result<(FileDescriptor, FileDescriptor)> {
     init_winsock();
 
     let s = socket(AF_INET, SOCK_STREAM, 0)?;
@@ -439,7 +439,7 @@ pub fn socketpair_impl() -> Fallible<(FileDescriptor, FileDescriptor)> {
 }
 
 #[doc(hidden)]
-pub fn poll_impl(pfd: &mut [pollfd], duration: Option<Duration>) -> Fallible<usize> {
+pub fn poll_impl(pfd: &mut [pollfd], duration: Option<Duration>) -> anyhow::Result<usize> {
     let poll_result = unsafe {
         WSAPoll(
             pfd.as_mut_ptr(),
