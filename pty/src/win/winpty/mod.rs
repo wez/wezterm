@@ -4,7 +4,7 @@ use crate::win::winpty::safe::{
     AgentFlags, MouseMode, SpawnConfig, SpawnFlags, Timeout, WinPty, WinPtyConfig,
 };
 use crate::{Child, MasterPty, PtyPair, PtySize, PtySystem, SlavePty};
-use failure::{bail, Fallible};
+use anyhow::bail;
 use filedescriptor::FileDescriptor;
 use log::debug;
 use std::ffi::OsString;
@@ -32,7 +32,7 @@ pub struct WinPtySlavePty {
 }
 
 impl MasterPty for WinPtyMasterPty {
-    fn resize(&self, size: PtySize) -> Fallible<()> {
+    fn resize(&self, size: PtySize) -> anyhow::Result<()> {
         let mut inner = self.inner.lock().unwrap();
         if inner.pty.set_size(size.cols as i32, size.rows as i32)? {
             inner.size = size;
@@ -42,11 +42,11 @@ impl MasterPty for WinPtyMasterPty {
         }
     }
 
-    fn get_size(&self) -> Fallible<PtySize> {
+    fn get_size(&self) -> anyhow::Result<PtySize> {
         Ok(self.inner.lock().unwrap().size)
     }
 
-    fn try_clone_reader(&self) -> Fallible<Box<dyn std::io::Read + Send>> {
+    fn try_clone_reader(&self) -> anyhow::Result<Box<dyn std::io::Read + Send>> {
         Ok(Box::new(self.inner.lock().unwrap().reader.try_clone()?))
     }
 }
@@ -61,7 +61,7 @@ impl std::io::Write for WinPtyMasterPty {
 }
 
 impl SlavePty for WinPtySlavePty {
-    fn spawn_command(&self, cmd: CommandBuilder) -> Fallible<Box<dyn Child>> {
+    fn spawn_command(&self, cmd: CommandBuilder) -> anyhow::Result<Box<dyn Child>> {
         let (exe, cmdline) = cmd.cmdline()?;
         let cmd_os = OsString::from_wide(&cmdline);
         debug!(
@@ -91,7 +91,7 @@ impl SlavePty for WinPtySlavePty {
 
 pub struct WinPtySystem {}
 impl PtySystem for WinPtySystem {
-    fn openpty(&self, size: PtySize) -> Fallible<PtyPair> {
+    fn openpty(&self, size: PtySize) -> anyhow::Result<PtyPair> {
         let mut config = WinPtyConfig::new(AgentFlags::empty())?;
 
         config.set_initial_size(size.cols as i32, size.rows as i32);

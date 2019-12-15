@@ -1,7 +1,7 @@
 use super::WinChild;
 use crate::cmdbuilder::CommandBuilder;
 use crate::{Child, MasterPty, PtyPair, PtySize, PtySystem, SlavePty};
-use failure::{bail, ensure, Error, Fallible};
+use anyhow::{bail, ensure, Error};
 use filedescriptor::{FileDescriptor, OwnedHandle, Pipe};
 use lazy_static::lazy_static;
 use shared_library::shared_library;
@@ -26,7 +26,7 @@ const PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE: usize = 0x00020016;
 
 pub struct ConPtySystem {}
 impl PtySystem for ConPtySystem {
-    fn openpty(&self, size: PtySize) -> Fallible<PtyPair> {
+    fn openpty(&self, size: PtySize) -> anyhow::Result<PtyPair> {
         let stdin = Pipe::new()?;
         let stdout = Pipe::new()?;
 
@@ -224,7 +224,7 @@ pub struct ConPtySlavePty {
 }
 
 impl MasterPty for ConPtyMasterPty {
-    fn resize(&self, size: PtySize) -> Fallible<()> {
+    fn resize(&self, size: PtySize) -> anyhow::Result<()> {
         let mut inner = self.inner.lock().unwrap();
         inner.resize(size.rows, size.cols, size.pixel_width, size.pixel_height)
     }
@@ -234,7 +234,7 @@ impl MasterPty for ConPtyMasterPty {
         Ok(inner.size.clone())
     }
 
-    fn try_clone_reader(&self) -> Fallible<Box<dyn std::io::Read + Send>> {
+    fn try_clone_reader(&self) -> anyhow::Result<Box<dyn std::io::Read + Send>> {
         Ok(Box::new(self.inner.lock().unwrap().readable.try_clone()?))
     }
 }
@@ -249,7 +249,7 @@ impl io::Write for ConPtyMasterPty {
 }
 
 impl SlavePty for ConPtySlavePty {
-    fn spawn_command(&self, cmd: CommandBuilder) -> Fallible<Box<dyn Child>> {
+    fn spawn_command(&self, cmd: CommandBuilder) -> anyhow::Result<Box<dyn Child>> {
         let inner = self.inner.lock().unwrap();
 
         let mut si: STARTUPINFOEXW = unsafe { mem::zeroed() };

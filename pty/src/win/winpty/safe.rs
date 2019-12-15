@@ -3,8 +3,8 @@
 //! https://github.com/rprichard/winpty/blob/master/src/include/winpty.h
 #![allow(dead_code)]
 use super::sys::*;
+use anyhow::{bail, ensure, Error};
 use bitflags::bitflags;
-use failure::{bail, ensure, format_err, Error};
 use filedescriptor::{FileDescriptor, OwnedHandle};
 use std::ffi::{OsStr, OsString};
 use std::os::windows::ffi::{OsStrExt, OsStringExt};
@@ -58,7 +58,7 @@ fn wstr_to_osstr(wstr: LPCWSTR) -> Result<OsString, Error> {
 fn wstr_to_string(wstr: LPCWSTR) -> Result<String, Error> {
     ensure!(!wstr.is_null(), "LPCWSTR is null");
     let slice = unsafe { std::slice::from_raw_parts(wstr, libc::wcslen(wstr)) };
-    String::from_utf16(slice).map_err(|e| format_err!("String::from_utf16: {}", e))
+    String::from_utf16(slice).map_err(|e| anyhow!("String::from_utf16: {}", e))
 }
 
 fn check_err<T>(err: winpty_error_ptr_t, value: T) -> Result<T, Error> {

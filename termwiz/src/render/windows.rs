@@ -5,7 +5,6 @@ use crate::cell::{AttributeChange, CellAttributes, Underline};
 use crate::color::{AnsiColor, ColorAttribute};
 use crate::surface::{Change, Position};
 use crate::terminal::windows::{ConsoleInputHandle, ConsoleOutputHandle};
-use failure;
 use num;
 use std::io::{Read, Write};
 use winapi::um::wincon::{
@@ -117,7 +116,7 @@ impl WindowsConsoleRenderer {
         changes: &[Change],
         _read: &mut A,
         out: &mut B,
-    ) -> Result<(), failure::Error> {
+    ) -> anyhow::Result<()> {
         for change in changes {
             match change {
                 Change::ClearScreen(color) => {

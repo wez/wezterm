@@ -1,5 +1,5 @@
 use crate::istty::IsTty;
-use failure::{bail, format_err, Error, Fallible};
+use anyhow::{anyhow, bail, Error};
 use filedescriptor::{FileDescriptor, OwnedHandle};
 use std::cmp::{max, min};
 use std::collections::VecDeque;
@@ -460,7 +460,7 @@ impl Terminal for WindowsTerminal {
         )
     }
 
-    fn set_cooked_mode(&mut self) -> Fallible<()> {
+    fn set_cooked_mode(&mut self) -> anyhow::Result<()> {
         let mode = self.input_handle.get_input_mode()?;
 
         self.input_handle.set_input_mode(
@@ -526,7 +526,7 @@ impl Terminal for WindowsTerminal {
     fn flush(&mut self) -> Result<(), Error> {
         self.output_handle
             .flush()
-            .map_err(|e| format_err!("flush failed: {}", e))
+            .map_err(|e| anyhow!("flush failed: {}", e))
     }
 
     fn poll_input(&mut self, wait: Option<Duration>) -> Result<Option<InputEvent>, Error> {
