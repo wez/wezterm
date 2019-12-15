@@ -131,9 +131,15 @@ impl<T: Texture2d> GlyphCache<T> {
         let (cell_width, cell_height) = (metrics.cell_width, metrics.cell_height);
         let nominal_width = cell_width.get() * info.num_cells as f64;
 
-        let scale = if glyph.width as f64 > nominal_width {
+        let scale = if glyph.width as f64 > nominal_width * 1.5 {
+            // This is for the case where the glyph is a big bitmap that hasn't
+            // yet been scaled
             nominal_width / glyph.width as f64
-        } else if PixelLength::new(glyph.height as f64) > cell_height {
+        } else if (info.x_advance.get() / f64::from(info.num_cells)).floor() > cell_width.get() {
+            // This is to handle double-width replacements such as ligatures
+            nominal_width / info.x_advance.get() as f64
+        } else if PixelLength::new(glyph.height as f64) > cell_height * 1.5 {
+            // This is another way to detect overside glyph images
             cell_height.get() / glyph.height as f64
         } else {
             1.0f64
@@ -163,6 +169,15 @@ impl<T: Texture2d> GlyphCache<T> {
             let y_offset = info.y_offset * scale;
 
             let (scale, raw_im) = if scale != 1.0 {
+                log::trace!(
+                    "physically scaling {:?} by {} bcos {}x{} > {}x{}",
+                    info,
+                    scale,
+                    glyph.width,
+                    glyph.height,
+                    cell_width,
+                    cell_height
+                );
                 (1.0, raw_im.scale_by(scale))
             } else {
                 (scale, raw_im)
