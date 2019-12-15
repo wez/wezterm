@@ -469,7 +469,7 @@ impl WindowOps for Window {
         Future::result(
             clipboard::ClipboardContext::new()
                 .and_then(|mut ctx| ctx.get_contents())
-                .context("Failed to get clipboard"),
+                .map_err(|e| anyhow!("Failed to get clipboard:{}", e)),
         )
     }
 
@@ -478,7 +478,7 @@ impl WindowOps for Window {
         Future::result(
             clipboard::ClipboardContext::new()
                 .and_then(|mut ctx| ctx.set_contents(text))
-                .context("Failed to set clipboard"),
+                .map_err(|e| anyhow!("Failed to set clipboard:{}", e)),
         )
     }
 }
