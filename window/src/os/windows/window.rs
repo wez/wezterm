@@ -8,6 +8,7 @@ use crate::{
     MouseEventKind, MousePress, Operator, PaintContext, Point, Rect, ScreenPoint, WindowCallbacks,
     WindowOps, WindowOpsMut,
 };
+use anyhow::{bail, Context};
 use promise::Future;
 use std::any::Any;
 use std::cell::RefCell;
@@ -423,7 +424,7 @@ impl WindowOps for Window {
     }
 
     fn get_clipboard(&self) -> Future<String> {
-        Future::result(clipboard_win::get_clipboard_string().context("Error getting clipboard: {}"))
+        Future::result(clipboard_win::get_clipboard_string().context("Error getting clipboard"))
     }
 
     fn set_clipboard(&self, text: String) -> Future<()> {
