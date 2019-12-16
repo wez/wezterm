@@ -92,6 +92,10 @@ impl ParsedFont {
                 parse_and_collect_font_info(path, &mut font_info).ok();
             }
         }
+        font_info.sort_by_key(|(names, _, _)| names.full_name.clone());
+        for (names, _, _) in &font_info {
+            log::warn!("available font: {}", names.full_name);
+        }
 
         // Second, apply matching rules in order. We can't match
         // against the font files as we discover them because the
@@ -99,6 +103,7 @@ impl ParsedFont {
         // fonts_selection is strictly ordered
         let mut handles = vec![];
         for attr in fonts_selection {
+            let mut found = false;
             for (names, path, index) in &font_info {
                 if font_info_matches(attr, names) {
                     log::warn!(
@@ -111,7 +116,12 @@ impl ParsedFont {
                         path: path.clone(),
                         index: (*index).try_into()?,
                     });
+                    found = true;
+                    break;
                 }
+            }
+            if !found {
+                log::error!("Did not locate a font match for {:?}", attr);
             }
         }
         Ok(handles)
