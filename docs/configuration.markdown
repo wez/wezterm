@@ -4,17 +4,34 @@ title: Configuration
 
 ## Configuration
 
-`wezterm` will look for a TOML configuration file in `$HOME/.config/wezterm/wezterm.toml`,
-and then in `$HOME/.wezterm.toml`, stopping at the first file it finds.
+`wezterm` will look for a TOML configuration file in the following locations,
+stopping at the first file that it finds:
+
+* On Windows, `wezterm.toml` from the directory that contains `wezterm.exe`.
+  This is handy for users that want to carry their wezterm install around on a thumb drive.
+* `$HOME/.config/wezterm/wezterm.toml`,
+* `$HOME/.wezterm.toml`
 
 `wezterm` will watch the config file that it loads; if/when it changes, the configuration
 will be automatically reloaded and the majority of options will take effect immediately.
 
 Configuration is currently very simple and the format is considered unstable and subject
-to change.  The code for configuration can be found in [`src/config.rs`](https://github.com/wez/wezterm/blob/master/src/config.rs).
-
+to change.  The code for configuration can be found in [`src/config/mod.rs`](https://github.com/wez/wezterm/blob/master/src/config/mod.rs).
 
 ### Font Related Configuration
+
+By default, wezterm will use an appropriate system-specific method for
+locating the fonts that you specify using the options below.  In addition,
+if you configure the `font_dirs` option, wezterm will load fonts from that
+set of directories:
+
+```toml
+# This tells wezterm to look first for fonts in the directory named
+# `fonts` that is found alongside your `wezterm.toml` file.
+# As this option is an array, you may list multiple locations if
+# you wish.
+font_dirs = ["fonts"]
+```
 
 The following options impact how text is rendered:
 
@@ -109,6 +126,20 @@ intensity = "Half"
   [font_rules.font]
   font=[{family = "Operator Mono SSm Lig Light" }]
 ```
+
+There are a couple of additional advanced font configuration options:
+
+* `font_locator` - specifies the method by which system fonts are
+  located and loaded.  You may specify `ConfigDirsOnly` to disable
+  loading system fonts and use only the fonts found in the directories
+  that you specify in your `font_dirs` configuration option.  Otherwise,
+  it is recommended to omit this setting.
+* `font_shaper` - specifies the method by which text is mapped to glyphs
+  in the available fonts.  The shaper is responsible for handling
+  kerning, ligatures and emoji composition.  The default is `Harfbuzz`
+  and we have very preliminary support for `Allsorts`.
+* `font_rasterizer` - specifies the method by which fonts are rendered
+  on screen.  The only available implementation is `FreeType`.
 
 ### Misc configuration
 
