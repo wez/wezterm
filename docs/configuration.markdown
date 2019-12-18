@@ -183,6 +183,13 @@ ratelimit_mux_output_pushes_per_second = 10
 # model to compute a diff to send to the mux client.
 # The default value is 100/s
 ratelimit_mux_output_scans_per_second = 100
+
+# If false, do not try to use a Wayland protocol connection
+# when starting the gui frontend, and instead use X11.
+# This option is only considered on X11/Wayland systems and
+# has no effect on macOS or Windows.
+# The default is true.
+enable_wayland = true
 ```
 
 ### Shortcut / Key Binding Assignments
