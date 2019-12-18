@@ -1,4 +1,4 @@
-theme: jekyll-theme-primer
+theme: jekyll-theme-hacker
 plugins:
   - jekyll-octicons
   - jekyll-sitemap

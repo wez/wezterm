@@ -44,15 +44,23 @@
 svg.octicon {
   margin-right: 0.25em;
 }
-a.btn svg {
+
+a.btn svg.octicon {
   fill: white;
+  vertical-align: text-bottom;
+}
+
+h2 svg.octicon {
+  fill: #eaeaea;
+  vertical-align: text-bottom;
 }
 
 #toc {
+  font-size: 0.8em;
   width: 250px;
   position: fixed;
-  background-color: #eee;
-  border: solid 1px #ddd;
+  background-color: #222;
+  border: solid 1px #111;
   padding: 1.1em;
   overflow-y: auto;
   max-height: 100%;
@@ -62,11 +70,24 @@ a.btn svg {
   list-style: square;
 }
 
-#toc ul li {
+#toc ul {
+  margin-left: 0em;
+  padding-left: 1em;
+}
+
+#toc li {
   margin-left: 1em;
+  padding-left: 0em;
 }
 
 #container {
-  margin-left: 250px;
+  margin-left: 300px;
 }
 
+.container-lg {
+  padding: 1em;
+}
+
+.text-right {
+  float: right;
+}

@@ -17,7 +17,7 @@ layout: notoc
 
 Looking for a [configuration reference?](configuration.html)
 
-![Screenshot](screenshots/two.png)
+<img width="80%" height="80%" src="screenshots/two.png" alt="Screenshot">
 
 *Screenshot of wezterm on macOS, running vim*
 
