@@ -153,8 +153,8 @@ impl ConfigInner {
                 }
             }
             Err(err) => {
-                let err = err.to_string().to_string();
-                log::error!("While reloading configuration: {}", err);
+                let err = format!("{:#}", err);
+                log::error!("While (re)loading configuration: {}", err);
 
                 #[cfg(not(windows))]
                 {
