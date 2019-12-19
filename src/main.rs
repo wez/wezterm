@@ -1,7 +1,7 @@
 // Don't create a new standard console window when launched from the windows GUI.
 #![windows_subsystem = "windows"]
 
-use anyhow::{anyhow, bail, Context, Error};
+use anyhow::{anyhow, bail, Context};
 use promise::Future;
 use std::ffi::OsString;
 use std::fs::DirBuilder;
@@ -541,12 +541,12 @@ fn run_terminal_gui(config: config::ConfigHandle, opts: &StartCommand) -> anyhow
         None
     };
 
-    let domain: Arc<dyn Domain> = Arc::new(LocalDomain::new("local").map_err(Error::msg)?);
+    let domain: Arc<dyn Domain> = Arc::new(LocalDomain::new("local")?);
     let mux = Rc::new(mux::Mux::new(Some(domain.clone())));
     Mux::set_mux(&mux);
 
     let front_end = opts.front_end.unwrap_or(config.front_end);
-    let gui = front_end.try_new().map_err(Error::msg)?;
+    let gui = front_end.try_new()?;
     domain.attach()?;
 
     fn record_domain(mux: &Rc<Mux>, client: ClientDomain) -> anyhow::Result<Arc<dyn Domain>> {
@@ -682,7 +682,14 @@ fn run() -> anyhow::Result<()> {
     if !opts.skip_config {
         config::reload();
     }
-    let config = config::configuration_result().map_err(Error::msg)?;
+    let config = match config::configuration_result() {
+        Err(err) => {
+            let err = format!("{:#}", err);
+            toast_notification("Wezterm configuration", &err);
+            config::configuration()
+        }
+        Ok(config) => config,
+    };
 
     match opts
         .cmd
@@ -694,13 +701,13 @@ fn run() -> anyhow::Result<()> {
             log::info!("Using configuration: {:#?}\nopts: {:#?}", config, opts);
             run_terminal_gui(config, &start)
         }
-        SubCommand::Ssh(ssh) => run_ssh(config, &ssh).map_err(Error::msg),
-        SubCommand::Serial(serial) => run_serial(config, &serial).map_err(Error::msg),
-        SubCommand::Connect(connect) => run_mux_client(config, &connect).map_err(Error::msg),
-        SubCommand::ImageCat(cmd) => cmd.run().map_err(Error::msg),
+        SubCommand::Ssh(ssh) => run_ssh(config, &ssh),
+        SubCommand::Serial(serial) => run_serial(config, &serial),
+        SubCommand::Connect(connect) => run_mux_client(config, &connect),
+        SubCommand::ImageCat(cmd) => cmd.run(),
         SubCommand::Cli(cli) => {
             let initial = true;
-            let client = Client::new_default_unix_domain(initial).map_err(Error::msg)?;
+            let client = Client::new_default_unix_domain(initial)?;
             match cli.sub {
                 CliSubCommand::List => {
                     let cols = vec![
@@ -722,7 +729,7 @@ fn run() -> anyhow::Result<()> {
                         },
                     ];
                     let mut data = vec![];
-                    let tabs = client.list_tabs().wait().map_err(Error::msg)?;
+                    let tabs = client.list_tabs().wait()?;
                     for entry in tabs.tabs.iter() {
                         data.push(vec![
                             entry.window_id.to_string(),
@@ -753,7 +760,7 @@ fn run() -> anyhow::Result<()> {
 
                     // and pull data from stdin and write it to the socket
                     let stdin = std::io::stdin();
-                    consume_stream(stdin.lock(), stream).map_err(Error::msg)?;
+                    consume_stream(stdin.lock(), stream)?;
                 }
             }
             Ok(())
