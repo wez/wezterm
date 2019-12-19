@@ -596,22 +596,49 @@ fn toast_notification(title: &str, message: &str) {
 
     #[cfg(windows)]
     {
-        use winrt_notification::Toast;
+        let title = title.to_owned();
+        let message = message.to_owned();
 
-        Toast::new(Toast::POWERSHELL_APP_ID)
-            .title(title)
-            .text1(message)
-            .duration(winrt_notification::Duration::Long)
-            .show()
-            .ok();
+        // We need to be in a different thread from the caller
+        // in case we get called in the guts of a windows message
+        // loop dispatch and are unable to pump messages
+        std::thread::spawn(move || {
+            use winrt_notification::Toast;
+
+            Toast::new(Toast::POWERSHELL_APP_ID)
+                .title(&title)
+                .text1(&message)
+                .duration(winrt_notification::Duration::Long)
+                .show()
+                .ok();
+        });
     }
 }
 
+fn fatal_toast_notification(title: &str, message: &str) {
+    toast_notification(title, message);
+    // We need a short delay otherwise the notification
+    // will not show
+    #[cfg(windows)]
+    std::thread::sleep(std::time::Duration::new(2, 0));
+}
+
+fn notify_on_panic() {
+    let default_hook = std::panic::take_hook();
+    std::panic::set_hook(Box::new(move |info| {
+        if let Some(s) = info.payload().downcast_ref::<&str>() {
+            fatal_toast_notification("Wezterm panic", s);
+        }
+        default_hook(info);
+    }));
+}
+
 fn main() {
+    notify_on_panic();
     if let Err(e) = run() {
         let err = format!("{:#}", e);
-        log::error!("{}", err);
-        toast_notification("Wezterm Error", &err);
+        log::error!("{}; terminating", err);
+        fatal_toast_notification("Wezterm Error", &err);
         std::process::exit(1);
     }
 }
