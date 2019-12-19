@@ -580,9 +580,38 @@ fn run_terminal_gui(config: config::ConfigHandle, opts: &StartCommand) -> anyhow
     gui.run_forever()
 }
 
+fn toast_notification(title: &str, message: &str) {
+    #[cfg(not(windows))]
+    {
+        notify_rust::Notification::new()
+            .summary(title)
+            .body(message)
+            // Stay on the screen until dismissed
+            .hint(notify_rust::NotificationHint::Resident(true))
+            // timeout isn't respected on macos
+            .timeout(0)
+            .show()
+            .ok();
+    }
+
+    #[cfg(windows)]
+    {
+        use winrt_notification::Toast;
+
+        Toast::new(Toast::POWERSHELL_APP_ID)
+            .title(title)
+            .text1(message)
+            .duration(winrt_notification::Duration::Long)
+            .show()
+            .ok();
+    }
+}
+
 fn main() {
     if let Err(e) = run() {
-        log::error!("{}", e);
+        let err = format!("{:#}", e);
+        log::error!("{}", err);
+        toast_notification("Wezterm Error", &err);
         std::process::exit(1);
     }
 }

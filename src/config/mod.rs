@@ -155,32 +155,7 @@ impl ConfigInner {
             Err(err) => {
                 let err = format!("{:#}", err);
                 log::error!("While (re)loading configuration: {}", err);
-
-                #[cfg(not(windows))]
-                {
-                    notify_rust::Notification::new()
-                        .summary("Wezterm Configuration")
-                        .body(&err)
-                        // Stay on the screen until dismissed
-                        .hint(notify_rust::NotificationHint::Resident(true))
-                        // timeout isn't respected on macos
-                        .timeout(0)
-                        .show()
-                        .ok();
-                }
-
-                #[cfg(windows)]
-                {
-                    use winrt_notification::Toast;
-
-                    Toast::new(Toast::POWERSHELL_APP_ID)
-                        .title("Wezterm Configuration")
-                        .text1(&err)
-                        .duration(winrt_notification::Duration::Long)
-                        .show()
-                        .ok();
-                }
-
+                crate::toast_notification("Wezterm Configuration", &err);
                 self.error.replace(err);
             }
         }
