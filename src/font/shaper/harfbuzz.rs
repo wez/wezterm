@@ -69,8 +69,7 @@ impl HarfbuzzShaper {
                     log::trace!("shaper wants {} {:?}", font_idx, &self.handles[font_idx]);
                     let face = self.lib.face_from_locator(&self.handles[font_idx])?;
                     let mut font = harfbuzz::Font::new(face.face);
-                    let render_mode = ftwrap::FT_Render_Mode::FT_RENDER_MODE_LIGHT;
-                    let load_flags = ftwrap::compute_load_flags_for_mode(render_mode);
+                    let load_flags = ftwrap::compute_load_flags_from_config();
                     font.set_load_flags(load_flags);
                     *opt_pair = Some(FontPair {
                         face,

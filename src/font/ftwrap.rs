@@ -1,7 +1,8 @@
 //! Higher level freetype bindings
 
+use crate::config::{configuration, FontAntiAliasing, FontHinting};
 use crate::font::locator::FontDataHandle;
-use anyhow::{anyhow, bail, Context};
+use anyhow::{anyhow, Context};
 pub use freetype::*;
 use std::ptr;
 
@@ -19,13 +20,44 @@ fn ft_result<T>(err: FT_Error, t: T) -> anyhow::Result<T> {
     }
 }
 
-pub fn compute_load_flags_for_mode(render_mode: FT_Render_Mode) -> i32 {
-    FT_LOAD_COLOR as i32 |
-            // enable FT_LOAD_TARGET bits.  There are no flags defined
-            // for these in the bindings so we do some bit magic for
-            // ourselves.  This is how the FT_LOAD_TARGET_() macro
-            // assembles these bits.
-            (render_mode as i32) << 16
+fn render_mode_to_load_target(render_mode: FT_Render_Mode) -> u32 {
+    // enable FT_LOAD_TARGET bits.  There are no flags defined
+    // for these in the bindings so we do some bit magic for
+    // ourselves.  This is how the FT_LOAD_TARGET_() macro
+    // assembles these bits.
+    (render_mode as u32) & 15 << 16
+}
+
+pub fn compute_load_flags_from_config() -> i32 {
+    let config = configuration();
+    let flags = match (config.font_hinting, config.font_antialias) {
+        (FontHinting::VerticalSubpixel, _) | (_, FontAntiAliasing::Subpixel) => {
+            render_mode_to_load_target(FT_Render_Mode::FT_RENDER_MODE_LCD)
+        }
+        (FontHinting::None, _) => {
+            render_mode_to_load_target(FT_Render_Mode::FT_RENDER_MODE_NORMAL) | FT_LOAD_NO_HINTING
+        }
+        (FontHinting::Vertical, FontAntiAliasing::None)
+        | (FontHinting::Full, FontAntiAliasing::None) => {
+            render_mode_to_load_target(FT_Render_Mode::FT_RENDER_MODE_MONO)
+        }
+        (FontHinting::Vertical, _) => {
+            render_mode_to_load_target(FT_Render_Mode::FT_RENDER_MODE_LIGHT)
+        }
+        (FontHinting::Full, _) => render_mode_to_load_target(FT_Render_Mode::FT_RENDER_MODE_NORMAL),
+    };
+
+    // If the bitmaps are in color, we want those!
+    let flags = flags | FT_LOAD_COLOR;
+
+    let flags = if config.font_antialias == FontAntiAliasing::None {
+        // When AA is disabled, force outline rendering to monochrome
+        flags | FT_LOAD_MONOCHROME
+    } else {
+        flags
+    } as i32;
+
+    flags
 }
 
 pub struct Face {
@@ -116,16 +148,13 @@ impl Face {
         &mut self,
         glyph_index: FT_UInt,
         load_flags: FT_Int32,
-        render_mode: FT_Render_Mode,
     ) -> anyhow::Result<&FT_GlyphSlotRec_> {
         unsafe {
-            let res = FT_Load_Glyph(self.face, glyph_index, load_flags);
-            if succeeded(res) {
-                let render = FT_Render_Glyph((*self.face).glyph, render_mode);
-                if !succeeded(render) {
-                    bail!("FT_Render_Glyph failed: {:?}", render);
-                }
-            }
+            let res = FT_Load_Glyph(
+                self.face,
+                glyph_index,
+                (FT_LOAD_DEFAULT | FT_LOAD_RENDER) as i32 | load_flags,
+            );
             ft_result(res, &*(*self.face).glyph)
         }
     }
@@ -174,8 +203,11 @@ impl Library {
         let lib = ft_result(res, lib).context("FT_Init_FreeType")?;
         let mut lib = Library { lib };
 
-        // Some systems don't support this mode, so if it fails, we don't
-        // care to abort the rest of what we're doing
+        // Due to patent concerns, the freetype library disables the LCD
+        // filtering feature by default, and since we always build our
+        // own copy of freetype, it is likewise disabled by default for
+        // us too.  As a result, this call will generally fail.
+        // Freetype is still able to render a decent result without it!
         lib.set_lcd_filter(FT_LcdFilter::FT_LCD_FILTER_DEFAULT).ok();
 
         Ok(lib)

@@ -8,6 +8,39 @@ const FONT_FAMILY: &str = "Consolas";
 #[cfg(all(not(target_os = "macos"), not(windows)))]
 const FONT_FAMILY: &str = "monospace";
 
+#[derive(Debug, Copy, Deserialize, Clone, PartialEq, Eq, Hash)]
+pub enum FontHinting {
+    /// No hinting is performed
+    None,
+    /// Light vertical hinting is performed to fit the terminal grid
+    Vertical,
+    /// Vertical hinting is performed, with additional processing
+    /// for subpixel anti-aliasing.
+    /// This level is equivalent to Microsoft ClearType.
+    VerticalSubpixel,
+    /// Vertical and horizontal hinting is performed.
+    Full,
+}
+
+impl Default for FontHinting {
+    fn default() -> Self {
+        Self::Full
+    }
+}
+
+#[derive(Debug, Copy, Deserialize, Clone, PartialEq, Eq, Hash)]
+pub enum FontAntiAliasing {
+    None,
+    Greyscale,
+    Subpixel,
+}
+
+impl Default for FontAntiAliasing {
+    fn default() -> Self {
+        Self::Subpixel
+    }
+}
+
 #[derive(Debug, Deserialize, Clone, PartialEq, Eq, Hash)]
 pub struct FontAttributes {
     /// The font family name

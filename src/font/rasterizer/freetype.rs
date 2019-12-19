@@ -23,15 +23,11 @@ impl FontRasterizer for FreeTypeRasterizer {
     ) -> anyhow::Result<RasterizedGlyph> {
         self.face.borrow_mut().set_font_size(size, dpi)?;
 
-        let render_mode = //ftwrap::FT_Render_Mode::FT_RENDER_MODE_NORMAL;
- //       ftwrap::FT_Render_Mode::FT_RENDER_MODE_LCD;
-        ftwrap::FT_Render_Mode::FT_RENDER_MODE_LIGHT;
-
-        let load_flags = ftwrap::compute_load_flags_for_mode(render_mode);
+        let load_flags = ftwrap::compute_load_flags_from_config();
 
         let mut face = self.face.borrow_mut();
         let descender = unsafe { (*(*face.face).size).metrics.descender as f64 / 64.0 };
-        let ft_glyph = face.load_and_render_glyph(glyph_pos, load_flags, render_mode)?;
+        let ft_glyph = face.load_and_render_glyph(glyph_pos, load_flags)?;
 
         let mode: ftwrap::FT_Pixel_Mode =
             unsafe { mem::transmute(u32::from(ft_glyph.bitmap.pixel_mode)) };
