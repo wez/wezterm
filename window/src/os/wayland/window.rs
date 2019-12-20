@@ -108,6 +108,7 @@ struct PendingEvent {
     close: bool,
     refresh: bool,
     configure: Option<(u32, u32)>,
+    dpi: Option<i32>,
 }
 
 impl PendingEvent {
@@ -164,20 +165,25 @@ impl WaylandWindow {
             .wayland();
 
         let window_id = conn.next_window_id();
+        let pending_event = Arc::new(Mutex::new(PendingEvent::default()));
 
-        let surface = conn
-            .environment
-            .borrow_mut()
-            .create_surface(|dpi, surface| {
+        let surface = conn.environment.borrow_mut().create_surface({
+            let pending_event = Arc::clone(&pending_event);
+            move |dpi, surface| {
+                pending_event.lock().unwrap().dpi.replace(dpi);
                 log::error!(
                     "surface id={} dpi changed to {}",
                     surface.as_ref().id(),
                     dpi
                 );
-            });
+                WaylandConnection::with_window_inner(window_id, move |inner| {
+                    inner.dispatch_pending_event();
+                    Ok(())
+                });
+            }
+        });
 
         let dimensions = (width as u32, height as u32);
-        let pending_event = Arc::new(Mutex::new(PendingEvent::default()));
         let mut window = toolkit::window::Window::<toolkit::window::ConceptFrame>::init_from_env(
             &*conn.environment.borrow(),
             surface.clone(),
@@ -413,6 +419,15 @@ impl WaylandWindowInner {
             self.callbacks.destroy();
             self.window.take();
         }
+
+        if pending.configure.is_none() && pending.dpi.is_some() {
+            // Synthesize a pending configure event for the dpi change
+            pending.configure.replace((
+                self.pixels_to_surface(self.dimensions.0 as i32) as u32,
+                self.pixels_to_surface(self.dimensions.1 as i32) as u32,
+            ));
+        }
+
         if let Some((w, h)) = pending.configure.take() {
             if self.window.is_some() {
                 let factor = self.get_dpi_factor();
