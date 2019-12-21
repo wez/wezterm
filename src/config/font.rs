@@ -53,6 +53,16 @@ pub struct FontAttributes {
     pub italic: bool,
 }
 
+impl FontAttributes {
+    pub fn new(family: &str) -> Self {
+        Self {
+            family: family.into(),
+            bold: false,
+            italic: false,
+        }
+    }
+}
+
 impl Default for FontAttributes {
     fn default() -> Self {
         Self {
@@ -131,56 +141,24 @@ impl TextStyle {
         }
 
         #[cfg(target_os = "macos")]
-        font.push(FontAttributes {
-            family: "Apple Color Emoji".into(),
-            bold: false,
-            italic: false,
-        });
+        font.push(FontAttributes::new("Apple Color Emoji"));
         #[cfg(target_os = "macos")]
-        font.push(FontAttributes {
-            family: "Apple Symbols".into(),
-            bold: false,
-            italic: false,
-        });
+        font.push(FontAttributes::new("Apple Symbols"));
         #[cfg(target_os = "macos")]
-        font.push(FontAttributes {
-            family: "Zapf Dingbats".into(),
-            bold: false,
-            italic: false,
-        });
+        font.push(FontAttributes::new("Zapf Dingbats"));
         #[cfg(target_os = "macos")]
-        font.push(FontAttributes {
-            family: "Apple LiGothic".into(),
-            bold: false,
-            italic: false,
-        });
+        font.push(FontAttributes::new("Apple LiGothic"));
 
         // Fallback font that has unicode replacement character
         #[cfg(windows)]
-        font.push(FontAttributes {
-            family: "Segoe UI".into(),
-            bold: false,
-            italic: false,
-        });
+        font.push(FontAttributes::new("Segoe UI"));
         #[cfg(windows)]
-        font.push(FontAttributes {
-            family: "Segoe UI Emoji".into(),
-            bold: false,
-            italic: false,
-        });
+        font.push(FontAttributes::new("Segoe UI Emoji"));
         #[cfg(windows)]
-        font.push(FontAttributes {
-            family: "Segoe UI Symbol".into(),
-            bold: false,
-            italic: false,
-        });
+        font.push(FontAttributes::new("Segoe UI Symbol"));
 
         #[cfg(all(unix, not(target_os = "macos")))]
-        font.push(FontAttributes {
-            family: "Noto Color Emoji".into(),
-            bold: false,
-            italic: false,
-        });
+        font.push(FontAttributes::new("Noto Color Emoji"));
 
         font
     }
