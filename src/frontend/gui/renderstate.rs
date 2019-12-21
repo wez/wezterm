@@ -1,6 +1,6 @@
 use super::glyphcache::{CachedGlyph, GlyphCache};
 use super::utilsprites::{RenderMetrics, UtilSprites};
-use crate::config::TextStyle;
+use crate::config::{configuration, TextStyle};
 use crate::font::{FontConfiguration, GlyphInfo};
 use ::window::bitmaps::ImageTexture;
 use ::window::glium::backend::Context as GliumContext;
@@ -121,7 +121,7 @@ impl OpenGLRenderState {
 
     /// Compute a vertex buffer to hold the quads that comprise the visible
     /// portion of the screen.   We recreate this when the screen is resized.
-    /// The idea is that we want to minimize and heavy lifting and computation
+    /// The idea is that we want to minimize any heavy lifting and computation
     /// and instead just poke some attributes into the offset that corresponds
     /// to a changed cell when we need to repaint the screen, and then just
     /// let the GPU figure out the rest.
@@ -136,21 +136,33 @@ impl OpenGLRenderState {
         let mut verts = Vec::new();
         let mut indices = Vec::new();
 
-        let num_cols = width as usize / cell_width as usize;
-        let num_rows = height as usize / cell_height as usize;
+        let config = configuration();
+        let avail_width = (width as usize)
+            .saturating_sub((config.window_padding.left + config.window_padding.right) as usize);
+        let avail_height = (height as usize)
+            .saturating_sub((config.window_padding.top + config.window_padding.bottom) as usize);
+
+        let num_cols = avail_width as usize / cell_width as usize;
+        let num_rows = avail_height as usize / cell_height as usize;
+
+        let padding_left = config.window_padding.left as f32;
+        let padding_top = config.window_padding.top as f32;
 
         log::debug!(
-            "compute_vertices {}x{} {}x{}",
+            "compute_vertices {}x{} {}x{} padding={} {}",
             num_cols,
             num_rows,
             width,
-            height
+            height,
+            padding_left,
+            padding_top
         );
 
         for y in 0..num_rows {
+            let y_pos = (height / -2.0) + (y as f32 * cell_height) + padding_top;
             for x in 0..num_cols {
-                let y_pos = (height / -2.0) + (y as f32 * cell_height);
-                let x_pos = (width / -2.0) + (x as f32 * cell_width);
+                let x_pos = (width / -2.0) + (x as f32 * cell_width) + padding_left;
+
                 // Remember starting index for this position
                 let idx = verts.len() as u32;
                 verts.push(Vertex {

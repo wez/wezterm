@@ -19,6 +19,7 @@ use anyhow::{anyhow, bail, ensure};
 use portable_pty::PtySize;
 use std::any::Any;
 use std::ops::Range;
+use std::ops::Sub;
 use std::rc::Rc;
 use std::sync::Arc;
 use term::color::ColorPalette;
@@ -51,7 +52,10 @@ impl term::Clipboard for ClipboardHelper {
 pub struct TermWindow {
     window: Option<Window>,
     fonts: Rc<FontConfiguration>,
+    /// Window dimensions and dpi
     dimensions: Dimensions,
+    /// Terminal dimensions
+    terminal_size: PtySize,
     mux_window_id: MuxWindowId,
     render_metrics: RenderMetrics,
     render_state: RenderState,
@@ -149,8 +153,19 @@ impl WindowCallbacks for TermWindow {
             _ => {}
         }
 
-        let x = (event.coords.x.max(0) / self.render_metrics.cell_size.width) as usize;
-        let y = (event.coords.y.max(0) / self.render_metrics.cell_size.height) as i64;
+        let config = configuration();
+        let x = (event
+            .coords
+            .x
+            .sub(config.window_padding.left as isize)
+            .max(0)
+            / self.render_metrics.cell_size.width) as usize;
+        let y = (event
+            .coords
+            .y
+            .sub(config.window_padding.top as isize)
+            .max(0)
+            / self.render_metrics.cell_size.height) as i64;
 
         let first_line_offset = if self.show_tab_bar { 1 } else { 0 };
         self.last_mouse_coords = (x, y);
@@ -390,17 +405,32 @@ impl TermWindow {
 
         let render_metrics = RenderMetrics::new(fontconfig);
 
-        let width = render_metrics.cell_size.width as usize * physical_cols;
-        let height = render_metrics.cell_size.height as usize
-            * (physical_rows + if config.enable_tab_bar { 1 } else { 0 });
+        let terminal_size = PtySize {
+            rows: physical_rows as u16,
+            cols: physical_cols as u16,
+            pixel_width: (render_metrics.cell_size.width as usize * physical_cols) as u16,
+            pixel_height: (render_metrics.cell_size.height as usize * physical_rows) as u16,
+        };
+
+        let rows_with_tab_bar = if config.enable_tab_bar { 1 } else { 0 } + terminal_size.rows;
+        // Accomodating future scroll bar UI
+        let cols_with_scroll_bar = terminal_size.cols;
+
+        let dimensions = Dimensions {
+            pixel_width: ((cols_with_scroll_bar * render_metrics.cell_size.width as u16)
+                + config.window_padding.left
+                + config.window_padding.right) as usize,
+            pixel_height: ((rows_with_tab_bar * render_metrics.cell_size.height as u16)
+                + config.window_padding.top
+                + config.window_padding.bottom) as usize,
+            dpi: config.dpi as usize,
+        };
 
         log::info!(
-            "TermWindow::new_window called with mux_window_id {} {}x{} cells, {}x{}",
+            "TermWindow::new_window called with mux_window_id {} {:?} {:?}",
             mux_window_id,
-            physical_cols,
-            physical_rows,
-            width,
-            height
+            terminal_size,
+            dimensions
         );
 
         const ATLAS_SIZE: usize = 4096;
@@ -413,21 +443,15 @@ impl TermWindow {
         let window = Window::new_window(
             "wezterm",
             "wezterm",
-            width,
-            height,
+            dimensions.pixel_width,
+            dimensions.pixel_height,
             Box::new(Self {
                 window: None,
                 mux_window_id,
                 fonts: Rc::clone(fontconfig),
                 render_metrics,
-                dimensions: Dimensions {
-                    pixel_width: width,
-                    pixel_height: height,
-                    // This is the default dpi; we'll get a resize
-                    // event to inform us of the true dpi if it is
-                    // different from this value
-                    dpi: 96,
-                },
+                dimensions,
+                terminal_size,
                 render_state,
                 keys: KeyMap::new(),
                 show_tab_bar: config.enable_tab_bar,
@@ -664,7 +688,7 @@ impl TermWindow {
             _ => return,
         };
         let new_tab_bar = TabBarState::new(
-            self.dimensions.pixel_width / self.render_metrics.cell_size.width as usize,
+            self.terminal_size.cols as usize,
             if self.last_mouse_coords.1 == 0 {
                 Some(self.last_mouse_coords.0)
             } else {
@@ -711,10 +735,13 @@ impl TermWindow {
         let term = tab.renderer();
         let cursor = term.get_cursor_position();
         if let Some(win) = self.window.as_ref() {
+            let config = configuration();
             let r = Rect::new(
                 Point::new(
-                    cursor.x.max(0) as isize * self.render_metrics.cell_size.width,
-                    cursor.y.max(0) as isize * self.render_metrics.cell_size.height,
+                    cursor.x.sub(config.window_padding.left as usize).max(0) as isize
+                        * self.render_metrics.cell_size.width,
+                    cursor.y.sub(config.window_padding.top as i64).max(0) as isize
+                        * self.render_metrics.cell_size.height,
                 ),
                 self.render_metrics.cell_size,
             );
@@ -755,23 +782,7 @@ impl TermWindow {
     }
 
     fn spawn_tab(&mut self, domain: &SpawnTabDomain) -> anyhow::Result<TabId> {
-        let rows =
-            (self.dimensions.pixel_height as usize) / self.render_metrics.cell_size.height as usize;
-        let cols =
-            (self.dimensions.pixel_width as usize) / self.render_metrics.cell_size.width as usize;
-        let tab_bar_adjusted_rows = if self.show_tab_bar {
-            rows.saturating_sub(1)
-        } else {
-            rows
-        };
-
-        let size = portable_pty::PtySize {
-            rows: tab_bar_adjusted_rows as u16,
-            cols: cols as u16,
-            pixel_width: self.dimensions.pixel_width as u16,
-            pixel_height: self.dimensions.pixel_height as u16,
-        };
-
+        let size = self.terminal_size;
         let mux = Mux::get().unwrap();
 
         let domain = match domain {
@@ -910,46 +921,64 @@ impl TermWindow {
         // final size, which in that case should result in a NOP
         // change to the tab size.
 
-        let size = if let Some(cell_dims) = scale_changed_cells {
-            PtySize {
+        let config = configuration();
+
+        let (size, dims) = if let Some(cell_dims) = scale_changed_cells {
+            // Scaling preserves existing terminal dimensions, yielding a new
+            // overall set of window dimensions
+            let size = PtySize {
                 rows: cell_dims.rows as u16,
                 cols: cell_dims.cols as u16,
                 pixel_height: cell_dims.rows as u16 * self.render_metrics.cell_size.height as u16,
                 pixel_width: cell_dims.cols as u16 * self.render_metrics.cell_size.width as u16,
-            }
-        } else {
-            PtySize {
-                rows: dimensions.pixel_height as u16 / self.render_metrics.cell_size.height as u16,
-                cols: dimensions.pixel_width as u16 / self.render_metrics.cell_size.width as u16,
-                pixel_height: dimensions.pixel_height as u16,
-                pixel_width: dimensions.pixel_width as u16,
-            }
-        };
+            };
 
-        let (size, pixel_height_including_tab_bar) = if self.show_tab_bar {
-            let pixel_height_including_tab_bar = size.pixel_height;
-            let rows = size.rows.saturating_sub(1);
-            let height = self.render_metrics.cell_size.height as u16 * rows;
-            (
-                PtySize {
-                    rows,
-                    cols: size.cols,
-                    pixel_height: height,
-                    pixel_width: size.pixel_width,
-                },
-                pixel_height_including_tab_bar,
-            )
+            let rows = size.rows + if self.show_tab_bar { 1 } else { 0 };
+            let cols = size.cols;
+
+            let pixel_height = (rows * self.render_metrics.cell_size.height as u16)
+                + (config.window_padding.top + config.window_padding.bottom);
+
+            let pixel_width = (cols * self.render_metrics.cell_size.width as u16)
+                + (config.window_padding.left + config.window_padding.right);
+
+            let dims = Dimensions {
+                pixel_width: pixel_width as usize,
+                pixel_height: pixel_height as usize,
+                dpi: dimensions.dpi,
+            };
+
+            (size, dims)
         } else {
-            (size, size.pixel_height)
+            // Resize of the window dimensions may result in changed terminal dimensions
+            let avail_width = dimensions.pixel_width
+                - (config.window_padding.left + config.window_padding.right) as usize;
+            let avail_height = dimensions.pixel_height
+                - (config.window_padding.top + config.window_padding.bottom) as usize;
+
+            let rows = (avail_height / self.render_metrics.cell_size.height as usize)
+                .saturating_sub(if self.show_tab_bar { 1 } else { 0 });
+            let cols = avail_width / self.render_metrics.cell_size.width as usize;
+
+            let size = PtySize {
+                rows: rows as u16,
+                cols: cols as u16,
+                pixel_height: avail_height as u16,
+                pixel_width: avail_width as u16,
+            };
+
+            (size, *dimensions)
         };
 
         self.render_state
             .advise_of_window_size_change(
                 &self.render_metrics,
-                size.pixel_width as usize,
-                pixel_height_including_tab_bar as usize,
+                dimensions.pixel_width,
+                dimensions.pixel_height,
             )
             .expect("failed to advise of resize");
+
+        self.terminal_size = size;
 
         let mux = Mux::get().unwrap();
         if let Some(window) = mux.get_window(self.mux_window_id) {
@@ -962,19 +991,17 @@ impl TermWindow {
         // Queue up a speculative resize in order to preserve the number of rows+cols
         if let Some(cell_dims) = scale_changed_cells {
             if let Some(window) = self.window.as_ref() {
-                log::error!("scale changed so resize to {:?}", cell_dims);
-                window.set_inner_size(
-                    cell_dims.cols * self.render_metrics.cell_size.width as usize,
-                    cell_dims.rows * self.render_metrics.cell_size.height as usize,
-                );
+                log::error!("scale changed so resize to {:?} {:?}", cell_dims, dims);
+                window.set_inner_size(dims.pixel_width, dims.pixel_height);
             }
         }
     }
 
     fn current_cell_dimensions(&self) -> RowsAndCols {
-        let rows = self.dimensions.pixel_height / self.render_metrics.cell_size.height as usize;
-        let cols = self.dimensions.pixel_width / self.render_metrics.cell_size.width as usize;
-        RowsAndCols { rows, cols }
+        RowsAndCols {
+            rows: self.terminal_size.rows as usize,
+            cols: self.terminal_size.cols as usize,
+        }
     }
 
     #[allow(clippy::float_cmp)]
@@ -1051,10 +1078,13 @@ impl TermWindow {
 
         term.clean_dirty_lines();
 
-        // Fill any marginal area below the last row
+        // Fill any padding
+        let config = configuration();
+        let bg = rgbcolor_to_window_color(palette.background);
+        // Fill any padding below the last row
         let (num_rows, _num_cols) = term.physical_dimensions();
-        let pixel_height_of_cells =
-            (num_rows + first_line_offset) * self.render_metrics.cell_size.height as usize;
+        let pixel_height_of_cells = config.window_padding.top as usize
+            + (num_rows + first_line_offset) * self.render_metrics.cell_size.height as usize;
         ctx.clear_rect(
             Rect::new(
                 Point::new(0, pixel_height_of_cells as isize),
@@ -1066,8 +1096,46 @@ impl TermWindow {
                         .saturating_sub(pixel_height_of_cells)) as isize,
                 ),
             ),
-            rgbcolor_to_window_color(palette.background),
+            bg,
         );
+
+        // top padding
+        ctx.clear_rect(
+            Rect::new(
+                Point::new(0, 0),
+                Size::new(
+                    self.dimensions.pixel_width as isize,
+                    config.window_padding.top as isize,
+                ),
+            ),
+            bg,
+        );
+        // left padding
+        ctx.clear_rect(
+            Rect::new(
+                Point::new(0, config.window_padding.top as isize),
+                Size::new(
+                    config.window_padding.left as isize,
+                    (self.dimensions.pixel_height - config.window_padding.top as usize) as isize,
+                ),
+            ),
+            bg,
+        );
+        // right padding
+        ctx.clear_rect(
+            Rect::new(
+                Point::new(
+                    (self.dimensions.pixel_width - config.window_padding.right as usize) as isize,
+                    config.window_padding.top as isize,
+                ),
+                Size::new(
+                    config.window_padding.right as isize,
+                    (self.dimensions.pixel_height - config.window_padding.top as usize) as isize,
+                ),
+            ),
+            bg,
+        );
+
         Ok(())
     }
 
@@ -1429,6 +1497,9 @@ impl TermWindow {
     ) -> anyhow::Result<()> {
         let config = configuration();
 
+        let padding_left = config.window_padding.left as isize;
+        let padding_top = config.window_padding.top as isize;
+
         let (_num_rows, num_cols) = terminal.physical_dimensions();
         let current_highlight = terminal.current_highlight();
 
@@ -1531,8 +1602,10 @@ impl TermWindow {
 
                     let cell_rect = Rect::new(
                         Point::new(
-                            cell_idx as isize * self.render_metrics.cell_size.width,
-                            self.render_metrics.cell_size.height * line_idx as isize,
+                            (cell_idx as isize * self.render_metrics.cell_size.width)
+                                + padding_left,
+                            (self.render_metrics.cell_size.height * line_idx as isize)
+                                + padding_top,
                         ),
                         self.render_metrics.cell_size,
                     );
@@ -1668,7 +1741,8 @@ impl TermWindow {
         }
 
         // Fill any marginal area to the right of the last cell
-        let pixel_width_of_cells = num_cols * self.render_metrics.cell_size.width as usize;
+        let pixel_width_of_cells =
+            padding_left as usize + (num_cols * self.render_metrics.cell_size.width as usize);
         ctx.clear_rect(
             Rect::new(
                 Point::new(

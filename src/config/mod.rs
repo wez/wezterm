@@ -426,6 +426,18 @@ pub struct Config {
     /// The default is true.
     #[serde(default = "default_true")]
     pub enable_wayland: bool,
+
+    /// Controls the amount of padding to use around the terminal cell area
+    #[serde(default)]
+    pub window_padding: WindowPadding,
+}
+
+#[derive(Default, Deserialize, Clone, Copy, Debug)]
+pub struct WindowPadding {
+    pub left: u16,
+    pub top: u16,
+    pub right: u16,
+    pub bottom: u16,
 }
 
 impl Default for Config {
