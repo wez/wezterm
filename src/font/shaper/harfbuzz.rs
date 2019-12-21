@@ -1,3 +1,4 @@
+use crate::config::configuration;
 use crate::font::ftwrap;
 use crate::font::hbwrap as harfbuzz;
 use crate::font::locator::FontDataHandle;
@@ -93,14 +94,25 @@ impl HarfbuzzShaper {
         font_size: f64,
         dpi: u32,
     ) -> anyhow::Result<Vec<GlyphInfo>> {
-        let features = vec![
-            // kerning
-            harfbuzz::feature_from_string("kern")?,
-            // ligatures
-            harfbuzz::feature_from_string("liga")?,
-            // contextual ligatures
-            harfbuzz::feature_from_string("clig")?,
-        ];
+        let features = if configuration().enable_ligatures {
+            vec![
+                // kerning
+                harfbuzz::feature_from_string("kern")?,
+                // ligatures
+                harfbuzz::feature_from_string("liga")?,
+                // contextual ligatures
+                harfbuzz::feature_from_string("clig")?,
+            ]
+        } else {
+            vec![
+                // kerning
+                harfbuzz::feature_from_string("-kern")?,
+                // ligatures
+                harfbuzz::feature_from_string("-liga")?,
+                // contextual ligatures
+                harfbuzz::feature_from_string("-clig")?,
+            ]
+        };
 
         let mut buf = harfbuzz::Buffer::new()?;
         buf.set_script(harfbuzz::hb_script_t::HB_SCRIPT_LATIN);

@@ -2,8 +2,7 @@
 //! At this time it is used only to extract name information,
 //! but in the future I'd like to use its shaping functionality
 #![allow(dead_code)]
-use crate::config::Config;
-use crate::config::FontAttributes;
+use crate::config::{configuration, Config, FontAttributes};
 use crate::font::locator::FontDataHandle;
 use crate::font::shaper::{FallbackIdx, FontMetrics, GlyphInfo};
 use crate::font::units::*;
@@ -320,16 +319,18 @@ impl ParsedFont {
         let vertical = false;
 
         if let Some(gsub_cache) = self.gsub_cache.as_ref() {
-            gsub_apply_default(
-                &|| vec![], //map_char('\u{25cc}')],
-                gsub_cache,
-                self.gdef_table.as_ref(),
-                script,
-                lang,
-                vertical,
-                self.num_glyphs,
-                &mut glyphs,
-            )?;
+            if configuration().enable_ligatures {
+                gsub_apply_default(
+                    &|| vec![], //map_char('\u{25cc}')],
+                    gsub_cache,
+                    self.gdef_table.as_ref(),
+                    script,
+                    lang,
+                    vertical,
+                    self.num_glyphs,
+                    &mut glyphs,
+                )?;
+            }
         }
 
         // Note: init_from_glyphs silently elides entries that

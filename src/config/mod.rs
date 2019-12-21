@@ -306,6 +306,8 @@ pub struct Config {
     pub font_hinting: FontHinting,
     #[serde(default)]
     pub font_antialias: FontAntiAliasing,
+    #[serde(default = "default_true")]
+    pub enable_ligatures: bool,
 
     #[serde(default)]
     pub front_end: FrontEndSelection,
