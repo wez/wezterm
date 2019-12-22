@@ -87,7 +87,7 @@ pub struct WaylandWindowInner {
     copy_and_paste: Arc<Mutex<CopyAndPaste>>,
     window: Option<toolkit::window::Window<toolkit::window::ConceptFrame>>,
     pool: MemPool,
-    dimensions: (u32, u32),
+    dimensions: Dimensions,
     need_paint: bool,
     last_mouse_coords: Point,
     mouse_buttons: MouseButtons,
@@ -171,8 +171,8 @@ impl WaylandWindow {
             let pending_event = Arc::clone(&pending_event);
             move |dpi, surface| {
                 pending_event.lock().unwrap().dpi.replace(dpi);
-                log::error!(
-                    "surface id={} dpi changed to {}",
+                log::debug!(
+                    "surface id={} dpi scale changed to {}",
                     surface.as_ref().id(),
                     dpi
                 );
@@ -183,11 +183,19 @@ impl WaylandWindow {
             }
         });
 
-        let dimensions = (width as u32, height as u32);
+        let dimensions = Dimensions {
+            pixel_width: width,
+            pixel_height: height,
+            dpi: 96,
+        };
+
         let mut window = toolkit::window::Window::<toolkit::window::ConceptFrame>::init_from_env(
             &*conn.environment.borrow(),
             surface.clone(),
-            dimensions,
+            (
+                dimensions.pixel_width as u32,
+                dimensions.pixel_height as u32,
+            ),
             {
                 let pending_event = Arc::clone(&pending_event);
                 move |evt| {
@@ -312,8 +320,8 @@ impl WaylandWindowInner {
                 kind: MouseEventKind::Move,
                 coords,
                 screen_coords: ScreenPoint::new(
-                    coords.x + self.dimensions.0 as isize,
-                    coords.y + self.dimensions.1 as isize,
+                    coords.x + self.dimensions.pixel_width as isize,
+                    coords.y + self.dimensions.pixel_height as isize,
                 ),
                 mouse_buttons: self.mouse_buttons,
                 modifiers: self.modifiers,
@@ -343,8 +351,8 @@ impl WaylandWindowInner {
                 },
                 coords: self.last_mouse_coords,
                 screen_coords: ScreenPoint::new(
-                    self.last_mouse_coords.x + self.dimensions.0 as isize,
-                    self.last_mouse_coords.y + self.dimensions.1 as isize,
+                    self.last_mouse_coords.x + self.dimensions.pixel_width as isize,
+                    self.last_mouse_coords.y + self.dimensions.pixel_height as isize,
                 ),
                 mouse_buttons: self.mouse_buttons,
                 modifiers: self.modifiers,
@@ -361,8 +369,8 @@ impl WaylandWindowInner {
                     kind: MouseEventKind::HorzWheel(-discrete_x as i16),
                     coords: self.last_mouse_coords,
                     screen_coords: ScreenPoint::new(
-                        self.last_mouse_coords.x + self.dimensions.0 as isize,
-                        self.last_mouse_coords.y + self.dimensions.1 as isize,
+                        self.last_mouse_coords.x + self.dimensions.pixel_width as isize,
+                        self.last_mouse_coords.y + self.dimensions.pixel_height as isize,
                     ),
                     mouse_buttons: self.mouse_buttons,
                     modifiers: self.modifiers,
@@ -377,8 +385,8 @@ impl WaylandWindowInner {
                     kind: MouseEventKind::VertWheel(-discrete_y as i16),
                     coords: self.last_mouse_coords,
                     screen_coords: ScreenPoint::new(
-                        self.last_mouse_coords.x + self.dimensions.0 as isize,
-                        self.last_mouse_coords.y + self.dimensions.1 as isize,
+                        self.last_mouse_coords.x + self.dimensions.pixel_width as isize,
+                        self.last_mouse_coords.y + self.dimensions.pixel_height as isize,
                     ),
                     mouse_buttons: self.mouse_buttons,
                     modifiers: self.modifiers,
@@ -390,11 +398,11 @@ impl WaylandWindowInner {
     }
 
     fn get_dpi_factor(&self) -> i32 {
-        toolkit::surface::get_dpi_factor(&self.surface)
+        self.dimensions.dpi as i32 / 96
     }
 
     fn get_dpi(&self) -> usize {
-        96 * self.get_dpi_factor() as usize
+        self.dimensions.dpi
     }
 
     fn surface_to_pixels(&self, surface: i32) -> i32 {
@@ -423,14 +431,16 @@ impl WaylandWindowInner {
         if pending.configure.is_none() && pending.dpi.is_some() {
             // Synthesize a pending configure event for the dpi change
             pending.configure.replace((
-                self.pixels_to_surface(self.dimensions.0 as i32) as u32,
-                self.pixels_to_surface(self.dimensions.1 as i32) as u32,
+                self.pixels_to_surface(self.dimensions.pixel_width as i32) as u32,
+                self.pixels_to_surface(self.dimensions.pixel_height as i32) as u32,
             ));
+            log::debug!("synthesize configure with {:?}", pending.configure);
         }
 
         if let Some((w, h)) = pending.configure.take() {
             if self.window.is_some() {
-                let factor = self.get_dpi_factor();
+                let factor = toolkit::surface::get_dpi_factor(&self.surface);
+
                 let pixel_width = self.surface_to_pixels(w.try_into().unwrap());
                 let pixel_height = self.surface_to_pixels(h.try_into().unwrap());
 
@@ -444,16 +454,13 @@ impl WaylandWindowInner {
                 self.window.as_mut().unwrap().resize(w, h);
 
                 // Store the new pixel dimensions
-                self.dimensions = (
-                    pixel_width.try_into().unwrap(),
-                    pixel_height.try_into().unwrap(),
-                );
-
-                self.callbacks.resize(Dimensions {
+                self.dimensions = Dimensions {
                     pixel_width: pixel_width.try_into().unwrap(),
                     pixel_height: pixel_height.try_into().unwrap(),
-                    dpi: self.get_dpi(),
-                });
+                    dpi: factor as usize * 96,
+                };
+
+                self.callbacks.resize(self.dimensions);
                 #[cfg(feature = "opengl")]
                 {
                     if let Some(wegl_surface) = self.wegl_surface.as_mut() {
@@ -480,7 +487,13 @@ impl WaylandWindowInner {
         #[cfg(feature = "opengl")]
         {
             if let Some(gl_context) = self.gl_state.as_ref() {
-                let mut frame = glium::Frame::new(Rc::clone(&gl_context), self.dimensions);
+                let mut frame = glium::Frame::new(
+                    Rc::clone(&gl_context),
+                    (
+                        self.dimensions.pixel_width as u32,
+                        self.dimensions.pixel_height as u32,
+                    ),
+                );
 
                 self.callbacks.paint_opengl(&mut frame);
                 frame.finish()?;
@@ -503,12 +516,12 @@ impl WaylandWindowInner {
         }
 
         self.pool
-            .resize((4 * self.dimensions.0 * self.dimensions.1) as usize)?;
+            .resize(4 * self.dimensions.pixel_width * self.dimensions.pixel_height)?;
 
         let dpi = self.get_dpi();
         let mut context = MmapImage {
             mmap: self.pool.mmap(),
-            dimensions: (self.dimensions.0 as usize, self.dimensions.1 as usize),
+            dimensions: (self.dimensions.pixel_width, self.dimensions.pixel_height),
             dpi,
         };
         self.callbacks.paint(&mut context);
@@ -516,9 +529,9 @@ impl WaylandWindowInner {
 
         let buffer = self.pool.buffer(
             0,
-            self.dimensions.0 as i32,
-            self.dimensions.1 as i32,
-            4 * self.dimensions.0 as i32,
+            self.dimensions.pixel_width as i32,
+            self.dimensions.pixel_height as i32,
+            4 * self.dimensions.pixel_width as i32,
             toolkit::reexports::client::protocol::wl_shm::Format::Argb8888,
         );
 
@@ -534,8 +547,12 @@ impl WaylandWindowInner {
 
     fn damage(&mut self) {
         if self.surface.as_ref().version() >= 4 {
-            self.surface
-                .damage_buffer(0, 0, self.dimensions.0 as i32, self.dimensions.1 as i32);
+            self.surface.damage_buffer(
+                0,
+                0,
+                self.dimensions.pixel_width as i32,
+                self.dimensions.pixel_height as i32,
+            );
         } else {
             // Older versions use the surface size which is the pre-scaled
             // dimensions.  Since we store the scaled dimensions, we need
@@ -543,8 +560,8 @@ impl WaylandWindowInner {
             self.surface.damage(
                 0,
                 0,
-                self.pixels_to_surface(self.dimensions.0 as i32),
-                self.pixels_to_surface(self.dimensions.1 as i32),
+                self.pixels_to_surface(self.dimensions.pixel_width as i32),
+                self.pixels_to_surface(self.dimensions.pixel_height as i32),
             );
         }
     }
@@ -703,8 +720,8 @@ impl WindowOps for WaylandWindow {
             } else {
                 wegl_surface = Some(WlEglSurface::new(
                     &inner.surface,
-                    inner.dimensions.0 as i32,
-                    inner.dimensions.1 as i32,
+                    inner.dimensions.pixel_width as i32,
+                    inner.dimensions.pixel_height as i32,
                 ));
 
                 crate::egl::GlState::create_wayland(
