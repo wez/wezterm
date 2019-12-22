@@ -306,8 +306,42 @@ pub struct Config {
     pub font_hinting: FontHinting,
     #[serde(default)]
     pub font_antialias: FontAntiAliasing,
-    #[serde(default = "default_true")]
-    pub enable_ligatures: bool,
+
+    /// Specify the features to enable when using harfbuzz for font shaping.
+    /// There is some light documentation here:
+    /// <https://harfbuzz.github.io/shaping-opentype-features.html>
+    /// but it boils down to allowing opentype feature names to be specified
+    /// using syntax similar to the CSS font-feature-settings options:
+    /// <https://developer.mozilla.org/en-US/docs/Web/CSS/font-feature-settings>.
+    /// The OpenType spec lists a number of features here:
+    /// <https://docs.microsoft.com/en-us/typography/opentype/spec/featurelist>
+    ///
+    /// Options of likely interest will be:
+    ///
+    /// * `calt` - <https://docs.microsoft.com/en-us/typography/opentype/spec/features_ae#tag-calt>
+    /// * `clig` - <https://docs.microsoft.com/en-us/typography/opentype/spec/features_ae#tag-clig>
+    ///
+    /// If you want to disable ligatures in most fonts, then you may want to
+    /// use a setting like this:
+    ///
+    /// ```toml
+    /// harfuzz_features = ["calt=0", "clig=0", "liga=0"]
+    /// ```
+    ///
+    /// Some fonts make available extended options via stylistic sets.
+    /// If you use the [Fira Code font](https://github.com/tonsky/FiraCode),
+    /// it lists available stylistic sets here:
+    /// <https://github.com/tonsky/FiraCode/wiki/How-to-enable-stylistic-sets>
+    ///
+    /// and you can set them in wezterm:
+    ///
+    /// ```toml
+    /// # Use this for a zero with a dot rather than a line through it
+    /// # when using the Fira Code font
+    /// harfuzz_features = ["zero"]
+    /// ```
+    #[serde(default = "default_harfbuzz_features")]
+    pub harfuzz_features: Vec<String>,
 
     #[serde(default)]
     pub front_end: FrontEndSelection,
@@ -573,6 +607,13 @@ fn default_hyperlink_rules() -> Vec<hyperlink::Rule> {
         // implicit mailto link
         hyperlink::Rule::new(r"\b\w+@[\w-]+(\.[\w-]+)+\b", "mailto:$0").unwrap(),
     ]
+}
+
+fn default_harfbuzz_features() -> Vec<String> {
+    ["kern", "liga", "clig"]
+        .into_iter()
+        .map(|s| s.to_string())
+        .collect()
 }
 
 fn default_term() -> String {

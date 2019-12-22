@@ -94,25 +94,12 @@ impl HarfbuzzShaper {
         font_size: f64,
         dpi: u32,
     ) -> anyhow::Result<Vec<GlyphInfo>> {
-        let features = if configuration().enable_ligatures {
-            vec![
-                // kerning
-                harfbuzz::feature_from_string("kern")?,
-                // ligatures
-                harfbuzz::feature_from_string("liga")?,
-                // contextual ligatures
-                harfbuzz::feature_from_string("clig")?,
-            ]
-        } else {
-            vec![
-                // kerning
-                harfbuzz::feature_from_string("-kern")?,
-                // ligatures
-                harfbuzz::feature_from_string("-liga")?,
-                // contextual ligatures
-                harfbuzz::feature_from_string("-clig")?,
-            ]
-        };
+        let config = configuration();
+        let features: Vec<harfbuzz::hb_feature_t> = config
+            .harfuzz_features
+            .iter()
+            .filter_map(|s| harfbuzz::feature_from_string(s).ok())
+            .collect();
 
         let mut buf = harfbuzz::Buffer::new()?;
         buf.set_script(harfbuzz::hb_script_t::HB_SCRIPT_LATIN);
