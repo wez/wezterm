@@ -54,7 +54,7 @@ pub trait FontLocator {
         -> anyhow::Result<Vec<FontDataHandle>>;
 }
 
-#[derive(Debug, Deserialize, Clone, Copy)]
+#[derive(Debug, Deserialize, Clone, Copy, PartialEq, Eq)]
 pub enum FontLocatorSelection {
     /// Use fontconfig APIs to resolve fonts (!macos, posix systems)
     FontConfig,

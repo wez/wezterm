@@ -3,7 +3,7 @@
 //! but in the future I'd like to use its shaping functionality
 #![allow(dead_code)]
 use crate::config::{Config, FontAttributes};
-use crate::font::locator::FontDataHandle;
+use crate::font::locator::{FontDataHandle, FontLocatorSelection};
 use crate::font::shaper::{FallbackIdx, FontMetrics, GlyphInfo};
 use crate::font::units::*;
 use allsorts::binary::read::{ReadScope, ReadScopeOwned};
@@ -119,7 +119,8 @@ impl ParsedFont {
                     break;
                 }
             }
-            if !found {
+            if !found && FontLocatorSelection::get_default() != FontLocatorSelection::ConfigDirsOnly
+            {
                 log::error!("Did not locate a font match for {:?}", attr);
             }
         }
