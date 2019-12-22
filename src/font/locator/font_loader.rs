@@ -13,6 +13,15 @@ impl FontLocator for FontLoaderFontLocator {
     ) -> anyhow::Result<Vec<FontDataHandle>> {
         let mut fonts = Vec::new();
         for font_attr in fonts_selection {
+            if cfg!(windows) && font_attr.family.len() > 31 {
+                // Avoid a super painful panic in the upstream library:
+                // https://github.com/MSleepyPanda/rust-font-loader/blob/2b264974fe080955d341ce8a163035bdce24ff2f/src/win32.rs#L87
+                log::error!(
+                    "font-loader would panic for font family `{}`",
+                    font_attr.family
+                );
+                continue;
+            }
             let mut font_props = system_fonts::FontPropertyBuilder::new()
                 .family(&font_attr.family)
                 .monospace();
