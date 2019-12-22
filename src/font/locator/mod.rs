@@ -117,7 +117,7 @@ impl FontLocatorSelection {
                 #[cfg(not(any(target_os = "macos", windows)))]
                 panic!("fontkit not compiled in");
             }
-            Self::ConfigDirsOnly => return Box::new(NopSystemSource {}),
+            Self::ConfigDirsOnly => Box::new(NopSystemSource {}),
         }
     }
 }

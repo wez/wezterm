@@ -139,7 +139,7 @@ impl TabBarState {
 
             line.set_cell(x, Cell::new(' ', cell_attrs.clone()));
             line.set_cell(x + 1, Cell::new('+', cell_attrs.clone()));
-            line.set_cell(x + 2, Cell::new(' ', cell_attrs.clone()));
+            line.set_cell(x + 2, Cell::new(' ', cell_attrs));
             x += 3;
         }
 

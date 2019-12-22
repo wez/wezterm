@@ -690,7 +690,7 @@ impl XWindow {
 
         window.lock().unwrap().callbacks.created(&window_handle);
 
-        conn.windows.borrow_mut().insert(window_id, window.clone());
+        conn.windows.borrow_mut().insert(window_id, window);
 
         window_handle.set_title(name);
         window_handle.show();

@@ -50,6 +50,7 @@ pub fn compute_load_flags_from_config() -> i32 {
     // If the bitmaps are in color, we want those!
     let flags = flags | FT_LOAD_COLOR;
 
+    #[allow(clippy::let_and_return)]
     let flags = if config.font_antialias == FontAntiAliasing::None {
         // When AA is disabled, force outline rendering to monochrome
         flags | FT_LOAD_MONOCHROME

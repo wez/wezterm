@@ -170,9 +170,15 @@ mod avx {
 /// storage filled in by the trait implementation.
 pub trait BitmapImage {
     /// Obtain a read only pointer to the pixel data
+    /// # Safety
+    /// The caller is responsible for ensuring that pixel
+    /// access is bounded by the image_dimensions
     unsafe fn pixel_data(&self) -> *const u8;
 
     /// Obtain a mutable pointer to the pixel data
+    /// # Safety
+    /// The caller is responsible for ensuring that pixel
+    /// access is bounded by the image_dimensions
     unsafe fn pixel_data_mut(&mut self) -> *mut u8;
 
     /// Return the pair (width, height) of the image, measured in pixels

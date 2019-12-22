@@ -332,7 +332,7 @@ impl LayoutState {
             )
             .map_err(adderr)?;
         self.solver
-            .add_constraint(state.left | GE(REQUIRED) | parent_left.clone())
+            .add_constraint(state.left | GE(REQUIRED) | parent_left)
             .map_err(adderr)?;
 
         self.solver
@@ -341,7 +341,7 @@ impl LayoutState {
             )
             .map_err(adderr)?;
         self.solver
-            .add_constraint(state.top | GE(REQUIRED) | parent_top.clone())
+            .add_constraint(state.top | GE(REQUIRED) | parent_top)
             .map_err(adderr)?;
 
         if is_root_widget {

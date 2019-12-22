@@ -287,7 +287,7 @@ impl WaylandWindowInner {
                 // Avoid redundant key == raw_key
                 let (key, raw_key) = match (key, raw_key) {
                     // Avoid eg: \x01 when we can use CTRL-A
-                    (KeyCode::Char(c), Some(raw)) if c.is_ascii_control() => (raw.clone(), None),
+                    (KeyCode::Char(c), Some(raw)) if c.is_ascii_control() => (raw, None),
                     (key, Some(raw)) if key == raw => (key, None),
                     pair => pair,
                 };

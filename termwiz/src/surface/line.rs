@@ -385,7 +385,7 @@ impl Line {
 
                 if num_trailing_spaces > 0 {
                     if !left.is_empty() {
-                        result.push(Change::Text(left.to_string()));
+                        result.push(Change::Text(left));
                     } else if result.len() == 1 {
                         // if the only queued result prior to clearing
                         // to the end of the line is an attribute change,
@@ -405,10 +405,10 @@ impl Line {
                         result.push(Change::ClearToEndOfLine(attr.background));
                     }
                 } else {
-                    result.push(Change::Text(text_run.clone()));
+                    result.push(Change::Text(text_run));
                 }
             } else {
-                result.push(Change::Text(text_run.clone()));
+                result.push(Change::Text(text_run));
             }
         }
 

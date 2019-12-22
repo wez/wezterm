@@ -623,8 +623,8 @@ fn default_hyperlink_rules() -> Vec<hyperlink::Rule> {
 
 fn default_harfbuzz_features() -> Vec<String> {
     ["kern", "liga", "clig"]
-        .into_iter()
-        .map(|s| s.to_string())
+        .iter()
+        .map(|&s| s.to_string())
         .collect()
 }
 

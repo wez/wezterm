@@ -16,15 +16,13 @@ pub trait TerminalConfiguration: std::fmt::Debug {
 
     // TODO: expose is_double_click_word in config file
     fn is_double_click_word(&self, s: &str) -> bool {
-        if s.len() > 1 {
-            true
-        } else if s.len() == 1 {
-            match s.chars().nth(0).unwrap() {
+        match s.len() {
+            1 => match s.chars().nth(0).unwrap() {
                 ' ' | '\t' | '\n' | '{' | '[' | '}' | ']' | '(' | ')' | '"' | '\'' => false,
                 _ => true,
-            }
-        } else {
-            false
+            },
+            0 => false,
+            _ => true,
         }
     }
 
