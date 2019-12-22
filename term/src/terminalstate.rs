@@ -10,8 +10,8 @@ use ordered_float::NotNan;
 use std::fmt::Write;
 use std::sync::Arc;
 use termwiz::escape::csi::{
-    Cursor, DecPrivateMode, DecPrivateModeCode, Device, Edit, EraseInDisplay, EraseInLine, Mode,
-    Sgr, TerminalMode, TerminalModeCode, Window,
+    Cursor, CursorStyle, DecPrivateMode, DecPrivateModeCode, Device, Edit, EraseInDisplay,
+    EraseInLine, Mode, Sgr, TerminalMode, TerminalModeCode, Window,
 };
 use termwiz::escape::osc::{ChangeColorPair, ColorOrQuery, ITermFileData, ITermProprietary};
 use termwiz::escape::{Action, ControlCode, Esc, EscCode, OneBased, OperatingSystemCommand, CSI};
@@ -1925,7 +1925,17 @@ impl TerminalState {
             }
             Cursor::SaveCursor => self.save_cursor(),
             Cursor::RestoreCursor => self.restore_cursor(),
-            Cursor::CursorStyle(style) => error!("unhandled: CursorStyle {:?}", style),
+            Cursor::CursorStyle(style) => {
+                self.cursor.shape = match style {
+                    CursorStyle::Default => CursorShape::Default,
+                    CursorStyle::BlinkingBlock => CursorShape::BlinkingBlock,
+                    CursorStyle::SteadyBlock => CursorShape::SteadyBlock,
+                    CursorStyle::BlinkingUnderline => CursorShape::BlinkingUnderline,
+                    CursorStyle::SteadyUnderline => CursorShape::SteadyUnderline,
+                    CursorStyle::BlinkingBar => CursorShape::BlinkingBar,
+                    CursorStyle::SteadyBar => CursorShape::SteadyBar,
+                }
+            }
         }
     }
 
@@ -1956,6 +1966,7 @@ impl TerminalState {
         let x = saved.position.x;
         let y = saved.position.y;
         self.set_cursor_pos(&Position::Absolute(x as i64), &Position::Absolute(y));
+        self.cursor.shape = saved.position.shape;
         self.wrap_next = saved.wrap_next;
         self.insert = saved.insert;
     }
