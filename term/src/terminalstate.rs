@@ -17,6 +17,7 @@ use termwiz::escape::osc::{ChangeColorPair, ColorOrQuery, ITermFileData, ITermPr
 use termwiz::escape::{Action, ControlCode, Esc, EscCode, OneBased, OperatingSystemCommand, CSI};
 use termwiz::hyperlink::Rule as HyperlinkRule;
 use termwiz::image::{ImageCell, ImageData, TextureCoordinate};
+use termwiz::surface::CursorShape;
 
 struct TabStop {
     tabs: Vec<bool>,
@@ -777,6 +778,7 @@ impl TerminalState {
         let new_position = CursorPosition {
             x: event.x,
             y: event.y as VisibleRowIndex,
+            ..self.mouse_position
         };
 
         if new_position != self.mouse_position {
@@ -1218,6 +1220,11 @@ impl TerminalState {
         CursorPosition {
             x: self.cursor.x,
             y: self.cursor.y + self.viewport_offset,
+            shape: if self.cursor_visible {
+                self.mouse_position.shape
+            } else {
+                CursorShape::Hidden
+            },
         }
     }
 

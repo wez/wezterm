@@ -395,8 +395,14 @@ impl RenderableInner {
 
 impl Renderable for RenderableState {
     fn get_cursor_position(&self) -> CursorPosition {
-        let (x, y) = self.inner.borrow().surface.cursor_position();
-        CursorPosition { x, y: y as i64 }
+        let surface = &self.inner.borrow().surface;
+        let (x, y) = surface.cursor_position();
+        let shape = surface.cursor_shape();
+        CursorPosition {
+            x,
+            y: y as i64,
+            shape,
+        }
     }
 
     fn get_dirty_lines(&self) -> Vec<(usize, Cow<Line>, Range<usize>)> {

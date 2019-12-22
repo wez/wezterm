@@ -181,6 +181,10 @@ impl Surface {
         (self.xpos, self.ypos)
     }
 
+    pub fn cursor_shape(&self) -> CursorShape {
+        self.cursor_shape
+    }
+
     pub fn title(&self) -> &str {
         &self.title
     }

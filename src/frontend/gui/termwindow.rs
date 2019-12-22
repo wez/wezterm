@@ -25,6 +25,7 @@ use std::sync::Arc;
 use term::color::ColorPalette;
 use term::{CursorPosition, Line, Underline};
 use termwiz::color::RgbColor;
+use termwiz::surface::CursorShape;
 
 #[derive(Debug, Clone, Copy)]
 struct RowsAndCols {
@@ -1053,6 +1054,7 @@ impl TermWindow {
             CursorPosition {
                 x: cursor.x,
                 y: cursor.y + first_line_offset as i64,
+                ..cursor
             }
         };
 
@@ -1158,6 +1160,7 @@ impl TermWindow {
             CursorPosition {
                 x: cursor.x,
                 y: cursor.y + first_line_offset as i64,
+                ..cursor
             }
         };
 
@@ -1774,7 +1777,9 @@ impl TermWindow {
         palette: &ColorPalette,
     ) -> (Color, Color) {
         let selected = selection.contains(&cell_idx);
-        let is_cursor = line_idx as i64 == cursor.y && cursor.x == cell_idx;
+        let is_cursor = line_idx as i64 == cursor.y
+            && cursor.x == cell_idx
+            && cursor.shape != CursorShape::Hidden;
 
         let (fg_color, bg_color) = match (selected, is_cursor) {
             // Normally, render the cell as configured

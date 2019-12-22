@@ -12,6 +12,7 @@ use std::cell::RefCell;
 use std::sync::Arc;
 use termwiz::escape::csi::{Edit, EraseInDisplay, EraseInLine};
 use termwiz::escape::{OneBased, OperatingSystemCommand, CSI};
+use termwiz::surface::CursorShape;
 
 struct TestHost {
     title: String,
@@ -235,7 +236,11 @@ impl TestTerm {
 
     fn assert_cursor_pos(&self, x: usize, y: i64, reason: Option<&str>) {
         let cursor = self.cursor_pos();
-        let expect = CursorPosition { x, y };
+        let expect = CursorPosition {
+            x,
+            y,
+            shape: CursorShape::Default,
+        };
         assert_eq!(
             cursor, expect,
             "actual cursor (left) didn't match expected cursor (right) reason={:?}",

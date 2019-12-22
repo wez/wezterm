@@ -80,6 +80,7 @@ pub enum Position {
 pub struct CursorPosition {
     pub x: usize,
     pub y: VisibleRowIndex,
+    pub shape: termwiz::surface::CursorShape,
 }
 
 pub mod color;
