@@ -6,6 +6,7 @@ use ::window::bitmaps::{BitmapImage, Image, Texture2d};
 use ::window::*;
 use std::rc::Rc;
 use term::Underline;
+use termwiz::surface::CursorShape;
 
 #[derive(Copy, Clone)]
 pub struct RenderMetrics {
@@ -164,8 +165,8 @@ impl<T: Texture2d> UtilSprites<T> {
 
         // Derive a width for the border box from the underline height,
         // but aspect ratio adjusted for width.
-        let border_width = (metrics.underline_height as f64 * metrics.cell_size.height as f64
-            / metrics.cell_size.width as f64)
+        let border_width = (metrics.underline_height as f64 * metrics.cell_size.width as f64
+            / metrics.cell_size.height as f64)
             .ceil() as usize;
 
         buffer.clear_rect(cell_rect, black);
@@ -184,11 +185,11 @@ impl<T: Texture2d> UtilSprites<T> {
             buffer.draw_line(
                 Point::new(
                     cell_rect.origin.x,
-                    cell_rect.origin.y + metrics.cell_size.height.saturating_sub(i),
+                    cell_rect.origin.y + metrics.cell_size.height.saturating_sub(1 + i),
                 ),
                 Point::new(
                     cell_rect.origin.x + metrics.cell_size.width,
-                    cell_rect.origin.y + metrics.cell_size.height.saturating_sub(i),
+                    cell_rect.origin.y + metrics.cell_size.height.saturating_sub(1 + i),
                 ),
                 white,
                 Operator::Source,
@@ -208,11 +209,11 @@ impl<T: Texture2d> UtilSprites<T> {
             // Right border
             buffer.draw_line(
                 Point::new(
-                    cell_rect.origin.x + metrics.cell_size.width.saturating_sub(i as isize),
+                    cell_rect.origin.x + metrics.cell_size.width.saturating_sub(1 + i as isize),
                     cell_rect.origin.y,
                 ),
                 Point::new(
-                    cell_rect.origin.x + metrics.cell_size.width.saturating_sub(i as isize),
+                    cell_rect.origin.x + metrics.cell_size.width.saturating_sub(1 + i as isize),
                     cell_rect.origin.y + metrics.cell_size.height,
                 ),
                 white,
@@ -222,7 +223,7 @@ impl<T: Texture2d> UtilSprites<T> {
         let cursor_box = glyph_cache.atlas.allocate(&buffer)?;
 
         buffer.clear_rect(cell_rect, black);
-        for i in 0..border_width {
+        for i in 0..border_width * 2 {
             // Left border
             buffer.draw_line(
                 Point::new(cell_rect.origin.x + i as isize, cell_rect.origin.y),
@@ -242,11 +243,11 @@ impl<T: Texture2d> UtilSprites<T> {
             buffer.draw_line(
                 Point::new(
                     cell_rect.origin.x,
-                    cell_rect.origin.y + metrics.cell_size.height.saturating_sub(i),
+                    cell_rect.origin.y + metrics.cell_size.height.saturating_sub(1 + i),
                 ),
                 Point::new(
                     cell_rect.origin.x + metrics.cell_size.width,
-                    cell_rect.origin.y + metrics.cell_size.height.saturating_sub(i),
+                    cell_rect.origin.y + metrics.cell_size.height.saturating_sub(1 + i),
                 ),
                 white,
                 Operator::Source,
@@ -289,6 +290,15 @@ impl<T: Texture2d> UtilSprites<T> {
             (false, true, Underline::None) => &self.strike_through,
             (false, true, Underline::Single) => &self.single_and_strike,
             (false, true, Underline::Double) => &self.double_and_strike,
+        }
+    }
+
+    pub fn cursor_sprite(&self, shape: CursorShape) -> &Sprite<T> {
+        match shape {
+            CursorShape::Default | CursorShape::Hidden => &self.white_space,
+            CursorShape::BlinkingBlock | CursorShape::SteadyBlock => &self.cursor_box,
+            CursorShape::BlinkingBar | CursorShape::SteadyBar => &self.cursor_i_beam,
+            CursorShape::BlinkingUnderline | CursorShape::SteadyUnderline => &self.cursor_underline,
         }
     }
 }

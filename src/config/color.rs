@@ -11,6 +11,7 @@ pub struct Palette {
     /// The color of the cursor
     pub cursor_fg: Option<RgbColor>,
     pub cursor_bg: Option<RgbColor>,
+    pub cursor_border: Option<RgbColor>,
     /// The color of selected text
     pub selection_fg: Option<RgbColor>,
     pub selection_bg: Option<RgbColor>,
@@ -37,6 +38,7 @@ impl From<Palette> for term::color::ColorPalette {
         apply_color!(background);
         apply_color!(cursor_fg);
         apply_color!(cursor_bg);
+        apply_color!(cursor_border);
         apply_color!(selection_fg);
         apply_color!(selection_bg);
 

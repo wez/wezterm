@@ -23,13 +23,25 @@ pub struct Vertex {
     pub tex: (f32, f32),
     // underline texture
     pub underline: (f32, f32),
+    // cursor texture
+    pub cursor: (f32, f32),
+    pub cursor_color: (f32, f32, f32, f32),
     pub bg_color: (f32, f32, f32, f32),
     pub fg_color: (f32, f32, f32, f32),
     // "bool can't be an in in the vertex shader"
     pub has_color: f32,
 }
 ::window::glium::implement_vertex!(
-    Vertex, position, adjust, tex, underline, bg_color, fg_color, has_color
+    Vertex,
+    position,
+    adjust,
+    tex,
+    underline,
+    cursor,
+    cursor_color,
+    bg_color,
+    fg_color,
+    has_color
 );
 
 /// A helper for updating the 4 vertices that compose a glyph cell
@@ -90,5 +102,19 @@ impl<'a> Quad<'a> {
         self.vert[V_TOP_RIGHT].underline = (coords.max_x(), coords.min_y());
         self.vert[V_BOT_LEFT].underline = (coords.min_x(), coords.max_y());
         self.vert[V_BOT_RIGHT].underline = (coords.max_x(), coords.max_y());
+    }
+
+    pub fn set_cursor(&mut self, coords: TextureRect) {
+        self.vert[V_TOP_LEFT].cursor = (coords.min_x(), coords.min_y());
+        self.vert[V_TOP_RIGHT].cursor = (coords.max_x(), coords.min_y());
+        self.vert[V_BOT_LEFT].cursor = (coords.min_x(), coords.max_y());
+        self.vert[V_BOT_RIGHT].cursor = (coords.max_x(), coords.max_y());
+    }
+
+    pub fn set_cursor_color(&mut self, color: Color) {
+        let color = color.to_tuple_rgba();
+        for v in self.vert.iter_mut() {
+            v.cursor_color = color;
+        }
     }
 }

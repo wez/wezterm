@@ -14,6 +14,7 @@ pub struct ColorPalette {
     pub background: RgbColor,
     pub cursor_fg: RgbColor,
     pub cursor_bg: RgbColor,
+    pub cursor_border: RgbColor,
     pub selection_fg: RgbColor,
     pub selection_bg: RgbColor,
 }
@@ -180,6 +181,7 @@ impl Default for ColorPalette {
         let background = colors[AnsiColor::Black as usize];
 
         let cursor_bg = RgbColor::new(0x52, 0xad, 0x70);
+        let cursor_border = RgbColor::new(0x52, 0xad, 0x70);
         let cursor_fg = colors[AnsiColor::Black as usize];
 
         let selection_fg = colors[AnsiColor::Black as usize];
@@ -191,6 +193,7 @@ impl Default for ColorPalette {
             background,
             cursor_fg,
             cursor_bg,
+            cursor_border,
             selection_fg,
             selection_bg,
         }

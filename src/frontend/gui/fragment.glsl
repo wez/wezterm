@@ -5,6 +5,8 @@ in vec4 o_fg_color;
 in vec4 o_bg_color;
 in float o_has_color;
 in vec2 o_underline;
+in vec2 o_cursor;
+in vec4 o_cursor_color;
 
 uniform mat4 projection;
 uniform bool bg_and_line_layer;
@@ -44,6 +46,11 @@ void main() {
         // we take this pixel color, otherwise we'll leave the color
         // at the background color.
         color = under_color;
+    }
+
+    vec4 cursor_outline = multiply(o_cursor_color, texture(glyph_tex, o_cursor));
+    if (cursor_outline.a != 0.0) {
+      color = cursor_outline;
     }
 
   } else {

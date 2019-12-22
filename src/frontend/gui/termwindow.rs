@@ -1303,6 +1303,7 @@ impl TermWindow {
         };
 
         let current_highlight = terminal.current_highlight();
+        let cursor_border_color = rgbcolor_to_window_color(palette.cursor_border);
 
         // Break the line into clusters of cells with the same attributes
         let cell_clusters = line.cluster();
@@ -1396,7 +1397,7 @@ impl TermWindow {
                     }
                     last_cell_idx = cell_idx;
 
-                    let (glyph_color, bg_color) = self.compute_cell_fg_bg(
+                    let (glyph_color, bg_color, cursor_shape) = self.compute_cell_fg_bg(
                         line_idx,
                         cell_idx,
                         cursor,
@@ -1442,6 +1443,13 @@ impl TermWindow {
                             quad.set_texture_adjust(0., 0., 0., 0.);
                             quad.set_underline(gl_state.util_sprites.white_space.texture_coords());
                             quad.set_has_color(true);
+                            quad.set_cursor(
+                                gl_state
+                                    .util_sprites
+                                    .cursor_sprite(cursor_shape)
+                                    .texture_coords(),
+                            );
+                            quad.set_cursor_color(cursor_border_color);
 
                             continue;
                         }
@@ -1477,6 +1485,13 @@ impl TermWindow {
                     quad.set_texture_adjust(left, top, right, bottom);
                     quad.set_underline(underline_tex_rect);
                     quad.set_has_color(glyph.has_color);
+                    quad.set_cursor(
+                        gl_state
+                            .util_sprites
+                            .cursor_sprite(cursor_shape)
+                            .texture_coords(),
+                    );
+                    quad.set_cursor_color(cursor_border_color);
                 }
             }
         }
@@ -1494,7 +1509,7 @@ impl TermWindow {
             // Even though we don't have a cell for these, they still
             // hold the cursor or the selection so we need to compute
             // the colors in the usual way.
-            let (glyph_color, bg_color) = self.compute_cell_fg_bg(
+            let (glyph_color, bg_color, cursor_shape) = self.compute_cell_fg_bg(
                 line_idx,
                 cell_idx,
                 cursor,
@@ -1512,6 +1527,13 @@ impl TermWindow {
             quad.set_texture_adjust(0., 0., 0., 0.);
             quad.set_underline(white_space);
             quad.set_has_color(false);
+            quad.set_cursor(
+                gl_state
+                    .util_sprites
+                    .cursor_sprite(cursor_shape)
+                    .texture_coords(),
+            );
+            quad.set_cursor_color(cursor_border_color);
         }
 
         Ok(())
@@ -1535,6 +1557,7 @@ impl TermWindow {
 
         let (_num_rows, num_cols) = terminal.physical_dimensions();
         let current_highlight = terminal.current_highlight();
+        let cursor_border_color = rgbcolor_to_window_color(palette.cursor_border);
 
         // Break the line into clusters of cells with the same attributes
         let cell_clusters = line.cluster();
@@ -1623,7 +1646,7 @@ impl TermWindow {
                     }
                     last_cell_idx = cell_idx;
 
-                    let (glyph_color, bg_color) = self.compute_cell_fg_bg(
+                    let (glyph_color, bg_color, cursor_shape) = self.compute_cell_fg_bg(
                         line_idx,
                         cell_idx,
                         cursor,
@@ -1644,32 +1667,13 @@ impl TermWindow {
                     );
                     ctx.clear_rect(cell_rect, bg_color);
 
-                    match underline {
-                        Underline::Single => {
-                            let software = self.render_state.software();
-                            let sprite = &software.util_sprites.single_underline;
-                            ctx.draw_image(
-                                cell_rect.origin,
-                                Some(sprite.coords),
-                                &*sprite.texture.image.borrow(),
-                                Operator::MultiplyThenOver(glyph_color),
-                            );
-                        }
-                        Underline::Double => {
-                            let software = self.render_state.software();
-                            let sprite = &software.util_sprites.double_underline;
-                            ctx.draw_image(
-                                cell_rect.origin,
-                                Some(sprite.coords),
-                                &*sprite.texture.image.borrow(),
-                                Operator::MultiplyThenOver(glyph_color),
-                            );
-                        }
-                        Underline::None => {}
-                    }
-                    if attrs.strikethrough() {
+                    {
                         let software = self.render_state.software();
-                        let sprite = &software.util_sprites.strike_through;
+                        let sprite = software.util_sprites.select_sprite(
+                            is_highlited_hyperlink,
+                            attrs.strikethrough(),
+                            underline,
+                        );
                         ctx.draw_image(
                             cell_rect.origin,
                             Some(sprite.coords),
@@ -1738,6 +1742,17 @@ impl TermWindow {
                             );
                         }
                     }
+
+                    if cursor_shape != CursorShape::Hidden {
+                        let software = self.render_state.software();
+                        let sprite = software.util_sprites.cursor_sprite(cursor_shape);
+                        ctx.draw_image(
+                            cell_rect.origin,
+                            Some(sprite.coords),
+                            &*sprite.texture.image.borrow(),
+                            Operator::MultiplyThenOver(cursor_border_color),
+                        );
+                    }
                 }
             }
         }
@@ -1753,7 +1768,7 @@ impl TermWindow {
             // Even though we don't have a cell for these, they still
             // hold the cursor or the selection so we need to compute
             // the colors in the usual way.
-            let (_glyph_color, bg_color) = self.compute_cell_fg_bg(
+            let (_glyph_color, bg_color, cursor_shape) = self.compute_cell_fg_bg(
                 line_idx,
                 cell_idx,
                 cursor,
@@ -1771,6 +1786,17 @@ impl TermWindow {
                 self.render_metrics.cell_size,
             );
             ctx.clear_rect(cell_rect, bg_color);
+
+            if cursor_shape != CursorShape::Hidden {
+                let software = self.render_state.software();
+                let sprite = software.util_sprites.cursor_sprite(cursor_shape);
+                ctx.draw_image(
+                    cell_rect.origin,
+                    Some(sprite.coords),
+                    &*sprite.texture.image.borrow(),
+                    Operator::MultiplyThenOver(cursor_border_color),
+                );
+            }
         }
 
         // Fill any marginal area to the right of the last cell
@@ -1805,12 +1831,12 @@ impl TermWindow {
         fg_color: Color,
         bg_color: Color,
         palette: &ColorPalette,
-    ) -> (Color, Color) {
+    ) -> (Color, Color, CursorShape) {
         let selected = selection.contains(&cell_idx);
 
         let is_cursor = line_idx as i64 == cursor.y && cursor.x == cell_idx;
 
-        let is_cursor = if is_cursor {
+        let cursor_shape = if is_cursor {
             // This logic figures out whether the cursor is visible or not.
             // If the cursor is explicitly hidden then it is obviously not
             // visible.
@@ -1818,12 +1844,10 @@ impl TermWindow {
             // depending on the current time.
             let config = configuration();
             let shape = config.default_cursor_style.effective_shape(cursor.shape);
-            if shape == CursorShape::Hidden {
-                false
-            } else if shape.is_blinking() {
+            if shape.is_blinking() {
                 if config.cursor_blink_rate == 0 {
                     // The user disabled blinking for their cursor
-                    true
+                    shape
                 } else {
                     // Divide the time since we were spawned by the blink rate.
                     // If the result is even then the cursor is "on", else it
@@ -1831,32 +1855,35 @@ impl TermWindow {
                     let now = std::time::Instant::now();
                     let milli_uptime = now.duration_since(self.created_instant).as_millis();
                     let ticks = milli_uptime / config.cursor_blink_rate as u128;
-                    (ticks & 1) == 0
+                    if (ticks & 1) == 0 {
+                        shape
+                    } else {
+                        CursorShape::Hidden
+                    }
                 }
             } else {
-                // Non-blinking, visible cursor!
-                true
+                shape
             }
         } else {
-            false
+            CursorShape::Hidden
         };
 
-        let (fg_color, bg_color) = match (selected, is_cursor) {
-            // Normally, render the cell as configured
-            (false, false) => (fg_color, bg_color),
-            // Cursor cell overrides colors
-            (_, true) => (
-                rgbcolor_to_window_color(palette.cursor_fg),
-                rgbcolor_to_window_color(palette.cursor_bg),
-            ),
+        let (fg_color, bg_color) = match (selected, cursor_shape) {
             // Selected text overrides colors
-            (true, false) => (
+            (true, CursorShape::Hidden) => (
                 rgbcolor_to_window_color(palette.selection_fg),
                 rgbcolor_to_window_color(palette.selection_bg),
             ),
+            // Cursor cell overrides colors
+            (_, CursorShape::BlinkingBlock) | (_, CursorShape::SteadyBlock) => (
+                rgbcolor_to_window_color(palette.cursor_fg),
+                rgbcolor_to_window_color(palette.cursor_bg),
+            ),
+            // Normally, render the cell as configured
+            _ => (fg_color, bg_color),
         };
 
-        (fg_color, bg_color)
+        (fg_color, bg_color, cursor_shape)
     }
 }
 
