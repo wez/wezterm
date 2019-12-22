@@ -22,6 +22,7 @@ use std::time::Duration;
 use term;
 use termwiz::hyperlink;
 use termwiz::input::{KeyCode, Modifiers};
+use termwiz::surface::CursorShape;
 use toml;
 
 mod color;
@@ -439,6 +440,49 @@ pub struct Config {
     /// least the interval specified with some degree of slop.
     #[serde(default = "default_cursor_blink_rate")]
     pub cursor_blink_rate: u64,
+
+    /// Specifies the default cursor style.  various escape sequences
+    /// can override the default style in different situations (eg:
+    /// an editor can change it depending on the mode), but this value
+    /// controls how the cursor appears when it is reset to default.
+    /// The default is `SteadyBlock`.
+    /// Acceptable values are `SteadyBlock`, `BlinkingBlock`,
+    /// `SteadyUnderline`, `BlinkingUnderline`, `SteadyBar`,
+    /// and `BlinkingBar`.
+    #[serde(default)]
+    pub default_cursor_style: DefaultCursorStyle,
+}
+
+#[derive(Deserialize, Clone, Copy, Debug)]
+pub enum DefaultCursorStyle {
+    BlinkingBlock,
+    SteadyBlock,
+    BlinkingUnderline,
+    SteadyUnderline,
+    BlinkingBar,
+    SteadyBar,
+}
+
+impl Default for DefaultCursorStyle {
+    fn default() -> Self {
+        DefaultCursorStyle::SteadyBlock
+    }
+}
+
+impl DefaultCursorStyle {
+    pub fn effective_shape(self, shape: CursorShape) -> CursorShape {
+        match shape {
+            CursorShape::Default => match self {
+                Self::BlinkingBlock => CursorShape::BlinkingBlock,
+                Self::SteadyBlock => CursorShape::SteadyBlock,
+                Self::BlinkingUnderline => CursorShape::BlinkingUnderline,
+                Self::SteadyUnderline => CursorShape::SteadyUnderline,
+                Self::BlinkingBar => CursorShape::BlinkingBar,
+                Self::SteadyBar => CursorShape::SteadyBar,
+            },
+            _ => shape,
+        }
+    }
 }
 
 #[derive(Default, Deserialize, Clone, Copy, Debug)]

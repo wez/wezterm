@@ -500,15 +500,18 @@ impl TermWindow {
                         // This is pretty heavyweight: it would be nice to only invalidate
                         // the line on which the cursor resides, and then only if the cursor
                         // is within the viewport.
-                        if config.cursor_blink_rate != 0
-                            && render.get_cursor_position().shape.is_blinking()
-                        {
-                            let now = Instant::now();
-                            if now.duration_since(last_blink_paint)
-                                > Duration::from_millis(config.cursor_blink_rate)
-                            {
-                                render.make_all_lines_dirty();
-                                last_blink_paint = now;
+                        if config.cursor_blink_rate != 0 {
+                            let shape = config
+                                .default_cursor_style
+                                .effective_shape(render.get_cursor_position().shape);
+                            if shape.is_blinking() {
+                                let now = Instant::now();
+                                if now.duration_since(last_blink_paint)
+                                    > Duration::from_millis(config.cursor_blink_rate)
+                                {
+                                    render.make_all_lines_dirty();
+                                    last_blink_paint = now;
+                                }
                             }
                         }
 
@@ -1813,10 +1816,11 @@ impl TermWindow {
             // visible.
             // If the cursor is set to a blinking mode then we are visible
             // depending on the current time.
-            if cursor.shape == CursorShape::Hidden {
+            let config = configuration();
+            let shape = config.default_cursor_style.effective_shape(cursor.shape);
+            if shape == CursorShape::Hidden {
                 false
-            } else if cursor.shape.is_blinking() {
-                let config = configuration();
+            } else if shape.is_blinking() {
                 if config.cursor_blink_rate == 0 {
                     // The user disabled blinking for their cursor
                     true
