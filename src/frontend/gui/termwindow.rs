@@ -22,6 +22,7 @@ use std::ops::Range;
 use std::ops::{Add, Sub};
 use std::rc::Rc;
 use std::sync::Arc;
+use std::time::{Duration, Instant};
 use term::color::ColorPalette;
 use term::{CursorPosition, Line, Underline};
 use termwiz::color::RgbColor;
@@ -66,6 +67,7 @@ pub struct TermWindow {
     last_mouse_coords: (usize, i64),
     drag_start_coords: Option<Point>,
     config_generation: usize,
+    created_instant: Instant,
 }
 
 struct Host<'a> {
@@ -460,40 +462,65 @@ impl TermWindow {
                 last_mouse_coords: (0, -1),
                 drag_start_coords: None,
                 config_generation: config.generation(),
+                created_instant: Instant::now(),
             }),
         )?;
 
         let cloned_window = window.clone();
 
         let mut last_config_generation = config.generation();
-        Connection::get().unwrap().schedule_timer(
-            std::time::Duration::from_millis(35),
-            move || {
-                let mux = Mux::get().unwrap();
+        Connection::get()
+            .unwrap()
+            .schedule_timer(std::time::Duration::from_millis(35), {
+                let mut last_blink_paint = Instant::now();
+                move || {
+                    let mux = Mux::get().unwrap();
 
-                if let Some(tab) = mux.get_active_tab_for_window(mux_window_id) {
-                    // If the config was reloaded, ask the window to apply
-                    // and render any changes
-                    let current_generation = configuration().generation();
-                    if current_generation != last_config_generation {
-                        last_config_generation = current_generation;
-                        cloned_window.apply(|myself, _| {
-                            if let Some(myself) = myself.downcast_mut::<Self>() {
-                                myself.config_was_reloaded();
+                    if let Some(tab) = mux.get_active_tab_for_window(mux_window_id) {
+                        // If the config was reloaded, ask the window to apply
+                        // and render any changes
+                        let config = configuration();
+                        let current_generation = config.generation();
+                        if current_generation != last_config_generation {
+                            last_config_generation = current_generation;
+                            cloned_window.apply(|myself, _| {
+                                if let Some(myself) = myself.downcast_mut::<Self>() {
+                                    myself.config_was_reloaded();
+                                }
+                                Ok(())
+                            });
+                        }
+
+                        let mut render = tab.renderer();
+
+                        // If blinking is permitted, and the cursor shape is set
+                        // to a blinking variant, and it's been longer than the
+                        // blink rate interval, then invalid the lines in the terminal
+                        // so that we will re-evaluate the cursor visibility.
+                        // This is pretty heavyweight: it would be nice to only invalidate
+                        // the line on which the cursor resides, and then only if the cursor
+                        // is within the viewport.
+                        if config.cursor_blink_rate != 0
+                            && render.get_cursor_position().shape.is_blinking()
+                        {
+                            let now = Instant::now();
+                            if now.duration_since(last_blink_paint)
+                                > Duration::from_millis(config.cursor_blink_rate)
+                            {
+                                render.make_all_lines_dirty();
+                                last_blink_paint = now;
                             }
-                            Ok(())
-                        });
-                    }
+                        }
 
-                    // If the model is dirty, arrange to re-paint
-                    if tab.renderer().has_dirty_lines() {
-                        cloned_window.invalidate();
+                        // If the model is dirty, arrange to re-paint
+                        if render.has_dirty_lines() {
+                            cloned_window.invalidate();
+                        }
+                    } else {
+                        cloned_window.close();
                     }
-                } else {
-                    cloned_window.close();
                 }
-            },
-        );
+            });
 
         let clipboard: Arc<dyn term::Clipboard> = Arc::new(ClipboardHelper {
             window: window.clone(),
@@ -1777,9 +1804,38 @@ impl TermWindow {
         palette: &ColorPalette,
     ) -> (Color, Color) {
         let selected = selection.contains(&cell_idx);
-        let is_cursor = line_idx as i64 == cursor.y
-            && cursor.x == cell_idx
-            && cursor.shape != CursorShape::Hidden;
+
+        let is_cursor = line_idx as i64 == cursor.y && cursor.x == cell_idx;
+
+        let is_cursor = if is_cursor {
+            // This logic figures out whether the cursor is visible or not.
+            // If the cursor is explicitly hidden then it is obviously not
+            // visible.
+            // If the cursor is set to a blinking mode then we are visible
+            // depending on the current time.
+            if cursor.shape == CursorShape::Hidden {
+                false
+            } else if cursor.shape.is_blinking() {
+                let config = configuration();
+                if config.cursor_blink_rate == 0 {
+                    // The user disabled blinking for their cursor
+                    true
+                } else {
+                    // Divide the time since we were spawned by the blink rate.
+                    // If the result is even then the cursor is "on", else it
+                    // is "off"
+                    let now = std::time::Instant::now();
+                    let milli_uptime = now.duration_since(self.created_instant).as_millis();
+                    let ticks = milli_uptime / config.cursor_blink_rate as u128;
+                    (ticks & 1) == 0
+                }
+            } else {
+                // Non-blinking, visible cursor!
+                true
+            }
+        } else {
+            false
+        };
 
         let (fg_color, bg_color) = match (selected, is_cursor) {
             // Normally, render the cell as configured

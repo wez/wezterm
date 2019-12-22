@@ -1216,12 +1216,11 @@ impl TerminalState {
     /// Returns the 0-based cursor position relative to the top left of
     /// the visible screen
     pub fn cursor_pos(&self) -> CursorPosition {
-        // TODO: figure out how to expose cursor visibility; Option<CursorPosition>?
         CursorPosition {
             x: self.cursor.x,
             y: self.cursor.y + self.viewport_offset,
             shape: if self.cursor_visible {
-                self.mouse_position.shape
+                self.cursor.shape
             } else {
                 CursorShape::Hidden
             },
@@ -1934,7 +1933,8 @@ impl TerminalState {
                     CursorStyle::SteadyUnderline => CursorShape::SteadyUnderline,
                     CursorStyle::BlinkingBar => CursorShape::BlinkingBar,
                     CursorStyle::SteadyBar => CursorShape::SteadyBar,
-                }
+                };
+                log::debug!("Cursor shape is now {:?}", self.cursor.shape);
             }
         }
     }

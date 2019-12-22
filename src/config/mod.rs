@@ -430,6 +430,15 @@ pub struct Config {
     /// Controls the amount of padding to use around the terminal cell area
     #[serde(default)]
     pub window_padding: WindowPadding,
+
+    /// Specifies how often a blinking cursor transitions between visible
+    /// and invisible, expressed in milliseconds.
+    /// Setting this to 0 disables blinking.
+    /// Note that this value is approximate due to the way that the system
+    /// event loop schedulers manage timers; non-zero values will be at
+    /// least the interval specified with some degree of slop.
+    #[serde(default = "default_cursor_blink_rate")]
+    pub cursor_blink_rate: u64,
 }
 
 #[derive(Default, Deserialize, Clone, Copy, Debug)]
@@ -602,6 +611,10 @@ fn default_ratelimit_output_bytes_per_second() -> u32 {
 
 fn default_true() -> bool {
     true
+}
+
+fn default_cursor_blink_rate() -> u64 {
+    800
 }
 
 fn default_swap_backspace_and_delete() -> bool {

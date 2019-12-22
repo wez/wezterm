@@ -47,6 +47,15 @@ impl Default for CursorShape {
     }
 }
 
+impl CursorShape {
+    pub fn is_blinking(self) -> bool {
+        match self {
+            Self::BlinkingBlock | Self::BlinkingUnderline | Self::BlinkingBar => true,
+            _ => false,
+        }
+    }
+}
+
 /// SequenceNo indicates a logical position within a stream of changes.
 /// The sequence is only meaningful within a given `Surface` instance.
 pub type SequenceNo = usize;
