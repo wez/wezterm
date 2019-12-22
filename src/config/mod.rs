@@ -325,7 +325,7 @@ pub struct Config {
     /// use a setting like this:
     ///
     /// ```toml
-    /// harfuzz_features = ["calt=0", "clig=0", "liga=0"]
+    /// harfbuzz_features = ["calt=0", "clig=0", "liga=0"]
     /// ```
     ///
     /// Some fonts make available extended options via stylistic sets.
@@ -338,10 +338,10 @@ pub struct Config {
     /// ```toml
     /// # Use this for a zero with a dot rather than a line through it
     /// # when using the Fira Code font
-    /// harfuzz_features = ["zero"]
+    /// harfbuzz_features = ["zero"]
     /// ```
     #[serde(default = "default_harfbuzz_features")]
-    pub harfuzz_features: Vec<String>,
+    pub harfbuzz_features: Vec<String>,
 
     #[serde(default)]
     pub front_end: FrontEndSelection,

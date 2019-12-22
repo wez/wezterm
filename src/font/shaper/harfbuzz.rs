@@ -96,7 +96,7 @@ impl HarfbuzzShaper {
     ) -> anyhow::Result<Vec<GlyphInfo>> {
         let config = configuration();
         let features: Vec<harfbuzz::hb_feature_t> = config
-            .harfuzz_features
+            .harfbuzz_features
             .iter()
             .filter_map(|s| harfbuzz::feature_from_string(s).ok())
             .collect();
