@@ -19,7 +19,7 @@ use anyhow::{anyhow, bail, ensure};
 use portable_pty::PtySize;
 use std::any::Any;
 use std::ops::Range;
-use std::ops::Sub;
+use std::ops::{Add, Sub};
 use std::rc::Rc;
 use std::sync::Arc;
 use term::color::ColorPalette;
@@ -738,10 +738,10 @@ impl TermWindow {
             let config = configuration();
             let r = Rect::new(
                 Point::new(
-                    cursor.x.sub(config.window_padding.left as usize).max(0) as isize
-                        * self.render_metrics.cell_size.width,
-                    cursor.y.sub(config.window_padding.top as i64).max(0) as isize
-                        * self.render_metrics.cell_size.height,
+                    (cursor.x.max(0) as isize * self.render_metrics.cell_size.width)
+                        .add(config.window_padding.left as isize),
+                    (cursor.y.max(0) as isize * self.render_metrics.cell_size.height)
+                        .add(config.window_padding.top as isize),
                 ),
                 self.render_metrics.cell_size,
             );
