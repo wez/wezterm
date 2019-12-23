@@ -7,6 +7,7 @@ use bitflags::bitflags;
 mod c1;
 mod csi;
 mod selection;
+use crate::color::ColorPalette;
 use pretty_assertions::assert_eq;
 use std::cell::RefCell;
 use std::sync::Arc;
@@ -88,6 +89,10 @@ struct TestTermConfig {
 impl TerminalConfiguration for TestTermConfig {
     fn scrollback_size(&self) -> usize {
         self.scrollback
+    }
+
+    fn color_palette(&self) -> ColorPalette {
+        ColorPalette::default()
     }
 }
 
