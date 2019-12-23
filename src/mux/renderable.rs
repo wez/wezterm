@@ -38,6 +38,7 @@ pub trait Renderable: Downcast {
     /// size of the scrollback.  This information is intended to be
     /// used to render a scrollbar UI
     fn get_scrollbar_info(&self) -> (VisibleRowIndex, usize);
+    fn set_viewport_position(&mut self, position: VisibleRowIndex);
 }
 impl_downcast!(Renderable);
 
@@ -78,5 +79,9 @@ impl Renderable for Terminal {
         let offset = self.get_viewport_offset();
         let num_lines = self.screen().lines.len();
         (offset, num_lines)
+    }
+
+    fn set_viewport_position(&mut self, position: VisibleRowIndex) {
+        self.set_scroll_viewport(position);
     }
 }

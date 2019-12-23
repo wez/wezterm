@@ -18,6 +18,7 @@ use ::window::*;
 use anyhow::{anyhow, bail, ensure};
 use portable_pty::PtySize;
 use std::any::Any;
+use std::convert::TryInto;
 use std::ops::Range;
 use std::ops::{Add, Sub};
 use std::rc::Rc;
@@ -66,7 +67,7 @@ pub struct TermWindow {
     show_scroll_bar: bool,
     tab_bar: TabBarState,
     last_mouse_coords: (usize, i64),
-    drag_start_coords: Option<Point>,
+    scroll_drag_start: Option<isize>,
     config_generation: usize,
     created_instant: Instant,
     last_scroll_info: (VisibleRowIndex, usize),
@@ -105,6 +106,55 @@ enum Key {
     Code(::termwiz::input::KeyCode),
     Composed(String),
     None,
+}
+
+enum ScrollHit {
+    Above,
+    OnThumb(isize),
+    Below,
+}
+
+impl ScrollHit {
+    /// Given a mouse y value, determine whether the cursor is above, over
+    /// or below the thumb.
+    /// If above the thumb, return the offset from the top of the thumb.
+    fn test(y: isize, render: &dyn Renderable, size: PtySize, dims: &Dimensions) -> Self {
+        let (top, height) = Self::thumb(render, size, dims);
+        if y < top as isize {
+            Self::Above
+        } else if y < (top + height) as isize {
+            Self::OnThumb(y - top as isize)
+        } else {
+            Self::Below
+        }
+    }
+
+    /// Compute the y-coordinate for the top of the scrollbar thumb
+    /// and the height of the thumb and return them.
+    fn thumb(render: &dyn Renderable, size: PtySize, dims: &Dimensions) -> (usize, usize) {
+        let (scroll_top, scroll_size) = render.get_scrollbar_info();
+        let thumb_size = (size.rows as f32 / scroll_size as f32) * dims.pixel_height as f32;
+        let thumb_top = (1. - (scroll_top + size.rows as i64) as f32 / scroll_size as f32)
+            * size.pixel_height as f32;
+
+        let thumb_size = thumb_size.ceil() as usize;
+        let thumb_top = thumb_top.ceil() as usize;
+        (thumb_top, thumb_size)
+    }
+
+    /// Given a new thumb top coordinate (produced by draggin the thumb),
+    /// compute the equivalent viewport offset.
+    fn thumb_top_to_scroll_top(
+        thumb_top: usize,
+        render: &dyn Renderable,
+        size: PtySize,
+        dims: &Dimensions,
+    ) -> VisibleRowIndex {
+        let (_scroll_top, scroll_size) = render.get_scrollbar_info();
+        let thumb_size = (size.rows as f32 / scroll_size as f32) * dims.pixel_height as f32;
+        let rows_from_top = ((thumb_top as f32 + thumb_size) / thumb_size) * size.rows as f32;
+        scroll_size.saturating_sub(rows_from_top as usize) as VisibleRowIndex
+    }
 }
 
 impl WindowCallbacks for TermWindow {
@@ -146,13 +196,36 @@ impl WindowCallbacks for TermWindow {
         };
 
         match event.kind {
-            WMEK::Release(MousePress::Left) => self.drag_start_coords = None,
+            WMEK::Release(MousePress::Left) => {
+                if self.scroll_drag_start.take().is_some() {
+                    // Completed a drag
+                    return;
+                }
+            }
             WMEK::Move => {
-                if let Some(drag) = self.drag_start_coords.as_ref() {
-                    context.set_window_position(ScreenPoint::new(
-                        event.screen_coords.x - drag.x,
-                        event.screen_coords.y - drag.y,
-                    ));
+                if let Some(from_top) = self.scroll_drag_start.as_ref() {
+                    // Dragging the scroll bar
+                    let mux = Mux::get().unwrap();
+                    let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
+                        Some(tab) => tab,
+                        None => return,
+                    };
+
+                    let mut render = tab.renderer();
+
+                    let effective_thumb_top =
+                        event.coords.y.saturating_sub(*from_top).max(0) as usize;
+
+                    // Convert thumb top into a row index by reversing the math
+                    // in ScrollHit::thumb
+                    let row = ScrollHit::thumb_top_to_scroll_top(
+                        effective_thumb_top,
+                        &*render,
+                        self.terminal_size,
+                        &self.dimensions,
+                    );
+                    render.set_viewport_position(row);
+                    return;
                 }
             }
             _ => {}
@@ -175,10 +248,11 @@ impl WindowCallbacks for TermWindow {
         let first_line_offset = if self.show_tab_bar { 1 } else { 0 };
         self.last_mouse_coords = (x, y);
 
-        if self.show_tab_bar && y == 0 && event.coords.y >= 0 {
-            if let WMEK::Press(MousePress::Left) = event.kind {
-                self.drag_start_coords = Some(event.coords);
+        let in_tab_bar = self.show_tab_bar && y == 0 && event.coords.y >= 0;
+        let in_scroll_bar = self.show_scroll_bar && x >= self.terminal_size.cols as usize;
 
+        if in_tab_bar {
+            if let WMEK::Press(MousePress::Left) = event.kind {
                 match self.tab_bar.hit_test(x) {
                     TabBarItem::Tab(tab_idx) => {
                         self.activate_tab(tab_idx).ok();
@@ -188,6 +262,43 @@ impl WindowCallbacks for TermWindow {
                     }
                     TabBarItem::None => {}
                 }
+            }
+        } else if in_scroll_bar {
+            if let WMEK::Press(MousePress::Left) = event.kind {
+                let mux = Mux::get().unwrap();
+                let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
+                    Some(tab) => tab,
+                    None => return,
+                };
+
+                let mut render = tab.renderer();
+                let (current, num_lines) = render.get_scrollbar_info();
+
+                match ScrollHit::test(
+                    event.coords.y,
+                    &*render,
+                    self.terminal_size,
+                    &self.dimensions,
+                ) {
+                    ScrollHit::Above => {
+                        // Page up
+                        render.set_viewport_position(
+                            current
+                                .saturating_add(self.terminal_size.rows as i64)
+                                .min(num_lines.try_into().unwrap()),
+                        );
+                    }
+                    ScrollHit::Below => {
+                        // Page down
+                        render.set_viewport_position(
+                            current.saturating_sub(self.terminal_size.rows as i64),
+                        );
+                    }
+                    ScrollHit::OnThumb(from_top) => {
+                        // Start a scroll drag
+                        self.scroll_drag_start = Some(from_top);
+                    }
+                };
             }
         } else {
             let y = y.saturating_sub(first_line_offset);
@@ -253,8 +364,6 @@ impl WindowCallbacks for TermWindow {
             }
         }
 
-        let in_tab_bar = self.show_tab_bar && y == 0;
-        let in_scroll_bar = self.show_scroll_bar && x >= self.terminal_size.cols as usize;
         context.set_cursor(Some(if in_tab_bar || in_scroll_bar {
             MouseCursor::Arrow
         } else if tab.renderer().current_highlight().is_some() {
@@ -476,7 +585,7 @@ impl TermWindow {
                 show_scroll_bar: config.enable_scroll_bar,
                 tab_bar: TabBarState::default(),
                 last_mouse_coords: (0, -1),
-                drag_start_coords: None,
+                scroll_drag_start: None,
                 config_generation: config.generation(),
                 created_instant: Instant::now(),
                 last_scroll_info: (0, 0),
@@ -1213,15 +1322,11 @@ impl TermWindow {
         );
 
         if self.show_scroll_bar {
-            let (scroll_top, scroll_size) = term.get_scrollbar_info();
-            let thumb_size = (self.terminal_size.rows as f32 / scroll_size as f32)
-                * self.terminal_size.pixel_height as f32;
-            let thumb_top = (1.
-                - (scroll_top + self.terminal_size.rows as i64) as f32 / scroll_size as f32)
-                * self.terminal_size.pixel_height as f32;
+            let (thumb_top, thumb_size) =
+                ScrollHit::thumb(&*term, self.terminal_size, &self.dimensions);
 
-            let thumb_size = thumb_size.ceil() as isize;
-            let thumb_top = thumb_top.ceil() as isize;
+            let thumb_size = thumb_size as isize;
+            let thumb_top = thumb_top as isize;
 
             ctx.clear_rect(
                 Rect::new(
@@ -1231,9 +1336,9 @@ impl TermWindow {
                             .pixel_width
                             .saturating_sub(padding_right as usize))
                             as isize,
-                        thumb_top + config.window_padding.top as isize,
+                        thumb_top,
                     ),
-                    Size::new(padding_right as isize, thumb_top + thumb_size),
+                    Size::new(padding_right as isize, thumb_size),
                 ),
                 rgbcolor_to_window_color(palette.scrollbar_thumb),
             );
@@ -1281,12 +1386,11 @@ impl TermWindow {
         }
 
         if self.show_scroll_bar {
-            let (scroll_top, scroll_size) = term.get_scrollbar_info();
-            let thumb_size = (self.terminal_size.rows as f32 / scroll_size as f32)
-                * self.terminal_size.pixel_height as f32;
-            let thumb_top = (1.
-                - (scroll_top + self.terminal_size.rows as i64) as f32 / scroll_size as f32)
-                * self.terminal_size.pixel_height as f32;
+            let (thumb_top, thumb_size) =
+                ScrollHit::thumb(&*term, self.terminal_size, &self.dimensions);
+            let thumb_top = thumb_top as f32;
+            let thumb_size = thumb_size as f32;
+
             let gl_state = self.render_state.opengl();
 
             // We reserved the final quad in the vertex buffer as the scrollbar

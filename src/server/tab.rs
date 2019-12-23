@@ -475,6 +475,7 @@ impl Renderable for RenderableState {
         let (_cols, rows) = self.physical_dimensions();
         (0, rows)
     }
+    fn set_viewport_position(&mut self, _: VisibleRowIndex) {}
 }
 
 struct TabWriter {

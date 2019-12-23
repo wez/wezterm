@@ -1259,7 +1259,7 @@ impl TerminalState {
         screen.dirty_line(new_y);
     }
 
-    fn set_scroll_viewport(&mut self, position: VisibleRowIndex) {
+    pub fn set_scroll_viewport(&mut self, position: VisibleRowIndex) {
         self.clear_selection();
         let position = position.max(0);
 
