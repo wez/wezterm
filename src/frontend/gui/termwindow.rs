@@ -1396,8 +1396,8 @@ impl TermWindow {
             // We reserved the final quad in the vertex buffer as the scrollbar
             let mut vb = gl_state.glyph_vertex_buffer.borrow_mut();
             let num_vert = vb.len() - VERTICES_PER_CELL;
-            let mut vertices = &mut vb.slice_mut(..).unwrap().map();
-            let mut quad = Quad::for_cell(num_vert / VERTICES_PER_CELL, &mut vertices);
+            let mut vertices = &mut vb.slice_mut(num_vert..).unwrap().map();
+            let mut quad = Quad::for_cell(0, &mut vertices);
 
             // Adjust the scrollbar thumb position
             let top = (self.dimensions.pixel_height as f32 / -2.0) + thumb_top;
@@ -1409,7 +1409,9 @@ impl TermWindow {
             let right = self.dimensions.pixel_width as f32 / 2.;
             let left = right - padding;
 
-            quad.set_bg_color(rgbcolor_to_window_color(palette.scrollbar_thumb));
+            let color = rgbcolor_to_window_color(palette.scrollbar_thumb);
+            quad.set_bg_color(color);
+            quad.set_fg_color(color);
             quad.set_position(left, top, right, bottom);
         }
 
