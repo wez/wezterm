@@ -117,4 +117,18 @@ impl<'a> Quad<'a> {
             v.cursor_color = color;
         }
     }
+
+    #[allow(unused)]
+    pub fn get_position(&self) -> (f32, f32, f32, f32) {
+        let top_left = self.vert[V_TOP_LEFT].position;
+        let bottom_right = self.vert[V_BOT_RIGHT].position;
+        (top_left.0, top_left.1, bottom_right.0, bottom_right.1)
+    }
+
+    pub fn set_position(&mut self, left: f32, top: f32, right: f32, bottom: f32) {
+        self.vert[V_TOP_LEFT].position = (left, top);
+        self.vert[V_TOP_RIGHT].position = (right, top);
+        self.vert[V_BOT_LEFT].position = (left, bottom);
+        self.vert[V_BOT_RIGHT].position = (right, bottom);
+    }
 }

@@ -22,6 +22,9 @@ pub struct Palette {
     pub brights: Option<[RgbColor; 8]>,
     /// Configure the colors and styling of the tab bar
     pub tab_bar: Option<TabBarColors>,
+    /// The color of the "thumb" of the scrollbar; the segment that
+    /// represents the current viewable area
+    pub scrollbar_thumb: Option<RgbColor>,
 }
 
 impl From<Palette> for term::color::ColorPalette {
@@ -41,6 +44,7 @@ impl From<Palette> for term::color::ColorPalette {
         apply_color!(cursor_border);
         apply_color!(selection_fg);
         apply_color!(selection_bg);
+        apply_color!(scrollbar_thumb);
 
         if let Some(ansi) = cfg.ansi {
             for (idx, col) in ansi.iter().enumerate() {

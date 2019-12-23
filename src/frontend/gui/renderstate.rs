@@ -137,8 +137,9 @@ impl OpenGLRenderState {
         let mut indices = Vec::new();
 
         let config = configuration();
-        let avail_width = (width as usize)
-            .saturating_sub((config.window_padding.left + config.window_padding.right) as usize);
+        let padding_right = super::termwindow::effective_right_padding(&config, metrics);
+        let avail_width =
+            (width as usize).saturating_sub((config.window_padding.left + padding_right) as usize);
         let avail_height = (height as usize)
             .saturating_sub((config.window_padding.top + config.window_padding.bottom) as usize);
 
@@ -195,6 +196,46 @@ impl OpenGLRenderState {
                 indices.push(idx + V_BOT_LEFT as u32);
                 indices.push(idx + V_BOT_RIGHT as u32);
             }
+        }
+
+        {
+            // And a quad for the scrollbar thumb
+            let x_pos = (width / 2.0) - cell_width;
+            let y_pos = (height / -2.0) + padding_top;
+            let thumb_width = cell_width;
+            let thumb_height = height;
+
+            // Remember starting index for this position
+            let idx = verts.len() as u32;
+            verts.push(Vertex {
+                // Top left
+                position: (x_pos, thumb_width),
+                ..Default::default()
+            });
+            verts.push(Vertex {
+                // Top Right
+                position: (x_pos + thumb_width, y_pos),
+                ..Default::default()
+            });
+            verts.push(Vertex {
+                // Bottom Left
+                position: (x_pos, y_pos + thumb_height),
+                ..Default::default()
+            });
+            verts.push(Vertex {
+                // Bottom Right
+                position: (x_pos + thumb_width, y_pos + thumb_height),
+                ..Default::default()
+            });
+
+            // Emit two triangles to form the glyph quad
+            indices.push(idx + V_TOP_LEFT as u32);
+            indices.push(idx + V_TOP_RIGHT as u32);
+            indices.push(idx + V_BOT_LEFT as u32);
+
+            indices.push(idx + V_TOP_RIGHT as u32);
+            indices.push(idx + V_BOT_LEFT as u32);
+            indices.push(idx + V_BOT_RIGHT as u32);
         }
 
         Ok((

@@ -2,7 +2,7 @@ use downcast_rs::{impl_downcast, Downcast};
 use std::borrow::Cow;
 use std::ops::Range;
 use std::sync::Arc;
-use term::{CursorPosition, Line, Terminal, TerminalState};
+use term::{CursorPosition, Line, Terminal, TerminalState, VisibleRowIndex};
 use termwiz::hyperlink::Hyperlink;
 
 /// Renderable allows passing something that isn't an actual term::Terminal
@@ -33,6 +33,11 @@ pub trait Renderable: Downcast {
     /// Returns physical, non-scrollback (rows, cols) for the
     /// terminal screen
     fn physical_dimensions(&self) -> (usize, usize);
+
+    /// Returns the potentially scrolled viewport offset, and the
+    /// size of the scrollback.  This information is intended to be
+    /// used to render a scrollbar UI
+    fn get_scrollbar_info(&self) -> (VisibleRowIndex, usize);
 }
 impl_downcast!(Renderable);
 
@@ -67,5 +72,11 @@ impl Renderable for Terminal {
 
     fn has_dirty_lines(&self) -> bool {
         TerminalState::has_dirty_lines(self)
+    }
+
+    fn get_scrollbar_info(&self) -> (VisibleRowIndex, usize) {
+        let offset = self.get_viewport_offset();
+        let num_lines = self.screen().lines.len();
+        (offset, num_lines)
     }
 }

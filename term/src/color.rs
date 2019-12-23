@@ -17,6 +17,7 @@ pub struct ColorPalette {
     pub cursor_border: RgbColor,
     pub selection_fg: RgbColor,
     pub selection_bg: RgbColor,
+    pub scrollbar_thumb: RgbColor,
 }
 
 impl fmt::Debug for Palette256 {
@@ -187,6 +188,8 @@ impl Default for ColorPalette {
         let selection_fg = colors[AnsiColor::Black as usize];
         let selection_bg = RgbColor::new(0xff, 0xfa, 0xcd);
 
+        let scrollbar_thumb = RgbColor::new(0x44, 0x44, 0x44);
+
         ColorPalette {
             colors: Palette256(colors),
             foreground,
@@ -196,6 +199,7 @@ impl Default for ColorPalette {
             cursor_border,
             selection_fg,
             selection_bg,
+            scrollbar_thumb,
         }
     }
 }

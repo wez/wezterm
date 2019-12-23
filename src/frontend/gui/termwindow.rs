@@ -24,7 +24,7 @@ use std::rc::Rc;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use term::color::ColorPalette;
-use term::{CursorPosition, Line, Underline};
+use term::{CursorPosition, Line, Underline, VisibleRowIndex};
 use termwiz::color::RgbColor;
 use termwiz::surface::CursorShape;
 
@@ -63,11 +63,13 @@ pub struct TermWindow {
     render_state: RenderState,
     keys: KeyMap,
     show_tab_bar: bool,
+    show_scroll_bar: bool,
     tab_bar: TabBarState,
     last_mouse_coords: (usize, i64),
     drag_start_coords: Option<Point>,
     config_generation: usize,
     created_instant: Instant,
+    last_scroll_info: (VisibleRowIndex, usize),
 }
 
 struct Host<'a> {
@@ -251,11 +253,13 @@ impl WindowCallbacks for TermWindow {
             }
         }
 
-        // When hovering over a hyperlink, show an appropriate
-        // mouse cursor to give the cue that it is clickable
-        context.set_cursor(Some(if self.show_tab_bar && y == 0 {
+        let in_tab_bar = self.show_tab_bar && y == 0;
+        let in_scroll_bar = self.show_scroll_bar && x >= self.terminal_size.cols as usize;
+        context.set_cursor(Some(if in_tab_bar || in_scroll_bar {
             MouseCursor::Arrow
         } else if tab.renderer().current_highlight().is_some() {
+            // When hovering over a hyperlink, show an appropriate
+            // mouse cursor to give the cue that it is clickable
             MouseCursor::Hand
         } else {
             MouseCursor::Text
@@ -397,6 +401,18 @@ impl WindowCallbacks for TermWindow {
     }
 }
 
+/// Computes the effective padding for the RHS.
+/// This is needed because the default is 0, but if the user has
+/// enabled the scroll bar then they will expect it to have a reasonable
+/// size unless they've specified differently.
+pub fn effective_right_padding(config: &ConfigHandle, render_metrics: &RenderMetrics) -> u16 {
+    if config.enable_scroll_bar && config.window_padding.right == 0 {
+        render_metrics.cell_size.width as u16
+    } else {
+        config.window_padding.right as u16
+    }
+}
+
 impl TermWindow {
     pub fn new_window(
         config: &ConfigHandle,
@@ -416,13 +432,12 @@ impl TermWindow {
         };
 
         let rows_with_tab_bar = if config.enable_tab_bar { 1 } else { 0 } + terminal_size.rows;
-        // Accomodating future scroll bar UI
-        let cols_with_scroll_bar = terminal_size.cols;
 
         let dimensions = Dimensions {
-            pixel_width: ((cols_with_scroll_bar * render_metrics.cell_size.width as u16)
+            pixel_width: ((terminal_size.cols * render_metrics.cell_size.width as u16)
                 + config.window_padding.left
-                + config.window_padding.right) as usize,
+                + effective_right_padding(&config, &render_metrics))
+                as usize,
             pixel_height: ((rows_with_tab_bar * render_metrics.cell_size.height as u16)
                 + config.window_padding.top
                 + config.window_padding.bottom) as usize,
@@ -458,11 +473,13 @@ impl TermWindow {
                 render_state,
                 keys: KeyMap::new(),
                 show_tab_bar: config.enable_tab_bar,
+                show_scroll_bar: config.enable_scroll_bar,
                 tab_bar: TabBarState::default(),
                 last_mouse_coords: (0, -1),
                 drag_start_coords: None,
                 config_generation: config.generation(),
                 created_instant: Instant::now(),
+                last_scroll_info: (0, 0),
             }),
         )?;
 
@@ -701,12 +718,36 @@ impl TermWindow {
         let config = configuration();
 
         self.show_tab_bar = config.enable_tab_bar;
+        self.show_scroll_bar = config.enable_scroll_bar;
         self.keys = KeyMap::new();
         self.config_generation = config.generation();
         let dimensions = self.dimensions;
         let cell_dims = self.current_cell_dimensions();
         self.apply_scale_change(&dimensions, self.fonts.get_font_scale());
         self.apply_dimensions(&dimensions, Some(cell_dims));
+        if let Some(window) = self.window.as_ref() {
+            window.invalidate();
+        }
+    }
+
+    fn update_scrollbar(&mut self) {
+        if !self.show_scroll_bar {
+            return;
+        }
+
+        let mux = Mux::get().unwrap();
+        let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
+            Some(tab) => tab,
+            None => return,
+        };
+
+        let info = tab.renderer().get_scrollbar_info();
+        if info == self.last_scroll_info {
+            return;
+        }
+
+        self.last_scroll_info = info;
+
         if let Some(window) = self.window.as_ref() {
             window.invalidate();
         }
@@ -792,6 +833,7 @@ impl TermWindow {
 
             drop(window);
             self.update_title();
+            self.update_scrollbar();
         }
         Ok(())
     }
@@ -971,7 +1013,7 @@ impl TermWindow {
                 + (config.window_padding.top + config.window_padding.bottom);
 
             let pixel_width = (cols * self.render_metrics.cell_size.width as u16)
-                + (config.window_padding.left + config.window_padding.right);
+                + (config.window_padding.left + self.effective_right_padding(&config));
 
             let dims = Dimensions {
                 pixel_width: pixel_width as usize,
@@ -983,7 +1025,7 @@ impl TermWindow {
         } else {
             // Resize of the window dimensions may result in changed terminal dimensions
             let avail_width = dimensions.pixel_width
-                - (config.window_padding.left + config.window_padding.right) as usize;
+                - (config.window_padding.left + self.effective_right_padding(&config)) as usize;
             let avail_height = dimensions.pixel_height
                 - (config.window_padding.top + config.window_padding.bottom) as usize;
 
@@ -1153,22 +1195,55 @@ impl TermWindow {
             ),
             bg,
         );
-        // right padding
+        // right padding / scroll bar
+        let padding_right = self.effective_right_padding(&config);
+
         ctx.clear_rect(
             Rect::new(
                 Point::new(
-                    (self.dimensions.pixel_width - config.window_padding.right as usize) as isize,
+                    (self.dimensions.pixel_width - padding_right as usize) as isize,
                     config.window_padding.top as isize,
                 ),
                 Size::new(
-                    config.window_padding.right as isize,
+                    padding_right as isize,
                     (self.dimensions.pixel_height - config.window_padding.top as usize) as isize,
                 ),
             ),
             bg,
         );
 
+        if self.show_scroll_bar {
+            let (scroll_top, scroll_size) = term.get_scrollbar_info();
+            let thumb_size = (self.terminal_size.rows as f32 / scroll_size as f32)
+                * self.terminal_size.pixel_height as f32;
+            let thumb_top = (1.
+                - (scroll_top + self.terminal_size.rows as i64) as f32 / scroll_size as f32)
+                * self.terminal_size.pixel_height as f32;
+
+            let thumb_size = thumb_size.ceil() as isize;
+            let thumb_top = thumb_top.ceil() as isize;
+
+            ctx.clear_rect(
+                Rect::new(
+                    Point::new(
+                        (self
+                            .dimensions
+                            .pixel_width
+                            .saturating_sub(padding_right as usize))
+                            as isize,
+                        thumb_top + config.window_padding.top as isize,
+                    ),
+                    Size::new(padding_right as isize, thumb_top + thumb_size),
+                ),
+                rgbcolor_to_window_color(palette.scrollbar_thumb),
+            );
+        }
+
         Ok(())
+    }
+
+    fn effective_right_padding(&self, config: &ConfigHandle) -> u16 {
+        effective_right_padding(config, &self.render_metrics)
     }
 
     fn paint_tab_opengl(
@@ -1203,6 +1278,35 @@ impl TermWindow {
                 &*term,
                 &palette,
             )?;
+        }
+
+        if self.show_scroll_bar {
+            let (scroll_top, scroll_size) = term.get_scrollbar_info();
+            let thumb_size = (self.terminal_size.rows as f32 / scroll_size as f32)
+                * self.terminal_size.pixel_height as f32;
+            let thumb_top = (1.
+                - (scroll_top + self.terminal_size.rows as i64) as f32 / scroll_size as f32)
+                * self.terminal_size.pixel_height as f32;
+            let gl_state = self.render_state.opengl();
+
+            // We reserved the final quad in the vertex buffer as the scrollbar
+            let mut vb = gl_state.glyph_vertex_buffer.borrow_mut();
+            let num_vert = vb.len() - VERTICES_PER_CELL;
+            let mut vertices = &mut vb.slice_mut(..).unwrap().map();
+            let mut quad = Quad::for_cell(num_vert / VERTICES_PER_CELL, &mut vertices);
+
+            // Adjust the scrollbar thumb position
+            let top = (self.dimensions.pixel_height as f32 / -2.0) + thumb_top;
+            let bottom = top + thumb_size;
+
+            let config = configuration();
+            let padding = self.effective_right_padding(&config) as f32;
+
+            let right = self.dimensions.pixel_width as f32 / 2.;
+            let left = right - padding;
+
+            quad.set_bg_color(rgbcolor_to_window_color(palette.scrollbar_thumb));
+            quad.set_position(left, top, right, bottom);
         }
 
         {

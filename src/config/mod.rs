@@ -420,6 +420,9 @@ pub struct Config {
     #[serde(default = "default_true")]
     pub enable_tab_bar: bool,
 
+    #[serde(default)]
+    pub enable_scroll_bar: bool,
+
     /// If false, do not try to use a Wayland protocol connection
     /// when starting the gui frontend, and instead use X11.
     /// This option is only considered on X11/Wayland systems and

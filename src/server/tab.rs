@@ -20,7 +20,7 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use term::color::ColorPalette;
 use term::selection::SelectionRange;
-use term::{Clipboard, CursorPosition, Line};
+use term::{Clipboard, CursorPosition, Line, VisibleRowIndex};
 use term::{KeyCode, KeyModifiers, MouseButton, MouseEvent, MouseEventKind, TerminalHost};
 use termwiz::hyperlink::Hyperlink;
 use termwiz::input::KeyEvent;
@@ -467,6 +467,13 @@ impl Renderable for RenderableState {
     fn physical_dimensions(&self) -> (usize, usize) {
         let (cols, rows) = self.inner.borrow().surface.dimensions();
         (rows, cols)
+    }
+
+    fn get_scrollbar_info(&self) -> (VisibleRowIndex, usize) {
+        // Dummy scrollback information for now, until we
+        // plumb this into the protocol
+        let (_cols, rows) = self.physical_dimensions();
+        (0, rows)
     }
 }
 
