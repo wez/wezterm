@@ -95,7 +95,7 @@ impl Domain for LocalDomain {
         let child = pair.slave.spawn_command(cmd)?;
         info!("spawned: {:?}", child);
 
-        let mut terminal = term::Terminal::new(
+        let terminal = term::Terminal::new(
             size.rows as usize,
             size.cols as usize,
             size.pixel_width as usize,
@@ -104,11 +104,6 @@ impl Domain for LocalDomain {
         );
 
         let mux = Mux::get().unwrap();
-
-        if let Some(palette) = config.colors.as_ref() {
-            *terminal.palette_mut() = palette.clone().into();
-        }
-
         let tab: Rc<dyn Tab> = Rc::new(LocalTab::new(terminal, child, pair.master, self.id));
 
         mux.add_tab(&tab)?;

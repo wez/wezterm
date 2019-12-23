@@ -215,7 +215,7 @@ pub struct TerminalState {
 
     /// The terminal title string
     title: String,
-    palette: ColorPalette,
+    palette: Option<ColorPalette>,
 
     pixel_width: usize,
     pixel_height: usize,
@@ -295,7 +295,7 @@ impl TerminalState {
             hyperlink_rules,
             hyperlink_rules_generation,
             title: "wezterm".to_string(),
-            palette: ColorPalette::default(),
+            palette: None,
             pixel_height,
             pixel_width,
             clipboard: None,
@@ -310,12 +310,28 @@ impl TerminalState {
         &self.title
     }
 
-    pub fn palette(&self) -> &ColorPalette {
-        &self.palette
+    /// Returns a copy of the palette.
+    /// By default we don't keep a copy in the terminal state,
+    /// preferring to take the config values from the users
+    /// config file and updating to changes live.
+    /// However, if they have used dynamic color scheme escape
+    /// sequences we'll fork a copy of the palette at that time
+    /// so that we can start tracking those changes.
+    pub fn palette(&self) -> ColorPalette {
+        self.palette
+            .as_ref()
+            .cloned()
+            .unwrap_or_else(|| self.config.color_palette())
     }
 
+    /// Called in response to dynamic color scheme escape sequences.
+    /// Will make a copy of the palette from the config file if this
+    /// is the first of these escapes we've seen.
     pub fn palette_mut(&mut self) -> &mut ColorPalette {
-        &mut self.palette
+        if self.palette.is_none() {
+            self.palette.replace(self.config.color_palette());
+        }
+        self.palette.as_mut().unwrap()
     }
 
     pub fn screen(&self) -> &Screen {
@@ -2254,13 +2270,13 @@ impl<'a> Performer<'a> {
                                 OperatingSystemCommand::ChangeColorNumber(vec![ChangeColorPair {
                                     palette_index: pair.palette_index,
                                     color: ColorOrQuery::Color(
-                                        self.palette.colors.0[pair.palette_index as usize],
+                                        self.palette().colors.0[pair.palette_index as usize],
                                     ),
                                 }]);
                             write!(self.host.writer(), "{}", response).ok();
                         }
                         ColorOrQuery::Color(c) => {
-                            self.palette.colors.0[pair.palette_index as usize] = c;
+                            self.palette_mut().colors.0[pair.palette_index as usize] = c;
                         }
                     }
                 }
@@ -2279,11 +2295,11 @@ impl<'a> Performer<'a> {
                                     ColorOrQuery::Query => {
                                         let response = OperatingSystemCommand::ChangeDynamicColors(
                                             which_color,
-                                            vec![ColorOrQuery::Color(self.palette.$name)],
+                                            vec![ColorOrQuery::Color(self.palette().$name)],
                                         );
                                         write!(self.host.writer(), "{}", response).ok();
                                     }
-                                    ColorOrQuery::Color(c) => self.palette.$name = c,
+                                    ColorOrQuery::Color(c) => self.palette_mut().$name = c,
                                 }
                             };
                         }

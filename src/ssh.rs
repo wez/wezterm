@@ -1,4 +1,3 @@
-use crate::config::configuration;
 use crate::localtab::LocalTab;
 use crate::mux::domain::{alloc_domain_id, Domain, DomainId, DomainState};
 use crate::mux::tab::Tab;
@@ -339,7 +338,7 @@ impl Domain for RemoteSshDomain {
         let child = pair.slave.spawn_command(cmd)?;
         log::info!("spawned: {:?}", child);
 
-        let mut terminal = term::Terminal::new(
+        let terminal = term::Terminal::new(
             size.rows as usize,
             size.cols as usize,
             size.pixel_width as usize,
@@ -348,11 +347,6 @@ impl Domain for RemoteSshDomain {
         );
 
         let mux = Mux::get().unwrap();
-
-        if let Some(palette) = configuration().colors.as_ref() {
-            *terminal.palette_mut() = palette.clone().into();
-        }
-
         let tab: Rc<dyn Tab> = Rc::new(LocalTab::new(terminal, child, pair.master, self.id));
 
         mux.add_tab(&tab)?;

@@ -1,3 +1,4 @@
+use crate::config::configuration;
 use crate::frontend::executor;
 use crate::mux::domain::DomainId;
 use crate::mux::renderable::Renderable;
@@ -301,7 +302,12 @@ impl Tab for ClientTab {
     }
 
     fn palette(&self) -> ColorPalette {
-        Default::default()
+        configuration()
+            .colors
+            .as_ref()
+            .cloned()
+            .map(Into::into)
+            .unwrap_or_else(ColorPalette::default)
     }
 
     fn domain_id(&self) -> DomainId {

@@ -1,3 +1,4 @@
+use crate::color::ColorPalette;
 use termwiz::hyperlink::Rule as HyperlinkRule;
 
 pub trait TerminalConfiguration: std::fmt::Debug {
@@ -35,4 +36,6 @@ pub trait TerminalConfiguration: std::fmt::Debug {
     fn hyperlink_rules(&self) -> (usize, Vec<HyperlinkRule>) {
         (self.generation(), vec![])
     }
+
+    fn color_palette(&self) -> ColorPalette;
 }

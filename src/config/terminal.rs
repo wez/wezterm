@@ -1,6 +1,7 @@
 //! Bridge our gui config into the terminal crate configuration
 
 use crate::config::configuration;
+use term::color::ColorPalette;
 use termwiz::hyperlink::Rule as HyperlinkRule;
 
 #[derive(Debug)]
@@ -18,5 +19,14 @@ impl term::TerminalConfiguration for TermConfig {
     fn hyperlink_rules(&self) -> (usize, Vec<HyperlinkRule>) {
         let config = configuration();
         (config.generation(), config.hyperlink_rules.clone())
+    }
+
+    fn color_palette(&self) -> ColorPalette {
+        configuration()
+            .colors
+            .as_ref()
+            .cloned()
+            .map(Into::into)
+            .unwrap_or_else(ColorPalette::default)
     }
 }
