@@ -81,8 +81,10 @@ EOF
         fakeroot dpkg-deb --build pkg/debian $debname.deb
         tar cJf $debname.tar.xz -C pkg/debian/usr/bin wezterm
         rm -rf pkg
+
       ;;
     esac
+    ./ci/source-archive.sh
 
     ;;
   *)

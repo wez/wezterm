@@ -44,11 +44,23 @@ use crate::font::FontConfiguration;
 //    terminal.advance_bytes(message);
 // !=
 
+fn wezterm_version() -> &'static str {
+    // Prefer our version override, if present (see build.rs)
+    let tag = env!("WEZTERM_CI_TAG");
+    if tag.is_empty() {
+        // Otherwise, fallback to the vergen-generated information,
+        // which is basically `git describe --tags` computed in build.rs
+        env!("VERGEN_SEMVER_LIGHTWEIGHT")
+    } else {
+        tag
+    }
+}
+
 #[derive(Debug, StructOpt)]
 #[structopt(about = "Wez's Terminal Emulator\nhttp://github.com/wez/wezterm")]
 #[structopt(raw(
     global_setting = "structopt::clap::AppSettings::ColoredHelp",
-    version = r#"env!("VERGEN_SEMVER_LIGHTWEIGHT")"#,
+    version = r#"wezterm_version()"#,
 ))]
 struct Opt {
     /// Skip loading ~/.wezterm.toml

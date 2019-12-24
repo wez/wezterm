@@ -159,6 +159,8 @@ jobs:
           assets: |
             $(Build.SourcesDirectory)/*.zip
             $(Build.SourcesDirectory)/*.deb
+            $(Build.SourcesDirectory)/*.tar.xz
+            $(Build.SourcesDirectory)/*.tar.gz
           title: $(wezterm.tagname)
           assetUploadMode: replace
           addChangeLog: false
@@ -178,6 +180,7 @@ jobs:
             $(Build.SourcesDirectory)/*.zip
             $(Build.SourcesDirectory)/*.deb
             $(Build.SourcesDirectory)/*.tar.xz
+            $(Build.SourcesDirectory)/*.tar.gz
           title: "Nightly Builds"
           assetUploadMode: replace
           addChangeLog: false
