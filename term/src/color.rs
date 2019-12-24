@@ -188,7 +188,7 @@ impl Default for ColorPalette {
         let selection_fg = colors[AnsiColor::Black as usize];
         let selection_bg = RgbColor::new(0xff, 0xfa, 0xcd);
 
-        let scrollbar_thumb = RgbColor::new(0x44, 0x44, 0x44);
+        let scrollbar_thumb = RgbColor::new(0x22, 0x22, 0x22);
 
         ColorPalette {
             colors: Palette256(colors),
