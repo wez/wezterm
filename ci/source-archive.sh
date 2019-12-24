@@ -14,7 +14,9 @@ fi
 
 rm -f ${TAR_NAME}*
 
-git archive --prefix=wezterm-${TAG_NAME}/ -o ${TAR_NAME} HEAD
+NAME_PREFIX=wezterm-${TAG_NAME}
+
+git archive --prefix=${NAME_PREFIX}/ -o ${TAR_NAME} HEAD
 
 p=`pwd`
 # `git submodule foreach` outputs lines like:
@@ -25,16 +27,24 @@ git submodule foreach | while read entering path; do
   path="${path#\'}";
   [ "$path" = "" ] && continue;
   cd $path
-  git archive --prefix=wezterm-${TAG_NAME}/$path/ HEAD > tmp.tar && \
+  git archive --prefix=${NAME_PREFIX}/$path/ HEAD > tmp.tar && \
     tar --concatenate --file=$p/${TAR_NAME} tmp.tar
   rm tmp.tar
   cd $p
 done
 
 echo $TAG_NAME > .tag
-tar --owner root --group root --transform "s,^,wezterm-$TAG_NAME/," -c -f tmp.tar .tag
+tar --owner root --group root --transform "s,^,$NAME_PREFIX/," -c -f tmp.tar .tag
 tar --concatenate --file=${TAR_NAME} tmp.tar
 rm tmp.tar .tag
+
+# Remove bulky bits that are not required to build from source; this helps
+# to keep the source tarball small!
+tar --delete \
+  ${NAME_PREFIX}/deps/harfbuzz/harfbuzz/test \
+  ${NAME_PREFIX}/deps/freetype/libpng/contrib \
+  ${NAME_PREFIX}/docs/screenshots \
+  -f ${TAR_NAME}
 
 gzip ${TAR_NAME}
 
