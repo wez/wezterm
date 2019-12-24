@@ -1,4 +1,5 @@
 use super::glyphcache::{CachedGlyph, GlyphCache};
+use super::quad::*;
 use super::utilsprites::{RenderMetrics, UtilSprites};
 use crate::config::{configuration, TextStyle};
 use crate::font::{FontConfiguration, GlyphInfo};
@@ -10,8 +11,6 @@ use ::window::*;
 use anyhow::{anyhow, bail};
 use std::cell::RefCell;
 use std::rc::Rc;
-
-use super::quad::*;
 
 pub struct SoftwareRenderState {
     pub glyph_cache: RefCell<GlyphCache<ImageTexture>>,
@@ -40,6 +39,7 @@ pub struct OpenGLRenderState {
     pub program: glium::Program,
     pub glyph_vertex_buffer: RefCell<VertexBuffer<Vertex>>,
     pub glyph_index_buffer: IndexBuffer<u32>,
+    pub quads: Quads,
 }
 
 impl OpenGLRenderState {
@@ -80,7 +80,7 @@ impl OpenGLRenderState {
         let program =
             program.ok_or_else(|| anyhow!("Failed to compile shaders: {}", errors.join("\n")))?;
 
-        let (glyph_vertex_buffer, glyph_index_buffer) =
+        let (glyph_vertex_buffer, glyph_index_buffer, quads) =
             Self::compute_vertices(&context, metrics, pixel_width as f32, pixel_height as f32)?;
 
         Ok(Self {
@@ -90,6 +90,7 @@ impl OpenGLRenderState {
             program,
             glyph_vertex_buffer: RefCell::new(glyph_vertex_buffer),
             glyph_index_buffer,
+            quads,
         })
     }
 
@@ -99,7 +100,7 @@ impl OpenGLRenderState {
         pixel_width: usize,
         pixel_height: usize,
     ) -> anyhow::Result<()> {
-        let (glyph_vertex_buffer, glyph_index_buffer) = Self::compute_vertices(
+        let (glyph_vertex_buffer, glyph_index_buffer, quads) = Self::compute_vertices(
             &self.context,
             metrics,
             pixel_width as f32,
@@ -108,6 +109,7 @@ impl OpenGLRenderState {
 
         *self.glyph_vertex_buffer.borrow_mut() = glyph_vertex_buffer;
         self.glyph_index_buffer = glyph_index_buffer;
+        self.quads = quads;
         Ok(())
     }
 
@@ -130,7 +132,7 @@ impl OpenGLRenderState {
         metrics: &RenderMetrics,
         width: f32,
         height: f32,
-    ) -> anyhow::Result<(VertexBuffer<Vertex>, IndexBuffer<u32>)> {
+    ) -> anyhow::Result<(VertexBuffer<Vertex>, IndexBuffer<u32>, Quads)> {
         let cell_width = metrics.cell_size.width as f32;
         let cell_height = metrics.cell_size.height as f32;
         let mut verts = Vec::new();
@@ -159,72 +161,31 @@ impl OpenGLRenderState {
             padding_top
         );
 
-        for y in 0..num_rows {
-            let y_pos = (height / -2.0) + (y as f32 * cell_height) + padding_top;
-            for x in 0..num_cols {
-                let x_pos = (width / -2.0) + (x as f32 * cell_width) + padding_left;
+        let mut quads = Quads::default();
+        quads.cols = num_cols;
 
-                // Remember starting index for this position
-                let idx = verts.len() as u32;
-                verts.push(Vertex {
-                    // Top left
-                    position: (x_pos, y_pos),
-                    ..Default::default()
-                });
-                verts.push(Vertex {
-                    // Top Right
-                    position: (x_pos + cell_width, y_pos),
-                    ..Default::default()
-                });
-                verts.push(Vertex {
-                    // Bottom Left
-                    position: (x_pos, y_pos + cell_height),
-                    ..Default::default()
-                });
-                verts.push(Vertex {
-                    // Bottom Right
-                    position: (x_pos + cell_width, y_pos + cell_height),
-                    ..Default::default()
-                });
-
-                // Emit two triangles to form the glyph quad
-                indices.push(idx + V_TOP_LEFT as u32);
-                indices.push(idx + V_TOP_RIGHT as u32);
-                indices.push(idx + V_BOT_LEFT as u32);
-
-                indices.push(idx + V_TOP_RIGHT as u32);
-                indices.push(idx + V_BOT_LEFT as u32);
-                indices.push(idx + V_BOT_RIGHT as u32);
-            }
-        }
-
-        {
-            // And a quad for the scrollbar thumb
-            let x_pos = (width / 2.0) - cell_width;
-            let y_pos = (height / -2.0) + padding_top;
-            let thumb_width = cell_width;
-            let thumb_height = height;
-
+        let mut define_quad = |left, top, right, bottom| -> u32 {
             // Remember starting index for this position
             let idx = verts.len() as u32;
+
             verts.push(Vertex {
                 // Top left
-                position: (x_pos, thumb_width),
+                position: (left, top),
                 ..Default::default()
             });
             verts.push(Vertex {
                 // Top Right
-                position: (x_pos + thumb_width, y_pos),
+                position: (right, top),
                 ..Default::default()
             });
             verts.push(Vertex {
                 // Bottom Left
-                position: (x_pos, y_pos + thumb_height),
+                position: (left, bottom),
                 ..Default::default()
             });
             verts.push(Vertex {
                 // Bottom Right
-                position: (x_pos + thumb_width, y_pos + thumb_height),
+                position: (right, bottom),
                 ..Default::default()
             });
 
@@ -236,6 +197,33 @@ impl OpenGLRenderState {
             indices.push(idx + V_TOP_RIGHT as u32);
             indices.push(idx + V_BOT_LEFT as u32);
             indices.push(idx + V_BOT_RIGHT as u32);
+
+            idx
+        };
+
+        for y in 0..num_rows {
+            let y_pos = (height / -2.0) + (y as f32 * cell_height) + padding_top;
+
+            for x in 0..num_cols {
+                let x_pos = (width / -2.0) + (x as f32 * cell_width) + padding_left;
+
+                let idx = define_quad(x_pos, y_pos, x_pos + cell_width, y_pos + cell_height);
+                if x == 0 {
+                    // build row -> vertex mapping
+                    quads.row_starts.push(idx as usize);
+                }
+            }
+        }
+
+        {
+            // And a quad for the scrollbar thumb
+            let x_pos = (width / 2.0) - cell_width;
+            let y_pos = (height / -2.0) + padding_top;
+            let thumb_width = cell_width;
+            let thumb_height = height;
+
+            quads.scroll_thumb =
+                define_quad(x_pos, y_pos, x_pos + thumb_width, y_pos + thumb_height) as usize;
         }
 
         Ok((
@@ -245,6 +233,7 @@ impl OpenGLRenderState {
                 glium::index::PrimitiveType::TrianglesList,
                 &indices,
             )?,
+            quads,
         ))
     }
 }

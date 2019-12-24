@@ -1403,6 +1403,10 @@ impl TermWindow {
             }
         };
 
+        let gl_state = self.render_state.opengl();
+        let mut vb = gl_state.glyph_vertex_buffer.borrow_mut();
+        let mut quads = gl_state.quads.map(&mut vb);
+
         if self.show_tab_bar {
             self.render_screen_line_opengl(
                 0,
@@ -1411,6 +1415,7 @@ impl TermWindow {
                 &cursor,
                 &*term,
                 &palette,
+                &mut quads,
             )?;
         }
 
@@ -1419,13 +1424,7 @@ impl TermWindow {
             let thumb_top = info.top as f32;
             let thumb_size = info.height as f32;
 
-            let gl_state = self.render_state.opengl();
-
-            // We reserved the final quad in the vertex buffer as the scrollbar
-            let mut vb = gl_state.glyph_vertex_buffer.borrow_mut();
-            let num_vert = vb.len() - VERTICES_PER_CELL;
-            let mut vertices = &mut vb.slice_mut(num_vert..).unwrap().map();
-            let mut quad = Quad::for_cell(0, &mut vertices);
+            let mut quad = quads.scroll_thumb();
 
             // Adjust the scrollbar thumb position
             let top = (self.dimensions.pixel_height as f32 / -2.0) + thumb_top;
@@ -1454,11 +1453,11 @@ impl TermWindow {
                     &cursor,
                     &*term,
                     &palette,
+                    &mut quads,
                 )?;
             }
         }
 
-        let gl_state = self.render_state.opengl();
         let tex = gl_state.glyph_cache.borrow().atlas.texture();
         let projection = euclid::Transform3D::<f32, f32, f32>::ortho(
             -(self.dimensions.pixel_width as f32) / 2.0,
@@ -1475,9 +1474,11 @@ impl TermWindow {
             ..Default::default()
         };
 
+        drop(quads);
+
         // Pass 1: Draw backgrounds, strikethrough and underline
         frame.draw(
-            &*gl_state.glyph_vertex_buffer.borrow(),
+            &*vb,
             &gl_state.glyph_index_buffer,
             &gl_state.program,
             &uniform! {
@@ -1490,7 +1491,7 @@ impl TermWindow {
 
         // Pass 2: Draw glyphs
         frame.draw(
-            &*gl_state.glyph_vertex_buffer.borrow(),
+            &*vb,
             &gl_state.glyph_index_buffer,
             &gl_state.program,
             &uniform! {
@@ -1518,27 +1519,11 @@ impl TermWindow {
         cursor: &CursorPosition,
         terminal: &dyn Renderable,
         palette: &ColorPalette,
+        quads: &mut MappedQuads,
     ) -> anyhow::Result<()> {
         let gl_state = self.render_state.opengl();
 
         let (_num_rows, num_cols) = terminal.physical_dimensions();
-        let mut vb = gl_state.glyph_vertex_buffer.borrow_mut();
-        let mut vertices = {
-            let per_line = num_cols * VERTICES_PER_CELL;
-            let start_pos = line_idx * per_line;
-            vb.slice_mut(start_pos..start_pos + per_line)
-                .ok_or_else(|| {
-                    anyhow!(
-                        "we're confused about the screen size; \
-                         line_idx={} start_pos={} per_line={} num_cols={}",
-                        line_idx,
-                        start_pos,
-                        per_line,
-                        num_cols
-                    )
-                })?
-                .map()
-        };
 
         let current_highlight = terminal.current_highlight();
         let cursor_border_color = rgbcolor_to_window_color(palette.cursor_border);
@@ -1673,7 +1658,7 @@ impl TermWindow {
 
                             let texture_rect = sprite.texture.to_texture_coords(coords);
 
-                            let mut quad = Quad::for_cell(cell_idx, &mut vertices);
+                            let mut quad = quads.cell(cell_idx, line_idx)?;
 
                             quad.set_fg_color(glyph_color);
                             quad.set_bg_color(bg_color);
@@ -1715,7 +1700,7 @@ impl TermWindow {
                     let right = pixel_rect.size.width as f32 + left
                         - self.render_metrics.cell_size.width as f32;
 
-                    let mut quad = Quad::for_cell(cell_idx, &mut vertices);
+                    let mut quad = quads.cell(cell_idx, line_idx)?;
 
                     quad.set_fg_color(glyph_color);
                     quad.set_bg_color(bg_color);
@@ -1757,7 +1742,7 @@ impl TermWindow {
                 palette,
             );
 
-            let mut quad = Quad::for_cell(cell_idx, &mut vertices);
+            let mut quad = quads.cell(cell_idx, line_idx)?;
 
             quad.set_bg_color(bg_color);
             quad.set_fg_color(glyph_color);
