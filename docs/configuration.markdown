@@ -195,6 +195,12 @@ harfbuzz_features = ["zero"]
 # How many lines of scrollback you want to retain per tab
 scrollback_lines = 3500
 
+# Enable the scrollbar.  This is currently disabled by default.
+# It will occupy the right window padding space.
+# If right padding is set to 0 then it will be increased
+# to a single cell width
+enable_scroll_bar = true
+
 # If no `prog` is specified on the command line, use this
 # instead of running the user's shell.
 # The value is the argument array, with the 0th element being
@@ -238,6 +244,27 @@ ratelimit_mux_output_scans_per_second = 100
 # has no effect on macOS or Windows.
 # The default is true.
 enable_wayland = true
+
+
+# Specifies how often a blinking cursor transitions between visible
+# and invisible, expressed in milliseconds.
+# Setting this to 0 disables blinking.
+# Note that this value is approximate due to the way that the system
+# event loop schedulers manage timers; non-zero values will be at
+# least the interval specified with some degree of slop.
+# It is recommended to avoid blinking cursors when on battery power,
+# as it is relatively costly to keep re-rendering for the blink!
+cursor_blink_rate = 800
+
+# Specifies the default cursor style.  various escape sequences
+# can override the default style in different situations (eg:
+# an editor can change it depending on the mode), but this value
+# controls how the cursor appears when it is reset to default.
+# The default is `SteadyBlock`.
+# Acceptable values are `SteadyBlock`, `BlinkingBlock`,
+# `SteadyUnderline`, `BlinkingUnderline`, `SteadyBar`,
+# and `BlinkingBar`.
+default_cursor_style = "SteadyBlock"
 ```
 
 ### Shortcut / Key Binding Assignments
@@ -386,6 +413,21 @@ action = "SpawnTabInDomain"
 arg = "1"
 ```
 
+### Window Padding
+
+You may add padding around the edges of the terminal cells:
+
+```
+[window_padding]
+left = 2
+
+# This will become the scrollbar width if you have enabled the scrollbar!
+right = 2
+
+top = 0
+bottom = 0
+```
+
 ### Colors
 
 You can configure colors with a section like this.  In addition to specifying
@@ -395,9 +437,24 @@ usual hex notation; eg: `#000000` is equivalent to `black`:
 
 ```toml
 [colors]
+# The default text color
 foreground = "silver"
+# The default background color
 background = "black"
-cursor_bg = "springgreen"
+
+# Overrides the cell background color when the current cell is occupied by the
+# cursor and the cursor style is set to Block
+cursor_bg = "#52ad70"
+# Overrides the text color when the current cell is occupied by the cursor
+cursor_fg = "black"
+# Specifies the border color of the cursor when the cursor style is set to Block,
+# of the color of the vertical or horizontal bar when the cursor style is set to
+# Bar or Underline.
+cursor_border = "#52ad70"
+
+# The color of the scrollbar "thumb"; the portion that represents the current viewport
+scrollbar_thumb = "#222222"
+
 ansi = ["black", "maroon", "green", "olive", "navy", "purple", "teal", "silver"]
 brights = ["grey", "red", "lime", "yellow", "blue", "fuchsia", "aqua", "white"]
 ```

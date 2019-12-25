@@ -19,7 +19,7 @@ font_hinting = "Full" # None, Vertical, VerticalSubpixel, Full
 * Added `harfuzz_features` option to specify stylistic sets for fonts such as Fira Code, and to control various typographical options
 * Added a `window_padding` config section to add padding to the window display
 * We now respect [DECSCUSR and DECTCEM](https://github.com/wez/wezterm/issues/7) escape sequence to select between hidden, block, underline and bar cursor types, as well as blinking cursors.  New configuration options have been added to control the appearance and blink rate.
-* We now support an optional basic scroll bar.  The scroll bar occupies the right window padding and has a configurable color.  Scroll bars are not yet supported for multiplexer connections.
+* We now support an optional basic scroll bar.  The scroll bar occupies the right window padding and has a configurable color.  Scroll bars are not yet supported for multiplexer connections and remain disabled by default for the moment.
 * Color scheme changes made in the config file now take effect at config reload time for all tabs that have not applied a dynamic color scheme.
 
 ### 20191218-101156-bf35707
