@@ -4,6 +4,7 @@ use super::utilsprites::RenderMetrics;
 use crate::config::{configuration, ConfigHandle};
 use crate::font::units::*;
 use crate::font::FontConfiguration;
+use crate::frontend::gui::scrollbar::*;
 use crate::frontend::gui::tabbar::{TabBarItem, TabBarState};
 use crate::frontend::{executor, front_end};
 use crate::keyassignment::{KeyAssignment, KeyMap, SpawnTabDomain};
@@ -106,85 +107,6 @@ enum Key {
     Code(::termwiz::input::KeyCode),
     Composed(String),
     None,
-}
-
-enum ScrollHit {
-    Above,
-    OnThumb(isize),
-    Below,
-}
-
-struct ThumbInfo {
-    /// Offset from the top of the window in pixels
-    top: usize,
-    /// Height of the thumb, in pixels.
-    height: usize,
-    /// Number of rows that correspond to the thumb in rows.
-    /// This is normally == viewport height, but in the case
-    /// where there are a sufficient number of rows of scrollback
-    /// that the pixel height of the thumb would be too small,
-    /// we will scale things in order to remain useful.
-    rows: usize,
-}
-
-impl ScrollHit {
-    /// Given a mouse y value, determine whether the cursor is above, over
-    /// or below the thumb.
-    /// If above the thumb, return the offset from the top of the thumb.
-    fn test(y: isize, render: &dyn Renderable, size: PtySize, dims: &Dimensions) -> Self {
-        let info = Self::thumb(render, size, dims);
-        if y < info.top as isize {
-            Self::Above
-        } else if y < (info.top + info.height) as isize {
-            Self::OnThumb(y - info.top as isize)
-        } else {
-            Self::Below
-        }
-    }
-
-    /// Compute the y-coordinate for the top of the scrollbar thumb
-    /// and the height of the thumb and return them.
-    fn thumb(render: &dyn Renderable, size: PtySize, dims: &Dimensions) -> ThumbInfo {
-        let (scroll_top, scroll_size) = render.get_scrollbar_info();
-        let thumb_size = (size.rows as f32 / scroll_size as f32) * dims.pixel_height as f32;
-
-        const MIN_HEIGHT: f32 = 10.;
-        let (thumb_size, rows) = if thumb_size < MIN_HEIGHT {
-            let scale = MIN_HEIGHT / thumb_size;
-            let rows = size.rows as f32 * scale;
-            (MIN_HEIGHT, rows as usize)
-        } else {
-            (thumb_size, size.rows as usize)
-        };
-
-        let thumb_top = (1. - (scroll_top + rows as i64) as f32 / scroll_size as f32)
-            * size.pixel_height as f32;
-
-        let thumb_size = thumb_size.ceil() as usize;
-        let thumb_top = thumb_top.ceil() as usize;
-
-        ThumbInfo {
-            top: thumb_top,
-            height: thumb_size,
-            rows,
-        }
-    }
-
-    /// Given a new thumb top coordinate (produced by draggin the thumb),
-    /// compute the equivalent viewport offset.
-    fn thumb_top_to_scroll_top(
-        thumb_top: usize,
-        render: &dyn Renderable,
-        size: PtySize,
-        dims: &Dimensions,
-    ) -> VisibleRowIndex {
-        let (_scroll_top, scroll_size) = render.get_scrollbar_info();
-        let thumb = Self::thumb(render, size, dims);
-
-        let rows_from_top =
-            ((thumb_top as f32 + thumb.height as f32) / thumb.height as f32) * thumb.rows as f32;
-        scroll_size.saturating_sub(rows_from_top as usize) as VisibleRowIndex
-    }
 }
 
 impl WindowCallbacks for TermWindow {
@@ -1100,9 +1022,9 @@ impl TermWindow {
             let mux = Mux::get().unwrap();
             let fonts = Rc::new(FontConfiguration::new());
             let window_id = mux.new_empty_window();
-            let tab =
-                mux.default_domain()
-                    .spawn(portable_pty::PtySize::default(), None, window_id)?;
+            let tab = mux
+                .default_domain()
+                .spawn(PtySize::default(), None, window_id)?;
             let front_end = front_end().expect("to be called on gui thread");
             front_end.spawn_new_window(&fonts, &tab, window_id)?;
             Ok(())
