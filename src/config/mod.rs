@@ -490,9 +490,13 @@ impl DefaultCursorStyle {
 
 #[derive(Default, Deserialize, Clone, Copy, Debug)]
 pub struct WindowPadding {
+    #[serde(default)]
     pub left: u16,
+    #[serde(default)]
     pub top: u16,
+    #[serde(default)]
     pub right: u16,
+    #[serde(default)]
     pub bottom: u16,
 }
 
