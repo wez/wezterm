@@ -29,7 +29,7 @@ impl RenderMetrics {
             metrics.cell_width.get().ceil() as usize,
         );
 
-        let underline_height = metrics.underline_thickness.get().round() as isize;
+        let underline_height = metrics.underline_thickness.get().round().max(1.) as isize;
 
         let descender_row =
             (cell_height as f64 + (metrics.descender - metrics.underline_position).get()) as isize;
