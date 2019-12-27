@@ -106,7 +106,7 @@ pub struct WaylandWindowInner {
 #[derive(Default, Clone, Debug)]
 struct PendingEvent {
     close: bool,
-    refresh: bool,
+    refresh_decorations: bool,
     configure: Option<(u32, u32)>,
     dpi: Option<i32>,
 }
@@ -123,8 +123,8 @@ impl PendingEvent {
                 }
             }
             Event::Refresh => {
-                if !self.refresh {
-                    self.refresh = true;
+                if !self.refresh_decorations {
+                    self.refresh_decorations = true;
                     true
                 } else {
                     false
@@ -136,8 +136,8 @@ impl PendingEvent {
                     changed = self.configure.is_none();
                     self.configure.replace(new_size);
                 } else {
-                    changed = !self.refresh;
-                    self.refresh = true;
+                    changed = !self.refresh_decorations;
+                    self.refresh_decorations = true;
                 }
                 changed
             }
@@ -469,11 +469,11 @@ impl WaylandWindowInner {
                 }
 
                 self.refresh_frame();
-                pending.refresh = true;
+                self.do_paint().unwrap();
             }
         }
-        if pending.refresh && self.window.is_some() {
-            self.do_paint().unwrap();
+        if pending.refresh_decorations && self.window.is_some() {
+            self.refresh_frame();
         }
     }
 
