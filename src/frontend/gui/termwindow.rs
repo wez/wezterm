@@ -24,6 +24,7 @@ use std::ops::Range;
 use std::ops::{Add, Sub};
 use std::rc::Rc;
 use std::sync::Arc;
+use std::sync::Mutex;
 use std::time::{Duration, Instant};
 use term::color::ColorPalette;
 use term::{CursorPosition, Line, Underline, VisibleRowIndex};
@@ -40,11 +41,25 @@ struct RowsAndCols {
 /// manipulation and the term crate clipboard interface
 struct ClipboardHelper {
     window: Window,
+    clipboard_contents: Arc<Mutex<Option<String>>>,
 }
 
 impl term::Clipboard for ClipboardHelper {
     fn get_contents(&self) -> anyhow::Result<String> {
-        self.window.get_clipboard().wait()
+        // Even though we could request the clipboard contents using a call
+        // like `self.window.get_clipboard().wait()` here, that requires
+        // that the event loop be processed to do its work.
+        // Since we are typically called in a blocking fashion on the
+        // event loop, we have to manually arrange to populate the
+        // clipboard_contents cache prior to calling the code that
+        // might call us.
+        Ok(self
+            .clipboard_contents
+            .lock()
+            .unwrap()
+            .as_ref()
+            .cloned()
+            .unwrap_or_else(String::new))
     }
 
     fn set_contents(&self, data: Option<String>) -> anyhow::Result<()> {
@@ -72,6 +87,10 @@ pub struct TermWindow {
     config_generation: usize,
     created_instant: Instant,
     last_scroll_info: (VisibleRowIndex, usize),
+
+    /// Gross workaround for managing async keyboard fetching
+    /// just for middle mouse button paste function
+    clipboard_contents: Arc<Mutex<Option<String>>>,
 }
 
 struct Host<'a> {
@@ -255,54 +274,94 @@ impl WindowCallbacks for TermWindow {
         } else {
             let y = y.saturating_sub(first_line_offset);
 
-            tab.mouse_event(
-                term::MouseEvent {
-                    kind: match event.kind {
-                        WMEK::Move => TMEK::Move,
-                        WMEK::VertWheel(_)
-                        | WMEK::HorzWheel(_)
-                        | WMEK::DoubleClick(_)
-                        | WMEK::Press(_) => TMEK::Press,
-                        WMEK::Release(_) => TMEK::Release,
-                    },
-                    button: match event.kind {
-                        WMEK::Release(ref press)
-                        | WMEK::Press(ref press)
-                        | WMEK::DoubleClick(ref press) => match press {
-                            MousePress::Left => TMB::Left,
-                            MousePress::Middle => TMB::Middle,
-                            MousePress::Right => TMB::Right,
-                        },
-                        WMEK::Move => {
-                            if event.mouse_buttons == WMB::LEFT {
-                                TMB::Left
-                            } else if event.mouse_buttons == WMB::RIGHT {
-                                TMB::Right
-                            } else if event.mouse_buttons == WMB::MIDDLE {
-                                TMB::Middle
-                            } else {
-                                TMB::None
-                            }
-                        }
-                        WMEK::VertWheel(amount) => {
-                            if amount > 0 {
-                                TMB::WheelUp(amount as usize)
-                            } else {
-                                TMB::WheelDown((-amount) as usize)
-                            }
-                        }
-                        WMEK::HorzWheel(_) => TMB::None,
-                    },
-                    x,
-                    y,
-                    modifiers: window_mods_to_termwiz_mods(event.modifiers),
+            let mouse_event = term::MouseEvent {
+                kind: match event.kind {
+                    WMEK::Move => TMEK::Move,
+                    WMEK::VertWheel(_)
+                    | WMEK::HorzWheel(_)
+                    | WMEK::DoubleClick(_)
+                    | WMEK::Press(_) => TMEK::Press,
+                    WMEK::Release(_) => TMEK::Release,
                 },
-                &mut Host {
-                    writer: &mut *tab.writer(),
-                    context,
+                button: match event.kind {
+                    WMEK::Release(ref press)
+                    | WMEK::Press(ref press)
+                    | WMEK::DoubleClick(ref press) => match press {
+                        MousePress::Left => TMB::Left,
+                        MousePress::Middle => TMB::Middle,
+                        MousePress::Right => TMB::Right,
+                    },
+                    WMEK::Move => {
+                        if event.mouse_buttons == WMB::LEFT {
+                            TMB::Left
+                        } else if event.mouse_buttons == WMB::RIGHT {
+                            TMB::Right
+                        } else if event.mouse_buttons == WMB::MIDDLE {
+                            TMB::Middle
+                        } else {
+                            TMB::None
+                        }
+                    }
+                    WMEK::VertWheel(amount) => {
+                        if amount > 0 {
+                            TMB::WheelUp(amount as usize)
+                        } else {
+                            TMB::WheelDown((-amount) as usize)
+                        }
+                    }
+                    WMEK::HorzWheel(_) => TMB::None,
                 },
-            )
-            .ok();
+                x,
+                y,
+                modifiers: window_mods_to_termwiz_mods(event.modifiers),
+            };
+
+            if let WMEK::Press(MousePress::Middle) = event.kind {
+                // The middle button will typically want to paste the clipboard but
+                // obtaining the contents is an async operation that requires the
+                // event loop to pump.
+                // So we schedule that work and continue with dispatching the middle
+                // button once we have it.
+                // want to paste the clipboard,
+
+                let tab_id = tab.tab_id();
+                let window_clone = self.window.as_ref().cloned().unwrap();
+                let future = self.window.as_ref().unwrap().get_clipboard();
+                Connection::get().unwrap().spawn_task(async move {
+                    if let Ok(clip) = future.await {
+                        window_clone.apply(move |myself, context| {
+                            if let Some(myself) = myself.downcast_mut::<Self>() {
+                                myself
+                                    .clipboard_contents
+                                    .lock()
+                                    .unwrap()
+                                    .replace(clip.clone());
+                                let mux = Mux::get().unwrap();
+                                if let Some(tab) = mux.get_tab(tab_id) {
+                                    tab.mouse_event(
+                                        mouse_event,
+                                        &mut Host {
+                                            writer: &mut *tab.writer(),
+                                            context,
+                                        },
+                                    )
+                                    .ok();
+                                }
+                            }
+                            Ok(())
+                        });
+                    }
+                });
+            } else {
+                tab.mouse_event(
+                    mouse_event,
+                    &mut Host {
+                        writer: &mut *tab.writer(),
+                        context,
+                    },
+                )
+                .ok();
+            }
         }
 
         match event.kind {
@@ -519,6 +578,8 @@ impl TermWindow {
             ATLAS_SIZE,
         )?);
 
+        let clipboard_contents = Arc::new(Mutex::new(None));
+
         let window = Window::new_window(
             "wezterm",
             "wezterm",
@@ -541,6 +602,7 @@ impl TermWindow {
                 config_generation: config.generation(),
                 created_instant: Instant::now(),
                 last_scroll_info: (0, 0),
+                clipboard_contents: Arc::clone(&clipboard_contents),
             }),
         )?;
 
@@ -605,6 +667,7 @@ impl TermWindow {
 
         let clipboard: Arc<dyn term::Clipboard> = Arc::new(ClipboardHelper {
             window: window.clone(),
+            clipboard_contents,
         });
         tab.set_clipboard(&clipboard);
         Mux::get()
@@ -941,6 +1004,7 @@ impl TermWindow {
 
         let clipboard: Arc<dyn term::Clipboard> = Arc::new(ClipboardHelper {
             window: self.window.as_ref().unwrap().clone(),
+            clipboard_contents: Arc::clone(&self.clipboard_contents),
         });
         tab.set_clipboard(&clipboard);
 
