@@ -1423,9 +1423,17 @@ impl TermWindow {
             let left = right - padding;
 
             let color = rgbcolor_to_window_color(palette.scrollbar_thumb);
+            let white_space = gl_state.util_sprites.white_space.texture_coords();
+
             quad.set_bg_color(color);
             quad.set_fg_color(color);
             quad.set_position(left, top, right, bottom);
+            quad.set_texture(white_space);
+            quad.set_texture_adjust(0., 0., 0., 0.);
+            quad.set_underline(white_space);
+            quad.set_has_color(false);
+            quad.set_cursor(white_space);
+            quad.set_cursor_color(rgbcolor_to_window_color(background_color));
         }
 
         {
