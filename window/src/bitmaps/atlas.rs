@@ -5,6 +5,7 @@ use std::rc::Rc;
 use thiserror::*;
 
 pub const TEX_SIZE: u32 = 4096;
+const PADDING: usize = 1;
 
 #[derive(Debug, Error)]
 #[error("Texture Size exceeded, need {}", size)]
@@ -66,8 +67,8 @@ where
         // We pad each sprite reservation with blank space to avoid
         // surprising and unexpected artifacts when the texture is
         // interpolated on to the render surface.
-        let reserve_width = width + 2;
-        let reserve_height = height + 2;
+        let reserve_width = width + PADDING * 2;
+        let reserve_height = height + PADDING * 2;
 
         if reserve_width > self.side || reserve_height > self.side {
             // It's not possible to satisfy that request
@@ -93,7 +94,10 @@ where
         }
 
         let rect = Rect::new(
-            Point::new(self.left as isize + 1, self.bottom as isize + 1),
+            Point::new(
+                (self.left + PADDING) as isize,
+                (self.bottom + PADDING) as isize,
+            ),
             Size::new(width as isize, height as isize),
         );
 
@@ -198,7 +202,7 @@ impl SpriteSlice {
 
             if self.cell_idx == self.num_cells - 1 {
                 // Width of all the other cells
-                let middle = self.cell_width * (self.num_cells - 2);
+                let middle = self.cell_width * (self.num_cells - PADDING * 2);
                 cell_0 + middle as f32
             } else {
                 // Width of all the preceding cells
