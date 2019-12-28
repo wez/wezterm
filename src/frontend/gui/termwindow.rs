@@ -68,6 +68,31 @@ impl term::Clipboard for ClipboardHelper {
     }
 }
 
+struct PrevCursorPos {
+    pos: CursorPosition,
+    when: Instant,
+}
+
+impl PrevCursorPos {
+    fn new() -> Self {
+        PrevCursorPos {
+            pos: CursorPosition::default(),
+            when: Instant::now(),
+        }
+    }
+
+    fn update(&mut self, newpos: &CursorPosition) {
+        if &self.pos != newpos {
+            self.pos = *newpos;
+            self.when = Instant::now();
+        }
+    }
+
+    fn last_cursor_movement(&self) -> Instant {
+        self.when
+    }
+}
+
 pub struct TermWindow {
     window: Option<Window>,
     fonts: Rc<FontConfiguration>,
@@ -85,7 +110,7 @@ pub struct TermWindow {
     last_mouse_coords: (usize, i64),
     scroll_drag_start: Option<isize>,
     config_generation: usize,
-    created_instant: Instant,
+    prev_cursor: PrevCursorPos,
     last_scroll_info: (VisibleRowIndex, usize),
 
     /// Gross workaround for managing async keyboard fetching
@@ -600,7 +625,7 @@ impl TermWindow {
                 last_mouse_coords: (0, -1),
                 scroll_drag_start: None,
                 config_generation: config.generation(),
-                created_instant: Instant::now(),
+                prev_cursor: PrevCursorPos::new(),
                 last_scroll_info: (0, 0),
                 clipboard_contents: Arc::clone(&clipboard_contents),
             }),
@@ -1254,6 +1279,7 @@ impl TermWindow {
                 ..cursor
             }
         };
+        self.prev_cursor.update(&cursor);
 
         if self.show_tab_bar {
             self.render_screen_line(ctx, 0, self.tab_bar.line(), 0..0, &cursor, &*term, &palette)?;
@@ -1388,6 +1414,7 @@ impl TermWindow {
                 ..cursor
             }
         };
+        self.prev_cursor.update(&cursor);
 
         let gl_state = self.render_state.opengl();
         let mut vb = gl_state.glyph_vertex_buffer.borrow_mut();
@@ -2093,7 +2120,9 @@ impl TermWindow {
                     // If the result is even then the cursor is "on", else it
                     // is "off"
                     let now = std::time::Instant::now();
-                    let milli_uptime = now.duration_since(self.created_instant).as_millis();
+                    let milli_uptime = now
+                        .duration_since(self.prev_cursor.last_cursor_movement())
+                        .as_millis();
                     let ticks = milli_uptime / config.cursor_blink_rate as u128;
                     if (ticks & 1) == 0 {
                         shape
