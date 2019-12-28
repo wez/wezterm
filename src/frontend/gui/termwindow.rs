@@ -14,7 +14,7 @@ use crate::mux::window::WindowId as MuxWindowId;
 use crate::mux::Mux;
 use ::window::bitmaps::atlas::{OutOfTextureSpace, SpriteSlice};
 use ::window::bitmaps::Texture2d;
-use ::window::glium::{uniform, Surface};
+use ::window::glium::{uniform, BlendingFunction, LinearBlendingFactor, Surface};
 use ::window::*;
 use anyhow::{anyhow, bail, ensure};
 use portable_pty::PtySize;
@@ -1392,7 +1392,8 @@ impl TermWindow {
         .to_column_arrays();
 
         let draw_params = glium::DrawParameters {
-            blend: glium::Blend::alpha_blending(),
+            // No alpha blending for the background layer: let's make
+            // sure that our background pixels are at 100% opacity.
             ..Default::default()
         };
 
@@ -1410,6 +1411,28 @@ impl TermWindow {
             },
             &draw_params,
         )?;
+
+        let draw_params = glium::DrawParameters {
+            blend: glium::Blend {
+                color: BlendingFunction::Addition {
+                    source: LinearBlendingFactor::SourceAlpha,
+                    destination: LinearBlendingFactor::OneMinusSourceAlpha,
+                },
+                alpha: BlendingFunction::Addition {
+                    source: LinearBlendingFactor::SourceAlpha,
+                    // On Wayland, the compositor takes the destination alpha
+                    // value and blends with the window behind our own, which
+                    // can make the text look brighter or less sharp.
+                    // We set the destination alpha to 1.0 to prevent that
+                    // from happening.
+                    // (The normal alpha blending operation would set this to
+                    // OneMinusSourceAlpha).
+                    destination: LinearBlendingFactor::One,
+                },
+                constant_value: (0.0, 0.0, 0.0, 0.0),
+            },
+            ..Default::default()
+        };
 
         // Pass 2: Draw glyphs
         frame.draw(
