@@ -32,6 +32,15 @@ fn lookup_entry(state: State) -> Action {
 }
 
 #[inline(always)]
+#[cfg(debug_assertions)]
+fn lookup_exit(state: State) -> Action {
+    *EXIT
+        .get(state as usize)
+        .unwrap_or_else(|| panic!("State {:?} has no entry in EXIT", state))
+}
+
+#[inline(always)]
+#[cfg(not(debug_assertions))]
 fn lookup_exit(state: State) -> Action {
     unsafe { *EXIT.get_unchecked(state as usize) }
 }
@@ -478,21 +487,13 @@ impl VTParser {
     // We return to the ground state after each codepoint, successful
     // or otherwise.
     fn next_utf8(&mut self, actor: &mut dyn VTActor, byte: u8) {
-        struct Decoder<'a> {
-            state: &'a mut State,
-            actor: &'a mut dyn VTActor,
-            return_state: State,
-            osc: &'a mut OscState,
+        struct Decoder {
+            codepoint: Option<char>,
         }
 
-        impl<'a> utf8parse::Receiver for Decoder<'a> {
+        impl utf8parse::Receiver for Decoder {
             fn codepoint(&mut self, c: char) {
-                match self.return_state {
-                    State::Ground => self.actor.print(c),
-                    State::OscString => self.osc.put(c),
-                    state => panic!("unreachable state {:?}", state),
-                };
-                *self.state = self.return_state;
+                self.codepoint.replace(c);
             }
 
             fn invalid_sequence(&mut self) {
@@ -500,13 +501,37 @@ impl VTParser {
             }
         }
 
-        let mut decoder = Decoder {
-            state: &mut self.state,
-            actor,
-            return_state: self.utf8_return_state,
-            osc: &mut self.osc,
-        };
+        let mut decoder = Decoder { codepoint: None };
+
         self.utf8_parser.advance(&mut decoder, byte);
+        if let Some(c) = decoder.codepoint {
+            // Slightly gross special cases C1 controls that were
+            // encoded as UTF-8 rather than emitted as raw 8-bit.
+            // If the decoded value is in the byte range, and that
+            // value would cause a state transition, then we process
+            // that state transition rather than performing the default
+            // string accumulation.
+            if c as u32 <= 0xff {
+                let byte = ((c as u32) & 0xff) as u8;
+
+                let (action, state) = lookup(self.utf8_return_state, byte);
+                if state != self.utf8_return_state && state != State::Utf8Sequence {
+                    self.action(lookup_exit(self.utf8_return_state), 0, actor);
+                    self.action(action, byte, actor);
+                    self.action(lookup_entry(state), 0, actor);
+                    self.utf8_return_state = self.state;
+                    self.state = state;
+                    return;
+                }
+            }
+
+            match self.utf8_return_state {
+                State::Ground => actor.print(c),
+                State::OscString => self.osc.put(c),
+                state => panic!("unreachable state {:?}", state),
+            };
+            self.state = self.utf8_return_state;
+        }
     }
 
     /// Parse a single byte.  This may result in a call to one of the
@@ -740,6 +765,17 @@ mod test {
         assert_eq!(
             parse_as_vec("\x1b]\u{af}\x07".as_bytes()),
             vec![VTAction::OscDispatch(vec!["\u{af}".as_bytes().to_vec()])]
+        );
+    }
+
+    #[test]
+    fn osc_fedora_vte() {
+        assert_eq!(
+            parse_as_vec("\u{9d}777;preexec\u{9c}".as_bytes()),
+            vec![VTAction::OscDispatch(vec![
+                b"777".to_vec(),
+                b"preexec".to_vec(),
+            ])]
         );
     }
 
