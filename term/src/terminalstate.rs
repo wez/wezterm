@@ -178,6 +178,7 @@ pub struct TerminalState {
     /// designated marker characters.
     bracketed_paste: bool,
 
+    /// SGR style mouse tracking and reporting is enabled
     sgr_mouse: bool,
     button_event_mouse: bool,
     current_mouse_button: MouseButton,
