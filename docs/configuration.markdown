@@ -7,6 +7,8 @@ title: Configuration
 `wezterm` will look for a TOML configuration file in the following locations,
 stopping at the first file that it finds:
 
+* If the environment variable `$WEZTERM_CONFIG_FILE` is set, it will be treated as the
+  path to a configuration file.
 * On Windows, `wezterm.toml` from the directory that contains `wezterm.exe`.
   This is handy for users that want to carry their wezterm install around on a thumb drive.
 * `$HOME/.config/wezterm/wezterm.toml`,

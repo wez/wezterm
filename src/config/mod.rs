@@ -537,6 +537,9 @@ impl Config {
                 }
             }
         }
+        if let Some(path) = std::env::var_os("WEZTERM_CONFIG_FILE") {
+            paths.insert(0, path.into());
+        }
 
         for p in &paths {
             log::trace!("consider config: {}", p.display());
