@@ -15,7 +15,8 @@ if test -e /etc/centos-release || test -e /etc/fedora-release; then
     mesa-libEGL-devel \
     xcb-util-keysyms-devel \
     xcb-util-wm-devel \
-    rpm-build
+    rpm-build \
+    redhat-lsb-core
   exit $?
 fi
 
