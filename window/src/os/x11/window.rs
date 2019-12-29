@@ -374,6 +374,14 @@ impl XWindowInner {
                     self.conn.atom_xsel_data
                 );
             }
+            xcb::FOCUS_IN => {
+                log::trace!("Calling focus_change(true)");
+                self.callbacks.focus_change(true);
+            }
+            xcb::FOCUS_OUT => {
+                log::trace!("Calling focus_change(false)");
+                self.callbacks.focus_change(false);
+            }
             _ => {
                 eprintln!("unhandled: {:x}", r);
             }
