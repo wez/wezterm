@@ -124,6 +124,14 @@ fn window_id_from_event(event: &xcb::GenericEvent) -> Option<xcb::xproto::Window
             let msg: &xcb::SelectionRequestEvent = unsafe { xcb::cast_event(event) };
             Some(msg.owner())
         }
+        xcb::FOCUS_IN => {
+            let msg: &xcb::FocusInEvent = unsafe { xcb::cast_event(event) };
+            Some(msg.event())
+        }
+        xcb::FOCUS_OUT => {
+            let msg: &xcb::FocusOutEvent = unsafe { xcb::cast_event(event) };
+            Some(msg.event())
+        }
         _ => None,
     }
 }
