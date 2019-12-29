@@ -30,6 +30,21 @@ jobs:
         set path "%USERPROFILE%\.cargo\bin;%PATH"
         rustc -V
         cargo -V
+    - name: Cache cargo registry
+      uses: actions/cache@v1
+      with:
+        path: ~/.cargo/registry
+        key: ${{ runner.os }}-${{ matrix.rust_toolchain }}-cargo-registry-${{ hashFiles('Cargo.lock') }}
+    - name: Cache cargo index
+      uses: actions/cache@v1
+      with:
+        path: ~/.cargo/git
+        key: ${{ runner.os }}-${{ matrix.rust_toolchain }}-cargo-index-${{ hashFiles('Cargo.lock') }}
+    - name: Cache cargo build
+      uses: actions/cache@v1
+      with:
+        path: target
+        key: ${{ runner.os }}-${{ matrix.rust_toolchain }}-cargo-build-target-${{ hashFiles('Cargo.lock') }}
     - name: Check formatting
       if: matrix.rust_toolchain == 'stable'
       shell: cmd
@@ -41,9 +56,23 @@ jobs:
       shell: cmd
       run: |
         set path "%USERPROFILE%\.cargo\bin;%PATH"
-        cargo build --all
+        cargo build --all --release
     - name: Test
       shell: cmd
       run: |
         set path "%USERPROFILE%\.cargo\bin;%PATH"
-        cargo test --all
+        cargo test --all --release
+    - name: Package
+      shell: cmd
+      run: |
+        set path "%USERPROFILE%\.cargo\bin;%PATH"
+        bash ci/deploy.sh
+    - name: Move Windows Package
+      shell: bash
+      run: |
+        mkdir pkg_
+        mv *.zip pkg_
+    - uses: actions/upload-artifact@master
+      with:
+        name: windows
+        path: pkg_

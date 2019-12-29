@@ -4,7 +4,6 @@
 /wezterm*.deb
 /wezterm*.tar.xz
 /pkg
-/Cargo.lock
 /target/
 **/*.rs.bk
 .*.sw*
