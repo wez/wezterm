@@ -33,7 +33,6 @@ pub enum Position {
 pub enum CursorShape {
     Hidden,
     Default,
-    BlockOutline,
     BlinkingBlock,
     SteadyBlock,
     BlinkingUnderline,
@@ -53,16 +52,6 @@ impl CursorShape {
         match self {
             Self::BlinkingBlock | Self::BlinkingUnderline | Self::BlinkingBar => true,
             _ => false,
-        }
-    }
-
-    /// What shape cursor when we don't have focus
-    pub fn defocused(self) -> Self {
-        match self {
-            Self::BlinkingBlock | Self::SteadyBlock => Self::BlockOutline,
-            Self::BlinkingUnderline | Self::SteadyUnderline => Self::SteadyUnderline,
-            Self::BlinkingBar | Self::SteadyBar => Self::SteadyBar,
-            other => other,
         }
     }
 }

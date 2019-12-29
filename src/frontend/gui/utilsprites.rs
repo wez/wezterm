@@ -296,9 +296,7 @@ impl<T: Texture2d> UtilSprites<T> {
     pub fn cursor_sprite(&self, shape: CursorShape) -> &Sprite<T> {
         match shape {
             CursorShape::Default | CursorShape::Hidden => &self.white_space,
-            CursorShape::BlockOutline | CursorShape::BlinkingBlock | CursorShape::SteadyBlock => {
-                &self.cursor_box
-            }
+            CursorShape::BlinkingBlock | CursorShape::SteadyBlock => &self.cursor_box,
             CursorShape::BlinkingBar | CursorShape::SteadyBar => &self.cursor_i_beam,
             CursorShape::BlinkingUnderline | CursorShape::SteadyUnderline => &self.cursor_underline,
         }
