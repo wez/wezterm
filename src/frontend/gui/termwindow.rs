@@ -95,6 +95,7 @@ impl PrevCursorPos {
 
 pub struct TermWindow {
     window: Option<Window>,
+    focused: bool,
     fonts: Rc<FontConfiguration>,
     /// Window dimensions and dpi
     dimensions: Dimensions,
@@ -177,6 +178,11 @@ impl WindowCallbacks for TermWindow {
 
     fn as_any(&mut self) -> &mut dyn Any {
         self
+    }
+
+    fn focus_change(&mut self, focused: bool) {
+        log::debug!("Setting focus to {:?}", focused);
+        self.focused = focused;
     }
 
     fn mouse_event(&mut self, event: &MouseEvent, context: &dyn WindowOps) {
@@ -612,6 +618,7 @@ impl TermWindow {
             dimensions.pixel_height,
             Box::new(Self {
                 window: None,
+                focused: false,
                 mux_window_id,
                 fonts: Rc::clone(fontconfig),
                 render_metrics,
@@ -2111,7 +2118,7 @@ impl TermWindow {
             // depending on the current time.
             let config = configuration();
             let shape = config.default_cursor_style.effective_shape(cursor.shape);
-            if shape.is_blinking() {
+            if shape.is_blinking() && self.focused {
                 if config.cursor_blink_rate == 0 {
                     // The user disabled blinking for their cursor
                     shape
