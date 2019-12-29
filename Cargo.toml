@@ -101,5 +101,4 @@ core-text = "15.0"
 [workspace]
 
 [profile.release]
-debug = true
 opt-level = 3

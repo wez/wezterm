@@ -30,6 +30,21 @@ jobs:
         source $HOME/.cargo/env
         rustc -V
         cargo -V
+    - name: Cache cargo registry
+      uses: actions/cache@v1
+      with:
+        path: ~/.cargo/registry
+        key: ${{ runner.os }}-${{ matrix.rust_toolchain }}-cargo-registry-${{ hashFiles('Cargo.lock') }}
+    - name: Cache cargo index
+      uses: actions/cache@v1
+      with:
+        path: ~/.cargo/git
+        key: ${{ runner.os }}-${{ matrix.rust_toolchain }}-cargo-index-${{ hashFiles('Cargo.lock') }}
+    - name: Cache cargo build
+      uses: actions/cache@v1
+      with:
+        path: target
+        key: ${{ runner.os }}-${{ matrix.rust_toolchain }}-cargo-build-target-${{ hashFiles('Cargo.lock') }}
     - name: Check formatting
       if: matrix.rust_toolchain == 'stable'
       run: |
@@ -39,8 +54,33 @@ jobs:
     - name: Build
       run: |
         source $HOME/.cargo/env
-        cargo build --all
+        cargo build --all --release
     - name: Test
       run: |
         source $HOME/.cargo/env
-        cargo test --all
+        cargo test --all --release
+    - name: Package
+      run: |
+        source $HOME/.cargo/env
+        bash ci/deploy.sh
+    - name: Move macOS Package
+      if: contains(matrix.os, 'macos')
+      run: |
+        mkdir pkg_
+        mv *.zip pkg_
+    - name: Move Linux Package
+      if: contains(matrix.os, 'ubuntu')
+      run: |
+        mkdir pkg_
+        mv *.deb pkg_
+        mv *.xz pkg_
+    - uses: actions/upload-artifact@master
+      if: contains(matrix.os, 'macos')
+      with:
+        name: macos
+        path: pkg_
+    - uses: actions/upload-artifact@master
+      if: contains(matrix.os, 'ubuntu')
+      with:
+        name: linux
+        path: pkg_
