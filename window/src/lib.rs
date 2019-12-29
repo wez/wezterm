@@ -114,6 +114,9 @@ pub trait WindowCallbacks: Any {
     /// Called when the window is resized, or when the dpi has changed
     fn resize(&mut self, dimensions: Dimensions) {}
 
+    /// Called when window gains/loses focus
+    fn focus_change(&mut self, focused: bool) {}
+
     /// Called when the window contents need painting.
     /// This is used only when the software renderer is enabled (which
     /// is the default).  When the window is set to opengl mode, the
