@@ -2133,27 +2133,31 @@ impl TermWindow {
             // depending on the current time.
             let config = configuration();
             let shape = config.default_cursor_style.effective_shape(cursor.shape);
-            if shape.is_blinking() && self.focused {
-                if config.cursor_blink_rate == 0 {
-                    // The user disabled blinking for their cursor
+            // Work out the blinking shape if its a blinking cursor and it hasn't been disabled
+            // and the window is focused.
+            let blinking = shape.is_blinking() && config.cursor_blink_rate != 0 && self.focused;
+            let shape = if blinking {
+                // Divide the time since we last moved by the blink rate.
+                // If the result is even then the cursor is "on", else it
+                // is "off"
+                let now = std::time::Instant::now();
+                let milli_uptime = now
+                    .duration_since(self.prev_cursor.last_cursor_movement())
+                    .as_millis();
+                let ticks = milli_uptime / config.cursor_blink_rate as u128;
+                if (ticks & 1) == 0 {
                     shape
                 } else {
-                    // Divide the time since we were spawned by the blink rate.
-                    // If the result is even then the cursor is "on", else it
-                    // is "off"
-                    let now = std::time::Instant::now();
-                    let milli_uptime = now
-                        .duration_since(self.prev_cursor.last_cursor_movement())
-                        .as_millis();
-                    let ticks = milli_uptime / config.cursor_blink_rate as u128;
-                    if (ticks & 1) == 0 {
-                        shape
-                    } else {
-                        CursorShape::Hidden
-                    }
+                    CursorShape::Hidden
                 }
             } else {
                 shape
+            };
+            // Get the cursor shape if the window is defocused.
+            if self.focused {
+                shape
+            } else {
+                shape.defocused()
             }
         } else {
             CursorShape::Hidden
