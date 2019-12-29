@@ -3,189 +3,23 @@
 trigger:
   branches:
     include: ['master']
-  tags:
-    include: ['*']
-    exclude: ['nightly*']
 
 schedules:
-  - cron: '10 * * * *'
-    displayName: "scheduled build"
+  - cron: '50 * * * *'
+    displayName: "scheduled GH Pages re-deploy"
     branches:
       include: ['master']
 
 jobs:
-  - job: 'Clippy'
-    pool:
-      vmImage: 'ubuntu-16.04'
-    steps:
-      - checkout: self
-        submodules: true
-      - script: |
-          curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain $RUSTUP_TOOLCHAIN
-          echo "##vso[task.setvariable variable=PATH;]$HOME/.cargo/bin:$PATH"
-        displayName: Install rust
-      - script: |
-          rustup update
-        displayName: Update rust toolchains
-      - script: rustup component add clippy
-        displayName: Install clippy
-      - script: |
-          sudo ./get-deps
-        displayName: Install system dependencies
-      - script: cargo clippy --all
-        displayName: Run Clippy
-
-  - job: 'Rustfmt'
-    pool:
-      vmImage: 'ubuntu-16.04'
-    steps:
-      - script: |
-          curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain $RUSTUP_TOOLCHAIN
-          echo "##vso[task.setvariable variable=PATH;]$HOME/.cargo/bin:$PATH"
-        displayName: Install rust
-      - script: |
-          rustup update
-        displayName: Update rust toolchains
-      - script: rustup component add rustfmt
-        displayName: Install Rustfmt
-      - script: cargo fmt --all -- --check
-        displayName: Check formatting
-
-  - job: 'Test'
-    # A list of vmImage names can be found at:
-    # https://docs.microsoft.com/en-us/azure/devops/pipelines/agents/hosted?view=azure-devops#use-a-microsoft-hosted-agent
+  - job: 'Rebuild_GH_Pages'
     strategy:
       matrix:
-        windows-stable:
-          imageName: 'vs2017-win2016'
-          rustup_toolchain: stable
-        mac-stable:
-          imageName: 'macos-10.14'
-          rustup_toolchain: stable
-        linux-stable:
-          imageName: 'ubuntu-16.04'
-          rustup_toolchain: stable
-        linux-beta:
-          imageName: 'ubuntu-16.04'
-          rustup_toolchain: beta
-        linux-nightly:
-          imageName: 'ubuntu-16.04'
-          rustup_toolchain: nightly
-    pool:
-      vmImage: $(imageName)
-    steps:
-      - checkout: self
-        submodules: true
-      - script: |
-          curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain $RUSTUP_TOOLCHAIN
-          echo "##vso[task.setvariable variable=PATH;]$HOME/.cargo/bin:$PATH"
-        displayName: Install rust (posix)
-        condition: ne( variables['Agent.OS'], 'Windows_NT' )
-      - script: |
-          curl -sSf -o rustup-init.exe https://win.rustup.rs
-          rustup-init.exe -yv --default-toolchain %RUSTUP_TOOLCHAIN%
-          echo "##vso[task.setvariable variable=PATH;]%USERPROFILE%\.cargo\bin;%PATH%"
-        displayName: Install rust (windows)
-        condition: eq( variables['Agent.OS'], 'Windows_NT' )
-      - script: |
-          rustup update
-        displayName: Update rust toolchains
-      - script: |
-          rustc -vV
-          cargo -vV
-        displayName: Show installed rust+cargo version
-      - script: |
-          sudo ./get-deps
-        displayName: Install system dependencies
-        condition: ne( variables['Agent.OS'], 'Windows_NT' )
-      - script: cargo build --all
-        displayName: Cargo build
-      - script: cargo test --all
-        displayName: Cargo test
-
-  - job: 'Package'
-    strategy:
-      matrix:
-        windows-stable:
-          imageName: 'vs2017-win2016'
-          rustup_toolchain: stable
-        mac-stable:
-          imageName: 'macos-10.14'
-          rustup_toolchain: stable
         linux-stable:
           imageName: 'ubuntu-16.04'
           rustup_toolchain: stable
     pool:
-      vmImage: $(imageName)
+      vmImage: 'ubuntu-16.04'
     steps:
-      - checkout: self
-        submodules: true
-      - script: |
-          curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain $RUSTUP_TOOLCHAIN
-          echo "##vso[task.setvariable variable=PATH;]$HOME/.cargo/bin:$PATH"
-        displayName: Install rust (posix)
-        condition: ne( variables['Agent.OS'], 'Windows_NT' )
-      - script: |
-          curl -sSf -o rustup-init.exe https://win.rustup.rs
-          rustup-init.exe -yv --default-toolchain %RUSTUP_TOOLCHAIN%
-          echo "##vso[task.setvariable variable=PATH;]%USERPROFILE%\.cargo\bin;%PATH%"
-        displayName: install rust (windows)
-        condition: eq( variables['Agent.OS'], 'Windows_NT' )
-      - script: |
-          rustup update
-        displayName: Update rust toolchains
-      - script: |
-          rustc -vV
-          cargo -vV
-        displayName: Show installed rust+cargo version
-      - script: |
-          sudo ./get-deps
-        displayName: Install system dependencies
-        condition: ne( variables['Agent.OS'], 'Windows_NT' )
-      - script: cargo build --release --all
-        displayName: Build in release mode
-      - bash: ci/deploy.sh
-        displayName: Packaging
-      - task: GithubRelease@0
-        condition: and(succeeded(), ne(variables['Build.Reason'], 'Schedule'), startsWith(variables['Build.SourceBranch'], 'refs/tags/'), not(startsWith(variables['Build.SourceBranch'], 'refs/tags/nightly')))
-        displayName: Release from tag
-        inputs:
-          gitHubConnection: wez
-          repositoryName: wez/wezterm
-          action: edit
-          target: $(build.sourceVersion)
-          tagSource: manual
-          tag: $(wezterm.tagname)
-          assets: |
-            $(Build.SourcesDirectory)/*.zip
-            $(Build.SourcesDirectory)/*.deb
-            $(Build.SourcesDirectory)/*.tar.xz
-            $(Build.SourcesDirectory)/*.tar.gz
-          title: $(wezterm.tagname)
-          assetUploadMode: replace
-          addChangeLog: false
-          isPreRelease: false
-          isDraft: false
-      - task: GithubRelease@0
-        condition: and(succeeded(), eq(variables['Build.Reason'], 'Schedule'))
-        displayName: Release from nightly build
-        inputs:
-          gitHubConnection: wez
-          repositoryName: wez/wezterm
-          action: edit
-          target: c53ca64c33d1658602b9a3aaa412eca9c6544294
-          tagSource: manual
-          tag: nightly
-          assets: |
-            $(Build.SourcesDirectory)/*.zip
-            $(Build.SourcesDirectory)/*.deb
-            $(Build.SourcesDirectory)/*.tar.xz
-            $(Build.SourcesDirectory)/*.tar.gz
-          title: "Nightly Builds"
-          assetUploadMode: replace
-          addChangeLog: false
-          isPreRelease: true
-          isDraft: false
       - bash: 'curl -u wez:$(github.pat) -X POST https://api.github.com/repos/wez/wezterm/pages/builds -H "Accept: application/vnd.github.mister-fantastic-preview+json"'
         displayName: request github pages rebuild
 
