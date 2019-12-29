@@ -552,6 +552,14 @@ unsafe fn wm_size(hwnd: HWND, _msg: UINT, _wparam: WPARAM, lparam: LPARAM) -> Op
     None
 }
 
+unsafe fn wm_enable(hwnd: HWND, _msg: UINT, wparam: WPARAM, _lparam: LPARAM) -> Option<LRESULT> {
+    if let Some(inner) = rc_from_hwnd(hwnd) {
+        let inner = inner.borrow();
+        inner.callbacks.borrow_mut().focus_change(wparam != 0);
+    }
+    None
+}
+
 unsafe fn wm_paint(hwnd: HWND, _msg: UINT, _wparam: WPARAM, _lparam: LPARAM) -> Option<LRESULT> {
     if let Some(inner) = rc_from_hwnd(hwnd) {
         let inner = inner.borrow();
@@ -1064,6 +1072,7 @@ unsafe fn do_wnd_proc(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> 
         WM_NCDESTROY => wm_ncdestroy(hwnd, msg, wparam, lparam),
         WM_PAINT => wm_paint(hwnd, msg, wparam, lparam),
         WM_SIZE => wm_size(hwnd, msg, wparam, lparam),
+        WM_ENABLE => wm_enable(hwnd, msg, wparam, lparam),
         WM_KEYDOWN | WM_CHAR | WM_IME_CHAR | WM_KEYUP | WM_SYSKEYUP | WM_SYSKEYDOWN => {
             key(hwnd, msg, wparam, lparam)
         }
