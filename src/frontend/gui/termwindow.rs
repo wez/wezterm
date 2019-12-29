@@ -2136,7 +2136,7 @@ impl TermWindow {
             // Work out the blinking shape if its a blinking cursor and it hasn't been disabled
             // and the window is focused.
             let blinking = shape.is_blinking() && config.cursor_blink_rate != 0 && self.focused;
-            let shape = if blinking {
+            if blinking {
                 // Divide the time since we last moved by the blink rate.
                 // If the result is even then the cursor is "on", else it
                 // is "off"
@@ -2152,29 +2152,23 @@ impl TermWindow {
                 }
             } else {
                 shape
-            };
-            // Get the cursor shape if the window is defocused.
-            if self.focused {
-                shape
-            } else {
-                shape.defocused()
             }
         } else {
             CursorShape::Hidden
         };
 
-        let (fg_color, bg_color) = match (selected, cursor_shape) {
+        let (fg_color, bg_color) = match (selected, self.focused, cursor_shape) {
             // Selected text overrides colors
-            (true, CursorShape::Hidden) => (
+            (true, _, CursorShape::Hidden) => (
                 rgbcolor_to_window_color(palette.selection_fg),
                 rgbcolor_to_window_color(palette.selection_bg),
             ),
             // Cursor cell overrides colors
-            (_, CursorShape::BlinkingBlock) | (_, CursorShape::SteadyBlock) => (
+            (_, true, CursorShape::BlinkingBlock) | (_, true, CursorShape::SteadyBlock) => (
                 rgbcolor_to_window_color(palette.cursor_fg),
                 rgbcolor_to_window_color(palette.cursor_bg),
             ),
-            // Normally, render the cell as configured
+            // Normally, render the cell as configured (or if the window is unfocused)
             _ => (fg_color, bg_color),
         };
 
