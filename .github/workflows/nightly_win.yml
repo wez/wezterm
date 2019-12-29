@@ -1,12 +1,8 @@
-name: windows
+name: nightly_win
 
 on:
-  push:
-    branches:
-    - master
-  pull_request:
-    branches:
-    - master
+  schedule:
+    - cron: "10 * * * *"
 
 jobs:
   build:
@@ -24,12 +20,6 @@ jobs:
           curl -sSf -o rustup-init.exe https://win.rustup.rs
           rustup-init.exe -yv --default-toolchain ${{ matrix.rust_toolchain }}
           rustup update ${{ matrix.rust_toolchain }}
-    - name: Show versions
-      shell: cmd
-      run: |
-        set path "%USERPROFILE%\.cargo\bin;%PATH"
-        rustc -V
-        cargo -V
     - name: Cache cargo registry
       uses: actions/cache@v1
       with:
@@ -45,34 +35,18 @@ jobs:
       with:
         path: target
         key: ${{ matrix.os }}-${{ matrix.rust_toolchain }}-cargo-build-target-${{ hashFiles('Cargo.lock') }}
-    - name: Check formatting
-      if: matrix.rust_toolchain == 'stable'
-      shell: cmd
-      run: |
-        set path "%USERPROFILE%\.cargo\bin;%PATH"
-        rustup component add rustfmt
-        cargo fmt --all -- --check
-    - name: Build
-      shell: cmd
-      run: |
-        set path "%USERPROFILE%\.cargo\bin;%PATH"
-        cargo build --all --release
-    - name: Test
-      shell: cmd
-      run: |
-        set path "%USERPROFILE%\.cargo\bin;%PATH"
-        cargo test --all --release
     - name: Package
       shell: cmd
       run: |
         set path "%USERPROFILE%\.cargo\bin;%PATH"
+        cargo build --release --all
+        set BUILD_REASON="Schedule"
         bash ci/deploy.sh
-    - name: Move Windows Package
-      shell: bash
-      run: |
-        mkdir pkg_
-        mv *.zip pkg_
-    - uses: actions/upload-artifact@master
+    - name: Upload Assets
+      uses: AButler/upload-release-assets@v1.0
       with:
-        name: windows
-        path: pkg_
+        release-tag: nightly
+        # allows comma-separated list of case sensitive globs
+        files: "wezterm-*.deb,WezTerm-*.zip,wezterm-*.xz,wezterm-*.rpm,wezterm-*.tar.gz"
+        repo-token: ${{ secrets.GITHUB_TOKEN }}
+

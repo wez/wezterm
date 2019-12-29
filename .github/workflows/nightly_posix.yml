@@ -1,12 +1,8 @@
-name: posix
+name: nightly_posix
 
 on:
-  push:
-    branches:
-    - master
-  pull_request:
-    branches:
-    - master
+  schedule:
+    - cron: "10 * * * *"
 
 jobs:
   build:
@@ -25,11 +21,6 @@ jobs:
         curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain ${{ matrix.rust_toolchain }}
         source $HOME/.cargo/env
         rustup update ${{ matrix.rust_toolchain }}
-    - name: Show versions
-      run: |
-        source $HOME/.cargo/env
-        rustc -V
-        cargo -V
     - name: Cache cargo registry
       uses: actions/cache@v1
       with:
@@ -45,42 +36,15 @@ jobs:
       with:
         path: target
         key: ${{ matrix.os }}-${{ matrix.rust_toolchain }}-cargo-build-target-${{ hashFiles('Cargo.lock') }}
-    - name: Check formatting
-      if: matrix.rust_toolchain == 'stable'
-      run: |
-        source $HOME/.cargo/env
-        rustup component add rustfmt
-        cargo fmt --all -- --check
-    - name: Build
-      run: |
-        source $HOME/.cargo/env
-        cargo build --all --release
-    - name: Test
-      run: |
-        source $HOME/.cargo/env
-        cargo test --all --release
     - name: Package
       run: |
         source $HOME/.cargo/env
-        bash ci/deploy.sh
-    - name: Move macOS Package
-      if: contains(matrix.os, 'macos')
-      run: |
-        mkdir pkg_
-        mv *.zip pkg_
-    - name: Move Linux Package
-      if: contains(matrix.os, 'ubuntu')
-      run: |
-        mkdir pkg_
-        mv *.deb pkg_
-        mv *.xz pkg_
-    - uses: actions/upload-artifact@master
-      if: contains(matrix.os, 'macos')
+        cargo build --release --all
+        env BUILD_REASON=Schedule bash ci/deploy.sh
+    - name: Upload Assets
+      uses: AButler/upload-release-assets@v1.0
       with:
-        name: macos
-        path: pkg_
-    - uses: actions/upload-artifact@master
-      if: contains(matrix.os, 'ubuntu')
-      with:
-        name: linux
-        path: pkg_
+        release-tag: nightly
+        # allows comma-separated list of case sensitive globs
+        files: "wezterm-*.deb,WezTerm-*.zip,wezterm-*.xz,wezterm-*.rpm,wezterm-*.tar.gz"
+        repo-token: ${{ secrets.GITHUB_TOKEN }}
