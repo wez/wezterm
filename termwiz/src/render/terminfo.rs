@@ -531,7 +531,7 @@ impl TerminfoRenderer {
                         let param = match shape {
                             CursorShape::Default | CursorShape::Hidden => unreachable!(),
                             CursorShape::BlinkingBlock => 1,
-                            CursorShape::SteadyBlock => 2,
+                            CursorShape::SteadyBlock | CursorShape::BlockOutline => 2,
                             CursorShape::BlinkingUnderline => 3,
                             CursorShape::SteadyUnderline => 4,
                             CursorShape::BlinkingBar => 5,
