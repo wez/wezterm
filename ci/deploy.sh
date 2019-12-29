@@ -53,6 +53,42 @@ case $OSTYPE in
     ;;
   linux-gnu)
     case `lsb_release -ds` in
+      *Fedora*)
+        WEZTERM_RPM_VERSION=$(echo ${TAG_NAME#nightly-} | tr - _)
+        cat > wezterm.spec <<EOF
+Name: wezterm
+Version: ${WEZTERM_RPM_VERSION}
+Release: 1%{?dist}
+Packager: Wez Furlong <wez@wezfurlong.org>
+License: MIT
+URL: https://wezfurlong.org/wezterm/
+Summary: Wez's Terminal Emulator.
+Requires: dbus, fontconfig, openssl, libxcb, libxkbcommon, libxkbcommon-x11, libwayland-client, libwayland-egl, libwayland-cursor, mesa-libEGL, xcb-util-keysyms, xcb-util-wm
+
+%description
+wezterm is a terminal emulator with support for modern features
+such as fonts with ligatures, hyperlinks, tabs and multiple
+windows.
+
+%build
+echo "Doing the build bit here"
+
+%install
+set -x
+mkdir -p %{buildroot}/usr/bin %{buildroot}/usr/share/wezterm %{buildroot}/usr/share/applications
+install -Dsm755 target/release/wezterm %{buildroot}/usr/bin
+install -Dm644 assets/icon/terminal.png %{buildroot}/usr/share/wezterm/terminal.png
+install -Dm644 assets/wezterm.desktop %{buildroot}/usr/share/applications/wezterm.desktop
+
+%files
+/usr/bin/wezterm
+/usr/share/wezterm/terminal.png
+/usr/share/applications/wezterm.desktop
+EOF
+
+        rpmbuild --build-in-place -bb --rmspec wezterm.spec --verbose
+
+        ;;
       Ubuntu*|Debian*)
         rm -rf pkg
         mkdir -p pkg/debian/usr/bin pkg/debian/DEBIAN pkg/debian/usr/share/{applications,wezterm}
@@ -63,7 +99,7 @@ Architecture: amd64
 Maintainer: Wez Furlong <wez@wezfurlong.org>
 Section: utils
 Priority: optional
-Homepage: https://github.com/wez/wezterm
+Homepage: https://wezfurlong.org/wezterm/
 Description: Wez's Terminal Emulator.
  wezterm is a terminal emulator with support for modern features
  such as fonts with ligatures, hyperlinks, tabs and multiple
