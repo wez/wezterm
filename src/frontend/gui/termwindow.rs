@@ -81,6 +81,12 @@ impl PrevCursorPos {
         }
     }
 
+    /// Make the cursor look like it moved
+    fn bump(&mut self) {
+        self.when = Instant::now();
+    }
+
+    /// Update the cursor position if its different
     fn update(&mut self, newpos: &CursorPosition) {
         if &self.pos != newpos {
             self.pos = *newpos;
@@ -88,6 +94,7 @@ impl PrevCursorPos {
         }
     }
 
+    /// When did the cursor last move?
     fn last_cursor_movement(&self) -> Instant {
         self.when
     }
@@ -181,8 +188,16 @@ impl WindowCallbacks for TermWindow {
     }
 
     fn focus_change(&mut self, focused: bool) {
-        log::debug!("Setting focus to {:?}", focused);
+        log::trace!("Setting focus to {:?}", focused);
         self.focused = focused;
+        // Reset the cursor blink phase
+        self.prev_cursor.bump();
+
+        // Heavyweight way to force cursor update
+        let mux = Mux::get().unwrap();
+        if let Some(tab) = mux.get_active_tab_for_window(self.mux_window_id) {
+            tab.renderer().make_all_lines_dirty();
+        }
     }
 
     fn mouse_event(&mut self, event: &MouseEvent, context: &dyn WindowOps) {
