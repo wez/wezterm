@@ -302,7 +302,8 @@ impl WaylandWindowInner {
                     .key_event(&key_event, &Window::Wayland(WaylandWindow(self.window_id)));
             }
             KeyboardEvent::Modifiers { modifiers } => self.modifiers = modifiers,
-            KeyboardEvent::Enter { .. } | KeyboardEvent::Leave { .. } => {}
+            KeyboardEvent::Enter { .. } => self.callbacks.focus_change(true),
+            KeyboardEvent::Leave { .. } => self.callbacks.focus_change(false),
         }
     }
 
