@@ -6,6 +6,7 @@
 /pkg
 /target/
 /gh_pages/
+/docs/installation.md
 **/*.rs.bk
 .*.sw*
 /esctest.log

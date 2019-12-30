@@ -1,44 +1,3 @@
----
-title: Installation
----
-
-{% assign releases = site.github.releases | sort:"created_at" | reverse %}
-{% for r in releases %}
-{% if r.prerelease %}
-{% for asset in r.assets %}
-{%   if asset.name contains 'windows' and windows_pre == nil %}
-{%     assign windows_pre = asset.browser_download_url %}
-{%   endif %}
-{%   if asset.name contains 'macos' and macos_pre == nil %}
-{%     assign macos_pre = asset.browser_download_url %}
-{%   endif %}
-{%   if asset.name contains '.deb' and deb_pre == nil %}
-{%     assign deb_pre = asset.browser_download_url %}
-{%   endif %}
-{%   if asset.name contains '.rpm' and fedora_pre == nil %}
-{%     assign fedora_pre = asset.browser_download_url %}
-{%   endif %}
-{% endfor %}
-{% else %}
-{% for asset in r.assets %}
-{%   if asset.name contains 'windows' and windows_stable == nil %}
-{%     assign windows_stable = asset.browser_download_url %}
-{%   endif %}
-{%   if asset.name contains 'macos' and macos_stable == nil %}
-{%     assign macos_stable = asset.browser_download_url %}
-{%   endif %}
-{%   if asset.name contains '.deb' and deb_stable == nil %}
-{%     assign deb_stable = asset.browser_download_url %}
-{%     assign deb_stable_asset = asset.name %}
-{%   endif %}
-{%   if asset.name contains '.rpm' and fedora_stable == nil %}
-{%     assign fedora_stable = asset.browser_download_url %}
-{%     assign fedora_stable_asset = asset.name %}
-{%   endif %}
-{% endfor %}
-{% endif %}
-{% endfor %}
-
 
 ## Installing a pre-built package on Windows
 
@@ -69,10 +28,10 @@ versions of macOS, but that has not been tested.
 The CI system builds a `.deb` file on Ubuntu 16.04.  It is compatible with other
 debian style systems, including Debian 9 (Stretch) and later versions.
 
-<a href="{{ deb_stable }}" class="btn">Download for Ubuntu</a>
-<a href="{{ deb_pre }}" class="btn">Nightly for Ubuntu</a>
-* <tt>curl -LO <a href="{{ deb_stable }}">{{ deb_stable }}</a></tt>
-* `sudo apt install -y ./{{ deb_stable_asset }}`
+<a href="{{ ubuntu_stable }}" class="btn">Download for Ubuntu</a>
+<a href="{{ ubuntu_pre }}" class="btn">Nightly for Ubuntu</a>
+* <tt>curl -LO <a href="{{ ubuntu_stable }}">{{ ubuntu_stable }}</a></tt>
+* `sudo apt install -y ./{{ ubuntu_stable_asset }}`
 * The package installs `/usr/bin/wezterm` and `/usr/share/applications/wezterm.desktop`
 * Configuration instructions can be [found here](configuration.html)
 
@@ -81,7 +40,7 @@ debian style systems, including Debian 9 (Stretch) and later versions.
 The CI system builds an `.rpm` file on Fedora 31.
 
 <a href="{{ fedora_stable }}" class="btn">Download for Fedora</a>
-<a href="{{ fedora_pre }}" class="btn">{Nightly for Fedora</a>
+<a href="{{ fedora_pre }}" class="btn">Nightly for Fedora</a>
 * <tt>curl -LO <a href="{{ fedora_stable }}">{{ fedora_stable }}</a></tt>
 * `sudo dnf install -y ./{{ fedora_stable_asset }}`
 * The package installs `/usr/bin/wezterm` and `/usr/share/applications/wezterm.desktop`

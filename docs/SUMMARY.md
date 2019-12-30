@@ -1,5 +1,5 @@
 [wezterm](index.markdown)
-- [Install](installation.markdown)
+- [Install](installation.md)
 - [Features](features.markdown)
 - [Change Log](changelog.markdown)
 - [Configuration](config/index.markdown)
