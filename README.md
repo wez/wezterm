@@ -4,7 +4,6 @@
 
 User facing home page at: https://wezfurlong.org/wezterm/
 
-[![Build Status](https://dev.azure.com/wez0658/wezterm/_apis/build/status/wez.wezterm?branchName=master)](https://dev.azure.com/wez0658/wezterm/_build/latest?definitionId=1&branchName=master)
 [![Windows Build Status](https://github.com/wez/wezterm/workflows/windows/badge.svg)](https://github.com/wez/wezterm/actions?workflow=windows)
 [![Linux &amp; macOS Build Status](https://github.com/wez/wezterm/workflows/posix/badge.svg)](https://github.com/wez/wezterm/actions?workflow=posix)
 
