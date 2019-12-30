@@ -919,6 +919,13 @@ impl TerminalState {
             _ => mods,
         };
 
+        // Normalize Backspace and Delete
+        let key = match key {
+            Char('\x7f') => Delete,
+            Char('\x08') => Backspace,
+            c => c,
+        };
+
         let mut buf = String::new();
 
         // TODO: also respect self.application_keypad
@@ -959,12 +966,13 @@ impl TerminalState {
                 buf.as_str()
             }
 
-            Enter | Escape | Backspace | Char('\x08') | Delete | Char('\x7f') => {
+            Enter | Escape | Backspace => {
                 let c = match key {
                     Enter => '\r',
                     Escape => '\x1b',
-                    Char('\x08') | Backspace => '\x08',
-                    Char('\x7f') | Delete => '\x7f',
+                    // Backspace sends the default VERASE which is confusingly
+                    // the DEL ascii codepoint
+                    Backspace => '\x7f',
                     _ => unreachable!(),
                 };
                 if mods.contains(KeyModifiers::SHIFT) || mods.contains(KeyModifiers::CTRL) {
@@ -1058,9 +1066,10 @@ impl TerminalState {
                 ""
             }
 
-            PageUp | PageDown | Insert => {
+            PageUp | PageDown | Insert | Delete => {
                 let c = match key {
                     Insert => 2,
+                    Delete => 3,
                     PageUp => 5,
                     PageDown => 6,
                     _ => unreachable!(),
