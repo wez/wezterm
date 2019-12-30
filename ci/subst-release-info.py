@@ -10,21 +10,23 @@ def release_to_links(rel):
     windows = None
     linux_bin = None
 
+    tag_name = "wezterm-%s" % rel["tag_name"]
+
     for asset in rel["assets"]:
         url = asset["browser_download_url"]
         name = asset["name"]
         if "-src.tar.gz" in name:
-            source = (url, name)
+            source = (url, name, tag_name)
         elif ".deb" in name:
-            ubuntu = (url, name)
+            ubuntu = (url, name, tag_name)
         elif ".tar.xz" in name:
-            linux_bin = (url, name)
+            linux_bin = (url, name, tag_name)
         elif ".rpm" in name:
-            fedora = (url, name)
+            fedora = (url, name, tag_name)
         elif "WezTerm-macos-" in name:
-            macos = (url, name)
+            macos = (url, name, tag_name)
         elif "WezTerm-windows-" in name:
-            windows = (url, name)
+            windows = (url, name, tag_name)
 
     return {
         "source": source,
@@ -34,7 +36,6 @@ def release_to_links(rel):
         "macos": macos,
         "windows": windows,
     }
-
 
 def load_release_info():
     with open("/tmp/wezterm.releases.json") as f:
@@ -51,12 +52,15 @@ def load_release_info():
     nightly = release_to_links(nightly)
 
     subst = {}
-    for (kind, (url, name)) in latest.items():
+    for (kind, (url, name, dir)) in latest.items():
         subst["{{ %s_stable }}" % kind] = url
         subst["{{ %s_stable_asset }}" % kind] = name
-    for (kind, (url, name)) in nightly.items():
+        subst["{{ %s_stable_dir }}" % kind] = dir
+
+    for (kind, (url, name, dir)) in nightly.items():
         subst["{{ %s_pre }}" % kind] = url
         subst["{{ %s_pre_asset }}" % kind] = name
+        subst["{{ %s_pre_dir }}" % kind] = dir
 
     with open("docs/installation.markdown", "r") as input:
         with open("docs/installation.md", "w") as output:

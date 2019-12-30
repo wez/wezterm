@@ -1,5 +1,5 @@
 
-## Installing a pre-built package on Windows
+## Installing on Windows
 
 Windows 10 or later is required to run WezTerm.
 
@@ -9,7 +9,7 @@ Windows 10 or later is required to run WezTerm.
 2. Extract the zipfile and double-click `wezterm.exe` to run the UI
 3. Configuration instructions can be [found here](configuration.html)
 
-## Installing a pre-built package on macOS
+## Installing on macOS
 
 The CI system builds the package on macOS Mojave (10.14).  It may run on earlier
 versions of macOS, but that has not been tested.
@@ -23,26 +23,34 @@ versions of macOS, but that has not been tested.
 3. Subsequently, a simple double-click will launch the UI
 4. Configuration instructions can be [found here](configuration.html)
 
-## Installing a pre-built package on Ubuntu
+## Installing on Ubuntu
 
 The CI system builds a `.deb` file on Ubuntu 16.04.  It is compatible with other
 debian style systems, including Debian 9 (Stretch) and later versions.
 
 <a href="{{ ubuntu_stable }}" class="btn">Download for Ubuntu</a>
 <a href="{{ ubuntu_pre }}" class="btn">Nightly for Ubuntu</a>
-* <tt>curl -LO <a href="{{ ubuntu_stable }}">{{ ubuntu_stable }}</a></tt>
-* `sudo apt install -y ./{{ ubuntu_stable_asset }}`
+
+```bash
+curl -LO {{ ubuntu_stable }}
+sudo apt install -y ./{{ ubuntu_stable_asset }}
+```
+
 * The package installs `/usr/bin/wezterm` and `/usr/share/applications/wezterm.desktop`
 * Configuration instructions can be [found here](configuration.html)
 
-## Installing a pre-built package on Fedora
+## Installing Fedora
 
 The CI system builds an `.rpm` file on Fedora 31.
 
 <a href="{{ fedora_stable }}" class="btn">Download for Fedora</a>
 <a href="{{ fedora_pre }}" class="btn">Nightly for Fedora</a>
-* <tt>curl -LO <a href="{{ fedora_stable }}">{{ fedora_stable }}</a></tt>
-* `sudo dnf install -y ./{{ fedora_stable_asset }}`
+
+```bash
+curl -LO {{ fedora_stable }}
+sudo dnf install -y ./{{ fedora_stable_asset }}
+```
+
 * The package installs `/usr/bin/wezterm` and `/usr/share/applications/wezterm.desktop`
 * Configuration instructions can be [found here](configuration.html)
 
@@ -58,13 +66,27 @@ You will need a collection of support libraries; the [`get-deps`](https://github
 attempt to install them for you.  If it doesn't know about your system,
 [please contribute instructions!](https://github.com/wez/wezterm/blob/master/CONTRIBUTING.md)
 
-```
-$ curl https://sh.rustup.rs -sSf | sh -s
-$ git clone --depth=1 --branch=master --recursive https://github.com/wez/wezterm.git
-$ cd wezterm
-$ git submodule update --init --recursive
-$ sudo ./get-deps
-$ cargo build --release
-$ cargo run --release -- start
+If you don't plan to submit a pull request to the wezterm repo, you can
+download a smaller source tarball using these steps:
+
+```bash
+curl https://sh.rustup.rs -sSf | sh -s
+curl -LO {{ source_stable }}
+tar -xzf {{ source_stable_asset }}
+cd {{ source_stable_dir }}
+sudo ./get-deps
+cargo build --release
+cargo run --release -- start
 ```
 
+Alternatively, use the full git repo:
+
+```bash
+curl https://sh.rustup.rs -sSf | sh -s
+git clone --depth=1 --branch=master --recursive https://github.com/wez/wezterm.git
+cd wezterm
+git submodule update --init --recursive
+sudo ./get-deps
+cargo build --release
+cargo run --release -- start
+```
