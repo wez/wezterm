@@ -1,9 +1,9 @@
 name: tag_fedora
 
 on:
-  release:
-    types:
-      - created
+  push:
+    tags:
+      - "20*"
 
 jobs:
   build:
@@ -51,8 +51,8 @@ jobs:
       run: |
         mv ~/rpmbuild/RPMS/*/*.rpm .
     - name: Upload Assets
-      uses: AButler/upload-release-assets@v1.0
+      uses: softprops/action-gh-release@v1
       with:
-        # allows comma-separated list of case sensitive globs
-        files: "wezterm-*.rpm"
-        repo-token: ${{ secrets.GITHUB_TOKEN }}
+        files: wezterm-*.rpm
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

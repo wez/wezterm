@@ -1,9 +1,9 @@
 name: tag_win
 
 on:
-  release:
-    types:
-      - created
+  push:
+    tags:
+      - "20*"
 
 jobs:
   build:
@@ -43,9 +43,14 @@ jobs:
         cargo build --release --all
         bash ci/deploy.sh
     - name: Upload Assets
-      uses: AButler/upload-release-assets@v1.0
+      uses: softprops/action-gh-release@v1
       with:
-        # allows comma-separated list of case sensitive globs
-        files: "wezterm-*.deb,WezTerm-*.zip,wezterm-*.xz,wezterm-*.rpm,wezterm-*.tar.gz"
-        repo-token: ${{ secrets.GITHUB_TOKEN }}
+        files: |
+          wezterm-*.rpm
+          wezterm-*.deb
+          WezTerm-*.zip
+          wezterm-*.xz
+          weztern-*.tar.gz
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
