@@ -1,0 +1,41 @@
+name: pages
+
+on:
+  push:
+    branches:
+    - master
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+      - name: Install Rust
+        run: |
+          curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain stable
+          source $HOME/.cargo/env
+          rustup update stable
+      - name: Cache cargo registry
+        uses: actions/cache@v1
+        with:
+          path: ~/.cargo/registry
+          key: cargo-registry-mdbook
+      - name: Cache cargo index
+        uses: actions/cache@v1
+        with:
+          path: ~/.cargo/git
+          key: cargo-index-mdbook
+      - name: Install mdBook
+        run: |
+          (test -x $HOME/.cargo/bin/mdbook || (cd && cargo install --vers "^0.3" mdbook))
+      - name: Build
+        run: ci/build-docs.sh
+      - name: Deploy
+        if: success()
+        uses: crazy-max/ghaction-github-pages@v1
+        with:
+          target_branch: gh-pages
+          build_dir: gh_pages
+        env:
+          GITHUB_PAT: ${{ secrets.GH_PAT }}
