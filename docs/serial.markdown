@@ -1,7 +1,3 @@
----
-title: Serial Ports
----
-
 ## Serial Ports
 
 wezterm can also connect to serial ports as a client.  This is useful

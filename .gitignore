@@ -5,6 +5,7 @@
 /wezterm*.tar.xz
 /pkg
 /target/
+/gh_pages/
 **/*.rs.bk
 .*.sw*
 /esctest.log

@@ -1,8 +1,14 @@
----
-title: Change Log
----
-
 ## Changes
+
+Releases are named using the date, time and git commit
+hash.
+
+### Nightly
+
+A bleeding edge build is produced continually (at least
+daily) from the master branch.  It may not be usable and
+the feature set may change.  As features stabilize some
+brief notes about them may accumulate here.
 
 ### 20191229-193639-e7aa2f3
 

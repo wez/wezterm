@@ -1,7 +1,3 @@
----
-title: iTerm Image Protocol Support
----
-
 ## iTerm Image Protocol Support
 
 wezterm implements support for the [iTerm2 inline images

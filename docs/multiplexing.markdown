@@ -1,7 +1,3 @@
----
-title: Multiplexing
----
-
 **Notice:** *multiplexing is still a young feature and is evolving rapidly.
 Your feedback is welcomed!*
 

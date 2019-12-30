@@ -1,7 +1,3 @@
----
-title: SSH Connections
----
-
 ## SSH Connections
 
 wezterm uses libssh2 to provide an integrated SSH client.  The
