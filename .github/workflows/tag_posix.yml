@@ -50,6 +50,6 @@ jobs:
           wezterm-*.deb
           WezTerm-*.zip
           wezterm-*.xz
-          weztern-*.tar.gz
+          wezterm-*.tar.gz
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
