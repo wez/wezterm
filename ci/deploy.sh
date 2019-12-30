@@ -10,6 +10,8 @@ elif [[ "$APPVEYOR" != "" ]] ; then
   TAG_NAME=$APPVEYOR_REPO_TAG_NAME
 elif [[ "$TF_BUILD" != "" ]] ; then
   DEPLOY_ENV_TYPE="azure"
+elif [[ "$GITHUB_ACTIONS" == "true" ]] ; then
+  DEPLOY_ENV_TYPE="github"
 else
   DEPLOY_ENV_TYPE="adhoc"
 fi
