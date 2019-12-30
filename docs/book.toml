@@ -6,3 +6,6 @@ src = "."
 [build]
 build-dir = "../gh_pages"
 create-missing = false
+
+[output.html]
+additional-css = ["custom.css"]

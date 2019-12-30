@@ -1,8 +1,3 @@
----
----
-
-@import "{{ site.theme }}";
-
 .btn {
 	-moz-box-shadow:inset 0px 1px 0px 0px #e184f3;
 	-webkit-box-shadow:inset 0px 1px 0px 0px #e184f3;
@@ -21,12 +16,13 @@
 	border:1px solid #a511c0;
 	display:inline-block;
 	cursor:pointer;
-	color:#ffffff;
+	color:#ffffff !important;
 	font-weight:bold;
 	padding:0.25em 1em;
 	text-decoration:none;
 	text-shadow:0px 1px 0px #9b14b3;
 }
+
 .btn:hover {
 	background:-webkit-gradient(linear, left top, left bottom, color-stop(0.05, #a20dbd), color-stop(1, #c123de));
 	background:-moz-linear-gradient(top, #a20dbd 5%, #c123de 100%);
@@ -37,57 +33,9 @@
 	filter:progid:DXImageTransform.Microsoft.gradient(startColorstr='#a20dbd', endColorstr='#c123de',GradientType=0);
 	background-color:#a20dbd;
 }
+
 .btn:active {
 	position:relative;
 	top:1px;
 }
-svg.octicon {
-  margin-right: 0.25em;
-}
 
-a.btn svg.octicon {
-  fill: white;
-  vertical-align: text-bottom;
-}
-
-h2 svg.octicon {
-  fill: #eaeaea;
-  vertical-align: text-bottom;
-}
-
-#toc {
-  font-size: 0.8em;
-  width: 250px;
-  position: fixed;
-  background-color: #222;
-  border: solid 1px #111;
-  padding: 1.1em;
-  overflow-y: auto;
-  max-height: 100%;
-}
-
-#toc li {
-  list-style: square;
-}
-
-#toc ul {
-  margin-left: 0em;
-  padding-left: 1em;
-}
-
-#toc li {
-  margin-left: 1em;
-  padding-left: 0em;
-}
-
-#container {
-  margin-left: 300px;
-}
-
-.container-lg {
-  padding: 1em;
-}
-
-.text-right {
-  float: right;
-}
