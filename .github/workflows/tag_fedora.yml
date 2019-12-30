@@ -1,9 +1,9 @@
 name: tag_fedora
 
 on:
-  push:
-    tags:
-      - "20*"
+  release:
+    types:
+      - created
 
 jobs:
   build:
@@ -53,7 +53,6 @@ jobs:
     - name: Upload Assets
       uses: AButler/upload-release-assets@v1.0
       with:
-        release-tag: ${{ github.ref }}
         # allows comma-separated list of case sensitive globs
         files: "wezterm-*.rpm"
         repo-token: ${{ secrets.GITHUB_TOKEN }}

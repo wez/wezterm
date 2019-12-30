@@ -1,9 +1,9 @@
 name: tag_win
 
 on:
-  push:
-    tags:
-      - "20*"
+  release:
+    types:
+      - created
 
 jobs:
   build:
@@ -45,7 +45,6 @@ jobs:
     - name: Upload Assets
       uses: AButler/upload-release-assets@v1.0
       with:
-        release-tag: ${{ github.ref }}
         # allows comma-separated list of case sensitive globs
         files: "wezterm-*.deb,WezTerm-*.zip,wezterm-*.xz,wezterm-*.rpm,wezterm-*.tar.gz"
         repo-token: ${{ secrets.GITHUB_TOKEN }}
