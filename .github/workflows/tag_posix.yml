@@ -14,14 +14,6 @@ jobs:
         rust_toolchain: [stable]
     runs-on: ${{ matrix.os }}
     steps:
-    - uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: ${{ github.ref }}
-        release_name: ${{ github.ref }}
-        draft: true
-        prerelease: false
     - uses: actions/checkout@v1
     - name: Install System Deps
       run: sudo ./get-deps
