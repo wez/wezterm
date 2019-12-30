@@ -32,7 +32,11 @@ jobs:
         run: |
           (test -x $HOME/.cargo/bin/mdbook || (cd && cargo install --vers "^0.3" mdbook))
       - name: Build
-        run: ci/build-docs.sh
+        run: |
+          source $HOME/.cargo/env
+          curl https://api.github.com/repos/wez/wezterm/releases > /tmp/wezterm.releases.json
+          python3 ci/subst-release-info.py
+          mdbook build docs
       - name: Deploy
         if: success()
         uses: crazy-max/ghaction-github-pages@v1
