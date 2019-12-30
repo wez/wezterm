@@ -15,6 +15,9 @@ title: Installation
 {%   if asset.name contains '.deb' and deb_pre == nil %}
 {%     assign deb_pre = asset.browser_download_url %}
 {%   endif %}
+{%   if asset.name contains '.rpm' and fedora_pre == nil %}
+{%     assign fedora_pre = asset.browser_download_url %}
+{%   endif %}
 {% endfor %}
 {% else %}
 {% for asset in r.assets %}
@@ -27,6 +30,10 @@ title: Installation
 {%   if asset.name contains '.deb' and deb_stable == nil %}
 {%     assign deb_stable = asset.browser_download_url %}
 {%     assign deb_stable_asset = asset.name %}
+{%   endif %}
+{%   if asset.name contains '.rpm' and fedora_stable == nil %}
+{%     assign fedora_stable = asset.browser_download_url %}
+{%     assign fedora_stable_asset = asset.name %}
 {%   endif %}
 {% endfor %}
 {% endif %}
@@ -66,6 +73,17 @@ debian style systems, including Debian 9 (Stretch) and later versions.
 <a href="{{ deb_pre }}" class="btn">{% octicon beaker %} Nightly for Ubuntu</a>
 * <tt>curl -LO <a href="{{ deb_stable }}">{{ deb_stable }}</a></tt>
 * `sudo apt install -y ./{{ deb_stable_asset }}`
+* The package installs `/usr/bin/wezterm` and `/usr/share/applications/wezterm.desktop`
+* Configuration instructions can be [found here](configuration.html)
+
+## {% octicon cloud-download height:24 %} Installing a pre-built package on Fedora
+
+The CI system builds an `.rpm` file on Fedora 31.
+
+<a href="{{ fedora_stable }}" class="btn">{% octicon cloud-download %} Download for Fedora</a>
+<a href="{{ fedora_pre }}" class="btn">{% octicon beaker %} Nightly for Fedora</a>
+* <tt>curl -LO <a href="{{ fedora_stable }}">{{ fedora_stable }}</a></tt>
+* `sudo dnf install -y ./{{ fedora_stable_asset }}`
 * The package installs `/usr/bin/wezterm` and `/usr/share/applications/wezterm.desktop`
 * Configuration instructions can be [found here](configuration.html)
 
