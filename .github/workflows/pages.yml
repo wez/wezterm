@@ -5,6 +5,10 @@ on:
     branches:
     - master
 
+on:
+  schedule:
+    - cron: "50 * * * *"
+
 jobs:
   publish:
     runs-on: ubuntu-latest
