@@ -4,8 +4,13 @@ title: Change Log
 
 ## Changes
 
-### Nightly
+### 20191229-193639-e7aa2f3
 
+* Fixed a hang when using middle mouse button to paste
+* Recognize 8-bit C1 codes encoded as UTF-8, which are used in the Fedora 31 bash prexec notification for gnome terminal
+* Ensure that underlines are a minimum of 1 pixel tall
+* Reduced CPU utilization on some Wayland compositors
+* Added `$WEZTERM_CONFIG_FILE` to the start of the config file search path
 * Added new font rendering options:
 
 ```
