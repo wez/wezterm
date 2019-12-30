@@ -672,7 +672,9 @@ fn default_cursor_blink_rate() -> u64 {
 }
 
 fn default_swap_backspace_and_delete() -> bool {
-    cfg!(target_os = "macos")
+    // cfg!(target_os = "macos")
+    // See: https://github.com/wez/wezterm/issues/88
+    false
 }
 
 fn default_scrollback_lines() -> usize {
