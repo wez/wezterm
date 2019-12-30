@@ -23,11 +23,11 @@ jobs:
         with:
           path: ~/.cargo/registry
           key: cargo-registry-mdbook
-      - name: Cache cargo index
+      - name: Cache mdBook
         uses: actions/cache@v1
         with:
-          path: ~/.cargo/git
-          key: cargo-index-mdbook
+          path: ~/.cargo/bin/mdbook
+          key: cargo-bin-mdbook
       - name: Install mdBook
         run: |
           (test -x $HOME/.cargo/bin/mdbook || (cd && cargo install --vers "^0.3" mdbook))
