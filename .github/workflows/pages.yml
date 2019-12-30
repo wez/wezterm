@@ -18,25 +18,21 @@ jobs:
           curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain stable
           source $HOME/.cargo/env
           rustup update stable
-      - name: Cache cargo registry
-        uses: actions/cache@v1
-        with:
-          path: ~/.cargo/registry
-          key: cargo-registry-mdbook
       - name: Cache mdBook
         uses: actions/cache@v1
         with:
-          path: ~/.cargo/bin/mdbook
+          path: ~/mdbook-bin
           key: cargo-bin-mdbook
       - name: Install mdBook
         run: |
-          (test -x $HOME/.cargo/bin/mdbook || (cd && cargo install --vers "^0.3" mdbook))
+          mkdir -p ~/mdbook-bin
+          (test -x ~/mdbook-bin/mdbook || (cd && cargo install --vers "^0.3" mdbook && cp -p ~/.cargo/bin/mdbook ~/mdbook-bin))
       - name: Build
         run: |
           source $HOME/.cargo/env
           curl https://api.github.com/repos/wez/wezterm/releases > /tmp/wezterm.releases.json
           python3 ci/subst-release-info.py
-          mdbook build docs
+          ~/mdbook-bin/mdbook build docs
       - name: Deploy
         if: success()
         uses: crazy-max/ghaction-github-pages@v1
