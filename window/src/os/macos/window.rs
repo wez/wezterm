@@ -1025,7 +1025,7 @@ impl WindowView {
                 unmod
             };
 
-        if modifiers.is_empty() && !is_a_repeat {
+        if modifiers.is_empty() {
             unsafe {
                 let input_context: id = msg_send![this, inputContext];
                 let res: BOOL = msg_send![input_context, handleEvent: nsevent];
