@@ -9,3 +9,4 @@ create-missing = false
 
 [output.html]
 additional-css = ["custom.css"]
+default-theme = "navy"
