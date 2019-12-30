@@ -1,0 +1,50 @@
+name: tag_posix
+
+on:
+  push:
+    tags:
+      - "20*"
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-16.04, macos-latest]
+        rust_toolchain: [stable]
+    runs-on: ${{ matrix.os }}
+    steps:
+    - uses: actions/checkout@v1
+    - name: Install System Deps
+      run: sudo ./get-deps
+    - name: Install Rust
+      run: |
+        curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain ${{ matrix.rust_toolchain }}
+        source $HOME/.cargo/env
+        rustup update ${{ matrix.rust_toolchain }}
+    - name: Cache cargo registry
+      uses: actions/cache@v1
+      with:
+        path: ~/.cargo/registry
+        key: ${{ matrix.os }}-${{ matrix.rust_toolchain }}-cargo-registry-${{ hashFiles('Cargo.lock') }}
+    - name: Cache cargo index
+      uses: actions/cache@v1
+      with:
+        path: ~/.cargo/git
+        key: ${{ matrix.os }}-${{ matrix.rust_toolchain }}-cargo-index-${{ hashFiles('Cargo.lock') }}
+    - name: Cache cargo build
+      uses: actions/cache@v1
+      with:
+        path: target
+        key: ${{ matrix.os }}-${{ matrix.rust_toolchain }}-cargo-build-target-${{ hashFiles('Cargo.lock') }}
+    - name: Package
+      run: |
+        source $HOME/.cargo/env
+        cargo build --release --all
+        bash ci/deploy.sh
+    - name: Upload Assets
+      uses: AButler/upload-release-assets@v1.0
+      with:
+        # allows comma-separated list of case sensitive globs
+        files: "wezterm-*.deb,WezTerm-*.zip,wezterm-*.xz,wezterm-*.rpm,wezterm-*.tar.gz"
+        repo-token: ${{ secrets.GITHUB_TOKEN }}

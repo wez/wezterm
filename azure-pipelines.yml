@@ -1,9 +1,5 @@
 # vim:et:sw=2:ts=2:
 
-trigger:
-  branches:
-    include: ['master']
-
 schedules:
   - cron: '50 * * * *'
     displayName: "scheduled GH Pages re-deploy"
@@ -12,11 +8,6 @@ schedules:
 
 jobs:
   - job: 'Rebuild_GH_Pages'
-    strategy:
-      matrix:
-        linux-stable:
-          imageName: 'ubuntu-16.04'
-          rustup_toolchain: stable
     pool:
       vmImage: 'ubuntu-16.04'
     steps:
