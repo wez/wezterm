@@ -1006,7 +1006,7 @@ impl WindowView {
     }
 
     fn key_common(this: &mut Object, nsevent: id, key_is_down: bool) {
-        let is_a_repeat = unsafe { nsevent.isARepeat() == YES };
+        // let is_a_repeat = unsafe { nsevent.isARepeat() == YES };
         let chars = unsafe { nsstring_to_str(nsevent.characters()) };
         let unmod = unsafe { nsstring_to_str(nsevent.charactersIgnoringModifiers()) };
         let modifiers = unsafe { key_modifiers(nsevent.modifierFlags()) };
