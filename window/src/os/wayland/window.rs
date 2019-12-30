@@ -109,6 +109,7 @@ struct PendingEvent {
     refresh_decorations: bool,
     configure: Option<(u32, u32)>,
     dpi: Option<i32>,
+    focus: Option<bool>,
 }
 
 impl PendingEvent {
@@ -130,8 +131,13 @@ impl PendingEvent {
                     false
                 }
             }
-            Event::Configure { new_size, .. } => {
+            Event::Configure { new_size, states } => {
                 let changed;
+                self.focus.replace(
+                    states
+                        .iter()
+                        .any(|&s| s == toolkit::window::State::Activated),
+                );
                 if let Some(new_size) = new_size {
                     changed = self.configure.is_none();
                     self.configure.replace(new_size);
@@ -469,9 +475,15 @@ impl WaylandWindowInner {
                     }
                 }
 
+                if let Some(focus) = pending.focus.take() {
+                    self.callbacks.focus_change(focus);
+                }
+
                 self.refresh_frame();
                 self.do_paint().unwrap();
             }
+        } else if let Some(focus) = pending.focus.take() {
+            self.callbacks.focus_change(focus);
         }
         if pending.refresh_decorations && self.window.is_some() {
             self.refresh_frame();
