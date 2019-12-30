@@ -40,7 +40,7 @@ jobs:
       run: |
         set path "%USERPROFILE%\.cargo\bin;%PATH"
         cargo build --release --all
-        set BUILD_REASON="Schedule"
+        set BUILD_REASON=Schedule
         bash ci/deploy.sh
     - name: Upload Assets
       uses: AButler/upload-release-assets@v1.0
