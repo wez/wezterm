@@ -223,7 +223,7 @@ impl WindowCallbacks for TermWindow {
             WMEK::Press(_) => {
                 if let Some(focused) = self.focused.as_ref() {
                     let now = Instant::now();
-                    if now - *focused <= Duration::from_millis(200) {
+                    if now.duration_since(*focused) <= Duration::from_millis(200) {
                         log::trace!("discard mouse click because it focused the window");
                         return;
                     }
