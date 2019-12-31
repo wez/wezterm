@@ -102,7 +102,8 @@ impl PrevCursorPos {
 
 pub struct TermWindow {
     window: Option<Window>,
-    focused: bool,
+    /// When we most recently received keyboard focus
+    focused: Option<Instant>,
     fonts: Rc<FontConfiguration>,
     /// Window dimensions and dpi
     dimensions: Dimensions,
@@ -189,7 +190,7 @@ impl WindowCallbacks for TermWindow {
 
     fn focus_change(&mut self, focused: bool) {
         log::trace!("Setting focus to {:?}", focused);
-        self.focused = focused;
+        self.focused = if focused { Some(Instant::now()) } else { None };
         // Reset the cursor blink phase
         self.prev_cursor.bump();
 
@@ -217,6 +218,15 @@ impl WindowCallbacks for TermWindow {
                 if self.scroll_drag_start.take().is_some() {
                     // Completed a drag
                     return;
+                }
+            }
+            WMEK::Press(_) => {
+                if let Some(focused) = self.focused.as_ref() {
+                    let now = Instant::now();
+                    if now - *focused <= Duration::from_millis(200) {
+                        log::trace!("discard mouse click because it focused the window");
+                        return;
+                    }
                 }
             }
             WMEK::Move => {
@@ -633,7 +643,7 @@ impl TermWindow {
             dimensions.pixel_height,
             Box::new(Self {
                 window: None,
-                focused: false,
+                focused: None,
                 mux_window_id,
                 fonts: Rc::clone(fontconfig),
                 render_metrics,
@@ -2135,7 +2145,8 @@ impl TermWindow {
             let shape = config.default_cursor_style.effective_shape(cursor.shape);
             // Work out the blinking shape if its a blinking cursor and it hasn't been disabled
             // and the window is focused.
-            let blinking = shape.is_blinking() && config.cursor_blink_rate != 0 && self.focused;
+            let blinking =
+                shape.is_blinking() && config.cursor_blink_rate != 0 && self.focused.is_some();
             if blinking {
                 // Divide the time since we last moved by the blink rate.
                 // If the result is even then the cursor is "on", else it
@@ -2157,7 +2168,7 @@ impl TermWindow {
             CursorShape::Hidden
         };
 
-        let (fg_color, bg_color) = match (selected, self.focused, cursor_shape) {
+        let (fg_color, bg_color) = match (selected, self.focused.is_some(), cursor_shape) {
             // Selected text overrides colors
             (true, _, CursorShape::Hidden) => (
                 rgbcolor_to_window_color(palette.selection_fg),
