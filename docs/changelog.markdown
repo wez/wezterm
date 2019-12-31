@@ -11,6 +11,8 @@ the feature set may change.  As features stabilize some
 brief notes about them may accumulate here.
 
 * [Changed Backspace/Delete handling](https://github.com/wez/wezterm/commit/f0e94084d1df36009b879b06e9cfd2be946168e8)
+* Added `MoveTabRelative` for changing the ordering of tabs within a window
+  using key assignments `CTRL+SHIFT+PageUp` and `CTRL+SHIFT+PageDown`
 
 ### 20191229-193639-e7aa2f3
 
