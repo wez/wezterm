@@ -1611,7 +1611,7 @@ impl TermWindow {
         for cluster in cell_clusters {
             let attrs = &cluster.attrs;
             let is_highlited_hyperlink = match (&attrs.hyperlink, &current_highlight) {
-                (&Some(ref this), &Some(ref highlight)) => this == highlight,
+                (&Some(ref this), &Some(ref highlight)) => Arc::ptr_eq(this, highlight),
                 _ => false,
             };
             let style = self.fonts.match_style(&config, attrs);
