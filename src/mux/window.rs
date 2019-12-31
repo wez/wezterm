@@ -31,13 +31,27 @@ impl Window {
         self.id
     }
 
-    pub fn push(&mut self, tab: &Rc<dyn Tab>) {
+    fn check_that_tab_isnt_already_in_window(&self, tab: &Rc<dyn Tab>) {
         for t in &self.tabs {
             assert_ne!(t.tab_id(), tab.tab_id(), "tab already added to this window");
         }
+    }
+
+    fn assign_clipboard_to_tab(&self, tab: &Rc<dyn Tab>) {
         if let Some(clip) = self.clipboard.as_ref() {
             tab.set_clipboard(clip);
         }
+    }
+
+    pub fn insert(&mut self, index: usize, tab: &Rc<dyn Tab>) {
+        self.check_that_tab_isnt_already_in_window(tab);
+        self.assign_clipboard_to_tab(tab);
+        self.tabs.insert(index, Rc::clone(tab))
+    }
+
+    pub fn push(&mut self, tab: &Rc<dyn Tab>) {
+        self.check_that_tab_isnt_already_in_window(tab);
+        self.assign_clipboard_to_tab(tab);
         self.tabs.push(Rc::clone(tab))
     }
 
@@ -60,6 +74,10 @@ impl Window {
             }
         }
         None
+    }
+
+    pub fn remove_by_idx(&mut self, idx: usize) -> Rc<dyn Tab> {
+        self.tabs.remove(idx)
     }
 
     pub fn remove_by_id(&mut self, id: TabId) -> bool {

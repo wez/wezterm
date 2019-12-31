@@ -1035,6 +1035,53 @@ impl TermWindow {
         self.activate_tab(tab as usize % max)
     }
 
+    fn move_tab(&mut self, tab_idx: usize) -> anyhow::Result<()> {
+        let mux = Mux::get().unwrap();
+        let mut window = mux
+            .get_window_mut(self.mux_window_id)
+            .ok_or_else(|| anyhow!("no such window"))?;
+
+        let max = window.len();
+        ensure!(max > 0, "no more tabs");
+
+        let active = window.get_active_idx();
+
+        ensure!(tab_idx < max, "cannot move a tab out of range");
+
+        let tab_inst = window.remove_by_idx(active);
+        window.insert(tab_idx, &tab_inst);
+        window.set_active(tab_idx);
+
+        drop(window);
+        self.update_title();
+        self.update_scrollbar();
+
+        Ok(())
+    }
+
+    fn move_tab_relative(&mut self, delta: isize) -> anyhow::Result<()> {
+        let mux = Mux::get().unwrap();
+        let window = mux
+            .get_window(self.mux_window_id)
+            .ok_or_else(|| anyhow!("no such window"))?;
+
+        let max = window.len();
+        ensure!(max > 0, "no more tabs");
+
+        let active = window.get_active_idx();
+        let tab = active as isize + delta;
+        let tab = if tab < 0 {
+            0usize
+        } else if tab >= max as isize {
+            max - 1
+        } else {
+            tab as usize
+        };
+
+        drop(window);
+        self.move_tab(tab)
+    }
+
     fn spawn_tab(&mut self, domain: &SpawnTabDomain) -> anyhow::Result<TabId> {
         let size = self.terminal_size;
         let mux = Mux::get().unwrap();
@@ -1134,6 +1181,8 @@ impl TermWindow {
             CloseCurrentTab => self.close_current_tab(),
             Nop => {}
             ReloadConfiguration => crate::config::reload(),
+            MoveTab(n) => self.move_tab(*n)?,
+            MoveTabRelative(n) => self.move_tab_relative(*n)?,
         };
         Ok(())
     }

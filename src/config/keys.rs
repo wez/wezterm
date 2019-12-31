@@ -64,6 +64,18 @@ impl std::convert::TryInto<KeyAssignment> for &Key {
                     .to_owned(),
             ),
             KeyAction::ReloadConfiguration => KeyAssignment::ReloadConfiguration,
+            KeyAction::MoveTab => KeyAssignment::MoveTab(
+                self.arg
+                    .as_ref()
+                    .ok_or_else(|| anyhow!("missing arg for {:?}", self))?
+                    .parse()?,
+            ),
+            KeyAction::MoveTabRelative => KeyAssignment::MoveTabRelative(
+                self.arg
+                    .as_ref()
+                    .ok_or_else(|| anyhow!("missing arg for {:?}", self))?
+                    .parse()?,
+            ),
         })
     }
 }
@@ -88,6 +100,8 @@ pub enum KeyAction {
     Show,
     CloseCurrentTab,
     ReloadConfiguration,
+    MoveTab,
+    MoveTabRelative,
 }
 
 fn de_keycode<'de, D>(deserializer: D) -> Result<KeyCode, D::Error>
