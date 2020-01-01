@@ -47,7 +47,7 @@ $ for scheme in *.sh ; do ; echo $scheme ; \
    bash "$scheme" ; ../tools/screenshotTable.sh; sleep 0.5; done
 ```
 
-  <video width="80%" controls src="screenshots/wezterm-dynamic-colors.mp4" loop></video>
+  <video width="80%" controls src="../screenshots/wezterm-dynamic-colors.mp4" loop></video>
 
 ### Tab Bar Colors
 
