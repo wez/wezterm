@@ -13,7 +13,7 @@
 
 Looking for a [configuration reference?](configuration.html)
 
-<img width="80%" height="80%" src="screenshots/two.png" alt="Screenshot">
+<img width="100%" height="100%" src="screenshots/two.png" alt="Screenshot">
 
 *Screenshot of wezterm on macOS, running vim*
 

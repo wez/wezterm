@@ -11,6 +11,9 @@ To render an image inline in your terminal:
 $ wezterm imgcat /path/to/image.png
 ```
 
+<img width="100%" height="100%" src="screenshots/wezterm-imgcat.png" alt="inline image display">
+
+
 **Note that the image protocol isn't fully handled by multiplexer sessions
 at this time**.
 
