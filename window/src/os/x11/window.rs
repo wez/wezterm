@@ -324,7 +324,17 @@ impl XWindowInner {
                         if r == xcb::BUTTON_RELEASE {
                             return Ok(());
                         }
-                        MouseEventKind::VertWheel(if b == 4 { 1 } else { -1 })
+
+                        // Ideally this would be configurable, but it's currently a bit
+                        // awkward to configure this layer, so let's just improve the
+                        // default for now!
+                        const LINES_PER_TICK: i16 = 5;
+
+                        MouseEventKind::VertWheel(if b == 4 {
+                            LINES_PER_TICK
+                        } else {
+                            -LINES_PER_TICK
+                        })
                     }
                     _ => {
                         eprintln!("button {} is not implemented", button_press.detail());
