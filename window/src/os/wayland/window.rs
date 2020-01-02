@@ -766,7 +766,10 @@ impl WindowOps for WaylandWindow {
                 let mut promise = promise.lock().unwrap();
                 match read_pipe_with_timeout(read) {
                     Ok(result) => {
-                        promise.ok(result);
+                        // Normalize the text to unix line endings, otherwise
+                        // copying from eg: firefox inserts a lot of blank
+                        // lines, and that is super annoying.
+                        promise.ok(result.replace("\r\n", "\n"));
                     }
                     Err(e) => {
                         log::error!("while reading clipboard: {}", e);
