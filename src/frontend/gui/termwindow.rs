@@ -1512,10 +1512,17 @@ impl TermWindow {
             )?;
         }
 
-        if self.show_scroll_bar {
-            let info = ScrollHit::thumb(&*term, self.terminal_size, &self.dimensions);
-            let thumb_top = info.top as f32;
-            let thumb_size = info.height as f32;
+        {
+            let (thumb_top, thumb_size, color) = if self.show_scroll_bar {
+                let info = ScrollHit::thumb(&*term, self.terminal_size, &self.dimensions);
+                let thumb_top = info.top as f32;
+                let thumb_size = info.height as f32;
+                let color = rgbcolor_to_window_color(palette.scrollbar_thumb);
+                (thumb_top, thumb_size, color)
+            } else {
+                let color = rgbcolor_to_window_color(background_color);
+                (0., 0., color)
+            };
 
             let mut quad = quads.scroll_thumb();
 
@@ -1529,7 +1536,6 @@ impl TermWindow {
             let right = self.dimensions.pixel_width as f32 / 2.;
             let left = right - padding;
 
-            let color = rgbcolor_to_window_color(palette.scrollbar_thumb);
             let white_space = gl_state.util_sprites.white_space.texture_coords();
 
             quad.set_bg_color(color);
