@@ -48,7 +48,7 @@ pub enum Operator {
     MultiplyThenOver(Color),
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Dimensions {
     pub pixel_width: usize,
     pub pixel_height: usize,

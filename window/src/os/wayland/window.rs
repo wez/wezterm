@@ -454,18 +454,23 @@ impl WaylandWindowInner {
                 // Update the window decoration size
                 self.window.as_mut().unwrap().resize(w, h);
 
-                // Store the new pixel dimensions
-                self.dimensions = Dimensions {
+                // Compute the new pixel dimensions
+                let new_dimensions = Dimensions {
                     pixel_width: pixel_width.try_into().unwrap(),
                     pixel_height: pixel_height.try_into().unwrap(),
                     dpi: factor as usize * 96,
                 };
+                // Only trigger a resize if the new dimensions are different;
+                // this makes things more efficient and a little more smooth
+                if new_dimensions != self.dimensions {
+                    self.dimensions = new_dimensions;
 
-                self.callbacks.resize(self.dimensions);
-                #[cfg(feature = "opengl")]
-                {
-                    if let Some(wegl_surface) = self.wegl_surface.as_mut() {
-                        wegl_surface.resize(pixel_width, pixel_height, 0, 0);
+                    self.callbacks.resize(self.dimensions);
+                    #[cfg(feature = "opengl")]
+                    {
+                        if let Some(wegl_surface) = self.wegl_surface.as_mut() {
+                            wegl_surface.resize(pixel_width, pixel_height, 0, 0);
+                        }
                     }
                 }
 
