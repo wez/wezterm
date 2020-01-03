@@ -13,9 +13,13 @@ use crate::mux::renderable::{Renderable, RenderableDimensions, StableCursorPosit
 use crate::mux::tab::{Tab, TabId};
 use crate::mux::window::WindowId as MuxWindowId;
 use crate::mux::Mux;
+use ::term::input::MouseButton as TMB;
+use ::term::input::MouseEventKind as TMEK;
 use ::window::bitmaps::atlas::{OutOfTextureSpace, SpriteSlice};
 use ::window::bitmaps::Texture2d;
 use ::window::glium::{uniform, BlendingFunction, LinearBlendingFactor, Surface};
+use ::window::MouseButtons as WMB;
+use ::window::MouseEventKind as WMEK;
 use ::window::*;
 use anyhow::{anyhow, bail, ensure};
 use portable_pty::PtySize;
@@ -225,11 +229,6 @@ impl WindowCallbacks for TermWindow {
     }
 
     fn mouse_event(&mut self, event: &MouseEvent, context: &dyn WindowOps) {
-        use ::term::input::MouseButton as TMB;
-        use ::term::input::MouseEventKind as TMEK;
-        use ::window::MouseButtons as WMB;
-        use ::window::MouseEventKind as WMEK;
-
         let mux = Mux::get().unwrap();
         let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
             Some(tab) => tab,
@@ -336,158 +335,12 @@ impl WindowCallbacks for TermWindow {
         }
 
         if in_tab_bar {
-            if let WMEK::Press(MousePress::Left) = event.kind {
-                match self.tab_bar.hit_test(x) {
-                    TabBarItem::Tab(tab_idx) => {
-                        self.activate_tab(tab_idx).ok();
-                    }
-                    TabBarItem::NewTabButton => {
-                        self.spawn_tab(&SpawnTabDomain::CurrentTabDomain).ok();
-                    }
-                    TabBarItem::None => {}
-                }
-            }
+            self.mouse_event_tab_bar(x, event, context);
         } else if in_scroll_bar {
-            if let WMEK::Press(MousePress::Left) = event.kind {
-                let mut render = tab.renderer();
-                let dims = render.get_dimensions();
-                let current_viewport = self.get_viewport(tab.tab_id());
-
-                match ScrollHit::test(
-                    event.coords.y,
-                    &*render,
-                    current_viewport,
-                    self.terminal_size,
-                    &self.dimensions,
-                ) {
-                    ScrollHit::Above => {
-                        // Page up
-                        self.set_viewport(
-                            tab.tab_id(),
-                            Some(
-                                current_viewport
-                                    .unwrap_or(dims.physical_top)
-                                    .saturating_sub(self.terminal_size.rows.try_into().unwrap()),
-                            ),
-                            dims,
-                        );
-                        render.make_all_lines_dirty();
-                        context.invalidate();
-                    }
-                    ScrollHit::Below => {
-                        // Page down
-                        self.set_viewport(
-                            tab.tab_id(),
-                            Some(
-                                current_viewport
-                                    .unwrap_or(dims.physical_top)
-                                    .saturating_add(self.terminal_size.rows.try_into().unwrap()),
-                            ),
-                            dims,
-                        );
-                        render.make_all_lines_dirty();
-                        context.invalidate();
-                    }
-                    ScrollHit::OnThumb(from_top) => {
-                        // Start a scroll drag
-                        self.scroll_drag_start = Some(from_top);
-                    }
-                };
-            }
+            self.mouse_event_scroll_bar(tab, event, context);
         } else {
-            let mouse_event = term::MouseEvent {
-                kind: match event.kind {
-                    WMEK::Move => TMEK::Move,
-                    WMEK::VertWheel(_)
-                    | WMEK::HorzWheel(_)
-                    | WMEK::DoubleClick(_)
-                    | WMEK::Press(_) => TMEK::Press,
-                    WMEK::Release(_) => TMEK::Release,
-                },
-                button: match event.kind {
-                    WMEK::Release(ref press)
-                    | WMEK::Press(ref press)
-                    | WMEK::DoubleClick(ref press) => match press {
-                        MousePress::Left => TMB::Left,
-                        MousePress::Middle => TMB::Middle,
-                        MousePress::Right => TMB::Right,
-                    },
-                    WMEK::Move => {
-                        if event.mouse_buttons == WMB::LEFT {
-                            TMB::Left
-                        } else if event.mouse_buttons == WMB::RIGHT {
-                            TMB::Right
-                        } else if event.mouse_buttons == WMB::MIDDLE {
-                            TMB::Middle
-                        } else {
-                            TMB::None
-                        }
-                    }
-                    WMEK::VertWheel(amount) => {
-                        if amount > 0 {
-                            TMB::WheelUp(amount as usize)
-                        } else {
-                            TMB::WheelDown((-amount) as usize)
-                        }
-                    }
-                    WMEK::HorzWheel(_) => TMB::None,
-                },
-                x,
-                y: term_y,
-                modifiers: window_mods_to_termwiz_mods(event.modifiers),
-            };
-
-            if let WMEK::Press(MousePress::Middle) = event.kind {
-                if !tab.is_mouse_grabbed() || event.modifiers == Modifiers::SHIFT {
-                    // Middle mouse button is Paste
-
-                    let tab_id = tab.tab_id();
-                    let future = self.window.as_ref().unwrap().get_clipboard();
-                    Connection::get().unwrap().spawn_task(async move {
-                        if let Ok(clip) = future.await {
-                            promise::Future::with_executor(executor(), move || {
-                                let mux = Mux::get().unwrap();
-                                if let Some(tab) = mux.get_tab(tab_id) {
-                                    tab.trickle_paste(clip)?;
-                                }
-                                Ok(())
-                            });
-                        }
-                    });
-                    return;
-                }
-            }
-
-            tab.mouse_event(
-                mouse_event,
-                &mut Host {
-                    writer: &mut *tab.writer(),
-                    context,
-                },
-            )
-            .ok();
+            self.mouse_event_terminal(tab, x, term_y, event, context);
         }
-
-        match event.kind {
-            WMEK::Move => {
-                if self.show_tab_bar && y <= 1 {
-                    self.update_title();
-                }
-            }
-            _ => {
-                context.invalidate();
-            }
-        }
-
-        context.set_cursor(Some(if in_tab_bar || in_scroll_bar {
-            MouseCursor::Arrow
-        } else if tab.renderer().current_highlight().is_some() {
-            // When hovering over a hyperlink, show an appropriate
-            // mouse cursor to give the cue that it is clickable
-            MouseCursor::Hand
-        } else {
-            MouseCursor::Text
-        }));
     }
 
     fn resize(&mut self, dimensions: Dimensions) {
@@ -2386,6 +2239,173 @@ impl TermWindow {
             None => None,
         };
         self.tab_state(tab_id).viewport = pos;
+    }
+
+    fn mouse_event_tab_bar(&mut self, x: usize, event: &MouseEvent, context: &dyn WindowOps) {
+        if let WMEK::Press(MousePress::Left) = event.kind {
+            match self.tab_bar.hit_test(x) {
+                TabBarItem::Tab(tab_idx) => {
+                    self.activate_tab(tab_idx).ok();
+                }
+                TabBarItem::NewTabButton => {
+                    self.spawn_tab(&SpawnTabDomain::CurrentTabDomain).ok();
+                }
+                TabBarItem::None => {}
+            }
+        }
+        self.update_title();
+        context.set_cursor(Some(MouseCursor::Arrow));
+    }
+
+    fn mouse_event_scroll_bar(
+        &mut self,
+        tab: Rc<dyn Tab>,
+        event: &MouseEvent,
+        context: &dyn WindowOps,
+    ) {
+        if let WMEK::Press(MousePress::Left) = event.kind {
+            let mut render = tab.renderer();
+            let dims = render.get_dimensions();
+            let current_viewport = self.get_viewport(tab.tab_id());
+
+            match ScrollHit::test(
+                event.coords.y,
+                &*render,
+                current_viewport,
+                self.terminal_size,
+                &self.dimensions,
+            ) {
+                ScrollHit::Above => {
+                    // Page up
+                    self.set_viewport(
+                        tab.tab_id(),
+                        Some(
+                            current_viewport
+                                .unwrap_or(dims.physical_top)
+                                .saturating_sub(self.terminal_size.rows.try_into().unwrap()),
+                        ),
+                        dims,
+                    );
+                    render.make_all_lines_dirty();
+                    context.invalidate();
+                }
+                ScrollHit::Below => {
+                    // Page down
+                    self.set_viewport(
+                        tab.tab_id(),
+                        Some(
+                            current_viewport
+                                .unwrap_or(dims.physical_top)
+                                .saturating_add(self.terminal_size.rows.try_into().unwrap()),
+                        ),
+                        dims,
+                    );
+                    render.make_all_lines_dirty();
+                    context.invalidate();
+                }
+                ScrollHit::OnThumb(from_top) => {
+                    // Start a scroll drag
+                    self.scroll_drag_start = Some(from_top);
+                }
+            };
+        }
+        context.set_cursor(Some(MouseCursor::Arrow));
+    }
+
+    fn mouse_event_terminal(
+        &mut self,
+        tab: Rc<dyn Tab>,
+        x: usize,
+        y: i64,
+        event: &MouseEvent,
+        context: &dyn WindowOps,
+    ) {
+        let mouse_event = term::MouseEvent {
+            kind: match event.kind {
+                WMEK::Move => TMEK::Move,
+                WMEK::VertWheel(_) | WMEK::HorzWheel(_) | WMEK::DoubleClick(_) | WMEK::Press(_) => {
+                    TMEK::Press
+                }
+                WMEK::Release(_) => TMEK::Release,
+            },
+            button: match event.kind {
+                WMEK::Release(ref press)
+                | WMEK::Press(ref press)
+                | WMEK::DoubleClick(ref press) => match press {
+                    MousePress::Left => TMB::Left,
+                    MousePress::Middle => TMB::Middle,
+                    MousePress::Right => TMB::Right,
+                },
+                WMEK::Move => {
+                    if event.mouse_buttons == WMB::LEFT {
+                        TMB::Left
+                    } else if event.mouse_buttons == WMB::RIGHT {
+                        TMB::Right
+                    } else if event.mouse_buttons == WMB::MIDDLE {
+                        TMB::Middle
+                    } else {
+                        TMB::None
+                    }
+                }
+                WMEK::VertWheel(amount) => {
+                    if amount > 0 {
+                        TMB::WheelUp(amount as usize)
+                    } else {
+                        TMB::WheelDown((-amount) as usize)
+                    }
+                }
+                WMEK::HorzWheel(_) => TMB::None,
+            },
+            x,
+            y,
+            modifiers: window_mods_to_termwiz_mods(event.modifiers),
+        };
+
+        if let WMEK::Press(MousePress::Middle) = event.kind {
+            if !tab.is_mouse_grabbed() || event.modifiers == Modifiers::SHIFT {
+                // Middle mouse button is Paste
+
+                let tab_id = tab.tab_id();
+                let future = self.window.as_ref().unwrap().get_clipboard();
+                Connection::get().unwrap().spawn_task(async move {
+                    if let Ok(clip) = future.await {
+                        promise::Future::with_executor(executor(), move || {
+                            let mux = Mux::get().unwrap();
+                            if let Some(tab) = mux.get_tab(tab_id) {
+                                tab.trickle_paste(clip)?;
+                            }
+                            Ok(())
+                        });
+                    }
+                });
+                return;
+            }
+        }
+
+        tab.mouse_event(
+            mouse_event,
+            &mut Host {
+                writer: &mut *tab.writer(),
+                context,
+            },
+        )
+        .ok();
+
+        match event.kind {
+            WMEK::Move => {}
+            _ => {
+                context.invalidate();
+            }
+        }
+
+        // TODO: track current_highlight for ourselves
+        context.set_cursor(Some(if tab.renderer().current_highlight().is_some() {
+            // When hovering over a hyperlink, show an appropriate
+            // mouse cursor to give the cue that it is clickable
+            MouseCursor::Hand
+        } else {
+            MouseCursor::Text
+        }));
     }
 }
 
