@@ -15,6 +15,7 @@ mod glyphcache;
 mod quad;
 mod renderstate;
 mod scrollbar;
+mod selection;
 mod tabbar;
 mod termwindow;
 mod utilsprites;

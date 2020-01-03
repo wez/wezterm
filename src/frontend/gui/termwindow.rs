@@ -5,6 +5,7 @@ use crate::config::{configuration, ConfigHandle};
 use crate::font::units::*;
 use crate::font::FontConfiguration;
 use crate::frontend::gui::scrollbar::*;
+use crate::frontend::gui::selection::*;
 use crate::frontend::gui::tabbar::{TabBarItem, TabBarState};
 use crate::frontend::{executor, front_end};
 use crate::keyassignment::{KeyAssignment, KeyMap, SpawnTabDomain};
@@ -136,6 +137,8 @@ pub struct TermWindow {
     /// Gross workaround for managing async keyboard fetching
     /// just for middle mouse button paste function
     clipboard_contents: Arc<Mutex<Option<String>>>,
+
+    selection: Selection,
 }
 
 struct Host<'a> {
@@ -688,6 +691,7 @@ impl TermWindow {
                 last_scroll_info: RenderableDimensions::default(),
                 clipboard_contents: Arc::clone(&clipboard_contents),
                 tab_state: HashMap::new(),
+                selection: Selection::default(),
             }),
         )?;
 
