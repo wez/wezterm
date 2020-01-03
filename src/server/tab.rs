@@ -15,14 +15,17 @@ use std::borrow::Cow;
 use std::cell::RefCell;
 use std::cell::RefMut;
 use std::collections::VecDeque;
+use std::convert::TryInto;
 use std::ops::Range;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use term::color::ColorPalette;
 use term::selection::SelectionRange;
-use term::{Clipboard, CursorPosition, Line, VisibleRowIndex};
-use term::{KeyCode, KeyModifiers, MouseButton, MouseEvent, MouseEventKind, TerminalHost};
+use term::{
+    Clipboard, CursorPosition, KeyCode, KeyModifiers, Line, MouseButton, MouseEvent,
+    MouseEventKind, ScrollbackOrVisibleRowIndex, TerminalHost, VisibleRowIndex,
+};
 use termwiz::hyperlink::Hyperlink;
 use termwiz::input::KeyEvent;
 use termwiz::surface::{Change, SequenceNo, Surface};
@@ -409,6 +412,18 @@ impl Renderable for RenderableState {
             y: y as i64,
             shape,
         }
+    }
+
+    fn get_lines(&self, lines: Range<ScrollbackOrVisibleRowIndex>) -> Vec<Cow<Line>> {
+        let inner = self.inner.borrow_mut();
+        inner
+            .surface
+            .screen_lines()
+            .into_iter()
+            .skip(lines.start.try_into().unwrap())
+            .take((lines.end - lines.start).try_into().unwrap())
+            .map(|line| Cow::Owned(line.into_owned()))
+            .collect()
     }
 
     fn get_dirty_lines(&self) -> Vec<(usize, Cow<Line>, Range<usize>)> {

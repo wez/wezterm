@@ -18,6 +18,7 @@ use promise::{Future, Promise};
 use std::borrow::Cow;
 use std::cell::RefCell;
 use std::cell::RefMut;
+use std::convert::TryInto;
 use std::ops::Range;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -26,7 +27,8 @@ use std::time::Duration;
 use term::color::ColorPalette;
 use term::selection::SelectionRange;
 use term::{
-    CursorPosition, KeyCode, KeyModifiers, Line, MouseEvent, TerminalHost, VisibleRowIndex,
+    CursorPosition, KeyCode, KeyModifiers, Line, MouseEvent, ScrollbackOrVisibleRowIndex,
+    TerminalHost, VisibleRowIndex,
 };
 use termwiz::hyperlink::Hyperlink;
 use termwiz::input::{InputEvent, KeyEvent};
@@ -74,6 +76,18 @@ impl Renderable for RenderableState {
             y: y as i64,
             shape,
         }
+    }
+
+    fn get_lines(&self, lines: Range<ScrollbackOrVisibleRowIndex>) -> Vec<Cow<Line>> {
+        let inner = self.inner.borrow_mut();
+        inner
+            .surface
+            .screen_lines()
+            .into_iter()
+            .skip(lines.start.try_into().unwrap())
+            .take((lines.end - lines.start).try_into().unwrap())
+            .map(|line| Cow::Owned(line.into_owned()))
+            .collect()
     }
 
     fn get_dirty_lines(&self) -> Vec<(usize, Cow<Line>, Range<usize>)> {

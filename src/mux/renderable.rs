@@ -2,7 +2,9 @@ use downcast_rs::{impl_downcast, Downcast};
 use std::borrow::Cow;
 use std::ops::Range;
 use std::sync::Arc;
-use term::{CursorPosition, Line, Terminal, TerminalState, VisibleRowIndex};
+use term::{
+    CursorPosition, Line, ScrollbackOrVisibleRowIndex, Terminal, TerminalState, VisibleRowIndex,
+};
 use termwiz::hyperlink::Hyperlink;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -29,6 +31,10 @@ pub trait Renderable: Downcast {
     /// The selrange value is the column range representing the selected
     /// columns on this line.
     fn get_dirty_lines(&self) -> Vec<(usize, Cow<Line>, Range<usize>)>;
+
+    /// Returns a set of lines from the scrollback or visible portion of
+    /// the display.
+    fn get_lines(&self, lines: Range<ScrollbackOrVisibleRowIndex>) -> Vec<Cow<Line>>;
 
     fn has_dirty_lines(&self) -> bool;
 
@@ -60,6 +66,18 @@ impl Renderable for Terminal {
         TerminalState::get_dirty_lines(self)
             .into_iter()
             .map(|(idx, line, range)| (idx, Cow::Borrowed(line), range))
+            .collect()
+    }
+
+    fn get_lines(&self, lines: Range<ScrollbackOrVisibleRowIndex>) -> Vec<Cow<Line>> {
+        let screen = self.screen();
+        let phys_range = screen.scrollback_or_visible_range(&lines);
+        screen
+            .lines
+            .iter()
+            .skip(phys_range.start)
+            .take(phys_range.end - phys_range.start)
+            .map(|line| Cow::Borrowed(line))
             .collect()
     }
 
