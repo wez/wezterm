@@ -454,46 +454,48 @@ impl WindowCallbacks for TermWindow {
         // log::error!("key_event {:?}", key);
 
         let mux = Mux::get().unwrap();
-        if let Some(tab) = mux.get_active_tab_for_window(self.mux_window_id) {
-            let modifiers = window_mods_to_termwiz_mods(key.modifiers);
+        let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
+            Some(tab) => tab,
+            None => return false,
+        };
+        let modifiers = window_mods_to_termwiz_mods(key.modifiers);
 
-            // First chance to operate on the raw key; if it matches a
-            // user-defined key binding then we execute it and stop there.
-            if let Some(key) = &key.raw_key {
-                if let Key::Code(key) = self.win_key_code_to_termwiz_key_code(&key) {
-                    if let Some(assignment) = self.keys.lookup(key, modifiers) {
-                        self.perform_key_assignment(&tab, &assignment).ok();
-                        return true;
-                    }
-
-                    if !configuration().send_composed_key_when_alt_is_pressed
-                        && modifiers.contains(::termwiz::input::Modifiers::ALT)
-                        && tab.key_down(key, modifiers).is_ok()
-                    {
-                        return true;
-                    }
-                }
-            }
-
-            let key = self.win_key_code_to_termwiz_key_code(&key.key);
-            match key {
-                Key::Code(key) => {
-                    if let Some(assignment) = self.keys.lookup(key, modifiers) {
-                        self.perform_key_assignment(&tab, &assignment).ok();
-                        return true;
-                    } else if tab.key_down(key, modifiers).is_ok() {
-                        return true;
-                    }
-                }
-                Key::Composed(s) => {
-                    tab.writer().write_all(s.as_bytes()).ok();
+        // First chance to operate on the raw key; if it matches a
+        // user-defined key binding then we execute it and stop there.
+        if let Some(key) = &key.raw_key {
+            if let Key::Code(key) = self.win_key_code_to_termwiz_key_code(&key) {
+                if let Some(assignment) = self.keys.lookup(key, modifiers) {
+                    self.perform_key_assignment(&tab, &assignment).ok();
                     return true;
                 }
-                Key::None => {}
+
+                if !configuration().send_composed_key_when_alt_is_pressed
+                    && modifiers.contains(::termwiz::input::Modifiers::ALT)
+                    && tab.key_down(key, modifiers).is_ok()
+                {
+                    return true;
+                }
             }
         }
 
-        false
+        let key = self.win_key_code_to_termwiz_key_code(&key.key);
+        match key {
+            Key::Code(key) => {
+                if let Some(assignment) = self.keys.lookup(key, modifiers) {
+                    self.perform_key_assignment(&tab, &assignment).ok();
+                    true
+                } else if tab.key_down(key, modifiers).is_ok() {
+                    true
+                } else {
+                    false
+                }
+            }
+            Key::Composed(s) => {
+                tab.writer().write_all(s.as_bytes()).ok();
+                true
+            }
+            Key::None => false,
+        }
     }
 
     fn paint(&mut self, ctx: &mut dyn PaintContext) {
