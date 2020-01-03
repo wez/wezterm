@@ -373,51 +373,34 @@ impl WindowCallbacks for TermWindow {
             };
 
             if let WMEK::Press(MousePress::Middle) = event.kind {
-                // The middle button will typically want to paste the clipboard but
-                // obtaining the contents is an async operation that requires the
-                // event loop to pump.
-                // So we schedule that work and continue with dispatching the middle
-                // button once we have it.
-                // want to paste the clipboard,
+                if !tab.is_mouse_grabbed() {
+                    // Middle mouse button is Paste
 
-                let tab_id = tab.tab_id();
-                let window_clone = self.window.as_ref().cloned().unwrap();
-                let future = self.window.as_ref().unwrap().get_clipboard();
-                Connection::get().unwrap().spawn_task(async move {
-                    if let Ok(clip) = future.await {
-                        window_clone.apply(move |myself, context| {
-                            if let Some(myself) = myself.downcast_mut::<Self>() {
-                                myself
-                                    .clipboard_contents
-                                    .lock()
-                                    .unwrap()
-                                    .replace(clip.clone());
+                    let tab_id = tab.tab_id();
+                    let future = self.window.as_ref().unwrap().get_clipboard();
+                    Connection::get().unwrap().spawn_task(async move {
+                        if let Ok(clip) = future.await {
+                            promise::Future::with_executor(executor(), move || {
                                 let mux = Mux::get().unwrap();
                                 if let Some(tab) = mux.get_tab(tab_id) {
-                                    tab.mouse_event(
-                                        mouse_event,
-                                        &mut Host {
-                                            writer: &mut *tab.writer(),
-                                            context,
-                                        },
-                                    )
-                                    .ok();
+                                    tab.trickle_paste(clip)?;
                                 }
-                            }
-                            Ok(())
-                        });
-                    }
-                });
-            } else {
-                tab.mouse_event(
-                    mouse_event,
-                    &mut Host {
-                        writer: &mut *tab.writer(),
-                        context,
-                    },
-                )
-                .ok();
+                                Ok(())
+                            });
+                        }
+                    });
+                    return;
+                }
             }
+
+            tab.mouse_event(
+                mouse_event,
+                &mut Host {
+                    writer: &mut *tab.writer(),
+                    context,
+                },
+            )
+            .ok();
         }
 
         match event.kind {
