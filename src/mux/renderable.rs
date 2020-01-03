@@ -7,7 +7,7 @@ use term::{
 };
 use termwiz::hyperlink::Hyperlink;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct RenderableDimensions {
     /// The viewport width
     pub cols: usize,
@@ -15,6 +15,9 @@ pub struct RenderableDimensions {
     pub viewport_rows: usize,
     /// The total number of lines in the scrollback, including the viewport
     pub scrollback_rows: usize,
+    /// The offset is measured from the top of the physical viewable
+    /// screen with larger numbers going backwards.
+    pub viewport_offset: VisibleRowIndex,
 }
 
 /// Renderable allows passing something that isn't an actual term::Terminal
@@ -49,10 +52,6 @@ pub trait Renderable: Downcast {
     /// Returns render related dimensions
     fn get_dimensions(&self) -> RenderableDimensions;
 
-    /// Returns the potentially scrolled viewport offset, and the
-    /// size of the scrollback.  This information is intended to be
-    /// used to render a scrollbar UI
-    fn get_scrollbar_info(&self) -> (VisibleRowIndex, usize);
     fn set_viewport_position(&mut self, position: VisibleRowIndex);
 }
 impl_downcast!(Renderable);
@@ -99,17 +98,12 @@ impl Renderable for Terminal {
             cols: screen.physical_cols,
             viewport_rows: screen.physical_rows,
             scrollback_rows: screen.lines.len(),
+            viewport_offset: self.get_viewport_offset(),
         }
     }
 
     fn has_dirty_lines(&self) -> bool {
         TerminalState::has_dirty_lines(self)
-    }
-
-    fn get_scrollbar_info(&self) -> (VisibleRowIndex, usize) {
-        let offset = self.get_viewport_offset();
-        let num_lines = self.screen().lines.len();
-        (offset, num_lines)
     }
 
     fn set_viewport_position(&mut self, position: VisibleRowIndex) {

@@ -160,13 +160,10 @@ impl Renderable for RenderableState {
             viewport_rows,
             cols,
             scrollback_rows: 0,
+            viewport_offset: 0,
         }
     }
 
-    fn get_scrollbar_info(&self) -> (VisibleRowIndex, usize) {
-        let dims = self.get_dimensions();
-        (0, dims.viewport_rows)
-    }
     fn set_viewport_position(&mut self, _: VisibleRowIndex) {}
 }
 

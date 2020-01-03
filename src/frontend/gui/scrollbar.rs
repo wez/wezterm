@@ -40,7 +40,10 @@ impl ScrollHit {
     /// Compute the y-coordinate for the top of the scrollbar thumb
     /// and the height of the thumb and return them.
     pub fn thumb(render: &dyn Renderable, size: PtySize, dims: &Dimensions) -> ThumbInfo {
-        let (scroll_top, scroll_size) = render.get_scrollbar_info();
+        let render_dims = render.get_dimensions();
+        let scroll_top = render_dims.viewport_offset;
+        let scroll_size = render_dims.scrollback_rows;
+
         let thumb_size = (size.rows as f32 / scroll_size as f32) * dims.pixel_height as f32;
 
         const MIN_HEIGHT: f32 = 10.;
@@ -73,7 +76,8 @@ impl ScrollHit {
         size: PtySize,
         dims: &Dimensions,
     ) -> VisibleRowIndex {
-        let (_scroll_top, scroll_size) = render.get_scrollbar_info();
+        let render_dims = render.get_dimensions();
+        let scroll_size = render_dims.scrollback_rows;
         let thumb = Self::thumb(render, size, dims);
 
         let rows_from_top =

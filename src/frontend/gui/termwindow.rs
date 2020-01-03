@@ -8,7 +8,7 @@ use crate::frontend::gui::scrollbar::*;
 use crate::frontend::gui::tabbar::{TabBarItem, TabBarState};
 use crate::frontend::{executor, front_end};
 use crate::keyassignment::{KeyAssignment, KeyMap, SpawnTabDomain};
-use crate::mux::renderable::Renderable;
+use crate::mux::renderable::{Renderable, RenderableDimensions};
 use crate::mux::tab::{Tab, TabId};
 use crate::mux::window::WindowId as MuxWindowId;
 use crate::mux::Mux;
@@ -27,7 +27,7 @@ use std::sync::Arc;
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
 use term::color::ColorPalette;
-use term::{CursorPosition, Line, Underline, VisibleRowIndex};
+use term::{CursorPosition, Line, Underline};
 use termwiz::color::RgbColor;
 use termwiz::surface::CursorShape;
 
@@ -120,7 +120,7 @@ pub struct TermWindow {
     scroll_drag_start: Option<isize>,
     config_generation: usize,
     prev_cursor: PrevCursorPos,
-    last_scroll_info: (VisibleRowIndex, usize),
+    last_scroll_info: RenderableDimensions,
 
     /// Gross workaround for managing async keyboard fetching
     /// just for middle mouse button paste function
@@ -298,7 +298,7 @@ impl WindowCallbacks for TermWindow {
                 };
 
                 let mut render = tab.renderer();
-                let (current, num_lines) = render.get_scrollbar_info();
+                let dims = render.get_dimensions();
 
                 match ScrollHit::test(
                     event.coords.y,
@@ -309,15 +309,16 @@ impl WindowCallbacks for TermWindow {
                     ScrollHit::Above => {
                         // Page up
                         render.set_viewport_position(
-                            current
+                            dims.viewport_offset
                                 .saturating_add(self.terminal_size.rows as i64)
-                                .min(num_lines.try_into().unwrap()),
+                                .min(dims.scrollback_rows.try_into().unwrap()),
                         );
                     }
                     ScrollHit::Below => {
                         // Page down
                         render.set_viewport_position(
-                            current.saturating_sub(self.terminal_size.rows as i64),
+                            dims.viewport_offset
+                                .saturating_sub(self.terminal_size.rows as i64),
                         );
                     }
                     ScrollHit::OnThumb(from_top) => {
@@ -659,7 +660,7 @@ impl TermWindow {
                 scroll_drag_start: None,
                 config_generation: config.generation(),
                 prev_cursor: PrevCursorPos::new(),
-                last_scroll_info: (0, 0),
+                last_scroll_info: RenderableDimensions::default(),
                 clipboard_contents: Arc::clone(&clipboard_contents),
             }),
         )?;
@@ -923,12 +924,12 @@ impl TermWindow {
             None => return,
         };
 
-        let info = tab.renderer().get_scrollbar_info();
-        if info == self.last_scroll_info {
+        let render_dims = tab.renderer().get_dimensions();
+        if render_dims == self.last_scroll_info {
             return;
         }
 
-        self.last_scroll_info = info;
+        self.last_scroll_info = render_dims;
 
         if let Some(window) = self.window.as_ref() {
             window.invalidate();
