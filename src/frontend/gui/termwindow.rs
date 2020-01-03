@@ -29,6 +29,7 @@ use std::sync::Arc;
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
 use term::color::ColorPalette;
+use term::input::LastMouseClick;
 use term::{Line, StableRowIndex, Underline};
 use termwiz::color::RgbColor;
 use termwiz::surface::CursorShape;
@@ -139,6 +140,9 @@ pub struct TermWindow {
     clipboard_contents: Arc<Mutex<Option<String>>>,
 
     selection: Selection,
+
+    /// Keeps track of double and triple clicks
+    last_mouse_click: Option<LastMouseClick>,
 }
 
 struct Host<'a> {
@@ -205,6 +209,11 @@ impl WindowCallbacks for TermWindow {
     fn focus_change(&mut self, focused: bool) {
         log::trace!("Setting focus to {:?}", focused);
         self.focused = if focused { Some(Instant::now()) } else { None };
+
+        if !self.focused.is_some() {
+            self.last_mouse_click = None;
+        }
+
         // Reset the cursor blink phase
         self.prev_cursor.bump();
 
@@ -256,13 +265,26 @@ impl WindowCallbacks for TermWindow {
                     return;
                 }
             }
-            WMEK::Press(_) => {
+            WMEK::Press(ref press) | WMEK::DoubleClick(ref press) => {
                 if let Some(focused) = self.focused.as_ref() {
                     if focused.elapsed() <= Duration::from_millis(200) {
                         log::trace!("discard mouse click because it focused the window");
                         return;
                     }
                 }
+
+                // Perform click counting
+                let button = match press {
+                    MousePress::Left => TMB::Left,
+                    MousePress::Middle => TMB::Middle,
+                    MousePress::Right => TMB::Right,
+                };
+
+                let click = match self.last_mouse_click.take() {
+                    None => LastMouseClick::new(button),
+                    Some(click) => click.add(button),
+                };
+                self.last_mouse_click = Some(click);
             }
 
             WMEK::VertWheel(amount) if !tab.is_mouse_grabbed() => {
@@ -692,6 +714,7 @@ impl TermWindow {
                 clipboard_contents: Arc::clone(&clipboard_contents),
                 tab_state: HashMap::new(),
                 selection: Selection::default(),
+                last_mouse_click: None,
             }),
         )?;
 
