@@ -46,6 +46,8 @@ The default key bindings are:
 | `SUPER+SHIFT` | `]` | `ActivateTabRelative(1)` |
 | `CTRL+SHIFT`     | `PAGEUP`      | `MoveTabRelative(-1)` |
 | `CTRL+SHIFT`     | `PAGEDOWN`      | `MoveTabRelative(1)` |
+| `SHIFT`          | `PAGEUP`      | `ScrollByPage(-1)` |
+| `SHIFT`          | `PAGEDOWN`    | `ScrollByPage(1)` |
 
 These can be overridden using the `keys` section in your `~/.wezterm.toml` config file.
 For example, you can disable a default assignment like this:
@@ -113,6 +115,7 @@ specified via the `arg` key; see examples below.
 | `CloseCurrentTab` | Equivalent to clicking the `x` on the window title bar to close it: Closes the current tab.  If that was the last tab, closes that window.  If that was the last window, wezterm terminates. |
 | `MoveTabRelative` | Move the current tab relative to its peers.  The `arg` value specifies an offset. eg: `-1` moves the tab to the left of the current tab, while `1` moves the tab to the right. |
 | `MoveTab` | Move the tab so that it has the index specified by the `arg` value. eg: `0` moves the tab to be  leftmost, while `1` moves the tab so that it is second tab from the left, and so on. |
+| `ScrollByPage` | Adjusts the scroll position by the number of pages specified by the `arg` value. Negative values scroll upwards, while positive values scroll downwards. |
 
 Example:
 

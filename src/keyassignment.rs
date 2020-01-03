@@ -37,6 +37,7 @@ pub enum KeyAssignment {
     ReloadConfiguration,
     MoveTabRelative(isize),
     MoveTab(usize),
+    ScrollByPage(isize),
 }
 
 pub struct KeyMap(HashMap<(KeyCode, KeyModifiers), KeyAssignment>);
@@ -143,6 +144,8 @@ impl KeyMap {
             [ctrl_shift, KeyCode::Char('R'), ReloadConfiguration],
             [ctrl_shift, KeyCode::PageUp, MoveTabRelative(-1)],
             [ctrl_shift, KeyCode::PageDown, MoveTabRelative(1)],
+            [KeyModifiers::SHIFT, KeyCode::PageUp, ScrollByPage(-1)],
+            [KeyModifiers::SHIFT, KeyCode::PageDown, ScrollByPage(1)],
         );
 
         Self(map)

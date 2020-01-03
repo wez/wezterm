@@ -1087,6 +1087,26 @@ impl TermWindow {
         Ok(())
     }
 
+    fn scroll_by_page(&mut self, amount: isize) -> anyhow::Result<()> {
+        let mux = Mux::get().unwrap();
+        let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
+            Some(tab) => tab,
+            None => return Ok(()),
+        };
+        let mut render = tab.renderer();
+        let dims = render.get_dimensions();
+        let position = self
+            .get_viewport(tab.tab_id())
+            .unwrap_or(dims.physical_top)
+            .saturating_add(amount * dims.viewport_rows as isize);
+        self.set_viewport(tab.tab_id(), Some(position), dims);
+        render.make_all_lines_dirty();
+        if let Some(win) = self.window.as_ref() {
+            win.invalidate();
+        }
+        Ok(())
+    }
+
     fn move_tab_relative(&mut self, delta: isize) -> anyhow::Result<()> {
         let mux = Mux::get().unwrap();
         let window = mux
@@ -1211,6 +1231,7 @@ impl TermWindow {
             ReloadConfiguration => crate::config::reload(),
             MoveTab(n) => self.move_tab(*n)?,
             MoveTabRelative(n) => self.move_tab_relative(*n)?,
+            ScrollByPage(n) => self.scroll_by_page(*n)?,
         };
         Ok(())
     }

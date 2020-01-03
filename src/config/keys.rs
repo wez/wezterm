@@ -76,6 +76,12 @@ impl std::convert::TryInto<KeyAssignment> for &Key {
                     .ok_or_else(|| anyhow!("missing arg for {:?}", self))?
                     .parse()?,
             ),
+            KeyAction::ScrollByPage => KeyAssignment::ScrollByPage(
+                self.arg
+                    .as_ref()
+                    .ok_or_else(|| anyhow!("missing arg for {:?}", self))?
+                    .parse()?,
+            ),
         })
     }
 }
@@ -102,6 +108,7 @@ pub enum KeyAction {
     ReloadConfiguration,
     MoveTab,
     MoveTabRelative,
+    ScrollByPage,
 }
 
 fn de_keycode<'de, D>(deserializer: D) -> Result<KeyCode, D::Error>
