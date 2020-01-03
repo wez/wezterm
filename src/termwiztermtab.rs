@@ -6,7 +6,7 @@
 use crate::font::FontConfiguration;
 use crate::frontend::{executor, front_end};
 use crate::mux::domain::{alloc_domain_id, Domain, DomainId, DomainState};
-use crate::mux::renderable::Renderable;
+use crate::mux::renderable::{Renderable, RenderableDimensions};
 use crate::mux::tab::{alloc_tab_id, Tab, TabId};
 use crate::mux::window::WindowId;
 use crate::mux::Mux;
@@ -140,14 +140,18 @@ impl Renderable for RenderableState {
             .cloned()
     }
 
-    fn physical_dimensions(&self) -> (usize, usize) {
-        let (cols, rows) = self.inner.borrow().surface.dimensions();
-        (rows, cols)
+    fn get_dimensions(&self) -> RenderableDimensions {
+        let (cols, viewport_rows) = self.inner.borrow().surface.dimensions();
+        RenderableDimensions {
+            viewport_rows,
+            cols,
+            scrollback_rows: 0,
+        }
     }
 
     fn get_scrollbar_info(&self) -> (VisibleRowIndex, usize) {
-        let (_cols, rows) = self.physical_dimensions();
-        (0, rows)
+        let dims = self.get_dimensions();
+        (0, dims.viewport_rows)
     }
     fn set_viewport_position(&mut self, _: VisibleRowIndex) {}
 }

@@ -388,10 +388,10 @@ fn maybe_push_tab_changes(
 ) -> anyhow::Result<()> {
     let tab_id = tab.tab_id();
     let mut surfaces = surfaces.lock().unwrap();
-    let (rows, cols) = tab.renderer().physical_dimensions();
+    let dims = tab.renderer().get_dimensions();
     let surface = surfaces
         .entry(tab_id)
-        .or_insert_with(|| ClientSurfaceState::new(cols, rows));
+        .or_insert_with(|| ClientSurfaceState::new(dims.cols, dims.viewport_rows));
     surface.update_surface_from_screen(&tab);
 
     let (new_seq, changes) = surface.get_and_flush_changes(surface.last_seq);
@@ -437,11 +437,11 @@ impl ClientSurfaceState {
 
         {
             let mut renderable = tab.renderer();
-            let (rows, cols) = renderable.physical_dimensions();
+            let dims = renderable.get_dimensions();
             let (surface_width, surface_height) = self.surface.dimensions();
 
-            if (rows != surface_height) || (cols != surface_width) {
-                self.surface.resize(cols, rows);
+            if (dims.viewport_rows != surface_height) || (dims.cols != surface_width) {
+                self.surface.resize(dims.cols, dims.viewport_rows);
                 renderable.make_all_lines_dirty();
             }
 
@@ -450,7 +450,7 @@ impl ClientSurfaceState {
             if (x != cursor.x) || (y as i64 != cursor.y) {
                 // Update the cursor, but if we're scrolled back
                 // and it is our of range, skip the update.
-                if cursor.y < rows as i64 {
+                if cursor.y < dims.viewport_rows as i64 {
                     self.surface.add_change(Change::CursorPosition {
                         x: Position::Absolute(cursor.x),
                         y: Position::Absolute(cursor.y as usize),
@@ -654,14 +654,14 @@ impl<S: ReadAndWrite> ClientSession<S> {
                 for window_id in mux.iter_windows().into_iter() {
                     let window = mux.get_window(window_id).unwrap();
                     for tab in window.iter() {
-                        let (rows, cols) = tab.renderer().physical_dimensions();
+                        let dims = tab.renderer().get_dimensions();
                         tabs.push(WindowAndTabEntry {
                             window_id,
                             tab_id: tab.tab_id(),
                             title: tab.get_title(),
                             size: PtySize {
-                                cols: cols as u16,
-                                rows: rows as u16,
+                                cols: dims.cols as u16,
+                                rows: dims.viewport_rows as u16,
                                 pixel_height: 0,
                                 pixel_width: 0,
                             },

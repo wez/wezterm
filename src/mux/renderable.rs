@@ -5,6 +5,16 @@ use std::sync::Arc;
 use term::{CursorPosition, Line, Terminal, TerminalState, VisibleRowIndex};
 use termwiz::hyperlink::Hyperlink;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct RenderableDimensions {
+    /// The viewport width
+    pub cols: usize,
+    /// How many rows fit in the viewport
+    pub viewport_rows: usize,
+    /// The total number of lines in the scrollback, including the viewport
+    pub scrollback_rows: usize,
+}
+
 /// Renderable allows passing something that isn't an actual term::Terminal
 /// instance into the renderer, which opens up remoting of the terminal
 /// surfaces via a multiplexer.
@@ -30,9 +40,8 @@ pub trait Renderable: Downcast {
     /// Returns the currently highlighted hyperlink
     fn current_highlight(&self) -> Option<Arc<Hyperlink>>;
 
-    /// Returns physical, non-scrollback (rows, cols) for the
-    /// terminal screen
-    fn physical_dimensions(&self) -> (usize, usize);
+    /// Returns render related dimensions
+    fn get_dimensions(&self) -> RenderableDimensions;
 
     /// Returns the potentially scrolled viewport offset, and the
     /// size of the scrollback.  This information is intended to be
@@ -66,9 +75,13 @@ impl Renderable for Terminal {
         TerminalState::current_highlight(self)
     }
 
-    fn physical_dimensions(&self) -> (usize, usize) {
+    fn get_dimensions(&self) -> RenderableDimensions {
         let screen = self.screen();
-        (screen.physical_rows, screen.physical_cols)
+        RenderableDimensions {
+            cols: screen.physical_cols,
+            viewport_rows: screen.physical_rows,
+            scrollback_rows: screen.lines.len(),
+        }
     }
 
     fn has_dirty_lines(&self) -> bool {

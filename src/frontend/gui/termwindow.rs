@@ -595,7 +595,9 @@ impl TermWindow {
         tab: &Rc<dyn Tab>,
         mux_window_id: MuxWindowId,
     ) -> anyhow::Result<()> {
-        let (physical_rows, physical_cols) = tab.renderer().physical_dimensions();
+        let dims = tab.renderer().get_dimensions();
+        let physical_rows = dims.viewport_rows;
+        let physical_cols = dims.cols;
 
         let render_metrics = RenderMetrics::new(fontconfig);
 
@@ -1387,7 +1389,8 @@ impl TermWindow {
         let config = configuration();
         let bg = rgbcolor_to_window_color(palette.background);
         // Fill any padding below the last row
-        let (num_rows, _num_cols) = term.physical_dimensions();
+        let dims = term.get_dimensions();
+        let num_rows = dims.viewport_rows;
         let pixel_height_of_cells = config.window_padding.top as usize
             + (num_rows + first_line_offset) * self.render_metrics.cell_size.height as usize;
         ctx.clear_rect(
@@ -1653,7 +1656,8 @@ impl TermWindow {
     ) -> anyhow::Result<()> {
         let gl_state = self.render_state.opengl();
 
-        let (_num_rows, num_cols) = terminal.physical_dimensions();
+        let dims = terminal.get_dimensions();
+        let num_cols = dims.cols;
 
         let current_highlight = terminal.current_highlight();
         let cursor_border_color = rgbcolor_to_window_color(palette.cursor_border);
@@ -1908,7 +1912,8 @@ impl TermWindow {
         let padding_left = config.window_padding.left as isize;
         let padding_top = config.window_padding.top as isize;
 
-        let (_num_rows, num_cols) = terminal.physical_dimensions();
+        let dims = terminal.get_dimensions();
+        let num_cols = dims.cols;
         let current_highlight = terminal.current_highlight();
         let cursor_border_color = rgbcolor_to_window_color(palette.cursor_border);
 
