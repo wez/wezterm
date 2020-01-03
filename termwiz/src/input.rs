@@ -6,7 +6,7 @@ use crate::escape::{Action, CSI};
 use crate::keymap::{Found, KeyMap};
 use crate::readbuf::ReadBuffer;
 use bitflags::bitflags;
-use serde_derive::*;
+use serde::{Deserialize, Serialize};
 use std;
 
 #[cfg(windows)]

@@ -2,7 +2,7 @@ use crate::cell::{AttributeChange, Cell, CellAttributes};
 use crate::color::ColorAttribute;
 use crate::image::ImageCell;
 use ordered_float::NotNan;
-use serde_derive::*;
+use serde::{Deserialize, Serialize};
 use std::borrow::Cow;
 use std::cmp::min;
 use unicode_segmentation::UnicodeSegmentation;

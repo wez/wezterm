@@ -1,7 +1,6 @@
 use crate::keyassignment::{KeyAssignment, SpawnTabDomain};
 use anyhow::{anyhow, Error};
 use serde::{Deserialize, Deserializer};
-use serde_derive::*;
 use termwiz::input::{KeyCode, Modifiers};
 
 #[derive(Debug, Deserialize, Clone)]

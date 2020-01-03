@@ -6,8 +6,7 @@
 //! as we recognize linkable input text during print() processing.
 use anyhow::{anyhow, ensure, Error};
 use regex::{Captures, Regex};
-use serde::{self, Deserialize, Deserializer};
-use serde_derive::*;
+use serde::{self, Deserialize, Deserializer, Serialize};
 use std::collections::HashMap;
 use std::fmt::{Display, Error as FmtError, Formatter};
 use std::ops::Range;

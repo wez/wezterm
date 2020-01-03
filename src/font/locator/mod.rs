@@ -1,6 +1,6 @@
 use crate::config::FontAttributes;
 use anyhow::{anyhow, Error};
-use serde_derive::*;
+use serde::Deserialize;
 use std::path::PathBuf;
 use std::sync::Mutex;
 

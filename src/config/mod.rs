@@ -9,7 +9,7 @@ use crate::keyassignment::KeyAssignment;
 use anyhow::{anyhow, bail, Context, Error};
 use lazy_static::lazy_static;
 use portable_pty::{CommandBuilder, PtySystemSelection};
-use serde_derive::*;
+use serde::Deserialize;
 use std;
 use std::collections::HashMap;
 use std::convert::TryInto;

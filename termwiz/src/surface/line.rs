@@ -3,7 +3,7 @@ use crate::cellcluster::CellCluster;
 use crate::hyperlink::Rule;
 use crate::surface::Change;
 use bitflags::bitflags;
-use serde_derive::*;
+use serde::{Deserialize, Serialize};
 use std::ops::Range;
 use std::sync::Arc;
 use unicode_segmentation::UnicodeSegmentation;

@@ -1,7 +1,7 @@
 use crate::font::locator::FontDataHandle;
 use crate::font::units::*;
 use anyhow::{anyhow, bail, Error};
-use serde_derive::*;
+use serde::Deserialize;
 use std::sync::Mutex;
 
 pub mod freetype;

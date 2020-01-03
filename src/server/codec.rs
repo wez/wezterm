@@ -17,7 +17,7 @@ use anyhow::{bail, Error};
 use leb128;
 use log::debug;
 use portable_pty::{CommandBuilder, PtySize};
-use serde_derive::*;
+use serde::{Deserialize, Serialize};
 use std::io::Cursor;
 use std::sync::Arc;
 use term::selection::SelectionRange;

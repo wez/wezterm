@@ -27,8 +27,7 @@ ordered-float = "1.0"
 palette = "0.4"
 regex = "0.2"
 semver = "0.9"
-serde = {version="1.0", features = ["rc"]}
-serde_derive = "1.0"
+serde = {version="1.0", features = ["rc", "derive"]}
 smallvec = "0.6"
 terminfo = "0.6"
 unicode-segmentation = "1.5"

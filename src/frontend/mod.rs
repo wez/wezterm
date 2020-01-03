@@ -5,7 +5,7 @@ use anyhow::{anyhow, Error};
 use downcast_rs::{impl_downcast, Downcast};
 use lazy_static::lazy_static;
 use promise::Executor;
-use serde_derive::*;
+use serde::Deserialize;
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::Mutex;

@@ -3,7 +3,6 @@ use crate::color::ColorAttribute;
 pub use crate::escape::osc::Hyperlink;
 use crate::image::ImageCell;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use serde_derive::*;
 use smallvec::SmallVec;
 use std;
 use std::mem;

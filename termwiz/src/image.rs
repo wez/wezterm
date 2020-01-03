@@ -13,7 +13,6 @@
 
 use ordered_float::NotNan;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use serde_derive::*;
 use std::sync::Arc;
 
 fn deserialize_notnan<'de, D>(deserializer: D) -> Result<NotNan<f32>, D::Error>
