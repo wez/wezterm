@@ -2,9 +2,7 @@ use downcast_rs::{impl_downcast, Downcast};
 use std::borrow::Cow;
 use std::ops::Range;
 use std::sync::Arc;
-use term::{
-    CursorPosition, Line, ScrollbackOrVisibleRowIndex, Terminal, TerminalState, VisibleRowIndex,
-};
+use term::{CursorPosition, Line, StableRowIndex, Terminal, TerminalState, VisibleRowIndex};
 use termwiz::hyperlink::Hyperlink;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -18,6 +16,14 @@ pub struct RenderableDimensions {
     /// The offset is measured from the top of the physical viewable
     /// screen with larger numbers going backwards.
     pub viewport_offset: VisibleRowIndex,
+
+    /// The top of the physical, non-scrollback, screen expressed
+    /// as a stable index.  It is envisioned that this will be used
+    /// to compute row/cols for mouse events and to produce a range
+    /// for the `get_lines` call when the scroll position is at the
+    /// bottom of the screen.
+    pub physical_top: StableRowIndex,
+    pub scrollback_top: StableRowIndex,
 }
 
 /// Renderable allows passing something that isn't an actual term::Terminal
@@ -36,8 +42,17 @@ pub trait Renderable: Downcast {
     fn get_dirty_lines(&self) -> Vec<(usize, Cow<Line>, Range<usize>)>;
 
     /// Returns a set of lines from the scrollback or visible portion of
-    /// the display.
-    fn get_lines(&self, lines: Range<ScrollbackOrVisibleRowIndex>) -> Vec<Cow<Line>>;
+    /// the display.  The lines are indexed using StableRowIndex, which
+    /// can be invalidated if the scrollback is busy, or when switching
+    /// to the alternate screen.
+    /// To deal with this, this function will adjust the input so that
+    /// a range that has been scrolled off the top will return the top
+    /// n rows of the scrollback (where n is the size of the input range),
+    /// or the bottom n rows of the scrollback when switching to the alt
+    /// screen and the index would go off the bottom.
+    /// Because of this, we also return the adjusted StableRowIndex for
+    /// the first row in the range.
+    fn get_lines(&self, lines: Range<StableRowIndex>) -> (StableRowIndex, Vec<Cow<Line>>);
 
     fn has_dirty_lines(&self) -> bool;
 
@@ -68,16 +83,19 @@ impl Renderable for Terminal {
             .collect()
     }
 
-    fn get_lines(&self, lines: Range<ScrollbackOrVisibleRowIndex>) -> Vec<Cow<Line>> {
+    fn get_lines(&self, lines: Range<StableRowIndex>) -> (StableRowIndex, Vec<Cow<Line>>) {
         let screen = self.screen();
-        let phys_range = screen.scrollback_or_visible_range(&lines);
-        screen
-            .lines
-            .iter()
-            .skip(phys_range.start)
-            .take(phys_range.end - phys_range.start)
-            .map(|line| Cow::Borrowed(line))
-            .collect()
+        let phys_range = screen.stable_range(&lines);
+        (
+            screen.phys_to_stable_row_index(phys_range.start),
+            screen
+                .lines
+                .iter()
+                .skip(phys_range.start)
+                .take(phys_range.end - phys_range.start)
+                .map(|line| Cow::Borrowed(line))
+                .collect(),
+        )
     }
 
     fn clean_dirty_lines(&mut self) {
@@ -99,6 +117,8 @@ impl Renderable for Terminal {
             viewport_rows: screen.physical_rows,
             scrollback_rows: screen.lines.len(),
             viewport_offset: self.get_viewport_offset(),
+            physical_top: screen.visible_row_to_stable_row(0),
+            scrollback_top: screen.phys_to_stable_row_index(0),
         }
     }
 

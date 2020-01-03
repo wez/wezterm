@@ -19,6 +19,7 @@ use ::window::*;
 use anyhow::{anyhow, bail, ensure};
 use portable_pty::PtySize;
 use std::any::Any;
+use std::collections::HashMap;
 use std::convert::TryInto;
 use std::ops::Range;
 use std::ops::{Add, Sub};
@@ -27,7 +28,7 @@ use std::sync::Arc;
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
 use term::color::ColorPalette;
-use term::{CursorPosition, Line, Underline};
+use term::{CursorPosition, Line, StableRowIndex, Underline};
 use termwiz::color::RgbColor;
 use termwiz::surface::CursorShape;
 
@@ -100,6 +101,14 @@ impl PrevCursorPos {
     }
 }
 
+#[derive(Debug, Default)]
+struct TabState {
+    /// If is_some(), the top row of the visible screen.
+    /// Otherwise, the viewport is at the bottom of the
+    /// scrollback.
+    viewport: Option<StableRowIndex>,
+}
+
 pub struct TermWindow {
     window: Option<Window>,
     /// When we most recently received keyboard focus
@@ -121,6 +130,8 @@ pub struct TermWindow {
     config_generation: usize,
     prev_cursor: PrevCursorPos,
     last_scroll_info: RenderableDimensions,
+
+    tab_state: HashMap<TabId, TabState>,
 
     /// Gross workaround for managing async keyboard fetching
     /// just for middle mouse button paste function
@@ -233,15 +244,18 @@ impl WindowCallbacks for TermWindow {
                 // adjust viewport
                 let mut render = tab.renderer();
                 let dims = render.get_dimensions();
-                render.set_viewport_position(
-                    dims.viewport_offset
-                        .saturating_add(amount.into())
-                        .min(dims.scrollback_rows.try_into().unwrap()),
-                );
+                let position = self
+                    .get_viewport(tab.tab_id())
+                    .unwrap_or(dims.physical_top)
+                    .saturating_sub(amount.into());
+                self.set_viewport(tab.tab_id(), Some(position), dims);
+                render.make_all_lines_dirty();
+                context.invalidate();
                 return;
             }
 
             WMEK::Move => {
+                let current_viewport = self.get_viewport(tab.tab_id());
                 if let Some(from_top) = self.scroll_drag_start.as_ref() {
                     // Dragging the scroll bar
                     let mux = Mux::get().unwrap();
@@ -251,6 +265,7 @@ impl WindowCallbacks for TermWindow {
                     };
 
                     let mut render = tab.renderer();
+                    let dims = render.get_dimensions();
 
                     let effective_thumb_top =
                         event.coords.y.saturating_sub(*from_top).max(0) as usize;
@@ -260,10 +275,13 @@ impl WindowCallbacks for TermWindow {
                     let row = ScrollHit::thumb_top_to_scroll_top(
                         effective_thumb_top,
                         &*render,
+                        current_viewport,
                         self.terminal_size,
                         &self.dimensions,
                     );
-                    render.set_viewport_position(row);
+                    self.set_viewport(tab.tab_id(), Some(row), dims);
+                    render.make_all_lines_dirty();
+                    context.invalidate();
                     return;
                 }
             }
@@ -306,27 +324,42 @@ impl WindowCallbacks for TermWindow {
             if let WMEK::Press(MousePress::Left) = event.kind {
                 let mut render = tab.renderer();
                 let dims = render.get_dimensions();
+                let current_viewport = self.get_viewport(tab.tab_id());
 
                 match ScrollHit::test(
                     event.coords.y,
                     &*render,
+                    current_viewport,
                     self.terminal_size,
                     &self.dimensions,
                 ) {
                     ScrollHit::Above => {
                         // Page up
-                        render.set_viewport_position(
-                            dims.viewport_offset
-                                .saturating_add(self.terminal_size.rows as i64)
-                                .min(dims.scrollback_rows.try_into().unwrap()),
+                        self.set_viewport(
+                            tab.tab_id(),
+                            Some(
+                                current_viewport
+                                    .unwrap_or(dims.physical_top)
+                                    .saturating_sub(self.terminal_size.rows.try_into().unwrap()),
+                            ),
+                            dims,
                         );
+                        render.make_all_lines_dirty();
+                        context.invalidate();
                     }
                     ScrollHit::Below => {
                         // Page down
-                        render.set_viewport_position(
-                            dims.viewport_offset
-                                .saturating_sub(self.terminal_size.rows as i64),
+                        self.set_viewport(
+                            tab.tab_id(),
+                            Some(
+                                current_viewport
+                                    .unwrap_or(dims.physical_top)
+                                    .saturating_add(self.terminal_size.rows.try_into().unwrap()),
+                            ),
+                            dims,
                         );
+                        render.make_all_lines_dirty();
+                        context.invalidate();
                     }
                     ScrollHit::OnThumb(from_top) => {
                         // Start a scroll drag
@@ -654,6 +687,7 @@ impl TermWindow {
                 prev_cursor: PrevCursorPos::new(),
                 last_scroll_info: RenderableDimensions::default(),
                 clipboard_contents: Arc::clone(&clipboard_contents),
+                tab_state: HashMap::new(),
             }),
         )?;
 
@@ -1355,24 +1389,35 @@ impl TermWindow {
             }
         };
         self.prev_cursor.update(&cursor);
+        let current_viewport = self.get_viewport(tab.tab_id());
 
         if self.show_tab_bar {
             self.render_screen_line(ctx, 0, self.tab_bar.line(), 0..0, &cursor, &*term, &palette)?;
         }
 
         {
-            let dirty_lines = term.get_dirty_lines();
+            let dims = term.get_dimensions();
+            let stable_range = match current_viewport {
+                Some(top) => top..top + dims.viewport_rows as StableRowIndex,
+                None => dims.physical_top..dims.physical_top + dims.viewport_rows as StableRowIndex,
+            };
 
-            for (line_idx, line, selrange) in dirty_lines {
-                self.render_screen_line(
-                    ctx,
-                    line_idx + first_line_offset,
-                    &line,
-                    selrange,
-                    &cursor,
-                    &*term,
-                    &palette,
-                )?;
+            let (stable_top, lines) = term.get_lines(stable_range);
+
+            for (line_idx, line) in lines.iter().enumerate() {
+                if line.is_dirty() {
+                    let selrange = 0..0; // FIXME: local selection
+
+                    self.render_screen_line(
+                        ctx,
+                        line_idx + first_line_offset,
+                        &line,
+                        selrange,
+                        &cursor, // FIXME: cursor offset when scrolling
+                        &*term,
+                        &palette,
+                    )?;
+                }
             }
         }
 
@@ -1440,7 +1485,13 @@ impl TermWindow {
         );
 
         if self.show_scroll_bar {
-            let info = ScrollHit::thumb(&*term, self.terminal_size, &self.dimensions);
+            let current_viewport = self.get_viewport(tab.tab_id());
+            let info = ScrollHit::thumb(
+                &*term,
+                current_viewport,
+                self.terminal_size,
+                &self.dimensions,
+            );
 
             let thumb_size = info.height as isize;
             let thumb_top = info.top as isize;
@@ -1492,6 +1543,21 @@ impl TermWindow {
         };
         self.prev_cursor.update(&cursor);
 
+        let current_viewport = self.get_viewport(tab.tab_id());
+        let (stable_top, lines);
+
+        {
+            let dims = term.get_dimensions();
+            let stable_range = match current_viewport {
+                Some(top) => top..top + dims.viewport_rows as StableRowIndex,
+                None => dims.physical_top..dims.physical_top + dims.viewport_rows as StableRowIndex,
+            };
+
+            let (top, vp_lines) = term.get_lines(stable_range);
+            stable_top = top;
+            lines = vp_lines;
+        }
+
         let gl_state = self.render_state.opengl();
         let mut vb = gl_state.glyph_vertex_buffer.borrow_mut();
         let mut quads = gl_state.quads.map(&mut vb);
@@ -1510,7 +1576,12 @@ impl TermWindow {
 
         {
             let (thumb_top, thumb_size, color) = if self.show_scroll_bar {
-                let info = ScrollHit::thumb(&*term, self.terminal_size, &self.dimensions);
+                let info = ScrollHit::thumb(
+                    &*term,
+                    current_viewport,
+                    self.terminal_size,
+                    &self.dimensions,
+                );
                 let thumb_top = info.top as f32;
                 let thumb_size = info.height as f32;
                 let color = rgbcolor_to_window_color(palette.scrollbar_thumb);
@@ -1545,15 +1616,15 @@ impl TermWindow {
             quad.set_cursor_color(rgbcolor_to_window_color(background_color));
         }
 
-        {
-            let dirty_lines = term.get_dirty_lines();
+        for (line_idx, line) in lines.iter().enumerate() {
+            if line.is_dirty() {
+                let selrange = 0..0; // FIXME: local selection
 
-            for (line_idx, line, selrange) in dirty_lines {
                 self.render_screen_line_opengl(
                     line_idx + first_line_offset,
                     &line,
                     selrange,
-                    &cursor,
+                    &cursor, // FIXME: cursor offset when scrolling
                     &*term,
                     &palette,
                     &mut quads,
@@ -2236,6 +2307,36 @@ impl TermWindow {
         };
 
         (fg_color, bg_color, cursor_shape)
+    }
+
+    fn tab_state(&mut self, tab_id: TabId) -> &mut TabState {
+        self.tab_state
+            .entry(tab_id)
+            .or_insert_with(TabState::default)
+    }
+
+    fn get_viewport(&mut self, tab_id: TabId) -> Option<StableRowIndex> {
+        self.tab_state(tab_id).viewport.clone()
+    }
+
+    fn set_viewport(
+        &mut self,
+        tab_id: TabId,
+        position: Option<StableRowIndex>,
+        dims: RenderableDimensions,
+    ) {
+        let pos = match position {
+            Some(pos) => {
+                // Drop out of scrolling mode if we're off the bottom
+                if pos >= dims.physical_top {
+                    None
+                } else {
+                    Some(pos.max(0))
+                }
+            }
+            None => None,
+        };
+        self.tab_state(tab_id).viewport = pos;
     }
 }
 

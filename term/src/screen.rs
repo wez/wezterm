@@ -196,6 +196,31 @@ impl Screen {
         self.scrollback_or_visible_row(range.start)..self.scrollback_or_visible_row(range.end)
     }
 
+    /// Converts a StableRowIndex range to the current effective
+    /// physical row index range.  If the StableRowIndex goes off the top
+    /// of the scrollback, we'll return the top n rows, but if it goes off
+    /// the bottom we'll return the bottom n rows.
+    pub fn stable_range(&self, range: &Range<StableRowIndex>) -> Range<PhysRowIndex> {
+        let range_len = (range.end - range.start) as usize;
+
+        let first = match self.stable_row_to_phys(range.start) {
+            Some(first) => first,
+            None => {
+                return 0..range_len.min(self.lines.len());
+            }
+        };
+
+        let last = match self.stable_row_to_phys(range.end - 1) {
+            Some(last) => last,
+            None => {
+                let last = self.lines.len() - 1;
+                return last - range_len..last + 1;
+            }
+        };
+
+        first..last + 1
+    }
+
     /// Translate a range of VisibleRowIndex to a range of PhysRowIndex.
     /// The resultant range will be invalidated by inserting or removing rows!
     #[inline]

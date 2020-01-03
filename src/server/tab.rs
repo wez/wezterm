@@ -24,7 +24,7 @@ use term::color::ColorPalette;
 use term::selection::SelectionRange;
 use term::{
     Clipboard, CursorPosition, KeyCode, KeyModifiers, Line, MouseButton, MouseEvent,
-    MouseEventKind, ScrollbackOrVisibleRowIndex, TerminalHost, VisibleRowIndex,
+    MouseEventKind, StableRowIndex, TerminalHost, VisibleRowIndex,
 };
 use termwiz::hyperlink::Hyperlink;
 use termwiz::input::KeyEvent;
@@ -419,16 +419,19 @@ impl Renderable for RenderableState {
         }
     }
 
-    fn get_lines(&self, lines: Range<ScrollbackOrVisibleRowIndex>) -> Vec<Cow<Line>> {
+    fn get_lines(&self, lines: Range<StableRowIndex>) -> (StableRowIndex, Vec<Cow<Line>>) {
         let inner = self.inner.borrow_mut();
-        inner
-            .surface
-            .screen_lines()
-            .into_iter()
-            .skip(lines.start.try_into().unwrap())
-            .take((lines.end - lines.start).try_into().unwrap())
-            .map(|line| Cow::Owned(line.into_owned()))
-            .collect()
+        (
+            lines.start,
+            inner
+                .surface
+                .screen_lines()
+                .into_iter()
+                .skip(lines.start.try_into().unwrap())
+                .take((lines.end - lines.start).try_into().unwrap())
+                .map(|line| Cow::Owned(line.into_owned()))
+                .collect(),
+        )
     }
 
     fn get_dirty_lines(&self) -> Vec<(usize, Cow<Line>, Range<usize>)> {
@@ -497,6 +500,8 @@ impl Renderable for RenderableState {
             cols,
             scrollback_rows: 0,
             viewport_offset: 0,
+            physical_top: 0,
+            scrollback_top: 0,
         }
     }
 
