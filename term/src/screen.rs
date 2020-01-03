@@ -19,6 +19,11 @@ pub struct Screen {
     /// would otherwise have exceeded the line capacity
     pub lines: VecDeque<Line>,
 
+    /// Whenever we scroll a line off the top of the scrollback, we
+    /// increment this.  We use this offset to translate between
+    /// PhysRowIndex and StableRowIndex.
+    stable_row_index_offset: usize,
+
     /// config so we can access Maximum number of lines of scrollback
     config: Arc<dyn TerminalConfiguration>,
     allow_scrollback: bool,
@@ -62,6 +67,7 @@ impl Screen {
             allow_scrollback,
             physical_rows,
             physical_cols,
+            stable_row_index_offset: 0,
         }
     }
 
@@ -197,6 +203,27 @@ impl Screen {
         self.phys_row(range.start)..self.phys_row(range.end)
     }
 
+    #[inline]
+    pub fn phys_to_stable_row_index(&self, phys: PhysRowIndex) -> StableRowIndex {
+        (phys + self.stable_row_index_offset) as StableRowIndex
+    }
+
+    #[inline]
+    pub fn stable_row_to_phys(&self, stable: StableRowIndex) -> Option<PhysRowIndex> {
+        let idx = stable - self.stable_row_index_offset as isize;
+        if idx < 0 || idx >= self.lines.len() as isize {
+            // Index is no longer valid
+            None
+        } else {
+            Some(idx as PhysRowIndex)
+        }
+    }
+
+    #[inline]
+    pub fn visible_row_to_stable_row(&self, vis: VisibleRowIndex) -> StableRowIndex {
+        self.phys_to_stable_row_index(self.phys_row(vis))
+    }
+
     /// ---------
     /// |
     /// |--- top
@@ -266,6 +293,10 @@ impl Screen {
         // Perform the removal
         for _ in 0..to_remove {
             self.lines.remove(remove_idx);
+        }
+
+        if remove_idx == 0 {
+            self.stable_row_index_offset += lines_removed;
         }
 
         if scroll_region.end as usize == self.physical_rows {

@@ -53,6 +53,20 @@ pub type VisibleRowIndex = i64;
 /// to want to scroll back or select more than ~2billion lines of scrollback.
 pub type ScrollbackOrVisibleRowIndex = i32;
 
+/// Allows referencing a logical line in the scrollback, allowing for scrolling.
+/// The StableRowIndex counts from the top of the scrollback, growing larger
+/// as you move down through the display rows.
+/// Initially the very first line as StableRowIndex==0.  If the scrollback
+/// is filled and lines are purged (say we need to purge 5 lines), then whichever
+/// line is first in the scrollback (PhysRowIndex==0) will now have StableRowIndex==5
+/// which is the same value that that logical line had prior to data being purged
+/// out of the scrollback.
+///
+/// As per ScrollbackOrVisibleRowIndex above, a StableRowIndex can never
+/// legally be a negative number.  We're just using a differently sized type
+/// to have the compiler assist us in detecting improper usage.
+pub type StableRowIndex = isize;
+
 /// Returns true if r1 intersects r2
 pub fn intersects_range<T: Ord + Copy>(r1: Range<T>, r2: Range<T>) -> bool {
     use std::cmp::{max, min};

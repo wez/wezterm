@@ -529,20 +529,35 @@ fn test_scrollup() {
     let mut term = TestTerm::new(2, 1, 4);
     term.print("1\n");
     assert_all_contents(&term, &["1", " "]);
+    assert_eq!(term.screen().visible_row_to_stable_row(0), 0);
+
     term.print("2\n");
     assert_all_contents(&term, &["1", "2", " "]);
+    assert_eq!(term.screen().visible_row_to_stable_row(0), 1);
+
     term.print("3\n");
     assert_all_contents(&term, &["1", "2", "3", " "]);
+    assert_eq!(term.screen().visible_row_to_stable_row(0), 2);
+
     term.print("4\n");
     assert_all_contents(&term, &["1", "2", "3", "4", " "]);
+    assert_eq!(term.screen().visible_row_to_stable_row(0), 3);
+
     term.print("5\n");
     assert_all_contents(&term, &["1", "2", "3", "4", "5", " "]);
+    assert_eq!(term.screen().visible_row_to_stable_row(0), 4);
+
     term.print("6\n");
     assert_all_contents(&term, &["2", "3", "4", "5", "6", " "]);
+    assert_eq!(term.screen().visible_row_to_stable_row(0), 5);
+
     term.print("7\n");
     assert_all_contents(&term, &["3", "4", "5", "6", "7", " "]);
+    assert_eq!(term.screen().visible_row_to_stable_row(0), 6);
+
     term.print("8\n");
     assert_all_contents(&term, &["4", "5", "6", "7", "8", " "]);
+    assert_eq!(term.screen().visible_row_to_stable_row(0), 7);
 }
 
 #[test]
