@@ -2353,6 +2353,93 @@ impl TermWindow {
         context.set_cursor(Some(MouseCursor::Arrow));
     }
 
+    // TODO: expose is_double_click_word in config file
+    fn is_double_click_word(&self, s: &str) -> bool {
+        match s.len() {
+            1 => match s.chars().nth(0).unwrap() {
+                ' ' | '\t' | '\n' | '{' | '[' | '}' | ']' | '(' | ')' | '"' | '\'' => false,
+                _ => true,
+            },
+            0 => false,
+            _ => true,
+        }
+    }
+
+    fn double_click_left(&mut self, tab: &Rc<dyn Tab>, x: usize, row: StableRowIndex) {
+        use termwiz::surface::line::DoubleClickRange;
+        let renderer = tab.renderer();
+        let (first, lines) = renderer.get_lines(row..row + 1);
+        if first != row {
+            return;
+        }
+        let selection_range = match lines[0]
+            .compute_double_click_range(x, |s| self.is_double_click_word(s))
+        {
+            DoubleClickRange::Range(click_range) => SelectionRange {
+                start: SelectionCoordinate {
+                    x: click_range.start,
+                    y: row,
+                },
+                end: SelectionCoordinate {
+                    x: click_range.end - 1,
+                    y: row,
+                },
+            },
+            DoubleClickRange::RangeWithWrap(range_start) => {
+                let start_coord = SelectionCoordinate {
+                    x: range_start.start,
+                    y: row,
+                };
+
+                let mut end_coord = SelectionCoordinate {
+                    x: range_start.end - 1,
+                    y: row,
+                };
+
+                for y_cont in row + 1.. {
+                    let (first, lines) = renderer.get_lines(y_cont..y_cont + 1);
+                    if first != y_cont {
+                        break;
+                    }
+                    match lines[0].compute_double_click_range(0, |s| self.is_double_click_word(s)) {
+                        DoubleClickRange::Range(range_end) => {
+                            if range_end.end > range_end.start {
+                                end_coord = SelectionCoordinate {
+                                    x: range_end.end - 1,
+                                    y: y_cont,
+                                };
+                            }
+                            break;
+                        }
+                        DoubleClickRange::RangeWithWrap(range_end) => {
+                            end_coord = SelectionCoordinate {
+                                x: range_end.end - 1,
+                                y: y_cont,
+                            };
+                        }
+                    }
+                }
+
+                SelectionRange {
+                    start: start_coord,
+                    end: end_coord,
+                }
+            }
+        };
+
+        drop(renderer);
+
+        // TODO: if selection_range.start.x == 0, search backwards for wrapping
+        // lines too.
+
+        self.selection.start = Some(selection_range.start);
+        self.selection.range = Some(selection_range);
+
+        let text = self.selection_text(&tab);
+        log::debug!("finish 2click selection {:?} '{}'", self.selection, text);
+        self.window.as_ref().unwrap().set_clipboard(text);
+    }
+
     fn mouse_event_terminal(
         &mut self,
         tab: Rc<dyn Tab>,
@@ -2362,7 +2449,24 @@ impl TermWindow {
         context: &dyn WindowOps,
     ) {
         if !tab.is_mouse_grabbed() || event.modifiers == Modifiers::SHIFT {
+            let dims = tab.renderer().get_dimensions();
+            let stable_row = dims.physical_top + y as StableRowIndex;
+
             match (&event.kind, self.last_mouse_click.as_ref()) {
+                // Double click to select a word
+                (
+                    WMEK::Press(MousePress::Left),
+                    Some(LastMouseClick {
+                        streak: 2,
+                        button: TMB::Left,
+                        ..
+                    }),
+                ) => {
+                    self.double_click_left(&tab, x, stable_row);
+                    tab.renderer().make_all_lines_dirty();
+                    context.invalidate();
+                }
+
                 // Left single click to initiate a selection drag
                 (
                     WMEK::Press(MousePress::Left),
@@ -2372,11 +2476,8 @@ impl TermWindow {
                         ..
                     }),
                 ) => {
-                    let dims = tab.renderer().get_dimensions();
-                    self.selection.begin(SelectionCoordinate {
-                        x,
-                        y: dims.physical_top + y as StableRowIndex,
-                    });
+                    self.selection
+                        .begin(SelectionCoordinate { x, y: stable_row });
                     self.window.as_ref().unwrap().set_clipboard(String::new());
                 }
 
@@ -2405,11 +2506,7 @@ impl TermWindow {
                     }),
                 ) => {
                     if let Some(MousePress::Left) = self.current_mouse_button {
-                        let dims = tab.renderer().get_dimensions();
-                        let end = SelectionCoordinate {
-                            x,
-                            y: dims.physical_top + y as StableRowIndex,
-                        };
+                        let end = SelectionCoordinate { x, y: stable_row };
                         let sel = match self.selection.range.take() {
                             None => SelectionRange::start(self.selection.start.unwrap_or(end))
                                 .extend(end),
