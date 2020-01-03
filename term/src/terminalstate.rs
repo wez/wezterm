@@ -876,6 +876,10 @@ impl TerminalState {
         }
     }
 
+    pub fn is_mouse_grabbed(&self) -> bool {
+        self.sgr_mouse
+    }
+
     pub fn bracketed_paste_enabled(&self) -> bool {
         self.bracketed_paste
     }

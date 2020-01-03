@@ -103,6 +103,10 @@ impl Tab for LocalTab {
         let terminal = self.terminal.borrow();
         Some(terminal.get_selection_text())
     }
+
+    fn is_mouse_grabbed(&self) -> bool {
+        self.terminal.borrow().is_mouse_grabbed()
+    }
 }
 
 impl LocalTab {

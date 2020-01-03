@@ -331,6 +331,10 @@ impl Tab for TermWizTerminalTab {
         // FIXME: grab it from the surface
         None
     }
+
+    fn is_mouse_grabbed(&self) -> bool {
+        true
+    }
 }
 
 pub struct TermWizTerminal {

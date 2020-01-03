@@ -332,6 +332,11 @@ impl Tab for ClientTab {
         // FIXME: get selection from peer or the surface
         None
     }
+
+    fn is_mouse_grabbed(&self) -> bool {
+        // FIXME: get the real state from the remote
+        true
+    }
 }
 
 struct RenderableInner {

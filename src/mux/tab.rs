@@ -62,6 +62,12 @@ pub trait Tab: Downcast {
     fn palette(&self) -> ColorPalette;
     fn domain_id(&self) -> DomainId;
 
+    /// Returns true if the terminal has grabbed the mouse and wants to
+    /// give the embedded application a chance to process events.
+    /// In practice this controls whether the gui will perform local
+    /// handling of clicks.
+    fn is_mouse_grabbed(&self) -> bool;
+
     fn set_clipboard(&self, _clipboard: &Arc<dyn Clipboard>) {}
 
     /// Returns the selection range adjusted to the viewport
