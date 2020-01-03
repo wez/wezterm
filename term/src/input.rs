@@ -41,7 +41,7 @@ pub struct MouseEvent {
 /// time exceeds `CLICK_INTERVAL`.
 #[derive(Debug)]
 pub struct LastMouseClick {
-    button: MouseButton,
+    pub button: MouseButton,
     time: Instant,
     pub streak: usize,
 }

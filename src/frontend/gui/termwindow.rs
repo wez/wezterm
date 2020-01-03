@@ -2320,6 +2320,38 @@ impl TermWindow {
         event: &MouseEvent,
         context: &dyn WindowOps,
     ) {
+        if !tab.is_mouse_grabbed() || event.modifiers == Modifiers::SHIFT {
+            match (&event.kind, self.last_mouse_click.as_ref()) {
+                (
+                    WMEK::Press(MousePress::Middle),
+                    Some(LastMouseClick {
+                        streak: 1,
+                        button: TMB::Middle,
+                        ..
+                    }),
+                ) => {
+                    // Middle mouse button is Paste
+                    let tab_id = tab.tab_id();
+                    let future = self.window.as_ref().unwrap().get_clipboard();
+                    Connection::get().unwrap().spawn_task(async move {
+                        if let Ok(clip) = future.await {
+                            promise::Future::with_executor(executor(), move || {
+                                let mux = Mux::get().unwrap();
+                                if let Some(tab) = mux.get_tab(tab_id) {
+                                    tab.trickle_paste(clip)?;
+                                }
+                                Ok(())
+                            });
+                        }
+                    });
+                    return;
+                }
+                _ => {}
+            }
+
+            return;
+        }
+
         let mouse_event = term::MouseEvent {
             kind: match event.kind {
                 WMEK::Move => TMEK::Move,
@@ -2360,27 +2392,6 @@ impl TermWindow {
             y,
             modifiers: window_mods_to_termwiz_mods(event.modifiers),
         };
-
-        if let WMEK::Press(MousePress::Middle) = event.kind {
-            if !tab.is_mouse_grabbed() || event.modifiers == Modifiers::SHIFT {
-                // Middle mouse button is Paste
-
-                let tab_id = tab.tab_id();
-                let future = self.window.as_ref().unwrap().get_clipboard();
-                Connection::get().unwrap().spawn_task(async move {
-                    if let Ok(clip) = future.await {
-                        promise::Future::with_executor(executor(), move || {
-                            let mux = Mux::get().unwrap();
-                            if let Some(tab) = mux.get_tab(tab_id) {
-                                tab.trickle_paste(clip)?;
-                            }
-                            Ok(())
-                        });
-                    }
-                });
-                return;
-            }
-        }
 
         tab.mouse_event(
             mouse_event,
