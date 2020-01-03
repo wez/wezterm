@@ -1056,6 +1056,29 @@ impl TermWindow {
         Ok(tab_id)
     }
 
+    fn selection_text(&self, tab: &Rc<dyn Tab>) -> String {
+        let mut s = String::new();
+        if let Some(sel) = self.selection.range.as_ref().map(|r| r.normalize()) {
+            let mut last_was_wrapped = false;
+            let renderer = tab.renderer();
+            let (first_row, lines) = renderer.get_lines(sel.rows());
+            for (idx, line) in lines.iter().enumerate() {
+                let cols = sel.cols_for_row(first_row + idx as StableRowIndex);
+                let last_col_idx = cols.end.min(line.cells().len()) - 1;
+                if !s.is_empty() && !last_was_wrapped {
+                    s.push('\n');
+                }
+                s.push_str(line.columns_as_str(cols).trim_end());
+
+                let last_cell = &line.cells()[last_col_idx];
+                // TODO: should really test for any unicode whitespace
+                last_was_wrapped = last_cell.attrs().wrapped() && last_cell.str() != " ";
+            }
+        }
+
+        s
+    }
+
     fn perform_key_assignment(
         &mut self,
         tab: &Rc<dyn Tab>,
@@ -1073,9 +1096,10 @@ impl TermWindow {
                 // self.toggle_full_screen(),
             }
             Copy => {
-                if let Some(text) = tab.selection_text() {
-                    self.window.as_ref().unwrap().set_clipboard(text);
-                }
+                self.window
+                    .as_ref()
+                    .unwrap()
+                    .set_clipboard(self.selection_text(tab));
             }
             Paste => {
                 let tab_id = tab.tab_id();
@@ -2365,8 +2389,10 @@ impl TermWindow {
                         ..
                     }),
                 ) => {
-                    // FIXME: extract text and copy it: get_selection_text in terminalstate
-                    log::error!("do copy of {:?}", self.selection);
+                    self.window
+                        .as_ref()
+                        .unwrap()
+                        .set_clipboard(self.selection_text(&tab));
                 }
 
                 // Dragging left mouse button
