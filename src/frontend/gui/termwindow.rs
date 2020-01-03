@@ -416,7 +416,7 @@ impl WindowCallbacks for TermWindow {
             };
 
             if let WMEK::Press(MousePress::Middle) = event.kind {
-                if !tab.is_mouse_grabbed() {
+                if !tab.is_mouse_grabbed() || event.modifiers == Modifiers::SHIFT {
                     // Middle mouse button is Paste
 
                     let tab_id = tab.tab_id();
