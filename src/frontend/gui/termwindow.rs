@@ -227,6 +227,28 @@ impl WindowCallbacks for TermWindow {
             None => return,
         };
 
+        let config = configuration();
+        let x = (event
+            .coords
+            .x
+            .sub(config.window_padding.left as isize)
+            .max(0)
+            / self.render_metrics.cell_size.width) as usize;
+        let y = (event
+            .coords
+            .y
+            .sub(config.window_padding.top as isize)
+            .max(0)
+            / self.render_metrics.cell_size.height) as i64;
+
+        let first_line_offset = if self.show_tab_bar { 1 } else { 0 };
+        self.last_mouse_coords = (x, y);
+
+        let in_tab_bar = self.show_tab_bar && y == 0 && event.coords.y >= 0;
+        let in_scroll_bar = self.show_scroll_bar && x >= self.terminal_size.cols as usize;
+        // y position relative to top of viewport (not including tab bar)
+        let term_y = y.saturating_sub(first_line_offset);
+
         match event.kind {
             WMEK::Release(MousePress::Left) => {
                 if self.scroll_drag_start.take().is_some() {
@@ -291,26 +313,6 @@ impl WindowCallbacks for TermWindow {
             _ => {}
         }
 
-        let config = configuration();
-        let x = (event
-            .coords
-            .x
-            .sub(config.window_padding.left as isize)
-            .max(0)
-            / self.render_metrics.cell_size.width) as usize;
-        let y = (event
-            .coords
-            .y
-            .sub(config.window_padding.top as isize)
-            .max(0)
-            / self.render_metrics.cell_size.height) as i64;
-
-        let first_line_offset = if self.show_tab_bar { 1 } else { 0 };
-        self.last_mouse_coords = (x, y);
-
-        let in_tab_bar = self.show_tab_bar && y == 0 && event.coords.y >= 0;
-        let in_scroll_bar = self.show_scroll_bar && x >= self.terminal_size.cols as usize;
-
         if in_tab_bar {
             if let WMEK::Press(MousePress::Left) = event.kind {
                 match self.tab_bar.hit_test(x) {
@@ -371,8 +373,6 @@ impl WindowCallbacks for TermWindow {
                 };
             }
         } else {
-            let y = y.saturating_sub(first_line_offset);
-
             let mouse_event = term::MouseEvent {
                 kind: match event.kind {
                     WMEK::Move => TMEK::Move,
@@ -411,7 +411,7 @@ impl WindowCallbacks for TermWindow {
                     WMEK::HorzWheel(_) => TMB::None,
                 },
                 x,
-                y,
+                y: term_y,
                 modifiers: window_mods_to_termwiz_mods(event.modifiers),
             };
 
