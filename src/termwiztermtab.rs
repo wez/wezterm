@@ -6,7 +6,7 @@
 use crate::font::FontConfiguration;
 use crate::frontend::{executor, front_end};
 use crate::mux::domain::{alloc_domain_id, Domain, DomainId, DomainState};
-use crate::mux::renderable::{Renderable, RenderableDimensions};
+use crate::mux::renderable::{Renderable, RenderableDimensions, StableCursorPosition};
 use crate::mux::tab::{alloc_tab_id, Tab, TabId};
 use crate::mux::window::WindowId;
 use crate::mux::Mux;
@@ -27,8 +27,7 @@ use std::time::Duration;
 use term::color::ColorPalette;
 use term::selection::SelectionRange;
 use term::{
-    CursorPosition, KeyCode, KeyModifiers, Line, MouseEvent, StableRowIndex, TerminalHost,
-    VisibleRowIndex,
+    KeyCode, KeyModifiers, Line, MouseEvent, StableRowIndex, TerminalHost, VisibleRowIndex,
 };
 use termwiz::hyperlink::Hyperlink;
 use termwiz::input::{InputEvent, KeyEvent};
@@ -67,13 +66,13 @@ impl std::io::Write for RenderableState {
 }
 
 impl Renderable for RenderableState {
-    fn get_cursor_position(&self) -> CursorPosition {
+    fn get_cursor_position(&self) -> StableCursorPosition {
         let surface = &self.inner.borrow().surface;
         let (x, y) = surface.cursor_position();
         let shape = surface.cursor_shape();
-        CursorPosition {
+        StableCursorPosition {
             x,
-            y: y as i64,
+            y: y as StableRowIndex,
             shape,
         }
     }

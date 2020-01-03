@@ -26,6 +26,7 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Instant;
 use term::terminal::Clipboard;
+use term::StableRowIndex;
 use termwiz::surface::{Change, Position, SequenceNo, Surface};
 
 struct LocalListener {
@@ -447,10 +448,10 @@ impl ClientSurfaceState {
 
             let (x, y) = self.surface.cursor_position();
             let cursor = renderable.get_cursor_position();
-            if (x != cursor.x) || (y as i64 != cursor.y) {
+            if (x != cursor.x) || (y as StableRowIndex != cursor.y) {
                 // Update the cursor, but if we're scrolled back
                 // and it is our of range, skip the update.
-                if cursor.y < dims.viewport_rows as i64 {
+                if cursor.y < dims.viewport_rows as StableRowIndex {
                     self.surface.add_change(Change::CursorPosition {
                         x: Position::Absolute(cursor.x),
                         y: Position::Absolute(cursor.y as usize),

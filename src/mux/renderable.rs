@@ -1,9 +1,18 @@
 use downcast_rs::{impl_downcast, Downcast};
+use serde::{Deserialize, Serialize};
 use std::borrow::Cow;
 use std::ops::Range;
 use std::sync::Arc;
-use term::{CursorPosition, Line, StableRowIndex, Terminal, TerminalState, VisibleRowIndex};
+use term::{Line, StableRowIndex, Terminal, TerminalState, VisibleRowIndex};
 use termwiz::hyperlink::Hyperlink;
+
+/// Describes the location of the cursor
+#[derive(Debug, Default, Copy, Clone, Eq, PartialEq, Deserialize, Serialize)]
+pub struct StableCursorPosition {
+    pub x: usize,
+    pub y: StableRowIndex,
+    pub shape: termwiz::surface::CursorShape,
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct RenderableDimensions {
@@ -29,7 +38,7 @@ pub struct RenderableDimensions {
 pub trait Renderable: Downcast {
     /// Returns the 0-based cursor position relative to the top left of
     /// the visible screen
-    fn get_cursor_position(&self) -> CursorPosition;
+    fn get_cursor_position(&self) -> StableCursorPosition;
 
     /// Returns the set of visible lines that are dirty.
     /// The return value is a Vec<(line_idx, line, selrange)>, where
@@ -69,8 +78,14 @@ pub trait Renderable: Downcast {
 impl_downcast!(Renderable);
 
 impl Renderable for Terminal {
-    fn get_cursor_position(&self) -> CursorPosition {
-        self.cursor_pos()
+    fn get_cursor_position(&self) -> StableCursorPosition {
+        let pos = self.cursor_pos();
+
+        StableCursorPosition {
+            x: pos.x,
+            y: self.screen().visible_row_to_stable_row(pos.y),
+            shape: pos.shape,
+        }
     }
 
     fn get_dirty_lines(&self) -> Vec<(usize, Cow<Line>, Range<usize>)> {

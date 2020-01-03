@@ -1,7 +1,7 @@
 use crate::config::configuration;
 use crate::frontend::executor;
 use crate::mux::domain::DomainId;
-use crate::mux::renderable::{Renderable, RenderableDimensions};
+use crate::mux::renderable::{Renderable, RenderableDimensions, StableCursorPosition};
 use crate::mux::tab::{alloc_tab_id, Tab, TabId};
 use crate::server::client::Client;
 use crate::server::codec::*;
@@ -23,8 +23,8 @@ use std::time::{Duration, Instant};
 use term::color::ColorPalette;
 use term::selection::SelectionRange;
 use term::{
-    Clipboard, CursorPosition, KeyCode, KeyModifiers, Line, MouseButton, MouseEvent,
-    MouseEventKind, StableRowIndex, TerminalHost, VisibleRowIndex,
+    Clipboard, KeyCode, KeyModifiers, Line, MouseButton, MouseEvent, MouseEventKind,
+    StableRowIndex, TerminalHost, VisibleRowIndex,
 };
 use termwiz::hyperlink::Hyperlink;
 use termwiz::input::KeyEvent;
@@ -408,13 +408,13 @@ impl RenderableInner {
 }
 
 impl Renderable for RenderableState {
-    fn get_cursor_position(&self) -> CursorPosition {
+    fn get_cursor_position(&self) -> StableCursorPosition {
         let surface = &self.inner.borrow().surface;
         let (x, y) = surface.cursor_position();
         let shape = surface.cursor_shape();
-        CursorPosition {
+        StableCursorPosition {
             x,
-            y: y as i64,
+            y: y as StableRowIndex,
             shape,
         }
     }

@@ -93,7 +93,6 @@ impl ScrollHit {
         dims: &Dimensions,
     ) -> StableRowIndex {
         let render_dims = render.get_dimensions();
-        let scroll_size = render_dims.scrollback_rows;
         let thumb = Self::thumb(render, viewport, size, dims);
 
         let rows_from_top = ((thumb_top as f32) / thumb.height as f32) * thumb.rows as f32;

@@ -8,7 +8,7 @@ use crate::frontend::gui::scrollbar::*;
 use crate::frontend::gui::tabbar::{TabBarItem, TabBarState};
 use crate::frontend::{executor, front_end};
 use crate::keyassignment::{KeyAssignment, KeyMap, SpawnTabDomain};
-use crate::mux::renderable::{Renderable, RenderableDimensions};
+use crate::mux::renderable::{Renderable, RenderableDimensions, StableCursorPosition};
 use crate::mux::tab::{Tab, TabId};
 use crate::mux::window::WindowId as MuxWindowId;
 use crate::mux::Mux;
@@ -28,7 +28,7 @@ use std::sync::Arc;
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
 use term::color::ColorPalette;
-use term::{CursorPosition, Line, StableRowIndex, Underline};
+use term::{Line, StableRowIndex, Underline};
 use termwiz::color::RgbColor;
 use termwiz::surface::CursorShape;
 
@@ -70,14 +70,14 @@ impl term::Clipboard for ClipboardHelper {
 }
 
 struct PrevCursorPos {
-    pos: CursorPosition,
+    pos: StableCursorPosition,
     when: Instant,
 }
 
 impl PrevCursorPos {
     fn new() -> Self {
         PrevCursorPos {
-            pos: CursorPosition::default(),
+            pos: StableCursorPosition::default(),
             when: Instant::now(),
         }
     }
@@ -88,7 +88,7 @@ impl PrevCursorPos {
     }
 
     /// Update the cursor position if its different
-    fn update(&mut self, newpos: &CursorPosition) {
+    fn update(&mut self, newpos: &StableCursorPosition) {
         if &self.pos != newpos {
             self.pos = *newpos;
             self.when = Instant::now();
@@ -1401,23 +1401,26 @@ impl TermWindow {
         let first_line_offset = if self.show_tab_bar { 1 } else { 0 };
 
         let mut term = tab.renderer();
-        let cursor = {
-            let cursor = term.get_cursor_position();
-            CursorPosition {
-                x: cursor.x,
-                y: cursor.y + first_line_offset as i64,
-                ..cursor
-            }
-        };
+        let cursor = term.get_cursor_position();
         self.prev_cursor.update(&cursor);
         let current_viewport = self.get_viewport(tab.tab_id());
 
+        let dims = term.get_dimensions();
+
         if self.show_tab_bar {
-            self.render_screen_line(ctx, 0, self.tab_bar.line(), 0..0, &cursor, &*term, &palette)?;
+            self.render_screen_line(
+                ctx,
+                0,
+                dims.physical_top,
+                self.tab_bar.line(),
+                0..0,
+                &cursor,
+                &*term,
+                &palette,
+            )?;
         }
 
         {
-            let dims = term.get_dimensions();
             let stable_range = match current_viewport {
                 Some(top) => top..top + dims.viewport_rows as StableRowIndex,
                 None => dims.physical_top..dims.physical_top + dims.viewport_rows as StableRowIndex,
@@ -1432,9 +1435,10 @@ impl TermWindow {
                     self.render_screen_line(
                         ctx,
                         line_idx + first_line_offset,
+                        stable_top + line_idx as StableRowIndex,
                         &line,
                         selrange,
-                        &cursor, // FIXME: cursor offset when scrolling
+                        &cursor,
                         &*term,
                         &palette,
                     )?;
@@ -1554,21 +1558,14 @@ impl TermWindow {
         let first_line_offset = if self.show_tab_bar { 1 } else { 0 };
 
         let mut term = tab.renderer();
-        let cursor = {
-            let cursor = term.get_cursor_position();
-            CursorPosition {
-                x: cursor.x,
-                y: cursor.y + first_line_offset as i64,
-                ..cursor
-            }
-        };
+        let cursor = term.get_cursor_position();
         self.prev_cursor.update(&cursor);
 
         let current_viewport = self.get_viewport(tab.tab_id());
         let (stable_top, lines);
+        let dims = term.get_dimensions();
 
         {
-            let dims = term.get_dimensions();
             let stable_range = match current_viewport {
                 Some(top) => top..top + dims.viewport_rows as StableRowIndex,
                 None => dims.physical_top..dims.physical_top + dims.viewport_rows as StableRowIndex,
@@ -1586,6 +1583,7 @@ impl TermWindow {
         if self.show_tab_bar {
             self.render_screen_line_opengl(
                 0,
+                dims.physical_top,
                 self.tab_bar.line(),
                 0..0,
                 &cursor,
@@ -1643,9 +1641,10 @@ impl TermWindow {
 
                 self.render_screen_line_opengl(
                     line_idx + first_line_offset,
+                    stable_top + line_idx as StableRowIndex,
                     &line,
                     selrange,
-                    &cursor, // FIXME: cursor offset when scrolling
+                    &cursor,
                     &*term,
                     &palette,
                     &mut quads,
@@ -1732,9 +1731,10 @@ impl TermWindow {
     fn render_screen_line_opengl(
         &self,
         line_idx: usize,
+        stable_line_idx: StableRowIndex,
         line: &Line,
         selection: Range<usize>,
-        cursor: &CursorPosition,
+        cursor: &StableCursorPosition,
         terminal: &dyn Renderable,
         palette: &ColorPalette,
         quads: &mut MappedQuads,
@@ -1840,7 +1840,7 @@ impl TermWindow {
                     last_cell_idx = cell_idx;
 
                     let (glyph_color, bg_color, cursor_shape) = self.compute_cell_fg_bg(
-                        line_idx,
+                        stable_line_idx,
                         cell_idx,
                         cursor,
                         &selection,
@@ -1952,7 +1952,7 @@ impl TermWindow {
             // hold the cursor or the selection so we need to compute
             // the colors in the usual way.
             let (glyph_color, bg_color, cursor_shape) = self.compute_cell_fg_bg(
-                line_idx,
+                stable_line_idx,
                 cell_idx,
                 cursor,
                 &selection,
@@ -1986,9 +1986,10 @@ impl TermWindow {
         &self,
         ctx: &mut dyn PaintContext,
         line_idx: usize,
+        stable_line_idx: StableRowIndex,
         line: &Line,
         selection: Range<usize>,
-        cursor: &CursorPosition,
+        cursor: &StableCursorPosition,
         terminal: &dyn Renderable,
         palette: &ColorPalette,
     ) -> anyhow::Result<()> {
@@ -2090,7 +2091,7 @@ impl TermWindow {
                     last_cell_idx = cell_idx;
 
                     let (glyph_color, bg_color, cursor_shape) = self.compute_cell_fg_bg(
-                        line_idx,
+                        stable_line_idx,
                         cell_idx,
                         cursor,
                         &selection,
@@ -2212,7 +2213,7 @@ impl TermWindow {
             // hold the cursor or the selection so we need to compute
             // the colors in the usual way.
             let (_glyph_color, bg_color, cursor_shape) = self.compute_cell_fg_bg(
-                line_idx,
+                stable_line_idx,
                 cell_idx,
                 cursor,
                 &selection,
@@ -2267,9 +2268,9 @@ impl TermWindow {
     #[allow(clippy::too_many_arguments)]
     fn compute_cell_fg_bg(
         &self,
-        line_idx: usize,
+        stable_line_idx: StableRowIndex,
         cell_idx: usize,
-        cursor: &CursorPosition,
+        cursor: &StableCursorPosition,
         selection: &Range<usize>,
         fg_color: Color,
         bg_color: Color,
@@ -2277,7 +2278,7 @@ impl TermWindow {
     ) -> (Color, Color, CursorShape) {
         let selected = selection.contains(&cell_idx);
 
-        let is_cursor = line_idx as i64 == cursor.y && cursor.x == cell_idx;
+        let is_cursor = stable_line_idx == cursor.y && cursor.x == cell_idx;
 
         let cursor_shape = if is_cursor {
             // This logic figures out whether the cursor is visible or not.
