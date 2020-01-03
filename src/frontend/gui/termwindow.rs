@@ -144,6 +144,7 @@ pub struct TermWindow {
     clipboard_contents: Arc<Mutex<Option<String>>>,
 
     selection: Selection,
+    current_mouse_button: Option<MousePress>,
 
     /// Keeps track of double and triple clicks
     last_mouse_click: Option<LastMouseClick>,
@@ -216,6 +217,7 @@ impl WindowCallbacks for TermWindow {
 
         if !self.focused.is_some() {
             self.last_mouse_click = None;
+            self.current_mouse_button = None;
         }
 
         // Reset the cursor blink phase
@@ -258,12 +260,14 @@ impl WindowCallbacks for TermWindow {
         let term_y = y.saturating_sub(first_line_offset);
 
         match event.kind {
-            WMEK::Release(MousePress::Left) => {
-                if self.scroll_drag_start.take().is_some() {
+            WMEK::Release(ref press) => {
+                self.current_mouse_button = None;
+                if press == &MousePress::Left && self.scroll_drag_start.take().is_some() {
                     // Completed a drag
                     return;
                 }
             }
+
             WMEK::Press(ref press) | WMEK::DoubleClick(ref press) => {
                 if let Some(focused) = self.focused.as_ref() {
                     if focused.elapsed() <= Duration::from_millis(200) {
@@ -284,6 +288,7 @@ impl WindowCallbacks for TermWindow {
                     Some(click) => click.add(button),
                 };
                 self.last_mouse_click = Some(click);
+                self.current_mouse_button = Some(press.clone());
             }
 
             WMEK::VertWheel(amount) if !tab.is_mouse_grabbed() => {
@@ -567,6 +572,7 @@ impl TermWindow {
                 clipboard_contents: Arc::clone(&clipboard_contents),
                 tab_state: HashMap::new(),
                 selection: Selection::default(),
+                current_mouse_button: None,
                 last_mouse_click: None,
             }),
         )?;
@@ -1310,12 +1316,18 @@ impl TermWindow {
 
             for (line_idx, line) in lines.iter().enumerate() {
                 if line.is_dirty() {
-                    let selrange = 0..0; // FIXME: local selection
+                    let stable_row = stable_top + line_idx as StableRowIndex;
+
+                    let selrange = self
+                        .selection
+                        .range
+                        .map(|sel| sel.cols_for_row(stable_row))
+                        .unwrap_or(0..0);
 
                     self.render_screen_line(
                         ctx,
                         line_idx + first_line_offset,
-                        stable_top + line_idx as StableRowIndex,
+                        stable_row,
                         &line,
                         selrange,
                         &cursor,
@@ -1517,11 +1529,16 @@ impl TermWindow {
 
         for (line_idx, line) in lines.iter().enumerate() {
             if line.is_dirty() {
-                let selrange = 0..0; // FIXME: local selection
+                let stable_row = stable_top + line_idx as StableRowIndex;
+                let selrange = self
+                    .selection
+                    .range
+                    .map(|sel| sel.cols_for_row(stable_row))
+                    .unwrap_or(0..0);
 
                 self.render_screen_line_opengl(
                     line_idx + first_line_offset,
-                    stable_top + line_idx as StableRowIndex,
+                    stable_row,
                     &line,
                     selrange,
                     &cursor,
@@ -2322,6 +2339,63 @@ impl TermWindow {
     ) {
         if !tab.is_mouse_grabbed() || event.modifiers == Modifiers::SHIFT {
             match (&event.kind, self.last_mouse_click.as_ref()) {
+                // Left single click to initiate a selection drag
+                (
+                    WMEK::Press(MousePress::Left),
+                    Some(LastMouseClick {
+                        streak: 1,
+                        button: TMB::Left,
+                        ..
+                    }),
+                ) => {
+                    let dims = tab.renderer().get_dimensions();
+                    self.selection.begin(SelectionCoordinate {
+                        x,
+                        y: dims.physical_top + y as StableRowIndex,
+                    });
+                    self.window.as_ref().unwrap().set_clipboard(String::new());
+                }
+
+                // Release button to finish a selection
+                (
+                    WMEK::Release(MousePress::Left),
+                    Some(LastMouseClick {
+                        streak: 1,
+                        button: TMB::Left,
+                        ..
+                    }),
+                ) => {
+                    // FIXME: extract text and copy it: get_selection_text in terminalstate
+                    log::error!("do copy of {:?}", self.selection);
+                }
+
+                // Dragging left mouse button
+                (
+                    WMEK::Move,
+                    Some(LastMouseClick {
+                        streak: 1,
+                        button: TMB::Left,
+                        ..
+                    }),
+                ) => {
+                    if let Some(MousePress::Left) = self.current_mouse_button {
+                        let dims = tab.renderer().get_dimensions();
+                        let end = SelectionCoordinate {
+                            x,
+                            y: dims.physical_top + y as StableRowIndex,
+                        };
+                        let sel = match self.selection.range.take() {
+                            None => SelectionRange::start(self.selection.start.unwrap_or(end))
+                                .extend(end),
+                            Some(sel) => sel.extend(end),
+                        };
+                        self.selection.range = Some(sel);
+                        tab.renderer().make_all_lines_dirty();
+                        context.invalidate();
+                    }
+                }
+
+                // Middle mouse button is Paste
                 (
                     WMEK::Press(MousePress::Middle),
                     Some(LastMouseClick {
@@ -2330,7 +2404,6 @@ impl TermWindow {
                         ..
                     }),
                 ) => {
-                    // Middle mouse button is Paste
                     let tab_id = tab.tab_id();
                     let future = self.window.as_ref().unwrap().get_clipboard();
                     Connection::get().unwrap().spawn_task(async move {
