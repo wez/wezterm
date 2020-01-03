@@ -499,7 +499,6 @@ impl Renderable for RenderableState {
             viewport_rows,
             cols,
             scrollback_rows: 0,
-            viewport_offset: 0,
             physical_top: 0,
             scrollback_top: 0,
         }

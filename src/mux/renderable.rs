@@ -13,9 +13,6 @@ pub struct RenderableDimensions {
     pub viewport_rows: usize,
     /// The total number of lines in the scrollback, including the viewport
     pub scrollback_rows: usize,
-    /// The offset is measured from the top of the physical viewable
-    /// screen with larger numbers going backwards.
-    pub viewport_offset: VisibleRowIndex,
 
     /// The top of the physical, non-scrollback, screen expressed
     /// as a stable index.  It is envisioned that this will be used
@@ -116,7 +113,6 @@ impl Renderable for Terminal {
             cols: screen.physical_cols,
             viewport_rows: screen.physical_rows,
             scrollback_rows: screen.lines.len(),
-            viewport_offset: self.get_viewport_offset(),
             physical_top: screen.visible_row_to_stable_row(0),
             scrollback_top: screen.phys_to_stable_row_index(0),
         }
