@@ -2365,6 +2365,20 @@ impl TermWindow {
         }
     }
 
+    fn triple_click_left(&mut self, tab: &Rc<dyn Tab>, x: usize, y: StableRowIndex) {
+        self.selection.start = Some(SelectionCoordinate { x, y });
+        self.selection.range = Some(SelectionRange {
+            start: SelectionCoordinate { x: 0, y },
+            end: SelectionCoordinate {
+                x: usize::max_value(),
+                y,
+            },
+        });
+        let text = self.selection_text(&tab);
+        log::debug!("finish 3click selection {:?} '{}'", self.selection, text);
+        self.window.as_ref().unwrap().set_clipboard(text);
+    }
+
     fn double_click_left(&mut self, tab: &Rc<dyn Tab>, x: usize, row: StableRowIndex) {
         use termwiz::surface::line::DoubleClickRange;
         let renderer = tab.renderer();
@@ -2453,6 +2467,19 @@ impl TermWindow {
             let stable_row = dims.physical_top + y as StableRowIndex;
 
             match (&event.kind, self.last_mouse_click.as_ref()) {
+                // Triple click to select a word
+                (
+                    WMEK::Press(MousePress::Left),
+                    Some(LastMouseClick {
+                        streak: 3,
+                        button: TMB::Left,
+                        ..
+                    }),
+                ) => {
+                    self.triple_click_left(&tab, x, stable_row);
+                    tab.renderer().make_all_lines_dirty();
+                    context.invalidate();
+                }
                 // Double click to select a word
                 (
                     WMEK::Press(MousePress::Left),
