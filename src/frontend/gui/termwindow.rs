@@ -228,6 +228,19 @@ impl WindowCallbacks for TermWindow {
                     }
                 }
             }
+
+            WMEK::VertWheel(amount) if !tab.is_mouse_grabbed() => {
+                // adjust viewport
+                let mut render = tab.renderer();
+                let dims = render.get_dimensions();
+                render.set_viewport_position(
+                    dims.viewport_offset
+                        .saturating_add(amount.into())
+                        .min(dims.scrollback_rows.try_into().unwrap()),
+                );
+                return;
+            }
+
             WMEK::Move => {
                 if let Some(from_top) = self.scroll_drag_start.as_ref() {
                     // Dragging the scroll bar
@@ -291,12 +304,6 @@ impl WindowCallbacks for TermWindow {
             }
         } else if in_scroll_bar {
             if let WMEK::Press(MousePress::Left) = event.kind {
-                let mux = Mux::get().unwrap();
-                let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
-                    Some(tab) => tab,
-                    None => return,
-                };
-
                 let mut render = tab.renderer();
                 let dims = render.get_dimensions();
 
