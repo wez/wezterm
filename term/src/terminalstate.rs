@@ -504,14 +504,6 @@ impl TerminalState {
         Ok(())
     }
 
-    fn get_clipboard_contents(&self) -> anyhow::Result<String> {
-        if let Some(clip) = self.clipboard.as_ref() {
-            clip.get_contents()
-        } else {
-            Ok(String::new())
-        }
-    }
-
     /// Single click prepares the start of a new selection
     fn mouse_single_click_left(&mut self, event: MouseEvent) -> Result<(), Error> {
         // Prepare to start a new selection.
@@ -734,9 +726,6 @@ impl TerminalState {
                 host.writer().write_all(
                     format!("\x1b[<{};{};{}M", button, event.x + 1, event.y + 1).as_bytes(),
                 )?;
-            } else if event.button == MouseButton::Middle {
-                let clip = self.get_clipboard_contents()?;
-                self.send_paste(&clip, host.writer())?
             }
         }
 
