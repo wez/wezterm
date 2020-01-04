@@ -1,0 +1,81 @@
+use crate::config::configuration;
+use hdrhistogram::Histogram;
+use metrics::{Key, Recorder};
+use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
+use std::time::{Duration, Instant};
+
+struct Inner {
+    histograms: HashMap<Key, Histogram<u64>>,
+}
+
+fn pctile_latency(histogram: &Histogram<u64>, p: f64) -> Duration {
+    Duration::from_nanos(histogram.value_at_percentile(p))
+}
+
+impl Inner {
+    fn run(inner: Arc<Mutex<Inner>>) {
+        let mut last_print = Instant::now();
+
+        loop {
+            std::thread::sleep(Duration::from_secs(10));
+            let seconds = configuration().periodic_stat_logging;
+            if seconds == 0 {
+                continue;
+            }
+            if last_print.elapsed() >= Duration::from_secs(seconds) {
+                let inner = inner.lock().unwrap();
+                eprintln!("STATS");
+                for (key, histogram) in &inner.histograms {
+                    let p50 = pctile_latency(histogram, 50.);
+                    let p75 = pctile_latency(histogram, 75.);
+                    let p95 = pctile_latency(histogram, 95.);
+                    eprintln!("{} p50: {:?}, p75: {:?}, p95: {:?}", key, p50, p75, p95);
+                }
+                last_print = Instant::now();
+            }
+        }
+    }
+}
+
+pub struct Stats {
+    inner: Arc<Mutex<Inner>>,
+}
+
+impl Stats {
+    pub fn new() -> Self {
+        Self {
+            inner: Arc::new(Mutex::new(Inner {
+                histograms: HashMap::new(),
+            })),
+        }
+    }
+
+    pub fn init() -> anyhow::Result<()> {
+        let stats = Self::new();
+        let inner = Arc::clone(&stats.inner);
+        std::thread::spawn(move || Inner::run(inner));
+        let rec = Box::new(stats);
+        metrics::set_boxed_recorder(rec)
+            .map_err(|e| anyhow::anyhow!("Failed to set metrics recorder:{}", e))
+    }
+}
+
+impl Recorder for Stats {
+    fn increment_counter(&self, key: Key, value: u64) {
+        log::trace!("counter '{}' -> {}", key, value);
+    }
+
+    fn update_gauge(&self, key: Key, value: i64) {
+        log::trace!("gauge '{}' -> {}", key, value);
+    }
+
+    fn record_histogram(&self, key: Key, value: u64) {
+        let mut inner = self.inner.lock().unwrap();
+        let histogram = inner
+            .histograms
+            .entry(key.clone())
+            .or_insert_with(|| Histogram::new(2).expect("failed to crate new Histogram"));
+        histogram.record(value).ok();
+    }
+}

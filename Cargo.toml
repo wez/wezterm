@@ -34,6 +34,8 @@ leb128 = "0.2"
 libc = "0.2"
 log = "0.4"
 open = "1.2"
+metrics = { version="0.12", features=["std"]}
+hdrhistogram = "6.3"
 native-tls = "0.2"
 # file change notification
 notify = "4.0"

@@ -24,6 +24,7 @@ mod mux;
 mod ratelim;
 mod server;
 mod ssh;
+mod stats;
 mod termwiztermtab;
 
 use crate::frontend::{executor, front_end, FrontEndSelection};
@@ -689,6 +690,7 @@ fn run() -> anyhow::Result<()> {
         }
     };
     pretty_env_logger::init();
+    stats::Stats::init()?;
 
     let opts = Opt::from_args();
     if !opts.skip_config {

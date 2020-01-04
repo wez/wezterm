@@ -454,6 +454,12 @@ pub struct Config {
     /// and `BlinkingBar`.
     #[serde(default)]
     pub default_cursor_style: DefaultCursorStyle,
+
+    /// If non-zero, specifies the period (in seconds) at which various
+    /// statistics are logged.  Note that there is a minimum period of
+    /// 10 seconds.
+    #[serde(default)]
+    pub periodic_stat_logging: u64,
 }
 
 #[derive(Deserialize, Clone, Copy, Debug)]

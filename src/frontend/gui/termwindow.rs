@@ -448,6 +448,7 @@ impl WindowCallbacks for TermWindow {
             log::error!("paint failed: {}", err);
         }
         log::debug!("paint_tab elapsed={:?}", start.elapsed());
+        metrics::value!("gui.paint.software", start.elapsed());
     }
 
     fn paint_opengl(&mut self, frame: &mut glium::Frame) {
@@ -481,6 +482,7 @@ impl WindowCallbacks for TermWindow {
             log::error!("paint_tab_opengl failed: {}", err);
         }
         log::debug!("paint_tab_opengl elapsed={:?}", start.elapsed());
+        metrics::value!("gui.paint.opengl", start.elapsed());
         self.update_title();
     }
 }
