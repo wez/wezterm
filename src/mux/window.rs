@@ -86,8 +86,6 @@ impl Window {
             let len = self.tabs.len();
             if len > 0 && self.active == idx && idx >= len {
                 self.set_active(len - 1);
-            } else if let Some(tab) = self.get_by_idx(self.active) {
-                tab.renderer().make_all_lines_dirty();
             }
             true
         } else {
@@ -107,10 +105,6 @@ impl Window {
     pub fn set_active(&mut self, idx: usize) {
         assert!(idx < self.tabs.len());
         self.active = idx;
-        self.get_by_idx(idx)
-            .unwrap()
-            .renderer()
-            .make_all_lines_dirty();
     }
 
     pub fn iter(&self) -> impl Iterator<Item = &Rc<dyn Tab>> {

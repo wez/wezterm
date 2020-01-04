@@ -445,7 +445,6 @@ impl ClientSurfaceState {
 
             if (dims.viewport_rows != surface_height) || (dims.cols != surface_width) {
                 self.surface.resize(dims.cols, dims.viewport_rows);
-                renderable.make_all_lines_dirty();
             }
 
             let (x, y) = self.surface.cursor_position();
@@ -461,13 +460,15 @@ impl ClientSurfaceState {
                 }
             }
 
+            todo!();
+            /*
             let mut changes = vec![];
-
             for (line_idx, line, _selrange) in renderable.get_dirty_lines() {
                 changes.append(&mut self.surface.diff_against_numbered_line(line_idx, &line));
             }
 
             self.surface.add_changes(changes);
+            */
         }
 
         let title = tab.get_title();
@@ -795,12 +796,12 @@ impl<S: ReadAndWrite> ClientSession<S> {
                     let tab = mux
                         .get_tab(tab_id)
                         .ok_or_else(|| anyhow!("no such tab {}", tab_id))?;
-                    let renderer = tab.renderer();
+                    let mut renderer = tab.renderer();
                     let (first_row, lines) = renderer.get_lines(lines);
                     Ok(Pdu::GetLinesResponse(GetLinesResponse {
                         tab_id,
                         first_row,
-                        lines: lines.into_iter().map(|line| line.into_owned()).collect(),
+                        lines,
                     }))
                 })
             }

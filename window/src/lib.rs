@@ -198,7 +198,7 @@ pub trait WindowOps {
     /// The `Any` that is passed in corresponds to the WindowCallbacks
     /// impl you passed to `new_window`, pre-converted to Any so that
     /// you can `downcast_ref` or `downcast_mut` it and operate on it.
-    fn apply<R, F: Send + 'static + Fn(&mut dyn Any, &dyn WindowOps) -> anyhow::Result<R>>(
+    fn apply<R, F: Send + 'static + FnMut(&mut dyn Any, &dyn WindowOps) -> anyhow::Result<R>>(
         &self,
         func: F,
     ) -> promise::Future<R>

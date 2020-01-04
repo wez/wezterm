@@ -15,7 +15,6 @@ use crossbeam_channel::{unbounded as channel, Receiver, Sender};
 use filedescriptor::Pipe;
 use portable_pty::*;
 use promise::{Future, Promise};
-use std::borrow::Cow;
 use std::cell::RefCell;
 use std::cell::RefMut;
 use std::convert::TryInto;
@@ -25,7 +24,6 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use term::color::ColorPalette;
-use term::selection::SelectionRange;
 use term::{KeyCode, KeyModifiers, Line, MouseEvent, StableRowIndex, TerminalHost};
 use termwiz::hyperlink::Hyperlink;
 use termwiz::input::{InputEvent, KeyEvent};
@@ -35,7 +33,6 @@ use termwiz::terminal::{ScreenSize, Terminal, TerminalWaker};
 
 struct RenderableInner {
     surface: Surface,
-    selection_range: Arc<Mutex<Option<SelectionRange>>>,
     something_changed: Arc<AtomicBool>,
     highlight: Arc<Mutex<Option<Arc<Hyperlink>>>>,
     local_sequence: SequenceNo,
@@ -75,8 +72,12 @@ impl Renderable for RenderableState {
         }
     }
 
-    fn get_lines(&self, lines: Range<StableRowIndex>) -> (StableRowIndex, Vec<Cow<Line>>) {
+    fn get_lines(&mut self, lines: Range<StableRowIndex>) -> (StableRowIndex, Vec<Line>) {
         let inner = self.inner.borrow_mut();
+
+        // Reset the dirty bit
+        inner.something_changed.store(false, Ordering::SeqCst);
+
         (
             lines.start,
             inner
@@ -85,34 +86,12 @@ impl Renderable for RenderableState {
                 .into_iter()
                 .skip(lines.start.try_into().unwrap())
                 .take((lines.end - lines.start).try_into().unwrap())
-                .map(|line| Cow::Owned(line.into_owned()))
+                .map(|line| line.into_owned())
                 .collect(),
         )
     }
 
-    fn get_dirty_lines(&self) -> Vec<(usize, Cow<Line>, Range<usize>)> {
-        let mut inner = self.inner.borrow_mut();
-        let seq = inner.surface.current_seqno();
-        inner.surface.flush_changes_older_than(seq);
-        let selection = *inner.selection_range.lock().unwrap();
-        inner.something_changed.store(false, Ordering::SeqCst);
-        inner.local_sequence = seq;
-        inner
-            .surface
-            .screen_lines()
-            .into_iter()
-            .enumerate()
-            .map(|(idx, line)| {
-                let r = match selection {
-                    None => 0..0,
-                    Some(sel) => sel.normalize().cols_for_row(idx as i32),
-                };
-                (idx, Cow::Owned(line.into_owned()), r)
-            })
-            .collect()
-    }
-
-    fn has_dirty_lines(&self) -> bool {
+    fn get_dirty_lines(&self, lines: Range<StableRowIndex>) -> Vec<StableRowIndex> {
         let mut inner = self.inner.borrow_mut();
 
         loop {
@@ -129,20 +108,14 @@ impl Renderable for RenderableState {
             }
         }
 
-        if inner.something_changed.load(Ordering::SeqCst) {
-            return true;
+        if inner.something_changed.load(Ordering::SeqCst)
+            || inner.surface.has_changes(inner.local_sequence)
+        {
+            lines.into_iter().collect()
+        } else {
+            vec![]
         }
-        inner.surface.has_changes(inner.local_sequence)
     }
-
-    fn make_all_lines_dirty(&mut self) {
-        self.inner
-            .borrow()
-            .something_changed
-            .store(true, Ordering::SeqCst);
-    }
-
-    fn clean_dirty_lines(&mut self) {}
 
     fn current_highlight(&self) -> Option<Arc<Hyperlink>> {
         self.inner
@@ -437,7 +410,6 @@ pub fn run<T: Send + 'static, F: Send + 'static + Fn(TermWizTerminal) -> anyhow:
             local_sequence: 0,
             dead: false,
             something_changed: Arc::new(AtomicBool::new(false)),
-            selection_range: Arc::new(Mutex::new(None)),
             input_tx,
             render_rx,
         };

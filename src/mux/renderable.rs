@@ -1,6 +1,5 @@
 use downcast_rs::{impl_downcast, Downcast};
 use serde::{Deserialize, Serialize};
-use std::borrow::Cow;
 use std::ops::Range;
 use std::sync::Arc;
 use term::{Line, StableRowIndex, Terminal, TerminalState};
@@ -40,12 +39,9 @@ pub trait Renderable: Downcast {
     /// the visible screen
     fn get_cursor_position(&self) -> StableCursorPosition;
 
-    /// Returns the set of visible lines that are dirty.
-    /// The return value is a Vec<(line_idx, line, selrange)>, where
-    /// line_idx is relative to the top of the viewport.
-    /// The selrange value is the column range representing the selected
-    /// columns on this line.
-    fn get_dirty_lines(&self) -> Vec<(usize, Cow<Line>, Range<usize>)>;
+    /// Given a range of lines, return the subset of those lines that
+    /// have their dirty flag set to true.
+    fn get_dirty_lines(&self, lines: Range<StableRowIndex>) -> Vec<StableRowIndex>;
 
     /// Returns a set of lines from the scrollback or visible portion of
     /// the display.  The lines are indexed using StableRowIndex, which
@@ -58,14 +54,11 @@ pub trait Renderable: Downcast {
     /// screen and the index would go off the bottom.
     /// Because of this, we also return the adjusted StableRowIndex for
     /// the first row in the range.
-    fn get_lines(&self, lines: Range<StableRowIndex>) -> (StableRowIndex, Vec<Cow<Line>>);
-
-    fn has_dirty_lines(&self) -> bool;
-
-    fn make_all_lines_dirty(&mut self);
-
-    /// Clear the dirty flag for all dirty lines
-    fn clean_dirty_lines(&mut self);
+    ///
+    /// For each line, if it was dirty in the backing data, then the dirty
+    /// flag will be cleared in the backing data.  The returned line will
+    /// have its dirty bit set appropriately.
+    fn get_lines(&mut self, lines: Range<StableRowIndex>) -> (StableRowIndex, Vec<Line>);
 
     /// Returns the currently highlighted hyperlink
     fn current_highlight(&self) -> Option<Arc<Hyperlink>>;
@@ -86,34 +79,42 @@ impl Renderable for Terminal {
         }
     }
 
-    fn get_dirty_lines(&self) -> Vec<(usize, Cow<Line>, Range<usize>)> {
-        TerminalState::get_dirty_lines(self)
-            .into_iter()
-            .map(|(idx, line, range)| (idx, Cow::Borrowed(line), range))
+    fn get_dirty_lines(&self, lines: Range<StableRowIndex>) -> Vec<StableRowIndex> {
+        let screen = self.screen();
+        let phys = screen.stable_range(&lines);
+        screen
+            .lines
+            .iter()
+            .enumerate()
+            .skip(phys.start)
+            .take(phys.end - phys.start)
+            .filter_map(|(idx, line)| {
+                if line.is_dirty() {
+                    Some(screen.phys_to_stable_row_index(idx))
+                } else {
+                    None
+                }
+            })
             .collect()
     }
 
-    fn get_lines(&self, lines: Range<StableRowIndex>) -> (StableRowIndex, Vec<Cow<Line>>) {
-        let screen = self.screen();
+    fn get_lines(&mut self, lines: Range<StableRowIndex>) -> (StableRowIndex, Vec<Line>) {
+        let screen = self.screen_mut();
         let phys_range = screen.stable_range(&lines);
         (
             screen.phys_to_stable_row_index(phys_range.start),
             screen
                 .lines
-                .iter()
+                .iter_mut()
                 .skip(phys_range.start)
                 .take(phys_range.end - phys_range.start)
-                .map(|line| Cow::Borrowed(line))
+                .map(|line| {
+                    let cloned = line.clone();
+                    line.clear_dirty();
+                    cloned
+                })
                 .collect(),
         )
-    }
-
-    fn clean_dirty_lines(&mut self) {
-        TerminalState::clean_dirty_lines(self)
-    }
-
-    fn make_all_lines_dirty(&mut self) {
-        TerminalState::make_all_lines_dirty(self)
     }
 
     fn current_highlight(&self) -> Option<Arc<Hyperlink>> {
@@ -129,9 +130,5 @@ impl Renderable for Terminal {
             physical_top: screen.visible_row_to_stable_row(0),
             scrollback_top: screen.phys_to_stable_row_index(0),
         }
-    }
-
-    fn has_dirty_lines(&self) -> bool {
-        TerminalState::has_dirty_lines(self)
     }
 }

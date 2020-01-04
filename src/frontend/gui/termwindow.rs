@@ -223,11 +223,8 @@ impl WindowCallbacks for TermWindow {
         // Reset the cursor blink phase
         self.prev_cursor.bump();
 
-        // Heavyweight way to force cursor update
-        let mux = Mux::get().unwrap();
-        if let Some(tab) = mux.get_active_tab_for_window(self.mux_window_id) {
-            tab.renderer().make_all_lines_dirty();
-        }
+        // force cursor to be repainted
+        self.window.as_ref().unwrap().invalidate();
     }
 
     fn mouse_event(&mut self, event: &MouseEvent, context: &dyn WindowOps) {
@@ -300,7 +297,6 @@ impl WindowCallbacks for TermWindow {
                     .unwrap_or(dims.physical_top)
                     .saturating_sub(amount.into());
                 self.set_viewport(tab.tab_id(), Some(position), dims);
-                render.make_all_lines_dirty();
                 context.invalidate();
                 return;
             }
@@ -331,7 +327,6 @@ impl WindowCallbacks for TermWindow {
                         &self.dimensions,
                     );
                     self.set_viewport(tab.tab_id(), Some(row), dims);
-                    render.make_all_lines_dirty();
                     context.invalidate();
                     return;
                 }
@@ -441,7 +436,6 @@ impl WindowCallbacks for TermWindow {
                     self.recreate_texture_atlas(None)
                         .expect("OutOfTextureSpace and failed to recreate atlas");
                 }
-                tab.renderer().make_all_lines_dirty();
                 // Recursively initiate a new paint
                 return self.paint(ctx);
             }
@@ -475,7 +469,6 @@ impl WindowCallbacks for TermWindow {
                     self.recreate_texture_atlas(None)
                         .expect("OutOfTextureSpace and failed to recreate atlas");
                 }
-                tab.renderer().make_all_lines_dirty();
                 // Recursively initiate a new paint
                 return self.paint_opengl(frame);
             }
@@ -581,60 +574,66 @@ impl TermWindow {
 
         let cloned_window = window.clone();
 
-        let mut last_config_generation = config.generation();
         Connection::get()
             .unwrap()
             .schedule_timer(std::time::Duration::from_millis(35), {
                 let mut last_blink_paint = Instant::now();
+                let mut last_config_generation = config.generation();
                 move || {
-                    let mux = Mux::get().unwrap();
+                    cloned_window.apply(move |myself, _| {
+                        if let Some(myself) = myself.downcast_mut::<Self>() {
+                            let mux = Mux::get().unwrap();
 
-                    if let Some(tab) = mux.get_active_tab_for_window(mux_window_id) {
-                        // If the config was reloaded, ask the window to apply
-                        // and render any changes
-                        let config = configuration();
-                        let current_generation = config.generation();
-                        if current_generation != last_config_generation {
-                            last_config_generation = current_generation;
-                            cloned_window.apply(|myself, _| {
-                                if let Some(myself) = myself.downcast_mut::<Self>() {
+                            if let Some(tab) = mux.get_active_tab_for_window(mux_window_id) {
+                                // If the config was reloaded, ask the window to apply
+                                // and render any changes
+                                let config = configuration();
+                                let current_generation = config.generation();
+                                if current_generation != last_config_generation {
+                                    last_config_generation = current_generation;
                                     myself.config_was_reloaded();
                                 }
-                                Ok(())
-                            });
-                        }
 
-                        let mut render = tab.renderer();
+                                let mut render = tab.renderer();
 
-                        // If blinking is permitted, and the cursor shape is set
-                        // to a blinking variant, and it's been longer than the
-                        // blink rate interval, then invalid the lines in the terminal
-                        // so that we will re-evaluate the cursor visibility.
-                        // This is pretty heavyweight: it would be nice to only invalidate
-                        // the line on which the cursor resides, and then only if the cursor
-                        // is within the viewport.
-                        if config.cursor_blink_rate != 0 {
-                            let shape = config
-                                .default_cursor_style
-                                .effective_shape(render.get_cursor_position().shape);
-                            if shape.is_blinking() {
-                                let now = Instant::now();
-                                if now.duration_since(last_blink_paint)
-                                    > Duration::from_millis(config.cursor_blink_rate)
-                                {
-                                    render.make_all_lines_dirty();
-                                    last_blink_paint = now;
+                                // If blinking is permitted, and the cursor shape is set
+                                // to a blinking variant, and it's been longer than the
+                                // blink rate interval, then invalid the lines in the terminal
+                                // so that we will re-evaluate the cursor visibility.
+                                // This is pretty heavyweight: it would be nice to only invalidate
+                                // the line on which the cursor resides, and then only if the cursor
+                                // is within the viewport.
+                                if config.cursor_blink_rate != 0 {
+                                    let shape = config
+                                        .default_cursor_style
+                                        .effective_shape(render.get_cursor_position().shape);
+                                    if shape.is_blinking() {
+                                        let now = Instant::now();
+                                        if now.duration_since(last_blink_paint)
+                                            > Duration::from_millis(config.cursor_blink_rate)
+                                        {
+                                            myself.window.as_ref().unwrap().invalidate();
+                                            last_blink_paint = now;
+                                        }
+                                    }
                                 }
+
+                                // If the model is dirty, arrange to re-paint
+                                let dims = render.get_dimensions();
+                                let viewport = myself
+                                    .get_viewport(tab.tab_id())
+                                    .unwrap_or(dims.physical_top);
+                                let visible_range =
+                                    viewport..viewport + dims.viewport_rows as StableRowIndex;
+                                if !render.get_dirty_lines(visible_range).is_empty() {
+                                    myself.window.as_ref().unwrap().invalidate();
+                                }
+                            } else {
+                                myself.window.as_ref().unwrap().close();
                             }
                         }
-
-                        // If the model is dirty, arrange to re-paint
-                        if render.has_dirty_lines() {
-                            cloned_window.invalidate();
-                        }
-                    } else {
-                        cloned_window.close();
-                    }
+                        Ok(())
+                    });
                 }
             });
 
@@ -988,7 +987,6 @@ impl TermWindow {
             .unwrap_or(dims.physical_top)
             .saturating_add(amount * dims.viewport_rows as isize);
         self.set_viewport(tab.tab_id(), Some(position), dims);
-        render.make_all_lines_dirty();
         if let Some(win) = self.window.as_ref() {
             win.invalidate();
         }
@@ -1062,7 +1060,7 @@ impl TermWindow {
         let mut s = String::new();
         if let Some(sel) = self.selection.range.as_ref().map(|r| r.normalize()) {
             let mut last_was_wrapped = false;
-            let renderer = tab.renderer();
+            let mut renderer = tab.renderer();
             let (first_row, lines) = renderer.get_lines(sel.rows());
             for (idx, line) in lines.iter().enumerate() {
                 let cols = sel.cols_for_row(first_row + idx as StableRowIndex);
@@ -1341,30 +1339,26 @@ impl TermWindow {
             let (stable_top, lines) = term.get_lines(stable_range);
 
             for (line_idx, line) in lines.iter().enumerate() {
-                if line.is_dirty() {
-                    let stable_row = stable_top + line_idx as StableRowIndex;
+                let stable_row = stable_top + line_idx as StableRowIndex;
 
-                    let selrange = self
-                        .selection
-                        .range
-                        .map(|sel| sel.cols_for_row(stable_row))
-                        .unwrap_or(0..0);
+                let selrange = self
+                    .selection
+                    .range
+                    .map(|sel| sel.cols_for_row(stable_row))
+                    .unwrap_or(0..0);
 
-                    self.render_screen_line(
-                        ctx,
-                        line_idx + first_line_offset,
-                        stable_row,
-                        &line,
-                        selrange,
-                        &cursor,
-                        &*term,
-                        &palette,
-                    )?;
-                }
+                self.render_screen_line(
+                    ctx,
+                    line_idx + first_line_offset,
+                    stable_row,
+                    &line,
+                    selrange,
+                    &cursor,
+                    &*term,
+                    &palette,
+                )?;
             }
         }
-
-        term.clean_dirty_lines();
 
         // Fill any padding
         let config = configuration();
@@ -1554,25 +1548,23 @@ impl TermWindow {
         }
 
         for (line_idx, line) in lines.iter().enumerate() {
-            if line.is_dirty() {
-                let stable_row = stable_top + line_idx as StableRowIndex;
-                let selrange = self
-                    .selection
-                    .range
-                    .map(|sel| sel.cols_for_row(stable_row))
-                    .unwrap_or(0..0);
+            let stable_row = stable_top + line_idx as StableRowIndex;
+            let selrange = self
+                .selection
+                .range
+                .map(|sel| sel.cols_for_row(stable_row))
+                .unwrap_or(0..0);
 
-                self.render_screen_line_opengl(
-                    line_idx + first_line_offset,
-                    stable_row,
-                    &line,
-                    selrange,
-                    &cursor,
-                    &*term,
-                    &palette,
-                    &mut quads,
-                )?;
-            }
+            self.render_screen_line_opengl(
+                line_idx + first_line_offset,
+                stable_row,
+                &line,
+                selrange,
+                &cursor,
+                &*term,
+                &palette,
+                &mut quads,
+            )?;
         }
 
         let tex = gl_state.glyph_cache.borrow().atlas.texture();
@@ -1641,8 +1633,6 @@ impl TermWindow {
             },
             &draw_params,
         )?;
-
-        term.clean_dirty_lines();
 
         Ok(())
     }
@@ -2329,7 +2319,6 @@ impl TermWindow {
                         ),
                         dims,
                     );
-                    render.make_all_lines_dirty();
                     context.invalidate();
                 }
                 ScrollHit::Below => {
@@ -2343,7 +2332,6 @@ impl TermWindow {
                         ),
                         dims,
                     );
-                    render.make_all_lines_dirty();
                     context.invalidate();
                 }
                 ScrollHit::OnThumb(from_top) => {
@@ -2383,7 +2371,7 @@ impl TermWindow {
 
     fn double_click_left(&mut self, tab: &Rc<dyn Tab>, x: usize, row: StableRowIndex) {
         use termwiz::surface::line::DoubleClickRange;
-        let renderer = tab.renderer();
+        let mut renderer = tab.renderer();
         let (first, lines) = renderer.get_lines(row..row + 1);
         if first != row {
             return;
@@ -2488,7 +2476,6 @@ impl TermWindow {
                     }),
                 ) => {
                     self.triple_click_left(&tab, x, stable_row);
-                    tab.renderer().make_all_lines_dirty();
                     context.invalidate();
                 }
                 // Double click to select a word
@@ -2501,7 +2488,6 @@ impl TermWindow {
                     }),
                 ) => {
                     self.double_click_left(&tab, x, stable_row);
-                    tab.renderer().make_all_lines_dirty();
                     context.invalidate();
                 }
 
@@ -2532,7 +2518,6 @@ impl TermWindow {
                         .as_ref()
                         .unwrap()
                         .set_clipboard(self.selection_text(&tab));
-                    tab.renderer().make_all_lines_dirty();
                     context.invalidate();
                 }
 
@@ -2553,7 +2538,6 @@ impl TermWindow {
                             Some(sel) => sel.extend(end),
                         };
                         self.selection.range = Some(sel);
-                        tab.renderer().make_all_lines_dirty();
                         context.invalidate();
                     }
                 }

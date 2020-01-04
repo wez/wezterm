@@ -407,9 +407,9 @@ impl WindowOps for Window {
         })
     }
 
-    fn apply<R, F: Send + 'static + Fn(&mut dyn Any, &dyn WindowOps) -> anyhow::Result<R>>(
+    fn apply<R, F: Send + 'static + FnMut(&mut dyn Any, &dyn WindowOps) -> anyhow::Result<R>>(
         &self,
-        func: F,
+        mut func: F,
     ) -> promise::Future<R>
     where
         Self: Sized,

@@ -11,7 +11,6 @@ use filedescriptor::Pipe;
 use log::{error, info};
 use portable_pty::PtySize;
 use promise::{BrokenPromise, Future};
-use std::borrow::Cow;
 use std::cell::RefCell;
 use std::cell::RefMut;
 use std::collections::VecDeque;
@@ -21,7 +20,6 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use term::color::ColorPalette;
-use term::selection::SelectionRange;
 use term::{
     Clipboard, KeyCode, KeyModifiers, Line, MouseButton, MouseEvent, MouseEventKind,
     StableRowIndex, TerminalHost,
@@ -141,7 +139,6 @@ impl ClientTab {
             client: Arc::clone(client),
             remote_tab_id,
         };
-        let selection_range = Arc::new(Mutex::new(None));
         let something_changed = Arc::new(AtomicBool::new(true));
         let highlight = Arc::new(Mutex::new(None));
 
@@ -163,7 +160,6 @@ impl ClientTab {
                 surface: Surface::new(size.cols as usize, size.rows as usize),
                 remote_sequence: 0,
                 local_sequence: 0,
-                selection_range,
                 something_changed,
                 highlight,
             }),
@@ -327,7 +323,6 @@ struct RenderableInner {
     remote_sequence: SequenceNo,
     local_sequence: SequenceNo,
     poll_interval: Duration,
-    selection_range: Arc<Mutex<Option<SelectionRange>>>,
     something_changed: Arc<AtomicBool>,
     highlight: Arc<Mutex<Option<Arc<Hyperlink>>>>,
 }
@@ -397,7 +392,8 @@ impl Renderable for RenderableState {
         }
     }
 
-    fn get_lines(&self, lines: Range<StableRowIndex>) -> (StableRowIndex, Vec<Cow<Line>>) {
+    fn get_lines(&mut self, lines: Range<StableRowIndex>) -> (StableRowIndex, Vec<Line>) {
+        // FIXME: mark clean
         let inner = self.inner.borrow_mut();
         (
             lines.start,
@@ -407,11 +403,16 @@ impl Renderable for RenderableState {
                 .into_iter()
                 .skip(lines.start.try_into().unwrap())
                 .take((lines.end - lines.start).try_into().unwrap())
-                .map(|line| Cow::Owned(line.into_owned()))
+                .map(|line| line.into_owned())
                 .collect(),
         )
     }
 
+    fn get_dirty_lines(&self, _lines: Range<StableRowIndex>) -> Vec<StableRowIndex> {
+        todo!();
+    }
+
+    /*
     fn get_dirty_lines(&self) -> Vec<(usize, Cow<Line>, Range<usize>)> {
         let mut inner = self.inner.borrow_mut();
         let seq = inner.surface.current_seqno();
@@ -433,7 +434,9 @@ impl Renderable for RenderableState {
             })
             .collect()
     }
+    */
 
+    /*
     fn has_dirty_lines(&self) -> bool {
         let mut inner = self.inner.borrow_mut();
         if let Err(err) = inner.poll() {
@@ -451,15 +454,7 @@ impl Renderable for RenderableState {
         }
         inner.surface.has_changes(inner.local_sequence)
     }
-
-    fn make_all_lines_dirty(&mut self) {
-        self.inner
-            .borrow()
-            .something_changed
-            .store(true, Ordering::SeqCst);
-    }
-
-    fn clean_dirty_lines(&mut self) {}
+    */
 
     fn current_highlight(&self) -> Option<Arc<Hyperlink>> {
         self.inner
