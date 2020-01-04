@@ -4,6 +4,7 @@ use metrics::{Key, Recorder};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
+use tabout::{tabulate_output, Alignment, Column};
 
 struct Inner {
     histograms: HashMap<Key, Histogram<u64>>,
@@ -17,6 +18,25 @@ impl Inner {
     fn run(inner: Arc<Mutex<Inner>>) {
         let mut last_print = Instant::now();
 
+        let cols = vec![
+            Column {
+                name: "STAT".to_string(),
+                alignment: Alignment::Left,
+            },
+            Column {
+                name: "p50".to_string(),
+                alignment: Alignment::Left,
+            },
+            Column {
+                name: "p75".to_string(),
+                alignment: Alignment::Left,
+            },
+            Column {
+                name: "p95".to_string(),
+                alignment: Alignment::Left,
+            },
+        ];
+
         loop {
             std::thread::sleep(Duration::from_secs(10));
             let seconds = configuration().periodic_stat_logging;
@@ -25,13 +45,21 @@ impl Inner {
             }
             if last_print.elapsed() >= Duration::from_secs(seconds) {
                 let inner = inner.lock().unwrap();
-                eprintln!("STATS");
+                let mut data = vec![];
                 for (key, histogram) in &inner.histograms {
                     let p50 = pctile_latency(histogram, 50.);
                     let p75 = pctile_latency(histogram, 75.);
                     let p95 = pctile_latency(histogram, 95.);
-                    eprintln!("{} p50: {:?}, p75: {:?}, p95: {:?}", key, p50, p75, p95);
+                    data.push(vec![
+                        key.to_string(),
+                        format!("{:.2?}", p50),
+                        format!("{:.2?}", p75),
+                        format!("{:.2?}", p95),
+                    ]);
                 }
+                data.sort_by(|a, b| a[0].cmp(&b[0]));
+                eprintln!();
+                tabulate_output(&cols, &data, &mut std::io::stderr().lock()).ok();
                 last_print = Instant::now();
             }
         }
