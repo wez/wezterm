@@ -443,7 +443,7 @@ pub struct WindowsTerminalWaker {
 }
 
 impl WindowsTerminalWaker {
-    pub fn wake(&mut self) -> IoResult<()> {
+    pub fn wake(&self) -> IoResult<()> {
         self.handle.set()?;
         Ok(())
     }
