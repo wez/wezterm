@@ -137,6 +137,7 @@ pub struct ClientTab {
     reader: Pipe,
     mouse: Arc<Mutex<MouseState>>,
     clipboard: RefCell<Option<Arc<dyn Clipboard>>>,
+    mouse_grabbed: RefCell<bool>,
 }
 
 impl ClientTab {
@@ -187,6 +188,7 @@ impl ClientTab {
             writer: RefCell::new(writer),
             reader,
             clipboard: RefCell::new(None),
+            mouse_grabbed: RefCell::new(false),
         }
     }
 
@@ -194,6 +196,7 @@ impl ClientTab {
         match pdu {
             Pdu::GetTabRenderChangesResponse(delta) => {
                 log::trace!("new delta {}", delta.sequence_no);
+                *self.mouse_grabbed.borrow_mut() = delta.mouse_grabbed;
                 self.renderable
                     .borrow()
                     .inner
@@ -318,8 +321,7 @@ impl Tab for ClientTab {
     }
 
     fn is_mouse_grabbed(&self) -> bool {
-        // FIXME: get the real state from the remote
-        true
+        *self.mouse_grabbed.borrow()
     }
 }
 

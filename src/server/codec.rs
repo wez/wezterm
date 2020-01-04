@@ -413,6 +413,7 @@ pub struct GetTabRenderChangesResponse {
     pub tab_id: TabId,
     pub sequence_no: SequenceNo,
     pub changes: Vec<Change>,
+    pub mouse_grabbed: bool,
 }
 
 #[cfg(test)]

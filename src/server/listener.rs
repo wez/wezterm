@@ -388,6 +388,7 @@ fn maybe_push_tab_changes(
     sender: PollableSender<DecodedPdu>,
 ) -> anyhow::Result<()> {
     let tab_id = tab.tab_id();
+    let mouse_grabbed = tab.is_mouse_grabbed();
     let mut surfaces = surfaces.lock().unwrap();
     let dims = tab.renderer().get_dimensions();
     let surface = surfaces
@@ -402,6 +403,7 @@ fn maybe_push_tab_changes(
                 tab_id,
                 sequence_no: surface.last_seq,
                 changes,
+                mouse_grabbed,
             }),
             serial: 0,
         })?;
