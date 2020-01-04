@@ -19,7 +19,9 @@ use log::debug;
 use portable_pty::{CommandBuilder, PtySize};
 use serde::{Deserialize, Serialize};
 use std::io::Cursor;
-use termwiz::surface::{Change, SequenceNo};
+use std::ops::Range;
+use term::StableRowIndex;
+use termwiz::surface::{Change, Line, SequenceNo};
 use varbincode;
 
 /// Returns the encoded length of the leb128 representation of value
@@ -229,6 +231,8 @@ pdu! {
     GetTabRenderChangesResponse: 19,
     SetClipboard: 20,
     OpenURL: 21,
+    GetLines: 22,
+    GetLinesResponse: 23,
 }
 
 impl Pdu {
@@ -404,6 +408,19 @@ pub struct GetTabRenderChangesResponse {
     pub sequence_no: SequenceNo,
     pub changes: Vec<Change>,
     pub mouse_grabbed: bool,
+}
+
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct GetLines {
+    pub tab_id: TabId,
+    pub lines: Range<StableRowIndex>,
+}
+
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct GetLinesResponse {
+    pub tab_id: TabId,
+    pub first_row: StableRowIndex,
+    pub lines: Vec<Line>,
 }
 
 #[cfg(test)]

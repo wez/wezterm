@@ -789,6 +789,22 @@ impl<S: ReadAndWrite> ClientSession<S> {
                 })
             }
 
+            Pdu::GetLines(GetLines { tab_id, lines }) => {
+                Future::with_executor(executor(), move || {
+                    let mux = Mux::get().unwrap();
+                    let tab = mux
+                        .get_tab(tab_id)
+                        .ok_or_else(|| anyhow!("no such tab {}", tab_id))?;
+                    let renderer = tab.renderer();
+                    let (first_row, lines) = renderer.get_lines(lines);
+                    Ok(Pdu::GetLinesResponse(GetLinesResponse {
+                        tab_id,
+                        first_row,
+                        lines: lines.into_iter().map(|line| line.into_owned()).collect(),
+                    }))
+                })
+            }
+
             Pdu::Invalid { .. } => Future::err(anyhow!("invalid PDU {:?}", pdu)),
             Pdu::Pong { .. }
             | Pdu::ListTabsResponse { .. }
@@ -797,6 +813,7 @@ impl<S: ReadAndWrite> ClientSession<S> {
             | Pdu::SpawnResponse { .. }
             | Pdu::GetTabRenderChangesResponse { .. }
             | Pdu::UnitResponse { .. }
+            | Pdu::GetLinesResponse { .. }
             | Pdu::ErrorResponse { .. } => {
                 Future::err(anyhow!("expected a request, got {:?}", pdu))
             }
