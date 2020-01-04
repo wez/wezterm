@@ -24,7 +24,7 @@ use term::color::ColorPalette;
 use term::selection::SelectionRange;
 use term::{
     Clipboard, KeyCode, KeyModifiers, Line, MouseButton, MouseEvent, MouseEventKind,
-    StableRowIndex, TerminalHost, VisibleRowIndex,
+    StableRowIndex, TerminalHost,
 };
 use termwiz::hyperlink::Hyperlink;
 use termwiz::input::KeyEvent;
@@ -481,8 +481,6 @@ impl Renderable for RenderableState {
             scrollback_top: 0,
         }
     }
-
-    fn set_viewport_position(&mut self, _: VisibleRowIndex) {}
 }
 
 struct TabWriter {

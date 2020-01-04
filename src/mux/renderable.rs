@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::borrow::Cow;
 use std::ops::Range;
 use std::sync::Arc;
-use term::{Line, StableRowIndex, Terminal, TerminalState, VisibleRowIndex};
+use term::{Line, StableRowIndex, Terminal, TerminalState};
 use termwiz::hyperlink::Hyperlink;
 
 /// Describes the location of the cursor
@@ -72,8 +72,6 @@ pub trait Renderable: Downcast {
 
     /// Returns render related dimensions
     fn get_dimensions(&self) -> RenderableDimensions;
-
-    fn set_viewport_position(&mut self, position: VisibleRowIndex);
 }
 impl_downcast!(Renderable);
 
@@ -135,9 +133,5 @@ impl Renderable for Terminal {
 
     fn has_dirty_lines(&self) -> bool {
         TerminalState::has_dirty_lines(self)
-    }
-
-    fn set_viewport_position(&mut self, position: VisibleRowIndex) {
-        self.set_scroll_viewport(position);
     }
 }

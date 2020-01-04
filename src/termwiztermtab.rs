@@ -26,9 +26,7 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use term::color::ColorPalette;
 use term::selection::SelectionRange;
-use term::{
-    KeyCode, KeyModifiers, Line, MouseEvent, StableRowIndex, TerminalHost, VisibleRowIndex,
-};
+use term::{KeyCode, KeyModifiers, Line, MouseEvent, StableRowIndex, TerminalHost};
 use termwiz::hyperlink::Hyperlink;
 use termwiz::input::{InputEvent, KeyEvent};
 use termwiz::lineedit::*;
@@ -166,8 +164,6 @@ impl Renderable for RenderableState {
             scrollback_top: 0,
         }
     }
-
-    fn set_viewport_position(&mut self, _: VisibleRowIndex) {}
 }
 
 struct TermWizTerminalDomain {
