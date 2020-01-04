@@ -251,7 +251,10 @@ impl HarfbuzzShaper {
 
 impl FontShaper for HarfbuzzShaper {
     fn shape(&self, text: &str, size: f64, dpi: u32) -> anyhow::Result<Vec<GlyphInfo>> {
-        self.do_shape(0, text, size, dpi)
+        let start = std::time::Instant::now();
+        let result = self.do_shape(0, text, size, dpi);
+        metrics::value!("shape.harfbuzz", start.elapsed());
+        result
     }
 
     fn metrics(&self, size: f64, dpi: u32) -> anyhow::Result<FontMetrics> {
