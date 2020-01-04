@@ -71,6 +71,12 @@ fn encode_raw<W: std::io::Write>(
     leb128::write::unsigned(&mut buffer, ident)?;
     buffer.extend_from_slice(data);
 
+    if is_compressed {
+        metrics::value!("pdu.encode.compressed.size", buffer.len() as u64);
+    } else {
+        metrics::value!("pdu.encode.size", buffer.len() as u64);
+    }
+
     w.write_all(&buffer)
 }
 
@@ -102,6 +108,13 @@ fn decode_raw<R: std::io::Read>(mut r: R) -> Result<Decoded, std::io::Error> {
     let serial = read_u64(r.by_ref())?;
     let ident = read_u64(r.by_ref())?;
     let data_len = len as usize - (encoded_length(ident) + encoded_length(serial));
+
+    if is_compressed {
+        metrics::value!("pdu.decode.compressed.size", data_len as u64);
+    } else {
+        metrics::value!("pdu.decode.size", data_len as u64);
+    }
+
     let mut data = vec![0u8; data_len];
     r.read_exact(&mut data)?;
     Ok(Decoded {

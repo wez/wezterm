@@ -47,15 +47,27 @@ impl Inner {
                 let inner = inner.lock().unwrap();
                 let mut data = vec![];
                 for (key, histogram) in &inner.histograms {
-                    let p50 = pctile_latency(histogram, 50.);
-                    let p75 = pctile_latency(histogram, 75.);
-                    let p95 = pctile_latency(histogram, 95.);
-                    data.push(vec![
-                        key.to_string(),
-                        format!("{:.2?}", p50),
-                        format!("{:.2?}", p75),
-                        format!("{:.2?}", p95),
-                    ]);
+                    if key.name().ends_with(".size") {
+                        let p50 = histogram.value_at_percentile(50.);
+                        let p75 = histogram.value_at_percentile(75.);
+                        let p95 = histogram.value_at_percentile(95.);
+                        data.push(vec![
+                            key.to_string(),
+                            format!("{:.2?}", p50),
+                            format!("{:.2?}", p75),
+                            format!("{:.2?}", p95),
+                        ]);
+                    } else {
+                        let p50 = pctile_latency(histogram, 50.);
+                        let p75 = pctile_latency(histogram, 75.);
+                        let p95 = pctile_latency(histogram, 95.);
+                        data.push(vec![
+                            key.to_string(),
+                            format!("{:.2?}", p50),
+                            format!("{:.2?}", p75),
+                            format!("{:.2?}", p95),
+                        ]);
+                    }
                 }
                 data.sort_by(|a, b| a[0].cmp(&b[0]));
                 eprintln!();
