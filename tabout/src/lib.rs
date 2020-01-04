@@ -2,6 +2,7 @@
 //! so that it is presented reasonably nicely for humans to read,
 //! without requiring that each column be hard coded to particular
 //! widths in the code beforehand.
+use termwiz::cell::unicode_column_width;
 
 /// Describes the alignment of a column
 #[derive(Debug, Clone, Copy)]
@@ -26,17 +27,18 @@ fn emit_column<W: std::io::Write>(
     alignment: Alignment,
     output: &mut W,
 ) -> Result<(), std::io::Error> {
+    let text_width = unicode_column_width(text);
     let (left_pad, right_pad) = match alignment {
-        Alignment::Left => (0, max_width - text.len()),
+        Alignment::Left => (0, max_width - text_width),
         Alignment::Center => {
-            let left_pad = (max_width - text.len()) / 2;
+            let left_pad = (max_width - text_width) / 2;
             // for odd-length columns, take care to use the remaining
             // length rather than just assuming that the right_pad
             // will have the same value as the left_pad
-            let right_pad = max_width - (text.len() + left_pad);
+            let right_pad = max_width - (text_width + left_pad);
             (left_pad, right_pad)
         }
-        Alignment::Right => (max_width - text.len(), 0),
+        Alignment::Right => (max_width - text_width, 0),
     };
 
     for _ in 0..left_pad {
@@ -67,10 +69,11 @@ pub fn tabulate_output<S: std::string::ToString, W: std::io::Write>(
     for src_row in rows {
         let dest_row: Vec<String> = src_row.iter().map(|col| col.to_string()).collect();
         for (idx, col) in dest_row.iter().enumerate() {
+            let col_width = unicode_column_width(col);
             if let Some(width) = col_widths.get_mut(idx) {
-                *width = (*width).max(col.len());
+                *width = (*width).max(col_width);
             } else {
-                col_widths.push(col.len());
+                col_widths.push(col_width);
             }
         }
         display_rows.push(dest_row);
