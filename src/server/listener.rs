@@ -740,13 +740,7 @@ impl<S: ReadAndWrite> ClientSession<S> {
                     };
                     tab.mouse_event(event, &mut host)?;
                     maybe_push_tab_changes(&surfaces, &tab, sender)?;
-
-                    let highlight = tab.renderer().current_highlight().as_ref().cloned();
-
-                    Ok(Pdu::SendMouseEventResponse(SendMouseEventResponse {
-                        selection_range: None,
-                        highlight,
-                    }))
+                    Ok(Pdu::UnitResponse(UnitResponse {}))
                 })
             }
 
@@ -798,7 +792,6 @@ impl<S: ReadAndWrite> ClientSession<S> {
             Pdu::Invalid { .. } => Future::err(anyhow!("invalid PDU {:?}", pdu)),
             Pdu::Pong { .. }
             | Pdu::ListTabsResponse { .. }
-            | Pdu::SendMouseEventResponse { .. }
             | Pdu::SetClipboard { .. }
             | Pdu::OpenURL { .. }
             | Pdu::SpawnResponse { .. }

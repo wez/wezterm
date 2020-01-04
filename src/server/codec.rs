@@ -19,9 +19,6 @@ use log::debug;
 use portable_pty::{CommandBuilder, PtySize};
 use serde::{Deserialize, Serialize};
 use std::io::Cursor;
-use std::sync::Arc;
-use term::selection::SelectionRange;
-use termwiz::hyperlink::Hyperlink;
 use termwiz::surface::{Change, SequenceNo};
 use varbincode;
 
@@ -228,7 +225,6 @@ pdu! {
     SendMouseEvent: 12,
     SendPaste: 13,
     Resize: 14,
-    SendMouseEventResponse: 17,
     GetTabRenderChanges: 18,
     GetTabRenderChangesResponse: 19,
     SetClipboard: 20,
@@ -376,12 +372,6 @@ pub struct SendKeyDown {
 pub struct SendMouseEvent {
     pub tab_id: TabId,
     pub event: term::input::MouseEvent,
-}
-
-#[derive(Deserialize, Serialize, PartialEq, Debug)]
-pub struct SendMouseEventResponse {
-    pub selection_range: Option<SelectionRange>,
-    pub highlight: Option<Arc<Hyperlink>>,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]

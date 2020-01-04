@@ -33,9 +33,7 @@ use termwiz::surface::{Change, SequenceNo, Surface};
 struct MouseState {
     future: Option<Future<()>>,
     queue: VecDeque<MouseEvent>,
-    selection_range: Arc<Mutex<Option<SelectionRange>>>,
     something_changed: Arc<AtomicBool>,
-    highlight: Arc<Mutex<Option<Arc<Hyperlink>>>>,
     client: Client,
     remote_tab_id: TabId,
 }
@@ -98,9 +96,7 @@ impl MouseState {
     fn next(state: &Arc<Mutex<Self>>) -> anyhow::Result<()> {
         let mut mouse = state.lock().unwrap();
         if let Some(event) = mouse.pop()? {
-            let selection_range = Arc::clone(&mouse.selection_range);
             let something_changed = Arc::clone(&mouse.something_changed);
-            let highlight = Arc::clone(&mouse.highlight);
             let state = Arc::clone(state);
 
             mouse.future = Some(
@@ -111,9 +107,7 @@ impl MouseState {
                         event,
                     })
                     .then(move |resp| {
-                        if let Ok(r) = resp.as_ref() {
-                            *selection_range.lock().unwrap() = r.selection_range;
-                            *highlight.lock().unwrap() = r.highlight.clone();
+                        if let Ok(_) = resp.as_ref() {
                             something_changed.store(true, Ordering::SeqCst);
                         }
                         Future::with_executor(executor(), move || {
@@ -152,9 +146,7 @@ impl ClientTab {
         let highlight = Arc::new(Mutex::new(None));
 
         let mouse = Arc::new(Mutex::new(MouseState {
-            selection_range: Arc::clone(&selection_range),
             something_changed: Arc::clone(&something_changed),
-            highlight: Arc::clone(&highlight),
             remote_tab_id,
             client: client.client.clone(),
             future: None,
