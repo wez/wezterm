@@ -2462,6 +2462,15 @@ impl TermWindow {
         event: &MouseEvent,
         context: &dyn WindowOps,
     ) {
+        // TODO: track current_highlight for ourselves
+        context.set_cursor(Some(if tab.renderer().current_highlight().is_some() {
+            // When hovering over a hyperlink, show an appropriate
+            // mouse cursor to give the cue that it is clickable
+            MouseCursor::Hand
+        } else {
+            MouseCursor::Text
+        }));
+
         if !tab.is_mouse_grabbed() || event.modifiers == Modifiers::SHIFT {
             let dims = tab.renderer().get_dimensions();
             let stable_row = dims.physical_top + y as StableRowIndex;
@@ -2521,6 +2530,8 @@ impl TermWindow {
                         .as_ref()
                         .unwrap()
                         .set_clipboard(self.selection_text(&tab));
+                    tab.renderer().make_all_lines_dirty();
+                    context.invalidate();
                 }
 
                 // Dragging left mouse button
@@ -2631,15 +2642,6 @@ impl TermWindow {
                 context.invalidate();
             }
         }
-
-        // TODO: track current_highlight for ourselves
-        context.set_cursor(Some(if tab.renderer().current_highlight().is_some() {
-            // When hovering over a hyperlink, show an appropriate
-            // mouse cursor to give the cue that it is clickable
-            MouseCursor::Hand
-        } else {
-            MouseCursor::Text
-        }));
     }
 }
 
