@@ -161,7 +161,7 @@ impl Renderable for RenderableState {
         RenderableDimensions {
             viewport_rows,
             cols,
-            scrollback_rows: 0,
+            scrollback_rows: viewport_rows,
             physical_top: 0,
             scrollback_top: 0,
         }
