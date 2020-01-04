@@ -5,6 +5,7 @@ use core_foundation::runloop::*;
 use promise::{BasicExecutor, SpawnFunc};
 use std::collections::VecDeque;
 use std::sync::{Arc, Mutex};
+use std::time::Instant;
 #[cfg(all(unix, not(target_os = "macos")))]
 use {
     filedescriptor::{FileDescriptor, Pipe},
@@ -17,9 +18,14 @@ lazy_static::lazy_static! {
     pub(crate) static ref SPAWN_QUEUE: Arc<SpawnQueue> = Arc::new(SpawnQueue::new().expect("failed to create SpawnQueue"));
 }
 
+struct InstrumentedSpawnFunc {
+    func: SpawnFunc,
+    at: Instant,
+}
+
 pub(crate) struct SpawnQueue {
-    spawned_funcs: Mutex<VecDeque<SpawnFunc>>,
-    spawned_funcs_low_pri: Mutex<VecDeque<SpawnFunc>>,
+    spawned_funcs: Mutex<VecDeque<InstrumentedSpawnFunc>>,
+    spawned_funcs_low_pri: Mutex<VecDeque<InstrumentedSpawnFunc>>,
 
     #[cfg(windows)]
     pub event_handle: EventHandle,
@@ -48,13 +54,21 @@ impl SpawnQueue {
     // returned function
     fn pop_func(&self) -> Option<SpawnFunc> {
         if let Some(func) = self.spawned_funcs.lock().unwrap().pop_front() {
-            Some(func)
+            metrics::value!("executor.spawn_delay", func.at.elapsed());
+            Some(func.func)
+        } else if let Some(func) = self.spawned_funcs_low_pri.lock().unwrap().pop_front() {
+            metrics::value!("executor.spawn_delay.low_pri", func.at.elapsed());
+            Some(func.func)
         } else {
-            self.spawned_funcs_low_pri.lock().unwrap().pop_front()
+            None
         }
     }
 
     fn queue_func(&self, f: SpawnFunc, high_pri: bool) {
+        let f = InstrumentedSpawnFunc {
+            func: f,
+            at: Instant::now(),
+        };
         if high_pri {
             self.spawned_funcs.lock().unwrap()
         } else {
