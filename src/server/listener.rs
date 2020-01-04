@@ -742,7 +742,7 @@ impl<S: ReadAndWrite> ClientSession<S> {
                     let highlight = tab.renderer().current_highlight().as_ref().cloned();
 
                     Ok(Pdu::SendMouseEventResponse(SendMouseEventResponse {
-                        selection_range: tab.selection_range(),
+                        selection_range: None,
                         highlight,
                     }))
                 })

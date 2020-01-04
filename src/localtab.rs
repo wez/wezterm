@@ -6,7 +6,6 @@ use portable_pty::{Child, MasterPty, PtySize};
 use std::cell::{RefCell, RefMut};
 use std::sync::Arc;
 use term::color::ColorPalette;
-use term::selection::SelectionRange;
 use term::{Clipboard, KeyCode, KeyModifiers, MouseEvent, Terminal, TerminalHost};
 
 pub struct LocalTab {
@@ -89,19 +88,6 @@ impl Tab for LocalTab {
 
     fn domain_id(&self) -> DomainId {
         self.domain_id
-    }
-
-    fn selection_range(&self) -> Option<SelectionRange> {
-        let terminal = self.terminal.borrow();
-        let rows = terminal.screen().physical_rows;
-        terminal
-            .selection_range()
-            .map(|r| r.clip_to_viewport(terminal.get_viewport_offset(), rows))
-    }
-
-    fn selection_text(&self) -> Option<String> {
-        let terminal = self.terminal.borrow();
-        Some(terminal.get_selection_text())
     }
 
     fn is_mouse_grabbed(&self) -> bool {

@@ -316,22 +316,6 @@ impl Tab for TermWizTerminalTab {
         self.domain_id
     }
 
-    fn selection_range(&self) -> Option<SelectionRange> {
-        *self
-            .renderable
-            .borrow()
-            .inner
-            .borrow()
-            .selection_range
-            .lock()
-            .unwrap()
-    }
-
-    fn selection_text(&self) -> Option<String> {
-        // FIXME: grab it from the surface
-        None
-    }
-
     fn is_mouse_grabbed(&self) -> bool {
         true
     }

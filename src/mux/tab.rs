@@ -7,7 +7,6 @@ use portable_pty::PtySize;
 use std::cell::RefMut;
 use std::sync::{Arc, Mutex};
 use term::color::ColorPalette;
-use term::selection::SelectionRange;
 use term::{Clipboard, KeyCode, KeyModifiers, MouseEvent, TerminalHost};
 
 static TAB_ID: ::std::sync::atomic::AtomicUsize = ::std::sync::atomic::AtomicUsize::new(0);
@@ -69,12 +68,6 @@ pub trait Tab: Downcast {
     fn is_mouse_grabbed(&self) -> bool;
 
     fn set_clipboard(&self, _clipboard: &Arc<dyn Clipboard>) {}
-
-    /// Returns the selection range adjusted to the viewport
-    /// (eg: it has been normalized and had clip_to_viewport called
-    /// on it prior to being returned)
-    fn selection_range(&self) -> Option<SelectionRange>;
-    fn selection_text(&self) -> Option<String>;
 
     fn trickle_paste(&self, text: String) -> anyhow::Result<()> {
         if text.len() <= PASTE_CHUNK_SIZE {

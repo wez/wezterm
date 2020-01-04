@@ -317,22 +317,6 @@ impl Tab for ClientTab {
         self.client.local_domain_id
     }
 
-    fn selection_range(&self) -> Option<SelectionRange> {
-        *self
-            .renderable
-            .borrow()
-            .inner
-            .borrow()
-            .selection_range
-            .lock()
-            .unwrap()
-    }
-
-    fn selection_text(&self) -> Option<String> {
-        // FIXME: get selection from peer or the surface
-        None
-    }
-
     fn is_mouse_grabbed(&self) -> bool {
         // FIXME: get the real state from the remote
         true
