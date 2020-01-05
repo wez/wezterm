@@ -14,7 +14,7 @@ use log::{error, info};
 use lru::LruCache;
 use portable_pty::PtySize;
 use promise::{BrokenPromise, Future};
-use rangeset::RangeSet;
+use rangeset::*;
 use std::cell::RefCell;
 use std::cell::RefMut;
 use std::collections::VecDeque;
@@ -155,6 +155,7 @@ impl ClientTab {
                 highlight,
                 cursor_position: StableCursorPosition::default(),
                 dirty_rows: RangeSet::new(),
+                fetch_pending: RangeSet::new(),
                 dimensions: RenderableDimensions {
                     cols: size.cols as _,
                     viewport_rows: size.rows as _,
@@ -319,6 +320,7 @@ struct RenderableInner {
     highlight: Arc<Mutex<Option<Arc<Hyperlink>>>>,
 
     dirty_rows: RangeSet<StableRowIndex>,
+    fetch_pending: RangeSet<StableRowIndex>,
     cursor_position: StableCursorPosition,
     dimensions: RenderableDimensions,
 
@@ -348,28 +350,50 @@ impl RenderableInner {
                 // so that we'll fetch it on demand later.
                 if idx >= delta.dimensions.physical_top {
                     to_fetch.start = to_fetch.start.min(idx);
-                    to_fetch.end = to_fetch.end.max(idx);
+                    to_fetch.end = to_fetch.end.max(idx + 1);
                 } else {
                     self.lines.pop(&idx);
                 }
             }
         }
 
-        self.fetch_lines(to_fetch);
-
         if delta.cursor_position != self.cursor_position {
             self.dirty_rows.add(self.cursor_position.y);
             self.dirty_rows.add(delta.cursor_position.y);
+            log::error!(
+                "cursor move, so dirty {} and {}. to_fetch is {:?}",
+                self.cursor_position.y,
+                delta.cursor_position.y,
+                to_fetch
+            );
+
+            to_fetch = range_union(
+                to_fetch.clone(),
+                delta.cursor_position.y..delta.cursor_position.y + 1,
+            );
         }
         self.cursor_position = delta.cursor_position;
         self.dimensions = delta.dimensions;
         self.title = delta.title;
+
+        self.fetch_lines(to_fetch);
     }
 
     fn fetch_lines(&mut self, to_fetch: Range<StableRowIndex>) {
         if to_fetch.start == to_fetch.end {
             return;
         }
+
+        let mut fetch_pending = RangeSet::new();
+        fetch_pending.add_range(to_fetch.clone());
+        fetch_pending.remove_set(&self.fetch_pending);
+
+        if fetch_pending.is_empty() {
+            return;
+        }
+
+        self.fetch_pending.add_range(to_fetch.clone());
+
         let local_tab_id = self.local_tab_id;
         log::error!(
             "will fetch lines {:?} for remote tab id {}",
@@ -398,6 +422,7 @@ impl RenderableInner {
                                     let stable_row = result.first_row + idx as StableRowIndex;
                                     inner.lines.put(stable_row, line);
                                     inner.dirty_rows.add(stable_row);
+                                    inner.fetch_pending.remove(stable_row);
                                 }
                             }
                             Ok(())
@@ -463,8 +488,7 @@ impl Renderable for RenderableState {
                     inner.dirty_rows.remove(idx);
                 }
                 None => {
-                    to_fetch.start = to_fetch.start.min(idx);
-                    to_fetch.end = to_fetch.end.max(idx + 1);
+                    to_fetch = range_union(to_fetch, idx..idx + 1);
                     result.push(Line::with_width(inner.dimensions.cols));
                 }
             }

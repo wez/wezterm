@@ -311,8 +311,13 @@ impl Reconnectable {
 
         let mut chan = sess.channel_session()?;
         let cmd = if initial {
-            "/home/wez/wez-personal/wezterm/target/debug/wezterm cli proxy"
-        //"wezterm cli proxy"
+            if false {
+                "wezterm cli proxy"
+            } else if cfg!(debug_assertions) {
+                "/home/wez/wez-personal/wezterm/target/debug/wezterm cli proxy"
+            } else {
+                "/home/wez/wez-personal/wezterm/target/release/wezterm cli proxy"
+            }
         } else {
             "wezterm cli --no-auto-start proxy"
         };

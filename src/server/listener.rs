@@ -15,14 +15,14 @@ use native_tls::Identity;
 use portable_pty::PtySize;
 use promise::Future;
 use rangeset::RangeSet;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::convert::TryFrom;
 use std::fs::remove_file;
 use std::io::Read;
 use std::net::TcpListener;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::thread;
 use std::time::Instant;
 use term::terminal::Clipboard;
@@ -375,24 +375,18 @@ mod ossl {
 
 pub struct ClientSession<S: ReadAndWrite> {
     stream: S,
-    surfaces_by_tab: Arc<Mutex<HashMap<TabId, ClientSurfaceState>>>,
     to_write_rx: PollableReceiver<DecodedPdu>,
     to_write_tx: PollableSender<DecodedPdu>,
     mux_rx: MuxSubscriber,
 }
 
 fn maybe_push_tab_changes(
-    surfaces: &Arc<Mutex<HashMap<TabId, ClientSurfaceState>>>,
     tab: &Rc<dyn Tab>,
     sender: PollableSender<DecodedPdu>,
 ) -> anyhow::Result<()> {
     let tab_id = tab.tab_id();
     let mouse_grabbed = tab.is_mouse_grabbed();
-    let mut surfaces = surfaces.lock().unwrap();
     let dims = tab.renderer().get_dimensions();
-    let surface = surfaces
-        .entry(tab_id)
-        .or_insert_with(|| ClientSurfaceState::new());
 
     let mut dirty_rows = RangeSet::new();
     for idx in tab.renderer().get_dirty_lines(
@@ -401,9 +395,7 @@ fn maybe_push_tab_changes(
         dirty_rows.add(idx);
     }
 
-    let dirty_delta = dirty_rows.difference(&surface.informed_dirty_rows);
-    let dirty_lines = dirty_delta.iter().cloned().collect();
-    surface.informed_dirty_rows.add_set(&dirty_rows);
+    let dirty_lines = dirty_rows.iter().cloned().collect();
 
     let cursor_position = tab.renderer().get_cursor_position();
 
@@ -421,23 +413,6 @@ fn maybe_push_tab_changes(
         serial: 0,
     })?;
     Ok(())
-}
-
-struct ClientSurfaceState {
-    /// The set of rows that we have informed the peer are dirty.
-    /// We'll remove a row from here each time the peer requests
-    /// the corresponding line.
-    /// We use this to determine the delta when additional rows
-    /// are dirty.
-    informed_dirty_rows: RangeSet<StableRowIndex>,
-}
-
-impl ClientSurfaceState {
-    fn new() -> Self {
-        Self {
-            informed_dirty_rows: RangeSet::new(),
-        }
-    }
 }
 
 struct RemoteClipboard {
@@ -499,7 +474,6 @@ impl<S: ReadAndWrite> ClientSession<S> {
         let mux_rx = mux.subscribe().expect("Mux::subscribe to succeed");
         Self {
             stream,
-            surfaces_by_tab: Arc::new(Mutex::new(HashMap::new())),
             to_write_rx,
             to_write_tx,
             mux_rx,
@@ -539,14 +513,13 @@ impl<S: ReadAndWrite> ClientSession<S> {
                 };
 
                 for tab_id in tabs_to_output.drain() {
-                    let surfaces = Arc::clone(&self.surfaces_by_tab);
                     let sender = self.to_write_tx.clone();
                     Future::with_executor(executor(), move || {
                         let mux = Mux::get().unwrap();
                         let tab = mux
                             .get_tab(tab_id)
                             .ok_or_else(|| anyhow!("no such tab {}", tab_id))?;
-                        maybe_push_tab_changes(&surfaces, &tab, sender)?;
+                        maybe_push_tab_changes(&tab, sender)?;
                         Ok(())
                     });
                 }
@@ -619,7 +592,6 @@ impl<S: ReadAndWrite> ClientSession<S> {
             }),
 
             Pdu::WriteToTab(WriteToTab { tab_id, data }) => {
-                let surfaces = Arc::clone(&self.surfaces_by_tab);
                 let sender = self.to_write_tx.clone();
                 Future::with_executor(executor(), move || {
                     let mux = Mux::get().unwrap();
@@ -627,12 +599,11 @@ impl<S: ReadAndWrite> ClientSession<S> {
                         .get_tab(tab_id)
                         .ok_or_else(|| anyhow!("no such tab {}", tab_id))?;
                     tab.writer().write_all(&data)?;
-                    maybe_push_tab_changes(&surfaces, &tab, sender)?;
+                    maybe_push_tab_changes(&tab, sender)?;
                     Ok(Pdu::UnitResponse(UnitResponse {}))
                 })
             }
             Pdu::SendPaste(SendPaste { tab_id, data }) => {
-                let surfaces = Arc::clone(&self.surfaces_by_tab);
                 let sender = self.to_write_tx.clone();
                 Future::with_executor(executor(), move || {
                     let mux = Mux::get().unwrap();
@@ -640,7 +611,7 @@ impl<S: ReadAndWrite> ClientSession<S> {
                         .get_tab(tab_id)
                         .ok_or_else(|| anyhow!("no such tab {}", tab_id))?;
                     tab.send_paste(&data)?;
-                    maybe_push_tab_changes(&surfaces, &tab, sender)?;
+                    maybe_push_tab_changes(&tab, sender)?;
                     Ok(Pdu::UnitResponse(UnitResponse {}))
                 })
             }
@@ -655,7 +626,6 @@ impl<S: ReadAndWrite> ClientSession<S> {
             }),
 
             Pdu::SendKeyDown(SendKeyDown { tab_id, event }) => {
-                let surfaces = Arc::clone(&self.surfaces_by_tab);
                 let sender = self.to_write_tx.clone();
                 Future::with_executor(executor(), move || {
                     let mux = Mux::get().unwrap();
@@ -663,12 +633,11 @@ impl<S: ReadAndWrite> ClientSession<S> {
                         .get_tab(tab_id)
                         .ok_or_else(|| anyhow!("no such tab {}", tab_id))?;
                     tab.key_down(event.key, event.modifiers)?;
-                    maybe_push_tab_changes(&surfaces, &tab, sender)?;
+                    maybe_push_tab_changes(&tab, sender)?;
                     Ok(Pdu::UnitResponse(UnitResponse {}))
                 })
             }
             Pdu::SendMouseEvent(SendMouseEvent { tab_id, event }) => {
-                let surfaces = Arc::clone(&self.surfaces_by_tab);
                 let sender = self.to_write_tx.clone();
                 Future::with_executor(executor(), move || {
                     let mux = Mux::get().unwrap();
@@ -682,7 +651,7 @@ impl<S: ReadAndWrite> ClientSession<S> {
                         sender: sender.clone(),
                     };
                     tab.mouse_event(event, &mut host)?;
-                    maybe_push_tab_changes(&surfaces, &tab, sender)?;
+                    maybe_push_tab_changes(&tab, sender)?;
                     Ok(Pdu::UnitResponse(UnitResponse {}))
                 })
             }
@@ -720,37 +689,26 @@ impl<S: ReadAndWrite> ClientSession<S> {
             }),
 
             Pdu::GetTabRenderChanges(GetTabRenderChanges { tab_id, .. }) => {
-                let surfaces = Arc::clone(&self.surfaces_by_tab);
                 let sender = self.to_write_tx.clone();
                 Future::with_executor(executor(), move || {
                     let mux = Mux::get().unwrap();
                     let tab = mux
                         .get_tab(tab_id)
                         .ok_or_else(|| anyhow!("no such tab {}", tab_id))?;
-                    maybe_push_tab_changes(&surfaces, &tab, sender)?;
+                    maybe_push_tab_changes(&tab, sender)?;
                     Ok(Pdu::UnitResponse(UnitResponse {}))
                 })
             }
 
             Pdu::GetLines(GetLines { tab_id, lines }) => {
-                let surfaces = Arc::clone(&self.surfaces_by_tab);
                 Future::with_executor(executor(), move || {
-                    let mut surfaces = surfaces.lock().unwrap();
                     let mux = Mux::get().unwrap();
                     let tab = mux
                         .get_tab(tab_id)
                         .ok_or_else(|| anyhow!("no such tab {}", tab_id))?;
                     let mut renderer = tab.renderer();
 
-                    let surface = surfaces
-                        .entry(tab_id)
-                        .or_insert_with(|| ClientSurfaceState::new());
-
-                    surface.informed_dirty_rows.remove_range(lines.clone());
                     let (first_row, lines) = renderer.get_lines(lines);
-                    surface
-                        .informed_dirty_rows
-                        .remove_range(first_row..first_row + lines.len() as StableRowIndex);
                     Ok(Pdu::GetLinesResponse(GetLinesResponse {
                         tab_id,
                         first_row,

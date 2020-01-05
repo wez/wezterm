@@ -11,12 +11,12 @@ pub struct RangeSet<T: Integer + Copy> {
     ranges: Vec<Range<T>>,
 }
 
-fn range_is_empty<T: Integer>(range: &Range<T>) -> bool {
+pub fn range_is_empty<T: Integer>(range: &Range<T>) -> bool {
     range.start == range.end
 }
 
 /// Returns true if r1 intersects r2
-fn intersects_range<T: Integer + Copy + Debug>(r1: &Range<T>, r2: &Range<T>) -> bool {
+pub fn intersects_range<T: Integer + Copy + Debug>(r1: &Range<T>, r2: &Range<T>) -> bool {
     let start = max(r1.start, r2.start);
     let end = min(r1.end, r2.end);
 
@@ -24,7 +24,10 @@ fn intersects_range<T: Integer + Copy + Debug>(r1: &Range<T>, r2: &Range<T>) -> 
 }
 
 /// Computes the intersection of r1 and r2
-fn range_intersection<T: Integer + Copy + Debug>(r1: &Range<T>, r2: &Range<T>) -> Option<Range<T>> {
+pub fn range_intersection<T: Integer + Copy + Debug>(
+    r1: &Range<T>,
+    r2: &Range<T>,
+) -> Option<Range<T>> {
     let start = max(r1.start, r2.start);
     let end = min(r1.end, r2.end);
 
@@ -36,7 +39,7 @@ fn range_intersection<T: Integer + Copy + Debug>(r1: &Range<T>, r2: &Range<T>) -
 }
 
 /// Computes the r1 - r2, which may result in up to two non-overlapping ranges.
-fn range_subtract<T: Integer + Copy + Debug>(
+pub fn range_subtract<T: Integer + Copy + Debug>(
     r1: &Range<T>,
     r2: &Range<T>,
 ) -> (Option<Range<T>>, Option<Range<T>>) {
@@ -68,10 +71,16 @@ fn range_subtract<T: Integer + Copy + Debug>(
 }
 
 /// Merge two ranges to produce their union
-fn range_union<T: Integer>(r1: Range<T>, r2: Range<T>) -> Range<T> {
-    let start = r1.start.min(r2.start);
-    let end = r1.end.max(r2.end);
-    start..end
+pub fn range_union<T: Integer>(r1: Range<T>, r2: Range<T>) -> Range<T> {
+    if range_is_empty(&r1) {
+        r2
+    } else if range_is_empty(&r2) {
+        r1
+    } else {
+        let start = r1.start.min(r2.start);
+        let end = r1.end.max(r2.end);
+        start..end
+    }
 }
 
 impl<T: Integer + Copy + Debug> RangeSet<T> {
