@@ -401,9 +401,11 @@ impl RenderableInner {
                             if let Some(client_tab) = tab.downcast_ref::<ClientTab>() {
                                 let renderable = client_tab.renderable.borrow_mut();
                                 let mut inner = renderable.inner.borrow_mut();
-                                log::trace!("got {} lines", result.lines.len());
                                 let config = configuration();
-                                for (stable_row, mut line) in result.lines.into_iter() {
+                                let lines = result.lines();
+                                log::trace!("got {} lines", lines.len());
+
+                                for (stable_row, mut line) in lines.into_iter() {
                                     line.scan_and_create_hyperlinks(&config.hyperlink_rules);
                                     inner.lines.put(stable_row, line);
                                     inner.dirty_rows.add(stable_row);

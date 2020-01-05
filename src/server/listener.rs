@@ -717,10 +717,10 @@ impl<S: ReadAndWrite> ClientSession<S> {
                             lines_and_indices.push((stable_row, line));
                         }
                     }
-                    Ok(Pdu::GetLinesResponse(GetLinesResponse {
+                    Ok(Pdu::GetLinesResponse(GetLinesResponse::new(
                         tab_id,
-                        lines: lines_and_indices,
-                    }))
+                        lines_and_indices,
+                    )))
                 })
             }
 

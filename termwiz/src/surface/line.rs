@@ -348,6 +348,14 @@ impl Line {
         &self.cells
     }
 
+    /// mutable access the cell data, but the caller must take care
+    /// to only mutate attributes rather than the cell textual content.
+    /// Use set_cell if you need to modify the textual content of the
+    /// cell, so that important invariants are upheld.
+    pub fn cells_mut_for_attr_changes_only(&mut self) -> &mut [Cell] {
+        &mut self.cells
+    }
+
     /// Given a starting attribute value, produce a series of Change
     /// entries to recreate the current line
     pub fn changes(&self, start_attr: &CellAttributes) -> Vec<Change> {
