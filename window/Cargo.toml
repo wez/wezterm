@@ -50,7 +50,8 @@ clipboard-win = "2.2"
 filedescriptor = "0.6"
 x11 = {version ="2.18", features = ["xlib_xcb"]}
 xcb = "0.8"
-xcb-util = { features = [ "icccm", "ewmh", "keysyms", "shm"], version = "0.2" }
+# See: https://github.com/meh/rust-xcb-util/issues/12
+xcb-util = { features = [ "icccm", "ewmh", "keysyms", "shm"], version = "=0.2.1" }
 xkbcommon = { version = "0.4", features = ["x11"] }
 mio = "0.6"
 mio-extras = "2.0"
