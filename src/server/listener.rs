@@ -1,10 +1,8 @@
 use crate::config::{configuration, TlsDomainServer, UnixDomain};
 use crate::create_user_owned_dirs;
 use crate::frontend::executor;
-use crate::mux::renderable::{RenderableDimensions, StableCursorPosition};
 use crate::mux::tab::{Tab, TabId};
 use crate::mux::{Mux, MuxNotification, MuxSubscriber};
-use crate::ratelim::RateLimiter;
 use crate::server::codec::*;
 use crate::server::pollable::*;
 use crate::server::UnixListener;
@@ -29,7 +27,6 @@ use std::thread;
 use std::time::Instant;
 use term::terminal::Clipboard;
 use term::StableRowIndex;
-use termwiz::surface::{Change, Position, SequenceNo, Surface};
 
 struct LocalListener {
     listener: UnixListener,
@@ -395,8 +392,7 @@ fn maybe_push_tab_changes(
     let dims = tab.renderer().get_dimensions();
     let surface = surfaces
         .entry(tab_id)
-        .or_insert_with(|| ClientSurfaceState::new(dims.cols, dims.viewport_rows));
-    surface.update_surface_from_screen(&tab);
+        .or_insert_with(|| ClientSurfaceState::new());
 
     let mut dirty_rows = RangeSet::new();
     for idx in tab.renderer().get_dirty_lines(
@@ -406,135 +402,41 @@ fn maybe_push_tab_changes(
     }
 
     let dirty_delta = dirty_rows.difference(&surface.informed_dirty_rows);
-    let dirty_lines = dirty_delta
-        .iter()
-        .map(|r| LineRange {
-            start: r.start,
-            end: r.end,
-        })
-        .collect();
+    let dirty_lines = dirty_delta.iter().cloned().collect();
     surface.informed_dirty_rows.add_set(&dirty_rows);
 
     let cursor_position = tab.renderer().get_cursor_position();
 
-    let (new_seq, changes) = surface.get_and_flush_changes(surface.last_seq);
-    if !changes.is_empty() {
-        sender.send(DecodedPdu {
-            pdu: Pdu::GetTabRenderChangesResponse(GetTabRenderChangesResponse {
-                tab_id,
-                sequence_no: surface.last_seq,
-                changes,
-                mouse_grabbed,
-                dirty_lines,
-                dimensions: dims,
-                cursor_position,
-            }),
-            serial: 0,
-        })?;
-        surface.last_seq = new_seq;
-    }
+    let title = tab.get_title();
+
+    sender.send(DecodedPdu {
+        pdu: Pdu::GetTabRenderChangesResponse(GetTabRenderChangesResponse {
+            tab_id,
+            mouse_grabbed,
+            dirty_lines,
+            dimensions: dims,
+            cursor_position,
+            title,
+        }),
+        serial: 0,
+    })?;
     Ok(())
 }
 
 struct ClientSurfaceState {
-    surface: Surface,
-    last_seq: SequenceNo,
-    push_limiter: RateLimiter,
-    update_limiter: RateLimiter,
-
     /// The set of rows that we have informed the peer are dirty.
     /// We'll remove a row from here each time the peer requests
     /// the corresponding line.
     /// We use this to determine the delta when additional rows
     /// are dirty.
     informed_dirty_rows: RangeSet<StableRowIndex>,
-
-    /// The cursor position that we last sent to the peer
-    cursor_position: StableCursorPosition,
-
-    /// The dimensions that we last sent to the peer
-    dimensions: RenderableDimensions,
 }
 
 impl ClientSurfaceState {
-    fn new(cols: usize, rows: usize) -> Self {
-        let push_limiter = RateLimiter::new(|config| config.ratelimit_mux_output_pushes_per_second);
-        let update_limiter =
-            RateLimiter::new(|config| config.ratelimit_mux_output_scans_per_second);
-        let surface = Surface::new(cols, rows);
+    fn new() -> Self {
         Self {
-            surface,
-            last_seq: 0,
-            push_limiter,
-            update_limiter,
             informed_dirty_rows: RangeSet::new(),
-            cursor_position: StableCursorPosition::default(),
-            dimensions: RenderableDimensions::default(),
         }
-    }
-
-    fn update_surface_from_screen(&mut self, tab: &Rc<dyn Tab>) {
-        if !self.update_limiter.non_blocking_admittance_check(1) {
-            return;
-        }
-
-        {
-            let renderable = tab.renderer();
-            let dims = renderable.get_dimensions();
-            let (surface_width, surface_height) = self.surface.dimensions();
-
-            if (dims.viewport_rows != surface_height) || (dims.cols != surface_width) {
-                self.surface.resize(dims.cols, dims.viewport_rows);
-            }
-
-            let (x, y) = self.surface.cursor_position();
-            let cursor = renderable.get_cursor_position();
-            if (x != cursor.x) || (y as StableRowIndex != cursor.y) {
-                // Update the cursor, but if we're scrolled back
-                // and it is our of range, skip the update.
-                if cursor.y < dims.viewport_rows as StableRowIndex {
-                    self.surface.add_change(Change::CursorPosition {
-                        x: Position::Absolute(cursor.x),
-                        y: Position::Absolute(cursor.y as usize),
-                    });
-                }
-            }
-
-            todo!();
-            /*
-            let mut changes = vec![];
-            for (line_idx, line, _selrange) in renderable.get_dirty_lines() {
-                changes.append(&mut self.surface.diff_against_numbered_line(line_idx, &line));
-            }
-
-            self.surface.add_changes(changes);
-            */
-        }
-
-        let title = tab.get_title();
-        if title != self.surface.title() {
-            self.surface.add_change(Change::Title(title));
-        }
-    }
-
-    fn get_and_flush_changes(&mut self, seq: SequenceNo) -> (SequenceNo, Vec<Change>) {
-        let (new_seq, changes) = self.surface.get_changes(seq);
-
-        if !changes.is_empty() && !self.push_limiter.non_blocking_admittance_check(1) {
-            // Pretend that there are no changes
-            return (seq, vec![]);
-        }
-
-        let changes = changes.into_owned();
-        let (rows, cols) = self.surface.dimensions();
-
-        // Keep the change log in the surface bounded;
-        // we don't completely blow away the log each time
-        // so that multiple clients have an opportunity to
-        // resync from a smaller delta
-        self.surface
-            .flush_changes_older_than(new_seq.saturating_sub(rows * cols * 2));
-        (new_seq, changes)
     }
 }
 
@@ -839,9 +741,11 @@ impl<S: ReadAndWrite> ClientSession<S> {
                         .get_tab(tab_id)
                         .ok_or_else(|| anyhow!("no such tab {}", tab_id))?;
                     let mut renderer = tab.renderer();
+
                     let surface = surfaces
-                        .get_mut(&tab_id)
-                        .ok_or_else(|| anyhow!("no surface for tab {}", tab_id))?;
+                        .entry(tab_id)
+                        .or_insert_with(|| ClientSurfaceState::new());
+
                     surface.informed_dirty_rows.remove_range(lines.clone());
                     let (first_row, lines) = renderer.get_lines(lines);
                     surface

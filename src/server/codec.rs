@@ -22,7 +22,7 @@ use serde::{Deserialize, Serialize};
 use std::io::Cursor;
 use std::ops::Range;
 use term::StableRowIndex;
-use termwiz::surface::{Change, Line, SequenceNo};
+use termwiz::surface::Line;
 use varbincode;
 
 /// Returns the encoded length of the leb128 representation of value
@@ -413,24 +413,16 @@ pub struct Resize {
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
 pub struct GetTabRenderChanges {
     pub tab_id: TabId,
-    pub sequence_no: SequenceNo,
-}
-
-#[derive(Deserialize, Serialize, PartialEq, Debug)]
-pub struct LineRange {
-    pub start: StableRowIndex,
-    pub end: StableRowIndex,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
 pub struct GetTabRenderChangesResponse {
     pub tab_id: TabId,
-    pub sequence_no: SequenceNo,
-    pub changes: Vec<Change>,
     pub mouse_grabbed: bool,
     pub cursor_position: StableCursorPosition,
     pub dimensions: RenderableDimensions,
-    pub dirty_lines: Vec<LineRange>,
+    pub dirty_lines: Vec<Range<StableRowIndex>>,
+    pub title: String,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]

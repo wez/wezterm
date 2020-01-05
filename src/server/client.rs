@@ -311,8 +311,8 @@ impl Reconnectable {
 
         let mut chan = sess.channel_session()?;
         let cmd = if initial {
-            // "/home/wez/wez-personal/wezterm/target/debug/wezterm cli proxy"
-            "wezterm cli proxy"
+            "/home/wez/wez-personal/wezterm/target/debug/wezterm cli proxy"
+        //"wezterm cli proxy"
         } else {
             "wezterm cli --no-auto-start proxy"
         };
@@ -622,4 +622,5 @@ impl Client {
     rpc!(mouse_event, SendMouseEvent, UnitResponse);
     rpc!(resize, Resize, UnitResponse);
     rpc!(get_tab_render_changes, GetTabRenderChanges, UnitResponse);
+    rpc!(get_lines, GetLines, GetLinesResponse);
 }

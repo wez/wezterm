@@ -3,21 +3,22 @@ use crate::frontend::executor;
 use crate::mux::domain::DomainId;
 use crate::mux::renderable::{Renderable, RenderableDimensions, StableCursorPosition};
 use crate::mux::tab::{alloc_tab_id, Tab, TabId};
+use crate::mux::Mux;
 use crate::server::client::Client;
 use crate::server::codec::*;
 use crate::server::domain::ClientInner;
+use anyhow::anyhow;
 use anyhow::bail;
 use filedescriptor::Pipe;
 use log::{error, info};
+use lru::LruCache;
 use portable_pty::PtySize;
 use promise::{BrokenPromise, Future};
 use rangeset::RangeSet;
 use std::cell::RefCell;
 use std::cell::RefMut;
 use std::collections::VecDeque;
-use std::convert::TryInto;
 use std::ops::Range;
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use term::color::ColorPalette;
@@ -27,12 +28,10 @@ use term::{
 };
 use termwiz::hyperlink::Hyperlink;
 use termwiz::input::KeyEvent;
-use termwiz::surface::{SequenceNo, Surface};
 
 struct MouseState {
     future: Option<Future<()>>,
     queue: VecDeque<MouseEvent>,
-    something_changed: Arc<AtomicBool>,
     client: Client,
     remote_tab_id: TabId,
 }
@@ -95,7 +94,6 @@ impl MouseState {
     fn next(state: &Arc<Mutex<Self>>) -> anyhow::Result<()> {
         let mut mouse = state.lock().unwrap();
         if let Some(event) = mouse.pop()? {
-            let something_changed = Arc::clone(&mouse.something_changed);
             let state = Arc::clone(state);
 
             mouse.future = Some(
@@ -105,10 +103,7 @@ impl MouseState {
                         tab_id: mouse.remote_tab_id,
                         event,
                     })
-                    .then(move |resp| {
-                        if let Ok(_) = resp.as_ref() {
-                            something_changed.store(true, Ordering::SeqCst);
-                        }
+                    .then(move |_| {
                         Future::with_executor(executor(), move || {
                             Self::next(&state)?;
                             Ok(())
@@ -140,11 +135,9 @@ impl ClientTab {
             client: Arc::clone(client),
             remote_tab_id,
         };
-        let something_changed = Arc::new(AtomicBool::new(true));
         let highlight = Arc::new(Mutex::new(None));
 
         let mouse = Arc::new(Mutex::new(MouseState {
-            something_changed: Arc::clone(&something_changed),
             remote_tab_id,
             client: client.client.clone(),
             future: None,
@@ -154,18 +147,23 @@ impl ClientTab {
             inner: RefCell::new(RenderableInner {
                 client: Arc::clone(client),
                 remote_tab_id,
+                local_tab_id,
                 last_poll: Instant::now(),
                 dead: false,
                 poll_future: None,
                 poll_interval: BASE_POLL_INTERVAL,
-                surface: Surface::new(size.cols as usize, size.rows as usize),
-                remote_sequence: 0,
-                local_sequence: 0,
-                something_changed,
                 highlight,
                 cursor_position: StableCursorPosition::default(),
                 dirty_rows: RangeSet::new(),
-                dimensions: RenderableDimensions::default(),
+                dimensions: RenderableDimensions {
+                    cols: size.cols as _,
+                    viewport_rows: size.rows as _,
+                    scrollback_rows: size.rows as _,
+                    physical_top: 0,
+                    scrollback_top: 0,
+                },
+                lines: LruCache::unbounded(),
+                title: "wezterm".to_string(),
             }),
         };
 
@@ -187,7 +185,6 @@ impl ClientTab {
     pub fn process_unilateral(&self, pdu: Pdu) -> anyhow::Result<()> {
         match pdu {
             Pdu::GetTabRenderChangesResponse(delta) => {
-                log::trace!("new delta {}", delta.sequence_no);
                 *self.mouse_grabbed.borrow_mut() = delta.mouse_grabbed;
                 self.renderable
                     .borrow()
@@ -239,8 +236,8 @@ impl Tab for ClientTab {
 
     fn get_title(&self) -> String {
         let renderable = self.renderable.borrow();
-        let surface = &renderable.inner.borrow().surface;
-        surface.title().to_string()
+        let inner = renderable.inner.borrow();
+        inner.title.clone()
     }
 
     fn send_paste(&self, text: &str) -> anyhow::Result<()> {
@@ -261,12 +258,6 @@ impl Tab for ClientTab {
     }
 
     fn resize(&self, size: PtySize) -> anyhow::Result<()> {
-        self.renderable
-            .borrow()
-            .inner
-            .borrow_mut()
-            .surface
-            .resize(size.cols as usize, size.rows as usize);
         self.client.client.resize(Resize {
             tab_id: self.remote_tab_id,
             size,
@@ -320,19 +311,19 @@ impl Tab for ClientTab {
 struct RenderableInner {
     client: Arc<ClientInner>,
     remote_tab_id: TabId,
+    local_tab_id: TabId,
     last_poll: Instant,
     dead: bool,
     poll_future: Option<Future<UnitResponse>>,
-    surface: Surface,
-    remote_sequence: SequenceNo,
-    local_sequence: SequenceNo,
     poll_interval: Duration,
-    something_changed: Arc<AtomicBool>,
     highlight: Arc<Mutex<Option<Arc<Hyperlink>>>>,
 
     dirty_rows: RangeSet<StableRowIndex>,
     cursor_position: StableCursorPosition,
     dimensions: RenderableDimensions,
+
+    lines: LruCache<StableRowIndex, Line>,
+    title: String,
 }
 
 struct RenderableState {
@@ -344,19 +335,80 @@ const BASE_POLL_INTERVAL: Duration = Duration::from_millis(20);
 
 impl RenderableInner {
     fn apply_changes_to_surface(&mut self, delta: GetTabRenderChangesResponse) {
-        if let Some(first) = delta.changes.first().as_ref() {
-            log::trace!("{:?}", first);
-        }
         self.poll_interval = BASE_POLL_INTERVAL;
-        self.surface.add_changes(delta.changes);
-        self.remote_sequence = delta.sequence_no;
 
+        let mut to_fetch = delta.dimensions.physical_top..delta.dimensions.physical_top;
         for r in delta.dirty_lines {
-            self.dirty_rows.add_range(r.start..r.end);
+            log::error!("apply changes: marking {:?} dirty", r);
+            self.dirty_rows.add_range(r.clone());
+            for idx in r {
+                // If a line is in the (probable) viewport region,
+                // then we'll likely want to fetch it.
+                // If it is outside that region, remove it from our cache
+                // so that we'll fetch it on demand later.
+                if idx >= delta.dimensions.physical_top {
+                    to_fetch.start = to_fetch.start.min(idx);
+                    to_fetch.end = to_fetch.end.max(idx);
+                } else {
+                    self.lines.pop(&idx);
+                }
+            }
         }
 
+        self.fetch_lines(to_fetch);
+
+        if delta.cursor_position != self.cursor_position {
+            self.dirty_rows.add(self.cursor_position.y);
+            self.dirty_rows.add(delta.cursor_position.y);
+        }
         self.cursor_position = delta.cursor_position;
         self.dimensions = delta.dimensions;
+        self.title = delta.title;
+    }
+
+    fn fetch_lines(&mut self, to_fetch: Range<StableRowIndex>) {
+        if to_fetch.start == to_fetch.end {
+            return;
+        }
+        let local_tab_id = self.local_tab_id;
+        log::error!(
+            "will fetch lines {:?} for remote tab id {}",
+            to_fetch,
+            self.remote_tab_id
+        );
+        self.client
+            .client
+            .get_lines(GetLines {
+                tab_id: self.remote_tab_id,
+                lines: to_fetch,
+            })
+            .then(move |result| {
+                match result {
+                    Ok(result) => {
+                        Future::with_executor(executor(), move || {
+                            let mux = Mux::get().unwrap();
+                            let tab = mux
+                                .get_tab(local_tab_id)
+                                .ok_or_else(|| anyhow!("no such tab {}", local_tab_id))?;
+                            if let Some(client_tab) = tab.downcast_ref::<ClientTab>() {
+                                let renderable = client_tab.renderable.borrow_mut();
+                                let mut inner = renderable.inner.borrow_mut();
+                                log::error!("got {} lines", result.lines.len());
+                                for (idx, line) in result.lines.into_iter().enumerate() {
+                                    let stable_row = result.first_row + idx as StableRowIndex;
+                                    inner.lines.put(stable_row, line);
+                                    inner.dirty_rows.add(stable_row);
+                                }
+                            }
+                            Ok(())
+                        });
+                    }
+                    Err(err) => {
+                        log::error!("get_lines failed: {}", err);
+                    }
+                }
+                Ok(())
+            });
     }
 
     fn poll(&mut self) -> anyhow::Result<()> {
@@ -387,7 +439,6 @@ impl RenderableInner {
             self.poll_future = Some(self.client.client.get_tab_render_changes(
                 GetTabRenderChanges {
                     tab_id: self.remote_tab_id,
-                    sequence_no: self.remote_sequence,
                 },
             ));
         }
@@ -397,30 +448,30 @@ impl RenderableInner {
 
 impl Renderable for RenderableState {
     fn get_cursor_position(&self) -> StableCursorPosition {
-        let surface = &self.inner.borrow().surface;
-        let (x, y) = surface.cursor_position();
-        let shape = surface.cursor_shape();
-        StableCursorPosition {
-            x,
-            y: y as StableRowIndex,
-            shape,
-        }
+        self.inner.borrow().cursor_position
     }
 
     fn get_lines(&mut self, lines: Range<StableRowIndex>) -> (StableRowIndex, Vec<Line>) {
-        // FIXME: mark clean
-        let inner = self.inner.borrow_mut();
-        (
-            lines.start,
-            inner
-                .surface
-                .screen_lines()
-                .into_iter()
-                .skip(lines.start.try_into().unwrap())
-                .take((lines.end - lines.start).try_into().unwrap())
-                .map(|line| line.into_owned())
-                .collect(),
-        )
+        let mut inner = self.inner.borrow_mut();
+        let mut result = vec![];
+        let mut to_fetch = 0..0;
+        for idx in lines.clone() {
+            match inner.lines.get(&idx) {
+                Some(line) => {
+                    result.push(line.clone());
+                    // mark clean
+                    inner.dirty_rows.remove(idx);
+                }
+                None => {
+                    to_fetch.start = to_fetch.start.min(idx);
+                    to_fetch.end = to_fetch.end.max(idx + 1);
+                    result.push(Line::with_width(inner.dimensions.cols));
+                }
+            }
+        }
+
+        inner.fetch_lines(to_fetch);
+        (lines.start, result)
     }
 
     fn get_dirty_lines(&self, lines: Range<StableRowIndex>) -> Vec<StableRowIndex> {
@@ -443,52 +494,12 @@ impl Renderable for RenderableState {
             }
         }
 
+        if !result.is_empty() {
+            log::error!("get_dirty_lines: {:?}", result);
+        }
+
         result
     }
-
-    /*
-    fn get_dirty_lines(&self) -> Vec<(usize, Cow<Line>, Range<usize>)> {
-        let mut inner = self.inner.borrow_mut();
-        let seq = inner.surface.current_seqno();
-        inner.surface.flush_changes_older_than(seq);
-        let selection = *inner.selection_range.lock().unwrap();
-        inner.something_changed.store(false, Ordering::SeqCst);
-        inner.local_sequence = seq;
-        inner
-            .surface
-            .screen_lines()
-            .into_iter()
-            .enumerate()
-            .map(|(idx, line)| {
-                let r = match selection {
-                    None => 0..0,
-                    Some(sel) => sel.normalize().cols_for_row(idx as i32),
-                };
-                (idx, Cow::Owned(line.into_owned()), r)
-            })
-            .collect()
-    }
-    */
-
-    /*
-    fn has_dirty_lines(&self) -> bool {
-        let mut inner = self.inner.borrow_mut();
-        if let Err(err) = inner.poll() {
-            // We allow for BrokenPromise here for now; for a TLS backed
-            // session it indicates that we'll retry.  For a local unix
-            // domain session it is terminal... but we will detect that
-            // terminal condition elsewhere
-            if let Err(err) = err.downcast::<BrokenPromise>() {
-                log::error!("remote tab poll failed: {}, marking as dead", err);
-                inner.dead = true;
-            }
-        }
-        if inner.something_changed.load(Ordering::SeqCst) {
-            return true;
-        }
-        inner.surface.has_changes(inner.local_sequence)
-    }
-    */
 
     fn current_highlight(&self) -> Option<Arc<Hyperlink>> {
         self.inner
@@ -501,14 +512,7 @@ impl Renderable for RenderableState {
     }
 
     fn get_dimensions(&self) -> RenderableDimensions {
-        let (cols, viewport_rows) = self.inner.borrow().surface.dimensions();
-        RenderableDimensions {
-            viewport_rows,
-            cols,
-            scrollback_rows: viewport_rows,
-            physical_top: 0,
-            scrollback_top: 0,
-        }
+        self.inner.borrow().dimensions
     }
 }
 

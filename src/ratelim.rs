@@ -48,6 +48,7 @@ impl RateLimiter {
         }
     }
 
+    #[allow(dead_code)]
     pub fn non_blocking_admittance_check(&mut self, amount: u32) -> bool {
         self.check_config_reload();
         self.lim.check_n(amount).is_ok()

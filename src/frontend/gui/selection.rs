@@ -14,6 +14,7 @@ pub struct Selection {
 }
 
 impl Selection {
+    #[allow(dead_code)]
     pub fn clear(&mut self) {
         self.range = None;
         self.start = None;
