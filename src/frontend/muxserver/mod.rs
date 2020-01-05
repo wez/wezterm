@@ -33,6 +33,9 @@ impl Executor for MuxExecutor {
 pub struct MuxServerFrontEnd {
     tx: Sender<SpawnFunc>,
     rx: Receiver<SpawnFunc>,
+    /// Indicates if we're the null frontend or not.
+    /// If so, our termination behavior is altered.
+    is_null: bool,
 }
 
 impl MuxServerFrontEnd {
@@ -43,7 +46,8 @@ impl MuxServerFrontEnd {
         if start_listener {
             spawn_listener()?;
         }
-        Ok(Rc::new(Self { tx, rx }))
+        let is_null = !start_listener;
+        Ok(Rc::new(Self { tx, rx, is_null }))
     }
 
     pub fn try_new() -> Result<Rc<dyn FrontEnd>, Error> {
@@ -73,7 +77,7 @@ impl FrontEnd for MuxServerFrontEnd {
                 Err(err) => bail!("while waiting for events: {:?}", err),
             }
 
-            if Mux::get().unwrap().is_empty() {
+            if !self.is_null && Mux::get().unwrap().is_empty() {
                 info!("No more tabs; all done!");
                 return Ok(());
             }

@@ -760,6 +760,9 @@ fn run() -> anyhow::Result<()> {
                     // ourselves into basically netcat.
                     drop(client);
 
+                    let front_end = FrontEndSelection::Null.try_new()?;
+                    let mux = Rc::new(mux::Mux::new(None));
+                    Mux::set_mux(&mux);
                     let unix_dom = config.unix_domains.first().unwrap();
                     let sock_path = unix_dom.socket_path();
                     let stream = unix_connect_with_retry(&sock_path)?;
@@ -769,12 +772,24 @@ fn run() -> anyhow::Result<()> {
                     let duped = stream.try_clone()?;
                     std::thread::spawn(move || {
                         let stdout = std::io::stdout();
-                        consume_stream(duped, stdout.lock()).ok();
+                        consume_stream_then_exit_process(duped, stdout.lock());
                     });
 
                     // and pull data from stdin and write it to the socket
-                    let stdin = std::io::stdin();
-                    consume_stream(stdin.lock(), stream)?;
+                    std::thread::spawn(move || {
+                        let stdin = std::io::stdin();
+                        consume_stream_then_exit_process(stdin.lock(), stream);
+                    });
+                    // This is a bit gross; we run a Null frontend while we
+                    // manage our streams to avoid a panic with some code
+                    // that spawns some background processing via the executors.
+                    // However, since we don't register any domains, and the
+                    // threads we spawn above to consume the streams are not
+                    // associated with the mux layer, this call to run_forever
+                    // really will run forever.
+                    // For that reason, we've arranged for the threads above
+                    // to exit the process if they run out of data to consume.
+                    front_end.run_forever()?;
                 }
             }
             Ok(())
@@ -794,4 +809,10 @@ fn consume_stream<F: Read, T: Write>(mut from_stream: F, mut to_stream: T) -> an
         to_stream.flush()?;
     }
     Ok(())
+}
+
+fn consume_stream_then_exit_process<F: Read, T: Write>(from_stream: F, to_stream: T) -> ! {
+    consume_stream(from_stream, to_stream).ok();
+    std::thread::sleep(std::time::Duration::new(2, 0));
+    std::process::exit(0);
 }
