@@ -450,13 +450,13 @@ impl TerminfoRenderer {
                     x: Position::NoChange,
                     y: Position::Relative(n),
                 } if *n < 0 => {
-                    self.cursor_up(*n as u32, out)?;
+                    self.cursor_up(-*n as u32, out)?;
                 }
                 Change::CursorPosition {
                     x: Position::Relative(n),
                     y: Position::NoChange,
                 } if *n < 0 => {
-                    self.cursor_left(*n as u32, out)?;
+                    self.cursor_left(-*n as u32, out)?;
                 }
                 Change::CursorPosition {
                     x: Position::Relative(n),
