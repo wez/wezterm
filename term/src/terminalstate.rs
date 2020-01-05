@@ -125,10 +125,23 @@ impl ScreenOrAlt {
 
     pub fn activate_alt_screen(&mut self) {
         self.alt_screen_is_active = true;
+        self.dirty_top_phys_rows();
     }
 
     pub fn activate_primary_screen(&mut self) {
         self.alt_screen_is_active = false;
+        self.dirty_top_phys_rows();
+    }
+
+    // When switching between alt and primary screen, we implicitly change
+    // the content associated with StableRowIndex 0..num_rows.  The muxer
+    // use case needs to know to invalidate its cache, so we mark those rows
+    // as dirty.
+    fn dirty_top_phys_rows(&mut self) {
+        let num_rows = self.screen.physical_rows;
+        for line_idx in 0..num_rows {
+            self.screen.line_mut(line_idx).set_dirty();
+        }
     }
 
     pub fn is_alt_screen_active(&self) -> bool {

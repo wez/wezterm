@@ -394,6 +394,13 @@ fn maybe_push_tab_changes(
     ) {
         dirty_rows.add(idx);
     }
+    // Make sure we pick up "damage" done by switching between alt and primary screen
+    for idx in tab
+        .renderer()
+        .get_dirty_lines(0..dims.viewport_rows as StableRowIndex)
+    {
+        dirty_rows.add(idx);
+    }
 
     let dirty_lines = dirty_rows.iter().cloned().collect();
 
