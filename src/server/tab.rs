@@ -11,6 +11,7 @@ use filedescriptor::Pipe;
 use log::{error, info};
 use portable_pty::PtySize;
 use promise::{BrokenPromise, Future};
+use rangeset::RangeSet;
 use std::cell::RefCell;
 use std::cell::RefMut;
 use std::collections::VecDeque;
@@ -26,7 +27,7 @@ use term::{
 };
 use termwiz::hyperlink::Hyperlink;
 use termwiz::input::KeyEvent;
-use termwiz::surface::{Change, SequenceNo, Surface};
+use termwiz::surface::{SequenceNo, Surface};
 
 struct MouseState {
     future: Option<Future<()>>,
@@ -162,6 +163,9 @@ impl ClientTab {
                 local_sequence: 0,
                 something_changed,
                 highlight,
+                cursor_position: StableCursorPosition::default(),
+                dirty_rows: RangeSet::new(),
+                dimensions: RenderableDimensions::default(),
             }),
         };
 
@@ -189,7 +193,7 @@ impl ClientTab {
                     .borrow()
                     .inner
                     .borrow_mut()
-                    .apply_changes_to_surface(delta.sequence_no, delta.changes);
+                    .apply_changes_to_surface(delta);
             }
             Pdu::SetClipboard(SetClipboard { clipboard, .. }) => {
                 match self.clipboard.borrow().as_ref() {
@@ -325,6 +329,10 @@ struct RenderableInner {
     poll_interval: Duration,
     something_changed: Arc<AtomicBool>,
     highlight: Arc<Mutex<Option<Arc<Hyperlink>>>>,
+
+    dirty_rows: RangeSet<StableRowIndex>,
+    cursor_position: StableCursorPosition,
+    dimensions: RenderableDimensions,
 }
 
 struct RenderableState {
@@ -335,13 +343,20 @@ const MAX_POLL_INTERVAL: Duration = Duration::from_secs(30);
 const BASE_POLL_INTERVAL: Duration = Duration::from_millis(20);
 
 impl RenderableInner {
-    fn apply_changes_to_surface(&mut self, remote_seq: SequenceNo, changes: Vec<Change>) {
-        if let Some(first) = changes.first().as_ref() {
+    fn apply_changes_to_surface(&mut self, delta: GetTabRenderChangesResponse) {
+        if let Some(first) = delta.changes.first().as_ref() {
             log::trace!("{:?}", first);
         }
         self.poll_interval = BASE_POLL_INTERVAL;
-        self.surface.add_changes(changes);
-        self.remote_sequence = remote_seq;
+        self.surface.add_changes(delta.changes);
+        self.remote_sequence = delta.sequence_no;
+
+        for r in delta.dirty_lines {
+            self.dirty_rows.add_range(r.start..r.end);
+        }
+
+        self.cursor_position = delta.cursor_position;
+        self.dimensions = delta.dimensions;
     }
 
     fn poll(&mut self) -> anyhow::Result<()> {
@@ -408,8 +423,27 @@ impl Renderable for RenderableState {
         )
     }
 
-    fn get_dirty_lines(&self, _lines: Range<StableRowIndex>) -> Vec<StableRowIndex> {
-        todo!();
+    fn get_dirty_lines(&self, lines: Range<StableRowIndex>) -> Vec<StableRowIndex> {
+        let mut inner = self.inner.borrow_mut();
+        if let Err(err) = inner.poll() {
+            // We allow for BrokenPromise here for now; for a TLS backed
+            // session it indicates that we'll retry.  For a local unix
+            // domain session it is terminal... but we will detect that
+            // terminal condition elsewhere
+            if let Err(err) = err.downcast::<BrokenPromise>() {
+                log::error!("remote tab poll failed: {}, marking as dead", err);
+                inner.dead = true;
+            }
+        }
+
+        let mut result = vec![];
+        for r in inner.dirty_rows.intersection_with_range(lines).iter() {
+            for line in r.clone() {
+                result.push(line);
+            }
+        }
+
+        result
     }
 
     /*

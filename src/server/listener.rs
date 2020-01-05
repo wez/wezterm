@@ -1,6 +1,7 @@
 use crate::config::{configuration, TlsDomainServer, UnixDomain};
 use crate::create_user_owned_dirs;
 use crate::frontend::executor;
+use crate::mux::renderable::{RenderableDimensions, StableCursorPosition};
 use crate::mux::tab::{Tab, TabId};
 use crate::mux::{Mux, MuxNotification, MuxSubscriber};
 use crate::ratelim::RateLimiter;
@@ -15,6 +16,7 @@ use log::{debug, error};
 use native_tls::Identity;
 use portable_pty::PtySize;
 use promise::Future;
+use rangeset::RangeSet;
 use std::collections::{HashMap, HashSet};
 use std::convert::TryFrom;
 use std::fs::remove_file;
@@ -396,6 +398,25 @@ fn maybe_push_tab_changes(
         .or_insert_with(|| ClientSurfaceState::new(dims.cols, dims.viewport_rows));
     surface.update_surface_from_screen(&tab);
 
+    let mut dirty_rows = RangeSet::new();
+    for idx in tab.renderer().get_dirty_lines(
+        dims.physical_top..dims.physical_top + dims.viewport_rows as StableRowIndex,
+    ) {
+        dirty_rows.add(idx);
+    }
+
+    let dirty_delta = dirty_rows.difference(&surface.informed_dirty_rows);
+    let dirty_lines = dirty_delta
+        .iter()
+        .map(|r| LineRange {
+            start: r.start,
+            end: r.end,
+        })
+        .collect();
+    surface.informed_dirty_rows.add_set(&dirty_rows);
+
+    let cursor_position = tab.renderer().get_cursor_position();
+
     let (new_seq, changes) = surface.get_and_flush_changes(surface.last_seq);
     if !changes.is_empty() {
         sender.send(DecodedPdu {
@@ -404,6 +425,9 @@ fn maybe_push_tab_changes(
                 sequence_no: surface.last_seq,
                 changes,
                 mouse_grabbed,
+                dirty_lines,
+                dimensions: dims,
+                cursor_position,
             }),
             serial: 0,
         })?;
@@ -417,6 +441,19 @@ struct ClientSurfaceState {
     last_seq: SequenceNo,
     push_limiter: RateLimiter,
     update_limiter: RateLimiter,
+
+    /// The set of rows that we have informed the peer are dirty.
+    /// We'll remove a row from here each time the peer requests
+    /// the corresponding line.
+    /// We use this to determine the delta when additional rows
+    /// are dirty.
+    informed_dirty_rows: RangeSet<StableRowIndex>,
+
+    /// The cursor position that we last sent to the peer
+    cursor_position: StableCursorPosition,
+
+    /// The dimensions that we last sent to the peer
+    dimensions: RenderableDimensions,
 }
 
 impl ClientSurfaceState {
@@ -430,6 +467,9 @@ impl ClientSurfaceState {
             last_seq: 0,
             push_limiter,
             update_limiter,
+            informed_dirty_rows: RangeSet::new(),
+            cursor_position: StableCursorPosition::default(),
+            dimensions: RenderableDimensions::default(),
         }
     }
 
@@ -439,7 +479,7 @@ impl ClientSurfaceState {
         }
 
         {
-            let mut renderable = tab.renderer();
+            let renderable = tab.renderer();
             let dims = renderable.get_dimensions();
             let (surface_width, surface_height) = self.surface.dimensions();
 
@@ -791,13 +831,22 @@ impl<S: ReadAndWrite> ClientSession<S> {
             }
 
             Pdu::GetLines(GetLines { tab_id, lines }) => {
+                let surfaces = Arc::clone(&self.surfaces_by_tab);
                 Future::with_executor(executor(), move || {
+                    let mut surfaces = surfaces.lock().unwrap();
                     let mux = Mux::get().unwrap();
                     let tab = mux
                         .get_tab(tab_id)
                         .ok_or_else(|| anyhow!("no such tab {}", tab_id))?;
                     let mut renderer = tab.renderer();
+                    let surface = surfaces
+                        .get_mut(&tab_id)
+                        .ok_or_else(|| anyhow!("no surface for tab {}", tab_id))?;
+                    surface.informed_dirty_rows.remove_range(lines.clone());
                     let (first_row, lines) = renderer.get_lines(lines);
+                    surface
+                        .informed_dirty_rows
+                        .remove_range(first_row..first_row + lines.len() as StableRowIndex);
                     Ok(Pdu::GetLinesResponse(GetLinesResponse {
                         tab_id,
                         first_row,

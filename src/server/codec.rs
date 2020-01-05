@@ -11,6 +11,7 @@
 #![allow(dead_code)]
 
 use crate::mux::domain::DomainId;
+use crate::mux::renderable::{RenderableDimensions, StableCursorPosition};
 use crate::mux::tab::TabId;
 use crate::mux::window::WindowId;
 use anyhow::{bail, Error};
@@ -416,11 +417,20 @@ pub struct GetTabRenderChanges {
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct LineRange {
+    pub start: StableRowIndex,
+    pub end: StableRowIndex,
+}
+
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
 pub struct GetTabRenderChangesResponse {
     pub tab_id: TabId,
     pub sequence_no: SequenceNo,
     pub changes: Vec<Change>,
     pub mouse_grabbed: bool,
+    pub cursor_position: StableCursorPosition,
+    pub dimensions: RenderableDimensions,
+    pub dirty_lines: Vec<LineRange>,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]

@@ -23,7 +23,6 @@ fn intersects_range<T: Integer + Copy + Debug>(r1: &Range<T>, r2: &Range<T>) -> 
     end > start
 }
 
-#[allow(dead_code)]
 /// Computes the intersection of r1 and r2
 fn range_intersection<T: Integer + Copy + Debug>(r1: &Range<T>, r2: &Range<T>) -> Option<Range<T>> {
     let start = max(r1.start, r2.start);
@@ -118,6 +117,18 @@ impl<T: Integer + Copy + Debug> RangeSet<T> {
                     }
                     _ => {}
                 }
+            }
+        }
+
+        result
+    }
+
+    pub fn intersection_with_range(&self, range: Range<T>) -> Self {
+        let mut result = Self::new();
+
+        for r in &self.ranges {
+            if let Some(i) = range_intersection(r, &range) {
+                result.add_range(i);
             }
         }
 

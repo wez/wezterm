@@ -13,7 +13,7 @@ pub struct StableCursorPosition {
     pub shape: termwiz::surface::CursorShape,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Deserialize, Serialize)]
 pub struct RenderableDimensions {
     /// The viewport width
     pub cols: usize,

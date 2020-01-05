@@ -290,7 +290,7 @@ impl WindowCallbacks for TermWindow {
 
             WMEK::VertWheel(amount) if !tab.is_mouse_grabbed() => {
                 // adjust viewport
-                let mut render = tab.renderer();
+                let render = tab.renderer();
                 let dims = render.get_dimensions();
                 let position = self
                     .get_viewport(tab.tab_id())
@@ -311,7 +311,7 @@ impl WindowCallbacks for TermWindow {
                         None => return,
                     };
 
-                    let mut render = tab.renderer();
+                    let render = tab.renderer();
                     let dims = render.get_dimensions();
 
                     let effective_thumb_top =
@@ -594,7 +594,7 @@ impl TermWindow {
                                     myself.config_was_reloaded();
                                 }
 
-                                let mut render = tab.renderer();
+                                let render = tab.renderer();
 
                                 // If blinking is permitted, and the cursor shape is set
                                 // to a blinking variant, and it's been longer than the
@@ -980,7 +980,7 @@ impl TermWindow {
             Some(tab) => tab,
             None => return Ok(()),
         };
-        let mut render = tab.renderer();
+        let render = tab.renderer();
         let dims = render.get_dimensions();
         let position = self
             .get_viewport(tab.tab_id())
@@ -2297,7 +2297,7 @@ impl TermWindow {
         context: &dyn WindowOps,
     ) {
         if let WMEK::Press(MousePress::Left) = event.kind {
-            let mut render = tab.renderer();
+            let render = tab.renderer();
             let dims = render.get_dimensions();
             let current_viewport = self.get_viewport(tab.tab_id());
 
