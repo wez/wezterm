@@ -36,6 +36,7 @@ use term::color::ColorPalette;
 use term::input::LastMouseClick;
 use term::{Line, StableRowIndex, Underline};
 use termwiz::color::RgbColor;
+use termwiz::hyperlink::Hyperlink;
 use termwiz::surface::CursorShape;
 
 #[derive(Debug, Clone, Copy)]
@@ -148,6 +149,9 @@ pub struct TermWindow {
 
     /// Keeps track of double and triple clicks
     last_mouse_click: Option<LastMouseClick>,
+
+    /// The URL over which we are currently hovering
+    current_highlight: Option<Arc<Hyperlink>>,
 }
 
 struct Host<'a> {
@@ -569,6 +573,7 @@ impl TermWindow {
                 selection: Selection::default(),
                 current_mouse_button: None,
                 last_mouse_click: None,
+                current_highlight: None,
             }),
         )?;
 
@@ -1657,7 +1662,6 @@ impl TermWindow {
         let dims = terminal.get_dimensions();
         let num_cols = dims.cols;
 
-        let current_highlight = terminal.current_highlight();
         let cursor_border_color = rgbcolor_to_window_color(palette.cursor_border);
 
         // Break the line into clusters of cells with the same attributes
@@ -1666,7 +1670,7 @@ impl TermWindow {
         let config = configuration();
         for cluster in cell_clusters {
             let attrs = &cluster.attrs;
-            let is_highlited_hyperlink = match (&attrs.hyperlink, &current_highlight) {
+            let is_highlited_hyperlink = match (&attrs.hyperlink, &self.current_highlight) {
                 (&Some(ref this), &Some(ref highlight)) => Arc::ptr_eq(this, highlight),
                 _ => false,
             };
@@ -1913,7 +1917,6 @@ impl TermWindow {
 
         let dims = terminal.get_dimensions();
         let num_cols = dims.cols;
-        let current_highlight = terminal.current_highlight();
         let cursor_border_color = rgbcolor_to_window_color(palette.cursor_border);
 
         // Break the line into clusters of cells with the same attributes
@@ -1921,7 +1924,7 @@ impl TermWindow {
         let mut last_cell_idx = 0;
         for cluster in cell_clusters {
             let attrs = &cluster.attrs;
-            let is_highlited_hyperlink = match (&attrs.hyperlink, &current_highlight) {
+            let is_highlited_hyperlink = match (&attrs.hyperlink, &self.current_highlight) {
                 (&Some(ref this), &Some(ref highlight)) => this == highlight,
                 _ => false,
             };
@@ -2452,8 +2455,34 @@ impl TermWindow {
         event: &MouseEvent,
         context: &dyn WindowOps,
     ) {
-        // TODO: track current_highlight for ourselves
-        context.set_cursor(Some(if tab.renderer().current_highlight().is_some() {
+        let dims = tab.renderer().get_dimensions();
+        let stable_row = dims.physical_top + y as StableRowIndex;
+
+        let (top, mut lines) = tab.renderer().get_lines(stable_row..stable_row + 1);
+        let new_highlight = if top == stable_row {
+            let line = &mut lines[0];
+            if let Some(cell) = line.cells().get(x) {
+                cell.attrs().hyperlink.as_ref().cloned()
+            } else {
+                None
+            }
+        } else {
+            None
+        };
+
+        match (self.current_highlight.as_ref(), new_highlight) {
+            (Some(old_link), Some(new_link)) if Arc::ptr_eq(&old_link, &new_link) => {
+                // Unchanged
+            }
+            (_, rhs) => {
+                // We're hovering over a different URL, so invalidate and repaint
+                // so that we render the underline correctly
+                self.current_highlight = rhs;
+                context.invalidate();
+            }
+        };
+
+        context.set_cursor(Some(if self.current_highlight.is_some() {
             // When hovering over a hyperlink, show an appropriate
             // mouse cursor to give the cue that it is clickable
             MouseCursor::Hand
@@ -2462,9 +2491,6 @@ impl TermWindow {
         }));
 
         if !tab.is_mouse_grabbed() || event.modifiers == Modifiers::SHIFT {
-            let dims = tab.renderer().get_dimensions();
-            let stable_row = dims.physical_top + y as StableRowIndex;
-
             match (&event.kind, self.last_mouse_click.as_ref()) {
                 // Triple click to select a word
                 (
@@ -2514,11 +2540,25 @@ impl TermWindow {
                         ..
                     }),
                 ) => {
-                    self.window
-                        .as_ref()
-                        .unwrap()
-                        .set_clipboard(self.selection_text(&tab));
-                    context.invalidate();
+                    let text = self.selection_text(&tab);
+
+                    if text.is_empty() && self.current_highlight.is_some() {
+                        // They clicked on a link, so let's open it!
+                        // Ensure that we spawn the `open` call outside of the context
+                        // of our window loop; on Windows it can cause a panic due to
+                        // triggering our WndProc recursively.
+                        let link = self.current_highlight.as_ref().unwrap().clone();
+                        promise::Future::with_executor(executor(), move || {
+                            log::error!("clicking {}", link.uri());
+                            if let Err(err) = open::that(link.uri()) {
+                                log::error!("failed to open {}: {:?}", link.uri(), err);
+                            }
+                            Ok(())
+                        });
+                    } else {
+                        self.window.as_ref().unwrap().set_clipboard(text);
+                        context.invalidate();
+                    }
                 }
 
                 // Dragging left mouse button

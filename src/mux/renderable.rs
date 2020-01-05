@@ -1,9 +1,8 @@
+use crate::config::configuration;
 use downcast_rs::{impl_downcast, Downcast};
 use serde::{Deserialize, Serialize};
 use std::ops::Range;
-use std::sync::Arc;
-use term::{Line, StableRowIndex, Terminal, TerminalState};
-use termwiz::hyperlink::Hyperlink;
+use term::{Line, StableRowIndex, Terminal};
 
 /// Describes the location of the cursor
 #[derive(Debug, Default, Copy, Clone, Eq, PartialEq, Deserialize, Serialize)]
@@ -60,9 +59,6 @@ pub trait Renderable: Downcast {
     /// have its dirty bit set appropriately.
     fn get_lines(&mut self, lines: Range<StableRowIndex>) -> (StableRowIndex, Vec<Line>);
 
-    /// Returns the currently highlighted hyperlink
-    fn current_highlight(&self) -> Option<Arc<Hyperlink>>;
-
     /// Returns render related dimensions
     fn get_dimensions(&self) -> RenderableDimensions;
 }
@@ -101,6 +97,7 @@ impl Renderable for Terminal {
     fn get_lines(&mut self, lines: Range<StableRowIndex>) -> (StableRowIndex, Vec<Line>) {
         let screen = self.screen_mut();
         let phys_range = screen.stable_range(&lines);
+        let config = configuration();
         (
             screen.phys_to_stable_row_index(phys_range.start),
             screen
@@ -109,16 +106,13 @@ impl Renderable for Terminal {
                 .skip(phys_range.start)
                 .take(phys_range.end - phys_range.start)
                 .map(|line| {
+                    line.scan_and_create_hyperlinks(&config.hyperlink_rules);
                     let cloned = line.clone();
                     line.clear_dirty();
                     cloned
                 })
                 .collect(),
         )
-    }
-
-    fn current_highlight(&self) -> Option<Arc<Hyperlink>> {
-        TerminalState::current_highlight(self)
     }
 
     fn get_dimensions(&self) -> RenderableDimensions {

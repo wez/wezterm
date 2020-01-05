@@ -3,6 +3,7 @@
 //! input from the user as part of eg: setting up an ssh
 //! session.
 
+use crate::config::configuration;
 use crate::font::FontConfiguration;
 use crate::frontend::{executor, front_end};
 use crate::mux::domain::{alloc_domain_id, Domain, DomainId, DomainState};
@@ -21,11 +22,10 @@ use std::convert::TryInto;
 use std::ops::Range;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::time::Duration;
 use term::color::ColorPalette;
 use term::{KeyCode, KeyModifiers, Line, MouseEvent, StableRowIndex, TerminalHost};
-use termwiz::hyperlink::Hyperlink;
 use termwiz::input::{InputEvent, KeyEvent};
 use termwiz::lineedit::*;
 use termwiz::surface::{Change, SequenceNo, Surface};
@@ -34,7 +34,6 @@ use termwiz::terminal::{ScreenSize, Terminal, TerminalWaker};
 struct RenderableInner {
     surface: Surface,
     something_changed: Arc<AtomicBool>,
-    highlight: Arc<Mutex<Option<Arc<Hyperlink>>>>,
     local_sequence: SequenceNo,
     dead: bool,
     render_rx: Receiver<Vec<Change>>,
@@ -78,6 +77,8 @@ impl Renderable for RenderableState {
         // Reset the dirty bit
         inner.something_changed.store(false, Ordering::SeqCst);
 
+        let config = configuration();
+
         (
             lines.start,
             inner
@@ -86,7 +87,11 @@ impl Renderable for RenderableState {
                 .into_iter()
                 .skip(lines.start.try_into().unwrap())
                 .take((lines.end - lines.start).try_into().unwrap())
-                .map(|line| line.into_owned())
+                .map(|line| {
+                    let mut line = line.into_owned();
+                    line.scan_and_create_hyperlinks(&config.hyperlink_rules);
+                    line
+                })
                 .collect(),
         )
     }
@@ -115,16 +120,6 @@ impl Renderable for RenderableState {
         } else {
             vec![]
         }
-    }
-
-    fn current_highlight(&self) -> Option<Arc<Hyperlink>> {
-        self.inner
-            .borrow()
-            .highlight
-            .lock()
-            .unwrap()
-            .as_ref()
-            .cloned()
     }
 
     fn get_dimensions(&self) -> RenderableDimensions {
@@ -406,7 +401,6 @@ pub fn run<T: Send + 'static, F: Send + 'static + Fn(TermWizTerminal) -> anyhow:
 
         let inner = RenderableInner {
             surface: Surface::new(width, height),
-            highlight: Arc::new(Mutex::new(None)),
             local_sequence: 0,
             dead: false,
             something_changed: Arc::new(AtomicBool::new(false)),

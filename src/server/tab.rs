@@ -26,7 +26,6 @@ use term::{
     Clipboard, KeyCode, KeyModifiers, Line, MouseButton, MouseEvent, MouseEventKind,
     StableRowIndex, TerminalHost,
 };
-use termwiz::hyperlink::Hyperlink;
 use termwiz::input::KeyEvent;
 
 struct MouseState {
@@ -135,7 +134,6 @@ impl ClientTab {
             client: Arc::clone(client),
             remote_tab_id,
         };
-        let highlight = Arc::new(Mutex::new(None));
 
         let mouse = Arc::new(Mutex::new(MouseState {
             remote_tab_id,
@@ -152,7 +150,6 @@ impl ClientTab {
                 dead: false,
                 poll_future: None,
                 poll_interval: BASE_POLL_INTERVAL,
-                highlight,
                 cursor_position: StableCursorPosition::default(),
                 dirty_rows: RangeSet::new(),
                 fetch_pending: RangeSet::new(),
@@ -317,7 +314,6 @@ struct RenderableInner {
     dead: bool,
     poll_future: Option<Future<UnitResponse>>,
     poll_interval: Duration,
-    highlight: Arc<Mutex<Option<Arc<Hyperlink>>>>,
 
     dirty_rows: RangeSet<StableRowIndex>,
     fetch_pending: RangeSet<StableRowIndex>,
@@ -406,7 +402,9 @@ impl RenderableInner {
                                 let renderable = client_tab.renderable.borrow_mut();
                                 let mut inner = renderable.inner.borrow_mut();
                                 log::trace!("got {} lines", result.lines.len());
-                                for (stable_row, line) in result.lines.into_iter() {
+                                let config = configuration();
+                                for (stable_row, mut line) in result.lines.into_iter() {
+                                    line.scan_and_create_hyperlinks(&config.hyperlink_rules);
                                     inner.lines.put(stable_row, line);
                                     inner.dirty_rows.add(stable_row);
                                     inner.fetch_pending.remove(stable_row);
@@ -510,16 +508,6 @@ impl Renderable for RenderableState {
         }
 
         result
-    }
-
-    fn current_highlight(&self) -> Option<Arc<Hyperlink>> {
-        self.inner
-            .borrow()
-            .highlight
-            .lock()
-            .unwrap()
-            .as_ref()
-            .cloned()
     }
 
     fn get_dimensions(&self) -> RenderableDimensions {
