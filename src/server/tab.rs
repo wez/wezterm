@@ -341,7 +341,6 @@ impl RenderableInner {
 
         let mut to_fetch = RangeSet::new();
         for r in delta.dirty_lines {
-            log::error!("apply changes: marking {:?} dirty", r);
             self.dirty_rows.add_range(r.clone());
             for idx in r {
                 // If a line is in the (probable) viewport region,
@@ -359,7 +358,7 @@ impl RenderableInner {
         if delta.cursor_position != self.cursor_position {
             self.dirty_rows.add(self.cursor_position.y);
             self.dirty_rows.add(delta.cursor_position.y);
-            log::error!(
+            log::trace!(
                 "cursor move, so dirty {} and {}. to_fetch is {:?}",
                 self.cursor_position.y,
                 delta.cursor_position.y,
@@ -384,7 +383,7 @@ impl RenderableInner {
         self.fetch_pending.add_set(&to_fetch);
 
         let local_tab_id = self.local_tab_id;
-        log::error!(
+        log::trace!(
             "will fetch lines {:?} for remote tab id {}",
             to_fetch,
             self.remote_tab_id
@@ -406,7 +405,7 @@ impl RenderableInner {
                             if let Some(client_tab) = tab.downcast_ref::<ClientTab>() {
                                 let renderable = client_tab.renderable.borrow_mut();
                                 let mut inner = renderable.inner.borrow_mut();
-                                log::error!("got {} lines", result.lines.len());
+                                log::trace!("got {} lines", result.lines.len());
                                 for (stable_row, line) in result.lines.into_iter() {
                                     inner.lines.put(stable_row, line);
                                     inner.dirty_rows.add(stable_row);
@@ -507,7 +506,7 @@ impl Renderable for RenderableState {
         }
 
         if !result.is_empty() {
-            log::error!("get_dirty_lines: {:?}", result);
+            log::trace!("get_dirty_lines: {:?}", result);
         }
 
         result
