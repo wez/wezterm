@@ -1,3 +1,4 @@
+#![cfg_attr(feature = "cargo-clippy", allow(clippy::range_plus_one))]
 use super::quad::*;
 use super::renderstate::*;
 use super::utilsprites::RenderMetrics;
@@ -219,7 +220,7 @@ impl WindowCallbacks for TermWindow {
         log::trace!("Setting focus to {:?}", focused);
         self.focused = if focused { Some(Instant::now()) } else { None };
 
-        if !self.focused.is_some() {
+        if self.focused.is_none() {
             self.last_mouse_click = None;
             self.current_mouse_button = None;
         }
@@ -1646,6 +1647,7 @@ impl TermWindow {
     /// This is nominally a matter of setting the fg/bg color and the
     /// texture coordinates for a given glyph.  There's a little bit
     /// of extra complexity to deal with multi-cell glyphs.
+    #[allow(clippy::too_many_arguments)]
     fn render_screen_line_opengl(
         &self,
         line_idx: usize,
@@ -2254,7 +2256,7 @@ impl TermWindow {
     }
 
     fn get_viewport(&mut self, tab_id: TabId) -> Option<StableRowIndex> {
-        self.tab_state(tab_id).viewport.clone()
+        self.tab_state(tab_id).viewport
     }
 
     fn set_viewport(

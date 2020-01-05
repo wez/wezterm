@@ -116,7 +116,7 @@ impl Renderable for RenderableState {
         if inner.something_changed.load(Ordering::SeqCst)
             || inner.surface.has_changes(inner.local_sequence)
         {
-            lines.into_iter().collect()
+            lines.collect()
         } else {
             vec![]
         }

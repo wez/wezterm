@@ -83,7 +83,7 @@ impl Tab for LocalTab {
     }
 
     fn palette(&self) -> ColorPalette {
-        self.terminal.borrow().palette().clone()
+        self.terminal.borrow().palette()
     }
 
     fn domain_id(&self) -> DomainId {

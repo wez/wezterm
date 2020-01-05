@@ -114,7 +114,7 @@ impl Recorder for Stats {
         let mut inner = self.inner.lock().unwrap();
         let histogram = inner
             .histograms
-            .entry(key.clone())
+            .entry(key)
             .or_insert_with(|| Histogram::new(2).expect("failed to crate new Histogram"));
         histogram.record(value).ok();
     }

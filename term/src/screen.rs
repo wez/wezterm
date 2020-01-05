@@ -1,3 +1,4 @@
+#![cfg_attr(feature = "cargo-clippy", allow(clippy::range_plus_one))]
 use super::*;
 use log::debug;
 use std::collections::VecDeque;

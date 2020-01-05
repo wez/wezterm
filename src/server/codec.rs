@@ -9,6 +9,7 @@
 //! of this code; in this way the client and server can more gracefully
 //! manage unknown enum variants.
 #![allow(dead_code)]
+#![cfg_attr(feature = "cargo-clippy", allow(clippy::range_plus_one))]
 
 use crate::mux::domain::DomainId;
 use crate::mux::renderable::{RenderableDimensions, StableCursorPosition};
