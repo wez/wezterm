@@ -428,14 +428,13 @@ pub struct GetTabRenderChangesResponse {
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
 pub struct GetLines {
     pub tab_id: TabId,
-    pub lines: Range<StableRowIndex>,
+    pub lines: Vec<Range<StableRowIndex>>,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
 pub struct GetLinesResponse {
     pub tab_id: TabId,
-    pub first_row: StableRowIndex,
-    pub lines: Vec<Line>,
+    pub lines: Vec<(StableRowIndex, Line)>,
 }
 
 #[cfg(test)]

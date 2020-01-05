@@ -708,11 +708,18 @@ impl<S: ReadAndWrite> ClientSession<S> {
                         .ok_or_else(|| anyhow!("no such tab {}", tab_id))?;
                     let mut renderer = tab.renderer();
 
-                    let (first_row, lines) = renderer.get_lines(lines);
+                    let mut lines_and_indices = vec![];
+
+                    for range in lines {
+                        let (first_row, lines) = renderer.get_lines(range);
+                        for (idx, line) in lines.into_iter().enumerate() {
+                            let stable_row = first_row + idx as StableRowIndex;
+                            lines_and_indices.push((stable_row, line));
+                        }
+                    }
                     Ok(Pdu::GetLinesResponse(GetLinesResponse {
                         tab_id,
-                        first_row,
-                        lines,
+                        lines: lines_and_indices,
                     }))
                 })
             }

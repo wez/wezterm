@@ -339,7 +339,7 @@ impl RenderableInner {
     fn apply_changes_to_surface(&mut self, delta: GetTabRenderChangesResponse) {
         self.poll_interval = BASE_POLL_INTERVAL;
 
-        let mut to_fetch = delta.dimensions.physical_top..delta.dimensions.physical_top;
+        let mut to_fetch = RangeSet::new();
         for r in delta.dirty_lines {
             log::error!("apply changes: marking {:?} dirty", r);
             self.dirty_rows.add_range(r.clone());
@@ -349,8 +349,7 @@ impl RenderableInner {
                 // If it is outside that region, remove it from our cache
                 // so that we'll fetch it on demand later.
                 if idx >= delta.dimensions.physical_top {
-                    to_fetch.start = to_fetch.start.min(idx);
-                    to_fetch.end = to_fetch.end.max(idx + 1);
+                    to_fetch.add(idx);
                 } else {
                     self.lines.pop(&idx);
                 }
@@ -367,10 +366,7 @@ impl RenderableInner {
                 to_fetch
             );
 
-            to_fetch = range_union(
-                to_fetch.clone(),
-                delta.cursor_position.y..delta.cursor_position.y + 1,
-            );
+            to_fetch.add(delta.cursor_position.y);
         }
         self.cursor_position = delta.cursor_position;
         self.dimensions = delta.dimensions;
@@ -379,20 +375,13 @@ impl RenderableInner {
         self.fetch_lines(to_fetch);
     }
 
-    fn fetch_lines(&mut self, to_fetch: Range<StableRowIndex>) {
-        if to_fetch.start == to_fetch.end {
+    fn fetch_lines(&mut self, mut to_fetch: RangeSet<StableRowIndex>) {
+        to_fetch.remove_set(&self.fetch_pending);
+        if to_fetch.is_empty() {
             return;
         }
 
-        let mut fetch_pending = RangeSet::new();
-        fetch_pending.add_range(to_fetch.clone());
-        fetch_pending.remove_set(&self.fetch_pending);
-
-        if fetch_pending.is_empty() {
-            return;
-        }
-
-        self.fetch_pending.add_range(to_fetch.clone());
+        self.fetch_pending.add_set(&to_fetch);
 
         let local_tab_id = self.local_tab_id;
         log::error!(
@@ -404,7 +393,7 @@ impl RenderableInner {
             .client
             .get_lines(GetLines {
                 tab_id: self.remote_tab_id,
-                lines: to_fetch,
+                lines: to_fetch.into(),
             })
             .then(move |result| {
                 match result {
@@ -418,8 +407,7 @@ impl RenderableInner {
                                 let renderable = client_tab.renderable.borrow_mut();
                                 let mut inner = renderable.inner.borrow_mut();
                                 log::error!("got {} lines", result.lines.len());
-                                for (idx, line) in result.lines.into_iter().enumerate() {
-                                    let stable_row = result.first_row + idx as StableRowIndex;
+                                for (stable_row, line) in result.lines.into_iter() {
                                     inner.lines.put(stable_row, line);
                                     inner.dirty_rows.add(stable_row);
                                     inner.fetch_pending.remove(stable_row);
@@ -479,7 +467,7 @@ impl Renderable for RenderableState {
     fn get_lines(&mut self, lines: Range<StableRowIndex>) -> (StableRowIndex, Vec<Line>) {
         let mut inner = self.inner.borrow_mut();
         let mut result = vec![];
-        let mut to_fetch = 0..0;
+        let mut to_fetch = RangeSet::new();
         for idx in lines.clone() {
             match inner.lines.get(&idx) {
                 Some(line) => {
@@ -488,7 +476,7 @@ impl Renderable for RenderableState {
                     inner.dirty_rows.remove(idx);
                 }
                 None => {
-                    to_fetch = range_union(to_fetch, idx..idx + 1);
+                    to_fetch.add(idx);
                     result.push(Line::with_width(inner.dimensions.cols));
                 }
             }

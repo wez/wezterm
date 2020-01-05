@@ -83,6 +83,12 @@ pub fn range_union<T: Integer>(r1: Range<T>, r2: Range<T>) -> Range<T> {
     }
 }
 
+impl<T: Integer + Copy + Debug> Into<Vec<Range<T>>> for RangeSet<T> {
+    fn into(self) -> Vec<Range<T>> {
+        self.ranges
+    }
+}
+
 impl<T: Integer + Copy + Debug> RangeSet<T> {
     /// Create a new set
     pub fn new() -> Self {
