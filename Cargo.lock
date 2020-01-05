@@ -1893,6 +1893,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "rangeset"
+version = "0.1.0"
+dependencies = [
+ "num 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "ratelimit_meter"
 version = "5.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2792,6 +2799,7 @@ dependencies = [
  "portable-pty 0.2.0",
  "pretty_env_logger 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "promise 0.2.0",
+ "rangeset 0.1.0",
  "ratelimit_meter 5.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.104 (registry+https://github.com/rust-lang/crates.io-index)",
  "serial 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",

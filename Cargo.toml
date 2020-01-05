@@ -17,6 +17,7 @@ anyhow = "1.0"
 thiserror = "1.0"
 base64 = "0.10"
 base91 = { path = "base91" }
+rangeset = { path = "rangeset" }
 bitflags = "1.0"
 crossbeam-channel = "0.3"
 dirs = "1.0"

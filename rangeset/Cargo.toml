@@ -1,0 +1,8 @@
+[package]
+name = "rangeset"
+version = "0.1.0"
+authors = ["Wez Furlong <wez@wezfurlong.org>"]
+edition = "2018"
+
+[dependencies]
+num = "0.2"
