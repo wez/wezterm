@@ -2592,7 +2592,8 @@ impl TermWindow {
                 ) => {
                     if let Some(MousePress::Left) = self.current_mouse_button {
                         let end = SelectionCoordinate { x, y: stable_row };
-                        let sel = match self.selection(tab.tab_id()).range.take() {
+                        let selection_range = self.selection(tab.tab_id()).range.take();
+                        let sel = match selection_range {
                             None => SelectionRange::start(
                                 self.selection(tab.tab_id()).start.unwrap_or(end),
                             )
