@@ -1327,7 +1327,7 @@ impl TermWindow {
             self.render_screen_line(
                 ctx,
                 0,
-                dims.physical_top,
+                None,
                 self.tab_bar.line(),
                 0..0,
                 &cursor,
@@ -1356,7 +1356,7 @@ impl TermWindow {
                 self.render_screen_line(
                     ctx,
                     line_idx + first_line_offset,
-                    stable_row,
+                    Some(stable_row),
                     &line,
                     selrange,
                     &cursor,
@@ -1501,7 +1501,7 @@ impl TermWindow {
         if self.show_tab_bar {
             self.render_screen_line_opengl(
                 0,
-                dims.physical_top,
+                None,
                 self.tab_bar.line(),
                 0..0,
                 &cursor,
@@ -1563,7 +1563,7 @@ impl TermWindow {
 
             self.render_screen_line_opengl(
                 line_idx + first_line_offset,
-                stable_row,
+                Some(stable_row),
                 &line,
                 selrange,
                 &cursor,
@@ -1651,7 +1651,7 @@ impl TermWindow {
     fn render_screen_line_opengl(
         &self,
         line_idx: usize,
-        stable_line_idx: StableRowIndex,
+        stable_line_idx: Option<StableRowIndex>,
         line: &Line,
         selection: Range<usize>,
         cursor: &StableCursorPosition,
@@ -1905,7 +1905,7 @@ impl TermWindow {
         &self,
         ctx: &mut dyn PaintContext,
         line_idx: usize,
-        stable_line_idx: StableRowIndex,
+        stable_line_idx: Option<StableRowIndex>,
         line: &Line,
         selection: Range<usize>,
         cursor: &StableCursorPosition,
@@ -2186,7 +2186,7 @@ impl TermWindow {
     #[allow(clippy::too_many_arguments)]
     fn compute_cell_fg_bg(
         &self,
-        stable_line_idx: StableRowIndex,
+        stable_line_idx: Option<StableRowIndex>,
         cell_idx: usize,
         cursor: &StableCursorPosition,
         selection: &Range<usize>,
@@ -2196,7 +2196,7 @@ impl TermWindow {
     ) -> (Color, Color, CursorShape) {
         let selected = selection.contains(&cell_idx);
 
-        let is_cursor = stable_line_idx == cursor.y && cursor.x == cell_idx;
+        let is_cursor = stable_line_idx == Some(cursor.y) && cursor.x == cell_idx;
 
         let cursor_shape = if is_cursor {
             // This logic figures out whether the cursor is visible or not.
