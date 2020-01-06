@@ -270,7 +270,7 @@ impl WindowCallbacks for TermWindow {
                 }
             }
 
-            WMEK::Press(ref press) | WMEK::DoubleClick(ref press) => {
+            WMEK::Press(ref press) => {
                 if let Some(focused) = self.focused.as_ref() {
                     if focused.elapsed() <= Duration::from_millis(200) {
                         log::trace!("discard mouse click because it focused the window");
@@ -2617,15 +2617,11 @@ impl TermWindow {
         let mouse_event = term::MouseEvent {
             kind: match event.kind {
                 WMEK::Move => TMEK::Move,
-                WMEK::VertWheel(_) | WMEK::HorzWheel(_) | WMEK::DoubleClick(_) | WMEK::Press(_) => {
-                    TMEK::Press
-                }
+                WMEK::VertWheel(_) | WMEK::HorzWheel(_) | WMEK::Press(_) => TMEK::Press,
                 WMEK::Release(_) => TMEK::Release,
             },
             button: match event.kind {
-                WMEK::Release(ref press)
-                | WMEK::Press(ref press)
-                | WMEK::DoubleClick(ref press) => match press {
+                WMEK::Release(ref press) | WMEK::Press(ref press) => match press {
                     MousePress::Left => TMB::Left,
                     MousePress::Middle => TMB::Middle,
                     MousePress::Right => TMB::Right,

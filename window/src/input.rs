@@ -118,8 +118,6 @@ pub enum MouseEventKind {
     Move,
     Press(MousePress),
     Release(MousePress),
-    /// Note: DoubleClick is never generated on X11!
-    DoubleClick(MousePress),
     VertWheel(i16),
     HorzWheel(i16),
 }

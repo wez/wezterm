@@ -118,7 +118,7 @@ impl Window {
         let class_name = wide_string(class_name);
         let h_inst = unsafe { GetModuleHandleW(null()) };
         let class = WNDCLASSW {
-            style: CS_HREDRAW | CS_VREDRAW | CS_OWNDC | CS_DBLCLKS,
+            style: CS_HREDRAW | CS_VREDRAW | CS_OWNDC,
             lpfnWndProc: Some(wnd_proc),
             cbClsExtra: 0,
             cbWndExtra: 0,
@@ -732,9 +732,6 @@ unsafe fn mouse_button(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) ->
                 WM_RBUTTONUP => MouseEventKind::Release(MousePress::Right),
                 WM_MBUTTONDOWN => MouseEventKind::Press(MousePress::Middle),
                 WM_MBUTTONUP => MouseEventKind::Release(MousePress::Middle),
-                WM_LBUTTONDBLCLK => MouseEventKind::DoubleClick(MousePress::Left),
-                WM_RBUTTONDBLCLK => MouseEventKind::DoubleClick(MousePress::Right),
-                WM_MBUTTONDBLCLK => MouseEventKind::DoubleClick(MousePress::Middle),
                 _ => return None,
             },
             coords,
