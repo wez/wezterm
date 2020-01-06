@@ -446,25 +446,30 @@ struct LineHyperlink {
     coords: Vec<CellCoordinates>,
 }
 
+/// What's all this?
+/// Cells hold references to Arc<Hyperlink> and it is important to us to
+/// maintain identity of the hyperlinks in the individual cells, while also
+/// only sending a single copy of the associated URL.
+/// This section of code extracts the hyperlinks from the cells and builds
+/// up a mapping that can be used to restore the identity when the `lines()`
+/// method is called.
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
-pub struct GetLinesResponse {
-    pub tab_id: TabId,
+pub struct SerializedLines {
     lines: Vec<(StableRowIndex, Line)>,
     hyperlinks: Vec<LineHyperlink>,
     // TODO: image references
 }
 
-impl GetLinesResponse {
-    pub fn new(tab_id: TabId, mut lines: Vec<(StableRowIndex, Line)>) -> Self {
+impl SerializedLines {
+    pub fn lines(self) -> Vec<(StableRowIndex, Line)> {
+        self.into()
+    }
+}
+
+impl From<Vec<(StableRowIndex, Line)>> for SerializedLines {
+    fn from(mut lines: Vec<(StableRowIndex, Line)>) -> Self {
         let mut hyperlinks = vec![];
 
-        // What's all this?
-        // Cells hold references to Arc<Hyperlink> and it is important to us to
-        // maintain identity of the hyperlinks in the individual cells, while also
-        // only sending a single copy of the associated URL.
-        // This section of code extracts the hyperlinks from the cells and builds
-        // up a mapping that can be used to restore the identity when the `lines()`
-        // method is called.
         for (line_idx, (_, line)) in lines.iter_mut().enumerate() {
             let mut current_link: Option<Arc<Hyperlink>> = None;
             let mut current_range = 0..0;
@@ -526,16 +531,14 @@ impl GetLinesResponse {
             }
         }
 
-        Self {
-            tab_id,
-            lines,
-            hyperlinks,
-        }
+        Self { lines, hyperlinks }
     }
+}
 
-    /// Reconsitute hyperlinks or other attributes that were decomposed for
-    /// serialization, and return the line data.
-    pub fn lines(self) -> Vec<(StableRowIndex, Line)> {
+/// Reconsitute hyperlinks or other attributes that were decomposed for
+/// serialization, and return the line data.
+impl Into<Vec<(StableRowIndex, Line)>> for SerializedLines {
+    fn into(self) -> Vec<(StableRowIndex, Line)> {
         if self.hyperlinks.is_empty() {
             self.lines
         } else {
@@ -560,6 +563,12 @@ impl GetLinesResponse {
             lines
         }
     }
+}
+
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct GetLinesResponse {
+    pub tab_id: TabId,
+    pub lines: SerializedLines,
 }
 
 #[cfg(test)]

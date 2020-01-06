@@ -399,7 +399,7 @@ impl RenderableInner {
                         match result {
                             Ok(result) => {
                                 let config = configuration();
-                                let lines = result.lines();
+                                let lines = result.lines.lines();
                                 log::trace!("got {} lines", lines.len());
 
                                 for (stable_row, mut line) in lines.into_iter() {
