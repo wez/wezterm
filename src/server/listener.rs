@@ -445,10 +445,8 @@ impl Clipboard for RemoteClipboard {
 }
 
 struct BufferedTerminalHost<'a> {
-    tab_id: TabId,
     write: std::cell::RefMut<'a, dyn std::io::Write>,
     title: Option<String>,
-    sender: PollableSender<DecodedPdu>,
 }
 
 impl<'a> term::TerminalHost for BufferedTerminalHost<'a> {
@@ -457,15 +455,10 @@ impl<'a> term::TerminalHost for BufferedTerminalHost<'a> {
     }
 
     fn click_link(&mut self, link: &Arc<term::cell::Hyperlink>) {
-        self.sender
-            .send(DecodedPdu {
-                serial: 0,
-                pdu: Pdu::OpenURL(OpenURL {
-                    tab_id: self.tab_id,
-                    url: link.uri().to_string(),
-                }),
-            })
-            .ok();
+        log::error!(
+            "nothing should call BufferedTerminalHost::click_link, but something did with {:?}",
+            link
+        );
     }
 
     fn set_title(&mut self, title: &str) {
@@ -652,10 +645,8 @@ impl<S: ReadAndWrite> ClientSession<S> {
                         .get_tab(tab_id)
                         .ok_or_else(|| anyhow!("no such tab {}", tab_id))?;
                     let mut host = BufferedTerminalHost {
-                        tab_id,
                         write: tab.writer(),
                         title: None,
-                        sender: sender.clone(),
                     };
                     tab.mouse_event(event, &mut host)?;
                     maybe_push_tab_changes(&tab, sender)?;
@@ -735,7 +726,6 @@ impl<S: ReadAndWrite> ClientSession<S> {
             Pdu::Pong { .. }
             | Pdu::ListTabsResponse { .. }
             | Pdu::SetClipboard { .. }
-            | Pdu::OpenURL { .. }
             | Pdu::SpawnResponse { .. }
             | Pdu::GetTabRenderChangesResponse { .. }
             | Pdu::UnitResponse { .. }

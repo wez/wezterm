@@ -10,7 +10,7 @@ use crate::server::domain::ClientInner;
 use anyhow::anyhow;
 use anyhow::bail;
 use filedescriptor::Pipe;
-use log::{error, info};
+use log::info;
 use lru::LruCache;
 use portable_pty::PtySize;
 use promise::{BrokenPromise, Future};
@@ -203,16 +203,6 @@ impl ClientTab {
                     None => {
                         log::error!("ClientTab: Ignoring SetClipboard request {:?}", clipboard);
                     }
-                }
-            }
-            Pdu::OpenURL(OpenURL { url, .. }) => {
-                // FIXME: ideally we'd have a provider that we can
-                // capture (like the clipboard) so that we can propagate
-                // the click back to the ultimate client, but for now
-                // we just do a single stage
-                match open::that(&url) {
-                    Ok(_) => {}
-                    Err(err) => error!("failed to open {}: {:?}", url, err),
                 }
             }
             _ => bail!("unhandled unilateral pdu: {:?}", pdu),
