@@ -62,7 +62,7 @@ window = { path = "window", features=["opengl", "wayland"]}
 zstd = "0.4"
 
 [target.'cfg(unix)'.dependencies]
-daemonize = "0.4"
+daemonize = { git = "https://github.com/wez/daemonize" }
 
 [target.'cfg(not(windows))'.dependencies]
 # show a notification
