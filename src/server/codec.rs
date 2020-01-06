@@ -58,7 +58,7 @@ fn encode_raw<W: std::io::Write>(
     data: &[u8],
     is_compressed: bool,
     mut w: W,
-) -> Result<(), std::io::Error> {
+) -> Result<usize, std::io::Error> {
     let len = data.len() + encoded_length(ident) + encoded_length(serial);
     let masked_len = if is_compressed {
         (len as u64) | COMPRESSED_MASK
@@ -82,7 +82,9 @@ fn encode_raw<W: std::io::Write>(
         metrics::value!("pdu.encode.size", buffer.len() as u64);
     }
 
-    w.write_all(&buffer)
+    w.write_all(&buffer)?;
+
+    Ok(buffer.len())
 }
 
 /// Read a single leb128 encoded value from the stream
@@ -199,7 +201,8 @@ macro_rules! pdu {
                     $(
                         Pdu::$name(s) => {
                             let (data, is_compressed) = serialize(s)?;
-                            encode_raw($vers, serial, &data, is_compressed, w)?;
+                            let encoded_size = encode_raw($vers, serial, &data, is_compressed, w)?;
+                            metrics::value!("pdu.size", encoded_size as u64, "pdu" => stringify!($name));
                             Ok(())
                         }
                     ,)*
@@ -211,16 +214,20 @@ macro_rules! pdu {
                 match decoded.ident {
                     $(
                         $vers => {
+                            metrics::value!("pdu.size", decoded.data.len() as u64, "pdu" => stringify!($name));
                             Ok(DecodedPdu {
                                 serial: decoded.serial,
                                 pdu: Pdu::$name(deserialize(decoded.data.as_slice(), decoded.is_compressed)?)
                             })
                         }
                     ,)*
-                    _ => Ok(DecodedPdu {
-                        serial: decoded.serial,
-                        pdu: Pdu::Invalid{ident:decoded.ident}
-                    }),
+                    _ => {
+                        metrics::value!("pdu.size", decoded.data.len() as u64, "pdu" => "??");
+                        Ok(DecodedPdu {
+                            serial: decoded.serial,
+                            pdu: Pdu::Invalid{ident:decoded.ident}
+                        })
+                    }
                 }
             }
         }
