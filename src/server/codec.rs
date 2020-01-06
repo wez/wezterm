@@ -245,11 +245,11 @@ pdu! {
     SendMouseEvent: 12,
     SendPaste: 13,
     Resize: 14,
-    GetTabRenderChanges: 18,
-    GetTabRenderChangesResponse: 19,
     SetClipboard: 20,
     GetLines: 22,
     GetLinesResponse: 23,
+    GetTabRenderChanges: 24,
+    GetTabRenderChangesResponse: 25,
 }
 
 impl Pdu {
