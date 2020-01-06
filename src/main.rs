@@ -27,6 +27,7 @@ mod ssh;
 mod stats;
 mod termwiztermtab;
 
+use crate::frontend::activity::Activity;
 use crate::frontend::{executor, front_end, FrontEndSelection};
 use crate::mux::domain::{Domain, LocalDomain};
 use crate::mux::Mux;
@@ -361,6 +362,10 @@ fn run_ssh(config: config::ConfigHandle, opts: &SshCommand) -> anyhow::Result<()
     let mux = Rc::new(mux::Mux::new(None));
     Mux::set_mux(&mux);
 
+    // Keep the frontend alive until we've run through the ssh authentication
+    // phase.  This is passed into the thread and dropped when it is done.
+    let activity = Activity::new();
+
     // Initiate an ssh connection; since that is a blocking process with
     // callbacks, we have to run it in another thread
     std::thread::spawn(move || {
@@ -406,6 +411,11 @@ fn run_ssh(config: config::ConfigHandle, opts: &SshCommand) -> anyhow::Result<()
             let window_id = mux.new_empty_window();
             let tab = domain.spawn(PtySize::default(), cmd, window_id)?;
             gui.spawn_new_window(&fontconfig, &tab, window_id)?;
+
+            // This captures the activity ownership into this future, but also
+            // ensures that we drop it either when we error out, or if not,
+            // only once we reach this point in the processing flow.
+            drop(activity);
             Ok(())
         });
     });
@@ -772,6 +782,10 @@ fn run() -> anyhow::Result<()> {
                     let sock_path = unix_dom.socket_path();
                     let stream = unix_connect_with_retry(&sock_path)?;
 
+                    // Keep the threads below alive forever; they'll
+                    // exit the process when they're done.
+                    let activity = Activity::new();
+
                     // Spawn a thread to pull data from the socket and write
                     // it to stdout
                     let duped = stream.try_clone()?;
@@ -785,15 +799,6 @@ fn run() -> anyhow::Result<()> {
                         let stdin = std::io::stdin();
                         consume_stream_then_exit_process(stdin.lock(), stream);
                     });
-                    // This is a bit gross; we run a Null frontend while we
-                    // manage our streams to avoid a panic with some code
-                    // that spawns some background processing via the executors.
-                    // However, since we don't register any domains, and the
-                    // threads we spawn above to consume the streams are not
-                    // associated with the mux layer, this call to run_forever
-                    // really will run forever.
-                    // For that reason, we've arranged for the threads above
-                    // to exit the process if they run out of data to consume.
                     front_end.run_forever()?;
                 }
             }

@@ -10,6 +10,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::Mutex;
 
+pub mod activity;
 pub mod gui;
 pub mod muxserver;
 

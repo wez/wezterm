@@ -87,40 +87,13 @@ impl FrontEnd for GuiFrontEnd {
     }
 
     fn run_forever(&self) -> anyhow::Result<()> {
-        // We run until we've run out of windows in the Mux.
-        // When we're running ssh we have a transient window
-        // or two during authentication and we want to de-bounce
-        // our decision to quit until we're sure that we have
-        // no windows, so we track it here.
-        struct State {
-            when: Option<Instant>,
-        }
-
-        impl State {
-            fn mark(&mut self, is_empty: bool) {
-                if is_empty {
-                    let now = Instant::now();
-                    if let Some(start) = self.when.as_ref() {
-                        let diff = now - *start;
-                        if diff > Duration::new(5, 0) {
-                            Connection::get().unwrap().terminate_message_loop();
-                        }
-                    } else {
-                        self.when = Some(now);
-                    }
-                } else {
-                    self.when = None;
-                }
-            }
-        }
-
-        let state = Arc::new(Mutex::new(State { when: None }));
-
         self.connection
             .schedule_timer(std::time::Duration::from_millis(200), move || {
                 let mux = Mux::get().unwrap();
                 mux.prune_dead_windows();
-                state.lock().unwrap().mark(mux.is_empty());
+                if mux.is_empty() && crate::frontend::activity::Activity::count() == 0 {
+                    Connection::get().unwrap().terminate_message_loop();
+                }
             });
 
         self.connection.run_message_loop()
