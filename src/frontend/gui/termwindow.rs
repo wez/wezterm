@@ -25,6 +25,7 @@ use ::window::*;
 use anyhow::{anyhow, bail, ensure};
 use portable_pty::PtySize;
 use std::any::Any;
+use std::cell::{RefCell, RefMut};
 use std::collections::HashMap;
 use std::convert::TryInto;
 use std::ops::Range;
@@ -115,6 +116,7 @@ struct TabState {
     /// Otherwise, the viewport is at the bottom of the
     /// scrollback.
     viewport: Option<StableRowIndex>,
+    selection: Selection,
 }
 
 pub struct TermWindow {
@@ -139,13 +141,12 @@ pub struct TermWindow {
     prev_cursor: PrevCursorPos,
     last_scroll_info: RenderableDimensions,
 
-    tab_state: HashMap<TabId, TabState>,
+    tab_state: RefCell<HashMap<TabId, TabState>>,
 
     /// Gross workaround for managing async keyboard fetching
     /// just for middle mouse button paste function
     clipboard_contents: Arc<Mutex<Option<String>>>,
 
-    selection: Selection,
     current_mouse_button: Option<MousePress>,
 
     /// Keeps track of double and triple clicks
@@ -573,8 +574,7 @@ impl TermWindow {
                 prev_cursor: PrevCursorPos::new(),
                 last_scroll_info: RenderableDimensions::default(),
                 clipboard_contents: Arc::clone(&clipboard_contents),
-                tab_state: HashMap::new(),
-                selection: Selection::default(),
+                tab_state: RefCell::new(HashMap::new()),
                 current_mouse_button: None,
                 last_mouse_click: None,
                 current_highlight: None,
@@ -1067,7 +1067,12 @@ impl TermWindow {
 
     fn selection_text(&self, tab: &Rc<dyn Tab>) -> String {
         let mut s = String::new();
-        if let Some(sel) = self.selection.range.as_ref().map(|r| r.normalize()) {
+        if let Some(sel) = self
+            .selection(tab.tab_id())
+            .range
+            .as_ref()
+            .map(|r| r.normalize())
+        {
             let mut last_was_wrapped = false;
             let mut renderer = tab.renderer();
             let (first_row, lines) = renderer.get_lines(sel.rows());
@@ -1351,7 +1356,7 @@ impl TermWindow {
                 let stable_row = stable_top + line_idx as StableRowIndex;
 
                 let selrange = self
-                    .selection
+                    .selection(tab.tab_id())
                     .range
                     .map(|sel| sel.cols_for_row(stable_row))
                     .unwrap_or(0..0);
@@ -1559,7 +1564,7 @@ impl TermWindow {
         for (line_idx, line) in lines.iter().enumerate() {
             let stable_row = stable_top + line_idx as StableRowIndex;
             let selrange = self
-                .selection
+                .selection(tab.tab_id())
                 .range
                 .map(|sel| sel.cols_for_row(stable_row))
                 .unwrap_or(0..0);
@@ -2252,10 +2257,14 @@ impl TermWindow {
         (fg_color, bg_color, cursor_shape)
     }
 
-    fn tab_state(&mut self, tab_id: TabId) -> &mut TabState {
-        self.tab_state
-            .entry(tab_id)
-            .or_insert_with(TabState::default)
+    fn tab_state(&self, tab_id: TabId) -> RefMut<TabState> {
+        RefMut::map(self.tab_state.borrow_mut(), |state| {
+            state.entry(tab_id).or_insert_with(TabState::default)
+        })
+    }
+
+    fn selection(&self, tab_id: TabId) -> RefMut<Selection> {
+        RefMut::map(self.tab_state(tab_id), |state| &mut state.selection)
     }
 
     fn get_viewport(&mut self, tab_id: TabId) -> Option<StableRowIndex> {
@@ -2364,8 +2373,8 @@ impl TermWindow {
     }
 
     fn triple_click_left(&mut self, tab: &Rc<dyn Tab>, x: usize, y: StableRowIndex) {
-        self.selection.start = Some(SelectionCoordinate { x, y });
-        self.selection.range = Some(SelectionRange {
+        self.selection(tab.tab_id()).start = Some(SelectionCoordinate { x, y });
+        self.selection(tab.tab_id()).range = Some(SelectionRange {
             start: SelectionCoordinate { x: 0, y },
             end: SelectionCoordinate {
                 x: usize::max_value(),
@@ -2373,7 +2382,11 @@ impl TermWindow {
             },
         });
         let text = self.selection_text(&tab);
-        log::debug!("finish 3click selection {:?} '{}'", self.selection, text);
+        log::debug!(
+            "finish 3click selection {:?} '{}'",
+            self.selection(tab.tab_id()),
+            text
+        );
         self.window.as_ref().unwrap().set_clipboard(text);
     }
 
@@ -2444,11 +2457,15 @@ impl TermWindow {
         // TODO: if selection_range.start.x == 0, search backwards for wrapping
         // lines too.
 
-        self.selection.start = Some(selection_range.start);
-        self.selection.range = Some(selection_range);
+        self.selection(tab.tab_id()).start = Some(selection_range.start);
+        self.selection(tab.tab_id()).range = Some(selection_range);
 
         let text = self.selection_text(&tab);
-        log::debug!("finish 2click selection {:?} '{}'", self.selection, text);
+        log::debug!(
+            "finish 2click selection {:?} '{}'",
+            self.selection(tab.tab_id()),
+            text
+        );
         self.window.as_ref().unwrap().set_clipboard(text);
     }
 
@@ -2532,7 +2549,7 @@ impl TermWindow {
                         ..
                     }),
                 ) => {
-                    self.selection
+                    self.selection(tab.tab_id())
                         .begin(SelectionCoordinate { x, y: stable_row });
                     self.window.as_ref().unwrap().set_clipboard(String::new());
                 }
@@ -2578,12 +2595,14 @@ impl TermWindow {
                 ) => {
                     if let Some(MousePress::Left) = self.current_mouse_button {
                         let end = SelectionCoordinate { x, y: stable_row };
-                        let sel = match self.selection.range.take() {
-                            None => SelectionRange::start(self.selection.start.unwrap_or(end))
-                                .extend(end),
+                        let sel = match self.selection(tab.tab_id()).range.take() {
+                            None => SelectionRange::start(
+                                self.selection(tab.tab_id()).start.unwrap_or(end),
+                            )
+                            .extend(end),
                             Some(sel) => sel.extend(end),
                         };
-                        self.selection.range = Some(sel);
+                        self.selection(tab.tab_id()).range = Some(sel);
                         context.invalidate();
                     }
                 }
