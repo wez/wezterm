@@ -524,10 +524,10 @@ fn run_terminal_gui(config: config::ConfigHandle, opts: &StartCommand) -> anyhow
                     | DaemonizeError::LockPidfile(_)
                     | DaemonizeError::ChownPidfile(_)
                     | DaemonizeError::WritePid => {
-                        anyhow!("{} {}", err, config.daemon_options.pid_file().display());
+                        bail!("{} {}", err, config.daemon_options.pid_file().display());
                     }
                     DaemonizeError::ChangeDirectory => {
-                        anyhow!("{} {}", err, home_dir.display());
+                        bail!("{} {}", err, home_dir.display());
                     }
                     _ => return Err(err.into()),
                 }
