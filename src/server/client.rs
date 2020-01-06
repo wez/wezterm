@@ -310,19 +310,22 @@ impl Reconnectable {
         let sess = ssh_connect(&ssh_dom.remote_address, &ssh_dom.username)?;
 
         let mut chan = sess.channel_session()?;
-        let cmd = if initial {
-            if !configuration().use_local_build_for_proxy {
-                "wezterm cli proxy"
-            } else if cfg!(debug_assertions) {
-                "/home/wez/wez-personal/wezterm/target/debug/wezterm cli proxy"
-            } else {
-                "/home/wez/wez-personal/wezterm/target/release/wezterm cli proxy"
-            }
+
+        let proxy_bin = if !configuration().use_local_build_for_proxy {
+            "wezterm"
+        } else if cfg!(debug_assertions) {
+            "/home/wez/wez-personal/wezterm/target/debug/wezterm"
         } else {
-            "wezterm cli --no-auto-start proxy"
+            "/home/wez/wez-personal/wezterm/target/release/wezterm"
+        };
+
+        let cmd = if initial {
+            format!("{} cli proxy", proxy_bin)
+        } else {
+            format!("{} cli --no-auto-start proxy", proxy_bin)
         };
         log::error!("going to run {}", cmd);
-        chan.exec(cmd)?;
+        chan.exec(&cmd)?;
 
         let stream: Box<dyn ReadAndWrite> = Box::new(SshStream { sess, chan });
         self.stream.replace(stream);
