@@ -383,19 +383,21 @@ impl RenderableInner {
             .client
             .get_lines(GetLines {
                 tab_id: self.remote_tab_id,
-                lines: to_fetch.into(),
+                lines: to_fetch.clone().into(),
             })
             .then(move |result| {
-                match result {
-                    Ok(result) => {
-                        Future::with_executor(executor(), move || {
-                            let mux = Mux::get().unwrap();
-                            let tab = mux
-                                .get_tab(local_tab_id)
-                                .ok_or_else(|| anyhow!("no such tab {}", local_tab_id))?;
-                            if let Some(client_tab) = tab.downcast_ref::<ClientTab>() {
-                                let renderable = client_tab.renderable.borrow_mut();
-                                let mut inner = renderable.inner.borrow_mut();
+                Future::with_executor(executor(), move || {
+                    let mux = Mux::get().unwrap();
+                    let tab = mux
+                        .get_tab(local_tab_id)
+                        .ok_or_else(|| anyhow!("no such tab {}", local_tab_id))?;
+                    if let Some(client_tab) = tab.downcast_ref::<ClientTab>() {
+                        let renderable = client_tab.renderable.borrow_mut();
+                        let mut inner = renderable.inner.borrow_mut();
+                        inner.fetch_pending.remove_set(&to_fetch);
+
+                        match result {
+                            Ok(result) => {
                                 let config = configuration();
                                 let lines = result.lines();
                                 log::trace!("got {} lines", lines.len());
@@ -407,13 +409,13 @@ impl RenderableInner {
                                     inner.fetch_pending.remove(stable_row);
                                 }
                             }
-                            Ok(())
-                        });
+                            Err(err) => {
+                                log::error!("get_lines failed: {}", err);
+                            }
+                        }
                     }
-                    Err(err) => {
-                        log::error!("get_lines failed: {}", err);
-                    }
-                }
+                    Ok(())
+                });
                 Ok(())
             });
     }
