@@ -460,6 +460,13 @@ pub struct Config {
     /// 10 seconds.
     #[serde(default)]
     pub periodic_stat_logging: u64,
+
+    /// If false, do not scroll to the bottom of the terminal when
+    /// you send input to the terminal.
+    /// The default is to scroll to the bottom when you send input
+    /// to the terminal.
+    #[serde(default = "default_true")]
+    pub scroll_to_bottom_on_input: bool,
 }
 
 #[derive(Deserialize, Clone, Copy, Debug)]

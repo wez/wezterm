@@ -389,6 +389,7 @@ impl WindowCallbacks for TermWindow {
                     && modifiers.contains(::termwiz::input::Modifiers::ALT)
                     && tab.key_down(key, modifiers).is_ok()
                 {
+                    self.maybe_scroll_to_bottom_for_input(&tab);
                     return true;
                 }
             }
@@ -401,6 +402,7 @@ impl WindowCallbacks for TermWindow {
                     self.perform_key_assignment(&tab, &assignment).ok();
                     true
                 } else if tab.key_down(key, modifiers).is_ok() {
+                    self.maybe_scroll_to_bottom_for_input(&tab);
                     true
                 } else {
                     false
@@ -408,6 +410,7 @@ impl WindowCallbacks for TermWindow {
             }
             Key::Composed(s) => {
                 tab.writer().write_all(s.as_bytes()).ok();
+                self.maybe_scroll_to_bottom_for_input(&tab);
                 true
             }
             Key::None => false,
@@ -2667,6 +2670,16 @@ impl TermWindow {
                 context.invalidate();
             }
         }
+    }
+
+    fn maybe_scroll_to_bottom_for_input(&mut self, tab: &Rc<dyn Tab>) {
+        if configuration().scroll_to_bottom_on_input {
+            self.scroll_to_bottom(tab);
+        }
+    }
+
+    fn scroll_to_bottom(&mut self, tab: &Rc<dyn Tab>) {
+        self.tab_state(tab.tab_id()).viewport = None;
     }
 }
 
