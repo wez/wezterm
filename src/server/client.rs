@@ -311,7 +311,7 @@ impl Reconnectable {
 
         let mut chan = sess.channel_session()?;
         let cmd = if initial {
-            if false {
+            if !configuration().use_local_build_for_proxy {
                 "wezterm cli proxy"
             } else if cfg!(debug_assertions) {
                 "/home/wez/wez-personal/wezterm/target/debug/wezterm cli proxy"

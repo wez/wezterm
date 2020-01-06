@@ -470,6 +470,9 @@ pub struct Config {
 
     #[serde(default = "default_true")]
     pub use_ime: bool,
+
+    #[serde(default)]
+    pub use_local_build_for_proxy: bool,
 }
 
 #[derive(Deserialize, Clone, Copy, Debug)]
