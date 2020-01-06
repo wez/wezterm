@@ -167,6 +167,9 @@ impl EventHandle {
     }
 }
 
+// Handle created by `CreateEventW` is safe to be shared.
+unsafe impl Sync for EventHandle {}
+
 impl Write for OutputHandle {
     fn write(&mut self, buf: &[u8]) -> IoResult<usize> {
         if self.write_buffer.len() + buf.len() > self.write_buffer.capacity() {
