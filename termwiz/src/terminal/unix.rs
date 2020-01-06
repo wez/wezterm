@@ -215,6 +215,7 @@ impl UnixTerminal {
         sigwinch_pipe.set_nonblocking(true)?;
         let (wake_pipe, wake_pipe_write) = UnixStream::pair()?;
         wake_pipe.set_nonblocking(true)?;
+        wake_pipe_write.set_nonblocking(true)?;
 
         read.set_blocking(Blocking::Wait)?;
 
@@ -275,8 +276,13 @@ pub struct UnixTerminalWaker {
 impl UnixTerminalWaker {
     pub fn wake(&self) -> Result<(), IoError> {
         let mut pipe = self.pipe.lock().unwrap();
-        let _ = pipe.write(b"W")?;
-        Ok(())
+        match pipe.write(b"W") {
+            Err(e) => match e.kind() {
+                ErrorKind::WouldBlock => Ok(()),
+                _ => Err(e),
+            },
+            Ok(_) => Ok(()),
+        }
     }
 }
 
