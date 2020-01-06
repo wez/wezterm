@@ -408,6 +408,16 @@ fn maybe_push_tab_changes(
 
     let title = tab.get_title();
 
+    let (cursor_line, lines) = tab
+        .renderer()
+        .get_lines(cursor_position.y..cursor_position.y + 1);
+    let bonus_lines = lines
+        .into_iter()
+        .enumerate()
+        .map(|(idx, line)| (cursor_line + idx as StableRowIndex, line))
+        .collect::<Vec<_>>()
+        .into();
+
     sender.send(DecodedPdu {
         pdu: Pdu::GetTabRenderChangesResponse(GetTabRenderChangesResponse {
             tab_id,
@@ -416,6 +426,7 @@ fn maybe_push_tab_changes(
             dimensions: dims,
             cursor_position,
             title,
+            bonus_lines,
         }),
         serial: 0,
     })?;

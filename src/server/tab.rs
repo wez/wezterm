@@ -348,19 +348,20 @@ impl RenderableInner {
 
         if delta.cursor_position != self.cursor_position {
             self.dirty_rows.add(self.cursor_position.y);
+            // But note that the server may have sent this in bonus_lines;
+            // we'll address that below
             self.dirty_rows.add(delta.cursor_position.y);
-            log::trace!(
-                "cursor move, so dirty {} and {}. to_fetch is {:?}",
-                self.cursor_position.y,
-                delta.cursor_position.y,
-                to_fetch
-            );
-
             to_fetch.add(delta.cursor_position.y);
         }
         self.cursor_position = delta.cursor_position;
         self.dimensions = delta.dimensions;
         self.title = delta.title;
+
+        for (stable_row, line) in delta.bonus_lines.lines() {
+            to_fetch.remove(stable_row);
+            self.dirty_rows.add(stable_row);
+            self.lines.put(stable_row, line);
+        }
 
         self.fetch_lines(to_fetch);
     }

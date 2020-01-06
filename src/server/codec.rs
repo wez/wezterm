@@ -426,6 +426,9 @@ pub struct GetTabRenderChangesResponse {
     pub dimensions: RenderableDimensions,
     pub dirty_lines: Vec<Range<StableRowIndex>>,
     pub title: String,
+    /// Lines that the server thought we'd almost certainly
+    /// want to fetch as soon as we received this response
+    pub bonus_lines: SerializedLines,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
