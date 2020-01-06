@@ -36,6 +36,14 @@ pub fn use_ime(enable: bool) {
     USE_IME.store(enable, Ordering::Relaxed);
 }
 
+fn round_away_from_zero(value: f64) -> i16 {
+    if value > 0. {
+        value.max(1.).round() as i16
+    } else {
+        value.min(-1.).round() as i16
+    }
+}
+
 #[repr(C)]
 struct NSRange(cocoa::foundation::NSRange);
 
@@ -999,9 +1007,9 @@ impl WindowView {
         let vert_delta = unsafe { nsevent.scrollingDeltaY() };
         let horz_delta = unsafe { nsevent.scrollingDeltaX() };
         let kind = if vert_delta.abs() > horz_delta.abs() {
-            MouseEventKind::VertWheel(vert_delta as i16)
+            MouseEventKind::VertWheel(round_away_from_zero(vert_delta))
         } else {
-            MouseEventKind::HorzWheel(horz_delta as i16)
+            MouseEventKind::HorzWheel(round_away_from_zero(horz_delta))
         };
         Self::mouse_common(this, nsevent, kind);
     }
