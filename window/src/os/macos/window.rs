@@ -28,6 +28,13 @@ use std::any::Any;
 use std::cell::RefCell;
 use std::ffi::c_void;
 use std::rc::Rc;
+use std::sync::atomic::{AtomicBool, Ordering};
+
+static USE_IME: AtomicBool = AtomicBool::new(false);
+
+pub fn use_ime(enable: bool) {
+    USE_IME.store(enable, Ordering::Relaxed);
+}
 
 #[repr(C)]
 struct NSRange(cocoa::foundation::NSRange);
@@ -590,9 +597,11 @@ impl WindowOpsMut for WindowInner {
         if let Some(window_view) = WindowView::get_this(unsafe { &**self.view }) {
             window_view.inner.borrow_mut().text_cursor_position = cursor;
         }
-        unsafe {
-            let input_context: id = msg_send![&**self.view, inputContext];
-            let () = msg_send![input_context, invalidateCharacterCoordinates];
+        if USE_IME.load(Ordering::Relaxed) {
+            unsafe {
+                let input_context: id = msg_send![&**self.view, inputContext];
+                let () = msg_send![input_context, invalidateCharacterCoordinates];
+            }
         }
     }
 }
@@ -1016,16 +1025,19 @@ impl WindowView {
         // `Fn-Delete` emits DEL.
         // Alt-Delete is mapped by the IME to be equivalent to Fn-Delete.
         // We want to emit Alt-BS in that situation.
-        let unmod =
-            if virtual_key == super::keycodes::kVK_Delete && modifiers.contains(Modifiers::ALT) {
-                "\x08"
-            } else if virtual_key == super::keycodes::kVK_Tab {
-                "\t"
-            } else {
-                unmod
-            };
+        let unmod = if virtual_key == super::keycodes::kVK_Delete
+            && modifiers.contains(Modifiers::ALT)
+        {
+            "\x08"
+        } else if virtual_key == super::keycodes::kVK_Tab {
+            "\t"
+        } else if !USE_IME.load(Ordering::Relaxed) && virtual_key == super::keycodes::kVK_Delete {
+            "\x08"
+        } else {
+            unmod
+        };
 
-        if modifiers.is_empty() {
+        if USE_IME.load(Ordering::Relaxed) && modifiers.is_empty() {
             unsafe {
                 let input_context: id = msg_send![this, inputContext];
                 let res: BOOL = msg_send![input_context, handleEvent: nsevent];

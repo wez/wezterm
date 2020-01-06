@@ -467,6 +467,9 @@ pub struct Config {
     /// to the terminal.
     #[serde(default = "default_true")]
     pub scroll_to_bottom_on_input: bool,
+
+    #[serde(default = "default_true")]
+    pub use_ime: bool,
 }
 
 #[derive(Deserialize, Clone, Copy, Debug)]

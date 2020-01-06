@@ -705,6 +705,11 @@ fn run() -> anyhow::Result<()> {
         Ok(config) => config,
     };
 
+    #[cfg(target_os = "macos")]
+    {
+        window::os::macos::use_ime(config.use_ime);
+    }
+
     match opts
         .cmd
         .as_ref()
