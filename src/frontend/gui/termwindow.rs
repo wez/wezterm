@@ -584,7 +584,6 @@ impl TermWindow {
             .unwrap()
             .schedule_timer(std::time::Duration::from_millis(35), {
                 let mut last_blink_paint = Instant::now();
-                let mut last_config_generation = config.generation();
                 move || {
                     cloned_window.apply(move |myself, _| {
                         if let Some(myself) = myself.downcast_mut::<Self>() {
@@ -593,12 +592,9 @@ impl TermWindow {
                             if let Some(tab) = mux.get_active_tab_for_window(mux_window_id) {
                                 // If the config was reloaded, ask the window to apply
                                 // and render any changes
+                                myself.check_for_config_reload();
+
                                 let config = configuration();
-                                let current_generation = config.generation();
-                                if current_generation != last_config_generation {
-                                    last_config_generation = current_generation;
-                                    myself.config_was_reloaded();
-                                }
 
                                 let render = tab.renderer();
 
@@ -818,11 +814,11 @@ impl TermWindow {
 
     fn config_was_reloaded(&mut self) {
         let config = configuration();
+        self.config_generation = config.generation();
 
         self.show_tab_bar = config.enable_tab_bar;
         self.show_scroll_bar = config.enable_scroll_bar;
         self.keys = KeyMap::new();
-        self.config_generation = config.generation();
         let dimensions = self.dimensions;
         let cell_dims = self.current_cell_dimensions();
         self.apply_scale_change(&dimensions, self.fonts.get_font_scale());
