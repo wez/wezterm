@@ -371,27 +371,47 @@ pub trait BitmapImage {
         let src_rect = src_rect
             .unwrap_or_else(|| Rect::from_size(Size::new(im_width as isize, im_height as isize)));
 
-        let (_dim_width, dim_height) = self.image_dimensions();
+        let (dim_width, dim_height) = self.image_dimensions();
         debug_assert!(
             src_rect.size.width <= im_width as isize && src_rect.size.height <= im_height as isize
         );
-        for y in src_rect.origin.y..src_rect.origin.y + src_rect.size.height {
+
+        let desired_width = src_rect.max_x().saturating_sub(src_rect.min_x()).max(0);
+        let src_width = desired_width.min(im_width as isize).max(0);
+        let dest_rightmost = dest_top_left
+            .x
+            .saturating_add(src_width)
+            .min(dim_width as isize);
+        let dest_width = dest_rightmost.saturating_sub(dest_top_left.x).max(0);
+        let copy_width = dest_width.min(src_width).max(0);
+
+        let desired_height = src_rect.max_y().saturating_sub(src_rect.min_y()).max(0);
+        let src_height = desired_height.min(im_height as isize).max(0);
+        let dest_bottommost = dest_top_left
+            .y
+            .saturating_add(src_height)
+            .min(dim_height as isize);
+        let dest_height = dest_bottommost.saturating_sub(dest_top_left.y).max(0);
+        let copy_height = dest_height.min(src_height).max(0);
+
+        if copy_width == 0 || copy_height == 0 {
+            return;
+        }
+
+        for y in src_rect.origin.y..src_rect.origin.y + copy_height {
             let dest_y = y as isize + dest_top_left.y - src_rect.origin.y as isize;
             if dest_y < 0 {
                 continue;
             }
-            if dest_y as usize >= dim_height {
-                break;
-            }
 
             let src_pixels = im.horizontal_pixel_range(
                 src_rect.min_x() as usize,
-                src_rect.max_x() as usize,
+                (src_rect.min_x() + copy_width) as usize,
                 y as usize,
             );
             let dest_pixels = self.horizontal_pixel_range_mut(
                 dest_top_left.x.max(0) as usize,
-                (dest_top_left.x + src_rect.size.width).max(0) as usize,
+                (dest_top_left.x + copy_width).max(0) as usize,
                 dest_y as usize,
             );
             for (src_pix, dest_pix) in src_pixels.iter().zip(dest_pixels.iter_mut()) {
