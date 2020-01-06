@@ -784,7 +784,7 @@ fn run() -> anyhow::Result<()> {
 
                     // Keep the threads below alive forever; they'll
                     // exit the process when they're done.
-                    let activity = Activity::new();
+                    let _activity = Activity::new();
 
                     // Spawn a thread to pull data from the socket and write
                     // it to stdout

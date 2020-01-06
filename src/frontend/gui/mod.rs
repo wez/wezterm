@@ -8,8 +8,6 @@ use ::window::*;
 use promise::{BasicExecutor, Executor, SpawnFunc};
 use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Mutex};
-use std::time::{Duration, Instant};
 
 mod glyphcache;
 mod quad;
