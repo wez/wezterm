@@ -2458,7 +2458,8 @@ impl TermWindow {
         context: &dyn WindowOps,
     ) {
         let dims = tab.renderer().get_dimensions();
-        let stable_row = dims.physical_top + y as StableRowIndex;
+        let stable_row =
+            self.get_viewport(tab.tab_id()).unwrap_or(dims.physical_top) + y as StableRowIndex;
 
         let (top, mut lines) = tab.renderer().get_lines(stable_row..stable_row + 1);
         let new_highlight = if top == stable_row {
