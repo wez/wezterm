@@ -372,7 +372,7 @@ async fn async_run_ssh(opts: SshCommand, params: SshParameters) -> anyhow::Resul
     let mux = Mux::get().unwrap();
     mux.add_domain(&domain);
     mux.set_default_domain(&domain);
-    domain.attach();
+    domain.attach().await?;
 
     let window_id = mux.new_empty_window();
     let tab = domain.spawn(PtySize::default(), cmd, window_id)?;
@@ -428,7 +428,7 @@ fn run_serial(config: config::ConfigHandle, opts: &SerialCommand) -> anyhow::Res
 
     let front_end = opts.front_end.unwrap_or(config.front_end);
     let gui = front_end.try_new()?;
-    domain.attach();
+    domain.attach().wait()?;
 
     let window_id = mux.new_empty_window();
     let tab = domain.spawn(PtySize::default(), None, window_id)?;
@@ -516,6 +516,32 @@ async fn spawn_tab_in_default_domain_if_mux_is_empty(
     Ok(())
 }
 
+async fn async_run_terminal_gui(
+    cmd: Option<CommandBuilder>,
+    do_auto_connect: bool,
+) -> anyhow::Result<()> {
+    let mux = Mux::get().unwrap();
+
+    fn record_domain(mux: &Rc<Mux>, client: ClientDomain) -> anyhow::Result<Arc<dyn Domain>> {
+        let domain: Arc<dyn Domain> = Arc::new(client);
+        mux.add_domain(&domain);
+        Ok(domain)
+    }
+
+    if do_auto_connect {
+        let config = config::configuration();
+        for client_config in client_domains(&config) {
+            let connect_automatically = client_config.connect_automatically();
+            let dom = record_domain(&mux, ClientDomain::new(client_config))?;
+            if connect_automatically {
+                dom.attach().await?;
+            }
+        }
+    }
+
+    spawn_tab_in_default_domain_if_mux_is_empty(cmd).await
+}
+
 fn run_terminal_gui(config: config::ConfigHandle, opts: StartCommand) -> anyhow::Result<()> {
     #[cfg(unix)]
     {
@@ -576,28 +602,15 @@ fn run_terminal_gui(config: config::ConfigHandle, opts: StartCommand) -> anyhow:
     let front_end_selection = opts.front_end.unwrap_or(config.front_end);
     let gui = front_end_selection.try_new()?;
     let activity = Activity::new();
-    Connection::get().unwrap().spawn_task(async {
-        if let Err(err) = spawn_tab_in_default_domain_if_mux_is_empty(cmd).await {
+    let do_auto_connect =
+        front_end_selection != FrontEndSelection::MuxServer && !opts.no_auto_connect;
+
+    Connection::get().unwrap().spawn_task(async move {
+        if let Err(err) = async_run_terminal_gui(cmd, do_auto_connect).await {
             terminate_with_error(err);
         }
         drop(activity);
     });
-
-    fn record_domain(mux: &Rc<Mux>, client: ClientDomain) -> anyhow::Result<Arc<dyn Domain>> {
-        let domain: Arc<dyn Domain> = Arc::new(client);
-        mux.add_domain(&domain);
-        Ok(domain)
-    }
-
-    if front_end_selection != FrontEndSelection::MuxServer && !opts.no_auto_connect {
-        for client_config in client_domains(&config) {
-            let connect_automatically = client_config.connect_automatically();
-            let dom = record_domain(&mux, ClientDomain::new(client_config))?;
-            if connect_automatically {
-                dom.attach();
-            }
-        }
-    }
 
     gui.run_forever()
 }
