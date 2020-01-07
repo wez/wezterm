@@ -481,20 +481,19 @@ fn run_mux_client(config: config::ConfigHandle, opts: &ConnectCommand) -> anyhow
     let front_end_selection = opts.front_end.unwrap_or(config.front_end);
     let gui = front_end_selection.try_new()?;
     let opts = opts.clone();
+
+    let cmd = if !opts.prog.is_empty() {
+        let builder = CommandBuilder::from_argv(opts.prog);
+        Some(builder)
+    } else {
+        None
+    };
+
     domain.attach().map(move |_| {
         Future::with_executor(executor(), move || {
             let mux = Mux::get().unwrap();
 
             if mux.is_empty() {
-                let cmd = if !opts.prog.is_empty() {
-                    let argv: Vec<&std::ffi::OsStr> =
-                        opts.prog.iter().map(|x| x.as_os_str()).collect();
-                    let mut builder = CommandBuilder::new(&argv[0]);
-                    builder.args(&argv[1..]);
-                    Some(builder)
-                } else {
-                    None
-                };
                 let window_id = mux.new_empty_window();
                 let tab = mux
                     .default_domain()
@@ -539,7 +538,7 @@ async fn spawn_tab_in_default_domain_if_mux_is_empty(
     Ok(())
 }
 
-fn run_terminal_gui(config: config::ConfigHandle, opts: &StartCommand) -> anyhow::Result<()> {
+fn run_terminal_gui(config: config::ConfigHandle, opts: StartCommand) -> anyhow::Result<()> {
     #[cfg(unix)]
     {
         if opts.daemonize {
@@ -586,9 +585,7 @@ fn run_terminal_gui(config: config::ConfigHandle, opts: &StartCommand) -> anyhow
         .set_default();
 
     let cmd = if !opts.prog.is_empty() {
-        let argv: Vec<&std::ffi::OsStr> = opts.prog.iter().map(|x| x.as_os_str()).collect();
-        let mut builder = CommandBuilder::new(&argv[0]);
-        builder.args(&argv[1..]);
+        let builder = CommandBuilder::from_argv(opts.prog);
         Some(builder)
     } else {
         None
@@ -759,7 +756,7 @@ fn run() -> anyhow::Result<()> {
     {
         SubCommand::Start(start) => {
             log::info!("Using configuration: {:#?}\nopts: {:#?}", config, opts);
-            run_terminal_gui(config, &start)
+            run_terminal_gui(config, start)
         }
         SubCommand::Ssh(ssh) => run_ssh(config, &ssh),
         SubCommand::Serial(serial) => run_serial(config, &serial),

@@ -25,6 +25,11 @@ impl CommandBuilder {
         }
     }
 
+    /// Create a new builder instance from a pre-built argument vector
+    pub fn from_argv(args: Vec<OsString>) -> Self {
+        Self { args, envs: vec![] }
+    }
+
     /// Create a new builder instance that will run some idea of a default
     /// program.  Such a builder will panic if `arg` is called on it.
     pub fn new_default_prog() -> Self {
