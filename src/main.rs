@@ -513,6 +513,32 @@ fn run_mux_client(config: config::ConfigHandle, opts: &ConnectCommand) -> anyhow
     gui.run_forever()
 }
 
+async fn spawn_tab_in_default_domain_if_mux_is_empty(
+    cmd: Option<CommandBuilder>,
+) -> anyhow::Result<()> {
+    let mux = Mux::get().unwrap();
+
+    if !mux.is_empty() {
+        return Ok(());
+    }
+    let window_id = mux.new_empty_window();
+    let domain = mux.default_domain();
+    domain.attach().await?;
+
+    if !mux.is_empty() {
+        return Ok(());
+    }
+
+    let tab = mux
+        .default_domain()
+        .spawn(PtySize::default(), cmd, window_id)?;
+    let fontconfig = Rc::new(FontConfiguration::new());
+    front_end()
+        .unwrap()
+        .spawn_new_window(&fontconfig, &tab, window_id)?;
+    Ok(())
+}
+
 fn run_terminal_gui(config: config::ConfigHandle, opts: &StartCommand) -> anyhow::Result<()> {
     #[cfg(unix)]
     {
@@ -574,26 +600,12 @@ fn run_terminal_gui(config: config::ConfigHandle, opts: &StartCommand) -> anyhow
 
     let front_end_selection = opts.front_end.unwrap_or(config.front_end);
     let gui = front_end_selection.try_new()?;
-    domain.attach().map(move |_| {
-        Future::with_executor(executor(), move || {
-            let mux = Mux::get().unwrap();
-
-            if mux.is_empty() {
-                if mux.is_empty() {
-                    let window_id = mux.new_empty_window();
-                    let tab = mux
-                        .default_domain()
-                        .spawn(PtySize::default(), cmd, window_id)?;
-                    let fontconfig = Rc::new(FontConfiguration::new());
-                    front_end()
-                        .unwrap()
-                        .spawn_new_window(&fontconfig, &tab, window_id)?;
-                }
-            }
-            Ok(())
-        });
-
-        Ok(())
+    let activity = Activity::new();
+    Connection::get().unwrap().spawn_task(async {
+        if let Err(err) = spawn_tab_in_default_domain_if_mux_is_empty(cmd).await {
+            terminate_with_error(err);
+        }
+        drop(activity);
     });
 
     fn record_domain(mux: &Rc<Mux>, client: ClientDomain) -> anyhow::Result<Arc<dyn Domain>> {
@@ -668,13 +680,20 @@ fn notify_on_panic() {
     }));
 }
 
+fn terminate_with_error_message(err: &str) -> ! {
+    log::error!("{}; terminating", err);
+    fatal_toast_notification("Wezterm Error", &err);
+    std::process::exit(1);
+}
+
+fn terminate_with_error(err: anyhow::Error) -> ! {
+    terminate_with_error_message(&format!("{:#}", err));
+}
+
 fn main() {
     notify_on_panic();
     if let Err(e) = run() {
-        let err = format!("{:#}", e);
-        log::error!("{}; terminating", err);
-        fatal_toast_notification("Wezterm Error", &err);
-        std::process::exit(1);
+        terminate_with_error(e);
     }
 }
 
