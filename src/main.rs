@@ -489,24 +489,12 @@ fn run_mux_client(config: config::ConfigHandle, opts: &ConnectCommand) -> anyhow
         None
     };
 
-    domain.attach().map(move |_| {
-        Future::with_executor(executor(), move || {
-            let mux = Mux::get().unwrap();
-
-            if mux.is_empty() {
-                let window_id = mux.new_empty_window();
-                let tab = mux
-                    .default_domain()
-                    .spawn(PtySize::default(), cmd, window_id)?;
-                let fontconfig = Rc::new(FontConfiguration::new());
-                front_end()
-                    .unwrap()
-                    .spawn_new_window(&fontconfig, &tab, window_id)?;
-            }
-
-            Ok(())
-        });
-        Ok(())
+    let activity = Activity::new();
+    Connection::get().unwrap().spawn_task(async {
+        if let Err(err) = spawn_tab_in_default_domain_if_mux_is_empty(cmd).await {
+            terminate_with_error(err);
+        }
+        drop(activity);
     });
 
     gui.run_forever()
