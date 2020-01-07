@@ -15,6 +15,7 @@ use downcast_rs::{impl_downcast, Downcast};
 use log::info;
 use portable_pty::cmdbuilder::CommandBuilder;
 use portable_pty::{PtySize, PtySystem};
+use promise::Future;
 use std::rc::Rc;
 
 static DOMAIN_ID: ::std::sync::atomic::AtomicUsize = ::std::sync::atomic::AtomicUsize::new(0);
@@ -47,7 +48,7 @@ pub trait Domain: Downcast {
     fn domain_name(&self) -> &str;
 
     /// Re-attach to any tabs that might be pre-existing in this domain
-    fn attach(&self) -> anyhow::Result<()>;
+    fn attach(&self) -> Future<()>;
 
     /// Detach all tabs
     fn detach(&self) -> anyhow::Result<()>;
@@ -120,8 +121,8 @@ impl Domain for LocalDomain {
         &self.name
     }
 
-    fn attach(&self) -> anyhow::Result<()> {
-        Ok(())
+    fn attach(&self) -> Future<()> {
+        Future::ok(())
     }
 
     fn detach(&self) -> anyhow::Result<()> {

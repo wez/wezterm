@@ -406,7 +406,7 @@ fn run_ssh(config: config::ConfigHandle, opts: &SshCommand) -> anyhow::Result<()
             let mux = Mux::get().unwrap();
             mux.add_domain(&domain);
             mux.set_default_domain(&domain);
-            domain.attach()?;
+            domain.attach();
 
             let window_id = mux.new_empty_window();
             let tab = domain.spawn(PtySize::default(), cmd, window_id)?;
@@ -438,7 +438,7 @@ fn run_serial(config: config::ConfigHandle, opts: &SerialCommand) -> anyhow::Res
 
     let front_end = opts.front_end.unwrap_or(config.front_end);
     let gui = front_end.try_new()?;
-    domain.attach()?;
+    domain.attach();
 
     let window_id = mux.new_empty_window();
     let tab = domain.spawn(PtySize::default(), None, window_id)?;
@@ -474,35 +474,41 @@ fn run_mux_client(config: config::ConfigHandle, opts: &ConnectCommand) -> anyhow
             )
         })?;
 
-    let fontconfig = Rc::new(FontConfiguration::new());
-
     let domain: Arc<dyn Domain> = Arc::new(ClientDomain::new(client_config));
     let mux = Rc::new(mux::Mux::new(Some(domain.clone())));
     Mux::set_mux(&mux);
 
-    let front_end = opts.front_end.unwrap_or(config.front_end);
-    let gui = front_end.try_new()?;
-    domain.attach()?;
+    let front_end_selection = opts.front_end.unwrap_or(config.front_end);
+    let gui = front_end_selection.try_new()?;
+    let opts = opts.clone();
+    domain.attach().map(move |_| {
+        Future::with_executor(executor(), move || {
+            let mux = Mux::get().unwrap();
 
-    if mux.is_empty() {
-        let cmd = if !opts.prog.is_empty() {
-            let argv: Vec<&std::ffi::OsStr> = opts.prog.iter().map(|x| x.as_os_str()).collect();
-            let mut builder = CommandBuilder::new(&argv[0]);
-            builder.args(&argv[1..]);
-            Some(builder)
-        } else {
-            None
-        };
-        let window_id = mux.new_empty_window();
-        let tab = mux
-            .default_domain()
-            .spawn(PtySize::default(), cmd, window_id)?;
-        gui.spawn_new_window(&fontconfig, &tab, window_id)?;
-    }
+            if mux.is_empty() {
+                let cmd = if !opts.prog.is_empty() {
+                    let argv: Vec<&std::ffi::OsStr> =
+                        opts.prog.iter().map(|x| x.as_os_str()).collect();
+                    let mut builder = CommandBuilder::new(&argv[0]);
+                    builder.args(&argv[1..]);
+                    Some(builder)
+                } else {
+                    None
+                };
+                let window_id = mux.new_empty_window();
+                let tab = mux
+                    .default_domain()
+                    .spawn(PtySize::default(), cmd, window_id)?;
+                let fontconfig = Rc::new(FontConfiguration::new());
+                front_end()
+                    .unwrap()
+                    .spawn_new_window(&fontconfig, &tab, window_id)?;
+            }
 
-    for dom in mux.iter_domains() {
-        log::info!("domain {} state {:?}", dom.domain_id(), dom.state());
-    }
+            Ok(())
+        });
+        Ok(())
+    });
 
     gui.run_forever()
 }
@@ -553,8 +559,6 @@ fn run_terminal_gui(config: config::ConfigHandle, opts: &StartCommand) -> anyhow
         .unwrap_or(config.font_rasterizer)
         .set_default();
 
-    let fontconfig = Rc::new(FontConfiguration::new());
-
     let cmd = if !opts.prog.is_empty() {
         let argv: Vec<&std::ffi::OsStr> = opts.prog.iter().map(|x| x.as_os_str()).collect();
         let mut builder = CommandBuilder::new(&argv[0]);
@@ -568,9 +572,29 @@ fn run_terminal_gui(config: config::ConfigHandle, opts: &StartCommand) -> anyhow
     let mux = Rc::new(mux::Mux::new(Some(domain.clone())));
     Mux::set_mux(&mux);
 
-    let front_end = opts.front_end.unwrap_or(config.front_end);
-    let gui = front_end.try_new()?;
-    domain.attach()?;
+    let front_end_selection = opts.front_end.unwrap_or(config.front_end);
+    let gui = front_end_selection.try_new()?;
+    domain.attach().map(move |_| {
+        Future::with_executor(executor(), move || {
+            let mux = Mux::get().unwrap();
+
+            if mux.is_empty() {
+                if mux.is_empty() {
+                    let window_id = mux.new_empty_window();
+                    let tab = mux
+                        .default_domain()
+                        .spawn(PtySize::default(), cmd, window_id)?;
+                    let fontconfig = Rc::new(FontConfiguration::new());
+                    front_end()
+                        .unwrap()
+                        .spawn_new_window(&fontconfig, &tab, window_id)?;
+                }
+            }
+            Ok(())
+        });
+
+        Ok(())
+    });
 
     fn record_domain(mux: &Rc<Mux>, client: ClientDomain) -> anyhow::Result<Arc<dyn Domain>> {
         let domain: Arc<dyn Domain> = Arc::new(client);
@@ -578,26 +602,14 @@ fn run_terminal_gui(config: config::ConfigHandle, opts: &StartCommand) -> anyhow
         Ok(domain)
     }
 
-    if front_end != FrontEndSelection::MuxServer && !opts.no_auto_connect {
+    if front_end_selection != FrontEndSelection::MuxServer && !opts.no_auto_connect {
         for client_config in client_domains(&config) {
             let connect_automatically = client_config.connect_automatically();
             let dom = record_domain(&mux, ClientDomain::new(client_config))?;
             if connect_automatically {
-                dom.attach()?;
+                dom.attach();
             }
         }
-    }
-
-    if mux.is_empty() {
-        let window_id = mux.new_empty_window();
-        let tab = mux
-            .default_domain()
-            .spawn(PtySize::default(), cmd, window_id)?;
-        gui.spawn_new_window(&fontconfig, &tab, window_id)?;
-    }
-
-    for dom in mux.iter_domains() {
-        log::info!("domain {} state {:?}", dom.domain_id(), dom.state());
     }
 
     gui.run_forever()

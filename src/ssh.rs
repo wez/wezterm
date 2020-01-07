@@ -363,8 +363,8 @@ impl Domain for RemoteSshDomain {
         &self.name
     }
 
-    fn attach(&self) -> anyhow::Result<()> {
-        Ok(())
+    fn attach(&self) -> promise::Future<()> {
+        promise::Future::ok(())
     }
 
     fn detach(&self) -> anyhow::Result<()> {

@@ -162,8 +162,8 @@ impl Domain for TermWizTerminalDomain {
     fn domain_name(&self) -> &str {
         "TermWizTerminalDomain"
     }
-    fn attach(&self) -> anyhow::Result<()> {
-        Ok(())
+    fn attach(&self) -> promise::Future<()> {
+        promise::Future::ok(())
     }
 
     fn detach(&self) -> anyhow::Result<()> {

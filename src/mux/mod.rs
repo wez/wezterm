@@ -310,6 +310,7 @@ impl Mux {
         self.windows.borrow().keys().cloned().collect()
     }
 
+    #[allow(unused)]
     pub fn iter_domains(&self) -> Vec<Arc<dyn Domain>> {
         self.domains.borrow().values().cloned().collect()
     }
