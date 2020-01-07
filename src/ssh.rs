@@ -7,6 +7,7 @@ use crate::termwiztermtab;
 use anyhow::{anyhow, bail, Context, Error};
 use portable_pty::cmdbuilder::CommandBuilder;
 use portable_pty::{PtySize, PtySystem};
+use promise::{Future, Promise};
 use std::collections::HashSet;
 use std::io::Write;
 use std::net::TcpStream;
@@ -146,6 +147,15 @@ impl<'a> ssh2::KeyboardInteractivePrompt for Prompt<'a> {
             })
             .collect()
     }
+}
+
+pub fn async_ssh_connect(remote_address: &str, username: &str) -> Future<ssh2::Session> {
+    let mut promise = Promise::new();
+    let future = promise.get_future().unwrap();
+    let remote_address = remote_address.to_owned();
+    let username = username.to_owned();
+    std::thread::spawn(move || promise.result(ssh_connect(&remote_address, &username)));
+    future
 }
 
 pub fn ssh_connect(remote_address: &str, username: &str) -> anyhow::Result<ssh2::Session> {

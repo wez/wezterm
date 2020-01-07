@@ -2,7 +2,6 @@
 #![windows_subsystem = "windows"]
 
 use anyhow::{anyhow, bail, Context};
-use promise::Future;
 use std::ffi::OsString;
 use std::fs::DirBuilder;
 use std::io::{Read, Write};
@@ -28,7 +27,7 @@ mod stats;
 mod termwiztermtab;
 
 use crate::frontend::activity::Activity;
-use crate::frontend::{executor, front_end, FrontEndSelection};
+use crate::frontend::{front_end, FrontEndSelection};
 use crate::mux::domain::{Domain, LocalDomain};
 use crate::mux::Mux;
 use crate::server::client::{unix_connect_with_retry, Client};
@@ -349,12 +348,45 @@ impl SshParameters {
     }
 }
 
-fn run_ssh(config: config::ConfigHandle, opts: &SshCommand) -> anyhow::Result<()> {
+async fn async_run_ssh(opts: SshCommand, params: SshParameters) -> anyhow::Result<()> {
+    // Establish the connection; it may show UI for authentication
+    let sess = ssh::async_ssh_connect(&params.host_and_port, &params.username).await?;
+    // Now we have a connected session, set up the ssh domain and make it
+    // the default domain
+    let gui = front_end().unwrap();
+
+    let cmd = if !opts.prog.is_empty() {
+        let builder = CommandBuilder::from_argv(opts.prog);
+        Some(builder)
+    } else {
+        None
+    };
+
+    let config = config::configuration();
+    let pty_system = Box::new(portable_pty::ssh::SshSession::new(sess, &config.term));
+    let domain: Arc<dyn Domain> = Arc::new(ssh::RemoteSshDomain::with_pty_system(
+        &opts.user_at_host_and_port,
+        pty_system,
+    ));
+
+    let mux = Mux::get().unwrap();
+    mux.add_domain(&domain);
+    mux.set_default_domain(&domain);
+    domain.attach();
+
+    let window_id = mux.new_empty_window();
+    let tab = domain.spawn(PtySize::default(), cmd, window_id)?;
+    let fontconfig = Rc::new(FontConfiguration::new());
+    gui.spawn_new_window(&fontconfig, &tab, window_id)?;
+
+    Ok(())
+}
+
+fn run_ssh(config: config::ConfigHandle, opts: SshCommand) -> anyhow::Result<()> {
     let front_end_selection = opts.front_end.unwrap_or(config.front_end);
     let gui = front_end_selection.try_new()?;
 
     let params = SshParameters::parse(&opts.user_at_host_and_port)?;
-    let opts = opts.clone();
 
     // Set up the mux with no default domain; there's a good chance that
     // we'll need to show authentication UI and we don't want its domain
@@ -368,56 +400,14 @@ fn run_ssh(config: config::ConfigHandle, opts: &SshCommand) -> anyhow::Result<()
 
     // Initiate an ssh connection; since that is a blocking process with
     // callbacks, we have to run it in another thread
-    std::thread::spawn(move || {
-        // Establish the connection; it may show UI for authentication
-        let sess = match ssh::ssh_connect(&params.host_and_port, &params.username) {
-            Ok(sess) => sess,
-            Err(err) => {
-                log::error!("{}", err);
-                Future::with_executor(executor(), move || {
-                    Connection::get().unwrap().terminate_message_loop();
-                    Ok(())
-                });
-                return;
-            }
-        };
-
-        // Now we have a connected session, set up the ssh domain and make it
-        // the default domain
-        Future::with_executor(executor(), move || {
-            let gui = front_end().unwrap();
-
-            let fontconfig = Rc::new(FontConfiguration::new());
-            let cmd = if !opts.prog.is_empty() {
-                let argv: Vec<&std::ffi::OsStr> = opts.prog.iter().map(|x| x.as_os_str()).collect();
-                let mut builder = CommandBuilder::new(&argv[0]);
-                builder.args(&argv[1..]);
-                Some(builder)
-            } else {
-                None
-            };
-
-            let pty_system = Box::new(portable_pty::ssh::SshSession::new(sess, &config.term));
-            let domain: Arc<dyn Domain> = Arc::new(ssh::RemoteSshDomain::with_pty_system(
-                &opts.user_at_host_and_port,
-                pty_system,
-            ));
-
-            let mux = Mux::get().unwrap();
-            mux.add_domain(&domain);
-            mux.set_default_domain(&domain);
-            domain.attach();
-
-            let window_id = mux.new_empty_window();
-            let tab = domain.spawn(PtySize::default(), cmd, window_id)?;
-            gui.spawn_new_window(&fontconfig, &tab, window_id)?;
-
-            // This captures the activity ownership into this future, but also
-            // ensures that we drop it either when we error out, or if not,
-            // only once we reach this point in the processing flow.
-            drop(activity);
-            Ok(())
-        });
+    Connection::get().unwrap().spawn_task(async {
+        if let Err(err) = async_run_ssh(opts, params).await {
+            terminate_with_error(err);
+        }
+        // This captures the activity ownership into this future, but also
+        // ensures that we drop it either when we error out, or if not,
+        // only once we reach this point in the processing flow.
+        drop(activity);
     });
 
     gui.run_forever()
@@ -746,7 +736,7 @@ fn run() -> anyhow::Result<()> {
             log::info!("Using configuration: {:#?}\nopts: {:#?}", config, opts);
             run_terminal_gui(config, start)
         }
-        SubCommand::Ssh(ssh) => run_ssh(config, &ssh),
+        SubCommand::Ssh(ssh) => run_ssh(config, ssh),
         SubCommand::Serial(serial) => run_serial(config, &serial),
         SubCommand::Connect(connect) => run_mux_client(config, &connect),
         SubCommand::ImageCat(cmd) => cmd.run(),
