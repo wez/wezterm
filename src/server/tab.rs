@@ -1,4 +1,4 @@
-use crate::config::configuration;
+use crate::config::{configuration, ConfigHandle};
 use crate::frontend::executor;
 use crate::mux::domain::DomainId;
 use crate::mux::renderable::{Renderable, RenderableDimensions, StableCursorPosition};
@@ -365,14 +365,27 @@ impl RenderableInner {
         self.dimensions = delta.dimensions;
         self.title = delta.title;
 
+        let config = configuration();
         for (stable_row, line) in delta.bonus_lines.lines() {
             to_fetch.remove(stable_row);
-            self.dirty_rows.add(stable_row);
-            self.lines.put(stable_row, line);
+            self.put_line(stable_row, line, &config);
         }
 
         let is_high_priority = false;
         self.fetch_lines(to_fetch, is_high_priority);
+    }
+
+    fn put_line(&mut self, stable_row: StableRowIndex, mut line: Line, config: &ConfigHandle) {
+        line.scan_and_create_hyperlinks(&config.hyperlink_rules);
+        self.fetch_pending.remove(stable_row);
+        if let Some(existing) = self.lines.get(&stable_row) {
+            if *existing == line {
+                self.dirty_rows.remove(stable_row);
+                return;
+            }
+        }
+        self.dirty_rows.add(stable_row);
+        self.lines.put(stable_row, line);
     }
 
     /// Request a set of lines.
@@ -422,11 +435,8 @@ impl RenderableInner {
                                 let lines = result.lines.lines();
                                 log::trace!("got {} lines", lines.len());
 
-                                for (stable_row, mut line) in lines.into_iter() {
-                                    line.scan_and_create_hyperlinks(&config.hyperlink_rules);
-                                    inner.lines.put(stable_row, line);
-                                    inner.dirty_rows.add(stable_row);
-                                    inner.fetch_pending.remove(stable_row);
+                                for (stable_row, line) in lines.into_iter() {
+                                    inner.put_line(stable_row, line, &config);
                                 }
                             }
                             Err(err) => {
