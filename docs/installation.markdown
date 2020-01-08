@@ -39,7 +39,7 @@ sudo apt install -y ./{{ ubuntu_stable_asset }}
 * The package installs `/usr/bin/wezterm` and `/usr/share/applications/wezterm.desktop`
 * Configuration instructions can be [found here](configuration.html)
 
-## Installing Fedora
+## Installing on Fedora
 
 The CI system builds an `.rpm` file on Fedora 31.
 
@@ -47,8 +47,7 @@ The CI system builds an `.rpm` file on Fedora 31.
 <a href="{{ fedora_pre }}" class="btn">Nightly for Fedora</a>
 
 ```bash
-curl -LO {{ fedora_stable }}
-sudo dnf install -y ./{{ fedora_stable_asset }}
+sudo dnf install -y {{ fedora_stable }}
 ```
 
 * The package installs `/usr/bin/wezterm` and `/usr/share/applications/wezterm.desktop`
