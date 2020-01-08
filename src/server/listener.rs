@@ -522,18 +522,18 @@ impl<S: ReadAndWrite> ClientSession<S> {
                     Err(TryRecvError::Empty) => break,
                     Err(TryRecvError::Disconnected) => bail!("ClientSession was destroyed"),
                 };
+            }
 
-                for tab_id in tabs_to_output.drain() {
-                    let sender = self.to_write_tx.clone();
-                    Future::with_executor(executor(), move || {
-                        let mux = Mux::get().unwrap();
-                        let tab = mux
-                            .get_tab(tab_id)
-                            .ok_or_else(|| anyhow!("no such tab {}", tab_id))?;
-                        maybe_push_tab_changes(&tab, sender)?;
-                        Ok(())
-                    });
-                }
+            for tab_id in tabs_to_output.drain() {
+                let sender = self.to_write_tx.clone();
+                Future::with_executor(executor(), move || {
+                    let mux = Mux::get().unwrap();
+                    let tab = mux
+                        .get_tab(tab_id)
+                        .ok_or_else(|| anyhow!("no such tab {}", tab_id))?;
+                    maybe_push_tab_changes(&tab, sender)?;
+                    Ok(())
+                });
             }
 
             let mut poll_array = [

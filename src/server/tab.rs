@@ -4,6 +4,7 @@ use crate::mux::domain::DomainId;
 use crate::mux::renderable::{Renderable, RenderableDimensions, StableCursorPosition};
 use crate::mux::tab::{alloc_tab_id, Tab, TabId};
 use crate::mux::Mux;
+use crate::ratelim::RateLimiter;
 use crate::server::client::Client;
 use crate::server::codec::*;
 use crate::server::domain::ClientInner;
@@ -146,6 +147,10 @@ impl ClientTab {
             future: None,
             queue: VecDeque::new(),
         }));
+
+        let fetch_limiter =
+            RateLimiter::new(|config| config.ratelimit_mux_line_prefetches_per_second);
+
         let render = RenderableState {
             inner: RefCell::new(RenderableInner {
                 client: Arc::clone(client),
@@ -167,6 +172,7 @@ impl ClientTab {
                 },
                 lines: LruCache::unbounded(),
                 title: title.to_string(),
+                fetch_limiter,
             }),
         };
 
@@ -317,6 +323,8 @@ struct RenderableInner {
 
     lines: LruCache<StableRowIndex, Line>,
     title: String,
+
+    fetch_limiter: RateLimiter,
 }
 
 struct RenderableState {
@@ -363,12 +371,22 @@ impl RenderableInner {
             self.lines.put(stable_row, line);
         }
 
-        self.fetch_lines(to_fetch);
+        let is_high_priority = false;
+        self.fetch_lines(to_fetch, is_high_priority);
     }
 
-    fn fetch_lines(&mut self, mut to_fetch: RangeSet<StableRowIndex>) {
+    /// Request a set of lines.
+    /// The is_high_priority flag bypasses any throttling checks and should
+    /// be used when we definitely require those lines.
+    /// Set is_high_priority to false for speculative fetches.
+    fn fetch_lines(&mut self, mut to_fetch: RangeSet<StableRowIndex>, is_high_priority: bool) {
         to_fetch.remove_set(&self.fetch_pending);
         if to_fetch.is_empty() {
+            return;
+        }
+
+        if !is_high_priority && !self.fetch_limiter.non_blocking_admittance_check(1) {
+            // Throttled
             return;
         }
 
@@ -376,9 +394,10 @@ impl RenderableInner {
 
         let local_tab_id = self.local_tab_id;
         log::trace!(
-            "will fetch lines {:?} for remote tab id {}",
+            "will fetch lines {:?} for remote tab id {}, is_high_priority={}",
             to_fetch,
-            self.remote_tab_id
+            self.remote_tab_id,
+            is_high_priority
         );
         self.client
             .client
@@ -479,7 +498,8 @@ impl Renderable for RenderableState {
             }
         }
 
-        inner.fetch_lines(to_fetch);
+        let is_high_priority = true;
+        inner.fetch_lines(to_fetch, is_high_priority);
         (lines.start, result)
     }
 

@@ -375,24 +375,13 @@ pub struct Config {
     #[serde(default = "default_ratelimit_output_bytes_per_second")]
     pub ratelimit_output_bytes_per_second: u32,
 
-    /// Constrains the rate at which the multiplexer server will
-    /// unilaterally push data to the client.
+    /// Constrains the rate at which the multiplexer client will
+    /// speculatively fetch line data.
     /// This helps to avoid saturating the link between the client
-    /// and server.
-    /// Each time the screen is updated as a result of the child
-    /// command outputting data (rather than in response to input
-    /// from the client), the server considers whether to push
-    /// the result to the client.
-    /// That decision is throttled by this configuration value
-    /// which has a default value of 10/s
-    #[serde(default = "default_ratelimit_mux_output_pushes_per_second")]
-    pub ratelimit_mux_output_pushes_per_second: u32,
-
-    /// Constrain how often the mux server scans the terminal
-    /// model to compute a diff to send to the mux client.
-    /// The default value is 100/s
-    #[serde(default = "default_ratelimit_mux_output_scans_per_second")]
-    pub ratelimit_mux_output_scans_per_second: u32,
+    /// and server if the server is dumping a large amount of output
+    /// to the client.
+    #[serde(default = "default_ratelimit_line_prefetches_per_second")]
+    pub ratelimit_mux_line_prefetches_per_second: u32,
 
     #[serde(default)]
     pub keys: Vec<Key>,
@@ -670,11 +659,7 @@ impl Config {
     }
 }
 
-fn default_ratelimit_mux_output_scans_per_second() -> u32 {
-    100
-}
-
-fn default_ratelimit_mux_output_pushes_per_second() -> u32 {
+fn default_ratelimit_line_prefetches_per_second() -> u32 {
     10
 }
 
