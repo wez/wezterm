@@ -16,6 +16,7 @@ use crossbeam_channel::{unbounded as channel, Receiver, Sender};
 use filedescriptor::Pipe;
 use portable_pty::*;
 use promise::{Future, Promise};
+use rangeset::RangeSet;
 use std::cell::RefCell;
 use std::cell::RefMut;
 use std::convert::TryInto;
@@ -96,8 +97,9 @@ impl Renderable for RenderableState {
         )
     }
 
-    fn get_dirty_lines(&self, lines: Range<StableRowIndex>) -> Vec<StableRowIndex> {
+    fn get_dirty_lines(&self, lines: Range<StableRowIndex>) -> RangeSet<StableRowIndex> {
         let mut inner = self.inner.borrow_mut();
+        let mut set = RangeSet::new();
 
         loop {
             match inner.render_rx.try_recv() {
@@ -116,10 +118,9 @@ impl Renderable for RenderableState {
         if inner.something_changed.load(Ordering::SeqCst)
             || inner.surface.has_changes(inner.local_sequence)
         {
-            lines.collect()
-        } else {
-            vec![]
+            set.add_range(lines);
         }
+        set
     }
 
     fn get_dimensions(&self) -> RenderableDimensions {

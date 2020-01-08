@@ -512,7 +512,7 @@ impl Renderable for RenderableState {
         (lines.start, result)
     }
 
-    fn get_dirty_lines(&self, lines: Range<StableRowIndex>) -> Vec<StableRowIndex> {
+    fn get_dirty_lines(&self, lines: Range<StableRowIndex>) -> RangeSet<StableRowIndex> {
         let mut inner = self.inner.borrow_mut();
         if let Err(err) = inner.poll() {
             // We allow for BrokenPromise here for now; for a TLS backed
@@ -525,10 +525,10 @@ impl Renderable for RenderableState {
             }
         }
 
-        let mut result = vec![];
+        let mut result = RangeSet::new();
         for r in inner.dirty_rows.intersection_with_range(lines).iter() {
             for line in r.clone() {
-                result.push(line);
+                result.add(line);
             }
         }
 

@@ -1,5 +1,6 @@
 use crate::config::configuration;
 use downcast_rs::{impl_downcast, Downcast};
+use rangeset::RangeSet;
 use serde::{Deserialize, Serialize};
 use std::ops::Range;
 use term::{Line, StableRowIndex, Terminal};
@@ -40,7 +41,7 @@ pub trait Renderable: Downcast {
 
     /// Given a range of lines, return the subset of those lines that
     /// have their dirty flag set to true.
-    fn get_dirty_lines(&self, lines: Range<StableRowIndex>) -> Vec<StableRowIndex>;
+    fn get_dirty_lines(&self, lines: Range<StableRowIndex>) -> RangeSet<StableRowIndex>;
 
     /// Returns a set of lines from the scrollback or visible portion of
     /// the display.  The lines are indexed using StableRowIndex, which
@@ -75,23 +76,22 @@ impl Renderable for Terminal {
         }
     }
 
-    fn get_dirty_lines(&self, lines: Range<StableRowIndex>) -> Vec<StableRowIndex> {
+    fn get_dirty_lines(&self, lines: Range<StableRowIndex>) -> RangeSet<StableRowIndex> {
         let screen = self.screen();
         let phys = screen.stable_range(&lines);
-        screen
+        let mut set = RangeSet::new();
+        for (idx, line) in screen
             .lines
             .iter()
             .enumerate()
             .skip(phys.start)
             .take(phys.end - phys.start)
-            .filter_map(|(idx, line)| {
-                if line.is_dirty() {
-                    Some(screen.phys_to_stable_row_index(idx))
-                } else {
-                    None
-                }
-            })
-            .collect()
+        {
+            if line.is_dirty() {
+                set.add(screen.phys_to_stable_row_index(idx))
+            }
+        }
+        set
     }
 
     fn get_lines(&mut self, lines: Range<StableRowIndex>) -> (StableRowIndex, Vec<Line>) {

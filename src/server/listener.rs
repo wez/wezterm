@@ -14,7 +14,6 @@ use log::{debug, error};
 use native_tls::Identity;
 use portable_pty::PtySize;
 use promise::Future;
-use rangeset::RangeSet;
 use std::collections::HashSet;
 use std::convert::TryFrom;
 use std::fs::remove_file;
@@ -388,19 +387,14 @@ fn maybe_push_tab_changes(
     let mouse_grabbed = tab.is_mouse_grabbed();
     let dims = tab.renderer().get_dimensions();
 
-    let mut dirty_rows = RangeSet::new();
-    for idx in tab.renderer().get_dirty_lines(
+    let mut dirty_rows = tab.renderer().get_dirty_lines(
         dims.physical_top..dims.physical_top + dims.viewport_rows as StableRowIndex,
-    ) {
-        dirty_rows.add(idx);
-    }
+    );
     // Make sure we pick up "damage" done by switching between alt and primary screen
-    for idx in tab
-        .renderer()
-        .get_dirty_lines(0..dims.viewport_rows as StableRowIndex)
-    {
-        dirty_rows.add(idx);
-    }
+    dirty_rows.add_set(
+        &tab.renderer()
+            .get_dirty_lines(0..dims.viewport_rows as StableRowIndex),
+    );
 
     let dirty_lines = dirty_rows.iter().cloned().collect();
 
