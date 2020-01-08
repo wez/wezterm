@@ -380,7 +380,6 @@ impl RenderableInner {
         self.fetch_pending.remove(stable_row);
         if let Some(existing) = self.lines.get(&stable_row) {
             if *existing == line {
-                self.dirty_rows.remove(stable_row);
                 return;
             }
         }
