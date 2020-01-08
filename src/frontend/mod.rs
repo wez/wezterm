@@ -1,4 +1,5 @@
 use crate::font::FontConfiguration;
+use crate::frontend::muxserver::MuxServerFrontEnd;
 use crate::mux::tab::Tab;
 use crate::mux::window::WindowId;
 use anyhow::{anyhow, Error};
@@ -9,6 +10,7 @@ use serde::Deserialize;
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::Mutex;
+use window::connection::ConnectionOps;
 
 pub mod activity;
 pub mod gui;
@@ -60,6 +62,15 @@ pub fn front_end() -> Option<Rc<dyn FrontEnd>> {
         }
     });
     res
+}
+
+pub fn spawn_task<F: std::future::Future<Output = ()> + 'static>(future: F) {
+    let frontend = front_end().expect("spawn_task must be called from the gui thread");
+    if let Some(frontend) = frontend.downcast_ref::<MuxServerFrontEnd>() {
+        frontend.spawn_task(future);
+    } else {
+        window::Connection::get().unwrap().spawn_task(future);
+    }
 }
 
 impl FrontEndSelection {
