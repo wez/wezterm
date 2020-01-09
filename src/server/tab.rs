@@ -324,12 +324,12 @@ enum LineEntry {
 }
 
 impl LineEntry {
-    fn kind(&self) -> &'static str {
+    fn kind(&self) -> (&'static str, Option<Instant>) {
         match self {
-            Self::Line(_) => "Line",
-            Self::Dirty(_) => "Dirty",
-            Self::Fetching(_) => "Fetching",
-            Self::DirtyAndFetching(..) => "DirtyAndFetching",
+            Self::Line(_) => ("Line", None),
+            Self::Dirty(_) => ("Dirty", None),
+            Self::Fetching(since) => ("Fetching", Some(*since)),
+            Self::DirtyAndFetching(_, since) => ("DirtyAndFetching", Some(*since)),
         }
     }
 }
@@ -384,6 +384,12 @@ impl RenderableInner {
             dirty.remove(stable_row);
         }
 
+        if !dirty.is_empty() {
+            Mux::get()
+                .unwrap()
+                .notify(crate::mux::MuxNotification::TabOutput(self.local_tab_id));
+        }
+
         let now = Instant::now();
         let mut to_fetch = RangeSet::new();
         for r in dirty.iter() {
@@ -413,7 +419,7 @@ impl RenderableInner {
                     | Some(LineEntry::Line(old)) => LineEntry::DirtyAndFetching(old, now),
                 };
                 log::trace!(
-                    "row {} {:?} -> {} due to dirty and IN viewport",
+                    "row {} {:?} -> {:?} due to dirty and IN viewport",
                     stable_row,
                     prior_kind,
                     entry.kind()
@@ -644,7 +650,7 @@ impl Renderable for RenderableState {
         let mut result = RangeSet::new();
         for r in lines {
             match inner.lines.get(&r) {
-                Some(LineEntry::Dirty(_)) | Some(LineEntry::DirtyAndFetching(..)) => {
+                None | Some(LineEntry::Dirty(_)) | Some(LineEntry::DirtyAndFetching(..)) => {
                     result.add(r);
                 }
                 _ => {}
