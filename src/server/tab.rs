@@ -161,8 +161,6 @@ impl ClientTab {
                 poll_future: None,
                 poll_interval: BASE_POLL_INTERVAL,
                 cursor_position: StableCursorPosition::default(),
-                dirty_rows: RangeSet::new(),
-                fetch_pending: RangeSet::new(),
                 dimensions: RenderableDimensions {
                     cols: size.cols as _,
                     viewport_rows: size.rows as _,
@@ -257,6 +255,10 @@ impl Tab for ClientTab {
     }
 
     fn resize(&self, size: PtySize) -> anyhow::Result<()> {
+        let render = self.renderable.borrow();
+        let mut inner = render.inner.borrow_mut();
+        // Invalidate any cached rows on a resize
+        inner.lines.clear();
         self.client.client.resize(Resize {
             tab_id: self.remote_tab_id,
             size,
@@ -307,6 +309,20 @@ impl Tab for ClientTab {
     }
 }
 
+#[derive(Debug)]
+enum LineEntry {
+    // Up to date wrt. server and has been rendered at least once
+    Line(Line),
+    // Up to date wrt. server but needs to be rendered
+    Dirty(Line),
+    // Currently being downloaded from the server
+    Fetching(Instant),
+    // We have a version of the line locally and are treating it
+    // as needing rendering because we are also in the process of
+    // downloading a newer version from the server
+    DirtyAndFetching(Line, Instant),
+}
+
 struct RenderableInner {
     client: Arc<ClientInner>,
     remote_tab_id: TabId,
@@ -316,12 +332,10 @@ struct RenderableInner {
     poll_future: Option<Future<UnitResponse>>,
     poll_interval: Duration,
 
-    dirty_rows: RangeSet<StableRowIndex>,
-    fetch_pending: RangeSet<StableRowIndex>,
     cursor_position: StableCursorPosition,
     dimensions: RenderableDimensions,
 
-    lines: LruCache<StableRowIndex, Line>,
+    lines: LruCache<StableRowIndex, LineEntry>,
     title: String,
 
     fetch_limiter: RateLimiter,
@@ -338,78 +352,120 @@ impl RenderableInner {
     fn apply_changes_to_surface(&mut self, delta: GetTabRenderChangesResponse) {
         self.poll_interval = BASE_POLL_INTERVAL;
 
-        let mut to_fetch = RangeSet::new();
+        let mut dirty = RangeSet::new();
         for r in delta.dirty_lines {
-            self.dirty_rows.add_range(r.clone());
-            for idx in r {
-                // If a line is in the (probable) viewport region,
-                // then we'll likely want to fetch it.
-                // If it is outside that region, remove it from our cache
-                // so that we'll fetch it on demand later.
-                if idx >= delta.dimensions.physical_top {
-                    to_fetch.add(idx);
-                } else {
-                    self.lines.pop(&idx);
-                }
-            }
+            dirty.add_range(r.clone());
         }
-
         if delta.cursor_position != self.cursor_position {
-            self.dirty_rows.add(self.cursor_position.y);
+            dirty.add(self.cursor_position.y);
             // But note that the server may have sent this in bonus_lines;
             // we'll address that below
-            self.dirty_rows.add(delta.cursor_position.y);
-            to_fetch.add(delta.cursor_position.y);
+            dirty.add(delta.cursor_position.y);
         }
+
         self.cursor_position = delta.cursor_position;
         self.dimensions = delta.dimensions;
         self.title = delta.title;
 
         let config = configuration();
         for (stable_row, line) in delta.bonus_lines.lines() {
-            to_fetch.remove(stable_row);
-            self.put_line(stable_row, line, &config);
+            self.put_line(stable_row, line, &config, None);
+            dirty.remove(stable_row);
         }
 
-        let is_high_priority = false;
-        self.fetch_lines(to_fetch, is_high_priority);
-    }
-
-    fn put_line(&mut self, stable_row: StableRowIndex, mut line: Line, config: &ConfigHandle) {
-        line.scan_and_create_hyperlinks(&config.hyperlink_rules);
-        self.fetch_pending.remove(stable_row);
-        if let Some(existing) = self.lines.get(&stable_row) {
-            if *existing == line {
-                return;
+        let now = Instant::now();
+        let mut to_fetch = RangeSet::new();
+        for r in dirty.iter() {
+            for stable_row in r.clone() {
+                // If a line is in the (probable) viewport region,
+                // then we'll likely want to fetch it.
+                // If it is outside that region, remove it from our cache
+                // so that we'll fetch it on demand later.
+                let fetchable = stable_row >= delta.dimensions.physical_top;
+                let prior = self.lines.pop(&stable_row);
+                if !fetchable {
+                    continue;
+                }
+                to_fetch.add(stable_row);
+                let entry = match prior {
+                    Some(LineEntry::Fetching(_)) | None => LineEntry::Fetching(now),
+                    Some(LineEntry::DirtyAndFetching(old, ..))
+                    | Some(LineEntry::Dirty(old))
+                    | Some(LineEntry::Line(old)) => LineEntry::DirtyAndFetching(old, now),
+                };
+                self.lines.put(stable_row, entry);
             }
         }
-        self.dirty_rows.add(stable_row);
-        self.lines.put(stable_row, line);
+        if !to_fetch.is_empty() {
+            if self.fetch_limiter.non_blocking_admittance_check(1) {
+                self.schedule_fetch_lines(to_fetch, now);
+            } else {
+                log::error!("exceeded throttle, drop {:?}", to_fetch);
+                for r in to_fetch.iter() {
+                    for stable_row in r.clone() {
+                        self.lines.pop(&stable_row);
+                    }
+                }
+            }
+        }
     }
 
-    /// Request a set of lines.
-    /// The is_high_priority flag bypasses any throttling checks and should
-    /// be used when we definitely require those lines.
-    /// Set is_high_priority to false for speculative fetches.
-    fn fetch_lines(&mut self, mut to_fetch: RangeSet<StableRowIndex>, is_high_priority: bool) {
-        to_fetch.remove_set(&self.fetch_pending);
+    fn put_line(
+        &mut self,
+        stable_row: StableRowIndex,
+        mut line: Line,
+        config: &ConfigHandle,
+        fetch_start: Option<Instant>,
+    ) {
+        line.scan_and_create_hyperlinks(&config.hyperlink_rules);
+
+        let entry = if let Some(fetch_start) = fetch_start {
+            // If we're completing a fetch, only replace entries that were
+            // set to fetching as part of our fetch.  If they are now longer
+            // tagged that way, then someone came along after us and changed
+            // the state, so we should leave it alone
+
+            match self.lines.pop(&stable_row) {
+                Some(LineEntry::DirtyAndFetching(_, then)) | Some(LineEntry::Fetching(then))
+                    if fetch_start == then =>
+                {
+                    LineEntry::Dirty(line)
+                }
+                _ => {
+                    // It changed since we started: leave it alone!
+                    log::error!(
+                        "row {} changed since fetch started at {:?}, so leave it be",
+                        stable_row,
+                        fetch_start
+                    );
+                    return;
+                }
+            }
+        } else {
+            if let Some(LineEntry::Line(prior)) = self.lines.pop(&stable_row) {
+                if prior == line {
+                    LineEntry::Line(line)
+                } else {
+                    LineEntry::Dirty(line)
+                }
+            } else {
+                LineEntry::Dirty(line)
+            }
+        };
+        self.lines.put(stable_row, entry);
+    }
+
+    fn schedule_fetch_lines(&mut self, to_fetch: RangeSet<StableRowIndex>, now: Instant) {
         if to_fetch.is_empty() {
             return;
         }
 
-        if !is_high_priority && !self.fetch_limiter.non_blocking_admittance_check(1) {
-            // Throttled
-            return;
-        }
-
-        self.fetch_pending.add_set(&to_fetch);
-
         let local_tab_id = self.local_tab_id;
-        log::trace!(
-            "will fetch lines {:?} for remote tab id {}, is_high_priority={}",
+        log::error!(
+            "will fetch lines {:?} for remote tab id {} at {:?}",
             to_fetch,
             self.remote_tab_id,
-            is_high_priority
+            now,
         );
         self.client
             .client
@@ -426,20 +482,38 @@ impl RenderableInner {
                     if let Some(client_tab) = tab.downcast_ref::<ClientTab>() {
                         let renderable = client_tab.renderable.borrow_mut();
                         let mut inner = renderable.inner.borrow_mut();
-                        inner.fetch_pending.remove_set(&to_fetch);
 
                         match result {
                             Ok(result) => {
                                 let config = configuration();
                                 let lines = result.lines.lines();
-                                log::trace!("got {} lines", lines.len());
 
+                                log::error!("fetch complete for {:?} at {:?}", to_fetch, now);
                                 for (stable_row, line) in lines.into_iter() {
-                                    inner.put_line(stable_row, line, &config);
+                                    inner.put_line(stable_row, line, &config, Some(now));
                                 }
                             }
                             Err(err) => {
                                 log::error!("get_lines failed: {}", err);
+                                for r in to_fetch.iter() {
+                                    for stable_row in r.clone() {
+                                        let entry = match inner.lines.pop(&stable_row) {
+                                            Some(LineEntry::Fetching(then)) if then == now => {
+                                                // leave it popped
+                                                continue;
+                                            }
+                                            Some(LineEntry::DirtyAndFetching(line, then))
+                                                if then == now =>
+                                            {
+                                                // revert to just dirty
+                                                LineEntry::Dirty(line)
+                                            }
+                                            Some(entry) => entry,
+                                            None => continue,
+                                        };
+                                        inner.lines.put(stable_row, entry);
+                                    }
+                                }
                             }
                         }
                     }
@@ -493,22 +567,39 @@ impl Renderable for RenderableState {
         let mut inner = self.inner.borrow_mut();
         let mut result = vec![];
         let mut to_fetch = RangeSet::new();
+        let now = Instant::now();
+
         for idx in lines.clone() {
-            match inner.lines.get(&idx) {
-                Some(line) => {
+            let entry = match inner.lines.pop(&idx) {
+                Some(LineEntry::Line(line)) => {
                     result.push(line.clone());
-                    // mark clean
-                    inner.dirty_rows.remove(idx);
+                    LineEntry::Line(line)
+                }
+                Some(LineEntry::Dirty(line)) => {
+                    result.push(line.clone());
+                    // Clear the dirty status as part of this retrieval
+                    LineEntry::Line(line)
+                }
+                Some(LineEntry::DirtyAndFetching(line, then)) => {
+                    result.push(line.clone());
+                    to_fetch.add(idx);
+                    LineEntry::DirtyAndFetching(line, then)
+                }
+                Some(LineEntry::Fetching(then)) => {
+                    result.push(Line::with_width(inner.dimensions.cols));
+                    to_fetch.add(idx);
+                    LineEntry::Fetching(then)
                 }
                 None => {
-                    to_fetch.add(idx);
                     result.push(Line::with_width(inner.dimensions.cols));
+                    to_fetch.add(idx);
+                    LineEntry::Fetching(now)
                 }
-            }
+            };
+            inner.lines.put(idx, entry);
         }
 
-        let is_high_priority = true;
-        inner.fetch_lines(to_fetch, is_high_priority);
+        inner.schedule_fetch_lines(to_fetch, now);
         (lines.start, result)
     }
 
@@ -526,9 +617,12 @@ impl Renderable for RenderableState {
         }
 
         let mut result = RangeSet::new();
-        for r in inner.dirty_rows.intersection_with_range(lines).iter() {
-            for line in r.clone() {
-                result.add(line);
+        for r in lines {
+            match inner.lines.get(&r) {
+                Some(LineEntry::Dirty(_)) | Some(LineEntry::DirtyAndFetching(..)) => {
+                    result.add(r);
+                }
+                _ => {}
             }
         }
 

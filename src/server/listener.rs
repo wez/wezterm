@@ -396,8 +396,6 @@ fn maybe_push_tab_changes(
             .get_dirty_lines(0..dims.viewport_rows as StableRowIndex),
     );
 
-    let dirty_lines = dirty_rows.iter().cloned().collect();
-
     let cursor_position = tab.renderer().get_cursor_position();
 
     let title = tab.get_title();
@@ -411,6 +409,9 @@ fn maybe_push_tab_changes(
         .map(|(idx, line)| (cursor_line + idx as StableRowIndex, line))
         .collect::<Vec<_>>()
         .into();
+
+    dirty_rows.add(cursor_position.y);
+    let dirty_lines = dirty_rows.iter().cloned().collect();
 
     sender.send(DecodedPdu {
         pdu: Pdu::GetTabRenderChangesResponse(GetTabRenderChangesResponse {
