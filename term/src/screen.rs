@@ -272,8 +272,14 @@ impl Screen {
         );
         // Invalidate the lines that will move before they move so that
         // the indices of the lines are stable (we may remove lines below)
-        for y in phys_scroll.clone() {
-            self.line_mut(y).set_dirty();
+        // We only need invalidate if the StableRowIndex of the row would be
+        // changed by the scroll operation.  For normal newline at the bottom
+        // of the screen based scrolling, the StableRowIndex does not change,
+        // so we use the scroll region bounds to gate the invalidation.
+        if scroll_region.start != 0 || scroll_region.end as usize != self.physical_rows {
+            for y in phys_scroll.clone() {
+                self.line_mut(y).set_dirty();
+            }
         }
 
         // if we're going to remove lines due to lack of scrollback capacity,
@@ -305,6 +311,7 @@ impl Screen {
                 let mut line = self.lines.remove(remove_idx).unwrap();
                 // Make the line like a new one of the appropriate width
                 line.resize_and_clear(self.physical_cols);
+                line.set_dirty();
                 if scroll_region.end as usize == self.physical_rows {
                     self.lines.push_back(line);
                 } else {

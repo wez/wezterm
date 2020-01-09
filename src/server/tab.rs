@@ -323,6 +323,17 @@ enum LineEntry {
     DirtyAndFetching(Line, Instant),
 }
 
+impl LineEntry {
+    fn kind(&self) -> &'static str {
+        match self {
+            Self::Line(_) => "Line",
+            Self::Dirty(_) => "Dirty",
+            Self::Fetching(_) => "Fetching",
+            Self::DirtyAndFetching(..) => "DirtyAndFetching",
+        }
+    }
+}
+
 struct RenderableInner {
     client: Arc<ClientInner>,
     remote_tab_id: TabId,
@@ -383,7 +394,15 @@ impl RenderableInner {
                 // so that we'll fetch it on demand later.
                 let fetchable = stable_row >= delta.dimensions.physical_top;
                 let prior = self.lines.pop(&stable_row);
+                let prior_kind = prior.as_ref().map(|e| e.kind());
                 if !fetchable {
+                    if prior.is_some() {
+                        log::trace!(
+                            "row {} {:?} -> unset due to dirty and out of viewport",
+                            stable_row,
+                            prior_kind,
+                        );
+                    }
                     continue;
                 }
                 to_fetch.add(stable_row);
@@ -393,6 +412,12 @@ impl RenderableInner {
                     | Some(LineEntry::Dirty(old))
                     | Some(LineEntry::Line(old)) => LineEntry::DirtyAndFetching(old, now),
                 };
+                log::trace!(
+                    "row {} {:?} -> {} due to dirty and IN viewport",
+                    stable_row,
+                    prior_kind,
+                    entry.kind()
+                );
                 self.lines.put(stable_row, entry);
             }
         }
@@ -429,13 +454,15 @@ impl RenderableInner {
                 Some(LineEntry::DirtyAndFetching(_, then)) | Some(LineEntry::Fetching(then))
                     if fetch_start == then =>
                 {
+                    log::trace!("row {} fetch done -> Dirty", stable_row,);
                     LineEntry::Dirty(line)
                 }
-                _ => {
+                e => {
                     // It changed since we started: leave it alone!
                     log::trace!(
-                        "row {} changed since fetch started at {:?}, so leave it be",
+                        "row {} {:?} changed since fetch started at {:?}, so leave it be",
                         stable_row,
+                        e.map(|e| e.kind()),
                         fetch_start
                     );
                     return;
@@ -582,12 +609,10 @@ impl Renderable for RenderableState {
                 }
                 Some(LineEntry::DirtyAndFetching(line, then)) => {
                     result.push(line.clone());
-                    to_fetch.add(idx);
                     LineEntry::DirtyAndFetching(line, then)
                 }
                 Some(LineEntry::Fetching(then)) => {
                     result.push(Line::with_width(inner.dimensions.cols));
-                    to_fetch.add(idx);
                     LineEntry::Fetching(then)
                 }
                 None => {
