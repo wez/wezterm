@@ -321,6 +321,9 @@ enum LineEntry {
     // as needing rendering because we are also in the process of
     // downloading a newer version from the server
     DirtyAndFetching(Line, Instant),
+    // We have a local copy but it is stale and will need to be
+    // fetched again
+    Stale(Line),
 }
 
 impl LineEntry {
@@ -330,6 +333,7 @@ impl LineEntry {
             Self::Dirty(_) => ("Dirty", None),
             Self::Fetching(since) => ("Fetching", Some(*since)),
             Self::DirtyAndFetching(_, since) => ("DirtyAndFetching", Some(*since)),
+            Self::Stale(_) => ("Stale", None),
         }
     }
 }
@@ -402,19 +406,14 @@ impl RenderableInner {
                 let prior = self.lines.pop(&stable_row);
                 let prior_kind = prior.as_ref().map(|e| e.kind());
                 if !fetchable {
-                    if prior.is_some() {
-                        log::trace!(
-                            "row {} {:?} -> unset due to dirty and out of viewport",
-                            stable_row,
-                            prior_kind,
-                        );
-                    }
+                    self.make_stale(stable_row);
                     continue;
                 }
                 to_fetch.add(stable_row);
                 let entry = match prior {
                     Some(LineEntry::Fetching(_)) | None => LineEntry::Fetching(now),
                     Some(LineEntry::DirtyAndFetching(old, ..))
+                    | Some(LineEntry::Stale(old))
                     | Some(LineEntry::Dirty(old))
                     | Some(LineEntry::Line(old)) => LineEntry::DirtyAndFetching(old, now),
                 };
@@ -434,10 +433,22 @@ impl RenderableInner {
                 log::trace!("exceeded throttle, drop {:?}", to_fetch);
                 for r in to_fetch.iter() {
                     for stable_row in r.clone() {
-                        self.lines.pop(&stable_row);
+                        self.make_stale(stable_row);
                     }
                 }
             }
+        }
+    }
+
+    fn make_stale(&mut self, stable_row: StableRowIndex) {
+        match self.lines.pop(&stable_row) {
+            Some(LineEntry::Dirty(old))
+            | Some(LineEntry::Stale(old))
+            | Some(LineEntry::Line(old))
+            | Some(LineEntry::DirtyAndFetching(old, _)) => {
+                self.lines.put(stable_row, LineEntry::Stale(old));
+            }
+            Some(LineEntry::Fetching(_)) | None => {}
         }
     }
 
@@ -463,16 +474,18 @@ impl RenderableInner {
                     log::trace!("row {} fetch done -> Dirty", stable_row,);
                     LineEntry::Dirty(line)
                 }
-                e => {
+                Some(e) => {
                     // It changed since we started: leave it alone!
                     log::trace!(
                         "row {} {:?} changed since fetch started at {:?}, so leave it be",
                         stable_row,
-                        e.map(|e| e.kind()),
+                        e.kind(),
                         fetch_start
                     );
+                    self.lines.put(stable_row, e);
                     return;
                 }
+                None => return,
             }
         } else {
             if let Some(LineEntry::Line(prior)) = self.lines.pop(&stable_row) {
@@ -620,6 +633,11 @@ impl Renderable for RenderableState {
                 Some(LineEntry::Fetching(then)) => {
                     result.push(Line::with_width(inner.dimensions.cols));
                     LineEntry::Fetching(then)
+                }
+                Some(LineEntry::Stale(line)) => {
+                    result.push(line.clone());
+                    to_fetch.add(idx);
+                    LineEntry::DirtyAndFetching(line, now)
                 }
                 None => {
                     result.push(Line::with_width(inner.dimensions.cols));
