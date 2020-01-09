@@ -400,7 +400,7 @@ impl RenderableInner {
             if self.fetch_limiter.non_blocking_admittance_check(1) {
                 self.schedule_fetch_lines(to_fetch, now);
             } else {
-                log::error!("exceeded throttle, drop {:?}", to_fetch);
+                log::trace!("exceeded throttle, drop {:?}", to_fetch);
                 for r in to_fetch.iter() {
                     for stable_row in r.clone() {
                         self.lines.pop(&stable_row);
@@ -433,7 +433,7 @@ impl RenderableInner {
                 }
                 _ => {
                     // It changed since we started: leave it alone!
-                    log::error!(
+                    log::trace!(
                         "row {} changed since fetch started at {:?}, so leave it be",
                         stable_row,
                         fetch_start
@@ -461,7 +461,7 @@ impl RenderableInner {
         }
 
         let local_tab_id = self.local_tab_id;
-        log::error!(
+        log::trace!(
             "will fetch lines {:?} for remote tab id {} at {:?}",
             to_fetch,
             self.remote_tab_id,
@@ -488,7 +488,7 @@ impl RenderableInner {
                                 let config = configuration();
                                 let lines = result.lines.lines();
 
-                                log::error!("fetch complete for {:?} at {:?}", to_fetch, now);
+                                log::trace!("fetch complete for {:?} at {:?}", to_fetch, now);
                                 for (stable_row, line) in lines.into_iter() {
                                     inner.put_line(stable_row, line, &config, Some(now));
                                 }
