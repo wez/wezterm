@@ -57,11 +57,11 @@ fn wezterm_version() -> &'static str {
 }
 
 #[derive(Debug, StructOpt)]
-#[structopt(about = "Wez's Terminal Emulator\nhttp://github.com/wez/wezterm")]
-#[structopt(raw(
-    global_setting = "structopt::clap::AppSettings::ColoredHelp",
-    version = r#"wezterm_version()"#,
-))]
+#[structopt(
+    about = "Wez's Terminal Emulator\nhttp://github.com/wez/wezterm",
+    global_setting = structopt::clap::AppSettings::ColoredHelp,
+    version = wezterm_version()
+)]
 struct Opt {
     /// Skip loading ~/.wezterm.toml
     #[structopt(short = "n")]
@@ -75,37 +75,29 @@ struct Opt {
 struct StartCommand {
     #[structopt(
         long = "front-end",
-        raw(
-            possible_values = "&FrontEndSelection::variants()",
-            case_insensitive = "true"
-        )
+        possible_values = &FrontEndSelection::variants(),
+        case_insensitive = true
     )]
     front_end: Option<FrontEndSelection>,
 
     #[structopt(
         long = "font-locator",
-        raw(
-            possible_values = "&FontLocatorSelection::variants()",
-            case_insensitive = "true"
-        )
+        possible_values = &FontLocatorSelection::variants(),
+        case_insensitive = true
     )]
     font_locator: Option<FontLocatorSelection>,
 
     #[structopt(
         long = "font-rasterizer",
-        raw(
-            possible_values = "&FontRasterizerSelection::variants()",
-            case_insensitive = "true"
-        )
+        possible_values = &FontRasterizerSelection::variants(),
+        case_insensitive = true
     )]
     font_rasterizer: Option<FontRasterizerSelection>,
 
     #[structopt(
         long = "font-shaper",
-        raw(
-            possible_values = "&FontShaperSelection::variants()",
-            case_insensitive = "true"
-        )
+        possible_values = &FontShaperSelection::variants(),
+        case_insensitive = true
     )]
     font_shaper: Option<FontShaperSelection>,
 
@@ -169,10 +161,8 @@ enum CliSubCommand {
 struct SshCommand {
     #[structopt(
         long = "front-end",
-        raw(
-            possible_values = "&FrontEndSelection::variants()",
-            case_insensitive = "true"
-        )
+        possible_values = &FrontEndSelection::variants(),
+        case_insensitive = true
     )]
     front_end: Option<FrontEndSelection>,
 
@@ -195,10 +185,8 @@ struct SshCommand {
 struct SerialCommand {
     #[structopt(
         long = "front-end",
-        raw(
-            possible_values = "&FrontEndSelection::variants()",
-            case_insensitive = "true"
-        )
+        possible_values = &FrontEndSelection::variants(),
+        case_insensitive = true
     )]
     front_end: Option<FrontEndSelection>,
 
@@ -217,10 +205,8 @@ struct SerialCommand {
 struct ConnectCommand {
     #[structopt(
         long = "front-end",
-        raw(
-            possible_values = "&FrontEndSelection::variants()",
-            case_insensitive = "true"
-        )
+        possible_values = &FrontEndSelection::variants(),
+        case_insensitive = true
     )]
     front_end: Option<FrontEndSelection>,
 
