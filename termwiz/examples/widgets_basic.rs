@@ -1,5 +1,6 @@
 //! This example shows how to make a basic widget that accumulates
 //! text input and renders it to the screen
+#![allow(unused)]
 use anyhow::Error;
 use termwiz::caps::Capabilities;
 use termwiz::cell::AttributeChange;
@@ -8,6 +9,7 @@ use termwiz::input::*;
 use termwiz::surface::Change;
 use termwiz::terminal::buffered::BufferedTerminal;
 use termwiz::terminal::{new_terminal, Terminal};
+#[cfg(feature = "widgets")]
 use termwiz::widgets::*;
 
 /// This is a widget for our application
@@ -23,6 +25,7 @@ impl<'a> MainScreen<'a> {
     }
 }
 
+#[cfg(feature = "widgets")]
 impl<'a> Widget for MainScreen<'a> {
     fn process_event(&mut self, event: &WidgetEvent, _args: &mut UpdateArgs) -> bool {
         match event {
@@ -80,6 +83,7 @@ impl<'a> Widget for MainScreen<'a> {
     }
 }
 
+#[cfg(feature = "widgets")]
 fn main() -> Result<(), Error> {
     // Start with an empty string; typing into the app will
     // update this string.
@@ -145,4 +149,9 @@ fn main() -> Result<(), Error> {
     println!("The text you entered: {}", typed_text);
 
     Ok(())
+}
+
+#[cfg(not(feature = "widgets"))]
+fn main() {
+    println!("recompile with --features widgets");
 }

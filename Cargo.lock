@@ -2437,7 +2437,7 @@ dependencies = [
 name = "tabout"
 version = "0.1.0"
 dependencies = [
- "termwiz 0.5.0",
+ "termwiz 0.6.0",
 ]
 
 [[package]]
@@ -2480,7 +2480,7 @@ dependencies = [
  "pretty_assertions 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.104 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_derive 1.0.104 (registry+https://github.com/rust-lang/crates.io-index)",
- "termwiz 0.5.0",
+ "termwiz 0.6.0",
  "unicode-segmentation 1.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "unicode-width 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -2522,7 +2522,7 @@ dependencies = [
 
 [[package]]
 name = "termwiz"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "anyhow 1.0.26 (registry+https://github.com/rust-lang/crates.io-index)",
  "base64 0.10.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2862,7 +2862,7 @@ dependencies = [
  "structopt 0.2.18 (registry+https://github.com/rust-lang/crates.io-index)",
  "tabout 0.1.0",
  "term 0.1.0",
- "termwiz 0.5.0",
+ "termwiz 0.6.0",
  "thiserror 1.0.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "toml 0.4.10 (registry+https://github.com/rust-lang/crates.io-index)",
  "uds_windows 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",

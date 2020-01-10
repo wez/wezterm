@@ -1,7 +1,7 @@
 [package]
 authors = ["Wez Furlong"]
 name = "termwiz"
-version = "0.5.0"
+version = "0.6.0"
 edition = "2018"
 repository = "https://github.com/wez/wezterm"
 description = "Terminal Wizardry for Unix and Windows"
@@ -13,11 +13,11 @@ readme = "README.md"
 [dependencies]
 base64 = "0.10"
 bitflags = "1.0"
-cassowary = "0.3"
+cassowary = {version="0.3", optional=true}
 derive_builder = "0.7"
 anyhow = "1.0"
 filedescriptor = "0.6"
-fnv = "1.0"
+fnv = {version="1.0", optional=true}
 libc = "0.2"
 log = "0.4"
 memmem = "0.1"
@@ -34,6 +34,9 @@ unicode-segmentation = "1.5"
 unicode-width = "0.1"
 xi-unicode = "0.2"
 vtparse = { version="0.2", path="../vtparse" }
+
+[features]
+widgets = ["cassowary", "fnv"]
 
 [dev-dependencies]
 varbincode = "0.1"

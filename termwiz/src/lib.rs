@@ -50,4 +50,5 @@ mod readbuf;
 pub mod render;
 pub mod surface;
 pub mod terminal;
+#[cfg(feature = "widgets")]
 pub mod widgets;
