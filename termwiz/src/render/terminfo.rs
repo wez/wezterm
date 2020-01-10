@@ -514,9 +514,9 @@ impl TerminfoRenderer {
                             if let Some(show) = self.get_capability::<cap::CursorVisible>() {
                                 show.expand().to(out.by_ref())?;
                             }
-                            if let Some(reset) = self.get_capability::<cap::ResetCursorStyle>() {
-                                reset.expand().to(out.by_ref())?;
-                            }
+                        }
+                        if let Some(reset) = self.get_capability::<cap::ResetCursorStyle>() {
+                            reset.expand().to(out.by_ref())?;
                         }
                     }
                     CursorShape::Hidden => {

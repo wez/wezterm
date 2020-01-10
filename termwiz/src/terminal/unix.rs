@@ -491,6 +491,8 @@ impl Drop for UnixTerminal {
                 .unwrap();
             };
         }
+        self.render(&[Change::CursorShape(crate::surface::CursorShape::Default)])
+            .ok();
         if self.caps.bracketed_paste() {
             decreset!(BracketedPaste);
         }
