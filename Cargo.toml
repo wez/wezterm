@@ -41,7 +41,7 @@ hdrhistogram = "6.3"
 native-tls = "0.2"
 # file change notification
 notify = "4.0"
-palette = "0.4"
+palette = "0.5"
 portable-pty = { path = "pty", features = ["serde_support", "ssh"]}
 promise = { path = "promise" }
 ratelimit_meter = "5.0"

@@ -24,7 +24,7 @@ libloading = { version = "0.5", optional=true }
 line_drawing = "0.8"
 log = "0.4"
 metrics = { version="0.12", features=["std"]}
-palette = "0.4"
+palette = "0.5"
 promise = { path = "../promise" }
 resize = "0.3"
 glium = { version = "0.26.0-alpha3", optional=true, default-features = false}
