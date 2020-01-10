@@ -382,7 +382,7 @@ pub struct ClientSession<S: ReadAndWrite> {
     per_tab: HashMap<TabId, Arc<Mutex<PerTab>>>,
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 struct PerTab {
     cursor_position: StableCursorPosition,
     title: String,
@@ -431,7 +431,7 @@ impl PerTab {
             dims.physical_top..dims.physical_top + dims.viewport_rows as StableRowIndex;
 
         let (first_line, lines) = tab.renderer().get_lines(viewport_range);
-        let bonus_lines = lines
+        let mut bonus_lines = lines
             .into_iter()
             .enumerate()
             .map(|(idx, line)| {
@@ -439,8 +439,14 @@ impl PerTab {
                 all_dirty_lines.remove(stable_row);
                 (stable_row, line)
             })
-            .collect::<Vec<_>>()
-            .into();
+            .collect::<Vec<_>>();
+
+        // Always send the cursor's row, as that tends to the busiest and we don't
+        // have a sequencing concept for our idea of the remote state.
+        let (cursor_line, lines) = tab
+            .renderer()
+            .get_lines(cursor_position.y..cursor_position.y + 1);
+        bonus_lines.push((cursor_line, lines[0].clone()));
 
         self.cursor_position = cursor_position;
         self.title = title.clone();
@@ -449,6 +455,7 @@ impl PerTab {
         self.mouse_grabbed = mouse_grabbed;
 
         let dirty_lines = dirty_delta.iter().cloned().collect();
+        let bonus_lines = bonus_lines.into();
         Some(GetTabRenderChangesResponse {
             tab_id: tab.tab_id(),
             mouse_grabbed,
