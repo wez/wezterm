@@ -37,6 +37,9 @@ def release_to_links(rel):
         "windows": windows,
     }
 
+def pretty(o):
+    return json.dumps(o, indent=4, sort_keys=True, separators=(',', ':'))
+
 def load_release_info():
     with open("/tmp/wezterm.releases.json") as f:
         release_info = json.load(f)
@@ -50,6 +53,9 @@ def load_release_info():
 
     latest = release_to_links(latest)
     nightly = release_to_links(nightly)
+
+    print('latest: ', pretty(latest))
+    print('nightly: ', pretty(nightly))
 
     subst = {}
     for (kind, (url, name, dir)) in latest.items():
