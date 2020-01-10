@@ -6,7 +6,7 @@ use std::ops::Range;
 /// Track a set of integers, collapsing adjacent integers into ranges.
 /// Internally stores the set in an array of ranges.
 /// Allows adding and subtracting ranges.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Default, Clone, PartialEq)]
 pub struct RangeSet<T: Integer + Copy> {
     ranges: Vec<Range<T>>,
 }
@@ -119,6 +119,10 @@ impl<T: Integer + Copy + Debug> RangeSet<T> {
     /// If that doesn't hold up, we can improve this.
     pub fn difference(&self, other: &Self) -> Self {
         let mut result = Self::new();
+
+        if other.is_empty() {
+            return self.clone();
+        }
 
         for my_range in &self.ranges {
             for other_range in &other.ranges {

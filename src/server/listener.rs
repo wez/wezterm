@@ -1,6 +1,7 @@
 use crate::config::{configuration, TlsDomainServer, UnixDomain};
 use crate::create_user_owned_dirs;
 use crate::frontend::executor;
+use crate::mux::renderable::{RenderableDimensions, StableCursorPosition};
 use crate::mux::tab::{Tab, TabId};
 use crate::mux::{Mux, MuxNotification, MuxSubscriber};
 use crate::server::codec::*;
@@ -14,14 +15,15 @@ use log::{debug, error};
 use native_tls::Identity;
 use portable_pty::PtySize;
 use promise::Future;
-use std::collections::HashSet;
+use rangeset::RangeSet;
+use std::collections::{HashMap, HashSet};
 use std::convert::TryFrom;
 use std::fs::remove_file;
 use std::io::Read;
 use std::net::TcpListener;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Instant;
 use term::terminal::Clipboard;
@@ -377,54 +379,104 @@ pub struct ClientSession<S: ReadAndWrite> {
     to_write_rx: PollableReceiver<DecodedPdu>,
     to_write_tx: PollableSender<DecodedPdu>,
     mux_rx: MuxSubscriber,
+    per_tab: HashMap<TabId, Arc<Mutex<PerTab>>>,
 }
 
-fn maybe_push_tab_changes(
-    tab: &Rc<dyn Tab>,
-    sender: PollableSender<DecodedPdu>,
-) -> anyhow::Result<()> {
-    let tab_id = tab.tab_id();
-    let mouse_grabbed = tab.is_mouse_grabbed();
-    let dims = tab.renderer().get_dimensions();
+#[derive(Default)]
+struct PerTab {
+    cursor_position: StableCursorPosition,
+    title: String,
+    dimensions: RenderableDimensions,
+    dirty_lines: RangeSet<StableRowIndex>,
+    mouse_grabbed: bool,
+}
 
-    let mut dirty_rows = tab.renderer().get_dirty_lines(
-        dims.physical_top..dims.physical_top + dims.viewport_rows as StableRowIndex,
-    );
-    // Make sure we pick up "damage" done by switching between alt and primary screen
-    dirty_rows.add_set(
-        &tab.renderer()
-            .get_dirty_lines(0..dims.viewport_rows as StableRowIndex),
-    );
+impl PerTab {
+    fn compute_changes(&mut self, tab: &Rc<dyn Tab>) -> Option<GetTabRenderChangesResponse> {
+        let mut changed = false;
+        let mouse_grabbed = tab.is_mouse_grabbed();
+        if mouse_grabbed != self.mouse_grabbed {
+            changed = true;
+        }
 
-    let cursor_position = tab.renderer().get_cursor_position();
+        let dims = tab.renderer().get_dimensions();
+        if dims != self.dimensions {
+            changed = true;
+        }
 
-    let title = tab.get_title();
+        let cursor_position = tab.renderer().get_cursor_position();
+        if cursor_position != self.cursor_position {
+            changed = true;
+        }
 
-    let (cursor_line, lines) = tab
-        .renderer()
-        .get_lines(cursor_position.y..cursor_position.y + 1);
-    let bonus_lines = lines
-        .into_iter()
-        .enumerate()
-        .map(|(idx, line)| (cursor_line + idx as StableRowIndex, line))
-        .collect::<Vec<_>>()
-        .into();
+        let title = tab.get_title();
+        if title != self.title {
+            changed = true;
+        }
 
-    dirty_rows.add(cursor_position.y);
-    let dirty_lines = dirty_rows.iter().cloned().collect();
+        let mut all_dirty_lines = tab
+            .renderer()
+            .get_dirty_lines(0..dims.physical_top + dims.viewport_rows as StableRowIndex);
+        let dirty_delta = all_dirty_lines.difference(&self.dirty_lines);
+        if !dirty_delta.is_empty() {
+            changed = true;
+        }
 
-    sender.send(DecodedPdu {
-        pdu: Pdu::GetTabRenderChangesResponse(GetTabRenderChangesResponse {
-            tab_id,
+        if !changed {
+            return None;
+        }
+
+        // Figure out what we're going to send as dirty lines vs bonus lines
+        let viewport_range =
+            dims.physical_top..dims.physical_top + dims.viewport_rows as StableRowIndex;
+
+        let (first_line, lines) = tab.renderer().get_lines(viewport_range);
+        let bonus_lines = lines
+            .into_iter()
+            .enumerate()
+            .map(|(idx, line)| {
+                let stable_row = first_line + idx as StableRowIndex;
+                all_dirty_lines.remove(stable_row);
+                (stable_row, line)
+            })
+            .collect::<Vec<_>>()
+            .into();
+
+        self.cursor_position = cursor_position;
+        self.title = title.clone();
+        self.dimensions = dims;
+        self.dirty_lines = all_dirty_lines;
+        self.mouse_grabbed = mouse_grabbed;
+
+        let dirty_lines = dirty_delta.iter().cloned().collect();
+        Some(GetTabRenderChangesResponse {
+            tab_id: tab.tab_id(),
             mouse_grabbed,
             dirty_lines,
             dimensions: dims,
             cursor_position,
             title,
             bonus_lines,
-        }),
-        serial: 0,
-    })?;
+        })
+    }
+
+    fn mark_clean(&mut self, stable_row: StableRowIndex) {
+        self.dirty_lines.remove(stable_row);
+    }
+}
+
+fn maybe_push_tab_changes(
+    tab: &Rc<dyn Tab>,
+    sender: PollableSender<DecodedPdu>,
+    per_tab: Arc<Mutex<PerTab>>,
+) -> anyhow::Result<()> {
+    let mut per_tab = per_tab.lock().unwrap();
+    if let Some(resp) = per_tab.compute_changes(tab) {
+        sender.send(DecodedPdu {
+            pdu: Pdu::GetTabRenderChangesResponse(resp),
+            serial: 0,
+        })?;
+    }
     Ok(())
 }
 
@@ -483,6 +535,7 @@ impl<S: ReadAndWrite> ClientSession<S> {
             to_write_rx,
             to_write_tx,
             mux_rx,
+            per_tab: HashMap::new(),
         }
     }
 
@@ -490,6 +543,14 @@ impl<S: ReadAndWrite> ClientSession<S> {
         if let Err(e) = self.process() {
             error!("While processing session loop: {}", e);
         }
+    }
+
+    fn per_tab(&mut self, tab_id: TabId) -> Arc<Mutex<PerTab>> {
+        Arc::clone(
+            self.per_tab
+                .entry(tab_id)
+                .or_insert_with(|| Arc::new(Mutex::new(PerTab::default()))),
+        )
     }
 
     fn process(&mut self) -> Result<(), Error> {
@@ -521,12 +582,13 @@ impl<S: ReadAndWrite> ClientSession<S> {
 
             for tab_id in tabs_to_output.drain() {
                 let sender = self.to_write_tx.clone();
+                let per_tab = self.per_tab(tab_id);
                 Future::with_executor(executor(), move || {
                     let mux = Mux::get().unwrap();
                     let tab = mux
                         .get_tab(tab_id)
                         .ok_or_else(|| anyhow!("no such tab {}", tab_id))?;
-                    maybe_push_tab_changes(&tab, sender)?;
+                    maybe_push_tab_changes(&tab, sender, per_tab)?;
                     Ok(())
                 });
             }
@@ -599,25 +661,27 @@ impl<S: ReadAndWrite> ClientSession<S> {
 
             Pdu::WriteToTab(WriteToTab { tab_id, data }) => {
                 let sender = self.to_write_tx.clone();
+                let per_tab = self.per_tab(tab_id);
                 Future::with_executor(executor(), move || {
                     let mux = Mux::get().unwrap();
                     let tab = mux
                         .get_tab(tab_id)
                         .ok_or_else(|| anyhow!("no such tab {}", tab_id))?;
                     tab.writer().write_all(&data)?;
-                    maybe_push_tab_changes(&tab, sender)?;
+                    maybe_push_tab_changes(&tab, sender, per_tab)?;
                     Ok(Pdu::UnitResponse(UnitResponse {}))
                 })
             }
             Pdu::SendPaste(SendPaste { tab_id, data }) => {
                 let sender = self.to_write_tx.clone();
+                let per_tab = self.per_tab(tab_id);
                 Future::with_executor(executor(), move || {
                     let mux = Mux::get().unwrap();
                     let tab = mux
                         .get_tab(tab_id)
                         .ok_or_else(|| anyhow!("no such tab {}", tab_id))?;
                     tab.send_paste(&data)?;
-                    maybe_push_tab_changes(&tab, sender)?;
+                    maybe_push_tab_changes(&tab, sender, per_tab)?;
                     Ok(Pdu::UnitResponse(UnitResponse {}))
                 })
             }
@@ -633,18 +697,20 @@ impl<S: ReadAndWrite> ClientSession<S> {
 
             Pdu::SendKeyDown(SendKeyDown { tab_id, event }) => {
                 let sender = self.to_write_tx.clone();
+                let per_tab = self.per_tab(tab_id);
                 Future::with_executor(executor(), move || {
                     let mux = Mux::get().unwrap();
                     let tab = mux
                         .get_tab(tab_id)
                         .ok_or_else(|| anyhow!("no such tab {}", tab_id))?;
                     tab.key_down(event.key, event.modifiers)?;
-                    maybe_push_tab_changes(&tab, sender)?;
+                    maybe_push_tab_changes(&tab, sender, per_tab)?;
                     Ok(Pdu::UnitResponse(UnitResponse {}))
                 })
             }
             Pdu::SendMouseEvent(SendMouseEvent { tab_id, event }) => {
                 let sender = self.to_write_tx.clone();
+                let per_tab = self.per_tab(tab_id);
                 Future::with_executor(executor(), move || {
                     let mux = Mux::get().unwrap();
                     let tab = mux
@@ -655,7 +721,7 @@ impl<S: ReadAndWrite> ClientSession<S> {
                         title: None,
                     };
                     tab.mouse_event(event, &mut host)?;
-                    maybe_push_tab_changes(&tab, sender)?;
+                    maybe_push_tab_changes(&tab, sender, per_tab)?;
                     Ok(Pdu::UnitResponse(UnitResponse {}))
                 })
             }
@@ -694,17 +760,19 @@ impl<S: ReadAndWrite> ClientSession<S> {
 
             Pdu::GetTabRenderChanges(GetTabRenderChanges { tab_id, .. }) => {
                 let sender = self.to_write_tx.clone();
+                let per_tab = self.per_tab(tab_id);
                 Future::with_executor(executor(), move || {
                     let mux = Mux::get().unwrap();
                     let tab = mux
                         .get_tab(tab_id)
                         .ok_or_else(|| anyhow!("no such tab {}", tab_id))?;
-                    maybe_push_tab_changes(&tab, sender)?;
+                    maybe_push_tab_changes(&tab, sender, per_tab)?;
                     Ok(Pdu::UnitResponse(UnitResponse {}))
                 })
             }
 
             Pdu::GetLines(GetLines { tab_id, lines }) => {
+                let per_tab = self.per_tab(tab_id);
                 Future::with_executor(executor(), move || {
                     let mux = Mux::get().unwrap();
                     let tab = mux
@@ -713,11 +781,13 @@ impl<S: ReadAndWrite> ClientSession<S> {
                     let mut renderer = tab.renderer();
 
                     let mut lines_and_indices = vec![];
+                    let mut per_tab = per_tab.lock().unwrap();
 
                     for range in lines {
                         let (first_row, lines) = renderer.get_lines(range);
                         for (idx, line) in lines.into_iter().enumerate() {
                             let stable_row = first_row + idx as StableRowIndex;
+                            per_tab.mark_clean(stable_row);
                             lines_and_indices.push((stable_row, line));
                         }
                     }
