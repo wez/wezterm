@@ -5,6 +5,7 @@ use filedescriptor::*;
 use std::cell::RefCell;
 use std::io::{Read, Write};
 use std::net::TcpStream;
+use std::sync::{Arc, Mutex};
 
 pub trait ReadAndWrite: std::io::Read + std::io::Write + Send + AsPollFd {
     fn set_non_blocking(&self, non_blocking: bool) -> anyhow::Result<()>;
@@ -42,12 +43,12 @@ impl ReadAndWrite for openssl::ssl::SslStream<std::net::TcpStream> {
 
 pub struct PollableSender<T> {
     sender: Sender<T>,
-    write: RefCell<FileDescriptor>,
+    write: Arc<Mutex<FileDescriptor>>,
 }
 
 impl<T: Send + Sync + 'static> PollableSender<T> {
     pub fn send(&self, item: T) -> anyhow::Result<()> {
-        self.write.borrow_mut().write_all(b"x")?;
+        self.write.lock().unwrap().write_all(b"x")?;
         self.sender.send(item).map_err(Error::msg)?;
         Ok(())
     }
@@ -57,12 +58,7 @@ impl<T> Clone for PollableSender<T> {
     fn clone(&self) -> Self {
         Self {
             sender: self.sender.clone(),
-            write: RefCell::new(
-                self.write
-                    .borrow()
-                    .try_clone()
-                    .expect("failed to clone PollableSender fd"),
-            ),
+            write: self.write.clone(),
         }
     }
 }
@@ -98,7 +94,7 @@ pub fn pollable_channel<T>() -> anyhow::Result<(PollableSender<T>, PollableRecei
     Ok((
         PollableSender {
             sender,
-            write: RefCell::new(FileDescriptor::new(write)),
+            write: Arc::new(Mutex::new(FileDescriptor::new(write))),
         },
         PollableReceiver {
             receiver,
