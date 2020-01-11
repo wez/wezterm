@@ -338,16 +338,13 @@ impl Domain for RemoteSshDomain {
         &self,
         size: PtySize,
         command: Option<CommandBuilder>,
-        command_dir: Option<String>,
+        _command_dir: Option<String>,
         window: WindowId,
     ) -> Result<Rc<dyn Tab>, Error> {
-        let mut cmd = match command {
+        let cmd = match command {
             Some(c) => c,
             None => CommandBuilder::new_default_prog(),
         };
-        if let Some(dir) = command_dir {
-            cmd.cwd(dir);
-        }
         let pair = self.pty_system.openpty(size)?;
         let child = pair.slave.spawn_command(cmd)?;
         log::info!("spawned: {:?}", child);
