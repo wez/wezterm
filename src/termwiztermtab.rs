@@ -151,6 +151,7 @@ impl Domain for TermWizTerminalDomain {
         &self,
         _size: PtySize,
         _command: Option<CommandBuilder>,
+        _command_dir: Option<String>,
         _window: WindowId,
     ) -> anyhow::Result<Rc<dyn Tab>> {
         bail!("cannot spawn tabs in a TermWizTerminalTab");
