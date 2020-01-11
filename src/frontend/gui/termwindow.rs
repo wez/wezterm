@@ -630,6 +630,12 @@ impl TermWindow {
                                 if !render.get_dirty_lines(visible_range).is_empty() {
                                     myself.window.as_ref().unwrap().invalidate();
                                 }
+
+                                if let Some(mut mux_window) = mux.get_window_mut(mux_window_id) {
+                                    if mux_window.check_and_reset_invalidated() {
+                                        myself.window.as_ref().unwrap().invalidate();
+                                    }
+                                }
                             } else {
                                 myself.window.as_ref().unwrap().close();
                             }

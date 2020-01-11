@@ -11,6 +11,7 @@ pub struct Window {
     tabs: Vec<Rc<dyn Tab>>,
     active: usize,
     clipboard: Option<Arc<dyn Clipboard>>,
+    invalidated: bool,
 }
 
 impl Window {
@@ -20,6 +21,7 @@ impl Window {
             tabs: vec![],
             active: 0,
             clipboard: None,
+            invalidated: false,
         }
     }
 
@@ -46,13 +48,15 @@ impl Window {
     pub fn insert(&mut self, index: usize, tab: &Rc<dyn Tab>) {
         self.check_that_tab_isnt_already_in_window(tab);
         self.assign_clipboard_to_tab(tab);
-        self.tabs.insert(index, Rc::clone(tab))
+        self.tabs.insert(index, Rc::clone(tab));
+        self.invalidated = true;
     }
 
     pub fn push(&mut self, tab: &Rc<dyn Tab>) {
         self.check_that_tab_isnt_already_in_window(tab);
         self.assign_clipboard_to_tab(tab);
-        self.tabs.push(Rc::clone(tab))
+        self.tabs.push(Rc::clone(tab));
+        self.invalidated = true;
     }
 
     pub fn is_empty(&self) -> bool {
@@ -77,6 +81,7 @@ impl Window {
     }
 
     pub fn remove_by_idx(&mut self, idx: usize) -> Rc<dyn Tab> {
+        self.invalidated = true;
         self.tabs.remove(idx)
     }
 
@@ -93,6 +98,12 @@ impl Window {
         }
     }
 
+    pub fn check_and_reset_invalidated(&mut self) -> bool {
+        let res = self.invalidated;
+        self.invalidated = false;
+        res
+    }
+
     pub fn get_active(&self) -> Option<&Rc<dyn Tab>> {
         self.get_by_idx(self.active)
     }
@@ -104,6 +115,7 @@ impl Window {
 
     pub fn set_active(&mut self, idx: usize) {
         assert!(idx < self.tabs.len());
+        self.invalidated = true;
         self.active = idx;
     }
 
