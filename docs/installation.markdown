@@ -7,7 +7,7 @@ Windows 10 or later is required to run WezTerm.
 <a href="{{ windows_pre }}" class="btn">Nightly for Windows</a>
 1. Download <a href="{{ windows_stable }}">Release</a>
 2. Extract the zipfile and double-click `wezterm.exe` to run the UI
-3. Configuration instructions can be [found here](configuration.html)
+3. Configuration instructions can be [found here](config/index.html)
 
 ## Installing on macOS
 
@@ -21,7 +21,7 @@ versions of macOS, but that has not been tested.
 3. First time around, you may need to right click and select `Open` to allow launching
    the application that your just downloaded from the internet.
 3. Subsequently, a simple double-click will launch the UI
-4. Configuration instructions can be [found here](configuration.html)
+4. Configuration instructions can be [found here](config/index.html)
 
 ## Installing on Ubuntu
 
@@ -37,7 +37,7 @@ sudo apt install -y ./{{ ubuntu_stable_asset }}
 ```
 
 * The package installs `/usr/bin/wezterm` and `/usr/share/applications/wezterm.desktop`
-* Configuration instructions can be [found here](configuration.html)
+* Configuration instructions can be [found here](config/index.html)
 
 ## Installing on Fedora
 
@@ -51,7 +51,7 @@ sudo dnf install -y {{ fedora_stable }}
 ```
 
 * The package installs `/usr/bin/wezterm` and `/usr/share/applications/wezterm.desktop`
-* Configuration instructions can be [found here](configuration.html)
+* Configuration instructions can be [found here](config/index.html)
 
 ## Installing from source
 
