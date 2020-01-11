@@ -38,6 +38,7 @@ pub enum OperatingSystemCommand {
     ITermProprietary(ITermProprietary),
     ChangeColorNumber(Vec<ChangeColorPair>),
     ChangeDynamicColors(DynamicColorNumber, Vec<ColorOrQuery>),
+    CurrentWorkingDirectory(String),
 
     Unspecified(Vec<Vec<u8>>),
 }
@@ -238,6 +239,7 @@ impl OperatingSystemCommand {
             SetHyperlink => Ok(OperatingSystemCommand::SetHyperlink(Hyperlink::parse(osc)?)),
             ManipulateSelectionData => Self::parse_selection(osc),
             SystemNotification => single_string!(SystemNotification),
+            SetCurrentWorkingDirectory => single_string!(CurrentWorkingDirectory),
             ITermProprietary => {
                 self::ITermProprietary::parse(osc).map(OperatingSystemCommand::ITermProprietary)
             }
@@ -335,6 +337,7 @@ impl Display for OperatingSystemCommand {
                     write!(f, ";{}", color)?
                 }
             }
+            CurrentWorkingDirectory(s) => write!(f, "7;{}", s)?,
         };
         write!(f, "\x07")?;
         Ok(())
