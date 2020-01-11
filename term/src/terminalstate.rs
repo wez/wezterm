@@ -17,6 +17,7 @@ use termwiz::escape::osc::{ChangeColorPair, ColorOrQuery, ITermFileData, ITermPr
 use termwiz::escape::{Action, ControlCode, Esc, EscCode, OneBased, OperatingSystemCommand, CSI};
 use termwiz::image::{ImageCell, ImageData, TextureCoordinate};
 use termwiz::surface::CursorShape;
+use url::Url;
 
 struct TabStop {
     tabs: Vec<bool>,
@@ -207,6 +208,8 @@ pub struct TerminalState {
     pixel_height: usize,
 
     clipboard: Option<Arc<dyn Clipboard>>,
+
+    current_dir: Option<String>,
 }
 
 fn encode_modifiers(mods: KeyModifiers) -> u8 {
@@ -275,6 +278,7 @@ impl TerminalState {
             pixel_height,
             pixel_width,
             clipboard: None,
+            current_dir: None,
         }
     }
 
@@ -1707,6 +1711,13 @@ impl<'a> Performer<'a> {
             },
             OperatingSystemCommand::SystemNotification(message) => {
                 error!("Application sends SystemNotification: {}", message);
+            }
+            OperatingSystemCommand::CurrentWorkingDirectory(url) => {
+                let dir = match Url::parse(&url) {
+                    Ok(url) if url.scheme() == "file" => Some(url.path().to_string()),
+                    Ok(_) | Err(_) => None,
+                };
+                self.current_dir = dir;
             }
             OperatingSystemCommand::ChangeColorNumber(specs) => {
                 error!("ChangeColorNumber: {:?}", specs);
