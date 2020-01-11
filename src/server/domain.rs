@@ -213,6 +213,7 @@ impl Domain for ClientDomain {
         &self,
         size: PtySize,
         command: Option<CommandBuilder>,
+        command_dir: Option<String>,
         window: WindowId,
     ) -> anyhow::Result<Rc<dyn Tab>> {
         let inner = self
@@ -226,6 +227,7 @@ impl Domain for ClientDomain {
                     window_id: inner.local_to_remote_window(window),
                     size,
                     command,
+                    command_dir,
                 })
                 .wait()?;
 

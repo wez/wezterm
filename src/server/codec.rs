@@ -368,6 +368,7 @@ pub struct Spawn {
     /// If None, create a new window for this new tab
     pub window_id: Option<WindowId>,
     pub command: Option<CommandBuilder>,
+    pub command_dir: Option<String>,
     pub size: PtySize,
 }
 

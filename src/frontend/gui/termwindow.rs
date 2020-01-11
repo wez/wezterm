@@ -1028,24 +1028,37 @@ impl TermWindow {
         let size = self.terminal_size;
         let mux = Mux::get().unwrap();
 
-        let domain = match domain {
-            SpawnTabDomain::DefaultDomain => mux.default_domain().clone(),
+        let (domain, cwd) = match domain {
+            SpawnTabDomain::DefaultDomain => {
+                let cwd = mux
+                    .get_active_tab_for_window(self.mux_window_id)
+                    .and_then(|tab| tab.get_current_working_dir());
+                (mux.default_domain().clone(), cwd)
+            }
             SpawnTabDomain::CurrentTabDomain => {
                 let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
                     Some(tab) => tab,
                     None => bail!("window has no tabs?"),
                 };
-                mux.get_domain(tab.domain_id())
-                    .ok_or_else(|| anyhow!("current tab has unresolvable domain id!?"))?
+                (
+                    mux.get_domain(tab.domain_id())
+                        .ok_or_else(|| anyhow!("current tab has unresolvable domain id!?"))?,
+                    tab.get_current_working_dir(),
+                )
             }
-            SpawnTabDomain::Domain(id) => mux
-                .get_domain(*id)
-                .ok_or_else(|| anyhow!("spawn_tab called with unresolvable domain id!?"))?,
-            SpawnTabDomain::DomainName(name) => mux.get_domain_by_name(&name).ok_or_else(|| {
-                anyhow!("spawn_tab called with unresolvable domain name {}", name)
-            })?,
+            SpawnTabDomain::Domain(id) => (
+                mux.get_domain(*id)
+                    .ok_or_else(|| anyhow!("spawn_tab called with unresolvable domain id!?"))?,
+                None,
+            ),
+            SpawnTabDomain::DomainName(name) => (
+                mux.get_domain_by_name(&name).ok_or_else(|| {
+                    anyhow!("spawn_tab called with unresolvable domain name {}", name)
+                })?,
+                None,
+            ),
         };
-        let tab = domain.spawn(size, None, self.mux_window_id)?;
+        let tab = domain.spawn(size, None, cwd, self.mux_window_id)?;
         let tab_id = tab.tab_id();
 
         let clipboard: Arc<dyn term::Clipboard> = Arc::new(ClipboardHelper {
@@ -1166,7 +1179,7 @@ impl TermWindow {
             let window_id = mux.new_empty_window();
             let tab = mux
                 .default_domain()
-                .spawn(PtySize::default(), None, window_id)?;
+                .spawn(PtySize::default(), None, None, window_id)?;
             let front_end = front_end().expect("to be called on gui thread");
             front_end.spawn_new_window(&fonts, &tab, window_id)?;
             Ok(())

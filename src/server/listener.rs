@@ -750,7 +750,8 @@ impl<S: ReadAndWrite> ClientSession<S> {
                         mux.new_empty_window()
                     };
 
-                    let tab = domain.spawn(spawn.size, spawn.command, window_id)?;
+                    let tab =
+                        domain.spawn(spawn.size, spawn.command, spawn.command_dir, window_id)?;
 
                     let clip: Arc<dyn Clipboard> = Arc::new(RemoteClipboard {
                         tab_id: tab.tab_id(),

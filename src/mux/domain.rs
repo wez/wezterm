@@ -37,6 +37,7 @@ pub trait Domain: Downcast {
         &self,
         size: PtySize,
         command: Option<CommandBuilder>,
+        command_dir: Option<String>,
         window: WindowId,
     ) -> Result<Rc<dyn Tab>, Error>;
 
@@ -85,13 +86,17 @@ impl Domain for LocalDomain {
         &self,
         size: PtySize,
         command: Option<CommandBuilder>,
+        command_dir: Option<String>,
         window: WindowId,
     ) -> Result<Rc<dyn Tab>, Error> {
         let config = configuration();
-        let cmd = match command {
+        let mut cmd = match command {
             Some(c) => c,
             None => config.build_prog(None)?,
         };
+        if let Some(dir) = command_dir {
+            cmd.cwd(dir);
+        }
         let pair = self.pty_system.openpty(size)?;
         let child = pair.slave.spawn_command(cmd)?;
         info!("spawned: {:?}", child);
