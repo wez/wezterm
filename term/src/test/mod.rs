@@ -524,6 +524,73 @@ fn test_delete_lines() {
     term.assert_dirty_lines(&[1, 2, 3, 4], None);
 }
 
+/// Test the behavior of wrapped lines when we resize the terminal
+/// wider and then narrower.
+#[test]
+fn test_resize_wrap() {
+    const LINES: usize = 8;
+    let mut term = TestTerm::new(LINES, 4, 0);
+    term.print("111\r\n2222aa\r\n333\r\n");
+    assert_visible_contents(
+        &term,
+        &[
+            "111 ", "2222", "aa  ", "333 ", "    ", "    ", "    ", "    ",
+        ],
+    );
+    term.resize(LINES, 5, 0, 0);
+    assert_visible_contents(
+        &term,
+        &["111 ", "2222a", "a", "333 ", "    ", "    ", "    ", "    "],
+    );
+    term.resize(LINES, 6, 0, 0);
+    assert_visible_contents(
+        &term,
+        &[
+            "111 ", "2222aa", "333 ", "    ", "    ", "    ", "    ", "      ",
+        ],
+    );
+    term.resize(LINES, 7, 0, 0);
+    assert_visible_contents(
+        &term,
+        &[
+            "111 ", "2222aa", "333 ", "    ", "    ", "    ", "    ", "      ",
+        ],
+    );
+    term.resize(LINES, 8, 0, 0);
+    assert_visible_contents(
+        &term,
+        &[
+            "111 ", "2222aa", "333 ", "    ", "    ", "    ", "    ", "      ",
+        ],
+    );
+
+    // Resize smaller again
+    term.resize(LINES, 7, 0, 0);
+    assert_visible_contents(
+        &term,
+        &[
+            "111 ", "2222aa", "333 ", "    ", "    ", "    ", "    ", "      ",
+        ],
+    );
+    term.resize(LINES, 6, 0, 0);
+    assert_visible_contents(
+        &term,
+        &[
+            "111 ", "2222aa", "333 ", "    ", "    ", "    ", "    ", "      ",
+        ],
+    );
+    term.resize(LINES, 5, 0, 0);
+    assert_visible_contents(
+        &term,
+        &["111 ", "2222a", "a", "333 ", "    ", "    ", "    ", "    "],
+    );
+    term.resize(LINES, 4, 0, 0);
+    assert_visible_contents(
+        &term,
+        &["111 ", "2222", "aa", "333 ", "    ", "    ", "    ", "    "],
+    );
+}
+
 #[test]
 fn test_scrollup() {
     let mut term = TestTerm::new(2, 1, 4);

@@ -81,6 +81,37 @@ impl Line {
         self.bits |= LineBits::DIRTY;
     }
 
+    /// Wrap the line so that it fits within the provided width.
+    /// Returns the list of resultant line(s)
+    pub fn wrap(mut self, width: usize) -> Vec<Self> {
+        if let Some(end_idx) = self.cells.iter().rposition(|c| c.str() != " ") {
+            self.cells.resize(end_idx + 1, Cell::default());
+
+            let mut lines: Vec<_> = self
+                .cells
+                .chunks_mut(width)
+                .map(|chunk| {
+                    let mut line = Line {
+                        cells: chunk.to_vec(),
+                        bits: LineBits::DIRTY,
+                    };
+                    if line.cells.len() == width {
+                        // Ensure that we don't forget that we wrapped
+                        line.set_last_cell_was_wrapped(true);
+                    }
+                    line
+                })
+                .collect();
+            // The last of the chunks wasn't actually wrapped
+            lines
+                .last_mut()
+                .map(|line| line.set_last_cell_was_wrapped(false));
+            lines
+        } else {
+            vec![self]
+        }
+    }
+
     /// Check whether the dirty bit is set.
     /// If it is set, then something about the line has changed since
     /// the dirty bit was last cleared.
@@ -346,6 +377,36 @@ impl Line {
 
     pub fn cells(&self) -> &[Cell] {
         &self.cells
+    }
+
+    /// Return true if the line consists solely of whitespace cells
+    pub fn is_whitespace(&self) -> bool {
+        self.cells.iter().all(|c| c.str() == " ")
+    }
+
+    /// Return true if the last cell in the line has the wrapped attribute,
+    /// indicating that the following line is logically a part of this one.
+    pub fn last_cell_was_wrapped(&self) -> bool {
+        self.cells
+            .last()
+            .map(|c| c.attrs().wrapped())
+            .unwrap_or(false)
+    }
+
+    /// Adjust the value of the wrapped attribute on the last cell of this
+    /// line.
+    pub fn set_last_cell_was_wrapped(&mut self, wrapped: bool) {
+        if let Some(cell) = self.cells.last_mut() {
+            cell.attrs_mut().set_wrapped(wrapped);
+        }
+    }
+
+    /// Concatenate the cells from other with this line, appending them
+    /// to this line.
+    /// This function is used by rewrapping logic when joining wrapped
+    /// lines back together.
+    pub fn append_line(&mut self, mut other: Line) {
+        self.cells.append(&mut other.cells);
     }
 
     /// mutable access the cell data, but the caller must take care

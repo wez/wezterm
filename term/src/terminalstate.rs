@@ -1296,12 +1296,16 @@ impl TerminalState {
         let position = position.max(0);
 
         let rows = self.screen().physical_rows;
-        let avail_scrollback = self.screen().lines.len() - rows;
+        let avail_scrollback = self.screen().lines.len().saturating_sub(rows);
 
         let position = position.min(avail_scrollback as i64);
 
         self.viewport_offset = position;
-        let top = self.screen().lines.len() - (rows + position as usize);
+        let top = self
+            .screen()
+            .lines
+            .len()
+            .saturating_sub(rows + position as usize);
         {
             let screen = self.screen_mut();
             for y in top..top + rows {
