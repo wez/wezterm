@@ -4,7 +4,7 @@
 Windows 10 or later is required to run WezTerm.
 
 <a href="{{ windows_stable }}" class="btn">Download for Windows</a>
-<a href="{{ windows_pre }}" class="btn">Nightly for Windows</a>
+<a href="https://github.com/wez/wezterm/releases/download/nightly/WezTerm-windows-nightly.zip" class="btn">Nightly for Windows</a>
 1. Download <a href="{{ windows_stable }}">Release</a>
 2. Extract the zipfile and double-click `wezterm.exe` to run the UI
 3. Configuration instructions can be [found here](config/index.html)
@@ -15,7 +15,7 @@ The CI system builds the package on macOS Mojave (10.14).  It may run on earlier
 versions of macOS, but that has not been tested.
 
 <a href="{{ macos_stable }}" class="btn">Download for macOS</a>
-<a href="{{ macos_pre }}" class="btn">Nightly for macOS</a>
+<a href="https://github.com/wez/wezterm/releases/download/nightly/WezTerm-macos-nightly.zip" class="btn">Nightly for macOS</a>
 1. Download <a href="{{ macos_stable }}">Release</a>
 2. Extract the zipfile and drag the `WezTerm.app` bundle to your `Applications` folder
 3. First time around, you may need to right click and select `Open` to allow launching
@@ -29,7 +29,7 @@ The CI system builds a `.deb` file on Ubuntu 16.04.  It is compatible with other
 debian style systems, including Debian 9 (Stretch) and later versions.
 
 <a href="{{ ubuntu_stable }}" class="btn">Download for Ubuntu</a>
-<a href="{{ ubuntu_pre }}" class="btn">Nightly for Ubuntu</a>
+<a href="https://github.com/wez/wezterm/releases/download/nightly/wezterm-nightly.deb" class="btn">Nightly for Ubuntu</a>
 
 ```bash
 curl -LO {{ ubuntu_stable }}
@@ -44,7 +44,7 @@ sudo apt install -y ./{{ ubuntu_stable_asset }}
 The CI system builds an `.rpm` file on Fedora 31.
 
 <a href="{{ fedora_stable }}" class="btn">Download for Fedora</a>
-<a href="{{ fedora_pre }}" class="btn">Nightly for Fedora</a>
+<a href="https://github.com/wez/wezterm/releases/download/nightly/wezterm-nightly.rpm" class="btn">Nightly for Fedora</a>
 
 ```bash
 sudo dnf install -y {{ fedora_stable }}

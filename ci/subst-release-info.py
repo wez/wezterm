@@ -63,11 +63,6 @@ def load_release_info():
         subst["{{ %s_stable_asset }}" % kind] = name
         subst["{{ %s_stable_dir }}" % kind] = dir
 
-    for (kind, (url, name, dir)) in nightly.items():
-        subst["{{ %s_pre }}" % kind] = url
-        subst["{{ %s_pre_asset }}" % kind] = name
-        subst["{{ %s_pre_dir }}" % kind] = dir
-
     with open("docs/installation.markdown", "r") as input:
         with open("docs/installation.md", "w") as output:
             for line in input:
