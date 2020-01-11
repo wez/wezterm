@@ -122,17 +122,11 @@ impl Screen {
         {
             self.lines.pop_back();
         }
-
-        // If we resized wider and the rewrap resulted in fewer
-        // lines than the viewport size, pad us back out to the
-        // viewport size
-        while self.lines.len() < physical_rows {
-            self.lines.push_back(Line::with_width(physical_cols));
-        }
     }
 
     /// Resize the physical, viewable portion of the screen
     pub fn resize(&mut self, physical_rows: usize, physical_cols: usize) {
+        log::debug!("resize screen to {}x{}", physical_cols, physical_rows);
         let physical_rows = physical_rows.max(1);
         let physical_cols = physical_cols.max(1);
 
@@ -150,14 +144,24 @@ impl Screen {
             self.lines.reserve(capacity - current_capacity);
         }
 
-        if physical_rows > self.physical_rows {
-            // Enlarging the viewable portion?  Add more lines at the bottom
-            for _ in self.physical_rows..physical_rows {
-                self.lines.push_back(Line::with_width(physical_cols));
-            }
+        // If we resized wider and the rewrap resulted in fewer
+        // lines than the viewport size, pad us back out to the
+        // viewport size
+        while self.lines.len() < physical_rows {
+            self.lines.push_back(Line::with_width(physical_cols));
         }
+        // If we made the window bigger, we need to increase the total
+        // number of lines in order for the viewport position to hold
+        // steady: without this we'll drift backwards and operations
+        // such as erase to end of display will effectively destroy
+        // scrollback
+        for _ in self.physical_rows..physical_rows {
+            self.lines.push_back(Line::with_width(physical_cols));
+        }
+
         self.physical_rows = physical_rows;
         self.physical_cols = physical_cols;
+        log::debug!("there are now {} lines in this screen", self.lines.len());
     }
 
     /// Get mutable reference to a line, relative to start of scrollback.

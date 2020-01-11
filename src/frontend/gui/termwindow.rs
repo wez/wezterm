@@ -1071,7 +1071,7 @@ impl TermWindow {
             let (first_row, lines) = renderer.get_lines(sel.rows());
             for (idx, line) in lines.iter().enumerate() {
                 let cols = sel.cols_for_row(first_row + idx as StableRowIndex);
-                let last_col_idx = cols.end.min(line.cells().len()) - 1;
+                let last_col_idx = cols.end.min(line.cells().len()).saturating_sub(1);
                 if !s.is_empty() && !last_was_wrapped {
                     s.push('\n');
                 }

@@ -28,6 +28,8 @@ pub struct RenderableDimensions {
     /// for the `get_lines` call when the scroll position is at the
     /// bottom of the screen.
     pub physical_top: StableRowIndex,
+    /// The top of the scrollback (the earliest row we remember)
+    /// expressed as a stable index.
     pub scrollback_top: StableRowIndex,
 }
 
