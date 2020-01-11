@@ -15,7 +15,6 @@ use termwiz::escape::csi::{
 };
 use termwiz::escape::osc::{ChangeColorPair, ColorOrQuery, ITermFileData, ITermProprietary};
 use termwiz::escape::{Action, ControlCode, Esc, EscCode, OneBased, OperatingSystemCommand, CSI};
-use termwiz::hyperlink::Rule as HyperlinkRule;
 use termwiz::image::{ImageCell, ImageData, TextureCoordinate};
 use termwiz::surface::CursorShape;
 
@@ -195,37 +194,10 @@ pub struct TerminalState {
     sgr_mouse: bool,
     button_event_mouse: bool,
     current_mouse_button: MouseButton,
-    mouse_position: CursorPosition,
     cursor_visible: bool,
     dec_line_drawing_mode: bool,
 
-    /// Which hyperlink is considered to be highlighted, because the
-    /// mouse_position is over a cell with a Hyperlink attribute.
-    current_highlight: Option<Arc<Hyperlink>>,
-
-    /// Keeps track of double and triple clicks
-    last_mouse_click: Option<LastMouseClick>,
-
-    /// Used to compute the offset to the top of the viewport.
-    /// This is used to display the scrollback of the terminal.
-    /// It is distinct from the scroll_region in that the scroll region
-    /// afects how the terminal output is scrolled as data is output,
-    /// and the viewport_offset is used to index into the scrollback
-    /// purely for display purposes.
-    /// The offset is measured from the top of the physical viewable
-    /// screen with larger numbers going backwards.
-    pub(crate) viewport_offset: VisibleRowIndex,
-
-    /// Remembers the starting coordinate of the selection prior to
-    /// dragging.
-    selection_start: Option<SelectionCoordinate>,
-    /// Holds the not-normalized selection range.
-    selection_range: Option<SelectionRange>,
-
     tabs: TabStop,
-
-    hyperlink_rules: Vec<HyperlinkRule>,
-    hyperlink_rules_generation: usize,
 
     /// The terminal title string
     title: String,
@@ -281,8 +253,6 @@ impl TerminalState {
     ) -> TerminalState {
         let screen = ScreenOrAlt::new(physical_rows, physical_cols, &config);
 
-        let (hyperlink_rules_generation, hyperlink_rules) = config.hyperlink_rules();
-
         TerminalState {
             config,
             screen,
@@ -299,15 +269,7 @@ impl TerminalState {
             cursor_visible: true,
             dec_line_drawing_mode: false,
             current_mouse_button: MouseButton::None,
-            mouse_position: CursorPosition::default(),
-            current_highlight: None,
-            last_mouse_click: None,
-            viewport_offset: 0,
-            selection_range: None,
-            selection_start: None,
             tabs: TabStop::new(physical_cols, 8),
-            hyperlink_rules,
-            hyperlink_rules_generation,
             title: "wezterm".to_string(),
             palette: None,
             pixel_height,
@@ -356,346 +318,10 @@ impl TerminalState {
         &mut self.screen
     }
 
-    pub fn get_selection_text(&self) -> String {
-        let mut s = String::new();
-
-        if let Some(sel) = self.selection_range.as_ref().map(|r| r.normalize()) {
-            let screen = self.screen();
-            let mut last_was_wrapped = false;
-            for y in sel.rows() {
-                let idx = screen.scrollback_or_visible_row(y);
-                let cols = sel.cols_for_row(y);
-                let last_col_idx = cols.end.min(screen.lines[idx].cells().len()) - 1;
-                if !s.is_empty() && !last_was_wrapped {
-                    s.push('\n');
-                }
-                s.push_str(screen.lines[idx].columns_as_str(cols).trim_end());
-
-                let last_cell = &screen.lines[idx].cells()[last_col_idx];
-                // TODO: should really test for any unicode whitespace
-                last_was_wrapped = last_cell.attrs().wrapped() && last_cell.str() != " ";
-            }
-        }
-
-        s
-    }
-
-    /// Dirty the lines in the current selection range
-    fn dirty_selection_lines(&mut self) {
-        if let Some(sel) = self.selection_range.as_ref().map(|r| r.normalize()) {
-            let screen = self.screen_mut();
-            for y in screen.scrollback_or_visible_range(&sel.rows()) {
-                screen.line_mut(y).set_dirty();
-            }
-        }
-    }
-
-    pub fn clear_selection(&mut self) {
-        self.dirty_selection_lines();
-        self.selection_range = None;
-        self.selection_start = None;
-    }
-
-    /// If `cols` on the specified `row` intersect with the selection range,
-    /// clear the selection rnage.  This doesn't invalidate the selection,
-    /// it just cancels rendering the selected text.
-    /// Returns true if the selection is invalidated or not present, which
-    /// is useful to terminate a loop when there is no more work to be done.
-    fn clear_selection_if_intersects(
-        &mut self,
-        cols: Range<usize>,
-        row: ScrollbackOrVisibleRowIndex,
-    ) -> bool {
-        let sel = self.selection_range.take();
-        match sel {
-            Some(sel) => {
-                let sel = sel.normalize();
-                let sel_cols = sel.cols_for_row(row);
-                if intersects_range(cols, sel_cols) {
-                    // Intersects, so clear the selection
-                    self.clear_selection();
-                    true
-                } else {
-                    self.selection_range = Some(sel);
-                    false
-                }
-            }
-            None => true,
-        }
-    }
-
-    /// If `rows` intersect with the selection range, clear the selection rnage.
-    /// This doesn't invalidate the selection, it just cancels rendering the
-    /// selected text.
-    /// Returns true if the selection is invalidated or not present, which
-    /// is useful to terminate a loop when there is no more work to be done.
-    fn clear_selection_if_intersects_rows(
-        &mut self,
-        rows: Range<ScrollbackOrVisibleRowIndex>,
-    ) -> bool {
-        let sel = self.selection_range.take();
-        match sel {
-            Some(sel) => {
-                let sel_rows = sel.rows();
-                if intersects_range(rows, sel_rows) {
-                    // Intersects, so clear the selection
-                    self.clear_selection();
-                    true
-                } else {
-                    self.selection_range = Some(sel);
-                    false
-                }
-            }
-            None => true,
-        }
-    }
-
-    fn hyperlink_for_cell(
-        &mut self,
-        x: usize,
-        y: ScrollbackOrVisibleRowIndex,
-    ) -> Option<Arc<Hyperlink>> {
-        let rules = &self.hyperlink_rules;
-
-        let idx = self.screen.scrollback_or_visible_row(y);
-        match self.screen.lines.get_mut(idx) {
-            Some(ref mut line) => {
-                line.scan_and_create_hyperlinks(rules);
-                match line.cells().get(x) {
-                    Some(cell) => cell.attrs().hyperlink.as_ref().cloned(),
-                    None => None,
-                }
-            }
-            None => None,
-        }
-    }
-
-    /// Invalidate rows that have hyperlinks
-    fn invalidate_hyperlinks(&mut self) {
-        let screen = self.screen_mut();
-        for line in &mut screen.lines {
-            if line.has_hyperlink() {
-                line.set_dirty();
-            }
-        }
-    }
-
-    /// If the configuration changed, obtain the new hyperlink rules
-    /// from it and invalidate any implicit hyperlinks so that we
-    /// re-apply the rules to the display
-    fn refresh_hyperlink_rules(&mut self) {
-        if self.config.generation() != self.hyperlink_rules_generation {
-            let (generation, rules) = self.config.hyperlink_rules();
-            self.hyperlink_rules = rules;
-            self.hyperlink_rules_generation = generation;
-
-            // dirty all lines as any of them may have changed
-            // their hyperlinkyness
-            let screen = self.screen_mut();
-            for line in &mut screen.lines {
-                line.invalidate_implicit_hyperlinks();
-                line.set_dirty();
-            }
-        }
-    }
-
-    /// Called after a mouse move or viewport scroll to recompute the
-    /// current highlight
-    fn recompute_highlight(&mut self) {
-        self.refresh_hyperlink_rules();
-        let line_idx = self.mouse_position.y as ScrollbackOrVisibleRowIndex
-            - self.viewport_offset as ScrollbackOrVisibleRowIndex;
-        let x = self.mouse_position.x;
-        self.current_highlight = self.hyperlink_for_cell(x, line_idx);
-        self.invalidate_hyperlinks();
-    }
-
     fn set_clipboard_contents(&self, text: Option<String>) -> anyhow::Result<()> {
         if let Some(clip) = self.clipboard.as_ref() {
             clip.set_contents(text)?;
         }
-        Ok(())
-    }
-
-    /// Single click prepares the start of a new selection
-    fn mouse_single_click_left(&mut self, event: MouseEvent) -> Result<(), Error> {
-        // Prepare to start a new selection.
-        // We don't form the selection until the mouse drags.
-        self.selection_range = None;
-        self.selection_start = Some(SelectionCoordinate {
-            x: event.x,
-            y: event.y as ScrollbackOrVisibleRowIndex
-                - self.viewport_offset as ScrollbackOrVisibleRowIndex,
-        });
-        self.set_clipboard_contents(None)
-    }
-
-    /// Double click to select a word on the current line
-    fn mouse_double_click_left(&mut self, event: MouseEvent) -> Result<(), Error> {
-        let y = event.y as ScrollbackOrVisibleRowIndex
-            - self.viewport_offset as ScrollbackOrVisibleRowIndex;
-        let idx = self.screen().scrollback_or_visible_row(y);
-        let selection_range = match self.screen().lines[idx]
-            .compute_double_click_range(event.x, |s| self.config.is_double_click_word(s))
-        {
-            DoubleClickRange::Range(click_range) => SelectionRange {
-                start: SelectionCoordinate {
-                    x: click_range.start,
-                    y,
-                },
-                end: SelectionCoordinate {
-                    x: click_range.end - 1,
-                    y,
-                },
-            },
-            DoubleClickRange::RangeWithWrap(range_start) => {
-                let start_coord = SelectionCoordinate {
-                    x: range_start.start,
-                    y,
-                };
-
-                let mut end_coord = SelectionCoordinate {
-                    x: range_start.end - 1,
-                    y,
-                };
-
-                for y_cont in idx + 1..self.screen().lines.len() {
-                    match self.screen().lines[y_cont]
-                        .compute_double_click_range(0, |s| self.config.is_double_click_word(s))
-                    {
-                        DoubleClickRange::Range(range_end) => {
-                            if range_end.end > range_end.start {
-                                end_coord = SelectionCoordinate {
-                                    x: range_end.end - 1,
-                                    y: y + (y_cont - idx) as i32,
-                                };
-                            }
-                            break;
-                        }
-                        DoubleClickRange::RangeWithWrap(range_end) => {
-                            end_coord = SelectionCoordinate {
-                                x: range_end.end - 1,
-                                y: y + (y_cont - idx) as i32,
-                            };
-                        }
-                    }
-                }
-
-                SelectionRange {
-                    start: start_coord,
-                    end: end_coord,
-                }
-            }
-        };
-
-        // TODO: if selection_range.start.x == 0, search backwards for wrapping
-        // lines too.
-
-        self.selection_start = Some(selection_range.start);
-        self.selection_range = Some(selection_range);
-
-        self.dirty_selection_lines();
-        let text = self.get_selection_text();
-        debug!(
-            "finish 2click selection {:?} '{}'",
-            self.selection_range, text
-        );
-        self.set_clipboard_contents(Some(text))
-    }
-
-    /// triple click to select the current line
-    fn mouse_triple_click_left(&mut self, event: MouseEvent) -> Result<(), Error> {
-        let y = event.y as ScrollbackOrVisibleRowIndex
-            - self.viewport_offset as ScrollbackOrVisibleRowIndex;
-        self.selection_start = Some(SelectionCoordinate { x: event.x, y });
-        self.selection_range = Some(SelectionRange {
-            start: SelectionCoordinate { x: 0, y },
-            end: SelectionCoordinate {
-                x: usize::max_value(),
-                y,
-            },
-        });
-        self.dirty_selection_lines();
-        let text = self.get_selection_text();
-        debug!(
-            "finish 3click selection {:?} '{}'",
-            self.selection_range, text
-        );
-        self.set_clipboard_contents(Some(text))
-    }
-
-    fn mouse_press_left(&mut self, event: MouseEvent) -> Result<(), Error> {
-        self.current_mouse_button = MouseButton::Left;
-        self.dirty_selection_lines();
-        match self.last_mouse_click.as_ref() {
-            Some(&LastMouseClick { streak: 1, .. }) => {
-                self.mouse_single_click_left(event)?;
-            }
-            Some(&LastMouseClick { streak: 2, .. }) => {
-                self.mouse_double_click_left(event)?;
-            }
-            Some(&LastMouseClick { streak: 3, .. }) => {
-                self.mouse_triple_click_left(event)?;
-            }
-            // otherwise, clear out the selection
-            _ => {
-                self.selection_range = None;
-                self.selection_start = None;
-                self.set_clipboard_contents(None)?;
-            }
-        }
-
-        Ok(())
-    }
-
-    fn mouse_release_left(
-        &mut self,
-        event: MouseEvent,
-        host: &mut dyn TerminalHost,
-    ) -> Result<(), Error> {
-        // Finish selecting a region, update clipboard
-        self.current_mouse_button = MouseButton::None;
-        if let Some(&LastMouseClick { streak: 1, .. }) = self.last_mouse_click.as_ref() {
-            // Only consider a drag selection if we have a streak==1.
-            // The double/triple click cases are handled above.
-            let text = self.get_selection_text();
-            if !text.is_empty() {
-                debug!(
-                    "finish drag selection {:?} '{}'",
-                    self.selection_range, text
-                );
-                self.set_clipboard_contents(Some(text))?;
-            } else if let Some(link) = self.current_highlight() {
-                // If the button release wasn't a drag, consider
-                // whether it was a click on a hyperlink
-                host.click_link(&link);
-            }
-            Ok(())
-        } else {
-            self.mouse_button_release(event, host.writer())
-        }
-    }
-
-    pub fn selection_range(&self) -> Option<SelectionRange> {
-        self.selection_range.map(|r| r.normalize())
-    }
-
-    fn mouse_drag_left(&mut self, event: MouseEvent) -> Result<(), Error> {
-        // dragging out the selection region
-        // TODO: may drag and change the viewport
-        self.dirty_selection_lines();
-        let end = SelectionCoordinate {
-            x: event.x,
-            y: event.y as ScrollbackOrVisibleRowIndex
-                - self.viewport_offset as ScrollbackOrVisibleRowIndex,
-        };
-        let sel = match self.selection_range.take() {
-            None => SelectionRange::start(self.selection_start.unwrap_or(end)).extend(end),
-            Some(sel) => sel.extend(end),
-        };
-        self.selection_range = Some(sel);
-        // Dirty lines again to reflect new range
-        self.dirty_selection_lines();
         Ok(())
     }
 
@@ -704,9 +330,9 @@ impl TerminalState {
         event: MouseEvent,
         writer: &mut dyn std::io::Write,
     ) -> Result<(), Error> {
-        let (report_button, scroll_delta, key) = match event.button {
-            MouseButton::WheelUp(amount) => (64, -(amount as i64), KeyCode::UpArrow),
-            MouseButton::WheelDown(amount) => (65, amount as i64, KeyCode::DownArrow),
+        let (report_button, key) = match event.button {
+            MouseButton::WheelUp(_) => (64, KeyCode::UpArrow),
+            MouseButton::WheelDown(_) => (65, KeyCode::DownArrow),
             _ => bail!("unexpected mouse event {:?}", event),
         };
 
@@ -717,8 +343,6 @@ impl TerminalState {
         } else if self.screen.is_alt_screen_active() {
             // Send cursor keys instead (equivalent to xterm's alternateScroll mode)
             self.key_down(key, KeyModifiers::default(), writer)?;
-        } else {
-            self.scroll_viewport(scroll_delta)
         }
         Ok(())
     }
@@ -791,66 +415,6 @@ impl TerminalState {
         // make sure that we clamp this and handle it nicely at the model layer.
         event.y = event.y.min(self.screen().physical_rows as i64 - 1);
         event.x = event.x.min(self.screen().physical_cols - 1);
-
-        // Remember the last reported mouse position so that we can use it
-        // for highlighting clickable things elsewhere.
-        let new_position = CursorPosition {
-            x: event.x,
-            y: event.y as VisibleRowIndex,
-            ..self.mouse_position
-        };
-
-        if new_position != self.mouse_position {
-            self.mouse_position = new_position;
-            self.recompute_highlight();
-        }
-
-        // First pass to figure out if we're messing with the selection
-        let send_event = self.sgr_mouse && !event.modifiers.contains(KeyModifiers::SHIFT);
-
-        // Perform click counting
-        if event.kind == MouseEventKind::Press {
-            let click = match self.last_mouse_click.take() {
-                None => LastMouseClick::new(event.button),
-                Some(click) => click.add(event.button),
-            };
-            self.last_mouse_click = Some(click);
-        }
-
-        if !send_event {
-            match (event, self.current_mouse_button) {
-                (
-                    MouseEvent {
-                        kind: MouseEventKind::Press,
-                        button: MouseButton::Left,
-                        ..
-                    },
-                    _,
-                ) => {
-                    return self.mouse_press_left(event);
-                }
-                (
-                    MouseEvent {
-                        kind: MouseEventKind::Release,
-                        button: MouseButton::Left,
-                        ..
-                    },
-                    _,
-                ) => {
-                    return self.mouse_release_left(event, host);
-                }
-                (
-                    MouseEvent {
-                        kind: MouseEventKind::Move,
-                        ..
-                    },
-                    MouseButton::Left,
-                ) => {
-                    return self.mouse_drag_left(event);
-                }
-                _ => {}
-            }
-        }
 
         match event {
             MouseEvent {
@@ -1061,17 +625,6 @@ impl TerminalState {
                 buf.as_str()
             }
 
-            PageUp if mods == KeyModifiers::SHIFT => {
-                let rows = self.screen().physical_rows as i64;
-                self.scroll_viewport(-rows);
-                ""
-            }
-            PageDown if mods == KeyModifiers::SHIFT => {
-                let rows = self.screen().physical_rows as i64;
-                self.scroll_viewport(rows);
-                ""
-            }
-
             PageUp | PageDown | Insert | Delete => {
                 let c = match key {
                     Insert => 2,
@@ -1144,14 +697,6 @@ impl TerminalState {
         // debug!("sending {:?}, {:?}", to_send, key);
         writer.write_all(to_send.as_bytes())?;
 
-        // Reset the viewport if we sent data to the parser
-        if !to_send.is_empty()
-            && self.viewport_offset != 0
-            && self.config.scroll_to_bottom_on_key_input()
-        {
-            self.set_scroll_viewport(0);
-        }
-
         Ok(())
     }
 
@@ -1167,66 +712,8 @@ impl TerminalState {
         self.pixel_height = pixel_height;
         self.pixel_width = pixel_width;
         self.tabs.resize(physical_cols);
-        self.set_scroll_viewport(0);
         // Ensure that the cursor is within the new bounds of the screen
         self.set_cursor_pos(&Position::Relative(0), &Position::Relative(0));
-    }
-
-    /// Returns true if any of the visible lines are marked dirty
-    pub fn has_dirty_lines(&self) -> bool {
-        let screen = self.screen();
-        let height = screen.physical_rows;
-        let len = screen.lines.len() - self.viewport_offset as usize;
-
-        for line in screen.lines.iter().skip(len - height) {
-            if line.is_dirty() {
-                return true;
-            }
-        }
-
-        false
-    }
-
-    /// Returns the set of visible lines that are dirty.
-    /// The return value is a Vec<(line_idx, line, selrange)>, where
-    /// line_idx is relative to the top of the viewport.
-    /// The selrange value is the column range representing the selected
-    /// columns on this line.
-    pub fn get_dirty_lines(&self) -> Vec<(usize, &Line, Range<usize>)> {
-        let mut res = Vec::new();
-
-        let screen = self.screen();
-        let height = screen.physical_rows;
-        let len = screen.lines.len() - self.viewport_offset as usize;
-
-        let selection = self.selection_range.map(|r| r.normalize());
-
-        for (i, line) in screen.lines.iter().skip(len - height).enumerate() {
-            if i >= height {
-                // When scrolling back, make sure we don't emit lines that
-                // are below the bottom of the viewport
-                break;
-            }
-            if line.is_dirty() {
-                let selrange = match selection {
-                    None => 0..0,
-                    Some(sel) => {
-                        // i is relative to the viewport, convert it back to
-                        // something we can relate to the selection
-                        let row = (i as ScrollbackOrVisibleRowIndex)
-                            - self.viewport_offset as ScrollbackOrVisibleRowIndex;
-                        sel.cols_for_row(row)
-                    }
-                };
-                res.push((i, &*line, selrange));
-            }
-        }
-
-        res
-    }
-
-    pub fn get_viewport_offset(&self) -> VisibleRowIndex {
-        self.viewport_offset
     }
 
     /// Clear the dirty flag for all dirty lines
@@ -1250,18 +737,13 @@ impl TerminalState {
     pub fn cursor_pos(&self) -> CursorPosition {
         CursorPosition {
             x: self.cursor.x,
-            y: self.cursor.y + self.viewport_offset,
+            y: self.cursor.y,
             shape: if self.cursor_visible {
                 self.cursor.shape
             } else {
                 CursorShape::Hidden
             },
         }
-    }
-
-    /// Returns the currently highlighted hyperlink
-    pub fn current_highlight(&self) -> Option<Arc<Hyperlink>> {
-        self.current_highlight.as_ref().cloned()
     }
 
     /// Sets the cursor position. x and y are 0-based and relative to the
@@ -1291,45 +773,12 @@ impl TerminalState {
         screen.dirty_line(new_y);
     }
 
-    pub fn set_scroll_viewport(&mut self, position: VisibleRowIndex) {
-        self.clear_selection();
-        let position = position.max(0);
-
-        let rows = self.screen().physical_rows;
-        let avail_scrollback = self.screen().lines.len().saturating_sub(rows);
-
-        let position = position.min(avail_scrollback as i64);
-
-        self.viewport_offset = position;
-        let top = self
-            .screen()
-            .lines
-            .len()
-            .saturating_sub(rows + position as usize);
-        {
-            let screen = self.screen_mut();
-            for y in top..top + rows {
-                screen.line_mut(y).set_dirty();
-            }
-        }
-        self.recompute_highlight();
-    }
-
-    /// Adjust the scroll position of the viewport by delta.
-    /// Dirties the lines that are now in view.
-    pub fn scroll_viewport(&mut self, delta: VisibleRowIndex) {
-        let position = self.viewport_offset - delta;
-        self.set_scroll_viewport(position);
-    }
-
     fn scroll_up(&mut self, num_rows: usize) {
-        self.clear_selection();
         let scroll_region = self.scroll_region.clone();
         self.screen_mut().scroll_up(&scroll_region, num_rows)
     }
 
     fn scroll_down(&mut self, num_rows: usize) {
-        self.clear_selection();
         let scroll_region = self.scroll_region.clone();
         self.screen_mut().scroll_down(&scroll_region, num_rows)
     }
@@ -1581,7 +1030,6 @@ impl TerminalState {
             )) => {
                 if !self.screen.is_alt_screen_active() {
                     self.screen.activate_alt_screen();
-                    self.set_scroll_viewport(0);
                 }
             }
             Mode::ResetDecPrivateMode(DecPrivateMode::Code(
@@ -1589,7 +1037,6 @@ impl TerminalState {
             )) => {
                 if self.screen.is_alt_screen_active() {
                     self.screen.activate_primary_screen();
-                    self.set_scroll_viewport(0);
                 }
             }
 
@@ -1650,7 +1097,6 @@ impl TerminalState {
                     self.screen.activate_alt_screen();
                     self.set_cursor_pos(&Position::Absolute(0), &Position::Absolute(0));
                     self.erase_in_display(EraseInDisplay::EraseDisplay);
-                    self.set_scroll_viewport(0);
                 }
             }
             Mode::ResetDecPrivateMode(DecPrivateMode::Code(
@@ -1659,7 +1105,6 @@ impl TerminalState {
                 if self.screen.is_alt_screen_active() {
                     self.screen.activate_primary_screen();
                     self.restore_cursor();
-                    self.set_scroll_viewport(0);
                 }
             }
             Mode::SaveDecPrivateMode(DecPrivateMode::Code(_))
@@ -1773,14 +1218,6 @@ impl TerminalState {
                 screen.clear_line(y, col_range.clone(), &pen);
             }
         }
-
-        for y in row_range {
-            if self
-                .clear_selection_if_intersects(col_range.clone(), y as ScrollbackOrVisibleRowIndex)
-            {
-                break;
-            }
-        }
     }
 
     fn perform_csi_edit(&mut self, edit: Edit) {
@@ -1795,16 +1232,11 @@ impl TerminalState {
                         screen.erase_cell(x, y);
                     }
                 }
-                self.clear_selection_if_intersects(x..limit, y as ScrollbackOrVisibleRowIndex);
             }
             Edit::DeleteLine(n) => {
                 if self.scroll_region.contains(&self.cursor.y) {
                     let scroll_region = self.cursor.y..self.scroll_region.end;
                     self.screen_mut().scroll_up(&scroll_region, n as usize);
-
-                    let scrollback_region = self.cursor.y as ScrollbackOrVisibleRowIndex
-                        ..self.scroll_region.end as ScrollbackOrVisibleRowIndex;
-                    self.clear_selection_if_intersects_rows(scrollback_region);
                 }
             }
             Edit::EraseCharacter(n) => {
@@ -1818,7 +1250,6 @@ impl TerminalState {
                         screen.set_cell(x, y, &blank);
                     }
                 }
-                self.clear_selection_if_intersects(x..limit, y as ScrollbackOrVisibleRowIndex);
             }
 
             Edit::EraseInLine(erase) => {
@@ -1833,7 +1264,6 @@ impl TerminalState {
                 };
 
                 self.screen_mut().clear_line(cy, range.clone(), &pen);
-                self.clear_selection_if_intersects(range, cy as ScrollbackOrVisibleRowIndex);
             }
             Edit::InsertCharacter(n) => {
                 let y = self.cursor.y;
@@ -1847,16 +1277,11 @@ impl TerminalState {
                         screen.insert_cell(x, y);
                     }
                 }
-                self.clear_selection_if_intersects(x..limit, y as ScrollbackOrVisibleRowIndex);
             }
             Edit::InsertLine(n) => {
                 if self.scroll_region.contains(&self.cursor.y) {
                     let scroll_region = self.cursor.y..self.scroll_region.end;
                     self.screen_mut().scroll_down(&scroll_region, n as usize);
-
-                    let scrollback_region = self.cursor.y as ScrollbackOrVisibleRowIndex
-                        ..self.scroll_region.end as ScrollbackOrVisibleRowIndex;
-                    self.clear_selection_if_intersects_rows(scrollback_region);
                 }
             }
             Edit::ScrollDown(n) => self.scroll_down(n as usize),
@@ -2143,11 +1568,6 @@ impl<'a> Performer<'a> {
 
             // Assign the cell
             self.screen_mut().set_cell(x + x_offset, y, &cell);
-
-            self.clear_selection_if_intersects(
-                x..x + print_width,
-                y as ScrollbackOrVisibleRowIndex,
-            );
 
             if self.insert {
                 x_offset += print_width;

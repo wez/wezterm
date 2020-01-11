@@ -6,7 +6,7 @@ mod c0;
 use bitflags::bitflags;
 mod c1;
 mod csi;
-mod selection;
+// mod selection; FIXME: port to render layer
 use crate::color::ColorPalette;
 use pretty_assertions::assert_eq;
 use std::cell::RefCell;
@@ -79,7 +79,6 @@ impl TerminalHost for TestHost {
 struct TestTerm {
     term: Terminal,
     host: TestHost,
-    clip: Arc<dyn Clipboard>,
 }
 
 #[derive(Debug)]
@@ -111,7 +110,6 @@ impl TestTerm {
         Self {
             term,
             host: TestHost::new(),
-            clip,
         }
     }
 
@@ -171,74 +169,6 @@ impl TestTerm {
         self.print("!p");
     }
 
-    fn mouse(&mut self, event: MouseEvent) -> Result<(), Error> {
-        self.term.mouse_event(event, &mut self.host)
-    }
-
-    fn get_clipboard(&self) -> Option<String> {
-        self.clip.get_contents().ok()
-    }
-
-    /// Inject n_times clicks of the button at the specified coordinates
-    fn click_n(&mut self, x: usize, y: i64, button: MouseButton, n_times: usize) {
-        for _ in 0..n_times {
-            self.mouse(MouseEvent {
-                kind: MouseEventKind::Press,
-                x,
-                y,
-                button,
-                modifiers: KeyModifiers::default(),
-            })
-            .unwrap();
-            self.mouse(MouseEvent {
-                kind: MouseEventKind::Release,
-                x,
-                y,
-                button,
-                modifiers: KeyModifiers::default(),
-            })
-            .unwrap();
-        }
-    }
-
-    /// Left mouse button drag from the start to the end coordinates
-    fn drag_select(&mut self, start_x: usize, start_y: i64, end_x: usize, end_y: i64) {
-        // Break any outstanding click streak that might falsely trigger due to
-        // this unit test happening much faster than the CLICK_INTERVAL allows.
-        self.click_n(0, 0, MouseButton::Right, 1);
-
-        // Now inject the appropriate left click events
-
-        self.mouse(MouseEvent {
-            kind: MouseEventKind::Press,
-            x: start_x,
-            y: start_y,
-            button: MouseButton::Left,
-            modifiers: KeyModifiers::default(),
-        })
-        .unwrap();
-        assert!(self.get_clipboard().is_none());
-
-        self.mouse(MouseEvent {
-            kind: MouseEventKind::Move,
-            x: end_x,
-            y: end_y,
-            button: MouseButton::None,
-            modifiers: KeyModifiers::default(),
-        })
-        .unwrap();
-        assert!(self.get_clipboard().is_none());
-
-        self.mouse(MouseEvent {
-            kind: MouseEventKind::Release,
-            x: end_x,
-            y: end_y,
-            button: MouseButton::Left,
-            modifiers: KeyModifiers::default(),
-        })
-        .unwrap();
-    }
-
     fn assert_cursor_pos(&self, x: usize, y: i64, reason: Option<&str>) {
         let cursor = self.cursor_pos();
         let expect = CursorPosition {
@@ -254,40 +184,18 @@ impl TestTerm {
     }
 
     fn assert_dirty_lines(&self, expected: &[usize], reason: Option<&str>) {
-        let dirty_indices: Vec<usize> = self.get_dirty_lines().iter().map(|&(i, ..)| i).collect();
+        let dirty_indices: Vec<usize> = self
+            .screen()
+            .lines
+            .iter()
+            .enumerate()
+            .filter_map(|(i, line)| if line.is_dirty() { Some(i) } else { None })
+            .collect();
         assert_eq!(
             &dirty_indices, &expected,
             "actual dirty lines (left) didn't match expected dirty lines (right) reason={:?}",
             reason
         );
-    }
-
-    fn viewport_lines(&self) -> Vec<Line> {
-        let screen = self.screen();
-        let line_count = screen.lines.len();
-        let viewport = self.viewport_offset;
-        let phs_rows = screen.physical_rows;
-        screen
-            .all_lines()
-            .iter()
-            .skip((line_count as i64 - phs_rows as i64 - viewport) as usize)
-            .take(phs_rows)
-            .cloned()
-            .collect()
-    }
-    fn print_viewport_lines(&self) {
-        println!("viewport contents are:");
-        for line in self.viewport_lines() {
-            println!("[{}]", line.as_str());
-        }
-    }
-
-    fn assert_viewport_contents(&self, expect_lines: &[&str]) {
-        self.print_viewport_lines();
-
-        let expect: Vec<Line> = expect_lines.iter().map(|s| (*s).into()).collect();
-
-        assert_lines_equal(&self.viewport_lines(), &expect, Compare::TEXT);
     }
 }
 
