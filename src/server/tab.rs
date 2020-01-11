@@ -307,6 +307,10 @@ impl Tab for ClientTab {
     fn is_mouse_grabbed(&self) -> bool {
         *self.mouse_grabbed.borrow()
     }
+
+    fn get_current_working_dir(&self) -> Option<String> {
+        None
+    }
 }
 
 #[derive(Debug)]
