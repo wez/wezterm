@@ -290,6 +290,10 @@ impl TerminalState {
         &self.title
     }
 
+    pub fn get_current_dir(&self) -> Option<&str> {
+        self.current_dir.as_ref().map(String::as_str)
+    }
+
     /// Returns a copy of the palette.
     /// By default we don't keep a copy in the terminal state,
     /// preferring to take the config values from the users

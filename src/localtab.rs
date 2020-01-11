@@ -93,6 +93,10 @@ impl Tab for LocalTab {
     fn is_mouse_grabbed(&self) -> bool {
         self.terminal.borrow().is_mouse_grabbed()
     }
+
+    fn get_current_working_dir(&self) -> Option<String> {
+        self.terminal.borrow().get_current_dir().map(String::from)
+    }
 }
 
 impl LocalTab {

@@ -284,6 +284,10 @@ impl Tab for TermWizTerminalTab {
     fn is_mouse_grabbed(&self) -> bool {
         true
     }
+
+    fn get_current_working_dir(&self) -> Option<String> {
+        None
+    }
 }
 
 pub struct TermWizTerminal {
