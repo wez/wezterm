@@ -407,6 +407,7 @@ impl Line {
     /// lines back together.
     pub fn append_line(&mut self, mut other: Line) {
         self.cells.append(&mut other.cells);
+        self.set_dirty();
     }
 
     /// mutable access the cell data, but the caller must take care
