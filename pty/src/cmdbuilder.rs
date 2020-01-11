@@ -121,6 +121,7 @@ impl CommandBuilder {
                 .cwd
                 .as_ref()
                 .map(|dir| dir.as_os_str())
+                .filter(|dir| std::path::Path::new(dir).is_dir())
                 .unwrap_or(home.as_ref());
             cmd.current_dir(dir);
             cmd
