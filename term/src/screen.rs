@@ -76,7 +76,7 @@ impl Screen {
         scrollback_size(&self.config, self.allow_scrollback)
     }
 
-    fn rewrap_lines(&mut self, physical_cols: usize) {
+    fn rewrap_lines(&mut self, physical_cols: usize, physical_rows: usize) {
         let mut rewrapped = VecDeque::new();
         let mut logical_line: Option<Line> = None;
         for mut line in self.lines.drain(..) {
@@ -116,7 +116,8 @@ impl Screen {
         // if the bottom line(s) are whitespace, we'll prune those
         // out first in the rewrap case so that we don't lose any
         // real information off the top of the scrollback
-        while self.lines.len() > self.physical_rows
+        let capacity = physical_rows + self.scrollback_size();
+        while self.lines.len() > capacity
             && self.lines.back().map(Line::is_whitespace).unwrap_or(false)
         {
             self.lines.pop_back();
@@ -125,7 +126,7 @@ impl Screen {
         // If we resized wider and the rewrap resulted in fewer
         // lines than the viewport size, pad us back out to the
         // viewport size
-        while self.lines.len() < self.physical_rows {
+        while self.lines.len() < physical_rows {
             self.lines.push_back(Line::with_width(physical_cols));
         }
     }
@@ -140,7 +141,7 @@ impl Screen {
             // wrapped due to reaching the right hand side of the terminal.
             // For each one that we find, we need to join it with its
             // successor and then re-split it
-            self.rewrap_lines(physical_cols);
+            self.rewrap_lines(physical_cols, physical_rows);
         }
 
         let capacity = physical_rows + self.scrollback_size();
