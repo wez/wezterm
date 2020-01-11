@@ -13,6 +13,7 @@ use std::os::windows::ffi::OsStrExt;
 pub struct CommandBuilder {
     args: Vec<OsString>,
     envs: Vec<(OsString, OsString)>,
+    cwd: Option<OsString>,
 }
 
 impl CommandBuilder {
@@ -22,12 +23,17 @@ impl CommandBuilder {
         Self {
             args: vec![program.as_ref().to_owned()],
             envs: vec![],
+            cwd: None,
         }
     }
 
     /// Create a new builder instance from a pre-built argument vector
     pub fn from_argv(args: Vec<OsString>) -> Self {
-        Self { args, envs: vec![] }
+        Self {
+            args,
+            envs: vec![],
+            cwd: None,
+        }
     }
 
     /// Create a new builder instance that will run some idea of a default
@@ -36,6 +42,7 @@ impl CommandBuilder {
         Self {
             args: vec![],
             envs: vec![],
+            cwd: None,
         }
     }
 
@@ -74,6 +81,13 @@ impl CommandBuilder {
             .push((key.as_ref().to_owned(), val.as_ref().to_owned()));
     }
 
+    pub fn cwd<D>(&mut self, dir: D)
+    where
+        D: AsRef<OsStr>,
+    {
+        self.cwd = Some(dir.as_ref().to_owned());
+    }
+
     #[cfg(feature = "ssh")]
     pub(crate) fn iter_env_as_str(&self) -> impl Iterator<Item = (&str, &str)> {
         self.envs.iter().filter_map(|(key, val)| {
@@ -102,7 +116,13 @@ impl CommandBuilder {
     pub(crate) fn as_command(&self) -> anyhow::Result<std::process::Command> {
         let mut cmd = if self.is_default_prog() {
             let mut cmd = std::process::Command::new(&Self::get_shell()?);
-            cmd.current_dir(Self::get_home_dir()?);
+            let home = Self::get_home_dir()?;
+            let dir: &OsStr = self
+                .cwd
+                .as_ref()
+                .map(|dir| dir.as_os_str())
+                .unwrap_or(home.as_ref());
+            cmd.current_dir(dir);
             cmd
         } else {
             let mut cmd = std::process::Command::new(&self.args[0]);
