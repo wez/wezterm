@@ -7,12 +7,12 @@ fn test_ind() {
     let mut term = TestTerm::new(4, 4, 0);
     term.print("a\r\nb\x1bD");
     term.assert_cursor_pos(1, 2, None);
-    assert_visible_contents(&term, &["a   ", "b   ", "    ", "    "]);
+    assert_visible_contents(&term, file!(), line!(), &["a   ", "b   ", "    ", "    "]);
     term.print("\x1bD");
     term.assert_cursor_pos(1, 3, None);
     term.print("\x1bD");
     term.assert_cursor_pos(1, 3, None);
-    assert_visible_contents(&term, &["b   ", "    ", "    ", "    "]);
+    assert_visible_contents(&term, file!(), line!(), &["b   ", "    ", "    ", "    "]);
 }
 
 #[test]
@@ -24,7 +24,7 @@ fn test_nel() {
     term.assert_cursor_pos(0, 3, None);
     term.print("\x1bE");
     term.assert_cursor_pos(0, 3, None);
-    assert_visible_contents(&term, &["b   ", "    ", "    ", "    "]);
+    assert_visible_contents(&term, file!(), line!(), &["b   ", "    ", "    ", "    "]);
 }
 
 #[test]
@@ -57,7 +57,7 @@ fn test_hts() {
 fn test_ri() {
     let mut term = TestTerm::new(4, 2, 0);
     term.print("a\r\nb\r\nc\r\nd.");
-    assert_visible_contents(&term, &["a ", "b ", "c ", "d."]);
+    assert_visible_contents(&term, file!(), line!(), &["a ", "b ", "c ", "d."]);
     term.assert_cursor_pos(1, 3, None);
     term.print("\x1bM");
     term.assert_cursor_pos(1, 2, None);
@@ -67,5 +67,5 @@ fn test_ri() {
     term.assert_cursor_pos(1, 0, None);
     term.print("\x1bM");
     term.assert_cursor_pos(1, 0, None);
-    assert_visible_contents(&term, &["  ", "a ", "b ", "c "]);
+    assert_visible_contents(&term, file!(), line!(), &["  ", "a ", "b ", "c "]);
 }

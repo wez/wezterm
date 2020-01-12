@@ -215,7 +215,13 @@ impl DerefMut for TestTerm {
 
 /// Asserts that both line slices match according to the
 /// selected flags.
-fn assert_lines_equal(lines: &[Line], expect_lines: &[Line], compare: Compare) {
+fn assert_lines_equal(
+    file: &str,
+    line_no: u32,
+    lines: &[Line],
+    expect_lines: &[Line],
+    compare: Compare,
+) {
     let mut expect_iter = expect_lines.iter();
 
     for (idx, line) in lines.iter().enumerate() {
@@ -236,7 +242,9 @@ fn assert_lines_equal(lines: &[Line], expect_lines: &[Line], compare: Compare) {
             assert_eq!(
                 expect_attrs,
                 line_attrs,
-                "line {} `{}` attrs didn't match (left=expected, right=actual)",
+                "{}:{}: line {} `{}` attrs didn't match (left=expected, right=actual)",
+                file,
+                line_no,
                 idx,
                 line.as_str()
             );
@@ -247,7 +255,9 @@ fn assert_lines_equal(lines: &[Line], expect_lines: &[Line], compare: Compare) {
             assert_eq!(
                 line_str,
                 expect_str,
-                "line {} text didn't match '{}' vs '{}'",
+                "{}:{}: line {} text didn't match '{}' vs '{}'",
+                file,
+                line_no,
                 idx,
                 line_str.escape_default(),
                 expect_str.escape_default()
@@ -258,7 +268,9 @@ fn assert_lines_equal(lines: &[Line], expect_lines: &[Line], compare: Compare) {
     assert_eq!(
         lines.len(),
         expect_lines.len(),
-        "expectation has wrong number of lines"
+        "{}:{}: expectation has wrong number of lines",
+        file,
+        line_no
     );
 }
 
@@ -292,22 +304,22 @@ fn print_visible_lines(term: &Terminal) {
 /// same character contents as the expected lines.
 /// The other cell attributes are not compared; this is
 /// a convenience for writing visually understandable tests.
-fn assert_visible_contents(term: &Terminal, expect_lines: &[&str]) {
+fn assert_visible_contents(term: &Terminal, file: &str, line: u32, expect_lines: &[&str]) {
     print_visible_lines(&term);
     let screen = term.screen();
 
     let expect: Vec<Line> = expect_lines.iter().map(|s| (*s).into()).collect();
 
-    assert_lines_equal(&screen.visible_lines(), &expect, Compare::TEXT);
+    assert_lines_equal(file, line, &screen.visible_lines(), &expect, Compare::TEXT);
 }
 
-fn assert_all_contents(term: &Terminal, expect_lines: &[&str]) {
+fn assert_all_contents(term: &Terminal, file: &str, line: u32, expect_lines: &[&str]) {
     print_all_lines(&term);
     let screen = term.screen();
 
     let expect: Vec<Line> = expect_lines.iter().map(|s| (*s).into()).collect();
 
-    assert_lines_equal(&screen.all_lines(), &expect, Compare::TEXT);
+    assert_lines_equal(file, line, &screen.all_lines(), &expect, Compare::TEXT);
 }
 
 #[test]
@@ -318,6 +330,8 @@ fn basic_output() {
     term.print("hello, world!");
     assert_visible_contents(
         &term,
+        file!(),
+        line!(),
         &[
             "          ",
             " hello, wo",
@@ -330,6 +344,8 @@ fn basic_output() {
     term.erase_in_display(EraseInDisplay::EraseToStartOfDisplay);
     assert_visible_contents(
         &term,
+        file!(),
+        line!(),
         &[
             "          ",
             "          ",
@@ -345,6 +361,8 @@ fn basic_output() {
     term.erase_in_line(EraseInLine::EraseToEndOfLine);
     assert_visible_contents(
         &term,
+        file!(),
+        line!(),
         &[
             "          ",
             "          ",
@@ -357,6 +375,8 @@ fn basic_output() {
     term.erase_in_line(EraseInLine::EraseToStartOfLine);
     assert_visible_contents(
         &term,
+        file!(),
+        line!(),
         &[
             "          ",
             "          ",
@@ -374,7 +394,7 @@ fn cursor_movement_damage() {
     let mut term = TestTerm::new(2, 3, 0);
 
     term.print("fooo.");
-    assert_visible_contents(&term, &["foo", "o. "]);
+    assert_visible_contents(&term, file!(), line!(), &["foo", "o. "]);
     term.assert_cursor_pos(2, 1, None);
     term.assert_dirty_lines(&[0, 1], None);
 
@@ -398,14 +418,24 @@ fn test_delete_lines() {
     let mut term = TestTerm::new(5, 3, 0);
 
     term.print("111\r\n222\r\n333\r\n444\r\n555");
-    assert_visible_contents(&term, &["111", "222", "333", "444", "555"]);
+    assert_visible_contents(
+        &term,
+        file!(),
+        line!(),
+        &["111", "222", "333", "444", "555"],
+    );
     term.assert_dirty_lines(&[0, 1, 2, 3, 4], None);
     term.cup(0, 1);
     term.clean_dirty_lines();
 
     term.assert_dirty_lines(&[], None);
     term.delete_lines(2);
-    assert_visible_contents(&term, &["111", "444", "555", "   ", "   "]);
+    assert_visible_contents(
+        &term,
+        file!(),
+        line!(),
+        &["111", "444", "555", "   ", "   "],
+    );
     term.assert_dirty_lines(&[1, 2, 3, 4], None);
     term.clean_dirty_lines();
 
@@ -413,14 +443,24 @@ fn test_delete_lines() {
     term.print("aaa\r\nbbb");
     term.cup(0, 1);
     term.clean_dirty_lines();
-    assert_visible_contents(&term, &["111", "444", "555", "aaa", "bbb"]);
+    assert_visible_contents(
+        &term,
+        file!(),
+        line!(),
+        &["111", "444", "555", "aaa", "bbb"],
+    );
 
     // test with a scroll region smaller than the screen
     term.set_scroll_region(1, 3);
     print_all_lines(&term);
     term.delete_lines(2);
 
-    assert_visible_contents(&term, &["111", "aaa", "   ", "   ", "bbb"]);
+    assert_visible_contents(
+        &term,
+        file!(),
+        line!(),
+        &["111", "aaa", "   ", "   ", "bbb"],
+    );
     term.assert_dirty_lines(&[1, 2, 3], None);
 
     // expand the scroll region to fill the screen
@@ -428,7 +468,12 @@ fn test_delete_lines() {
     term.clean_dirty_lines();
     term.delete_lines(1);
 
-    assert_visible_contents(&term, &["111", "   ", "   ", "bbb", "   "]);
+    assert_visible_contents(
+        &term,
+        file!(),
+        line!(),
+        &["111", "   ", "   ", "bbb", "   "],
+    );
     term.assert_dirty_lines(&[1, 2, 3, 4], None);
 }
 
@@ -441,6 +486,8 @@ fn test_resize_wrap() {
     term.print("111\r\n2222aa\r\n333\r\n");
     assert_visible_contents(
         &term,
+        file!(),
+        line!(),
         &[
             "111 ", "2222", "aa  ", "333 ", "    ", "    ", "    ", "    ",
         ],
@@ -448,27 +495,37 @@ fn test_resize_wrap() {
     term.resize(LINES, 5, 0, 0);
     assert_visible_contents(
         &term,
-        &["111 ", "2222a", "a", "333 ", "    ", "    ", "    ", "    "],
+        file!(),
+        line!(),
+        &[
+            "111 ", "2222a", "a", "333 ", "    ", "     ", "     ", "     ",
+        ],
     );
     term.resize(LINES, 6, 0, 0);
     assert_visible_contents(
         &term,
+        file!(),
+        line!(),
         &[
-            "111 ", "2222aa", "333 ", "    ", "    ", "    ", "    ", "      ",
+            "111 ", "2222aa", "333 ", "    ", "      ", "      ", "      ", "      ",
         ],
     );
     term.resize(LINES, 7, 0, 0);
     assert_visible_contents(
         &term,
+        file!(),
+        line!(),
         &[
-            "111 ", "2222aa", "333 ", "    ", "    ", "    ", "    ", "      ",
+            "111 ", "2222aa", "333 ", "    ", "       ", "       ", "       ", "       ",
         ],
     );
     term.resize(LINES, 8, 0, 0);
     assert_visible_contents(
         &term,
+        file!(),
+        line!(),
         &[
-            "111 ", "2222aa", "333 ", "    ", "    ", "    ", "    ", "      ",
+            "111 ", "2222aa", "333 ", "    ", "        ", "        ", "        ", "        ",
         ],
     );
 
@@ -476,25 +533,35 @@ fn test_resize_wrap() {
     term.resize(LINES, 7, 0, 0);
     assert_visible_contents(
         &term,
+        file!(),
+        line!(),
         &[
-            "111 ", "2222aa", "333 ", "    ", "    ", "    ", "    ", "      ",
+            "111 ", "2222aa", "333 ", "    ", "       ", "       ", "       ", "       ",
         ],
     );
     term.resize(LINES, 6, 0, 0);
     assert_visible_contents(
         &term,
+        file!(),
+        line!(),
         &[
-            "111 ", "2222aa", "333 ", "    ", "    ", "    ", "    ", "      ",
+            "111 ", "2222aa", "333 ", "    ", "      ", "      ", "      ", "      ",
         ],
     );
     term.resize(LINES, 5, 0, 0);
     assert_visible_contents(
         &term,
-        &["111 ", "2222a", "a", "333 ", "    ", "    ", "    ", "    "],
+        file!(),
+        line!(),
+        &[
+            "111 ", "2222a", "a", "333 ", "    ", "     ", "     ", "     ",
+        ],
     );
     term.resize(LINES, 4, 0, 0);
     assert_visible_contents(
         &term,
+        file!(),
+        line!(),
         &["111 ", "2222", "aa", "333 ", "    ", "    ", "    ", "    "],
     );
 }
@@ -503,35 +570,35 @@ fn test_resize_wrap() {
 fn test_scrollup() {
     let mut term = TestTerm::new(2, 1, 4);
     term.print("1\n");
-    assert_all_contents(&term, &["1", " "]);
+    assert_all_contents(&term, file!(), line!(), &["1", " "]);
     assert_eq!(term.screen().visible_row_to_stable_row(0), 0);
 
     term.print("2\n");
-    assert_all_contents(&term, &["1", "2", " "]);
+    assert_all_contents(&term, file!(), line!(), &["1", "2", " "]);
     assert_eq!(term.screen().visible_row_to_stable_row(0), 1);
 
     term.print("3\n");
-    assert_all_contents(&term, &["1", "2", "3", " "]);
+    assert_all_contents(&term, file!(), line!(), &["1", "2", "3", " "]);
     assert_eq!(term.screen().visible_row_to_stable_row(0), 2);
 
     term.print("4\n");
-    assert_all_contents(&term, &["1", "2", "3", "4", " "]);
+    assert_all_contents(&term, file!(), line!(), &["1", "2", "3", "4", " "]);
     assert_eq!(term.screen().visible_row_to_stable_row(0), 3);
 
     term.print("5\n");
-    assert_all_contents(&term, &["1", "2", "3", "4", "5", " "]);
+    assert_all_contents(&term, file!(), line!(), &["1", "2", "3", "4", "5", " "]);
     assert_eq!(term.screen().visible_row_to_stable_row(0), 4);
 
     term.print("6\n");
-    assert_all_contents(&term, &["2", "3", "4", "5", "6", " "]);
+    assert_all_contents(&term, file!(), line!(), &["2", "3", "4", "5", "6", " "]);
     assert_eq!(term.screen().visible_row_to_stable_row(0), 5);
 
     term.print("7\n");
-    assert_all_contents(&term, &["3", "4", "5", "6", "7", " "]);
+    assert_all_contents(&term, file!(), line!(), &["3", "4", "5", "6", "7", " "]);
     assert_eq!(term.screen().visible_row_to_stable_row(0), 6);
 
     term.print("8\n");
-    assert_all_contents(&term, &["4", "5", "6", "7", "8", " "]);
+    assert_all_contents(&term, file!(), line!(), &["4", "5", "6", "7", "8", " "]);
     assert_eq!(term.screen().visible_row_to_stable_row(0), 7);
 }
 
@@ -539,7 +606,7 @@ fn test_scrollup() {
 fn test_scroll_margins() {
     let mut term = TestTerm::new(3, 1, 10);
     term.print("1\n2\n3\n4\n");
-    assert_all_contents(&term, &["1", "2", "3", "4", " "]);
+    assert_all_contents(&term, file!(), line!(), &["1", "2", "3", "4", " "]);
 
     let margins = CSI::Cursor(termwiz::escape::csi::Cursor::SetTopAndBottomMargins {
         top: OneBased::new(1),
@@ -548,14 +615,14 @@ fn test_scroll_margins() {
     term.print(format!("{}", margins));
 
     term.print("z\n");
-    assert_all_contents(&term, &["1", "2", "3", "4", "z"]);
+    assert_all_contents(&term, file!(), line!(), &["1", "2", "3", "4", "z"]);
 
     term.print("a\n");
-    assert_all_contents(&term, &["1", "2", "3", "4", "a"]);
+    assert_all_contents(&term, file!(), line!(), &["1", "2", "3", "4", "a"]);
 
     term.cup(0, 1);
     term.print("W\n");
-    assert_all_contents(&term, &["1", "2", "3", "W", " ", "a"]);
+    assert_all_contents(&term, file!(), line!(), &["1", "2", "3", "W", " ", "a"]);
 }
 
 #[test]
@@ -570,6 +637,8 @@ fn test_emoji_with_modifier() {
 
     assert_all_contents(
         &term,
+        file!(),
+        line!(),
         &[
             &format!("{}   ", waving_hand),
             &format!("{}   ", waving_hand_dark_tone),
@@ -590,6 +659,8 @@ fn test_hyperlinks() {
     linked.hyperlink = Some(Arc::clone(&link));
 
     assert_lines_equal(
+        file!(),
+        line!(),
         &term.screen().visible_lines(),
         &[
             Line::from_text_with_wrapped_last_col("hello", &linked),
@@ -606,6 +677,8 @@ fn test_hyperlinks() {
     term.print("y!!");
 
     assert_lines_equal(
+        file!(),
+        line!(),
         &term.screen().visible_lines(),
         &[
             Line::from_text_with_wrapped_last_col("hello", &linked),
@@ -646,6 +719,8 @@ fn test_hyperlinks() {
     );
 
     assert_lines_equal(
+        file!(),
+        line!(),
         &term.screen().visible_lines(),
         &[
             Line::from_text_with_wrapped_last_col("hello", &linked),
