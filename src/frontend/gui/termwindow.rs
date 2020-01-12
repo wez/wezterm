@@ -2382,32 +2382,14 @@ impl TermWindow {
 
         self.selection(tab.tab_id()).start = Some(start);
         self.selection(tab.tab_id()).range = Some(selection_range);
-
-        let text = self.selection_text(&tab);
-        log::debug!(
-            "finish 3click selection {:?} '{}'",
-            self.selection(tab.tab_id()),
-            text
-        );
-        self.window.as_ref().unwrap().set_clipboard(text);
     }
 
     fn double_click_left(&mut self, tab: &Rc<dyn Tab>, x: usize, row: StableRowIndex) {
-        let mut renderer = tab.renderer();
         let selection_range =
-            SelectionRange::word_around(SelectionCoordinate { x, y: row }, &mut *renderer);
-        drop(renderer);
+            SelectionRange::word_around(SelectionCoordinate { x, y: row }, &mut *tab.renderer());
 
         self.selection(tab.tab_id()).start = Some(selection_range.start);
         self.selection(tab.tab_id()).range = Some(selection_range);
-
-        let text = self.selection_text(&tab);
-        log::debug!(
-            "finish 2click selection {:?} '{}'",
-            self.selection(tab.tab_id()),
-            text
-        );
-        self.window.as_ref().unwrap().set_clipboard(text);
     }
 
     fn mouse_event_terminal(
@@ -2525,6 +2507,21 @@ impl TermWindow {
                     }
                 }
 
+                // Release button to finish a selection (word and line mode)
+                (
+                    WMEK::Release(MousePress::Left),
+                    Some(LastMouseClick {
+                        streak,
+                        button: TMB::Left,
+                        ..
+                    }),
+                ) if *streak > 1 => {
+                    let text = self.selection_text(&tab);
+
+                    self.window.as_ref().unwrap().set_clipboard(text);
+                    context.invalidate();
+                }
+
                 // Dragging left mouse button
                 (
                     WMEK::Move,
@@ -2545,6 +2542,61 @@ impl TermWindow {
                             Some(sel) => sel.extend(end),
                         };
                         self.selection(tab.tab_id()).range = Some(sel);
+                        context.invalidate();
+                    }
+                }
+
+                // Dragging left mouse button in word mode
+                (
+                    WMEK::Move,
+                    Some(LastMouseClick {
+                        streak: 2,
+                        button: TMB::Left,
+                        ..
+                    }),
+                ) => {
+                    if let Some(MousePress::Left) = self.current_mouse_button {
+                        let end_word = SelectionRange::word_around(
+                            SelectionCoordinate { x, y: stable_row },
+                            &mut *tab.renderer(),
+                        );
+
+                        let start_coord = self
+                            .selection(tab.tab_id())
+                            .start
+                            .clone()
+                            .unwrap_or(end_word.start);
+                        let start_word =
+                            SelectionRange::word_around(start_coord, &mut *tab.renderer());
+
+                        let selection_range = start_word.extend_with(end_word);
+                        self.selection(tab.tab_id()).range = Some(selection_range);
+                        context.invalidate();
+                    }
+                }
+
+                // Dragging left mouse button in line mode
+                (
+                    WMEK::Move,
+                    Some(LastMouseClick {
+                        streak: 3,
+                        button: TMB::Left,
+                        ..
+                    }),
+                ) => {
+                    if let Some(MousePress::Left) = self.current_mouse_button {
+                        let end_line =
+                            SelectionRange::line_around(SelectionCoordinate { x, y: stable_row });
+
+                        let start_coord = self
+                            .selection(tab.tab_id())
+                            .start
+                            .clone()
+                            .unwrap_or(end_line.start);
+                        let start_line = SelectionRange::line_around(start_coord);
+
+                        let selection_range = start_line.extend_with(end_line);
+                        self.selection(tab.tab_id()).range = Some(selection_range);
                         context.invalidate();
                     }
                 }
