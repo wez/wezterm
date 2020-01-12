@@ -355,6 +355,7 @@ pub struct WindowAndTabEntry {
     pub tab_id: TabId,
     pub title: String,
     pub size: PtySize,
+    pub working_dir: Option<String>,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
@@ -427,6 +428,7 @@ pub struct GetTabRenderChangesResponse {
     pub dimensions: RenderableDimensions,
     pub dirty_lines: Vec<Range<StableRowIndex>>,
     pub title: String,
+    pub working_dir: Option<String>,
     /// Lines that the server thought we'd almost certainly
     /// want to fetch as soon as we received this response
     pub bonus_lines: SerializedLines,
