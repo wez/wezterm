@@ -1820,7 +1820,10 @@ impl TermWindow {
 
                             let texture_rect = sprite.texture.to_texture_coords(coords);
 
-                            let mut quad = quads.cell(cell_idx, line_idx)?;
+                            let mut quad = match quads.cell(cell_idx, line_idx) {
+                                Ok(quad) => quad,
+                                Err(_) => break,
+                            };
 
                             quad.set_fg_color(glyph_color);
                             quad.set_bg_color(bg_color);
@@ -1862,7 +1865,10 @@ impl TermWindow {
                     let right = pixel_rect.size.width as f32 + left
                         - self.render_metrics.cell_size.width as f32;
 
-                    let mut quad = quads.cell(cell_idx, line_idx)?;
+                    let mut quad = match quads.cell(cell_idx, line_idx) {
+                        Ok(quad) => quad,
+                        Err(_) => break,
+                    };
 
                     quad.set_fg_color(glyph_color);
                     quad.set_bg_color(bg_color);
@@ -1904,7 +1910,10 @@ impl TermWindow {
                 palette,
             );
 
-            let mut quad = quads.cell(cell_idx, line_idx)?;
+            let mut quad = match quads.cell(cell_idx, line_idx) {
+                Ok(quad) => quad,
+                Err(_) => break,
+            };
 
             quad.set_bg_color(bg_color);
             quad.set_fg_color(glyph_color);
