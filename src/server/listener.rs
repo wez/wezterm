@@ -386,6 +386,7 @@ pub struct ClientSession<S: ReadAndWrite> {
 struct PerTab {
     cursor_position: StableCursorPosition,
     title: String,
+    working_dir: Option<String>,
     dimensions: RenderableDimensions,
     dirty_lines: RangeSet<StableRowIndex>,
     mouse_grabbed: bool,
@@ -411,6 +412,11 @@ impl PerTab {
 
         let title = tab.get_title();
         if title != self.title {
+            changed = true;
+        }
+
+        let working_dir = tab.get_current_working_dir();
+        if working_dir != self.working_dir {
             changed = true;
         }
 
@@ -450,6 +456,7 @@ impl PerTab {
 
         self.cursor_position = cursor_position;
         self.title = title.clone();
+        self.working_dir = working_dir.clone();
         self.dimensions = dims;
         self.dirty_lines = all_dirty_lines;
         self.mouse_grabbed = mouse_grabbed;
@@ -464,6 +471,7 @@ impl PerTab {
             cursor_position,
             title,
             bonus_lines,
+            working_dir,
         })
     }
 
@@ -649,6 +657,7 @@ impl<S: ReadAndWrite> ClientSession<S> {
                     let window = mux.get_window(window_id).unwrap();
                     for tab in window.iter() {
                         let dims = tab.renderer().get_dimensions();
+                        let working_dir = tab.get_current_working_dir();
                         tabs.push(WindowAndTabEntry {
                             window_id,
                             tab_id: tab.tab_id(),
@@ -659,6 +668,7 @@ impl<S: ReadAndWrite> ClientSession<S> {
                                 pixel_height: 0,
                                 pixel_width: 0,
                             },
+                            working_dir,
                         });
                     }
                 }
