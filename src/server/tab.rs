@@ -267,7 +267,7 @@ impl Tab for ClientTab {
             inner.dimensions.viewport_rows = rows;
 
             // Invalidate any cached rows on a resize
-            inner.lines.clear();
+            inner.make_all_stale();
 
             self.client.client.resize(Resize {
                 tab_id: self.remote_tab_id,
@@ -455,6 +455,20 @@ impl RenderableInner {
                 }
             }
         }
+    }
+
+    fn make_all_stale(&mut self) {
+        let mut lines = LruCache::unbounded();
+        while let Some((stable_row, entry)) = self.lines.pop_lru() {
+            let entry = match entry {
+                LineEntry::Dirty(old) | LineEntry::Stale(old) | LineEntry::Line(old) => {
+                    LineEntry::Stale(old)
+                }
+                entry => entry,
+            };
+            lines.put(stable_row, entry);
+        }
+        self.lines = lines;
     }
 
     fn make_stale(&mut self, stable_row: StableRowIndex) {
