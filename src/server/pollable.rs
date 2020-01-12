@@ -70,10 +70,13 @@ pub struct PollableReceiver<T> {
 
 impl<T> PollableReceiver<T> {
     pub fn try_recv(&self) -> Result<T, TryRecvError> {
-        let item = self.receiver.try_recv()?;
-        let mut byte = [0u8];
+        // try to drain the pipe.
+        // We do this regardless of whether we popped an item
+        // so that we avoid being in a perpetually signalled state.
+        let mut byte = [0u8; 64];
         self.read.borrow_mut().read(&mut byte).ok();
-        Ok(item)
+
+        Ok(self.receiver.try_recv()?)
     }
 }
 
@@ -91,6 +94,14 @@ impl<T> AsPollFd for PollableReceiver<T> {
 pub fn pollable_channel<T>() -> anyhow::Result<(PollableSender<T>, PollableReceiver<T>)> {
     let (sender, receiver) = channel();
     let (write, read) = socketpair()?;
+
+    #[cfg(unix)]
+    unsafe {
+        let on = 1;
+        libc::ioctl(write.as_raw_file_descriptor(), libc::FIONBIO, &on);
+        libc::ioctl(read.as_raw_file_descriptor(), libc::FIONBIO, &on);
+    }
+
     Ok((
         PollableSender {
             sender,
