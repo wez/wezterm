@@ -2376,27 +2376,13 @@ impl TermWindow {
         context.set_cursor(Some(MouseCursor::Arrow));
     }
 
-    // TODO: expose is_double_click_word in config file
-    fn is_double_click_word(&self, s: &str) -> bool {
-        match s.len() {
-            1 => match s.chars().nth(0).unwrap() {
-                ' ' | '\t' | '\n' | '{' | '[' | '}' | ']' | '(' | ')' | '"' | '\'' => false,
-                _ => true,
-            },
-            0 => false,
-            _ => true,
-        }
-    }
-
     fn triple_click_left(&mut self, tab: &Rc<dyn Tab>, x: usize, y: StableRowIndex) {
-        self.selection(tab.tab_id()).start = Some(SelectionCoordinate { x, y });
-        self.selection(tab.tab_id()).range = Some(SelectionRange {
-            start: SelectionCoordinate { x: 0, y },
-            end: SelectionCoordinate {
-                x: usize::max_value(),
-                y,
-            },
-        });
+        let start = SelectionCoordinate { x, y };
+        let selection_range = SelectionRange::line_around(start);
+
+        self.selection(tab.tab_id()).start = Some(start);
+        self.selection(tab.tab_id()).range = Some(selection_range);
+
         let text = self.selection_text(&tab);
         log::debug!(
             "finish 3click selection {:?} '{}'",
@@ -2407,71 +2393,10 @@ impl TermWindow {
     }
 
     fn double_click_left(&mut self, tab: &Rc<dyn Tab>, x: usize, row: StableRowIndex) {
-        use termwiz::surface::line::DoubleClickRange;
         let mut renderer = tab.renderer();
-        let (first, lines) = renderer.get_lines(row..row + 1);
-        if first != row {
-            return;
-        }
-        let selection_range = match lines[0]
-            .compute_double_click_range(x, |s| self.is_double_click_word(s))
-        {
-            DoubleClickRange::Range(click_range) => SelectionRange {
-                start: SelectionCoordinate {
-                    x: click_range.start,
-                    y: row,
-                },
-                end: SelectionCoordinate {
-                    x: click_range.end - 1,
-                    y: row,
-                },
-            },
-            DoubleClickRange::RangeWithWrap(range_start) => {
-                let start_coord = SelectionCoordinate {
-                    x: range_start.start,
-                    y: row,
-                };
-
-                let mut end_coord = SelectionCoordinate {
-                    x: range_start.end - 1,
-                    y: row,
-                };
-
-                for y_cont in row + 1.. {
-                    let (first, lines) = renderer.get_lines(y_cont..y_cont + 1);
-                    if first != y_cont {
-                        break;
-                    }
-                    match lines[0].compute_double_click_range(0, |s| self.is_double_click_word(s)) {
-                        DoubleClickRange::Range(range_end) => {
-                            if range_end.end > range_end.start {
-                                end_coord = SelectionCoordinate {
-                                    x: range_end.end - 1,
-                                    y: y_cont,
-                                };
-                            }
-                            break;
-                        }
-                        DoubleClickRange::RangeWithWrap(range_end) => {
-                            end_coord = SelectionCoordinate {
-                                x: range_end.end - 1,
-                                y: y_cont,
-                            };
-                        }
-                    }
-                }
-
-                SelectionRange {
-                    start: start_coord,
-                    end: end_coord,
-                }
-            }
-        };
-
+        let selection_range =
+            SelectionRange::word_around(SelectionCoordinate { x, y: row }, &mut *renderer);
         drop(renderer);
-
-        // TODO: if selection_range.start.x == 0, search backwards for wrapping
-        // lines too.
 
         self.selection(tab.tab_id()).start = Some(selection_range.start);
         self.selection(tab.tab_id()).range = Some(selection_range);

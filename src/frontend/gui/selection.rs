@@ -1,8 +1,10 @@
 // The range_plus_one lint can't see when the LHS is not compatible with
 // and inclusive range
 #![cfg_attr(feature = "cargo-clippy", allow(clippy::range_plus_one))]
+use crate::mux::renderable::Renderable;
 use std::ops::Range;
 use term::StableRowIndex;
+use termwiz::surface::line::DoubleClickRange;
 
 #[derive(Debug, Default, Copy, Clone, Eq, PartialEq)]
 pub struct Selection {
@@ -41,11 +43,112 @@ pub struct SelectionRange {
     pub end: SelectionCoordinate,
 }
 
+// TODO: expose is_double_click_word in config file
+fn is_double_click_word(s: &str) -> bool {
+    match s.len() {
+        1 => match s.chars().nth(0).unwrap() {
+            ' ' | '\t' | '\n' | '{' | '[' | '}' | ']' | '(' | ')' | '"' | '\'' => false,
+            _ => true,
+        },
+        0 => false,
+        _ => true,
+    }
+}
+
 impl SelectionRange {
     /// Create a new range that starts at the specified location
     pub fn start(start: SelectionCoordinate) -> Self {
         let end = start;
         Self { start, end }
+    }
+
+    /// Computes the selection range for the line around the specified coords
+    pub fn line_around(start: SelectionCoordinate) -> Self {
+        Self {
+            start: SelectionCoordinate { x: 0, y: start.y },
+            end: SelectionCoordinate {
+                x: usize::max_value(),
+                y: start.y,
+            },
+        }
+    }
+
+    /// Computes the selection range for the word around the specified coords
+    pub fn word_around(start: SelectionCoordinate, renderer: &mut dyn Renderable) -> Self {
+        let (first, lines) = renderer.get_lines(start.y..start.y + 1);
+
+        // TODO: if selection_range.start.x == 0, search backwards for wrapping
+        // lines too.
+
+        match lines[0].compute_double_click_range(start.x, is_double_click_word) {
+            DoubleClickRange::Range(click_range) => Self {
+                start: SelectionCoordinate {
+                    x: click_range.start,
+                    y: first,
+                },
+                end: SelectionCoordinate {
+                    x: click_range.end - 1,
+                    y: first,
+                },
+            },
+            DoubleClickRange::RangeWithWrap(range_start) => {
+                let start_coord = SelectionCoordinate {
+                    x: range_start.start,
+                    y: first,
+                };
+
+                let mut end_coord = SelectionCoordinate {
+                    x: range_start.end - 1,
+                    y: first,
+                };
+
+                for y_cont in start.y + 1.. {
+                    let (first, lines) = renderer.get_lines(y_cont..y_cont + 1);
+                    if first != y_cont {
+                        break;
+                    }
+                    match lines[0].compute_double_click_range(0, is_double_click_word) {
+                        DoubleClickRange::Range(range_end) => {
+                            if range_end.end > range_end.start {
+                                end_coord = SelectionCoordinate {
+                                    x: range_end.end - 1,
+                                    y: y_cont,
+                                };
+                            }
+                            break;
+                        }
+                        DoubleClickRange::RangeWithWrap(range_end) => {
+                            end_coord = SelectionCoordinate {
+                                x: range_end.end - 1,
+                                y: y_cont,
+                            };
+                        }
+                    }
+                }
+
+                Self {
+                    start: start_coord,
+                    end: end_coord,
+                }
+            }
+        }
+    }
+
+    /// Extends the current selection by unioning it with another selection range
+    pub fn extend_with(&self, other: Self) -> Self {
+        let norm = self.normalize();
+        let other = other.normalize();
+        let (start, end) = if (norm.start.y < other.start.y)
+            || (norm.start.y == other.start.y && norm.start.x <= other.start.x)
+        {
+            (norm, other)
+        } else {
+            (other, norm)
+        };
+        Self {
+            start: start.start,
+            end: end.end,
+        }
     }
 
     /// Returns an extended selection that it ends at the specified location
