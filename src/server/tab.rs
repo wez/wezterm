@@ -258,12 +258,22 @@ impl Tab for ClientTab {
     fn resize(&self, size: PtySize) -> anyhow::Result<()> {
         let render = self.renderable.borrow();
         let mut inner = render.inner.borrow_mut();
-        // Invalidate any cached rows on a resize
-        inner.lines.clear();
-        self.client.client.resize(Resize {
-            tab_id: self.remote_tab_id,
-            size,
-        });
+
+        let cols = size.cols as usize;
+        let rows = size.rows as usize;
+
+        if inner.dimensions.cols != cols || inner.dimensions.viewport_rows != rows {
+            inner.dimensions.cols = cols;
+            inner.dimensions.viewport_rows = rows;
+
+            // Invalidate any cached rows on a resize
+            inner.lines.clear();
+
+            self.client.client.resize(Resize {
+                tab_id: self.remote_tab_id,
+                size,
+            });
+        }
         Ok(())
     }
 
