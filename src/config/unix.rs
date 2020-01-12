@@ -24,7 +24,7 @@ pub struct UnixDomain {
 
     /// If we decide that we need to start the server, the command to run
     /// to set that up.  The default is to spawn:
-    /// `wezterm --daemonize --front-end MuxServer`
+    /// `wezterm start --daemonize --front-end MuxServer`
     /// but it can be useful to set this to eg:
     /// `wsl -e wezterm --daemonize --front-end MuxServer` to start up
     /// a unix domain inside a wsl container.
