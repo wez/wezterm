@@ -118,9 +118,19 @@ impl ScreenOrAlt {
         }
     }
 
-    pub fn resize(&mut self, physical_rows: usize, physical_cols: usize) {
-        self.screen.resize(physical_rows, physical_cols);
-        self.alt_screen.resize(physical_rows, physical_cols);
+    pub fn resize(
+        &mut self,
+        physical_rows: usize,
+        physical_cols: usize,
+        cursor: CursorPosition,
+    ) -> CursorPosition {
+        let cursor_main = self.screen.resize(physical_rows, physical_cols, cursor);
+        let cursor_alt = self.alt_screen.resize(physical_rows, physical_cols, cursor);
+        if self.alt_screen_is_active {
+            cursor_alt
+        } else {
+            cursor_main
+        }
     }
 
     pub fn activate_alt_screen(&mut self) {
@@ -715,20 +725,17 @@ impl TerminalState {
         pixel_width: usize,
         pixel_height: usize,
     ) {
-        // Compute the change in the height of the viewport;
-        // we'll use this to adjust the cursor position below.
-        let y_delta = (physical_rows as i64) - (self.screen().physical_rows as i64);
-        self.screen.resize(physical_rows, physical_cols);
+        let adjusted_cursor = self
+            .screen
+            .resize(physical_rows, physical_cols, self.cursor);
         self.scroll_region = 0..physical_rows as i64;
         self.pixel_height = pixel_height;
         self.pixel_width = pixel_width;
         self.tabs.resize(physical_cols);
-        // Ensure that the cursor is within the new bounds of the screen.
-        // If we made the window smaller then we will have scrolled the
-        // viewport contents up by the delta.
-        // If we've made it larger then we do not want to adjust the
-        // cursor position
-        self.set_cursor_pos(&Position::Relative(0), &Position::Relative(y_delta.min(0)));
+        self.set_cursor_pos(
+            &Position::Absolute(adjusted_cursor.x as i64),
+            &Position::Absolute(adjusted_cursor.y),
+        );
     }
 
     /// Clear the dirty flag for all dirty lines

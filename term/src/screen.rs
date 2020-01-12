@@ -76,30 +76,52 @@ impl Screen {
         scrollback_size(&self.config, self.allow_scrollback)
     }
 
-    fn rewrap_lines(&mut self, physical_cols: usize, physical_rows: usize) {
+    fn rewrap_lines(
+        &mut self,
+        physical_cols: usize,
+        physical_rows: usize,
+        cursor_x: usize,
+        cursor_y: PhysRowIndex,
+    ) -> (usize, PhysRowIndex) {
         let mut rewrapped = VecDeque::new();
         let mut logical_line: Option<Line> = None;
-        for mut line in self.lines.drain(..) {
+        let mut logical_cursor_x: Option<usize> = None;
+        let mut adjusted_cursor = (cursor_y, cursor_y);
+
+        for (phys_idx, mut line) in self.lines.drain(..).enumerate() {
             line.invalidate_implicit_hyperlinks();
-            if line.last_cell_was_wrapped() {
+            let was_wrapped = line.last_cell_was_wrapped();
+
+            if was_wrapped {
                 line.set_last_cell_was_wrapped(false);
-                logical_line = Some(match logical_line.take() {
-                    None => line,
-                    Some(mut prior) => {
-                        prior.append_line(line);
-                        prior
-                    }
-                });
-                continue;
             }
 
             let line = match logical_line.take() {
-                None => line,
+                None => {
+                    if phys_idx == cursor_y {
+                        logical_cursor_x = Some(cursor_x);
+                    }
+                    line
+                }
                 Some(mut prior) => {
+                    if phys_idx == cursor_y {
+                        logical_cursor_x = Some(cursor_x + prior.cells().len());
+                    }
                     prior.append_line(line);
                     prior
                 }
             };
+
+            if was_wrapped {
+                logical_line.replace(line);
+                continue;
+            }
+
+            if let Some(x) = logical_cursor_x.take() {
+                let num_lines = x / physical_cols;
+                let last_x = x - (num_lines * physical_cols);
+                adjusted_cursor = (last_x, rewrapped.len() + num_lines);
+            }
 
             if line.cells().len() <= physical_cols {
                 rewrapped.push_back(line);
@@ -122,21 +144,43 @@ impl Screen {
         {
             self.lines.pop_back();
         }
+
+        adjusted_cursor
     }
 
     /// Resize the physical, viewable portion of the screen
-    pub fn resize(&mut self, physical_rows: usize, physical_cols: usize) {
-        log::debug!("resize screen to {}x{}", physical_cols, physical_rows);
+    pub fn resize(
+        &mut self,
+        physical_rows: usize,
+        physical_cols: usize,
+        cursor: CursorPosition,
+    ) -> CursorPosition {
         let physical_rows = physical_rows.max(1);
         let physical_cols = physical_cols.max(1);
+        if physical_rows == self.physical_rows && physical_cols == self.physical_cols {
+            return cursor;
+        }
+        log::debug!("resize screen to {}x{}", physical_cols, physical_rows);
 
-        if physical_cols != self.physical_cols {
+        // pre-prune blank lines that range from the cursor position to the end of the display;
+        // this avoids growing the scrollback size when rapidly switching between normal and
+        // maximized states.
+        let cursor_phys = self.phys_row(cursor.y);
+        for _ in cursor_phys + 1..self.lines.len() {
+            if self.lines.back().map(Line::is_whitespace).unwrap_or(false) {
+                self.lines.pop_back();
+            }
+        }
+
+        let (cursor_x, cursor_y) = if physical_cols != self.physical_cols {
             // Check to see if we need to rewrap lines that were
             // wrapped due to reaching the right hand side of the terminal.
             // For each one that we find, we need to join it with its
             // successor and then re-split it
-            self.rewrap_lines(physical_cols, physical_rows);
-        }
+            self.rewrap_lines(physical_cols, physical_rows, cursor.x, cursor_phys)
+        } else {
+            (cursor.x, cursor_phys)
+        };
 
         let capacity = physical_rows + self.scrollback_size();
         let current_capacity = self.lines.capacity();
@@ -145,23 +189,36 @@ impl Screen {
         }
 
         // If we resized wider and the rewrap resulted in fewer
-        // lines than the viewport size, pad us back out to the
-        // viewport size
+        // lines than the viewport size, or we resized taller,
+        // pad us back out to the viewport size
         while self.lines.len() < physical_rows {
             self.lines.push_back(Line::with_width(physical_cols));
         }
-        // If we made the window bigger, we need to increase the total
-        // number of lines in order for the viewport position to hold
-        // steady: without this we'll drift backwards and operations
-        // such as erase to end of display will effectively destroy
-        // scrollback
-        for _ in self.physical_rows..physical_rows {
+
+        let vis_cursor_y = cursor
+            .y
+            .saturating_add(cursor_y as i64)
+            .saturating_sub(cursor_phys as i64)
+            .max(0);
+
+        // We need to ensure that the bottom of the screen has sufficient lines;
+        // we use simple subtraction of physical_rows from the bottom of the lines
+        // array to define the visible region.  Our resize operation may have
+        // temporarily violated that, which can result in the cursor unintentionally
+        // moving up into the scrollback and damaging the output
+        let required_num_rows_after_cursor = physical_rows.saturating_sub(vis_cursor_y as usize);
+        let actual_num_rows_after_cursor = self.lines.len().saturating_sub(cursor_y);
+        for _ in actual_num_rows_after_cursor..required_num_rows_after_cursor {
             self.lines.push_back(Line::with_width(physical_cols));
         }
 
         self.physical_rows = physical_rows;
         self.physical_cols = physical_cols;
-        log::debug!("there are now {} lines in this screen", self.lines.len());
+        CursorPosition {
+            x: cursor_x,
+            y: vis_cursor_y,
+            shape: cursor.shape,
+        }
     }
 
     /// Get mutable reference to a line, relative to start of scrollback.
