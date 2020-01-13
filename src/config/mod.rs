@@ -256,6 +256,9 @@ pub struct Config {
     #[serde(default)]
     pub font_dirs: Vec<PathBuf>,
 
+    #[serde(default)]
+    pub color_scheme_dirs: Vec<PathBuf>,
+
     /// The DPI to assume
     #[serde(default = "default_dpi")]
     pub dpi: f64,
@@ -271,6 +274,10 @@ pub struct Config {
 
     /// The color palette
     pub colors: Option<Palette>,
+
+    /// Named color schemes
+    #[serde(default)]
+    pub color_schemes: HashMap<String, Palette>,
 
     /// How many lines of scrollback you want to retain
     #[serde(default = "default_scrollback_lines")]
@@ -630,7 +637,93 @@ impl Config {
             });
         }
 
+        // Load any additional color schemes into the color_schemes map
+        cfg.load_color_schemes(&cfg.compute_color_scheme_dirs())
+            .ok();
+
         cfg
+    }
+
+    fn compute_color_scheme_dirs(&self) -> Vec<PathBuf> {
+        let mut paths = self.color_scheme_dirs.clone();
+        paths.push(HOME_DIR.join(".config").join("wezterm").join("colors"));
+
+        if let Ok(exe_name) = std::env::current_exe() {
+            // If running out of the source tree our executable path will be
+            // something like: `.../wezterm/target/release/wezterm`.
+            // It takes 3 parent calls to reach the wezterm dir; if we get
+            // there, get to the `assets/colors` dir.
+            if let Some(colors_dir) = exe_name
+                .parent()
+                .and_then(|release| release.parent())
+                .and_then(|target| target.parent())
+                .map(|srcdir| srcdir.join("assets").join("colors"))
+            {
+                paths.push(colors_dir);
+            }
+        }
+
+        if cfg!(unix) {
+            paths.push(PathBuf::from("/usr/share/wezterm/colors"));
+        }
+        if cfg!(windows) {
+            // See commentary re: portable tools above!
+            if let Ok(exe_name) = std::env::current_exe() {
+                if let Some(exe_dir) = exe_name.parent() {
+                    paths.insert(0, exe_dir.join("colors"));
+                }
+            }
+        }
+        paths
+    }
+
+    fn load_color_schemes(&mut self, paths: &[PathBuf]) -> Result<(), Error> {
+        fn extract_scheme_name(name: &str) -> Option<&str> {
+            if name.ends_with(".toml") {
+                let len = name.len();
+                Some(&name[..len - 5])
+            } else {
+                None
+            }
+        }
+
+        fn load_scheme(path: &Path) -> Result<ColorSchemeFile, Error> {
+            let s = std::fs::read_to_string(path)?;
+            let scheme: ColorSchemeFile = toml::from_str(&s).with_context(|| {
+                format!("Error parsing color scheme TOML from {}", path.display())
+            })?;
+            Ok(scheme)
+        }
+
+        for colors_dir in paths {
+            if let Ok(dir) = std::fs::read_dir(colors_dir) {
+                for entry in dir {
+                    if let Ok(entry) = entry {
+                        if let Some(name) = entry.file_name().to_str() {
+                            if let Some(scheme_name) = extract_scheme_name(name) {
+                                if self.color_schemes.contains_key(scheme_name) {
+                                    // This scheme has already been defined
+                                    continue;
+                                }
+
+                                let path = entry.path();
+                                if let Ok(scheme) = load_scheme(&path) {
+                                    log::trace!(
+                                        "Loaded color scheme `{}` from {}",
+                                        scheme_name,
+                                        path.display()
+                                    );
+                                    self.color_schemes
+                                        .insert(scheme_name.to_string(), scheme.colors);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        Ok(())
     }
 
     pub fn build_prog(&self, prog: Option<Vec<&OsStr>>) -> Result<CommandBuilder, Error> {

@@ -133,3 +133,9 @@ impl Default for TabBarColors {
         }
     }
 }
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct ColorSchemeFile {
+    /// The color palette
+    pub colors: Palette,
+}
