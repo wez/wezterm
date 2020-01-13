@@ -275,6 +275,10 @@ pub struct Config {
     /// The color palette
     pub colors: Option<Palette>,
 
+    /// Use a named color scheme rather than the palette specified
+    /// by the colors setting.
+    pub color_scheme: Option<String>,
+
     /// Named color schemes
     #[serde(default)]
     pub color_schemes: HashMap<String, Palette>,
@@ -640,6 +644,14 @@ impl Config {
         // Load any additional color schemes into the color_schemes map
         cfg.load_color_schemes(&cfg.compute_color_scheme_dirs())
             .ok();
+
+        if let Some(scheme) = cfg.color_scheme.as_ref() {
+            if !cfg.color_schemes.contains_key(scheme) {
+                log::error!("Your configuration specifies \
+                            color_scheme=\"{}\" but that scheme \
+                            was not found", scheme);
+            }
+        }
 
         cfg
     }
