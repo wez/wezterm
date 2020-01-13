@@ -22,9 +22,7 @@ pub struct GuiFrontEnd {
     connection: Rc<Connection>,
 }
 
-lazy_static::lazy_static! {
-static ref USE_OPENGL: AtomicBool = AtomicBool::new(true);
-}
+static USE_OPENGL: AtomicBool = AtomicBool::new(true);
 
 pub fn is_opengl_enabled() -> bool {
     USE_OPENGL.load(Ordering::Acquire)

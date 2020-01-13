@@ -2,9 +2,12 @@ use crate::config::configuration;
 use hdrhistogram::Histogram;
 use metrics::{Key, Recorder};
 use std::collections::HashMap;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use tabout::{tabulate_output, Alignment, Column};
+
+static ENABLE_STAT_PRINT: AtomicBool = AtomicBool::new(true);
 
 struct Inner {
     histograms: HashMap<Key, Histogram<u64>>,
@@ -12,6 +15,12 @@ struct Inner {
 
 fn pctile_latency(histogram: &Histogram<u64>, p: f64) -> Duration {
     Duration::from_nanos(histogram.value_at_percentile(p))
+}
+
+/// Used to prevent the stats thread from trying to write to stderr
+/// when we're running in proxy mode
+pub fn disable_stats_printing() {
+    ENABLE_STAT_PRINT.store(false, Ordering::Acquire);
 }
 
 impl Inner {
@@ -39,6 +48,10 @@ impl Inner {
 
         loop {
             std::thread::sleep(Duration::from_secs(10));
+            if !ENABLE_STAT_PRINT.load(Ordering::Acquire) {
+                break;
+            }
+
             let seconds = configuration().periodic_stat_logging;
             if seconds == 0 {
                 continue;

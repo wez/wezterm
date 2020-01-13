@@ -792,6 +792,8 @@ fn run() -> anyhow::Result<()> {
                     // ourselves into basically netcat.
                     drop(client);
 
+                    crate::stats::disable_stats_printing();
+
                     let front_end = FrontEndSelection::Null.try_new()?;
                     let mux = Rc::new(mux::Mux::new(None));
                     Mux::set_mux(&mux);
