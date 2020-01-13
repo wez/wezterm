@@ -39,6 +39,7 @@ case $OSTYPE in
     mkdir $zipdir
     cp -r assets/macos/WezTerm.app $zipdir/
     cp target/release/wezterm $zipdir/WezTerm.app
+    cp -r assets/colors $zipdir/WezTerm.app/Contents/Resources/
     zip -r $zipname $zipdir
     ;;
   msys)
@@ -51,6 +52,7 @@ case $OSTYPE in
     rm -rf $zipdir $zipname
     mkdir $zipdir
     cp target/release/wezterm.exe target/release/wezterm.pdb $zipdir
+    cp -r assets/colors $zipdir/
     7z a -tzip $zipname $zipdir
     ;;
   linux-gnu)
@@ -80,11 +82,13 @@ set -x
 mkdir -p %{buildroot}/usr/bin %{buildroot}/usr/share/wezterm %{buildroot}/usr/share/applications
 install -Dsm755 target/release/wezterm %{buildroot}/usr/bin
 install -Dm644 assets/icon/terminal.png %{buildroot}/usr/share/wezterm/terminal.png
+install -Dm644 -t %{buildroot}/usr/share/wezterm/colors assets/colors/*
 install -Dm644 assets/wezterm.desktop %{buildroot}/usr/share/applications/wezterm.desktop
 
 %files
 /usr/bin/wezterm
 /usr/share/wezterm/terminal.png
+/usr/share/wezterm/colors/*
 /usr/share/applications/wezterm.desktop
 EOF
 
@@ -110,6 +114,7 @@ Depends: libc6, libegl-mesa0, libxcb-icccm4, libxcb-ewmh2, libxcb-keysyms1, libx
 EOF
         install -Dsm755 target/release/wezterm pkg/debian/usr/bin
         install -Dm644 assets/icon/terminal.png pkg/debian/usr/share/wezterm/terminal.png
+        install -Dm644 -t pkg/debian/usr/share/wezterm/colors assets/colors/*
         install -Dm644 assets/wezterm.desktop pkg/debian/usr/share/applications/wezterm.desktop
         if [[ "$BUILD_REASON" == "Schedule" ]] ; then
           debname=wezterm-nightly
