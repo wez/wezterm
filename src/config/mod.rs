@@ -678,10 +678,18 @@ impl Config {
             }
         }
 
-        if cfg!(unix) {
+        if cfg!(target_os = "macos") {
+            if let Ok(exe_name) = std::env::current_exe() {
+                if let Some(colors_dir) = exe_name
+                    .parent()
+                    .map(|srcdir| srcdir.join("Contents").join("Resources").join("colors"))
+                {
+                    paths.push(colors_dir);
+                }
+            }
+        } else if cfg!(unix) {
             paths.push(PathBuf::from("/usr/share/wezterm/colors"));
-        }
-        if cfg!(windows) {
+        } else if cfg!(windows) {
             // See commentary re: portable tools above!
             if let Ok(exe_name) = std::env::current_exe() {
                 if let Some(exe_dir) = exe_name.parent() {
