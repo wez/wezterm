@@ -1,0 +1,11 @@
+# idea
+[colors]
+foreground = "#adadad"
+background = "#202020"
+cursor_bg = "#bbbbbb"
+cursor_fg = "#ffffff"
+selection_bg = "#44475a"
+selection_fg = "#ffffff"
+
+ansi = ["#adadad","#fc5256","#98b61c","#ccb444","#437ee7","#9d74b0","#248887","#181818"]
+brights = ["#ffffff","#fc7072","#98b61c","#ffff0b","#6c9ced","#fc7eff","#248887","#181818"]

@@ -1,0 +1,11 @@
+# Espresso
+[colors]
+foreground = "#ffffff"
+background = "#323232"
+cursor_bg = "#d6d6d6"
+cursor_fg = "#ffffff"
+selection_bg = "#5b5b5b"
+selection_fg = "#ffffff"
+
+ansi = ["#353535","#d25252","#a5c261","#ffc66d","#6c99bb","#d197d9","#bed6ff","#eeeeec"]
+brights = ["#535353","#f00c0c","#c2e075","#e1e48b","#8ab7d9","#efb5f7","#dcf4ff","#ffffff"]

@@ -1,0 +1,11 @@
+# Red Alert
+[colors]
+foreground = "#ffffff"
+background = "#762423"
+cursor_bg = "#ffffff"
+cursor_fg = "#762423"
+selection_bg = "#073642"
+selection_fg = "#ffffff"
+
+ansi = ["#000000","#d62e4e","#71be6b","#beb86b","#489bee","#e979d7","#6bbeb8","#d6d6d6"]
+brights = ["#262626","#e02553","#aff08c","#dfddb7","#65aaf1","#ddb7df","#b7dfdd","#ffffff"]

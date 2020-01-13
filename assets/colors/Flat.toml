@@ -1,0 +1,11 @@
+# Flat
+[colors]
+foreground = "#2cc55d"
+background = "#002240"
+cursor_bg = "#e5be0c"
+cursor_fg = "#ffffff"
+selection_bg = "#792b9c"
+selection_fg = "#ffffff"
+
+ansi = ["#222d3f","#a82320","#32a548","#e58d11","#3167ac","#781aa0","#2c9370","#b0b6ba"]
+brights = ["#212c3c","#d4312e","#2d9440","#e5be0c","#3c7dd2","#8230a7","#35b387","#e7eced"]

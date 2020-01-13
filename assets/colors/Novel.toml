@@ -1,0 +1,11 @@
+# Novel
+[colors]
+foreground = "#3b2322"
+background = "#dfdbc3"
+cursor_bg = "#73635a"
+cursor_fg = "#000000"
+selection_bg = "#a4a390"
+selection_fg = "#000000"
+
+ansi = ["#000000","#cc0000","#009600","#d06b00","#0000cc","#cc00cc","#0087cc","#cccccc"]
+brights = ["#808080","#cc0000","#009600","#d06b00","#0000cc","#cc00cc","#0087cc","#ffffff"]

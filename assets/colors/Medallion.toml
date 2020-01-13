@@ -1,0 +1,11 @@
+# Medallion
+[colors]
+foreground = "#cac296"
+background = "#1d1908"
+cursor_bg = "#d3ba30"
+cursor_fg = "#d2bc3d"
+selection_bg = "#626dac"
+selection_fg = "#cac29a"
+
+ansi = ["#000000","#b64c00","#7c8b16","#d3bd26","#616bb0","#8c5a90","#916c25","#cac29a"]
+brights = ["#5e5219","#ff9149","#b2ca3b","#ffe54a","#acb8ff","#ffa0ff","#ffbc51","#fed698"]

@@ -1,0 +1,11 @@
+# IC_Green_PPL
+[colors]
+foreground = "#e0f1dc"
+background = "#2c2c2c"
+cursor_bg = "#47fa6b"
+cursor_fg = "#292929"
+selection_bg = "#116b41"
+selection_fg = "#e0f1dc"
+
+ansi = ["#014401","#ff2736","#41a638","#76a831","#2ec3b9","#50a096","#3ca078","#e6fef2"]
+brights = ["#035c03","#b4fa5c","#aefb86","#dafa87","#2efaeb","#50fafa","#3cfac8","#e0f1dc"]

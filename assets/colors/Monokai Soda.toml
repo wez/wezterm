@@ -1,0 +1,11 @@
+# Monokai Soda
+[colors]
+foreground = "#c4c5b5"
+background = "#1a1a1a"
+cursor_bg = "#f6f7ec"
+cursor_fg = "#c4c5b5"
+selection_bg = "#343434"
+selection_fg = "#c4c5b5"
+
+ansi = ["#1a1a1a","#f4005f","#98e024","#fa8419","#9d65ff","#f4005f","#58d1eb","#c4c5b5"]
+brights = ["#625e4c","#f4005f","#98e024","#e0d561","#9d65ff","#f4005f","#58d1eb","#f6f6ef"]

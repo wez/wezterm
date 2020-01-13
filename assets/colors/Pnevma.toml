@@ -1,0 +1,11 @@
+# Pnevma
+[colors]
+foreground = "#d0d0d0"
+background = "#1c1c1c"
+cursor_bg = "#e4c9af"
+cursor_fg = "#000000"
+selection_bg = "#4d4d4d"
+selection_fg = "#ffffff"
+
+ansi = ["#2f2e2d","#a36666","#90a57d","#d7af87","#7fa5bd","#c79ec4","#8adbb4","#d0d0d0"]
+brights = ["#4a4845","#d78787","#afbea2","#e4c9af","#a1bdce","#d7beda","#b1e7dd","#efefef"]

@@ -1,0 +1,11 @@
+# Kibble
+[colors]
+foreground = "#f7f7f7"
+background = "#0e100a"
+cursor_bg = "#9fda9c"
+cursor_fg = "#000000"
+selection_bg = "#9ba787"
+selection_fg = "#000000"
+
+ansi = ["#4d4d4d","#c70031","#29cf13","#d8e30e","#3449d1","#8400ff","#0798ab","#e2d1e3"]
+brights = ["#5a5a5a","#f01578","#6ce05c","#f3f79e","#97a4f7","#c495f0","#68f2e0","#ffffff"]

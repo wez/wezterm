@@ -1,0 +1,11 @@
+# Teerb
+[colors]
+foreground = "#d0d0d0"
+background = "#262626"
+cursor_bg = "#e4c9af"
+cursor_fg = "#000000"
+selection_bg = "#4d4d4d"
+selection_fg = "#ffffff"
+
+ansi = ["#1c1c1c","#d68686","#aed686","#d7af87","#86aed6","#d6aed6","#8adbb4","#d0d0d0"]
+brights = ["#1c1c1c","#d68686","#aed686","#e4c9af","#86aed6","#d6aed6","#b1e7dd","#efefef"]

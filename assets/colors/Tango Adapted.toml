@@ -1,0 +1,11 @@
+# Tango Adapted
+[colors]
+foreground = "#000000"
+background = "#ffffff"
+cursor_bg = "#000000"
+cursor_fg = "#ffffff"
+selection_bg = "#c1deff"
+selection_fg = "#000000"
+
+ansi = ["#000000","#ff0000","#59d600","#f0cb00","#00a2ff","#c17ecc","#00d0d6","#e6ebe1"]
+brights = ["#8f928b","#ff0013","#93ff00","#fff121","#88c9ff","#e9a7e1","#00feff","#f6f6f4"]

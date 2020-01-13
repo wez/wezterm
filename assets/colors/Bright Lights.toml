@@ -1,0 +1,11 @@
+# Bright Lights
+[colors]
+foreground = "#b3c9d7"
+background = "#191919"
+cursor_bg = "#f34b00"
+cursor_fg = "#002831"
+selection_bg = "#b3c9d7"
+selection_fg = "#191919"
+
+ansi = ["#191919","#ff355b","#b7e876","#ffc251","#76d4ff","#ba76e7","#6cbfb5","#c2c8d7"]
+brights = ["#191919","#ff355b","#b7e876","#ffc251","#76d5ff","#ba76e7","#6cbfb5","#c2c8d7"]

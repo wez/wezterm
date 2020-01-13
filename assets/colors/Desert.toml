@@ -1,0 +1,11 @@
+# Desert
+[colors]
+foreground = "#ffffff"
+background = "#333333"
+cursor_bg = "#00ff00"
+cursor_fg = "#000000"
+selection_bg = "#b5d5ff"
+selection_fg = "#000000"
+
+ansi = ["#4d4d4d","#ff2b2b","#98fb98","#f0e68c","#cd853f","#ffdead","#ffa0a0","#f5deb3"]
+brights = ["#555555","#ff5555","#55ff55","#ffff55","#87ceff","#ff55ff","#ffd700","#ffffff"]

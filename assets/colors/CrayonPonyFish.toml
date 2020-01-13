@@ -1,0 +1,11 @@
+# CrayonPonyFish
+[colors]
+foreground = "#68525a"
+background = "#150707"
+cursor_bg = "#68525a"
+cursor_fg = "#140707"
+selection_bg = "#2b1b1d"
+selection_fg = "#69525a"
+
+ansi = ["#2b1b1d","#91002b","#579524","#ab311b","#8c87b0","#692f50","#e8a866","#68525a"]
+brights = ["#3d2b2e","#c5255d","#8dff57","#c8381d","#cfc9ff","#fc6cba","#ffceaf","#b0949d"]

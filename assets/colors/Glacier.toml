@@ -1,0 +1,11 @@
+# Glacier
+[colors]
+foreground = "#ffffff"
+background = "#0c1115"
+cursor_bg = "#6c6c6c"
+cursor_fg = "#6c6c6c"
+selection_bg = "#bd2523"
+selection_fg = "#ffffff"
+
+ansi = ["#2e343c","#bd0f2f","#35a770","#fb9435","#1f5872","#bd2523","#778397","#ffffff"]
+brights = ["#404a55","#bd0f2f","#49e998","#fddf6e","#2a8bc1","#ea4727","#a0b6d3","#ffffff"]

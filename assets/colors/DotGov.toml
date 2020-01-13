@@ -1,0 +1,11 @@
+# DotGov
+[colors]
+foreground = "#ebebeb"
+background = "#262c35"
+cursor_bg = "#d9002f"
+cursor_fg = "#ffffff"
+selection_bg = "#1a4080"
+selection_fg = "#ffffff"
+
+ansi = ["#191919","#bf091d","#3d9751","#f6bb34","#17b2e0","#7830b0","#8bd2ed","#ffffff"]
+brights = ["#191919","#bf091d","#3d9751","#f6bb34","#17b2e0","#7830b0","#8bd2ed","#ffffff"]

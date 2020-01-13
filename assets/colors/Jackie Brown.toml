@@ -1,0 +1,11 @@
+# Jackie Brown
+[colors]
+foreground = "#ffcc2f"
+background = "#2c1d16"
+cursor_bg = "#23ff18"
+cursor_fg = "#ff0018"
+selection_bg = "#af8d21"
+selection_fg = "#ffffff"
+
+ansi = ["#2c1d16","#ef5734","#2baf2b","#bebf00","#246eb2","#d05ec1","#00acee","#bfbfbf"]
+brights = ["#666666","#e50000","#86a93e","#e5e500","#0000ff","#e500e5","#00e5e5","#e5e5e5"]

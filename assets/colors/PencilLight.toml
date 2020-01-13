@@ -1,0 +1,11 @@
+# PencilLight
+[colors]
+foreground = "#424242"
+background = "#f1f1f1"
+cursor_bg = "#20bbfc"
+cursor_fg = "#424242"
+selection_bg = "#b6d6fd"
+selection_fg = "#424242"
+
+ansi = ["#212121","#c30771","#10a778","#a89c14","#008ec4","#523c79","#20a5ba","#d9d9d9"]
+brights = ["#424242","#fb007a","#5fd7af","#f3e430","#20bbfc","#6855de","#4fb8cc","#f1f1f1"]

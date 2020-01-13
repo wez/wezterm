@@ -1,0 +1,11 @@
+# Tomorrow
+[colors]
+foreground = "#4d4d4c"
+background = "#ffffff"
+cursor_bg = "#4d4d4c"
+cursor_fg = "#ffffff"
+selection_bg = "#d6d6d6"
+selection_fg = "#4d4d4c"
+
+ansi = ["#000000","#c82829","#718c00","#eab700","#4271ae","#8959a8","#3e999f","#ffffff"]
+brights = ["#000000","#c82829","#718c00","#eab700","#4271ae","#8959a8","#3e999f","#ffffff"]

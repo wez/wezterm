@@ -1,0 +1,11 @@
+# purplepeter
+[colors]
+foreground = "#ece7fa"
+background = "#2a1a4a"
+cursor_bg = "#c7c7c7"
+cursor_fg = "#ffffff"
+selection_bg = "#8689c2"
+selection_fg = "#271c50"
+
+ansi = ["#0a0520","#ff796d","#99b481","#efdfac","#66d9ef","#e78fcd","#ba8cff","#ffba81"]
+brights = ["#100b23","#f99f92","#b4be8f","#f2e9bf","#79daed","#ba91d4","#a0a0d6","#b9aed3"]

@@ -1,0 +1,11 @@
+# AdventureTime
+[colors]
+foreground = "#f8dcc0"
+background = "#1f1d45"
+cursor_bg = "#efbf38"
+cursor_fg = "#08080a"
+selection_bg = "#706b4e"
+selection_fg = "#f3d9c4"
+
+ansi = ["#050404","#bd0013","#4ab118","#e7741e","#0f4ac6","#665993","#70a598","#f8dcc0"]
+brights = ["#4e7cbf","#fc5f5a","#9eff6e","#efc11a","#1997c6","#9b5953","#c8faf4","#f6f5fb"]

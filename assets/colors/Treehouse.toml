@@ -1,0 +1,11 @@
+# Treehouse
+[colors]
+foreground = "#786b53"
+background = "#191919"
+cursor_bg = "#fac814"
+cursor_fg = "#191919"
+selection_bg = "#786b53"
+selection_fg = "#fac800"
+
+ansi = ["#321300","#b2270e","#44a900","#aa820c","#58859a","#97363d","#b25a1e","#786b53"]
+brights = ["#433626","#ed5d20","#55f238","#f2b732","#85cfed","#e14c5a","#f07d14","#ffc800"]

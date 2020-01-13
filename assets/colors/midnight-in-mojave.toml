@@ -1,0 +1,11 @@
+# midnight-in-mojave
+[colors]
+foreground = "#ffffff"
+background = "#1e1e1e"
+cursor_bg = "#32d74b"
+cursor_fg = "#1c1c1c"
+selection_bg = "#4a504d"
+selection_fg = "#ffffff"
+
+ansi = ["#1e1e1e","#ff453a","#32d74b","#ffd60a","#0a84ff","#bf5af2","#5ac8fa","#ffffff"]
+brights = ["#1e1e1e","#ff453a","#32d74b","#ffd60a","#0a84ff","#bf5af2","#5ac8fa","#ffffff"]

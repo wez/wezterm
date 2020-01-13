@@ -1,0 +1,11 @@
+# Royal
+[colors]
+foreground = "#514968"
+background = "#100815"
+cursor_bg = "#524966"
+cursor_fg = "#100613"
+selection_bg = "#1f1d2b"
+selection_fg = "#a593cd"
+
+ansi = ["#241f2b","#91284c","#23801c","#b49d27","#6580b0","#674d96","#8aaabe","#524966"]
+brights = ["#312d3d","#d5356c","#2cd946","#fde83b","#90baf9","#a479e3","#acd4eb","#9e8cbd"]

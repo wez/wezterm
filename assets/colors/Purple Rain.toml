@@ -1,0 +1,11 @@
+# Purple Rain
+[colors]
+foreground = "#fffbf6"
+background = "#21084a"
+cursor_bg = "#ff271d"
+cursor_fg = "#ff271d"
+selection_bg = "#287691"
+selection_fg = "#ffffff"
+
+ansi = ["#000000","#ff260e","#9be205","#ffc400","#00a2fa","#815bb5","#00deef","#ffffff"]
+brights = ["#565656","#ff4250","#b8e36e","#ffd852","#00a6ff","#ac7bf0","#74fdf3","#ffffff"]

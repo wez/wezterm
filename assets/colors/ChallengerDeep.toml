@@ -1,0 +1,11 @@
+# ChallengerDeep
+[colors]
+foreground = "#cbe1e7"
+background = "#1e1c31"
+cursor_bg = "#fbfcfc"
+cursor_fg = "#ff271d"
+selection_bg = "#cbe1e7"
+selection_fg = "#1e1c31"
+
+ansi = ["#141228","#ff5458","#62d196","#ffb378","#65b2ff","#906cff","#63f2f1","#a6b3cc"]
+brights = ["#565575","#ff8080","#95ffa4","#ffe9aa","#91ddff","#c991e1","#aaffe4","#cbe3e7"]

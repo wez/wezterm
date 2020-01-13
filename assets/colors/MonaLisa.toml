@@ -1,0 +1,11 @@
+# MonaLisa
+[colors]
+foreground = "#f7d66a"
+background = "#120b0d"
+cursor_bg = "#c46c32"
+cursor_fg = "#120b0d"
+selection_bg = "#f7d66a"
+selection_fg = "#120b0d"
+
+ansi = ["#351b0e","#9b291c","#636232","#c36e28","#515c5d","#9b1d29","#588056","#f7d75c"]
+brights = ["#874228","#ff4331","#b4b264","#ff9566","#9eb2b4","#ff5b6a","#8acd8f","#ffe598"]

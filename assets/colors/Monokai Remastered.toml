@@ -1,0 +1,11 @@
+# Monokai Remastered
+[colors]
+foreground = "#d9d9d9"
+background = "#0c0c0c"
+cursor_bg = "#fc971f"
+cursor_fg = "#000000"
+selection_bg = "#343434"
+selection_fg = "#ffffff"
+
+ansi = ["#1a1a1a","#f4005f","#98e024","#fd971f","#9d65ff","#f4005f","#58d1eb","#c4c5b5"]
+brights = ["#625e4c","#f4005f","#98e024","#e0d561","#9d65ff","#f4005f","#58d1eb","#f6f6ef"]

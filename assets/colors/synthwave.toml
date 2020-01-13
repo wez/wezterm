@@ -1,0 +1,11 @@
+# synthwave
+[colors]
+foreground = "#dad9c7"
+background = "#000000"
+cursor_bg = "#19cde6"
+cursor_fg = "#dad9c7"
+selection_bg = "#19cde6"
+selection_fg = "#000000"
+
+ansi = ["#000000","#f6188f","#1ebb2b","#fdf834","#2186ec","#f85a21","#12c3e2","#ffffff"]
+brights = ["#000000","#f841a0","#25c141","#fdf454","#2f9ded","#f97137","#19cde6","#ffffff"]

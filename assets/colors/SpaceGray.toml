@@ -1,0 +1,11 @@
+# SpaceGray
+[colors]
+foreground = "#b3b8c3"
+background = "#20242d"
+cursor_bg = "#b3b8c3"
+cursor_fg = "#1d1f21"
+selection_bg = "#16181e"
+selection_fg = "#b3b8c3"
+
+ansi = ["#000000","#b04b57","#87b379","#e5c179","#7d8fa4","#a47996","#85a7a5","#b3b8c3"]
+brights = ["#000000","#b04b57","#87b379","#e5c179","#7d8fa4","#a47996","#85a7a5","#ffffff"]

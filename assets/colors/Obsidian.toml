@@ -1,0 +1,11 @@
+# Obsidian
+[colors]
+foreground = "#cdcdcd"
+background = "#283033"
+cursor_bg = "#c0cad0"
+cursor_fg = "#cdcdcd"
+selection_bg = "#3e4c4f"
+selection_fg = "#dfe1e2"
+
+ansi = ["#000000","#a60001","#00bb00","#fecd22","#3a9bdb","#bb00bb","#00bbbb","#bbbbbb"]
+brights = ["#555555","#ff0003","#93c863","#fef874","#a1d7ff","#ff55ff","#55ffff","#ffffff"]

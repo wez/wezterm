@@ -1,0 +1,11 @@
+# LiquidCarbonTransparentInverse
+[colors]
+foreground = "#afc2c2"
+background = "#000000"
+cursor_bg = "#ffffff"
+cursor_fg = "#000000"
+selection_bg = "#7dbeff"
+selection_fg = "#000000"
+
+ansi = ["#bccccd","#ff3030","#559a70","#ccac00","#0099cc","#cc69c8","#7ac4cc","#000000"]
+brights = ["#ffffff","#ff3030","#559a70","#ccac00","#0099cc","#cc69c8","#7ac4cc","#000000"]

@@ -1,0 +1,11 @@
+# ENCOM
+[colors]
+foreground = "#00a595"
+background = "#000000"
+cursor_bg = "#bbbbbb"
+cursor_fg = "#ffffff"
+selection_bg = "#00a48c"
+selection_fg = "#3de1c9"
+
+ansi = ["#000000","#9f0000","#008b00","#ffd000","#0081ff","#bc00ca","#008b8b","#bbbbbb"]
+brights = ["#555555","#ff0000","#00ee00","#ffff00","#0000ff","#ff00ff","#00cdcd","#ffffff"]

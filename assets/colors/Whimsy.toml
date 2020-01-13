@@ -1,0 +1,11 @@
+# Whimsy
+[colors]
+foreground = "#b3b0d6"
+background = "#29283b"
+cursor_bg = "#b3b0d6"
+cursor_fg = "#535178"
+selection_bg = "#3d3c58"
+selection_fg = "#ffffff"
+
+ansi = ["#535178","#ef6487","#5eca89","#fdd877","#65aef7","#aa7ff0","#43c1be","#ffffff"]
+brights = ["#535178","#ef6487","#5eca89","#fdd877","#65aef7","#aa7ff0","#43c1be","#ffffff"]

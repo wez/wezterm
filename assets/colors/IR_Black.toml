@@ -1,0 +1,11 @@
+# IR_Black
+[colors]
+foreground = "#f1f1f1"
+background = "#000000"
+cursor_bg = "#808080"
+cursor_fg = "#ffffff"
+selection_bg = "#b5d5ff"
+selection_fg = "#000000"
+
+ansi = ["#4f4f4f","#fa6c60","#a8ff60","#fffeb7","#96cafe","#fa73fd","#c6c5fe","#efedef"]
+brights = ["#7b7b7b","#fcb6b0","#cfffab","#ffffcc","#b5dcff","#fb9cfe","#e0e0fe","#ffffff"]

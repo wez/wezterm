@@ -1,0 +1,11 @@
+# WarmNeon
+[colors]
+foreground = "#afdab6"
+background = "#404040"
+cursor_bg = "#30ff24"
+cursor_fg = "#3eef37"
+selection_bg = "#b0ad21"
+selection_fg = "#ffffff"
+
+ansi = ["#000000","#e24346","#39b13a","#dae145","#4261c5","#f920fb","#2abbd4","#d0b8a3"]
+brights = ["#fefcfc","#e97071","#9cc090","#ddda7a","#7b91d6","#f674ba","#5ed1e5","#d8c8bb"]

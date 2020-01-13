@@ -1,0 +1,11 @@
+# Smyck
+[colors]
+foreground = "#f7f7f7"
+background = "#1b1b1b"
+cursor_bg = "#bbbbbb"
+cursor_fg = "#ffffff"
+selection_bg = "#207483"
+selection_fg = "#f7f7f7"
+
+ansi = ["#000000","#b84131","#7da900","#c4a500","#62a3c4","#ba8acc","#207383","#a1a1a1"]
+brights = ["#7a7a7a","#d6837c","#c4f137","#fee14d","#8dcff0","#f79aff","#6ad9cf","#f7f7f7"]

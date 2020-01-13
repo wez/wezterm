@@ -1,0 +1,11 @@
+# Builtin Tango Dark
+[colors]
+foreground = "#ffffff"
+background = "#000000"
+cursor_bg = "#ffffff"
+cursor_fg = "#000000"
+selection_bg = "#b5d5ff"
+selection_fg = "#000000"
+
+ansi = ["#000000","#cc0000","#4e9a06","#c4a000","#3465a4","#75507b","#06989a","#d3d7cf"]
+brights = ["#555753","#ef2929","#8ae234","#fce94f","#729fcf","#ad7fa8","#34e2e2","#eeeeec"]

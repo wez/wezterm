@@ -1,0 +1,11 @@
+# WildCherry
+[colors]
+foreground = "#dafaff"
+background = "#1f1726"
+cursor_bg = "#dd00ff"
+cursor_fg = "#ff00fe"
+selection_bg = "#002831"
+selection_fg = "#e4ffff"
+
+ansi = ["#000507","#d94085","#2ab250","#ffd16f","#883cdc","#ececec","#c1b8b7","#fff8de"]
+brights = ["#009cc9","#da6bac","#f4dca5","#eac066","#308cba","#ae636b","#ff919d","#e4838d"]

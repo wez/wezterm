@@ -1,0 +1,11 @@
+# Earthsong
+[colors]
+foreground = "#e5c7a9"
+background = "#292520"
+cursor_bg = "#f6f7ec"
+cursor_fg = "#292520"
+selection_bg = "#121418"
+selection_fg = "#e5c7a9"
+
+ansi = ["#121418","#c94234","#85c54c","#f5ae2e","#1398b9","#d0633d","#509552","#e5c6aa"]
+brights = ["#675f54","#ff645a","#98e036","#e0d561","#5fdaff","#ff9269","#84f088","#f6f7ec"]

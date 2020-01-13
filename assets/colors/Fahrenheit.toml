@@ -1,0 +1,11 @@
+# Fahrenheit
+[colors]
+foreground = "#ffffce"
+background = "#000000"
+cursor_bg = "#bbbbbb"
+cursor_fg = "#ffffff"
+selection_bg = "#4e739f"
+selection_fg = "#ffffce"
+
+ansi = ["#1d1d1d","#cda074","#9e744d","#fecf75","#720102","#734c4d","#979797","#ffffce"]
+brights = ["#000000","#fecea0","#cc734d","#fd9f4d","#cb4a05","#4e739f","#fed04d","#ffffff"]

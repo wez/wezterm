@@ -1,0 +1,11 @@
+# Subliminal
+[colors]
+foreground = "#d4d4d4"
+background = "#282c35"
+cursor_bg = "#c7c7c7"
+cursor_fg = "#ffffff"
+selection_bg = "#484e5b"
+selection_fg = "#ffffff"
+
+ansi = ["#7f7f7f","#e15a60","#a9cfa4","#ffe2a9","#6699cc","#f1a5ab","#5fb3b3","#d4d4d4"]
+brights = ["#7f7f7f","#e15a60","#a9cfa4","#ffe2a9","#6699cc","#f1a5ab","#5fb3b3","#d4d4d4"]

@@ -1,0 +1,11 @@
+# Tango Half Adapted
+[colors]
+foreground = "#000000"
+background = "#ffffff"
+cursor_bg = "#000000"
+cursor_fg = "#ffffff"
+selection_bg = "#c1deff"
+selection_fg = "#000000"
+
+ansi = ["#000000","#ff0000","#4cc300","#e2c000","#008ef6","#a96cb3","#00bdc3","#e0e5db"]
+brights = ["#797d76","#ff0013","#8af600","#ffec00","#76bfff","#d898d1","#00f6fa","#f4f4f2"]

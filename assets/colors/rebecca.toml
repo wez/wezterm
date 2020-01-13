@@ -1,0 +1,11 @@
+# rebecca
+[colors]
+foreground = "#e8e6ed"
+background = "#292a44"
+cursor_bg = "#b89bf9"
+cursor_fg = "#292a44"
+selection_bg = "#663399"
+selection_fg = "#f4f2f9"
+
+ansi = ["#12131e","#dd7755","#04dbb5","#f2e7b7","#7aa5ff","#bf9cf9","#56d3c2","#e4e3e9"]
+brights = ["#666699","#ff92cd","#01eac0","#fffca8","#69c0fa","#c17ff8","#8bfde1","#f4f2f9"]

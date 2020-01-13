@@ -1,0 +1,11 @@
+# Builtin Solarized Light
+[colors]
+foreground = "#657b83"
+background = "#fdf6e3"
+cursor_bg = "#657b83"
+cursor_fg = "#eee8d5"
+selection_bg = "#eee8d5"
+selection_fg = "#586e75"
+
+ansi = ["#073642","#dc322f","#859900","#b58900","#268bd2","#d33682","#2aa198","#eee8d5"]
+brights = ["#002b36","#cb4b16","#586e75","#657b83","#839496","#6c71c4","#93a1a1","#fdf6e3"]

@@ -1,0 +1,11 @@
+# Vaughn
+[colors]
+foreground = "#dcdccc"
+background = "#25234f"
+cursor_bg = "#ff5555"
+cursor_fg = "#ffffff"
+selection_bg = "#b5d5ff"
+selection_fg = "#000000"
+
+ansi = ["#25234f","#705050","#60b48a","#dfaf8f","#5555ff","#f08cc3","#8cd0d3","#709080"]
+brights = ["#709080","#dca3a3","#60b48a","#f0dfaf","#5555ff","#ec93d3","#93e0e3","#ffffff"]

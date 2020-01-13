@@ -1,0 +1,11 @@
+# UltraViolent
+[colors]
+foreground = "#c1c1c1"
+background = "#242728"
+cursor_bg = "#c1c1c1"
+cursor_fg = "#ffffff"
+selection_bg = "#574c49"
+selection_fg = "#c3c7cb"
+
+ansi = ["#242728","#ff0090","#b6ff00","#fff727","#47e0fb","#d731ff","#0effbb","#e1e1e1"]
+brights = ["#636667","#fb58b4","#deff8c","#ebe087","#7fecff","#e681ff","#69fcd3","#f9f9f5"]

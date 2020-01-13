@@ -1,0 +1,11 @@
+# Argonaut
+[colors]
+foreground = "#fffaf4"
+background = "#0e1019"
+cursor_bg = "#ff0018"
+cursor_fg = "#ff0018"
+selection_bg = "#002a3b"
+selection_fg = "#ffffff"
+
+ansi = ["#232323","#ff000f","#8ce10b","#ffb900","#008df8","#6d43a6","#00d8eb","#ffffff"]
+brights = ["#444444","#ff2740","#abe15b","#ffd242","#0092ff","#9a5feb","#67fff0","#ffffff"]

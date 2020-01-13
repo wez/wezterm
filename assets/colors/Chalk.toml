@@ -1,0 +1,11 @@
+# Chalk
+[colors]
+foreground = "#d2d8d9"
+background = "#2b2d2e"
+cursor_bg = "#708284"
+cursor_fg = "#002831"
+selection_bg = "#e4e8ed"
+selection_fg = "#3f4041"
+
+ansi = ["#7d8b8f","#b23a52","#789b6a","#b9ac4a","#2a7fac","#bd4f5a","#44a799","#d2d8d9"]
+brights = ["#888888","#f24840","#80c470","#ffeb62","#4196ff","#fc5275","#53cdbd","#d2d8d9"]

@@ -1,0 +1,11 @@
+# Ciapre
+[colors]
+foreground = "#aea47a"
+background = "#191c27"
+cursor_bg = "#92805b"
+cursor_fg = "#181818"
+selection_bg = "#172539"
+selection_fg = "#aea47f"
+
+ansi = ["#181818","#810009","#48513b","#cc8b3f","#576d8c","#724d7c","#5c4f4b","#aea47f"]
+brights = ["#555555","#ac3835","#a6a75d","#dcdf7c","#3097c6","#d33061","#f3dbb2","#f4f4f4"]

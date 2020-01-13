@@ -1,0 +1,11 @@
+# Gruvbox Dark
+[colors]
+foreground = "#e6d4a3"
+background = "#1e1e1e"
+cursor_bg = "#e6d4a3"
+cursor_fg = "#1e1e1e"
+selection_bg = "#e6d4a3"
+selection_fg = "#534a42"
+
+ansi = ["#1e1e1e","#be0f17","#868715","#cc881a","#377375","#a04b73","#578e57","#978771"]
+brights = ["#7f7061","#f73028","#aab01e","#f7b125","#719586","#c77089","#7db669","#e6d4a3"]

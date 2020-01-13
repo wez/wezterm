@@ -1,0 +1,11 @@
+# Neutron
+[colors]
+foreground = "#e6e8ef"
+background = "#1c1e22"
+cursor_bg = "#f6f7ec"
+cursor_fg = "#c4c5b5"
+selection_bg = "#2f363e"
+selection_fg = "#7d8fa4"
+
+ansi = ["#23252b","#b54036","#5ab977","#deb566","#6a7c93","#a4799d","#3f94a8","#e6e8ef"]
+brights = ["#23252b","#b54036","#5ab977","#deb566","#6a7c93","#a4799d","#3f94a8","#ebedf2"]

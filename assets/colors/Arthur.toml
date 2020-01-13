@@ -1,0 +1,11 @@
+# Arthur
+[colors]
+foreground = "#ddeedd"
+background = "#1c1c1c"
+cursor_bg = "#e2bbef"
+cursor_fg = "#000000"
+selection_bg = "#4d4d4d"
+selection_fg = "#ffffff"
+
+ansi = ["#3d352a","#cd5c5c","#86af80","#e8ae5b","#6495ed","#deb887","#b0c4de","#bbaa99"]
+brights = ["#554444","#cc5533","#88aa22","#ffa75d","#87ceeb","#996600","#b0c4de","#ddccbb"]

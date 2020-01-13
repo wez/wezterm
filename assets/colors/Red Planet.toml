@@ -1,0 +1,11 @@
+# Red Planet
+[colors]
+foreground = "#c2b790"
+background = "#222222"
+cursor_bg = "#c2b790"
+cursor_fg = "#202020"
+selection_bg = "#1b324a"
+selection_fg = "#bcb291"
+
+ansi = ["#202020","#8c3432","#728271","#e8bf6a","#69819e","#896492","#5b8390","#b9aa99"]
+brights = ["#676767","#b55242","#869985","#ebeb91","#60827e","#de4974","#38add8","#d6bfb8"]

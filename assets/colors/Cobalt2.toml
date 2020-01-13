@@ -1,0 +1,11 @@
+# Cobalt2
+[colors]
+foreground = "#ffffff"
+background = "#132738"
+cursor_bg = "#f0cc09"
+cursor_fg = "#fefff2"
+selection_bg = "#18354f"
+selection_fg = "#b5b5b5"
+
+ansi = ["#000000","#ff0000","#38de21","#ffe50a","#1460d2","#ff005d","#00bbbb","#bbbbbb"]
+brights = ["#555555","#f40e17","#3bd01d","#edc809","#5555ff","#ff55ff","#6ae3fa","#ffffff"]

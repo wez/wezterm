@@ -1,0 +1,11 @@
+# ayu
+[colors]
+foreground = "#e6e1cf"
+background = "#0f1419"
+cursor_bg = "#f29718"
+cursor_fg = "#e6e1cf"
+selection_bg = "#253340"
+selection_fg = "#e6e1cf"
+
+ansi = ["#000000","#ff3333","#b8cc52","#e7c547","#36a3d9","#f07178","#95e6cb","#ffffff"]
+brights = ["#323232","#ff6565","#eafe84","#fff779","#68d5ff","#ffa3aa","#c7fffd","#ffffff"]

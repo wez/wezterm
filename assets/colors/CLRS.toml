@@ -1,0 +1,11 @@
+# CLRS
+[colors]
+foreground = "#262626"
+background = "#ffffff"
+cursor_bg = "#6fd3fc"
+cursor_fg = "#ffffff"
+selection_bg = "#6fd3fc"
+selection_fg = "#041730"
+
+ansi = ["#000000","#f8282a","#328a5d","#fa701d","#135cd0","#9f00bd","#33c3c1","#b3b3b3"]
+brights = ["#555753","#fb0416","#2cc631","#fdd727","#1670ff","#e900b0","#3ad5ce","#eeeeec"]

@@ -1,0 +1,11 @@
+# FrontEndDelight
+[colors]
+foreground = "#adadad"
+background = "#1b1c1d"
+cursor_bg = "#cdcdcd"
+cursor_fg = "#1b1c1d"
+selection_bg = "#ea6154"
+selection_fg = "#1b1c1d"
+
+ansi = ["#242526","#f8511b","#565747","#fa771d","#2c70b7","#f02e4f","#3ca1a6","#adadad"]
+brights = ["#5fac6d","#f74319","#74ec4c","#fdc325","#3393ca","#e75e4f","#4fbce6","#8c735b"]

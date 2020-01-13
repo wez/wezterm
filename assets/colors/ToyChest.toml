@@ -1,0 +1,11 @@
+# ToyChest
+[colors]
+foreground = "#31d07b"
+background = "#24364b"
+cursor_bg = "#d5d5d5"
+cursor_fg = "#141c25"
+selection_bg = "#5f217a"
+selection_fg = "#d5d5d5"
+
+ansi = ["#2c3f58","#be2d26","#1a9172","#db8e27","#325d96","#8a5edc","#35a08f","#23d183"]
+brights = ["#336889","#dd5944","#31d07b","#e7d84b","#34a6da","#ae6bdc","#42c3ae","#d5d5d5"]

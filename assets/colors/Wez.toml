@@ -1,0 +1,11 @@
+# Wez
+[colors]
+foreground = "#b3b3b3"
+background = "#000000"
+cursor_bg = "#53ae71"
+cursor_fg = "#000000"
+selection_bg = "#4d52f8"
+selection_fg = "#000000"
+
+ansi = ["#000000","#cc5555","#55cc55","#cdcd55","#5555cc","#cc55cc","#7acaca","#cccccc"]
+brights = ["#555555","#ff5555","#55ff55","#ffff55","#5555ff","#ff55ff","#55ffff","#ffffff"]

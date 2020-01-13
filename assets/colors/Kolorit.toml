@@ -1,0 +1,11 @@
+# Kolorit
+[colors]
+foreground = "#efecec"
+background = "#1d1a1e"
+cursor_bg = "#c7c7c7"
+cursor_fg = "#ffffff"
+selection_bg = "#e1925c"
+selection_fg = "#1d1a1e"
+
+ansi = ["#1d1a1e","#ff5b82","#47d7a1","#e8e562","#5db4ee","#da6cda","#57e9eb","#ededed"]
+brights = ["#1d1a1e","#ff5b82","#47d7a1","#e8e562","#5db4ee","#da6cda","#57e9eb","#ededed"]

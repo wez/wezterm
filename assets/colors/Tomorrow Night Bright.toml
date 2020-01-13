@@ -1,0 +1,11 @@
+# Tomorrow Night Bright
+[colors]
+foreground = "#eaeaea"
+background = "#000000"
+cursor_bg = "#eaeaea"
+cursor_fg = "#000000"
+selection_bg = "#424242"
+selection_fg = "#eaeaea"
+
+ansi = ["#000000","#d54e53","#b9ca4a","#e7c547","#7aa6da","#c397d8","#70c0b1","#ffffff"]
+brights = ["#000000","#d54e53","#b9ca4a","#e7c547","#7aa6da","#c397d8","#70c0b1","#ffffff"]

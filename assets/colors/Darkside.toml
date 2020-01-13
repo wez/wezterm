@@ -1,0 +1,11 @@
+# Darkside
+[colors]
+foreground = "#bababa"
+background = "#222324"
+cursor_bg = "#bbbbbb"
+cursor_fg = "#ffffff"
+selection_bg = "#303333"
+selection_fg = "#bababa"
+
+ansi = ["#000000","#e8341c","#68c256","#f2d42c","#1c98e8","#8e69c9","#1c98e8","#bababa"]
+brights = ["#000000","#e05a4f","#77b869","#efd64b","#387cd3","#957bbe","#3d97e2","#bababa"]

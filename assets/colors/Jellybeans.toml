@@ -1,0 +1,11 @@
+# Jellybeans
+[colors]
+foreground = "#dedede"
+background = "#121212"
+cursor_bg = "#ffa560"
+cursor_fg = "#ffffff"
+selection_bg = "#474e91"
+selection_fg = "#f4f4f4"
+
+ansi = ["#929292","#e27373","#94b979","#ffba7b","#97bedc","#e1c0fa","#00988e","#dedede"]
+brights = ["#bdbdbd","#ffa1a1","#bddeab","#ffdca0","#b1d8f6","#fbdaff","#1ab2a8","#ffffff"]

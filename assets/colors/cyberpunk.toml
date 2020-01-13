@@ -1,0 +1,11 @@
+# cyberpunk
+[colors]
+foreground = "#e5e5e5"
+background = "#332a57"
+cursor_bg = "#21f6bc"
+cursor_fg = "#ffffff"
+selection_bg = "#c1deff"
+selection_fg = "#000000"
+
+ansi = ["#000000","#ff7092","#00fbac","#fffa6a","#00bfff","#df95ff","#86cbfe","#ffffff"]
+brights = ["#000000","#ff8aa4","#21f6bc","#fff787","#1bccfd","#e6aefe","#99d6fc","#ffffff"]

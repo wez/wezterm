@@ -1,0 +1,11 @@
+# Cobalt Neon
+[colors]
+foreground = "#8ff586"
+background = "#142838"
+cursor_bg = "#c4206f"
+cursor_fg = "#8ff586"
+selection_bg = "#094fb1"
+selection_fg = "#8ff586"
+
+ansi = ["#142631","#ff2320","#3ba5ff","#e9e75c","#8ff586","#781aa0","#8ff586","#ba46b2"]
+brights = ["#fff688","#d4312e","#8ff586","#e9f06d","#3c7dd2","#8230a7","#6cbc67","#8ff586"]

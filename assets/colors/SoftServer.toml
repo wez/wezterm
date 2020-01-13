@@ -1,0 +1,11 @@
+# SoftServer
+[colors]
+foreground = "#99a3a2"
+background = "#242626"
+cursor_bg = "#d2e0de"
+cursor_fg = "#000000"
+selection_bg = "#7f8786"
+selection_fg = "#effffe"
+
+ansi = ["#000000","#a2686a","#9aa56a","#a3906a","#6b8fa3","#6a71a3","#6ba58f","#99a3a2"]
+brights = ["#666c6c","#dd5c60","#bfdf55","#deb360","#62b1df","#606edf","#64e39c","#d2e0de"]

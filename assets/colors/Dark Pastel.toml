@@ -1,0 +1,11 @@
+# Dark Pastel
+[colors]
+foreground = "#ffffff"
+background = "#000000"
+cursor_bg = "#bbbbbb"
+cursor_fg = "#ffffff"
+selection_bg = "#b5d5ff"
+selection_fg = "#000000"
+
+ansi = ["#000000","#ff5555","#55ff55","#ffff55","#5555ff","#ff55ff","#55ffff","#bbbbbb"]
+brights = ["#555555","#ff5555","#55ff55","#ffff55","#5555ff","#ff55ff","#55ffff","#ffffff"]

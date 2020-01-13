@@ -1,0 +1,11 @@
+# C64
+[colors]
+foreground = "#7869c4"
+background = "#40318d"
+cursor_bg = "#7869c4"
+cursor_fg = "#40318d"
+selection_bg = "#7869c4"
+selection_fg = "#40318d"
+
+ansi = ["#090300","#883932","#55a049","#bfce72","#40318d","#8b3f96","#67b6bd","#ffffff"]
+brights = ["#000000","#883932","#55a049","#bfce72","#40318d","#8b3f96","#67b6bd","#f7f7f7"]

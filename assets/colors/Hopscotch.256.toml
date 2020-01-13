@@ -1,0 +1,11 @@
+# Hopscotch.256
+[colors]
+foreground = "#b9b5b8"
+background = "#322931"
+cursor_bg = "#b9b5b8"
+cursor_fg = "#322931"
+selection_bg = "#5c545b"
+selection_fg = "#b9b5b8"
+
+ansi = ["#322931","#dd464c","#8fc13e","#fdcc59","#1290bf","#c85e7c","#149b93","#b9b5b8"]
+brights = ["#797379","#dd464c","#8fc13e","#fdcc59","#1290bf","#c85e7c","#149b93","#ffffff"]

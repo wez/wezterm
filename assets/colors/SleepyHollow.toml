@@ -1,0 +1,11 @@
+# SleepyHollow
+[colors]
+foreground = "#af9a91"
+background = "#121214"
+cursor_bg = "#af9a91"
+cursor_fg = "#391a02"
+selection_bg = "#575256"
+selection_fg = "#d2c7a9"
+
+ansi = ["#572100","#ba3934","#91773f","#b55600","#5f63b4","#a17c7b","#8faea9","#af9a91"]
+brights = ["#4e4b61","#d9443f","#d6b04e","#f66813","#8086ef","#e2c2bb","#a4dce7","#d2c7a9"]

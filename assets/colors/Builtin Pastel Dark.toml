@@ -1,0 +1,11 @@
+# Builtin Pastel Dark
+[colors]
+foreground = "#bbbbbb"
+background = "#000000"
+cursor_bg = "#ffa560"
+cursor_fg = "#ffffff"
+selection_bg = "#363983"
+selection_fg = "#f2f2f2"
+
+ansi = ["#4f4f4f","#ff6c60","#a8ff60","#ffffb6","#96cbfe","#ff73fd","#c6c5fe","#eeeeee"]
+brights = ["#7c7c7c","#ffb6b0","#ceffac","#ffffcc","#b5dcff","#ff9cfe","#dfdffe","#ffffff"]

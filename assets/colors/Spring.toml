@@ -1,0 +1,11 @@
+# Spring
+[colors]
+foreground = "#4d4d4c"
+background = "#ffffff"
+cursor_bg = "#4d4d4c"
+cursor_fg = "#ffffff"
+selection_bg = "#d6d6d6"
+selection_fg = "#4d4d4c"
+
+ansi = ["#000000","#ff4d83","#1f8c3b","#1fc95b","#1dd3ee","#8959a8","#3e999f","#ffffff"]
+brights = ["#000000","#ff0021","#1fc231","#d5b807","#15a9fd","#8959a8","#3e999f","#ffffff"]

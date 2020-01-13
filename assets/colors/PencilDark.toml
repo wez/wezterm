@@ -1,0 +1,11 @@
+# PencilDark
+[colors]
+foreground = "#f1f1f1"
+background = "#212121"
+cursor_bg = "#20bbfc"
+cursor_fg = "#f1f1f1"
+selection_bg = "#b6d6fd"
+selection_fg = "#f1f1f1"
+
+ansi = ["#212121","#c30771","#10a778","#a89c14","#008ec4","#523c79","#20a5ba","#d9d9d9"]
+brights = ["#424242","#fb007a","#5fd7af","#f3e430","#20bbfc","#6855de","#4fb8cc","#f1f1f1"]

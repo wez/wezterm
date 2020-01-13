@@ -1,0 +1,11 @@
+# Espresso Libre
+[colors]
+foreground = "#b8a898"
+background = "#2a211c"
+cursor_bg = "#ffffff"
+cursor_fg = "#000000"
+selection_bg = "#c3dcff"
+selection_fg = "#b8a898"
+
+ansi = ["#000000","#cc0000","#1a921c","#f0e53a","#0066ff","#c5656b","#06989a","#d3d7cf"]
+brights = ["#555753","#ef2929","#9aff87","#fffb5c","#43a8ed","#ff818a","#34e2e2","#eeeeec"]

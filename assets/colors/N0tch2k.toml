@@ -1,0 +1,11 @@
+# N0tch2k
+[colors]
+foreground = "#a0a0a0"
+background = "#222222"
+cursor_bg = "#aa9175"
+cursor_fg = "#000000"
+selection_bg = "#4d4d4d"
+selection_fg = "#ffffff"
+
+ansi = ["#383838","#a95551","#666666","#a98051","#657d3e","#767676","#c9c9c9","#d0b8a3"]
+brights = ["#474747","#a97775","#8c8c8c","#a99175","#98bd5e","#a3a3a3","#dcdcdc","#d8c8bb"]

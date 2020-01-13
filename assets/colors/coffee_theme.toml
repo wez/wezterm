@@ -1,0 +1,11 @@
+# coffee_theme
+[colors]
+foreground = "#000000"
+background = "#f5deb3"
+cursor_bg = "#c7c7c7"
+cursor_fg = "#fffc67"
+selection_bg = "#c1deff"
+selection_fg = "#000000"
+
+ansi = ["#000000","#c91b00","#00c200","#c7c400","#0225c7","#ca30c7","#00c5c7","#c7c7c7"]
+brights = ["#686868","#ff6e67","#5ffa68","#fffc67","#6871ff","#ff77ff","#60fdff","#ffffff"]

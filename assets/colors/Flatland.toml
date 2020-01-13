@@ -1,0 +1,11 @@
+# Flatland
+[colors]
+foreground = "#b8dbef"
+background = "#1d1f21"
+cursor_bg = "#708284"
+cursor_fg = "#002831"
+selection_bg = "#2b2a24"
+selection_fg = "#ffffff"
+
+ansi = ["#1d1d19","#f18339","#9fd364","#f4ef6d","#5096be","#695abc","#d63865","#ffffff"]
+brights = ["#1d1d19","#d22a24","#a7d42c","#ff8949","#61b9d0","#695abc","#d63865","#ffffff"]

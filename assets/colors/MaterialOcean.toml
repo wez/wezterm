@@ -1,0 +1,11 @@
+# MaterialOcean
+[colors]
+foreground = "#8f93a2"
+background = "#0f111a"
+cursor_bg = "#ffcc00"
+cursor_fg = "#0f111a"
+selection_bg = "#1f2233"
+selection_fg = "#8f93a2"
+
+ansi = ["#546e7a","#ff5370","#c3e88d","#ffcb6b","#82aaff","#c792ea","#89ddff","#ffffff"]
+brights = ["#546e7a","#ff5370","#c3e88d","#ffcb6b","#82aaff","#c792ea","#89ddff","#ffffff"]

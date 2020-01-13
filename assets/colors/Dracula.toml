@@ -1,0 +1,11 @@
+# Dracula
+[colors]
+foreground = "#f8f8f2"
+background = "#1e1f29"
+cursor_bg = "#bbbbbb"
+cursor_fg = "#ffffff"
+selection_bg = "#44475a"
+selection_fg = "#ffffff"
+
+ansi = ["#000000","#ff5555","#50fa7b","#f1fa8c","#bd93f9","#ff79c6","#8be9fd","#bbbbbb"]
+brights = ["#555555","#ff5555","#50fa7b","#f1fa8c","#bd93f9","#ff79c6","#8be9fd","#ffffff"]

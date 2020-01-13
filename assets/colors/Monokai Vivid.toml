@@ -1,0 +1,11 @@
+# Monokai Vivid
+[colors]
+foreground = "#f9f9f9"
+background = "#121212"
+cursor_bg = "#fb0007"
+cursor_fg = "#ea0009"
+selection_bg = "#ffffff"
+selection_fg = "#000000"
+
+ansi = ["#121212","#fa2934","#98e123","#fff30a","#0443ff","#f800f8","#01b6ed","#ffffff"]
+brights = ["#838383","#f6669d","#b1e05f","#fff26d","#0443ff","#f200f6","#51ceff","#ffffff"]

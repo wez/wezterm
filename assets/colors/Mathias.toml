@@ -1,0 +1,11 @@
+# Mathias
+[colors]
+foreground = "#bbbbbb"
+background = "#000000"
+cursor_bg = "#bbbbbb"
+cursor_fg = "#ffffff"
+selection_bg = "#555555"
+selection_fg = "#f2f2f2"
+
+ansi = ["#000000","#e52222","#a6e32d","#fc951e","#c48dff","#fa2573","#67d9f0","#f2f2f2"]
+brights = ["#555555","#ff5555","#55ff55","#ffff55","#5555ff","#ff55ff","#55ffff","#ffffff"]

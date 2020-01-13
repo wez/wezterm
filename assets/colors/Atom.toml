@@ -1,0 +1,11 @@
+# Atom
+[colors]
+foreground = "#c5c8c6"
+background = "#161719"
+cursor_bg = "#d0d0d0"
+cursor_fg = "#151515"
+selection_bg = "#444444"
+selection_fg = "#c5c8c6"
+
+ansi = ["#000000","#fd5ff1","#87c38a","#ffd7b1","#85befd","#b9b6fc","#85befd","#e0e0e0"]
+brights = ["#000000","#fd5ff1","#94fa36","#f5ffa8","#96cbfe","#b9b6fc","#85befd","#e0e0e0"]

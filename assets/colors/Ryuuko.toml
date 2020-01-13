@@ -1,0 +1,11 @@
+# Ryuuko
+[colors]
+foreground = "#ececec"
+background = "#2c3941"
+cursor_bg = "#ececec"
+cursor_fg = "#002831"
+selection_bg = "#002831"
+selection_fg = "#819090"
+
+ansi = ["#2c3941","#865f5b","#66907d","#b1a990","#6a8e95","#b18a73","#88b2ac","#ececec"]
+brights = ["#5d7079","#865f5b","#66907d","#b1a990","#6a8e95","#b18a73","#88b2ac","#ececec"]

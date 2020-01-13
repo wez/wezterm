@@ -1,0 +1,11 @@
+# Hardcore
+[colors]
+foreground = "#a0a0a0"
+background = "#121212"
+cursor_bg = "#bbbbbb"
+cursor_fg = "#ffffff"
+selection_bg = "#453b39"
+selection_fg = "#b6bbc0"
+
+ansi = ["#1b1d1e","#f92672","#a6e22e","#fd971f","#66d9ef","#9e6ffe","#5e7175","#ccccc6"]
+brights = ["#505354","#ff669d","#beed5f","#e6db74","#66d9ef","#9e6ffe","#a3babf","#f8f8f2"]

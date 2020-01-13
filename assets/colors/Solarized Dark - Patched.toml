@@ -1,0 +1,11 @@
+# Solarized Dark - Patched
+[colors]
+foreground = "#708284"
+background = "#001e27"
+cursor_bg = "#708284"
+cursor_fg = "#002831"
+selection_bg = "#002831"
+selection_fg = "#819090"
+
+ansi = ["#002831","#d11c24","#738a05","#a57706","#2176c7","#c61c6f","#259286","#eae3cb"]
+brights = ["#475b62","#bd3613","#475b62","#536870","#708284","#5956ba","#819090","#fcf4dc"]

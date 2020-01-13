@@ -1,0 +1,11 @@
+# Piatto Light
+[colors]
+foreground = "#414141"
+background = "#ffffff"
+cursor_bg = "#5e77c8"
+cursor_fg = "#abbee5"
+selection_bg = "#706b4e"
+selection_fg = "#acbcdc"
+
+ansi = ["#414141","#b23771","#66781e","#cd6f34","#3c5ea8","#a454b2","#66781e","#ffffff"]
+brights = ["#3f3f3f","#db3365","#829429","#cd6f34","#3c5ea8","#a454b2","#829429","#f2f2f2"]

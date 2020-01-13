@@ -1,0 +1,11 @@
+# OceanicMaterial
+[colors]
+foreground = "#c2c8d7"
+background = "#1c262b"
+cursor_bg = "#b3b8c3"
+cursor_fg = "#ffffff"
+selection_bg = "#6dc2b8"
+selection_fg = "#c2c8d7"
+
+ansi = ["#000000","#ee2b2a","#40a33f","#ffea2e","#1e80f0","#8800a0","#16afca","#a4a4a4"]
+brights = ["#777777","#dc5c60","#70be71","#fff163","#54a4f3","#aa4dbc","#42c7da","#ffffff"]

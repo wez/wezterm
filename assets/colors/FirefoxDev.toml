@@ -1,0 +1,11 @@
+# FirefoxDev
+[colors]
+foreground = "#7c8fa4"
+background = "#0e1011"
+cursor_bg = "#708284"
+cursor_fg = "#002831"
+selection_bg = "#163c61"
+selection_fg = "#f2f5f9"
+
+ansi = ["#002831","#e63853","#5eb83c","#a57706","#359ddf","#d75cff","#4b73a2","#dcdcdc"]
+brights = ["#001e27","#e1003f","#1d9000","#cd9409","#006fc0","#a200da","#005794","#e2e2e2"]

@@ -1,0 +1,11 @@
+# Grass
+[colors]
+foreground = "#fff0a5"
+background = "#13773d"
+cursor_bg = "#8c2800"
+cursor_fg = "#ffffff"
+selection_bg = "#b64926"
+selection_fg = "#ffffff"
+
+ansi = ["#000000","#bb0000","#00bb00","#e7b000","#0000a3","#950062","#00bbbb","#bbbbbb"]
+brights = ["#555555","#bb0000","#00bb00","#e7b000","#0000bb","#ff55ff","#55ffff","#ffffff"]

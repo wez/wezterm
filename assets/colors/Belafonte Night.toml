@@ -1,0 +1,11 @@
+# Belafonte Night
+[colors]
+foreground = "#968c83"
+background = "#20111b"
+cursor_bg = "#968c83"
+cursor_fg = "#20111b"
+selection_bg = "#45373c"
+selection_fg = "#968c83"
+
+ansi = ["#20111b","#be100e","#858162","#eaa549","#426a79","#97522c","#989a9c","#968c83"]
+brights = ["#5e5252","#be100e","#858162","#eaa549","#426a79","#97522c","#989a9c","#d5ccba"]

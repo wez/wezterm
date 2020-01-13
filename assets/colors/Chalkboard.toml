@@ -1,0 +1,11 @@
+# Chalkboard
+[colors]
+foreground = "#d9e6f2"
+background = "#29262f"
+cursor_bg = "#d9e6f2"
+cursor_fg = "#29262f"
+selection_bg = "#073642"
+selection_fg = "#ffffff"
+
+ansi = ["#000000","#c37372","#72c373","#c2c372","#7372c3","#c372c2","#72c2c3","#d9d9d9"]
+brights = ["#323232","#dbaaaa","#aadbaa","#dadbaa","#aaaadb","#dbaada","#aadadb","#ffffff"]

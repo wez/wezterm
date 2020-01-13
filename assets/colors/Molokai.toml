@@ -1,0 +1,11 @@
+# Molokai
+[colors]
+foreground = "#bbbbbb"
+background = "#121212"
+cursor_bg = "#bbbbbb"
+cursor_fg = "#ffffff"
+selection_bg = "#b5d5ff"
+selection_fg = "#000000"
+
+ansi = ["#121212","#fa2573","#98e123","#dfd460","#1080d0","#8700ff","#43a8d0","#bbbbbb"]
+brights = ["#555555","#f6669d","#b1e05f","#fff26d","#00afff","#af87ff","#51ceff","#ffffff"]

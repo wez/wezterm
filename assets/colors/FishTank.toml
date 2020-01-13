@@ -1,0 +1,11 @@
+# FishTank
+[colors]
+foreground = "#ecf0fe"
+background = "#232537"
+cursor_bg = "#fecd5e"
+cursor_fg = "#232537"
+selection_bg = "#fcf7e9"
+selection_fg = "#232537"
+
+ansi = ["#03073c","#c6004a","#acf157","#fecd5e","#525fb8","#986f82","#968763","#ecf0fc"]
+brights = ["#6c5b30","#da4b8a","#dbffa9","#fee6a9","#b2befa","#fda5cd","#a5bd86","#f6ffec"]

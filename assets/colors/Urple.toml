@@ -1,0 +1,11 @@
+# Urple
+[colors]
+foreground = "#877a9b"
+background = "#1b1b23"
+cursor_bg = "#a063eb"
+cursor_fg = "#1b1b22"
+selection_bg = "#a063eb"
+selection_fg = "#1b1b22"
+
+ansi = ["#000000","#b0425b","#37a415","#ad5c42","#564d9b","#6c3ca1","#808080","#87799c"]
+brights = ["#5d3225","#ff6388","#29e620","#f08161","#867aed","#a05eee","#eaeaea","#bfa3ff"]

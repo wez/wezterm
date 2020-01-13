@@ -1,0 +1,11 @@
+# Zenburn
+[colors]
+foreground = "#dcdccc"
+background = "#3f3f3f"
+cursor_bg = "#73635a"
+cursor_fg = "#000000"
+selection_bg = "#21322f"
+selection_fg = "#c2d87a"
+
+ansi = ["#4d4d4d","#705050","#60b48a","#f0dfaf","#506070","#dc8cc3","#8cd0d3","#dcdccc"]
+brights = ["#709080","#dca3a3","#c3bf9f","#e0cf9f","#94bff3","#ec93d3","#93e0e3","#ffffff"]
