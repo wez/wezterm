@@ -18,6 +18,9 @@ use ::term::input::MouseButton as TMB;
 use ::term::input::MouseEventKind as TMEK;
 use ::window::bitmaps::atlas::{OutOfTextureSpace, SpriteSlice};
 use ::window::bitmaps::Texture2d;
+use ::window::glium::uniforms::{
+    MagnifySamplerFilter, MinifySamplerFilter, Sampler, SamplerWrapFunction,
+};
 use ::window::glium::{uniform, BlendingFunction, LinearBlendingFactor, Surface};
 use ::window::MouseButtons as WMB;
 use ::window::MouseEventKind as WMEK;
@@ -1616,6 +1619,14 @@ impl TermWindow {
 
         drop(quads);
 
+        // Clamp and use the nearest texel rather than interpolate.
+        // This prevents things like the box cursor outlines from
+        // being randomly doubled in width or height
+        let glyph_tex = Sampler::new(&*tex)
+            .wrap_function(SamplerWrapFunction::Clamp)
+            .magnify_filter(MagnifySamplerFilter::Nearest)
+            .minify_filter(MinifySamplerFilter::Nearest);
+
         // Pass 1: Draw backgrounds, strikethrough and underline
         frame.draw(
             &*vb,
@@ -1623,7 +1634,7 @@ impl TermWindow {
             &gl_state.program,
             &uniform! {
                 projection: projection,
-                glyph_tex: &*tex,
+                glyph_tex:  glyph_tex,
                 bg_and_line_layer: true,
             },
             &draw_params,
@@ -1658,7 +1669,7 @@ impl TermWindow {
             &gl_state.program,
             &uniform! {
                 projection: projection,
-                glyph_tex: &*tex,
+                glyph_tex:  glyph_tex,
                 bg_and_line_layer: false,
             },
             &draw_params,

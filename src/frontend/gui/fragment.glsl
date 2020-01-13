@@ -39,18 +39,21 @@ void main() {
     // Sample the underline glyph texture for this location.
     // Note that the texture is whitespace in the case where this is
     // no underline or strikethrough.
-    // We tint the underline glyph with the foreground color
-    vec4 under_color = multiply(o_fg_color, texture(glyph_tex, o_underline));
+    vec4 under_color = texture(glyph_tex, o_underline);
     if (under_color.a != 0.0) {
-        // if the line glyph isn't transparent in this position then
-        // we take this pixel color, otherwise we'll leave the color
+        // if the underline glyph isn't transparent in this position then
+        // we take the text fg color, otherwise we'll leave the color
         // at the background color.
-        color = under_color;
+        color.rgb = o_fg_color.rgb;
     }
 
-    vec4 cursor_outline = multiply(o_cursor_color, texture(glyph_tex, o_cursor));
+    // Similar to the above: if the cursor texture isn't transparent
+    // in this location, we'll use the cursor color instead of the background.
+    // The cursor color overrides any underline color we might have picked
+    // in the section above.
+    vec4 cursor_outline = texture(glyph_tex, o_cursor);
     if (cursor_outline.a != 0.0) {
-      color = cursor_outline;
+      color.rgb = o_cursor_color.rgb;
     }
 
   } else {
