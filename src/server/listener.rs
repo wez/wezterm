@@ -816,6 +816,13 @@ impl<S: ReadAndWrite> ClientSession<S> {
                 })
             }
 
+            Pdu::GetCodecVersion(_) => {
+                Future::ok(Pdu::GetCodecVersionResponse(GetCodecVersionResponse {
+                    codec_vers: CODEC_VERSION,
+                    version_string: crate::wezterm_version().to_owned(),
+                }))
+            }
+
             Pdu::Invalid { .. } => Future::err(anyhow!("invalid PDU {:?}", pdu)),
             Pdu::Pong { .. }
             | Pdu::ListTabsResponse { .. }
@@ -824,6 +831,7 @@ impl<S: ReadAndWrite> ClientSession<S> {
             | Pdu::GetTabRenderChangesResponse { .. }
             | Pdu::UnitResponse { .. }
             | Pdu::GetLinesResponse { .. }
+            | Pdu::GetCodecVersionResponse { .. }
             | Pdu::ErrorResponse { .. } => {
                 Future::err(anyhow!("expected a request, got {:?}", pdu))
             }

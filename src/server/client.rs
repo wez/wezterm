@@ -631,4 +631,5 @@ impl Client {
     rpc!(resize, Resize, UnitResponse);
     rpc!(get_tab_render_changes, GetTabRenderChanges, UnitResponse);
     rpc!(get_lines, GetLines, GetLinesResponse);
+    rpc!(get_codec_version, GetCodecVersion, GetCodecVersionResponse);
 }

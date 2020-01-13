@@ -6,7 +6,7 @@ use crate::mux::tab::{Tab, TabId};
 use crate::mux::window::WindowId;
 use crate::mux::Mux;
 use crate::server::client::Client;
-use crate::server::codec::Spawn;
+use crate::server::codec::{GetCodecVersion, Spawn, CODEC_VERSION};
 use crate::server::tab::ClientTab;
 use anyhow::{anyhow, bail};
 use portable_pty::{CommandBuilder, PtySize};
@@ -264,6 +264,38 @@ impl Domain for ClientDomain {
             match client {
                 Err(err) => promise.result(Err(err)),
                 Ok(client) => {
+                    match client.get_codec_version(GetCodecVersion {}).wait() {
+                        Ok(info) if info.codec_vers == CODEC_VERSION => log::info!(
+                            "Server version is {} (codec version {})",
+                            info.version_string,
+                            info.codec_vers
+                        ),
+                        Ok(info) => {
+                            promise.result(Err(anyhow!(
+                                "Please install the same version of wezterm on both \
+                                 the client and server! \
+                                 The server verson is {} (codec version {}), which is not \
+                                 compatible with our version {} (codec version {}).",
+                                info.version_string,
+                                info.codec_vers,
+                                crate::wezterm_version(),
+                                CODEC_VERSION
+                            )));
+                            return;
+                        }
+                        Err(err) => {
+                            promise.result(Err(anyhow!(
+                                "Please install the same version of wezterm on both \
+                                 the client and server! \
+                                 The server reported error {} while being asked for its \
+                                 version.  This likely means that the server is older \
+                                 than the client.",
+                                err
+                            )));
+                            return;
+                        }
+                    };
+
                     Future::with_executor(executor(), move || {
                         promise.result(ClientDomain::finish_attach(domain_id, client));
                         drop(activity);
