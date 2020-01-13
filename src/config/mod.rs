@@ -647,9 +647,12 @@ impl Config {
 
         if let Some(scheme) = cfg.color_scheme.as_ref() {
             if !cfg.color_schemes.contains_key(scheme) {
-                log::error!("Your configuration specifies \
-                            color_scheme=\"{}\" but that scheme \
-                            was not found", scheme);
+                log::error!(
+                    "Your configuration specifies \
+                     color_scheme=\"{}\" but that scheme \
+                     was not found",
+                    scheme
+                );
             }
         }
 
