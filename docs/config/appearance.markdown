@@ -1,4 +1,23 @@
-### Colors
+### Color Scheme
+
+Wezterm ships with the full set of over 200 color schemes available from
+[iterm2colorschemes.com](https://iterm2colorschemes.com/).  You can select a
+color scheme with a line like this:
+
+```toml
+color_scheme = "Batman"
+```
+
+There are literally too many schemes to reasonably list here; check out the
+screenshots on [iterm2colorschemes.com](https://iterm2colorschemes.com/)!
+
+The `color_scheme` option takes precedence over the `colors` section below.
+
+### Defining your own colors
+
+Rather than using a color scheme, you can specify the color palette using the
+`[colors]` configuration section.  Note that `color_scheme` takes precedence
+over this section.
 
 You can configure colors with a section like this.  In addition to specifying
 [SVG/CSS3 color names](https://docs.rs/palette/0.4.1/palette/named/index.html#constants),
@@ -29,16 +48,55 @@ ansi = ["black", "maroon", "green", "olive", "navy", "purple", "teal", "silver"]
 brights = ["grey", "red", "lime", "yellow", "blue", "fuchsia", "aqua", "white"]
 ```
 
-You can find a variety of color schemes [here](https://github.com/mbadolato/iTerm2-Color-Schemes).
-There are two ways to use them with wezterm:
+### Defining a Color Scheme in your `wezterm.toml`
 
-* [The wezterm directory](https://github.com/mbadolato/iTerm2-Color-Schemes/tree/master/wezterm) contains
-  configuration snippets that you can copy and paste into your `wezterm.toml` file
-  to set the default configuration.
-* [The dynamic-colors directory](https://github.com/mbadolato/iTerm2-Color-Schemes/tree/master/dynamic-colors)
-  contains shell scripts that can change the color scheme immediately on the fly.
-  This is super convenient for trying out color schemes, and can be used in
-  your own scripts to alter the terminal appearance programmatically:
+If you'd like to keep a couple of color schemes handy in your configuration
+file, rather than filling out the `[colors]` section, place it in a
+`color_schemes` section as shown below; you can then reference it using the
+`color_scheme` setting.
+
+Color schemes names that you define in your `wezterm.toml` take precedence
+over all other color schemes.
+
+All of the settings available from the `[colors]` section are available
+to use in the `color_schemes` sections.
+
+```toml
+color_scheme = "Red Scheme"
+
+[color_schemes."Red Scheme"]
+background = "red"
+
+[color_schemes."Blue Scheme"]
+background = "blue"
+```
+
+### Defining a Color Scheme in a separate file
+
+If you'd like to factor your color schemes out into separate files, you
+can create a file with a `[colors]` section; take a look at [one of
+the available color schemes for an example](https://github.com/wez/wezterm/blob/master/assets/colors/Builtin%20Dark.toml).
+
+You then need to instruct wezterm where to look for your scheme files;
+the `color_scheme_dirs` setting specifies a list of directories to
+be searched:
+
+```
+color_scheme_dirs = ["/some/path/to/my/color/schemes"]
+```
+
+Color scheme names that are defined in files in your `color_scheme_dirs` list
+take precedence over the built-in color schemes.
+
+
+### Dynamic Color Escape Sequences
+
+Wezterm supports dynamically changing its color palette via escape sequences.
+
+[The dynamic-colors directory](https://github.com/mbadolato/iTerm2-Color-Schemes/tree/master/dynamic-colors)
+of the color scheme repo contains shell scripts that can change the color
+scheme immediately on the fly.  This can be used in your own scripts to alter
+the terminal appearance programmatically:
 
 ```bash
 $ git clone https://github.com/mbadolato/iTerm2-Color-Schemes.git
