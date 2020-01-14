@@ -619,8 +619,7 @@ impl InputParser {
 
         for (keycode, c) in &[
             (KeyCode::Insert, b'2'),
-            // TODO: application delete key? See https://github.com/wez/wezterm/issues/52
-            // (KeyCode::Delete, b'3'),
+            (KeyCode::Delete, b'3'),
             (KeyCode::Home, b'1'),
             (KeyCode::End, b'4'),
             (KeyCode::PageUp, b'5'),
@@ -639,7 +638,7 @@ impl InputParser {
         map.insert(
             &[0x7f],
             InputEvent::Key(KeyEvent {
-                key: KeyCode::Delete,
+                key: KeyCode::Backspace,
                 modifiers: Modifiers::NONE,
             }),
         );
