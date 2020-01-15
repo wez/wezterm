@@ -19,8 +19,9 @@ use winapi::um::processthreadsapi::*;
 use winapi::um::winbase::{FILE_TYPE_CHAR, FILE_TYPE_DISK, FILE_TYPE_PIPE};
 use winapi::um::winnt::HANDLE;
 use winapi::um::winsock2::{
-    accept, bind, closesocket, connect, getsockname, htonl, listen, WSAPoll, WSASocketW,
-    WSAStartup, INVALID_SOCKET, SOCKET, SOCK_STREAM, WSADATA, WSA_FLAG_NO_HANDLE_INHERIT,
+    accept, bind, closesocket, connect, getsockname, htonl, ioctlsocket, listen, WSAPoll,
+    WSASocketW, WSAStartup, INVALID_SOCKET, SOCKET, SOCK_STREAM, WSADATA,
+    WSA_FLAG_NO_HANDLE_INHERIT,
 };
 pub use winapi::um::winsock2::{POLLERR, POLLHUP, POLLIN, POLLOUT, WSAPOLLFD as pollfd};
 
@@ -88,14 +89,15 @@ impl<T: FromRawSocket> FromRawSocketDescriptor for T {
 unsafe impl Send for OwnedHandle {}
 
 impl OwnedHandle {
-    fn probe_handle_type_if_unknown(handle: HANDLE, handle_type: HandleType) -> HandleType {
+    fn probe_handle_type_if_unknown(handle: RawHandle, handle_type: HandleType) -> HandleType {
         match handle_type {
             HandleType::Unknown => Self::probe_handle_type(handle),
             t => t,
         }
     }
 
-    pub(crate) fn probe_handle_type(handle: HANDLE) -> HandleType {
+    pub(crate) fn probe_handle_type(handle: RawHandle) -> HandleType {
+        let handle = handle as HANDLE;
         match unsafe { GetFileType(handle) } {
             FILE_TYPE_CHAR => HandleType::Char,
             FILE_TYPE_DISK => HandleType::Disk,
@@ -211,6 +213,29 @@ impl FileDescriptor {
         let handle = duped.into_raw_handle();
         let stdio = unsafe { std::process::Stdio::from_raw_handle(handle) };
         Ok(stdio)
+    }
+
+    #[inline]
+    pub(crate) fn set_non_blocking_impl(&mut self, non_blocking: bool) -> anyhow::Result<()> {
+        if !self.handle.is_socket_handle() {
+            bail!("only socket descriptors can change their non-blocking mode on windows");
+        }
+
+        let mut on = if non_blocking { 1 } else { 0 };
+        let res = unsafe {
+            ioctlsocket(
+                self.as_raw_socket() as SOCKET,
+                winapi::um::winsock2::FIONBIO,
+                &mut on,
+            )
+        };
+        if res != 0 {
+            bail!(
+                "failed to change non-blocking mode: {:?}",
+                std::io::Error::last_os_error()
+            );
+        }
+        Ok(())
     }
 }
 

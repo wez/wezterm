@@ -204,6 +204,19 @@ impl FileDescriptor {
         let stdio = unsafe { std::process::Stdio::from_raw_fd(fd) };
         Ok(stdio)
     }
+
+    #[inline]
+    pub(crate) fn set_non_blocking_impl(&mut self, non_blocking: bool) -> anyhow::Result<()> {
+        let on = if non_blocking { 1 } else { 0 };
+        let res = unsafe { libc::ioctl(self.handle.as_raw_file_descriptor(), libc::FIONBIO, &on) };
+        if res != 0 {
+            bail!(
+                "failed to change non-blocking mode: {:?}",
+                std::io::Error::last_os_error()
+            );
+        }
+        Ok(())
+    }
 }
 
 impl Pipe {

@@ -247,6 +247,16 @@ impl FileDescriptor {
     pub fn as_stdio(&self) -> anyhow::Result<std::process::Stdio> {
         self.as_stdio_impl()
     }
+
+    /// Attempt to change the non-blocking IO mode of the file descriptor.
+    /// Not all kinds of file descriptor can be placed in non-blocking mode
+    /// on all systems, and some file descriptors will claim to be in
+    /// non-blocking mode but it will have no effect.
+    /// File descriptors based on sockets are the most portable type
+    /// that can be successfully made non-blocking.
+    pub fn set_non_blocking(&mut self, non_blocking: bool) -> anyhow::Result<()> {
+        self.set_non_blocking_impl(non_blocking)
+    }
 }
 
 /// Represents the readable and writable ends of a pair of descriptors
