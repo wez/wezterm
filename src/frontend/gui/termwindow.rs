@@ -634,7 +634,25 @@ impl TermWindow {
                                     .unwrap_or(dims.physical_top);
                                 let visible_range =
                                     viewport..viewport + dims.viewport_rows as StableRowIndex;
-                                if !render.get_dirty_lines(visible_range).is_empty() {
+                                let dirty = render.get_dirty_lines(visible_range);
+
+                                if !dirty.is_empty() {
+                                    // If any of the changed lines intersect with the selection,
+                                    // then we need to clear the selection
+                                    let clear_selection = if let Some(selection_range) =
+                                        myself.selection(tab.tab_id()).range.as_ref()
+                                    {
+                                        let selection_rows = selection_range.rows();
+                                        selection_rows.into_iter().any(|row| dirty.contains(row))
+                                    } else {
+                                        false
+                                    };
+
+                                    if clear_selection {
+                                        myself.selection(tab.tab_id()).range.take();
+                                        myself.selection(tab.tab_id()).start.take();
+                                    }
+
                                     myself.window.as_ref().unwrap().invalidate();
                                 }
 
