@@ -7,6 +7,7 @@ use std::cell::{RefCell, RefMut};
 use std::sync::Arc;
 use term::color::ColorPalette;
 use term::{Clipboard, KeyCode, KeyModifiers, MouseEvent, Terminal, TerminalHost};
+use url::Url;
 
 pub struct LocalTab {
     tab_id: TabId,
@@ -94,8 +95,8 @@ impl Tab for LocalTab {
         self.terminal.borrow().is_mouse_grabbed()
     }
 
-    fn get_current_working_dir(&self) -> Option<String> {
-        self.terminal.borrow().get_current_dir().map(String::from)
+    fn get_current_working_dir(&self) -> Option<Url> {
+        self.terminal.borrow().get_current_dir().cloned()
     }
 }
 

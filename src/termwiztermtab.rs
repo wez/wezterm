@@ -31,6 +31,7 @@ use termwiz::input::{InputEvent, KeyEvent};
 use termwiz::lineedit::*;
 use termwiz::surface::{Change, SequenceNo, Surface};
 use termwiz::terminal::{ScreenSize, Terminal, TerminalWaker};
+use url::Url;
 
 struct RenderableInner {
     surface: Surface,
@@ -286,7 +287,7 @@ impl Tab for TermWizTerminalTab {
         true
     }
 
-    fn get_current_working_dir(&self) -> Option<String> {
+    fn get_current_working_dir(&self) -> Option<Url> {
         None
     }
 }

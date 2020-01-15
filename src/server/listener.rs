@@ -28,6 +28,7 @@ use std::thread;
 use std::time::Instant;
 use term::terminal::Clipboard;
 use term::StableRowIndex;
+use url::Url;
 
 struct LocalListener {
     listener: UnixListener,
@@ -386,7 +387,7 @@ pub struct ClientSession<S: ReadAndWrite> {
 struct PerTab {
     cursor_position: StableCursorPosition,
     title: String,
-    working_dir: Option<String>,
+    working_dir: Option<Url>,
     dimensions: RenderableDimensions,
     dirty_lines: RangeSet<StableRowIndex>,
     mouse_grabbed: bool,
@@ -471,7 +472,7 @@ impl PerTab {
             cursor_position,
             title,
             bonus_lines,
-            working_dir,
+            working_dir: working_dir.map(Into::into),
         })
     }
 
@@ -620,17 +621,20 @@ impl<S: ReadAndWrite> ClientSession<S> {
                     self.stream.set_non_blocking(true)?;
                     let res = Pdu::try_read_and_decode(&mut self.stream, &mut read_buffer);
                     self.stream.set_non_blocking(false)?;
-                    if let Some(decoded) = res? {
-                        self.process_one(decoded)?;
-                    } else {
-                        break;
+                    match res {
+                        Ok(Some(decoded)) => self.process_one(decoded),
+                        Ok(None) => break,
+                        Err(err) => {
+                            log::error!("Error decoding: {}", err);
+                            return Err(err);
+                        }
                     }
                 }
             }
         }
     }
 
-    fn process_one(&mut self, decoded: DecodedPdu) -> anyhow::Result<()> {
+    fn process_one(&mut self, decoded: DecodedPdu) {
         let start = Instant::now();
         let sender = self.to_write_tx.clone();
         let serial = decoded.serial;
@@ -644,7 +648,6 @@ impl<S: ReadAndWrite> ClientSession<S> {
             log::trace!("{} processing time {:?}", serial, start.elapsed());
             sender.send(DecodedPdu { pdu, serial })
         });
-        Ok(())
     }
 
     fn process_pdu(&mut self, pdu: Pdu) -> Future<Pdu> {
@@ -668,7 +671,7 @@ impl<S: ReadAndWrite> ClientSession<S> {
                                 pixel_height: 0,
                                 pixel_width: 0,
                             },
-                            working_dir,
+                            working_dir: working_dir.map(Into::into),
                         });
                     }
                 }

@@ -8,6 +8,7 @@ use std::cell::RefMut;
 use std::sync::{Arc, Mutex};
 use term::color::ColorPalette;
 use term::{Clipboard, KeyCode, KeyModifiers, MouseEvent, TerminalHost};
+use url::Url;
 
 static TAB_ID: ::std::sync::atomic::AtomicUsize = ::std::sync::atomic::AtomicUsize::new(0);
 pub type TabId = usize;
@@ -69,7 +70,7 @@ pub trait Tab: Downcast {
 
     fn set_clipboard(&self, _clipboard: &Arc<dyn Clipboard>) {}
 
-    fn get_current_working_dir(&self) -> Option<String>;
+    fn get_current_working_dir(&self) -> Option<Url>;
 
     fn trickle_paste(&self, text: String) -> anyhow::Result<()> {
         if text.len() <= PASTE_CHUNK_SIZE {

@@ -117,6 +117,7 @@ fn client_thread(
     let mut next_serial = 1u64;
     let mut promises = HashMap::new();
     let mut read_buffer = Vec::with_capacity(1024);
+
     loop {
         loop {
             match rx.try_recv() {
@@ -131,7 +132,13 @@ fn client_thread(
                     }
                 },
                 Err(TryRecvError::Empty) => break,
-                Err(TryRecvError::Disconnected) => bail!("Client was destroyed"),
+                Err(TryRecvError::Disconnected) => {
+                    for (_, mut promise) in promises.into_iter() {
+                        promise.result(Err(anyhow!("Client was destroyed")));
+                    }
+                    log::error!("Client Disconnected");
+                    bail!("Client was destroyed");
+                }
             };
         }
 
@@ -149,20 +156,33 @@ fn client_thread(
                 reconnectable.stream().set_non_blocking(true)?;
                 let res = Pdu::try_read_and_decode(reconnectable.stream(), &mut read_buffer);
                 reconnectable.stream().set_non_blocking(false)?;
-                if let Some(decoded) = res? {
-                    log::trace!("decoded serial {}", decoded.serial);
-                    if decoded.serial == 0 {
-                        process_unilateral(local_domain_id, decoded)?;
-                    } else if let Some(mut promise) = promises.remove(&decoded.serial) {
-                        promise.result(Ok(decoded.pdu));
-                    } else {
-                        log::error!(
-                            "got serial {} without a corresponding promise",
-                            decoded.serial
-                        );
+                match res {
+                    Ok(None) => {
+                        /* no data available right now; try again later! */
+                        break;
                     }
-                } else {
-                    break;
+                    Ok(Some(decoded)) => {
+                        log::trace!("decoded serial {}", decoded.serial);
+                        if decoded.serial == 0 {
+                            process_unilateral(local_domain_id, decoded)?;
+                        } else if let Some(mut promise) = promises.remove(&decoded.serial) {
+                            promise.result(Ok(decoded.pdu));
+                        } else {
+                            log::error!(
+                                "got serial {} without a corresponding promise",
+                                decoded.serial
+                            );
+                        }
+                        break;
+                    }
+                    Err(err) => {
+                        let reason = format!("Error while decoding response pdu: {}", err);
+                        log::error!("{}", reason);
+                        for (_, mut promise) in promises.into_iter() {
+                            promise.result(Err(anyhow!("{}", reason)));
+                        }
+                        bail!(reason);
+                    }
                 }
             }
         }
@@ -547,6 +567,9 @@ impl Client {
                             }
                         }
                     }
+                } else {
+                    log::error!("client_thread returned without any error condition");
+                    break;
                 }
             }
             Future::with_executor(executor(), move || {

@@ -1065,6 +1065,10 @@ impl TermWindow {
                 None,
             ),
         };
+        let cwd = match cwd {
+            Some(url) if url.scheme() == "file" => Some(url.path().to_string()),
+            Some(_) | None => None,
+        };
         let tab = domain.spawn(size, None, cwd, self.mux_window_id)?;
         let tab_id = tab.tab_id();
 

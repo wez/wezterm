@@ -27,6 +27,7 @@ use std::sync::Arc;
 use term::StableRowIndex;
 use termwiz::hyperlink::Hyperlink;
 use termwiz::surface::Line;
+use url::Url;
 use varbincode;
 
 /// Returns the encoded length of the leb128 representation of value
@@ -237,7 +238,7 @@ macro_rules! pdu {
 /// The overall version of the codec.
 /// This must be bumped when backwards incompatible changes
 /// are made to the types and protocol.
-pub const CODEC_VERSION: usize = 1;
+pub const CODEC_VERSION: usize = 2;
 
 // Defines the Pdu enum.
 // Each struct has an explicit identifying number.
@@ -365,13 +366,45 @@ pub struct Pong {}
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
 pub struct ListTabs {}
 
+#[derive(Deserialize, Clone, Serialize, PartialEq, Debug)]
+#[serde(try_from = "String", into = "String")]
+pub struct SerdeUrl {
+    pub url: Url,
+}
+
+impl std::convert::TryFrom<String> for SerdeUrl {
+    type Error = url::ParseError;
+    fn try_from(s: String) -> Result<SerdeUrl, url::ParseError> {
+        let url = Url::parse(&s)?;
+        Ok(SerdeUrl { url })
+    }
+}
+
+impl From<Url> for SerdeUrl {
+    fn from(url: Url) -> SerdeUrl {
+        SerdeUrl { url }
+    }
+}
+
+impl Into<Url> for SerdeUrl {
+    fn into(self) -> Url {
+        self.url
+    }
+}
+
+impl Into<String> for SerdeUrl {
+    fn into(self) -> String {
+        self.url.as_str().into()
+    }
+}
+
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
 pub struct WindowAndTabEntry {
     pub window_id: WindowId,
     pub tab_id: TabId,
     pub title: String,
     pub size: PtySize,
-    pub working_dir: Option<String>,
+    pub working_dir: Option<SerdeUrl>,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
@@ -444,7 +477,7 @@ pub struct GetTabRenderChangesResponse {
     pub dimensions: RenderableDimensions,
     pub dirty_lines: Vec<Range<StableRowIndex>>,
     pub title: String,
-    pub working_dir: Option<String>,
+    pub working_dir: Option<SerdeUrl>,
     /// Lines that the server thought we'd almost certainly
     /// want to fetch as soon as we received this response
     pub bonus_lines: SerializedLines,

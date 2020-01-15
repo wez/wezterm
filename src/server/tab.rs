@@ -28,6 +28,7 @@ use term::{
     StableRowIndex, TerminalHost,
 };
 use termwiz::input::KeyEvent;
+use url::Url;
 
 struct MouseState {
     future: Option<Future<()>>,
@@ -319,7 +320,7 @@ impl Tab for ClientTab {
         *self.mouse_grabbed.borrow()
     }
 
-    fn get_current_working_dir(&self) -> Option<String> {
+    fn get_current_working_dir(&self) -> Option<Url> {
         self.renderable.borrow().inner.borrow().working_dir.clone()
     }
 }
@@ -367,7 +368,7 @@ struct RenderableInner {
 
     lines: LruCache<StableRowIndex, LineEntry>,
     title: String,
-    working_dir: Option<String>,
+    working_dir: Option<Url>,
 
     fetch_limiter: RateLimiter,
 }
@@ -397,7 +398,7 @@ impl RenderableInner {
         self.cursor_position = delta.cursor_position;
         self.dimensions = delta.dimensions;
         self.title = delta.title;
-        self.working_dir = delta.working_dir;
+        self.working_dir = delta.working_dir.map(Into::into);
 
         let config = configuration();
         for (stable_row, line) in delta.bonus_lines.lines() {

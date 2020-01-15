@@ -219,7 +219,7 @@ pub struct TerminalState {
 
     clipboard: Option<Arc<dyn Clipboard>>,
 
-    current_dir: Option<String>,
+    current_dir: Option<Url>,
 }
 
 fn encode_modifiers(mods: KeyModifiers) -> u8 {
@@ -300,8 +300,8 @@ impl TerminalState {
         &self.title
     }
 
-    pub fn get_current_dir(&self) -> Option<&str> {
-        self.current_dir.as_ref().map(String::as_str)
+    pub fn get_current_dir(&self) -> Option<&Url> {
+        self.current_dir.as_ref()
     }
 
     /// Returns a copy of the palette.
@@ -1724,11 +1724,7 @@ impl<'a> Performer<'a> {
                 error!("Application sends SystemNotification: {}", message);
             }
             OperatingSystemCommand::CurrentWorkingDirectory(url) => {
-                let dir = match Url::parse(&url) {
-                    Ok(url) if url.scheme() == "file" => Some(url.path().to_string()),
-                    Ok(_) | Err(_) => None,
-                };
-                self.current_dir = dir;
+                self.current_dir = Url::parse(&url).ok();
             }
             OperatingSystemCommand::ChangeColorNumber(specs) => {
                 error!("ChangeColorNumber: {:?}", specs);
