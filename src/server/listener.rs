@@ -579,7 +579,7 @@ impl<S: ReadAndWrite> ClientSession<S> {
                     Ok(decoded) => {
                         log::trace!("writing pdu with serial {}", decoded.serial);
                         decoded.pdu.encode(&mut self.stream, decoded.serial)?;
-                        self.stream.flush()?;
+                        self.stream.flush().context("while flushing stream")?;
                     }
                     Err(TryRecvError::Empty) => break,
                     Err(TryRecvError::Disconnected) => bail!("ClientSession was destroyed"),
@@ -592,7 +592,7 @@ impl<S: ReadAndWrite> ClientSession<S> {
                         MuxNotification::TabOutput(tab_id) => tabs_to_output.insert(tab_id),
                     },
                     Err(TryRecvError::Empty) => break,
-                    Err(TryRecvError::Disconnected) => bail!("ClientSession was destroyed"),
+                    Err(TryRecvError::Disconnected) => bail!("mux_rx is Disconnected"),
                 };
             }
 

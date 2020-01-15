@@ -48,7 +48,11 @@ pub struct PollableSender<T> {
 
 impl<T: Send + Sync + 'static> PollableSender<T> {
     pub fn send(&self, item: T) -> anyhow::Result<()> {
-        self.write.lock().unwrap().write_all(b"x")?;
+        // Attempt to write to the pipe; if it fails due to
+        // being full, that's fine: it means that the other end
+        // is going to be signalled already so they won't miss
+        // anything if our write doesn't happen.
+        self.write.lock().unwrap().write_all(b"x").ok();
         self.sender.send(item).map_err(Error::msg)?;
         Ok(())
     }
