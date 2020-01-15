@@ -962,7 +962,7 @@ mod test {
                 }),
                 InputEvent::Key(KeyEvent {
                     modifiers: Modifiers::NONE,
-                    key: KeyCode::Delete,
+                    key: KeyCode::Backspace,
                 }),
             ],
             inputs
