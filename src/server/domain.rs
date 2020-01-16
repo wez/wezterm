@@ -6,7 +6,7 @@ use crate::mux::tab::{Tab, TabId};
 use crate::mux::window::WindowId;
 use crate::mux::Mux;
 use crate::server::client::Client;
-use crate::server::codec::{GetCodecVersion, Spawn, CODEC_VERSION};
+use crate::server::codec::{GetCodecVersion, ListTabsResponse, Spawn, CODEC_VERSION};
 use crate::server::tab::ClientTab;
 use anyhow::{anyhow, bail};
 use portable_pty::{CommandBuilder, PtySize};
@@ -146,7 +146,11 @@ impl ClientDomain {
         None
     }
 
-    fn finish_attach(domain_id: DomainId, client: Client) -> anyhow::Result<()> {
+    fn finish_attach(
+        domain_id: DomainId,
+        client: Client,
+        tabs: ListTabsResponse,
+    ) -> anyhow::Result<()> {
         let mux = Mux::get().unwrap();
         let domain = mux
             .get_domain(domain_id)
@@ -158,7 +162,6 @@ impl ClientDomain {
         let inner = Arc::new(ClientInner::new(domain_id, client));
         *domain.inner.borrow_mut() = Some(Arc::clone(&inner));
 
-        let tabs = inner.client.list_tabs().wait()?;
         log::debug!("ListTabs result {:#?}", tabs);
 
         for entry in tabs.tabs.iter() {
@@ -296,8 +299,16 @@ impl Domain for ClientDomain {
                         }
                     };
 
+                    let tabs = match client.list_tabs().wait() {
+                        Ok(tabs) => tabs,
+                        Err(err) => {
+                            promise.result(Err(err));
+                            return;
+                        }
+                    };
+
                     Future::with_executor(executor(), move || {
-                        promise.result(ClientDomain::finish_attach(domain_id, client));
+                        promise.result(ClientDomain::finish_attach(domain_id, client, tabs));
                         drop(activity);
                         Ok(())
                     });
