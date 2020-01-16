@@ -813,10 +813,7 @@ impl WindowOps for WaylandWindow {
 }
 
 fn write_pipe_with_timeout(mut file: FileDescriptor, data: &[u8]) -> anyhow::Result<()> {
-    let on: libc::c_int = 1;
-    unsafe {
-        libc::ioctl(file.as_raw_fd(), libc::FIONBIO, &on);
-    }
+    file.set_non_blocking(true)?;
     let mut pfd = libc::pollfd {
         fd: file.as_raw_fd(),
         events: libc::POLLOUT,
@@ -847,10 +844,7 @@ fn write_pipe_with_timeout(mut file: FileDescriptor, data: &[u8]) -> anyhow::Res
 fn read_pipe_with_timeout(mut file: FileDescriptor) -> anyhow::Result<String> {
     let mut result = Vec::new();
 
-    let on: libc::c_int = 1;
-    unsafe {
-        libc::ioctl(file.as_raw_fd(), libc::FIONBIO, &on);
-    }
+    file.set_non_blocking(true)?;
     let mut pfd = libc::pollfd {
         fd: file.as_raw_fd(),
         events: libc::POLLIN,

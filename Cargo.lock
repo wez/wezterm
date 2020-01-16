@@ -719,7 +719,7 @@ dependencies = [
 
 [[package]]
 name = "filedescriptor"
-version = "0.6.0"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "anyhow 1.0.26 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1739,7 +1739,7 @@ version = "0.2.0"
 dependencies = [
  "anyhow 1.0.26 (registry+https://github.com/rust-lang/crates.io-index)",
  "bitflags 1.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "filedescriptor 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "filedescriptor 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 1.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.66 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.4.8 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2509,7 +2509,7 @@ dependencies = [
  "bitflags 1.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "cassowary 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "derive_builder 0.7.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "filedescriptor 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "filedescriptor 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "fnv 1.0.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.66 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.4.8 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2836,7 +2836,7 @@ dependencies = [
  "euclid 0.20.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "failure 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "failure_derive 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
- "filedescriptor 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "filedescriptor 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "font-kit 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "font-loader 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "fontconfig 0.1.0",
@@ -2944,7 +2944,7 @@ dependencies = [
  "core-foundation 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "core-graphics 0.19.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.20.7 (registry+https://github.com/rust-lang/crates.io-index)",
- "filedescriptor 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "filedescriptor 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "gl_generator 0.13.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "glium 0.26.0-alpha6 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 1.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3187,7 +3187,7 @@ dependencies = [
 "checksum expat-sys 2.1.6 (registry+https://github.com/rust-lang/crates.io-index)" = "658f19728920138342f68408b7cf7644d90d4784353d8ebc32e7e8663dbe45fa"
 "checksum failure 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)" = "f8273f13c977665c5db7eb2b99ae520952fe5ac831ae4cd09d80c4c7042b5ed9"
 "checksum failure_derive 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)" = "0bc225b78e0391e4b8683440bf2e63c2deeeb2ce5189eab46e2b68c6d3725d08"
-"checksum filedescriptor 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)" = "08f0c21550f7dab3f61284df9ad7fbd094c667daa33fac908e90e168cb0ff9b7"
+"checksum filedescriptor 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)" = "2635e33a91cc1551a5e6b0e7386529add2874da81ed0db79134a2c2ad65b3efb"
 "checksum filetime 0.2.8 (registry+https://github.com/rust-lang/crates.io-index)" = "1ff6d4dab0aa0c8e6346d46052e93b13a16cf847b54ed357087c35011048cc7d"
 "checksum flate2 1.0.13 (registry+https://github.com/rust-lang/crates.io-index)" = "6bd6d6f4752952feb71363cffc9ebac9411b75b87c6ab6058c40c8900cf43c0f"
 "checksum float-ord 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "7bad48618fdb549078c333a7a8528acb57af271d0433bdecd523eb620628364e"

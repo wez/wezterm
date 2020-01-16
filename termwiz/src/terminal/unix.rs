@@ -60,13 +60,7 @@ impl TtyReadHandle {
     }
 
     fn set_blocking(&mut self, blocking: Blocking) -> Result<(), Error> {
-        let value: libc::c_int = match blocking {
-            Blocking::Wait => 0,
-            Blocking::DoNotWait => 1,
-        };
-        if unsafe { libc::ioctl(self.fd.as_raw_fd(), libc::FIONBIO, &value as *const _) } != 0 {
-            bail!("failed to ioctl(FIONBIO): {:?}", IoError::last_os_error());
-        }
+        self.fd.set_non_blocking(blocking == Blocking::DoNotWait)?;
         Ok(())
     }
 }

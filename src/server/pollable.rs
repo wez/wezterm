@@ -97,14 +97,10 @@ impl<T> AsPollFd for PollableReceiver<T> {
 /// windows 10 w/unix domain socket support.
 pub fn pollable_channel<T>() -> anyhow::Result<(PollableSender<T>, PollableReceiver<T>)> {
     let (sender, receiver) = channel();
-    let (write, read) = socketpair()?;
+    let (mut write, mut read) = socketpair()?;
 
-    #[cfg(unix)]
-    unsafe {
-        let on = 1;
-        libc::ioctl(write.as_raw_file_descriptor(), libc::FIONBIO, &on);
-        libc::ioctl(read.as_raw_file_descriptor(), libc::FIONBIO, &on);
-    }
+    write.set_non_blocking(true)?;
+    read.set_non_blocking(true)?;
 
     Ok((
         PollableSender {

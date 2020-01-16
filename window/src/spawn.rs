@@ -123,12 +123,9 @@ impl SpawnQueue {
         // We can't affort to use a blocking pipe for the wakeup
         // because the write needs to hold a mutex and that
         // can block reads as well as other writers.
-        let pipe = Pipe::new().map_err(anyhow::Error::msg)?;
-        let on = 1;
-        unsafe {
-            libc::ioctl(pipe.write.as_raw_fd(), libc::FIONBIO, &on);
-            libc::ioctl(pipe.read.as_raw_fd(), libc::FIONBIO, &on);
-        }
+        let mut pipe = Pipe::new()?;
+        pipe.write.set_non_blocking(true)?;
+        pipe.read.set_non_blocking(true)?;
         Ok(Self {
             spawned_funcs: Mutex::new(VecDeque::new()),
             spawned_funcs_low_pri: Mutex::new(VecDeque::new()),

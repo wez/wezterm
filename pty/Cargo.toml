@@ -10,7 +10,7 @@ documentation = "https://docs.rs/portable-pty"
 
 [dependencies]
 anyhow = "1.0"
-filedescriptor = "0.6"
+filedescriptor = "0.7"
 log = "0.4"
 libc = "0.2"
 shell-words = "0.1"

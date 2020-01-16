@@ -47,7 +47,7 @@ winapi = { version = "0.3", features = [
 clipboard-win = "2.2"
 
 [target.'cfg(all(unix, not(target_os = "macos")))'.dependencies]
-filedescriptor = "0.6"
+filedescriptor = "0.7"
 x11 = {version ="2.18", features = ["xlib_xcb"]}
 xcb = "0.8"
 # See: https://github.com/meh/rust-xcb-util/issues/12
