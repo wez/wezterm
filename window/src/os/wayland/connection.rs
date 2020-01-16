@@ -4,7 +4,6 @@ use super::pointer::*;
 use super::window::*;
 use crate::connection::ConnectionOps;
 use crate::spawn::*;
-use crate::tasks::{Task, Tasks};
 use crate::timerlist::{TimerEntry, TimerList};
 use crate::Connection;
 use anyhow::{bail, Context};
@@ -24,7 +23,6 @@ use toolkit::Environment;
 pub struct WaylandConnection {
     should_terminate: RefCell<bool>,
     timers: RefCell<TimerList>,
-    pub(crate) tasks: Tasks,
     pub(crate) next_window_id: AtomicUsize,
     pub(crate) windows: RefCell<HashMap<usize, Rc<RefCell<WaylandWindowInner>>>>,
 
@@ -103,7 +101,6 @@ impl WaylandConnection {
             environment: RefCell::new(environment),
             should_terminate: RefCell::new(false),
             timers: RefCell::new(TimerList::new()),
-            tasks: Default::default(),
             next_window_id: AtomicUsize::new(1),
             windows: RefCell::new(HashMap::new()),
             seat,
@@ -181,13 +178,11 @@ impl WaylandConnection {
 }
 
 impl ConnectionOps for WaylandConnection {
-    fn spawn_task<F: std::future::Future<Output = ()> + 'static>(&self, future: F) {
-        let id = self.tasks.add_task(Task(Box::pin(future)));
-        Connection::wake_task_by_id(id);
-    }
-
-    fn wake_task_by_id(_slot: usize) {
-        panic!("use Connection::wake_task_by_id instead of WaylandConnection::wake_task_by_id");
+    fn spawn_task<F: std::future::Future<Output = ()> + 'static>(
+        &self,
+        future: F,
+    ) -> async_task::JoinHandle<(), ()> {
+        SPAWN_QUEUE.spawn_task(future)
     }
 
     fn terminate_message_loop(&self) {

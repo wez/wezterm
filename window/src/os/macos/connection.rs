@@ -4,7 +4,6 @@
 use super::window::WindowInner;
 use crate::connection::ConnectionOps;
 use crate::spawn::*;
-use crate::tasks::{Task, Tasks};
 use cocoa::appkit::{NSApp, NSApplication, NSApplicationActivationPolicyRegular};
 use cocoa::base::{id, nil};
 use core_foundation::date::CFAbsoluteTimeGetCurrent;
@@ -20,7 +19,6 @@ pub struct Connection {
     ns_app: id,
     pub(crate) windows: RefCell<HashMap<usize, Rc<RefCell<WindowInner>>>>,
     pub(crate) next_window_id: AtomicUsize,
-    tasks: Tasks,
 }
 
 impl Connection {
@@ -35,7 +33,6 @@ impl Connection {
             let conn = Self {
                 ns_app,
                 windows: RefCell::new(HashMap::new()),
-                tasks: Default::default(),
                 next_window_id: AtomicUsize::new(1),
             };
             Ok(conn)
@@ -97,16 +94,11 @@ impl ConnectionOps for Connection {
         Ok(())
     }
 
-    fn spawn_task<F: std::future::Future<Output = ()> + 'static>(&self, future: F) {
-        let id = self.tasks.add_task(Task(Box::pin(future)));
-        Self::wake_task_by_id(id);
-    }
-
-    fn wake_task_by_id(slot: usize) {
-        SpawnQueueExecutor {}.execute(Box::new(move || {
-            let conn = Connection::get().unwrap();
-            conn.tasks.poll_by_slot(slot);
-        }));
+    fn spawn_task<F: std::future::Future<Output = ()> + 'static>(
+        &self,
+        future: F,
+    ) -> async_task::JoinHandle<(), ()> {
+        SPAWN_QUEUE.spawn_task(future)
     }
 
     fn schedule_timer<F: FnMut() + 'static>(&self, interval: std::time::Duration, callback: F) {

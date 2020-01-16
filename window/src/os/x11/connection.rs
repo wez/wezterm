@@ -3,7 +3,6 @@ use crate::connection::ConnectionOps;
 use crate::os::x11::window::XWindowInner;
 use crate::os::Connection;
 use crate::spawn::*;
-use crate::tasks::{Task, Tasks};
 use crate::timerlist::{TimerEntry, TimerList};
 use anyhow::{anyhow, bail};
 use mio::unix::EventedFd;
@@ -33,7 +32,6 @@ pub struct XConnection {
     pub(crate) windows: RefCell<HashMap<xcb::xproto::Window, Arc<Mutex<XWindowInner>>>>,
     should_terminate: RefCell<bool>,
     pub(crate) shm_available: bool,
-    pub(crate) tasks: Tasks,
     timers: RefCell<TimerList>,
     pub(crate) visual: xcb::xproto::Visualtype,
 }
@@ -168,13 +166,11 @@ fn server_supports_shm() -> bool {
 }
 
 impl ConnectionOps for XConnection {
-    fn spawn_task<F: std::future::Future<Output = ()> + 'static>(&self, future: F) {
-        let id = self.tasks.add_task(Task(Box::pin(future)));
-        Connection::wake_task_by_id(id);
-    }
-
-    fn wake_task_by_id(_slot: usize) {
-        panic!("call wake_task_by_id on Connection rather than XConnection");
+    fn spawn_task<F: std::future::Future<Output = ()> + 'static>(
+        &self,
+        future: F,
+    ) -> async_task::JoinHandle<(), ()> {
+        SPAWN_QUEUE.spawn_task(future)
     }
 
     fn terminate_message_loop(&self) {
@@ -398,7 +394,6 @@ impl XConnection {
             windows: RefCell::new(HashMap::new()),
             should_terminate: RefCell::new(false),
             shm_available,
-            tasks: Default::default(),
             timers: RefCell::new(TimerList::new()),
             visual,
         };

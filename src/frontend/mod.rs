@@ -64,12 +64,14 @@ pub fn front_end() -> Option<Rc<dyn FrontEnd>> {
     res
 }
 
-pub fn spawn_task<F: std::future::Future<Output = ()> + 'static>(future: F) {
+pub fn spawn_task<F: std::future::Future<Output = ()> + 'static>(
+    future: F,
+) -> async_task::JoinHandle<(), ()> {
     let frontend = front_end().expect("spawn_task must be called from the gui thread");
     if let Some(frontend) = frontend.downcast_ref::<MuxServerFrontEnd>() {
-        frontend.spawn_task(future);
+        frontend.spawn_task(future)
     } else {
-        window::Connection::get().unwrap().spawn_task(future);
+        window::Connection::get().unwrap().spawn_task(future)
     }
 }
 

@@ -75,14 +75,6 @@ impl Connection {
         }
     }
 
-    fn do_wake_task_by_id(&self, slot: usize) {
-        match self {
-            Self::X11(x) => x.tasks.poll_by_slot(slot),
-            #[cfg(feature = "wayland")]
-            Self::Wayland(w) => w.tasks.poll_by_slot(slot),
-        };
-    }
-
     pub(crate) fn x11(&self) -> Rc<XConnection> {
         match self {
             Self::X11(x) => Rc::clone(x),
@@ -109,20 +101,13 @@ impl Connection {
 }
 
 impl ConnectionOps for Connection {
-    fn spawn_task<F: std::future::Future<Output = ()> + 'static>(&self, future: F) {
-        match self {
-            Self::X11(x) => x.spawn_task(future),
-            #[cfg(feature = "wayland")]
-            Self::Wayland(w) => w.spawn_task(future),
-        }
+    fn spawn_task<F: std::future::Future<Output = ()> + 'static>(
+        &self,
+        future: F,
+    ) -> async_task::JoinHandle<(), ()> {
+        SPAWN_QUEUE.spawn_task(future)
     }
 
-    fn wake_task_by_id(slot: usize) {
-        SpawnQueueExecutor {}.execute(Box::new(move || {
-            let conn = Connection::get().unwrap();
-            conn.do_wake_task_by_id(slot);
-        }));
-    }
     fn terminate_message_loop(&self) {
         match self {
             Self::X11(x) => x.terminate_message_loop(),

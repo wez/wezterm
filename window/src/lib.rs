@@ -6,7 +6,6 @@ pub mod connection;
 pub mod input;
 pub mod os;
 mod spawn;
-mod tasks;
 mod timerlist;
 
 #[cfg(all(

@@ -2,7 +2,6 @@
 use super::{HWindow, WindowInner};
 use crate::connection::ConnectionOps;
 use crate::spawn::*;
-use crate::tasks::{Task, Tasks};
 use promise::BasicExecutor;
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -19,7 +18,6 @@ use winapi::um::winuser::*;
 pub struct Connection {
     event_handle: HANDLE,
     pub(crate) windows: RefCell<HashMap<HWindow, Rc<RefCell<WindowInner>>>>,
-    tasks: Tasks,
     timers: RefCell<HashMap<UINT_PTR, UINT_PTR>>,
 }
 
@@ -58,15 +56,7 @@ impl ConnectionOps for Connection {
     }
 
     fn spawn_task<F: std::future::Future<Output = ()> + 'static>(&self, future: F) {
-        let id = self.tasks.add_task(Task(Box::pin(future)));
-        Self::wake_task_by_id(id);
-    }
-
-    fn wake_task_by_id(slot: usize) {
-        SpawnQueueExecutor {}.execute(Box::new(move || {
-            let conn = Connection::get().unwrap();
-            conn.tasks.poll_by_slot(slot);
-        }));
+        SPAWN_QUEUE.spawn_task(future);
     }
 
     fn schedule_timer<F: FnMut() + 'static>(&self, interval: std::time::Duration, callback: F) {
@@ -112,7 +102,6 @@ impl Connection {
             event_handle,
             windows: RefCell::new(HashMap::new()),
             timers: RefCell::new(HashMap::new()),
-            tasks: Default::default(),
         })
     }
 

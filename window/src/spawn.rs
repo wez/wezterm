@@ -64,6 +64,19 @@ impl SpawnQueue {
         }
     }
 
+    pub fn spawn_task<F: std::future::Future<Output = ()> + 'static>(
+        &self,
+        future: F,
+    ) -> async_task::JoinHandle<(), ()> {
+        let (task, handle) = async_task::spawn_local(
+            future,
+            move |task| SPAWN_QUEUE.spawn(Box::new(move || task.run())),
+            (),
+        );
+        task.schedule();
+        handle
+    }
+
     fn queue_func(&self, f: SpawnFunc, high_pri: bool) {
         let f = InstrumentedSpawnFunc {
             func: f,

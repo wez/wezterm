@@ -15,6 +15,7 @@ pretty_env_logger = "0.3"
 gl_generator = {version="0.13", optional=true}
 
 [dependencies]
+async-task = "1.2"
 anyhow = "1.0"
 thiserror = "1.0"
 bitflags = "1.0"
