@@ -1,5 +1,4 @@
 use crate::config::{configuration, SshDomain, TlsDomainClient, UnixDomain};
-use crate::frontend::executor;
 use crate::mux::domain::alloc_domain_id;
 use crate::mux::domain::DomainId;
 use crate::mux::Mux;
@@ -70,7 +69,7 @@ macro_rules! rpc {
 fn process_unilateral(local_domain_id: DomainId, decoded: DecodedPdu) -> anyhow::Result<()> {
     if let Some(tab_id) = decoded.pdu.tab_id() {
         let pdu = decoded.pdu;
-        Future::with_executor(executor(), move || {
+        promise::spawn::spawn_into_main_thread(async move {
             let mux = Mux::get().unwrap();
             let client_domain = mux
                 .get_domain(local_domain_id)
@@ -572,7 +571,8 @@ impl Client {
                     break;
                 }
             }
-            Future::with_executor(executor(), move || {
+
+            async fn detach(local_domain_id: DomainId) -> anyhow::Result<()> {
                 let mux = Mux::get().unwrap();
                 let client_domain = mux
                     .get_domain(local_domain_id)
@@ -585,6 +585,9 @@ impl Client {
                         })?;
                 client_domain.perform_detach();
                 Ok(())
+            }
+            promise::spawn::spawn_into_main_thread(async move {
+                detach(local_domain_id).await.ok();
             });
         });
 

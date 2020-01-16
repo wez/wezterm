@@ -5,7 +5,7 @@
 
 use crate::config::configuration;
 use crate::font::FontConfiguration;
-use crate::frontend::{front_end};
+use crate::frontend::front_end;
 use crate::mux::domain::{alloc_domain_id, Domain, DomainId, DomainState};
 use crate::mux::renderable::{Renderable, RenderableDimensions, StableCursorPosition};
 use crate::mux::tab::{alloc_tab_id, Tab, TabId};

@@ -1,6 +1,5 @@
 use crate::config::{configuration, TlsDomainServer, UnixDomain};
 use crate::create_user_owned_dirs;
-use crate::frontend::executor;
 use crate::mux::renderable::{RenderableDimensions, StableCursorPosition};
 use crate::mux::tab::{Tab, TabId};
 use crate::mux::{Mux, MuxNotification, MuxSubscriber};
@@ -14,7 +13,7 @@ use libc::{mode_t, umask};
 use log::{debug, error};
 use native_tls::Identity;
 use portable_pty::PtySize;
-use promise::Future;
+use promise::spawn::spawn_into_main_thread;
 use rangeset::RangeSet;
 use std::collections::{HashMap, HashSet};
 use std::convert::TryFrom;
@@ -43,10 +42,9 @@ impl LocalListener {
         for stream in self.listener.incoming() {
             match stream {
                 Ok(stream) => {
-                    Future::with_executor(executor(), move || {
+                    spawn_into_main_thread(async move {
                         let mut session = ClientSession::new(stream);
                         thread::spawn(move || session.run());
-                        Ok(())
                     });
                 }
                 Err(err) => {
@@ -180,10 +178,9 @@ mod not_ossl {
 
                         match acceptor.accept(stream) {
                             Ok(stream) => {
-                                Future::with_executor(executor(), move || {
+                                spawn_into_main_thread(async move {
                                     let mut session = ClientSession::new(stream);
                                     thread::spawn(move || session.run());
-                                    Ok(())
                                 });
                             }
                             Err(e) => {
@@ -304,10 +301,9 @@ mod ossl {
                                     break;
                                 }
 
-                                Future::with_executor(executor(), move || {
+                                spawn_into_main_thread(async move {
                                     let mut session = ClientSession::new(stream);
                                     thread::spawn(move || session.run());
-                                    Ok(())
                                 });
                             }
                             Err(e) => {
@@ -599,13 +595,13 @@ impl<S: ReadAndWrite> ClientSession<S> {
             for tab_id in tabs_to_output.drain() {
                 let sender = self.to_write_tx.clone();
                 let per_tab = self.per_tab(tab_id);
-                Future::with_executor(executor(), move || {
+                spawn_into_main_thread(async move {
                     let mux = Mux::get().unwrap();
                     let tab = mux
                         .get_tab(tab_id)
                         .ok_or_else(|| anyhow!("no such tab {}", tab_id))?;
                     maybe_push_tab_changes(&tab, sender, per_tab)?;
-                    Ok(())
+                    Ok::<(), anyhow::Error>(())
                 });
             }
 
@@ -638,7 +634,8 @@ impl<S: ReadAndWrite> ClientSession<S> {
         let start = Instant::now();
         let sender = self.to_write_tx.clone();
         let serial = decoded.serial;
-        self.process_pdu(decoded.pdu).then(move |result| {
+
+        let send_response = move |result: anyhow::Result<Pdu>| {
             let pdu = match result {
                 Ok(pdu) => pdu,
                 Err(err) => Pdu::ErrorResponse(ErrorResponse {
@@ -646,187 +643,248 @@ impl<S: ReadAndWrite> ClientSession<S> {
                 }),
             };
             log::trace!("{} processing time {:?}", serial, start.elapsed());
-            sender.send(DecodedPdu { pdu, serial })
-        });
-    }
+            sender
+                .send(DecodedPdu { pdu, serial })
+                .expect("failed to send DecodedPdu to sender")
+        };
 
-    fn process_pdu(&mut self, pdu: Pdu) -> Future<Pdu> {
-        match pdu {
-            Pdu::Ping(Ping {}) => Future::ok(Pdu::Pong(Pong {})),
-            Pdu::ListTabs(ListTabs {}) => Future::with_executor(executor(), move || {
-                let mux = Mux::get().unwrap();
-                let mut tabs = vec![];
-                for window_id in mux.iter_windows().into_iter() {
-                    let window = mux.get_window(window_id).unwrap();
-                    for tab in window.iter() {
-                        let dims = tab.renderer().get_dimensions();
-                        let working_dir = tab.get_current_working_dir();
-                        tabs.push(WindowAndTabEntry {
-                            window_id,
-                            tab_id: tab.tab_id(),
-                            title: tab.get_title(),
-                            size: PtySize {
-                                cols: dims.cols as u16,
-                                rows: dims.viewport_rows as u16,
-                                pixel_height: 0,
-                                pixel_width: 0,
-                            },
-                            working_dir: working_dir.map(Into::into),
-                        });
-                    }
-                }
-                log::error!("ListTabs {:#?}", tabs);
-                Ok(Pdu::ListTabsResponse(ListTabsResponse { tabs }))
-            }),
+        fn catch<F, SND>(f: F, send_response: SND)
+        where
+            F: FnOnce() -> anyhow::Result<Pdu>,
+            SND: Fn(anyhow::Result<Pdu>),
+        {
+            send_response(f());
+        }
+
+        match decoded.pdu {
+            Pdu::Ping(Ping {}) => send_response(Ok(Pdu::Pong(Pong {}))),
+            Pdu::ListTabs(ListTabs {}) => {
+                spawn_into_main_thread(async move {
+                    catch(
+                        move || {
+                            let mux = Mux::get().unwrap();
+                            let mut tabs = vec![];
+                            for window_id in mux.iter_windows().into_iter() {
+                                let window = mux.get_window(window_id).unwrap();
+                                for tab in window.iter() {
+                                    let dims = tab.renderer().get_dimensions();
+                                    let working_dir = tab.get_current_working_dir();
+                                    tabs.push(WindowAndTabEntry {
+                                        window_id,
+                                        tab_id: tab.tab_id(),
+                                        title: tab.get_title(),
+                                        size: PtySize {
+                                            cols: dims.cols as u16,
+                                            rows: dims.viewport_rows as u16,
+                                            pixel_height: 0,
+                                            pixel_width: 0,
+                                        },
+                                        working_dir: working_dir.map(Into::into),
+                                    });
+                                }
+                            }
+                            log::error!("ListTabs {:#?}", tabs);
+                            Ok(Pdu::ListTabsResponse(ListTabsResponse { tabs }))
+                        },
+                        send_response,
+                    )
+                });
+            }
 
             Pdu::WriteToTab(WriteToTab { tab_id, data }) => {
                 let sender = self.to_write_tx.clone();
                 let per_tab = self.per_tab(tab_id);
-                Future::with_executor(executor(), move || {
-                    let mux = Mux::get().unwrap();
-                    let tab = mux
-                        .get_tab(tab_id)
-                        .ok_or_else(|| anyhow!("no such tab {}", tab_id))?;
-                    tab.writer().write_all(&data)?;
-                    maybe_push_tab_changes(&tab, sender, per_tab)?;
-                    Ok(Pdu::UnitResponse(UnitResponse {}))
-                })
+                spawn_into_main_thread(async move {
+                    catch(
+                        move || {
+                            let mux = Mux::get().unwrap();
+                            let tab = mux
+                                .get_tab(tab_id)
+                                .ok_or_else(|| anyhow!("no such tab {}", tab_id))?;
+                            tab.writer().write_all(&data)?;
+                            maybe_push_tab_changes(&tab, sender, per_tab)?;
+                            Ok(Pdu::UnitResponse(UnitResponse {}))
+                        },
+                        send_response,
+                    );
+                });
             }
             Pdu::SendPaste(SendPaste { tab_id, data }) => {
                 let sender = self.to_write_tx.clone();
                 let per_tab = self.per_tab(tab_id);
-                Future::with_executor(executor(), move || {
-                    let mux = Mux::get().unwrap();
-                    let tab = mux
-                        .get_tab(tab_id)
-                        .ok_or_else(|| anyhow!("no such tab {}", tab_id))?;
-                    tab.send_paste(&data)?;
-                    maybe_push_tab_changes(&tab, sender, per_tab)?;
-                    Ok(Pdu::UnitResponse(UnitResponse {}))
-                })
+                spawn_into_main_thread(async move {
+                    catch(
+                        move || {
+                            let mux = Mux::get().unwrap();
+                            let tab = mux
+                                .get_tab(tab_id)
+                                .ok_or_else(|| anyhow!("no such tab {}", tab_id))?;
+                            tab.send_paste(&data)?;
+                            maybe_push_tab_changes(&tab, sender, per_tab)?;
+                            Ok(Pdu::UnitResponse(UnitResponse {}))
+                        },
+                        send_response,
+                    )
+                });
             }
 
-            Pdu::Resize(Resize { tab_id, size }) => Future::with_executor(executor(), move || {
-                let mux = Mux::get().unwrap();
-                let tab = mux
-                    .get_tab(tab_id)
-                    .ok_or_else(|| anyhow!("no such tab {}", tab_id))?;
-                tab.resize(size)?;
-                Ok(Pdu::UnitResponse(UnitResponse {}))
-            }),
+            Pdu::Resize(Resize { tab_id, size }) => {
+                spawn_into_main_thread(async move {
+                    catch(
+                        move || {
+                            let mux = Mux::get().unwrap();
+                            let tab = mux
+                                .get_tab(tab_id)
+                                .ok_or_else(|| anyhow!("no such tab {}", tab_id))?;
+                            tab.resize(size)?;
+                            Ok(Pdu::UnitResponse(UnitResponse {}))
+                        },
+                        send_response,
+                    )
+                });
+            }
 
             Pdu::SendKeyDown(SendKeyDown { tab_id, event }) => {
                 let sender = self.to_write_tx.clone();
                 let per_tab = self.per_tab(tab_id);
-                Future::with_executor(executor(), move || {
-                    let mux = Mux::get().unwrap();
-                    let tab = mux
-                        .get_tab(tab_id)
-                        .ok_or_else(|| anyhow!("no such tab {}", tab_id))?;
-                    tab.key_down(event.key, event.modifiers)?;
-                    maybe_push_tab_changes(&tab, sender, per_tab)?;
-                    Ok(Pdu::UnitResponse(UnitResponse {}))
-                })
+                spawn_into_main_thread(async move {
+                    catch(
+                        move || {
+                            let mux = Mux::get().unwrap();
+                            let tab = mux
+                                .get_tab(tab_id)
+                                .ok_or_else(|| anyhow!("no such tab {}", tab_id))?;
+                            tab.key_down(event.key, event.modifiers)?;
+                            maybe_push_tab_changes(&tab, sender, per_tab)?;
+                            Ok(Pdu::UnitResponse(UnitResponse {}))
+                        },
+                        send_response,
+                    )
+                });
             }
             Pdu::SendMouseEvent(SendMouseEvent { tab_id, event }) => {
                 let sender = self.to_write_tx.clone();
                 let per_tab = self.per_tab(tab_id);
-                Future::with_executor(executor(), move || {
-                    let mux = Mux::get().unwrap();
-                    let tab = mux
-                        .get_tab(tab_id)
-                        .ok_or_else(|| anyhow!("no such tab {}", tab_id))?;
-                    let mut host = BufferedTerminalHost {
-                        write: tab.writer(),
-                        title: None,
-                    };
-                    tab.mouse_event(event, &mut host)?;
-                    maybe_push_tab_changes(&tab, sender, per_tab)?;
-                    Ok(Pdu::UnitResponse(UnitResponse {}))
-                })
+                spawn_into_main_thread(async move {
+                    catch(
+                        move || {
+                            let mux = Mux::get().unwrap();
+                            let tab = mux
+                                .get_tab(tab_id)
+                                .ok_or_else(|| anyhow!("no such tab {}", tab_id))?;
+                            let mut host = BufferedTerminalHost {
+                                write: tab.writer(),
+                                title: None,
+                            };
+                            tab.mouse_event(event, &mut host)?;
+                            maybe_push_tab_changes(&tab, sender, per_tab)?;
+                            Ok(Pdu::UnitResponse(UnitResponse {}))
+                        },
+                        send_response,
+                    )
+                });
             }
 
-            Pdu::Spawn(spawn) => Future::with_executor(executor(), {
+            Pdu::Spawn(spawn) => {
                 let sender = self.to_write_tx.clone();
-                move || {
-                    let mux = Mux::get().unwrap();
-                    let domain = mux.get_domain(spawn.domain_id).ok_or_else(|| {
-                        anyhow!("domain {} not found on this server", spawn.domain_id)
-                    })?;
+                spawn_into_main_thread(async move {
+                    catch(
+                        move || {
+                            let mux = Mux::get().unwrap();
+                            let domain = mux.get_domain(spawn.domain_id).ok_or_else(|| {
+                                anyhow!("domain {} not found on this server", spawn.domain_id)
+                            })?;
 
-                    let window_id = if let Some(window_id) = spawn.window_id {
-                        mux.get_window_mut(window_id).ok_or_else(|| {
-                            anyhow!("window_id {} not found on this server", window_id)
-                        })?;
-                        window_id
-                    } else {
-                        mux.new_empty_window()
-                    };
+                            let window_id = if let Some(window_id) = spawn.window_id {
+                                mux.get_window_mut(window_id).ok_or_else(|| {
+                                    anyhow!("window_id {} not found on this server", window_id)
+                                })?;
+                                window_id
+                            } else {
+                                mux.new_empty_window()
+                            };
 
-                    let tab =
-                        domain.spawn(spawn.size, spawn.command, spawn.command_dir, window_id)?;
+                            let tab = domain.spawn(
+                                spawn.size,
+                                spawn.command,
+                                spawn.command_dir,
+                                window_id,
+                            )?;
 
-                    let clip: Arc<dyn Clipboard> = Arc::new(RemoteClipboard {
-                        tab_id: tab.tab_id(),
-                        sender,
-                    });
-                    tab.set_clipboard(&clip);
+                            let clip: Arc<dyn Clipboard> = Arc::new(RemoteClipboard {
+                                tab_id: tab.tab_id(),
+                                sender,
+                            });
+                            tab.set_clipboard(&clip);
 
-                    Ok(Pdu::SpawnResponse(SpawnResponse {
-                        tab_id: tab.tab_id(),
-                        window_id,
-                    }))
-                }
-            }),
+                            Ok(Pdu::SpawnResponse(SpawnResponse {
+                                tab_id: tab.tab_id(),
+                                window_id,
+                            }))
+                        },
+                        send_response,
+                    )
+                });
+            }
 
             Pdu::GetTabRenderChanges(GetTabRenderChanges { tab_id, .. }) => {
                 let sender = self.to_write_tx.clone();
                 let per_tab = self.per_tab(tab_id);
-                Future::with_executor(executor(), move || {
-                    let mux = Mux::get().unwrap();
-                    let tab = mux
-                        .get_tab(tab_id)
-                        .ok_or_else(|| anyhow!("no such tab {}", tab_id))?;
-                    maybe_push_tab_changes(&tab, sender, per_tab)?;
-                    Ok(Pdu::UnitResponse(UnitResponse {}))
-                })
+                spawn_into_main_thread(async move {
+                    catch(
+                        move || {
+                            let mux = Mux::get().unwrap();
+                            let tab = mux
+                                .get_tab(tab_id)
+                                .ok_or_else(|| anyhow!("no such tab {}", tab_id))?;
+                            maybe_push_tab_changes(&tab, sender, per_tab)?;
+                            Ok(Pdu::UnitResponse(UnitResponse {}))
+                        },
+                        send_response,
+                    )
+                });
             }
 
             Pdu::GetLines(GetLines { tab_id, lines }) => {
                 let per_tab = self.per_tab(tab_id);
-                Future::with_executor(executor(), move || {
-                    let mux = Mux::get().unwrap();
-                    let tab = mux
-                        .get_tab(tab_id)
-                        .ok_or_else(|| anyhow!("no such tab {}", tab_id))?;
-                    let mut renderer = tab.renderer();
+                spawn_into_main_thread(async move {
+                    catch(
+                        move || {
+                            let mux = Mux::get().unwrap();
+                            let tab = mux
+                                .get_tab(tab_id)
+                                .ok_or_else(|| anyhow!("no such tab {}", tab_id))?;
+                            let mut renderer = tab.renderer();
 
-                    let mut lines_and_indices = vec![];
-                    let mut per_tab = per_tab.lock().unwrap();
+                            let mut lines_and_indices = vec![];
+                            let mut per_tab = per_tab.lock().unwrap();
 
-                    for range in lines {
-                        let (first_row, lines) = renderer.get_lines(range);
-                        for (idx, line) in lines.into_iter().enumerate() {
-                            let stable_row = first_row + idx as StableRowIndex;
-                            per_tab.mark_clean(stable_row);
-                            lines_and_indices.push((stable_row, line));
-                        }
-                    }
-                    Ok(Pdu::GetLinesResponse(GetLinesResponse {
-                        tab_id,
-                        lines: lines_and_indices.into(),
-                    }))
-                })
+                            for range in lines {
+                                let (first_row, lines) = renderer.get_lines(range);
+                                for (idx, line) in lines.into_iter().enumerate() {
+                                    let stable_row = first_row + idx as StableRowIndex;
+                                    per_tab.mark_clean(stable_row);
+                                    lines_and_indices.push((stable_row, line));
+                                }
+                            }
+                            Ok(Pdu::GetLinesResponse(GetLinesResponse {
+                                tab_id,
+                                lines: lines_and_indices.into(),
+                            }))
+                        },
+                        send_response,
+                    )
+                });
             }
 
             Pdu::GetCodecVersion(_) => {
-                Future::ok(Pdu::GetCodecVersionResponse(GetCodecVersionResponse {
+                send_response(Ok(Pdu::GetCodecVersionResponse(GetCodecVersionResponse {
                     codec_vers: CODEC_VERSION,
                     version_string: crate::wezterm_version().to_owned(),
-                }))
+                })))
             }
 
-            Pdu::Invalid { .. } => Future::err(anyhow!("invalid PDU {:?}", pdu)),
+            Pdu::Invalid { .. } => send_response(Err(anyhow!("invalid PDU {:?}", decoded.pdu))),
             Pdu::Pong { .. }
             | Pdu::ListTabsResponse { .. }
             | Pdu::SetClipboard { .. }
@@ -836,7 +894,7 @@ impl<S: ReadAndWrite> ClientSession<S> {
             | Pdu::GetLinesResponse { .. }
             | Pdu::GetCodecVersionResponse { .. }
             | Pdu::ErrorResponse { .. } => {
-                Future::err(anyhow!("expected a request, got {:?}", pdu))
+                send_response(Err(anyhow!("expected a request, got {:?}", decoded.pdu)))
             }
         }
     }

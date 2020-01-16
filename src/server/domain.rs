@@ -1,6 +1,6 @@
 use crate::config::{SshDomain, TlsDomainClient, UnixDomain};
 use crate::font::FontConfiguration;
-use crate::frontend::{executor, front_end};
+use crate::frontend::front_end;
 use crate::mux::domain::{alloc_domain_id, Domain, DomainId, DomainState};
 use crate::mux::tab::{Tab, TabId};
 use crate::mux::window::WindowId;
@@ -307,10 +307,9 @@ impl Domain for ClientDomain {
                         }
                     };
 
-                    Future::with_executor(executor(), move || {
+                    promise::spawn::spawn_into_main_thread(async move {
                         promise.result(ClientDomain::finish_attach(domain_id, client, tabs));
                         drop(activity);
-                        Ok(())
                     });
                 }
             }

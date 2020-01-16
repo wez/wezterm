@@ -1,5 +1,4 @@
 use crate::config::{configuration, ConfigHandle};
-use crate::frontend::executor;
 use crate::mux::domain::DomainId;
 use crate::mux::renderable::{Renderable, RenderableDimensions, StableCursorPosition};
 use crate::mux::tab::{alloc_tab_id, Tab, TabId};
@@ -105,9 +104,8 @@ impl MouseState {
                         event,
                     })
                     .then(move |_| {
-                        Future::with_executor(executor(), move || {
-                            Self::next(&state)?;
-                            Ok(())
+                        promise::spawn::spawn_into_main_thread(async move {
+                            Self::next(&state).ok();
                         });
                         Ok(())
                     }),
@@ -552,7 +550,12 @@ impl RenderableInner {
                 lines: to_fetch.clone().into(),
             })
             .then(move |result| {
-                Future::with_executor(executor(), move || {
+                async fn complete_fetch(
+                    local_tab_id: TabId,
+                    to_fetch: RangeSet<StableRowIndex>,
+                    now: Instant,
+                    result: anyhow::Result<GetLinesResponse>,
+                ) -> anyhow::Result<()> {
                     let mux = Mux::get().unwrap();
                     let tab = mux
                         .get_tab(local_tab_id)
@@ -596,6 +599,11 @@ impl RenderableInner {
                         }
                     }
                     Ok(())
+                }
+                promise::spawn::spawn_into_main_thread(async move {
+                    complete_fetch(local_tab_id, to_fetch, now, result)
+                        .await
+                        .ok();
                 });
                 Ok(())
             });

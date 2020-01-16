@@ -36,14 +36,6 @@ thread_local! {
     static FRONT_END: RefCell<Option<Rc<dyn FrontEnd>>> = RefCell::new(None);
 }
 
-pub fn executor() -> Box<dyn Executor> {
-    let locked = EXECUTOR.lock().unwrap();
-    match locked.as_ref() {
-        Some(exec) => exec.clone_executor(),
-        None => panic!("executor machinery not yet configured"),
-    }
-}
-
 pub fn front_end() -> Option<Rc<dyn FrontEnd>> {
     let mut res = None;
     FRONT_END.with(|f| {
