@@ -132,6 +132,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cff77d8686867eceff3105329d4698d96c2391c176d5d03adc90c7389162b5b8"
 
 [[package]]
+name = "async-task"
+version = "1.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a9f534e76ca33eaa82bc8da5adb1b9e94a16f6fa217b78e9b400094dbbf844f9"
+dependencies = [
+ "libc",
+ "winapi 0.3.8",
+]
+
+[[package]]
 name = "atty"
 version = "0.2.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3134,6 +3144,7 @@ version = "0.1.0"
 dependencies = [
  "allsorts",
  "anyhow",
+ "async-task",
  "base64",
  "base91",
  "bitflags 1.2.1",
