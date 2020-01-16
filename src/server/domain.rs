@@ -9,8 +9,9 @@ use crate::server::client::Client;
 use crate::server::codec::{GetCodecVersion, ListTabsResponse, Spawn, CODEC_VERSION};
 use crate::server::tab::ClientTab;
 use anyhow::{anyhow, bail};
+use async_trait::async_trait;
 use portable_pty::{CommandBuilder, PtySize};
-use promise::{Future, Promise};
+use promise::spawn::{join_handle_result, spawn_into_new_thread};
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
@@ -203,6 +204,7 @@ impl ClientDomain {
     }
 }
 
+#[async_trait(?Send)]
 impl Domain for ClientDomain {
     fn domain_id(&self) -> DomainId {
         self.local_domain_id
@@ -246,76 +248,57 @@ impl Domain for ClientDomain {
         Ok(tab)
     }
 
-    fn attach(&self) -> Future<()> {
+    async fn attach(&self) -> anyhow::Result<()> {
         let domain_id = self.local_domain_id;
         let config = self.config.clone();
 
-        let mut promise = Promise::new();
-        let future = promise.get_future().unwrap();
         let activity = crate::frontend::activity::Activity::new();
 
-        std::thread::spawn(move || {
-            let client = match &config {
-                ClientDomainConfig::Unix(unix) => {
-                    let initial = true;
-                    Client::new_unix_domain(domain_id, unix, initial)
-                }
-                ClientDomainConfig::Tls(tls) => Client::new_tls(domain_id, tls),
-                ClientDomainConfig::Ssh(ssh) => Client::new_ssh(domain_id, ssh),
-            };
-
-            match client {
-                Err(err) => promise.result(Err(err)),
-                Ok(client) => {
-                    match client.get_codec_version(GetCodecVersion {}).wait() {
-                        Ok(info) if info.codec_vers == CODEC_VERSION => log::info!(
-                            "Server version is {} (codec version {})",
-                            info.version_string,
-                            info.codec_vers
-                        ),
-                        Ok(info) => {
-                            promise.result(Err(anyhow!(
-                                "Please install the same version of wezterm on both \
-                                 the client and server! \
-                                 The server verson is {} (codec version {}), which is not \
-                                 compatible with our version {} (codec version {}).",
-                                info.version_string,
-                                info.codec_vers,
-                                crate::wezterm_version(),
-                                CODEC_VERSION
-                            )));
-                            return;
-                        }
-                        Err(err) => {
-                            promise.result(Err(anyhow!(
-                                "Please install the same version of wezterm on both \
-                                 the client and server! \
-                                 The server reported error {} while being asked for its \
-                                 version.  This likely means that the server is older \
-                                 than the client.",
-                                err
-                            )));
-                            return;
-                        }
-                    };
-
-                    let tabs = match client.list_tabs().wait() {
-                        Ok(tabs) => tabs,
-                        Err(err) => {
-                            promise.result(Err(err));
-                            return;
-                        }
-                    };
-
-                    promise::spawn::spawn_into_main_thread(async move {
-                        promise.result(ClientDomain::finish_attach(domain_id, client, tabs));
-                        drop(activity);
-                    });
-                }
+        let client = join_handle_result(spawn_into_new_thread(move || match &config {
+            ClientDomainConfig::Unix(unix) => {
+                let initial = true;
+                Client::new_unix_domain(domain_id, unix, initial)
             }
-        });
+            ClientDomainConfig::Tls(tls) => Client::new_tls(domain_id, tls),
+            ClientDomainConfig::Ssh(ssh) => Client::new_ssh(domain_id, ssh),
+        }))
+        .await?;
 
-        future
+        match client.get_codec_version(GetCodecVersion {}).await {
+            Ok(info) if info.codec_vers == CODEC_VERSION => log::info!(
+                "Server version is {} (codec version {})",
+                info.version_string,
+                info.codec_vers
+            ),
+            Ok(info) => {
+                bail!(
+                    "Please install the same version of wezterm on both \
+                     the client and server! \
+                     The server verson is {} (codec version {}), which is not \
+                     compatible with our version {} (codec version {}).",
+                    info.version_string,
+                    info.codec_vers,
+                    crate::wezterm_version(),
+                    CODEC_VERSION
+                );
+            }
+            Err(err) => {
+                bail!(
+                    "Please install the same version of wezterm on both \
+                     the client and server! \
+                     The server reported error {} while being asked for its \
+                     version.  This likely means that the server is older \
+                     than the client.",
+                    err
+                );
+            }
+        };
+
+        let tabs = client.list_tabs().await?;
+
+        ClientDomain::finish_attach(domain_id, client, tabs)?;
+        drop(activity);
+        Ok(())
     }
 
     fn detach(&self) -> anyhow::Result<()> {

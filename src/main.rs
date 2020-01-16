@@ -426,7 +426,7 @@ fn run_serial(config: config::ConfigHandle, opts: &SerialCommand) -> anyhow::Res
 
     let front_end = opts.front_end.unwrap_or(config.front_end);
     let gui = front_end.try_new()?;
-    domain.attach().wait()?;
+    promise::spawn::block_on(domain.attach())?; // FIXME: blocking
 
     let window_id = mux.new_empty_window();
     let tab = domain.spawn(PtySize::default(), None, None, window_id)?;

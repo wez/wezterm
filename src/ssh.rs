@@ -5,6 +5,7 @@ use crate::mux::window::WindowId;
 use crate::mux::Mux;
 use crate::termwiztermtab;
 use anyhow::{anyhow, bail, Context, Error};
+use async_trait::async_trait;
 use portable_pty::cmdbuilder::CommandBuilder;
 use portable_pty::{PtySize, PtySystem};
 use promise::{Future, Promise};
@@ -329,6 +330,7 @@ impl RemoteSshDomain {
     }
 }
 
+#[async_trait(?Send)]
 impl Domain for RemoteSshDomain {
     fn spawn(
         &self,
@@ -370,8 +372,8 @@ impl Domain for RemoteSshDomain {
         &self.name
     }
 
-    fn attach(&self) -> promise::Future<()> {
-        promise::Future::ok(())
+    async fn attach(&self) -> anyhow::Result<()> {
+        Ok(())
     }
 
     fn detach(&self) -> anyhow::Result<()> {

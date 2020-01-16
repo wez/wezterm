@@ -12,6 +12,7 @@ use crate::mux::tab::{alloc_tab_id, Tab, TabId};
 use crate::mux::window::WindowId;
 use crate::mux::Mux;
 use anyhow::{bail, Error};
+use async_trait::async_trait;
 use crossbeam_channel::{unbounded as channel, Receiver, Sender};
 use filedescriptor::Pipe;
 use portable_pty::*;
@@ -146,6 +147,7 @@ impl TermWizTerminalDomain {
     }
 }
 
+#[async_trait(?Send)]
 impl Domain for TermWizTerminalDomain {
     fn spawn(
         &self,
@@ -164,8 +166,8 @@ impl Domain for TermWizTerminalDomain {
     fn domain_name(&self) -> &str {
         "TermWizTerminalDomain"
     }
-    fn attach(&self) -> promise::Future<()> {
-        promise::Future::ok(())
+    async fn attach(&self) -> anyhow::Result<()> {
+        Ok(())
     }
 
     fn detach(&self) -> anyhow::Result<()> {

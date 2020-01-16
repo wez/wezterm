@@ -11,11 +11,11 @@ use crate::mux::tab::Tab;
 use crate::mux::window::WindowId;
 use crate::mux::Mux;
 use anyhow::{bail, Error};
+use async_trait::async_trait;
 use downcast_rs::{impl_downcast, Downcast};
 use log::info;
 use portable_pty::cmdbuilder::CommandBuilder;
 use portable_pty::{PtySize, PtySystem};
-use promise::Future;
 use std::rc::Rc;
 
 static DOMAIN_ID: ::std::sync::atomic::AtomicUsize = ::std::sync::atomic::AtomicUsize::new(0);
@@ -31,6 +31,7 @@ pub fn alloc_domain_id() -> DomainId {
     DOMAIN_ID.fetch_add(1, ::std::sync::atomic::Ordering::Relaxed)
 }
 
+#[async_trait(?Send)]
 pub trait Domain: Downcast {
     /// Spawn a new command within this domain
     fn spawn(
@@ -49,7 +50,7 @@ pub trait Domain: Downcast {
     fn domain_name(&self) -> &str;
 
     /// Re-attach to any tabs that might be pre-existing in this domain
-    fn attach(&self) -> Future<()>;
+    async fn attach(&self) -> anyhow::Result<()>;
 
     /// Detach all tabs
     fn detach(&self) -> anyhow::Result<()>;
@@ -81,6 +82,7 @@ impl LocalDomain {
     }
 }
 
+#[async_trait(?Send)]
 impl Domain for LocalDomain {
     fn spawn(
         &self,
@@ -126,8 +128,8 @@ impl Domain for LocalDomain {
         &self.name
     }
 
-    fn attach(&self) -> Future<()> {
-        Future::ok(())
+    async fn attach(&self) -> anyhow::Result<()> {
+        Ok(())
     }
 
     fn detach(&self) -> anyhow::Result<()> {
