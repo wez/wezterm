@@ -1,4 +1,3 @@
-use crate::frontend::{executor, low_pri_executor};
 use crate::mux::tab::{Tab, TabId};
 use crate::mux::window::{Window, WindowId};
 use crate::ratelim::RateLimiter;
@@ -7,7 +6,6 @@ use anyhow::{anyhow, Error};
 use domain::{Domain, DomainId};
 use log::{debug, error};
 use portable_pty::ExitStatus;
-use promise::Future;
 use std::cell::{Ref, RefCell, RefMut};
 use std::collections::HashMap;
 use std::io::Read;
@@ -68,7 +66,7 @@ fn read_from_tab_pty(tab_id: TabId, mut reader: Box<dyn std::io::Read>) {
                             let len = len as usize;
                             let data = buf[pos..pos + len].to_vec();
                             pos += len;
-                            Future::with_executor(low_pri_executor(), move || {
+                            promise::spawn::spawn_into_main_thread_with_low_priority(async move {
                                 let mux = Mux::get().unwrap();
                                 if let Some(tab) = mux.get_tab(tab_id) {
                                     tab.advance_bytes(
@@ -79,7 +77,6 @@ fn read_from_tab_pty(tab_id: TabId, mut reader: Box<dyn std::io::Read>) {
                                     );
                                     mux.notify(MuxNotification::TabOutput(tab_id));
                                 }
-                                Ok(())
                             });
                         }
                         Err(delay) => {
@@ -91,10 +88,9 @@ fn read_from_tab_pty(tab_id: TabId, mut reader: Box<dyn std::io::Read>) {
             }
         }
     }
-    Future::with_executor(executor(), move || {
+    promise::spawn::spawn_into_main_thread(async move {
         let mux = Mux::get().unwrap();
         mux.remove_tab(tab_id);
-        Ok(())
     });
 }
 

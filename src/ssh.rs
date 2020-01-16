@@ -56,7 +56,7 @@ fn password_prompt(
             (output, unicode_column_width(placeholder) * cursor_position)
         }
     }
-    match termwiztermtab::run(60, 10, move |mut term| {
+    match promise::spawn::block_on(termwiztermtab::run(60, 10, move |mut term| {
         term.render(&[
             // Change::Attribute(AttributeChange::Intensity(Intensity::Bold)),
             Change::Title(title.to_string()),
@@ -73,9 +73,7 @@ fn password_prompt(
         } else {
             bail!("prompt cancelled");
         }
-    })
-    .wait()
-    {
+    })) {
         Ok(p) => Some(p),
         Err(p) => {
             log::error!("failed to prompt for pw: {}", p);
@@ -95,7 +93,7 @@ fn input_prompt(
         "SSH Authentication for {} @ {}\r\n{}\r\n{}\r\n",
         username, remote_address, instructions, prompt
     );
-    match termwiztermtab::run(60, 10, move |mut term| {
+    match promise::spawn::block_on(termwiztermtab::run(60, 10, move |mut term| {
         term.render(&[
             Change::Title(title.to_string()),
             Change::Text(text.to_string()),
@@ -110,9 +108,7 @@ fn input_prompt(
         } else {
             bail!("prompt cancelled");
         }
-    })
-    .wait()
-    {
+    })) {
         Ok(p) => Some(p),
         Err(p) => {
             log::error!("failed to prompt for pw: {}", p);
@@ -229,27 +225,27 @@ pub fn ssh_connect(remote_address: &str, username: &str) -> anyhow::Result<ssh2:
                     remote_address, key_type, fingerprint
                 );
 
-                let allow = termwiztermtab::run(80, 10, move |mut term| {
-                    let title = "🔐 wezterm: SSH authentication".to_string();
-                    term.render(&[Change::Title(title), Change::Text(message.to_string())])?;
+                let allow =
+                    promise::spawn::block_on(termwiztermtab::run(80, 10, move |mut term| {
+                        let title = "🔐 wezterm: SSH authentication".to_string();
+                        term.render(&[Change::Title(title), Change::Text(message.to_string())])?;
 
-                    let mut editor = LineEditor::new(term);
-                    editor.set_prompt("Enter [Y/n]> ");
+                        let mut editor = LineEditor::new(term);
+                        editor.set_prompt("Enter [Y/n]> ");
 
-                    let mut host = NopLineEditorHost::default();
-                    loop {
-                        let line = match editor.read_line(&mut host) {
-                            Ok(Some(line)) => line,
-                            Ok(None) | Err(_) => return Ok(false),
-                        };
-                        match line.as_ref() {
-                            "y" | "Y" | "yes" | "YES" => return Ok(true),
-                            "n" | "N" | "no" | "NO" => return Ok(false),
-                            _ => continue,
+                        let mut host = NopLineEditorHost::default();
+                        loop {
+                            let line = match editor.read_line(&mut host) {
+                                Ok(Some(line)) => line,
+                                Ok(None) | Err(_) => return Ok(false),
+                            };
+                            match line.as_ref() {
+                                "y" | "Y" | "yes" | "YES" => return Ok(true),
+                                "n" | "N" | "no" | "NO" => return Ok(false),
+                                _ => continue,
+                            }
                         }
-                    }
-                })
-                .wait()?;
+                    }))?;
 
                 if !allow {
                     bail!("user declined to trust host");

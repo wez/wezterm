@@ -148,3 +148,6 @@ where
     task.schedule();
     handle
 }
+
+/// Block the current thread until the passed future completes.
+pub use async_std::task::block_on;

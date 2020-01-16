@@ -5,10 +5,10 @@ use super::utilsprites::RenderMetrics;
 use crate::config::{configuration, ConfigHandle};
 use crate::font::units::*;
 use crate::font::FontConfiguration;
+use crate::frontend::front_end;
 use crate::frontend::gui::scrollbar::*;
 use crate::frontend::gui::selection::*;
 use crate::frontend::gui::tabbar::{TabBarItem, TabBarState};
-use crate::frontend::{executor, front_end};
 use crate::keyassignment::{KeyAssignment, KeyMap, SpawnTabDomain};
 use crate::mux::renderable::{Renderable, RenderableDimensions, StableCursorPosition};
 use crate::mux::tab::{Tab, TabId};
@@ -178,12 +178,11 @@ impl<'a> term::TerminalHost for Host<'a> {
         // of our window loop; on Windows it can cause a panic due to
         // triggering our WndProc recursively.
         let link = link.clone();
-        promise::Future::with_executor(executor(), move || {
+        promise::spawn::spawn(async move {
             log::error!("clicking {}", link.uri());
             if let Err(err) = open::that(link.uri()) {
                 log::error!("failed to open {}: {:?}", link.uri(), err);
             }
-            Ok(())
         });
     }
 }
@@ -1161,13 +1160,10 @@ impl TermWindow {
                 let future = self.window.as_ref().unwrap().get_clipboard();
                 promise::spawn::spawn(async move {
                     if let Ok(clip) = future.await {
-                        promise::Future::with_executor(executor(), move || {
-                            let mux = Mux::get().unwrap();
-                            if let Some(tab) = mux.get_tab(tab_id) {
-                                tab.trickle_paste(clip)?;
-                            }
-                            Ok(())
-                        });
+                        let mux = Mux::get().unwrap();
+                        if let Some(tab) = mux.get_tab(tab_id) {
+                            tab.trickle_paste(clip).ok();
+                        }
                     }
                 });
             }
@@ -1202,7 +1198,7 @@ impl TermWindow {
     }
 
     pub fn spawn_new_window(&mut self) {
-        promise::Future::with_executor(executor(), move || {
+        async fn new_window() -> anyhow::Result<()> {
             let mux = Mux::get().unwrap();
             let fonts = Rc::new(FontConfiguration::new());
             let window_id = mux.new_empty_window();
@@ -1212,6 +1208,9 @@ impl TermWindow {
             let front_end = front_end().expect("to be called on gui thread");
             front_end.spawn_new_window(&fonts, &tab, window_id)?;
             Ok(())
+        }
+        promise::spawn::spawn(async move {
+            new_window().await.ok();
         });
     }
 
@@ -2536,12 +2535,11 @@ impl TermWindow {
                         // of our window loop; on Windows it can cause a panic due to
                         // triggering our WndProc recursively.
                         let link = self.current_highlight.as_ref().unwrap().clone();
-                        promise::Future::with_executor(executor(), move || {
+                        promise::spawn::spawn(async move {
                             log::error!("clicking {}", link.uri());
                             if let Err(err) = open::that(link.uri()) {
                                 log::error!("failed to open {}: {:?}", link.uri(), err);
                             }
-                            Ok(())
                         });
                     } else {
                         self.window.as_ref().unwrap().set_clipboard(text);
@@ -2656,13 +2654,10 @@ impl TermWindow {
                     let future = self.window.as_ref().unwrap().get_clipboard();
                     promise::spawn::spawn(async move {
                         if let Ok(clip) = future.await {
-                            promise::Future::with_executor(executor(), move || {
-                                let mux = Mux::get().unwrap();
-                                if let Some(tab) = mux.get_tab(tab_id) {
-                                    tab.trickle_paste(clip)?;
-                                }
-                                Ok(())
-                            });
+                            let mux = Mux::get().unwrap();
+                            if let Some(tab) = mux.get_tab(tab_id) {
+                                tab.trickle_paste(clip).ok();
+                            }
                         }
                     });
                     return;

@@ -44,14 +44,6 @@ pub fn executor() -> Box<dyn Executor> {
     }
 }
 
-pub fn low_pri_executor() -> Box<dyn Executor> {
-    let locked = LOW_PRI_EXECUTOR.lock().unwrap();
-    match locked.as_ref() {
-        Some(exec) => exec.clone_executor(),
-        None => panic!("executor machinery not yet configured"),
-    }
-}
-
 pub fn front_end() -> Option<Rc<dyn FrontEnd>> {
     let mut res = None;
     FRONT_END.with(|f| {

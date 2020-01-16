@@ -488,7 +488,7 @@ impl Display for ITermFileData {
     fn fmt(&self, f: &mut Formatter) -> Result<(), FmtError> {
         write!(f, "File")?;
         let mut sep = "=";
-        let emit_sep = |sep, f: &mut Formatter| {
+        let emit_sep = |sep, f: &mut Formatter| -> Result<&str, FmtError> {
             write!(f, "{}", sep)?;
             Ok(";")
         };

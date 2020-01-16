@@ -5,7 +5,7 @@
 
 use crate::config::configuration;
 use crate::font::FontConfiguration;
-use crate::frontend::{executor, front_end};
+use crate::frontend::{front_end};
 use crate::mux::domain::{alloc_domain_id, Domain, DomainId, DomainState};
 use crate::mux::renderable::{Renderable, RenderableDimensions, StableCursorPosition};
 use crate::mux::tab::{alloc_tab_id, Tab, TabId};
@@ -15,7 +15,6 @@ use anyhow::{bail, Error};
 use crossbeam_channel::{unbounded as channel, Receiver, Sender};
 use filedescriptor::Pipe;
 use portable_pty::*;
-use promise::{Future, Promise};
 use rangeset::RangeSet;
 use std::cell::RefCell;
 use std::cell::RefMut;
@@ -375,11 +374,14 @@ impl termwiz::terminal::Terminal for TermWizTerminal {
 /// from the terminal window.
 /// When it completes its loop it will fulfil a promise and yield
 /// the return value from the function.
-pub fn run<T: Send + 'static, F: Send + 'static + Fn(TermWizTerminal) -> anyhow::Result<T>>(
+pub async fn run<
+    T: Send + 'static,
+    F: Send + 'static + Fn(TermWizTerminal) -> anyhow::Result<T>,
+>(
     width: usize,
     height: usize,
     f: F,
-) -> Future<T> {
+) -> anyhow::Result<T> {
     let (render_tx, render_rx) = channel();
     let (input_tx, input_rx) = channel();
 
@@ -394,10 +396,12 @@ pub fn run<T: Send + 'static, F: Send + 'static + Fn(TermWizTerminal) -> anyhow:
         },
     };
 
-    let mut promise = Promise::new();
-    let future = promise.get_future().expect("just made the promise");
-
-    Future::with_executor(executor(), move || {
+    async fn register_tab(
+        input_tx: Sender<InputEvent>,
+        render_rx: Receiver<Vec<Change>>,
+        width: usize,
+        height: usize,
+    ) -> anyhow::Result<()> {
         let mux = Mux::get().unwrap();
 
         // TODO: make a singleton
@@ -426,20 +430,22 @@ pub fn run<T: Send + 'static, F: Send + 'static + Fn(TermWizTerminal) -> anyhow:
         gui.spawn_new_window(&fontconfig, &tab, window_id)?;
 
         Ok(())
+    }
+
+    promise::spawn::spawn_into_main_thread(async move {
+        register_tab(input_tx, render_rx, width, height).await.ok();
     });
 
-    std::thread::spawn(move || {
-        promise.result(f(tw_term));
-    });
-
-    future
+    promise::spawn::spawn_into_new_thread(move || f(tw_term))
+        .await
+        .unwrap_or_else(|| bail!("task panicked or was cancelled"))
 }
 
 pub fn message_box_ok(message: &str) {
     let title = "wezterm";
     let message = message.to_string();
 
-    run(60, 10, move |mut term| {
+    promise::spawn::block_on(run(60, 10, move |mut term| {
         term.render(&[
             Change::Title(title.to_string()),
             Change::Text(message.to_string()),
@@ -452,7 +458,6 @@ pub fn message_box_ok(message: &str) {
         let mut host = NopLineEditorHost::default();
         editor.read_line(&mut host).ok();
         Ok(())
-    })
-    .wait()
+    }))
     .ok();
 }
