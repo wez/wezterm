@@ -94,13 +94,6 @@ impl ConnectionOps for Connection {
         Ok(())
     }
 
-    fn spawn_task<F: std::future::Future<Output = ()> + 'static>(
-        &self,
-        future: F,
-    ) -> async_task::JoinHandle<(), ()> {
-        SPAWN_QUEUE.spawn_task(future)
-    }
-
     fn schedule_timer<F: FnMut() + 'static>(&self, interval: std::time::Duration, callback: F) {
         let secs_f64 =
             (interval.as_secs() as f64) + (f64::from(interval.subsec_nanos()) / 1_000_000_000_f64);

@@ -8,7 +8,7 @@ use crate::font::FontConfiguration;
 use crate::frontend::gui::scrollbar::*;
 use crate::frontend::gui::selection::*;
 use crate::frontend::gui::tabbar::{TabBarItem, TabBarState};
-use crate::frontend::{executor, front_end, spawn_task};
+use crate::frontend::{executor, front_end};
 use crate::keyassignment::{KeyAssignment, KeyMap, SpawnTabDomain};
 use crate::mux::renderable::{Renderable, RenderableDimensions, StableCursorPosition};
 use crate::mux::tab::{Tab, TabId};
@@ -1159,7 +1159,7 @@ impl TermWindow {
             Paste => {
                 let tab_id = tab.tab_id();
                 let future = self.window.as_ref().unwrap().get_clipboard();
-                spawn_task(async move {
+                promise::spawn::spawn(async move {
                     if let Ok(clip) = future.await {
                         promise::Future::with_executor(executor(), move || {
                             let mux = Mux::get().unwrap();
@@ -2654,7 +2654,7 @@ impl TermWindow {
                 ) => {
                     let tab_id = tab.tab_id();
                     let future = self.window.as_ref().unwrap().get_clipboard();
-                    spawn_task(async move {
+                    promise::spawn::spawn(async move {
                         if let Ok(clip) = future.await {
                             promise::Future::with_executor(executor(), move || {
                                 let mux = Mux::get().unwrap();

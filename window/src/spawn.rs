@@ -41,6 +41,17 @@ impl SpawnQueue {
         Self::new_impl()
     }
 
+    pub fn register_promise_schedulers(&self) {
+        promise::spawn::set_schedulers(
+            Box::new(|task| {
+                SPAWN_QUEUE.queue_func(Box::new(move || task.run()), true);
+            }),
+            Box::new(|low_pri_task| {
+                SPAWN_QUEUE.queue_func(Box::new(move || low_pri_task.run()), false);
+            }),
+        );
+    }
+
     pub fn spawn(&self, f: SpawnFunc) {
         self.spawn_impl(f, true)
     }
@@ -62,19 +73,6 @@ impl SpawnQueue {
         } else {
             None
         }
-    }
-
-    pub fn spawn_task<F: std::future::Future<Output = ()> + 'static>(
-        &self,
-        future: F,
-    ) -> async_task::JoinHandle<(), ()> {
-        let (task, handle) = async_task::spawn_local(
-            future,
-            move |task| SPAWN_QUEUE.spawn(Box::new(move || task.run())),
-            (),
-        );
-        task.schedule();
-        handle
     }
 
     fn queue_func(&self, f: SpawnFunc, high_pri: bool) {

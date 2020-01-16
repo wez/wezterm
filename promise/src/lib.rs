@@ -4,6 +4,8 @@ use std::sync::{Arc, Condvar, Mutex};
 use std::task::{Context, Poll};
 use thiserror::*;
 
+pub mod spawn;
+
 type NextFunc<T> = Box<dyn FnOnce(Fallible<T>) + Send>;
 pub type SpawnFunc = Box<dyn FnOnce() + Send>;
 

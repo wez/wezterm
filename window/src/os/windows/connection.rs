@@ -55,10 +55,6 @@ impl ConnectionOps for Connection {
         }
     }
 
-    fn spawn_task<F: std::future::Future<Output = ()> + 'static>(&self, future: F) {
-        SPAWN_QUEUE.spawn_task(future);
-    }
-
     fn schedule_timer<F: FnMut() + 'static>(&self, interval: std::time::Duration, callback: F) {
         let millis = interval
             .as_millis()

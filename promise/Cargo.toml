@@ -5,5 +5,7 @@ version = "0.2.0"
 edition = "2018"
 
 [dependencies]
+async-task = "1.2"
 anyhow = "1.0"
 thiserror = "1.0"
+lazy_static = "1.3"

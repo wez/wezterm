@@ -25,7 +25,7 @@ mod stats;
 mod termwiztermtab;
 
 use crate::frontend::activity::Activity;
-use crate::frontend::{front_end, spawn_task, FrontEndSelection};
+use crate::frontend::{front_end, FrontEndSelection};
 use crate::mux::domain::{Domain, LocalDomain};
 use crate::mux::Mux;
 use crate::server::client::{unix_connect_with_retry, Client};
@@ -398,7 +398,7 @@ fn run_ssh(config: config::ConfigHandle, opts: SshCommand) -> anyhow::Result<()>
 
     // Initiate an ssh connection; since that is a blocking process with
     // callbacks, we have to run it in another thread
-    spawn_task(async {
+    promise::spawn::spawn(async {
         if let Err(err) = async_run_ssh(opts, params).await {
             terminate_with_error(err);
         }
@@ -478,7 +478,7 @@ fn run_mux_client(config: config::ConfigHandle, opts: &ConnectCommand) -> anyhow
     };
 
     let activity = Activity::new();
-    spawn_task(async {
+    promise::spawn::spawn(async {
         if let Err(err) = spawn_tab_in_default_domain_if_mux_is_empty(cmd).await {
             terminate_with_error(err);
         }
@@ -603,7 +603,7 @@ fn run_terminal_gui(config: config::ConfigHandle, opts: StartCommand) -> anyhow:
     let do_auto_connect =
         front_end_selection != FrontEndSelection::MuxServer && !opts.no_auto_connect;
 
-    spawn_task(async move {
+    promise::spawn::spawn(async move {
         if let Err(err) = async_run_terminal_gui(cmd, do_auto_connect).await {
             terminate_with_error(err);
         }

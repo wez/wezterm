@@ -178,13 +178,6 @@ impl WaylandConnection {
 }
 
 impl ConnectionOps for WaylandConnection {
-    fn spawn_task<F: std::future::Future<Output = ()> + 'static>(
-        &self,
-        future: F,
-    ) -> async_task::JoinHandle<(), ()> {
-        SPAWN_QUEUE.spawn_task(future)
-    }
-
     fn terminate_message_loop(&self) {
         *self.should_terminate.borrow_mut() = true;
     }

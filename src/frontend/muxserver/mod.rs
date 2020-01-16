@@ -6,7 +6,6 @@ use crate::mux::window::WindowId;
 use crate::mux::Mux;
 use crate::server::listener::spawn_listener;
 use anyhow::{bail, Error};
-use async_task::JoinHandle;
 use crossbeam_channel::{unbounded as channel, Receiver, Sender};
 use log::info;
 use promise::*;
@@ -41,6 +40,19 @@ impl MuxServerFrontEnd {
     fn new(start_listener: bool) -> Result<Rc<dyn FrontEnd>, Error> {
         let (tx, rx) = channel();
 
+        let tx_main = tx.clone();
+        let tx_low = tx.clone();
+        let queue_func = move |f: SpawnFunc| {
+            tx_main.send(f).unwrap();
+        };
+        let queue_func_low = move |f: SpawnFunc| {
+            tx_low.send(f).unwrap();
+        };
+        promise::spawn::set_schedulers(
+            Box::new(move |task| queue_func(Box::new(move || task.run()))),
+            Box::new(move |task| queue_func_low(Box::new(move || task.run()))),
+        );
+
         if start_listener {
             spawn_listener()?;
         }
@@ -53,20 +65,6 @@ impl MuxServerFrontEnd {
 
     pub fn new_null() -> Result<Rc<dyn FrontEnd>, Error> {
         Self::new(false)
-    }
-
-    pub fn spawn_task<F: std::future::Future<Output = ()> + 'static>(
-        &self,
-        future: F,
-    ) -> JoinHandle<(), ()> {
-        let tx = self.tx.clone();
-        let (task, handle) = async_task::spawn_local(
-            future,
-            move |task| tx.send(Box::new(move || task.run())).unwrap(),
-            (),
-        );
-        task.schedule();
-        handle
     }
 }
 

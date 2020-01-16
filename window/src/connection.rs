@@ -21,15 +21,12 @@ pub trait ConnectionOps {
     fn init() -> Fallible<Rc<Connection>> {
         let conn = Rc::new(Connection::create_new()?);
         CONN.with(|m| *m.borrow_mut() = Some(Rc::clone(&conn)));
+        crate::spawn::SPAWN_QUEUE.register_promise_schedulers();
         Ok(conn)
     }
 
     fn terminate_message_loop(&self);
     fn run_message_loop(&self) -> Fallible<()>;
-    fn spawn_task<F: std::future::Future<Output = ()> + 'static>(
-        &self,
-        future: F,
-    ) -> async_task::JoinHandle<(), ()>;
 
     // TODO: return a handle that can be used to cancel the timer
     fn schedule_timer<F: FnMut() + 'static>(&self, interval: std::time::Duration, callback: F);

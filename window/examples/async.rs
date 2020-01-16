@@ -1,4 +1,5 @@
 use ::window::*;
+use promise::spawn::spawn;
 use std::any::Any;
 
 struct MyWindow {
@@ -90,7 +91,7 @@ async fn spawn_window() -> Result<(), Box<dyn std::error::Error>> {
 
 fn main() -> anyhow::Result<()> {
     let conn = Connection::init()?;
-    conn.spawn_task(async {
+    spawn(async {
         eprintln!("running this async block");
         spawn_window().await.ok();
         eprintln!("end of async block");
