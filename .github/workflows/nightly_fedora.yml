@@ -50,7 +50,7 @@ jobs:
       run: |
         mv ~/rpmbuild/RPMS/*/*.rpm wezterm-nightly.rpm
     - name: Upload Assets
-      uses: AButler/upload-release-assets@v1.0
+      uses: AButler/upload-release-assets@v2.0
       with:
         release-tag: nightly
         # allows comma-separated list of case sensitive globs

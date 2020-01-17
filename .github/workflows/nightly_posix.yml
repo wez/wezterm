@@ -42,9 +42,9 @@ jobs:
         cargo build --release --all
         env BUILD_REASON=Schedule bash ci/deploy.sh
     - name: Upload Assets
-      uses: AButler/upload-release-assets@v1.0
+      uses: AButler/upload-release-assets@v2.0
       with:
         release-tag: nightly
-        # allows comma-separated list of case sensitive globs
-        files: "wezterm-*.deb,WezTerm-*.zip,wezterm-*.xz,wezterm-*.rpm,wezterm-*.tar.gz"
+        # allows semicolon-separated list of case sensitive globs
+        files: "wezterm-*.deb;WezTerm-*.zip;wezterm-*.xz;wezterm-*.rpm;wezterm-*.tar.gz"
         repo-token: ${{ secrets.GITHUB_TOKEN }}
