@@ -212,7 +212,7 @@ impl Window {
     }
 }
 
-fn schedule_show_window(hwnd: HWindow, show: bool) -> Future<()> {
+fn schedule_show_window(hwnd: HWindow, show: bool) {
     // ShowWindow can call to the window proc and may attempt
     // to lock inner, so we avoid locking it ourselves here
     promise::spawn::spawn(async move {
@@ -317,11 +317,13 @@ impl WindowOps for Window {
     }
 
     fn show(&self) -> Future<()> {
-        schedule_show_window(self.0, true)
+        schedule_show_window(self.0, true);
+        Future::ok(()) // FIXME: this is a lie!
     }
 
     fn hide(&self) -> Future<()> {
-        schedule_show_window(self.0, false)
+        schedule_show_window(self.0, false);
+        Future::ok(()) // FIXME: this is a lie!
     }
 
     fn set_cursor(&self, cursor: Option<MouseCursor>) -> Future<()> {
