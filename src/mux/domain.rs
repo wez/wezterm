@@ -34,7 +34,7 @@ pub fn alloc_domain_id() -> DomainId {
 #[async_trait(?Send)]
 pub trait Domain: Downcast {
     /// Spawn a new command within this domain
-    fn spawn(
+    async fn spawn(
         &self,
         size: PtySize,
         command: Option<CommandBuilder>,
@@ -84,7 +84,7 @@ impl LocalDomain {
 
 #[async_trait(?Send)]
 impl Domain for LocalDomain {
-    fn spawn(
+    async fn spawn(
         &self,
         size: PtySize,
         command: Option<CommandBuilder>,

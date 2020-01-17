@@ -1048,61 +1048,66 @@ impl TermWindow {
         self.move_tab(tab)
     }
 
-    fn spawn_tab(&mut self, domain: &SpawnTabDomain) -> anyhow::Result<TabId> {
+    fn spawn_tab(&mut self, domain: &SpawnTabDomain) {
         let size = self.terminal_size;
-        let mux = Mux::get().unwrap();
-
-        let (domain, cwd) = match domain {
-            SpawnTabDomain::DefaultDomain => {
-                let cwd = mux
-                    .get_active_tab_for_window(self.mux_window_id)
-                    .and_then(|tab| tab.get_current_working_dir());
-                (mux.default_domain().clone(), cwd)
-            }
-            SpawnTabDomain::CurrentTabDomain => {
-                let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
-                    Some(tab) => tab,
-                    None => bail!("window has no tabs?"),
-                };
-                (
-                    mux.get_domain(tab.domain_id())
-                        .ok_or_else(|| anyhow!("current tab has unresolvable domain id!?"))?,
-                    tab.get_current_working_dir(),
-                )
-            }
-            SpawnTabDomain::Domain(id) => (
-                mux.get_domain(*id)
-                    .ok_or_else(|| anyhow!("spawn_tab called with unresolvable domain id!?"))?,
-                None,
-            ),
-            SpawnTabDomain::DomainName(name) => (
-                mux.get_domain_by_name(&name).ok_or_else(|| {
-                    anyhow!("spawn_tab called with unresolvable domain name {}", name)
-                })?,
-                None,
-            ),
-        };
-        let cwd = match cwd {
-            Some(url) if url.scheme() == "file" => Some(url.path().to_string()),
-            Some(_) | None => None,
-        };
-        let tab = domain.spawn(size, None, cwd, self.mux_window_id)?;
-        let tab_id = tab.tab_id();
-
+        let mux_window_id = self.mux_window_id;
         let clipboard: Arc<dyn term::Clipboard> = Arc::new(ClipboardHelper {
             window: self.window.as_ref().unwrap().clone(),
             clipboard_contents: Arc::clone(&self.clipboard_contents),
         });
-        tab.set_clipboard(&clipboard);
+        let domain = domain.clone();
 
-        let len = {
-            let window = mux
-                .get_window(self.mux_window_id)
+        promise::spawn::spawn(async move {
+            let mux = Mux::get().unwrap();
+
+            let (domain, cwd) = match domain {
+                SpawnTabDomain::DefaultDomain => {
+                    let cwd = mux
+                        .get_active_tab_for_window(mux_window_id)
+                        .and_then(|tab| tab.get_current_working_dir());
+                    (mux.default_domain().clone(), cwd)
+                }
+                SpawnTabDomain::CurrentTabDomain => {
+                    let tab = match mux.get_active_tab_for_window(mux_window_id) {
+                        Some(tab) => tab,
+                        None => bail!("window has no tabs?"),
+                    };
+                    (
+                        mux.get_domain(tab.domain_id())
+                            .ok_or_else(|| anyhow!("current tab has unresolvable domain id!?"))?,
+                        tab.get_current_working_dir(),
+                    )
+                }
+                SpawnTabDomain::Domain(id) => (
+                    mux.get_domain(id)
+                        .ok_or_else(|| anyhow!("spawn_tab called with unresolvable domain id!?"))?,
+                    None,
+                ),
+                SpawnTabDomain::DomainName(name) => (
+                    mux.get_domain_by_name(&name).ok_or_else(|| {
+                        anyhow!("spawn_tab called with unresolvable domain name {}", name)
+                    })?,
+                    None,
+                ),
+            };
+            let cwd = match cwd {
+                Some(url) if url.scheme() == "file" => Some(url.path().to_string()),
+                Some(_) | None => None,
+            };
+            let tab = domain.spawn(size, None, cwd, mux_window_id).await?;
+            let tab_id = tab.tab_id();
+
+            tab.set_clipboard(&clipboard);
+
+            let mut window = mux
+                .get_window_mut(mux_window_id)
                 .ok_or_else(|| anyhow!("no such window!?"))?;
-            window.len()
-        };
-        self.activate_tab(len - 1)?;
-        Ok(tab_id)
+            if let Some(idx) = window.idx_by_id(tab_id) {
+                window.set_active(idx);
+            }
+
+            Ok(())
+        });
     }
 
     fn selection_text(&self, tab: &Rc<dyn Tab>) -> String {
@@ -1141,7 +1146,7 @@ impl TermWindow {
         use KeyAssignment::*;
         match assignment {
             SpawnTab(spawn_where) => {
-                self.spawn_tab(spawn_where)?;
+                self.spawn_tab(spawn_where);
             }
             SpawnWindow => {
                 self.spawn_new_window();
@@ -1204,10 +1209,11 @@ impl TermWindow {
             let window_id = mux.new_empty_window();
             let tab = mux
                 .default_domain()
-                .spawn(PtySize::default(), None, None, window_id)?;
+                .spawn(PtySize::default(), None, None, window_id)
+                .await?;
             let front_end = front_end().expect("to be called on gui thread");
             front_end.spawn_new_window(&fonts, &tab, window_id)?;
-            Ok(())
+            Ok::<(), anyhow::Error>(())
         }
         promise::spawn::spawn(async move {
             new_window().await.ok();
@@ -2355,7 +2361,7 @@ impl TermWindow {
                     self.activate_tab(tab_idx).ok();
                 }
                 TabBarItem::NewTabButton => {
-                    self.spawn_tab(&SpawnTabDomain::CurrentTabDomain).ok();
+                    self.spawn_tab(&SpawnTabDomain::CurrentTabDomain);
                 }
                 TabBarItem::None => {}
             }

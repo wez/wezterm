@@ -149,7 +149,7 @@ impl TermWizTerminalDomain {
 
 #[async_trait(?Send)]
 impl Domain for TermWizTerminalDomain {
-    fn spawn(
+    async fn spawn(
         &self,
         _size: PtySize,
         _command: Option<CommandBuilder>,

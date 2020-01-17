@@ -788,42 +788,7 @@ impl<S: ReadAndWrite> ClientSession<S> {
             Pdu::Spawn(spawn) => {
                 let sender = self.to_write_tx.clone();
                 spawn_into_main_thread(async move {
-                    catch(
-                        move || {
-                            let mux = Mux::get().unwrap();
-                            let domain = mux.get_domain(spawn.domain_id).ok_or_else(|| {
-                                anyhow!("domain {} not found on this server", spawn.domain_id)
-                            })?;
-
-                            let window_id = if let Some(window_id) = spawn.window_id {
-                                mux.get_window_mut(window_id).ok_or_else(|| {
-                                    anyhow!("window_id {} not found on this server", window_id)
-                                })?;
-                                window_id
-                            } else {
-                                mux.new_empty_window()
-                            };
-
-                            let tab = domain.spawn(
-                                spawn.size,
-                                spawn.command,
-                                spawn.command_dir,
-                                window_id,
-                            )?;
-
-                            let clip: Arc<dyn Clipboard> = Arc::new(RemoteClipboard {
-                                tab_id: tab.tab_id(),
-                                sender,
-                            });
-                            tab.set_clipboard(&clip);
-
-                            Ok(Pdu::SpawnResponse(SpawnResponse {
-                                tab_id: tab.tab_id(),
-                                window_id,
-                            }))
-                        },
-                        send_response,
-                    )
+                    schedule_domain_spawn(spawn, sender, send_response);
                 });
             }
 
@@ -898,6 +863,47 @@ impl<S: ReadAndWrite> ClientSession<S> {
             }
         }
     }
+}
+
+// Dancing around a little bit here; we can't directly spawn_into_main_thread the domain_spawn
+// function below because the compiler thinks that all of its locals then need to be Send.
+// We need to shimmy through this helper to break that aspect of the compiler flow
+// analysis and allow things to compile.
+fn schedule_domain_spawn<SND>(spawn: Spawn, sender: PollableSender<DecodedPdu>, send_response: SND)
+where
+    SND: Fn(anyhow::Result<Pdu>) + 'static,
+{
+    promise::spawn::spawn(async move { send_response(domain_spawn(spawn, sender).await) });
+}
+
+async fn domain_spawn(spawn: Spawn, sender: PollableSender<DecodedPdu>) -> anyhow::Result<Pdu> {
+    let mux = Mux::get().unwrap();
+    let domain = mux
+        .get_domain(spawn.domain_id)
+        .ok_or_else(|| anyhow!("domain {} not found on this server", spawn.domain_id))?;
+
+    let window_id = if let Some(window_id) = spawn.window_id {
+        mux.get_window_mut(window_id)
+            .ok_or_else(|| anyhow!("window_id {} not found on this server", window_id))?;
+        window_id
+    } else {
+        mux.new_empty_window()
+    };
+
+    let tab = domain
+        .spawn(spawn.size, spawn.command, spawn.command_dir, window_id)
+        .await?;
+
+    let clip: Arc<dyn Clipboard> = Arc::new(RemoteClipboard {
+        tab_id: tab.tab_id(),
+        sender,
+    });
+    tab.set_clipboard(&clip);
+
+    Ok::<Pdu, anyhow::Error>(Pdu::SpawnResponse(SpawnResponse {
+        tab_id: tab.tab_id(),
+        window_id,
+    }))
 }
 
 /// Unfortunately, novice unix users can sometimes be running

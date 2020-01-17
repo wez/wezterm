@@ -214,7 +214,7 @@ impl Domain for ClientDomain {
         self.config.name()
     }
 
-    fn spawn(
+    async fn spawn(
         &self,
         size: PtySize,
         command: Option<CommandBuilder>,
@@ -234,7 +234,7 @@ impl Domain for ClientDomain {
                     command,
                     command_dir,
                 })
-                .wait()?;
+                .await?;
 
             inner.record_remote_to_local_window_mapping(result.window_id, window);
 

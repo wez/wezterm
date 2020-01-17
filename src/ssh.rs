@@ -332,7 +332,7 @@ impl RemoteSshDomain {
 
 #[async_trait(?Send)]
 impl Domain for RemoteSshDomain {
-    fn spawn(
+    async fn spawn(
         &self,
         size: PtySize,
         command: Option<CommandBuilder>,

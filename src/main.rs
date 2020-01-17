@@ -2,6 +2,7 @@
 #![windows_subsystem = "windows"]
 
 use anyhow::{anyhow, bail, Context};
+use promise::spawn::block_on;
 use std::ffi::OsString;
 use std::fs::DirBuilder;
 use std::io::{Read, Write};
@@ -373,7 +374,9 @@ async fn async_run_ssh(opts: SshCommand, params: SshParameters) -> anyhow::Resul
     domain.attach().await?;
 
     let window_id = mux.new_empty_window();
-    let tab = domain.spawn(PtySize::default(), cmd, None, window_id)?;
+    let tab = domain
+        .spawn(PtySize::default(), cmd, None, window_id)
+        .await?;
     let fontconfig = Rc::new(FontConfiguration::new());
     gui.spawn_new_window(&fontconfig, &tab, window_id)?;
 
@@ -426,10 +429,10 @@ fn run_serial(config: config::ConfigHandle, opts: &SerialCommand) -> anyhow::Res
 
     let front_end = opts.front_end.unwrap_or(config.front_end);
     let gui = front_end.try_new()?;
-    promise::spawn::block_on(domain.attach())?; // FIXME: blocking
+    block_on(domain.attach())?; // FIXME: blocking
 
     let window_id = mux.new_empty_window();
-    let tab = domain.spawn(PtySize::default(), None, None, window_id)?;
+    let tab = block_on(domain.spawn(PtySize::default(), None, None, window_id))?; // FIXME: blocking
     gui.spawn_new_window(&fontconfig, &tab, window_id)?;
 
     gui.run_forever()
@@ -506,7 +509,8 @@ async fn spawn_tab_in_default_domain_if_mux_is_empty(
 
     let tab = mux
         .default_domain()
-        .spawn(PtySize::default(), cmd, None, window_id)?;
+        .spawn(PtySize::default(), cmd, None, window_id)
+        .await?;
     let fontconfig = Rc::new(FontConfiguration::new());
     front_end()
         .unwrap()
