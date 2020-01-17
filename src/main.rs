@@ -756,6 +756,9 @@ fn run() -> anyhow::Result<()> {
         SubCommand::Connect(connect) => run_mux_client(config, &connect),
         SubCommand::ImageCat(cmd) => cmd.run(),
         SubCommand::Cli(cli) => {
+            // Start a front end so that the futures executor is running
+            let front_end = FrontEndSelection::Null.try_new()?;
+
             let initial = true;
             let client = Client::new_default_unix_domain(initial)?;
             match cli.sub {
@@ -777,6 +780,10 @@ fn run() -> anyhow::Result<()> {
                             name: "TITLE".to_string(),
                             alignment: Alignment::Left,
                         },
+                        Column {
+                            name: "CWD".to_string(),
+                            alignment: Alignment::Left,
+                        },
                     ];
                     let mut data = vec![];
                     let tabs = block_on(client.list_tabs())?; // FIXME: blocking
@@ -786,6 +793,12 @@ fn run() -> anyhow::Result<()> {
                             entry.tab_id.to_string(),
                             format!("{}x{}", entry.size.cols, entry.size.rows),
                             entry.title.clone(),
+                            entry
+                                .working_dir
+                                .as_ref()
+                                .map(|url| url.url.as_str())
+                                .unwrap_or("")
+                                .to_string(),
                         ]);
                     }
                     tabulate_output(&cols, &data, &mut std::io::stdout().lock())?;
@@ -798,7 +811,6 @@ fn run() -> anyhow::Result<()> {
 
                     crate::stats::disable_stats_printing();
 
-                    let front_end = FrontEndSelection::Null.try_new()?;
                     let mux = Rc::new(mux::Mux::new(None));
                     Mux::set_mux(&mux);
                     let unix_dom = config.unix_domains.first().unwrap();

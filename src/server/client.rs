@@ -133,7 +133,6 @@ fn client_thread(
                     for (_, mut promise) in promises.into_iter() {
                         promise.result(Err(anyhow!("Client was destroyed")));
                     }
-                    log::error!("Client Disconnected");
                     bail!("Client was destroyed");
                 }
             };
