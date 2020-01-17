@@ -19,8 +19,9 @@ use std::cell::RefCell;
 use std::cell::RefMut;
 use std::collections::VecDeque;
 use std::ops::Range;
+use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::time::{Duration, Instant};
 use term::color::ColorPalette;
 use term::{
@@ -71,36 +72,36 @@ impl MouseState {
     }
 
     fn pop(&mut self) -> Option<MouseEvent> {
-        if self.can_send() {
+        if !self.pending.load(Ordering::SeqCst) {
             self.queue.pop_front()
         } else {
             None
         }
     }
 
-    fn can_send(&mut self) -> bool {
-        !self.pending.load(Ordering::SeqCst)
-    }
-
-    fn next(state: Arc<Mutex<Self>>) {
-        let mut mouse = state.lock().unwrap();
+    fn next(state: Rc<RefCell<Self>>) {
+        let mut mouse = state.borrow_mut();
         if let Some(event) = mouse.pop() {
-            let state = Arc::clone(&state);
+            let client = mouse.client.clone();
+
+            let state = Rc::clone(&state);
             mouse.pending.store(true, Ordering::SeqCst);
-            drop(mouse);
+            let remote_tab_id = mouse.remote_tab_id;
+
             promise::spawn::spawn(async move {
-                let mouse = state.lock().unwrap();
-                mouse
-                    .client
+                client
                     .mouse_event(SendMouseEvent {
-                        tab_id: mouse.remote_tab_id,
+                        tab_id: remote_tab_id,
                         event,
                     })
                     .await
                     .ok();
-                mouse.pending.store(false, Ordering::SeqCst);
 
-                Self::next(Arc::clone(&state));
+                let mouse = state.borrow_mut();
+                mouse.pending.store(false, Ordering::SeqCst);
+                drop(mouse);
+
+                Self::next(Rc::clone(&state));
                 Ok::<(), anyhow::Error>(())
             });
         }
@@ -114,7 +115,7 @@ pub struct ClientTab {
     renderable: RefCell<RenderableState>,
     writer: RefCell<TabWriter>,
     reader: Pipe,
-    mouse: Arc<Mutex<MouseState>>,
+    mouse: Rc<RefCell<MouseState>>,
     clipboard: RefCell<Option<Arc<dyn Clipboard>>>,
     mouse_grabbed: RefCell<bool>,
 }
@@ -132,7 +133,7 @@ impl ClientTab {
             remote_tab_id,
         };
 
-        let mouse = Arc::new(Mutex::new(MouseState {
+        let mouse = Rc::new(RefCell::new(MouseState {
             remote_tab_id,
             client: client.client.clone(),
             pending: AtomicBool::new(false),
@@ -302,8 +303,8 @@ impl Tab for ClientTab {
     }
 
     fn mouse_event(&self, event: MouseEvent, _host: &mut dyn TerminalHost) -> anyhow::Result<()> {
-        self.mouse.lock().unwrap().append(event);
-        MouseState::next(Arc::clone(&self.mouse));
+        self.mouse.borrow_mut().append(event);
+        MouseState::next(Rc::clone(&self.mouse));
         Ok(())
     }
 
