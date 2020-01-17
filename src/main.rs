@@ -779,7 +779,7 @@ fn run() -> anyhow::Result<()> {
                         },
                     ];
                     let mut data = vec![];
-                    let tabs = client.list_tabs().wait()?;
+                    let tabs = block_on(client.list_tabs())?; // FIXME: blocking
                     for entry in tabs.tabs.iter() {
                         data.push(vec![
                             entry.window_id.to_string(),

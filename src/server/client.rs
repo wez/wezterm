@@ -32,17 +32,16 @@ pub struct Client {
 
 macro_rules! rpc {
     ($method_name:ident, $request_type:ident, $response_type:ident) => {
-        pub fn $method_name(&self, pdu: $request_type) -> Future<$response_type> {
+        pub async fn $method_name(&self, pdu: $request_type) -> anyhow::Result<$response_type> {
             let start = std::time::Instant::now();
-            self.send_pdu(Pdu::$request_type(pdu)).then(move |result| {
-                let elapsed = start.elapsed();
-                metrics::value!("rpc", elapsed, "method" => stringify!($method_name));
-                match result {
-                    Ok(Pdu::$response_type(res)) => Ok(res),
-                    Ok(_) => bail!("unexpected response {:?}", result),
-                    Err(err) => Err(err),
-                }
-            })
+            let result = self.send_pdu(Pdu::$request_type(pdu)).await;
+            let elapsed = start.elapsed();
+            metrics::value!("rpc", elapsed, "method" => stringify!($method_name));
+            match result {
+                Ok(Pdu::$response_type(res)) => Ok(res),
+                Ok(_) => bail!("unexpected response {:?}", result),
+                Err(err) => Err(err),
+            }
         }
     };
 
@@ -51,17 +50,16 @@ macro_rules! rpc {
     // of typing the request.
     ($method_name:ident, $request_type:ident=(), $response_type:ident) => {
         #[allow(dead_code)]
-        pub fn $method_name(&self) -> Future<$response_type> {
+        pub async fn $method_name(&self) -> anyhow::Result<$response_type> {
             let start = std::time::Instant::now();
-            self.send_pdu(Pdu::$request_type($request_type{})).then(move |result| {
-                let elapsed = start.elapsed();
-                metrics::value!("rpc", elapsed, "method" => stringify!($method_name));
-                match result {
-                    Ok(Pdu::$response_type(res)) => Ok(res),
-                    Ok(_) => bail!("unexpected response {:?}", result),
-                    Err(err) => Err(err),
-                }
-            })
+            let result = self.send_pdu(Pdu::$request_type($request_type{})).await;
+            let elapsed = start.elapsed();
+            metrics::value!("rpc", elapsed, "method" => stringify!($method_name));
+            match result {
+                Ok(Pdu::$response_type(res)) => Ok(res),
+                Ok(_) => bail!("unexpected response {:?}", result),
+                Err(err) => Err(err),
+            }
         }
     };
 }

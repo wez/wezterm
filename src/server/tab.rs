@@ -13,12 +13,13 @@ use filedescriptor::Pipe;
 use log::info;
 use lru::LruCache;
 use portable_pty::PtySize;
-use promise::{BrokenPromise, Future};
+use promise::BrokenPromise;
 use rangeset::*;
 use std::cell::RefCell;
 use std::cell::RefMut;
 use std::collections::VecDeque;
 use std::ops::Range;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use term::color::ColorPalette;
@@ -30,7 +31,7 @@ use termwiz::input::KeyEvent;
 use url::Url;
 
 struct MouseState {
-    future: Option<Future<()>>,
+    pending: AtomicBool,
     queue: VecDeque<MouseEvent>,
     client: Client,
     remote_tab_id: TabId,
@@ -69,49 +70,40 @@ impl MouseState {
         log::trace!("MouseEvent {}: queued", self.queue.len());
     }
 
-    fn pop(&mut self) -> anyhow::Result<Option<MouseEvent>> {
-        if self.can_send()? {
-            Ok(self.queue.pop_front())
+    fn pop(&mut self) -> Option<MouseEvent> {
+        if self.can_send() {
+            self.queue.pop_front()
         } else {
-            Ok(None)
+            None
         }
     }
 
-    fn can_send(&mut self) -> anyhow::Result<bool> {
-        if self.future.is_none() {
-            Ok(true)
-        } else {
-            let ready = self.future.as_ref().map(Future::is_ready).unwrap_or(false);
-            if ready {
-                self.future.take().unwrap().wait()?;
-                Ok(true)
-            } else {
-                Ok(false)
-            }
-        }
+    fn can_send(&mut self) -> bool {
+        !self.pending.load(Ordering::SeqCst)
     }
 
-    fn next(state: &Arc<Mutex<Self>>) -> anyhow::Result<()> {
+    fn next(state: Arc<Mutex<Self>>) {
         let mut mouse = state.lock().unwrap();
-        if let Some(event) = mouse.pop()? {
-            let state = Arc::clone(state);
-
-            mouse.future = Some(
+        if let Some(event) = mouse.pop() {
+            let state = Arc::clone(&state);
+            mouse.pending.store(true, Ordering::SeqCst);
+            drop(mouse);
+            promise::spawn::spawn(async move {
+                let mouse = state.lock().unwrap();
                 mouse
                     .client
                     .mouse_event(SendMouseEvent {
                         tab_id: mouse.remote_tab_id,
                         event,
                     })
-                    .then(move |_| {
-                        promise::spawn::spawn_into_main_thread(async move {
-                            Self::next(&state).ok();
-                        });
-                        Ok(())
-                    }),
-            );
+                    .await
+                    .ok();
+                mouse.pending.store(false, Ordering::SeqCst);
+
+                Self::next(Arc::clone(&state));
+                Ok::<(), anyhow::Error>(())
+            });
         }
-        Ok(())
     }
 }
 
@@ -143,7 +135,7 @@ impl ClientTab {
         let mouse = Arc::new(Mutex::new(MouseState {
             remote_tab_id,
             client: client.client.clone(),
-            future: None,
+            pending: AtomicBool::new(false),
             queue: VecDeque::new(),
         }));
 
@@ -157,7 +149,7 @@ impl ClientTab {
                 local_tab_id,
                 last_poll: Instant::now(),
                 dead: false,
-                poll_future: None,
+                poll_in_progress: AtomicBool::new(false),
                 poll_interval: BASE_POLL_INTERVAL,
                 cursor_position: StableCursorPosition::default(),
                 dimensions: RenderableDimensions {
@@ -238,9 +230,17 @@ impl Tab for ClientTab {
     }
 
     fn send_paste(&self, text: &str) -> anyhow::Result<()> {
-        self.client.client.send_paste(SendPaste {
-            tab_id: self.remote_tab_id,
-            data: text.to_owned(),
+        let client = Arc::clone(&self.client);
+        let remote_tab_id = self.remote_tab_id;
+        let data = text.to_owned();
+        promise::spawn::spawn(async move {
+            client
+                .client
+                .send_paste(SendPaste {
+                    tab_id: remote_tab_id,
+                    data,
+                })
+                .await
         });
         Ok(())
     }
@@ -268,28 +268,42 @@ impl Tab for ClientTab {
             // Invalidate any cached rows on a resize
             inner.make_all_stale();
 
-            self.client.client.resize(Resize {
-                tab_id: self.remote_tab_id,
-                size,
+            let client = Arc::clone(&self.client);
+            let remote_tab_id = self.remote_tab_id;
+            promise::spawn::spawn(async move {
+                client
+                    .client
+                    .resize(Resize {
+                        tab_id: remote_tab_id,
+                        size,
+                    })
+                    .await
             });
         }
         Ok(())
     }
 
     fn key_down(&self, key: KeyCode, mods: KeyModifiers) -> anyhow::Result<()> {
-        self.client.client.key_down(SendKeyDown {
-            tab_id: self.remote_tab_id,
-            event: KeyEvent {
-                key,
-                modifiers: mods,
-            },
+        let client = Arc::clone(&self.client);
+        let remote_tab_id = self.remote_tab_id;
+        promise::spawn::spawn(async move {
+            client
+                .client
+                .key_down(SendKeyDown {
+                    tab_id: remote_tab_id,
+                    event: KeyEvent {
+                        key,
+                        modifiers: mods,
+                    },
+                })
+                .await
         });
         Ok(())
     }
 
     fn mouse_event(&self, event: MouseEvent, _host: &mut dyn TerminalHost) -> anyhow::Result<()> {
         self.mouse.lock().unwrap().append(event);
-        MouseState::next(&self.mouse)?;
+        MouseState::next(Arc::clone(&self.mouse));
         Ok(())
     }
 
@@ -358,7 +372,7 @@ struct RenderableInner {
     local_tab_id: TabId,
     last_poll: Instant,
     dead: bool,
-    poll_future: Option<Future<UnitResponse>>,
+    poll_in_progress: AtomicBool,
     poll_interval: Duration,
 
     cursor_position: StableCursorPosition,
@@ -543,103 +557,113 @@ impl RenderableInner {
             self.remote_tab_id,
             now,
         );
-        self.client
-            .client
-            .get_lines(GetLines {
-                tab_id: self.remote_tab_id,
-                lines: to_fetch.clone().into(),
-            })
-            .then(move |result| {
-                async fn complete_fetch(
-                    local_tab_id: TabId,
-                    to_fetch: RangeSet<StableRowIndex>,
-                    now: Instant,
-                    result: anyhow::Result<GetLinesResponse>,
-                ) -> anyhow::Result<()> {
-                    let mux = Mux::get().unwrap();
-                    let tab = mux
-                        .get_tab(local_tab_id)
-                        .ok_or_else(|| anyhow!("no such tab {}", local_tab_id))?;
-                    if let Some(client_tab) = tab.downcast_ref::<ClientTab>() {
-                        let renderable = client_tab.renderable.borrow_mut();
-                        let mut inner = renderable.inner.borrow_mut();
 
-                        match result {
-                            Ok(result) => {
-                                let config = configuration();
-                                let lines = result.lines.lines();
+        let client = Arc::clone(&self.client);
+        let remote_tab_id = self.remote_tab_id;
 
-                                log::trace!("fetch complete for {:?} at {:?}", to_fetch, now);
-                                for (stable_row, line) in lines.into_iter() {
-                                    inner.put_line(stable_row, line, &config, Some(now));
+        promise::spawn::spawn(async move {
+            let result = client
+                .client
+                .get_lines(GetLines {
+                    tab_id: remote_tab_id,
+                    lines: to_fetch.clone().into(),
+                })
+                .await;
+            Self::apply_lines(local_tab_id, result, to_fetch, now)
+        });
+    }
+
+    fn apply_lines(
+        local_tab_id: TabId,
+        result: anyhow::Result<GetLinesResponse>,
+        to_fetch: RangeSet<StableRowIndex>,
+        now: Instant,
+    ) -> anyhow::Result<()> {
+        let mux = Mux::get().unwrap();
+        let tab = mux
+            .get_tab(local_tab_id)
+            .ok_or_else(|| anyhow!("no such tab {}", local_tab_id))?;
+        if let Some(client_tab) = tab.downcast_ref::<ClientTab>() {
+            let renderable = client_tab.renderable.borrow_mut();
+            let mut inner = renderable.inner.borrow_mut();
+
+            match result {
+                Ok(result) => {
+                    let config = configuration();
+                    let lines = result.lines.lines();
+
+                    log::trace!("fetch complete for {:?} at {:?}", to_fetch, now);
+                    for (stable_row, line) in lines.into_iter() {
+                        inner.put_line(stable_row, line, &config, Some(now));
+                    }
+                }
+                Err(err) => {
+                    log::error!("get_lines failed: {}", err);
+                    for r in to_fetch.iter() {
+                        for stable_row in r.clone() {
+                            let entry = match inner.lines.pop(&stable_row) {
+                                Some(LineEntry::Fetching(then)) if then == now => {
+                                    // leave it popped
+                                    continue;
                                 }
-                            }
-                            Err(err) => {
-                                log::error!("get_lines failed: {}", err);
-                                for r in to_fetch.iter() {
-                                    for stable_row in r.clone() {
-                                        let entry = match inner.lines.pop(&stable_row) {
-                                            Some(LineEntry::Fetching(then)) if then == now => {
-                                                // leave it popped
-                                                continue;
-                                            }
-                                            Some(LineEntry::DirtyAndFetching(line, then))
-                                                if then == now =>
-                                            {
-                                                // revert to just dirty
-                                                LineEntry::Dirty(line)
-                                            }
-                                            Some(entry) => entry,
-                                            None => continue,
-                                        };
-                                        inner.lines.put(stable_row, entry);
-                                    }
+                                Some(LineEntry::DirtyAndFetching(line, then)) if then == now => {
+                                    // revert to just dirty
+                                    LineEntry::Dirty(line)
                                 }
-                            }
+                                Some(entry) => entry,
+                                None => continue,
+                            };
+                            inner.lines.put(stable_row, entry);
                         }
                     }
-                    Ok(())
                 }
-                promise::spawn::spawn_into_main_thread(async move {
-                    complete_fetch(local_tab_id, to_fetch, now, result)
-                        .await
-                        .ok();
-                });
-                Ok(())
-            });
+            }
+        }
+        Ok(())
     }
 
     fn poll(&mut self) -> anyhow::Result<()> {
-        let ready = self
-            .poll_future
-            .as_ref()
-            .map(Future::is_ready)
-            .unwrap_or(false);
-        if ready {
-            self.poll_future.take().unwrap().wait()?;
-            let interval = self.poll_interval;
-            let interval = (interval + interval).min(MAX_POLL_INTERVAL);
-            self.poll_interval = interval;
-
-            self.last_poll = Instant::now();
-        } else if self.poll_future.is_some() {
+        if self.poll_in_progress.load(Ordering::SeqCst) {
             // We have a poll in progress
             return Ok(());
         }
+
+        let interval = self.poll_interval;
+        let interval = (interval + interval).min(MAX_POLL_INTERVAL);
+        self.poll_interval = interval;
 
         let last = self.last_poll;
         if last.elapsed() < self.poll_interval {
             return Ok(());
         }
 
-        {
-            self.last_poll = Instant::now();
-            self.poll_future = Some(self.client.client.get_tab_render_changes(
-                GetTabRenderChanges {
-                    tab_id: self.remote_tab_id,
-                },
-            ));
-        }
+        self.last_poll = Instant::now();
+        self.poll_in_progress.store(true, Ordering::SeqCst);
+        let remote_tab_id = self.remote_tab_id;
+        let local_tab_id = self.local_tab_id;
+        let client = Arc::clone(&self.client);
+        promise::spawn::spawn(async move {
+            let alive = client
+                .client
+                .get_tab_render_changes(GetTabRenderChanges {
+                    tab_id: remote_tab_id,
+                })
+                .await
+                .is_ok();
+
+            let mux = Mux::get().unwrap();
+            let tab = mux
+                .get_tab(local_tab_id)
+                .ok_or_else(|| anyhow!("no such tab {}", local_tab_id))?;
+            if let Some(client_tab) = tab.downcast_ref::<ClientTab>() {
+                let renderable = client_tab.renderable.borrow_mut();
+                let mut inner = renderable.inner.borrow_mut();
+
+                inner.dead = !alive;
+                inner.poll_in_progress.store(false, Ordering::SeqCst);
+            }
+            Ok::<(), anyhow::Error>(())
+        });
         Ok(())
     }
 }
@@ -734,14 +758,11 @@ struct TabWriter {
 
 impl std::io::Write for TabWriter {
     fn write(&mut self, data: &[u8]) -> Result<usize, std::io::Error> {
-        self.client
-            .client
-            .write_to_tab(WriteToTab {
-                tab_id: self.remote_tab_id,
-                data: data.to_vec(),
-            })
-            .wait()
-            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, format!("{}", e)))?;
+        promise::spawn::block_on(self.client.client.write_to_tab(WriteToTab {
+            tab_id: self.remote_tab_id,
+            data: data.to_vec(),
+        }))
+        .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, format!("{}", e)))?;
         Ok(data.len())
     }
 
