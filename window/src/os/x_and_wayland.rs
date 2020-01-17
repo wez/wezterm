@@ -7,7 +7,6 @@ use crate::os::wayland::connection::WaylandConnection;
 use crate::os::wayland::window::WaylandWindow;
 use crate::os::x11::connection::XConnection;
 use crate::os::x11::window::XWindow;
-use crate::spawn::*;
 use crate::{MouseCursor, ScreenPoint, WindowCallbacks, WindowOps};
 use promise::*;
 use std::any::Any;
@@ -89,14 +88,6 @@ impl Connection {
             Self::Wayland(w) => Rc::clone(w),
             _ => panic!("attempted to get wayland reference on non-wayland connection"),
         }
-    }
-
-    pub fn executor() -> impl BasicExecutor {
-        SpawnQueueExecutor {}
-    }
-
-    pub fn low_pri_executor() -> impl BasicExecutor {
-        LowPriSpawnQueueExecutor {}
     }
 }
 

@@ -9,7 +9,6 @@ use crate::Connection;
 use anyhow::{bail, Context};
 use mio::unix::EventedFd;
 use mio::{Evented, Events, Poll, PollOpt, Ready, Token};
-use promise::BasicExecutor;
 use smithay_client_toolkit as toolkit;
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -114,14 +113,6 @@ impl WaylandConnection {
             .fetch_add(1, ::std::sync::atomic::Ordering::Relaxed)
     }
 
-    pub fn executor() -> impl BasicExecutor {
-        SpawnQueueExecutor {}
-    }
-
-    pub fn low_pri_executor() -> impl BasicExecutor {
-        LowPriSpawnQueueExecutor {}
-    }
-
     fn flush(&self) -> anyhow::Result<()> {
         if let Err(e) = self.display.borrow_mut().flush() {
             if e.kind() != ::std::io::ErrorKind::WouldBlock {
@@ -166,12 +157,12 @@ impl WaylandConnection {
         let mut prom = promise::Promise::new();
         let future = prom.get_future().unwrap();
 
-        SpawnQueueExecutor {}.execute(Box::new(move || {
+        promise::spawn::spawn_into_main_thread(async move {
             if let Some(handle) = Connection::get().unwrap().wayland().window_by_id(window) {
                 let mut inner = handle.borrow_mut();
                 prom.result(f(&mut inner));
             }
-        }));
+        });
 
         future
     }

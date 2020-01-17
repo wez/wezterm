@@ -9,7 +9,6 @@ use cocoa::base::{id, nil};
 use core_foundation::date::CFAbsoluteTimeGetCurrent;
 use core_foundation::runloop::*;
 use objc::*;
-use promise::BasicExecutor;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
@@ -60,22 +59,14 @@ impl Connection {
     {
         let mut prom = promise::Promise::new();
         let future = prom.get_future().unwrap();
-        SpawnQueueExecutor {}.execute(Box::new(move || {
+        promise::spawn::spawn_into_main_thread(async move {
             if let Some(handle) = Connection::get().unwrap().window_by_id(window_id) {
                 let mut inner = handle.borrow_mut();
                 prom.result(f(&mut inner));
             }
-        }));
+        });
 
         future
-    }
-
-    pub fn executor() -> impl BasicExecutor {
-        SpawnQueueExecutor {}
-    }
-
-    pub fn low_pri_executor() -> impl BasicExecutor {
-        LowPriSpawnQueueExecutor {}
     }
 }
 

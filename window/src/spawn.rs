@@ -2,7 +2,7 @@
 use crate::os::windows::event::EventHandle;
 #[cfg(target_os = "macos")]
 use core_foundation::runloop::*;
-use promise::{BasicExecutor, SpawnFunc};
+use promise::SpawnFunc;
 use std::collections::VecDeque;
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
@@ -44,16 +44,12 @@ impl SpawnQueue {
     pub fn register_promise_schedulers(&self) {
         promise::spawn::set_schedulers(
             Box::new(|task| {
-                SPAWN_QUEUE.queue_func(Box::new(move || task.run()), true);
+                SPAWN_QUEUE.spawn_impl(Box::new(move || task.run()), true);
             }),
             Box::new(|low_pri_task| {
-                SPAWN_QUEUE.queue_func(Box::new(move || low_pri_task.run()), false);
+                SPAWN_QUEUE.spawn_impl(Box::new(move || low_pri_task.run()), false);
             }),
         );
-    }
-
-    pub fn spawn(&self, f: SpawnFunc) {
-        self.spawn_impl(f, true)
     }
 
     pub fn run(&self) -> bool {
@@ -254,19 +250,5 @@ impl SpawnQueue {
             func();
         }
         self.has_any_queued()
-    }
-}
-
-pub struct SpawnQueueExecutor;
-impl BasicExecutor for SpawnQueueExecutor {
-    fn execute(&self, f: SpawnFunc) {
-        SPAWN_QUEUE.spawn(f)
-    }
-}
-
-pub struct LowPriSpawnQueueExecutor;
-impl BasicExecutor for LowPriSpawnQueueExecutor {
-    fn execute(&self, f: SpawnFunc) {
-        SPAWN_QUEUE.spawn_impl(f, false)
     }
 }

@@ -215,22 +215,20 @@ impl Window {
 fn schedule_show_window(hwnd: HWindow, show: bool) -> Future<()> {
     // ShowWindow can call to the window proc and may attempt
     // to lock inner, so we avoid locking it ourselves here
-    Future::with_executor(Connection::executor(), move || {
+    promise::spawn::spawn(async move {
         unsafe {
             ShowWindow(hwnd.0, if show { SW_NORMAL } else { SW_HIDE });
         }
-        Ok(())
-    })
+    });
 }
 
 impl WindowOpsMut for WindowInner {
     fn close(&mut self) {
         let hwnd = self.hwnd;
-        Future::with_executor(Connection::executor(), move || {
+        promise::spawn::spawn(async move {
             unsafe {
                 DestroyWindow(hwnd.0);
             }
-            Ok(())
         });
     }
 
@@ -255,17 +253,18 @@ impl WindowOpsMut for WindowInner {
     fn set_inner_size(&mut self, width: usize, height: usize) {
         let (width, height) = adjust_client_to_window_dimensions(width, height);
         let hwnd = self.hwnd;
-        Future::with_executor(Connection::executor(), move || unsafe {
-            SetWindowPos(
-                hwnd.0,
-                hwnd.0,
-                0,
-                0,
-                width,
-                height,
-                SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOZORDER,
-            );
-            Ok(())
+        promise::spawn::spawn(async move {
+            unsafe {
+                SetWindowPos(
+                    hwnd.0,
+                    hwnd.0,
+                    0,
+                    0,
+                    width,
+                    height,
+                    SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOZORDER,
+                );
+            }
         });
     }
 

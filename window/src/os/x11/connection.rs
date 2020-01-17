@@ -7,7 +7,6 @@ use crate::timerlist::{TimerEntry, TimerList};
 use anyhow::{anyhow, bail};
 use mio::unix::EventedFd;
 use mio::{Evented, Events, Poll, PollOpt, Ready, Token};
-use promise::BasicExecutor;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::os::unix::io::AsRawFd;
@@ -418,14 +417,6 @@ impl XConnection {
         self.conn.flush();
     }
 
-    pub fn executor() -> impl BasicExecutor {
-        SpawnQueueExecutor {}
-    }
-
-    pub fn low_pri_executor() -> impl BasicExecutor {
-        LowPriSpawnQueueExecutor {}
-    }
-
     pub(crate) fn with_window_inner<
         R,
         F: FnMut(&mut XWindowInner) -> anyhow::Result<R> + Send + 'static,
@@ -439,12 +430,12 @@ impl XConnection {
         let mut prom = promise::Promise::new();
         let future = prom.get_future().unwrap();
 
-        SpawnQueueExecutor {}.execute(Box::new(move || {
+        promise::spawn::spawn_into_main_thread(async move {
             if let Some(handle) = Connection::get().unwrap().x11().window_by_id(window) {
                 let mut inner = handle.lock().unwrap();
                 prom.result(f(&mut inner));
             }
-        }));
+        });
 
         future
     }

@@ -2,7 +2,6 @@
 use super::{HWindow, WindowInner};
 use crate::connection::ConnectionOps;
 use crate::spawn::*;
-use promise::BasicExecutor;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::convert::TryInto;
@@ -107,14 +106,6 @@ impl Connection {
         }
     }
 
-    pub fn executor() -> impl BasicExecutor {
-        SpawnQueueExecutor {}
-    }
-
-    pub fn low_pri_executor() -> impl BasicExecutor {
-        LowPriSpawnQueueExecutor {}
-    }
-
     fn get_window(&self, handle: HWindow) -> Option<Rc<RefCell<WindowInner>>> {
         self.windows.borrow().get(&handle).map(Rc::clone)
     }
@@ -131,7 +122,7 @@ impl Connection {
     {
         let mut prom = promise::Promise::new();
         let future = prom.get_future().unwrap();
-        SpawnQueueExecutor {}.execute(Box::new(move || {
+        promise::spawn::spawn_into_main_thread(async move {
             if let Some(handle) = Connection::get()
                 .expect("Connection::init has not been called")
                 .get_window(window)
@@ -139,7 +130,7 @@ impl Connection {
                 let mut inner = handle.borrow_mut();
                 prom.result(f(&mut inner));
             }
-        }));
+        });
 
         future
     }
