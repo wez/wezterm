@@ -20,7 +20,7 @@ fn pctile_latency(histogram: &Histogram<u64>, p: f64) -> Duration {
 /// Used to prevent the stats thread from trying to write to stderr
 /// when we're running in proxy mode
 pub fn disable_stats_printing() {
-    ENABLE_STAT_PRINT.store(false, Ordering::Acquire);
+    ENABLE_STAT_PRINT.store(false, Ordering::SeqCst);
 }
 
 impl Inner {
