@@ -5,7 +5,6 @@ use crate::mux::tab::Tab;
 use crate::mux::window::WindowId as MuxWindowId;
 use crate::mux::Mux;
 use ::window::*;
-use promise::{BasicExecutor, Executor, SpawnFunc};
 use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
@@ -47,41 +46,7 @@ impl GuiFrontEnd {
     }
 }
 
-struct GuiExecutor {}
-impl BasicExecutor for GuiExecutor {
-    fn execute(&self, f: SpawnFunc) {
-        Connection::executor().execute(f)
-    }
-}
-
-impl Executor for GuiExecutor {
-    fn clone_executor(&self) -> Box<dyn Executor> {
-        Box::new(GuiExecutor {})
-    }
-}
-
-struct LowPriGuiExecutor {}
-impl BasicExecutor for LowPriGuiExecutor {
-    fn execute(&self, f: SpawnFunc) {
-        Connection::low_pri_executor().execute(f)
-    }
-}
-
-impl Executor for LowPriGuiExecutor {
-    fn clone_executor(&self) -> Box<dyn Executor> {
-        Box::new(Self {})
-    }
-}
-
 impl FrontEnd for GuiFrontEnd {
-    fn executor(&self) -> Box<dyn Executor> {
-        Box::new(GuiExecutor {})
-    }
-
-    fn low_pri_executor(&self) -> Box<dyn Executor> {
-        Box::new(GuiExecutor {})
-    }
-
     fn run_forever(&self) -> anyhow::Result<()> {
         self.connection
             .schedule_timer(std::time::Duration::from_millis(200), move || {

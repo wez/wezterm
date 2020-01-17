@@ -3,12 +3,9 @@ use crate::mux::tab::Tab;
 use crate::mux::window::WindowId;
 use anyhow::{anyhow, Error};
 use downcast_rs::{impl_downcast, Downcast};
-use lazy_static::lazy_static;
-use promise::Executor;
 use serde::Deserialize;
 use std::cell::RefCell;
 use std::rc::Rc;
-use std::sync::Mutex;
 
 pub mod activity;
 pub mod gui;
@@ -28,10 +25,6 @@ impl Default for FrontEndSelection {
     }
 }
 
-lazy_static! {
-    static ref EXECUTOR: Mutex<Option<Box<dyn Executor>>> = Mutex::new(None);
-    static ref LOW_PRI_EXECUTOR: Mutex<Option<Box<dyn Executor>>> = Mutex::new(None);
-}
 thread_local! {
     static FRONT_END: RefCell<Option<Rc<dyn FrontEnd>>> = RefCell::new(None);
 }
@@ -55,11 +48,6 @@ impl FrontEndSelection {
             FrontEndSelection::OpenGL => gui::GuiFrontEnd::try_new(),
         }?;
 
-        EXECUTOR.lock().unwrap().replace(front_end.executor());
-        LOW_PRI_EXECUTOR
-            .lock()
-            .unwrap()
-            .replace(front_end.low_pri_executor());
         FRONT_END.with(|f| *f.borrow_mut() = Some(Rc::clone(&front_end)));
 
         Ok(front_end)
@@ -99,8 +87,5 @@ pub trait FrontEnd: Downcast {
         tab: &Rc<dyn Tab>,
         window_id: WindowId,
     ) -> anyhow::Result<()>;
-
-    fn executor(&self) -> Box<dyn Executor>;
-    fn low_pri_executor(&self) -> Box<dyn Executor>;
 }
 impl_downcast!(FrontEnd);

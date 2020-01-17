@@ -6,32 +6,12 @@ use crate::mux::window::WindowId;
 use crate::mux::Mux;
 use crate::server::listener::spawn_listener;
 use anyhow::{bail, Error};
-use crossbeam_channel::{unbounded as channel, Receiver, Sender};
+use crossbeam_channel::{unbounded as channel, Receiver};
 use log::info;
 use promise::*;
 use std::rc::Rc;
 
-#[derive(Clone)]
-struct MuxExecutor {
-    tx: Sender<SpawnFunc>,
-}
-
-impl BasicExecutor for MuxExecutor {
-    fn execute(&self, f: SpawnFunc) {
-        self.tx.send(f).expect("MuxExecutor execute failed");
-    }
-}
-
-impl Executor for MuxExecutor {
-    fn clone_executor(&self) -> Box<dyn Executor> {
-        Box::new(MuxExecutor {
-            tx: self.tx.clone(),
-        })
-    }
-}
-
 pub struct MuxServerFrontEnd {
-    tx: Sender<SpawnFunc>,
     rx: Receiver<SpawnFunc>,
 }
 
@@ -56,7 +36,7 @@ impl MuxServerFrontEnd {
         if start_listener {
             spawn_listener()?;
         }
-        Ok(Rc::new(Self { tx, rx }))
+        Ok(Rc::new(Self { rx }))
     }
 
     pub fn try_new() -> Result<Rc<dyn FrontEnd>, Error> {
@@ -69,16 +49,6 @@ impl MuxServerFrontEnd {
 }
 
 impl FrontEnd for MuxServerFrontEnd {
-    fn executor(&self) -> Box<dyn Executor> {
-        Box::new(MuxExecutor {
-            tx: self.tx.clone(),
-        })
-    }
-
-    fn low_pri_executor(&self) -> Box<dyn Executor> {
-        self.executor()
-    }
-
     fn run_forever(&self) -> Result<(), Error> {
         loop {
             match self.rx.recv() {
