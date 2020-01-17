@@ -50,10 +50,12 @@ impl FrontEnd for GuiFrontEnd {
     fn run_forever(&self) -> anyhow::Result<()> {
         self.connection
             .schedule_timer(std::time::Duration::from_millis(200), move || {
-                let mux = Mux::get().unwrap();
-                mux.prune_dead_windows();
-                if mux.is_empty() && crate::frontend::activity::Activity::count() == 0 {
-                    Connection::get().unwrap().terminate_message_loop();
+                if crate::frontend::activity::Activity::count() == 0 {
+                    let mux = Mux::get().unwrap();
+                    mux.prune_dead_windows();
+                    if mux.is_empty() {
+                        Connection::get().unwrap().terminate_message_loop();
+                    }
                 }
             });
 
