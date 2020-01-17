@@ -194,15 +194,18 @@ impl From<LinSrgba> for Color {
     #[inline]
     #[allow(clippy::many_single_char_names)]
     fn from(s: LinSrgba) -> Color {
-        if is_x86_feature_detected!("sse2") {
-            linear_f32_to_srgb8_vec(s)
-        } else {
-            let r = linear_f32_to_srgb8_using_table(s.red);
-            let g = linear_f32_to_srgb8_using_table(s.green);
-            let b = linear_f32_to_srgb8_using_table(s.blue);
-            let a = linear_f32_to_srgb8_using_table(s.alpha);
-            Color::rgba(r, g, b, a)
+        #[cfg(target_arch = "x86_64")]
+        {
+            if is_x86_feature_detected!("sse2") {
+                return linear_f32_to_srgb8_vec(s);
+            }
         }
+
+        let r = linear_f32_to_srgb8_using_table(s.red);
+        let g = linear_f32_to_srgb8_using_table(s.green);
+        let b = linear_f32_to_srgb8_using_table(s.blue);
+        let a = linear_f32_to_srgb8_using_table(s.alpha);
+        Color::rgba(r, g, b, a)
     }
 }
 
