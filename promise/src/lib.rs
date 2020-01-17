@@ -13,26 +13,6 @@ pub type SpawnFunc = Box<dyn FnOnce() + Send>;
 #[error("Promise was dropped before completion")]
 pub struct BrokenPromise {}
 
-pub trait BasicExecutor {
-    fn execute(&self, f: SpawnFunc);
-}
-
-pub trait Executor: BasicExecutor + Send {
-    fn clone_executor(&self) -> Box<dyn Executor>;
-}
-
-impl BasicExecutor for Box<dyn Executor> {
-    fn execute(&self, f: SpawnFunc) {
-        BasicExecutor::execute(&**self, f)
-    }
-}
-
-impl Executor for Box<dyn Executor> {
-    fn clone_executor(&self) -> Box<dyn Executor> {
-        Executor::clone_executor(&**self)
-    }
-}
-
 enum PromiseState<T> {
     Waiting(Arc<Core<T>>),
     Fulfilled,
@@ -164,26 +144,6 @@ impl<T: Send + 'static> Future<T> {
         Self {
             state: FutureState::Ready(result),
         }
-    }
-
-    /// Create a future from a function that will be spawned via
-    /// the provided executor
-    pub fn with_executor<F, IF, EXEC>(executor: EXEC, f: F) -> Future<T>
-    where
-        F: FnOnce() -> IF + Send + 'static,
-        IF: Into<Future<T>> + 'static,
-        EXEC: BasicExecutor,
-    {
-        let mut promise = Promise::new();
-        let future = promise.get_future().unwrap();
-
-        let func = Box::new(f);
-        let promise_chain = Box::new(move |result| promise.result(result));
-        executor.execute(Box::new(move || {
-            let future = func().into();
-            future.chain(promise_chain);
-        }));
-        future
     }
 
     fn chain(self, f: NextFunc<T>) {
