@@ -370,7 +370,14 @@ mod windows {
                     _ => return,
                 },
             };
-            let modifiers = modifiers_from_ctrl_key_state(event.dwControlKeyState);
+            let mut modifiers = modifiers_from_ctrl_key_state(event.dwControlKeyState);
+
+            let key_code = key_code.normalize_shift_to_upper_case(modifiers);
+            if let KeyCode::Char(c) = key_code {
+                if c.is_ascii_uppercase() {
+                    modifiers.remove(Modifiers::SHIFT);
+                }
+            }
 
             let input_event = InputEvent::Key(KeyEvent {
                 key: key_code,
