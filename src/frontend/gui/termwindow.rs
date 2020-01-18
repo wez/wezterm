@@ -6,6 +6,7 @@ use crate::config::{configuration, ConfigHandle};
 use crate::font::units::*;
 use crate::font::FontConfiguration;
 use crate::frontend::front_end;
+use crate::frontend::gui::overlay::*;
 use crate::frontend::gui::scrollbar::*;
 use crate::frontend::gui::selection::*;
 use crate::frontend::gui::tabbar::{TabBarItem, TabBarState};
@@ -113,17 +114,21 @@ impl PrevCursorPos {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Default)]
 struct TabState {
     /// If is_some(), the top row of the visible screen.
     /// Otherwise, the viewport is at the bottom of the
     /// scrollback.
     viewport: Option<StableRowIndex>,
     selection: Selection,
+    /// If is_some(), rather than display the actual tab
+    /// contents, we're overlaying a little internal application
+    /// tab.  We'll also route input to it.
+    overlay: Option<Rc<dyn Tab>>,
 }
 
 pub struct TermWindow {
-    window: Option<Window>,
+    pub window: Option<Window>,
     /// When we most recently received keyboard focus
     focused: Option<Instant>,
     fonts: Rc<FontConfiguration>,
@@ -234,7 +239,7 @@ impl WindowCallbacks for TermWindow {
 
     fn mouse_event(&mut self, event: &MouseEvent, context: &dyn WindowOps) {
         let mux = Mux::get().unwrap();
-        let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
+        let tab = match self.get_active_tab_or_overlay() {
             Some(tab) => tab,
             None => return,
         };
@@ -311,7 +316,7 @@ impl WindowCallbacks for TermWindow {
                 if let Some(from_top) = self.scroll_drag_start.as_ref() {
                     // Dragging the scroll bar
                     let mux = Mux::get().unwrap();
-                    let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
+                    let tab = match self.get_active_tab_or_overlay() {
                         Some(tab) => tab,
                         None => return,
                     };
@@ -370,7 +375,7 @@ impl WindowCallbacks for TermWindow {
         // log::error!("key_event {:?}", key);
 
         let mux = Mux::get().unwrap();
-        let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
+        let tab = match self.get_active_tab_or_overlay() {
             Some(tab) => tab,
             None => return false,
         };
@@ -423,7 +428,7 @@ impl WindowCallbacks for TermWindow {
 
     fn paint(&mut self, ctx: &mut dyn PaintContext) {
         let mux = Mux::get().unwrap();
-        let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
+        let tab = match self.get_active_tab_or_overlay() {
             Some(tab) => tab,
             None => {
                 ctx.clear(Color::rgb(0, 0, 0));
@@ -459,7 +464,7 @@ impl WindowCallbacks for TermWindow {
 
     fn paint_opengl(&mut self, frame: &mut glium::Frame) {
         let mux = Mux::get().unwrap();
-        let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
+        let tab = match self.get_active_tab_or_overlay() {
             Some(tab) => tab,
             None => {
                 frame.clear_color(0., 0., 0., 1.);
@@ -595,7 +600,7 @@ impl TermWindow {
                         if let Some(myself) = myself.downcast_mut::<Self>() {
                             let mux = Mux::get().unwrap();
 
-                            if let Some(tab) = mux.get_active_tab_for_window(mux_window_id) {
+                            if let Some(tab) = myself.get_active_tab_or_overlay() {
                                 // If the config was reloaded, ask the window to apply
                                 // and render any changes
                                 myself.check_for_config_reload();
@@ -864,7 +869,7 @@ impl TermWindow {
         }
 
         let mux = Mux::get().unwrap();
-        let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
+        let tab = match self.get_active_tab_or_overlay() {
             Some(tab) => tab,
             None => return,
         };
@@ -1009,7 +1014,7 @@ impl TermWindow {
 
     fn scroll_by_page(&mut self, amount: isize) -> anyhow::Result<()> {
         let mux = Mux::get().unwrap();
-        let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
+        let tab = match self.get_active_tab_or_overlay() {
             Some(tab) => tab,
             None => return Ok(()),
         };
@@ -2756,6 +2761,37 @@ impl TermWindow {
 
     fn scroll_to_bottom(&mut self, tab: &Rc<dyn Tab>) {
         self.tab_state(tab.tab_id()).viewport = None;
+    }
+
+    /// Returns a Tab that we can interact with; this will typically be
+    /// the active tab for the window, but if the window has an overlay,
+    /// then that will be returned instead.
+    fn get_active_tab_or_overlay(&self) -> Option<Rc<dyn Tab>> {
+        let mux = Mux::get().unwrap();
+        let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
+            Some(tab) => tab,
+            None => return None,
+        };
+
+        let tab_id = tab.tab_id();
+        self.tab_state(tab_id).overlay.clone().or_else(|| Some(tab))
+    }
+
+    /// Removes any overlay for the specified tab
+    fn cancel_overlay_for_tab(&self, tab_id: TabId) {
+        self.tab_state(tab_id).overlay.take();
+        if let Some(window) = self.window.as_ref() {
+            window.invalidate();
+        }
+    }
+
+    pub fn schedule_cancel_overlay(window: Window, tab_id: TabId) {
+        window.apply(move |myself, _| {
+            if let Some(myself) = myself.downcast_mut::<Self>() {
+                myself.cancel_overlay_for_tab(tab_id);
+            }
+            Ok(())
+        });
     }
 }
 

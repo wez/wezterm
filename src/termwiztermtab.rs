@@ -193,8 +193,24 @@ impl Drop for TermWizTerminalTab {
 }
 
 impl TermWizTerminalTab {
-    fn new(domain_id: DomainId, inner: RenderableInner) -> Self {
+    fn new(
+        domain_id: DomainId,
+        width: usize,
+        height: usize,
+        input_tx: Sender<InputEvent>,
+        render_rx: Receiver<Vec<Change>>,
+    ) -> Self {
         let tab_id = alloc_tab_id();
+
+        let inner = RenderableInner {
+            surface: Surface::new(width, height),
+            local_sequence: 0,
+            dead: false,
+            something_changed: Arc::new(AtomicBool::new(false)),
+            input_tx,
+            render_rx,
+        };
+
         let renderable = RefCell::new(RenderableState {
             inner: RefCell::new(inner),
         });
@@ -412,6 +428,26 @@ impl termwiz::terminal::Terminal for &mut TermWizTerminal {
     }
 }
 
+pub fn allocate(width: usize, height: usize) -> (TermWizTerminal, TermWizTerminalTab) {
+    let (render_tx, render_rx) = channel();
+    let (input_tx, input_rx) = channel();
+
+    let tw_term = TermWizTerminal {
+        render_tx,
+        input_rx,
+        screen_size: ScreenSize {
+            cols: width,
+            rows: height,
+            xpixel: 0,
+            ypixel: 0,
+        },
+    };
+
+    let domain_id = 0;
+    let tab = TermWizTerminalTab::new(domain_id, width, height, input_tx, render_rx);
+    (tw_term, tab)
+}
+
 /// This function spawns a thread and constructs a GUI window with an
 /// associated termwiz Terminal object to execute the provided function.
 /// The function is expected to run in a loop to manage input and output
@@ -454,16 +490,13 @@ pub async fn run<
 
         let window_id = mux.new_empty_window();
 
-        let inner = RenderableInner {
-            surface: Surface::new(width, height),
-            local_sequence: 0,
-            dead: false,
-            something_changed: Arc::new(AtomicBool::new(false)),
+        let tab: Rc<dyn Tab> = Rc::new(TermWizTerminalTab::new(
+            domain.domain_id(),
+            width,
+            height,
             input_tx,
             render_rx,
-        };
-
-        let tab: Rc<dyn Tab> = Rc::new(TermWizTerminalTab::new(domain.domain_id(), inner));
+        ));
 
         mux.add_tab(&tab)?;
         mux.add_tab_to_window(&tab, window_id)?;

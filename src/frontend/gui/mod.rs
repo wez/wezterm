@@ -9,6 +9,7 @@ use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 mod glyphcache;
+mod overlay;
 mod quad;
 mod renderstate;
 mod scrollbar;
