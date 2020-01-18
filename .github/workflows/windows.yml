@@ -14,7 +14,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [vs2017-win2016]
-        rust_toolchain: [stable-x86_64]
+        rust_toolchain: [stable]
     runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v1
