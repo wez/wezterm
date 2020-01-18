@@ -488,7 +488,6 @@ async fn spawn_tab_in_default_domain_if_mux_is_empty(
     if !mux.is_empty() {
         return Ok(());
     }
-    let window_id = mux.new_empty_window();
     let domain = mux.default_domain();
     domain.attach().await?;
 
@@ -496,6 +495,7 @@ async fn spawn_tab_in_default_domain_if_mux_is_empty(
         return Ok(());
     }
 
+    let window_id = mux.new_empty_window();
     let tab = mux
         .default_domain()
         .spawn(PtySize::default(), cmd, None, window_id)
