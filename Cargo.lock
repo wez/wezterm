@@ -3298,6 +3298,7 @@ dependencies = [
  "tabout",
  "term",
  "termwiz",
+ "textwrap",
  "thiserror",
  "toml",
  "uds_windows",

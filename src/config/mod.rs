@@ -155,8 +155,7 @@ impl ConfigInner {
             }
             Err(err) => {
                 let err = format!("{:#}", err);
-                log::error!("While (re)loading configuration: {}", err);
-                crate::toast_notification("Wezterm Configuration", &err);
+                crate::termwiztermtab::show_configuration_error_message(&err);
                 self.error.replace(err);
             }
         }

@@ -411,6 +411,7 @@ fn run_ssh(config: config::ConfigHandle, opts: SshCommand) -> anyhow::Result<()>
         drop(activity);
     });
 
+    maybe_show_configuration_error_window();
     gui.run_forever()
 }
 
@@ -435,6 +436,7 @@ fn run_serial(config: config::ConfigHandle, opts: &SerialCommand) -> anyhow::Res
     let tab = block_on(domain.spawn(PtySize::default(), None, None, window_id))?; // FIXME: blocking
     gui.spawn_new_window(&fontconfig, &tab, window_id)?;
 
+    maybe_show_configuration_error_window();
     gui.run_forever()
 }
 
@@ -614,6 +616,7 @@ fn run_terminal_gui(config: config::ConfigHandle, opts: StartCommand) -> anyhow:
         drop(activity);
     });
 
+    maybe_show_configuration_error_window();
     gui.run_forever()
 }
 
@@ -687,6 +690,13 @@ fn main() {
     }
 }
 
+fn maybe_show_configuration_error_window() {
+    if let Err(err) = config::configuration_result() {
+        let err = format!("{:#}", err);
+        termwiztermtab::show_configuration_error_message(&err);
+    }
+}
+
 fn run() -> anyhow::Result<()> {
     // This is a bit gross.
     // In order to not to automatically open a standard windows console when
@@ -727,14 +737,7 @@ fn run() -> anyhow::Result<()> {
     if !opts.skip_config {
         config::reload();
     }
-    let config = match config::configuration_result() {
-        Err(err) => {
-            let err = format!("{:#}", err);
-            toast_notification("Wezterm configuration", &err);
-            config::configuration()
-        }
-        Ok(config) => config,
-    };
+    let config = crate::config::configuration();
 
     #[cfg(target_os = "macos")]
     {

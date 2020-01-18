@@ -54,6 +54,7 @@ structopt = "0.2"
 tabout = { path = "tabout" }
 term = { path = "term" }
 termwiz = { path = "termwiz"}
+textwrap = "0.11"
 toml = "0.4"
 unicode-normalization = "0.1"
 unicode-segmentation = "1.5"
