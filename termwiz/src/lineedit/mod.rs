@@ -186,7 +186,8 @@ impl<T: Terminal> LineEditor<T> {
         self.terminal.set_raw_mode()?;
         let res = self.read_line_impl(host);
         self.terminal.set_cooked_mode()?;
-        println!();
+        self.terminal.render(&[Change::Text("\r\n".to_string())])?;
+        self.terminal.flush()?;
         res
     }
 
