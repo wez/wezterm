@@ -405,7 +405,6 @@ impl Reconnectable {
 
     #[cfg(any(feature = "openssl", unix))]
     pub fn tls_connect(&mut self, tls_client: TlsDomainClient) -> anyhow::Result<()> {
-        use crate::server::listener::read_bytes;
         use openssl::ssl::{SslConnector, SslFiletype, SslMethod};
         use openssl::x509::X509;
 
@@ -432,7 +431,7 @@ impl Reconnectable {
             connector.set_private_key_file(key_file, SslFiletype::PEM)?;
         }
         fn load_cert(name: &Path) -> anyhow::Result<X509> {
-            let cert_bytes = read_bytes(name)?;
+            let cert_bytes = std::fs::read(name)?;
             log::trace!("loaded {}", name.display());
             Ok(X509::from_pem(&cert_bytes)?)
         }

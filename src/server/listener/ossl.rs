@@ -113,7 +113,7 @@ pub fn spawn_tls_listener(tls_server: &TlsDomainServer) -> Result<(), Error> {
         acceptor.set_private_key_file(key_file, SslFiletype::PEM)?;
     }
     fn load_cert(name: &Path) -> anyhow::Result<X509> {
-        let cert_bytes = read_bytes(name)?;
+        let cert_bytes = std::fs::read(name)?;
         log::trace!("loaded {}", name.display());
         Ok(X509::from_pem(&cert_bytes)?)
     }
@@ -160,13 +160,13 @@ pub fn pem_files_to_identity(
     // We can use openssl to convert the data to pkcs12
     // so that we can then pass it on using the Identity
     // type that native_tls requires.
-    let key_bytes = read_bytes(&key)?;
+    let key_bytes = std::fs::read(&key)?;
     let pkey = PKey::private_key_from_pem(&key_bytes)?;
 
-    let cert_bytes = read_bytes(cert.as_ref().unwrap_or(&key))?;
+    let cert_bytes = std::fs::read(cert.as_ref().unwrap_or(&key))?;
     let x509_cert = X509::from_pem(&cert_bytes)?;
 
-    let chain_bytes = read_bytes(chain.as_ref().unwrap_or(&key))?;
+    let chain_bytes = std::fs::read(chain.as_ref().unwrap_or(&key))?;
     let x509_chain = X509::stack_from_pem(&chain_bytes)?;
 
     let password = "internal";

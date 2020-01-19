@@ -18,7 +18,6 @@ use rangeset::RangeSet;
 use std::collections::{HashMap, HashSet};
 use std::convert::TryFrom;
 use std::fs::remove_file;
-use std::io::Read;
 use std::net::TcpListener;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
@@ -77,22 +76,13 @@ pub enum IdentitySource {
     },
 }
 
-pub fn read_bytes<T: AsRef<Path>>(path: T) -> anyhow::Result<Vec<u8>> {
-    let path = path.as_ref();
-    let mut f =
-        std::fs::File::open(path).with_context(|| format!("opening file {}", path.display()))?;
-    let mut buf = Vec::new();
-    f.read_to_end(&mut buf)?;
-    Ok(buf)
-}
-
 impl TryFrom<IdentitySource> for Identity {
     type Error = Error;
 
     fn try_from(source: IdentitySource) -> anyhow::Result<Identity> {
         match source {
             IdentitySource::Pkcs12File { path, password } => {
-                let bytes = read_bytes(&path)?;
+                let bytes = std::fs::read(&path)?;
                 Identity::from_pkcs12(&bytes, &password)
                     .with_context(|| format!("error loading pkcs12 file '{}'", path.display()))
             }
