@@ -80,7 +80,7 @@ impl OpenSSLNetListener {
                             }
 
                             spawn_into_main_thread(async move {
-                                let mut session = ClientSession::new(stream);
+                                let mut session = clientsession::ClientSession::new(stream);
                                 thread::spawn(move || session.run());
                             });
                         }
