@@ -56,7 +56,7 @@ jobs:
     - name: Package
       shell: cmd
       run: |
-        bash ci/deploy.sh
+        bash ci/deploy.sh target/x86_64-pc-windows-msvc
     - name: Move Windows Package
       shell: bash
       run: |
