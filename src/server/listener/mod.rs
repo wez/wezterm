@@ -8,8 +8,6 @@ use crate::server::pollable::*;
 use crate::server::UnixListener;
 use anyhow::{anyhow, bail, Context, Error};
 use crossbeam_channel::TryRecvError;
-#[cfg(unix)]
-use libc::{mode_t, umask};
 use log::{debug, error};
 use native_tls::Identity;
 use portable_pty::PtySize;
@@ -30,6 +28,7 @@ use url::Url;
 
 mod not_ossl;
 mod ossl;
+mod umask;
 
 #[cfg(not(any(feature = "openssl", unix)))]
 use not_ossl as tls_impl;
@@ -628,35 +627,6 @@ async fn domain_spawn(spawn: Spawn, sender: PollableSender<DecodedPdu>) -> anyho
     }))
 }
 
-/// Unfortunately, novice unix users can sometimes be running
-/// with an overly permissive umask so we take care to install
-/// a more restrictive mask while we might be creating things
-/// in the filesystem.
-/// This struct locks down the umask for its lifetime, restoring
-/// the prior umask when it is dropped.
-struct UmaskSaver {
-    #[cfg(unix)]
-    mask: mode_t,
-}
-
-impl UmaskSaver {
-    fn new() -> Self {
-        Self {
-            #[cfg(unix)]
-            mask: unsafe { umask(0o077) },
-        }
-    }
-}
-
-impl Drop for UmaskSaver {
-    fn drop(&mut self) {
-        #[cfg(unix)]
-        unsafe {
-            umask(self.mask);
-        }
-    }
-}
-
 /// Take care when setting up the listener socket;
 /// we need to be sure that the directory that we create it in
 /// is owned by the user and has appropriate file permissions
@@ -665,7 +635,7 @@ fn safely_create_sock_path(unix_dom: &UnixDomain) -> Result<UnixListener, Error>
     let sock_path = &unix_dom.socket_path();
     debug!("setting up {}", sock_path.display());
 
-    let _saver = UmaskSaver::new();
+    let _saver = umask::UmaskSaver::new();
 
     let sock_dir = sock_path
         .parent()
