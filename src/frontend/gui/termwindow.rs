@@ -238,7 +238,6 @@ impl WindowCallbacks for TermWindow {
     }
 
     fn mouse_event(&mut self, event: &MouseEvent, context: &dyn WindowOps) {
-        let mux = Mux::get().unwrap();
         let tab = match self.get_active_tab_or_overlay() {
             Some(tab) => tab,
             None => return,
@@ -315,7 +314,6 @@ impl WindowCallbacks for TermWindow {
                 let current_viewport = self.get_viewport(tab.tab_id());
                 if let Some(from_top) = self.scroll_drag_start.as_ref() {
                     // Dragging the scroll bar
-                    let mux = Mux::get().unwrap();
                     let tab = match self.get_active_tab_or_overlay() {
                         Some(tab) => tab,
                         None => return,
@@ -374,7 +372,6 @@ impl WindowCallbacks for TermWindow {
 
         // log::error!("key_event {:?}", key);
 
-        let mux = Mux::get().unwrap();
         let tab = match self.get_active_tab_or_overlay() {
             Some(tab) => tab,
             None => return false,
@@ -427,7 +424,6 @@ impl WindowCallbacks for TermWindow {
     }
 
     fn paint(&mut self, ctx: &mut dyn PaintContext) {
-        let mux = Mux::get().unwrap();
         let tab = match self.get_active_tab_or_overlay() {
             Some(tab) => tab,
             None => {
@@ -463,7 +459,6 @@ impl WindowCallbacks for TermWindow {
     }
 
     fn paint_opengl(&mut self, frame: &mut glium::Frame) {
-        let mux = Mux::get().unwrap();
         let tab = match self.get_active_tab_or_overlay() {
             Some(tab) => tab,
             None => {
@@ -868,7 +863,6 @@ impl TermWindow {
             return;
         }
 
-        let mux = Mux::get().unwrap();
         let tab = match self.get_active_tab_or_overlay() {
             Some(tab) => tab,
             None => return,
@@ -1025,7 +1019,6 @@ impl TermWindow {
     }
 
     fn scroll_by_page(&mut self, amount: isize) -> anyhow::Result<()> {
-        let mux = Mux::get().unwrap();
         let tab = match self.get_active_tab_or_overlay() {
             Some(tab) => tab,
             None => return Ok(()),
