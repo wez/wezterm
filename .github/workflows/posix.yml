@@ -21,13 +21,14 @@ jobs:
     - name: Install System Deps
       run: sudo ./get-deps
     - name: Install Rust
-      run: |
-        curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain ${{ matrix.rust_toolchain }}
-        source $HOME/.cargo/env
-        rustup update ${{ matrix.rust_toolchain }}
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: ${{ matrix.rust_toolchain }}
+        override: true
+        components: rustfmt
     - name: Show versions
       run: |
-        source $HOME/.cargo/env
         rustc -V
         cargo -V
     - name: Cache cargo registry
@@ -46,23 +47,13 @@ jobs:
         path: target
         key: ${{ matrix.os }}-${{ matrix.rust_toolchain }}-cargo-build-target-${{ hashFiles('Cargo.lock') }}
     - name: Check formatting
-      if: matrix.rust_toolchain == 'stable'
-      run: |
-        source $HOME/.cargo/env
-        rustup component add rustfmt
-        cargo fmt --all -- --check
+      run: cargo fmt --all -- --check
     - name: Build
-      run: |
-        source $HOME/.cargo/env
-        cargo build --all --release
+      run: cargo build --all --release
     - name: Test
-      run: |
-        source $HOME/.cargo/env
-        cargo test --all --release
+      run: cargo test --all --release
     - name: Package
-      run: |
-        source $HOME/.cargo/env
-        bash ci/deploy.sh
+      run: bash ci/deploy.sh
     - name: Move macOS Package
       if: contains(matrix.os, 'macos')
       run: |
