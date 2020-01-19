@@ -2,6 +2,8 @@
 set -x
 set -e
 
+TARGET_DIR=${1:-target}
+
 if [[ "$TRAVIS" != "" ]] ; then
   DEPLOY_ENV_TYPE="travis"
   TAG_NAME=$TRAVIS_TAG
@@ -38,7 +40,7 @@ case $OSTYPE in
     rm -rf $zipdir $zipname
     mkdir $zipdir
     cp -r assets/macos/WezTerm.app $zipdir/
-    cp target/release/wezterm $zipdir/WezTerm.app
+    cp $TARGET_DIR/release/wezterm $zipdir/WezTerm.app
     cp -r assets/colors $zipdir/WezTerm.app/Contents/Resources/
     zip -r $zipname $zipdir
     ;;
@@ -51,7 +53,7 @@ case $OSTYPE in
     fi
     rm -rf $zipdir $zipname
     mkdir $zipdir
-    cp target/release/wezterm.exe target/release/wezterm.pdb $zipdir
+    cp $TARGET_DIR/release/wezterm.exe $TARGET_DIR/release/wezterm.pdb $zipdir
     cp -r assets/colors $zipdir/
     7z a -tzip $zipname $zipdir
     ;;

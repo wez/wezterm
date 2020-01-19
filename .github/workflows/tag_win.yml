@@ -16,11 +16,12 @@ jobs:
     steps:
     - uses: actions/checkout@v1
     - name: Install Rust
-      shell: cmd
-      run: |
-          curl -sSf -o rustup-init.exe https://win.rustup.rs
-          rustup-init.exe -yv --default-toolchain ${{ matrix.rust_toolchain }}
-          rustup update ${{ matrix.rust_toolchain }}
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+        override: true
+        target: ${{ matrix.rust_toolchain }}
     - name: Cache cargo registry
       uses: actions/cache@v1
       with:
@@ -39,18 +40,12 @@ jobs:
     - name: Package
       shell: cmd
       run: |
-        set path "%USERPROFILE%\.cargo\bin;%PATH"
         cargo build --release --all
-        bash ci/deploy.sh
+        bash ci/deploy.sh target/x86_64-pc-windows-msvc
     - name: Upload Assets
       uses: softprops/action-gh-release@v1
       with:
-        files: |
-          wezterm-*.rpm
-          wezterm-*.deb
-          WezTerm-*.zip
-          wezterm-*.xz
-          weztern-*.tar.gz
+        files: WezTerm-*.zip
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

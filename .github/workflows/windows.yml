@@ -14,20 +14,20 @@ jobs:
       fail-fast: false
       matrix:
         os: [vs2017-win2016]
-        rust_toolchain: [stable]
+        rust_toolchain: [x86_64-pc-windows-msvc]
     runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v1
     - name: Install Rust
-      shell: cmd
-      run: |
-          curl -sSf -o rustup-init.exe https://win.rustup.rs
-          rustup-init.exe -yv --default-toolchain ${{ matrix.rust_toolchain }}
-          rustup update ${{ matrix.rust_toolchain }}
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+        override: true
+        target: ${{ matrix.rust_toolchain }}
     - name: Show versions
       shell: cmd
       run: |
-        set path "%USERPROFILE%\.cargo\bin;%PATH"
         rustc -V
         cargo -V
     - name: Cache cargo registry
@@ -45,28 +45,15 @@ jobs:
       with:
         path: target
         key: ${{ matrix.os }}-${{ matrix.rust_toolchain }}-cargo-build-target-${{ hashFiles('Cargo.lock') }}
-    - name: Check formatting
-      if: matrix.rust_toolchain == 'stable'
-      shell: cmd
-      run: |
-        set path "%USERPROFILE%\.cargo\bin;%PATH"
-        rustup component add rustfmt
-        cargo fmt --all -- --check
     - name: Build
       shell: cmd
-      run: |
-        set path "%USERPROFILE%\.cargo\bin;%PATH"
-        cargo build --all --release
+      run: cargo build --all --release --target ${{ matrix.rust_toolchain }}
     - name: Test
       shell: cmd
-      run: |
-        set path "%USERPROFILE%\.cargo\bin;%PATH"
-        cargo test --all --release
+      run: cargo test --all --release --target ${{ matrix.rust_toolchain }}
     - name: Package
       shell: cmd
-      run: |
-        set path "%USERPROFILE%\.cargo\bin;%PATH"
-        bash ci/deploy.sh
+      run: bash ci/deploy.sh target/x86_64-pc-windows-msvc
     - name: Move Windows Package
       shell: bash
       run: |
