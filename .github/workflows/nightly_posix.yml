@@ -17,10 +17,12 @@ jobs:
     - name: Install System Deps
       run: sudo ./get-deps
     - name: Install Rust
-      run: |
-        curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain ${{ matrix.rust_toolchain }}
-        source $HOME/.cargo/env
-        rustup update ${{ matrix.rust_toolchain }}
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: ${{ matrix.rust_toolchain }}
+        override: true
+        components: rustfmt
     - name: Cache cargo registry
       uses: actions/cache@v1
       with:
@@ -38,7 +40,6 @@ jobs:
         key: ${{ matrix.os }}-${{ matrix.rust_toolchain }}-cargo-build-target-${{ hashFiles('Cargo.lock') }}
     - name: Package
       run: |
-        source $HOME/.cargo/env
         cargo build --release --all
         env BUILD_REASON=Schedule bash ci/deploy.sh
     - name: Upload Assets

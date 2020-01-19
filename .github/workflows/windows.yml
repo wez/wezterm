@@ -47,16 +47,13 @@ jobs:
         key: ${{ matrix.os }}-${{ matrix.rust_toolchain }}-cargo-build-target-${{ hashFiles('Cargo.lock') }}
     - name: Build
       shell: cmd
-      run: |
-        cargo build --all --release --target ${{ matrix.rust_toolchain }}
+      run: cargo build --all --release --target ${{ matrix.rust_toolchain }}
     - name: Test
       shell: cmd
-      run: |
-        cargo test --all --release --target ${{ matrix.rust_toolchain }}
+      run: cargo test --all --release --target ${{ matrix.rust_toolchain }}
     - name: Package
       shell: cmd
-      run: |
-        bash ci/deploy.sh target/x86_64-pc-windows-msvc
+      run: bash ci/deploy.sh target/x86_64-pc-windows-msvc
     - name: Move Windows Package
       shell: bash
       run: |

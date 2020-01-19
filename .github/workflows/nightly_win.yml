@@ -10,16 +10,17 @@ jobs:
       fail-fast: false
       matrix:
         os: [vs2017-win2016]
-        rust_toolchain: [stable]
+        rust_toolchain: [x86_64-pc-windows-msvc]
     runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v1
     - name: Install Rust
-      shell: cmd
-      run: |
-          curl -sSf -o rustup-init.exe https://win.rustup.rs
-          rustup-init.exe -yv --default-toolchain ${{ matrix.rust_toolchain }}
-          rustup update ${{ matrix.rust_toolchain }}
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+        override: true
+        target: ${{ matrix.rust_toolchain }}
     - name: Cache cargo registry
       uses: actions/cache@v1
       with:
@@ -38,10 +39,9 @@ jobs:
     - name: Package
       shell: cmd
       run: |
-        set path "%USERPROFILE%\.cargo\bin;%PATH"
-        cargo build --release --all
+        cargo build --all --release --target ${{ matrix.rust_toolchain }}
         set BUILD_REASON=Schedule
-        bash ci/deploy.sh
+        bash ci/deploy.sh target/x86_64-pc-windows-msvc
     - name: Upload Assets
       uses: AButler/upload-release-assets@v2.0
       with:
