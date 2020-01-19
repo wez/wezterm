@@ -38,6 +38,7 @@ pub enum KeyAssignment {
     MoveTabRelative(isize),
     MoveTab(usize),
     ScrollByPage(isize),
+    ShowTabNavigator,
 }
 
 pub struct KeyMap(HashMap<(KeyCode, KeyModifiers), KeyAssignment>);
@@ -146,6 +147,7 @@ impl KeyMap {
             [ctrl_shift, KeyCode::PageDown, MoveTabRelative(1)],
             [KeyModifiers::SHIFT, KeyCode::PageUp, ScrollByPage(-1)],
             [KeyModifiers::SHIFT, KeyCode::PageDown, ScrollByPage(1)],
+            [KeyModifiers::ALT, KeyCode::Char('9'), ShowTabNavigator],
         );
 
         Self(map)

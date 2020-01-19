@@ -1,16 +1,20 @@
 use crate::frontend::gui::termwindow::TermWindow;
 use crate::mux::tab::{Tab, TabId};
 use crate::termwiztermtab::{allocate, TermWizTerminal, TermWizTerminalTab};
+use std::pin::Pin;
 use std::rc::Rc;
+use termwiz::lineedit::*;
+use termwiz::surface::{Change, SequenceNo, Surface};
+use termwiz::terminal::{ScreenSize, Terminal, TerminalWaker};
 use window::Window;
 
-pub fn start<T, F>(
+pub fn start_overlay<T, F>(
     term_window: &TermWindow,
     tab: &Rc<dyn Tab>,
     func: F,
 ) -> (
     Rc<dyn Tab>,
-    Box<dyn std::future::Future<Output = Option<anyhow::Result<T>>>>,
+    Pin<Box<dyn std::future::Future<Output = Option<anyhow::Result<T>>>>>,
 )
 where
     T: Send + 'static,
@@ -28,5 +32,20 @@ where
         res
     });
 
-    (Rc::new(tw_tab), Box::new(future))
+    (Rc::new(tw_tab), Box::pin(future))
+}
+
+pub fn tab_navigator(tab_id: TabId, mut term: TermWizTerminal) -> anyhow::Result<()> {
+    term.render(&[
+        Change::Title("Tab Navigator".to_string()),
+        Change::Text("Navigate!\r\n".to_string()),
+    ])?;
+
+    let mut editor = LineEditor::new(term);
+    editor.set_prompt("(press enter to return to your tab)");
+
+    let mut host = NopLineEditorHost::default();
+    editor.read_line(&mut host).ok();
+
+    Ok(())
 }

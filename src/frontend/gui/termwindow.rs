@@ -6,7 +6,7 @@ use crate::config::{configuration, ConfigHandle};
 use crate::font::units::*;
 use crate::font::FontConfiguration;
 use crate::frontend::front_end;
-use crate::frontend::gui::overlay::*;
+use crate::frontend::gui::overlay::{start_overlay, tab_navigator};
 use crate::frontend::gui::scrollbar::*;
 use crate::frontend::gui::selection::*;
 use crate::frontend::gui::tabbar::{TabBarItem, TabBarState};
@@ -1012,6 +1012,18 @@ impl TermWindow {
         Ok(())
     }
 
+    fn show_tab_navigator(&mut self) {
+        let mux = Mux::get().unwrap();
+        let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
+            Some(tab) => tab,
+            None => return,
+        };
+
+        let (overlay, future) = start_overlay(self, &tab, tab_navigator);
+        self.assign_overlay(tab.tab_id(), overlay);
+        promise::spawn::spawn(future);
+    }
+
     fn scroll_by_page(&mut self, amount: isize) -> anyhow::Result<()> {
         let mux = Mux::get().unwrap();
         let tab = match self.get_active_tab_or_overlay() {
@@ -1204,6 +1216,7 @@ impl TermWindow {
             MoveTab(n) => self.move_tab(*n)?,
             MoveTabRelative(n) => self.move_tab_relative(*n)?,
             ScrollByPage(n) => self.scroll_by_page(*n)?,
+            ShowTabNavigator => self.show_tab_navigator(),
         };
         Ok(())
     }
@@ -2779,6 +2792,7 @@ impl TermWindow {
 
     /// Removes any overlay for the specified tab
     fn cancel_overlay_for_tab(&self, tab_id: TabId) {
+        eprintln!("cancel_overlay_for_tab {}", tab_id);
         self.tab_state(tab_id).overlay.take();
         if let Some(window) = self.window.as_ref() {
             window.invalidate();
@@ -2786,12 +2800,18 @@ impl TermWindow {
     }
 
     pub fn schedule_cancel_overlay(window: Window, tab_id: TabId) {
+        eprintln!("schedule_cancel_overlay {}", tab_id);
         window.apply(move |myself, _| {
             if let Some(myself) = myself.downcast_mut::<Self>() {
                 myself.cancel_overlay_for_tab(tab_id);
             }
             Ok(())
         });
+    }
+
+    pub fn assign_overlay(&self, tab_id: TabId, overlay: Rc<dyn Tab>) {
+        eprintln!("assign_overlay {}", tab_id);
+        self.tab_state(tab_id).overlay.replace(overlay);
     }
 }
 

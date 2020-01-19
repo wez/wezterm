@@ -81,6 +81,7 @@ impl std::convert::TryInto<KeyAssignment> for &Key {
                     .ok_or_else(|| anyhow!("missing arg for {:?}", self))?
                     .parse()?,
             ),
+            KeyAction::ShowTabNavigator => KeyAssignment::ShowTabNavigator,
         })
     }
 }
@@ -108,6 +109,7 @@ pub enum KeyAction {
     MoveTab,
     MoveTabRelative,
     ScrollByPage,
+    ShowTabNavigator,
 }
 
 fn de_keycode<'de, D>(deserializer: D) -> Result<KeyCode, D::Error>
