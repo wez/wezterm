@@ -14,11 +14,66 @@ fn no_schedule_configured(_: Task<()>) {
 lazy_static::lazy_static! {
     static ref ON_MAIN_THREAD: Mutex<ScheduleFunc> = Mutex::new(Box::new(no_schedule_configured));
     static ref ON_MAIN_THREAD_LOW_PRI: Mutex<ScheduleFunc> = Mutex::new(Box::new(no_schedule_configured));
+    static ref TOKIO: tokio::runtime::Handle = start_tokio();
 }
 
+/// Set callbacks for scheduling normal and low priority futures.
+/// Why this and not "just tokio"?  In a GUI application there is typically
+/// a special GUI processing loop that may need to run on the "main thread",
+/// so we can't just run a tokio/mio loop in that context.
+/// This particular crate has no real knowledge of how that plumbing works,
+/// it just provides the abstraction for scheduling the work.
+/// This function allows the embedding application to set that up.
 pub fn set_schedulers(main: ScheduleFunc, low_pri: ScheduleFunc) {
     *ON_MAIN_THREAD.lock().unwrap() = Box::new(main);
     *ON_MAIN_THREAD_LOW_PRI.lock().unwrap() = Box::new(low_pri);
+}
+
+/// Spawn the tokio runtime and run it on a secondary thread.
+/// We can't run it on the main thread for the reasons mentioned above.
+/// This is called implicitly when the TOKIO global is accessed by the
+/// `tokio_spawn` function below.
+fn start_tokio() -> tokio::runtime::Handle {
+    let mut runtime = tokio::runtime::Builder::new()
+        .threaded_scheduler()
+        .core_threads(1)
+        .build()
+        .expect("failed to initialize tokio runtime");
+    let handle = runtime.handle().clone();
+
+    // Run the runtime in another thread.
+    // I'm not sure that it is strictly needed, or whether we can just
+    // keep it alive without actively polling anything.
+    std::thread::spawn(move || {
+        // A future that never completes
+        struct Never {}
+        impl Future for Never {
+            type Output = ();
+            fn poll(
+                self: std::pin::Pin<&mut Self>,
+                _: &mut std::task::Context,
+            ) -> Poll<Self::Output> {
+                Poll::Pending
+            }
+        }
+
+        // manage the runtime forever
+        runtime.block_on(Never {});
+    });
+    handle
+}
+
+/// Spawn a future into the tokio runtime, spawning the tokio runtime
+/// if it hasn't already been started up.  The tokio runtime (in the
+/// context of this crate) is intended primarily for scheduling network
+/// IO.  Most futures should be spawned via the other functions provided
+/// by this module.
+pub fn tokio_spawn<F>(future: F) -> tokio::task::JoinHandle<F::Output>
+where
+    F: Future + Send + 'static,
+    F::Output: Send + 'static,
+{
+    TOKIO.spawn(future)
 }
 
 /// Spawn a new thread to execute the provided function.

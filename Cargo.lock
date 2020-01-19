@@ -287,6 +287,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a7c3dd8985a7111efc5c80b44e23ecdd8c007de8ade3b96595387e812b957cf5"
 
 [[package]]
+name = "bytes"
+version = "0.5.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "10004c15deb332055f7a4a208190aed362cf9a7c2f6ab70a305fba50e1105f38"
+
+[[package]]
 name = "c2-chacha"
 version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1558,7 +1564,7 @@ dependencies = [
  "kernel32-sys",
  "libc",
  "log",
- "miow",
+ "miow 0.2.1",
  "net2",
  "slab",
  "winapi 0.2.8",
@@ -1574,6 +1580,18 @@ dependencies = [
  "log",
  "mio",
  "slab",
+]
+
+[[package]]
+name = "mio-named-pipes"
+version = "0.1.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f5e374eff525ce1c5b7687c4cef63943e7686524a387933ad27ca7ec43779cb3"
+dependencies = [
+ "log",
+ "mio",
+ "miow 0.3.3",
+ "winapi 0.3.8",
 ]
 
 [[package]]
@@ -1597,6 +1615,16 @@ dependencies = [
  "net2",
  "winapi 0.2.8",
  "ws2_32-sys",
+]
+
+[[package]]
+name = "miow"
+version = "0.3.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "396aa0f2003d7df8395cb93e09871561ccc3e785f0acb369170e8cc74ddf9226"
+dependencies = [
+ "socket2",
+ "winapi 0.3.8",
 ]
 
 [[package]]
@@ -2125,6 +2153,7 @@ dependencies = [
  "async-task",
  "lazy_static",
  "thiserror",
+ "tokio",
 ]
 
 [[package]]
@@ -2667,6 +2696,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "socket2"
+version = "0.3.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e8b74de517221a2cb01a53349cf54182acdc31a074727d3079068448c0676d85"
+dependencies = [
+ "cfg-if",
+ "libc",
+ "redox_syscall",
+ "winapi 0.3.8",
+]
+
+[[package]]
 name = "ssh2"
 version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2994,6 +3035,40 @@ dependencies = [
  "libc",
  "redox_syscall",
  "winapi 0.3.8",
+]
+
+[[package]]
+name = "tokio"
+version = "0.2.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ffa2fdcfa937b20cb3c822a635ceecd5fc1a27a6a474527e5516aa24b8c8820a"
+dependencies = [
+ "bytes",
+ "fnv",
+ "futures-core",
+ "iovec",
+ "lazy_static",
+ "libc",
+ "memchr",
+ "mio",
+ "mio-named-pipes",
+ "mio-uds",
+ "num_cpus",
+ "pin-project-lite",
+ "signal-hook-registry",
+ "slab",
+ "tokio-macros",
+ "winapi 0.3.8",
+]
+
+[[package]]
+name = "tokio-macros"
+version = "0.2.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "50a61f268a3db2acee8dcab514efc813dc6dbe8a00e86076f935f94304b59a7a"
+dependencies = [
+ "quote 1.0.2",
+ "syn 1.0.13",
 ]
 
 [[package]]

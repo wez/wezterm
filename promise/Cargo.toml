@@ -7,6 +7,7 @@ edition = "2018"
 [dependencies]
 async-task = "1.2"
 async-std = "1.4"
+tokio = {version="0.2", features=["full"]}
 anyhow = "1.0"
 thiserror = "1.0"
 lazy_static = "1.3"
