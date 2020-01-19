@@ -29,6 +29,14 @@ use term::terminal::Clipboard;
 use term::StableRowIndex;
 use url::Url;
 
+mod not_ossl;
+mod ossl;
+
+#[cfg(not(any(feature = "openssl", unix)))]
+use not_ossl as tls_impl;
+#[cfg(any(feature = "openssl", unix))]
+use ossl as tls_impl;
+
 struct LocalListener {
     listener: UnixListener,
 }
@@ -78,61 +86,6 @@ pub fn read_bytes<T: AsRef<Path>>(path: T) -> anyhow::Result<Vec<u8>> {
     Ok(buf)
 }
 
-#[cfg(any(feature = "openssl", unix))]
-fn pem_files_to_identity(
-    key: PathBuf,
-    cert: Option<PathBuf>,
-    chain: Option<PathBuf>,
-) -> anyhow::Result<Identity> {
-    // This is a bit of a redundant dance around;
-    // the native_tls interface only allows for pkcs12
-    // encoded identity information, but in my use case
-    // I only have pem encoded identity information.
-    // We can use openssl to convert the data to pkcs12
-    // so that we can then pass it on using the Identity
-    // type that native_tls requires.
-    use openssl::pkcs12::Pkcs12;
-    use openssl::pkey::PKey;
-    use openssl::x509::X509;
-    let key_bytes = read_bytes(&key)?;
-    let pkey = PKey::private_key_from_pem(&key_bytes)?;
-
-    let cert_bytes = read_bytes(cert.as_ref().unwrap_or(&key))?;
-    let x509_cert = X509::from_pem(&cert_bytes)?;
-
-    let chain_bytes = read_bytes(chain.as_ref().unwrap_or(&key))?;
-    let x509_chain = X509::stack_from_pem(&chain_bytes)?;
-
-    let password = "internal";
-    let mut ca_stack = openssl::stack::Stack::new()?;
-    for ca in x509_chain.into_iter() {
-        ca_stack.push(ca)?;
-    }
-    let mut builder = Pkcs12::builder();
-    builder.ca(ca_stack);
-    let pkcs12 = builder.build(password, "", &pkey, &x509_cert)?;
-
-    let der = pkcs12.to_der()?;
-    Identity::from_pkcs12(&der, password).with_context(|| {
-        format!(
-            "error creating identity from pkcs12 generated \
-             from PemFiles {}, {:?}, {:?}",
-            key.display(),
-            cert,
-            chain,
-        )
-    })
-}
-
-#[cfg(not(any(feature = "openssl", unix)))]
-fn pem_files_to_identity(
-    _key: PathBuf,
-    _cert: Option<PathBuf>,
-    _chain: Option<PathBuf>,
-) -> anyhow::Result<Identity> {
-    bail!("recompile wezterm using --features openssl")
-}
-
 impl TryFrom<IdentitySource> for Identity {
     type Error = Error;
 
@@ -144,230 +97,9 @@ impl TryFrom<IdentitySource> for Identity {
                     .with_context(|| format!("error loading pkcs12 file '{}'", path.display()))
             }
             IdentitySource::PemFiles { key, cert, chain } => {
-                pem_files_to_identity(key, cert, chain)
+                tls_impl::pem_files_to_identity(key, cert, chain)
             }
         }
-    }
-}
-
-#[cfg(not(any(feature = "openssl", unix)))]
-mod not_ossl {
-    use super::*;
-    use native_tls::TlsAcceptor;
-    use std::convert::TryInto;
-
-    struct NetListener {
-        acceptor: Arc<TlsAcceptor>,
-        listener: TcpListener,
-    }
-
-    impl NetListener {
-        pub fn new(listener: TcpListener, acceptor: TlsAcceptor) -> Self {
-            Self {
-                listener,
-                acceptor: Arc::new(acceptor),
-            }
-        }
-
-        fn run(&mut self) {
-            for stream in self.listener.incoming() {
-                match stream {
-                    Ok(stream) => {
-                        stream.set_nodelay(true).ok();
-                        let acceptor = self.acceptor.clone();
-
-                        match acceptor.accept(stream) {
-                            Ok(stream) => {
-                                spawn_into_main_thread(async move {
-                                    let mut session = ClientSession::new(stream);
-                                    thread::spawn(move || session.run());
-                                });
-                            }
-                            Err(e) => {
-                                error!("failed TlsAcceptor: {}", e);
-                            }
-                        }
-                    }
-                    Err(err) => {
-                        error!("accept failed: {}", err);
-                        return;
-                    }
-                }
-            }
-        }
-    }
-
-    pub fn spawn_tls_listener(tls_server: &TlsDomainServer) -> anyhow::Result<()> {
-        let identity = IdentitySource::PemFiles {
-            key: tls_server
-                .pem_private_key
-                .as_ref()
-                .ok_or_else(|| anyhow!("missing pem_private_key config value"))?
-                .into(),
-            cert: tls_server.pem_cert.clone(),
-            chain: tls_server.pem_ca.clone(),
-        };
-
-        let mut net_listener = NetListener::new(
-            TcpListener::bind(&tls_server.bind_address).with_context(|| {
-                format!("error binding to bind_address {}", tls_server.bind_address,)
-            })?,
-            TlsAcceptor::new(identity.try_into()?)?,
-        );
-        thread::spawn(move || {
-            net_listener.run();
-        });
-        Ok(())
-    }
-}
-
-#[cfg(any(feature = "openssl", unix))]
-mod ossl {
-    use super::*;
-    use openssl::ssl::{SslAcceptor, SslFiletype, SslMethod, SslStream, SslVerifyMode};
-    use openssl::x509::X509;
-
-    struct OpenSSLNetListener {
-        acceptor: Arc<SslAcceptor>,
-        listener: TcpListener,
-    }
-
-    impl OpenSSLNetListener {
-        pub fn new(listener: TcpListener, acceptor: SslAcceptor) -> Self {
-            Self {
-                listener,
-                acceptor: Arc::new(acceptor),
-            }
-        }
-
-        /// Authenticates the peer.
-        /// The requirements are:
-        /// * The peer must have a certificate
-        /// * The peer certificate must be trusted
-        /// * The peer certificate must include a CN string that is
-        ///   either an exact match for the unix username of the
-        ///   user running this mux server instance, or must match
-        ///   a special encoded prefix set up by a proprietary PKI
-        ///   infrastructure in an environment used by the author.
-        fn verify_peer_cert<T>(stream: &SslStream<T>) -> anyhow::Result<()> {
-            let cert = stream
-                .ssl()
-                .peer_certificate()
-                .ok_or_else(|| anyhow!("no peer cert"))?;
-            let subject = cert.subject_name();
-            let cn = subject
-                .entries_by_nid(openssl::nid::Nid::COMMONNAME)
-                .next()
-                .ok_or_else(|| anyhow!("cert has no CN"))?;
-            let cn_str = cn.data().as_utf8()?.to_string();
-
-            let wanted_unix_name = std::env::var("USER")?;
-
-            if wanted_unix_name == cn_str {
-                log::info!(
-                    "Peer certificate CN `{}` == $USER `{}`",
-                    cn_str,
-                    wanted_unix_name
-                );
-                Ok(())
-            } else {
-                // Some environments that are used by the author of this
-                // program encode the CN in the form `user:unixname/DATA`
-                let maybe_encoded = format!("user:{}/", wanted_unix_name);
-                if cn_str.starts_with(&maybe_encoded) {
-                    log::info!(
-                        "Peer certificate CN `{}` matches $USER `{}`",
-                        cn_str,
-                        wanted_unix_name
-                    );
-                    Ok(())
-                } else {
-                    bail!("CN `{}` did not match $USER `{}`", cn_str, wanted_unix_name);
-                }
-            }
-        }
-
-        fn run(&mut self) {
-            for stream in self.listener.incoming() {
-                match stream {
-                    Ok(stream) => {
-                        stream.set_nodelay(true).ok();
-                        let acceptor = self.acceptor.clone();
-
-                        match acceptor.accept(stream) {
-                            Ok(stream) => {
-                                if let Err(err) = Self::verify_peer_cert(&stream) {
-                                    error!("problem with peer cert: {}", err);
-                                    break;
-                                }
-
-                                spawn_into_main_thread(async move {
-                                    let mut session = ClientSession::new(stream);
-                                    thread::spawn(move || session.run());
-                                });
-                            }
-                            Err(e) => {
-                                error!("failed TlsAcceptor: {}", e);
-                            }
-                        }
-                    }
-                    Err(err) => {
-                        error!("accept failed: {}", err);
-                        return;
-                    }
-                }
-            }
-        }
-    }
-
-    pub fn spawn_tls_listener(tls_server: &TlsDomainServer) -> Result<(), Error> {
-        openssl::init();
-
-        let mut acceptor = SslAcceptor::mozilla_modern(SslMethod::tls())?;
-
-        if let Some(cert_file) = tls_server.pem_cert.as_ref() {
-            acceptor.set_certificate_file(cert_file, SslFiletype::PEM)?;
-        }
-        if let Some(chain_file) = tls_server.pem_ca.as_ref() {
-            acceptor.set_certificate_chain_file(chain_file)?;
-        }
-        if let Some(key_file) = tls_server.pem_private_key.as_ref() {
-            acceptor.set_private_key_file(key_file, SslFiletype::PEM)?;
-        }
-        fn load_cert(name: &Path) -> anyhow::Result<X509> {
-            let cert_bytes = read_bytes(name)?;
-            log::trace!("loaded {}", name.display());
-            Ok(X509::from_pem(&cert_bytes)?)
-        }
-        for name in &tls_server.pem_root_certs {
-            if name.is_dir() {
-                for entry in std::fs::read_dir(name)? {
-                    if let Ok(cert) = load_cert(&entry?.path()) {
-                        acceptor.cert_store_mut().add_cert(cert).ok();
-                    }
-                }
-            } else {
-                acceptor.cert_store_mut().add_cert(load_cert(name)?)?;
-            }
-        }
-
-        acceptor.set_verify(SslVerifyMode::PEER | SslVerifyMode::FAIL_IF_NO_PEER_CERT);
-
-        let acceptor = acceptor.build();
-
-        let mut net_listener = OpenSSLNetListener::new(
-            TcpListener::bind(&tls_server.bind_address).with_context(|| {
-                format!(
-                    "error binding to mux_server_bind_address {}",
-                    tls_server.bind_address,
-                )
-            })?,
-            acceptor,
-        );
-        thread::spawn(move || {
-            net_listener.run();
-        });
-        Ok(())
     }
 }
 
@@ -980,16 +712,6 @@ fn safely_create_sock_path(unix_dom: &UnixDomain) -> Result<UnixListener, Error>
         .with_context(|| format!("Failed to bind to {}", sock_path.display()))
 }
 
-#[cfg(any(feature = "openssl", unix))]
-fn spawn_tls_listener(tls_server: &TlsDomainServer) -> anyhow::Result<()> {
-    ossl::spawn_tls_listener(tls_server)
-}
-
-#[cfg(not(any(feature = "openssl", unix)))]
-fn spawn_tls_listener(tls_server: &TlsDomainServer) -> anyhow::Result<()> {
-    not_ossl::spawn_tls_listener(tls_server)
-}
-
 pub fn spawn_listener() -> anyhow::Result<()> {
     let config = configuration();
     for unix_dom in &config.unix_domains {
@@ -1000,7 +722,7 @@ pub fn spawn_listener() -> anyhow::Result<()> {
     }
 
     for tls_server in &config.tls_servers {
-        spawn_tls_listener(tls_server)?;
+        tls_impl::spawn_tls_listener(tls_server)?;
     }
     Ok(())
 }
