@@ -24,7 +24,9 @@ use winapi::um::wincon::COORD;
 
 const PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE: usize = 0x00020016;
 
+#[derive(Default)]
 pub struct ConPtySystem {}
+
 impl PtySystem for ConPtySystem {
     fn openpty(&self, size: PtySize) -> anyhow::Result<PtyPair> {
         let stdin = Pipe::new()?;

@@ -14,8 +14,7 @@ use anyhow::{bail, Error};
 use async_trait::async_trait;
 use downcast_rs::{impl_downcast, Downcast};
 use log::info;
-use portable_pty::cmdbuilder::CommandBuilder;
-use portable_pty::{PtySize, PtySystem};
+use portable_pty::{native_pty_system, CommandBuilder, PtySize, PtySystem};
 use std::rc::Rc;
 
 static DOMAIN_ID: ::std::sync::atomic::AtomicUsize = ::std::sync::atomic::AtomicUsize::new(0);
@@ -68,8 +67,7 @@ pub struct LocalDomain {
 
 impl LocalDomain {
     pub fn new(name: &str) -> Result<Self, Error> {
-        let pty_system = configuration().pty.get()?;
-        Ok(Self::with_pty_system(name, pty_system))
+        Ok(Self::with_pty_system(name, native_pty_system()))
     }
 
     pub fn with_pty_system(name: &str, pty_system: Box<dyn PtySystem>) -> Self {

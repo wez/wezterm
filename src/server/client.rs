@@ -12,6 +12,7 @@ use anyhow::{anyhow, bail, Context, Error};
 use crossbeam_channel::TryRecvError;
 use filedescriptor::{pollfd, AsRawSocketDescriptor};
 use log::info;
+use portable_pty::{CommandBuilder, NativePtySystem, PtySystem};
 use promise::{Future, Promise};
 use std::collections::HashMap;
 use std::io::{Read, Write};
@@ -371,9 +372,9 @@ impl Reconnectable {
                 // conhost.exe, `wsl.exe` will fail to start up correctly.
                 // This also has a nice side effect of not flashing up a
                 // console window when we first spin up the wsl instance.
-                let pty_system = portable_pty::PtySystemSelection::default().get()?;
+                let pty_system = NativePtySystem::default();
                 let pair = pty_system.openpty(Default::default())?;
-                let mut cmd = portable_pty::CommandBuilder::new(&argv[0]);
+                let mut cmd = CommandBuilder::new(&argv[0]);
                 cmd.args(&argv[1..]);
                 let mut child = pair.slave.spawn_command(cmd)?;
                 let status = child.wait()?;

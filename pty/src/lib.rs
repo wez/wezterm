@@ -2,15 +2,15 @@
 //! psuedo terminal (pty) interfaces provided by the system.
 //! Unlike other crates in this space, this crate provides a set
 //! of traits that allow selecting from different implementations
-//! at runtime, which is important on Windows systems.
+//! at runtime.
 //! This crate is part of [wezterm](https://github.com/wez/wezterm).
 //!
 //! ```no_run
-//! use portable_pty::{CommandBuilder, PtySize, PtySystemSelection};
+//! use portable_pty::{CommandBuilder, PtySize, native_pty_system, PtySystem};
 //! use anyhow::Error;
 //!
 //! // Use the native pty implementation for the system
-//! let pty_system = PtySystemSelection::default().get()?;
+//! let pty_system = native_pty_system();
 //!
 //! // Create a new pty
 //! let mut pair = pty_system.openpty(PtySize {
@@ -43,7 +43,7 @@
 //! `ssh::SshSession` type that can wrap an established ssh
 //! session with an implementation of `PtySystem`, allowing
 //! you to use the same pty interface with remote ptys.
-use anyhow::{anyhow, bail, Error};
+use anyhow::Error;
 #[cfg(feature = "serde_support")]
 use serde_derive::*;
 use std::io::Result as IoResult;
@@ -186,79 +186,11 @@ impl Child for std::process::Child {
     }
 }
 
-/// `PtySystemSelection` allows selecting and constructing one of the
-/// pty implementations provided by this crate.
-#[derive(Debug, Clone, Copy)]
-#[cfg_attr(feature = "serde_support", derive(Deserialize))]
-pub enum PtySystemSelection {
-    /// The Unix style pty interface
-    Unix,
-    /// The Windows 10+ native Console Pty interface
-    ConPty,
-    /// rprichard's WinPty interface to cygwin and msys pty.
-    /// This requires that `winpty.dll` be resolvable by the
-    /// embedding application.  Instructions on obtaining
-    /// an appropriate implementation of `winpty.dll` can be
-    /// found here:
-    /// [winpty](https://github.com/rprichard/winpty)
-    WinPty,
+pub fn native_pty_system() -> Box<dyn PtySystem> {
+    Box::new(NativePtySystem::default())
 }
 
-impl PtySystemSelection {
-    /// Construct an instance of PtySystem described by the enum value.
-    /// Windows specific enum variants result in an error.
-    #[cfg(unix)]
-    pub fn get(self) -> anyhow::Result<Box<dyn PtySystem>> {
-        match self {
-            PtySystemSelection::Unix => Ok(Box::new(unix::UnixPtySystem {})),
-            _ => bail!("{:?} not available on unix", self),
-        }
-    }
-
-    /// Construct an instance of PtySystem described by the enum value.
-    /// Unix specific enum variants result in an error.
-    #[cfg(windows)]
-    pub fn get(&self) -> anyhow::Result<Box<dyn PtySystem>> {
-        match self {
-            PtySystemSelection::ConPty => Ok(Box::new(win::conpty::ConPtySystem {})),
-            PtySystemSelection::WinPty => Ok(Box::new(win::winpty::WinPtySystem {})),
-            _ => bail!("{:?} not available on Windows", self),
-        }
-    }
-
-    /// Returns a list of the variant names.
-    /// This can be useful for example to specify the list of allowable
-    /// options in a clap argument specification.
-    pub fn variants() -> Vec<&'static str> {
-        vec!["Unix", "ConPty", "WinPty"]
-    }
-}
-
-/// Parse a string into a `PtySystemSelection` value.
-/// This is useful when parsing arguments or configuration files.
-impl std::str::FromStr for PtySystemSelection {
-    type Err = Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s.to_lowercase().as_ref() {
-            "unix" => Ok(PtySystemSelection::Unix),
-            "winpty" => Ok(PtySystemSelection::WinPty),
-            "conpty" => Ok(PtySystemSelection::ConPty),
-            _ => Err(anyhow!(
-                "{} is not a valid PtySystemSelection variant, possible values are {:?}",
-                s,
-                PtySystemSelection::variants()
-            )),
-        }
-    }
-}
-
-impl Default for PtySystemSelection {
-    /// Returns the default, system native PtySystemSelection
-    fn default() -> PtySystemSelection {
-        #[cfg(unix)]
-        return PtySystemSelection::Unix;
-        #[cfg(windows)]
-        return PtySystemSelection::ConPty;
-    }
-}
+#[cfg(unix)]
+pub type NativePtySystem = unix::UnixPtySystem;
+#[cfg(windows)]
+pub type NativePtySystem = win::conpty::UnixPtySystem;

@@ -2,7 +2,7 @@
 //! to print your username.  It is made more complex because there are multiple
 //! pipes involved and it is easy to get blocked/deadlocked if care and attention
 //! is not paid to those pipes!
-use portable_pty::{CommandBuilder, PtySize, PtySystemSelection};
+use portable_pty::{CommandBuilder, NativePtySystem, PtySize, PtySystem};
 
 // Read all available data until we reach EOF or encounter an error
 // condition.  Only returns an error if we didn't receive any data.
@@ -22,7 +22,7 @@ fn read_until_eof_or_error<R: std::io::Read>(mut r: R) -> std::io::Result<Vec<u8
 }
 
 fn main() {
-    let pty_system = PtySystemSelection::default().get().unwrap();
+    let pty_system = NativePtySystem::default();
 
     let pair = pty_system
         .openpty(PtySize {

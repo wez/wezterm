@@ -8,7 +8,7 @@ use crate::frontend::FrontEndSelection;
 use crate::keyassignment::KeyAssignment;
 use anyhow::{anyhow, bail, Context, Error};
 use lazy_static::lazy_static;
-use portable_pty::{CommandBuilder, PtySystemSelection};
+use portable_pty::CommandBuilder;
 use serde::Deserialize;
 use std;
 use std::collections::HashMap;
@@ -356,9 +356,6 @@ pub struct Config {
 
     #[serde(default)]
     pub front_end: FrontEndSelection,
-
-    #[serde(default)]
-    pub pty: PtySystemSelection,
 
     /// The set of unix domains
     #[serde(default = "UnixDomain::default_unix_domains")]

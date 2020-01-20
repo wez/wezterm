@@ -11,7 +11,9 @@ use std::os::unix::process::CommandExt;
 use std::process::Stdio;
 use std::ptr;
 
+#[derive(Default)]
 pub struct UnixPtySystem {}
+
 impl PtySystem for UnixPtySystem {
     fn openpty(&self, size: PtySize) -> anyhow::Result<PtyPair> {
         let mut master: RawFd = -1;

@@ -8,7 +8,6 @@ use winapi::um::synchapi::WaitForSingleObject;
 use winapi::um::winbase::INFINITE;
 
 pub mod conpty;
-pub mod winpty;
 
 use filedescriptor::OwnedHandle;
 
