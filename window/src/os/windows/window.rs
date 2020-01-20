@@ -9,11 +9,12 @@ use crate::{
     WindowOps, WindowOpsMut,
 };
 use anyhow::{bail, Context};
+use lazy_static::lazy_static;
 use promise::Future;
 use std::any::Any;
 use std::cell::RefCell;
 use std::convert::TryInto;
-use std::io::Error as IoError;
+use std::io::{self, Error as IoError};
 use std::os::windows::ffi::OsStringExt;
 use std::ptr::{null, null_mut};
 use std::rc::Rc;
@@ -24,6 +25,7 @@ use winapi::um::imm::*;
 use winapi::um::libloaderapi::GetModuleHandleW;
 use winapi::um::wingdi::*;
 use winapi::um::winuser::*;
+use winreg::{enums::HKEY_CURRENT_USER, RegKey};
 
 const GCS_RESULTSTR: DWORD = 0x800;
 extern "system" {
@@ -779,12 +781,30 @@ unsafe fn mouse_move(hwnd: HWND, _msg: UINT, wparam: WPARAM, lparam: LPARAM) -> 
     }
 }
 
+lazy_static! {
+    static ref WHEEL_SCROLL_LINES: i16 = read_scroll_speed("WheelScrollLines").unwrap_or(3);
+    static ref WHEEL_SCROLL_CHARS: i16 = read_scroll_speed("WheelScrollChars").unwrap_or(3);
+}
+
+fn read_scroll_speed(name: &str) -> io::Result<i16> {
+    let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+    let desktop = hkcu.open_subkey("Control Panel\\Desktop")?;
+    desktop
+        .get_value::<String, _>(name)
+        .and_then(|v| v.parse().map_err(|_| io::ErrorKind::InvalidData.into()))
+}
+
 unsafe fn mouse_wheel(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
     if let Some(inner) = rc_from_hwnd(hwnd) {
         let (modifiers, mouse_buttons) = mods_and_buttons(wparam);
         let coords = mouse_coords(lparam);
         let delta = GET_WHEEL_DELTA_WPARAM(wparam);
-        let mut position = delta / WHEEL_DELTA;
+        let scaled_delta = if msg == WM_MOUSEWHEEL {
+            delta * (*WHEEL_SCROLL_LINES)
+        } else {
+            delta * (*WHEEL_SCROLL_CHARS)
+        };
+        let mut position = scaled_delta / WHEEL_DELTA;
         let remainder = delta % WHEEL_DELTA;
         let event = MouseEvent {
             kind: if msg == WM_MOUSEHWHEEL {

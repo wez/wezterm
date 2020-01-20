@@ -3468,6 +3468,7 @@ dependencies = [
  "thiserror",
  "wayland-client",
  "winapi 0.3.8",
+ "winreg",
  "x11",
  "xcb",
  "xcb-util",
