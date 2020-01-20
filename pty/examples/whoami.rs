@@ -4,23 +4,6 @@
 //! is not paid to those pipes!
 use portable_pty::{CommandBuilder, NativePtySystem, PtySize, PtySystem};
 
-// Read all available data until we reach EOF or encounter an error
-// condition.  Only returns an error if we didn't receive any data.
-fn read_until_eof_or_error<R: std::io::Read>(mut r: R) -> std::io::Result<Vec<u8>> {
-    let mut result = vec![];
-
-    match r.read_to_end(&mut result) {
-        Ok(_len) => Ok(result),
-        Err(err) => {
-            if result.is_empty() {
-                Err(err)
-            } else {
-                Ok(result)
-            }
-        }
-    }
-}
-
 fn main() {
     let pty_system = NativePtySystem::default();
 
@@ -39,7 +22,7 @@ fn main() {
     // that we've spawned the child.
     drop(pair.slave);
 
-    let reader = pair.master.try_clone_reader().unwrap();
+    let mut reader = pair.master.try_clone_reader().unwrap();
     println!("child status: {:?}", child.wait().unwrap());
     // We hold handles on the pty.  Now that the child is complete
     // there are no processes remaining that will write to it until
@@ -50,8 +33,8 @@ fn main() {
     drop(pair.master);
 
     // Consume the output from the child
-    let buf = read_until_eof_or_error(reader).unwrap();
-    let s = String::from_utf8(buf).unwrap();
+    let mut s = String::new();
+    reader.read_to_string(&mut s).unwrap();
 
     // We print with escapes escaped because the windows conpty
     // implementation synthesizes title change escape sequences

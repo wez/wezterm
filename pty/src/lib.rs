@@ -59,6 +59,7 @@ pub mod win;
 #[cfg(feature = "ssh")]
 pub mod ssh;
 
+pub mod awaitable;
 pub mod serial;
 
 /// Represents the size of the visible display area in the pty
@@ -126,7 +127,7 @@ pub trait SlavePty {
 /// Represents the exit status of a child process.
 /// This is rather anemic in the current version of this crate,
 /// holding only an indicator of success or failure.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ExitStatus {
     successful: bool,
 }

@@ -9,6 +9,7 @@ license = "MIT"
 documentation = "https://docs.rs/portable-pty"
 
 [dependencies]
+async-trait = "0.1"
 anyhow = "1.0"
 filedescriptor = "0.7"
 log = "0.4"
@@ -24,6 +25,10 @@ default = []
 serde_support = ["serde", "serde_derive"]
 ssh = ["ssh2"]
 
+[target."cfg(unix)".dependencies]
+mio = { version = "0.6" }
+tokio = { version = "0.2", features = ["io-driver", "io-util"] }
+
 [target."cfg(windows)".dependencies]
 bitflags = "1.0"
 lazy_static = "1.3"
@@ -38,3 +43,5 @@ winapi = { version = "0.3", features = [
     "synchapi",
 ]}
 
+[dev-dependencies]
+tokio = { version = "0.2", features = ["rt-threaded", "macros"] }

@@ -2071,17 +2071,20 @@ name = "portable-pty"
 version = "0.2.0"
 dependencies = [
  "anyhow",
+ "async-trait",
  "bitflags 1.2.1",
  "filedescriptor",
  "lazy_static",
  "libc",
  "log",
+ "mio",
  "serde",
  "serde_derive",
  "serial",
  "shared_library",
  "shell-words",
  "ssh2",
+ "tokio",
  "uds_windows",
  "winapi 0.3.8",
 ]
