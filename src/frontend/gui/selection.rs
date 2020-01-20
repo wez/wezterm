@@ -26,6 +26,10 @@ impl Selection {
         self.range = None;
         self.start = Some(start);
     }
+
+    pub fn is_empty(&self) -> bool {
+        self.range.is_none()
+    }
 }
 
 /// The x,y coordinates of either the start or end of a selection region

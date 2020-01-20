@@ -2512,6 +2512,7 @@ impl TermWindow {
                 }
 
                 // Left single click to initiate a selection drag
+                // Shift+Left click to extend a selection
                 (
                     WMEK::Press(MousePress::Left),
                     Some(LastMouseClick {
@@ -2520,9 +2521,24 @@ impl TermWindow {
                         ..
                     }),
                 ) => {
-                    self.selection(tab.tab_id())
-                        .begin(SelectionCoordinate { x, y: stable_row });
-                    self.window.as_ref().unwrap().set_clipboard(String::new());
+                    // If the mouse is grabbed, do not use Shfit+Left to
+                    // extend a selection, since otherwise it's hard to
+                    // clear a selection.
+                    if tab.is_mouse_grabbed()
+                        || !event.modifiers.contains(Modifiers::SHIFT)
+                        || self.selection(tab.tab_id()).is_empty()
+                    {
+                        // Initiate a selection
+                        self.selection(tab.tab_id())
+                            .begin(SelectionCoordinate { x, y: stable_row });
+                        self.window.as_ref().unwrap().set_clipboard(String::new());
+                    } else {
+                        // Extend selection
+                        let end = SelectionCoordinate { x, y: stable_row };
+                        let mut selection = self.selection(tab.tab_id());
+                        selection.range = selection.range.map(|sel| sel.extend(end));
+                        context.invalidate();
+                    }
                 }
 
                 // Release button to finish a selection
