@@ -42,6 +42,9 @@ pub(crate) struct WindowInner {
     bitmap: RefCell<GdiBitmap>,
     #[cfg(feature = "opengl")]
     gl_state: Option<Rc<glium::backend::Context>>,
+    /// Fraction of mouse scroll
+    hscroll_reminder: i16,
+    vscroll_reminder: i16,
 }
 
 #[derive(Debug, Clone)]
@@ -183,6 +186,8 @@ impl Window {
             bitmap: RefCell::new(GdiBitmap::new_empty()),
             #[cfg(feature = "opengl")]
             gl_state: None,
+            vscroll_reminder: 0,
+            hscroll_reminder: 0,
         }));
 
         // Careful: `raw` owns a ref to inner, but there is no Drop impl
@@ -778,11 +783,21 @@ unsafe fn mouse_wheel(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> 
     if let Some(inner) = rc_from_hwnd(hwnd) {
         let (modifiers, mouse_buttons) = mods_and_buttons(wparam);
         let coords = mouse_coords(lparam);
-        let position = ((wparam >> 16) & 0xffff) as i16 / WHEEL_DELTA;
+        let delta = GET_WHEEL_DELTA_WPARAM(wparam);
+        let mut position = delta / WHEEL_DELTA;
+        let reminder = delta % WHEEL_DELTA;
         let event = MouseEvent {
             kind: if msg == WM_MOUSEHWHEEL {
+                let mut inner = inner.borrow_mut();
+                inner.hscroll_reminder += reminder;
+                position += inner.hscroll_reminder / WHEEL_DELTA;
+                inner.hscroll_reminder %= WHEEL_DELTA;
                 MouseEventKind::HorzWheel(position)
             } else {
+                let mut inner = inner.borrow_mut();
+                inner.vscroll_reminder += reminder;
+                position += inner.vscroll_reminder / WHEEL_DELTA;
+                inner.vscroll_reminder %= WHEEL_DELTA;
                 MouseEventKind::VertWheel(position)
             },
             coords,
