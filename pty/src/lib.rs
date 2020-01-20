@@ -193,4 +193,4 @@ pub fn native_pty_system() -> Box<dyn PtySystem> {
 #[cfg(unix)]
 pub type NativePtySystem = unix::UnixPtySystem;
 #[cfg(windows)]
-pub type NativePtySystem = win::conpty::UnixPtySystem;
+pub type NativePtySystem = win::conpty::ConPtySystem;
