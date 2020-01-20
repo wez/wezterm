@@ -936,11 +936,12 @@ impl TermWindow {
         let cursor = term.get_cursor_position();
         if let Some(win) = self.window.as_ref() {
             let config = configuration();
+            let top = term.get_dimensions().physical_top + if self.show_tab_bar { -1 } else { 0 };
             let r = Rect::new(
                 Point::new(
                     (cursor.x.max(0) as isize * self.render_metrics.cell_size.width)
                         .add(config.window_padding.left as isize),
-                    (cursor.y.max(0) as isize * self.render_metrics.cell_size.height)
+                    ((cursor.y - top).max(0) as isize * self.render_metrics.cell_size.height)
                         .add(config.window_padding.top as isize),
                 ),
                 self.render_metrics.cell_size,
