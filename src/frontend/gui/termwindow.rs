@@ -2330,7 +2330,7 @@ impl TermWindow {
         RefMut::map(self.tab_state(tab_id), |state| &mut state.selection)
     }
 
-    fn get_viewport(&mut self, tab_id: TabId) -> Option<StableRowIndex> {
+    fn get_viewport(&self, tab_id: TabId) -> Option<StableRowIndex> {
         self.tab_state(tab_id).viewport
     }
 
