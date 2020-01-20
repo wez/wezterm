@@ -19,6 +19,7 @@ serde_derive = {version="1.0", optional=true}
 serde = {version="1.0", optional=true}
 serial = "0.4"
 ssh2 = {optional=true, version="0.6"}
+tokio = { version = "0.2", features = ["io-driver", "io-util"] }
 
 [features]
 default = []
@@ -27,7 +28,6 @@ ssh = ["ssh2"]
 
 [target."cfg(unix)".dependencies]
 mio = { version = "0.6" }
-tokio = { version = "0.2", features = ["io-driver", "io-util"] }
 
 [target."cfg(windows)".dependencies]
 bitflags = "1.0"

@@ -1,28 +1,11 @@
-use super::WinChild;
 use crate::cmdbuilder::CommandBuilder;
+use crate::win::psuedocon::PsuedoCon;
 use crate::{Child, MasterPty, PtyPair, PtySize, PtySystem, SlavePty};
-use anyhow::{bail, ensure, Error};
-use filedescriptor::{FileDescriptor, OwnedHandle, Pipe};
-use lazy_static::lazy_static;
-use shared_library::shared_library;
-use std::ffi::OsString;
-use std::io::{self, Error as IoError};
-use std::mem;
-use std::os::windows::ffi::OsStringExt;
-use std::os::windows::io::{AsRawHandle, FromRawHandle};
-use std::os::windows::raw::HANDLE;
-use std::path::Path;
-use std::ptr;
+use anyhow::Error;
+use filedescriptor::{FileDescriptor, Pipe};
+use std::io;
 use std::sync::{Arc, Mutex};
-use winapi::shared::minwindef::DWORD;
-use winapi::shared::winerror::{HRESULT, S_OK};
-use winapi::um::handleapi::*;
-use winapi::um::processthreadsapi::*;
-use winapi::um::winbase::STARTUPINFOEXW;
-use winapi::um::winbase::{CREATE_UNICODE_ENVIRONMENT, EXTENDED_STARTUPINFO_PRESENT};
 use winapi::um::wincon::COORD;
-
-const PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE: usize = 0x00020016;
 
 #[derive(Default)]
 pub struct ConPtySystem {}
@@ -37,8 +20,8 @@ impl PtySystem for ConPtySystem {
                 X: size.cols as i16,
                 Y: size.rows as i16,
             },
-            &stdin.read,
-            &stdout.write,
+            stdin.read,
+            stdout.write,
         )?;
 
         let master = ConPtyMasterPty {
@@ -58,132 +41,6 @@ impl PtySystem for ConPtySystem {
             master: Box::new(master),
             slave: Box::new(slave),
         })
-    }
-}
-
-struct ProcThreadAttributeList {
-    data: Vec<u8>,
-}
-
-impl ProcThreadAttributeList {
-    pub fn with_capacity(num_attributes: DWORD) -> Result<Self, Error> {
-        let mut bytes_required: usize = 0;
-        unsafe {
-            InitializeProcThreadAttributeList(
-                ptr::null_mut(),
-                num_attributes,
-                0,
-                &mut bytes_required,
-            )
-        };
-        let mut data = Vec::with_capacity(bytes_required);
-        // We have the right capacity, so force the vec to consider itself
-        // that length.  The contents of those bytes will be maintained
-        // by the win32 apis used in this impl.
-        unsafe { data.set_len(bytes_required) };
-
-        let attr_ptr = data.as_mut_slice().as_mut_ptr() as *mut _;
-        let res = unsafe {
-            InitializeProcThreadAttributeList(attr_ptr, num_attributes, 0, &mut bytes_required)
-        };
-        ensure!(
-            res != 0,
-            "InitializeProcThreadAttributeList failed: {}",
-            IoError::last_os_error()
-        );
-        Ok(Self { data })
-    }
-
-    pub fn as_mut_ptr(&mut self) -> LPPROC_THREAD_ATTRIBUTE_LIST {
-        self.data.as_mut_slice().as_mut_ptr() as *mut _
-    }
-
-    pub fn set_pty(&mut self, con: HPCON) -> Result<(), Error> {
-        let res = unsafe {
-            UpdateProcThreadAttribute(
-                self.as_mut_ptr(),
-                0,
-                PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE,
-                con,
-                mem::size_of::<HPCON>(),
-                ptr::null_mut(),
-                ptr::null_mut(),
-            )
-        };
-        ensure!(
-            res != 0,
-            "UpdateProcThreadAttribute failed: {}",
-            IoError::last_os_error()
-        );
-        Ok(())
-    }
-}
-
-impl Drop for ProcThreadAttributeList {
-    fn drop(&mut self) {
-        unsafe { DeleteProcThreadAttributeList(self.as_mut_ptr()) };
-    }
-}
-
-type HPCON = HANDLE;
-
-shared_library!(ConPtyFuncs,
-    pub fn CreatePseudoConsole(
-        size: COORD,
-        hInput: HANDLE,
-        hOutput: HANDLE,
-        flags: DWORD,
-        hpc: *mut HPCON
-    ) -> HRESULT,
-    pub fn ResizePseudoConsole(hpc: HPCON, size: COORD) -> HRESULT,
-    pub fn ClosePseudoConsole(hpc: HPCON),
-);
-
-lazy_static! {
-    static ref CONPTY: ConPtyFuncs = ConPtyFuncs::open(Path::new("kernel32.dll")).expect(
-        "this system does not support conpty.  Windows 10 October 2018 or newer is required"
-    );
-}
-
-struct PsuedoCon {
-    con: HPCON,
-}
-unsafe impl Send for PsuedoCon {}
-unsafe impl Sync for PsuedoCon {}
-impl Drop for PsuedoCon {
-    fn drop(&mut self) {
-        unsafe { (CONPTY.ClosePseudoConsole)(self.con) };
-    }
-}
-impl PsuedoCon {
-    fn new(size: COORD, input: &FileDescriptor, output: &FileDescriptor) -> Result<Self, Error> {
-        let mut con: HPCON = INVALID_HANDLE_VALUE;
-        let result = unsafe {
-            (CONPTY.CreatePseudoConsole)(
-                size,
-                input.as_raw_handle(),
-                output.as_raw_handle(),
-                0,
-                &mut con,
-            )
-        };
-        ensure!(
-            result == S_OK,
-            "failed to create psuedo console: HRESULT {}",
-            result
-        );
-        Ok(Self { con })
-    }
-    fn resize(&self, size: COORD) -> Result<(), Error> {
-        let result = unsafe { (CONPTY.ResizePseudoConsole)(self.con, size) };
-        ensure!(
-            result == S_OK,
-            "failed to resize console to {}x{}: HRESULT: {}",
-            size.X,
-            size.Y,
-            result
-        );
-        Ok(())
     }
 }
 
@@ -253,42 +110,7 @@ impl io::Write for ConPtyMasterPty {
 impl SlavePty for ConPtySlavePty {
     fn spawn_command(&self, cmd: CommandBuilder) -> anyhow::Result<Box<dyn Child>> {
         let inner = self.inner.lock().unwrap();
-
-        let mut si: STARTUPINFOEXW = unsafe { mem::zeroed() };
-        si.StartupInfo.cb = mem::size_of::<STARTUPINFOEXW>() as u32;
-
-        let mut attrs = ProcThreadAttributeList::with_capacity(1)?;
-        attrs.set_pty(inner.con.con)?;
-        si.lpAttributeList = attrs.as_mut_ptr();
-
-        let mut pi: PROCESS_INFORMATION = unsafe { mem::zeroed() };
-
-        let (mut exe, mut cmdline) = cmd.cmdline()?;
-        let cmd_os = OsString::from_wide(&cmdline);
-        let res = unsafe {
-            CreateProcessW(
-                exe.as_mut_slice().as_mut_ptr(),
-                cmdline.as_mut_slice().as_mut_ptr(),
-                ptr::null_mut(),
-                ptr::null_mut(),
-                0,
-                EXTENDED_STARTUPINFO_PRESENT | CREATE_UNICODE_ENVIRONMENT,
-                cmd.environment_block().as_mut_slice().as_mut_ptr() as *mut _,
-                ptr::null_mut(),
-                &mut si.StartupInfo,
-                &mut pi,
-            )
-        };
-        if res == 0 {
-            let err = IoError::last_os_error();
-            bail!("CreateProcessW `{:?}` failed: {}", cmd_os, err);
-        }
-
-        // Make sure we close out the thread handle so we don't leak it;
-        // we do this simply by making it owned
-        let _main_thread = unsafe { OwnedHandle::from_raw_handle(pi.hThread) };
-        let proc = unsafe { OwnedHandle::from_raw_handle(pi.hProcess) };
-
-        Ok(Box::new(WinChild { proc }))
+        let child = inner.con.spawn_command(cmd)?;
+        Ok(Box::new(child))
     }
 }

@@ -39,7 +39,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         // implementation synthesizes title change escape sequences
         // in the output stream and it can be confusing to see those
         // printed out raw in another terminal.
-        print!("output: ");
+        print!("output: len={} ", line.len());
         for c in line.escape_debug() {
             print!("{}", c);
         }

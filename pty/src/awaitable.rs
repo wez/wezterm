@@ -22,7 +22,7 @@ pub trait MasterPty: tokio::io::AsyncWrite {
 pub trait Child:
     std::fmt::Debug + std::future::Future<Output = anyhow::Result<ExitStatus>>
 {
-    /// Terminate the child process
+    /// Request termination of the child process
     fn kill(&mut self) -> IoResult<()>;
 }
 
