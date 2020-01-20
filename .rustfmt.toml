@@ -1,2 +1,4 @@
 # Please keep these in alphabetical order.
+# https://github.com/rust-lang/rustfmt/issues/3149
+edition = "2018"
 tab_spaces = 4
