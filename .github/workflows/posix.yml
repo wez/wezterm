@@ -65,6 +65,7 @@ jobs:
         mkdir pkg_
         mv *.deb pkg_
         mv *.xz pkg_
+        mv *.AppImage pkg_
     - uses: actions/upload-artifact@master
       if: contains(matrix.os, 'macos')
       with:

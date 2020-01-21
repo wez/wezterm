@@ -10,3 +10,6 @@
 **/*.rs.bk
 .*.sw*
 /esctest.log
+/AppDir
+/WezTerm*.AppImage
+/wezterm*-src.tar.gz
