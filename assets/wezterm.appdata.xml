@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>org.wezfurlong.wezterm.desktop</id>
+  <metadata_license>MIT</metadata_license>
+  <project_license>MIT</project_license>
+  <name>Wez's Terminal Emulator</name>
+  <summary>A GPU-accelerated cross-platform terminal emulator and multiplexer</summary>
+  <description>
+    <p>
+wezterm is a terminal emulator with support for modern features
+such as fonts with ligatures, hyperlinks, tabs and multiple
+windows.
+    </p>
+  </description>
+
+  <launchable type="desktop-id">org.wezfurlong.wezterm.desktop</launchable>
+
+  <url type="homepage">https://wezfurlong.org/wezterm/</url>
+  <screenshots>
+    <screenshot type="default">
+      <caption>Ligatures in VIM</caption>
+      <image>https://wezfurlong.org/wezterm/screenshots/two.png</image>
+    </screenshot>
+  </screenshots>
+
+	<developer_name>Wez Furlong</developer_name>
+</component>

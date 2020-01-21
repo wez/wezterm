@@ -672,6 +672,17 @@ impl Config {
             {
                 paths.push(colors_dir);
             }
+
+            // If running out of an AppImage, resolve our installed colors
+            // path relative to our binary location:
+            // `/usr/bin/wezterm` -> `/usr/share/wezterm/colors`
+            if let Some(colors_dir) = exe_name
+                .parent()
+                .and_then(|bin| bin.parent())
+                .map(|usr| usr.join("share").join("wezterm").join("colors"))
+            {
+                paths.push(colors_dir);
+            }
         }
 
         if cfg!(target_os = "macos") {

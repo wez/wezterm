@@ -49,6 +49,7 @@ jobs:
           wezterm-*.rpm
           wezterm-*.deb
           WezTerm-*.zip
+          WezTerm-*.AppImage
           wezterm-*.xz
           wezterm-*.tar.gz
       env:
