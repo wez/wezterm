@@ -130,6 +130,9 @@ EOF
         tar cJf $debname.tar.xz -C pkg/debian/usr/bin wezterm
         rm -rf pkg
         ./ci/appimage.sh
+        if [[ "$BUILD_REASON" == "Schedule" ]] ; then
+          mv WezTerm*.AppImage WezTerm-nightly.AppImage
+        fi
       ;;
     esac
     ./ci/source-archive.sh
