@@ -378,7 +378,9 @@ impl crate::awaitable::SlavePty for AwaitableSlavePty {
     ) -> anyhow::Result<Pin<Box<dyn crate::awaitable::Child>>> {
         let child = self.io.get_ref().spawn_command(builder)?;
         let pid = child.id() as libc::pid_t;
-        Ok(Box::pin(AwaitableChild { pid, waiting: None }))
+        let child: Pin<Box<dyn crate::awaitable::Child>> =
+            Box::pin(AwaitableChild { pid, waiting: None });
+        Ok(child)
     }
 }
 
