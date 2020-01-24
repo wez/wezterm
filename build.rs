@@ -16,6 +16,7 @@ fn main() {
         }
     }
     println!("cargo:rustc-env=WEZTERM_CI_TAG={}", ci_tag);
+    println!("cargo:rustc-env=MACOSX_DEPLOYMENT_TARGET=10.9");
 
     #[cfg(windows)]
     embed_resource::compile("assets/windows/resource.rc");
