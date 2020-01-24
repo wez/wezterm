@@ -236,12 +236,19 @@ fn encode_modifiers(mods: KeyModifiers) -> u8 {
     number
 }
 
+// FIXME: provide an option to enable this, because it is super annoying
+// in vim when accidentally pressing shift-space and it emits a sequence
+// that undoes some number of commands
+const ENABLE_CSI_U: bool = false;
+
 fn csi_u_encode(buf: &mut String, c: char, mods: KeyModifiers) -> Result<(), Error> {
-    // FIXME: provide an option to enable this, because it is super annoying
-    // in vim when accidentally pressing shift-space and it emits a sequence
-    // that undoes some number of commands
-    if false {
+    if ENABLE_CSI_U {
         write!(buf, "\x1b[{};{}u", c as u32, 1 + encode_modifiers(mods))?;
+    } else {
+        // FIXME: this ignores the modifiers completely.  That's sort of
+        // OK, but eg: CTRL-SPACE should really send a NUL byte in that
+        // case, so this isn't great
+        write!(buf, "{}", c)?;
     }
     Ok(())
 }
