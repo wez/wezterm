@@ -2454,9 +2454,12 @@ impl TermWindow {
 
         let (top, mut lines) = tab.renderer().get_lines(stable_row..stable_row + 1);
         let new_highlight = if top == stable_row {
-            let line = &mut lines[0];
-            if let Some(cell) = line.cells().get(x) {
-                cell.attrs().hyperlink.as_ref().cloned()
+            if let Some(line) = lines.get_mut(0) {
+                if let Some(cell) = line.cells().get(x) {
+                    cell.attrs().hyperlink.as_ref().cloned()
+                } else {
+                    None
+                }
             } else {
                 None
             }

@@ -281,28 +281,34 @@ pub fn ssh_connect(remote_address: &str, username: &str) -> anyhow::Result<ssh2:
 
     let methods: HashSet<&str> = sess.auth_methods(&username)?.split(',').collect();
 
-    if !sess.authenticated() && methods.contains("publickey") {
-        if let Err(err) = sess.userauth_agent(&username) {
-            log::info!("while attempting agent auth: {}", err);
+    for _ in 0..3 {
+        if sess.authenticated() {
+            break;
         }
-    }
 
-    if !sess.authenticated() && methods.contains("password") {
-        let pass = password_prompt("", "Password", username, &remote_address)
-            .ok_or_else(|| anyhow!("password entry was cancelled"))?;
-        if let Err(err) = sess.userauth_password(username, &pass) {
-            log::error!("while attempting password auth: {}", err);
+        if !sess.authenticated() && methods.contains("publickey") {
+            if let Err(err) = sess.userauth_agent(&username) {
+                log::info!("while attempting agent auth: {}", err);
+            }
         }
-    }
 
-    if !sess.authenticated() && methods.contains("keyboard-interactive") {
-        let mut prompt = Prompt {
-            username,
-            remote_address: &remote_address,
-        };
+        if !sess.authenticated() && methods.contains("password") {
+            let pass = password_prompt("", "Password", username, &remote_address)
+                .ok_or_else(|| anyhow!("password entry was cancelled"))?;
+            if let Err(err) = sess.userauth_password(username, &pass) {
+                log::error!("while attempting password auth: {}", err);
+            }
+        }
 
-        if let Err(err) = sess.userauth_keyboard_interactive(&username, &mut prompt) {
-            log::error!("while attempting keyboard-interactive auth: {}", err);
+        if !sess.authenticated() && methods.contains("keyboard-interactive") {
+            let mut prompt = Prompt {
+                username,
+                remote_address: &remote_address,
+            };
+
+            if let Err(err) = sess.userauth_keyboard_interactive(&username, &mut prompt) {
+                log::error!("while attempting keyboard-interactive auth: {}", err);
+            }
         }
     }
 

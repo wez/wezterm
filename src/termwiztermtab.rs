@@ -403,7 +403,7 @@ pub async fn run<
         render_rx: Receiver<Vec<Change>>,
         width: usize,
         height: usize,
-    ) -> anyhow::Result<()> {
+    ) -> anyhow::Result<WindowId> {
         let mux = Mux::get().unwrap();
 
         // TODO: make a singleton
@@ -431,16 +431,30 @@ pub async fn run<
         let gui = front_end().unwrap();
         gui.spawn_new_window(&fontconfig, &tab, window_id)?;
 
-        Ok(())
+        Ok(window_id)
     }
 
+    let window_id: WindowId = promise::spawn::spawn_into_main_thread(async move {
+        register_tab(input_tx, render_rx, width, height).await
+    })
+    .await
+    .unwrap_or_else(|| bail!("task panicked or was cancelled"))?;
+
+    let result = promise::spawn::spawn_into_new_thread(move || f(tw_term))
+        .await
+        .unwrap_or_else(|| bail!("task panicked or was cancelled"));
+
+    // Since we're typically called with an outstanding Activity token active,
+    // the dead status of the tab will be ignored until after the activity
+    // resolves.  In the case of SSH where (currently!) several prompts may
+    // be shown in succession, we don't want to leave lingering dead windows
+    // on the screen so let's ask the mux to kill off our window now.
     promise::spawn::spawn_into_main_thread(async move {
-        register_tab(input_tx, render_rx, width, height).await.ok();
+        let mux = Mux::get().unwrap();
+        mux.kill_window(window_id);
     });
 
-    promise::spawn::spawn_into_new_thread(move || f(tw_term))
-        .await
-        .unwrap_or_else(|| bail!("task panicked or was cancelled"))
+    result
 }
 
 pub fn message_box_ok(message: &str) {

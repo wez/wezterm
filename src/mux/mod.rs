@@ -252,6 +252,11 @@ impl Mux {
         }
     }
 
+    pub fn kill_window(&self, window_id: WindowId) {
+        let mut windows = self.windows.borrow_mut();
+        windows.remove(&window_id);
+    }
+
     pub fn get_window(&self, window_id: WindowId) -> Option<Ref<Window>> {
         if !self.windows.borrow().contains_key(&window_id) {
             return None;
