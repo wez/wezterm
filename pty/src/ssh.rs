@@ -42,12 +42,6 @@ impl std::fmt::Debug for SessionInner {
     }
 }
 
-// This is actually safe because the unsafety is caused by the raw channel
-// pointers embedded in SshPty::channel.  Those are only unsafe when used
-// with multiple threads.  It is safe here because we ensure that all
-// accesses are made via SessionInner which is protected via a Mutex
-unsafe impl Send for SessionInner {}
-
 /// The `SshSession` struct wraps an `ssh2::Session` instance.
 /// The session is expected to have been pre-connected and pre-authenticated
 /// by the calling the application.
