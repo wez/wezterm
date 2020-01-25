@@ -27,9 +27,10 @@ fn password_prompt(
 ) -> Option<String> {
     let title = "🔐 wezterm: SSH authentication".to_string();
     let text = format!(
-        "🔐 SSH Authentication for {} @ {}\r\n{}\r\n",
+        "🔐 SSH Authentication for {} @ {}\n{}\n",
         username, remote_address, instructions
-    );
+    )
+    .replace("\n", "\r\n");
     let prompt = prompt.to_string();
 
     #[derive(Default)]
@@ -91,9 +92,10 @@ fn input_prompt(
 ) -> Option<String> {
     let title = "🔐 wezterm: SSH authentication".to_string();
     let text = format!(
-        "SSH Authentication for {} @ {}\r\n{}\r\n{}\r\n",
+        "SSH Authentication for {} @ {}\n{}\n{}\n",
         username, remote_address, instructions, prompt
-    );
+    )
+    .replace("\n", "\r\n");
     match promise::spawn::block_on(termwiztermtab::run(60, 10, move |mut term| {
         term.render(&[
             Change::Title(title.to_string()),
