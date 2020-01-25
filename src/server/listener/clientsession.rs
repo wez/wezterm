@@ -4,7 +4,7 @@ use crate::mux::{Mux, MuxNotification, MuxSubscriber};
 use crate::server::codec::*;
 use crate::server::pollable::*;
 use anyhow::{anyhow, bail, Context, Error};
-use crossbeam_channel::TryRecvError;
+use crossbeam::channel::TryRecvError;
 use log::error;
 use portable_pty::PtySize;
 use promise::spawn::spawn_into_main_thread;

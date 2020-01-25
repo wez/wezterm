@@ -9,7 +9,7 @@ use crate::server::tab::ClientTab;
 use crate::server::UnixStream;
 use crate::ssh::ssh_connect;
 use anyhow::{anyhow, bail, Context, Error};
-use crossbeam_channel::TryRecvError;
+use crossbeam::channel::TryRecvError;
 use filedescriptor::{pollfd, AsRawSocketDescriptor};
 use log::info;
 use portable_pty::{CommandBuilder, NativePtySystem, PtySystem};

@@ -13,7 +13,7 @@ use crate::mux::window::WindowId;
 use crate::mux::Mux;
 use anyhow::{bail, Error};
 use async_trait::async_trait;
-use crossbeam_channel::{unbounded as channel, Receiver, Sender};
+use crossbeam::channel::{unbounded as channel, Receiver, Sender};
 use filedescriptor::Pipe;
 use portable_pty::*;
 use rangeset::RangeSet;
@@ -370,6 +370,48 @@ impl termwiz::terminal::Terminal for TermWizTerminal {
     }
 }
 
+impl termwiz::terminal::Terminal for &mut TermWizTerminal {
+    fn set_raw_mode(&mut self) -> anyhow::Result<()> {
+        (**self).set_raw_mode()
+    }
+
+    fn set_cooked_mode(&mut self) -> anyhow::Result<()> {
+        (**self).set_cooked_mode()
+    }
+
+    fn enter_alternate_screen(&mut self) -> anyhow::Result<()> {
+        (**self).enter_alternate_screen()
+    }
+
+    fn exit_alternate_screen(&mut self) -> anyhow::Result<()> {
+        (**self).exit_alternate_screen()
+    }
+
+    fn get_screen_size(&mut self) -> anyhow::Result<ScreenSize> {
+        (**self).get_screen_size()
+    }
+
+    fn set_screen_size(&mut self, size: ScreenSize) -> anyhow::Result<()> {
+        (**self).set_screen_size(size)
+    }
+
+    fn render(&mut self, changes: &[Change]) -> anyhow::Result<()> {
+        (**self).render(changes)
+    }
+
+    fn flush(&mut self) -> anyhow::Result<()> {
+        (**self).flush()
+    }
+
+    fn poll_input(&mut self, wait: Option<Duration>) -> anyhow::Result<Option<InputEvent>> {
+        (**self).poll_input(wait)
+    }
+
+    fn waker(&self) -> TerminalWaker {
+        (**self).waker()
+    }
+}
+
 /// This function spawns a thread and constructs a GUI window with an
 /// associated termwiz Terminal object to execute the provided function.
 /// The function is expected to run in a loop to manage input and output
@@ -378,7 +420,7 @@ impl termwiz::terminal::Terminal for TermWizTerminal {
 /// the return value from the function.
 pub async fn run<
     T: Send + 'static,
-    F: Send + 'static + Fn(TermWizTerminal) -> anyhow::Result<T>,
+    F: Send + 'static + FnOnce(TermWizTerminal) -> anyhow::Result<T>,
 >(
     width: usize,
     height: usize,
@@ -457,6 +499,7 @@ pub async fn run<
     result
 }
 
+#[allow(unused)]
 pub fn message_box_ok(message: &str) {
     let title = "wezterm";
     let message = message.to_string();
@@ -497,7 +540,7 @@ pub fn show_configuration_error_message(err: &str) {
             ])
             .map_err(Error::msg)?;
 
-            let mut editor = LineEditor::new(term);
+            let mut editor = LineEditor::new(&mut term);
             editor.set_prompt("(press enter to close this window)");
 
             let mut host = NopLineEditorHost::default();

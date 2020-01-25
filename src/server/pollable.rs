@@ -1,6 +1,6 @@
 use crate::server::UnixStream;
 use anyhow::Error;
-use crossbeam_channel::{unbounded as channel, Receiver, Sender, TryRecvError};
+use crossbeam::channel::{unbounded as channel, Receiver, Sender, TryRecvError};
 use filedescriptor::*;
 use std::cell::RefCell;
 use std::io::{Read, Write};

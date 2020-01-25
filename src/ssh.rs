@@ -6,6 +6,7 @@ use crate::mux::Mux;
 use crate::termwiztermtab;
 use anyhow::{anyhow, bail, Context, Error};
 use async_trait::async_trait;
+use crossbeam::channel::{bounded, Receiver, Sender};
 use portable_pty::cmdbuilder::CommandBuilder;
 use portable_pty::{PtySize, PtySystem};
 use promise::{Future, Promise};
@@ -14,96 +15,99 @@ use std::io::Write;
 use std::net::TcpStream;
 use std::path::Path;
 use std::rc::Rc;
-use termwiz::cell::{unicode_column_width, AttributeChange, Intensity};
+use std::time::Duration;
+use termwiz::cell::unicode_column_width;
 use termwiz::lineedit::*;
 use termwiz::surface::Change;
 use termwiz::terminal::*;
 
-fn password_prompt(
-    instructions: &str,
-    prompt: &str,
-    username: &str,
-    remote_address: &str,
-) -> Option<String> {
-    let title = "🔐 wezterm: SSH authentication".to_string();
-    let text = format!(
-        "🔐 SSH Authentication for {} @ {}\n{}\n",
-        username, remote_address, instructions
-    )
-    .replace("\n", "\r\n");
-    let prompt = prompt.to_string();
-
-    #[derive(Default)]
-    struct PasswordPromptHost {
-        history: BasicHistory,
+#[derive(Default)]
+struct PasswordPromptHost {
+    history: BasicHistory,
+}
+impl LineEditorHost for PasswordPromptHost {
+    fn history(&mut self) -> &mut dyn History {
+        &mut self.history
     }
-    impl LineEditorHost for PasswordPromptHost {
-        fn history(&mut self) -> &mut dyn History {
-            &mut self.history
-        }
 
-        // Rewrite the input so that we can obscure the password
-        // characters when output to the terminal widget
-        fn highlight_line(
-            &self,
-            line: &str,
-            cursor_position: usize,
-        ) -> (Vec<OutputElement>, usize) {
-            let placeholder = "🔑";
-            let grapheme_count = unicode_column_width(line);
-            let mut output = vec![];
-            for _ in 0..grapheme_count {
-                output.push(OutputElement::Text(placeholder.to_string()));
+    // Rewrite the input so that we can obscure the password
+    // characters when output to the terminal widget
+    fn highlight_line(&self, line: &str, cursor_position: usize) -> (Vec<OutputElement>, usize) {
+        let placeholder = "🔑";
+        let grapheme_count = unicode_column_width(line);
+        let mut output = vec![];
+        for _ in 0..grapheme_count {
+            output.push(OutputElement::Text(placeholder.to_string()));
+        }
+        (output, unicode_column_width(placeholder) * cursor_position)
+    }
+}
+
+enum UIRequest {
+    /// Display something
+    Output(Vec<Change>),
+    /// Request input
+    Input {
+        prompt: String,
+        echo: bool,
+        respond: Promise<String>,
+    },
+    Close,
+}
+
+struct SshUIImpl {
+    term: termwiztermtab::TermWizTerminal,
+    rx: Receiver<UIRequest>,
+}
+
+impl SshUIImpl {
+    fn run(&mut self) -> anyhow::Result<()> {
+        let title = "🔐 wezterm: SSH authentication".to_string();
+        self.term.render(&[Change::Title(title)])?;
+
+        loop {
+            match self.rx.recv_timeout(Duration::from_millis(200)) {
+                Ok(UIRequest::Close) => break,
+                Ok(UIRequest::Output(changes)) => self.term.render(&changes)?,
+                Ok(UIRequest::Input {
+                    prompt,
+                    echo: true,
+                    mut respond,
+                }) => {
+                    respond.result(self.input_prompt(&prompt));
+                }
+                Ok(UIRequest::Input {
+                    prompt,
+                    echo: false,
+                    mut respond,
+                }) => {
+                    respond.result(self.password_prompt(&prompt));
+                }
+                Err(err) if err.is_timeout() => {}
+                Err(err) => bail!("recv_timeout: {}", err),
             }
-            (output, unicode_column_width(placeholder) * cursor_position)
         }
-    }
-    match promise::spawn::block_on(termwiztermtab::run(60, 10, move |mut term| {
-        term.render(&[
-            // Change::Attribute(AttributeChange::Intensity(Intensity::Bold)),
-            Change::Title(title.to_string()),
-            Change::Text(text.to_string()),
-            Change::Attribute(AttributeChange::Intensity(Intensity::Normal)),
-        ])?;
 
-        let mut editor = LineEditor::new(term);
-        editor.set_prompt(&format!("{}: ", prompt));
+        std::thread::sleep(Duration::new(2, 0));
+
+        Ok(())
+    }
+
+    fn password_prompt(&mut self, prompt: &str) -> anyhow::Result<String> {
+        let mut editor = LineEditor::new(&mut self.term);
+        editor.set_prompt(prompt);
 
         let mut host = PasswordPromptHost::default();
         if let Some(line) = editor.read_line(&mut host)? {
             Ok(line)
         } else {
-            bail!("prompt cancelled");
-        }
-    })) {
-        Ok(p) => Some(p),
-        Err(p) => {
-            log::error!("failed to prompt for pw: {}", p);
-            None
+            bail!("password entry was cancelled");
         }
     }
-}
 
-fn input_prompt(
-    instructions: &str,
-    prompt: &str,
-    username: &str,
-    remote_address: &str,
-) -> Option<String> {
-    let title = "🔐 wezterm: SSH authentication".to_string();
-    let text = format!(
-        "SSH Authentication for {} @ {}\n{}\n{}\n",
-        username, remote_address, instructions, prompt
-    )
-    .replace("\n", "\r\n");
-    match promise::spawn::block_on(termwiztermtab::run(60, 10, move |mut term| {
-        term.render(&[
-            Change::Title(title.to_string()),
-            Change::Text(text.to_string()),
-            Change::Attribute(AttributeChange::Intensity(Intensity::Normal)),
-        ])?;
-
-        let mut editor = LineEditor::new(term);
+    fn input_prompt(&mut self, prompt: &str) -> anyhow::Result<String> {
+        let mut editor = LineEditor::new(&mut self.term);
+        editor.set_prompt(prompt);
 
         let mut host = NopLineEditorHost::default();
         if let Some(line) = editor.read_line(&mut host)? {
@@ -111,21 +115,72 @@ fn input_prompt(
         } else {
             bail!("prompt cancelled");
         }
-    })) {
-        Ok(p) => Some(p),
-        Err(p) => {
-            log::error!("failed to prompt for pw: {}", p);
-            None
-        }
     }
 }
 
-struct Prompt<'a> {
-    username: &'a str,
-    remote_address: &'a str,
+struct SshUI {
+    tx: Sender<UIRequest>,
 }
 
-impl<'a> ssh2::KeyboardInteractivePrompt for Prompt<'a> {
+impl SshUI {
+    fn new() -> Self {
+        let (tx, rx) = bounded(16);
+        promise::spawn::spawn_into_main_thread(termwiztermtab::run(70, 15, move |term| {
+            let mut ui = SshUIImpl { term, rx };
+            ui.run()
+        }));
+        Self { tx }
+    }
+
+    fn output(&self, changes: Vec<Change>) {
+        self.tx
+            .send(UIRequest::Output(changes))
+            .expect("send to SShUI failed");
+    }
+
+    fn output_str(&self, s: &str) {
+        let s = s.replace("\n", "\r\n");
+        self.output(vec![Change::Text(s)]);
+    }
+
+    fn input(&self, prompt: &str) -> anyhow::Result<String> {
+        let mut promise = Promise::new();
+        let future = promise.get_future().unwrap();
+
+        self.tx
+            .send(UIRequest::Input {
+                prompt: prompt.replace("\n", "\r\n"),
+                echo: true,
+                respond: promise,
+            })
+            .expect("send to SshUI failed");
+
+        future.wait()
+    }
+
+    fn password(&self, prompt: &str) -> anyhow::Result<String> {
+        let mut promise = Promise::new();
+        let future = promise.get_future().unwrap();
+
+        self.tx
+            .send(UIRequest::Input {
+                prompt: prompt.replace("\n", "\r\n"),
+                echo: false,
+                respond: promise,
+            })
+            .expect("send to SshUI failed");
+
+        future.wait()
+    }
+
+    fn close(&self) {
+        self.tx
+            .send(UIRequest::Close)
+            .expect("send to SshUI failed");
+    }
+}
+
+impl ssh2::KeyboardInteractivePrompt for SshUI {
     fn prompt<'b>(
         &mut self,
         _username: &str,
@@ -135,14 +190,13 @@ impl<'a> ssh2::KeyboardInteractivePrompt for Prompt<'a> {
         prompts
             .iter()
             .map(|p| {
-                let func = if p.echo {
-                    input_prompt
+                self.output_str(&format!("{}\n", instructions));
+                if p.echo {
+                    self.input(&p.text)
                 } else {
-                    password_prompt
-                };
-
-                func(instructions, &p.text, &self.username, &self.remote_address)
-                    .unwrap_or_else(String::new)
+                    self.password(&p.text)
+                }
+                .unwrap_or_else(|_| String::new())
             })
             .collect()
     }
@@ -157,7 +211,11 @@ pub fn async_ssh_connect(remote_address: &str, username: &str) -> Future<ssh2::S
     future
 }
 
-pub fn ssh_connect(remote_address: &str, username: &str) -> anyhow::Result<ssh2::Session> {
+fn ssh_connect_with_ui(
+    remote_address: &str,
+    username: &str,
+    ui: &mut SshUI,
+) -> anyhow::Result<ssh2::Session> {
     let mut sess = ssh2::Session::new()?;
 
     let (remote_address, remote_host_name, port) = {
@@ -170,8 +228,11 @@ pub fn ssh_connect(remote_address: &str, username: &str) -> anyhow::Result<ssh2:
         }
     };
 
+    ui.output_str(&format!("Connecting to {}\n", remote_address));
+
     let tcp = TcpStream::connect(&remote_address)
         .with_context(|| format!("ssh connecting to {}", remote_address))?;
+    ui.output_str("Connected OK!\n");
     tcp.set_nodelay(true)?;
     sess.set_tcp_stream(tcp);
     sess.handshake()
@@ -221,37 +282,21 @@ pub fn ssh_connect(remote_address: &str, username: &str) -> anyhow::Result<ssh2:
         match known_hosts.check_port(&remote_host_name, port, key) {
             CheckResult::Match => {}
             CheckResult::NotFound => {
-                let message = format!(
-                    "SSH host {} is not yet trusted.\r\n\
-                     {:?} Fingerprint: {}.\r\n\
-                     Trust and continue connecting?\r\n",
+                ui.output_str(&format!(
+                    "SSH host {} is not yet trusted.\n\
+                     {:?} Fingerprint: {}.\n\
+                     Trust and continue connecting?\n",
                     remote_address, key_type, fingerprint
-                );
+                ));
 
-                let allow =
-                    promise::spawn::block_on(termwiztermtab::run(80, 10, move |mut term| {
-                        let title = "🔐 wezterm: SSH authentication".to_string();
-                        term.render(&[Change::Title(title), Change::Text(message.to_string())])?;
+                loop {
+                    let line = ui.input("Enter [Y/n]> ")?;
 
-                        let mut editor = LineEditor::new(term);
-                        editor.set_prompt("Enter [Y/n]> ");
-
-                        let mut host = NopLineEditorHost::default();
-                        loop {
-                            let line = match editor.read_line(&mut host) {
-                                Ok(Some(line)) => line,
-                                Ok(None) | Err(_) => return Ok(false),
-                            };
-                            match line.as_ref() {
-                                "y" | "Y" | "yes" | "YES" => return Ok(true),
-                                "n" | "N" | "no" | "NO" => return Ok(false),
-                                _ => continue,
-                            }
-                        }
-                    }))?;
-
-                if !allow {
-                    bail!("user declined to trust host");
+                    match line.as_ref() {
+                        "y" | "Y" | "yes" | "YES" => break,
+                        "n" | "N" | "no" | "NO" => bail!("user declined to trust host"),
+                        _ => continue,
+                    }
                 }
 
                 known_hosts
@@ -263,11 +308,11 @@ pub fn ssh_connect(remote_address: &str, username: &str) -> anyhow::Result<ssh2:
                     .with_context(|| format!("writing known_hosts file {}", file.display()))?;
             }
             CheckResult::Mismatch => {
-                termwiztermtab::message_box_ok(&format!(
+                ui.output_str(&format!(
                     "🛑 host key mismatch for ssh server {}.\n\
                      Got fingerprint {} instead of expected value from known_hosts\n\
                      file {}.\n\
-                     Refusing to connect.",
+                     Refusing to connect.\n",
                     remote_address,
                     fingerprint,
                     file.display()
@@ -275,7 +320,7 @@ pub fn ssh_connect(remote_address: &str, username: &str) -> anyhow::Result<ssh2:
                 bail!("host mismatch, man in the middle attack?!");
             }
             CheckResult::Failure => {
-                termwiztermtab::message_box_ok("🛑 Failed to load and check known ssh hosts");
+                ui.output_str("🛑 Failed to load and check known ssh hosts\n");
                 bail!("failed to check the known hosts");
             }
         }
@@ -295,24 +340,24 @@ pub fn ssh_connect(remote_address: &str, username: &str) -> anyhow::Result<ssh2:
         if !sess.authenticated() && methods.contains("publickey") {
             if let Err(err) = sess.userauth_agent(&username) {
                 log::info!("while attempting agent auth: {}", err);
+            } else if sess.authenticated() {
+                ui.output_str("publickey auth successful!\n");
             }
         }
 
         if !sess.authenticated() && methods.contains("password") {
-            let pass = password_prompt("", "Password", username, &remote_address)
-                .ok_or_else(|| anyhow!("password entry was cancelled"))?;
+            ui.output_str(&format!(
+                "Password authentication for {}@{}\n",
+                username, remote_address
+            ));
+            let pass = ui.password("Password: ")?;
             if let Err(err) = sess.userauth_password(username, &pass) {
                 log::error!("while attempting password auth: {}", err);
             }
         }
 
         if !sess.authenticated() && methods.contains("keyboard-interactive") {
-            let mut prompt = Prompt {
-                username,
-                remote_address: &remote_address,
-            };
-
-            if let Err(err) = sess.userauth_keyboard_interactive(&username, &mut prompt) {
+            if let Err(err) = sess.userauth_keyboard_interactive(&username, ui) {
                 log::error!("while attempting keyboard-interactive auth: {}", err);
             }
         }
@@ -323,6 +368,21 @@ pub fn ssh_connect(remote_address: &str, username: &str) -> anyhow::Result<ssh2:
     }
 
     Ok(sess)
+}
+
+pub fn ssh_connect(remote_address: &str, username: &str) -> anyhow::Result<ssh2::Session> {
+    let mut ui = SshUI::new();
+    let res = ssh_connect_with_ui(remote_address, username, &mut ui);
+    match res {
+        Ok(sess) => {
+            ui.close();
+            Ok(sess)
+        }
+        Err(err) => {
+            ui.output_str(&format!("\nFailed: {}", err));
+            Err(err)
+        }
+    }
 }
 
 pub struct RemoteSshDomain {

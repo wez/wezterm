@@ -6,7 +6,7 @@ use crate::mux::window::WindowId;
 use crate::mux::Mux;
 use crate::server::listener::spawn_listener;
 use anyhow::{bail, Error};
-use crossbeam_channel::{unbounded as channel, Receiver};
+use crossbeam::channel::{unbounded as channel, Receiver};
 use log::info;
 use promise::*;
 use std::rc::Rc;
