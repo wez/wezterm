@@ -1,12 +1,11 @@
+use crate::connui::ConnectionUI;
 use crate::localtab::LocalTab;
 use crate::mux::domain::{alloc_domain_id, Domain, DomainId, DomainState};
 use crate::mux::tab::Tab;
 use crate::mux::window::WindowId;
 use crate::mux::Mux;
-use crate::termwiztermtab;
 use anyhow::{anyhow, bail, Context, Error};
 use async_trait::async_trait;
-use crossbeam::channel::{bounded, Receiver, Sender};
 use portable_pty::cmdbuilder::CommandBuilder;
 use portable_pty::{PtySize, PtySystem};
 use promise::{Future, Promise};
@@ -15,172 +14,8 @@ use std::io::Write;
 use std::net::TcpStream;
 use std::path::Path;
 use std::rc::Rc;
-use std::time::Duration;
-use termwiz::cell::unicode_column_width;
-use termwiz::lineedit::*;
-use termwiz::surface::Change;
-use termwiz::terminal::*;
 
-#[derive(Default)]
-struct PasswordPromptHost {
-    history: BasicHistory,
-}
-impl LineEditorHost for PasswordPromptHost {
-    fn history(&mut self) -> &mut dyn History {
-        &mut self.history
-    }
-
-    // Rewrite the input so that we can obscure the password
-    // characters when output to the terminal widget
-    fn highlight_line(&self, line: &str, cursor_position: usize) -> (Vec<OutputElement>, usize) {
-        let placeholder = "🔑";
-        let grapheme_count = unicode_column_width(line);
-        let mut output = vec![];
-        for _ in 0..grapheme_count {
-            output.push(OutputElement::Text(placeholder.to_string()));
-        }
-        (output, unicode_column_width(placeholder) * cursor_position)
-    }
-}
-
-enum UIRequest {
-    /// Display something
-    Output(Vec<Change>),
-    /// Request input
-    Input {
-        prompt: String,
-        echo: bool,
-        respond: Promise<String>,
-    },
-    Close,
-}
-
-struct SshUIImpl {
-    term: termwiztermtab::TermWizTerminal,
-    rx: Receiver<UIRequest>,
-}
-
-impl SshUIImpl {
-    fn run(&mut self) -> anyhow::Result<()> {
-        let title = "🔐 wezterm: SSH authentication".to_string();
-        self.term.render(&[Change::Title(title)])?;
-
-        loop {
-            match self.rx.recv_timeout(Duration::from_millis(200)) {
-                Ok(UIRequest::Close) => break,
-                Ok(UIRequest::Output(changes)) => self.term.render(&changes)?,
-                Ok(UIRequest::Input {
-                    prompt,
-                    echo: true,
-                    mut respond,
-                }) => {
-                    respond.result(self.input_prompt(&prompt));
-                }
-                Ok(UIRequest::Input {
-                    prompt,
-                    echo: false,
-                    mut respond,
-                }) => {
-                    respond.result(self.password_prompt(&prompt));
-                }
-                Err(err) if err.is_timeout() => {}
-                Err(err) => bail!("recv_timeout: {}", err),
-            }
-        }
-
-        std::thread::sleep(Duration::new(2, 0));
-
-        Ok(())
-    }
-
-    fn password_prompt(&mut self, prompt: &str) -> anyhow::Result<String> {
-        let mut editor = LineEditor::new(&mut self.term);
-        editor.set_prompt(prompt);
-
-        let mut host = PasswordPromptHost::default();
-        if let Some(line) = editor.read_line(&mut host)? {
-            Ok(line)
-        } else {
-            bail!("password entry was cancelled");
-        }
-    }
-
-    fn input_prompt(&mut self, prompt: &str) -> anyhow::Result<String> {
-        let mut editor = LineEditor::new(&mut self.term);
-        editor.set_prompt(prompt);
-
-        let mut host = NopLineEditorHost::default();
-        if let Some(line) = editor.read_line(&mut host)? {
-            Ok(line)
-        } else {
-            bail!("prompt cancelled");
-        }
-    }
-}
-
-struct SshUI {
-    tx: Sender<UIRequest>,
-}
-
-impl SshUI {
-    fn new() -> Self {
-        let (tx, rx) = bounded(16);
-        promise::spawn::spawn_into_main_thread(termwiztermtab::run(70, 15, move |term| {
-            let mut ui = SshUIImpl { term, rx };
-            ui.run()
-        }));
-        Self { tx }
-    }
-
-    fn output(&self, changes: Vec<Change>) {
-        self.tx
-            .send(UIRequest::Output(changes))
-            .expect("send to SShUI failed");
-    }
-
-    fn output_str(&self, s: &str) {
-        let s = s.replace("\n", "\r\n");
-        self.output(vec![Change::Text(s)]);
-    }
-
-    fn input(&self, prompt: &str) -> anyhow::Result<String> {
-        let mut promise = Promise::new();
-        let future = promise.get_future().unwrap();
-
-        self.tx
-            .send(UIRequest::Input {
-                prompt: prompt.replace("\n", "\r\n"),
-                echo: true,
-                respond: promise,
-            })
-            .expect("send to SshUI failed");
-
-        future.wait()
-    }
-
-    fn password(&self, prompt: &str) -> anyhow::Result<String> {
-        let mut promise = Promise::new();
-        let future = promise.get_future().unwrap();
-
-        self.tx
-            .send(UIRequest::Input {
-                prompt: prompt.replace("\n", "\r\n"),
-                echo: false,
-                respond: promise,
-            })
-            .expect("send to SshUI failed");
-
-        future.wait()
-    }
-
-    fn close(&self) {
-        self.tx
-            .send(UIRequest::Close)
-            .expect("send to SshUI failed");
-    }
-}
-
-impl ssh2::KeyboardInteractivePrompt for SshUI {
+impl ssh2::KeyboardInteractivePrompt for ConnectionUI {
     fn prompt<'b>(
         &mut self,
         _username: &str,
@@ -214,7 +49,7 @@ pub fn async_ssh_connect(remote_address: &str, username: &str) -> Future<ssh2::S
 fn ssh_connect_with_ui(
     remote_address: &str,
     username: &str,
-    ui: &mut SshUI,
+    ui: &mut ConnectionUI,
 ) -> anyhow::Result<ssh2::Session> {
     let mut sess = ssh2::Session::new()?;
 
@@ -371,7 +206,8 @@ fn ssh_connect_with_ui(
 }
 
 pub fn ssh_connect(remote_address: &str, username: &str) -> anyhow::Result<ssh2::Session> {
-    let mut ui = SshUI::new();
+    let mut ui = ConnectionUI::new();
+    ui.title("🔐 wezterm: SSH authentication");
     let res = ssh_connect_with_ui(remote_address, username, &mut ui);
     match res {
         Ok(sess) => {

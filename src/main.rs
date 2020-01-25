@@ -15,6 +15,7 @@ use structopt::StructOpt;
 use tabout::{tabulate_output, Alignment, Column};
 
 mod config;
+mod connui;
 mod frontend;
 mod keyassignment;
 mod localtab;
