@@ -431,16 +431,6 @@ impl Reconnectable {
                 }
                 drop(child);
                 drop(pair.slave);
-                // Gross bug workaround: ClosePsuedoConsole can get confused about the
-                // processes attached to the console when using wsl; the scenario
-                // is that we use wsl.exe to invoke wezterm, daemonize it (which forks
-                // and detaches from the pty) and then we can discard the pty.
-                // The ClosePsuedoConsole call should not need to wait for any clients,
-                // but blocks forever.
-                // The workaround is to leak the console handle.  The associated conhost
-                // process will show up in the process tree until this instance of
-                // wezterm is terminated, but it otherwise invisible.
-                std::mem::forget(pair.master);
 
                 unix_connect_with_retry(&sock_path)
                     .with_context(|| format!("failed to connect to {}", sock_path.display()))?
