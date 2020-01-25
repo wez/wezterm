@@ -254,7 +254,11 @@ impl Mux {
 
     pub fn kill_window(&self, window_id: WindowId) {
         let mut windows = self.windows.borrow_mut();
-        windows.remove(&window_id);
+        if let Some(window) = windows.remove(&window_id) {
+            for tab in window.iter() {
+                self.tabs.borrow_mut().remove(&tab.tab_id());
+            }
+        }
     }
 
     pub fn get_window(&self, window_id: WindowId) -> Option<Ref<Window>> {
