@@ -279,12 +279,16 @@ pub fn ssh_connect(remote_address: &str, username: &str) -> anyhow::Result<ssh2:
         }
     }
 
-    let methods: HashSet<&str> = sess.auth_methods(&username)?.split(',').collect();
-
     for _ in 0..3 {
         if sess.authenticated() {
             break;
         }
+
+        // Re-query the auth methods on each loop as a successful method
+        // may unlock a new method on a subsequent iteration (eg: password
+        // auth may then unlock 2fac)
+        let methods: HashSet<&str> = sess.auth_methods(&username)?.split(',').collect();
+        log::trace!("ssh auth methods: {:?}", methods);
 
         if !sess.authenticated() && methods.contains("publickey") {
             if let Err(err) = sess.userauth_agent(&username) {
