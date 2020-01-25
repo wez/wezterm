@@ -46,7 +46,7 @@ pub fn async_ssh_connect(remote_address: &str, username: &str) -> Future<ssh2::S
     future
 }
 
-fn ssh_connect_with_ui(
+pub fn ssh_connect_with_ui(
     remote_address: &str,
     username: &str,
     ui: &mut ConnectionUI,

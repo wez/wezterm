@@ -1,4 +1,5 @@
 use crate::config::{configuration, SshDomain, TlsDomainClient, UnixDomain};
+use crate::connui::ConnectionUI;
 use crate::mux::domain::alloc_domain_id;
 use crate::mux::domain::DomainId;
 use crate::mux::Mux;
@@ -7,7 +8,7 @@ use crate::server::domain::{ClientDomain, ClientDomainConfig};
 use crate::server::pollable::*;
 use crate::server::tab::ClientTab;
 use crate::server::UnixStream;
-use crate::ssh::ssh_connect;
+use crate::ssh::ssh_connect_with_ui;
 use anyhow::{anyhow, bail, Context, Error};
 use crossbeam::channel::TryRecvError;
 use filedescriptor::{pollfd, AsRawSocketDescriptor};
@@ -316,15 +317,34 @@ impl Reconnectable {
     }
 
     fn connect(&mut self, initial: bool) -> anyhow::Result<()> {
-        match self.config.clone() {
-            ClientDomainConfig::Unix(unix_dom) => self.unix_connect(unix_dom, initial),
-            ClientDomainConfig::Tls(tls) => self.tls_connect(tls),
-            ClientDomainConfig::Ssh(ssh) => self.ssh_connect(ssh, initial),
+        let mut ui = ConnectionUI::new();
+        ui.title("wezterm: Connecting...");
+
+        let res = match self.config.clone() {
+            ClientDomainConfig::Unix(unix_dom) => self.unix_connect(unix_dom, initial, &mut ui),
+            ClientDomainConfig::Tls(tls) => self.tls_connect(tls, &mut ui),
+            ClientDomainConfig::Ssh(ssh) => self.ssh_connect(ssh, initial, &mut ui),
+        };
+
+        match res {
+            Ok(sess) => {
+                ui.close();
+                Ok(sess)
+            }
+            Err(err) => {
+                ui.output_str(&format!("\nFailed: {}", err));
+                Err(err)
+            }
         }
     }
 
-    fn ssh_connect(&mut self, ssh_dom: SshDomain, initial: bool) -> anyhow::Result<()> {
-        let sess = ssh_connect(&ssh_dom.remote_address, &ssh_dom.username)?;
+    fn ssh_connect(
+        &mut self,
+        ssh_dom: SshDomain,
+        initial: bool,
+        ui: &mut ConnectionUI,
+    ) -> anyhow::Result<()> {
+        let sess = ssh_connect_with_ui(&ssh_dom.remote_address, &ssh_dom.username, ui)?;
 
         let mut chan = sess.channel_session()?;
 
@@ -341,6 +361,7 @@ impl Reconnectable {
         } else {
             format!("{} cli --no-auto-start proxy", proxy_bin)
         };
+        ui.output_str(&format!("Running: {}\n", cmd));
         log::error!("going to run {}", cmd);
         chan.exec(&cmd)?;
 
@@ -349,8 +370,14 @@ impl Reconnectable {
         Ok(())
     }
 
-    fn unix_connect(&mut self, unix_dom: UnixDomain, initial: bool) -> anyhow::Result<()> {
+    fn unix_connect(
+        &mut self,
+        unix_dom: UnixDomain,
+        initial: bool,
+        ui: &mut ConnectionUI,
+    ) -> anyhow::Result<()> {
         let sock_path = unix_dom.socket_path();
+        ui.output_str(&format!("Connect to {}", sock_path.display()));
         info!("connect to {}", sock_path.display());
 
         let stream = match unix_connect_with_retry(&sock_path) {
@@ -364,6 +391,7 @@ impl Reconnectable {
                     sock_path.display(),
                     e
                 );
+                ui.output_str(&format!("Error: {}.  Will try spawning server.", e));
 
                 let argv = unix_dom.serve_command()?;
 
@@ -399,13 +427,18 @@ impl Reconnectable {
             }
         };
 
+        ui.output_str("Connected!\n");
         let stream: Box<dyn ReadAndWrite> = Box::new(stream);
         self.stream.replace(stream);
         Ok(())
     }
 
     #[cfg(any(feature = "openssl", unix))]
-    pub fn tls_connect(&mut self, tls_client: TlsDomainClient) -> anyhow::Result<()> {
+    pub fn tls_connect(
+        &mut self,
+        tls_client: TlsDomainClient,
+        ui: &mut ConnectionUI,
+    ) -> anyhow::Result<()> {
         use openssl::ssl::{SslConnector, SslFiletype, SslMethod};
         use openssl::x509::X509;
 
@@ -453,6 +486,7 @@ impl Reconnectable {
             .configure()?
             .verify_hostname(!tls_client.accept_invalid_hostnames);
 
+        ui.output_str(&format!("Connecting to {}", remote_address));
         let stream = TcpStream::connect(remote_address)
             .with_context(|| format!("connecting to {}", remote_address))?;
         stream.set_nodelay(true)?;
@@ -474,12 +508,17 @@ impl Reconnectable {
                     )
                 })?,
         );
+        ui.output_str("Connected!\n");
         self.stream.replace(stream);
         Ok(())
     }
 
     #[cfg(not(any(feature = "openssl", unix)))]
-    pub fn tls_connect(&mut self, tls_client: TlsDomainClient) -> anyhow::Result<()> {
+    pub fn tls_connect(
+        &mut self,
+        tls_client: TlsDomainClient,
+        ui: &mut ConnectionUI,
+    ) -> anyhow::Result<()> {
         use crate::server::listener::IdentitySource;
         use native_tls::TlsConnector;
         use std::convert::TryInto;
@@ -508,6 +547,7 @@ impl Reconnectable {
             .danger_accept_invalid_hostnames(tls_client.accept_invalid_hostnames)
             .build()?;
 
+        ui.output_str(&format!("Connecting to {}", remote_address));
         let stream = TcpStream::connect(remote_address)
             .with_context(|| format!("connecting to {}", remote_address))?;
         stream.set_nodelay(true)?;
@@ -522,6 +562,7 @@ impl Reconnectable {
                     )
                 })?,
         );
+        ui.output_str("Connected!\n");
         self.stream.replace(stream);
         Ok(())
     }
