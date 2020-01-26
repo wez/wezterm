@@ -111,7 +111,7 @@ pub fn tab_navigator(
                 key: KeyCode::DownArrow,
                 ..
             }) => {
-                active_tab_idx = (active_tab_idx + 1).min(tab_list.len());
+                active_tab_idx = (active_tab_idx + 1).min(tab_list.len() - 1);
                 render(active_tab_idx, &tab_list, &mut term)?;
             }
             InputEvent::Key(KeyEvent {
