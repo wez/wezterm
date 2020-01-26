@@ -788,7 +788,6 @@ impl TerminalState {
 
     /// Sets the cursor position. x and y are 0-based and relative to the
     /// top left of the visible screen.
-    /// TODO: DEC origin mode impacts the interpreation of these
     fn set_cursor_pos(&mut self, x: &Position, y: &Position) {
         let x = match *x {
             Position::Relative(x) => (self.cursor.x as i64 + x).max(0),
@@ -802,12 +801,17 @@ impl TerminalState {
         let rows = self.screen().physical_rows;
         let cols = self.screen().physical_cols;
         let old_y = self.cursor.y;
-        let new_y = y.min(rows as i64 - 1);
 
         self.cursor.x = x.min(cols as i64 - 1) as usize;
-        self.cursor.y = new_y;
+
+        if self.dec_origin_mode {
+            self.cursor.y = (self.scroll_region.start + y).min(self.scroll_region.end - 1);
+        } else {
+            self.cursor.y = y.min(rows as i64 - 1);
+        }
         self.wrap_next = false;
 
+        let new_y = self.cursor.y;
         let screen = self.screen_mut();
         screen.dirty_line(old_y);
         screen.dirty_line(new_y);
