@@ -123,6 +123,37 @@ impl RgbColor {
                 }};
             }
             Some(Self::new(digit!(), digit!(), digit!()))
+        } else if s.starts_with("rgb:") && s.len() == 12 {
+            let mut chars = s.chars().skip(4);
+
+            macro_rules! digit {
+                () => {{
+                    let hi = match chars.next().unwrap().to_digit(16) {
+                        Some(v) => (v as u8) << 4,
+                        None => return None,
+                    };
+                    let lo = match chars.next().unwrap().to_digit(16) {
+                        Some(v) => v as u8,
+                        None => return None,
+                    };
+                    hi | lo
+                }};
+            }
+            macro_rules! slash {
+                () => {{
+                    match chars.next() {
+                        Some('/') => {}
+                        _ => return None,
+                    }
+                }};
+            }
+            let red = digit!();
+            slash!();
+            let green = digit!();
+            slash!();
+            let blue = digit!();
+
+            Some(Self::new(red, green, blue))
         } else {
             None
         }
@@ -248,6 +279,21 @@ mod tests {
         assert_eq!(dark_green.red, 0);
         assert_eq!(dark_green.green, 0x64);
         assert_eq!(dark_green.blue, 0);
+    }
+
+    #[test]
+    fn from_rgb() {
+        assert!(RgbColor::from_rgb_str("#xyxyxy").is_none());
+
+        let black = RgbColor::from_rgb_str("#000000").unwrap();
+        assert_eq!(black.red, 0);
+        assert_eq!(black.green, 0);
+        assert_eq!(black.blue, 0);
+
+        let grey = RgbColor::from_rgb_str("rgb:D6/D6/D6").unwrap();
+        assert_eq!(grey.red, 0xd6);
+        assert_eq!(grey.green, 0xd6);
+        assert_eq!(grey.blue, 0xd6);
     }
 
     #[test]
