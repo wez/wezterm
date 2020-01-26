@@ -107,10 +107,14 @@ impl TestTerm {
         let clip: Arc<dyn Clipboard> = Arc::new(LocalClip::new());
         term.set_clipboard(&clip);
 
-        Self {
+        let mut term = Self {
             term,
             host: TestHost::new(),
-        }
+        };
+
+        term.set_auto_wrap(true);
+
+        term
     }
 
     fn print<B: AsRef<[u8]>>(&mut self, bytes: B) {
@@ -122,6 +126,10 @@ impl TestTerm {
         self.print(CSI);
         self.print(mode);
         self.print(if enable { b"h" } else { b"l" });
+    }
+
+    fn set_auto_wrap(&mut self, enable: bool) {
+        self.set_mode("?7", enable);
     }
 
     #[allow(dead_code)]
@@ -326,6 +334,25 @@ fn assert_all_contents(term: &Terminal, file: &str, line: u32, expect_lines: &[&
 fn basic_output() {
     let mut term = TestTerm::new(5, 10, 0);
 
+    term.cup(1, 1);
+
+    term.set_auto_wrap(false);
+    term.print("hello, world!");
+    assert_visible_contents(
+        &term,
+        file!(),
+        line!(),
+        &[
+            "          ",
+            " hello, w!",
+            "          ",
+            "          ",
+            "          ",
+        ],
+    );
+
+    term.set_auto_wrap(true);
+    term.erase_in_display(EraseInDisplay::EraseToStartOfDisplay);
     term.cup(1, 1);
     term.print("hello, world!");
     assert_visible_contents(

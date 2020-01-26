@@ -1062,22 +1062,18 @@ impl TerminalState {
 
             Mode::SetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::AutoWrap)) => {
                 self.dec_auto_wrap = true;
-                log::error!("dec_auto_wrap -> {}", self.dec_auto_wrap);
             }
 
             Mode::ResetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::AutoWrap)) => {
                 self.dec_auto_wrap = false;
-                log::error!("dec_auto_wrap -> {}", self.dec_auto_wrap);
             }
 
             Mode::SetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::OriginMode)) => {
                 self.dec_origin_mode = true;
-                log::error!("dec_origin_mode -> {}", self.dec_origin_mode);
             }
 
             Mode::ResetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::OriginMode)) => {
                 self.dec_origin_mode = false;
-                log::error!("dec_origin_mode -> {}", self.dec_origin_mode);
             }
 
             Mode::SetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::SmoothScroll))
@@ -1670,7 +1666,7 @@ impl<'a> Performer<'a> {
                 self.cursor.x += print_width;
                 self.wrap_next = false;
             } else {
-                self.wrap_next = true;
+                self.wrap_next = self.dec_auto_wrap;
             }
         }
     }
