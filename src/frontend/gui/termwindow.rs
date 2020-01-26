@@ -1376,6 +1376,16 @@ impl TermWindow {
         self.activate_tab_relative(0).ok();
     }
 
+    fn close_tab_idx(&mut self, idx: usize) -> anyhow::Result<()> {
+        let mux = Mux::get().unwrap();
+        if let Some(mut win) = mux.get_window_mut(self.mux_window_id) {
+            let tab = win.remove_by_idx(idx);
+            drop(win);
+            mux.remove_tab(tab.tab_id());
+        }
+        self.activate_tab_relative(0)
+    }
+
     fn paint_tab(&mut self, tab: &Rc<dyn Tab>, ctx: &mut dyn PaintContext) -> anyhow::Result<()> {
         let palette = tab.palette();
         let first_line_offset = if self.show_tab_bar { 1 } else { 0 };
@@ -2365,8 +2375,8 @@ impl TermWindow {
     }
 
     fn mouse_event_tab_bar(&mut self, x: usize, event: &MouseEvent, context: &dyn WindowOps) {
-        if let WMEK::Press(MousePress::Left) = event.kind {
-            match self.tab_bar.hit_test(x) {
+        match event.kind {
+            WMEK::Press(MousePress::Left) => match self.tab_bar.hit_test(x) {
                 TabBarItem::Tab(tab_idx) => {
                     self.activate_tab(tab_idx).ok();
                 }
@@ -2374,7 +2384,14 @@ impl TermWindow {
                     self.spawn_tab(&SpawnTabDomain::CurrentTabDomain);
                 }
                 TabBarItem::None => {}
-            }
+            },
+            WMEK::Press(MousePress::Middle) => match self.tab_bar.hit_test(x) {
+                TabBarItem::Tab(tab_idx) => {
+                    self.close_tab_idx(tab_idx).ok();
+                }
+                TabBarItem::NewTabButton | TabBarItem::None => {}
+            },
+            _ => {}
         }
         self.update_title();
         context.set_cursor(Some(MouseCursor::Arrow));
