@@ -289,7 +289,9 @@ impl TerminalState {
             cursor: CursorPosition::default(),
             scroll_region: 0..physical_rows as VisibleRowIndex,
             wrap_next: false,
-            dec_auto_wrap: false,
+            // We default auto wrap to true even though the default for
+            // a dec terminal is false, because it is more useful this way.
+            dec_auto_wrap: true,
             dec_origin_mode: false,
             insert: false,
             application_cursor_keys: false,
