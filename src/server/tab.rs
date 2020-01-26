@@ -317,7 +317,15 @@ impl Tab for ClientTab {
     }
 
     fn palette(&self) -> ColorPalette {
-        configuration()
+        let config = configuration();
+
+        if let Some(scheme_name) = config.color_scheme.as_ref() {
+            if let Some(palette) = config.color_schemes.get(scheme_name) {
+                return palette.clone().into();
+            }
+        }
+
+        config
             .colors
             .as_ref()
             .cloned()
