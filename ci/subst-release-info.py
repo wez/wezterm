@@ -9,6 +9,7 @@ def release_to_links(rel):
     ubuntu = None
     windows = None
     linux_bin = None
+    appimage = None
 
     tag_name = "wezterm-%s" % rel["tag_name"]
 
@@ -27,6 +28,8 @@ def release_to_links(rel):
             macos = (url, name, tag_name)
         elif "WezTerm-windows-" in name:
             windows = (url, name, tag_name)
+        elif ".AppImage" in name:
+            appimage = (url, name, tag_name)
 
     return {
         "source": source,
@@ -35,6 +38,7 @@ def release_to_links(rel):
         "fedora": fedora,
         "macos": macos,
         "windows": windows,
+        "appimage": appimage,
     }
 
 def pretty(o):
@@ -58,7 +62,10 @@ def load_release_info():
     print('nightly: ', pretty(nightly))
 
     subst = {}
-    for (kind, (url, name, dir)) in latest.items():
+    for (kind, info) in latest.items():
+        if info is None:
+            continue
+        url, name, dir = info
         subst["{{ %s_stable }}" % kind] = url
         subst["{{ %s_stable_asset }}" % kind] = name
         subst["{{ %s_stable_dir }}" % kind] = dir

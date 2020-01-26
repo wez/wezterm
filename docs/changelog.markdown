@@ -10,7 +10,31 @@ daily) from the master branch.  It may not be usable and
 the feature set may change.  As features stabilize some
 brief notes about them may accumulate here.
 
-* No new changes yet!
+* We now accept `rgb:XX/XX/XX` color syntax for OSC 4 and related escape
+  sequences; previously only `#XXXXXX` and named colors were accepted.
+* We now accept OSC 104 to reset custom colors to their defaults.
+* Added Tab Navigator overlay for folks that hoard tabs; it presents
+  an interactive UI for selecting and activating a tab from a vertically
+  oriented list.  This is bound to `Alt-9` by default.
+* Added support for DEC Origin Mode (`DECOM`) which improves cursor positioning
+  with some applications
+* Added support for DEC AutoWrap Mode (`DECAWM`) which was previously always on.
+  This improves rendering for applications that explicitly disable it.
+* We now show a connection status window while establishing MUX and SSH connections.
+  The status window is also where any interactive authentication is carried out
+  for eg: SSH sessions.
+* Improved SSH authentication handling; we now give you a few opportunities to
+  authenticate and are now able to successfully authenticate with sites that
+  have configured 2-Factor authentication in their server side SSH configuration.
+* Fixed an issue where SHIFT-Space would swallow the space key.
+* Nightly builds are now available for Linux in [AppImage](https://github.com/wez/wezterm/releases/download/nightly/WezTerm-nightly.AppImage) format.
+* Shift+Left Mouse button can now be used to extend the selection to the clicked location.  This is particularly helpful when you want to select something that is larger than the viewport.
+* Windows: a single mouse wheel tick now scrolls by the number of positions configured in the Windows system settings (default 3)
+* Windows: fixed IME position when the tab bar is enabled
+* Windows: removed support for WinPty, which was too difficult to obtain, configure and use.
+* Configuration errors now show in a separate window on startup, or when the configuration is reloaded
+* Improved reliability and performance of MUX sessions, although they still have room for further improvement
+
 
 ### 20200113-214446-bb6251f
 

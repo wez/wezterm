@@ -53,7 +53,37 @@ sudo dnf install -y {{ fedora_stable }}
 * The package installs `/usr/bin/wezterm` and `/usr/share/applications/wezterm.desktop`
 * Configuration instructions can be [found here](config/index.html)
 
+## Installing on Linux via AppImage
+
+If you have some other Linux system, or otherwise prefer AppImage over your
+system package format, you can download a build by following these steps.
+AppImages are newer than the latest tagged release so they are currently
+only available for nightly builds:
+
+<a href="https://github.com/wez/wezterm/releases/download/nightly/WezTerm-nightly.AppImage" class="btn">Nightly AppImage</a>
+
+```bash
+curl -LO https://github.com/wez/wezterm/releases/download/nightly/WezTerm-nightly.AppImage
+chmod +x WezTerm-nightly.AppImage
+```
+
+You may then execute the appimage directly to launch wezterm.
+
+* Configuration instructions can be [found here](config/index.html)
+
+## Raw Linux Binary
+
+Another option for linux is a raw binary archive.  These are the same binaries that
+are built for Ubuntu but provided in a tarball.
+
+<a href="{{ linux_bin_stable }}" class="btn">Download raw Linux binaries</a>
+<a href="https://github.com/wez/wezterm/releases/download/nightly/wezterm-nightly.tar.xz"
+ class="btn">Nightly raw Linux binaries</a>
+
 ## Installing from source
+
+If your system isn't covered by the list above, then you can build it for yourself.
+WezTerm should run on any modern unix as well as Windows 10 and macOS.
 
 * Install `rustup` to get the `rust` compiler installed on your system.
   [Install rustup](https://www.rust-lang.org/en-US/install.html)
