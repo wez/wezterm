@@ -1013,7 +1013,23 @@ impl TermWindow {
             None => return,
         };
 
-        let (overlay, future) = start_overlay(self, &tab, tab_navigator);
+        let window = mux
+            .get_window(self.mux_window_id)
+            .expect("to resolve my own window_id");
+
+        // Ideally we'd resolve the tabs on the fly once we've started the
+        // overlay, but since the overlay runs in a different thread, accessing
+        // the mux list is a bit awkward.  To get the ball rolling we capture
+        // the list of tabs up front and live with a static list.
+        let tabs: Vec<(String, TabId)> = window
+            .iter()
+            .map(|tab| (tab.get_title(), tab.tab_id()))
+            .collect();
+
+        let mux_window_id = self.mux_window_id;
+        let (overlay, future) = start_overlay(self, &tab, move |tab_id, term| {
+            tab_navigator(tab_id, term, tabs, mux_window_id)
+        });
         self.assign_overlay(tab.tab_id(), overlay);
         promise::spawn::spawn(future);
     }
