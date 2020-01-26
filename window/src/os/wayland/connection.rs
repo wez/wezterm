@@ -174,7 +174,6 @@ impl ConnectionOps for WaylandConnection {
     }
 
     fn run_message_loop(&self) -> anyhow::Result<()> {
-        println!("run_message_loop:flush");
         self.flush()?;
 
         const TOK_WAYLAND: usize = 0xffff_fffc;
