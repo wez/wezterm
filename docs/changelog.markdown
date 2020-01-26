@@ -10,6 +10,12 @@ daily) from the master branch.  It may not be usable and
 the feature set may change.  As features stabilize some
 brief notes about them may accumulate here.
 
+* Unix: We now default to spawning shells with the `-l` argument to request a login
+  shell.  This is important on macOS where the default GUI environment doesn't
+  source a working PATH from the shell, resulting in an anemic PATH unless the
+  user has taken care to cover this in their shell startup.  `-l` works to enable
+  a login shell in `zsh`, `bash`, `fish` and `tcsh`.  If it doesn't work with your
+  shell, you can use the `default_prog` configuration option to override this.
 * We now accept `rgb:XX/XX/XX` color syntax for OSC 4 and related escape
   sequences; previously only `#XXXXXX` and named colors were accepted.
 * We now accept OSC 104 to reset custom colors to their defaults.
