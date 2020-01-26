@@ -1817,7 +1817,7 @@ impl<'a> Performer<'a> {
                 self.current_dir = Url::parse(&url).ok();
             }
             OperatingSystemCommand::ChangeColorNumber(specs) => {
-                error!("ChangeColorNumber: {:?}", specs);
+                log::trace!("ChangeColorNumber: {:?}", specs);
                 for pair in specs {
                     match pair.color {
                         ColorOrQuery::Query => {
@@ -1837,8 +1837,28 @@ impl<'a> Performer<'a> {
                 }
                 self.make_all_lines_dirty();
             }
+
+            OperatingSystemCommand::ResetColors(colors) => {
+                log::trace!("ResetColors: {:?}", colors);
+                if colors.is_empty() {
+                    // Reset all colors
+                    self.palette.take();
+                } else {
+                    // Reset individual colors
+                    if self.palette.is_none() {
+                        // Already at the defaults
+                    } else {
+                        let base = self.config.color_palette();
+                        for c in colors {
+                            let c = c as usize;
+                            self.palette_mut().colors.0[c] = base.colors.0[c];
+                        }
+                    }
+                }
+            }
+
             OperatingSystemCommand::ChangeDynamicColors(first_color, colors) => {
-                error!("ChangeDynamicColors: {:?} {:?}", first_color, colors);
+                log::trace!("ChangeDynamicColors: {:?} {:?}", first_color, colors);
                 use termwiz::escape::osc::DynamicColorNumber;
                 let mut idx: u8 = first_color as u8;
                 for color in colors {

@@ -39,6 +39,7 @@ pub enum OperatingSystemCommand {
     ChangeColorNumber(Vec<ChangeColorPair>),
     ChangeDynamicColors(DynamicColorNumber, Vec<ColorOrQuery>),
     CurrentWorkingDirectory(String),
+    ResetColors(Vec<u8>),
 
     Unspecified(Vec<Vec<u8>>),
 }
@@ -141,11 +142,16 @@ impl Display for Selection {
 
 impl OperatingSystemCommand {
     pub fn parse(osc: &[&[u8]]) -> Self {
-        Self::internal_parse(osc).unwrap_or_else(|_| {
+        Self::internal_parse(osc).unwrap_or_else(|err| {
             let mut vec = Vec::new();
             for slice in osc {
                 vec.push(slice.to_vec());
             }
+            log::trace!(
+                "OSC internal parse err: {}, track as Unspecified {:?}",
+                err,
+                vec
+            );
             OperatingSystemCommand::Unspecified(vec)
         })
     }
@@ -163,6 +169,22 @@ impl OperatingSystemCommand {
         } else {
             bail!("unhandled OSC 52: {:?}", osc);
         }
+    }
+
+    fn parse_reset_colors(osc: &[&[u8]]) -> anyhow::Result<Self> {
+        let mut colors = vec![];
+        let mut iter = osc.iter();
+        iter.next(); // skip the command word that we already know is present
+
+        while let Some(index) = iter.next() {
+            if index.is_empty() {
+                continue;
+            }
+            let index: u8 = str::from_utf8(index)?.parse()?;
+            colors.push(index);
+        }
+
+        Ok(OperatingSystemCommand::ResetColors(colors))
     }
 
     fn parse_change_color_number(osc: &[&[u8]]) -> anyhow::Result<Self> {
@@ -244,6 +266,7 @@ impl OperatingSystemCommand {
                 self::ITermProprietary::parse(osc).map(OperatingSystemCommand::ITermProprietary)
             }
             ChangeColorNumber => Self::parse_change_color_number(osc),
+            ResetColors => Self::parse_reset_colors(osc),
 
             SetTextForegroundColor
             | SetTextBackgroundColor
@@ -291,6 +314,7 @@ pub enum OperatingSystemCommandCode {
     SetFont = 50,
     EmacsShell = 51,
     ManipulateSelectionData = 52,
+    ResetColors = 104,
     RxvtProprietary = 777,
     ITermProprietary = 1337,
 }
@@ -325,6 +349,12 @@ impl Display for OperatingSystemCommand {
             SetSelection(s, val) => write!(f, "52;{};{}", s, base64::encode(val))?,
             SystemNotification(s) => write!(f, "9;{}", s)?,
             ITermProprietary(i) => i.fmt(f)?,
+            ResetColors(colors) => {
+                write!(f, "104")?;
+                for c in colors {
+                    write!(f, ";{}", c)?;
+                }
+            }
             ChangeColorNumber(specs) => {
                 write!(f, "4;")?;
                 for pair in specs {
@@ -748,6 +778,22 @@ mod test {
         assert_eq!(encode(&result), expected);
 
         result
+    }
+
+    #[test]
+    fn reset_colors() {
+        assert_eq!(
+            parse(&["104"], "\x1b]104\x07"),
+            OperatingSystemCommand::ResetColors(vec![])
+        );
+        assert_eq!(
+            parse(&["104", ""], "\x1b]104\x07"),
+            OperatingSystemCommand::ResetColors(vec![])
+        );
+        assert_eq!(
+            parse(&["104", "1"], "\x1b]104;1\x07"),
+            OperatingSystemCommand::ResetColors(vec![1])
+        );
     }
 
     #[test]
