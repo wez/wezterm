@@ -12,3 +12,4 @@
 - [SSH](ssh.markdown)
 - [Serial Ports & Arduino](serial.markdown)
 - [Multiplexing](multiplexing.markdown)
+- [Getting Help](help.markdown)
