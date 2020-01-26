@@ -166,16 +166,11 @@ pub struct TermWindow {
 
 struct Host<'a> {
     writer: &'a mut dyn std::io::Write,
-    context: &'a dyn WindowOps,
 }
 
 impl<'a> term::TerminalHost for Host<'a> {
     fn writer(&mut self) -> &mut dyn std::io::Write {
         self.writer
-    }
-
-    fn set_title(&mut self, title: &str) {
-        self.context.set_title(title);
     }
 }
 
@@ -2749,7 +2744,6 @@ impl TermWindow {
             mouse_event,
             &mut Host {
                 writer: &mut *tab.writer(),
-                context,
             },
         )
         .ok();

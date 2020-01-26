@@ -162,16 +162,11 @@ impl Clipboard for RemoteClipboard {
 
 struct BufferedTerminalHost<'a> {
     write: std::cell::RefMut<'a, dyn std::io::Write>,
-    title: Option<String>,
 }
 
 impl<'a> term::TerminalHost for BufferedTerminalHost<'a> {
     fn writer(&mut self) -> &mut dyn std::io::Write {
         &mut *self.write
-    }
-
-    fn set_title(&mut self, title: &str) {
-        self.title.replace(title.to_owned());
     }
 }
 
@@ -413,7 +408,6 @@ impl<S: ReadAndWrite> ClientSession<S> {
                                 .ok_or_else(|| anyhow!("no such tab {}", tab_id))?;
                             let mut host = BufferedTerminalHost {
                                 write: tab.writer(),
-                                title: None,
                             };
                             tab.mouse_event(event, &mut host)?;
                             maybe_push_tab_changes(&tab, sender, per_tab)?;

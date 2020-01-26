@@ -105,8 +105,6 @@ impl<'a> TerminalHost for Host<'a> {
     fn writer(&mut self) -> &mut dyn std::io::Write {
         &mut self.writer
     }
-
-    fn set_title(&mut self, _title: &str) {}
 }
 
 thread_local! {
