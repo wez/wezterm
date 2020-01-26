@@ -455,6 +455,23 @@ pub enum DecPrivateMode {
 #[derive(Debug, Clone, PartialEq, Eq, FromPrimitive, ToPrimitive)]
 pub enum DecPrivateModeCode {
     ApplicationCursorKeys = 1,
+    /// https://vt100.net/docs/vt510-rm/DECCOLM.html
+    Select132Columns = 3,
+    /// https://vt100.net/docs/vt510-rm/DECSCLM.html
+    SmoothScroll = 4,
+    /// https://vt100.net/docs/vt510-rm/DECSCNM.html
+    ReverseVideo = 5,
+    /// https://vt100.net/docs/vt510-rm/DECOM.html
+    /// When OriginMode is enabled, cursor is constrained to the
+    /// scroll region and its position is relative to the scroll
+    /// region.
+    OriginMode = 6,
+    /// https://vt100.net/docs/vt510-rm/DECAWM.html
+    /// When enabled, wrap to next line, Otherwise replace the last
+    /// character
+    AutoWrap = 7,
+    /// https://vt100.net/docs/vt510-rm/DECARM.html
+    AutoRepeat = 8,
     StartBlinkingCursor = 12,
     ShowCursor = 25,
     /// Enable mouse button press/release reporting

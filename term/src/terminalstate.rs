@@ -185,6 +185,15 @@ pub struct TerminalState {
     /// If true, writing a character inserts a new cell
     insert: bool,
 
+    /// https://vt100.net/docs/vt510-rm/DECAWM.html
+    dec_auto_wrap: bool,
+
+    /// https://vt100.net/docs/vt510-rm/DECOM.html
+    /// When OriginMode is enabled, cursor is constrained to the
+    /// scroll region and its position is relative to the scroll
+    /// region.
+    dec_origin_mode: bool,
+
     /// The scroll region
     scroll_region: Range<VisibleRowIndex>,
 
@@ -280,6 +289,8 @@ impl TerminalState {
             cursor: CursorPosition::default(),
             scroll_region: 0..physical_rows as VisibleRowIndex,
             wrap_next: false,
+            dec_auto_wrap: false,
+            dec_origin_mode: false,
             insert: false,
             application_cursor_keys: false,
             application_keypad: false,
@@ -1040,6 +1051,57 @@ impl TerminalState {
                 DecPrivateModeCode::StartBlinkingCursor,
             )) => {}
 
+            Mode::SetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::AutoRepeat))
+            | Mode::ResetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::AutoRepeat)) => {
+                // We leave key repeat to the GUI layer prefs
+            }
+
+            Mode::SetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::AutoWrap)) => {
+                self.dec_auto_wrap = true;
+                log::error!("dec_auto_wrap -> {}", self.dec_auto_wrap);
+            }
+
+            Mode::ResetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::AutoWrap)) => {
+                self.dec_auto_wrap = false;
+                log::error!("dec_auto_wrap -> {}", self.dec_auto_wrap);
+            }
+
+            Mode::SetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::OriginMode)) => {
+                self.dec_origin_mode = true;
+                log::error!("dec_origin_mode -> {}", self.dec_origin_mode);
+            }
+
+            Mode::ResetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::OriginMode)) => {
+                self.dec_origin_mode = false;
+                log::error!("dec_origin_mode -> {}", self.dec_origin_mode);
+            }
+
+            Mode::SetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::SmoothScroll))
+            | Mode::ResetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::SmoothScroll)) => {
+                // We always output at our "best" rate
+            }
+
+            Mode::SetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::ReverseVideo))
+            | Mode::ResetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::ReverseVideo)) => {
+                // I'm mostly intentionally ignoring this in favor
+                // of respecting the configured colors
+            }
+
+            Mode::SetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::Select132Columns))
+            | Mode::ResetDecPrivateMode(DecPrivateMode::Code(
+                DecPrivateModeCode::Select132Columns,
+            )) => {
+                // Note: we don't support 132 column mode so we treat
+                // both set/reset as the same and we're really just here
+                // for the other side effects of this sequence
+                // https://vt100.net/docs/vt510-rm/DECCOLM.html
+
+                self.scroll_region = 0..self.screen().physical_rows as i64;
+                // FIXME: reset left/right margins here, when we implement those
+                self.set_cursor_pos(&Position::Absolute(0), &Position::Absolute(0));
+                self.erase_in_display(EraseInDisplay::EraseDisplay);
+            }
+
             Mode::SetMode(TerminalMode::Code(TerminalModeCode::Insert)) => {
                 self.insert = true;
             }
@@ -1688,6 +1750,25 @@ impl<'a> Performer<'a> {
             }
             Esc::Code(EscCode::DecSaveCursorPosition) => self.save_cursor(),
             Esc::Code(EscCode::DecRestoreCursorPosition) => self.restore_cursor(),
+
+            Esc::Code(EscCode::DecScreenAlignmentDisplay) => {
+                // This one is just to make vttest happy;
+                // its original purpose was for aligning the CRT.
+                // https://vt100.net/docs/vt510-rm/DECALN.html
+
+                let screen = self.screen_mut();
+                let col_range = 0..screen.physical_cols;
+                for y in 0..screen.physical_rows as VisibleRowIndex {
+                    let line_idx = screen.phys_row(y);
+                    let line = screen.line_mut(line_idx);
+                    line.resize(col_range.end);
+                    line.fill_range(
+                        col_range.clone(),
+                        &Cell::new('E', CellAttributes::default()),
+                    );
+                }
+            }
+
             _ => error!("ESC: unhandled {:?}", esc),
         }
     }

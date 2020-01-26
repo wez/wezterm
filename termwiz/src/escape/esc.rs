@@ -71,6 +71,9 @@ pub enum EscCode {
     /// Designate Character Set – US ASCII
     AsciiCharacterSet = esc!('(', 'B'),
 
+    /// https://vt100.net/docs/vt510-rm/DECALN.html
+    DecScreenAlignmentDisplay = esc!('#', '8'),
+
     /// These are typically sent by the terminal when keys are pressed
     ApplicationModeArrowUpPress = esc!('O', 'A'),
     ApplicationModeArrowDownPress = esc!('O', 'B'),
