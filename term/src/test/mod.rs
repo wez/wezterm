@@ -15,15 +15,11 @@ use termwiz::escape::csi::{Edit, EraseInDisplay, EraseInLine};
 use termwiz::escape::{OneBased, OperatingSystemCommand, CSI};
 use termwiz::surface::CursorShape;
 
-struct TestHost {
-    title: String,
-}
+struct TestHost {}
 
 impl TestHost {
     fn new() -> Self {
-        Self {
-            title: String::new(),
-        }
+        Self {}
     }
 }
 
@@ -65,10 +61,6 @@ impl Clipboard for LocalClip {
 }
 
 impl TerminalHost for TestHost {
-    fn set_title(&mut self, title: &str) {
-        self.title = title.into();
-    }
-
     fn writer(&mut self) -> &mut dyn std::io::Write {
         self
     }
