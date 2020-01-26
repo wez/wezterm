@@ -500,9 +500,13 @@ pub enum TerminalMode {
 
 #[derive(Debug, Clone, PartialEq, Eq, FromPrimitive, ToPrimitive)]
 pub enum TerminalModeCode {
+    /// https://vt100.net/docs/vt510-rm/KAM.html
     KeyboardAction = 2,
+    /// https://vt100.net/docs/vt510-rm/IRM.html
     Insert = 4,
+    /// https://vt100.net/docs/vt510-rm/SRM.html
     SendReceive = 12,
+    /// https://vt100.net/docs/vt510-rm/LNM.html
     AutomaticNewline = 20,
 }
 
