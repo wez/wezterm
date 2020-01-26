@@ -11,7 +11,7 @@ documentation = "https://docs.rs/portable-pty"
 [dependencies]
 async-trait = "0.1"
 anyhow = "1.0"
-filedescriptor = "0.7"
+filedescriptor = { version="0.7", path = "../filedescriptor" }
 log = "0.4"
 libc = "0.2"
 shell-words = "0.1"

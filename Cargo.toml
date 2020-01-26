@@ -25,7 +25,7 @@ crossbeam = "0.7"
 dirs = "1.0"
 downcast-rs = "1.0"
 euclid = "0.20"
-filedescriptor = "0.7"
+filedescriptor = { version="0.7", path = "filedescriptor" }
 pretty_env_logger = "0.3"
 failure = "0.1"
 failure_derive = "0.1"

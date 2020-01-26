@@ -884,8 +884,6 @@ dependencies = [
 [[package]]
 name = "filedescriptor"
 version = "0.7.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c46dabe5cb9a927e5185cfa6b7ae0beb6c537aee0f36a9177cacfd4a802d0eb8"
 dependencies = [
  "anyhow",
  "libc",
