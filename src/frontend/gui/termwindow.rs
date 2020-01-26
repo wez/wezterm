@@ -2801,7 +2801,6 @@ impl TermWindow {
 
     /// Removes any overlay for the specified tab
     fn cancel_overlay_for_tab(&self, tab_id: TabId) {
-        eprintln!("cancel_overlay_for_tab {}", tab_id);
         self.tab_state(tab_id).overlay.take();
         if let Some(window) = self.window.as_ref() {
             window.invalidate();
@@ -2809,7 +2808,6 @@ impl TermWindow {
     }
 
     pub fn schedule_cancel_overlay(window: Window, tab_id: TabId) {
-        eprintln!("schedule_cancel_overlay {}", tab_id);
         window.apply(move |myself, _| {
             if let Some(myself) = myself.downcast_mut::<Self>() {
                 myself.cancel_overlay_for_tab(tab_id);
@@ -2819,7 +2817,6 @@ impl TermWindow {
     }
 
     pub fn assign_overlay(&self, tab_id: TabId, overlay: Rc<dyn Tab>) {
-        eprintln!("assign_overlay {}", tab_id);
         self.tab_state(tab_id).overlay.replace(overlay);
     }
 }
