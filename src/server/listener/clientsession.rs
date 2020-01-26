@@ -170,13 +170,6 @@ impl<'a> term::TerminalHost for BufferedTerminalHost<'a> {
         &mut *self.write
     }
 
-    fn click_link(&mut self, link: &Arc<term::cell::Hyperlink>) {
-        log::error!(
-            "nothing should call BufferedTerminalHost::click_link, but something did with {:?}",
-            link
-        );
-    }
-
     fn set_title(&mut self, title: &str) {
         self.title.replace(title.to_owned());
     }

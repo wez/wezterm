@@ -14,7 +14,6 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::thread;
 use term::TerminalHost;
-use termwiz::hyperlink::Hyperlink;
 use thiserror::*;
 
 pub mod domain;
@@ -105,13 +104,6 @@ struct Host<'a> {
 impl<'a> TerminalHost for Host<'a> {
     fn writer(&mut self) -> &mut dyn std::io::Write {
         &mut self.writer
-    }
-
-    fn click_link(&mut self, link: &Arc<Hyperlink>) {
-        match open::that(link.uri()) {
-            Ok(_) => {}
-            Err(err) => error!("failed to open {}: {:?}", link.uri(), err),
-        }
     }
 
     fn set_title(&mut self, _title: &str) {}

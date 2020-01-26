@@ -72,8 +72,6 @@ impl TerminalHost for TestHost {
     fn writer(&mut self) -> &mut dyn std::io::Write {
         self
     }
-
-    fn click_link(&mut self, _link: &Arc<Hyperlink>) {}
 }
 
 struct TestTerm {

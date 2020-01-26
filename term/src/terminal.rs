@@ -28,9 +28,6 @@ pub trait TerminalHost {
     /// Change the title of the window
     fn set_title(&mut self, title: &str);
 
-    /// Called when a URL is clicked
-    fn click_link(&mut self, link: &Arc<Hyperlink>);
-
     /// Switch to a specific tab
     fn activate_tab(&mut self, _tab: usize) {}
 
