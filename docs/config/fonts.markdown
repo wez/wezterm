@@ -40,6 +40,25 @@ family = "Operator Mono SSm Lig Medium"
 # italic = false
 ```
 
+If you'd like to specify fallback fonts (eg: you've got a killer
+monospace font, but it doesn't have glyphs for the asian script
+that you sometimes work with), you can specify multiple fonts that
+wezterm will use in the order you specify:
+
+```toml
+[[font.font]]
+family = "My Preferred Font"
+
+# This is searched for glyphs that aren't found in the first one
+[[font.font]]
+family = "My second best font"
+
+# This is searched for glyphs that aren't found in either of
+# the first two
+[[font.font]]
+family = "My third best font"
+```
+
 You may specify rules that apply different font styling based on
 the attributes of the text rendered in the terminal.  Rules are
 applied in the order that they are specified in the configuration
