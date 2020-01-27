@@ -129,7 +129,7 @@ pub trait WindowCallbacks: Any {
     #[cfg(feature = "opengl")]
     fn paint_opengl(&mut self, frame: &mut glium::Frame) {
         use glium::Surface;
-        frame.clear_color(0.25, 0.125, 0.375, 1.0);
+        frame.clear_color_srgb(0.25, 0.125, 0.375, 1.0);
     }
 
     /// Called to handle a key event.

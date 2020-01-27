@@ -20,7 +20,7 @@ impl WindowCallbacks for MyWindow {
     fn paint_opengl(&mut self, frame: &mut glium::Frame) {
         // Window contents are gray in opengl mode
         use glium::Surface;
-        frame.clear_color(0.15, 0.15, 0.15, 1.0);
+        frame.clear_color_srgb(0.15, 0.15, 0.15, 1.0);
     }
 
     fn as_any(&mut self) -> &mut dyn Any {

@@ -444,7 +444,7 @@ impl WindowCallbacks for TermWindow {
         let tab = match self.get_active_tab_or_overlay() {
             Some(tab) => tab,
             None => {
-                frame.clear_color(0., 0., 0., 1.);
+                frame.clear_color_srgb(0., 0., 0., 1.);
                 return;
             }
         };
@@ -1545,7 +1545,7 @@ impl TermWindow {
 
         let background_color = palette.resolve_bg(term::color::ColorAttribute::Default);
         let (r, g, b, a) = background_color.to_tuple_rgba();
-        frame.clear_color(r, g, b, a);
+        frame.clear_color_srgb(r, g, b, a);
 
         let first_line_offset = if self.show_tab_bar { 1 } else { 0 };
 
