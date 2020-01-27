@@ -7,11 +7,11 @@
 
 * Runs on Linux, macOS and Windows 10
 * [Multiplex terminal tabs and windows on local and remote hosts, with native mouse and scrollback](multiplexing.html)
-* <a href="https://github.com/tonsky/FiraCode#fira-code-monospaced-font-with-programming-ligatures">Ligatures</a>, Color Emoji and font fallback, with true color and [dynamic color schemes](configuration.html#colors).
+* <a href="https://github.com/tonsky/FiraCode#fira-code-monospaced-font-with-programming-ligatures">Ligatures</a>, Color Emoji and font fallback, with true color and [dynamic color schemes](config/appearance.html#colors).
 * <a href="https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5feda">Hyperlinks</a>
 * <a href="features.html">a full list of features can be found here</a>
 
-Looking for a [configuration reference?](configuration.html)
+Looking for a [configuration reference?](config/index.html)
 
 <img width="100%" height="100%" src="screenshots/two.png" alt="Screenshot">
 
