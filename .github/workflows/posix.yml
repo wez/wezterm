@@ -27,6 +27,9 @@ jobs:
         toolchain: ${{ matrix.rust_toolchain }}
         override: true
         components: rustfmt
+    - name: Set macOS deployment target
+      run: |
+        echo "::set-env name=MACOSX_DEPLOYMENT_TARGET=10.9"
     - name: Show versions
       run: |
         rustc -V

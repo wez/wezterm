@@ -23,6 +23,9 @@ jobs:
         profile: minimal
         toolchain: ${{ matrix.rust_toolchain }}
         override: true
+    - name: Set macOS deployment target
+      run: |
+        echo "::set-env name=MACOSX_DEPLOYMENT_TARGET=10.9"
     - name: Cache cargo registry
       uses: actions/cache@v1
       with:

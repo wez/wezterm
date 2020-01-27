@@ -2,6 +2,13 @@ use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
 
+fn new_build() -> cc::Build {
+    let mut cfg = cc::Build::new();
+    cfg.warnings(false);
+    cfg.flag_if_supported("-fno-stack-check");
+    cfg
+}
+
 fn zlib() {
     if !Path::new("zlib/.git").exists() {
         git_submodule_update();
@@ -9,8 +16,7 @@ fn zlib() {
 
     let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
 
-    let mut cfg = cc::Build::new();
-    cfg.warnings(false);
+    let mut cfg = new_build();
     let build_dir = out_dir.join("zlib-build");
     fs::create_dir_all(&build_dir).unwrap();
     cfg.out_dir(&build_dir);
@@ -47,8 +53,7 @@ fn libpng() {
 
     let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
 
-    let mut cfg = cc::Build::new();
-    cfg.warnings(false);
+    let mut cfg = new_build();
     let build_dir = out_dir.join("png-build");
     fs::create_dir_all(&build_dir).unwrap();
     cfg.out_dir(&build_dir);
@@ -96,8 +101,7 @@ fn freetype() {
 
     let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
 
-    let mut cfg = cc::Build::new();
-    cfg.warnings(false);
+    let mut cfg = new_build();
     let build_dir = out_dir.join("freetype-build");
     fs::create_dir_all(&build_dir).unwrap();
     cfg.out_dir(&build_dir);
@@ -219,4 +223,5 @@ fn main() {
     freetype();
     let out_dir = env::var("OUT_DIR").unwrap();
     println!("cargo:outdir={}", out_dir);
+    println!("cargo:rustc-env=MACOSX_DEPLOYMENT_TARGET=10.9");
 }
