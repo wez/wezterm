@@ -838,6 +838,7 @@ impl TermWindow {
 
         self.show_tab_bar = config.enable_tab_bar;
         self.show_scroll_bar = config.enable_scroll_bar;
+        self.shape_cache.borrow_mut().clear();
         self.keys = KeyMap::new();
         let dimensions = self.dimensions;
         let cell_dims = self.current_cell_dimensions();
