@@ -2,7 +2,8 @@
 use super::quad::*;
 use super::renderstate::*;
 use super::utilsprites::RenderMetrics;
-use crate::config::{configuration, ConfigHandle};
+use crate::config::{configuration, ConfigHandle, TextStyle};
+use crate::font::shaper::GlyphInfo;
 use crate::font::units::*;
 use crate::font::FontConfiguration;
 use crate::frontend::front_end;
@@ -27,6 +28,7 @@ use ::window::MouseButtons as WMB;
 use ::window::MouseEventKind as WMEK;
 use ::window::*;
 use anyhow::{anyhow, bail, ensure};
+use lru::LruCache;
 use portable_pty::PtySize;
 use std::any::Any;
 use std::cell::{RefCell, RefMut};
@@ -127,6 +129,9 @@ struct TabState {
     overlay: Option<Rc<dyn Tab>>,
 }
 
+#[derive(PartialEq, Eq, Hash)]
+struct ShapeCacheKey((TextStyle, String));
+
 pub struct TermWindow {
     pub window: Option<Window>,
     /// When we most recently received keyboard focus
@@ -162,6 +167,8 @@ pub struct TermWindow {
 
     /// The URL over which we are currently hovering
     current_highlight: Option<Arc<Hyperlink>>,
+
+    shape_cache: RefCell<LruCache<ShapeCacheKey, anyhow::Result<Vec<GlyphInfo>>>>,
 }
 
 struct Host<'a> {
@@ -563,6 +570,7 @@ impl TermWindow {
                 current_mouse_button: None,
                 last_mouse_click: None,
                 current_highlight: None,
+                shape_cache: RefCell::new(LruCache::new(65536)),
             }),
         )?;
 
@@ -1725,6 +1733,14 @@ impl TermWindow {
         Ok(())
     }
 
+    fn lookup_cached_shape(&self, key: &ShapeCacheKey) -> Option<anyhow::Result<Vec<GlyphInfo>>> {
+        match self.shape_cache.borrow_mut().get(key) {
+            Some(Ok(info)) => Some(Ok(info.clone())),
+            Some(Err(err)) => Some(Err(anyhow!("cached shaper error: {}", err))),
+            None => None,
+        }
+    }
+
     /// "Render" a line of the terminal screen into the vertex buffer.
     /// This is nominally a matter of setting the fg/bg color and the
     /// texture coordinates for a given glyph.  There's a little bit
@@ -1799,8 +1815,25 @@ impl TermWindow {
 
             // Shape the printable text from this cluster
             let glyph_info = {
-                let font = self.fonts.resolve_font(style)?;
-                font.shape(&cluster.text)?
+                let key = ShapeCacheKey((style.clone(), cluster.text.clone()));
+                match self.lookup_cached_shape(&key) {
+                    Some(Ok(info)) => info,
+                    Some(Err(err)) => return Err(err),
+                    None => {
+                        let font = self.fonts.resolve_font(style)?;
+                        match font.shape(&cluster.text) {
+                            Ok(info) => {
+                                self.shape_cache.borrow_mut().put(key, Ok(info.clone()));
+                                info
+                            }
+                            Err(err) => {
+                                let res = anyhow!("shaper error: {}", err);
+                                self.shape_cache.borrow_mut().put(key, Err(err));
+                                return Err(res);
+                            }
+                        }
+                    }
+                }
             };
 
             for info in &glyph_info {
