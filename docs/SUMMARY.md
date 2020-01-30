@@ -8,6 +8,7 @@
   - [Misc](config/misc.markdown)
   - [Key Binding](config/keys.markdown)
   - [Colors & Appearance](config/appearance.markdown)
+- [Hyperlinks](hyperlinks.markdown)
 - [iTerm Image Protocol](imgcat.markdown)
 - [SSH](ssh.markdown)
 - [Serial Ports & Arduino](serial.markdown)
