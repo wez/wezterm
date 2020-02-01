@@ -16,6 +16,7 @@ use log::info;
 use portable_pty::{CommandBuilder, NativePtySystem, PtySystem};
 use promise::{Future, Promise};
 use std::collections::HashMap;
+use std::convert::TryInto;
 use std::io::{Read, Write};
 use std::net::TcpStream;
 use std::path::Path;
@@ -331,6 +332,7 @@ impl Reconnectable {
         ui: &mut ConnectionUI,
     ) -> anyhow::Result<()> {
         let sess = ssh_connect_with_ui(&ssh_dom.remote_address, &ssh_dom.username, ui)?;
+        sess.set_timeout(ssh_dom.timeout.as_secs().try_into()?);
 
         let mut chan = sess.channel_session()?;
 
@@ -414,6 +416,8 @@ impl Reconnectable {
         };
 
         ui.output_str("Connected!\n");
+        stream.set_read_timeout(Some(unix_dom.read_timeout))?;
+        stream.set_write_timeout(Some(unix_dom.write_timeout))?;
         let stream: Box<dyn ReadAndWrite> = Box::new(stream);
         self.stream.replace(stream);
         Ok(())
@@ -476,6 +480,8 @@ impl Reconnectable {
         let stream = TcpStream::connect(remote_address)
             .with_context(|| format!("connecting to {}", remote_address))?;
         stream.set_nodelay(true)?;
+        stream.set_write_timeout(Some(tls_client.write_timeout))?;
+        stream.set_read_timeout(Some(tls_client.read_timeout))?;
 
         let stream = Box::new(
             connector
@@ -537,6 +543,8 @@ impl Reconnectable {
         let stream = TcpStream::connect(remote_address)
             .with_context(|| format!("connecting to {}", remote_address))?;
         stream.set_nodelay(true)?;
+        stream.set_write_timeout(Some(tls_client.write_timeout))?;
+        stream.set_read_timeout(Some(tls_client.read_timeout))?;
 
         let stream = Box::new(
             connector
