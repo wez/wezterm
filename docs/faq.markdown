@@ -62,7 +62,7 @@ family = "My Preferred Font"
 
 # This font has a broader selection of Chinese glyphs than my preferred font
 [[font.font]]
-family = "DenigXian"
+family = "DengXian"
 ```
 
 ### Some (but not all) Emoji don't render properly
