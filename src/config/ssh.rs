@@ -1,3 +1,4 @@
+use crate::config::*;
 use serde::Deserialize;
 
 #[derive(Default, Debug, Clone, Deserialize)]
@@ -19,4 +20,7 @@ pub struct SshDomain {
     /// If true, connect to this domain automatically at startup
     #[serde(default)]
     pub connect_automatically: bool,
+
+    #[serde(default = "default_read_timeout")]
+    pub timeout: Duration,
 }

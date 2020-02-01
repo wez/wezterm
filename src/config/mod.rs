@@ -844,3 +844,11 @@ fn compute_runtime_dir() -> Result<PathBuf, Error> {
     let home = dirs::home_dir().ok_or_else(|| anyhow!("can't find home dir"))?;
     Ok(home.join(".local/share/wezterm"))
 }
+
+fn default_read_timeout() -> Duration {
+    Duration::from_secs(60)
+}
+
+fn default_write_timeout() -> Duration {
+    Duration::from_secs(60)
+}

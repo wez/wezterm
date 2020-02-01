@@ -37,6 +37,12 @@ pub struct UnixDomain {
     /// on the host NTFS volume.
     #[serde(default)]
     pub skip_permissions_check: bool,
+
+    #[serde(default = "default_read_timeout")]
+    pub read_timeout: Duration,
+
+    #[serde(default = "default_write_timeout")]
+    pub write_timeout: Duration,
 }
 
 impl UnixDomain {

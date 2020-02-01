@@ -67,4 +67,10 @@ pub struct TlsDomainClient {
     /// If true, connect to this domain automatically at startup
     #[serde(default)]
     pub connect_automatically: bool,
+
+    #[serde(default = "default_read_timeout")]
+    pub read_timeout: Duration,
+
+    #[serde(default = "default_write_timeout")]
+    pub write_timeout: Duration,
 }
