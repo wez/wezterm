@@ -750,7 +750,8 @@ fn run() -> anyhow::Result<()> {
             let front_end = FrontEndSelection::Null.try_new()?;
 
             let initial = true;
-            let client = Client::new_default_unix_domain(initial)?;
+            let mut ui = crate::connui::ConnectionUI::new_headless();
+            let client = Client::new_default_unix_domain(initial, &mut ui)?;
             match cli.sub {
                 CliSubCommand::List => {
                     let cols = vec![

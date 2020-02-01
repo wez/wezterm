@@ -1,4 +1,5 @@
 use crate::config::{SshDomain, TlsDomainClient, UnixDomain};
+use crate::connui::ConnectionUI;
 use crate::font::FontConfiguration;
 use crate::frontend::front_end;
 use crate::mux::domain::{alloc_domain_id, Domain, DomainId, DomainState};
@@ -253,14 +254,17 @@ impl Domain for ClientDomain {
         let config = self.config.clone();
 
         let activity = crate::frontend::activity::Activity::new();
+        let ui = ConnectionUI::new();
+        ui.title("wezterm: Connecting...");
 
+        let mut cloned_ui = ui.clone();
         let client = join_handle_result(spawn_into_new_thread(move || match &config {
             ClientDomainConfig::Unix(unix) => {
                 let initial = true;
-                Client::new_unix_domain(domain_id, unix, initial)
+                Client::new_unix_domain(domain_id, unix, initial, &mut cloned_ui)
             }
-            ClientDomainConfig::Tls(tls) => Client::new_tls(domain_id, tls),
-            ClientDomainConfig::Ssh(ssh) => Client::new_ssh(domain_id, ssh),
+            ClientDomainConfig::Tls(tls) => Client::new_tls(domain_id, tls, &mut cloned_ui),
+            ClientDomainConfig::Ssh(ssh) => Client::new_ssh(domain_id, ssh, &mut cloned_ui),
         }))
         .await?;
 
@@ -271,7 +275,7 @@ impl Domain for ClientDomain {
                 info.codec_vers
             ),
             Ok(info) => {
-                bail!(
+                let msg = format!(
                     "Please install the same version of wezterm on both \
                      the client and server! \
                      The server verson is {} (codec version {}), which is not \
@@ -281,9 +285,11 @@ impl Domain for ClientDomain {
                     crate::wezterm_version(),
                     CODEC_VERSION
                 );
+                ui.output_str(&msg);
+                bail!("{}", msg);
             }
             Err(err) => {
-                bail!(
+                let msg = format!(
                     "Please install the same version of wezterm on both \
                      the client and server! \
                      The server reported error {} while being asked for its \
@@ -291,6 +297,8 @@ impl Domain for ClientDomain {
                      than the client.",
                     err
                 );
+                ui.output_str(&msg);
+                bail!("{}", msg);
             }
         };
 
@@ -298,6 +306,7 @@ impl Domain for ClientDomain {
 
         ClientDomain::finish_attach(domain_id, client, tabs)?;
         drop(activity);
+        ui.close();
         Ok(())
     }
 

@@ -316,25 +316,11 @@ impl Reconnectable {
         }
     }
 
-    fn connect(&mut self, initial: bool) -> anyhow::Result<()> {
-        let mut ui = ConnectionUI::new();
-        ui.title("wezterm: Connecting...");
-
-        let res = match self.config.clone() {
-            ClientDomainConfig::Unix(unix_dom) => self.unix_connect(unix_dom, initial, &mut ui),
-            ClientDomainConfig::Tls(tls) => self.tls_connect(tls, &mut ui),
-            ClientDomainConfig::Ssh(ssh) => self.ssh_connect(ssh, initial, &mut ui),
-        };
-
-        match res {
-            Ok(sess) => {
-                ui.close();
-                Ok(sess)
-            }
-            Err(err) => {
-                ui.output_str(&format!("\nFailed: {}", err));
-                Err(err)
-            }
+    fn connect(&mut self, initial: bool, ui: &mut ConnectionUI) -> anyhow::Result<()> {
+        match self.config.clone() {
+            ClientDomainConfig::Unix(unix_dom) => self.unix_connect(unix_dom, initial, ui),
+            ClientDomainConfig::Tls(tls) => self.tls_connect(tls, ui),
+            ClientDomainConfig::Ssh(ssh) => self.ssh_connect(ssh, initial, ui),
         }
     }
 
@@ -377,7 +363,7 @@ impl Reconnectable {
         ui: &mut ConnectionUI,
     ) -> anyhow::Result<()> {
         let sock_path = unix_dom.socket_path();
-        ui.output_str(&format!("Connect to {}", sock_path.display()));
+        ui.output_str(&format!("Connect to {}\n", sock_path.display()));
         info!("connect to {}", sock_path.display());
 
         let stream = match unix_connect_with_retry(&sock_path) {
@@ -391,7 +377,7 @@ impl Reconnectable {
                     sock_path.display(),
                     e
                 );
-                ui.output_str(&format!("Error: {}.  Will try spawning server.", e));
+                ui.output_str(&format!("Error: {}.  Will try spawning server.\n", e));
 
                 let argv = unix_dom.serve_command()?;
 
@@ -486,7 +472,7 @@ impl Reconnectable {
             .configure()?
             .verify_hostname(!tls_client.accept_invalid_hostnames);
 
-        ui.output_str(&format!("Connecting to {}", remote_address));
+        ui.output_str(&format!("Connecting to {}\n", remote_address));
         let stream = TcpStream::connect(remote_address)
             .with_context(|| format!("connecting to {}", remote_address))?;
         stream.set_nodelay(true)?;
@@ -547,7 +533,7 @@ impl Reconnectable {
             .danger_accept_invalid_hostnames(tls_client.accept_invalid_hostnames)
             .build()?;
 
-        ui.output_str(&format!("Connecting to {}", remote_address));
+        ui.output_str(&format!("Connecting to {}\n", remote_address));
         let stream = TcpStream::connect(remote_address)
             .with_context(|| format!("connecting to {}", remote_address))?;
         stream.set_nodelay(true)?;
@@ -584,23 +570,29 @@ impl Client {
                         break;
                     }
 
-                    log::error!("client disconnected {}; will reconnect in {:?}", e, backoff);
+                    let mut ui = ConnectionUI::new();
+                    ui.title("wezterm: Reconnecting...");
+
+                    ui.output_str(&format!(
+                        "client disconnected {}; will reconnect in {:?}\n",
+                        e, backoff
+                    ));
 
                     loop {
                         std::thread::sleep(backoff);
-                        match reconnectable.connect(false) {
+                        match reconnectable.connect(false, &mut ui) {
                             Ok(_) => {
                                 backoff = BASE_INTERVAL;
                                 log::error!("Reconnected!");
+                                ui.close();
                                 break;
                             }
                             Err(err) => {
                                 backoff = (backoff + backoff).min(MAX_INTERVAL);
-                                log::error!(
-                                    "problem reconnecting: {}; will reconnect in {:?}",
-                                    err,
-                                    backoff
-                                );
+                                ui.output_str(&format!(
+                                    "problem reconnecting: {}; will reconnect in {:?}\n",
+                                    err, backoff
+                                ));
                             }
                         }
                     }
@@ -640,39 +632,45 @@ impl Client {
         self.local_domain_id
     }
 
-    pub fn new_default_unix_domain(initial: bool) -> anyhow::Result<Self> {
+    pub fn new_default_unix_domain(initial: bool, ui: &mut ConnectionUI) -> anyhow::Result<Self> {
         let config = configuration();
         let unix_dom = config
             .unix_domains
             .first()
             .ok_or_else(|| anyhow!("no default unix domain is configured"))?;
-        Self::new_unix_domain(alloc_domain_id(), unix_dom, initial)
+        Self::new_unix_domain(alloc_domain_id(), unix_dom, initial, ui)
     }
 
     pub fn new_unix_domain(
         local_domain_id: DomainId,
         unix_dom: &UnixDomain,
         initial: bool,
+        ui: &mut ConnectionUI,
     ) -> anyhow::Result<Self> {
         let mut reconnectable =
             Reconnectable::new(ClientDomainConfig::Unix(unix_dom.clone()), None);
-        reconnectable.connect(initial)?;
+        reconnectable.connect(initial, ui)?;
         Ok(Self::new(local_domain_id, reconnectable))
     }
 
     pub fn new_tls(
         local_domain_id: DomainId,
         tls_client: &TlsDomainClient,
+        ui: &mut ConnectionUI,
     ) -> anyhow::Result<Self> {
         let mut reconnectable =
             Reconnectable::new(ClientDomainConfig::Tls(tls_client.clone()), None);
-        reconnectable.connect(true)?;
+        reconnectable.connect(true, ui)?;
         Ok(Self::new(local_domain_id, reconnectable))
     }
 
-    pub fn new_ssh(local_domain_id: DomainId, ssh_dom: &SshDomain) -> anyhow::Result<Self> {
+    pub fn new_ssh(
+        local_domain_id: DomainId,
+        ssh_dom: &SshDomain,
+        ui: &mut ConnectionUI,
+    ) -> anyhow::Result<Self> {
         let mut reconnectable = Reconnectable::new(ClientDomainConfig::Ssh(ssh_dom.clone()), None);
-        reconnectable.connect(true)?;
+        reconnectable.connect(true, ui)?;
         Ok(Self::new(local_domain_id, reconnectable))
     }
 

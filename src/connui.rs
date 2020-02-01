@@ -1,5 +1,5 @@
 use crate::termwiztermtab;
-use anyhow::bail;
+use anyhow::{anyhow, bail};
 use crossbeam::channel::{bounded, Receiver, Sender};
 use promise::Promise;
 use std::time::Duration;
@@ -102,6 +102,31 @@ impl ConnectionUIImpl {
     }
 }
 
+struct HeadlessImpl {
+    rx: Receiver<UIRequest>,
+}
+
+impl HeadlessImpl {
+    fn run(&mut self) -> anyhow::Result<()> {
+        loop {
+            match self.rx.recv_timeout(Duration::from_millis(200)) {
+                Ok(UIRequest::Close) => break,
+                Ok(UIRequest::Output(changes)) => {
+                    log::trace!("Output: {:?}", changes);
+                }
+                Ok(UIRequest::Input { mut respond, .. }) => {
+                    respond.result(Err(anyhow!("Input requested from headless context")));
+                }
+                Err(err) if err.is_timeout() => {}
+                Err(err) => bail!("recv_timeout: {}", err),
+            }
+        }
+
+        Ok(())
+    }
+}
+
+#[derive(Clone)]
 pub struct ConnectionUI {
     tx: Sender<UIRequest>,
 }
@@ -113,6 +138,15 @@ impl ConnectionUI {
             let mut ui = ConnectionUIImpl { term, rx };
             ui.run()
         }));
+        Self { tx }
+    }
+
+    pub fn new_headless() -> Self {
+        let (tx, rx) = bounded(16);
+        std::thread::spawn(move || {
+            let mut ui = HeadlessImpl { rx };
+            ui.run()
+        });
         Self { tx }
     }
 
