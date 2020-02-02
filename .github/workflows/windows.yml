@@ -19,7 +19,7 @@ jobs:
     steps:
     - name: Maybe get perl in the path
       run: |
-        echo "::set-env PATH=%PATH%;C:\\Strawberry\\perl\\bin"
+        echo "::set-env OPENSSL_SRC_PERL=C:/Strawberry/perl/bin/perl.exe"
     - uses: actions/checkout@v1
     - name: Install Rust
       uses: actions-rs/toolchain@v1
