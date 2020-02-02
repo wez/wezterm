@@ -1,4 +1,4 @@
-#![cfg(any(feature = "openssl", unix))]
+#![cfg(feature = "enable_openssl")]
 use super::*;
 use openssl::pkcs12::Pkcs12;
 use openssl::pkey::PKey;
