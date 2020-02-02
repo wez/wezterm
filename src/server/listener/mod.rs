@@ -13,6 +13,7 @@ mod clientsession;
 mod local;
 mod not_ossl;
 mod ossl;
+mod pki;
 mod umask;
 
 #[cfg(not(any(feature = "openssl", unix)))]

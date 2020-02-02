@@ -101,17 +101,42 @@ impl OpenSSLNetListener {
 pub fn spawn_tls_listener(tls_server: &TlsDomainServer) -> Result<(), Error> {
     openssl::init();
 
+    let pki = super::pki::Pki::init()?;
+    pki.generate_client_cert()?;
+
     let mut acceptor = SslAcceptor::mozilla_modern(SslMethod::tls())?;
 
-    if let Some(cert_file) = tls_server.pem_cert.as_ref() {
-        acceptor.set_certificate_file(cert_file, SslFiletype::PEM)?;
-    }
+    let cert_file = tls_server
+        .pem_cert
+        .clone()
+        .unwrap_or_else(|| pki.server_pem());
+    acceptor
+        .set_certificate_file(&cert_file, SslFiletype::PEM)
+        .context(format!(
+            "set_certificate_file to {} for TLS listener",
+            cert_file.display()
+        ))?;
+
     if let Some(chain_file) = tls_server.pem_ca.as_ref() {
-        acceptor.set_certificate_chain_file(chain_file)?;
+        acceptor
+            .set_certificate_chain_file(&chain_file)
+            .context(format!(
+                "set_certificate_chain_file to {} for TLS listener",
+                chain_file.display()
+            ))?;
     }
-    if let Some(key_file) = tls_server.pem_private_key.as_ref() {
-        acceptor.set_private_key_file(key_file, SslFiletype::PEM)?;
-    }
+
+    let key_file = tls_server
+        .pem_private_key
+        .clone()
+        .unwrap_or_else(|| pki.server_pem());
+    acceptor
+        .set_private_key_file(&key_file, SslFiletype::PEM)
+        .context(format!(
+            "set_private_key_file to {} for TLS listener",
+            key_file.display()
+        ))?;
+
     fn load_cert(name: &Path) -> anyhow::Result<X509> {
         let cert_bytes = std::fs::read(name)?;
         log::trace!("loaded {}", name.display());
@@ -128,6 +153,10 @@ pub fn spawn_tls_listener(tls_server: &TlsDomainServer) -> Result<(), Error> {
             acceptor.cert_store_mut().add_cert(load_cert(name)?)?;
         }
     }
+
+    acceptor
+        .cert_store_mut()
+        .add_cert(load_cert(&pki.ca_pem())?)?;
 
     acceptor.set_verify(SslVerifyMode::PEER | SslVerifyMode::FAIL_IF_NO_PEER_CERT);
 

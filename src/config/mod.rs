@@ -845,6 +845,10 @@ fn compute_runtime_dir() -> Result<PathBuf, Error> {
     Ok(home.join(".local/share/wezterm"))
 }
 
+pub fn pki_dir() -> anyhow::Result<PathBuf> {
+    compute_runtime_dir().map(|d| d.join("pki"))
+}
+
 fn default_read_timeout() -> Duration {
     Duration::from_secs(60)
 }
