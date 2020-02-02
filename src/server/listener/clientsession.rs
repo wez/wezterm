@@ -2,6 +2,7 @@ use crate::mux::renderable::{RenderableDimensions, StableCursorPosition};
 use crate::mux::tab::{Tab, TabId};
 use crate::mux::{Mux, MuxNotification, MuxSubscriber};
 use crate::server::codec::*;
+use crate::server::listener::PKI;
 use crate::server::pollable::*;
 use anyhow::{anyhow, bail, Context, Error};
 use crossbeam::channel::TryRecvError;
@@ -482,6 +483,20 @@ impl<S: ReadAndWrite> ClientSession<S> {
                 })))
             }
 
+            Pdu::GetTlsCreds(_) => {
+                catch(
+                    move || {
+                        let client_cert_pem = PKI.generate_client_cert()?;
+                        let ca_cert_pem = PKI.ca_pem_string()?;
+                        Ok(Pdu::GetTlsCredsResponse(GetTlsCredsResponse {
+                            client_cert_pem,
+                            ca_cert_pem,
+                        }))
+                    },
+                    send_response,
+                );
+            }
+
             Pdu::Invalid { .. } => send_response(Err(anyhow!("invalid PDU {:?}", decoded.pdu))),
             Pdu::Pong { .. }
             | Pdu::ListTabsResponse { .. }
@@ -491,6 +506,7 @@ impl<S: ReadAndWrite> ClientSession<S> {
             | Pdu::UnitResponse { .. }
             | Pdu::GetLinesResponse { .. }
             | Pdu::GetCodecVersionResponse { .. }
+            | Pdu::GetTlsCredsResponse { .. }
             | Pdu::ErrorResponse { .. } => {
                 send_response(Err(anyhow!("expected a request, got {:?}", decoded.pdu)))
             }

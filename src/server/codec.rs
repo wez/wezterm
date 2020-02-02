@@ -265,6 +265,8 @@ pdu! {
     GetTabRenderChangesResponse: 25,
     GetCodecVersion: 26,
     GetCodecVersionResponse: 27,
+    GetTlsCreds: 28,
+    GetTlsCredsResponse: 29,
 }
 
 impl Pdu {
@@ -362,6 +364,20 @@ pub struct GetCodecVersionResponse {
 pub struct Ping {}
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
 pub struct Pong {}
+
+/// Requests a client certificate to authenticate against
+/// the TLS based server
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct GetTlsCreds {}
+
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct GetTlsCredsResponse {
+    /// The signing certificate
+    pub ca_cert_pem: String,
+    /// A client authentication certificate and private
+    /// key, PEM encoded
+    pub client_cert_pem: String,
+}
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
 pub struct ListTabs {}

@@ -101,15 +101,12 @@ impl OpenSSLNetListener {
 pub fn spawn_tls_listener(tls_server: &TlsDomainServer) -> Result<(), Error> {
     openssl::init();
 
-    let pki = super::pki::Pki::init()?;
-    pki.generate_client_cert()?;
-
     let mut acceptor = SslAcceptor::mozilla_modern(SslMethod::tls())?;
 
     let cert_file = tls_server
         .pem_cert
         .clone()
-        .unwrap_or_else(|| pki.server_pem());
+        .unwrap_or_else(|| PKI.server_pem());
     acceptor
         .set_certificate_file(&cert_file, SslFiletype::PEM)
         .context(format!(
@@ -129,7 +126,7 @@ pub fn spawn_tls_listener(tls_server: &TlsDomainServer) -> Result<(), Error> {
     let key_file = tls_server
         .pem_private_key
         .clone()
-        .unwrap_or_else(|| pki.server_pem());
+        .unwrap_or_else(|| PKI.server_pem());
     acceptor
         .set_private_key_file(&key_file, SslFiletype::PEM)
         .context(format!(
@@ -156,7 +153,7 @@ pub fn spawn_tls_listener(tls_server: &TlsDomainServer) -> Result<(), Error> {
 
     acceptor
         .cert_store_mut()
-        .add_cert(load_cert(&pki.ca_pem())?)?;
+        .add_cert(load_cert(&PKI.ca_pem())?)?;
 
     acceptor.set_verify(SslVerifyMode::PEER | SslVerifyMode::FAIL_IF_NO_PEER_CERT);
 

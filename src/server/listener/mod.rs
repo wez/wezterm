@@ -16,6 +16,10 @@ mod ossl;
 mod pki;
 mod umask;
 
+lazy_static::lazy_static! {
+    static ref PKI: pki::Pki = pki::Pki::init().expect("failed to initialize PKI");
+}
+
 #[cfg(not(any(feature = "openssl", unix)))]
 use not_ossl as tls_impl;
 #[cfg(any(feature = "openssl", unix))]
