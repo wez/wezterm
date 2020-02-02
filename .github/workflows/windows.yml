@@ -17,9 +17,6 @@ jobs:
         rust_toolchain: [x86_64-pc-windows-msvc]
     runs-on: ${{ matrix.os }}
     steps:
-    - name: Maybe get perl in the path
-      run: |
-        echo "::set-env OPENSSL_SRC_PERL=C:/Strawberry/perl/bin/perl.exe"
     - uses: actions/checkout@v1
     - name: Install Rust
       uses: actions-rs/toolchain@v1
@@ -34,6 +31,7 @@ jobs:
         rustc -V
         cargo -V
         path
+        where perl
     - name: Cache cargo registry
       uses: actions/cache@v1
       with:
@@ -51,7 +49,9 @@ jobs:
         key: ${{ matrix.os }}-${{ matrix.rust_toolchain }}-cargo-build-target-${{ hashFiles('Cargo.lock') }}
     - name: Build
       shell: cmd
-      run: cargo build --all --release
+      run: |
+        set OPENSSL_SRC_PERL=%HOME%/perl/bin/perl.exe
+        cargo build --all --release
     - name: Test
       shell: cmd
       run: cargo test --all --release
