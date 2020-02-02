@@ -54,7 +54,11 @@ impl UnixDomain {
     }
 
     pub fn default_unix_domains() -> Vec<Self> {
-        vec![UnixDomain::default()]
+        vec![UnixDomain {
+            read_timeout: default_read_timeout(),
+            write_timeout: default_read_timeout(),
+            ..Default::default()
+        }]
     }
 
     pub fn serve_command(&self) -> anyhow::Result<Vec<OsString>> {
