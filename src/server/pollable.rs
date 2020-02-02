@@ -20,17 +20,7 @@ impl ReadAndWrite for UnixStream {
         false
     }
 }
-impl ReadAndWrite for native_tls::TlsStream<std::net::TcpStream> {
-    fn set_non_blocking(&self, non_blocking: bool) -> anyhow::Result<()> {
-        self.get_ref().set_nonblocking(non_blocking)?;
-        Ok(())
-    }
-    fn has_read_buffered(&self) -> bool {
-        self.buffered_read_size().unwrap_or(0) != 0
-    }
-}
 
-#[cfg(feature = "enable_openssl")]
 impl ReadAndWrite for openssl::ssl::SslStream<std::net::TcpStream> {
     fn set_non_blocking(&self, non_blocking: bool) -> anyhow::Result<()> {
         self.get_ref().set_nonblocking(non_blocking)?;
@@ -128,13 +118,6 @@ impl AsPollFd for SocketDescriptor {
     }
 }
 
-impl AsPollFd for native_tls::TlsStream<TcpStream> {
-    fn as_poll_fd(&self) -> pollfd {
-        self.get_ref().as_socket_descriptor().as_poll_fd()
-    }
-}
-
-#[cfg(feature = "enable_openssl")]
 impl AsPollFd for openssl::ssl::SslStream<TcpStream> {
     fn as_poll_fd(&self) -> pollfd {
         self.get_ref().as_socket_descriptor().as_poll_fd()
