@@ -143,7 +143,9 @@ fn client_thread(
         }
 
         let mut poll_array = [rx.as_poll_fd(), reconnectable.stream().as_poll_fd()];
-        poll_for_read(&mut poll_array);
+        if !reconnectable.stream().has_read_buffered() {
+            poll_for_read(&mut poll_array);
+        }
 
         if poll_array[1].revents != 0 || reconnectable.stream().has_read_buffered() {
             // When TLS is enabled on a stream, it may require a mixture of
@@ -480,10 +482,29 @@ impl Reconnectable {
                 // obtain client credentials that we can use for tls.
                 let cmd = format!("{} cli tlscreds", Self::wezterm_bin_path());
                 ui.output_str(&format!("Running: {}\n", cmd));
-                chan.exec(&cmd)?;
-                let creds = match Pdu::decode(chan)?.pdu {
+                chan.exec(&cmd)
+                    .with_context(|| format!("executing `{}` on remote host", cmd))?;
+
+                // stdout holds an encoded pdu
+                let mut buf = Vec::new();
+                chan.read_to_end(&mut buf)
+                    .context("reading tlscreds response to buffer")?;
+
+                // stderr is ideally empty
+                let mut err = String::new();
+                chan.stderr()
+                    .read_to_string(&mut err)
+                    .context("reading tlscreds stderr")?;
+                if !err.is_empty() {
+                    log::error!("remote: `{}` stderr -> `{}`", cmd, err);
+                }
+
+                let creds = match Pdu::decode(buf.as_slice())
+                    .with_context(|| format!("reading tlscreds response. stderr={}", err))?
+                    .pdu
+                {
                     Pdu::GetTlsCredsResponse(creds) => creds,
-                    _ => bail!("unexpected response to tlscreds"),
+                    _ => bail!("unexpected response to tlscreds, stderr={}", err),
                 };
 
                 // Save the credentials to disk, as that is currently the easiest
