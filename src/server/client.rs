@@ -446,13 +446,28 @@ impl Reconnectable {
         let mut connector = SslConnector::builder(SslMethod::tls())?;
 
         if let Some(cert_file) = tls_client.pem_cert.as_ref() {
-            connector.set_certificate_file(cert_file, SslFiletype::PEM)?;
+            connector
+                .set_certificate_file(&cert_file, SslFiletype::PEM)
+                .context(format!(
+                    "set_certificate_file to {} for TLS client",
+                    cert_file.display()
+                ))?;
         }
         if let Some(chain_file) = tls_client.pem_ca.as_ref() {
-            connector.set_certificate_chain_file(chain_file)?;
+            connector
+                .set_certificate_chain_file(&chain_file)
+                .context(format!(
+                    "set_certificate_chain_file to {} for TLS client",
+                    chain_file.display()
+                ))?;
         }
         if let Some(key_file) = tls_client.pem_private_key.as_ref() {
-            connector.set_private_key_file(key_file, SslFiletype::PEM)?;
+            connector
+                .set_private_key_file(&key_file, SslFiletype::PEM)
+                .context(format!(
+                    "set_private_key_file to {} for TLS client",
+                    key_file.display()
+                ))?;
         }
         fn load_cert(name: &Path) -> anyhow::Result<X509> {
             let cert_bytes = std::fs::read(name)?;
