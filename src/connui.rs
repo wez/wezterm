@@ -1,5 +1,5 @@
 use crate::termwiztermtab;
-use anyhow::{anyhow, bail};
+use anyhow::{anyhow, bail, Context as _};
 use crossbeam::channel::{bounded, Receiver, Sender};
 use promise::Promise;
 use std::time::Duration;
@@ -134,7 +134,7 @@ pub struct ConnectionUI {
 impl ConnectionUI {
     pub fn new() -> Self {
         let (tx, rx) = bounded(16);
-        promise::spawn::spawn_into_main_thread(termwiztermtab::run(70, 15, move |term| {
+        promise::spawn::spawn_into_main_thread(termwiztermtab::run(80, 24, move |term| {
             let mut ui = ConnectionUIImpl { term, rx };
             ui.run()
         }));
@@ -155,9 +155,7 @@ impl ConnectionUI {
     }
 
     pub fn output(&self, changes: Vec<Change>) {
-        self.tx
-            .send(UIRequest::Output(changes))
-            .expect("send to SShUI failed");
+        self.tx.send(UIRequest::Output(changes)).ok();
     }
 
     pub fn output_str(&self, s: &str) {
@@ -175,7 +173,7 @@ impl ConnectionUI {
                 echo: true,
                 respond: promise,
             })
-            .expect("send to ConnectionUI failed");
+            .context("send to ConnectionUI failed")?;
 
         future.wait()
     }
@@ -190,14 +188,12 @@ impl ConnectionUI {
                 echo: false,
                 respond: promise,
             })
-            .expect("send to ConnectionUI failed");
+            .context("send to ConnectionUI failed")?;
 
         future.wait()
     }
 
     pub fn close(&self) {
-        self.tx
-            .send(UIRequest::Close)
-            .expect("send to ConnectionUI failed");
+        self.tx.send(UIRequest::Close).ok();
     }
 }
