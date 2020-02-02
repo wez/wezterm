@@ -15,7 +15,7 @@ use crate::mux::domain::DomainId;
 use crate::mux::renderable::{RenderableDimensions, StableCursorPosition};
 use crate::mux::tab::TabId;
 use crate::mux::window::WindowId;
-use anyhow::{bail, Error};
+use anyhow::{bail, Context as _, Error};
 use leb128;
 use log::debug;
 use portable_pty::{CommandBuilder, PtySize};
@@ -59,7 +59,7 @@ fn encode_raw<W: std::io::Write>(
     data: &[u8],
     is_compressed: bool,
     mut w: W,
-) -> Result<usize, std::io::Error> {
+) -> anyhow::Result<usize> {
     let len = data.len() + encoded_length(ident) + encoded_length(serial);
     let masked_len = if is_compressed {
         (len as u64) | COMPRESSED_MASK
@@ -72,9 +72,9 @@ fn encode_raw<W: std::io::Write>(
     // the header portion to go out in a single packet)
     let mut buffer = Vec::with_capacity(len + encoded_length(masked_len));
 
-    leb128::write::unsigned(&mut buffer, masked_len)?;
-    leb128::write::unsigned(&mut buffer, serial)?;
-    leb128::write::unsigned(&mut buffer, ident)?;
+    leb128::write::unsigned(&mut buffer, masked_len).context("writing pdu len")?;
+    leb128::write::unsigned(&mut buffer, serial).context("writing pdu serial")?;
+    leb128::write::unsigned(&mut buffer, ident).context("writing pdu ident")?;
     buffer.extend_from_slice(data);
 
     if is_compressed {
@@ -83,17 +83,19 @@ fn encode_raw<W: std::io::Write>(
         metrics::value!("pdu.encode.size", buffer.len() as u64);
     }
 
-    w.write_all(&buffer)?;
+    w.write_all(&buffer).context("writing pdu data buffer")?;
 
     Ok(buffer.len())
 }
 
 /// Read a single leb128 encoded value from the stream
-fn read_u64<R: std::io::Read>(mut r: R) -> Result<u64, std::io::Error> {
-    leb128::read::unsigned(&mut r).map_err(|err| match err {
-        leb128::read::Error::IoError(ioerr) => ioerr,
-        err => std::io::Error::new(std::io::ErrorKind::Other, format!("{}", err)),
-    })
+fn read_u64<R: std::io::Read>(mut r: R) -> anyhow::Result<u64> {
+    leb128::read::unsigned(&mut r)
+        .map_err(|err| match err {
+            leb128::read::Error::IoError(ioerr) => anyhow::Error::new(ioerr),
+            err => anyhow::Error::new(err),
+        })
+        .context("reading leb128")
 }
 
 #[derive(Debug)]
@@ -106,15 +108,15 @@ struct Decoded {
 
 /// Decode a frame.
 /// See encode_raw() for the frame format.
-fn decode_raw<R: std::io::Read>(mut r: R) -> Result<Decoded, std::io::Error> {
-    let len = read_u64(r.by_ref())?;
+fn decode_raw<R: std::io::Read>(mut r: R) -> anyhow::Result<Decoded> {
+    let len = read_u64(r.by_ref()).context("reading PDU length")?;
     let (len, is_compressed) = if (len & COMPRESSED_MASK) != 0 {
         (len & !COMPRESSED_MASK, true)
     } else {
         (len, false)
     };
-    let serial = read_u64(r.by_ref())?;
-    let ident = read_u64(r.by_ref())?;
+    let serial = read_u64(r.by_ref()).context("reading PDU serial")?;
+    let ident = read_u64(r.by_ref()).context("reading PDU ident")?;
     let data_len = len as usize - (encoded_length(ident) + encoded_length(serial));
 
     if is_compressed {
@@ -124,7 +126,12 @@ fn decode_raw<R: std::io::Read>(mut r: R) -> Result<Decoded, std::io::Error> {
     }
 
     let mut data = vec![0u8; data_len];
-    r.read_exact(&mut data)?;
+    r.read_exact(&mut data).with_context(|| {
+        format!(
+            "reading {} bytes of data for PDU of length {} with serial={} ident={}",
+            data_len, len, serial, ident
+        )
+    })?;
     Ok(Decoded {
         ident,
         serial,
@@ -211,7 +218,7 @@ macro_rules! pdu {
             }
 
             pub fn decode<R: std::io::Read>(r:R) -> Result<DecodedPdu, Error> {
-                let decoded = decode_raw(r)?;
+                let decoded = decode_raw(r).context("decoding a PDU")?;
                 match decoded.ident {
                     $(
                         $vers => {
@@ -290,13 +297,15 @@ impl Pdu {
                 Ok(Some(decoded))
             }
             Err(err) => {
-                if let Some(ioerr) = err.downcast_ref::<std::io::Error>() {
+                if let Some(ioerr) = err.root_cause().downcast_ref::<std::io::Error>() {
                     match ioerr.kind() {
                         std::io::ErrorKind::UnexpectedEof | std::io::ErrorKind::WouldBlock => {
                             return Ok(None);
                         }
                         _ => {}
                     }
+                } else {
+                    log::error!("not an ioerror in stream_decode: {:?}", err);
                 }
                 Err(err)
             }
@@ -308,7 +317,9 @@ impl Pdu {
         buffer: &mut Vec<u8>,
     ) -> anyhow::Result<Option<DecodedPdu>> {
         loop {
-            if let Some(decoded) = Self::stream_decode(buffer)? {
+            if let Some(decoded) =
+                Self::stream_decode(buffer).context("stream_decode of buffer for PDU")?
+            {
                 return Ok(Some(decoded));
             }
 
