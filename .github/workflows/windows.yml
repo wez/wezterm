@@ -17,6 +17,9 @@ jobs:
         rust_toolchain: [x86_64-pc-windows-msvc]
     runs-on: ${{ matrix.os }}
     steps:
+    - name: Maybe get perl in the path
+      run: |
+        echo "::set-env PATH=%PATH%;C:\\Strawberry\\perl\\bin"
     - uses: actions/checkout@v1
     - name: Install Rust
       uses: actions-rs/toolchain@v1
@@ -30,6 +33,7 @@ jobs:
       run: |
         rustc -V
         cargo -V
+        path
     - name: Cache cargo registry
       uses: actions/cache@v1
       with:
