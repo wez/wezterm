@@ -39,6 +39,7 @@ jobs:
     - name: Package
       shell: cmd
       run: |
+        PATH C:\Strawberry\perl\bin;%PATH%
         cargo build --all --release --target ${{ matrix.rust_toolchain }}
         set BUILD_REASON=Schedule
         bash ci/deploy.sh target/x86_64-pc-windows-msvc
