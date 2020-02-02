@@ -2,7 +2,7 @@ use crate::config::UnixDomain;
 use crate::create_user_owned_dirs;
 use crate::server::listener::{clientsession, umask};
 use crate::server::UnixListener;
-use anyhow::{anyhow, bail, Context as _};
+use anyhow::{anyhow, Context as _};
 use promise::spawn::spawn_into_main_thread;
 
 pub struct LocalListener {
@@ -64,7 +64,7 @@ fn safely_create_sock_path(unix_dom: &UnixDomain) -> anyhow::Result<UnixListener
 
             let permissions = meta.permissions();
             if (permissions.mode() & 0o22) != 0 {
-                bail!(
+                anyhow::bail!(
                     "The permissions for {} are insecure and currently \
                      allow other users to write to it (permissions={:?})",
                     sock_dir.display(),

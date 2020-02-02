@@ -450,7 +450,6 @@ impl Reconnectable {
         Ok(())
     }
 
-    #[cfg(feature = "enable_openssl")]
     pub fn tls_connect(
         &mut self,
         tls_client: TlsDomainClient,
@@ -603,99 +602,6 @@ impl Reconnectable {
                 .with_context(|| {
                     format!(
                         "SslConnector for {} with host name {}",
-                        remote_address, remote_host_name,
-                    )
-                })?,
-        );
-        ui.output_str("Connected!\n");
-        self.stream.replace(stream);
-        Ok(())
-    }
-
-    #[cfg(not(feature = "enable_openssl"))]
-    pub fn tls_connect(
-        &mut self,
-        tls_client: TlsDomainClient,
-        _initial: bool,
-        ui: &mut ConnectionUI,
-    ) -> anyhow::Result<()> {
-        use crate::server::listener::IdentitySource;
-        use native_tls::TlsConnector;
-        use std::convert::TryInto;
-
-        let remote_address = &tls_client.remote_address;
-
-        let remote_host_name = remote_address.split(':').next().ok_or_else(|| {
-            anyhow!(
-                "expected mux_server_remote_address to have the form 'host:port', but have {}",
-                remote_address
-            )
-        })?;
-
-        if let Some(Ok(ssh_params)) = tls_client.ssh_parameters() {
-            if self.tls_creds.is_none() {
-                // We need to bootstrap via an ssh session
-                let sess =
-                    ssh_connect_with_ui(&ssh_params.host_and_port, &ssh_params.username, ui)?;
-                let mut chan = sess.channel_session()?;
-
-                // The `tlscreds` command will start the server if needed and then
-                // obtain client credentials that we can use for tls.
-                let cmd = format!("{} cli tlscreds", Self::wezterm_bin_path());
-                ui.output_str(&format!("Running: {}\n", cmd));
-                chan.exec(&cmd)?;
-                let creds = match Pdu::decode(chan)?.pdu {
-                    Pdu::GetTlsCredsResponse(creds) => creds,
-                    _ => bail!("unexpected response to tlscreds"),
-                };
-
-                // Save the credentials to disk, as that is currently the easiest
-                // way to get them into the tls impl.  Ideally we'd keep these entirely
-                // in memory.
-                std::fs::write(&self.tls_creds_ca_path()?, creds.ca_cert_pem.as_bytes())?;
-                std::fs::write(
-                    &self.tls_creds_cert_path()?,
-                    creds.client_cert_pem.as_bytes(),
-                )?;
-                self.tls_creds.replace(creds);
-            }
-        }
-
-        let cert_file = match tls_client.pem_cert.clone() {
-            Some(cert) => cert,
-            None if self.tls_creds.is_some() => self.tls_creds_cert_path()?,
-            None => bail!("no pem_cert configured"),
-        };
-        let key_file = match tls_client.pem_private_key.clone() {
-            Some(key) => key,
-            None if self.tls_creds.is_some() => self.tls_creds_cert_path()?,
-            None => bail!("no pem_private_key configured"),
-        };
-
-        let identity = IdentitySource::PemFiles {
-            key: key_file.into(),
-            cert: Some(cert_file),
-            chain: tls_client.pem_ca.clone(),
-        };
-
-        let connector = TlsConnector::builder()
-            .identity(identity.try_into()?)
-            .danger_accept_invalid_hostnames(tls_client.accept_invalid_hostnames)
-            .build()?;
-
-        ui.output_str(&format!("Connecting to {}\n", remote_address));
-        let stream = TcpStream::connect(remote_address)
-            .with_context(|| format!("connecting to {}", remote_address))?;
-        stream.set_nodelay(true)?;
-        stream.set_write_timeout(Some(tls_client.write_timeout))?;
-        stream.set_read_timeout(Some(tls_client.read_timeout))?;
-
-        let stream = Box::new(
-            connector
-                .connect(remote_host_name, stream)
-                .with_context(|| {
-                    format!(
-                        "TlsConnector for {} with host name {}",
                         remote_address, remote_host_name,
                     )
                 })?,
