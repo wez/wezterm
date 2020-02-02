@@ -302,9 +302,14 @@ impl Domain for ClientDomain {
             }
         };
 
+        ui.output_str("Version check OK!  Requesting tab list...\n");
         let tabs = client.list_tabs().await?;
-
+        ui.output_str(&format!(
+            "Server has {} tabs.  Attaching to local UI...\n",
+            tabs.tabs.len()
+        ));
         ClientDomain::finish_attach(domain_id, client, tabs)?;
+        ui.output_str("Attached!\n");
         drop(activity);
         ui.close();
         Ok(())

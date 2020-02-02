@@ -128,8 +128,12 @@ fn client_thread(
                         next_serial += 1;
                         promises.insert(serial, promise);
 
-                        pdu.encode(reconnectable.stream(), serial)?;
-                        reconnectable.stream().flush()?;
+                        pdu.encode(reconnectable.stream(), serial)
+                            .context("encoding a PDU to send to the server")?;
+                        reconnectable
+                            .stream()
+                            .flush()
+                            .context("flushing PDU to server")?;
                     }
                 },
                 Err(TryRecvError::Empty) => break,
@@ -166,7 +170,8 @@ fn client_thread(
                     Ok(Some(decoded)) => {
                         log::trace!("decoded serial {}", decoded.serial);
                         if decoded.serial == 0 {
-                            process_unilateral(local_domain_id, decoded)?;
+                            process_unilateral(local_domain_id, decoded)
+                                .context("processing unilateral PDU from server")?;
                         } else if let Some(mut promise) = promises.remove(&decoded.serial) {
                             promise.result(Ok(decoded.pdu));
                         } else {
@@ -582,7 +587,7 @@ impl Reconnectable {
             .configure()?
             .verify_hostname(!tls_client.accept_invalid_hostnames);
 
-        ui.output_str(&format!("Connecting to {}\n", remote_address));
+        ui.output_str(&format!("Connecting to {} using TLS\n", remote_address));
         let stream = TcpStream::connect(remote_address)
             .with_context(|| format!("connecting to {}", remote_address))?;
         stream.set_nodelay(true)?;
@@ -606,7 +611,7 @@ impl Reconnectable {
                     )
                 })?,
         );
-        ui.output_str("Connected!\n");
+        ui.output_str("TLS Connected!\n");
         self.stream.replace(stream);
         Ok(())
     }

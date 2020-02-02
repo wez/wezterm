@@ -63,11 +63,11 @@ pub fn ssh_connect_with_ui(
         }
     };
 
-    ui.output_str(&format!("Connecting to {}\n", remote_address));
+    ui.output_str(&format!("Connecting to {} using SSH\n", remote_address));
 
     let tcp = TcpStream::connect(&remote_address)
         .with_context(|| format!("ssh connecting to {}", remote_address))?;
-    ui.output_str("Connected OK!\n");
+    ui.output_str("SSH: Connected OK!\n");
     tcp.set_nodelay(true)?;
     sess.set_tcp_stream(tcp);
     sess.handshake()
@@ -185,7 +185,7 @@ pub fn ssh_connect_with_ui(
                 "Password authentication for {}@{}\n",
                 username, remote_address
             ));
-            let pass = ui.password("Password: ")?;
+            let pass = ui.password("🔐 Password: ")?;
             if let Err(err) = sess.userauth_password(username, &pass) {
                 log::error!("while attempting password auth: {}", err);
             }
