@@ -50,7 +50,7 @@ jobs:
     - name: Build
       shell: cmd
       run: |
-        set OPENSSL_SRC_PERL=C:\Strawberry\perl\bin\perl.exe
+        PATH C:\Strawberry\perl\bin;%PATH%
         cargo build --all --release
     - name: Test
       shell: cmd
