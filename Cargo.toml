@@ -42,6 +42,7 @@ open = "1.2"
 metrics = { version="0.12", features=["std"]}
 hdrhistogram = "6.3"
 native-tls = "0.2"
+openssl = {version="0.10", optional=true}
 # file change notification
 notify = "4.0"
 palette = "0.5"
@@ -98,14 +99,16 @@ winrt-notification = "0.2"
 [target.'cfg(any(target_os = "android", all(unix, not(target_os = "macos"))))'.dependencies]
 fontconfig = { path = "deps/fontconfig" }
 
-[target.'cfg(all(unix, not(target_os = "macos")))'.dependencies]
-openssl = "0.10"
-
 [target.'cfg(target_os = "macos")'.dependencies]
-openssl = { version = "0.10", features = ["vendored"] }
 core-foundation = "0.7"
 core-graphics = "0.19"
 core-text = "15.0"
+
+[features]
+default = ["enable_openssl", "vendor_openssl"]
+enable_openssl = ["openssl"]
+# FIXME: find a way to magically enable vendor_openssl only on macOS!
+vendor_openssl = ["openssl/vendored"]
 
 [workspace]
 

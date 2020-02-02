@@ -1,4 +1,5 @@
-#![cfg(not(any(feature = "openssl", unix)))]
+#![allow(unused)]
+
 use super::*;
 use native_tls::TlsAcceptor;
 use std::convert::TryInto;
@@ -72,5 +73,8 @@ pub fn pem_files_to_identity(
     _cert: Option<PathBuf>,
     _chain: Option<PathBuf>,
 ) -> anyhow::Result<Identity> {
-    bail!("recompile wezterm using --features openssl")
+    // This is a pain point in native_tls.
+    // Once https://github.com/sfackler/rust-native-tls/pull/147
+    // is done this might be doable in terms of pem files
+    bail!("recompile wezterm using --features enable_openssl")
 }
