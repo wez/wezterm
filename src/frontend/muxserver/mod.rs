@@ -23,10 +23,10 @@ impl MuxServerFrontEnd {
         let tx_main = tx.clone();
         let tx_low = tx.clone();
         let queue_func = move |f: SpawnFunc| {
-            tx_main.send(f).unwrap();
+            tx_main.send(f).ok();
         };
         let queue_func_low = move |f: SpawnFunc| {
-            tx_low.send(f).unwrap();
+            tx_low.send(f).ok();
         };
         promise::spawn::set_schedulers(
             Box::new(move |task| queue_func(Box::new(move || task.run()))),
