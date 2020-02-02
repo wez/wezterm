@@ -30,7 +30,7 @@ impl Pki {
                 .map_err(|_| anyhow!("hostname is not representable as unicode"))?,
             "localhost".to_owned(),
         ];
-        let unix_name = std::env::var("USER")?;
+        let unix_name = crate::username_from_env()?;
 
         // Create the CA certificate
         let mut ca_params = CertificateParams::new(alt_names.clone());
@@ -60,7 +60,7 @@ impl Pki {
     }
 
     pub fn generate_client_cert(&self) -> anyhow::Result<String> {
-        let unix_name = std::env::var("USER")?;
+        let unix_name = crate::username_from_env()?;
 
         let mut params = CertificateParams::new(vec![unix_name.clone()]);
         let mut dn = DistinguishedName::new();
@@ -72,13 +72,13 @@ impl Pki {
         let key_bits = client_cert.get_key_pair().serialize_pem();
         signed_cert.push_str(&key_bits);
 
-        /* TODO: remove the bit that writes out the client pem here;
-         * this is just so I can test this locally */
-        let client_pem_path = self.pki_dir.join("client.pem");
-        std::fs::write(&client_pem_path, signed_cert.as_bytes())
-            .context(format!("saving {}", client_pem_path.display()))?;
-
         Ok(signed_cert)
+    }
+
+    pub fn ca_pem_string(&self) -> anyhow::Result<String> {
+        self.ca_cert
+            .serialize_pem()
+            .context("Serializing ca cert pem")
     }
 
     pub fn ca_pem(&self) -> PathBuf {

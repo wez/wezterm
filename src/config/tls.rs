@@ -1,4 +1,5 @@
 use crate::config::*;
+use crate::SshParameters;
 
 #[derive(Default, Debug, Clone, Deserialize)]
 pub struct TlsDomainServer {
@@ -29,6 +30,11 @@ pub struct TlsDomainClient {
     /// The name of this specific domain.  Must be unique amongst
     /// all types of domain in the configuration file.
     pub name: String,
+
+    /// If set, use ssh to connect, start the server, and obtain
+    /// a certificate.
+    /// The value is "user@host:port", just like "wezterm ssh" accepts.
+    pub bootstrap_via_ssh: Option<String>,
 
     /// identifies the host:port pair of the remote server.
     pub remote_address: String,
@@ -73,4 +79,12 @@ pub struct TlsDomainClient {
 
     #[serde(default = "default_write_timeout")]
     pub write_timeout: Duration,
+}
+
+impl TlsDomainClient {
+    pub fn ssh_parameters(&self) -> Option<anyhow::Result<SshParameters>> {
+        self.bootstrap_via_ssh
+            .as_ref()
+            .map(|user_at_host_and_port| SshParameters::parse(user_at_host_and_port))
+    }
 }

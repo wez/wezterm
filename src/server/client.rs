@@ -20,6 +20,7 @@ use std::convert::TryInto;
 use std::io::{Read, Write};
 use std::net::TcpStream;
 use std::path::Path;
+use std::path::PathBuf;
 use std::thread;
 use std::time::Duration;
 
@@ -207,6 +208,7 @@ pub fn unix_connect_with_retry(path: &Path) -> Result<UnixStream, std::io::Error
 struct Reconnectable {
     config: ClientDomainConfig,
     stream: Option<Box<dyn ReadAndWrite>>,
+    tls_creds: Option<GetTlsCredsResponse>,
 }
 
 struct SshStream {
@@ -290,7 +292,25 @@ impl ReadAndWrite for SshStream {
 
 impl Reconnectable {
     fn new(config: ClientDomainConfig, stream: Option<Box<dyn ReadAndWrite>>) -> Self {
-        Self { config, stream }
+        Self {
+            config,
+            stream,
+            tls_creds: None,
+        }
+    }
+
+    fn tls_creds_path(&self) -> anyhow::Result<PathBuf> {
+        let path = crate::config::pki_dir()?.join(self.config.name());
+        std::fs::create_dir_all(&path)?;
+        Ok(path)
+    }
+
+    fn tls_creds_ca_path(&self) -> anyhow::Result<PathBuf> {
+        Ok(self.tls_creds_path()?.join("ca.pem"))
+    }
+
+    fn tls_creds_cert_path(&self) -> anyhow::Result<PathBuf> {
+        Ok(self.tls_creds_path()?.join("cert.pem"))
     }
 
     // Clippy thinks we should return &ReadAndWrite here, but the caller
@@ -320,8 +340,19 @@ impl Reconnectable {
     fn connect(&mut self, initial: bool, ui: &mut ConnectionUI) -> anyhow::Result<()> {
         match self.config.clone() {
             ClientDomainConfig::Unix(unix_dom) => self.unix_connect(unix_dom, initial, ui),
-            ClientDomainConfig::Tls(tls) => self.tls_connect(tls, ui),
+            ClientDomainConfig::Tls(tls) => self.tls_connect(tls, initial, ui),
             ClientDomainConfig::Ssh(ssh) => self.ssh_connect(ssh, initial, ui),
+        }
+    }
+
+    /// If debugging on wez's machine, use a path specific to that machine.
+    fn wezterm_bin_path() -> &'static str {
+        if !configuration().use_local_build_for_proxy {
+            "wezterm"
+        } else if cfg!(debug_assertions) {
+            "/home/wez/wez-personal/wezterm/target/debug/wezterm"
+        } else {
+            "/home/wez/wez-personal/wezterm/target/release/wezterm"
         }
     }
 
@@ -336,13 +367,7 @@ impl Reconnectable {
 
         let mut chan = sess.channel_session()?;
 
-        let proxy_bin = if !configuration().use_local_build_for_proxy {
-            "wezterm"
-        } else if cfg!(debug_assertions) {
-            "/home/wez/wez-personal/wezterm/target/debug/wezterm"
-        } else {
-            "/home/wez/wez-personal/wezterm/target/release/wezterm"
-        };
+        let proxy_bin = Self::wezterm_bin_path();
 
         let cmd = if initial {
             format!("{} cli proxy", proxy_bin)
@@ -427,6 +452,7 @@ impl Reconnectable {
     pub fn tls_connect(
         &mut self,
         tls_client: TlsDomainClient,
+        _initial: bool,
         ui: &mut ConnectionUI,
     ) -> anyhow::Result<()> {
         use openssl::ssl::{SslConnector, SslFiletype, SslMethod};
@@ -443,16 +469,50 @@ impl Reconnectable {
             )
         })?;
 
+        if let Some(Ok(ssh_params)) = tls_client.ssh_parameters() {
+            if self.tls_creds.is_none() {
+                // We need to bootstrap via an ssh session
+                let sess =
+                    ssh_connect_with_ui(&ssh_params.host_and_port, &ssh_params.username, ui)?;
+                let mut chan = sess.channel_session()?;
+
+                // The `tlscreds` command will start the server if needed and then
+                // obtain client credentials that we can use for tls.
+                let cmd = format!("{} cli tlscreds", Self::wezterm_bin_path());
+                ui.output_str(&format!("Running: {}\n", cmd));
+                chan.exec(&cmd)?;
+                let creds = match Pdu::decode(chan)?.pdu {
+                    Pdu::GetTlsCredsResponse(creds) => creds,
+                    _ => bail!("unexpected response to tlscreds"),
+                };
+
+                // Save the credentials to disk, as that is currently the easiest
+                // way to get them into openssl.  Ideally we'd keep these entirely
+                // in memory.
+                std::fs::write(&self.tls_creds_ca_path()?, creds.ca_cert_pem.as_bytes())?;
+                std::fs::write(
+                    &self.tls_creds_cert_path()?,
+                    creds.client_cert_pem.as_bytes(),
+                )?;
+                self.tls_creds.replace(creds);
+            }
+        }
+
         let mut connector = SslConnector::builder(SslMethod::tls())?;
 
-        if let Some(cert_file) = tls_client.pem_cert.as_ref() {
-            connector
-                .set_certificate_file(&cert_file, SslFiletype::PEM)
-                .context(format!(
-                    "set_certificate_file to {} for TLS client",
-                    cert_file.display()
-                ))?;
-        }
+        let cert_file = match tls_client.pem_cert.clone() {
+            Some(cert) => cert,
+            None if self.tls_creds.is_some() => self.tls_creds_cert_path()?,
+            None => bail!("no pem_cert configured"),
+        };
+
+        connector
+            .set_certificate_file(&cert_file, SslFiletype::PEM)
+            .context(format!(
+                "set_certificate_file to {} for TLS client",
+                cert_file.display()
+            ))?;
+
         if let Some(chain_file) = tls_client.pem_ca.as_ref() {
             connector
                 .set_certificate_chain_file(&chain_file)
@@ -461,14 +521,19 @@ impl Reconnectable {
                     chain_file.display()
                 ))?;
         }
-        if let Some(key_file) = tls_client.pem_private_key.as_ref() {
-            connector
-                .set_private_key_file(&key_file, SslFiletype::PEM)
-                .context(format!(
-                    "set_private_key_file to {} for TLS client",
-                    key_file.display()
-                ))?;
-        }
+
+        let key_file = match tls_client.pem_private_key.clone() {
+            Some(key) => key,
+            None if self.tls_creds.is_some() => self.tls_creds_cert_path()?,
+            None => bail!("no pem_private_key configured"),
+        };
+        connector
+            .set_private_key_file(&key_file, SslFiletype::PEM)
+            .context(format!(
+                "set_private_key_file to {} for TLS client",
+                key_file.display()
+            ))?;
+
         fn load_cert(name: &Path) -> anyhow::Result<X509> {
             let cert_bytes = std::fs::read(name)?;
             log::trace!("loaded {}", name.display());
@@ -484,6 +549,12 @@ impl Reconnectable {
             } else {
                 connector.cert_store_mut().add_cert(load_cert(name)?)?;
             }
+        }
+
+        if self.tls_creds.is_some() {
+            connector
+                .cert_store_mut()
+                .add_cert(load_cert(&self.tls_creds_ca_path()?)?)?;
         }
 
         let connector = connector.build();
@@ -524,6 +595,7 @@ impl Reconnectable {
     pub fn tls_connect(
         &mut self,
         tls_client: TlsDomainClient,
+        _initial: bool,
         ui: &mut ConnectionUI,
     ) -> anyhow::Result<()> {
         use crate::server::listener::IdentitySource;
@@ -717,4 +789,5 @@ impl Client {
     rpc!(get_tab_render_changes, GetTabRenderChanges, UnitResponse);
     rpc!(get_lines, GetLines, GetLinesResponse);
     rpc!(get_codec_version, GetCodecVersion, GetCodecVersionResponse);
+    rpc!(get_tls_creds, GetTlsCreds = (), GetTlsCredsResponse);
 }

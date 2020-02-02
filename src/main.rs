@@ -156,6 +156,9 @@ enum CliSubCommand {
 
     #[structopt(name = "proxy", about = "start rpc proxy pipe")]
     Proxy,
+
+    #[structopt(name = "tlscreds", about = "obtain tls credentials")]
+    TlsCreds,
 }
 
 #[derive(Debug, StructOpt, Clone)]
@@ -300,9 +303,9 @@ pub fn running_under_wsl() -> bool {
     false
 }
 
-struct SshParameters {
-    username: String,
-    host_and_port: String,
+pub struct SshParameters {
+    pub username: String,
+    pub host_and_port: String,
 }
 
 fn username_from_env() -> anyhow::Result<String> {
@@ -826,6 +829,11 @@ fn run() -> anyhow::Result<()> {
                         consume_stream_then_exit_process(stdin.lock(), stream);
                     });
                     front_end.run_forever()?;
+                }
+                CliSubCommand::TlsCreds => {
+                    let creds = block_on(client.get_tls_creds())?;
+                    crate::server::codec::Pdu::GetTlsCredsResponse(creds)
+                        .encode(std::io::stdout().lock(), 0)?;
                 }
             }
             Ok(())
