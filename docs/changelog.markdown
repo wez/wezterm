@@ -12,7 +12,7 @@ brief notes about them may accumulate here.
 
 * No notable changes yet!
 
-### 20200202-180558-2489abf9
+### 20200202-181957-765184e5
 
 * Improved font shaping performance 2-3x by adding a shaper cache
 * Windows: now has support for TLS based multiplexer connections
