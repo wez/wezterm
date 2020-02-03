@@ -11,6 +11,7 @@ mod clientsession;
 mod local;
 mod ossl;
 mod pki;
+mod sessionhandler;
 pub mod umask;
 
 lazy_static::lazy_static! {
