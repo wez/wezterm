@@ -42,7 +42,7 @@ jobs:
       run: |
         PATH C:\Strawberry\perl\bin;%PATH%
         cargo build --release --all
-        bash ci/deploy.sh target/x86_64-pc-windows-msvc
+        bash ci/deploy.sh
     - name: Upload Assets
       uses: softprops/action-gh-release@v1
       with:
