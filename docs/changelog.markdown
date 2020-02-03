@@ -10,6 +10,14 @@ daily) from the master branch.  It may not be usable and
 the feature set may change.  As features stabilize some
 brief notes about them may accumulate here.
 
+* No notable changes yet!
+
+### 20200202-180558-2489abf9
+
+* Improved font shaping performance 2-3x by adding a shaper cache
+* Windows: now has support for TLS based multiplexer connections
+* Multiplexer: TLS multiplexer can now be bootstrapped via SSH, and automatically
+  manages certificates
 * Unix: We now default to spawning shells with the `-l` argument to request a login
   shell.  This is important on macOS where the default GUI environment doesn't
   source a working PATH from the shell, resulting in an anemic PATH unless the

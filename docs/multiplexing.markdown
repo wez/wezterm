@@ -141,30 +141,14 @@ to manually connect into your WSL instance.
 
 ## TLS Domains
 
-**Notice:** *TLS domains require external PKI infrastructure to authenticate
-both the client and the server side with each other. wezterm doesn't
-provide an easy way to manage this at this time*.
-
 A connection to a multiplexer made via a [TLS](https://en.wikipedia.org/wiki/Transport_Layer_Security)
-encrypted TCP connection is referred to as a *TLS Domain*.  Configuring
-a TLS Domain is currently a bit awkward and requires mutual certificate-based
-authentication of both ends of the connection.  There are no instructions
-on how to set up the certificates at this time, but this will be expanded
-as the user experience around this feature is fleshed out.
+encrypted TCP connection is referred to as a *TLS Domain*.
 
-### Requirements
-
-You provide a PKI infrastructure that can generate:
-
-  * A certificate for the host with the CN set to the hostname
-  * A certificate for the client with the CN set to the unixname
-    of the connecting user.  The server MUST also be running with
-    the `$USER` environment variable set to that unixname.
-  * The CA/chain of certificates must be available to verify those
-    certificates on both sides of the TLS session.
-  * **Guard the user certificate and key carefully** as it is the sole
-    means of authenticating the client and will allow execution of arbitrary
-    commands on the server as that user.
+Starting with version `20200202-180558-2489abf9`, wezterm can bootstrap a TLS
+session by performing an initial connection via SSH to start the wezterm
+multiplexer on the remote host and securely obtain a key.  Once bootstrapped,
+the client will use a TLS protected TCP connection to communicate with the
+server.
 
 ### Configuring the client
 
@@ -172,24 +156,14 @@ For each server that you wish to connect to, add a client section like this:
 
 ```toml
 [[tls_clients]]
+# A handy alias for this session; you will use `wezterm connect server.name`
+# to connect to it.
 name = "server.name"
 # The host:port for the remote host
 remote_address = "server.hostname:8080"
-# The client private key for your user.  Guard this carefully as
-# posession of this secret allows executing commands as you on
-# the remote host!  The subject COMMONNAME (or CN) must match
-# the USER environment variable that the server side runs as
-# otherwise the connection will be rejected.
-pem_private_key = "/secure/wez.key"
-# The public certificate that corresponds to `pem_private_key`
-pem_cert = "/secure/wez.pem"
-
-# A CA file or bundle to help verify certificates
-pem_ca = "/secure/ca.pem"
-# A list of CA files or directories containing CA files that will
-# also be used to verify certificates.
-pem_root_certs = ["/secure/trusted-certs"]
-connect_automatically = true
+# The value can be "user@host:port"; it accepts the same syntax as the
+# `wezterm ssh` subcommand.
+bootstrap_via_ssh = "server.hostname"
 ```
 
 ### Configuring the server
@@ -199,27 +173,18 @@ connect_automatically = true
 # The host:port combination on which the server will listen
 # for connections
 bind_address = "server.hostname:8080"
-# The server private key
-pem_private_key = "/secure/server.key"
-# The public certificate that corresponds to the `pem_private_key`.
-# The subject COMMONNAME (or CN) must match the hostname used
-# by the client to connect to the server, or the client will
-# refuse to connect.
-pem_cert = "/secure/server.pem"
-
-# A CA file or bundle to help verify certificates
-pem_ca = "/secure/ca.pem"
-# A list of CA files or directories containing CA files that will
-# also be used to verify certificates.
-pem_root_certs = ["/secure/trusted-certs"]
 ```
 
-### Starting the server
+### Connecting
 
-At this time, `wezterm` doesn't provide a convenient way to automatically
-start the server, so you will need to manually log in to the server host
-and start it up:
+On the client, running this will connect to the server, start up
+the multiplexer and obtain a certificate for the TLS connection.
+A connection window will show the progress and may prompt you for
+SSH authentication.  Once the connection has been initiated, wezterm
+will automatically reconnect using the certificate it obtained during
+bootstrapping if your connection was interrupted and resume your
+remote terminal session
 
 ```bash
-$ wezterm start --front-end MuxServer --daemonize
+$ wezterm connect server.name
 ```
