@@ -1,6 +1,7 @@
 // Don't create a new standard console window when launched from the windows GUI.
 #![windows_subsystem = "windows"]
 
+use crate::server::listener::umask;
 use anyhow::{anyhow, bail, Context};
 use promise::spawn::block_on;
 use std::ffi::OsString;
@@ -722,6 +723,7 @@ fn run() -> anyhow::Result<()> {
     };
     pretty_env_logger::init();
     stats::Stats::init()?;
+    let _saver = umask::UmaskSaver::new();
 
     let opts = Opt::from_args();
     if !opts.skip_config {

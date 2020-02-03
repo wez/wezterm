@@ -11,7 +11,7 @@ mod clientsession;
 mod local;
 mod ossl;
 mod pki;
-mod umask;
+pub mod umask;
 
 lazy_static::lazy_static! {
     static ref PKI: pki::Pki = pki::Pki::init().expect("failed to initialize PKI");

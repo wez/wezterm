@@ -1,6 +1,6 @@
 use crate::config::UnixDomain;
 use crate::create_user_owned_dirs;
-use crate::server::listener::{clientsession, umask};
+use crate::server::listener::clientsession;
 use crate::server::UnixListener;
 use anyhow::{anyhow, Context as _};
 use promise::spawn::spawn_into_main_thread;
@@ -44,8 +44,6 @@ impl LocalListener {
 fn safely_create_sock_path(unix_dom: &UnixDomain) -> anyhow::Result<UnixListener> {
     let sock_path = &unix_dom.socket_path();
     log::debug!("setting up {}", sock_path.display());
-
-    let _saver = umask::UmaskSaver::new();
 
     let sock_dir = sock_path
         .parent()
