@@ -57,14 +57,13 @@ sudo dnf install -y {{ fedora_stable }}
 
 If you have some other Linux system, or otherwise prefer AppImage over your
 system package format, you can download a build by following these steps.
-AppImages are newer than the latest tagged release so they are currently
-only available for nightly builds:
 
+<a href="{{ appimage_stable }}" class="btn">AppImage</a>
 <a href="https://github.com/wez/wezterm/releases/download/nightly/WezTerm-nightly.AppImage" class="btn">Nightly AppImage</a>
 
 ```bash
-curl -LO https://github.com/wez/wezterm/releases/download/nightly/WezTerm-nightly.AppImage
-chmod +x WezTerm-nightly.AppImage
+curl -LO {{ appimage_stable }}
+chmod +x {{ appimage_stable_asset }}
 ```
 
 You may then execute the appimage directly to launch wezterm.
