@@ -163,13 +163,33 @@ impl ConnectionUI {
         self.output(vec![Change::Text(s)]);
     }
 
+    /// Crack a multi-line prompt into an optional preamble and the prompt
+    /// text on the final line.  This is needed because the line editor
+    /// is only designed for a single line prompt; a multi-line prompt
+    /// messes up the cursor positioning.
+    fn split_multi_line_prompt(s: &str) -> (Option<String>, String) {
+        let text = s.replace("\n", "\r\n");
+        let bits: Vec<&str> = text.rsplitn(2, "\r\n").collect();
+
+        if bits.len() == 2 {
+            (Some(format!("{}\r\n", bits[1])), bits[0].to_owned())
+        } else {
+            (None, text)
+        }
+    }
+
     pub fn input(&self, prompt: &str) -> anyhow::Result<String> {
         let mut promise = Promise::new();
         let future = promise.get_future().unwrap();
 
+        let (preamble, prompt) = Self::split_multi_line_prompt(prompt);
+        if let Some(preamble) = preamble {
+            self.output(vec![Change::Text(preamble)]);
+        }
+
         self.tx
             .send(UIRequest::Input {
-                prompt: prompt.replace("\n", "\r\n"),
+                prompt,
                 echo: true,
                 respond: promise,
             })
@@ -182,9 +202,14 @@ impl ConnectionUI {
         let mut promise = Promise::new();
         let future = promise.get_future().unwrap();
 
+        let (preamble, prompt) = Self::split_multi_line_prompt(prompt);
+        if let Some(preamble) = preamble {
+            self.output(vec![Change::Text(preamble)]);
+        }
+
         self.tx
             .send(UIRequest::Input {
-                prompt: prompt.replace("\n", "\r\n"),
+                prompt,
                 echo: false,
                 respond: promise,
             })
