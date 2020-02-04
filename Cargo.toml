@@ -55,7 +55,7 @@ ssh2 = "0.7"
 structopt = "0.3"
 tabout = { path = "tabout" }
 term = { path = "term" }
-termwiz = { path = "termwiz"}
+termwiz = { path = "termwiz" }
 textwrap = "0.11"
 toml = "0.4"
 unicode-normalization = "0.1"
