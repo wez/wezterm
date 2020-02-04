@@ -52,74 +52,74 @@
 //! With all this in mind, this module presents a `Capabilities` struct
 //! that holds information about a terminal.   The `new_from_env` method
 //! implements some heuristics (a fancy word for guessing) to compute
-//! the terminal capabilities, but also offers a `ProbeHintsBuilder`
+//! the terminal capabilities, but also offers a `ProbeHints`
 //! that can be used by the embedding application to override those choices.
+use crate::builder;
 use anyhow::Error;
-use derive_builder::*;
 use semver::Version;
 use std::env::var;
 use terminfo::{self, capability as cap};
 
-/// Use the `ProbeHintsBuilder` to configure an instance of
-/// the `ProbeHints` struct.  `ProbeHints` are passed to the `Capabilities`
-/// constructor to influence the effective set of terminal capabilities.
-#[derive(Debug, Default, Builder, Clone)]
-#[builder(default)]
-pub struct ProbeHints {
-    /// The contents of the TERM environment variable
-    term: Option<String>,
+builder! {
+    /// Use the `ProbeHints` to configure an instance of
+    /// the `ProbeHints` struct.  `ProbeHints` are passed to the `Capabilities`
+    /// constructor to influence the effective set of terminal capabilities.
+    #[derive(Debug, Default, Clone)]
+    pub struct ProbeHints {
+        /// The contents of the TERM environment variable
+        term: Option<String>,
 
-    /// The contents of the COLORTERM environment variable.
-    /// <http://invisible-island.net/ncurses/ncurses-slang.html#env_COLORTERM>
-    colorterm: Option<String>,
+        /// The contents of the COLORTERM environment variable.
+        /// <http://invisible-island.net/ncurses/ncurses-slang.html#env_COLORTERM>
+        colorterm: Option<String>,
 
-    /// The contents of the TERM_PROGRAM environment variable
-    term_program: Option<String>,
+        /// The contents of the TERM_PROGRAM environment variable
+        term_program: Option<String>,
 
-    /// Override the choice of the number of colors
-    color_level: Option<ColorLevel>,
+        /// Override the choice of the number of colors
+        color_level: Option<ColorLevel>,
 
-    /// The contents of the TERM_PROGRAM_VERSION environment variable
-    term_program_version: Option<String>,
+        /// The contents of the TERM_PROGRAM_VERSION environment variable
+        term_program_version: Option<String>,
 
-    /// Definitively set whether hyperlinks are supported.
-    /// The default is to assume yes as this is mostly harmless.
-    hyperlinks: Option<bool>,
+        /// Definitively set whether hyperlinks are supported.
+        /// The default is to assume yes as this is mostly harmless.
+        hyperlinks: Option<bool>,
 
-    /// Configure whether sixel graphics are supported.
-    sixel: Option<bool>,
+        /// Configure whether sixel graphics are supported.
+        sixel: Option<bool>,
 
-    /// Configure whether iTerm2 style graphics embedding is supported
-    /// See <https://www.iterm2.com/documentation-images.html>
-    iterm2_image: Option<bool>,
+        /// Configure whether iTerm2 style graphics embedding is supported
+        /// See <https://www.iterm2.com/documentation-images.html>
+        iterm2_image: Option<bool>,
 
-    /// Specify whether `bce`, background color erase, is supported.
-    bce: Option<bool>,
+        /// Specify whether `bce`, background color erase, is supported.
+        bce: Option<bool>,
 
-    /// The contents of the COLORTERM_BCE environment variable
-    /// <http://invisible-island.net/ncurses/ncurses-slang.html#env_COLORTERM_BCE>
-    colorterm_bce: Option<String>,
+        /// The contents of the COLORTERM_BCE environment variable
+        /// <http://invisible-island.net/ncurses/ncurses-slang.html#env_COLORTERM_BCE>
+        colorterm_bce: Option<String>,
 
-    /// A loaded terminfo database entry
-    terminfo_db: Option<terminfo::Database>,
+        /// A loaded terminfo database entry
+        terminfo_db: Option<terminfo::Database>,
 
-    /// Whether bracketed paste mode is supported
-    bracketed_paste: Option<bool>,
+        /// Whether bracketed paste mode is supported
+        bracketed_paste: Option<bool>,
 
-    /// Whether mouse support is present and should be used
-    mouse_reporting: Option<bool>,
+        /// Whether mouse support is present and should be used
+        mouse_reporting: Option<bool>,
+    }
 }
 
-impl ProbeHintsBuilder {
-    pub fn new_from_env() -> ProbeHintsBuilder {
-        let mut hints = ProbeHintsBuilder::default();
-        hints.term(var("TERM").ok());
-        hints.colorterm(var("COLORTERM").ok());
-        hints.colorterm_bce(var("COLORTERM_BCE").ok());
-        hints.term_program(var("TERM_PROGRAM").ok());
-        hints.term_program_version(var("TERM_PROGRAM_VERSION").ok());
-        hints.terminfo_db(terminfo::Database::from_env().ok());
-        hints
+impl ProbeHints {
+    pub fn new_from_env() -> Self {
+        ProbeHints::default()
+            .term(var("TERM").ok())
+            .colorterm(var("COLORTERM").ok())
+            .colorterm_bce(var("COLORTERM_BCE").ok())
+            .term_program(var("TERM_PROGRAM").ok())
+            .term_program_version(var("TERM_PROGRAM_VERSION").ok())
+            .terminfo_db(terminfo::Database::from_env().ok())
     }
 }
 
@@ -164,11 +164,7 @@ impl Capabilities {
     /// This function inspects the environment variables to build
     /// up configuration hints.
     pub fn new_from_env() -> Result<Self, Error> {
-        Self::new_with_hints(
-            ProbeHintsBuilder::new_from_env()
-                .build()
-                .map_err(Error::msg)?,
-        )
+        Self::new_with_hints(ProbeHints::new_from_env())
     }
 
     /// Build a `Capabilities` object based on the provided `ProbeHints` object.
@@ -330,8 +326,7 @@ mod test {
 
     #[test]
     fn empty_hint() {
-        let caps =
-            Capabilities::new_with_hints(ProbeHintsBuilder::default().build().unwrap()).unwrap();
+        let caps = Capabilities::new_with_hints(ProbeHints::default()).unwrap();
 
         assert_eq!(caps.color_level(), ColorLevel::Sixteen);
         assert_eq!(caps.sixel(), false);
@@ -342,65 +337,45 @@ mod test {
 
     #[test]
     fn bce() {
-        let caps = Capabilities::new_with_hints(
-            ProbeHintsBuilder::default()
-                .colorterm_bce(Some("1".into()))
-                .build()
-                .unwrap(),
-        )
-        .unwrap();
+        let caps =
+            Capabilities::new_with_hints(ProbeHints::default().colorterm_bce(Some("1".into())))
+                .unwrap();
 
         assert_eq!(caps.bce(), true);
     }
 
     #[test]
     fn bce_terminfo() {
-        let caps = Capabilities::new_with_hints(
-            ProbeHintsBuilder::default()
-                .terminfo_db(Some(load_terminfo()))
-                .build()
-                .unwrap(),
-        )
-        .unwrap();
+        let caps =
+            Capabilities::new_with_hints(ProbeHints::default().terminfo_db(Some(load_terminfo())))
+                .unwrap();
 
         assert_eq!(caps.bce(), true);
     }
 
     #[test]
     fn terminfo_color() {
-        let caps = Capabilities::new_with_hints(
-            ProbeHintsBuilder::default()
-                .terminfo_db(Some(load_terminfo()))
-                .build()
-                .unwrap(),
-        )
-        .unwrap();
+        let caps =
+            Capabilities::new_with_hints(ProbeHints::default().terminfo_db(Some(load_terminfo())))
+                .unwrap();
 
         assert_eq!(caps.color_level(), ColorLevel::TrueColor);
     }
 
     #[test]
     fn term_but_not_colorterm() {
-        let caps = Capabilities::new_with_hints(
-            ProbeHintsBuilder::default()
-                .term(Some("xterm-256color".into()))
-                .build()
-                .unwrap(),
-        )
-        .unwrap();
+        let caps =
+            Capabilities::new_with_hints(ProbeHints::default().term(Some("xterm-256color".into())))
+                .unwrap();
 
         assert_eq!(caps.color_level(), ColorLevel::TwoFiftySix);
     }
 
     #[test]
     fn colorterm_but_no_term() {
-        let caps = Capabilities::new_with_hints(
-            ProbeHintsBuilder::default()
-                .colorterm(Some("24bit".into()))
-                .build()
-                .unwrap(),
-        )
-        .unwrap();
+        let caps =
+            Capabilities::new_with_hints(ProbeHints::default().colorterm(Some("24bit".into())))
+                .unwrap();
 
         assert_eq!(caps.color_level(), ColorLevel::TrueColor);
     }
@@ -408,34 +383,28 @@ mod test {
     #[test]
     fn term_and_colorterm() {
         let caps = Capabilities::new_with_hints(
-            ProbeHintsBuilder::default()
+            ProbeHints::default()
                 .term(Some("xterm-256color".into()))
                 // bogus value
-                .colorterm(Some("24bot".into()))
-                .build()
-                .unwrap(),
+                .colorterm(Some("24bot".into())),
         )
         .unwrap();
 
         assert_eq!(caps.color_level(), ColorLevel::TwoFiftySix);
 
         let caps = Capabilities::new_with_hints(
-            ProbeHintsBuilder::default()
+            ProbeHints::default()
                 .term(Some("xterm-256color".into()))
-                .colorterm(Some("24bit".into()))
-                .build()
-                .unwrap(),
+                .colorterm(Some("24bit".into())),
         )
         .unwrap();
 
         assert_eq!(caps.color_level(), ColorLevel::TrueColor);
 
         let caps = Capabilities::new_with_hints(
-            ProbeHintsBuilder::default()
+            ProbeHints::default()
                 .term(Some("xterm-256color".into()))
-                .colorterm(Some("truecolor".into()))
-                .build()
-                .unwrap(),
+                .colorterm(Some("truecolor".into())),
         )
         .unwrap();
 
@@ -445,41 +414,33 @@ mod test {
     #[test]
     fn iterm2_image() {
         let caps = Capabilities::new_with_hints(
-            ProbeHintsBuilder::default()
+            ProbeHints::default()
                 .term_program(Some("iTerm.app".into()))
-                .term_program_version(Some("1.0.0".into()))
-                .build()
-                .unwrap(),
+                .term_program_version(Some("1.0.0".into())),
         )
         .unwrap();
         assert_eq!(caps.iterm2_image(), false);
 
         let caps = Capabilities::new_with_hints(
-            ProbeHintsBuilder::default()
+            ProbeHints::default()
                 .term_program(Some("iTerm.app".into()))
-                .term_program_version(Some("2.9.0".into()))
-                .build()
-                .unwrap(),
+                .term_program_version(Some("2.9.0".into())),
         )
         .unwrap();
         assert_eq!(caps.iterm2_image(), false);
 
         let caps = Capabilities::new_with_hints(
-            ProbeHintsBuilder::default()
+            ProbeHints::default()
                 .term_program(Some("iTerm.app".into()))
-                .term_program_version(Some("2.9.20150512".into()))
-                .build()
-                .unwrap(),
+                .term_program_version(Some("2.9.20150512".into())),
         )
         .unwrap();
         assert_eq!(caps.iterm2_image(), true);
 
         let caps = Capabilities::new_with_hints(
-            ProbeHintsBuilder::default()
+            ProbeHints::default()
                 .term_program(Some("iTerm.app".into()))
-                .term_program_version(Some("3.2.0beta5".into()))
-                .build()
-                .unwrap(),
+                .term_program_version(Some("3.2.0beta5".into())),
         )
         .unwrap();
         assert_eq!(caps.iterm2_image(), true);

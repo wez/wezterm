@@ -14,7 +14,6 @@ readme = "README.md"
 base64 = "0.10"
 bitflags = "1.0"
 cassowary = {version="0.3", optional=true}
-derive_builder = "0.7"
 anyhow = "1.0"
 filedescriptor = { version="0.7", path = "../filedescriptor" }
 fnv = {version="1.0", optional=true}

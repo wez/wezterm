@@ -671,7 +671,7 @@ impl TerminfoRenderer {
 #[cfg(all(test, unix))]
 mod test {
     use super::*;
-    use crate::caps::ProbeHintsBuilder;
+    use crate::caps::ProbeHints;
     use crate::color::{AnsiColor, ColorAttribute, RgbColor};
     use crate::escape::parser::Parser;
     use crate::escape::{Action, Esc, EscCode};
@@ -692,25 +692,15 @@ mod test {
         // Load our own compiled data so that the tests have an
         // environment that doesn't vary machine by machine.
         let data = include_bytes!("../../data/xterm-256color");
-        Capabilities::new_with_hints(
-            ProbeHintsBuilder::default()
-                .terminfo_db(Some(
-                    terminfo::Database::from_buffer(data.as_ref()).unwrap(),
-                ))
-                .build()
-                .unwrap(),
-        )
+        Capabilities::new_with_hints(ProbeHints::default().terminfo_db(Some(
+            terminfo::Database::from_buffer(data.as_ref()).unwrap(),
+        )))
         .unwrap()
     }
 
     fn no_terminfo_all_enabled() -> Capabilities {
-        Capabilities::new_with_hints(
-            ProbeHintsBuilder::default()
-                .color_level(Some(ColorLevel::TrueColor))
-                .build()
-                .unwrap(),
-        )
-        .unwrap()
+        Capabilities::new_with_hints(ProbeHints::default().color_level(Some(ColorLevel::TrueColor)))
+            .unwrap()
     }
 
     struct FakeTty {
