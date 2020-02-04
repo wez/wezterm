@@ -24,7 +24,7 @@ memmem = "0.1"
 num = "0.2"
 num-traits = "0.2"
 ordered-float = "1.0"
-regex = "0.2"
+regex = "1"
 semver = "0.9"
 serde = {version="1.0", features = ["rc", "derive"]}
 smallvec = "0.6"
