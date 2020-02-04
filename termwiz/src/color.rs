@@ -3,8 +3,6 @@
 #![cfg_attr(feature = "cargo-clippy", allow(clippy::useless_attribute))]
 
 use num_derive::*;
-use palette;
-use palette::{LinSrgba, Srgba};
 use serde::{self, Deserialize, Deserializer, Serialize, Serializer};
 use std::collections::HashMap;
 use std::result::Result;
@@ -100,20 +98,31 @@ impl RgbColor {
         Self { red, green, blue }
     }
 
-    pub fn to_linear(self) -> LinSrgba {
-        Srgba::<u8>::new(self.red, self.green, self.blue, 0xff)
-            .into_format()
-            .into_linear()
-    }
-
     pub fn to_tuple_rgba(self) -> RgbaTuple {
-        Srgba::<u8>::new(self.red, self.green, self.blue, 0xff)
-            .into_format()
-            .into_components()
+        (
+            self.red as f32 / 255.0,
+            self.green as f32 / 255.0,
+            self.blue as f32 / 255.0,
+            1.0,
+        )
     }
 
     pub fn to_linear_tuple_rgba(self) -> RgbaTuple {
-        self.to_linear().into_components()
+        // See https://docs.rs/palette/0.5.0/src/palette/encoding/srgb.rs.html#43
+        fn to_linear(v: u8) -> f32 {
+            let v = v as f32 / 255.0;
+            if v <= 0.04045 {
+                v / 12.92
+            } else {
+                ((v + 0.055) / 1.055).powf(2.4)
+            }
+        };
+        (
+            to_linear(self.red),
+            to_linear(self.green),
+            to_linear(self.blue),
+            1.0,
+        )
     }
 
     /// Construct a color from an X11/SVG/CSS3 color name.
