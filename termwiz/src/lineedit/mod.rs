@@ -34,12 +34,11 @@
 //! Ctrl-W        | Delete word leading up to cursor
 //! Alt-b, Alt-Left | Move the cursor backwards one word
 //! Alt-f, Alt-Right | Move the cursor forwards one word
-use crate::caps::{Capabilities, ProbeHintsBuilder};
+use crate::caps::{Capabilities, ProbeHints};
 use crate::cell::unicode_column_width;
 use crate::input::{InputEvent, KeyCode, KeyEvent, Modifiers};
 use crate::surface::{Change, Position};
 use crate::terminal::{new_terminal, Terminal};
-use anyhow::Error;
 use unicode_segmentation::GraphemeCursor;
 
 mod actions;
@@ -118,14 +117,12 @@ impl<T: Terminal> LineEditor<T> {
     /// editor:
     ///
     /// ```no_run
-    /// use termwiz::caps::{Capabilities, ProbeHintsBuilder};
+    /// use termwiz::caps::{Capabilities, ProbeHints};
     /// use termwiz::terminal::new_terminal;
     /// use anyhow::Error;
     /// // Disable mouse input in the line editor
-    /// let hints = ProbeHintsBuilder::new_from_env()
-    ///     .mouse_reporting(Some(false))
-    ///     .build()
-    ///     .map_err(Error::msg)?;
+    /// let hints = ProbeHints::new_from_env()
+    ///     .mouse_reporting(Some(false));
     /// let caps = Capabilities::new_with_hints(hints)?;
     /// let terminal = new_terminal(caps)?;
     /// # Ok::<(), Error>(())
@@ -561,10 +558,7 @@ impl<T: Terminal> LineEditor<T> {
 /// Create a `Terminal` with the recommended settings, and use that
 /// to create a `LineEditor` instance.
 pub fn line_editor() -> anyhow::Result<LineEditor<impl Terminal>> {
-    let hints = ProbeHintsBuilder::new_from_env()
-        .mouse_reporting(Some(false))
-        .build()
-        .map_err(Error::msg)?;
+    let hints = ProbeHints::new_from_env().mouse_reporting(Some(false));
     let caps = Capabilities::new_with_hints(hints)?;
     let terminal = new_terminal(caps)?;
     Ok(LineEditor::new(terminal))
