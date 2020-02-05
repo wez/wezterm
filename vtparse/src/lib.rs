@@ -13,8 +13,9 @@
 use utf8parse::Parser as Utf8Parser;
 mod enums;
 use crate::enums::*;
+mod transitions;
 
-include!(concat!(env!("OUT_DIR"), "/transitions.rs"));
+use transitions::{ENTRY, EXIT, TRANSITIONS};
 
 #[inline(always)]
 fn lookup(state: State, b: u8) -> (Action, State) {
