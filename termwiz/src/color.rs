@@ -4,8 +4,9 @@
 
 use num_derive::*;
 use palette;
-use palette::{LinSrgba, Srgb, Srgba};
+use palette::{LinSrgba, Srgba};
 use serde::{self, Deserialize, Deserializer, Serialize, Serializer};
+use std::collections::HashMap;
 use std::result::Result;
 
 #[derive(Debug, Clone, Copy, FromPrimitive)]
@@ -55,6 +56,34 @@ impl From<AnsiColor> for u8 {
 
 pub type RgbaTuple = (f32, f32, f32, f32);
 
+lazy_static::lazy_static! {
+    static ref NAMED_COLORS: HashMap<String, RgbColor> = build_colors();
+}
+
+fn build_colors() -> HashMap<String, RgbColor> {
+    let mut map = HashMap::new();
+    let rgb_txt = include_str!("rgb.txt");
+    for line in rgb_txt.lines() {
+        let mut fields = line.split_ascii_whitespace();
+        let red = fields.next().unwrap();
+        let green = fields.next().unwrap();
+        let blue = fields.next().unwrap();
+        let name = fields.collect::<Vec<&str>>().join(" ");
+
+        let name = name.to_ascii_lowercase();
+        map.insert(
+            name,
+            RgbColor::new(
+                red.parse().unwrap(),
+                green.parse().unwrap(),
+                blue.parse().unwrap(),
+            ),
+        );
+    }
+
+    map
+}
+
 /// Describes a color in the SRGB colorspace using red, green and blue
 /// components in the range 0-255.
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash)]
@@ -87,15 +116,12 @@ impl RgbColor {
         self.to_linear().into_components()
     }
 
-    /// Construct a color from an SVG/CSS3 color name.
+    /// Construct a color from an X11/SVG/CSS3 color name.
     /// Returns None if the supplied name is not recognized.
     /// The list of names can be found here:
-    /// <https://ogeon.github.io/docs/palette/master/palette/named/index.html>
+    /// <https://en.wikipedia.org/wiki/X11_color_names>
     pub fn from_named(name: &str) -> Option<RgbColor> {
-        palette::named::from_str(&name.to_ascii_lowercase()).map(|color| {
-            let color = Srgb::<u8>::from_format(color);
-            Self::new(color.red, color.green, color.blue)
-        })
+        NAMED_COLORS.get(&name.to_ascii_lowercase()).cloned()
     }
 
     /// Returns a string of the form `#RRGGBB`

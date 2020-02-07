@@ -3040,6 +3040,7 @@ dependencies = [
  "derive_builder",
  "filedescriptor",
  "fnv",
+ "lazy_static",
  "libc",
  "log",
  "memmem",
