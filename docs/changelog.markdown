@@ -12,6 +12,8 @@ brief notes about them may accumulate here.
 
 * Added `initial_rows` and `initial_cols` config options to set the starting
   size of new terminal windows
+* Added `hide_tab_bar_if_only_one_tab = true` config option to hide the tab
+  bar when the window contains only a single tab.
 
 ### 20200202-181957-765184e5
 

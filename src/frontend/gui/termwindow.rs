@@ -513,7 +513,11 @@ impl TermWindow {
             pixel_height: (render_metrics.cell_size.height as usize * physical_rows) as u16,
         };
 
-        let rows_with_tab_bar = if config.enable_tab_bar { 1 } else { 0 } + terminal_size.rows;
+        // Initially we have only a single tab, so take that into account
+        // for the tab bar state.
+        let show_tab_bar = config.enable_tab_bar && !config.hide_tab_bar_if_only_one_tab;
+
+        let rows_with_tab_bar = if show_tab_bar { 1 } else { 0 } + terminal_size.rows;
 
         let dimensions = Dimensions {
             pixel_width: ((terminal_size.cols * render_metrics.cell_size.width as u16)
@@ -557,7 +561,7 @@ impl TermWindow {
                 terminal_size,
                 render_state,
                 keys: KeyMap::new(),
-                show_tab_bar: config.enable_tab_bar,
+                show_tab_bar,
                 show_scroll_bar: config.enable_scroll_bar,
                 tab_bar: TabBarState::default(),
                 last_mouse_coords: (0, -1),
@@ -836,7 +840,14 @@ impl TermWindow {
         let config = configuration();
         self.config_generation = config.generation();
 
-        self.show_tab_bar = config.enable_tab_bar;
+        let mux = Mux::get().unwrap();
+        let window = match mux.get_window(self.mux_window_id) {
+            Some(window) => window,
+            _ => return,
+        };
+        self.show_tab_bar =
+            config.enable_tab_bar && (window.len() > 1) || !config.hide_tab_bar_if_only_one_tab;
+
         self.show_scroll_bar = config.enable_scroll_bar;
         self.shape_cache.borrow_mut().clear();
         self.keys = KeyMap::new();
@@ -877,6 +888,8 @@ impl TermWindow {
             Some(window) => window,
             _ => return,
         };
+        let config = configuration();
+
         let new_tab_bar = TabBarState::new(
             self.terminal_size.cols as usize,
             if self.last_mouse_coords.1 == 0 {
@@ -885,10 +898,7 @@ impl TermWindow {
                 None
             },
             &window,
-            configuration()
-                .colors
-                .as_ref()
-                .and_then(|c| c.tab_bar.as_ref()),
+            config.colors.as_ref().and_then(|c| c.tab_bar.as_ref()),
         );
         if new_tab_bar != self.tab_bar {
             self.tab_bar = new_tab_bar;
@@ -913,10 +923,21 @@ impl TermWindow {
         drop(window);
 
         if let Some(window) = self.window.as_ref() {
+            let show_tab_bar;
             if num_tabs == 1 {
                 window.set_title(&title);
+                show_tab_bar = config.enable_tab_bar && !config.hide_tab_bar_if_only_one_tab;
             } else {
                 window.set_title(&format!("[{}/{}] {}", tab_no + 1, num_tabs, title));
+                show_tab_bar = config.enable_tab_bar;
+            }
+
+            // If the number of tabs changed and caused the tab bar to
+            // hide/show, then we'll need to resize things.  It is simplest
+            // to piggy back on the config reloading code for that, so that
+            // is what we're doing.
+            if show_tab_bar != self.show_tab_bar {
+                self.config_was_reloaded();
             }
         }
     }

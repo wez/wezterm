@@ -424,6 +424,10 @@ pub struct Config {
     #[serde(default = "default_true")]
     pub enable_tab_bar: bool,
 
+    /// If true, hide the tab bar if the window only has a single tab.
+    #[serde(default)]
+    pub hide_tab_bar_if_only_one_tab: bool,
+
     #[serde(default)]
     pub enable_scroll_bar: bool,
 
