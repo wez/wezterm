@@ -8,7 +8,7 @@ use crate::frontend::FrontEndSelection;
 use crate::keyassignment::KeyAssignment;
 use anyhow::{anyhow, bail, Context, Error};
 use lazy_static::lazy_static;
-use portable_pty::CommandBuilder;
+use portable_pty::{CommandBuilder, PtySize};
 use serde::Deserialize;
 use std;
 use std::collections::HashMap;
@@ -299,6 +299,14 @@ pub struct Config {
     /// is the command to run and the rest of the elements are passed
     /// as the positional arguments to that command.
     pub default_prog: Option<Vec<String>>,
+
+    /// Specifies the height of a new window, expressed in character cells.
+    #[serde(default = "default_initial_rows")]
+    pub initial_rows: u16,
+
+    /// Specifies the width of a new window, expressed in character cells
+    #[serde(default = "default_initial_cols")]
+    pub initial_cols: u16,
 
     #[serde(default = "default_hyperlink_rules")]
     pub hyperlink_rules: Vec<hyperlink::Rule>,
@@ -756,6 +764,15 @@ impl Config {
         Ok(())
     }
 
+    pub fn initial_size(&self) -> PtySize {
+        PtySize {
+            rows: self.initial_rows,
+            cols: self.initial_cols,
+            pixel_width: 0,
+            pixel_height: 0,
+        }
+    }
+
     pub fn build_prog(&self, prog: Option<Vec<&OsStr>>) -> Result<CommandBuilder, Error> {
         let mut cmd = match prog {
             Some(args) => {
@@ -806,6 +823,14 @@ fn default_swap_backspace_and_delete() -> bool {
 
 fn default_scrollback_lines() -> usize {
     3500
+}
+
+fn default_initial_rows() -> u16 {
+    24
+}
+
+fn default_initial_cols() -> u16 {
+    80
 }
 
 fn default_hyperlink_rules() -> Vec<hyperlink::Rule> {

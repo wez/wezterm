@@ -10,7 +10,8 @@ daily) from the master branch.  It may not be usable and
 the feature set may change.  As features stabilize some
 brief notes about them may accumulate here.
 
-* No notable changes yet!
+* Added `initial_rows` and `initial_cols` config options to set the starting
+  size of new terminal windows
 
 ### 20200202-181957-765184e5
 

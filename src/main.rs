@@ -34,7 +34,6 @@ use crate::mux::Mux;
 use crate::server::client::{unix_connect_with_retry, Client};
 use crate::server::domain::{ClientDomain, ClientDomainConfig};
 use portable_pty::cmdbuilder::CommandBuilder;
-use portable_pty::PtySize;
 
 mod font;
 use crate::font::locator::FontLocatorSelection;
@@ -366,7 +365,7 @@ async fn async_run_ssh(opts: SshCommand, params: SshParameters) -> anyhow::Resul
 
     let window_id = mux.new_empty_window();
     let tab = domain
-        .spawn(PtySize::default(), cmd, None, window_id)
+        .spawn(config.initial_size(), cmd, None, window_id)
         .await?;
     let fontconfig = Rc::new(FontConfiguration::new());
     gui.spawn_new_window(&fontconfig, &tab, window_id)?;
@@ -424,7 +423,7 @@ fn run_serial(config: config::ConfigHandle, opts: &SerialCommand) -> anyhow::Res
     block_on(domain.attach())?; // FIXME: blocking
 
     let window_id = mux.new_empty_window();
-    let tab = block_on(domain.spawn(PtySize::default(), None, None, window_id))?; // FIXME: blocking
+    let tab = block_on(domain.spawn(config.initial_size(), None, None, window_id))?; // FIXME: blocking
     gui.spawn_new_window(&fontconfig, &tab, window_id)?;
 
     maybe_show_configuration_error_window();
@@ -499,10 +498,11 @@ async fn spawn_tab_in_default_domain_if_mux_is_empty(
         return Ok(());
     }
 
+    let config = config::configuration();
     let window_id = mux.new_empty_window();
     let tab = mux
         .default_domain()
-        .spawn(PtySize::default(), cmd, None, window_id)
+        .spawn(config.initial_size(), cmd, None, window_id)
         .await?;
     let fontconfig = Rc::new(FontConfiguration::new());
     front_end()

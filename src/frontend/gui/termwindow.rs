@@ -1224,11 +1224,12 @@ impl TermWindow {
     pub fn spawn_new_window(&mut self) {
         async fn new_window() -> anyhow::Result<()> {
             let mux = Mux::get().unwrap();
+            let config = crate::config::configuration();
             let fonts = Rc::new(FontConfiguration::new());
             let window_id = mux.new_empty_window();
             let tab = mux
                 .default_domain()
-                .spawn(PtySize::default(), None, None, window_id)
+                .spawn(config.initial_size(), None, None, window_id)
                 .await?;
             let front_end = front_end().expect("to be called on gui thread");
             front_end.spawn_new_window(&fonts, &tab, window_id)?;
