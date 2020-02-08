@@ -7,7 +7,7 @@ use crate::mux::tab::{Tab, TabId};
 use crate::mux::window::WindowId;
 use crate::mux::Mux;
 use crate::server::client::Client;
-use crate::server::codec::{GetCodecVersion, ListTabsResponse, Spawn, CODEC_VERSION};
+use crate::server::codec::{ListTabsResponse, Spawn};
 use crate::server::tab::ClientTab;
 use anyhow::{anyhow, bail};
 use async_trait::async_trait;
@@ -51,6 +51,27 @@ impl ClientInner {
         for (remote, local) in map.iter() {
             if *local == local_window_id {
                 return Some(*remote);
+            }
+        }
+        None
+    }
+
+    pub fn remote_to_local_tab_id(&self, remote_tab_id: TabId) -> Option<TabId> {
+        let mut tab_map = self.remote_to_local_tab.lock().unwrap();
+
+        if let Some(id) = tab_map.get(&remote_tab_id) {
+            return Some(*id);
+        }
+
+        let mux = Mux::get().unwrap();
+
+        for tab in mux.iter_tabs() {
+            if let Some(tab) = tab.downcast_ref::<ClientTab>() {
+                if tab.remote_tab_id() == remote_tab_id {
+                    let local_tab_id = tab.tab_id();
+                    tab_map.insert(remote_tab_id, local_tab_id);
+                    return Some(local_tab_id);
+                }
             }
         }
         None
@@ -128,24 +149,93 @@ impl ClientDomain {
 
     pub fn remote_to_local_tab_id(&self, remote_tab_id: TabId) -> Option<TabId> {
         let inner = self.inner()?;
-        let mut tab_map = inner.remote_to_local_tab.lock().unwrap();
+        inner.remote_to_local_tab_id(remote_tab_id)
+    }
 
-        if let Some(id) = tab_map.get(&remote_tab_id) {
-            return Some(*id);
-        }
-
+    pub fn get_client_inner_for_domain(domain_id: DomainId) -> anyhow::Result<Arc<ClientInner>> {
         let mux = Mux::get().unwrap();
+        let domain = mux
+            .get_domain(domain_id)
+            .ok_or_else(|| anyhow!("invalid domain id {}", domain_id))?;
+        let domain = domain
+            .downcast_ref::<Self>()
+            .ok_or_else(|| anyhow!("domain {} is not a ClientDomain", domain_id))?;
 
-        for tab in mux.iter_tabs() {
-            if let Some(tab) = tab.downcast_ref::<ClientTab>() {
-                if tab.remote_tab_id() == remote_tab_id {
-                    let local_tab_id = tab.tab_id();
-                    tab_map.insert(remote_tab_id, local_tab_id);
-                    return Some(local_tab_id);
+        if let Some(inner) = domain.inner() {
+            Ok(inner)
+        } else {
+            bail!("domain has no assigned client");
+        }
+    }
+
+    /// The reader in the mux may have decided to give up on one or
+    /// more tabs at the time that a disconnect was detected, and
+    /// it's also possible that another client connected and adjusted
+    /// the set of tabs since we were connected, so we need to re-sync.
+    pub async fn reattach(domain_id: DomainId, ui: ConnectionUI) -> anyhow::Result<()> {
+        let inner = Self::get_client_inner_for_domain(domain_id)?;
+
+        let tabs = inner.client.list_tabs().await?;
+        Self::process_tab_list(inner, tabs)?;
+
+        ui.close();
+        Ok(())
+    }
+
+    fn process_tab_list(inner: Arc<ClientInner>, tabs: ListTabsResponse) -> anyhow::Result<()> {
+        let mux = Mux::get().expect("to be called on main thread");
+        log::debug!("ListTabs result {:#?}", tabs);
+
+        for entry in tabs.tabs.iter() {
+            let tab;
+
+            if let Some(tab_id) = inner.remote_to_local_tab_id(entry.tab_id) {
+                tab = mux.get_tab(tab_id).ok_or_else(|| {
+                    anyhow!(
+                        "remote tab {} should map to local tab {} but \
+                         that tab isn't present in the muxer",
+                        entry.tab_id,
+                        tab_id
+                    )
+                })?;
+            } else {
+                log::info!(
+                    "attaching to remote tab {} in remote window {} {}",
+                    entry.tab_id,
+                    entry.window_id,
+                    entry.title
+                );
+                tab = Rc::new(ClientTab::new(
+                    &inner,
+                    entry.tab_id,
+                    entry.size,
+                    &entry.title,
+                ));
+                mux.add_tab(&tab)?;
+            }
+
+            if let Some(local_window_id) = inner.remote_to_local_window(entry.window_id) {
+                let mut window = mux
+                    .get_window_mut(local_window_id)
+                    .expect("no such window!?");
+                log::info!("already have a local window for this one");
+                if window.idx_by_id(tab.tab_id()).is_none() {
+                    window.push(&tab);
                 }
+            } else {
+                log::info!("spawn new local window");
+                let fonts = Rc::new(FontConfiguration::new());
+                let local_window_id = mux.new_empty_window();
+                inner.record_remote_to_local_window_mapping(entry.window_id, local_window_id);
+                mux.add_tab_to_window(&tab, local_window_id)?;
+
+                front_end()
+                    .unwrap()
+                    .spawn_new_window(&fonts, &tab, local_window_id)
+                    .unwrap();
             }
         }
-        None
+        Ok(())
     }
 
     fn finish_attach(
@@ -164,42 +254,7 @@ impl ClientDomain {
         let inner = Arc::new(ClientInner::new(domain_id, client));
         *domain.inner.borrow_mut() = Some(Arc::clone(&inner));
 
-        log::debug!("ListTabs result {:#?}", tabs);
-
-        for entry in tabs.tabs.iter() {
-            log::info!(
-                "attaching to remote tab {} in remote window {} {}",
-                entry.tab_id,
-                entry.window_id,
-                entry.title
-            );
-            let tab: Rc<dyn Tab> = Rc::new(ClientTab::new(
-                &inner,
-                entry.tab_id,
-                entry.size,
-                &entry.title,
-            ));
-            mux.add_tab(&tab)?;
-
-            if let Some(local_window_id) = inner.remote_to_local_window(entry.window_id) {
-                let mut window = mux
-                    .get_window_mut(local_window_id)
-                    .expect("no such window!?");
-                log::info!("already have a local window for this one");
-                window.push(&tab);
-            } else {
-                log::info!("spawn new local window");
-                let fonts = Rc::new(FontConfiguration::new());
-                let local_window_id = mux.new_empty_window();
-                inner.record_remote_to_local_window_mapping(entry.window_id, local_window_id);
-                mux.add_tab_to_window(&tab, local_window_id)?;
-
-                front_end()
-                    .unwrap()
-                    .spawn_new_window(&fonts, &tab, local_window_id)
-                    .unwrap();
-            }
-        }
+        Self::process_tab_list(inner, tabs)?;
 
         Ok(())
     }
@@ -268,39 +323,7 @@ impl Domain for ClientDomain {
         }))
         .await?;
 
-        match client.get_codec_version(GetCodecVersion {}).await {
-            Ok(info) if info.codec_vers == CODEC_VERSION => log::info!(
-                "Server version is {} (codec version {})",
-                info.version_string,
-                info.codec_vers
-            ),
-            Ok(info) => {
-                let msg = format!(
-                    "Please install the same version of wezterm on both \
-                     the client and server! \
-                     The server verson is {} (codec version {}), which is not \
-                     compatible with our version {} (codec version {}).",
-                    info.version_string,
-                    info.codec_vers,
-                    crate::wezterm_version(),
-                    CODEC_VERSION
-                );
-                ui.output_str(&msg);
-                bail!("{}", msg);
-            }
-            Err(err) => {
-                let msg = format!(
-                    "Please install the same version of wezterm on both \
-                     the client and server! \
-                     The server reported error {} while being asked for its \
-                     version.  This likely means that the server is older \
-                     than the client.",
-                    err
-                );
-                ui.output_str(&msg);
-                bail!("{}", msg);
-            }
-        };
+        client.verify_version_compat(&ui).await?;
 
         ui.output_str("Version check OK!  Requesting tab list...\n");
         let tabs = client.list_tabs().await?;

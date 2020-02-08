@@ -637,7 +637,9 @@ impl Client {
                             Ok(_) => {
                                 backoff = BASE_INTERVAL;
                                 log::error!("Reconnected!");
-                                ui.close();
+                                promise::spawn::spawn_into_main_thread(async move {
+                                    ClientDomain::reattach(local_domain_id, ui).await.ok();
+                                });
                                 break;
                             }
                             Err(err) => {
@@ -677,6 +679,45 @@ impl Client {
         Self {
             sender,
             local_domain_id,
+        }
+    }
+
+    pub async fn verify_version_compat(&self, ui: &ConnectionUI) -> anyhow::Result<()> {
+        match self.get_codec_version(GetCodecVersion {}).await {
+            Ok(info) if info.codec_vers == CODEC_VERSION => {
+                log::info!(
+                    "Server version is {} (codec version {})",
+                    info.version_string,
+                    info.codec_vers
+                );
+                Ok(())
+            }
+            Ok(info) => {
+                let msg = format!(
+                    "Please install the same version of wezterm on both \
+                     the client and server! \
+                     The server verson is {} (codec version {}), which is not \
+                     compatible with our version {} (codec version {}).",
+                    info.version_string,
+                    info.codec_vers,
+                    crate::wezterm_version(),
+                    CODEC_VERSION
+                );
+                ui.output_str(&msg);
+                bail!("{}", msg);
+            }
+            Err(err) => {
+                let msg = format!(
+                    "Please install the same version of wezterm on both \
+                     the client and server! \
+                     The server reported error {} while being asked for its \
+                     version.  This likely means that the server is older \
+                     than the client.",
+                    err
+                );
+                ui.output_str(&msg);
+                bail!("{}", msg);
+            }
         }
     }
 
