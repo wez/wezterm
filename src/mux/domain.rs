@@ -91,7 +91,10 @@ impl Domain for LocalDomain {
     ) -> Result<Rc<dyn Tab>, Error> {
         let config = configuration();
         let mut cmd = match command {
-            Some(c) => c,
+            Some(mut cmd) => {
+                config.apply_cmd_defaults(&mut cmd);
+                cmd
+            }
             None => config.build_prog(None)?,
         };
         if let Some(dir) = command_dir {

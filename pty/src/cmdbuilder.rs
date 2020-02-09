@@ -227,21 +227,51 @@ impl CommandBuilder {
     /// adds/replaces the environment that was specified via the
     /// `env` methods.
     pub(crate) fn environment_block(&self) -> Vec<u16> {
+        // Holds an entry with its preferred key case; the environment
+        // has case insensitive variable names on windows, so we need
+        // to take care to avoid confusing things with conflicting
+        // entries, and we'd also like to preserve the original case.
+        struct Entry {
+            key: OsString,
+            value: OsString,
+        }
+
+        // Best-effort lowercase transformation of an os string
+        fn lowerkey(k: &OsStr) -> OsString {
+            if let Some(s) = k.to_str() {
+                s.to_lowercase().into()
+            } else {
+                k.to_os_string()
+            }
+        }
+
+        // Use a btreemap for a nicer sorted order if you review the
+        // environment via `set`.
+        let mut env_hash = std::collections::BTreeMap::new();
+
         // Take the current environment as the base
-        let mut env_hash: std::collections::HashMap<_, _> = std::env::vars_os().collect();
+        for (key, value) in std::env::vars_os() {
+            env_hash.insert(lowerkey(&key), Entry { key, value });
+        }
 
         // override with the specified values
-        for (k, v) in &self.envs {
-            env_hash.insert(k.to_owned(), v.to_owned());
+        for (key, value) in &self.envs {
+            env_hash.insert(
+                lowerkey(&key),
+                Entry {
+                    key: key.clone(),
+                    value: value.clone(),
+                },
+            );
         }
 
         // and now encode it as wide characters
         let mut block = vec![];
 
-        for (k, v) in env_hash {
-            block.extend(k.encode_wide());
+        for entry in env_hash.values() {
+            block.extend(entry.key.encode_wide());
             block.push(b'=' as u16);
-            block.extend(v.encode_wide());
+            block.extend(entry.value.encode_wide());
             block.push(0);
         }
         // and a final terminator for CreateProcessW

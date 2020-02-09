@@ -300,6 +300,12 @@ pub struct Config {
     /// as the positional arguments to that command.
     pub default_prog: Option<Vec<String>>,
 
+    /// Specifies a map of environment variables that should be set
+    /// when spawning commands in the local domain.
+    /// This is not used when working with remote domains.
+    #[serde(default)]
+    pub set_environment_variables: HashMap<String, String>,
+
     /// Specifies the height of a new window, expressed in character cells.
     #[serde(default = "default_initial_rows")]
     pub initial_rows: u16,
@@ -797,9 +803,16 @@ impl Config {
             }
         };
 
-        cmd.env("TERM", &self.term);
+        self.apply_cmd_defaults(&mut cmd);
 
         Ok(cmd)
+    }
+
+    pub fn apply_cmd_defaults(&self, cmd: &mut CommandBuilder) {
+        for (k, v) in &self.set_environment_variables {
+            cmd.env(k, v);
+        }
+        cmd.env("TERM", &self.term);
     }
 }
 
