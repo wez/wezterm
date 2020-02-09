@@ -1135,7 +1135,8 @@ impl TermWindow {
                     // On Windows the file URI can produce a path like:
                     // `/C:\Users` which is valid in a file URI, but the leading slash
                     // is not liked by the windows file APIs, so we strip it off here.
-                    if cfg!(windows) && path.starts_with('/') {
+                    let bytes = path.as_bytes();
+                    if bytes.len() > 2 && bytes[0] == b'/' && bytes[2] == b':' {
                         Some(path[1..].to_owned())
                     } else {
                         Some(path)
