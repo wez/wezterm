@@ -100,36 +100,56 @@ impl TabBarColor {
 #[derive(Debug, Deserialize, Clone)]
 pub struct TabBarColors {
     /// The background color for the tab bar
+    #[serde(default = "default_background")]
     pub background: RgbColor,
 
     /// Styling for the active tab
+    #[serde(default = "default_active_tab")]
     pub active_tab: TabBarColor,
+
     /// Styling for other inactive tabs
+    #[serde(default = "default_inactive_tab")]
     pub inactive_tab: TabBarColor,
+
     /// Styling for an inactive tab with a mouse hovering
+    #[serde(default = "default_inactive_tab_hover")]
     pub inactive_tab_hover: TabBarColor,
+}
+
+fn default_background() -> RgbColor {
+    RgbColor::new(0x0b, 0x00, 0x22)
+}
+
+fn default_inactive_tab() -> TabBarColor {
+    TabBarColor {
+        bg_color: RgbColor::new(0x1b, 0x10, 0x32),
+        fg_color: RgbColor::new(0x80, 0x80, 0x80),
+        ..TabBarColor::default()
+    }
+}
+fn default_inactive_tab_hover() -> TabBarColor {
+    TabBarColor {
+        bg_color: RgbColor::new(0x3b, 0x30, 0x52),
+        fg_color: RgbColor::new(0x90, 0x90, 0x90),
+        italic: true,
+        ..TabBarColor::default()
+    }
+}
+fn default_active_tab() -> TabBarColor {
+    TabBarColor {
+        bg_color: RgbColor::new(0x2b, 0x20, 0x42),
+        fg_color: RgbColor::new(0xc0, 0xc0, 0xc0),
+        ..TabBarColor::default()
+    }
 }
 
 impl Default for TabBarColors {
     fn default() -> Self {
         Self {
-            background: RgbColor::new(0x0b, 0x00, 0x22),
-            inactive_tab: TabBarColor {
-                bg_color: RgbColor::new(0x1b, 0x10, 0x32),
-                fg_color: RgbColor::new(0x80, 0x80, 0x80),
-                ..TabBarColor::default()
-            },
-            inactive_tab_hover: TabBarColor {
-                bg_color: RgbColor::new(0x3b, 0x30, 0x52),
-                fg_color: RgbColor::new(0x90, 0x90, 0x90),
-                italic: true,
-                ..TabBarColor::default()
-            },
-            active_tab: TabBarColor {
-                bg_color: RgbColor::new(0x2b, 0x20, 0x42),
-                fg_color: RgbColor::new(0xc0, 0xc0, 0xc0),
-                ..TabBarColor::default()
-            },
+            background: default_background(),
+            inactive_tab: default_inactive_tab(),
+            inactive_tab_hover: default_inactive_tab_hover(),
+            active_tab: default_active_tab(),
         }
     }
 }
