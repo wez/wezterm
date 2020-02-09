@@ -99,6 +99,9 @@ impl PsuedoCon {
 
         let (mut exe, mut cmdline) = cmd.cmdline()?;
         let cmd_os = OsString::from_wide(&cmdline);
+
+        let cwd = cmd.current_directory();
+
         let res = unsafe {
             CreateProcessW(
                 exe.as_mut_slice().as_mut_ptr(),
@@ -108,14 +111,23 @@ impl PsuedoCon {
                 0,
                 EXTENDED_STARTUPINFO_PRESENT | CREATE_UNICODE_ENVIRONMENT,
                 cmd.environment_block().as_mut_slice().as_mut_ptr() as *mut _,
-                ptr::null_mut(),
+                cwd.as_ref()
+                    .map(|c| c.as_slice().as_ptr())
+                    .unwrap_or(ptr::null()),
                 &mut si.StartupInfo,
                 &mut pi,
             )
         };
         if res == 0 {
             let err = IoError::last_os_error();
-            bail!("CreateProcessW `{:?}` failed: {}", cmd_os, err);
+            let msg = format!(
+                "CreateProcessW `{:?}` in cwd `{:?}` failed: {}",
+                cmd_os,
+                cwd.as_ref().map(|c| OsString::from_wide(c)),
+                err
+            );
+            log::error!("{}", msg);
+            bail!("{}", msg);
         }
 
         // Make sure we close out the thread handle so we don't leak it;

@@ -213,6 +213,15 @@ impl CommandBuilder {
         exe.to_owned()
     }
 
+    pub(crate) fn current_directory(&self) -> Option<Vec<u16>> {
+        self.cwd.as_ref().map(|c| {
+            let mut wide = vec![];
+            wide.extend(c.encode_wide());
+            wide.push(0);
+            wide
+        })
+    }
+
     /// Constructs an environment block for this spawn attempt.
     /// Uses the current process environment as the base and then
     /// adds/replaces the environment that was specified via the

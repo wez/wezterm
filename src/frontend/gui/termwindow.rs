@@ -1130,9 +1130,20 @@ impl TermWindow {
                 ),
             };
             let cwd = match cwd {
-                Some(url) if url.scheme() == "file" => Some(url.path().to_string()),
+                Some(url) if url.scheme() == "file" => {
+                    let path = url.path().to_string();
+                    // On Windows the file URI can produce a path like:
+                    // `/C:\Users` which is valid in a file URI, but the leading slash
+                    // is not liked by the windows file APIs, so we strip it off here.
+                    if cfg!(windows) && path.starts_with('/') {
+                        Some(path[1..].to_owned())
+                    } else {
+                        Some(path)
+                    }
+                }
                 Some(_) | None => None,
             };
+
             let tab = domain.spawn(size, None, cwd, mux_window_id).await?;
             let tab_id = tab.tab_id();
 
