@@ -57,17 +57,20 @@ impl TabBarState {
         let per_tab_overhead = 2;
         let system_overhead = 3;
 
-        let tab_titles: Vec<_> = window.iter().map(|w| {
-            let mut title = w.get_title();
-            // We have a preferred soft minimum on tab width to make it
-            // easier to click on tab titles, but we'll still go below
-            // this if there are too many tabs to fit the window at
-            // this width.
-            while title.len() < 5 {
-                title.push(' ');
-            }
-            title
-        }).collect();
+        let tab_titles: Vec<_> = window
+            .iter()
+            .map(|w| {
+                let mut title = w.get_title();
+                // We have a preferred soft minimum on tab width to make it
+                // easier to click on tab titles, but we'll still go below
+                // this if there are too many tabs to fit the window at
+                // this width.
+                while title.len() < 5 {
+                    title.push(' ');
+                }
+                title
+            })
+            .collect();
         let titles_len: usize = tab_titles.iter().map(|s| unicode_column_width(s)).sum();
         let number_of_tabs = tab_titles.len();
 
