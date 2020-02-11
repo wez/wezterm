@@ -81,6 +81,7 @@ echo "Doing the build bit here"
 
 %install
 set -x
+cd ${HERE}
 mkdir -p %{buildroot}/usr/bin %{buildroot}/usr/share/wezterm/colors %{buildroot}/usr/share/applications
 install -Dsm755 target/release/wezterm %{buildroot}/usr/bin
 install -Dm644 assets/icon/terminal.png %{buildroot}/usr/share/icons/hicolor/128x128/apps/org.wezfurlong.wezterm.png
@@ -96,7 +97,7 @@ install -Dm644 assets/wezterm.appdata.xml %{buildroot}/usr/share/metainfo/wezter
 /usr/share/metainfo/wezterm.appdata.xml
 EOF
 
-        /usr/bin/rpmbuild --build-in-place -bb --rmspec wezterm.spec --verbose
+        /usr/bin/rpmbuild -bb --rmspec wezterm.spec --verbose
 
         ;;
       Ubuntu*|Debian*)

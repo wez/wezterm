@@ -4,10 +4,13 @@
 if test -e /etc/centos-release || test -e /etc/fedora-release; then
   yum install -y \
     make \
+    gcc \
     g++ \
+    gcc-c++ \
     dbus-devel \
     fontconfig-devel \
     openssl-devel \
+    python3 \
     libxcb-devel \
     libxkbcommon-devel \
     libxkbcommon-x11-devel \
