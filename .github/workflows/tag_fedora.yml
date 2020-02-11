@@ -10,15 +10,40 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        container: ["fedora:31"]
+        container: ["fedora:31", "centos:7"]
         rust_toolchain: [stable]
     runs-on: ubuntu-latest
     container: ${{ matrix.container }}
     steps:
-    - name: Install Git
+    - name: Install Sudo
+      shell: bash
+      run: yum install -y sudo
+    - name: Cache Git
+      if: contains(matrix.container, 'centos')
+      uses: actions/cache@v1
+      with:
+        path: /usr/local/git
+        key: ${{ matrix.container }}-git
+    - name: Install Reasonable Git
+      if: contains(matrix.container, 'centos')
       shell: bash
       run: |
-        sudo yum install -y git
+        VERS=2.25.0
+
+        if test ! -x /usr/local/git/bin/git ; then
+        yum install -y wget curl-devel expat-devel gettext-devel openssl-devel zlib-devel gcc perl-ExtUtils-MakeMaker make
+        cd /tmp
+        wget https://mirrors.edge.kernel.org/pub/software/scm/git/git-$VERS.tar.gz
+        tar xzf git-$VERS.tar.gz
+        cd git-$VERS
+        make prefix=/usr/local/git install
+        fi
+
+        ln -s /usr/local/git/bin/git /usr/local/bin/git
+    - name: Install System Git
+      if: "!contains(matrix.container, 'centos')"
+      shell: bash
+      run: sudo yum install -y git
     - uses: actions/checkout@v1
     - name: Install System Deps
       run: sudo ./get-deps
