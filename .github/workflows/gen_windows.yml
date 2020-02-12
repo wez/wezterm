@@ -1,5 +1,5 @@
 
-name: ubuntu16_pr
+name: windows
 
 on:
   push:
@@ -14,7 +14,7 @@ jobs:
   build:
     strategy:
       fail-fast: false
-    runs-on: "ubuntu-16.04"
+    runs-on: "vs2017-win2016"
     
     steps:
     - name: "checkout repo"
@@ -26,30 +26,32 @@ jobs:
          toolchain: "stable"
          override: true
          components: "rustfmt"
+         target: "x86_64-pc-windows-msvc"
     - name: "Cache cargo registry"
       uses: actions/cache@v1
       with:
          path: "~/.cargo/registry"
-         key: "ubuntu16-None-${{ hashFiles('Cargo.lock') }}-cargo-registry"
+         key: "windows-x86_64-pc-windows-msvc-${{ hashFiles('Cargo.lock') }}-cargo-registry"
     - name: "Cache cargo index"
       uses: actions/cache@v1
       with:
          path: "~/.cargo/git"
-         key: "ubuntu16-None-${{ hashFiles('Cargo.lock') }}-cargo-index"
+         key: "windows-x86_64-pc-windows-msvc-${{ hashFiles('Cargo.lock') }}-cargo-index"
     - name: "Cache cargo build"
       uses: actions/cache@v1
       with:
          path: "target"
-         key: "ubuntu16-None-${{ hashFiles('Cargo.lock') }}-cargo-build-target"
-    - name: "Install System Deps"
-      shell: bash
-      run: "sudo ./get-deps"
+         key: "windows-x86_64-pc-windows-msvc-${{ hashFiles('Cargo.lock') }}-cargo-build-target"
     - name: "Check formatting"
       shell: bash
       run: "cargo fmt --all -- --check"
     - name: "Build (Release mode)"
-      shell: bash
-      run: "cargo build --all --release"
+      shell: cmd
+      run: |
+            
+            PATH C:\Strawberry\perl\bin;%PATH%
+            cargo build --all --release
+
     - name: "Test (Release mode)"
       shell: bash
       run: "cargo test --all --release"
@@ -60,10 +62,10 @@ jobs:
       shell: bash
       run: |
             mkdir pkg_
-            mv *.deb *.xz *.AppImage pkg_
+            mv *.zip pkg_
 
     - name: "Upload artifact"
       uses: actions/upload-artifact@master
       with:
-         name: "ubuntu16"
+         name: "windows"
          path: "pkg_"

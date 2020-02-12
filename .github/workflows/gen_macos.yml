@@ -1,5 +1,5 @@
 
-name: macos_pr
+name: macos
 
 on:
   push:

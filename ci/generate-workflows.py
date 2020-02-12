@@ -386,7 +386,7 @@ jobs:
 
 def generate_pr_actions():
     generate_actions(
-        lambda t: f"{t.name}_pr",
+        lambda t: f"{t.name}",
         lambda t: t.pull_request(),
         trigger="""
 on:
