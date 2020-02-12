@@ -1,13 +1,9 @@
 
-name: windows_pr
+name: windows_continuous
 
 on:
-  push:
-    branches:
-    - master
-  pull_request:
-    branches:
-    - master
+  schedule:
+    - cron: "10 * * * *"
 
 
 jobs:
@@ -42,9 +38,6 @@ jobs:
       with:
          path: "target"
          key: "windows-x86_64-pc-windows-msvc-${{ hashFiles('Cargo.lock') }}-cargo-build-target"
-    - name: "Check formatting"
-      shell: bash
-      run: "cargo fmt --all -- --check"
     - name: "Build (Release mode)"
       shell: cmd
       run: |
@@ -54,18 +47,20 @@ jobs:
 
     - name: "Test (Release mode)"
       shell: bash
-      run: "cargo test --all --release"
+      run: |
+            export BUILD_REASON=Schedule
+            cargo test --all --release
+            
+
     - name: "Package"
       shell: bash
-      run: "bash ci/deploy.sh"
-    - name: "Move Package for artifact upload"
-      shell: bash
       run: |
-            mkdir pkg_
-            mv *.zip pkg_
+            export BUILD_REASON=Schedule
+            bash ci/deploy.sh
+            
 
-    - name: "Upload artifact"
-      uses: actions/upload-artifact@master
+    - name: "Upload to Nightly Release"
+      uses: AButler/upload-release-assets@v2.0
       with:
-         name: "windows"
-         path: "pkg_"
+         files: "WezTerm-*.zip"
+         repo-token: "${{ secrets.GITHUB_TOKEN }}"

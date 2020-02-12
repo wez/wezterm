@@ -12,6 +12,9 @@ def yv(v):
         return "nil"
 
     if isinstance(v, str):
+        if "\n" in v:
+            spacer = " " * 12
+            return "|\n" + spacer + v.replace("\n", "\n" + spacer) + "\n"
         return '"' + v + '"'
 
     return v
@@ -40,19 +43,15 @@ class RunStep(Step):
                 if self.shell is "bash":
                     run = f"export {k}={v}\n{run}\n"
 
-        if "\n" in run:
-            spacer = " " * 8
-            f.write(f"      run: |\n")
-            f.write(spacer + run.replace("\n", "\n" + spacer) + "\n")
-        else:
-            f.write(f"      run: {yv(run)}\n")
+        f.write(f"      run: {yv(run)}\n")
 
 
 class ActionStep(Step):
-    def __init__(self, name, action, params=None):
+    def __init__(self, name, action, params=None, env=None):
         self.name = name
         self.action = action
         self.params = params
+        self.env = env
 
     def render(self, f, env):
         f.write(f"    - name: {yv(self.name)}\n")
@@ -60,6 +59,10 @@ class ActionStep(Step):
         if self.params:
             f.write("      with:\n")
             for k, v in self.params.items():
+                f.write(f"         {k}: {yv(v)}\n")
+        if self.env:
+            f.write("      env:\n")
+            for k, v in self.env.items():
                 f.write(f"         {k}: {yv(v)}\n")
 
 
@@ -188,7 +191,7 @@ ln -s /usr/local/git/bin/git /usr/local/bin/git
         ]
 
     def install_system_deps(self):
-        if 'win' in self.name:
+        if "win" in self.name:
             return []
         return [RunStep(name="Install System Deps", run="sudo ./get-deps")]
 
@@ -232,6 +235,50 @@ cargo build --all --release""",
             ),
         ]
 
+    def upload_asset_nightly(self):
+        steps = []
+
+        if self.uses_yum():
+            steps.append(
+                RunStep("Move RPM", "mv ~/rpmbuild/RPMS/*/*.rpm wezterm-nightly.rpm")
+            )
+            patterns = ["wezterm-*.rpm"]
+        elif ("win" in self.name) or ("mac" in self.name):
+            patterns = ["WezTerm-*.zip"]
+        elif "ubuntu" in self.name:
+            patterns = ["wezterm-*.deb", "wezterm-*.xz", "wezterm-*.tar.gz"]
+
+        return steps + [
+            ActionStep(
+                "Upload to Nightly Release",
+                action="AButler/upload-release-assets@v2.0",
+                params={
+                    "files": ";".join(patterns),
+                    "repo-token": "${{ secrets.GITHUB_TOKEN }}",
+                },
+            )
+        ]
+
+    def upload_asset_tag(self):
+        steps = []
+
+        if self.uses_yum():
+            steps.append(RunStep("Move RPM", "mv ~/rpmbuild/RPMS/*/*.rpm ."))
+            patterns = ["wezterm-*.rpm"]
+        elif ("win" in self.name) or ("mac" in self.name):
+            patterns = ["WezTerm-*.zip"]
+        elif "ubuntu" in self.name:
+            patterns = ["wezterm-*.deb", "wezterm-*.xz", "wezterm-*.tar.gz"]
+
+        return steps + [
+            ActionStep(
+                "Upload to Tagged Release",
+                action="softprops/action-gh-release@v1",
+                params={"files": "\n".join(patterns)},
+                env={"GITHUB_TOKEN": "${{ secrets.GITHUB_TOKEN }}",},
+            )
+        ]
+
     def global_env(self):
         env = {}
         if "macos" in self.name:
@@ -261,6 +308,28 @@ cargo build --all --release""",
             env=self.global_env(),
         )
 
+    def continuous(self):
+        steps = self.prep_environment()
+        steps += self.build_all_release()
+        steps += self.test_all_release()
+        steps += self.package()
+        steps += self.upload_asset_nightly()
+
+        env = self.global_env()
+        env["BUILD_REASON"] = "Schedule"
+
+        return Job(runs_on=self.os, container=self.container, steps=steps, env=env,)
+
+    def tag(self):
+        steps = self.prep_environment()
+        steps += self.build_all_release()
+        steps += self.test_all_release()
+        steps += self.package()
+        steps += self.upload_asset_tag()
+
+        env = self.global_env()
+        return Job(runs_on=self.os, container=self.container, steps=steps, env=env,)
+
 
 TARGETS = [
     Target(name="ubuntu:16", os="ubuntu-16.04"),
@@ -271,11 +340,12 @@ TARGETS = [
 ]
 
 
-def generate_pr_actions():
+def generate_actions(namer, jobber, trigger):
     for t in TARGETS:
-        name = f"{t.name}_pr".replace(":", "")
+        name = namer(t).replace(":", "")
         print(name)
-        job = t.pull_request()
+        job = jobber(t)
+
         file_name = f".github/workflows/gen_{name}.yml"
         if job.container:
             container = f"container: {yv(job.container)}"
@@ -286,13 +356,7 @@ def generate_pr_actions():
             f.write(
                 f"""
 name: {name}
-on:
-  push:
-    branches:
-    - master
-  pull_request:
-    branches:
-    - master
+{trigger}
 
 jobs:
   build:
@@ -316,4 +380,47 @@ jobs:
             pass
 
 
+def generate_pr_actions():
+    generate_actions(
+        lambda t: f"{t.name}_pr",
+        lambda t: t.pull_request(),
+        trigger="""
+on:
+  push:
+    branches:
+    - master
+  pull_request:
+    branches:
+    - master
+""",
+    )
+
+
+def continuous_actions():
+    generate_actions(
+        lambda t: f"{t.name}_continuous",
+        lambda t: t.continuous(),
+        trigger="""
+on:
+  schedule:
+    - cron: "10 * * * *"
+""",
+    )
+
+
+def tag_actions():
+    generate_actions(
+        lambda t: f"{t.name}_tag",
+        lambda t: t.tag(),
+        trigger="""
+on:
+  push:
+    tags:
+      - "20*"
+""",
+    )
+
+
 generate_pr_actions()
+continuous_actions()
+tag_actions()

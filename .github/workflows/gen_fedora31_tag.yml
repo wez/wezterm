@@ -1,13 +1,11 @@
 
-name: fedora31_pr
+name: fedora31_tag
 
 on:
   push:
-    branches:
-    - master
-  pull_request:
-    branches:
-    - master
+    tags:
+      - "20*"
+
 
 
 jobs:
@@ -50,9 +48,6 @@ jobs:
     - name: "Install System Deps"
       shell: bash
       run: "sudo ./get-deps"
-    - name: "Check formatting"
-      shell: bash
-      run: "cargo fmt --all -- --check"
     - name: "Build (Release mode)"
       shell: bash
       run: "cargo build --all --release"
@@ -62,14 +57,12 @@ jobs:
     - name: "Package"
       shell: bash
       run: "bash ci/deploy.sh"
-    - name: "Move Package for artifact upload"
+    - name: "Move RPM"
       shell: bash
-      run: |
-            mkdir pkg_
-            mv ~/rpmbuild/RPMS/*/*.rpm pkg_
-
-    - name: "Upload artifact"
-      uses: actions/upload-artifact@master
+      run: "mv ~/rpmbuild/RPMS/*/*.rpm ."
+    - name: "Upload to Tagged Release"
+      uses: softprops/action-gh-release@v1
       with:
-         name: "fedora31"
-         path: "pkg_"
+         files: "wezterm-*.rpm"
+      env:
+         GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"

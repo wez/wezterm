@@ -1,13 +1,11 @@
 
-name: macos_pr
+name: macos_tag
 
 on:
   push:
-    branches:
-    - master
-  pull_request:
-    branches:
-    - master
+    tags:
+      - "20*"
+
 
 
 jobs:
@@ -48,13 +46,6 @@ jobs:
             sudo ./get-deps
             
 
-    - name: "Check formatting"
-      shell: bash
-      run: |
-            export MACOSX_DEPLOYMENT_TARGET=10.9
-            cargo fmt --all -- --check
-            
-
     - name: "Build (Release mode)"
       shell: bash
       run: |
@@ -76,16 +67,9 @@ jobs:
             bash ci/deploy.sh
             
 
-    - name: "Move Package for artifact upload"
-      shell: bash
-      run: |
-            export MACOSX_DEPLOYMENT_TARGET=10.9
-            mkdir pkg_
-            mv *.zip pkg_
-            
-
-    - name: "Upload artifact"
-      uses: actions/upload-artifact@master
+    - name: "Upload to Tagged Release"
+      uses: softprops/action-gh-release@v1
       with:
-         name: "macos"
-         path: "pkg_"
+         files: "WezTerm-*.zip"
+      env:
+         GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
