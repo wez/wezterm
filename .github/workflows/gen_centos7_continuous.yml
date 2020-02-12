@@ -1,0 +1,111 @@
+
+name: centos7_continuous
+
+on:
+  schedule:
+    - cron: "10 * * * *"
+
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+    runs-on: "ubuntu-latest"
+    container: "centos:7"
+    steps:
+    - name: "Install Sudo"
+      shell: bash
+      run: |
+            export BUILD_REASON=Schedule
+            yum install -y sudo
+            
+
+    - name: "Cache Git installation"
+      uses: actions/cache@v1
+      with:
+         path: "/usr/local/git"
+         key: "centos7-git"
+    - name: "Install Git from source"
+      shell: bash
+      run: |
+            export BUILD_REASON=Schedule
+            
+            VERS=2.25.0
+            
+            if test ! -x /usr/local/git/bin/git ; then
+                yum install -y wget curl-devel expat-devel gettext-devel openssl-devel zlib-devel gcc perl-ExtUtils-MakeMaker make
+                cd /tmp
+                wget https://mirrors.edge.kernel.org/pub/software/scm/git/git-$VERS.tar.gz
+                tar xzf git-$VERS.tar.gz
+                cd git-$VERS
+                make prefix=/usr/local/git install
+            fi
+            
+            ln -s /usr/local/git/bin/git /usr/local/bin/git
+                    
+            
+
+    - name: "checkout repo"
+      uses: actions/checkout@v1
+    - name: "Install Rust"
+      uses: actions-rs/toolchain@v1
+      with:
+         profile: "minimal"
+         toolchain: "stable"
+         override: true
+         components: "rustfmt"
+    - name: "Cache cargo registry"
+      uses: actions/cache@v1
+      with:
+         path: "~/.cargo/registry"
+         key: "centos7-None-${{ hashFiles('Cargo.lock') }}-cargo-registry"
+    - name: "Cache cargo index"
+      uses: actions/cache@v1
+      with:
+         path: "~/.cargo/git"
+         key: "centos7-None-${{ hashFiles('Cargo.lock') }}-cargo-index"
+    - name: "Cache cargo build"
+      uses: actions/cache@v1
+      with:
+         path: "target"
+         key: "centos7-None-${{ hashFiles('Cargo.lock') }}-cargo-build-target"
+    - name: "Install System Deps"
+      shell: bash
+      run: |
+            export BUILD_REASON=Schedule
+            sudo ./get-deps
+            
+
+    - name: "Build (Release mode)"
+      shell: bash
+      run: |
+            export BUILD_REASON=Schedule
+            cargo build --all --release
+            
+
+    - name: "Test (Release mode)"
+      shell: bash
+      run: |
+            export BUILD_REASON=Schedule
+            cargo test --all --release
+            
+
+    - name: "Package"
+      shell: bash
+      run: |
+            export BUILD_REASON=Schedule
+            bash ci/deploy.sh
+            
+
+    - name: "Move RPM"
+      shell: bash
+      run: |
+            export BUILD_REASON=Schedule
+            mv ~/rpmbuild/RPMS/*/*.rpm wezterm-nightly.rpm
+            
+
+    - name: "Upload to Nightly Release"
+      uses: AButler/upload-release-assets@v2.0
+      with:
+         files: "wezterm-*.rpm"
+         repo-token: "${{ secrets.GITHUB_TOKEN }}"

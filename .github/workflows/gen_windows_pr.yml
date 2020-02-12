@@ -1,0 +1,71 @@
+
+name: windows_pr
+
+on:
+  push:
+    branches:
+    - master
+  pull_request:
+    branches:
+    - master
+
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+    runs-on: "vs2017-win2016"
+    
+    steps:
+    - name: "checkout repo"
+      uses: actions/checkout@v1
+    - name: "Install Rust"
+      uses: actions-rs/toolchain@v1
+      with:
+         profile: "minimal"
+         toolchain: "stable"
+         override: true
+         components: "rustfmt"
+         target: "x86_64-pc-windows-msvc"
+    - name: "Cache cargo registry"
+      uses: actions/cache@v1
+      with:
+         path: "~/.cargo/registry"
+         key: "windows-x86_64-pc-windows-msvc-${{ hashFiles('Cargo.lock') }}-cargo-registry"
+    - name: "Cache cargo index"
+      uses: actions/cache@v1
+      with:
+         path: "~/.cargo/git"
+         key: "windows-x86_64-pc-windows-msvc-${{ hashFiles('Cargo.lock') }}-cargo-index"
+    - name: "Cache cargo build"
+      uses: actions/cache@v1
+      with:
+         path: "target"
+         key: "windows-x86_64-pc-windows-msvc-${{ hashFiles('Cargo.lock') }}-cargo-build-target"
+    - name: "Check formatting"
+      shell: bash
+      run: "cargo fmt --all -- --check"
+    - name: "Build (Release mode)"
+      shell: cmd
+      run: |
+            
+            PATH C:\Strawberry\perl\bin;%PATH%
+            cargo build --all --release
+
+    - name: "Test (Release mode)"
+      shell: bash
+      run: "cargo test --all --release"
+    - name: "Package"
+      shell: bash
+      run: "bash ci/deploy.sh"
+    - name: "Move Package for artifact upload"
+      shell: bash
+      run: |
+            mkdir pkg_
+            mv *.zip pkg_
+
+    - name: "Upload artifact"
+      uses: actions/upload-artifact@master
+      with:
+         name: "windows"
+         path: "pkg_"

@@ -1,0 +1,68 @@
+
+name: fedora31_tag
+
+on:
+  push:
+    tags:
+      - "20*"
+
+
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+    runs-on: "ubuntu-latest"
+    container: "fedora:31"
+    steps:
+    - name: "Install Sudo"
+      shell: bash
+      run: "yum install -y sudo"
+    - name: "Install System Git"
+      shell: bash
+      run: "sudo yum install -y git"
+    - name: "checkout repo"
+      uses: actions/checkout@v1
+    - name: "Install Rust"
+      uses: actions-rs/toolchain@v1
+      with:
+         profile: "minimal"
+         toolchain: "stable"
+         override: true
+         components: "rustfmt"
+    - name: "Cache cargo registry"
+      uses: actions/cache@v1
+      with:
+         path: "~/.cargo/registry"
+         key: "fedora31-None-${{ hashFiles('Cargo.lock') }}-cargo-registry"
+    - name: "Cache cargo index"
+      uses: actions/cache@v1
+      with:
+         path: "~/.cargo/git"
+         key: "fedora31-None-${{ hashFiles('Cargo.lock') }}-cargo-index"
+    - name: "Cache cargo build"
+      uses: actions/cache@v1
+      with:
+         path: "target"
+         key: "fedora31-None-${{ hashFiles('Cargo.lock') }}-cargo-build-target"
+    - name: "Install System Deps"
+      shell: bash
+      run: "sudo ./get-deps"
+    - name: "Build (Release mode)"
+      shell: bash
+      run: "cargo build --all --release"
+    - name: "Test (Release mode)"
+      shell: bash
+      run: "cargo test --all --release"
+    - name: "Package"
+      shell: bash
+      run: "bash ci/deploy.sh"
+    - name: "Move RPM"
+      shell: bash
+      run: "mv ~/rpmbuild/RPMS/*/*.rpm ."
+    - name: "Upload to Tagged Release"
+      uses: softprops/action-gh-release@v1
+      with:
+         files: "wezterm-*.rpm"
+      env:
+         GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
