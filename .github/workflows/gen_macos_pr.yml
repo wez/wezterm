@@ -1,0 +1,83 @@
+
+name: macos_pr
+on:
+  push:
+    branches:
+    - master
+  pull_request:
+    branches:
+    - master
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+    runs-on: "macos-latest"
+    
+    steps:
+    - name: "checkout repo"
+      uses: actions/checkout@v1
+    - name: "Install Rust"
+      uses: actions-rs/toolchain@v1
+      with:
+         profile: "minimal"
+         toolchain: "stable"
+         override: true
+         components: "rustfmt"
+    - name: "Cache cargo registry"
+      uses: actions/cache@v1
+      with:
+         path: "~/.cargo/registry"
+         key: "macos-stable-${{ hashFiles('Cargo.lock') }}-cargo-registry"
+    - name: "Cache cargo index"
+      uses: actions/cache@v1
+      with:
+         path: "~/.cargo/git"
+         key: "macos-stable-${{ hashFiles('Cargo.lock') }}-cargo-index"
+    - name: "Cache cargo build"
+      uses: actions/cache@v1
+      with:
+         path: "target"
+         key: "macos-stable-${{ hashFiles('Cargo.lock') }}-cargo-build-target"
+    - name: "Install System Deps"
+      shell: bash
+      run: |
+        export MACOSX_DEPLOYMENT_TARGET=10.9
+        sudo ./get-deps
+        
+    - name: "Check formatting"
+      shell: bash
+      run: |
+        export MACOSX_DEPLOYMENT_TARGET=10.9
+        cargo fmt --all -- --check
+        
+    - name: "Build (Release mode)"
+      shell: bash
+      run: |
+        export MACOSX_DEPLOYMENT_TARGET=10.9
+        cargo build --all --release
+        
+    - name: "Test (Release mode)"
+      shell: bash
+      run: |
+        export MACOSX_DEPLOYMENT_TARGET=10.9
+        cargo test --all --release
+        
+    - name: "Package"
+      shell: bash
+      run: |
+        export MACOSX_DEPLOYMENT_TARGET=10.9
+        bash ci/deploy.sh
+        
+    - name: "Move Package for artifact upload"
+      shell: bash
+      run: |
+        export MACOSX_DEPLOYMENT_TARGET=10.9
+        mkdir pkg_
+        mv *.zip pkg_
+        
+    - name: "Upload artifact"
+      uses: actions/upload-artifact@master
+      with:
+         name: "macos"
+         path: "pkg_"
