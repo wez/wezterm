@@ -28,17 +28,17 @@ jobs:
       uses: actions/cache@v1
       with:
          path: "~/.cargo/registry"
-         key: "ubuntu16-stable-${{ hashFiles('Cargo.lock') }}-cargo-registry"
+         key: "ubuntu16-None-${{ hashFiles('Cargo.lock') }}-cargo-registry"
     - name: "Cache cargo index"
       uses: actions/cache@v1
       with:
          path: "~/.cargo/git"
-         key: "ubuntu16-stable-${{ hashFiles('Cargo.lock') }}-cargo-index"
+         key: "ubuntu16-None-${{ hashFiles('Cargo.lock') }}-cargo-index"
     - name: "Cache cargo build"
       uses: actions/cache@v1
       with:
          path: "target"
-         key: "ubuntu16-stable-${{ hashFiles('Cargo.lock') }}-cargo-build-target"
+         key: "ubuntu16-None-${{ hashFiles('Cargo.lock') }}-cargo-build-target"
     - name: "Install System Deps"
       shell: bash
       run: "sudo ./get-deps"

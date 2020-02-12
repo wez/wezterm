@@ -98,7 +98,7 @@ class Target(object):
         os="ubuntu-latest",
         container=None,
         bootstrap_git=False,
-        rust_toolchain="stable",
+        rust_target=None,
     ):
         if not name:
             if container:
@@ -109,7 +109,7 @@ class Target(object):
         self.os = os
         self.container = container
         self.bootstrap_git = bootstrap_git
-        self.rust_toolchain = rust_toolchain
+        self.rust_target = rust_target
 
     def uses_yum(self):
         if "fedora" in self.name:
@@ -156,18 +156,19 @@ ln -s /usr/local/git/bin/git /usr/local/bin/git
 
     def install_rust(self):
         key_prefix = (
-            f"{self.name}-{self.rust_toolchain}-${{{{ hashFiles('Cargo.lock') }}}}"
+            f"{self.name}-{self.rust_target}-${{{{ hashFiles('Cargo.lock') }}}}"
         )
+        params = {
+            "profile": "minimal",
+            "toolchain": "stable",
+            "override": True,
+            "components": "rustfmt",
+        }
+        if self.rust_target:
+            params["target"] = self.rust_target
         return [
             ActionStep(
-                name="Install Rust",
-                action="actions-rs/toolchain@v1",
-                params={
-                    "profile": "minimal",
-                    "toolchain": self.rust_toolchain,
-                    "override": True,
-                    "components": "rustfmt",
-                },
+                name="Install Rust", action="actions-rs/toolchain@v1", params=params,
             ),
             CacheStep(
                 name="Cache cargo registry",
@@ -264,9 +265,7 @@ TARGETS = [
     Target(name="macos", os="macos-latest"),
     Target(container="fedora:31"),
     Target(container="centos:7", bootstrap_git=True),
-    Target(
-        name="windows", os="vs2017-win2016", rust_toolchain="x86_64-pc-windows-msvc"
-    ),
+    Target(name="windows", os="vs2017-win2016", rust_target="x86_64-pc-windows-msvc"),
 ]
 
 

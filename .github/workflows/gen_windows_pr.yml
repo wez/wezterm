@@ -21,9 +21,10 @@ jobs:
       uses: actions-rs/toolchain@v1
       with:
          profile: "minimal"
-         toolchain: "x86_64-pc-windows-msvc"
+         toolchain: "stable"
          override: true
          components: "rustfmt"
+         target: "x86_64-pc-windows-msvc"
     - name: "Cache cargo registry"
       uses: actions/cache@v1
       with:
