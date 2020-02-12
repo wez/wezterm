@@ -63,4 +63,5 @@ jobs:
       uses: AButler/upload-release-assets@v2.0
       with:
          files: "WezTerm-*.zip"
+         release-tag: "nightly"
          repo-token: "${{ secrets.GITHUB_TOKEN }}"

@@ -257,6 +257,7 @@ cargo build --all --release""",
                 action="AButler/upload-release-assets@v2.0",
                 params={
                     "files": ";".join(patterns),
+                    "release-tag": "nightly",
                     "repo-token": "${{ secrets.GITHUB_TOKEN }}",
                 },
             )
