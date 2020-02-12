@@ -4,9 +4,6 @@
 
 User facing home page at: https://wezfurlong.org/wezterm/
 
-[![Windows Build Status](https://github.com/wez/wezterm/workflows/windows/badge.svg)](https://github.com/wez/wezterm/actions?workflow=windows)
-[![Linux &amp; macOS Build Status](https://github.com/wez/wezterm/workflows/posix/badge.svg)](https://github.com/wez/wezterm/actions?workflow=posix)
-
 ![Screenshot](docs/screenshots/two.png)
 
 *Screenshot of wezterm on macOS, running vim*
