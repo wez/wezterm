@@ -188,6 +188,8 @@ ln -s /usr/local/git/bin/git /usr/local/bin/git
         ]
 
     def install_system_deps(self):
+        if 'win' in self.name:
+            return []
         return [RunStep(name="Install System Deps", run="sudo ./get-deps")]
 
     def check_formatting(self):

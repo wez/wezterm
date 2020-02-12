@@ -40,9 +40,6 @@ jobs:
       with:
          path: "target"
          key: "windows-x86_64-pc-windows-msvc-${{ hashFiles('Cargo.lock') }}-cargo-build-target"
-    - name: "Install System Deps"
-      shell: bash
-      run: "sudo ./get-deps"
     - name: "Check formatting"
       shell: bash
       run: "cargo fmt --all -- --check"
