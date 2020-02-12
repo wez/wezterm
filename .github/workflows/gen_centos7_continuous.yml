@@ -101,7 +101,7 @@ jobs:
       shell: bash
       run: |
             export BUILD_REASON=Schedule
-            mv ~/rpmbuild/RPMS/*/*.rpm wezterm-nightly.rpm
+            mv ~/rpmbuild/RPMS/*/*.rpm wezterm-nightly-centos7.rpm
             
 
     - name: "Upload to Nightly Release"

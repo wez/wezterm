@@ -4,20 +4,6 @@ set -e
 
 TARGET_DIR=${1:-target}
 
-if [[ "$TRAVIS" != "" ]] ; then
-  DEPLOY_ENV_TYPE="travis"
-  TAG_NAME=$TRAVIS_TAG
-elif [[ "$APPVEYOR" != "" ]] ; then
-  DEPLOY_ENV_TYPE="appveyor"
-  TAG_NAME=$APPVEYOR_REPO_TAG_NAME
-elif [[ "$TF_BUILD" != "" ]] ; then
-  DEPLOY_ENV_TYPE="azure"
-elif [[ "$GITHUB_ACTIONS" == "true" ]] ; then
-  DEPLOY_ENV_TYPE="github"
-else
-  DEPLOY_ENV_TYPE="adhoc"
-fi
-
 TAG_NAME=${TAG_NAME:-$(git describe --tags)}
 TAG_NAME=${TAG_NAME:-$(date +'%Y%m%d-%H%M%S')-$(git log --format=%h -1)}
 
@@ -31,7 +17,7 @@ HERE=$(pwd)
 
 case $OSTYPE in
   darwin*)
-    zipdir=WezTerm-macos-$DEPLOY_ENV_TYPE-$TAG_NAME
+    zipdir=WezTerm-macos-$TAG_NAME
     if [[ "$BUILD_REASON" == "Schedule" ]] ; then
       zipname=WezTerm-macos-nightly.zip
     else
@@ -45,7 +31,7 @@ case $OSTYPE in
     zip -r $zipname $zipdir
     ;;
   msys)
-    zipdir=WezTerm-windows-$DEPLOY_ENV_TYPE-$TAG_NAME
+    zipdir=WezTerm-windows-$TAG_NAME
     if [[ "$BUILD_REASON" == "Schedule" ]] ; then
       zipname=WezTerm-windows-nightly.zip
     else
@@ -121,7 +107,7 @@ EOF
         install -Dm644 assets/icon/terminal.png pkg/debian/usr/share/icons/hicolor/128x128/apps/org.wezfurlong.wezterm.png
         install -Dm644 -t pkg/debian/usr/share/wezterm/colors assets/colors/*
         install -Dm644 assets/wezterm.desktop pkg/debian/usr/share/applications/org.wezfurlong.wezterm.desktop
-				install -Dm644 assets/wezterm.appdata.xml pkg/debian/usr/share/metainfo/wezterm.appdata.xml
+        install -Dm644 assets/wezterm.appdata.xml pkg/debian/usr/share/metainfo/wezterm.appdata.xml
         if [[ "$BUILD_REASON" == "Schedule" ]] ; then
           debname=wezterm-nightly
         else

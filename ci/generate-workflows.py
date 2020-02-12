@@ -240,7 +240,7 @@ cargo build --all --release""",
 
         if self.uses_yum():
             steps.append(
-                RunStep("Move RPM", "mv ~/rpmbuild/RPMS/*/*.rpm wezterm-nightly.rpm")
+                RunStep("Move RPM", f"mv ~/rpmbuild/RPMS/*/*.rpm wezterm-nightly-{self.name}.rpm")
             )
             patterns = ["wezterm-*.rpm"]
         elif ("win" in self.name) or ("mac" in self.name):

@@ -83,7 +83,7 @@ jobs:
       shell: bash
       run: |
             export BUILD_REASON=Schedule
-            mv ~/rpmbuild/RPMS/*/*.rpm wezterm-nightly.rpm
+            mv ~/rpmbuild/RPMS/*/*.rpm wezterm-nightly-fedora31.rpm
             
 
     - name: "Upload to Nightly Release"
