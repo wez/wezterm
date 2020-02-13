@@ -5,6 +5,7 @@ import sys
 def release_to_links(rel):
     source = None
     macos = None
+    centos = None
     fedora = None
     ubuntu = None
     windows = None
@@ -23,7 +24,10 @@ def release_to_links(rel):
         elif ".tar.xz" in name:
             linux_bin = (url, name, tag_name)
         elif ".rpm" in name:
-            fedora = (url, name, tag_name)
+            if ('fedora' in name) or ('fc31' in name):
+                fedora = (url, name, tag_name)
+            if ('centos' in name) or ('el7' in name):
+                centos = (url, name, tag_name)
         elif "WezTerm-macos-" in name:
             macos = (url, name, tag_name)
         elif "WezTerm-windows-" in name:
@@ -36,6 +40,7 @@ def release_to_links(rel):
         "ubuntu": ubuntu,
         "linux_bin": linux_bin,
         "fedora": fedora,
+        "centos": centos,
         "macos": macos,
         "windows": windows,
         "appimage": appimage,

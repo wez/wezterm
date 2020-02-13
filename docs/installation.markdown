@@ -44,10 +44,24 @@ sudo apt install -y ./{{ ubuntu_stable_asset }}
 The CI system builds an `.rpm` file on Fedora 31.
 
 <a href="{{ fedora_stable }}" class="btn">Download for Fedora</a>
-<a href="https://github.com/wez/wezterm/releases/download/nightly/wezterm-nightly.rpm" class="btn">Nightly for Fedora</a>
+<a href="https://github.com/wez/wezterm/releases/download/nightly/wezterm-nightly-fedora31.rpm" class="btn">Nightly for Fedora</a>
 
 ```bash
 sudo dnf install -y {{ fedora_stable }}
+```
+
+* The package installs `/usr/bin/wezterm` and `/usr/share/applications/wezterm.desktop`
+* Configuration instructions can be [found here](config/index.html)
+
+## Installing on CentOS
+
+The CI system builds an `.rpm` file on CentOS 7.
+
+<!-- a href="{{ centos_stable }}" class="btn">Download for CentOS</a -->
+<a href="https://github.com/wez/wezterm/releases/download/nightly/wezterm-nightly-centos7.rpm" class="btn">Nightly for CentOS</a>
+
+```bash
+sudo dnf install -y {{ centos_stable }}
 ```
 
 * The package installs `/usr/bin/wezterm` and `/usr/share/applications/wezterm.desktop`
