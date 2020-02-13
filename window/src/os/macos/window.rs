@@ -545,7 +545,14 @@ impl WindowOpsMut for WindowInner {
         }
     }
 
-    fn hide(&mut self) {}
+    fn hide(&mut self) {
+        unsafe {
+            NSWindow::miniaturize_(*self.window, *self.window);
+            // We could literally set it invisible like this, but
+            // then there is no UI to make it visible again later.
+            //let () = msg_send![*self.window, setIsVisible: NO];
+        }
+    }
 
     fn set_cursor(&mut self, cursor: Option<MouseCursor>) {
         unsafe {
