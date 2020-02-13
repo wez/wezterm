@@ -61,7 +61,7 @@ The CI system builds an `.rpm` file on CentOS 7.
 <a href="https://github.com/wez/wezterm/releases/download/nightly/wezterm-nightly-centos7.rpm" class="btn">Nightly for CentOS</a>
 
 ```bash
-sudo dnf install -y {{ centos_stable }}
+sudo dnf install -y https://github.com/wez/wezterm/releases/download/nightly/wezterm-nightly-centos7.rpm
 ```
 
 * The package installs `/usr/bin/wezterm` and `/usr/share/applications/wezterm.desktop`
