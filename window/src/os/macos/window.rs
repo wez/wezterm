@@ -1029,6 +1029,14 @@ impl WindowView {
         let modifiers = unsafe { key_modifiers(nsevent.modifierFlags()) };
         let virtual_key = unsafe { nsevent.keyCode() };
 
+        log::debug!(
+            "key_common: chars=`{}` unmod=`{}` modifiers=`{:?}` virtual_key={:?}",
+            chars.escape_debug(),
+            unmod.escape_debug(),
+            modifiers,
+            virtual_key
+        );
+
         // `Delete` on macos is really Backspace and emits BS.
         // `Fn-Delete` emits DEL.
         // Alt-Delete is mapped by the IME to be equivalent to Fn-Delete.
@@ -1043,6 +1051,19 @@ impl WindowView {
             "\x08"
         } else {
             unmod
+        };
+
+        // If unmod is empty it most likely means that the user has selected
+        // an alternate keymap that has a chorded representation of eg: an ASCII
+        // character.  One example of this is selecting a Norwegian keymap on
+        // a US keyboard.  The `~` symbol is produced by pressing CTRL-].
+        // That shows up here as unmod=`` with modifiers=CTRL.  In this situation
+        // we want to cancel the modifiers out so that we just focus on
+        // `chars` instead.
+        let modifiers = if unmod.is_empty() {
+            Modifiers::NONE
+        } else {
+            modifiers
         };
 
         if USE_IME.load(Ordering::Relaxed) && modifiers.is_empty() {
@@ -1089,12 +1110,13 @@ impl WindowView {
                 key_is_down,
             };
 
-            /*
-            eprintln!(
+            log::debug!(
                 "key_common {:?} (chars={:?} unmod={:?} modifiers={:?}",
-                event, chars, unmod, modifiers
+                event,
+                chars,
+                unmod,
+                modifiers
             );
-            */
 
             if let Some(myself) = Self::get_this(this) {
                 let mut inner = myself.inner.borrow_mut();
