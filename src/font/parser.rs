@@ -457,7 +457,7 @@ fn font_info_matches(attr: &FontAttributes, names: &Names) -> bool {
             match names.sub_family.as_ref().map(String::as_str) {
                 Some("Italic") if attr.italic => true,
                 Some("Bold") if attr.bold => true,
-                None => true,
+                Some("Regular") | None => true,
                 _ => false,
             }
         } else {
