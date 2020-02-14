@@ -105,7 +105,7 @@ jobs:
             
 
     - name: "Upload to Nightly Release"
-      uses: wez/upload-release-assets@master
+      uses: wez/upload-release-assets@releases/v1
       with:
          files: "wezterm-*.rpm"
          release-tag: "nightly"
