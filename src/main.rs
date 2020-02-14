@@ -721,7 +721,7 @@ fn run() -> anyhow::Result<()> {
             )?;
         }
     };
-    pretty_env_logger::init();
+    pretty_env_logger::init_timed();
     stats::Stats::init()?;
     let _saver = umask::UmaskSaver::new();
 
