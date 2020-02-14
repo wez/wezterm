@@ -2,7 +2,7 @@ use crate::config::*;
 use termwiz::color::RgbColor;
 
 #[cfg(target_os = "macos")]
-const FONT_FAMILY: &str = "Menlo";
+const FONT_FAMILY: &str = "Andale Mono";
 #[cfg(windows)]
 const FONT_FAMILY: &str = "Consolas";
 #[cfg(all(not(target_os = "macos"), not(windows)))]
