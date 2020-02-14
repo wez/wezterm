@@ -28,6 +28,11 @@ pub trait ConnectionOps {
     fn terminate_message_loop(&self);
     fn run_message_loop(&self) -> Fallible<()>;
 
+    /// Hide the application.
+    /// This actions hides all of the windows of the application and switches
+    /// focus away from it.
+    fn hide_application(&self) {}
+
     // TODO: return a handle that can be used to cancel the timer
     fn schedule_timer<F: FnMut() + 'static>(&self, interval: std::time::Duration, callback: F);
 }

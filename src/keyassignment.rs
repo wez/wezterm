@@ -39,6 +39,8 @@ pub enum KeyAssignment {
     MoveTab(usize),
     ScrollByPage(isize),
     ShowTabNavigator,
+    HideApplication,
+    QuitApplication,
 }
 
 pub struct KeyMap(HashMap<(KeyCode, KeyModifiers), KeyAssignment>);
@@ -149,6 +151,9 @@ impl KeyMap {
             [KeyModifiers::SHIFT, KeyCode::PageDown, ScrollByPage(1)],
             [KeyModifiers::ALT, KeyCode::Char('9'), ShowTabNavigator],
         );
+
+        #[cfg(target_os = "macos")]
+        m!([KeyModifiers::SUPER, KeyCode::Char('h'), HideApplication],);
 
         Self(map)
     }

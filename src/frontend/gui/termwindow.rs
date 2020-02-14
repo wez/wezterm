@@ -1250,6 +1250,14 @@ impl TermWindow {
             MoveTabRelative(n) => self.move_tab_relative(*n)?,
             ScrollByPage(n) => self.scroll_by_page(*n)?,
             ShowTabNavigator => self.show_tab_navigator(),
+            HideApplication => {
+                let con = Connection::get().expect("call on gui thread");
+                con.hide_application();
+            }
+            QuitApplication => {
+                let con = Connection::get().expect("call on gui thread");
+                con.terminate_message_loop();
+            }
         };
         Ok(())
     }

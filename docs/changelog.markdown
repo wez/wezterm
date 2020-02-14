@@ -14,6 +14,11 @@ brief notes about them may accumulate here.
   size of new terminal windows
 * Added `hide_tab_bar_if_only_one_tab = true` config option to hide the tab
   bar when the window contains only a single tab.
+* Added `HideApplication` key action (defaults to `CMD-H` on macOS only) which
+  hides the wezterm application.  This is macOS specific.
+* Added `QuitApplication` key action which causes the gui loop to terminate
+  and the application to exit.  This is not bound by default, but you may
+  choose to assign it to something like `CMD-Q`.
 
 ### 20200202-181957-765184e5
 

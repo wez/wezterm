@@ -85,6 +85,12 @@ impl ConnectionOps for Connection {
         Ok(())
     }
 
+    fn hide_application(&self) {
+        unsafe {
+            let () = msg_send![self.ns_app, hide: self.ns_app];
+        }
+    }
+
     fn schedule_timer<F: FnMut() + 'static>(&self, interval: std::time::Duration, callback: F) {
         let secs_f64 =
             (interval.as_secs() as f64) + (f64::from(interval.subsec_nanos()) / 1_000_000_000_f64);
