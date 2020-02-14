@@ -254,7 +254,7 @@ cargo build --all --release""",
         return steps + [
             ActionStep(
                 "Upload to Nightly Release",
-                action="AButler/upload-release-assets@v2.0",
+                action="wez/upload-release-assets@master",
                 params={
                     "files": ";".join(patterns),
                     "release-tag": "nightly",

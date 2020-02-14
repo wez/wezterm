@@ -60,7 +60,7 @@ jobs:
             
 
     - name: "Upload to Nightly Release"
-      uses: AButler/upload-release-assets@v2.0
+      uses: wez/upload-release-assets@master
       with:
          files: "WezTerm-*.zip"
          release-tag: "nightly"
