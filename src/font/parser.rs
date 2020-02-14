@@ -119,7 +119,7 @@ impl ParsedFont {
                     break;
                 }
             }
-            if !found && FontLocatorSelection::get_default() != FontLocatorSelection::ConfigDirsOnly
+            if !found && FontLocatorSelection::get_default() == FontLocatorSelection::ConfigDirsOnly
             {
                 log::error!("Did not locate a font match for {:?}", attr);
             }
