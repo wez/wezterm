@@ -9,6 +9,7 @@
   - [Key Binding](config/keys.markdown)
   - [Colors & Appearance](config/appearance.markdown)
 - [Hyperlinks](hyperlinks.markdown)
+- [Shell Integration](shell-integration.markdown)
 - [iTerm Image Protocol](imgcat.markdown)
 - [SSH](ssh.markdown)
 - [Serial Ports & Arduino](serial.markdown)

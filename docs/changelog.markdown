@@ -19,6 +19,8 @@ brief notes about them may accumulate here.
 * Added `QuitApplication` key action which causes the gui loop to terminate
   and the application to exit.  This is not bound by default, but you may
   choose to assign it to something like `CMD-Q`.
+* Added `set_environment_variables` configuration section to allow defining
+  some environment variables to be passed to your shell.
 
 ### 20200202-181957-765184e5
 
