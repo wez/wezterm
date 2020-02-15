@@ -43,3 +43,17 @@ span multiple lines:
 prompt = "$E]7;file://localhost/$P$E\\$E[32m$T$E[0m $E[35m$P$E[36m$_$G$E[0m "
 ```
 
+## Using clink on Windows Systems
+
+[Clink](https://github.com/mridgers/clink) brings bash style line editing to
+your Windows cmd.exe experience.  If you haven't installed clink to be the
+global default on your system, you can configure wezterm to launch clink by
+setting the `default_prog` configuration in your `wezterm.toml`; for example,
+if you have extracted clink to `c:\clink_0.4.9` you might configure this:
+
+```toml
+default_prog = ["cmd.exe", "/s", "/k", "c:/clink_0.4.9/clink_x64.exe", "inject", "-q"]
+```
+
+Now, rather than just running `cmd.exe` on its own, this will cause `cmd.exe`
+to self-inject the clink line editor.
