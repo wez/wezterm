@@ -1118,7 +1118,7 @@ impl WindowView {
             };
 
             log::debug!(
-                "key_common {:?} (chars={:?} unmod={:?} modifiers={:?}",
+                "key_common {:?} (chars={:?} unmod={:?} modifiers={:?})",
                 event,
                 chars,
                 unmod,
