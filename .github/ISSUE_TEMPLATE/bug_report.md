@@ -17,15 +17,6 @@ A clear and concise description of what the bug is.
  - Frontend:  [e.g. OpenGL or Software]
  - Version: please run `wezterm -V` and include its output here
 
-## Is it a build problem?
-
-Please include the output from these commands in this issue:
-
-```
-rustup show
-cargo build --release
-```
-
 ## To Reproduce
 
 Steps to reproduce the behavior.
