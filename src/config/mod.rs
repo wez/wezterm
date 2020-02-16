@@ -593,6 +593,8 @@ impl Config {
             // Compute but discard the key bindings here so that we raise any
             // problems earlier than we use them.
             let _ = cfg.key_bindings()?;
+
+            std::env::set_var("WEZTERM_CONFIG_FILE", p);
             return Ok((cfg.compute_extra_defaults(Some(p)), Some(p.to_path_buf())));
         }
 

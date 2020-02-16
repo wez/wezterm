@@ -689,6 +689,10 @@ fn maybe_show_configuration_error_window() {
 }
 
 fn run() -> anyhow::Result<()> {
+    if let Ok(exe) = std::env::current_exe() {
+        std::env::set_var("WEZTERM_EXECUTABLE", exe);
+    }
+
     // This is a bit gross.
     // In order to not to automatically open a standard windows console when
     // we run, we use the windows_subsystem attribute at the top of this
