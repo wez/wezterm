@@ -90,6 +90,27 @@ pub fn tab_navigator(
 
     render(active_tab_idx, &tab_list, &mut term)?;
 
+    fn select_tab_by_idx(
+        idx: usize,
+        mux_window_id: WindowId,
+        tab_list: &Vec<(String, TabId)>,
+    ) -> bool {
+        if idx >= tab_list.len() {
+            false
+        } else {
+            promise::spawn::spawn_into_main_thread(async move {
+                let mux = Mux::get().unwrap();
+                let mut window = mux
+                    .get_window_mut(mux_window_id)
+                    .ok_or_else(|| anyhow!("no such window"))?;
+
+                window.set_active(idx);
+                anyhow::Result::<()>::Ok(())
+            });
+            true
+        }
+    }
+
     while let Ok(Some(event)) = term.poll_input(None) {
         match event {
             InputEvent::Key(KeyEvent {
@@ -121,18 +142,21 @@ pub fn tab_navigator(
                 break;
             }
             InputEvent::Key(KeyEvent {
+                key: KeyCode::Char(c),
+                ..
+            }) => {
+                if c >= '1' && c <= '9' {
+                    let idx = c as u8 - '1' as u8;
+                    if select_tab_by_idx(idx as usize, mux_window_id, &tab_list) {
+                        break;
+                    }
+                }
+            }
+            InputEvent::Key(KeyEvent {
                 key: KeyCode::Enter,
                 ..
             }) => {
-                promise::spawn::spawn_into_main_thread(async move {
-                    let mux = Mux::get().unwrap();
-                    let mut window = mux
-                        .get_window_mut(mux_window_id)
-                        .ok_or_else(|| anyhow!("no such window"))?;
-
-                    window.set_active(active_tab_idx);
-                    anyhow::Result::<()>::Ok(())
-                });
+                select_tab_by_idx(active_tab_idx, mux_window_id, &tab_list);
                 break;
             }
             _ => {}
