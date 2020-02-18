@@ -5,12 +5,15 @@ use crate::server::listener::umask;
 use anyhow::{anyhow, bail, Context};
 use promise::spawn::block_on;
 use std::ffi::OsString;
+use std::fmt;
+use std::fmt::Display;
 use std::fs::DirBuilder;
 use std::io::{Read, Write};
 #[cfg(unix)]
 use std::os::unix::fs::DirBuilderExt;
 use std::path::Path;
 use std::rc::Rc;
+use std::str::FromStr;
 use std::sync::Arc;
 use structopt::StructOpt;
 use tabout::{tabulate_output, Alignment, Column};
@@ -176,7 +179,7 @@ struct SshCommand {
     /// instead.
     /// If `:port` is omitted, then the standard ssh port (22) is
     /// used instead.
-    user_at_host_and_port: String,
+    user_at_host_and_port: SshParameters,
 
     /// Instead of executing your shell, run PROG.
     /// For example: `wezterm ssh user@host -- bash -l` will spawn bash
@@ -303,6 +306,7 @@ pub fn running_under_wsl() -> bool {
     false
 }
 
+#[derive(Clone, Debug)]
 pub struct SshParameters {
     pub username: String,
     pub host_and_port: String,
@@ -317,9 +321,17 @@ fn username_from_env() -> anyhow::Result<String> {
     std::env::var(USER).with_context(|| format!("while resolving {} env var", USER))
 }
 
-impl SshParameters {
-    fn parse(host: &str) -> anyhow::Result<Self> {
-        let parts: Vec<&str> = host.split('@').collect();
+impl Display for SshParameters {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}@{}", self.username, self.host_and_port)
+    }
+}
+
+impl FromStr for SshParameters {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let parts: Vec<&str> = s.split('@').collect();
 
         if parts.len() == 2 {
             Ok(Self {
@@ -332,13 +344,14 @@ impl SshParameters {
                 host_and_port: parts[0].to_string(),
             })
         } else {
-            bail!("failed to parse ssh parameters from `{}`", host);
+            bail!("failed to parse ssh parameters from `{}`", s);
         }
     }
 }
 
-async fn async_run_ssh(opts: SshCommand, params: SshParameters) -> anyhow::Result<()> {
+async fn async_run_ssh(opts: SshCommand) -> anyhow::Result<()> {
     // Establish the connection; it may show UI for authentication
+    let params = &opts.user_at_host_and_port;
     let sess = ssh::async_ssh_connect(&params.host_and_port, &params.username).await?;
     // Now we have a connected session, set up the ssh domain and make it
     // the default domain
@@ -354,7 +367,7 @@ async fn async_run_ssh(opts: SshCommand, params: SshParameters) -> anyhow::Resul
     let config = config::configuration();
     let pty_system = Box::new(portable_pty::ssh::SshSession::new(sess, &config.term));
     let domain: Arc<dyn Domain> = Arc::new(ssh::RemoteSshDomain::with_pty_system(
-        &opts.user_at_host_and_port,
+        &opts.user_at_host_and_port.to_string(),
         pty_system,
     ));
 
@@ -377,8 +390,6 @@ fn run_ssh(config: config::ConfigHandle, opts: SshCommand) -> anyhow::Result<()>
     let front_end_selection = opts.front_end.unwrap_or(config.front_end);
     let gui = front_end_selection.try_new()?;
 
-    let params = SshParameters::parse(&opts.user_at_host_and_port)?;
-
     // Set up the mux with no default domain; there's a good chance that
     // we'll need to show authentication UI and we don't want its domain
     // to become the default domain.
@@ -392,7 +403,7 @@ fn run_ssh(config: config::ConfigHandle, opts: SshCommand) -> anyhow::Result<()>
     // Initiate an ssh connection; since that is a blocking process with
     // callbacks, we have to run it in another thread
     promise::spawn::spawn(async {
-        if let Err(err) = async_run_ssh(opts, params).await {
+        if let Err(err) = async_run_ssh(opts).await {
             terminate_with_error(err);
         }
         // This captures the activity ownership into this future, but also
