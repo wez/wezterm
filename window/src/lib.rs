@@ -91,7 +91,7 @@ pub trait PaintContext {
     fn draw_line(&mut self, start: Point, end: Point, color: Color, operator: Operator);
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum MouseCursor {
     Arrow,
     Hand,

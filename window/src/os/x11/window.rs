@@ -11,10 +11,22 @@ use crate::{
 use anyhow::anyhow;
 use promise::{Future, Promise};
 use std::any::Any;
-use std::collections::VecDeque;
+use std::collections::{HashMap, VecDeque};
 use std::convert::TryInto;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
+use xcb::ffi::xcb_cursor_t;
+
+struct XcbCursor {
+    id: xcb_cursor_t,
+    conn: Rc<XConnection>,
+}
+
+impl Drop for XcbCursor {
+    fn drop(&mut self) {
+        xcb::free_cursor(&self.conn, self.id);
+    }
+}
 
 #[derive(Default)]
 struct CopyAndPaste {
@@ -34,6 +46,7 @@ pub(crate) struct XWindowInner {
     paint_all: bool,
     buffer_image: BufferImage,
     cursor: Option<MouseCursor>,
+    cursors: HashMap<Option<MouseCursor>, XcbCursor>,
     copy_and_paste: CopyAndPaste,
     #[cfg(feature = "opengl")]
     gl_state: Option<Rc<glium::backend::Context>>,
@@ -217,28 +230,43 @@ impl XWindowInner {
             return Ok(());
         }
 
-        let id_no = match cursor.unwrap_or(MouseCursor::Arrow) {
-            // `/usr/include/X11/cursorfont.h`
-            MouseCursor::Arrow => 132,
-            MouseCursor::Hand => 58,
-            MouseCursor::Text => 152,
-        };
+        let cursor_id = match self.cursors.get(&cursor) {
+            Some(cursor) => cursor.id,
+            None => {
+                let id_no = match cursor.unwrap_or(MouseCursor::Arrow) {
+                    // `/usr/include/X11/cursorfont.h`
+                    MouseCursor::Arrow => 132,
+                    MouseCursor::Hand => 58,
+                    MouseCursor::Text => 152,
+                };
 
-        let cursor_id: xcb::ffi::xcb_cursor_t = self.conn.generate_id();
-        xcb::create_glyph_cursor(
-            &self.conn,
-            cursor_id,
-            self.conn.cursor_font_id,
-            self.conn.cursor_font_id,
-            id_no,
-            id_no + 1,
-            0xffff,
-            0xffff,
-            0xffff,
-            0,
-            0,
-            0,
-        );
+                let cursor_id: xcb::ffi::xcb_cursor_t = self.conn.generate_id();
+                xcb::create_glyph_cursor(
+                    &self.conn,
+                    cursor_id,
+                    self.conn.cursor_font_id,
+                    self.conn.cursor_font_id,
+                    id_no,
+                    id_no + 1,
+                    0xffff,
+                    0xffff,
+                    0xffff,
+                    0,
+                    0,
+                    0,
+                );
+
+                self.cursors.insert(
+                    cursor,
+                    XcbCursor {
+                        id: cursor_id,
+                        conn: Rc::clone(&self.conn),
+                    },
+                );
+
+                cursor_id
+            }
+        };
 
         xcb::change_window_attributes(
             &self.conn,
@@ -246,7 +274,7 @@ impl XWindowInner {
             &[(xcb::ffi::XCB_CW_CURSOR, cursor_id)],
         );
 
-        xcb::free_cursor(&self.conn, cursor_id);
+        self.cursor = cursor;
 
         Ok(())
     }
@@ -687,6 +715,7 @@ impl XWindow {
                 copy_and_paste: CopyAndPaste::default(),
                 buffer_image,
                 cursor: None,
+                cursors: HashMap::new(),
                 #[cfg(feature = "opengl")]
                 gl_state: None,
             }))
