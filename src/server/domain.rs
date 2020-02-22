@@ -56,6 +56,11 @@ impl ClientInner {
         None
     }
 
+    pub fn remove_old_tab_mapping(&self, remote_tab_id: TabId) {
+        let mut tab_map = self.remote_to_local_tab.lock().unwrap();
+        tab_map.remove(&remote_tab_id);
+    }
+
     pub fn remote_to_local_tab_id(&self, remote_tab_id: TabId) -> Option<TabId> {
         let mut tab_map = self.remote_to_local_tab.lock().unwrap();
 
@@ -190,14 +195,22 @@ impl ClientDomain {
             let tab;
 
             if let Some(tab_id) = inner.remote_to_local_tab_id(entry.tab_id) {
-                tab = mux.get_tab(tab_id).ok_or_else(|| {
-                    anyhow!(
-                        "remote tab {} should map to local tab {} but \
-                         that tab isn't present in the muxer",
-                        entry.tab_id,
-                        tab_id
-                    )
-                })?;
+                match mux.get_tab(tab_id) {
+                    Some(t) => tab = t,
+                    None => {
+                        // We likely decided that we hit EOF on the tab and
+                        // removed it from the mux.  Let's add it back, but
+                        // with a new id.
+                        inner.remove_old_tab_mapping(entry.tab_id);
+                        tab = Rc::new(ClientTab::new(
+                            &inner,
+                            entry.tab_id,
+                            entry.size,
+                            &entry.title,
+                        ));
+                        mux.add_tab(&tab)?;
+                    }
+                };
             } else {
                 log::info!(
                     "attaching to remote tab {} in remote window {} {}",
