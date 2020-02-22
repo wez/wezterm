@@ -13,6 +13,8 @@ use anyhow::{anyhow, bail, Context, Error};
 use crossbeam::channel::TryRecvError;
 use filedescriptor::{pollfd, AsRawSocketDescriptor};
 use log::info;
+use openssl::ssl::{SslConnector, SslFiletype, SslMethod};
+use openssl::x509::X509;
 use portable_pty::{CommandBuilder, NativePtySystem, PtySystem};
 use promise::{Future, Promise};
 use std::collections::HashMap;
@@ -451,9 +453,6 @@ impl Reconnectable {
         _initial: bool,
         ui: &mut ConnectionUI,
     ) -> anyhow::Result<()> {
-        use openssl::ssl::{SslConnector, SslFiletype, SslMethod};
-        use openssl::x509::X509;
-
         openssl::init();
 
         let remote_address = &tls_client.remote_address;
@@ -464,6 +463,31 @@ impl Reconnectable {
                 remote_address
             )
         })?;
+
+        // If we are reconnecting and already bootstrapped via SSH, let's see if
+        // we can connect using those same credentials and avoid running through
+        // the SSH authentication flow.
+        if let Some(Ok(_)) = tls_client.ssh_parameters() {
+            match self.try_connect(&tls_client, ui, &remote_address, remote_host_name) {
+                Ok(stream) => {
+                    self.stream.replace(stream);
+                    return Ok(());
+                }
+                Err(err) => {
+                    if err.root_cause().downcast_ref::<std::io::Error>().is_some() {
+                        // If it is an IO error that implies that we had an issue
+                        // reaching or otherwise talking to the remote host.
+                        // Re-attempting the SSH bootstrap most likely will not
+                        // succeed so we let this bubble up.
+                        return Err(err);
+                    }
+                    ui.output_str(&format!(
+                        "Failed to reuse creds: {:?}\nWill retry bootstrap via SSH\n",
+                        err
+                    ));
+                }
+            }
+        }
 
         if let Some(Ok(ssh_params)) = tls_client.ssh_parameters() {
             if self.tls_creds.is_none() {
@@ -513,12 +537,23 @@ impl Reconnectable {
             }
         }
 
+        let stream = self.try_connect(&tls_client, ui, &remote_address, remote_host_name)?;
+        self.stream.replace(stream);
+        Ok(())
+    }
+
+    fn try_connect(
+        &mut self,
+        tls_client: &TlsDomainClient,
+        ui: &mut ConnectionUI,
+        remote_address: &str,
+        remote_host_name: &str,
+    ) -> anyhow::Result<Box<dyn ReadAndWrite>> {
         let mut connector = SslConnector::builder(SslMethod::tls())?;
 
         let cert_file = match tls_client.pem_cert.clone() {
             Some(cert) => cert,
-            None if self.tls_creds.is_some() => self.tls_creds_cert_path()?,
-            None => bail!("no pem_cert configured"),
+            None => self.tls_creds_cert_path()?,
         };
 
         connector
@@ -539,8 +574,7 @@ impl Reconnectable {
 
         let key_file = match tls_client.pem_private_key.clone() {
             Some(key) => key,
-            None if self.tls_creds.is_some() => self.tls_creds_cert_path()?,
-            None => bail!("no pem_private_key configured"),
+            None => self.tls_creds_cert_path()?,
         };
         connector
             .set_private_key_file(&key_file, SslFiletype::PEM)
@@ -566,10 +600,10 @@ impl Reconnectable {
             }
         }
 
-        if self.tls_creds.is_some() {
-            connector
-                .cert_store_mut()
-                .add_cert(load_cert(&self.tls_creds_ca_path()?)?)?;
+        if let Ok(ca_path) = self.tls_creds_ca_path() {
+            if ca_path.exists() {
+                connector.cert_store_mut().add_cert(load_cert(&ca_path)?)?;
+            }
         }
 
         let connector = connector.build();
@@ -602,8 +636,7 @@ impl Reconnectable {
                 })?,
         );
         ui.output_str("TLS Connected!\n");
-        self.stream.replace(stream);
-        Ok(())
+        Ok(stream)
     }
 }
 
