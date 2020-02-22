@@ -3238,7 +3238,7 @@ dependencies = [
 
 [[package]]
 name = "vtparse"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "pretty_assertions",
  "utf8parse",
