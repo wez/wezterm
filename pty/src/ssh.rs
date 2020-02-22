@@ -271,12 +271,7 @@ impl Read for SshReader {
             if inner.waiting_for_read {
                 self.pty.inner.read_waiters.wait(inner).ok();
             } else {
-                let socket = inner
-                    .session
-                    .tcp_stream()
-                    .as_ref()
-                    .unwrap()
-                    .as_socket_descriptor();
+                let socket = inner.session.as_socket_descriptor();
 
                 // We own waiting for read
                 inner.waiting_for_read = true;

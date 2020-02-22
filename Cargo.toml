@@ -51,7 +51,7 @@ ratelimit_meter = "5.0"
 rcgen = "0.7"
 serde = {version="1.0", features = ["rc", "derive"]}
 serial = "0.4"
-ssh2 = "0.7"
+ssh2 = "0.8"
 structopt = "0.3"
 tabout = { path = "tabout" }
 term = { path = "term" }

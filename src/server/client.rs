@@ -270,12 +270,7 @@ impl Read for SshStream {
 
 impl AsPollFd for SshStream {
     fn as_poll_fd(&self) -> pollfd {
-        self.sess
-            .tcp_stream()
-            .as_ref()
-            .unwrap()
-            .as_socket_descriptor()
-            .as_poll_fd()
+        self.sess.as_socket_descriptor().as_poll_fd()
     }
 }
 

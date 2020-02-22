@@ -1350,9 +1350,9 @@ dependencies = [
 
 [[package]]
 name = "libssh2-sys"
-version = "0.2.14"
+version = "0.2.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "36aa6e813339d3a063292b77091dfbbb6152ff9006a459895fa5bebed7d34f10"
+checksum = "2b920f022ce0b459a5f27aa86c87c74510bad96f1d9169cfe1f7d2d2e7f1f10f"
 dependencies = [
  "cc",
  "libc",
@@ -2731,9 +2731,9 @@ checksum = "6e63cff320ae2c57904679ba7cb63280a3dc4613885beafb148ee7bf9aa9042d"
 
 [[package]]
 name = "ssh2"
-version = "0.7.1"
+version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "26c31781ff1198791fb772771bca3ec962d7243cb8cad79818b2b38be8253e3c"
+checksum = "eb1a0bdfb47e1fa1eb80f67c7909cfddab49d4262025aa9e4f6e9c39ad77b482"
 dependencies = [
  "bitflags 1.2.1",
  "libc",
