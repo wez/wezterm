@@ -469,12 +469,19 @@ impl Reconnectable {
                     return Ok(());
                 }
                 Err(err) => {
-                    if err.root_cause().downcast_ref::<std::io::Error>().is_some() {
-                        // If it is an IO error that implies that we had an issue
-                        // reaching or otherwise talking to the remote host.
-                        // Re-attempting the SSH bootstrap most likely will not
-                        // succeed so we let this bubble up.
-                        return Err(err);
+                    if let Some(ioerr) = err.root_cause().downcast_ref::<std::io::Error>() {
+                        match ioerr.kind() {
+                            std::io::ErrorKind::ConnectionRefused => {
+                                // Server isn't up yet; let's proceed with bootstrap
+                            }
+                            _ => {
+                                // If it is an IO error that implies that we had an issue
+                                // reaching or otherwise talking to the remote host.
+                                // Re-attempting the SSH bootstrap most likely will not
+                                // succeed so we let this bubble up.
+                                return Err(err);
+                            }
+                        }
                     }
                     ui.output_str(&format!(
                         "Failed to reuse creds: {:?}\nWill retry bootstrap via SSH\n",
