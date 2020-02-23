@@ -185,9 +185,7 @@ impl SessionHandler {
                 }),
             };
             log::trace!("{} processing time {:?}", serial, start.elapsed());
-            sender
-                .send(DecodedPdu { pdu, serial })
-                .expect("failed to send DecodedPdu to sender")
+            sender.send(DecodedPdu { pdu, serial }).ok();
         };
 
         fn catch<F, SND>(f: F, send_response: SND)
