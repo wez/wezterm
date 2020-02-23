@@ -16,6 +16,8 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use term::{Line, StableRowIndex};
+use termwiz::cell::CellAttributes;
+use termwiz::color::AnsiColor;
 use url::Url;
 
 const MAX_POLL_INTERVAL: Duration = Duration::from_secs(30);
@@ -67,6 +69,10 @@ pub struct RenderableInner {
     pub working_dir: Option<Url>,
 
     fetch_limiter: RateLimiter,
+
+    last_send_time: Instant,
+    last_recv_time: Instant,
+    last_late_dirty: Instant,
 }
 
 pub struct RenderableState {
@@ -82,11 +88,13 @@ impl RenderableInner {
         title: &str,
         fetch_limiter: RateLimiter,
     ) -> Self {
+        let now = Instant::now();
+
         Self {
             client: Arc::clone(client),
             remote_tab_id,
             local_tab_id,
-            last_poll: Instant::now(),
+            last_poll: now,
             dead: false,
             poll_in_progress: AtomicBool::new(false),
             poll_interval: BASE_POLL_INTERVAL,
@@ -96,11 +104,34 @@ impl RenderableInner {
             title: title.to_string(),
             working_dir: None,
             fetch_limiter,
+            last_send_time: now,
+            last_recv_time: now,
+            last_late_dirty: now,
         }
     }
 
-    pub fn apply_changes_to_surface(&mut self, delta: GetTabRenderChangesResponse) {
+    /// Returns true if we think we should display the laggy connection
+    /// indicator.  If we're past our poll interval and more recently
+    /// tried to send something than receive something, the UI is worth
+    /// showing.
+    fn is_tardy(&self) -> bool {
+        let elapsed = self.last_recv_time.elapsed();
+        if elapsed > self.poll_interval.max(Duration::from_secs(3)) {
+            self.last_send_time > self.last_recv_time
+        } else {
+            false
+        }
+    }
+
+    pub fn update_last_send(&mut self) {
+        self.last_send_time = Instant::now();
         self.poll_interval = BASE_POLL_INTERVAL;
+    }
+
+    pub fn apply_changes_to_surface(&mut self, delta: GetTabRenderChangesResponse) {
+        let now = Instant::now();
+        self.poll_interval = BASE_POLL_INTERVAL;
+        self.last_recv_time = now;
 
         let mut dirty = RangeSet::new();
         for r in delta.dirty_lines {
@@ -130,7 +161,6 @@ impl RenderableInner {
                 .notify(crate::mux::MuxNotification::TabOutput(self.local_tab_id));
         }
 
-        let now = Instant::now();
         let mut to_fetch = RangeSet::new();
         for r in dirty.iter() {
             for stable_row in r.clone() {
@@ -334,14 +364,13 @@ impl RenderableInner {
             return Ok(());
         }
 
+        if self.last_poll.elapsed() < self.poll_interval {
+            return Ok(());
+        }
+
         let interval = self.poll_interval;
         let interval = (interval + interval).min(MAX_POLL_INTERVAL);
         self.poll_interval = interval;
-
-        let last = self.last_poll;
-        if last.elapsed() < self.poll_interval {
-            return Ok(());
-        }
 
         self.last_poll = Instant::now();
         self.poll_in_progress.store(true, Ordering::SeqCst);
@@ -366,6 +395,7 @@ impl RenderableInner {
                 let mut inner = renderable.inner.borrow_mut();
 
                 inner.dead = !alive;
+                inner.last_recv_time = Instant::now();
                 inner.poll_in_progress.store(false, Ordering::SeqCst);
             }
             Ok::<(), anyhow::Error>(())
@@ -415,6 +445,30 @@ impl Renderable for RenderableState {
                     LineEntry::Fetching(now)
                 }
             };
+
+            if idx == inner.dimensions.physical_top {
+                if inner.is_tardy() {
+                    let status = format!(
+                        "wezterm: {:.0?}⏳since last response",
+                        inner.last_recv_time.elapsed()
+                    );
+                    // Right align it in the tab
+                    let col = inner
+                        .dimensions
+                        .cols
+                        .saturating_sub(term::unicode_column_width(&status));
+
+                    let mut attr = CellAttributes::default();
+                    attr.foreground = AnsiColor::White.into();
+                    attr.background = AnsiColor::Blue.into();
+
+                    result
+                        .last_mut()
+                        .unwrap()
+                        .overlay_text_with_attribute(col, &status, attr);
+                }
+            }
+
             inner.lines.put(idx, entry);
         }
 
@@ -442,6 +496,17 @@ impl Renderable for RenderableState {
                     result.add(r);
                 }
                 _ => {}
+            }
+        }
+
+        // If we're behind receiving an update, invalidate the top row so
+        // that the indicator will update in a more timely fashion
+        if inner.is_tardy() {
+            // ... but take care to avoid always reporting it as dirty, so
+            // that we don't end up busy looping just to repaint it
+            if inner.last_late_dirty.elapsed() >= Duration::from_secs(1) {
+                result.add(inner.dimensions.physical_top);
+                inner.last_late_dirty = Instant::now();
             }
         }
 

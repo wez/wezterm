@@ -146,6 +146,11 @@ impl Tab for ClientTab {
                 })
                 .await
         });
+        self.renderable
+            .borrow()
+            .inner
+            .borrow_mut()
+            .update_last_send();
         Ok(())
     }
 
@@ -183,6 +188,7 @@ impl Tab for ClientTab {
                     })
                     .await
             });
+            inner.update_last_send();
         }
         Ok(())
     }
@@ -202,12 +208,23 @@ impl Tab for ClientTab {
                 })
                 .await
         });
+        self.renderable
+            .borrow()
+            .inner
+            .borrow_mut()
+            .update_last_send();
         Ok(())
     }
 
     fn mouse_event(&self, event: MouseEvent, _host: &mut dyn TerminalHost) -> anyhow::Result<()> {
         self.mouse.borrow_mut().append(event);
-        MouseState::next(Rc::clone(&self.mouse));
+        if MouseState::next(Rc::clone(&self.mouse)) {
+            self.renderable
+                .borrow()
+                .inner
+                .borrow_mut()
+                .update_last_send();
+        }
         Ok(())
     }
 

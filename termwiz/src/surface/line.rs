@@ -304,6 +304,25 @@ impl Line {
         &self.cells[idx]
     }
 
+    /// Place text starting at the specified column index.
+    /// Each grapheme of the text run has the same attributes.
+    pub fn overlay_text_with_attribute(
+        &mut self,
+        mut start_idx: usize,
+        text: &str,
+        attr: CellAttributes,
+    ) {
+        for (i, c) in text.graphemes(true).enumerate() {
+            let cell = Cell::new_grapheme(c, attr.clone());
+            let width = cell.width();
+            self.set_cell(i + start_idx, cell);
+
+            // Compensate for required spacing/placement of
+            // double width characters
+            start_idx += width.saturating_sub(1);
+        }
+    }
+
     fn invalidate_grapheme_at_or_before(&mut self, idx: usize) {
         // Assumption: that the width of a grapheme is never > 2.
         // This constrains the amount of look-back that we need to do here.

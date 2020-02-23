@@ -64,7 +64,7 @@ impl MouseState {
         }
     }
 
-    pub fn next(state: Rc<RefCell<Self>>) {
+    pub fn next(state: Rc<RefCell<Self>>) -> bool {
         let mut mouse = state.borrow_mut();
         if let Some(event) = mouse.pop() {
             let client = mouse.client.clone();
@@ -89,6 +89,9 @@ impl MouseState {
                 Self::next(Rc::clone(&state));
                 Ok::<(), anyhow::Error>(())
             });
+            true
+        } else {
+            false
         }
     }
 }
