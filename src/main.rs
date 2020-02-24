@@ -701,6 +701,9 @@ fn maybe_show_configuration_error_window() {
 
 fn run() -> anyhow::Result<()> {
     if let Ok(exe) = std::env::current_exe() {
+        if let Some(dir) = exe.parent() {
+            std::env::set_var("WEZTERM_EXECUTABLE_DIR", dir);
+        }
         std::env::set_var("WEZTERM_EXECUTABLE", exe);
     }
 

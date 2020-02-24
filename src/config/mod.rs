@@ -595,6 +595,9 @@ impl Config {
             let _ = cfg.key_bindings()?;
 
             std::env::set_var("WEZTERM_CONFIG_FILE", p);
+            if let Some(dir) = p.parent() {
+                std::env::set_var("WEZTERM_CONFIG_DIR", dir);
+            }
             return Ok((cfg.compute_extra_defaults(Some(p)), Some(p.to_path_buf())));
         }
 
