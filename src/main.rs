@@ -583,6 +583,23 @@ fn run_terminal_gui(config: config::ConfigHandle, opts: StartCommand) -> anyhow:
                     _ => return Err(err.into()),
                 }
             }
+
+            // Remove some environment variables that aren't super helpful or
+            // that are potentially misleading when we're starting up the
+            // server.
+            // We may potentially want to look into starting/registering
+            // a session of some kind here as well in the future.
+            for name in &[
+                "OLDPWD",
+                "PWD",
+                "SHLVL",
+                "SSH_AUTH_SOCK",
+                "SSH_CLIENT",
+                "SSH_CONNECTION",
+                "_",
+            ] {
+                std::env::remove_var(name);
+            }
         }
     }
 
