@@ -278,6 +278,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "bstr"
+version = "0.2.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "502ae1441a0a5adb8fbd38a5955a6416b9493e92b465de5e4a9bde6a539c2c48"
+dependencies = [
+ "memchr",
+]
+
+[[package]]
 name = "bumpalo"
 version = "3.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1420,6 +1429,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "lua-src"
+version = "535.0.1+540b"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0d7c4f629087ac894e7b542b4049fb527472f2458c823900f79a0bde0b202e62"
+dependencies = [
+ "cc",
+]
+
+[[package]]
+name = "luajit-src"
+version = "210.0.0+694d69a"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "80d84f30aba8908dba49f46e6d2470c7018e5f60418edf3fc91a4f251238b20c"
+dependencies = [
+ "cc",
+]
+
+[[package]]
 name = "lyon_geom"
 version = "0.14.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1613,6 +1640,20 @@ checksum = "396aa0f2003d7df8395cb93e09871561ccc3e785f0acb369170e8cc74ddf9226"
 dependencies = [
  "socket2",
  "winapi 0.3.8",
+]
+
+[[package]]
+name = "mlua"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "869c35a04c6b414eee44268afb7c75a4904ffeb31cf3b27a5c7bc10d1fe62cca"
+dependencies = [
+ "bstr",
+ "cc",
+ "lua-src",
+ "luajit-src",
+ "num-traits 0.2.11",
+ "pkg-config",
 ]
 
 [[package]]
@@ -3448,6 +3489,7 @@ dependencies = [
  "log",
  "lru",
  "metrics",
+ "mlua",
  "notify",
  "notify-rust",
  "open",

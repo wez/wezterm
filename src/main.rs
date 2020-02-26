@@ -25,6 +25,7 @@ mod keyassignment;
 mod localtab;
 mod mux;
 mod ratelim;
+mod scripting;
 mod server;
 mod ssh;
 mod stats;

@@ -43,7 +43,7 @@ pub use tls::*;
 pub use unix::*;
 
 lazy_static! {
-    static ref HOME_DIR: PathBuf = dirs::home_dir().expect("can't find HOME dir");
+    pub static ref HOME_DIR: PathBuf = dirs::home_dir().expect("can't find HOME dir");
     static ref RUNTIME_DIR: PathBuf = compute_runtime_dir().unwrap();
     static ref CONFIG: Configuration = Configuration::new();
 }
@@ -549,10 +549,12 @@ impl Config {
         // multiple.  In addition, it spawns a lot of subprocesses,
         // so we do this bit "by-hand"
         let mut paths = vec![
+            HOME_DIR.join(".config").join("wezterm").join("wezterm.lua"),
             HOME_DIR
                 .join(".config")
                 .join("wezterm")
                 .join("wezterm.toml"),
+            HOME_DIR.join(".wezterm.lua"),
             HOME_DIR.join(".wezterm.toml"),
         ];
         if cfg!(windows) {
@@ -566,7 +568,8 @@ impl Config {
             // dir as the executable that will take precedence.
             if let Ok(exe_name) = std::env::current_exe() {
                 if let Some(exe_dir) = exe_name.parent() {
-                    paths.insert(0, exe_dir.join("wezterm.toml"));
+                    paths.insert(0, exe_dir.join("wezterm.lua"));
+                    paths.insert(1, exe_dir.join("wezterm.toml"));
                 }
             }
         }
@@ -587,8 +590,26 @@ impl Config {
             let mut s = String::new();
             file.read_to_string(&mut s)?;
 
-            let cfg: Self = toml::from_str(&s)
-                .with_context(|| format!("Error parsing TOML from {}", p.display()))?;
+            let cfg: Self;
+
+            if p.extension() == Some(OsStr::new("toml")) {
+                cfg = toml::from_str(&s)
+                    .with_context(|| format!("Error parsing TOML from {}", p.display()))?;
+            } else if p.extension() == Some(OsStr::new("lua")) {
+                let lua = crate::scripting::make_lua_context(p)?;
+                let config: mlua::Value = lua
+                    .load(&s)
+                    .set_name(p.to_string_lossy().as_bytes())?
+                    .eval()?;
+                cfg = crate::scripting::from_lua_value(config).with_context(|| {
+                    format!(
+                        "Error converting lua value returned by script {} to Config struct",
+                        p.display()
+                    )
+                })?;
+            } else {
+                unreachable!();
+            }
 
             // Compute but discard the key bindings here so that we raise any
             // problems earlier than we use them.

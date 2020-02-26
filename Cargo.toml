@@ -40,6 +40,7 @@ log = "0.4"
 lru = "0.4"
 open = "1.2"
 metrics = { version="0.12", features=["std"]}
+mlua = {version="0.2", features=["vendored"]}
 hdrhistogram = "6.3"
 openssl = "0.10"
 # file change notification
