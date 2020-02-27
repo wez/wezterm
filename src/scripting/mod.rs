@@ -86,6 +86,8 @@ pub fn make_lua_context(config_dir: &Path) -> anyhow::Result<Lua> {
             })?,
         )?;
 
+        wezterm_mod.set("font", lua.create_function(font_family)?)?;
+
         package.set("path", path_array.join(";"))?;
 
         let loaded: Table = package.get("loaded")?;
@@ -93,4 +95,31 @@ pub fn make_lua_context(config_dir: &Path) -> anyhow::Result<Lua> {
     }
 
     Ok(lua)
+}
+
+/// Given a simple font family name, returns the fiddly lua table equivalent
+/// of the underlying data structure:
+/// `{ font = {{ family = FAMILY }}}`
+/// The second optional argument is a list of default values for the outer
+/// level map.  For example:
+///
+/// `wezterm.font("foo", {foreground="tomato"})`
+/// yields:
+/// `{ font = {{ family = "foo" }}, foreground="tomato"}`
+fn font_family<'lua>(
+    lua: &'lua Lua,
+    (family, map_defaults): (String, Option<Table<'lua>>),
+) -> mlua::Result<Table<'lua>> {
+    let font_array = lua.create_table()?;
+    let font = lua.create_table()?;
+    font.set("family", family)?;
+    font_array.set(1, font)?;
+
+    let font_map = match map_defaults {
+        Some(tbl) => tbl,
+        None => lua.create_table()?,
+    };
+
+    font_map.set("font", font_array)?;
+    Ok(font_map)
 }
