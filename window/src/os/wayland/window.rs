@@ -260,11 +260,11 @@ impl WaylandWindowInner {
     pub(crate) fn handle_keyboard_event(&mut self, evt: KeyboardEvent) {
         match evt {
             KeyboardEvent::Key {
-                rawkey,
                 keysym,
                 is_down,
                 utf8,
                 serial,
+                ..
             } => {
                 self.copy_and_paste
                     .lock()
@@ -278,10 +278,7 @@ impl WaylandWindowInner {
                     Some(text) => (KeyCode::Composed(text), raw_key),
                     None => match raw_key {
                         Some(key) => (key, None),
-                        None => {
-                            println!("no mapping for keysym {:x} and rawkey {:x}", keysym, rawkey);
-                            return;
-                        }
+                        None => return,
                     },
                 };
                 // Avoid redundant key == raw_key
