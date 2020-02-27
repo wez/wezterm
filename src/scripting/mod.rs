@@ -87,6 +87,7 @@ pub fn make_lua_context(config_dir: &Path) -> anyhow::Result<Lua> {
         )?;
 
         wezterm_mod.set("font", lua.create_function(font_family)?)?;
+        wezterm_mod.set("hostname", lua.create_function(hostname)?)?;
 
         package.set("path", path_array.join(";"))?;
 
@@ -95,6 +96,17 @@ pub fn make_lua_context(config_dir: &Path) -> anyhow::Result<Lua> {
     }
 
     Ok(lua)
+}
+
+/// Returns the system hostname.
+/// Errors may occur while retrieving the hostname from the system,
+/// or if the hostname isn't a UTF-8 string.
+fn hostname<'lua>(_: &'lua Lua, _: ()) -> mlua::Result<String> {
+    let hostname = hostname::get().map_err(|e| mlua::Error::external(e))?;
+    match hostname.to_str() {
+        Some(hostname) => Ok(hostname.to_owned()),
+        None => Err(mlua::Error::external(anyhow!("hostname isn't UTF-8"))),
+    }
 }
 
 /// Given a simple font family name, returns the fiddly lua table equivalent
