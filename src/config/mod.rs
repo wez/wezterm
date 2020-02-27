@@ -847,7 +847,7 @@ fn default_ratelimit_line_prefetches_per_second() -> u32 {
 }
 
 fn default_ratelimit_output_bytes_per_second() -> u32 {
-    200_000
+    400_000
 }
 
 fn default_true() -> bool {
