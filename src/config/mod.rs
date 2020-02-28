@@ -574,6 +574,7 @@ impl Config {
             }
         }
         if let Some(path) = std::env::var_os("WEZTERM_CONFIG_FILE") {
+            log::trace!("Note: WEZTERM_CONFIG_FILE is set in the environment");
             paths.insert(0, path.into());
         }
 
