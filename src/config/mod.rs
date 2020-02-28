@@ -93,7 +93,8 @@ impl ConfigInner {
     fn watch_path(&mut self, path: PathBuf) {
         if self.watcher.is_none() {
             let (tx, rx) = std::sync::mpsc::channel();
-            let watcher = notify::watcher(tx, Duration::from_millis(200)).unwrap();
+            const DELAY: Duration = Duration::from_millis(200);
+            let watcher = notify::watcher(tx, DELAY).unwrap();
             std::thread::spawn(move || {
                 // block until we get an event
                 use notify::DebouncedEvent;
@@ -103,17 +104,19 @@ impl ConfigInner {
                         // Defer acting until `Write`, otherwise we'll
                         // reload twice in quick succession
                         DebouncedEvent::NoticeWrite(_) => None,
-                        // Likewise, defer processing a remove until after
-                        // we've debounced the event.  That will give us
-                        // time to pick up the new version of the config if
-                        // the user's editor removes the file before writing
-                        // out a new version.
-                        DebouncedEvent::NoticeRemove(_) => None,
                         DebouncedEvent::Create(path)
                         | DebouncedEvent::Write(path)
                         | DebouncedEvent::Chmod(path)
                         | DebouncedEvent::Remove(path)
                         | DebouncedEvent::Rename(path, _) => Some(path),
+                        DebouncedEvent::NoticeRemove(path) => {
+                            // In theory, `notify` should deliver DebouncedEvent::Remove
+                            // shortly after this, but it doesn't always do so.
+                            // Let's just wait a bit and report the path changed
+                            // for ourselves.
+                            std::thread::sleep(DELAY);
+                            Some(path)
+                        }
                         DebouncedEvent::Error(_, path) => path,
                         DebouncedEvent::Rescan => None,
                     }
