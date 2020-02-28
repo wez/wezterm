@@ -384,7 +384,11 @@ impl RenderableInner {
                     tab_id: remote_tab_id,
                 })
                 .await
-                .is_ok();
+                .is_ok()
+                // if we got a timeout on a reconnectable, don't
+                // consider the tab to be dead; that helps to
+                // avoid having a tab get shuffled around
+                || client.client.is_reconnectable;
 
             let mux = Mux::get().unwrap();
             let tab = mux

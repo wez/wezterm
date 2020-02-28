@@ -34,6 +34,7 @@ enum ReaderMessage {
 pub struct Client {
     sender: PollableSender<ReaderMessage>,
     local_domain_id: DomainId,
+    pub is_reconnectable: bool,
 }
 
 macro_rules! rpc {
@@ -644,6 +645,7 @@ impl Reconnectable {
 
 impl Client {
     fn new(local_domain_id: DomainId, mut reconnectable: Reconnectable) -> Self {
+        let is_reconnectable = reconnectable.reconnectable();
         let (sender, mut receiver) = pollable_channel().expect("failed to create pollable_channel");
 
         thread::spawn(move || {
@@ -714,6 +716,7 @@ impl Client {
         Self {
             sender,
             local_domain_id,
+            is_reconnectable,
         }
     }
 
