@@ -792,9 +792,8 @@ mod test {
             .unwrap_err();
         assert_eq!(
             err.to_string(),
-            "\"\\\"invalid type: boolean `true`, expected integer\\\" (\
-            while processing a struct of type MyMap and fields \
-            named [\\\"hello\\\", \\\"age\\\"])\""
+            "invalid type: boolean `true`, expected integer (\
+            while processing a struct of type `MyMap`)"
         );
     }
 
@@ -817,7 +816,7 @@ mod test {
         let err = from_lua_value::<MyEnum>(lua.load("\"Invalid\"").eval().unwrap()).unwrap_err();
         assert_eq!(
             err.to_string(),
-            "\"unknown variant `Invalid`, expected `Foo` or `Bar`\""
+            "unknown variant `Invalid`, expected `Foo` or `Bar`"
         );
     }
 }
