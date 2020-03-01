@@ -14,7 +14,7 @@ where
 
 #[derive(Debug, Error)]
 pub enum Error {
-    #[error("{:?}", msg)]
+    #[error("{}", msg)]
     Custom { msg: String },
 }
 

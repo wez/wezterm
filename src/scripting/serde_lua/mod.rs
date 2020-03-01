@@ -46,7 +46,7 @@ fn unexpected<'lua>(v: &'lua Value<'lua>) -> Unexpected<'lua> {
 
 #[derive(Debug, Error)]
 pub enum Error {
-    #[error("{:?}", msg)]
+    #[error("{}", msg)]
     Custom { msg: String },
 }
 
@@ -453,10 +453,17 @@ impl<'de, 'lua> Deserializer<'de> for ValueWrapper<'lua> {
         match self.0 {
             Value::Table(t) => match visit_table(t, v) {
                 Ok(v) => Ok(v),
-                Err(err) => Err(Error::custom(format!(
-                    "{} (while processing a struct of type {} and fields named {:?})",
-                    err, name, fields
-                ))),
+                Err(err) => {
+                    let field_names = fields
+                        .iter()
+                        .map(|name| format!("`{}`", name))
+                        .collect::<Vec<String>>()
+                        .join(", ");
+                    Err(Error::custom(format!(
+                        "{} (while processing a struct of type `{}` and fields named {})",
+                        err, name, field_names
+                    )))
+                }
             },
             _ => Err(serde::de::Error::invalid_type(
                 unexpected(&self.0),
