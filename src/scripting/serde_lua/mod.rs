@@ -75,7 +75,12 @@ impl<'de, 'lua> IntoDeserializer<'de, Error> for ValueWrapper<'lua> {
     }
 }
 
-fn visit_table<'de, 'lua, V>(table: Table<'lua>, visitor: V) -> Result<V::Value, Error>
+fn visit_table<'de, 'lua, V>(
+    table: Table<'lua>,
+    visitor: V,
+    struct_name: Option<&'static str>,
+    allowed_fields: Option<&'static [&'static str]>,
+) -> Result<V::Value, Error>
 where
     V: Visitor<'de>,
 {
@@ -112,7 +117,93 @@ where
         let mut pairs = vec![];
         for pair in table.pairs::<String, Value>() {
             match pair {
-                Ok(pair) => pairs.push((pair.0, ValueWrapper(pair.1))),
+                Ok(pair) => {
+                    // When deserializing into a struct with known field names,
+                    // we don't want to hard error if the user gave a bogus field
+                    // name; we'd rather generate a warning somewhere and attempt
+                    // to proceed.  This makes the config a bit more forgiving of
+                    // typos and also makes it easier to use a given config in
+                    // a future version of wezterm where the configuration may
+                    // evolve over time.
+                    if let Some(allowed_fields) = allowed_fields {
+                        if !allowed_fields.iter().any(|&name| name == &pair.0) {
+                            // The field wasn't one of the allowed fields in this
+                            // context.  Generate an error message that is hopefully
+                            // helpful; we'll suggest the set of most similar field
+                            // names (ordered by similarity) and list out the remaining
+                            // possible field names in alpha order
+
+                            // Produce similar field name list
+                            let mut candidates: Vec<(f64, &str)> = allowed_fields
+                                .iter()
+                                .map(|&name| (strsim::jaro_winkler(&pair.0, name), name))
+                                .filter(|(confidence, _)| *confidence > 0.8)
+                                .collect();
+                            candidates.sort_by(|a, b| {
+                                b.0.partial_cmp(&a.0).unwrap_or(std::cmp::Ordering::Equal)
+                            });
+                            let suggestions: Vec<&str> =
+                                candidates.into_iter().map(|(_, name)| name).collect();
+
+                            // Filter the suggestions out of the allowed field names
+                            // and sort what remains.
+                            let mut fields: Vec<&str> = allowed_fields
+                                .iter()
+                                .filter(|&name| {
+                                    !suggestions.iter().any(|candidate| candidate == name)
+                                })
+                                .map(|&name| name)
+                                .collect();
+                            fields.sort();
+
+                            let mut message = String::new();
+
+                            match suggestions.len() {
+                                0 => {}
+                                1 => {
+                                    message.push_str(&format!("Did you mean `{}`?", suggestions[0]))
+                                }
+                                _ => {
+                                    message.push_str("Did you mean one of ");
+                                    for (idx, candidate) in suggestions.iter().enumerate() {
+                                        if idx > 0 {
+                                            message.push_str(", ");
+                                        }
+                                        message.push('`');
+                                        message.push_str(candidate);
+                                        message.push('`');
+                                    }
+                                    message.push_str("?");
+                                }
+                            }
+                            if !fields.is_empty() {
+                                if suggestions.is_empty() {
+                                    message.push_str("Possible fields are ");
+                                } else {
+                                    message.push_str(" Other possible fields are ");
+                                }
+                                for (idx, candidate) in fields.iter().enumerate() {
+                                    if idx > 0 {
+                                        message.push_str(", ");
+                                    }
+                                    message.push('`');
+                                    message.push_str(candidate);
+                                    message.push('`');
+                                }
+                                message.push('.');
+                            }
+                            log::error!(
+                                "Ignoring unknown field `{}` in struct of type `{}`. {}",
+                                pair.0,
+                                struct_name.unwrap_or("<unknown>"),
+                                message
+                            );
+
+                            continue;
+                        }
+                    }
+                    pairs.push((pair.0, ValueWrapper(pair.1)))
+                }
                 Err(err) => {
                     return Err(Error::custom(format!(
                         "while retrieving map element: {}",
@@ -168,7 +259,7 @@ impl<'de, 'lua> Deserializer<'de> for ValueWrapper<'lua> {
                 Ok(s) => visitor.visit_str(s),
                 Err(_) => visitor.visit_bytes(s.as_bytes()),
             },
-            Value::Table(t) => visit_table(t, visitor),
+            Value::Table(t) => visit_table(t, visitor, None, None),
             Value::UserData(_) | Value::LightUserData(_) => Err(Error::custom(
                 "cannot represent userdata in the serde data model",
             )),
@@ -303,7 +394,7 @@ impl<'de, 'lua> Deserializer<'de> for ValueWrapper<'lua> {
         V: Visitor<'de>,
     {
         match self.0 {
-            Value::Table(t) => visit_table(t, v),
+            Value::Table(t) => visit_table(t, v, None, None),
             _ => Err(serde::de::Error::invalid_type(
                 unexpected(&self.0),
                 &"sequence/array",
@@ -433,7 +524,7 @@ impl<'de, 'lua> Deserializer<'de> for ValueWrapper<'lua> {
         V: Visitor<'de>,
     {
         match self.0 {
-            Value::Table(t) => visit_table(t, v),
+            Value::Table(t) => visit_table(t, v, None, None),
             _ => Err(serde::de::Error::invalid_type(
                 unexpected(&self.0),
                 &"a map",
@@ -443,7 +534,7 @@ impl<'de, 'lua> Deserializer<'de> for ValueWrapper<'lua> {
 
     fn deserialize_struct<V>(
         self,
-        name: &'static str,
+        struct_name: &'static str,
         fields: &'static [&'static str],
         v: V,
     ) -> Result<V::Value, Self::Error>
@@ -451,19 +542,12 @@ impl<'de, 'lua> Deserializer<'de> for ValueWrapper<'lua> {
         V: Visitor<'de>,
     {
         match self.0 {
-            Value::Table(t) => match visit_table(t, v) {
+            Value::Table(t) => match visit_table(t, v, Some(struct_name), Some(fields)) {
                 Ok(v) => Ok(v),
-                Err(err) => {
-                    let field_names = fields
-                        .iter()
-                        .map(|name| format!("`{}`", name))
-                        .collect::<Vec<String>>()
-                        .join(", ");
-                    Err(Error::custom(format!(
-                        "{} (while processing a struct of type `{}` and fields named {})",
-                        err, name, field_names
-                    )))
-                }
+                Err(err) => Err(Error::custom(format!(
+                    "{} (while processing a struct of type `{}`)",
+                    err, struct_name
+                ))),
             },
             _ => Err(serde::de::Error::invalid_type(
                 unexpected(&self.0),

@@ -365,7 +365,7 @@ dependencies = [
  "ansi_term",
  "atty",
  "bitflags 1.2.1",
- "strsim",
+ "strsim 0.8.0",
  "textwrap",
  "unicode-width",
  "vec_map",
@@ -2815,6 +2815,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8ea5119cdb4c55b55d432abb513a0429384878c15dde60cc77b1c99de1a95a6a"
 
 [[package]]
+name = "strsim"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "73473c0e59e6d5812c5dfe2a064a6444949f089e20eec9a2e5506596494e4623"
+
+[[package]]
 name = "structopt"
 version = "0.3.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3517,6 +3523,7 @@ dependencies = [
  "serial",
  "shared_library",
  "ssh2",
+ "strsim 0.10.0",
  "structopt",
  "tabout",
  "term",

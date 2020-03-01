@@ -55,6 +55,7 @@ serde = {version="1.0", features = ["rc", "derive"]}
 serial = "0.4"
 ssh2 = "0.8"
 structopt = "0.3"
+strsim = "0.10"
 tabout = { path = "tabout" }
 term = { path = "term" }
 termwiz = { path = "termwiz" }
