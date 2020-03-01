@@ -1,5 +1,5 @@
 use anyhow::anyhow;
-use mlua::{Lua, Table};
+use mlua::{Lua, Table, Value};
 use std::path::Path;
 
 mod serde_lua;
@@ -122,17 +122,20 @@ fn hostname<'lua>(_: &'lua Lua, _: ()) -> mlua::Result<String> {
 fn font_family<'lua>(
     lua: &'lua Lua,
     (family, map_defaults): (String, Option<Table<'lua>>),
-) -> mlua::Result<Table<'lua>> {
-    let font_array = lua.create_table()?;
-    let font = lua.create_table()?;
-    font.set("family", family)?;
-    font_array.set(1, font)?;
+) -> mlua::Result<Value<'lua>> {
+    use crate::config::{FontAttributes, TextStyle};
 
-    let font_map = match map_defaults {
-        Some(tbl) => tbl,
-        None => lua.create_table()?,
+    let mut text_style: TextStyle = match map_defaults {
+        Some(def) => from_lua_value(Value::Table(def))?,
+        None => TextStyle::default(),
     };
 
-    font_map.set("font", font_array)?;
-    Ok(font_map)
+    text_style.font.clear();
+    text_style.font.push(FontAttributes {
+        family,
+        bold: false,
+        italic: false,
+    });
+
+    Ok(to_lua_value(lua, text_style)?)
 }

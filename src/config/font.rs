@@ -41,7 +41,7 @@ impl Default for FontAntiAliasing {
     }
 }
 
-#[derive(Debug, Deserialize, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
 pub struct FontAttributes {
     /// The font family name
     pub family: String,
@@ -74,7 +74,7 @@ impl Default for FontAttributes {
 }
 
 /// Represents textual styling.
-#[derive(Debug, Deserialize, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
 pub struct TextStyle {
     #[serde(default)]
     pub font: Vec<FontAttributes>,

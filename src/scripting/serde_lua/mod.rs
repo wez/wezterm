@@ -58,6 +58,12 @@ impl SerdeDeError for Error {
     }
 }
 
+impl From<Error> for mlua::Error {
+    fn from(e: Error) -> mlua::Error {
+        mlua::Error::external(e)
+    }
+}
+
 #[derive(Debug)]
 struct ValueWrapper<'lua>(Value<'lua>);
 

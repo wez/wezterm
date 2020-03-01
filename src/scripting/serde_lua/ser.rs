@@ -24,6 +24,12 @@ impl Error {
     }
 }
 
+impl From<Error> for mlua::Error {
+    fn from(e: Error) -> mlua::Error {
+        mlua::Error::external(e)
+    }
+}
+
 impl SerError for Error {
     fn custom<T: std::fmt::Display>(msg: T) -> Self {
         Error::Custom {
