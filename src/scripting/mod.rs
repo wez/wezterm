@@ -5,6 +5,7 @@ use std::path::Path;
 mod serde_lua;
 
 pub use serde_lua::from_lua_value;
+pub use serde_lua::ser::to_lua_value;
 
 /// Set up a lua context for executing some code.
 /// The path to the directory containing the configuration is

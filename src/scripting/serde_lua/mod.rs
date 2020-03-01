@@ -8,6 +8,8 @@ use serde::{serde_if_integer128, Deserialize};
 use std::convert::TryInto;
 use thiserror::*;
 
+pub mod ser;
+
 /// This is the key function from this module; it uses serde to
 /// "parse" a lua value into a Rust type that implements Deserialize.
 pub fn from_lua_value<T>(value: Value) -> Result<T, Error>
@@ -592,21 +594,36 @@ impl<'de, 'lua> VariantAccess<'de> for VariantDeserializer<'lua> {
 mod test {
     use super::*;
     use mlua::Lua;
+    use serde::Serialize;
+
+    fn round_trip<
+        T: Serialize + DeserializeOwned + ?Sized + PartialEq + std::fmt::Debug + Clone,
+    >(
+        value: T,
+    ) {
+        let lua = Lua::new();
+        let lua_value: Value = ser::to_lua_value(&lua, value.clone()).unwrap();
+        let round_tripped: T = from_lua_value(lua_value).unwrap();
+        assert_eq!(value, round_tripped);
+    }
 
     #[test]
     fn test_bool() {
         let lua = Lua::new();
         let res: bool = from_lua_value(lua.load("true").eval().unwrap()).unwrap();
         assert_eq!(res, true);
+        round_trip(res);
 
         let res: bool = from_lua_value(lua.load("false").eval().unwrap()).unwrap();
         assert_eq!(res, false);
+        round_trip(res);
     }
 
     #[test]
     fn test_nil() {
         let lua = Lua::new();
-        let _res: () = from_lua_value(lua.load("nil").eval().unwrap()).unwrap();
+        let res: () = from_lua_value(lua.load("nil").eval().unwrap()).unwrap();
+        round_trip(res);
     }
 
     #[test]
@@ -614,15 +631,19 @@ mod test {
         let lua = Lua::new();
         let res: i64 = from_lua_value(lua.load("123").eval().unwrap()).unwrap();
         assert_eq!(res, 123);
+        round_trip(res);
 
         let res: i32 = from_lua_value(lua.load("123").eval().unwrap()).unwrap();
         assert_eq!(res, 123);
+        round_trip(res);
 
         let res: i16 = from_lua_value(lua.load("123").eval().unwrap()).unwrap();
         assert_eq!(res, 123);
+        round_trip(res);
 
         let res: i8 = from_lua_value(lua.load("123").eval().unwrap()).unwrap();
         assert_eq!(res, 123);
+        round_trip(res);
     }
 
     #[test]
@@ -630,6 +651,7 @@ mod test {
         let lua = Lua::new();
         let res: f64 = from_lua_value(lua.load("123.5").eval().unwrap()).unwrap();
         assert_eq!(res, 123.5);
+        round_trip(res);
     }
 
     #[test]
@@ -637,6 +659,7 @@ mod test {
         let lua = Lua::new();
         let res: String = from_lua_value(lua.load("\"hello\"").eval().unwrap()).unwrap();
         assert_eq!(res, "hello");
+        round_trip(res);
     }
 
     #[test]
@@ -644,13 +667,14 @@ mod test {
         let lua = Lua::new();
         let res: Vec<i8> = from_lua_value(lua.load("{1, 2, 3}").eval().unwrap()).unwrap();
         assert_eq!(res, vec![1, 2, 3]);
+        round_trip(res);
     }
 
     #[test]
     fn test_map_table() {
         let lua = Lua::new();
 
-        #[derive(Deserialize, Debug, Eq, PartialEq)]
+        #[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
         struct MyMap {
             hello: String,
             age: usize,
@@ -665,6 +689,7 @@ mod test {
                 age: 42
             }
         );
+        round_trip(res);
 
         let err = from_lua_value::<MyMap>(lua.load("{hello=\"hello\", age=true}").eval().unwrap())
             .unwrap_err();
@@ -678,7 +703,7 @@ mod test {
 
     #[test]
     fn test_enum() {
-        #[derive(Deserialize, Debug, Eq, PartialEq)]
+        #[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
         enum MyEnum {
             Foo,
             Bar,
@@ -686,9 +711,11 @@ mod test {
         let lua = Lua::new();
         let res: MyEnum = from_lua_value(lua.load("\"Foo\"").eval().unwrap()).unwrap();
         assert_eq!(res, MyEnum::Foo);
+        round_trip(res);
 
         let res: MyEnum = from_lua_value(lua.load("\"Bar\"").eval().unwrap()).unwrap();
         assert_eq!(res, MyEnum::Bar);
+        round_trip(res);
 
         let err = from_lua_value::<MyEnum>(lua.load("\"Invalid\"").eval().unwrap()).unwrap_err();
         assert_eq!(

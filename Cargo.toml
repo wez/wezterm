@@ -21,6 +21,7 @@ base64 = "0.10"
 base91 = { path = "base91" }
 rangeset = { path = "rangeset" }
 bitflags = "1.0"
+bstr = "0.2"
 crossbeam = "0.7"
 dirs = "1.0"
 downcast-rs = "1.0"
