@@ -87,7 +87,11 @@ pub fn make_lua_context(config_dir: &Path) -> anyhow::Result<Lua> {
             })?,
         )?;
 
-        wezterm_mod.set("font", lua.create_function(font_family)?)?;
+        wezterm_mod.set("font", lua.create_function(font)?)?;
+        wezterm_mod.set(
+            "font_with_fallback",
+            lua.create_function(font_with_fallback)?,
+        )?;
         wezterm_mod.set("hostname", lua.create_function(hostname)?)?;
 
         package.set("path", path_array.join(";"))?;
@@ -110,16 +114,16 @@ fn hostname<'lua>(_: &'lua Lua, _: ()) -> mlua::Result<String> {
     }
 }
 
-/// Given a simple font family name, returns the fiddly lua table equivalent
-/// of the underlying data structure:
-/// `{ font = {{ family = FAMILY }}}`
-/// The second optional argument is a list of default values for the outer
-/// level map.  For example:
+/// Given a simple font family name, returns a text style instance.
+/// The second optional argument is a list of the other TextStyle
+/// fields, which at the time of writing includes only the
+/// `foreground` color that can be used to force a particular
+/// color to be used for this text style.
 ///
 /// `wezterm.font("foo", {foreground="tomato"})`
 /// yields:
 /// `{ font = {{ family = "foo" }}, foreground="tomato"}`
-fn font_family<'lua>(
+fn font<'lua>(
     lua: &'lua Lua,
     (family, map_defaults): (String, Option<Table<'lua>>),
 ) -> mlua::Result<Value<'lua>> {
@@ -136,6 +140,36 @@ fn font_family<'lua>(
         bold: false,
         italic: false,
     });
+
+    Ok(to_lua_value(lua, text_style)?)
+}
+
+/// Given a list of font family names in order of preference, return a
+/// text style instance for that font configuration.
+///
+/// `wezterm.font_with_fallback({"Operator Mono", "DengXian"})`
+///
+/// The second optional argument is a list of other TextStyle fields,
+/// as described by the `wezterm.font` documentation.
+fn font_with_fallback<'lua>(
+    lua: &'lua Lua,
+    (fallback, map_defaults): (Vec<String>, Option<Table<'lua>>),
+) -> mlua::Result<Value<'lua>> {
+    use crate::config::{FontAttributes, TextStyle};
+
+    let mut text_style: TextStyle = match map_defaults {
+        Some(def) => from_lua_value(Value::Table(def))?,
+        None => TextStyle::default(),
+    };
+
+    text_style.font.clear();
+    for family in fallback {
+        text_style.font.push(FontAttributes {
+            family,
+            bold: false,
+            italic: false,
+        });
+    }
 
     Ok(to_lua_value(lua, text_style)?)
 }
