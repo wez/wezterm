@@ -7,9 +7,10 @@ use termwiz::input::{KeyCode, Modifiers};
 pub struct Key {
     #[serde(deserialize_with = "de_keycode")]
     pub key: KeyCode,
-    #[serde(deserialize_with = "de_modifiers")]
+    #[serde(deserialize_with = "de_modifiers", default)]
     pub mods: Modifiers,
     pub action: KeyAction,
+    #[serde(default)]
     pub arg: Option<String>,
 }
 
