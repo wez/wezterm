@@ -3,7 +3,7 @@ use crate::mux::tab::Tab;
 use crate::mux::window::WindowId;
 use anyhow::{anyhow, Error};
 use downcast_rs::{impl_downcast, Downcast};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -12,13 +12,14 @@ pub mod activity;
 pub mod gui;
 pub mod muxserver;
 
-#[derive(Debug, Deserialize, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Deserialize, Serialize, Clone, Copy, PartialEq, Eq)]
 pub enum FrontEndSelection {
     OpenGL,
     Software,
     MuxServer,
     Null,
 }
+impl_lua_conversion!(FrontEndSelection);
 
 impl Default for FrontEndSelection {
     fn default() -> Self {

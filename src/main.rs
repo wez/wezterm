@@ -18,6 +18,9 @@ use std::sync::Arc;
 use structopt::StructOpt;
 use tabout::{tabulate_output, Alignment, Column};
 
+// This module defines a macro, so it must be referenced before any other mods
+mod scripting;
+
 mod config;
 mod connui;
 mod frontend;
@@ -25,7 +28,6 @@ mod keyassignment;
 mod localtab;
 mod mux;
 mod ratelim;
-mod scripting;
 mod server;
 mod ssh;
 mod stats;

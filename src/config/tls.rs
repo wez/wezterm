@@ -1,7 +1,7 @@
 use crate::config::*;
 use crate::SshParameters;
 
-#[derive(Default, Debug, Clone, Deserialize)]
+#[derive(Default, Debug, Clone, Deserialize, Serialize)]
 pub struct TlsDomainServer {
     /// The address:port combination on which the server will listen
     /// for client connections
@@ -24,8 +24,9 @@ pub struct TlsDomainServer {
     #[serde(default)]
     pub pem_root_certs: Vec<PathBuf>,
 }
+impl_lua_conversion!(TlsDomainServer);
 
-#[derive(Default, Debug, Clone, Deserialize)]
+#[derive(Default, Debug, Clone, Deserialize, Serialize)]
 pub struct TlsDomainClient {
     /// The name of this specific domain.  Must be unique amongst
     /// all types of domain in the configuration file.
@@ -80,6 +81,7 @@ pub struct TlsDomainClient {
     #[serde(default = "default_write_timeout")]
     pub write_timeout: Duration,
 }
+impl_lua_conversion!(TlsDomainClient);
 
 impl TlsDomainClient {
     pub fn ssh_parameters(&self) -> Option<anyhow::Result<SshParameters>> {

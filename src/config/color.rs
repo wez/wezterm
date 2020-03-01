@@ -2,7 +2,7 @@ use crate::config::*;
 use termwiz::cell::CellAttributes;
 use termwiz::color::{ColorSpec, RgbColor};
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Palette {
     /// The text color to use when the attributes are reset to default
     pub foreground: Option<RgbColor>,
@@ -26,6 +26,7 @@ pub struct Palette {
     /// represents the current viewable area
     pub scrollbar_thumb: Option<RgbColor>,
 }
+impl_lua_conversion!(Palette);
 
 impl From<Palette> for term::color::ColorPalette {
     fn from(cfg: Palette) -> term::color::ColorPalette {
@@ -61,7 +62,7 @@ impl From<Palette> for term::color::ColorPalette {
 }
 
 /// Specify the text styling for a tab in the tab bar
-#[derive(Debug, Deserialize, Clone, Default)]
+#[derive(Debug, Deserialize, Serialize, Clone, Default)]
 pub struct TabBarColor {
     /// Specifies the intensity attribute for the tab title text
     #[serde(default)]
@@ -80,6 +81,7 @@ pub struct TabBarColor {
     /// The forgeground/text color for the tab
     pub fg_color: RgbColor,
 }
+impl_lua_conversion!(TabBarColor);
 
 impl TabBarColor {
     pub fn as_cell_attributes(&self) -> CellAttributes {
@@ -97,7 +99,7 @@ impl TabBarColor {
 /// Specifies the colors to use for the tab bar portion of the UI.
 /// These are not part of the terminal model and cannot be updated
 /// in the same way that the dynamic color schemes are.
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct TabBarColors {
     /// The background color for the tab bar
     #[serde(default = "default_background")]
@@ -115,6 +117,7 @@ pub struct TabBarColors {
     #[serde(default = "default_inactive_tab_hover")]
     pub inactive_tab_hover: TabBarColor,
 }
+impl_lua_conversion!(TabBarColors);
 
 fn default_background() -> RgbColor {
     RgbColor::new(0x0b, 0x00, 0x22)
@@ -154,8 +157,9 @@ impl Default for TabBarColors {
     }
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct ColorSchemeFile {
     /// The color palette
     pub colors: Palette,
 }
+impl_lua_conversion!(ColorSchemeFile);

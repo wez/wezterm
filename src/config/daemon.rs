@@ -2,12 +2,13 @@ use crate::config::*;
 use std::fs::{File, OpenOptions};
 use std::path::PathBuf;
 
-#[derive(Default, Debug, Clone, Deserialize)]
+#[derive(Default, Debug, Clone, Deserialize, Serialize)]
 pub struct DaemonOptions {
     pub pid_file: Option<PathBuf>,
     pub stdout: Option<PathBuf>,
     pub stderr: Option<PathBuf>,
 }
+impl_lua_conversion!(DaemonOptions);
 
 fn open_log(path: PathBuf) -> anyhow::Result<File> {
     create_user_owned_dirs(

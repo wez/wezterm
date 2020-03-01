@@ -1,9 +1,9 @@
 use crate::keyassignment::{KeyAssignment, SpawnTabDomain};
 use anyhow::{anyhow, Error};
-use serde::{Deserialize, Deserializer};
+use serde::{Deserialize, Deserializer, Serialize};
 use termwiz::input::{KeyCode, Modifiers};
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Key {
     #[serde(deserialize_with = "de_keycode")]
     pub key: KeyCode,
@@ -13,6 +13,7 @@ pub struct Key {
     #[serde(default)]
     pub arg: Option<String>,
 }
+impl_lua_conversion!(Key);
 
 impl std::convert::TryInto<KeyAssignment> for &Key {
     type Error = Error;
@@ -89,7 +90,7 @@ impl std::convert::TryInto<KeyAssignment> for &Key {
     }
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub enum KeyAction {
     SpawnTab,
     SpawnTabInCurrentTabDomain,
@@ -116,6 +117,7 @@ pub enum KeyAction {
     ScrollByPage,
     ShowTabNavigator,
 }
+impl_lua_conversion!(KeyAction);
 
 fn de_keycode<'de, D>(deserializer: D) -> Result<KeyCode, D::Error>
 where

@@ -1,11 +1,39 @@
+#![macro_use]
+
+use crate::config::{FontAttributes, TextStyle};
 use anyhow::anyhow;
-use mlua::{Lua, Table, Value};
+use mlua::{Lua, Table};
 use std::path::Path;
 
 mod serde_lua;
 
 pub use serde_lua::from_lua_value;
 pub use serde_lua::ser::to_lua_value;
+
+/// Implement lua conversion traits for a type.
+/// This implementation requires that the type implement
+/// serde Serialize and Deserialize.
+/// Why do we need these traits?  They allow `create_function` to
+/// operate in terms of our internal types rather than forcing
+/// the implementer to use generic Value parameter or return values.
+macro_rules! impl_lua_conversion {
+    ($struct:ident) => {
+        impl<'lua> mlua::ToLua<'lua> for $struct {
+            fn to_lua(self, lua: &'lua mlua::Lua) -> Result<mlua::Value<'lua>, mlua::Error> {
+                Ok(crate::scripting::to_lua_value(lua, self)?)
+            }
+        }
+
+        impl<'lua> mlua::FromLua<'lua> for $struct {
+            fn from_lua(
+                value: mlua::Value<'lua>,
+                _lua: &'lua mlua::Lua,
+            ) -> Result<Self, mlua::Error> {
+                Ok(crate::scripting::from_lua_value(value)?)
+            }
+        }
+    };
+}
 
 /// Set up a lua context for executing some code.
 /// The path to the directory containing the configuration is
@@ -124,24 +152,18 @@ fn hostname<'lua>(_: &'lua Lua, _: ()) -> mlua::Result<String> {
 /// yields:
 /// `{ font = {{ family = "foo" }}, foreground="tomato"}`
 fn font<'lua>(
-    lua: &'lua Lua,
-    (family, map_defaults): (String, Option<Table<'lua>>),
-) -> mlua::Result<Value<'lua>> {
-    use crate::config::{FontAttributes, TextStyle};
-
-    let mut text_style: TextStyle = match map_defaults {
-        Some(def) => from_lua_value(Value::Table(def))?,
-        None => TextStyle::default(),
-    };
+    _lua: &'lua Lua,
+    (family, map_defaults): (String, Option<TextStyle>),
+) -> mlua::Result<TextStyle> {
+    let mut text_style = map_defaults.unwrap_or_else(TextStyle::default);
 
     text_style.font.clear();
     text_style.font.push(FontAttributes {
         family,
-        bold: false,
-        italic: false,
+        ..Default::default()
     });
 
-    Ok(to_lua_value(lua, text_style)?)
+    Ok(text_style)
 }
 
 /// Given a list of font family names in order of preference, return a
@@ -152,24 +174,18 @@ fn font<'lua>(
 /// The second optional argument is a list of other TextStyle fields,
 /// as described by the `wezterm.font` documentation.
 fn font_with_fallback<'lua>(
-    lua: &'lua Lua,
-    (fallback, map_defaults): (Vec<String>, Option<Table<'lua>>),
-) -> mlua::Result<Value<'lua>> {
-    use crate::config::{FontAttributes, TextStyle};
-
-    let mut text_style: TextStyle = match map_defaults {
-        Some(def) => from_lua_value(Value::Table(def))?,
-        None => TextStyle::default(),
-    };
+    _lua: &'lua Lua,
+    (fallback, map_defaults): (Vec<String>, Option<TextStyle>),
+) -> mlua::Result<TextStyle> {
+    let mut text_style = map_defaults.unwrap_or_else(TextStyle::default);
 
     text_style.font.clear();
     for family in fallback {
         text_style.font.push(FontAttributes {
             family,
-            bold: false,
-            italic: false,
+            ..Default::default()
         });
     }
 
-    Ok(to_lua_value(lua, text_style)?)
+    Ok(text_style)
 }

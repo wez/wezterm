@@ -492,7 +492,7 @@ pub struct Config {
     pub use_local_build_for_proxy: bool,
 }
 
-#[derive(Deserialize, Clone, Copy, Debug)]
+#[derive(Deserialize, Serialize, Clone, Copy, Debug)]
 pub enum DefaultCursorStyle {
     BlinkingBlock,
     SteadyBlock,
@@ -501,6 +501,7 @@ pub enum DefaultCursorStyle {
     BlinkingBar,
     SteadyBar,
 }
+impl_lua_conversion!(DefaultCursorStyle);
 
 impl Default for DefaultCursorStyle {
     fn default() -> Self {
@@ -524,7 +525,7 @@ impl DefaultCursorStyle {
     }
 }
 
-#[derive(Default, Deserialize, Clone, Copy, Debug)]
+#[derive(Default, Deserialize, Serialize, Clone, Copy, Debug)]
 pub struct WindowPadding {
     #[serde(default)]
     pub left: u16,
@@ -535,6 +536,7 @@ pub struct WindowPadding {
     #[serde(default)]
     pub bottom: u16,
 }
+impl_lua_conversion!(WindowPadding);
 
 impl Default for Config {
     fn default() -> Self {

@@ -1,7 +1,6 @@
 use crate::config::*;
-use serde::Deserialize;
 
-#[derive(Default, Debug, Clone, Deserialize)]
+#[derive(Default, Debug, Clone, Deserialize, Serialize)]
 pub struct SshDomain {
     /// The name of this specific domain.  Must be unique amongst
     /// all types of domain in the configuration file.
@@ -24,3 +23,4 @@ pub struct SshDomain {
     #[serde(default = "default_read_timeout")]
     pub timeout: Duration,
 }
+impl_lua_conversion!(SshDomain);

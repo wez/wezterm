@@ -8,7 +8,7 @@ const FONT_FAMILY: &str = "Consolas";
 #[cfg(all(not(target_os = "macos"), not(windows)))]
 const FONT_FAMILY: &str = "monospace";
 
-#[derive(Debug, Copy, Deserialize, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Copy, Deserialize, Serialize, Clone, PartialEq, Eq, Hash)]
 pub enum FontHinting {
     /// No hinting is performed
     None,
@@ -21,6 +21,7 @@ pub enum FontHinting {
     /// Vertical and horizontal hinting is performed.
     Full,
 }
+impl_lua_conversion!(FontHinting);
 
 impl Default for FontHinting {
     fn default() -> Self {
@@ -28,12 +29,13 @@ impl Default for FontHinting {
     }
 }
 
-#[derive(Debug, Copy, Deserialize, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Copy, Deserialize, Serialize, Clone, PartialEq, Eq, Hash)]
 pub enum FontAntiAliasing {
     None,
     Greyscale,
     Subpixel,
 }
+impl_lua_conversion!(FontAntiAliasing);
 
 impl Default for FontAntiAliasing {
     fn default() -> Self {
@@ -52,6 +54,7 @@ pub struct FontAttributes {
     #[serde(default)]
     pub italic: bool,
 }
+impl_lua_conversion!(FontAttributes);
 
 impl FontAttributes {
     pub fn new(family: &str) -> Self {
@@ -85,6 +88,7 @@ pub struct TextStyle {
     /// the text color for eg: bold text.
     pub foreground: Option<RgbColor>,
 }
+impl_lua_conversion!(TextStyle);
 
 impl Default for TextStyle {
     fn default() -> Self {
@@ -178,7 +182,7 @@ impl TextStyle {
 /// The above is translated as: "if the `CellAttributes` have the italic bit
 /// set, then use the italic style of font rather than the default", and
 /// stop processing further font rules.
-#[derive(Debug, Default, Deserialize, Clone)]
+#[derive(Debug, Default, Deserialize, Serialize, Clone)]
 pub struct StyleRule {
     /// If present, this rule matches when CellAttributes::intensity holds
     /// a value that matches this rule.  Valid values are "Bold", "Normal",
@@ -207,3 +211,4 @@ pub struct StyleRule {
     /// When this rule matches, `font` specifies the styling to be used.
     pub font: TextStyle,
 }
+impl_lua_conversion!(StyleRule);
