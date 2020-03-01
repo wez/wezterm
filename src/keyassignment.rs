@@ -1,11 +1,13 @@
 use crate::config::configuration;
 use crate::mux::domain::DomainId;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::path::PathBuf;
 use term::{KeyCode, KeyModifiers};
 
 /// When spawning a tab, specify which domain should be used to
 /// host/spawn that tab.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub enum SpawnTabDomain {
     /// Use the default domain
     DefaultDomain,
@@ -17,7 +19,38 @@ pub enum SpawnTabDomain {
     DomainName(String),
 }
 
-#[derive(Debug, Clone)]
+impl Default for SpawnTabDomain {
+    fn default() -> Self {
+        Self::CurrentTabDomain
+    }
+}
+
+#[derive(Default, Debug, Clone, Deserialize, Serialize)]
+pub struct SpawnCommand {
+    /// The command line to use.
+    /// If omitted, the default command associated with the
+    /// domain will be used instead, which is typically the
+    /// shell for the user.
+    pub args: Option<Vec<String>>,
+
+    /// Specifies the current working directory for the command.
+    /// If omitted, a default will be used; typically that will
+    /// be the home directory of the user, but may also be the
+    /// current working directory of the wezterm process when
+    /// it was launched, or for some domains it may be some
+    /// other location appropriate to the domain.
+    pub cwd: Option<PathBuf>,
+
+    /// Specifies a map of environment variables that should be set.
+    /// Whether this is used depends on the domain.
+    #[serde(default)]
+    pub set_environment_variables: HashMap<String, String>,
+
+    #[serde(default)]
+    pub domain: SpawnTabDomain,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub enum KeyAssignment {
     SpawnTab(SpawnTabDomain),
     SpawnWindow,
@@ -41,6 +74,8 @@ pub enum KeyAssignment {
     ShowTabNavigator,
     HideApplication,
     QuitApplication,
+    SpawnCommandInNewTab(SpawnCommand),
+    SpawnCommandInNewWindow(SpawnCommand),
 }
 
 pub struct KeyMap(HashMap<(KeyCode, KeyModifiers), KeyAssignment>);

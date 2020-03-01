@@ -9,7 +9,14 @@ pub struct Key {
     pub key: KeyCode,
     #[serde(deserialize_with = "de_modifiers", default)]
     pub mods: Modifiers,
+    // TODO: migrate this to using KeyAssignment directly.
+    // We're preserving KeyAction here for a release or
+    // two to allow for a slightly more graceful migration
+    // for user configs.
     pub action: KeyAction,
+    // TODO: once action is switched to KeyAssignment, remove
+    // the arg field.  Maybe we can use the presence of this
+    // field to warn users that they need to migrate?
     #[serde(default)]
     pub arg: Option<String>,
 }
@@ -86,6 +93,7 @@ impl std::convert::TryInto<KeyAssignment> for &Key {
                     .parse()?,
             ),
             KeyAction::ShowTabNavigator => KeyAssignment::ShowTabNavigator,
+            KeyAction::Action(ref a) => a.clone(),
         })
     }
 }
@@ -116,6 +124,7 @@ pub enum KeyAction {
     MoveTabRelative,
     ScrollByPage,
     ShowTabNavigator,
+    Action(KeyAssignment),
 }
 impl_lua_conversion!(KeyAction);
 

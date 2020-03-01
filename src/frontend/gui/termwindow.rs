@@ -6,12 +6,13 @@ use crate::config::{configuration, ConfigHandle, TextStyle};
 use crate::font::shaper::GlyphInfo;
 use crate::font::units::*;
 use crate::font::FontConfiguration;
+use crate::frontend::activity::Activity;
 use crate::frontend::front_end;
 use crate::frontend::gui::overlay::{start_overlay, tab_navigator};
 use crate::frontend::gui::scrollbar::*;
 use crate::frontend::gui::selection::*;
 use crate::frontend::gui::tabbar::{TabBarItem, TabBarState};
-use crate::keyassignment::{KeyAssignment, KeyMap, SpawnTabDomain};
+use crate::keyassignment::{KeyAssignment, KeyMap, SpawnCommand, SpawnTabDomain};
 use crate::mux::renderable::{Renderable, RenderableDimensions, StableCursorPosition};
 use crate::mux::tab::{Tab, TabId};
 use crate::mux::window::WindowId as MuxWindowId;
@@ -29,7 +30,7 @@ use ::window::MouseEventKind as WMEK;
 use ::window::*;
 use anyhow::{anyhow, bail, ensure};
 use lru::LruCache;
-use portable_pty::PtySize;
+use portable_pty::{CommandBuilder, PtySize};
 use std::any::Any;
 use std::cell::{RefCell, RefMut};
 use std::collections::HashMap;
@@ -1087,19 +1088,26 @@ impl TermWindow {
         self.move_tab(tab)
     }
 
-    fn spawn_tab(&mut self, domain: &SpawnTabDomain) {
+    fn spawn_command(&mut self, spawn: &SpawnCommand, new_window: bool) {
         let size = self.terminal_size;
         let mux_window_id = self.mux_window_id;
         let clipboard: Arc<dyn term::Clipboard> = Arc::new(ClipboardHelper {
             window: self.window.as_ref().unwrap().clone(),
             clipboard_contents: Arc::clone(&self.clipboard_contents),
         });
-        let domain = domain.clone();
+        let spawn = spawn.clone();
 
         promise::spawn::spawn(async move {
             let mux = Mux::get().unwrap();
+            let activity = Activity::new();
 
-            let (domain, cwd) = match domain {
+            let mux_window_id = if new_window {
+                mux.new_empty_window()
+            } else {
+                mux_window_id
+            };
+
+            let (domain, cwd) = match spawn.domain {
                 SpawnTabDomain::DefaultDomain => {
                     let cwd = mux
                         .get_active_tab_for_window(mux_window_id)
@@ -1107,15 +1115,26 @@ impl TermWindow {
                     (mux.default_domain().clone(), cwd)
                 }
                 SpawnTabDomain::CurrentTabDomain => {
-                    let tab = match mux.get_active_tab_for_window(mux_window_id) {
-                        Some(tab) => tab,
-                        None => bail!("window has no tabs?"),
-                    };
-                    (
-                        mux.get_domain(tab.domain_id())
-                            .ok_or_else(|| anyhow!("current tab has unresolvable domain id!?"))?,
-                        tab.get_current_working_dir(),
-                    )
+                    if new_window {
+                        // CurrentTabDomain is the default value for the spawn domain.
+                        // It doesn't make sense to use it when spawning a new window,
+                        // so we treat it as DefaultDomain instead.
+                        let cwd = mux
+                            .get_active_tab_for_window(mux_window_id)
+                            .and_then(|tab| tab.get_current_working_dir());
+                        (mux.default_domain().clone(), cwd)
+                    } else {
+                        let tab = match mux.get_active_tab_for_window(mux_window_id) {
+                            Some(tab) => tab,
+                            None => bail!("window has no tabs?"),
+                        };
+                        (
+                            mux.get_domain(tab.domain_id()).ok_or_else(|| {
+                                anyhow!("current tab has unresolvable domain id!?")
+                            })?,
+                            tab.get_current_working_dir(),
+                        )
+                    }
                 }
                 SpawnTabDomain::Domain(id) => (
                     mux.get_domain(id)
@@ -1129,36 +1148,76 @@ impl TermWindow {
                     None,
                 ),
             };
-            let cwd = match cwd {
-                Some(url) if url.scheme() == "file" => {
-                    let path = url.path().to_string();
-                    // On Windows the file URI can produce a path like:
-                    // `/C:\Users` which is valid in a file URI, but the leading slash
-                    // is not liked by the windows file APIs, so we strip it off here.
-                    let bytes = path.as_bytes();
-                    if bytes.len() > 2 && bytes[0] == b'/' && bytes[2] == b':' {
-                        Some(path[1..].to_owned())
-                    } else {
-                        Some(path)
+
+            let cwd = if let Some(cwd) = spawn.cwd.as_ref() {
+                Some(cwd.to_str().map(|s| s.to_owned()).ok_or_else(|| {
+                    anyhow!(
+                        "Domain::spawn requires that the cwd be unicode in {:?}",
+                        cwd
+                    )
+                })?)
+            } else {
+                match cwd {
+                    Some(url) if url.scheme() == "file" => {
+                        let path = url.path().to_string();
+                        // On Windows the file URI can produce a path like:
+                        // `/C:\Users` which is valid in a file URI, but the leading slash
+                        // is not liked by the windows file APIs, so we strip it off here.
+                        let bytes = path.as_bytes();
+                        if bytes.len() > 2 && bytes[0] == b'/' && bytes[2] == b':' {
+                            Some(path[1..].to_owned())
+                        } else {
+                            Some(path)
+                        }
                     }
+                    Some(_) | None => None,
                 }
-                Some(_) | None => None,
             };
 
-            let tab = domain.spawn(size, None, cwd, mux_window_id).await?;
+            let cmd_builder = if let Some(args) = spawn.args {
+                let mut builder = CommandBuilder::from_argv(args.iter().map(Into::into).collect());
+                for (k, v) in spawn.set_environment_variables.iter() {
+                    builder.env(k, v);
+                }
+                if let Some(cwd) = spawn.cwd {
+                    builder.cwd(cwd);
+                }
+                Some(builder)
+            } else {
+                None
+            };
+
+            let tab = domain.spawn(size, cmd_builder, cwd, mux_window_id).await?;
             let tab_id = tab.tab_id();
 
-            tab.set_clipboard(&clipboard);
-
-            let mut window = mux
-                .get_window_mut(mux_window_id)
-                .ok_or_else(|| anyhow!("no such window!?"))?;
-            if let Some(idx) = window.idx_by_id(tab_id) {
-                window.set_active(idx);
+            if new_window {
+                let front_end = front_end().expect("to be called on gui thread");
+                let fonts = Rc::new(FontConfiguration::new());
+                front_end.spawn_new_window(&fonts, &tab, mux_window_id)?;
+            } else {
+                tab.set_clipboard(&clipboard);
+                let mut window = mux
+                    .get_window_mut(mux_window_id)
+                    .ok_or_else(|| anyhow!("no such window!?"))?;
+                if let Some(idx) = window.idx_by_id(tab_id) {
+                    window.set_active(idx);
+                }
             }
+
+            drop(activity);
 
             Ok(())
         });
+    }
+
+    fn spawn_tab(&mut self, domain: &SpawnTabDomain) {
+        self.spawn_command(
+            &SpawnCommand {
+                domain: domain.clone(),
+                ..Default::default()
+            },
+            false,
+        );
     }
 
     fn selection_text(&self, tab: &Rc<dyn Tab>) -> String {
@@ -1201,6 +1260,12 @@ impl TermWindow {
             }
             SpawnWindow => {
                 self.spawn_new_window();
+            }
+            SpawnCommandInNewTab(spawn) => {
+                self.spawn_command(spawn, false);
+            }
+            SpawnCommandInNewWindow(spawn) => {
+                self.spawn_command(spawn, true);
             }
             ToggleFullScreen => {
                 // self.toggle_full_screen(),

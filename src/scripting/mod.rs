@@ -2,7 +2,7 @@
 
 use crate::config::{FontAttributes, TextStyle};
 use anyhow::anyhow;
-use mlua::{Lua, Table};
+use mlua::{Lua, Table, Value};
 use std::path::Path;
 
 mod serde_lua;
@@ -121,6 +121,7 @@ pub fn make_lua_context(config_dir: &Path) -> anyhow::Result<Lua> {
             lua.create_function(font_with_fallback)?,
         )?;
         wezterm_mod.set("hostname", lua.create_function(hostname)?)?;
+        wezterm_mod.set("action", lua.create_function(action)?)?;
 
         package.set("path", path_array.join(";"))?;
 
@@ -188,4 +189,22 @@ fn font_with_fallback<'lua>(
     }
 
     Ok(text_style)
+}
+
+/// Helper for defining key assignment actions.
+/// Usage looks like this:
+///
+/// ```lua
+/// local wezterm = require 'wezterm';
+/// return {
+///    keys = {
+///      {key="{", mods="SHIFT|CTRL", action=wezterm.action{ActivateTabRelative=-1}},
+///      {key="}", mods="SHIFT|CTRL", action=wezterm.action{ActivateTabRelative=1}},
+///    }
+/// }
+/// ```
+fn action<'lua>(lua: &'lua Lua, action: Table<'lua>) -> mlua::Result<crate::config::KeyAction> {
+    let wrapper = lua.create_table()?;
+    wrapper.set("Action", action)?;
+    Ok(from_lua_value(Value::Table(wrapper))?)
 }
