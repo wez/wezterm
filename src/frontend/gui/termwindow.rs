@@ -2532,6 +2532,12 @@ impl TermWindow {
                 }
                 TabBarItem::NewTabButton | TabBarItem::None => {}
             },
+            WMEK::Press(MousePress::Right) => match self.tab_bar.hit_test(x) {
+                TabBarItem::Tab(_) => {
+                    self.show_tab_navigator();
+                }
+                TabBarItem::NewTabButton | TabBarItem::None => {}
+            },
             _ => {}
         }
         self.update_title();
