@@ -76,6 +76,7 @@ pub enum KeyAssignment {
     QuitApplication,
     SpawnCommandInNewTab(SpawnCommand),
     SpawnCommandInNewWindow(SpawnCommand),
+    ShowLauncher,
 }
 
 pub struct KeyMap(HashMap<(KeyCode, KeyModifiers), KeyAssignment>);

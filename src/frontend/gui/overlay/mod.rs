@@ -4,7 +4,10 @@ use crate::termwiztermtab::{allocate, TermWizTerminal};
 use std::pin::Pin;
 use std::rc::Rc;
 
+mod launcher;
 mod tabnavigator;
+
+pub use launcher::launcher;
 pub use tabnavigator::tab_navigator;
 
 pub fn start_overlay<T, F>(

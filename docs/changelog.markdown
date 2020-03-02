@@ -21,6 +21,13 @@ brief notes about them may accumulate here.
   choose to assign it to something like `CMD-Q`.
 * Added `set_environment_variables` configuration section to allow defining
   some environment variables to be passed to your shell.
+* Added lua based configuration.  Reading TOML configuration will be rapidly
+  phased out in favor of the more flexible lua config; for now, both are
+  supported, but new features may not be available via TOML.
+* Added launcher overlay.  Right click the `+` button on the tab bar or
+  bind a key to `ShowLauncher` to activate it.  It allows spawning tabs in
+  various domains as well as attaching multiplexer sessions that were not
+  connected automatically at startup.
 
 ### 20200202-181957-765184e5
 

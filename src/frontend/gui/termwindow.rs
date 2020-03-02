@@ -8,11 +8,12 @@ use crate::font::units::*;
 use crate::font::FontConfiguration;
 use crate::frontend::activity::Activity;
 use crate::frontend::front_end;
-use crate::frontend::gui::overlay::{start_overlay, tab_navigator};
+use crate::frontend::gui::overlay::{launcher, start_overlay, tab_navigator};
 use crate::frontend::gui::scrollbar::*;
 use crate::frontend::gui::selection::*;
 use crate::frontend::gui::tabbar::{TabBarItem, TabBarState};
 use crate::keyassignment::{KeyAssignment, KeyMap, SpawnCommand, SpawnTabDomain};
+use crate::mux::domain::{DomainId, DomainState};
 use crate::mux::renderable::{Renderable, RenderableDimensions, StableCursorPosition};
 use crate::mux::tab::{Tab, TabId};
 use crate::mux::window::WindowId as MuxWindowId;
@@ -56,7 +57,8 @@ struct RowsAndCols {
 
 /// ClipboardHelper bridges between the window crate clipboard
 /// manipulation and the term crate clipboard interface
-struct ClipboardHelper {
+#[derive(Clone)]
+pub struct ClipboardHelper {
     window: Window,
     clipboard_contents: Arc<Mutex<Option<String>>>,
 }
@@ -1047,6 +1049,58 @@ impl TermWindow {
         promise::spawn::spawn(future);
     }
 
+    fn show_launcher(&mut self) {
+        let mux = Mux::get().unwrap();
+        let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
+            Some(tab) => tab,
+            None => return,
+        };
+
+        let mux_window_id = self.mux_window_id;
+
+        let clipboard = ClipboardHelper {
+            window: self.window.as_ref().unwrap().clone(),
+            clipboard_contents: Arc::clone(&self.clipboard_contents),
+        };
+
+        let mut domains = mux.iter_domains();
+        domains.sort_by(|a, b| {
+            let a_state = a.state();
+            let b_state = b.state();
+            if a_state != b_state {
+                use std::cmp::Ordering;
+                return if a_state == DomainState::Attached {
+                    Ordering::Less
+                } else {
+                    Ordering::Greater
+                };
+            }
+            a.domain_id().cmp(&b.domain_id())
+        });
+        domains.retain(|dom| dom.spawnable());
+        let domains: Vec<(DomainId, DomainState, String)> = domains
+            .iter()
+            .map(|dom| (dom.domain_id(), dom.state(), dom.domain_name().to_owned()))
+            .collect();
+
+        let domain_id_of_current_tab = tab.domain_id();
+        let size = self.terminal_size;
+
+        let (overlay, future) = start_overlay(self, &tab, move |tab_id, term| {
+            launcher(
+                tab_id,
+                domain_id_of_current_tab,
+                term,
+                mux_window_id,
+                domains,
+                clipboard,
+                size,
+            )
+        });
+        self.assign_overlay(tab.tab_id(), overlay);
+        promise::spawn::spawn(future);
+    }
+
     fn scroll_by_page(&mut self, amount: isize) -> anyhow::Result<()> {
         let tab = match self.get_active_tab_or_overlay() {
             Some(tab) => tab,
@@ -1089,12 +1143,25 @@ impl TermWindow {
     }
 
     fn spawn_command(&mut self, spawn: &SpawnCommand, new_window: bool) {
-        let size = self.terminal_size;
-        let mux_window_id = self.mux_window_id;
-        let clipboard: Arc<dyn term::Clipboard> = Arc::new(ClipboardHelper {
-            window: self.window.as_ref().unwrap().clone(),
-            clipboard_contents: Arc::clone(&self.clipboard_contents),
-        });
+        Self::spawn_command_impl(
+            spawn,
+            new_window,
+            self.terminal_size,
+            self.mux_window_id,
+            ClipboardHelper {
+                window: self.window.as_ref().unwrap().clone(),
+                clipboard_contents: Arc::clone(&self.clipboard_contents),
+            },
+        )
+    }
+
+    pub fn spawn_command_impl(
+        spawn: &SpawnCommand,
+        new_window: bool,
+        size: PtySize,
+        mux_window_id: MuxWindowId,
+        clipboard: ClipboardHelper,
+    ) {
         let spawn = spawn.clone();
 
         promise::spawn::spawn(async move {
@@ -1149,6 +1216,10 @@ impl TermWindow {
                 ),
             };
 
+            if domain.state() == DomainState::Detached {
+                bail!("Cannot spawn a tab into a Detached domain");
+            }
+
             let cwd = if let Some(cwd) = spawn.cwd.as_ref() {
                 Some(cwd.to_str().map(|s| s.to_owned()).ok_or_else(|| {
                     anyhow!(
@@ -1195,6 +1266,7 @@ impl TermWindow {
                 let fonts = Rc::new(FontConfiguration::new());
                 front_end.spawn_new_window(&fonts, &tab, mux_window_id)?;
             } else {
+                let clipboard: Arc<dyn term::Clipboard> = Arc::new(clipboard);
                 tab.set_clipboard(&clipboard);
                 let mut window = mux
                     .get_window_mut(mux_window_id)
@@ -1315,6 +1387,7 @@ impl TermWindow {
             MoveTabRelative(n) => self.move_tab_relative(*n)?,
             ScrollByPage(n) => self.scroll_by_page(*n)?,
             ShowTabNavigator => self.show_tab_navigator(),
+            ShowLauncher => self.show_launcher(),
             HideApplication => {
                 let con = Connection::get().expect("call on gui thread");
                 con.hide_application();
@@ -2536,7 +2609,10 @@ impl TermWindow {
                 TabBarItem::Tab(_) => {
                     self.show_tab_navigator();
                 }
-                TabBarItem::NewTabButton | TabBarItem::None => {}
+                TabBarItem::NewTabButton => {
+                    self.show_launcher();
+                }
+                TabBarItem::None => {}
             },
             _ => {}
         }

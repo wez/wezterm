@@ -27,7 +27,7 @@ use std::sync::Arc;
 use std::time::Duration;
 use term::color::ColorPalette;
 use term::{KeyCode, KeyModifiers, Line, MouseEvent, StableRowIndex, TerminalHost};
-use termwiz::input::{InputEvent, KeyEvent};
+use termwiz::input::{InputEvent, KeyEvent, MouseEvent as TermWizMouseEvent};
 use termwiz::lineedit::*;
 use termwiz::surface::{Change, SequenceNo, Surface};
 use termwiz::terminal::{ScreenSize, Terminal, TerminalWaker};
@@ -46,11 +46,15 @@ struct RenderableState {
     inner: RefCell<RenderableInner>,
 }
 
-impl std::io::Write for RenderableState {
+struct RenderableWriter {
+    input_tx: Sender<InputEvent>,
+}
+
+impl std::io::Write for RenderableWriter {
     fn write(&mut self, data: &[u8]) -> Result<usize, std::io::Error> {
         if let Ok(s) = std::str::from_utf8(data) {
             let paste = InputEvent::Paste(s.to_string());
-            self.inner.borrow_mut().input_tx.send(paste).ok();
+            self.input_tx.send(paste).ok();
         }
 
         Ok(data.len())
@@ -159,6 +163,10 @@ impl Domain for TermWizTerminalDomain {
         bail!("cannot spawn tabs in a TermWizTerminalTab");
     }
 
+    fn spawnable(&self) -> bool {
+        false
+    }
+
     fn domain_id(&self) -> DomainId {
         self.domain_id
     }
@@ -183,6 +191,7 @@ pub struct TermWizTerminalTab {
     tab_id: TabId,
     domain_id: DomainId,
     renderable: RefCell<RenderableState>,
+    writer: RefCell<RenderableWriter>,
     reader: Pipe,
 }
 
@@ -207,7 +216,7 @@ impl TermWizTerminalTab {
             local_sequence: 0,
             dead: false,
             something_changed: Arc::new(AtomicBool::new(false)),
-            input_tx,
+            input_tx: input_tx.clone(),
             render_rx,
         };
 
@@ -219,6 +228,7 @@ impl TermWizTerminalTab {
             tab_id,
             domain_id,
             renderable,
+            writer: RefCell::new(RenderableWriter { input_tx }),
             reader,
         }
     }
@@ -255,7 +265,7 @@ impl Tab for TermWizTerminalTab {
     }
 
     fn writer(&self) -> RefMut<dyn std::io::Write> {
-        self.renderable.borrow_mut()
+        self.writer.borrow_mut()
     }
 
     fn resize(&self, size: PtySize) -> anyhow::Result<()> {
@@ -279,8 +289,31 @@ impl Tab for TermWizTerminalTab {
         Ok(())
     }
 
-    fn mouse_event(&self, _event: MouseEvent, _host: &mut dyn TerminalHost) -> anyhow::Result<()> {
-        // FIXME: send mouse events through
+    fn mouse_event(&self, event: MouseEvent, _host: &mut dyn TerminalHost) -> anyhow::Result<()> {
+        use term::input::MouseButton;
+        use termwiz::input::MouseButtons as Buttons;
+
+        let mouse_buttons = match event.button {
+            MouseButton::Left => Buttons::LEFT,
+            MouseButton::Middle => Buttons::MIDDLE,
+            MouseButton::Right => Buttons::RIGHT,
+            MouseButton::WheelUp(_) => Buttons::VERT_WHEEL | Buttons::WHEEL_POSITIVE,
+            MouseButton::WheelDown(_) => Buttons::VERT_WHEEL,
+            MouseButton::None => Buttons::NONE,
+        };
+
+        let event = InputEvent::Mouse(TermWizMouseEvent {
+            x: event.x as u16,
+            y: event.y as u16,
+            mouse_buttons,
+            modifiers: event.modifiers,
+        });
+        self.renderable
+            .borrow_mut()
+            .inner
+            .borrow_mut()
+            .input_tx
+            .send(event)?;
         Ok(())
     }
 

@@ -41,6 +41,14 @@ pub trait Domain: Downcast {
         window: WindowId,
     ) -> Result<Rc<dyn Tab>, Error>;
 
+    /// Returns false if the `spawn` method will never succeed.
+    /// There are some internal placeholder domains that are
+    /// pre-created with local UI that we do not want to allow
+    /// to show in the launcher/menu as launchable items.
+    fn spawnable(&self) -> bool {
+        true
+    }
+
     /// Returns the domain id, which is useful for obtaining
     /// a handle on the domain later.
     fn domain_id(&self) -> DomainId;
