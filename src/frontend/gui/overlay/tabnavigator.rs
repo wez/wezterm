@@ -1,41 +1,13 @@
-use crate::frontend::gui::termwindow::TermWindow;
-use crate::mux::tab::{Tab, TabId};
+use crate::mux::tab::TabId;
 use crate::mux::window::WindowId;
 use crate::mux::Mux;
-use crate::termwiztermtab::{allocate, TermWizTerminal};
+use crate::termwiztermtab::TermWizTerminal;
 use anyhow::anyhow;
-use std::pin::Pin;
-use std::rc::Rc;
+use termwiz::cell::{AttributeChange, CellAttributes};
 use termwiz::color::ColorAttribute;
-use termwiz::surface::Change;
+use termwiz::input::{InputEvent, KeyCode, KeyEvent};
+use termwiz::surface::{Change, Position};
 use termwiz::terminal::Terminal;
-
-pub fn start_overlay<T, F>(
-    term_window: &TermWindow,
-    tab: &Rc<dyn Tab>,
-    func: F,
-) -> (
-    Rc<dyn Tab>,
-    Pin<Box<dyn std::future::Future<Output = Option<anyhow::Result<T>>>>>,
-)
-where
-    T: Send + 'static,
-    F: Send + 'static + FnOnce(TabId, TermWizTerminal) -> anyhow::Result<T>,
-{
-    let tab_id = tab.tab_id();
-    let dims = tab.renderer().get_dimensions();
-    let (tw_term, tw_tab) = allocate(dims.cols, dims.viewport_rows);
-
-    let window = term_window.window.clone().unwrap();
-
-    let future = promise::spawn::spawn_into_new_thread(move || {
-        let res = func(tab_id, tw_term);
-        TermWindow::schedule_cancel_overlay(window, tab_id);
-        res
-    });
-
-    (Rc::new(tw_tab), Box::pin(future))
-}
 
 pub fn tab_navigator(
     tab_id: TabId,
@@ -43,10 +15,6 @@ pub fn tab_navigator(
     tab_list: Vec<(String, TabId)>,
     mux_window_id: WindowId,
 ) -> anyhow::Result<()> {
-    use termwiz::cell::{AttributeChange, CellAttributes};
-    use termwiz::input::{InputEvent, KeyCode, KeyEvent};
-    use termwiz::surface::Position;
-
     let mut active_tab_idx = tab_list
         .iter()
         .position(|(_title, id)| *id == tab_id)
