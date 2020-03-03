@@ -127,10 +127,11 @@ pub fn tab_navigator(
                     if mouse_buttons == MouseButtons::LEFT {
                         select_tab_by_idx(active_tab_idx, mux_window_id, &tab_list);
                         break;
-                    } else if mouse_buttons != MouseButtons::NONE {
-                        // Treat any other mouse button as cancel
-                        break;
                     }
+                }
+                if mouse_buttons != MouseButtons::NONE {
+                    // Treat any other mouse button as cancel
+                    break;
                 }
             }
             InputEvent::Key(KeyEvent {

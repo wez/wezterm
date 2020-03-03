@@ -187,10 +187,11 @@ pub fn launcher(
                     if mouse_buttons == MouseButtons::LEFT {
                         launch(active_idx, &entries, size, mux_window_id, clipboard);
                         break;
-                    } else if mouse_buttons != MouseButtons::NONE {
-                        // Treat any other mouse button as cancel
-                        break;
                     }
+                }
+                if mouse_buttons != MouseButtons::NONE {
+                    // Treat any other mouse button as cancel
+                    break;
                 }
             }
             InputEvent::Key(KeyEvent {
