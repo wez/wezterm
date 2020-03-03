@@ -195,12 +195,6 @@ pub struct TermWizTerminalTab {
     reader: Pipe,
 }
 
-impl Drop for TermWizTerminalTab {
-    fn drop(&mut self) {
-        log::error!("Dropping TermWizTerminalTab");
-    }
-}
-
 impl TermWizTerminalTab {
     fn new(
         domain_id: DomainId,
