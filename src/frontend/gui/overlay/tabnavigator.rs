@@ -5,7 +5,7 @@ use crate::termwiztermtab::TermWizTerminal;
 use anyhow::anyhow;
 use termwiz::cell::{AttributeChange, CellAttributes};
 use termwiz::color::ColorAttribute;
-use termwiz::input::{InputEvent, KeyCode, KeyEvent};
+use termwiz::input::{InputEvent, KeyCode, KeyEvent, MouseButtons, MouseEvent};
 use termwiz::surface::{Change, Position};
 use termwiz::terminal::Terminal;
 
@@ -44,7 +44,7 @@ pub fn tab_navigator(
                 changes.push(AttributeChange::Reverse(true).into());
             }
 
-            changes.push(Change::Text(format!("{}. {}\r\n", idx + 1, title)));
+            changes.push(Change::Text(format!(" {}. {} \r\n", idx + 1, title)));
 
             if idx == active_tab_idx {
                 changes.push(AttributeChange::Reverse(false).into());
@@ -90,7 +90,6 @@ pub fn tab_navigator(
                 ..
             }) => {
                 active_tab_idx = active_tab_idx.saturating_sub(1);
-                render(active_tab_idx, &tab_list, &mut term)?;
             }
             InputEvent::Key(KeyEvent {
                 key: KeyCode::Char('j'),
@@ -101,7 +100,6 @@ pub fn tab_navigator(
                 ..
             }) => {
                 active_tab_idx = (active_tab_idx + 1).min(tab_list.len() - 1);
-                render(active_tab_idx, &tab_list, &mut term)?;
             }
             InputEvent::Key(KeyEvent {
                 key: KeyCode::Escape,
@@ -120,6 +118,21 @@ pub fn tab_navigator(
                     }
                 }
             }
+            InputEvent::Mouse(MouseEvent {
+                y, mouse_buttons, ..
+            }) => {
+                if y > 0 && y as usize <= tab_list.len() {
+                    active_tab_idx = y as usize - 1;
+
+                    if mouse_buttons == MouseButtons::LEFT {
+                        select_tab_by_idx(active_tab_idx, mux_window_id, &tab_list);
+                        break;
+                    } else if mouse_buttons != MouseButtons::NONE {
+                        // Treat any other mouse button as cancel
+                        break;
+                    }
+                }
+            }
             InputEvent::Key(KeyEvent {
                 key: KeyCode::Enter,
                 ..
@@ -129,6 +142,7 @@ pub fn tab_navigator(
             }
             _ => {}
         }
+        render(active_tab_idx, &tab_list, &mut term)?;
     }
 
     Ok(())
