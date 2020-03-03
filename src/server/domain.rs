@@ -99,6 +99,16 @@ impl ClientDomainConfig {
         }
     }
 
+    pub fn label(&self) -> String {
+        match self {
+            ClientDomainConfig::Unix(unix) => format!("unix mux {}", unix.socket_path().display()),
+            ClientDomainConfig::Tls(tls) => format!("TLS mux {}", tls.remote_address),
+            ClientDomainConfig::Ssh(ssh) => {
+                format!("SSH mux {}@{}", ssh.username, ssh.remote_address)
+            }
+        }
+    }
+
     pub fn connect_automatically(&self) -> bool {
         match self {
             ClientDomainConfig::Unix(unix) => unix.connect_automatically,
@@ -127,6 +137,7 @@ impl ClientInner {
 
 pub struct ClientDomain {
     config: ClientDomainConfig,
+    label: String,
     inner: RefCell<Option<Arc<ClientInner>>>,
     local_domain_id: DomainId,
 }
@@ -134,8 +145,10 @@ pub struct ClientDomain {
 impl ClientDomain {
     pub fn new(config: ClientDomainConfig) -> Self {
         let local_domain_id = alloc_domain_id();
+        let label = config.label();
         Self {
             config,
+            label,
             inner: RefCell::new(None),
             local_domain_id,
         }
@@ -281,6 +294,10 @@ impl Domain for ClientDomain {
 
     fn domain_name(&self) -> &str {
         self.config.name()
+    }
+
+    fn domain_label(&self) -> &str {
+        &self.label
     }
 
     async fn spawn(

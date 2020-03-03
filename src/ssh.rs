@@ -233,7 +233,7 @@ impl RemoteSshDomain {
         Self {
             pty_system,
             id,
-            name: name.to_string(),
+            name: format!("SSH to {}", name),
         }
     }
 }

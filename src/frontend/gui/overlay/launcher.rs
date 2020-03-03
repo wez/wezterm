@@ -57,7 +57,7 @@ pub fn launcher(
     for (domain_id, domain_state, domain_name) in &domains {
         let entry = if *domain_state == DomainState::Attached {
             Entry::Spawn {
-                label: format!("New Tab (domain `{}`)", domain_name),
+                label: format!("New Tab ({})", domain_name),
                 command: SpawnCommand {
                     domain: SpawnTabDomain::Domain(*domain_id),
                     ..SpawnCommand::default()
@@ -66,7 +66,7 @@ pub fn launcher(
             }
         } else {
             Entry::Attach {
-                label: format!("Attach domain `{}`", domain_name),
+                label: format!("Attach {}", domain_name),
                 domain: *domain_id,
             }
         };

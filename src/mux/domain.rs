@@ -53,8 +53,14 @@ pub trait Domain: Downcast {
     /// a handle on the domain later.
     fn domain_id(&self) -> DomainId;
 
-    /// Returns the name of the domain
+    /// Returns the name of the domain.
+    /// Should be a short identifier.
     fn domain_name(&self) -> &str;
+
+    /// Returns a label describing the domain.
+    fn domain_label(&self) -> &str {
+        self.domain_name()
+    }
 
     /// Re-attach to any tabs that might be pre-existing in this domain
     async fn attach(&self) -> anyhow::Result<()>;

@@ -1080,7 +1080,16 @@ impl TermWindow {
         domains.retain(|dom| dom.spawnable());
         let domains: Vec<(DomainId, DomainState, String)> = domains
             .iter()
-            .map(|dom| (dom.domain_id(), dom.state(), dom.domain_name().to_owned()))
+            .map(|dom| {
+                let name = dom.domain_name();
+                let label = dom.domain_label();
+                let label = if name == label || label == "" {
+                    format!("domain `{}`", name)
+                } else {
+                    format!("domain `{}` - {}", name, label)
+                };
+                (dom.domain_id(), dom.state(), label)
+            })
             .collect();
 
         let domain_id_of_current_tab = tab.domain_id();
