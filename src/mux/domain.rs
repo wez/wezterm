@@ -112,7 +112,13 @@ impl Domain for LocalDomain {
             None => config.build_prog(None)?,
         };
         if let Some(dir) = command_dir {
-            cmd.cwd(dir);
+            // I'm not normally a fan of existence checking, but not checking here
+            // can be painful; in the case where a tab is local but has connected
+            // to a remote system and that remote has used OSC 7 to set a path
+            // that doesn't exist on the local system, process spawning can fail.
+            if std::path::Path::new(&dir).exists() {
+                cmd.cwd(dir);
+            }
         }
         let pair = self.pty_system.openpty(size)?;
         let child = pair.slave.spawn_command(cmd)?;
