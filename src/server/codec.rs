@@ -245,7 +245,7 @@ macro_rules! pdu {
 /// The overall version of the codec.
 /// This must be bumped when backwards incompatible changes
 /// are made to the types and protocol.
-pub const CODEC_VERSION: usize = 2;
+pub const CODEC_VERSION: usize = 3;
 
 // Defines the Pdu enum.
 // Each struct has an explicit identifying number.
@@ -274,6 +274,7 @@ pdu! {
     GetCodecVersionResponse: 27,
     GetTlsCreds: 28,
     GetTlsCredsResponse: 29,
+    TabLivenessResponse: 30,
 }
 
 impl Pdu {
@@ -494,6 +495,12 @@ pub struct Resize {
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
 pub struct GetTabRenderChanges {
     pub tab_id: TabId,
+}
+
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct TabLivenessResponse {
+    pub tab_id: TabId,
+    pub tab_alive: bool,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]

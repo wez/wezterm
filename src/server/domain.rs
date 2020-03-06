@@ -159,7 +159,7 @@ impl ClientDomain {
     }
 
     pub fn perform_detach(&self) {
-        log::info!("detached domain {}", self.local_domain_id);
+        log::error!("detached domain {}", self.local_domain_id);
         self.inner.borrow_mut().take();
         let mux = Mux::get().unwrap();
         mux.domain_was_detached(self.local_domain_id);

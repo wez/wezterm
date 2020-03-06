@@ -338,11 +338,17 @@ impl SessionHandler {
                     catch(
                         move || {
                             let mux = Mux::get().unwrap();
-                            let tab = mux
-                                .get_tab(tab_id)
-                                .ok_or_else(|| anyhow!("no such tab {}", tab_id))?;
-                            maybe_push_tab_changes(&tab, sender, per_tab)?;
-                            Ok(Pdu::UnitResponse(UnitResponse {}))
+                            let tab_alive = match mux.get_tab(tab_id) {
+                                Some(tab) => {
+                                    maybe_push_tab_changes(&tab, sender, per_tab)?;
+                                    true
+                                }
+                                None => false,
+                            };
+                            Ok(Pdu::TabLivenessResponse(TabLivenessResponse {
+                                tab_id,
+                                tab_alive,
+                            }))
                         },
                         send_response,
                     )
@@ -409,6 +415,7 @@ impl SessionHandler {
             | Pdu::SpawnResponse { .. }
             | Pdu::GetTabRenderChangesResponse { .. }
             | Pdu::UnitResponse { .. }
+            | Pdu::TabLivenessResponse { .. }
             | Pdu::GetLinesResponse { .. }
             | Pdu::GetCodecVersionResponse { .. }
             | Pdu::GetTlsCredsResponse { .. }

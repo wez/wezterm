@@ -191,7 +191,7 @@ fn client_thread(
                         for (_, mut promise) in promises.into_iter() {
                             promise.result(Err(anyhow!("{}", reason)));
                         }
-                        bail!(reason);
+                        return Err(err).context("Error while decoding response pdu");
                     }
                 }
             }
@@ -660,6 +660,14 @@ impl Client {
                         break;
                     }
 
+                    if let Some(ioerr) = e.root_cause().downcast_ref::<std::io::Error>() {
+                        if let std::io::ErrorKind::UnexpectedEof = ioerr.kind() {
+                            // Don't reconnect for a simple EOF
+                            log::error!("server closed connection ({})", e);
+                            break;
+                        }
+                    }
+
                     let mut ui = ConnectionUI::new();
                     ui.title("wezterm: Reconnecting...");
 
@@ -823,7 +831,11 @@ impl Client {
     rpc!(key_down, SendKeyDown, UnitResponse);
     rpc!(mouse_event, SendMouseEvent, UnitResponse);
     rpc!(resize, Resize, UnitResponse);
-    rpc!(get_tab_render_changes, GetTabRenderChanges, UnitResponse);
+    rpc!(
+        get_tab_render_changes,
+        GetTabRenderChanges,
+        TabLivenessResponse
+    );
     rpc!(get_lines, GetLines, GetLinesResponse);
     rpc!(get_codec_version, GetCodecVersion, GetCodecVersionResponse);
     rpc!(get_tls_creds, GetTlsCreds = (), GetTlsCredsResponse);

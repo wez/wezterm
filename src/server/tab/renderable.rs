@@ -378,17 +378,22 @@ impl RenderableInner {
         let local_tab_id = self.local_tab_id;
         let client = Arc::clone(&self.client);
         promise::spawn::spawn(async move {
-            let alive = client
+            let alive = match client
                 .client
                 .get_tab_render_changes(GetTabRenderChanges {
                     tab_id: remote_tab_id,
                 })
                 .await
-                .is_ok()
+            {
+                Ok(resp) => {
+                    log::error!("liveness response to get_tab_render_changes is {:?}", resp);
+                    resp.tab_alive
+                }
                 // if we got a timeout on a reconnectable, don't
                 // consider the tab to be dead; that helps to
                 // avoid having a tab get shuffled around
-                || client.client.is_reconnectable;
+                Err(_) => client.client.is_reconnectable,
+            };
 
             let mux = Mux::get().unwrap();
             let tab = mux
