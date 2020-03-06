@@ -106,6 +106,10 @@ pub fn make_lua_context(config_dir: &Path) -> anyhow::Result<Lua> {
         wezterm_mod.set("target_triple", env!("VERGEN_TARGET_TRIPLE"))?;
         wezterm_mod.set("version", crate::wezterm_version())?;
         wezterm_mod.set("home_dir", crate::config::HOME_DIR.to_str())?;
+        wezterm_mod.set(
+            "running_under_wsl",
+            lua.create_function(|_, ()| Ok(crate::running_under_wsl()))?,
+        )?;
 
         wezterm_mod.set(
             "log_error",
