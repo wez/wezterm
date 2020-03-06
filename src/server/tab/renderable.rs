@@ -385,10 +385,7 @@ impl RenderableInner {
                 })
                 .await
             {
-                Ok(resp) => {
-                    log::error!("liveness response to get_tab_render_changes is {:?}", resp);
-                    resp.tab_alive
-                }
+                Ok(resp) => resp.tab_alive,
                 // if we got a timeout on a reconnectable, don't
                 // consider the tab to be dead; that helps to
                 // avoid having a tab get shuffled around
