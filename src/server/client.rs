@@ -25,6 +25,7 @@ use std::path::Path;
 use std::path::PathBuf;
 use std::thread;
 use std::time::Duration;
+use thiserror::Error;
 
 enum ReaderMessage {
     SendPdu { pdu: Pdu, promise: Promise<Pdu> },
@@ -35,6 +36,22 @@ pub struct Client {
     sender: PollableSender<ReaderMessage>,
     local_domain_id: DomainId,
     pub is_reconnectable: bool,
+}
+
+#[derive(Error, Debug, Clone, PartialEq, Eq)]
+#[error(
+    "Please install the same version of wezterm on both the client and server!\n\
+     The server version is {} (codec version {}),\n\
+     which is not compatible with our version \n\
+     {} (codec version {}).",
+    version,
+    codec_vers,
+    crate::wezterm_version(),
+    CODEC_VERSION
+)]
+pub struct IncompatibleVersionError {
+    pub version: String,
+    pub codec_vers: usize,
 }
 
 macro_rules! rpc {
@@ -113,6 +130,12 @@ fn process_unilateral(local_domain_id: DomainId, decoded: DecodedPdu) -> anyhow:
     Ok(())
 }
 
+#[derive(Error, Debug, Clone, PartialEq, Eq)]
+enum NotReconnectableError {
+    #[error("Client was destroyed")]
+    ClientWasDestroyed,
+}
+
 fn client_thread(
     reconnectable: &mut Reconnectable,
     local_domain_id: DomainId,
@@ -144,7 +167,7 @@ fn client_thread(
                     for (_, mut promise) in promises.into_iter() {
                         promise.result(Err(anyhow!("Client was destroyed")));
                     }
-                    bail!("Client was destroyed");
+                    return Err(NotReconnectableError::ClientWasDestroyed.into());
                 }
             };
         }
@@ -668,6 +691,11 @@ impl Client {
                         }
                     }
 
+                    if let Some(err) = e.root_cause().downcast_ref::<NotReconnectableError>() {
+                        log::error!("{}; won't try to reconnect", err);
+                        break;
+                    }
+
                     let mut ui = ConnectionUI::new();
                     ui.title("wezterm: Reconnecting...");
 
@@ -739,18 +767,13 @@ impl Client {
                 Ok(())
             }
             Ok(info) => {
-                let msg = format!(
-                    "Please install the same version of wezterm on both \
-                     the client and server! \
-                     The server verson is {} (codec version {}), which is not \
-                     compatible with our version {} (codec version {}).",
-                    info.version_string,
-                    info.codec_vers,
-                    crate::wezterm_version(),
-                    CODEC_VERSION
-                );
-                ui.output_str(&msg);
-                bail!("{}", msg);
+                let err = IncompatibleVersionError {
+                    version: info.version_string,
+                    codec_vers: info.codec_vers,
+                };
+                ui.output_str(&err.to_string());
+                log::error!("{:?}", err);
+                return Err(err.into());
             }
             Err(err) => {
                 let msg = format!(

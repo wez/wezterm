@@ -71,9 +71,6 @@ impl ConnectionUIImpl {
                 Err(err) => bail!("recv_timeout: {}", err),
             }
         }
-
-        std::thread::sleep(Duration::new(2, 0));
-
         Ok(())
     }
 
@@ -136,7 +133,11 @@ impl ConnectionUI {
         let (tx, rx) = bounded(16);
         promise::spawn::spawn_into_main_thread(termwiztermtab::run(80, 24, move |term| {
             let mut ui = ConnectionUIImpl { term, rx };
-            ui.run()
+            if let Err(e) = ui.run() {
+                log::error!("while running ConnectionUI loop: {:?}", e);
+            }
+            std::thread::sleep(Duration::new(10, 0));
+            Ok(())
         }));
         Self { tx }
     }
