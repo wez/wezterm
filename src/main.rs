@@ -427,7 +427,7 @@ fn run_serial(config: config::ConfigHandle, opts: &SerialCommand) -> anyhow::Res
         serial.set_baud_rate(serial::BaudRate::from_speed(baud));
     }
 
-    let pty_system = Box::new(portable_pty::serial::SerialTty::new(&opts.port));
+    let pty_system = Box::new(serial);
     let domain: Arc<dyn Domain> = Arc::new(LocalDomain::with_pty_system("local", pty_system));
     let mux = Rc::new(mux::Mux::new(Some(domain.clone())));
     Mux::set_mux(&mux);

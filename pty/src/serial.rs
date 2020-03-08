@@ -8,7 +8,9 @@
 use crate::{Child, CommandBuilder, ExitStatus, MasterPty, PtyPair, PtySize, PtySystem, SlavePty};
 use anyhow::{ensure, Context};
 use filedescriptor::FileDescriptor;
-use serial::{BaudRate, CharSize, FlowControl, Parity, SerialPort, StopBits, SystemPort};
+use serial::{
+    BaudRate, CharSize, FlowControl, Parity, PortSettings, SerialPort, StopBits, SystemPort,
+};
 use std::ffi::{OsStr, OsString};
 use std::io::Result as IoResult;
 use std::io::{Read, Write};
@@ -64,14 +66,16 @@ impl PtySystem for SerialTty {
         let mut port = serial::open(&self.port)
             .with_context(|| format!("openpty on serial port {:?}", self.port))?;
 
-        port.reconfigure(&|settings| {
-            settings.set_baud_rate(self.baud)?;
-            settings.set_char_size(self.char_size);
-            settings.set_parity(self.parity);
-            settings.set_stop_bits(self.stop_bits);
-            settings.set_flow_control(self.flow_control);
-            Ok(())
-        })?;
+        let settings = PortSettings {
+            baud_rate: self.baud,
+            char_size: self.char_size,
+            parity: self.parity,
+            stop_bits: self.stop_bits,
+            flow_control: self.flow_control,
+        };
+        log::debug!("serial settings: {:#?}", settings);
+        port.configure(&settings)?;
+
         // The timeout needs to be rather short because, at least on Windows,
         // a read with a long timeout will block a concurrent write from
         // happening.  In wezterm we tend to have a thread looping on read
