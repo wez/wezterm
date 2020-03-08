@@ -951,7 +951,7 @@ impl WindowOps for XWindow {
                 // below.
                 inner.copy_and_paste.request.take();
             } else {
-                log::error!("prepare promise, time={}", inner.copy_and_paste.time);
+                log::debug!("prepare promise, time={}", inner.copy_and_paste.time);
                 inner.copy_and_paste.request.replace(promise);
                 // Find the owner and ask them to send us the buffer
                 xcb::convert_selection(
