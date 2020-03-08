@@ -127,12 +127,12 @@ impl KeyMap {
             [
                 KeyModifiers::SUPER,
                 KeyCode::Char('t'),
-                SpawnTab(SpawnTabDomain::DefaultDomain)
+                SpawnTab(SpawnTabDomain::CurrentTabDomain)
             ],
             [
                 ctrl_shift,
                 KeyCode::Char('T'),
-                SpawnTab(SpawnTabDomain::DefaultDomain)
+                SpawnTab(SpawnTabDomain::CurrentTabDomain)
             ],
             [
                 KeyModifiers::SUPER | KeyModifiers::SHIFT,
