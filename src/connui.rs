@@ -2,11 +2,12 @@ use crate::termwiztermtab;
 use anyhow::{anyhow, bail, Context as _};
 use crossbeam::channel::{bounded, Receiver, Sender};
 use promise::Promise;
-use std::time::Duration;
-use termwiz::cell::unicode_column_width;
+use std::time::{Duration, Instant};
+use termwiz::cell::{unicode_column_width, CellAttributes};
 use termwiz::lineedit::*;
-use termwiz::surface::Change;
+use termwiz::surface::{Change, Position};
 use termwiz::terminal::*;
+use unicode_segmentation::UnicodeSegmentation;
 
 #[derive(Default)]
 struct PasswordPromptHost {
@@ -39,6 +40,12 @@ pub enum UIRequest {
         echo: bool,
         respond: Promise<String>,
     },
+    /// Sleep with a progress bar
+    Sleep {
+        reason: String,
+        duration: Duration,
+        respond: Promise<()>,
+    },
     Close,
 }
 
@@ -66,6 +73,13 @@ impl ConnectionUIImpl {
                     mut respond,
                 }) => {
                     respond.result(self.password_prompt(&prompt));
+                }
+                Ok(UIRequest::Sleep {
+                    reason,
+                    duration,
+                    mut respond,
+                }) => {
+                    respond.result(self.sleep(&reason, duration));
                 }
                 Err(err) if err.is_timeout() => {}
                 Err(err) => bail!("recv_timeout: {}", err),
@@ -97,6 +111,78 @@ impl ConnectionUIImpl {
             bail!("prompt cancelled");
         }
     }
+
+    fn sleep(&mut self, reason: &str, duration: Duration) -> anyhow::Result<()> {
+        let start = Instant::now();
+        let deadline = start + duration;
+        loop {
+            let now = Instant::now();
+            if now >= deadline {
+                break;
+            }
+
+            // Render a progress bar underneath the countdown text by reversing
+            // out the text for the elapsed portion of time.
+            let remain = deadline - now;
+            let term_width = self.term.get_screen_size().map(|s| s.cols).unwrap_or(80);
+            let prog_width = term_width as u128 * (duration.as_millis() - remain.as_millis())
+                / duration.as_millis();
+            let prog_width = prog_width as usize;
+            let message = format!("{} ({:.0?})", reason, remain);
+
+            let mut reversed_string = String::new();
+            let mut default_string = String::new();
+            let mut col = 0;
+            for grapheme in message.graphemes(true) {
+                // Once we've passed the elapsed column, full up the string
+                // that we'll render with default attributes instead.
+                if col > prog_width {
+                    default_string.push_str(grapheme);
+                } else {
+                    reversed_string.push_str(grapheme);
+                }
+                col += 1;
+            }
+
+            // If we didn't reach the elapsed column yet (really short text!),
+            // we need to pad out the reversed string.
+            while col < prog_width {
+                reversed_string.push(' ');
+                col += 1;
+            }
+
+            self.term.render(&[
+                Change::CursorPosition {
+                    x: Position::Absolute(0),
+                    y: Position::NoChange,
+                },
+                Change::AllAttributes(CellAttributes::default().set_reverse(true).clone()),
+                Change::Text(reversed_string),
+                Change::AllAttributes(CellAttributes::default()),
+                Change::Text(default_string),
+            ])?;
+
+            // We use poll_input rather than a raw sleep here so that
+            // eg: resize events can be processed and reflected in the
+            // dimensions reported at the top of the loop.
+            // We're using a sub-second value for the delay here for a
+            // slightly smoother progress bar.
+            self.term
+                .poll_input(Some(remain.min(Duration::from_millis(50))))
+                .ok();
+        }
+
+        let message = format!("{} (done)\r\n", reason);
+        self.term.render(&[
+            Change::CursorPosition {
+                x: Position::Absolute(0),
+                y: Position::NoChange,
+            },
+            Change::Text(message),
+        ])?;
+
+        Ok(())
+    }
 }
 
 struct HeadlessImpl {
@@ -113,6 +199,15 @@ impl HeadlessImpl {
                 }
                 Ok(UIRequest::Input { mut respond, .. }) => {
                     respond.result(Err(anyhow!("Input requested from headless context")));
+                }
+                Ok(UIRequest::Sleep {
+                    mut respond,
+                    reason,
+                    duration,
+                }) => {
+                    log::error!("{} (sleeping for {:?})", reason, duration);
+                    std::thread::sleep(duration);
+                    respond.result(Ok(()));
                 }
                 Err(err) if err.is_timeout() => {}
                 Err(err) => bail!("recv_timeout: {}", err),
@@ -136,7 +231,11 @@ impl ConnectionUI {
             if let Err(e) = ui.run() {
                 log::error!("while running ConnectionUI loop: {:?}", e);
             }
-            std::thread::sleep(Duration::new(10, 0));
+            ui.sleep(
+                "(this window will close automatically)",
+                Duration::new(10, 0),
+            )
+            .ok();
             Ok(())
         }));
         Self { tx }
@@ -162,6 +261,23 @@ impl ConnectionUI {
     pub fn output_str(&self, s: &str) {
         let s = s.replace("\n", "\r\n");
         self.output(vec![Change::Text(s)]);
+    }
+
+    /// Sleep (blocking!) for the specified duration, but updates
+    /// the UI with the reason and a count down during that time.
+    pub fn sleep_with_reason(&self, reason: &str, duration: Duration) -> anyhow::Result<()> {
+        let mut promise = Promise::new();
+        let future = promise.get_future().unwrap();
+
+        self.tx
+            .send(UIRequest::Sleep {
+                reason: reason.to_string(),
+                duration,
+                respond: promise,
+            })
+            .context("send to ConnectionUI failed")?;
+
+        future.wait()
     }
 
     /// Crack a multi-line prompt into an optional preamble and the prompt

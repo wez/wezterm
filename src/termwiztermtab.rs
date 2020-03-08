@@ -263,12 +263,14 @@ impl Tab for TermWizTerminalTab {
     }
 
     fn resize(&self, size: PtySize) -> anyhow::Result<()> {
-        self.renderable
-            .borrow()
-            .inner
-            .borrow_mut()
-            .surface
-            .resize(size.cols as usize, size.rows as usize);
+        let renderable = self.renderable.borrow();
+        let mut inner = renderable.inner.borrow_mut();
+
+        inner.surface.resize(size.cols as usize, size.rows as usize);
+        inner.input_tx.send(InputEvent::Resized {
+            rows: size.rows as usize,
+            cols: size.cols as usize,
+        })?;
         Ok(())
     }
 

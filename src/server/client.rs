@@ -699,13 +699,12 @@ impl Client {
                     let mut ui = ConnectionUI::new();
                     ui.title("wezterm: Reconnecting...");
 
-                    ui.output_str(&format!(
-                        "client disconnected {}; will reconnect in {:?}\n",
-                        e, backoff
-                    ));
-
                     loop {
-                        std::thread::sleep(backoff);
+                        ui.sleep_with_reason(
+                            &format!("client disconnected {}; will reconnect", e),
+                            backoff,
+                        )
+                        .ok();
                         match reconnectable.connect(false, &mut ui) {
                             Ok(_) => {
                                 backoff = BASE_INTERVAL;
