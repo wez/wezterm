@@ -27,7 +27,11 @@ struct PerTab {
 }
 
 impl PerTab {
-    fn compute_changes(&mut self, tab: &Rc<dyn Tab>) -> Option<GetTabRenderChangesResponse> {
+    fn compute_changes(
+        &mut self,
+        tab: &Rc<dyn Tab>,
+        force: bool,
+    ) -> Option<GetTabRenderChangesResponse> {
         let mut changed = false;
         let mouse_grabbed = tab.is_mouse_grabbed();
         if mouse_grabbed != self.mouse_grabbed {
@@ -62,7 +66,7 @@ impl PerTab {
             changed = true;
         }
 
-        if !changed {
+        if !changed && !force {
             return None;
         }
 
@@ -120,7 +124,7 @@ fn maybe_push_tab_changes(
     per_tab: Arc<Mutex<PerTab>>,
 ) -> anyhow::Result<()> {
     let mut per_tab = per_tab.lock().unwrap();
-    if let Some(resp) = per_tab.compute_changes(tab) {
+    if let Some(resp) = per_tab.compute_changes(tab, false) {
         sender.send(DecodedPdu {
             pdu: Pdu::GetTabRenderChangesResponse(resp),
             serial: 0,
@@ -295,7 +299,17 @@ impl SessionHandler {
                                 .get_tab(tab_id)
                                 .ok_or_else(|| anyhow!("no such tab {}", tab_id))?;
                             tab.key_down(event.key, event.modifiers)?;
-                            maybe_push_tab_changes(&tab, sender, per_tab)?;
+
+                            // For a key press, we want to always send back the
+                            // cursor position so that the predictive echo doesn't
+                            // leave the cursor in the wrong place
+                            let mut per_tab = per_tab.lock().unwrap();
+                            if let Some(resp) = per_tab.compute_changes(&tab, true) {
+                                sender.send(DecodedPdu {
+                                    pdu: Pdu::GetTabRenderChangesResponse(resp),
+                                    serial: 0,
+                                })?;
+                            }
                             Ok(Pdu::UnitResponse(UnitResponse {}))
                         },
                         send_response,

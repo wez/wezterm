@@ -135,14 +135,7 @@ impl RenderableInner {
     ///                        other editor commands
     /// There are bound to be a number of other edge cases that we should
     /// handle.
-    fn apply_prediction(&mut self, c: char, line: &mut Line) {
-        let cell = Cell::new(
-            c,
-            CellAttributes::default()
-                .set_underline(Underline::Double)
-                .clone(),
-        );
-
+    fn apply_prediction(&mut self, c: KeyCode, line: &mut Line) {
         let text = line.as_str();
         if text.contains("sword:") {
             // This line might be a password prompt.  Don't force
@@ -151,9 +144,46 @@ impl RenderableInner {
             return;
         }
 
-        let cell = line.set_cell(self.cursor_position.x, cell);
-        // Adjust the cursor to reflect the width of this new cell
-        self.cursor_position.x += cell.width();
+        match c {
+            KeyCode::Enter => {
+                self.cursor_position.x = 0;
+                self.cursor_position.y += 1;
+            }
+            KeyCode::UpArrow => {
+                self.cursor_position.y = self.cursor_position.y.saturating_sub(1);
+            }
+            KeyCode::DownArrow => {
+                self.cursor_position.y += 1;
+            }
+            KeyCode::RightArrow => {
+                self.cursor_position.x += 1;
+            }
+            KeyCode::LeftArrow => {
+                self.cursor_position.x = self.cursor_position.x.saturating_sub(1);
+            }
+            KeyCode::Delete => {
+                line.erase_cell(self.cursor_position.x);
+            }
+            KeyCode::Backspace => {
+                if self.cursor_position.x > 0 {
+                    line.erase_cell(self.cursor_position.x - 1);
+                    self.cursor_position.x -= 1;
+                }
+            }
+            KeyCode::Char(c) => {
+                let cell = Cell::new(
+                    c,
+                    CellAttributes::default()
+                        .set_underline(Underline::Double)
+                        .clone(),
+                );
+
+                let cell = line.set_cell(self.cursor_position.x, cell);
+                // Adjust the cursor to reflect the width of this new cell
+                self.cursor_position.x += cell.width();
+            }
+            _ => {}
+        }
     }
 
     /// Based on a keypress, apply a "prediction" of what the terminal
@@ -162,33 +192,86 @@ impl RenderableInner {
     /// when a user is typing at any reasonable velocity.
     pub fn predict_from_key_event(&mut self, key: KeyCode, mods: KeyModifiers) {
         let c = match key {
-            KeyCode::Char(c) => c,
+            KeyCode::LeftArrow
+            | KeyCode::RightArrow
+            | KeyCode::UpArrow
+            | KeyCode::DownArrow
+            | KeyCode::Delete
+            | KeyCode::Backspace
+            | KeyCode::Enter
+            | KeyCode::Char(_) => key,
             _ => return,
         };
         if mods != KeyModifiers::NONE && mods != KeyModifiers::SHIFT {
             return;
         }
 
-        match self.lines.pop(&self.cursor_position.y) {
+        let row = self.cursor_position.y;
+        match self.lines.pop(&row) {
             Some(LineEntry::Stale(mut line))
             | Some(LineEntry::Line(mut line))
             | Some(LineEntry::Dirty(mut line)) => {
                 self.apply_prediction(c, &mut line);
-                self.lines
-                    .put(self.cursor_position.y, LineEntry::Dirty(line));
+                self.lines.put(row, LineEntry::Dirty(line));
             }
             Some(LineEntry::DirtyAndFetching(mut line, instant)) => {
                 self.apply_prediction(c, &mut line);
-                self.lines.put(
-                    self.cursor_position.y,
-                    LineEntry::DirtyAndFetching(line, instant),
-                );
+                self.lines
+                    .put(row, LineEntry::DirtyAndFetching(line, instant));
             }
             Some(entry) => {
-                self.lines.put(self.cursor_position.y, entry);
+                self.lines.put(row, entry);
             }
             None => {}
         }
+    }
+
+    fn apply_paste_prediction(&mut self, row: usize, text: &str, line: &mut Line) {
+        let attrs = CellAttributes::default()
+            .set_underline(Underline::Double)
+            .clone();
+
+        let text_line = Line::from_text(text, &attrs);
+
+        if row == 0 {
+            for cell in text_line.cells() {
+                line.set_cell(self.cursor_position.x, cell.clone());
+                self.cursor_position.x += cell.width();
+            }
+        } else {
+            // The pasted line replaces the data for the existing line
+            line.resize_and_clear(0);
+            line.append_line(text_line);
+            self.cursor_position.x = line.cells().len();
+        }
+    }
+
+    pub fn predict_from_paste(&mut self, text: &str) {
+        let text = textwrap::fill(text, self.dimensions.cols);
+        let lines: Vec<&str> = text.split("\n").collect();
+
+        for (idx, paste_line) in lines.iter().enumerate() {
+            let row = self.cursor_position.y + idx as StableRowIndex;
+
+            match self.lines.pop(&row) {
+                Some(LineEntry::Stale(mut line))
+                | Some(LineEntry::Line(mut line))
+                | Some(LineEntry::Dirty(mut line)) => {
+                    self.apply_paste_prediction(idx, paste_line, &mut line);
+                    self.lines.put(row, LineEntry::Dirty(line));
+                }
+                Some(LineEntry::DirtyAndFetching(mut line, instant)) => {
+                    self.apply_paste_prediction(idx, paste_line, &mut line);
+                    self.lines
+                        .put(row, LineEntry::DirtyAndFetching(line, instant));
+                }
+                Some(entry) => {
+                    self.lines.put(row, entry);
+                }
+                None => {}
+            }
+        }
+        self.cursor_position.y += lines.len().saturating_sub(1) as StableRowIndex;
     }
 
     pub fn update_last_send(&mut self) {

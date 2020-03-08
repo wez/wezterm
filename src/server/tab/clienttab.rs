@@ -136,6 +136,12 @@ impl Tab for ClientTab {
     fn send_paste(&self, text: &str) -> anyhow::Result<()> {
         let client = Arc::clone(&self.client);
         let remote_tab_id = self.remote_tab_id;
+        self.renderable
+            .borrow()
+            .inner
+            .borrow_mut()
+            .predict_from_paste(text);
+
         let data = text.to_owned();
         promise::spawn::spawn(async move {
             client
