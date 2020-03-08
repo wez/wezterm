@@ -15,8 +15,9 @@ use std::ops::Range;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
+use term::{KeyCode, KeyModifiers};
 use term::{Line, StableRowIndex};
-use termwiz::cell::CellAttributes;
+use termwiz::cell::{Cell, CellAttributes, Underline};
 use termwiz::color::AnsiColor;
 use url::Url;
 
@@ -120,6 +121,73 @@ impl RenderableInner {
             self.last_send_time > self.last_recv_time
         } else {
             false
+        }
+    }
+
+    /// Compute a "prediction" and apply it to the line data that we
+    /// have available, marking it as dirty so that it gets rendered.
+    /// The prediction is basically just local echo.
+    /// Open questions:
+    /// how do we tell if the intent is to suppress local echo during eg:
+    ///  * password prompt?  One option is to look back and see if the line
+    ///                      looks like a password prompt.
+    ///  * normal mode in vim: letter presses are typically movement or
+    ///                        other editor commands
+    /// There are bound to be a number of other edge cases that we should
+    /// handle.
+    fn apply_prediction(&mut self, c: char, line: &mut Line) {
+        let cell = Cell::new(
+            c,
+            CellAttributes::default()
+                .set_underline(Underline::Double)
+                .clone(),
+        );
+
+        let text = line.as_str();
+        if text.contains("sword:") {
+            // This line might be a password prompt.  Don't force
+            // on local echo here, as we don't want to reveal content
+            // from their password
+            return;
+        }
+
+        let cell = line.set_cell(self.cursor_position.x, cell);
+        // Adjust the cursor to reflect the width of this new cell
+        self.cursor_position.x += cell.width();
+    }
+
+    /// Based on a keypress, apply a "prediction" of what the terminal
+    /// content will look like once we receive the response from the
+    /// remote system.  The prediction helps to reduce perceived latency
+    /// when a user is typing at any reasonable velocity.
+    pub fn predict_from_key_event(&mut self, key: KeyCode, mods: KeyModifiers) {
+        let c = match key {
+            KeyCode::Char(c) => c,
+            _ => return,
+        };
+        if mods != KeyModifiers::NONE && mods != KeyModifiers::SHIFT {
+            return;
+        }
+
+        match self.lines.pop(&self.cursor_position.y) {
+            Some(LineEntry::Stale(mut line))
+            | Some(LineEntry::Line(mut line))
+            | Some(LineEntry::Dirty(mut line)) => {
+                self.apply_prediction(c, &mut line);
+                self.lines
+                    .put(self.cursor_position.y, LineEntry::Dirty(line));
+            }
+            Some(LineEntry::DirtyAndFetching(mut line, instant)) => {
+                self.apply_prediction(c, &mut line);
+                self.lines.put(
+                    self.cursor_position.y,
+                    LineEntry::DirtyAndFetching(line, instant),
+                );
+            }
+            Some(entry) => {
+                self.lines.put(self.cursor_position.y, entry);
+            }
+            None => {}
         }
     }
 
