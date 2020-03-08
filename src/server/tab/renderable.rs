@@ -100,7 +100,7 @@ impl RenderableInner {
             poll_interval: BASE_POLL_INTERVAL,
             cursor_position: StableCursorPosition::default(),
             dimensions,
-            lines: LruCache::unbounded(),
+            lines: LruCache::new(configuration().scrollback_lines),
             title: title.to_string(),
             working_dir: None,
             fetch_limiter,
