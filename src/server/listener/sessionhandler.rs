@@ -30,7 +30,7 @@ impl PerTab {
     fn compute_changes(
         &mut self,
         tab: &Rc<dyn Tab>,
-        force: bool,
+        force_with_input_serial: Option<InputSerial>,
     ) -> Option<GetTabRenderChangesResponse> {
         let mut changed = false;
         let mouse_grabbed = tab.is_mouse_grabbed();
@@ -66,7 +66,7 @@ impl PerTab {
             changed = true;
         }
 
-        if !changed && !force {
+        if !changed && !force_with_input_serial.is_some() {
             return None;
         }
 
@@ -110,6 +110,7 @@ impl PerTab {
             title,
             bonus_lines,
             working_dir: working_dir.map(Into::into),
+            input_serial: force_with_input_serial,
         })
     }
 
@@ -124,7 +125,7 @@ fn maybe_push_tab_changes(
     per_tab: Arc<Mutex<PerTab>>,
 ) -> anyhow::Result<()> {
     let mut per_tab = per_tab.lock().unwrap();
-    if let Some(resp) = per_tab.compute_changes(tab, false) {
+    if let Some(resp) = per_tab.compute_changes(tab, None) {
         sender.send(DecodedPdu {
             pdu: Pdu::GetTabRenderChangesResponse(resp),
             serial: 0,
@@ -288,7 +289,11 @@ impl SessionHandler {
                 });
             }
 
-            Pdu::SendKeyDown(SendKeyDown { tab_id, event }) => {
+            Pdu::SendKeyDown(SendKeyDown {
+                tab_id,
+                event,
+                input_serial,
+            }) => {
                 let sender = self.to_write_tx.clone();
                 let per_tab = self.per_tab(tab_id);
                 spawn_into_main_thread(async move {
@@ -304,7 +309,7 @@ impl SessionHandler {
                             // cursor position so that the predictive echo doesn't
                             // leave the cursor in the wrong place
                             let mut per_tab = per_tab.lock().unwrap();
-                            if let Some(resp) = per_tab.compute_changes(&tab, true) {
+                            if let Some(resp) = per_tab.compute_changes(&tab, Some(input_serial)) {
                                 sender.send(DecodedPdu {
                                     pdu: Pdu::GetTabRenderChangesResponse(resp),
                                     serial: 0,

@@ -74,6 +74,8 @@ pub struct RenderableInner {
     last_send_time: Instant,
     last_recv_time: Instant,
     last_late_dirty: Instant,
+
+    pub input_serial: InputSerial,
 }
 
 pub struct RenderableState {
@@ -108,6 +110,7 @@ impl RenderableInner {
             last_send_time: now,
             last_recv_time: now,
             last_late_dirty: now,
+            input_serial: 0,
         }
     }
 
@@ -295,7 +298,20 @@ impl RenderableInner {
             dirty.add(delta.cursor_position.y);
         }
 
-        self.cursor_position = delta.cursor_position;
+        // When it comes to updating the cursor position, if the update was tagged
+        // with keyboard input, we'll only take the position if the update comes from
+        // the most recent key event.  This helps to prevent the cursor wiggling if the
+        // user is typing more than one character per roundtrip interval--the wiggle
+        // manifests because we may have already predicted a local cursor move forwards
+        // by one character, and we may receive the response to the prior update after
+        // we have rendered that, and then shortly receive the most recent response.
+        // The result of that is that the cursor moves right one, left one and then
+        // finally right one in quick succession.
+        // If the delta was not from an input event then we trust it; this is most
+        // like due to a unilateral movement by the application on the other end.
+        if delta.input_serial.is_none() || delta.input_serial.unwrap_or(0) >= self.input_serial {
+            self.cursor_position = delta.cursor_position;
+        }
         self.dimensions = delta.dimensions;
         self.title = delta.title;
         self.working_dir = delta.working_dir.map(Into::into);

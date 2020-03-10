@@ -245,7 +245,7 @@ macro_rules! pdu {
 /// The overall version of the codec.
 /// This must be bumped when backwards incompatible changes
 /// are made to the types and protocol.
-pub const CODEC_VERSION: usize = 3;
+pub const CODEC_VERSION: usize = 4;
 
 // Defines the Pdu enum.
 // Each struct has an explicit identifying number.
@@ -472,7 +472,10 @@ pub struct SendPaste {
 pub struct SendKeyDown {
     pub tab_id: TabId,
     pub event: termwiz::input::KeyEvent,
+    pub input_serial: InputSerial,
 }
+
+pub type InputSerial = u64;
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
 pub struct SendMouseEvent {
@@ -515,6 +518,8 @@ pub struct GetTabRenderChangesResponse {
     /// Lines that the server thought we'd almost certainly
     /// want to fetch as soon as we received this response
     pub bonus_lines: SerializedLines,
+
+    pub input_serial: Option<InputSerial>,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]

@@ -200,11 +200,14 @@ impl Tab for ClientTab {
     }
 
     fn key_down(&self, key: KeyCode, mods: KeyModifiers) -> anyhow::Result<()> {
-        self.renderable
-            .borrow()
-            .inner
-            .borrow_mut()
-            .predict_from_key_event(key, mods);
+        let input_serial;
+        {
+            let renderable = self.renderable.borrow();
+            let mut inner = renderable.inner.borrow_mut();
+            inner.input_serial += 1;
+            input_serial = inner.input_serial;
+            inner.predict_from_key_event(key, mods);
+        }
         let client = Arc::clone(&self.client);
         let remote_tab_id = self.remote_tab_id;
         promise::spawn::spawn(async move {
@@ -216,6 +219,7 @@ impl Tab for ClientTab {
                         key,
                         modifiers: mods,
                     },
+                    input_serial,
                 })
                 .await
         });
