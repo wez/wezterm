@@ -497,6 +497,30 @@ impl InputParser {
             (";7", Modifiers::CTRL | Modifiers::ALT),
             (";8", Modifiers::CTRL | Modifiers::ALT | Modifiers::SHIFT),
         ];
+        // iTerm2 will use a few of the these (with `meta` standing in for
+        // option) in both the "default" and "xterm default" configurations.
+        //
+        // According to https://invisible-island.net/xterm/ctlseqs/ctlseqs.html
+        // (search for `alwaysUseMods`, and scroll up a little) there are
+        // configurations under which xterm will send them as well, as well as
+        // some older obscure terminals.
+        let meta = Modifiers::ALT;
+        let meta_modifier_combos = &[
+            (";9", meta),
+            (";10", meta | Modifiers::SHIFT),
+            (";11", meta | Modifiers::ALT),
+            (";12", meta | Modifiers::ALT | Modifiers::SHIFT),
+            (";13", meta | Modifiers::CTRL),
+            (";14", meta | Modifiers::CTRL | Modifiers::SHIFT),
+            (";15", meta | Modifiers::CTRL | Modifiers::ALT),
+            (
+                ";16",
+                meta | Modifiers::CTRL | Modifiers::ALT | Modifiers::SHIFT,
+            ),
+        ];
+
+        let modifier_combos_including_meta =
+            || modifier_combos.iter().chain(meta_modifier_combos.iter());
 
         for alpha in b'A'..=b'Z' {
             // Ctrl-[A..=Z] are sent as 1..=26
@@ -553,14 +577,33 @@ impl InputParser {
                     modifiers: Modifiers::NONE,
                 }),
             );
-
-            for (suffix, modifiers) in modifier_combos {
+            for (suffix, modifiers) in modifier_combos_including_meta() {
                 let key = format!("\x1b[1{}{}", suffix, *dir as char);
                 map.insert(
                     key,
                     InputEvent::Key(KeyEvent {
                         key: *keycode,
                         modifiers: *modifiers,
+                    }),
+                );
+            }
+        }
+        for &(keycode, dir) in &[
+            (KeyCode::UpArrow, b'a'),
+            (KeyCode::DownArrow, b'b'),
+            (KeyCode::RightArrow, b'c'),
+            (KeyCode::LeftArrow, b'd'),
+        ] {
+            // rxvt-specific modified arrows.
+            for &(seq, mods) in &[
+                ([0x1b, b'[', dir], Modifiers::SHIFT),
+                ([0x1b, b'O', dir], Modifiers::CTRL),
+            ] {
+                map.insert(
+                    &seq,
+                    InputEvent::Key(KeyEvent {
+                        key: keycode,
+                        modifiers: mods,
                     }),
                 );
             }
@@ -612,7 +655,7 @@ impl InputParser {
 
         // Function keys with modifiers encoded using CSI
         for n in 1..=12 {
-            for (suffix, modifiers) in modifier_combos {
+            for (suffix, modifiers) in modifier_combos_including_meta() {
                 let key = format!("\x1b[{code}{suffix}~", code = n + 10, suffix = suffix);
                 map.insert(
                     key,
@@ -631,15 +674,25 @@ impl InputParser {
             (KeyCode::End, b'4'),
             (KeyCode::PageUp, b'5'),
             (KeyCode::PageDown, b'6'),
+            // rxvt
+            (KeyCode::Home, b'7'),
+            (KeyCode::End, b'8'),
         ] {
-            let key = [0x1b, b'[', *c, b'~'];
-            map.insert(
-                key,
-                InputEvent::Key(KeyEvent {
-                    key: *keycode,
-                    modifiers: Modifiers::NONE,
-                }),
-            );
+            for (suffix, modifiers) in &[
+                (b'~', Modifiers::NONE),
+                (b'$', Modifiers::SHIFT),
+                (b'^', Modifiers::CTRL),
+                (b'@', Modifiers::SHIFT | Modifiers::CTRL),
+            ] {
+                let key = [0x1b, b'[', *c, *suffix];
+                map.insert(
+                    key,
+                    InputEvent::Key(KeyEvent {
+                        key: *keycode,
+                        modifiers: *modifiers,
+                    }),
+                );
+            }
         }
 
         map.insert(
