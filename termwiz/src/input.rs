@@ -497,13 +497,13 @@ impl InputParser {
             (";7", Modifiers::CTRL | Modifiers::ALT),
             (";8", Modifiers::CTRL | Modifiers::ALT | Modifiers::SHIFT),
         ];
-        // iTerm2 will use a few of the these (with `meta` standing in for
-        // option) in both the "default" and "xterm default" configurations.
-        //
-        // According to https://invisible-island.net/xterm/ctlseqs/ctlseqs.html
-        // (search for `alwaysUseMods`, and scroll up a little) there are
-        // configurations under which xterm will send them as well, as well as
-        // some older obscure terminals.
+        // Meta is theoretically a distinct modifier of its own, but modern systems don't
+        // have a dedicated Meta key and use the Alt/Option key instead.  The mapping
+        // below is reproduced from the xterm documentation from a time where it was
+        // possible to hold both Alt and Meta down as modifiers.  Since we define meta to
+        // ALT, the use of `meta | ALT` in the table below appears to be redundant,
+        // but makes it easier to see that the mapping matches xterm when viewing
+        // its documentation.
         let meta = Modifiers::ALT;
         let meta_modifier_combos = &[
             (";9", meta),
