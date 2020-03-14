@@ -140,7 +140,7 @@ impl RenderableInner {
     /// handle.
     fn apply_prediction(&mut self, c: KeyCode, line: &mut Line) {
         let text = line.as_str();
-        if text.contains("sword:") {
+        if text.contains("sword") {
             // This line might be a password prompt.  Don't force
             // on local echo here, as we don't want to reveal content
             // from their password
