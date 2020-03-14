@@ -252,20 +252,31 @@ impl Tab for ClientTab {
     }
 
     fn palette(&self) -> ColorPalette {
-        let config = configuration();
+        let tardy = self.renderable.borrow().inner.borrow().is_tardy();
 
-        if let Some(scheme_name) = config.color_scheme.as_ref() {
-            if let Some(palette) = config.color_schemes.get(scheme_name) {
-                return palette.clone().into();
+        let palette = || {
+            let config = configuration();
+
+            if let Some(scheme_name) = config.color_scheme.as_ref() {
+                if let Some(palette) = config.color_schemes.get(scheme_name) {
+                    return palette.clone().into();
+                }
             }
-        }
 
-        config
-            .colors
-            .as_ref()
-            .cloned()
-            .map(Into::into)
-            .unwrap_or_else(ColorPalette::default)
+            config
+                .colors
+                .as_ref()
+                .cloned()
+                .map(Into::into)
+                .unwrap_or_else(ColorPalette::default)
+        };
+
+        let palette = palette();
+        if tardy {
+            palette.grey_out()
+        } else {
+            palette
+        }
     }
 
     fn domain_id(&self) -> DomainId {

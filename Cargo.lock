@@ -2958,6 +2958,7 @@ dependencies = [
  "log",
  "num",
  "ordered-float",
+ "palette",
  "pretty_assertions",
  "serde",
  "serde_derive",

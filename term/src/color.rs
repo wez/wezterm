@@ -7,6 +7,16 @@ pub use termwiz::color::{AnsiColor, ColorAttribute, RgbColor, RgbaTuple};
 #[derive(Clone)]
 pub struct Palette256(pub [RgbColor; 256]);
 
+impl std::iter::FromIterator<RgbColor> for Palette256 {
+    fn from_iter<I: IntoIterator<Item = RgbColor>>(iter: I) -> Self {
+        let mut colors = [RgbColor::default(); 256];
+        for (s, d) in iter.into_iter().zip(colors.iter_mut()) {
+            *d = s;
+        }
+        Self(colors)
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct ColorPalette {
     pub colors: Palette256,
@@ -18,6 +28,24 @@ pub struct ColorPalette {
     pub selection_fg: RgbColor,
     pub selection_bg: RgbColor,
     pub scrollbar_thumb: RgbColor,
+}
+
+/// Adjust the color to make it appear disabled.
+/// This is not defined on RgbColor itself in order
+/// to avoid termwiz requiring a dep on the palette crate.
+fn grey_out(color: RgbColor) -> RgbColor {
+    use palette::{Blend, Lch, Saturate, Srgba};
+    let color = Srgba::new(color.red, color.green, color.blue, 0xff);
+    let color: Srgba = color.into_format();
+    let color = color.into_linear();
+
+    let desaturated = Lch::from(color).desaturate(0.2);
+
+    let tint = Srgba::new(0.2, 0.2, 0.2, 0.6).into_linear();
+    let result = Srgba::from_linear(tint.over(desaturated.into()));
+    let result = Srgba::<u8>::from_format(result);
+
+    RgbColor::new(result.red, result.green, result.blue)
 }
 
 impl fmt::Debug for Palette256 {
@@ -45,6 +73,21 @@ impl ColorPalette {
             ColorAttribute::PaletteIndex(idx) => self.colors.0[idx as usize],
             ColorAttribute::TrueColorWithPaletteFallback(color, _)
             | ColorAttribute::TrueColorWithDefaultFallback(color) => color,
+        }
+    }
+
+    /// Returns a greyed out version of the whole palette
+    pub fn grey_out(&self) -> Self {
+        Self {
+            colors: self.colors.0.iter().map(|&c| grey_out(c)).collect(),
+            foreground: grey_out(self.foreground),
+            background: grey_out(self.background),
+            cursor_fg: grey_out(self.cursor_fg),
+            cursor_bg: grey_out(self.cursor_bg),
+            cursor_border: grey_out(self.cursor_border),
+            selection_fg: grey_out(self.selection_fg),
+            selection_bg: grey_out(self.selection_bg),
+            scrollbar_thumb: grey_out(self.scrollbar_thumb),
         }
     }
 }

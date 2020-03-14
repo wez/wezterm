@@ -118,7 +118,7 @@ impl RenderableInner {
     /// indicator.  If we're past our poll interval and more recently
     /// tried to send something than receive something, the UI is worth
     /// showing.
-    fn is_tardy(&self) -> bool {
+    pub fn is_tardy(&self) -> bool {
         let elapsed = self.last_recv_time.elapsed();
         if elapsed > self.poll_interval.max(Duration::from_secs(3)) {
             self.last_send_time > self.last_recv_time
