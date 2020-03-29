@@ -549,7 +549,7 @@ impl TerminalState {
             }
 
             Char(c)
-                if (c.is_ascii_alphanumeric() || c.is_ascii_punctuation())
+                if (c.is_ascii_alphanumeric() || c.is_ascii_punctuation() || c == ' ')
                     && mods.contains(KeyModifiers::CTRL) =>
             {
                 let c = ((c as u8) & 0x1f) as char;
