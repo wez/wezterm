@@ -74,6 +74,7 @@ pub struct RenderableInner {
     last_send_time: Instant,
     last_recv_time: Instant,
     last_late_dirty: Instant,
+    last_input_rtt: u64,
 
     pub input_serial: InputSerial,
 }
@@ -110,7 +111,8 @@ impl RenderableInner {
             last_send_time: now,
             last_recv_time: now,
             last_late_dirty: now,
-            input_serial: 0,
+            last_input_rtt: 0,
+            input_serial: InputSerial::empty(),
         }
     }
 
@@ -125,6 +127,13 @@ impl RenderableInner {
         } else {
             false
         }
+    }
+
+    /// Predictive echo can be noisy when the link is working well,
+    /// so we only employ it when it looks like the latency is high.
+    /// We pick 100ms as the threshold for this.
+    fn should_predict(&self) -> bool {
+        self.last_input_rtt >= 100
     }
 
     /// Compute a "prediction" and apply it to the line data that we
@@ -194,6 +203,10 @@ impl RenderableInner {
     /// remote system.  The prediction helps to reduce perceived latency
     /// when a user is typing at any reasonable velocity.
     pub fn predict_from_key_event(&mut self, key: KeyCode, mods: KeyModifiers) {
+        if !self.should_predict() {
+            return;
+        }
+
         let c = match key {
             KeyCode::LeftArrow
             | KeyCode::RightArrow
@@ -250,6 +263,10 @@ impl RenderableInner {
     }
 
     pub fn predict_from_paste(&mut self, text: &str) {
+        if !self.should_predict() {
+            return;
+        }
+
         let text = textwrap::fill(text, self.dimensions.cols);
         let lines: Vec<&str> = text.split("\n").collect();
 
@@ -298,6 +315,12 @@ impl RenderableInner {
             dirty.add(delta.cursor_position.y);
         }
 
+        // Keep track of the approximate round trip time by recording how
+        // long it took for this response to come back
+        if let Some(serial) = delta.input_serial {
+            self.last_input_rtt = serial.elapsed_millis();
+        }
+
         // When it comes to updating the cursor position, if the update was tagged
         // with keyboard input, we'll only take the position if the update comes from
         // the most recent key event.  This helps to prevent the cursor wiggling if the
@@ -309,7 +332,9 @@ impl RenderableInner {
         // finally right one in quick succession.
         // If the delta was not from an input event then we trust it; this is most
         // like due to a unilateral movement by the application on the other end.
-        if delta.input_serial.is_none() || delta.input_serial.unwrap_or(0) >= self.input_serial {
+        if delta.input_serial.is_none()
+            || delta.input_serial.unwrap_or(InputSerial::empty()) >= self.input_serial
+        {
             self.cursor_position = delta.cursor_position;
         }
         self.dimensions = delta.dimensions;

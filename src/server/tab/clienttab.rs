@@ -204,7 +204,7 @@ impl Tab for ClientTab {
         {
             let renderable = self.renderable.borrow();
             let mut inner = renderable.inner.borrow_mut();
-            inner.input_serial += 1;
+            inner.input_serial = InputSerial::now();
             input_serial = inner.input_serial;
             inner.predict_from_key_event(key, mods);
         }
