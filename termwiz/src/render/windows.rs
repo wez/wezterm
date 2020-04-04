@@ -69,7 +69,7 @@ fn to_attr_word(attr: &CellAttributes) -> u16 {
 
     let fg = match attr.foreground {
         ColorAttribute::TrueColorWithDefaultFallback(_) | ColorAttribute::Default => {
-            FOREGROUND_BLUE | FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_INTENSITY
+            FOREGROUND_BLUE | FOREGROUND_RED | FOREGROUND_GREEN
         }
 
         ColorAttribute::TrueColorWithPaletteFallback(_, idx)
