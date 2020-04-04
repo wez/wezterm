@@ -1,6 +1,6 @@
 [package]
 name = "tabout"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Wez Furlong <wez@wezfurlong.org>"]
 edition = "2018"
 repository = "https://github.com/wez/wezterm"
