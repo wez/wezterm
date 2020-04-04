@@ -9,4 +9,4 @@ license = "MIT"
 documentation = "https://docs.rs/tabout"
 
 [dependencies]
-termwiz = { path = "../termwiz"}
+termwiz = { path = "../termwiz", version="0.7"}
