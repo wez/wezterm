@@ -149,12 +149,7 @@ impl OutputHandle {
 }
 
 fn dimensions_from_buffer_info(info: CONSOLE_SCREEN_BUFFER_INFO) -> (usize, usize) {
-    // NOTE: the default console behavior is different from unix style
-    // terminals wrt. handling printing in the last column position.
-    // We under report the width by one to make it easier to have similar
-    // semantics to unix style terminals.
-
-    let cols = 0 + (info.srWindow.Right - info.srWindow.Left);
+    let cols = 1 + (info.srWindow.Right - info.srWindow.Left);
     let rows = 1 + (info.srWindow.Bottom - info.srWindow.Top);
     (cols as usize, rows as usize)
 }
@@ -292,7 +287,9 @@ impl ConsoleOutputHandle for OutputHandle {
         } == 0
         {
             bail!(
-                "SetConsoleCursorPosition failed: {}",
+                "SetConsoleCursorPosition(x={}, y={}) failed: {}",
+                x,
+                y,
                 IoError::last_os_error()
             );
         }
@@ -559,8 +556,7 @@ impl Terminal for WindowsTerminal {
         // FIXME: take into account the visible window size here;
         // this probably changes the size of everything including scrollback
         let size = COORD {
-            // See the note in get_screen_size() for info on the +1.
-            X: cast(size.cols + 1)?,
+            X: cast(size.cols)?,
             Y: cast(size.rows)?,
         };
         let handle = self.output_handle.handle.as_raw_handle();

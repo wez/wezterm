@@ -253,7 +253,7 @@ mod windows {
     }
     impl InputParser {
         fn decode_key_record<F: FnMut(InputEvent)>(
-            &self,
+            &mut self,
             event: &KEY_EVENT_RECORD,
             callback: &mut F,
         ) {
@@ -265,14 +265,10 @@ mod windows {
             let key_code = match std::char::from_u32(*unsafe { event.uChar.UnicodeChar() } as u32) {
                 Some(unicode) if unicode > '\x00' => {
                     let mut buf = [0u8; 4];
-
-                    match self.key_map.lookup(unicode.encode_utf8(&mut buf)) {
-                        Found::Exact(_, event) | Found::Ambiguous(_, event) => {
-                            callback(event.clone());
-                            return;
-                        }
-                        _ => KeyCode::Char(unicode),
-                    }
+                    self.buf
+                        .extend_with(unicode.encode_utf8(&mut buf).as_bytes());
+                    self.process_bytes(callback, true);
+                    return;
                 }
                 _ => match event.wVirtualKeyCode as i32 {
                     winuser::VK_CANCEL => KeyCode::Cancel,
@@ -445,7 +441,7 @@ mod windows {
         }
 
         pub fn decode_input_records<F: FnMut(InputEvent)>(
-            &self,
+            &mut self,
             records: &[INPUT_RECORD],
             callback: &mut F,
         ) {

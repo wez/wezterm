@@ -18,10 +18,9 @@ pub use self::line::Line;
 /// Relative(0) is the current position in the line or
 /// column and EndRelative(0) is the end position in the
 /// line or column.
-#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
 pub enum Position {
-    NoChange,
-    /// Negative values move up, positive values down
+    /// Negative values move up, positive values down, 0 means no change
     Relative(isize),
     /// Relative to the start of the line or top of the screen
     Absolute(usize),
@@ -229,8 +228,8 @@ impl Surface {
         }
 
         // Ensure that the cursor position is well-defined
-        self.xpos = compute_position_change(self.xpos, &Position::NoChange, self.width);
-        self.ypos = compute_position_change(self.ypos, &Position::NoChange, self.height);
+        self.xpos = compute_position_change(self.xpos, &Position::Relative(0), self.width);
+        self.ypos = compute_position_change(self.ypos, &Position::Relative(0), self.height);
     }
 
     /// Efficiently apply a series of changes
@@ -831,15 +830,17 @@ impl Surface {
 fn compute_position_change(current: usize, pos: &Position, limit: usize) -> usize {
     use self::Position::*;
     match pos {
-        NoChange => min(current, limit.saturating_sub(1)),
         Relative(delta) => {
-            if *delta > 0 {
-                min(current.saturating_add(*delta as usize), limit - 1)
+            if *delta >= 0 {
+                min(
+                    current.saturating_add(*delta as usize),
+                    limit.saturating_sub(1),
+                )
             } else {
                 current.saturating_sub((*delta).abs() as usize)
             }
         }
-        Absolute(abs) => min(*abs, limit - 1),
+        Absolute(abs) => min(*abs, limit.saturating_sub(1)),
         EndRelative(delta) => limit.saturating_sub(*delta),
     }
 }

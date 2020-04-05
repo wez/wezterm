@@ -154,7 +154,7 @@ impl ConnectionUIImpl {
             self.term.render(&[
                 Change::CursorPosition {
                     x: Position::Absolute(0),
-                    y: Position::NoChange,
+                    y: Position::Relative(0),
                 },
                 Change::AllAttributes(CellAttributes::default().set_reverse(true).clone()),
                 Change::Text(reversed_string),
@@ -176,7 +176,7 @@ impl ConnectionUIImpl {
         self.term.render(&[
             Change::CursorPosition {
                 x: Position::Absolute(0),
-                y: Position::NoChange,
+                y: Position::Relative(0),
             },
             Change::Text(message),
         ])?;

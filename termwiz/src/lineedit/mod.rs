@@ -75,6 +75,11 @@ pub struct LineEditor<T: Terminal> {
     bottom_line: Option<String>,
 
     completion: Option<CompletionState>,
+
+    /// How many rows of text we last output
+    last_render_height: usize,
+    /// on which row of the last render we think the cursor is
+    last_render_cursor_y: usize,
 }
 
 struct CompletionState {
@@ -136,20 +141,25 @@ impl<T: Terminal> LineEditor<T> {
             history_pos: None,
             bottom_line: None,
             completion: None,
+            last_render_height: 1,
+            last_render_cursor_y: 0,
         }
     }
 
     fn render(&mut self, host: &mut dyn LineEditorHost) -> anyhow::Result<()> {
+        let screen_size = self.terminal.get_screen_size()?;
+
         let mut changes = vec![
             Change::CursorPosition {
                 x: Position::Absolute(0),
-                y: Position::NoChange,
+                y: Position::Relative(-1 * self.last_render_cursor_y as isize),
             },
             Change::ClearToEndOfScreen(Default::default()),
             Change::AllAttributes(Default::default()),
         ];
 
         let mut prompt_width = 0;
+
         for ele in host.render_prompt(&self.prompt) {
             if let OutputElement::Text(ref t) = ele {
                 prompt_width += unicode_column_width(t.as_str());
@@ -159,12 +169,27 @@ impl<T: Terminal> LineEditor<T> {
         changes.push(Change::AllAttributes(Default::default()));
 
         let (elements, cursor_x_pos) = host.highlight_line(&self.line, self.cursor);
+        let mut output_width = 0;
         for ele in elements {
+            if let OutputElement::Text(ref t) = ele {
+                output_width += unicode_column_width(t.as_str());
+            }
             changes.push(ele.into());
         }
+
+        let visible_cursor_column = (prompt_width + cursor_x_pos) % screen_size.cols;
+        if visible_cursor_column == 0 {
+            changes.push("\r\n".into());
+        }
+
+        self.last_render_height = 1 + ((prompt_width + output_width) / screen_size.cols);
+        self.last_render_cursor_y = (prompt_width + cursor_x_pos) / screen_size.cols;
+
         changes.push(Change::CursorPosition {
-            x: Position::Absolute(prompt_width + cursor_x_pos),
-            y: Position::NoChange,
+            x: Position::Absolute(visible_cursor_column),
+            y: Position::Relative(
+                (1 + self.last_render_cursor_y as isize) - (self.last_render_height as isize),
+            ),
         });
 
         self.terminal.render(&changes)?;
@@ -409,7 +434,8 @@ impl<T: Terminal> LineEditor<T> {
             }
             Movement::StartOfLine => 0,
             Movement::EndOfLine => {
-                let mut cursor = GraphemeCursor::new(self.line.len() - 1, self.line.len(), false);
+                let mut cursor =
+                    GraphemeCursor::new(self.line.len().saturating_sub(1), self.line.len(), false);
                 if let Ok(Some(pos)) = cursor.next_boundary(&self.line, 0) {
                     pos
                 } else {

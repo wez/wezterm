@@ -8,7 +8,6 @@ use crate::escape::OneBased;
 use crate::image::TextureCoordinate;
 use crate::render::RenderTty;
 use crate::surface::{Change, CursorShape, Position};
-use log::error;
 use std::io::Write;
 use terminfo::{capability as cap, Capability as TermInfoCapability};
 
@@ -206,41 +205,105 @@ impl TerminfoRenderer {
     }
 
     fn cursor_up<W: RenderTty + Write>(&mut self, n: u32, out: &mut W) -> anyhow::Result<()> {
-        if let Some(attr) = self.get_capability::<cap::ParmUpCursor>() {
-            attr.expand().count(n).to(out.by_ref())?;
-        } else {
-            write!(out, "{}", CSI::Cursor(Cursor::Up(n)))?;
+        if n > 0 {
+            if let Some(attr) = self.get_capability::<cap::ParmUpCursor>() {
+                attr.expand().count(n).to(out.by_ref())?;
+            } else {
+                write!(out, "{}", CSI::Cursor(Cursor::Up(n)))?;
+            }
         }
         Ok(())
     }
+
     fn cursor_down<W: RenderTty + Write>(&mut self, n: u32, out: &mut W) -> anyhow::Result<()> {
-        if let Some(attr) = self.get_capability::<cap::ParmDownCursor>() {
-            attr.expand().count(n).to(out.by_ref())?;
-        } else {
-            write!(out, "{}", CSI::Cursor(Cursor::Down(n)))?;
+        if n > 0 {
+            if let Some(attr) = self.get_capability::<cap::ParmDownCursor>() {
+                attr.expand().count(n).to(out.by_ref())?;
+            } else {
+                write!(out, "{}", CSI::Cursor(Cursor::Down(n)))?;
+            }
         }
         Ok(())
+    }
+
+    fn cursor_y_relative<W: RenderTty + Write>(
+        &mut self,
+        y: isize,
+        out: &mut W,
+    ) -> anyhow::Result<()> {
+        if y > 0 {
+            self.cursor_down(y as u32, out)
+        } else {
+            self.cursor_up(-y as u32, out)
+        }
     }
 
     fn cursor_left<W: RenderTty + Write>(&mut self, n: u32, out: &mut W) -> anyhow::Result<()> {
-        if let Some(attr) = self.get_capability::<cap::ParmLeftCursor>() {
-            attr.expand().count(n).to(out.by_ref())?;
-        } else {
-            write!(out, "{}", CSI::Cursor(Cursor::Left(n)))?;
+        if n > 0 {
+            if let Some(attr) = self.get_capability::<cap::ParmLeftCursor>() {
+                attr.expand().count(n).to(out.by_ref())?;
+            } else {
+                write!(out, "{}", CSI::Cursor(Cursor::Left(n)))?;
+            }
         }
         Ok(())
     }
-    fn cursor_right<W: RenderTty + Write>(&mut self, n: u32, out: &mut W) -> anyhow::Result<()> {
-        if let Some(attr) = self.get_capability::<cap::ParmRightCursor>() {
-            attr.expand().count(n).to(out.by_ref())?;
-        } else {
-            write!(out, "{}", CSI::Cursor(Cursor::Right(n)))?;
-        }
-        Ok(())
-    }
-}
 
-impl TerminfoRenderer {
+    fn cursor_right<W: RenderTty + Write>(&mut self, n: u32, out: &mut W) -> anyhow::Result<()> {
+        if n > 0 {
+            if let Some(attr) = self.get_capability::<cap::ParmRightCursor>() {
+                attr.expand().count(n).to(out.by_ref())?;
+            } else {
+                write!(out, "{}", CSI::Cursor(Cursor::Right(n)))?;
+            }
+        }
+        Ok(())
+    }
+
+    fn cursor_x_relative<W: RenderTty + Write>(
+        &mut self,
+        x: isize,
+        out: &mut W,
+    ) -> anyhow::Result<()> {
+        if x > 0 {
+            self.cursor_right(x as u32, out)
+        } else {
+            self.cursor_left(-x as u32, out)
+        }
+    }
+
+    fn move_cursor_absolute<W: RenderTty + Write>(
+        &mut self,
+        x: u32,
+        y: u32,
+        out: &mut W,
+    ) -> anyhow::Result<()> {
+        if x == 0 && y == 0 {
+            if let Some(attr) = self.get_capability::<cap::CursorHome>() {
+                attr.expand().to(out.by_ref())?;
+                return Ok(());
+            }
+        }
+
+        if let Some(attr) = self.get_capability::<cap::CursorAddress>() {
+            // terminfo expansion automatically converts coordinates to 1-based,
+            // so we can pass in the 0-based coordinates as-is
+            attr.expand().x(x).y(y).to(out.by_ref())?;
+        } else {
+            // We need to manually convert to 1-based as the CSI representation
+            // requires it and there's no automatic conversion.
+            write!(
+                out,
+                "{}",
+                CSI::Cursor(Cursor::Position {
+                    line: OneBased::from_zero_based(x),
+                    col: OneBased::from_zero_based(y),
+                })
+            )?;
+        }
+        Ok(())
+    }
+
     #[cfg_attr(
         feature = "cargo-clippy",
         allow(clippy::cyclomatic_complexity, clippy::cognitive_complexity)
@@ -278,19 +341,7 @@ impl TerminfoRenderer {
                         if let Some(clr) = self.get_capability::<cap::ClearScreen>() {
                             clr.expand().to(out.by_ref())?;
                         } else {
-                            if let Some(attr) = self.get_capability::<cap::CursorHome>() {
-                                attr.expand().to(out.by_ref())?;
-                            } else {
-                                write!(
-                                    out,
-                                    "{}",
-                                    CSI::Cursor(Cursor::Position {
-                                        line: OneBased::new(1),
-                                        col: OneBased::new(1)
-                                    })
-                                )?;
-                            }
-
+                            self.move_cursor_absolute(0, 0, out)?;
                             write!(
                                 out,
                                 "{}",
@@ -300,19 +351,7 @@ impl TerminfoRenderer {
                     } else {
                         // We're setting the background to a specific color, so we get to
                         // paint the whole thing.
-
-                        if let Some(attr) = self.get_capability::<cap::CursorHome>() {
-                            attr.expand().to(out.by_ref())?;
-                        } else {
-                            write!(
-                                out,
-                                "{}",
-                                CSI::Cursor(Cursor::Position {
-                                    line: OneBased::new(1),
-                                    col: OneBased::new(1)
-                                })
-                            )?;
-                        }
+                        self.move_cursor_absolute(0, 0, out)?;
 
                         let (cols, rows) = out.get_size_in_cells()?;
                         let num_spaces = cols * rows;
@@ -406,101 +445,81 @@ impl TerminfoRenderer {
                     self.flush_pending_attr(out)?;
                     out.by_ref().write_all(text.as_bytes())?;
                 }
-                Change::CursorPosition {
-                    x: Position::Absolute(0),
-                    y: Position::Relative(1),
-                } => {
-                    out.by_ref().write_all(b"\r\n")?;
-                }
-                Change::CursorPosition {
-                    x: Position::Absolute(0),
-                    y: Position::NoChange,
-                }
-                | Change::CursorPosition {
-                    x: Position::Absolute(0),
-                    y: Position::Relative(0),
-                } => {
-                    out.by_ref().write_all(b"\r")?;
-                }
-                Change::CursorPosition {
-                    x: Position::Absolute(0),
-                    y: Position::Absolute(0),
-                } => {
-                    if let Some(attr) = self.get_capability::<cap::CursorHome>() {
-                        attr.expand().to(out.by_ref())?;
-                    } else {
-                        write!(
-                            out,
-                            "{}",
-                            CSI::Cursor(Cursor::Position {
-                                line: OneBased::new(1),
-                                col: OneBased::new(1)
-                            })
-                        )?;
+
+                Change::CursorPosition { x, y } => {
+                    // Note: we use `cursor_up(screen_height)` to move the cursor all the way to
+                    // the top of the screen when we need to absolutely position only y.
+
+                    match (x, y) {
+                        (Position::Relative(0), Position::Relative(0)) => {}
+                        (Position::Absolute(0), Position::Relative(1)) => {
+                            out.by_ref().write_all(b"\r\n")?;
+                        }
+                        (Position::Absolute(0), Position::Relative(0)) => {
+                            out.by_ref().write_all(b"\r")?;
+                        }
+
+                        (Position::Relative(x), Position::EndRelative(y)) => {
+                            let (_cols, rows) = out.get_size_in_cells()?;
+                            self.cursor_up(rows as u32, out)?;
+                            self.cursor_down(rows.saturating_sub(y + 1) as u32, out)?;
+                            self.cursor_x_relative(*x, out)?;
+                        }
+                        (Position::Relative(x), Position::Relative(y)) => {
+                            self.cursor_y_relative(*y, out)?;
+                            self.cursor_x_relative(*x, out)?;
+                        }
+                        (Position::EndRelative(x), Position::Relative(y)) => {
+                            self.cursor_y_relative(*y, out)?;
+                            let (cols, _rows) = out.get_size_in_cells()?;
+                            out.by_ref().write_all(b"\r")?;
+                            self.cursor_right(cols.saturating_sub(x + 1) as u32, out)?;
+                        }
+
+                        (Position::Absolute(x), Position::Absolute(y)) => {
+                            self.move_cursor_absolute(*x as u32, *y as u32, out)?;
+                        }
+                        (Position::Absolute(x), Position::EndRelative(y)) => {
+                            let (_cols, rows) = out.get_size_in_cells()?;
+                            self.move_cursor_absolute(
+                                *x as u32,
+                                rows.saturating_sub(y + 1) as u32,
+                                out,
+                            )?;
+                        }
+                        (Position::EndRelative(x), Position::EndRelative(y)) => {
+                            let (cols, rows) = out.get_size_in_cells()?;
+                            self.move_cursor_absolute(
+                                cols.saturating_sub(x + 1) as u32,
+                                rows.saturating_sub(y + 1) as u32,
+                                out,
+                            )?;
+                        }
+
+                        (Position::Relative(x), Position::Absolute(y)) => {
+                            let (_cols, rows) = out.get_size_in_cells()?;
+                            self.cursor_up(rows as u32, out)?;
+                            self.cursor_down(*y as u32, out)?;
+                            self.cursor_x_relative(*x, out)?;
+                        }
+
+                        (Position::Absolute(x), Position::Relative(y)) => {
+                            self.cursor_y_relative(*y, out)?;
+                            out.by_ref().write_all(b"\r")?;
+                            self.cursor_right(*x as u32, out)?;
+                        }
+
+                        (Position::EndRelative(x), Position::Absolute(y)) => {
+                            let (cols, _rows) = out.get_size_in_cells()?;
+                            self.move_cursor_absolute(
+                                cols.saturating_sub(x + 1) as u32,
+                                *y as u32,
+                                out,
+                            )?;
+                        }
                     }
                 }
-                Change::CursorPosition {
-                    x: Position::NoChange,
-                    y: Position::Relative(n),
-                } if *n > 0 => {
-                    self.cursor_down(*n as u32, out)?;
-                }
-                Change::CursorPosition {
-                    x: Position::NoChange,
-                    y: Position::Relative(n),
-                } if *n < 0 => {
-                    self.cursor_up(-*n as u32, out)?;
-                }
-                Change::CursorPosition {
-                    x: Position::Relative(n),
-                    y: Position::NoChange,
-                } if *n < 0 => {
-                    self.cursor_left(-*n as u32, out)?;
-                }
-                Change::CursorPosition {
-                    x: Position::Relative(n),
-                    y: Position::NoChange,
-                } if *n > 0 => {
-                    self.cursor_right(*n as u32, out)?;
-                }
-                Change::CursorPosition {
-                    x: Position::Absolute(n),
-                    y: Position::NoChange,
-                } => {
-                    out.by_ref().write_all(b"\r")?;
-                    if *n > 0 {
-                        self.cursor_right(*n as u32, out)?;
-                    }
-                }
-                Change::CursorPosition {
-                    x: Position::Absolute(x),
-                    y: Position::Absolute(y),
-                } => {
-                    let x = *x as u32;
-                    let y = *y as u32;
-                    if let Some(attr) = self.get_capability::<cap::CursorAddress>() {
-                        // terminfo expansion automatically converts coordinates to 1-based,
-                        // so we can pass in the 0-based coordinates as-is
-                        attr.expand().x(x).y(y).to(out.by_ref())?;
-                    } else {
-                        // We need to manually convert to 1-based as the CSI representation
-                        // requires it and there's no automatic conversion.
-                        write!(
-                            out,
-                            "{}",
-                            CSI::Cursor(Cursor::Position {
-                                line: OneBased::from_zero_based(x),
-                                col: OneBased::from_zero_based(y),
-                            })
-                        )?;
-                    }
-                }
-                Change::CursorPosition { .. } => {
-                    error!(
-                        "unhandled CursorPosition in TerminfoRenderer::render_to: {:?}",
-                        change
-                    );
-                }
+
                 Change::CursorColor(_color) => {
                     // TODO: this isn't spec'd by terminfo, but some terminals
                     // support it.  Add this to capabilities?

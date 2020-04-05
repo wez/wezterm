@@ -209,15 +209,14 @@ impl WindowsConsoleRenderer {
                     // For horizontal cursor movement, we consider the full width
                     // of the screen buffer, even if the viewport is smaller
                     let x = match x {
-                        Position::NoChange => info.dwCursorPosition.X,
                         Position::Absolute(x) => *x as i16,
                         Position::Relative(delta) => info.dwCursorPosition.X + *delta as i16,
                         Position::EndRelative(delta) => info.dwSize.X - *delta as i16,
                     };
+
                     // For vertical cursor movement, we constrain the movement to
                     // the viewport.
                     let y = match y {
-                        Position::NoChange => info.dwCursorPosition.Y,
                         Position::Absolute(y) => info.srWindow.Top + *y as i16,
                         Position::Relative(delta) => info.dwCursorPosition.Y + *delta as i16,
                         Position::EndRelative(delta) => info.srWindow.Bottom - *delta as i16,
