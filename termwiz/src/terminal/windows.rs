@@ -454,7 +454,7 @@ impl WindowsTerminal {
         };
         let input_parser = InputParser::new();
 
-        Ok(Self {
+        let mut terminal = Self {
             input_handle,
             output_handle,
             waker_handle,
@@ -463,7 +463,17 @@ impl WindowsTerminal {
             renderer,
             input_parser,
             input_queue: VecDeque::new(),
-        })
+        };
+        terminal.enable_virtual_terminal_processing_if_needed()?;
+
+        Ok(terminal)
+    }
+
+    fn enable_virtual_terminal_processing_if_needed(&mut self) -> anyhow::Result<()> {
+        match &self.renderer {
+            Renderer::Terminfo(_) => self.enable_virtual_terminal_processing(),
+            Renderer::Windows(_) => Ok(()),
+        }
     }
 
     /// Attempt to explicitly open handles to a console device (CONIN$,
