@@ -1,3 +1,4 @@
+use crate::render::RenderTty;
 use anyhow::{anyhow, bail, Context, Error};
 use filedescriptor::{poll, pollfd, FileDescriptor, POLLIN};
 use libc::{self, winsize};
@@ -116,6 +117,13 @@ impl Write for TtyWriteHandle {
         self.drain()
             .map_err(|e| IoError::new(ErrorKind::Other, format!("{}", e)))?;
         Ok(())
+    }
+}
+
+impl RenderTty for TtyWriteHandle {
+    fn get_size_in_cells(&mut self) -> anyhow::Result<(usize, usize)> {
+        let size = self.get_size()?;
+        Ok((size.ws_col as usize, size.ws_row as usize))
     }
 }
 
@@ -366,8 +374,7 @@ impl Terminal for UnixTerminal {
         self.write.set_size(size)
     }
     fn render(&mut self, changes: &[Change]) -> Result<(), Error> {
-        self.renderer
-            .render_to(changes, &mut self.read, &mut self.write)
+        self.renderer.render_to(changes, &mut self.write)
     }
     fn flush(&mut self) -> Result<(), Error> {
         self.write.flush().context("flush failed")

@@ -6,10 +6,10 @@ use crate::escape::csi::{Cursor, Edit, EraseInDisplay, EraseInLine, Sgr, CSI};
 use crate::escape::osc::{ITermDimension, ITermFileData, ITermProprietary, OperatingSystemCommand};
 use crate::escape::OneBased;
 use crate::image::TextureCoordinate;
+use crate::render::RenderTty;
 use crate::surface::{Change, CursorShape, Position};
-use crate::terminal::unix::UnixTty;
 use log::error;
-use std::io::{Read, Write};
+use std::io::Write;
 use terminfo::{capability as cap, Capability as TermInfoCapability};
 
 pub struct TerminfoRenderer {
@@ -48,7 +48,7 @@ impl TerminfoRenderer {
     }
 
     #[cfg_attr(feature = "cargo-clippy", allow(clippy::cognitive_complexity))]
-    fn flush_pending_attr<W: UnixTty + Write>(&mut self, out: &mut W) -> anyhow::Result<()> {
+    fn flush_pending_attr<W: RenderTty + Write>(&mut self, out: &mut W) -> anyhow::Result<()> {
         macro_rules! attr_on {
             ($cap:ident, $sgr:expr) => {
                 if let Some(attr) = self.get_capability::<cap::$cap>() {
@@ -205,7 +205,7 @@ impl TerminfoRenderer {
         Ok(())
     }
 
-    fn cursor_up<W: UnixTty + Write>(&mut self, n: u32, out: &mut W) -> anyhow::Result<()> {
+    fn cursor_up<W: RenderTty + Write>(&mut self, n: u32, out: &mut W) -> anyhow::Result<()> {
         if let Some(attr) = self.get_capability::<cap::ParmUpCursor>() {
             attr.expand().count(n).to(out.by_ref())?;
         } else {
@@ -213,7 +213,7 @@ impl TerminfoRenderer {
         }
         Ok(())
     }
-    fn cursor_down<W: UnixTty + Write>(&mut self, n: u32, out: &mut W) -> anyhow::Result<()> {
+    fn cursor_down<W: RenderTty + Write>(&mut self, n: u32, out: &mut W) -> anyhow::Result<()> {
         if let Some(attr) = self.get_capability::<cap::ParmDownCursor>() {
             attr.expand().count(n).to(out.by_ref())?;
         } else {
@@ -222,7 +222,7 @@ impl TerminfoRenderer {
         Ok(())
     }
 
-    fn cursor_left<W: UnixTty + Write>(&mut self, n: u32, out: &mut W) -> anyhow::Result<()> {
+    fn cursor_left<W: RenderTty + Write>(&mut self, n: u32, out: &mut W) -> anyhow::Result<()> {
         if let Some(attr) = self.get_capability::<cap::ParmLeftCursor>() {
             attr.expand().count(n).to(out.by_ref())?;
         } else {
@@ -230,7 +230,7 @@ impl TerminfoRenderer {
         }
         Ok(())
     }
-    fn cursor_right<W: UnixTty + Write>(&mut self, n: u32, out: &mut W) -> anyhow::Result<()> {
+    fn cursor_right<W: RenderTty + Write>(&mut self, n: u32, out: &mut W) -> anyhow::Result<()> {
         if let Some(attr) = self.get_capability::<cap::ParmRightCursor>() {
             attr.expand().count(n).to(out.by_ref())?;
         } else {
@@ -245,10 +245,9 @@ impl TerminfoRenderer {
         feature = "cargo-clippy",
         allow(clippy::cyclomatic_complexity, clippy::cognitive_complexity)
     )]
-    pub fn render_to<R: Read, W: UnixTty + Write>(
+    pub fn render_to<W: RenderTty + Write>(
         &mut self,
         changes: &[Change],
-        _read: &mut R,
         out: &mut W,
     ) -> anyhow::Result<()> {
         macro_rules! record {
@@ -315,8 +314,8 @@ impl TerminfoRenderer {
                             )?;
                         }
 
-                        let size = out.get_size()?;
-                        let num_spaces = size.ws_col as usize * size.ws_row as usize;
+                        let (cols, rows) = out.get_size_in_cells()?;
+                        let num_spaces = cols * rows;
                         let mut buf = Vec::with_capacity(num_spaces);
                         buf.resize(num_spaces, b' ');
                         out.write_all(buf.as_slice())?;
@@ -725,6 +724,11 @@ mod test {
             }
         }
     }
+    impl RenderTty for FakeTty {
+        fn get_size_in_cells(&mut self) -> anyhow::Result<(usize, usize)> {
+            Ok((self.size.ws_col as usize, self.size.ws_row as usize))
+        }
+    }
 
     impl UnixTty for FakeTty {
         fn get_size(&mut self) -> anyhow::Result<winsize> {
@@ -770,7 +774,6 @@ mod test {
     }
 
     struct FakeTerm {
-        read: FakeTty,
         write: FakeTty,
         renderer: TerminfoRenderer,
     }
@@ -781,14 +784,9 @@ mod test {
         }
 
         fn new_with_size(caps: Capabilities, width: usize, height: usize) -> Self {
-            let read = FakeTty::new_with_size(width, height);
             let write = FakeTty::new_with_size(width, height);
             let renderer = TerminfoRenderer::new(caps);
-            Self {
-                read,
-                write,
-                renderer,
-            }
+            Self { write, renderer }
         }
 
         fn parse(&self) -> Vec<Action> {
@@ -815,8 +813,7 @@ mod test {
         }
 
         fn render(&mut self, changes: &[Change]) -> anyhow::Result<()> {
-            self.renderer
-                .render_to(changes, &mut self.read, &mut self.write)
+            self.renderer.render_to(changes, &mut self.write)
         }
 
         fn get_screen_size(&mut self) -> anyhow::Result<ScreenSize> {

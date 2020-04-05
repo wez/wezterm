@@ -24,11 +24,18 @@ use winapi::um::wincon::{
 
 use crate::caps::Capabilities;
 use crate::input::{InputEvent, InputParser};
+use crate::render::terminfo::TerminfoRenderer;
 use crate::render::windows::WindowsConsoleRenderer;
+use crate::render::RenderTty;
 use crate::surface::Change;
 use crate::terminal::{cast, ScreenSize, Terminal};
 
 const BUF_SIZE: usize = 128;
+
+enum Renderer {
+    Terminfo(TerminfoRenderer),
+    Windows(WindowsConsoleRenderer),
+}
 
 pub trait ConsoleInputHandle {
     fn set_input_mode(&mut self, mode: u32) -> Result<(), Error>;
@@ -138,6 +145,26 @@ impl OutputHandle {
             handle,
             write_buffer: Vec::with_capacity(BUF_SIZE),
         }
+    }
+}
+
+fn dimensions_from_buffer_info(info: CONSOLE_SCREEN_BUFFER_INFO) -> (usize, usize) {
+    // NOTE: the default console behavior is different from unix style
+    // terminals wrt. handling printing in the last column position.
+    // We under report the width by one to make it easier to have similar
+    // semantics to unix style terminals.
+
+    let cols = 0 + (info.srWindow.Right - info.srWindow.Left);
+    let rows = 1 + (info.srWindow.Bottom - info.srWindow.Top);
+    (cols as usize, rows as usize)
+}
+
+impl RenderTty for OutputHandle {
+    fn get_size_in_cells(&mut self) -> anyhow::Result<(usize, usize)> {
+        let info = self.get_buffer_info()?;
+        let (cols, rows) = dimensions_from_buffer_info(info);
+
+        Ok((cols, rows))
     }
 }
 
@@ -357,7 +384,7 @@ pub struct WindowsTerminal {
     waker_handle: Arc<EventHandle>,
     saved_input_mode: u32,
     saved_output_mode: u32,
-    renderer: WindowsConsoleRenderer,
+    renderer: Renderer,
     input_parser: InputParser,
     input_queue: VecDeque<InputEvent>,
 }
@@ -403,7 +430,28 @@ impl WindowsTerminal {
 
         let saved_input_mode = input_handle.get_input_mode()?;
         let saved_output_mode = output_handle.get_output_mode()?;
-        let renderer = WindowsConsoleRenderer::new(caps);
+
+        /// Return true if the TERM environment is set to a string
+        /// that matches our builtin terminfo database for modern
+        /// windows 10/xterm compatible terminals.
+        fn term_is_builtin() -> bool {
+            if let Ok(t) = std::env::var("TERM") {
+                t == "xterm-256color"
+            } else {
+                false
+            }
+        }
+
+        let renderer = if caps.terminfo_db().is_some() {
+            Renderer::Terminfo(TerminfoRenderer::new(caps))
+        } else if term_is_builtin() {
+            // TODO: I'd like to automatically trigger this case if we're
+            // running on Windows 10 >= 1903, but let's hold off until we've
+            // had a bit more exposure with the TERM env based solution
+            Renderer::Terminfo(TerminfoRenderer::new(caps.apply_builtin_terminfo()))
+        } else {
+            Renderer::Windows(WindowsConsoleRenderer::new(caps))
+        };
         let input_parser = InputParser::new();
 
         Ok(Self {
@@ -487,18 +535,11 @@ impl Terminal for WindowsTerminal {
 
     fn get_screen_size(&mut self) -> Result<ScreenSize, Error> {
         let info = self.output_handle.get_buffer_info()?;
-
-        // NOTE: the default console behavior is different from unix style
-        // terminals wrt. handling printing in the last column position.
-        // We under report the width by one to make it easier to have similar
-        // semantics to unix style terminals.
-
-        let visible_width = 0 + (info.srWindow.Right - info.srWindow.Left);
-        let visible_height = 1 + (info.srWindow.Bottom - info.srWindow.Top);
+        let (cols, rows) = dimensions_from_buffer_info(info);
 
         Ok(ScreenSize {
-            rows: cast(visible_height)?,
-            cols: cast(visible_width)?,
+            rows: cast(rows)?,
+            cols: cast(cols)?,
             xpixel: 0,
             ypixel: 0,
         })
@@ -523,9 +564,12 @@ impl Terminal for WindowsTerminal {
     }
 
     fn render(&mut self, changes: &[Change]) -> Result<(), Error> {
-        self.renderer
-            .render_to(changes, &mut self.input_handle, &mut self.output_handle)
+        match &mut self.renderer {
+            Renderer::Terminfo(r) => r.render_to(changes, &mut self.output_handle),
+            Renderer::Windows(r) => r.render_to(changes, &mut self.output_handle),
+        }
     }
+
     fn flush(&mut self) -> Result<(), Error> {
         self.output_handle
             .flush()

@@ -167,6 +167,22 @@ impl Capabilities {
         Self::new_with_hints(ProbeHints::new_from_env())
     }
 
+    /// Return modified capabilities with the assumption that we're
+    /// using an xterm compatible terminal and the built-in xterm
+    /// terminfo database.  This is used on Windows when the TERM
+    /// is set to xterm-256color and we didn't find an equivalent
+    /// terminfo on the local filesystem.  We're using this as a
+    /// way to opt in to using terminal escapes rather than the
+    /// legacy win32 console API.
+    #[cfg(windows)]
+    pub(crate) fn apply_builtin_terminfo(mut self) -> Self {
+        let data = include_bytes!("../../data/xterm-256color");
+        let db = terminfo::Database::from_buffer(data.as_ref()).unwrap();
+        self.terminfo_db = Some(db);
+        self.color_level = ColorLevel::TrueColor;
+        self
+    }
+
     /// Build a `Capabilities` object based on the provided `ProbeHints` object.
     pub fn new_with_hints(hints: ProbeHints) -> Result<Self, Error> {
         let color_level = hints.color_level.unwrap_or_else(|| {

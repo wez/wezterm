@@ -4,9 +4,9 @@ use crate::caps::Capabilities;
 use crate::cell::{AttributeChange, CellAttributes, Underline};
 use crate::color::{AnsiColor, ColorAttribute};
 use crate::surface::{Change, Position};
-use crate::terminal::windows::{ConsoleInputHandle, ConsoleOutputHandle};
+use crate::terminal::windows::ConsoleOutputHandle;
 use num;
-use std::io::{Read, Write};
+use std::io::Write;
 use winapi::um::wincon::{
     BACKGROUND_BLUE, BACKGROUND_GREEN, BACKGROUND_INTENSITY, BACKGROUND_RED,
     COMMON_LVB_REVERSE_VIDEO, COMMON_LVB_UNDERSCORE, FOREGROUND_BLUE, FOREGROUND_GREEN,
@@ -111,10 +111,9 @@ fn to_attr_word(attr: &CellAttributes) -> u16 {
 }
 
 impl WindowsConsoleRenderer {
-    pub fn render_to<A: ConsoleInputHandle + Read, B: ConsoleOutputHandle + Write>(
+    pub fn render_to<B: ConsoleOutputHandle + Write>(
         &mut self,
         changes: &[Change],
-        _read: &mut A,
         out: &mut B,
     ) -> anyhow::Result<()> {
         for change in changes {
