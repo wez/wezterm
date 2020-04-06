@@ -502,12 +502,20 @@ impl WindowsTerminal {
         let saved_input_mode = input_handle.get_input_mode()?;
         let saved_output_mode = output_handle.get_output_mode()?;
 
-        /// Return true if the TERM environment is set to a string
-        /// that matches our builtin terminfo database for modern
-        /// windows 10/xterm compatible terminals.
-        fn term_is_builtin() -> bool {
-            if let Ok(t) = std::env::var("TERM") {
-                t == "xterm-256color"
+        // Test whether we have a virtual terminal capable
+        // console device by attempting to set the appropriate flags.
+        let virtual_terminal_available = output_handle
+            .set_output_mode(
+                saved_output_mode
+                    | ENABLE_VIRTUAL_TERMINAL_PROCESSING
+                    | DISABLE_NEWLINE_AUTO_RETURN,
+            )
+            .is_ok();
+
+        // Allow opting out of that processing
+        fn bypass_virtual_terminal() -> bool {
+            if let Ok(t) = std::env::var("TERMWIZ_BYPASS_VIRTUAL_TERMINAL") {
+                t == "1"
             } else {
                 false
             }
@@ -515,10 +523,7 @@ impl WindowsTerminal {
 
         let renderer = if caps.terminfo_db().is_some() {
             Renderer::Terminfo(TerminfoRenderer::new(caps))
-        } else if term_is_builtin() {
-            // TODO: I'd like to automatically trigger this case if we're
-            // running on Windows 10 >= 1903, but let's hold off until we've
-            // had a bit more exposure with the TERM env based solution
+        } else if virtual_terminal_available && !bypass_virtual_terminal() {
             Renderer::Terminfo(TerminfoRenderer::new(caps.apply_builtin_terminfo()))
         } else {
             Renderer::Windows(WindowsConsoleRenderer::new(caps))
@@ -535,6 +540,9 @@ impl WindowsTerminal {
             input_parser,
             input_queue: VecDeque::new(),
         };
+
+        // We already enabled this for output, but let's also turn it
+        // on for input here now.
         terminal.enable_virtual_terminal_processing_if_needed()?;
 
         Ok(terminal)
