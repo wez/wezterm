@@ -230,8 +230,8 @@ impl ScreenBuffer {
             out.flush()?;
             let info = out.get_buffer_info()?;
             out.set_cursor_position(
-                self.cursor_x as i16,
-                self.cursor_y as i16 + info.srWindow.Top,
+                self.cursor_x.min(self.cols - 1) as i16,
+                (self.cursor_y as i16 + info.srWindow.Top).min(self.rows as i16 - 1),
             )?;
             out.flush()?;
             out.set_attr(self.pending_attr)?;
