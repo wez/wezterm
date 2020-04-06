@@ -455,8 +455,10 @@ impl TerminfoRenderer {
                         (Position::Absolute(0), Position::Relative(1)) => {
                             out.by_ref().write_all(b"\r\n")?;
                         }
-                        (Position::Absolute(0), Position::Relative(0)) => {
+                        (Position::Absolute(x), Position::Relative(y)) => {
+                            self.cursor_y_relative(*y, out)?;
                             out.by_ref().write_all(b"\r")?;
+                            self.cursor_right(*x as u32, out)?;
                         }
 
                         (Position::Relative(x), Position::EndRelative(y)) => {
@@ -501,12 +503,6 @@ impl TerminfoRenderer {
                             self.cursor_up(rows as u32, out)?;
                             self.cursor_down(*y as u32, out)?;
                             self.cursor_x_relative(*x, out)?;
-                        }
-
-                        (Position::Absolute(x), Position::Relative(y)) => {
-                            self.cursor_y_relative(*y, out)?;
-                            out.by_ref().write_all(b"\r")?;
-                            self.cursor_right(*x as u32, out)?;
                         }
 
                         (Position::EndRelative(x), Position::Absolute(y)) => {

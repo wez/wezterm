@@ -178,11 +178,17 @@ impl<T: Terminal> LineEditor<T> {
         }
 
         let visible_cursor_column = (prompt_width + cursor_x_pos) % screen_size.cols;
-        if visible_cursor_column == 0 {
-            changes.push("\r\n".into());
+        if visible_cursor_column == 0 && output_width == cursor_x_pos {
+            changes.push("\n".into());
         }
 
-        self.last_render_height = 1 + ((prompt_width + output_width) / screen_size.cols);
+        self.last_render_height = ((prompt_width + output_width) as f32 / screen_size.cols as f32)
+            .ceil() as usize
+            + if visible_cursor_column == 0 && output_width == cursor_x_pos {
+                1
+            } else {
+                0
+            };
         self.last_render_cursor_y = (prompt_width + cursor_x_pos) / screen_size.cols;
 
         changes.push(Change::CursorPosition {
