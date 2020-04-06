@@ -460,6 +460,7 @@ mod windows {
                     _ => {}
                 }
             }
+            self.process_bytes(callback, false);
         }
     }
 }
