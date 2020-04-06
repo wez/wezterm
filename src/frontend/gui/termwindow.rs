@@ -2792,7 +2792,6 @@ impl TermWindow {
                         // Initiate a selection
                         self.selection(tab.tab_id())
                             .begin(SelectionCoordinate { x, y: stable_row });
-                        self.window.as_ref().unwrap().set_clipboard(String::new());
                     } else {
                         // Extend selection
                         let end = SelectionCoordinate { x, y: stable_row };
@@ -2825,7 +2824,7 @@ impl TermWindow {
                                 log::error!("failed to open {}: {:?}", link.uri(), err);
                             }
                         });
-                    } else {
+                    } else if !text.is_empty() {
                         self.window.as_ref().unwrap().set_clipboard(text);
                         context.invalidate();
                     }
