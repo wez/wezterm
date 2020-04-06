@@ -6,19 +6,19 @@ when connecting to a serial console on a headless server.
 
 For example, on Linux:
 
-```
+```bash
 $ wezterm serial /dev/ttyUSB0
 ```
 
 or on Windows:
 
-```
+```bash
 $ wezterm serial COM0
 ```
 
 You can also specify the baud rate:
 
-```
+```bash
 $ wezterm serial --baud 38400 /dev/ttyUSB0
 ```
 

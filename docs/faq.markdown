@@ -54,15 +54,18 @@ the worst cases spaces where a glyph should be, then you have an issue with
 font fallback.
 
 You can resolve this by explicitly adding fallback font(s) the have the glyphs
-that you need in your `wezterm.toml`:
+that you need in your `.wezterm.lua`:
 
-```toml
-[[font.font]]
-family = "My Preferred Font"
+```lua
+local wezterm = require 'wezterm';
 
-# This font has a broader selection of Chinese glyphs than my preferred font
-[[font.font]]
-family = "DengXian"
+return {
+  font = wezterm.font_with_fallback({
+    "My Preferred Font",
+    -- This font has a broader selection of Chinese glyphs than my preferred font
+    "DengXian"
+  })
+}
 ```
 
 ### Some (but not all) Emoji don't render properly

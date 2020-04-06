@@ -19,8 +19,10 @@ Options of likely interest will be:
 If you want to disable ligatures in most fonts, then you may want to
 use a setting like this:
 
-```toml
-harfbuzz_features = ["calt=0", "clig=0", "liga=0"]
+```lua
+return {
+  harfbuzz_features = {"calt=0", "clig=0", "liga=0"},
+}
 ```
 
 Some fonts make available extended options via stylistic sets.
@@ -30,10 +32,12 @@ it lists available stylistic sets here:
 
 and you can set them in wezterm:
 
-```toml
-# Use this for a zero with a dot rather than a line through it
-# when using the Fira Code font
-harfbuzz_features = ["zero"]
+```lua
+return {
+  -- Use this for a zero with a dot rather than a line through it
+  -- when using the Fira Code font
+  harfbuzz_features = {"zero"}
+}
 ```
 
 

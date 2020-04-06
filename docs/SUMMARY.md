@@ -2,7 +2,7 @@
 - [Install](installation.md)
 - [Features](features.markdown)
 - [Change Log](changelog.markdown)
-- [Configuration](config/index.markdown)
+- [Configuration](config/files.markdown)
   - [Fonts](config/fonts.markdown)
   - [Font Shaping](config/font-shaping.markdown)
   - [Misc](config/misc.markdown)

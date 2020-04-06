@@ -32,21 +32,26 @@ installed on the remote system in order to use SSH domains**.
 SSH domains are supported on all systems via libssh2.
 
 To configure an SSH domain, place something like the following in
-your `wezterm.toml` file:
+your `.wezterm.lua` file:
 
-```
-[[ssh_domains]]
-# This name identifies the domain
-name = "my.server"
-# The address to connect to
-remote_address = "192.168.1.1"
-# The username to use on the remote host
-username = "wez"
+```lua
+return {
+  ssh_domains = {
+    {
+      -- This name identifies the domain
+      name = "my.server",
+      -- The address to connect to
+      remote_address = "192.168.1.1",
+      -- The username to use on the remote host
+      username = "wez",
+    }
+  }
+}
 ```
 
 To connect to the system, run:
 
-```
+```bash
 $ wezterm connect my.server
 ```
 
@@ -68,72 +73,96 @@ The bare minimum configuration to enable a unix domain is this, which will
 spawn a server if needed and then connect the gui to it automatically
 when wezterm is launched:
 
-```toml
-[[unix_domains]]
-name = "unix"
-connect_automatically = true
+```lua
+return {
+  unix_domains = {
+    {
+      name = "unix",
+      connect_automatically = true,
+    }
+  }
+}
 ```
 
 If you prefer to connect manually, omit the `connect_automatically` setting
 (or set it to `false`) and then run:
 
-```
+```bash
 $ wezterm connect unix
 ```
 
 The possible configuration values are:
 
-```toml
-[[unix_domains]]
-name = "unix"
-# If true, connect to this unix domain when `wezterm` is started
-connect_automatically = true
+```lua
+return {
+  unix_domains = {
+    {
+      name = "unix",
+      -- If true, connect to this unix domain when `wezterm` is started
+      connect_automatically = true,
 
-# The path to the socket.  If unspecified, a resonable default
-# value will be computed.
-# socket_path = "/some/path"
+      -- The path to the socket.  If unspecified, a resonable default
+      -- value will be computed.
 
-# If true, do not attempt to start this server if we try and fail to
-# connect to it.
-# no_serve_automatically = false
+      -- socket_path = "/some/path",
 
-# If true, bypass checking for secure ownership of the
-# socket_path.  This is not recommended on a multi-user
-# system, but is useful for example when running the
-# server inside a WSL container but with the socket
-# on the host NTFS volume.
-# skip_permissions_check = false
+      -- If true, do not attempt to start this server if we try and fail to
+      -- connect to it.
+
+      -- no_serve_automatically = false,
+
+      -- If true, bypass checking for secure ownership of the
+      -- socket_path.  This is not recommended on a multi-user
+      -- system, but is useful for example when running the
+      -- server inside a WSL container but with the socket
+      -- on the host NTFS volume.
+
+      -- skip_permissions_check = false,
+
+    }
+  }
+}
 ```
 
 ### Connecting into Windows Subsystem for Linux
 
-Inside your WSL instance, configure `wezterm.toml` with this snippet:
+Inside your WSL instance, configure `.wezterm.lua` with this snippet:
 
-```toml
-[[unix_domains]]
-name = "wsl"
-# Override the default path to match the default on the host win32
-# filesystem.  This will allow the host to connect into the WSL
-# container.
-socket_path = "/mnt/c/Users/USERNAME/.local/share/wezterm/sock"
-# NTFS permissions will always be "wrong", so skip that check
-skip_permissions_check = true
+```lua
+return {
+  unix_domains = {
+    {
+      name = "wsl"
+      -- Override the default path to match the default on the host win32
+      -- filesystem.  This will allow the host to connect into the WSL
+      -- container.
+      socket_path = "/mnt/c/Users/USERNAME/.local/share/wezterm/sock",
+      -- NTFS permissions will always be "wrong", so skip that check
+      skip_permissions_check = true,
+    }
+  }
+}
 ```
 
 In the host win32 configuration, use this snippet:
 
-```toml
-[[unix_domains]]
-name = "wsl"
-connect_automatically = true
-serve_command = ["wsl", "wezterm", "start", "--daemonize", "--front-end", "MuxServer"]
+```lua
+return {
+  unix_domains = {
+    {
+      name = "wsl",
+      connect_automatically = true,
+      serve_command = ["wsl", "wezterm", "start", "--daemonize", "--front-end", "MuxServer"],
+    }
+  }
+}
 ```
 
 Now when you start wezterm you'll be presented with a WSL tab.
 
 You can also set `connect_automatically = false` and use:
 
-```
+```bash
 $ wezterm connect wsl
 ```
 
@@ -154,25 +183,35 @@ server.
 
 For each server that you wish to connect to, add a client section like this:
 
-```toml
-[[tls_clients]]
-# A handy alias for this session; you will use `wezterm connect server.name`
-# to connect to it.
-name = "server.name"
-# The host:port for the remote host
-remote_address = "server.hostname:8080"
-# The value can be "user@host:port"; it accepts the same syntax as the
-# `wezterm ssh` subcommand.
-bootstrap_via_ssh = "server.hostname"
+```lua
+return {
+  tls_clients = {
+    {
+      -- A handy alias for this session; you will use `wezterm connect server.name`
+      -- to connect to it.
+      name = "server.name",
+      -- The host:port for the remote host
+      remote_address = "server.hostname:8080",
+      -- The value can be "user@host:port"; it accepts the same syntax as the
+      -- `wezterm ssh` subcommand.
+      bootstrap_via_ssh = "server.hostname",
+    }
+  }
+}
 ```
 
 ### Configuring the server
 
-```toml
-[[tls_servers]]
-# The host:port combination on which the server will listen
-# for connections
-bind_address = "server.hostname:8080"
+```lua
+return {
+  tls_servers = {
+    {
+      -- The host:port combination on which the server will listen
+      -- for connections
+      bind_address = "server.hostname:8080"
+    }
+  }
+}
 ```
 
 ### Connecting

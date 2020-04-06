@@ -49,15 +49,19 @@ The default key bindings are:
 | `SHIFT`          | `PAGEUP`      | `ScrollByPage(-1)` |
 | `SHIFT`          | `PAGEDOWN`    | `ScrollByPage(1)` |
 
-These can be overridden using the `keys` section in your `~/.wezterm.toml` config file.
+These can be overridden using the `keys` section in your `~/.wezterm.lua` config file.
 For example, you can disable a default assignment like this:
 
-```
-# Turn off the default CMD-m Hide action
-[[keys]]
-key = "m"
-mods = "CMD"
-action = "Nop"
+```lua
+local wezterm = require 'wezterm';
+
+return {
+  keys = {
+    -- Turn off the default CMD-m Hide action on macOS by making it
+    -- send the empty string instead of hiding the window
+    {key="m", mods="CMD", action=wezterm.action{SendString=""}},
+  }
+}
 ```
 
 The `key` value can be one of the following keycode identifiers.  Note that not
@@ -119,36 +123,50 @@ specified via the `arg` key; see examples below.
 
 Example:
 
-```toml
-# Turn off the default CMD-m Hide action
-[[keys]]
-key = "m"
-mods = "CMD"
-action = "Nop"
+```lua
+local wezterm = require 'wezterm';
 
-# Macro for sending in some boiler plate.  This types `wtf!?` each
-# time CMD+SHIFT+W is pressed
-[[keys]]
-key = "W"
-mods = "CMD|SHIFT"
-action = "SendString"
-arg = "wtf!?"
+return {
+  keys = {
+    -- Turn off the default CMD-m Hide action
+    {key="m", mods="CMD", action=wezterm.action{SendString=""}},
 
-# CTRL+ALT+0 activates the leftmost tab
-[[keys]]
-key = "0"
-mods = "CTRL|ALT"
-action = "ActivateTab"
-# the tab number
-arg = "0"
+    -- Macro for sending in some boiler plate.  This types `wtf!?` each
+    -- time CMD+SHIFT+W is pressed
+    {key="W", mods="CMD|SHIFT", action=wezterm.action{SendString="wtf!?"}},
 
-# CMD+y spawns a new tab in Domain 1
-[[keys]]
-key = "y"
-mods = "CMD"
-action = "SpawnTabInDomain"
-# the domain ID
-arg = "1"
+    -- CMD-y starts `top` in a new window
+    {key="y", mods="CMD", action=wezterm.action{SpawnCommandInNewWindow={
+      args={"top"}
+    }}},
+  }
+}
 ```
 
+Generate some key bindings based on their position:
+
+```
+local wezterm = require 'wezterm';
+
+local mykeys = {}
+for i = 1, 8 do
+  -- CTRL+ALT + number to activate that tab
+  table.insert(mykeys, {
+    key=tostring(i),
+    mods="CTRL|ALT",
+    action="ActivateTab",
+    arg=tostring(i-1)
+  })
+  -- F1 through F8 to activate that tab
+  table.insert(mykeys, {
+    key="F" .. tostring(i),
+    action="ActivateTab",
+    arg=tostring(i-1)
+  })
+end
+
+return {
+  keys = mykeys,
+}
+```
 

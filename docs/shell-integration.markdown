@@ -33,14 +33,17 @@ for yourself.
 `cmd.exe` doesn't allow a lot of flexibility in configuring the prompt,
 but fortunately it does allow for emitting escape sequences.  You
 can use the `set_environment_variables` configuration to pre-configure
-the prompt environment in your `wezterm.toml`; this example configures
+the prompt environment in your `.wezterm.lua`; this example configures
 the use of OSC 7 as well as including the time and current directory in
 the visible prompt with green and purple colors, and makes the prompt
 span multiple lines:
 
-```toml
-[set_environment_variables]
-prompt = "$E]7;file://localhost/$P$E\\$E[32m$T$E[0m $E[35m$P$E[36m$_$G$E[0m "
+```lua
+return {
+  set_environment_variables = {
+    prompt = "$E]7;file://localhost/$P$E\\$E[32m$T$E[0m $E[35m$P$E[36m$_$G$E[0m ",
+  }
+}
 ```
 
 ## Using clink on Windows Systems
@@ -48,11 +51,13 @@ prompt = "$E]7;file://localhost/$P$E\\$E[32m$T$E[0m $E[35m$P$E[36m$_$G$E[0m "
 [Clink](https://github.com/mridgers/clink) brings bash style line editing to
 your Windows cmd.exe experience.  If you haven't installed clink to be the
 global default on your system, you can configure wezterm to launch clink by
-setting the `default_prog` configuration in your `wezterm.toml`; for example,
+setting the `default_prog` configuration in your `.wezterm.lua`; for example,
 if you have extracted clink to `c:\clink_0.4.9` you might configure this:
 
-```toml
-default_prog = ["cmd.exe", "/s", "/k", "c:/clink_0.4.9/clink_x64.exe", "inject", "-q"]
+```lua
+return {
+  default_prog = {"cmd.exe", "/s", "/k", "c:/clink_0.4.9/clink_x64.exe", "inject", "-q"}
+}
 ```
 
 Now, rather than just running `cmd.exe` on its own, this will cause `cmd.exe`

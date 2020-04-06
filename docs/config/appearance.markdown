@@ -4,8 +4,10 @@ Wezterm ships with the full set of over 200 color schemes available from
 [iterm2colorschemes.com](https://iterm2colorschemes.com/).  You can select a
 color scheme with a line like this:
 
-```toml
-color_scheme = "Batman"
+```lua
+return {
+  color_scheme = "Batman",
+}
 ```
 
 There are literally too many schemes to reasonably list here; check out the
@@ -16,7 +18,7 @@ The `color_scheme` option takes precedence over the `colors` section below.
 ### Defining your own colors
 
 Rather than using a color scheme, you can specify the color palette using the
-`[colors]` configuration section.  Note that `color_scheme` takes precedence
+`colors` configuration section.  Note that `color_scheme` takes precedence
 over this section.
 
 You can configure colors with a section like this.  In addition to specifying
@@ -24,51 +26,59 @@ You can configure colors with a section like this.  In addition to specifying
 you can use `#RRGGBB` to specify a color code using the
 usual hex notation; eg: `#000000` is equivalent to `black`:
 
-```toml
-[colors]
-# The default text color
-foreground = "silver"
-# The default background color
-background = "black"
+```lua
+return {
+  colors = {
+      -- The default text color
+      foreground = "silver",
+      -- The default background color
+      background = "black",
 
-# Overrides the cell background color when the current cell is occupied by the
-# cursor and the cursor style is set to Block
-cursor_bg = "#52ad70"
-# Overrides the text color when the current cell is occupied by the cursor
-cursor_fg = "black"
-# Specifies the border color of the cursor when the cursor style is set to Block,
-# of the color of the vertical or horizontal bar when the cursor style is set to
-# Bar or Underline.
-cursor_border = "#52ad70"
+      -- Overrides the cell background color when the current cell is occupied by the
+      -- cursor and the cursor style is set to Block
+      cursor_bg = "#52ad70",
+      -- Overrides the text color when the current cell is occupied by the cursor
+      cursor_fg = "black",
+      -- Specifies the border color of the cursor when the cursor style is set to Block,
+      -- of the color of the vertical or horizontal bar when the cursor style is set to
+      -- Bar or Underline.
+      cursor_border = "#52ad70",
 
-# The color of the scrollbar "thumb"; the portion that represents the current viewport
-scrollbar_thumb = "#222222"
+      -- The color of the scrollbar "thumb"; the portion that represents the current viewport
+      scrollbar_thumb = "#222222",
 
-ansi = ["black", "maroon", "green", "olive", "navy", "purple", "teal", "silver"]
-brights = ["grey", "red", "lime", "yellow", "blue", "fuchsia", "aqua", "white"]
+      ansi = {"black", "maroon", "green", "olive", "navy", "purple", "teal", "silver"},
+      brights = {"grey", "red", "lime", "yellow", "blue", "fuchsia", "aqua", "white"},
+  }
+}
 ```
 
-### Defining a Color Scheme in your `wezterm.toml`
+### Defining a Color Scheme in your `.wezterm.lua`
 
 If you'd like to keep a couple of color schemes handy in your configuration
-file, rather than filling out the `[colors]` section, place it in a
+file, rather than filling out the `colors` section, place it in a
 `color_schemes` section as shown below; you can then reference it using the
 `color_scheme` setting.
 
-Color schemes names that you define in your `wezterm.toml` take precedence
+Color schemes names that you define in your `wezterm.lua` take precedence
 over all other color schemes.
 
-All of the settings available from the `[colors]` section are available
+All of the settings available from the `colors` section are available
 to use in the `color_schemes` sections.
 
-```toml
-color_scheme = "Red Scheme"
+```lua
+return {
+  color_scheme = "Red Scheme",
 
-[color_schemes."Red Scheme"]
-background = "red"
-
-[color_schemes."Blue Scheme"]
-background = "blue"
+  color_schemes = {
+    ["Red Scheme"] = {
+      background = "red",
+    }
+    ["Blue Scheme"] = {
+      background = "blue",
+    }
+  },
+}
 ```
 
 ### Defining a Color Scheme in a separate file
@@ -81,13 +91,14 @@ You then need to instruct wezterm where to look for your scheme files;
 the `color_scheme_dirs` setting specifies a list of directories to
 be searched:
 
-```
-color_scheme_dirs = ["/some/path/to/my/color/schemes"]
+```lua
+return {
+  color_scheme_dirs = {"/some/path/to/my/color/schemes"},
+}
 ```
 
 Color scheme names that are defined in files in your `color_scheme_dirs` list
 take precedence over the built-in color schemes.
-
 
 ### Dynamic Color Escape Sequences
 
@@ -111,53 +122,62 @@ $ for scheme in *.sh ; do ; echo $scheme ; \
 
 The following options control the appearance of the tab bar:
 
-```toml
-[colors.tab_bar]
-# The color of the strip that goes along the top of the window
-background = "#0b0022"
+```lua
+return {
+  colors = {
+    tab_bar = {
 
-# The active tab is the one that has focus in the window
-[colors.tab_bar.active_tab]
-# The color of the background area for the tab
-bg_color = "#2b2042"
-# The color of the text for the tab
-fg_color = "#c0c0c0"
+      -- The color of the strip that goes along the top of the window
+      background = "#0b0022",
 
-# Specify whether you want "Half", "Normal" or "Bold" intensity for the
-# label shown for this tab.
-# The default is "Normal"
-intensity = "Normal"
+      -- The active tab is the one that has focus in the window
+      active_tab = {
+        -- The color of the background area for the tab
+        bg_color = "#2b2042"
+        -- The color of the text for the tab
+        fg_color = "#c0c0c0"
 
-# Specify whether you want "None", "Single" or "Double" underline for
-# label shown for this tab.
-# The default is "None"
-underline = "None"
+        -- Specify whether you want "Half", "Normal" or "Bold" intensity for the
+        -- label shown for this tab.
+        -- The default is "Normal"
+        intensity = "Normal"
 
-# Specify whether you want the text to be italic (true) or not (false)
-# for this tab.  The default is false.
-italic = false
+        -- Specify whether you want "None", "Single" or "Double" underline for
+        -- label shown for this tab.
+        -- The default is "None"
+        underline = "None"
 
-# Specify whether you want the text to be rendered with strikethrough (true)
-# or not for this tab.  The default is false.
-strikethrough = false
+        -- Specify whether you want the text to be italic (true) or not (false)
+        -- for this tab.  The default is false.
+        italic = false
 
-# Inactive tabs are the tabs that do not have focus
-[colors.tab_bar.inactive_tab]
-bg_color = "#1b1032"
-fg_color = "#808080"
+        -- Specify whether you want the text to be rendered with strikethrough (true)
+        -- or not for this tab.  The default is false.
+        strikethrough = false
+      },
 
-# The same options that were listed under the `active_tab` section above
-# can also be used for `inactive_tab`.
+      -- Inactive tabs are the tabs that do not have focus
+      inactive_tab = {
+        bg_color = "#1b1032"
+        fg_color = "#808080"
 
-# You can configure some alternate styling when the mouse pointer
-# moves over inactive tabs
-[colors.tab_bar.inactive_tab_hover]
-bg_color = "#3b3052"
-fg_color = "#909090"
-italic = true
+        -- The same options that were listed under the `active_tab` section above
+        -- can also be used for `inactive_tab`.
+      },
 
-# The same options that were listed under the `active_tab` section above
-# can also be used for `inactive_tab_hover`.
+      -- You can configure some alternate styling when the mouse pointer
+      -- moves over inactive tabs
+      inactive_tab_hover = {
+        bg_color = "#3b3052"
+        fg_color = "#909090"
+        italic = true
+
+        -- The same options that were listed under the `active_tab` section above
+        -- can also be used for `inactive_tab_hover`.
+      }
+    }
+  }
+}
 ```
 
 
@@ -165,14 +185,16 @@ italic = true
 
 You may add padding around the edges of the terminal cells:
 
-```
-[window_padding]
-left = 2
+```lua
+return {
+  window_padding = {
+    left = 2,
+    -- This will become the scrollbar width if you have enabled the scrollbar!
+    right = 2,
 
-# This will become the scrollbar width if you have enabled the scrollbar!
-right = 2
-
-top = 0
-bottom = 0
+    top = 0,
+    bottom = 0,
+  }
+}
 ```
 

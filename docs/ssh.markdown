@@ -4,7 +4,7 @@ wezterm uses libssh2 to provide an integrated SSH client.  The
 client can be used to make ad-hoc SSH connections to remote hosts
 by invoking the client:
 
-```
+```bash
 $ wezterm ssh wez@my.server
 ```
 

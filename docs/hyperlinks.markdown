@@ -10,24 +10,35 @@ to match URLs and make them clickable, but you can also specify your own rules
 to make your own links.  As an example, at my place of work many of our internal
 tools use `T123` to indicate task number 123 in our internal task tracking system.
 It is desirable to make this clickable, and that can be done with the following
-configuration:
+configuration in your `~/.wezterm.lua`:
 
-```toml
-# Linkify things that look like URLs
-# This is actually the default if you don't specify any hyperlink_rules
-[[hyperlink_rules]]
-regex = "\\b\\w+://(?:[\\w.-]+)\\.[a-z]{2,15}\\S*\\b"
-format = "$0"
+```lua
+return {
+  hyperlink_rules = {
+    -- Linkify things that look like URLs
+    -- This is actually the default if you don't specify any hyperlink_rules
+    {
+      regex = "\\b\\w+://(?:[\\w.-]+)\\.[a-z]{2,15}\\S*\\b",
+      format = "$0",
+    },
 
-# Un-comment this if you want to linkify email addresses
-#[[hyperlink_rules]]
-#regex = "\\b\\w+@[\\w-]+(\\.[\\w-]+)+\\b"
-#format = "mailto:$0"
+    -- Un-comment this if you want to linkify email addresses
+    --[[
+    {
+      regex = "\\b\\w+@[\\w-]+(\\.[\\w-]+)+\\b",
+      format = "mailto:$0",
+    },
+    ]]
 
-# Make task numbers clickable
-[[hyperlink_rules]]
-regex = "\\b[tT](\\d+)\\b"
-format = "https://example.com/tasks/?t=$1"
+    -- Make task numbers clickable
+    --[[
+    {
+      regex = "\\b[tT](\\d+)\\b"
+      format = "https://example.com/tasks/?t=$1"
+    }
+    ]]
+  }
+}
 ```
 
 ### Explicit Hyperlinks
