@@ -39,7 +39,11 @@ case $OSTYPE in
     fi
     rm -rf $zipdir $zipname
     mkdir $zipdir
-    cp $TARGET_DIR/release/wezterm.exe $TARGET_DIR/release/wezterm.pdb $zipdir
+    cp $TARGET_DIR/release/wezterm.exe \
+      $TARGET_DIR/release/wezterm.pdb \
+      assets/windows/conhost/conpty.dll \
+      assets/windows/conhost/OpenConsole.exe \
+      $zipdir
     cp -r assets/colors $zipdir/
     7z a -tzip $zipname $zipdir
     ;;

@@ -19,5 +19,22 @@ fn main() {
     println!("cargo:rustc-env=MACOSX_DEPLOYMENT_TARGET=10.9");
 
     #[cfg(windows)]
+    {
+        use std::path::Path;
+        let profile = std::env::var("PROFILE").unwrap();
+        let exe_output_dir = Path::new("target").join(profile);
+        let exe_src_dir = Path::new("assets/windows/conhost");
+
+        for name in &["conpty.dll", "OpenConsole.exe"] {
+            let dest_name = exe_output_dir.join(name);
+            let src_name = exe_src_dir.join(name);
+
+            if !dest_name.exists() {
+                std::fs::copy(src_name, dest_name).unwrap();
+            }
+        }
+    }
+
+    #[cfg(windows)]
     embed_resource::compile("assets/windows/resource.rc");
 }
