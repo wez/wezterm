@@ -207,9 +207,16 @@ impl<T: Terminal> LineEditor<T> {
     pub fn read_line(&mut self, host: &mut dyn LineEditorHost) -> anyhow::Result<Option<String>> {
         self.terminal.set_raw_mode()?;
         let res = self.read_line_impl(host);
-        self.terminal.set_cooked_mode()?;
-        self.terminal.render(&[Change::Text("\r\n".to_string())])?;
+
+        self.terminal.render(&[Change::CursorPosition {
+            x: Position::Absolute(0),
+            y: Position::Relative(
+                (self.last_render_height as isize) - (self.last_render_cursor_y as isize),
+            ),
+        }])?;
+
         self.terminal.flush()?;
+        self.terminal.set_cooked_mode()?;
         res
     }
 
@@ -573,7 +580,7 @@ impl<T: Terminal> LineEditor<T> {
                         self.line = line;
                     }
                 }
-                None => {}
+                None => continue,
             }
             self.render(host)?;
         }

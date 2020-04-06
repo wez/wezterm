@@ -15,11 +15,11 @@ use winapi::um::synchapi::{CreateEventW, SetEvent, WaitForMultipleObjects};
 use winapi::um::winbase::{INFINITE, WAIT_FAILED, WAIT_OBJECT_0};
 use winapi::um::wincon::{
     FillConsoleOutputAttribute, FillConsoleOutputCharacterW, GetConsoleScreenBufferInfo,
-    ScrollConsoleScreenBufferW, SetConsoleCursorPosition, SetConsoleScreenBufferSize,
-    SetConsoleTextAttribute, SetConsoleWindowInfo, CHAR_INFO, CONSOLE_SCREEN_BUFFER_INFO, COORD,
-    DISABLE_NEWLINE_AUTO_RETURN, ENABLE_ECHO_INPUT, ENABLE_LINE_INPUT, ENABLE_MOUSE_INPUT,
-    ENABLE_PROCESSED_INPUT, ENABLE_VIRTUAL_TERMINAL_INPUT, ENABLE_VIRTUAL_TERMINAL_PROCESSING,
-    ENABLE_WINDOW_INPUT, INPUT_RECORD, SMALL_RECT,
+    ReadConsoleOutputW, ScrollConsoleScreenBufferW, SetConsoleCursorPosition,
+    SetConsoleScreenBufferSize, SetConsoleTextAttribute, SetConsoleWindowInfo, WriteConsoleOutputW,
+    CHAR_INFO, CONSOLE_SCREEN_BUFFER_INFO, COORD, DISABLE_NEWLINE_AUTO_RETURN, ENABLE_ECHO_INPUT,
+    ENABLE_LINE_INPUT, ENABLE_MOUSE_INPUT, ENABLE_PROCESSED_INPUT, ENABLE_VIRTUAL_TERMINAL_INPUT,
+    ENABLE_VIRTUAL_TERMINAL_PROCESSING, ENABLE_WINDOW_INPUT, INPUT_RECORD, SMALL_RECT,
 };
 
 use crate::caps::Capabilities;
@@ -52,6 +52,8 @@ pub trait ConsoleOutputHandle {
     fn set_attr(&mut self, attr: u16) -> Result<(), Error>;
     fn set_cursor_position(&mut self, x: i16, y: i16) -> Result<(), Error>;
     fn get_buffer_info(&mut self) -> Result<CONSOLE_SCREEN_BUFFER_INFO, Error>;
+    fn get_buffer_contents(&mut self) -> anyhow::Result<Vec<CHAR_INFO>>;
+    fn set_buffer_contents(&mut self, buffer: &[CHAR_INFO]) -> anyhow::Result<()>;
     fn set_viewport(&mut self, left: i16, top: i16, right: i16, bottom: i16) -> Result<(), Error>;
     fn scroll_region(
         &mut self,
@@ -292,6 +294,67 @@ impl ConsoleOutputHandle for OutputHandle {
                 y,
                 IoError::last_os_error()
             );
+        }
+        Ok(())
+    }
+
+    fn get_buffer_contents(&mut self) -> anyhow::Result<Vec<CHAR_INFO>> {
+        let info = self.get_buffer_info()?;
+
+        let cols = info.dwSize.X as usize;
+        let rows = info.srWindow.Bottom as usize - info.srWindow.Top as usize;
+
+        let mut res = vec![
+            CHAR_INFO {
+                Attributes: 0,
+                Char: unsafe { mem::zeroed() }
+            };
+            cols * rows
+        ];
+        let mut read_region = info.srWindow.clone();
+        unsafe {
+            if ReadConsoleOutputW(
+                self.handle.as_raw_handle() as *mut _,
+                res.as_mut_ptr(),
+                COORD {
+                    X: cols as i16,
+                    Y: rows as i16,
+                },
+                COORD { X: 0, Y: 0 },
+                &mut read_region,
+            ) == 0
+            {
+                bail!("ReadConsoleOutputW failed: {}", IoError::last_os_error());
+            }
+        }
+        Ok(res)
+    }
+
+    fn set_buffer_contents(&mut self, buffer: &[CHAR_INFO]) -> anyhow::Result<()> {
+        let info = self.get_buffer_info()?;
+
+        let cols = info.dwSize.X as usize;
+        let rows = info.srWindow.Bottom as usize - info.srWindow.Top as usize;
+        anyhow::ensure!(
+            rows * cols == buffer.len(),
+            "buffer size doesn't match screen size"
+        );
+
+        let mut write_region = info.srWindow.clone();
+        unsafe {
+            if WriteConsoleOutputW(
+                self.handle.as_raw_handle() as *mut _,
+                buffer.as_ptr(),
+                COORD {
+                    X: cols as i16,
+                    Y: rows as i16,
+                },
+                COORD { X: 0, Y: 0 },
+                &mut write_region,
+            ) == 0
+            {
+                bail!("WriteConsoleOutputW failed: {}", IoError::last_os_error());
+            }
         }
         Ok(())
     }
@@ -604,7 +667,7 @@ impl Terminal for WindowsTerminal {
                     )
                 };
                 if result == WAIT_OBJECT_0 + 0 {
-                    pending = 1;
+                    pending = self.input_handle.get_number_of_input_events()?;
                 } else if result == WAIT_OBJECT_0 + 1 {
                     return Ok(Some(InputEvent::Wake));
                 } else if result == WAIT_FAILED {
