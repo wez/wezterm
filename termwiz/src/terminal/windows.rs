@@ -302,7 +302,7 @@ impl ConsoleOutputHandle for OutputHandle {
         let info = self.get_buffer_info()?;
 
         let cols = info.dwSize.X as usize;
-        let rows = info.srWindow.Bottom as usize - info.srWindow.Top as usize;
+        let rows = 1 + info.srWindow.Bottom as usize - info.srWindow.Top as usize;
 
         let mut res = vec![
             CHAR_INFO {
@@ -311,7 +311,12 @@ impl ConsoleOutputHandle for OutputHandle {
             };
             cols * rows
         ];
-        let mut read_region = info.srWindow.clone();
+        let mut read_region = SMALL_RECT {
+            Left: 0,
+            Right: info.dwSize.X - 1,
+            Top: info.srWindow.Top,
+            Bottom: info.srWindow.Bottom,
+        };
         unsafe {
             if ReadConsoleOutputW(
                 self.handle.as_raw_handle() as *mut _,
@@ -334,13 +339,19 @@ impl ConsoleOutputHandle for OutputHandle {
         let info = self.get_buffer_info()?;
 
         let cols = info.dwSize.X as usize;
-        let rows = info.srWindow.Bottom as usize - info.srWindow.Top as usize;
+        let rows = 1 + info.srWindow.Bottom as usize - info.srWindow.Top as usize;
         anyhow::ensure!(
             rows * cols == buffer.len(),
             "buffer size doesn't match screen size"
         );
 
-        let mut write_region = info.srWindow.clone();
+        let mut write_region = SMALL_RECT {
+            Left: 0,
+            Right: info.dwSize.X - 1,
+            Top: info.srWindow.Top,
+            Bottom: info.srWindow.Bottom,
+        };
+
         unsafe {
             if WriteConsoleOutputW(
                 self.handle.as_raw_handle() as *mut _,

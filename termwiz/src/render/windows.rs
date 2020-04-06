@@ -152,6 +152,21 @@ impl ScreenBuffer {
         end
     }
 
+    fn do_cursor_y_scroll<B: ConsoleOutputHandle + Write>(
+        &mut self,
+        out: &mut B,
+    ) -> anyhow::Result<()> {
+        if self.cursor_y >= self.rows {
+            self.dirty = true;
+            let lines_to_scroll = self.cursor_y.saturating_sub(self.rows) + 1;
+            self.scroll(0, self.rows, -1 * lines_to_scroll as isize, out)?;
+            self.dirty = true;
+            self.cursor_y -= lines_to_scroll;
+            assert!(self.cursor_y < self.rows);
+        }
+        Ok(())
+    }
+
     fn set_cursor<B: ConsoleOutputHandle + Write>(
         &mut self,
         x: usize,
@@ -161,12 +176,7 @@ impl ScreenBuffer {
         self.cursor_x = x;
         self.cursor_y = y;
 
-        if self.cursor_y >= self.rows {
-            let lines_to_scroll = self.cursor_y.saturating_sub(self.rows) + 1;
-            self.scroll_up(0, self.rows, lines_to_scroll, out)?;
-            // Adjust cursor by an extra position to compensate for the scroll
-            self.cursor_y -= lines_to_scroll + 1;
-        }
+        self.do_cursor_y_scroll(out)?;
 
         // Make sure we mark dirty after we've scrolled!
         self.dirty = true;
@@ -188,28 +198,17 @@ impl ScreenBuffer {
                 }
                 '\n' => {
                     self.cursor_y += 1;
-                    if self.cursor_y >= self.rows {
-                        self.dirty = true;
-                        self.scroll_up(0, self.rows, 1 + self.cursor_y - self.rows, out)?;
-                        self.dirty = true;
-                        self.cursor_y = self.rows - 1;
-                        assert!(self.cursor_y < self.rows);
-                    }
+                    self.do_cursor_y_scroll(out)?;
                 }
                 c => {
                     if self.cursor_x == self.cols {
                         self.cursor_y += 1;
                         self.cursor_x = 0;
-                        if self.cursor_y >= self.rows {
-                            self.dirty = true;
-                            self.scroll_up(0, self.rows, 1 + self.cursor_y - self.rows, out)?;
-                            self.dirty = true;
-                            self.cursor_y = self.rows - 1;
-                            assert!(self.cursor_y < self.rows);
-                        }
                     }
+                    self.do_cursor_y_scroll(out)?;
 
                     let idx = self.cursor_idx();
+
                     let mut cell = &mut self.buf[idx];
                     cell.Attributes = attr;
                     unsafe {
@@ -251,49 +250,41 @@ impl ScreenBuffer {
         Ok(())
     }
 
-    fn scroll_up<B: ConsoleOutputHandle + Write>(
+    fn scroll<B: ConsoleOutputHandle + Write>(
         &mut self,
         first_row: usize,
         region_size: usize,
-        scroll_count: usize,
+        scroll_count: isize,
         out: &mut B,
     ) -> anyhow::Result<()> {
-        if region_size > 0 {
+        if region_size > 0 && scroll_count != 0 {
             self.flush_screen(out)?;
             let info = out.get_buffer_info()?;
-            out.scroll_region(
-                info.srWindow.Left,
-                info.srWindow.Top + first_row as i16,
-                info.srWindow.Right,
-                info.srWindow.Top + first_row as i16 + region_size as i16,
-                0,
-                -(scroll_count as i16),
-                self.pending_attr,
-            )?;
-            self.reread_buffer(out)?;
-        }
-        Ok(())
-    }
 
-    fn scroll_down<B: ConsoleOutputHandle + Write>(
-        &mut self,
-        first_row: usize,
-        region_size: usize,
-        scroll_count: usize,
-        out: &mut B,
-    ) -> anyhow::Result<()> {
-        if region_size > 0 {
-            self.flush_screen(out)?;
-            let info = out.get_buffer_info()?;
-            out.scroll_region(
-                info.srWindow.Left,
-                info.srWindow.Top + first_row as i16,
-                info.srWindow.Right,
-                info.srWindow.Top + first_row as i16 + region_size as i16,
-                0,
-                scroll_count as i16,
-                self.pending_attr,
-            )?;
+            // Scroll the full width of the window, always.
+            let left = 0;
+            let right = info.dwSize.X - 1;
+
+            // We're only doing vertical scrolling
+            let dx = 0;
+            let dy = scroll_count as i16;
+
+            if first_row == 0 && region_size == self.rows {
+                // We're scrolling the whole screen, so let it scroll
+                // up into the scrollback
+                out.set_viewport(
+                    info.srWindow.Left,
+                    info.srWindow.Top - dy,
+                    info.srWindow.Right,
+                    info.srWindow.Bottom - dy,
+                )?;
+            } else {
+                // We're just scrolling a region within the window
+                let top = info.srWindow.Top + first_row as i16;
+                let bottom = top + region_size.saturating_sub(1) as i16;
+                out.scroll_region(left, top, right, bottom, dx, dy, self.pending_attr)?;
+            }
+
             self.reread_buffer(out)?;
         }
         Ok(())
@@ -310,14 +301,12 @@ impl WindowsConsoleRenderer {
         let info = out.get_buffer_info()?;
 
         let cols = info.dwSize.X as usize;
-        let rows = info.srWindow.Bottom as usize - info.srWindow.Top as usize;
+        let rows = 1 + info.srWindow.Bottom as usize - info.srWindow.Top as usize;
 
         let mut buffer = ScreenBuffer {
             buf: out.get_buffer_contents()?,
             cursor_x: info.dwCursorPosition.X as usize,
-            cursor_y: (info.dwCursorPosition.Y as usize)
-                .saturating_sub(info.srWindow.Top as usize)
-                .min(rows - 1),
+            cursor_y: (info.dwCursorPosition.Y as usize).saturating_sub(info.srWindow.Top as usize),
             dirty: false,
             rows,
             cols,
@@ -439,14 +428,14 @@ impl WindowsConsoleRenderer {
                     region_size,
                     scroll_count,
                 } => {
-                    buffer.scroll_up(*first_row, *region_size, *scroll_count, out)?;
+                    buffer.scroll(*first_row, *region_size, -1 * *scroll_count as isize, out)?;
                 }
                 Change::ScrollRegionDown {
                     first_row,
                     region_size,
                     scroll_count,
                 } => {
-                    buffer.scroll_down(*first_row, *region_size, *scroll_count, out)?;
+                    buffer.scroll(*first_row, *region_size, *scroll_count as isize, out)?;
                 }
                 Change::Title(_text) => {
                     // Don't actually render this for now.
