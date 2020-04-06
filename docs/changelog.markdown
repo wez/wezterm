@@ -10,6 +10,20 @@ daily) from the master branch.  It may not be usable and
 the feature set may change.  As features stabilize some
 brief notes about them may accumulate here.
 
+* Not yet!
+
+### 20200406-151651-5b700e4
+
+* Added lua based configuration.  Reading TOML configuration will be rapidly
+  phased out in favor of the more flexible lua config; for now, both are
+  supported, but new features may not be available via TOML.
+* Added launcher overlay.  Right click the `+` button on the tab bar or
+  bind a key to `ShowLauncher` to activate it.  It allows spawning tabs in
+  various domains as well as attaching multiplexer sessions that were not
+  connected automatically at startup.
+* Windows: we now support mouse reporting on Windows native ptys.  For this to
+  work, `conpty.dll` and `OpenConsole.exe` must be present alongside `wezterm.exe`
+  when starting wezterm.
 * Added `initial_rows` and `initial_cols` config options to set the starting
   size of new terminal windows
 * Added `hide_tab_bar_if_only_one_tab = true` config option to hide the tab
@@ -21,13 +35,12 @@ brief notes about them may accumulate here.
   choose to assign it to something like `CMD-Q`.
 * Added `set_environment_variables` configuration section to allow defining
   some environment variables to be passed to your shell.
-* Added lua based configuration.  Reading TOML configuration will be rapidly
-  phased out in favor of the more flexible lua config; for now, both are
-  supported, but new features may not be available via TOML.
-* Added launcher overlay.  Right click the `+` button on the tab bar or
-  bind a key to `ShowLauncher` to activate it.  It allows spawning tabs in
-  various domains as well as attaching multiplexer sessions that were not
-  connected automatically at startup.
+* Improved connectivity UI that shows ssh and mux connection progress/status
+* Fixed a bug where the baud rate was not applied when opening a serial port
+* Added predictive local echo to the multiplexer for higher latency connections
+* We now grey out the UI for lagging multiplexer connections
+* Set an upper bound on the memory usage for multiplexer connections
+
 
 ### 20200202-181957-765184e5
 
