@@ -223,18 +223,22 @@ impl ScreenBuffer {
         Ok(())
     }
 
+    fn flush<B: ConsoleOutputHandle + Write>(&mut self, out: &mut B) -> anyhow::Result<()> {
+        self.flush_screen(out)?;
+        let info = out.get_buffer_info()?;
+        out.set_cursor_position(
+            self.cursor_x as i16,
+            self.cursor_y as i16 + info.srWindow.Top,
+        )?;
+        out.set_attr(self.pending_attr)?;
+        out.flush()?;
+        Ok(())
+    }
+
     fn flush_screen<B: ConsoleOutputHandle + Write>(&mut self, out: &mut B) -> anyhow::Result<()> {
         if self.dirty {
             out.flush()?;
             out.set_buffer_contents(&self.buf)?;
-            out.flush()?;
-            let info = out.get_buffer_info()?;
-            out.set_cursor_position(
-                self.cursor_x.min(self.cols - 1) as i16,
-                (self.cursor_y as i16 + info.srWindow.Top).min(self.rows as i16 - 1),
-            )?;
-            out.flush()?;
-            out.set_attr(self.pending_attr)?;
             out.flush()?;
             self.dirty = false;
         }
@@ -457,7 +461,7 @@ impl WindowsConsoleRenderer {
             }
         }
 
-        buffer.flush_screen(out)?;
+        buffer.flush(out)?;
         Ok(())
     }
 }
