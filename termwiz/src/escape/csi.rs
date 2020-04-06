@@ -505,9 +505,12 @@ pub enum TerminalModeCode {
     /// https://vt100.net/docs/vt510-rm/IRM.html
     Insert = 4,
     /// https://vt100.net/docs/vt510-rm/SRM.html
+    /// But in the MS terminal this is cursor blinking.
     SendReceive = 12,
     /// https://vt100.net/docs/vt510-rm/LNM.html
     AutomaticNewline = 20,
+    /// MS terminal cursor visibility
+    ShowCursor = 25,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

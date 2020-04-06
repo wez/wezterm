@@ -1150,6 +1150,12 @@ impl TerminalState {
             Mode::ResetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::ShowCursor)) => {
                 self.cursor_visible = false;
             }
+            Mode::SetMode(TerminalMode::Code(TerminalModeCode::ShowCursor)) => {
+                self.cursor_visible = true;
+            }
+            Mode::ResetMode(TerminalMode::Code(TerminalModeCode::ShowCursor)) => {
+                self.cursor_visible = false;
+            }
 
             Mode::SetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::MouseTracking))
             | Mode::ResetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::MouseTracking)) => {
