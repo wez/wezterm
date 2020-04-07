@@ -145,7 +145,7 @@ return {
 
 Generate some key bindings based on their position:
 
-```
+```lua
 local wezterm = require 'wezterm';
 
 local mykeys = {}
