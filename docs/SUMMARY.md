@@ -8,6 +8,7 @@
   - [Misc](config/misc.markdown)
   - [Key Binding](config/keys.markdown)
   - [Colors & Appearance](config/appearance.markdown)
+  - [Lua Reference](config/lua.markdown)
 - [Hyperlinks](hyperlinks.markdown)
 - [Shell Integration](shell-integration.markdown)
 - [iTerm Image Protocol](imgcat.markdown)
