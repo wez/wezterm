@@ -174,7 +174,7 @@ is approximateley equivalent to ClearType rendering on Windows, but some
 people find that it appears blurry.  You may wish to try `Greyscale` in
 that case.
 
-```
+```lua
 return {
   font_antialias = "Subpixel", -- None, Greyscale, Subpixel
   font_hinting = "Full",  -- None, Vertical, VerticalSubpixel, Full
