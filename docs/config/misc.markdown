@@ -29,7 +29,7 @@ return {
   -- ton of output and allows for the UI to remain responsive
   -- so that you can hit CTRL-C to interrupt it if desired.
   -- The default value is 200,000 bytes/s.
-  ratelimit_output_bytes_per_second = 200_000,
+  ratelimit_output_bytes_per_second = 200000,
 
   -- Constrains the rate at which the multiplexer server will
   -- unilaterally push data to the client.

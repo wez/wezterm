@@ -55,8 +55,23 @@ setting the `default_prog` configuration in your `.wezterm.lua`; for example,
 if you have extracted clink to `c:\clink_0.4.9` you might configure this:
 
 ```lua
-return {
+local wezterm = require 'wezterm';
+
+local default_prog;
+local set_environment_variables = {}
+
+if wezterm.target_triple == "x86_64-pc-windows-msvc" then
+  -- Use OSC 7 as per the above example
+  set_environment_variables["prompt"] = "$E]7;file://localhost/$P$E\\$E[32m$T$E[0m $E[35m$P$E[36m$_$G$E[0m "
+  -- use a more ls-like output format for dir
+  set_environment_variables["DIRCMD"] = "/d"
+  -- And inject clink into the command prompt
   default_prog = {"cmd.exe", "/s", "/k", "c:/clink_0.4.9/clink_x64.exe", "inject", "-q"}
+end
+
+return {
+  default_prog = default_prog,
+  set_environment_variables = set_environment_variables,
 }
 ```
 
