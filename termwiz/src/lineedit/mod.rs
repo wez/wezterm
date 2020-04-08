@@ -597,7 +597,13 @@ impl<T: Terminal> LineEditor<T> {
                             let (cursor, line) = state.current();
                             self.cursor = cursor;
                             self.line = line;
-                            self.completion = Some(state);
+
+                            // If there is only a single completion then don't
+                            // leave us in a state where we just cycle on the
+                            // same completion over and over.
+                            if state.candidates.len() > 1 {
+                                self.completion = Some(state);
+                            }
                         }
                     } else if let Some(state) = self.completion.as_mut() {
                         state.next();
