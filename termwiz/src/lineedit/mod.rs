@@ -39,7 +39,7 @@ use crate::cell::unicode_column_width;
 use crate::input::{InputEvent, KeyCode, KeyEvent, Modifiers};
 use crate::surface::{Change, Position};
 use crate::terminal::{new_terminal, Terminal};
-use unicode_segmentation::GraphemeCursor;
+use unicode_segmentation::{GraphemeCursor, UnicodeSegmentation};
 
 mod actions;
 mod history;
@@ -80,6 +80,8 @@ pub struct LineEditor<T: Terminal> {
     last_render_height: usize,
     /// on which row of the last render we think the cursor is
     last_render_cursor_y: usize,
+    /// For a multi-line prompt, how many new lines it contains
+    prompt_height: usize,
 }
 
 struct CompletionState {
@@ -141,8 +143,9 @@ impl<T: Terminal> LineEditor<T> {
             history_pos: None,
             bottom_line: None,
             completion: None,
-            last_render_height: 1,
+            last_render_height: 0,
             last_render_cursor_y: 0,
+            prompt_height: 0,
         }
     }
 
@@ -159,10 +162,21 @@ impl<T: Terminal> LineEditor<T> {
         ];
 
         let mut prompt_width = 0;
+        self.prompt_height = 0;
 
         for ele in host.render_prompt(&self.prompt) {
             if let OutputElement::Text(ref t) = ele {
-                prompt_width += unicode_column_width(t.as_str());
+                // To accomodate multi-line prompts we need to understand
+                // both the horizontal and vertical position of the end of
+                // the prompt so we break it down here.
+                for g in t.as_str().graphemes(true) {
+                    if g == "\n" || g == "\r\n" {
+                        prompt_width = 0;
+                        self.prompt_height += 1;
+                    } else {
+                        prompt_width += unicode_column_width(g);
+                    }
+                }
             }
             changes.push(ele.into());
         }
@@ -182,14 +196,15 @@ impl<T: Terminal> LineEditor<T> {
             changes.push("\n".into());
         }
 
-        self.last_render_height = ((prompt_width + output_width) as f32 / screen_size.cols as f32)
-            .ceil() as usize
+        self.last_render_height = self.prompt_height
+            + ((prompt_width + output_width) as f32 / screen_size.cols as f32).ceil() as usize
             + if visible_cursor_column == 0 && output_width == cursor_x_pos {
                 1
             } else {
                 0
             };
-        self.last_render_cursor_y = (prompt_width + cursor_x_pos) / screen_size.cols;
+        self.last_render_cursor_y =
+            self.prompt_height + (prompt_width + cursor_x_pos) / screen_size.cols;
 
         changes.push(Change::CursorPosition {
             x: Position::Absolute(visible_cursor_column),
@@ -211,6 +226,11 @@ impl<T: Terminal> LineEditor<T> {
     /// accepted, or until an error is detected.
     /// Returns Ok(None) if the editor was cancelled eg: via CTRL-C.
     pub fn read_line(&mut self, host: &mut dyn LineEditorHost) -> anyhow::Result<Option<String>> {
+        // Clear out the last render info so that we don't over-compensate
+        // on the first call to render().
+        self.last_render_height = 0;
+        self.last_render_cursor_y = 0;
+
         self.terminal.set_raw_mode()?;
         let res = self.read_line_impl(host);
 
