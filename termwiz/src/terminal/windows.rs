@@ -591,6 +591,11 @@ impl WindowsTerminalWaker {
 
 impl Terminal for WindowsTerminal {
     fn set_raw_mode(&mut self) -> Result<(), Error> {
+        let mode = self.output_handle.get_output_mode()?;
+        self.output_handle
+            .set_output_mode(mode | DISABLE_NEWLINE_AUTO_RETURN)
+            .ok();
+
         let mode = self.input_handle.get_input_mode()?;
 
         self.input_handle.set_input_mode(
@@ -601,6 +606,11 @@ impl Terminal for WindowsTerminal {
     }
 
     fn set_cooked_mode(&mut self) -> anyhow::Result<()> {
+        let mode = self.output_handle.get_output_mode()?;
+        self.output_handle
+            .set_output_mode(mode & !DISABLE_NEWLINE_AUTO_RETURN)
+            .ok();
+
         let mode = self.input_handle.get_input_mode()?;
 
         self.input_handle.set_input_mode(
