@@ -291,6 +291,10 @@ impl<T: Terminal> LineEditor<T> {
             | InputEvent::Key(KeyEvent {
                 key: KeyCode::UpArrow,
                 modifiers: Modifiers::NONE,
+            })
+            | InputEvent::Key(KeyEvent {
+                key: KeyCode::ApplicationUpArrow,
+                modifiers: Modifiers::NONE,
             }) => Some(Action::HistoryPrevious),
 
             InputEvent::Key(KeyEvent {
@@ -300,11 +304,19 @@ impl<T: Terminal> LineEditor<T> {
             | InputEvent::Key(KeyEvent {
                 key: KeyCode::DownArrow,
                 modifiers: Modifiers::NONE,
+            })
+            | InputEvent::Key(KeyEvent {
+                key: KeyCode::ApplicationDownArrow,
+                modifiers: Modifiers::NONE,
             }) => Some(Action::HistoryNext),
 
             InputEvent::Key(KeyEvent {
                 key: KeyCode::Char('B'),
                 modifiers: Modifiers::CTRL,
+            })
+            | InputEvent::Key(KeyEvent {
+                key: KeyCode::ApplicationLeftArrow,
+                modifiers: Modifiers::NONE,
             })
             | InputEvent::Key(KeyEvent {
                 key: KeyCode::LeftArrow,
@@ -323,6 +335,10 @@ impl<T: Terminal> LineEditor<T> {
             | InputEvent::Key(KeyEvent {
                 key: KeyCode::LeftArrow,
                 modifiers: Modifiers::ALT,
+            })
+            | InputEvent::Key(KeyEvent {
+                key: KeyCode::ApplicationLeftArrow,
+                modifiers: Modifiers::ALT,
             }) => Some(Action::Move(Movement::BackwardWord(1))),
 
             InputEvent::Key(KeyEvent {
@@ -331,6 +347,10 @@ impl<T: Terminal> LineEditor<T> {
             })
             | InputEvent::Key(KeyEvent {
                 key: KeyCode::RightArrow,
+                modifiers: Modifiers::ALT,
+            })
+            | InputEvent::Key(KeyEvent {
+                key: KeyCode::ApplicationRightArrow,
                 modifiers: Modifiers::ALT,
             }) => Some(Action::Move(Movement::ForwardWord(1))),
 
@@ -356,6 +376,10 @@ impl<T: Terminal> LineEditor<T> {
             })
             | InputEvent::Key(KeyEvent {
                 key: KeyCode::RightArrow,
+                modifiers: Modifiers::NONE,
+            })
+            | InputEvent::Key(KeyEvent {
+                key: KeyCode::ApplicationRightArrow,
                 modifiers: Modifiers::NONE,
             }) => Some(Action::Move(Movement::ForwardChar(1))),
             InputEvent::Key(KeyEvent {
