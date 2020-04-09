@@ -1,4 +1,6 @@
 use crate::cell::{AttributeChange, CellAttributes};
+use crate::input::InputEvent;
+use crate::lineedit::actions::Action;
 use crate::lineedit::{BasicHistory, History};
 use crate::surface::Change;
 
@@ -71,6 +73,17 @@ pub trait LineEditorHost {
     /// The default implementation is an empty list.
     fn complete(&self, _line: &str, _cursor_position: usize) -> Vec<CompletionCandidate> {
         vec![]
+    }
+
+    /// Allows the embedding application an opportunity to override or
+    /// remap keys to alternative actions.
+    /// Return `None` to indicate that the default keymap processing
+    /// should occur.
+    /// Otherwise return an `Action` enum variant indicating the action
+    /// that should be taken.
+    /// Use `Action::NoAction` to indicate that no action should be taken.
+    fn resolve_action(&self, _event: &InputEvent) -> Option<Action> {
+        None
     }
 }
 

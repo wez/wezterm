@@ -23,4 +23,5 @@ pub enum Action {
     HistoryPrevious,
     HistoryNext,
     Complete,
+    NoAction,
 }

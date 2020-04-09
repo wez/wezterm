@@ -245,8 +245,11 @@ impl<T: Terminal> LineEditor<T> {
         self.terminal.set_cooked_mode()?;
         res
     }
+    fn resolve_action(&self, event: &InputEvent, host: &mut dyn LineEditorHost) -> Option<Action> {
+        if let Some(action) = host.resolve_action(event) {
+            return Some(action);
+        }
 
-    fn resolve_action(&self, event: &InputEvent) -> Option<Action> {
         match event {
             InputEvent::Key(KeyEvent {
                 key: KeyCode::Char('C'),
@@ -534,8 +537,9 @@ impl<T: Terminal> LineEditor<T> {
 
         self.render(host)?;
         while let Some(event) = self.terminal.poll_input(None)? {
-            match self.resolve_action(&event) {
+            match self.resolve_action(&event, host) {
                 Some(Action::Cancel) => return Ok(None),
+                Some(Action::NoAction) => {}
                 Some(Action::AcceptLine) => break,
                 Some(Action::EndOfFile) => {
                     return Err(std::io::Error::new(
