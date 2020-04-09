@@ -1,7 +1,7 @@
 use crate::cell::{AttributeChange, CellAttributes};
 use crate::input::InputEvent;
 use crate::lineedit::actions::Action;
-use crate::lineedit::{BasicHistory, History};
+use crate::lineedit::{BasicHistory, History, LineEditor};
 use crate::surface::Change;
 
 /// The `OutputElement` type allows returning graphic attribute changes
@@ -81,8 +81,12 @@ pub trait LineEditorHost {
     /// should occur.
     /// Otherwise return an `Action` enum variant indicating the action
     /// that should be taken.
-    /// Use `Action::NoAction` to indicate that no action should be taken.
-    fn resolve_action(&self, _event: &InputEvent) -> Option<Action> {
+    /// Use `Some(Action::NoAction)` to indicate that no action should be taken.
+    /// `editor` is provided so that your application can implement custom
+    /// actions and apply them to the editor buffer.  Use `LineEditor::get_line_and_cursor`
+    /// and `LineEditor::set_line_and_cursor` for that and return `Some(Action::NoAction)`
+    /// to prevent any default action from being taken.
+    fn resolve_action(&mut self, _event: &InputEvent, _editor: &mut LineEditor) -> Option<Action> {
         None
     }
 }

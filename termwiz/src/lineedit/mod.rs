@@ -2,10 +2,11 @@
 //! to those in the unix shell.
 //!
 //! ```no_run
-//! use termwiz::lineedit::{line_editor, NopLineEditorHost};
+//! use termwiz::lineedit::{line_editor_terminal, NopLineEditorHost, LineEditor};
 //!
 //! fn main() -> anyhow::Result<()> {
-//!     let mut editor = line_editor()?;
+//!     let mut terminal = line_editor_terminal()?;
+//!     let mut editor = LineEditor::new(&mut terminal);
 //!     let mut host = NopLineEditorHost::default();
 //!
 //!     let line = editor.read_line(&mut host)?;
@@ -51,10 +52,11 @@ pub use host::*;
 /// The `LineEditor` struct provides line editing facilities similar
 /// to those in the unix shell.
 /// ```no_run
-/// use termwiz::lineedit::{line_editor, NopLineEditorHost};
+/// use termwiz::lineedit::{line_editor_terminal, NopLineEditorHost, LineEditor};
 ///
 /// fn main() -> anyhow::Result<()> {
-///     let mut editor = line_editor()?;
+///     let mut terminal = line_editor_terminal()?;
+///     let mut editor = LineEditor::new(&mut terminal);
 ///     let mut host = NopLineEditorHost::default();
 ///
 ///     let line = editor.read_line(&mut host)?;
@@ -63,8 +65,8 @@ pub use host::*;
 ///     Ok(())
 /// }
 /// ```
-pub struct LineEditor<T: Terminal> {
-    terminal: T,
+pub struct LineEditor<'term> {
+    terminal: &'term mut dyn Terminal,
     prompt: String,
     line: String,
     /// byte index into the UTF-8 string data of the insertion
@@ -82,6 +84,16 @@ pub struct LineEditor<T: Terminal> {
     last_render_cursor_y: usize,
     /// For a multi-line prompt, how many new lines it contains
     prompt_height: usize,
+
+    state: EditorState,
+}
+
+#[derive(Copy, Clone, Eq, PartialEq, Debug)]
+enum EditorState {
+    Inactive,
+    Editing,
+    Cancelled,
+    Accepted,
 }
 
 struct CompletionState {
@@ -115,7 +127,7 @@ impl CompletionState {
     }
 }
 
-impl<T: Terminal> LineEditor<T> {
+impl<'term> LineEditor<'term> {
     /// Create a new line editor.
     /// In most cases, you'll want to use the `line_editor` function,
     /// because it creates a `Terminal` instance with the recommended
@@ -134,7 +146,7 @@ impl<T: Terminal> LineEditor<T> {
     /// let terminal = new_terminal(caps)?;
     /// # Ok::<(), Error>(())
     /// ```
-    pub fn new(terminal: T) -> Self {
+    pub fn new(terminal: &'term mut dyn Terminal) -> Self {
         Self {
             terminal,
             prompt: "> ".to_owned(),
@@ -146,6 +158,7 @@ impl<T: Terminal> LineEditor<T> {
             last_render_height: 0,
             last_render_cursor_y: 0,
             prompt_height: 0,
+            state: EditorState::Inactive,
         }
     }
 
@@ -226,13 +239,20 @@ impl<T: Terminal> LineEditor<T> {
     /// accepted, or until an error is detected.
     /// Returns Ok(None) if the editor was cancelled eg: via CTRL-C.
     pub fn read_line(&mut self, host: &mut dyn LineEditorHost) -> anyhow::Result<Option<String>> {
+        anyhow::ensure!(
+            self.state == EditorState::Inactive,
+            "recursive call to read_line!"
+        );
+
         // Clear out the last render info so that we don't over-compensate
         // on the first call to render().
         self.last_render_height = 0;
         self.last_render_cursor_y = 0;
 
         self.terminal.set_raw_mode()?;
+        self.state = EditorState::Editing;
         let res = self.read_line_impl(host);
+        self.state = EditorState::Inactive;
 
         self.terminal.render(&[Change::CursorPosition {
             x: Position::Absolute(0),
@@ -245,8 +265,13 @@ impl<T: Terminal> LineEditor<T> {
         self.terminal.set_cooked_mode()?;
         res
     }
-    fn resolve_action(&self, event: &InputEvent, host: &mut dyn LineEditorHost) -> Option<Action> {
-        if let Some(action) = host.resolve_action(event) {
+
+    fn resolve_action(
+        &mut self,
+        event: &InputEvent,
+        host: &mut dyn LineEditorHost,
+    ) -> Option<Action> {
+        if let Some(action) = host.resolve_action(event, self) {
             return Some(action);
         }
 
@@ -528,6 +553,144 @@ impl<T: Terminal> LineEditor<T> {
         self.completion = None;
     }
 
+    /// Returns the current line and cursor position.
+    /// You don't normally need to call this unless you are defining
+    /// a custom editor operation on the line buffer contents.
+    /// The cursor position is the byte index into the line UTF-8 bytes.
+    pub fn get_line_and_cursor(&mut self) -> (&str, usize) {
+        (&self.line, self.cursor)
+    }
+
+    /// Sets the current line and cursor position.
+    /// You don't normally need to call this unless you are defining
+    /// a custom editor operation on the line buffer contents.
+    /// The cursor position is the byte index into the line UTF-8 bytes.
+    /// Panics: the cursor must be within the bounds of the provided line.
+    pub fn set_line_and_cursor(&mut self, line: &str, cursor: usize) {
+        assert!(
+            cursor < line.len(),
+            "cursor {} is outside the byte length of the new line of length {}",
+            cursor,
+            line.len()
+        );
+        self.line = line.to_string();
+        self.cursor = cursor;
+    }
+
+    /// Applies the effect of the specified action to the line editor.
+    /// You don't normally need to call this unless you are defining
+    /// custom key mapping or custom actions in your embedding application.
+    pub fn apply_action(
+        &mut self,
+        host: &mut dyn LineEditorHost,
+        action: Action,
+    ) -> anyhow::Result<()> {
+        match action {
+            Action::Cancel => self.state = EditorState::Cancelled,
+            Action::NoAction => {}
+            Action::AcceptLine => self.state = EditorState::Accepted,
+            Action::EndOfFile => {
+                return Err(
+                    std::io::Error::new(std::io::ErrorKind::UnexpectedEof, "End Of File").into(),
+                )
+            }
+            Action::Kill(movement) => self.kill_text(movement),
+            Action::Move(movement) => {
+                self.clear_completion();
+                self.cursor = self.eval_movement(movement);
+            }
+            Action::InsertChar(rep, c) => {
+                self.clear_completion();
+                for _ in 0..rep {
+                    self.line.insert(self.cursor, c);
+                    let mut cursor = GraphemeCursor::new(self.cursor, self.line.len(), false);
+                    if let Ok(Some(pos)) = cursor.next_boundary(&self.line, 0) {
+                        self.cursor = pos;
+                    }
+                }
+            }
+            Action::InsertText(rep, text) => {
+                self.clear_completion();
+                for _ in 0..rep {
+                    self.line.insert_str(self.cursor, &text);
+                    self.cursor += text.len();
+                }
+            }
+            Action::Repaint => {
+                self.terminal
+                    .render(&[Change::ClearScreen(Default::default())])?;
+            }
+            Action::HistoryPrevious => {
+                self.clear_completion();
+                if let Some(cur_pos) = self.history_pos.as_ref() {
+                    let prior_idx = cur_pos.saturating_sub(1);
+                    if let Some(prior) = host.history().get(prior_idx) {
+                        self.history_pos = Some(prior_idx);
+                        self.line = prior.to_string();
+                        self.cursor = self.line.len();
+                    }
+                } else if let Some(last) = host.history().last() {
+                    self.bottom_line = Some(self.line.clone());
+                    self.history_pos = Some(last);
+                    self.line = host
+                        .history()
+                        .get(last)
+                        .expect("History::last and History::get to be consistent")
+                        .to_string();
+                    self.cursor = self.line.len();
+                }
+            }
+            Action::HistoryNext => {
+                self.clear_completion();
+                if let Some(cur_pos) = self.history_pos.as_ref() {
+                    let next_idx = cur_pos.saturating_add(1);
+                    if let Some(next) = host.history().get(next_idx) {
+                        self.history_pos = Some(next_idx);
+                        self.line = next.to_string();
+                        self.cursor = self.line.len();
+                    } else if let Some(bottom) = self.bottom_line.take() {
+                        self.line = bottom;
+                        self.cursor = self.line.len();
+                    } else {
+                        self.line.clear();
+                        self.cursor = 0;
+                    }
+                }
+            }
+            Action::Complete => {
+                if self.completion.is_none() {
+                    let candidates = host.complete(&self.line, self.cursor);
+                    if !candidates.is_empty() {
+                        let state = CompletionState {
+                            candidates,
+                            index: 0,
+                            original_line: self.line.clone(),
+                            original_cursor: self.cursor,
+                        };
+
+                        let (cursor, line) = state.current();
+                        self.cursor = cursor;
+                        self.line = line;
+
+                        // If there is only a single completion then don't
+                        // leave us in a state where we just cycle on the
+                        // same completion over and over.
+                        if state.candidates.len() > 1 {
+                            self.completion = Some(state);
+                        }
+                    }
+                } else if let Some(state) = self.completion.as_mut() {
+                    state.next();
+                    let (cursor, line) = state.current();
+                    self.cursor = cursor;
+                    self.line = line;
+                }
+            }
+        }
+
+        Ok(())
+    }
+
     fn read_line_impl(&mut self, host: &mut dyn LineEditorHost) -> anyhow::Result<Option<String>> {
         self.line.clear();
         self.cursor = 0;
@@ -537,110 +700,14 @@ impl<T: Terminal> LineEditor<T> {
 
         self.render(host)?;
         while let Some(event) = self.terminal.poll_input(None)? {
-            match self.resolve_action(&event, host) {
-                Some(Action::Cancel) => return Ok(None),
-                Some(Action::NoAction) => {}
-                Some(Action::AcceptLine) => break,
-                Some(Action::EndOfFile) => {
-                    return Err(std::io::Error::new(
-                        std::io::ErrorKind::UnexpectedEof,
-                        "End Of File",
-                    )
-                    .into())
+            if let Some(action) = self.resolve_action(&event, host) {
+                self.apply_action(host, action)?;
+                match self.state {
+                    EditorState::Editing => {}
+                    EditorState::Cancelled => return Ok(None),
+                    EditorState::Accepted => return Ok(Some(self.line.clone())),
+                    EditorState::Inactive => anyhow::bail!("editor is inactive during read line!?"),
                 }
-                Some(Action::Kill(movement)) => self.kill_text(movement),
-                Some(Action::Move(movement)) => {
-                    self.clear_completion();
-                    self.cursor = self.eval_movement(movement);
-                }
-                Some(Action::InsertChar(rep, c)) => {
-                    self.clear_completion();
-                    for _ in 0..rep {
-                        self.line.insert(self.cursor, c);
-                        let mut cursor = GraphemeCursor::new(self.cursor, self.line.len(), false);
-                        if let Ok(Some(pos)) = cursor.next_boundary(&self.line, 0) {
-                            self.cursor = pos;
-                        }
-                    }
-                }
-                Some(Action::InsertText(rep, text)) => {
-                    self.clear_completion();
-                    for _ in 0..rep {
-                        self.line.insert_str(self.cursor, &text);
-                        self.cursor += text.len();
-                    }
-                }
-                Some(Action::Repaint) => {
-                    self.terminal
-                        .render(&[Change::ClearScreen(Default::default())])?;
-                }
-                Some(Action::HistoryPrevious) => {
-                    self.clear_completion();
-                    if let Some(cur_pos) = self.history_pos.as_ref() {
-                        let prior_idx = cur_pos.saturating_sub(1);
-                        if let Some(prior) = host.history().get(prior_idx) {
-                            self.history_pos = Some(prior_idx);
-                            self.line = prior.to_string();
-                            self.cursor = self.line.len();
-                        }
-                    } else if let Some(last) = host.history().last() {
-                        self.bottom_line = Some(self.line.clone());
-                        self.history_pos = Some(last);
-                        self.line = host
-                            .history()
-                            .get(last)
-                            .expect("History::last and History::get to be consistent")
-                            .to_string();
-                        self.cursor = self.line.len();
-                    }
-                }
-                Some(Action::HistoryNext) => {
-                    self.clear_completion();
-                    if let Some(cur_pos) = self.history_pos.as_ref() {
-                        let next_idx = cur_pos.saturating_add(1);
-                        if let Some(next) = host.history().get(next_idx) {
-                            self.history_pos = Some(next_idx);
-                            self.line = next.to_string();
-                            self.cursor = self.line.len();
-                        } else if let Some(bottom) = self.bottom_line.take() {
-                            self.line = bottom;
-                            self.cursor = self.line.len();
-                        } else {
-                            self.line.clear();
-                            self.cursor = 0;
-                        }
-                    }
-                }
-                Some(Action::Complete) => {
-                    if self.completion.is_none() {
-                        let candidates = host.complete(&self.line, self.cursor);
-                        if !candidates.is_empty() {
-                            let state = CompletionState {
-                                candidates,
-                                index: 0,
-                                original_line: self.line.clone(),
-                                original_cursor: self.cursor,
-                            };
-
-                            let (cursor, line) = state.current();
-                            self.cursor = cursor;
-                            self.line = line;
-
-                            // If there is only a single completion then don't
-                            // leave us in a state where we just cycle on the
-                            // same completion over and over.
-                            if state.candidates.len() > 1 {
-                                self.completion = Some(state);
-                            }
-                        }
-                    } else if let Some(state) = self.completion.as_mut() {
-                        state.next();
-                        let (cursor, line) = state.current();
-                        self.cursor = cursor;
-                        self.line = line;
-                    }
-                }
-                None => continue,
             }
             self.render(host)?;
         }
@@ -648,11 +715,10 @@ impl<T: Terminal> LineEditor<T> {
     }
 }
 
-/// Create a `Terminal` with the recommended settings, and use that
-/// to create a `LineEditor` instance.
-pub fn line_editor() -> anyhow::Result<LineEditor<impl Terminal>> {
+/// Create a `Terminal` with the recommended settings for use with
+/// a `LineEditor`.
+pub fn line_editor_terminal() -> anyhow::Result<impl Terminal> {
     let hints = ProbeHints::new_from_env().mouse_reporting(Some(false));
     let caps = Capabilities::new_with_hints(hints)?;
-    let terminal = new_terminal(caps)?;
-    Ok(LineEditor::new(terminal))
+    new_terminal(caps)
 }

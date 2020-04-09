@@ -428,48 +428,6 @@ impl termwiz::terminal::Terminal for TermWizTerminal {
     }
 }
 
-impl termwiz::terminal::Terminal for &mut TermWizTerminal {
-    fn set_raw_mode(&mut self) -> anyhow::Result<()> {
-        (**self).set_raw_mode()
-    }
-
-    fn set_cooked_mode(&mut self) -> anyhow::Result<()> {
-        (**self).set_cooked_mode()
-    }
-
-    fn enter_alternate_screen(&mut self) -> anyhow::Result<()> {
-        (**self).enter_alternate_screen()
-    }
-
-    fn exit_alternate_screen(&mut self) -> anyhow::Result<()> {
-        (**self).exit_alternate_screen()
-    }
-
-    fn get_screen_size(&mut self) -> anyhow::Result<ScreenSize> {
-        (**self).get_screen_size()
-    }
-
-    fn set_screen_size(&mut self, size: ScreenSize) -> anyhow::Result<()> {
-        (**self).set_screen_size(size)
-    }
-
-    fn render(&mut self, changes: &[Change]) -> anyhow::Result<()> {
-        (**self).render(changes)
-    }
-
-    fn flush(&mut self) -> anyhow::Result<()> {
-        (**self).flush()
-    }
-
-    fn poll_input(&mut self, wait: Option<Duration>) -> anyhow::Result<Option<InputEvent>> {
-        (**self).poll_input(wait)
-    }
-
-    fn waker(&self) -> TerminalWaker {
-        (**self).waker()
-    }
-}
-
 pub fn allocate(width: usize, height: usize) -> (TermWizTerminal, TermWizTerminalTab) {
     let (render_tx, render_rx) = channel();
     let (input_tx, input_rx) = channel();
@@ -586,7 +544,7 @@ pub fn message_box_ok(message: &str) {
         ])
         .map_err(Error::msg)?;
 
-        let mut editor = LineEditor::new(term);
+        let mut editor = LineEditor::new(&mut term);
         editor.set_prompt("press enter to continue.");
 
         let mut host = NopLineEditorHost::default();
