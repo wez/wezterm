@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::collections::VecDeque;
 
 /// Represents a position within the history.
@@ -8,7 +9,7 @@ pub type HistoryIndex = usize;
 /// Defines the history interface for the line editor.
 pub trait History {
     /// Lookup the line corresponding to an index.
-    fn get(&self, idx: HistoryIndex) -> Option<&str>;
+    fn get(&self, idx: HistoryIndex) -> Option<Cow<str>>;
     /// Return the index for the most recently added entry.
     fn last(&self) -> Option<HistoryIndex>;
     /// Add an entry.
@@ -24,8 +25,8 @@ pub struct BasicHistory {
 }
 
 impl History for BasicHistory {
-    fn get(&self, idx: HistoryIndex) -> Option<&str> {
-        self.entries.get(idx).map(String::as_str)
+    fn get(&self, idx: HistoryIndex) -> Option<Cow<str>> {
+        self.entries.get(idx).map(|s| Cow::Borrowed(s.as_str()))
     }
 
     fn last(&self) -> Option<HistoryIndex> {
