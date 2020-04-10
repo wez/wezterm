@@ -32,6 +32,7 @@
 //! Ctrl-J, Ctrl-M, Enter | Finish line editing and accept the current line
 //! Ctrl-K        | Delete from cursor to end of line
 //! Ctrl-L        | Move the cursor to the top left, clear screen and repaint
+//! Ctrl-R        | Incremental history search mode
 //! Ctrl-W        | Delete word leading up to cursor
 //! Alt-b, Alt-Left | Move the cursor backwards one word
 //! Alt-f, Alt-Right | Move the cursor forwards one word
@@ -88,12 +89,18 @@ pub struct LineEditor<'term> {
     state: EditorState,
 }
 
-#[derive(Copy, Clone, Eq, PartialEq, Debug)]
+#[derive(Clone, Eq, PartialEq, Debug)]
 enum EditorState {
     Inactive,
     Editing,
     Cancelled,
     Accepted,
+    Searching {
+        style: SearchStyle,
+        direction: SearchDirection,
+        matching_line: String,
+        cursor: usize,
+    },
 }
 
 struct CompletionState {
@@ -195,7 +202,18 @@ impl<'term> LineEditor<'term> {
         }
         changes.push(Change::AllAttributes(Default::default()));
 
-        let (elements, cursor_x_pos) = host.highlight_line(&self.line, self.cursor);
+        // If we're searching, the input area shows the match rather than the input,
+        // and the cursor moves to the first matching character
+        let (line_to_display, cursor) = match &self.state {
+            EditorState::Searching {
+                matching_line,
+                cursor,
+                ..
+            } => (matching_line, *cursor),
+            _ => (&self.line, self.cursor),
+        };
+
+        let (elements, cursor_x_pos) = host.highlight_line(line_to_display, cursor);
         let mut output_width = 0;
         for ele in elements {
             if let OutputElement::Text(ref t) = ele {
@@ -209,13 +227,29 @@ impl<'term> LineEditor<'term> {
             changes.push("\n".into());
         }
 
+        let mut searching = false;
+
+        if let EditorState::Searching {
+            style, direction, ..
+        } = &self.state
+        {
+            // We want to draw the search state below the input area
+            let label = match (style, direction) {
+                (SearchStyle::Substring, SearchDirection::Backwards) => "bck-i-search",
+                (SearchStyle::Substring, SearchDirection::Forwards) => "fwd-i-search",
+            };
+            changes.push(format!("\r\n{}: {}_", label, self.line).into());
+            searching = true;
+        }
+
         self.last_render_height = self.prompt_height
             + ((prompt_width + output_width) as f32 / screen_size.cols as f32).ceil() as usize
             + if visible_cursor_column == 0 && output_width == cursor_x_pos {
                 1
             } else {
                 0
-            };
+            }
+            + if searching { 1 } else { 0 };
         self.last_render_cursor_y =
             self.prompt_height + (prompt_width + cursor_x_pos) / screen_size.cols;
 
@@ -427,6 +461,19 @@ impl<'term> LineEditor<'term> {
                 key: KeyCode::Char('K'),
                 modifiers: Modifiers::CTRL,
             }) => Some(Action::Kill(Movement::EndOfLine)),
+
+            InputEvent::Key(KeyEvent {
+                key: KeyCode::Char('R'),
+                modifiers: Modifiers::CTRL,
+            }) => Some(Action::HistoryIncSearchBackwards),
+
+            // This is the common binding for forwards, but it is usually
+            // masked by the stty stop setting
+            InputEvent::Key(KeyEvent {
+                key: KeyCode::Char('S'),
+                modifiers: Modifiers::CTRL,
+            }) => Some(Action::HistoryIncSearchForwards),
+
             _ => None,
         }
     }
@@ -532,7 +579,6 @@ impl<'term> LineEditor<'term> {
 
     fn kill_text(&mut self, movement: Movement) {
         self.clear_completion();
-
         let new_cursor = self.eval_movement(movement);
 
         let (lower, upper) = if new_cursor < self.cursor {
@@ -551,6 +597,19 @@ impl<'term> LineEditor<'term> {
 
     fn clear_completion(&mut self) {
         self.completion = None;
+    }
+
+    fn cancel_search_state(&mut self) {
+        if let EditorState::Searching {
+            matching_line,
+            cursor,
+            ..
+        } = &self.state
+        {
+            self.line = matching_line.to_string();
+            self.cursor = *cursor;
+            self.state = EditorState::Editing;
+        }
     }
 
     /// Returns the current line and cursor position.
@@ -577,6 +636,118 @@ impl<'term> LineEditor<'term> {
         self.cursor = cursor;
     }
 
+    /// Call this after changing modifying the line buffer.
+    /// If the editor is in search mode this will update the search
+    /// results, otherwise it will be a NOP.
+    fn reapply_search_pattern(&mut self, host: &mut dyn LineEditorHost) {
+        if let EditorState::Searching {
+            style,
+            direction,
+            matching_line,
+            cursor,
+        } = &self.state
+        {
+            // We always start again from the bottom
+            self.history_pos.take();
+
+            let history_pos = match host.history().last() {
+                Some(p) => p,
+                None => {
+                    // TODO: there's no way we can match anything.
+                    // Generate a failed match result?
+                    return;
+                }
+            };
+
+            let last_matching_line;
+            let last_cursor;
+
+            if let Some(result) = host
+                .history()
+                .search(history_pos, *style, *direction, &self.line)
+            {
+                self.history_pos.replace(result.idx);
+                last_matching_line = result.line.to_string();
+                last_cursor = result.cursor;
+            } else {
+                last_matching_line = matching_line.clone();
+                last_cursor = *cursor;
+            }
+
+            self.state = EditorState::Searching {
+                style: *style,
+                direction: *direction,
+                matching_line: last_matching_line,
+                cursor: last_cursor,
+            };
+        }
+    }
+
+    fn trigger_search(
+        &mut self,
+        style: SearchStyle,
+        direction: SearchDirection,
+        host: &mut dyn LineEditorHost,
+    ) {
+        self.clear_completion();
+
+        if let EditorState::Searching { .. } = &self.state {
+            // Already searching
+        } else {
+            // Not yet searching, so we start a new search
+            // with an empty pattern
+            self.line.clear();
+            self.cursor = 0;
+            self.history_pos.take();
+        }
+
+        let history_pos = match self.history_pos {
+            Some(p) => match direction.next(p) {
+                Some(p) => p,
+                None => return,
+            },
+            None => match host.history().last() {
+                Some(p) => p,
+                None => {
+                    // TODO: there's no way we can match anything.
+                    // Generate a failed match result?
+                    return;
+                }
+            },
+        };
+
+        let search_result = host
+            .history()
+            .search(history_pos, style, direction, &self.line);
+
+        let last_matching_line;
+        let last_cursor;
+
+        if let Some(result) = search_result {
+            self.history_pos.replace(result.idx);
+            last_matching_line = result.line.to_string();
+            last_cursor = result.cursor;
+        } else if let EditorState::Searching {
+            matching_line,
+            cursor,
+            ..
+        } = &self.state
+        {
+            last_matching_line = matching_line.clone();
+            last_cursor = *cursor;
+        } else {
+            last_matching_line = String::new();
+            last_cursor = 0;
+        }
+
+        self.state = EditorState::Searching {
+            style,
+            direction,
+            matching_line: last_matching_line,
+            cursor: last_cursor,
+        };
+    }
+
     /// Applies the effect of the specified action to the line editor.
     /// You don't normally need to call this unless you are defining
     /// custom key mapping or custom actions in your embedding application.
@@ -585,6 +756,26 @@ impl<'term> LineEditor<'term> {
         host: &mut dyn LineEditorHost,
         action: Action,
     ) -> anyhow::Result<()> {
+        // When searching, reinterpret history next/prev as repeated
+        // search actions in the appropriate direction
+        let action = match (action, &self.state) {
+            (
+                Action::HistoryPrevious,
+                EditorState::Searching {
+                    style: SearchStyle::Substring,
+                    ..
+                },
+            ) => Action::HistoryIncSearchBackwards,
+            (
+                Action::HistoryNext,
+                EditorState::Searching {
+                    style: SearchStyle::Substring,
+                    ..
+                },
+            ) => Action::HistoryIncSearchForwards,
+            (action, _) => action,
+        };
+
         match action {
             Action::Cancel => self.state = EditorState::Cancelled,
             Action::NoAction => {}
@@ -594,11 +785,17 @@ impl<'term> LineEditor<'term> {
                     std::io::Error::new(std::io::ErrorKind::UnexpectedEof, "End Of File").into(),
                 )
             }
-            Action::Kill(movement) => self.kill_text(movement),
+            Action::Kill(movement) => {
+                self.kill_text(movement);
+                self.reapply_search_pattern(host);
+            }
+
             Action::Move(movement) => {
                 self.clear_completion();
+                self.cancel_search_state();
                 self.cursor = self.eval_movement(movement);
             }
+
             Action::InsertChar(rep, c) => {
                 self.clear_completion();
                 for _ in 0..rep {
@@ -608,6 +805,7 @@ impl<'term> LineEditor<'term> {
                         self.cursor = pos;
                     }
                 }
+                self.reapply_search_pattern(host);
             }
             Action::InsertText(rep, text) => {
                 self.clear_completion();
@@ -615,6 +813,7 @@ impl<'term> LineEditor<'term> {
                     self.line.insert_str(self.cursor, &text);
                     self.cursor += text.len();
                 }
+                self.reapply_search_pattern(host);
             }
             Action::Repaint => {
                 self.terminal
@@ -622,6 +821,8 @@ impl<'term> LineEditor<'term> {
             }
             Action::HistoryPrevious => {
                 self.clear_completion();
+                self.cancel_search_state();
+
                 if let Some(cur_pos) = self.history_pos.as_ref() {
                     let prior_idx = cur_pos.saturating_sub(1);
                     if let Some(prior) = host.history().get(prior_idx) {
@@ -642,6 +843,8 @@ impl<'term> LineEditor<'term> {
             }
             Action::HistoryNext => {
                 self.clear_completion();
+                self.cancel_search_state();
+
                 if let Some(cur_pos) = self.history_pos.as_ref() {
                     let next_idx = cur_pos.saturating_add(1);
                     if let Some(next) = host.history().get(next_idx) {
@@ -657,7 +860,17 @@ impl<'term> LineEditor<'term> {
                     }
                 }
             }
+
+            Action::HistoryIncSearchBackwards => {
+                self.trigger_search(SearchStyle::Substring, SearchDirection::Backwards, host);
+            }
+            Action::HistoryIncSearchForwards => {
+                self.trigger_search(SearchStyle::Substring, SearchDirection::Forwards, host);
+            }
+
             Action::Complete => {
+                self.cancel_search_state();
+
                 if self.completion.is_none() {
                     let candidates = host.complete(&self.line, self.cursor);
                     if !candidates.is_empty() {
@@ -703,7 +916,7 @@ impl<'term> LineEditor<'term> {
             if let Some(action) = self.resolve_action(&event, host) {
                 self.apply_action(host, action)?;
                 match self.state {
-                    EditorState::Editing => {}
+                    EditorState::Searching { .. } | EditorState::Editing => {}
                     EditorState::Cancelled => return Ok(None),
                     EditorState::Accepted => return Ok(Some(self.line.clone())),
                     EditorState::Inactive => anyhow::bail!("editor is inactive during read line!?"),

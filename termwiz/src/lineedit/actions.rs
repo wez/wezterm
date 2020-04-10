@@ -24,4 +24,6 @@ pub enum Action {
     HistoryNext,
     Complete,
     NoAction,
+    HistoryIncSearchBackwards,
+    HistoryIncSearchForwards,
 }
