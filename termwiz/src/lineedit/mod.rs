@@ -301,7 +301,8 @@ impl<'term> LineEditor<'term> {
         self.state = EditorState::Inactive;
 
         if let Some(move_end) = self.move_to_editor_end.take() {
-            self.terminal.render(&[move_end])?;
+            self.terminal
+                .render(&[move_end, Change::ClearToEndOfScreen(Default::default())])?;
         }
 
         self.terminal.flush()?;
@@ -788,7 +789,14 @@ impl<'term> LineEditor<'term> {
         match action {
             Action::Cancel => self.state = EditorState::Cancelled,
             Action::NoAction => {}
-            Action::AcceptLine => self.state = EditorState::Accepted,
+            Action::AcceptLine => {
+                // Make sure that hitting Enter for a line that
+                // shows in the incremental search causes that
+                // line to be accepted, rather than the search pattern!
+                self.cancel_search_state();
+
+                self.state = EditorState::Accepted;
+            }
             Action::EndOfFile => {
                 return Err(
                     std::io::Error::new(std::io::ErrorKind::UnexpectedEof, "End Of File").into(),
