@@ -27,6 +27,9 @@ impl Default for SpawnTabDomain {
 
 #[derive(Default, Debug, Clone, Deserialize, Serialize)]
 pub struct SpawnCommand {
+    /// Optional descriptive label
+    pub label: Option<String>,
+
     /// The command line to use.
     /// If omitted, the default command associated with the
     /// domain will be used instead, which is typically the

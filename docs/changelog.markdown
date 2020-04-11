@@ -10,7 +10,8 @@ daily) from the master branch.  It may not be usable and
 the feature set may change.  As features stabilize some
 brief notes about them may accumulate here.
 
-* Not yet!
+* Added the `launch_menu` configuration for the launcher menu
+  as described in [Launching Programs](config/launch.html).
 
 ### 20200406-151651-5b700e4
 

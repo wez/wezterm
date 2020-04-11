@@ -5,6 +5,7 @@
 //! be rendered as a popup/context menu if the system supports it; at the
 //! time of writing our window layer doesn't provide an API for context
 //! menus.
+use crate::config::configuration;
 use crate::frontend::gui::termwindow::{ClipboardHelper, TermWindow};
 use crate::keyassignment::{SpawnCommand, SpawnTabDomain};
 use crate::mux::domain::{DomainId, DomainState};
@@ -53,6 +54,22 @@ pub fn launcher(
 ) -> anyhow::Result<()> {
     let mut active_idx = 0;
     let mut entries = vec![];
+
+    // Pull in the user defined entries from the launch_menu
+    // section of the configuration.
+    for item in &configuration().launch_menu {
+        entries.push(Entry::Spawn {
+            label: match item.label.as_ref() {
+                Some(label) => label.to_string(),
+                None => match item.args.as_ref() {
+                    Some(args) => args.join(" "),
+                    None => "(default shell)".to_string(),
+                },
+            },
+            command: item.clone(),
+            new_window: false,
+        });
+    }
 
     for (domain_id, domain_state, domain_name) in &domains {
         let entry = if *domain_state == DomainState::Attached {

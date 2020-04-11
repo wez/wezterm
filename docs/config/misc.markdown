@@ -11,15 +11,6 @@ return {
   -- to a single cell width
   enable_scroll_bar = true,
 
-  -- If no `prog` is specified on the command line, use this
-  -- instead of running the user's shell.
-  -- The value is the argument array, with the 0th element being
-  -- the executable to run.  The path will be searched to locate
-  -- this if needed.
-  -- For example, to have `wezterm` always run `top` by default,
-  -- you'd use this:
-  default_prog = {"top"},
-
   -- What to set the TERM variable to
   term = "xterm-256color",
 

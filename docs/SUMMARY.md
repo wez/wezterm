@@ -3,6 +3,7 @@
 - [Features](features.markdown)
 - [Change Log](changelog.markdown)
 - [Configuration](config/files.markdown)
+  - [Launching Programs](config/launch.markdown)
   - [Fonts](config/fonts.markdown)
   - [Font Shaping](config/font-shaping.markdown)
   - [Misc](config/misc.markdown)

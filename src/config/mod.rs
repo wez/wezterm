@@ -5,7 +5,7 @@ use crate::font::locator::FontLocatorSelection;
 use crate::font::rasterizer::FontRasterizerSelection;
 use crate::font::shaper::FontShaperSelection;
 use crate::frontend::FrontEndSelection;
-use crate::keyassignment::KeyAssignment;
+use crate::keyassignment::{KeyAssignment, SpawnCommand};
 use anyhow::{anyhow, bail, Context, Error};
 use lazy_static::lazy_static;
 use portable_pty::{CommandBuilder, PtySize};
@@ -490,6 +490,9 @@ pub struct Config {
 
     #[serde(default)]
     pub use_local_build_for_proxy: bool,
+
+    #[serde(default)]
+    pub launch_menu: Vec<SpawnCommand>,
 }
 
 #[derive(Deserialize, Serialize, Clone, Copy, Debug)]
