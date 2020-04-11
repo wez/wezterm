@@ -37,11 +37,11 @@
 //! Alt-b, Alt-Left | Move the cursor backwards one word
 //! Alt-f, Alt-Right | Move the cursor forwards one word
 use crate::caps::{Capabilities, ProbeHints};
-use crate::cell::unicode_column_width;
 use crate::input::{InputEvent, KeyCode, KeyEvent, Modifiers};
+use crate::surface::change::ChangeSequence;
 use crate::surface::{Change, Position};
 use crate::terminal::{new_terminal, Terminal};
-use unicode_segmentation::{GraphemeCursor, UnicodeSegmentation};
+use unicode_segmentation::GraphemeCursor;
 
 mod actions;
 mod history;
@@ -79,12 +79,8 @@ pub struct LineEditor<'term> {
 
     completion: Option<CompletionState>,
 
-    /// How many rows of text we last output
-    last_render_height: usize,
-    /// on which row of the last render we think the cursor is
-    last_render_cursor_y: usize,
-    /// For a multi-line prompt, how many new lines it contains
-    prompt_height: usize,
+    move_to_editor_start: Option<Change>,
+    move_to_editor_end: Option<Change>,
 
     state: EditorState,
 }
@@ -162,9 +158,8 @@ impl<'term> LineEditor<'term> {
             history_pos: None,
             bottom_line: None,
             completion: None,
-            last_render_height: 0,
-            last_render_cursor_y: 0,
-            prompt_height: 0,
+            move_to_editor_start: None,
+            move_to_editor_end: None,
             state: EditorState::Inactive,
         }
     }
@@ -172,35 +167,14 @@ impl<'term> LineEditor<'term> {
     fn render(&mut self, host: &mut dyn LineEditorHost) -> anyhow::Result<()> {
         let screen_size = self.terminal.get_screen_size()?;
 
-        let mut changes = vec![
-            Change::CursorPosition {
-                x: Position::Absolute(0),
-                y: Position::Relative(-1 * self.last_render_cursor_y as isize),
-            },
-            Change::ClearToEndOfScreen(Default::default()),
-            Change::AllAttributes(Default::default()),
-        ];
+        let mut changes = ChangeSequence::new(screen_size.rows, screen_size.cols);
 
-        let mut prompt_width = 0;
-        self.prompt_height = 0;
-
+        changes.add(Change::ClearToEndOfScreen(Default::default()));
+        changes.add(Change::AllAttributes(Default::default()));
         for ele in host.render_prompt(&self.prompt) {
-            if let OutputElement::Text(ref t) = ele {
-                // To accomodate multi-line prompts we need to understand
-                // both the horizontal and vertical position of the end of
-                // the prompt so we break it down here.
-                for g in t.as_str().graphemes(true) {
-                    if g == "\n" || g == "\r\n" {
-                        prompt_width = 0;
-                        self.prompt_height += 1;
-                    } else {
-                        prompt_width += unicode_column_width(g);
-                    }
-                }
-            }
-            changes.push(ele.into());
+            changes.add(ele);
         }
-        changes.push(Change::AllAttributes(Default::default()));
+        changes.add(Change::AllAttributes(Default::default()));
 
         // If we're searching, the input area shows the match rather than the input,
         // and the cursor moves to the first matching character
@@ -213,21 +187,46 @@ impl<'term> LineEditor<'term> {
             _ => (&self.line, self.cursor),
         };
 
+        let cursor_position_after_printing_prompt = changes.current_cursor_position();
+
         let (elements, cursor_x_pos) = host.highlight_line(line_to_display, cursor);
-        let mut output_width = 0;
+
+        // Calculate what the cursor position would be after printing X columns
+        // of text from the specified location.
+        // Returns (x, y) of the resultant cursor position.
+        fn compute_cursor_after_printing_x_columns(
+            cursor_x: usize,
+            cursor_y: isize,
+            delta: usize,
+            screen_cols: usize,
+        ) -> (usize, isize) {
+            let y = (cursor_x + delta) / screen_cols;
+            let x = (cursor_x + delta) % screen_cols;
+
+            let row = cursor_y + y as isize;
+            let col = x.max(0) as usize;
+
+            (col, row)
+        }
+        let cursor_position = compute_cursor_after_printing_x_columns(
+            cursor_position_after_printing_prompt.0,
+            cursor_position_after_printing_prompt.1,
+            cursor_x_pos,
+            screen_size.cols,
+        );
+
         for ele in elements {
-            if let OutputElement::Text(ref t) = ele {
-                output_width += unicode_column_width(t.as_str());
-            }
-            changes.push(ele.into());
+            changes.add(ele);
         }
 
-        let visible_cursor_column = (prompt_width + cursor_x_pos) % screen_size.cols;
-        if visible_cursor_column == 0 && output_width == cursor_x_pos {
-            changes.push("\n".into());
+        let cursor_after_line_render = changes.current_cursor_position();
+        if cursor_after_line_render.0 == screen_size.cols {
+            // If the cursor position remains in the first column
+            // then the renderer may still consider itself to be on
+            // the prior line; force out an additional character to force
+            // it to apply wrapping/flush.
+            changes.add(" ");
         }
-
-        let mut searching = false;
 
         if let EditorState::Searching {
             style, direction, ..
@@ -238,29 +237,42 @@ impl<'term> LineEditor<'term> {
                 (SearchStyle::Substring, SearchDirection::Backwards) => "bck-i-search",
                 (SearchStyle::Substring, SearchDirection::Forwards) => "fwd-i-search",
             };
-            changes.push(format!("\r\n{}: {}_", label, self.line).into());
-            searching = true;
+            // We position the actual cursor on the matching portion of
+            // the text in the line editing area, but since the input
+            // is drawn here, we render an `_` to indicate where the input
+            // position really is.
+            changes.add(format!("\r\n{}: {}_", label, self.line));
         }
 
-        self.last_render_height = self.prompt_height
-            + ((prompt_width + output_width) as f32 / screen_size.cols as f32).ceil() as usize
-            + if visible_cursor_column == 0 && output_width == cursor_x_pos {
-                1
-            } else {
-                0
-            }
-            + if searching { 1 } else { 0 };
-        self.last_render_cursor_y =
-            self.prompt_height + (prompt_width + cursor_x_pos) / screen_size.cols;
+        // Add some debugging status at the bottom
+        /*
+        changes.add(format!(
+            "\r\n{:?} {:?}",
+            cursor_position,
+            (changes.cursor_x, changes.cursor_y)
+        ));
+        */
 
-        changes.push(Change::CursorPosition {
-            x: Position::Absolute(visible_cursor_column),
-            y: Position::Relative(
-                (1 + self.last_render_cursor_y as isize) - (self.last_render_height as isize),
-            ),
+        let render_height = changes.render_height();
+
+        changes.move_to(cursor_position);
+
+        let mut changes = changes.consume();
+        if let Some(start) = self.move_to_editor_start.take() {
+            changes.insert(0, start);
+        }
+        self.terminal.render(&changes)?;
+
+        self.move_to_editor_start.replace(Change::CursorPosition {
+            x: Position::Absolute(0),
+            y: Position::Relative(-1 * cursor_position.1),
         });
 
-        self.terminal.render(&changes)?;
+        self.move_to_editor_end.replace(Change::CursorPosition {
+            x: Position::Absolute(0),
+            y: Position::Relative(1 + render_height as isize - cursor_position.1),
+        });
+
         Ok(())
     }
 
@@ -280,20 +292,17 @@ impl<'term> LineEditor<'term> {
 
         // Clear out the last render info so that we don't over-compensate
         // on the first call to render().
-        self.last_render_height = 0;
-        self.last_render_cursor_y = 0;
+        self.move_to_editor_end.take();
+        self.move_to_editor_start.take();
 
         self.terminal.set_raw_mode()?;
         self.state = EditorState::Editing;
         let res = self.read_line_impl(host);
         self.state = EditorState::Inactive;
 
-        self.terminal.render(&[Change::CursorPosition {
-            x: Position::Absolute(0),
-            y: Position::Relative(
-                (self.last_render_height as isize) - (self.last_render_cursor_y as isize),
-            ),
-        }])?;
+        if let Some(move_end) = self.move_to_editor_end.take() {
+            self.terminal.render(&[move_end])?;
+        }
 
         self.terminal.flush()?;
         self.terminal.set_cooked_mode()?;
