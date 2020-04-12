@@ -715,7 +715,7 @@ fn main() {
 fn maybe_show_configuration_error_window() {
     if let Err(err) = config::configuration_result() {
         let err = format!("{:#}", err);
-        termwiztermtab::show_configuration_error_message(&err);
+        connui::show_configuration_error_message(&err);
     }
 }
 

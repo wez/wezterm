@@ -553,34 +553,3 @@ pub fn message_box_ok(message: &str) {
     }))
     .ok();
 }
-
-/// If the GUI has been started, pops up a window with the supplied error
-/// message framed as a configuration error.
-/// If there is no GUI front end, generates a toast notification instead.
-/// This is a little bit lame in that it will open a new window for each error
-/// event rather than updating a prior window.
-pub fn show_configuration_error_message(err: &str) {
-    log::error!("While (re)loading configuration: {}", err);
-    if crate::frontend::has_gui_front_end() {
-        let wrapped = textwrap::fill(&err, 78);
-        let mut message = wrapped.replace("\n", "\r\n");
-        message.push_str("\r\n\r\n");
-
-        promise::spawn::spawn_into_main_thread(run(80, 24, move |mut term| {
-            term.render(&[
-                Change::Title("Wezterm Configuration Error".to_string()),
-                Change::Text(message.to_string()),
-            ])
-            .map_err(Error::msg)?;
-
-            let mut editor = LineEditor::new(&mut term);
-            editor.set_prompt("(press enter to close this window)");
-
-            let mut host = NopLineEditorHost::default();
-            editor.read_line(&mut host).ok();
-            Ok(())
-        }));
-    } else {
-        crate::toast_notification("Wezterm Configuration", &err);
-    }
-}

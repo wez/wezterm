@@ -158,7 +158,7 @@ impl ConfigInner {
             }
             Err(err) => {
                 let err = format!("{:#}", err);
-                crate::termwiztermtab::show_configuration_error_message(&err);
+                crate::connui::show_configuration_error_message(&err);
                 self.error.replace(err);
             }
         }

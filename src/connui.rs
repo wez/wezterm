@@ -2,6 +2,7 @@ use crate::termwiztermtab;
 use anyhow::{anyhow, bail, Context as _};
 use crossbeam::channel::{bounded, Receiver, Sender};
 use promise::Promise;
+use std::sync::Mutex;
 use std::time::{Duration, Instant};
 use termwiz::cell::{unicode_column_width, CellAttributes};
 use termwiz::lineedit::*;
@@ -241,6 +242,18 @@ impl ConnectionUI {
         Self { tx }
     }
 
+    pub fn new_with_no_close_delay() -> Self {
+        let (tx, rx) = bounded(16);
+        promise::spawn::spawn_into_main_thread(termwiztermtab::run(80, 24, move |term| {
+            let mut ui = ConnectionUIImpl { term, rx };
+            if let Err(e) = ui.run() {
+                log::error!("while running ConnectionUI loop: {:?}", e);
+            }
+            Ok(())
+        }));
+        Self { tx }
+    }
+
     pub fn new_headless() -> Self {
         let (tx, rx) = bounded(16);
         std::thread::spawn(move || {
@@ -337,5 +350,48 @@ impl ConnectionUI {
 
     pub fn close(&self) {
         self.tx.send(UIRequest::Close).ok();
+    }
+
+    pub fn test_alive(&self) -> bool {
+        if !self.tx.send(UIRequest::Output(vec![])).is_ok() {
+            return false;
+        }
+        std::thread::sleep(Duration::from_millis(50));
+        self.tx.send(UIRequest::Output(vec![])).is_ok()
+    }
+}
+
+lazy_static::lazy_static! {
+    static ref ERROR_WINDOW: Mutex<Option<ConnectionUI>> = Mutex::new(None);
+}
+
+fn get_error_window() -> ConnectionUI {
+    let mut err = ERROR_WINDOW.lock().unwrap();
+    if let Some(ui) = err.as_ref().map(|ui| ui.clone()) {
+        ui.output_str("\n");
+        if ui.test_alive() {
+            return ui;
+        }
+    }
+
+    let ui = ConnectionUI::new_with_no_close_delay();
+    ui.title("wezterm Configuration Error");
+    err.replace(ui.clone());
+    ui
+}
+
+/// If the GUI has been started, pops up a window with the supplied error
+/// message framed as a configuration error.
+/// If there is no GUI front end, generates a toast notification instead.
+pub fn show_configuration_error_message(err: &str) {
+    log::error!("While (re)loading configuration: {}", err);
+    if crate::frontend::has_gui_front_end() {
+        let ui = get_error_window();
+
+        let mut wrapped = textwrap::fill(&err, 78);
+        wrapped.push_str("\n");
+        ui.output_str(&wrapped);
+    } else {
+        crate::toast_notification("Wezterm Configuration", &err);
     }
 }
