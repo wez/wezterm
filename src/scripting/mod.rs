@@ -297,6 +297,12 @@ fn run_child_process<'lua>(
         cmd.args(&args[1..]);
     }
 
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        cmd.creation_flags(winapi::um::winbase::CREATE_NO_WINDOW);
+    }
+
     let output = cmd.output().map_err(|e| mlua::Error::external(e))?;
 
     Ok((
