@@ -38,6 +38,17 @@ return {
 }
 ```
 
+## Launching a different program as a one off via the CLI
+
+If you want to make a shortcut for your desktop environment that will,
+for example, open an editor in wezterm you can use the `start` subcommand
+to launch it.  This example opens up a new terminal window running vim
+to edit your wezterm configuration:
+
+```bash
+wezterm start -- vim ~/.wezterm.lua
+```
+
 ## Passing Environment variables to the spawned program
 
 The `set_environment_variables` configuration setting can be used to
