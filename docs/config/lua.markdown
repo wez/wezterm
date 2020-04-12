@@ -252,3 +252,51 @@ for _, v in ipairs(wezterm.glob("/etc/*.conf")) do
 end
 ```
 
+### `wezterm.run_child_process(args)`
+
+*Since: nightly*
+
+This function accepts an argument list; it will attempt to spawn that command
+and will return a tuple consisting of the boolean success of the invocation,
+the stdout data and the stderr data.
+
+```lua
+local wezterm = require 'wezterm';
+
+local success, stdout, stderr = wezterm.run_child_process({"ls", "-l"})
+```
+
+### `wezterm.split_by_newlines(str)`
+
+*Since: nightly*
+
+This function takes the input string and splits it by newlines (both `\n` and `\r\n`
+are recognized as newlines) and returns the result as an array of strings that
+have the newlines removed.
+
+```lua
+local wezterm = require 'wezterm';
+
+local example = "hello\nthere\n";
+
+for _, line in ipairs(wezterm.split_by_newlines(example)) do
+  wezterm.log_error(line)
+end
+```
+
+### `wezterm.utf16_to_utf8(str)`
+
+*Since: nightly*
+
+This function is overly specific and exists primarily to workaround
+[this wsl.exe issue](https://github.com/microsoft/WSL/issues/4456).
+
+It takes as input a string and attempts to convert it from utf16 to utf8.
+
+```lua
+local wezterm = require 'wezterm';
+
+local success, wsl_list, wsl_err = wezterm.run_child_process({"wsl.exe", "-l"})
+wsl_list = wezterm.utf16_to_utf8(wsl_list)
+```
+

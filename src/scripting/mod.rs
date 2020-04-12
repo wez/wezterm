@@ -2,6 +2,7 @@
 
 use crate::config::{FontAttributes, TextStyle};
 use anyhow::anyhow;
+use bstr::BString;
 use mlua::{Lua, Table, Value};
 use std::path::Path;
 
@@ -130,6 +131,10 @@ pub fn make_lua_context(config_dir: &Path) -> anyhow::Result<Lua> {
         wezterm_mod.set("read_dir", lua.create_function(read_dir)?)?;
         wezterm_mod.set("glob", lua.create_function(glob)?)?;
 
+        wezterm_mod.set("utf16_to_utf8", lua.create_function(utf16_to_utf8)?)?;
+        wezterm_mod.set("split_by_newlines", lua.create_function(split_by_newlines)?)?;
+        wezterm_mod.set("run_child_process", lua.create_function(run_child_process)?)?;
+
         package.set("path", path_array.join(";"))?;
 
         let loaded: Table = package.get("loaded")?;
@@ -250,4 +255,53 @@ fn glob<'lua>(
         }
     }
     Ok(entries)
+}
+
+fn split_by_newlines<'lua>(_: &'lua Lua, text: String) -> mlua::Result<Vec<String>> {
+    Ok(text
+        .lines()
+        .map(|s| {
+            // Ungh, `str.lines()` is supposed to split by `\n` or `\r\n`, but I've
+            // found that it is necessary to have an additional trim here in order
+            // to actually remove the `\r`.
+            s.trim_end_matches('\r').to_string()
+        })
+        .collect())
+}
+
+/// Ungh: https://github.com/microsoft/WSL/issues/4456
+fn utf16_to_utf8<'lua>(_: &'lua Lua, text: mlua::String) -> mlua::Result<String> {
+    let bytes = text.as_bytes();
+
+    if bytes.len() % 2 != 0 {
+        return Err(mlua::Error::external(anyhow!(
+            "input data has odd length, cannot be utf16"
+        )));
+    }
+
+    // This is "safe" because we checked that the length seems reasonable,
+    // and our new slice is within those same bounds.
+    let wide: &[u16] =
+        unsafe { std::slice::from_raw_parts(bytes.as_ptr() as *const u16, bytes.len() / 2) };
+
+    String::from_utf16(wide).map_err(|e| mlua::Error::external(e))
+}
+
+fn run_child_process<'lua>(
+    _: &'lua Lua,
+    args: Vec<String>,
+) -> mlua::Result<(bool, BString, BString)> {
+    let mut cmd = std::process::Command::new(&args[0]);
+
+    if args.len() > 1 {
+        cmd.args(&args[1..]);
+    }
+
+    let output = cmd.output().map_err(|e| mlua::Error::external(e))?;
+
+    Ok((
+        output.status.success(),
+        output.stdout.into(),
+        output.stderr.into(),
+    ))
 }
