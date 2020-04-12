@@ -27,6 +27,7 @@ dirs = "1.0"
 downcast-rs = "1.0"
 euclid = "0.20"
 filedescriptor = { version="0.7", path = "filedescriptor" }
+filenamegen = "0.2"
 pretty_env_logger = "0.4"
 failure = "0.1"
 failure_derive = "0.1"
