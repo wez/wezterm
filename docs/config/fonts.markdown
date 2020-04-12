@@ -20,13 +20,13 @@ The following options impact how text is rendered:
 ```lua
 return {
   -- The font size, measured in points
-  font_size = 11,
+  font_size = 11.0,
 
   -- The DPI to assume, measured in dots-per-inch
   -- This is not automatically probed!  If you experience blurry text
   -- or notice slight differences when comparing with other terminal
   -- emulators, you may wish to tune this value!
-  dpi = 96,
+  dpi = 96.0,
 }
 ```
 
