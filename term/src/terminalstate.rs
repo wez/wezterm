@@ -1123,6 +1123,7 @@ impl TerminalState {
             )) => {
                 if !self.screen.is_alt_screen_active() {
                     self.screen.activate_alt_screen();
+                    self.pen = CellAttributes::default();
                 }
             }
             Mode::ResetDecPrivateMode(DecPrivateMode::Code(
@@ -1130,6 +1131,7 @@ impl TerminalState {
             )) => {
                 if self.screen.is_alt_screen_active() {
                     self.screen.activate_primary_screen();
+                    self.pen = CellAttributes::default();
                 }
             }
 
@@ -1195,6 +1197,7 @@ impl TerminalState {
                     self.save_cursor();
                     self.screen.activate_alt_screen();
                     self.set_cursor_pos(&Position::Absolute(0), &Position::Absolute(0));
+                    self.pen = CellAttributes::default();
                     self.erase_in_display(EraseInDisplay::EraseDisplay);
                 }
             }
@@ -1204,6 +1207,7 @@ impl TerminalState {
                 if self.screen.is_alt_screen_active() {
                     self.screen.activate_primary_screen();
                     self.restore_cursor();
+                    self.pen = CellAttributes::default();
                 }
             }
             Mode::SaveDecPrivateMode(DecPrivateMode::Code(_))
