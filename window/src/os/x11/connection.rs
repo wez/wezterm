@@ -342,7 +342,6 @@ impl XConnection {
         let keysyms = unsafe { xcb_key_symbols_alloc((*conn).get_raw_conn()) };
 
         let shm_available = server_supports_shm();
-        eprintln!("shm_available: {}", shm_available);
 
         let screen = conn
             .get_setup()
@@ -357,12 +356,6 @@ impl XConnection {
             .filter(|vis| vis.class() == xcb::xproto::VISUAL_CLASS_TRUE_COLOR as _)
             .nth(0)
             .ok_or_else(|| anyhow!("did not find 24-bit visual"))?;
-        eprintln!(
-            "picked visual {:x}, screen root visual is {:x}",
-            visual.visual_id(),
-            screen.root_visual()
-        );
-
         let (keyboard, kbd_ev) = Keyboard::new(&conn)?;
 
         let cursor_font_id = conn.generate_id();

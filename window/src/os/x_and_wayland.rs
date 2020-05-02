@@ -49,7 +49,7 @@ impl Connection {
                         return Ok(Connection::Wayland(Rc::new(w)));
                     }
                     Err(e) => {
-                        log::error!("Failed to init wayland: {}", e);
+                        log::info!("Failed to init wayland: {}", e);
                     }
                 }
             }
