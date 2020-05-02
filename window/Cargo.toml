@@ -33,7 +33,7 @@ glium = { version = "0.26.0-alpha3", optional=true, default-features = false}
 [features]
 async_await = []
 opengl = ["cgl", "glium", "gl_generator", "libloading"]
-wayland = ["smithay-client-toolkit", "memmap", "wayland-client"]
+wayland = ["smithay-client-toolkit", "memmap", "wayland-client", "wayland-egl"]
 
 [target."cfg(windows)".dependencies]
 lazy_static = "1.4"
@@ -52,16 +52,16 @@ clipboard-win = "2.2"
 [target.'cfg(all(unix, not(target_os = "macos")))'.dependencies]
 filedescriptor = { version="0.7", path = "../filedescriptor" }
 x11 = {version ="2.18", features = ["xlib_xcb"]}
-xcb = "0.8"
-# See: https://github.com/meh/rust-xcb-util/issues/12
-xcb-util = { features = [ "icccm", "ewmh", "keysyms", "shm"], version = "=0.2.1" }
-xkbcommon = { version = "0.4", features = ["x11"] }
+xcb = {version="0.9", features=["shm", "xkb"]}
+xcb-util = { features = [ "icccm", "ewmh", "keysyms", "shm"], version = "0.3" }
+xkbcommon = { version = "0.5", features = ["x11", "wayland"], git="https://github.com/wez/xkbcommon-rs.git", rev="01a0a0cd5663405e6e4abb1ad3add9add1496f58"}
 mio = "0.6"
 mio-extras = "2.0"
 libc = "0.2"
-smithay-client-toolkit = {version = "0.6", optional = true}
+smithay-client-toolkit = {version = "0.9", optional = true, features=["calloop"], git="https://github.com/wez/client-toolkit.git", branch="title_tunc"}
 memmap = {version="0.7", optional=true}
-wayland-client = {version="0.23", optional=true, features=["egl"]}
+wayland-client = {version="0.26", optional=true}
+wayland-egl = {version="0.26", optional=true}
 
 [target.'cfg(target_os="macos")'.dependencies]
 cocoa = "0.20"

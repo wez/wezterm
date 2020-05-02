@@ -169,6 +169,10 @@ impl SpawnQueue {
 
         self.has_any_queued()
     }
+
+    pub(crate) fn raw_fd(&self) -> std::os::unix::io::RawFd {
+        self.read.lock().unwrap().as_raw_fd()
+    }
 }
 
 #[cfg(all(unix, not(target_os = "macos")))]
@@ -180,7 +184,7 @@ impl Evented for SpawnQueue {
         interest: Ready,
         opts: PollOpt,
     ) -> std::io::Result<()> {
-        EventedFd(&self.read.lock().unwrap().as_raw_fd()).register(poll, token, interest, opts)
+        EventedFd(&self.raw_fd()).register(poll, token, interest, opts)
     }
 
     fn reregister(
@@ -190,11 +194,11 @@ impl Evented for SpawnQueue {
         interest: Ready,
         opts: PollOpt,
     ) -> std::io::Result<()> {
-        EventedFd(&self.read.lock().unwrap().as_raw_fd()).reregister(poll, token, interest, opts)
+        EventedFd(&self.raw_fd()).reregister(poll, token, interest, opts)
     }
 
     fn deregister(&self, poll: &Poll) -> std::io::Result<()> {
-        EventedFd(&self.read.lock().unwrap().as_raw_fd()).deregister(poll)
+        EventedFd(&self.raw_fd()).deregister(poll)
     }
 }
 

@@ -22,61 +22,62 @@ use std::io::{Read, Write};
 use std::os::unix::io::{AsRawFd, FromRawFd};
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
+use toolkit::get_surface_scale_factor;
 use toolkit::reexports::client::protocol::wl_data_source::Event as DataSourceEvent;
 use toolkit::reexports::client::protocol::wl_surface::WlSurface;
-use toolkit::utils::MemPool;
-use toolkit::window::Event;
+use toolkit::shm::MemPool;
+use toolkit::window::{ButtonColorSpec, ColorSpec, ConceptConfig, ConceptFrame, Event};
+use wayland_client::protocol::wl_data_device_manager::WlDataDeviceManager;
 #[cfg(feature = "opengl")]
-use wayland_client::egl::{is_available as egl_is_available, WlEglSurface};
-
-struct MyTheme;
-use toolkit::window::ButtonState;
+use wayland_egl::{is_available as egl_is_available, WlEglSurface};
 
 const DARK_GRAY: [u8; 4] = [0xff, 0x35, 0x35, 0x35];
 const DARK_PURPLE: [u8; 4] = [0xff, 0x2b, 0x20, 0x42];
 const PURPLE: [u8; 4] = [0xff, 0x3b, 0x30, 0x52];
 const WHITE: [u8; 4] = [0xff, 0xff, 0xff, 0xff];
-const GRAY: [u8; 4] = [0x80, 0x80, 0x80, 0x80];
+const SILVER: [u8; 4] = [0xcc, 0xcc, 0xcc, 0xcc];
 
-impl toolkit::window::Theme for MyTheme {
-    fn get_primary_color(&self, active: bool) -> [u8; 4] {
-        if active {
-            DARK_PURPLE
-        } else {
-            DARK_GRAY
-        }
-    }
+fn frame_config() -> ConceptConfig {
+    let icon = ButtonColorSpec {
+        hovered: ColorSpec::identical(WHITE.into()),
+        idle: ColorSpec {
+            active: PURPLE.into(),
+            inactive: SILVER.into(),
+        },
+        disabled: ColorSpec::invisible(),
+    };
 
-    fn get_secondary_color(&self, active: bool) -> [u8; 4] {
-        self.get_primary_color(active)
-    }
+    let close = Some((
+        icon,
+        ButtonColorSpec {
+            hovered: ColorSpec::identical(PURPLE.into()),
+            idle: ColorSpec {
+                active: DARK_PURPLE.into(),
+                inactive: DARK_GRAY.into(),
+            },
+            disabled: ColorSpec::invisible(),
+        },
+    ));
 
-    fn get_close_button_color(&self, status: ButtonState) -> [u8; 4] {
-        match status {
-            ButtonState::Hovered => PURPLE,
-            ButtonState::Idle => DARK_PURPLE,
-            ButtonState::Disabled => DARK_GRAY,
-        }
-    }
-    fn get_maximize_button_color(&self, status: ButtonState) -> [u8; 4] {
-        self.get_close_button_color(status)
-    }
-    fn get_minimize_button_color(&self, status: ButtonState) -> [u8; 4] {
-        self.get_close_button_color(status)
-    }
+    ConceptConfig {
+        primary_color: ColorSpec {
+            active: DARK_PURPLE.into(),
+            inactive: DARK_GRAY.into(),
+        },
 
-    fn get_close_button_icon_color(&self, status: ButtonState) -> [u8; 4] {
-        match status {
-            ButtonState::Hovered => WHITE,
-            ButtonState::Idle => GRAY,
-            ButtonState::Disabled => DARK_GRAY,
-        }
-    }
-    fn get_maximize_button_icon_color(&self, status: ButtonState) -> [u8; 4] {
-        self.get_close_button_icon_color(status)
-    }
-    fn get_minimize_button_icon_color(&self, status: ButtonState) -> [u8; 4] {
-        self.get_close_button_icon_color(status)
+        secondary_color: ColorSpec {
+            active: DARK_PURPLE.into(),
+            inactive: DARK_GRAY.into(),
+        },
+
+        close_button: close,
+        maximize_button: close,
+        minimize_button: close,
+        title_font: Some(("sans".into(), 17.0)),
+        title_color: ColorSpec {
+            active: WHITE.into(),
+            inactive: SILVER.into(),
+        },
     }
 }
 
@@ -85,7 +86,7 @@ pub struct WaylandWindowInner {
     callbacks: Box<dyn WindowCallbacks>,
     surface: WlSurface,
     copy_and_paste: Arc<Mutex<CopyAndPaste>>,
-    window: Option<toolkit::window::Window<toolkit::window::ConceptFrame>>,
+    window: Option<toolkit::window::Window<ConceptFrame>>,
     pool: MemPool,
     dimensions: Dimensions,
     need_paint: bool,
@@ -167,21 +168,24 @@ impl WaylandWindow {
         let window_id = conn.next_window_id();
         let pending_event = Arc::new(Mutex::new(PendingEvent::default()));
 
-        let surface = conn.environment.borrow_mut().create_surface({
-            let pending_event = Arc::clone(&pending_event);
-            move |dpi, surface| {
-                pending_event.lock().unwrap().dpi.replace(dpi);
-                log::debug!(
-                    "surface id={} dpi scale changed to {}",
-                    surface.as_ref().id(),
-                    dpi
-                );
-                WaylandConnection::with_window_inner(window_id, move |inner| {
-                    inner.dispatch_pending_event();
-                    Ok(())
-                });
-            }
-        });
+        let surface = conn
+            .environment
+            .borrow_mut()
+            .create_surface_with_scale_callback({
+                let pending_event = Arc::clone(&pending_event);
+                move |dpi, surface, _dispatch_data| {
+                    pending_event.lock().unwrap().dpi.replace(dpi);
+                    log::debug!(
+                        "surface id={} dpi scale changed to {}",
+                        surface.as_ref().id(),
+                        dpi
+                    );
+                    WaylandConnection::with_window_inner(window_id, move |inner| {
+                        inner.dispatch_pending_event();
+                        Ok(())
+                    });
+                }
+            });
 
         let dimensions = Dimensions {
             pixel_width: width,
@@ -189,36 +193,37 @@ impl WaylandWindow {
             dpi: 96,
         };
 
-        let mut window = toolkit::window::Window::<toolkit::window::ConceptFrame>::init_from_env(
-            &*conn.environment.borrow(),
-            surface.clone(),
-            (
-                dimensions.pixel_width as u32,
-                dimensions.pixel_height as u32,
-            ),
-            {
-                let pending_event = Arc::clone(&pending_event);
-                move |evt| {
-                    if pending_event.lock().unwrap().queue(evt) {
-                        WaylandConnection::with_window_inner(window_id, move |inner| {
-                            inner.dispatch_pending_event();
-                            Ok(())
-                        });
+        let mut window = conn
+            .environment
+            .borrow()
+            .create_window::<ConceptFrame, _>(
+                surface.clone(),
+                (
+                    dimensions.pixel_width as u32,
+                    dimensions.pixel_height as u32,
+                ),
+                {
+                    let pending_event = Arc::clone(&pending_event);
+                    move |evt, mut _dispatch_data| {
+                        if pending_event.lock().unwrap().queue(evt) {
+                            WaylandConnection::with_window_inner(window_id, move |inner| {
+                                inner.dispatch_pending_event();
+                                Ok(())
+                            });
+                        }
                     }
-                }
-            },
-        )
-        .context("Failed to create window")?;
+                },
+            )
+            .context("Failed to create window")?;
 
         window.set_app_id(class_name.to_string());
-        window.set_decorate(true);
         window.set_resizable(true);
         window.set_title(name.to_string());
-        window.set_theme(MyTheme {});
+        window.set_frame_config(frame_config());
 
-        let pool = MemPool::new(&conn.environment.borrow().shm, || {})?;
+        let pool = MemPool::new(conn.environment.borrow().require_global(), |_| {})?;
 
-        window.new_seat(&conn.seat);
+        // window.new_seat(&conn.seat);
         conn.keyboard.add_window(window_id, &surface);
 
         let copy_and_paste = CopyAndPaste::create();
@@ -437,7 +442,7 @@ impl WaylandWindowInner {
 
         if let Some((w, h)) = pending.configure.take() {
             if self.window.is_some() {
-                let factor = toolkit::surface::get_dpi_factor(&self.surface);
+                let factor = get_surface_scale_factor(&self.surface);
 
                 let pixel_width = self.surface_to_pixels(w.try_into().unwrap());
                 let pixel_height = self.surface_to_pixels(h.try_into().unwrap());
@@ -472,6 +477,7 @@ impl WaylandWindowInner {
                 }
 
                 self.refresh_frame();
+                self.need_paint = true;
                 self.do_paint().unwrap();
             }
         }
@@ -483,6 +489,7 @@ impl WaylandWindowInner {
     fn refresh_frame(&mut self) {
         if let Some(window) = self.window.as_mut() {
             window.refresh();
+            self.surface.commit();
         }
     }
 
@@ -502,7 +509,6 @@ impl WaylandWindowInner {
                 frame.finish()?;
                 // self.damage();
                 self.refresh_frame();
-                self.surface.commit();
                 self.need_paint = false;
                 return Ok(());
             }
@@ -783,26 +789,22 @@ impl WindowOps for WaylandWindow {
         WaylandConnection::with_window_inner(self.0, move |inner| {
             let text = text.clone();
             let conn = Connection::get().unwrap().wayland();
+
             let source = conn
                 .environment
                 .borrow()
-                .data_device_manager
-                .create_data_source(move |source| {
-                    source.implement_closure(
-                        move |event, _source| {
-                            if let DataSourceEvent::Send { fd, .. } = event {
-                                let fd = unsafe { FileDescriptor::from_raw_fd(fd) };
-                                if let Err(e) = write_pipe_with_timeout(fd, text.as_bytes()) {
-                                    log::error!("while sending paste to pipe: {}", e);
-                                }
-                            }
-                        },
-                        (),
-                    )
-                })
-                .map_err(|()| anyhow!("failed to create data source"))?;
+                .require_global::<WlDataDeviceManager>()
+                .create_data_source();
+            source.quick_assign(move |_source, event, _dispatch_data| {
+                if let DataSourceEvent::Send { fd, .. } = event {
+                    let fd = unsafe { FileDescriptor::from_raw_fd(fd) };
+                    if let Err(e) = write_pipe_with_timeout(fd, text.as_bytes()) {
+                        log::error!("while sending paste to pipe: {}", e);
+                    }
+                }
+            });
             source.offer(TEXT_MIME_TYPE.to_string());
-            inner.copy_and_paste.lock().unwrap().set_selection(source);
+            inner.copy_and_paste.lock().unwrap().set_selection(&source);
 
             Ok(())
         })
@@ -887,7 +889,13 @@ impl WindowOpsMut for WaylandWindowInner {
         }
         let conn = Connection::get().unwrap().wayland();
 
-        if !conn.environment.borrow().shell.needs_configure() {
+        if !conn
+            .environment
+            .borrow()
+            .get_shell()
+            .unwrap()
+            .needs_configure()
+        {
             self.do_paint().unwrap();
         } else {
             self.refresh_frame();

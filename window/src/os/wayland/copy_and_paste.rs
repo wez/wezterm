@@ -5,6 +5,7 @@ use std::os::unix::io::AsRawFd;
 use std::sync::{Arc, Mutex};
 use toolkit::reexports::client::protocol::wl_data_offer::{Event as DataOfferEvent, WlDataOffer};
 use toolkit::reexports::client::protocol::wl_data_source::WlDataSource;
+use wayland_client::Attached;
 
 #[derive(Default)]
 pub struct CopyAndPaste {
@@ -69,7 +70,7 @@ impl CopyAndPaste {
         self.data_offer.replace(offer);
     }
 
-    pub fn set_selection(&mut self, source: WlDataSource) {
+    pub fn set_selection(&mut self, source: &Attached<WlDataSource>) {
         use crate::connection::ConnectionOps;
         crate::Connection::get()
             .unwrap()

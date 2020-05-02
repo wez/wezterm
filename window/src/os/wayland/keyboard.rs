@@ -4,12 +4,13 @@ use anyhow::anyhow;
 use smithay_client_toolkit as toolkit;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
-use toolkit::keyboard::{
-    map_keyboard_auto_with_repeat, Event as KbEvent, KeyRepeatEvent, KeyRepeatKind, KeyState,
-    ModifiersState,
+use toolkit::reexports::calloop::LoopHandle;
+use toolkit::seat::keyboard::{
+    map_keyboard_repeat, Event as KbEvent, KeyState, ModifiersState, RepeatKind,
 };
 use wayland_client::protocol::wl_seat::WlSeat;
 use wayland_client::protocol::wl_surface::WlSurface;
+use wayland_client::Attached;
 
 #[derive(Default)]
 struct Inner {
@@ -37,16 +38,6 @@ impl Inner {
         }
     }
 
-    fn handle_repeat(&mut self, rawkey: u32, keysym: u32, utf8: Option<String>) {
-        self.dispatch_to_window(KeyboardEvent::Key {
-            serial: 0,
-            rawkey,
-            keysym,
-            is_down: true,
-            utf8,
-        });
-    }
-
     fn dispatch_to_window(&mut self, evt: KeyboardEvent) {
         if let Some(window_id) = self.surface_to_window_id.get(&self.active_surface_id) {
             let mut evt = Some(evt);
@@ -64,31 +55,29 @@ pub struct KeyboardDispatcher {
 }
 
 impl KeyboardDispatcher {
-    pub fn register(seat: &WlSeat) -> anyhow::Result<Self> {
+    pub fn new() -> Self {
         let inner = Arc::new(Mutex::new(Inner::default()));
+        Self { inner }
+    }
 
-        map_keyboard_auto_with_repeat(
+    pub fn register(
+        &self,
+        loop_handle: LoopHandle<()>,
+        seat: &Attached<WlSeat>,
+    ) -> anyhow::Result<()> {
+        let inner = Arc::clone(&self.inner);
+        let (_kbd, _source) = map_keyboard_repeat(
+            loop_handle,
             &seat,
-            KeyRepeatKind::System,
-            {
-                let inner = Arc::clone(&inner);
-                move |evt: KbEvent, _| {
-                    inner.lock().unwrap().handle_event(evt);
-                }
-            },
-            {
-                let inner = Arc::clone(&inner);
-                move |evt: KeyRepeatEvent, _| {
-                    inner
-                        .lock()
-                        .unwrap()
-                        .handle_repeat(evt.rawkey, evt.keysym, evt.utf8);
-                }
+            None,
+            RepeatKind::System,
+            move |evt: KbEvent, _, _| {
+                inner.lock().unwrap().handle_event(evt);
             },
         )
         .map_err(|e| anyhow!("Failed to configure keyboard callback: {:?}", e))?;
 
-        Ok(Self { inner })
+        Ok(())
     }
 
     pub fn add_window(&self, window_id: usize, surface: &WlSurface) {
@@ -138,10 +127,21 @@ impl KeyboardEvent {
                 serial,
                 utf8,
             },
+            KbEvent::Repeat {
+                rawkey,
+                keysym,
+                utf8,
+                ..
+            } => KeyboardEvent::Key {
+                rawkey,
+                keysym,
+                is_down: true,
+                serial: 0,
+                utf8,
+            },
             KbEvent::Modifiers { modifiers } => KeyboardEvent::Modifiers {
                 modifiers: modifier_keys(modifiers),
             },
-            _ => return None,
         })
     }
 }

@@ -238,7 +238,7 @@ impl GlState {
     #[cfg(all(unix, feature = "wayland", not(target_os = "macos")))]
     pub fn create_wayland(
         display: Option<ffi::EGLNativeDisplayType>,
-        wegl_surface: &wayland_client::egl::WlEglSurface,
+        wegl_surface: &wayland_egl::WlEglSurface,
     ) -> anyhow::Result<Self> {
         Self::with_egl_lib(move |egl| {
             let egl_display = egl.get_display(display)?;

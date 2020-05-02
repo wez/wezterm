@@ -6,18 +6,19 @@ use crate::connection::ConnectionOps;
 use crate::spawn::*;
 use crate::timerlist::{TimerEntry, TimerList};
 use crate::Connection;
-use anyhow::{bail, Context};
-use mio::unix::EventedFd;
-use mio::{Evented, Events, Poll, PollOpt, Ready, Token};
+use anyhow::{anyhow, bail, Context};
 use smithay_client_toolkit as toolkit;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
 use std::sync::atomic::AtomicUsize;
 use std::time::{Duration, Instant};
-use toolkit::reexports::client::protocol::wl_seat::{Event as SeatEvent, WlSeat};
-use toolkit::reexports::client::{Display, EventQueue};
-use toolkit::Environment;
+use toolkit::environment::Environment;
+use toolkit::reexports::calloop::{EventLoop, EventSource, Interest, Mode, Poll, Readiness, Token};
+use toolkit::reexports::client::Display;
+use toolkit::WaylandSource;
+
+toolkit::default_environment!(MyEnvironment, desktop);
 
 pub struct WaylandConnection {
     should_terminate: RefCell<bool>,
@@ -34,77 +35,55 @@ pub struct WaylandConnection {
     // bottom of this list.
     pub(crate) pointer: PointerDispatcher,
     pub(crate) keyboard: KeyboardDispatcher,
-    pub(crate) seat: WlSeat,
-    pub(crate) environment: RefCell<Environment>,
-    event_q: RefCell<EventQueue>,
+    pub(crate) environment: RefCell<Environment<MyEnvironment>>,
+    event_q: RefCell<EventLoop<()>>,
     pub(crate) display: RefCell<Display>,
-}
-
-impl Evented for WaylandConnection {
-    fn register(
-        &self,
-        poll: &Poll,
-        token: Token,
-        interest: Ready,
-        opts: PollOpt,
-    ) -> std::io::Result<()> {
-        EventedFd(&self.event_q.borrow().get_connection_fd()).register(poll, token, interest, opts)
-    }
-
-    fn reregister(
-        &self,
-        poll: &Poll,
-        token: Token,
-        interest: Ready,
-        opts: PollOpt,
-    ) -> std::io::Result<()> {
-        EventedFd(&self.event_q.borrow().get_connection_fd())
-            .reregister(poll, token, interest, opts)
-    }
-
-    fn deregister(&self, poll: &Poll) -> std::io::Result<()> {
-        EventedFd(&self.event_q.borrow().get_connection_fd()).deregister(poll)
-    }
 }
 
 impl WaylandConnection {
     pub fn create_new() -> anyhow::Result<Self> {
-        let (display, mut event_q) = Display::connect_to_env()?;
-        let environment = Environment::from_display(&*display, &mut event_q)?;
+        let (environment, display, event_q) =
+            toolkit::init_default_environment!(MyEnvironment, desktop)?;
+        let event_loop = toolkit::reexports::calloop::EventLoop::<()>::new()?;
 
-        let seat = environment
-            .manager
-            .instantiate_range(1, 6, move |seat| {
-                seat.implement_closure(
-                    move |event, _seat| {
-                        if let SeatEvent::Name { name } = event {
-                            log::info!("seat name is {}", name);
-                        }
-                    },
-                    (),
+        let keyboard = KeyboardDispatcher::new();
+        let mut pointer = None;
+
+        for seat in environment.get_all_seats() {
+            if let Some((has_kbd, has_ptr)) = toolkit::seat::with_seat_data(&seat, |seat_data| {
+                (
+                    seat_data.has_keyboard && !seat_data.defunct,
+                    seat_data.has_pointer && !seat_data.defunct,
                 )
-            })
-            .context("Failed to create seat")?;
-        let keyboard = KeyboardDispatcher::register(&seat)?;
+            }) {
+                if has_kbd {
+                    keyboard.register(event_loop.handle(), &seat)?;
+                }
+                if has_ptr {
+                    pointer.replace(PointerDispatcher::register(
+                        &seat,
+                        environment.require_global(),
+                        environment.require_global(),
+                        environment.require_global(),
+                    )?);
+                }
+            }
+        }
 
-        let pointer = PointerDispatcher::register(
-            &seat,
-            environment.compositor.clone(),
-            &environment.shm,
-            &environment.data_device_manager,
-        )?;
+        WaylandSource::new(event_q)
+            .quick_insert(event_loop.handle())
+            .map_err(|e| anyhow!("failed to setup WaylandSource: {:?}", e))?;
 
         Ok(Self {
             display: RefCell::new(display),
-            event_q: RefCell::new(event_q),
+            event_q: RefCell::new(event_loop),
             environment: RefCell::new(environment),
             should_terminate: RefCell::new(false),
             timers: RefCell::new(TimerList::new()),
             next_window_id: AtomicUsize::new(1),
             windows: RefCell::new(HashMap::new()),
-            seat,
             keyboard,
-            pointer,
+            pointer: pointer.unwrap(),
         })
     }
 
@@ -123,22 +102,6 @@ impl WaylandConnection {
     }
 
     fn do_paint(&self) {}
-
-    fn process_queued_events(&self) -> anyhow::Result<()> {
-        {
-            let mut event_q = self.event_q.borrow_mut();
-            if let Some(guard) = event_q.prepare_read() {
-                if let Err(e) = guard.read_events() {
-                    if e.kind() != ::std::io::ErrorKind::WouldBlock {
-                        bail!("Error while reading events: {}", e);
-                    }
-                }
-            }
-            event_q.dispatch_pending()?;
-        }
-        self.flush()?;
-        Ok(())
-    }
 
     pub(crate) fn window_by_id(&self, window_id: usize) -> Option<Rc<RefCell<WaylandWindowInner>>> {
         self.windows.borrow().get(&window_id).map(Rc::clone)
@@ -168,6 +131,38 @@ impl WaylandConnection {
     }
 }
 
+struct SpawnQueueSource {}
+impl EventSource for SpawnQueueSource {
+    type Event = ();
+    type Metadata = ();
+    type Ret = ();
+
+    fn process_events<F>(
+        &mut self,
+        _readiness: Readiness,
+        _token: Token,
+        mut callback: F,
+    ) -> std::io::Result<()>
+    where
+        F: FnMut(Self::Event, &mut Self::Metadata) -> Self::Ret,
+    {
+        callback((), &mut ());
+        Ok(())
+    }
+
+    fn register(&mut self, poll: &mut Poll, token: Token) -> std::io::Result<()> {
+        poll.register(SPAWN_QUEUE.raw_fd(), Interest::Readable, Mode::Level, token)
+    }
+
+    fn reregister(&mut self, poll: &mut Poll, token: Token) -> std::io::Result<()> {
+        poll.register(SPAWN_QUEUE.raw_fd(), Interest::Readable, Mode::Level, token)
+    }
+
+    fn unregister(&mut self, poll: &mut Poll) -> std::io::Result<()> {
+        poll.unregister(SPAWN_QUEUE.raw_fd())
+    }
+}
+
 impl ConnectionOps for WaylandConnection {
     fn terminate_message_loop(&self) {
         *self.should_terminate.borrow_mut() = true;
@@ -176,20 +171,16 @@ impl ConnectionOps for WaylandConnection {
     fn run_message_loop(&self) -> anyhow::Result<()> {
         self.flush()?;
 
-        const TOK_WAYLAND: usize = 0xffff_fffc;
-        const TOK_SPAWN: usize = 0xffff_fffd;
-        let tok_wayland = Token(TOK_WAYLAND);
-        let tok_spawn = Token(TOK_SPAWN);
-
-        let poll = Poll::new()?;
-        let mut events = Events::with_capacity(8);
-        poll.register(self, tok_wayland, Ready::readable(), PollOpt::level())?;
-        poll.register(
-            &*SPAWN_QUEUE,
-            tok_spawn,
-            Ready::readable(),
-            PollOpt::level(),
-        )?;
+        self.event_q
+            .borrow_mut()
+            .handle()
+            .insert_source(SpawnQueueSource {}, move |_, _, _| {
+                // In theory, we'd SPAWN_QUEUE.run() here but we
+                // prefer to defer that to the loop below where we
+                // can have better control over the event_q borrow,
+                // and so that we can inspect its return code.
+            })
+            .map_err(|e| anyhow!("failed to insert SpawnQueueSource: {:?}", e))?;
 
         let paint_interval = Duration::from_millis(25);
         let mut last_interval = Instant::now();
@@ -207,13 +198,6 @@ impl ConnectionOps for WaylandConnection {
                 paint_interval - diff
             };
 
-            // Process any events that might have accumulated in the local
-            // buffer (eg: due to a flush) before we potentially go to sleep.
-            // The locally queued events won't mark the fd as ready, so we
-            // could potentially sleep when there is work to be done if we
-            // relied solely on that.
-            self.process_queued_events()?;
-
             // Check the spawn queue before we try to sleep; there may
             // be work pending and we don't guarantee that there is a
             // 1:1 wakeup to queued function, so we need to be assertive
@@ -230,15 +214,16 @@ impl ConnectionOps for WaylandConnection {
                     .unwrap_or(period)
             };
 
-            match poll.poll(&mut events, Some(period)) {
-                Ok(_) => {
-                    // We process both event sources unconditionally
-                    // in the loop above anyway; we're just using
-                    // this to get woken up.
-                }
+            self.flush()?;
 
-                Err(err) => {
-                    bail!("polling for events: {:?}", err);
+            {
+                let mut event_q = self.event_q.borrow_mut();
+                if let Err(err) = event_q.dispatch(Some(period), &mut ()) {
+                    if err.kind() != std::io::ErrorKind::WouldBlock
+                        && err.kind() != std::io::ErrorKind::Interrupted
+                    {
+                        return Err(err).context("error during event_q.dispatch");
+                    }
                 }
             }
         }

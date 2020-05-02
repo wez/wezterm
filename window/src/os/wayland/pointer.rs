@@ -1,11 +1,9 @@
 use super::copy_and_paste::*;
 use crate::input::*;
 use crate::os::wayland::connection::WaylandConnection;
-use anyhow::anyhow;
 use smithay_client_toolkit as toolkit;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
-use toolkit::pointer::{AutoPointer, AutoThemer};
 use toolkit::reexports::client::protocol::wl_data_device::{
     Event as DataDeviceEvent, WlDataDevice,
 };
@@ -14,10 +12,12 @@ use toolkit::reexports::client::protocol::wl_pointer::{
     self, Axis, AxisSource, Event as PointerEvent,
 };
 use toolkit::reexports::client::protocol::wl_surface::WlSurface;
+use toolkit::seat::pointer::{ThemeManager, ThemeSpec, ThemedPointer};
 use wayland_client::protocol::wl_compositor::WlCompositor;
 use wayland_client::protocol::wl_data_device_manager::WlDataDeviceManager;
 use wayland_client::protocol::wl_seat::WlSeat;
 use wayland_client::protocol::wl_shm::WlShm;
+use wayland_client::{Attached, Main};
 
 #[derive(Default)]
 struct Inner {
@@ -66,16 +66,13 @@ impl Inner {
     fn handle_data_event(&mut self, event: DataDeviceEvent, inner: &Arc<Mutex<Self>>) {
         match event {
             DataDeviceEvent::DataOffer { id } => {
-                id.implement_closure(
-                    {
-                        let inner = Arc::clone(inner);
-                        move |event, offer| {
-                            let mut inner = inner.lock().unwrap();
-                            inner.route_data_offer(event, offer);
-                        }
-                    },
-                    (),
-                );
+                id.quick_assign({
+                    let inner = Arc::clone(inner);
+                    move |offer, event, _dispatch_data| {
+                        let mut inner = inner.lock().unwrap();
+                        inner.route_data_offer(event, offer.detach());
+                    }
+                });
             }
             DataDeviceEvent::Enter { .. }
             | DataDeviceEvent::Leave { .. }
@@ -96,10 +93,10 @@ impl Inner {
 
 pub struct PointerDispatcher {
     inner: Arc<Mutex<Inner>>,
-    pub(crate) data_device: WlDataDevice,
-    auto_pointer: AutoPointer,
+    pub(crate) data_device: Main<WlDataDevice>,
+    auto_pointer: ThemedPointer,
     #[allow(dead_code)]
-    themer: AutoThemer,
+    themer: ThemeManager,
 }
 
 #[derive(Clone, Debug)]
@@ -214,47 +211,29 @@ impl PendingMouse {
 impl PointerDispatcher {
     pub fn register(
         seat: &WlSeat,
-        compositor: WlCompositor,
-        shm: &WlShm,
-        dev_mgr: &WlDataDeviceManager,
+        compositor: Attached<WlCompositor>,
+        shm: Attached<WlShm>,
+        dev_mgr: Attached<WlDataDeviceManager>,
     ) -> anyhow::Result<Self> {
         let inner = Arc::new(Mutex::new(Inner::default()));
-        let pointer = seat
-            .get_pointer({
-                let inner = Arc::clone(&inner);
-                move |ptr| {
-                    ptr.implement_closure(
-                        {
-                            let inner = Arc::clone(&inner);
-                            move |evt, _| {
-                                inner.lock().unwrap().handle_event(evt);
-                            }
-                        },
-                        (),
-                    )
-                }
-            })
-            .map_err(|()| anyhow!("Failed to configure pointer callback"))?;
+        let pointer = seat.get_pointer();
+        pointer.quick_assign({
+            let inner = Arc::clone(&inner);
+            move |_, evt, _| {
+                inner.lock().unwrap().handle_event(evt);
+            }
+        });
 
-        let themer = AutoThemer::init(None, compositor, shm);
-        let auto_pointer = themer.theme_pointer(pointer);
+        let themer = ThemeManager::init(ThemeSpec::System, compositor, shm);
+        let auto_pointer = themer.theme_pointer(pointer.detach());
 
-        let data_device = dev_mgr
-            .get_data_device(seat, {
-                let inner = Arc::clone(&inner);
-                move |device| {
-                    device.implement_closure(
-                        {
-                            let inner = Arc::clone(&inner);
-                            move |event, _device| {
-                                inner.lock().unwrap().handle_data_event(event, &inner);
-                            }
-                        },
-                        (),
-                    )
-                }
-            })
-            .map_err(|()| anyhow!("Failed to configure data_device"))?;
+        let data_device = dev_mgr.get_data_device(seat);
+        data_device.quick_assign({
+            let inner = Arc::clone(&inner);
+            move |_device, event, _| {
+                inner.lock().unwrap().handle_data_event(event, &inner);
+            }
+        });
 
         Ok(Self {
             inner,

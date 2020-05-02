@@ -51,7 +51,7 @@ impl Keyboard {
             device_id,
             xkb::KEYMAP_COMPILE_NO_FLAGS,
         );
-        let state = xkb::x11::state_new_from_device(&keymap, &connection, device_id);
+        let state = xkb::x11::state_new_from_device(&keymap, connection, device_id);
 
         let locale = query_lc_ctype()?;
 
@@ -225,7 +225,7 @@ impl Keyboard {
             "problem with new keymap"
         );
 
-        let new_state = xkb::x11::state_new_from_device(&new_keymap, &connection, self.device_id);
+        let new_state = xkb::x11::state_new_from_device(&new_keymap, connection, self.device_id);
         ensure!(!new_state.get_raw_ptr().is_null(), "problem with new state");
 
         self.state.replace(new_state);
