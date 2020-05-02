@@ -423,6 +423,7 @@ pub trait BitmapImage {
 
 /// A bitmap in big endian bgra32 color format, with storage
 /// in a Vec<u8>.
+#[derive(Clone)]
 pub struct Image {
     data: Vec<u8>,
     width: usize,

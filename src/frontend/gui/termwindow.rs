@@ -550,7 +550,7 @@ impl TermWindow {
         let clipboard_contents = Arc::new(Mutex::new(None));
 
         let window = Window::new_window(
-            "wezterm",
+            "org.wezfurlong.wezterm",
             "wezterm",
             dimensions.pixel_width,
             dimensions.pixel_height,
@@ -580,6 +580,16 @@ impl TermWindow {
                 shape_cache: RefCell::new(LruCache::new(65536)),
             }),
         )?;
+
+        let icon_image =
+            image::load_from_memory(include_bytes!("../../../assets/icon/terminal.png"))?;
+        let image = icon_image.to_bgra();
+        let (width, height) = image.dimensions();
+        window.set_icon(window::Image::from_raw(
+            width as usize,
+            height as usize,
+            image.into_raw(),
+        ));
 
         let cloned_window = window.clone();
 

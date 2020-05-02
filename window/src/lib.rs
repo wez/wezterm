@@ -18,7 +18,7 @@ mod egl;
 #[cfg(feature = "opengl")]
 pub use glium;
 
-pub use bitmaps::BitmapImage;
+pub use bitmaps::{BitmapImage, Image};
 pub use color::Color;
 pub use connection::*;
 pub use input::*;
@@ -228,6 +228,13 @@ pub trait WindowOps {
 
     /// Set some text in the clipboard
     fn set_clipboard(&self, text: String) -> Future<()>;
+
+    /// Set the icon for the window.
+    /// Depending on the system this may be shown in its titlebar
+    /// and/or in the task manager/task switcher
+    fn set_icon(&self, _image: Image) -> Future<()> {
+        Future::ok(())
+    }
 }
 
 pub trait WindowOpsMut {
@@ -262,4 +269,9 @@ pub trait WindowOpsMut {
     /// The coordinates are of the top left pixel of the
     /// client area.
     fn set_window_position(&self, _coords: ScreenPoint) {}
+
+    /// Set the icon for the window.
+    /// Depending on the system this may be shown in its titlebar
+    /// and/or in the task manager/task switcher
+    fn set_icon(&mut self, _image: &dyn BitmapImage) {}
 }

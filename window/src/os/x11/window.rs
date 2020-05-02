@@ -644,7 +644,7 @@ impl XWindow {
     /// Create a new window on the specified screen with the specified
     /// dimensions
     pub fn new_window(
-        _class_name: &str,
+        class_name: &str,
         name: &str,
         width: usize,
         height: usize,
@@ -720,6 +720,11 @@ impl XWindow {
                 gl_state: None,
             }))
         };
+
+        xcb_util::icccm::set_wm_class(&*conn, window_id, class_name, class_name);
+        xcb_util::ewmh::set_wm_pid(conn.ewmh_conn(), window_id, unsafe {
+            libc::getpid() as u32
+        });
 
         xcb::change_property(
             &*conn,
@@ -819,6 +824,26 @@ impl WindowOpsMut for XWindowInner {
     fn set_title(&mut self, title: &str) {
         xcb_util::icccm::set_wm_name(self.conn.conn(), self.window_id, title);
     }
+
+    fn set_icon(&mut self, image: &dyn BitmapImage) {
+        let (width, height) = image.image_dimensions();
+
+        // https://specifications.freedesktop.org/wm-spec/wm-spec-1.3.html#idm44927025355360
+        // says that this is an array of 32bit ARGB data.
+        // The first two elements are width, height, with the remainder
+        // being the the row data, left-to-right, top-to-bottom.
+        let mut icon_data = Vec::with_capacity((2 + (width * height)) * 4);
+        icon_data.push(width as u32);
+        icon_data.push(height as u32);
+        icon_data.extend_from_slice(image.pixels());
+
+        xcb_util::ewmh::set_wm_icon(
+            self.conn.ewmh_conn(),
+            xcb::PROP_MODE_REPLACE as u8,
+            self.window_id,
+            &icon_data,
+        );
+    }
 }
 
 impl WindowOps for XWindow {
@@ -875,6 +900,13 @@ impl WindowOps for XWindow {
     fn set_window_position(&self, coords: ScreenPoint) -> Future<()> {
         XConnection::with_window_inner(self.0, move |inner| {
             inner.set_window_position(coords);
+            Ok(())
+        })
+    }
+
+    fn set_icon(&self, image: Image) -> Future<()> {
+        XConnection::with_window_inner(self.0, move |inner| {
+            inner.set_icon(&image);
             Ok(())
         })
     }

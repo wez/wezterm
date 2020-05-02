@@ -179,6 +179,14 @@ impl WindowOps for Window {
         }
     }
 
+    fn set_icon(&self, image: crate::bitmaps::Image) -> Future<()> {
+        match self {
+            Self::X11(x) => x.set_icon(image),
+            #[cfg(feature = "wayland")]
+            Self::Wayland(w) => w.set_icon(image),
+        }
+    }
+
     fn set_inner_size(&self, width: usize, height: usize) -> Future<()> {
         match self {
             Self::X11(x) => x.set_inner_size(width, height),
