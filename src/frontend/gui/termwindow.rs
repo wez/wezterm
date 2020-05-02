@@ -950,7 +950,7 @@ impl TermWindow {
             // to piggy back on the config reloading code for that, so that
             // is what we're doing.
             if show_tab_bar != self.show_tab_bar {
-                self.config_was_reloaded();
+                self.check_for_config_reload();
             }
         }
     }
