@@ -1,5 +1,5 @@
 
-name: ubuntu20
+name: debian10.3
 
 on:
   push:
@@ -15,7 +15,7 @@ jobs:
     strategy:
       fail-fast: false
     runs-on: "ubuntu-latest"
-    container: "ubuntu:20"
+    container: "debian:10.3"
     steps:
     - name: "checkout repo"
       uses: actions/checkout@v1
@@ -30,17 +30,17 @@ jobs:
       uses: actions/cache@v1
       with:
          path: "~/.cargo/registry"
-         key: "ubuntu20-None-${{ hashFiles('Cargo.lock') }}-cargo-registry"
+         key: "debian10.3-None-${{ hashFiles('Cargo.lock') }}-cargo-registry"
     - name: "Cache cargo index"
       uses: actions/cache@v1
       with:
          path: "~/.cargo/git"
-         key: "ubuntu20-None-${{ hashFiles('Cargo.lock') }}-cargo-index"
+         key: "debian10.3-None-${{ hashFiles('Cargo.lock') }}-cargo-index"
     - name: "Cache cargo build"
       uses: actions/cache@v1
       with:
          path: "target"
-         key: "ubuntu20-None-${{ hashFiles('Cargo.lock') }}-cargo-build-target"
+         key: "debian10.3-None-${{ hashFiles('Cargo.lock') }}-cargo-build-target"
     - name: "Install System Deps"
       shell: bash
       run: "sudo ./get-deps"
@@ -60,10 +60,10 @@ jobs:
       shell: bash
       run: |
             mkdir pkg_
-            mv *.deb *.xz *.AppImage pkg_
+            
 
     - name: "Upload artifact"
       uses: actions/upload-artifact@master
       with:
-         name: "ubuntu20"
+         name: "debian10.3"
          path: "pkg_"

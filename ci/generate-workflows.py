@@ -244,6 +244,19 @@ cargo build --all --release""",
             ),
         ]
 
+    def asset_patterns(self):
+        patterns = []
+        if self.uses_yum():
+            patterns += ["wezterm-*.rpm"]
+        elif ("win" in self.name) or ("mac" in self.name):
+            patterns += ["WezTerm-*.zip"]
+        elif ("ubuntu" in self.name) or ("debian" in self.name):
+            patterns += ["wezterm-*.deb", "wezterm-*.xz", "wezterm-*.tar.gz"]
+
+        if self.app_image:
+            patterns.append("*.AppImage")
+        return patterns
+
     def upload_asset_nightly(self):
         steps = []
 
@@ -254,11 +267,8 @@ cargo build --all --release""",
                     f"mv ~/rpmbuild/RPMS/*/*.rpm wezterm-nightly-{self.name}.rpm",
                 )
             )
-            patterns = ["wezterm-*.rpm"]
-        elif ("win" in self.name) or ("mac" in self.name):
-            patterns = ["WezTerm-*.zip"]
-        elif "ubuntu" in self.name:
-            patterns = ["wezterm-*.deb", "wezterm-*.xz", "wezterm-*.tar.gz"]
+
+        patterns = self.asset_patterns()
 
         return steps + [
             ActionStep(
@@ -277,11 +287,8 @@ cargo build --all --release""",
 
         if self.uses_yum():
             steps.append(RunStep("Move RPM", "mv ~/rpmbuild/RPMS/*/*.rpm ."))
-            patterns = ["wezterm-*.rpm"]
-        elif ("win" in self.name) or ("mac" in self.name):
-            patterns = ["WezTerm-*.zip"]
-        elif "ubuntu" in self.name:
-            patterns = ["wezterm-*.deb", "wezterm-*.xz", "wezterm-*.tar.gz"]
+
+        patterns = self.asset_patterns()
 
         return steps + [
             ActionStep(

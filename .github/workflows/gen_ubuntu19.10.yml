@@ -1,5 +1,5 @@
 
-name: ubuntu19
+name: ubuntu19.10
 
 on:
   push:
@@ -15,7 +15,7 @@ jobs:
     strategy:
       fail-fast: false
     runs-on: "ubuntu-latest"
-    container: "ubuntu:19"
+    container: "ubuntu:19.10"
     steps:
     - name: "checkout repo"
       uses: actions/checkout@v1
@@ -30,17 +30,17 @@ jobs:
       uses: actions/cache@v1
       with:
          path: "~/.cargo/registry"
-         key: "ubuntu19-None-${{ hashFiles('Cargo.lock') }}-cargo-registry"
+         key: "ubuntu19.10-None-${{ hashFiles('Cargo.lock') }}-cargo-registry"
     - name: "Cache cargo index"
       uses: actions/cache@v1
       with:
          path: "~/.cargo/git"
-         key: "ubuntu19-None-${{ hashFiles('Cargo.lock') }}-cargo-index"
+         key: "ubuntu19.10-None-${{ hashFiles('Cargo.lock') }}-cargo-index"
     - name: "Cache cargo build"
       uses: actions/cache@v1
       with:
          path: "target"
-         key: "ubuntu19-None-${{ hashFiles('Cargo.lock') }}-cargo-build-target"
+         key: "ubuntu19.10-None-${{ hashFiles('Cargo.lock') }}-cargo-build-target"
     - name: "Install System Deps"
       shell: bash
       run: "sudo ./get-deps"
@@ -60,10 +60,11 @@ jobs:
       shell: bash
       run: |
             mkdir pkg_
-            mv *.deb *.xz *.AppImage pkg_
+            mv *.deb *.xz pkg_
+            
 
     - name: "Upload artifact"
       uses: actions/upload-artifact@master
       with:
-         name: "ubuntu19"
+         name: "ubuntu19.10"
          path: "pkg_"

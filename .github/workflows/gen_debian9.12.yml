@@ -1,10 +1,13 @@
 
-name: ubuntu20_tag
+name: debian9.12
 
 on:
   push:
-    tags:
-      - "20*"
+    branches:
+    - master
+  pull_request:
+    branches:
+    - master
 
 
 jobs:
@@ -12,7 +15,7 @@ jobs:
     strategy:
       fail-fast: false
     runs-on: "ubuntu-latest"
-    container: "ubuntu:20"
+    container: "debian:9.12"
     steps:
     - name: "checkout repo"
       uses: actions/checkout@v1
@@ -27,20 +30,23 @@ jobs:
       uses: actions/cache@v1
       with:
          path: "~/.cargo/registry"
-         key: "ubuntu20-None-${{ hashFiles('Cargo.lock') }}-cargo-registry"
+         key: "debian9.12-None-${{ hashFiles('Cargo.lock') }}-cargo-registry"
     - name: "Cache cargo index"
       uses: actions/cache@v1
       with:
          path: "~/.cargo/git"
-         key: "ubuntu20-None-${{ hashFiles('Cargo.lock') }}-cargo-index"
+         key: "debian9.12-None-${{ hashFiles('Cargo.lock') }}-cargo-index"
     - name: "Cache cargo build"
       uses: actions/cache@v1
       with:
          path: "target"
-         key: "ubuntu20-None-${{ hashFiles('Cargo.lock') }}-cargo-build-target"
+         key: "debian9.12-None-${{ hashFiles('Cargo.lock') }}-cargo-build-target"
     - name: "Install System Deps"
       shell: bash
       run: "sudo ./get-deps"
+    - name: "Check formatting"
+      shell: bash
+      run: "cargo fmt --all -- --check"
     - name: "Build (Release mode)"
       shell: bash
       run: "cargo build --all --release"
@@ -50,13 +56,14 @@ jobs:
     - name: "Package"
       shell: bash
       run: "bash ci/deploy.sh"
-    - name: "Upload to Tagged Release"
-      uses: softprops/action-gh-release@v1
-      with:
-         files: |
-            wezterm-*.deb
-            wezterm-*.xz
-            wezterm-*.tar.gz
+    - name: "Move Package for artifact upload"
+      shell: bash
+      run: |
+            mkdir pkg_
+            
 
-      env:
-         GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+    - name: "Upload artifact"
+      uses: actions/upload-artifact@master
+      with:
+         name: "debian9.12"
+         path: "pkg_"

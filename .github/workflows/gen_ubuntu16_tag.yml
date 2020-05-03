@@ -60,6 +60,7 @@ jobs:
             wezterm-*.deb
             wezterm-*.xz
             wezterm-*.tar.gz
+            *.AppImage
 
       env:
          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"

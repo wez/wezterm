@@ -1,5 +1,5 @@
 
-name: centos7
+name: ubuntu20.04
 
 on:
   push:
@@ -15,34 +15,8 @@ jobs:
     strategy:
       fail-fast: false
     runs-on: "ubuntu-latest"
-    container: "centos:7"
+    container: "ubuntu:20.04"
     steps:
-    - name: "Install Sudo"
-      shell: bash
-      run: "yum install -y sudo"
-    - name: "Cache Git installation"
-      uses: actions/cache@v1
-      with:
-         path: "/usr/local/git"
-         key: "centos7-git"
-    - name: "Install Git from source"
-      shell: bash
-      run: |
-            
-            VERS=2.25.0
-            
-            if test ! -x /usr/local/git/bin/git ; then
-                yum install -y wget curl-devel expat-devel gettext-devel openssl-devel zlib-devel gcc perl-ExtUtils-MakeMaker make
-                cd /tmp
-                wget https://mirrors.edge.kernel.org/pub/software/scm/git/git-$VERS.tar.gz
-                tar xzf git-$VERS.tar.gz
-                cd git-$VERS
-                make prefix=/usr/local/git install
-            fi
-            
-            ln -s /usr/local/git/bin/git /usr/local/bin/git
-                    
-
     - name: "checkout repo"
       uses: actions/checkout@v1
     - name: "Install Rust"
@@ -56,17 +30,17 @@ jobs:
       uses: actions/cache@v1
       with:
          path: "~/.cargo/registry"
-         key: "centos7-None-${{ hashFiles('Cargo.lock') }}-cargo-registry"
+         key: "ubuntu20.04-None-${{ hashFiles('Cargo.lock') }}-cargo-registry"
     - name: "Cache cargo index"
       uses: actions/cache@v1
       with:
          path: "~/.cargo/git"
-         key: "centos7-None-${{ hashFiles('Cargo.lock') }}-cargo-index"
+         key: "ubuntu20.04-None-${{ hashFiles('Cargo.lock') }}-cargo-index"
     - name: "Cache cargo build"
       uses: actions/cache@v1
       with:
          path: "target"
-         key: "centos7-None-${{ hashFiles('Cargo.lock') }}-cargo-build-target"
+         key: "ubuntu20.04-None-${{ hashFiles('Cargo.lock') }}-cargo-build-target"
     - name: "Install System Deps"
       shell: bash
       run: "sudo ./get-deps"
@@ -86,11 +60,11 @@ jobs:
       shell: bash
       run: |
             mkdir pkg_
-            mv ~/rpmbuild/RPMS/*/*.rpm pkg_
+            mv *.deb *.xz pkg_
             
 
     - name: "Upload artifact"
       uses: actions/upload-artifact@master
       with:
-         name: "centos7"
+         name: "ubuntu20.04"
          path: "pkg_"

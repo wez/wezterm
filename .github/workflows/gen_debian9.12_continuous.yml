@@ -1,5 +1,5 @@
 
-name: ubuntu16_continuous
+name: debian9.12_continuous
 
 on:
   schedule:
@@ -10,8 +10,8 @@ jobs:
   build:
     strategy:
       fail-fast: false
-    runs-on: "ubuntu-16.04"
-    
+    runs-on: "ubuntu-latest"
+    container: "debian:9.12"
     steps:
     - name: "checkout repo"
       uses: actions/checkout@v1
@@ -26,17 +26,17 @@ jobs:
       uses: actions/cache@v1
       with:
          path: "~/.cargo/registry"
-         key: "ubuntu16-None-${{ hashFiles('Cargo.lock') }}-cargo-registry"
+         key: "debian9.12-None-${{ hashFiles('Cargo.lock') }}-cargo-registry"
     - name: "Cache cargo index"
       uses: actions/cache@v1
       with:
          path: "~/.cargo/git"
-         key: "ubuntu16-None-${{ hashFiles('Cargo.lock') }}-cargo-index"
+         key: "debian9.12-None-${{ hashFiles('Cargo.lock') }}-cargo-index"
     - name: "Cache cargo build"
       uses: actions/cache@v1
       with:
          path: "target"
-         key: "ubuntu16-None-${{ hashFiles('Cargo.lock') }}-cargo-build-target"
+         key: "debian9.12-None-${{ hashFiles('Cargo.lock') }}-cargo-build-target"
     - name: "Install System Deps"
       shell: bash
       run: |
@@ -65,16 +65,9 @@ jobs:
             bash ci/deploy.sh
             
 
-    - name: "Build AppImage"
-      shell: bash
-      run: |
-            export BUILD_REASON=Schedule
-            bash ci/appimage.sh
-            
-
     - name: "Upload to Nightly Release"
       uses: wez/upload-release-assets@releases/v1
       with:
-         files: "wezterm-*.deb;wezterm-*.xz;wezterm-*.tar.gz;*.AppImage"
+         files: "wezterm-*.deb;wezterm-*.xz;wezterm-*.tar.gz"
          release-tag: "nightly"
          repo-token: "${{ secrets.GITHUB_TOKEN }}"

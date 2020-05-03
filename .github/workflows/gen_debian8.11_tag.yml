@@ -1,13 +1,10 @@
 
-name: fedora31
+name: debian8.11_tag
 
 on:
   push:
-    branches:
-    - master
-  pull_request:
-    branches:
-    - master
+    tags:
+      - "20*"
 
 
 jobs:
@@ -15,14 +12,8 @@ jobs:
     strategy:
       fail-fast: false
     runs-on: "ubuntu-latest"
-    container: "fedora:31"
+    container: "debian:8.11"
     steps:
-    - name: "Install Sudo"
-      shell: bash
-      run: "yum install -y sudo"
-    - name: "Install System Git"
-      shell: bash
-      run: "sudo yum install -y git"
     - name: "checkout repo"
       uses: actions/checkout@v1
     - name: "Install Rust"
@@ -36,23 +27,20 @@ jobs:
       uses: actions/cache@v1
       with:
          path: "~/.cargo/registry"
-         key: "fedora31-None-${{ hashFiles('Cargo.lock') }}-cargo-registry"
+         key: "debian8.11-None-${{ hashFiles('Cargo.lock') }}-cargo-registry"
     - name: "Cache cargo index"
       uses: actions/cache@v1
       with:
          path: "~/.cargo/git"
-         key: "fedora31-None-${{ hashFiles('Cargo.lock') }}-cargo-index"
+         key: "debian8.11-None-${{ hashFiles('Cargo.lock') }}-cargo-index"
     - name: "Cache cargo build"
       uses: actions/cache@v1
       with:
          path: "target"
-         key: "fedora31-None-${{ hashFiles('Cargo.lock') }}-cargo-build-target"
+         key: "debian8.11-None-${{ hashFiles('Cargo.lock') }}-cargo-build-target"
     - name: "Install System Deps"
       shell: bash
       run: "sudo ./get-deps"
-    - name: "Check formatting"
-      shell: bash
-      run: "cargo fmt --all -- --check"
     - name: "Build (Release mode)"
       shell: bash
       run: "cargo build --all --release"
@@ -62,15 +50,13 @@ jobs:
     - name: "Package"
       shell: bash
       run: "bash ci/deploy.sh"
-    - name: "Move Package for artifact upload"
-      shell: bash
-      run: |
-            mkdir pkg_
-            mv ~/rpmbuild/RPMS/*/*.rpm pkg_
-            
-
-    - name: "Upload artifact"
-      uses: actions/upload-artifact@master
+    - name: "Upload to Tagged Release"
+      uses: softprops/action-gh-release@v1
       with:
-         name: "fedora31"
-         path: "pkg_"
+         files: |
+            wezterm-*.deb
+            wezterm-*.xz
+            wezterm-*.tar.gz
+
+      env:
+         GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"

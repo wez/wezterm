@@ -1,5 +1,5 @@
 
-name: ubuntu20_continuous
+name: ubuntu20.04_continuous
 
 on:
   schedule:
@@ -11,7 +11,7 @@ jobs:
     strategy:
       fail-fast: false
     runs-on: "ubuntu-latest"
-    container: "ubuntu:20"
+    container: "ubuntu:20.04"
     steps:
     - name: "checkout repo"
       uses: actions/checkout@v1
@@ -26,17 +26,17 @@ jobs:
       uses: actions/cache@v1
       with:
          path: "~/.cargo/registry"
-         key: "ubuntu20-None-${{ hashFiles('Cargo.lock') }}-cargo-registry"
+         key: "ubuntu20.04-None-${{ hashFiles('Cargo.lock') }}-cargo-registry"
     - name: "Cache cargo index"
       uses: actions/cache@v1
       with:
          path: "~/.cargo/git"
-         key: "ubuntu20-None-${{ hashFiles('Cargo.lock') }}-cargo-index"
+         key: "ubuntu20.04-None-${{ hashFiles('Cargo.lock') }}-cargo-index"
     - name: "Cache cargo build"
       uses: actions/cache@v1
       with:
          path: "target"
-         key: "ubuntu20-None-${{ hashFiles('Cargo.lock') }}-cargo-build-target"
+         key: "ubuntu20.04-None-${{ hashFiles('Cargo.lock') }}-cargo-build-target"
     - name: "Install System Deps"
       shell: bash
       run: |

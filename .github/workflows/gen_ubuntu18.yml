@@ -60,7 +60,8 @@ jobs:
       shell: bash
       run: |
             mkdir pkg_
-            mv *.deb *.xz *.AppImage pkg_
+            mv *.deb *.xz pkg_
+            
 
     - name: "Upload artifact"
       uses: actions/upload-artifact@master
