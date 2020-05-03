@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # Centos may not have lsb_release installed
 if test -e /etc/centos-release || test -e /etc/fedora-release; then
@@ -43,11 +43,19 @@ if test -e /etc/debian_version ; then
     libxkbcommon-dev \
     libxkbcommon-x11-dev \
     lsb-release \
+    python3 \
     xdg-utils \
     xorg-dev
   exit $?
 fi
 
-echo "Please contribute the commands to install the deps"
-echo "For `lsb_release -ds`"
-exit 1
+case $OSTYPE in
+  darwin*|msys)
+    exit 0
+  ;;
+  *)
+    echo "Please contribute the commands to install the deps"
+    echo "For `lsb_release -ds`"
+    exit 1
+  ;;
+esac
