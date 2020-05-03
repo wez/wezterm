@@ -80,6 +80,7 @@ jobs:
       shell: bash
       run: |
             mkdir pkg_
+            mv *.deb *.xz pkg_
             
 
     - name: "Upload artifact"

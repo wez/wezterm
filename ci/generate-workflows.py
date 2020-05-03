@@ -256,7 +256,7 @@ cargo build --all --release""",
             run += "mv ~/rpmbuild/RPMS/*/*.rpm pkg_\n"
         if ("win" in self.name) or ("mac" in self.name):
             run += "mv *.zip pkg_\n"
-        if "ubuntu" in self.name:
+        if ("ubuntu" in self.name) or ("debian" in self.name):
             run += "mv *.deb *.xz pkg_\n"
         if self.app_image:
             run += "mv *.AppImage pkg_\n"
@@ -397,7 +397,8 @@ TARGETS = [
     Target(name="ubuntu:18", os="ubuntu-18.04", continuous_only=True),
     Target(container="ubuntu:19.10", continuous_only=True),
     Target(container="ubuntu:20.04", continuous_only=True),
-    Target(container="debian:8.11", continuous_only=True, bootstrap_git=True),
+    # debian 8's wayland libraries are too old for wayland-client
+    # Target(container="debian:8.11", continuous_only=True, bootstrap_git=True),
     Target(container="debian:9.12", continuous_only=True, bootstrap_git=True),
     Target(container="debian:10.3", continuous_only=True),
     Target(name="macos", os="macos-latest"),
