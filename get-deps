@@ -29,10 +29,13 @@ case `lsb_release -ds` in
       bsdutils \
       cmake \
       fakeroot \
+      gcc \
+      g++ \
       libdbus-1-dev \
       libegl1-mesa-dev \
       libssl-dev \
       libfontconfig1-dev \
+      libwayland-dev \
       libxcb-ewmh-dev \
       libxcb-icccm4-dev \
       libxcb-keysyms1-dev \
