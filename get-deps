@@ -23,31 +23,31 @@ if test -e /etc/centos-release || test -e /etc/fedora-release; then
   exit $?
 fi
 
-case `lsb_release -ds` in
-  Ubuntu*|Debian*|PureOS*)
-    apt-get install -y \
-      bsdutils \
-      cmake \
-      fakeroot \
-      gcc \
-      g++ \
-      libdbus-1-dev \
-      libegl1-mesa-dev \
-      libssl-dev \
-      libfontconfig1-dev \
-      libwayland-dev \
-      libxcb-ewmh-dev \
-      libxcb-icccm4-dev \
-      libxcb-keysyms1-dev \
-      libxcb-shm0-dev \
-      libxcb-xkb-dev \
-      libxkbcommon-dev \
-      libxkbcommon-x11-dev \
-      xdg-utils \
-      xorg-dev
-    ;;
-  *)
-    echo "Please contribute the commands to install the deps"
-    echo "For `lsb_release -ds`"
-    ;;
-esac
+if test -e /etc/debian_version ; then
+  apt-get install -y \
+    bsdutils \
+    cmake \
+    fakeroot \
+    gcc \
+    g++ \
+    libdbus-1-dev \
+    libegl1-mesa-dev \
+    libssl-dev \
+    libfontconfig1-dev \
+    libwayland-dev \
+    libxcb-ewmh-dev \
+    libxcb-icccm4-dev \
+    libxcb-keysyms1-dev \
+    libxcb-shm0-dev \
+    libxcb-xkb-dev \
+    libxkbcommon-dev \
+    libxkbcommon-x11-dev \
+    lsb-release \
+    xdg-utils \
+    xorg-dev
+  exit $?
+fi
+
+echo "Please contribute the commands to install the deps"
+echo "For `lsb_release -ds`"
+exit 1
