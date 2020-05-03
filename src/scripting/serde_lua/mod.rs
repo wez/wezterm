@@ -230,17 +230,20 @@ macro_rules! int {
             V: Visitor<'de>,
         {
             match self.0 {
-                Value::Integer(i) => {
-                    v.$visit(i .try_into().map_err(|e| {
-                        Error::custom(format!(
-                            "lua Integer value {} doesn't fit \
-                             in specified type: {}", i, e))
-                    })?)
-                }
-                _ => Err(serde::de::Error::invalid_type(unexpected(&self.0), &"integer")),
+                Value::Integer(i) => v.$visit(i.try_into().map_err(|e| {
+                    Error::custom(format!(
+                        "lua Integer value {} doesn't fit \
+                             in specified type: {}",
+                        i, e
+                    ))
+                })?),
+                _ => Err(serde::de::Error::invalid_type(
+                    unexpected(&self.0),
+                    &"integer",
+                )),
             }
         }
-    }
+    };
 }
 
 impl<'de, 'lua> Deserializer<'de> for ValueWrapper<'lua> {

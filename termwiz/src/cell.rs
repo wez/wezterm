@@ -67,7 +67,7 @@ macro_rules! bitfield {
     ($getter:ident, $setter:ident, $enum:ident, $bitmask:expr, $bitshift:expr) => {
         #[inline]
         pub fn $getter(&self) -> $enum {
-            unsafe { mem::transmute(((self.attributes >> $bitshift) & $bitmask) as u16)}
+            unsafe { mem::transmute(((self.attributes >> $bitshift) & $bitmask) as u16) }
         }
 
         #[inline]
