@@ -102,6 +102,8 @@ class Target(object):
         container=None,
         bootstrap_git=False,
         rust_target=None,
+        continuous_only=False,
+        app_image=False,
     ):
         if not name:
             if container:
@@ -113,6 +115,8 @@ class Target(object):
         self.container = container
         self.bootstrap_git = bootstrap_git
         self.rust_target = rust_target
+        self.continuous_only = continuous_only
+        self.app_image = app_image
 
     def uses_yum(self):
         if "fedora" in self.name:
@@ -215,7 +219,10 @@ cargo build --all --release""",
         return [RunStep(name="Test (Release mode)", run="cargo test --all --release")]
 
     def package(self):
-        return [RunStep("Package", "bash ci/deploy.sh")]
+        steps = [RunStep("Package", "bash ci/deploy.sh")]
+        if self.app_image:
+            steps.append(RunStep("Build AppImage", "bash ci/appimage.sh"))
+        return steps
 
     def upload_artifact(self):
         run = "mkdir pkg_\n"
@@ -336,7 +343,10 @@ cargo build --all --release""",
 
 
 TARGETS = [
-    Target(name="ubuntu:16", os="ubuntu-16.04"),
+    Target(name="ubuntu:16", os="ubuntu-16.04", app_image=True),
+    Target(name="ubuntu:18", os="ubuntu-18.04", continuous_only=True),
+    Target(container="ubuntu:19", continuous_only=True),
+    Target(container="ubuntu:20", continuous_only=True),
     Target(name="macos", os="macos-latest"),
     Target(container="fedora:31"),
     Target(container="centos:7", bootstrap_git=True),
@@ -344,8 +354,10 @@ TARGETS = [
 ]
 
 
-def generate_actions(namer, jobber, trigger):
+def generate_actions(namer, jobber, trigger, is_continuous):
     for t in TARGETS:
+        #if t.continuous_only and not is_continuous:
+        #    continue
         name = namer(t).replace(":", "")
         print(name)
         job = jobber(t)
@@ -397,6 +409,7 @@ on:
     branches:
     - master
 """,
+        is_continuous=False,
     )
 
 
@@ -409,6 +422,7 @@ on:
   schedule:
     - cron: "10 * * * *"
 """,
+        is_continuous=True,
     )
 
 
@@ -422,6 +436,7 @@ on:
     tags:
       - "20*"
 """,
+        is_continuous=True,
     )
 
 

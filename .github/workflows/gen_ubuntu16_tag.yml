@@ -50,6 +50,9 @@ jobs:
     - name: "Package"
       shell: bash
       run: "bash ci/deploy.sh"
+    - name: "Build AppImage"
+      shell: bash
+      run: "bash ci/appimage.sh"
     - name: "Upload to Tagged Release"
       uses: softprops/action-gh-release@v1
       with:

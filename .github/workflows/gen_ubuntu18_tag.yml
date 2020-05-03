@@ -1,20 +1,17 @@
 
-name: ubuntu16
+name: ubuntu18_tag
 
 on:
   push:
-    branches:
-    - master
-  pull_request:
-    branches:
-    - master
+    tags:
+      - "20*"
 
 
 jobs:
   build:
     strategy:
       fail-fast: false
-    runs-on: "ubuntu-16.04"
+    runs-on: "ubuntu-18.04"
     
     steps:
     - name: "checkout repo"
@@ -30,23 +27,20 @@ jobs:
       uses: actions/cache@v1
       with:
          path: "~/.cargo/registry"
-         key: "ubuntu16-None-${{ hashFiles('Cargo.lock') }}-cargo-registry"
+         key: "ubuntu18-None-${{ hashFiles('Cargo.lock') }}-cargo-registry"
     - name: "Cache cargo index"
       uses: actions/cache@v1
       with:
          path: "~/.cargo/git"
-         key: "ubuntu16-None-${{ hashFiles('Cargo.lock') }}-cargo-index"
+         key: "ubuntu18-None-${{ hashFiles('Cargo.lock') }}-cargo-index"
     - name: "Cache cargo build"
       uses: actions/cache@v1
       with:
          path: "target"
-         key: "ubuntu16-None-${{ hashFiles('Cargo.lock') }}-cargo-build-target"
+         key: "ubuntu18-None-${{ hashFiles('Cargo.lock') }}-cargo-build-target"
     - name: "Install System Deps"
       shell: bash
       run: "sudo ./get-deps"
-    - name: "Check formatting"
-      shell: bash
-      run: "cargo fmt --all -- --check"
     - name: "Build (Release mode)"
       shell: bash
       run: "cargo build --all --release"
@@ -56,17 +50,13 @@ jobs:
     - name: "Package"
       shell: bash
       run: "bash ci/deploy.sh"
-    - name: "Build AppImage"
-      shell: bash
-      run: "bash ci/appimage.sh"
-    - name: "Move Package for artifact upload"
-      shell: bash
-      run: |
-            mkdir pkg_
-            mv *.deb *.xz *.AppImage pkg_
-
-    - name: "Upload artifact"
-      uses: actions/upload-artifact@master
+    - name: "Upload to Tagged Release"
+      uses: softprops/action-gh-release@v1
       with:
-         name: "ubuntu16"
-         path: "pkg_"
+         files: |
+            wezterm-*.deb
+            wezterm-*.xz
+            wezterm-*.tar.gz
+
+      env:
+         GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"

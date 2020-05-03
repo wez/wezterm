@@ -48,7 +48,9 @@ case $OSTYPE in
     7z a -tzip $zipname $zipdir
     ;;
   linux-gnu)
-    case `lsb_release -ds` in
+    distro=$(lsb_release -is)
+    distver=$(lsb_release -rs)
+    case "$distro" in
       *Fedora*|*CentOS*)
         WEZTERM_RPM_VERSION=$(echo ${TAG_NAME#nightly-} | tr - _)
         cat > wezterm.spec <<EOF
@@ -113,17 +115,13 @@ EOF
         install -Dm644 assets/wezterm.desktop pkg/debian/usr/share/applications/org.wezfurlong.wezterm.desktop
         install -Dm644 assets/wezterm.appdata.xml pkg/debian/usr/share/metainfo/wezterm.appdata.xml
         if [[ "$BUILD_REASON" == "Schedule" ]] ; then
-          debname=wezterm-nightly
+          debname=wezterm-nightly.$distro$distver
         else
-          debname=wezterm-$TAG_NAME
+          debname=wezterm-$TAG_NAME.$distro$distver
         fi
         fakeroot dpkg-deb --build pkg/debian $debname.deb
         tar cJf $debname.tar.xz -C pkg/debian/usr/bin wezterm
         rm -rf pkg
-        ./ci/appimage.sh
-        if [[ "$BUILD_REASON" == "Schedule" ]] ; then
-          mv WezTerm*.AppImage WezTerm-nightly.AppImage
-        fi
       ;;
     esac
     ./ci/source-archive.sh
