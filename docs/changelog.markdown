@@ -12,6 +12,12 @@ brief notes about them may accumulate here.
 
 * Added the `launch_menu` configuration for the launcher menu
   as described in [Launching Programs](config/launch.html).
+* Fixed a crash when reloading a config with `enable_tab_bar=false`
+* Fixed missing icon when running under X11 and Wayland
+* Wayland client-side-decorations improved and now also render window title
+* Implicitly SGR reset when switching alt and primary screen
+* Improved config error reporting UI: we now show just a single
+  window with all errors rather than one window per failed reload.
 
 ### 20200406-151651-5b700e4
 
