@@ -146,21 +146,29 @@ class Target(object):
         return steps
 
     def install_git(self):
+        steps = []
         if self.bootstrap_git:
-            return [
+            steps.append(
                 CacheStep(
                     "Cache Git installation",
                     path="/usr/local/git",
                     key=f"{self.name}-git",
-                ),
-                RunStep(
-                    name="Install Git from source",
-                    shell="bash",
-                    run="""
+                ))
+
+            pre_reqs = ""
+            if self.uses_yum():
+                pre_reqs = "yum install -y wget curl-devel expat-devel gettext-devel openssl-devel zlib-devel gcc perl-ExtUtils-MakeMaker make"
+            elif self.uses_apt():
+                pre_reqs = "apt-get install -y wget libcurl-dev libexpat-dev gettext libssl-dev libz-dev gcc libextutils-autoinstall-perl make"
+
+            steps.append(RunStep(
+                name="Install Git from source",
+                shell="bash",
+                run=f"""
 VERS=2.25.0
 
 if test ! -x /usr/local/git/bin/git ; then
-    yum install -y wget curl-devel expat-devel gettext-devel openssl-devel zlib-devel gcc perl-ExtUtils-MakeMaker make
+    {pre_reqs}
     cd /tmp
     wget https://mirrors.edge.kernel.org/pub/software/scm/git/git-$VERS.tar.gz
     tar xzf git-$VERS.tar.gz
@@ -169,14 +177,15 @@ if test ! -x /usr/local/git/bin/git ; then
 fi
 
 ln -s /usr/local/git/bin/git /usr/local/bin/git
-        """,
-                ),
-            ]
-        if self.uses_yum():
-            return [RunStep(name="Install System Git", run="sudo yum install -y git")]
-        if self.uses_apt():
-            return [RunStep(name="Install System Git", run="sudo apt-get install -y git")]
-        return []
+        """))
+
+        else:
+            if self.uses_yum():
+                steps.append(RunStep(name="Install System Git", run="sudo yum install -y git"))
+            elif self.uses_apt():
+                steps.append(RunStep(name="Install System Git", run="sudo apt-get install -y git"))
+
+        return steps
 
     def install_rust(self):
         key_prefix = (
@@ -330,7 +339,14 @@ cargo build --all --release""",
         steps += self.install_sudo()
         steps += self.install_git()
         steps += self.install_curl()
-        steps += [CheckoutStep()]
+        steps += [
+            CheckoutStep(),
+            # We need tags in order to use git describe for build/packaging
+            RunStep(
+                "Fetch tags",
+                "git fetch --depth=1 origin +refs/tags/*:refs/tags/*"
+            ),
+        ]
         steps += self.install_rust()
         steps += self.install_system_deps()
         return steps
@@ -377,8 +393,8 @@ TARGETS = [
     Target(name="ubuntu:18", os="ubuntu-18.04", continuous_only=True),
     Target(container="ubuntu:19.10", continuous_only=True),
     Target(container="ubuntu:20.04", continuous_only=True),
-    Target(container="debian:8.11", continuous_only=True),
-    Target(container="debian:9.12", continuous_only=True),
+    Target(container="debian:8.11", continuous_only=True, bootstrap_git=True),
+    Target(container="debian:9.12", continuous_only=True, bootstrap_git=True),
     Target(container="debian:10.3", continuous_only=True),
     Target(name="macos", os="macos-latest"),
     Target(container="fedora:31"),

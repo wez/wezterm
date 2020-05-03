@@ -56,6 +56,13 @@ jobs:
       uses: actions/checkout@v2
       with:
          submodules: "recursive"
+    - name: "Fetch tags"
+      shell: bash
+      run: |
+            export BUILD_REASON=Schedule
+            git fetch --depth=1 origin +refs/tags/*:refs/tags/*
+            
+
     - name: "Install Rust"
       uses: actions-rs/toolchain@v1
       with:

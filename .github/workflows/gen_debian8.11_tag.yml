@@ -20,9 +20,29 @@ jobs:
     - name: "Install Sudo"
       shell: bash
       run: "apt-get install -y sudo"
-    - name: "Install System Git"
+    - name: "Cache Git installation"
+      uses: actions/cache@v1
+      with:
+         path: "/usr/local/git"
+         key: "debian8.11-git"
+    - name: "Install Git from source"
       shell: bash
-      run: "sudo apt-get install -y git"
+      run: |
+            
+            VERS=2.25.0
+            
+            if test ! -x /usr/local/git/bin/git ; then
+                apt-get install -y wget libcurl-dev libexpat-dev gettext libssl-dev libz-dev gcc libextutils-autoinstall-perl make
+                cd /tmp
+                wget https://mirrors.edge.kernel.org/pub/software/scm/git/git-$VERS.tar.gz
+                tar xzf git-$VERS.tar.gz
+                cd git-$VERS
+                make prefix=/usr/local/git install
+            fi
+            
+            ln -s /usr/local/git/bin/git /usr/local/bin/git
+                    
+
     - name: "Install Curl"
       shell: bash
       run: "apt-get install -y curl"
@@ -30,6 +50,9 @@ jobs:
       uses: actions/checkout@v2
       with:
          submodules: "recursive"
+    - name: "Fetch tags"
+      shell: bash
+      run: "git fetch --depth=1 origin +refs/tags/*:refs/tags/*"
     - name: "Install Rust"
       uses: actions-rs/toolchain@v1
       with:
