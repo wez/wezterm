@@ -19,9 +19,20 @@ jobs:
       run: "yum install -y sudo"
     - name: "Install System Git"
       shell: bash
-      run: "sudo yum install -y git"
+      run: "sudo -n yum install -y git"
+    - name: "Install Curl"
+      shell: bash
+      run: "yum install -y curl"
     - name: "checkout repo"
-      uses: actions/checkout@v1
+      uses: actions/checkout@v2
+      with:
+         submodules: "recursive"
+    - name: "Fetch tags"
+      shell: bash
+      run: "git fetch --depth=1 origin +refs/tags/*:refs/tags/*"
+    - name: "Fetch tag/branch history"
+      shell: bash
+      run: "git fetch --prune --unshallow"
     - name: "Install Rust"
       uses: actions-rs/toolchain@v1
       with:
@@ -46,7 +57,7 @@ jobs:
          key: "fedora31-None-${{ hashFiles('Cargo.lock') }}-cargo-build-target"
     - name: "Install System Deps"
       shell: bash
-      run: "sudo ./get-deps"
+      run: "sudo -n ./get-deps"
     - name: "Build (Release mode)"
       shell: bash
       run: "cargo build --all --release"

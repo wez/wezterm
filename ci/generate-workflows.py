@@ -75,11 +75,9 @@ class CacheStep(ActionStep):
 
 class CheckoutStep(ActionStep):
     def __init__(self, name="checkout repo"):
-        # We use v1 rather than v2 or later because v1 handles
-        # submodules in a convenient way.  Subsequent versions
-        # require multiple lines of boilerplate that seem fragile
-        # if things change in the future.
-        super().__init__(name, action="actions/checkout@v1")
+        super().__init__(name,
+            action="actions/checkout@v2",
+            params={"submodules":"recursive"})
 
 
 class Job(object):
@@ -102,6 +100,8 @@ class Target(object):
         container=None,
         bootstrap_git=False,
         rust_target=None,
+        continuous_only=False,
+        app_image=False,
     ):
         if not name:
             if container:
@@ -113,6 +113,8 @@ class Target(object):
         self.container = container
         self.bootstrap_git = bootstrap_git
         self.rust_target = rust_target
+        self.continuous_only = continuous_only
+        self.app_image = app_image
 
     def uses_yum(self):
         if "fedora" in self.name:
@@ -121,41 +123,69 @@ class Target(object):
             return True
         return False
 
+    def uses_apt(self):
+        if "ubuntu" in self.name:
+            return True
+        if "debian" in self.name:
+            return True
+        return False
+
     def install_sudo(self):
         if self.uses_yum():
             return [RunStep("Install Sudo", "yum install -y sudo")]
+        if self.uses_apt() and self.container:
+            return [RunStep("Install Sudo", "apt-get install -y sudo")]
         return []
 
+    def install_curl(self):
+        steps = []
+        if self.uses_yum():
+            steps.append(RunStep("Install Curl", "yum install -y curl"))
+        if self.uses_apt() and self.container:
+            steps.append(RunStep("Install Curl", "apt-get install -y curl"))
+        return steps
+
     def install_git(self):
+        steps = []
         if self.bootstrap_git:
-            return [
+            GIT_VERS = "2.25.0"
+            steps.append(
                 CacheStep(
                     "Cache Git installation",
                     path="/usr/local/git",
-                    key=f"{self.name}-git",
-                ),
-                RunStep(
-                    name="Install Git from source",
-                    shell="bash",
-                    run="""
-VERS=2.25.0
+                    key=f"{self.name}-git-{GIT_VERS}",
+                ))
+
+            pre_reqs = ""
+            if self.uses_yum():
+                pre_reqs = "yum install -y wget curl-devel expat-devel gettext-devel openssl-devel zlib-devel gcc perl-ExtUtils-MakeMaker make"
+            elif self.uses_apt():
+                pre_reqs = "apt-get install -y wget libcurl4-openssl-dev libexpat-dev gettext libssl-dev libz-dev gcc libextutils-autoinstall-perl make"
+
+            steps.append(RunStep(
+                name="Install Git from source",
+                shell="bash",
+                run=f"""
+{pre_reqs}
 
 if test ! -x /usr/local/git/bin/git ; then
-    yum install -y wget curl-devel expat-devel gettext-devel openssl-devel zlib-devel gcc perl-ExtUtils-MakeMaker make
     cd /tmp
-    wget https://mirrors.edge.kernel.org/pub/software/scm/git/git-$VERS.tar.gz
-    tar xzf git-$VERS.tar.gz
-    cd git-$VERS
+    wget https://mirrors.edge.kernel.org/pub/software/scm/git/git-{GIT_VERS}.tar.gz
+    tar xzf git-{GIT_VERS}.tar.gz
+    cd git-{GIT_VERS}
     make prefix=/usr/local/git install
 fi
 
 ln -s /usr/local/git/bin/git /usr/local/bin/git
-        """,
-                ),
-            ]
-        if self.uses_yum():
-            return [RunStep(name="Install System Git", run="sudo yum install -y git")]
-        return []
+        """))
+
+        else:
+            if self.uses_yum():
+                steps.append(RunStep(name="Install System Git", run="sudo -n yum install -y git"))
+            elif self.uses_apt():
+                steps.append(RunStep(name="Install System Git", run="sudo -n apt-get install -y git"))
+
+        return steps
 
     def install_rust(self):
         key_prefix = (
@@ -193,7 +223,7 @@ ln -s /usr/local/git/bin/git /usr/local/bin/git
     def install_system_deps(self):
         if "win" in self.name:
             return []
-        return [RunStep(name="Install System Deps", run="sudo ./get-deps")]
+        return [RunStep(name="Install System Deps", run="sudo -n ./get-deps")]
 
     def check_formatting(self):
         return [RunStep(name="Check formatting", run="cargo fmt --all -- --check")]
@@ -215,16 +245,21 @@ cargo build --all --release""",
         return [RunStep(name="Test (Release mode)", run="cargo test --all --release")]
 
     def package(self):
-        return [RunStep("Package", "bash ci/deploy.sh")]
+        steps = [RunStep("Package", "bash ci/deploy.sh")]
+        if self.app_image:
+            steps.append(RunStep("Build AppImage", "bash ci/appimage.sh"))
+        return steps
 
     def upload_artifact(self):
         run = "mkdir pkg_\n"
         if self.uses_yum():
-            run += "mv ~/rpmbuild/RPMS/*/*.rpm pkg_"
+            run += "mv ~/rpmbuild/RPMS/*/*.rpm pkg_\n"
         if ("win" in self.name) or ("mac" in self.name):
-            run += "mv *.zip pkg_"
-        if "ubuntu" in self.name:
-            run += "mv *.deb *.xz *.AppImage pkg_"
+            run += "mv *.zip pkg_\n"
+        if ("ubuntu" in self.name) or ("debian" in self.name):
+            run += "mv *.deb *.xz pkg_\n"
+        if self.app_image:
+            run += "mv *.AppImage pkg_\n"
 
         return [
             RunStep("Move Package for artifact upload", run),
@@ -234,6 +269,19 @@ cargo build --all --release""",
                 params={"name": self.name, "path": "pkg_"},
             ),
         ]
+
+    def asset_patterns(self):
+        patterns = []
+        if self.uses_yum():
+            patterns += ["wezterm-*.rpm"]
+        elif ("win" in self.name) or ("mac" in self.name):
+            patterns += ["WezTerm-*.zip"]
+        elif ("ubuntu" in self.name) or ("debian" in self.name):
+            patterns += ["wezterm-*.deb", "wezterm-*.xz", "wezterm-*.tar.gz"]
+
+        if self.app_image:
+            patterns.append("*.AppImage")
+        return patterns
 
     def upload_asset_nightly(self):
         steps = []
@@ -245,11 +293,8 @@ cargo build --all --release""",
                     f"mv ~/rpmbuild/RPMS/*/*.rpm wezterm-nightly-{self.name}.rpm",
                 )
             )
-            patterns = ["wezterm-*.rpm"]
-        elif ("win" in self.name) or ("mac" in self.name):
-            patterns = ["WezTerm-*.zip"]
-        elif "ubuntu" in self.name:
-            patterns = ["wezterm-*.deb", "wezterm-*.xz", "wezterm-*.tar.gz"]
+
+        patterns = self.asset_patterns()
 
         return steps + [
             ActionStep(
@@ -268,11 +313,8 @@ cargo build --all --release""",
 
         if self.uses_yum():
             steps.append(RunStep("Move RPM", "mv ~/rpmbuild/RPMS/*/*.rpm ."))
-            patterns = ["wezterm-*.rpm"]
-        elif ("win" in self.name) or ("mac" in self.name):
-            patterns = ["WezTerm-*.zip"]
-        elif "ubuntu" in self.name:
-            patterns = ["wezterm-*.deb", "wezterm-*.xz", "wezterm-*.tar.gz"]
+
+        patterns = self.asset_patterns()
 
         return steps + [
             ActionStep(
@@ -291,9 +333,24 @@ cargo build --all --release""",
 
     def prep_environment(self):
         steps = []
+        if self.container:
+            if self.uses_apt():
+                steps.append(RunStep("Update APT", "apt update"))
         steps += self.install_sudo()
         steps += self.install_git()
-        steps += [CheckoutStep()]
+        steps += self.install_curl()
+        steps += [
+            CheckoutStep(),
+            # We need tags in order to use git describe for build/packaging
+            RunStep(
+                "Fetch tags",
+                "git fetch --depth=1 origin +refs/tags/*:refs/tags/*"
+            ),
+            RunStep(
+                "Fetch tag/branch history",
+                "git fetch --prune --unshallow"
+            ),
+        ]
         steps += self.install_rust()
         steps += self.install_system_deps()
         return steps
@@ -336,7 +393,18 @@ cargo build --all --release""",
 
 
 TARGETS = [
-    Target(name="ubuntu:16", os="ubuntu-16.04"),
+    Target(name="ubuntu:16", os="ubuntu-16.04", app_image=True),
+    Target(name="ubuntu:18", os="ubuntu-18.04", continuous_only=True),
+    Target(container="ubuntu:19.10", continuous_only=True),
+
+    # The container gets stuck while running get-deps, so disable for now
+    # Target(container="ubuntu:20.04", continuous_only=True),
+
+    # debian 8's wayland libraries are too old for wayland-client
+    # Target(container="debian:8.11", continuous_only=True, bootstrap_git=True),
+
+    Target(container="debian:9.12", continuous_only=True, bootstrap_git=True),
+    Target(container="debian:10.3", continuous_only=True),
     Target(name="macos", os="macos-latest"),
     Target(container="fedora:31"),
     Target(container="centos:7", bootstrap_git=True),
@@ -344,8 +412,10 @@ TARGETS = [
 ]
 
 
-def generate_actions(namer, jobber, trigger):
+def generate_actions(namer, jobber, trigger, is_continuous):
     for t in TARGETS:
+        #if t.continuous_only and not is_continuous:
+        #    continue
         name = namer(t).replace(":", "")
         print(name)
         job = jobber(t)
@@ -397,6 +467,7 @@ on:
     branches:
     - master
 """,
+        is_continuous=False,
     )
 
 
@@ -409,6 +480,7 @@ on:
   schedule:
     - cron: "10 * * * *"
 """,
+        is_continuous=True,
     )
 
 
@@ -422,6 +494,7 @@ on:
     tags:
       - "20*"
 """,
+        is_continuous=True,
     )
 
 

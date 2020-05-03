@@ -18,7 +18,15 @@ jobs:
     
     steps:
     - name: "checkout repo"
-      uses: actions/checkout@v1
+      uses: actions/checkout@v2
+      with:
+         submodules: "recursive"
+    - name: "Fetch tags"
+      shell: bash
+      run: "git fetch --depth=1 origin +refs/tags/*:refs/tags/*"
+    - name: "Fetch tag/branch history"
+      shell: bash
+      run: "git fetch --prune --unshallow"
     - name: "Install Rust"
       uses: actions-rs/toolchain@v1
       with:
@@ -63,6 +71,7 @@ jobs:
       run: |
             mkdir pkg_
             mv *.zip pkg_
+            
 
     - name: "Upload artifact"
       uses: actions/upload-artifact@master

@@ -1,5 +1,5 @@
 
-name: ubuntu16_continuous
+name: debian10.3_continuous
 
 on:
   schedule:
@@ -10,14 +10,35 @@ jobs:
   build:
     strategy:
       fail-fast: false
-    runs-on: "ubuntu-16.04"
-    
+    runs-on: "ubuntu-latest"
+    container: "debian:10.3"
     steps:
+    - name: "Update APT"
+      shell: bash
+      run: |
+            export BUILD_REASON=Schedule
+            apt update
+            
+
+    - name: "Install Sudo"
+      shell: bash
+      run: |
+            export BUILD_REASON=Schedule
+            apt-get install -y sudo
+            
+
     - name: "Install System Git"
       shell: bash
       run: |
             export BUILD_REASON=Schedule
             sudo -n apt-get install -y git
+            
+
+    - name: "Install Curl"
+      shell: bash
+      run: |
+            export BUILD_REASON=Schedule
+            apt-get install -y curl
             
 
     - name: "checkout repo"
@@ -49,17 +70,17 @@ jobs:
       uses: actions/cache@v1
       with:
          path: "~/.cargo/registry"
-         key: "ubuntu16-None-${{ hashFiles('Cargo.lock') }}-cargo-registry"
+         key: "debian10.3-None-${{ hashFiles('Cargo.lock') }}-cargo-registry"
     - name: "Cache cargo index"
       uses: actions/cache@v1
       with:
          path: "~/.cargo/git"
-         key: "ubuntu16-None-${{ hashFiles('Cargo.lock') }}-cargo-index"
+         key: "debian10.3-None-${{ hashFiles('Cargo.lock') }}-cargo-index"
     - name: "Cache cargo build"
       uses: actions/cache@v1
       with:
          path: "target"
-         key: "ubuntu16-None-${{ hashFiles('Cargo.lock') }}-cargo-build-target"
+         key: "debian10.3-None-${{ hashFiles('Cargo.lock') }}-cargo-build-target"
     - name: "Install System Deps"
       shell: bash
       run: |
@@ -88,16 +109,9 @@ jobs:
             bash ci/deploy.sh
             
 
-    - name: "Build AppImage"
-      shell: bash
-      run: |
-            export BUILD_REASON=Schedule
-            bash ci/appimage.sh
-            
-
     - name: "Upload to Nightly Release"
       uses: wez/upload-release-assets@releases/v1
       with:
-         files: "wezterm-*.deb;wezterm-*.xz;wezterm-*.tar.gz;*.AppImage"
+         files: "wezterm-*.deb;wezterm-*.xz;wezterm-*.tar.gz"
          release-tag: "nightly"
          repo-token: "${{ secrets.GITHUB_TOKEN }}"

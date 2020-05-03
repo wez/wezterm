@@ -21,27 +21,37 @@ jobs:
       uses: actions/cache@v1
       with:
          path: "/usr/local/git"
-         key: "centos7-git"
+         key: "centos7-git-2.25.0"
     - name: "Install Git from source"
       shell: bash
       run: |
             
-            VERS=2.25.0
+            yum install -y wget curl-devel expat-devel gettext-devel openssl-devel zlib-devel gcc perl-ExtUtils-MakeMaker make
             
             if test ! -x /usr/local/git/bin/git ; then
-                yum install -y wget curl-devel expat-devel gettext-devel openssl-devel zlib-devel gcc perl-ExtUtils-MakeMaker make
                 cd /tmp
-                wget https://mirrors.edge.kernel.org/pub/software/scm/git/git-$VERS.tar.gz
-                tar xzf git-$VERS.tar.gz
-                cd git-$VERS
+                wget https://mirrors.edge.kernel.org/pub/software/scm/git/git-2.25.0.tar.gz
+                tar xzf git-2.25.0.tar.gz
+                cd git-2.25.0
                 make prefix=/usr/local/git install
             fi
             
             ln -s /usr/local/git/bin/git /usr/local/bin/git
                     
 
+    - name: "Install Curl"
+      shell: bash
+      run: "yum install -y curl"
     - name: "checkout repo"
-      uses: actions/checkout@v1
+      uses: actions/checkout@v2
+      with:
+         submodules: "recursive"
+    - name: "Fetch tags"
+      shell: bash
+      run: "git fetch --depth=1 origin +refs/tags/*:refs/tags/*"
+    - name: "Fetch tag/branch history"
+      shell: bash
+      run: "git fetch --prune --unshallow"
     - name: "Install Rust"
       uses: actions-rs/toolchain@v1
       with:
@@ -66,7 +76,7 @@ jobs:
          key: "centos7-None-${{ hashFiles('Cargo.lock') }}-cargo-build-target"
     - name: "Install System Deps"
       shell: bash
-      run: "sudo ./get-deps"
+      run: "sudo -n ./get-deps"
     - name: "Build (Release mode)"
       shell: bash
       run: "cargo build --all --release"

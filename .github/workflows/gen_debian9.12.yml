@@ -1,9 +1,13 @@
 
-name: centos7_continuous
+name: debian9.12
 
 on:
-  schedule:
-    - cron: "10 * * * *"
+  push:
+    branches:
+    - master
+  pull_request:
+    branches:
+    - master
 
 
 jobs:
@@ -11,26 +15,24 @@ jobs:
     strategy:
       fail-fast: false
     runs-on: "ubuntu-latest"
-    container: "centos:7"
+    container: "debian:9.12"
     steps:
+    - name: "Update APT"
+      shell: bash
+      run: "apt update"
     - name: "Install Sudo"
       shell: bash
-      run: |
-            export BUILD_REASON=Schedule
-            yum install -y sudo
-            
-
+      run: "apt-get install -y sudo"
     - name: "Cache Git installation"
       uses: actions/cache@v1
       with:
          path: "/usr/local/git"
-         key: "centos7-git-2.25.0"
+         key: "debian9.12-git-2.25.0"
     - name: "Install Git from source"
       shell: bash
       run: |
-            export BUILD_REASON=Schedule
             
-            yum install -y wget curl-devel expat-devel gettext-devel openssl-devel zlib-devel gcc perl-ExtUtils-MakeMaker make
+            apt-get install -y wget libcurl4-openssl-dev libexpat-dev gettext libssl-dev libz-dev gcc libextutils-autoinstall-perl make
             
             if test ! -x /usr/local/git/bin/git ; then
                 cd /tmp
@@ -42,33 +44,20 @@ jobs:
             
             ln -s /usr/local/git/bin/git /usr/local/bin/git
                     
-            
 
     - name: "Install Curl"
       shell: bash
-      run: |
-            export BUILD_REASON=Schedule
-            yum install -y curl
-            
-
+      run: "apt-get install -y curl"
     - name: "checkout repo"
       uses: actions/checkout@v2
       with:
          submodules: "recursive"
     - name: "Fetch tags"
       shell: bash
-      run: |
-            export BUILD_REASON=Schedule
-            git fetch --depth=1 origin +refs/tags/*:refs/tags/*
-            
-
+      run: "git fetch --depth=1 origin +refs/tags/*:refs/tags/*"
     - name: "Fetch tag/branch history"
       shell: bash
-      run: |
-            export BUILD_REASON=Schedule
-            git fetch --prune --unshallow
-            
-
+      run: "git fetch --prune --unshallow"
     - name: "Install Rust"
       uses: actions-rs/toolchain@v1
       with:
@@ -80,55 +69,41 @@ jobs:
       uses: actions/cache@v1
       with:
          path: "~/.cargo/registry"
-         key: "centos7-None-${{ hashFiles('Cargo.lock') }}-cargo-registry"
+         key: "debian9.12-None-${{ hashFiles('Cargo.lock') }}-cargo-registry"
     - name: "Cache cargo index"
       uses: actions/cache@v1
       with:
          path: "~/.cargo/git"
-         key: "centos7-None-${{ hashFiles('Cargo.lock') }}-cargo-index"
+         key: "debian9.12-None-${{ hashFiles('Cargo.lock') }}-cargo-index"
     - name: "Cache cargo build"
       uses: actions/cache@v1
       with:
          path: "target"
-         key: "centos7-None-${{ hashFiles('Cargo.lock') }}-cargo-build-target"
+         key: "debian9.12-None-${{ hashFiles('Cargo.lock') }}-cargo-build-target"
     - name: "Install System Deps"
       shell: bash
-      run: |
-            export BUILD_REASON=Schedule
-            sudo -n ./get-deps
-            
-
+      run: "sudo -n ./get-deps"
+    - name: "Check formatting"
+      shell: bash
+      run: "cargo fmt --all -- --check"
     - name: "Build (Release mode)"
       shell: bash
-      run: |
-            export BUILD_REASON=Schedule
-            cargo build --all --release
-            
-
+      run: "cargo build --all --release"
     - name: "Test (Release mode)"
       shell: bash
-      run: |
-            export BUILD_REASON=Schedule
-            cargo test --all --release
-            
-
+      run: "cargo test --all --release"
     - name: "Package"
       shell: bash
-      run: |
-            export BUILD_REASON=Schedule
-            bash ci/deploy.sh
-            
-
-    - name: "Move RPM"
+      run: "bash ci/deploy.sh"
+    - name: "Move Package for artifact upload"
       shell: bash
       run: |
-            export BUILD_REASON=Schedule
-            mv ~/rpmbuild/RPMS/*/*.rpm wezterm-nightly-centos7.rpm
+            mkdir pkg_
+            mv *.deb *.xz pkg_
             
 
-    - name: "Upload to Nightly Release"
-      uses: wez/upload-release-assets@releases/v1
+    - name: "Upload artifact"
+      uses: actions/upload-artifact@master
       with:
-         files: "wezterm-*.rpm"
-         release-tag: "nightly"
-         repo-token: "${{ secrets.GITHUB_TOKEN }}"
+         name: "debian9.12"
+         path: "pkg_"

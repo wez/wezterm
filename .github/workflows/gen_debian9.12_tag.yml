@@ -1,5 +1,5 @@
 
-name: ubuntu16_tag
+name: debian9.12_tag
 
 on:
   push:
@@ -11,12 +11,40 @@ jobs:
   build:
     strategy:
       fail-fast: false
-    runs-on: "ubuntu-16.04"
-    
+    runs-on: "ubuntu-latest"
+    container: "debian:9.12"
     steps:
-    - name: "Install System Git"
+    - name: "Update APT"
       shell: bash
-      run: "sudo -n apt-get install -y git"
+      run: "apt update"
+    - name: "Install Sudo"
+      shell: bash
+      run: "apt-get install -y sudo"
+    - name: "Cache Git installation"
+      uses: actions/cache@v1
+      with:
+         path: "/usr/local/git"
+         key: "debian9.12-git-2.25.0"
+    - name: "Install Git from source"
+      shell: bash
+      run: |
+            
+            apt-get install -y wget libcurl4-openssl-dev libexpat-dev gettext libssl-dev libz-dev gcc libextutils-autoinstall-perl make
+            
+            if test ! -x /usr/local/git/bin/git ; then
+                cd /tmp
+                wget https://mirrors.edge.kernel.org/pub/software/scm/git/git-2.25.0.tar.gz
+                tar xzf git-2.25.0.tar.gz
+                cd git-2.25.0
+                make prefix=/usr/local/git install
+            fi
+            
+            ln -s /usr/local/git/bin/git /usr/local/bin/git
+                    
+
+    - name: "Install Curl"
+      shell: bash
+      run: "apt-get install -y curl"
     - name: "checkout repo"
       uses: actions/checkout@v2
       with:
@@ -38,17 +66,17 @@ jobs:
       uses: actions/cache@v1
       with:
          path: "~/.cargo/registry"
-         key: "ubuntu16-None-${{ hashFiles('Cargo.lock') }}-cargo-registry"
+         key: "debian9.12-None-${{ hashFiles('Cargo.lock') }}-cargo-registry"
     - name: "Cache cargo index"
       uses: actions/cache@v1
       with:
          path: "~/.cargo/git"
-         key: "ubuntu16-None-${{ hashFiles('Cargo.lock') }}-cargo-index"
+         key: "debian9.12-None-${{ hashFiles('Cargo.lock') }}-cargo-index"
     - name: "Cache cargo build"
       uses: actions/cache@v1
       with:
          path: "target"
-         key: "ubuntu16-None-${{ hashFiles('Cargo.lock') }}-cargo-build-target"
+         key: "debian9.12-None-${{ hashFiles('Cargo.lock') }}-cargo-build-target"
     - name: "Install System Deps"
       shell: bash
       run: "sudo -n ./get-deps"
@@ -61,9 +89,6 @@ jobs:
     - name: "Package"
       shell: bash
       run: "bash ci/deploy.sh"
-    - name: "Build AppImage"
-      shell: bash
-      run: "bash ci/appimage.sh"
     - name: "Upload to Tagged Release"
       uses: softprops/action-gh-release@v1
       with:
@@ -71,7 +96,6 @@ jobs:
             wezterm-*.deb
             wezterm-*.xz
             wezterm-*.tar.gz
-            *.AppImage
 
       env:
          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"

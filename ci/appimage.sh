@@ -17,3 +17,14 @@ install -Dm644 assets/wezterm.desktop AppDir/usr/share/applications/org.wezfurlo
   --appdir AppDir \
   --output appimage \
   --desktop-file assets/wezterm.desktop
+
+TAG_NAME=${TAG_NAME:-$(git describe --tags)}
+TAG_NAME=${TAG_NAME:-$(date +'%Y%m%d-%H%M%S')-$(git log --format=%h -1)}
+distro=$(lsb_release -is)
+distver=$(lsb_release -rs)
+
+if [[ "$BUILD_REASON" == "Schedule" ]] ; then
+  mv WezTerm*.AppImage WezTerm-nightly-$distro$distver.AppImage
+else
+  mv WezTerm*.AppImage WezTerm-$TAG_NAME-$distro$distver.AppImage
+fi

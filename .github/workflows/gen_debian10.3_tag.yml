@@ -1,5 +1,5 @@
 
-name: ubuntu16_tag
+name: debian10.3_tag
 
 on:
   push:
@@ -11,12 +11,21 @@ jobs:
   build:
     strategy:
       fail-fast: false
-    runs-on: "ubuntu-16.04"
-    
+    runs-on: "ubuntu-latest"
+    container: "debian:10.3"
     steps:
+    - name: "Update APT"
+      shell: bash
+      run: "apt update"
+    - name: "Install Sudo"
+      shell: bash
+      run: "apt-get install -y sudo"
     - name: "Install System Git"
       shell: bash
       run: "sudo -n apt-get install -y git"
+    - name: "Install Curl"
+      shell: bash
+      run: "apt-get install -y curl"
     - name: "checkout repo"
       uses: actions/checkout@v2
       with:
@@ -38,17 +47,17 @@ jobs:
       uses: actions/cache@v1
       with:
          path: "~/.cargo/registry"
-         key: "ubuntu16-None-${{ hashFiles('Cargo.lock') }}-cargo-registry"
+         key: "debian10.3-None-${{ hashFiles('Cargo.lock') }}-cargo-registry"
     - name: "Cache cargo index"
       uses: actions/cache@v1
       with:
          path: "~/.cargo/git"
-         key: "ubuntu16-None-${{ hashFiles('Cargo.lock') }}-cargo-index"
+         key: "debian10.3-None-${{ hashFiles('Cargo.lock') }}-cargo-index"
     - name: "Cache cargo build"
       uses: actions/cache@v1
       with:
          path: "target"
-         key: "ubuntu16-None-${{ hashFiles('Cargo.lock') }}-cargo-build-target"
+         key: "debian10.3-None-${{ hashFiles('Cargo.lock') }}-cargo-build-target"
     - name: "Install System Deps"
       shell: bash
       run: "sudo -n ./get-deps"
@@ -61,9 +70,6 @@ jobs:
     - name: "Package"
       shell: bash
       run: "bash ci/deploy.sh"
-    - name: "Build AppImage"
-      shell: bash
-      run: "bash ci/appimage.sh"
     - name: "Upload to Tagged Release"
       uses: softprops/action-gh-release@v1
       with:
@@ -71,7 +77,6 @@ jobs:
             wezterm-*.deb
             wezterm-*.xz
             wezterm-*.tar.gz
-            *.AppImage
 
       env:
          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"

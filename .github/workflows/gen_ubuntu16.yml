@@ -17,8 +17,19 @@ jobs:
     runs-on: "ubuntu-16.04"
     
     steps:
+    - name: "Install System Git"
+      shell: bash
+      run: "sudo -n apt-get install -y git"
     - name: "checkout repo"
-      uses: actions/checkout@v1
+      uses: actions/checkout@v2
+      with:
+         submodules: "recursive"
+    - name: "Fetch tags"
+      shell: bash
+      run: "git fetch --depth=1 origin +refs/tags/*:refs/tags/*"
+    - name: "Fetch tag/branch history"
+      shell: bash
+      run: "git fetch --prune --unshallow"
     - name: "Install Rust"
       uses: actions-rs/toolchain@v1
       with:
@@ -43,7 +54,7 @@ jobs:
          key: "ubuntu16-None-${{ hashFiles('Cargo.lock') }}-cargo-build-target"
     - name: "Install System Deps"
       shell: bash
-      run: "sudo ./get-deps"
+      run: "sudo -n ./get-deps"
     - name: "Check formatting"
       shell: bash
       run: "cargo fmt --all -- --check"
@@ -56,11 +67,16 @@ jobs:
     - name: "Package"
       shell: bash
       run: "bash ci/deploy.sh"
+    - name: "Build AppImage"
+      shell: bash
+      run: "bash ci/appimage.sh"
     - name: "Move Package for artifact upload"
       shell: bash
       run: |
             mkdir pkg_
-            mv *.deb *.xz *.AppImage pkg_
+            mv *.deb *.xz pkg_
+            mv *.AppImage pkg_
+            
 
     - name: "Upload artifact"
       uses: actions/upload-artifact@master

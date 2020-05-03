@@ -24,11 +24,34 @@ jobs:
       shell: bash
       run: |
             export BUILD_REASON=Schedule
-            sudo yum install -y git
+            sudo -n yum install -y git
+            
+
+    - name: "Install Curl"
+      shell: bash
+      run: |
+            export BUILD_REASON=Schedule
+            yum install -y curl
             
 
     - name: "checkout repo"
-      uses: actions/checkout@v1
+      uses: actions/checkout@v2
+      with:
+         submodules: "recursive"
+    - name: "Fetch tags"
+      shell: bash
+      run: |
+            export BUILD_REASON=Schedule
+            git fetch --depth=1 origin +refs/tags/*:refs/tags/*
+            
+
+    - name: "Fetch tag/branch history"
+      shell: bash
+      run: |
+            export BUILD_REASON=Schedule
+            git fetch --prune --unshallow
+            
+
     - name: "Install Rust"
       uses: actions-rs/toolchain@v1
       with:
@@ -55,7 +78,7 @@ jobs:
       shell: bash
       run: |
             export BUILD_REASON=Schedule
-            sudo ./get-deps
+            sudo -n ./get-deps
             
 
     - name: "Build (Release mode)"
