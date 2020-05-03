@@ -19,7 +19,7 @@ jobs:
       run: "yum install -y sudo"
     - name: "Install System Git"
       shell: bash
-      run: "sudo yum install -y git"
+      run: "sudo -n yum install -y git"
     - name: "Install Curl"
       shell: bash
       run: "yum install -y curl"
@@ -57,7 +57,7 @@ jobs:
          key: "fedora31-None-${{ hashFiles('Cargo.lock') }}-cargo-build-target"
     - name: "Install System Deps"
       shell: bash
-      run: "sudo ./get-deps"
+      run: "sudo -n ./get-deps"
     - name: "Build (Release mode)"
       shell: bash
       run: "cargo build --all --release"

@@ -148,11 +148,12 @@ class Target(object):
     def install_git(self):
         steps = []
         if self.bootstrap_git:
+            GIT_VERS = "2.25.0"
             steps.append(
                 CacheStep(
                     "Cache Git installation",
                     path="/usr/local/git",
-                    key=f"{self.name}-git",
+                    key=f"{self.name}-git-{GIT_VERS}",
                 ))
 
             pre_reqs = ""
@@ -165,14 +166,13 @@ class Target(object):
                 name="Install Git from source",
                 shell="bash",
                 run=f"""
-VERS=2.25.0
+{pre_reqs}
 
 if test ! -x /usr/local/git/bin/git ; then
-    {pre_reqs}
     cd /tmp
-    wget https://mirrors.edge.kernel.org/pub/software/scm/git/git-$VERS.tar.gz
-    tar xzf git-$VERS.tar.gz
-    cd git-$VERS
+    wget https://mirrors.edge.kernel.org/pub/software/scm/git/git-{GIT_VERS}.tar.gz
+    tar xzf git-{GIT_VERS}.tar.gz
+    cd git-{GIT_VERS}
     make prefix=/usr/local/git install
 fi
 
@@ -181,9 +181,9 @@ ln -s /usr/local/git/bin/git /usr/local/bin/git
 
         else:
             if self.uses_yum():
-                steps.append(RunStep(name="Install System Git", run="sudo yum install -y git"))
+                steps.append(RunStep(name="Install System Git", run="sudo -n yum install -y git"))
             elif self.uses_apt():
-                steps.append(RunStep(name="Install System Git", run="sudo apt-get install -y git"))
+                steps.append(RunStep(name="Install System Git", run="sudo -n apt-get install -y git"))
 
         return steps
 
@@ -223,7 +223,7 @@ ln -s /usr/local/git/bin/git /usr/local/bin/git
     def install_system_deps(self):
         if "win" in self.name:
             return []
-        return [RunStep(name="Install System Deps", run="sudo ./get-deps")]
+        return [RunStep(name="Install System Deps", run="sudo -n ./get-deps")]
 
     def check_formatting(self):
         return [RunStep(name="Check formatting", run="cargo fmt --all -- --check")]

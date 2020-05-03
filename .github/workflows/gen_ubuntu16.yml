@@ -19,7 +19,7 @@ jobs:
     steps:
     - name: "Install System Git"
       shell: bash
-      run: "sudo apt-get install -y git"
+      run: "sudo -n apt-get install -y git"
     - name: "checkout repo"
       uses: actions/checkout@v2
       with:
@@ -54,7 +54,7 @@ jobs:
          key: "ubuntu16-None-${{ hashFiles('Cargo.lock') }}-cargo-build-target"
     - name: "Install System Deps"
       shell: bash
-      run: "sudo ./get-deps"
+      run: "sudo -n ./get-deps"
     - name: "Check formatting"
       shell: bash
       run: "cargo fmt --all -- --check"

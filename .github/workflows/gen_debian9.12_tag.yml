@@ -24,19 +24,18 @@ jobs:
       uses: actions/cache@v1
       with:
          path: "/usr/local/git"
-         key: "debian9.12-git"
+         key: "debian9.12-git-2.25.0"
     - name: "Install Git from source"
       shell: bash
       run: |
             
-            VERS=2.25.0
+            apt-get install -y wget libcurl4-openssl-dev libexpat-dev gettext libssl-dev libz-dev gcc libextutils-autoinstall-perl make
             
             if test ! -x /usr/local/git/bin/git ; then
-                apt-get install -y wget libcurl4-openssl-dev libexpat-dev gettext libssl-dev libz-dev gcc libextutils-autoinstall-perl make
                 cd /tmp
-                wget https://mirrors.edge.kernel.org/pub/software/scm/git/git-$VERS.tar.gz
-                tar xzf git-$VERS.tar.gz
-                cd git-$VERS
+                wget https://mirrors.edge.kernel.org/pub/software/scm/git/git-2.25.0.tar.gz
+                tar xzf git-2.25.0.tar.gz
+                cd git-2.25.0
                 make prefix=/usr/local/git install
             fi
             
@@ -80,7 +79,7 @@ jobs:
          key: "debian9.12-None-${{ hashFiles('Cargo.lock') }}-cargo-build-target"
     - name: "Install System Deps"
       shell: bash
-      run: "sudo ./get-deps"
+      run: "sudo -n ./get-deps"
     - name: "Build (Release mode)"
       shell: bash
       run: "cargo build --all --release"

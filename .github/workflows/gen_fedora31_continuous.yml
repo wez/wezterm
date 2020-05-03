@@ -24,7 +24,7 @@ jobs:
       shell: bash
       run: |
             export BUILD_REASON=Schedule
-            sudo yum install -y git
+            sudo -n yum install -y git
             
 
     - name: "Install Curl"
@@ -78,7 +78,7 @@ jobs:
       shell: bash
       run: |
             export BUILD_REASON=Schedule
-            sudo ./get-deps
+            sudo -n ./get-deps
             
 
     - name: "Build (Release mode)"

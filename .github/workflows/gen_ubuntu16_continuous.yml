@@ -17,7 +17,7 @@ jobs:
       shell: bash
       run: |
             export BUILD_REASON=Schedule
-            sudo apt-get install -y git
+            sudo -n apt-get install -y git
             
 
     - name: "checkout repo"
@@ -64,7 +64,7 @@ jobs:
       shell: bash
       run: |
             export BUILD_REASON=Schedule
-            sudo ./get-deps
+            sudo -n ./get-deps
             
 
     - name: "Build (Release mode)"

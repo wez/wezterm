@@ -16,7 +16,7 @@ jobs:
     steps:
     - name: "Install System Git"
       shell: bash
-      run: "sudo apt-get install -y git"
+      run: "sudo -n apt-get install -y git"
     - name: "checkout repo"
       uses: actions/checkout@v2
       with:
@@ -51,7 +51,7 @@ jobs:
          key: "ubuntu18-None-${{ hashFiles('Cargo.lock') }}-cargo-build-target"
     - name: "Install System Deps"
       shell: bash
-      run: "sudo ./get-deps"
+      run: "sudo -n ./get-deps"
     - name: "Build (Release mode)"
       shell: bash
       run: "cargo build --all --release"
