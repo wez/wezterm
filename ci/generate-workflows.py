@@ -159,7 +159,7 @@ class Target(object):
             if self.uses_yum():
                 pre_reqs = "yum install -y wget curl-devel expat-devel gettext-devel openssl-devel zlib-devel gcc perl-ExtUtils-MakeMaker make"
             elif self.uses_apt():
-                pre_reqs = "apt-get install -y wget libcurl-dev libexpat-dev gettext libssl-dev libz-dev gcc libextutils-autoinstall-perl make"
+                pre_reqs = "apt-get install -y wget libcurl4-openssl-dev libexpat-dev gettext libssl-dev libz-dev gcc libextutils-autoinstall-perl make"
 
             steps.append(RunStep(
                 name="Install Git from source",
@@ -345,6 +345,10 @@ cargo build --all --release""",
             RunStep(
                 "Fetch tags",
                 "git fetch --depth=1 origin +refs/tags/*:refs/tags/*"
+            ),
+            RunStep(
+                "Fetch tag/branch history",
+                "git fetch --prune --unshallow"
             ),
         ]
         steps += self.install_rust()

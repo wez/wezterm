@@ -25,6 +25,13 @@ jobs:
             git fetch --depth=1 origin +refs/tags/*:refs/tags/*
             
 
+    - name: "Fetch tag/branch history"
+      shell: bash
+      run: |
+            export MACOSX_DEPLOYMENT_TARGET=10.9
+            git fetch --prune --unshallow
+            
+
     - name: "Install Rust"
       uses: actions-rs/toolchain@v1
       with:

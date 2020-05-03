@@ -40,7 +40,7 @@ jobs:
             VERS=2.25.0
             
             if test ! -x /usr/local/git/bin/git ; then
-                apt-get install -y wget libcurl-dev libexpat-dev gettext libssl-dev libz-dev gcc libextutils-autoinstall-perl make
+                apt-get install -y wget libcurl4-openssl-dev libexpat-dev gettext libssl-dev libz-dev gcc libextutils-autoinstall-perl make
                 cd /tmp
                 wget https://mirrors.edge.kernel.org/pub/software/scm/git/git-$VERS.tar.gz
                 tar xzf git-$VERS.tar.gz
@@ -68,6 +68,13 @@ jobs:
       run: |
             export BUILD_REASON=Schedule
             git fetch --depth=1 origin +refs/tags/*:refs/tags/*
+            
+
+    - name: "Fetch tag/branch history"
+      shell: bash
+      run: |
+            export BUILD_REASON=Schedule
+            git fetch --prune --unshallow
             
 
     - name: "Install Rust"
