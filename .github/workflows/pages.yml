@@ -30,12 +30,8 @@ jobs:
       - name: Build
         run: |
           source $HOME/.cargo/env
-          curl https://api.github.com/repos/wez/wezterm/releases > /tmp/wezterm.releases.json
-          python3 ci/subst-release-info.py
-          ~/mdbook-bin/mdbook build docs
-          mv gh_pages/book.js gh_pages/book.2
-          cat docs/lua.js gh_pages/book.2 > gh_pages/book.js
-          rm gh_pages/book.2
+          PATH="$HOME/mdbook-bin:$PATH"
+          ./ci/build-docs.sh
       - name: Deploy
         if: success()
         uses: crazy-max/ghaction-github-pages@v1
