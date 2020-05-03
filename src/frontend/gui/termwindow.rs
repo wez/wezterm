@@ -585,7 +585,7 @@ impl TermWindow {
             image::load_from_memory(include_bytes!("../../../assets/icon/terminal.png"))?;
         let image = icon_image.to_bgra();
         let (width, height) = image.dimensions();
-        window.set_icon(window::Image::from_raw(
+        window.set_icon(Image::from_raw(
             width as usize,
             height as usize,
             image.into_raw(),
