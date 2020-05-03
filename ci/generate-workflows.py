@@ -227,11 +227,13 @@ cargo build --all --release""",
     def upload_artifact(self):
         run = "mkdir pkg_\n"
         if self.uses_yum():
-            run += "mv ~/rpmbuild/RPMS/*/*.rpm pkg_"
+            run += "mv ~/rpmbuild/RPMS/*/*.rpm pkg_\n"
         if ("win" in self.name) or ("mac" in self.name):
-            run += "mv *.zip pkg_"
+            run += "mv *.zip pkg_\n"
         if "ubuntu" in self.name:
-            run += "mv *.deb *.xz *.AppImage pkg_"
+            run += "mv *.deb *.xz pkg_\n"
+        if self.app_image:
+            run += "mv *.AppImage pkg_\n"
 
         return [
             RunStep("Move Package for artifact upload", run),
@@ -345,8 +347,11 @@ cargo build --all --release""",
 TARGETS = [
     Target(name="ubuntu:16", os="ubuntu-16.04", app_image=True),
     Target(name="ubuntu:18", os="ubuntu-18.04", continuous_only=True),
-    Target(container="ubuntu:19", continuous_only=True),
-    Target(container="ubuntu:20", continuous_only=True),
+    Target(container="ubuntu:19.10", continuous_only=True),
+    Target(container="ubuntu:20.04", continuous_only=True),
+    Target(container="debian:8.11", continuous_only=True),
+    Target(container="debian:9.12", continuous_only=True),
+    Target(container="debian:10.3", continuous_only=True),
     Target(name="macos", os="macos-latest"),
     Target(container="fedora:31"),
     Target(container="centos:7", bootstrap_git=True),
