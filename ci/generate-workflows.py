@@ -75,11 +75,9 @@ class CacheStep(ActionStep):
 
 class CheckoutStep(ActionStep):
     def __init__(self, name="checkout repo"):
-        # We use v1 rather than v2 or later because v1 handles
-        # submodules in a convenient way.  Subsequent versions
-        # require multiple lines of boilerplate that seem fragile
-        # if things change in the future.
-        super().__init__(name, action="actions/checkout@v1")
+        super().__init__(name,
+            action="actions/checkout@v2",
+            params={"submodules":"recursive"})
 
 
 class Job(object):
