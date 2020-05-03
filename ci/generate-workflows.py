@@ -135,17 +135,17 @@ class Target(object):
     def install_sudo(self):
         if self.uses_yum():
             return [RunStep("Install Sudo", "yum install -y sudo")]
+        if self.uses_apt():
+            return [RunStep("Install Sudo", "apt-get install -y sudo")]
         return []
 
     def install_curl(self):
+        steps = []
         if self.uses_yum():
-            return [RunStep("Install Curl", "yum install -y curl")]
+            steps.append(RunStep("Install Curl", "yum install -y curl"))
         if self.uses_apt():
-            return [
-                RunStep("Update APT", "apt update"),
-                RunStep("Install Curl", "apt-get install -y curl")
-            ]
-        return []
+            steps.append(RunStep("Install Curl", "apt-get install -y curl"))
+        return steps
 
     def install_git(self):
         if self.bootstrap_git:
@@ -324,6 +324,9 @@ cargo build --all --release""",
 
     def prep_environment(self):
         steps = []
+        if self.container:
+            if self.uses_apt():
+                steps.append(RunStep("Update APT", "apt update"))
         steps += self.install_sudo()
         steps += self.install_git()
         steps += self.install_curl()

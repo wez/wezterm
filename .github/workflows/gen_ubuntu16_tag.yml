@@ -14,9 +14,9 @@ jobs:
     runs-on: "ubuntu-16.04"
     
     steps:
-    - name: "Update APT"
+    - name: "Install Sudo"
       shell: bash
-      run: "apt update"
+      run: "apt-get install -y sudo"
     - name: "Install Curl"
       shell: bash
       run: "apt-get install -y curl"

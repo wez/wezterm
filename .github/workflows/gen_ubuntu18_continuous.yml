@@ -13,11 +13,11 @@ jobs:
     runs-on: "ubuntu-18.04"
     
     steps:
-    - name: "Update APT"
+    - name: "Install Sudo"
       shell: bash
       run: |
             export BUILD_REASON=Schedule
-            apt update
+            apt-get install -y sudo
             
 
     - name: "Install Curl"

@@ -20,6 +20,13 @@ jobs:
             apt update
             
 
+    - name: "Install Sudo"
+      shell: bash
+      run: |
+            export BUILD_REASON=Schedule
+            apt-get install -y sudo
+            
+
     - name: "Install Curl"
       shell: bash
       run: |
