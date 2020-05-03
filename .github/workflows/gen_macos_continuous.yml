@@ -62,7 +62,7 @@ jobs:
       run: |
             export BUILD_REASON=Schedule
             export MACOSX_DEPLOYMENT_TARGET=10.9
-            sudo -n ./get-deps
+            ./get-deps
             
             
 

@@ -130,20 +130,27 @@ class Target(object):
             return True
         return False
 
-    def install_sudo(self):
+    def needs_sudo(self):
+        if not self.container and self.uses_apt():
+            return True
+        return False
+
+    def install_system_package(self, name):
+        installer = None
         if self.uses_yum():
-            return [RunStep("Install Sudo", "yum install -y sudo")]
-        if self.uses_apt() and self.container:
-            return [RunStep("Install Sudo", "apt-get install -y sudo")]
-        return []
+            installer = "yum"
+        elif self.uses_apt():
+            installer = "apt-get"
+        else:
+            return []
+        if self.needs_sudo():
+            installer = f"sudo -n {installer}"
+        return [RunStep(f"Install {name}", f"{installer} install -y {name}")]
 
     def install_curl(self):
-        steps = []
-        if self.uses_yum():
-            steps.append(RunStep("Install Curl", "yum install -y curl"))
-        if self.uses_apt() and self.container:
-            steps.append(RunStep("Install Curl", "apt-get install -y curl"))
-        return steps
+        if self.uses_yum() or (self.uses_apt() and self.container):
+            return self.install_system_package("curl")
+        return []
 
     def install_git(self):
         steps = []
@@ -180,10 +187,7 @@ ln -s /usr/local/git/bin/git /usr/local/bin/git
         """))
 
         else:
-            if self.uses_yum():
-                steps.append(RunStep(name="Install System Git", run="sudo -n yum install -y git"))
-            elif self.uses_apt():
-                steps.append(RunStep(name="Install System Git", run="sudo -n apt-get install -y git"))
+            steps += self.install_system_package("git")
 
         return steps
 
@@ -223,7 +227,8 @@ ln -s /usr/local/git/bin/git /usr/local/bin/git
     def install_system_deps(self):
         if "win" in self.name:
             return []
-        return [RunStep(name="Install System Deps", run="sudo -n ./get-deps")]
+        sudo = "sudo -n " if self.needs_sudo() else ""
+        return [RunStep(name="Install System Deps", run=f"{sudo}./get-deps")]
 
     def check_formatting(self):
         return [RunStep(name="Check formatting", run="cargo fmt --all -- --check")]
@@ -335,8 +340,13 @@ cargo build --all --release""",
         steps = []
         if self.container:
             if self.uses_apt():
-                steps.append(RunStep("Update APT", "apt update"))
-        steps += self.install_sudo()
+                steps += [
+                    RunStep(
+                        "set APT to non-interactive",
+                        "echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections"
+                    ),
+                    RunStep("Update APT", "apt update"),
+                ]
         steps += self.install_git()
         steps += self.install_curl()
         steps += [
@@ -398,7 +408,7 @@ TARGETS = [
     Target(container="ubuntu:19.10", continuous_only=True),
 
     # The container gets stuck while running get-deps, so disable for now
-    # Target(container="ubuntu:20.04", continuous_only=True),
+    Target(container="ubuntu:20.04", continuous_only=True),
 
     # debian 8's wayland libraries are too old for wayland-client
     # Target(container="debian:8.11", continuous_only=True, bootstrap_git=True),

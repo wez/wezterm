@@ -14,16 +14,16 @@ jobs:
     runs-on: "ubuntu-latest"
     container: "ubuntu:19.10"
     steps:
+    - name: "set APT to non-interactive"
+      shell: bash
+      run: "echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections"
     - name: "Update APT"
       shell: bash
       run: "apt update"
-    - name: "Install Sudo"
+    - name: "Install git"
       shell: bash
-      run: "apt-get install -y sudo"
-    - name: "Install System Git"
-      shell: bash
-      run: "sudo -n apt-get install -y git"
-    - name: "Install Curl"
+      run: "apt-get install -y git"
+    - name: "Install curl"
       shell: bash
       run: "apt-get install -y curl"
     - name: "checkout repo"
@@ -60,7 +60,7 @@ jobs:
          key: "ubuntu19.10-None-${{ hashFiles('Cargo.lock') }}-cargo-build-target"
     - name: "Install System Deps"
       shell: bash
-      run: "sudo -n ./get-deps"
+      run: "./get-deps"
     - name: "Build (Release mode)"
       shell: bash
       run: "cargo build --all --release"

@@ -13,13 +13,6 @@ jobs:
     runs-on: "ubuntu-latest"
     container: "centos:7"
     steps:
-    - name: "Install Sudo"
-      shell: bash
-      run: |
-            export BUILD_REASON=Schedule
-            yum install -y sudo
-            
-
     - name: "Cache Git installation"
       uses: actions/cache@v1
       with:
@@ -44,7 +37,7 @@ jobs:
                     
             
 
-    - name: "Install Curl"
+    - name: "Install curl"
       shell: bash
       run: |
             export BUILD_REASON=Schedule
@@ -95,7 +88,7 @@ jobs:
       shell: bash
       run: |
             export BUILD_REASON=Schedule
-            sudo -n ./get-deps
+            ./get-deps
             
 
     - name: "Build (Release mode)"

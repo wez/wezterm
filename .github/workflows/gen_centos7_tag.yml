@@ -14,9 +14,6 @@ jobs:
     runs-on: "ubuntu-latest"
     container: "centos:7"
     steps:
-    - name: "Install Sudo"
-      shell: bash
-      run: "yum install -y sudo"
     - name: "Cache Git installation"
       uses: actions/cache@v1
       with:
@@ -39,7 +36,7 @@ jobs:
             ln -s /usr/local/git/bin/git /usr/local/bin/git
                     
 
-    - name: "Install Curl"
+    - name: "Install curl"
       shell: bash
       run: "yum install -y curl"
     - name: "checkout repo"
@@ -76,7 +73,7 @@ jobs:
          key: "centos7-None-${{ hashFiles('Cargo.lock') }}-cargo-build-target"
     - name: "Install System Deps"
       shell: bash
-      run: "sudo -n ./get-deps"
+      run: "./get-deps"
     - name: "Build (Release mode)"
       shell: bash
       run: "cargo build --all --release"

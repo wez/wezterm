@@ -13,21 +13,14 @@ jobs:
     runs-on: "ubuntu-latest"
     container: "fedora:31"
     steps:
-    - name: "Install Sudo"
+    - name: "Install git"
       shell: bash
       run: |
             export BUILD_REASON=Schedule
-            yum install -y sudo
+            yum install -y git
             
 
-    - name: "Install System Git"
-      shell: bash
-      run: |
-            export BUILD_REASON=Schedule
-            sudo -n yum install -y git
-            
-
-    - name: "Install Curl"
+    - name: "Install curl"
       shell: bash
       run: |
             export BUILD_REASON=Schedule
@@ -78,7 +71,7 @@ jobs:
       shell: bash
       run: |
             export BUILD_REASON=Schedule
-            sudo -n ./get-deps
+            ./get-deps
             
 
     - name: "Build (Release mode)"

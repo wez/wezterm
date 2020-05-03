@@ -58,7 +58,7 @@ jobs:
       shell: bash
       run: |
             export MACOSX_DEPLOYMENT_TARGET=10.9
-            sudo -n ./get-deps
+            ./get-deps
             
 
     - name: "Build (Release mode)"

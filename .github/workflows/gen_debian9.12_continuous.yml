@@ -13,18 +13,18 @@ jobs:
     runs-on: "ubuntu-latest"
     container: "debian:9.12"
     steps:
+    - name: "set APT to non-interactive"
+      shell: bash
+      run: |
+            export BUILD_REASON=Schedule
+            echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
+            
+
     - name: "Update APT"
       shell: bash
       run: |
             export BUILD_REASON=Schedule
             apt update
-            
-
-    - name: "Install Sudo"
-      shell: bash
-      run: |
-            export BUILD_REASON=Schedule
-            apt-get install -y sudo
             
 
     - name: "Cache Git installation"
@@ -51,7 +51,7 @@ jobs:
                     
             
 
-    - name: "Install Curl"
+    - name: "Install curl"
       shell: bash
       run: |
             export BUILD_REASON=Schedule
@@ -102,7 +102,7 @@ jobs:
       shell: bash
       run: |
             export BUILD_REASON=Schedule
-            sudo -n ./get-deps
+            ./get-deps
             
 
     - name: "Build (Release mode)"

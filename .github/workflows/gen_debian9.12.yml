@@ -17,12 +17,12 @@ jobs:
     runs-on: "ubuntu-latest"
     container: "debian:9.12"
     steps:
+    - name: "set APT to non-interactive"
+      shell: bash
+      run: "echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections"
     - name: "Update APT"
       shell: bash
       run: "apt update"
-    - name: "Install Sudo"
-      shell: bash
-      run: "apt-get install -y sudo"
     - name: "Cache Git installation"
       uses: actions/cache@v1
       with:
@@ -45,7 +45,7 @@ jobs:
             ln -s /usr/local/git/bin/git /usr/local/bin/git
                     
 
-    - name: "Install Curl"
+    - name: "Install curl"
       shell: bash
       run: "apt-get install -y curl"
     - name: "checkout repo"
@@ -82,7 +82,7 @@ jobs:
          key: "debian9.12-None-${{ hashFiles('Cargo.lock') }}-cargo-build-target"
     - name: "Install System Deps"
       shell: bash
-      run: "sudo -n ./get-deps"
+      run: "./get-deps"
     - name: "Check formatting"
       shell: bash
       run: "cargo fmt --all -- --check"

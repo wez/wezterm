@@ -17,13 +17,10 @@ jobs:
     runs-on: "ubuntu-latest"
     container: "fedora:31"
     steps:
-    - name: "Install Sudo"
+    - name: "Install git"
       shell: bash
-      run: "yum install -y sudo"
-    - name: "Install System Git"
-      shell: bash
-      run: "sudo -n yum install -y git"
-    - name: "Install Curl"
+      run: "yum install -y git"
+    - name: "Install curl"
       shell: bash
       run: "yum install -y curl"
     - name: "checkout repo"
@@ -60,7 +57,7 @@ jobs:
          key: "fedora31-None-${{ hashFiles('Cargo.lock') }}-cargo-build-target"
     - name: "Install System Deps"
       shell: bash
-      run: "sudo -n ./get-deps"
+      run: "./get-deps"
     - name: "Check formatting"
       shell: bash
       run: "cargo fmt --all -- --check"
