@@ -135,7 +135,7 @@ class Target(object):
     def install_sudo(self):
         if self.uses_yum():
             return [RunStep("Install Sudo", "yum install -y sudo")]
-        if self.uses_apt():
+        if self.uses_apt() and self.container:
             return [RunStep("Install Sudo", "apt-get install -y sudo")]
         return []
 
@@ -143,7 +143,7 @@ class Target(object):
         steps = []
         if self.uses_yum():
             steps.append(RunStep("Install Curl", "yum install -y curl"))
-        if self.uses_apt():
+        if self.uses_apt() and self.container:
             steps.append(RunStep("Install Curl", "apt-get install -y curl"))
         return steps
 

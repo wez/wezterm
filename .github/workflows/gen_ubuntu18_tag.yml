@@ -14,12 +14,6 @@ jobs:
     runs-on: "ubuntu-18.04"
     
     steps:
-    - name: "Install Sudo"
-      shell: bash
-      run: "apt-get install -y sudo"
-    - name: "Install Curl"
-      shell: bash
-      run: "apt-get install -y curl"
     - name: "checkout repo"
       uses: actions/checkout@v1
     - name: "Install Rust"
