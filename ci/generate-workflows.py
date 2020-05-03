@@ -141,7 +141,10 @@ class Target(object):
         if self.uses_yum():
             return [RunStep("Install Curl", "yum install -y curl")]
         if self.uses_apt():
-            return [RunStep("Install Curl", "apt-get install -y curl")]
+            return [
+                RunStep("Update APT", "apt update"),
+                RunStep("Install Curl", "apt-get install -y curl")
+            ]
         return []
 
     def install_git(self):

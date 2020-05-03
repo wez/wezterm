@@ -17,6 +17,9 @@ jobs:
     runs-on: "ubuntu-18.04"
     
     steps:
+    - name: "Update APT"
+      shell: bash
+      run: "apt update"
     - name: "Install Curl"
       shell: bash
       run: "apt-get install -y curl"

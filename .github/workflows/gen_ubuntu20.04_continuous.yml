@@ -13,6 +13,13 @@ jobs:
     runs-on: "ubuntu-latest"
     container: "ubuntu:20.04"
     steps:
+    - name: "Update APT"
+      shell: bash
+      run: |
+            export BUILD_REASON=Schedule
+            apt update
+            
+
     - name: "Install Curl"
       shell: bash
       run: |
