@@ -27,6 +27,13 @@ jobs:
             apt-get install -y sudo
             
 
+    - name: "Install System Git"
+      shell: bash
+      run: |
+            export BUILD_REASON=Schedule
+            sudo apt-get install -y git
+            
+
     - name: "Install Curl"
       shell: bash
       run: |

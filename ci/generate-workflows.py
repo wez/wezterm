@@ -174,6 +174,8 @@ ln -s /usr/local/git/bin/git /usr/local/bin/git
             ]
         if self.uses_yum():
             return [RunStep(name="Install System Git", run="sudo yum install -y git")]
+        if self.uses_apt():
+            return [RunStep(name="Install System Git", run="sudo apt-get install -y git")]
         return []
 
     def install_rust(self):
