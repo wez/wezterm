@@ -13,6 +13,13 @@ jobs:
     runs-on: "ubuntu-latest"
     container: "ubuntu:19.10"
     steps:
+    - name: "Install Curl"
+      shell: bash
+      run: |
+            export BUILD_REASON=Schedule
+            apt-get install -y curl
+            
+
     - name: "checkout repo"
       uses: actions/checkout@v1
     - name: "Install Rust"

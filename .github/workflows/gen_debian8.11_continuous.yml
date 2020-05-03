@@ -13,6 +13,13 @@ jobs:
     runs-on: "ubuntu-latest"
     container: "debian:8.11"
     steps:
+    - name: "Install Curl"
+      shell: bash
+      run: |
+            export BUILD_REASON=Schedule
+            apt-get install -y curl
+            
+
     - name: "checkout repo"
       uses: actions/checkout@v1
     - name: "Install Rust"

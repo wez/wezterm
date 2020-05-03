@@ -43,6 +43,9 @@ jobs:
             ln -s /usr/local/git/bin/git /usr/local/bin/git
                     
 
+    - name: "Install Curl"
+      shell: bash
+      run: "yum install -y curl"
     - name: "checkout repo"
       uses: actions/checkout@v1
     - name: "Install Rust"

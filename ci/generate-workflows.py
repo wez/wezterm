@@ -125,9 +125,23 @@ class Target(object):
             return True
         return False
 
+    def uses_apt(self):
+        if "ubuntu" in self.name:
+            return True
+        if "debian" in self.name:
+            return True
+        return False
+
     def install_sudo(self):
         if self.uses_yum():
             return [RunStep("Install Sudo", "yum install -y sudo")]
+        return []
+
+    def install_curl(self):
+        if self.uses_yum():
+            return [RunStep("Install Curl", "yum install -y curl")]
+        if self.uses_apt():
+            return [RunStep("Install Curl", "apt-get install -y curl")]
         return []
 
     def install_git(self):
@@ -309,6 +323,7 @@ cargo build --all --release""",
         steps = []
         steps += self.install_sudo()
         steps += self.install_git()
+        steps += self.install_curl()
         steps += [CheckoutStep()]
         steps += self.install_rust()
         steps += self.install_system_deps()
