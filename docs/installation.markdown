@@ -23,7 +23,7 @@ versions of macOS, but that has not been tested.
 3. Subsequently, a simple double-click will launch the UI
 4. Configuration instructions can be [found here](config/index.html)
 
-## Installing on Ubuntu and Debian Systems
+## Installing on Ubuntu and Debian-based Systems
 
 The CI system builds `.deb` files for a variety of Ubuntu and Debian distributions.
 These are often compatible with other Debian style systems; if you don't find one
@@ -33,12 +33,12 @@ you can try the AppImage download which should work on most Linux systems.
 
 |Distro      | Stable           | Nightly             |
 |------------|------------------|---------------------|
-|Ubuntu16    |[{{ ubuntu16_deb_stable_asset }}]({{ ubuntu16_deb_stable }}) |[{{ ubuntu16_deb_nightly_asset }}]({{ ubuntu16_deb_nightly }}) 
-|Ubuntu18    |[{{ ubuntu18_deb_stable_asset }}]({{ ubuntu18_deb_stable }}) |[{{ ubuntu18_deb_nightly_asset }}]({{ ubuntu18_deb_nightly }}) 
-|Ubuntu19    |[{{ ubuntu19_deb_stable_asset }}]({{ ubuntu19_deb_stable }}) |[{{ ubuntu19_deb_nightly_asset }}]({{ ubuntu19_deb_nightly }}) 
-|Ubuntu20    | (not yet) |[{{ ubuntu20_deb_nightly_asset }}]({{ ubuntu20_deb_nightly }}) 
-|Debian9     |[{{ debian9_deb_stable_asset }}]({{ debian9_deb_stable }}) |[{{ debian9_deb_nightly_asset }}]({{ debian9_deb_nightly }}) 
-|Debian10    |[{{ debian10_deb_stable_asset }}]({{ debian10_deb_stable }}) |[{{ debian10_deb_nightly_asset }}]({{ debian10_deb_nightly }}) 
+|Ubuntu16    |[{{ ubuntu16_deb_stable_asset }}]({{ ubuntu16_deb_stable }}) |[{{ ubuntu16_deb_nightly_asset }}]({{ ubuntu16_deb_nightly }})|
+|Ubuntu18    |[{{ ubuntu18_deb_stable_asset }}]({{ ubuntu18_deb_stable }}) |[{{ ubuntu18_deb_nightly_asset }}]({{ ubuntu18_deb_nightly }})|
+|Ubuntu19    |[{{ ubuntu19_deb_stable_asset }}]({{ ubuntu19_deb_stable }}) |[{{ ubuntu19_deb_nightly_asset }}]({{ ubuntu19_deb_nightly }})|
+|Ubuntu20    | (not yet) |[{{ ubuntu20_deb_nightly_asset }}]({{ ubuntu20_deb_nightly }})|
+|Debian9     |[{{ debian9_deb_stable_asset }}]({{ debian9_deb_stable }}) |[{{ debian9_deb_nightly_asset }}]({{ debian9_deb_nightly }})|
+|Debian10    |[{{ debian10_deb_stable_asset }}]({{ debian10_deb_stable }}) |[{{ debian10_deb_nightly_asset }}]({{ debian10_deb_nightly }})|
 
 To download and install from the CLI, you can use something like this, which
 shows how to install the Ubuntu 16 package:
@@ -51,29 +51,24 @@ sudo apt install -y ./{{ ubuntu16_deb_stable_asset }}
 * The package installs `/usr/bin/wezterm` and `/usr/share/applications/org.wezfurlong.wezterm.desktop`
 * Configuration instructions can be [found here](config/index.html)
 
-## Installing on Fedora
+## Installing on Fedora and rpm-based Systems
 
-The CI system builds an `.rpm` file on Fedora 31.
+The CI system builds `.rpm` files on CentOS and Fedora systems.
+These are likely compatible with other rpm-based distributions.
+Alternatively, you can try the AppImage download with should work
+on most Linux systems.
 
-<a href="{{ fedora31_rpm_stable }}" class="btn">Download for Fedora</a>
-<a href="{{ fedora31_rpm_nightly }}" class="btn">Nightly for Fedora</a>
+|Distro      | Stable           | Nightly             |
+|------------|------------------|---------------------|
+|CentOS7     |[{{ centos7_rpm_stable_asset }}]({{ centos7_rpm_stable }}) |[{{ centos7_rpm_nightly_asset }}]({{ centos7_rpm_nightly }})|
+|Fedora31    |[{{ fedora31_rpm_stable_asset }}]({{ fedora31_rpm_stable }}) |[{{ fedora31_rpm_nightly_asset }}]({{ fedora31_rpm_nightly }})|
+|Fedora32    |[{{ fedora32_rpm_stable_asset }}]({{ fedora32_rpm_stable }}) |[{{ fedora32_rpm_nightly_asset }}]({{ fedora32_rpm_nightly }})|
+
+To download and install form the CLI you can use something like this, which
+shows how to install the Fedora 31 package:
 
 ```bash
 sudo dnf install -y {{ fedora31_rpm_stable }}
-```
-
-* The package installs `/usr/bin/wezterm` and `/usr/share/applications/org.wezfurlong.wezterm.desktop`
-* Configuration instructions can be [found here](config/index.html)
-
-## Installing on CentOS
-
-The CI system builds an `.rpm` file on CentOS 7.
-
-<a href="{{ centos7_rpm_stable }}" class="btn">Download for CentOS</a>
-<a href="{{ centos7_rpm_nightly }}" class="btn">Nightly for CentOS</a>
-
-```bash
-sudo dnf install -y {{ centos7_rpm_stable }}
 ```
 
 * The package installs `/usr/bin/wezterm` and `/usr/share/applications/org.wezfurlong.wezterm.desktop`
