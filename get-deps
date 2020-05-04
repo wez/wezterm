@@ -35,6 +35,7 @@ if test -e /etc/debian_version ; then
     libssl-dev \
     libfontconfig1-dev \
     libwayland-dev \
+    libx11-xcb-dev \
     libxcb-ewmh-dev \
     libxcb-icccm4-dev \
     libxcb-keysyms1-dev \
