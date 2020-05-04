@@ -858,8 +858,11 @@ impl TermWindow {
             Some(window) => window,
             _ => return,
         };
-        self.show_tab_bar =
-            config.enable_tab_bar && (window.len() > 1) || !config.hide_tab_bar_if_only_one_tab;
+        if window.len() == 1 {
+            self.show_tab_bar = config.enable_tab_bar && !config.hide_tab_bar_if_only_one_tab;
+        } else {
+            self.show_tab_bar = config.enable_tab_bar;
+        }
 
         self.show_scroll_bar = config.enable_scroll_bar;
         self.shape_cache.borrow_mut().clear();
@@ -950,7 +953,7 @@ impl TermWindow {
             // to piggy back on the config reloading code for that, so that
             // is what we're doing.
             if show_tab_bar != self.show_tab_bar {
-                self.check_for_config_reload();
+                self.config_was_reloaded();
             }
         }
     }
