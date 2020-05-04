@@ -848,6 +848,10 @@ impl Config {
             cmd.env(k, v);
         }
         cmd.env("TERM", &self.term);
+        // TERM_PROGRAM and TERM_PROGRAM_VERSION are an emerging
+        // de-facto standard for identifying the terminal.
+        cmd.env("TERM_PROGRAM", "WezTerm");
+        cmd.env("TERM_PROGRAM_VERSION", crate::wezterm_version());
     }
 }
 
