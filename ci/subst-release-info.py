@@ -1,53 +1,54 @@
 #!/usr/bin/env python3
 import json
 import sys
+import re
 
-def release_to_links(rel):
-    source = None
-    macos = None
-    centos = None
-    fedora = None
-    ubuntu = None
-    windows = None
-    linux_bin = None
-    appimage = None
+CATEGORIZE = {
+    r".el7.x86_64.rpm$": "centos7_rpm",
+    r".centos7.rpm$": "centos7_rpm",
+    r".fc31.x86_64.rpm$": "fedora31_rpm",
+    r".fedora31.rpm$": "fedora31_rpm",
+    r"Debian9.12.deb$": "debian9_deb",
+    r"Debian10.deb$": "debian10_deb",
+    r"Ubuntu16.04.AppImage$": "ubuntu16_AppImage",
+    r"^WezTerm-.*.x86_64.AppImage$": "ubuntu16_AppImage",
+    r"Ubuntu16.04.deb$": "ubuntu16_deb",
+    r"^wezterm-\d+-\d+-[a-f0-9]+.deb$": "ubuntu16_deb",
+    r"Ubuntu18.04.deb$": "ubuntu18_deb",
+    r"Ubuntu19.10.deb$": "ubuntu19_deb",
+    r"Ubuntu16.04.tar.xz$": "linux_raw_bin",
+    r"^wezterm-\d+-\d+-[a-f0-9]+.tar.xz$": "linux_raw_bin",
+    r"src.tar.gz$": "src",
+    r"^WezTerm-macos-.*.zip$": "macos_zip",
+    r"^WezTerm-windows-.*.zip$": "windows_zip",
+}
+
+def categorize(rel):
+    downloads = {}
 
     tag_name = "wezterm-%s" % rel["tag_name"]
-
     for asset in rel["assets"]:
         url = asset["browser_download_url"]
         name = asset["name"]
-        if "-src.tar.gz" in name:
-            source = (url, name, tag_name)
-        elif ".deb" in name:
-            ubuntu = (url, name, tag_name)
-        elif ".tar.xz" in name:
-            linux_bin = (url, name, tag_name)
-        elif ".rpm" in name:
-            if ('fedora' in name) or ('fc31' in name):
-                fedora = (url, name, tag_name)
-            if ('centos' in name) or ('el7' in name):
-                centos = (url, name, tag_name)
-        elif "WezTerm-macos-" in name:
-            macos = (url, name, tag_name)
-        elif "WezTerm-windows-" in name:
-            windows = (url, name, tag_name)
-        elif ".AppImage" in name:
-            appimage = (url, name, tag_name)
 
-    return {
-        "source": source,
-        "ubuntu": ubuntu,
-        "linux_bin": linux_bin,
-        "fedora": fedora,
-        "centos": centos,
-        "macos": macos,
-        "windows": windows,
-        "appimage": appimage,
-    }
+        for k, v in CATEGORIZE.items():
+            if re.search(k, name):
+                downloads[v] = (url, name, tag_name)
+
+    return downloads
 
 def pretty(o):
     return json.dumps(o, indent=4, sort_keys=True, separators=(',', ':'))
+
+def build_subst(subst, stable, categorized):
+    for (kind, info) in categorized.items():
+        if info is None:
+            continue
+        url, name, dir = info
+        kind = f"{kind}_{stable}"
+        subst["{{ %s }}" % kind] = url
+        subst["{{ %s_asset }}" % kind] = name
+        subst["{{ %s_dir }}" % kind] = dir
 
 def load_release_info():
     with open("/tmp/wezterm.releases.json") as f:
@@ -60,20 +61,16 @@ def load_release_info():
             nightly = rel
             break
 
-    latest = release_to_links(latest)
-    nightly = release_to_links(nightly)
+    latest = categorize(latest)
+    nightly = categorize(nightly)
 
     print('latest: ', pretty(latest))
     print('nightly: ', pretty(nightly))
 
     subst = {}
-    for (kind, info) in latest.items():
-        if info is None:
-            continue
-        url, name, dir = info
-        subst["{{ %s_stable }}" % kind] = url
-        subst["{{ %s_stable_asset }}" % kind] = name
-        subst["{{ %s_stable_dir }}" % kind] = dir
+    build_subst(subst, "stable", latest)
+    build_subst(subst, "nightly", nightly)
+    print(pretty(subst))
 
     with open("docs/installation.markdown", "r") as input:
         with open("docs/installation.md", "w") as output:
