@@ -347,6 +347,17 @@ cargo build --all --release""",
                     ),
                     RunStep("Update APT", "apt update"),
                 ]
+            if self.container == "centos:8":
+                steps += [
+                    RunStep(
+                        "Install config manager",
+                        "dnf install -y 'dnf-command(config-manager)'"
+                    ),
+                    RunStep(
+                        "Enable PowerTools",
+                        "dnf config-manager --set-enabled PowerTools"
+                    )
+                ]
         steps += self.install_git()
         steps += self.install_curl()
         steps += [
@@ -419,6 +430,7 @@ TARGETS = [
     Target(container="fedora:31"),
     Target(container="fedora:32"),
     Target(container="centos:7", bootstrap_git=True),
+    Target(container="centos:8"),
     Target(name="windows", os="vs2017-win2016", rust_target="x86_64-pc-windows-msvc"),
 ]
 

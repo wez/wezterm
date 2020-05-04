@@ -1,0 +1,124 @@
+
+name: centos8_continuous
+
+on:
+  schedule:
+    - cron: "10 * * * *"
+
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+    runs-on: "ubuntu-latest"
+    container: "centos:8"
+    steps:
+    - name: "Install config manager"
+      shell: bash
+      run: |
+            export BUILD_REASON=Schedule
+            dnf install -y 'dnf-command(config-manager)'
+            
+
+    - name: "Enable PowerTools"
+      shell: bash
+      run: |
+            export BUILD_REASON=Schedule
+            dnf config-manager --set-enabled PowerTools
+            
+
+    - name: "Install git"
+      shell: bash
+      run: |
+            export BUILD_REASON=Schedule
+            yum install -y git
+            
+
+    - name: "Install curl"
+      shell: bash
+      run: |
+            export BUILD_REASON=Schedule
+            yum install -y curl
+            
+
+    - name: "checkout repo"
+      uses: actions/checkout@v2
+      with:
+         submodules: "recursive"
+    - name: "Fetch tags"
+      shell: bash
+      run: |
+            export BUILD_REASON=Schedule
+            git fetch --depth=1 origin +refs/tags/*:refs/tags/*
+            
+
+    - name: "Fetch tag/branch history"
+      shell: bash
+      run: |
+            export BUILD_REASON=Schedule
+            git fetch --prune --unshallow
+            
+
+    - name: "Install Rust"
+      uses: actions-rs/toolchain@v1
+      with:
+         profile: "minimal"
+         toolchain: "stable"
+         override: true
+         components: "rustfmt"
+    - name: "Cache cargo registry"
+      uses: actions/cache@v1
+      with:
+         path: "~/.cargo/registry"
+         key: "centos8-None-${{ hashFiles('Cargo.lock') }}-cargo-registry"
+    - name: "Cache cargo index"
+      uses: actions/cache@v1
+      with:
+         path: "~/.cargo/git"
+         key: "centos8-None-${{ hashFiles('Cargo.lock') }}-cargo-index"
+    - name: "Cache cargo build"
+      uses: actions/cache@v1
+      with:
+         path: "target"
+         key: "centos8-None-${{ hashFiles('Cargo.lock') }}-cargo-build-target"
+    - name: "Install System Deps"
+      shell: bash
+      run: |
+            export BUILD_REASON=Schedule
+            ./get-deps
+            
+
+    - name: "Build (Release mode)"
+      shell: bash
+      run: |
+            export BUILD_REASON=Schedule
+            cargo build --all --release
+            
+
+    - name: "Test (Release mode)"
+      shell: bash
+      run: |
+            export BUILD_REASON=Schedule
+            cargo test --all --release
+            
+
+    - name: "Package"
+      shell: bash
+      run: |
+            export BUILD_REASON=Schedule
+            bash ci/deploy.sh
+            
+
+    - name: "Move RPM"
+      shell: bash
+      run: |
+            export BUILD_REASON=Schedule
+            mv ~/rpmbuild/RPMS/*/*.rpm wezterm-nightly-centos8.rpm
+            
+
+    - name: "Upload to Nightly Release"
+      uses: wez/upload-release-assets@releases/v1
+      with:
+         files: "wezterm-*.rpm"
+         release-tag: "nightly"
+         repo-token: "${{ secrets.GITHUB_TOKEN }}"
