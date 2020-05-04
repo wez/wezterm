@@ -214,7 +214,7 @@ return {
 
 ### `wezterm.read_dir(path)`
 
-*Since: nightly*
+*Since: 20200503-171512-b13ef15f*
 
 This function returns an array containing the absolute file names of the
 directory specified.  Due to limitations in the lua bindings, all of the paths
@@ -232,7 +232,7 @@ end
 
 ### `wezterm.glob(pattern [, relative_to])`
 
-*Since: nightly*
+*Since: 20200503-171512-b13ef15f*
 
 This function evalutes the glob `pattern` and returns an array containing the
 absolute file names of the matching results.  Due to limitations in the lua
@@ -254,7 +254,7 @@ end
 
 ### `wezterm.run_child_process(args)`
 
-*Since: nightly*
+*Since: 20200503-171512-b13ef15f*
 
 This function accepts an argument list; it will attempt to spawn that command
 and will return a tuple consisting of the boolean success of the invocation,
@@ -268,7 +268,7 @@ local success, stdout, stderr = wezterm.run_child_process({"ls", "-l"})
 
 ### `wezterm.split_by_newlines(str)`
 
-*Since: nightly*
+*Since: 20200503-171512-b13ef15f*
 
 This function takes the input string and splits it by newlines (both `\n` and `\r\n`
 are recognized as newlines) and returns the result as an array of strings that
@@ -286,7 +286,7 @@ end
 
 ### `wezterm.utf16_to_utf8(str)`
 
-*Since: nightly*
+*Since: 20200503-171512-b13ef15f*
 
 This function is overly specific and exists primarily to workaround
 [this wsl.exe issue](https://github.com/microsoft/WSL/issues/4456).
