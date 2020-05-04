@@ -2,10 +2,14 @@
 
 # Centos may not have lsb_release installed
 if test -e /etc/centos-release || test -e /etc/fedora-release; then
-  yum install -y \
+  if test -x /bin/dnf ; then
+    YUM=dnf
+  else
+    YUM=yum
+  fi
+  $YUM install -y \
     make \
     gcc \
-    g++ \
     gcc-c++ \
     dbus-devel \
     fontconfig-devel \
