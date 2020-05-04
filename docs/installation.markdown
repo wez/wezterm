@@ -23,13 +23,24 @@ versions of macOS, but that has not been tested.
 3. Subsequently, a simple double-click will launch the UI
 4. Configuration instructions can be [found here](config/index.html)
 
-## Installing on Ubuntu
+## Installing on Ubuntu and Debian Systems
 
-The CI system builds a `.deb` file on Ubuntu 16.04.  It is compatible with other
-debian style systems, including Debian 9 (Stretch) and later versions.
+The CI system builds `.deb` files for a variety of Ubuntu and Debian distributions.
+These are often compatible with other Debian style systems; if you don't find one
+that exactly matches your system you can try installing one from an older version
+of your distribution, or use one of the Debian packages linked below.  Failing that,
+you can try the AppImage download which should work on most Linux systems.
 
-<a href="{{ ubuntu16_deb_stable }}" class="btn">Download for Ubuntu</a>
-<a href="{{ ubuntu16_deb_nightly }}" class="btn">Nightly for Ubuntu</a>
+|Distro      | Stable           | Nightly             |
+|------------|------------------|---------------------|
+|Ubuntu16    |[{{ ubuntu16_deb_stable_asset }}]({{ ubuntu16_deb_stable }}) |[{{ ubuntu16_deb_nightly_asset }}]({{ ubuntu16_deb_nightly }}) 
+|Ubuntu18    |[{{ ubuntu18_deb_stable_asset }}]({{ ubuntu18_deb_stable }}) |[{{ ubuntu18_deb_nightly_asset }}]({{ ubuntu18_deb_nightly }}) 
+|Ubuntu19    |[{{ ubuntu19_deb_stable_asset }}]({{ ubuntu19_deb_stable }}) |[{{ ubuntu19_deb_nightly_asset }}]({{ ubuntu19_deb_nightly }}) 
+|Debian9     |[{{ debian9_deb_stable_asset }}]({{ debian9_deb_stable }}) |[{{ debian9_deb_nightly_asset }}]({{ debian9_deb_nightly }}) 
+|Debian10    |[{{ debian10_deb_stable_asset }}]({{ debian10_deb_stable }}) |[{{ debian10_deb_nightly_asset }}]({{ debian10_deb_nightly }}) 
+
+To download and install from the CLI, you can use something like this, which
+shows how to install the Ubuntu 16 package:
 
 ```bash
 curl -LO {{ ubuntu16_deb_stable }}
@@ -80,7 +91,20 @@ curl -LO {{ ubuntu16_AppImage_stable }}
 chmod +x {{ ubuntu16_AppImage_stable_asset }}
 ```
 
-You may then execute the appimage directly to launch wezterm.
+You may then execute the appimage directly to launch wezterm, with no
+specific installation steps required:
+
+```bash
+./{{ ubuntu16_AppImage_stable_asset }}
+```
+
+That said, you may wish to make it a bit more convenient:
+
+```bash
+mkdir ~/bin
+mv ./{{ ubuntu16_AppImage_stable_asset }} ~/bin/wezterm
+~/bin/wezterm
+```
 
 * Configuration instructions can be [found here](config/index.html)
 
