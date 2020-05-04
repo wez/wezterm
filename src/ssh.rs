@@ -261,6 +261,8 @@ impl Domain for RemoteSshDomain {
             size.pixel_width as usize,
             size.pixel_height as usize,
             std::sync::Arc::new(crate::config::TermConfig {}),
+            "WezTerm",
+            crate::wezterm_version(),
         );
 
         let mux = Mux::get().unwrap();

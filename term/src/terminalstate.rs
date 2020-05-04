@@ -229,6 +229,9 @@ pub struct TerminalState {
     clipboard: Option<Arc<dyn Clipboard>>,
 
     current_dir: Option<Url>,
+
+    term_program: String,
+    term_version: String,
 }
 
 fn encode_modifiers(mods: KeyModifiers) -> u8 {
@@ -279,6 +282,8 @@ impl TerminalState {
         pixel_width: usize,
         pixel_height: usize,
         config: Arc<dyn TerminalConfiguration>,
+        term_program: &str,
+        term_version: &str,
     ) -> TerminalState {
         let screen = ScreenOrAlt::new(physical_rows, physical_cols, &config);
 
@@ -309,6 +314,8 @@ impl TerminalState {
             pixel_width,
             clipboard: None,
             current_dir: None,
+            term_program: term_program.to_string(),
+            term_version: term_version.to_string(),
         }
     }
 
@@ -1041,6 +1048,13 @@ impl TerminalState {
             }
             Device::RequestSecondaryDeviceAttributes => {
                 host.writer().write(b"\x1b[>0;0;0c").ok();
+            }
+            Device::RequestTerminalNameAndVersion => {
+                host.writer().write(DCS).ok();
+                host.writer()
+                    .write(format!(">|{} {}", self.term_program, self.term_version).as_bytes())
+                    .ok();
+                host.writer().write(ST).ok();
             }
             Device::StatusReport => {
                 host.writer().write(b"\x1b[0n").ok();

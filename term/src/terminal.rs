@@ -53,6 +53,8 @@ impl Terminal {
         pixel_width: usize,
         pixel_height: usize,
         config: Arc<dyn TerminalConfiguration>,
+        term_program: &str,
+        term_version: &str,
     ) -> Terminal {
         Terminal {
             state: TerminalState::new(
@@ -61,6 +63,8 @@ impl Terminal {
                 pixel_height,
                 pixel_width,
                 config,
+                term_program,
+                term_version,
             ),
             parser: Parser::new(),
         }

@@ -172,6 +172,9 @@ pub enum Device {
     RequestPrimaryDeviceAttributes,
     RequestSecondaryDeviceAttributes,
     StatusReport,
+    /// https://github.com/mintty/mintty/issues/881
+    /// https://gitlab.gnome.org/GNOME/vte/-/issues/235
+    RequestTerminalNameAndVersion,
 }
 
 impl Display for Device {
@@ -188,6 +191,7 @@ impl Display for Device {
             Device::SoftReset => write!(f, "!p")?,
             Device::RequestPrimaryDeviceAttributes => write!(f, "c")?,
             Device::RequestSecondaryDeviceAttributes => write!(f, ">c")?,
+            Device::RequestTerminalNameAndVersion => write!(f, ">q")?,
             Device::StatusReport => write!(f, "5n")?,
         };
         Ok(())
@@ -1301,6 +1305,9 @@ impl<'a> CSIParser<'a> {
             ('r', &[b'?']) => self
                 .dec(params)
                 .map(|mode| CSI::Mode(Mode::RestoreDecPrivateMode(mode))),
+            ('q', &[b'>']) => self
+                .req_terminal_name_and_version(params)
+                .map(|dev| CSI::Device(Box::new(dev))),
             ('s', &[b'?']) => self
                 .dec(params)
                 .map(|mode| CSI::Mode(Mode::SaveDecPrivateMode(mode))),
@@ -1381,6 +1388,16 @@ impl<'a> CSIParser<'a> {
             Ok(Device::RequestPrimaryDeviceAttributes)
         } else if params == [0] {
             Ok(self.advance_by(1, params, Device::RequestPrimaryDeviceAttributes))
+        } else {
+            Err(())
+        }
+    }
+
+    fn req_terminal_name_and_version(&mut self, params: &'a [i64]) -> Result<Device, ()> {
+        if params == [] {
+            Ok(Device::RequestTerminalNameAndVersion)
+        } else if params == [0] {
+            Ok(self.advance_by(1, params, Device::RequestTerminalNameAndVersion))
         } else {
             Err(())
         }

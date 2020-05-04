@@ -93,6 +93,8 @@ impl TestTerm {
             height * 16,
             width * 8,
             Arc::new(TestTermConfig { scrollback }),
+            "WezTerm",
+            "O_o",
         );
         let clip: Arc<dyn Clipboard> = Arc::new(LocalClip::new());
         term.set_clipboard(&clip);
