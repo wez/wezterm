@@ -10,6 +10,10 @@ daily) from the master branch.  It may not be usable and
 the feature set may change.  As features stabilize some
 brief notes about them may accumulate here.
 
+* Not yet!
+
+## 20200503-171512-b13ef15f
+
 * Added the `launch_menu` configuration for the launcher menu
   as described in [Launching Programs](config/launch.html).
 * Fixed a crash when reloading a config with `enable_tab_bar=false`
