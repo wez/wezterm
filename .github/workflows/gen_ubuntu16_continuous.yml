@@ -98,6 +98,6 @@ jobs:
     - name: "Upload to Nightly Release"
       uses: wez/upload-release-assets@releases/v1
       with:
-         files: "wezterm-*.deb;wezterm-*.xz;wezterm-*.tar.gz;*.AppImage"
+         files: "wezterm-*.deb;wezterm-*.xz;wezterm-*.tar.gz;*.AppImage;*.zsync"
          release-tag: "nightly"
          repo-token: "${{ secrets.GITHUB_TOKEN }}"

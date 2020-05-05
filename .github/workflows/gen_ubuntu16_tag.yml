@@ -72,6 +72,7 @@ jobs:
             wezterm-*.xz
             wezterm-*.tar.gz
             *.AppImage
+            *.zsync
 
       env:
          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"

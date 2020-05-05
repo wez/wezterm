@@ -75,7 +75,7 @@ jobs:
       run: |
             mkdir pkg_
             mv *.deb *.xz pkg_
-            mv *.AppImage pkg_
+            mv *.AppImage *.zsync pkg_
             
 
     - name: "Upload artifact"
