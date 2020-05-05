@@ -351,7 +351,7 @@ cargo build --all --release""",
                 steps += [
                     RunStep(
                         "Install config manager",
-                        "dnf install 'dnf-command(config-manager)'"
+                        "dnf install -y 'dnf-command(config-manager)'"
                     ),
                     RunStep(
                         "Enable PowerTools",

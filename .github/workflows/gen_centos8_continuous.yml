@@ -17,7 +17,7 @@ jobs:
       shell: bash
       run: |
             export BUILD_REASON=Schedule
-            dnf install 'dnf-command(config-manager)'
+            dnf install -y 'dnf-command(config-manager)'
             
 
     - name: "Enable PowerTools"

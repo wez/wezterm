@@ -19,7 +19,7 @@ jobs:
     steps:
     - name: "Install config manager"
       shell: bash
-      run: "dnf install 'dnf-command(config-manager)'"
+      run: "dnf install -y 'dnf-command(config-manager)'"
     - name: "Enable PowerTools"
       shell: bash
       run: "dnf config-manager --set-enabled PowerTools"
