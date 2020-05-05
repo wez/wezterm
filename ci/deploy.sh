@@ -79,14 +79,14 @@ install -Dsm755 target/release/wezterm %{buildroot}/usr/bin
 install -Dm644 assets/icon/terminal.png %{buildroot}/usr/share/icons/hicolor/128x128/apps/org.wezfurlong.wezterm.png
 install -Dm644 -t %{buildroot}/usr/share/wezterm/colors assets/colors/*
 install -Dm644 assets/wezterm.desktop %{buildroot}/usr/share/applications/org.wezfurlong.wezterm.desktop
-install -Dm644 assets/wezterm.appdata.xml %{buildroot}/usr/share/metainfo/wezterm.appdata.xml
+install -Dm644 assets/wezterm.appdata.xml %{buildroot}/usr/share/metainfo/org.wezfurlong.wezterm.appdata.xml
 
 %files
 /usr/bin/wezterm
 /usr/share/icons/hicolor/128x128/apps/org.wezfurlong.wezterm.png
 /usr/share/wezterm/colors/*
 /usr/share/applications/org.wezfurlong.wezterm.desktop
-/usr/share/metainfo/wezterm.appdata.xml
+/usr/share/metainfo/org.wezfurlong.wezterm.appdata.xml
 EOF
 
         /usr/bin/rpmbuild -bb --rmspec wezterm.spec --verbose
@@ -113,7 +113,7 @@ EOF
         install -Dm644 assets/icon/terminal.png pkg/debian/usr/share/icons/hicolor/128x128/apps/org.wezfurlong.wezterm.png
         install -Dm644 -t pkg/debian/usr/share/wezterm/colors assets/colors/*
         install -Dm644 assets/wezterm.desktop pkg/debian/usr/share/applications/org.wezfurlong.wezterm.desktop
-        install -Dm644 assets/wezterm.appdata.xml pkg/debian/usr/share/metainfo/wezterm.appdata.xml
+        install -Dm644 assets/wezterm.appdata.xml pkg/debian/usr/share/metainfo/org.wezfurlong.wezterm.appdata.xml
         if [[ "$BUILD_REASON" == "Schedule" ]] ; then
           debname=wezterm-nightly.$distro$distver
         else

@@ -1,0 +1,7 @@
+#!/bin/sh
+# When invoked via linuxdeploy.AppImage, the LD_LIBRARY_PATH resolves
+# shared objects to the AppImage rather than the system, which causes
+# appstreamcli to fail on Fedora, hence this wrapper script to clean
+# up the environment.
+unset LD_LIBRARY_PATH
+exec /usr/bin/appstreamcli "$@"
