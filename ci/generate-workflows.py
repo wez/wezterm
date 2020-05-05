@@ -264,7 +264,7 @@ cargo build --all --release""",
         if ("ubuntu" in self.name) or ("debian" in self.name):
             run += "mv *.deb *.xz pkg_\n"
         if self.app_image:
-            run += "mv *.AppImage pkg_\n"
+            run += "mv *.AppImage *.zsync pkg_\n"
 
         return [
             RunStep("Move Package for artifact upload", run),
@@ -286,6 +286,7 @@ cargo build --all --release""",
 
         if self.app_image:
             patterns.append("*.AppImage")
+            patterns.append("*.zsync")
         return patterns
 
     def upload_asset_nightly(self):

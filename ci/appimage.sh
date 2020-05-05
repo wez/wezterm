@@ -1,6 +1,6 @@
 #!/bin/bash
 
-rm -rf AppDir *.AppImage
+rm -rf AppDir *.AppImage *.zsync
 mkdir AppDir
 
 install -Dsm755 -t AppDir/usr/bin target/release/wezterm
@@ -13,18 +13,27 @@ install -Dm644 assets/wezterm.appdata.xml AppDir/usr/share/metainfo/org.wezfurlo
 
 TAG_NAME=${TAG_NAME:-$(git describe --tags)}
 TAG_NAME=${TAG_NAME:-$(date +'%Y%m%d-%H%M%S')-$(git log --format=%h -1)}
+distro=$(lsb_release -is)
+distver=$(lsb_release -rs)
+
+# Embed appropriate update info
+# https://github.com/AppImage/AppImageSpec/blob/master/draft.md#github-releases
+if [[ "$BUILD_REASON" == "Schedule" ]] ; then
+  UPDATE="gh-releases-zsync|wez|wezterm|nightly|WezTerm-*.AppImage.zsync"
+  OUTPUT=WezTerm-nightly-$distro$distver.AppImage
+else
+  UPDATE="gh-releases-zsync|wez|wezterm|latest|WezTerm-*.AppImage.zsync"
+  OUTPUT=WezTerm-$TAG_NAME-$distro$distver.AppImage
+fi
 
 # Munge the path so that it finds our appstreamcli wrapper
-PATH="$PWD/ci:$PATH" VERSION="$TAG_NAME" /tmp/linuxdeploy \
+PATH="$PWD/ci:$PATH" \
+VERSION="$TAG_NAME" \
+UPDATE_INFORMATION="$UPDATE" \
+OUTPUT="$OUTPUT" \
+  /tmp/linuxdeploy \
   --appdir AppDir \
   --output appimage \
   --desktop-file assets/wezterm.desktop
 
-distro=$(lsb_release -is)
-distver=$(lsb_release -rs)
 
-if [[ "$BUILD_REASON" == "Schedule" ]] ; then
-  mv WezTerm*.AppImage WezTerm-nightly-$distro$distver.AppImage
-else
-  mv WezTerm*.AppImage WezTerm-$TAG_NAME-$distro$distver.AppImage
-fi

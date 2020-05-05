@@ -12,4 +12,5 @@
 /esctest.log
 /AppDir
 /WezTerm*.AppImage
+/WezTerm*.AppImage.zsync
 /wezterm*-src.tar.gz
