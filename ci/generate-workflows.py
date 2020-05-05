@@ -350,8 +350,12 @@ cargo build --all --release""",
             if self.container == "centos:8":
                 steps += [
                     RunStep(
+                        "Install config manager",
+                        "dnf install 'dnf-command(config-manager)'"
+                    ),
+                    RunStep(
                         "Enable PowerTools",
-                        "yum config-manager --set-enabled PowerTools"
+                        "dnf config-manager --set-enabled PowerTools"
                     )
                 ]
         steps += self.install_git()
