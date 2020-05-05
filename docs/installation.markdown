@@ -23,6 +23,39 @@ versions of macOS, but that has not been tested.
 3. Subsequently, a simple double-click will launch the UI
 4. Configuration instructions can be [found here](config/index.html)
 
+## Installing on Linux using AppImage
+
+WezTerm is available in [AppImage](https://appimage.org/) format; a
+self-contained single file that doesn't require installation or
+any special privileges to run.
+
+Download and make the file executable and you're ready to run!
+
+<a href="{{ ubuntu16_AppImage_stable }}" class="btn">AppImage</a>
+<a href="{{ ubuntu16_AppImage_nightly }}" class="btn">Nightly AppImage</a>
+
+```bash
+curl -LO {{ ubuntu16_AppImage_stable }}
+chmod +x {{ ubuntu16_AppImage_stable_asset }}
+```
+
+You may then execute the appimage directly to launch wezterm, with no
+specific installation steps required:
+
+```bash
+./{{ ubuntu16_AppImage_stable_asset }}
+```
+
+That said, you may wish to make it a bit more convenient:
+
+```bash
+mkdir ~/bin
+mv ./{{ ubuntu16_AppImage_stable_asset }} ~/bin/wezterm
+~/bin/wezterm
+```
+
+* Configuration instructions can be [found here](config/index.html)
+
 ## Installing on Ubuntu and Debian-based Systems
 
 The CI system builds `.deb` files for a variety of Ubuntu and Debian distributions.
@@ -73,36 +106,6 @@ sudo dnf install -y {{ fedora31_rpm_stable }}
 ```
 
 * The package installs `/usr/bin/wezterm` and `/usr/share/applications/org.wezfurlong.wezterm.desktop`
-* Configuration instructions can be [found here](config/index.html)
-
-## Installing on Linux via AppImage
-
-If you have some other Linux system, or otherwise prefer AppImage over your
-system package format, you can download a build by following these steps.
-
-<a href="{{ ubuntu16_AppImage_stable }}" class="btn">AppImage</a>
-<a href="{{ ubuntu16_AppImage_nightly }}" class="btn">Nightly AppImage</a>
-
-```bash
-curl -LO {{ ubuntu16_AppImage_stable }}
-chmod +x {{ ubuntu16_AppImage_stable_asset }}
-```
-
-You may then execute the appimage directly to launch wezterm, with no
-specific installation steps required:
-
-```bash
-./{{ ubuntu16_AppImage_stable_asset }}
-```
-
-That said, you may wish to make it a bit more convenient:
-
-```bash
-mkdir ~/bin
-mv ./{{ ubuntu16_AppImage_stable_asset }} ~/bin/wezterm
-~/bin/wezterm
-```
-
 * Configuration instructions can be [found here](config/index.html)
 
 ## Raw Linux Binary
