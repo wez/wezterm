@@ -727,6 +727,16 @@ fn run() -> anyhow::Result<()> {
         std::env::set_var("WEZTERM_EXECUTABLE", exe);
     }
 
+    if let Some(_appimage) = std::env::var_os("APPIMAGE") {
+        // We were started via an AppImage, presumably ourselves.
+        // AppImage exports ARGV0 into the environment and that causes
+        // everything that was indirectly spawned by us to appear to
+        // be the AppImage.  eg: if you `vim foo` it shows as
+        // `WezTerm.AppImage foo`, which is super confusing for everyone!
+        // Let's just unset that from the environment!
+        std::env::remove_var("ARGV0");
+    }
+
     // This is a bit gross.
     // In order to not to automatically open a standard windows console when
     // we run, we use the windows_subsystem attribute at the top of this
