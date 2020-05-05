@@ -347,6 +347,13 @@ cargo build --all --release""",
                     ),
                     RunStep("Update APT", "apt update"),
                 ]
+            if self.container == "centos:8":
+                steps += [
+                    RunStep(
+                        "Enable PowerTools",
+                        "yum config-manager --set-enabled PowerTools"
+                    )
+                ]
         steps += self.install_git()
         steps += self.install_curl()
         steps += [
