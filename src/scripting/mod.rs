@@ -79,10 +79,7 @@ pub fn make_lua_context(config_dir: &Path) -> anyhow::Result<Lua> {
         }
 
         prefix_path(&mut path_array, &crate::config::HOME_DIR.join(".wezterm"));
-        prefix_path(
-            &mut path_array,
-            &crate::config::HOME_DIR.join(".config").join("wezterm"),
-        );
+        prefix_path(&mut path_array, &crate::config::CONFIG_DIR);
         if let Ok(exe) = std::env::current_exe() {
             if let Some(path) = exe.parent() {
                 wezterm_mod.set(

@@ -11,7 +11,7 @@ use std::fs::DirBuilder;
 use std::io::{Read, Write};
 #[cfg(unix)]
 use std::os::unix::fs::DirBuilderExt;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::rc::Rc;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -70,7 +70,7 @@ fn wezterm_version() -> &'static str {
     version = wezterm_version()
 )]
 struct Opt {
-    /// Skip loading ~/.wezterm.toml
+    /// Skip loading wezterm.lua
     #[structopt(short = "n")]
     skip_config: bool,
 
@@ -557,11 +557,10 @@ fn run_terminal_gui(config: config::ConfigHandle, opts: StartCommand) -> anyhow:
         if opts.daemonize {
             let stdout = config.daemon_options.open_stdout()?;
             let stderr = config.daemon_options.open_stderr()?;
-            let home_dir = dirs::home_dir().ok_or_else(|| anyhow!("can't find home dir"))?;
             let mut daemonize = daemonize::Daemonize::new()
                 .stdout(stdout)
                 .stderr(stderr)
-                .working_directory(home_dir.clone());
+                .working_directory(config::HOME_DIR.clone());
 
             if !running_under_wsl() {
                 // pid file locking is only partly function when running under
@@ -581,7 +580,7 @@ fn run_terminal_gui(config: config::ConfigHandle, opts: StartCommand) -> anyhow:
                         bail!("{} {}", err, config.daemon_options.pid_file().display());
                     }
                     DaemonizeError::ChangeDirectory => {
-                        bail!("{} {}", err, home_dir.display());
+                        bail!("{} {}", err, config::HOME_DIR.display());
                     }
                     _ => return Err(err.into()),
                 }
@@ -727,7 +726,9 @@ fn run() -> anyhow::Result<()> {
         std::env::set_var("WEZTERM_EXECUTABLE", exe);
     }
 
-    if let Some(_appimage) = std::env::var_os("APPIMAGE") {
+    if let Some(appimage) = std::env::var_os("APPIMAGE") {
+        let appimage = std::path::PathBuf::from(appimage);
+
         // We were started via an AppImage, presumably ourselves.
         // AppImage exports ARGV0 into the environment and that causes
         // everything that was indirectly spawned by us to appear to
@@ -735,6 +736,45 @@ fn run() -> anyhow::Result<()> {
         // `WezTerm.AppImage foo`, which is super confusing for everyone!
         // Let's just unset that from the environment!
         std::env::remove_var("ARGV0");
+
+        // This AppImage feature allows redirecting HOME and XDG_CONFIG_HOME
+        // to live alongside the executable for portable use:
+        // https://github.com/AppImage/AppImageKit/issues/368
+        // When we spawn children, we don't want them to inherit this,
+        // but we do want to respect them for config loading.
+        // Let's force resolution and cleanup our environment now.
+
+        /// Given "/some/path.AppImage" produce "/some/path.AppImageSUFFIX".
+        /// We only support this for "path.AppImage" that can be converted
+        /// to UTF-8.  Otherwise, we return "/some/path.AppImage" unmodified.
+        fn append_extra_file_name_suffix(p: &Path, suffix: &str) -> PathBuf {
+            if let Some(name) = p.file_name().and_then(|o| o.to_str()) {
+                p.with_file_name(format!("{}{}", name, suffix))
+            } else {
+                p.to_path_buf()
+            }
+        }
+
+        /// Our config stuff exports these env vars to help portable apps locate
+        /// the correct environment when it is launched via wezterm.
+        /// However, if we are using the system wezterm to spawn a portable
+        /// AppImage then we want these to not take effect.
+        fn clean_wezterm_config_env() {
+            std::env::remove_var("WEZTERM_CONFIG_FILE");
+            std::env::remove_var("WEZTERM_CONFIG_DIR");
+        }
+
+        if config::HOME_DIR.starts_with(append_extra_file_name_suffix(&appimage, ".home")) {
+            // Fixup HOME to point to the user's actual home dir
+            std::env::remove_var("HOME");
+            std::env::set_var("HOME", dirs::home_dir().expect("can't resolve HOME dir"));
+            clean_wezterm_config_env();
+        }
+
+        if config::CONFIG_DIR.starts_with(append_extra_file_name_suffix(&appimage, ".config")) {
+            std::env::remove_var("XDG_CONFIG_HOME");
+            clean_wezterm_config_env();
+        }
     }
 
     // This is a bit gross.
@@ -764,9 +804,7 @@ fn run() -> anyhow::Result<()> {
             SetStdHandle(STD_ERROR_HANDLE, stderr.into_raw_file_descriptor());
             */
 
-            std::env::set_current_dir(
-                dirs::home_dir().ok_or_else(|| anyhow!("can't find home dir"))?,
-            )?;
+            std::env::set_current_dir(config::HOME_DIR)?;
         }
     };
     pretty_env_logger::init_timed();

@@ -44,8 +44,16 @@ pub use unix::*;
 
 lazy_static! {
     pub static ref HOME_DIR: PathBuf = dirs::home_dir().expect("can't find HOME dir");
+    pub static ref CONFIG_DIR: PathBuf = xdg_config_home();
     static ref RUNTIME_DIR: PathBuf = compute_runtime_dir().unwrap();
     static ref CONFIG: Configuration = Configuration::new();
+}
+
+fn xdg_config_home() -> PathBuf {
+    match std::env::var_os("XDG_CONFIG_HOME").map(|s| PathBuf::from(s).join("wezterm")) {
+        Some(p) => p,
+        None => HOME_DIR.join(".config").join("wezterm"),
+    }
 }
 
 /// Discard the current configuration and replace it with
@@ -556,12 +564,10 @@ impl Config {
         // specific config directories, but only returns one of them, not
         // multiple.  In addition, it spawns a lot of subprocesses,
         // so we do this bit "by-hand"
+
         let mut paths = vec![
-            HOME_DIR.join(".config").join("wezterm").join("wezterm.lua"),
-            HOME_DIR
-                .join(".config")
-                .join("wezterm")
-                .join("wezterm.toml"),
+            CONFIG_DIR.join("wezterm.lua"),
+            CONFIG_DIR.join("wezterm.toml"),
             HOME_DIR.join(".wezterm.lua"),
             HOME_DIR.join(".wezterm.toml"),
         ];
@@ -710,7 +716,7 @@ impl Config {
 
     fn compute_color_scheme_dirs(&self) -> Vec<PathBuf> {
         let mut paths = self.color_scheme_dirs.clone();
-        paths.push(HOME_DIR.join(".config").join("wezterm").join("colors"));
+        paths.push(CONFIG_DIR.join("colors"));
 
         if let Ok(exe_name) = std::env::current_exe() {
             // If running out of the source tree our executable path will be
@@ -922,8 +928,7 @@ fn compute_runtime_dir() -> Result<PathBuf, Error> {
         return Ok(runtime.join("wezterm"));
     }
 
-    let home = dirs::home_dir().ok_or_else(|| anyhow!("can't find home dir"))?;
-    Ok(home.join(".local/share/wezterm"))
+    Ok(HOME_DIR.join(".local/share/wezterm"))
 }
 
 pub fn pki_dir() -> anyhow::Result<PathBuf> {
