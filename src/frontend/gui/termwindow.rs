@@ -593,6 +593,8 @@ impl TermWindow {
 
         let cloned_window = window.clone();
 
+        crate::update::start_update_checker();
+
         Connection::get()
             .unwrap()
             .schedule_timer(std::time::Duration::from_millis(35), {

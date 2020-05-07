@@ -193,6 +193,7 @@ pub struct TermWizTerminalTab {
     renderable: RefCell<RenderableState>,
     writer: RefCell<RenderableWriter>,
     reader: Pipe,
+    mouse_grabbed: bool,
 }
 
 impl TermWizTerminalTab {
@@ -224,7 +225,12 @@ impl TermWizTerminalTab {
             renderable,
             writer: RefCell::new(RenderableWriter { input_tx }),
             reader,
+            mouse_grabbed: true,
         }
+    }
+
+    pub fn set_mouse_grabbed(&mut self, grabbed: bool) {
+        self.mouse_grabbed = grabbed;
     }
 }
 
@@ -314,7 +320,7 @@ impl Tab for TermWizTerminalTab {
     }
 
     fn advance_bytes(&self, _buf: &[u8], _host: &mut dyn TerminalHost) {
-        panic!("advance_bytes is undefed for TermWizTerminalTab");
+        panic!("advance_bytes is undefined for TermWizTerminalTab");
     }
 
     fn is_dead(&self) -> bool {
@@ -343,7 +349,7 @@ impl Tab for TermWizTerminalTab {
     }
 
     fn is_mouse_grabbed(&self) -> bool {
-        true
+        self.mouse_grabbed
     }
 
     fn get_current_working_dir(&self) -> Option<Url> {
@@ -461,6 +467,7 @@ pub async fn run<
     width: usize,
     height: usize,
     f: F,
+    mouse_grabbed: bool,
 ) -> anyhow::Result<T> {
     let (render_tx, render_rx) = channel();
     let (input_tx, input_rx) = channel();
@@ -481,6 +488,7 @@ pub async fn run<
         render_rx: Receiver<Vec<Change>>,
         width: usize,
         height: usize,
+        mouse_grabbed: bool,
     ) -> anyhow::Result<WindowId> {
         let mux = Mux::get().unwrap();
 
@@ -490,13 +498,10 @@ pub async fn run<
 
         let window_id = mux.new_empty_window();
 
-        let tab: Rc<dyn Tab> = Rc::new(TermWizTerminalTab::new(
-            domain.domain_id(),
-            width,
-            height,
-            input_tx,
-            render_rx,
-        ));
+        let mut tab =
+            TermWizTerminalTab::new(domain.domain_id(), width, height, input_tx, render_rx);
+        tab.set_mouse_grabbed(mouse_grabbed);
+        let tab: Rc<dyn Tab> = Rc::new(tab);
 
         mux.add_tab(&tab)?;
         mux.add_tab_to_window(&tab, window_id)?;
@@ -510,7 +515,7 @@ pub async fn run<
     }
 
     let window_id: WindowId = promise::spawn::spawn_into_main_thread(async move {
-        register_tab(input_tx, render_rx, width, height).await
+        register_tab(input_tx, render_rx, width, height, mouse_grabbed).await
     })
     .await
     .unwrap_or_else(|| bail!("task panicked or was cancelled"))?;
@@ -537,19 +542,24 @@ pub fn message_box_ok(message: &str) {
     let title = "wezterm";
     let message = message.to_string();
 
-    promise::spawn::block_on(run(60, 10, move |mut term| {
-        term.render(&[
-            Change::Title(title.to_string()),
-            Change::Text(message.to_string()),
-        ])
-        .map_err(Error::msg)?;
+    promise::spawn::block_on(run(
+        60,
+        10,
+        move |mut term| {
+            term.render(&[
+                Change::Title(title.to_string()),
+                Change::Text(message.to_string()),
+            ])
+            .map_err(Error::msg)?;
 
-        let mut editor = LineEditor::new(&mut term);
-        editor.set_prompt("press enter to continue.");
+            let mut editor = LineEditor::new(&mut term);
+            editor.set_prompt("press enter to continue.");
 
-        let mut host = NopLineEditorHost::default();
-        editor.read_line(&mut host).ok();
-        Ok(())
-    }))
+            let mut host = NopLineEditorHost::default();
+            editor.read_line(&mut host).ok();
+            Ok(())
+        },
+        false,
+    ))
     .ok();
 }

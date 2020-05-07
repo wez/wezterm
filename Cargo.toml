@@ -52,7 +52,10 @@ portable-pty = { path = "pty", features = ["serde_support", "ssh"]}
 promise = { path = "promise" }
 ratelimit_meter = "5.0"
 rcgen = "0.7"
+http_req = {version="0.6", default-features=false, features=["rust-tls"]}
+regex = "1"
 serde = {version="1.0", features = ["rc", "derive"]}
+serde_json = "1.0"
 serial = "0.4"
 ssh2 = "0.8"
 structopt = "0.3"

@@ -45,7 +45,7 @@ pub use unix::*;
 lazy_static! {
     pub static ref HOME_DIR: PathBuf = dirs::home_dir().expect("can't find HOME dir");
     pub static ref CONFIG_DIR: PathBuf = xdg_config_home();
-    static ref RUNTIME_DIR: PathBuf = compute_runtime_dir().unwrap();
+    pub static ref RUNTIME_DIR: PathBuf = compute_runtime_dir().unwrap();
     static ref CONFIG: Configuration = Configuration::new();
 }
 
@@ -501,6 +501,16 @@ pub struct Config {
 
     #[serde(default)]
     pub launch_menu: Vec<SpawnCommand>,
+
+    #[serde(default = "default_true")]
+    pub check_for_updates: bool,
+
+    #[serde(default = "default_update_interval")]
+    pub check_for_updates_interval_seconds: u64,
+}
+
+fn default_update_interval() -> u64 {
+    86400
 }
 
 #[derive(Deserialize, Serialize, Clone, Copy, Debug)]

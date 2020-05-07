@@ -227,30 +227,40 @@ pub struct ConnectionUI {
 impl ConnectionUI {
     pub fn new() -> Self {
         let (tx, rx) = bounded(16);
-        promise::spawn::spawn_into_main_thread(termwiztermtab::run(80, 24, move |term| {
-            let mut ui = ConnectionUIImpl { term, rx };
-            if let Err(e) = ui.run() {
-                log::error!("while running ConnectionUI loop: {:?}", e);
-            }
-            ui.sleep(
-                "(this window will close automatically)",
-                Duration::new(10, 0),
-            )
-            .ok();
-            Ok(())
-        }));
+        promise::spawn::spawn_into_main_thread(termwiztermtab::run(
+            80,
+            24,
+            move |term| {
+                let mut ui = ConnectionUIImpl { term, rx };
+                if let Err(e) = ui.run() {
+                    log::error!("while running ConnectionUI loop: {:?}", e);
+                }
+                ui.sleep(
+                    "(this window will close automatically)",
+                    Duration::new(10, 0),
+                )
+                .ok();
+                Ok(())
+            },
+            false,
+        ));
         Self { tx }
     }
 
     pub fn new_with_no_close_delay() -> Self {
         let (tx, rx) = bounded(16);
-        promise::spawn::spawn_into_main_thread(termwiztermtab::run(80, 24, move |term| {
-            let mut ui = ConnectionUIImpl { term, rx };
-            if let Err(e) = ui.run() {
-                log::error!("while running ConnectionUI loop: {:?}", e);
-            }
-            Ok(())
-        }));
+        promise::spawn::spawn_into_main_thread(termwiztermtab::run(
+            80,
+            24,
+            move |term| {
+                let mut ui = ConnectionUIImpl { term, rx };
+                if let Err(e) = ui.run() {
+                    log::error!("while running ConnectionUI loop: {:?}", e);
+                }
+                Ok(())
+            },
+            false,
+        ));
         Self { tx }
     }
 

@@ -32,6 +32,7 @@ mod server;
 mod ssh;
 mod stats;
 mod termwiztermtab;
+mod update;
 
 use crate::frontend::activity::Activity;
 use crate::frontend::{front_end, FrontEndSelection};
