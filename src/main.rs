@@ -804,7 +804,7 @@ fn run() -> anyhow::Result<()> {
             SetStdHandle(STD_ERROR_HANDLE, stderr.into_raw_file_descriptor());
             */
 
-            std::env::set_current_dir(config::HOME_DIR)?;
+            std::env::set_current_dir(config::HOME_DIR.as_path())?;
         }
     };
     pretty_env_logger::init_timed();
