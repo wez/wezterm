@@ -124,7 +124,7 @@ pub trait Child: std::fmt::Debug {
 /// Can be used to spawn processes into the pty.
 pub trait SlavePty {
     /// Spawns the command specified by the provided CommandBuilder
-    fn spawn_command(&self, cmd: CommandBuilder) -> Result<Box<dyn Child>, Error>;
+    fn spawn_command(&self, cmd: CommandBuilder) -> Result<Box<dyn Child + Send>, Error>;
 }
 
 /// Represents the exit status of a child process.
@@ -159,8 +159,8 @@ impl From<std::process::ExitStatus> for ExitStatus {
 pub struct PtyPair {
     // slave is listed first so that it is dropped first.
     // The drop order is stable and specified by rust rfc 1857
-    pub slave: Box<dyn SlavePty>,
-    pub master: Box<dyn MasterPty>,
+    pub slave: Box<dyn SlavePty + Send>,
+    pub master: Box<dyn MasterPty + Send>,
 }
 
 /// The `PtySystem` trait allows an application to work with multiple

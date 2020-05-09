@@ -112,7 +112,7 @@ impl io::Write for ConPtyMasterPty {
 }
 
 impl SlavePty for ConPtySlavePty {
-    fn spawn_command(&self, cmd: CommandBuilder) -> anyhow::Result<Box<dyn Child>> {
+    fn spawn_command(&self, cmd: CommandBuilder) -> anyhow::Result<Box<dyn Child + Send>> {
         let inner = self.inner.lock().unwrap();
         let child = inner.con.spawn_command(cmd)?;
         Ok(Box::new(child))
