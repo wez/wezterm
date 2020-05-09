@@ -177,6 +177,12 @@ impl MasterPty for SshMaster {
             pty: self.pty.clone(),
         }))
     }
+
+    fn try_clone_writer(&self) -> anyhow::Result<Box<dyn std::io::Write + Send>> {
+        Ok(Box::new(SshMaster {
+            pty: self.pty.clone(),
+        }))
+    }
 }
 
 struct SshSlave {

@@ -96,6 +96,10 @@ impl MasterPty for ConPtyMasterPty {
     fn try_clone_reader(&self) -> anyhow::Result<Box<dyn std::io::Read + Send>> {
         Ok(Box::new(self.inner.lock().unwrap().readable.try_clone()?))
     }
+
+    fn try_clone_writer(&self) -> anyhow::Result<Box<dyn std::io::Write + Send>> {
+        Ok(Box::new(self.inner.lock().unwrap().writable.try_clone()?))
+    }
 }
 
 impl io::Write for ConPtyMasterPty {

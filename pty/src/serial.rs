@@ -172,6 +172,11 @@ impl MasterPty for Master {
         let fd = FileDescriptor::dup(&*self.port.lock().unwrap())?;
         Ok(Box::new(Reader { fd }))
     }
+
+    fn try_clone_writer(&self) -> anyhow::Result<Box<dyn std::io::Write + Send>> {
+        let port = Arc::clone(&self.port);
+        Ok(Box::new(Master { port }))
+    }
 }
 
 struct Reader {

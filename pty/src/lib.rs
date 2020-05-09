@@ -99,6 +99,10 @@ pub trait MasterPty: std::io::Write {
     /// Obtain a readable handle; output from the slave(s) is readable
     /// via this stream.
     fn try_clone_reader(&self) -> Result<Box<dyn std::io::Read + Send>, Error>;
+    /// Obtain a writable handle; writing to it will send data to the
+    /// slave end.  This is equivalent to the Write impl on MasterPty
+    /// itself, but allows splitting it off into a separate object.
+    fn try_clone_writer(&self) -> Result<Box<dyn std::io::Write + Send>, Error>;
 }
 
 /// Represents a child process spawned into the pty.
