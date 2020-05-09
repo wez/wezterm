@@ -19,9 +19,9 @@ use winapi::um::processthreadsapi::*;
 use winapi::um::winbase::{FILE_TYPE_CHAR, FILE_TYPE_DISK, FILE_TYPE_PIPE};
 use winapi::um::winnt::HANDLE;
 use winapi::um::winsock2::{
-    accept, bind, closesocket, connect, getsockname, htonl, ioctlsocket, listen, recv, send,
-    WSAPoll, WSASocketW, WSAStartup, INVALID_SOCKET, SOCKET, SOCK_STREAM, WSADATA,
-    WSA_FLAG_NO_HANDLE_INHERIT,
+    accept, bind, closesocket, connect, getsockname, getsockopt, htonl, ioctlsocket, listen, recv,
+    send, WSAPoll, WSASocketW, WSAStartup, INVALID_SOCKET, SOCKET, SOCK_STREAM, SOL_SOCKET,
+    SO_ERROR, WSADATA, WSAENOTSOCK, WSA_FLAG_NO_HANDLE_INHERIT,
 };
 pub use winapi::um::winsock2::{POLLERR, POLLHUP, POLLIN, POLLOUT, WSAPOLLFD as pollfd};
 
@@ -113,7 +113,18 @@ impl OwnedHandle {
                 {
                     HandleType::Pipe
                 } else {
-                    HandleType::Socket
+                    // It's probably a socket, but it may be a special device used
+                    // when piping between WSL and native win32 apps.
+                    let mut err = 0;
+                    let errsize = std::mem::size_of_val(&err) as _;
+                    if unsafe {
+                        getsockopt(handle, SOL_SOCKET, SO_ERROR, &mut err as *mut _, &errsize) != 0
+                            && WSAGetLastError() == WSAENOTSOCK
+                    } {
+                        HandleType::Pipe
+                    } else {
+                        HandleType::Socket
+                    }
                 }
             }
             _ => HandleType::Unknown,
