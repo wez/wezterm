@@ -10,7 +10,6 @@ use winapi::um::processthreadsapi::*;
 use winapi::um::synchapi::WaitForSingleObject;
 use winapi::um::winbase::INFINITE;
 
-mod awaitable;
 pub mod conpty;
 mod procthreadattr;
 mod psuedocon;
@@ -74,12 +73,6 @@ impl Child for WinChild {
         } else {
             Err(IoError::last_os_error())
         }
-    }
-}
-
-impl crate::awaitable::Child for WinChild {
-    fn kill(&mut self) -> IoResult<()> {
-        self.do_kill()
     }
 }
 
