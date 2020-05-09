@@ -1,7 +1,7 @@
 //! Working with pseudo-terminals
 
 use crate::{Child, CommandBuilder, MasterPty, PtyPair, PtySize, PtySystem, SlavePty};
-use anyhow::{bail,  Error};
+use anyhow::{bail, Error};
 use filedescriptor::FileDescriptor;
 use libc::{self, winsize};
 use std::io;
@@ -242,6 +242,11 @@ impl MasterPty for UnixMasterPty {
     fn try_clone_reader(&self) -> Result<Box<dyn Read + Send>, Error> {
         let fd = PtyFd(self.fd.try_clone()?);
         Ok(Box::new(fd))
+    }
+
+    fn try_clone_writer(&self) -> Result<Box<dyn Write + Send>, Error> {
+        let fd = PtyFd(self.fd.try_clone()?);
+        Ok(Box::new(UnixMasterPty { fd }))
     }
 }
 
