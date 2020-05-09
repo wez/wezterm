@@ -1,21 +1,15 @@
 //! Working with pseudo-terminals
 
-use crate::{Child, CommandBuilder, ExitStatus, MasterPty, PtyPair, PtySize, PtySystem, SlavePty};
-use anyhow::{bail, Context as _, Error};
-use async_trait::async_trait;
+use crate::{Child, CommandBuilder, MasterPty, PtyPair, PtySize, PtySystem, SlavePty};
+use anyhow::{bail,  Error};
 use filedescriptor::FileDescriptor;
 use libc::{self, winsize};
-use mio::unix::EventedFd;
-use mio::{self, Evented, PollOpt, Ready, Token};
 use std::io;
 use std::io::{Read, Write};
 use std::mem;
 use std::os::unix::io::{AsRawFd, FromRawFd, RawFd};
 use std::os::unix::process::CommandExt;
-use std::pin::Pin;
 use std::ptr;
-use std::task::{Context, Poll};
-use tokio::io::PollEvented;
 
 #[derive(Default)]
 pub struct UnixPtySystem {}
@@ -70,25 +64,6 @@ impl PtySystem for UnixPtySystem {
         Ok(PtyPair {
             master: Box::new(master),
             slave: Box::new(slave),
-        })
-    }
-}
-
-#[async_trait(?Send)]
-impl crate::awaitable::PtySystem for UnixPtySystem {
-    async fn openpty(&self, size: PtySize) -> anyhow::Result<crate::awaitable::PtyPair> {
-        let (mut master, mut slave) = openpty(size)?;
-
-        master.fd.set_non_blocking(true)?;
-        slave.fd.set_non_blocking(true)?;
-
-        Ok(crate::awaitable::PtyPair {
-            master: Box::pin(AwaitableMasterPty {
-                io: PollEvented::new(master.fd)?,
-            }),
-            slave: Box::pin(AwaitableSlavePty {
-                io: PollEvented::new(slave.fd)?,
-            }),
         })
     }
 }
@@ -218,32 +193,6 @@ impl PtyFd {
     }
 }
 
-impl Evented for PtyFd {
-    fn register(
-        &self,
-        poll: &mio::Poll,
-        token: Token,
-        interest: Ready,
-        opts: PollOpt,
-    ) -> std::io::Result<()> {
-        EventedFd(&self.0.as_raw_fd()).register(poll, token, interest, opts)
-    }
-
-    fn reregister(
-        &self,
-        poll: &mio::Poll,
-        token: Token,
-        interest: Ready,
-        opts: PollOpt,
-    ) -> std::io::Result<()> {
-        EventedFd(&self.0.as_raw_fd()).reregister(poll, token, interest, opts)
-    }
-
-    fn deregister(&self, poll: &mio::Poll) -> std::io::Result<()> {
-        EventedFd(&self.0.as_raw_fd()).deregister(poll)
-    }
-}
-
 /// Represents the master end of a pty.
 /// The file descriptor will be closed when the Pty is dropped.
 struct UnixMasterPty {
@@ -302,182 +251,5 @@ impl Write for UnixMasterPty {
     }
     fn flush(&mut self) -> Result<(), io::Error> {
         self.fd.flush()
-    }
-}
-
-struct AwaitableSlavePty {
-    io: PollEvented<PtyFd>,
-}
-
-struct AwaitableMasterPty {
-    io: PollEvented<PtyFd>,
-}
-
-#[derive(Debug)]
-struct AwaitableChild {
-    pid: libc::pid_t,
-    waiting: Option<std::sync::mpsc::Receiver<anyhow::Result<ExitStatus>>>,
-}
-
-impl crate::awaitable::Child for AwaitableChild {
-    fn kill(&mut self) -> std::io::Result<()> {
-        let res = unsafe { libc::kill(self.pid, libc::SIGKILL) };
-        if res != 0 {
-            return Err(std::io::Error::last_os_error());
-        }
-        Ok(())
-    }
-}
-
-impl std::future::Future for AwaitableChild {
-    type Output = anyhow::Result<ExitStatus>;
-    fn poll(mut self: Pin<&mut Self>, cx: &mut Context) -> Poll<anyhow::Result<ExitStatus>> {
-        if self.waiting.is_none() {
-            let (tx, rx) = std::sync::mpsc::channel();
-            let pid = self.pid;
-            let waker = cx.waker().clone();
-            std::thread::spawn(move || loop {
-                let mut status = 0;
-                let reaped = unsafe { libc::waitpid(pid, &mut status, 0) };
-                let err = std::io::Error::last_os_error();
-                if reaped == pid {
-                    let exit_code = if unsafe { libc::WIFEXITED(status) } {
-                        unsafe { libc::WEXITSTATUS(status) as u32 }
-                    } else {
-                        1
-                    };
-                    tx.send(Ok(ExitStatus::with_exit_code(exit_code))).ok();
-                    waker.wake();
-                    return;
-                }
-
-                if err.kind() == std::io::ErrorKind::Interrupted {
-                    continue;
-                }
-
-                tx.send(Err(err).context("waitpid result")).ok();
-                waker.wake();
-                return;
-            });
-            self.waiting = Some(rx);
-        }
-
-        match self.waiting.as_mut().unwrap().try_recv() {
-            Ok(status) => Poll::Ready(status),
-            Err(std::sync::mpsc::TryRecvError::Empty) => Poll::Pending,
-            Err(err) => Poll::Ready(Err(err).context("receiving process wait status")),
-        }
-    }
-}
-
-#[async_trait(?Send)]
-impl crate::awaitable::SlavePty for AwaitableSlavePty {
-    async fn spawn_command(
-        &self,
-        builder: CommandBuilder,
-    ) -> anyhow::Result<Pin<Box<dyn crate::awaitable::Child>>> {
-        let child = self.io.get_ref().spawn_command(builder)?;
-        let pid = child.id() as libc::pid_t;
-        let child: Pin<Box<dyn crate::awaitable::Child>> =
-            Box::pin(AwaitableChild { pid, waiting: None });
-        Ok(child)
-    }
-}
-
-#[async_trait(?Send)]
-impl crate::awaitable::MasterPty for AwaitableMasterPty {
-    async fn resize(&self, size: PtySize) -> Result<(), Error> {
-        self.io.get_ref().resize(size)
-    }
-
-    async fn get_size(&self) -> Result<PtySize, Error> {
-        self.io.get_ref().get_size()
-    }
-
-    fn try_clone_reader(&self) -> anyhow::Result<Pin<Box<dyn tokio::io::AsyncRead + Send>>> {
-        let mut fd = self.io.get_ref().try_clone()?;
-        fd.set_non_blocking(true)?;
-        Ok(Box::pin(AwaitableMasterPty {
-            io: PollEvented::new(PtyFd(fd))?,
-        }))
-    }
-}
-
-impl AwaitableMasterPty {
-    fn poll_write_impl(
-        &mut self,
-        cx: &mut Context,
-        buf: &[u8],
-    ) -> Poll<Result<usize, std::io::Error>> {
-        if Poll::Pending == self.io.poll_write_ready(cx)? {
-            return Poll::Pending;
-        }
-
-        match self.io.get_mut().0.write(buf) {
-            Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => {
-                self.io.clear_write_ready(cx)?;
-                Poll::Pending
-            }
-            x => Poll::Ready(x),
-        }
-    }
-}
-
-impl tokio::io::AsyncWrite for AwaitableMasterPty {
-    fn poll_write(
-        mut self: Pin<&mut Self>,
-        cx: &mut Context,
-        buf: &[u8],
-    ) -> Poll<Result<usize, std::io::Error>> {
-        self.poll_write_impl(cx, buf)
-    }
-
-    fn poll_flush(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Result<(), std::io::Error>> {
-        Poll::Ready(Ok(()))
-    }
-
-    fn poll_shutdown(
-        self: Pin<&mut Self>,
-        _cx: &mut Context,
-    ) -> std::task::Poll<Result<(), std::io::Error>> {
-        Poll::Ready(Ok(()))
-    }
-}
-
-impl tokio::io::AsyncRead for AwaitableMasterPty {
-    fn poll_read(
-        mut self: Pin<&mut Self>,
-        cx: &mut Context<'_>,
-        buf: &mut [u8],
-    ) -> Poll<io::Result<usize>> {
-        poll_read_impl(&mut self.io, cx, buf)
-    }
-}
-
-fn poll_read_impl(
-    io: &mut PollEvented<PtyFd>,
-    cx: &mut Context<'_>,
-    buf: &mut [u8],
-) -> Poll<io::Result<usize>> {
-    if Poll::Pending == io.poll_read_ready(cx, Ready::readable())? {
-        return Poll::Pending;
-    }
-
-    match io.get_mut().read(buf) {
-        Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => {
-            io.clear_read_ready(cx, Ready::readable())?;
-            Poll::Pending
-        }
-        x => Poll::Ready(x),
-    }
-}
-
-impl tokio::io::AsyncRead for AwaitableSlavePty {
-    fn poll_read(
-        mut self: Pin<&mut Self>,
-        cx: &mut Context<'_>,
-        buf: &mut [u8],
-    ) -> Poll<io::Result<usize>> {
-        poll_read_impl(&mut self.io, cx, buf)
     }
 }

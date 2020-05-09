@@ -59,7 +59,6 @@ pub mod win;
 #[cfg(feature = "ssh")]
 pub mod ssh;
 
-pub mod awaitable;
 pub mod serial;
 
 /// Represents the size of the visible display area in the pty
