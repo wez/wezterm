@@ -37,3 +37,7 @@ winapi = { version = "0.3", features = [
     "namedpipeapi",
     "synchapi",
 ]}
+
+[dev-dependencies]
+smol = "0.1"
+futures = "0.3"
