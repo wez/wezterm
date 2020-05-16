@@ -25,13 +25,6 @@ brief notes about them may accumulate here.
 * Change OSC rendering to use the long-form `ST` sequence `ESC \` rather than
   the more convenient alternative `BEL` representation, which was not
   recognized by Neovim when querying for color information.
-* X11: pasting now pastes the PRIMARY selection.  We used to use CLIPBOARD for
-  better support when running under XWayland, but these days we have much
-  better native Wayland support so this feels like it is probably the right
-  call.  If this causes problems for you, please file an issue so that we can
-  figure out a solution.  You can also export
-  `WEZTERM_X11_PREFER_CLIPBOARD_OVER_PRIMARY=1` into the environment to adopt
-  the prior behavior.
 * WezTerm is now also available to Windows users via [Scoop](https://scoop.sh/)
 
 ## 20200503-171512-b13ef15f
