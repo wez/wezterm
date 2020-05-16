@@ -255,7 +255,7 @@ mod test {
             ))],
             actions
         );
-        assert_eq!(encode(&actions), "\x1b]0;hello\x07");
+        assert_eq!(encode(&actions), "\x1b]0;hello\x1b\\");
 
         let actions = p.parse_as_vec(b"\x1b]532534523;hello\x07");
         assert_eq!(
@@ -264,7 +264,7 @@ mod test {
             ))],
             actions
         );
-        assert_eq!(encode(&actions), "\x1b]532534523;hello\x07");
+        assert_eq!(encode(&actions), "\x1b]532534523;hello\x1b\\");
     }
 
     #[test]
@@ -278,7 +278,7 @@ mod test {
             ))],
             actions
         );
-        assert_eq!(encode(&actions), input);
+        assert_eq!(encode(&actions), "\x1b]0;\u{1f915}\x1b\\");
     }
 
     #[test]

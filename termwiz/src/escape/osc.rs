@@ -407,7 +407,8 @@ impl Display for OperatingSystemCommand {
             }
             CurrentWorkingDirectory(s) => write!(f, "7;{}", s)?,
         };
-        write!(f, "\x07")?;
+        // Use the longer form ST as neovim doesn't like the BEL version
+        write!(f, "\x1b\\")?;
         Ok(())
     }
 }
@@ -821,19 +822,19 @@ mod test {
     #[test]
     fn reset_colors() {
         assert_eq!(
-            parse(&["104"], "\x1b]104\x07"),
+            parse(&["104"], "\x1b]104\x1b\\"),
             OperatingSystemCommand::ResetColors(vec![])
         );
         assert_eq!(
-            parse(&["104", ""], "\x1b]104\x07"),
+            parse(&["104", ""], "\x1b]104\x1b\\"),
             OperatingSystemCommand::ResetColors(vec![])
         );
         assert_eq!(
-            parse(&["104", "1"], "\x1b]104;1\x07"),
+            parse(&["104", "1"], "\x1b]104;1\x1b\\"),
             OperatingSystemCommand::ResetColors(vec![1])
         );
         assert_eq!(
-            parse(&["112"], "\x1b]112\x07"),
+            parse(&["112"], "\x1b]112\x1b\\"),
             OperatingSystemCommand::ResetDynamicColor(DynamicColorNumber::TextCursorColor)
         );
     }
@@ -841,24 +842,24 @@ mod test {
     #[test]
     fn title() {
         assert_eq!(
-            parse(&["0", "hello"], "\x1b]0;hello\x07"),
+            parse(&["0", "hello"], "\x1b]0;hello\x1b\\"),
             OperatingSystemCommand::SetIconNameAndWindowTitle("hello".into())
         );
 
         assert_eq!(
-            parse(&["0", "hello \u{1f915}"], "\x1b]0;hello \u{1f915}\x07"),
+            parse(&["0", "hello \u{1f915}"], "\x1b]0;hello \u{1f915}\x1b\\"),
             OperatingSystemCommand::SetIconNameAndWindowTitle("hello \u{1f915}".into())
         );
 
         // Missing title parameter
         assert_eq!(
-            parse(&["0"], "\x1b]0\x07"),
+            parse(&["0"], "\x1b]0\x1b\\"),
             OperatingSystemCommand::Unspecified(vec![b"0".to_vec()])
         );
 
         // too many params
         assert_eq!(
-            parse(&["0", "1", "2"], "\x1b]0;1;2\x07"),
+            parse(&["0", "1", "2"], "\x1b]0;1;2\x1b\\"),
             OperatingSystemCommand::Unspecified(vec![b"0".to_vec(), b"1".to_vec(), b"2".to_vec()])
         );
     }
@@ -868,7 +869,7 @@ mod test {
         assert_eq!(
             parse(
                 &["8", "id=foo", "http://example.com"],
-                "\x1b]8;id=foo;http://example.com\x07"
+                "\x1b]8;id=foo;http://example.com\x1b\\"
             ),
             OperatingSystemCommand::SetHyperlink(Some(Hyperlink::new_with_id(
                 "http://example.com",
@@ -877,13 +878,13 @@ mod test {
         );
 
         assert_eq!(
-            parse(&["8", "", ""], "\x1b]8;;\x07"),
+            parse(&["8", "", ""], "\x1b]8;;\x1b\\"),
             OperatingSystemCommand::SetHyperlink(None)
         );
 
         // too many params
         assert_eq!(
-            parse(&["8", "1", "2"], "\x1b]8;1;2\x07"),
+            parse(&["8", "1", "2"], "\x1b]8;1;2\x1b\\"),
             OperatingSystemCommand::Unspecified(vec![b"8".to_vec(), b"1".to_vec(), b"2".to_vec()])
         );
 
@@ -896,14 +897,14 @@ mod test {
     #[test]
     fn iterm() {
         assert_eq!(
-            parse(&["1337", "SetMark"], "\x1b]1337;SetMark\x07"),
+            parse(&["1337", "SetMark"], "\x1b]1337;SetMark\x1b\\"),
             OperatingSystemCommand::ITermProprietary(ITermProprietary::SetMark)
         );
 
         assert_eq!(
             parse(
                 &["1337", "CurrentDir=woot"],
-                "\x1b]1337;CurrentDir=woot\x07"
+                "\x1b]1337;CurrentDir=woot\x1b\\"
             ),
             OperatingSystemCommand::ITermProprietary(ITermProprietary::CurrentDir("woot".into()))
         );
@@ -911,7 +912,7 @@ mod test {
         assert_eq!(
             parse(
                 &["1337", "HighlightCursorLine=yes"],
-                "\x1b]1337;HighlightCursorLine=yes\x07"
+                "\x1b]1337;HighlightCursorLine=yes\x1b\\"
             ),
             OperatingSystemCommand::ITermProprietary(ITermProprietary::HighlightCursorLine(true))
         );
@@ -919,7 +920,7 @@ mod test {
         assert_eq!(
             parse(
                 &["1337", "Copy=", "aGVsbG8="],
-                "\x1b]1337;Copy=;aGVsbG8=\x07"
+                "\x1b]1337;Copy=;aGVsbG8=\x1b\\"
             ),
             OperatingSystemCommand::ITermProprietary(ITermProprietary::Copy("hello".into()))
         );
@@ -927,7 +928,7 @@ mod test {
         assert_eq!(
             parse(
                 &["1337", "SetUserVar=foo=aGVsbG8="],
-                "\x1b]1337;SetUserVar=foo=aGVsbG8=\x07"
+                "\x1b]1337;SetUserVar=foo=aGVsbG8=\x1b\\"
             ),
             OperatingSystemCommand::ITermProprietary(ITermProprietary::SetUserVar {
                 name: "foo".into(),
@@ -938,7 +939,7 @@ mod test {
         assert_eq!(
             parse(
                 &["1337", "SetBadgeFormat=", "aGVsbG8="],
-                "\x1b]1337;SetBadgeFormat=aGVsbG8=\x07"
+                "\x1b]1337;SetBadgeFormat=aGVsbG8=\x1b\\"
             ),
             OperatingSystemCommand::ITermProprietary(ITermProprietary::SetBadgeFormat(
                 "hello".into()
@@ -948,7 +949,7 @@ mod test {
         assert_eq!(
             parse(
                 &["1337", "ReportCellSize=12.0", "15.5"],
-                "\x1b]1337;ReportCellSize=12;15.5\x07"
+                "\x1b]1337;ReportCellSize=12;15.5\x1b\\"
             ),
             OperatingSystemCommand::ITermProprietary(ITermProprietary::ReportCellSize {
                 height_points: NotNan::new(12.0).unwrap(),
@@ -957,7 +958,10 @@ mod test {
         );
 
         assert_eq!(
-            parse(&["1337", "File=:aGVsbG8="], "\x1b]1337;File=:aGVsbG8=\x07"),
+            parse(
+                &["1337", "File=:aGVsbG8="],
+                "\x1b]1337;File=:aGVsbG8=\x1b\\"
+            ),
             OperatingSystemCommand::ITermProprietary(ITermProprietary::File(Box::new(
                 ITermFileData {
                     name: None,
@@ -974,7 +978,7 @@ mod test {
         assert_eq!(
             parse(
                 &["1337", "File=name=bXluYW1l:aGVsbG8="],
-                "\x1b]1337;File=name=bXluYW1l:aGVsbG8=\x07"
+                "\x1b]1337;File=name=bXluYW1l:aGVsbG8=\x1b\\"
             ),
             OperatingSystemCommand::ITermProprietary(ITermProprietary::File(Box::new(
                 ITermFileData {
@@ -992,7 +996,7 @@ mod test {
         assert_eq!(
             parse(
                 &["1337", "File=size=123", "name=bXluYW1l:aGVsbG8="],
-                "\x1b]1337;File=size=123;name=bXluYW1l:aGVsbG8=\x07"
+                "\x1b]1337;File=size=123;name=bXluYW1l:aGVsbG8=\x1b\\"
             ),
             OperatingSystemCommand::ITermProprietary(ITermProprietary::File(Box::new(
                 ITermFileData {
@@ -1010,7 +1014,7 @@ mod test {
         assert_eq!(
             parse(
                 &["1337", "File=name=bXluYW1l", "size=234:aGVsbG8="],
-                "\x1b]1337;File=size=234;name=bXluYW1l:aGVsbG8=\x07"
+                "\x1b]1337;File=size=234;name=bXluYW1l:aGVsbG8=\x1b\\"
             ),
             OperatingSystemCommand::ITermProprietary(ITermProprietary::File(Box::new(
                 ITermFileData {
@@ -1033,7 +1037,7 @@ mod test {
                     "width=auto",
                     "size=234:aGVsbG8="
                 ],
-                "\x1b]1337;File=size=234;name=bXluYW1l:aGVsbG8=\x07"
+                "\x1b]1337;File=size=234;name=bXluYW1l:aGVsbG8=\x1b\\"
             ),
             OperatingSystemCommand::ITermProprietary(ITermProprietary::File(Box::new(
                 ITermFileData {
@@ -1051,7 +1055,7 @@ mod test {
         assert_eq!(
             parse(
                 &["1337", "File=name=bXluYW1l", "width=5", "size=234:aGVsbG8="],
-                "\x1b]1337;File=size=234;name=bXluYW1l;width=5:aGVsbG8=\x07"
+                "\x1b]1337;File=size=234;name=bXluYW1l;width=5:aGVsbG8=\x1b\\"
             ),
             OperatingSystemCommand::ITermProprietary(ITermProprietary::File(Box::new(
                 ITermFileData {
@@ -1075,7 +1079,7 @@ mod test {
                     "height=10%",
                     "size=234:aGVsbG8="
                 ],
-                "\x1b]1337;File=size=234;name=bXluYW1l;width=5;height=10%:aGVsbG8=\x07"
+                "\x1b]1337;File=size=234;name=bXluYW1l;width=5;height=10%:aGVsbG8=\x1b\\"
             ),
             OperatingSystemCommand::ITermProprietary(ITermProprietary::File(Box::new(
                 ITermFileData {
@@ -1093,7 +1097,7 @@ mod test {
         assert_eq!(
             parse(
                 &["1337", "File=name=bXluYW1l", "preserveAspectRatio=0", "width=5", "inline=1", "height=10px","size=234:aGVsbG8="],
-                "\x1b]1337;File=size=234;name=bXluYW1l;width=5;height=10px;preserveAspectRatio=0;inline=1:aGVsbG8=\x07"
+                "\x1b]1337;File=size=234;name=bXluYW1l;width=5;height=10px;preserveAspectRatio=0;inline=1:aGVsbG8=\x1b\\"
             ),
             OperatingSystemCommand::ITermProprietary(ITermProprietary::File(Box::new(
                 ITermFileData {
