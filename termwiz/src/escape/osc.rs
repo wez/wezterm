@@ -38,6 +38,7 @@ pub enum OperatingSystemCommand {
     ITermProprietary(ITermProprietary),
     ChangeColorNumber(Vec<ChangeColorPair>),
     ChangeDynamicColors(DynamicColorNumber, Vec<ColorOrQuery>),
+    ResetDynamicColor(DynamicColorNumber),
     CurrentWorkingDirectory(String),
     ResetColors(Vec<u8>),
 
@@ -213,6 +214,13 @@ impl OperatingSystemCommand {
         Ok(OperatingSystemCommand::ChangeColorNumber(pairs))
     }
 
+    fn parse_reset_dynamic_color_number(idx: u8) -> anyhow::Result<Self> {
+        let which_color: DynamicColorNumber = num::FromPrimitive::from_u8(idx)
+            .ok_or_else(|| anyhow!("osc code is not a valid DynamicColorNumber!?"))?;
+
+        Ok(OperatingSystemCommand::ResetDynamicColor(which_color))
+    }
+
     fn parse_change_dynamic_color_number(idx: u8, osc: &[&[u8]]) -> anyhow::Result<Self> {
         let which_color: DynamicColorNumber = num::FromPrimitive::from_u8(idx)
             .ok_or_else(|| anyhow!("osc code is not a valid DynamicColorNumber!?"))?;
@@ -268,6 +276,20 @@ impl OperatingSystemCommand {
             ChangeColorNumber => Self::parse_change_color_number(osc),
             ResetColors => Self::parse_reset_colors(osc),
 
+            ResetSpecialColor
+            | ResetTextForegroundColor
+            | ResetTextBackgroundColor
+            | ResetTextCursorColor
+            | ResetMouseForegroundColor
+            | ResetMouseBackgroundColor
+            | ResetTektronixForegroundColor
+            | ResetTektronixBackgroundColor
+            | ResetHighlightColor
+            | ResetTektronixCursorColor
+            | ResetHighlightForegroundColor => {
+                Self::parse_reset_dynamic_color_number((osc_code as u8).saturating_sub(100))
+            }
+
             SetTextForegroundColor
             | SetTextBackgroundColor
             | SetTextCursorColor
@@ -293,6 +315,8 @@ pub enum OperatingSystemCommandCode {
     SetWindowTitle = 2,
     SetXWindowProperty = 3,
     ChangeColorNumber = 4,
+    ChangeSpecialColorNumber = 5,
+
     /// iTerm2
     ChangeTitleTabColor = 6,
     SetCurrentWorkingDirectory = 7,
@@ -315,6 +339,17 @@ pub enum OperatingSystemCommandCode {
     EmacsShell = 51,
     ManipulateSelectionData = 52,
     ResetColors = 104,
+    ResetSpecialColor = 105,
+    ResetTextForegroundColor = 110,
+    ResetTextBackgroundColor = 111,
+    ResetTextCursorColor = 112,
+    ResetMouseForegroundColor = 113,
+    ResetMouseBackgroundColor = 114,
+    ResetTektronixForegroundColor = 115,
+    ResetTektronixBackgroundColor = 116,
+    ResetHighlightColor = 117,
+    ResetTektronixCursorColor = 118,
+    ResetHighlightForegroundColor = 119,
     RxvtProprietary = 777,
     ITermProprietary = 1337,
 }
@@ -366,6 +401,9 @@ impl Display for OperatingSystemCommand {
                 for color in colors {
                     write!(f, ";{}", color)?
                 }
+            }
+            ResetDynamicColor(color) => {
+                write!(f, "{}", 100 + *color as u8)?;
             }
             CurrentWorkingDirectory(s) => write!(f, "7;{}", s)?,
         };
@@ -793,6 +831,10 @@ mod test {
         assert_eq!(
             parse(&["104", "1"], "\x1b]104;1\x07"),
             OperatingSystemCommand::ResetColors(vec![1])
+        );
+        assert_eq!(
+            parse(&["112"], "\x1b]112\x07"),
+            OperatingSystemCommand::ResetDynamicColor(DynamicColorNumber::TextCursorColor)
         );
     }
 

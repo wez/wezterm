@@ -1886,6 +1886,7 @@ impl<'a> Performer<'a> {
                 let mut idx: u8 = first_color as u8;
                 for color in colors {
                     let which_color: Option<DynamicColorNumber> = num::FromPrimitive::from_u8(idx);
+                    log::trace!("ChangeDynamicColors item: {:?}", which_color);
                     if let Some(which_color) = which_color {
                         macro_rules! set_or_query {
                             ($name:ident) => {
@@ -1919,6 +1920,38 @@ impl<'a> Performer<'a> {
                         }
                     }
                     idx += 1;
+                }
+                self.make_all_lines_dirty();
+            }
+
+            OperatingSystemCommand::ResetDynamicColor(color) => {
+                log::trace!("ResetDynamicColor: {:?}", color);
+                use termwiz::escape::osc::DynamicColorNumber;
+                let which_color: Option<DynamicColorNumber> =
+                    num::FromPrimitive::from_u8(color as u8);
+                if let Some(which_color) = which_color {
+                    macro_rules! reset {
+                        ($name:ident) => {
+                            if self.palette.is_none() {
+                                // Already at the defaults
+                            } else {
+                                let base = self.config.color_palette();
+                                self.palette_mut().$name = base.$name;
+                            }
+                        };
+                    }
+                    match which_color {
+                        DynamicColorNumber::TextForegroundColor => reset!(foreground),
+                        DynamicColorNumber::TextBackgroundColor => reset!(background),
+                        DynamicColorNumber::TextCursorColor => reset!(cursor_bg),
+                        DynamicColorNumber::HighlightForegroundColor => reset!(selection_fg),
+                        DynamicColorNumber::HighlightBackgroundColor => reset!(selection_bg),
+                        DynamicColorNumber::MouseForegroundColor
+                        | DynamicColorNumber::MouseBackgroundColor
+                        | DynamicColorNumber::TektronixForegroundColor
+                        | DynamicColorNumber::TektronixBackgroundColor
+                        | DynamicColorNumber::TektronixCursorColor => {}
+                    }
                 }
                 self.make_all_lines_dirty();
             }
