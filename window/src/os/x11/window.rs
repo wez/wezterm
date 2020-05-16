@@ -989,11 +989,18 @@ impl WindowOps for XWindow {
                 xcb::convert_selection(
                     &inner.conn,
                     inner.window_id,
-                    // Important: we request the clipboard rather than the
-                    // primary selection because, under wayland, access to the
+                    // we used to request the clipboard rather than the
+                    // primary selection because, under xwayland, access to the
                     // primary selection is forbidden by default citing a security
                     // concern.
-                    inner.conn.atom_clipboard,
+                    // These days we have much better native wayland support, so we
+                    // default to PRIMARY and allow setting this env var as an
+                    // escape hatch.
+                    if std::env::var_os("WEZTERM_X11_PREFER_CLIPBOARD_OVER_PRIMARY").is_some() {
+                        inner.conn.atom_clipboard
+                    } else {
+                        xcb::ATOM_PRIMARY
+                    },
                     inner.conn.atom_utf8_string,
                     inner.conn.atom_xsel_data,
                     inner.copy_and_paste.time,
