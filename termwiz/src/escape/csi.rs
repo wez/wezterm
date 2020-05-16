@@ -487,6 +487,8 @@ pub enum DecPrivateModeCode {
     ButtonEventMouse = 1002,
     /// Enable mouse motion, button press/release and drag reporting
     AnyEventMouse = 1003,
+    /// Enable FocusIn/FocusOut events
+    FocusTracking = 1004,
     /// Use extended coordinate system in mouse reporting.  Does not
     /// enable mouse reporting itself, it just controls how reports
     /// will be encoded.
