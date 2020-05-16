@@ -1302,6 +1302,10 @@ impl TerminalState {
                 );
                 write!(host.writer(), "\x1bP{}!~{:04x}\x1b\\", request_id, checksum).ok();
             }
+            Window::ResizeWindowCells { .. } => {
+                // We don't allow the application to change the window size; that's
+                // up to the user!
+            }
             Window::Iconify | Window::DeIconify => {}
             Window::PopIconAndWindowTitle
             | Window::PopWindowTitle
