@@ -10,7 +10,28 @@ daily) from the master branch.  It may not be usable and
 the feature set may change.  As features stabilize some
 brief notes about them may accumulate here.
 
-* Not yet!
+* AppImage: Support looking for configuration in `WezTerm.AppImage.config` and
+  `WezTerm.AppImage.home` to support portable thumbdrive use of wezterm on
+  linux systems
+* We now check the github releases section for updated stable releases and show
+  a simple UI to let you know about the update, with links to download/install
+  it.  We don't automatically download the release: just make a small REST API
+  call to github.  There is no data collection performed by the wezterm project
+  as part of this.  We check once every 24 hours.  You can set
+  `check_for_updates = false` in your config to disable this completely if
+  desired, or set `check_for_updates_interval_seconds` to an alternative update
+  interval.
+* Added support for OSC 110-119 to reset dynamic colors, improving our support for Neovim.
+* Change OSC rendering to use the long-form `ST` sequence `ESC \` rather than
+  the more convenient alternative `BEL` representation, which was not
+  recognized by Neovim when querying for color information.
+* X11: pasting now pastes the PRIMARY selection.  We used to use CLIPBOARD for
+  better support when running under XWayland, but these days we have much
+  better native Wayland support so this feels like it is probably the right
+  call.  If this causes problems for you, please file an issue so that we can
+  figure out a solution.  You can also export
+  `WEZTERM_X11_PREFER_CLIPBOARD_OVER_PRIMARY=1` into the environment to adopt
+  the prior behavior.
 
 ## 20200503-171512-b13ef15f
 
