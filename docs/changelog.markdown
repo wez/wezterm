@@ -32,6 +32,7 @@ brief notes about them may accumulate here.
   figure out a solution.  You can also export
   `WEZTERM_X11_PREFER_CLIPBOARD_OVER_PRIMARY=1` into the environment to adopt
   the prior behavior.
+* WezTerm is now also available to Windows users via [Scoop](https://scoop.sh/)
 
 ## 20200503-171512-b13ef15f
 

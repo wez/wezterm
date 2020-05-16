@@ -9,6 +9,19 @@ Windows 10 or later is required to run WezTerm.
 2. Extract the zipfile and double-click `wezterm.exe` to run the UI
 3. Configuration instructions can be [found here](config/index.html)
 
+### For `Scoop` users
+
+If you prefer to use the command line to manage installing software,
+then you may wish to try [Scoop](https://scoop.sh/).
+
+Wezterm is available from the "Extras" bucket and once you have installed
+scoop itself can be installed like so:
+
+```bash
+scoop bucket add extras
+scoop install wezterm
+```
+
 ## Installing on macOS
 
 The CI system builds the package on macOS Mojave (10.14).  It may run on earlier
