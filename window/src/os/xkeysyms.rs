@@ -43,6 +43,7 @@ pub fn keysym_to_keycode(keysym: u32) -> Option<KeyCode> {
     Some(match keysym {
         KEY_Escape => KeyCode::Char('\u{1b}'),
         KEY_Tab => KeyCode::Char('\t'),
+        KEY_ISO_Left_Tab => KeyCode::Char('\t'),
 
         KEY_BackSpace => KeyCode::Char('\u{8}'),
         KEY_Return => KeyCode::Char('\r'),

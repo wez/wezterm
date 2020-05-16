@@ -141,7 +141,7 @@ impl Keyboard {
                 if let Some(key) = keysym_to_keycode(xsym) {
                     key
                 } else {
-                    // log::debug!("xkbc:Missing xcb keysym {} definition", xsym);
+                    log::debug!("xkbc:Missing xcb keysym 0x{:x} definition", xsym);
                     return None;
                 }
             }
