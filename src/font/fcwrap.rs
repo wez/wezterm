@@ -30,7 +30,7 @@ lazy_static::lazy_static! {
 fn add_object() {
     let mut num = NUM_OBJECTS.lock().unwrap();
     *num += 1;
-    log::trace!("fc object count + -> {}", *num);
+    // log::trace!("fc object count + -> {}", *num);
 }
 
 fn release_object() {
@@ -38,10 +38,10 @@ fn release_object() {
     let count = *num - 1;
     *num = count;
 
-    log::trace!("fc object count - -> {}", *num);
+    // log::trace!("fc object count - -> {}", *num);
 
     if count == 0 {
-        log::trace!("Finalize fontconfig!");
+        // log::trace!("Finalize fontconfig!");
         // There are no more objects referencing the fontconfig
         // library, so we can release it now
         unsafe {
