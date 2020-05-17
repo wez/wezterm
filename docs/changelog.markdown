@@ -12,7 +12,7 @@ brief notes about them may accumulate here.
 
 * Not yet!
 
-### 20200517-122836-1d154a31
+### 20200517-122836-92c201c6
 
 * AppImage: Support looking for configuration in `WezTerm.AppImage.config` and
   `WezTerm.AppImage.home` to support portable thumbdrive use of wezterm on
