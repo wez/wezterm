@@ -33,26 +33,14 @@ Included functionality:
 * `Widget` trait allows composition of UI elements at a higher level.
 * `LineEditor` implements shell-like line editing functionality.
 
+# Windows Support
+
+Termwiz understands how to work with both the legacy console APIs and
+the new PTY and virtual terminal features available in Windows 10,
+allowing for true color terminal applications on Windows 10.
+
 # Documentation
 
 https://docs.rs/termwiz
-
-## Windows
-
-Testing via Wine:
-
-```
-sudo apt install gcc-mingw-w64-x86-64
-rustup target add x86_64-pc-windows-gnu
-cargo build --target=x86_64-pc-windows-gnu  --example hello
-```
-
-Then, from an X session of some kind:
-
-```
-wineconsole cmd.exe
-```
-
-and from there you can launch the generated .exe files; they are found under `target/x86_64-pc-windows-gnu/debug`
 
 
