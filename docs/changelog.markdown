@@ -25,6 +25,7 @@ brief notes about them may accumulate here.
 * Change OSC rendering to use the long-form `ST` sequence `ESC \` rather than
   the more convenient alternative `BEL` representation, which was not
   recognized by Neovim when querying for color information.
+* Fixed Shift-Tab key on X11 and Wayland
 * WezTerm is now also available to Windows users via [Scoop](https://scoop.sh/)
 
 ## 20200503-171512-b13ef15f
