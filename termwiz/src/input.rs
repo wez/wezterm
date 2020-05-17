@@ -650,17 +650,50 @@ impl InputParser {
             );
         }
 
-        // Function keys with modifiers encoded using CSI
-        for n in 1..=12 {
+        // Function keys 1-4 with modifiers
+        for (keycode, c) in &[
+            (KeyCode::Function(1), b'P'),
+            (KeyCode::Function(2), b'Q'),
+            (KeyCode::Function(3), b'R'),
+            (KeyCode::Function(4), b'S'),
+        ] {
             for (suffix, modifiers) in modifier_combos_including_meta() {
-                let key = format!("\x1b[{code}{suffix}~", code = n + 10, suffix = suffix);
+                let key = format!("\x1b[1{suffix}{code}", code = *c as char, suffix = suffix);
                 map.insert(
                     key,
                     InputEvent::Key(KeyEvent {
-                        key: KeyCode::Function(n),
+                        key: *keycode,
                         modifiers: *modifiers,
                     }),
                 );
+            }
+        }
+
+        // Function keys with modifiers encoded using CSI.
+        // http://aperiodic.net/phil/archives/Geekery/term-function-keys.html
+        for (range, offset) in &[
+            // F1-F5 encoded as 11-15
+            (1..=5, 10),
+            // F6-F10 encoded as 17-21
+            (6..=10, 11),
+            // F11-F14 encoded as 23-26
+            (11..=14, 12),
+            // F15-F16 encoded as 28-29
+            (15..=16, 13),
+            // F17-F20 encoded as 31-34
+            (17..=20, 14),
+        ] {
+            for n in range.clone() {
+                for (suffix, modifiers) in modifier_combos_including_meta() {
+                    let key = format!("\x1b[{code}{suffix}~", code = n + offset, suffix = suffix);
+                    map.insert(
+                        key,
+                        InputEvent::Key(KeyEvent {
+                            key: KeyCode::Function(n),
+                            modifiers: *modifiers,
+                        }),
+                    );
+                }
             }
         }
 
