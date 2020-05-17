@@ -1,6 +1,6 @@
 [package]
 name = "portable-pty"
-version = "0.2.0"
+version = "0.3.0"
 authors = ["Wez Furlong"]
 edition = "2018"
 repository = "https://github.com/wez/wezterm"

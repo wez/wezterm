@@ -2316,7 +2316,7 @@ dependencies = [
 
 [[package]]
 name = "portable-pty"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "anyhow",
  "bitflags 1.2.1",
