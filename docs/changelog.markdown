@@ -10,6 +10,10 @@ daily) from the master branch.  It may not be usable and
 the feature set may change.  As features stabilize some
 brief notes about them may accumulate here.
 
+* Not yet!
+
+### 20200517-122836-1d154a31
+
 * AppImage: Support looking for configuration in `WezTerm.AppImage.config` and
   `WezTerm.AppImage.home` to support portable thumbdrive use of wezterm on
   linux systems
@@ -28,7 +32,7 @@ brief notes about them may accumulate here.
 * Fixed Shift-Tab key on X11 and Wayland
 * WezTerm is now also available to Windows users via [Scoop](https://scoop.sh/)
 
-## 20200503-171512-b13ef15f
+### 20200503-171512-b13ef15f
 
 * Added the `launch_menu` configuration for the launcher menu
   as described in [Launching Programs](config/launch.html).
