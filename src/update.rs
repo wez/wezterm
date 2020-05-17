@@ -146,7 +146,10 @@ fn show_update_available(release: Release) {
     ui.title("WezTerm Update Available");
 
     let install = "https://wezfurlong.org/wezterm/installation.html";
-    let change_log = "https://wezfurlong.org/wezterm/changelog.html";
+    let change_log = format!(
+        "https://wezfurlong.org/wezterm/changelog.html#{}",
+        release.tag_name
+    );
 
     let brief_blurb = release
         .body
