@@ -4,6 +4,7 @@ rm -rf AppDir *.AppImage *.zsync
 mkdir AppDir
 
 install -Dsm755 -t AppDir/usr/bin target/release/wezterm
+install -Dsm755 -t AppDir/usr/bin target/release/strip-ansi-escapes
 install -Dm644 assets/icon/terminal.png AppDir/usr/share/icons/hicolor/128x128/apps/org.wezfurlong.wezterm.png
 install -Dm644 -t AppDir/usr/share/wezterm/colors assets/colors/*
 install -Dm644 assets/wezterm.desktop AppDir/usr/share/applications/org.wezfurlong.wezterm.desktop

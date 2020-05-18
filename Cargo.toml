@@ -4,12 +4,17 @@ name = "wezterm"
 version = "0.1.0"
 edition = "2018"
 build = "build.rs"
+default-run = "wezterm"
 
 [build-dependencies]
 vergen = "3"
 
 [target.'cfg(windows)'.build-dependencies]
 embed-resource = "1.3"
+
+[[bin]]
+name = "strip-ansi-escapes"
+path = "src/bin/strip-ansi-escapes.rs"
 
 [dependencies]
 allsorts = "0.1"
