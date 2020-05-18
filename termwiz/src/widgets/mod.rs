@@ -355,7 +355,7 @@ impl<'widget> Ui<'widget> {
         screen: &mut Surface,
         abs_coords: &ScreenRelativeCoords,
     ) -> Result<(), Error> {
-        let (x, y) = {
+        let coords = {
             let render_data = self.render.get_mut(&id).unwrap();
             let surface = &mut render_data.surface;
             {
@@ -367,16 +367,20 @@ impl<'widget> Ui<'widget> {
                 };
                 render_data.widget.render(&mut args);
             }
-            screen.draw_from_screen(surface, abs_coords.x, abs_coords.y);
+            screen.draw_from_screen(
+                surface,
+                abs_coords.x + render_data.coordinates.x,
+                abs_coords.y + render_data.coordinates.y,
+            );
             surface.flush_changes_older_than(SequenceNo::max_value());
-            (render_data.coordinates.x, render_data.coordinates.y)
+            render_data.coordinates
         };
 
         for child in self.graph.children(id).to_vec() {
             self.render_recursive(
                 child,
                 screen,
-                &ScreenRelativeCoords::new(x + abs_coords.x, y + abs_coords.y),
+                &ScreenRelativeCoords::new(coords.x + abs_coords.x, coords.y + abs_coords.y),
             )?;
         }
 
@@ -435,7 +439,13 @@ impl<'widget> Ui<'widget> {
     /// if the most recent update operation changed layout.
     pub fn render_to_screen(&mut self, screen: &mut Surface) -> Result<bool, Error> {
         if let Some(root) = self.graph.root {
-            self.render_recursive(root, screen, &ScreenRelativeCoords::new(0, 0))?;
+            let (width, height) = screen.dimensions();
+            // Render from scratch into a fresh screen buffer
+            let mut alt_screen = Surface::new(width, height);
+            self.render_recursive(root, &mut alt_screen, &ScreenRelativeCoords::new(0, 0))?;
+            // Now compute a delta and apply it to the actual screen
+            let diff = screen.diff_screens(&alt_screen);
+            screen.add_changes(diff);
         }
         // TODO: garbage collect unreachable WidgetId's from self.state
 
