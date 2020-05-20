@@ -18,6 +18,8 @@ mod tabbar;
 mod termwindow;
 mod utilsprites;
 
+pub use selection::SelectionMode;
+
 pub struct GuiFrontEnd {
     connection: Rc<Connection>,
 }

@@ -1,4 +1,5 @@
 use crate::config::configuration;
+use crate::frontend::gui::SelectionMode;
 use crate::mux::domain::DomainId;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -81,6 +82,9 @@ pub enum KeyAssignment {
     SpawnCommandInNewTab(SpawnCommand),
     SpawnCommandInNewWindow(SpawnCommand),
     ShowLauncher,
+
+    SelectTextAtMouseCursor(SelectionMode),
+    ExtendSelectionToMouseCursor(Option<SelectionMode>),
 }
 impl_lua_conversion!(KeyAssignment);
 

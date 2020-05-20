@@ -152,6 +152,7 @@ pub struct TermWindow {
     show_scroll_bar: bool,
     tab_bar: TabBarState,
     last_mouse_coords: (usize, i64),
+    last_mouse_terminal_coords: (usize, StableRowIndex),
     scroll_drag_start: Option<isize>,
     config_generation: usize,
     prev_cursor: PrevCursorPos,
@@ -568,6 +569,7 @@ impl TermWindow {
                 show_scroll_bar: config.enable_scroll_bar,
                 tab_bar: TabBarState::default(),
                 last_mouse_coords: (0, -1),
+                last_mouse_terminal_coords: (0, 0),
                 scroll_drag_start: None,
                 config_generation: config.generation(),
                 prev_cursor: PrevCursorPos::new(),
@@ -1427,6 +1429,8 @@ impl TermWindow {
                 let con = Connection::get().expect("call on gui thread");
                 con.terminate_message_loop();
             }
+            SelectTextAtMouseCursor(mode) => self.select_text_at_mouse_cursor(*mode, tab),
+            ExtendSelectionToMouseCursor(mode) => self.extend_selection_at_mouse_cursor(*mode, tab),
         };
         Ok(())
     }
@@ -2704,20 +2708,74 @@ impl TermWindow {
         context.set_cursor(Some(MouseCursor::Arrow));
     }
 
-    fn triple_click_left(&mut self, tab: &Rc<dyn Tab>, x: usize, y: StableRowIndex) {
-        let start = SelectionCoordinate { x, y };
-        let selection_range = SelectionRange::line_around(start);
+    fn extend_selection_at_mouse_cursor(&mut self, mode: Option<SelectionMode>, tab: &Rc<dyn Tab>) {
+        let mode = mode.unwrap_or(SelectionMode::Cell);
+        let (x, y) = self.last_mouse_terminal_coords;
+        match mode {
+            SelectionMode::Cell => {
+                let end = SelectionCoordinate { x, y };
+                let selection_range = self.selection(tab.tab_id()).range.take();
+                let sel = match selection_range {
+                    None => {
+                        SelectionRange::start(self.selection(tab.tab_id()).start.unwrap_or(end))
+                            .extend(end)
+                    }
+                    Some(sel) => sel.extend(end),
+                };
+                self.selection(tab.tab_id()).range = Some(sel);
+            }
+            SelectionMode::Word => {
+                let end_word =
+                    SelectionRange::word_around(SelectionCoordinate { x, y }, &mut *tab.renderer());
 
-        self.selection(tab.tab_id()).start = Some(start);
-        self.selection(tab.tab_id()).range = Some(selection_range);
+                let start_coord = self
+                    .selection(tab.tab_id())
+                    .start
+                    .clone()
+                    .unwrap_or(end_word.start);
+                let start_word = SelectionRange::word_around(start_coord, &mut *tab.renderer());
+
+                let selection_range = start_word.extend_with(end_word);
+                self.selection(tab.tab_id()).range = Some(selection_range);
+            }
+            SelectionMode::Line => {
+                let end_line = SelectionRange::line_around(SelectionCoordinate { x, y });
+
+                let start_coord = self
+                    .selection(tab.tab_id())
+                    .start
+                    .clone()
+                    .unwrap_or(end_line.start);
+                let start_line = SelectionRange::line_around(start_coord);
+
+                let selection_range = start_line.extend_with(end_line);
+                self.selection(tab.tab_id()).range = Some(selection_range);
+            }
+        }
     }
 
-    fn double_click_left(&mut self, tab: &Rc<dyn Tab>, x: usize, row: StableRowIndex) {
-        let selection_range =
-            SelectionRange::word_around(SelectionCoordinate { x, y: row }, &mut *tab.renderer());
+    fn select_text_at_mouse_cursor(&mut self, mode: SelectionMode, tab: &Rc<dyn Tab>) {
+        let (x, y) = self.last_mouse_terminal_coords;
+        match mode {
+            SelectionMode::Line => {
+                let start = SelectionCoordinate { x, y };
+                let selection_range = SelectionRange::line_around(start);
 
-        self.selection(tab.tab_id()).start = Some(selection_range.start);
-        self.selection(tab.tab_id()).range = Some(selection_range);
+                self.selection(tab.tab_id()).start = Some(start);
+                self.selection(tab.tab_id()).range = Some(selection_range);
+            }
+            SelectionMode::Word => {
+                let selection_range =
+                    SelectionRange::word_around(SelectionCoordinate { x, y }, &mut *tab.renderer());
+
+                self.selection(tab.tab_id()).start = Some(selection_range.start);
+                self.selection(tab.tab_id()).range = Some(selection_range);
+            }
+            SelectionMode::Cell => {
+                self.selection(tab.tab_id())
+                    .begin(SelectionCoordinate { x, y });
+            }
+        }
     }
 
     fn mouse_event_terminal(
@@ -2731,6 +2789,8 @@ impl TermWindow {
         let dims = tab.renderer().get_dimensions();
         let stable_row =
             self.get_viewport(tab.tab_id()).unwrap_or(dims.physical_top) + y as StableRowIndex;
+
+        self.last_mouse_terminal_coords = (x, stable_row);
 
         let (top, mut lines) = tab.renderer().get_lines(stable_row..stable_row + 1);
         let new_highlight = if top == stable_row {
@@ -2778,7 +2838,11 @@ impl TermWindow {
                         ..
                     }),
                 ) => {
-                    self.triple_click_left(&tab, x, stable_row);
+                    self.perform_key_assignment(
+                        &tab,
+                        &KeyAssignment::SelectTextAtMouseCursor(SelectionMode::Line),
+                    )
+                    .ok();
                     context.invalidate();
                 }
                 // Double click to select a word
@@ -2790,7 +2854,11 @@ impl TermWindow {
                         ..
                     }),
                 ) => {
-                    self.double_click_left(&tab, x, stable_row);
+                    self.perform_key_assignment(
+                        &tab,
+                        &KeyAssignment::SelectTextAtMouseCursor(SelectionMode::Word),
+                    )
+                    .ok();
                     context.invalidate();
                 }
 
@@ -2812,15 +2880,20 @@ impl TermWindow {
                         || self.selection(tab.tab_id()).is_empty()
                     {
                         // Initiate a selection
-                        self.selection(tab.tab_id())
-                            .begin(SelectionCoordinate { x, y: stable_row });
+                        self.perform_key_assignment(
+                            &tab,
+                            &KeyAssignment::SelectTextAtMouseCursor(SelectionMode::Cell),
+                        )
+                        .ok();
                     } else {
                         // Extend selection
-                        let end = SelectionCoordinate { x, y: stable_row };
-                        let mut selection = self.selection(tab.tab_id());
-                        selection.range = selection.range.map(|sel| sel.extend(end));
-                        context.invalidate();
+                        self.perform_key_assignment(
+                            &tab,
+                            &KeyAssignment::ExtendSelectionToMouseCursor(Some(SelectionMode::Cell)),
+                        )
+                        .ok();
                     }
+                    context.invalidate();
                 }
 
                 // Release button to finish a selection
@@ -2877,16 +2950,11 @@ impl TermWindow {
                     }),
                 ) => {
                     if let Some(MousePress::Left) = self.current_mouse_button {
-                        let end = SelectionCoordinate { x, y: stable_row };
-                        let selection_range = self.selection(tab.tab_id()).range.take();
-                        let sel = match selection_range {
-                            None => SelectionRange::start(
-                                self.selection(tab.tab_id()).start.unwrap_or(end),
-                            )
-                            .extend(end),
-                            Some(sel) => sel.extend(end),
-                        };
-                        self.selection(tab.tab_id()).range = Some(sel);
+                        self.perform_key_assignment(
+                            &tab,
+                            &KeyAssignment::ExtendSelectionToMouseCursor(Some(SelectionMode::Cell)),
+                        )
+                        .ok();
                         context.invalidate();
                     }
                 }
@@ -2901,21 +2969,11 @@ impl TermWindow {
                     }),
                 ) => {
                     if let Some(MousePress::Left) = self.current_mouse_button {
-                        let end_word = SelectionRange::word_around(
-                            SelectionCoordinate { x, y: stable_row },
-                            &mut *tab.renderer(),
-                        );
-
-                        let start_coord = self
-                            .selection(tab.tab_id())
-                            .start
-                            .clone()
-                            .unwrap_or(end_word.start);
-                        let start_word =
-                            SelectionRange::word_around(start_coord, &mut *tab.renderer());
-
-                        let selection_range = start_word.extend_with(end_word);
-                        self.selection(tab.tab_id()).range = Some(selection_range);
+                        self.perform_key_assignment(
+                            &tab,
+                            &KeyAssignment::ExtendSelectionToMouseCursor(Some(SelectionMode::Word)),
+                        )
+                        .ok();
                         context.invalidate();
                     }
                 }
@@ -2930,18 +2988,11 @@ impl TermWindow {
                     }),
                 ) => {
                     if let Some(MousePress::Left) = self.current_mouse_button {
-                        let end_line =
-                            SelectionRange::line_around(SelectionCoordinate { x, y: stable_row });
-
-                        let start_coord = self
-                            .selection(tab.tab_id())
-                            .start
-                            .clone()
-                            .unwrap_or(end_line.start);
-                        let start_line = SelectionRange::line_around(start_coord);
-
-                        let selection_range = start_line.extend_with(end_line);
-                        self.selection(tab.tab_id()).range = Some(selection_range);
+                        self.perform_key_assignment(
+                            &tab,
+                            &KeyAssignment::ExtendSelectionToMouseCursor(Some(SelectionMode::Line)),
+                        )
+                        .ok();
                         context.invalidate();
                     }
                 }
@@ -2955,20 +3006,8 @@ impl TermWindow {
                         ..
                     }),
                 ) => {
-                    let tab_id = tab.tab_id();
-                    let future = self
-                        .window
-                        .as_ref()
-                        .unwrap()
-                        .get_clipboard(Clipboard::default());
-                    promise::spawn::spawn(async move {
-                        if let Ok(clip) = future.await {
-                            let mux = Mux::get().unwrap();
-                            if let Some(tab) = mux.get_tab(tab_id) {
-                                tab.trickle_paste(clip).ok();
-                            }
-                        }
-                    });
+                    self.perform_key_assignment(&tab, &KeyAssignment::Paste)
+                        .ok();
                     return;
                 }
                 _ => {}
