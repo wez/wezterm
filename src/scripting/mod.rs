@@ -212,10 +212,11 @@ fn font_with_fallback<'lua>(
 ///    }
 /// }
 /// ```
-fn action<'lua>(lua: &'lua Lua, action: Table<'lua>) -> mlua::Result<crate::config::KeyAction> {
-    let wrapper = lua.create_table()?;
-    wrapper.set("Action", action)?;
-    Ok(from_lua_value(Value::Table(wrapper))?)
+fn action<'lua>(
+    _lua: &'lua Lua,
+    action: Table<'lua>,
+) -> mlua::Result<crate::keyassignment::KeyAssignment> {
+    Ok(from_lua_value(Value::Table(action))?)
 }
 
 fn read_dir<'lua>(_: &'lua Lua, path: String) -> mlua::Result<Vec<String>> {

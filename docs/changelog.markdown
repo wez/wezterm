@@ -12,6 +12,10 @@ brief notes about them may accumulate here.
 
 * Windows: Fixed AltGr handling for European layouts
 * Removed old TOML config file parsing code
+* Removed old `arg="something"` key binding parameter.  This was a remnant from
+  the TOML based configuration.  You're unlikely to notice this unless you
+  followed an example from the docs; migrate instead to using eg:
+  `action=wezterm.action{ActivateTab=i-1}` to pass the integer argument.
 
 ### 20200517-122836-92c201c6
 

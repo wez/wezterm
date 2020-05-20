@@ -154,14 +154,12 @@ for i = 1, 8 do
   table.insert(mykeys, {
     key=tostring(i),
     mods="CTRL|ALT",
-    action="ActivateTab",
-    arg=tostring(i-1)
+    action=wezterm.action{ActivateTab=i-1},
   })
   -- F1 through F8 to activate that tab
   table.insert(mykeys, {
     key="F" .. tostring(i),
-    action="ActivateTab",
-    arg=tostring(i-1)
+    action=wezterm.action{ActivateTab=i-1},
   })
 end
 

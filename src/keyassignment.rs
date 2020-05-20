@@ -81,6 +81,7 @@ pub enum KeyAssignment {
     SpawnCommandInNewWindow(SpawnCommand),
     ShowLauncher,
 }
+impl_lua_conversion!(KeyAssignment);
 
 pub struct KeyMap(HashMap<(KeyCode, KeyModifiers), KeyAssignment>);
 

@@ -12,7 +12,6 @@ use portable_pty::{CommandBuilder, PtySize};
 use serde::{Deserialize, Serialize};
 use std;
 use std::collections::HashMap;
-use std::convert::TryInto;
 use std::ffi::{OsStr, OsString};
 use std::fs;
 use std::io::prelude::*;
@@ -652,8 +651,7 @@ impl Config {
         let mut map = HashMap::new();
 
         for k in &self.keys {
-            let value = k.try_into()?;
-            map.insert((k.key, k.mods), value);
+            map.insert((k.key, k.mods), k.action.clone());
         }
 
         Ok(map)
