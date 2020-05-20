@@ -577,9 +577,7 @@ impl Config {
 
         let mut paths = vec![
             CONFIG_DIR.join("wezterm.lua"),
-            CONFIG_DIR.join("wezterm.toml"),
             HOME_DIR.join(".wezterm.lua"),
-            HOME_DIR.join(".wezterm.toml"),
         ];
         if cfg!(windows) {
             // On Windows, a common use case is to maintain a thumb drive
@@ -593,7 +591,6 @@ impl Config {
             if let Ok(exe_name) = std::env::current_exe() {
                 if let Some(exe_dir) = exe_name.parent() {
                     paths.insert(0, exe_dir.join("wezterm.lua"));
-                    paths.insert(1, exe_dir.join("wezterm.toml"));
                 }
             }
         }
@@ -617,10 +614,7 @@ impl Config {
 
             let cfg: Self;
 
-            if p.extension() == Some(OsStr::new("toml")) {
-                cfg = toml::from_str(&s)
-                    .with_context(|| format!("Error parsing TOML from {}", p.display()))?;
-            } else if p.extension() == Some(OsStr::new("lua")) {
+            if p.extension() == Some(OsStr::new("lua")) {
                 let lua = crate::scripting::make_lua_context(p)?;
                 let config: mlua::Value = lua
                     .load(&s)

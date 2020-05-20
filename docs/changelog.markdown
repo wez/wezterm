@@ -11,6 +11,7 @@ the feature set may change.  As features stabilize some
 brief notes about them may accumulate here.
 
 * Windows: Fixed AltGr handling for European layouts
+* Removed old TOML config file parsing code
 
 ### 20200517-122836-92c201c6
 
