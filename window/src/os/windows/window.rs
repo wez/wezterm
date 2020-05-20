@@ -4,7 +4,7 @@ use crate::bitmaps::*;
 use crate::color::Color;
 use crate::connection::ConnectionOps;
 use crate::{
-    Dimensions, KeyCode, KeyEvent, Modifiers, MouseButtons, MouseCursor, MouseEvent,
+    Clipboard, Dimensions, KeyCode, KeyEvent, Modifiers, MouseButtons, MouseCursor, MouseEvent,
     MouseEventKind, MousePress, Operator, PaintContext, Point, Rect, ScreenPoint, WindowCallbacks,
     WindowOps, WindowOpsMut,
 };
@@ -434,7 +434,7 @@ impl WindowOps for Window {
         })
     }
 
-    fn get_clipboard(&self) -> Future<String> {
+    fn get_clipboard(&self, _clipboard: Clipboard) -> Future<String> {
         Future::result(clipboard_win::get_clipboard_string().context("Error getting clipboard"))
     }
 

@@ -48,6 +48,18 @@ pub enum Operator {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Clipboard {
+    Clipboard,
+    PrimarySelection,
+}
+
+impl Default for Clipboard {
+    fn default() -> Self {
+        Self::Clipboard
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Dimensions {
     pub pixel_width: usize,
     pub pixel_height: usize,
@@ -224,7 +236,7 @@ pub trait WindowOps {
         R: Send + 'static;
 
     /// Initiate textual transfer from the clipboard
-    fn get_clipboard(&self) -> Future<String>;
+    fn get_clipboard(&self, clipboard: Clipboard) -> Future<String>;
 
     /// Set some text in the clipboard
     fn set_clipboard(&self, text: String) -> Future<()>;

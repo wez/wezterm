@@ -4,8 +4,8 @@ use crate::connection::ConnectionOps;
 use crate::os::xkeysyms;
 use crate::os::{Connection, Window};
 use crate::{
-    Color, Dimensions, KeyEvent, MouseButtons, MouseCursor, MouseEvent, MouseEventKind, MousePress,
-    Operator, PaintContext, Point, Rect, ScreenPoint, Size, WindowCallbacks, WindowOps,
+    Clipboard, Color, Dimensions, KeyEvent, MouseButtons, MouseCursor, MouseEvent, MouseEventKind,
+    MousePress, Operator, PaintContext, Point, Rect, ScreenPoint, Size, WindowCallbacks, WindowOps,
     WindowOpsMut,
 };
 use anyhow::anyhow;
@@ -970,7 +970,7 @@ impl WindowOps for XWindow {
     }
 
     /// Initiate textual transfer from the clipboard
-    fn get_clipboard(&self) -> Future<String> {
+    fn get_clipboard(&self, clipboard: Clipboard) -> Future<String> {
         let mut promise = Promise::new();
         let future = promise.get_future().unwrap();
         let mut promise = Some(promise);
@@ -989,11 +989,12 @@ impl WindowOps for XWindow {
                 xcb::convert_selection(
                     &inner.conn,
                     inner.window_id,
-                    // Important: we request the clipboard rather than the
-                    // primary selection because, under wayland, access to the
-                    // primary selection is forbidden by default citing a security
-                    // concern.
-                    inner.conn.atom_clipboard,
+                    // Note that under xwayland, access to the primary selection is
+                    // forbidden by default citing a security concern.
+                    match clipboard {
+                        Clipboard::Clipboard => inner.conn.atom_clipboard,
+                        Clipboard::PrimarySelection => xcb::ATOM_PRIMARY,
+                    },
                     inner.conn.atom_utf8_string,
                     inner.conn.atom_xsel_data,
                     inner.copy_and_paste.time,

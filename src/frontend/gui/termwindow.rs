@@ -1374,7 +1374,11 @@ impl TermWindow {
             }
             Paste => {
                 let tab_id = tab.tab_id();
-                let future = self.window.as_ref().unwrap().get_clipboard();
+                let future = self
+                    .window
+                    .as_ref()
+                    .unwrap()
+                    .get_clipboard(Clipboard::default());
                 promise::spawn::spawn(async move {
                     if let Ok(clip) = future.await {
                         let mux = Mux::get().unwrap();
@@ -2949,7 +2953,11 @@ impl TermWindow {
                     }),
                 ) => {
                     let tab_id = tab.tab_id();
-                    let future = self.window.as_ref().unwrap().get_clipboard();
+                    let future = self
+                        .window
+                        .as_ref()
+                        .unwrap()
+                        .get_clipboard(Clipboard::default());
                     promise::spawn::spawn(async move {
                         if let Ok(clip) = future.await {
                             let mux = Mux::get().unwrap();

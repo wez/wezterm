@@ -8,8 +8,8 @@ use crate::input::*;
 use crate::os::wayland::connection::WaylandConnection;
 use crate::os::xkeysyms::keysym_to_keycode;
 use crate::{
-    Connection, Dimensions, MouseCursor, Operator, PaintContext, Point, Rect, ScreenPoint, Window,
-    WindowCallbacks, WindowOps, WindowOpsMut,
+    Clipboard, Connection, Dimensions, MouseCursor, Operator, PaintContext, Point, Rect,
+    ScreenPoint, Window, WindowCallbacks, WindowOps, WindowOpsMut,
 };
 use anyhow::{anyhow, bail, Context};
 use filedescriptor::FileDescriptor;
@@ -758,7 +758,7 @@ impl WindowOps for WaylandWindow {
         })
     }
 
-    fn get_clipboard(&self) -> Future<String> {
+    fn get_clipboard(&self, _clipboard: Clipboard) -> Future<String> {
         let mut promise = Promise::new();
         let future = promise.get_future().unwrap();
         let promise = Arc::new(Mutex::new(promise));

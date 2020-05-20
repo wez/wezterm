@@ -7,7 +7,7 @@ use crate::os::wayland::connection::WaylandConnection;
 use crate::os::wayland::window::WaylandWindow;
 use crate::os::x11::connection::XConnection;
 use crate::os::x11::window::XWindow;
-use crate::{MouseCursor, ScreenPoint, WindowCallbacks, WindowOps};
+use crate::{Clipboard, MouseCursor, ScreenPoint, WindowCallbacks, WindowOps};
 use promise::*;
 use std::any::Any;
 use std::rc::Rc;
@@ -243,11 +243,11 @@ impl WindowOps for Window {
         }
     }
 
-    fn get_clipboard(&self) -> Future<String> {
+    fn get_clipboard(&self, clipboard: Clipboard) -> Future<String> {
         match self {
-            Self::X11(x) => x.get_clipboard(),
+            Self::X11(x) => x.get_clipboard(clipboard),
             #[cfg(feature = "wayland")]
-            Self::Wayland(w) => w.get_clipboard(),
+            Self::Wayland(w) => w.get_clipboard(clipboard),
         }
     }
     fn set_clipboard(&self, text: String) -> Future<()> {

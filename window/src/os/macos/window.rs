@@ -6,9 +6,9 @@ use crate::bitmaps::Image;
 use crate::connection::ConnectionOps;
 use crate::os::macos::bitmap::BitmapRef;
 use crate::{
-    BitmapImage, Color, Connection, Dimensions, KeyCode, KeyEvent, Modifiers, MouseButtons,
-    MouseCursor, MouseEvent, MouseEventKind, MousePress, Operator, PaintContext, Point, Rect,
-    ScreenPoint, Size, WindowCallbacks, WindowOps, WindowOpsMut,
+    BitmapImage, Clipboard, Color, Connection, Dimensions, KeyCode, KeyEvent, Modifiers,
+    MouseButtons, MouseCursor, MouseEvent, MouseEventKind, MousePress, Operator, PaintContext,
+    Point, Rect, ScreenPoint, Size, WindowCallbacks, WindowOps, WindowOpsMut,
 };
 use anyhow::{anyhow, bail, ensure};
 use cocoa::appkit::{
@@ -479,7 +479,7 @@ impl WindowOps for Window {
         })
     }
 
-    fn get_clipboard(&self) -> Future<String> {
+    fn get_clipboard(&self, _clipboard: Clipboard) -> Future<String> {
         use clipboard::ClipboardProvider;
         Future::result(
             clipboard::ClipboardContext::new()
