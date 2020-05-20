@@ -1431,6 +1431,19 @@ impl TermWindow {
             }
             SelectTextAtMouseCursor(mode) => self.select_text_at_mouse_cursor(*mode, tab),
             ExtendSelectionToMouseCursor(mode) => self.extend_selection_at_mouse_cursor(*mode, tab),
+            OpenLinkAtMouseCursor => {
+                // They clicked on a link, so let's open it!
+                // Ensure that we spawn the `open` call outside of the context
+                // of our window loop; on Windows it can cause a panic due to
+                // triggering our WndProc recursively.
+                let link = self.current_highlight.as_ref().unwrap().clone();
+                promise::spawn::spawn(async move {
+                    log::error!("clicking {}", link.uri());
+                    if let Err(err) = open::that(link.uri()) {
+                        log::error!("failed to open {}: {:?}", link.uri(), err);
+                    }
+                });
+            }
         };
         Ok(())
     }
@@ -2908,17 +2921,8 @@ impl TermWindow {
                     let text = self.selection_text(&tab);
 
                     if text.is_empty() && self.current_highlight.is_some() {
-                        // They clicked on a link, so let's open it!
-                        // Ensure that we spawn the `open` call outside of the context
-                        // of our window loop; on Windows it can cause a panic due to
-                        // triggering our WndProc recursively.
-                        let link = self.current_highlight.as_ref().unwrap().clone();
-                        promise::spawn::spawn(async move {
-                            log::error!("clicking {}", link.uri());
-                            if let Err(err) = open::that(link.uri()) {
-                                log::error!("failed to open {}: {:?}", link.uri(), err);
-                            }
-                        });
+                        self.perform_key_assignment(&tab, &KeyAssignment::OpenLinkAtMouseCursor)
+                            .ok();
                     } else if !text.is_empty() {
                         self.window.as_ref().unwrap().set_clipboard(text);
                         context.invalidate();

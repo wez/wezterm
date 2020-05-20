@@ -85,6 +85,7 @@ pub enum KeyAssignment {
 
     SelectTextAtMouseCursor(SelectionMode),
     ExtendSelectionToMouseCursor(Option<SelectionMode>),
+    OpenLinkAtMouseCursor,
 }
 impl_lua_conversion!(KeyAssignment);
 
