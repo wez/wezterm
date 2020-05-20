@@ -107,6 +107,7 @@ specified via the `arg` key; see examples below.
 | `SpawnWindow`      | Create a new window |
 | `ToggleFullScreen` | Toggles full screen mode for current window |
 | `Paste`            | Paste the clipboard to the current tab |
+| `PastePrimarySelection`  | X11: Paste the primary selection to the current tab (behaves like `Paste` on other systems).|
 | `ActivateTabRelative` | Activate a tab relative to the current tab.  The `arg` value specifies an offset. eg: `-1` activates the tab to the left of the current tab, while `1` activates the tab to the right. |
 | `ActivateTab` | Activate the tab specified by the `arg` value. eg: `0` activates the leftmost tab, while `1` activates the second tab from the left, and so on. |
 | `IncreaseFontSize` | Increases the font size of the current window by 10% |
@@ -139,6 +140,10 @@ return {
     {key="y", mods="CMD", action=wezterm.action{SpawnCommandInNewWindow={
       args={"top"}
     }}},
+
+    -- If you prefer to paste the primary selection rather than the clipboard
+    -- when running on X11
+    {key="Insert", mods="SHIFT", action="PastePrimarySelection"},
   }
 }
 ```

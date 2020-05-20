@@ -11,6 +11,8 @@ the feature set may change.  As features stabilize some
 brief notes about them may accumulate here.
 
 * Windows: Fixed AltGr handling for European layouts
+* X11: Added `PastePrimarySelection` key assignment that pastes the contents
+  of the primary selection rather than the clipboard.
 * Removed old TOML config file parsing code
 * Removed old `arg="something"` key binding parameter.  This was a remnant from
   the TOML based configuration.  You're unlikely to notice this unless you

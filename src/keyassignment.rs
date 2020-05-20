@@ -60,6 +60,7 @@ pub enum KeyAssignment {
     ToggleFullScreen,
     Copy,
     Paste,
+    PastePrimarySelection,
     ActivateTabRelative(isize),
     IncreaseFontSize,
     DecreaseFontSize,

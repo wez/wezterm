@@ -1344,6 +1344,19 @@ impl TermWindow {
         s
     }
 
+    fn paste_from_clipboard(&mut self, tab: &Rc<dyn Tab>, clipboard: Clipboard) {
+        let tab_id = tab.tab_id();
+        let future = self.window.as_ref().unwrap().get_clipboard(clipboard);
+        promise::spawn::spawn(async move {
+            if let Ok(clip) = future.await {
+                let mux = Mux::get().unwrap();
+                if let Some(tab) = mux.get_tab(tab_id) {
+                    tab.trickle_paste(clip).ok();
+                }
+            }
+        });
+    }
+
     fn perform_key_assignment(
         &mut self,
         tab: &Rc<dyn Tab>,
@@ -1373,20 +1386,10 @@ impl TermWindow {
                     .set_clipboard(self.selection_text(tab));
             }
             Paste => {
-                let tab_id = tab.tab_id();
-                let future = self
-                    .window
-                    .as_ref()
-                    .unwrap()
-                    .get_clipboard(Clipboard::default());
-                promise::spawn::spawn(async move {
-                    if let Ok(clip) = future.await {
-                        let mux = Mux::get().unwrap();
-                        if let Some(tab) = mux.get_tab(tab_id) {
-                            tab.trickle_paste(clip).ok();
-                        }
-                    }
-                });
+                self.paste_from_clipboard(tab, Clipboard::default());
+            }
+            PastePrimarySelection => {
+                self.paste_from_clipboard(tab, Clipboard::PrimarySelection);
             }
             ActivateTabRelative(n) => {
                 self.activate_tab_relative(*n)?;
