@@ -10,7 +10,7 @@ daily) from the master branch.  It may not be usable and
 the feature set may change.  As features stabilize some
 brief notes about them may accumulate here.
 
-* Not yet!
+* Windows: Fixed AltGr handling for European layouts
 
 ### 20200517-122836-92c201c6
 
