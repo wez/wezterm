@@ -47,6 +47,8 @@ pub(crate) struct WindowInner {
     /// Fraction of mouse scroll
     hscroll_remainder: i16,
     vscroll_remainder: i16,
+
+    keyboard_info: KeyboardLayoutInfo,
 }
 
 #[derive(Debug, Clone)]
@@ -190,6 +192,7 @@ impl Window {
             gl_state: None,
             vscroll_remainder: 0,
             hscroll_remainder: 0,
+            keyboard_info: KeyboardLayoutInfo::new(),
         }));
 
         // Careful: `raw` owns a ref to inner, but there is no Drop impl
@@ -930,9 +933,79 @@ unsafe fn ime_composition(
     None
 }
 
+/// Holds information about the current keyboard layout.
+/// This is used to determine whether the layout includes
+/// an AltGr key or just has a regular Right-Alt key.
+struct KeyboardLayoutInfo {
+    layout: HKL,
+    has_alt_gr: bool,
+}
+
+impl KeyboardLayoutInfo {
+    pub fn new() -> Self {
+        Self {
+            layout: std::ptr::null_mut(),
+            has_alt_gr: false,
+        }
+    }
+
+    /// Probe to detect whether an AltGr key is present.
+    /// This is done by synthesizing a keyboard state with control and alt
+    /// pressed and then testing the virtual key presses.  If we find that
+    /// one of these yields a single unicode character output then we assume that
+    /// it does have AltGr.
+    unsafe fn update(&mut self) {
+        let current_layout = GetKeyboardLayout(0);
+        if current_layout == self.layout {
+            // Avoid recomputing this if the layout hasn't changed
+            return;
+        }
+
+        let mut saved_state = [0u8; 256];
+        if GetKeyboardState(saved_state.as_mut_ptr()) == 0 {
+            return;
+        }
+
+        self.has_alt_gr = false;
+
+        let mut state = [0u8; 256];
+        state[VK_CONTROL as usize] = 0x80;
+        state[VK_MENU as usize] = 0x80;
+
+        for vk in 0..=255u32 {
+            if vk == VK_PACKET as _ {
+                // Avoid false positives
+                continue;
+            }
+
+            let mut out = [0u16; 16];
+            let ret = ToUnicode(vk, 0, state.as_ptr(), out.as_mut_ptr(), out.len() as i32, 0);
+            if ret == 1 {
+                self.has_alt_gr = true;
+                break;
+            }
+
+            if ret == -1 {
+                // Dead key; keep clocking the state to clear out its effects
+                while ToUnicode(vk, 0, state.as_ptr(), out.as_mut_ptr(), out.len() as i32, 0) < 0 {}
+            }
+        }
+
+        SetKeyboardState(saved_state.as_mut_ptr());
+        self.layout = current_layout;
+    }
+
+    pub fn has_alt_gr(&mut self) -> bool {
+        unsafe {
+            self.update();
+        }
+        self.has_alt_gr
+    }
+}
+
 unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
     if let Some(inner) = rc_from_hwnd(hwnd) {
-        let inner = inner.borrow();
+        let mut inner = inner.borrow_mut();
         let repeat = (lparam & 0xffff) as u16;
         let scan_code = ((lparam >> 16) & 0xff) as u8;
         let releasing = (lparam & (1 << 31)) != 0;
@@ -940,6 +1013,7 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
 
         /*
         let alt_pressed = (lparam & (1 << 29)) != 0;
+        let is_extended = (lparam & (1 << 24)) != 0;
         let was_down = (lparam & (1 << 30)) != 0;
         let label = match msg {
             WM_CHAR => "WM_CHAR",
@@ -951,8 +1025,8 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
             _ => "WAT",
         };
         eprintln!(
-            "{} c=`{}` repeat={} scan={} alt_pressed={} was_down={} releasing={} IME={}",
-            label, wparam, repeat, scan_code, alt_pressed, was_down, releasing, ime_active
+            "{} c=`{}` repeat={} scan={} is_extended={} alt_pressed={} was_down={} releasing={} IME={}",
+            label, wparam, repeat, scan_code, is_extended, alt_pressed, was_down, releasing, ime_active
         );
         */
 
@@ -967,14 +1041,26 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
         GetKeyboardState(keys.as_mut_ptr());
 
         let mut modifiers = Modifiers::default();
-        if keys[VK_CONTROL as usize] & 0x80 != 0 {
-            modifiers |= Modifiers::CTRL;
-        }
         if keys[VK_SHIFT as usize] & 0x80 != 0 {
             modifiers |= Modifiers::SHIFT;
         }
-        if keys[VK_MENU as usize] & 0x80 != 0 {
-            modifiers |= Modifiers::ALT;
+
+        if inner.keyboard_info.has_alt_gr()
+            && (keys[VK_RMENU as usize] & 0x80 != 0)
+            && (keys[VK_CONTROL as usize] & 0x80 != 0)
+        {
+            // AltGr is pressed; while AltGr is on the RHS of the keyboard
+            // is is not the same thing as right-alt.
+            // Windows sets RMENU and CONTROL to indicate AltGr and we
+            // have to keep these in the key state in order for ToUnicode
+            // to map the key correctly.
+        } else {
+            if keys[VK_CONTROL as usize] & 0x80 != 0 {
+                modifiers |= Modifiers::CTRL;
+            }
+            if keys[VK_MENU as usize] & 0x80 != 0 {
+                modifiers |= Modifiers::ALT;
+            }
         }
         if keys[VK_LWIN as usize] & 0x80 != 0 || keys[VK_RWIN as usize] & 0x80 != 0 {
             modifiers |= Modifiers::SUPER;
@@ -1008,9 +1094,13 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
                 // dead key
                 -1 => None,
                 0 => {
+                    /*
+                    let mapped_vkey = MapVirtualKeyW(scan_code.into(), MAPVK_VSC_TO_VK_EX) as i32;
+                    eprintln!("mapped vkey={} vs wparam vkey {}", mapped_vkey, wparam);
+                    */
                     // No unicode translation, so map the scan code to a virtual key
                     // code, and from there map it to our KeyCode type
-                    match MapVirtualKeyW(scan_code.into(), MAPVK_VSC_TO_VK_EX) as i32 {
+                    match wparam as i32 {
                         0 => None,
                         VK_CANCEL => Some(KeyCode::Cancel),
                         VK_BACK => Some(KeyCode::Char('\u{8}')),
