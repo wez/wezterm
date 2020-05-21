@@ -185,6 +185,14 @@ impl<'a> term::TerminalHost for Host<'a> {
     }
 }
 
+fn mouse_press_to_tmb(press: &MousePress) -> TMB {
+    match press {
+        MousePress::Left => TMB::Left,
+        MousePress::Right => TMB::Right,
+        MousePress::Middle => TMB::Middle,
+    }
+}
+
 enum Key {
     Code(::termwiz::input::KeyCode),
     Composed(String),
@@ -276,11 +284,7 @@ impl WindowCallbacks for TermWindow {
                 }
 
                 // Perform click counting
-                let button = match press {
-                    MousePress::Left => TMB::Left,
-                    MousePress::Middle => TMB::Middle,
-                    MousePress::Right => TMB::Right,
-                };
+                let button = mouse_press_to_tmb(press);
 
                 let click = match self.last_mouse_click.take() {
                     None => LastMouseClick::new(button),
@@ -2840,17 +2844,62 @@ impl TermWindow {
             MouseCursor::Text
         }));
 
+        enum MouseEventTrigger {
+            Down { streak: usize, button: TMB },
+            Drag { streak: usize, button: TMB },
+            Up { streak: usize, button: TMB },
+        }
+
+        let event_trigger_type = match &event.kind {
+            WMEK::Press(press) => {
+                let press = mouse_press_to_tmb(press);
+                match self.last_mouse_click.as_ref() {
+                    Some(LastMouseClick { streak, button, .. }) if *button == press => {
+                        Some(MouseEventTrigger::Down {
+                            streak: *streak,
+                            button: press,
+                        })
+                    }
+                    _ => None,
+                }
+            }
+            WMEK::Release(press) => {
+                let press = mouse_press_to_tmb(press);
+                match self.last_mouse_click.as_ref() {
+                    Some(LastMouseClick { streak, button, .. }) if *button == press => {
+                        Some(MouseEventTrigger::Up {
+                            streak: *streak,
+                            button: press,
+                        })
+                    }
+                    _ => None,
+                }
+            }
+            WMEK::Move => {
+                if let Some(LastMouseClick { streak, button, .. }) = self.last_mouse_click.as_ref()
+                {
+                    Some(MouseEventTrigger::Drag {
+                        streak: *streak,
+                        button: *button,
+                    })
+                } else {
+                    None
+                }
+            }
+            WMEK::VertWheel(_) | WMEK::HorzWheel(_) => None,
+        };
+
         if !tab.is_mouse_grabbed() || event.modifiers == Modifiers::SHIFT {
-            match (&event.kind, self.last_mouse_click.as_ref()) {
-                // Triple click to select a word
-                (
-                    WMEK::Press(MousePress::Left),
-                    Some(LastMouseClick {
-                        streak: 3,
-                        button: TMB::Left,
-                        ..
-                    }),
-                ) => {
+            let event_trigger_type = match event_trigger_type {
+                Some(ett) => ett,
+                None => return,
+            };
+
+            match event_trigger_type {
+                MouseEventTrigger::Down {
+                    streak: 3,
+                    button: TMB::Left,
+                } => {
                     self.perform_key_assignment(
                         &tab,
                         &KeyAssignment::SelectTextAtMouseCursor(SelectionMode::Line),
@@ -2858,15 +2907,10 @@ impl TermWindow {
                     .ok();
                     context.invalidate();
                 }
-                // Double click to select a word
-                (
-                    WMEK::Press(MousePress::Left),
-                    Some(LastMouseClick {
-                        streak: 2,
-                        button: TMB::Left,
-                        ..
-                    }),
-                ) => {
+                MouseEventTrigger::Down {
+                    streak: 2,
+                    button: TMB::Left,
+                } => {
                     self.perform_key_assignment(
                         &tab,
                         &KeyAssignment::SelectTextAtMouseCursor(SelectionMode::Word),
@@ -2874,17 +2918,10 @@ impl TermWindow {
                     .ok();
                     context.invalidate();
                 }
-
-                // Left single click to initiate a selection drag
-                // Shift+Left click to extend a selection
-                (
-                    WMEK::Press(MousePress::Left),
-                    Some(LastMouseClick {
-                        streak: 1,
-                        button: TMB::Left,
-                        ..
-                    }),
-                ) => {
+                MouseEventTrigger::Down {
+                    streak: 1,
+                    button: TMB::Left,
+                } => {
                     // If the mouse is grabbed, do not use Shfit+Left to
                     // extend a selection, since otherwise it's hard to
                     // clear a selection.
@@ -2909,15 +2946,10 @@ impl TermWindow {
                     context.invalidate();
                 }
 
-                // Release button to finish a selection
-                (
-                    WMEK::Release(MousePress::Left),
-                    Some(LastMouseClick {
-                        streak: 1,
-                        button: TMB::Left,
-                        ..
-                    }),
-                ) => {
+                MouseEventTrigger::Up {
+                    streak: 1,
+                    button: TMB::Left,
+                } => {
                     let text = self.selection_text(&tab);
 
                     if text.is_empty() && self.current_highlight.is_some() {
@@ -2929,30 +2961,20 @@ impl TermWindow {
                     }
                 }
 
-                // Release button to finish a selection (word and line mode)
-                (
-                    WMEK::Release(MousePress::Left),
-                    Some(LastMouseClick {
-                        streak,
-                        button: TMB::Left,
-                        ..
-                    }),
-                ) if *streak > 1 => {
+                MouseEventTrigger::Up {
+                    streak,
+                    button: TMB::Left,
+                } if streak > 1 => {
                     let text = self.selection_text(&tab);
 
                     self.window.as_ref().unwrap().set_clipboard(text);
                     context.invalidate();
                 }
 
-                // Dragging left mouse button
-                (
-                    WMEK::Move,
-                    Some(LastMouseClick {
-                        streak: 1,
-                        button: TMB::Left,
-                        ..
-                    }),
-                ) => {
+                MouseEventTrigger::Drag {
+                    streak: 1,
+                    button: TMB::Left,
+                } => {
                     if let Some(MousePress::Left) = self.current_mouse_button {
                         self.perform_key_assignment(
                             &tab,
@@ -2962,16 +2984,10 @@ impl TermWindow {
                         context.invalidate();
                     }
                 }
-
-                // Dragging left mouse button in word mode
-                (
-                    WMEK::Move,
-                    Some(LastMouseClick {
-                        streak: 2,
-                        button: TMB::Left,
-                        ..
-                    }),
-                ) => {
+                MouseEventTrigger::Drag {
+                    streak: 2,
+                    button: TMB::Left,
+                } => {
                     if let Some(MousePress::Left) = self.current_mouse_button {
                         self.perform_key_assignment(
                             &tab,
@@ -2981,16 +2997,10 @@ impl TermWindow {
                         context.invalidate();
                     }
                 }
-
-                // Dragging left mouse button in line mode
-                (
-                    WMEK::Move,
-                    Some(LastMouseClick {
-                        streak: 3,
-                        button: TMB::Left,
-                        ..
-                    }),
-                ) => {
+                MouseEventTrigger::Drag {
+                    streak: 3,
+                    button: TMB::Left,
+                } => {
                     if let Some(MousePress::Left) = self.current_mouse_button {
                         self.perform_key_assignment(
                             &tab,
@@ -3000,23 +3010,17 @@ impl TermWindow {
                         context.invalidate();
                     }
                 }
-
-                // Middle mouse button is Paste
-                (
-                    WMEK::Press(MousePress::Middle),
-                    Some(LastMouseClick {
-                        streak: 1,
-                        button: TMB::Middle,
-                        ..
-                    }),
-                ) => {
+                MouseEventTrigger::Down {
+                    streak: 1,
+                    button: TMB::Middle,
+                } => {
                     self.perform_key_assignment(&tab, &KeyAssignment::Paste)
                         .ok();
                     return;
                 }
+
                 _ => {}
             }
-
             return;
         }
 
@@ -3027,11 +3031,7 @@ impl TermWindow {
                 WMEK::Release(_) => TMEK::Release,
             },
             button: match event.kind {
-                WMEK::Release(ref press) | WMEK::Press(ref press) => match press {
-                    MousePress::Left => TMB::Left,
-                    MousePress::Middle => TMB::Middle,
-                    MousePress::Right => TMB::Right,
-                },
+                WMEK::Release(ref press) | WMEK::Press(ref press) => mouse_press_to_tmb(press),
                 WMEK::Move => {
                     if event.mouse_buttons == WMB::LEFT {
                         TMB::Left
