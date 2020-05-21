@@ -2,8 +2,8 @@ use super::OneBased;
 use crate::cell::{Blink, Intensity, Underline};
 use crate::color::{AnsiColor, ColorSpec, RgbColor};
 use crate::input::{Modifiers, MouseButtons};
-use num::{self, ToPrimitive};
 use num_derive::*;
+use num_traits::{self, ToPrimitive};
 use std::fmt::{Display, Error as FmtError, Formatter};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -145,7 +145,7 @@ impl DeviceAttributeFlags {
     fn from_params(params: &[i64]) -> Self {
         let mut attributes = Vec::new();
         for p in params {
-            match num::FromPrimitive::from_i64(*p) {
+            match num_traits::FromPrimitive::from_i64(*p) {
                 Some(c) => attributes.push(DeviceAttribute::Code(c)),
                 None => attributes.push(DeviceAttribute::Unspecified(*p as u16)),
             }
@@ -758,7 +758,7 @@ trait EncodeCSIParam {
     fn write_csi(&self, f: &mut Formatter, control: &str) -> Result<(), FmtError>;
 }
 
-impl<T: ParamEnum + PartialEq + num::ToPrimitive> EncodeCSIParam for T {
+impl<T: ParamEnum + PartialEq + num_traits::ToPrimitive> EncodeCSIParam for T {
     fn write_csi(&self, f: &mut Formatter, control: &str) -> Result<(), FmtError> {
         if *self == ParamEnum::default() {
             write!(f, "{}", control)
@@ -903,7 +903,7 @@ impl ParseParams for (OneBased, OneBased) {
 /// to denote an enum.  It does double duty as a stand-in for Default.
 /// We need separate traits for this to disambiguate from a regular
 /// primitive integer.
-trait ParamEnum: num::FromPrimitive {
+trait ParamEnum: num_traits::FromPrimitive {
     fn default() -> Self;
 }
 
@@ -913,7 +913,7 @@ impl<T: ParamEnum> ParseParams for T {
         if params.is_empty() {
             Ok(ParamEnum::default())
         } else if params.len() == 1 {
-            num::FromPrimitive::from_i64(params[0]).ok_or(())
+            num_traits::FromPrimitive::from_i64(params[0]).ok_or(())
         } else {
             Err(())
         }
@@ -1015,7 +1015,7 @@ impl Display for Sgr {
 
         macro_rules! ansi_color {
             ($idx:expr, $eightbit:ident, $( ($Ansi:ident, $code:ident) ),*) => {
-                if let Some(ansi) = num::FromPrimitive::from_u8($idx) {
+                if let Some(ansi) = num_traits::FromPrimitive::from_u8($idx) {
                     match ansi {
                         $(AnsiColor::$Ansi => code!($code) ,)*
                     }
@@ -1346,7 +1346,7 @@ impl<'a> CSIParser<'a> {
         if params.len() != 1 {
             Err(())
         } else {
-            match num::FromPrimitive::from_i64(params[0]) {
+            match num_traits::FromPrimitive::from_i64(params[0]) {
                 None => Err(()),
                 Some(style) => {
                     Ok(self.advance_by(1, params, CSI::Cursor(Cursor::CursorStyle(style))))
@@ -1518,14 +1518,14 @@ impl<'a> CSIParser<'a> {
     }
 
     fn dec(&mut self, params: &'a [i64]) -> Result<DecPrivateMode, ()> {
-        match num::FromPrimitive::from_i64(params[0]) {
+        match num_traits::FromPrimitive::from_i64(params[0]) {
             None => Ok(DecPrivateMode::Unspecified(params[0].to_u16().ok_or(())?)),
             Some(mode) => Ok(self.advance_by(1, params, DecPrivateMode::Code(mode))),
         }
     }
 
     fn terminal_mode(&mut self, params: &'a [i64]) -> Result<TerminalMode, ()> {
-        match num::FromPrimitive::from_i64(params[0]) {
+        match num_traits::FromPrimitive::from_i64(params[0]) {
             None => Ok(TerminalMode::Unspecified(params[0].to_u16().ok_or(())?)),
             Some(mode) => Ok(self.advance_by(1, params, TerminalMode::Code(mode))),
         }
@@ -1629,7 +1629,7 @@ impl<'a> CSIParser<'a> {
                 };
             };
 
-            match num::FromPrimitive::from_i64(params[0]) {
+            match num_traits::FromPrimitive::from_i64(params[0]) {
                 None => Err(()),
                 Some(sgr) => match sgr {
                     SgrCode::Reset => one!(Sgr::Reset),

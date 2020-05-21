@@ -5,7 +5,7 @@ use crate::cell::{AttributeChange, CellAttributes, Underline};
 use crate::color::{AnsiColor, ColorAttribute};
 use crate::surface::{Change, Position};
 use crate::terminal::windows::ConsoleOutputHandle;
-use num;
+use num_derive;
 use std::io::Write;
 use winapi::shared::minwindef::WORD;
 use winapi::um::wincon::{
@@ -31,7 +31,7 @@ fn to_attr_word(attr: &CellAttributes) -> u16 {
         ($idx:expr, $default:ident,
                 $red:ident, $green:ident, $blue:ident,
                 $bright:ident, $( ($variant:ident, $bits:expr) ),*) =>{
-            match num::FromPrimitive::from_u8($idx).unwrap_or(AnsiColor::$default) {
+            match num_traits::FromPrimitive::from_u8($idx).unwrap_or(AnsiColor::$default) {
                 $(
                     AnsiColor::$variant => $bits,
                 )*

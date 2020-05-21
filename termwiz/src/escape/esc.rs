@@ -1,4 +1,4 @@
-use num::{self, ToPrimitive};
+use num_traits::{self, ToPrimitive};
 use num_derive::*;
 use std::fmt::{Display, Error as FmtError, Formatter, Write as FmtWrite};
 
@@ -101,7 +101,7 @@ impl Esc {
             None => u16::from(control),
         };
 
-        let code = num::FromPrimitive::from_u16(packed).ok_or(())?;
+        let code = num_traits::FromPrimitive::from_u16(packed).ok_or(())?;
 
         Ok(Esc::Code(code))
     }

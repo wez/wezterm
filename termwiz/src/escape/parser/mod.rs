@@ -1,6 +1,5 @@
 use crate::escape::{Action, DeviceControlMode, Esc, OperatingSystemCommand, CSI};
 use log::error;
-use num;
 use std::cell::RefCell;
 use vtparse::{VTActor, VTParser};
 
@@ -110,7 +109,7 @@ impl<'a, F: FnMut(Action)> VTActor for Performer<'a, F> {
     }
 
     fn execute_c0_or_c1(&mut self, byte: u8) {
-        match num::FromPrimitive::from_u8(byte) {
+        match num_traits::FromPrimitive::from_u8(byte) {
             Some(code) => (self.callback)(Action::Control(code)),
             None => error!("impossible C0/C1 control code {:?} was dropped", byte),
         }

@@ -161,7 +161,7 @@ impl OneBased {
     /// Map a value from an escape sequence parameter
     pub fn from_esc_param(v: i64) -> Result<Self, ()> {
         if v == 0 {
-            Ok(Self { value: num::one() })
+            Ok(Self { value: num_traits::one() })
         } else if v > 0 && v <= i64::from(u32::max_value()) {
             Ok(Self { value: v as u32 })
         } else {
