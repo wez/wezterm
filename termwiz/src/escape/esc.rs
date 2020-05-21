@@ -1,5 +1,5 @@
-use num_traits::{self, ToPrimitive};
 use num_derive::*;
+use num_traits::{self, ToPrimitive};
 use std::fmt::{Display, Error as FmtError, Formatter, Write as FmtWrite};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
