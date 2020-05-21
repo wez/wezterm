@@ -3,6 +3,7 @@
 #![cfg_attr(feature = "cargo-clippy", allow(clippy::useless_attribute))]
 
 use num_derive::*;
+#[cfg(serde)]
 use serde::{self, Deserialize, Deserializer, Serialize, Serializer};
 use std::collections::HashMap;
 use std::result::Result;
@@ -212,6 +213,7 @@ impl RgbColor {
 /// is that we have to serialize RgbColor as a 7-byte string when we could
 /// otherwise serialize it as a 3-byte array.  There's probably a way
 /// to make this work more efficiently, but for now this will do.
+#[cfg(serde)]
 impl Serialize for RgbColor {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -222,6 +224,7 @@ impl Serialize for RgbColor {
     }
 }
 
+#[cfg(serde)]
 impl<'de> Deserialize<'de> for RgbColor {
     fn deserialize<D>(deserializer: D) -> Result<RgbColor, D::Error>
     where
@@ -271,7 +274,8 @@ impl From<RgbColor> for ColorSpec {
 /// type used in the `CellAttributes` struct and can specify an optional
 /// TrueColor value, allowing a fallback to a more traditional palette
 /// index if TrueColor is not available.
-#[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(serde, derive(serde::Serialize, serde::Deserialize))]
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum ColorAttribute {
     /// Use RgbColor when supported, falling back to the specified PaletteIndex.
     TrueColorWithPaletteFallback(RgbColor, PaletteIndex),

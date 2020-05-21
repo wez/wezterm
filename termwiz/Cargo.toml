@@ -25,7 +25,7 @@ num-traits = "0.2"
 ordered-float = "1.0"
 regex = "1"
 semver = "0.9"
-serde = {version="1.0", features = ["rc", "derive"]}
+serde = {version="1.0", features = ["rc", "derive"], optional = true}
 smallvec = "0.6"
 terminfo = "0.7"
 unicode-segmentation = "1.5"
@@ -35,6 +35,7 @@ vtparse = { version="0.2", path="../vtparse" }
 
 [features]
 widgets = ["cassowary", "fnv"]
+default = ["serde"]
 
 [dev-dependencies]
 varbincode = "0.1"

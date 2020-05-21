@@ -6,13 +6,15 @@
 //! as we recognize linkable input text during print() processing.
 use anyhow::{anyhow, ensure, Error};
 use regex::{Captures, Regex};
+#[cfg(serde)]
 use serde::{self, Deserialize, Deserializer, Serialize};
 use std::collections::HashMap;
 use std::fmt::{Display, Error as FmtError, Formatter};
 use std::ops::Range;
 use std::sync::Arc;
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(serde, derive(serde::Serialize, serde::Deserialize))]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Hyperlink {
     params: HashMap<String, String>,
     uri: String,
@@ -121,12 +123,13 @@ impl Display for Hyperlink {
 /// URL to view the details for that issue.
 /// The Rule struct is configuration that is passed to the terminal
 /// and is evaluated when processing mouse hover events.
-#[derive(Debug, Clone, Deserialize)]
+#[cfg_attr(serde, derive(serde::Deserialize))]
+#[derive(Debug, Clone)]
 pub struct Rule {
     /// The compiled regex for the rule.  This is used to match
     /// against a line of text from the screen (typically the line
     /// over which the mouse is hovering).
-    #[serde(deserialize_with = "deserialize_regex")]
+    #[cfg_attr(serde, serde(deserialize_with = "deserialize_regex"))]
     regex: Regex,
     /// The format string that defines how to transform the matched
     /// text into a URL.  For example, a format string of `$0` expands
@@ -141,6 +144,7 @@ pub struct Rule {
     format: String,
 }
 
+#[cfg(serde)]
 fn deserialize_regex<'de, D>(deserializer: D) -> Result<Regex, D::Error>
 where
     D: Deserializer<'de>,

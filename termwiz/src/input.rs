@@ -6,7 +6,6 @@ use crate::escape::{Action, CSI};
 use crate::keymap::{Found, KeyMap};
 use crate::readbuf::ReadBuffer;
 use bitflags::bitflags;
-use serde::{Deserialize, Serialize};
 use std;
 
 #[cfg(windows)]
@@ -16,7 +15,8 @@ use winapi::um::wincon::{
 };
 
 bitflags! {
-    #[derive(Default, Serialize, Deserialize)]
+    #[cfg_attr(serde, derive(serde::Serialize, serde::Deserialize))]
+    #[derive(Default)]
     pub struct Modifiers: u8 {
         const NONE = 0;
         const SHIFT = 1<<1;
@@ -26,7 +26,8 @@ bitflags! {
     }
 }
 bitflags! {
-    #[derive(Default, Serialize, Deserialize)]
+    #[cfg_attr(serde, derive(serde::Serialize, serde::Deserialize))]
+    #[derive(Default)]
     pub struct MouseButtons: u8 {
         const NONE = 0;
         const LEFT = 1<<1;
@@ -56,7 +57,8 @@ pub enum InputEvent {
     Wake,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(serde, derive(serde::Serialize, serde::Deserialize))]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MouseEvent {
     pub x: u16,
     pub y: u16,
@@ -64,7 +66,8 @@ pub struct MouseEvent {
     pub modifiers: Modifiers,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(serde, derive(serde::Serialize, serde::Deserialize))]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct KeyEvent {
     /// Which key was pressed
     pub key: KeyCode,
@@ -76,7 +79,8 @@ pub struct KeyEvent {
 /// Which key is pressed.  Not all of these are probable to appear
 /// on most systems.  A lot of this list is @wez trawling docs and
 /// making an entry for things that might be possible in this first pass.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[cfg_attr(serde, derive(serde::Serialize, serde::Deserialize))]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum KeyCode {
     /// The decoded unicode character
     Char(char),

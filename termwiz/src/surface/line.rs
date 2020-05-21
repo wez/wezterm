@@ -3,13 +3,14 @@ use crate::cellcluster::CellCluster;
 use crate::hyperlink::Rule;
 use crate::surface::Change;
 use bitflags::bitflags;
+#[cfg(serde)]
 use serde::{Deserialize, Serialize};
 use std::ops::Range;
 use std::sync::Arc;
 use unicode_segmentation::UnicodeSegmentation;
 
 bitflags! {
-    #[derive(Serialize, Deserialize)]
+    #[cfg_attr(serde, derive(serde::Serialize, serde::Deserialize))]
     struct LineBits : u8 {
         const NONE = 0;
         /// The contents of the Line have changed and cached or
@@ -24,7 +25,8 @@ bitflags! {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[cfg_attr(serde, derive(serde::Serialize, serde::Deserialize))]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Line {
     bits: LineBits,
     cells: Vec<Cell>,
