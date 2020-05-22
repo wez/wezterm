@@ -7,7 +7,7 @@
   - [Fonts](config/fonts.markdown)
   - [Font Shaping](config/font-shaping.markdown)
   - [Misc](config/misc.markdown)
-  - [Key Binding](config/keys.markdown)
+  - [Key & Mouse Binding](config/keys.markdown)
   - [Colors & Appearance](config/appearance.markdown)
   - [Lua Reference](config/lua.markdown)
 - [Hyperlinks](hyperlinks.markdown)

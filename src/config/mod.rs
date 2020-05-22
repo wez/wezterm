@@ -5,7 +5,7 @@ use crate::font::locator::FontLocatorSelection;
 use crate::font::rasterizer::FontRasterizerSelection;
 use crate::font::shaper::FontShaperSelection;
 use crate::frontend::FrontEndSelection;
-use crate::keyassignment::{KeyAssignment, SpawnCommand};
+use crate::keyassignment::{KeyAssignment, MouseEventTrigger, SpawnCommand};
 use anyhow::{anyhow, bail, Context, Error};
 use lazy_static::lazy_static;
 use portable_pty::{CommandBuilder, PtySize};
@@ -418,6 +418,9 @@ pub struct Config {
     pub keys: Vec<Key>,
 
     #[serde(default)]
+    pub mouse_bindings: Vec<Mouse>,
+
+    #[serde(default)]
     pub daemon_options: DaemonOptions,
 
     /// If set to true, send the system specific composed key when
@@ -652,6 +655,18 @@ impl Config {
 
         for k in &self.keys {
             map.insert((k.key, k.mods), k.action.clone());
+        }
+
+        Ok(map)
+    }
+
+    pub fn mouse_bindings(
+        &self,
+    ) -> anyhow::Result<HashMap<(MouseEventTrigger, Modifiers), KeyAssignment>> {
+        let mut map = HashMap::new();
+
+        for m in &self.mouse_bindings {
+            map.insert((m.event.clone(), m.mods), m.action.clone());
         }
 
         Ok(map)

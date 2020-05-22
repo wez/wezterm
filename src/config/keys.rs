@@ -1,4 +1,4 @@
-use crate::keyassignment::KeyAssignment;
+use crate::keyassignment::{KeyAssignment, MouseEventTrigger};
 use serde::{Deserialize, Deserializer, Serialize};
 use termwiz::input::{KeyCode, Modifiers};
 
@@ -11,6 +11,15 @@ pub struct Key {
     pub action: KeyAssignment,
 }
 impl_lua_conversion!(Key);
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct Mouse {
+    pub event: MouseEventTrigger,
+    #[serde(deserialize_with = "de_modifiers", default)]
+    pub mods: Modifiers,
+    pub action: KeyAssignment,
+}
+impl_lua_conversion!(Mouse);
 
 fn de_keycode<'de, D>(deserializer: D) -> Result<KeyCode, D::Error>
 where
