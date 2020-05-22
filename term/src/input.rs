@@ -8,7 +8,7 @@ use std::time::{Duration, Instant};
 pub use termwiz::input::KeyCode;
 pub use termwiz::input::Modifiers as KeyModifiers;
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Deserialize, Serialize, Hash)]
 pub enum MouseButton {
     Left,
     Middle,

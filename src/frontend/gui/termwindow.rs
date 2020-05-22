@@ -12,7 +12,9 @@ use crate::frontend::gui::overlay::{launcher, start_overlay, tab_navigator};
 use crate::frontend::gui::scrollbar::*;
 use crate::frontend::gui::selection::*;
 use crate::frontend::gui::tabbar::{TabBarItem, TabBarState};
-use crate::keyassignment::{KeyAssignment, KeyMap, SpawnCommand, SpawnTabDomain};
+use crate::keyassignment::{
+    InputMap, KeyAssignment, MouseEventTrigger, SpawnCommand, SpawnTabDomain,
+};
 use crate::mux::domain::{DomainId, DomainState};
 use crate::mux::renderable::{Renderable, RenderableDimensions, StableCursorPosition};
 use crate::mux::tab::{Tab, TabId};
@@ -147,7 +149,7 @@ pub struct TermWindow {
     mux_window_id: MuxWindowId,
     render_metrics: RenderMetrics,
     render_state: RenderState,
-    keys: KeyMap,
+    input_map: InputMap,
     show_tab_bar: bool,
     show_scroll_bar: bool,
     tab_bar: TabBarState,
@@ -379,7 +381,7 @@ impl WindowCallbacks for TermWindow {
         // user-defined key binding then we execute it and stop there.
         if let Some(key) = &key.raw_key {
             if let Key::Code(key) = self.win_key_code_to_termwiz_key_code(&key) {
-                if let Some(assignment) = self.keys.lookup(key, modifiers) {
+                if let Some(assignment) = self.input_map.lookup_key(key, modifiers) {
                     self.perform_key_assignment(&tab, &assignment).ok();
                     return true;
                 }
@@ -399,7 +401,7 @@ impl WindowCallbacks for TermWindow {
         let key = self.win_key_code_to_termwiz_key_code(&key.key);
         match key {
             Key::Code(key) => {
-                if let Some(assignment) = self.keys.lookup(key, modifiers) {
+                if let Some(assignment) = self.input_map.lookup_key(key, modifiers) {
                     self.perform_key_assignment(&tab, &assignment).ok();
                     true
                 } else if tab.key_down(key, modifiers).is_ok() {
@@ -568,7 +570,7 @@ impl TermWindow {
                 dimensions,
                 terminal_size,
                 render_state,
-                keys: KeyMap::new(),
+                input_map: InputMap::new(),
                 show_tab_bar,
                 show_scroll_bar: config.enable_scroll_bar,
                 tab_bar: TabBarState::default(),
@@ -874,7 +876,7 @@ impl TermWindow {
 
         self.show_scroll_bar = config.enable_scroll_bar;
         self.shape_cache.borrow_mut().clear();
-        self.keys = KeyMap::new();
+        self.input_map = InputMap::new();
         let dimensions = self.dimensions;
         let cell_dims = self.current_cell_dimensions();
         self.apply_scale_change(&dimensions, self.fonts.get_font_scale());
@@ -1440,13 +1442,32 @@ impl TermWindow {
                 // Ensure that we spawn the `open` call outside of the context
                 // of our window loop; on Windows it can cause a panic due to
                 // triggering our WndProc recursively.
-                let link = self.current_highlight.as_ref().unwrap().clone();
-                promise::spawn::spawn(async move {
-                    log::error!("clicking {}", link.uri());
-                    if let Err(err) = open::that(link.uri()) {
-                        log::error!("failed to open {}: {:?}", link.uri(), err);
-                    }
-                });
+                if let Some(link) = self.current_highlight.as_ref().cloned() {
+                    promise::spawn::spawn(async move {
+                        log::error!("clicking {}", link.uri());
+                        if let Err(err) = open::that(link.uri()) {
+                            log::error!("failed to open {}: {:?}", link.uri(), err);
+                        }
+                    });
+                }
+            }
+            CompleteSelectionOrOpenLinkAtMouseCursor => {
+                let text = self.selection_text(&tab);
+                if !text.is_empty() {
+                    let window = self.window.as_ref().unwrap();
+                    window.set_clipboard(text);
+                    window.invalidate();
+                } else {
+                    return self.perform_key_assignment(tab, &KeyAssignment::OpenLinkAtMouseCursor);
+                }
+            }
+            CompleteSelection => {
+                let text = self.selection_text(&tab);
+                if !text.is_empty() {
+                    let window = self.window.as_ref().unwrap();
+                    window.set_clipboard(text);
+                    window.invalidate();
+                }
             }
         };
         Ok(())
@@ -2769,6 +2790,8 @@ impl TermWindow {
                 self.selection(tab.tab_id()).range = Some(selection_range);
             }
         }
+
+        self.window.as_ref().unwrap().invalidate();
     }
 
     fn select_text_at_mouse_cursor(&mut self, mode: SelectionMode, tab: &Rc<dyn Tab>) {
@@ -2793,6 +2816,8 @@ impl TermWindow {
                     .begin(SelectionCoordinate { x, y });
             }
         }
+
+        self.window.as_ref().unwrap().invalidate();
     }
 
     fn mouse_event_terminal(
@@ -2844,12 +2869,6 @@ impl TermWindow {
             MouseCursor::Text
         }));
 
-        enum MouseEventTrigger {
-            Down { streak: usize, button: TMB },
-            Drag { streak: usize, button: TMB },
-            Up { streak: usize, button: TMB },
-        }
-
         let event_trigger_type = match &event.kind {
             WMEK::Press(press) => {
                 let press = mouse_press_to_tmb(press);
@@ -2878,10 +2897,14 @@ impl TermWindow {
             WMEK::Move => {
                 if let Some(LastMouseClick { streak, button, .. }) = self.last_mouse_click.as_ref()
                 {
-                    Some(MouseEventTrigger::Drag {
-                        streak: *streak,
-                        button: *button,
-                    })
+                    if Some(*button) == self.current_mouse_button.as_ref().map(mouse_press_to_tmb) {
+                        Some(MouseEventTrigger::Drag {
+                            streak: *streak,
+                            button: *button,
+                        })
+                    } else {
+                        None
+                    }
                 } else {
                     None
                 }
@@ -2889,138 +2912,29 @@ impl TermWindow {
             WMEK::VertWheel(_) | WMEK::HorzWheel(_) => None,
         };
 
-        if !tab.is_mouse_grabbed() || event.modifiers == Modifiers::SHIFT {
+        let ignore_grab_modifier = Modifiers::SHIFT;
+
+        if !tab.is_mouse_grabbed() || event.modifiers.contains(ignore_grab_modifier) {
             let event_trigger_type = match event_trigger_type {
                 Some(ett) => ett,
                 None => return,
             };
 
-            match event_trigger_type {
-                MouseEventTrigger::Down {
-                    streak: 3,
-                    button: TMB::Left,
-                } => {
-                    self.perform_key_assignment(
-                        &tab,
-                        &KeyAssignment::SelectTextAtMouseCursor(SelectionMode::Line),
-                    )
-                    .ok();
-                    context.invalidate();
-                }
-                MouseEventTrigger::Down {
-                    streak: 2,
-                    button: TMB::Left,
-                } => {
-                    self.perform_key_assignment(
-                        &tab,
-                        &KeyAssignment::SelectTextAtMouseCursor(SelectionMode::Word),
-                    )
-                    .ok();
-                    context.invalidate();
-                }
-                MouseEventTrigger::Down {
-                    streak: 1,
-                    button: TMB::Left,
-                } => {
-                    // If the mouse is grabbed, do not use Shfit+Left to
-                    // extend a selection, since otherwise it's hard to
-                    // clear a selection.
-                    if tab.is_mouse_grabbed()
-                        || !event.modifiers.contains(Modifiers::SHIFT)
-                        || self.selection(tab.tab_id()).is_empty()
-                    {
-                        // Initiate a selection
-                        self.perform_key_assignment(
-                            &tab,
-                            &KeyAssignment::SelectTextAtMouseCursor(SelectionMode::Cell),
-                        )
-                        .ok();
-                    } else {
-                        // Extend selection
-                        self.perform_key_assignment(
-                            &tab,
-                            &KeyAssignment::ExtendSelectionToMouseCursor(Some(SelectionMode::Cell)),
-                        )
-                        .ok();
-                    }
-                    context.invalidate();
-                }
+            let mut modifiers = window_mods_to_termwiz_mods(event.modifiers);
 
-                MouseEventTrigger::Up {
-                    streak: 1,
-                    button: TMB::Left,
-                } => {
-                    let text = self.selection_text(&tab);
-
-                    if text.is_empty() && self.current_highlight.is_some() {
-                        self.perform_key_assignment(&tab, &KeyAssignment::OpenLinkAtMouseCursor)
-                            .ok();
-                    } else if !text.is_empty() {
-                        self.window.as_ref().unwrap().set_clipboard(text);
-                        context.invalidate();
-                    }
-                }
-
-                MouseEventTrigger::Up {
-                    streak,
-                    button: TMB::Left,
-                } if streak > 1 => {
-                    let text = self.selection_text(&tab);
-
-                    self.window.as_ref().unwrap().set_clipboard(text);
-                    context.invalidate();
-                }
-
-                MouseEventTrigger::Drag {
-                    streak: 1,
-                    button: TMB::Left,
-                } => {
-                    if let Some(MousePress::Left) = self.current_mouse_button {
-                        self.perform_key_assignment(
-                            &tab,
-                            &KeyAssignment::ExtendSelectionToMouseCursor(Some(SelectionMode::Cell)),
-                        )
-                        .ok();
-                        context.invalidate();
-                    }
-                }
-                MouseEventTrigger::Drag {
-                    streak: 2,
-                    button: TMB::Left,
-                } => {
-                    if let Some(MousePress::Left) = self.current_mouse_button {
-                        self.perform_key_assignment(
-                            &tab,
-                            &KeyAssignment::ExtendSelectionToMouseCursor(Some(SelectionMode::Word)),
-                        )
-                        .ok();
-                        context.invalidate();
-                    }
-                }
-                MouseEventTrigger::Drag {
-                    streak: 3,
-                    button: TMB::Left,
-                } => {
-                    if let Some(MousePress::Left) = self.current_mouse_button {
-                        self.perform_key_assignment(
-                            &tab,
-                            &KeyAssignment::ExtendSelectionToMouseCursor(Some(SelectionMode::Line)),
-                        )
-                        .ok();
-                        context.invalidate();
-                    }
-                }
-                MouseEventTrigger::Down {
-                    streak: 1,
-                    button: TMB::Middle,
-                } => {
-                    self.perform_key_assignment(&tab, &KeyAssignment::Paste)
-                        .ok();
-                    return;
-                }
-
-                _ => {}
+            // Since we use shift to force assessing the mouse bindings, pretend
+            // that shift is not one of the mods when the mouse is grabbed.
+            if tab.is_mouse_grabbed() {
+                modifiers -= window_mods_to_termwiz_mods(ignore_grab_modifier);
             }
+
+            if let Some(action) = self
+                .input_map
+                .lookup_mouse(event_trigger_type.clone(), modifiers)
+            {
+                self.perform_key_assignment(&tab, &action).ok();
+            }
+
             return;
         }
 

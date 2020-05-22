@@ -4,7 +4,22 @@ use crate::mux::domain::DomainId;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;
+use term::input::MouseButton;
 use term::{KeyCode, KeyModifiers};
+
+/// A mouse event that can trigger an action
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq, Hash)]
+pub enum MouseEventTrigger {
+    /// Mouse button is pressed. streak is how many times in a row
+    /// it was pressed.
+    Down { streak: usize, button: MouseButton },
+    /// Mouse button is held down while the cursor is moving. streak is how many times in a row
+    /// it was pressed, with the last of those being held to form the drag.
+    Drag { streak: usize, button: MouseButton },
+    /// Mouse button is being released. streak is how many times
+    /// in a row it was pressed and released.
+    Up { streak: usize, button: MouseButton },
+}
 
 /// When spawning a tab, specify which domain should be used to
 /// host/spawn that tab.
@@ -86,21 +101,35 @@ pub enum KeyAssignment {
     SelectTextAtMouseCursor(SelectionMode),
     ExtendSelectionToMouseCursor(Option<SelectionMode>),
     OpenLinkAtMouseCursor,
+    CompleteSelection,
+    CompleteSelectionOrOpenLinkAtMouseCursor,
 }
 impl_lua_conversion!(KeyAssignment);
 
-pub struct KeyMap(HashMap<(KeyCode, KeyModifiers), KeyAssignment>);
+pub struct InputMap {
+    keys: HashMap<(KeyCode, KeyModifiers), KeyAssignment>,
+    mouse: HashMap<(MouseEventTrigger, KeyModifiers), KeyAssignment>,
+}
 
-impl KeyMap {
+impl InputMap {
     pub fn new() -> Self {
-        let mut map = configuration()
+        let mut mouse = HashMap::new();
+
+        let mut keys = configuration()
             .key_bindings()
             .expect("keys section of config to be valid");
 
+        macro_rules! k {
+            ($([$mod:expr, $code:expr, $action:expr]),* $(,)?) => {
+                $(
+                keys.entry(($code, $mod)).or_insert($action);
+                )*
+            };
+        };
         macro_rules! m {
             ($([$mod:expr, $code:expr, $action:expr]),* $(,)?) => {
                 $(
-                map.entry(($code, $mod)).or_insert($action);
+                mouse.entry(($code, $mod)).or_insert($action);
                 )*
             };
         };
@@ -111,7 +140,7 @@ impl KeyMap {
 
         // Apply the default bindings; if the user has already mapped
         // a given entry then that will take precedence.
-        m!(
+        k!(
             // Clipboard
             [KeyModifiers::SHIFT, KeyCode::Insert, Paste],
             [KeyModifiers::SUPER, KeyCode::Char('c'), Copy],
@@ -199,14 +228,113 @@ impl KeyMap {
         );
 
         #[cfg(target_os = "macos")]
-        m!([KeyModifiers::SUPER, KeyCode::Char('h'), HideApplication],);
+        k!([KeyModifiers::SUPER, KeyCode::Char('h'), HideApplication],);
 
-        Self(map)
+        m!(
+            [
+                KeyModifiers::NONE,
+                MouseEventTrigger::Down {
+                    streak: 3,
+                    button: MouseButton::Left
+                },
+                SelectTextAtMouseCursor(SelectionMode::Line)
+            ],
+            [
+                KeyModifiers::NONE,
+                MouseEventTrigger::Down {
+                    streak: 2,
+                    button: MouseButton::Left
+                },
+                SelectTextAtMouseCursor(SelectionMode::Word)
+            ],
+            [
+                KeyModifiers::NONE,
+                MouseEventTrigger::Down {
+                    streak: 1,
+                    button: MouseButton::Left
+                },
+                SelectTextAtMouseCursor(SelectionMode::Cell)
+            ],
+            [
+                KeyModifiers::SHIFT,
+                MouseEventTrigger::Down {
+                    streak: 1,
+                    button: MouseButton::Left
+                },
+                ExtendSelectionToMouseCursor(None)
+            ],
+            [
+                KeyModifiers::NONE,
+                MouseEventTrigger::Up {
+                    streak: 1,
+                    button: MouseButton::Left
+                },
+                CompleteSelectionOrOpenLinkAtMouseCursor
+            ],
+            [
+                KeyModifiers::NONE,
+                MouseEventTrigger::Up {
+                    streak: 2,
+                    button: MouseButton::Left
+                },
+                CompleteSelection
+            ],
+            [
+                KeyModifiers::NONE,
+                MouseEventTrigger::Up {
+                    streak: 3,
+                    button: MouseButton::Left
+                },
+                CompleteSelection
+            ],
+            [
+                KeyModifiers::NONE,
+                MouseEventTrigger::Drag {
+                    streak: 1,
+                    button: MouseButton::Left
+                },
+                ExtendSelectionToMouseCursor(Some(SelectionMode::Cell))
+            ],
+            [
+                KeyModifiers::NONE,
+                MouseEventTrigger::Drag {
+                    streak: 2,
+                    button: MouseButton::Left
+                },
+                ExtendSelectionToMouseCursor(Some(SelectionMode::Word))
+            ],
+            [
+                KeyModifiers::NONE,
+                MouseEventTrigger::Drag {
+                    streak: 3,
+                    button: MouseButton::Left
+                },
+                ExtendSelectionToMouseCursor(Some(SelectionMode::Line))
+            ],
+            [
+                KeyModifiers::NONE,
+                MouseEventTrigger::Down {
+                    streak: 1,
+                    button: MouseButton::Middle
+                },
+                Paste
+            ],
+        );
+
+        Self { keys, mouse }
     }
 
-    pub fn lookup(&self, key: KeyCode, mods: KeyModifiers) -> Option<KeyAssignment> {
-        self.0
+    pub fn lookup_key(&self, key: KeyCode, mods: KeyModifiers) -> Option<KeyAssignment> {
+        self.keys
             .get(&(key.normalize_shift_to_upper_case(mods), mods))
             .cloned()
+    }
+
+    pub fn lookup_mouse(
+        &self,
+        event: MouseEventTrigger,
+        mods: KeyModifiers,
+    ) -> Option<KeyAssignment> {
+        self.mouse.get(&(event, mods)).cloned()
     }
 }

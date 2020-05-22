@@ -35,6 +35,7 @@ impl Selection {
         self.start = Some(start);
     }
 
+    #[allow(dead_code)]
     pub fn is_empty(&self) -> bool {
         self.range.is_none()
     }
