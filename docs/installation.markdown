@@ -7,7 +7,7 @@ Windows 10 or later is required to run WezTerm.
 <a href="{{ windows_zip_nightly }}" class="btn">Nightly for Windows</a>
 1. Download <a href="{{ windows_zip_stable }}">Release</a>
 2. Extract the zipfile and double-click `wezterm.exe` to run the UI
-3. Configuration instructions can be [found here](config/index.html)
+3. Configuration instructions can be [found here](config/files.html)
 
 ### For `Scoop` users
 
@@ -34,7 +34,7 @@ versions of macOS, but that has not been tested.
 3. First time around, you may need to right click and select `Open` to allow launching
    the application that your just downloaded from the internet.
 3. Subsequently, a simple double-click will launch the UI
-4. Configuration instructions can be [found here](config/index.html)
+4. Configuration instructions can be [found here](config/files.html)
 
 ## Installing on Linux using AppImage
 
@@ -67,7 +67,7 @@ mv ./{{ ubuntu16_AppImage_stable_asset }} ~/bin/wezterm
 ~/bin/wezterm
 ```
 
-* Configuration instructions can be [found here](config/index.html)
+* Configuration instructions can be [found here](config/files.html)
 
 ## Installing on Ubuntu and Debian-based Systems
 
@@ -95,7 +95,7 @@ sudo apt install -y ./{{ ubuntu16_deb_stable_asset }}
 ```
 
 * The package installs `/usr/bin/wezterm` and `/usr/share/applications/org.wezfurlong.wezterm.desktop`
-* Configuration instructions can be [found here](config/index.html)
+* Configuration instructions can be [found here](config/files.html)
 
 ## Installing on Fedora and rpm-based Systems
 
@@ -119,7 +119,7 @@ sudo dnf install -y {{ fedora31_rpm_stable }}
 ```
 
 * The package installs `/usr/bin/wezterm` and `/usr/share/applications/org.wezfurlong.wezterm.desktop`
-* Configuration instructions can be [found here](config/index.html)
+* Configuration instructions can be [found here](config/files.html)
 
 ## Raw Linux Binary
 
