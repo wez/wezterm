@@ -124,6 +124,14 @@ impl Renderable for RenderableState {
             || inner.surface.has_changes(inner.local_sequence)
         {
             set.add_range(lines);
+
+            // Update our local sequence number (so that we don't falsely
+            // consider lines changed) and clear the change buffer.
+            // We don't need the deltas from the surface, just the sequence
+            // numbers.
+            let seq = inner.surface.current_seqno();
+            inner.surface.flush_changes_older_than(seq);
+            inner.local_sequence = seq;
         }
         set
     }
