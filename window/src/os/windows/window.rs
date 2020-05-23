@@ -435,7 +435,11 @@ impl WindowOps for Window {
     }
 
     fn get_clipboard(&self, _clipboard: Clipboard) -> Future<String> {
-        Future::result(clipboard_win::get_clipboard_string().context("Error getting clipboard"))
+        Future::result(
+            clipboard_win::get_clipboard_string()
+                .map(|s| s.replace("\r\n", "\n"))
+                .context("Error getting clipboard"),
+        )
     }
 
     fn set_clipboard(&self, text: String) -> Future<()> {
