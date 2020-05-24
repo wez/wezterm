@@ -402,7 +402,7 @@ pub struct Config {
     /// This acts as a brake in the case of a command spewing a
     /// ton of output and allows for the UI to remain responsive
     /// so that you can hit CTRL-C to interrupt it if desired.
-    /// The default value is 200K/s.
+    /// The default value is 400K/s.
     #[serde(default = "default_ratelimit_output_bytes_per_second")]
     pub ratelimit_output_bytes_per_second: u32,
 
