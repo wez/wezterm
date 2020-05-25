@@ -18,6 +18,7 @@ brief notes about them may accumulate here.
   the TOML based configuration.  You're unlikely to notice this unless you
   followed an example from the docs; migrate instead to using eg:
   `action=wezterm.action{ActivateTab=i-1}` to pass the integer argument.
+* Windows: now also available with a setup.exe installer
 
 ### 20200517-122836-92c201c6
 

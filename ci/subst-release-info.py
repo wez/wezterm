@@ -26,6 +26,7 @@ CATEGORIZE = {
     r"src.tar.gz$": "src",
     r"^WezTerm-macos-.*.zip$": "macos_zip",
     r"^WezTerm-windows-.*.zip$": "windows_zip",
+    r"^WezTerm-.*.setup.exe$": "windows_exe",
 }
 
 def categorize(rel):
