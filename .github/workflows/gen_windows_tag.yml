@@ -63,6 +63,9 @@ jobs:
     - name: "Upload to Tagged Release"
       uses: softprops/action-gh-release@v1
       with:
-         files: "WezTerm-*.zip"
+         files: |
+            WezTerm-*.zip
+            WezTerm-*.exe
+
       env:
          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"

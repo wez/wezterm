@@ -35,8 +35,10 @@ case $OSTYPE in
     zipdir=WezTerm-windows-$TAG_NAME
     if [[ "$BUILD_REASON" == "Schedule" ]] ; then
       zipname=WezTerm-windows-nightly.zip
+      instname=WezTerm-nightly-setup.exe
     else
       zipname=$zipdir.zip
+      instname=WezTerm-${TAG_NAME}-setup.exe
     fi
     rm -rf $zipdir $zipname
     mkdir $zipdir
@@ -48,6 +50,7 @@ case $OSTYPE in
       $zipdir
     cp -r assets/colors $zipdir/
     7z a -tzip $zipname $zipdir
+    iscc windows-installer.iss /DMyAppVersion=${TAG_NAME#nightly} /F${instname}
     ;;
   linux-gnu)
     distro=$(lsb_release -is)
