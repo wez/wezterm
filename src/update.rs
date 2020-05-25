@@ -55,11 +55,13 @@ pub enum AssetKind {
     FedoraRpm(DistVers),
     MacOSZip,
     WindowsZip,
+    WindowsSetupExe,
     Unknown,
 }
 
 fn classify_asset_name(name: &str) -> AssetKind {
     let winzip = Regex::new(r"WezTerm-windows-.*\.zip$").unwrap();
+    let winsetup = Regex::new(r"WezTerm-.*-setup.exe$").unwrap();
     let maczip = Regex::new(r"WezTerm-macos-.*\.zip$").unwrap();
     let appimage = Regex::new(r"WezTerm-.*\.AppImage$").unwrap();
     let appimage_zsync = Regex::new(r"WezTerm-.*\.AppImage\.zsync$").unwrap();
@@ -94,6 +96,8 @@ fn classify_asset_name(name: &str) -> AssetKind {
 
     if winzip.is_match(name) {
         AssetKind::WindowsZip
+    } else if winsetup.is_match(name) {
+        AssetKind::WindowsSetupExe
     } else if maczip.is_match(name) {
         AssetKind::MacOSZip
     } else if appimage.is_match(name) {
@@ -281,6 +285,14 @@ mod test {
         assert_eq!(
             classify_asset_name("WezTerm-windows-nightly.zip"),
             AssetKind::WindowsZip
+        );
+        assert_eq!(
+            classify_asset_name("WezTerm-nightly-setup.exe"),
+            AssetKind::WindowsSetupExe
+        );
+        assert_eq!(
+            classify_asset_name("WezTerm-20200505-090057-31c6155f-setup.exe"),
+            AssetKind::WindowsSetupExe
         );
 
         assert_eq!(
