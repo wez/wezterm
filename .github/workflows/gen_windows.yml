@@ -70,7 +70,7 @@ jobs:
       shell: bash
       run: |
             mkdir pkg_
-            mv *.zip pkg_
+            mv *.zip *.exe pkg_
             
 
     - name: "Upload artifact"

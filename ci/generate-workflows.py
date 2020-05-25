@@ -259,7 +259,9 @@ cargo build --all --release""",
         run = "mkdir pkg_\n"
         if self.uses_yum():
             run += "mv ~/rpmbuild/RPMS/*/*.rpm pkg_\n"
-        if ("win" in self.name) or ("mac" in self.name):
+        if "win" in self.name:
+            run += "mv *.zip *.exe pkg_\n"
+        if "mac" in self.name:
             run += "mv *.zip pkg_\n"
         if ("ubuntu" in self.name) or ("debian" in self.name):
             run += "mv *.deb *.xz pkg_\n"
@@ -279,7 +281,9 @@ cargo build --all --release""",
         patterns = []
         if self.uses_yum():
             patterns += ["wezterm-*.rpm"]
-        elif ("win" in self.name) or ("mac" in self.name):
+        elif "win" in self.name:
+            patterns += ["WezTerm-*.zip", "WezTerm-*.exe"]
+        elif "mac" in self.name:
             patterns += ["WezTerm-*.zip"]
         elif ("ubuntu" in self.name) or ("debian" in self.name):
             patterns += ["wezterm-*.deb", "wezterm-*.xz", "wezterm-*.tar.gz"]

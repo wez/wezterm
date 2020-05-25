@@ -78,6 +78,6 @@ jobs:
     - name: "Upload to Nightly Release"
       uses: wez/upload-release-assets@releases/v1
       with:
-         files: "WezTerm-*.zip"
+         files: "WezTerm-*.zip;WezTerm-*.exe"
          release-tag: "nightly"
          repo-token: "${{ secrets.GITHUB_TOKEN }}"
