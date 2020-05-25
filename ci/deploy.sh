@@ -50,7 +50,7 @@ case $OSTYPE in
       $zipdir
     cp -r assets/colors $zipdir/
     7z a -tzip $zipname $zipdir
-    iscc windows-installer.iss /DMyAppVersion=${TAG_NAME#nightly} /F${instname}
+    iscc ci/windows-installer.iss /DMyAppVersion=${TAG_NAME#nightly} /F${instname}
     ;;
   linux-gnu)
     distro=$(lsb_release -is)
