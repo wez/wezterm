@@ -20,6 +20,7 @@ fn main() {
 
     #[cfg(windows)]
     {
+        use std::io::Write;
         use std::path::Path;
         let profile = std::env::var("PROFILE").unwrap();
         let exe_output_dir = Path::new("target").join(profile);
@@ -33,8 +34,76 @@ fn main() {
                 std::fs::copy(src_name, dest_name).unwrap();
             }
         }
-    }
 
-    #[cfg(windows)]
-    embed_resource::compile("assets/windows/resource.rc");
+        let version = if ci_tag.is_empty() {
+            let mut cmd = std::process::Command::new("git");
+            cmd.args(&["describe", "--tags"]);
+            if let Ok(output) = cmd.output() {
+                if output.status.success() {
+                    String::from_utf8_lossy(&output.stdout).trim().to_owned()
+                } else {
+                    "UNKNOWN".to_owned()
+                }
+            } else {
+                "UNKNOWN".to_owned()
+            }
+        } else {
+            ci_tag
+        };
+
+        let rcfile_name = Path::new(&std::env::var_os("OUT_DIR").unwrap()).join("resource.rc");
+        let mut rcfile = std::fs::File::create(&rcfile_name).unwrap();
+        write!(
+            rcfile,
+            r#"
+#include <winres.h>
+// This ID is coupled with code in window/src/os/windows/window.rs
+#define IDI_ICON 0x101
+IDI_ICON ICON "{src}/assets/windows/terminal.ico"
+APP_MANIFEST RT_MANIFEST "{src}/assets/windows/manifest.manifest"
+VS_VERSION_INFO VERSIONINFO
+FILEVERSION     1,0,0,0
+PRODUCTVERSION  1,0,0,0
+FILEFLAGSMASK   VS_FFI_FILEFLAGSMASK
+FILEFLAGS       0
+FILEOS          VOS__WINDOWS32
+FILETYPE        VFT_APP
+FILESUBTYPE     VFT2_UNKNOWN
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904E4"
+        BEGIN
+            VALUE "CompanyName",      "Wez Furlong\0"
+            VALUE "FileDescription",  "WezTerm - Wez's Terminal Emulator\0"
+            VALUE "FileVersion",      "{version}\0"
+            VALUE "LegalCopyright",   "Wez Furlong, MIT licensed\0"
+            VALUE "InternalName",     "\0"
+            VALUE "OriginalFilename", "\0"
+            VALUE "ProductName",      "WezTerm\0"
+            VALUE "ProductVersion",   "{version}\0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x409, 1252
+    END
+END
+"#,
+            src = std::env::var("CARGO_MANIFEST_DIR").unwrap(),
+            version = version,
+        )
+        .unwrap();
+        drop(rcfile);
+
+        // Obtain MSVC environment so that the rc compiler can find the right headers.
+        // https://github.com/nabijaczleweli/rust-embed-resource/issues/11#issuecomment-603655972
+        let target = std::env::var("TARGET").unwrap();
+        if let Some(tool) = cc::windows_registry::find_tool(target.as_str(), "cl.exe") {
+            for (key, value) in tool.env() {
+                std::env::set_var(key, value);
+            }
+        }
+        embed_resource::compile(rcfile_name);
+    }
 }

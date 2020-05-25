@@ -3793,6 +3793,7 @@ dependencies = [
  "base91",
  "bitflags 1.2.1",
  "bstr 0.2.12",
+ "cc",
  "core-foundation 0.7.0",
  "core-graphics 0.19.0",
  "core-text 15.0.0",
