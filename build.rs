@@ -63,8 +63,8 @@ fn main() {
 #include <winres.h>
 // This ID is coupled with code in window/src/os/windows/window.rs
 #define IDI_ICON 0x101
-IDI_ICON ICON "{win}\terminal.ico"
-APP_MANIFEST RT_MANIFEST "{win}\manifest.manifest"
+IDI_ICON ICON "{win}\\terminal.ico"
+APP_MANIFEST RT_MANIFEST "{win}\\manifest.manifest"
 VS_VERSION_INFO VERSIONINFO
 FILEVERSION     1,0,0,0
 PRODUCTVERSION  1,0,0,0
@@ -94,7 +94,7 @@ BEGIN
     END
 END
 "#,
-            win = windows_dir,
+            win = windows_dir.display().to_string().replace("\\", "\\\\"),
             version = version,
         )
         .unwrap();
