@@ -1333,7 +1333,7 @@ impl TerminalState {
             }
             EraseInDisplay::EraseDisplay => 0..rows,
             EraseInDisplay::EraseScrollback => {
-                error!("TODO: ed: no support for xterm Erase Saved Lines yet");
+                self.screen_mut().erase_scrollback();
                 return;
             }
         };

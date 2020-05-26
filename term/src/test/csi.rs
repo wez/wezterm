@@ -183,3 +183,12 @@ fn test_ed() {
         Compare::TEXT | Compare::ATTRS,
     );
 }
+
+#[test]
+fn test_ed_erase_scrollback() {
+    let mut term = TestTerm::new(3, 3, 3);
+    term.print("abc\r\ndef\r\nghi\r\n111\r\n222\r\na\x1b[3J");
+    assert_all_contents(&term, file!(), line!(), &["111", "222", "a  "]);
+    term.print("b");
+    assert_all_contents(&term, file!(), line!(), &["111", "222", "ab "]);
+}

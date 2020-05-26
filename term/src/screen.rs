@@ -469,6 +469,15 @@ impl Screen {
         }
     }
 
+    pub fn erase_scrollback(&mut self) {
+        let len = self.lines.len();
+        let to_clear = len - self.physical_rows;
+        for _ in 0..to_clear {
+            self.lines.pop_front();
+            self.stable_row_index_offset += 1;
+        }
+    }
+
     /// ---------
     /// |
     /// |--- top
