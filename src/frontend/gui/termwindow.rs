@@ -1469,6 +1469,11 @@ impl TermWindow {
                     window.invalidate();
                 }
             }
+            ClearScrollback => {
+                tab.erase_scrollback();
+                let window = self.window.as_ref().unwrap();
+                window.invalidate();
+            }
         };
         Ok(())
     }

@@ -59,6 +59,8 @@ pub trait Tab: Downcast {
     fn palette(&self) -> ColorPalette;
     fn domain_id(&self) -> DomainId;
 
+    fn erase_scrollback(&self) {}
+
     /// Returns true if the terminal has grabbed the mouse and wants to
     /// give the embedded application a chance to process events.
     /// In practice this controls whether the gui will perform local

@@ -487,6 +487,10 @@ impl TerminalState {
         }
     }
 
+    pub fn erase_scrollback(&mut self) {
+        self.screen_mut().erase_scrollback();
+    }
+
     pub fn is_mouse_grabbed(&self) -> bool {
         self.sgr_mouse
     }

@@ -62,6 +62,8 @@ The default key bindings are:
 | `SUPER`          | `r`    | `ReloadConfiguration` |
 | `CTRL+SHIFT`     | `R`    | `ReloadConfiguration` |
 | `SUPER`          | `h`    | `HideApplication` (macOS only) |
+| `SUPER`          | `k`    | `ClearScrollback` |
+| `CTRL+SHIFT`     | `K`    | `ClearScrollback` |
 
 ## Default Mouse Assignments
 
@@ -534,6 +536,19 @@ return {
   keys = {
     {key="PageUp", mods="SHIFT", action=wezterm.action{ScrollByPage=-1}},
     {key="PageDown", mods="SHIFT", action=wezterm.action{ScrollByPage=1}},
+  }
+}
+```
+
+## ClearScrollback
+
+Clears the lines that have scrolled off the top of the viewport, resetting
+the scrollbar thumb to the full height of the window.
+
+```lua
+return {
+  keys = {
+    {key="K", mods="CTRL|SHIFT", action="ClearScrollback"}
   }
 }
 ```

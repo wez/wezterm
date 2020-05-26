@@ -91,6 +91,10 @@ impl Tab for LocalTab {
         self.domain_id
     }
 
+    fn erase_scrollback(&self) {
+        self.terminal.borrow_mut().erase_scrollback();
+    }
+
     fn is_mouse_grabbed(&self) -> bool {
         self.terminal.borrow().is_mouse_grabbed()
     }

@@ -19,6 +19,7 @@ brief notes about them may accumulate here.
   followed an example from the docs; migrate instead to using eg:
   `action=wezterm.action{ActivateTab=i-1}` to pass the integer argument.
 * Windows: now also available with a setup.exe installer
+* Added `ClearScrollback` key assignment to clear the scrollback.  This is bound to CMD-K and CTRL-SHIFT-K by default.
 
 ### 20200517-122836-92c201c6
 

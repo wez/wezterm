@@ -97,6 +97,7 @@ pub enum KeyAssignment {
     SpawnCommandInNewTab(SpawnCommand),
     SpawnCommandInNewWindow(SpawnCommand),
     ShowLauncher,
+    ClearScrollback,
 
     SelectTextAtMouseCursor(SelectionMode),
     ExtendSelectionToMouseCursor(Option<SelectionMode>),
@@ -158,6 +159,8 @@ impl InputMap {
             [KeyModifiers::SUPER, KeyCode::Char('n'), SpawnWindow],
             [ctrl_shift, KeyCode::Char('M'), Hide],
             [ctrl_shift, KeyCode::Char('N'), SpawnWindow],
+            [KeyModifiers::SUPER, KeyCode::Char('k'), ClearScrollback],
+            [ctrl_shift, KeyCode::Char('K'), ClearScrollback],
             // Font size manipulation
             [KeyModifiers::CTRL, KeyCode::Char('-'), DecreaseFontSize],
             [KeyModifiers::CTRL, KeyCode::Char('0'), ResetFontSize],
