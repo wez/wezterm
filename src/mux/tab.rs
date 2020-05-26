@@ -6,7 +6,7 @@ use portable_pty::PtySize;
 use std::cell::RefMut;
 use std::sync::{Arc, Mutex};
 use term::color::ColorPalette;
-use term::{Clipboard, KeyCode, KeyModifiers, MouseEvent, TerminalHost};
+use term::{Clipboard, KeyCode, KeyModifiers, MouseEvent, StableRowIndex, TerminalHost};
 use url::Url;
 
 static TAB_ID: ::std::sync::atomic::AtomicUsize = ::std::sync::atomic::AtomicUsize::new(0);
@@ -44,6 +44,24 @@ fn schedule_next_paste(paste: &Arc<Mutex<Paste>>) {
     });
 }
 
+pub enum Pattern {
+    String(String),
+    Regex(regex::Regex),
+}
+
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+pub enum SearchDirection {
+    Backwards,
+    Forwards,
+}
+
+pub struct SearchResult {
+    pub start_x: usize,
+    pub start_y: StableRowIndex,
+    pub end_x: usize,
+    pub end_y: StableRowIndex,
+}
+
 pub trait Tab: Downcast {
     fn tab_id(&self) -> TabId;
     fn renderer(&self) -> RefMut<dyn Renderable>;
@@ -60,6 +78,23 @@ pub trait Tab: Downcast {
     fn domain_id(&self) -> DomainId;
 
     fn erase_scrollback(&self) {}
+
+    /// Performs a search relative to the specified stable row index.
+    /// if direction is Backwards then the search proceeds to smaller
+    /// values of StableRowIndex.  Forwards towards larger values.
+    /// If the result is empty then there are no matches in the specified
+    /// direction.
+    /// Otherwise, the result shall contain at least as many matches will
+    /// be visible in the current viewport, starting from the first match.
+    /// It may return matches outside that range.
+    fn search(
+        &self,
+        _row: StableRowIndex,
+        _direction: SearchDirection,
+        _pattern: &Pattern,
+    ) -> Vec<SearchResult> {
+        vec![]
+    }
 
     /// Returns true if the terminal has grabbed the mouse and wants to
     /// give the embedded application a chance to process events.
