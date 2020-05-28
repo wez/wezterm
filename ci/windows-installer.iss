@@ -56,6 +56,14 @@ Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: de
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
 
+[Registry]
+Root: HKA; Subkey: "Software\Classes\Directory\Background\shell\Open WezTerm here"; Flags: uninsdeletekey
+Root: HKA; Subkey: "Software\Classes\Directory\Background\shell\Open WezTerm here"; ValueName: "icon"; ValueType: string; ValueData: "{app}\{#MyAppExeName}";
+Root: HKA; Subkey: "Software\Classes\Directory\Background\shell\Open WezTerm here\command"; ValueType: string; ValueData: """{app}\{#MyAppExeName}"" start --no-auto-connect --cwd ""%V\\"""
+Root: HKA; Subkey: "Software\Classes\Directory\shell\Open WezTerm here"; Flags: uninsdeletekey
+Root: HKA; Subkey: "Software\Classes\Directory\shell\Open WezTerm here"; ValueName: "icon"; ValueType: string; ValueData: "{app}\{#MyAppExeName}"
+Root: HKA; Subkey: "Software\Classes\Directory\shell\Open WezTerm here\command"; ValueType: string; ValueData: """{app}\{#MyAppExeName}"" start --no-auto-connect --cwd ""%V\\"""
+
 [Code]
 { https://stackoverflow.com/a/46609047/149111 }
 const EnvironmentKey = 'SYSTEM\CurrentControlSet\Control\Session Manager\Environment';
