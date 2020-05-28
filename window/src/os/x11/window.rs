@@ -303,6 +303,7 @@ impl XWindowInner {
                     let key = KeyEvent {
                         key: code,
                         raw_key: None,
+                        raw_modifiers: Default::default(),
                         modifiers: mods,
                         repeat_count: 1,
                         key_is_down: r == xcb::KEY_PRESS,
