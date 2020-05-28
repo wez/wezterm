@@ -13,6 +13,7 @@ mod overlay;
 mod quad;
 mod renderstate;
 mod scrollbar;
+mod search;
 mod selection;
 mod tabbar;
 mod termwindow;

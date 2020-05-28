@@ -46,20 +46,21 @@ fn schedule_next_paste(paste: &Arc<Mutex<Paste>>) {
 
 pub enum Pattern {
     String(String),
-    Regex(regex::Regex),
+    // Regex(regex::Regex),
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum SearchDirection {
     Backwards,
-    Forwards,
+    //    Forwards,
 }
 
+#[derive(Debug, Clone, Copy, Eq, PartialEq, PartialOrd, Ord)]
 pub struct SearchResult {
-    pub start_x: usize,
     pub start_y: StableRowIndex,
-    pub end_x: usize,
     pub end_y: StableRowIndex,
+    pub start_x: usize,
+    pub end_x: usize,
 }
 
 pub trait Tab: Downcast {

@@ -10,6 +10,7 @@ use crate::frontend::activity::Activity;
 use crate::frontend::front_end;
 use crate::frontend::gui::overlay::{launcher, start_overlay, tab_navigator};
 use crate::frontend::gui::scrollbar::*;
+use crate::frontend::gui::search::*;
 use crate::frontend::gui::selection::*;
 use crate::frontend::gui::tabbar::{TabBarItem, TabBarState};
 use crate::keyassignment::{
@@ -298,8 +299,7 @@ impl WindowCallbacks for TermWindow {
 
             WMEK::VertWheel(amount) if !tab.is_mouse_grabbed() => {
                 // adjust viewport
-                let render = tab.renderer();
-                let dims = render.get_dimensions();
+                let dims = tab.renderer().get_dimensions();
                 let position = self
                     .get_viewport(tab.tab_id())
                     .unwrap_or(dims.physical_top)
@@ -333,6 +333,7 @@ impl WindowCallbacks for TermWindow {
                         self.terminal_size,
                         &self.dimensions,
                     );
+                    drop(render);
                     self.set_viewport(tab.tab_id(), Some(row), dims);
                     context.invalidate();
                     return;
@@ -1144,6 +1145,7 @@ impl TermWindow {
             .get_viewport(tab.tab_id())
             .unwrap_or(dims.physical_top)
             .saturating_add(amount * dims.viewport_rows as isize);
+        drop(render);
         self.set_viewport(tab.tab_id(), Some(position), dims);
         if let Some(win) = self.window.as_ref() {
             win.invalidate();
@@ -1473,6 +1475,10 @@ impl TermWindow {
                 tab.erase_scrollback();
                 let window = self.window.as_ref().unwrap();
                 window.invalidate();
+            }
+            Search => {
+                let search = SearchOverlay::with_tab(self, tab);
+                self.assign_overlay(tab.tab_id(), search);
             }
         };
         Ok(())
@@ -2642,11 +2648,11 @@ impl TermWindow {
         RefMut::map(self.tab_state(tab_id), |state| &mut state.selection)
     }
 
-    fn get_viewport(&self, tab_id: TabId) -> Option<StableRowIndex> {
+    pub fn get_viewport(&self, tab_id: TabId) -> Option<StableRowIndex> {
         self.tab_state(tab_id).viewport
     }
 
-    fn set_viewport(
+    pub fn set_viewport(
         &mut self,
         tab_id: TabId,
         position: Option<StableRowIndex>,
@@ -2663,7 +2669,17 @@ impl TermWindow {
             }
             None => None,
         };
-        self.tab_state(tab_id).viewport = pos;
+
+        let mut state = self.tab_state(tab_id);
+        state.viewport = pos;
+
+        // This is a bit gross.  If we add other overlays that need this information,
+        // this should get extracted out into a trait
+        if let Some(overlay) = state.overlay.as_ref() {
+            if let Some(search_overlay) = overlay.downcast_ref::<SearchOverlay>() {
+                search_overlay.viewport_changed(pos);
+            }
+        }
     }
 
     fn mouse_event_tab_bar(&mut self, x: usize, event: &MouseEvent, context: &dyn WindowOps) {
@@ -2709,13 +2725,16 @@ impl TermWindow {
             let dims = render.get_dimensions();
             let current_viewport = self.get_viewport(tab.tab_id());
 
-            match ScrollHit::test(
+            let hit_result = ScrollHit::test(
                 event.coords.y,
                 &*render,
                 current_viewport,
                 self.terminal_size,
                 &self.dimensions,
-            ) {
+            );
+            drop(render);
+
+            match hit_result {
                 ScrollHit::Above => {
                     // Page up
                     self.set_viewport(

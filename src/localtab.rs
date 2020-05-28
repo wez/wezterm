@@ -1,12 +1,13 @@
 use crate::mux::domain::DomainId;
 use crate::mux::renderable::Renderable;
 use crate::mux::tab::{alloc_tab_id, Tab, TabId};
+use crate::mux::tab::{Pattern, SearchDirection, SearchResult};
 use anyhow::Error;
 use portable_pty::{Child, MasterPty, PtySize};
 use std::cell::{RefCell, RefMut};
 use std::sync::Arc;
 use term::color::ColorPalette;
-use term::{Clipboard, KeyCode, KeyModifiers, MouseEvent, Terminal, TerminalHost};
+use term::{Clipboard, KeyCode, KeyModifiers, MouseEvent, StableRowIndex, Terminal, TerminalHost};
 use url::Url;
 
 pub struct LocalTab {
@@ -101,6 +102,80 @@ impl Tab for LocalTab {
 
     fn get_current_working_dir(&self) -> Option<Url> {
         self.terminal.borrow().get_current_dir().cloned()
+    }
+
+    fn search(
+        &self,
+        _row: StableRowIndex,
+        _direction: SearchDirection,
+        pattern: &Pattern,
+    ) -> Vec<SearchResult> {
+        let term = self.terminal.borrow();
+        let screen = term.screen();
+
+        let mut results = vec![];
+        let mut haystack = String::new();
+        let mut byte_pos_to_stable_idx = vec![];
+
+        fn haystack_idx_to_coord(
+            idx: usize,
+            byte_pos_to_stable_idx: &[(usize, StableRowIndex)],
+        ) -> (usize, StableRowIndex) {
+            for (start, row) in byte_pos_to_stable_idx.iter().rev() {
+                if idx >= *start {
+                    return (idx - *start, *row);
+                }
+            }
+            unreachable!();
+        }
+
+        fn collect_matches(
+            results: &mut Vec<SearchResult>,
+            pattern: &Pattern,
+            haystack: &str,
+            byte_pos_to_stable_idx: &[(usize, StableRowIndex)],
+        ) {
+            if haystack.is_empty() {
+                return;
+            }
+            match pattern {
+                Pattern::String(s) => {
+                    for (idx, s) in haystack.match_indices(s) {
+                        let (start_x, start_y) = haystack_idx_to_coord(idx, byte_pos_to_stable_idx);
+                        let (end_x, end_y) =
+                            haystack_idx_to_coord(idx + s.len(), byte_pos_to_stable_idx);
+                        results.push(SearchResult {
+                            start_x,
+                            start_y,
+                            end_x,
+                            end_y,
+                        });
+                    }
+                } /*
+                  Pattern::Regex(r) => {
+                      // TODO
+                  }
+                  */
+            }
+        }
+
+        for (idx, line) in screen.lines.iter().enumerate() {
+            byte_pos_to_stable_idx.push((haystack.len(), screen.phys_to_stable_row_index(idx)));
+            let mut wrapped = false;
+            for (_, cell) in line.visible_cells() {
+                haystack.push_str(cell.str());
+                wrapped = cell.attrs().wrapped();
+            }
+
+            if !wrapped {
+                collect_matches(&mut results, pattern, &haystack, &byte_pos_to_stable_idx);
+                haystack.clear();
+                byte_pos_to_stable_idx.clear();
+            }
+        }
+
+        collect_matches(&mut results, pattern, &haystack, &byte_pos_to_stable_idx);
+        results
     }
 }
 
