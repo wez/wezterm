@@ -286,18 +286,26 @@ impl WaylandWindowInner {
                         None => return,
                     },
                 };
-                // Avoid redundant key == raw_key
                 let (key, raw_key) = match (key, raw_key) {
                     // Avoid eg: \x01 when we can use CTRL-A
                     (KeyCode::Char(c), Some(raw)) if c.is_ascii_control() => (raw, None),
+                    // Avoid redundant key == raw_key
                     (key, Some(raw)) if key == raw => (key, None),
                     pair => pair,
                 };
+
+                let (modifiers, raw_modifiers) = if raw_key.is_some() {
+                    (Modifiers::NONE, self.modifiers)
+                } else {
+                    (self.modifiers, Modifiers::NONE)
+                };
+
                 let key_event = KeyEvent {
                     key_is_down: is_down,
                     key,
                     raw_key,
-                    modifiers: self.modifiers,
+                    modifiers,
+                    raw_modifiers,
                     repeat_count: 1,
                 };
                 self.callbacks
