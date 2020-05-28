@@ -22,6 +22,7 @@ pub struct SearchOverlay {
     delegate: Rc<dyn Tab>,
 }
 
+#[derive(Debug)]
 struct MatchResult {
     range: Range<usize>,
     result_index: usize,
@@ -40,6 +41,8 @@ struct SearchRenderable {
 
     dirty_results: RangeSet<StableRowIndex>,
     result_pos: Option<usize>,
+    width: usize,
+    height: usize,
 
     /// We use this to cancel ourselves later
     window: ::window::Window,
@@ -48,6 +51,7 @@ struct SearchRenderable {
 impl SearchOverlay {
     pub fn with_tab(term_window: &TermWindow, tab: &Rc<dyn Tab>) -> Rc<dyn Tab> {
         let viewport = term_window.get_viewport(tab.tab_id());
+        let dims = tab.renderer().get_dimensions();
 
         let window = term_window.window.clone().unwrap();
         let mut renderer = SearchRenderable {
@@ -60,6 +64,8 @@ impl SearchOverlay {
             last_bar_pos: None,
             window,
             result_pos: None,
+            width: dims.cols,
+            height: dims.viewport_rows,
         };
 
         let search_row = renderer.compute_search_row();
@@ -215,6 +221,50 @@ impl SearchRenderable {
         });
     }
 
+    fn check_for_resize(&mut self) {
+        let dims = self.delegate.renderer().get_dimensions();
+        if dims.cols == self.width && dims.viewport_rows == self.height {
+            return;
+        }
+
+        self.width = dims.cols;
+        self.height = dims.viewport_rows;
+
+        let pos = self.result_pos;
+        self.update_search();
+        self.result_pos = pos;
+    }
+
+    fn recompute_results(&mut self) {
+        for (result_index, res) in self.results.iter().enumerate() {
+            for idx in res.start_y..=res.end_y {
+                let range = if idx == res.start_y && idx == res.end_y {
+                    // Range on same line
+                    res.start_x..res.end_x
+                } else if idx == res.end_y {
+                    // final line of multi-line
+                    0..res.end_x
+                } else if idx == res.start_y {
+                    // first line of multi-line
+                    res.start_x..self.width
+                } else {
+                    // a middle line
+                    0..self.width
+                };
+
+                let result = MatchResult {
+                    range,
+                    result_index,
+                };
+
+                let matches = self.by_line.entry(idx).or_insert_with(|| vec![]);
+                matches.push(result);
+
+                self.dirty_results.add(idx);
+            }
+        }
+    }
+
     fn update_search(&mut self) {
         for idx in self.by_line.keys() {
             self.dirty_results.add(*idx);
@@ -238,32 +288,7 @@ impl SearchRenderable {
             );
             self.results.sort();
 
-            let dims = self.get_dimensions();
-
-            for (result_index, res) in self.results.iter().enumerate() {
-                for idx in res.start_y..=res.end_y {
-                    let range = if idx == res.start_y && idx == res.end_y {
-                        // Range on same line
-                        res.start_x..res.end_x
-                    } else if idx == res.end_y {
-                        // final line of multi-line
-                        0..res.end_x
-                    } else {
-                        // a middle line
-                        0..dims.cols
-                    };
-
-                    let result = MatchResult {
-                        range,
-                        result_index,
-                    };
-
-                    let matches = self.by_line.entry(idx).or_insert_with(|| vec![]);
-                    matches.push(result);
-
-                    self.dirty_results.add(idx);
-                }
-            }
+            self.recompute_results();
         }
         if let Some(last) = self.results.last() {
             self.result_pos.replace(self.results.len() - 1);
@@ -291,6 +316,7 @@ impl Renderable for SearchRenderable {
     }
 
     fn get_lines(&mut self, lines: Range<StableRowIndex>) -> (StableRowIndex, Vec<Line>) {
+        self.check_for_resize();
         let dims = self.get_dimensions();
 
         let (top, mut lines) = self.delegate.renderer().get_lines(lines);
@@ -320,17 +346,20 @@ impl Renderable for SearchRenderable {
             } else if let Some(matches) = self.by_line.get(&stable_idx) {
                 for m in matches {
                     // highlight
-                    for cell in &mut line.cells_mut_for_attr_changes_only()[m.range.clone()] {
-                        if Some(m.result_index) == self.result_pos {
-                            cell.attrs_mut()
-                                .set_background(AnsiColor::Yellow)
-                                .set_foreground(AnsiColor::Black)
-                                .set_reverse(false);
-                        } else {
-                            cell.attrs_mut()
-                                .set_background(AnsiColor::Fuschia)
-                                .set_foreground(AnsiColor::Black)
-                                .set_reverse(false);
+                    for cell_idx in m.range.clone() {
+                        if let Some(cell) = line.cells_mut_for_attr_changes_only().get_mut(cell_idx)
+                        {
+                            if Some(m.result_index) == self.result_pos {
+                                cell.attrs_mut()
+                                    .set_background(AnsiColor::Yellow)
+                                    .set_foreground(AnsiColor::Black)
+                                    .set_reverse(false);
+                            } else {
+                                cell.attrs_mut()
+                                    .set_background(AnsiColor::Fuschia)
+                                    .set_foreground(AnsiColor::Black)
+                                    .set_reverse(false);
+                            }
                         }
                     }
                 }
