@@ -196,6 +196,7 @@ fn mouse_press_to_tmb(press: &MousePress) -> TMB {
     }
 }
 
+#[derive(Debug)]
 enum Key {
     Code(::termwiz::input::KeyCode),
     Composed(String),
@@ -377,19 +378,20 @@ impl WindowCallbacks for TermWindow {
             None => return false,
         };
         let modifiers = window_mods_to_termwiz_mods(key.modifiers);
+        let raw_modifiers = window_mods_to_termwiz_mods(key.raw_modifiers);
 
         // First chance to operate on the raw key; if it matches a
         // user-defined key binding then we execute it and stop there.
         if let Some(key) = &key.raw_key {
             if let Key::Code(key) = self.win_key_code_to_termwiz_key_code(&key) {
-                if let Some(assignment) = self.input_map.lookup_key(key, modifiers) {
+                if let Some(assignment) = self.input_map.lookup_key(key, raw_modifiers) {
                     self.perform_key_assignment(&tab, &assignment).ok();
                     return true;
                 }
 
                 if !configuration().send_composed_key_when_alt_is_pressed
-                    && modifiers.contains(::termwiz::input::Modifiers::ALT)
-                    && tab.key_down(key, modifiers).is_ok()
+                    && raw_modifiers.contains(::termwiz::input::Modifiers::ALT)
+                    && tab.key_down(key, raw_modifiers).is_ok()
                 {
                     if !key.is_modifier() {
                         self.maybe_scroll_to_bottom_for_input(&tab);

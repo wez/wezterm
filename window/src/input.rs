@@ -139,13 +139,13 @@ pub struct KeyEvent {
     /// This is the potentially processed/composed version
     /// of the input.
     pub key: KeyCode,
+    /// Which modifiers are down
+    pub modifiers: Modifiers,
 
     /// The raw unprocessed key press if it was different from
     /// the processed/composed version
     pub raw_key: Option<KeyCode>,
-
-    /// Which modifiers are down
-    pub modifiers: Modifiers,
+    pub raw_modifiers: Modifiers,
 
     /// How many times this key repeats
     pub repeat_count: u16,

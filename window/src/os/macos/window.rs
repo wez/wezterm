@@ -790,6 +790,7 @@ impl WindowView {
             key,
             raw_key: None,
             modifiers,
+            raw_modifiers: Modifiers::NONE,
             repeat_count: 1,
             key_is_down: true,
         };
@@ -825,7 +826,8 @@ impl WindowView {
         let event = KeyEvent {
             key: KeyCode::Composed(s.to_string()),
             raw_key: None,
-            modifiers: Modifiers::default(),
+            modifiers: Modifiers::NONE,
+            raw_modifiers: Modifiers::NONE,
             repeat_count: 1,
             key_is_down: true,
         };
@@ -1109,10 +1111,17 @@ impl WindowView {
                 }
             };
 
+            let (modifiers, raw_modifiers) = if raw_key.is_some() {
+                (Modifiers::NONE, modifiers)
+            } else {
+                (modifiers, Modifiers::NONE)
+            };
+
             let event = KeyEvent {
                 key,
                 raw_key,
                 modifiers,
+                raw_modifiers,
                 repeat_count: 1,
                 key_is_down,
             };
