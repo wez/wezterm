@@ -118,6 +118,11 @@ struct StartCommand {
     #[structopt(long = "daemonize")]
     daemonize: bool,
 
+    /// Specify the current working directory for the initially
+    /// spawned program
+    #[structopt(long = "cwd", parse(from_os_str))]
+    cwd: Option<OsString>,
+
     /// Instead of executing your shell, run PROG.
     /// For example: `wezterm start -- bash -l` will spawn bash
     /// as if it were a login shell.
@@ -614,8 +619,17 @@ fn run_terminal_gui(config: config::ConfigHandle, opts: StartCommand) -> anyhow:
         .unwrap_or(config.font_rasterizer)
         .set_default();
 
-    let cmd = if !opts.prog.is_empty() {
-        let builder = CommandBuilder::from_argv(opts.prog);
+    let need_builder = !opts.prog.is_empty() || opts.cwd.is_some();
+
+    let cmd = if need_builder {
+        let mut builder = if opts.prog.is_empty() {
+            CommandBuilder::new_default_prog()
+        } else {
+            CommandBuilder::from_argv(opts.prog)
+        };
+        if let Some(cwd) = opts.cwd {
+            builder.cwd(cwd);
+        }
         Some(builder)
     } else {
         None
