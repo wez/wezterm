@@ -122,10 +122,11 @@ impl Tab for SearchOverlay {
         self.delegate.resize(size)
     }
 
-    fn key_down(&self, key: KeyCode, _mods: KeyModifiers) -> anyhow::Result<()> {
-        match key {
-            KeyCode::Escape => self.renderer.borrow().close(),
-            KeyCode::Enter => {
+    fn key_down(&self, key: KeyCode, mods: KeyModifiers) -> anyhow::Result<()> {
+        match (key, mods) {
+            (KeyCode::Escape, KeyModifiers::NONE) => self.renderer.borrow().close(),
+            (KeyCode::Enter, KeyModifiers::NONE) | (KeyCode::Char('p'), KeyModifiers::CTRL) => {
+                // Move to prior match
                 let mut r = self.renderer.borrow_mut();
                 if let Some(cur) = r.result_pos.as_ref() {
                     let prior = if *cur > 0 {
@@ -137,12 +138,27 @@ impl Tab for SearchOverlay {
                     r.set_viewport(Some(r.results[prior].start_y));
                 }
             }
-            KeyCode::Char(c) => {
+            (KeyCode::Char('n'), KeyModifiers::CTRL) => {
+                // Move to next match
+                let mut r = self.renderer.borrow_mut();
+                if let Some(cur) = r.result_pos.as_ref() {
+                    let next = if *cur + 1 >= r.results.len() {
+                        0
+                    } else {
+                        *cur + 1
+                    };
+                    r.result_pos.replace(next);
+                    r.set_viewport(Some(r.results[next].start_y));
+                }
+            }
+            (KeyCode::Char(c), KeyModifiers::NONE) | (KeyCode::Char(c), KeyModifiers::SHIFT) => {
+                // Type to add to the pattern
                 let mut r = self.renderer.borrow_mut();
                 r.pattern.push(c);
                 r.update_search();
             }
-            KeyCode::Backspace => {
+            (KeyCode::Backspace, KeyModifiers::NONE) => {
+                // Backspace to edit the pattern
                 let mut r = self.renderer.borrow_mut();
                 r.pattern.pop();
                 r.update_search();

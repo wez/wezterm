@@ -20,9 +20,11 @@ brief notes about them may accumulate here.
   `action=wezterm.action{ActivateTab=i-1}` to pass the integer argument.
 * Windows: now also available with a setup.exe installer
 * Added `ClearScrollback` key assignment to clear the scrollback.  This is bound to CMD-K and CTRL-SHIFT-K by default.
-* Added `Search` key assignment to search the scrollback.  This is bound to CMD-F and CTRL-SHIFT-F by default.
-  It activates the search overlay; type (or paste) to enter a search pattern and highlight matches.
-  Pressing Enter advances to the next match.  Escape cancels the search overlay.
+* Added `Search` key assignment to search the scrollback.  This is bound to
+  CMD-F and CTRL-SHIFT-F by default.  It activates the search overlay; type (or
+  paste) to enter a search pattern and highlight matches.  Pressing Enter (or
+  CTRL-P) advances to an earlier match, CTRL-N to a later match.  Escape
+  cancels the search overlay.
 
 ### 20200517-122836-92c201c6
 
