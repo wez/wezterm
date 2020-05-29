@@ -70,6 +70,7 @@ impl SearchOverlay {
 
         let search_row = renderer.compute_search_row();
         renderer.dirty_results.add(search_row);
+        renderer.update_search();
 
         Rc::new(SearchOverlay {
             renderer: RefCell::new(renderer),
