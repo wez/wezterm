@@ -496,8 +496,8 @@ cargo build --all --release""",
 TARGETS = [
     Target(name="ubuntu:16", os="ubuntu-16.04", app_image=True),
     Target(name="ubuntu:18", os="ubuntu-18.04", continuous_only=True),
+    Target(name="ubuntu:18-arm64", container="multiarch/ubuntu-core:arm64-bionic", continuous_only=False),
     Target(container="ubuntu:19.10", continuous_only=True),
-    # The container gets stuck while running get-deps, so disable for now
     Target(container="ubuntu:20.04", continuous_only=True),
     # debian 8's wayland libraries are too old for wayland-client
     # Target(container="debian:8.11", continuous_only=True, bootstrap_git=True),

@@ -1,0 +1,77 @@
+
+name: ubuntu18-arm64_tag
+
+on:
+  push:
+    tags:
+      - "20*"
+
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+    runs-on: "ubuntu-latest"
+    container: "multiarch/ubuntu-core:arm64-bionic"
+    steps:
+    - name: "set APT to non-interactive"
+      shell: bash
+      run: "echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections"
+    - name: "Update APT"
+      shell: bash
+      run: "apt update"
+    - name: "Install git"
+      shell: bash
+      run: "apt-get install -y git"
+    - name: "Install curl"
+      shell: bash
+      run: "apt-get install -y curl"
+    - name: "checkout repo"
+      uses: actions/checkout@v2
+      with:
+         submodules: "recursive"
+    - name: "Fetch tags"
+      shell: bash
+      run: "git fetch --depth=1 origin +refs/tags/*:refs/tags/*"
+    - name: "Fetch tag/branch history"
+      shell: bash
+      run: "git fetch --prune --unshallow"
+    - name: "Install Rust"
+      uses: actions-rs/toolchain@v1
+      with:
+         profile: "minimal"
+         toolchain: "stable"
+         override: true
+         components: "rustfmt"
+    - name: "Cache cargo"
+      uses: actions/cache@v2
+      with:
+         path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+
+         key: "ubuntu18-arm64-None-2-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}-cargo"
+    - name: "Install System Deps"
+      shell: bash
+      run: "./get-deps"
+    - name: "Build (Release mode)"
+      shell: bash
+      run: "cargo build --all --release"
+    - name: "Test (Release mode)"
+      shell: bash
+      run: "cargo test --all --release"
+    - name: "Package"
+      shell: bash
+      run: "bash ci/deploy.sh"
+    - name: "Upload to Tagged Release"
+      uses: softprops/action-gh-release@v1
+      with:
+         files: |
+            wezterm-*.deb
+            wezterm-*.xz
+            wezterm-*.tar.gz
+
+         prerelease: true
+      env:
+         GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
