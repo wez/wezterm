@@ -110,25 +110,28 @@ impl Tab for LocalTab {
 
         let mut results = vec![];
         let mut haystack = String::new();
-        let mut byte_pos_to_stable_idx = vec![];
+        let mut coords = vec![];
 
-        fn haystack_idx_to_coord(
-            idx: usize,
-            byte_pos_to_stable_idx: &[(usize, StableRowIndex)],
-        ) -> (usize, StableRowIndex) {
-            for (start, row) in byte_pos_to_stable_idx.iter().rev() {
-                if idx >= *start {
-                    return (idx - *start, *row);
-                }
-            }
-            unreachable!();
+        struct Coord {
+            byte_idx: usize,
+            grapheme_idx: usize,
+            stable_row: StableRowIndex,
+        }
+
+        fn haystack_idx_to_coord(idx: usize, coords: &[Coord]) -> (usize, StableRowIndex) {
+            let c = coords
+                .binary_search_by(|ele| ele.byte_idx.cmp(&idx))
+                .or_else(|i| -> Result<usize, usize> { Ok(i) })
+                .unwrap();
+            let coord = coords.get(c).or_else(|| coords.last()).unwrap();
+            (coord.grapheme_idx, coord.stable_row)
         }
 
         fn collect_matches(
             results: &mut Vec<SearchResult>,
             pattern: &Pattern,
             haystack: &str,
-            byte_pos_to_stable_idx: &[(usize, StableRowIndex)],
+            coords: &[Coord],
         ) {
             if haystack.is_empty() {
                 return;
@@ -136,9 +139,8 @@ impl Tab for LocalTab {
             match pattern {
                 Pattern::String(s) => {
                     for (idx, s) in haystack.match_indices(s) {
-                        let (start_x, start_y) = haystack_idx_to_coord(idx, byte_pos_to_stable_idx);
-                        let (end_x, end_y) =
-                            haystack_idx_to_coord(idx + s.len(), byte_pos_to_stable_idx);
+                        let (start_x, start_y) = haystack_idx_to_coord(idx, coords);
+                        let (end_x, end_y) = haystack_idx_to_coord(idx + s.len(), coords);
                         results.push(SearchResult {
                             start_x,
                             start_y,
@@ -155,21 +157,27 @@ impl Tab for LocalTab {
         }
 
         for (idx, line) in screen.lines.iter().enumerate() {
-            byte_pos_to_stable_idx.push((haystack.len(), screen.phys_to_stable_row_index(idx)));
+            let stable_row = screen.phys_to_stable_row_index(idx);
+
             let mut wrapped = false;
-            for (_, cell) in line.visible_cells() {
+            for (grapheme_idx, cell) in line.visible_cells() {
+                coords.push(Coord {
+                    byte_idx: haystack.len(),
+                    grapheme_idx,
+                    stable_row,
+                });
                 haystack.push_str(cell.str());
                 wrapped = cell.attrs().wrapped();
             }
 
             if !wrapped {
-                collect_matches(&mut results, pattern, &haystack, &byte_pos_to_stable_idx);
+                collect_matches(&mut results, pattern, &haystack, &coords);
                 haystack.clear();
-                byte_pos_to_stable_idx.clear();
+                coords.clear();
             }
         }
 
-        collect_matches(&mut results, pattern, &haystack, &byte_pos_to_stable_idx);
+        collect_matches(&mut results, pattern, &haystack, &coords);
         results
     }
 }

@@ -53,7 +53,9 @@ pub enum Pattern {
 pub struct SearchResult {
     pub start_y: StableRowIndex,
     pub end_y: StableRowIndex,
+    /// The cell index into the line of the start of the match
     pub start_x: usize,
+    /// The cell index into the line of the end of the match
     pub end_x: usize,
 }
 
