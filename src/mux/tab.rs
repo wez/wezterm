@@ -49,12 +49,6 @@ pub enum Pattern {
     // Regex(regex::Regex),
 }
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
-pub enum SearchDirection {
-    Backwards,
-    //    Forwards,
-}
-
 #[derive(Debug, Clone, Copy, Eq, PartialEq, PartialOrd, Ord)]
 pub struct SearchResult {
     pub start_y: StableRowIndex,
@@ -80,20 +74,10 @@ pub trait Tab: Downcast {
 
     fn erase_scrollback(&self) {}
 
-    /// Performs a search relative to the specified stable row index.
-    /// if direction is Backwards then the search proceeds to smaller
-    /// values of StableRowIndex.  Forwards towards larger values.
-    /// If the result is empty then there are no matches in the specified
-    /// direction.
-    /// Otherwise, the result shall contain at least as many matches will
-    /// be visible in the current viewport, starting from the first match.
-    /// It may return matches outside that range.
-    fn search(
-        &self,
-        _row: StableRowIndex,
-        _direction: SearchDirection,
-        _pattern: &Pattern,
-    ) -> Vec<SearchResult> {
+    /// Performs a search.
+    /// If the result is empty then there are no matches.
+    /// Otherwise, the result shall contain all possible matches.
+    fn search(&self, _pattern: &Pattern) -> Vec<SearchResult> {
         vec![]
     }
 

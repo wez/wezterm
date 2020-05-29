@@ -1,7 +1,7 @@
 use crate::frontend::gui::termwindow::TermWindow;
 use crate::mux::domain::DomainId;
 use crate::mux::renderable::*;
-use crate::mux::tab::{Pattern, SearchDirection, SearchResult};
+use crate::mux::tab::{Pattern, SearchResult};
 use crate::mux::tab::{Tab, TabId};
 use portable_pty::PtySize;
 use rangeset::RangeSet;
@@ -190,12 +190,7 @@ impl Tab for SearchOverlay {
         self.delegate.erase_scrollback()
     }
 
-    fn search(
-        &self,
-        _row: StableRowIndex,
-        _direction: SearchDirection,
-        _pattern: &Pattern,
-    ) -> Vec<SearchResult> {
+    fn search(&self, _pattern: &Pattern) -> Vec<SearchResult> {
         // You can't search the search bar
         vec![]
     }
@@ -297,11 +292,7 @@ impl SearchRenderable {
         self.dirty_results.add(bar_pos);
 
         if !self.pattern.is_empty() {
-            self.results = self.delegate.search(
-                bar_pos + 1,
-                SearchDirection::Backwards,
-                &Pattern::String(self.pattern.clone()),
-            );
+            self.results = self.delegate.search(&Pattern::String(self.pattern.clone()));
             self.results.sort();
 
             self.recompute_results();

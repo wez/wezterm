@@ -1,7 +1,7 @@
 use crate::mux::domain::DomainId;
 use crate::mux::renderable::Renderable;
 use crate::mux::tab::{alloc_tab_id, Tab, TabId};
-use crate::mux::tab::{Pattern, SearchDirection, SearchResult};
+use crate::mux::tab::{Pattern, SearchResult};
 use anyhow::Error;
 use portable_pty::{Child, MasterPty, PtySize};
 use std::cell::{RefCell, RefMut};
@@ -104,12 +104,7 @@ impl Tab for LocalTab {
         self.terminal.borrow().get_current_dir().cloned()
     }
 
-    fn search(
-        &self,
-        _row: StableRowIndex,
-        _direction: SearchDirection,
-        pattern: &Pattern,
-    ) -> Vec<SearchResult> {
+    fn search(&self, pattern: &Pattern) -> Vec<SearchResult> {
         let term = self.terminal.borrow();
         let screen = term.screen();
 
