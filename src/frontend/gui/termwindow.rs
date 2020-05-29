@@ -1489,8 +1489,8 @@ impl TermWindow {
                 let window = self.window.as_ref().unwrap();
                 window.invalidate();
             }
-            Search => {
-                let search = SearchOverlay::with_tab(self, tab);
+            Search(pattern) => {
+                let search = SearchOverlay::with_tab(self, tab, pattern.clone());
                 self.assign_overlay(tab.tab_id(), search);
             }
         };

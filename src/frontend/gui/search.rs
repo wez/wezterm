@@ -31,7 +31,7 @@ struct MatchResult {
 struct SearchRenderable {
     delegate: Rc<dyn Tab>,
     /// The text that the user entered
-    pattern: String,
+    pattern: Pattern,
     /// The most recently queried set of matches
     results: Vec<SearchResult>,
     by_line: HashMap<StableRowIndex, Vec<MatchResult>>,
@@ -49,14 +49,14 @@ struct SearchRenderable {
 }
 
 impl SearchOverlay {
-    pub fn with_tab(term_window: &TermWindow, tab: &Rc<dyn Tab>) -> Rc<dyn Tab> {
+    pub fn with_tab(term_window: &TermWindow, tab: &Rc<dyn Tab>, pattern: Pattern) -> Rc<dyn Tab> {
         let viewport = term_window.get_viewport(tab.tab_id());
         let dims = tab.renderer().get_dimensions();
 
         let window = term_window.window.clone().unwrap();
         let mut renderer = SearchRenderable {
             delegate: Rc::clone(tab),
-            pattern: String::new(),
+            pattern,
             results: vec![],
             by_line: HashMap::new(),
             dirty_results: RangeSet::default(),
@@ -292,7 +292,7 @@ impl SearchRenderable {
         self.dirty_results.add(bar_pos);
 
         if !self.pattern.is_empty() {
-            self.results = self.delegate.search(&Pattern::String(self.pattern.clone()));
+            self.results = self.delegate.search(&self.pattern);
             self.results.sort();
 
             self.recompute_results();
@@ -343,7 +343,7 @@ impl Renderable for SearchRenderable {
                     0,
                     &format!(
                         "Search: {} ({}/{} matches)",
-                        self.pattern,
+                        *self.pattern,
                         self.result_pos.map(|x| x + 1).unwrap_or(0),
                         self.results.len()
                     ),

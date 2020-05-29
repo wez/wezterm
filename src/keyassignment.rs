@@ -1,6 +1,7 @@
 use crate::config::configuration;
 use crate::frontend::gui::SelectionMode;
 use crate::mux::domain::DomainId;
+use crate::mux::tab::Pattern;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -98,7 +99,7 @@ pub enum KeyAssignment {
     SpawnCommandInNewWindow(SpawnCommand),
     ShowLauncher,
     ClearScrollback,
-    Search,
+    Search(Pattern),
 
     SelectTextAtMouseCursor(SelectionMode),
     ExtendSelectionToMouseCursor(Option<SelectionMode>),
@@ -163,8 +164,16 @@ impl InputMap {
                 [ctrl_shift, KeyCode::Char('N'), SpawnWindow],
                 [KeyModifiers::SUPER, KeyCode::Char('k'), ClearScrollback],
                 [ctrl_shift, KeyCode::Char('K'), ClearScrollback],
-                [KeyModifiers::SUPER, KeyCode::Char('f'), Search],
-                [ctrl_shift, KeyCode::Char('F'), Search],
+                [
+                    KeyModifiers::SUPER,
+                    KeyCode::Char('f'),
+                    Search(Pattern::CaseSensitiveString("".into()))
+                ],
+                [
+                    ctrl_shift,
+                    KeyCode::Char('F'),
+                    Search(Pattern::CaseSensitiveString("".into()))
+                ],
                 // Font size manipulation
                 [KeyModifiers::CTRL, KeyCode::Char('-'), DecreaseFontSize],
                 [KeyModifiers::CTRL, KeyCode::Char('0'), ResetFontSize],

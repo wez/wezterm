@@ -3,6 +3,7 @@ use crate::mux::renderable::Renderable;
 use crate::mux::Mux;
 use downcast_rs::{impl_downcast, Downcast};
 use portable_pty::PtySize;
+use serde::{Deserialize, Serialize};
 use std::cell::RefMut;
 use std::sync::{Arc, Mutex};
 use term::color::ColorPalette;
@@ -44,9 +45,27 @@ fn schedule_next_paste(paste: &Arc<Mutex<Paste>>) {
     });
 }
 
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub enum Pattern {
-    String(String),
+    CaseSensitiveString(String),
     // Regex(regex::Regex),
+}
+
+impl std::ops::Deref for Pattern {
+    type Target = String;
+    fn deref(&self) -> &String {
+        match self {
+            Pattern::CaseSensitiveString(s) => s,
+        }
+    }
+}
+
+impl std::ops::DerefMut for Pattern {
+    fn deref_mut(&mut self) -> &mut String {
+        match self {
+            Pattern::CaseSensitiveString(s) => s,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, PartialOrd, Ord)]

@@ -137,7 +137,7 @@ impl Tab for LocalTab {
                 return;
             }
             match pattern {
-                Pattern::String(s) => {
+                Pattern::CaseSensitiveString(s) => {
                     for (idx, s) in haystack.match_indices(s) {
                         let (start_x, start_y) = haystack_idx_to_coord(idx, coords);
                         let (end_x, end_y) = haystack_idx_to_coord(idx + s.len(), coords);
