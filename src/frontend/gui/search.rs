@@ -310,7 +310,7 @@ impl Renderable for SearchRenderable {
     fn get_cursor_position(&self) -> StableCursorPosition {
         // move to the search box
         StableCursorPosition {
-            x: 8 + self.pattern.len(), // FIXME: ucwidth
+            x: 8 + term::unicode_column_width(&self.pattern),
             y: self.compute_search_row(),
             shape: termwiz::surface::CursorShape::SteadyBlock,
         }
