@@ -1,0 +1,90 @@
+
+name: ubuntu18-arm64
+
+on:
+  push:
+    branches:
+    - master
+  pull_request:
+    branches:
+    - master
+
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+    runs-on: "ubuntu-latest"
+    container: "multiarch/ubuntu-core:arm64-bionic"
+    steps:
+    - name: "set APT to non-interactive"
+      shell: bash
+      run: "echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections"
+    - name: "Update APT"
+      shell: bash
+      run: "apt update"
+    - name: "Install git"
+      shell: bash
+      run: "apt-get install -y git"
+    - name: "Install curl"
+      shell: bash
+      run: "apt-get install -y curl"
+    - name: "checkout repo"
+      uses: actions/checkout@v2
+      with:
+         submodules: "recursive"
+    - name: "Fetch tags"
+      shell: bash
+      run: "git fetch --depth=1 origin +refs/tags/*:refs/tags/*"
+    - name: "Fetch tag/branch history"
+      shell: bash
+      run: "git fetch --prune --unshallow"
+    - name: "Install Rust"
+      uses: actions-rs/toolchain@v1
+      with:
+         profile: "minimal"
+         toolchain: "stable"
+         override: true
+         components: "rustfmt"
+    - name: "Cache cargo registry"
+      uses: actions/cache@v1
+      with:
+         path: "~/.cargo/registry"
+         key: "ubuntu18-arm64-None-${{ hashFiles('Cargo.lock') }}-cargo-registry"
+    - name: "Cache cargo index"
+      uses: actions/cache@v1
+      with:
+         path: "~/.cargo/git"
+         key: "ubuntu18-arm64-None-${{ hashFiles('Cargo.lock') }}-cargo-index"
+    - name: "Cache cargo build"
+      uses: actions/cache@v1
+      with:
+         path: "target"
+         key: "ubuntu18-arm64-None-${{ hashFiles('Cargo.lock') }}-cargo-build-target"
+    - name: "Install System Deps"
+      shell: bash
+      run: "./get-deps"
+    - name: "Check formatting"
+      shell: bash
+      run: "cargo fmt --all -- --check"
+    - name: "Build (Release mode)"
+      shell: bash
+      run: "cargo build --all --release"
+    - name: "Test (Release mode)"
+      shell: bash
+      run: "cargo test --all --release"
+    - name: "Package"
+      shell: bash
+      run: "bash ci/deploy.sh"
+    - name: "Move Package for artifact upload"
+      shell: bash
+      run: |
+            mkdir pkg_
+            mv *.deb *.xz pkg_
+            
+
+    - name: "Upload artifact"
+      uses: actions/upload-artifact@master
+      with:
+         name: "ubuntu18-arm64"
+         path: "pkg_"
