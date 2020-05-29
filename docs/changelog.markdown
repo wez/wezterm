@@ -24,7 +24,8 @@ brief notes about them may accumulate here.
   CMD-F and CTRL-SHIFT-F by default.  It activates the search overlay; type (or
   paste) to enter a search pattern and highlight matches.  Pressing Enter (or
   CTRL-P) advances to an earlier match, CTRL-N to a later match.  Escape
-  cancels the search overlay.
+  cancels the search overlay. CTRL-R cycles through case sensitive, insensitive
+  and regex matching modes while the search overlay is active.
 * Fixed an issue where ALT+number would send the wrong output for European
   keyboard layouts on macOS and Linux.  As part of this the default behavior
   has changed: we used to force ALT+number to produce ALT+number instead of
