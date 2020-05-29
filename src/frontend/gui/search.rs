@@ -151,6 +151,16 @@ impl Tab for SearchOverlay {
                     r.set_viewport(Some(r.results[next].start_y));
                 }
             }
+            (KeyCode::Char('r'), KeyModifiers::CTRL) => {
+                // CTRL-r cycles through pattern match types
+                let mut r = self.renderer.borrow_mut();
+                let pattern = match &r.pattern {
+                    Pattern::CaseInSensitiveString(s) => Pattern::CaseSensitiveString(s.clone()),
+                    Pattern::CaseSensitiveString(s) => Pattern::CaseInSensitiveString(s.clone()),
+                };
+                r.pattern = pattern;
+                r.update_search();
+            }
             (KeyCode::Char(c), KeyModifiers::NONE) | (KeyCode::Char(c), KeyModifiers::SHIFT) => {
                 // Type to add to the pattern
                 let mut r = self.renderer.borrow_mut();
@@ -339,13 +349,18 @@ impl Renderable for SearchRenderable {
                 // Replace with search UI
                 let rev = CellAttributes::default().set_reverse(true).clone();
                 line.fill_range(0..dims.cols, &Cell::new(' ', rev.clone()));
+                let mode = &match self.pattern {
+                    Pattern::CaseSensitiveString(_) => "case-sensitive",
+                    Pattern::CaseInSensitiveString(_) => "ignore-case",
+                };
                 line.overlay_text_with_attribute(
                     0,
                     &format!(
-                        "Search: {} ({}/{} matches)",
+                        "Search: {} ({}/{} matches. {})",
                         *self.pattern,
                         self.result_pos.map(|x| x + 1).unwrap_or(0),
-                        self.results.len()
+                        self.results.len(),
+                        mode
                     ),
                     rev,
                 );
