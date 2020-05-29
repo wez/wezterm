@@ -190,7 +190,7 @@ impl Tab for SearchOverlay {
         self.delegate.erase_scrollback()
     }
 
-    fn search(&self, _pattern: &Pattern) -> Vec<SearchResult> {
+    fn search(&self, _pattern: Pattern) -> Vec<SearchResult> {
         // You can't search the search bar
         vec![]
     }
@@ -292,7 +292,7 @@ impl SearchRenderable {
         self.dirty_results.add(bar_pos);
 
         if !self.pattern.is_empty() {
-            self.results = self.delegate.search(&self.pattern);
+            self.results = self.delegate.search(self.pattern.clone());
             self.results.sort();
 
             self.recompute_results();

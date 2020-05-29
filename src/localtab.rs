@@ -104,9 +104,14 @@ impl Tab for LocalTab {
         self.terminal.borrow().get_current_dir().cloned()
     }
 
-    fn search(&self, pattern: &Pattern) -> Vec<SearchResult> {
+    fn search(&self, mut pattern: Pattern) -> Vec<SearchResult> {
         let term = self.terminal.borrow();
         let screen = term.screen();
+
+        if let Pattern::CaseInSensitiveString(s) = &mut pattern {
+            // normalize the case so we match everything lowercase
+            *s = s.to_lowercase()
+        }
 
         let mut results = vec![];
         let mut haystack = String::new();
@@ -137,7 +142,10 @@ impl Tab for LocalTab {
                 return;
             }
             match pattern {
-                Pattern::CaseSensitiveString(s) => {
+                // Rust only provides a case sensitive match_indices function, so
+                // we have to pre-arrange to lowercase both the pattern and the
+                // haystack strings
+                Pattern::CaseInSensitiveString(s) | Pattern::CaseSensitiveString(s) => {
                     for (idx, s) in haystack.match_indices(s) {
                         let (start_x, start_y) = haystack_idx_to_coord(idx, coords);
                         let (end_x, end_y) = haystack_idx_to_coord(idx + s.len(), coords);
@@ -166,18 +174,25 @@ impl Tab for LocalTab {
                     grapheme_idx,
                     stable_row,
                 });
-                haystack.push_str(cell.str());
+
+                let s = cell.str();
+                if let Pattern::CaseInSensitiveString(_) = &pattern {
+                    // normalize the case so we match everything lowercase
+                    haystack.push_str(&s.to_lowercase());
+                } else {
+                    haystack.push_str(cell.str());
+                }
                 wrapped = cell.attrs().wrapped();
             }
 
             if !wrapped {
-                collect_matches(&mut results, pattern, &haystack, &coords);
+                collect_matches(&mut results, &pattern, &haystack, &coords);
                 haystack.clear();
                 coords.clear();
             }
         }
 
-        collect_matches(&mut results, pattern, &haystack, &coords);
+        collect_matches(&mut results, &pattern, &haystack, &coords);
         results
     }
 }

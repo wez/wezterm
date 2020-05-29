@@ -48,6 +48,7 @@ fn schedule_next_paste(paste: &Arc<Mutex<Paste>>) {
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub enum Pattern {
     CaseSensitiveString(String),
+    CaseInSensitiveString(String),
     // Regex(regex::Regex),
 }
 
@@ -56,6 +57,7 @@ impl std::ops::Deref for Pattern {
     fn deref(&self) -> &String {
         match self {
             Pattern::CaseSensitiveString(s) => s,
+            Pattern::CaseInSensitiveString(s) => s,
         }
     }
 }
@@ -64,6 +66,7 @@ impl std::ops::DerefMut for Pattern {
     fn deref_mut(&mut self) -> &mut String {
         match self {
             Pattern::CaseSensitiveString(s) => s,
+            Pattern::CaseInSensitiveString(s) => s,
         }
     }
 }
@@ -98,7 +101,7 @@ pub trait Tab: Downcast {
     /// Performs a search.
     /// If the result is empty then there are no matches.
     /// Otherwise, the result shall contain all possible matches.
-    fn search(&self, _pattern: &Pattern) -> Vec<SearchResult> {
+    fn search(&self, _pattern: Pattern) -> Vec<SearchResult> {
         vec![]
     }
 
