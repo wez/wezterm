@@ -424,10 +424,10 @@ pub struct Config {
     pub daemon_options: DaemonOptions,
 
     /// If set to true, send the system specific composed key when
-    /// the ALT key is held down.  If set to false (the default)
+    /// the ALT key is held down.  If set to false
     /// then send the key with the ALT modifier (this is typically
     /// encoded as ESC followed by the key).
-    #[serde(default)]
+    #[serde(default = "default_true")]
     pub send_composed_key_when_alt_is_pressed: bool,
 
     /// If true, the `Backspace` and `Delete` keys generate `Delete` and `Backspace`

@@ -25,6 +25,13 @@ brief notes about them may accumulate here.
   paste) to enter a search pattern and highlight matches.  Pressing Enter (or
   CTRL-P) advances to an earlier match, CTRL-N to a later match.  Escape
   cancels the search overlay.
+* Fixed an issue where ALT+number would send the wrong output for European
+  keyboard layouts on macOS and Linux.  As part of this the default behavior
+  has changed: we used to force ALT+number to produce ALT+number instead of
+  the composed key for that layout.  We now emit the composed key by default.
+  You can switch to the old behavior either by explicitly binding those keys
+  or by setting `send_composed_key_when_alt_is_pressed = false` in your
+  configuration file.
 
 ### 20200517-122836-92c201c6
 
