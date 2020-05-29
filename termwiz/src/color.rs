@@ -141,7 +141,7 @@ impl RgbColor {
     /// Construct a color from a string of the form `#RRGGBB` where
     /// R, G and B are all hex digits.
     pub fn from_rgb_str(s: &str) -> Option<RgbColor> {
-        if s.as_bytes()[0] == b'#' && s.len() == 7 {
+        if s.len() == 7 && s.as_bytes()[0] == b'#' {
             let mut chars = s.chars().skip(1);
 
             macro_rules! digit {
@@ -318,6 +318,7 @@ mod tests {
 
     #[test]
     fn from_rgb() {
+        assert!(RgbColor::from_rgb_str("").is_none());
         assert!(RgbColor::from_rgb_str("#xyxyxy").is_none());
 
         let black = RgbColor::from_rgb_str("#000000").unwrap();
