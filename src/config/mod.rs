@@ -416,9 +416,13 @@ pub struct Config {
 
     #[serde(default)]
     pub keys: Vec<Key>,
+    #[serde(default)]
+    pub disable_default_key_bindings: bool,
 
     #[serde(default)]
     pub mouse_bindings: Vec<Mouse>,
+    #[serde(default)]
+    pub disable_default_mouse_bindings: bool,
 
     #[serde(default)]
     pub daemon_options: DaemonOptions,
