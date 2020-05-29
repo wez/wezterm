@@ -49,7 +49,7 @@ fn schedule_next_paste(paste: &Arc<Mutex<Paste>>) {
 pub enum Pattern {
     CaseSensitiveString(String),
     CaseInSensitiveString(String),
-    // Regex(regex::Regex),
+    Regex(String),
 }
 
 impl std::ops::Deref for Pattern {
@@ -58,6 +58,7 @@ impl std::ops::Deref for Pattern {
         match self {
             Pattern::CaseSensitiveString(s) => s,
             Pattern::CaseInSensitiveString(s) => s,
+            Pattern::Regex(s) => s,
         }
     }
 }
@@ -67,6 +68,7 @@ impl std::ops::DerefMut for Pattern {
         match self {
             Pattern::CaseSensitiveString(s) => s,
             Pattern::CaseInSensitiveString(s) => s,
+            Pattern::Regex(s) => s,
         }
     }
 }

@@ -156,11 +156,21 @@ impl Tab for LocalTab {
                             end_y,
                         });
                     }
-                } /*
-                  Pattern::Regex(r) => {
-                      // TODO
-                  }
-                  */
+                }
+                Pattern::Regex(r) => {
+                    if let Ok(re) = regex::Regex::new(r) {
+                        for m in re.find_iter(haystack) {
+                            let (start_x, start_y) = haystack_idx_to_coord(m.start(), coords);
+                            let (end_x, end_y) = haystack_idx_to_coord(m.end(), coords);
+                            results.push(SearchResult {
+                                start_x,
+                                start_y,
+                                end_x,
+                                end_y,
+                            });
+                        }
+                    }
+                }
             }
         }
 
@@ -186,9 +196,13 @@ impl Tab for LocalTab {
             }
 
             if !wrapped {
-                collect_matches(&mut results, &pattern, &haystack, &coords);
-                haystack.clear();
-                coords.clear();
+                if let Pattern::Regex(_) = &pattern {
+                    haystack.push('\n');
+                } else {
+                    collect_matches(&mut results, &pattern, &haystack, &coords);
+                    haystack.clear();
+                    coords.clear();
+                }
             }
         }
 

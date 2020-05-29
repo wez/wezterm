@@ -155,8 +155,9 @@ impl Tab for SearchOverlay {
                 // CTRL-r cycles through pattern match types
                 let mut r = self.renderer.borrow_mut();
                 let pattern = match &r.pattern {
-                    Pattern::CaseInSensitiveString(s) => Pattern::CaseSensitiveString(s.clone()),
                     Pattern::CaseSensitiveString(s) => Pattern::CaseInSensitiveString(s.clone()),
+                    Pattern::CaseInSensitiveString(s) => Pattern::Regex(s.clone()),
+                    Pattern::Regex(s) => Pattern::CaseSensitiveString(s.clone()),
                 };
                 r.pattern = pattern;
                 r.update_search();
@@ -352,6 +353,7 @@ impl Renderable for SearchRenderable {
                 let mode = &match self.pattern {
                     Pattern::CaseSensitiveString(_) => "case-sensitive",
                     Pattern::CaseInSensitiveString(_) => "ignore-case",
+                    Pattern::Regex(_) => "regex",
                 };
                 line.overlay_text_with_attribute(
                     0,
