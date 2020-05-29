@@ -1358,13 +1358,24 @@ impl TermWindow {
 
     fn paste_from_clipboard(&mut self, tab: &Rc<dyn Tab>, clipboard: Clipboard) {
         let tab_id = tab.tab_id();
-        let future = self.window.as_ref().unwrap().get_clipboard(clipboard);
+        let window = self.window.as_ref().unwrap().clone();
+        let future = window.get_clipboard(clipboard);
         promise::spawn::spawn(async move {
             if let Ok(clip) = future.await {
-                let mux = Mux::get().unwrap();
-                if let Some(tab) = mux.get_tab(tab_id) {
-                    tab.trickle_paste(clip).ok();
-                }
+                window.apply(move |term_window, _window| {
+                    let clip = clip.clone();
+                    if let Some(term_window) = term_window.downcast_mut::<TermWindow>() {
+                        if let Some(tab) =
+                            term_window.tab_state(tab_id).overlay.clone().or_else(|| {
+                                let mux = Mux::get().unwrap();
+                                mux.get_tab(tab_id)
+                            })
+                        {
+                            tab.trickle_paste(clip).ok();
+                        }
+                    }
+                    Ok(())
+                });
             }
         });
     }
