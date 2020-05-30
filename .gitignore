@@ -8,6 +8,7 @@
 /target/
 /gh_pages/
 /docs/installation.md
+/docs/install/*.md
 **/*.rs.bk
 .*.sw*
 /esctest.log

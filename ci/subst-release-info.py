@@ -78,12 +78,13 @@ def load_release_info():
     build_subst(subst, "nightly", nightly)
     print(pretty(subst))
 
-    with open("docs/installation.markdown", "r") as input:
-        with open("docs/installation.md", "w") as output:
-            for line in input:
-                for (search, replace) in subst.items():
-                    line = line.replace(search, replace)
-                output.write(line)
+    for name in ['installation', 'install/windows', 'install/macos', 'install/linux', 'install/source']:
+        with open(f"docs/{name}.markdown", "r") as input:
+            with open(f"docs/{name}.md", "w") as output:
+                for line in input:
+                    for (search, replace) in subst.items():
+                        line = line.replace(search, replace)
+                    output.write(line)
 
 def main():
     load_release_info()
