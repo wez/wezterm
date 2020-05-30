@@ -263,6 +263,28 @@ impl SessionHandler {
                 });
             }
 
+            Pdu::SearchTabScrollbackRequest(SearchTabScrollbackRequest { tab_id, pattern }) => {
+                use crate::mux::tab::Pattern;
+
+                async fn do_search(tab_id: TabId, pattern: Pattern) -> anyhow::Result<Pdu> {
+                    let mux = Mux::get().unwrap();
+                    let tab = mux
+                        .get_tab(tab_id)
+                        .ok_or_else(|| anyhow!("no such tab {}", tab_id))?;
+
+                    tab.search(pattern).await.map(|results| {
+                        Pdu::SearchTabScrollbackResponse(SearchTabScrollbackResponse { results })
+                    })
+                }
+
+                spawn_into_main_thread(async move {
+                    promise::spawn::spawn(async move {
+                        let result = do_search(tab_id, pattern).await;
+                        send_response(result);
+                    });
+                });
+            }
+
             Pdu::Resize(Resize { tab_id, size }) => {
                 spawn_into_main_thread(async move {
                     catch(
@@ -422,6 +444,7 @@ impl SessionHandler {
             | Pdu::GetTabRenderChangesResponse { .. }
             | Pdu::UnitResponse { .. }
             | Pdu::TabLivenessResponse { .. }
+            | Pdu::SearchTabScrollbackResponse { .. }
             | Pdu::GetLinesResponse { .. }
             | Pdu::GetCodecVersionResponse { .. }
             | Pdu::GetTlsCredsResponse { .. }

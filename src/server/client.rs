@@ -861,4 +861,9 @@ impl Client {
     rpc!(get_lines, GetLines, GetLinesResponse);
     rpc!(get_codec_version, GetCodecVersion, GetCodecVersionResponse);
     rpc!(get_tls_creds, GetTlsCreds = (), GetTlsCredsResponse);
+    rpc!(
+        search_scrollback,
+        SearchTabScrollbackRequest,
+        SearchTabScrollbackResponse
+    );
 }

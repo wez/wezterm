@@ -1,13 +1,14 @@
 use crate::config::configuration;
 use crate::mux::domain::DomainId;
 use crate::mux::renderable::{Renderable, RenderableDimensions};
-use crate::mux::tab::{alloc_tab_id, Tab, TabId};
+use crate::mux::tab::{alloc_tab_id, Pattern, SearchResult, Tab, TabId};
 use crate::ratelim::RateLimiter;
 use crate::server::codec::*;
 use crate::server::domain::ClientInner;
 use crate::server::tab::mousestate::MouseState;
 use crate::server::tab::renderable::{RenderableInner, RenderableState};
 use anyhow::bail;
+use async_trait::async_trait;
 use filedescriptor::Pipe;
 use log::info;
 use portable_pty::PtySize;
@@ -115,6 +116,7 @@ impl ClientTab {
     }
 }
 
+#[async_trait(?Send)]
 impl Tab for ClientTab {
     fn tab_id(&self) -> TabId {
         self.local_tab_id
@@ -197,6 +199,21 @@ impl Tab for ClientTab {
             inner.update_last_send();
         }
         Ok(())
+    }
+
+    async fn search(&self, pattern: Pattern) -> anyhow::Result<Vec<SearchResult>> {
+        match self
+            .client
+            .client
+            .search_scrollback(SearchTabScrollbackRequest {
+                tab_id: self.remote_tab_id,
+                pattern,
+            })
+            .await
+        {
+            Ok(SearchTabScrollbackResponse { results }) => Ok(results),
+            Err(e) => Err(e),
+        }
     }
 
     fn key_down(&self, key: KeyCode, mods: KeyModifiers) -> anyhow::Result<()> {

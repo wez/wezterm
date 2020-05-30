@@ -276,6 +276,8 @@ pdu! {
     GetTlsCreds: 28,
     GetTlsCredsResponse: 29,
     TabLivenessResponse: 30,
+    SearchTabScrollbackRequest: 31,
+    SearchTabScrollbackResponse: 32,
 }
 
 impl Pdu {
@@ -696,6 +698,17 @@ impl Into<Vec<(StableRowIndex, Line)>> for SerializedLines {
 pub struct GetLinesResponse {
     pub tab_id: TabId,
     pub lines: SerializedLines,
+}
+
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct SearchTabScrollbackRequest {
+    pub tab_id: TabId,
+    pub pattern: crate::mux::tab::Pattern,
+}
+
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct SearchTabScrollbackResponse {
+    pub results: Vec<crate::mux::tab::SearchResult>,
 }
 
 #[cfg(test)]

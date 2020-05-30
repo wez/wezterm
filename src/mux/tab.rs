@@ -74,7 +74,7 @@ impl std::ops::DerefMut for Pattern {
     }
 }
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct SearchResult {
     pub start_y: StableRowIndex,
     pub end_y: StableRowIndex,
