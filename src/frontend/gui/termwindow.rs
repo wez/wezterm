@@ -17,7 +17,7 @@ use crate::keyassignment::{
     InputMap, KeyAssignment, MouseEventTrigger, SpawnCommand, SpawnTabDomain,
 };
 use crate::mux::domain::{DomainId, DomainState};
-use crate::mux::renderable::{Renderable, RenderableDimensions, StableCursorPosition};
+use crate::mux::renderable::{RenderableDimensions, StableCursorPosition};
 use crate::mux::tab::{Tab, TabId};
 use crate::mux::window::WindowId as MuxWindowId;
 use crate::mux::Mux;
@@ -51,6 +51,21 @@ use term::{Line, StableRowIndex, Underline};
 use termwiz::color::RgbColor;
 use termwiz::hyperlink::Hyperlink;
 use termwiz::surface::CursorShape;
+
+struct RenderScreenLineOpenGLParams<'a> {
+    line_idx: usize,
+    stable_line_idx: Option<StableRowIndex>,
+    line: &'a Line,
+    selection: Range<usize>,
+    cursor: &'a StableCursorPosition,
+    palette: &'a ColorPalette,
+    dims: &'a RenderableDimensions,
+    config: &'a ConfigHandle,
+
+    cursor_border_color: Color,
+    foreground: Color,
+    background: Color,
+}
 
 #[derive(Debug, Clone, Copy)]
 struct RowsAndCols {
@@ -1690,8 +1705,8 @@ impl TermWindow {
                 self.tab_bar.line(),
                 0..0,
                 &cursor,
-                &*term,
                 &palette,
+                &dims,
             )?;
         }
 
@@ -1719,8 +1734,8 @@ impl TermWindow {
                     &line,
                     selrange,
                     &cursor,
-                    &*term,
                     &palette,
+                    &dims,
                 )?;
             }
         }
@@ -1841,6 +1856,7 @@ impl TermWindow {
         let current_viewport = self.get_viewport(tab.tab_id());
         let (stable_top, lines);
         let dims = term.get_dimensions();
+        let config = configuration();
 
         {
             let stable_range = match current_viewport {
@@ -1857,15 +1873,25 @@ impl TermWindow {
         let mut vb = gl_state.glyph_vertex_buffer.borrow_mut();
         let mut quads = gl_state.quads.map(&mut vb);
 
+        let cursor_border_color = rgbcolor_to_window_color(palette.cursor_border);
+        let foreground = rgbcolor_to_window_color(palette.foreground);
+        let background = rgbcolor_to_window_color(palette.background);
+
         if self.show_tab_bar {
             self.render_screen_line_opengl(
-                0,
-                None,
-                self.tab_bar.line(),
-                0..0,
-                &cursor,
-                &*term,
-                &palette,
+                RenderScreenLineOpenGLParams {
+                    line_idx: 0,
+                    stable_line_idx: None,
+                    line: self.tab_bar.line(),
+                    selection: 0..0,
+                    cursor: &cursor,
+                    palette: &palette,
+                    dims: &dims,
+                    config: &config,
+                    cursor_border_color,
+                    foreground,
+                    background,
+                },
                 &mut quads,
             )?;
         }
@@ -1912,22 +1938,28 @@ impl TermWindow {
             quad.set_cursor_color(rgbcolor_to_window_color(background_color));
         }
 
+        let selrange = self.selection(tab.tab_id()).range.clone();
+
         for (line_idx, line) in lines.iter().enumerate() {
             let stable_row = stable_top + line_idx as StableRowIndex;
-            let selrange = self
-                .selection(tab.tab_id())
-                .range
+            let selrange = selrange
                 .map(|sel| sel.cols_for_row(stable_row))
                 .unwrap_or(0..0);
 
             self.render_screen_line_opengl(
-                line_idx + first_line_offset,
-                Some(stable_row),
-                &line,
-                selrange,
-                &cursor,
-                &*term,
-                &palette,
+                RenderScreenLineOpenGLParams {
+                    line_idx: line_idx + first_line_offset,
+                    stable_line_idx: Some(stable_row),
+                    line: &line,
+                    selection: selrange,
+                    cursor: &cursor,
+                    palette: &palette,
+                    dims: &dims,
+                    config: &config,
+                    cursor_border_color,
+                    foreground,
+                    background,
+                },
                 &mut quads,
             )?;
         }
@@ -2022,44 +2054,33 @@ impl TermWindow {
     /// This is nominally a matter of setting the fg/bg color and the
     /// texture coordinates for a given glyph.  There's a little bit
     /// of extra complexity to deal with multi-cell glyphs.
-    #[allow(clippy::too_many_arguments)]
     fn render_screen_line_opengl(
         &self,
-        line_idx: usize,
-        stable_line_idx: Option<StableRowIndex>,
-        line: &Line,
-        selection: Range<usize>,
-        cursor: &StableCursorPosition,
-        terminal: &dyn Renderable,
-        palette: &ColorPalette,
+        params: RenderScreenLineOpenGLParams,
         quads: &mut MappedQuads,
     ) -> anyhow::Result<()> {
         let gl_state = self.render_state.opengl();
 
-        let dims = terminal.get_dimensions();
-        let num_cols = dims.cols;
-
-        let cursor_border_color = rgbcolor_to_window_color(palette.cursor_border);
+        let num_cols = params.dims.cols;
 
         // Break the line into clusters of cells with the same attributes
-        let cell_clusters = line.cluster();
+        let cell_clusters = params.line.cluster();
         let mut last_cell_idx = 0;
-        let config = configuration();
         for cluster in cell_clusters {
             let attrs = &cluster.attrs;
             let is_highlited_hyperlink = match (&attrs.hyperlink, &self.current_highlight) {
                 (&Some(ref this), &Some(ref highlight)) => Arc::ptr_eq(this, highlight),
                 _ => false,
             };
-            let style = self.fonts.match_style(&config, attrs);
+            let style = self.fonts.match_style(params.config, attrs);
 
-            let bg_color = palette.resolve_bg(attrs.background);
+            let bg_color = params.palette.resolve_bg(attrs.background);
             let fg_color = match attrs.foreground {
                 term::color::ColorAttribute::Default => {
                     if let Some(fg) = style.foreground {
                         fg
                     } else {
-                        palette.resolve_fg(attrs.foreground)
+                        params.palette.resolve_fg(attrs.foreground)
                     }
                 }
                 term::color::ColorAttribute::PaletteIndex(idx) if idx < 8 => {
@@ -2071,9 +2092,11 @@ impl TermWindow {
                     } else {
                         idx
                     };
-                    palette.resolve_fg(term::color::ColorAttribute::PaletteIndex(idx))
+                    params
+                        .palette
+                        .resolve_fg(term::color::ColorAttribute::PaletteIndex(idx))
                 }
-                _ => palette.resolve_fg(attrs.foreground),
+                _ => params.palette.resolve_fg(attrs.foreground),
             };
 
             let (fg_color, bg_color) = {
@@ -2151,13 +2174,13 @@ impl TermWindow {
                     last_cell_idx = cell_idx;
 
                     let (glyph_color, bg_color, cursor_shape) = self.compute_cell_fg_bg(
-                        stable_line_idx,
+                        params.stable_line_idx,
                         cell_idx,
-                        cursor,
-                        &selection,
+                        params.cursor,
+                        &params.selection,
                         glyph_color,
                         bg_color,
-                        palette,
+                        params.palette,
                     );
 
                     if let Some(image) = attrs.image.as_ref() {
@@ -2188,7 +2211,7 @@ impl TermWindow {
 
                             let texture_rect = sprite.texture.to_texture_coords(coords);
 
-                            let mut quad = match quads.cell(cell_idx, line_idx) {
+                            let mut quad = match quads.cell(cell_idx, params.line_idx) {
                                 Ok(quad) => quad,
                                 Err(_) => break,
                             };
@@ -2205,7 +2228,7 @@ impl TermWindow {
                                     .cursor_sprite(cursor_shape)
                                     .texture_coords(),
                             );
-                            quad.set_cursor_color(cursor_border_color);
+                            quad.set_cursor_color(params.cursor_border_color);
 
                             continue;
                         }
@@ -2233,7 +2256,7 @@ impl TermWindow {
                     let right = pixel_rect.size.width as f32 + left
                         - self.render_metrics.cell_size.width as f32;
 
-                    let mut quad = match quads.cell(cell_idx, line_idx) {
+                    let mut quad = match quads.cell(cell_idx, params.line_idx) {
                         Ok(quad) => quad,
                         Err(_) => break,
                     };
@@ -2250,7 +2273,7 @@ impl TermWindow {
                             .cursor_sprite(cursor_shape)
                             .texture_coords(),
                     );
-                    quad.set_cursor_color(cursor_border_color);
+                    quad.set_cursor_color(params.cursor_border_color);
                 }
             }
         }
@@ -2269,16 +2292,16 @@ impl TermWindow {
             // hold the cursor or the selection so we need to compute
             // the colors in the usual way.
             let (glyph_color, bg_color, cursor_shape) = self.compute_cell_fg_bg(
-                stable_line_idx,
+                params.stable_line_idx,
                 cell_idx,
-                cursor,
-                &selection,
-                rgbcolor_to_window_color(palette.foreground),
-                rgbcolor_to_window_color(palette.background),
-                palette,
+                params.cursor,
+                &params.selection,
+                params.foreground,
+                params.background,
+                params.palette,
             );
 
-            let mut quad = match quads.cell(cell_idx, line_idx) {
+            let mut quad = match quads.cell(cell_idx, params.line_idx) {
                 Ok(quad) => quad,
                 Err(_) => break,
             };
@@ -2295,7 +2318,7 @@ impl TermWindow {
                     .cursor_sprite(cursor_shape)
                     .texture_coords(),
             );
-            quad.set_cursor_color(cursor_border_color);
+            quad.set_cursor_color(params.cursor_border_color);
         }
 
         Ok(())
@@ -2310,15 +2333,14 @@ impl TermWindow {
         line: &Line,
         selection: Range<usize>,
         cursor: &StableCursorPosition,
-        terminal: &dyn Renderable,
         palette: &ColorPalette,
+        dims: &RenderableDimensions,
     ) -> anyhow::Result<()> {
         let config = configuration();
 
         let padding_left = config.window_padding.left as isize;
         let padding_top = config.window_padding.top as isize;
 
-        let dims = terminal.get_dimensions();
         let num_cols = dims.cols;
         let cursor_border_color = rgbcolor_to_window_color(palette.cursor_border);
 
