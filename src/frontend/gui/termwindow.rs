@@ -393,7 +393,7 @@ impl WindowCallbacks for TermWindow {
                     && raw_modifiers.contains(::termwiz::input::Modifiers::ALT)
                     && tab.key_down(key, raw_modifiers).is_ok()
                 {
-                    if !key.is_modifier() {
+                    if !key.is_modifier() && self.tab_state(tab.tab_id()).overlay.is_none() {
                         self.maybe_scroll_to_bottom_for_input(&tab);
                     }
                     return true;
@@ -408,7 +408,7 @@ impl WindowCallbacks for TermWindow {
                     self.perform_key_assignment(&tab, &assignment).ok();
                     true
                 } else if tab.key_down(key, modifiers).is_ok() {
-                    if !key.is_modifier() {
+                    if !key.is_modifier() && self.tab_state(tab.tab_id()).overlay.is_none() {
                         self.maybe_scroll_to_bottom_for_input(&tab);
                     }
                     true
