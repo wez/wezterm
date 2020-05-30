@@ -118,12 +118,19 @@ $ for scheme in *.sh ; do ; echo $scheme ; \
 
   <video width="80%" controls src="../screenshots/wezterm-dynamic-colors.mp4" loop></video>
 
-### Tab Bar Colors
+### Tab Bar Appearance & Colors
 
 The following options control the appearance of the tab bar:
 
 ```lua
 return {
+  -- set to false to disable the tab bar completely
+  enable_tab_bar = true,
+
+  -- set to true to hide the tab bar when there is only
+  -- a single tab in the window
+  hide_tab_bar_if_only_one_tab = false,
+
   colors = {
     tab_bar = {
 
