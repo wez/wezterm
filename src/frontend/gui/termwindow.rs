@@ -616,12 +616,12 @@ impl TermWindow {
 
                                 // If blinking is permitted, and the cursor shape is set
                                 // to a blinking variant, and it's been longer than the
-                                // blink rate interval, then invalid the lines in the terminal
+                                // blink rate interval, then invalidate and redraw
                                 // so that we will re-evaluate the cursor visibility.
                                 // This is pretty heavyweight: it would be nice to only invalidate
                                 // the line on which the cursor resides, and then only if the cursor
                                 // is within the viewport.
-                                if config.cursor_blink_rate != 0 {
+                                if config.cursor_blink_rate != 0 && myself.focused.is_some() {
                                     let shape = config
                                         .default_cursor_style
                                         .effective_shape(render.get_cursor_position().shape);
