@@ -23,7 +23,7 @@ installation.
 
 1. Download <a href="{{ windows_zip_stable }}">Release</a>
 2. Extract the zipfile and double-click `wezterm.exe` to run the UI
-3. Configuration instructions can be [found here](config/files.html)
+3. Configuration instructions can be [found here](../config/files.html)
 
 ### For `Scoop` users
 
