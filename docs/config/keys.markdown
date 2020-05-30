@@ -415,16 +415,32 @@ return {
 }
 ```
 
-## Nop
+## DisableDefaultAssignment
 
-Does nothing.  This is useful to disable a default key assignment.
+Has no special meaning of its own; this action will undo the registration
+of a default assignment if that key/mouse/modifier combination is one of the
+default assignments and cause the key press to be propagated through
+to the tab for processing.
 
 ```lua
-local wezterm = require 'wezterm';
-
 return {
   keys = {
-    -- Turn off the default CMD-m Hide action
+    -- Turn off the default CMD-m Hide action, allowing CMD-m to
+    -- be potentially recognized and handled by the tab
+    {key="m", mods="CMD", action="DisableDefaultAssignment"},
+  }
+}
+```
+
+## Nop
+
+Causes the key press to have no effect; it behaves as though those
+keys were not pressed.
+
+```lua
+return {
+  keys = {
+    -- Turn off any side effects from pressing CMD-m
     {key="m", mods="CMD", action="Nop"},
   }
 }

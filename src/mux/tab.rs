@@ -45,7 +45,7 @@ fn schedule_next_paste(paste: &Arc<Mutex<Paste>>) {
     });
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub enum Pattern {
     CaseSensitiveString(String),
     CaseInSensitiveString(String),

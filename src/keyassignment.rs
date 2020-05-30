@@ -24,7 +24,7 @@ pub enum MouseEventTrigger {
 
 /// When spawning a tab, specify which domain should be used to
 /// host/spawn that tab.
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub enum SpawnTabDomain {
     /// Use the default domain
     DefaultDomain,
@@ -42,7 +42,7 @@ impl Default for SpawnTabDomain {
     }
 }
 
-#[derive(Default, Debug, Clone, Deserialize, Serialize)]
+#[derive(Default, Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub struct SpawnCommand {
     /// Optional descriptive label
     pub label: Option<String>,
@@ -70,7 +70,7 @@ pub struct SpawnCommand {
     pub domain: SpawnTabDomain,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub enum KeyAssignment {
     SpawnTab(SpawnTabDomain),
     SpawnWindow,
@@ -85,6 +85,7 @@ pub enum KeyAssignment {
     ActivateTab(usize),
     SendString(String),
     Nop,
+    DisableDefaultAssignment,
     Hide,
     Show,
     CloseCurrentTab,
@@ -342,6 +343,9 @@ impl InputMap {
                 ],
             );
         }
+
+        keys.retain(|_, v| *v != KeyAssignment::DisableDefaultAssignment);
+        mouse.retain(|_, v| *v != KeyAssignment::DisableDefaultAssignment);
 
         Self { keys, mouse }
     }

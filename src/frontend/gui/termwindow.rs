@@ -1444,7 +1444,7 @@ impl TermWindow {
                 }
             }
             CloseCurrentTab => self.close_current_tab(),
-            Nop => {}
+            Nop | DisableDefaultAssignment => {}
             ReloadConfiguration => crate::config::reload(),
             MoveTab(n) => self.move_tab(*n)?,
             MoveTabRelative(n) => self.move_tab_relative(*n)?,
