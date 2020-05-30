@@ -656,20 +656,29 @@ impl TermWindow {
                                 let dirty = render.get_dirty_lines(visible_range);
 
                                 if !dirty.is_empty() {
-                                    // If any of the changed lines intersect with the selection,
-                                    // then we need to clear the selection
-                                    let clear_selection = if let Some(selection_range) =
-                                        myself.selection(tab.tab_id()).range.as_ref()
-                                    {
-                                        let selection_rows = selection_range.rows();
-                                        selection_rows.into_iter().any(|row| dirty.contains(row))
-                                    } else {
-                                        false
-                                    };
+                                    if tab.downcast_ref::<SearchOverlay>().is_none() {
+                                        // If any of the changed lines intersect with the
+                                        // selection, then we need to clear the selection, but not
+                                        // when the search overlay is active; the search overlay
+                                        // marks lines as dirty to force invalidate them for
+                                        // highlighting purpose but also manipulates the selection
+                                        // and we want to allow it to retain the selection it made!
 
-                                    if clear_selection {
-                                        myself.selection(tab.tab_id()).range.take();
-                                        myself.selection(tab.tab_id()).start.take();
+                                        let clear_selection = if let Some(selection_range) =
+                                            myself.selection(tab.tab_id()).range.as_ref()
+                                        {
+                                            let selection_rows = selection_range.rows();
+                                            selection_rows
+                                                .into_iter()
+                                                .any(|row| dirty.contains(row))
+                                        } else {
+                                            false
+                                        };
+
+                                        if clear_selection {
+                                            myself.selection(tab.tab_id()).range.take();
+                                            myself.selection(tab.tab_id()).start.take();
+                                        }
                                     }
 
                                     myself.window.as_ref().unwrap().invalidate();
@@ -2657,7 +2666,7 @@ impl TermWindow {
         })
     }
 
-    fn selection(&self, tab_id: TabId) -> RefMut<Selection> {
+    pub fn selection(&self, tab_id: TabId) -> RefMut<Selection> {
         RefMut::map(self.tab_state(tab_id), |state| &mut state.selection)
     }
 

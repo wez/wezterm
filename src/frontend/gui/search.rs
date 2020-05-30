@@ -1,3 +1,4 @@
+use crate::frontend::gui::selection::{SelectionCoordinate, SelectionRange};
 use crate::frontend::gui::termwindow::TermWindow;
 use crate::mux::domain::DomainId;
 use crate::mux::renderable::*;
@@ -135,8 +136,7 @@ impl Tab for SearchOverlay {
                     } else {
                         r.results.len() - 1
                     };
-                    r.result_pos.replace(prior);
-                    r.set_viewport(Some(r.results[prior].start_y));
+                    r.activate_match_number(prior);
                 }
             }
             (KeyCode::Char('n'), KeyModifiers::CTRL) => {
@@ -148,8 +148,7 @@ impl Tab for SearchOverlay {
                     } else {
                         *cur + 1
                     };
-                    r.result_pos.replace(next);
-                    r.set_viewport(Some(r.results[next].start_y));
+                    r.activate_match_number(next);
                 }
             }
             (KeyCode::Char('r'), KeyModifiers::CTRL) => {
@@ -309,12 +308,53 @@ impl SearchRenderable {
 
             self.recompute_results();
         }
-        if let Some(last) = self.results.last() {
-            self.result_pos.replace(self.results.len() - 1);
-            self.set_viewport(Some(last.start_y));
+        if !self.results.is_empty() {
+            self.activate_match_number(self.results.len() - 1);
         } else {
             self.set_viewport(None);
+            self.clear_selection();
         }
+    }
+
+    fn clear_selection(&mut self) {
+        let tab_id = self.delegate.tab_id();
+        self.window.apply(move |term_window, _window| {
+            if let Some(term_window) = term_window.downcast_mut::<TermWindow>() {
+                let mut selection = term_window.selection(tab_id);
+                selection.start.take();
+                selection.range.take();
+            }
+            Ok(())
+        });
+    }
+
+    fn activate_match_number(&mut self, n: usize) {
+        self.result_pos.replace(n);
+        let result = self.results[n].clone();
+
+        let tab_id = self.delegate.tab_id();
+        self.window.apply(move |term_window, _window| {
+            if let Some(term_window) = term_window.downcast_mut::<TermWindow>() {
+                let mut selection = term_window.selection(tab_id);
+                let start = SelectionCoordinate {
+                    x: result.start_x,
+                    y: result.start_y,
+                };
+                selection.start = Some(start);
+                selection.range = Some(SelectionRange {
+                    start,
+                    end: SelectionCoordinate {
+                        // inclusive range for selection, but the result
+                        // range is exclusive
+                        x: result.end_x.saturating_sub(1),
+                        y: result.end_y,
+                    },
+                });
+            }
+            Ok(())
+        });
+
+        self.set_viewport(Some(result.start_y));
     }
 }
 
