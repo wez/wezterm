@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use std::cell::RefMut;
 use std::sync::{Arc, Mutex};
 use term::color::ColorPalette;
-use term::{Clipboard, KeyCode, KeyModifiers, MouseEvent, StableRowIndex, TerminalHost};
+use term::{Clipboard, KeyCode, KeyModifiers, MouseEvent, StableRowIndex};
 use url::Url;
 
 static TAB_ID: ::std::sync::atomic::AtomicUsize = ::std::sync::atomic::AtomicUsize::new(0);
@@ -92,8 +92,8 @@ pub trait Tab: Downcast {
     fn writer(&self) -> RefMut<dyn std::io::Write>;
     fn resize(&self, size: PtySize) -> anyhow::Result<()>;
     fn key_down(&self, key: KeyCode, mods: KeyModifiers) -> anyhow::Result<()>;
-    fn mouse_event(&self, event: MouseEvent, host: &mut dyn TerminalHost) -> anyhow::Result<()>;
-    fn advance_bytes(&self, buf: &[u8], host: &mut dyn TerminalHost);
+    fn mouse_event(&self, event: MouseEvent) -> anyhow::Result<()>;
+    fn advance_bytes(&self, buf: &[u8]);
     fn is_dead(&self) -> bool;
     fn palette(&self) -> ColorPalette;
     fn domain_id(&self) -> DomainId;

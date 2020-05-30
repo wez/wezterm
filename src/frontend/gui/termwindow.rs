@@ -178,16 +178,6 @@ pub struct TermWindow {
     shape_cache: RefCell<LruCache<ShapeCacheKey, anyhow::Result<Vec<GlyphInfo>>>>,
 }
 
-struct Host<'a> {
-    writer: &'a mut dyn std::io::Write,
-}
-
-impl<'a> term::TerminalHost for Host<'a> {
-    fn writer(&mut self) -> &mut dyn std::io::Write {
-        self.writer
-    }
-}
-
 fn mouse_press_to_tmb(press: &MousePress) -> TMB {
     match press {
         MousePress::Left => TMB::Left,
@@ -3017,13 +3007,7 @@ impl TermWindow {
             modifiers: window_mods_to_termwiz_mods(event.modifiers),
         };
 
-        tab.mouse_event(
-            mouse_event,
-            &mut Host {
-                writer: &mut *tab.writer(),
-            },
-        )
-        .ok();
+        tab.mouse_event(mouse_event).ok();
 
         match event.kind {
             WMEK::Move => {}

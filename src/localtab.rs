@@ -7,7 +7,7 @@ use portable_pty::{Child, MasterPty, PtySize};
 use std::cell::{RefCell, RefMut};
 use std::sync::Arc;
 use term::color::ColorPalette;
-use term::{Clipboard, KeyCode, KeyModifiers, MouseEvent, StableRowIndex, Terminal, TerminalHost};
+use term::{Clipboard, KeyCode, KeyModifiers, MouseEvent, StableRowIndex, Terminal};
 use url::Url;
 
 pub struct LocalTab {
@@ -41,18 +41,16 @@ impl Tab for LocalTab {
         self.terminal.borrow_mut().set_clipboard(clipboard);
     }
 
-    fn advance_bytes(&self, buf: &[u8], host: &mut dyn TerminalHost) {
-        self.terminal.borrow_mut().advance_bytes(buf, host)
+    fn advance_bytes(&self, buf: &[u8]) {
+        self.terminal.borrow_mut().advance_bytes(buf)
     }
 
-    fn mouse_event(&self, event: MouseEvent, host: &mut dyn TerminalHost) -> Result<(), Error> {
-        self.terminal.borrow_mut().mouse_event(event, host)
+    fn mouse_event(&self, event: MouseEvent) -> Result<(), Error> {
+        self.terminal.borrow_mut().mouse_event(event)
     }
 
     fn key_down(&self, key: KeyCode, mods: KeyModifiers) -> Result<(), Error> {
-        self.terminal
-            .borrow_mut()
-            .key_down(key, mods, &mut *self.pty.borrow_mut())
+        self.terminal.borrow_mut().key_down(key, mods)
     }
 
     fn resize(&self, size: PtySize) -> Result<(), Error> {
@@ -75,9 +73,7 @@ impl Tab for LocalTab {
     }
 
     fn send_paste(&self, text: &str) -> Result<(), Error> {
-        self.terminal
-            .borrow_mut()
-            .send_paste(text, &mut *self.pty.borrow_mut())
+        self.terminal.borrow_mut().send_paste(text)
     }
 
     fn get_title(&self) -> String {

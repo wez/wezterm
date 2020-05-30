@@ -232,6 +232,8 @@ pub struct TerminalState {
 
     term_program: String,
     term_version: String,
+
+    writer: Box<dyn std::io::Write>,
 }
 
 fn encode_modifiers(mods: KeyModifiers) -> u8 {
@@ -284,6 +286,7 @@ impl TerminalState {
         config: Arc<dyn TerminalConfiguration>,
         term_program: &str,
         term_version: &str,
+        writer: Box<dyn std::io::Write>,
     ) -> TerminalState {
         let screen = ScreenOrAlt::new(physical_rows, physical_cols, &config);
 
@@ -316,6 +319,7 @@ impl TerminalState {
             current_dir: None,
             term_program: term_program.to_string(),
             term_version: term_version.to_string(),
+            writer,
         }
     }
 
@@ -370,11 +374,7 @@ impl TerminalState {
         Ok(())
     }
 
-    fn mouse_wheel(
-        &mut self,
-        event: MouseEvent,
-        writer: &mut dyn std::io::Write,
-    ) -> Result<(), Error> {
+    fn mouse_wheel(&mut self, event: MouseEvent) -> Result<(), Error> {
         let (report_button, key) = match event.button {
             MouseButton::WheelUp(_) => (64, KeyCode::UpArrow),
             MouseButton::WheelDown(_) => (65, KeyCode::DownArrow),
@@ -382,21 +382,17 @@ impl TerminalState {
         };
 
         if self.sgr_mouse {
-            writer.write_all(
+            self.writer.write_all(
                 format!("\x1b[<{};{};{}M", report_button, event.x + 1, event.y + 1).as_bytes(),
             )?;
         } else if self.screen.is_alt_screen_active() {
             // Send cursor keys instead (equivalent to xterm's alternateScroll mode)
-            self.key_down(key, KeyModifiers::default(), writer)?;
+            self.key_down(key, KeyModifiers::default())?;
         }
         Ok(())
     }
 
-    fn mouse_button_press(
-        &mut self,
-        event: MouseEvent,
-        host: &mut dyn TerminalHost,
-    ) -> Result<(), Error> {
+    fn mouse_button_press(&mut self, event: MouseEvent) -> Result<(), Error> {
         self.current_mouse_button = event.button;
         if let Some(button) = match event.button {
             MouseButton::Left => Some(0),
@@ -405,7 +401,7 @@ impl TerminalState {
             _ => None,
         } {
             if self.sgr_mouse {
-                host.writer().write_all(
+                self.writer.write_all(
                     format!("\x1b[<{};{};{}M", button, event.x + 1, event.y + 1).as_bytes(),
                 )?;
             }
@@ -414,26 +410,18 @@ impl TerminalState {
         Ok(())
     }
 
-    fn mouse_button_release(
-        &mut self,
-        event: MouseEvent,
-        writer: &mut dyn std::io::Write,
-    ) -> Result<(), Error> {
+    fn mouse_button_release(&mut self, event: MouseEvent) -> Result<(), Error> {
         if self.current_mouse_button != MouseButton::None {
             self.current_mouse_button = MouseButton::None;
             if self.sgr_mouse {
-                write!(writer, "\x1b[<3;{};{}m", event.x + 1, event.y + 1)?;
+                write!(self.writer, "\x1b[<3;{};{}m", event.x + 1, event.y + 1)?;
             }
         }
 
         Ok(())
     }
 
-    fn mouse_move(
-        &mut self,
-        event: MouseEvent,
-        writer: &mut dyn std::io::Write,
-    ) -> Result<(), Error> {
+    fn mouse_move(&mut self, event: MouseEvent) -> Result<(), Error> {
         if let Some(button) = match (self.current_mouse_button, self.button_event_mouse) {
             (MouseButton::Left, true) => Some(32),
             (MouseButton::Middle, true) => Some(33),
@@ -441,17 +429,19 @@ impl TerminalState {
             (..) => None,
         } {
             if self.sgr_mouse {
-                write!(writer, "\x1b[<{};{};{}M", button, event.x + 1, event.y + 1)?;
+                write!(
+                    self.writer,
+                    "\x1b[<{};{};{}M",
+                    button,
+                    event.x + 1,
+                    event.y + 1
+                )?;
             }
         }
         Ok(())
     }
 
-    pub fn mouse_event(
-        &mut self,
-        mut event: MouseEvent,
-        host: &mut dyn TerminalHost,
-    ) -> Result<(), Error> {
+    pub fn mouse_event(&mut self, mut event: MouseEvent) -> Result<(), Error> {
         // Clamp the mouse coordinates to the size of the model.
         // This situation can trigger for example when the
         // window is resized and leaves a partial row at the bottom of the
@@ -471,19 +461,19 @@ impl TerminalState {
                 kind: MouseEventKind::Press,
                 button: MouseButton::WheelDown(_),
                 ..
-            } => self.mouse_wheel(event, host.writer()),
+            } => self.mouse_wheel(event),
             MouseEvent {
                 kind: MouseEventKind::Press,
                 ..
-            } => self.mouse_button_press(event, host),
+            } => self.mouse_button_press(event),
             MouseEvent {
                 kind: MouseEventKind::Release,
                 ..
-            } => self.mouse_button_release(event, host.writer()),
+            } => self.mouse_button_release(event),
             MouseEvent {
                 kind: MouseEventKind::Move,
                 ..
-            } => self.mouse_move(event, host.writer()),
+            } => self.mouse_move(event),
         }
     }
 
@@ -502,12 +492,12 @@ impl TerminalState {
     /// Send text to the terminal that is the result of pasting.
     /// If bracketed paste mode is enabled, the paste is enclosed
     /// in the bracketing, otherwise it is fed to the pty as-is.
-    pub fn send_paste(&mut self, text: &str, writer: &mut dyn std::io::Write) -> Result<(), Error> {
+    pub fn send_paste(&mut self, text: &str) -> Result<(), Error> {
         if self.bracketed_paste {
             let buf = format!("\x1b[200~{}\x1b[201~", text);
-            writer.write_all(buf.as_bytes())?;
+            self.writer.write_all(buf.as_bytes())?;
         } else {
-            writer.write_all(text.as_bytes())?;
+            self.writer.write_all(text.as_bytes())?;
         }
         Ok(())
     }
@@ -517,12 +507,7 @@ impl TerminalState {
     /// keycode into a sequence of bytes to send to the slave end
     /// of the pty via the `Write`-able object provided by the caller.
     #[allow(clippy::cognitive_complexity)]
-    pub fn key_down(
-        &mut self,
-        key: KeyCode,
-        mods: KeyModifiers,
-        writer: &mut dyn std::io::Write,
-    ) -> Result<(), Error> {
+    pub fn key_down(&mut self, key: KeyCode, mods: KeyModifiers) -> Result<(), Error> {
         use crate::KeyCode::*;
 
         let key = key.normalize_shift_to_upper_case(mods);
@@ -744,7 +729,7 @@ impl TerminalState {
         };
 
         // debug!("sending {:?}, {:?}", to_send, key);
-        writer.write_all(to_send.as_bytes())?;
+        self.writer.write_all(to_send.as_bytes())?;
 
         Ok(())
     }
@@ -1040,7 +1025,7 @@ impl TerminalState {
         */
     }
 
-    fn perform_device(&mut self, dev: Device, host: &mut dyn TerminalHost) {
+    fn perform_device(&mut self, dev: Device) {
         match dev {
             Device::DeviceAttributes(a) => error!("unhandled: {:?}", a),
             Device::SoftReset => {
@@ -1048,20 +1033,20 @@ impl TerminalState {
                 // TODO: see https://vt100.net/docs/vt510-rm/DECSTR.html
             }
             Device::RequestPrimaryDeviceAttributes => {
-                host.writer().write(DEVICE_IDENT).ok();
+                self.writer.write(DEVICE_IDENT).ok();
             }
             Device::RequestSecondaryDeviceAttributes => {
-                host.writer().write(b"\x1b[>0;0;0c").ok();
+                self.writer.write(b"\x1b[>0;0;0c").ok();
             }
             Device::RequestTerminalNameAndVersion => {
-                host.writer().write(DCS).ok();
-                host.writer()
+                self.writer.write(DCS).ok();
+                self.writer
                     .write(format!(">|{} {}", self.term_program, self.term_version).as_bytes())
                     .ok();
-                host.writer().write(ST).ok();
+                self.writer.write(ST).ok();
             }
             Device::StatusReport => {
-                host.writer().write(b"\x1b[0n").ok();
+                self.writer.write(b"\x1b[0n").ok();
             }
         }
     }
@@ -1280,7 +1265,7 @@ impl TerminalState {
         checksum
     }
 
-    fn perform_csi_window(&mut self, window: Window, host: &mut dyn TerminalHost) {
+    fn perform_csi_window(&mut self, window: Window) {
         match window {
             Window::ReportTextAreaSizeCells => {
                 let screen = self.screen();
@@ -1288,7 +1273,7 @@ impl TerminalState {
                 let width = Some(screen.physical_cols as i64);
 
                 let response = Window::ResizeWindowCells { width, height };
-                write!(host.writer(), "{}", CSI::Window(response)).ok();
+                write!(self.writer, "{}", CSI::Window(response)).ok();
             }
             Window::ChecksumRectangularArea {
                 request_id,
@@ -1304,7 +1289,7 @@ impl TerminalState {
                     right.as_zero_based(),
                     bottom.as_zero_based(),
                 );
-                write!(host.writer(), "\x1bP{}!~{:04x}\x1b\\", request_id, checksum).ok();
+                write!(self.writer, "\x1bP{}!~{:04x}\x1b\\", request_id, checksum).ok();
             }
             Window::ResizeWindowCells { .. } => {
                 // We don't allow the application to change the window size; that's
@@ -1432,7 +1417,7 @@ impl TerminalState {
         }
     }
 
-    fn perform_csi_cursor(&mut self, cursor: Cursor, host: &mut dyn TerminalHost) {
+    fn perform_csi_cursor(&mut self, cursor: Cursor) {
         match cursor {
             Cursor::SetTopAndBottomMargins { top, bottom } => {
                 let rows = self.screen().physical_rows;
@@ -1511,7 +1496,7 @@ impl TerminalState {
                 let line = OneBased::from_zero_based(self.cursor.y as u32);
                 let col = OneBased::from_zero_based(self.cursor.x as u32);
                 let report = CSI::Cursor(Cursor::ActivePositionReport { line, col });
-                write!(host.writer(), "{}", report).ok();
+                write!(self.writer, "{}", report).ok();
             }
             Cursor::SaveCursor => self.save_cursor(),
             Cursor::RestoreCursor => self.restore_cursor(),
@@ -1606,7 +1591,6 @@ impl TerminalState {
 /// the terminal state and the embedding/host terminal interface
 pub(crate) struct Performer<'a> {
     pub state: &'a mut TerminalState,
-    pub host: &'a mut dyn TerminalHost,
     print: Option<String>,
 }
 
@@ -1631,12 +1615,8 @@ impl<'a> Drop for Performer<'a> {
 }
 
 impl<'a> Performer<'a> {
-    pub fn new(state: &'a mut TerminalState, host: &'a mut dyn TerminalHost) -> Self {
-        Self {
-            state,
-            host,
-            print: None,
-        }
+    pub fn new(state: &'a mut TerminalState) -> Self {
+        Self { state, print: None }
     }
 
     fn flush_print(&mut self) {
@@ -1750,12 +1730,12 @@ impl<'a> Performer<'a> {
         self.flush_print();
         match csi {
             CSI::Sgr(sgr) => self.state.perform_csi_sgr(sgr),
-            CSI::Cursor(cursor) => self.state.perform_csi_cursor(cursor, self.host),
+            CSI::Cursor(cursor) => self.state.perform_csi_cursor(cursor),
             CSI::Edit(edit) => self.state.perform_csi_edit(edit),
             CSI::Mode(mode) => self.state.perform_csi_mode(mode),
-            CSI::Device(dev) => self.state.perform_device(*dev, self.host),
+            CSI::Device(dev) => self.state.perform_device(*dev),
             CSI::Mouse(mouse) => error!("mouse report sent by app? {:?}", mouse),
-            CSI::Window(window) => self.state.perform_csi_window(window, self.host),
+            CSI::Window(window) => self.state.perform_csi_window(window),
             CSI::Unspecified(unspec) => {
                 error!("unknown unspecified CSI: {:?}", format!("{}", unspec))
             }
@@ -1864,7 +1844,7 @@ impl<'a> Performer<'a> {
                                         self.palette().colors.0[pair.palette_index as usize],
                                     ),
                                 }]);
-                            write!(self.host.writer(), "{}", response).ok();
+                            write!(self.writer, "{}", response).ok();
                         }
                         ColorOrQuery::Color(c) => {
                             self.palette_mut().colors.0[pair.palette_index as usize] = c;
@@ -1909,7 +1889,7 @@ impl<'a> Performer<'a> {
                                             which_color,
                                             vec![ColorOrQuery::Color(self.palette().$name)],
                                         );
-                                        write!(self.host.writer(), "{}", response).ok();
+                                        write!(self.writer, "{}", response).ok();
                                     }
                                     ColorOrQuery::Color(c) => self.palette_mut().$name = c,
                                 }

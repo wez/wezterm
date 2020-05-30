@@ -17,14 +17,6 @@ impl Clipboard for Box<dyn Clipboard> {
     }
 }
 
-/// Represents the host of the terminal.
-/// Provides a means for sending data to the connected pty
-pub trait TerminalHost {
-    /// Returns an object that can be used to send data to the
-    /// slave end of the associated pty.
-    fn writer(&mut self) -> &mut dyn std::io::Write;
-}
-
 pub struct Terminal {
     /// The terminal model/state
     state: TerminalState,
@@ -55,6 +47,8 @@ impl Terminal {
         config: Arc<dyn TerminalConfiguration>,
         term_program: &str,
         term_version: &str,
+        // writing to the writer sends data to input of the pty
+        writer: Box<dyn std::io::Write>,
     ) -> Terminal {
         Terminal {
             state: TerminalState::new(
@@ -65,16 +59,17 @@ impl Terminal {
                 config,
                 term_program,
                 term_version,
+                writer,
             ),
             parser: Parser::new(),
         }
     }
 
     /// Feed the terminal parser a slice of bytes of input.
-    pub fn advance_bytes<B: AsRef<[u8]>>(&mut self, bytes: B, host: &mut dyn TerminalHost) {
+    pub fn advance_bytes<B: AsRef<[u8]>>(&mut self, bytes: B) {
         let bytes = bytes.as_ref();
 
-        let mut performer = Performer::new(&mut self.state, host);
+        let mut performer = Performer::new(&mut self.state);
 
         self.parser.parse(bytes, |action| performer.perform(action));
     }

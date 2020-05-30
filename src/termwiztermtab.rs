@@ -26,7 +26,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
 use term::color::ColorPalette;
-use term::{KeyCode, KeyModifiers, Line, MouseEvent, StableRowIndex, TerminalHost};
+use term::{KeyCode, KeyModifiers, Line, MouseEvent, StableRowIndex};
 use termwiz::input::{InputEvent, KeyEvent, MouseEvent as TermWizMouseEvent};
 use termwiz::lineedit::*;
 use termwiz::surface::{Change, SequenceNo, Surface};
@@ -299,7 +299,7 @@ impl Tab for TermWizTerminalTab {
         Ok(())
     }
 
-    fn mouse_event(&self, event: MouseEvent, _host: &mut dyn TerminalHost) -> anyhow::Result<()> {
+    fn mouse_event(&self, event: MouseEvent) -> anyhow::Result<()> {
         use term::input::MouseButton;
         use termwiz::input::MouseButtons as Buttons;
 
@@ -327,7 +327,7 @@ impl Tab for TermWizTerminalTab {
         Ok(())
     }
 
-    fn advance_bytes(&self, _buf: &[u8], _host: &mut dyn TerminalHost) {
+    fn advance_bytes(&self, _buf: &[u8]) {
         panic!("advance_bytes is undefined for TermWizTerminalTab");
     }
 

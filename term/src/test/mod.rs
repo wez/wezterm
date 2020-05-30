@@ -15,23 +15,6 @@ use termwiz::escape::csi::{Edit, EraseInDisplay, EraseInLine};
 use termwiz::escape::{OneBased, OperatingSystemCommand, CSI};
 use termwiz::surface::CursorShape;
 
-struct TestHost {}
-
-impl TestHost {
-    fn new() -> Self {
-        Self {}
-    }
-}
-
-impl std::io::Write for TestHost {
-    fn write(&mut self, _buf: &[u8]) -> Result<usize, std::io::Error> {
-        panic!("no writer support in TestHost");
-    }
-    fn flush(&mut self) -> Result<(), std::io::Error> {
-        panic!("no writer support in TestHost");
-    }
-}
-
 #[derive(Debug)]
 struct LocalClip {
     clip: RefCell<Option<String>>,
@@ -60,15 +43,8 @@ impl Clipboard for LocalClip {
     }
 }
 
-impl TerminalHost for TestHost {
-    fn writer(&mut self) -> &mut dyn std::io::Write {
-        self
-    }
-}
-
 struct TestTerm {
     term: Terminal,
-    host: TestHost,
 }
 
 #[derive(Debug)]
@@ -95,14 +71,12 @@ impl TestTerm {
             Arc::new(TestTermConfig { scrollback }),
             "WezTerm",
             "O_o",
+            Box::new(Vec::new()),
         );
         let clip: Arc<dyn Clipboard> = Arc::new(LocalClip::new());
         term.set_clipboard(&clip);
 
-        let mut term = Self {
-            term,
-            host: TestHost::new(),
-        };
+        let mut term = Self { term };
 
         term.set_auto_wrap(true);
 
@@ -110,7 +84,7 @@ impl TestTerm {
     }
 
     fn print<B: AsRef<[u8]>>(&mut self, bytes: B) {
-        self.term.advance_bytes(bytes, &mut self.host);
+        self.term.advance_bytes(bytes);
     }
 
     #[allow(dead_code)]

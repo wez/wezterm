@@ -12,7 +12,7 @@ use std::ops::Range;
 use std::rc::Rc;
 use std::sync::Arc;
 use term::color::ColorPalette;
-use term::{Clipboard, KeyCode, KeyModifiers, Line, MouseEvent, StableRowIndex, TerminalHost};
+use term::{Clipboard, KeyCode, KeyModifiers, Line, MouseEvent, StableRowIndex};
 use termwiz::cell::{Cell, CellAttributes};
 use termwiz::color::AnsiColor;
 use url::Url;
@@ -179,12 +179,12 @@ impl Tab for SearchOverlay {
         Ok(())
     }
 
-    fn mouse_event(&self, event: MouseEvent, host: &mut dyn TerminalHost) -> anyhow::Result<()> {
-        self.delegate.mouse_event(event, host)
+    fn mouse_event(&self, event: MouseEvent) -> anyhow::Result<()> {
+        self.delegate.mouse_event(event)
     }
 
-    fn advance_bytes(&self, buf: &[u8], host: &mut dyn TerminalHost) {
-        self.delegate.advance_bytes(buf, host)
+    fn advance_bytes(&self, buf: &[u8]) {
+        self.delegate.advance_bytes(buf)
     }
     fn is_dead(&self) -> bool {
         self.delegate.is_dead()

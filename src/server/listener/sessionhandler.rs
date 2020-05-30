@@ -134,16 +134,6 @@ fn maybe_push_tab_changes(
     Ok(())
 }
 
-struct BufferedTerminalHost<'a> {
-    write: std::cell::RefMut<'a, dyn std::io::Write>,
-}
-
-impl<'a> term::TerminalHost for BufferedTerminalHost<'a> {
-    fn writer(&mut self) -> &mut dyn std::io::Write {
-        &mut *self.write
-    }
-}
-
 pub struct SessionHandler {
     to_write_tx: PollableSender<DecodedPdu>,
     per_tab: HashMap<TabId, Arc<Mutex<PerTab>>>,
@@ -331,10 +321,7 @@ impl SessionHandler {
                             let tab = mux
                                 .get_tab(tab_id)
                                 .ok_or_else(|| anyhow!("no such tab {}", tab_id))?;
-                            let mut host = BufferedTerminalHost {
-                                write: tab.writer(),
-                            };
-                            tab.mouse_event(event, &mut host)?;
+                            tab.mouse_event(event)?;
                             maybe_push_tab_changes(&tab, sender, per_tab)?;
                             Ok(Pdu::UnitResponse(UnitResponse {}))
                         },

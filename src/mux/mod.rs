@@ -13,7 +13,6 @@ use std::rc::Rc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::thread;
-use term::TerminalHost;
 use thiserror::*;
 
 pub mod domain;
@@ -68,12 +67,7 @@ fn read_from_tab_pty(tab_id: TabId, mut reader: Box<dyn std::io::Read>) {
                             promise::spawn::spawn_into_main_thread_with_low_priority(async move {
                                 let mux = Mux::get().unwrap();
                                 if let Some(tab) = mux.get_tab(tab_id) {
-                                    tab.advance_bytes(
-                                        &data,
-                                        &mut Host {
-                                            writer: &mut *tab.writer(),
-                                        },
-                                    );
+                                    tab.advance_bytes(&data);
                                     mux.notify(MuxNotification::TabOutput(tab_id));
                                 }
                             });
@@ -91,20 +85,6 @@ fn read_from_tab_pty(tab_id: TabId, mut reader: Box<dyn std::io::Read>) {
         let mux = Mux::get().unwrap();
         mux.remove_tab(tab_id);
     });
-}
-
-/// This is just a stub impl of TerminalHost; it really only exists
-/// in order to parse data sent by the peer (so, just to parse output).
-/// As such it only really has Host::writer get called.
-/// The GUI driven flows provide their own impl of TerminalHost.
-struct Host<'a> {
-    writer: &'a mut dyn std::io::Write,
-}
-
-impl<'a> TerminalHost for Host<'a> {
-    fn writer(&mut self) -> &mut dyn std::io::Write {
-        &mut self.writer
-    }
 }
 
 thread_local! {

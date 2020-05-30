@@ -16,7 +16,7 @@ use std::cell::RefMut;
 use std::rc::Rc;
 use std::sync::Arc;
 use term::color::ColorPalette;
-use term::{Clipboard, KeyCode, KeyModifiers, MouseEvent, TerminalHost};
+use term::{Clipboard, KeyCode, KeyModifiers, MouseEvent};
 use termwiz::input::KeyEvent;
 use url::Url;
 
@@ -231,7 +231,7 @@ impl Tab for ClientTab {
         Ok(())
     }
 
-    fn mouse_event(&self, event: MouseEvent, _host: &mut dyn TerminalHost) -> anyhow::Result<()> {
+    fn mouse_event(&self, event: MouseEvent) -> anyhow::Result<()> {
         self.mouse.borrow_mut().append(event);
         if MouseState::next(Rc::clone(&self.mouse)) {
             self.renderable
@@ -243,7 +243,7 @@ impl Tab for ClientTab {
         Ok(())
     }
 
-    fn advance_bytes(&self, _buf: &[u8], _host: &mut dyn TerminalHost) {
+    fn advance_bytes(&self, _buf: &[u8]) {
         panic!("ClientTab::advance_bytes not impl");
     }
 

@@ -124,6 +124,8 @@ impl Domain for LocalDomain {
         let child = pair.slave.spawn_command(cmd)?;
         info!("spawned: {:?}", child);
 
+        let writer = pair.master.try_clone_writer()?;
+
         let terminal = term::Terminal::new(
             size.rows as usize,
             size.cols as usize,
@@ -132,6 +134,7 @@ impl Domain for LocalDomain {
             std::sync::Arc::new(crate::config::TermConfig {}),
             "WezTerm",
             crate::wezterm_version(),
+            Box::new(writer),
         );
 
         let mux = Mux::get().unwrap();
