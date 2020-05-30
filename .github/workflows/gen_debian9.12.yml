@@ -27,7 +27,7 @@ jobs:
       uses: actions/cache@v1
       with:
          path: "/usr/local/git"
-         key: "debian9.12-git-2.25.0"
+         key: "debian9.12-git-2.26.2"
     - name: "Install Git from source"
       shell: bash
       run: |
@@ -36,9 +36,9 @@ jobs:
             
             if test ! -x /usr/local/git/bin/git ; then
                 cd /tmp
-                wget https://mirrors.edge.kernel.org/pub/software/scm/git/git-2.25.0.tar.gz
-                tar xzf git-2.25.0.tar.gz
-                cd git-2.25.0
+                wget https://github.com/git/git/archive/v2.26.2.tar.gz
+                tar xzf git-2.26.2.tar.gz
+                cd git-2.26.2
                 make prefix=/usr/local/git install
             fi
             
