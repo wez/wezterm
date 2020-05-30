@@ -155,7 +155,7 @@ class Target(object):
     def install_git(self):
         steps = []
         if self.bootstrap_git:
-            GIT_VERS = "2.25.0"
+            GIT_VERS = "2.26.2"
             steps.append(
                 CacheStep(
                     "Cache Git installation",
@@ -177,8 +177,8 @@ class Target(object):
 
 if test ! -x /usr/local/git/bin/git ; then
     cd /tmp
-    wget https://mirrors.edge.kernel.org/pub/software/scm/git/git-{GIT_VERS}.tar.gz
-    tar xzf git-{GIT_VERS}.tar.gz
+    wget https://github.com/git/git/archive/v{GIT_VERS}.tar.gz
+    tar xzf v{GIT_VERS}.tar.gz
     cd git-{GIT_VERS}
     make prefix=/usr/local/git install
 fi
