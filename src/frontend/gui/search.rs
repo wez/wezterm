@@ -201,11 +201,6 @@ impl Tab for SearchOverlay {
         self.delegate.erase_scrollback()
     }
 
-    fn search(&self, _pattern: Pattern) -> Vec<SearchResult> {
-        // You can't search the search bar
-        vec![]
-    }
-
     fn is_mouse_grabbed(&self) -> bool {
         // Force grabbing off while we're searching
         false
@@ -303,13 +298,39 @@ impl SearchRenderable {
         self.dirty_results.add(bar_pos);
 
         if !self.pattern.is_empty() {
-            self.results = self.delegate.search(self.pattern.clone());
-            self.results.sort();
+            let tab: Rc<dyn Tab> = self.delegate.clone();
+            let window = self.window.clone();
+            let pattern = self.pattern.clone();
+            promise::spawn::spawn(async move {
+                let mut results = tab.search(pattern).await?;
+                results.sort();
 
-            self.recompute_results();
-        }
-        if !self.results.is_empty() {
-            self.activate_match_number(self.results.len() - 1);
+                let tab_id = tab.tab_id();
+                let mut results = Some(results);
+                window.apply(move |term_window, _window| {
+                    let term_window = term_window
+                        .downcast_mut::<TermWindow>()
+                        .expect("to be TermWindow");
+                    let state = term_window.tab_state(tab_id);
+                    if let Some(overlay) = state.overlay.as_ref() {
+                        if let Some(search_overlay) = overlay.downcast_ref::<SearchOverlay>() {
+                            let mut r = search_overlay.renderer.borrow_mut();
+                            r.results = results.take().unwrap();
+                            r.recompute_results();
+                            let num_results = r.results.len();
+
+                            if !r.results.is_empty() {
+                                r.activate_match_number(num_results - 1);
+                            } else {
+                                r.set_viewport(None);
+                                r.clear_selection();
+                            }
+                        }
+                    }
+                    Ok(())
+                });
+                anyhow::Result::<()>::Ok(())
+            });
         } else {
             self.set_viewport(None);
             self.clear_selection();

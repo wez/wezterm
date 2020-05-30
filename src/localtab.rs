@@ -3,6 +3,7 @@ use crate::mux::renderable::Renderable;
 use crate::mux::tab::{alloc_tab_id, Tab, TabId};
 use crate::mux::tab::{Pattern, SearchResult};
 use anyhow::Error;
+use async_trait::async_trait;
 use portable_pty::{Child, MasterPty, PtySize};
 use std::cell::{RefCell, RefMut};
 use std::sync::Arc;
@@ -18,6 +19,7 @@ pub struct LocalTab {
     domain_id: DomainId,
 }
 
+#[async_trait(?Send)]
 impl Tab for LocalTab {
     #[inline]
     fn tab_id(&self) -> TabId {
@@ -100,7 +102,7 @@ impl Tab for LocalTab {
         self.terminal.borrow().get_current_dir().cloned()
     }
 
-    fn search(&self, mut pattern: Pattern) -> Vec<SearchResult> {
+    async fn search(&self, mut pattern: Pattern) -> anyhow::Result<Vec<SearchResult>> {
         let term = self.terminal.borrow();
         let screen = term.screen();
 
@@ -203,7 +205,7 @@ impl Tab for LocalTab {
         }
 
         collect_matches(&mut results, &pattern, &haystack, &coords);
-        results
+        Ok(results)
     }
 }
 

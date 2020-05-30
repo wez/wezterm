@@ -123,7 +123,7 @@ impl PrevCursorPos {
 }
 
 #[derive(Default)]
-struct TabState {
+pub struct TabState {
     /// If is_some(), the top row of the visible screen.
     /// Otherwise, the viewport is at the bottom of the
     /// scrollback.
@@ -132,7 +132,7 @@ struct TabState {
     /// If is_some(), rather than display the actual tab
     /// contents, we're overlaying a little internal application
     /// tab.  We'll also route input to it.
-    overlay: Option<Rc<dyn Tab>>,
+    pub overlay: Option<Rc<dyn Tab>>,
 }
 
 #[derive(PartialEq, Eq, Hash)]
@@ -2650,7 +2650,7 @@ impl TermWindow {
         (fg_color, bg_color, cursor_shape)
     }
 
-    fn tab_state(&self, tab_id: TabId) -> RefMut<TabState> {
+    pub fn tab_state(&self, tab_id: TabId) -> RefMut<TabState> {
         RefMut::map(self.tab_state.borrow_mut(), |state| {
             state.entry(tab_id).or_insert_with(TabState::default)
         })

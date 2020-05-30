@@ -1,6 +1,7 @@
 use crate::mux::domain::DomainId;
 use crate::mux::renderable::Renderable;
 use crate::mux::Mux;
+use async_trait::async_trait;
 use downcast_rs::{impl_downcast, Downcast};
 use portable_pty::PtySize;
 use serde::{Deserialize, Serialize};
@@ -83,6 +84,7 @@ pub struct SearchResult {
     pub end_x: usize,
 }
 
+#[async_trait(?Send)]
 pub trait Tab: Downcast {
     fn tab_id(&self) -> TabId;
     fn renderer(&self) -> RefMut<dyn Renderable>;
@@ -103,8 +105,8 @@ pub trait Tab: Downcast {
     /// Performs a search.
     /// If the result is empty then there are no matches.
     /// Otherwise, the result shall contain all possible matches.
-    fn search(&self, _pattern: Pattern) -> Vec<SearchResult> {
-        vec![]
+    async fn search(&self, _pattern: Pattern) -> anyhow::Result<Vec<SearchResult>> {
+        Ok(vec![])
     }
 
     /// Returns true if the terminal has grabbed the mouse and wants to
