@@ -178,7 +178,7 @@ class Target(object):
 if test ! -x /usr/local/git/bin/git ; then
     cd /tmp
     wget https://github.com/git/git/archive/v{GIT_VERS}.tar.gz
-    tar xzf git-{GIT_VERS}.tar.gz
+    tar xzf v{GIT_VERS}.tar.gz
     cd git-{GIT_VERS}
     make prefix=/usr/local/git install
 fi

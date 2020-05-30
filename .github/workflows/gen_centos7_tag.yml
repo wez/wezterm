@@ -28,7 +28,7 @@ jobs:
             if test ! -x /usr/local/git/bin/git ; then
                 cd /tmp
                 wget https://github.com/git/git/archive/v2.26.2.tar.gz
-                tar xzf git-2.26.2.tar.gz
+                tar xzf v2.26.2.tar.gz
                 cd git-2.26.2
                 make prefix=/usr/local/git install
             fi
