@@ -2792,7 +2792,7 @@ impl TermWindow {
                 if pos >= dims.physical_top {
                     None
                 } else {
-                    Some(pos.max(0))
+                    Some(pos.max(dims.scrollback_top))
                 }
             }
             None => None,
