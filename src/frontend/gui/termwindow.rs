@@ -260,6 +260,8 @@ pub struct TermWindow {
     current_highlight: Option<Arc<Hyperlink>>,
 
     shape_cache: RefCell<LruCache<ShapeCacheKey, anyhow::Result<Rc<Vec<GlyphInfo>>>>>,
+
+    last_blink_paint: Instant,
 }
 
 fn mouse_press_to_tmb(press: &MousePress) -> TMB {
@@ -663,6 +665,7 @@ impl TermWindow {
                 last_mouse_click: None,
                 current_highlight: None,
                 shape_cache: RefCell::new(LruCache::new(65536)),
+                last_blink_paint: Instant::now(),
             }),
         )?;
 
@@ -680,97 +683,99 @@ impl TermWindow {
 
         crate::update::start_update_checker();
 
-        Connection::get()
-            .unwrap()
-            .schedule_timer(std::time::Duration::from_millis(35), {
-                let mut last_blink_paint = Instant::now();
-                move || {
-                    cloned_window.apply(move |myself, _| {
-                        if let Some(myself) = myself.downcast_mut::<Self>() {
-                            let mux = Mux::get().unwrap();
+        Connection::get().unwrap().schedule_timer(
+            std::time::Duration::from_millis(35),
+            move || {
+                cloned_window.apply(move |myself, _| {
+                    if let Some(myself) = myself.downcast_mut::<Self>() {
+                        let mux = Mux::get().unwrap();
 
-                            if let Some(tab) = myself.get_active_tab_or_overlay() {
-                                // If the config was reloaded, ask the window to apply
-                                // and render any changes
-                                myself.check_for_config_reload();
+                        if let Some(tab) = myself.get_active_tab_or_overlay() {
+                            let mut needs_invalidate = false;
 
-                                let config = configuration();
+                            // If the config was reloaded, ask the window to apply
+                            // and render any changes
+                            myself.check_for_config_reload();
 
-                                let render = tab.renderer();
+                            let config = configuration();
 
-                                // If blinking is permitted, and the cursor shape is set
-                                // to a blinking variant, and it's been longer than the
-                                // blink rate interval, then invalidate and redraw
-                                // so that we will re-evaluate the cursor visibility.
-                                // This is pretty heavyweight: it would be nice to only invalidate
-                                // the line on which the cursor resides, and then only if the cursor
-                                // is within the viewport.
-                                if config.cursor_blink_rate != 0 && myself.focused.is_some() {
-                                    let shape = config
-                                        .default_cursor_style
-                                        .effective_shape(render.get_cursor_position().shape);
-                                    if shape.is_blinking() {
-                                        let now = Instant::now();
-                                        if now.duration_since(last_blink_paint)
-                                            > Duration::from_millis(config.cursor_blink_rate)
-                                        {
-                                            myself.window.as_ref().unwrap().invalidate();
-                                            last_blink_paint = now;
-                                        }
+                            let render = tab.renderer();
+
+                            // If blinking is permitted, and the cursor shape is set
+                            // to a blinking variant, and it's been longer than the
+                            // blink rate interval, then invalidate and redraw
+                            // so that we will re-evaluate the cursor visibility.
+                            // This is pretty heavyweight: it would be nice to only invalidate
+                            // the line on which the cursor resides, and then only if the cursor
+                            // is within the viewport.
+                            if config.cursor_blink_rate != 0 && myself.focused.is_some() {
+                                let shape = config
+                                    .default_cursor_style
+                                    .effective_shape(render.get_cursor_position().shape);
+                                if shape.is_blinking() {
+                                    let now = Instant::now();
+                                    if now.duration_since(myself.last_blink_paint)
+                                        > Duration::from_millis(config.cursor_blink_rate)
+                                    {
+                                        needs_invalidate = true;
+                                        myself.last_blink_paint = now;
                                     }
                                 }
-
-                                // If the model is dirty, arrange to re-paint
-                                let dims = render.get_dimensions();
-                                let viewport = myself
-                                    .get_viewport(tab.tab_id())
-                                    .unwrap_or(dims.physical_top);
-                                let visible_range =
-                                    viewport..viewport + dims.viewport_rows as StableRowIndex;
-                                let dirty = render.get_dirty_lines(visible_range);
-
-                                if !dirty.is_empty() {
-                                    if tab.downcast_ref::<SearchOverlay>().is_none() {
-                                        // If any of the changed lines intersect with the
-                                        // selection, then we need to clear the selection, but not
-                                        // when the search overlay is active; the search overlay
-                                        // marks lines as dirty to force invalidate them for
-                                        // highlighting purpose but also manipulates the selection
-                                        // and we want to allow it to retain the selection it made!
-
-                                        let clear_selection = if let Some(selection_range) =
-                                            myself.selection(tab.tab_id()).range.as_ref()
-                                        {
-                                            let selection_rows = selection_range.rows();
-                                            selection_rows
-                                                .into_iter()
-                                                .any(|row| dirty.contains(row))
-                                        } else {
-                                            false
-                                        };
-
-                                        if clear_selection {
-                                            myself.selection(tab.tab_id()).range.take();
-                                            myself.selection(tab.tab_id()).start.take();
-                                        }
-                                    }
-
-                                    myself.window.as_ref().unwrap().invalidate();
-                                }
-
-                                if let Some(mut mux_window) = mux.get_window_mut(mux_window_id) {
-                                    if mux_window.check_and_reset_invalidated() {
-                                        myself.window.as_ref().unwrap().invalidate();
-                                    }
-                                }
-                            } else {
-                                myself.window.as_ref().unwrap().close();
                             }
+
+                            // If the model is dirty, arrange to re-paint
+                            let dims = render.get_dimensions();
+                            let viewport = myself
+                                .get_viewport(tab.tab_id())
+                                .unwrap_or(dims.physical_top);
+                            let visible_range =
+                                viewport..viewport + dims.viewport_rows as StableRowIndex;
+                            let dirty = render.get_dirty_lines(visible_range);
+
+                            if !dirty.is_empty() {
+                                if tab.downcast_ref::<SearchOverlay>().is_none() {
+                                    // If any of the changed lines intersect with the
+                                    // selection, then we need to clear the selection, but not
+                                    // when the search overlay is active; the search overlay
+                                    // marks lines as dirty to force invalidate them for
+                                    // highlighting purpose but also manipulates the selection
+                                    // and we want to allow it to retain the selection it made!
+
+                                    let clear_selection = if let Some(selection_range) =
+                                        myself.selection(tab.tab_id()).range.as_ref()
+                                    {
+                                        let selection_rows = selection_range.rows();
+                                        selection_rows.into_iter().any(|row| dirty.contains(row))
+                                    } else {
+                                        false
+                                    };
+
+                                    if clear_selection {
+                                        myself.selection(tab.tab_id()).range.take();
+                                        myself.selection(tab.tab_id()).start.take();
+                                    }
+                                }
+
+                                needs_invalidate = true;
+                            }
+
+                            if let Some(mut mux_window) = mux.get_window_mut(mux_window_id) {
+                                if mux_window.check_and_reset_invalidated() {
+                                    needs_invalidate = true;
+                                }
+                            }
+
+                            if needs_invalidate {
+                                myself.window.as_ref().unwrap().invalidate();
+                            }
+                        } else {
+                            myself.window.as_ref().unwrap().close();
                         }
-                        Ok(())
-                    });
-                }
-            });
+                    }
+                    Ok(())
+                });
+            },
+        );
 
         let clipboard: Arc<dyn term::Clipboard> = Arc::new(ClipboardHelper {
             window: window.clone(),
