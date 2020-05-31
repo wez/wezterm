@@ -101,6 +101,7 @@ pub enum KeyAssignment {
     ShowLauncher,
     ClearScrollback,
     Search(Pattern),
+    ActivateCopyMode,
 
     SelectTextAtMouseCursor(SelectionMode),
     ExtendSelectionToMouseCursor(Option<SelectionMode>),
@@ -245,6 +246,7 @@ impl InputMap {
                 [KeyModifiers::SHIFT, KeyCode::PageUp, ScrollByPage(-1)],
                 [KeyModifiers::SHIFT, KeyCode::PageDown, ScrollByPage(1)],
                 [KeyModifiers::ALT, KeyCode::Char('9'), ShowTabNavigator],
+                [ctrl_shift, KeyCode::Char('X'), ActivateCopyMode],
             );
 
             #[cfg(target_os = "macos")]

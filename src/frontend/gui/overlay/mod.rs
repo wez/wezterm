@@ -4,10 +4,12 @@ use crate::termwiztermtab::{allocate, TermWizTerminal};
 use std::pin::Pin;
 use std::rc::Rc;
 
+mod copy;
 mod launcher;
 mod search;
 mod tabnavigator;
 
+pub use copy::CopyOverlay;
 pub use launcher::launcher;
 pub use search::SearchOverlay;
 pub use tabnavigator::tab_navigator;

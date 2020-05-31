@@ -8,7 +8,9 @@ use crate::font::units::*;
 use crate::font::FontConfiguration;
 use crate::frontend::activity::Activity;
 use crate::frontend::front_end;
-use crate::frontend::gui::overlay::{launcher, start_overlay, tab_navigator, SearchOverlay};
+use crate::frontend::gui::overlay::{
+    launcher, start_overlay, tab_navigator, CopyOverlay, SearchOverlay,
+};
 use crate::frontend::gui::scrollbar::*;
 use crate::frontend::gui::selection::*;
 use crate::frontend::gui::tabbar::{TabBarItem, TabBarState};
@@ -732,7 +734,9 @@ impl TermWindow {
                             let dirty = render.get_dirty_lines(visible_range);
 
                             if !dirty.is_empty() {
-                                if tab.downcast_ref::<SearchOverlay>().is_none() {
+                                if tab.downcast_ref::<SearchOverlay>().is_none()
+                                    && tab.downcast_ref::<CopyOverlay>().is_none()
+                                {
                                     // If any of the changed lines intersect with the
                                     // selection, then we need to clear the selection, but not
                                     // when the search overlay is active; the search overlay
@@ -1032,7 +1036,12 @@ impl TermWindow {
         let tab_no = window.get_active_idx();
 
         let title = match window.get_active() {
-            Some(tab) => tab.get_title(),
+            Some(tab) => self
+                .tab_state(tab.tab_id())
+                .overlay
+                .as_ref()
+                .unwrap_or(tab)
+                .get_title(),
             None => return,
         };
 
@@ -1579,6 +1588,10 @@ impl TermWindow {
             Search(pattern) => {
                 let search = SearchOverlay::with_tab(self, tab, pattern.clone());
                 self.assign_overlay(tab.tab_id(), search);
+            }
+            ActivateCopyMode => {
+                let copy = CopyOverlay::with_tab(self, tab);
+                self.assign_overlay(tab.tab_id(), copy);
             }
         };
         Ok(())
@@ -2793,6 +2806,8 @@ impl TermWindow {
         if let Some(overlay) = state.overlay.as_ref() {
             if let Some(search_overlay) = overlay.downcast_ref::<SearchOverlay>() {
                 search_overlay.viewport_changed(pos);
+            } else if let Some(copy) = overlay.downcast_ref::<CopyOverlay>() {
+                copy.viewport_changed(pos);
             }
         }
     }
@@ -3161,8 +3176,9 @@ impl TermWindow {
         });
     }
 
-    pub fn assign_overlay(&self, tab_id: TabId, overlay: Rc<dyn Tab>) {
+    pub fn assign_overlay(&mut self, tab_id: TabId, overlay: Rc<dyn Tab>) {
         self.tab_state(tab_id).overlay.replace(overlay);
+        self.update_title();
     }
 }
 
