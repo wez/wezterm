@@ -8,9 +8,8 @@ use crate::font::units::*;
 use crate::font::FontConfiguration;
 use crate::frontend::activity::Activity;
 use crate::frontend::front_end;
-use crate::frontend::gui::overlay::{launcher, start_overlay, tab_navigator};
+use crate::frontend::gui::overlay::{launcher, start_overlay, tab_navigator, SearchOverlay};
 use crate::frontend::gui::scrollbar::*;
-use crate::frontend::gui::search::*;
 use crate::frontend::gui::selection::*;
 use crate::frontend::gui::tabbar::{TabBarItem, TabBarState};
 use crate::keyassignment::{

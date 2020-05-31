@@ -5,9 +5,11 @@ use std::pin::Pin;
 use std::rc::Rc;
 
 mod launcher;
+mod search;
 mod tabnavigator;
 
 pub use launcher::launcher;
+pub use search::SearchOverlay;
 pub use tabnavigator::tab_navigator;
 
 pub fn start_overlay<T, F>(
