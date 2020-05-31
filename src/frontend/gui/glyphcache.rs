@@ -19,6 +19,68 @@ pub struct GlyphKey {
     pub style: TextStyle,
 }
 
+/// We'd like to avoid allocating when resolving from the cache
+/// so this is the borrowed version of GlyphKey.
+/// It's a bit involved to make this work; more details can be
+/// found in the excellent guide here:
+/// <https://github.com/sunshowers/borrow-complex-key-example/blob/master/src/lib.rs>
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub struct BorrowedGlyphKey<'a> {
+    pub font_idx: usize,
+    pub glyph_pos: u32,
+    pub style: &'a TextStyle,
+}
+
+impl<'a> BorrowedGlyphKey<'a> {
+    fn to_owned(&self) -> GlyphKey {
+        GlyphKey {
+            font_idx: self.font_idx,
+            glyph_pos: self.glyph_pos,
+            style: self.style.clone(),
+        }
+    }
+}
+
+trait GlyphKeyTrait {
+    fn key<'k>(&'k self) -> BorrowedGlyphKey<'k>;
+}
+
+impl GlyphKeyTrait for GlyphKey {
+    fn key<'k>(&'k self) -> BorrowedGlyphKey<'k> {
+        BorrowedGlyphKey {
+            font_idx: self.font_idx,
+            glyph_pos: self.glyph_pos,
+            style: &self.style,
+        }
+    }
+}
+
+impl<'a> GlyphKeyTrait for BorrowedGlyphKey<'a> {
+    fn key<'k>(&'k self) -> BorrowedGlyphKey<'k> {
+        *self
+    }
+}
+
+impl<'a> std::borrow::Borrow<dyn GlyphKeyTrait + 'a> for GlyphKey {
+    fn borrow(&self) -> &(dyn GlyphKeyTrait + 'a) {
+        self
+    }
+}
+
+impl<'a> PartialEq for (dyn GlyphKeyTrait + 'a) {
+    fn eq(&self, other: &Self) -> bool {
+        self.key().eq(&other.key())
+    }
+}
+
+impl<'a> Eq for (dyn GlyphKeyTrait + 'a) {}
+
+impl<'a> std::hash::Hash for (dyn GlyphKeyTrait + 'a) {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.key().hash(state)
+    }
+}
+
 /// Caches a rendered glyph.
 /// The image data may be None for whitespace glyphs.
 pub struct CachedGlyph<T: Texture2d> {
@@ -98,18 +160,18 @@ impl<T: Texture2d> GlyphCache<T> {
         info: &GlyphInfo,
         style: &TextStyle,
     ) -> anyhow::Result<Rc<CachedGlyph<T>>> {
-        let key = GlyphKey {
+        let key = BorrowedGlyphKey {
             font_idx: info.font_idx,
             glyph_pos: info.glyph_pos,
-            style: style.clone(),
+            style,
         };
 
-        if let Some(entry) = self.glyph_cache.get(&key) {
+        if let Some(entry) = self.glyph_cache.get(&key as &dyn GlyphKeyTrait) {
             return Ok(Rc::clone(entry));
         }
 
         let glyph = self.load_glyph(info, style)?;
-        self.glyph_cache.insert(key, Rc::clone(&glyph));
+        self.glyph_cache.insert(key.to_owned(), Rc::clone(&glyph));
         Ok(glyph)
     }
 

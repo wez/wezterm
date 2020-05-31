@@ -151,7 +151,76 @@ pub struct TabState {
 }
 
 #[derive(PartialEq, Eq, Hash)]
-struct ShapeCacheKey((TextStyle, String));
+struct ShapeCacheKey {
+    style: TextStyle,
+    text: String,
+}
+
+/// We'd like to avoid allocating when resolving from the cache
+/// so this is the borrowed version of ShapeCacheKey.
+/// It's a bit involved to make this work; more details can be
+/// found in the excellent guide here:
+/// <https://github.com/sunshowers/borrow-complex-key-example/blob/master/src/lib.rs>
+#[derive(Copy, Clone, PartialEq, Eq, Hash)]
+struct BorrowedShapeCacheKey<'a> {
+    style: &'a TextStyle,
+    text: &'a str,
+}
+
+impl<'a> BorrowedShapeCacheKey<'a> {
+    fn to_owned(&self) -> ShapeCacheKey {
+        ShapeCacheKey {
+            style: self.style.clone(),
+            text: self.text.to_owned(),
+        }
+    }
+}
+
+trait ShapeCacheKeyTrait {
+    fn key<'k>(&'k self) -> BorrowedShapeCacheKey<'k>;
+}
+
+impl ShapeCacheKeyTrait for ShapeCacheKey {
+    fn key<'k>(&'k self) -> BorrowedShapeCacheKey<'k> {
+        BorrowedShapeCacheKey {
+            style: &self.style,
+            text: &self.text,
+        }
+    }
+}
+
+impl<'a> ShapeCacheKeyTrait for BorrowedShapeCacheKey<'a> {
+    fn key<'k>(&'k self) -> BorrowedShapeCacheKey<'k> {
+        *self
+    }
+}
+
+impl<'a> std::borrow::Borrow<dyn ShapeCacheKeyTrait + 'a> for ShapeCacheKey {
+    fn borrow(&self) -> &(dyn ShapeCacheKeyTrait + 'a) {
+        self
+    }
+}
+
+impl<'a> std::borrow::Borrow<dyn ShapeCacheKeyTrait + 'a> for lru::KeyRef<ShapeCacheKey> {
+    fn borrow(&self) -> &(dyn ShapeCacheKeyTrait + 'a) {
+        let k: &ShapeCacheKey = self.borrow();
+        k
+    }
+}
+
+impl<'a> PartialEq for (dyn ShapeCacheKeyTrait + 'a) {
+    fn eq(&self, other: &Self) -> bool {
+        self.key().eq(&other.key())
+    }
+}
+
+impl<'a> Eq for (dyn ShapeCacheKeyTrait + 'a) {}
+
+impl<'a> std::hash::Hash for (dyn ShapeCacheKeyTrait + 'a) {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.key().hash(state)
+    }
+}
 
 pub struct TermWindow {
     pub window: Option<Window>,
@@ -190,7 +259,7 @@ pub struct TermWindow {
     /// The URL over which we are currently hovering
     current_highlight: Option<Arc<Hyperlink>>,
 
-    shape_cache: RefCell<LruCache<ShapeCacheKey, anyhow::Result<Vec<GlyphInfo>>>>,
+    shape_cache: RefCell<LruCache<ShapeCacheKey, anyhow::Result<Rc<Vec<GlyphInfo>>>>>,
 }
 
 fn mouse_press_to_tmb(press: &MousePress) -> TMB {
@@ -2042,9 +2111,12 @@ impl TermWindow {
         Ok(())
     }
 
-    fn lookup_cached_shape(&self, key: &ShapeCacheKey) -> Option<anyhow::Result<Vec<GlyphInfo>>> {
+    fn lookup_cached_shape(
+        &self,
+        key: &dyn ShapeCacheKeyTrait,
+    ) -> Option<anyhow::Result<Rc<Vec<GlyphInfo>>>> {
         match self.shape_cache.borrow_mut().get(key) {
-            Some(Ok(info)) => Some(Ok(info.clone())),
+            Some(Ok(info)) => Some(Ok(Rc::clone(info))),
             Some(Err(err)) => Some(Err(anyhow!("cached shaper error: {}", err))),
             None => None,
         }
@@ -2115,7 +2187,10 @@ impl TermWindow {
 
             // Shape the printable text from this cluster
             let glyph_info = {
-                let key = ShapeCacheKey((style.clone(), cluster.text.clone()));
+                let key = BorrowedShapeCacheKey {
+                    style,
+                    text: &cluster.text,
+                };
                 match self.lookup_cached_shape(&key) {
                     Some(Ok(info)) => info,
                     Some(Err(err)) => return Err(err),
@@ -2123,12 +2198,14 @@ impl TermWindow {
                         let font = self.fonts.resolve_font(style)?;
                         match font.shape(&cluster.text) {
                             Ok(info) => {
-                                self.shape_cache.borrow_mut().put(key, Ok(info.clone()));
-                                info
+                                self.shape_cache
+                                    .borrow_mut()
+                                    .put(key.to_owned(), Ok(Rc::new(info)));
+                                self.lookup_cached_shape(&key).unwrap().unwrap()
                             }
                             Err(err) => {
                                 let res = anyhow!("shaper error: {}", err);
-                                self.shape_cache.borrow_mut().put(key, Err(err));
+                                self.shape_cache.borrow_mut().put(key.to_owned(), Err(err));
                                 return Err(res);
                             }
                         }
@@ -2136,7 +2213,7 @@ impl TermWindow {
                 }
             };
 
-            for info in &glyph_info {
+            for info in glyph_info.iter() {
                 let cell_idx = cluster.byte_to_cell_idx[info.cluster as usize];
                 let glyph = gl_state
                     .glyph_cache
