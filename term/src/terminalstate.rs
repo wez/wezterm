@@ -202,6 +202,8 @@ pub struct TerminalState {
     /// keys.  The code in key_down() is responsible for interpreting this.
     application_cursor_keys: bool,
 
+    dec_ansi_mode: bool,
+
     /// When set, modifies the sequence of bytes sent for keys
     /// in the numeric keypad portion of the keyboard.
     application_keypad: bool,
@@ -303,6 +305,7 @@ impl TerminalState {
             dec_origin_mode: false,
             insert: false,
             application_cursor_keys: false,
+            dec_ansi_mode: false,
             application_keypad: false,
             bracketed_paste: false,
             sgr_mouse: false,
@@ -640,7 +643,11 @@ impl TerminalState {
                     _ => unreachable!(),
                 };
 
-                let csi_or_ss3 = if force_app || self.application_cursor_keys {
+                let csi_or_ss3 = if force_app
+                    || (self.application_cursor_keys
+                        && self.dec_ansi_mode
+                        && self.application_keypad)
+                {
                     // Use SS3 in application mode
                     "\x1bO"
                 } else {
@@ -1147,6 +1154,13 @@ impl TerminalState {
                 DecPrivateModeCode::ApplicationCursorKeys,
             )) => {
                 self.application_cursor_keys = false;
+            }
+
+            Mode::SetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::DecAnsiMode)) => {
+                self.dec_ansi_mode = true;
+            }
+            Mode::ResetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::DecAnsiMode)) => {
+                self.dec_ansi_mode = false;
             }
 
             Mode::SetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::ShowCursor)) => {

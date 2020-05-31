@@ -458,7 +458,17 @@ pub enum DecPrivateMode {
 
 #[derive(Debug, Clone, PartialEq, Eq, FromPrimitive, ToPrimitive)]
 pub enum DecPrivateModeCode {
+    /// https://vt100.net/docs/vt510-rm/DECCKM.html
+    /// This mode is only effective when the terminal is in keypad application mode (see DECKPAM)
+    /// and the ANSI/VT52 mode (DECANM) is set (see DECANM). Under these conditions, if the cursor
+    /// key mode is reset, the four cursor function keys will send ANSI cursor control commands. If
+    /// cursor key mode is set, the four cursor function keys will send application functions.
     ApplicationCursorKeys = 1,
+
+    /// https://vt100.net/docs/vt510-rm/DECANM.html
+    /// Behave like a vt52
+    DecAnsiMode = 2,
+
     /// https://vt100.net/docs/vt510-rm/DECCOLM.html
     Select132Columns = 3,
     /// https://vt100.net/docs/vt510-rm/DECSCLM.html
