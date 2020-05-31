@@ -620,21 +620,17 @@ impl Config {
 
             let cfg: Self;
 
-            if p.extension() == Some(OsStr::new("lua")) {
-                let lua = crate::scripting::make_lua_context(p)?;
-                let config: mlua::Value = lua
-                    .load(&s)
-                    .set_name(p.to_string_lossy().as_bytes())?
-                    .eval()?;
-                cfg = crate::scripting::from_lua_value(config).with_context(|| {
-                    format!(
-                        "Error converting lua value returned by script {} to Config struct",
-                        p.display()
-                    )
-                })?;
-            } else {
-                unreachable!();
-            }
+            let lua = crate::scripting::make_lua_context(p)?;
+            let config: mlua::Value = lua
+                .load(&s)
+                .set_name(p.to_string_lossy().as_bytes())?
+                .eval()?;
+            cfg = crate::scripting::from_lua_value(config).with_context(|| {
+                format!(
+                    "Error converting lua value returned by script {} to Config struct",
+                    p.display()
+                )
+            })?;
 
             // Compute but discard the key bindings here so that we raise any
             // problems earlier than we use them.
