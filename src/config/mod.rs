@@ -165,7 +165,10 @@ impl ConfigInner {
             }
             Err(err) => {
                 let err = format!("{:#}", err);
-                crate::connui::show_configuration_error_message(&err);
+                if self.generation > 0 {
+                    // Only generate the message for an actual reload
+                    crate::connui::show_configuration_error_message(&err);
+                }
                 self.error.replace(err);
             }
         }
