@@ -5,6 +5,8 @@ use serde::de::{
     IntoDeserializer, Unexpected, VariantAccess, Visitor,
 };
 use serde::{serde_if_integer128, Deserialize};
+use std::cmp::Ordering;
+use std::collections::BTreeMap;
 use std::convert::TryInto;
 use thiserror::*;
 
@@ -66,6 +68,63 @@ impl From<Error> for mlua::Error {
 
 pub struct ValueWrapper<'lua>(Value<'lua>);
 
+impl<'lua> PartialEq for ValueWrapper<'lua> {
+    fn eq(&self, other: &Self) -> bool {
+        self.cmp(other) == Ordering::Equal
+    }
+}
+
+impl<'lua> Eq for ValueWrapper<'lua> {}
+
+impl<'lua> PartialOrd for ValueWrapper<'lua> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl<'lua> Ord for ValueWrapper<'lua> {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        match (&self.0, &other.0) {
+            (Value::Nil, Value::Nil) => Ordering::Equal,
+            (Value::String(a), Value::String(b)) => a.as_bytes().cmp(b.as_bytes()),
+            (Value::Boolean(a), Value::Boolean(b)) => a.cmp(&b),
+            (Value::Integer(a), Value::Integer(b)) => a.cmp(&b),
+            (Value::Number(a), Value::Number(b)) => {
+                a.partial_cmp(&b).expect("use of keys that can be ordered")
+            }
+            (Value::LightUserData(a), Value::LightUserData(b)) => {
+                if a == b {
+                    Ordering::Equal
+                } else {
+                    panic!("use only keys that can be ordered")
+                }
+            }
+            (Value::Table(a), Value::Table(b)) => {
+                if a == b {
+                    Ordering::Equal
+                } else {
+                    panic!("use only keys that can be ordered")
+                }
+            }
+            (Value::Function(_), Value::Function(_)) => panic!("cannot order functions"),
+            (Value::Thread(_), Value::Thread(_)) => panic!("cannot order threads"),
+            (Value::UserData(_), Value::UserData(_)) => panic!("cannot order userdata"),
+            (Value::Error(_), Value::Error(_)) => panic!("cannot order errors"),
+            (Value::Nil, _) => panic!("cannot order differing types"),
+            (Value::Boolean(_), _) => panic!("cannot order differing types"),
+            (Value::Integer(_), _) => panic!("cannot order differing types"),
+            (Value::Number(_), _) => panic!("cannot order differing types"),
+            (Value::LightUserData(_), _) => panic!("cannot order differing types"),
+            (Value::UserData(_), _) => panic!("cannot order differing types"),
+            (Value::String(_), _) => panic!("cannot order differing types"),
+            (Value::Table(_), _) => panic!("cannot order differing types"),
+            (Value::Function(_), _) => panic!("cannot order differing types"),
+            (Value::Thread(_), _) => panic!("cannot order differing types"),
+            (Value::Error(_), _) => panic!("cannot order differing types"),
+        }
+    }
+}
+
 impl<'lua> std::fmt::Debug for ValueWrapper<'lua> {
     fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::result::Result<(), std::fmt::Error> {
         match &self.0 {
@@ -93,12 +152,13 @@ impl<'lua> std::fmt::Debug for ValueWrapper<'lua> {
                     }
                     list.finish()
                 } else {
-                    // Treat as map
-                    let mut map = fmt.debug_map();
+                    // Treat as map; put it into a BTreeMap so that we have a stable
+                    // order for our tests.
+                    let mut map = BTreeMap::new();
                     for pair in t.clone().pairs::<Value, Value>() {
                         match pair {
                             Ok(pair) => {
-                                map.entry(&ValueWrapper(pair.0), &ValueWrapper(pair.1));
+                                map.insert(ValueWrapper(pair.0), ValueWrapper(pair.1));
                             }
                             Err(err) => {
                                 log::error!("error while retrieving map entry: {}", err);
@@ -106,7 +166,7 @@ impl<'lua> std::fmt::Debug for ValueWrapper<'lua> {
                             }
                         }
                     }
-                    map.finish()
+                    fmt.debug_map().entries(&map).finish()
                 }
             }
             Value::UserData(_) | Value::LightUserData(_) => fmt.write_str("userdata"),
@@ -872,8 +932,9 @@ mod test {
             .unwrap_err();
         assert_eq!(
             err.to_string(),
-            "invalid type: boolean `true`, expected integer (\
-            while processing a struct of type `MyMap`)"
+            "while processing a struct of type `MyMap` with value:\n\
+            {\n    \"age\": true,\n    \"hello\": \"hello\",\n}\n\
+            invalid type: boolean `true`, expected integer",
         );
     }
 
@@ -896,7 +957,9 @@ mod test {
         let err = from_lua_value::<MyEnum>(lua.load("\"Invalid\"").eval().unwrap()).unwrap_err();
         assert_eq!(
             err.to_string(),
-            "unknown variant `Invalid`, expected `Foo` or `Bar`"
+            "while processing an enum of type `MyEnum` and value \"Invalid\"\n\
+            which has allowed variants `Bar`, `Foo`\n\
+            unknown variant `Invalid`, expected `Foo` or `Bar`",
         );
     }
 }
