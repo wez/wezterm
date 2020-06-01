@@ -64,8 +64,58 @@ impl From<Error> for mlua::Error {
     }
 }
 
-#[derive(Debug)]
-struct ValueWrapper<'lua>(Value<'lua>);
+pub struct ValueWrapper<'lua>(Value<'lua>);
+
+impl<'lua> std::fmt::Debug for ValueWrapper<'lua> {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::result::Result<(), std::fmt::Error> {
+        match &self.0 {
+            Value::Nil => fmt.write_str("nil"),
+            Value::Boolean(b) => fmt.write_str(if *b { "true" } else { "false" }),
+            Value::Integer(i) => fmt.write_fmt(format_args!("{}", i)),
+            Value::Number(i) => fmt.write_fmt(format_args!("{}", i)),
+            Value::String(s) => match s.to_str() {
+                Ok(s) => fmt.write_fmt(format_args!("{:?}", s)),
+                Err(_) => fmt.write_fmt(format_args!("{:?}", s.as_bytes())),
+            },
+            Value::Table(t) => {
+                if let Ok(true) = t.contains_key(1) {
+                    // Treat as list
+                    let mut list = fmt.debug_list();
+                    for value in t.clone().sequence_values() {
+                        match value {
+                            Ok(value) => {
+                                list.entry(&ValueWrapper(value));
+                            }
+                            Err(err) => {
+                                list.entry(&err);
+                            }
+                        }
+                    }
+                    list.finish()
+                } else {
+                    // Treat as map
+                    let mut map = fmt.debug_map();
+                    for pair in t.clone().pairs::<Value, Value>() {
+                        match pair {
+                            Ok(pair) => {
+                                map.entry(&ValueWrapper(pair.0), &ValueWrapper(pair.1));
+                            }
+                            Err(err) => {
+                                log::error!("error while retrieving map entry: {}", err);
+                                break;
+                            }
+                        }
+                    }
+                    map.finish()
+                }
+            }
+            Value::UserData(_) | Value::LightUserData(_) => fmt.write_str("userdata"),
+            Value::Thread(_) => fmt.write_str("thread"),
+            Value::Function(_) => fmt.write_str("function"),
+            Value::Error(e) => fmt.write_fmt(format_args!("error {}", e)),
+        }
+    }
+}
 
 impl<'de, 'lua> IntoDeserializer<'de, Error> for ValueWrapper<'lua> {
     type Deserializer = Self;
@@ -466,13 +516,14 @@ impl<'de, 'lua> Deserializer<'de> for ValueWrapper<'lua> {
 
     fn deserialize_enum<V>(
         self,
-        _name: &str,
-        _variants: &'static [&'static str],
+        name: &str,
+        variants: &'static [&'static str],
         visitor: V,
     ) -> Result<V::Value, Error>
     where
         V: Visitor<'de>,
     {
+        let saved_value = self.0.clone();
         let (variant, value) = match self.0 {
             Value::Table(t) => {
                 let mut iter = t.pairs::<String, Value>();
@@ -519,7 +570,29 @@ impl<'de, 'lua> Deserializer<'de> for ValueWrapper<'lua> {
             }
         };
 
-        visitor.visit_enum(EnumDeserializer { variant, value })
+        visitor
+            .visit_enum(EnumDeserializer { variant, value })
+            .map_err(|err| {
+                let mut variants = variants.to_vec();
+                variants.sort();
+                let mut allowed = String::new();
+                for varname in variants.into_iter() {
+                    if !allowed.is_empty() {
+                        allowed.push_str(", ");
+                    }
+                    allowed.push('`');
+                    allowed.push_str(varname);
+                    allowed.push('`');
+                }
+                Error::custom(format!(
+                    "while processing an enum of type `{}` and \
+                     value {:?}\nwhich has allowed variants {}\n{}",
+                    name,
+                    ValueWrapper(saved_value),
+                    allowed,
+                    err
+                ))
+            })
     }
 
     fn deserialize_map<V>(self, v: V) -> Result<V::Value, Self::Error>
@@ -545,13 +618,18 @@ impl<'de, 'lua> Deserializer<'de> for ValueWrapper<'lua> {
         V: Visitor<'de>,
     {
         match self.0 {
-            Value::Table(t) => match visit_table(t, v, Some(struct_name), Some(fields)) {
-                Ok(v) => Ok(v),
-                Err(err) => Err(Error::custom(format!(
-                    "{} (while processing a struct of type `{}`)",
-                    err, struct_name
-                ))),
-            },
+            Value::Table(t) => {
+                let table = t.clone();
+                match visit_table(t, v, Some(struct_name), Some(fields)) {
+                    Ok(v) => Ok(v),
+                    Err(err) => Err(Error::custom(format!(
+                        "while processing a struct of type `{}` with value:\n{:#?}\n{}",
+                        struct_name,
+                        ValueWrapper(Value::Table(table)),
+                        err,
+                    ))),
+                }
+            }
             _ => Err(serde::de::Error::invalid_type(
                 unexpected(&self.0),
                 &"a map",
@@ -599,10 +677,9 @@ impl<'de, 'lua> VariantAccess<'de> for VariantDeserializer<'lua> {
     {
         match self.value {
             Some(value) => seed.deserialize(ValueWrapper(value)),
-            None => Err(serde::de::Error::invalid_type(
-                Unexpected::UnitVariant,
-                &"newtype variant",
-            )),
+            None => Err(Error::custom(format!(
+                "Expected a variant with parameters but got a unit variant instead"
+            ))),
         }
     }
 
