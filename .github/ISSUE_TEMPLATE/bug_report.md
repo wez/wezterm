@@ -14,18 +14,20 @@ A clear and concise description of what the bug is.
 ## Environment (please complete the following information):
 
  - OS: [e.g. Linux X11, Linux Wayland, macOS, Windows]
- - Frontend:  [e.g. OpenGL or Software]
  - Version: please run `wezterm -V` and include its output here
 
 ## To Reproduce
 
 Steps to reproduce the behavior.
 
-Please include as much information as possible that can help to reproduce and understand the issue; some pointers and suggestions are included here in this template. You are empowered to include more or less information than is asked for here!
+Please include as much information as possible that can help to reproduce and
+understand the issue; some pointers and suggestions are included here in this
+template. You are empowered to include more or less information than is asked
+for here!
 
 ## Configuration
 
-Be sure to include the relevant section(s) of your `wezterm.toml` configuration file.
+Be sure to include the relevant section(s) of your `wezterm.lua` configuration file.
 
 ## Expected behavior
 A clear and concise description of what you expected to happen.
@@ -58,4 +60,5 @@ in to the terminal, so if you are having an issue with input, please be sure to 
 it below!
 
 ## Additional context
+
 Add any other context about the problem here.
