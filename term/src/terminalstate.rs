@@ -644,19 +644,22 @@ impl TerminalState {
                 };
 
                 let csi_or_ss3 = if force_app
-                    || (self.application_cursor_keys
-                        && self.dec_ansi_mode
-                        && self.application_keypad)
-                {
+                    || (
+                        self.application_cursor_keys
+                        // Strict reading of DECCKM suggests that application_cursor_keys
+                        // only applies when DECANM and DECKPAM are active, but that seems
+                        // to break unmodified cursor keys in vim
+                        /* && self.dec_ansi_mode && self.application_keypad */
+                    ) {
                     // Use SS3 in application mode
-                    "\x1bO"
+                    SS3
                 } else {
                     // otherwise use regular CSI
-                    "\x1b["
+                    CSI
                 };
 
                 if mods.contains(KeyModifiers::SHIFT) || mods.contains(KeyModifiers::CTRL) {
-                    write!(buf, "{}1;{}{}", csi_or_ss3, 1 + encode_modifiers(mods), c)?;
+                    write!(buf, "{}1;{}{}", CSI, 1 + encode_modifiers(mods), c)?;
                 } else {
                     if mods.contains(KeyModifiers::ALT) {
                         buf.push(0x1b as char);
