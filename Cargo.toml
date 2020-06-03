@@ -68,6 +68,7 @@ structopt = "0.3"
 strsim = "0.10"
 tabout = { path = "tabout" }
 term = { path = "term" }
+terminfo = "0.7"
 termwiz = { path = "termwiz" }
 textwrap = "0.11"
 toml = "0.4"

@@ -55,6 +55,8 @@ pub fn launcher(
     let mut active_idx = 0;
     let mut entries = vec![];
 
+    term.set_raw_mode()?;
+
     // Pull in the user defined entries from the launch_menu
     // section of the configuration.
     for item in &configuration().launch_menu {

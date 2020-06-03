@@ -3,150 +3,33 @@
 //! input from the user as part of eg: setting up an ssh
 //! session.
 
-use crate::config::configuration;
 use crate::font::FontConfiguration;
 use crate::frontend::front_end;
 use crate::mux::domain::{alloc_domain_id, Domain, DomainId, DomainState};
-use crate::mux::renderable::{Renderable, RenderableDimensions, StableCursorPosition};
+use crate::mux::renderable::Renderable;
 use crate::mux::tab::{alloc_tab_id, Tab, TabId};
 use crate::mux::window::WindowId;
 use crate::mux::Mux;
 use anyhow::{bail, Error};
 use async_trait::async_trait;
 use crossbeam::channel::{unbounded as channel, Receiver, Sender};
-use filedescriptor::Pipe;
+use filedescriptor::{FileDescriptor, Pipe};
 use portable_pty::*;
-use rangeset::RangeSet;
 use std::cell::RefCell;
 use std::cell::RefMut;
-use std::convert::TryInto;
-use std::ops::Range;
+use std::io::Write;
 use std::rc::Rc;
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
 use term::color::ColorPalette;
-use term::{KeyCode, KeyModifiers, Line, MouseEvent, StableRowIndex};
+use term::{KeyCode, KeyModifiers, MouseEvent};
+use termwiz::caps::{Capabilities, ColorLevel, ProbeHints};
 use termwiz::input::{InputEvent, KeyEvent, MouseEvent as TermWizMouseEvent};
 use termwiz::lineedit::*;
-use termwiz::surface::{Change, SequenceNo, Surface};
+use termwiz::render::terminfo::TerminfoRenderer;
+use termwiz::surface::Change;
 use termwiz::terminal::{ScreenSize, Terminal, TerminalWaker};
 use url::Url;
-
-struct RenderableInner {
-    surface: Surface,
-    something_changed: Arc<AtomicBool>,
-    local_sequence: SequenceNo,
-    dead: bool,
-    render_rx: Receiver<Vec<Change>>,
-    input_tx: Sender<InputEvent>,
-}
-
-struct RenderableState {
-    inner: RefCell<RenderableInner>,
-}
-
-struct RenderableWriter {
-    input_tx: Sender<InputEvent>,
-}
-
-impl std::io::Write for RenderableWriter {
-    fn write(&mut self, data: &[u8]) -> Result<usize, std::io::Error> {
-        if let Ok(s) = std::str::from_utf8(data) {
-            let paste = InputEvent::Paste(s.to_string());
-            self.input_tx.send(paste).ok();
-        }
-
-        Ok(data.len())
-    }
-
-    fn flush(&mut self) -> Result<(), std::io::Error> {
-        Ok(())
-    }
-}
-
-impl Renderable for RenderableState {
-    fn get_cursor_position(&self) -> StableCursorPosition {
-        let surface = &self.inner.borrow().surface;
-        let (x, y) = surface.cursor_position();
-        let shape = surface.cursor_shape();
-        StableCursorPosition {
-            x,
-            y: y as StableRowIndex,
-            shape,
-        }
-    }
-
-    fn get_lines(&mut self, lines: Range<StableRowIndex>) -> (StableRowIndex, Vec<Line>) {
-        let inner = self.inner.borrow_mut();
-
-        // Reset the dirty bit
-        inner.something_changed.store(false, Ordering::SeqCst);
-
-        let config = configuration();
-
-        (
-            lines.start,
-            inner
-                .surface
-                .screen_lines()
-                .into_iter()
-                .skip(lines.start.try_into().unwrap())
-                .take((lines.end - lines.start).try_into().unwrap())
-                .map(|line| {
-                    let mut line = line.into_owned();
-                    line.scan_and_create_hyperlinks(&config.hyperlink_rules);
-                    line
-                })
-                .collect(),
-        )
-    }
-
-    fn get_dirty_lines(&self, lines: Range<StableRowIndex>) -> RangeSet<StableRowIndex> {
-        let mut inner = self.inner.borrow_mut();
-        let mut set = RangeSet::new();
-
-        loop {
-            match inner.render_rx.try_recv() {
-                Ok(changes) => {
-                    inner.surface.add_changes(changes);
-                }
-                Err(err) => {
-                    if err.is_disconnected() {
-                        inner.dead = true;
-                    }
-                    break;
-                }
-            }
-        }
-
-        if inner.something_changed.load(Ordering::SeqCst)
-            || inner.surface.has_changes(inner.local_sequence)
-        {
-            set.add_range(lines);
-
-            // Update our local sequence number (so that we don't falsely
-            // consider lines changed) and clear the change buffer.
-            // We don't need the deltas from the surface, just the sequence
-            // numbers.
-            let seq = inner.surface.current_seqno();
-            inner.surface.flush_changes_older_than(seq);
-            inner.local_sequence = seq;
-        }
-        set
-    }
-
-    fn get_dimensions(&self) -> RenderableDimensions {
-        let (cols, viewport_rows) = self.inner.borrow().surface.dimensions();
-        RenderableDimensions {
-            viewport_rows,
-            cols,
-            scrollback_rows: viewport_rows,
-            physical_top: 0,
-            scrollback_top: 0,
-        }
-    }
-}
 
 struct TermWizTerminalDomain {
     domain_id: DomainId,
@@ -198,10 +81,11 @@ impl Domain for TermWizTerminalDomain {
 pub struct TermWizTerminalTab {
     tab_id: TabId,
     domain_id: DomainId,
-    renderable: RefCell<RenderableState>,
-    writer: RefCell<RenderableWriter>,
-    reader: Pipe,
-    mouse_grabbed: bool,
+    terminal: RefCell<term::Terminal>,
+    input_tx: Sender<InputEvent>,
+    dead: RefCell<bool>,
+    writer: RefCell<Vec<u8>>,
+    render_rx: FileDescriptor,
 }
 
 impl TermWizTerminalTab {
@@ -210,35 +94,30 @@ impl TermWizTerminalTab {
         width: usize,
         height: usize,
         input_tx: Sender<InputEvent>,
-        render_rx: Receiver<Vec<Change>>,
+        render_rx: FileDescriptor,
     ) -> Self {
         let tab_id = alloc_tab_id();
 
-        let inner = RenderableInner {
-            surface: Surface::new(width, height),
-            local_sequence: 0,
-            dead: false,
-            something_changed: Arc::new(AtomicBool::new(false)),
-            input_tx: input_tx.clone(),
-            render_rx,
-        };
+        let terminal = RefCell::new(term::Terminal::new(
+            height,
+            width,
+            0,
+            0,
+            std::sync::Arc::new(crate::config::TermConfig {}),
+            "WezTerm",
+            crate::wezterm_version(),
+            Box::new(Vec::new()), // FIXME: connect to something?
+        ));
 
-        let renderable = RefCell::new(RenderableState {
-            inner: RefCell::new(inner),
-        });
-        let reader = Pipe::new().expect("Pipe::new failed");
         Self {
             tab_id,
             domain_id,
-            renderable,
-            writer: RefCell::new(RenderableWriter { input_tx }),
-            reader,
-            mouse_grabbed: true,
+            terminal,
+            writer: RefCell::new(Vec::new()),
+            render_rx,
+            input_tx,
+            dead: RefCell::new(false),
         }
-    }
-
-    pub fn set_mouse_grabbed(&mut self, grabbed: bool) {
-        self.mouse_grabbed = grabbed;
     }
 }
 
@@ -248,28 +127,21 @@ impl Tab for TermWizTerminalTab {
     }
 
     fn renderer(&self) -> RefMut<dyn Renderable> {
-        self.renderable.borrow_mut()
+        RefMut::map(self.terminal.borrow_mut(), |t| &mut *t)
     }
 
     fn get_title(&self) -> String {
-        let renderable = self.renderable.borrow();
-        let surface = &renderable.inner.borrow().surface;
-        surface.title().to_string()
+        self.terminal.borrow_mut().get_title().to_string()
     }
 
     fn send_paste(&self, text: &str) -> anyhow::Result<()> {
         let paste = InputEvent::Paste(text.to_string());
-        self.renderable
-            .borrow_mut()
-            .inner
-            .borrow_mut()
-            .input_tx
-            .send(paste)?;
+        self.input_tx.send(paste)?;
         Ok(())
     }
 
     fn reader(&self) -> anyhow::Result<Box<dyn std::io::Read + Send>> {
-        Ok(Box::new(self.reader.read.try_clone()?))
+        Ok(Box::new(self.render_rx.try_clone()?))
     }
 
     fn writer(&self) -> RefMut<dyn std::io::Write> {
@@ -277,25 +149,27 @@ impl Tab for TermWizTerminalTab {
     }
 
     fn resize(&self, size: PtySize) -> anyhow::Result<()> {
-        let renderable = self.renderable.borrow();
-        let mut inner = renderable.inner.borrow_mut();
-
-        inner.surface.resize(size.cols as usize, size.rows as usize);
-        inner.input_tx.send(InputEvent::Resized {
+        self.input_tx.send(InputEvent::Resized {
             rows: size.rows as usize,
             cols: size.cols as usize,
         })?;
+
+        self.terminal.borrow_mut().resize(
+            size.rows as usize,
+            size.cols as usize,
+            size.pixel_width as usize,
+            size.pixel_height as usize,
+        );
+
         Ok(())
     }
 
     fn key_down(&self, key: KeyCode, modifiers: KeyModifiers) -> anyhow::Result<()> {
         let event = InputEvent::Key(KeyEvent { key, modifiers });
-        self.renderable
-            .borrow_mut()
-            .inner
-            .borrow_mut()
-            .input_tx
-            .send(event)?;
+        if let Err(e) = self.input_tx.send(event) {
+            *self.dead.borrow_mut() = true;
+            return Err(e.into());
+        }
         Ok(())
     }
 
@@ -318,38 +192,23 @@ impl Tab for TermWizTerminalTab {
             mouse_buttons,
             modifiers: event.modifiers,
         });
-        self.renderable
-            .borrow_mut()
-            .inner
-            .borrow_mut()
-            .input_tx
-            .send(event)?;
+        if let Err(e) = self.input_tx.send(event) {
+            *self.dead.borrow_mut() = true;
+            return Err(e.into());
+        }
         Ok(())
     }
 
-    fn advance_bytes(&self, _buf: &[u8]) {
-        panic!("advance_bytes is undefined for TermWizTerminalTab");
+    fn advance_bytes(&self, buf: &[u8]) {
+        self.terminal.borrow_mut().advance_bytes(buf)
     }
 
     fn is_dead(&self) -> bool {
-        self.renderable.borrow().inner.borrow().dead
+        *self.dead.borrow()
     }
 
     fn palette(&self) -> ColorPalette {
-        let config = configuration();
-
-        if let Some(scheme_name) = config.color_scheme.as_ref() {
-            if let Some(palette) = config.color_schemes.get(scheme_name) {
-                return palette.clone().into();
-            }
-        }
-
-        config
-            .colors
-            .as_ref()
-            .cloned()
-            .map(Into::into)
-            .unwrap_or_else(ColorPalette::default)
+        self.terminal.borrow().palette()
     }
 
     fn domain_id(&self) -> DomainId {
@@ -357,18 +216,42 @@ impl Tab for TermWizTerminalTab {
     }
 
     fn is_mouse_grabbed(&self) -> bool {
-        self.mouse_grabbed
+        self.terminal.borrow().is_mouse_grabbed()
     }
 
     fn get_current_working_dir(&self) -> Option<Url> {
-        None
+        self.terminal.borrow().get_current_dir().cloned()
+    }
+
+    fn erase_scrollback(&self) {
+        self.terminal.borrow_mut().erase_scrollback();
     }
 }
 
 pub struct TermWizTerminal {
-    render_tx: Sender<Vec<Change>>,
+    render_tx: TermWizTerminalRenderTty,
     input_rx: Receiver<InputEvent>,
+    renderer: TerminfoRenderer,
+}
+
+struct TermWizTerminalRenderTty {
+    render_tx: FileDescriptor,
     screen_size: ScreenSize,
+}
+
+impl std::io::Write for TermWizTerminalRenderTty {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        self.render_tx.write(buf)
+    }
+    fn flush(&mut self) -> std::io::Result<()> {
+        self.render_tx.flush()
+    }
+}
+
+impl termwiz::render::RenderTty for TermWizTerminalRenderTty {
+    fn get_size_in_cells(&mut self) -> anyhow::Result<(usize, usize)> {
+        Ok((self.screen_size.cols, self.screen_size.rows))
+    }
 }
 
 impl TermWizTerminal {
@@ -393,6 +276,25 @@ impl TermWizTerminal {
 
 impl termwiz::terminal::Terminal for TermWizTerminal {
     fn set_raw_mode(&mut self) -> anyhow::Result<()> {
+        use termwiz::escape::csi::{DecPrivateMode, DecPrivateModeCode, Mode, CSI};
+
+        macro_rules! decset {
+            ($variant:ident) => {
+                write!(
+                    self.render_tx,
+                    "{}",
+                    CSI::Mode(Mode::SetDecPrivateMode(DecPrivateMode::Code(
+                        DecPrivateModeCode::$variant
+                    )))
+                )?;
+            };
+        }
+
+        decset!(BracketedPaste);
+        decset!(AnyEventMouse);
+        decset!(SGRMouse);
+        self.flush()?;
+
         Ok(())
     }
 
@@ -409,7 +311,7 @@ impl termwiz::terminal::Terminal for TermWizTerminal {
     }
 
     fn get_screen_size(&mut self) -> anyhow::Result<ScreenSize> {
-        Ok(self.screen_size)
+        Ok(self.render_tx.screen_size)
     }
 
     fn set_screen_size(&mut self, _size: ScreenSize) -> anyhow::Result<()> {
@@ -417,19 +319,20 @@ impl termwiz::terminal::Terminal for TermWizTerminal {
     }
 
     fn render(&mut self, changes: &[Change]) -> anyhow::Result<()> {
-        self.render_tx.send(changes.to_vec())?;
+        self.renderer.render_to(changes, &mut self.render_tx)?;
         Ok(())
     }
 
     fn flush(&mut self) -> anyhow::Result<()> {
+        self.render_tx.render_tx.flush()?;
         Ok(())
     }
 
     fn poll_input(&mut self, wait: Option<Duration>) -> anyhow::Result<Option<InputEvent>> {
         self.do_input_poll(wait).map(|i| {
             if let Some(InputEvent::Resized { cols, rows }) = i.as_ref() {
-                self.screen_size.cols = *cols;
-                self.screen_size.rows = *rows;
+                self.render_tx.screen_size.cols = *cols;
+                self.render_tx.screen_size.rows = *rows;
             }
             i
         })
@@ -442,24 +345,55 @@ impl termwiz::terminal::Terminal for TermWizTerminal {
     }
 }
 
-pub fn allocate(width: usize, height: usize) -> (TermWizTerminal, TermWizTerminalTab) {
-    let (render_tx, render_rx) = channel();
+pub fn allocate(width: usize, height: usize) -> (TermWizTerminal, Rc<dyn Tab>) {
+    let render_pipe = Pipe::new().expect("Pipe creation not to fail");
+
     let (input_tx, input_rx) = channel();
 
+    let renderer = new_wezterm_terminfo_renderer();
+
     let tw_term = TermWizTerminal {
-        render_tx,
-        input_rx,
-        screen_size: ScreenSize {
-            cols: width,
-            rows: height,
-            xpixel: 0,
-            ypixel: 0,
+        render_tx: TermWizTerminalRenderTty {
+            render_tx: render_pipe.write,
+            screen_size: ScreenSize {
+                cols: width,
+                rows: height,
+                xpixel: 0,
+                ypixel: 0,
+            },
         },
+        input_rx,
+        renderer,
     };
 
     let domain_id = 0;
-    let tab = TermWizTerminalTab::new(domain_id, width, height, input_tx, render_rx);
+    let tab = TermWizTerminalTab::new(domain_id, width, height, input_tx, render_pipe.read);
+
+    // Add the tab to the mux so that the output is processed
+    let tab: Rc<dyn Tab> = Rc::new(tab);
+    let mux = Mux::get().unwrap();
+    mux.add_tab(&tab).expect("to be able to add tab to mux");
+
     (tw_term, tab)
+}
+
+fn new_wezterm_terminfo_renderer() -> TerminfoRenderer {
+    let data = include_bytes!("../termwiz/data/xterm-256color");
+    let db = terminfo::Database::from_buffer(&data[..]).unwrap();
+
+    TerminfoRenderer::new(
+        Capabilities::new_with_hints(
+            ProbeHints::new_from_env()
+                .term(Some("xterm-256color".into()))
+                .terminfo_db(Some(db))
+                .color_level(Some(ColorLevel::TrueColor))
+                .colorterm(None)
+                .colorterm_bce(None)
+                .term_program(Some("WezTerm".into()))
+                .term_program_version(Some(crate::wezterm_version().into())),
+        )
+        .expect("cannot fail to make internal Capabilities"),
+    )
 }
 
 /// This function spawns a thread and constructs a GUI window with an
@@ -475,28 +409,32 @@ pub async fn run<
     width: usize,
     height: usize,
     f: F,
-    mouse_grabbed: bool,
 ) -> anyhow::Result<T> {
-    let (render_tx, render_rx) = channel();
+    let render_pipe = Pipe::new().expect("Pipe creation not to fail");
+    let render_rx = render_pipe.read;
     let (input_tx, input_rx) = channel();
 
+    let renderer = new_wezterm_terminfo_renderer();
+
     let tw_term = TermWizTerminal {
-        render_tx,
-        input_rx,
-        screen_size: ScreenSize {
-            cols: width,
-            rows: height,
-            xpixel: 0,
-            ypixel: 0,
+        render_tx: TermWizTerminalRenderTty {
+            render_tx: render_pipe.write,
+            screen_size: ScreenSize {
+                cols: width,
+                rows: height,
+                xpixel: 0,
+                ypixel: 0,
+            },
         },
+        input_rx,
+        renderer,
     };
 
     async fn register_tab(
         input_tx: Sender<InputEvent>,
-        render_rx: Receiver<Vec<Change>>,
+        render_rx: FileDescriptor,
         width: usize,
         height: usize,
-        mouse_grabbed: bool,
     ) -> anyhow::Result<WindowId> {
         let mux = Mux::get().unwrap();
 
@@ -506,9 +444,7 @@ pub async fn run<
 
         let window_id = mux.new_empty_window();
 
-        let mut tab =
-            TermWizTerminalTab::new(domain.domain_id(), width, height, input_tx, render_rx);
-        tab.set_mouse_grabbed(mouse_grabbed);
+        let tab = TermWizTerminalTab::new(domain.domain_id(), width, height, input_tx, render_rx);
         let tab: Rc<dyn Tab> = Rc::new(tab);
 
         mux.add_tab(&tab)?;
@@ -523,7 +459,7 @@ pub async fn run<
     }
 
     let window_id: WindowId = promise::spawn::spawn_into_main_thread(async move {
-        register_tab(input_tx, render_rx, width, height, mouse_grabbed).await
+        register_tab(input_tx, render_rx, width, height).await
     })
     .await
     .unwrap_or_else(|| bail!("task panicked or was cancelled"))?;
@@ -550,24 +486,19 @@ pub fn message_box_ok(message: &str) {
     let title = "wezterm";
     let message = message.to_string();
 
-    promise::spawn::block_on(run(
-        60,
-        10,
-        move |mut term| {
-            term.render(&[
-                Change::Title(title.to_string()),
-                Change::Text(message.to_string()),
-            ])
-            .map_err(Error::msg)?;
+    promise::spawn::block_on(run(60, 10, move |mut term| {
+        term.render(&[
+            Change::Title(title.to_string()),
+            Change::Text(message.to_string()),
+        ])
+        .map_err(Error::msg)?;
 
-            let mut editor = LineEditor::new(&mut term);
-            editor.set_prompt("press enter to continue.");
+        let mut editor = LineEditor::new(&mut term);
+        editor.set_prompt("press enter to continue.");
 
-            let mut host = NopLineEditorHost::default();
-            editor.read_line(&mut host).ok();
-            Ok(())
-        },
-        false,
-    ))
+        let mut host = NopLineEditorHost::default();
+        editor.read_line(&mut host).ok();
+        Ok(())
+    }))
     .ok();
 }

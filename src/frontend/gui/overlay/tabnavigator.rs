@@ -20,6 +20,8 @@ pub fn tab_navigator(
         .position(|(_title, id)| *id == tab_id)
         .unwrap_or(0);
 
+    term.set_raw_mode()?;
+
     fn render(
         active_tab_idx: usize,
         tab_list: &[(String, TabId)],
@@ -51,7 +53,8 @@ pub fn tab_navigator(
             }
         }
 
-        term.render(&changes)
+        term.render(&changes)?;
+        term.flush()
     }
 
     term.render(&[Change::Title("Tab Navigator".to_string())])?;

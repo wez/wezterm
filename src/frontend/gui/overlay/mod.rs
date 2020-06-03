@@ -38,5 +38,5 @@ where
         res
     });
 
-    (Rc::new(tw_tab), Box::pin(future))
+    (tw_tab, Box::pin(future))
 }

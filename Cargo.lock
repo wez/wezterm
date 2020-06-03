@@ -3842,6 +3842,7 @@ dependencies = [
  "structopt",
  "tabout",
  "term",
+ "terminfo",
  "termwiz",
  "textwrap",
  "thiserror",
