@@ -97,7 +97,7 @@ return {
       -- will be used as described in the documentation above
       args = {"bash", "-l"},
 
-      -- You can specify an alternative current workding directory;
+      -- You can specify an alternative current working directory;
       -- if you don't specify one then a default based on the OSC 7
       -- escape sequence will be used (see the Shell Integration
       -- docs), falling back to the home directory.
