@@ -10,7 +10,10 @@ use std::ops::Range;
 use std::rc::Rc;
 use std::sync::Arc;
 use term::color::ColorPalette;
-use term::{Clipboard, KeyCode, KeyModifiers, Line, MouseEvent, StableRowIndex};
+use term::{
+    unicode_column_width, Clipboard, KeyCode, KeyModifiers, Line, MouseEvent, StableRowIndex,
+};
+use unicode_segmentation::*;
 use url::Url;
 use window::WindowOps;
 
@@ -267,6 +270,99 @@ impl CopyRenderable {
         self.select_to_cursor_pos();
     }
 
+    fn move_backward_one_word(&mut self) {
+        let y = if self.cursor.x == 0 && self.cursor.y > 0 {
+            self.cursor.x = usize::max_value();
+            self.cursor.y.saturating_sub(1)
+        } else {
+            self.cursor.y
+        };
+
+        let (top, lines) = self.get_lines(y..y + 1);
+        if let Some(line) = lines.get(0) {
+            self.cursor.y = top;
+            if self.cursor.x == usize::max_value() {
+                self.cursor.x = line.cells().len().saturating_sub(1);
+            }
+            let s = line.columns_as_str(0..self.cursor.x.saturating_add(1));
+
+            // "hello there you"
+            //              |_
+            //        |    _
+            //  |    _
+            //        |     _
+            //  |     _
+
+            let mut last_was_whitespace = false;
+
+            for (idx, word) in s.split_word_bounds().rev().enumerate() {
+                let width = unicode_column_width(word);
+
+                if is_whitespace_word(word) {
+                    self.cursor.x = self.cursor.x.saturating_sub(width);
+                    last_was_whitespace = true;
+                    continue;
+                }
+                last_was_whitespace = false;
+
+                if idx == 0 && width == 1 {
+                    // We were at the start of the initial word
+                    self.cursor.x = self.cursor.x.saturating_sub(width);
+                    continue;
+                }
+
+                self.cursor.x = self.cursor.x.saturating_sub(width.saturating_sub(1));
+                break;
+            }
+
+            if last_was_whitespace && self.cursor.y > 0 {
+                // The line begins with whitespace
+                self.cursor.x = usize::max_value();
+                self.cursor.y -= 1;
+                return self.move_backward_one_word();
+            }
+        }
+        self.select_to_cursor_pos();
+    }
+
+    fn move_forward_one_word(&mut self) {
+        let y = self.cursor.y;
+        let (top, lines) = self.get_lines(y..y + 1);
+        if let Some(line) = lines.get(0) {
+            self.cursor.y = top;
+            let width = line.cells().len();
+            let s = line.columns_as_str(self.cursor.x..width + 1);
+            let mut words = s.split_word_bounds();
+
+            if let Some(word) = words.next() {
+                self.cursor.x += unicode_column_width(word);
+                if !is_whitespace_word(word) {
+                    // We were part-way through a word, so look
+                    // at the next word
+                    if let Some(word) = words.next() {
+                        if is_whitespace_word(word) {
+                            self.cursor.x += unicode_column_width(word);
+                            // If we advance off the RHS, move to the start of the word on the
+                            // next line, if any!
+                            if self.cursor.x >= width {
+                                let dims = self.delegate.renderer().get_dimensions();
+                                let max_row = dims.scrollback_top + dims.scrollback_rows as isize;
+                                if self.cursor.y + 1 < max_row {
+                                    self.cursor.y += 1;
+                                    return self.move_to_start_of_line_content();
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    // We were in whitespace and advancing
+                    // has put us at the start of the next word
+                }
+            }
+        }
+        self.select_to_cursor_pos();
+    }
+
     fn toggle_selection_by_cell(&mut self) {
         if self.start.take().is_none() {
             let coord = SelectionCoordinate {
@@ -326,6 +422,20 @@ impl Tab for CopyOverlay {
             (KeyCode::Char('l'), KeyModifiers::NONE)
             | (KeyCode::RightArrow, KeyModifiers::NONE) => {
                 self.render.borrow_mut().move_right_single_cell();
+            }
+
+            (KeyCode::RightArrow, KeyModifiers::ALT) |
+            (KeyCode::Char('f'), KeyModifiers::ALT)|
+            (KeyCode::Tab, KeyModifiers::NONE) |
+            (KeyCode::Char('w'), KeyModifiers::NONE) => {
+                self.render.borrow_mut().move_forward_one_word();
+            }
+
+            (KeyCode::LeftArrow, KeyModifiers::ALT) |
+            (KeyCode::Char('b'), KeyModifiers::ALT) |
+            (KeyCode::Tab, KeyModifiers::SHIFT) |
+            (KeyCode::Char('b'), KeyModifiers::NONE) => {
+                self.render.borrow_mut().move_backward_one_word();
             }
             (KeyCode::Char('0'), KeyModifiers::NONE) => {
                 self.render.borrow_mut().move_to_start_of_line();
@@ -424,5 +534,13 @@ impl Renderable for CopyRenderable {
 
     fn get_dimensions(&self) -> RenderableDimensions {
         self.delegate.renderer().get_dimensions()
+    }
+}
+
+fn is_whitespace_word(word: &str) -> bool {
+    if let Some(c) = word.chars().next() {
+        c.is_whitespace()
+    } else {
+        false
     }
 }
