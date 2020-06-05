@@ -13,7 +13,6 @@ use winapi::um::winbase::INFINITE;
 pub mod conpty;
 mod procthreadattr;
 mod psuedocon;
-mod readbuf;
 
 use filedescriptor::OwnedHandle;
 
