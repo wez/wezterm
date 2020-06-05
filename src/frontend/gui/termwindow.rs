@@ -2945,6 +2945,32 @@ impl TermWindow {
             }
         }
 
+        // When the mouse gets close enough to the top or bottom then scroll
+        // the viewport so that we can see more in that direction and are able
+        // to select more than fits in the viewport.
+
+        // This is similar to the logic in the copy mode overlay, but the gap
+        // is smaller because it feels more natural for mouse selection to have
+        // a smaller gpa.
+        const VERTICAL_GAP: isize = 2;
+        let dims = tab.renderer().get_dimensions();
+        let top = self.get_viewport(tab.tab_id()).unwrap_or(dims.physical_top);
+        let vertical_gap = if dims.physical_top <= VERTICAL_GAP {
+            1
+        } else {
+            VERTICAL_GAP
+        };
+        let top_gap = y - top;
+        if top_gap < vertical_gap {
+            // Increase the gap so we can "look ahead"
+            self.set_viewport(tab.tab_id(), Some(y.saturating_sub(vertical_gap)), dims);
+        } else {
+            let bottom_gap = (dims.viewport_rows as isize).saturating_sub(top_gap);
+            if bottom_gap < vertical_gap {
+                self.set_viewport(tab.tab_id(), Some(top + vertical_gap - bottom_gap), dims);
+            }
+        }
+
         self.window.as_ref().unwrap().invalidate();
     }
 
