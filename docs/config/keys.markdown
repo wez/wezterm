@@ -642,6 +642,8 @@ triggered.
 
 ## Search
 
+*since: latest nightly*
+
 This action will trigger the search overlay for the current tab.
 It accepts a typed pattern string as its parameter, allowing for
 `Regex`, `CaseSensitiveString` and `CaseInSensitiveString` as
@@ -666,6 +668,8 @@ return {
 ```
 
 ## ActivateCopyMode
+
+*since: latest nightly*
 
 Activates copy mode!
 

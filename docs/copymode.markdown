@@ -1,5 +1,7 @@
 ## Copy Mode
 
+*since: latest nightly*
+
 Copy mode allows you to make selections using the keyboard; no need to reach
 for your mouse or trackpad.
 
@@ -54,7 +56,7 @@ reassignable.
 | Move to top of viewport        | `H` |
 | Move to middle of viewport     | `M` |
 | Move to bottom of viewport     | `L` |
-| Move up one screen             | `PageUp  |
+| Move up one screen             | `PageUp` |
 |                                | `CTRL-b` |
 | Move down one screen           | `PageDown` |
 |                                | `CTRL-f`   |
