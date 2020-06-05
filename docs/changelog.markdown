@@ -34,7 +34,9 @@ brief notes about them may accumulate here.
   You can suppress this behavior if you wish by setting
   `add_wsl_distributions_to_launch_menu = false`.
   [Read more about the launcher menuu](config/launch.html#the-launcher-menu)
-
+* Added `ActivateCopyMode` key assignment to put the tab into mouseless-copy
+  mode; [use the keyboard to define the selected text region](copymode.html).
+  This is bound to CTRL-SHIFT-X by default.
 
 ### 20200517-122836-92c201c6
 

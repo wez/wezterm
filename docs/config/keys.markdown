@@ -64,6 +64,9 @@ The default key bindings are:
 | `SUPER`          | `h`    | `HideApplication` (macOS only) |
 | `SUPER`          | `k`    | `ClearScrollback` |
 | `CTRL+SHIFT`     | `K`    | `ClearScrollback` |
+| `SUPER`          | `f`    | `Search={CaseSensitiveString=""}` |
+| `CTRL+SHIFT`     | `F`    | `Search={CaseSensitiveString=""}` |
+| `CTRL+SHIFT`     | `X`    | `ActivateCopyMode` |
 
 ## Default Mouse Assignments
 
@@ -661,3 +664,9 @@ return {
   },
 }
 ```
+
+## ActivateCopyMode
+
+Activates copy mode!
+
+[Learn more about copy mode](../copymode.html)

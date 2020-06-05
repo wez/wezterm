@@ -15,6 +15,7 @@
   - [Colors & Appearance](config/appearance.markdown)
   - [Lua Reference](config/lua.markdown)
 - [Scrollback](scrollback.markdown)
+- [Copy Mode](copymode.markdown)
 - [Hyperlinks](hyperlinks.markdown)
 - [Shell Integration](shell-integration.markdown)
 - [iTerm Image Protocol](imgcat.markdown)
