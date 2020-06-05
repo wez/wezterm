@@ -29,6 +29,12 @@ brief notes about them may accumulate here.
   You can switch to the old behavior either by explicitly binding those keys
   or by setting `send_composed_key_when_alt_is_pressed = false` in your
   configuration file.
+* Windows: the launcher menu now automatically lists out any WSL environments
+  you have installed so that you can quickly spawn a shall in any of them.
+  You can suppress this behavior if you wish by setting
+  `add_wsl_distributions_to_launch_menu = false`.
+  [Read more about the launcher menuu](config/launch.html#the-launcher-menu)
+
 
 ### 20200517-122836-92c201c6
 

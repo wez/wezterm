@@ -43,6 +43,59 @@ impl Entry {
     }
 }
 
+#[cfg(windows)]
+fn enumerate_wsl_entries(entries: &mut Vec<Entry>) -> anyhow::Result<()> {
+    use std::os::windows::process::CommandExt;
+    let mut cmd = std::process::Command::new("wsl.exe");
+    cmd.arg("-l");
+    cmd.creation_flags(winapi::um::winbase::CREATE_NO_WINDOW);
+    let output = cmd.output()?;
+
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    anyhow::ensure!(
+        output.status.success(),
+        "wsl -l command invocation failed: {}",
+        stderr
+    );
+
+    /// Ungh: https://github.com/microsoft/WSL/issues/4456
+    fn utf16_to_utf8(bytes: &[u8]) -> anyhow::Result<String> {
+        if bytes.len() % 2 != 0 {
+            anyhow::bail!("input data has odd length, cannot be utf16");
+        }
+
+        // This is "safe" because we checked that the length seems reasonable,
+        // and our new slice is within those same bounds.
+        let wide: &[u16] =
+            unsafe { std::slice::from_raw_parts(bytes.as_ptr() as *const u16, bytes.len() / 2) };
+
+        String::from_utf16(wide).map_err(|_| anyhow!("wsl -l output is not valid utf16"))
+    }
+
+    let wsl_list = utf16_to_utf8(&output.stdout)?.replace("\r\n", "\n");
+    for line in wsl_list.lines().skip(1) {
+        // Remove the "(Default)" marker, if present, to leave just the distro name
+        let distro = line.replace(" (Default)", "");
+        let label = format!("{} (WSL)", distro);
+
+        entries.push(Entry::Spawn {
+            label: label.clone(),
+            command: SpawnCommand {
+                label: Some(label),
+                args: Some(vec![
+                    "wsl.exe".to_owned(),
+                    "--distribution".to_owned(),
+                    distro.to_owned(),
+                ]),
+                ..Default::default()
+            },
+            new_window: false,
+        });
+    }
+
+    Ok(())
+}
+
 pub fn launcher(
     _tab_id: TabId,
     domain_id_of_current_tab: DomainId,
@@ -57,9 +110,11 @@ pub fn launcher(
 
     term.set_raw_mode()?;
 
+    let config = configuration();
+
     // Pull in the user defined entries from the launch_menu
     // section of the configuration.
-    for item in &configuration().launch_menu {
+    for item in &config.launch_menu {
         entries.push(Entry::Spawn {
             label: match item.label.as_ref() {
                 Some(label) => label.to_string(),
@@ -71,6 +126,13 @@ pub fn launcher(
             command: item.clone(),
             new_window: false,
         });
+    }
+
+    #[cfg(windows)]
+    {
+        if config.add_wsl_distributions_to_launch_menu {
+            let _ = enumerate_wsl_entries(&mut entries);
+        }
     }
 
     for (domain_id, domain_state, domain_name) in &domains {
