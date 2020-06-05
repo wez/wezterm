@@ -18,7 +18,8 @@ brief notes about them may accumulate here.
   the TOML based configuration.  You're unlikely to notice this unless you
   followed an example from the docs; migrate instead to using eg:
   `action=wezterm.action{ActivateTab=i-1}` to pass the integer argument.
-* Windows: now also available with a setup.exe installer
+* Windows: now also available with a setup.exe installer.  The installer
+  enables "Open WezTerm Here" in the explorer.exe context menu.
 * Added `ClearScrollback` key assignment to clear the scrollback.  This is bound to CMD-K and CTRL-SHIFT-K by default.
 * Added `Search` key assignment to search the scrollback.  Read the new
   [scrollback](scrollback.html) section for more information!
