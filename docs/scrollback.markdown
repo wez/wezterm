@@ -72,8 +72,10 @@ When the search overlay is active the behavior of wezterm changes:
   the number of matches shown in the search bar
 * The bottom-most match will be selected and the viewport scrolled to show the selected
   text.
-* `Enter` and `CTRL-P` will cause the selection to move to any prior matching text
-* `CTRL-N` will cause the selection to move to any next matching text
+* `Enter`, `UpArrow` and `CTRL-P` will cause the selection to move to any prior matching text
+* `PageUp` will traverse to previous matches 1 page at a time.
+* `CTRL-N` and `DownArrow` will cause the selection to move to any next matching text
+* `PageDown` will traverse to the next matche 1 page at a time.
 * `CTRL-R` will cycle through the pattern matching mode; the initial mode is case-sensitive
   text matching, the next will match ignoring case and the last will match using the
   [regular expression syntax described here](https://docs.rs/regex/1.3.9/regex/#syntax).

@@ -127,7 +127,9 @@ impl Tab for SearchOverlay {
     fn key_down(&self, key: KeyCode, mods: KeyModifiers) -> anyhow::Result<()> {
         match (key, mods) {
             (KeyCode::Escape, KeyModifiers::NONE) => self.renderer.borrow().close(),
-            (KeyCode::Enter, KeyModifiers::NONE) | (KeyCode::Char('p'), KeyModifiers::CTRL) => {
+            (KeyCode::UpArrow, KeyModifiers::NONE)
+            | (KeyCode::Enter, KeyModifiers::NONE)
+            | (KeyCode::Char('p'), KeyModifiers::CTRL) => {
                 // Move to prior match
                 let mut r = self.renderer.borrow_mut();
                 if let Some(cur) = r.result_pos.as_ref() {
@@ -139,7 +141,42 @@ impl Tab for SearchOverlay {
                     r.activate_match_number(prior);
                 }
             }
-            (KeyCode::Char('n'), KeyModifiers::CTRL) => {
+            (KeyCode::PageUp, KeyModifiers::NONE) => {
+                // Skip this page of matches and move up to the first match from
+                // the prior page.
+                let dims = self.delegate.renderer().get_dimensions();
+                let mut r = self.renderer.borrow_mut();
+                if let Some(cur) = r.result_pos {
+                    let top = r.viewport.unwrap_or(dims.physical_top);
+                    let prior = top - dims.viewport_rows as isize;
+                    if let Some(pos) = r
+                        .results
+                        .iter()
+                        .position(|res| res.start_y > prior && res.start_y < top)
+                    {
+                        r.activate_match_number(pos);
+                    } else {
+                        r.activate_match_number(cur.saturating_sub(1));
+                    }
+                }
+            }
+            (KeyCode::PageDown, KeyModifiers::NONE) => {
+                // Skip this page of matches and move down to the first match from
+                // the next page.
+                let dims = self.delegate.renderer().get_dimensions();
+                let mut r = self.renderer.borrow_mut();
+                if let Some(cur) = r.result_pos {
+                    let top = r.viewport.unwrap_or(dims.physical_top);
+                    let bottom = top + dims.viewport_rows as isize;
+                    if let Some(pos) = r.results.iter().position(|res| res.start_y >= bottom) {
+                        r.activate_match_number(pos);
+                    } else {
+                        let len = r.results.len().saturating_sub(1);
+                        r.activate_match_number(cur.min(len));
+                    }
+                }
+            }
+            (KeyCode::DownArrow, KeyModifiers::NONE) | (KeyCode::Char('n'), KeyModifiers::CTRL) => {
                 // Move to next match
                 let mut r = self.renderer.borrow_mut();
                 if let Some(cur) = r.result_pos.as_ref() {
