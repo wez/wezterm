@@ -162,11 +162,20 @@ fn show_update_available(release: Release) {
         .trim_end()
         // Normalize any dos line endings that might have wound
         // up in the body field...
-        .replace("\r\n", "\n")
-        // ... and then canonicalize the line endings for the terminal
-        .replace("\n", "\r\n");
+        .replace("\r\n", "\n");
 
-    ui.output(vec![
+    let mut render = crate::markdown::RenderState::new(
+        78,
+        termwiz::terminal::ScreenSize {
+            cols: 80,
+            rows: 24,
+            xpixel: 0,
+            ypixel: 0,
+        },
+    );
+    render.parse_str(&brief_blurb);
+
+    let mut output = vec![
         Change::CursorShape(CursorShape::Hidden),
         Change::Attribute(AttributeChange::Hyperlink(Some(Arc::new(Hyperlink::new(
             install,
@@ -174,7 +183,10 @@ fn show_update_available(release: Release) {
         format!("Version {} is now available!\r\n", release.tag_name).into(),
         Change::Attribute(AttributeChange::Hyperlink(None)),
         format!("(this is version {})\r\n", wezterm_version()).into(),
-        format!("{}\r\n", brief_blurb).into(),
+    ];
+    output.append(&mut render.into_changes());
+    output.extend_from_slice(&[
+        "\r\n".into(),
         Change::Attribute(AttributeChange::Hyperlink(Some(Arc::new(Hyperlink::new(
             change_log,
         ))))),
@@ -182,6 +194,7 @@ fn show_update_available(release: Release) {
         "View Change Log\r\n".into(),
         Change::Attribute(AttributeChange::Hyperlink(None)),
     ]);
+    ui.output(output);
 
     let assets = release.classify_assets();
     let appimage = assets.get(&AssetKind::AppImage);

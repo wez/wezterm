@@ -26,6 +26,7 @@ mod connui;
 mod frontend;
 mod keyassignment;
 mod localtab;
+mod markdown;
 mod mux;
 mod ratelim;
 mod server;

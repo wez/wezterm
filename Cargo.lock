@@ -1145,6 +1145,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "getopts"
+version = "0.2.21"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "14dbbfd5c71d70241ecf9e6f13737f7b5ce823821063188d7e46c41d371eebd5"
+dependencies = [
+ "unicode-width",
+]
+
+[[package]]
 name = "getrandom"
 version = "0.1.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2430,6 +2439,18 @@ dependencies = [
  "lazy_static",
  "thiserror",
  "tokio",
+]
+
+[[package]]
+name = "pulldown-cmark"
+version = "0.7.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3e142c3b8f49d2200605ee6ba0b1d757310e9e7a72afe78c36ee2ef67300ee00"
+dependencies = [
+ "bitflags 1.2.1",
+ "getopts",
+ "memchr",
+ "unicase",
 ]
 
 [[package]]
@@ -3829,6 +3850,7 @@ dependencies = [
  "portable-pty",
  "pretty_env_logger 0.4.0",
  "promise",
+ "pulldown-cmark",
  "rangeset",
  "ratelimit_meter",
  "rcgen",

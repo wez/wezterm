@@ -47,6 +47,7 @@ libc = "0.2"
 log = "0.4"
 lru = "0.4"
 open = "1.2"
+pulldown-cmark = "0.7"
 metrics = { version="0.12", features=["std"]}
 mlua = {version="0.2", features=["vendored"]}
 hdrhistogram = "6.3"
