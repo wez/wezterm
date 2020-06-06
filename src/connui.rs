@@ -116,6 +116,8 @@ impl ConnectionUIImpl {
     fn sleep(&mut self, reason: &str, duration: Duration) -> anyhow::Result<()> {
         let start = Instant::now();
         let deadline = start + duration;
+        let mut last_draw = None;
+
         loop {
             let now = Instant::now();
             if now >= deadline {
@@ -152,16 +154,21 @@ impl ConnectionUIImpl {
                 col += 1;
             }
 
-            self.term.render(&[
-                Change::CursorPosition {
-                    x: Position::Absolute(0),
-                    y: Position::Relative(0),
-                },
-                Change::AllAttributes(CellAttributes::default().set_reverse(true).clone()),
-                Change::Text(reversed_string),
-                Change::AllAttributes(CellAttributes::default()),
-                Change::Text(default_string),
-            ])?;
+            let combined = format!("{}{}", reversed_string, default_string);
+
+            if last_draw.is_none() || last_draw.as_ref().unwrap() != &combined {
+                self.term.render(&[
+                    Change::CursorPosition {
+                        x: Position::Absolute(0),
+                        y: Position::Relative(0),
+                    },
+                    Change::AllAttributes(CellAttributes::default().set_reverse(true).clone()),
+                    Change::Text(reversed_string),
+                    Change::AllAttributes(CellAttributes::default()),
+                    Change::Text(default_string),
+                ])?;
+                last_draw.replace(combined);
+            }
 
             // We use poll_input rather than a raw sleep here so that
             // eg: resize events can be processed and reflected in the
@@ -169,8 +176,7 @@ impl ConnectionUIImpl {
             // We're using a sub-second value for the delay here for a
             // slightly smoother progress bar.
             self.term
-                .poll_input(Some(remain.min(Duration::from_millis(50))))
-                .ok();
+                .poll_input(Some(remain.min(Duration::from_millis(50))))?;
         }
 
         let message = format!("{} (done)\r\n", reason);
