@@ -231,6 +231,8 @@ fn update_checker() {
     let update_interval = Duration::new(config.check_for_updates_interval_seconds, 0);
     let initial_interval = Duration::new(10, 0);
 
+    let force_ui = std::env::var_os("WEZTERM_ALWAYS_SHOW_UPDATE_UI").is_some();
+
     let update_file_name = crate::config::RUNTIME_DIR.join("check_update");
     let delay = update_file_name
         .metadata()
@@ -242,12 +244,12 @@ fn update_checker() {
         })
         .unwrap_or(initial_interval);
 
-    std::thread::sleep(delay);
+    std::thread::sleep(if force_ui { initial_interval } else { delay });
 
     loop {
         if let Ok(latest) = get_latest_release_info() {
             let current = crate::wezterm_version();
-            if latest.tag_name.as_str() > current {
+            if latest.tag_name.as_str() > current || force_ui {
                 log::info!(
                     "latest release {} is newer than current build {}",
                     latest.tag_name,
