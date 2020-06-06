@@ -149,7 +149,16 @@ fn show_update_available(release: Release) {
     let ui = ConnectionUI::new_with_no_close_delay();
     ui.title("WezTerm Update Available");
 
-    let install = "https://wezfurlong.org/wezterm/installation.html";
+    let install = if cfg!(windows) {
+        "https://wezfurlong.org/wezterm/install/windows.html"
+    } else if cfg!(target_os = "macos") {
+        "https://wezfurlong.org/wezterm/install/macos.html"
+    } else if cfg!(target_os = "linux") {
+        "https://wezfurlong.org/wezterm/install/linux.html"
+    } else {
+        "https://wezfurlong.org/wezterm/installation.html"
+    };
+
     let change_log = format!(
         "https://wezfurlong.org/wezterm/changelog.html#{}",
         release.tag_name
@@ -177,11 +186,13 @@ fn show_update_available(release: Release) {
 
     let mut output = vec![
         Change::CursorShape(CursorShape::Hidden),
+        Change::Attribute(AttributeChange::Underline(Underline::Single)),
         Change::Attribute(AttributeChange::Hyperlink(Some(Arc::new(Hyperlink::new(
             install,
         ))))),
         format!("Version {} is now available!\r\n", release.tag_name).into(),
         Change::Attribute(AttributeChange::Hyperlink(None)),
+        Change::Attribute(AttributeChange::Underline(Underline::None)),
         format!("(this is version {})\r\n", wezterm_version()).into(),
     ];
     output.append(&mut render.into_changes());
@@ -198,16 +209,23 @@ fn show_update_available(release: Release) {
 
     let assets = release.classify_assets();
     let appimage = assets.get(&AssetKind::AppImage);
+    let setupexe = assets.get(&AssetKind::WindowsSetupExe);
 
-    if cfg!(target_os = "linux") && std::env::var_os("APPIMAGE").is_some() && appimage.is_some() {
+    fn emit_direct_download_link(asset: &Option<&Asset>, ui: &ConnectionUI) {
         ui.output(vec![
             Change::Attribute(AttributeChange::Hyperlink(Some(Arc::new(Hyperlink::new(
-                &appimage.unwrap().browser_download_url,
+                &asset.unwrap().browser_download_url,
             ))))),
             Change::Attribute(AttributeChange::Underline(Underline::Single)),
-            format!("Download {}\r\n", appimage.unwrap().name).into(),
+            format!("Download {}\r\n", asset.unwrap().name).into(),
             Change::Attribute(AttributeChange::Hyperlink(None)),
         ]);
+    }
+
+    if cfg!(target_os = "linux") && std::env::var_os("APPIMAGE").is_some() && appimage.is_some() {
+        emit_direct_download_link(&appimage, &ui);
+    } else if cfg!(windows) && setupexe.is_some() {
+        emit_direct_download_link(&setupexe, &ui);
     } else {
         ui.output(vec![
             Change::Attribute(AttributeChange::Hyperlink(Some(Arc::new(Hyperlink::new(
