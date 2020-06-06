@@ -55,11 +55,17 @@ struct ConnectionUIImpl {
     rx: Receiver<UIRequest>,
 }
 
+#[derive(PartialEq, Eq)]
+enum CloseStatus {
+    Explicit,
+    Implicit,
+}
+
 impl ConnectionUIImpl {
-    fn run(&mut self) -> anyhow::Result<()> {
+    fn run(&mut self) -> anyhow::Result<CloseStatus> {
         loop {
             match self.rx.recv_timeout(Duration::from_millis(200)) {
-                Ok(UIRequest::Close) => break,
+                Ok(UIRequest::Close) => return Ok(CloseStatus::Explicit),
                 Ok(UIRequest::Output(changes)) => self.term.render(&changes)?,
                 Ok(UIRequest::Input {
                     prompt,
@@ -86,7 +92,6 @@ impl ConnectionUIImpl {
                 Err(err) => bail!("recv_timeout: {}", err),
             }
         }
-        Ok(())
     }
 
     fn password_prompt(&mut self, prompt: &str) -> anyhow::Result<String> {
@@ -235,14 +240,18 @@ impl ConnectionUI {
         let (tx, rx) = bounded(16);
         promise::spawn::spawn_into_main_thread(termwiztermtab::run(80, 24, move |term| {
             let mut ui = ConnectionUIImpl { term, rx };
-            if let Err(e) = ui.run() {
+            let status = ui.run().unwrap_or_else(|e| {
                 log::error!("while running ConnectionUI loop: {:?}", e);
+                CloseStatus::Implicit
+            });
+
+            if status == CloseStatus::Implicit {
+                ui.sleep(
+                    "(this window will close automatically)",
+                    Duration::new(120, 0),
+                )
+                .ok();
             }
-            ui.sleep(
-                "(this window will close automatically)",
-                Duration::new(120, 0),
-            )
-            .ok();
             Ok(())
         }));
         Self { tx }
