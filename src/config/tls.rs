@@ -80,6 +80,9 @@ pub struct TlsDomainClient {
 
     #[serde(default = "default_write_timeout")]
     pub write_timeout: Duration,
+
+    /// The path to the wezterm binary on the remote host
+    pub remote_wezterm_path: Option<String>,
 }
 impl_lua_conversion!(TlsDomainClient);
 

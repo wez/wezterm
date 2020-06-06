@@ -374,13 +374,18 @@ impl Reconnectable {
     }
 
     /// If debugging on wez's machine, use a path specific to that machine.
-    fn wezterm_bin_path() -> &'static str {
-        if !configuration().use_local_build_for_proxy {
-            "wezterm"
-        } else if cfg!(debug_assertions) {
-            "/home/wez/wez-personal/wezterm/target/debug/wezterm"
-        } else {
-            "/home/wez/wez-personal/wezterm/target/release/wezterm"
+    fn wezterm_bin_path(path: &Option<String>) -> &str {
+        match path.as_ref() {
+            Some(p) => p,
+            None => {
+                if !configuration().use_local_build_for_proxy {
+                    "wezterm"
+                } else if cfg!(debug_assertions) {
+                    "/home/wez/wez-personal/wezterm/target/debug/wezterm"
+                } else {
+                    "/home/wez/wez-personal/wezterm/target/release/wezterm"
+                }
+            }
         }
     }
 
@@ -395,7 +400,7 @@ impl Reconnectable {
 
         let mut chan = sess.channel_session()?;
 
-        let proxy_bin = Self::wezterm_bin_path();
+        let proxy_bin = Self::wezterm_bin_path(&ssh_dom.remote_wezterm_path);
 
         let cmd = if initial {
             format!("{} cli proxy", proxy_bin)
@@ -526,7 +531,11 @@ impl Reconnectable {
 
                     // The `tlscreds` command will start the server if needed and then
                     // obtain client credentials that we can use for tls.
-                    let cmd = format!("{} cli tlscreds", Self::wezterm_bin_path());
+                    let cmd = format!(
+                        "{} cli tlscreds",
+                        Self::wezterm_bin_path(&tls_client.remote_wezterm_path)
+                    );
+
                     ui.output_str(&format!("Running: {}\n", cmd));
                     chan.exec(&cmd)
                         .with_context(|| format!("executing `{}` on remote host", cmd))?;
