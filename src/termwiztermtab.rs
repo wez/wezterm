@@ -17,6 +17,7 @@ use filedescriptor::{FileDescriptor, Pipe};
 use portable_pty::*;
 use std::cell::RefCell;
 use std::cell::RefMut;
+use std::io::BufWriter;
 use std::io::Write;
 use std::rc::Rc;
 use std::sync::Arc;
@@ -235,7 +236,7 @@ pub struct TermWizTerminal {
 }
 
 struct TermWizTerminalRenderTty {
-    render_tx: FileDescriptor,
+    render_tx: BufWriter<FileDescriptor>,
     screen_size: ScreenSize,
 }
 
@@ -354,7 +355,7 @@ pub fn allocate(width: usize, height: usize) -> (TermWizTerminal, Rc<dyn Tab>) {
 
     let tw_term = TermWizTerminal {
         render_tx: TermWizTerminalRenderTty {
-            render_tx: render_pipe.write,
+            render_tx: BufWriter::new(render_pipe.write),
             screen_size: ScreenSize {
                 cols: width,
                 rows: height,
@@ -418,7 +419,7 @@ pub async fn run<
 
     let tw_term = TermWizTerminal {
         render_tx: TermWizTerminalRenderTty {
-            render_tx: render_pipe.write,
+            render_tx: BufWriter::new(render_pipe.write),
             screen_size: ScreenSize {
                 cols: width,
                 rows: height,
