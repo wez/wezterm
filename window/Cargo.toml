@@ -58,7 +58,7 @@ xkbcommon = { version = "0.5", features = ["x11", "wayland"], git="https://githu
 mio = "0.6"
 mio-extras = "2.0"
 libc = "0.2"
-smithay-client-toolkit = {version = "0.9", optional = true, features=["calloop"], git="https://github.com/wez/client-toolkit.git", branch="title_tunc"}
+smithay-client-toolkit = {version = "0.9", optional = true, features=["calloop"], git="https://github.com/wez/client-toolkit.git", branch="title_trunc"}
 memmap = {version="0.7", optional=true}
 wayland-client = {version="0.26", optional=true}
 wayland-egl = {version="0.26", optional=true}

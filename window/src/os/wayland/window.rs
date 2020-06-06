@@ -197,7 +197,7 @@ impl WaylandWindow {
             .environment
             .borrow()
             .create_window::<ConceptFrame, _>(
-                surface.clone(),
+                surface.clone().detach(),
                 (
                     dimensions.pixel_width as u32,
                     dimensions.pixel_height as u32,
@@ -235,7 +235,7 @@ impl WaylandWindow {
             copy_and_paste,
             window_id,
             callbacks,
-            surface,
+            surface: surface.detach(),
             window: Some(window),
             pool,
             dimensions,
