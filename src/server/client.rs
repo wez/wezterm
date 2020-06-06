@@ -249,12 +249,6 @@ struct SshStream {
     sess: ssh2::Session,
 }
 
-// This is a bit horrible, but is needed because the Channel type embeds
-// a raw pointer to chan and that trips the borrow checker.
-// Since we move both the session and channel together, it is safe
-// to mark SshStream as Send.
-unsafe impl Send for SshStream {}
-
 impl SshStream {
     fn process_stderr(&mut self) {
         let blocking = self.sess.is_blocking();
