@@ -266,6 +266,7 @@ impl Capabilities {
                             .unwrap_or(&"0.0.0".to_owned()),
                     ) >= Version::parse("2.9.20150512")
                 }
+                Some("WezTerm") => true,
                 _ => false,
             }
         });
