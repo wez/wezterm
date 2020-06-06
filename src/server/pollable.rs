@@ -131,7 +131,7 @@ impl AsPollFd for UnixStream {
 }
 
 pub fn poll_for_read(pfd: &mut [pollfd]) {
-    if let Err(e) = poll(pfd, None) {
+    if let Err(e) = poll(pfd, Some(std::time::Duration::from_millis(1000))) {
         log::error!("poll failed for {}", e);
     }
 }
