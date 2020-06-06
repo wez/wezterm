@@ -237,15 +237,20 @@ pub struct ConnectionUI {
 
 impl ConnectionUI {
     pub fn new() -> Self {
+        let enable_close_delay = true;
+        Self::with_dimensions(80, 24, enable_close_delay)
+    }
+
+    pub fn with_dimensions(width: usize, height: usize, enable_close_delay: bool) -> Self {
         let (tx, rx) = bounded(16);
-        promise::spawn::spawn_into_main_thread(termwiztermtab::run(80, 24, move |term| {
+        promise::spawn::spawn_into_main_thread(termwiztermtab::run(width, height, move |term| {
             let mut ui = ConnectionUIImpl { term, rx };
             let status = ui.run().unwrap_or_else(|e| {
                 log::error!("while running ConnectionUI loop: {:?}", e);
                 CloseStatus::Implicit
             });
 
-            if status == CloseStatus::Implicit {
+            if enable_close_delay && status == CloseStatus::Implicit {
                 ui.sleep(
                     "(this window will close automatically)",
                     Duration::new(120, 0),
@@ -258,15 +263,8 @@ impl ConnectionUI {
     }
 
     pub fn new_with_no_close_delay() -> Self {
-        let (tx, rx) = bounded(16);
-        promise::spawn::spawn_into_main_thread(termwiztermtab::run(80, 24, move |term| {
-            let mut ui = ConnectionUIImpl { term, rx };
-            if let Err(e) = ui.run() {
-                log::error!("while running ConnectionUI loop: {:?}", e);
-            }
-            Ok(())
-        }));
-        Self { tx }
+        let enable_close_delay = false;
+        Self::with_dimensions(80, 24, enable_close_delay)
     }
 
     pub fn new_headless() -> Self {

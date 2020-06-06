@@ -146,7 +146,8 @@ lazy_static::lazy_static! {
 fn show_update_available(release: Release) {
     let mut updater = UPDATER_WINDOW.lock().unwrap();
 
-    let ui = ConnectionUI::new_with_no_close_delay();
+    let enable_close_delay = false;
+    let ui = ConnectionUI::with_dimensions(80, 35, enable_close_delay);
     ui.title("WezTerm Update Available");
 
     let install = if cfg!(windows) {
@@ -177,7 +178,7 @@ fn show_update_available(release: Release) {
         78,
         termwiz::terminal::ScreenSize {
             cols: 80,
-            rows: 24,
+            rows: 35,
             xpixel: 0,
             ypixel: 0,
         },
