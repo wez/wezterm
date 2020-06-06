@@ -234,7 +234,7 @@ impl ConnectionUI {
             }
             ui.sleep(
                 "(this window will close automatically)",
-                Duration::new(10, 0),
+                Duration::new(120, 0),
             )
             .ok();
             Ok(())
@@ -261,6 +261,35 @@ impl ConnectionUI {
             ui.run()
         });
         Self { tx }
+    }
+
+    pub fn run_and_log_error<T, F>(&self, f: F) -> anyhow::Result<T>
+    where
+        F: FnOnce() -> anyhow::Result<T>,
+    {
+        match f() {
+            Err(e) => {
+                let what = format!("\r\nFailed: {:?}\r\n", e);
+                log::error!("{}", what);
+                self.output_str(&what);
+                Err(e)
+            }
+            result => result,
+        }
+    }
+
+    pub async fn async_run_and_log_error<T, F>(&self, f: F) -> anyhow::Result<T>
+    where
+        F: std::future::Future<Output = anyhow::Result<T>>,
+    {
+        match f.await {
+            Err(e) => {
+                let what = format!("\r\nFailed: {:?}\r\n", e);
+                self.output_str(&what);
+                Err(e)
+            }
+            result => result,
+        }
     }
 
     pub fn title(&self, title: &str) {

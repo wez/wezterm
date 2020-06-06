@@ -51,174 +51,169 @@ pub fn ssh_connect_with_ui(
     username: &str,
     ui: &mut ConnectionUI,
 ) -> anyhow::Result<ssh2::Session> {
-    let mut sess = ssh2::Session::new()?;
+    let cloned_ui = ui.clone();
+    cloned_ui.run_and_log_error(move || {
+        let mut sess = ssh2::Session::new()?;
 
-    let (remote_address, remote_host_name, port) = {
-        let parts: Vec<&str> = remote_address.split(':').collect();
+        let (remote_address, remote_host_name, port) = {
+            let parts: Vec<&str> = remote_address.split(':').collect();
 
-        if parts.len() == 2 {
-            (remote_address.to_string(), parts[0], parts[1].parse()?)
-        } else {
-            (format!("{}:22", remote_address), remote_address, 22)
-        }
-    };
+            if parts.len() == 2 {
+                (remote_address.to_string(), parts[0], parts[1].parse()?)
+            } else {
+                (format!("{}:22", remote_address), remote_address, 22)
+            }
+        };
 
-    ui.output_str(&format!("Connecting to {} using SSH\n", remote_address));
+        ui.output_str(&format!("Connecting to {} using SSH\n", remote_address));
 
-    let tcp = TcpStream::connect(&remote_address)
-        .with_context(|| format!("ssh connecting to {}", remote_address))?;
-    ui.output_str("SSH: Connected OK!\n");
-    tcp.set_nodelay(true)?;
-    sess.set_tcp_stream(tcp);
-    sess.handshake()
-        .with_context(|| format!("ssh handshake with {}", remote_address))?;
+        let tcp = TcpStream::connect(&remote_address)
+            .with_context(|| format!("ssh connecting to {}", remote_address))?;
+        ui.output_str("SSH: Connected OK!\n");
+        tcp.set_nodelay(true)?;
+        sess.set_tcp_stream(tcp);
+        sess.handshake()
+            .with_context(|| format!("ssh handshake with {}", remote_address))?;
 
-    if let Ok(mut known_hosts) = sess.known_hosts() {
-        let varname = if cfg!(windows) { "USERPROFILE" } else { "HOME" };
-        let var = std::env::var_os(varname)
-            .ok_or_else(|| anyhow!("environment variable {} is missing", varname))?;
-        let file = Path::new(&var).join(".ssh/known_hosts");
-        if file.exists() {
-            known_hosts
-                .read_file(&file, ssh2::KnownHostFileKind::OpenSSH)
-                .with_context(|| format!("reading known_hosts file {}", file.display()))?;
-        }
+        if let Ok(mut known_hosts) = sess.known_hosts() {
+            let varname = if cfg!(windows) { "USERPROFILE" } else { "HOME" };
+            let var = std::env::var_os(varname)
+                .ok_or_else(|| anyhow!("environment variable {} is missing", varname))?;
+            let file = Path::new(&var).join(".ssh/known_hosts");
+            if file.exists() {
+                known_hosts
+                    .read_file(&file, ssh2::KnownHostFileKind::OpenSSH)
+                    .with_context(|| format!("reading known_hosts file {}", file.display()))?;
+            }
 
-        let (key, key_type) = sess
-            .host_key()
-            .ok_or_else(|| anyhow!("failed to get ssh host key"))?;
+            let (key, key_type) = sess
+                .host_key()
+                .ok_or_else(|| anyhow!("failed to get ssh host key"))?;
 
-        let fingerprint = sess
-            .host_key_hash(ssh2::HashType::Sha256)
-            .map(|fingerprint| {
-                format!(
-                    "SHA256:{}",
-                    base64::encode_config(
-                        fingerprint,
-                        base64::Config::new(base64::CharacterSet::Standard, false)
+            let fingerprint = sess
+                .host_key_hash(ssh2::HashType::Sha256)
+                .map(|fingerprint| {
+                    format!(
+                        "SHA256:{}",
+                        base64::encode_config(
+                            fingerprint,
+                            base64::Config::new(base64::CharacterSet::Standard, false)
+                        )
                     )
-                )
-            })
-            .or_else(|| {
-                // Querying for the Sha256 can fail if for example we were linked
-                // against libssh < 1.9, so let's fall back to Sha1 in that case.
-                sess.host_key_hash(ssh2::HashType::Sha1).map(|fingerprint| {
-                    let mut res = vec![];
-                    write!(&mut res, "SHA1").ok();
-                    for b in fingerprint {
-                        write!(&mut res, ":{:02x}", *b).ok();
-                    }
-                    String::from_utf8(res).unwrap()
                 })
-            })
-            .ok_or_else(|| anyhow!("failed to get host fingerprint"))?;
+                .or_else(|| {
+                    // Querying for the Sha256 can fail if for example we were linked
+                    // against libssh < 1.9, so let's fall back to Sha1 in that case.
+                    sess.host_key_hash(ssh2::HashType::Sha1).map(|fingerprint| {
+                        let mut res = vec![];
+                        write!(&mut res, "SHA1").ok();
+                        for b in fingerprint {
+                            write!(&mut res, ":{:02x}", *b).ok();
+                        }
+                        String::from_utf8(res).unwrap()
+                    })
+                })
+                .ok_or_else(|| anyhow!("failed to get host fingerprint"))?;
 
-        use ssh2::CheckResult;
-        match known_hosts.check_port(&remote_host_name, port, key) {
-            CheckResult::Match => {}
-            CheckResult::NotFound => {
-                ui.output_str(&format!(
-                    "SSH host {} is not yet trusted.\n\
-                     {:?} Fingerprint: {}.\n\
-                     Trust and continue connecting?\n",
-                    remote_address, key_type, fingerprint
-                ));
+            use ssh2::CheckResult;
+            match known_hosts.check_port(&remote_host_name, port, key) {
+                CheckResult::Match => {}
+                CheckResult::NotFound => {
+                    ui.output_str(&format!(
+                        "SSH host {} is not yet trusted.\n\
+                         {:?} Fingerprint: {}.\n\
+                         Trust and continue connecting?\n",
+                        remote_address, key_type, fingerprint
+                    ));
 
-                loop {
-                    let line = ui.input("Enter [Y/n]> ")?;
+                    loop {
+                        let line = ui.input("Enter [Y/n]> ")?;
 
-                    match line.as_ref() {
-                        "y" | "Y" | "yes" | "YES" => break,
-                        "n" | "N" | "no" | "NO" => bail!("user declined to trust host"),
-                        _ => continue,
+                        match line.as_ref() {
+                            "y" | "Y" | "yes" | "YES" => break,
+                            "n" | "N" | "no" | "NO" => bail!("user declined to trust host"),
+                            _ => continue,
+                        }
                     }
+
+                    known_hosts
+                        .add(remote_host_name, key, &remote_address, key_type.into())
+                        .context("adding known_hosts entry in memory")?;
+
+                    known_hosts
+                        .write_file(&file, ssh2::KnownHostFileKind::OpenSSH)
+                        .with_context(|| format!("writing known_hosts file {}", file.display()))?;
                 }
-
-                known_hosts
-                    .add(remote_host_name, key, &remote_address, key_type.into())
-                    .context("adding known_hosts entry in memory")?;
-
-                known_hosts
-                    .write_file(&file, ssh2::KnownHostFileKind::OpenSSH)
-                    .with_context(|| format!("writing known_hosts file {}", file.display()))?;
+                CheckResult::Mismatch => {
+                    ui.output_str(&format!(
+                        "🛑 host key mismatch for ssh server {}.\n\
+                         Got fingerprint {} instead of expected value from known_hosts\n\
+                         file {}.\n\
+                         Refusing to connect.\n",
+                        remote_address,
+                        fingerprint,
+                        file.display()
+                    ));
+                    bail!("host mismatch, man in the middle attack?!");
+                }
+                CheckResult::Failure => {
+                    ui.output_str("🛑 Failed to load and check known ssh hosts\n");
+                    bail!("failed to check the known hosts");
+                }
             }
-            CheckResult::Mismatch => {
+        }
+
+        for _ in 0..3 {
+            if sess.authenticated() {
+                break;
+            }
+
+            // Re-query the auth methods on each loop as a successful method
+            // may unlock a new method on a subsequent iteration (eg: password
+            // auth may then unlock 2fac)
+            let methods: HashSet<&str> = sess.auth_methods(&username)?.split(',').collect();
+            log::trace!("ssh auth methods: {:?}", methods);
+
+            if !sess.authenticated() && methods.contains("publickey") {
+                if let Err(err) = sess.userauth_agent(&username) {
+                    log::info!("while attempting agent auth: {}", err);
+                } else if sess.authenticated() {
+                    ui.output_str("publickey auth successful!\n");
+                }
+            }
+
+            if !sess.authenticated() && methods.contains("password") {
                 ui.output_str(&format!(
-                    "🛑 host key mismatch for ssh server {}.\n\
-                     Got fingerprint {} instead of expected value from known_hosts\n\
-                     file {}.\n\
-                     Refusing to connect.\n",
-                    remote_address,
-                    fingerprint,
-                    file.display()
+                    "Password authentication for {}@{}\n",
+                    username, remote_address
                 ));
-                bail!("host mismatch, man in the middle attack?!");
+                let pass = ui.password("🔐 Password: ")?;
+                if let Err(err) = sess.userauth_password(username, &pass) {
+                    log::error!("while attempting password auth: {}", err);
+                }
             }
-            CheckResult::Failure => {
-                ui.output_str("🛑 Failed to load and check known ssh hosts\n");
-                bail!("failed to check the known hosts");
-            }
-        }
-    }
 
-    for _ in 0..3 {
-        if sess.authenticated() {
-            break;
-        }
-
-        // Re-query the auth methods on each loop as a successful method
-        // may unlock a new method on a subsequent iteration (eg: password
-        // auth may then unlock 2fac)
-        let methods: HashSet<&str> = sess.auth_methods(&username)?.split(',').collect();
-        log::trace!("ssh auth methods: {:?}", methods);
-
-        if !sess.authenticated() && methods.contains("publickey") {
-            if let Err(err) = sess.userauth_agent(&username) {
-                log::info!("while attempting agent auth: {}", err);
-            } else if sess.authenticated() {
-                ui.output_str("publickey auth successful!\n");
+            if !sess.authenticated() && methods.contains("keyboard-interactive") {
+                if let Err(err) = sess.userauth_keyboard_interactive(&username, ui) {
+                    log::error!("while attempting keyboard-interactive auth: {}", err);
+                }
             }
         }
 
-        if !sess.authenticated() && methods.contains("password") {
-            ui.output_str(&format!(
-                "Password authentication for {}@{}\n",
-                username, remote_address
-            ));
-            let pass = ui.password("🔐 Password: ")?;
-            if let Err(err) = sess.userauth_password(username, &pass) {
-                log::error!("while attempting password auth: {}", err);
-            }
+        if !sess.authenticated() {
+            bail!("unable to authenticate session");
         }
 
-        if !sess.authenticated() && methods.contains("keyboard-interactive") {
-            if let Err(err) = sess.userauth_keyboard_interactive(&username, ui) {
-                log::error!("while attempting keyboard-interactive auth: {}", err);
-            }
-        }
-    }
-
-    if !sess.authenticated() {
-        bail!("unable to authenticate session");
-    }
-
-    Ok(sess)
+        Ok(sess)
+    })
 }
 
 pub fn ssh_connect(remote_address: &str, username: &str) -> anyhow::Result<ssh2::Session> {
     let mut ui = ConnectionUI::new();
     ui.title("🔐 wezterm: SSH authentication");
-    let res = ssh_connect_with_ui(remote_address, username, &mut ui);
-    match res {
-        Ok(sess) => {
-            ui.close();
-            Ok(sess)
-        }
-        Err(err) => {
-            ui.output_str(&format!("\nFailed: {}", err));
-            Err(err)
-        }
-    }
+    let sess = ssh_connect_with_ui(remote_address, username, &mut ui)?;
+    ui.close();
+    Ok(sess)
 }
 
 pub struct RemoteSshDomain {

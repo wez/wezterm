@@ -520,50 +520,60 @@ impl Reconnectable {
                 // We need to bootstrap via an ssh session
                 let sess =
                     ssh_connect_with_ui(&ssh_params.host_and_port, &ssh_params.username, ui)?;
-                let mut chan = sess.channel_session()?;
 
-                // The `tlscreds` command will start the server if needed and then
-                // obtain client credentials that we can use for tls.
-                let cmd = format!("{} cli tlscreds", Self::wezterm_bin_path());
-                ui.output_str(&format!("Running: {}\n", cmd));
-                chan.exec(&cmd)
-                    .with_context(|| format!("executing `{}` on remote host", cmd))?;
+                let creds = ui.run_and_log_error(|| {
+                    let mut chan = sess.channel_session()?;
 
-                // stdout holds an encoded pdu
-                let mut buf = Vec::new();
-                chan.read_to_end(&mut buf)
-                    .context("reading tlscreds response to buffer")?;
+                    // The `tlscreds` command will start the server if needed and then
+                    // obtain client credentials that we can use for tls.
+                    let cmd = format!("{} cli tlscreds", Self::wezterm_bin_path());
+                    ui.output_str(&format!("Running: {}\n", cmd));
+                    chan.exec(&cmd)
+                        .with_context(|| format!("executing `{}` on remote host", cmd))?;
 
-                // stderr is ideally empty
-                let mut err = String::new();
-                chan.stderr()
-                    .read_to_string(&mut err)
-                    .context("reading tlscreds stderr")?;
-                if !err.is_empty() {
-                    log::error!("remote: `{}` stderr -> `{}`", cmd, err);
-                }
+                    // stdout holds an encoded pdu
+                    let mut buf = Vec::new();
+                    chan.read_to_end(&mut buf)
+                        .context("reading tlscreds response to buffer")?;
 
-                let creds = match Pdu::decode(buf.as_slice())
-                    .with_context(|| format!("reading tlscreds response. stderr={}", err))?
-                    .pdu
-                {
-                    Pdu::GetTlsCredsResponse(creds) => creds,
-                    _ => bail!("unexpected response to tlscreds, stderr={}", err),
-                };
+                    chan.send_eof()?;
+                    chan.wait_eof()?;
 
-                // Save the credentials to disk, as that is currently the easiest
-                // way to get them into openssl.  Ideally we'd keep these entirely
-                // in memory.
-                std::fs::write(&self.tls_creds_ca_path()?, creds.ca_cert_pem.as_bytes())?;
-                std::fs::write(
-                    &self.tls_creds_cert_path()?,
-                    creds.client_cert_pem.as_bytes(),
-                )?;
+                    // stderr is ideally empty
+                    let mut err = String::new();
+                    chan.stderr()
+                        .read_to_string(&mut err)
+                        .context("reading tlscreds stderr")?;
+                    if !err.is_empty() {
+                        log::error!("remote: `{}` stderr -> `{}`", cmd, err);
+                    }
+
+                    let creds = match Pdu::decode(buf.as_slice())
+                        .with_context(|| format!("reading tlscreds response. stderr={}", err))?
+                        .pdu
+                    {
+                        Pdu::GetTlsCredsResponse(creds) => creds,
+                        _ => bail!("unexpected response to tlscreds, stderr={}", err),
+                    };
+
+                    // Save the credentials to disk, as that is currently the easiest
+                    // way to get them into openssl.  Ideally we'd keep these entirely
+                    // in memory.
+                    std::fs::write(&self.tls_creds_ca_path()?, creds.ca_cert_pem.as_bytes())?;
+                    std::fs::write(
+                        &self.tls_creds_cert_path()?,
+                        creds.client_cert_pem.as_bytes(),
+                    )?;
+                    Ok(creds)
+                })?;
                 self.tls_creds.replace(creds);
             }
         }
 
-        let stream = self.try_connect(&tls_client, ui, &remote_address, remote_host_name)?;
+        let cloned_ui = ui.clone();
+        let stream = cloned_ui.run_and_log_error({
+            || self.try_connect(&tls_client, ui, &remote_address, remote_host_name)
+        })?;
         self.stream.replace(stream);
         Ok(())
     }

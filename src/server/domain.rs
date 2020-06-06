@@ -342,26 +342,33 @@ impl Domain for ClientDomain {
         let ui = ConnectionUI::new();
         ui.title("wezterm: Connecting...");
 
-        let mut cloned_ui = ui.clone();
-        let client = join_handle_result(spawn_into_new_thread(move || match &config {
-            ClientDomainConfig::Unix(unix) => {
-                let initial = true;
-                Client::new_unix_domain(domain_id, unix, initial, &mut cloned_ui)
+        ui.async_run_and_log_error({
+            let ui = ui.clone();
+            async move {
+                let mut cloned_ui = ui.clone();
+                let client = join_handle_result(spawn_into_new_thread(move || match &config {
+                    ClientDomainConfig::Unix(unix) => {
+                        let initial = true;
+                        Client::new_unix_domain(domain_id, unix, initial, &mut cloned_ui)
+                    }
+                    ClientDomainConfig::Tls(tls) => Client::new_tls(domain_id, tls, &mut cloned_ui),
+                    ClientDomainConfig::Ssh(ssh) => Client::new_ssh(domain_id, ssh, &mut cloned_ui),
+                }))
+                .await?;
+
+                client.verify_version_compat(&ui).await?;
+
+                ui.output_str("Version check OK!  Requesting tab list...\n");
+                let tabs = client.list_tabs().await?;
+                ui.output_str(&format!(
+                    "Server has {} tabs.  Attaching to local UI...\n",
+                    tabs.tabs.len()
+                ));
+                ClientDomain::finish_attach(domain_id, client, tabs)
             }
-            ClientDomainConfig::Tls(tls) => Client::new_tls(domain_id, tls, &mut cloned_ui),
-            ClientDomainConfig::Ssh(ssh) => Client::new_ssh(domain_id, ssh, &mut cloned_ui),
-        }))
+        })
         .await?;
 
-        client.verify_version_compat(&ui).await?;
-
-        ui.output_str("Version check OK!  Requesting tab list...\n");
-        let tabs = client.list_tabs().await?;
-        ui.output_str(&format!(
-            "Server has {} tabs.  Attaching to local UI...\n",
-            tabs.tabs.len()
-        ));
-        ClientDomain::finish_attach(domain_id, client, tabs)?;
         ui.output_str("Attached!\n");
         drop(activity);
         ui.close();
