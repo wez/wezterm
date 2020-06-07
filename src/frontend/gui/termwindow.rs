@@ -1586,12 +1586,16 @@ impl TermWindow {
                 window.invalidate();
             }
             Search(pattern) => {
-                let search = SearchOverlay::with_tab(self, tab, pattern.clone());
-                self.assign_overlay(tab.tab_id(), search);
+                if let Some(tab) = self.get_active_tab_no_overlay() {
+                    let search = SearchOverlay::with_tab(self, &tab, pattern.clone());
+                    self.assign_overlay(tab.tab_id(), search);
+                }
             }
             ActivateCopyMode => {
-                let copy = CopyOverlay::with_tab(self, tab);
-                self.assign_overlay(tab.tab_id(), copy);
+                if let Some(tab) = self.get_active_tab_no_overlay() {
+                    let copy = CopyOverlay::with_tab(self, &tab);
+                    self.assign_overlay(tab.tab_id(), copy);
+                }
             }
         };
         Ok(())
@@ -3183,6 +3187,11 @@ impl TermWindow {
 
         let tab_id = tab.tab_id();
         self.tab_state(tab_id).overlay.clone().or_else(|| Some(tab))
+    }
+
+    fn get_active_tab_no_overlay(&self) -> Option<Rc<dyn Tab>> {
+        let mux = Mux::get().unwrap();
+        mux.get_active_tab_for_window(self.mux_window_id)
     }
 
     /// Removes any overlay for the specified tab
