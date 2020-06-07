@@ -2,7 +2,8 @@
 
 WezTerm is available in [AppImage](https://appimage.org/) format; a
 self-contained single file that doesn't require installation or
-any special privileges to run.
+any special privileges to run, and that is compatible with a wide
+range of Linux distributions.
 
 Download and make the file executable and you're ready to run!
 
@@ -82,6 +83,14 @@ sudo dnf install -y {{ fedora31_rpm_stable }}
 
 * The package installs `/usr/bin/wezterm` and `/usr/share/applications/org.wezfurlong.wezterm.desktop`
 * Configuration instructions can be [found here](../config/files.html)
+
+## Arch Linux
+
+WezTerm is available for Arch users in the AUR; there are three options:
+
+|Released Binaries    |<https://aur.archlinux.org/packages/wezterm-bin/>|
+|Nightly Binaries     |<https://aur.archlinux.org/packages/wezterm-nightly-bin/>|
+|Build from source    |<https://aur.archlinux.org/packages/wezterm-git/>|
 
 ## Raw Linux Binary
 

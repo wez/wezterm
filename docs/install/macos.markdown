@@ -12,4 +12,12 @@ versions of macOS, but that has not been tested.
 3. Subsequently, a simple double-click will launch the UI
 4. Configuration instructions can be [found here](../config/files.html)
 
+## Homebrew
+
+WezTerm is available for [brew](https://brew.sh/) users in a tap:
+
+```bash
+$ brew tap wez/wezterm
+$ brew install wezterm
+```
 
