@@ -339,6 +339,34 @@ cargo build --all --release""",
             )
         ]
 
+    def update_homebrew_tap(self):
+        steps = []
+        if "macos" in self.name:
+            steps += [
+                ActionStep(
+                    "Checkout homebrew tap",
+                    action="actions/checkout@v2",
+                    params={
+                        "repository": "wez/homebrew-wezterm",
+                        "path": "homebrew-wezterm",
+                    },
+                ),
+                RunStep(
+                    "Update homebrew tap formula",
+                    "cp wezterm.rb $GITHUB_WORKSPACE/Formula/wezterm.rb",
+                ),
+                ActionStep(
+                    "Commit homebrew tap changes",
+                    action="stefanzweifel/git-auto-commit-action@v4",
+                    params={
+                        "commit_message": "Automated update to match latest tag",
+                        "repository": "$GITHUB_WORKSPACE/homebrew-wezterm",
+                    },
+                ),
+            ]
+
+        return steps
+
     def update_tagged_aur(self):
         steps = []
 
@@ -436,6 +464,7 @@ cargo build --all --release""",
         steps += self.package()
         steps += self.upload_asset_tag()
         steps += self.update_tagged_aur()
+        steps += self.update_homebrew_tap()
 
         env = self.global_env()
         return Job(runs_on=self.os, container=self.container, steps=steps, env=env,)

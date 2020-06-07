@@ -88,3 +88,20 @@ jobs:
          files: "WezTerm-*.zip"
       env:
          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+    - name: "Checkout homebrew tap"
+      uses: actions/checkout@v2
+      with:
+         repository: "wez/homebrew-wezterm"
+         path: "homebrew-wezterm"
+    - name: "Update homebrew tap formula"
+      shell: bash
+      run: |
+            export MACOSX_DEPLOYMENT_TARGET=10.9
+            cp wezterm.rb $GITHUB_WORKSPACE/Formula/wezterm.rb
+            
+
+    - name: "Commit homebrew tap changes"
+      uses: stefanzweifel/git-auto-commit-action@v4
+      with:
+         commit_message: "Automated update to match latest tag"
+         repository: "$GITHUB_WORKSPACE/homebrew-wezterm"
