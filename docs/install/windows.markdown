@@ -5,7 +5,8 @@ a setup.exe style installer to guide the installation (requires admin privileges
 or a simple zip file and manage the files for yourself (no special privileges
 required).
 
-<a href="{{ windows_exe_nightly }}" class="btn">Nightly for Windows (setup.exe)</a>
+<a href="{{ windows_exe_stable }}" class="btn">Windows (setup.exe)</a>
+<a href="{{ windows_exe_nightly }}" class="btn">Nightly Windows (setup.exe)</a>
 
 WezTerm is available in a setup.exe style installer; the installer is produced
 with Inno Setup and will install wezterm to your program files directory and
@@ -14,8 +15,8 @@ as a GUI to guide you through the install, but also offers the [standard
 Inno Setup command line options](https://jrsoftware.org/ishelp/index.php?topic=setupcmdline)
 to configure/script the installation process.
 
-<a href="{{ windows_zip_stable }}" class="btn">Download for Windows (zip)</a>
-<a href="{{ windows_zip_nightly }}" class="btn">Nightly for Windows (zip)</a>
+<a href="{{ windows_zip_stable }}" class="btn">Windows (zip)</a>
+<a href="{{ windows_zip_nightly }}" class="btn">Nightly Windows (zip)</a>
 
 WezTerm is also available in a simple zip file that can be extracted and
 run from anywhere, including a flash drive for a portable/relocatable
