@@ -75,9 +75,9 @@ class CacheStep(ActionStep):
 
 class CheckoutStep(ActionStep):
     def __init__(self, name="checkout repo"):
-        super().__init__(name,
-            action="actions/checkout@v2",
-            params={"submodules":"recursive"})
+        super().__init__(
+            name, action="actions/checkout@v2", params={"submodules": "recursive"}
+        )
 
 
 class Job(object):
@@ -161,7 +161,8 @@ class Target(object):
                     "Cache Git installation",
                     path="/usr/local/git",
                     key=f"{self.name}-git-{GIT_VERS}",
-                ))
+                )
+            )
 
             pre_reqs = ""
             if self.uses_yum():
@@ -169,10 +170,11 @@ class Target(object):
             elif self.uses_apt():
                 pre_reqs = "apt-get install -y wget libcurl4-openssl-dev libexpat-dev gettext libssl-dev libz-dev gcc libextutils-autoinstall-perl make"
 
-            steps.append(RunStep(
-                name="Install Git from source",
-                shell="bash",
-                run=f"""
+            steps.append(
+                RunStep(
+                    name="Install Git from source",
+                    shell="bash",
+                    run=f"""
 {pre_reqs}
 
 if test ! -x /usr/local/git/bin/git ; then
@@ -184,7 +186,9 @@ if test ! -x /usr/local/git/bin/git ; then
 fi
 
 ln -s /usr/local/git/bin/git /usr/local/bin/git
-        """))
+        """,
+                )
+            )
 
         else:
             steps += self.install_system_package("git")
@@ -345,13 +349,13 @@ cargo build --all --release""",
                     "Update AUR",
                     action="KSXGitHub/github-actions-deploy-aur@master",
                     params={
-                        "pkgname":"wezterm-bin",
-                        "pkgbuild":"PKGBUILD",
-                        "commit_username":"wez",
-                        "commit_email":"wez@wezfurlong.org",
-                        "ssh_private_key":"${{ secrets.AUR_SSH_PRIVATE_KEY }}",
-                        "commit_message":"Automated update to match latest tag",
-                    }
+                        "pkgname": "wezterm-bin",
+                        "pkgbuild": "PKGBUILD",
+                        "commit_username": "wez",
+                        "commit_email": "wez@wezfurlong.org",
+                        "ssh_private_key": "${{ secrets.AUR_SSH_PRIVATE_KEY }}",
+                        "commit_message": "Automated update to match latest tag",
+                    },
                 )
             ]
 
@@ -370,7 +374,7 @@ cargo build --all --release""",
                 steps += [
                     RunStep(
                         "set APT to non-interactive",
-                        "echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections"
+                        "echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections",
                     ),
                     RunStep("Update APT", "apt update"),
                 ]
@@ -378,12 +382,12 @@ cargo build --all --release""",
                 steps += [
                     RunStep(
                         "Install config manager",
-                        "dnf install -y 'dnf-command(config-manager)'"
+                        "dnf install -y 'dnf-command(config-manager)'",
                     ),
                     RunStep(
                         "Enable PowerTools",
-                        "dnf config-manager --set-enabled PowerTools"
-                    )
+                        "dnf config-manager --set-enabled PowerTools",
+                    ),
                 ]
         steps += self.install_git()
         steps += self.install_curl()
@@ -391,13 +395,9 @@ cargo build --all --release""",
             CheckoutStep(),
             # We need tags in order to use git describe for build/packaging
             RunStep(
-                "Fetch tags",
-                "git fetch --depth=1 origin +refs/tags/*:refs/tags/*"
+                "Fetch tags", "git fetch --depth=1 origin +refs/tags/*:refs/tags/*"
             ),
-            RunStep(
-                "Fetch tag/branch history",
-                "git fetch --prune --unshallow"
-            ),
+            RunStep("Fetch tag/branch history", "git fetch --prune --unshallow"),
         ]
         steps += self.install_rust()
         steps += self.install_system_deps()
@@ -445,13 +445,10 @@ TARGETS = [
     Target(name="ubuntu:16", os="ubuntu-16.04", app_image=True),
     Target(name="ubuntu:18", os="ubuntu-18.04", continuous_only=True),
     Target(container="ubuntu:19.10", continuous_only=True),
-
     # The container gets stuck while running get-deps, so disable for now
     Target(container="ubuntu:20.04", continuous_only=True),
-
     # debian 8's wayland libraries are too old for wayland-client
     # Target(container="debian:8.11", continuous_only=True, bootstrap_git=True),
-
     Target(container="debian:9.12", continuous_only=True, bootstrap_git=True),
     Target(container="debian:10.3", continuous_only=True),
     Target(name="macos", os="macos-latest"),
@@ -465,7 +462,7 @@ TARGETS = [
 
 def generate_actions(namer, jobber, trigger, is_continuous):
     for t in TARGETS:
-        #if t.continuous_only and not is_continuous:
+        # if t.continuous_only and not is_continuous:
         #    continue
         name = namer(t).replace(":", "")
         print(name)
