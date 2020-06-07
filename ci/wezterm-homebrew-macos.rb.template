@@ -12,6 +12,7 @@ class Wezterm < Formula
   def install
     prefix.install "WezTerm.app"
     bin.write_exec_script "#{prefix}/WezTerm.app/wezterm"
+    bin.write_exec_script "#{prefix}/WezTerm.app/strip-ansi-escapes"
   end
 end
 
