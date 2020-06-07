@@ -54,6 +54,25 @@ if test -e /etc/debian_version ; then
   exit $?
 fi
 
+if test -e /etc/arch-release ; then
+  pacman -S --noconfirm --needed
+    'cargo' \
+    'cmake' \
+    'dbus' \
+    'fontconfig' \
+    'git' \
+    'hicolor-icon-theme' \
+    'libx11' \
+    'libxkbcommon-x11' \
+    'pkgconf' \
+    'python3' \
+    'rust' \
+    'wayland' \
+    'xcb-util-keysyms' \
+    'xcb-util-wm'
+  exit $?
+fi
+
 case $OSTYPE in
   darwin*|msys)
     exit 0
