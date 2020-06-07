@@ -353,7 +353,7 @@ cargo build --all --release""",
                 ),
                 RunStep(
                     "Update homebrew tap formula",
-                    "cp wezterm.rb $GITHUB_WORKSPACE/Formula/wezterm.rb",
+                    "cp wezterm.rb $GITHUB_WORKSPACE/homebrew-wezterm/Formula/wezterm.rb",
                 ),
                 ActionStep(
                     "Commit homebrew tap changes",
