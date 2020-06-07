@@ -12,7 +12,7 @@ brief notes about them may accumulate here.
 
 * Not yet!
 
-### 20200607-142624-9d659486
+### 20200607-144723-74889cd4
 
 * Windows: Fixed AltGr handling for European layouts
 * X11: Added `PastePrimarySelection` key assignment that pastes the contents
