@@ -1,5 +1,6 @@
 .DS_Store
 /docs/_site
+/PKGBUILD
 /WezTerm*.zip
 /WezTerm*.exe
 /wezterm*.deb

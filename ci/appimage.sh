@@ -37,4 +37,7 @@ OUTPUT="$OUTPUT" \
   --output appimage \
   --desktop-file assets/wezterm.desktop
 
-
+# Update the AUR build file.  We only really want to use this for tagged
+# builds but it doesn't hurt to generate it always here.
+SHA256=$(sha256sum $OUTPUT | cut -d' ' -f1)
+sed -e "s/@TAG@/$TAG_NAME/" -e "s/@SHA256@/$SHA256/" < ci/PKGBUILD.template > PKGBUILD
