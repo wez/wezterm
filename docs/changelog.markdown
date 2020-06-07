@@ -10,6 +10,10 @@ daily) from the master branch.  It may not be usable and
 the feature set may change.  As features stabilize some
 brief notes about them may accumulate here.
 
+* Not yet!
+
+### 20200607-142624-9d659486
+
 * Windows: Fixed AltGr handling for European layouts
 * X11: Added `PastePrimarySelection` key assignment that pastes the contents
   of the primary selection rather than the clipboard.
