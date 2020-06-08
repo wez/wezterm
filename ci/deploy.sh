@@ -32,7 +32,7 @@ case $OSTYPE in
     zip -r $zipname $zipdir
 
     SHA256=$(shasum -a 256 $zipname | cut -d' ' -f1)
-    sed -e "s/@TAG@/$TAG_NAME/" -e "s/@SHA256@/$SHA256/" < ci/wezterm-homebrew-macos.rb.template > wezterm.rb
+    sed -e "s/@TAG@/$TAG_NAME/g" -e "s/@SHA256@/$SHA256/g" < ci/wezterm-homebrew-macos.rb.template > wezterm.rb
     cat wezterm.rb
 
     ;;
