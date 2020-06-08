@@ -353,14 +353,14 @@ cargo build --all --release""",
                 ),
                 RunStep(
                     "Update homebrew tap formula",
-                    "cp wezterm.rb $GITHUB_WORKSPACE/homebrew-wezterm/Formula/wezterm.rb",
+                    "cp wezterm.rb homebrew-wezterm/Formula/wezterm.rb",
                 ),
                 ActionStep(
                     "Commit homebrew tap changes",
                     action="stefanzweifel/git-auto-commit-action@v4",
                     params={
                         "commit_message": "Automated update to match latest tag",
-                        "repository": "$GITHUB_WORKSPACE/homebrew-wezterm",
+                        "repository": "homebrew-wezterm",
                     },
                 ),
             ]

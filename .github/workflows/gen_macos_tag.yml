@@ -97,11 +97,11 @@ jobs:
       shell: bash
       run: |
             export MACOSX_DEPLOYMENT_TARGET=10.9
-            cp wezterm.rb $GITHUB_WORKSPACE/homebrew-wezterm/Formula/wezterm.rb
+            cp wezterm.rb homebrew-wezterm/Formula/wezterm.rb
             
 
     - name: "Commit homebrew tap changes"
       uses: stefanzweifel/git-auto-commit-action@v4
       with:
          commit_message: "Automated update to match latest tag"
-         repository: "$GITHUB_WORKSPACE/homebrew-wezterm"
+         repository: "homebrew-wezterm"
