@@ -349,6 +349,7 @@ cargo build --all --release""",
                     params={
                         "repository": "wez/homebrew-wezterm",
                         "path": "homebrew-wezterm",
+                        "token": "${{ secrets.GH_PAT }}",
                     },
                 ),
                 RunStep(

@@ -93,6 +93,7 @@ jobs:
       with:
          repository: "wez/homebrew-wezterm"
          path: "homebrew-wezterm"
+         token: "${{ secrets.GH_PAT }}"
     - name: "Update homebrew tap formula"
       shell: bash
       run: |
