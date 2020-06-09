@@ -108,6 +108,7 @@ pub trait VTActor {
     /// for more information on device control strings.
     fn dcs_hook(
         &mut self,
+        mode: u8,
         params: &[i64],
         intermediates: &[u8],
         ignored_excess_intermediates: bool,
@@ -175,6 +176,7 @@ pub enum VTAction {
         params: Vec<i64>,
         intermediates: Vec<u8>,
         ignored_excess_intermediates: bool,
+        byte: u8,
     },
     DcsPut(u8),
     DcsUnhook,
@@ -228,11 +230,13 @@ impl VTActor for CollectingVTActor {
 
     fn dcs_hook(
         &mut self,
+        byte: u8,
         params: &[i64],
         intermediates: &[u8],
         ignored_excess_intermediates: bool,
     ) {
         self.actions.push(VTAction::DcsHook {
+            byte,
             params: params.to_vec(),
             intermediates: intermediates.to_vec(),
             ignored_excess_intermediates,
@@ -423,6 +427,7 @@ impl VTParser {
             Action::Hook => {
                 self.finish_param();
                 actor.dcs_hook(
+                    param,
                     &self.params[0..self.num_params],
                     &self.intermediates[0..self.num_intermediates],
                     self.ignored_excess_intermediates,
@@ -555,7 +560,7 @@ impl VTParser {
                 self.action(lookup_exit(self.state), 0, actor);
             }
             self.action(action, byte, actor);
-            self.action(lookup_entry(state), 0, actor);
+            self.action(lookup_entry(state), byte, actor);
             self.utf8_return_state = self.state;
             self.state = state;
         } else {
@@ -785,6 +790,94 @@ mod test {
         assert_eq!(
             parse_as_vec("\u{af}".as_bytes()),
             vec![VTAction::Print('\u{af}')]
+        );
+    }
+
+    #[test]
+    fn tmux_control() {
+        assert_eq!(
+            parse_as_vec("\x1bP1000phello\x1b\\".as_bytes()),
+            vec![
+                VTAction::DcsHook {
+                    byte: b'p',
+                    params: vec![1000],
+                    intermediates: vec![],
+                    ignored_excess_intermediates: false,
+                },
+                VTAction::DcsPut(b'h'),
+                VTAction::DcsPut(b'e'),
+                VTAction::DcsPut(b'l'),
+                VTAction::DcsPut(b'l'),
+                VTAction::DcsPut(b'o'),
+                VTAction::DcsUnhook,
+                VTAction::EscDispatch {
+                    params: vec![],
+                    intermediates: vec![],
+                    ignored_excess_intermediates: false,
+                    byte: b'\\',
+                }
+            ]
+        );
+    }
+
+    #[test]
+    fn tmux_passthru() {
+        // I'm not convinced that we *should* represent this tmux sequence
+        // in this way, but it is how it currently maps.
+        // It's worth noting that we see this as final byte `t` here, which
+        // collides with decVT105G in https://vt100.net/emu/dcsseq_dec.html
+        assert_eq!(
+            parse_as_vec("\x1bPtmux;data\x1b\\".as_bytes()),
+            vec![
+                VTAction::DcsHook {
+                    byte: b't',
+                    params: vec![],
+                    intermediates: vec![],
+                    ignored_excess_intermediates: false,
+                },
+                VTAction::DcsPut(b'm'),
+                VTAction::DcsPut(b'u'),
+                VTAction::DcsPut(b'x'),
+                VTAction::DcsPut(b';'),
+                VTAction::DcsPut(b'd'),
+                VTAction::DcsPut(b'a'),
+                VTAction::DcsPut(b't'),
+                VTAction::DcsPut(b'a'),
+                VTAction::DcsUnhook,
+                VTAction::EscDispatch {
+                    params: vec![],
+                    intermediates: vec![],
+                    ignored_excess_intermediates: false,
+                    byte: b'\\',
+                }
+            ]
+        );
+    }
+
+    #[test]
+    fn sixel() {
+        assert_eq!(
+            parse_as_vec("\x1bPqhello\x1b\\".as_bytes()),
+            vec![
+                VTAction::DcsHook {
+                    byte: b'q',
+                    params: vec![],
+                    intermediates: vec![],
+                    ignored_excess_intermediates: false,
+                },
+                VTAction::DcsPut(b'h'),
+                VTAction::DcsPut(b'e'),
+                VTAction::DcsPut(b'l'),
+                VTAction::DcsPut(b'l'),
+                VTAction::DcsPut(b'o'),
+                VTAction::DcsUnhook,
+                VTAction::EscDispatch {
+                    params: vec![],
+                    intermediates: vec![],
+                    ignored_excess_intermediates: false,
+                    byte: b'\\',
+                }
+            ]
         );
     }
 }

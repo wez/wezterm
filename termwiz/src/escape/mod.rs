@@ -57,6 +57,8 @@ pub enum DeviceControlMode {
     /// active, data is made available to the device mode via
     /// the `Data` variant.
     Enter {
+        /// The final byte in the DCS mode
+        byte: u8,
         params: Vec<i64>,
         // TODO: can we just make intermediates a single u8?
         intermediates: Vec<u8>,

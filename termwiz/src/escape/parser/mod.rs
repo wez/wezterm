@@ -118,11 +118,13 @@ impl<'a, F: FnMut(Action)> VTActor for Performer<'a, F> {
 
     fn dcs_hook(
         &mut self,
+        byte: u8,
         params: &[i64],
         intermediates: &[u8],
         ignored_extra_intermediates: bool,
     ) {
         (self.callback)(Action::DeviceControl(Box::new(DeviceControlMode::Enter {
+            byte,
             params: params.to_vec(),
             intermediates: intermediates.to_vec(),
             ignored_extra_intermediates,
@@ -300,5 +302,44 @@ mod test {
             actions
         );
         assert_eq!(encode(&actions), "\x1b%H");
+    }
+
+    #[test]
+    fn sixel() {
+        let mut p = Parser::new();
+        let actions = p.parse_as_vec(b"\x1bP1;2;3;qwat\x1b\\");
+        assert_eq!(
+            vec![
+                Action::DeviceControl(Box::new(DeviceControlMode::Enter {
+                    byte: b'q',
+                    params: vec![1, 2, 3],
+                    intermediates: vec![],
+                    ignored_extra_intermediates: false,
+                })),
+                Action::DeviceControl(Box::new(DeviceControlMode::Data(b'w'))),
+                Action::DeviceControl(Box::new(DeviceControlMode::Data(b'a'))),
+                Action::DeviceControl(Box::new(DeviceControlMode::Data(b't'))),
+                Action::DeviceControl(Box::new(DeviceControlMode::Exit)),
+                Action::Esc(Esc::Code(EscCode::StringTerminator)),
+            ],
+            actions
+        );
+
+        /*
+               // This is the "HI" example from wikipedia
+               let mut p = Parser::new();
+               let actions = p.parse_as_vec(
+                   b"\x1bPq\
+        #0;2;0;0;0#1;2;100;100;0#2;2;0;100;0\
+        #1~~@@vv@@~~@@~~$\
+        #2??}}GG}}??}}??-\
+        #1!14@\
+        \x1b\\",
+               );
+               assert_eq!(
+                   vec![Action::Esc(Esc::Code(EscCode::HorizontalTabSet))],
+                   actions
+               );
+               */
     }
 }
