@@ -1292,6 +1292,26 @@ impl TerminalState {
                 let response = Window::ResizeWindowCells { width, height };
                 write!(self.writer, "{}", CSI::Window(response)).ok();
             }
+
+            Window::ReportCellSizePixels => {
+                let screen = self.screen();
+                let height = screen.physical_rows;
+                let width = screen.physical_cols;
+                let response = Window::ReportCellSizePixelsResponse {
+                    width: Some((self.pixel_width / width) as i64),
+                    height: Some((self.pixel_height / height) as i64),
+                };
+                write!(self.writer, "{}", CSI::Window(response)).ok();
+            }
+
+            Window::ReportTextAreaSizePixels => {
+                let response = Window::ResizeWindowPixels {
+                    width: Some(self.pixel_width as i64),
+                    height: Some(self.pixel_height as i64),
+                };
+                write!(self.writer, "{}", CSI::Window(response)).ok();
+            }
+
             Window::ChecksumRectangularArea {
                 request_id,
                 top,
@@ -1319,6 +1339,7 @@ impl TerminalState {
             | Window::PushIconAndWindowTitle
             | Window::PushIconTitle
             | Window::PushWindowTitle => {}
+
             _ => error!("unhandled Window CSI {:?}", window),
         }
     }

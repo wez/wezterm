@@ -262,6 +262,10 @@ pub enum Window {
     ReportWindowSizePixels,
     ReportScreenSizePixels,
     ReportCellSizePixels,
+    ReportCellSizePixelsResponse {
+        width: Option<i64>,
+        height: Option<i64>,
+    },
     ReportTextAreaSizeCells,
     ReportScreenSizeCells,
     ReportIconLabel,
@@ -325,6 +329,12 @@ impl Display for Window {
             Window::ReportWindowSizePixels => write!(f, "14;2t"),
             Window::ReportScreenSizePixels => write!(f, "15t"),
             Window::ReportCellSizePixels => write!(f, "16t"),
+            Window::ReportCellSizePixelsResponse { width, height } => write!(
+                f,
+                "6;{};{}t",
+                numstr_or_empty(width),
+                numstr_or_empty(height)
+            ),
             Window::ReportTextAreaSizeCells => write!(f, "18t"),
             Window::ReportScreenSizeCells => write!(f, "19t"),
             Window::ReportIconLabel => write!(f, "20t"),
@@ -1574,7 +1584,14 @@ impl<'a> CSIParser<'a> {
                     height: arg2,
                 }),
                 5 => Ok(Window::RaiseWindow),
-                6 => Ok(Window::LowerWindow),
+                6 => match params.len() {
+                    1 => Ok(Window::LowerWindow),
+                    3 => Ok(Window::ReportCellSizePixelsResponse {
+                        width: arg1,
+                        height: arg2,
+                    }),
+                    _ => Err(()),
+                },
                 7 => Ok(Window::RefreshWindow),
                 8 => Ok(Window::ResizeWindowCells {
                     width: arg1,
@@ -1954,6 +1971,21 @@ mod test {
             vec![CSI::Edit(Edit::EraseInDisplay(
                 EraseInDisplay::EraseToStartOfDisplay,
             ))]
+        );
+    }
+
+    #[test]
+    fn window() {
+        assert_eq!(
+            parse('t', &[6], "\x1b[6t"),
+            vec![CSI::Window(Window::LowerWindow)]
+        );
+        assert_eq!(
+            parse('t', &[6, 7, 15], "\x1b[6;7;15t"),
+            vec![CSI::Window(Window::ReportCellSizePixelsResponse {
+                width: Some(7),
+                height: Some(15)
+            })]
         );
     }
 
