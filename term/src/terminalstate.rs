@@ -958,8 +958,8 @@ impl TerminalState {
             (Some(w), Some(h)) => (w, h),
         };
 
-        let width_in_cells = width / cell_pixel_width;
-        let height_in_cells = height / cell_pixel_height;
+        let width_in_cells = (width as f32 / cell_pixel_width as f32).ceil() as usize;
+        let height_in_cells = (height as f32 / cell_pixel_height as f32).ceil() as usize;
 
         // TODO: defer this to the actual renderer
         /*
