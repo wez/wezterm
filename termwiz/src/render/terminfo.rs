@@ -7,7 +7,7 @@ use crate::escape::osc::{ITermDimension, ITermFileData, ITermProprietary, Operat
 use crate::escape::OneBased;
 use crate::image::TextureCoordinate;
 use crate::render::RenderTty;
-use crate::surface::{Change, CursorShape, Position};
+use crate::surface::{Change, CursorShape, CursorVisibility, Position};
 use std::io::Write;
 use terminfo::{capability as cap, Capability as TermInfoCapability};
 
@@ -553,6 +553,18 @@ impl TerminfoRenderer {
                         };
                         if let Some(set) = self.get_capability::<cap::SetCursorStyle>() {
                             set.expand().kind(param).to(out.by_ref())?;
+                        }
+                    }
+                },
+                Change::CursorVisibility(visibility) => match visibility {
+                    CursorVisibility::Visible => {
+                        if let Some(show) = self.get_capability::<cap::CursorVisible>() {
+                            show.expand().to(out.by_ref())?;
+                        }
+                    }
+                    CursorVisibility::Hidden => {
+                        if let Some(hide) = self.get_capability::<cap::CursorInvisible>() {
+                            hide.expand().to(out.by_ref())?;
                         }
                     }
                 },

@@ -1,7 +1,7 @@
 use crate::cell::{unicode_column_width, AttributeChange, CellAttributes};
 use crate::color::ColorAttribute;
 pub use crate::image::{ImageData, TextureCoordinate};
-use crate::surface::{CursorShape, Position};
+use crate::surface::{CursorShape, CursorVisibility, Position};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use unicode_segmentation::UnicodeSegmentation;
@@ -43,6 +43,8 @@ pub enum Change {
     CursorColor(ColorAttribute),
     /// Change the cursor shape
     CursorShape(CursorShape),
+    /// Change the cursor visibility
+    CursorVisibility(CursorVisibility),
     /// Place an image at the current cursor position.
     /// The image defines the dimensions in cells.
     /// TODO: check iterm rendering behavior when the image is larger than the width of the screen.
@@ -184,6 +186,7 @@ impl ChangeSequence {
             | Change::Attribute(_)
             | Change::CursorColor(_)
             | Change::CursorShape(_)
+            | Change::CursorVisibility(_)
             | Change::ClearToEndOfLine(_)
             | Change::Title(_)
             | Change::ClearToEndOfScreen(_) => {}
