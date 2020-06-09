@@ -29,6 +29,18 @@ pub enum Position {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum CursorVisibility {
+    Hidden,
+    Visible,
+}
+
+impl Default for CursorVisibility {
+    fn default() -> CursorVisibility {
+        CursorVisibility::Visible
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum CursorShape {
     Hidden,
     Default,
@@ -43,6 +55,15 @@ pub enum CursorShape {
 impl Default for CursorShape {
     fn default() -> CursorShape {
         CursorShape::Default
+    }
+}
+
+impl From<CursorVisibility> for CursorShape {
+    fn from(visibility: CursorVisibility) -> CursorShape {
+        match visibility {
+            CursorVisibility::Hidden => CursorShape::Hidden,
+            CursorVisibility::Visible => CursorShape::Default,
+        }
     }
 }
 
@@ -268,6 +289,7 @@ impl Surface {
             Change::ClearToEndOfScreen(color) => self.clear_eos(*color),
             Change::CursorColor(color) => self.cursor_color = *color,
             Change::CursorShape(shape) => self.cursor_shape = *shape,
+            Change::CursorVisibility(visibility) => self.cursor_shape = (*visibility).into(),
             Change::Image(image) => self.add_image(image),
             Change::Title(text) => self.title = text.to_owned(),
             Change::ScrollRegionUp {
