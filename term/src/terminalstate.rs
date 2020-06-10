@@ -1826,6 +1826,31 @@ impl<'a> Performer<'a> {
                 }
             }
 
+            // RIS resets a device to its initial state, i.e. the state it has after it is switched
+            // on. This may imply, if applicable: remove tabulation stops, remove qualified areas,
+            // reset graphic rendition, erase all positions, move active position to first
+            // character position of first line.
+            Esc::Code(EscCode::FullReset) => {
+                self.pen = Default::default();
+                self.cursor = Default::default();
+                self.wrap_next = false;
+                self.insert = false;
+                self.dec_auto_wrap = true;
+                self.dec_origin_mode = false;
+                self.application_cursor_keys = false;
+                self.dec_ansi_mode = false;
+                self.application_keypad = false;
+                self.bracketed_paste = false;
+                self.sgr_mouse = false;
+                self.button_event_mouse = false;
+                self.current_mouse_button = MouseButton::None;
+                self.cursor_visible = true;
+                self.dec_line_drawing_mode = false;
+                self.tabs = TabStop::new(self.screen().physical_cols, 8);
+                self.palette.take();
+                self.scroll_region = 0..self.screen().physical_rows as VisibleRowIndex;
+            }
+
             _ => error!("ESC: unhandled {:?}", esc),
         }
     }
