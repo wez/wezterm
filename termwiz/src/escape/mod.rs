@@ -25,7 +25,7 @@ pub enum Action {
     /// A C0 or C1 control code
     Control(ControlCode),
     /// Device control.  This is uncommon wrt. terminal emulation.
-    DeviceControl(Box<DeviceControlMode>),
+    DeviceControl(DeviceControlMode),
     /// A command that typically doesn't change the contents of the
     /// terminal, but rather influences how it displays or otherwise
     /// interacts with the rest of the system
@@ -50,22 +50,25 @@ impl Display for Action {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct EnterDeviceControlMode {
+    /// The final byte in the DCS mode
+    byte: u8,
+    params: Vec<i64>,
+    // TODO: can we just make intermediates a single u8?
+    intermediates: Vec<u8>,
+    /// if true, more than two intermediates arrived and the
+    /// remaining data was ignored
+    ignored_extra_intermediates: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum DeviceControlMode {
     /// Identify device control mode from the encoded parameters.
     /// This mode is activated and must remain active until
     /// `Exit` is observed.  While the mode is
     /// active, data is made available to the device mode via
     /// the `Data` variant.
-    Enter {
-        /// The final byte in the DCS mode
-        byte: u8,
-        params: Vec<i64>,
-        // TODO: can we just make intermediates a single u8?
-        intermediates: Vec<u8>,
-        /// if true, more than two intermediates arrived and the
-        /// remaining data was ignored
-        ignored_extra_intermediates: bool,
-    },
+    Enter(Box<EnterDeviceControlMode>),
     /// Exit the current device control mode
     Exit,
     /// Data for the device mode to consume

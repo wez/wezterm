@@ -1,4 +1,6 @@
-use crate::escape::{Action, DeviceControlMode, Esc, OperatingSystemCommand, CSI};
+use crate::escape::{
+    Action, DeviceControlMode, EnterDeviceControlMode, Esc, OperatingSystemCommand, CSI,
+};
 use log::error;
 use num;
 use std::cell::RefCell;
@@ -123,22 +125,22 @@ impl<'a, F: FnMut(Action)> VTActor for Performer<'a, F> {
         intermediates: &[u8],
         ignored_extra_intermediates: bool,
     ) {
-        (self.callback)(Action::DeviceControl(Box::new(DeviceControlMode::Enter {
-            byte,
-            params: params.to_vec(),
-            intermediates: intermediates.to_vec(),
-            ignored_extra_intermediates,
-        })));
-    }
-
-    fn dcs_put(&mut self, data: u8) {
-        (self.callback)(Action::DeviceControl(Box::new(DeviceControlMode::Data(
-            data,
+        (self.callback)(Action::DeviceControl(DeviceControlMode::Enter(Box::new(
+            EnterDeviceControlMode {
+                byte,
+                params: params.to_vec(),
+                intermediates: intermediates.to_vec(),
+                ignored_extra_intermediates,
+            },
         ))));
     }
 
+    fn dcs_put(&mut self, data: u8) {
+        (self.callback)(Action::DeviceControl(DeviceControlMode::Data(data)));
+    }
+
     fn dcs_unhook(&mut self) {
-        (self.callback)(Action::DeviceControl(Box::new(DeviceControlMode::Exit)));
+        (self.callback)(Action::DeviceControl(DeviceControlMode::Exit));
     }
 
     fn osc_dispatch(&mut self, osc: &[&[u8]]) {
@@ -310,16 +312,16 @@ mod test {
         let actions = p.parse_as_vec(b"\x1bP1;2;3;qwat\x1b\\");
         assert_eq!(
             vec![
-                Action::DeviceControl(Box::new(DeviceControlMode::Enter {
+                Action::DeviceControl(DeviceControlMode::Enter(Box::new(EnterDeviceControlMode {
                     byte: b'q',
                     params: vec![1, 2, 3],
                     intermediates: vec![],
                     ignored_extra_intermediates: false,
-                })),
-                Action::DeviceControl(Box::new(DeviceControlMode::Data(b'w'))),
-                Action::DeviceControl(Box::new(DeviceControlMode::Data(b'a'))),
-                Action::DeviceControl(Box::new(DeviceControlMode::Data(b't'))),
-                Action::DeviceControl(Box::new(DeviceControlMode::Exit)),
+                }))),
+                Action::DeviceControl(DeviceControlMode::Data(b'w')),
+                Action::DeviceControl(DeviceControlMode::Data(b'a')),
+                Action::DeviceControl(DeviceControlMode::Data(b't')),
+                Action::DeviceControl(DeviceControlMode::Exit),
                 Action::Esc(Esc::Code(EscCode::StringTerminator)),
             ],
             actions
