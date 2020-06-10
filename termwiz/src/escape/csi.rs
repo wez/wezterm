@@ -1539,14 +1539,22 @@ impl<'a> CSIParser<'a> {
 
     fn dec(&mut self, params: &'a [i64]) -> Result<DecPrivateMode, ()> {
         match num::FromPrimitive::from_i64(params[0]) {
-            None => Ok(DecPrivateMode::Unspecified(params[0].to_u16().ok_or(())?)),
+            None => Ok(self.advance_by(
+                1,
+                params,
+                DecPrivateMode::Unspecified(params[0].to_u16().ok_or(())?),
+            )),
             Some(mode) => Ok(self.advance_by(1, params, DecPrivateMode::Code(mode))),
         }
     }
 
     fn terminal_mode(&mut self, params: &'a [i64]) -> Result<TerminalMode, ()> {
         match num::FromPrimitive::from_i64(params[0]) {
-            None => Ok(TerminalMode::Unspecified(params[0].to_u16().ok_or(())?)),
+            None => Ok(self.advance_by(
+                1,
+                params,
+                TerminalMode::Unspecified(params[0].to_u16().ok_or(())?),
+            )),
             Some(mode) => Ok(self.advance_by(1, params, TerminalMode::Code(mode))),
         }
     }
@@ -2045,6 +2053,27 @@ mod test {
                 ))),
                 CSI::Mode(Mode::SetDecPrivateMode(DecPrivateMode::Code(
                     DecPrivateModeCode::ShowCursor,
+                ))),
+            ]
+        );
+
+        assert_eq!(
+            parse_int(
+                'h',
+                &[1002, 1003, 1005, 1006],
+                b'?',
+                "\x1b[?1002h\x1b[?1003h\x1b[?1005h\x1b[?1006h"
+            ),
+            vec![
+                CSI::Mode(Mode::SetDecPrivateMode(DecPrivateMode::Code(
+                    DecPrivateModeCode::ButtonEventMouse,
+                ))),
+                CSI::Mode(Mode::SetDecPrivateMode(DecPrivateMode::Code(
+                    DecPrivateModeCode::AnyEventMouse,
+                ))),
+                CSI::Mode(Mode::SetDecPrivateMode(DecPrivateMode::Unspecified(1005))),
+                CSI::Mode(Mode::SetDecPrivateMode(DecPrivateMode::Code(
+                    DecPrivateModeCode::SGRMouse,
                 ))),
             ]
         );
