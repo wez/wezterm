@@ -303,8 +303,8 @@ impl Display for Window {
             Window::ResizeWindowPixels { width, height } => write!(
                 f,
                 "4;{};{}t",
+                numstr_or_empty(height),
                 numstr_or_empty(width),
-                numstr_or_empty(height)
             ),
             Window::RaiseWindow => write!(f, "5t"),
             Window::LowerWindow => write!(f, "6t"),
@@ -312,8 +312,8 @@ impl Display for Window {
             Window::ResizeWindowCells { width, height } => write!(
                 f,
                 "8;{};{}t",
+                numstr_or_empty(height),
                 numstr_or_empty(width),
-                numstr_or_empty(height)
             ),
             Window::RestoreMaximizedWindow => write!(f, "9;0t"),
             Window::MaximizeWindow => write!(f, "9;1t"),
@@ -332,8 +332,8 @@ impl Display for Window {
             Window::ReportCellSizePixelsResponse { width, height } => write!(
                 f,
                 "6;{};{}t",
+                numstr_or_empty(height),
                 numstr_or_empty(width),
-                numstr_or_empty(height)
             ),
             Window::ReportTextAreaSizeCells => write!(f, "18t"),
             Window::ReportScreenSizeCells => write!(f, "19t"),
@@ -1588,22 +1588,22 @@ impl<'a> CSIParser<'a> {
                     y: arg2.unwrap_or(0),
                 }),
                 4 => Ok(Window::ResizeWindowPixels {
-                    width: arg1,
-                    height: arg2,
+                    height: arg1,
+                    width: arg2,
                 }),
                 5 => Ok(Window::RaiseWindow),
                 6 => match params.len() {
                     1 => Ok(Window::LowerWindow),
                     3 => Ok(Window::ReportCellSizePixelsResponse {
-                        width: arg1,
-                        height: arg2,
+                        height: arg1,
+                        width: arg2,
                     }),
                     _ => Err(()),
                 },
                 7 => Ok(Window::RefreshWindow),
                 8 => Ok(Window::ResizeWindowCells {
-                    width: arg1,
-                    height: arg2,
+                    height: arg1,
+                    width: arg2,
                 }),
                 9 => match arg1 {
                     Some(0) => Ok(Window::RestoreMaximizedWindow),
@@ -1989,7 +1989,7 @@ mod test {
             vec![CSI::Window(Window::LowerWindow)]
         );
         assert_eq!(
-            parse('t', &[6, 7, 15], "\x1b[6;7;15t"),
+            parse('t', &[6, 15, 7], "\x1b[6;15;7t"),
             vec![CSI::Window(Window::ReportCellSizePixelsResponse {
                 width: Some(7),
                 height: Some(15)
