@@ -1,10 +1,27 @@
+use crate::color::RgbColor;
 use crate::escape::{
-    Action, DeviceControlMode, EnterDeviceControlMode, Esc, OperatingSystemCommand, CSI,
+    Action, DeviceControlMode, EnterDeviceControlMode, Esc, OperatingSystemCommand, Sixel,
+    SixelData, CSI,
 };
 use log::error;
 use num;
+use regex::bytes::Regex;
 use std::cell::RefCell;
 use vtparse::{VTActor, VTParser};
+
+struct SixelBuilder {
+    sixel: Sixel,
+    buf: Vec<u8>,
+    repeat_re: Regex,
+    raster_re: Regex,
+    colordef_re: Regex,
+    coloruse_re: Regex,
+}
+
+#[derive(Default)]
+struct ParseState {
+    sixel: Option<SixelBuilder>,
+}
 
 /// The `Parser` struct holds the state machine that is used to decode
 /// a sequence of bytes.  The byte sequence can be streaming into the
@@ -14,6 +31,7 @@ use vtparse::{VTActor, VTParser};
 /// decoded actions.
 pub struct Parser {
     state_machine: VTParser,
+    state: RefCell<ParseState>,
 }
 
 impl Default for Parser {
@@ -26,12 +44,14 @@ impl Parser {
     pub fn new() -> Self {
         Self {
             state_machine: VTParser::new(),
+            state: RefCell::new(Default::default()),
         }
     }
 
     pub fn parse<F: FnMut(Action)>(&mut self, bytes: &[u8], mut callback: F) {
         let mut perform = Performer {
             callback: &mut callback,
+            state: &mut self.state.borrow_mut(),
         };
         self.state_machine.parse(bytes, &mut perform);
     }
@@ -56,6 +76,7 @@ impl Parser {
                     }
                     *first.borrow_mut() = Some(action);
                 },
+                state: &mut self.state.borrow_mut(),
             };
             for (idx, b) in bytes.iter().enumerate() {
                 self.state_machine.parse_byte(*b, &mut perform);
@@ -90,6 +111,7 @@ impl Parser {
                 *b,
                 &mut Performer {
                     callback: &mut |action| actions.push(action),
+                    state: &mut self.state.borrow_mut(),
                 },
             );
             if !actions.is_empty() {
@@ -104,6 +126,7 @@ impl Parser {
 
 struct Performer<'a, F: FnMut(Action) + 'a> {
     callback: &'a mut F,
+    state: &'a mut ParseState,
 }
 
 impl<'a, F: FnMut(Action)> VTActor for Performer<'a, F> {
@@ -125,22 +148,35 @@ impl<'a, F: FnMut(Action)> VTActor for Performer<'a, F> {
         intermediates: &[u8],
         ignored_extra_intermediates: bool,
     ) {
-        (self.callback)(Action::DeviceControl(DeviceControlMode::Enter(Box::new(
-            EnterDeviceControlMode {
-                byte,
-                params: params.to_vec(),
-                intermediates: intermediates.to_vec(),
-                ignored_extra_intermediates,
-            },
-        ))));
+        if byte == b'q' && intermediates.is_empty() && !ignored_extra_intermediates {
+            self.state.sixel.replace(SixelBuilder::new(params));
+        } else {
+            (self.callback)(Action::DeviceControl(DeviceControlMode::Enter(Box::new(
+                EnterDeviceControlMode {
+                    byte,
+                    params: params.to_vec(),
+                    intermediates: intermediates.to_vec(),
+                    ignored_extra_intermediates,
+                },
+            ))));
+        }
     }
 
     fn dcs_put(&mut self, data: u8) {
-        (self.callback)(Action::DeviceControl(DeviceControlMode::Data(data)));
+        if let Some(sixel) = self.state.sixel.as_mut() {
+            sixel.push(data);
+        } else {
+            (self.callback)(Action::DeviceControl(DeviceControlMode::Data(data)));
+        }
     }
 
     fn dcs_unhook(&mut self) {
-        (self.callback)(Action::DeviceControl(DeviceControlMode::Exit));
+        if let Some(mut sixel) = self.state.sixel.take() {
+            sixel.tick(true);
+            (self.callback)(Action::Sixel(Box::new(sixel.sixel)));
+        } else {
+            (self.callback)(Action::DeviceControl(DeviceControlMode::Exit));
+        }
     }
 
     fn osc_dispatch(&mut self, osc: &[&[u8]]) {
@@ -183,6 +219,184 @@ impl<'a, F: FnMut(Action)> VTActor for Performer<'a, F> {
             },
             control,
         )));
+    }
+}
+
+impl SixelBuilder {
+    fn new(params: &[i64]) -> Self {
+        let pan = match params.get(0).unwrap_or(&0) {
+            7 | 8 | 9 => 1,
+            0 | 1 | 5 | 6 => 2,
+            3 | 4 => 3,
+            2 => 5,
+            _ => 2,
+        };
+        let background_is_transparent = match params.get(1).unwrap_or(&0) {
+            1 => true,
+            _ => false,
+        };
+        let horizontal_grid_size = params.get(2).map(|&x| x);
+
+        let repeat_re = Regex::new("^!(\\d+)([\x3f-\x7e])").unwrap();
+        let raster_re = Regex::new("^\"(\\d+);(\\d+);(\\d+);(\\d+)").unwrap();
+        let colordef_re = Regex::new("^#(\\d+);(\\d+);(\\d+);(\\d+);(\\d+)").unwrap();
+        let coloruse_re = Regex::new("^#(\\d+)([^;]|$)").unwrap();
+
+        Self {
+            sixel: Sixel {
+                pan,
+                pad: 1,
+                pixel_width: None,
+                pixel_height: None,
+                background_is_transparent,
+                horizontal_grid_size,
+                data: vec![],
+            },
+            buf: vec![],
+            repeat_re,
+            raster_re,
+            colordef_re,
+            coloruse_re,
+        }
+    }
+
+    fn push(&mut self, data: u8) {
+        self.buf.push(data);
+        self.tick(false);
+    }
+
+    fn tick(&mut self, is_final: bool) {
+        fn cap_int<T: std::str::FromStr>(m: regex::bytes::Match) -> Option<T> {
+            let bytes = m.as_bytes();
+            // Safe because we matched digits from the regex
+            let s = unsafe { std::str::from_utf8_unchecked(bytes) };
+            s.parse::<T>().ok()
+        }
+
+        while !self.buf.is_empty() {
+            let data = self.buf[0];
+
+            if data == b'$' {
+                self.sixel.data.push(SixelData::CarriageReturn);
+                self.buf.remove(0);
+                continue;
+            }
+
+            if data == b'-' {
+                self.sixel.data.push(SixelData::NewLine);
+                self.buf.remove(0);
+                continue;
+            }
+
+            if data >= 0x3f && data <= 0x7e {
+                self.sixel.data.push(SixelData::Data(data - 0x3f));
+                self.buf.remove(0);
+                continue;
+            }
+
+            if let Some(c) = self.raster_re.captures(&self.buf) {
+                let all = c.get(0).unwrap();
+                let matched_len = all.as_bytes().len();
+
+                if !is_final && matched_len == self.buf.len() {
+                    // ambiguous match
+                    return;
+                }
+
+                let pan = cap_int(c.get(1).unwrap()).unwrap_or(2);
+                let pad = cap_int(c.get(2).unwrap()).unwrap_or(1);
+                let pixel_width = cap_int(c.get(3).unwrap()).unwrap_or(0);
+                let pixel_height = cap_int(c.get(4).unwrap()).unwrap_or(0);
+
+                self.sixel.pan = pan;
+                self.sixel.pad = pad;
+                self.sixel.pixel_width.replace(pixel_width);
+                self.sixel.pixel_height.replace(pixel_height);
+
+                for _ in 0..matched_len {
+                    self.buf.remove(0);
+                }
+                continue;
+            }
+
+            if let Some(c) = self.coloruse_re.captures(&self.buf) {
+                let all = c.get(0).unwrap();
+                let matched_len = all.as_bytes().len();
+
+                if !is_final && matched_len == self.buf.len() {
+                    // ambiguous match
+                    return;
+                }
+
+                let color_number = cap_int(c.get(1).unwrap()).unwrap_or(0);
+
+                self.sixel
+                    .data
+                    .push(SixelData::SelectColorMapEntry(color_number));
+
+                let pop_len = matched_len - c.get(2).unwrap().as_bytes().len();
+
+                for _ in 0..pop_len {
+                    self.buf.remove(0);
+                }
+                continue;
+            }
+
+            if let Some(c) = self.colordef_re.captures(&self.buf) {
+                let all = c.get(0).unwrap();
+                let matched_len = all.as_bytes().len();
+
+                if !is_final && matched_len == self.buf.len() {
+                    // ambiguous match
+                    return;
+                }
+
+                let color_number = cap_int(c.get(1).unwrap()).unwrap_or(0);
+                let system = cap_int(c.get(2).unwrap()).unwrap_or(1);
+                let a = cap_int(c.get(3).unwrap()).unwrap_or(0);
+                let b = cap_int(c.get(4).unwrap()).unwrap_or(0);
+                let c = cap_int(c.get(5).unwrap()).unwrap_or(0);
+
+                if system == 1 {
+                    self.sixel.data.push(SixelData::DefineColorMapHLS {
+                        color_number,
+                        hue_angle: a,
+                        lightness: b,
+                        saturation: c,
+                    });
+                } else {
+                    let r = a as f32 * 255.0 / 100.;
+                    let g = b as f32 * 255.0 / 100.;
+                    let b = c as f32 * 255.0 / 100.;
+                    let rgb = RgbColor::new(r as u8, g as u8, b as u8); // FIXME: from linear
+                    self.sixel
+                        .data
+                        .push(SixelData::DefineColorMapRGB { color_number, rgb });
+                }
+
+                for _ in 0..matched_len {
+                    self.buf.remove(0);
+                }
+                continue;
+            }
+
+            if let Some(c) = self.repeat_re.captures(&self.buf) {
+                let all = c.get(0).unwrap();
+                let matched_len = all.as_bytes().len();
+
+                let repeat_count = cap_int(c.get(1).unwrap()).unwrap_or(1);
+                let data = c.get(2).unwrap().as_bytes()[0] - 0x3f;
+                self.sixel
+                    .data
+                    .push(SixelData::Repeat { repeat_count, data });
+                for _ in 0..matched_len {
+                    self.buf.remove(0);
+                }
+                continue;
+            }
+
+            break;
+        }
     }
 }
 
@@ -309,39 +523,122 @@ mod test {
     #[test]
     fn sixel() {
         let mut p = Parser::new();
-        let actions = p.parse_as_vec(b"\x1bP1;2;3;qwat\x1b\\");
+        let actions = p.parse_as_vec(b"\x1bP1;2;3;q@\x1b\\");
         assert_eq!(
             vec![
-                Action::DeviceControl(DeviceControlMode::Enter(Box::new(EnterDeviceControlMode {
-                    byte: b'q',
-                    params: vec![1, 2, 3],
-                    intermediates: vec![],
-                    ignored_extra_intermediates: false,
-                }))),
-                Action::DeviceControl(DeviceControlMode::Data(b'w')),
-                Action::DeviceControl(DeviceControlMode::Data(b'a')),
-                Action::DeviceControl(DeviceControlMode::Data(b't')),
-                Action::DeviceControl(DeviceControlMode::Exit),
+                Action::Sixel(Box::new(Sixel {
+                    pan: 2,
+                    pad: 1,
+                    pixel_width: None,
+                    pixel_height: None,
+                    background_is_transparent: false,
+                    horizontal_grid_size: Some(3),
+                    data: vec![SixelData::Data(1)]
+                })),
                 Action::Esc(Esc::Code(EscCode::StringTerminator)),
             ],
             actions
         );
 
-        /*
-               // This is the "HI" example from wikipedia
-               let mut p = Parser::new();
-               let actions = p.parse_as_vec(
-                   b"\x1bPq\
+        assert_eq!(format!("{}", actions[0]), "\x1bP0;0;3q@");
+
+        // This is the "HI" example from wikipedia
+        let mut p = Parser::new();
+        let actions = p.parse_as_vec(
+            b"\x1bPq\
         #0;2;0;0;0#1;2;100;100;0#2;2;0;100;0\
         #1~~@@vv@@~~@@~~$\
         #2??}}GG}}??}}??-\
         #1!14@\
         \x1b\\",
-               );
-               assert_eq!(
-                   vec![Action::Esc(Esc::Code(EscCode::HorizontalTabSet))],
-                   actions
-               );
-               */
+        );
+
+        assert_eq!(
+            format!("{}", actions[0]),
+            "\x1bP0;0q\
+        #0;2;0;0;0#1;2;100;100;0#2;2;0;100;0\
+        #1~~@@vv@@~~@@~~$\
+        #2??}}GG}}??}}??-\
+        #1!14@"
+        );
+
+        use SixelData::*;
+        assert_eq!(
+            vec![
+                Action::Sixel(Box::new(Sixel {
+                    pan: 2,
+                    pad: 1,
+                    pixel_width: None,
+                    pixel_height: None,
+                    background_is_transparent: false,
+                    horizontal_grid_size: None,
+                    data: vec![
+                        DefineColorMapRGB {
+                            color_number: 0,
+                            rgb: RgbColor {
+                                red: 0,
+                                green: 0,
+                                blue: 0
+                            }
+                        },
+                        DefineColorMapRGB {
+                            color_number: 1,
+                            rgb: RgbColor {
+                                red: 255,
+                                green: 255,
+                                blue: 0
+                            }
+                        },
+                        DefineColorMapRGB {
+                            color_number: 2,
+                            rgb: RgbColor {
+                                red: 0,
+                                green: 255,
+                                blue: 0
+                            }
+                        },
+                        SelectColorMapEntry(1),
+                        Data(63),
+                        Data(63),
+                        Data(1),
+                        Data(1),
+                        Data(55),
+                        Data(55),
+                        Data(1),
+                        Data(1),
+                        Data(63),
+                        Data(63),
+                        Data(1),
+                        Data(1),
+                        Data(63),
+                        Data(63),
+                        CarriageReturn,
+                        SelectColorMapEntry(2),
+                        Data(0),
+                        Data(0),
+                        Data(62),
+                        Data(62),
+                        Data(8),
+                        Data(8),
+                        Data(62),
+                        Data(62),
+                        Data(0),
+                        Data(0),
+                        Data(62),
+                        Data(62),
+                        Data(0),
+                        Data(0),
+                        NewLine,
+                        SelectColorMapEntry(1),
+                        Repeat {
+                            repeat_count: 14,
+                            data: 1
+                        }
+                    ]
+                })),
+                Action::Esc(Esc::Code(EscCode::StringTerminator)),
+            ],
+            actions
+        );
     }
 }

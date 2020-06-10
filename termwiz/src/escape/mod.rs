@@ -32,6 +32,7 @@ pub enum Action {
     OperatingSystemCommand(Box<OperatingSystemCommand>),
     CSI(CSI),
     Esc(Esc),
+    Sixel(Box<Sixel>),
 }
 
 /// Encode self as an escape sequence.  The escape sequence may potentially
@@ -45,6 +46,7 @@ impl Display for Action {
             Action::OperatingSystemCommand(osc) => osc.fmt(f),
             Action::CSI(csi) => csi.fmt(f),
             Action::Esc(esc) => esc.fmt(f),
+            Action::Sixel(sixel) => sixel.fmt(f),
         }
     }
 }
@@ -73,6 +75,157 @@ pub enum DeviceControlMode {
     Exit,
     /// Data for the device mode to consume
     Data(u8),
+}
+
+/// See <https://vt100.net/docs/vt3xx-gp/chapter14.html>
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Sixel {
+    /// Specifies the numerator for the pixel aspect ratio
+    pub pan: i64,
+
+    /// Specifies the denominator for the pixel aspect ratio
+    pub pad: i64,
+
+    /// How wide the image is, in pixels
+    pub pixel_width: Option<u32>,
+
+    /// How tall the image is, in pixels,
+    pub pixel_height: Option<u32>,
+
+    /// When true, pixels with 0 value are left at their
+    /// present color, otherwise, they are set to the background
+    /// color.
+    pub background_is_transparent: bool,
+
+    /// The horizontal spacing between pixels
+    pub horizontal_grid_size: Option<i64>,
+
+    /// The sixel data
+    pub data: Vec<SixelData>,
+}
+
+impl Display for Sixel {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), FmtError> {
+        if self.pixel_width.is_some() {
+            write!(
+                f,
+                "\x1bP;{}{}q\"{};{};{};{}",
+                if self.background_is_transparent { 1 } else { 0 },
+                match self.horizontal_grid_size {
+                    Some(h) => format!(";{}", h),
+                    None => "".to_string(),
+                },
+                self.pan,
+                self.pad,
+                self.pixel_width.unwrap_or(0),
+                self.pixel_height.unwrap_or(0)
+            )?;
+        } else {
+            write!(
+                f,
+                "\x1bP{};{}{}q",
+                match (self.pan, self.pad) {
+                    (2, 1) => 0,
+                    (5, 1) => 2,
+                    (3, 1) => 3,
+                    (1, 1) => 7,
+                    _ => {
+                        eprintln!("bad pad/pan combo: {:?}", self);
+                        return Err(std::fmt::Error);
+                    }
+                },
+                if self.background_is_transparent { 1 } else { 0 },
+                match self.horizontal_grid_size {
+                    Some(h) => format!(";{}", h),
+                    None => "".to_string(),
+                },
+            )?;
+        }
+        for d in &self.data {
+            d.fmt(f)?;
+        }
+        // The sixel data itself doesn't contain the ST
+        // write!(f, "\x1b\\")?;
+        Ok(())
+    }
+}
+
+/// A decoded 6-bit sixel value.
+/// Each sixel represents a six-pixel tall bitmap where
+/// the least significant bit is the topmost bit.
+pub type SixelValue = u8;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum SixelData {
+    /// A single sixel value
+    Data(SixelValue),
+
+    /// Run-length encoding; allows repeating a sixel value
+    /// the specified number of times
+    Repeat { repeat_count: u32, data: SixelValue },
+
+    /// Set the specified color map entry to the specified
+    /// linear RGB color value
+    DefineColorMapRGB {
+        color_number: u8,
+        rgb: crate::color::RgbColor,
+    },
+
+    DefineColorMapHLS {
+        color_number: u8,
+        /// 0 to 360 degrees
+        hue_angle: u16,
+        /// 0 to 100
+        lightness: u8,
+        /// 0 to 100
+        saturation: u8,
+    },
+
+    /// Select the numbered color from the color map entry
+    SelectColorMapEntry(u8),
+
+    /// Move the x position to the left page border of the
+    /// current sixel line.
+    CarriageReturn,
+
+    /// Move the x position to the left page border and
+    /// the y position down to the next sixel line.
+    NewLine,
+}
+
+impl Display for SixelData {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), FmtError> {
+        match self {
+            Self::Data(value) => write!(f, "{}", (value + 0x3f) as char),
+            Self::Repeat { repeat_count, data } => {
+                write!(f, "!{}{}", repeat_count, (data + 0x3f) as char)
+            }
+            Self::DefineColorMapRGB { color_number, rgb } => {
+                let (r, g, b, _) = rgb.to_linear_tuple_rgba();
+                write!(
+                    f,
+                    "#{};2;{};{};{}",
+                    color_number,
+                    (r * 100.) as u8,
+                    (g * 100.) as u8,
+                    (b * 100.0) as u8
+                )
+            }
+            Self::DefineColorMapHLS {
+                color_number,
+                hue_angle,
+                lightness,
+                saturation,
+            } => write!(
+                f,
+                "#{};1;{};{};{}",
+                color_number, hue_angle, lightness, saturation
+            ),
+            Self::SelectColorMapEntry(n) => write!(f, "#{}", n),
+            Self::CarriageReturn => write!(f, "$"),
+            Self::NewLine => write!(f, "-"),
+        }
+    }
 }
 
 /// C0 or C1 control codes

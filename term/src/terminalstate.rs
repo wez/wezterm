@@ -14,7 +14,9 @@ use termwiz::escape::csi::{
     EraseInLine, Mode, Sgr, TerminalMode, TerminalModeCode, Window,
 };
 use termwiz::escape::osc::{ChangeColorPair, ColorOrQuery, ITermFileData, ITermProprietary};
-use termwiz::escape::{Action, ControlCode, Esc, EscCode, OneBased, OperatingSystemCommand, CSI};
+use termwiz::escape::{
+    Action, ControlCode, Esc, EscCode, OneBased, OperatingSystemCommand, Sixel, CSI,
+};
 use termwiz::image::{ImageCell, ImageData, TextureCoordinate};
 use termwiz::surface::CursorShape;
 use url::Url;
@@ -204,6 +206,10 @@ pub struct TerminalState {
 
     dec_ansi_mode: bool,
 
+    /// https://vt100.net/docs/vt3xx-gp/chapter14.html has a discussion
+    /// on what sixel scrolling mode does
+    sixel_scrolling: bool,
+
     /// When set, modifies the sequence of bytes sent for keys
     /// in the numeric keypad portion of the keyboard.
     application_keypad: bool,
@@ -293,6 +299,7 @@ impl TerminalState {
             insert: false,
             application_cursor_keys: false,
             dec_ansi_mode: false,
+            sixel_scrolling: false,
             application_keypad: false,
             bracketed_paste: false,
             sgr_mouse: false,
@@ -1007,6 +1014,8 @@ impl TerminalState {
         }
     }
 
+    fn sixel(&mut self, _sixel: Box<Sixel>) {}
+
     fn set_image(&mut self, image: ITermFileData) {
         if !image.inline {
             error!(
@@ -1258,6 +1267,13 @@ impl TerminalState {
                 DecPrivateModeCode::ApplicationCursorKeys,
             )) => {
                 self.application_cursor_keys = false;
+            }
+
+            Mode::SetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::SixelScrolling)) => {
+                self.sixel_scrolling = true;
+            }
+            Mode::ResetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::SixelScrolling)) => {
+                self.sixel_scrolling = false;
             }
 
             Mode::SetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::DecAnsiMode)) => {
@@ -1844,6 +1860,7 @@ impl<'a> Performer<'a> {
             Action::OperatingSystemCommand(osc) => self.osc_dispatch(*osc),
             Action::Esc(esc) => self.esc_dispatch(esc),
             Action::CSI(csi) => self.csi_dispatch(csi),
+            Action::Sixel(sixel) => self.sixel(sixel),
         }
     }
 
@@ -1945,6 +1962,7 @@ impl<'a> Performer<'a> {
                 self.dec_auto_wrap = true;
                 self.dec_origin_mode = false;
                 self.application_cursor_keys = false;
+                self.sixel_scrolling = false;
                 self.dec_ansi_mode = false;
                 self.application_keypad = false;
                 self.bracketed_paste = false;
