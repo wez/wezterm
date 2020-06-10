@@ -212,8 +212,12 @@ pub struct TerminalState {
     /// designated marker characters.
     bracketed_paste: bool,
 
+    /// Movement events enabled
+    any_event_mouse: bool,
     /// SGR style mouse tracking and reporting is enabled
     sgr_mouse: bool,
+    mouse_tracking: bool,
+    /// Button events enabled
     button_event_mouse: bool,
     current_mouse_button: MouseButton,
     cursor_visible: bool,
@@ -309,7 +313,9 @@ impl TerminalState {
             application_keypad: false,
             bracketed_paste: false,
             sgr_mouse: false,
+            any_event_mouse: false,
             button_event_mouse: false,
+            mouse_tracking: false,
             cursor_visible: true,
             dec_line_drawing_mode: false,
             current_mouse_button: MouseButton::None,
@@ -377,35 +383,130 @@ impl TerminalState {
         Ok(())
     }
 
-    fn mouse_wheel(&mut self, event: MouseEvent) -> Result<(), Error> {
-        let (report_button, key) = match event.button {
-            MouseButton::WheelUp(_) => (64, KeyCode::UpArrow),
-            MouseButton::WheelDown(_) => (65, KeyCode::DownArrow),
-            _ => bail!("unexpected mouse event {:?}", event),
+    fn legacy_mouse_coord(position: i64) -> char {
+        let pos = if position < 0 || position > 255 - 32 {
+            0 as u8
+        } else {
+            position as u8
         };
 
-        if self.sgr_mouse {
-            self.writer.write_all(
-                format!("\x1b[<{};{};{}M", report_button, event.x + 1, event.y + 1).as_bytes(),
+        (pos + 1 + 32) as char
+    }
+
+    fn mouse_report_button_number(&self, event: &MouseEvent) -> i8 {
+        let button = match event.button {
+            MouseButton::None => self.current_mouse_button,
+            b => b,
+        };
+        let mut code = match button {
+            MouseButton::None => 3,
+            MouseButton::Left => 0,
+            MouseButton::Middle => 1,
+            MouseButton::Right => 2,
+            MouseButton::WheelUp(_) => 64,
+            MouseButton::WheelDown(_) => 65,
+        };
+
+        if event.modifiers.contains(KeyModifiers::SHIFT) {
+            code += 4;
+        }
+        if event.modifiers.contains(KeyModifiers::ALT) {
+            code += 8;
+        }
+        if event.modifiers.contains(KeyModifiers::CTRL) {
+            code += 16;
+        }
+
+        code
+    }
+
+    fn mouse_wheel(&mut self, event: MouseEvent) -> Result<(), Error> {
+        let button = self.mouse_report_button_number(&event);
+
+        if self.sgr_mouse
+            && (self.mouse_tracking || self.button_event_mouse || self.any_event_mouse)
+        {
+            write!(
+                self.writer,
+                "\x1b[<{};{};{}M",
+                button,
+                event.x + 1,
+                event.y + 1
+            )?;
+        } else if self.mouse_tracking || self.button_event_mouse || self.any_event_mouse {
+            write!(
+                self.writer,
+                "\x1b[M{}{}{}",
+                (32 + button) as u8 as char,
+                Self::legacy_mouse_coord(event.x as i64),
+                Self::legacy_mouse_coord(event.y),
             )?;
         } else if self.screen.is_alt_screen_active() {
             // Send cursor keys instead (equivalent to xterm's alternateScroll mode)
-            self.key_down(key, KeyModifiers::default())?;
+            self.key_down(
+                match event.button {
+                    MouseButton::WheelDown(_) => KeyCode::DownArrow,
+                    MouseButton::WheelUp(_) => KeyCode::UpArrow,
+                    _ => bail!("unexpected mouse event"),
+                },
+                KeyModifiers::default(),
+            )?;
         }
         Ok(())
     }
 
     fn mouse_button_press(&mut self, event: MouseEvent) -> Result<(), Error> {
         self.current_mouse_button = event.button;
-        if let Some(button) = match event.button {
-            MouseButton::Left => Some(0),
-            MouseButton::Middle => Some(1),
-            MouseButton::Right => Some(2),
-            _ => None,
-        } {
+
+        if !(self.mouse_tracking || self.button_event_mouse || self.any_event_mouse) {
+            return Ok(());
+        }
+
+        let button = self.mouse_report_button_number(&event);
+        if self.sgr_mouse {
+            write!(
+                self.writer,
+                "\x1b[<{};{};{}M",
+                button,
+                event.x + 1,
+                event.y + 1
+            )?;
+        } else {
+            write!(
+                self.writer,
+                "\x1b[M{}{}{}",
+                (32 + button) as u8 as char,
+                Self::legacy_mouse_coord(event.x as i64),
+                Self::legacy_mouse_coord(event.y),
+            )?;
+        }
+
+        Ok(())
+    }
+
+    fn mouse_button_release(&mut self, event: MouseEvent) -> Result<(), Error> {
+        if self.current_mouse_button != MouseButton::None
+            && (self.mouse_tracking || self.button_event_mouse || self.any_event_mouse)
+        {
+            self.current_mouse_button = MouseButton::None;
+
+            let release_button = 3;
+
             if self.sgr_mouse {
-                self.writer.write_all(
-                    format!("\x1b[<{};{};{}M", button, event.x + 1, event.y + 1).as_bytes(),
+                write!(
+                    self.writer,
+                    "\x1b[<{};{};{}m",
+                    release_button,
+                    event.x + 1,
+                    event.y + 1
+                )?;
+            } else {
+                write!(
+                    self.writer,
+                    "\x1b[M{}{}{}",
+                    (32 + release_button) as u8 as char,
+                    Self::legacy_mouse_coord(event.x as i64),
+                    Self::legacy_mouse_coord(event.y),
                 )?;
             }
         }
@@ -413,24 +514,12 @@ impl TerminalState {
         Ok(())
     }
 
-    fn mouse_button_release(&mut self, event: MouseEvent) -> Result<(), Error> {
-        if self.current_mouse_button != MouseButton::None {
-            self.current_mouse_button = MouseButton::None;
-            if self.sgr_mouse {
-                write!(self.writer, "\x1b[<3;{};{}m", event.x + 1, event.y + 1)?;
-            }
-        }
-
-        Ok(())
-    }
-
     fn mouse_move(&mut self, event: MouseEvent) -> Result<(), Error> {
-        if let Some(button) = match (self.current_mouse_button, self.button_event_mouse) {
-            (MouseButton::Left, true) => Some(32),
-            (MouseButton::Middle, true) => Some(33),
-            (MouseButton::Right, true) => Some(34),
-            (..) => None,
-        } {
+        let reportable = self.any_event_mouse || self.current_mouse_button != MouseButton::None;
+        // Note: self.mouse_tracking on its own is for clicks, not drags!
+        if reportable && (self.button_event_mouse || self.any_event_mouse) {
+            let button = 32 + self.mouse_report_button_number(&event);
+
             if self.sgr_mouse {
                 write!(
                     self.writer,
@@ -438,6 +527,14 @@ impl TerminalState {
                     button,
                     event.x + 1,
                     event.y + 1
+                )?;
+            } else {
+                write!(
+                    self.writer,
+                    "\x1b[M{}{}{}",
+                    (32 + button) as u8 as char,
+                    Self::legacy_mouse_coord(event.x as i64),
+                    Self::legacy_mouse_coord(event.y),
                 )?;
             }
         }
@@ -485,7 +582,7 @@ impl TerminalState {
     }
 
     pub fn is_mouse_grabbed(&self) -> bool {
-        self.sgr_mouse
+        self.mouse_tracking || self.button_event_mouse || self.any_event_mouse
     }
 
     pub fn bracketed_paste_enabled(&self) -> bool {
@@ -1179,8 +1276,11 @@ impl TerminalState {
                 self.cursor_visible = false;
             }
 
-            Mode::SetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::MouseTracking))
-            | Mode::ResetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::MouseTracking)) => {
+            Mode::SetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::MouseTracking)) => {
+                self.mouse_tracking = true;
+            }
+            Mode::ResetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::MouseTracking)) => {
+                self.mouse_tracking = false;
             }
 
             Mode::SetDecPrivateMode(DecPrivateMode::Code(
@@ -1199,8 +1299,11 @@ impl TerminalState {
                 self.button_event_mouse = false;
             }
 
-            Mode::SetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::AnyEventMouse))
-            | Mode::ResetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::AnyEventMouse)) => {
+            Mode::SetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::AnyEventMouse)) => {
+                self.any_event_mouse = true;
+            }
+            Mode::ResetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::AnyEventMouse)) => {
+                self.any_event_mouse = false;
             }
 
             Mode::SetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::FocusTracking))
@@ -1842,6 +1945,7 @@ impl<'a> Performer<'a> {
                 self.application_keypad = false;
                 self.bracketed_paste = false;
                 self.sgr_mouse = false;
+                self.any_event_mouse = false;
                 self.button_event_mouse = false;
                 self.current_mouse_button = MouseButton::None;
                 self.cursor_visible = true;
