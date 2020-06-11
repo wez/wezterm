@@ -519,6 +519,13 @@ pub struct Config {
 
     #[serde(default = "default_update_interval")]
     pub check_for_updates_interval_seconds: u64,
+
+    /// When set to true, use the CSI-U encoding scheme as described
+    /// in http://www.leonerd.org.uk/hacks/fixterms/
+    /// This is off by default because @wez and @jsgf find the shift-space
+    /// mapping annoying in vim :-p
+    #[serde(default)]
+    pub enable_csi_u_key_encoding: bool,
 }
 
 fn default_update_interval() -> u64 {

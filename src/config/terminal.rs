@@ -21,6 +21,10 @@ impl term::TerminalConfiguration for TermConfig {
         (config.generation(), config.hyperlink_rules.clone())
     }
 
+    fn enable_csi_u_key_encoding(&self) -> bool {
+        configuration().enable_csi_u_key_encoding
+    }
+
     fn color_palette(&self) -> ColorPalette {
         let config = configuration();
 

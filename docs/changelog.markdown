@@ -10,7 +10,13 @@ daily) from the master branch.  It may not be usable and
 the feature set may change.  As features stabilize some
 brief notes about them may accumulate here.
 
-* Not yet!
+* Fixed default mapping of ambiguous ctrl key combinations (`i`, `m`, `[`, `{`,
+  `@`) so that they emit the old school tab, newline, escape etc. values.
+  These got broken as part of prototyping CSI-u support a while back.
+* Added option to enable CSI-u key encodings.  This is a new mapping scheme
+  defined here <http://www.leonerd.org.uk/hacks/fixterms/> that disambiguates
+  and otherwise enables more key binding combinations.  You can enable this
+  setting using `enable_csi_u_key_encoding = true` in your config file.
 
 ### 20200607-144723-74889cd4
 

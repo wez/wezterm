@@ -27,6 +27,10 @@ pub trait TerminalConfiguration: std::fmt::Debug {
         }
     }
 
+    fn enable_csi_u_key_encoding(&self) -> bool {
+        false
+    }
+
     // TODO: expose scroll_to_bottom_on_key_input in config file
     fn scroll_to_bottom_on_key_input(&self) -> bool {
         true
