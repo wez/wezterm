@@ -17,6 +17,7 @@ brief notes about them may accumulate here.
   defined here <http://www.leonerd.org.uk/hacks/fixterms/> that disambiguates
   and otherwise enables more key binding combinations.  You can enable this
   setting using `enable_csi_u_key_encoding = true` in your config file.
+* Very early support for sixel graphics
 
 ### 20200607-144723-74889cd4
 
