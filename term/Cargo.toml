@@ -7,7 +7,7 @@ edition = "2018"
 [dependencies]
 bitflags = "1.0"
 anyhow = "1.0"
-image = "0.21"
+image = "0.23"
 log = "0.4"
 num = "0.2"
 ordered-float = "1.0"

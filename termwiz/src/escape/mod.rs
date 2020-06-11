@@ -104,6 +104,48 @@ pub struct Sixel {
     pub data: Vec<SixelData>,
 }
 
+impl Sixel {
+    /// Returns the width, height of the image
+    pub fn dimensions(&self) -> (u32, u32) {
+        if let (Some(w), Some(h)) = (self.pixel_width, self.pixel_height) {
+            return (w, h);
+        }
+
+        // Compute it by evaluating the sixel data
+        let mut max_x = 0;
+        let mut max_y = 0;
+        let mut x = 0;
+        let mut rows = 1;
+
+        for d in &self.data {
+            match d {
+                SixelData::Data(_) => {
+                    max_y = max_y.max(rows * 6);
+                    x += 1
+                }
+                SixelData::Repeat { repeat_count, .. } => {
+                    max_y = max_y.max(rows * 6);
+                    x += repeat_count
+                }
+                SixelData::SelectColorMapEntry(_)
+                | SixelData::DefineColorMapRGB { .. }
+                | SixelData::DefineColorMapHSL { .. } => {}
+                SixelData::NewLine => {
+                    max_x = max_x.max(x);
+                    x = 0;
+                    rows += 1;
+                }
+                SixelData::CarriageReturn => {
+                    max_x = max_x.max(x);
+                    x = 0;
+                }
+            }
+        }
+
+        (max_x, max_y)
+    }
+}
+
 impl Display for Sixel {
     fn fmt(&self, f: &mut Formatter) -> Result<(), FmtError> {
         if self.pixel_width.is_some() {
@@ -167,12 +209,12 @@ pub enum SixelData {
     /// Set the specified color map entry to the specified
     /// linear RGB color value
     DefineColorMapRGB {
-        color_number: u8,
+        color_number: u16,
         rgb: crate::color::RgbColor,
     },
 
-    DefineColorMapHLS {
-        color_number: u8,
+    DefineColorMapHSL {
+        color_number: u16,
         /// 0 to 360 degrees
         hue_angle: u16,
         /// 0 to 100
@@ -182,7 +224,7 @@ pub enum SixelData {
     },
 
     /// Select the numbered color from the color map entry
-    SelectColorMapEntry(u8),
+    SelectColorMapEntry(u16),
 
     /// Move the x position to the left page border of the
     /// current sixel line.
@@ -211,7 +253,7 @@ impl Display for SixelData {
                     (b * 100.0) as u8
                 )
             }
-            Self::DefineColorMapHLS {
+            Self::DefineColorMapHSL {
                 color_number,
                 hue_angle,
                 lightness,

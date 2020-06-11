@@ -2,11 +2,12 @@
 // and inclusive range
 #![cfg_attr(feature = "cargo-clippy", allow(clippy::range_plus_one))]
 use super::*;
-use crate::color::ColorPalette;
+use crate::color::{ColorPalette, RgbColor};
 use anyhow::bail;
 use image::{self, GenericImageView};
 use log::{debug, error};
 use ordered_float::NotNan;
+use std::collections::HashMap;
 use std::fmt::Write;
 use std::sync::Arc;
 use termwiz::escape::csi::{
@@ -15,7 +16,7 @@ use termwiz::escape::csi::{
 };
 use termwiz::escape::osc::{ChangeColorPair, ColorOrQuery, ITermFileData, ITermProprietary};
 use termwiz::escape::{
-    Action, ControlCode, Esc, EscCode, OneBased, OperatingSystemCommand, Sixel, CSI,
+    Action, ControlCode, Esc, EscCode, OneBased, OperatingSystemCommand, Sixel, SixelData, CSI,
 };
 use termwiz::image::{ImageCell, ImageData, TextureCoordinate};
 use termwiz::surface::CursorShape;
@@ -210,6 +211,9 @@ pub struct TerminalState {
     /// on what sixel scrolling mode does
     sixel_scrolling: bool,
 
+    /// Graphics mode color register map.
+    color_map: HashMap<u16, RgbColor>,
+
     /// When set, modifies the sequence of bytes sent for keys
     /// in the numeric keypad portion of the keyboard.
     application_keypad: bool,
@@ -285,6 +289,10 @@ impl TerminalState {
     ) -> TerminalState {
         let screen = ScreenOrAlt::new(physical_rows, physical_cols, &config);
 
+        let mut color_map = HashMap::new();
+        color_map.insert(0, RgbColor::new(0, 0, 0));
+        color_map.insert(3, RgbColor::new(0, 255, 0));
+
         TerminalState {
             config,
             screen,
@@ -299,7 +307,8 @@ impl TerminalState {
             insert: false,
             application_cursor_keys: false,
             dec_ansi_mode: false,
-            sixel_scrolling: false,
+            sixel_scrolling: true,
+            color_map,
             application_keypad: false,
             bracketed_paste: false,
             sgr_mouse: false,
@@ -1014,7 +1023,161 @@ impl TerminalState {
         }
     }
 
-    fn sixel(&mut self, _sixel: Box<Sixel>) {}
+    fn sixel(&mut self, sixel: Box<Sixel>) {
+        let (width, height) = sixel.dimensions();
+
+        let mut image = if sixel.background_is_transparent {
+            image::RgbaImage::new(width, height)
+        } else {
+            let background_color = self
+                .color_map
+                .get(&0)
+                .cloned()
+                .unwrap_or(RgbColor::new(0, 0, 0));
+            image::RgbaImage::from_pixel(
+                width,
+                height,
+                [
+                    background_color.red,
+                    background_color.green,
+                    background_color.blue,
+                    0xffu8,
+                ]
+                .into(),
+            )
+        };
+
+        let mut x = 0;
+        let mut y = 0;
+        let mut foreground_color = RgbColor::new(0, 0xff, 0);
+
+        let mut emit_sixel = |d: &u8, foreground_color: &RgbColor, x: u32, y: u32| {
+            for bitno in 0..6 {
+                if y + bitno >= height {
+                    break;
+                }
+                let on = (d & (1 << bitno)) != 0;
+                if on {
+                    image.get_pixel_mut(x, y + bitno).0 = [
+                        foreground_color.red,
+                        foreground_color.green,
+                        foreground_color.blue,
+                        0xffu8,
+                    ];
+                }
+            }
+        };
+
+        for d in &sixel.data {
+            match d {
+                SixelData::Data(d) => {
+                    emit_sixel(d, &foreground_color, x, y);
+                    x += 1;
+                }
+
+                SixelData::Repeat { repeat_count, data } => {
+                    for _ in 0..*repeat_count {
+                        emit_sixel(data, &foreground_color, x, y);
+                        x += 1;
+                    }
+                }
+
+                SixelData::CarriageReturn => x = 0,
+                SixelData::NewLine => {
+                    x = 0;
+                    y += 6;
+                }
+
+                SixelData::DefineColorMapRGB { color_number, rgb } => {
+                    self.color_map.insert(*color_number, *rgb);
+                }
+
+                SixelData::DefineColorMapHSL {
+                    color_number,
+                    hue_angle,
+                    saturation,
+                    lightness,
+                } => {
+                    use palette::encoding::pixel::Pixel;
+                    let hue = palette::RgbHue::from_degrees(*hue_angle as f32);
+                    let hsl =
+                        palette::Hsl::new(hue, *saturation as f32 / 100., *lightness as f32 / 100.);
+                    let rgb: palette::Srgb = hsl.into();
+                    let rgb: [u8; 3] = palette::Srgb::from_linear(rgb.into_linear())
+                        .into_format()
+                        .into_raw();
+
+                    self.color_map
+                        .insert(*color_number, RgbColor::new(rgb[0], rgb[1], rgb[2]));
+                }
+
+                SixelData::SelectColorMapEntry(n) => {
+                    foreground_color = self.color_map.get(n).cloned().unwrap_or_else(|| {
+                        log::error!("sixel selected noexistent colormap entry {}", n);
+                        RgbColor::new(255, 255, 255)
+                    });
+                }
+            }
+        }
+
+        let mut png_image_data = Vec::new();
+        let encoder = image::png::PNGEncoder::new(&mut png_image_data);
+        if let Err(e) = encoder.encode(&image.into_vec(), width, height, image::ColorType::Rgba8) {
+            error!("failed to encode sixel data into png: {}", e);
+            return;
+        }
+
+        let image_data = Arc::new(ImageData::with_raw_data(png_image_data));
+        self.assign_image_to_cells(width, height, image_data);
+    }
+
+    fn assign_image_to_cells(&mut self, width: u32, height: u32, image_data: Arc<ImageData>) {
+        let physical_cols = self.screen().physical_cols;
+        let physical_rows = self.screen().physical_rows;
+        let cell_pixel_width = self.pixel_width / physical_cols;
+        let cell_pixel_height = self.pixel_height / physical_rows;
+
+        let width_in_cells = (width as f32 / cell_pixel_width as f32).ceil() as usize;
+        let height_in_cells = (height as f32 / cell_pixel_height as f32).ceil() as usize;
+
+        let mut ypos = NotNan::new(0.0).unwrap();
+        let cursor_x = self.cursor.x;
+        let x_delta = 1.0 / (width as f32 / (self.pixel_width as f32 / physical_cols as f32));
+        let y_delta = 1.0 / (height as f32 / (self.pixel_height as f32 / physical_rows as f32));
+        debug!(
+            "image is {}x{} cells, {}x{} pixels",
+            width_in_cells, height_in_cells, width, height
+        );
+        for _ in 0..height_in_cells {
+            let mut xpos = NotNan::new(0.0).unwrap();
+            let cursor_y = self.cursor.y;
+            debug!(
+                "setting cells for y={} x=[{}..{}]",
+                cursor_y,
+                cursor_x,
+                cursor_x + width_in_cells
+            );
+            for x in 0..width_in_cells {
+                self.screen_mut().set_cell(
+                    cursor_x + x,
+                    cursor_y, // + y as VisibleRowIndex,
+                    &Cell::new(
+                        ' ',
+                        CellAttributes::default()
+                            .set_image(Some(Box::new(ImageCell::new(
+                                TextureCoordinate::new(xpos, ypos),
+                                TextureCoordinate::new(xpos + x_delta, ypos + y_delta),
+                                image_data.clone(),
+                            ))))
+                            .clone(),
+                    ),
+                );
+                xpos += x_delta;
+            }
+            ypos += y_delta;
+            self.new_line(false);
+        }
+    }
 
     fn set_image(&mut self, image: ITermFileData) {
         if !image.inline {
@@ -1068,73 +1231,8 @@ impl TerminalState {
             (Some(w), Some(h)) => (w, h),
         };
 
-        let width_in_cells = (width as f32 / cell_pixel_width as f32).ceil() as usize;
-        let height_in_cells = (height as f32 / cell_pixel_height as f32).ceil() as usize;
-
-        // TODO: defer this to the actual renderer
-        /*
-        let available_pixel_width = width_in_cells * cell_pixel_width;
-        let available_pixel_height = height_in_cells * cell_pixel_height;
-
-        let resized_image = if image.preserve_aspect_ratio {
-            let resized = decoded_image.resize(
-                available_pixel_width as u32,
-                available_pixel_height as u32,
-                image::FilterType::Lanczos3,
-            );
-            // Pad with black bars to preserve aspect ratio
-            // Assumption: new_rgba8 returns black/transparent pixels by default.
-            let dest = DynamicImage::new_rgba8(available_pixel_width, available_pixel_height);
-            dest.copy_from(resized, 0, 0);
-            dest
-        } else {
-            decoded_image.resize_exact(
-                available_pixel_width as u32,
-                available_pixel_height as u32,
-                image::FilterType::Lanczos3,
-            )
-        };
-        */
-
         let image_data = Arc::new(ImageData::with_raw_data(image.data));
-
-        let mut ypos = NotNan::new(0.0).unwrap();
-        let cursor_x = self.cursor.x;
-        let x_delta = 1.0 / (width as f32 / (self.pixel_width as f32 / physical_cols as f32));
-        let y_delta = 1.0 / (height as f32 / (self.pixel_height as f32 / physical_rows as f32));
-        debug!(
-            "image is {}x{} cells, {}x{} pixels",
-            width_in_cells, height_in_cells, width, height
-        );
-        for _ in 0..height_in_cells {
-            let mut xpos = NotNan::new(0.0).unwrap();
-            let cursor_y = self.cursor.y;
-            debug!(
-                "setting cells for y={} x=[{}..{}]",
-                cursor_y,
-                cursor_x,
-                cursor_x + width_in_cells
-            );
-            for x in 0..width_in_cells {
-                self.screen_mut().set_cell(
-                    cursor_x + x,
-                    cursor_y, // + y as VisibleRowIndex,
-                    &Cell::new(
-                        ' ',
-                        CellAttributes::default()
-                            .set_image(Some(Box::new(ImageCell::new(
-                                TextureCoordinate::new(xpos, ypos),
-                                TextureCoordinate::new(xpos + x_delta, ypos + y_delta),
-                                image_data.clone(),
-                            ))))
-                            .clone(),
-                    ),
-                );
-                xpos += x_delta;
-            }
-            ypos += y_delta;
-            self.new_line(false);
-        }
+        self.assign_image_to_cells(width as u32, height as u32, image_data);
 
         // FIXME: check cursor positioning in iterm
         /*
@@ -1962,7 +2060,7 @@ impl<'a> Performer<'a> {
                 self.dec_auto_wrap = true;
                 self.dec_origin_mode = false;
                 self.application_cursor_keys = false;
-                self.sixel_scrolling = false;
+                self.sixel_scrolling = true;
                 self.dec_ansi_mode = false;
                 self.application_keypad = false;
                 self.bracketed_paste = false;

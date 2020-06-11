@@ -172,7 +172,7 @@ impl<'a, F: FnMut(Action)> VTActor for Performer<'a, F> {
 
     fn dcs_unhook(&mut self) {
         if let Some(mut sixel) = self.state.sixel.take() {
-            sixel.tick(true);
+            sixel.finish();
             (self.callback)(Action::Sixel(Box::new(sixel.sixel)));
         } else {
             (self.callback)(Action::DeviceControl(DeviceControlMode::Exit));
@@ -240,7 +240,7 @@ impl SixelBuilder {
         let repeat_re = Regex::new("^!(\\d+)([\x3f-\x7e])").unwrap();
         let raster_re = Regex::new("^\"(\\d+);(\\d+);(\\d+);(\\d+)").unwrap();
         let colordef_re = Regex::new("^#(\\d+);(\\d+);(\\d+);(\\d+);(\\d+)").unwrap();
-        let coloruse_re = Regex::new("^#(\\d+)([^;]|$)").unwrap();
+        let coloruse_re = Regex::new("^#(\\d+)([^;\\d]|$)").unwrap();
 
         Self {
             sixel: Sixel {
@@ -262,10 +262,9 @@ impl SixelBuilder {
 
     fn push(&mut self, data: u8) {
         self.buf.push(data);
-        self.tick(false);
     }
 
-    fn tick(&mut self, is_final: bool) {
+    fn finish(&mut self) {
         fn cap_int<T: std::str::FromStr>(m: regex::bytes::Match) -> Option<T> {
             let bytes = m.as_bytes();
             // Safe because we matched digits from the regex
@@ -273,35 +272,32 @@ impl SixelBuilder {
             s.parse::<T>().ok()
         }
 
-        while !self.buf.is_empty() {
-            let data = self.buf[0];
+        let mut remainder = &self.buf[..];
+
+        while !remainder.is_empty() {
+            let data = remainder[0];
 
             if data == b'$' {
                 self.sixel.data.push(SixelData::CarriageReturn);
-                self.buf.remove(0);
+                remainder = &remainder[1..];
                 continue;
             }
 
             if data == b'-' {
                 self.sixel.data.push(SixelData::NewLine);
-                self.buf.remove(0);
+                remainder = &remainder[1..];
                 continue;
             }
 
             if data >= 0x3f && data <= 0x7e {
                 self.sixel.data.push(SixelData::Data(data - 0x3f));
-                self.buf.remove(0);
+                remainder = &remainder[1..];
                 continue;
             }
 
-            if let Some(c) = self.raster_re.captures(&self.buf) {
+            if let Some(c) = self.raster_re.captures(remainder) {
                 let all = c.get(0).unwrap();
                 let matched_len = all.as_bytes().len();
-
-                if !is_final && matched_len == self.buf.len() {
-                    // ambiguous match
-                    return;
-                }
 
                 let pan = cap_int(c.get(1).unwrap()).unwrap_or(2);
                 let pad = cap_int(c.get(2).unwrap()).unwrap_or(1);
@@ -312,21 +308,17 @@ impl SixelBuilder {
                 self.sixel.pad = pad;
                 self.sixel.pixel_width.replace(pixel_width);
                 self.sixel.pixel_height.replace(pixel_height);
+                self.sixel
+                    .data
+                    .reserve(pixel_width as usize * pixel_height as usize);
 
-                for _ in 0..matched_len {
-                    self.buf.remove(0);
-                }
+                remainder = &remainder[matched_len..];
                 continue;
             }
 
-            if let Some(c) = self.coloruse_re.captures(&self.buf) {
+            if let Some(c) = self.coloruse_re.captures(remainder) {
                 let all = c.get(0).unwrap();
                 let matched_len = all.as_bytes().len();
-
-                if !is_final && matched_len == self.buf.len() {
-                    // ambiguous match
-                    return;
-                }
 
                 let color_number = cap_int(c.get(1).unwrap()).unwrap_or(0);
 
@@ -336,20 +328,13 @@ impl SixelBuilder {
 
                 let pop_len = matched_len - c.get(2).unwrap().as_bytes().len();
 
-                for _ in 0..pop_len {
-                    self.buf.remove(0);
-                }
+                remainder = &remainder[pop_len..];
                 continue;
             }
 
-            if let Some(c) = self.colordef_re.captures(&self.buf) {
+            if let Some(c) = self.colordef_re.captures(remainder) {
                 let all = c.get(0).unwrap();
                 let matched_len = all.as_bytes().len();
-
-                if !is_final && matched_len == self.buf.len() {
-                    // ambiguous match
-                    return;
-                }
 
                 let color_number = cap_int(c.get(1).unwrap()).unwrap_or(0);
                 let system = cap_int(c.get(2).unwrap()).unwrap_or(1);
@@ -358,7 +343,7 @@ impl SixelBuilder {
                 let c = cap_int(c.get(5).unwrap()).unwrap_or(0);
 
                 if system == 1 {
-                    self.sixel.data.push(SixelData::DefineColorMapHLS {
+                    self.sixel.data.push(SixelData::DefineColorMapHSL {
                         color_number,
                         hue_angle: a,
                         lightness: b,
@@ -374,13 +359,11 @@ impl SixelBuilder {
                         .push(SixelData::DefineColorMapRGB { color_number, rgb });
                 }
 
-                for _ in 0..matched_len {
-                    self.buf.remove(0);
-                }
+                remainder = &remainder[matched_len..];
                 continue;
             }
 
-            if let Some(c) = self.repeat_re.captures(&self.buf) {
+            if let Some(c) = self.repeat_re.captures(remainder) {
                 let all = c.get(0).unwrap();
                 let matched_len = all.as_bytes().len();
 
@@ -389,11 +372,15 @@ impl SixelBuilder {
                 self.sixel
                     .data
                     .push(SixelData::Repeat { repeat_count, data });
-                for _ in 0..matched_len {
-                    self.buf.remove(0);
-                }
+                remainder = &remainder[matched_len..];
                 continue;
             }
+
+            log::error!(
+                "finished sixel parse with {} bytes pending {:?}",
+                remainder.len(),
+                std::str::from_utf8(&remainder[0..24.min(remainder.len())])
+            );
 
             break;
         }
