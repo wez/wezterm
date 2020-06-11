@@ -1251,7 +1251,12 @@ impl TerminalState {
                 // TODO: see https://vt100.net/docs/vt510-rm/DECSTR.html
             }
             Device::RequestPrimaryDeviceAttributes => {
-                self.writer.write(DEVICE_IDENT).ok();
+                let mut ident = "\x1b[?63".to_string(); // Vt320
+                ident.push_str(";4"); // Sixel graphics
+                ident.push_str(";6"); // Selective erase
+                ident.push('c');
+
+                self.writer.write(ident.as_bytes()).ok();
             }
             Device::RequestSecondaryDeviceAttributes => {
                 self.writer.write(b"\x1b[>0;0;0c").ok();

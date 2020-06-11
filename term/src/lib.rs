@@ -101,12 +101,6 @@ pub mod color;
 #[cfg(test)]
 mod test;
 
-/// The response we given when queries for device attributes.
-/// This particular string says "we are a VT102".
-/// TODO: Consider VT220 extended response which can advertise
-/// certain feature sets.
-pub const DEVICE_IDENT: &[u8] = b"\x1b[?6c";
-
 pub const CSI: &str = "\x1b[";
 pub const OSC: &[u8] = b"\x1b]";
 pub const ST: &[u8] = b"\x1b\\";
