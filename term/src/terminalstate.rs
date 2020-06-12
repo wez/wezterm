@@ -210,6 +210,7 @@ pub struct TerminalState {
     /// https://vt100.net/docs/vt3xx-gp/chapter14.html has a discussion
     /// on what sixel scrolling mode does
     sixel_scrolling: bool,
+    use_private_color_registers_for_each_graphic: bool,
 
     /// Graphics mode color register map.
     color_map: HashMap<u16, RgbColor>,
@@ -276,6 +277,13 @@ fn is_ambiguous_ascii_ctrl(c: char) -> bool {
     }
 }
 
+fn default_color_map() -> HashMap<u16, RgbColor> {
+    let mut color_map = HashMap::new();
+    color_map.insert(0, RgbColor::new(0, 0, 0));
+    color_map.insert(3, RgbColor::new(0, 255, 0));
+    color_map
+}
+
 impl TerminalState {
     pub fn new(
         physical_rows: usize,
@@ -289,9 +297,7 @@ impl TerminalState {
     ) -> TerminalState {
         let screen = ScreenOrAlt::new(physical_rows, physical_cols, &config);
 
-        let mut color_map = HashMap::new();
-        color_map.insert(0, RgbColor::new(0, 0, 0));
-        color_map.insert(3, RgbColor::new(0, 255, 0));
+        let color_map = default_color_map();
 
         TerminalState {
             config,
@@ -308,6 +314,7 @@ impl TerminalState {
             application_cursor_keys: false,
             dec_ansi_mode: false,
             sixel_scrolling: true,
+            use_private_color_registers_for_each_graphic: false,
             color_map,
             application_keypad: false,
             bracketed_paste: false,
@@ -1026,14 +1033,18 @@ impl TerminalState {
     fn sixel(&mut self, sixel: Box<Sixel>) {
         let (width, height) = sixel.dimensions();
 
+        let mut private_color_map;
+        let color_map = if self.use_private_color_registers_for_each_graphic {
+            private_color_map = default_color_map();
+            &mut private_color_map
+        } else {
+            &mut self.color_map
+        };
+
         let mut image = if sixel.background_is_transparent {
             image::RgbaImage::new(width, height)
         } else {
-            let background_color = self
-                .color_map
-                .get(&0)
-                .cloned()
-                .unwrap_or(RgbColor::new(0, 0, 0));
+            let background_color = color_map.get(&0).cloned().unwrap_or(RgbColor::new(0, 0, 0));
             image::RgbaImage::from_pixel(
                 width,
                 height,
@@ -1089,7 +1100,7 @@ impl TerminalState {
                 }
 
                 SixelData::DefineColorMapRGB { color_number, rgb } => {
-                    self.color_map.insert(*color_number, *rgb);
+                    color_map.insert(*color_number, *rgb);
                 }
 
                 SixelData::DefineColorMapHSL {
@@ -1107,12 +1118,11 @@ impl TerminalState {
                         .into_format()
                         .into_raw();
 
-                    self.color_map
-                        .insert(*color_number, RgbColor::new(rgb[0], rgb[1], rgb[2]));
+                    color_map.insert(*color_number, RgbColor::new(rgb[0], rgb[1], rgb[2]));
                 }
 
                 SixelData::SelectColorMapEntry(n) => {
-                    foreground_color = self.color_map.get(n).cloned().unwrap_or_else(|| {
+                    foreground_color = color_map.get(n).cloned().unwrap_or_else(|| {
                         log::error!("sixel selected noexistent colormap entry {}", n);
                         RgbColor::new(255, 255, 255)
                     });
@@ -1302,6 +1312,17 @@ impl TerminalState {
 
             Mode::ResetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::OriginMode)) => {
                 self.dec_origin_mode = false;
+            }
+
+            Mode::SetDecPrivateMode(DecPrivateMode::Code(
+                DecPrivateModeCode::UsePrivateColorRegistersForEachGraphic,
+            )) => {
+                self.use_private_color_registers_for_each_graphic = true;
+            }
+            Mode::ResetDecPrivateMode(DecPrivateMode::Code(
+                DecPrivateModeCode::UsePrivateColorRegistersForEachGraphic,
+            )) => {
+                self.use_private_color_registers_for_each_graphic = false;
             }
 
             Mode::SetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::SmoothScroll))
@@ -2064,6 +2085,8 @@ impl<'a> Performer<'a> {
                 self.insert = false;
                 self.dec_auto_wrap = true;
                 self.dec_origin_mode = false;
+                self.use_private_color_registers_for_each_graphic = false;
+                self.color_map = default_color_map();
                 self.application_cursor_keys = false;
                 self.sixel_scrolling = true;
                 self.dec_ansi_mode = false;

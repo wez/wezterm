@@ -518,6 +518,8 @@ pub enum DecPrivateModeCode {
     ClearAndEnableAlternateScreen = 1049,
     EnableAlternateScreen = 47,
     BracketedPaste = 2004,
+    /// Applies to sixel and regis modes
+    UsePrivateColorRegistersForEachGraphic = 1070,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
