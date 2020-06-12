@@ -21,3 +21,8 @@ $ brew tap wez/wezterm
 $ brew install wezterm
 ```
 
+If you'd like to use a nightly build you can perform a head install:
+
+```bash
+$ brew install --HEAD wezterm
+```
