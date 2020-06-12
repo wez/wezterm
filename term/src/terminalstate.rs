@@ -494,11 +494,9 @@ impl TerminalState {
         if self.current_mouse_button != MouseButton::None
             && (self.mouse_tracking || self.button_event_mouse || self.any_event_mouse)
         {
-            self.current_mouse_button = MouseButton::None;
-
-            let release_button = 3;
-
             if self.sgr_mouse {
+                let release_button = self.mouse_report_button_number(&event);
+                self.current_mouse_button = MouseButton::None;
                 write!(
                     self.writer,
                     "\x1b[<{};{};{}m",
@@ -507,6 +505,8 @@ impl TerminalState {
                     event.y + 1
                 )?;
             } else {
+                let release_button = 3;
+                self.current_mouse_button = MouseButton::None;
                 write!(
                     self.writer,
                     "\x1b[M{}{}{}",
