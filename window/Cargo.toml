@@ -31,7 +31,6 @@ resize = "0.3"
 glium = { version = "0.26.0-alpha3", optional=true, default-features = false}
 
 [features]
-async_await = []
 opengl = ["cgl", "glium", "gl_generator", "libloading"]
 wayland = ["smithay-client-toolkit", "memmap", "wayland-client", "wayland-egl"]
 
