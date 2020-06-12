@@ -3,15 +3,16 @@
 
 NOW=`date -u +%Y%m%d%H%M%S`
 echo $NOW
+PATH=$PWD/target/release:$PATH
 
 case $OSTYPE in
   darwin*)
-    ./target/release/wezterm start -- script -r $NOW.typescript
+    wezterm start -- script -r $NOW.typescript
     tar -cz -f $NOW.tgz $NOW.typescript
     ;;
 
   linux*)
-    ./target/release/wezterm start -- script -t$NOW.timing $NOW.typescript
+    wezterm start -- script -t$NOW.timing $NOW.typescript
     tar -cz --remove-files -f $NOW.tgz $NOW.timing $NOW.typescript
     ;;
 esac

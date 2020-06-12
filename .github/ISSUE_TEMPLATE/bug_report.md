@@ -40,8 +40,10 @@ appropriate for rendering issues.
 ## Session Recording
 
 If the issue is with the way that escape sequences are processed it can be helpful
-to capture the terminal output using the `wt-record` script to run `wezterm` and
-record a transcript.  This requires the `script` utility to be installed on your system.
+to capture the terminal output using the [`wt-record`](https://github.com/wez/wezterm/blob/master/wt-record)
+script to run `wezterm` and record a transcript.  This requires the `script` utility
+to be installed on your system (this is part of macOS and available in the `util-linux`
+package on linux systems).
 
 In the example below a file named `20180225161026.tgz` is produced.  Please attach that
 file to this issue, or if it contains private or sensitive issue that you don't want the
