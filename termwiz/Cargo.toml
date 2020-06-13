@@ -28,7 +28,7 @@ semver = "0.9"
 serde = {version="1.0", features = ["rc", "derive"], optional=true}
 smallvec = "0.6"
 terminfo = "0.7"
-unicode-segmentation = "1.5"
+unicode-segmentation = "1.6"
 unicode-width = "0.1"
 xi-unicode = "0.2"
 vtparse = { version="0.3", path="../vtparse" }
