@@ -16,10 +16,10 @@ use std::cell::RefCell;
 use std::cell::RefMut;
 use std::rc::Rc;
 use std::sync::Arc;
-use term::color::ColorPalette;
-use term::{Clipboard, KeyCode, KeyModifiers, MouseEvent};
 use termwiz::input::KeyEvent;
 use url::Url;
+use wezterm_term::color::ColorPalette;
+use wezterm_term::{Clipboard, KeyCode, KeyModifiers, MouseEvent};
 
 pub struct ClientTab {
     client: Arc<ClientInner>,

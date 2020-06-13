@@ -18,7 +18,6 @@ use std::io::prelude::*;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
-use term;
 use termwiz::hyperlink;
 use termwiz::input::{KeyCode, Modifiers};
 use termwiz::surface::CursorShape;
@@ -713,14 +712,14 @@ impl Config {
             });
 
             cfg.font_rules.push(StyleRule {
-                intensity: Some(term::Intensity::Bold),
+                intensity: Some(wezterm_term::Intensity::Bold),
                 font: bold,
                 ..Default::default()
             });
 
             cfg.font_rules.push(StyleRule {
                 italic: Some(true),
-                intensity: Some(term::Intensity::Bold),
+                intensity: Some(wezterm_term::Intensity::Bold),
                 font: bold_italic,
                 ..Default::default()
             });

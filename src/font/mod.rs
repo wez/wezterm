@@ -22,7 +22,7 @@ pub use crate::font::shaper::{FallbackIdx, FontMetrics, GlyphInfo};
 use crate::font::shaper::{FontShaper, FontShaperSelection};
 
 use super::config::{configuration, ConfigHandle, TextStyle};
-use term::CellAttributes;
+use wezterm_term::CellAttributes;
 
 pub struct LoadedFont {
     rasterizers: Vec<RefCell<Option<Box<dyn FontRasterizer>>>>,

@@ -170,6 +170,7 @@ impl ScreenOrAlt {
     }
 }
 
+/// Manages the state for the terminal
 pub struct TerminalState {
     config: Arc<dyn TerminalConfiguration>,
 
@@ -285,6 +286,9 @@ fn default_color_map() -> HashMap<u16, RgbColor> {
 }
 
 impl TerminalState {
+    /// Constructs the terminal state.
+    /// You generally want the `Terminal` struct rather than this one;
+    /// Terminal contains and dereferences to `TerminalState`.
     pub fn new(
         physical_rows: usize,
         physical_cols: usize,
@@ -342,10 +346,16 @@ impl TerminalState {
         self.clipboard.replace(Arc::clone(clipboard));
     }
 
+    /// Returns the title text associated with the terminal session.
+    /// The title can be changed by the application using a number
+    /// of escape sequences.
     pub fn get_title(&self) -> &str {
         &self.title
     }
 
+    /// Returns the current working directory associated with the
+    /// terminal session.  The working directory can be changed by
+    /// the applicaiton using the OSC 7 escape sequence.
     pub fn get_current_dir(&self) -> Option<&Url> {
         self.current_dir.as_ref()
     }
@@ -374,10 +384,14 @@ impl TerminalState {
         self.palette.as_mut().unwrap()
     }
 
+    /// Returns a reference to the active screen (either the primary or
+    /// the alternate screen).
     pub fn screen(&self) -> &Screen {
         &self.screen
     }
 
+    /// Returns a mutable reference to the active screen (either the primary or
+    /// the alternate screen).
     pub fn screen_mut(&mut self) -> &mut Screen {
         &mut self.screen
     }
@@ -547,6 +561,9 @@ impl TerminalState {
         Ok(())
     }
 
+    /// Informs the terminal of a mouse event.
+    /// If mouse reporting has been activated, the mouse event will be encoded
+    /// appropriately and written to the associated writer.
     pub fn mouse_event(&mut self, mut event: MouseEvent) -> Result<(), Error> {
         // Clamp the mouse coordinates to the size of the model.
         // This situation can trigger for example when the
@@ -583,21 +600,30 @@ impl TerminalState {
         }
     }
 
+    /// Discards the scrollback, leaving only the data that is present
+    /// in the viewport.
     pub fn erase_scrollback(&mut self) {
         self.screen_mut().erase_scrollback();
     }
 
+    /// Returns true if the associated application has enabled any of the
+    /// supported mouse reporting modes.
+    /// This is useful for the hosting GUI application to decide how best
+    /// to dispatch mouse events to the terminal.
     pub fn is_mouse_grabbed(&self) -> bool {
         self.mouse_tracking || self.button_event_mouse || self.any_event_mouse
     }
 
+    /// Returns true if the associated application has enabled
+    /// bracketed paste mode, which can be helpful to the hosting
+    /// GUI application to decide about fragmenting a large paste.
     pub fn bracketed_paste_enabled(&self) -> bool {
         self.bracketed_paste
     }
 
     /// Send text to the terminal that is the result of pasting.
     /// If bracketed paste mode is enabled, the paste is enclosed
-    /// in the bracketing, otherwise it is fed to the pty as-is.
+    /// in the bracketing, otherwise it is fed to the writer as-is.
     pub fn send_paste(&mut self, text: &str) -> Result<(), Error> {
         if self.bracketed_paste {
             let buf = format!("\x1b[200~{}\x1b[201~", text);
@@ -868,6 +894,8 @@ impl TerminalState {
         Ok(())
     }
 
+    /// Informs the terminal that the viewport of the window has resized to the
+    /// specified dimensions.
     pub fn resize(
         &mut self,
         physical_rows: usize,
@@ -1273,11 +1301,11 @@ impl TerminalState {
                 self.writer.write(b"\x1b[>0;0;0c").ok();
             }
             Device::RequestTerminalNameAndVersion => {
-                self.writer.write(DCS).ok();
+                self.writer.write(DCS.as_bytes()).ok();
                 self.writer
                     .write(format!(">|{} {}", self.term_program, self.term_version).as_bytes())
                     .ok();
-                self.writer.write(ST).ok();
+                self.writer.write(ST.as_bytes()).ok();
             }
             Device::StatusReport => {
                 self.writer.write(b"\x1b[0n").ok();

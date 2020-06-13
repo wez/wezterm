@@ -28,9 +28,9 @@ pub struct Palette {
 }
 impl_lua_conversion!(Palette);
 
-impl From<Palette> for term::color::ColorPalette {
-    fn from(cfg: Palette) -> term::color::ColorPalette {
-        let mut p = term::color::ColorPalette::default();
+impl From<Palette> for wezterm_term::color::ColorPalette {
+    fn from(cfg: Palette) -> wezterm_term::color::ColorPalette {
+        let mut p = wezterm_term::color::ColorPalette::default();
         macro_rules! apply_color {
             ($name:ident) => {
                 if let Some($name) = cfg.$name {
@@ -66,10 +66,10 @@ impl From<Palette> for term::color::ColorPalette {
 pub struct TabBarColor {
     /// Specifies the intensity attribute for the tab title text
     #[serde(default)]
-    pub intensity: term::Intensity,
+    pub intensity: wezterm_term::Intensity,
     /// Specifies the underline attribute for the tab title text
     #[serde(default)]
-    pub underline: term::Underline,
+    pub underline: wezterm_term::Underline,
     /// Specifies the italic attribute for the tab title text
     #[serde(default)]
     pub italic: bool,

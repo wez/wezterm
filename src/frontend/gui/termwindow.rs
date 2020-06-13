@@ -22,8 +22,8 @@ use crate::mux::renderable::{RenderableDimensions, StableCursorPosition};
 use crate::mux::tab::{Tab, TabId};
 use crate::mux::window::WindowId as MuxWindowId;
 use crate::mux::Mux;
-use ::term::input::MouseButton as TMB;
-use ::term::input::MouseEventKind as TMEK;
+use ::wezterm_term::input::MouseButton as TMB;
+use ::wezterm_term::input::MouseEventKind as TMEK;
 use ::window::bitmaps::atlas::{OutOfTextureSpace, SpriteSlice};
 use ::window::bitmaps::Texture2d;
 use ::window::glium::uniforms::{
@@ -46,12 +46,12 @@ use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
-use term::color::ColorPalette;
-use term::input::LastMouseClick;
-use term::{Line, StableRowIndex, Underline};
 use termwiz::color::RgbColor;
 use termwiz::hyperlink::Hyperlink;
 use termwiz::surface::{CursorShape, CursorVisibility};
+use wezterm_term::color::ColorPalette;
+use wezterm_term::input::LastMouseClick;
+use wezterm_term::{Line, StableRowIndex, Underline};
 
 struct RenderScreenLineOpenGLParams<'a> {
     line_idx: usize,
@@ -82,7 +82,7 @@ pub struct ClipboardHelper {
     clipboard_contents: Arc<Mutex<Option<String>>>,
 }
 
-impl term::Clipboard for ClipboardHelper {
+impl wezterm_term::Clipboard for ClipboardHelper {
     fn get_contents(&self) -> anyhow::Result<String> {
         // Even though we could request the clipboard contents using a call
         // like `self.window.get_clipboard().wait()` here, that requires
@@ -785,7 +785,7 @@ impl TermWindow {
             },
         );
 
-        let clipboard: Arc<dyn term::Clipboard> = Arc::new(ClipboardHelper {
+        let clipboard: Arc<dyn wezterm_term::Clipboard> = Arc::new(ClipboardHelper {
             window: window.clone(),
             clipboard_contents,
         });
@@ -1403,7 +1403,7 @@ impl TermWindow {
                 let fonts = Rc::new(FontConfiguration::new());
                 front_end.spawn_new_window(&fonts, &tab, mux_window_id)?;
             } else {
-                let clipboard: Arc<dyn term::Clipboard> = Arc::new(clipboard);
+                let clipboard: Arc<dyn wezterm_term::Clipboard> = Arc::new(clipboard);
                 tab.set_clipboard(&clipboard);
                 let mut window = mux
                     .get_window_mut(mux_window_id)
@@ -1938,7 +1938,7 @@ impl TermWindow {
     ) -> anyhow::Result<()> {
         let palette = tab.palette();
 
-        let background_color = palette.resolve_bg(term::color::ColorAttribute::Default);
+        let background_color = palette.resolve_bg(wezterm_term::color::ColorAttribute::Default);
         let (r, g, b, a) = background_color.to_tuple_rgba();
         frame.clear_color_srgb(r, g, b, a);
 
@@ -2174,25 +2174,25 @@ impl TermWindow {
 
             let bg_color = params.palette.resolve_bg(attrs.background);
             let fg_color = match attrs.foreground {
-                term::color::ColorAttribute::Default => {
+                wezterm_term::color::ColorAttribute::Default => {
                     if let Some(fg) = style.foreground {
                         fg
                     } else {
                         params.palette.resolve_fg(attrs.foreground)
                     }
                 }
-                term::color::ColorAttribute::PaletteIndex(idx) if idx < 8 => {
+                wezterm_term::color::ColorAttribute::PaletteIndex(idx) if idx < 8 => {
                     // For compatibility purposes, switch to a brighter version
                     // of one of the standard ANSI colors when Bold is enabled.
                     // This lifts black to dark grey.
-                    let idx = if attrs.intensity() == term::Intensity::Bold {
+                    let idx = if attrs.intensity() == wezterm_term::Intensity::Bold {
                         idx + 8
                     } else {
                         idx
                     };
                     params
                         .palette
-                        .resolve_fg(term::color::ColorAttribute::PaletteIndex(idx))
+                        .resolve_fg(wezterm_term::color::ColorAttribute::PaletteIndex(idx))
                 }
                 _ => params.palette.resolve_fg(attrs.foreground),
             };
@@ -2460,23 +2460,23 @@ impl TermWindow {
 
             let bg_color = palette.resolve_bg(attrs.background);
             let fg_color = match attrs.foreground {
-                term::color::ColorAttribute::Default => {
+                wezterm_term::color::ColorAttribute::Default => {
                     if let Some(fg) = style.foreground {
                         fg
                     } else {
                         palette.resolve_fg(attrs.foreground)
                     }
                 }
-                term::color::ColorAttribute::PaletteIndex(idx) if idx < 8 => {
+                wezterm_term::color::ColorAttribute::PaletteIndex(idx) if idx < 8 => {
                     // For compatibility purposes, switch to a brighter version
                     // of one of the standard ANSI colors when Bold is enabled.
                     // This lifts black to dark grey.
-                    let idx = if attrs.intensity() == term::Intensity::Bold {
+                    let idx = if attrs.intensity() == wezterm_term::Intensity::Bold {
                         idx + 8
                     } else {
                         idx
                     };
-                    palette.resolve_fg(term::color::ColorAttribute::PaletteIndex(idx))
+                    palette.resolve_fg(wezterm_term::color::ColorAttribute::PaletteIndex(idx))
                 }
                 _ => palette.resolve_fg(attrs.foreground),
             };
@@ -3141,7 +3141,7 @@ impl TermWindow {
             return;
         }
 
-        let mouse_event = term::MouseEvent {
+        let mouse_event = wezterm_term::MouseEvent {
             kind: match event.kind {
                 WMEK::Move => TMEK::Move,
                 WMEK::VertWheel(_) | WMEK::HorzWheel(_) | WMEK::Press(_) => TMEK::Press,

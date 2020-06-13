@@ -5,8 +5,8 @@ use crate::mux::tab::Pattern;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;
-use term::input::MouseButton;
-use term::{KeyCode, KeyModifiers};
+use wezterm_term::input::MouseButton;
+use wezterm_term::{KeyCode, KeyModifiers};
 
 /// A mouse event that can trigger an action
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq, Hash)]

@@ -5,7 +5,7 @@ use std::cell::RefCell;
 use std::collections::VecDeque;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, Ordering};
-use term::{MouseButton, MouseEvent, MouseEventKind};
+use wezterm_term::{MouseButton, MouseEvent, MouseEventKind};
 
 pub struct MouseState {
     pending: AtomicBool,

@@ -7,9 +7,9 @@ use async_trait::async_trait;
 use portable_pty::{Child, MasterPty, PtySize};
 use std::cell::{RefCell, RefMut};
 use std::sync::Arc;
-use term::color::ColorPalette;
-use term::{Clipboard, KeyCode, KeyModifiers, MouseEvent, StableRowIndex, Terminal};
 use url::Url;
+use wezterm_term::color::ColorPalette;
+use wezterm_term::{Clipboard, KeyCode, KeyModifiers, MouseEvent, StableRowIndex, Terminal};
 
 pub struct LocalTab {
     tab_id: TabId,

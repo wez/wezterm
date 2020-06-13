@@ -4,8 +4,8 @@
 use crate::mux::renderable::Renderable;
 use serde::{Deserialize, Serialize};
 use std::ops::Range;
-use term::StableRowIndex;
 use termwiz::surface::line::DoubleClickRange;
+use wezterm_term::StableRowIndex;
 
 #[derive(Serialize, Deserialize, Debug, Copy, Clone, Eq, PartialEq)]
 pub enum SelectionMode {

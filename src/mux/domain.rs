@@ -126,7 +126,7 @@ impl Domain for LocalDomain {
 
         let writer = pair.master.try_clone_writer()?;
 
-        let terminal = term::Terminal::new(
+        let terminal = wezterm_term::Terminal::new(
             size.rows as usize,
             size.cols as usize,
             size.pixel_width as usize,

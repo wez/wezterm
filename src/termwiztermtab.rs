@@ -22,8 +22,6 @@ use std::io::Write;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::time::Duration;
-use term::color::ColorPalette;
-use term::{KeyCode, KeyModifiers, MouseEvent};
 use termwiz::caps::{Capabilities, ColorLevel, ProbeHints};
 use termwiz::input::{InputEvent, KeyEvent, MouseEvent as TermWizMouseEvent};
 use termwiz::lineedit::*;
@@ -31,6 +29,8 @@ use termwiz::render::terminfo::TerminfoRenderer;
 use termwiz::surface::Change;
 use termwiz::terminal::{ScreenSize, Terminal, TerminalWaker};
 use url::Url;
+use wezterm_term::color::ColorPalette;
+use wezterm_term::{KeyCode, KeyModifiers, MouseEvent};
 
 struct TermWizTerminalDomain {
     domain_id: DomainId,
@@ -82,7 +82,7 @@ impl Domain for TermWizTerminalDomain {
 pub struct TermWizTerminalTab {
     tab_id: TabId,
     domain_id: DomainId,
-    terminal: RefCell<term::Terminal>,
+    terminal: RefCell<wezterm_term::Terminal>,
     input_tx: Sender<InputEvent>,
     dead: RefCell<bool>,
     writer: RefCell<Vec<u8>>,
@@ -99,7 +99,7 @@ impl TermWizTerminalTab {
     ) -> Self {
         let tab_id = alloc_tab_id();
 
-        let terminal = RefCell::new(term::Terminal::new(
+        let terminal = RefCell::new(wezterm_term::Terminal::new(
             height,
             width,
             0,
@@ -175,8 +175,8 @@ impl Tab for TermWizTerminalTab {
     }
 
     fn mouse_event(&self, event: MouseEvent) -> anyhow::Result<()> {
-        use term::input::MouseButton;
         use termwiz::input::MouseButtons as Buttons;
+        use wezterm_term::input::MouseButton;
 
         let mouse_buttons = match event.button {
             MouseButton::Left => Buttons::LEFT,

@@ -25,11 +25,11 @@ use std::convert::TryInto;
 use std::io::Cursor;
 use std::ops::Range;
 use std::sync::Arc;
-use term::StableRowIndex;
 use termwiz::hyperlink::Hyperlink;
 use termwiz::surface::Line;
 use url::Url;
 use varbincode;
+use wezterm_term::StableRowIndex;
 
 /// Returns the encoded length of the leb128 representation of value
 fn encoded_length(value: u64) -> usize {
@@ -515,7 +515,7 @@ impl Into<InputSerial> for std::time::SystemTime {
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
 pub struct SendMouseEvent {
     pub tab_id: TabId,
-    pub event: term::input::MouseEvent,
+    pub event: wezterm_term::input::MouseEvent,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]

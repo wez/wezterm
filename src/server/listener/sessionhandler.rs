@@ -12,9 +12,9 @@ use std::collections::HashMap;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
-use term::terminal::Clipboard;
-use term::StableRowIndex;
 use url::Url;
+use wezterm_term::terminal::Clipboard;
+use wezterm_term::StableRowIndex;
 
 #[derive(Default, Debug)]
 struct PerTab {

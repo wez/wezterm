@@ -1,7 +1,7 @@
 use crate::mux::{Tab, TabId};
 use std::rc::Rc;
 use std::sync::Arc;
-use term::Clipboard;
+use wezterm_term::Clipboard;
 
 static WIN_ID: ::std::sync::atomic::AtomicUsize = ::std::sync::atomic::AtomicUsize::new(0);
 pub type WindowId = usize;

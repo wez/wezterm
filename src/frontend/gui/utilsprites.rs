@@ -5,8 +5,8 @@ use ::window::bitmaps::atlas::{OutOfTextureSpace, Sprite};
 use ::window::bitmaps::{BitmapImage, Image, Texture2d};
 use ::window::*;
 use std::rc::Rc;
-use term::Underline;
 use termwiz::surface::CursorShape;
+use wezterm_term::Underline;
 
 #[derive(Copy, Clone)]
 pub struct RenderMetrics {

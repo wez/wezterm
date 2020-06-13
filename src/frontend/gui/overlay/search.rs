@@ -11,11 +11,11 @@ use std::collections::HashMap;
 use std::ops::Range;
 use std::rc::Rc;
 use std::sync::Arc;
-use term::color::ColorPalette;
-use term::{Clipboard, KeyCode, KeyModifiers, Line, MouseEvent, StableRowIndex};
 use termwiz::cell::{Cell, CellAttributes};
 use termwiz::color::AnsiColor;
 use url::Url;
+use wezterm_term::color::ColorPalette;
+use wezterm_term::{Clipboard, KeyCode, KeyModifiers, Line, MouseEvent, StableRowIndex};
 use window::WindowOps;
 
 pub struct SearchOverlay {
@@ -420,7 +420,7 @@ impl Renderable for SearchRenderable {
     fn get_cursor_position(&self) -> StableCursorPosition {
         // move to the search box
         StableCursorPosition {
-            x: 8 + term::unicode_column_width(&self.pattern),
+            x: 8 + wezterm_term::unicode_column_width(&self.pattern),
             y: self.compute_search_row(),
             shape: termwiz::surface::CursorShape::SteadyBlock,
             visibility: termwiz::surface::CursorVisibility::Visible,

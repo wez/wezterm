@@ -9,12 +9,12 @@ use std::cell::{RefCell, RefMut};
 use std::ops::Range;
 use std::rc::Rc;
 use std::sync::Arc;
-use term::color::ColorPalette;
-use term::{
-    unicode_column_width, Clipboard, KeyCode, KeyModifiers, Line, MouseEvent, StableRowIndex,
-};
 use unicode_segmentation::*;
 use url::Url;
+use wezterm_term::color::ColorPalette;
+use wezterm_term::{
+    unicode_column_width, Clipboard, KeyCode, KeyModifiers, Line, MouseEvent, StableRowIndex,
+};
 use window::WindowOps;
 
 pub struct CopyOverlay {

@@ -15,11 +15,11 @@ use std::ops::Range;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
-use term::{KeyCode, KeyModifiers};
-use term::{Line, StableRowIndex};
 use termwiz::cell::{Cell, CellAttributes, Underline};
 use termwiz::color::AnsiColor;
 use url::Url;
+use wezterm_term::{KeyCode, KeyModifiers};
+use wezterm_term::{Line, StableRowIndex};
 
 const MAX_POLL_INTERVAL: Duration = Duration::from_secs(30);
 const BASE_POLL_INTERVAL: Duration = Duration::from_millis(20);
@@ -654,7 +654,7 @@ impl Renderable for RenderableState {
                     let col = inner
                         .dimensions
                         .cols
-                        .saturating_sub(term::unicode_column_width(&status));
+                        .saturating_sub(wezterm_term::unicode_column_width(&status));
 
                     let mut attr = CellAttributes::default();
                     attr.foreground = AnsiColor::White.into();

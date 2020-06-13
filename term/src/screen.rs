@@ -375,11 +375,13 @@ impl Screen {
         self.phys_to_stable_row_index(self.phys_row(vis))
     }
 
+    /// ```norun
     /// ---------
     /// |
     /// |--- top
     /// |
     /// |--- bottom
+    /// ```
     ///
     /// scroll the region up by num_rows.  Any rows that would be scrolled
     /// beyond the top get removed from the screen.
@@ -479,11 +481,13 @@ impl Screen {
         }
     }
 
+    /// ```norun
     /// ---------
     /// |
     /// |--- top
     /// |
     /// |--- bottom
+    /// ```
     ///
     /// scroll the region down by num_rows.  Any rows that would be scrolled
     /// beyond the bottom get removed from the screen.

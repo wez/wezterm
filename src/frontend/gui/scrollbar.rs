@@ -1,7 +1,7 @@
 use crate::mux::renderable::Renderable;
 use ::window::*;
 use portable_pty::PtySize;
-use term::StableRowIndex;
+use wezterm_term::StableRowIndex;
 
 pub enum ScrollHit {
     Above,

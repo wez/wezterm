@@ -1,13 +1,13 @@
 //! Bridge our gui config into the terminal crate configuration
 
 use crate::config::configuration;
-use term::color::ColorPalette;
 use termwiz::hyperlink::Rule as HyperlinkRule;
+use wezterm_term::color::ColorPalette;
 
 #[derive(Debug)]
 pub struct TermConfig;
 
-impl term::TerminalConfiguration for TermConfig {
+impl wezterm_term::TerminalConfiguration for TermConfig {
     fn generation(&self) -> usize {
         configuration().generation()
     }

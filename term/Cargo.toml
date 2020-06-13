@@ -1,8 +1,14 @@
 [package]
 authors = ["Wez Furlong <wez@wezfurlong.org>"]
-name = "term"
+name = "wezterm-term"
 version = "0.1.0"
 edition = "2018"
+repository = "https://github.com/wez/wezterm"
+description = "The Virtual Terminal Emulator core from wezterm; helpful for implementing terminal emulators"
+license = "MIT"
+documentation = "https://docs.rs/wezterm-term"
+keywords = ["terminal", "emulator", "vte"]
+readme = "README.md"
 
 [dependencies]
 bitflags = "1.0"
@@ -22,4 +28,5 @@ url = "2"
 pretty_assertions = "0.6"
 
 [dependencies.termwiz]
+version = "0.10"
 path = "../termwiz"

@@ -1,11 +1,11 @@
 use crate::config::TabBarColors;
 use crate::mux::window::Window as MuxWindow;
 use std::cell::Ref;
-use term::Line;
 use termwiz::cell::unicode_column_width;
 use termwiz::cell::{Cell, CellAttributes};
 use termwiz::color::ColorSpec;
 use unicode_segmentation::UnicodeSegmentation;
+use wezterm_term::Line;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct TabBarState {

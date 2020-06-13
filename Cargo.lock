@@ -3243,26 +3243,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "term"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "bitflags 1.2.1",
- "image 0.23.5",
- "log",
- "num",
- "ordered-float",
- "palette",
- "pretty_assertions",
- "serde",
- "serde_derive",
- "termwiz",
- "unicode-segmentation",
- "unicode-width",
- "url",
-]
-
-[[package]]
 name = "termcolor"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3903,7 +3883,6 @@ dependencies = [
  "strsim 0.10.0",
  "structopt",
  "tabout",
- "term",
  "terminfo",
  "termwiz",
  "textwrap",
@@ -3917,10 +3896,31 @@ dependencies = [
  "varbincode",
  "vergen",
  "walkdir",
+ "wezterm-term",
  "winapi 0.3.8",
  "window",
  "winrt-notification",
  "zstd",
+]
+
+[[package]]
+name = "wezterm-term"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "bitflags 1.2.1",
+ "image 0.23.5",
+ "log",
+ "num",
+ "ordered-float",
+ "palette",
+ "pretty_assertions",
+ "serde",
+ "serde_derive",
+ "termwiz",
+ "unicode-segmentation",
+ "unicode-width",
+ "url",
 ]
 
 [[package]]

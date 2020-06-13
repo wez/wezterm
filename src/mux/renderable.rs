@@ -3,7 +3,7 @@ use downcast_rs::{impl_downcast, Downcast};
 use rangeset::RangeSet;
 use serde::{Deserialize, Serialize};
 use std::ops::Range;
-use term::{Line, StableRowIndex, Terminal};
+use wezterm_term::{Line, StableRowIndex, Terminal};
 
 /// Describes the location of the cursor
 #[derive(Debug, Default, Copy, Clone, Eq, PartialEq, Deserialize, Serialize)]
@@ -34,7 +34,7 @@ pub struct RenderableDimensions {
     pub scrollback_top: StableRowIndex,
 }
 
-/// Renderable allows passing something that isn't an actual term::Terminal
+/// Renderable allows passing something that isn't an actual wezterm_term::Terminal
 /// instance into the renderer, which opens up remoting of the terminal
 /// surfaces via a multiplexer.
 pub trait Renderable: Downcast {

@@ -7,9 +7,9 @@ use portable_pty::PtySize;
 use serde::{Deserialize, Serialize};
 use std::cell::RefMut;
 use std::sync::{Arc, Mutex};
-use term::color::ColorPalette;
-use term::{Clipboard, KeyCode, KeyModifiers, MouseEvent, StableRowIndex};
 use url::Url;
+use wezterm_term::color::ColorPalette;
+use wezterm_term::{Clipboard, KeyCode, KeyModifiers, MouseEvent, StableRowIndex};
 
 static TAB_ID: ::std::sync::atomic::AtomicUsize = ::std::sync::atomic::AtomicUsize::new(0);
 pub type TabId = usize;
