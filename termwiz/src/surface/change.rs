@@ -2,6 +2,7 @@ use crate::cell::{unicode_column_width, AttributeChange, CellAttributes};
 use crate::color::ColorAttribute;
 pub use crate::image::{ImageData, TextureCoordinate};
 use crate::surface::{CursorShape, CursorVisibility, Position};
+#[cfg(feature = "use_serde")]
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use unicode_segmentation::UnicodeSegmentation;
@@ -9,7 +10,8 @@ use unicode_segmentation::UnicodeSegmentation;
 /// `Change` describes an update operation to be applied to a `Surface`.
 /// Changes to the active attributes (color, style), moving the cursor
 /// and outputting text are examples of some of the values.
-#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub enum Change {
     /// Change a single attribute
     Attribute(AttributeChange),
@@ -261,7 +263,8 @@ impl ChangeSequence {
 /// A 4x3 cell image would set `width=3`, `height=3`, `top_left=(0,0)`, `bottom_right=(1,1)`.
 /// The top left cell from that image, if it were to be included in a diff,
 /// would be recorded as `width=1`, `height=1`, `top_left=(0,0)`, `bottom_right=(1/4,1/3)`.
-#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Image {
     /// measured in cells
     pub width: usize,

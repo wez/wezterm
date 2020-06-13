@@ -34,6 +34,11 @@
 //!   level.
 //! * `LineEditor` provides line editing facilities similar to those
 //!   in the unix shell.
+//!
+//! ## Features
+//!
+//! * `widgets` - enables the widget layout and related traits
+//! * `use_serde` - makes a number of structs serde serializable
 
 pub mod caps;
 pub mod cell;

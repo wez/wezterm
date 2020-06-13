@@ -3914,7 +3914,6 @@ dependencies = [
  "palette",
  "pretty_assertions",
  "serde",
- "serde_derive",
  "termwiz",
  "unicode-segmentation",
  "unicode-width",

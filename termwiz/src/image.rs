@@ -12,9 +12,11 @@
 // z-order.
 
 use ordered_float::NotNan;
+#[cfg(feature = "use_serde")]
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::sync::Arc;
 
+#[cfg(feature = "use_serde")]
 fn deserialize_notnan<'de, D>(deserializer: D) -> Result<NotNan<f32>, D::Error>
 where
     D: Deserializer<'de>,
@@ -23,6 +25,7 @@ where
     NotNan::new(value).map_err(|e| serde::de::Error::custom(format!("{:?}", e)))
 }
 
+#[cfg(feature = "use_serde")]
 #[cfg_attr(feature = "cargo-clippy", allow(clippy::trivially_copy_pass_by_ref))]
 fn serialize_notnan<S>(value: &NotNan<f32>, serializer: S) -> Result<S::Ok, S::Error>
 where
@@ -31,16 +34,23 @@ where
     value.into_inner().serialize(serializer)
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct TextureCoordinate {
-    #[serde(
-        deserialize_with = "deserialize_notnan",
-        serialize_with = "serialize_notnan"
+    #[cfg_attr(
+        feature = "use_serde",
+        serde(
+            deserialize_with = "deserialize_notnan",
+            serialize_with = "serialize_notnan"
+        )
     )]
     pub x: NotNan<f32>,
-    #[serde(
-        deserialize_with = "deserialize_notnan",
-        serialize_with = "serialize_notnan"
+    #[cfg_attr(
+        feature = "use_serde",
+        serde(
+            deserialize_with = "deserialize_notnan",
+            serialize_with = "serialize_notnan"
+        )
     )]
     pub y: NotNan<f32>,
 }
@@ -62,7 +72,8 @@ impl TextureCoordinate {
 /// carve up the image and track each slice of it.  Each cell needs to know
 /// its "texture coordinates" within that image so that we can render the
 /// right slice.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ImageCell {
     /// Texture coordinate for the top left of this cell.
     /// (0,0) is the top left of the ImageData. (1, 1) is
@@ -102,7 +113,8 @@ impl ImageCell {
 
 static IMAGE_ID: ::std::sync::atomic::AtomicUsize = ::std::sync::atomic::AtomicUsize::new(0);
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ImageData {
     id: usize,
     /// The image data bytes.  Data is the native image file format

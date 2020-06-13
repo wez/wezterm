@@ -2,7 +2,7 @@
 // and inclusive range
 #![cfg_attr(feature = "cargo-clippy", allow(clippy::range_plus_one))]
 use super::{ScrollbackOrVisibleRowIndex, VisibleRowIndex};
-use serde_derive::*;
+use serde::*;
 use std::ops::Range;
 
 /// The x,y coordinates of either the start or end of a selection region

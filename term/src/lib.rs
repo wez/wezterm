@@ -15,9 +15,8 @@
 //!
 //! The entrypoint to the crate is the [Terminal](terminal/struct.Terminal.html)
 //! struct.
-use serde_derive::*;
-
 use anyhow::Error;
+use serde::*;
 use std::ops::{Deref, DerefMut, Range};
 use std::str;
 

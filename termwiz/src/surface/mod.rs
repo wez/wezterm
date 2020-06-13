@@ -2,6 +2,7 @@ use crate::cell::{AttributeChange, Cell, CellAttributes};
 use crate::color::ColorAttribute;
 use crate::image::ImageCell;
 use ordered_float::NotNan;
+#[cfg(feature = "use_serde")]
 use serde::{Deserialize, Serialize};
 use std::borrow::Cow;
 use std::cmp::min;
@@ -18,7 +19,8 @@ pub use self::line::Line;
 /// Relative(0) is the current position in the line or
 /// column and EndRelative(0) is the end position in the
 /// line or column.
-#[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum Position {
     /// Negative values move up, positive values down, 0 means no change
     Relative(isize),
@@ -28,7 +30,8 @@ pub enum Position {
     EndRelative(usize),
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CursorVisibility {
     Hidden,
     Visible,
@@ -40,7 +43,8 @@ impl Default for CursorVisibility {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CursorShape {
     Default,
     BlinkingBlock,
