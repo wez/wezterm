@@ -885,7 +885,7 @@ dependencies = [
 
 [[package]]
 name = "filedescriptor"
-version = "0.7.1"
+version = "0.7.2"
 dependencies = [
  "anyhow",
  "libc",
@@ -3295,7 +3295,6 @@ dependencies = [
  "libc",
  "log",
  "memmem",
- "num",
  "num-derive",
  "num-traits 0.2.11",
  "ordered-float",

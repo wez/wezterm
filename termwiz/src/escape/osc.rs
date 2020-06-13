@@ -3,8 +3,8 @@ pub use crate::hyperlink::Hyperlink;
 use anyhow::{anyhow, bail, ensure};
 use base64;
 use bitflags::bitflags;
-use num;
 use num_derive::*;
+use num_traits::FromPrimitive;
 use ordered_float::NotNan;
 use std::collections::HashMap;
 use std::fmt::{Display, Error as FmtError, Formatter};
@@ -215,14 +215,14 @@ impl OperatingSystemCommand {
     }
 
     fn parse_reset_dynamic_color_number(idx: u8) -> anyhow::Result<Self> {
-        let which_color: DynamicColorNumber = num::FromPrimitive::from_u8(idx)
+        let which_color: DynamicColorNumber = FromPrimitive::from_u8(idx)
             .ok_or_else(|| anyhow!("osc code is not a valid DynamicColorNumber!?"))?;
 
         Ok(OperatingSystemCommand::ResetDynamicColor(which_color))
     }
 
     fn parse_change_dynamic_color_number(idx: u8, osc: &[&[u8]]) -> anyhow::Result<Self> {
-        let which_color: DynamicColorNumber = num::FromPrimitive::from_u8(idx)
+        let which_color: DynamicColorNumber = FromPrimitive::from_u8(idx)
             .ok_or_else(|| anyhow!("osc code is not a valid DynamicColorNumber!?"))?;
         let mut colors = vec![];
         for spec in osc.iter().skip(1) {
@@ -248,7 +248,7 @@ impl OperatingSystemCommand {
         let p1str = String::from_utf8_lossy(osc[0]);
         let code: i64 = p1str.parse()?;
         let osc_code: OperatingSystemCommandCode =
-            num::FromPrimitive::from_i64(code).ok_or_else(|| anyhow!("unknown code"))?;
+            FromPrimitive::from_i64(code).ok_or_else(|| anyhow!("unknown code"))?;
 
         macro_rules! single_string {
             ($variant:ident) => {{

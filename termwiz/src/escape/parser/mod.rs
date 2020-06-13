@@ -4,7 +4,7 @@ use crate::escape::{
     SixelData, CSI,
 };
 use log::error;
-use num;
+use num_traits::FromPrimitive;
 use regex::bytes::Regex;
 use std::cell::RefCell;
 use vtparse::{VTActor, VTParser};
@@ -135,7 +135,7 @@ impl<'a, F: FnMut(Action)> VTActor for Performer<'a, F> {
     }
 
     fn execute_c0_or_c1(&mut self, byte: u8) {
-        match num::FromPrimitive::from_u8(byte) {
+        match FromPrimitive::from_u8(byte) {
             Some(code) => (self.callback)(Action::Control(code)),
             None => error!("impossible C0/C1 control code {:?} was dropped", byte),
         }

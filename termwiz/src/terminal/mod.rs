@@ -4,7 +4,7 @@ use crate::caps::Capabilities;
 use crate::input::InputEvent;
 use crate::surface::Change;
 use anyhow::{anyhow, Error};
-use num::{self, NumCast};
+use num_traits::NumCast;
 use std::fmt::Display;
 use std::time::Duration;
 
@@ -117,5 +117,5 @@ pub fn new_terminal(caps: Capabilities) -> Result<impl Terminal, Error> {
 }
 
 pub(crate) fn cast<T: NumCast + Display + Copy, U: NumCast>(n: T) -> Result<U, Error> {
-    num::cast(n).ok_or_else(|| anyhow!("{} is out of bounds for this system", n))
+    num_traits::cast(n).ok_or_else(|| anyhow!("{} is out of bounds for this system", n))
 }
