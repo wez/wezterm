@@ -443,7 +443,7 @@ impl WindowCallbacks for TermWindow {
         self.scaling_changed(dimensions, self.fonts.get_font_scale());
     }
 
-    fn key_event(&mut self, key: &KeyEvent, _context: &dyn WindowOps) -> bool {
+    fn key_event(&mut self, key: &KeyEvent, context: &dyn WindowOps) -> bool {
         if !key.key_is_down {
             return false;
         }
@@ -463,6 +463,7 @@ impl WindowCallbacks for TermWindow {
             if let Key::Code(key) = self.win_key_code_to_termwiz_key_code(&key) {
                 if let Some(assignment) = self.input_map.lookup_key(key, raw_modifiers) {
                     self.perform_key_assignment(&tab, &assignment).ok();
+                    context.invalidate();
                     return true;
                 }
 
@@ -473,6 +474,7 @@ impl WindowCallbacks for TermWindow {
                     if !key.is_modifier() && self.tab_state(tab.tab_id()).overlay.is_none() {
                         self.maybe_scroll_to_bottom_for_input(&tab);
                     }
+                    context.invalidate();
                     return true;
                 }
             }
@@ -483,11 +485,13 @@ impl WindowCallbacks for TermWindow {
             Key::Code(key) => {
                 if let Some(assignment) = self.input_map.lookup_key(key, modifiers) {
                     self.perform_key_assignment(&tab, &assignment).ok();
+                    context.invalidate();
                     true
                 } else if tab.key_down(key, modifiers).is_ok() {
                     if !key.is_modifier() && self.tab_state(tab.tab_id()).overlay.is_none() {
                         self.maybe_scroll_to_bottom_for_input(&tab);
                     }
+                    context.invalidate();
                     true
                 } else {
                     false
@@ -496,6 +500,7 @@ impl WindowCallbacks for TermWindow {
             Key::Composed(s) => {
                 tab.writer().write_all(s.as_bytes()).ok();
                 self.maybe_scroll_to_bottom_for_input(&tab);
+                context.invalidate();
                 true
             }
             Key::None => false,
