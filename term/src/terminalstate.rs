@@ -6,6 +6,7 @@ use crate::color::{ColorPalette, RgbColor};
 use anyhow::bail;
 use image::{self, GenericImageView};
 use log::{debug, error};
+use num_traits::FromPrimitive;
 use ordered_float::NotNan;
 use std::collections::HashMap;
 use std::fmt::Write;
@@ -2222,7 +2223,7 @@ impl<'a> Performer<'a> {
                 use termwiz::escape::osc::DynamicColorNumber;
                 let mut idx: u8 = first_color as u8;
                 for color in colors {
-                    let which_color: Option<DynamicColorNumber> = num::FromPrimitive::from_u8(idx);
+                    let which_color: Option<DynamicColorNumber> = FromPrimitive::from_u8(idx);
                     log::trace!("ChangeDynamicColors item: {:?}", which_color);
                     if let Some(which_color) = which_color {
                         macro_rules! set_or_query {
@@ -2264,8 +2265,7 @@ impl<'a> Performer<'a> {
             OperatingSystemCommand::ResetDynamicColor(color) => {
                 log::trace!("ResetDynamicColor: {:?}", color);
                 use termwiz::escape::osc::DynamicColorNumber;
-                let which_color: Option<DynamicColorNumber> =
-                    num::FromPrimitive::from_u8(color as u8);
+                let which_color: Option<DynamicColorNumber> = FromPrimitive::from_u8(color as u8);
                 if let Some(which_color) = which_color {
                     macro_rules! reset {
                         ($name:ident) => {

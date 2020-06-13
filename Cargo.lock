@@ -3794,7 +3794,7 @@ dependencies = [
  "bitflags 1.2.1",
  "image",
  "log",
- "num",
+ "num-traits 0.2.12",
  "ordered-float",
  "palette",
  "pretty_assertions",
