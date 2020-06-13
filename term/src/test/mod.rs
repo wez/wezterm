@@ -13,7 +13,7 @@ use std::cell::RefCell;
 use std::sync::Arc;
 use termwiz::escape::csi::{Edit, EraseInDisplay, EraseInLine};
 use termwiz::escape::{OneBased, OperatingSystemCommand, CSI};
-use termwiz::surface::CursorShape;
+use termwiz::surface::{CursorShape, CursorVisibility};
 
 #[derive(Debug)]
 struct LocalClip {
@@ -149,6 +149,7 @@ impl TestTerm {
             x,
             y,
             shape: CursorShape::Default,
+            visibility: CursorVisibility::Visible,
         };
         assert_eq!(
             cursor, expect,

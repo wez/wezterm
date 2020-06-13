@@ -19,7 +19,7 @@ use termwiz::escape::{
     Action, ControlCode, Esc, EscCode, OneBased, OperatingSystemCommand, Sixel, SixelData, CSI,
 };
 use termwiz::image::{ImageCell, ImageData, TextureCoordinate};
-use termwiz::surface::CursorShape;
+use termwiz::surface::{CursorShape, CursorVisibility};
 use url::Url;
 
 struct TabStop {
@@ -910,10 +910,11 @@ impl TerminalState {
         CursorPosition {
             x: self.cursor.x,
             y: self.cursor.y,
-            shape: if self.cursor_visible {
-                self.cursor.shape
+            shape: self.cursor.shape,
+            visibility: if self.cursor_visible {
+                CursorVisibility::Visible
             } else {
-                CursorShape::Hidden
+                CursorVisibility::Hidden
             },
         }
     }

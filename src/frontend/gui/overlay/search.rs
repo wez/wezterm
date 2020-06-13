@@ -423,6 +423,7 @@ impl Renderable for SearchRenderable {
             x: 8 + term::unicode_column_width(&self.pattern),
             y: self.compute_search_row(),
             shape: termwiz::surface::CursorShape::SteadyBlock,
+            visibility: termwiz::surface::CursorVisibility::Visible,
         }
     }
 

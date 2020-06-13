@@ -218,6 +218,7 @@ impl Screen {
             x: cursor_x,
             y: vis_cursor_y,
             shape: cursor.shape,
+            visibility: cursor.visibility,
         }
     }
 

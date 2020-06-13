@@ -42,7 +42,6 @@ impl Default for CursorVisibility {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum CursorShape {
-    Hidden,
     Default,
     BlinkingBlock,
     SteadyBlock,
@@ -55,15 +54,6 @@ pub enum CursorShape {
 impl Default for CursorShape {
     fn default() -> CursorShape {
         CursorShape::Default
-    }
-}
-
-impl From<CursorVisibility> for CursorShape {
-    fn from(visibility: CursorVisibility) -> CursorShape {
-        match visibility {
-            CursorVisibility::Hidden => CursorShape::Hidden,
-            CursorVisibility::Visible => CursorShape::Default,
-        }
     }
 }
 
@@ -114,7 +104,8 @@ pub struct Surface {
     ypos: usize,
     seqno: SequenceNo,
     changes: Vec<Change>,
-    cursor_shape: CursorShape,
+    cursor_shape: Option<CursorShape>,
+    cursor_visibility: CursorVisibility,
     cursor_color: ColorAttribute,
     title: String,
 }
@@ -210,8 +201,12 @@ impl Surface {
         (self.xpos, self.ypos)
     }
 
-    pub fn cursor_shape(&self) -> CursorShape {
+    pub fn cursor_shape(&self) -> Option<CursorShape> {
         self.cursor_shape
+    }
+
+    pub fn cursor_visibility(&self) -> CursorVisibility {
+        self.cursor_visibility
     }
 
     pub fn title(&self) -> &str {
@@ -288,8 +283,8 @@ impl Surface {
             Change::ClearToEndOfLine(color) => self.clear_eol(*color),
             Change::ClearToEndOfScreen(color) => self.clear_eos(*color),
             Change::CursorColor(color) => self.cursor_color = *color,
-            Change::CursorShape(shape) => self.cursor_shape = *shape,
-            Change::CursorVisibility(visibility) => self.cursor_shape = (*visibility).into(),
+            Change::CursorShape(shape) => self.cursor_shape = Some(*shape),
+            Change::CursorVisibility(visibility) => self.cursor_visibility = *visibility,
             Change::Image(image) => self.add_image(image),
             Change::Title(text) => self.title = text.to_owned(),
             Change::ScrollRegionUp {
@@ -587,7 +582,7 @@ impl Surface {
 
         // Home the cursor and clear the screen to defaults.  Hide the
         // cursor while we're repainting.
-        result.push(Change::CursorShape(CursorShape::Hidden));
+        result.push(Change::CursorVisibility(CursorVisibility::Hidden));
         result.push(Change::ClearScreen(Default::default()));
 
         if !self.title.is_empty() {
@@ -720,8 +715,11 @@ impl Surface {
 
         // Set the intended cursor shape.  We hid the cursor at the start
         // of the repaint, so no need to hide it again.
-        if self.cursor_shape != CursorShape::Hidden {
-            result.push(Change::CursorShape(self.cursor_shape));
+        if self.cursor_visibility != CursorVisibility::Hidden {
+            result.push(Change::CursorVisibility(CursorVisibility::Visible));
+            if let Some(shape) = self.cursor_shape {
+                result.push(Change::CursorShape(shape));
+            }
         }
 
         result
@@ -983,7 +981,7 @@ mod test {
         let (_seq, changes) = s.get_changes(0);
         assert_eq!(
             &[
-                Change::CursorShape(CursorShape::Hidden),
+                Change::CursorVisibility(CursorVisibility::Hidden),
                 Change::ClearScreen(Default::default()),
                 Change::Text("hel".into()),
                 Change::CursorPosition {
@@ -995,7 +993,7 @@ mod test {
                     x: Position::Absolute(1),
                     y: Position::Absolute(1),
                 },
-                Change::CursorShape(CursorShape::Default),
+                Change::CursorVisibility(CursorVisibility::Visible),
             ],
             &*changes
         );
@@ -1017,7 +1015,7 @@ mod test {
         let (_seq, changes) = s.get_changes(0);
         assert_eq!(
             &[
-                Change::CursorShape(CursorShape::Hidden),
+                Change::CursorVisibility(CursorVisibility::Hidden),
                 Change::ClearScreen(Default::default()),
                 Change::AllAttributes(
                     CellAttributes::default()
@@ -1035,7 +1033,7 @@ mod test {
                     x: Position::Absolute(1),
                     y: Position::Absolute(1),
                 },
-                Change::CursorShape(CursorShape::Default),
+                Change::CursorVisibility(CursorVisibility::Visible),
             ],
             &*changes
         );
@@ -1051,7 +1049,7 @@ mod test {
         let (_seq, changes) = s.get_changes(0);
         assert_eq!(
             &[
-                Change::CursorShape(CursorShape::Hidden),
+                Change::CursorVisibility(CursorVisibility::Hidden),
                 Change::ClearScreen(Default::default()),
                 Change::AllAttributes(
                     CellAttributes::default()
@@ -1073,7 +1071,7 @@ mod test {
                     x: Position::Absolute(3),
                     y: Position::Absolute(2),
                 },
-                Change::CursorShape(CursorShape::Default),
+                Change::CursorVisibility(CursorVisibility::Visible),
             ],
             &*changes
         );
@@ -1089,13 +1087,13 @@ mod test {
         let (_seq, changes) = s.get_changes(0);
         assert_eq!(
             &[
-                Change::CursorShape(CursorShape::Hidden),
+                Change::CursorVisibility(CursorVisibility::Hidden),
                 Change::ClearScreen(Default::default()),
                 Change::CursorPosition {
                     x: Position::Absolute(3),
                     y: Position::Absolute(2),
                 },
-                Change::CursorShape(CursorShape::Default),
+                Change::CursorVisibility(CursorVisibility::Visible),
             ],
             &*changes
         );
@@ -1168,9 +1166,9 @@ mod test {
         let s = Surface::new(4, 3);
 
         let empty = &[
-            Change::CursorShape(CursorShape::Hidden),
+            Change::CursorVisibility(CursorVisibility::Hidden),
             Change::ClearScreen(Default::default()),
-            Change::CursorShape(CursorShape::Default),
+            Change::CursorVisibility(CursorVisibility::Visible),
         ];
 
         let (seq, changes) = s.get_changes(0);
@@ -1201,14 +1199,14 @@ mod test {
         s.resize(2, 2);
 
         let full = &[
-            Change::CursorShape(CursorShape::Hidden),
+            Change::CursorVisibility(CursorVisibility::Hidden),
             Change::ClearScreen(Default::default()),
             Change::Text("a".to_string()),
             Change::CursorPosition {
                 x: Position::Absolute(1),
                 y: Position::Absolute(0),
             },
-            Change::CursorShape(CursorShape::Default),
+            Change::CursorVisibility(CursorVisibility::Visible),
         ];
 
         let (_seq, changes) = s.get_changes(seq);
@@ -1226,7 +1224,7 @@ mod test {
         let (_seq, changes) = s.get_changes(0);
         assert_eq!(
             &[
-                Change::CursorShape(CursorShape::Hidden),
+                Change::CursorVisibility(CursorVisibility::Hidden),
                 Change::ClearScreen(Default::default()),
                 Change::AllAttributes(
                     CellAttributes::default()
@@ -1238,7 +1236,7 @@ mod test {
                     x: Position::Absolute(2),
                     y: Position::Absolute(0),
                 },
-                Change::CursorShape(CursorShape::Default),
+                Change::CursorVisibility(CursorVisibility::Visible),
             ],
             &*changes
         );
@@ -1261,14 +1259,14 @@ mod test {
         assert_eq!(s.ypos, 1);
 
         let full = &[
-            Change::CursorShape(CursorShape::Hidden),
+            Change::CursorVisibility(CursorVisibility::Hidden),
             Change::ClearScreen(Default::default()),
             Change::Text(" a".to_string()),
             Change::CursorPosition {
                 x: Position::Absolute(1),
                 y: Position::Absolute(1),
             },
-            Change::CursorShape(CursorShape::Default),
+            Change::CursorVisibility(CursorVisibility::Visible),
         ];
 
         let (_seq, changes) = s.get_changes(0);
@@ -1285,14 +1283,14 @@ mod test {
         s.flush_changes_older_than(1);
 
         let initial = &[
-            Change::CursorShape(CursorShape::Hidden),
+            Change::CursorVisibility(CursorVisibility::Hidden),
             Change::ClearScreen(Default::default()),
             Change::Text("a".to_string()),
             Change::CursorPosition {
                 x: Position::Absolute(1),
                 y: Position::Absolute(0),
             },
-            Change::CursorShape(CursorShape::Default),
+            Change::CursorVisibility(CursorVisibility::Visible),
         ];
 
         let seq_pos = {

@@ -11,6 +11,7 @@ pub struct StableCursorPosition {
     pub x: usize,
     pub y: StableRowIndex,
     pub shape: termwiz::surface::CursorShape,
+    pub visibility: termwiz::surface::CursorVisibility,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Deserialize, Serialize)]
@@ -75,6 +76,7 @@ impl Renderable for Terminal {
             x: pos.x,
             y: self.screen().visible_row_to_stable_row(pos.y),
             shape: pos.shape,
+            visibility: pos.visibility,
         }
     }
 

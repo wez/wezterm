@@ -12,7 +12,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use termwiz::cell::{AttributeChange, Hyperlink, Underline};
-use termwiz::surface::{Change, CursorShape};
+use termwiz::surface::{Change, CursorVisibility};
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct Release {
@@ -186,7 +186,7 @@ fn show_update_available(release: Release) {
     render.parse_str(&brief_blurb);
 
     let mut output = vec![
-        Change::CursorShape(CursorShape::Hidden),
+        Change::CursorVisibility(CursorVisibility::Hidden),
         Change::Attribute(AttributeChange::Underline(Underline::Single)),
         Change::Attribute(AttributeChange::Hyperlink(Some(Arc::new(Hyperlink::new(
             install,

@@ -524,26 +524,14 @@ impl TerminfoRenderer {
                     CursorShape::Default => {
                         if let Some(normal) = self.get_capability::<cap::CursorNormal>() {
                             normal.expand().to(out.by_ref())?;
-                        } else {
-                            if let Some(show) = self.get_capability::<cap::CursorVisible>() {
-                                show.expand().to(out.by_ref())?;
-                            }
                         }
                         if let Some(reset) = self.get_capability::<cap::ResetCursorStyle>() {
                             reset.expand().to(out.by_ref())?;
                         }
                     }
-                    CursorShape::Hidden => {
-                        if let Some(hide) = self.get_capability::<cap::CursorInvisible>() {
-                            hide.expand().to(out.by_ref())?;
-                        }
-                    }
                     _ => {
-                        if let Some(show) = self.get_capability::<cap::CursorVisible>() {
-                            show.expand().to(out.by_ref())?;
-                        }
                         let param = match shape {
-                            CursorShape::Default | CursorShape::Hidden => unreachable!(),
+                            CursorShape::Default => unreachable!(),
                             CursorShape::BlinkingBlock => 1,
                             CursorShape::SteadyBlock => 2,
                             CursorShape::BlinkingUnderline => 3,

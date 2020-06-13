@@ -51,7 +51,7 @@ use term::input::LastMouseClick;
 use term::{Line, StableRowIndex, Underline};
 use termwiz::color::RgbColor;
 use termwiz::hyperlink::Hyperlink;
-use termwiz::surface::CursorShape;
+use termwiz::surface::{CursorShape, CursorVisibility};
 
 struct RenderScreenLineOpenGLParams<'a> {
     line_idx: usize,
@@ -2631,7 +2631,7 @@ impl TermWindow {
                         }
                     }
 
-                    if cursor_shape != CursorShape::Hidden {
+                    if cursor_shape.is_some() {
                         let software = self.render_state.software();
                         let sprite = software.util_sprites.cursor_sprite(cursor_shape);
                         ctx.draw_image(
@@ -2675,7 +2675,7 @@ impl TermWindow {
             );
             ctx.clear_rect(cell_rect, bg_color);
 
-            if cursor_shape != CursorShape::Hidden {
+            if cursor_shape.is_some() {
                 let software = self.render_state.software();
                 let sprite = software.util_sprites.cursor_sprite(cursor_shape);
                 ctx.draw_image(
@@ -2719,60 +2719,74 @@ impl TermWindow {
         fg_color: Color,
         bg_color: Color,
         palette: &ColorPalette,
-    ) -> (Color, Color, CursorShape) {
+    ) -> (Color, Color, Option<CursorShape>) {
         let selected = selection.contains(&cell_idx);
 
         let is_cursor = stable_line_idx == Some(cursor.y) && cursor.x == cell_idx;
 
-        let cursor_shape = if is_cursor {
-            // This logic figures out whether the cursor is visible or not.
-            // If the cursor is explicitly hidden then it is obviously not
-            // visible.
-            // If the cursor is set to a blinking mode then we are visible
-            // depending on the current time.
-            let config = configuration();
-            let shape = config.default_cursor_style.effective_shape(cursor.shape);
-            // Work out the blinking shape if its a blinking cursor and it hasn't been disabled
-            // and the window is focused.
-            let blinking =
-                shape.is_blinking() && config.cursor_blink_rate != 0 && self.focused.is_some();
-            if blinking {
-                // Divide the time since we last moved by the blink rate.
-                // If the result is even then the cursor is "on", else it
-                // is "off"
-                let now = std::time::Instant::now();
-                let milli_uptime = now
-                    .duration_since(self.prev_cursor.last_cursor_movement())
-                    .as_millis();
-                let ticks = milli_uptime / config.cursor_blink_rate as u128;
-                if (ticks & 1) == 0 {
-                    shape
+        let (cursor_shape, visibility) =
+            if is_cursor && cursor.visibility == CursorVisibility::Visible {
+                // This logic figures out whether the cursor is visible or not.
+                // If the cursor is explicitly hidden then it is obviously not
+                // visible.
+                // If the cursor is set to a blinking mode then we are visible
+                // depending on the current time.
+                let config = configuration();
+                let shape = config.default_cursor_style.effective_shape(cursor.shape);
+                // Work out the blinking shape if its a blinking cursor and it hasn't been disabled
+                // and the window is focused.
+                let blinking =
+                    shape.is_blinking() && config.cursor_blink_rate != 0 && self.focused.is_some();
+                if blinking {
+                    // Divide the time since we last moved by the blink rate.
+                    // If the result is even then the cursor is "on", else it
+                    // is "off"
+                    let now = std::time::Instant::now();
+                    let milli_uptime = now
+                        .duration_since(self.prev_cursor.last_cursor_movement())
+                        .as_millis();
+                    let ticks = milli_uptime / config.cursor_blink_rate as u128;
+                    (
+                        shape,
+                        if (ticks & 1) == 0 {
+                            CursorVisibility::Visible
+                        } else {
+                            CursorVisibility::Hidden
+                        },
+                    )
                 } else {
-                    CursorShape::Hidden
+                    (shape, cursor.visibility)
                 }
             } else {
-                shape
-            }
-        } else {
-            CursorShape::Hidden
-        };
+                (cursor.shape, cursor.visibility)
+            };
 
-        let (fg_color, bg_color) = match (selected, self.focused.is_some(), cursor_shape) {
-            // Selected text overrides colors
-            (true, _, CursorShape::Hidden) => (
-                rgbcolor_to_window_color(palette.selection_fg),
-                rgbcolor_to_window_color(palette.selection_bg),
-            ),
-            // Cursor cell overrides colors
-            (_, true, CursorShape::BlinkingBlock) | (_, true, CursorShape::SteadyBlock) => (
-                rgbcolor_to_window_color(palette.cursor_fg),
-                rgbcolor_to_window_color(palette.cursor_bg),
-            ),
-            // Normally, render the cell as configured (or if the window is unfocused)
-            _ => (fg_color, bg_color),
-        };
+        let (fg_color, bg_color) =
+            match (selected, self.focused.is_some(), cursor_shape, visibility) {
+                // Selected text overrides colors
+                (true, _, _, CursorVisibility::Hidden) => (
+                    rgbcolor_to_window_color(palette.selection_fg),
+                    rgbcolor_to_window_color(palette.selection_bg),
+                ),
+                // Cursor cell overrides colors
+                (_, true, CursorShape::BlinkingBlock, CursorVisibility::Visible)
+                | (_, true, CursorShape::SteadyBlock, CursorVisibility::Visible) => (
+                    rgbcolor_to_window_color(palette.cursor_fg),
+                    rgbcolor_to_window_color(palette.cursor_bg),
+                ),
+                // Normally, render the cell as configured (or if the window is unfocused)
+                _ => (fg_color, bg_color),
+            };
 
-        (fg_color, bg_color, cursor_shape)
+        (
+            fg_color,
+            bg_color,
+            if visibility == CursorVisibility::Visible {
+                Some(cursor_shape)
+            } else {
+                None
+            },
+        )
     }
 
     pub fn tab_state(&self, tab_id: TabId) -> RefMut<TabState> {
