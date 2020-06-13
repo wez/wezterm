@@ -2755,10 +2755,10 @@ impl TermWindow {
                         },
                     )
                 } else {
-                    (shape, cursor.visibility)
+                    (shape, CursorVisibility::Visible)
                 }
             } else {
-                (cursor.shape, cursor.visibility)
+                (cursor.shape, CursorVisibility::Hidden)
             };
 
         let (fg_color, bg_color) =
