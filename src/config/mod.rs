@@ -501,7 +501,7 @@ pub struct Config {
     #[serde(default = "default_true")]
     pub scroll_to_bottom_on_input: bool,
 
-    #[serde(default = "default_true")]
+    #[serde(default)]
     pub use_ime: bool,
 
     #[serde(default)]

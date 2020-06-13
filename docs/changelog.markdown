@@ -18,6 +18,8 @@ brief notes about them may accumulate here.
   and otherwise enables more key binding combinations.  You can enable this
   setting using `enable_csi_u_key_encoding = true` in your config file.
 * Very early support for sixel graphics
+* macos: `use_ime` now defaults to false; this is a better out of
+  the box experience for most users.
 
 ### 20200607-144723-74889cd4
 
