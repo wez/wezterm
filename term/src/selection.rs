@@ -2,11 +2,13 @@
 // and inclusive range
 #![cfg_attr(feature = "cargo-clippy", allow(clippy::range_plus_one))]
 use super::{ScrollbackOrVisibleRowIndex, VisibleRowIndex};
-use serde::*;
+#[cfg(feature = "use_serde")]
+use serde::{Deserialize, Serialize};
 use std::ops::Range;
 
 /// The x,y coordinates of either the start or end of a selection region
-#[derive(Debug, Default, Copy, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "use_serde", derive(Deserialize, Serialize))]
+#[derive(Debug, Default, Copy, Clone, Eq, PartialEq)]
 pub struct SelectionCoordinate {
     pub x: usize,
     pub y: ScrollbackOrVisibleRowIndex,
@@ -14,7 +16,8 @@ pub struct SelectionCoordinate {
 
 /// Represents the selected text range.
 /// The end coordinates are inclusive.
-#[derive(Debug, Default, Copy, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "use_serde", derive(Deserialize, Serialize))]
+#[derive(Debug, Default, Copy, Clone, Eq, PartialEq)]
 pub struct SelectionRange {
     pub start: SelectionCoordinate,
     pub end: SelectionCoordinate,

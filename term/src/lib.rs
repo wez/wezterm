@@ -16,7 +16,8 @@
 //! The entrypoint to the crate is the [Terminal](terminal/struct.Terminal.html)
 //! struct.
 use anyhow::Error;
-use serde::*;
+#[cfg(feature = "use_serde")]
+use serde::{Deserialize, Serialize};
 use std::ops::{Deref, DerefMut, Range};
 use std::str;
 
@@ -104,7 +105,8 @@ pub enum Position {
 
 /// Describes the location of the cursor in the visible portion
 /// of the screen.
-#[derive(Debug, Default, Copy, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[cfg_attr(feature = "use_serde", derive(Deserialize, Serialize))]
+#[derive(Debug, Default, Copy, Clone, Eq, PartialEq)]
 pub struct CursorPosition {
     pub x: usize,
     pub y: VisibleRowIndex,

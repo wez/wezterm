@@ -68,7 +68,7 @@ ssh2 = "0.8"
 structopt = "0.3"
 strsim = "0.10"
 tabout = { path = "tabout" }
-wezterm-term = { path = "term" }
+wezterm-term = { path = "term", features=["use_serde"] }
 terminfo = "0.7"
 termwiz = { path = "termwiz" }
 textwrap = "0.11"

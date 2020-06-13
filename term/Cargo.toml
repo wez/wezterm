@@ -10,6 +10,9 @@ documentation = "https://docs.rs/wezterm-term"
 keywords = ["terminal", "emulator", "vte"]
 readme = "README.md"
 
+[features]
+use_serde = ["termwiz/use_serde"]
+
 [dependencies]
 bitflags = "1.0"
 anyhow = "1.0"
@@ -29,4 +32,3 @@ pretty_assertions = "0.6"
 [dependencies.termwiz]
 version = "0.10"
 path = "../termwiz"
-features = ["use_serde"]

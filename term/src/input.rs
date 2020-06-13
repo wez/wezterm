@@ -2,13 +2,15 @@
 #![cfg_attr(feature = "cargo-clippy", allow(clippy::suspicious_arithmetic_impl, clippy::redundant_field_names))]
 
 use super::VisibleRowIndex;
-use serde::*;
+#[cfg(feature = "use_serde")]
+use serde::{Deserialize, Serialize};
 use std::time::{Duration, Instant};
 
 pub use termwiz::input::KeyCode;
 pub use termwiz::input::Modifiers as KeyModifiers;
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Deserialize, Serialize, Hash)]
+#[cfg_attr(feature = "use_serde", derive(Deserialize, Serialize))]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum MouseButton {
     Left,
     Middle,
@@ -18,14 +20,16 @@ pub enum MouseButton {
     None,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Deserialize, Serialize)]
+#[cfg_attr(feature = "use_serde", derive(Deserialize, Serialize))]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum MouseEventKind {
     Press,
     Release,
     Move,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Deserialize, Serialize)]
+#[cfg_attr(feature = "use_serde", derive(Deserialize, Serialize))]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct MouseEvent {
     pub kind: MouseEventKind,
     pub x: usize,
