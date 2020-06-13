@@ -889,7 +889,6 @@ version = "0.7.1"
 dependencies = [
  "anyhow",
  "libc",
- "thiserror",
  "winapi 0.3.8",
 ]
 
