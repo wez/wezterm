@@ -29,7 +29,7 @@ rangeset = { path = "rangeset" }
 bitflags = "1.0"
 bstr = "0.2"
 crossbeam = "0.7"
-dirs = "1.0"
+dirs = "2.0"
 downcast-rs = "1.0"
 euclid = "0.20"
 filedescriptor = { version="0.7", path = "filedescriptor" }
@@ -38,7 +38,7 @@ pretty_env_logger = "0.4"
 failure = "0.1"
 failure_derive = "0.1"
 freetype = { path = "deps/freetype" }
-image = "0.21"
+image = "0.23"
 harfbuzz = { path = "deps/harfbuzz" }
 hostname = "0.3"
 lazy_static = "1.3"

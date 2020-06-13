@@ -26,7 +26,7 @@ ordered-float = "1.0"
 regex = "1"
 semver = "0.9"
 serde = {version="1.0", features = ["rc", "derive"], optional=true}
-smallvec = "0.6"
+smallvec = "1.4"
 terminfo = "0.7"
 unicode-segmentation = "1.6"
 unicode-width = "0.1"
