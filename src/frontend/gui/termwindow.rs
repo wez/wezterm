@@ -3269,6 +3269,9 @@ fn window_mods_to_termwiz_mods(modifiers: ::window::Modifiers) -> termwiz::input
     if modifiers.contains(::window::Modifiers::RIGHT_ALT) {
         result.insert(termwiz::input::Modifiers::ALT);
     }
+    if modifiers.contains(::window::Modifiers::ALT) {
+        result.insert(termwiz::input::Modifiers::ALT);
+    }
     if modifiers.contains(::window::Modifiers::CTRL) {
         result.insert(termwiz::input::Modifiers::CTRL);
     }
