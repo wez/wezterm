@@ -20,6 +20,8 @@ brief notes about them may accumulate here.
 * Very early support for sixel graphics
 * macos: `use_ime` now defaults to false; this is a better out of
   the box experience for most users.
+* macos: we now attempt to set a reasonable default LANG environment based
+  on the locale settings at the time that wezterm is launched.
 
 ### 20200607-144723-74889cd4
 

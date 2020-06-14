@@ -117,6 +117,8 @@ fontconfig = { path = "deps/fontconfig" }
 core-foundation = "0.7"
 core-graphics = "0.19"
 core-text = "15.0"
+objc = "0.2"
+cocoa = "0.20"
 
 [features]
 default = ["vendor_openssl"]

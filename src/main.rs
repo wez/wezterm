@@ -734,6 +734,52 @@ fn maybe_show_configuration_error_window() {
     }
 }
 
+/// If LANG isn't set in the environment, make an attempt at setting
+/// it to a UTF-8 version of the current locale known to NSLocale.
+#[cfg(target_os = "macos")]
+fn set_lang_from_locale() {
+    use cocoa::base::id;
+    use cocoa::foundation::NSString;
+    use objc::runtime::Object;
+    use objc::*;
+
+    if std::env::var_os("LANG").is_none() {
+        unsafe fn nsstring_to_str<'a>(ns: *mut Object) -> &'a str {
+            let data = NSString::UTF8String(ns as id) as *const u8;
+            let len = NSString::len(ns as id);
+            let bytes = std::slice::from_raw_parts(data, len);
+            std::str::from_utf8_unchecked(bytes)
+        }
+
+        unsafe {
+            let locale: *mut Object = msg_send![class!(NSLocale), autoupdatingCurrentLocale];
+            let lang_code_obj: *mut Object = msg_send![locale, languageCode];
+            let country_code_obj: *mut Object = msg_send![locale, countryCode];
+
+            {
+                let lang_code = nsstring_to_str(lang_code_obj);
+                let country_code = nsstring_to_str(country_code_obj);
+
+                let candidate = format!("{}_{}.UTF-8", lang_code, country_code);
+                let candidate_cstr = std::ffi::CString::new(candidate.as_bytes().clone())
+                    .expect("make cstr from str");
+
+                // If this looks like a working locale then export it to
+                // the environment so that our child processes inherit it.
+                let old = libc::setlocale(libc::LC_CTYPE, std::ptr::null());
+                if !libc::setlocale(libc::LC_CTYPE, candidate_cstr.as_ptr()).is_null() {
+                    std::env::set_var("LANG", &candidate);
+                }
+                libc::setlocale(libc::LC_CTYPE, old);
+            }
+
+            let _: () = msg_send![lang_code_obj, release];
+            let _: () = msg_send![country_code_obj, release];
+            let _: () = msg_send![locale, release];
+        }
+    }
+}
+
 fn run() -> anyhow::Result<()> {
     if let Ok(exe) = std::env::current_exe() {
         if let Some(dir) = exe.parent() {
@@ -741,6 +787,9 @@ fn run() -> anyhow::Result<()> {
         }
         std::env::set_var("WEZTERM_EXECUTABLE", exe);
     }
+
+    #[cfg(target_os = "macos")]
+    set_lang_from_locale();
 
     if let Some(appimage) = std::env::var_os("APPIMAGE") {
         let appimage = std::path::PathBuf::from(appimage);
