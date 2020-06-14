@@ -1689,7 +1689,7 @@ impl TerminalState {
                 let cols = self.screen().physical_cols;
                 let range = match erase {
                     EraseInLine::EraseToEndOfLine => cx..cols,
-                    EraseInLine::EraseToStartOfLine => 0..cx,
+                    EraseInLine::EraseToStartOfLine => 0..cx + 1,
                     EraseInLine::EraseLine => 0..cols,
                 };
 
