@@ -22,6 +22,18 @@ brief notes about them may accumulate here.
   the box experience for most users.
 * macos: we now attempt to set a reasonable default LANG environment based
   on the locale settings at the time that wezterm is launched.
+* macos: introduce `send_composed_key_when_left_alt_is_pressed` and
+  `send_composed_key_when_right_alt_is_pressed` boolean config settings.  Like
+  the existing `send_composed_key_when_alt_is_pressed` option, these control
+  whether the `Alt` or `Option` modifier produce composed output or generate
+  the raw key position with the ALT modifier applied.  The difference from the
+  existing config option is that on systems where Left and Right Alt can be
+  distinguished you now have the ability to control this behavior
+  independently.  The default behavior on these systems is
+  `send_composed_key_when_left_alt_is_pressed=false` and
+  `send_composed_key_when_right_alt_is_pressed=true` so that the right Alt key
+  behaves more like an `AltGr` key and generates the composed input, while the
+  Left Alt is regular uncomposed Alt.
 
 ### 20200607-144723-74889cd4
 

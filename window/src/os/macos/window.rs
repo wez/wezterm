@@ -711,8 +711,11 @@ fn key_modifiers(flags: NSEventModifierFlags) -> Modifiers {
     if flags.contains(NSEventModifierFlags::NSShiftKeyMask) {
         mods |= Modifiers::SHIFT;
     }
-    if flags.contains(NSEventModifierFlags::NSAlternateKeyMask) {
-        mods |= Modifiers::ALT;
+    if flags.contains(NSEventModifierFlags::NSAlternateKeyMask) && (flags.bits() & 0x20) != 0 {
+        mods |= Modifiers::LEFT_ALT | Modifiers::ALT;
+    }
+    if flags.contains(NSEventModifierFlags::NSAlternateKeyMask) && (flags.bits() & 0x40) != 0 {
+        mods |= Modifiers::RIGHT_ALT | Modifiers::ALT;
     }
     if flags.contains(NSEventModifierFlags::NSControlKeyMask) {
         mods |= Modifiers::CTRL;

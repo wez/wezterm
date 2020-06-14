@@ -443,8 +443,8 @@ impl WindowCallbacks for TermWindow {
         self.scaling_changed(dimensions, self.fonts.get_font_scale());
     }
 
-    fn key_event(&mut self, key: &KeyEvent, context: &dyn WindowOps) -> bool {
-        if !key.key_is_down {
+    fn key_event(&mut self, window_key: &KeyEvent, context: &dyn WindowOps) -> bool {
+        if !window_key.key_is_down {
             return false;
         }
 
@@ -454,12 +454,12 @@ impl WindowCallbacks for TermWindow {
             Some(tab) => tab,
             None => return false,
         };
-        let modifiers = window_mods_to_termwiz_mods(key.modifiers);
-        let raw_modifiers = window_mods_to_termwiz_mods(key.raw_modifiers);
+        let modifiers = window_mods_to_termwiz_mods(window_key.modifiers);
+        let raw_modifiers = window_mods_to_termwiz_mods(window_key.raw_modifiers);
 
         // First chance to operate on the raw key; if it matches a
         // user-defined key binding then we execute it and stop there.
-        if let Some(key) = &key.raw_key {
+        if let Some(key) = &window_key.raw_key {
             if let Key::Code(key) = self.win_key_code_to_termwiz_key_code(&key) {
                 if let Some(assignment) = self.input_map.lookup_key(key, raw_modifiers) {
                     self.perform_key_assignment(&tab, &assignment).ok();
@@ -467,10 +467,28 @@ impl WindowCallbacks for TermWindow {
                     return true;
                 }
 
-                if !configuration().send_composed_key_when_alt_is_pressed
-                    && raw_modifiers.contains(::termwiz::input::Modifiers::ALT)
-                    && tab.key_down(key, raw_modifiers).is_ok()
-                {
+                let config = configuration();
+
+                // This is a bit ugly.
+                // Not all of our platforms report LEFT|RIGHT ALT; most report just ALT.
+                // For those that do distinguish between them we want to respect the left vs.
+                // right settings for the compose behavior.
+                // Otherwise, if the event didn't include left vs. right then we want to
+                // respect the generic compose behavior.
+                let bypass_compose =
+                    // Left ALT and they disabled compose
+                    (window_key.raw_modifiers.contains(Modifiers::LEFT_ALT)
+                    && !config.send_composed_key_when_left_alt_is_pressed)
+                    // Right ALT and they disabled compose
+                    || (window_key.raw_modifiers.contains(Modifiers::RIGHT_ALT)
+                        && !config.send_composed_key_when_right_alt_is_pressed)
+                    // Generic ALT and they disabled generic compose
+                    || (!window_key.raw_modifiers.contains(Modifiers::RIGHT_ALT)
+                        && !window_key.raw_modifiers.contains(Modifiers::LEFT_ALT)
+                        && window_key.raw_modifiers.contains(Modifiers::ALT)
+                        && !config.send_composed_key_when_alt_is_pressed);
+
+                if bypass_compose && tab.key_down(key, raw_modifiers).is_ok() {
                     if !key.is_modifier() && self.tab_state(tab.tab_id()).overlay.is_none() {
                         self.maybe_scroll_to_bottom_for_input(&tab);
                     }
@@ -480,7 +498,7 @@ impl WindowCallbacks for TermWindow {
             }
         }
 
-        let key = self.win_key_code_to_termwiz_key_code(&key.key);
+        let key = self.win_key_code_to_termwiz_key_code(&window_key.key);
         match key {
             Key::Code(key) => {
                 if let Some(assignment) = self.input_map.lookup_key(key, modifiers) {
@@ -3245,7 +3263,10 @@ fn window_mods_to_termwiz_mods(modifiers: ::window::Modifiers) -> termwiz::input
     if modifiers.contains(::window::Modifiers::SHIFT) {
         result.insert(termwiz::input::Modifiers::SHIFT);
     }
-    if modifiers.contains(::window::Modifiers::ALT) {
+    if modifiers.contains(::window::Modifiers::LEFT_ALT) {
+        result.insert(termwiz::input::Modifiers::ALT);
+    }
+    if modifiers.contains(::window::Modifiers::RIGHT_ALT) {
         result.insert(termwiz::input::Modifiers::ALT);
     }
     if modifiers.contains(::window::Modifiers::CTRL) {

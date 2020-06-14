@@ -91,6 +91,8 @@ bitflags! {
         const ALT = 1<<2;
         const CTRL = 1<<3;
         const SUPER = 1<<4;
+        const LEFT_ALT = 1<<5;
+        const RIGHT_ALT = 1<<6;
     }
 }
 bitflags! {
