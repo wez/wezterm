@@ -23,6 +23,19 @@ impl WindowCallbacks for MyWindow {
         frame.clear_color_srgb(0.15, 0.15, 0.15, 1.0);
     }
 
+    #[cfg(feature = "opengl")]
+    fn opengl_initialize(
+        &mut self,
+        _window: &dyn WindowOps,
+        context: anyhow::Result<std::rc::Rc<glium::backend::Context>>,
+    ) -> anyhow::Result<()> {
+        match context {
+            Ok(_ctx) => eprintln!("opengl enabled!"),
+            Err(err) => eprintln!("opengl fail: {}", err),
+        };
+        Ok(())
+    }
+
     fn as_any(&mut self) -> &mut dyn Any {
         self
     }
@@ -41,13 +54,7 @@ fn spawn_window() -> anyhow::Result<()> {
     )?;
 
     #[cfg(feature = "opengl")]
-    win.enable_opengl(|_any, _window, maybe_ctx| {
-        match maybe_ctx {
-            Ok(_ctx) => eprintln!("opengl enabled!"),
-            Err(err) => eprintln!("opengl fail: {}", err),
-        };
-        Ok(())
-    });
+    win.enable_opengl();
 
     #[cfg(not(feature = "opengl"))]
     eprintln!(
