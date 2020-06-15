@@ -710,23 +710,7 @@ impl WindowOps for WaylandWindow {
     }
 
     #[cfg(feature = "opengl")]
-    fn enable_opengl<
-        R,
-        F: Send
-            + 'static
-            + Fn(
-                &mut dyn Any,
-                &dyn WindowOps,
-                anyhow::Result<std::rc::Rc<glium::backend::Context>>,
-            ) -> anyhow::Result<R>,
-    >(
-        &self,
-        func: F,
-    ) -> promise::Future<R>
-    where
-        Self: Sized,
-        R: Send + 'static,
-    {
+    fn enable_opengl(&self) -> promise::Future<()> {
         WaylandConnection::with_window_inner(self.0, move |inner| {
             let window = Window::Wayland(WaylandWindow(inner.window_id));
             let wayland_conn = Connection::get().unwrap().wayland();
@@ -762,7 +746,7 @@ impl WindowOps for WaylandWindow {
             inner.gl_state = gl_state.as_ref().map(Rc::clone).ok();
             inner.wegl_surface = wegl_surface;
 
-            func(inner.callbacks.as_any(), &window, gl_state)
+            inner.callbacks.opengl_initialize(&window, gl_state)
         })
     }
 

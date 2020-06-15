@@ -219,27 +219,11 @@ impl WindowOps for Window {
     }
 
     #[cfg(feature = "opengl")]
-    fn enable_opengl<
-        R,
-        F: Send
-            + 'static
-            + Fn(
-                &mut dyn Any,
-                &dyn WindowOps,
-                anyhow::Result<std::rc::Rc<glium::backend::Context>>,
-            ) -> anyhow::Result<R>,
-    >(
-        &self,
-        func: F,
-    ) -> promise::Future<R>
-    where
-        Self: Sized,
-        R: Send + 'static,
-    {
+    fn enable_opengl(&self) -> promise::Future<()> {
         match self {
-            Self::X11(x) => x.enable_opengl(func),
+            Self::X11(x) => x.enable_opengl(),
             #[cfg(feature = "wayland")]
-            Self::Wayland(w) => w.enable_opengl(func),
+            Self::Wayland(w) => w.enable_opengl(),
         }
     }
 

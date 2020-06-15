@@ -122,6 +122,10 @@ impl XWindowInner {
         #[cfg(feature = "opengl")]
         {
             if let Some(gl_context) = self.gl_state.as_ref() {
+                if gl_context.is_context_lost() {
+                    log::error!("opengl context was lost; should reinit");
+                }
+
                 self.expose.clear();
 
                 let mut frame = glium::Frame::new(
@@ -927,23 +931,7 @@ impl WindowOps for XWindow {
     }
 
     #[cfg(feature = "opengl")]
-    fn enable_opengl<
-        R,
-        F: Send
-            + 'static
-            + Fn(
-                &mut dyn Any,
-                &dyn WindowOps,
-                anyhow::Result<std::rc::Rc<glium::backend::Context>>,
-            ) -> anyhow::Result<R>,
-    >(
-        &self,
-        func: F,
-    ) -> promise::Future<R>
-    where
-        Self: Sized,
-        R: Send + 'static,
-    {
+    fn enable_opengl(&self) -> promise::Future<()> {
         XConnection::with_window_inner(self.0, move |inner| {
             let window = XWindow(inner.window_id);
 
@@ -966,7 +954,7 @@ impl WindowOps for XWindow {
 
             inner.gl_state = gl_state.as_ref().map(Rc::clone).ok();
 
-            func(inner.callbacks.as_any(), &window, gl_state)
+            inner.callbacks.opengl_initialize(&window, gl_state)
         })
     }
 

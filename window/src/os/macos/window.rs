@@ -442,23 +442,7 @@ impl WindowOps for Window {
     }
 
     #[cfg(feature = "opengl")]
-    fn enable_opengl<
-        R,
-        F: Send
-            + 'static
-            + Fn(
-                &mut dyn Any,
-                &dyn WindowOps,
-                anyhow::Result<std::rc::Rc<glium::backend::Context>>,
-            ) -> anyhow::Result<R>,
-    >(
-        &self,
-        func: F,
-    ) -> promise::Future<R>
-    where
-        Self: Sized,
-        R: Send + 'static,
-    {
+    fn enable_opengl(&self) -> promise::Future<()> {
         Connection::with_window_inner(self.0, move |inner| {
             let window = Window(inner.window_id);
 
@@ -468,11 +452,11 @@ impl WindowOps for Window {
                 window_view.inner.borrow_mut().gl_context_pair =
                     glium_context.as_ref().map(Clone::clone).ok();
 
-                func(
-                    window_view.inner.borrow_mut().callbacks.as_any(),
-                    &window,
-                    glium_context.map(|pair| pair.context),
-                )
+                window_view
+                    .inner
+                    .borrow_mut()
+                    .callbacks
+                    .opengl_initialize(&window, glium_context.map(|pair| pair.context))
             } else {
                 bail!("enable_opengl: window is invalid");
             }

@@ -53,6 +53,8 @@ use wezterm_term::color::ColorPalette;
 use wezterm_term::input::LastMouseClick;
 use wezterm_term::{Line, StableRowIndex, Underline};
 
+const ATLAS_SIZE: usize = 4096;
+
 struct RenderScreenLineOpenGLParams<'a> {
     line_idx: usize,
     stable_line_idx: Option<StableRowIndex>,
@@ -560,6 +562,41 @@ impl WindowCallbacks for TermWindow {
         metrics::value!("gui.paint.software", start.elapsed());
     }
 
+    fn opengl_initialize(
+        &mut self,
+        window: &dyn WindowOps,
+        maybe_ctx: anyhow::Result<std::rc::Rc<glium::backend::Context>>,
+    ) -> anyhow::Result<()> {
+        match maybe_ctx {
+            Ok(ctx) => {
+                match OpenGLRenderState::new(
+                    ctx,
+                    &self.fonts,
+                    &self.render_metrics,
+                    ATLAS_SIZE,
+                    self.dimensions.pixel_width,
+                    self.dimensions.pixel_height,
+                ) {
+                    Ok(gl) => {
+                        log::info!(
+                            "OpenGL initialized! {} {}",
+                            gl.context.get_opengl_renderer_string(),
+                            gl.context.get_opengl_version_string()
+                        );
+                        self.render_state = RenderState::GL(gl);
+                    }
+                    Err(err) => {
+                        log::error!("OpenGL init failed: {}", err);
+                    }
+                }
+            }
+            Err(err) => log::error!("OpenGL init failed: {}", err),
+        };
+
+        window.show();
+        Ok(())
+    }
+
     fn paint_opengl(&mut self, frame: &mut glium::Frame) {
         let tab = match self.get_active_tab_or_overlay() {
             Some(tab) => tab,
@@ -650,7 +687,6 @@ impl TermWindow {
             dimensions
         );
 
-        const ATLAS_SIZE: usize = 4096;
         let render_state = RenderState::Software(SoftwareRenderState::new(
             fontconfig,
             &render_metrics,
@@ -815,38 +851,7 @@ impl TermWindow {
             .set_clipboard(&clipboard);
 
         if super::is_opengl_enabled() {
-            window.enable_opengl(|any, window, maybe_ctx| {
-                let mut termwindow = any.downcast_mut::<TermWindow>().expect("to be TermWindow");
-
-                match maybe_ctx {
-                    Ok(ctx) => {
-                        match OpenGLRenderState::new(
-                            ctx,
-                            &termwindow.fonts,
-                            &termwindow.render_metrics,
-                            ATLAS_SIZE,
-                            termwindow.dimensions.pixel_width,
-                            termwindow.dimensions.pixel_height,
-                        ) {
-                            Ok(gl) => {
-                                log::info!(
-                                    "OpenGL initialized! {} {}",
-                                    gl.context.get_opengl_renderer_string(),
-                                    gl.context.get_opengl_version_string()
-                                );
-                                termwindow.render_state = RenderState::GL(gl);
-                            }
-                            Err(err) => {
-                                log::error!("OpenGL init failed: {}", err);
-                            }
-                        }
-                    }
-                    Err(err) => log::error!("OpenGL init failed: {}", err),
-                };
-
-                window.show();
-                Ok(())
-            });
+            window.enable_opengl();
         } else {
             window.show();
         }

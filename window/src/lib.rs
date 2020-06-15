@@ -144,6 +144,18 @@ pub trait WindowCallbacks: Any {
         frame.clear_color_srgb(0.25, 0.125, 0.375, 1.0);
     }
 
+    /// Called when opengl is initialized by enable_opengl().
+    /// (and perhaps also if/when opengl is reinitialized after the
+    /// context is lost)
+    #[cfg(feature = "opengl")]
+    fn opengl_initialize(
+        &mut self,
+        _window: &dyn WindowOps,
+        context: anyhow::Result<std::rc::Rc<glium::backend::Context>>,
+    ) -> anyhow::Result<()> {
+        context.map(|_| ())
+    }
+
     /// Called to handle a key event.
     /// If your window didn't handle the event, you must return false.
     /// This is particularly important for eg: ALT keys on windows,
@@ -217,23 +229,11 @@ pub trait WindowOps {
         Self: Sized,
         R: Send + 'static;
 
+    /// Attempt to set up opengl based painting.
+    /// Will call opengl_initialize() in your WindowCallbacks impl to
+    /// inform it of the gl context.
     #[cfg(feature = "opengl")]
-    fn enable_opengl<
-        R,
-        F: Send
-            + 'static
-            + Fn(
-                &mut dyn Any,
-                &dyn WindowOps,
-                anyhow::Result<std::rc::Rc<glium::backend::Context>>,
-            ) -> anyhow::Result<R>,
-    >(
-        &self,
-        func: F,
-    ) -> promise::Future<R>
-    where
-        Self: Sized,
-        R: Send + 'static;
+    fn enable_opengl(&self) -> promise::Future<()>;
 
     /// Initiate textual transfer from the clipboard
     fn get_clipboard(&self, clipboard: Clipboard) -> Future<String>;
