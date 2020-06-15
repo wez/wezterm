@@ -12,7 +12,7 @@ build = "build.rs"
 pretty_env_logger = "0.4"
 
 [build-dependencies]
-gl_generator = {version="0.13", optional=true}
+gl_generator = {version="0.14", optional=true}
 
 [dependencies]
 async-task = "1.2"
@@ -28,7 +28,7 @@ metrics = { version="0.12", features=["std"]}
 palette = "0.5"
 promise = { path = "../promise" }
 resize = "0.3"
-glium = { version = "0.26.0-alpha3", optional=true, default-features = false}
+glium = { version = "0.27", optional=true, default-features = false}
 
 [features]
 opengl = ["cgl", "glium", "gl_generator", "libloading"]
