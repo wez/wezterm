@@ -107,6 +107,31 @@ impl<'a> PaintContext for X11GraphicsContext<'a> {
 }
 
 impl XWindowInner {
+    #[cfg(feature = "opengl")]
+    fn enable_opengl(&mut self) -> anyhow::Result<()> {
+        let window = XWindow(self.window_id);
+
+        let gl_state = crate::egl::GlState::create(
+            Some(self.conn.display as *const _),
+            self.window_id as *mut _,
+        )
+        .map(Rc::new)
+        .and_then(|state| unsafe {
+            Ok(glium::backend::Context::new(
+                Rc::clone(&state),
+                true,
+                if cfg!(debug_assertions) {
+                    glium::debug::DebugCallbackBehavior::DebugMessageOnError
+                } else {
+                    glium::debug::DebugCallbackBehavior::Ignore
+                },
+            )?)
+        });
+
+        self.gl_state = gl_state.as_ref().map(Rc::clone).ok();
+        self.callbacks.opengl_initialize(&window, gl_state)
+    }
+
     pub fn paint(&mut self) -> anyhow::Result<()> {
         let window_dimensions =
             Rect::from_size(Size::new(self.width as isize, self.height as isize));
@@ -124,6 +149,9 @@ impl XWindowInner {
             if let Some(gl_context) = self.gl_state.as_ref() {
                 if gl_context.is_context_lost() {
                     log::error!("opengl context was lost; should reinit");
+                    drop(self.gl_state.take());
+                    self.enable_opengl()?;
+                    return self.paint();
                 }
 
                 self.expose.clear();
@@ -932,30 +960,7 @@ impl WindowOps for XWindow {
 
     #[cfg(feature = "opengl")]
     fn enable_opengl(&self) -> promise::Future<()> {
-        XConnection::with_window_inner(self.0, move |inner| {
-            let window = XWindow(inner.window_id);
-
-            let gl_state = crate::egl::GlState::create(
-                Some(inner.conn.display as *const _),
-                inner.window_id as *mut _,
-            )
-            .map(Rc::new)
-            .and_then(|state| unsafe {
-                Ok(glium::backend::Context::new(
-                    Rc::clone(&state),
-                    true,
-                    if cfg!(debug_assertions) {
-                        glium::debug::DebugCallbackBehavior::DebugMessageOnError
-                    } else {
-                        glium::debug::DebugCallbackBehavior::Ignore
-                    },
-                )?)
-            });
-
-            inner.gl_state = gl_state.as_ref().map(Rc::clone).ok();
-
-            inner.callbacks.opengl_initialize(&window, gl_state)
-        })
+        XConnection::with_window_inner(self.0, move |inner| inner.enable_opengl())
     }
 
     /// Initiate textual transfer from the clipboard

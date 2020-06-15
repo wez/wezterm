@@ -501,10 +501,56 @@ impl WaylandWindowInner {
         }
     }
 
+    #[cfg(feature = "opengl")]
+    fn enable_opengl(&mut self) -> anyhow::Result<()> {
+        let window = Window::Wayland(WaylandWindow(self.window_id));
+        let wayland_conn = Connection::get().unwrap().wayland();
+        let mut wegl_surface = None;
+
+        let gl_state = if !egl_is_available() {
+            Err(anyhow!("!egl_is_available"))
+        } else {
+            wegl_surface = Some(WlEglSurface::new(
+                &self.surface,
+                self.dimensions.pixel_width as i32,
+                self.dimensions.pixel_height as i32,
+            ));
+
+            crate::egl::GlState::create_wayland(
+                Some(wayland_conn.display.borrow().get_display_ptr() as *const _),
+                wegl_surface.as_ref().unwrap(),
+            )
+        }
+        .map(Rc::new)
+        .and_then(|state| unsafe {
+            Ok(glium::backend::Context::new(
+                Rc::clone(&state),
+                true,
+                if cfg!(debug_assertions) {
+                    glium::debug::DebugCallbackBehavior::DebugMessageOnError
+                } else {
+                    glium::debug::DebugCallbackBehavior::Ignore
+                },
+            )?)
+        });
+
+        self.gl_state = gl_state.as_ref().map(Rc::clone).ok();
+        self.wegl_surface = wegl_surface;
+
+        self.callbacks.opengl_initialize(&window, gl_state)
+    }
+
     fn do_paint(&mut self) -> anyhow::Result<()> {
         #[cfg(feature = "opengl")]
         {
             if let Some(gl_context) = self.gl_state.as_ref() {
+                if gl_context.is_context_lost() {
+                    log::error!("opengl context was lost; should reinit");
+                    drop(self.gl_state.take());
+                    self.enable_opengl()?;
+                    return self.do_paint();
+                }
+
                 let mut frame = glium::Frame::new(
                     Rc::clone(&gl_context),
                     (
@@ -711,43 +757,7 @@ impl WindowOps for WaylandWindow {
 
     #[cfg(feature = "opengl")]
     fn enable_opengl(&self) -> promise::Future<()> {
-        WaylandConnection::with_window_inner(self.0, move |inner| {
-            let window = Window::Wayland(WaylandWindow(inner.window_id));
-            let wayland_conn = Connection::get().unwrap().wayland();
-            let mut wegl_surface = None;
-
-            let gl_state = if !egl_is_available() {
-                Err(anyhow!("!egl_is_available"))
-            } else {
-                wegl_surface = Some(WlEglSurface::new(
-                    &inner.surface,
-                    inner.dimensions.pixel_width as i32,
-                    inner.dimensions.pixel_height as i32,
-                ));
-
-                crate::egl::GlState::create_wayland(
-                    Some(wayland_conn.display.borrow().get_display_ptr() as *const _),
-                    wegl_surface.as_ref().unwrap(),
-                )
-            }
-            .map(Rc::new)
-            .and_then(|state| unsafe {
-                Ok(glium::backend::Context::new(
-                    Rc::clone(&state),
-                    true,
-                    if cfg!(debug_assertions) {
-                        glium::debug::DebugCallbackBehavior::DebugMessageOnError
-                    } else {
-                        glium::debug::DebugCallbackBehavior::Ignore
-                    },
-                )?)
-            });
-
-            inner.gl_state = gl_state.as_ref().map(Rc::clone).ok();
-            inner.wegl_surface = wegl_surface;
-
-            inner.callbacks.opengl_initialize(&window, gl_state)
-        })
+        WaylandConnection::with_window_inner(self.0, move |inner| inner.enable_opengl())
     }
 
     fn get_clipboard(&self, _clipboard: Clipboard) -> Future<String> {
