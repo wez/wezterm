@@ -444,21 +444,10 @@ impl WindowOps for Window {
     #[cfg(feature = "opengl")]
     fn enable_opengl(&self) -> promise::Future<()> {
         Connection::with_window_inner(self.0, move |inner| {
-            let window = Window(inner.window_id);
-
-            let glium_context = opengl::GlContextPair::create(*inner.view);
-
             if let Some(window_view) = WindowView::get_this(unsafe { &**inner.view }) {
-                window_view.inner.borrow_mut().gl_context_pair =
-                    glium_context.as_ref().map(Clone::clone).ok();
-
-                window_view
-                    .inner
-                    .borrow_mut()
-                    .callbacks
-                    .opengl_initialize(&window, glium_context.map(|pair| pair.context))
+                window_view.inner.borrow_mut().enable_opengl()
             } else {
-                bail!("enable_opengl: window is invalid");
+                bail!("apply: window is invalid");
             }
         })
     }
@@ -612,6 +601,21 @@ struct Inner {
     #[cfg(feature = "opengl")]
     gl_context_pair: Option<opengl::GlContextPair>,
     text_cursor_position: Rect,
+}
+
+impl Inner {
+    #[cfg(feature = "opengl")]
+    fn enable_opengl(&mut self) -> anyhow::Result<()> {
+        let window = Window(self.window_id);
+
+        let view = self.view_id.as_ref().unwrap().load();
+        let glium_context = opengl::GlContextPair::create(*view);
+
+        self.gl_context_pair = glium_context.as_ref().map(Clone::clone).ok();
+
+        self.callbacks
+            .opengl_initialize(&window, glium_context.map(|pair| pair.context))
+    }
 }
 
 const CLS_NAME: &str = "WezTermWindowView";
@@ -1164,20 +1168,33 @@ impl WindowView {
         }
     }
 
-    extern "C" fn draw_rect(this: &mut Object, _sel: Sel, _dirty_rect: NSRect) {
-        let frame = unsafe { NSView::frame(this as *mut _) };
-        let backing_frame = unsafe { NSView::convertRectToBacking(this as *mut _, frame) };
+    extern "C" fn draw_rect(view: &mut Object, sel: Sel, dirty_rect: NSRect) {
+        let frame = unsafe { NSView::frame(view as *mut _) };
+        let backing_frame = unsafe { NSView::convertRectToBacking(view as *mut _, frame) };
 
         let width = backing_frame.size.width;
         let height = backing_frame.size.height;
 
-        if let Some(this) = Self::get_this(this) {
+        if let Some(this) = Self::get_this(view) {
             let mut inner = this.inner.borrow_mut();
-            let mut buffer = this.buffer.borrow_mut();
 
             #[cfg(feature = "opengl")]
             {
                 if let Some(gl_context_pair) = inner.gl_context_pair.as_ref() {
+                    if gl_context_pair.context.is_context_lost() {
+                        log::error!("opengl context was lost; should reinit");
+                        drop(inner.gl_context_pair.take());
+                        if let Err(e) = inner.enable_opengl() {
+                            log::error!("failed to reinit opengl: {}", e);
+                        }
+                        let view = inner.view_id.as_ref().unwrap().load();
+                        drop(inner);
+                        drop(this);
+                        unsafe {
+                            return Self::draw_rect(&mut **view, sel, dirty_rect);
+                        }
+                    }
+
                     let mut frame = glium::Frame::new(
                         Rc::clone(&gl_context_pair.context),
                         (width as u32, height as u32),
@@ -1191,6 +1208,7 @@ impl WindowView {
                 }
             }
 
+            let mut buffer = this.buffer.borrow_mut();
             let (pixel_width, pixel_height) = buffer.image_dimensions();
             if width as usize != pixel_width || height as usize != pixel_height {
                 *buffer = Image::new(width as usize, height as usize);
