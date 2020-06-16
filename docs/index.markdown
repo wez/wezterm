@@ -11,7 +11,7 @@
 * [Hyperlinks](hyperlinks.html)
 * <a href="features.html">a full list of features can be found here</a>
 
-Looking for a [configuration reference?](config/index.html)
+Looking for a [configuration reference?](config/files.html)
 
 <img width="100%" height="100%" src="screenshots/two.png" alt="Screenshot">
 
