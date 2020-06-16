@@ -43,7 +43,7 @@ pub struct MouseEvent {
 /// within the `CLICK_INTERVAL`.  The streak is reset to 1 each time
 /// the mouse button differs from the last click, or when the elapsed
 /// time exceeds `CLICK_INTERVAL`.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct LastMouseClick {
     pub button: MouseButton,
     time: Instant,

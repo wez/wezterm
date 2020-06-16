@@ -104,6 +104,40 @@ fn take_rc_from_pointer(lparam: LPVOID) -> Rc<RefCell<WindowInner>> {
     unsafe { Rc::from_raw(std::mem::transmute(lparam)) }
 }
 
+impl WindowInner {
+    #[cfg(feature = "opengl")]
+    fn enable_opengl(&mut self) -> anyhow::Result<()> {
+        let window = Window(self.hwnd);
+
+        let gl_state = super::wgl::GlState::create(self.hwnd.0)
+            .map(Rc::new)
+            .and_then(|state| unsafe {
+                Ok(glium::backend::Context::new(
+                    Rc::clone(&state),
+                    true,
+                    if cfg!(debug_assertions) {
+                        glium::debug::DebugCallbackBehavior::DebugMessageOnError
+                    } else {
+                        glium::debug::DebugCallbackBehavior::Ignore
+                    },
+                )?)
+            });
+
+        self.gl_state = gl_state.as_ref().map(Rc::clone).ok();
+
+        if let Err(err) = self
+            .callbacks
+            .borrow_mut()
+            .opengl_initialize(&window, gl_state)
+        {
+            self.gl_state.take();
+            Err(err)
+        } else {
+            Ok(())
+        }
+    }
+}
+
 impl Window {
     fn from_hwnd(hwnd: HWND) -> Self {
         Self(HWindow(hwnd))
@@ -395,30 +429,7 @@ impl WindowOps for Window {
 
     #[cfg(feature = "opengl")]
     fn enable_opengl(&self) -> promise::Future<()> {
-        Connection::with_window_inner(self.0, move |inner| {
-            let window = Window(inner.hwnd);
-
-            let gl_state = super::wgl::GlState::create(inner.hwnd.0)
-                .map(Rc::new)
-                .and_then(|state| unsafe {
-                    Ok(glium::backend::Context::new(
-                        Rc::clone(&state),
-                        true,
-                        if cfg!(debug_assertions) {
-                            glium::debug::DebugCallbackBehavior::DebugMessageOnError
-                        } else {
-                            glium::debug::DebugCallbackBehavior::Ignore
-                        },
-                    )?)
-                });
-
-            inner.gl_state = gl_state.as_ref().map(Rc::clone).ok();
-
-            inner
-                .callbacks
-                .borrow_mut()
-                .opengl_initialize(&window, gl_state)
-        })
+        Connection::with_window_inner(self.0, move |inner| inner.enable_opengl())
     }
 
     fn get_clipboard(&self, _clipboard: Clipboard) -> Future<String> {
@@ -580,9 +591,9 @@ unsafe fn wm_kill_focus(
     None
 }
 
-unsafe fn wm_paint(hwnd: HWND, _msg: UINT, _wparam: WPARAM, _lparam: LPARAM) -> Option<LRESULT> {
+unsafe fn wm_paint(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<LRESULT> {
     if let Some(inner) = rc_from_hwnd(hwnd) {
-        let inner = inner.borrow();
+        let mut inner = inner.borrow_mut();
 
         let mut ps = PAINTSTRUCT {
             fErase: 0,
@@ -612,6 +623,24 @@ unsafe fn wm_paint(hwnd: HWND, _msg: UINT, _wparam: WPARAM, _lparam: LPARAM) -> 
         #[cfg(feature = "opengl")]
         {
             if let Some(gl_context) = inner.gl_state.as_ref() {
+                if gl_context.is_context_lost() {
+                    log::error!("opengl context was lost; should reinit");
+
+                    drop(inner.gl_state.take());
+                    let _ = inner.callbacks.borrow_mut().opengl_initialize(
+                        &Window(inner.hwnd),
+                        Err(anyhow::anyhow!("opengl context lost")),
+                    );
+
+                    let _ = inner
+                        .callbacks
+                        .borrow_mut()
+                        .opengl_context_lost(&Window(inner.hwnd));
+                    inner.gl_state.take();
+                    drop(inner);
+                    return wm_paint(hwnd, msg, wparam, lparam);
+                }
+
                 let mut frame =
                     glium::Frame::new(Rc::clone(&gl_context), (width as u32, height as u32));
 
@@ -1243,6 +1272,9 @@ unsafe extern "system" fn wnd_proc(
             .unwrap_or_else(|| DefWindowProcW(hwnd, msg, wparam, lparam))
     }) {
         Ok(result) => result,
-        Err(_) => std::process::exit(1),
+        Err(e) => {
+            log::error!("caught {:?}", e);
+            std::process::exit(1)
+        }
     }
 }

@@ -108,6 +108,7 @@ impl wezterm_term::Clipboard for ClipboardHelper {
     }
 }
 
+#[derive(Clone)]
 struct PrevCursorPos {
     pos: StableCursorPosition,
     when: Instant,
@@ -140,7 +141,7 @@ impl PrevCursorPos {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct TabState {
     /// If is_some(), the top row of the visible screen.
     /// Otherwise, the viewport is at the bottom of the
@@ -562,11 +563,74 @@ impl WindowCallbacks for TermWindow {
         metrics::value!("gui.paint.software", start.elapsed());
     }
 
+    fn opengl_context_lost(&mut self, prior_window: &dyn WindowOps) -> anyhow::Result<()> {
+        log::error!("context was lost, set up a new window");
+
+        let render_state = RenderState::Software(SoftwareRenderState::new(
+            &self.fonts,
+            &self.render_metrics,
+            ATLAS_SIZE,
+        )?);
+
+        let clipboard_contents = Arc::clone(&self.clipboard_contents);
+        let dimensions = self.dimensions.clone();
+        let mux_window_id = self.mux_window_id;
+
+        let window = Window::new_window(
+            "org.wezfurlong.wezterm",
+            "wezterm",
+            dimensions.pixel_width,
+            dimensions.pixel_height,
+            Box::new(Self {
+                window: None,
+                focused: None,
+                mux_window_id,
+                fonts: Rc::clone(&self.fonts),
+                render_metrics: self.render_metrics.clone(),
+                dimensions,
+                terminal_size: self.terminal_size.clone(),
+                render_state,
+                input_map: InputMap::new(),
+                show_tab_bar: self.show_tab_bar,
+                show_scroll_bar: self.show_scroll_bar,
+                tab_bar: self.tab_bar.clone(),
+                last_mouse_coords: self.last_mouse_coords.clone(),
+                last_mouse_terminal_coords: self.last_mouse_terminal_coords.clone(),
+                scroll_drag_start: self.scroll_drag_start.clone(),
+                config_generation: self.config_generation,
+                prev_cursor: self.prev_cursor.clone(),
+                last_scroll_info: self.last_scroll_info.clone(),
+                clipboard_contents: Arc::clone(&clipboard_contents),
+                tab_state: RefCell::new(self.tab_state.borrow().clone()),
+                current_mouse_button: self.current_mouse_button.clone(),
+                last_mouse_click: self.last_mouse_click.clone(),
+                current_highlight: self.current_highlight.clone(),
+                shape_cache: RefCell::new(LruCache::new(65536)),
+                last_blink_paint: Instant::now(),
+            }),
+        )?;
+
+        Self::apply_icon(&window)?;
+        Self::start_periodic_maintenance(window.clone());
+        Self::setup_clipboard(&window, mux_window_id, clipboard_contents);
+
+        prior_window.close();
+        window.enable_opengl();
+
+        Ok(())
+    }
+
     fn opengl_initialize(
         &mut self,
         window: &dyn WindowOps,
         maybe_ctx: anyhow::Result<std::rc::Rc<glium::backend::Context>>,
     ) -> anyhow::Result<()> {
+        self.render_state = RenderState::Software(SoftwareRenderState::new(
+            &self.fonts,
+            &self.render_metrics,
+            ATLAS_SIZE,
+        )?);
+
         match maybe_ctx {
             Ok(ctx) => {
                 match OpenGLRenderState::new(
@@ -579,22 +643,29 @@ impl WindowCallbacks for TermWindow {
                 ) {
                     Ok(gl) => {
                         log::info!(
-                            "OpenGL initialized! {} {}",
+                            "OpenGL initialized! {} {} is_context_loss_possible={}",
                             gl.context.get_opengl_renderer_string(),
-                            gl.context.get_opengl_version_string()
+                            gl.context.get_opengl_version_string(),
+                            gl.context.is_context_loss_possible(),
                         );
                         self.render_state = RenderState::GL(gl);
                     }
                     Err(err) => {
-                        log::error!("OpenGL init failed: {}", err);
+                        log::error!("failed to create OpenGLRenderState: {}", err);
                     }
                 }
             }
-            Err(err) => log::error!("OpenGL init failed: {}", err),
+            Err(err) => {
+                log::error!("OpenGL init failed: {}", err);
+            }
         };
 
         window.show();
-        Ok(())
+
+        match &self.render_state {
+            RenderState::Software(_) => Err(anyhow::anyhow!("Falling back to software renderer")),
+            RenderState::GL(_) => Ok(()),
+        }
     }
 
     fn paint_opengl(&mut self, frame: &mut glium::Frame) {
@@ -729,6 +800,40 @@ impl TermWindow {
             }),
         )?;
 
+        Self::apply_icon(&window)?;
+        Self::start_periodic_maintenance(window.clone());
+        Self::setup_clipboard(&window, mux_window_id, clipboard_contents);
+
+        if super::is_opengl_enabled() {
+            window.enable_opengl();
+        } else {
+            window.show();
+        }
+
+        crate::update::start_update_checker();
+        Ok(())
+    }
+
+    fn setup_clipboard(
+        window: &Window,
+        mux_window_id: MuxWindowId,
+        clipboard_contents: Arc<Mutex<Option<String>>>,
+    ) {
+        let clipboard: Arc<dyn wezterm_term::Clipboard> = Arc::new(ClipboardHelper {
+            window: window.clone(),
+            clipboard_contents,
+        });
+        let mux = Mux::get().unwrap();
+
+        let mut mux_window = mux.get_window_mut(mux_window_id).unwrap();
+
+        mux_window.set_clipboard(&clipboard);
+        for tab in mux_window.iter() {
+            tab.set_clipboard(&clipboard);
+        }
+    }
+
+    fn apply_icon(window: &Window) -> anyhow::Result<()> {
         let icon_image =
             image::load_from_memory(include_bytes!("../../../assets/icon/terminal.png"))?;
         let image = icon_image.to_bgra();
@@ -738,122 +843,105 @@ impl TermWindow {
             height as usize,
             image.into_raw(),
         ));
+        Ok(())
+    }
 
-        let cloned_window = window.clone();
-
-        crate::update::start_update_checker();
-
+    fn start_periodic_maintenance(window: Window) {
         Connection::get().unwrap().schedule_timer(
             std::time::Duration::from_millis(35),
             move || {
-                cloned_window.apply(move |myself, _| {
+                window.apply(move |myself, window| {
                     if let Some(myself) = myself.downcast_mut::<Self>() {
-                        let mux = Mux::get().unwrap();
-
-                        if let Some(tab) = myself.get_active_tab_or_overlay() {
-                            let mut needs_invalidate = false;
-
-                            // If the config was reloaded, ask the window to apply
-                            // and render any changes
-                            myself.check_for_config_reload();
-
-                            let config = configuration();
-
-                            let render = tab.renderer();
-
-                            // If blinking is permitted, and the cursor shape is set
-                            // to a blinking variant, and it's been longer than the
-                            // blink rate interval, then invalidate and redraw
-                            // so that we will re-evaluate the cursor visibility.
-                            // This is pretty heavyweight: it would be nice to only invalidate
-                            // the line on which the cursor resides, and then only if the cursor
-                            // is within the viewport.
-                            if config.cursor_blink_rate != 0 && myself.focused.is_some() {
-                                let shape = config
-                                    .default_cursor_style
-                                    .effective_shape(render.get_cursor_position().shape);
-                                if shape.is_blinking() {
-                                    let now = Instant::now();
-                                    if now.duration_since(myself.last_blink_paint)
-                                        > Duration::from_millis(config.cursor_blink_rate)
-                                    {
-                                        needs_invalidate = true;
-                                        myself.last_blink_paint = now;
-                                    }
-                                }
-                            }
-
-                            // If the model is dirty, arrange to re-paint
-                            let dims = render.get_dimensions();
-                            let viewport = myself
-                                .get_viewport(tab.tab_id())
-                                .unwrap_or(dims.physical_top);
-                            let visible_range =
-                                viewport..viewport + dims.viewport_rows as StableRowIndex;
-                            let dirty = render.get_dirty_lines(visible_range);
-
-                            if !dirty.is_empty() {
-                                if tab.downcast_ref::<SearchOverlay>().is_none()
-                                    && tab.downcast_ref::<CopyOverlay>().is_none()
-                                {
-                                    // If any of the changed lines intersect with the
-                                    // selection, then we need to clear the selection, but not
-                                    // when the search overlay is active; the search overlay
-                                    // marks lines as dirty to force invalidate them for
-                                    // highlighting purpose but also manipulates the selection
-                                    // and we want to allow it to retain the selection it made!
-
-                                    let clear_selection = if let Some(selection_range) =
-                                        myself.selection(tab.tab_id()).range.as_ref()
-                                    {
-                                        let selection_rows = selection_range.rows();
-                                        selection_rows.into_iter().any(|row| dirty.contains(row))
-                                    } else {
-                                        false
-                                    };
-
-                                    if clear_selection {
-                                        myself.selection(tab.tab_id()).range.take();
-                                        myself.selection(tab.tab_id()).start.take();
-                                    }
-                                }
-
-                                needs_invalidate = true;
-                            }
-
-                            if let Some(mut mux_window) = mux.get_window_mut(mux_window_id) {
-                                if mux_window.check_and_reset_invalidated() {
-                                    needs_invalidate = true;
-                                }
-                            }
-
-                            if needs_invalidate {
-                                myself.window.as_ref().unwrap().invalidate();
-                            }
-                        } else {
-                            myself.window.as_ref().unwrap().close();
-                        }
+                        myself.periodic_window_maintenance(window)?;
                     }
                     Ok(())
                 });
             },
         );
+    }
 
-        let clipboard: Arc<dyn wezterm_term::Clipboard> = Arc::new(ClipboardHelper {
-            window: window.clone(),
-            clipboard_contents,
-        });
-        tab.set_clipboard(&clipboard);
-        Mux::get()
-            .unwrap()
-            .get_window_mut(mux_window_id)
-            .unwrap()
-            .set_clipboard(&clipboard);
+    fn periodic_window_maintenance(&mut self, _window: &dyn WindowOps) -> anyhow::Result<()> {
+        let mux = Mux::get().unwrap();
 
-        if super::is_opengl_enabled() {
-            window.enable_opengl();
+        if let Some(tab) = self.get_active_tab_or_overlay() {
+            let mut needs_invalidate = false;
+
+            // If the config was reloaded, ask the window to apply
+            // and render any changes
+            self.check_for_config_reload();
+
+            let config = configuration();
+
+            let render = tab.renderer();
+
+            // If blinking is permitted, and the cursor shape is set
+            // to a blinking variant, and it's been longer than the
+            // blink rate interval, then invalidate and redraw
+            // so that we will re-evaluate the cursor visibility.
+            // This is pretty heavyweight: it would be nice to only invalidate
+            // the line on which the cursor resides, and then only if the cursor
+            // is within the viewport.
+            if config.cursor_blink_rate != 0 && self.focused.is_some() {
+                let shape = config
+                    .default_cursor_style
+                    .effective_shape(render.get_cursor_position().shape);
+                if shape.is_blinking() {
+                    let now = Instant::now();
+                    if now.duration_since(self.last_blink_paint)
+                        > Duration::from_millis(config.cursor_blink_rate)
+                    {
+                        needs_invalidate = true;
+                        self.last_blink_paint = now;
+                    }
+                }
+            }
+
+            // If the model is dirty, arrange to re-paint
+            let dims = render.get_dimensions();
+            let viewport = self.get_viewport(tab.tab_id()).unwrap_or(dims.physical_top);
+            let visible_range = viewport..viewport + dims.viewport_rows as StableRowIndex;
+            let dirty = render.get_dirty_lines(visible_range);
+
+            if !dirty.is_empty() {
+                if tab.downcast_ref::<SearchOverlay>().is_none()
+                    && tab.downcast_ref::<CopyOverlay>().is_none()
+                {
+                    // If any of the changed lines intersect with the
+                    // selection, then we need to clear the selection, but not
+                    // when the search overlay is active; the search overlay
+                    // marks lines as dirty to force invalidate them for
+                    // highlighting purpose but also manipulates the selection
+                    // and we want to allow it to retain the selection it made!
+
+                    let clear_selection = if let Some(selection_range) =
+                        self.selection(tab.tab_id()).range.as_ref()
+                    {
+                        let selection_rows = selection_range.rows();
+                        selection_rows.into_iter().any(|row| dirty.contains(row))
+                    } else {
+                        false
+                    };
+
+                    if clear_selection {
+                        self.selection(tab.tab_id()).range.take();
+                        self.selection(tab.tab_id()).start.take();
+                    }
+                }
+
+                needs_invalidate = true;
+            }
+
+            if let Some(mut mux_window) = mux.get_window_mut(self.mux_window_id) {
+                if mux_window.check_and_reset_invalidated() {
+                    needs_invalidate = true;
+                }
+            }
+
+            if needs_invalidate {
+                self.window.as_ref().unwrap().invalidate();
+            }
         } else {
-            window.show();
+            self.window.as_ref().unwrap().close();
         }
 
         Ok(())

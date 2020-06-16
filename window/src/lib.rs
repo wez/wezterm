@@ -144,9 +144,8 @@ pub trait WindowCallbacks: Any {
         frame.clear_color_srgb(0.25, 0.125, 0.375, 1.0);
     }
 
-    /// Called when opengl is initialized by enable_opengl().
-    /// (and perhaps also if/when opengl is reinitialized after the
-    /// context is lost)
+    /// Called when opengl is initialized by enable_opengl(),
+    /// and also prior to calling opengl_context_lost with and Err value.
     #[cfg(feature = "opengl")]
     fn opengl_initialize(
         &mut self,
@@ -154,6 +153,12 @@ pub trait WindowCallbacks: Any {
         context: anyhow::Result<std::rc::Rc<glium::backend::Context>>,
     ) -> anyhow::Result<()> {
         context.map(|_| ())
+    }
+
+    /// Called if the opengl context is lost
+    #[cfg(feature = "opengl")]
+    fn opengl_context_lost(&mut self, _window: &dyn WindowOps) -> anyhow::Result<()> {
+        Ok(())
     }
 
     /// Called to handle a key event.
