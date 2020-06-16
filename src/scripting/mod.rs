@@ -4,6 +4,7 @@ use crate::config::{FontAttributes, TextStyle};
 use anyhow::anyhow;
 use bstr::BString;
 use mlua::{Lua, Table, Value};
+use serde::*;
 use std::path::Path;
 
 mod serde_lua;
@@ -152,6 +153,22 @@ fn hostname<'lua>(_: &'lua Lua, _: ()) -> mlua::Result<String> {
     }
 }
 
+#[derive(Debug, Default, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
+struct TextStyleAttributes {
+    /// Whether the font should be a bold variant
+    #[serde(default)]
+    pub bold: bool,
+    /// Whether the font should be an italic variant
+    #[serde(default)]
+    pub italic: bool,
+    /// If set, when rendering text that is set to the default
+    /// foreground color, use this color instead.  This is most
+    /// useful in a `[[font_rules]]` section to implement changing
+    /// the text color for eg: bold text.
+    pub foreground: Option<termwiz::color::RgbColor>,
+}
+impl_lua_conversion!(TextStyleAttributes);
+
 /// Given a simple font family name, returns a text style instance.
 /// The second optional argument is a list of the other TextStyle
 /// fields, which at the time of writing includes only the
@@ -163,15 +180,18 @@ fn hostname<'lua>(_: &'lua Lua, _: ()) -> mlua::Result<String> {
 /// `{ font = {{ family = "foo" }}, foreground="tomato"}`
 fn font<'lua>(
     _lua: &'lua Lua,
-    (family, map_defaults): (String, Option<TextStyle>),
+    (family, map_defaults): (String, Option<TextStyleAttributes>),
 ) -> mlua::Result<TextStyle> {
-    let mut text_style = map_defaults.unwrap_or_else(TextStyle::default);
+    let attrs = map_defaults.unwrap_or_else(TextStyleAttributes::default);
+    let mut text_style = TextStyle::default();
 
     text_style.font.clear();
     text_style.font.push(FontAttributes {
         family,
-        ..Default::default()
+        bold: attrs.bold,
+        italic: attrs.italic,
     });
+    text_style.foreground = attrs.foreground;
 
     Ok(text_style)
 }
@@ -185,17 +205,20 @@ fn font<'lua>(
 /// as described by the `wezterm.font` documentation.
 fn font_with_fallback<'lua>(
     _lua: &'lua Lua,
-    (fallback, map_defaults): (Vec<String>, Option<TextStyle>),
+    (fallback, map_defaults): (Vec<String>, Option<TextStyleAttributes>),
 ) -> mlua::Result<TextStyle> {
-    let mut text_style = map_defaults.unwrap_or_else(TextStyle::default);
+    let attrs = map_defaults.unwrap_or_else(TextStyleAttributes::default);
+    let mut text_style = TextStyle::default();
 
     text_style.font.clear();
     for family in fallback {
         text_style.font.push(FontAttributes {
             family,
-            ..Default::default()
+            bold: attrs.bold,
+            italic: attrs.italic,
         });
     }
+    text_style.foreground = attrs.foreground;
 
     Ok(text_style)
 }

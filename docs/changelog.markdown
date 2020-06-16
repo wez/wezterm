@@ -34,6 +34,8 @@ brief notes about them may accumulate here.
   `send_composed_key_when_right_alt_is_pressed=true` so that the right Alt key
   behaves more like an `AltGr` key and generates the composed input, while the
   Left Alt is regular uncomposed Alt.
+* Fonts: fixed an issue where specifying italic or bold in the second parameter
+  of `wezterm.font` didn't work as intended or documented
 
 ### 20200607-144723-74889cd4
 
