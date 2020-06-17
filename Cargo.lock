@@ -3715,8 +3715,6 @@ dependencies = [
  "dwrote",
  "embed-resource",
  "euclid",
- "failure",
- "failure_derive",
  "filedescriptor",
  "filenamegen",
  "font-kit",
