@@ -86,7 +86,7 @@ When the search overlay is active the behavior of wezterm changes:
 
 ### Configuring Saved Searches
 
-*since: latest nightly*
+*since: 20200607-144723-74889cd4*
 
 If you find that you're often searching for the same things then you may wish to assign
 a keybinding to trigger that search.

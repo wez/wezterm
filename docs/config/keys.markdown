@@ -1,5 +1,4 @@
-Both the keyboard and (starting with the most recently *nightly* builds) the
-mouse bindings are configurable.
+Both the keyboard and the mouse bindings are configurable.
 
 The assignments are based around a triggering event, such as a keypress or
 mouse button click, which is combined with a set of modifier keys to produce
@@ -93,7 +92,7 @@ that order.
 
 ## Configuring Mouse Assignments
 
-*available in the most recent nightly*
+*since: 20200607-144723-74889cd4*
 
 You can define mouse actions using the `mouse_bindings` configuration section:
 
@@ -642,7 +641,7 @@ triggered.
 
 ## Search
 
-*since: latest nightly*
+*since: 20200607-144723-74889cd4*
 
 This action will trigger the search overlay for the current tab.
 It accepts a typed pattern string as its parameter, allowing for
@@ -669,7 +668,7 @@ return {
 
 ## ActivateCopyMode
 
-*since: latest nightly*
+*since: 20200607-144723-74889cd4*
 
 Activates copy mode!
 
