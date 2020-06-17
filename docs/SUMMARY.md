@@ -24,3 +24,4 @@
 - [Multiplexing](multiplexing.markdown)
 - [F.A.Q.](faq.markdown)
 - [Getting Help](help.markdown)
+- [Contributing](contributing.markdown)
