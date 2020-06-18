@@ -201,7 +201,7 @@ impl OperatingSystemCommand {
             } else {
                 ColorOrQuery::Color(
                     RgbColor::from_named_or_rgb_string(spec)
-                        .ok_or_else(|| anyhow!("invalid color spec"))?,
+                        .ok_or_else(|| anyhow!("invalid color spec {:?}", spec))?,
                 )
             };
 
@@ -232,7 +232,7 @@ impl OperatingSystemCommand {
                 let spec = str::from_utf8(spec)?;
                 colors.push(ColorOrQuery::Color(
                     RgbColor::from_named_or_rgb_string(spec)
-                        .ok_or_else(|| anyhow!("invalid color spec"))?,
+                        .ok_or_else(|| anyhow!("invalid color spec {:?}", spec))?,
                 ));
             }
         }
