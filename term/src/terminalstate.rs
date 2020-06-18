@@ -42,6 +42,15 @@ impl TabStop {
         self.tabs[col] = true;
     }
 
+    fn find_prev_tab_stop(&self, col: usize) -> Option<usize> {
+        for i in (0..col.min(self.tabs.len())).rev() {
+            if self.tabs[i] {
+                return Some(i);
+            }
+        }
+        None
+    }
+
     fn find_next_tab_stop(&self, col: usize) -> Option<usize> {
         for i in col + 1..self.tabs.len() {
             if self.tabs[i] {
@@ -1784,7 +1793,16 @@ impl TerminalState {
                     self.c0_horizontal_tab();
                 }
             }
-            Cursor::BackwardTabulation(_) => {}
+            Cursor::BackwardTabulation(n) => {
+                for _ in 0..n {
+                    let x = match self.tabs.find_prev_tab_stop(self.cursor.x) {
+                        Some(x) => x,
+                        None => 0,
+                    };
+                    self.set_cursor_pos(&Position::Absolute(x as i64), &Position::Relative(0));
+                }
+            }
+
             Cursor::TabulationClear(_) => {}
             Cursor::TabulationControl(_) => {}
             Cursor::LineTabulation(_) => {}
