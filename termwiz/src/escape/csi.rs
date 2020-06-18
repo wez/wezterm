@@ -517,6 +517,7 @@ pub enum DecPrivateModeCode {
     SGRMouse = 1006,
     ClearAndEnableAlternateScreen = 1049,
     EnableAlternateScreen = 47,
+    OptEnableAlternateScreen = 1047,
     BracketedPaste = 2004,
     /// Applies to sixel and regis modes
     UsePrivateColorRegistersForEachGraphic = 1070,

@@ -1396,6 +1396,9 @@ impl TerminalState {
             }
 
             Mode::SetDecPrivateMode(DecPrivateMode::Code(
+                DecPrivateModeCode::OptEnableAlternateScreen,
+            ))
+            | Mode::SetDecPrivateMode(DecPrivateMode::Code(
                 DecPrivateModeCode::EnableAlternateScreen,
             )) => {
                 if !self.screen.is_alt_screen_active() {
@@ -1404,6 +1407,9 @@ impl TerminalState {
                 }
             }
             Mode::ResetDecPrivateMode(DecPrivateMode::Code(
+                DecPrivateModeCode::OptEnableAlternateScreen,
+            ))
+            | Mode::ResetDecPrivateMode(DecPrivateMode::Code(
                 DecPrivateModeCode::EnableAlternateScreen,
             )) => {
                 if self.screen.is_alt_screen_active() {
