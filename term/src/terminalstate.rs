@@ -64,11 +64,13 @@ impl TabStop {
     }
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone)]
 struct SavedCursor {
     position: CursorPosition,
     wrap_next: bool,
-    insert: bool,
+    pen: CellAttributes,
+    dec_origin_mode: bool,
+    // TODO: selective_erase when supported
 }
 
 struct ScreenOrAlt {
@@ -1502,7 +1504,7 @@ impl TerminalState {
                 DecPrivateModeCode::ClearAndEnableAlternateScreen,
             )) => {
                 if !self.screen.is_alt_screen_active() {
-                    self.save_cursor();
+                    self.dec_save_cursor();
                     self.screen.activate_alt_screen();
                     self.set_cursor_pos(&Position::Absolute(0), &Position::Absolute(0));
                     self.pen = CellAttributes::default();
@@ -1514,8 +1516,7 @@ impl TerminalState {
             )) => {
                 if self.screen.is_alt_screen_active() {
                     self.screen.activate_primary_screen();
-                    self.restore_cursor();
-                    self.pen = CellAttributes::default();
+                    self.dec_restore_cursor();
                 }
             }
             Mode::SaveDecPrivateMode(DecPrivateMode::Code(_))
@@ -1819,8 +1820,8 @@ impl TerminalState {
                 let report = CSI::Cursor(Cursor::ActivePositionReport { line, col });
                 write!(self.writer, "{}", report).ok();
             }
-            Cursor::SaveCursor => self.save_cursor(),
-            Cursor::RestoreCursor => self.restore_cursor(),
+            Cursor::SaveCursor => self.dec_save_cursor(),
+            Cursor::RestoreCursor => self.dec_restore_cursor(),
             Cursor::CursorStyle(style) => {
                 self.cursor.shape = match style {
                     CursorStyle::Default => CursorShape::Default,
@@ -1836,11 +1837,13 @@ impl TerminalState {
         }
     }
 
-    fn save_cursor(&mut self) {
+    /// https://vt100.net/docs/vt510-rm/DECSC.html
+    fn dec_save_cursor(&mut self) {
         let saved = SavedCursor {
             position: self.cursor,
-            insert: self.insert,
             wrap_next: self.wrap_next,
+            pen: self.pen.clone(),
+            dec_origin_mode: self.dec_origin_mode,
         };
         debug!(
             "saving cursor {:?} is_alt={}",
@@ -1849,12 +1852,19 @@ impl TerminalState {
         );
         *self.screen.saved_cursor() = Some(saved);
     }
-    fn restore_cursor(&mut self) {
-        let saved = self.screen.saved_cursor().unwrap_or_else(|| SavedCursor {
-            position: CursorPosition::default(),
-            insert: false,
-            wrap_next: false,
-        });
+
+    /// https://vt100.net/docs/vt510-rm/DECRC.html
+    fn dec_restore_cursor(&mut self) {
+        let saved = self
+            .screen
+            .saved_cursor()
+            .clone()
+            .unwrap_or_else(|| SavedCursor {
+                position: CursorPosition::default(),
+                wrap_next: false,
+                pen: Default::default(),
+                dec_origin_mode: false,
+            });
         debug!(
             "restore cursor {:?} is_alt={}",
             saved,
@@ -1865,7 +1875,8 @@ impl TerminalState {
         self.set_cursor_pos(&Position::Absolute(x as i64), &Position::Absolute(y));
         self.cursor.shape = saved.position.shape;
         self.wrap_next = saved.wrap_next;
-        self.insert = saved.insert;
+        self.pen = saved.pen;
+        self.dec_origin_mode = saved.dec_origin_mode;
     }
 
     fn perform_csi_sgr(&mut self, sgr: Sgr) {
@@ -2089,8 +2100,8 @@ impl<'a> Performer<'a> {
             Esc::Code(EscCode::AsciiCharacterSet) => {
                 self.dec_line_drawing_mode = false;
             }
-            Esc::Code(EscCode::DecSaveCursorPosition) => self.save_cursor(),
-            Esc::Code(EscCode::DecRestoreCursorPosition) => self.restore_cursor(),
+            Esc::Code(EscCode::DecSaveCursorPosition) => self.dec_save_cursor(),
+            Esc::Code(EscCode::DecRestoreCursorPosition) => self.dec_restore_cursor(),
 
             Esc::Code(EscCode::DecScreenAlignmentDisplay) => {
                 // This one is just to make vttest happy;
