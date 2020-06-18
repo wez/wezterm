@@ -916,6 +916,8 @@ impl ParseParams for (OneBased, OneBased) {
     fn parse_params(params: &[i64]) -> Result<(OneBased, OneBased), ()> {
         if params.is_empty() {
             Ok((OneBased::new(1), OneBased::new(1)))
+        } else if params.len() == 1 {
+            Ok((OneBased::from_esc_param(params[0])?, OneBased::new(1)))
         } else if params.len() == 2 {
             Ok((
                 OneBased::from_esc_param(params[0])?,
@@ -2023,6 +2025,16 @@ mod test {
         assert_eq!(
             parse('C', &[4], "\x1b[4C"),
             vec![CSI::Cursor(Cursor::Right(4))]
+        );
+
+        // Check that we default the second parameter of two
+        // when only one is provided
+        assert_eq!(
+            parse('H', &[2], "\x1b[2;1H"),
+            vec![CSI::Cursor(Cursor::Position {
+                line: OneBased::new(2),
+                col: OneBased::new(1)
+            })]
         );
     }
 
