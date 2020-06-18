@@ -195,6 +195,9 @@ pub struct TerminalState {
     /// https://vt100.net/docs/vt510-rm/DECAWM.html
     dec_auto_wrap: bool,
 
+    /// Reverse Wraparound Mode
+    reverse_wraparound_mode: bool,
+
     /// https://vt100.net/docs/vt510-rm/DECOM.html
     /// When OriginMode is enabled, cursor is constrained to the
     /// scroll region and its position is relative to the scroll
@@ -316,6 +319,7 @@ impl TerminalState {
             // We default auto wrap to true even though the default for
             // a dec terminal is false, because it is more useful this way.
             dec_auto_wrap: true,
+            reverse_wraparound_mode: false,
             dec_origin_mode: false,
             insert: false,
             application_cursor_keys: false,
@@ -1289,8 +1293,19 @@ impl TerminalState {
         match dev {
             Device::DeviceAttributes(a) => error!("unhandled: {:?}", a),
             Device::SoftReset => {
-                self.pen = CellAttributes::default();
                 // TODO: see https://vt100.net/docs/vt510-rm/DECSTR.html
+                self.pen = CellAttributes::default();
+                self.insert = false;
+                self.dec_auto_wrap = false;
+                self.application_cursor_keys = false;
+                self.application_keypad = false;
+                self.scroll_region = 0..self.screen().physical_rows as i64;
+                self.screen.activate_alt_screen();
+                self.screen.saved_cursor().take();
+                self.screen.activate_primary_screen();
+                self.screen.saved_cursor().take();
+
+                self.reverse_wraparound_mode = false;
             }
             Device::RequestPrimaryDeviceAttributes => {
                 let mut ident = "\x1b[?63".to_string(); // Vt320
@@ -1328,6 +1343,18 @@ impl TerminalState {
             Mode::SetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::AutoRepeat))
             | Mode::ResetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::AutoRepeat)) => {
                 // We leave key repeat to the GUI layer prefs
+            }
+
+            Mode::SetDecPrivateMode(DecPrivateMode::Code(
+                DecPrivateModeCode::ReverseWraparound,
+            )) => {
+                self.reverse_wraparound_mode = true;
+            }
+
+            Mode::ResetDecPrivateMode(DecPrivateMode::Code(
+                DecPrivateModeCode::ReverseWraparound,
+            )) => {
+                self.reverse_wraparound_mode = false;
             }
 
             Mode::SetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::AutoWrap)) => {
@@ -2051,7 +2078,23 @@ impl<'a> Performer<'a> {
                 self.set_cursor_pos(&Position::Absolute(0), &Position::Relative(0));
             }
             ControlCode::Backspace => {
-                self.set_cursor_pos(&Position::Relative(-1), &Position::Relative(0));
+                if self.reverse_wraparound_mode
+                    && self.dec_auto_wrap
+                    && self.cursor.x == 0
+                    && self.cursor.y == self.scroll_region.start
+                {
+                    // Backspace off the top-left wraps around to the bottom right
+                    let x_pos = Position::Absolute(self.screen().physical_cols as i64 - 1);
+                    let y_pos = Position::Absolute(self.scroll_region.end - 1);
+                    self.set_cursor_pos(&x_pos, &y_pos);
+                } else if self.reverse_wraparound_mode && self.dec_auto_wrap && self.cursor.x == 0 {
+                    // Backspace off the left wraps around to the prior line on the right
+                    let x_pos = Position::Absolute(self.screen().physical_cols as i64 - 1);
+                    let y_pos = Position::Relative(-1);
+                    self.set_cursor_pos(&x_pos, &y_pos);
+                } else {
+                    self.set_cursor_pos(&Position::Relative(-1), &Position::Relative(0));
+                }
             }
             ControlCode::HorizontalTab => self.c0_horizontal_tab(),
             ControlCode::Bell => error!("Ding! (this is the bell)"),
@@ -2131,6 +2174,7 @@ impl<'a> Performer<'a> {
                 self.wrap_next = false;
                 self.insert = false;
                 self.dec_auto_wrap = true;
+                self.reverse_wraparound_mode = false;
                 self.dec_origin_mode = false;
                 self.use_private_color_registers_for_each_graphic = false;
                 self.color_map = default_color_map();

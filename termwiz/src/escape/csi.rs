@@ -498,6 +498,9 @@ pub enum DecPrivateModeCode {
     AutoRepeat = 8,
     StartBlinkingCursor = 12,
     ShowCursor = 25,
+
+    ReverseWraparound = 45,
+
     /// DECSDM - https://vt100.net/docs/vt3xx-gp/chapter14.html
     SixelScrolling = 80,
     /// Enable mouse button press/release reporting
