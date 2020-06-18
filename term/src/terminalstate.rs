@@ -214,7 +214,7 @@ pub struct TerminalState {
     dec_origin_mode: bool,
 
     /// The scroll region
-    scroll_region: Range<VisibleRowIndex>,
+    top_and_bottom_margins: Range<VisibleRowIndex>,
 
     /// When set, modifies the sequence of bytes sent for keys
     /// designated as cursor keys.  This includes various navigation
@@ -323,7 +323,7 @@ impl TerminalState {
             screen,
             pen: CellAttributes::default(),
             cursor: CursorPosition::default(),
-            scroll_region: 0..physical_rows as VisibleRowIndex,
+            top_and_bottom_margins: 0..physical_rows as VisibleRowIndex,
             wrap_next: false,
             // We default auto wrap to true even though the default for
             // a dec terminal is false, because it is more useful this way.
@@ -922,7 +922,7 @@ impl TerminalState {
         let adjusted_cursor = self
             .screen
             .resize(physical_rows, physical_cols, self.cursor);
-        self.scroll_region = 0..physical_rows as i64;
+        self.top_and_bottom_margins = 0..physical_rows as i64;
         self.pixel_height = pixel_height;
         self.pixel_width = pixel_width;
         self.tabs.resize(physical_cols);
@@ -982,7 +982,8 @@ impl TerminalState {
         self.cursor.x = x.min(cols as i64 - 1) as usize;
 
         if self.dec_origin_mode {
-            self.cursor.y = (self.scroll_region.start + y).min(self.scroll_region.end - 1);
+            self.cursor.y =
+                (self.top_and_bottom_margins.start + y).min(self.top_and_bottom_margins.end - 1);
         } else {
             self.cursor.y = y.min(rows as i64 - 1);
         }
@@ -995,13 +996,15 @@ impl TerminalState {
     }
 
     fn scroll_up(&mut self, num_rows: usize) {
-        let scroll_region = self.scroll_region.clone();
-        self.screen_mut().scroll_up(&scroll_region, num_rows)
+        let top_and_bottom_margins = self.top_and_bottom_margins.clone();
+        self.screen_mut()
+            .scroll_up(&top_and_bottom_margins, num_rows)
     }
 
     fn scroll_down(&mut self, num_rows: usize) {
-        let scroll_region = self.scroll_region.clone();
-        self.screen_mut().scroll_down(&scroll_region, num_rows)
+        let top_and_bottom_margins = self.top_and_bottom_margins.clone();
+        self.screen_mut()
+            .scroll_down(&top_and_bottom_margins, num_rows)
     }
 
     fn new_line(&mut self, move_to_first_column: bool) {
@@ -1011,7 +1014,7 @@ impl TerminalState {
             self.cursor.x
         };
         let y = self.cursor.y;
-        let y = if y == self.scroll_region.end - 1 {
+        let y = if y == self.top_and_bottom_margins.end - 1 {
             self.scroll_up(1);
             y
         } else {
@@ -1024,7 +1027,7 @@ impl TerminalState {
     /// If the cursor is at the bottom margin, the page scrolls up.
     fn c1_index(&mut self) {
         let y = self.cursor.y;
-        let y = if y == self.scroll_region.end - 1 {
+        let y = if y == self.top_and_bottom_margins.end - 1 {
             self.scroll_up(1);
             y
         } else {
@@ -1059,7 +1062,7 @@ impl TerminalState {
     /// scroll the region down.
     fn c1_reverse_index(&mut self) {
         let y = self.cursor.y;
-        let y = if y == self.scroll_region.start {
+        let y = if y == self.top_and_bottom_margins.start {
             self.scroll_down(1);
             y
         } else {
@@ -1308,7 +1311,7 @@ impl TerminalState {
                 self.dec_auto_wrap = false;
                 self.application_cursor_keys = false;
                 self.application_keypad = false;
-                self.scroll_region = 0..self.screen().physical_rows as i64;
+                self.top_and_bottom_margins = 0..self.screen().physical_rows as i64;
                 self.screen.activate_alt_screen();
                 self.screen.saved_cursor().take();
                 self.screen.activate_primary_screen();
@@ -1413,7 +1416,7 @@ impl TerminalState {
                 // for the other side effects of this sequence
                 // https://vt100.net/docs/vt510-rm/DECCOLM.html
 
-                self.scroll_region = 0..self.screen().physical_rows as i64;
+                self.top_and_bottom_margins = 0..self.screen().physical_rows as i64;
                 // FIXME: reset left/right margins here, when we implement those
                 self.set_cursor_pos(&Position::Absolute(0), &Position::Absolute(0));
                 self.erase_in_display(EraseInDisplay::EraseDisplay);
@@ -1707,9 +1710,10 @@ impl TerminalState {
                 }
             }
             Edit::DeleteLine(n) => {
-                if self.scroll_region.contains(&self.cursor.y) {
-                    let scroll_region = self.cursor.y..self.scroll_region.end;
-                    self.screen_mut().scroll_up(&scroll_region, n as usize);
+                if self.top_and_bottom_margins.contains(&self.cursor.y) {
+                    let top_and_bottom_margins = self.cursor.y..self.top_and_bottom_margins.end;
+                    self.screen_mut()
+                        .scroll_up(&top_and_bottom_margins, n as usize);
                 }
             }
             Edit::EraseCharacter(n) => {
@@ -1752,9 +1756,10 @@ impl TerminalState {
                 }
             }
             Edit::InsertLine(n) => {
-                if self.scroll_region.contains(&self.cursor.y) {
-                    let scroll_region = self.cursor.y..self.scroll_region.end;
-                    self.screen_mut().scroll_down(&scroll_region, n as usize);
+                if self.top_and_bottom_margins.contains(&self.cursor.y) {
+                    let top_and_bottom_margins = self.cursor.y..self.top_and_bottom_margins.end;
+                    self.screen_mut()
+                        .scroll_down(&top_and_bottom_margins, n as usize);
                 }
             }
             Edit::ScrollDown(n) => self.scroll_down(n as usize),
@@ -1786,7 +1791,7 @@ impl TerminalState {
                 if top > bottom {
                     std::mem::swap(&mut top, &mut bottom);
                 }
-                self.scroll_region = top..bottom + 1;
+                self.top_and_bottom_margins = top..bottom + 1;
             }
             Cursor::ForwardTabulation(n) => {
                 for _ in 0..n {
@@ -1818,14 +1823,14 @@ impl TerminalState {
 
                 let old_y = self.cursor.y;
                 let candidate = self.cursor.y.saturating_sub(i64::from(n));
-                let new_y = if self.cursor.y < self.scroll_region.start {
+                let new_y = if self.cursor.y < self.top_and_bottom_margins.start {
                     // above the top margin, so allow movement to
                     // top of screen
                     candidate
                 } else {
                     // Else constrain to top margin
-                    if candidate < self.scroll_region.start {
-                        self.scroll_region.start
+                    if candidate < self.top_and_bottom_margins.start {
+                        self.top_and_bottom_margins.start
                     } else {
                         candidate
                     }
@@ -1842,13 +1847,13 @@ impl TerminalState {
                 // https://vt100.net/docs/vt510-rm/CUD.html
                 let old_y = self.cursor.y;
                 let rows = self.screen().physical_rows;
-                let new_y = if self.cursor.y >= self.scroll_region.end {
+                let new_y = if self.cursor.y >= self.top_and_bottom_margins.end {
                     // below the bottom margin, so allow movement to
                     // bottom of screen
                     (self.cursor.y + i64::from(n)).min(rows as i64 - 1)
                 } else {
                     // Else constrain to bottom margin
-                    (self.cursor.y + i64::from(n)).min(self.scroll_region.end - 1)
+                    (self.cursor.y + i64::from(n)).min(self.top_and_bottom_margins.end - 1)
                 };
 
                 self.cursor.y = new_y;
@@ -2137,11 +2142,11 @@ impl<'a> Performer<'a> {
                 if self.reverse_wraparound_mode
                     && self.dec_auto_wrap
                     && self.cursor.x == 0
-                    && self.cursor.y == self.scroll_region.start
+                    && self.cursor.y == self.top_and_bottom_margins.start
                 {
                     // Backspace off the top-left wraps around to the bottom right
                     let x_pos = Position::Absolute(self.screen().physical_cols as i64 - 1);
-                    let y_pos = Position::Absolute(self.scroll_region.end - 1);
+                    let y_pos = Position::Absolute(self.top_and_bottom_margins.end - 1);
                     self.set_cursor_pos(&x_pos, &y_pos);
                 } else if self.reverse_wraparound_mode && self.dec_auto_wrap && self.cursor.x == 0 {
                     // Backspace off the left wraps around to the prior line on the right
@@ -2247,7 +2252,7 @@ impl<'a> Performer<'a> {
                 self.dec_line_drawing_mode = false;
                 self.tabs = TabStop::new(self.screen().physical_cols, 8);
                 self.palette.take();
-                self.scroll_region = 0..self.screen().physical_rows as VisibleRowIndex;
+                self.top_and_bottom_margins = 0..self.screen().physical_rows as VisibleRowIndex;
             }
 
             _ => error!("ESC: unhandled {:?}", esc),
