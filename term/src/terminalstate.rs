@@ -1814,7 +1814,29 @@ impl TerminalState {
                 self.set_cursor_pos(&Position::Relative(i64::from(n)), &Position::Relative(0))
             }
             Cursor::Up(n) => {
-                self.set_cursor_pos(&Position::Relative(0), &Position::Relative(-(i64::from(n))))
+                // https://vt100.net/docs/vt510-rm/CUU.html
+
+                let old_y = self.cursor.y;
+                let candidate = self.cursor.y.saturating_sub(i64::from(n));
+                let new_y = if self.cursor.y < self.scroll_region.start {
+                    // above the top margin, so allow movement to
+                    // top of screen
+                    candidate
+                } else {
+                    // Else constrain to top margin
+                    if candidate < self.scroll_region.start {
+                        self.scroll_region.start
+                    } else {
+                        candidate
+                    }
+                };
+
+                let new_y = new_y.max(0);
+
+                self.cursor.y = new_y;
+                let screen = self.screen_mut();
+                screen.dirty_line(old_y);
+                screen.dirty_line(new_y);
             }
             Cursor::Down(n) => {
                 // https://vt100.net/docs/vt510-rm/CUD.html
