@@ -138,53 +138,98 @@ impl RgbColor {
         format!("#{:02x}{:02x}{:02x}", self.red, self.green, self.blue)
     }
 
+    /// Returns a string of the form `rgb:RRRR/GGGG/BBBB`
+    pub fn to_x11_16bit_rgb_string(self) -> String {
+        format!(
+            "rgb:{:02x}{:02x}/{:02x}{:02x}/{:02x}{:02x}",
+            self.red, self.red, self.green, self.green, self.blue, self.blue
+        )
+    }
+
     /// Construct a color from a string of the form `#RRGGBB` where
     /// R, G and B are all hex digits.
     pub fn from_rgb_str(s: &str) -> Option<RgbColor> {
-        if s.len() == 4 && s.as_bytes()[0] == b'#' {
+        if s.len() > 0 && s.as_bytes()[0] == b'#' {
+            // Probably `#RGB`
+
+            let digits = (s.len() - 1) / 3;
+            if 1 + (digits * 3) != s.len() {
+                return None;
+            }
+
+            if digits == 0 || digits > 4 {
+                // Max of 16 bits supported
+                return None;
+            }
+
             let mut chars = s.chars().skip(1);
 
             macro_rules! digit {
                 () => {{
-                    let lo = match chars.next().unwrap().to_digit(16) {
-                        Some(v) => v as u8,
-                        None => return None,
-                    };
-                    lo << 4 | lo
-                }};
-            }
-            Some(Self::new(digit!(), digit!(), digit!()))
-        } else if s.len() == 7 && s.as_bytes()[0] == b'#' {
-            let mut chars = s.chars().skip(1);
+                    let mut component = 0u16;
 
-            macro_rules! digit {
-                () => {{
-                    let hi = match chars.next().unwrap().to_digit(16) {
-                        Some(v) => (v as u8) << 4,
-                        None => return None,
-                    };
-                    let lo = match chars.next().unwrap().to_digit(16) {
-                        Some(v) => v as u8,
-                        None => return None,
-                    };
-                    hi | lo
+                    for _ in 0..digits {
+                        component = component << 4;
+
+                        let nybble = match chars.next().unwrap().to_digit(16) {
+                            Some(v) => v as u16,
+                            None => return None,
+                        };
+                        component |= nybble;
+                    }
+
+                    // From XParseColor, the `#` syntax takes the most significant
+                    // bits and uses those for the color value.  That function produces
+                    // 16-bit color components but we want 8-bit components so we shift
+                    // or truncate the bits here depending on the number of digits
+                    match digits {
+                        1 => (component << 4) as u8,
+                        2 => component as u8,
+                        3 => (component >> 4) as u8,
+                        4 => (component >> 8) as u8,
+                        _ => return None,
+                    }
                 }};
             }
             Some(Self::new(digit!(), digit!(), digit!()))
-        } else if s.starts_with("rgb:") && s.len() == 12 {
+        } else if s.starts_with("rgb:") && s.len() > 6 {
+            // The string includes two slashes: `rgb:r/g/b`
+            let digits = (s.len() - 3) / 3;
+            if 3 + (digits * 3) != s.len() {
+                return None;
+            }
+
+            let digits = digits - 1;
+            if digits == 0 || digits > 4 {
+                // Max of 16 bits supported
+                return None;
+            }
+
             let mut chars = s.chars().skip(4);
 
             macro_rules! digit {
                 () => {{
-                    let hi = match chars.next().unwrap().to_digit(16) {
-                        Some(v) => (v as u8) << 4,
-                        None => return None,
-                    };
-                    let lo = match chars.next().unwrap().to_digit(16) {
-                        Some(v) => v as u8,
-                        None => return None,
-                    };
-                    hi | lo
+                    let mut component = 0u16;
+
+                    for _ in 0..digits {
+                        component = component << 4;
+
+                        let nybble = match chars.next().unwrap().to_digit(16) {
+                            Some(v) => v as u16,
+                            None => return None,
+                        };
+                        component |= nybble;
+                    }
+
+                    // From XParseColor, the `rgb:` prefixed syntax scales the
+                    // value into 16 bits from the number of bits specified
+                    match digits {
+                        1 => (component | component << 4) as u8,
+                        2 => component as u8,
+                        3 => (component >> 4) as u8,
+                        4 => (component >> 8) as u8,
+                        _ => return None,
+                    }
                 }};
             }
             macro_rules! slash {
@@ -337,15 +382,20 @@ mod tests {
         assert!(RgbColor::from_rgb_str("").is_none());
         assert!(RgbColor::from_rgb_str("#xyxyxy").is_none());
 
+        let foo = RgbColor::from_rgb_str("#f00f00f00").unwrap();
+        assert_eq!(foo.red, 0xf0);
+        assert_eq!(foo.green, 0xf0);
+        assert_eq!(foo.blue, 0xf0);
+
         let black = RgbColor::from_rgb_str("#000").unwrap();
         assert_eq!(black.red, 0);
         assert_eq!(black.green, 0);
         assert_eq!(black.blue, 0);
 
         let black = RgbColor::from_rgb_str("#FFF").unwrap();
-        assert_eq!(black.red, 0xff);
-        assert_eq!(black.green, 0xff);
-        assert_eq!(black.blue, 0xff);
+        assert_eq!(black.red, 0xf0);
+        assert_eq!(black.green, 0xf0);
+        assert_eq!(black.blue, 0xf0);
 
         let black = RgbColor::from_rgb_str("#000000").unwrap();
         assert_eq!(black.red, 0);
@@ -356,6 +406,11 @@ mod tests {
         assert_eq!(grey.red, 0xd6);
         assert_eq!(grey.green, 0xd6);
         assert_eq!(grey.blue, 0xd6);
+
+        let grey = RgbColor::from_rgb_str("rgb:f0f0/f0f0/f0f0").unwrap();
+        assert_eq!(grey.red, 0xf0);
+        assert_eq!(grey.green, 0xf0);
+        assert_eq!(grey.blue, 0xf0);
     }
 
     #[test]

@@ -20,7 +20,7 @@ impl Display for ColorOrQuery {
     fn fmt(&self, f: &mut Formatter) -> Result<(), FmtError> {
         match self {
             ColorOrQuery::Query => write!(f, "?"),
-            ColorOrQuery::Color(c) => write!(f, "{}", c.to_rgb_string()),
+            ColorOrQuery::Color(c) => write!(f, "{}", c.to_x11_16bit_rgb_string()),
         }
     }
 }
