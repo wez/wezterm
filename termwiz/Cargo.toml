@@ -39,6 +39,7 @@ use_serde = ["serde"]
 
 [dev-dependencies]
 varbincode = "0.1"
+pretty_assertions = "0.6"
 
 [dependencies.num-derive]
 features = ["full-syntax"]

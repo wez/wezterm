@@ -3184,6 +3184,7 @@ dependencies = [
  "num-derive",
  "num-traits 0.2.12",
  "ordered-float",
+ "pretty_assertions",
  "regex",
  "semver",
  "serde",

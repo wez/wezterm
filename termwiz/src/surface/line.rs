@@ -190,25 +190,30 @@ impl Line {
         self.bits |= LineBits::SCANNED_IMPLICIT_HYPERLINKS;
         self.bits &= !LineBits::HAS_IMPLICIT_HYPERLINKS;
 
-        for m in Rule::match_hyperlinks(&line, rules) {
-            // The capture range is measured in bytes but we need to translate
-            // that to the char index of the column.
-            for (cell_idx, (byte_idx, _char)) in line.char_indices().enumerate() {
-                if self.cells[cell_idx].attrs().hyperlink.is_some() {
-                    // Don't replace existing links
-                    continue;
-                }
+        let matches = Rule::match_hyperlinks(&line, rules);
+        if matches.is_empty() {
+            return;
+        }
+
+        // The capture range is measured in bytes but we need to translate
+        // that to the index of the column.  This is complicated a bit further
+        // because double wide sequences have a blank column cell after them
+        // in the cells array, but the string we match against excludes that
+        // string.
+        let mut cell_idx = 0;
+        for (byte_idx, _grapheme) in line.grapheme_indices(true) {
+            let cell = &mut self.cells[cell_idx];
+            for m in &matches {
                 if m.range.contains(&byte_idx) {
-                    let attrs = self.cells[cell_idx]
-                        .attrs()
-                        .clone()
-                        .set_hyperlink(Some(Arc::clone(&m.link)))
-                        .clone();
-                    let cell = Cell::new_grapheme(self.cells[cell_idx].str(), attrs);
-                    self.cells[cell_idx] = cell;
-                    self.bits |= LineBits::HAS_IMPLICIT_HYPERLINKS;
+                    let attrs = cell.attrs_mut();
+                    // Don't replace existing links
+                    if !attrs.hyperlink.is_some() {
+                        attrs.set_hyperlink(Some(Arc::clone(&m.link)));
+                        self.bits |= LineBits::HAS_IMPLICIT_HYPERLINKS;
+                    }
                 }
             }
+            cell_idx += cell.width();
         }
     }
 
@@ -510,5 +515,88 @@ impl Line {
 impl<'a> From<&'a str> for Line {
     fn from(s: &str) -> Line {
         Line::from_text(s, &CellAttributes::default())
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::hyperlink::*;
+    use pretty_assertions::assert_eq;
+
+    #[test]
+    fn hyperlinks() {
+        let text =
+            "❤ 😍🤢 http://example.com \u{1f468}\u{1f3fe}\u{200d}\u{1f9b0} http://example.com";
+
+        let rules = vec![
+            Rule::new(r"\b\w+://(?:[\w.-]+)\.[a-z]{2,15}\S*\b", "$0").unwrap(),
+            Rule::new(r"\b\w+@[\w-]+(\.[\w-]+)+\b", "mailto:$0").unwrap(),
+        ];
+
+        let hyperlink = Arc::new(Hyperlink::new_implicit("http://example.com"));
+        let hyperlink_attr = CellAttributes::default()
+            .set_hyperlink(Some(hyperlink.clone()))
+            .clone();
+
+        let mut line: Line = text.into();
+        line.scan_and_create_hyperlinks(&rules);
+        assert!(line.has_hyperlink());
+        assert_eq!(
+            line.cells().to_vec(),
+            vec![
+                Cell::new_grapheme("❤", CellAttributes::default()),
+                Cell::new(' ', CellAttributes::default()), // double width spacer
+                Cell::new_grapheme("😍", CellAttributes::default()),
+                Cell::new(' ', CellAttributes::default()), // double width spacer
+                Cell::new_grapheme("🤢", CellAttributes::default()),
+                Cell::new(' ', CellAttributes::default()), // double width spacer
+                Cell::new(' ', CellAttributes::default()),
+                Cell::new('h', hyperlink_attr.clone()),
+                Cell::new('t', hyperlink_attr.clone()),
+                Cell::new('t', hyperlink_attr.clone()),
+                Cell::new('p', hyperlink_attr.clone()),
+                Cell::new(':', hyperlink_attr.clone()),
+                Cell::new('/', hyperlink_attr.clone()),
+                Cell::new('/', hyperlink_attr.clone()),
+                Cell::new('e', hyperlink_attr.clone()),
+                Cell::new('x', hyperlink_attr.clone()),
+                Cell::new('a', hyperlink_attr.clone()),
+                Cell::new('m', hyperlink_attr.clone()),
+                Cell::new('p', hyperlink_attr.clone()),
+                Cell::new('l', hyperlink_attr.clone()),
+                Cell::new('e', hyperlink_attr.clone()),
+                Cell::new('.', hyperlink_attr.clone()),
+                Cell::new('c', hyperlink_attr.clone()),
+                Cell::new('o', hyperlink_attr.clone()),
+                Cell::new('m', hyperlink_attr.clone()),
+                Cell::new(' ', CellAttributes::default()),
+                Cell::new_grapheme(
+                    // man: dark skin tone, red hair ZWJ emoji grapheme
+                    "\u{1f468}\u{1f3fe}\u{200d}\u{1f9b0}",
+                    CellAttributes::default()
+                ),
+                Cell::new(' ', CellAttributes::default()), // double width spacer
+                Cell::new(' ', CellAttributes::default()),
+                Cell::new('h', hyperlink_attr.clone()),
+                Cell::new('t', hyperlink_attr.clone()),
+                Cell::new('t', hyperlink_attr.clone()),
+                Cell::new('p', hyperlink_attr.clone()),
+                Cell::new(':', hyperlink_attr.clone()),
+                Cell::new('/', hyperlink_attr.clone()),
+                Cell::new('/', hyperlink_attr.clone()),
+                Cell::new('e', hyperlink_attr.clone()),
+                Cell::new('x', hyperlink_attr.clone()),
+                Cell::new('a', hyperlink_attr.clone()),
+                Cell::new('m', hyperlink_attr.clone()),
+                Cell::new('p', hyperlink_attr.clone()),
+                Cell::new('l', hyperlink_attr.clone()),
+                Cell::new('e', hyperlink_attr.clone()),
+                Cell::new('.', hyperlink_attr.clone()),
+                Cell::new('c', hyperlink_attr.clone()),
+                Cell::new('o', hyperlink_attr.clone()),
+                Cell::new('m', hyperlink_attr.clone()),
+            ]
+        );
     }
 }
