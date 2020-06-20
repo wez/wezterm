@@ -3788,6 +3788,7 @@ dependencies = [
  "ordered-float",
  "palette",
  "pretty_assertions",
+ "pretty_env_logger",
  "serde",
  "termwiz",
  "unicode-segmentation",

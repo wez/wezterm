@@ -257,21 +257,21 @@ impl Screen {
         self.lines.iter().map(|l| l.clone()).collect()
     }
 
-    pub fn insert_cell(&mut self, x: usize, y: VisibleRowIndex) {
+    pub fn insert_cell(&mut self, x: usize, y: VisibleRowIndex, right_margin: usize) {
         let phys_cols = self.physical_cols;
 
         let line_idx = self.phys_row(y);
         let line = self.line_mut(line_idx);
-        line.insert_cell(x, Cell::default());
+        line.insert_cell(x, Cell::default(), right_margin);
         if line.cells().len() > phys_cols {
             line.resize(phys_cols);
         }
     }
 
-    pub fn erase_cell(&mut self, x: usize, y: VisibleRowIndex) {
+    pub fn erase_cell(&mut self, x: usize, y: VisibleRowIndex, right_margin: usize) {
         let line_idx = self.phys_row(y);
         let line = self.line_mut(line_idx);
-        line.erase_cell(x);
+        line.erase_cell_with_margin(x, right_margin);
     }
 
     /// Set a cell.  the x and y coordinates are relative to the visible screeen
@@ -373,6 +373,75 @@ impl Screen {
     #[inline]
     pub fn visible_row_to_stable_row(&self, vis: VisibleRowIndex) -> StableRowIndex {
         self.phys_to_stable_row_index(self.phys_row(vis))
+    }
+
+    /// Scroll the scroll_region up by num_rows, respecting left and right margins.
+    /// Text outside the left and right margins is left untouched.
+    /// Any rows that would be scrolled beyond the top get removed from the screen.
+    /// Blank rows are added at the bottom.
+    /// If left and right margins are set smaller than the screen width, scrolled rows
+    /// will not be placed into scrollback, because they are not complete rows.
+    pub fn scroll_up_within_margins(
+        &mut self,
+        scroll_region: &Range<VisibleRowIndex>,
+        left_and_right_margins: &Range<usize>,
+        num_rows: usize,
+    ) {
+        if left_and_right_margins.start == 0 && left_and_right_margins.end == self.physical_cols {
+            return self.scroll_up(scroll_region, num_rows);
+        }
+
+        // Need to do the slower, more complex left and right bounded scroll
+        let phys_scroll = self.phys_range(scroll_region);
+
+        // The scroll is really a copy + a clear operation
+        let region_height = phys_scroll.end - phys_scroll.start;
+        let num_rows = num_rows.min(region_height);
+        let rows_to_copy = region_height - num_rows;
+
+        if rows_to_copy > 0 {
+            for dest_row in phys_scroll.start..phys_scroll.start + rows_to_copy {
+                let src_row = dest_row + num_rows;
+
+                // Copy the source cells first
+                let cells = {
+                    let src_row = self.line_mut(src_row);
+                    if src_row.cells().len() < left_and_right_margins.end {
+                        src_row.resize(left_and_right_margins.end);
+                    }
+
+                    src_row.cells_mut()[left_and_right_margins.clone()]
+                        .iter()
+                        .cloned()
+                        .collect::<Vec<_>>()
+                };
+
+                // and place them into the dest
+                let dest_row = self.line_mut(dest_row);
+                dest_row.set_dirty();
+                dest_row.invalidate_implicit_hyperlinks();
+                if dest_row.cells().len() < left_and_right_margins.end {
+                    dest_row.resize(left_and_right_margins.end);
+                }
+
+                for (src_cell, dest_cell) in cells
+                    .into_iter()
+                    .zip(&mut dest_row.cells_mut()[left_and_right_margins.clone()])
+                {
+                    *dest_cell = src_cell.clone();
+                }
+            }
+        }
+
+        // and blank out rows at the bottom
+        for n in phys_scroll.start + rows_to_copy..phys_scroll.end {
+            let dest_row = self.line_mut(n);
+            dest_row.set_dirty();
+            dest_row.invalidate_implicit_hyperlinks();
+            for cell in &mut dest_row.cells_mut()[left_and_right_margins.clone()] {
+                *cell = Cell::default();
+            }
+        }
     }
 
     /// ```norun
@@ -512,6 +581,69 @@ impl Screen {
         for _ in 0..num_rows {
             self.lines
                 .insert(phys_scroll.start, Line::with_width(self.physical_cols));
+        }
+    }
+
+    pub fn scroll_down_within_margins(
+        &mut self,
+        scroll_region: &Range<VisibleRowIndex>,
+        left_and_right_margins: &Range<usize>,
+        num_rows: usize,
+    ) {
+        if left_and_right_margins.start == 0 && left_and_right_margins.end == self.physical_cols {
+            return self.scroll_down(scroll_region, num_rows);
+        }
+
+        // Need to do the slower, more complex left and right bounded scroll
+        let phys_scroll = self.phys_range(scroll_region);
+
+        // The scroll is really a copy + a clear operation
+        let region_height = phys_scroll.end - phys_scroll.start;
+        let num_rows = num_rows.min(region_height);
+        let rows_to_copy = region_height - num_rows;
+
+        if rows_to_copy > 0 {
+            for src_row in (phys_scroll.start..phys_scroll.start + rows_to_copy).rev() {
+                let dest_row = src_row + num_rows;
+
+                // Copy the source cells first
+                let cells = {
+                    let src_row = self.line_mut(src_row);
+                    if src_row.cells().len() < left_and_right_margins.end {
+                        src_row.resize(left_and_right_margins.end);
+                    }
+
+                    src_row.cells_mut()[left_and_right_margins.clone()]
+                        .iter()
+                        .cloned()
+                        .collect::<Vec<_>>()
+                };
+
+                // and place them into the dest
+                let dest_row = self.line_mut(dest_row);
+                dest_row.set_dirty();
+                dest_row.invalidate_implicit_hyperlinks();
+                if dest_row.cells().len() < left_and_right_margins.end {
+                    dest_row.resize(left_and_right_margins.end);
+                }
+
+                for (src_cell, dest_cell) in cells
+                    .into_iter()
+                    .zip(&mut dest_row.cells_mut()[left_and_right_margins.clone()])
+                {
+                    *dest_cell = src_cell.clone();
+                }
+            }
+        }
+
+        // and blank out rows at the top
+        for n in phys_scroll.start..phys_scroll.start + num_rows {
+            let dest_row = self.line_mut(n);
+            dest_row.set_dirty();
+            dest_row.invalidate_implicit_hyperlinks();
+            for cell in &mut dest_row.cells_mut()[left_and_right_margins.clone()] {
+                *cell = Cell::default();
+            }
         }
     }
 }

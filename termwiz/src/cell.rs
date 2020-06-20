@@ -222,7 +222,7 @@ where
 
 /// Models the contents of a cell on the terminal display
 #[cfg_attr(feature = "use_serde", derive(Serialize, Deserialize))]
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq)]
 pub struct Cell {
     #[cfg_attr(
         feature = "use_serde",
@@ -233,6 +233,15 @@ pub struct Cell {
     )]
     text: SmallVec<[u8; 4]>,
     attrs: CellAttributes,
+}
+
+impl std::fmt::Debug for Cell {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+        fmt.debug_struct("Cell")
+            .field("text", &self.str())
+            .field("attrs", &self.attrs)
+            .finish()
+    }
 }
 
 impl Default for Cell {

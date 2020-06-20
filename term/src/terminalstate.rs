@@ -13,7 +13,7 @@ use std::fmt::Write;
 use std::sync::Arc;
 use termwiz::escape::csi::{
     Cursor, CursorStyle, DecPrivateMode, DecPrivateModeCode, Device, Edit, EraseInDisplay,
-    EraseInLine, Mode, Sgr, TerminalMode, TerminalModeCode, Window,
+    EraseInLine, Mode, Sgr, TabulationClear, TerminalMode, TerminalModeCode, Window,
 };
 use termwiz::escape::osc::{ChangeColorPair, ColorOrQuery, ITermFileData, ITermProprietary};
 use termwiz::escape::{
@@ -69,6 +69,23 @@ impl TabStop {
             for i in current..screen_width {
                 self.tabs.push((i % self.tab_width) == 0);
             }
+        }
+    }
+
+    fn clear(&mut self, to_clear: TabulationClear, col: usize) {
+        match to_clear {
+            TabulationClear::ClearCharacterTabStopAtActivePosition => {
+                if let Some(t) = self.tabs.get_mut(col) {
+                    *t = false;
+                }
+            }
+            TabulationClear::ClearAllCharacterTabStops
+            | TabulationClear::ClearCharacterTabStopsAtActiveLine => {
+                for t in &mut self.tabs {
+                    *t = false;
+                }
+            }
+            _ => log::error!("unhandled TabulationClear {:?}", to_clear),
         }
     }
 }
@@ -215,6 +232,8 @@ pub struct TerminalState {
 
     /// The scroll region
     top_and_bottom_margins: Range<VisibleRowIndex>,
+    left_and_right_margins: Range<usize>,
+    left_and_right_margin_mode: bool,
 
     /// When set, modifies the sequence of bytes sent for keys
     /// designated as cursor keys.  This includes various navigation
@@ -324,6 +343,8 @@ impl TerminalState {
             pen: CellAttributes::default(),
             cursor: CursorPosition::default(),
             top_and_bottom_margins: 0..physical_rows as VisibleRowIndex,
+            left_and_right_margins: 0..physical_cols,
+            left_and_right_margin_mode: false,
             wrap_next: false,
             // We default auto wrap to true even though the default for
             // a dec terminal is false, because it is more useful this way.
@@ -923,6 +944,7 @@ impl TerminalState {
             .screen
             .resize(physical_rows, physical_cols, self.cursor);
         self.top_and_bottom_margins = 0..physical_rows as i64;
+        self.left_and_right_margins = 0..physical_cols;
         self.pixel_height = pixel_height;
         self.pixel_width = pixel_width;
         self.tabs.resize(physical_cols);
@@ -963,53 +985,100 @@ impl TerminalState {
         }
     }
 
+    /// Sets the cursor position to precisely the x and values provided
+    fn set_cursor_position_absolute(&mut self, x: usize, y: VisibleRowIndex) {
+        let old_y = self.cursor.y;
+
+        self.cursor.y = y;
+        self.cursor.x = x;
+        self.wrap_next = false;
+
+        let screen = self.screen_mut();
+        screen.dirty_line(old_y);
+        screen.dirty_line(y);
+    }
+
     /// Sets the cursor position. x and y are 0-based and relative to the
     /// top left of the visible screen.
     fn set_cursor_pos(&mut self, x: &Position, y: &Position) {
         let x = match *x {
-            Position::Relative(x) => (self.cursor.x as i64 + x).max(0),
-            Position::Absolute(x) => x,
+            Position::Relative(x) => (self.cursor.x as i64 + x)
+                .min(
+                    if self.dec_origin_mode {
+                        self.left_and_right_margins.end
+                    } else {
+                        self.screen().physical_cols
+                    } as i64
+                        - 1,
+                )
+                .max(0),
+            Position::Absolute(x) => (x + if self.dec_origin_mode {
+                self.left_and_right_margins.start
+            } else {
+                0
+            } as i64)
+                .min(
+                    if self.dec_origin_mode {
+                        self.left_and_right_margins.end
+                    } else {
+                        self.screen().physical_cols
+                    } as i64
+                        - 1,
+                )
+                .max(0),
         };
+
         let y = match *y {
-            Position::Relative(y) => (self.cursor.y + y).max(0),
-            Position::Absolute(y) => y,
+            Position::Relative(y) => (self.cursor.y + y)
+                .min(
+                    if self.dec_origin_mode {
+                        self.top_and_bottom_margins.end
+                    } else {
+                        self.screen().physical_rows as i64
+                    } - 1,
+                )
+                .max(0),
+            Position::Absolute(y) => (y + if self.dec_origin_mode {
+                self.top_and_bottom_margins.start
+            } else {
+                0
+            })
+            .min(
+                if self.dec_origin_mode {
+                    self.top_and_bottom_margins.end
+                } else {
+                    self.screen().physical_rows as i64
+                } - 1,
+            )
+            .max(0),
         };
 
-        let rows = self.screen().physical_rows;
-        let cols = self.screen().physical_cols;
-        let old_y = self.cursor.y;
-
-        self.cursor.x = x.min(cols as i64 - 1) as usize;
-
-        if self.dec_origin_mode {
-            self.cursor.y =
-                (self.top_and_bottom_margins.start + y).min(self.top_and_bottom_margins.end - 1);
-        } else {
-            self.cursor.y = y.min(rows as i64 - 1);
-        }
-        self.wrap_next = false;
-
-        let new_y = self.cursor.y;
-        let screen = self.screen_mut();
-        screen.dirty_line(old_y);
-        screen.dirty_line(new_y);
+        self.set_cursor_position_absolute(x as usize, y);
     }
 
     fn scroll_up(&mut self, num_rows: usize) {
         let top_and_bottom_margins = self.top_and_bottom_margins.clone();
-        self.screen_mut()
-            .scroll_up(&top_and_bottom_margins, num_rows)
+        let left_and_right_margins = self.left_and_right_margins.clone();
+        self.screen_mut().scroll_up_within_margins(
+            &top_and_bottom_margins,
+            &left_and_right_margins,
+            num_rows,
+        )
     }
 
     fn scroll_down(&mut self, num_rows: usize) {
         let top_and_bottom_margins = self.top_and_bottom_margins.clone();
-        self.screen_mut()
-            .scroll_down(&top_and_bottom_margins, num_rows)
+        let left_and_right_margins = self.left_and_right_margins.clone();
+        self.screen_mut().scroll_down_within_margins(
+            &top_and_bottom_margins,
+            &left_and_right_margins,
+            num_rows,
+        )
     }
 
     fn new_line(&mut self, move_to_first_column: bool) {
         let x = if move_to_first_column {
-            0
+            self.left_and_right_margins.start
         } else {
             self.cursor.x
         };
@@ -1026,20 +1095,45 @@ impl TerminalState {
     /// Moves the cursor down one line in the same column.
     /// If the cursor is at the bottom margin, the page scrolls up.
     fn c1_index(&mut self) {
-        let y = self.cursor.y;
-        let y = if y == self.top_and_bottom_margins.end - 1 {
-            self.scroll_up(1);
-            y
-        } else {
-            y + 1
-        };
-        self.set_cursor_pos(&Position::Relative(0), &Position::Absolute(y as i64));
+        if self.left_and_right_margins.contains(&self.cursor.x) {
+            if self.cursor.y == self.top_and_bottom_margins.end - 1 {
+                self.scroll_up(1);
+            } else {
+                self.set_cursor_pos(&Position::Relative(0), &Position::Relative(1));
+            }
+        }
     }
 
     /// Moves the cursor to the first position on the next line.
     /// If the cursor is at the bottom margin, the page scrolls up.
     fn c1_nel(&mut self) {
-        self.new_line(true);
+        let y_clamp = if self.top_and_bottom_margins.contains(&self.cursor.y) {
+            self.top_and_bottom_margins.end - 1
+        } else {
+            self.screen().physical_rows as VisibleRowIndex - 1
+        };
+
+        if self.left_and_right_margins.contains(&self.cursor.x) {
+            if self.cursor.y == self.top_and_bottom_margins.end - 1 {
+                self.scroll_up(1);
+                self.set_cursor_position_absolute(self.left_and_right_margins.start, self.cursor.y);
+            } else {
+                self.set_cursor_position_absolute(
+                    self.left_and_right_margins.start,
+                    (self.cursor.y + 1).min(y_clamp),
+                );
+            }
+        } else {
+            // When outside left/right margins, NEL moves but does not scroll
+            self.set_cursor_position_absolute(
+                if self.cursor.x < self.left_and_right_margins.start {
+                    self.cursor.x
+                } else {
+                    self.left_and_right_margins.start
+                },
+                (self.cursor.y + 1).min(y_clamp),
+            );
+        }
     }
 
     /// Sets a horizontal tab stop at the column where the cursor is.
@@ -1053,22 +1147,23 @@ impl TerminalState {
     fn c0_horizontal_tab(&mut self) {
         let x = match self.tabs.find_next_tab_stop(self.cursor.x) {
             Some(x) => x,
-            None => self.screen().physical_cols - 1,
+            None => self.left_and_right_margins.end - 1,
         };
-        self.set_cursor_pos(&Position::Absolute(x as i64), &Position::Relative(0));
+        self.cursor.x = x.min(self.left_and_right_margins.end - 1);
+        let y = self.cursor.y;
+        self.screen_mut().dirty_line(y);
     }
 
     /// Move the cursor up 1 line.  If the position is at the top scroll margin,
     /// scroll the region down.
     fn c1_reverse_index(&mut self) {
-        let y = self.cursor.y;
-        let y = if y == self.top_and_bottom_margins.start {
-            self.scroll_down(1);
-            y
-        } else {
-            y - 1
-        };
-        self.set_cursor_pos(&Position::Relative(0), &Position::Absolute(y as i64));
+        if self.left_and_right_margins.contains(&self.cursor.x) {
+            if self.cursor.y == self.top_and_bottom_margins.start {
+                self.scroll_down(1);
+            } else {
+                self.set_cursor_pos(&Position::Relative(0), &Position::Relative(-1));
+            }
+        }
     }
 
     fn set_hyperlink(&mut self, link: Option<Hyperlink>) {
@@ -1308,10 +1403,14 @@ impl TerminalState {
                 // TODO: see https://vt100.net/docs/vt510-rm/DECSTR.html
                 self.pen = CellAttributes::default();
                 self.insert = false;
-                self.dec_auto_wrap = false;
+                self.dec_origin_mode = false;
+                // Note that xterm deviates from the documented DECSTR
+                // setting for dec_auto_wrap, so we do too
+                self.dec_auto_wrap = true;
                 self.application_cursor_keys = false;
                 self.application_keypad = false;
                 self.top_and_bottom_margins = 0..self.screen().physical_rows as i64;
+                self.left_and_right_margins = 0..self.screen().physical_cols;
                 self.screen.activate_alt_screen();
                 self.screen.saved_cursor().take();
                 self.screen.activate_primary_screen();
@@ -1320,9 +1419,11 @@ impl TerminalState {
                 self.reverse_wraparound_mode = false;
             }
             Device::RequestPrimaryDeviceAttributes => {
-                let mut ident = "\x1b[?63".to_string(); // Vt320
+                let mut ident = "\x1b[?65".to_string(); // Vt500
                 ident.push_str(";4"); // Sixel graphics
                 ident.push_str(";6"); // Selective erase
+                ident.push_str(";18"); // windowing extensions
+                ident.push_str(";22"); // ANSI color, vt525
                 ident.push('c');
 
                 self.writer.write(ident.as_bytes()).ok();
@@ -1369,6 +1470,27 @@ impl TerminalState {
                 self.reverse_wraparound_mode = false;
             }
 
+            Mode::SetDecPrivateMode(DecPrivateMode::Code(
+                DecPrivateModeCode::LeftRightMarginMode,
+            )) => {
+                self.left_and_right_margin_mode = true;
+            }
+
+            Mode::ResetDecPrivateMode(DecPrivateMode::Code(
+                DecPrivateModeCode::LeftRightMarginMode,
+            )) => {
+                self.left_and_right_margin_mode = false;
+                self.left_and_right_margins = 0..self.screen().physical_cols;
+            }
+
+            Mode::SetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::SaveCursor)) => {
+                self.dec_save_cursor();
+            }
+
+            Mode::ResetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::SaveCursor)) => {
+                self.dec_restore_cursor();
+            }
+
             Mode::SetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::AutoWrap)) => {
                 self.dec_auto_wrap = true;
             }
@@ -1379,10 +1501,12 @@ impl TerminalState {
 
             Mode::SetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::OriginMode)) => {
                 self.dec_origin_mode = true;
+                self.set_cursor_pos(&Position::Absolute(0), &Position::Absolute(0));
             }
 
             Mode::ResetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::OriginMode)) => {
                 self.dec_origin_mode = false;
+                self.set_cursor_pos(&Position::Absolute(0), &Position::Absolute(0));
             }
 
             Mode::SetDecPrivateMode(DecPrivateMode::Code(
@@ -1417,7 +1541,7 @@ impl TerminalState {
                 // https://vt100.net/docs/vt510-rm/DECCOLM.html
 
                 self.top_and_bottom_margins = 0..self.screen().physical_rows as i64;
-                // FIXME: reset left/right margins here, when we implement those
+                self.left_and_right_margins = 0..self.screen().physical_cols;
                 self.set_cursor_pos(&Position::Absolute(0), &Position::Absolute(0));
                 self.erase_in_display(EraseInDisplay::EraseDisplay);
             }
@@ -1449,8 +1573,15 @@ impl TerminalState {
             }
             Mode::ResetDecPrivateMode(DecPrivateMode::Code(
                 DecPrivateModeCode::OptEnableAlternateScreen,
-            ))
-            | Mode::ResetDecPrivateMode(DecPrivateMode::Code(
+            )) => {
+                if self.screen.is_alt_screen_active() {
+                    self.pen = CellAttributes::default();
+                    self.erase_in_display(EraseInDisplay::EraseDisplay);
+                    self.screen.activate_primary_screen();
+                }
+            }
+
+            Mode::ResetDecPrivateMode(DecPrivateMode::Code(
                 DecPrivateModeCode::EnableAlternateScreen,
             )) => {
                 if self.screen.is_alt_screen_active() {
@@ -1558,9 +1689,9 @@ impl TerminalState {
                     self.dec_restore_cursor();
                 }
             }
-            Mode::SaveDecPrivateMode(DecPrivateMode::Code(_))
-            | Mode::RestoreDecPrivateMode(DecPrivateMode::Code(_)) => {
-                error!("save/restore dec mode unimplemented")
+            Mode::SaveDecPrivateMode(DecPrivateMode::Code(n))
+            | Mode::RestoreDecPrivateMode(DecPrivateMode::Code(n)) => {
+                error!("save/restore dec mode {:?} unimplemented", n)
             }
 
             Mode::SetDecPrivateMode(DecPrivateMode::Unspecified(n))
@@ -1582,22 +1713,43 @@ impl TerminalState {
     }
 
     fn checksum_rectangle(&mut self, left: u32, top: u32, right: u32, bottom: u32) -> u16 {
+        let y_origin = if self.dec_origin_mode {
+            self.top_and_bottom_margins.start
+        } else {
+            0
+        } as u32;
+        let x_origin = if self.dec_origin_mode {
+            self.left_and_right_margins.start
+        } else {
+            0
+        };
         let screen = self.screen_mut();
         let mut checksum = 0;
+        /*
         debug!(
             "checksum left={} top={} right={} bottom={}",
-            left, top, right, bottom
+            left as usize + x_origin,
+            top + y_origin,
+            right as usize + x_origin,
+            bottom + y_origin
         );
+        */
+
         for y in top..=bottom {
-            let line_idx = screen.phys_row(VisibleRowIndex::from(y));
+            let line_idx = screen.phys_row(VisibleRowIndex::from(y_origin + y));
             let line = screen.line_mut(line_idx);
-            for (col, cell) in line.cells().iter().enumerate().skip(left as usize) {
-                if col > right as usize {
+            for (col, cell) in line
+                .cells()
+                .iter()
+                .enumerate()
+                .skip(x_origin + left as usize)
+            {
+                if col > x_origin + right as usize {
                     break;
                 }
 
                 let ch = cell.str().chars().nth(0).unwrap() as u32;
-                debug!("y={} col={} ch={:x} cell={:?}", y, col, ch, cell);
+                // debug!("y={} col={} ch={:x} cell={:?}", y + y_origin, col, ch, cell);
 
                 checksum += u16::from(ch as u8);
             }
@@ -1701,19 +1853,28 @@ impl TerminalState {
             Edit::DeleteCharacter(n) => {
                 let y = self.cursor.y;
                 let x = self.cursor.x;
-                let limit = (x + n as usize).min(self.screen().physical_cols);
-                {
+
+                if x >= self.left_and_right_margins.start && x < self.left_and_right_margins.end {
+                    let right_margin = self.left_and_right_margins.end;
+                    let limit = (x + n as usize).min(right_margin);
+
                     let screen = self.screen_mut();
                     for _ in x..limit as usize {
-                        screen.erase_cell(x, y);
+                        screen.erase_cell(x, y, right_margin);
                     }
                 }
             }
             Edit::DeleteLine(n) => {
-                if self.top_and_bottom_margins.contains(&self.cursor.y) {
+                if self.top_and_bottom_margins.contains(&self.cursor.y)
+                    && self.left_and_right_margins.contains(&self.cursor.x)
+                {
                     let top_and_bottom_margins = self.cursor.y..self.top_and_bottom_margins.end;
-                    self.screen_mut()
-                        .scroll_up(&top_and_bottom_margins, n as usize);
+                    let left_and_right_margins = self.left_and_right_margins.clone();
+                    self.screen_mut().scroll_up_within_margins(
+                        &top_and_bottom_margins,
+                        &left_and_right_margins,
+                        n as usize,
+                    );
                 }
             }
             Edit::EraseCharacter(n) => {
@@ -1743,40 +1904,119 @@ impl TerminalState {
                 self.screen_mut().clear_line(cy, range.clone(), &pen);
             }
             Edit::InsertCharacter(n) => {
+                // https://vt100.net/docs/vt510-rm/ICH.html
+                // The ICH sequence inserts Pn blank characters with the normal character
+                // attribute. The cursor remains at the beginning of the blank characters. Text
+                // between the cursor and right margin moves to the right. Characters scrolled past
+                // the right margin are lost. ICH has no effect outside the scrolling margins.
+
                 let y = self.cursor.y;
                 let x = self.cursor.x;
-                // TODO: this limiting behavior may not be correct.  There's also a
-                // SEM sequence that impacts the scope of ICH and ECH to consider.
-                let limit = (x + n as usize).min(self.screen().physical_cols);
+                if self.top_and_bottom_margins.contains(&y)
+                    && self.left_and_right_margins.contains(&x)
                 {
+                    let margin = self.left_and_right_margins.end;
                     let screen = self.screen_mut();
-                    for x in x..limit as usize {
-                        screen.insert_cell(x, y);
+                    for _ in 0..n as usize {
+                        screen.insert_cell(x, y, margin);
                     }
                 }
             }
             Edit::InsertLine(n) => {
-                if self.top_and_bottom_margins.contains(&self.cursor.y) {
+                if self.top_and_bottom_margins.contains(&self.cursor.y)
+                    && self.left_and_right_margins.contains(&self.cursor.x)
+                {
                     let top_and_bottom_margins = self.cursor.y..self.top_and_bottom_margins.end;
-                    self.screen_mut()
-                        .scroll_down(&top_and_bottom_margins, n as usize);
+                    let left_and_right_margins = self.left_and_right_margins.clone();
+                    self.screen_mut().scroll_down_within_margins(
+                        &top_and_bottom_margins,
+                        &left_and_right_margins,
+                        n as usize,
+                    );
                 }
             }
             Edit::ScrollDown(n) => self.scroll_down(n as usize),
             Edit::ScrollUp(n) => self.scroll_up(n as usize),
             Edit::EraseInDisplay(erase) => self.erase_in_display(erase),
             Edit::Repeat(n) => {
-                let y = self.cursor.y;
-                let x = self.cursor.x;
-                let to_copy = x.saturating_sub(1);
-                let screen = self.screen_mut();
-                let line_idx = screen.phys_row(y);
-                let line = screen.line_mut(line_idx);
-                if let Some(cell) = line.cells().get(to_copy).cloned() {
-                    line.fill_range(x..=x + n as usize, &cell);
-                    self.set_cursor_pos(&Position::Relative(i64::from(n)), &Position::Relative(0))
+                let mut y = self.cursor.y;
+                let mut x = self.cursor.x;
+                let left_and_right_margins = self.left_and_right_margins.clone();
+                let top_and_bottom_margins = self.top_and_bottom_margins.clone();
+
+                // Resolve the source cell.  It may be a double-wide character.
+                let cell = {
+                    let screen = self.screen_mut();
+                    let to_copy = x.saturating_sub(1);
+                    let line_idx = screen.phys_row(y);
+                    let line = screen.line_mut(line_idx);
+
+                    let candidate = &line.cells()[to_copy];
+                    if candidate.str() == " " && to_copy > 0 {
+                        // It's a blank.  It may be the second part of
+                        // a double-wide pair; look ahead of it.
+                        let prior = &line.cells()[to_copy - 1];
+                        if prior.width() > 1 {
+                            prior.clone()
+                        } else {
+                            candidate.clone()
+                        }
+                    } else {
+                        candidate.clone()
+                    }
+                };
+
+                for _ in 0..n {
+                    {
+                        let screen = self.screen_mut();
+                        let line_idx = screen.phys_row(y);
+                        let line = screen.line_mut(line_idx);
+
+                        line.set_cell(x, cell.clone());
+                    }
+                    x += 1;
+                    if x > left_and_right_margins.end - 1 {
+                        x = left_and_right_margins.start;
+                        if y == top_and_bottom_margins.end - 1 {
+                            self.scroll_up(1);
+                        } else {
+                            y += 1;
+                            if y > top_and_bottom_margins.end - 1 {
+                                y = top_and_bottom_margins.end;
+                            }
+                        }
+                    }
                 }
+                self.cursor.x = x;
+                self.cursor.y = y;
             }
+        }
+    }
+
+    /// https://vt100.net/docs/vt510-rm/DECSLRM.html
+    fn set_left_and_right_margins(&mut self, left: OneBased, right: OneBased) {
+        // The terminal only recognizes this control function if vertical split
+        // screen mode (DECLRMM) is set.
+        if self.left_and_right_margin_mode {
+            let rows = self.screen().physical_rows as u32;
+            let cols = self.screen().physical_cols as u32;
+            let left = left.as_zero_based().min(rows - 1).max(0) as usize;
+            let right = right.as_zero_based().min(cols - 1).max(0) as usize;
+
+            // The value of the left margin (Pl) must be less than the right margin (Pr).
+            if left >= right {
+                return;
+            }
+
+            // The minimum size of the scrolling region is two columns.
+            if right - left < 2 {
+                return;
+            }
+
+            self.left_and_right_margins = left..right + 1;
+
+            // DECSLRM moves the cursor to column 1, line 1 of the page.
+            self.set_cursor_pos(&Position::Absolute(0), &Position::Absolute(0));
         }
     }
 
@@ -1784,15 +2024,26 @@ impl TerminalState {
         match cursor {
             Cursor::SetTopAndBottomMargins { top, bottom } => {
                 let rows = self.screen().physical_rows;
-                let mut top = i64::from(top.as_zero_based()).min(rows as i64 - 1).max(0);
-                let mut bottom = i64::from(bottom.as_zero_based())
+                let top = i64::from(top.as_zero_based()).min(rows as i64 - 1).max(0);
+                let bottom = i64::from(bottom.as_zero_based())
                     .min(rows as i64 - 1)
                     .max(0);
-                if top > bottom {
-                    std::mem::swap(&mut top, &mut bottom);
+                if top >= bottom {
+                    return;
                 }
                 self.top_and_bottom_margins = top..bottom + 1;
+                self.set_cursor_pos(&Position::Absolute(0), &Position::Absolute(0));
+                log::debug!(
+                    "SetTopAndBottomMargins {:?} (and move cursor to top left: {:?})",
+                    self.top_and_bottom_margins,
+                    self.cursor
+                );
             }
+
+            Cursor::SetLeftAndRightMargins { left, right } => {
+                self.set_left_and_right_margins(left, right);
+            }
+
             Cursor::ForwardTabulation(n) => {
                 for _ in 0..n {
                     self.c0_horizontal_tab();
@@ -1808,16 +2059,61 @@ impl TerminalState {
                 }
             }
 
-            Cursor::TabulationClear(_) => {}
+            Cursor::TabulationClear(to_clear) => {
+                self.tabs.clear(to_clear, self.cursor.x);
+            }
+
             Cursor::TabulationControl(_) => {}
             Cursor::LineTabulation(_) => {}
 
             Cursor::Left(n) => {
-                self.set_cursor_pos(&Position::Relative(-(i64::from(n))), &Position::Relative(0))
+                // https://vt100.net/docs/vt510-rm/CUB.html
+
+                let y = self.cursor.y;
+                let candidate = self.cursor.x as i64 - n as i64;
+                let new_x = if self.cursor.x < self.left_and_right_margins.start {
+                    // outside the margin, so allow movement to the border
+                    candidate
+                } else {
+                    // Else constrain to margin
+                    if candidate < self.left_and_right_margins.start as i64 {
+                        if self.reverse_wraparound_mode && self.dec_auto_wrap {
+                            self.left_and_right_margins.end as i64
+                                - (self.left_and_right_margins.start as i64 - candidate)
+                        } else {
+                            self.left_and_right_margins.start as i64
+                        }
+                    } else {
+                        candidate
+                    }
+                };
+
+                let new_x = new_x.max(0) as usize;
+
+                self.cursor.x = new_x;
+                self.wrap_next = false;
+                let screen = self.screen_mut();
+                screen.dirty_line(y);
             }
+
             Cursor::Right(n) => {
-                self.set_cursor_pos(&Position::Relative(i64::from(n)), &Position::Relative(0))
+                // https://vt100.net/docs/vt510-rm/CUF.html
+                let y = self.cursor.y;
+                let cols = self.screen().physical_cols;
+                let new_x = if self.cursor.x >= self.left_and_right_margins.end {
+                    // outside the margin, so allow movement to screen edge
+                    (self.cursor.x + n as usize).min(cols - 1)
+                } else {
+                    // Else constrain to margin
+                    (self.cursor.x + n as usize).min(self.left_and_right_margins.end - 1)
+                };
+
+                self.cursor.x = new_x;
+                self.wrap_next = false;
+                let screen = self.screen_mut();
+                screen.dirty_line(y);
             }
+
             Cursor::Up(n) => {
                 // https://vt100.net/docs/vt510-rm/CUU.html
 
@@ -1839,6 +2135,7 @@ impl TerminalState {
                 let new_y = new_y.max(0);
 
                 self.cursor.y = new_y;
+                self.wrap_next = false;
                 let screen = self.screen_mut();
                 screen.dirty_line(old_y);
                 screen.dirty_line(new_y);
@@ -1857,6 +2154,7 @@ impl TerminalState {
                 };
 
                 self.cursor.y = new_y;
+                self.wrap_next = false;
                 let screen = self.screen_mut();
                 screen.dirty_line(old_y);
                 screen.dirty_line(new_y);
@@ -1867,11 +2165,25 @@ impl TerminalState {
                     &Position::Absolute(i64::from(col.as_zero_based())),
                     &Position::Absolute(i64::from(line.as_zero_based())),
                 ),
-            Cursor::CharacterAbsolute(col) | Cursor::CharacterPositionAbsolute(col) => self
-                .set_cursor_pos(
-                    &Position::Absolute(i64::from(col.as_zero_based())),
-                    &Position::Relative(0),
-                ),
+            Cursor::CharacterAbsolute(col) => self.set_cursor_pos(
+                &Position::Absolute(i64::from(col.as_zero_based())),
+                &Position::Relative(0),
+            ),
+
+            Cursor::CharacterPositionAbsolute(col) => {
+                let col = col.as_zero_based() as usize;
+                let col = if self.dec_origin_mode {
+                    col + self.left_and_right_margins.start
+                } else {
+                    col
+                };
+                self.cursor.x = col.min(self.screen().physical_cols - 1);
+                self.wrap_next = false;
+                let y = self.cursor.y;
+                let screen = self.screen_mut();
+                screen.dirty_line(y);
+            }
+
             Cursor::CharacterPositionBackward(col) => self.set_cursor_pos(
                 &Position::Relative(-(i64::from(col))),
                 &Position::Relative(0),
@@ -1891,24 +2203,89 @@ impl TerminalState {
                 self.set_cursor_pos(&Position::Relative(0), &Position::Relative(i64::from(line)))
             }
             Cursor::NextLine(n) => {
-                for _ in 0..n {
-                    self.new_line(true);
-                }
+                // https://vt100.net/docs/vt510-rm/CNL.html
+                let old_y = self.cursor.y;
+                let rows = self.screen().physical_rows;
+                let new_y = if self.cursor.y >= self.top_and_bottom_margins.end {
+                    // below the bottom margin, so allow movement to
+                    // bottom of screen
+                    (self.cursor.y + i64::from(n)).min(rows as i64 - 1)
+                } else {
+                    // Else constrain to bottom margin
+                    (self.cursor.y + i64::from(n)).min(self.top_and_bottom_margins.end - 1)
+                };
+
+                self.cursor.y = new_y;
+                self.cursor.x = self.left_and_right_margins.start;
+                self.wrap_next = false;
+                let screen = self.screen_mut();
+                screen.dirty_line(old_y);
+                screen.dirty_line(new_y);
             }
             Cursor::PrecedingLine(n) => {
-                self.set_cursor_pos(&Position::Absolute(0), &Position::Relative(-(i64::from(n))))
+                // https://vt100.net/docs/vt510-rm/CPL.html
+                let old_y = self.cursor.y;
+                let candidate = self.cursor.y.saturating_sub(i64::from(n));
+                let new_y = if self.cursor.y < self.top_and_bottom_margins.start {
+                    // above the top margin, so allow movement to
+                    // top of screen
+                    candidate
+                } else {
+                    // Else constrain to top margin
+                    if candidate < self.top_and_bottom_margins.start {
+                        self.top_and_bottom_margins.start
+                    } else {
+                        candidate
+                    }
+                };
+
+                let new_y = new_y.max(0);
+
+                self.cursor.y = new_y;
+                self.cursor.x = self.left_and_right_margins.start;
+                self.wrap_next = false;
+                let screen = self.screen_mut();
+                screen.dirty_line(old_y);
+                screen.dirty_line(new_y);
             }
+
             Cursor::ActivePositionReport { .. } => {
                 // This is really a response from the terminal, and
                 // we don't need to process it as a terminal command
             }
             Cursor::RequestActivePositionReport => {
-                let line = OneBased::from_zero_based(self.cursor.y as u32);
-                let col = OneBased::from_zero_based(self.cursor.x as u32);
+                let line = OneBased::from_zero_based(
+                    (self.cursor.y.saturating_sub(if self.dec_origin_mode {
+                        self.top_and_bottom_margins.start
+                    } else {
+                        0
+                    })) as u32,
+                );
+                let col = OneBased::from_zero_based(
+                    (self.cursor.x.saturating_sub(if self.dec_origin_mode {
+                        self.left_and_right_margins.start
+                    } else {
+                        0
+                    })) as u32,
+                );
                 let report = CSI::Cursor(Cursor::ActivePositionReport { line, col });
                 write!(self.writer, "{}", report).ok();
             }
-            Cursor::SaveCursor => self.dec_save_cursor(),
+            Cursor::SaveCursor => {
+                // The `CSI s` SaveCursor sequence is ambiguous with DECSLRM
+                // with default parameters.  To resolve the ambiguity, DECSLRM
+                // is recognized if DECLRMM mode is active which we do here
+                // where we have the context!
+                if self.left_and_right_margin_mode {
+                    // https://vt100.net/docs/vt510-rm/DECSLRM.html
+                    self.set_left_and_right_margins(
+                        OneBased::new(1),
+                        OneBased::new(self.screen().physical_cols as u32 + 1),
+                    );
+                } else {
+                    self.dec_save_cursor();
+                }
+            }
             Cursor::RestoreCursor => self.dec_restore_cursor(),
             Cursor::CursorStyle(style) => {
                 self.cursor.shape = match style {
@@ -1960,6 +2337,8 @@ impl TerminalState {
         );
         let x = saved.position.x;
         let y = saved.position.y;
+        // Disable origin mode so that we can set the cursor position directly
+        self.dec_origin_mode = false;
         self.set_cursor_pos(&Position::Absolute(x as i64), &Position::Absolute(y));
         self.cursor.shape = saved.position.shape;
         self.wrap_next = saved.wrap_next;
@@ -2045,8 +2424,6 @@ impl<'a> Performer<'a> {
             None => return,
         };
 
-        let mut x_offset = 0;
-
         for g in unicode_segmentation::UnicodeSegmentation::graphemes(p.as_str(), true) {
             let g = if self.dec_line_drawing_mode {
                 match g {
@@ -2067,13 +2444,13 @@ impl<'a> Performer<'a> {
                 g
             };
 
-            if !self.insert && self.wrap_next {
+            if self.wrap_next {
                 self.new_line(true);
             }
 
             let x = self.cursor.x;
             let y = self.cursor.y;
-            let width = self.screen().physical_cols;
+            let width = self.left_and_right_margins.end;
 
             let mut pen = self.pen.clone();
             // the max(1) here is to ensure that we advance to the next cell
@@ -2083,25 +2460,25 @@ impl<'a> Performer<'a> {
             // the model, which seems like a lossy design choice.
             let print_width = unicode_column_width(g).max(1);
 
-            if !self.insert && x + print_width >= width {
+            if x + print_width >= width {
                 pen.set_wrapped(true);
             }
 
             let cell = Cell::new_grapheme(g, pen);
 
             if self.insert {
+                let margin = self.left_and_right_margins.end;
                 let screen = self.screen_mut();
                 for _ in x..x + print_width as usize {
-                    screen.insert_cell(x + x_offset, y);
+                    screen.insert_cell(x, y, margin);
                 }
             }
 
             // Assign the cell
-            self.screen_mut().set_cell(x + x_offset, y, &cell);
+            log::trace!("print x={} y={} cell={:?}", x, y, cell);
+            self.screen_mut().set_cell(x, y, &cell);
 
-            if self.insert {
-                x_offset += print_width;
-            } else if x + print_width < width {
+            if x + print_width < width {
                 self.cursor.x += print_width;
                 self.wrap_next = false;
             } else {
@@ -2133,32 +2510,72 @@ impl<'a> Performer<'a> {
         self.flush_print();
         match control {
             ControlCode::LineFeed | ControlCode::VerticalTab | ControlCode::FormFeed => {
-                self.new_line(false)
+                if self.left_and_right_margins.contains(&self.cursor.x) {
+                    self.new_line(false);
+                } else {
+                    // Do move down, but don't trigger a scroll when we're
+                    // outside of the left/right margins
+                    let old_y = self.cursor.y;
+                    let y = if old_y == self.top_and_bottom_margins.end - 1 {
+                        old_y
+                    } else {
+                        (old_y + 1).min(self.screen().physical_rows as i64 - 1)
+                    };
+                    self.screen_mut().dirty_line(old_y);
+                    self.screen_mut().dirty_line(y);
+                    self.cursor.y = y;
+                    self.wrap_next = false;
+                }
             }
             ControlCode::CarriageReturn => {
-                self.set_cursor_pos(&Position::Absolute(0), &Position::Relative(0));
+                if self.cursor.x >= self.left_and_right_margins.start {
+                    self.cursor.x = self.left_and_right_margins.start;
+                } else {
+                    self.cursor.x = 0;
+                }
+                let y = self.cursor.y;
+                self.wrap_next = false;
+                self.screen_mut().dirty_line(y);
             }
+
             ControlCode::Backspace => {
                 if self.reverse_wraparound_mode
                     && self.dec_auto_wrap
-                    && self.cursor.x == 0
+                    && self.cursor.x == self.left_and_right_margins.start
                     && self.cursor.y == self.top_and_bottom_margins.start
                 {
                     // Backspace off the top-left wraps around to the bottom right
-                    let x_pos = Position::Absolute(self.screen().physical_cols as i64 - 1);
+                    let x_pos = Position::Absolute(self.left_and_right_margins.end as i64 - 1);
                     let y_pos = Position::Absolute(self.top_and_bottom_margins.end - 1);
                     self.set_cursor_pos(&x_pos, &y_pos);
-                } else if self.reverse_wraparound_mode && self.dec_auto_wrap && self.cursor.x == 0 {
+                } else if self.reverse_wraparound_mode
+                    && self.dec_auto_wrap
+                    && self.cursor.x <= self.left_and_right_margins.start
+                {
                     // Backspace off the left wraps around to the prior line on the right
-                    let x_pos = Position::Absolute(self.screen().physical_cols as i64 - 1);
+                    let x_pos = Position::Absolute(self.left_and_right_margins.end as i64 - 1);
                     let y_pos = Position::Relative(-1);
                     self.set_cursor_pos(&x_pos, &y_pos);
+                } else if self.reverse_wraparound_mode
+                    && self.dec_auto_wrap
+                    && self.cursor.x == self.left_and_right_margins.end - 1
+                    && self.wrap_next
+                {
+                    // If the cursor is in the last column and a character was
+                    // just output and reverse-wraparound is on then backspace
+                    // by 1 has no effect.
+                } else if self.cursor.x == self.left_and_right_margins.start {
+                    // Respect the left margin and don't BS outside it
                 } else {
                     self.set_cursor_pos(&Position::Relative(-1), &Position::Relative(0));
                 }
             }
             ControlCode::HorizontalTab => self.c0_horizontal_tab(),
+            ControlCode::HTS => self.c1_hts(),
+            ControlCode::IND => self.c1_index(),
+            ControlCode::NEL => self.c1_nel(),
             ControlCode::Bell => error!("Ding! (this is the bell)"),
+            ControlCode::RI => self.c1_reverse_index(),
             _ => error!("unhandled ControlCode {:?}", control),
         }
     }
@@ -2223,6 +2640,10 @@ impl<'a> Performer<'a> {
                         &Cell::new('E', CellAttributes::default()),
                     );
                 }
+
+                self.top_and_bottom_margins = 0..self.screen().physical_rows as VisibleRowIndex;
+                self.left_and_right_margins = 0..self.screen().physical_cols;
+                self.cursor = Default::default();
             }
 
             // RIS resets a device to its initial state, i.e. the state it has after it is switched
@@ -2253,6 +2674,10 @@ impl<'a> Performer<'a> {
                 self.tabs = TabStop::new(self.screen().physical_cols, 8);
                 self.palette.take();
                 self.top_and_bottom_margins = 0..self.screen().physical_rows as VisibleRowIndex;
+                self.left_and_right_margins = 0..self.screen().physical_cols;
+
+                self.screen.activate_primary_screen();
+                self.erase_in_display(EraseInDisplay::EraseDisplay);
             }
 
             _ => error!("ESC: unhandled {:?}", esc),
@@ -2356,6 +2781,7 @@ impl<'a> Performer<'a> {
                                             which_color,
                                             vec![ColorOrQuery::Color(self.palette().$name)],
                                         );
+                                        log::trace!("Color Query response {:?}", response);
                                         write!(self.writer, "{}", response).ok();
                                     }
                                     ColorOrQuery::Color(c) => self.palette_mut().$name = c,

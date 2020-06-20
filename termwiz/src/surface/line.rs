@@ -345,8 +345,16 @@ impl Line {
         }
     }
 
-    pub fn insert_cell(&mut self, x: usize, cell: Cell) {
+    pub fn insert_cell(&mut self, x: usize, cell: Cell, right_margin: usize) {
         self.invalidate_implicit_hyperlinks();
+
+        if right_margin <= self.cells.len() {
+            self.cells.remove(right_margin - 1);
+        }
+
+        if x >= self.cells.len() {
+            self.cells.resize(x, Cell::default());
+        }
 
         // If we're inserting a wide cell, we should also insert the overlapped cells.
         // We insert them first so that the grapheme winds up left-most.
@@ -363,6 +371,13 @@ impl Line {
         self.invalidate_grapheme_at_or_before(x);
         self.cells.remove(x);
         self.cells.push(Cell::default());
+    }
+
+    pub fn erase_cell_with_margin(&mut self, x: usize, right_margin: usize) {
+        self.invalidate_implicit_hyperlinks();
+        self.invalidate_grapheme_at_or_before(x);
+        self.cells.remove(x);
+        self.cells.insert(right_margin - 1, Cell::default());
     }
 
     pub fn fill_range(&mut self, cols: impl Iterator<Item = usize>, cell: &Cell) {
@@ -403,6 +418,10 @@ impl Line {
 
     pub fn cells(&self) -> &[Cell] {
         &self.cells
+    }
+
+    pub fn cells_mut(&mut self) -> &mut [Cell] {
+        &mut self.cells
     }
 
     /// Return true if the line consists solely of whitespace cells

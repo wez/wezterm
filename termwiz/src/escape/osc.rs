@@ -303,7 +303,7 @@ impl OperatingSystemCommand {
                 Self::parse_change_dynamic_color_number(osc_code as u8, osc)
             }
 
-            _ => bail!("not impl"),
+            osc_code => bail!("{:?} not impl", osc_code),
         }
     }
 }

@@ -57,6 +57,8 @@ pub enum EscCode {
     /// APC - Application Program Command
     ApplicationProgramCommand = esc!('_'),
 
+    /// DECBI - Back Index
+    DecBackIndex = esc!('6'),
     /// DECSC - Save cursor position
     DecSaveCursorPosition = esc!('7'),
     /// DECSR - Restore saved cursor position

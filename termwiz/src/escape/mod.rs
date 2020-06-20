@@ -310,6 +310,7 @@ pub enum ControlCode {
     // C1 8-bit values
     BPH = 0x82,
     NBH = 0x83,
+    IND = 0x84,
     NEL = 0x85,
     SSA = 0x86,
     ESA = 0x87,
@@ -358,11 +359,26 @@ impl OneBased {
         Self { value: value + 1 }
     }
 
-    /// Map a value from an escape sequence parameter
+    /// Map a value from an escape sequence parameter.
+    /// 0 is equivalent to 1
     pub fn from_esc_param(v: i64) -> Result<Self, ()> {
         if v == 0 {
             Ok(Self {
                 value: num_traits::one(),
+            })
+        } else if v > 0 && v <= i64::from(u32::max_value()) {
+            Ok(Self { value: v as u32 })
+        } else {
+            Err(())
+        }
+    }
+
+    /// Map a value from an escape sequence parameter.
+    /// 0 is equivalent to max_value.
+    pub fn from_esc_param_with_big_default(v: i64) -> Result<Self, ()> {
+        if v == 0 {
+            Ok(Self {
+                value: u32::max_value(),
             })
         } else if v > 0 && v <= i64::from(u32::max_value()) {
             Ok(Self { value: v as u32 })

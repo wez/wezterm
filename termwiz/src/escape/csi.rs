@@ -501,6 +501,9 @@ pub enum DecPrivateModeCode {
 
     ReverseWraparound = 45,
 
+    /// https://vt100.net/docs/vt510-rm/DECLRMM.html
+    LeftRightMarginMode = 69,
+
     /// DECSDM - https://vt100.net/docs/vt3xx-gp/chapter14.html
     SixelScrolling = 80,
     /// Enable mouse button press/release reporting
@@ -518,6 +521,8 @@ pub enum DecPrivateModeCode {
     /// enable mouse reporting itself, it just controls how reports
     /// will be encoded.
     SGRMouse = 1006,
+    /// Save cursor as in DECSC
+    SaveCursor = 1048,
     ClearAndEnableAlternateScreen = 1049,
     EnableAlternateScreen = 47,
     OptEnableAlternateScreen = 1047,
@@ -676,6 +681,12 @@ pub enum Cursor {
         bottom: OneBased,
     },
 
+    /// https://vt100.net/docs/vt510-rm/DECSLRM.html
+    SetLeftAndRightMargins {
+        left: OneBased,
+        right: OneBased,
+    },
+
     CursorStyle(CursorStyle),
 }
 
@@ -765,6 +776,9 @@ pub enum Edit {
     /// positions if the line orientation is vertical, such that the data
     /// appear to move down; where n equals the value of Pn. The active
     /// presentation position is not affected by this control function.
+    ///
+    /// Also known as Pan Up in DEC:
+    /// https://vt100.net/docs/vt510-rm/SD.html
     ScrollDown(u32),
 
     /// SU - SCROLL UP
@@ -864,6 +878,13 @@ impl Display for Cursor {
                     write!(f, "r")?;
                 } else {
                     write!(f, "{};{}r", top, bottom)?;
+                }
+            }
+            Cursor::SetLeftAndRightMargins { left, right } => {
+                if left.as_one_based() == 1 && right.as_one_based() == u32::max_value() {
+                    write!(f, "s")?;
+                } else {
+                    write!(f, "{};{}s", left, right)?;
                 }
             }
             Cursor::RequestActivePositionReport => write!(f, "6n")?,
@@ -1303,7 +1324,7 @@ impl<'a> CSIParser<'a> {
             ('n', &[]) => self.dsr(params),
             ('q', &[b' ']) => self.cursor_style(params),
             ('r', &[]) => self.decstbm(params),
-            ('s', &[]) => noparams!(Cursor, SaveCursor, params),
+            ('s', &[]) => self.decslrm(params),
             ('t', &[]) => self.window(params).map(CSI::Window),
             ('u', &[]) => noparams!(Cursor, RestoreCursor, params),
             ('y', &[b'*']) => {
@@ -1401,13 +1422,53 @@ impl<'a> CSIParser<'a> {
                 top: OneBased::new(1),
                 bottom: OneBased::new(u32::max_value()),
             }))
+        } else if params.len() == 1 {
+            Ok(self.advance_by(
+                1,
+                params,
+                CSI::Cursor(Cursor::SetTopAndBottomMargins {
+                    top: OneBased::from_esc_param(params[0])?,
+                    bottom: OneBased::new(u32::max_value()),
+                }),
+            ))
         } else if params.len() == 2 {
             Ok(self.advance_by(
                 2,
                 params,
                 CSI::Cursor(Cursor::SetTopAndBottomMargins {
                     top: OneBased::from_esc_param(params[0])?,
-                    bottom: OneBased::from_esc_param(params[1])?,
+                    bottom: OneBased::from_esc_param_with_big_default(params[1])?,
+                }),
+            ))
+        } else {
+            Err(())
+        }
+    }
+
+    fn decslrm(&mut self, params: &'a [i64]) -> Result<CSI, ()> {
+        if params.is_empty() {
+            // with no params this is a request to save the cursor
+            // and is technically in conflict with SetLeftAndRightMargins.
+            // The emulator needs to decide based on DECSLRM mode
+            // whether this saves the cursor or is SetLeftAndRightMargins
+            // with default parameters!
+            Ok(CSI::Cursor(Cursor::SaveCursor))
+        } else if params.len() == 1 {
+            Ok(self.advance_by(
+                1,
+                params,
+                CSI::Cursor(Cursor::SetLeftAndRightMargins {
+                    left: OneBased::from_esc_param(params[0])?,
+                    right: OneBased::new(u32::max_value()),
+                }),
+            ))
+        } else if params.len() == 2 {
+            Ok(self.advance_by(
+                2,
+                params,
+                CSI::Cursor(Cursor::SetLeftAndRightMargins {
+                    left: OneBased::from_esc_param(params[0])?,
+                    right: OneBased::from_esc_param(params[1])?,
                 }),
             ))
         } else {

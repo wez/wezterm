@@ -36,6 +36,9 @@ brief notes about them may accumulate here.
   Left Alt is regular uncomposed Alt.
 * Fonts: fixed an issue where specifying italic or bold in the second parameter
   of `wezterm.font` didn't work as intended or documented
+* Improved terminal emulation conformance; added left/right margin support
+  and now passes [esctest](https://gitlab.freedesktop.org/terminal-wg/esctest)
+  to a similar degree as iTerm2
 
 ### 20200607-144723-74889cd4
 
