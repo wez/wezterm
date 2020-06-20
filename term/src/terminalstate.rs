@@ -2506,7 +2506,49 @@ impl<'a> Performer<'a> {
     }
 
     fn device_control(&mut self, ctrl: DeviceControlMode) {
-        log::error!("unhandled {:?}", ctrl);
+        match &ctrl {
+            DeviceControlMode::ShortDeviceControl(s) => {
+                match (s.byte, s.intermediates.as_slice()) {
+                    (b'q', &[b'$']) => {
+                        // DECRQSS - Request Status String
+                        // https://vt100.net/docs/vt510-rm/DECRQSS.html
+                        // The response is described here:
+                        // https://vt100.net/docs/vt510-rm/DECRPSS.html
+                        // but note that *that* text has the validity value
+                        // inverted; there's a note about this in the xterm
+                        // ctlseqs docs.
+                        match s.data.as_slice() {
+                            &[b'"', b'p'] => {
+                                // DECSCL - select conformance level
+                                write!(self.writer, "{}1$r65;1\"p{}", DCS, ST).ok();
+                            }
+                            &[b'r'] => {
+                                // DECSTBM - top and bottom margins
+                                let margins = self.top_and_bottom_margins.clone();
+                                write!(
+                                    self.writer,
+                                    "{}1$r{};{}r{}",
+                                    DCS,
+                                    margins.start + 1,
+                                    margins.end,
+                                    ST
+                                )
+                                .ok();
+                            }
+                            _ => {
+                                log::error!("unhandled DECRQSS {:?}", s);
+                                // Reply that the request is invalid
+                                write!(self.writer, "{}0$r{}", DCS, ST).ok();
+                            }
+                        }
+                    }
+                    _ => log::error!("unhandled {:?}", s),
+                }
+            }
+            ctrl => {
+                log::error!("unhandled {:?}", ctrl);
+            }
+        }
     }
 
     /// Draw a character to the screen

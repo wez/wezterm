@@ -1,7 +1,7 @@
 use crate::color::RgbColor;
 use crate::escape::{
-    Action, DeviceControlMode, EnterDeviceControlMode, Esc, OperatingSystemCommand, Sixel,
-    SixelData, CSI,
+    Action, DeviceControlMode, EnterDeviceControlMode, Esc, OperatingSystemCommand,
+    ShortDeviceControl, Sixel, SixelData, CSI,
 };
 use log::error;
 use num_traits::FromPrimitive;
@@ -21,6 +21,7 @@ struct SixelBuilder {
 #[derive(Default)]
 struct ParseState {
     sixel: Option<SixelBuilder>,
+    dcs: Option<ShortDeviceControl>,
 }
 
 /// The `Parser` struct holds the state machine that is used to decode
@@ -129,6 +130,15 @@ struct Performer<'a, F: FnMut(Action) + 'a> {
     state: &'a mut ParseState,
 }
 
+fn is_short_dcs(intermediates: &[u8], byte: u8) -> bool {
+    if intermediates == &[b'$'] && byte == b'q' {
+        // DECRQSS
+        true
+    } else {
+        false
+    }
+}
+
 impl<'a, F: FnMut(Action)> VTActor for Performer<'a, F> {
     fn print(&mut self, c: char) {
         (self.callback)(Action::Print(c));
@@ -137,7 +147,10 @@ impl<'a, F: FnMut(Action)> VTActor for Performer<'a, F> {
     fn execute_c0_or_c1(&mut self, byte: u8) {
         match FromPrimitive::from_u8(byte) {
             Some(code) => (self.callback)(Action::Control(code)),
-            None => error!("impossible C0/C1 control code {:?} was dropped", byte),
+            None => error!(
+                "impossible C0/C1 control code {:?} 0x{:x} was dropped",
+                byte as char, byte
+            ),
         }
     }
 
@@ -150,6 +163,14 @@ impl<'a, F: FnMut(Action)> VTActor for Performer<'a, F> {
     ) {
         if byte == b'q' && intermediates.is_empty() && !ignored_extra_intermediates {
             self.state.sixel.replace(SixelBuilder::new(params));
+        } else if !ignored_extra_intermediates && is_short_dcs(intermediates, byte) {
+            self.state.sixel.take();
+            self.state.dcs.replace(ShortDeviceControl {
+                params: params.to_vec(),
+                intermediates: intermediates.to_vec(),
+                byte,
+                data: vec![],
+            });
         } else {
             (self.callback)(Action::DeviceControl(DeviceControlMode::Enter(Box::new(
                 EnterDeviceControlMode {
@@ -163,7 +184,9 @@ impl<'a, F: FnMut(Action)> VTActor for Performer<'a, F> {
     }
 
     fn dcs_put(&mut self, data: u8) {
-        if let Some(sixel) = self.state.sixel.as_mut() {
+        if let Some(dcs) = self.state.dcs.as_mut() {
+            dcs.data.push(data);
+        } else if let Some(sixel) = self.state.sixel.as_mut() {
             sixel.push(data);
         } else {
             (self.callback)(Action::DeviceControl(DeviceControlMode::Data(data)));
@@ -171,7 +194,11 @@ impl<'a, F: FnMut(Action)> VTActor for Performer<'a, F> {
     }
 
     fn dcs_unhook(&mut self) {
-        if let Some(mut sixel) = self.state.sixel.take() {
+        if let Some(dcs) = self.state.dcs.take() {
+            (self.callback)(Action::DeviceControl(
+                DeviceControlMode::ShortDeviceControl(Box::new(dcs)),
+            ));
+        } else if let Some(mut sixel) = self.state.sixel.take() {
             sixel.finish();
             (self.callback)(Action::Sixel(Box::new(sixel.sixel)));
         } else {

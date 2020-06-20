@@ -51,6 +51,67 @@ impl Display for Action {
     }
 }
 
+/// A fully parsed DCS sequence.
+/// The parser emits these for byte/intermediate sequences that are
+/// known to be relatively short and self contained (eg: DECRQSS)
+/// as opposed to larger ones like Sixel (which is parsed separately),
+/// or long lived terminal modes such as the TMUX CC protocol.
+#[derive(Clone, PartialEq, Eq)]
+pub struct ShortDeviceControl {
+    /// Integer parameter values
+    pub params: Vec<i64>,
+    /// Intermediate bytes to refine the control
+    pub intermediates: Vec<u8>,
+    /// The final byte
+    pub byte: u8,
+    /// The data prior to the string terminator
+    pub data: Vec<u8>,
+}
+
+impl std::fmt::Debug for ShortDeviceControl {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+        write!(
+            fmt,
+            "ShortDeviceControl(params: {:?}, intermediates: [",
+            &self.params
+        )?;
+        for b in &self.intermediates {
+            write!(fmt, "{:?} 0x{:x}, ", *b as char, *b)?;
+        }
+        write!(
+            fmt,
+            "], byte: {:?} 0x{:x}, data=[",
+            self.byte as char, self.byte
+        )?;
+
+        for b in &self.data {
+            write!(fmt, "{:?} 0x{:x}, ", *b as char, *b)?;
+        }
+
+        write!(fmt, ")")
+    }
+}
+
+impl Display for ShortDeviceControl {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), FmtError> {
+        write!(f, "\x1bP")?;
+        for (idx, p) in self.params.iter().enumerate() {
+            if idx > 0 {
+                write!(f, ";")?;
+            }
+            write!(f, "{}", p)?;
+        }
+        for b in &self.intermediates {
+            f.write_char(*b as char)?;
+        }
+        f.write_char(self.byte as char)?;
+        for b in &self.data {
+            f.write_char(*b as char)?;
+        }
+        write!(f, "\x1b\\")
+    }
+}
+
 #[derive(Clone, PartialEq, Eq)]
 pub struct EnterDeviceControlMode {
     /// The final byte in the DCS mode
@@ -92,6 +153,8 @@ pub enum DeviceControlMode {
     Exit,
     /// Data for the device mode to consume
     Data(u8),
+    /// A self contained (Enter, Data*, Exit) sequence
+    ShortDeviceControl(Box<ShortDeviceControl>),
 }
 
 impl Display for DeviceControlMode {
@@ -112,6 +175,7 @@ impl Display for DeviceControlMode {
             }
             Self::Exit => write!(f, "\x1b\\"),
             Self::Data(c) => f.write_char(*c as char),
+            Self::ShortDeviceControl(s) => s.fmt(f),
         }
     }
 }
@@ -122,6 +186,7 @@ impl std::fmt::Debug for DeviceControlMode {
             Self::Enter(mode) => write!(fmt, "Enter({:?})", mode),
             Self::Exit => write!(fmt, "Exit"),
             Self::Data(b) => write!(fmt, "Data({:?} 0x{:x})", *b as char, *b),
+            Self::ShortDeviceControl(s) => write!(fmt, "ShortDeviceControl({:?})", s),
         }
     }
 }
