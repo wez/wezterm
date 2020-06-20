@@ -1,9 +1,26 @@
 # Frequently Asked Questions
 
+## Unicode glyphs render as underscores in my tmux!
+
+This is likely an issue with LANG and locale.  `tmux` will substitute unicode
+glyphs with underscores if it believes that your environment doesn't support
+UTF-8.
+
+If you're running on macOS, upgrade to the latest nightly build (or whichever
+release is dated *after* `20200607-144723-74889cd4`) and WezTerm will
+automatically set `LANG` appropriately.
+
+Note that if you change your environment you will likely need to kill and
+restart your tmux server before it will take effect.
+
+You probably should also review [this relevant section from the
+TMUX FAQ](https://github.com/tmux/tmux/wiki/FAQ#how-do-i-use-utf-8)
+
 ## Some glyphs look messed up, why is that?
 
 There's a surprisingly amount of work that goes into rendering text,
 and if you're connected to a remote host, it may span both systems.
+Read on for some gory details!
 
 ### LANG and locale
 
@@ -14,6 +31,10 @@ running to use a particular locale to interpret the byte stream.
 
 It is common for these environment variables to not be set, or to be set to
 invalid values by default!
+
+If you're running on macOS, upgrade to the latest nightly build (or whichever
+release is dated *after* `20200607-144723-74889cd4`) and WezTerm will
+automatically set `LANG` appropriately.
 
 You need to select a unicode locale for best results; for example:
 
