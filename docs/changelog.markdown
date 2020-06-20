@@ -44,6 +44,8 @@ brief notes about them may accumulate here.
 * `ActivateTab` now accepts negative numbers as a way to reference the last
   tab in the Window.  The default assignment for `CTRL+SHIFT+9` and `CMD+9`
   is now `ActivateTab=-1`, which selects the last tab.
+* Fixed an issue when applying hyperlink rules to lines that had mixed width
+  characters
 
 ### 20200607-144723-74889cd4
 
