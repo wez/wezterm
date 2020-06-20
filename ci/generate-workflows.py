@@ -398,15 +398,15 @@ cargo build --all --release""",
 
     def prep_environment(self):
         steps = []
+        if self.uses_apt():
+            steps += [
+                RunStep(
+                    "set APT to non-interactive",
+                    "echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections",
+                ),
+                RunStep("Update APT", "apt update"),
+            ]
         if self.container:
-            if self.uses_apt():
-                steps += [
-                    RunStep(
-                        "set APT to non-interactive",
-                        "echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections",
-                    ),
-                    RunStep("Update APT", "apt update"),
-                ]
             if self.container == "centos:8":
                 steps += [
                     RunStep(
