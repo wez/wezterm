@@ -42,7 +42,7 @@ impl Display for Action {
         match self {
             Action::Print(c) => write!(f, "{}", c),
             Action::Control(c) => f.write_char(*c as u8 as char),
-            Action::DeviceControl(_) => unimplemented!(),
+            Action::DeviceControl(c) => c.fmt(f),
             Action::OperatingSystemCommand(osc) => osc.fmt(f),
             Action::CSI(csi) => csi.fmt(f),
             Action::Esc(esc) => esc.fmt(f),
@@ -92,6 +92,28 @@ pub enum DeviceControlMode {
     Exit,
     /// Data for the device mode to consume
     Data(u8),
+}
+
+impl Display for DeviceControlMode {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), FmtError> {
+        match self {
+            Self::Enter(mode) => {
+                write!(f, "\x1bP")?;
+                for (idx, p) in mode.params.iter().enumerate() {
+                    if idx > 0 {
+                        write!(f, ";")?;
+                    }
+                    write!(f, "{}", p)?;
+                }
+                for b in &mode.intermediates {
+                    f.write_char(*b as char)?;
+                }
+                f.write_char(mode.byte as char)
+            }
+            Self::Exit => write!(f, "\x1b\\"),
+            Self::Data(c) => f.write_char(*c as char),
+        }
+    }
 }
 
 impl std::fmt::Debug for DeviceControlMode {
