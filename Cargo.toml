@@ -18,7 +18,7 @@ name = "strip-ansi-escapes"
 path = "src/bin/strip-ansi-escapes.rs"
 
 [dependencies]
-allsorts = "0.1"
+allsorts = "0.4"
 async-task = "1.2"
 async-trait = "0.1"
 anyhow = "1.0"
@@ -70,6 +70,7 @@ wezterm-term = { path = "term", features=["use_serde"] }
 terminfo = "0.7"
 termwiz = { path = "termwiz" }
 textwrap = "0.11"
+tinyvec = "0.3"
 toml = "0.4"
 unicode-normalization = "0.1"
 unicode-segmentation = "1.6"
