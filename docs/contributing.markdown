@@ -1,10 +1,14 @@
 ## Contributing
 
+Thanks for considering donating your time and energy!  I value any contribution,
+even if it is just to highlight a typo.
+
 If you're thinking of helping out, then the following resources may be helpful:
 
 * [WezTerm on GitHub](https://github.com/wez/wezterm)
 * [Realtime conversation with wez on Matrix/Gitter](help.html)
 * [Building from Source](install/source.html)
+* [Where to find things and hacking on wezterm](https://github.com/wez/wezterm/blob/master/CONTRIBUTING.md#contributing-to-wezterm)
 
 I like to think that I have an open mind and I try to be open to ideas,
 suggestions and other improvements.  We can discuss in realtime in the Matrix/Gitter
