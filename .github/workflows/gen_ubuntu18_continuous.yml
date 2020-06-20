@@ -13,18 +13,11 @@ jobs:
     runs-on: "ubuntu-18.04"
     
     steps:
-    - name: "set APT to non-interactive"
-      shell: bash
-      run: |
-            export BUILD_REASON=Schedule
-            echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
-            
-
     - name: "Update APT"
       shell: bash
       run: |
             export BUILD_REASON=Schedule
-            apt update
+            sudo -n apt update
             
 
     - name: "Install git"

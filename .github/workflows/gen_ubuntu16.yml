@@ -17,12 +17,9 @@ jobs:
     runs-on: "ubuntu-16.04"
     
     steps:
-    - name: "set APT to non-interactive"
-      shell: bash
-      run: "echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections"
     - name: "Update APT"
       shell: bash
-      run: "apt update"
+      run: "sudo -n apt update"
     - name: "Install git"
       shell: bash
       run: "sudo -n apt-get install -y git"

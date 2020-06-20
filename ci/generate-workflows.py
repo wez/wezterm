@@ -399,12 +399,16 @@ cargo build --all --release""",
     def prep_environment(self):
         steps = []
         if self.uses_apt():
+            if self.container:
+                steps += [
+                    RunStep(
+                        "set APT to non-interactive",
+                        "echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections",
+                    ),
+                ]
+            sudo = "sudo -n " if self.needs_sudo() else ""
             steps += [
-                RunStep(
-                    "set APT to non-interactive",
-                    "echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections",
-                ),
-                RunStep("Update APT", "apt update"),
+                RunStep("Update APT", f"{sudo}apt update"),
             ]
         if self.container:
             if self.container == "centos:8":
