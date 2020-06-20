@@ -17,4 +17,4 @@
 * Connect to a local multiplexer server over unix domain sockets
 * Connect to a remote multiplexer using SSH or TLS over TCP/IP
 * iTerm2 compatible image protocol support, and built-in [imgcat command](imgcat.html)
-* Sixel graphics support (experimental: currently in the nightly build only)
+* Sixel graphics support (experimental: starting in `20200620-160318-e00b076c`)

@@ -28,7 +28,7 @@ The left `Alt` will be treated as a modifier with no composition effects.
 
 ### macOS Left and Right Option Key
 
-*since: nightly*
+*since: 20200620-160318-e00b076c*
 
 The default behavior is to treat the left `Option` key as the `Alt` modifier
 with no composition effects, while the right `Option` key performs composition
@@ -63,7 +63,7 @@ return {
 }
 ```
 
-*since: nightly*
+*since: 20200620-160318-e00b076c*
 
 The default for `use_ime` is false.  The default in earlier releases was `true`.
 
@@ -407,7 +407,7 @@ return {
 Activate the tab specified by the argument value. eg: `0` activates the
 leftmost tab, while `1` activates the second tab from the left, and so on.
 
-*since: nightly*
+*since: 20200620-160318-e00b076c*
 
 `ActivateTab` now accepts negative numbers; these wrap around from the start
 of the tabs to the end, so `-1` references the right-most tab, `-2` the tab

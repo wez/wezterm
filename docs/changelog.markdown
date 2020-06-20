@@ -10,6 +10,10 @@ daily) from the master branch.  It may not be usable and
 the feature set may change.  As features stabilize some
 brief notes about them may accumulate here.
 
+* Not yet
+
+### 20200620-160318-e00b076c
+
 * Fixed default mapping of ambiguous ctrl key combinations (`i`, `m`, `[`, `{`,
   `@`) so that they emit the old school tab, newline, escape etc. values.
   These got broken as part of prototyping CSI-u support a while back.

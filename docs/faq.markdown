@@ -6,9 +6,8 @@ This is likely an issue with LANG and locale.  `tmux` will substitute unicode
 glyphs with underscores if it believes that your environment doesn't support
 UTF-8.
 
-If you're running on macOS, upgrade to the latest nightly build (or whichever
-release is dated *after* `20200607-144723-74889cd4`) and WezTerm will
-automatically set `LANG` appropriately.
+If you're running on macOS, upgrade to `20200620-160318-e00b076c` or newer and
+WezTerm will automatically set `LANG` appropriately.
 
 Note that if you change your environment you will likely need to kill and
 restart your tmux server before it will take effect.
@@ -32,9 +31,8 @@ running to use a particular locale to interpret the byte stream.
 It is common for these environment variables to not be set, or to be set to
 invalid values by default!
 
-If you're running on macOS, upgrade to the latest nightly build (or whichever
-release is dated *after* `20200607-144723-74889cd4`) and WezTerm will
-automatically set `LANG` appropriately.
+If you're running on macOS, upgrade to `20200620-160318-e00b076c` or newer
+and WezTerm will automatically set `LANG` appropriately.
 
 You need to select a unicode locale for best results; for example:
 

@@ -117,7 +117,7 @@ return {
 Here's a fancy example that will add some helpful entries to the launcher
 menu when running on Windows:
 
-*since: latest nightly*: The launcher menu automatically includes WSL
+*since: 20200607-144723-74889cd4*: The launcher menu automatically includes WSL
 entries by default, unless disabled using `add_wsl_distributions_to_launch_menu = false`.
 
 
