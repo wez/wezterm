@@ -39,6 +39,8 @@ brief notes about them may accumulate here.
 * Improved terminal emulation conformance; added left/right margin support
   and now passes [esctest](https://gitlab.freedesktop.org/terminal-wg/esctest)
   to a similar degree as iTerm2
+* Fixed an issue where unmodified F5+ would use the CSI-u encoded-modifiers
+  format, and confused eg: `htop`.
 
 ### 20200607-144723-74889cd4
 

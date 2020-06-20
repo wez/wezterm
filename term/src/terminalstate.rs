@@ -905,7 +905,14 @@ impl TerminalState {
                         12 => "\x1b[24",
                         _ => bail!("unhandled fkey number {}", n),
                     };
-                    write!(buf, "{};{}~", intro, 1 + encode_modifiers(mods))?;
+                    let encoded_mods = encode_modifiers(mods);
+                    if encoded_mods == 0 {
+                        // If no modifiers are held, don't send the modifier
+                        // sequence, as the modifier encoding is a CSI-u extension.
+                        write!(buf, "{}~", intro)?;
+                    } else {
+                        write!(buf, "{};{}~", intro, 1 + encoded_mods)?;
+                    }
                     buf.as_str()
                 }
             }
