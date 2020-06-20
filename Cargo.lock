@@ -56,20 +56,25 @@ dependencies = [
 
 [[package]]
 name = "allsorts"
-version = "0.1.0"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a93f5cca1d4ec34ed5a5ffb81a27fdfe41a23cd4123f5e74b00a9eca0de54931"
+checksum = "14b02c01aedfae249f34bacaf3cfb1e714da8f7f143b02bf5a25035dbba7dfad"
 dependencies = [
  "bitflags 1.2.1",
  "brotli-decompressor",
  "byteorder",
  "encoding_rs",
  "flate2",
+ "glyph-names",
  "itertools",
  "lazy_static",
  "libc",
  "log",
- "num",
+ "num-traits 0.2.12",
+ "rental",
+ "rustc-hash",
+ "tinyvec",
+ "unicode-joining-type",
 ]
 
 [[package]]
@@ -1198,6 +1203,12 @@ name = "glob"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9b919933a397b79c37e33b77bb2aa3dc8eb6e165ad809e58ff75bc7db2e34574"
+
+[[package]]
+name = "glyph-names"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8050dc1be3880f690a771051d09727d759229d299afffa1488acc3556879039d"
 
 [[package]]
 name = "harfbuzz"
@@ -2616,6 +2627,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "rental"
+version = "0.5.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8545debe98b2b139fb04cad8618b530e9b07c152d99a5de83c860b877d67847f"
+dependencies = [
+ "rental-impl",
+ "stable_deref_trait",
+]
+
+[[package]]
+name = "rental-impl"
+version = "0.5.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "475e68978dc5b743f2f40d8e0a8fdc83f1c5e78cbf4b8fa5e74e73beebc340de"
+dependencies = [
+ "proc-macro2 1.0.18",
+ "quote 1.0.7",
+ "syn 1.0.31",
+]
+
+[[package]]
 name = "resize"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2653,6 +2685,12 @@ name = "rustc-demangle"
 version = "0.1.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4c691c0e608126e00913e33f0ccf3727d5fc84573623b8d65b2df340b5201783"
+
+[[package]]
+name = "rustc-hash"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "08d43f7aa6b08d49f382cde6a7982047c3426db949b1424bc4b7ec9ae12c6ce2"
 
 [[package]]
 name = "rustc_version"
@@ -2988,6 +3026,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "stable_deref_trait"
+version = "1.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dba1a27d3efae4351c8051072d619e3ade2820635c3958d826bfea39d59b54c8"
+
+[[package]]
 name = "strsim"
 version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3260,6 +3304,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "tinyvec"
+version = "0.3.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "53953d2d3a5ad81d9f844a32f14ebb121f50b650cd59d0ee2a07cf13c617efed"
+
+[[package]]
 name = "tokio"
 version = "0.2.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3338,6 +3388,12 @@ checksum = "49f2bd0c6468a8230e1db229cff8029217cf623c767ea5d60bfbd42729ea54d5"
 dependencies = [
  "matches",
 ]
+
+[[package]]
+name = "unicode-joining-type"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "02423d2dcb2d46cbe5ea6c1f5ecef62fb2bff21f073348ad3bf5e0a9653ee1eb"
 
 [[package]]
 name = "unicode-normalization"
@@ -3760,6 +3816,7 @@ dependencies = [
  "termwiz",
  "textwrap",
  "thiserror",
+ "tinyvec",
  "toml",
  "uds_windows",
  "unicode-normalization",
