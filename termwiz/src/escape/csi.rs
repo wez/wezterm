@@ -46,15 +46,15 @@ pub struct Unspecified {
 
 impl Display for Unspecified {
     fn fmt(&self, f: &mut Formatter) -> Result<(), FmtError> {
+        for i in &self.intermediates {
+            write!(f, "{}", *i as char)?;
+        }
         for (idx, p) in self.params.iter().enumerate() {
             if idx > 0 {
                 write!(f, ";{}", p)?;
             } else {
                 write!(f, "{}", p)?;
             }
-        }
-        for i in &self.intermediates {
-            write!(f, "{}", *i as char)?;
         }
         write!(f, "{}", self.control)
     }
@@ -420,6 +420,26 @@ impl Display for MouseReport {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub enum XtermKeyModifierResource {
+    Keyboard,
+    CursorKeys,
+    FunctionKeys,
+    OtherKeys,
+}
+
+impl XtermKeyModifierResource {
+    pub fn parse(value: i64) -> Option<Self> {
+        Some(match value {
+            0 => XtermKeyModifierResource::Keyboard,
+            1 => XtermKeyModifierResource::CursorKeys,
+            2 => XtermKeyModifierResource::FunctionKeys,
+            4 => XtermKeyModifierResource::OtherKeys,
+            _ => return None,
+        })
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Mode {
     SetDecPrivateMode(DecPrivateMode),
     ResetDecPrivateMode(DecPrivateMode),
@@ -427,6 +447,10 @@ pub enum Mode {
     RestoreDecPrivateMode(DecPrivateMode),
     SetMode(TerminalMode),
     ResetMode(TerminalMode),
+    XtermKeyMode {
+        resource: XtermKeyModifierResource,
+        value: Option<i64>,
+    },
 }
 
 impl Display for Mode {
@@ -456,6 +480,22 @@ impl Display for Mode {
             Mode::RestoreDecPrivateMode(mode) => emit!("r", mode),
             Mode::SetMode(mode) => emit_mode!("h", mode),
             Mode::ResetMode(mode) => emit_mode!("l", mode),
+            Mode::XtermKeyMode { resource, value } => {
+                write!(
+                    f,
+                    ">{}",
+                    match resource {
+                        XtermKeyModifierResource::Keyboard => 0,
+                        XtermKeyModifierResource::CursorKeys => 1,
+                        XtermKeyModifierResource::FunctionKeys => 2,
+                        XtermKeyModifierResource::OtherKeys => 4,
+                    }
+                )?;
+                if let Some(value) = value {
+                    write!(f, ";{}", value)?;
+                }
+                write!(f, "m")
+            }
         }
     }
 }
@@ -1366,6 +1406,7 @@ impl<'a> CSIParser<'a> {
                 .map(|mode| CSI::Mode(Mode::SaveDecPrivateMode(mode))),
 
             ('m', &[b'<']) | ('M', &[b'<']) => self.mouse_sgr1006(params).map(CSI::Mouse),
+            ('m', &[b'>']) => self.xterm_key_modifier(params),
 
             ('c', &[]) => self
                 .req_primary_device_attributes(params)
@@ -1438,6 +1479,32 @@ impl<'a> CSIParser<'a> {
                 CSI::Cursor(Cursor::SetTopAndBottomMargins {
                     top: OneBased::from_esc_param(params[0])?,
                     bottom: OneBased::from_esc_param_with_big_default(params[1])?,
+                }),
+            ))
+        } else {
+            Err(())
+        }
+    }
+
+    fn xterm_key_modifier(&mut self, params: &'a [i64]) -> Result<CSI, ()> {
+        if params.len() == 2 {
+            let resource = XtermKeyModifierResource::parse(params[0]).ok_or_else(|| ())?;
+            Ok(self.advance_by(
+                2,
+                params,
+                CSI::Mode(Mode::XtermKeyMode {
+                    resource,
+                    value: Some(params[1]),
+                }),
+            ))
+        } else if params.len() == 1 {
+            let resource = XtermKeyModifierResource::parse(params[0]).ok_or_else(|| ())?;
+            Ok(self.advance_by(
+                1,
+                params,
+                CSI::Mode(Mode::XtermKeyMode {
+                    resource,
+                    value: None,
                 }),
             ))
         } else {

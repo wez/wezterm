@@ -1709,6 +1709,10 @@ impl TerminalState {
             Mode::SetMode(m) | Mode::ResetMode(m) => {
                 error!("unhandled TerminalMode {:?}", m);
             }
+
+            Mode::XtermKeyMode { resource, value } => {
+                error!("unhandled XtermKeyMode {:?} {:?}", resource, value);
+            }
         }
     }
 
