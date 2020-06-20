@@ -7,7 +7,74 @@ an action.
 A full list of possible keys, mouse events and actions are included below,
 after these tables describing the default assignments.
 
-### Default Shortcut / Key Binding Assignments
+## Alt / Option Key Behavior & Composed Keys
+
+The operating system has its own user selectable keymap that is sometimes at
+odds with old-school terminal emulation that pre-dates internationalization as
+a concept.  WezTerm tries to behave reasonably by default, but also give you
+control in other situations.
+
+### Layouts with an AltGr key
+
+If you have, for example, a European keyboard layout with an AltGr key then
+wezterm will respect the composition effects of AltGr produced by the system.
+For example, in a German keymap, `AltGr <` will produce `|`.
+
+If your physical keyboard doesn't match the keyboard layout (eg: using a US
+keyboard with DEU selected in the OS), then the right hand `Alt` key is often
+re-interpreted as having the `AltGr` function with behavior as described above.
+
+The left `Alt` will be treated as a modifier with no composition effects.
+
+### macOS Left and Right Option Key
+
+*since: nightly*
+
+The default behavior is to treat the left `Option` key as the `Alt` modifier
+with no composition effects, while the right `Option` key performs composition
+(making it approximately equivalent to `AltGr` on other operating systems).
+
+You can control this behavior in your configuration:
+
+```lua
+return {
+  send_composed_key_when_left_alt_is_pressed=false,
+  send_composed_key_when_right_alt_is_pressed=true,
+}
+```
+
+If you're running an earlier release the options were a bit more limited;
+both left and right `Option` keys behave identically and composition
+behavior was influenced for both of them via the `send_composed_key_when_alt_is_pressed`
+configuration option.
+
+### macOS and the Input Method Editor (IME)
+
+WezTerm has support for using the operating system Input Method Editor (IME)
+on macOS.  This is useful in cases where you need to type kanji.  However,
+the input method editor can get in the way and has a couple of irritating
+side effects such as preventing key repeat for a subset of keys.
+
+You can control whether the IME is enabled on macOS in your configuration file:
+
+```lua
+return {
+  use_ime = false,
+}
+```
+
+*since: nightly*
+
+The default for `use_ime` is false.  The default in earlier releases was `true`.
+
+### Defining Assignments for key combinations that may be composed
+
+When a key combination produces a composed key result, wezterm will look up
+both the composed and uncomposed versions of the keypress in your key mappings.
+If either lookup matches your assignment, that will take precedence over
+the normal key processing.
+
+## Default Shortcut / Key Binding Assignments
 
 The default key bindings are:
 
