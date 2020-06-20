@@ -1202,13 +1202,20 @@ impl TermWindow {
         }
     }
 
-    fn activate_tab(&mut self, tab_idx: usize) -> anyhow::Result<()> {
+    fn activate_tab(&mut self, tab_idx: isize) -> anyhow::Result<()> {
         let mux = Mux::get().unwrap();
         let mut window = mux
             .get_window_mut(self.mux_window_id)
             .ok_or_else(|| anyhow!("no such window"))?;
 
         let max = window.len();
+
+        let tab_idx = if tab_idx < 0 {
+            max.saturating_sub(tab_idx.abs() as usize)
+        } else {
+            tab_idx as usize
+        };
+
         if tab_idx < max {
             window.set_active(tab_idx);
 
@@ -1232,7 +1239,7 @@ impl TermWindow {
         let tab = active + delta;
         let tab = if tab < 0 { max as isize + tab } else { tab };
         drop(window);
-        self.activate_tab(tab as usize % max)
+        self.activate_tab((tab as usize % max) as isize)
     }
 
     fn move_tab(&mut self, tab_idx: usize) -> anyhow::Result<()> {
@@ -2950,7 +2957,7 @@ impl TermWindow {
         match event.kind {
             WMEK::Press(MousePress::Left) => match self.tab_bar.hit_test(x) {
                 TabBarItem::Tab(tab_idx) => {
-                    self.activate_tab(tab_idx).ok();
+                    self.activate_tab(tab_idx as isize).ok();
                 }
                 TabBarItem::NewTabButton => {
                     self.spawn_tab(&SpawnTabDomain::CurrentTabDomain);

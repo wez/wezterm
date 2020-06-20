@@ -41,6 +41,9 @@ brief notes about them may accumulate here.
   to a similar degree as iTerm2
 * Fixed an issue where unmodified F5+ would use the CSI-u encoded-modifiers
   format, and confused eg: `htop`.
+* `ActivateTab` now accepts negative numbers as a way to reference the last
+  tab in the Window.  The default assignment for `CTRL+SHIFT+9` and `CMD+9`
+  is now `ActivateTab=-1`, which selects the last tab.
 
 ### 20200607-144723-74889cd4
 

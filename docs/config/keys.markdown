@@ -40,7 +40,7 @@ The default key bindings are:
 | `SUPER`     | `6`      | `ActivateTab=5` |
 | `SUPER`     | `7`      | `ActivateTab=6` |
 | `SUPER`     | `8`      | `ActivateTab=7` |
-| `SUPER`     | `9`      | `ActivateTab=8` |
+| `SUPER`     | `9`      | `ActivateTab=-1` |
 | `CTRL+SHIFT`     | `w`      | `CloseCurrentTab` |
 | `CTRL+SHIFT`     | `1`      | `ActivateTab=0` |
 | `CTRL+SHIFT`     | `2`      | `ActivateTab=1` |
@@ -50,7 +50,7 @@ The default key bindings are:
 | `CTRL+SHIFT`     | `6`      | `ActivateTab=5` |
 | `CTRL+SHIFT`     | `7`      | `ActivateTab=6` |
 | `CTRL+SHIFT`     | `8`      | `ActivateTab=7` |
-| `CTRL+SHIFT`     | `9`      | `ActivateTab=8` |
+| `CTRL+SHIFT`     | `9`      | `ActivateTab=-1` |
 | `SUPER+SHIFT` | `[` | `ActivateTabRelative=-1` |
 | `SUPER+SHIFT` | `]` | `ActivateTabRelative=1` |
 | `CTRL+SHIFT`     | `PAGEUP`      | `MoveTabRelative=-1` |
@@ -339,6 +339,13 @@ return {
 
 Activate the tab specified by the argument value. eg: `0` activates the
 leftmost tab, while `1` activates the second tab from the left, and so on.
+
+*since: nightly*
+
+`ActivateTab` now accepts negative numbers; these wrap around from the start
+of the tabs to the end, so `-1` references the right-most tab, `-2` the tab
+to its left and so on.
+
 
 ```lua
 local wezterm = require 'wezterm';
