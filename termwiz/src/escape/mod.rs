@@ -51,19 +51,36 @@ impl Display for Action {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct EnterDeviceControlMode {
     /// The final byte in the DCS mode
-    byte: u8,
-    params: Vec<i64>,
-    // TODO: can we just make intermediates a single u8?
-    intermediates: Vec<u8>,
+    pub byte: u8,
+    pub params: Vec<i64>,
+    pub intermediates: Vec<u8>,
     /// if true, more than two intermediates arrived and the
     /// remaining data was ignored
-    ignored_extra_intermediates: bool,
+    pub ignored_extra_intermediates: bool,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+impl std::fmt::Debug for EnterDeviceControlMode {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+        write!(
+            fmt,
+            "EnterDeviceControlMode(params: {:?}, intermediates: [",
+            &self.params
+        )?;
+        for b in &self.intermediates {
+            write!(fmt, "{:?} 0x{:x}, ", *b as char, *b)?;
+        }
+        write!(
+            fmt,
+            "], byte: {:?} 0x{:x}, ignored_extra_intermediates={})",
+            self.byte as char, self.byte, self.ignored_extra_intermediates
+        )
+    }
+}
+
+#[derive(Clone, PartialEq, Eq)]
 pub enum DeviceControlMode {
     /// Identify device control mode from the encoded parameters.
     /// This mode is activated and must remain active until
@@ -75,6 +92,16 @@ pub enum DeviceControlMode {
     Exit,
     /// Data for the device mode to consume
     Data(u8),
+}
+
+impl std::fmt::Debug for DeviceControlMode {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+        match self {
+            Self::Enter(mode) => write!(fmt, "Enter({:?})", mode),
+            Self::Exit => write!(fmt, "Exit"),
+            Self::Data(b) => write!(fmt, "Data({:?} 0x{:x})", *b as char, *b),
+        }
+    }
 }
 
 /// See <https://vt100.net/docs/vt3xx-gp/chapter14.html>

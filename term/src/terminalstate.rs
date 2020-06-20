@@ -17,7 +17,8 @@ use termwiz::escape::csi::{
 };
 use termwiz::escape::osc::{ChangeColorPair, ColorOrQuery, ITermFileData, ITermProprietary};
 use termwiz::escape::{
-    Action, ControlCode, Esc, EscCode, OneBased, OperatingSystemCommand, Sixel, SixelData, CSI,
+    Action, ControlCode, DeviceControlMode, Esc, EscCode, OneBased, OperatingSystemCommand, Sixel,
+    SixelData, CSI,
 };
 use termwiz::image::{ImageCell, ImageData, TextureCoordinate};
 use termwiz::surface::{CursorShape, CursorVisibility};
@@ -2496,12 +2497,16 @@ impl<'a> Performer<'a> {
         match action {
             Action::Print(c) => self.print(c),
             Action::Control(code) => self.control(code),
-            Action::DeviceControl(ctrl) => error!("Unhandled {:?}", ctrl),
+            Action::DeviceControl(ctrl) => self.device_control(ctrl),
             Action::OperatingSystemCommand(osc) => self.osc_dispatch(*osc),
             Action::Esc(esc) => self.esc_dispatch(esc),
             Action::CSI(csi) => self.csi_dispatch(csi),
             Action::Sixel(sixel) => self.sixel(sixel),
         }
+    }
+
+    fn device_control(&mut self, ctrl: DeviceControlMode) {
+        log::error!("unhandled {:?}", ctrl);
     }
 
     /// Draw a character to the screen
