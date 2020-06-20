@@ -2013,10 +2013,13 @@ impl TerminalState {
                 return;
             }
 
-            // The minimum size of the scrolling region is two columns.
+            // The minimum size of the scrolling region is two columns per DEC,
+            // but xterm allows 1.
+            /*
             if right - left < 2 {
                 return;
             }
+            */
 
             self.left_and_right_margins = left..right + 1;
 
@@ -2528,6 +2531,19 @@ impl<'a> Performer<'a> {
                                 write!(
                                     self.writer,
                                     "{}1$r{};{}r{}",
+                                    DCS,
+                                    margins.start + 1,
+                                    margins.end,
+                                    ST
+                                )
+                                .ok();
+                            }
+                            &[b's'] => {
+                                // DECSLRM - left and right margins
+                                let margins = self.left_and_right_margins.clone();
+                                write!(
+                                    self.writer,
+                                    "{}1$r{};{}s{}",
                                     DCS,
                                     margins.start + 1,
                                     margins.end,
