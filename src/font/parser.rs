@@ -9,7 +9,7 @@ use crate::font::units::*;
 use allsorts::binary::read::{ReadScope, ReadScopeOwned};
 use allsorts::font_data_impl::read_cmap_subtable;
 use allsorts::gpos::{gpos_apply, Info, Placement};
-use allsorts::gsub::{gsub_apply_default, GlyphOrigin, RawGlyph};
+use allsorts::gsub::{gsub_apply_default, GlyphOrigin, GsubFeatureMask, RawGlyph};
 use allsorts::layout::{new_layout_cache, GDEFTable, LayoutCache, LayoutTable, GPOS, GSUB};
 use allsorts::post::PostTable;
 use allsorts::tables::cmap::{Cmap, CmapSubtable};
@@ -21,6 +21,7 @@ use anyhow::anyhow;
 use std::convert::TryInto;
 use std::path::{Path, PathBuf};
 use termwiz::cell::unicode_column_width;
+use tinyvec::*;
 
 #[derive(Debug)]
 pub enum MaybeShaped {
@@ -159,8 +160,9 @@ impl ParsedFont {
             .read_table(&file.scope, tag::CMAP)?
             .ok_or_else(|| anyhow!("CMAP table missing or broken"))?
             .read::<Cmap>()?;
-        let cmap_subtable: CmapSubtable<'static> =
-            read_cmap_subtable(&cmap)?.ok_or_else(|| anyhow!("CMAP subtable not found"))?;
+        let cmap_subtable: CmapSubtable<'static> = read_cmap_subtable(&cmap)?
+            .ok_or_else(|| anyhow!("CMAP subtable not found"))?
+            .1;
 
         let maxp = otf
             .read_table(&file.scope, tag::MAXP)?
@@ -304,7 +306,7 @@ impl ParsedFont {
         let mut glyphs = vec![];
         for c in text.as_ref().chars() {
             glyphs.push(RawGlyph {
-                unicodes: vec![c],
+                unicodes: tiny_vec!([char; 1], c),
                 glyph_index: self.glyph_index_for_char(c)?,
                 liga_component_pos: 0,
                 glyph_origin: GlyphOrigin::Char(c),
@@ -313,11 +315,13 @@ impl ParsedFont {
                 is_vert_alt: false,
                 fake_bold: false,
                 fake_italic: false,
+                variation: None,
                 extra_data: (),
             });
         }
 
-        let vertical = false;
+        // TODO: construct from configuation
+        let feature_mask = GsubFeatureMask::CLIG | GsubFeatureMask::LIGA | GsubFeatureMask::CALT;
 
         if let Some(gsub_cache) = self.gsub_cache.as_ref() {
             gsub_apply_default(
@@ -326,7 +330,7 @@ impl ParsedFont {
                 self.gdef_table.as_ref(),
                 script,
                 lang,
-                vertical,
+                feature_mask,
                 self.num_glyphs,
                 &mut glyphs,
             )?;
