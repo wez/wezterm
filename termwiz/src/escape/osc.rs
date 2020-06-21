@@ -246,9 +246,8 @@ impl OperatingSystemCommand {
     fn internal_parse(osc: &[&[u8]]) -> anyhow::Result<Self> {
         ensure!(!osc.is_empty(), "no params");
         let p1str = String::from_utf8_lossy(osc[0]);
-        let code: i64 = p1str.parse()?;
-        let osc_code: OperatingSystemCommandCode =
-            FromPrimitive::from_i64(code).ok_or_else(|| anyhow!("unknown code"))?;
+        let osc_code =
+            OperatingSystemCommandCode::from_code(&p1str).ok_or_else(|| anyhow!("unknown code"))?;
 
         macro_rules! single_string {
             ($variant:ident) => {{
@@ -286,9 +285,9 @@ impl OperatingSystemCommand {
             | ResetTektronixBackgroundColor
             | ResetHighlightColor
             | ResetTektronixCursorColor
-            | ResetHighlightForegroundColor => {
-                Self::parse_reset_dynamic_color_number((osc_code as u8).saturating_sub(100))
-            }
+            | ResetHighlightForegroundColor => Self::parse_reset_dynamic_color_number(
+                p1str.parse::<u8>().unwrap().saturating_sub(100),
+            ),
 
             SetTextForegroundColor
             | SetTextBackgroundColor
@@ -300,7 +299,7 @@ impl OperatingSystemCommand {
             | SetHighlightBackgroundColor
             | SetTektronixCursorColor
             | SetHighlightForegroundColor => {
-                Self::parse_change_dynamic_color_number(osc_code as u8, osc)
+                Self::parse_change_dynamic_color_number(p1str.parse::<u8>().unwrap(), osc)
             }
 
             osc_code => bail!("{:?} not impl", osc_code),
@@ -308,50 +307,102 @@ impl OperatingSystemCommand {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, FromPrimitive)]
-pub enum OperatingSystemCommandCode {
-    SetIconNameAndWindowTitle = 0,
-    SetIconName = 1,
-    SetWindowTitle = 2,
-    SetXWindowProperty = 3,
-    ChangeColorNumber = 4,
-    ChangeSpecialColorNumber = 5,
+macro_rules! osc_entries {
+($(
+    $( #[doc=$doc:expr] )*
+    $label:ident = $value:expr
+),* $(,)?) => {
 
+#[derive(Debug, Clone, PartialEq, Eq, FromPrimitive, Hash, Copy)]
+pub enum OperatingSystemCommandCode {
+    $(
+        $( #[doc=$doc] )*
+        $label,
+    )*
+}
+
+impl OscMap {
+    fn new() -> Self {
+        let mut code_to_variant = HashMap::new();
+        let mut variant_to_code = HashMap::new();
+
+        use OperatingSystemCommandCode::*;
+
+        $(
+            code_to_variant.insert($value, $label);
+            variant_to_code.insert($label, $value);
+        )*
+
+        Self {
+            code_to_variant,
+            variant_to_code,
+        }
+    }
+}
+    };
+}
+
+osc_entries!(
+    SetIconNameAndWindowTitle = "0",
+    SetIconName = "1",
+    SetWindowTitle = "2",
+    SetXWindowProperty = "3",
+    ChangeColorNumber = "4",
+    ChangeSpecialColorNumber = "5",
     /// iTerm2
-    ChangeTitleTabColor = 6,
-    SetCurrentWorkingDirectory = 7,
+    ChangeTitleTabColor = "6",
+    SetCurrentWorkingDirectory = "7",
     /// See https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5feda
-    SetHyperlink = 8,
+    SetHyperlink = "8",
     /// iTerm2
-    SystemNotification = 9,
-    SetTextForegroundColor = 10,
-    SetTextBackgroundColor = 11,
-    SetTextCursorColor = 12,
-    SetMouseForegroundColor = 13,
-    SetMouseBackgroundColor = 14,
-    SetTektronixForegroundColor = 15,
-    SetTektronixBackgroundColor = 16,
-    SetHighlightBackgroundColor = 17,
-    SetTektronixCursorColor = 18,
-    SetHighlightForegroundColor = 19,
-    SetLogFileName = 46,
-    SetFont = 50,
-    EmacsShell = 51,
-    ManipulateSelectionData = 52,
-    ResetColors = 104,
-    ResetSpecialColor = 105,
-    ResetTextForegroundColor = 110,
-    ResetTextBackgroundColor = 111,
-    ResetTextCursorColor = 112,
-    ResetMouseForegroundColor = 113,
-    ResetMouseBackgroundColor = 114,
-    ResetTektronixForegroundColor = 115,
-    ResetTektronixBackgroundColor = 116,
-    ResetHighlightColor = 117,
-    ResetTektronixCursorColor = 118,
-    ResetHighlightForegroundColor = 119,
-    RxvtProprietary = 777,
-    ITermProprietary = 1337,
+    SystemNotification = "9",
+    SetTextForegroundColor = "10",
+    SetTextBackgroundColor = "11",
+    SetTextCursorColor = "12",
+    SetMouseForegroundColor = "13",
+    SetMouseBackgroundColor = "14",
+    SetTektronixForegroundColor = "15",
+    SetTektronixBackgroundColor = "16",
+    SetHighlightBackgroundColor = "17",
+    SetTektronixCursorColor = "18",
+    SetHighlightForegroundColor = "19",
+    SetLogFileName = "46",
+    SetFont = "50",
+    EmacsShell = "51",
+    ManipulateSelectionData = "52",
+    ResetColors = "104",
+    ResetSpecialColor = "105",
+    ResetTextForegroundColor = "110",
+    ResetTextBackgroundColor = "111",
+    ResetTextCursorColor = "112",
+    ResetMouseForegroundColor = "113",
+    ResetMouseBackgroundColor = "114",
+    ResetTektronixForegroundColor = "115",
+    ResetTektronixBackgroundColor = "116",
+    ResetHighlightColor = "117",
+    ResetTektronixCursorColor = "118",
+    ResetHighlightForegroundColor = "119",
+    RxvtProprietary = "777",
+    ITermProprietary = "1337",
+);
+
+struct OscMap {
+    code_to_variant: HashMap<&'static str, OperatingSystemCommandCode>,
+    variant_to_code: HashMap<OperatingSystemCommandCode, &'static str>,
+}
+
+lazy_static::lazy_static! {
+    static ref OSC_MAP: OscMap = OscMap::new();
+}
+
+impl OperatingSystemCommandCode {
+    fn from_code(code: &str) -> Option<Self> {
+        OSC_MAP.code_to_variant.get(code).copied()
+    }
+
+    fn as_code(self) -> &'static str {
+        OSC_MAP.variant_to_code.get(&self).unwrap()
+    }
 }
 
 impl Display for OperatingSystemCommand {
@@ -360,7 +411,12 @@ impl Display for OperatingSystemCommand {
 
         macro_rules! single_string {
             ($variant:ident, $s:expr) => {
-                write!(f, "{};{}", OperatingSystemCommandCode::$variant as u8, $s)?
+                write!(
+                    f,
+                    "{};{}",
+                    OperatingSystemCommandCode::$variant.as_code(),
+                    $s
+                )?
             };
         };
 
