@@ -1,8 +1,8 @@
 ### Color Scheme
 
-Wezterm ships with the full set of over 200 color schemes available from
-[iterm2colorschemes.com](https://iterm2colorschemes.com/).  You can select a
-color scheme with a line like this:
+WezTerm ships with the full set of over 200 color schemes available from
+[iTerm2-Color-Schemes](https://github.com/mbadolato/iTerm2-Color-Schemes#screenshots).
+You can select a color scheme with a line like this:
 
 ```lua
 return {
@@ -11,7 +11,7 @@ return {
 ```
 
 There are literally too many schemes to reasonably list here; check out the
-screenshots on [iterm2colorschemes.com](https://iterm2colorschemes.com/)!
+[screenshots](https://github.com/mbadolato/iTerm2-Color-Schemes#screenshots)!
 
 The `color_scheme` option takes precedence over the `colors` section below.
 
