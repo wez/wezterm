@@ -1,0 +1,11 @@
+# Banana Blueberry
+[colors]
+foreground = "#cccccc"
+background = "#191323"
+cursor_bg = "#e07d13"
+cursor_fg = "#ffffff"
+selection_bg = "#220525"
+selection_fg = "#f4f4f4"
+
+ansi = ["#17141f","#ff6b7f","#00bd9c","#e6c62f","#22e8df","#dc396a","#56b6c2","#f1f1f1"]
+brights = ["#495162","#fe9ea1","#98c379","#f9e46b","#91fff4","#da70d6","#bcf3ff","#ffffff"]

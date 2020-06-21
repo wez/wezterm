@@ -1,0 +1,11 @@
+# Rouge 2
+[colors]
+foreground = "#a2a3aa"
+background = "#17182b"
+cursor_bg = "#969e92"
+cursor_fg = "#ffffff"
+selection_bg = "#5d5d6b"
+selection_fg = "#dfe5ee"
+
+ansi = ["#5d5d6b","#c6797e","#969e92","#dbcdab","#6e94b9","#4c4e78","#8ab6c1","#e8e8ea"]
+brights = ["#616274","#c6797e","#e6dcc4","#e6dcc4","#98b3cd","#8283a1","#abcbd3","#e8e8ea"]

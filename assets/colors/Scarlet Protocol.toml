@@ -1,0 +1,11 @@
+# Scarlet Protocol
+[colors]
+foreground = "#e41951"
+background = "#1c153d"
+cursor_bg = "#76ff9f"
+cursor_fg = "#ffffff"
+selection_bg = "#c1deff"
+selection_fg = "#000000"
+
+ansi = ["#101116","#ff0051","#00dc84","#faf945","#0271b6","#ca30c7","#00c5c7","#c7c7c7"]
+brights = ["#686868","#ff6e67","#5ffa68","#fffc67","#6871ff","#bd35ec","#60fdff","#ffffff"]

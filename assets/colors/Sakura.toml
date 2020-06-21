@@ -1,0 +1,11 @@
+# Sakura
+[colors]
+foreground = "#dd7bdc"
+background = "#18131e"
+cursor_bg = "#ff65fd"
+cursor_fg = "#24242e"
+selection_bg = "#c05cbf"
+selection_fg = "#24242e"
+
+ansi = ["#000000","#d52370","#41af1a","#bc7053","#6964ab","#c71fbf","#939393","#998eac"]
+brights = ["#786d69","#f41d99","#22e529","#f59574","#9892f1","#e90cdd","#eeeeee","#cbb6ff"]

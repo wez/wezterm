@@ -1,0 +1,11 @@
+# Django
+[colors]
+foreground = "#f8f8f8"
+background = "#0b2f20"
+cursor_bg = "#336442"
+cursor_fg = "#f8f8f8"
+selection_bg = "#245032"
+selection_fg = "#f8f8f8"
+
+ansi = ["#000000","#fd6209","#41a83e","#ffe862","#245032","#f8f8f8","#9df39f","#ffffff"]
+brights = ["#323232","#ff943b","#73da70","#ffff94","#568264","#ffffff","#cfffd1","#ffffff"]

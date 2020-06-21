@@ -1,0 +1,11 @@
+# Mirage
+[colors]
+foreground = "#a6b2c0"
+background = "#1b2738"
+cursor_bg = "#ddb3ff"
+cursor_fg = "#ffffff"
+selection_bg = "#273951"
+selection_fg = "#d3dbe5"
+
+ansi = ["#011627","#ff9999","#85cc95","#ffd700","#7fb5ff","#ddb3ff","#21c7a8","#ffffff"]
+brights = ["#575656","#ff9999","#85cc95","#ffd700","#7fb5ff","#ddb3ff","#85cc95","#ffffff"]
