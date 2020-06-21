@@ -94,6 +94,10 @@ impl Tab for LocalTab {
         self.terminal.borrow_mut().erase_scrollback();
     }
 
+    fn focus_changed(&self, focused: bool) {
+        self.terminal.borrow_mut().focus_changed(focused);
+    }
+
     fn is_mouse_grabbed(&self) -> bool {
         self.terminal.borrow().is_mouse_grabbed()
     }

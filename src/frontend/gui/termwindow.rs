@@ -320,6 +320,10 @@ impl WindowCallbacks for TermWindow {
 
         // force cursor to be repainted
         self.window.as_ref().unwrap().invalidate();
+
+        if let Some(tab) = self.get_active_tab_or_overlay() {
+            tab.focus_changed(focused);
+        }
     }
 
     fn mouse_event(&mut self, event: &MouseEvent, context: &dyn WindowOps) {
@@ -1216,10 +1220,19 @@ impl TermWindow {
             tab_idx as usize
         };
 
+        if let Some(tab) = self.get_active_tab_or_overlay() {
+            tab.focus_changed(false);
+        }
+
         if tab_idx < max {
             window.set_active(tab_idx);
 
             drop(window);
+
+            if let Some(tab) = self.get_active_tab_or_overlay() {
+                tab.focus_changed(false);
+            }
+
             self.update_title();
             self.update_scrollbar();
         }

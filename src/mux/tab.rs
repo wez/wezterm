@@ -102,6 +102,9 @@ pub trait Tab: Downcast {
 
     fn erase_scrollback(&self) {}
 
+    /// Called to advise on whether this tab has focus
+    fn focus_changed(&self, _focused: bool) {}
+
     /// Performs a search.
     /// If the result is empty then there are no matches.
     /// Otherwise, the result shall contain all possible matches.

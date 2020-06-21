@@ -10,7 +10,8 @@ daily) from the master branch.  It may not be usable and
 the feature set may change.  As features stabilize some
 brief notes about them may accumulate here.
 
-* Not yet
+* Added support for DECSET 1004 Focus Reporting to local
+  (not multiplexer) terminal sessions.
 
 ### 20200620-160318-e00b076c
 

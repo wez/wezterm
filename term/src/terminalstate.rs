@@ -261,6 +261,7 @@ pub struct TerminalState {
 
     /// Movement events enabled
     any_event_mouse: bool,
+    focus_tracking: bool,
     /// SGR style mouse tracking and reporting is enabled
     sgr_mouse: bool,
     mouse_tracking: bool,
@@ -360,6 +361,7 @@ impl TerminalState {
             color_map,
             application_keypad: false,
             bracketed_paste: false,
+            focus_tracking: false,
             sgr_mouse: false,
             any_event_mouse: false,
             button_event_mouse: false,
@@ -657,6 +659,13 @@ impl TerminalState {
     /// GUI application to decide about fragmenting a large paste.
     pub fn bracketed_paste_enabled(&self) -> bool {
         self.bracketed_paste
+    }
+
+    /// Advise the terminal about a change in its focus state
+    pub fn focus_changed(&mut self, focused: bool) {
+        if self.focus_tracking {
+            write!(self.writer, "{}{}", CSI, if focused { "I" } else { "O" }).ok();
+        }
     }
 
     /// Send text to the terminal that is the result of pasting.
@@ -1666,9 +1675,11 @@ impl TerminalState {
                 self.any_event_mouse = false;
             }
 
-            Mode::SetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::FocusTracking))
-            | Mode::ResetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::FocusTracking)) => {
-                // FocusTracking is not supported
+            Mode::SetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::FocusTracking)) => {
+                self.focus_tracking = true;
+            }
+            Mode::ResetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::FocusTracking)) => {
+                self.focus_tracking = false;
             }
 
             Mode::SetDecPrivateMode(DecPrivateMode::Code(DecPrivateModeCode::SGRMouse)) => {
@@ -2739,6 +2750,7 @@ impl<'a> Performer<'a> {
                 self.dec_ansi_mode = false;
                 self.application_keypad = false;
                 self.bracketed_paste = false;
+                self.focus_tracking = false;
                 self.sgr_mouse = false;
                 self.any_event_mouse = false;
                 self.button_event_mouse = false;
