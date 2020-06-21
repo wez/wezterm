@@ -29,7 +29,9 @@ impl Display for ColorOrQuery {
 pub enum OperatingSystemCommand {
     SetIconNameAndWindowTitle(String),
     SetWindowTitle(String),
+    SetWindowTitleSun(String),
     SetIconName(String),
+    SetIconNameSun(String),
     SetHyperlink(Option<Hyperlink>),
     ClearSelection(Selection),
     QuerySelection(Selection),
@@ -246,8 +248,24 @@ impl OperatingSystemCommand {
     fn internal_parse(osc: &[&[u8]]) -> anyhow::Result<Self> {
         ensure!(!osc.is_empty(), "no params");
         let p1str = String::from_utf8_lossy(osc[0]);
-        let osc_code =
-            OperatingSystemCommandCode::from_code(&p1str).ok_or_else(|| anyhow!("unknown code"))?;
+
+        if p1str.is_empty() {
+            bail!("zero length osc");
+        }
+
+        // Ugh, this is to handle "OSC ltitle" which is a legacyish
+        // OSC for encoding a window title change request.  These days
+        // OSC 2 is preferred for this purpose, but we need to support
+        // generating and parsing the legacy form because it is the
+        // response for the CSI ReportWindowTitle.
+        // So, for non-numeric OSCs, we look up the prefix and use that.
+        // This only works if the non-numeric OSC code has length == 1.
+        let osc_code = if !p1str.chars().nth(0).unwrap().is_ascii_digit() && osc.len() == 1 {
+            OperatingSystemCommandCode::from_code(&p1str[0..1])
+        } else {
+            OperatingSystemCommandCode::from_code(&p1str)
+        }
+        .ok_or_else(|| anyhow!("unknown code"))?;
 
         macro_rules! single_string {
             ($variant:ident) => {{
@@ -264,7 +282,14 @@ impl OperatingSystemCommand {
         match osc_code {
             SetIconNameAndWindowTitle => single_string!(SetIconNameAndWindowTitle),
             SetWindowTitle => single_string!(SetWindowTitle),
+            SetWindowTitleSun => Ok(OperatingSystemCommand::SetWindowTitleSun(
+                p1str[1..].to_owned(),
+            )),
+
             SetIconName => single_string!(SetIconName),
+            SetIconNameSun => Ok(OperatingSystemCommand::SetIconNameSun(
+                p1str[1..].to_owned(),
+            )),
             SetHyperlink => Ok(OperatingSystemCommand::SetHyperlink(Hyperlink::parse(osc)?)),
             ManipulateSelectionData => Self::parse_selection(osc),
             SystemNotification => single_string!(SystemNotification),
@@ -384,6 +409,11 @@ osc_entries!(
     ResetHighlightForegroundColor = "119",
     RxvtProprietary = "777",
     ITermProprietary = "1337",
+    /// Here the "Sun" suffix comes from the table in
+    /// <https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-Miscellaneous>
+    /// that lays out various window related escape sequences.
+    SetWindowTitleSun = "l",
+    SetIconNameSun = "L",
 );
 
 struct OscMap {
@@ -410,21 +440,31 @@ impl Display for OperatingSystemCommand {
         write!(f, "\x1b]")?;
 
         macro_rules! single_string {
-            ($variant:ident, $s:expr) => {
-                write!(
-                    f,
-                    "{};{}",
-                    OperatingSystemCommandCode::$variant.as_code(),
-                    $s
-                )?
-            };
+            ($variant:ident, $s:expr) => {{
+                let code = OperatingSystemCommandCode::$variant.as_code();
+                match OperatingSystemCommandCode::$variant {
+                    OperatingSystemCommandCode::SetWindowTitleSun
+                    | OperatingSystemCommandCode::SetIconNameSun => {
+                        // For the legacy sun terminals, the `l` and `L` OSCs are
+                        // not separated by `;`.
+                        write!(f, "{}{}", code, $s)?;
+                    }
+                    _ => {
+                        // In the common case, the OSC is numeric and is separated
+                        // from the rest of the string
+                        write!(f, "{};{}", code, $s)?;
+                    }
+                }
+            }};
         };
 
         use self::OperatingSystemCommand::*;
         match self {
             SetIconNameAndWindowTitle(title) => single_string!(SetIconNameAndWindowTitle, title),
             SetWindowTitle(title) => single_string!(SetWindowTitle, title),
+            SetWindowTitleSun(title) => single_string!(SetWindowTitleSun, title),
             SetIconName(title) => single_string!(SetIconName, title),
+            SetIconNameSun(title) => single_string!(SetIconNameSun, title),
             SetHyperlink(Some(link)) => link.fmt(f)?,
             SetHyperlink(None) => write!(f, "8;;")?,
             Unspecified(v) => {
@@ -917,6 +957,13 @@ mod test {
         assert_eq!(
             parse(&["0", "1", "2"], "\x1b]0;1;2\x1b\\"),
             OperatingSystemCommand::Unspecified(vec![b"0".to_vec(), b"1".to_vec(), b"2".to_vec()])
+        );
+
+        // parsing legacy sun OSC; why bother? This format is used in response
+        // to the CSI ReportWindowTitle sequence
+        assert_eq!(
+            parse(&["lhello"], "\x1b]lhello\x1b\\"),
+            OperatingSystemCommand::SetWindowTitleSun("hello".into())
         );
     }
 

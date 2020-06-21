@@ -1810,6 +1810,15 @@ impl TerminalState {
                 write!(self.writer, "{}", CSI::Window(response)).ok();
             }
 
+            Window::ReportWindowTitle => {
+                write!(
+                    self.writer,
+                    "{}",
+                    OperatingSystemCommand::SetWindowTitleSun(self.title.clone())
+                )
+                .ok();
+            }
+
             Window::ChecksumRectangularArea {
                 request_id,
                 top,
@@ -2777,10 +2786,11 @@ impl<'a> Performer<'a> {
         self.flush_print();
         match osc {
             OperatingSystemCommand::SetIconNameAndWindowTitle(title)
+            | OperatingSystemCommand::SetWindowTitleSun(title)
             | OperatingSystemCommand::SetWindowTitle(title) => {
                 self.title = title.clone();
             }
-            OperatingSystemCommand::SetIconName(_) => {}
+            OperatingSystemCommand::SetIconNameSun(_) | OperatingSystemCommand::SetIconName(_) => {}
             OperatingSystemCommand::SetHyperlink(link) => {
                 self.set_hyperlink(link);
             }
