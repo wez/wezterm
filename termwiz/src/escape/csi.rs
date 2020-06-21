@@ -1094,6 +1094,7 @@ pub enum Sgr {
     Font(Font),
     Foreground(ColorSpec),
     Background(ColorSpec),
+    Overline(bool),
 }
 
 impl Display for Sgr {
@@ -1135,6 +1136,8 @@ impl Display for Sgr {
             Sgr::Invisible(false) => code!(InvisibleOff),
             Sgr::StrikeThrough(true) => code!(StrikeThroughOn),
             Sgr::StrikeThrough(false) => code!(StrikeThroughOff),
+            Sgr::Overline(true) => code!(OverlineOn),
+            Sgr::Overline(false) => code!(OverlineOff),
             Sgr::Font(Font::Default) => code!(DefaultFont),
             Sgr::Font(Font::Alternate(1)) => code!(AltFont1),
             Sgr::Font(Font::Alternate(2)) => code!(AltFont2),
@@ -1873,6 +1876,8 @@ impl<'a> CSIParser<'a> {
                     SgrCode::InvisibleOff => one!(Sgr::Invisible(false)),
                     SgrCode::StrikeThroughOn => one!(Sgr::StrikeThrough(true)),
                     SgrCode::StrikeThroughOff => one!(Sgr::StrikeThrough(false)),
+                    SgrCode::OverlineOn => one!(Sgr::Overline(true)),
+                    SgrCode::OverlineOff => one!(Sgr::Overline(false)),
                     SgrCode::DefaultFont => one!(Sgr::Font(Font::Default)),
                     SgrCode::AltFont1 => one!(Sgr::Font(Font::Alternate(1))),
                     SgrCode::AltFont2 => one!(Sgr::Font(Font::Alternate(2))),
@@ -1940,6 +1945,8 @@ pub enum SgrCode {
     BackgroundCyan = 46,
     BackgroundWhite = 47,
     BackgroundDefault = 49,
+    OverlineOn = 53,
+    OverlineOff = 55,
 
     ForegroundBrightBlack = 90,
     ForegroundBrightRed = 91,

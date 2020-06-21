@@ -158,6 +158,7 @@ impl CellAttributes {
     bitfield!(strikethrough, set_strikethrough, 8);
     bitfield!(invisible, set_invisible, 9);
     bitfield!(wrapped, set_wrapped, 10);
+    bitfield!(overline, set_overline, 11);
 
     /// Returns true if the attribute bits in both objects are equal.
     /// This can be used to cheaply test whether the styles of the two

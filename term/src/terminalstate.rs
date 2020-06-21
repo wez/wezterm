@@ -2386,6 +2386,9 @@ impl TerminalState {
             Sgr::Underline(underline) => {
                 self.pen.set_underline(underline);
             }
+            Sgr::Overline(overline) => {
+                self.pen.set_overline(overline);
+            }
             Sgr::Blink(blink) => {
                 self.pen.set_blink(blink);
             }
