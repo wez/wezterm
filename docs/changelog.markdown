@@ -12,6 +12,8 @@ brief notes about them may accumulate here.
 
 * Added support for DECSET 1004 Focus Reporting to local
   (not multiplexer) terminal sessions.
+* Added support for SGR 53/55 which enable/disable Overline style.
+  `printf "\x1b[53moverline\x1b[0m\n"`
 
 ### 20200620-160318-e00b076c
 

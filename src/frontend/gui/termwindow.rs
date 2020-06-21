@@ -2390,6 +2390,7 @@ impl TermWindow {
                         is_highlited_hyperlink,
                         attrs.strikethrough(),
                         attrs.underline(),
+                        attrs.overline(),
                     )
                     .texture_coords();
 
@@ -2692,6 +2693,7 @@ impl TermWindow {
                             is_highlited_hyperlink,
                             attrs.strikethrough(),
                             underline,
+                            attrs.overline(),
                         );
                         ctx.draw_image(
                             cell_rect.origin,

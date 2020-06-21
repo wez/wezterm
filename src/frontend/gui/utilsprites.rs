@@ -58,6 +58,12 @@ pub struct UtilSprites<T: Texture2d> {
     pub cursor_box: Sprite<T>,
     pub cursor_i_beam: Sprite<T>,
     pub cursor_underline: Sprite<T>,
+    pub overline: Sprite<T>,
+    pub single_under_over: Sprite<T>,
+    pub double_under_over: Sprite<T>,
+    pub strike_over: Sprite<T>,
+    pub single_strike_over: Sprite<T>,
+    pub double_strike_over: Sprite<T>,
 }
 
 impl<T: Texture2d> UtilSprites<T> {
@@ -141,17 +147,50 @@ impl<T: Texture2d> UtilSprites<T> {
             }
         };
 
+        let draw_overline = |buffer: &mut Image| {
+            for row in 0..metrics.underline_height {
+                buffer.draw_line(
+                    Point::new(cell_rect.origin.x, cell_rect.origin.y + row),
+                    Point::new(
+                        cell_rect.origin.x + metrics.cell_size.width,
+                        cell_rect.origin.y + row,
+                    ),
+                    white,
+                    Operator::Source,
+                );
+            }
+        };
+
+        buffer.clear_rect(cell_rect, black);
+        draw_overline(&mut buffer);
+        let overline = glyph_cache.atlas.allocate(&buffer)?;
+
         buffer.clear_rect(cell_rect, black);
         draw_single(&mut buffer);
         let single_underline = glyph_cache.atlas.allocate(&buffer)?;
+
+        buffer.clear_rect(cell_rect, black);
+        draw_overline(&mut buffer);
+        draw_single(&mut buffer);
+        let single_under_over = glyph_cache.atlas.allocate(&buffer)?;
 
         buffer.clear_rect(cell_rect, black);
         draw_double(&mut buffer);
         let double_underline = glyph_cache.atlas.allocate(&buffer)?;
 
         buffer.clear_rect(cell_rect, black);
+        draw_overline(&mut buffer);
+        draw_double(&mut buffer);
+        let double_under_over = glyph_cache.atlas.allocate(&buffer)?;
+
+        buffer.clear_rect(cell_rect, black);
         draw_strike(&mut buffer);
         let strike_through = glyph_cache.atlas.allocate(&buffer)?;
+
+        buffer.clear_rect(cell_rect, black);
+        draw_overline(&mut buffer);
+        draw_strike(&mut buffer);
+        let strike_over = glyph_cache.atlas.allocate(&buffer)?;
 
         buffer.clear_rect(cell_rect, black);
         draw_single(&mut buffer);
@@ -159,9 +198,21 @@ impl<T: Texture2d> UtilSprites<T> {
         let single_and_strike = glyph_cache.atlas.allocate(&buffer)?;
 
         buffer.clear_rect(cell_rect, black);
+        draw_overline(&mut buffer);
+        draw_single(&mut buffer);
+        draw_strike(&mut buffer);
+        let single_strike_over = glyph_cache.atlas.allocate(&buffer)?;
+
+        buffer.clear_rect(cell_rect, black);
         draw_double(&mut buffer);
         draw_strike(&mut buffer);
         let double_and_strike = glyph_cache.atlas.allocate(&buffer)?;
+
+        buffer.clear_rect(cell_rect, black);
+        draw_overline(&mut buffer);
+        draw_double(&mut buffer);
+        draw_strike(&mut buffer);
+        let double_strike_over = glyph_cache.atlas.allocate(&buffer)?;
 
         // Derive a width for the border box from the underline height,
         // but aspect ratio adjusted for width.
@@ -265,6 +316,12 @@ impl<T: Texture2d> UtilSprites<T> {
             cursor_box,
             cursor_i_beam,
             cursor_underline,
+            overline,
+            single_under_over,
+            double_under_over,
+            strike_over,
+            single_strike_over,
+            double_strike_over,
         })
     }
 
@@ -276,20 +333,39 @@ impl<T: Texture2d> UtilSprites<T> {
         is_highlited_hyperlink: bool,
         is_strike_through: bool,
         underline: Underline,
+        overline: bool,
     ) -> &Sprite<T> {
-        match (is_highlited_hyperlink, is_strike_through, underline) {
-            (true, false, Underline::None) => &self.single_underline,
-            (true, false, Underline::Single) => &self.double_underline,
-            (true, false, Underline::Double) => &self.single_underline,
-            (true, true, Underline::None) => &self.strike_through,
-            (true, true, Underline::Single) => &self.single_and_strike,
-            (true, true, Underline::Double) => &self.double_and_strike,
-            (false, false, Underline::None) => &self.white_space,
-            (false, false, Underline::Single) => &self.single_underline,
-            (false, false, Underline::Double) => &self.double_underline,
-            (false, true, Underline::None) => &self.strike_through,
-            (false, true, Underline::Single) => &self.single_and_strike,
-            (false, true, Underline::Double) => &self.double_and_strike,
+        match (
+            is_highlited_hyperlink,
+            is_strike_through,
+            underline,
+            overline,
+        ) {
+            (true, false, Underline::None, false) => &self.single_underline,
+            (true, false, Underline::Single, false) => &self.double_underline,
+            (true, false, Underline::Double, false) => &self.single_underline,
+            (true, true, Underline::None, false) => &self.strike_through,
+            (true, true, Underline::Single, false) => &self.single_and_strike,
+            (true, true, Underline::Double, false) => &self.double_and_strike,
+            (false, false, Underline::None, false) => &self.white_space,
+            (false, false, Underline::Single, false) => &self.single_underline,
+            (false, false, Underline::Double, false) => &self.double_underline,
+            (false, true, Underline::None, false) => &self.strike_through,
+            (false, true, Underline::Single, false) => &self.single_and_strike,
+            (false, true, Underline::Double, false) => &self.double_and_strike,
+
+            (true, false, Underline::None, true) => &self.single_under_over,
+            (true, false, Underline::Single, true) => &self.double_under_over,
+            (true, false, Underline::Double, true) => &self.single_under_over,
+            (true, true, Underline::None, true) => &self.strike_over,
+            (true, true, Underline::Single, true) => &self.single_strike_over,
+            (true, true, Underline::Double, true) => &self.double_strike_over,
+            (false, false, Underline::None, true) => &self.overline,
+            (false, false, Underline::Single, true) => &self.single_under_over,
+            (false, false, Underline::Double, true) => &self.double_under_over,
+            (false, true, Underline::None, true) => &self.strike_over,
+            (false, true, Underline::Single, true) => &self.single_strike_over,
+            (false, true, Underline::Double, true) => &self.double_strike_over,
         }
     }
 
