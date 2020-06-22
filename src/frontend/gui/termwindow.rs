@@ -2955,16 +2955,19 @@ impl TermWindow {
         };
 
         let mut state = self.tab_state(tab_id);
-        state.viewport = pos;
+        if pos != state.viewport {
+            state.viewport = pos;
 
-        // This is a bit gross.  If we add other overlays that need this information,
-        // this should get extracted out into a trait
-        if let Some(overlay) = state.overlay.as_ref() {
-            if let Some(search_overlay) = overlay.downcast_ref::<SearchOverlay>() {
-                search_overlay.viewport_changed(pos);
-            } else if let Some(copy) = overlay.downcast_ref::<CopyOverlay>() {
-                copy.viewport_changed(pos);
+            // This is a bit gross.  If we add other overlays that need this information,
+            // this should get extracted out into a trait
+            if let Some(overlay) = state.overlay.as_ref() {
+                if let Some(search_overlay) = overlay.downcast_ref::<SearchOverlay>() {
+                    search_overlay.viewport_changed(pos);
+                } else if let Some(copy) = overlay.downcast_ref::<CopyOverlay>() {
+                    copy.viewport_changed(pos);
+                }
             }
+            self.window.as_ref().unwrap().invalidate();
         }
     }
 

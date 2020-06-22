@@ -81,13 +81,15 @@ impl SearchOverlay {
 
     pub fn viewport_changed(&self, viewport: Option<StableRowIndex>) {
         let mut render = self.renderer.borrow_mut();
-        if let Some(last) = render.last_bar_pos.take() {
-            render.dirty_results.add(last);
+        if render.viewport != viewport {
+            if let Some(last) = render.last_bar_pos.take() {
+                render.dirty_results.add(last);
+            }
+            if let Some(pos) = viewport.as_ref() {
+                render.dirty_results.add(*pos);
+            }
+            render.viewport = viewport;
         }
-        if let Some(pos) = viewport.as_ref() {
-            render.dirty_results.add(*pos);
-        }
-        render.viewport = viewport;
     }
 }
 
