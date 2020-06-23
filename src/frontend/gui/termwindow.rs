@@ -1207,6 +1207,10 @@ impl TermWindow {
     }
 
     fn activate_tab(&mut self, tab_idx: isize) -> anyhow::Result<()> {
+        if let Some(tab) = self.get_active_tab_or_overlay() {
+            tab.focus_changed(false);
+        }
+
         let mux = Mux::get().unwrap();
         let mut window = mux
             .get_window_mut(self.mux_window_id)
@@ -1220,17 +1224,13 @@ impl TermWindow {
             tab_idx as usize
         };
 
-        if let Some(tab) = self.get_active_tab_or_overlay() {
-            tab.focus_changed(false);
-        }
-
         if tab_idx < max {
             window.set_active(tab_idx);
 
             drop(window);
 
             if let Some(tab) = self.get_active_tab_or_overlay() {
-                tab.focus_changed(false);
+                tab.focus_changed(true);
             }
 
             self.update_title();
