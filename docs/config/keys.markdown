@@ -95,8 +95,8 @@ The default key bindings are:
 | `CTRL`      | `=`      | `IncreaseFontSize` |
 | `SUPER`     | `0`      | `ResetFontSize` |
 | `CTRL`      | `0`      | `ResetFontSize` |
-| `SUPER`     | `t`      | `SpawnTab="CurrentTabDomain"` |
-| `CTRL+SHIFT`     | `t`      | `SpawnTab="CurrentTabDomain"` |
+| `SUPER`     | `t`      | `SpawnTab="CurrentPaneDomain"` |
+| `CTRL+SHIFT`     | `t`      | `SpawnTab="CurrentPaneDomain"` |
 | `SUPER+SHIFT` | `T`    | `SpawnTab="DefaultDomain"` |
 | `SUPER`     | `w`      | `CloseCurrentTab` |
 | `SUPER`     | `1`      | `ActivateTab=0` |
@@ -284,7 +284,7 @@ return {
     -- Create a new tab in the default domain
     {key="t", mods="SHIFT|ALT", action=wezterm.action{SpawnTab="DefaultDomain"}},
     -- Create a new tab in the same domain as the current tab
-    {key="t", mods="SHIFT|ALT", action=wezterm.action{SpawnTab="CurrentTabDomain"}},
+    {key="t", mods="SHIFT|ALT", action=wezterm.action{SpawnTab="CurrentPaneDomain"}},
     -- Create a tab in a named domain
     {key="t", mods="SHIFT|ALT", action=wezterm.action{SpawnTab={DomainName="unix"}}},
   }

@@ -7,7 +7,7 @@ use crate::font::FontConfiguration;
 use crate::frontend::front_end;
 use crate::mux::domain::{alloc_domain_id, Domain, DomainId, DomainState};
 use crate::mux::renderable::Renderable;
-use crate::mux::tab::{alloc_tab_id, Tab, TabId};
+use crate::mux::tab::{alloc_pane_id, Pane, PaneId, Tab};
 use crate::mux::window::WindowId;
 use crate::mux::Mux;
 use anyhow::{bail, Error};
@@ -51,8 +51,8 @@ impl Domain for TermWizTerminalDomain {
         _command: Option<CommandBuilder>,
         _command_dir: Option<String>,
         _window: WindowId,
-    ) -> anyhow::Result<Rc<dyn Tab>> {
-        bail!("cannot spawn tabs in a TermWizTerminalTab");
+    ) -> anyhow::Result<Rc<Tab>> {
+        bail!("cannot spawn tabs in a TermWizTerminalPane");
     }
 
     fn spawnable(&self) -> bool {
@@ -79,8 +79,8 @@ impl Domain for TermWizTerminalDomain {
     }
 }
 
-pub struct TermWizTerminalTab {
-    tab_id: TabId,
+pub struct TermWizTerminalPane {
+    pane_id: PaneId,
     domain_id: DomainId,
     terminal: RefCell<wezterm_term::Terminal>,
     input_tx: Sender<InputEvent>,
@@ -89,7 +89,7 @@ pub struct TermWizTerminalTab {
     render_rx: FileDescriptor,
 }
 
-impl TermWizTerminalTab {
+impl TermWizTerminalPane {
     fn new(
         domain_id: DomainId,
         width: usize,
@@ -97,7 +97,7 @@ impl TermWizTerminalTab {
         input_tx: Sender<InputEvent>,
         render_rx: FileDescriptor,
     ) -> Self {
-        let tab_id = alloc_tab_id();
+        let pane_id = alloc_pane_id();
 
         let terminal = RefCell::new(wezterm_term::Terminal::new(
             height,
@@ -111,7 +111,7 @@ impl TermWizTerminalTab {
         ));
 
         Self {
-            tab_id,
+            pane_id,
             domain_id,
             terminal,
             writer: RefCell::new(Vec::new()),
@@ -122,9 +122,9 @@ impl TermWizTerminalTab {
     }
 }
 
-impl Tab for TermWizTerminalTab {
-    fn tab_id(&self) -> TabId {
-        self.tab_id
+impl Pane for TermWizTerminalPane {
+    fn pane_id(&self) -> PaneId {
+        self.pane_id
     }
 
     fn renderer(&self) -> RefMut<dyn Renderable> {
@@ -304,11 +304,11 @@ impl termwiz::terminal::Terminal for TermWizTerminal {
     }
 
     fn enter_alternate_screen(&mut self) -> anyhow::Result<()> {
-        bail!("TermWizTerminalTab has no alt screen");
+        bail!("TermWizTerminalPane has no alt screen");
     }
 
     fn exit_alternate_screen(&mut self) -> anyhow::Result<()> {
-        bail!("TermWizTerminalTab has no alt screen");
+        bail!("TermWizTerminalPane has no alt screen");
     }
 
     fn get_screen_size(&mut self) -> anyhow::Result<ScreenSize> {
@@ -316,7 +316,7 @@ impl termwiz::terminal::Terminal for TermWizTerminal {
     }
 
     fn set_screen_size(&mut self, _size: ScreenSize) -> anyhow::Result<()> {
-        bail!("TermWizTerminalTab cannot set screen size");
+        bail!("TermWizTerminalPane cannot set screen size");
     }
 
     fn render(&mut self, changes: &[Change]) -> anyhow::Result<()> {
@@ -346,7 +346,7 @@ impl termwiz::terminal::Terminal for TermWizTerminal {
     }
 }
 
-pub fn allocate(width: usize, height: usize) -> (TermWizTerminal, Rc<dyn Tab>) {
+pub fn allocate(width: usize, height: usize) -> (TermWizTerminal, Rc<dyn Pane>) {
     let render_pipe = Pipe::new().expect("Pipe creation not to fail");
 
     let (input_tx, input_rx) = channel();
@@ -368,14 +368,15 @@ pub fn allocate(width: usize, height: usize) -> (TermWizTerminal, Rc<dyn Tab>) {
     };
 
     let domain_id = 0;
-    let tab = TermWizTerminalTab::new(domain_id, width, height, input_tx, render_pipe.read);
+    let pane = TermWizTerminalPane::new(domain_id, width, height, input_tx, render_pipe.read);
 
     // Add the tab to the mux so that the output is processed
-    let tab: Rc<dyn Tab> = Rc::new(tab);
-    let mux = Mux::get().unwrap();
-    mux.add_tab(&tab).expect("to be able to add tab to mux");
+    let pane: Rc<dyn Pane> = Rc::new(pane);
 
-    (tw_term, tab)
+    let mux = Mux::get().unwrap();
+    mux.add_pane(&pane).expect("to be able to add pane to mux");
+
+    (tw_term, pane)
 }
 
 fn new_wezterm_terminfo_renderer() -> TerminfoRenderer {
@@ -445,8 +446,11 @@ pub async fn run<
 
         let window_id = mux.new_empty_window();
 
-        let tab = TermWizTerminalTab::new(domain.domain_id(), width, height, input_tx, render_rx);
-        let tab: Rc<dyn Tab> = Rc::new(tab);
+        let pane = TermWizTerminalPane::new(domain.domain_id(), width, height, input_tx, render_rx);
+        let pane: Rc<dyn Pane> = Rc::new(pane);
+
+        let tab = Rc::new(Tab::new());
+        tab.assign_pane(&pane);
 
         mux.add_tab(&tab)?;
         mux.add_tab_to_window(&tab, window_id)?;

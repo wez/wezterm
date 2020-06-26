@@ -922,6 +922,10 @@ fn run() -> anyhow::Result<()> {
                             alignment: Alignment::Right,
                         },
                         Column {
+                            name: "PANEID".to_string(),
+                            alignment: Alignment::Right,
+                        },
+                        Column {
                             name: "SIZE".to_string(),
                             alignment: Alignment::Left,
                         },
@@ -940,6 +944,7 @@ fn run() -> anyhow::Result<()> {
                         data.push(vec![
                             entry.window_id.to_string(),
                             entry.tab_id.to_string(),
+                            entry.pane_id.to_string(),
                             format!("{}x{}", entry.size.cols, entry.size.rows),
                             entry.title.clone(),
                             entry

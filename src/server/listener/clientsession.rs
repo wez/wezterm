@@ -38,7 +38,7 @@ impl<S: ReadAndWrite> ClientSession<S> {
 
     fn process(&mut self) -> Result<(), Error> {
         let mut read_buffer = Vec::with_capacity(1024);
-        let mut tabs_to_output = HashSet::new();
+        let mut panes_to_output = HashSet::new();
 
         loop {
             loop {
@@ -56,15 +56,15 @@ impl<S: ReadAndWrite> ClientSession<S> {
                 match self.mux_rx.try_recv() {
                     Ok(notif) => match notif {
                         // Coalesce multiple TabOutputs for the same tab
-                        MuxNotification::TabOutput(tab_id) => tabs_to_output.insert(tab_id),
+                        MuxNotification::PaneOutput(pane_id) => panes_to_output.insert(pane_id),
                     },
                     Err(TryRecvError::Empty) => break,
                     Err(TryRecvError::Disconnected) => bail!("mux_rx is Disconnected"),
                 };
             }
 
-            for tab_id in tabs_to_output.drain() {
-                self.handler.schedule_tab_push(tab_id);
+            for pane_id in panes_to_output.drain() {
+                self.handler.schedule_pane_push(pane_id);
             }
 
             let mut poll_array = [

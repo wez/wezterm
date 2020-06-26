@@ -1,7 +1,7 @@
 use crate::connui::ConnectionUI;
-use crate::localtab::LocalTab;
+use crate::localtab::LocalPane;
 use crate::mux::domain::{alloc_domain_id, Domain, DomainId, DomainState};
-use crate::mux::tab::Tab;
+use crate::mux::tab::{Pane, Tab};
 use crate::mux::window::WindowId;
 use crate::mux::Mux;
 use anyhow::{anyhow, bail, Context, Error};
@@ -241,7 +241,7 @@ impl Domain for RemoteSshDomain {
         command: Option<CommandBuilder>,
         _command_dir: Option<String>,
         window: WindowId,
-    ) -> Result<Rc<dyn Tab>, Error> {
+    ) -> Result<Rc<Tab>, Error> {
         let cmd = match command {
             Some(c) => c,
             None => CommandBuilder::new_default_prog(),
@@ -264,7 +264,9 @@ impl Domain for RemoteSshDomain {
         );
 
         let mux = Mux::get().unwrap();
-        let tab: Rc<dyn Tab> = Rc::new(LocalTab::new(terminal, child, pair.master, self.id));
+        let pane: Rc<dyn Pane> = Rc::new(LocalPane::new(terminal, child, pair.master, self.id));
+        let tab = Rc::new(Tab::new());
+        tab.assign_pane(&pane);
 
         mux.add_tab(&tab)?;
         mux.add_tab_to_window(&tab, window)?;

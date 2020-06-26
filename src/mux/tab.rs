@@ -5,7 +5,8 @@ use async_trait::async_trait;
 use downcast_rs::{impl_downcast, Downcast};
 use portable_pty::PtySize;
 use serde::{Deserialize, Serialize};
-use std::cell::RefMut;
+use std::cell::{RefCell, RefMut};
+use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use url::Url;
 use wezterm_term::color::ColorPalette;
@@ -14,14 +15,17 @@ use wezterm_term::{Clipboard, KeyCode, KeyModifiers, MouseEvent, StableRowIndex}
 static TAB_ID: ::std::sync::atomic::AtomicUsize = ::std::sync::atomic::AtomicUsize::new(0);
 pub type TabId = usize;
 
-pub fn alloc_tab_id() -> TabId {
-    TAB_ID.fetch_add(1, ::std::sync::atomic::Ordering::Relaxed)
+static PANE_ID: ::std::sync::atomic::AtomicUsize = ::std::sync::atomic::AtomicUsize::new(0);
+pub type PaneId = usize;
+
+pub fn alloc_pane_id() -> PaneId {
+    PANE_ID.fetch_add(1, ::std::sync::atomic::Ordering::Relaxed)
 }
 
 const PASTE_CHUNK_SIZE: usize = 1024;
 
 struct Paste {
-    tab_id: TabId,
+    pane_id: PaneId,
     text: String,
     offset: usize,
 }
@@ -31,12 +35,12 @@ fn schedule_next_paste(paste: &Arc<Mutex<Paste>>) {
     promise::spawn::spawn(async move {
         let mut locked = paste.lock().unwrap();
         let mux = Mux::get().unwrap();
-        let tab = mux.get_tab(locked.tab_id).unwrap();
+        let pane = mux.get_pane(locked.pane_id).unwrap();
 
         let remain = locked.text.len() - locked.offset;
         let chunk = remain.min(PASTE_CHUNK_SIZE);
         let text_slice = &locked.text[locked.offset..locked.offset + chunk];
-        tab.send_paste(text_slice).unwrap();
+        pane.send_paste(text_slice).unwrap();
 
         if chunk < remain {
             // There is more to send
@@ -84,9 +88,46 @@ pub struct SearchResult {
     pub end_x: usize,
 }
 
+/// A Tab is a container of Panes
+/// At this time only a single pane is supported
+pub struct Tab {
+    id: TabId,
+    pane: RefCell<Option<Rc<dyn Pane>>>,
+}
+
+impl Tab {
+    pub fn new() -> Self {
+        Self {
+            id: TAB_ID.fetch_add(1, ::std::sync::atomic::Ordering::Relaxed),
+            pane: RefCell::new(None),
+        }
+    }
+
+    pub fn tab_id(&self) -> TabId {
+        self.id
+    }
+
+    pub fn is_dead(&self) -> bool {
+        if let Some(pane) = self.get_active_pane() {
+            pane.is_dead()
+        } else {
+            true
+        }
+    }
+
+    pub fn get_active_pane(&self) -> Option<Rc<dyn Pane>> {
+        self.pane.borrow().as_ref().map(Rc::clone)
+    }
+
+    pub fn assign_pane(&self, pane: &Rc<dyn Pane>) {
+        self.pane.borrow_mut().replace(Rc::clone(pane));
+    }
+}
+
+/// A Pane represents a view on a terminal
 #[async_trait(?Send)]
-pub trait Tab: Downcast {
-    fn tab_id(&self) -> TabId;
+pub trait Pane: Downcast {
+    fn pane_id(&self) -> PaneId;
     fn renderer(&self) -> RefMut<dyn Renderable>;
     fn get_title(&self) -> String;
     fn send_paste(&self, text: &str) -> anyhow::Result<()>;
@@ -131,7 +172,7 @@ pub trait Tab: Downcast {
             self.send_paste(&text[0..PASTE_CHUNK_SIZE])?;
 
             let paste = Arc::new(Mutex::new(Paste {
-                tab_id: self.tab_id(),
+                pane_id: self.pane_id(),
                 text,
                 offset: PASTE_CHUNK_SIZE,
             }));
@@ -140,4 +181,4 @@ pub trait Tab: Downcast {
         Ok(())
     }
 }
-impl_downcast!(Tab);
+impl_downcast!(Pane);

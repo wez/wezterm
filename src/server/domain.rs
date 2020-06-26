@@ -3,12 +3,12 @@ use crate::connui::ConnectionUI;
 use crate::font::FontConfiguration;
 use crate::frontend::front_end;
 use crate::mux::domain::{alloc_domain_id, Domain, DomainId, DomainState};
-use crate::mux::tab::{Tab, TabId};
+use crate::mux::tab::{Pane, PaneId, Tab, TabId};
 use crate::mux::window::WindowId;
 use crate::mux::Mux;
 use crate::server::client::Client;
 use crate::server::codec::{ListTabsResponse, Spawn};
-use crate::server::tab::ClientTab;
+use crate::server::tab::ClientPane;
 use anyhow::{anyhow, bail};
 use async_trait::async_trait;
 use portable_pty::{CommandBuilder, PtySize};
@@ -24,6 +24,7 @@ pub struct ClientInner {
     pub remote_domain_id: DomainId,
     remote_to_local_window: Mutex<HashMap<WindowId, WindowId>>,
     remote_to_local_tab: Mutex<HashMap<TabId, TabId>>,
+    remote_to_local_pane: Mutex<HashMap<PaneId, PaneId>>,
 }
 
 impl ClientInner {
@@ -56,27 +57,51 @@ impl ClientInner {
         None
     }
 
-    pub fn remove_old_tab_mapping(&self, remote_tab_id: TabId) {
-        let mut tab_map = self.remote_to_local_tab.lock().unwrap();
-        tab_map.remove(&remote_tab_id);
-    }
+    pub fn remote_to_local_pane_id(&self, remote_pane_id: PaneId) -> Option<TabId> {
+        let mut pane_map = self.remote_to_local_pane.lock().unwrap();
 
-    pub fn remote_to_local_tab_id(&self, remote_tab_id: TabId) -> Option<TabId> {
-        let mut tab_map = self.remote_to_local_tab.lock().unwrap();
-
-        if let Some(id) = tab_map.get(&remote_tab_id) {
+        if let Some(id) = pane_map.get(&remote_pane_id) {
             return Some(*id);
         }
 
         let mux = Mux::get().unwrap();
 
-        for tab in mux.iter_tabs() {
-            if let Some(tab) = tab.downcast_ref::<ClientTab>() {
-                if tab.remote_tab_id() == remote_tab_id {
-                    let local_tab_id = tab.tab_id();
-                    tab_map.insert(remote_tab_id, local_tab_id);
-                    return Some(local_tab_id);
+        for pane in mux.iter_panes() {
+            if let Some(pane) = pane.downcast_ref::<ClientPane>() {
+                if pane.remote_pane_id() == remote_pane_id {
+                    let local_pane_id = pane.pane_id();
+                    pane_map.insert(remote_pane_id, local_pane_id);
+                    return Some(local_pane_id);
                 }
+            }
+        }
+        None
+    }
+    pub fn remove_old_pane_mapping(&self, remote_pane_id: PaneId) {
+        let mut pane_map = self.remote_to_local_pane.lock().unwrap();
+        pane_map.remove(&remote_pane_id);
+    }
+
+    pub fn remove_old_tab_mapping(&self, remote_tab_id: TabId) {
+        let mut tab_map = self.remote_to_local_tab.lock().unwrap();
+        tab_map.remove(&remote_tab_id);
+    }
+
+    fn record_remote_to_local_tab_mapping(&self, remote_tab_id: TabId, local_tab_id: TabId) {
+        let mut map = self.remote_to_local_tab.lock().unwrap();
+        map.insert(remote_tab_id, local_tab_id);
+        log::info!(
+            "record_remote_to_local_tab_mapping: {} -> {}",
+            remote_tab_id,
+            local_tab_id
+        );
+    }
+
+    pub fn remote_to_local_tab_id(&self, remote_tab_id: TabId) -> Option<TabId> {
+        let map = self.remote_to_local_tab.lock().unwrap();
+        for (remote, local) in map.iter() {
+            if *remote == remote_tab_id {
+                return Some(*local);
             }
         }
         None
@@ -131,6 +156,7 @@ impl ClientInner {
             remote_domain_id,
             remote_to_local_window: Mutex::new(HashMap::new()),
             remote_to_local_tab: Mutex::new(HashMap::new()),
+            remote_to_local_pane: Mutex::new(HashMap::new()),
         }
     }
 }
@@ -165,9 +191,9 @@ impl ClientDomain {
         mux.domain_was_detached(self.local_domain_id);
     }
 
-    pub fn remote_to_local_tab_id(&self, remote_tab_id: TabId) -> Option<TabId> {
+    pub fn remote_to_local_pane_id(&self, remote_pane_id: TabId) -> Option<TabId> {
         let inner = self.inner()?;
-        inner.remote_to_local_tab_id(remote_tab_id)
+        inner.remote_to_local_pane_id(remote_pane_id)
     }
 
     pub fn get_client_inner_for_domain(domain_id: DomainId) -> anyhow::Result<Arc<ClientInner>> {
@@ -215,28 +241,47 @@ impl ClientDomain {
                         // removed it from the mux.  Let's add it back, but
                         // with a new id.
                         inner.remove_old_tab_mapping(entry.tab_id);
-                        tab = Rc::new(ClientTab::new(
+                        tab = Rc::new(Tab::new());
+                        inner.record_remote_to_local_tab_mapping(entry.tab_id, tab.tab_id());
+                    }
+                };
+            } else {
+                tab = Rc::new(Tab::new());
+                inner.record_remote_to_local_tab_mapping(entry.tab_id, tab.tab_id());
+            }
+
+            if let Some(pane_id) = inner.remote_to_local_pane_id(entry.pane_id) {
+                match mux.get_pane(pane_id) {
+                    Some(_pane) => {}
+                    None => {
+                        // We likely decided that we hit EOF on the tab and
+                        // removed it from the mux.  Let's add it back, but
+                        // with a new id.
+                        inner.remove_old_pane_mapping(entry.pane_id);
+                        let pane: Rc<dyn Pane> = Rc::new(ClientPane::new(
                             &inner,
-                            entry.tab_id,
+                            entry.pane_id,
                             entry.size,
                             &entry.title,
                         ));
-                        mux.add_tab(&tab)?;
+                        tab.assign_pane(&pane);
+                        mux.add_pane(&pane)?;
                     }
                 };
             } else {
                 log::info!(
-                    "attaching to remote tab {} in remote window {} {}",
-                    entry.tab_id,
+                    "attaching to remote pane {} in remote window {} {}",
+                    entry.pane_id,
                     entry.window_id,
                     entry.title
                 );
-                tab = Rc::new(ClientTab::new(
+                let pane: Rc<dyn Pane> = Rc::new(ClientPane::new(
                     &inner,
-                    entry.tab_id,
+                    entry.pane_id,
                     entry.size,
                     &entry.title,
                 ));
+                tab.assign_pane(&pane);
                 mux.add_tab(&tab)?;
             }
 
@@ -306,7 +351,7 @@ impl Domain for ClientDomain {
         command: Option<CommandBuilder>,
         command_dir: Option<String>,
         window: WindowId,
-    ) -> anyhow::Result<Rc<dyn Tab>> {
+    ) -> anyhow::Result<Rc<Tab>> {
         let inner = self
             .inner()
             .ok_or_else(|| anyhow!("domain is not attached"))?;
@@ -326,7 +371,10 @@ impl Domain for ClientDomain {
 
             result.tab_id
         };
-        let tab: Rc<dyn Tab> = Rc::new(ClientTab::new(&inner, remote_tab_id, size, "wezterm"));
+        let pane: Rc<dyn Pane> = Rc::new(ClientPane::new(&inner, remote_tab_id, size, "wezterm"));
+        let tab = Rc::new(Tab::new());
+        tab.assign_pane(&pane);
+
         let mux = Mux::get().unwrap();
         mux.add_tab(&tab)?;
         mux.add_tab_to_window(&tab, window)?;

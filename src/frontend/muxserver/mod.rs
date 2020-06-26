@@ -66,7 +66,7 @@ impl FrontEnd for MuxServerFrontEnd {
     fn spawn_new_window(
         &self,
         _fontconfig: &Rc<FontConfiguration>,
-        _tab: &Rc<dyn Tab>,
+        _tab: &Rc<Tab>,
         _window_id: WindowId,
     ) -> anyhow::Result<()> {
         Ok(())

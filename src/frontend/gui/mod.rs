@@ -74,7 +74,7 @@ impl FrontEnd for GuiFrontEnd {
     fn spawn_new_window(
         &self,
         fontconfig: &Rc<FontConfiguration>,
-        tab: &Rc<dyn Tab>,
+        tab: &Rc<Tab>,
         window_id: MuxWindowId,
     ) -> anyhow::Result<()> {
         termwindow::TermWindow::new_window(&configuration(), fontconfig, tab, window_id)

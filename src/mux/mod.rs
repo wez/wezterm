@@ -1,3 +1,4 @@
+use crate::mux::tab::{Pane, PaneId};
 use crate::mux::tab::{Tab, TabId};
 use crate::mux::window::{Window, WindowId};
 use crate::ratelim::RateLimiter;
@@ -22,7 +23,7 @@ pub mod window;
 
 #[derive(Clone, Debug)]
 pub enum MuxNotification {
-    TabOutput(TabId),
+    PaneOutput(PaneId),
 }
 
 static SUB_ID: AtomicUsize = AtomicUsize::new(0);
@@ -30,7 +31,8 @@ static SUB_ID: AtomicUsize = AtomicUsize::new(0);
 pub type MuxSubscriber = PollableReceiver<MuxNotification>;
 
 pub struct Mux {
-    tabs: RefCell<HashMap<TabId, Rc<dyn Tab>>>,
+    tabs: RefCell<HashMap<TabId, Rc<Tab>>>,
+    panes: RefCell<HashMap<PaneId, Rc<dyn Pane>>>,
     windows: RefCell<HashMap<WindowId, Window>>,
     default_domain: RefCell<Option<Arc<dyn Domain>>>,
     domains: RefCell<HashMap<DomainId, Arc<dyn Domain>>>,
@@ -38,7 +40,7 @@ pub struct Mux {
     subscribers: RefCell<HashMap<usize, PollableSender<MuxNotification>>>,
 }
 
-fn read_from_tab_pty(tab_id: TabId, mut reader: Box<dyn std::io::Read>) {
+fn read_from_pane_pty(pane_id: PaneId, mut reader: Box<dyn std::io::Read>) {
     const BUFSIZE: usize = 32 * 1024;
     let mut buf = [0; BUFSIZE];
 
@@ -47,11 +49,11 @@ fn read_from_tab_pty(tab_id: TabId, mut reader: Box<dyn std::io::Read>) {
     loop {
         match reader.read(&mut buf) {
             Ok(size) if size == 0 => {
-                error!("read_pty EOF: tab_id {}", tab_id);
+                error!("read_pty EOF: pane_id {}", pane_id);
                 break;
             }
             Err(err) => {
-                error!("read_pty failed: tab {} {:?}", tab_id, err);
+                error!("read_pty failed: pane {} {:?}", pane_id, err);
                 break;
             }
             Ok(size) => {
@@ -66,9 +68,9 @@ fn read_from_tab_pty(tab_id: TabId, mut reader: Box<dyn std::io::Read>) {
                             pos += len;
                             promise::spawn::spawn_into_main_thread_with_low_priority(async move {
                                 let mux = Mux::get().unwrap();
-                                if let Some(tab) = mux.get_tab(tab_id) {
-                                    tab.advance_bytes(&data);
-                                    mux.notify(MuxNotification::TabOutput(tab_id));
+                                if let Some(pane) = mux.get_pane(pane_id) {
+                                    pane.advance_bytes(&data);
+                                    mux.notify(MuxNotification::PaneOutput(pane_id));
                                 }
                             });
                         }
@@ -83,7 +85,7 @@ fn read_from_tab_pty(tab_id: TabId, mut reader: Box<dyn std::io::Read>) {
     }
     promise::spawn::spawn_into_main_thread(async move {
         let mux = Mux::get().unwrap();
-        mux.remove_tab(tab_id);
+        mux.remove_pane(pane_id);
     });
 }
 
@@ -106,6 +108,7 @@ impl Mux {
 
         Self {
             tabs: RefCell::new(HashMap::new()),
+            panes: RefCell::new(HashMap::new()),
             windows: RefCell::new(HashMap::new()),
             default_domain: RefCell::new(default_domain),
             domains_by_name: RefCell::new(domains_by_name),
@@ -178,18 +181,36 @@ impl Mux {
         res
     }
 
-    pub fn get_tab(&self, tab_id: TabId) -> Option<Rc<dyn Tab>> {
+    pub fn get_pane(&self, pane_id: PaneId) -> Option<Rc<dyn Pane>> {
+        self.panes.borrow().get(&pane_id).map(Rc::clone)
+    }
+
+    pub fn get_tab(&self, tab_id: TabId) -> Option<Rc<Tab>> {
         self.tabs.borrow().get(&tab_id).map(Rc::clone)
     }
 
-    pub fn add_tab(&self, tab: &Rc<dyn Tab>) -> Result<(), Error> {
-        self.tabs.borrow_mut().insert(tab.tab_id(), Rc::clone(tab));
-
-        let reader = tab.reader()?;
-        let tab_id = tab.tab_id();
-        thread::spawn(move || read_from_tab_pty(tab_id, reader));
-
+    pub fn add_pane(&self, pane: &Rc<dyn Pane>) -> Result<(), Error> {
+        self.panes
+            .borrow_mut()
+            .insert(pane.pane_id(), Rc::clone(pane));
+        let reader = pane.reader()?;
+        let pane_id = pane.pane_id();
+        thread::spawn(move || read_from_pane_pty(pane_id, reader));
         Ok(())
+    }
+
+    pub fn add_tab(&self, tab: &Rc<Tab>) -> Result<(), Error> {
+        self.tabs.borrow_mut().insert(tab.tab_id(), Rc::clone(tab));
+        let pane = tab
+            .get_active_pane()
+            .ok_or_else(|| anyhow!("tab MUST have an active pane"))?;
+        self.add_pane(&pane)
+    }
+
+    pub fn remove_pane(&self, pane_id: TabId) {
+        debug!("removing pane {}", pane_id);
+        self.panes.borrow_mut().remove(&pane_id);
+        self.prune_dead_windows();
     }
 
     pub fn remove_tab(&self, tab_id: TabId) {
@@ -218,6 +239,17 @@ impl Mux {
 
         for tab_id in dead_tab_ids {
             self.tabs.borrow_mut().remove(&tab_id);
+        }
+
+        let dead_pane_ids: Vec<TabId> = self
+            .panes
+            .borrow()
+            .iter()
+            .filter_map(|(&id, pane)| if pane.is_dead() { Some(id) } else { None })
+            .collect();
+
+        for pane_id in dead_pane_ids {
+            self.panes.borrow_mut().remove(&pane_id);
         }
 
         for window_id in dead_windows {
@@ -253,7 +285,7 @@ impl Mux {
         }))
     }
 
-    pub fn get_active_tab_for_window(&self, window_id: WindowId) -> Option<Rc<dyn Tab>> {
+    pub fn get_active_tab_for_window(&self, window_id: WindowId) -> Option<Rc<Tab>> {
         let window = self.get_window(window_id)?;
         window.get_active().map(Rc::clone)
     }
@@ -265,7 +297,7 @@ impl Mux {
         window_id
     }
 
-    pub fn add_tab_to_window(&self, tab: &Rc<dyn Tab>, window_id: WindowId) -> anyhow::Result<()> {
+    pub fn add_tab_to_window(&self, tab: &Rc<Tab>, window_id: WindowId) -> anyhow::Result<()> {
         let mut window = self
             .get_window_mut(window_id)
             .ok_or_else(|| anyhow!("add_tab_to_window: no such window_id {}", window_id))?;
@@ -277,8 +309,8 @@ impl Mux {
         self.tabs.borrow().is_empty()
     }
 
-    pub fn iter_tabs(&self) -> Vec<Rc<dyn Tab>> {
-        self.tabs
+    pub fn iter_panes(&self) -> Vec<Rc<dyn Pane>> {
+        self.panes
             .borrow()
             .iter()
             .map(|(_, v)| Rc::clone(v))
@@ -294,9 +326,9 @@ impl Mux {
     }
 
     pub fn domain_was_detached(&self, domain: DomainId) {
-        self.tabs
+        self.panes
             .borrow_mut()
-            .retain(|_tab_id, tab| tab.domain_id() != domain);
+            .retain(|_pane_id, pane| pane.domain_id() != domain);
         // Ideally we'd do this here, but that seems to cause problems
         // at the moment:
         // self.prune_dead_windows();

@@ -1,5 +1,5 @@
 use crate::frontend::gui::termwindow::TermWindow;
-use crate::mux::tab::{Tab, TabId};
+use crate::mux::tab::{Pane, Tab, TabId};
 use crate::termwiztermtab::{allocate, TermWizTerminal};
 use std::pin::Pin;
 use std::rc::Rc;
@@ -16,10 +16,10 @@ pub use tabnavigator::tab_navigator;
 
 pub fn start_overlay<T, F>(
     term_window: &TermWindow,
-    tab: &Rc<dyn Tab>,
+    tab: &Rc<Tab>,
     func: F,
 ) -> (
-    Rc<dyn Tab>,
+    Rc<dyn Pane>,
     Pin<Box<dyn std::future::Future<Output = Option<anyhow::Result<T>>>>>,
 )
 where
@@ -27,7 +27,9 @@ where
     F: Send + 'static + FnOnce(TabId, TermWizTerminal) -> anyhow::Result<T>,
 {
     let tab_id = tab.tab_id();
-    let dims = tab.renderer().get_dimensions();
+    let pane = tab.get_active_pane().expect("tab to have pane");
+    // TODO: our overlay should overlap the overall contents of the pane
+    let dims = pane.renderer().get_dimensions();
     let (tw_term, tw_tab) = allocate(dims.cols, dims.viewport_rows);
 
     let window = term_window.window.clone().unwrap();

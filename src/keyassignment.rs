@@ -29,7 +29,7 @@ pub enum SpawnTabDomain {
     /// Use the default domain
     DefaultDomain,
     /// Use the domain from the current tab in the associated window
-    CurrentTabDomain,
+    CurrentPaneDomain,
     /// Use a specific domain by id
     Domain(DomainId),
     /// Use a specific domain by name
@@ -38,7 +38,7 @@ pub enum SpawnTabDomain {
 
 impl Default for SpawnTabDomain {
     fn default() -> Self {
-        Self::CurrentTabDomain
+        Self::CurrentPaneDomain
     }
 }
 
@@ -187,17 +187,17 @@ impl InputMap {
                 [
                     KeyModifiers::SUPER,
                     KeyCode::Char('t'),
-                    SpawnTab(SpawnTabDomain::CurrentTabDomain)
+                    SpawnTab(SpawnTabDomain::CurrentPaneDomain)
                 ],
                 [
                     ctrl_shift,
                     KeyCode::Char('T'),
-                    SpawnTab(SpawnTabDomain::CurrentTabDomain)
+                    SpawnTab(SpawnTabDomain::CurrentPaneDomain)
                 ],
                 [
                     KeyModifiers::SUPER | KeyModifiers::SHIFT,
                     KeyCode::Char('T'),
-                    SpawnTab(SpawnTabDomain::CurrentTabDomain)
+                    SpawnTab(SpawnTabDomain::CurrentPaneDomain)
                 ],
                 [KeyModifiers::SUPER, KeyCode::Char('1'), ActivateTab(0)],
                 [KeyModifiers::SUPER, KeyCode::Char('2'), ActivateTab(1)],

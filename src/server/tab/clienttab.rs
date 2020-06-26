@@ -1,7 +1,7 @@
 use crate::config::configuration;
 use crate::mux::domain::DomainId;
 use crate::mux::renderable::{Renderable, RenderableDimensions};
-use crate::mux::tab::{alloc_tab_id, Pattern, SearchResult, Tab, TabId};
+use crate::mux::tab::{alloc_pane_id, Pane, Pattern, SearchResult, TabId};
 use crate::ratelim::RateLimiter;
 use crate::server::codec::*;
 use crate::server::domain::ClientInner;
@@ -21,33 +21,33 @@ use url::Url;
 use wezterm_term::color::ColorPalette;
 use wezterm_term::{Clipboard, KeyCode, KeyModifiers, MouseEvent};
 
-pub struct ClientTab {
+pub struct ClientPane {
     client: Arc<ClientInner>,
-    local_tab_id: TabId,
-    remote_tab_id: TabId,
+    local_pane_id: TabId,
+    remote_pane_id: TabId,
     pub renderable: RefCell<RenderableState>,
-    writer: RefCell<TabWriter>,
+    writer: RefCell<PaneWriter>,
     reader: Pipe,
     mouse: Rc<RefCell<MouseState>>,
     clipboard: RefCell<Option<Arc<dyn Clipboard>>>,
     mouse_grabbed: RefCell<bool>,
 }
 
-impl ClientTab {
+impl ClientPane {
     pub fn new(
         client: &Arc<ClientInner>,
-        remote_tab_id: TabId,
+        remote_pane_id: TabId,
         size: PtySize,
         title: &str,
     ) -> Self {
-        let local_tab_id = alloc_tab_id();
-        let writer = TabWriter {
+        let local_pane_id = alloc_pane_id();
+        let writer = PaneWriter {
             client: Arc::clone(client),
-            remote_tab_id,
+            remote_pane_id,
         };
 
         let mouse = Rc::new(RefCell::new(MouseState::new(
-            remote_tab_id,
+            remote_pane_id,
             client.client.clone(),
         )));
 
@@ -57,8 +57,8 @@ impl ClientTab {
         let render = RenderableState {
             inner: RefCell::new(RenderableInner::new(
                 client,
-                remote_tab_id,
-                local_tab_id,
+                remote_pane_id,
+                local_pane_id,
                 RenderableDimensions {
                     cols: size.cols as _,
                     viewport_rows: size.rows as _,
@@ -76,8 +76,8 @@ impl ClientTab {
         Self {
             client: Arc::clone(client),
             mouse,
-            remote_tab_id,
-            local_tab_id,
+            remote_pane_id,
+            local_pane_id,
             renderable: RefCell::new(render),
             writer: RefCell::new(writer),
             reader,
@@ -88,7 +88,7 @@ impl ClientTab {
 
     pub fn process_unilateral(&self, pdu: Pdu) -> anyhow::Result<()> {
         match pdu {
-            Pdu::GetTabRenderChangesResponse(delta) => {
+            Pdu::GetPaneRenderChangesResponse(delta) => {
                 *self.mouse_grabbed.borrow_mut() = delta.mouse_grabbed;
                 self.renderable
                     .borrow()
@@ -102,7 +102,7 @@ impl ClientTab {
                         clip.set_contents(clipboard)?;
                     }
                     None => {
-                        log::error!("ClientTab: Ignoring SetClipboard request {:?}", clipboard);
+                        log::error!("ClientPane: Ignoring SetClipboard request {:?}", clipboard);
                     }
                 }
             }
@@ -111,15 +111,15 @@ impl ClientTab {
         Ok(())
     }
 
-    pub fn remote_tab_id(&self) -> TabId {
-        self.remote_tab_id
+    pub fn remote_pane_id(&self) -> TabId {
+        self.remote_pane_id
     }
 }
 
 #[async_trait(?Send)]
-impl Tab for ClientTab {
-    fn tab_id(&self) -> TabId {
-        self.local_tab_id
+impl Pane for ClientPane {
+    fn pane_id(&self) -> TabId {
+        self.local_pane_id
     }
     fn renderer(&self) -> RefMut<dyn Renderable> {
         self.renderable.borrow_mut()
@@ -137,7 +137,7 @@ impl Tab for ClientTab {
 
     fn send_paste(&self, text: &str) -> anyhow::Result<()> {
         let client = Arc::clone(&self.client);
-        let remote_tab_id = self.remote_tab_id;
+        let remote_pane_id = self.remote_pane_id;
         self.renderable
             .borrow()
             .inner
@@ -149,7 +149,7 @@ impl Tab for ClientTab {
             client
                 .client
                 .send_paste(SendPaste {
-                    tab_id: remote_tab_id,
+                    pane_id: remote_pane_id,
                     data,
                 })
                 .await
@@ -163,7 +163,7 @@ impl Tab for ClientTab {
     }
 
     fn reader(&self) -> anyhow::Result<Box<dyn std::io::Read + Send>> {
-        info!("made reader for ClientTab");
+        info!("made reader for ClientPane");
         Ok(Box::new(self.reader.read.try_clone()?))
     }
 
@@ -186,12 +186,12 @@ impl Tab for ClientTab {
             inner.make_all_stale();
 
             let client = Arc::clone(&self.client);
-            let remote_tab_id = self.remote_tab_id;
+            let remote_pane_id = self.remote_pane_id;
             promise::spawn::spawn(async move {
                 client
                     .client
                     .resize(Resize {
-                        tab_id: remote_tab_id,
+                        pane_id: remote_pane_id,
                         size,
                     })
                     .await
@@ -205,13 +205,13 @@ impl Tab for ClientTab {
         match self
             .client
             .client
-            .search_scrollback(SearchTabScrollbackRequest {
-                tab_id: self.remote_tab_id,
+            .search_scrollback(SearchScrollbackRequest {
+                pane_id: self.remote_pane_id,
                 pattern,
             })
             .await
         {
-            Ok(SearchTabScrollbackResponse { results }) => Ok(results),
+            Ok(SearchScrollbackResponse { results }) => Ok(results),
             Err(e) => Err(e),
         }
     }
@@ -226,12 +226,12 @@ impl Tab for ClientTab {
             inner.predict_from_key_event(key, mods);
         }
         let client = Arc::clone(&self.client);
-        let remote_tab_id = self.remote_tab_id;
+        let remote_pane_id = self.remote_pane_id;
         promise::spawn::spawn(async move {
             client
                 .client
                 .key_down(SendKeyDown {
-                    tab_id: remote_tab_id,
+                    pane_id: remote_pane_id,
                     event: KeyEvent {
                         key,
                         modifiers: mods,
@@ -261,7 +261,7 @@ impl Tab for ClientTab {
     }
 
     fn advance_bytes(&self, _buf: &[u8]) {
-        panic!("ClientTab::advance_bytes not impl");
+        panic!("ClientPane::advance_bytes not impl");
     }
 
     fn is_dead(&self) -> bool {
@@ -309,15 +309,15 @@ impl Tab for ClientTab {
     }
 }
 
-struct TabWriter {
+struct PaneWriter {
     client: Arc<ClientInner>,
-    remote_tab_id: TabId,
+    remote_pane_id: TabId,
 }
 
-impl std::io::Write for TabWriter {
+impl std::io::Write for PaneWriter {
     fn write(&mut self, data: &[u8]) -> Result<usize, std::io::Error> {
-        promise::spawn::block_on(self.client.client.write_to_tab(WriteToTab {
-            tab_id: self.remote_tab_id,
+        promise::spawn::block_on(self.client.client.write_to_pane(WriteToPane {
+            pane_id: self.remote_pane_id,
             data: data.to_vec(),
         }))
         .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, format!("{}", e)))?;

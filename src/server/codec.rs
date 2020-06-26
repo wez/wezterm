@@ -13,7 +13,7 @@
 
 use crate::mux::domain::DomainId;
 use crate::mux::renderable::{RenderableDimensions, StableCursorPosition};
-use crate::mux::tab::TabId;
+use crate::mux::tab::{PaneId, TabId};
 use crate::mux::window::WindowId;
 use anyhow::{bail, Context as _, Error};
 use leb128;
@@ -246,7 +246,7 @@ macro_rules! pdu {
 /// The overall version of the codec.
 /// This must be bumped when backwards incompatible changes
 /// are made to the types and protocol.
-pub const CODEC_VERSION: usize = 4;
+pub const CODEC_VERSION: usize = 5;
 
 // Defines the Pdu enum.
 // Each struct has an explicit identifying number.
@@ -260,7 +260,7 @@ pdu! {
     ListTabsResponse: 4,
     Spawn: 7,
     SpawnResponse: 8,
-    WriteToTab: 9,
+    WriteToPane: 9,
     UnitResponse: 10,
     SendKeyDown: 11,
     SendMouseEvent: 12,
@@ -269,15 +269,15 @@ pdu! {
     SetClipboard: 20,
     GetLines: 22,
     GetLinesResponse: 23,
-    GetTabRenderChanges: 24,
-    GetTabRenderChangesResponse: 25,
+    GetPaneRenderChanges: 24,
+    GetPaneRenderChangesResponse: 25,
     GetCodecVersion: 26,
     GetCodecVersionResponse: 27,
     GetTlsCreds: 28,
     GetTlsCredsResponse: 29,
-    TabLivenessResponse: 30,
-    SearchTabScrollbackRequest: 31,
-    SearchTabScrollbackResponse: 32,
+    LivenessResponse: 30,
+    SearchScrollbackRequest: 31,
+    SearchScrollbackResponse: 32,
 }
 
 impl Pdu {
@@ -347,12 +347,12 @@ impl Pdu {
         }
     }
 
-    pub fn tab_id(&self) -> Option<TabId> {
+    pub fn pane_id(&self) -> Option<PaneId> {
         match self {
-            Pdu::GetTabRenderChangesResponse(GetTabRenderChangesResponse { tab_id, .. }) => {
-                Some(*tab_id)
+            Pdu::GetPaneRenderChangesResponse(GetPaneRenderChangesResponse { pane_id, .. }) => {
+                Some(*pane_id)
             }
-            Pdu::SetClipboard(SetClipboard { tab_id, .. }) => Some(*tab_id),
+            Pdu::SetClipboard(SetClipboard { pane_id, .. }) => Some(*pane_id),
             _ => None,
         }
     }
@@ -431,8 +431,10 @@ impl Into<String> for SerdeUrl {
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
 pub struct WindowAndTabEntry {
+    // FIXME: rename to WindowTabPaneEntry ?
     pub window_id: WindowId,
     pub tab_id: TabId,
+    pub pane_id: TabId,
     pub title: String,
     pub size: PtySize,
     pub working_dir: Option<SerdeUrl>,
@@ -456,24 +458,25 @@ pub struct Spawn {
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
 pub struct SpawnResponse {
     pub tab_id: TabId,
+    pub pane_id: PaneId,
     pub window_id: WindowId,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
-pub struct WriteToTab {
-    pub tab_id: TabId,
+pub struct WriteToPane {
+    pub pane_id: PaneId,
     pub data: Vec<u8>,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
 pub struct SendPaste {
-    pub tab_id: TabId,
+    pub pane_id: PaneId,
     pub data: String,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
 pub struct SendKeyDown {
-    pub tab_id: TabId,
+    pub pane_id: TabId,
     pub event: termwiz::input::KeyEvent,
     pub input_serial: InputSerial,
 }
@@ -514,36 +517,36 @@ impl Into<InputSerial> for std::time::SystemTime {
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
 pub struct SendMouseEvent {
-    pub tab_id: TabId,
+    pub pane_id: PaneId,
     pub event: wezterm_term::input::MouseEvent,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
 pub struct SetClipboard {
-    pub tab_id: TabId,
+    pub pane_id: PaneId,
     pub clipboard: Option<String>,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
 pub struct Resize {
-    pub tab_id: TabId,
+    pub pane_id: PaneId,
     pub size: PtySize,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
-pub struct GetTabRenderChanges {
-    pub tab_id: TabId,
+pub struct GetPaneRenderChanges {
+    pub pane_id: PaneId,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
-pub struct TabLivenessResponse {
-    pub tab_id: TabId,
-    pub tab_alive: bool,
+pub struct LivenessResponse {
+    pub pane_id: PaneId,
+    pub is_alive: bool,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
-pub struct GetTabRenderChangesResponse {
-    pub tab_id: TabId,
+pub struct GetPaneRenderChangesResponse {
+    pub pane_id: PaneId,
     pub mouse_grabbed: bool,
     pub cursor_position: StableCursorPosition,
     pub dimensions: RenderableDimensions,
@@ -559,7 +562,7 @@ pub struct GetTabRenderChangesResponse {
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
 pub struct GetLines {
-    pub tab_id: TabId,
+    pub pane_id: PaneId,
     pub lines: Vec<Range<StableRowIndex>>,
 }
 
@@ -696,18 +699,18 @@ impl Into<Vec<(StableRowIndex, Line)>> for SerializedLines {
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
 pub struct GetLinesResponse {
-    pub tab_id: TabId,
+    pub pane_id: PaneId,
     pub lines: SerializedLines,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
-pub struct SearchTabScrollbackRequest {
-    pub tab_id: TabId,
+pub struct SearchScrollbackRequest {
+    pub pane_id: PaneId,
     pub pattern: crate::mux::tab::Pattern,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
-pub struct SearchTabScrollbackResponse {
+pub struct SearchScrollbackResponse {
     pub results: Vec<crate::mux::tab::SearchResult>,
 }
 

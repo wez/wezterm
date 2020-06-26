@@ -2,8 +2,8 @@ use crate::frontend::gui::selection::{SelectionCoordinate, SelectionRange};
 use crate::frontend::gui::termwindow::TermWindow;
 use crate::mux::domain::DomainId;
 use crate::mux::renderable::*;
+use crate::mux::tab::{Pane, PaneId};
 use crate::mux::tab::{Pattern, SearchResult};
-use crate::mux::tab::{Tab, TabId};
 use portable_pty::PtySize;
 use rangeset::RangeSet;
 use std::cell::{RefCell, RefMut};
@@ -20,7 +20,7 @@ use window::WindowOps;
 
 pub struct SearchOverlay {
     renderer: RefCell<SearchRenderable>,
-    delegate: Rc<dyn Tab>,
+    delegate: Rc<dyn Pane>,
 }
 
 #[derive(Debug)]
@@ -30,7 +30,7 @@ struct MatchResult {
 }
 
 struct SearchRenderable {
-    delegate: Rc<dyn Tab>,
+    delegate: Rc<dyn Pane>,
     /// The text that the user entered
     pattern: Pattern,
     /// The most recently queried set of matches
@@ -50,13 +50,17 @@ struct SearchRenderable {
 }
 
 impl SearchOverlay {
-    pub fn with_tab(term_window: &TermWindow, tab: &Rc<dyn Tab>, pattern: Pattern) -> Rc<dyn Tab> {
-        let viewport = term_window.get_viewport(tab.tab_id());
-        let dims = tab.renderer().get_dimensions();
+    pub fn with_pane(
+        term_window: &TermWindow,
+        pane: &Rc<dyn Pane>,
+        pattern: Pattern,
+    ) -> Rc<dyn Pane> {
+        let viewport = term_window.get_viewport(pane.pane_id());
+        let dims = pane.renderer().get_dimensions();
 
         let window = term_window.window.clone().unwrap();
         let mut renderer = SearchRenderable {
-            delegate: Rc::clone(tab),
+            delegate: Rc::clone(pane),
             pattern,
             results: vec![],
             by_line: HashMap::new(),
@@ -75,7 +79,7 @@ impl SearchOverlay {
 
         Rc::new(SearchOverlay {
             renderer: RefCell::new(renderer),
-            delegate: Rc::clone(tab),
+            delegate: Rc::clone(pane),
         })
     }
 
@@ -93,9 +97,9 @@ impl SearchOverlay {
     }
 }
 
-impl Tab for SearchOverlay {
-    fn tab_id(&self) -> TabId {
-        self.delegate.tab_id()
+impl Pane for SearchOverlay {
+    fn pane_id(&self) -> PaneId {
+        self.delegate.pane_id()
     }
 
     fn renderer(&self) -> RefMut<dyn Renderable> {
@@ -263,15 +267,15 @@ impl SearchRenderable {
     }
 
     fn close(&self) {
-        TermWindow::schedule_cancel_overlay(self.window.clone(), self.delegate.tab_id());
+        TermWindow::schedule_cancel_overlay(self.window.clone(), self.delegate.pane_id());
     }
 
     fn set_viewport(&self, row: Option<StableRowIndex>) {
         let dims = self.delegate.renderer().get_dimensions();
-        let tab_id = self.delegate.tab_id();
+        let pane_id = self.delegate.pane_id();
         self.window.apply(move |term_window, _window| {
             if let Some(term_window) = term_window.downcast_mut::<TermWindow>() {
-                term_window.set_viewport(tab_id, row, dims);
+                term_window.set_viewport(pane_id, row, dims);
             }
             Ok(())
         });
@@ -337,20 +341,20 @@ impl SearchRenderable {
         self.dirty_results.add(bar_pos);
 
         if !self.pattern.is_empty() {
-            let tab: Rc<dyn Tab> = self.delegate.clone();
+            let pane: Rc<dyn Pane> = self.delegate.clone();
             let window = self.window.clone();
             let pattern = self.pattern.clone();
             promise::spawn::spawn(async move {
-                let mut results = tab.search(pattern).await?;
+                let mut results = pane.search(pattern).await?;
                 results.sort();
 
-                let tab_id = tab.tab_id();
+                let pane_id = pane.pane_id();
                 let mut results = Some(results);
                 window.apply(move |term_window, _window| {
                     let term_window = term_window
                         .downcast_mut::<TermWindow>()
                         .expect("to be TermWindow");
-                    let state = term_window.tab_state(tab_id);
+                    let state = term_window.pane_state(pane_id);
                     if let Some(overlay) = state.overlay.as_ref() {
                         if let Some(search_overlay) = overlay.downcast_ref::<SearchOverlay>() {
                             let mut r = search_overlay.renderer.borrow_mut();
@@ -377,10 +381,10 @@ impl SearchRenderable {
     }
 
     fn clear_selection(&mut self) {
-        let tab_id = self.delegate.tab_id();
+        let pane_id = self.delegate.pane_id();
         self.window.apply(move |term_window, _window| {
             if let Some(term_window) = term_window.downcast_mut::<TermWindow>() {
-                let mut selection = term_window.selection(tab_id);
+                let mut selection = term_window.selection(pane_id);
                 selection.start.take();
                 selection.range.take();
             }
@@ -392,10 +396,10 @@ impl SearchRenderable {
         self.result_pos.replace(n);
         let result = self.results[n].clone();
 
-        let tab_id = self.delegate.tab_id();
+        let pane_id = self.delegate.pane_id();
         self.window.apply(move |term_window, _window| {
             if let Some(term_window) = term_window.downcast_mut::<TermWindow>() {
-                let mut selection = term_window.selection(tab_id);
+                let mut selection = term_window.selection(pane_id);
                 let start = SelectionCoordinate {
                     x: result.start_x,
                     y: result.start_y,

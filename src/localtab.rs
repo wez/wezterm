@@ -1,6 +1,6 @@
 use crate::mux::domain::DomainId;
 use crate::mux::renderable::Renderable;
-use crate::mux::tab::{alloc_tab_id, Tab, TabId};
+use crate::mux::tab::{alloc_pane_id, Pane, PaneId};
 use crate::mux::tab::{Pattern, SearchResult};
 use anyhow::Error;
 use async_trait::async_trait;
@@ -11,8 +11,8 @@ use url::Url;
 use wezterm_term::color::ColorPalette;
 use wezterm_term::{Clipboard, KeyCode, KeyModifiers, MouseEvent, StableRowIndex, Terminal};
 
-pub struct LocalTab {
-    tab_id: TabId,
+pub struct LocalPane {
+    pane_id: PaneId,
     terminal: RefCell<Terminal>,
     process: RefCell<Box<dyn Child>>,
     pty: RefCell<Box<dyn MasterPty>>,
@@ -20,10 +20,9 @@ pub struct LocalTab {
 }
 
 #[async_trait(?Send)]
-impl Tab for LocalTab {
-    #[inline]
-    fn tab_id(&self) -> TabId {
-        self.tab_id
+impl Pane for LocalPane {
+    fn pane_id(&self) -> PaneId {
+        self.pane_id
     }
 
     fn renderer(&self) -> RefMut<dyn Renderable> {
@@ -34,7 +33,7 @@ impl Tab for LocalTab {
         if let Ok(None) = self.process.borrow_mut().try_wait() {
             false
         } else {
-            log::error!("is_dead: {:?}", self.tab_id);
+            log::error!("is_dead: {:?}", self.pane_id);
             true
         }
     }
@@ -213,16 +212,16 @@ impl Tab for LocalTab {
     }
 }
 
-impl LocalTab {
+impl LocalPane {
     pub fn new(
         terminal: Terminal,
         process: Box<dyn Child>,
         pty: Box<dyn MasterPty>,
         domain_id: DomainId,
     ) -> Self {
-        let tab_id = alloc_tab_id();
+        let pane_id = alloc_pane_id();
         Self {
-            tab_id,
+            pane_id,
             terminal: RefCell::new(terminal),
             process: RefCell::new(process),
             pty: RefCell::new(pty),
@@ -231,7 +230,7 @@ impl LocalTab {
     }
 }
 
-impl Drop for LocalTab {
+impl Drop for LocalPane {
     fn drop(&mut self) {
         // Avoid lingering zombies
         self.process.borrow_mut().kill().ok();

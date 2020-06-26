@@ -11,13 +11,13 @@ pub struct MouseState {
     pending: AtomicBool,
     queue: VecDeque<MouseEvent>,
     client: Client,
-    remote_tab_id: TabId,
+    remote_pane_id: TabId,
 }
 
 impl MouseState {
-    pub fn new(remote_tab_id: TabId, client: Client) -> Self {
+    pub fn new(remote_pane_id: TabId, client: Client) -> Self {
         Self {
-            remote_tab_id,
+            remote_pane_id,
             client,
             pending: AtomicBool::new(false),
             queue: VecDeque::new(),
@@ -71,12 +71,12 @@ impl MouseState {
 
             let state = Rc::clone(&state);
             mouse.pending.store(true, Ordering::SeqCst);
-            let remote_tab_id = mouse.remote_tab_id;
+            let remote_pane_id = mouse.remote_pane_id;
 
             promise::spawn::spawn(async move {
                 client
                     .mouse_event(SendMouseEvent {
-                        tab_id: remote_tab_id,
+                        pane_id: remote_pane_id,
                         event,
                     })
                     .await

@@ -2,7 +2,7 @@ use crate::frontend::gui::selection::{SelectionCoordinate, SelectionRange};
 use crate::frontend::gui::termwindow::TermWindow;
 use crate::mux::domain::DomainId;
 use crate::mux::renderable::*;
-use crate::mux::tab::{Tab, TabId};
+use crate::mux::tab::{Pane, PaneId};
 use portable_pty::PtySize;
 use rangeset::RangeSet;
 use std::cell::{RefCell, RefMut};
@@ -18,13 +18,13 @@ use wezterm_term::{
 use window::WindowOps;
 
 pub struct CopyOverlay {
-    delegate: Rc<dyn Tab>,
+    delegate: Rc<dyn Pane>,
     render: RefCell<CopyRenderable>,
 }
 
 struct CopyRenderable {
     cursor: StableCursorPosition,
-    delegate: Rc<dyn Tab>,
+    delegate: Rc<dyn Pane>,
     start: Option<SelectionCoordinate>,
     viewport: Option<StableRowIndex>,
     /// We use this to cancel ourselves later
@@ -38,20 +38,20 @@ struct Dimensions {
 }
 
 impl CopyOverlay {
-    pub fn with_tab(term_window: &TermWindow, tab: &Rc<dyn Tab>) -> Rc<dyn Tab> {
-        let mut cursor = tab.renderer().get_cursor_position();
+    pub fn with_pane(term_window: &TermWindow, pane: &Rc<dyn Pane>) -> Rc<dyn Pane> {
+        let mut cursor = pane.renderer().get_cursor_position();
         cursor.shape = termwiz::surface::CursorShape::SteadyBlock;
 
         let window = term_window.window.clone().unwrap();
         let render = CopyRenderable {
             cursor,
             window,
-            delegate: Rc::clone(tab),
+            delegate: Rc::clone(pane),
             start: None,
-            viewport: term_window.get_viewport(tab.tab_id()),
+            viewport: term_window.get_viewport(pane.pane_id()),
         };
         Rc::new(CopyOverlay {
-            delegate: Rc::clone(tab),
+            delegate: Rc::clone(pane),
             render: RefCell::new(render),
         })
     }
@@ -99,10 +99,10 @@ impl CopyRenderable {
     }
 
     fn adjust_selection(&self, start: SelectionCoordinate, range: SelectionRange) {
-        let tab_id = self.delegate.tab_id();
+        let pane_id = self.delegate.pane_id();
         self.window.apply(move |term_window, window| {
             if let Some(term_window) = term_window.downcast_mut::<TermWindow>() {
-                let mut selection = term_window.selection(tab_id);
+                let mut selection = term_window.selection(pane_id);
                 selection.start = Some(start);
                 selection.range = Some(range);
                 window.invalidate();
@@ -152,10 +152,10 @@ impl CopyRenderable {
 
     fn set_viewport(&self, row: Option<StableRowIndex>) {
         let dims = self.delegate.renderer().get_dimensions();
-        let tab_id = self.delegate.tab_id();
+        let pane_id = self.delegate.pane_id();
         self.window.apply(move |term_window, _window| {
             if let Some(term_window) = term_window.downcast_mut::<TermWindow>() {
-                term_window.set_viewport(tab_id, row, dims);
+                term_window.set_viewport(pane_id, row, dims);
             }
             Ok(())
         });
@@ -163,7 +163,7 @@ impl CopyRenderable {
 
     fn close(&self) {
         self.set_viewport(None);
-        TermWindow::schedule_cancel_overlay(self.window.clone(), self.delegate.tab_id());
+        TermWindow::schedule_cancel_overlay(self.window.clone(), self.delegate.pane_id());
     }
 
     fn page_up(&mut self) {
@@ -375,9 +375,9 @@ impl CopyRenderable {
     }
 }
 
-impl Tab for CopyOverlay {
-    fn tab_id(&self) -> TabId {
-        self.delegate.tab_id()
+impl Pane for CopyOverlay {
+    fn pane_id(&self) -> PaneId {
+        self.delegate.pane_id()
     }
 
     fn renderer(&self) -> RefMut<dyn Renderable> {

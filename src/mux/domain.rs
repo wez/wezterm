@@ -6,7 +6,8 @@
 //! of an ssh session somewhere.
 
 use crate::config::configuration;
-use crate::localtab::LocalTab;
+use crate::localtab::LocalPane;
+use crate::mux::tab::Pane;
 use crate::mux::tab::Tab;
 use crate::mux::window::WindowId;
 use crate::mux::Mux;
@@ -39,7 +40,7 @@ pub trait Domain: Downcast {
         command: Option<CommandBuilder>,
         command_dir: Option<String>,
         window: WindowId,
-    ) -> Result<Rc<dyn Tab>, Error>;
+    ) -> Result<Rc<Tab>, Error>;
 
     /// Returns false if the `spawn` method will never succeed.
     /// There are some internal placeholder domains that are
@@ -102,7 +103,7 @@ impl Domain for LocalDomain {
         command: Option<CommandBuilder>,
         command_dir: Option<String>,
         window: WindowId,
-    ) -> Result<Rc<dyn Tab>, Error> {
+    ) -> Result<Rc<Tab>, Error> {
         let config = configuration();
         let mut cmd = match command {
             Some(mut cmd) => {
@@ -138,7 +139,10 @@ impl Domain for LocalDomain {
         );
 
         let mux = Mux::get().unwrap();
-        let tab: Rc<dyn Tab> = Rc::new(LocalTab::new(terminal, child, pair.master, self.id));
+        let pane: Rc<dyn Pane> = Rc::new(LocalPane::new(terminal, child, pair.master, self.id));
+
+        let tab = Rc::new(Tab::new());
+        tab.assign_pane(&pane);
 
         mux.add_tab(&tab)?;
         mux.add_tab_to_window(&tab, window)?;

@@ -102,7 +102,7 @@ pub trait FrontEnd: Downcast {
     fn spawn_new_window(
         &self,
         fontconfig: &Rc<FontConfiguration>,
-        tab: &Rc<dyn Tab>,
+        tab: &Rc<Tab>,
         window_id: WindowId,
     ) -> anyhow::Result<()>;
 }

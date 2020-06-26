@@ -8,7 +8,7 @@ pub type WindowId = usize;
 
 pub struct Window {
     id: WindowId,
-    tabs: Vec<Rc<dyn Tab>>,
+    tabs: Vec<Rc<Tab>>,
     active: usize,
     clipboard: Option<Arc<dyn Clipboard>>,
     invalidated: bool,
@@ -33,26 +33,28 @@ impl Window {
         self.id
     }
 
-    fn check_that_tab_isnt_already_in_window(&self, tab: &Rc<dyn Tab>) {
+    fn check_that_tab_isnt_already_in_window(&self, tab: &Rc<Tab>) {
         for t in &self.tabs {
             assert_ne!(t.tab_id(), tab.tab_id(), "tab already added to this window");
         }
     }
 
-    fn assign_clipboard_to_tab(&self, tab: &Rc<dyn Tab>) {
+    fn assign_clipboard_to_tab(&self, tab: &Rc<Tab>) {
         if let Some(clip) = self.clipboard.as_ref() {
-            tab.set_clipboard(clip);
+            if let Some(pane) = tab.get_active_pane() {
+                pane.set_clipboard(clip);
+            }
         }
     }
 
-    pub fn insert(&mut self, index: usize, tab: &Rc<dyn Tab>) {
+    pub fn insert(&mut self, index: usize, tab: &Rc<Tab>) {
         self.check_that_tab_isnt_already_in_window(tab);
         self.assign_clipboard_to_tab(tab);
         self.tabs.insert(index, Rc::clone(tab));
         self.invalidated = true;
     }
 
-    pub fn push(&mut self, tab: &Rc<dyn Tab>) {
+    pub fn push(&mut self, tab: &Rc<Tab>) {
         self.check_that_tab_isnt_already_in_window(tab);
         self.assign_clipboard_to_tab(tab);
         self.tabs.push(Rc::clone(tab));
@@ -67,7 +69,7 @@ impl Window {
         self.tabs.len()
     }
 
-    pub fn get_by_idx(&self, idx: usize) -> Option<&Rc<dyn Tab>> {
+    pub fn get_by_idx(&self, idx: usize) -> Option<&Rc<Tab>> {
         self.tabs.get(idx)
     }
 
@@ -80,7 +82,7 @@ impl Window {
         None
     }
 
-    pub fn remove_by_idx(&mut self, idx: usize) -> Rc<dyn Tab> {
+    pub fn remove_by_idx(&mut self, idx: usize) -> Rc<Tab> {
         self.invalidated = true;
         self.tabs.remove(idx)
     }
@@ -104,7 +106,7 @@ impl Window {
         res
     }
 
-    pub fn get_active(&self) -> Option<&Rc<dyn Tab>> {
+    pub fn get_active(&self) -> Option<&Rc<Tab>> {
         self.get_by_idx(self.active)
     }
 
@@ -119,7 +121,7 @@ impl Window {
         self.active = idx;
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = &Rc<dyn Tab>> {
+    pub fn iter(&self) -> impl Iterator<Item = &Rc<Tab>> {
         self.tabs.iter()
     }
 
@@ -128,10 +130,14 @@ impl Window {
             .tabs
             .iter()
             .filter_map(|tab| {
-                if tab.is_dead() {
-                    Some(tab.tab_id())
+                if let Some(pane) = tab.get_active_pane() {
+                    if pane.is_dead() {
+                        return Some(tab.tab_id());
+                    } else {
+                        None
+                    }
                 } else {
-                    None
+                    Some(tab.tab_id())
                 }
             })
             .collect();

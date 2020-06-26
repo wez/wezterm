@@ -5,7 +5,7 @@ use crate::mux::Mux;
 use crate::ratelim::RateLimiter;
 use crate::server::codec::*;
 use crate::server::domain::ClientInner;
-use crate::server::tab::clienttab::ClientTab;
+use crate::server::tab::clienttab::ClientPane;
 use anyhow::anyhow;
 use lru::LruCache;
 use promise::BrokenPromise;
@@ -55,8 +55,8 @@ impl LineEntry {
 
 pub struct RenderableInner {
     client: Arc<ClientInner>,
-    remote_tab_id: TabId,
-    local_tab_id: TabId,
+    remote_pane_id: TabId,
+    local_pane_id: TabId,
     last_poll: Instant,
     pub dead: bool,
     poll_in_progress: AtomicBool,
@@ -86,8 +86,8 @@ pub struct RenderableState {
 impl RenderableInner {
     pub fn new(
         client: &Arc<ClientInner>,
-        remote_tab_id: TabId,
-        local_tab_id: TabId,
+        remote_pane_id: TabId,
+        local_pane_id: TabId,
         dimensions: RenderableDimensions,
         title: &str,
         fetch_limiter: RateLimiter,
@@ -96,8 +96,8 @@ impl RenderableInner {
 
         Self {
             client: Arc::clone(client),
-            remote_tab_id,
-            local_tab_id,
+            remote_pane_id,
+            local_pane_id,
             last_poll: now,
             dead: false,
             poll_in_progress: AtomicBool::new(false),
@@ -299,7 +299,7 @@ impl RenderableInner {
         self.poll_interval = BASE_POLL_INTERVAL;
     }
 
-    pub fn apply_changes_to_surface(&mut self, delta: GetTabRenderChangesResponse) {
+    pub fn apply_changes_to_surface(&mut self, delta: GetPaneRenderChangesResponse) {
         let now = Instant::now();
         self.poll_interval = BASE_POLL_INTERVAL;
         self.last_recv_time = now;
@@ -350,7 +350,7 @@ impl RenderableInner {
         if !dirty.is_empty() {
             Mux::get()
                 .unwrap()
-                .notify(crate::mux::MuxNotification::TabOutput(self.local_tab_id));
+                .notify(crate::mux::MuxNotification::PaneOutput(self.local_pane_id));
         }
 
         let mut to_fetch = RangeSet::new();
@@ -478,40 +478,40 @@ impl RenderableInner {
             return;
         }
 
-        let local_tab_id = self.local_tab_id;
+        let local_pane_id = self.local_pane_id;
         log::trace!(
             "will fetch lines {:?} for remote tab id {} at {:?}",
             to_fetch,
-            self.remote_tab_id,
+            self.remote_pane_id,
             now,
         );
 
         let client = Arc::clone(&self.client);
-        let remote_tab_id = self.remote_tab_id;
+        let remote_pane_id = self.remote_pane_id;
 
         promise::spawn::spawn(async move {
             let result = client
                 .client
                 .get_lines(GetLines {
-                    tab_id: remote_tab_id,
+                    pane_id: remote_pane_id,
                     lines: to_fetch.clone().into(),
                 })
                 .await;
-            Self::apply_lines(local_tab_id, result, to_fetch, now)
+            Self::apply_lines(local_pane_id, result, to_fetch, now)
         });
     }
 
     fn apply_lines(
-        local_tab_id: TabId,
+        local_pane_id: TabId,
         result: anyhow::Result<GetLinesResponse>,
         to_fetch: RangeSet<StableRowIndex>,
         now: Instant,
     ) -> anyhow::Result<()> {
         let mux = Mux::get().unwrap();
-        let tab = mux
-            .get_tab(local_tab_id)
-            .ok_or_else(|| anyhow!("no such tab {}", local_tab_id))?;
-        if let Some(client_tab) = tab.downcast_ref::<ClientTab>() {
+        let pane = mux
+            .get_pane(local_pane_id)
+            .ok_or_else(|| anyhow!("no such tab {}", local_pane_id))?;
+        if let Some(client_tab) = pane.downcast_ref::<ClientPane>() {
             let renderable = client_tab.renderable.borrow_mut();
             let mut inner = renderable.inner.borrow_mut();
 
@@ -566,18 +566,18 @@ impl RenderableInner {
 
         self.last_poll = Instant::now();
         self.poll_in_progress.store(true, Ordering::SeqCst);
-        let remote_tab_id = self.remote_tab_id;
-        let local_tab_id = self.local_tab_id;
+        let remote_pane_id = self.remote_pane_id;
+        let local_pane_id = self.local_pane_id;
         let client = Arc::clone(&self.client);
         promise::spawn::spawn(async move {
             let alive = match client
                 .client
-                .get_tab_render_changes(GetTabRenderChanges {
-                    tab_id: remote_tab_id,
+                .get_tab_render_changes(GetPaneRenderChanges {
+                    pane_id: remote_pane_id,
                 })
                 .await
             {
-                Ok(resp) => resp.tab_alive,
+                Ok(resp) => resp.is_alive,
                 // if we got a timeout on a reconnectable, don't
                 // consider the tab to be dead; that helps to
                 // avoid having a tab get shuffled around
@@ -586,9 +586,9 @@ impl RenderableInner {
 
             let mux = Mux::get().unwrap();
             let tab = mux
-                .get_tab(local_tab_id)
-                .ok_or_else(|| anyhow!("no such tab {}", local_tab_id))?;
-            if let Some(client_tab) = tab.downcast_ref::<ClientTab>() {
+                .get_pane(local_pane_id)
+                .ok_or_else(|| anyhow!("no such tab {}", local_pane_id))?;
+            if let Some(client_tab) = tab.downcast_ref::<ClientPane>() {
                 let renderable = client_tab.renderable.borrow_mut();
                 let mut inner = renderable.inner.borrow_mut();
 

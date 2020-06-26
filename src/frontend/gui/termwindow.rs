@@ -19,7 +19,7 @@ use crate::keyassignment::{
 };
 use crate::mux::domain::{DomainId, DomainState};
 use crate::mux::renderable::{RenderableDimensions, StableCursorPosition};
-use crate::mux::tab::{Tab, TabId};
+use crate::mux::tab::{Pane, PaneId, Tab, TabId};
 use crate::mux::window::WindowId as MuxWindowId;
 use crate::mux::Mux;
 use ::wezterm_term::input::MouseButton as TMB;
@@ -40,8 +40,7 @@ use std::any::Any;
 use std::cell::{RefCell, RefMut};
 use std::collections::HashMap;
 use std::convert::TryInto;
-use std::ops::Range;
-use std::ops::{Add, Sub};
+use std::ops::{Add, Range, Sub};
 use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::Mutex;
@@ -142,7 +141,7 @@ impl PrevCursorPos {
 }
 
 #[derive(Default, Clone)]
-pub struct TabState {
+pub struct PaneState {
     /// If is_some(), the top row of the visible screen.
     /// Otherwise, the viewport is at the bottom of the
     /// scrollback.
@@ -151,7 +150,15 @@ pub struct TabState {
     /// If is_some(), rather than display the actual tab
     /// contents, we're overlaying a little internal application
     /// tab.  We'll also route input to it.
-    pub overlay: Option<Rc<dyn Tab>>,
+    pub overlay: Option<Rc<dyn Pane>>,
+}
+
+#[derive(Default, Clone)]
+pub struct TabState {
+    /// If is_some(), rather than display the actual tab
+    /// contents, we're overlaying a little internal application
+    /// tab.  We'll also route input to it.
+    pub overlay: Option<Rc<dyn Pane>>,
 }
 
 #[derive(PartialEq, Eq, Hash)]
@@ -250,6 +257,7 @@ pub struct TermWindow {
     last_scroll_info: RenderableDimensions,
 
     tab_state: RefCell<HashMap<TabId, TabState>>,
+    pane_state: RefCell<HashMap<PaneId, PaneState>>,
 
     /// Gross workaround for managing async keyboard fetching
     /// just for middle mouse button paste function
@@ -321,14 +329,14 @@ impl WindowCallbacks for TermWindow {
         // force cursor to be repainted
         self.window.as_ref().unwrap().invalidate();
 
-        if let Some(tab) = self.get_active_tab_or_overlay() {
-            tab.focus_changed(focused);
+        if let Some(pane) = self.get_active_pane_or_overlay() {
+            pane.focus_changed(focused);
         }
     }
 
     fn mouse_event(&mut self, event: &MouseEvent, context: &dyn WindowOps) {
-        let tab = match self.get_active_tab_or_overlay() {
-            Some(tab) => tab,
+        let pane = match self.get_active_pane_or_overlay() {
+            Some(pane) => pane,
             None => return,
         };
 
@@ -382,28 +390,28 @@ impl WindowCallbacks for TermWindow {
                 self.current_mouse_button = Some(press.clone());
             }
 
-            WMEK::VertWheel(amount) if !tab.is_mouse_grabbed() => {
+            WMEK::VertWheel(amount) if !pane.is_mouse_grabbed() => {
                 // adjust viewport
-                let dims = tab.renderer().get_dimensions();
+                let dims = pane.renderer().get_dimensions();
                 let position = self
-                    .get_viewport(tab.tab_id())
+                    .get_viewport(pane.pane_id())
                     .unwrap_or(dims.physical_top)
                     .saturating_sub(amount.into());
-                self.set_viewport(tab.tab_id(), Some(position), dims);
+                self.set_viewport(pane.pane_id(), Some(position), dims);
                 context.invalidate();
                 return;
             }
 
             WMEK::Move => {
-                let current_viewport = self.get_viewport(tab.tab_id());
+                let current_viewport = self.get_viewport(pane.pane_id());
                 if let Some(from_top) = self.scroll_drag_start.as_ref() {
                     // Dragging the scroll bar
-                    let tab = match self.get_active_tab_or_overlay() {
-                        Some(tab) => tab,
+                    let pane = match self.get_active_pane_or_overlay() {
+                        Some(pane) => pane,
                         None => return,
                     };
 
-                    let render = tab.renderer();
+                    let render = pane.renderer();
                     let dims = render.get_dimensions();
 
                     let effective_thumb_top =
@@ -419,7 +427,7 @@ impl WindowCallbacks for TermWindow {
                         &self.dimensions,
                     );
                     drop(render);
-                    self.set_viewport(tab.tab_id(), Some(row), dims);
+                    self.set_viewport(pane.pane_id(), Some(row), dims);
                     context.invalidate();
                     return;
                 }
@@ -430,9 +438,9 @@ impl WindowCallbacks for TermWindow {
         if in_tab_bar {
             self.mouse_event_tab_bar(x, event, context);
         } else if in_scroll_bar {
-            self.mouse_event_scroll_bar(tab, event, context);
+            self.mouse_event_scroll_bar(pane, event, context);
         } else {
-            self.mouse_event_terminal(tab, x, term_y, event, context);
+            self.mouse_event_terminal(pane, x, term_y, event, context);
         }
     }
 
@@ -457,8 +465,8 @@ impl WindowCallbacks for TermWindow {
 
         // log::error!("key_event {:?}", key);
 
-        let tab = match self.get_active_tab_or_overlay() {
-            Some(tab) => tab,
+        let pane = match self.get_active_pane_or_overlay() {
+            Some(pane) => pane,
             None => return false,
         };
         let modifiers = window_mods_to_termwiz_mods(window_key.modifiers);
@@ -469,7 +477,7 @@ impl WindowCallbacks for TermWindow {
         if let Some(key) = &window_key.raw_key {
             if let Key::Code(key) = self.win_key_code_to_termwiz_key_code(&key) {
                 if let Some(assignment) = self.input_map.lookup_key(key, raw_modifiers) {
-                    self.perform_key_assignment(&tab, &assignment).ok();
+                    self.perform_key_assignment(&pane, &assignment).ok();
                     context.invalidate();
                     return true;
                 }
@@ -495,9 +503,9 @@ impl WindowCallbacks for TermWindow {
                         && window_key.raw_modifiers.contains(Modifiers::ALT)
                         && !config.send_composed_key_when_alt_is_pressed);
 
-                if bypass_compose && tab.key_down(key, raw_modifiers).is_ok() {
-                    if !key.is_modifier() && self.tab_state(tab.tab_id()).overlay.is_none() {
-                        self.maybe_scroll_to_bottom_for_input(&tab);
+                if bypass_compose && pane.key_down(key, raw_modifiers).is_ok() {
+                    if !key.is_modifier() && self.pane_state(pane.pane_id()).overlay.is_none() {
+                        self.maybe_scroll_to_bottom_for_input(&pane);
                     }
                     context.invalidate();
                     return true;
@@ -509,12 +517,12 @@ impl WindowCallbacks for TermWindow {
         match key {
             Key::Code(key) => {
                 if let Some(assignment) = self.input_map.lookup_key(key, modifiers) {
-                    self.perform_key_assignment(&tab, &assignment).ok();
+                    self.perform_key_assignment(&pane, &assignment).ok();
                     context.invalidate();
                     true
-                } else if tab.key_down(key, modifiers).is_ok() {
-                    if !key.is_modifier() && self.tab_state(tab.tab_id()).overlay.is_none() {
-                        self.maybe_scroll_to_bottom_for_input(&tab);
+                } else if pane.key_down(key, modifiers).is_ok() {
+                    if !key.is_modifier() && self.pane_state(pane.pane_id()).overlay.is_none() {
+                        self.maybe_scroll_to_bottom_for_input(&pane);
                     }
                     context.invalidate();
                     true
@@ -523,8 +531,8 @@ impl WindowCallbacks for TermWindow {
                 }
             }
             Key::Composed(s) => {
-                tab.writer().write_all(s.as_bytes()).ok();
-                self.maybe_scroll_to_bottom_for_input(&tab);
+                pane.writer().write_all(s.as_bytes()).ok();
+                self.maybe_scroll_to_bottom_for_input(&pane);
                 context.invalidate();
                 true
             }
@@ -533,8 +541,8 @@ impl WindowCallbacks for TermWindow {
     }
 
     fn paint(&mut self, ctx: &mut dyn PaintContext) {
-        let tab = match self.get_active_tab_or_overlay() {
-            Some(tab) => tab,
+        let pane = match self.get_active_pane_or_overlay() {
+            Some(pane) => pane,
             None => {
                 ctx.clear(Color::rgb(0, 0, 0));
                 return;
@@ -542,11 +550,11 @@ impl WindowCallbacks for TermWindow {
         };
 
         self.check_for_config_reload();
-        self.update_text_cursor(&tab);
+        self.update_text_cursor(&pane);
         self.update_title();
 
         let start = std::time::Instant::now();
-        if let Err(err) = self.paint_tab(&tab, ctx) {
+        if let Err(err) = self.paint_tab(&pane, ctx) {
             if let Some(&OutOfTextureSpace { size }) = err.downcast_ref::<OutOfTextureSpace>() {
                 log::error!("out of texture space, allocating {}", size);
                 if let Err(err) = self.recreate_texture_atlas(Some(size)) {
@@ -606,6 +614,7 @@ impl WindowCallbacks for TermWindow {
                 last_scroll_info: self.last_scroll_info.clone(),
                 clipboard_contents: Arc::clone(&clipboard_contents),
                 tab_state: RefCell::new(self.tab_state.borrow().clone()),
+                pane_state: RefCell::new(self.pane_state.borrow().clone()),
                 current_mouse_button: self.current_mouse_button.clone(),
                 last_mouse_click: self.last_mouse_click.clone(),
                 current_highlight: self.current_highlight.clone(),
@@ -673,17 +682,17 @@ impl WindowCallbacks for TermWindow {
     }
 
     fn paint_opengl(&mut self, frame: &mut glium::Frame) {
-        let tab = match self.get_active_tab_or_overlay() {
-            Some(tab) => tab,
+        let pane = match self.get_active_pane_or_overlay() {
+            Some(pane) => pane,
             None => {
                 frame.clear_color_srgb(0., 0., 0., 1.);
                 return;
             }
         };
         self.check_for_config_reload();
-        self.update_text_cursor(&tab);
+        self.update_text_cursor(&pane);
         let start = std::time::Instant::now();
-        if let Err(err) = self.paint_tab_opengl(&tab, frame) {
+        if let Err(err) = self.paint_tab_opengl(&pane, frame) {
             if let Some(&OutOfTextureSpace { size }) = err.downcast_ref::<OutOfTextureSpace>() {
                 log::error!("out of texture space, allocating {}", size);
                 if let Err(err) = self.recreate_texture_atlas(Some(size)) {
@@ -722,10 +731,13 @@ impl TermWindow {
     pub fn new_window(
         config: &ConfigHandle,
         fontconfig: &Rc<FontConfiguration>,
-        tab: &Rc<dyn Tab>,
+        tab: &Rc<Tab>,
         mux_window_id: MuxWindowId,
     ) -> anyhow::Result<()> {
-        let dims = tab.renderer().get_dimensions();
+        let pane = tab
+            .get_active_pane()
+            .ok_or_else(|| anyhow!("tab has no panes"))?;
+        let dims = pane.renderer().get_dimensions();
         let physical_rows = dims.viewport_rows;
         let physical_cols = dims.cols;
 
@@ -796,6 +808,7 @@ impl TermWindow {
                 last_scroll_info: RenderableDimensions::default(),
                 clipboard_contents: Arc::clone(&clipboard_contents),
                 tab_state: RefCell::new(HashMap::new()),
+                pane_state: RefCell::new(HashMap::new()),
                 current_mouse_button: None,
                 last_mouse_click: None,
                 current_highlight: None,
@@ -833,7 +846,9 @@ impl TermWindow {
 
         mux_window.set_clipboard(&clipboard);
         for tab in mux_window.iter() {
-            tab.set_clipboard(&clipboard);
+            for pane in tab.get_active_pane() {
+                pane.set_clipboard(&clipboard);
+            }
         }
     }
 
@@ -867,7 +882,7 @@ impl TermWindow {
     fn periodic_window_maintenance(&mut self, _window: &dyn WindowOps) -> anyhow::Result<()> {
         let mux = Mux::get().unwrap();
 
-        if let Some(tab) = self.get_active_tab_or_overlay() {
+        if let Some(pane) = self.get_active_pane_or_overlay() {
             let mut needs_invalidate = false;
 
             // If the config was reloaded, ask the window to apply
@@ -876,7 +891,7 @@ impl TermWindow {
 
             let config = configuration();
 
-            let render = tab.renderer();
+            let render = pane.renderer();
 
             // If blinking is permitted, and the cursor shape is set
             // to a blinking variant, and it's been longer than the
@@ -902,13 +917,15 @@ impl TermWindow {
 
             // If the model is dirty, arrange to re-paint
             let dims = render.get_dimensions();
-            let viewport = self.get_viewport(tab.tab_id()).unwrap_or(dims.physical_top);
+            let viewport = self
+                .get_viewport(pane.pane_id())
+                .unwrap_or(dims.physical_top);
             let visible_range = viewport..viewport + dims.viewport_rows as StableRowIndex;
             let dirty = render.get_dirty_lines(visible_range);
 
             if !dirty.is_empty() {
-                if tab.downcast_ref::<SearchOverlay>().is_none()
-                    && tab.downcast_ref::<CopyOverlay>().is_none()
+                if pane.downcast_ref::<SearchOverlay>().is_none()
+                    && pane.downcast_ref::<CopyOverlay>().is_none()
                 {
                     // If any of the changed lines intersect with the
                     // selection, then we need to clear the selection, but not
@@ -918,7 +935,7 @@ impl TermWindow {
                     // and we want to allow it to retain the selection it made!
 
                     let clear_selection = if let Some(selection_range) =
-                        self.selection(tab.tab_id()).range.as_ref()
+                        self.selection(pane.pane_id()).range.as_ref()
                     {
                         let selection_rows = selection_range.rows();
                         selection_rows.into_iter().any(|row| dirty.contains(row))
@@ -927,8 +944,8 @@ impl TermWindow {
                     };
 
                     if clear_selection {
-                        self.selection(tab.tab_id()).range.take();
-                        self.selection(tab.tab_id()).start.take();
+                        self.selection(pane.pane_id()).range.take();
+                        self.selection(pane.pane_id()).start.take();
                     }
                 }
 
@@ -1105,7 +1122,7 @@ impl TermWindow {
             return;
         }
 
-        let tab = match self.get_active_tab_or_overlay() {
+        let tab = match self.get_active_pane_or_overlay() {
             Some(tab) => tab,
             None => return,
         };
@@ -1155,18 +1172,13 @@ impl TermWindow {
         }
 
         let tab_no = window.get_active_idx();
-
-        let title = match window.get_active() {
-            Some(tab) => self
-                .tab_state(tab.tab_id())
-                .overlay
-                .as_ref()
-                .unwrap_or(tab)
-                .get_title(),
-            None => return,
-        };
-
         drop(window);
+
+        let title = if let Some(pane) = self.get_active_pane_or_overlay() {
+            pane.get_title()
+        } else {
+            return;
+        };
 
         if let Some(window) = self.window.as_ref() {
             let show_tab_bar;
@@ -1188,8 +1200,8 @@ impl TermWindow {
         }
     }
 
-    fn update_text_cursor(&mut self, tab: &Rc<dyn Tab>) {
-        let term = tab.renderer();
+    fn update_text_cursor(&mut self, pane: &Rc<dyn Pane>) {
+        let term = pane.renderer();
         let cursor = term.get_cursor_position();
         if let Some(win) = self.window.as_ref() {
             let config = configuration();
@@ -1208,7 +1220,7 @@ impl TermWindow {
     }
 
     fn activate_tab(&mut self, tab_idx: isize) -> anyhow::Result<()> {
-        if let Some(tab) = self.get_active_tab_or_overlay() {
+        if let Some(tab) = self.get_active_pane_or_overlay() {
             tab.focus_changed(false);
         }
 
@@ -1230,7 +1242,7 @@ impl TermWindow {
 
             drop(window);
 
-            if let Some(tab) = self.get_active_tab_or_overlay() {
+            if let Some(tab) = self.get_active_pane_or_overlay() {
                 tab.focus_changed(true);
             }
 
@@ -1297,7 +1309,14 @@ impl TermWindow {
         // the list of tabs up front and live with a static list.
         let tabs: Vec<(String, TabId)> = window
             .iter()
-            .map(|tab| (tab.get_title(), tab.tab_id()))
+            .map(|tab| {
+                (
+                    tab.get_active_pane()
+                        .expect("tab to have a pane")
+                        .get_title(),
+                    tab.tab_id(),
+                )
+            })
             .collect();
 
         let mux_window_id = self.mux_window_id;
@@ -1351,13 +1370,16 @@ impl TermWindow {
             })
             .collect();
 
-        let domain_id_of_current_tab = tab.domain_id();
+        let domain_id_of_current_pane = tab
+            .get_active_pane()
+            .expect("tab has no panes!")
+            .domain_id();
         let size = self.terminal_size;
 
         let (overlay, future) = start_overlay(self, &tab, move |tab_id, term| {
             launcher(
                 tab_id,
-                domain_id_of_current_tab,
+                domain_id_of_current_pane,
                 term,
                 mux_window_id,
                 domains,
@@ -1370,18 +1392,18 @@ impl TermWindow {
     }
 
     fn scroll_by_page(&mut self, amount: isize) -> anyhow::Result<()> {
-        let tab = match self.get_active_tab_or_overlay() {
-            Some(tab) => tab,
+        let pane = match self.get_active_pane_or_overlay() {
+            Some(pane) => pane,
             None => return Ok(()),
         };
-        let render = tab.renderer();
+        let render = pane.renderer();
         let dims = render.get_dimensions();
         let position = self
-            .get_viewport(tab.tab_id())
+            .get_viewport(pane.pane_id())
             .unwrap_or(dims.physical_top)
             .saturating_add(amount * dims.viewport_rows as isize);
         drop(render);
-        self.set_viewport(tab.tab_id(), Some(position), dims);
+        self.set_viewport(pane.pane_id(), Some(position), dims);
         if let Some(win) = self.window.as_ref() {
             win.invalidate();
         }
@@ -1447,28 +1469,33 @@ impl TermWindow {
                 SpawnTabDomain::DefaultDomain => {
                     let cwd = mux
                         .get_active_tab_for_window(mux_window_id)
-                        .and_then(|tab| tab.get_current_working_dir());
+                        .and_then(|tab| tab.get_active_pane())
+                        .and_then(|pane| pane.get_current_working_dir());
                     (mux.default_domain().clone(), cwd)
                 }
-                SpawnTabDomain::CurrentTabDomain => {
+                SpawnTabDomain::CurrentPaneDomain => {
                     if new_window {
-                        // CurrentTabDomain is the default value for the spawn domain.
+                        // CurrentPaneDomain is the default value for the spawn domain.
                         // It doesn't make sense to use it when spawning a new window,
                         // so we treat it as DefaultDomain instead.
                         let cwd = mux
                             .get_active_tab_for_window(mux_window_id)
-                            .and_then(|tab| tab.get_current_working_dir());
+                            .and_then(|tab| tab.get_active_pane())
+                            .and_then(|pane| pane.get_current_working_dir());
                         (mux.default_domain().clone(), cwd)
                     } else {
                         let tab = match mux.get_active_tab_for_window(mux_window_id) {
                             Some(tab) => tab,
                             None => bail!("window has no tabs?"),
                         };
+                        let pane = tab
+                            .get_active_pane()
+                            .ok_or_else(|| anyhow!("current tab has no pane!?"))?;
                         (
-                            mux.get_domain(tab.domain_id()).ok_or_else(|| {
+                            mux.get_domain(pane.domain_id()).ok_or_else(|| {
                                 anyhow!("current tab has unresolvable domain id!?")
                             })?,
-                            tab.get_current_working_dir(),
+                            pane.get_current_working_dir(),
                         )
                     }
                 }
@@ -1529,6 +1556,9 @@ impl TermWindow {
 
             let tab = domain.spawn(size, cmd_builder, cwd, mux_window_id).await?;
             let tab_id = tab.tab_id();
+            let pane = tab
+                .get_active_pane()
+                .ok_or_else(|| anyhow!("newly spawned tab to have a pane"))?;
 
             if new_window {
                 let front_end = front_end().expect("to be called on gui thread");
@@ -1536,7 +1566,7 @@ impl TermWindow {
                 front_end.spawn_new_window(&fonts, &tab, mux_window_id)?;
             } else {
                 let clipboard: Arc<dyn wezterm_term::Clipboard> = Arc::new(clipboard);
-                tab.set_clipboard(&clipboard);
+                pane.set_clipboard(&clipboard);
                 let mut window = mux
                     .get_window_mut(mux_window_id)
                     .ok_or_else(|| anyhow!("no such window!?"))?;
@@ -1561,16 +1591,16 @@ impl TermWindow {
         );
     }
 
-    fn selection_text(&self, tab: &Rc<dyn Tab>) -> String {
+    fn selection_text(&self, pane: &Rc<dyn Pane>) -> String {
         let mut s = String::new();
         if let Some(sel) = self
-            .selection(tab.tab_id())
+            .selection(pane.pane_id())
             .range
             .as_ref()
             .map(|r| r.normalize())
         {
             let mut last_was_wrapped = false;
-            let mut renderer = tab.renderer();
+            let mut renderer = pane.renderer();
             let (first_row, lines) = renderer.get_lines(sel.rows());
             for (idx, line) in lines.iter().enumerate() {
                 let cols = sel.cols_for_row(first_row + idx as StableRowIndex);
@@ -1589,8 +1619,8 @@ impl TermWindow {
         s
     }
 
-    fn paste_from_clipboard(&mut self, tab: &Rc<dyn Tab>, clipboard: Clipboard) {
-        let tab_id = tab.tab_id();
+    fn paste_from_clipboard(&mut self, pane: &Rc<dyn Pane>, clipboard: Clipboard) {
+        let pane_id = pane.pane_id();
         let window = self.window.as_ref().unwrap().clone();
         let future = window.get_clipboard(clipboard);
         promise::spawn::spawn(async move {
@@ -1598,13 +1628,13 @@ impl TermWindow {
                 window.apply(move |term_window, _window| {
                     let clip = clip.clone();
                     if let Some(term_window) = term_window.downcast_mut::<TermWindow>() {
-                        if let Some(tab) =
-                            term_window.tab_state(tab_id).overlay.clone().or_else(|| {
+                        if let Some(pane) =
+                            term_window.pane_state(pane_id).overlay.clone().or_else(|| {
                                 let mux = Mux::get().unwrap();
-                                mux.get_tab(tab_id)
+                                mux.get_pane(pane_id)
                             })
                         {
-                            tab.trickle_paste(clip).ok();
+                            pane.trickle_paste(clip).ok();
                         }
                     }
                     Ok(())
@@ -1615,7 +1645,7 @@ impl TermWindow {
 
     fn perform_key_assignment(
         &mut self,
-        tab: &Rc<dyn Tab>,
+        pane: &Rc<dyn Pane>,
         assignment: &KeyAssignment,
     ) -> anyhow::Result<()> {
         use KeyAssignment::*;
@@ -1639,13 +1669,13 @@ impl TermWindow {
                 self.window
                     .as_ref()
                     .unwrap()
-                    .set_clipboard(self.selection_text(tab));
+                    .set_clipboard(self.selection_text(pane));
             }
             Paste => {
-                self.paste_from_clipboard(tab, Clipboard::default());
+                self.paste_from_clipboard(pane, Clipboard::default());
             }
             PastePrimarySelection => {
-                self.paste_from_clipboard(tab, Clipboard::PrimarySelection);
+                self.paste_from_clipboard(pane, Clipboard::PrimarySelection);
             }
             ActivateTabRelative(n) => {
                 self.activate_tab_relative(*n)?;
@@ -1656,7 +1686,7 @@ impl TermWindow {
             ActivateTab(n) => {
                 self.activate_tab(*n)?;
             }
-            SendString(s) => tab.writer().write_all(s.as_bytes())?,
+            SendString(s) => pane.writer().write_all(s.as_bytes())?,
             Hide => {
                 if let Some(w) = self.window.as_ref() {
                     w.hide();
@@ -1683,8 +1713,10 @@ impl TermWindow {
                 let con = Connection::get().expect("call on gui thread");
                 con.terminate_message_loop();
             }
-            SelectTextAtMouseCursor(mode) => self.select_text_at_mouse_cursor(*mode, tab),
-            ExtendSelectionToMouseCursor(mode) => self.extend_selection_at_mouse_cursor(*mode, tab),
+            SelectTextAtMouseCursor(mode) => self.select_text_at_mouse_cursor(*mode, pane),
+            ExtendSelectionToMouseCursor(mode) => {
+                self.extend_selection_at_mouse_cursor(*mode, pane)
+            }
             OpenLinkAtMouseCursor => {
                 // They clicked on a link, so let's open it!
                 // Ensure that we spawn the `open` call outside of the context
@@ -1700,17 +1732,18 @@ impl TermWindow {
                 }
             }
             CompleteSelectionOrOpenLinkAtMouseCursor => {
-                let text = self.selection_text(&tab);
+                let text = self.selection_text(pane);
                 if !text.is_empty() {
                     let window = self.window.as_ref().unwrap();
                     window.set_clipboard(text);
                     window.invalidate();
                 } else {
-                    return self.perform_key_assignment(tab, &KeyAssignment::OpenLinkAtMouseCursor);
+                    return self
+                        .perform_key_assignment(pane, &KeyAssignment::OpenLinkAtMouseCursor);
                 }
             }
             CompleteSelection => {
-                let text = self.selection_text(&tab);
+                let text = self.selection_text(pane);
                 if !text.is_empty() {
                     let window = self.window.as_ref().unwrap();
                     window.set_clipboard(text);
@@ -1718,20 +1751,20 @@ impl TermWindow {
                 }
             }
             ClearScrollback => {
-                tab.erase_scrollback();
+                pane.erase_scrollback();
                 let window = self.window.as_ref().unwrap();
                 window.invalidate();
             }
             Search(pattern) => {
-                if let Some(tab) = self.get_active_tab_no_overlay() {
-                    let search = SearchOverlay::with_tab(self, &tab, pattern.clone());
-                    self.assign_overlay(tab.tab_id(), search);
+                if let Some(pane) = self.get_active_pane_no_overlay() {
+                    let search = SearchOverlay::with_pane(self, &pane, pattern.clone());
+                    self.assign_overlay_for_pane(pane.pane_id(), search);
                 }
             }
             ActivateCopyMode => {
-                if let Some(tab) = self.get_active_tab_no_overlay() {
-                    let copy = CopyOverlay::with_tab(self, &tab);
-                    self.assign_overlay(tab.tab_id(), copy);
+                if let Some(pane) = self.get_active_pane_no_overlay() {
+                    let copy = CopyOverlay::with_pane(self, &pane);
+                    self.assign_overlay_for_pane(pane.pane_id(), copy);
                 }
             }
         };
@@ -1854,7 +1887,9 @@ impl TermWindow {
         let mux = Mux::get().unwrap();
         if let Some(window) = mux.get_window(self.mux_window_id) {
             for tab in window.iter() {
-                tab.resize(self.terminal_size).ok();
+                if let Some(pane) = tab.get_active_pane() {
+                    pane.resize(size).ok();
+                }
             }
         };
         self.update_title();
@@ -1924,14 +1959,14 @@ impl TermWindow {
         self.activate_tab_relative(0)
     }
 
-    fn paint_tab(&mut self, tab: &Rc<dyn Tab>, ctx: &mut dyn PaintContext) -> anyhow::Result<()> {
-        let palette = tab.palette();
+    fn paint_tab(&mut self, pane: &Rc<dyn Pane>, ctx: &mut dyn PaintContext) -> anyhow::Result<()> {
+        let palette = pane.palette();
         let first_line_offset = if self.show_tab_bar { 1 } else { 0 };
 
-        let mut term = tab.renderer();
+        let mut term = pane.renderer();
         let cursor = term.get_cursor_position();
         self.prev_cursor.update(&cursor);
-        let current_viewport = self.get_viewport(tab.tab_id());
+        let current_viewport = self.get_viewport(pane.pane_id());
 
         let dims = term.get_dimensions();
 
@@ -1960,7 +1995,7 @@ impl TermWindow {
                 let stable_row = stable_top + line_idx as StableRowIndex;
 
                 let selrange = self
-                    .selection(tab.tab_id())
+                    .selection(pane.pane_id())
                     .range
                     .map(|sel| sel.cols_for_row(stable_row))
                     .unwrap_or(0..0);
@@ -2040,7 +2075,7 @@ impl TermWindow {
         );
 
         if self.show_scroll_bar {
-            let current_viewport = self.get_viewport(tab.tab_id());
+            let current_viewport = self.get_viewport(pane.pane_id());
             let info = ScrollHit::thumb(
                 &*term,
                 current_viewport,
@@ -2076,10 +2111,10 @@ impl TermWindow {
 
     fn paint_tab_opengl(
         &mut self,
-        tab: &Rc<dyn Tab>,
+        pane: &Rc<dyn Pane>,
         frame: &mut glium::Frame,
     ) -> anyhow::Result<()> {
-        let palette = tab.palette();
+        let palette = pane.palette();
 
         let background_color = palette.resolve_bg(wezterm_term::color::ColorAttribute::Default);
         let (r, g, b, a) = background_color.to_tuple_rgba();
@@ -2087,11 +2122,11 @@ impl TermWindow {
 
         let first_line_offset = if self.show_tab_bar { 1 } else { 0 };
 
-        let mut term = tab.renderer();
+        let mut term = pane.renderer();
         let cursor = term.get_cursor_position();
         self.prev_cursor.update(&cursor);
 
-        let current_viewport = self.get_viewport(tab.tab_id());
+        let current_viewport = self.get_viewport(pane.pane_id());
         let (stable_top, lines);
         let dims = term.get_dimensions();
         let config = configuration();
@@ -2176,7 +2211,7 @@ impl TermWindow {
             quad.set_cursor_color(rgbcolor_to_window_color(background_color));
         }
 
-        let selrange = self.selection(tab.tab_id()).range.clone();
+        let selrange = self.selection(pane.pane_id()).range.clone();
 
         for (line_idx, line) in lines.iter().enumerate() {
             let stable_row = stable_top + line_idx as StableRowIndex;
@@ -2938,23 +2973,29 @@ impl TermWindow {
         )
     }
 
+    pub fn pane_state(&self, pane_id: PaneId) -> RefMut<PaneState> {
+        RefMut::map(self.pane_state.borrow_mut(), |state| {
+            state.entry(pane_id).or_insert_with(PaneState::default)
+        })
+    }
+
     pub fn tab_state(&self, tab_id: TabId) -> RefMut<TabState> {
         RefMut::map(self.tab_state.borrow_mut(), |state| {
             state.entry(tab_id).or_insert_with(TabState::default)
         })
     }
 
-    pub fn selection(&self, tab_id: TabId) -> RefMut<Selection> {
-        RefMut::map(self.tab_state(tab_id), |state| &mut state.selection)
+    pub fn selection(&self, pane_id: PaneId) -> RefMut<Selection> {
+        RefMut::map(self.pane_state(pane_id), |state| &mut state.selection)
     }
 
-    pub fn get_viewport(&self, tab_id: TabId) -> Option<StableRowIndex> {
-        self.tab_state(tab_id).viewport
+    pub fn get_viewport(&self, pane_id: PaneId) -> Option<StableRowIndex> {
+        self.pane_state(pane_id).viewport
     }
 
     pub fn set_viewport(
         &mut self,
-        tab_id: TabId,
+        pane_id: PaneId,
         position: Option<StableRowIndex>,
         dims: RenderableDimensions,
     ) {
@@ -2970,7 +3011,7 @@ impl TermWindow {
             None => None,
         };
 
-        let mut state = self.tab_state(tab_id);
+        let mut state = self.pane_state(pane_id);
         if pos != state.viewport {
             state.viewport = pos;
 
@@ -2994,7 +3035,7 @@ impl TermWindow {
                     self.activate_tab(tab_idx as isize).ok();
                 }
                 TabBarItem::NewTabButton => {
-                    self.spawn_tab(&SpawnTabDomain::CurrentTabDomain);
+                    self.spawn_tab(&SpawnTabDomain::CurrentPaneDomain);
                 }
                 TabBarItem::None => {}
             },
@@ -3021,14 +3062,14 @@ impl TermWindow {
 
     fn mouse_event_scroll_bar(
         &mut self,
-        tab: Rc<dyn Tab>,
+        pane: Rc<dyn Pane>,
         event: &MouseEvent,
         context: &dyn WindowOps,
     ) {
         if let WMEK::Press(MousePress::Left) = event.kind {
-            let render = tab.renderer();
+            let render = pane.renderer();
             let dims = render.get_dimensions();
-            let current_viewport = self.get_viewport(tab.tab_id());
+            let current_viewport = self.get_viewport(pane.pane_id());
 
             let hit_result = ScrollHit::test(
                 event.coords.y,
@@ -3043,7 +3084,7 @@ impl TermWindow {
                 ScrollHit::Above => {
                     // Page up
                     self.set_viewport(
-                        tab.tab_id(),
+                        pane.pane_id(),
                         Some(
                             current_viewport
                                 .unwrap_or(dims.physical_top)
@@ -3056,7 +3097,7 @@ impl TermWindow {
                 ScrollHit::Below => {
                     // Page down
                     self.set_viewport(
-                        tab.tab_id(),
+                        pane.pane_id(),
                         Some(
                             current_viewport
                                 .unwrap_or(dims.physical_top)
@@ -3075,48 +3116,54 @@ impl TermWindow {
         context.set_cursor(Some(MouseCursor::Arrow));
     }
 
-    fn extend_selection_at_mouse_cursor(&mut self, mode: Option<SelectionMode>, tab: &Rc<dyn Tab>) {
+    fn extend_selection_at_mouse_cursor(
+        &mut self,
+        mode: Option<SelectionMode>,
+        pane: &Rc<dyn Pane>,
+    ) {
         let mode = mode.unwrap_or(SelectionMode::Cell);
         let (x, y) = self.last_mouse_terminal_coords;
         match mode {
             SelectionMode::Cell => {
                 let end = SelectionCoordinate { x, y };
-                let selection_range = self.selection(tab.tab_id()).range.take();
+                let selection_range = self.selection(pane.pane_id()).range.take();
                 let sel = match selection_range {
                     None => {
-                        SelectionRange::start(self.selection(tab.tab_id()).start.unwrap_or(end))
+                        SelectionRange::start(self.selection(pane.pane_id()).start.unwrap_or(end))
                             .extend(end)
                     }
                     Some(sel) => sel.extend(end),
                 };
-                self.selection(tab.tab_id()).range = Some(sel);
+                self.selection(pane.pane_id()).range = Some(sel);
             }
             SelectionMode::Word => {
-                let end_word =
-                    SelectionRange::word_around(SelectionCoordinate { x, y }, &mut *tab.renderer());
+                let end_word = SelectionRange::word_around(
+                    SelectionCoordinate { x, y },
+                    &mut *pane.renderer(),
+                );
 
                 let start_coord = self
-                    .selection(tab.tab_id())
+                    .selection(pane.pane_id())
                     .start
                     .clone()
                     .unwrap_or(end_word.start);
-                let start_word = SelectionRange::word_around(start_coord, &mut *tab.renderer());
+                let start_word = SelectionRange::word_around(start_coord, &mut *pane.renderer());
 
                 let selection_range = start_word.extend_with(end_word);
-                self.selection(tab.tab_id()).range = Some(selection_range);
+                self.selection(pane.pane_id()).range = Some(selection_range);
             }
             SelectionMode::Line => {
                 let end_line = SelectionRange::line_around(SelectionCoordinate { x, y });
 
                 let start_coord = self
-                    .selection(tab.tab_id())
+                    .selection(pane.pane_id())
                     .start
                     .clone()
                     .unwrap_or(end_line.start);
                 let start_line = SelectionRange::line_around(start_coord);
 
                 let selection_range = start_line.extend_with(end_line);
-                self.selection(tab.tab_id()).range = Some(selection_range);
+                self.selection(pane.pane_id()).range = Some(selection_range);
             }
         }
 
@@ -3128,8 +3175,10 @@ impl TermWindow {
         // is smaller because it feels more natural for mouse selection to have
         // a smaller gpa.
         const VERTICAL_GAP: isize = 2;
-        let dims = tab.renderer().get_dimensions();
-        let top = self.get_viewport(tab.tab_id()).unwrap_or(dims.physical_top);
+        let dims = pane.renderer().get_dimensions();
+        let top = self
+            .get_viewport(pane.pane_id())
+            .unwrap_or(dims.physical_top);
         let vertical_gap = if dims.physical_top <= VERTICAL_GAP {
             1
         } else {
@@ -3138,36 +3187,38 @@ impl TermWindow {
         let top_gap = y - top;
         if top_gap < vertical_gap {
             // Increase the gap so we can "look ahead"
-            self.set_viewport(tab.tab_id(), Some(y.saturating_sub(vertical_gap)), dims);
+            self.set_viewport(pane.pane_id(), Some(y.saturating_sub(vertical_gap)), dims);
         } else {
             let bottom_gap = (dims.viewport_rows as isize).saturating_sub(top_gap);
             if bottom_gap < vertical_gap {
-                self.set_viewport(tab.tab_id(), Some(top + vertical_gap - bottom_gap), dims);
+                self.set_viewport(pane.pane_id(), Some(top + vertical_gap - bottom_gap), dims);
             }
         }
 
         self.window.as_ref().unwrap().invalidate();
     }
 
-    fn select_text_at_mouse_cursor(&mut self, mode: SelectionMode, tab: &Rc<dyn Tab>) {
+    fn select_text_at_mouse_cursor(&mut self, mode: SelectionMode, pane: &Rc<dyn Pane>) {
         let (x, y) = self.last_mouse_terminal_coords;
         match mode {
             SelectionMode::Line => {
                 let start = SelectionCoordinate { x, y };
                 let selection_range = SelectionRange::line_around(start);
 
-                self.selection(tab.tab_id()).start = Some(start);
-                self.selection(tab.tab_id()).range = Some(selection_range);
+                self.selection(pane.pane_id()).start = Some(start);
+                self.selection(pane.pane_id()).range = Some(selection_range);
             }
             SelectionMode::Word => {
-                let selection_range =
-                    SelectionRange::word_around(SelectionCoordinate { x, y }, &mut *tab.renderer());
+                let selection_range = SelectionRange::word_around(
+                    SelectionCoordinate { x, y },
+                    &mut *pane.renderer(),
+                );
 
-                self.selection(tab.tab_id()).start = Some(selection_range.start);
-                self.selection(tab.tab_id()).range = Some(selection_range);
+                self.selection(pane.pane_id()).start = Some(selection_range.start);
+                self.selection(pane.pane_id()).range = Some(selection_range);
             }
             SelectionMode::Cell => {
-                self.selection(tab.tab_id())
+                self.selection(pane.pane_id())
                     .begin(SelectionCoordinate { x, y });
             }
         }
@@ -3177,19 +3228,21 @@ impl TermWindow {
 
     fn mouse_event_terminal(
         &mut self,
-        tab: Rc<dyn Tab>,
+        pane: Rc<dyn Pane>,
         x: usize,
         y: i64,
         event: &MouseEvent,
         context: &dyn WindowOps,
     ) {
-        let dims = tab.renderer().get_dimensions();
-        let stable_row =
-            self.get_viewport(tab.tab_id()).unwrap_or(dims.physical_top) + y as StableRowIndex;
+        let dims = pane.renderer().get_dimensions();
+        let stable_row = self
+            .get_viewport(pane.pane_id())
+            .unwrap_or(dims.physical_top)
+            + y as StableRowIndex;
 
         self.last_mouse_terminal_coords = (x, stable_row);
 
-        let (top, mut lines) = tab.renderer().get_lines(stable_row..stable_row + 1);
+        let (top, mut lines) = pane.renderer().get_lines(stable_row..stable_row + 1);
         let new_highlight = if top == stable_row {
             if let Some(line) = lines.get_mut(0) {
                 if let Some(cell) = line.cells().get(x) {
@@ -3269,7 +3322,7 @@ impl TermWindow {
 
         let ignore_grab_modifier = Modifiers::SHIFT;
 
-        if !tab.is_mouse_grabbed() || event.modifiers.contains(ignore_grab_modifier) {
+        if !pane.is_mouse_grabbed() || event.modifiers.contains(ignore_grab_modifier) {
             let event_trigger_type = match event_trigger_type {
                 Some(ett) => ett,
                 None => return,
@@ -3279,7 +3332,7 @@ impl TermWindow {
 
             // Since we use shift to force assessing the mouse bindings, pretend
             // that shift is not one of the mods when the mouse is grabbed.
-            if tab.is_mouse_grabbed() {
+            if pane.is_mouse_grabbed() {
                 modifiers -= window_mods_to_termwiz_mods(ignore_grab_modifier);
             }
 
@@ -3287,7 +3340,7 @@ impl TermWindow {
                 .input_map
                 .lookup_mouse(event_trigger_type.clone(), modifiers)
             {
-                self.perform_key_assignment(&tab, &action).ok();
+                self.perform_key_assignment(&pane, &action).ok();
             }
 
             return;
@@ -3326,7 +3379,7 @@ impl TermWindow {
             modifiers: window_mods_to_termwiz_mods(event.modifiers),
         };
 
-        tab.mouse_event(mouse_event).ok();
+        pane.mouse_event(mouse_event).ok();
 
         match event.kind {
             WMEK::Move => {}
@@ -3336,20 +3389,29 @@ impl TermWindow {
         }
     }
 
-    fn maybe_scroll_to_bottom_for_input(&mut self, tab: &Rc<dyn Tab>) {
+    fn maybe_scroll_to_bottom_for_input(&mut self, pane: &Rc<dyn Pane>) {
         if configuration().scroll_to_bottom_on_input {
-            self.scroll_to_bottom(tab);
+            self.scroll_to_bottom(pane);
         }
     }
 
-    fn scroll_to_bottom(&mut self, tab: &Rc<dyn Tab>) {
-        self.tab_state(tab.tab_id()).viewport = None;
+    fn scroll_to_bottom(&mut self, pane: &Rc<dyn Pane>) {
+        self.pane_state(pane.pane_id()).viewport = None;
     }
 
-    /// Returns a Tab that we can interact with; this will typically be
-    /// the active tab for the window, but if the window has an overlay,
-    /// then that will be returned instead.
-    fn get_active_tab_or_overlay(&self) -> Option<Rc<dyn Tab>> {
+    fn get_active_pane_no_overlay(&self) -> Option<Rc<dyn Pane>> {
+        let mux = Mux::get().unwrap();
+        mux.get_active_tab_for_window(self.mux_window_id)
+            .and_then(|tab| tab.get_active_pane())
+    }
+
+    /// Returns a Pane that we can interact with; this will typically be
+    /// the active tab for the window, but if the window has a tab-wide
+    /// overlay (such as the launcher / tab navigator),
+    /// then that will be returned instead.  Otherwise, if the pane has
+    /// an active overlay (such as search or copy mode) then that will
+    /// be returned.
+    fn get_active_pane_or_overlay(&self) -> Option<Rc<dyn Pane>> {
         let mux = Mux::get().unwrap();
         let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
             Some(tab) => tab,
@@ -3357,12 +3419,17 @@ impl TermWindow {
         };
 
         let tab_id = tab.tab_id();
-        self.tab_state(tab_id).overlay.clone().or_else(|| Some(tab))
-    }
 
-    fn get_active_tab_no_overlay(&self) -> Option<Rc<dyn Tab>> {
-        let mux = Mux::get().unwrap();
-        mux.get_active_tab_for_window(self.mux_window_id)
+        if let Some(tab_overlay) = self.tab_state(tab_id).overlay.clone() {
+            Some(tab_overlay)
+        } else {
+            let pane = tab.get_active_pane()?;
+            let pane_id = pane.pane_id();
+            self.pane_state(pane_id)
+                .overlay
+                .clone()
+                .or_else(|| Some(pane))
+        }
     }
 
     /// Removes any overlay for the specified tab
@@ -3382,7 +3449,12 @@ impl TermWindow {
         });
     }
 
-    pub fn assign_overlay(&mut self, tab_id: TabId, overlay: Rc<dyn Tab>) {
+    pub fn assign_overlay_for_pane(&mut self, pane_id: PaneId, overlay: Rc<dyn Pane>) {
+        self.pane_state(pane_id).overlay.replace(overlay);
+        self.update_title();
+    }
+
+    pub fn assign_overlay(&mut self, tab_id: TabId, overlay: Rc<dyn Pane>) {
         self.tab_state(tab_id).overlay.replace(overlay);
         self.update_title();
     }

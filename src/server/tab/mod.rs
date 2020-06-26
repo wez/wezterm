@@ -1,4 +1,4 @@
-pub use clienttab::ClientTab;
+pub use clienttab::ClientPane;
 
 mod clienttab;
 mod mousestate;

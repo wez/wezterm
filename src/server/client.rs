@@ -6,7 +6,7 @@ use crate::mux::Mux;
 use crate::server::codec::*;
 use crate::server::domain::{ClientDomain, ClientDomainConfig};
 use crate::server::pollable::*;
-use crate::server::tab::ClientTab;
+use crate::server::tab::ClientPane;
 use crate::server::UnixStream;
 use crate::ssh::ssh_connect_with_ui;
 use anyhow::{anyhow, bail, Context, Error};
@@ -89,7 +89,7 @@ macro_rules! rpc {
 }
 
 fn process_unilateral(local_domain_id: DomainId, decoded: DecodedPdu) -> anyhow::Result<()> {
-    if let Some(tab_id) = decoded.pdu.tab_id() {
+    if let Some(pane_id) = decoded.pdu.pane_id() {
         let pdu = decoded.pdu;
         promise::spawn::spawn_into_main_thread(async move {
             let mux = Mux::get().unwrap();
@@ -102,27 +102,30 @@ fn process_unilateral(local_domain_id: DomainId, decoded: DecodedPdu) -> anyhow:
                     anyhow!("domain {} is not a ClientDomain instance", local_domain_id)
                 })?;
 
-            let local_tab_id = client_domain
-                .remote_to_local_tab_id(tab_id)
-                .ok_or_else(|| anyhow!("remote tab id {} does not have a local tab id", tab_id))?;
-            let tab = mux
-                .get_tab(local_tab_id)
-                .ok_or_else(|| anyhow!("no such tab {}", local_tab_id))?;
-            let client_tab = tab.downcast_ref::<ClientTab>().ok_or_else(|| {
+            let local_pane_id =
+                client_domain
+                    .remote_to_local_pane_id(pane_id)
+                    .ok_or_else(|| {
+                        anyhow!("remote pane id {} does not have a local pane id", pane_id)
+                    })?;
+            let pane = mux
+                .get_pane(local_pane_id)
+                .ok_or_else(|| anyhow!("no such pane {}", local_pane_id))?;
+            let client_pane = pane.downcast_ref::<ClientPane>().ok_or_else(|| {
                 log::error!(
-                    "received unilateral PDU for tab {} which is \
-                     not an instance of ClientTab: {:?}",
-                    local_tab_id,
+                    "received unilateral PDU for pane {} which is \
+                     not an instance of ClientPane: {:?}",
+                    local_pane_id,
                     pdu
                 );
                 anyhow!(
-                    "received unilateral PDU for tab {} which is \
-                     not an instance of ClientTab: {:?}",
-                    local_tab_id,
+                    "received unilateral PDU for pane {} which is \
+                     not an instance of ClientPane: {:?}",
+                    local_pane_id,
                     pdu
                 )
             })?;
-            client_tab.process_unilateral(pdu)
+            client_pane.process_unilateral(pdu)
         });
     } else {
         bail!("don't know how to handle {:?}", decoded);
@@ -871,22 +874,22 @@ impl Client {
     rpc!(ping, Ping = (), Pong);
     rpc!(list_tabs, ListTabs = (), ListTabsResponse);
     rpc!(spawn, Spawn, SpawnResponse);
-    rpc!(write_to_tab, WriteToTab, UnitResponse);
+    rpc!(write_to_pane, WriteToPane, UnitResponse);
     rpc!(send_paste, SendPaste, UnitResponse);
     rpc!(key_down, SendKeyDown, UnitResponse);
     rpc!(mouse_event, SendMouseEvent, UnitResponse);
     rpc!(resize, Resize, UnitResponse);
     rpc!(
         get_tab_render_changes,
-        GetTabRenderChanges,
-        TabLivenessResponse
+        GetPaneRenderChanges,
+        LivenessResponse
     );
     rpc!(get_lines, GetLines, GetLinesResponse);
     rpc!(get_codec_version, GetCodecVersion, GetCodecVersionResponse);
     rpc!(get_tls_creds, GetTlsCreds = (), GetTlsCredsResponse);
     rpc!(
         search_scrollback,
-        SearchTabScrollbackRequest,
-        SearchTabScrollbackResponse
+        SearchScrollbackRequest,
+        SearchScrollbackResponse
     );
 }

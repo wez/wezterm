@@ -1,5 +1,5 @@
 use crate::mux::renderable::{RenderableDimensions, StableCursorPosition};
-use crate::mux::tab::{Tab, TabId};
+use crate::mux::tab::{Pane, PaneId, TabId};
 use crate::mux::Mux;
 use crate::server::codec::*;
 use crate::server::listener::PKI;
@@ -17,7 +17,7 @@ use wezterm_term::terminal::Clipboard;
 use wezterm_term::StableRowIndex;
 
 #[derive(Default, Debug)]
-struct PerTab {
+struct PerPane {
     cursor_position: StableCursorPosition,
     title: String,
     working_dir: Option<Url>,
@@ -26,39 +26,39 @@ struct PerTab {
     mouse_grabbed: bool,
 }
 
-impl PerTab {
+impl PerPane {
     fn compute_changes(
         &mut self,
-        tab: &Rc<dyn Tab>,
+        pane: &Rc<dyn Pane>,
         force_with_input_serial: Option<InputSerial>,
-    ) -> Option<GetTabRenderChangesResponse> {
+    ) -> Option<GetPaneRenderChangesResponse> {
         let mut changed = false;
-        let mouse_grabbed = tab.is_mouse_grabbed();
+        let mouse_grabbed = pane.is_mouse_grabbed();
         if mouse_grabbed != self.mouse_grabbed {
             changed = true;
         }
 
-        let dims = tab.renderer().get_dimensions();
+        let dims = pane.renderer().get_dimensions();
         if dims != self.dimensions {
             changed = true;
         }
 
-        let cursor_position = tab.renderer().get_cursor_position();
+        let cursor_position = pane.renderer().get_cursor_position();
         if cursor_position != self.cursor_position {
             changed = true;
         }
 
-        let title = tab.get_title();
+        let title = pane.get_title();
         if title != self.title {
             changed = true;
         }
 
-        let working_dir = tab.get_current_working_dir();
+        let working_dir = pane.get_current_working_dir();
         if working_dir != self.working_dir {
             changed = true;
         }
 
-        let mut all_dirty_lines = tab
+        let mut all_dirty_lines = pane
             .renderer()
             .get_dirty_lines(0..dims.physical_top + dims.viewport_rows as StableRowIndex);
         let dirty_delta = all_dirty_lines.difference(&self.dirty_lines);
@@ -74,7 +74,7 @@ impl PerTab {
         let viewport_range =
             dims.physical_top..dims.physical_top + dims.viewport_rows as StableRowIndex;
 
-        let (first_line, lines) = tab.renderer().get_lines(viewport_range);
+        let (first_line, lines) = pane.renderer().get_lines(viewport_range);
         let mut bonus_lines = lines
             .into_iter()
             .enumerate()
@@ -87,7 +87,7 @@ impl PerTab {
 
         // Always send the cursor's row, as that tends to the busiest and we don't
         // have a sequencing concept for our idea of the remote state.
-        let (cursor_line, lines) = tab
+        let (cursor_line, lines) = pane
             .renderer()
             .get_lines(cursor_position.y..cursor_position.y + 1);
         bonus_lines.push((cursor_line, lines[0].clone()));
@@ -101,8 +101,8 @@ impl PerTab {
 
         let dirty_lines = dirty_delta.iter().cloned().collect();
         let bonus_lines = bonus_lines.into();
-        Some(GetTabRenderChangesResponse {
-            tab_id: tab.tab_id(),
+        Some(GetPaneRenderChangesResponse {
+            pane_id: pane.pane_id(),
             mouse_grabbed,
             dirty_lines,
             dimensions: dims,
@@ -119,15 +119,15 @@ impl PerTab {
     }
 }
 
-fn maybe_push_tab_changes(
-    tab: &Rc<dyn Tab>,
+fn maybe_push_pane_changes(
+    pane: &Rc<dyn Pane>,
     sender: PollableSender<DecodedPdu>,
-    per_tab: Arc<Mutex<PerTab>>,
+    per_pane: Arc<Mutex<PerPane>>,
 ) -> anyhow::Result<()> {
-    let mut per_tab = per_tab.lock().unwrap();
-    if let Some(resp) = per_tab.compute_changes(tab, None) {
+    let mut per_pane = per_pane.lock().unwrap();
+    if let Some(resp) = per_pane.compute_changes(pane, None) {
         sender.send(DecodedPdu {
-            pdu: Pdu::GetTabRenderChangesResponse(resp),
+            pdu: Pdu::GetPaneRenderChangesResponse(resp),
             serial: 0,
         })?;
     }
@@ -136,33 +136,33 @@ fn maybe_push_tab_changes(
 
 pub struct SessionHandler {
     to_write_tx: PollableSender<DecodedPdu>,
-    per_tab: HashMap<TabId, Arc<Mutex<PerTab>>>,
+    per_pane: HashMap<TabId, Arc<Mutex<PerPane>>>,
 }
 
 impl SessionHandler {
     pub fn new(to_write_tx: PollableSender<DecodedPdu>) -> Self {
         Self {
             to_write_tx,
-            per_tab: HashMap::new(),
+            per_pane: HashMap::new(),
         }
     }
-    fn per_tab(&mut self, tab_id: TabId) -> Arc<Mutex<PerTab>> {
+    fn per_pane(&mut self, pane_id: PaneId) -> Arc<Mutex<PerPane>> {
         Arc::clone(
-            self.per_tab
-                .entry(tab_id)
-                .or_insert_with(|| Arc::new(Mutex::new(PerTab::default()))),
+            self.per_pane
+                .entry(pane_id)
+                .or_insert_with(|| Arc::new(Mutex::new(PerPane::default()))),
         )
     }
 
-    pub fn schedule_tab_push(&mut self, tab_id: TabId) {
+    pub fn schedule_pane_push(&mut self, pane_id: PaneId) {
         let sender = self.to_write_tx.clone();
-        let per_tab = self.per_tab(tab_id);
+        let per_pane = self.per_pane(pane_id);
         spawn_into_main_thread(async move {
             let mux = Mux::get().unwrap();
-            let tab = mux
-                .get_tab(tab_id)
-                .ok_or_else(|| anyhow!("no such tab {}", tab_id))?;
-            maybe_push_tab_changes(&tab, sender, per_tab)?;
+            let pane = mux
+                .get_pane(pane_id)
+                .ok_or_else(|| anyhow!("no such pane {}", pane_id))?;
+            maybe_push_pane_changes(&pane, sender, per_pane)?;
             Ok::<(), anyhow::Error>(())
         });
     }
@@ -202,20 +202,23 @@ impl SessionHandler {
                             for window_id in mux.iter_windows().into_iter() {
                                 let window = mux.get_window(window_id).unwrap();
                                 for tab in window.iter() {
-                                    let dims = tab.renderer().get_dimensions();
-                                    let working_dir = tab.get_current_working_dir();
-                                    tabs.push(WindowAndTabEntry {
-                                        window_id,
-                                        tab_id: tab.tab_id(),
-                                        title: tab.get_title(),
-                                        size: PtySize {
-                                            cols: dims.cols as u16,
-                                            rows: dims.viewport_rows as u16,
-                                            pixel_height: 0,
-                                            pixel_width: 0,
-                                        },
-                                        working_dir: working_dir.map(Into::into),
-                                    });
+                                    if let Some(pane) = tab.get_active_pane() {
+                                        let dims = pane.renderer().get_dimensions();
+                                        let working_dir = pane.get_current_working_dir();
+                                        tabs.push(WindowAndTabEntry {
+                                            window_id,
+                                            tab_id: tab.tab_id(),
+                                            pane_id: pane.pane_id(),
+                                            title: pane.get_title(),
+                                            size: PtySize {
+                                                cols: dims.cols as u16,
+                                                rows: dims.viewport_rows as u16,
+                                                pixel_height: 0,
+                                                pixel_width: 0,
+                                            },
+                                            working_dir: working_dir.map(Into::into),
+                                        });
+                                    }
                                 }
                             }
                             log::error!("ListTabs {:#?}", tabs);
@@ -226,36 +229,36 @@ impl SessionHandler {
                 });
             }
 
-            Pdu::WriteToTab(WriteToTab { tab_id, data }) => {
+            Pdu::WriteToPane(WriteToPane { pane_id, data }) => {
                 let sender = self.to_write_tx.clone();
-                let per_tab = self.per_tab(tab_id);
+                let per_pane = self.per_pane(pane_id);
                 spawn_into_main_thread(async move {
                     catch(
                         move || {
                             let mux = Mux::get().unwrap();
-                            let tab = mux
-                                .get_tab(tab_id)
-                                .ok_or_else(|| anyhow!("no such tab {}", tab_id))?;
-                            tab.writer().write_all(&data)?;
-                            maybe_push_tab_changes(&tab, sender, per_tab)?;
+                            let pane = mux
+                                .get_pane(pane_id)
+                                .ok_or_else(|| anyhow!("no such pane {}", pane_id))?;
+                            pane.writer().write_all(&data)?;
+                            maybe_push_pane_changes(&pane, sender, per_pane)?;
                             Ok(Pdu::UnitResponse(UnitResponse {}))
                         },
                         send_response,
                     );
                 });
             }
-            Pdu::SendPaste(SendPaste { tab_id, data }) => {
+            Pdu::SendPaste(SendPaste { pane_id, data }) => {
                 let sender = self.to_write_tx.clone();
-                let per_tab = self.per_tab(tab_id);
+                let per_pane = self.per_pane(pane_id);
                 spawn_into_main_thread(async move {
                     catch(
                         move || {
                             let mux = Mux::get().unwrap();
-                            let tab = mux
-                                .get_tab(tab_id)
-                                .ok_or_else(|| anyhow!("no such tab {}", tab_id))?;
-                            tab.send_paste(&data)?;
-                            maybe_push_tab_changes(&tab, sender, per_tab)?;
+                            let pane = mux
+                                .get_pane(pane_id)
+                                .ok_or_else(|| anyhow!("no such pane {}", pane_id))?;
+                            pane.send_paste(&data)?;
+                            maybe_push_pane_changes(&pane, sender, per_pane)?;
                             Ok(Pdu::UnitResponse(UnitResponse {}))
                         },
                         send_response,
@@ -263,37 +266,37 @@ impl SessionHandler {
                 });
             }
 
-            Pdu::SearchTabScrollbackRequest(SearchTabScrollbackRequest { tab_id, pattern }) => {
+            Pdu::SearchScrollbackRequest(SearchScrollbackRequest { pane_id, pattern }) => {
                 use crate::mux::tab::Pattern;
 
-                async fn do_search(tab_id: TabId, pattern: Pattern) -> anyhow::Result<Pdu> {
+                async fn do_search(pane_id: TabId, pattern: Pattern) -> anyhow::Result<Pdu> {
                     let mux = Mux::get().unwrap();
-                    let tab = mux
-                        .get_tab(tab_id)
-                        .ok_or_else(|| anyhow!("no such tab {}", tab_id))?;
+                    let pane = mux
+                        .get_pane(pane_id)
+                        .ok_or_else(|| anyhow!("no such pane {}", pane_id))?;
 
-                    tab.search(pattern).await.map(|results| {
-                        Pdu::SearchTabScrollbackResponse(SearchTabScrollbackResponse { results })
+                    pane.search(pattern).await.map(|results| {
+                        Pdu::SearchScrollbackResponse(SearchScrollbackResponse { results })
                     })
                 }
 
                 spawn_into_main_thread(async move {
                     promise::spawn::spawn(async move {
-                        let result = do_search(tab_id, pattern).await;
+                        let result = do_search(pane_id, pattern).await;
                         send_response(result);
                     });
                 });
             }
 
-            Pdu::Resize(Resize { tab_id, size }) => {
+            Pdu::Resize(Resize { pane_id, size }) => {
                 spawn_into_main_thread(async move {
                     catch(
                         move || {
                             let mux = Mux::get().unwrap();
-                            let tab = mux
-                                .get_tab(tab_id)
-                                .ok_or_else(|| anyhow!("no such tab {}", tab_id))?;
-                            tab.resize(size)?;
+                            let pane = mux
+                                .get_pane(pane_id)
+                                .ok_or_else(|| anyhow!("no such pane {}", pane_id))?;
+                            pane.resize(size)?;
                             Ok(Pdu::UnitResponse(UnitResponse {}))
                         },
                         send_response,
@@ -302,28 +305,29 @@ impl SessionHandler {
             }
 
             Pdu::SendKeyDown(SendKeyDown {
-                tab_id,
+                pane_id,
                 event,
                 input_serial,
             }) => {
                 let sender = self.to_write_tx.clone();
-                let per_tab = self.per_tab(tab_id);
+                let per_pane = self.per_pane(pane_id);
                 spawn_into_main_thread(async move {
                     catch(
                         move || {
                             let mux = Mux::get().unwrap();
-                            let tab = mux
-                                .get_tab(tab_id)
-                                .ok_or_else(|| anyhow!("no such tab {}", tab_id))?;
-                            tab.key_down(event.key, event.modifiers)?;
+                            let pane = mux
+                                .get_pane(pane_id)
+                                .ok_or_else(|| anyhow!("no such pane {}", pane_id))?;
+                            pane.key_down(event.key, event.modifiers)?;
 
                             // For a key press, we want to always send back the
                             // cursor position so that the predictive echo doesn't
                             // leave the cursor in the wrong place
-                            let mut per_tab = per_tab.lock().unwrap();
-                            if let Some(resp) = per_tab.compute_changes(&tab, Some(input_serial)) {
+                            let mut per_pane = per_pane.lock().unwrap();
+                            if let Some(resp) = per_pane.compute_changes(&pane, Some(input_serial))
+                            {
                                 sender.send(DecodedPdu {
-                                    pdu: Pdu::GetTabRenderChangesResponse(resp),
+                                    pdu: Pdu::GetPaneRenderChangesResponse(resp),
                                     serial: 0,
                                 })?;
                             }
@@ -333,18 +337,18 @@ impl SessionHandler {
                     )
                 });
             }
-            Pdu::SendMouseEvent(SendMouseEvent { tab_id, event }) => {
+            Pdu::SendMouseEvent(SendMouseEvent { pane_id, event }) => {
                 let sender = self.to_write_tx.clone();
-                let per_tab = self.per_tab(tab_id);
+                let per_pane = self.per_pane(pane_id);
                 spawn_into_main_thread(async move {
                     catch(
                         move || {
                             let mux = Mux::get().unwrap();
-                            let tab = mux
-                                .get_tab(tab_id)
-                                .ok_or_else(|| anyhow!("no such tab {}", tab_id))?;
-                            tab.mouse_event(event)?;
-                            maybe_push_tab_changes(&tab, sender, per_tab)?;
+                            let pane = mux
+                                .get_pane(pane_id)
+                                .ok_or_else(|| anyhow!("no such pane {}", pane_id))?;
+                            pane.mouse_event(event)?;
+                            maybe_push_pane_changes(&pane, sender, per_pane)?;
                             Ok(Pdu::UnitResponse(UnitResponse {}))
                         },
                         send_response,
@@ -359,23 +363,23 @@ impl SessionHandler {
                 });
             }
 
-            Pdu::GetTabRenderChanges(GetTabRenderChanges { tab_id, .. }) => {
+            Pdu::GetPaneRenderChanges(GetPaneRenderChanges { pane_id, .. }) => {
                 let sender = self.to_write_tx.clone();
-                let per_tab = self.per_tab(tab_id);
+                let per_pane = self.per_pane(pane_id);
                 spawn_into_main_thread(async move {
                     catch(
                         move || {
                             let mux = Mux::get().unwrap();
-                            let tab_alive = match mux.get_tab(tab_id) {
-                                Some(tab) => {
-                                    maybe_push_tab_changes(&tab, sender, per_tab)?;
+                            let is_alive = match mux.get_pane(pane_id) {
+                                Some(pane) => {
+                                    maybe_push_pane_changes(&pane, sender, per_pane)?;
                                     true
                                 }
                                 None => false,
                             };
-                            Ok(Pdu::TabLivenessResponse(TabLivenessResponse {
-                                tab_id,
-                                tab_alive,
+                            Ok(Pdu::LivenessResponse(LivenessResponse {
+                                pane_id,
+                                is_alive,
                             }))
                         },
                         send_response,
@@ -383,30 +387,30 @@ impl SessionHandler {
                 });
             }
 
-            Pdu::GetLines(GetLines { tab_id, lines }) => {
-                let per_tab = self.per_tab(tab_id);
+            Pdu::GetLines(GetLines { pane_id, lines }) => {
+                let per_pane = self.per_pane(pane_id);
                 spawn_into_main_thread(async move {
                     catch(
                         move || {
                             let mux = Mux::get().unwrap();
-                            let tab = mux
-                                .get_tab(tab_id)
-                                .ok_or_else(|| anyhow!("no such tab {}", tab_id))?;
-                            let mut renderer = tab.renderer();
+                            let pane = mux
+                                .get_pane(pane_id)
+                                .ok_or_else(|| anyhow!("no such pane {}", pane_id))?;
+                            let mut renderer = pane.renderer();
 
                             let mut lines_and_indices = vec![];
-                            let mut per_tab = per_tab.lock().unwrap();
+                            let mut per_pane = per_pane.lock().unwrap();
 
                             for range in lines {
                                 let (first_row, lines) = renderer.get_lines(range);
                                 for (idx, line) in lines.into_iter().enumerate() {
                                     let stable_row = first_row + idx as StableRowIndex;
-                                    per_tab.mark_clean(stable_row);
+                                    per_pane.mark_clean(stable_row);
                                     lines_and_indices.push((stable_row, line));
                                 }
                             }
                             Ok(Pdu::GetLinesResponse(GetLinesResponse {
-                                tab_id,
+                                pane_id,
                                 lines: lines_and_indices.into(),
                             }))
                         },
@@ -441,10 +445,10 @@ impl SessionHandler {
             | Pdu::ListTabsResponse { .. }
             | Pdu::SetClipboard { .. }
             | Pdu::SpawnResponse { .. }
-            | Pdu::GetTabRenderChangesResponse { .. }
+            | Pdu::GetPaneRenderChangesResponse { .. }
             | Pdu::UnitResponse { .. }
-            | Pdu::TabLivenessResponse { .. }
-            | Pdu::SearchTabScrollbackResponse { .. }
+            | Pdu::LivenessResponse { .. }
+            | Pdu::SearchScrollbackResponse { .. }
             | Pdu::GetLinesResponse { .. }
             | Pdu::GetCodecVersionResponse { .. }
             | Pdu::GetTlsCredsResponse { .. }
@@ -468,7 +472,7 @@ where
 
 struct RemoteClipboard {
     sender: PollableSender<DecodedPdu>,
-    tab_id: TabId,
+    pane_id: TabId,
 }
 
 impl Clipboard for RemoteClipboard {
@@ -480,7 +484,7 @@ impl Clipboard for RemoteClipboard {
         self.sender.send(DecodedPdu {
             serial: 0,
             pdu: Pdu::SetClipboard(SetClipboard {
-                tab_id: self.tab_id,
+                pane_id: self.pane_id,
                 clipboard,
             }),
         })?;
@@ -506,13 +510,18 @@ async fn domain_spawn(spawn: Spawn, sender: PollableSender<DecodedPdu>) -> anyho
         .spawn(spawn.size, spawn.command, spawn.command_dir, window_id)
         .await?;
 
+    let pane = tab
+        .get_active_pane()
+        .ok_or_else(|| anyhow!("missing active pane on tab!?"))?;
+
     let clip: Arc<dyn Clipboard> = Arc::new(RemoteClipboard {
-        tab_id: tab.tab_id(),
+        pane_id: pane.pane_id(),
         sender,
     });
-    tab.set_clipboard(&clip);
+    pane.set_clipboard(&clip);
 
     Ok::<Pdu, anyhow::Error>(Pdu::SpawnResponse(SpawnResponse {
+        pane_id: pane.pane_id(),
         tab_id: tab.tab_id(),
         window_id,
     }))
