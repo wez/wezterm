@@ -241,12 +241,12 @@ impl ClientDomain {
                         // removed it from the mux.  Let's add it back, but
                         // with a new id.
                         inner.remove_old_tab_mapping(entry.tab_id);
-                        tab = Rc::new(Tab::new());
+                        tab = Rc::new(Tab::new(&entry.size));
                         inner.record_remote_to_local_tab_mapping(entry.tab_id, tab.tab_id());
                     }
                 };
             } else {
-                tab = Rc::new(Tab::new());
+                tab = Rc::new(Tab::new(&entry.size));
                 inner.record_remote_to_local_tab_mapping(entry.tab_id, tab.tab_id());
             }
 
@@ -372,7 +372,7 @@ impl Domain for ClientDomain {
             result.tab_id
         };
         let pane: Rc<dyn Pane> = Rc::new(ClientPane::new(&inner, remote_tab_id, size, "wezterm"));
-        let tab = Rc::new(Tab::new());
+        let tab = Rc::new(Tab::new(&size));
         tab.assign_pane(&pane);
 
         let mux = Mux::get().unwrap();

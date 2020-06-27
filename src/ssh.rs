@@ -265,7 +265,7 @@ impl Domain for RemoteSshDomain {
 
         let mux = Mux::get().unwrap();
         let pane: Rc<dyn Pane> = Rc::new(LocalPane::new(terminal, child, pair.master, self.id));
-        let tab = Rc::new(Tab::new());
+        let tab = Rc::new(Tab::new(&size));
         tab.assign_pane(&pane);
 
         mux.add_tab(&tab)?;

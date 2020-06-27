@@ -449,7 +449,12 @@ pub async fn run<
         let pane = TermWizTerminalPane::new(domain.domain_id(), width, height, input_tx, render_rx);
         let pane: Rc<dyn Pane> = Rc::new(pane);
 
-        let tab = Rc::new(Tab::new());
+        let tab = Rc::new(Tab::new(&PtySize {
+            rows: height as _,
+            cols: width as _,
+            pixel_width: 0,
+            pixel_height: 0,
+        }));
         tab.assign_pane(&pane);
 
         mux.add_tab(&tab)?;
