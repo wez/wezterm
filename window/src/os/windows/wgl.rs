@@ -167,7 +167,18 @@ impl GlState {
             log::trace!("opengl extensions: {:?}", extensions);
 
             if has_extension(&extensions, "WGL_ARB_pixel_format") {
-                return Self::create_ext(wgl, extensions, hdc);
+                return match Self::create_ext(wgl, extensions, hdc) {
+                    Ok(state) => Ok(state),
+                    Err(err) => {
+                        log::error!(
+                            "failed to created extended OpenGL context \
+                            ({}), fall back to basic",
+                            err
+                        );
+                        let wgl = WglWrapper::load()?;
+                        Self::create_basic(wgl, window)
+                    }
+                };
             }
         }
 
@@ -283,7 +294,7 @@ impl GlState {
         };
 
         if rc.is_null() {
-            anyhow::bail!("failed to make context");
+            anyhow::bail!("CreateContextAttribsARB failed");
         }
 
         unsafe {
