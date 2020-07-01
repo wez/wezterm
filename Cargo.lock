@@ -318,6 +318,10 @@ name = "base91"
 version = "0.1.0"
 
 [[package]]
+name = "bintree"
+version = "0.1.0"
+
+[[package]]
 name = "bitflags"
 version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3936,6 +3940,7 @@ dependencies = [
  "async-trait",
  "base64 0.10.1",
  "base91",
+ "bintree",
  "bitflags 1.2.1",
  "bstr 0.2.13",
  "cc",

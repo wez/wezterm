@@ -22,6 +22,7 @@ allsorts = "0.4"
 async-task = "1.2"
 async-trait = "0.1"
 anyhow = "1.0"
+bintree = { path = "bintree" }
 thiserror = "1.0"
 base64 = "0.10"
 base91 = { path = "base91" }
