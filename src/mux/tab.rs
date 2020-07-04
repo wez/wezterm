@@ -2,6 +2,7 @@ use crate::mux::domain::DomainId;
 use crate::mux::renderable::Renderable;
 use crate::mux::Mux;
 use async_trait::async_trait;
+use bintree::Tree;
 use downcast_rs::{impl_downcast, Downcast};
 use portable_pty::PtySize;
 use serde::{Deserialize, Serialize};
@@ -92,7 +93,7 @@ pub struct SearchResult {
 /// At this time only a single pane is supported
 pub struct Tab {
     id: TabId,
-    pane: RefCell<Option<PaneNode>>,
+    pane: RefCell<Option<Tree<Rc<dyn Pane>, SplitDirectionAndSize>>>,
     size: RefCell<PtySize>,
     active: RefCell<usize>,
 }
@@ -117,133 +118,28 @@ pub struct PositionedPane {
     pub pane: Rc<dyn Pane>,
 }
 
-/// A tab contains a tree of PaneNode's.
-#[derive(Clone)]
-enum PaneNode {
-    /// This node is filled with a single Pane
-    Single(Rc<dyn Pane>),
-    /// This node is split horizontally in two.
-    HorizontalSplit {
-        left: Box<PaneNode>,
-        left_width: usize,
-        right: Box<PaneNode>,
-    },
-    /// This node is split vertically in two.
-    VerticalSplit {
-        top: Box<PaneNode>,
-        top_height: usize,
-        bottom: Box<PaneNode>,
-    },
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+pub enum SplitDirection {
+    Horizontal,
+    Vertical,
 }
 
-impl PaneNode {
-    /// Returns true if this node or any of its children are
-    /// alive.  Stops evaluating as soon as it identifies that
-    /// something is alive.
-    pub fn is_alive(&self) -> bool {
-        match self {
-            PaneNode::Single(p) => !p.is_dead(),
-            PaneNode::HorizontalSplit { left, right, .. } => left.is_alive() || right.is_alive(),
-            PaneNode::VerticalSplit { top, bottom, .. } => top.is_alive() || bottom.is_alive(),
-        }
-    }
-
-    /// Returns a ref to the PaneNode::Single that contains a pane
-    /// given its topological index.
-    /// The if topological index is invalid, returns None.
-    fn node_by_index_mut(
-        &mut self,
-        wanted_index: usize,
-        current_index: &mut usize,
-    ) -> Option<&mut Self> {
-        match self {
-            PaneNode::Single(_) => {
-                if wanted_index == *current_index {
-                    Some(self)
-                } else {
-                    *current_index += 1;
-                    None
-                }
-            }
-            PaneNode::HorizontalSplit { left, right, .. } => {
-                if let Some(found) = left.node_by_index_mut(wanted_index, current_index) {
-                    Some(found)
-                } else {
-                    right.node_by_index_mut(wanted_index, current_index)
-                }
-            }
-            PaneNode::VerticalSplit { top, bottom, .. } => {
-                if let Some(found) = top.node_by_index_mut(wanted_index, current_index) {
-                    Some(found)
-                } else {
-                    bottom.node_by_index_mut(wanted_index, current_index)
-                }
-            }
-        }
-    }
-
-    /// Recursively Walk to compute the positioning information
-    fn walk(
-        &self,
-        active_index: usize,
-        x: usize,
-        y: usize,
-        width: usize,
-        height: usize,
-        panes: &mut Vec<PositionedPane>,
-    ) {
-        match self {
-            PaneNode::Single(p) => {
-                let index = panes.len();
-                panes.push(PositionedPane {
-                    index,
-                    is_active: index == active_index,
-                    left: x,
-                    top: y,
-                    width,
-                    height,
-                    pane: Rc::clone(p),
-                });
-            }
-            PaneNode::HorizontalSplit {
-                left,
-                left_width,
-                right,
-            } => {
-                left.walk(active_index, x, y, *left_width, height, panes);
-                right.walk(
-                    active_index,
-                    x + *left_width,
-                    y,
-                    width.saturating_sub(*left_width),
-                    height,
-                    panes,
-                );
-            }
-            PaneNode::VerticalSplit {
-                top,
-                top_height,
-                bottom,
-            } => {
-                top.walk(active_index, x, y, width, *top_height, panes);
-                bottom.walk(
-                    active_index,
-                    x,
-                    y + *top_height,
-                    width,
-                    height.saturating_sub(*top_height),
-                    panes,
-                );
-            }
-        }
-    }
+/// The size is of the (first, second) child of the split
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+struct SplitDirectionAndSize {
+    direction: SplitDirection,
+    /// Offset relative to container
+    left: usize,
+    top: usize,
+    first: PtySize,
+    second: PtySize,
 }
 
 impl Tab {
     pub fn new(size: &PtySize) -> Self {
         Self {
             id: TAB_ID.fetch_add(1, ::std::sync::atomic::Ordering::Relaxed),
-            pane: RefCell::new(None),
+            pane: RefCell::new(Some(Tree::new())),
             size: RefCell::new(*size),
             active: RefCell::new(0),
         }
@@ -253,17 +149,56 @@ impl Tab {
     /// list of PositionedPane instances along with their positioning information.
     pub fn iter_panes(&self) -> Vec<PositionedPane> {
         let mut panes = vec![];
-        let size = *self.size.borrow();
+        let active_idx = *self.active.borrow();
+        let mut root = self.pane.borrow_mut();
+        let mut cursor = root.take().unwrap().cursor();
 
-        if let Some(pane) = self.pane.borrow().as_ref() {
-            pane.walk(
-                *self.active.borrow(),
-                0,
-                0,
-                size.cols as _,
-                size.rows as _,
-                &mut panes,
-            );
+        loop {
+            if cursor.is_leaf() {
+                let index = panes.len();
+                let mut left = 0usize;
+                let mut top = 0usize;
+                let mut parent_size = None;
+                let is_second = cursor.is_right();
+                for node in cursor.path_to_root() {
+                    if let Some(node) = node {
+                        if parent_size.is_none() {
+                            parent_size.replace(if is_second { node.second } else { node.first });
+                            if is_second {
+                                match node.direction {
+                                    SplitDirection::Vertical => top += node.first.rows as usize + 1,
+                                    SplitDirection::Horizontal => {
+                                        left += node.first.cols as usize + 1
+                                    }
+                                }
+                            }
+                        }
+                        left += node.left;
+                        top += node.top;
+                    }
+                }
+
+                let pane = Rc::clone(cursor.leaf_mut().unwrap());
+                let dims = parent_size.unwrap_or_else(|| *self.size.borrow());
+
+                panes.push(PositionedPane {
+                    index,
+                    is_active: index == active_idx,
+                    left,
+                    top,
+                    width: dims.cols as _,
+                    height: dims.rows as _,
+                    pane,
+                });
+            }
+
+            match cursor.preorder_next() {
+                Ok(c) => cursor = c,
+                Err(c) => {
+                    root.replace(c.tree());
+                    break;
+                }
+            }
         }
 
         panes
@@ -274,11 +209,14 @@ impl Tab {
     }
 
     pub fn is_dead(&self) -> bool {
-        if let Some(pane) = self.pane.borrow().as_ref() {
-            !pane.is_alive()
-        } else {
-            true
+        let panes = self.iter_panes();
+        let mut dead_count = 0;
+        for pos in &panes {
+            if pos.pane.is_dead() {
+                dead_count += 1;
+            }
         }
+        dead_count == panes.len()
     }
 
     pub fn get_active_pane(&self) -> Option<Rc<dyn Pane>> {
@@ -292,9 +230,10 @@ impl Tab {
     /// This is suitable when creating a new tab and then assigning
     /// the initial pane
     pub fn assign_pane(&self, pane: &Rc<dyn Pane>) {
-        self.pane
-            .borrow_mut()
-            .replace(PaneNode::Single(Rc::clone(pane)));
+        match Tree::new().cursor().assign_top(Rc::clone(pane)) {
+            Ok(c) => *self.pane.borrow_mut() = Some(c.tree()),
+            Err(_) => panic!("tried to assign root pane to non-empty tree"),
+        }
     }
 
     fn cell_dimensions(&self) -> PtySize {
@@ -312,23 +251,48 @@ impl Tab {
     /// The intent is to call this prior to spawning the new pane so that
     /// you can create it with the correct size.
     /// May return None if the specified pane_index is invalid.
-    pub fn compute_split_size(
+    fn compute_split_size(
         &self,
         pane_index: usize,
         direction: SplitDirection,
-    ) -> Option<PtySize> {
+    ) -> Option<SplitDirectionAndSize> {
         let cell_dims = self.cell_dimensions();
 
         self.iter_panes().iter().nth(pane_index).map(|pos| {
-            let (width, height) = match direction {
-                SplitDirection::Horizontal => (pos.width / 2, pos.height),
-                SplitDirection::Vertical => (pos.width, pos.height / 2),
+            fn split_dimension(dim: usize) -> (usize, usize) {
+                let halved = dim / 2;
+                if halved * 2 == dim {
+                    // Was an even size; we need to allow 1 cell to render
+                    // the split UI, so make the newly created leaf slightly
+                    // smaller
+                    (halved, halved.saturating_sub(1))
+                } else {
+                    (halved, halved)
+                }
+            }
+
+            let ((width1, width2), (height1, height2)) = match direction {
+                SplitDirection::Horizontal => {
+                    (split_dimension(pos.width), (pos.height, pos.height))
+                }
+                SplitDirection::Vertical => ((pos.width, pos.width), split_dimension(pos.height)),
             };
-            PtySize {
-                rows: height as _,
-                cols: width as _,
-                pixel_width: cell_dims.pixel_width * width as u16,
-                pixel_height: cell_dims.pixel_height * height as u16,
+            SplitDirectionAndSize {
+                direction,
+                left: pos.left,
+                top: pos.top,
+                first: PtySize {
+                    rows: height1 as _,
+                    cols: width1 as _,
+                    pixel_height: cell_dims.pixel_height * height1 as u16,
+                    pixel_width: cell_dims.pixel_width * width1 as u16,
+                },
+                second: PtySize {
+                    rows: height2 as _,
+                    cols: width2 as _,
+                    pixel_height: cell_dims.pixel_height * height2 as u16,
+                    pixel_width: cell_dims.pixel_width * width2 as u16,
+                },
             }
         })
     }
@@ -343,62 +307,41 @@ impl Tab {
         direction: SplitDirection,
         pane: Rc<dyn Pane>,
     ) -> anyhow::Result<usize> {
-        let new_size = self
+        let split_info = self
             .compute_split_size(pane_index, direction)
             .ok_or_else(|| anyhow::anyhow!("invalid pane_index {}; cannot split!", pane_index))?;
 
-        pane.resize(new_size.clone())?;
-        let new_pane = Box::new(PaneNode::Single(pane));
+        let mut root = self.pane.borrow_mut();
+        let mut cursor = root.take().unwrap().cursor();
 
-        if let Some(root_node) = self.pane.borrow_mut().as_mut() {
-            let mut active = 0;
-            let node = root_node
-                .node_by_index_mut(pane_index, &mut active)
-                .ok_or_else(|| {
-                    anyhow::anyhow!("invalid pane_index {}; cannot split!", pane_index)
-                })?;
-
-            let prior_node = match node {
-                PaneNode::Single(orig_pane) => {
-                    orig_pane.resize(new_size)?;
-                    Box::new(PaneNode::Single(Rc::clone(orig_pane)))
-                }
-                _ => unreachable!("impossible PaneNode variant returned from node_by_index_mut"),
-            };
-
-            match direction {
-                SplitDirection::Horizontal => {
-                    *node = PaneNode::HorizontalSplit {
-                        left: prior_node,
-                        right: new_pane,
-                        left_width: new_size.cols as _,
-                    }
-                }
-
-                SplitDirection::Vertical => {
-                    *node = PaneNode::VerticalSplit {
-                        top: prior_node,
-                        bottom: new_pane,
-                        top_height: new_size.rows as _,
-                    }
-                }
+        match cursor.go_to_nth_leaf(pane_index) {
+            Ok(c) => cursor = c,
+            Err(c) => {
+                root.replace(c.tree());
+                anyhow::bail!("invalid pane_index {}; cannot split!", pane_index);
             }
+        };
 
-            let new_index = pane_index + 1;
+        pane.resize(split_info.second.clone())?;
 
-            *self.active.borrow_mut() = new_index;
+        match cursor.split_leaf_and_insert_right(pane) {
+            Ok(c) => cursor = c,
+            Err(c) => {
+                root.replace(c.tree());
+                anyhow::bail!("invalid pane_index {}; cannot split!", pane_index);
+            }
+        };
 
-            Ok(new_index)
-        } else {
-            anyhow::bail!("no panes have been assigned; cannot split!");
-        }
+        // cursor now points to the newly created split node;
+        // we need to populate its split information
+        match cursor.assign_node(Some(split_info)) {
+            Err(c) | Ok(c) => root.replace(c.tree()),
+        };
+
+        *self.active.borrow_mut() = pane_index + 1;
+
+        Ok(pane_index + 1)
     }
-}
-
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
-pub enum SplitDirection {
-    Horizontal,
-    Vertical,
 }
 
 /// A Pane represents a view on a terminal
@@ -558,27 +501,53 @@ mod test {
             .unwrap();
         assert_eq!(
             horz_size,
-            PtySize {
-                rows: 24,
-                cols: 40,
-                pixel_width: 400,
-                pixel_height: 600
+            SplitDirectionAndSize {
+                direction: SplitDirection::Horizontal,
+                left: 0,
+                top: 0,
+                first: PtySize {
+                    rows: 24,
+                    cols: 40,
+                    pixel_width: 400,
+                    pixel_height: 600
+                },
+                second: PtySize {
+                    rows: 24,
+                    cols: 39,
+                    pixel_width: 390,
+                    pixel_height: 600
+                },
             }
         );
 
         let vert_size = tab.compute_split_size(0, SplitDirection::Vertical).unwrap();
         assert_eq!(
             vert_size,
-            PtySize {
-                rows: 12,
-                cols: 80,
-                pixel_width: 800,
-                pixel_height: 300
+            SplitDirectionAndSize {
+                direction: SplitDirection::Vertical,
+                left: 0,
+                top: 0,
+                first: PtySize {
+                    rows: 12,
+                    cols: 80,
+                    pixel_width: 800,
+                    pixel_height: 300
+                },
+                second: PtySize {
+                    rows: 11,
+                    cols: 80,
+                    pixel_width: 800,
+                    pixel_height: 275
+                }
             }
         );
 
         let new_index = tab
-            .split_and_insert(0, SplitDirection::Horizontal, FakePane::new(2, horz_size))
+            .split_and_insert(
+                0,
+                SplitDirection::Horizontal,
+                FakePane::new(2, horz_size.second),
+            )
             .unwrap();
         assert_eq!(new_index, 1);
 
@@ -595,15 +564,19 @@ mod test {
 
         assert_eq!(1, panes[1].index);
         assert_eq!(true, panes[1].is_active);
-        assert_eq!(40, panes[1].left);
+        assert_eq!(41, panes[1].left);
         assert_eq!(0, panes[1].top);
-        assert_eq!(40, panes[1].width);
+        assert_eq!(39, panes[1].width);
         assert_eq!(24, panes[1].height);
         assert_eq!(2, panes[1].pane.pane_id());
 
         let vert_size = tab.compute_split_size(0, SplitDirection::Vertical).unwrap();
         let new_index = tab
-            .split_and_insert(0, SplitDirection::Vertical, FakePane::new(3, vert_size))
+            .split_and_insert(
+                0,
+                SplitDirection::Vertical,
+                FakePane::new(3, vert_size.second),
+            )
             .unwrap();
         assert_eq!(new_index, 1);
 
@@ -621,16 +594,16 @@ mod test {
         assert_eq!(1, panes[1].index);
         assert_eq!(true, panes[1].is_active);
         assert_eq!(0, panes[1].left);
-        assert_eq!(12, panes[1].top);
+        assert_eq!(13, panes[1].top);
         assert_eq!(40, panes[1].width);
-        assert_eq!(12, panes[1].height);
+        assert_eq!(11, panes[1].height);
         assert_eq!(3, panes[1].pane.pane_id());
 
         assert_eq!(2, panes[2].index);
         assert_eq!(false, panes[2].is_active);
-        assert_eq!(40, panes[2].left);
+        assert_eq!(41, panes[2].left);
         assert_eq!(0, panes[2].top);
-        assert_eq!(40, panes[2].width);
+        assert_eq!(39, panes[2].width);
         assert_eq!(24, panes[2].height);
         assert_eq!(2, panes[2].pane.pane_id());
     }

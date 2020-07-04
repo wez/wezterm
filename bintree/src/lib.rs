@@ -142,6 +142,24 @@ where
     }
 }
 
+pub struct ParentIterator<'a, L, N> {
+    path: &'a Path<L, N>,
+}
+
+impl<'a, L, N> std::iter::Iterator for ParentIterator<'a, L, N> {
+    type Item = &'a Option<N>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self.path {
+            Path::Top => None,
+            Path::Left { data, up, .. } | Path::Right { data, up, .. } => {
+                self.path = &*up;
+                Some(data)
+            }
+        }
+    }
+}
+
 impl<L, N> Tree<L, N> {
     /// Construct a new empty tree
     pub fn new() -> Self {
@@ -182,6 +200,22 @@ impl<L, N> Cursor<L, N> {
         }
     }
 
+    /// Returns true if the current position is the left child of its parent
+    pub fn is_left(&self) -> bool {
+        match &*self.path {
+            Path::Left { .. } => true,
+            _ => false,
+        }
+    }
+
+    /// Returns true if the current position is the right child of its parent
+    pub fn is_right(&self) -> bool {
+        match &*self.path {
+            Path::Right { .. } => true,
+            _ => false,
+        }
+    }
+
     /// If the current position is the root of the empty tree,
     /// assign an initial leaf value.
     /// Consumes the cursor and returns a new cursor representing
@@ -214,6 +248,13 @@ impl<L, N> Cursor<L, N> {
             Tree::Node { data, .. } => Ok(data),
             _ => Err(()),
         }
+    }
+
+    /// Return an iterator that will visit the chain of nodes leading
+    /// to the root from the current position and yield their node
+    /// data at each step of iteration.
+    pub fn path_to_root(&self) -> ParentIterator<L, N> {
+        ParentIterator { path: &*self.path }
     }
 
     /// If the current position is not a leaf node, assign the
@@ -365,6 +406,20 @@ impl<L, N> Cursor<L, N> {
             // In all other cases, the next down is down and to
             // the left.
             _ => self.go_left(),
+        }
+    }
+
+    /// Move to the nth (preorder) leaf from the current position.
+    pub fn go_to_nth_leaf(mut self, n: usize) -> Result<Self, Self> {
+        let mut next = 0;
+        loop {
+            if self.is_leaf() {
+                if next == n {
+                    return Ok(self);
+                }
+                next += 1;
+            }
+            self = self.preorder_next()?;
         }
     }
 
