@@ -8,6 +8,7 @@ class Wezterm < Formula
   homepage "https://wezfurlong.org/wezterm/"
   url "https://github.com/wez/wezterm/releases/download/@TAG@/WezTerm-macos-@TAG@.zip"
   sha256 "@SHA256@"
+  head "https://github.com/wez/wezterm/releases/download/nightly/WezTerm-macos-nightly.zip"
 
   def install
     prefix.install "WezTerm.app"

@@ -365,6 +365,30 @@ cargo build --all --release""",
                     },
                 ),
             ]
+        elif self.app_image:
+            steps += [
+                ActionStep(
+                    "Checkout linuxbrew tap",
+                    action="actions/checkout@v2",
+                    params={
+                        "repository": "wez/homebrew-wezterm-linuxbrew",
+                        "path": "linuxbrew-wezterm",
+                        "token": "${{ secrets.GH_PAT }}",
+                    },
+                ),
+                RunStep(
+                    "Update linuxbrew tap formula",
+                    "cp wezterm-linuxbrew.rb linuxbrew-wezterm/Formula/wezterm.rb",
+                ),
+                ActionStep(
+                    "Commit linuxbrew tap changes",
+                    action="stefanzweifel/git-auto-commit-action@v4",
+                    params={
+                        "commit_message": "Automated update to match latest tag",
+                        "repository": "linuxbrew-wezterm",
+                    },
+                ),
+            ]
 
         return steps
 

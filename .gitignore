@@ -17,3 +17,4 @@
 /WezTerm*.AppImage
 /WezTerm*.AppImage.zsync
 /wezterm*-src.tar.gz
+/wezterm-linuxbrew.rb

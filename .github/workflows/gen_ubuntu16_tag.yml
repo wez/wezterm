@@ -88,3 +88,17 @@ jobs:
          commit_email: "wez@wezfurlong.org"
          ssh_private_key: "${{ secrets.AUR_SSH_PRIVATE_KEY }}"
          commit_message: "Automated update to match latest tag"
+    - name: "Checkout linuxbrew tap"
+      uses: actions/checkout@v2
+      with:
+         repository: "wez/homebrew-wezterm-linuxbrew"
+         path: "linuxbrew-wezterm"
+         token: "${{ secrets.GH_PAT }}"
+    - name: "Update linuxbrew tap formula"
+      shell: bash
+      run: "cp wezterm-linuxbrew.rb linuxbrew-wezterm/Formula/wezterm.rb"
+    - name: "Commit linuxbrew tap changes"
+      uses: stefanzweifel/git-auto-commit-action@v4
+      with:
+         commit_message: "Automated update to match latest tag"
+         repository: "linuxbrew-wezterm"
