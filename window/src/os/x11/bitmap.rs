@@ -1,6 +1,6 @@
 use super::*;
 use crate::bitmaps::*;
-use anyhow::bail;
+use anyhow::{bail, Context as _};
 use std::rc::Rc;
 
 /// The X protocol allows referencing a number of drawable
@@ -77,7 +77,7 @@ impl Context {
             dest_x,
             dest_y,
             0,
-            24,
+            self.conn.depth,
             pixel_slice,
         )
     }
@@ -179,7 +179,9 @@ impl ShmImage {
 
         // Tell the server to attach to it
         let seg_id = conn.generate_id();
-        xcb::shm::attach_checked(conn, seg_id, id.id as u32, false).request_check()?;
+        xcb::shm::attach_checked(conn, seg_id, id.id as u32, false)
+            .request_check()
+            .context("xcb::shm::attach_checked")?;
 
         // Now create a pixmap that references it
         let draw_id = conn.generate_id();
@@ -189,11 +191,12 @@ impl ShmImage {
             drawable,
             width as u16,
             height as u16,
-            24,
+            conn.depth,
             seg_id,
             0,
         )
-        .request_check()?;
+        .request_check()
+        .context("create_pixmap_checked")?;
 
         Ok(ShmImage {
             data,

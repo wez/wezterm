@@ -8,7 +8,7 @@ use crate::{
     MousePress, Operator, PaintContext, Point, Rect, ScreenPoint, Size, WindowCallbacks, WindowOps,
     WindowOpsMut,
 };
-use anyhow::anyhow;
+use anyhow::{anyhow, Context as _};
 use promise::{Future, Promise};
 use std::any::Any;
 use std::collections::{HashMap, VecDeque};
@@ -701,9 +701,20 @@ impl XWindow {
 
             window_id = conn.conn().generate_id();
 
+            let color_map_id = conn.conn().generate_id();
+            xcb::create_colormap_checked(
+                conn.conn(),
+                xcb::COLORMAP_ALLOC_NONE as _,
+                color_map_id,
+                screen.root(),
+                conn.visual.visual_id(),
+            )
+            .request_check()
+            .context("create_colormap_checked")?;
+
             xcb::create_window_checked(
                 conn.conn(),
-                xcb::COPY_FROM_PARENT as u8,
+                conn.depth,
                 window_id,
                 screen.root(),
                 // x, y
@@ -716,21 +727,29 @@ impl XWindow {
                 0,
                 xcb::WINDOW_CLASS_INPUT_OUTPUT as u16,
                 conn.visual.visual_id(), // screen.root_visual(),
-                &[(
-                    xcb::CW_EVENT_MASK,
-                    xcb::EVENT_MASK_EXPOSURE
-                        | xcb::EVENT_MASK_FOCUS_CHANGE
-                        | xcb::EVENT_MASK_KEY_PRESS
-                        | xcb::EVENT_MASK_BUTTON_PRESS
-                        | xcb::EVENT_MASK_BUTTON_RELEASE
-                        | xcb::EVENT_MASK_POINTER_MOTION
-                        | xcb::EVENT_MASK_BUTTON_MOTION
-                        | xcb::EVENT_MASK_KEY_RELEASE
-                        | xcb::EVENT_MASK_PROPERTY_CHANGE
-                        | xcb::EVENT_MASK_STRUCTURE_NOTIFY,
-                )],
+                &[
+                    (
+                        xcb::CW_EVENT_MASK,
+                        xcb::EVENT_MASK_EXPOSURE
+                            | xcb::EVENT_MASK_FOCUS_CHANGE
+                            | xcb::EVENT_MASK_KEY_PRESS
+                            | xcb::EVENT_MASK_BUTTON_PRESS
+                            | xcb::EVENT_MASK_BUTTON_RELEASE
+                            | xcb::EVENT_MASK_POINTER_MOTION
+                            | xcb::EVENT_MASK_BUTTON_MOTION
+                            | xcb::EVENT_MASK_KEY_RELEASE
+                            | xcb::EVENT_MASK_PROPERTY_CHANGE
+                            | xcb::EVENT_MASK_STRUCTURE_NOTIFY,
+                    ),
+                    // We have to specify both a border pixel color and a colormap
+                    // when specifying a depth that doesn't match the root window in
+                    // order to avoid a BadMatch
+                    (xcb::CW_BORDER_PIXEL, 0),
+                    (xcb::CW_COLORMAP, color_map_id),
+                ],
             )
-            .request_check()?;
+            .request_check()
+            .context("xcb::create_window_checked")?;
 
             let window_context = Context::new(&conn, &window_id);
 

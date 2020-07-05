@@ -4,7 +4,7 @@ use crate::os::x11::window::XWindowInner;
 use crate::os::Connection;
 use crate::spawn::*;
 use crate::timerlist::{TimerEntry, TimerList};
-use anyhow::{anyhow, bail};
+use anyhow::{anyhow, bail, Context as _};
 use mio::unix::EventedFd;
 use mio::{Evented, Events, Poll, PollOpt, Ready, Token};
 use std::cell::RefCell;
@@ -33,6 +33,7 @@ pub struct XConnection {
     pub(crate) shm_available: bool,
     timers: RefCell<TimerList>,
     pub(crate) visual: xcb::xproto::Visualtype,
+    pub(crate) depth: u8,
 }
 
 impl std::ops::Deref for XConnection {
@@ -349,18 +350,44 @@ impl XConnection {
             .nth(screen_num as usize)
             .ok_or_else(|| anyhow!("no screen?"))?;
 
-        let visual = screen
-            .allowed_depths()
-            .filter(|depth| depth.depth() == 24)
-            .flat_map(|depth| depth.visuals())
-            .filter(|vis| vis.class() == xcb::xproto::VISUAL_CLASS_TRUE_COLOR as _)
-            .nth(0)
-            .ok_or_else(|| anyhow!("did not find 24-bit visual"))?;
+        let mut visuals = vec![];
+        for depth in screen.allowed_depths() {
+            let depth_bpp = depth.depth();
+            if depth_bpp == 24 || depth_bpp == 32 {
+                for vis in depth.visuals() {
+                    if vis.class() == xcb::xproto::VISUAL_CLASS_TRUE_COLOR as _
+                        && vis.bits_per_rgb_value() == 8
+                    {
+                        visuals.push((depth_bpp, vis));
+                    }
+                }
+            }
+        }
+        if visuals.is_empty() {
+            bail!("no suitable visuals of depth 24 or 32 are available");
+        }
+        visuals.sort_by(|(a_depth, _), (b_depth, _)| b_depth.cmp(&a_depth));
+        let (depth, visual) = visuals[0];
+
+        log::info!(
+            "picked depth {} visual id:0x{:x}, class:{}, bits_per_rgb_value:{}, \
+                    colormap entries:{}, masks: r=0x{:x},g=0x{:x},b=0x{:x}",
+            depth,
+            visual.visual_id(),
+            visual.class(),
+            visual.bits_per_rgb_value(),
+            visual.colormap_entries(),
+            visual.red_mask(),
+            visual.green_mask(),
+            visual.blue_mask()
+        );
         let (keyboard, kbd_ev) = Keyboard::new(&conn)?;
 
         let cursor_font_id = conn.generate_id();
         let cursor_font_name = "cursor";
-        xcb::open_font_checked(&conn, cursor_font_id, cursor_font_name);
+        xcb::open_font_checked(&conn, cursor_font_id, cursor_font_name)
+            .request_check()
+            .context("xcb::open_font_checked")?;
 
         let conn = XConnection {
             display,
@@ -380,6 +407,7 @@ impl XConnection {
             should_terminate: RefCell::new(false),
             shm_available,
             timers: RefCell::new(TimerList::new()),
+            depth,
             visual,
         };
 
