@@ -240,56 +240,7 @@ impl GlState {
         display: Option<ffi::EGLNativeDisplayType>,
         wegl_surface: &wayland_egl::WlEglSurface,
     ) -> anyhow::Result<Self> {
-        Self::with_egl_lib(move |egl| {
-            let egl_display = egl.get_display(display)?;
-
-            let (major, minor) = egl.initialize_and_get_version(egl_display)?;
-            log::info!("initialized EGL version {}.{}", major, minor);
-
-            let configs = egl.choose_config(
-                egl_display,
-                &[
-                    ffi::ALPHA_SIZE,
-                    8,
-                    ffi::RED_SIZE,
-                    8,
-                    ffi::GREEN_SIZE,
-                    8,
-                    ffi::BLUE_SIZE,
-                    8,
-                    ffi::DEPTH_SIZE,
-                    24,
-                    ffi::CONFORMANT,
-                    ffi::OPENGL_ES3_BIT,
-                    ffi::RENDERABLE_TYPE,
-                    ffi::OPENGL_ES3_BIT,
-                    ffi::SURFACE_TYPE,
-                    ffi::WINDOW_BIT, // | ffi::PBUFFER_BIT | ffi::PIXMAP_BIT,
-                    ffi::NONE,
-                ],
-            )?;
-
-            let first_config = *configs
-                .first()
-                .ok_or_else(|| anyhow!("no compatible EGL configuration was found"))?;
-
-            let window = wegl_surface.ptr();
-            let surface = egl.create_window_surface(egl_display, first_config, window)?;
-
-            let context = egl.create_context(
-                egl_display,
-                first_config,
-                std::ptr::null(),
-                &[ffi::CONTEXT_MAJOR_VERSION, 3, ffi::NONE],
-            )?;
-
-            Ok(Self {
-                egl,
-                display: egl_display,
-                context,
-                surface,
-            })
-        })
+        Self::create(display, wegl_surface.ptr())
     }
 
     pub fn create(
@@ -305,6 +256,8 @@ impl GlState {
             let configs = egl.choose_config(
                 egl_display,
                 &[
+                    // Request at least 8bpc, 24bpp.  The implementation may
+                    // return a context capable of more than this
                     ffi::ALPHA_SIZE,
                     8,
                     ffi::RED_SIZE,
@@ -319,8 +272,11 @@ impl GlState {
                     ffi::OPENGL_ES3_BIT,
                     ffi::RENDERABLE_TYPE,
                     ffi::OPENGL_ES3_BIT,
+                    // Wayland EGL doesn't give us a working context if we request
+                    // PBUFFER|PIXMAP.  We don't appear to require these for X11,
+                    // so we're just asking for a WINDOW capable context
                     ffi::SURFACE_TYPE,
-                    ffi::WINDOW_BIT | ffi::PBUFFER_BIT | ffi::PIXMAP_BIT,
+                    ffi::WINDOW_BIT, //| ffi::PBUFFER_BIT | ffi::PIXMAP_BIT,
                     ffi::NONE,
                 ],
             )?;
