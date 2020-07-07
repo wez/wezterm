@@ -115,6 +115,94 @@ impl EglWrapper {
         }
     }
 
+    fn config_attrib(
+        &self,
+        display: ffi::types::EGLDisplay,
+        config: ffi::types::EGLConfig,
+        attribute: u32,
+    ) -> Option<ffi::EGLint> {
+        let mut value = 0;
+        let res = unsafe {
+            self.egl
+                .GetConfigAttrib(display, config, attribute as ffi::EGLint, &mut value)
+        };
+        if res == 1 {
+            Some(value)
+        } else {
+            None
+        }
+    }
+
+    fn log_config_info(&self, display: ffi::types::EGLDisplay, config: ffi::types::EGLConfig) {
+        #[derive(Debug)]
+        struct ConfigInfo {
+            config: ffi::types::EGLConfig,
+            alpha_size: Option<ffi::EGLint>,
+            red_size: Option<ffi::EGLint>,
+            green_size: Option<ffi::EGLint>,
+            blue_size: Option<ffi::EGLint>,
+            depth_size: Option<ffi::EGLint>,
+            conformant: Option<String>,
+            renderable_type: Option<String>,
+            native_visual_id: Option<ffi::EGLint>,
+            surface_type: Option<String>,
+        }
+
+        fn conformant_bits(bits: ffi::EGLint) -> String {
+            let bits = bits as ffi::types::EGLenum;
+            let mut s = String::new();
+            if bits & ffi::OPENGL_BIT != 0 {
+                s.push_str("OPENGL ");
+            }
+            if bits & ffi::OPENGL_ES2_BIT != 0 {
+                s.push_str("OPENGL_ES2 ");
+            }
+            if bits & ffi::OPENGL_ES3_BIT != 0 {
+                s.push_str("OPENGL_ES3 ");
+            }
+            if bits & ffi::OPENVG_BIT != 0 {
+                s.push_str("OPENVG_BIT ");
+            }
+            s
+        }
+
+        fn surface_bits(bits: ffi::EGLint) -> String {
+            let bits = bits as ffi::types::EGLenum;
+            let mut s = String::new();
+            if bits & ffi::PBUFFER_BIT != 0 {
+                s.push_str("PBUFFER ");
+            }
+            if bits & ffi::PIXMAP_BIT != 0 {
+                s.push_str("PIXMAP ");
+            }
+            if bits & ffi::WINDOW_BIT != 0 {
+                s.push_str("WINDOW ");
+            }
+            s
+        }
+
+        let info = ConfigInfo {
+            config,
+            alpha_size: self.config_attrib(display, config, ffi::ALPHA_SIZE),
+            red_size: self.config_attrib(display, config, ffi::RED_SIZE),
+            green_size: self.config_attrib(display, config, ffi::GREEN_SIZE),
+            blue_size: self.config_attrib(display, config, ffi::BLUE_SIZE),
+            depth_size: self.config_attrib(display, config, ffi::DEPTH_SIZE),
+            conformant: self
+                .config_attrib(display, config, ffi::CONFORMANT)
+                .map(conformant_bits),
+            renderable_type: self
+                .config_attrib(display, config, ffi::RENDERABLE_TYPE)
+                .map(conformant_bits),
+            native_visual_id: self.config_attrib(display, config, ffi::NATIVE_VISUAL_ID),
+            surface_type: self
+                .config_attrib(display, config, ffi::SURFACE_TYPE)
+                .map(surface_bits),
+        };
+
+        log::info!("{:?}", info);
+    }
+
     pub fn choose_config(
         &self,
         display: ffi::types::EGLDisplay,
@@ -137,6 +225,19 @@ impl EglWrapper {
         let mut configs = vec![std::ptr::null(); num_configs as usize];
 
         if unsafe {
+            self.egl
+                .GetConfigs(display, configs.as_mut_ptr(), num_configs, &mut num_configs)
+        } != 1
+        {
+            return Err(self.error("egl GetConfigs to enumerate configurations"));
+        }
+
+        log::info!("Available Configuration(s):");
+        for c in &configs {
+            self.log_config_info(display, *c);
+        }
+
+        if unsafe {
             self.egl.ChooseConfig(
                 display,
                 attributes.as_ptr() as *const ffi::EGLint,
@@ -150,6 +251,11 @@ impl EglWrapper {
         }
 
         configs.resize(num_configs as usize, std::ptr::null());
+
+        log::info!("Matching Configuration(s):");
+        for c in &configs {
+            self.log_config_info(display, *c);
+        }
 
         Ok(configs)
     }
