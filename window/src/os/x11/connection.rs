@@ -15,8 +15,7 @@ use std::time::{Duration, Instant};
 use xcb_util::ffi::keysyms::{xcb_key_symbols_alloc, xcb_key_symbols_free, xcb_key_symbols_t};
 
 pub struct XConnection {
-    pub display: *mut x11::xlib::Display,
-    conn: xcb_util::ewmh::Connection,
+    pub conn: xcb_util::ewmh::Connection,
     pub screen_num: i32,
     pub keyboard: Keyboard,
     pub kbd_ev: u8,
@@ -68,12 +67,6 @@ impl Evented for XConnection {
     fn deregister(&self, poll: &Poll) -> std::io::Result<()> {
         EventedFd(&self.conn.as_raw_fd()).deregister(poll)
     }
-}
-
-#[link(name = "X11-xcb")]
-extern "C" {
-    fn XGetXCBConnection(display: *mut x11::xlib::Display) -> *mut xcb::ffi::xcb_connection_t;
-    fn XSetEventQueueOwner(display: *mut x11::xlib::Display, owner: i32);
 }
 
 fn window_id_from_event(event: &xcb::GenericEvent) -> Option<xcb::xproto::Window> {
@@ -134,18 +127,28 @@ fn window_id_from_event(event: &xcb::GenericEvent) -> Option<xcb::xproto::Window
     }
 }
 
+fn connect_with_xlib_display() -> anyhow::Result<(xcb::Connection, i32)> {
+    let display = unsafe { x11::xlib::XOpenDisplay(std::ptr::null()) };
+    anyhow::ensure!(!display.is_null(), "failed to open X11 display");
+    let default_screen = unsafe { x11::xlib::XDefaultScreen(display) };
+
+    // Note: we don't use xcb::Connection::connect_with_xlib_display because it
+    // asserts rather than reports an error if it cannot connect to the server!
+    let conn = unsafe { xcb::Connection::new_from_xlib_display(display) };
+    conn.set_event_queue_owner(xcb::EventQueueOwner::Xcb);
+    Ok((conn, default_screen))
+}
+
 /// Determine whether the server supports SHM.
 /// We can't simply run this on the main connection that we establish
 /// as lack of support is reported through the connection getting
 /// closed on us!  Instead we need to open a separate session to
 /// make this check.
 fn server_supports_shm() -> bool {
-    let display = unsafe { x11::xlib::XOpenDisplay(std::ptr::null()) };
-    if display.is_null() {
-        return false;
-    }
-    let conn = unsafe { xcb::Connection::from_raw_conn(XGetXCBConnection(display)) };
-    unsafe { XSetEventQueueOwner(display, 1) };
+    let conn = match connect_with_xlib_display() {
+        Ok((conn, _default_screen)) => conn,
+        _ => return false,
+    };
 
     // Take care here: xcb_shm_query_version can successfully return
     // a nullptr, and a subsequent deref will segfault, so we need
@@ -311,15 +314,9 @@ impl XConnection {
     }
 
     pub(crate) fn create_new() -> anyhow::Result<XConnection> {
-        let display = unsafe { x11::xlib::XOpenDisplay(std::ptr::null()) };
-        if display.is_null() {
-            bail!("failed to open display");
-        }
-        let screen_num = unsafe { x11::xlib::XDefaultScreen(display) };
-        let conn = unsafe { xcb::Connection::from_raw_conn(XGetXCBConnection(display)) };
+        let (conn, screen_num) = connect_with_xlib_display()?;
         let conn = xcb_util::ewmh::Connection::connect(conn)
             .map_err(|_| anyhow!("failed to init ewmh"))?;
-        unsafe { XSetEventQueueOwner(display, 1) };
 
         let atom_protocols = xcb::intern_atom(&conn, false, "WM_PROTOCOLS")
             .get_reply()?
@@ -390,7 +387,6 @@ impl XConnection {
             .context("xcb::open_font_checked")?;
 
         let conn = XConnection {
-            display,
             conn,
             cursor_font_id,
             screen_num,

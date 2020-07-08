@@ -112,7 +112,7 @@ impl XWindowInner {
         let window = XWindow(self.window_id);
 
         let gl_state = crate::egl::GlState::create(
-            Some(self.conn.display as *const _),
+            Some(self.conn.conn.get_raw_dpy() as *const _),
             self.window_id as *mut _,
         )
         .map(Rc::new)
