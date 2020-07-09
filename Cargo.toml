@@ -43,7 +43,7 @@ lazy_static = "1.4"
 leb128 = "0.2"
 libc = "0.2"
 log = "0.4"
-lru = "0.4"
+lru = "0.5"
 open = "1.2"
 pulldown-cmark = "0.7"
 metrics = { version="0.12", features=["std"]}
