@@ -584,17 +584,19 @@ impl<'term> LineEditor<'term> {
                     self.cursor
                 }
             }
+            Movement::None => self.cursor,
         }
     }
 
-    fn kill_text(&mut self, movement: Movement) {
+    fn kill_text(&mut self, kill_movement: Movement, move_movement: Movement) {
         self.clear_completion();
-        let new_cursor = self.eval_movement(movement);
+        let kill_pos = self.eval_movement(kill_movement);
+        let new_cursor = self.eval_movement(move_movement);
 
-        let (lower, upper) = if new_cursor < self.cursor {
-            (new_cursor, self.cursor)
+        let (lower, upper) = if kill_pos < self.cursor {
+            (kill_pos, self.cursor)
         } else {
-            (self.cursor, new_cursor)
+            (self.cursor, kill_pos)
         };
 
         self.line.replace_range(lower..upper, "");
@@ -803,7 +805,11 @@ impl<'term> LineEditor<'term> {
                 )
             }
             Action::Kill(movement) => {
-                self.kill_text(movement);
+                self.kill_text(movement, movement);
+                self.reapply_search_pattern(host);
+            }
+            Action::KillAndMove(kill_movement, move_movement) => {
+                self.kill_text(kill_movement, move_movement);
                 self.reapply_search_pattern(host);
             }
 

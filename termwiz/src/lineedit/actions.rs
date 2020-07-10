@@ -8,6 +8,7 @@ pub enum Movement {
     ForwardWord(RepeatCount),
     StartOfLine,
     EndOfLine,
+    None,
 }
 
 #[derive(Debug, Clone)]
@@ -20,6 +21,7 @@ pub enum Action {
     Repaint,
     Move(Movement),
     Kill(Movement),
+    KillAndMove(Movement, Movement),
     HistoryPrevious,
     HistoryNext,
     Complete,
