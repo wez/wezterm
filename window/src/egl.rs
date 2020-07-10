@@ -365,7 +365,7 @@ impl GlState {
                     // Request at least 8bpc, 24bpp.  The implementation may
                     // return a context capable of more than this
                     ffi::ALPHA_SIZE,
-                    8,
+                    0,
                     ffi::RED_SIZE,
                     8,
                     ffi::GREEN_SIZE,
