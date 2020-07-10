@@ -29,6 +29,7 @@
 //! Ctrl-D        | Cancel the line editor with an End-of-File result
 //! Ctrl-F, Right | Move cursor one grapheme to the right
 //! Ctrl-H, Backspace | Delete the grapheme to the left of the cursor
+//! Delete        | Delete the grapheme to the right of the cursor
 //! Ctrl-J, Ctrl-M, Enter | Finish line editing and accept the current line
 //! Ctrl-K        | Delete from cursor to end of line
 //! Ctrl-L        | Move the cursor to the top left, clear screen and repaint
@@ -355,6 +356,13 @@ impl<'term> LineEditor<'term> {
                 key: KeyCode::Backspace,
                 modifiers: Modifiers::NONE,
             }) => Some(Action::Kill(Movement::BackwardChar(1))),
+            InputEvent::Key(KeyEvent {
+                key: KeyCode::Delete,
+                modifiers: Modifiers::NONE,
+            }) => Some(Action::KillAndMove(
+                Movement::ForwardChar(1),
+                Movement::None,
+            )),
 
             InputEvent::Key(KeyEvent {
                 key: KeyCode::Char('P'),
