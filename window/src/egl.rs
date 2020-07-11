@@ -257,6 +257,20 @@ impl EglWrapper {
             self.log_config_info(display, *c);
         }
 
+        // If we're running on a system with 30bpp color depth then ChooseConfig
+        // will bias towards putting 10bpc matches first, but we want 8-bit.
+        // Let's filter out matches that are too deep
+        configs.retain(|config| {
+            self.config_attrib(display, *config, ffi::RED_SIZE) == Some(8)
+                && self.config_attrib(display, *config, ffi::GREEN_SIZE) == Some(8)
+                && self.config_attrib(display, *config, ffi::BLUE_SIZE) == Some(8)
+        });
+
+        log::info!("Filtered down to these configuration(s):");
+        for c in &configs {
+            self.log_config_info(display, *c);
+        }
+
         Ok(configs)
     }
 
@@ -362,10 +376,21 @@ impl GlState {
             let configs = egl.choose_config(
                 egl_display,
                 &[
-                    // Request at least 8bpc, 24bpp.  The implementation may
-                    // return a context capable of more than this
+                    // We're explicitly asking for any alpha size; this is
+                    // the default behavior but we're making it explicit here
+                    // for the sake of documenting our intent.
+                    // In general we want 32bpp with 8bpc, but for displays
+                    // that are natively 10bpc we should be fine with relaxing
+                    // this to 0 alpha bits, so by asking for 0 here we effectively
+                    // indicate that we don't care.
+                    // In our implementation of choose_config we will return
+                    // only entries with 8bpc for red/green/blue so we should
+                    // end up with either 24bpp/8bpc with no alpha, or 32bpp/8bpc
+                    // with 8bpc alpha.
                     ffi::ALPHA_SIZE,
                     0,
+                    // Request at least 8bpc, 24bpp.  The implementation may
+                    // return a context capable of more than this.
                     ffi::RED_SIZE,
                     8,
                     ffi::GREEN_SIZE,
