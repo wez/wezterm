@@ -334,6 +334,9 @@ impl GlState {
             #[cfg(not(target_os = "windows"))]
             "libEGL.so",
         ];
+
+        let mut errors = vec![];
+
         for path in &paths {
             if let Ok(lib) = libloading::Library::new(path) {
                 match EglWrapper::load_egl(lib) {
@@ -343,16 +346,16 @@ impl GlState {
                             return Ok(result);
                         }
                         Err(e) => {
-                            log::error!("with_egl_lib failed: {}", e);
+                            errors.push(format!("with_egl_lib({}) failed: {}", path, e));
                         }
                     },
                     Err(e) => {
-                        log::error!("load_egl failed: {}", e);
+                        errors.push(format!("load_egl {} failed: {}", path, e));
                     }
                 }
             }
         }
-        bail!("EGL library not found")
+        bail!("with_egl_lib failed: {}", errors.join(", "))
     }
 
     #[cfg(all(unix, feature = "wayland", not(target_os = "macos")))]
