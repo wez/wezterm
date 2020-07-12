@@ -378,7 +378,7 @@ impl TerminalState {
             current_dir: None,
             term_program: term_program.to_string(),
             term_version: term_version.to_string(),
-            writer,
+            writer: Box::new(std::io::BufWriter::new(writer)),
         }
     }
 
@@ -493,6 +493,7 @@ impl TerminalState {
                 event.x + 1,
                 event.y + 1
             )?;
+            self.writer.flush()?;
         } else if self.mouse_tracking || self.button_event_mouse || self.any_event_mouse {
             write!(
                 self.writer,
@@ -501,6 +502,7 @@ impl TerminalState {
                 Self::legacy_mouse_coord(event.x as i64),
                 Self::legacy_mouse_coord(event.y),
             )?;
+            self.writer.flush()?;
         } else if self.screen.is_alt_screen_active() {
             // Send cursor keys instead (equivalent to xterm's alternateScroll mode)
             self.key_down(
@@ -531,6 +533,7 @@ impl TerminalState {
                 event.x + 1,
                 event.y + 1
             )?;
+            self.writer.flush()?;
         } else {
             write!(
                 self.writer,
@@ -539,6 +542,7 @@ impl TerminalState {
                 Self::legacy_mouse_coord(event.x as i64),
                 Self::legacy_mouse_coord(event.y),
             )?;
+            self.writer.flush()?;
         }
 
         Ok(())
@@ -558,6 +562,7 @@ impl TerminalState {
                     event.x + 1,
                     event.y + 1
                 )?;
+                self.writer.flush()?;
             } else {
                 let release_button = 3;
                 self.current_mouse_button = MouseButton::None;
@@ -568,6 +573,7 @@ impl TerminalState {
                     Self::legacy_mouse_coord(event.x as i64),
                     Self::legacy_mouse_coord(event.y),
                 )?;
+                self.writer.flush()?;
             }
         }
 
@@ -588,6 +594,7 @@ impl TerminalState {
                     event.x + 1,
                     event.y + 1
                 )?;
+                self.writer.flush()?;
             } else {
                 write!(
                     self.writer,
@@ -596,6 +603,7 @@ impl TerminalState {
                     Self::legacy_mouse_coord(event.x as i64),
                     Self::legacy_mouse_coord(event.y),
                 )?;
+                self.writer.flush()?;
             }
         }
         Ok(())
@@ -665,6 +673,7 @@ impl TerminalState {
     pub fn focus_changed(&mut self, focused: bool) {
         if self.focus_tracking {
             write!(self.writer, "{}{}", CSI, if focused { "I" } else { "O" }).ok();
+            self.writer.flush().ok();
         }
     }
 
@@ -678,6 +687,7 @@ impl TerminalState {
         } else {
             self.writer.write_all(text.as_bytes())?;
         }
+        self.writer.flush()?;
         Ok(())
     }
 
@@ -944,6 +954,7 @@ impl TerminalState {
 
         // debug!("sending {:?}, {:?}", to_send, key);
         self.writer.write_all(to_send.as_bytes())?;
+        self.writer.flush()?;
 
         Ok(())
     }
@@ -1444,9 +1455,11 @@ impl TerminalState {
                 ident.push('c');
 
                 self.writer.write(ident.as_bytes()).ok();
+                self.writer.flush().ok();
             }
             Device::RequestSecondaryDeviceAttributes => {
                 self.writer.write(b"\x1b[>0;0;0c").ok();
+                self.writer.flush().ok();
             }
             Device::RequestTerminalNameAndVersion => {
                 self.writer.write(DCS.as_bytes()).ok();
@@ -1454,9 +1467,11 @@ impl TerminalState {
                     .write(format!(">|{} {}", self.term_program, self.term_version).as_bytes())
                     .ok();
                 self.writer.write(ST.as_bytes()).ok();
+                self.writer.flush().ok();
             }
             Device::StatusReport => {
                 self.writer.write(b"\x1b[0n").ok();
+                self.writer.flush().ok();
             }
         }
     }
@@ -1789,6 +1804,7 @@ impl TerminalState {
 
                 let response = Window::ResizeWindowCells { width, height };
                 write!(self.writer, "{}", CSI::Window(response)).ok();
+                self.writer.flush().ok();
             }
 
             Window::ReportCellSizePixels => {
@@ -1800,6 +1816,7 @@ impl TerminalState {
                     height: Some((self.pixel_height / height) as i64),
                 };
                 write!(self.writer, "{}", CSI::Window(response)).ok();
+                self.writer.flush().ok();
             }
 
             Window::ReportTextAreaSizePixels => {
@@ -1808,6 +1825,7 @@ impl TerminalState {
                     height: Some(self.pixel_height as i64),
                 };
                 write!(self.writer, "{}", CSI::Window(response)).ok();
+                self.writer.flush().ok();
             }
 
             Window::ReportWindowTitle => {
@@ -1817,6 +1835,7 @@ impl TerminalState {
                     OperatingSystemCommand::SetWindowTitleSun(self.title.clone())
                 )
                 .ok();
+                self.writer.flush().ok();
             }
 
             Window::ChecksumRectangularArea {
@@ -1834,6 +1853,7 @@ impl TerminalState {
                     bottom.as_zero_based(),
                 );
                 write!(self.writer, "\x1bP{}!~{:04x}\x1b\\", request_id, checksum).ok();
+                self.writer.flush().ok();
             }
             Window::ResizeWindowCells { .. } => {
                 // We don't allow the application to change the window size; that's
@@ -2305,6 +2325,7 @@ impl TerminalState {
                 );
                 let report = CSI::Cursor(Cursor::ActivePositionReport { line, col });
                 write!(self.writer, "{}", report).ok();
+                self.writer.flush().ok();
             }
             Cursor::SaveCursor => {
                 // The `CSI s` SaveCursor sequence is ambiguous with DECSLRM
@@ -2554,6 +2575,7 @@ impl<'a> Performer<'a> {
                             &[b'"', b'p'] => {
                                 // DECSCL - select conformance level
                                 write!(self.writer, "{}1$r65;1\"p{}", DCS, ST).ok();
+                                self.writer.flush().ok();
                             }
                             &[b'r'] => {
                                 // DECSTBM - top and bottom margins
@@ -2567,6 +2589,7 @@ impl<'a> Performer<'a> {
                                     ST
                                 )
                                 .ok();
+                                self.writer.flush().ok();
                             }
                             &[b's'] => {
                                 // DECSLRM - left and right margins
@@ -2580,11 +2603,13 @@ impl<'a> Performer<'a> {
                                     ST
                                 )
                                 .ok();
+                                self.writer.flush().ok();
                             }
                             _ => {
                                 log::error!("unhandled DECRQSS {:?}", s);
                                 // Reply that the request is invalid
                                 write!(self.writer, "{}0$r{}", DCS, ST).ok();
+                                self.writer.flush().ok();
                             }
                         }
                     }
@@ -2836,6 +2861,7 @@ impl<'a> Performer<'a> {
                                     ),
                                 }]);
                             write!(self.writer, "{}", response).ok();
+                            self.writer.flush().ok();
                         }
                         ColorOrQuery::Color(c) => {
                             self.palette_mut().colors.0[pair.palette_index as usize] = c;
@@ -2882,6 +2908,7 @@ impl<'a> Performer<'a> {
                                         );
                                         log::trace!("Color Query response {:?}", response);
                                         write!(self.writer, "{}", response).ok();
+                                        self.writer.flush().ok();
                                     }
                                     ColorOrQuery::Color(c) => self.palette_mut().$name = c,
                                 }
