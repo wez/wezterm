@@ -24,6 +24,12 @@ pub struct GuiFrontEnd {
     connection: Rc<Connection>,
 }
 
+impl Drop for GuiFrontEnd {
+    fn drop(&mut self) {
+        window::connection::shutdown();
+    }
+}
+
 static USE_OPENGL: AtomicBool = AtomicBool::new(true);
 
 pub fn is_opengl_enabled() -> bool {

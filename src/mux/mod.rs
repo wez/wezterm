@@ -164,6 +164,10 @@ impl Mux {
         });
     }
 
+    pub fn shutdown() {
+        MUX.with(|m| drop(m.borrow_mut().take()));
+    }
+
     pub fn get() -> Option<Rc<Mux>> {
         let mut res = None;
         MUX.with(|m| {

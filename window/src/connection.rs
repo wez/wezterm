@@ -7,6 +7,10 @@ thread_local! {
     static CONN: RefCell<Option<Rc<Connection>>> = RefCell::new(None);
 }
 
+pub fn shutdown() {
+    CONN.with(|m| drop(m.borrow_mut().take()));
+}
+
 pub trait ConnectionOps {
     fn get() -> Option<Rc<Connection>> {
         let mut res = None;

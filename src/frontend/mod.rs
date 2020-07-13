@@ -50,6 +50,10 @@ pub fn front_end() -> Option<Rc<dyn FrontEnd>> {
     res
 }
 
+pub fn shutdown() {
+    FRONT_END.with(|f| drop(f.borrow_mut().take()));
+}
+
 impl FrontEndSelection {
     pub fn try_new(self) -> Result<Rc<dyn FrontEnd>, Error> {
         let (front_end, is_gui) = match self {

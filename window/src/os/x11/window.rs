@@ -13,18 +13,20 @@ use promise::{Future, Promise};
 use std::any::Any;
 use std::collections::{HashMap, VecDeque};
 use std::convert::TryInto;
-use std::rc::Rc;
+use std::rc::{Rc, Weak};
 use std::sync::{Arc, Mutex};
 use xcb::ffi::xcb_cursor_t;
 
 struct XcbCursor {
     id: xcb_cursor_t,
-    conn: Rc<XConnection>,
+    conn: Weak<XConnection>,
 }
 
 impl Drop for XcbCursor {
     fn drop(&mut self) {
-        xcb::free_cursor(&self.conn, self.id);
+        if let Some(conn) = self.conn.upgrade() {
+            xcb::free_cursor(&conn.conn, self.id);
+        }
     }
 }
 
@@ -37,7 +39,7 @@ struct CopyAndPaste {
 
 pub(crate) struct XWindowInner {
     window_id: xcb::xproto::Window,
-    conn: Rc<XConnection>,
+    conn: Weak<XConnection>,
     callbacks: Box<dyn WindowCallbacks>,
     window_context: Context,
     width: u16,
@@ -64,7 +66,9 @@ fn enclosing_boundary_with(a: &Rect, b: &Rect) -> Rect {
 
 impl Drop for XWindowInner {
     fn drop(&mut self) {
-        xcb::destroy_window(self.conn.conn(), self.window_id);
+        if let Some(conn) = self.conn.upgrade() {
+            xcb::destroy_window(conn.conn(), self.window_id);
+        }
     }
 }
 
@@ -110,9 +114,10 @@ impl XWindowInner {
     #[cfg(feature = "opengl")]
     fn enable_opengl(&mut self) -> anyhow::Result<()> {
         let window = XWindow(self.window_id);
+        let conn = self.conn();
 
         let gl_state = crate::egl::GlState::create(
-            Some(self.conn.conn.get_raw_dpy() as *const _),
+            Some(conn.conn.get_raw_dpy() as *const _),
             self.window_id as *mut _,
         )
         .map(Rc::new)
@@ -170,8 +175,9 @@ impl XWindowInner {
         let (buf_width, buf_height) = self.buffer_image.image_dimensions();
         if buf_width != self.width.into() || buf_height != self.height.into() {
             // Window was resized, so we need to update our buffer
+            let conn = self.conn();
             self.buffer_image = BufferImage::new(
-                &self.conn,
+                &conn,
                 self.window_id,
                 self.width as usize,
                 self.height as usize,
@@ -262,6 +268,8 @@ impl XWindowInner {
             return Ok(());
         }
 
+        let conn = self.conn();
+
         let cursor_id = match self.cursors.get(&cursor) {
             Some(cursor) => cursor.id,
             None => {
@@ -272,12 +280,12 @@ impl XWindowInner {
                     MouseCursor::Text => 152,
                 };
 
-                let cursor_id: xcb::ffi::xcb_cursor_t = self.conn.generate_id();
+                let cursor_id: xcb::ffi::xcb_cursor_t = conn.generate_id();
                 xcb::create_glyph_cursor(
-                    &self.conn,
+                    &conn,
                     cursor_id,
-                    self.conn.cursor_font_id,
-                    self.conn.cursor_font_id,
+                    conn.cursor_font_id,
+                    conn.cursor_font_id,
                     id_no,
                     id_no + 1,
                     0xffff,
@@ -292,7 +300,7 @@ impl XWindowInner {
                     cursor,
                     XcbCursor {
                         id: cursor_id,
-                        conn: Rc::clone(&self.conn),
+                        conn: Rc::downgrade(&conn),
                     },
                 );
 
@@ -301,7 +309,7 @@ impl XWindowInner {
         };
 
         xcb::change_window_attributes(
-            &self.conn,
+            &conn,
             self.window_id,
             &[(xcb::ffi::XCB_CW_CURSOR, cursor_id)],
         );
@@ -313,6 +321,7 @@ impl XWindowInner {
 
     pub fn dispatch_event(&mut self, event: &xcb::GenericEvent) -> anyhow::Result<()> {
         let r = event.response_type() & 0x7f;
+        let conn = self.conn();
         match r {
             xcb::EXPOSE => {
                 let expose: &xcb::ExposeEvent = unsafe { xcb::cast_event(event) };
@@ -331,7 +340,7 @@ impl XWindowInner {
             xcb::KEY_PRESS | xcb::KEY_RELEASE => {
                 let key_press: &xcb::KeyPressEvent = unsafe { xcb::cast_event(event) };
                 self.copy_and_paste.time = key_press.time();
-                if let Some((code, mods)) = self.conn.keyboard.process_key_event(key_press) {
+                if let Some((code, mods)) = conn.keyboard.process_key_event(key_press) {
                     let key = KeyEvent {
                         key: code,
                         raw_key: None,
@@ -420,13 +429,13 @@ impl XWindowInner {
             }
             xcb::CLIENT_MESSAGE => {
                 let msg: &xcb::ClientMessageEvent = unsafe { xcb::cast_event(event) };
-                if msg.data().data32()[0] == self.conn.atom_delete() && self.callbacks.can_close() {
-                    xcb::destroy_window(self.conn.conn(), self.window_id);
+                if msg.data().data32()[0] == conn.atom_delete() && self.callbacks.can_close() {
+                    xcb::destroy_window(conn.conn(), self.window_id);
                 }
             }
             xcb::DESTROY_NOTIFY => {
                 self.callbacks.destroy();
-                self.conn.windows.borrow_mut().remove(&self.window_id);
+                conn.windows.borrow_mut().remove(&self.window_id);
             }
             xcb::SELECTION_CLEAR => {
                 self.selection_clear()?;
@@ -442,7 +451,7 @@ impl XWindowInner {
                 log::trace!(
                     "PropertyNotifyEvent atom={} xsel={}",
                     msg.atom(),
-                    self.conn.atom_xsel_data
+                    conn.atom_xsel_data
                 );
             }
             xcb::FOCUS_IN => {
@@ -464,30 +473,26 @@ impl XWindowInner {
     /// If we own the selection, make sure that the X server reflects
     /// that and vice versa.
     fn update_selection_owner(&mut self) {
-        for &selection in &[xcb::ATOM_PRIMARY, self.conn.atom_clipboard] {
-            let current_owner = xcb::get_selection_owner(&self.conn, selection)
+        let conn = self.conn();
+        for &selection in &[xcb::ATOM_PRIMARY, conn.atom_clipboard] {
+            let current_owner = xcb::get_selection_owner(&conn, selection)
                 .get_reply()
                 .unwrap()
                 .owner();
             if self.copy_and_paste.owned.is_none() && current_owner == self.window_id {
                 // We don't have a selection but X thinks we do; disown it!
-                xcb::set_selection_owner(
-                    &self.conn,
-                    xcb::NONE,
-                    selection,
-                    self.copy_and_paste.time,
-                );
+                xcb::set_selection_owner(&conn, xcb::NONE, selection, self.copy_and_paste.time);
             } else if self.copy_and_paste.owned.is_some() && current_owner != self.window_id {
                 // We have the selection but X doesn't think we do; assert it!
                 xcb::set_selection_owner(
-                    &self.conn,
+                    &conn,
                     self.window_id,
                     selection,
                     self.copy_and_paste.time,
                 );
             }
         }
-        self.conn.flush();
+        conn.flush();
     }
 
     fn selection_clear(&mut self) -> anyhow::Result<()> {
@@ -500,6 +505,7 @@ impl XWindowInner {
     /// A selection request is made to us after we've announced that we own the selection
     /// and when another client wants to copy it.
     fn selection_request(&mut self, request: &xcb::SelectionRequestEvent) -> anyhow::Result<()> {
+        let conn = self.conn();
         log::trace!(
             "SEL: time={} owner={} requestor={} selection={} target={} property={}",
             request.time(),
@@ -511,17 +517,17 @@ impl XWindowInner {
         );
         log::trace!(
             "XSEL={}, UTF8={} PRIMARY={} clip={}",
-            self.conn.atom_xsel_data,
-            self.conn.atom_utf8_string,
+            conn.atom_xsel_data,
+            conn.atom_utf8_string,
             xcb::ATOM_PRIMARY,
-            self.conn.atom_clipboard,
+            conn.atom_clipboard,
         );
 
-        let selprop = if request.target() == self.conn.atom_targets {
+        let selprop = if request.target() == conn.atom_targets {
             // They want to know which targets we support
-            let atoms: [u32; 1] = [self.conn.atom_utf8_string];
+            let atoms: [u32; 1] = [conn.atom_utf8_string];
             xcb::xproto::change_property(
-                &self.conn,
+                &conn,
                 xcb::xproto::PROP_MODE_REPLACE as u8,
                 request.requestor(),
                 request.property(),
@@ -532,7 +538,7 @@ impl XWindowInner {
 
             // let the requestor know that we set their property
             request.property()
-        } else if request.target() == self.conn.atom_utf8_string
+        } else if request.target() == conn.atom_utf8_string
             || request.target() == xcb::xproto::ATOM_STRING
         {
             // We'll accept requests for UTF-8 or STRING data.
@@ -541,7 +547,7 @@ impl XWindowInner {
             // the other end is going to handle it correctly.
             if let Some(text) = self.copy_and_paste.owned.as_ref() {
                 xcb::xproto::change_property(
-                    &self.conn,
+                    &conn,
                     xcb::xproto::PROP_MODE_REPLACE as u8,
                     request.requestor(),
                     request.property(),
@@ -563,7 +569,7 @@ impl XWindowInner {
         log::trace!("responding with selprop={}", selprop);
 
         xcb::xproto::send_event(
-            &self.conn,
+            &conn,
             true,
             request.requestor(),
             0,
@@ -580,21 +586,23 @@ impl XWindowInner {
     }
 
     fn selection_notify(&mut self, selection: &xcb::SelectionNotifyEvent) -> anyhow::Result<()> {
+        let conn = self.conn();
+
         log::trace!(
             "SELECTION_NOTIFY received selection={} (prim={} clip={}) target={} property={}",
             selection.selection(),
             xcb::ATOM_PRIMARY,
-            self.conn.atom_clipboard,
+            conn.atom_clipboard,
             selection.target(),
             selection.property()
         );
 
         if (selection.selection() == xcb::ATOM_PRIMARY
-            || selection.selection() == self.conn.atom_clipboard)
+            || selection.selection() == conn.atom_clipboard)
             && selection.property() != xcb::NONE
         {
             match xcb_util::icccm::get_text_property(
-                &self.conn,
+                &conn,
                 selection.requestor(),
                 selection.property(),
             )
@@ -604,7 +612,7 @@ impl XWindowInner {
                     if let Some(mut promise) = self.copy_and_paste.request.take() {
                         promise.ok(prop.name().to_owned());
                     }
-                    xcb::delete_property(&self.conn, self.window_id, self.conn.atom_xsel_data);
+                    xcb::delete_property(&conn, self.window_id, conn.atom_xsel_data);
                 }
                 Err(err) => {
                     log::error!("clipboard: err while getting clipboard property: {:?}", err);
@@ -646,14 +654,16 @@ impl XWindowInner {
             status: 0,
         };
 
+        let conn = self.conn();
+
         let hints_slice =
             unsafe { std::slice::from_raw_parts(&hints as *const _ as *const u32, 5) };
 
-        let atom = xcb::intern_atom(self.conn.conn(), false, "_MOTIF_WM_HINTS")
+        let atom = xcb::intern_atom(conn.conn(), false, "_MOTIF_WM_HINTS")
             .get_reply()?
             .atom();
         xcb::change_property(
-            self.conn.conn(),
+            conn.conn(),
             xcb::PROP_MODE_REPLACE as u8,
             self.window_id,
             atom,
@@ -662,6 +672,10 @@ impl XWindowInner {
             hints_slice,
         );
         Ok(())
+    }
+
+    fn conn(&self) -> Rc<XConnection> {
+        self.conn.upgrade().expect("XConnection to be alive")
     }
 }
 
@@ -757,7 +771,7 @@ impl XWindow {
 
             Arc::new(Mutex::new(XWindowInner {
                 window_id,
-                conn: Rc::clone(&conn),
+                conn: Rc::downgrade(&conn),
                 callbacks,
                 window_context,
                 width: width.try_into()?,
@@ -811,11 +825,11 @@ impl Drawable for XWindow {
 
 impl WindowOpsMut for XWindowInner {
     fn close(&mut self) {
-        xcb::destroy_window(self.conn.conn(), self.window_id);
+        xcb::destroy_window(self.conn().conn(), self.window_id);
     }
     fn hide(&mut self) {}
     fn show(&mut self) {
-        xcb::map_window(self.conn.conn(), self.window_id);
+        xcb::map_window(self.conn().conn(), self.window_id);
     }
     fn set_cursor(&mut self, cursor: Option<MouseCursor>) {
         XWindowInner::set_cursor(self, cursor).unwrap();
@@ -826,7 +840,7 @@ impl WindowOpsMut for XWindowInner {
 
     fn set_inner_size(&mut self, width: usize, height: usize) {
         xcb::configure_window(
-            self.conn.conn(),
+            self.conn().conn(),
             self.window_id,
             &[
                 (xcb::CONFIG_WINDOW_WIDTH as u16, width as u32),
@@ -841,9 +855,10 @@ impl WindowOpsMut for XWindowInner {
         // Note that neither this technique or the configure_window
         // approach below will successfully move a window running
         // under the crostini environment on a chromebook :-(
+        let conn = self.conn();
         xcb_util::ewmh::request_move_resize_window(
-            self.conn.ewmh_conn(),
-            self.conn.screen_num,
+            conn.ewmh_conn(),
+            conn.screen_num,
             self.window_id,
             xcb::xproto::GRAVITY_STATIC,
             1, // normal program
@@ -874,7 +889,7 @@ impl WindowOpsMut for XWindowInner {
 
     /// Change the title for the window manager
     fn set_title(&mut self, title: &str) {
-        xcb_util::icccm::set_wm_name(self.conn.conn(), self.window_id, title);
+        xcb_util::icccm::set_wm_name(self.conn().conn(), self.window_id, title);
     }
 
     fn set_icon(&mut self, image: &dyn BitmapImage) {
@@ -890,7 +905,7 @@ impl WindowOpsMut for XWindowInner {
         icon_data.extend_from_slice(image.pixels());
 
         xcb_util::ewmh::set_wm_icon(
-            self.conn.ewmh_conn(),
+            self.conn().ewmh_conn(),
             xcb::PROP_MODE_REPLACE as u8,
             self.window_id,
             &icon_data,
@@ -998,18 +1013,19 @@ impl WindowOps for XWindow {
             } else {
                 log::debug!("prepare promise, time={}", inner.copy_and_paste.time);
                 inner.copy_and_paste.request.replace(promise);
+                let conn = inner.conn();
                 // Find the owner and ask them to send us the buffer
                 xcb::convert_selection(
-                    &inner.conn,
+                    &conn,
                     inner.window_id,
                     // Note that under xwayland, access to the primary selection is
                     // forbidden by default citing a security concern.
                     match clipboard {
-                        Clipboard::Clipboard => inner.conn.atom_clipboard,
+                        Clipboard::Clipboard => conn.atom_clipboard,
                         Clipboard::PrimarySelection => xcb::ATOM_PRIMARY,
                     },
-                    inner.conn.atom_utf8_string,
-                    inner.conn.atom_xsel_data,
+                    conn.atom_utf8_string,
+                    conn.atom_xsel_data,
                     inner.copy_and_paste.time,
                 );
             }

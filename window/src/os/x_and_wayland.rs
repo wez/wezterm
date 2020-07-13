@@ -26,9 +26,7 @@ pub enum Window {
     Wayland(WaylandWindow),
 }
 
-lazy_static::lazy_static! {
-static ref ALLOW_WAYLAND: AtomicBool = AtomicBool::new(true);
-}
+static ALLOW_WAYLAND: AtomicBool = AtomicBool::new(true);
 
 impl Connection {
     pub fn disable_wayland() {

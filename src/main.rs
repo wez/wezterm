@@ -725,6 +725,8 @@ fn main() {
     if let Err(e) = run() {
         terminate_with_error(e);
     }
+    Mux::shutdown();
+    frontend::shutdown();
 }
 
 fn maybe_show_configuration_error_window() {

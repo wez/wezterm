@@ -1,7 +1,7 @@
 use super::*;
 use crate::bitmaps::*;
 use anyhow::{bail, Context as _};
-use std::rc::Rc;
+use std::rc::{Rc, Weak};
 
 /// The X protocol allows referencing a number of drawable
 /// objects.  This trait marks those objects here in code.
@@ -17,7 +17,7 @@ impl Drawable for xcb::xproto::Window {
 
 pub struct Context {
     gc_id: xcb::xproto::Gcontext,
-    conn: Rc<XConnection>,
+    conn: Weak<XConnection>,
     drawable: xcb::xproto::Drawable,
 }
 
@@ -28,7 +28,7 @@ impl Context {
         xcb::create_gc(conn.conn(), gc_id, drawable, &[]);
         Context {
             gc_id,
-            conn: Rc::clone(conn),
+            conn: Rc::downgrade(conn),
             drawable,
         }
     }
@@ -46,9 +46,10 @@ impl Context {
         dest_y: i16,
         width: u16,
         height: u16,
-    ) -> xcb::VoidCookie {
+    ) {
+        let conn = self.conn.upgrade().expect("XConnection to still be live");
         xcb::copy_area(
-            self.conn.conn(),
+            conn.conn(),
             src.as_drawable(),
             dest.as_drawable(),
             self.gc_id,
@@ -58,17 +59,18 @@ impl Context {
             dest_y,
             width,
             height,
-        )
+        );
     }
 
     /// Send image bytes and render them into the drawable that was used to
     /// create this context.
-    pub fn put_image(&self, dest_x: i16, dest_y: i16, im: &dyn BitmapImage) -> xcb::VoidCookie {
+    pub fn put_image(&self, dest_x: i16, dest_y: i16, im: &dyn BitmapImage) {
         let (width, height) = im.image_dimensions();
         let pixel_slice =
             unsafe { std::slice::from_raw_parts(im.pixel_data(), width * height * 4) };
+        let conn = self.conn.upgrade().expect("XConnection to still be live");
         xcb::put_image(
-            self.conn.conn(),
+            conn.conn(),
             xcb::xproto::IMAGE_FORMAT_Z_PIXMAP as u8,
             self.drawable,
             self.gc_id,
@@ -77,15 +79,17 @@ impl Context {
             dest_x,
             dest_y,
             0,
-            self.conn.depth,
+            conn.depth,
             pixel_slice,
-        )
+        );
     }
 }
 
 impl Drop for Context {
     fn drop(&mut self) {
-        xcb::free_gc(self.conn.conn(), self.gc_id);
+        if let Some(conn) = self.conn.upgrade() {
+            xcb::free_gc(conn.conn(), self.gc_id);
+        }
     }
 }
 
@@ -157,7 +161,7 @@ pub struct ShmImage {
     data: ShmData,
     seg_id: xcb::shm::Seg,
     draw_id: u32,
-    conn: Rc<XConnection>,
+    conn: Weak<XConnection>,
     width: usize,
     height: usize,
 }
@@ -202,7 +206,7 @@ impl ShmImage {
             data,
             seg_id,
             draw_id,
-            conn: Rc::clone(conn),
+            conn: Rc::downgrade(conn),
             width,
             height,
         })
@@ -225,8 +229,10 @@ impl BitmapImage for ShmImage {
 
 impl Drop for ShmImage {
     fn drop(&mut self) {
-        xcb::free_pixmap(self.conn.conn(), self.draw_id);
-        xcb::shm::detach(self.conn.conn(), self.seg_id);
+        if let Some(conn) = self.conn.upgrade() {
+            xcb::free_pixmap(conn.conn(), self.draw_id);
+            xcb::shm::detach(conn.conn(), self.seg_id);
+        }
     }
 }
 
