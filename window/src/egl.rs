@@ -50,6 +50,22 @@ pub struct GlState {
     context: ffi::types::EGLContext,
 }
 
+impl Drop for GlState {
+    fn drop(&mut self) {
+        unsafe {
+            self.egl.egl.MakeCurrent(
+                self.display,
+                ffi::NO_SURFACE,
+                ffi::NO_SURFACE,
+                ffi::NO_CONTEXT,
+            );
+            self.egl.egl.DestroySurface(self.display, self.surface);
+            self.egl.egl.DestroyContext(self.display, self.context);
+            self.egl.egl.Terminate(self.display);
+        }
+    }
+}
+
 type GetProcAddressFunc =
     unsafe extern "C" fn(*const std::os::raw::c_char) -> *const std::os::raw::c_void;
 
@@ -67,7 +83,7 @@ impl EglWrapper {
         Ok(Self { _lib: lib, egl })
     }
 
-    pub fn get_display(
+    fn get_display(
         &self,
         display: Option<ffi::EGLNativeDisplayType>,
     ) -> anyhow::Result<ffi::types::EGLDisplay> {
