@@ -26,7 +26,7 @@ pub struct GuiFrontEnd {
 
 impl Drop for GuiFrontEnd {
     fn drop(&mut self) {
-        window::connection::shutdown();
+        ::window::shutdown();
     }
 }
 
