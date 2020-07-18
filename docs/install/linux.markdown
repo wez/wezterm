@@ -94,6 +94,22 @@ WezTerm is available for Arch users in the AUR; there are three options:
 |Nightly Binaries     |<https://aur.archlinux.org/packages/wezterm-nightly-bin/>|
 |Build from source    |<https://aur.archlinux.org/packages/wezterm-git/>|
 
+## Linuxbrew Tap
+
+If you are a [Linuxbrew](https://docs.brew.sh/Homebrew-on-Linux) users, you can install
+wezterm from our tap:
+
+```bash
+$ brew tap wez/wezterm-linuxbrew
+$ brew install wezterm
+```
+
+If you'd like to use a nightly build you can perform a head install:
+
+```bash
+$ brew install --HEAD wezterm
+```
+
 ## Raw Linux Binary
 
 Another option for linux is a raw binary archive.  These are the same binaries that
