@@ -10,6 +10,10 @@ daily) from the master branch.  It may not be usable and
 the feature set may change.  As features stabilize some
 brief notes about them may accumulate here.
 
+* Not Yet
+
+### 20200718-095447-d2315640
+
 * Added support for DECSET 1004 Focus Reporting to local
   (not multiplexer) terminal sessions.
 * Added support for SGR 53/55 which enable/disable Overline style.
