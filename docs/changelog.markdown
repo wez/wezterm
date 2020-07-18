@@ -20,6 +20,9 @@ brief notes about them may accumulate here.
   brightening of bold text.
 * Unix: fix an issue where setting the current working directory for a custom
   spawned command would not take effect (thanks @john01dav!)
+* Windows: fixed buffering/timing issue where a response to a color query in
+  vim could be misinterpreted and replace a character in the editor with the
+  letter `g`.
 
 ### 20200620-160318-e00b076c
 
