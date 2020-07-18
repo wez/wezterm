@@ -23,6 +23,8 @@ brief notes about them may accumulate here.
 * Windows: fixed buffering/timing issue where a response to a color query in
   vim could be misinterpreted and replace a character in the editor with the
   letter `g`.
+* X11: Improved support for non-24bpp display depths.  WezTerm now tries
+  harder to obtain an 8bpc surface on both 16bpp and 30bpp (10bpc) displays.
 
 ### 20200620-160318-e00b076c
 
