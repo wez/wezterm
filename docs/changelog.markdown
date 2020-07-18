@@ -29,6 +29,12 @@ brief notes about them may accumulate here.
   to negotiate a robust context.  This is useful on systems with dual
   high/low power GPU hardware where the OpenGL versions for the two GPUs
   are different!
+* Color Schemes: synced with [](https://github.com/mbadolato/iTerm2-Color-Schemes/commit/ea2c84115d8cff97b5255a7344090902ae669245)
+  which includes new schemes: `Adventure`, `Banana Blueberry`, `Blue Matrix`,
+  `BlueBerryPie`, `Cyberdyne`, `Django`, `DjangoRebornAgain`, `DjangoSmooth`,
+  `DoomOne`, `Konsolas`, `Laser`, `Mirage`, `Rouge 2`, `Sakura`, `Scarlet
+  Protocol`, `synthwave-everything`, `Tinacious Design (Dark)`, `Tinacious
+  Design (Light)`.
 
 ### 20200620-160318-e00b076c
 

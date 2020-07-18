@@ -1,0 +1,11 @@
+# Adventure
+[colors]
+foreground = "#feffff"
+background = "#040404"
+cursor_bg = "#feffff"
+cursor_fg = "#000000"
+selection_bg = "#606060"
+selection_fg = "#ffffff"
+
+ansi = ["#040404","#d84a33","#5da602","#eebb6e","#417ab3","#e5c499","#bdcfe5","#dbded8"]
+brights = ["#685656","#d76b42","#99b52c","#ffb670","#97d7ef","#aa7900","#bdcfe5","#e4d5c7"]
