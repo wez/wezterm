@@ -18,6 +18,8 @@ brief notes about them may accumulate here.
   to resolve an issue where bold text didn't respect the configured color scheme.
 * Added `bold_brightens_ansi_colors` option to allow disabling the automatic
   brightening of bold text.
+* Unix: fix an issue where setting the current working directory for a custom
+  spawned command would not take effect (thanks @john01dav!)
 
 ### 20200620-160318-e00b076c
 
