@@ -2312,7 +2312,9 @@ impl TermWindow {
                         params.palette.resolve_fg(attrs.foreground)
                     }
                 }
-                wezterm_term::color::ColorAttribute::PaletteIndex(idx) if idx < 8 => {
+                wezterm_term::color::ColorAttribute::PaletteIndex(idx)
+                    if idx < 8 && params.config.bold_brightens_ansi_colors =>
+                {
                     // For compatibility purposes, switch to a brighter version
                     // of one of the standard ANSI colors when Bold is enabled.
                     // This lifts black to dark grey.
@@ -2599,7 +2601,9 @@ impl TermWindow {
                         palette.resolve_fg(attrs.foreground)
                     }
                 }
-                wezterm_term::color::ColorAttribute::PaletteIndex(idx) if idx < 8 => {
+                wezterm_term::color::ColorAttribute::PaletteIndex(idx)
+                    if idx < 8 && config.bold_brightens_ansi_colors =>
+                {
                     // For compatibility purposes, switch to a brighter version
                     // of one of the standard ANSI colors when Bold is enabled.
                     // This lifts black to dark grey.

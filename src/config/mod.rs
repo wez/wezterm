@@ -283,6 +283,12 @@ pub struct Config {
     #[serde(default)]
     pub font_rules: Vec<StyleRule>,
 
+    /// When true (the default), PaletteIndex 0-7 are shifted to
+    /// bright when the font intensity is bold.  The brightening
+    /// doesn't apply to text that is the default color.
+    #[serde(default = "default_true")]
+    pub bold_brightens_ansi_colors: bool,
+
     /// The color palette
     pub colors: Option<Palette>,
 
