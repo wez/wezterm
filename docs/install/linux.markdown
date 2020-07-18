@@ -96,7 +96,7 @@ WezTerm is available for Arch users in the AUR; there are three options:
 
 ## Linuxbrew Tap
 
-If you are a [Linuxbrew](https://docs.brew.sh/Homebrew-on-Linux) users, you can install
+If you are a [Linuxbrew](https://docs.brew.sh/Homebrew-on-Linux) user, you can install
 wezterm from our tap:
 
 ```bash
