@@ -14,6 +14,8 @@ brief notes about them may accumulate here.
   (not multiplexer) terminal sessions.
 * Added support for SGR 53/55 which enable/disable Overline style.
   `printf "\x1b[53moverline\x1b[0m\n"`
+* Windows: updated bundled openconsole.exe to [efb1fdd](https://github.com/microsoft/terminal/commit/efb1fddb991dc1e6b614d1637daca7314a229925)
+  to resolve an issue where bold text didn't respect the configured color scheme.
 * Added `bold_brightens_ansi_colors` option to allow disabling the automatic
   brightening of bold text.
 
