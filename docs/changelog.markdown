@@ -25,6 +25,10 @@ brief notes about them may accumulate here.
   letter `g`.
 * X11: Improved support for non-24bpp display depths.  WezTerm now tries
   harder to obtain an 8bpc surface on both 16bpp and 30bpp (10bpc) displays.
+* Windows: fixed falling back to a simpler OpenGL context if WGL is unable
+  to negotiate a robust context.  This is useful on systems with dual
+  high/low power GPU hardware where the OpenGL versions for the two GPUs
+  are different!
 
 ### 20200620-160318-e00b076c
 
