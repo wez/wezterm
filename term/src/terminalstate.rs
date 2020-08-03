@@ -2810,12 +2810,13 @@ impl<'a> Performer<'a> {
     fn osc_dispatch(&mut self, osc: OperatingSystemCommand) {
         self.flush_print();
         match osc {
-            OperatingSystemCommand::SetIconNameAndWindowTitle(title)
+            OperatingSystemCommand::SetIconNameSun(title)
+            | OperatingSystemCommand::SetIconName(title)
+            | OperatingSystemCommand::SetIconNameAndWindowTitle(title)
             | OperatingSystemCommand::SetWindowTitleSun(title)
             | OperatingSystemCommand::SetWindowTitle(title) => {
                 self.title = title.clone();
             }
-            OperatingSystemCommand::SetIconNameSun(_) | OperatingSystemCommand::SetIconName(_) => {}
             OperatingSystemCommand::SetHyperlink(link) => {
                 self.set_hyperlink(link);
             }
