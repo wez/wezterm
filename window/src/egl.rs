@@ -282,6 +282,16 @@ impl EglWrapper {
                 && self.config_attrib(display, *config, ffi::BLUE_SIZE) == Some(8)
         });
 
+        // Sort by descending alpha size, otherwise we can end up selecting
+        // alpha size 0 under XWayland, even though a superior config with
+        // 32bpp 8bpc is available.  For whatever reason (probably a Wayland/mutter
+        // weirdness) that renders with a transparent background on my pixelbook.
+        configs.sort_by(|a, b| {
+            self.config_attrib(display, *a, ffi::ALPHA_SIZE)
+                .cmp(&self.config_attrib(display, *b, ffi::ALPHA_SIZE))
+                .reverse()
+        });
+
         log::info!("Filtered down to these configuration(s):");
         for c in &configs {
             self.log_config_info(display, *c);
