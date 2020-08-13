@@ -2836,8 +2836,12 @@ impl<'a> Performer<'a> {
                     self.icon_title = Some(title.clone());
                 }
             }
-            OperatingSystemCommand::SetIconNameAndWindowTitle(title)
-            | OperatingSystemCommand::SetWindowTitleSun(title)
+            OperatingSystemCommand::SetIconNameAndWindowTitle(title) => {
+                self.icon_title.take();
+                self.title = title.clone();
+            }
+
+            OperatingSystemCommand::SetWindowTitleSun(title)
             | OperatingSystemCommand::SetWindowTitle(title) => {
                 self.title = title.clone();
             }
