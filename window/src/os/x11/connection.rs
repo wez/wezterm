@@ -261,7 +261,7 @@ impl XConnection {
             None => match self.conn.has_error() {
                 Ok(_) => (),
                 Err(err) => {
-                    bail!("X11 connection is broken: {:?}", err);
+                    bail!("X11 connection is broken: {:?} {}", err, err.to_string());
                 }
             },
             Some(event) => {
