@@ -52,6 +52,7 @@ pub struct GlState {
 
 impl Drop for GlState {
     fn drop(&mut self) {
+        /* https://github.com/wez/wezterm/issues/252
         unsafe {
             self.egl.egl.MakeCurrent(
                 self.display,
@@ -63,6 +64,7 @@ impl Drop for GlState {
             self.egl.egl.DestroyContext(self.display, self.context);
             self.egl.egl.Terminate(self.display);
         }
+        */
     }
 }
 
