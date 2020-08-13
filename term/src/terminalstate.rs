@@ -273,8 +273,11 @@ pub struct TerminalState {
 
     tabs: TabStop,
 
-    /// The terminal title string
+    /// The terminal title string (OSC 2)
     title: String,
+    /// The icon title string (OSC 1)
+    icon_title: Option<String>,
+
     palette: Option<ColorPalette>,
 
     pixel_width: usize,
@@ -371,6 +374,7 @@ impl TerminalState {
             current_mouse_button: MouseButton::None,
             tabs: TabStop::new(physical_cols, 8),
             title: "wezterm".to_string(),
+            icon_title: None,
             palette: None,
             pixel_height,
             pixel_width,
@@ -388,9 +392,23 @@ impl TerminalState {
 
     /// Returns the title text associated with the terminal session.
     /// The title can be changed by the application using a number
-    /// of escape sequences.
+    /// of escape sequences:
+    /// OSC 2 is used to set the window title.
+    /// OSC 1 is used to set the "icon title", which some terminal
+    /// emulators interpret as a shorter title string for use when
+    /// showing the tab title.
+    /// Here in wezterm the terminalstate is isolated from other
+    /// tabs; we process escape sequences without knowledge of other
+    /// tabs, so we maintain both title strings here.
+    /// The gui layer doesn't currently have a concept of what the
+    /// overall window title should be beyond the title for the
+    /// active tab with some decoration about the number of tabs.
+    /// Shell toolkits such as oh-my-zsh prefer OSC 1 titles for
+    /// abbreviated information.
+    /// What we do here is prefer to return the OSC 1 icon title
+    /// if it is set, otherwise return the OSC 2 window title.
     pub fn get_title(&self) -> &str {
-        &self.title
+        self.icon_title.as_ref().unwrap_or(&self.title)
     }
 
     /// Returns the current working directory associated with the
@@ -2811,8 +2829,14 @@ impl<'a> Performer<'a> {
         self.flush_print();
         match osc {
             OperatingSystemCommand::SetIconNameSun(title)
-            | OperatingSystemCommand::SetIconName(title)
-            | OperatingSystemCommand::SetIconNameAndWindowTitle(title)
+            | OperatingSystemCommand::SetIconName(title) => {
+                if title.is_empty() {
+                    self.icon_title = None;
+                } else {
+                    self.icon_title = Some(title.clone());
+                }
+            }
+            OperatingSystemCommand::SetIconNameAndWindowTitle(title)
             | OperatingSystemCommand::SetWindowTitleSun(title)
             | OperatingSystemCommand::SetWindowTitle(title) => {
                 self.title = title.clone();
