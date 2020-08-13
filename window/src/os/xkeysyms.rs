@@ -96,6 +96,14 @@ pub fn keysym_to_keycode(keysym: u32) -> Option<KeyCode> {
         KEY_KP_Subtract => KeyCode::Subtract,
         KEY_KP_Decimal => KeyCode::Decimal,
         KEY_KP_Separator => KeyCode::Separator,
+        KEY_KP_Space => KeyCode::Char(' '),
+        KEY_KP_Tab => KeyCode::Char('\t'),
+        KEY_KP_Left => KeyCode::ApplicationLeftArrow,
+        KEY_KP_Up => KeyCode::ApplicationUpArrow,
+        KEY_KP_Right => KeyCode::ApplicationRightArrow,
+        KEY_KP_Down => KeyCode::ApplicationDownArrow,
+        KEY_KP_Insert => KeyCode::Insert,
+        KEY_KP_Equal => KeyCode::Char('='),
 
         i @ KEY_KP_0..=KEY_KP_9 => KeyCode::Numpad((i - KEY_KP_0) as u8),
 
