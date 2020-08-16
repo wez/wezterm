@@ -1,5 +1,6 @@
 use anyhow::{anyhow, bail, ensure, Error};
 use std::ffi::c_void;
+use std::rc::Rc;
 
 #[allow(non_camel_case_types, clippy::unreadable_literal)]
 pub mod ffi {
@@ -43,28 +44,47 @@ struct EglWrapper {
     egl: ffi::Egl,
 }
 
-pub struct GlState {
+pub struct GlConnection {
     egl: EglWrapper,
     display: ffi::types::EGLDisplay,
+}
+
+impl std::ops::Deref for GlConnection {
+    type Target = ffi::Egl;
+
+    fn deref(&self) -> &ffi::Egl {
+        &self.egl.egl
+    }
+}
+
+impl Drop for GlConnection {
+    fn drop(&mut self) {
+        unsafe {
+            self.egl.egl.Terminate(self.display);
+        }
+    }
+}
+
+pub struct GlState {
+    connection: Rc<GlConnection>,
     surface: ffi::types::EGLSurface,
     context: ffi::types::EGLContext,
 }
 
 impl Drop for GlState {
     fn drop(&mut self) {
-        /* https://github.com/wez/wezterm/issues/252
         unsafe {
-            self.egl.egl.MakeCurrent(
-                self.display,
+            self.connection.MakeCurrent(
+                self.connection.display,
                 ffi::NO_SURFACE,
                 ffi::NO_SURFACE,
                 ffi::NO_CONTEXT,
             );
-            self.egl.egl.DestroySurface(self.display, self.surface);
-            self.egl.egl.DestroyContext(self.display, self.context);
-            self.egl.egl.Terminate(self.display);
+            self.connection
+                .DestroySurface(self.connection.display, self.surface);
+            self.connection
+                .DestroyContext(self.connection.display, self.context);
         }
-        */
     }
 }
 
@@ -347,6 +367,10 @@ impl EglWrapper {
 }
 
 impl GlState {
+    pub fn get_connection(&self) -> &Rc<GlConnection> {
+        &self.connection
+    }
+
     fn with_egl_lib<F: FnMut(EglWrapper) -> anyhow::Result<Self>>(
         mut func: F,
     ) -> anyhow::Result<Self> {
@@ -404,71 +428,96 @@ impl GlState {
             let (major, minor) = egl.initialize_and_get_version(egl_display)?;
             log::info!("initialized EGL version {}.{}", major, minor);
 
-            let configs = egl.choose_config(
-                egl_display,
-                &[
-                    // We're explicitly asking for any alpha size; this is
-                    // the default behavior but we're making it explicit here
-                    // for the sake of documenting our intent.
-                    // In general we want 32bpp with 8bpc, but for displays
-                    // that are natively 10bpc we should be fine with relaxing
-                    // this to 0 alpha bits, so by asking for 0 here we effectively
-                    // indicate that we don't care.
-                    // In our implementation of choose_config we will return
-                    // only entries with 8bpc for red/green/blue so we should
-                    // end up with either 24bpp/8bpc with no alpha, or 32bpp/8bpc
-                    // with 8bpc alpha.
-                    ffi::ALPHA_SIZE,
-                    0,
-                    // Request at least 8bpc, 24bpp.  The implementation may
-                    // return a context capable of more than this.
-                    ffi::RED_SIZE,
-                    8,
-                    ffi::GREEN_SIZE,
-                    8,
-                    ffi::BLUE_SIZE,
-                    8,
-                    ffi::DEPTH_SIZE,
-                    24,
-                    ffi::CONFORMANT,
-                    ffi::OPENGL_ES3_BIT,
-                    ffi::RENDERABLE_TYPE,
-                    ffi::OPENGL_ES3_BIT,
-                    // Wayland EGL doesn't give us a working context if we request
-                    // PBUFFER|PIXMAP.  We don't appear to require these for X11,
-                    // so we're just asking for a WINDOW capable context
-                    ffi::SURFACE_TYPE,
-                    ffi::WINDOW_BIT, //| ffi::PBUFFER_BIT | ffi::PIXMAP_BIT,
-                    ffi::NONE,
-                ],
-            )?;
-
-            let first_config = *configs
-                .first()
-                .ok_or_else(|| anyhow!("no compatible EGL configuration was found"))?;
-
-            let surface = egl.create_window_surface(egl_display, first_config, window)?;
-
-            let context = egl.create_context(
-                egl_display,
-                first_config,
-                std::ptr::null(),
-                &[ffi::CONTEXT_MAJOR_VERSION, 3, ffi::NONE],
-            )?;
-
-            Ok(Self {
-                egl,
+            let connection = Rc::new(GlConnection {
                 display: egl_display,
-                context,
-                surface,
-            })
+                egl,
+            });
+
+            Self::create_with_existing_connection(&connection, window)
+        })
+    }
+
+    #[cfg(all(unix, feature = "wayland", not(target_os = "macos")))]
+    pub fn create_wayland_with_existing_connection(
+        connection: &Rc<GlConnection>,
+        wegl_surface: &wayland_egl::WlEglSurface,
+    ) -> anyhow::Result<Self> {
+        Self::create_with_existing_connection(connection, wegl_surface.ptr())
+    }
+
+    pub fn create_with_existing_connection(
+        connection: &Rc<GlConnection>,
+        window: ffi::EGLNativeWindowType,
+    ) -> anyhow::Result<GlState> {
+        let configs = connection.egl.choose_config(
+            connection.display,
+            &[
+                // We're explicitly asking for any alpha size; this is
+                // the default behavior but we're making it explicit here
+                // for the sake of documenting our intent.
+                // In general we want 32bpp with 8bpc, but for displays
+                // that are natively 10bpc we should be fine with relaxing
+                // this to 0 alpha bits, so by asking for 0 here we effectively
+                // indicate that we don't care.
+                // In our implementation of choose_config we will return
+                // only entries with 8bpc for red/green/blue so we should
+                // end up with either 24bpp/8bpc with no alpha, or 32bpp/8bpc
+                // with 8bpc alpha.
+                ffi::ALPHA_SIZE,
+                0,
+                // Request at least 8bpc, 24bpp.  The implementation may
+                // return a context capable of more than this.
+                ffi::RED_SIZE,
+                8,
+                ffi::GREEN_SIZE,
+                8,
+                ffi::BLUE_SIZE,
+                8,
+                ffi::DEPTH_SIZE,
+                24,
+                ffi::CONFORMANT,
+                ffi::OPENGL_ES3_BIT,
+                ffi::RENDERABLE_TYPE,
+                ffi::OPENGL_ES3_BIT,
+                // Wayland EGL doesn't give us a working context if we request
+                // PBUFFER|PIXMAP.  We don't appear to require these for X11,
+                // so we're just asking for a WINDOW capable context
+                ffi::SURFACE_TYPE,
+                ffi::WINDOW_BIT, //| ffi::PBUFFER_BIT | ffi::PIXMAP_BIT,
+                ffi::NONE,
+            ],
+        )?;
+
+        let first_config = *configs
+            .first()
+            .ok_or_else(|| anyhow!("no compatible EGL configuration was found"))?;
+
+        let surface =
+            connection
+                .egl
+                .create_window_surface(connection.display, first_config, window)?;
+
+        let context = connection.egl.create_context(
+            connection.display,
+            first_config,
+            std::ptr::null(),
+            &[ffi::CONTEXT_MAJOR_VERSION, 3, ffi::NONE],
+        )?;
+
+        Ok(Self {
+            connection: Rc::clone(connection),
+            context,
+            surface,
         })
     }
 }
 
 unsafe impl glium::backend::Backend for GlState {
     fn swap_buffers(&self) -> Result<(), glium::SwapBuffersError> {
-        let res = unsafe { self.egl.egl.SwapBuffers(self.display, self.surface) };
+        let res = unsafe {
+            self.connection
+                .SwapBuffers(self.connection.display, self.surface)
+        };
         if res != 1 {
             Err(glium::SwapBuffersError::AlreadySwapped)
         } else {
@@ -478,7 +527,7 @@ unsafe impl glium::backend::Backend for GlState {
 
     unsafe fn get_proc_address(&self, symbol: &str) -> *const c_void {
         let sym_name = std::ffi::CString::new(symbol).expect("symbol to be cstring compatible");
-        self.egl.egl.GetProcAddress(sym_name.as_ptr()) as *const c_void
+        self.connection.GetProcAddress(sym_name.as_ptr()) as *const c_void
     }
 
     fn get_framebuffer_dimensions(&self) -> (u32, u32) {
@@ -486,25 +535,34 @@ unsafe impl glium::backend::Backend for GlState {
         let mut height = 0;
 
         unsafe {
-            self.egl
-                .egl
-                .QuerySurface(self.display, self.surface, ffi::WIDTH as i32, &mut width);
+            self.connection.QuerySurface(
+                self.connection.display,
+                self.surface,
+                ffi::WIDTH as i32,
+                &mut width,
+            );
         }
         unsafe {
-            self.egl
-                .egl
-                .QuerySurface(self.display, self.surface, ffi::HEIGHT as i32, &mut height);
+            self.connection.QuerySurface(
+                self.connection.display,
+                self.surface,
+                ffi::HEIGHT as i32,
+                &mut height,
+            );
         }
         (width as u32, height as u32)
     }
 
     fn is_current(&self) -> bool {
-        unsafe { self.egl.egl.GetCurrentContext() == self.context }
+        unsafe { self.connection.GetCurrentContext() == self.context }
     }
 
     unsafe fn make_current(&self) {
-        self.egl
-            .egl
-            .MakeCurrent(self.display, self.surface, self.surface, self.context);
+        self.connection.MakeCurrent(
+            self.connection.display,
+            self.surface,
+            self.surface,
+            self.context,
+        );
     }
 }

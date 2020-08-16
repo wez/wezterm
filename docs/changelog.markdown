@@ -24,6 +24,7 @@ brief notes about them may accumulate here.
 * `enable_wayland` now defaults to `false`; mutter keeps breaking
   client-side window decoration so let's just make it opt-in so
   that the default experience is better.
+* Fixed a crash on Linux/X11 when using `wezterm connect HOST`
 
 ### 20200718-095447-d2315640
 

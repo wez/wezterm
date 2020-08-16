@@ -116,12 +116,22 @@ impl XWindowInner {
         let window = XWindow(self.window_id);
         let conn = self.conn();
 
-        let gl_state = crate::egl::GlState::create(
-            Some(conn.conn.get_raw_dpy() as *const _),
-            self.window_id as *mut _,
-        )
-        .map(Rc::new)
-        .and_then(|state| unsafe {
+        let gl_state = match conn.gl_connection.borrow().as_ref() {
+            None => crate::egl::GlState::create(
+                Some(conn.conn.get_raw_dpy() as *const _),
+                self.window_id as *mut _,
+            ),
+            Some(glconn) => crate::egl::GlState::create_with_existing_connection(
+                glconn,
+                self.window_id as *mut _,
+            ),
+        };
+
+        // Don't chain on the end of the above to avoid borrowing gl_connection twice.
+        let gl_state = gl_state.map(Rc::new).and_then(|state| unsafe {
+            conn.gl_connection
+                .borrow_mut()
+                .replace(Rc::clone(state.get_connection()));
             Ok(glium::backend::Context::new(
                 Rc::clone(&state),
                 true,

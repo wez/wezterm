@@ -38,6 +38,8 @@ pub struct WaylandConnection {
     pub(crate) environment: RefCell<Environment<MyEnvironment>>,
     event_q: RefCell<EventLoop<()>>,
     pub(crate) display: RefCell<Display>,
+    #[cfg(feature = "opengl")]
+    pub(crate) gl_connection: RefCell<Option<Rc<crate::egl::GlConnection>>>,
 }
 
 impl WaylandConnection {
@@ -84,6 +86,8 @@ impl WaylandConnection {
             windows: RefCell::new(HashMap::new()),
             keyboard,
             pointer: pointer.unwrap(),
+            #[cfg(feature = "opengl")]
+            gl_connection: RefCell::new(None),
         })
     }
 

@@ -10,6 +10,7 @@ use mio::{Evented, Events, Poll, PollOpt, Ready, Token};
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::os::unix::io::AsRawFd;
+use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use xcb_util::ffi::keysyms::{xcb_key_symbols_alloc, xcb_key_symbols_free, xcb_key_symbols_t};
@@ -33,6 +34,8 @@ pub struct XConnection {
     timers: RefCell<TimerList>,
     pub(crate) visual: xcb::xproto::Visualtype,
     pub(crate) depth: u8,
+    #[cfg(feature = "opengl")]
+    pub(crate) gl_connection: RefCell<Option<Rc<crate::egl::GlConnection>>>,
 }
 
 impl std::ops::Deref for XConnection {
@@ -405,6 +408,8 @@ impl XConnection {
             timers: RefCell::new(TimerList::new()),
             depth,
             visual,
+            #[cfg(feature = "opengl")]
+            gl_connection: RefCell::new(None),
         };
 
         Ok(conn)

@@ -516,13 +516,22 @@ impl WaylandWindowInner {
                 self.dimensions.pixel_height as i32,
             ));
 
-            crate::egl::GlState::create_wayland(
-                Some(wayland_conn.display.borrow().get_display_ptr() as *const _),
-                wegl_surface.as_ref().unwrap(),
-            )
-        }
-        .map(Rc::new)
-        .and_then(|state| unsafe {
+            match wayland_conn.gl_connection.borrow().as_ref() {
+                Some(glconn) => crate::egl::GlState::create_wayland_with_existing_connection(
+                    glconn,
+                    wegl_surface.as_ref().unwrap(),
+                ),
+                None => crate::egl::GlState::create_wayland(
+                    Some(wayland_conn.display.borrow().get_display_ptr() as *const _),
+                    wegl_surface.as_ref().unwrap(),
+                ),
+            }
+        };
+        let gl_state = gl_state.map(Rc::new).and_then(|state| unsafe {
+            wayland_conn
+                .gl_connection
+                .borrow_mut()
+                .replace(Rc::clone(state.get_connection()));
             Ok(glium::backend::Context::new(
                 Rc::clone(&state),
                 true,
