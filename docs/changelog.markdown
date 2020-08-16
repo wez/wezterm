@@ -21,7 +21,9 @@ brief notes about them may accumulate here.
   alpha.  This could lead to incorrect alpha under XWayland
   and failure to initialize EGL and fallbacks to the Software
   renderer in some other cases.
-
+* `enable_wayland` now defaults to `false`; mutter keeps breaking
+  client-side window decoration so let's just make it opt-in so
+  that the default experience is better.
 
 ### 20200718-095447-d2315640
 

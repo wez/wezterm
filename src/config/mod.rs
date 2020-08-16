@@ -473,7 +473,7 @@ pub struct Config {
     /// This option is only considered on X11/Wayland systems and
     /// has no effect on macOS or Windows.
     /// The default is true.
-    #[serde(default = "default_true")]
+    #[serde(default)]
     pub enable_wayland: bool,
 
     /// Controls the amount of padding to use around the terminal cell area
