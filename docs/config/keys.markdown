@@ -493,7 +493,9 @@ return {
 
 You can also emit escape sequences using `SendString`.  This example shows
 how to bind Alt-LeftArrow/RightArrow to the Alt-b/f, an emacs style
-keybinding for moving backwards/forwards through a word in a line editor:
+keybinding for moving backwards/forwards through a word in a line editor.
+
+`\x1b` is the ESC character:
 
 ```lua
 local wezterm = require 'wezterm';
