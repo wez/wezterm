@@ -10,7 +10,18 @@ daily) from the master branch.  It may not be usable and
 the feature set may change.  As features stabilize some
 brief notes about them may accumulate here.
 
-* Not Yet
+* Added support for OSC 1 (Icon Title changing), and changed
+  how that interacts with OSC 2 (Window Title changing).
+  If you specify OSC 1 as a non-empty string, then that will
+  be used for the title of that terminal instance in the GUI.
+  Otherwise the Window Title will be reported instead.
+* Added missing mappings for Application Keypad keys on Linux
+* Workaround an EGL issue where Mesa reports the least-best
+  alpha value when enumerating configs, rather than the best
+  alpha.  This could lead to incorrect alpha under XWayland
+  and failure to initialize EGL and fallbacks to the Software
+  renderer in some other cases.
+
 
 ### 20200718-095447-d2315640
 
