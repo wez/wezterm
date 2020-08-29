@@ -101,6 +101,7 @@ fn harfbuzz() {
 
     // We know that these are present in our vendored freetype
     cfg.define("HAVE_FREETYPE", Some("1"));
+
     cfg.define("HAVE_FT_Get_Var_Blend_Coordinates", Some("1"));
     cfg.define("HAVE_FT_Set_Var_Blend_Coordinates", Some("1"));
     cfg.define("HAVE_FT_Done_MM_Var", Some("1"));
@@ -119,13 +120,23 @@ fn harfbuzz() {
         cfg.file("harfbuzz/src/hb-uniscribe.cc");
         println!("cargo:rustc-link-lib=usp10");
 
+        println!("cargo:rustc-link-lib=gdi32");
         println!("cargo:rustc-link-lib=rpcrt4");
+        println!("cargo:rustc-link-lib=user32");
     }
 
     // Import the include dirs exported from deps/freetype/build.rs
     for inc in std::env::var("DEP_FREETYPE_INCLUDE").unwrap().split(";") {
         cfg.include(inc);
     }
+
+    println!(
+        "cargo:rustc-link-search={}",
+        std::env::var("DEP_FREETYPE_LIB").unwrap()
+    );
+    println!("cargo:rustc-link-lib=freetype");
+    println!("cargo:rustc-link-lib=png");
+    println!("cargo:rustc-link-lib=z");
 
     cfg.compile("harfbuzz");
 }
