@@ -461,6 +461,11 @@ pub struct Config {
     #[serde(default = "default_true")]
     pub enable_tab_bar: bool,
 
+    /// Specifies the maximum width that a tab can have in the
+    /// tab bar.  Defaults to 16 glyphs in width.
+    #[serde(default = "default_tab_max_width")]
+    pub tab_max_width: usize,
+
     /// If true, hide the tab bar if the window only has a single tab.
     #[serde(default)]
     pub hide_tab_bar_if_only_one_tab: bool,
@@ -537,6 +542,10 @@ pub struct Config {
     /// mapping annoying in vim :-p
     #[serde(default)]
     pub enable_csi_u_key_encoding: bool,
+}
+
+fn default_tab_max_width() -> usize {
+    16
 }
 
 fn default_update_interval() -> u64 {

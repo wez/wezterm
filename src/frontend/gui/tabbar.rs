@@ -48,6 +48,7 @@ impl TabBarState {
         mouse_x: Option<usize>,
         window: &Ref<MuxWindow>,
         colors: Option<&TabBarColors>,
+        tab_width_max: usize,
     ) -> Self {
         // We ultimately want to produce a line looking like this:
         // ` | tab1-title x | tab2-title x |  +      . - X `
@@ -82,7 +83,8 @@ impl TabBarState {
         } else {
             // We need to clamp the length to balance them out
             available_cells / number_of_tabs
-        };
+        }
+        .min(tab_width_max);
 
         let colors = colors.cloned().unwrap_or_else(TabBarColors::default);
 

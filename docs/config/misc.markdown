@@ -65,7 +65,10 @@ return {
   -- `SteadyUnderline`, `BlinkingUnderline`, `SteadyBar`,
   -- and `BlinkingBar`.
   default_cursor_style = "SteadyBlock",
+
+  -- Specifies the maximum width that a tab can have in the
+  -- tab bar.  Defaults to 16 glyphs in width.
+  tab_max_width = 16,
 }
 ```
-
 

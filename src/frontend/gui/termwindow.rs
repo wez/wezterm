@@ -1139,6 +1139,7 @@ impl TermWindow {
             },
             &window,
             config.colors.as_ref().and_then(|c| c.tab_bar.as_ref()),
+            config.tab_max_width,
         );
         if new_tab_bar != self.tab_bar {
             self.tab_bar = new_tab_bar;
