@@ -143,6 +143,7 @@ TOC = [
             Page("SSH", "ssh.markdown"),
             Page("Serial Ports & Arduino", "serial.markdown"),
             Page("Mulitplexing", "multiplexing.markdown"),
+            Page("Escape Sequences", "escape-sequences.markdown"),
             Page("F.A.Q.", "faq.markdown"),
             Page("Getting Help", "help.markdown"),
             Page("Contributing", "contributing.markdown"),
