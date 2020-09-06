@@ -119,7 +119,14 @@ impl PtyFd {
 
     fn get_size(&self) -> Result<PtySize, Error> {
         let mut size: winsize = unsafe { mem::zeroed() };
-        if unsafe { libc::ioctl(self.0.as_raw_fd(), libc::TIOCGWINSZ, &mut size as *mut _) } != 0 {
+        if unsafe {
+            libc::ioctl(
+                self.0.as_raw_fd(),
+                libc::TIOCGWINSZ.into(),
+                &mut size as *mut _,
+            )
+        } != 0
+        {
             bail!(
                 "failed to ioctl(TIOCGWINSZ): {:?}",
                 io::Error::last_os_error()
