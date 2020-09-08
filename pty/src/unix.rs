@@ -107,7 +107,14 @@ impl PtyFd {
             ws_ypixel: size.pixel_height,
         };
 
-        if unsafe { libc::ioctl(self.0.as_raw_fd(), libc::TIOCSWINSZ, &ws_size as *const _) } != 0 {
+        if unsafe {
+            libc::ioctl(
+                self.0.as_raw_fd(),
+                libc::TIOCSWINSZ as _,
+                &ws_size as *const _,
+            )
+        } != 0
+        {
             bail!(
                 "failed to ioctl(TIOCSWINSZ): {:?}",
                 io::Error::last_os_error()
@@ -122,7 +129,7 @@ impl PtyFd {
         if unsafe {
             libc::ioctl(
                 self.0.as_raw_fd(),
-                libc::TIOCGWINSZ.into(),
+                libc::TIOCGWINSZ as _,
                 &mut size as *mut _,
             )
         } != 0
