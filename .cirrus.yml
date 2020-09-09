@@ -6,7 +6,6 @@ task:
   name: freebsd-12-1-release-amd64
   stateful: false
   setup_script:
-    - pkg install -y curl zip cmake pkgconf expat gettext openssl zlib gcc perl make git
-    - curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+    - pkg install -y curl zip cmake pkgconf expat gettext openssl z gcc perl5 gmake git p5-ExtUtils-MakeMaker dbus fontconfig python3 libxcb libxkbcommon egl-wayland wayland mesa-devel xcb-util-keysyms xcb-util-wm rust
   test_script:
     - cargo test --all --release
