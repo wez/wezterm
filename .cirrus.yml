@@ -1,0 +1,11 @@
+freebsd_instance:
+  image: freebsd-12-1-release-amd64
+
+task:
+  name: freebsd-12
+  stateful: false
+  setup_script:
+    - pkg install -y bash
+    - bash get-deps
+  test_script:
+    - cargo test --all --release
