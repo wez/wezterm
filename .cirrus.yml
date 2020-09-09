@@ -1,0 +1,12 @@
+freebsd_instance:
+  image: freebsd-12-1-release-amd64
+
+task:
+  # This name gets reported as a build status in GitHub
+  name: freebsd-12-1-release-amd64
+  stateful: false
+  setup_script:
+    - pkg install -y curl zip cmake pkgconf expat gettext openssl zlib gcc perl make git
+    - curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+  test_script:
+    - cargo test --all --release
