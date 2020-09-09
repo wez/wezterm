@@ -130,14 +130,21 @@ impl RenderTty for TtyWriteHandle {
 impl UnixTty for TtyWriteHandle {
     fn get_size(&mut self) -> Result<winsize, Error> {
         let mut size: winsize = unsafe { mem::zeroed() };
-        if unsafe { libc::ioctl(self.fd.as_raw_fd(), libc::TIOCGWINSZ, &mut size) } != 0 {
+        if unsafe { libc::ioctl(self.fd.as_raw_fd(), libc::TIOCGWINSZ as _, &mut size) } != 0 {
             bail!("failed to ioctl(TIOCGWINSZ): {}", IoError::last_os_error());
         }
         Ok(size)
     }
 
     fn set_size(&mut self, size: winsize) -> Result<(), Error> {
-        if unsafe { libc::ioctl(self.fd.as_raw_fd(), libc::TIOCSWINSZ, &size as *const _) } != 0 {
+        if unsafe {
+            libc::ioctl(
+                self.fd.as_raw_fd(),
+                libc::TIOCSWINSZ as _,
+                &size as *const _,
+            )
+        } != 0
+        {
             bail!(
                 "failed to ioctl(TIOCSWINSZ): {:?}",
                 IoError::last_os_error()
