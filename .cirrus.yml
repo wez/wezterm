@@ -1,5 +1,7 @@
 freebsd_instance:
   image: freebsd-12-1-release-amd64
+  cpu: 4
+  memory: 8G
 
 task:
   name: freebsd-12
@@ -8,4 +10,5 @@ task:
     - pkg install -y bash
     - bash get-deps
   test_script:
+    - cargo build --all --release
     - cargo test --all --release
