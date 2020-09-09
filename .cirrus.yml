@@ -5,6 +5,8 @@ task:
   name: freebsd-12
   stateful: false
   setup_script:
-    - ./get-deps
+    - pwd
+    - ls -al
+    - bash get-deps
   test_script:
     - cargo test --all --release
