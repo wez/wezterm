@@ -77,6 +77,34 @@ case $OSTYPE in
   darwin*|msys)
     exit 0
   ;;
+  freebsd*)
+    pkg install -y \
+      cmake \
+      curl \
+      dbus \
+      egl-wayland \
+      expat \
+      fontconfig \
+      gcc \
+      gettext \
+      git \
+      gmake \
+      libxcb \
+      libxkbcommon \
+      mesa-devel \
+      openssl \
+      p5-ExtUtils-MakeMaker \
+      perl5 \
+      pkgconf \
+      python3 \
+      rust \
+      wayland \
+      xcb-util-keysyms \
+      xcb-util-wm \
+      z \
+      zip
+    exit $?
+    ;;
   *)
     echo "Please contribute the commands to install the deps"
     echo "For `lsb_release -ds`"
