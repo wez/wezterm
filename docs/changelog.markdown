@@ -10,6 +10,10 @@ daily) from the master branch.  It may not be usable and
 the feature set may change.  As features stabilize some
 brief notes about them may accumulate here.
 
+* Not yet
+
+### 20200909-002054-4c9af461
+
 * Added support for OSC 1 (Icon Title changing), and changed
   how that interacts with OSC 2 (Window Title changing).
   If you specify OSC 1 as a non-empty string, then that will
