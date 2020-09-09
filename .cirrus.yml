@@ -5,6 +5,7 @@ task:
   name: freebsd-12
   stateful: false
   setup_script:
+    - pkg install -y bash
     - pwd
     - ls -al
     - bash get-deps
