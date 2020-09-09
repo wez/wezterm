@@ -1320,7 +1320,7 @@ impl TerminalState {
         }
 
         let mut png_image_data = Vec::new();
-        let encoder = image::png::PNGEncoder::new(&mut png_image_data);
+        let encoder = image::png::PngEncoder::new(&mut png_image_data);
         if let Err(e) = encoder.encode(&image.into_vec(), width, height, image::ColorType::Rgba8) {
             error!("failed to encode sixel data into png: {}", e);
             return;
