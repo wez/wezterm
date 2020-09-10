@@ -178,7 +178,7 @@ fn client_thread(
                 &mut poll_array,
                 Some(std::time::Duration::from_millis(1000)),
             ) {
-                let reason = format!("Error while polling: {} {:?}", err, poll_array);
+                let reason = format!("Error while polling: {}", err);
                 log::error!("{}", reason);
                 for (_, mut promise) in promises.into_iter() {
                     promise.result(Err(anyhow!("{}", reason)));
