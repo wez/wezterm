@@ -4,6 +4,7 @@ use crate::server::listener::sessionhandler::SessionHandler;
 use crate::server::pollable::*;
 use anyhow::{bail, Context, Error};
 use crossbeam::channel::TryRecvError;
+use filedescriptor::poll;
 use log::error;
 use std::collections::HashSet;
 
@@ -71,7 +72,10 @@ impl<S: ReadAndWrite> ClientSession<S> {
                 self.stream.as_poll_fd(),
                 self.mux_rx.as_poll_fd(),
             ];
-            poll_for_read(&mut poll_array);
+            poll(
+                &mut poll_array,
+                Some(std::time::Duration::from_millis(1000)),
+            )?;
 
             if poll_array[1].revents != 0 || self.stream.has_read_buffered() {
                 loop {

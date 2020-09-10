@@ -11,7 +11,7 @@ use crate::server::UnixStream;
 use crate::ssh::ssh_connect_with_ui;
 use anyhow::{anyhow, bail, Context, Error};
 use crossbeam::channel::TryRecvError;
-use filedescriptor::{pollfd, AsRawSocketDescriptor};
+use filedescriptor::{poll, pollfd, AsRawSocketDescriptor};
 use log::info;
 use openssl::ssl::{SslConnector, SslFiletype, SslMethod};
 use openssl::x509::X509;
@@ -174,7 +174,17 @@ fn client_thread(
 
         let mut poll_array = [rx.as_poll_fd(), reconnectable.stream().as_poll_fd()];
         if !reconnectable.stream().has_read_buffered() {
-            poll_for_read(&mut poll_array);
+            if let Err(err) = poll(
+                &mut poll_array,
+                Some(std::time::Duration::from_millis(1000)),
+            ) {
+                let reason = format!("Error while polling: {} {:?}", err, poll_array);
+                log::error!("{}", reason);
+                for (_, mut promise) in promises.into_iter() {
+                    promise.result(Err(anyhow!("{}", reason)));
+                }
+                return Err(err).context("Error while polling");
+            }
         }
 
         if poll_array[1].revents != 0 || reconnectable.stream().has_read_buffered() {

@@ -440,7 +440,7 @@ mod macos {
 
         let mut timeout = duration.map(|d| timeval {
             tv_sec: d.as_secs() as _,
-            tv_usec: d.as_micros() as _,
+            tv_usec: d.subsec_micros() as _,
         });
 
         let res = unsafe {

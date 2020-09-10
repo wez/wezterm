@@ -129,9 +129,3 @@ impl AsPollFd for UnixStream {
         self.as_socket_descriptor().as_poll_fd()
     }
 }
-
-pub fn poll_for_read(pfd: &mut [pollfd]) {
-    if let Err(e) = poll(pfd, Some(std::time::Duration::from_millis(1000))) {
-        log::error!("poll failed for {}", e);
-    }
-}

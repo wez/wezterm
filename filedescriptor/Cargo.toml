@@ -1,6 +1,6 @@
 [package]
 name = "filedescriptor"
-version = "0.7.2"
+version = "0.7.3"
 authors = ["Wez Furlong"]
 edition = "2018"
 repository = "https://github.com/wez/wezterm"
