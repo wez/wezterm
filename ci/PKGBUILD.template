@@ -53,6 +53,4 @@ package() {
                  "${pkgdir}/usr/share/icons/hicolor/128x128/apps/org.wezfurlong.wezterm.png"
   install -Dm644 squashfs-root/usr/share/applications/org.wezfurlong.wezterm.desktop \
                  "${pkgdir}/usr/share/applications/org.wezfurlong.wezterm.desktop"
-  install -dm755 ${pkgdir}/usr/share/wezterm/colors
-  install -Dm644 -t ${pkgdir}/usr/share/wezterm/colors/ squashfs-root/usr/share/wezterm/colors/*
 }

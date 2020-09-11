@@ -1,8 +1,55 @@
+use std::path::Path;
 use vergen::{generate_cargo_keys, ConstantsFlags};
 
+fn bake_color_schemes() {
+    let dir = std::fs::read_dir("assets/colors").unwrap();
+
+    let mut schemes = vec![];
+
+    for entry in dir {
+        let entry = entry.unwrap();
+        let name = entry.file_name();
+        let name = name.to_str().unwrap();
+
+        if name.ends_with(".toml") {
+            let len = name.len();
+            let scheme_name = &name[..len - 5];
+            let data = String::from_utf8(std::fs::read(entry.path()).unwrap()).unwrap();
+            schemes.push((scheme_name.to_string(), data));
+
+            println!("cargo:rerun-if-changed={}", entry.path().display());
+        }
+    }
+
+    let mut code = String::new();
+    code.push_str(&format!(
+        "pub const SCHEMES: [(&'static str, &'static str); {}] = [",
+        schemes.len()
+    ));
+    for (name, data) in schemes {
+        code.push_str(&format!(
+            "(\"{}\", \"{}\"),\n",
+            name.escape_default(),
+            data.escape_default(),
+        ));
+    }
+    code.push_str("];\n");
+
+    std::fs::write(
+        Path::new(&std::env::var_os("OUT_DIR").unwrap()).join("scheme_data.rs"),
+        code,
+    )
+    .unwrap();
+}
+
 fn main() {
+    println!("cargo:rerun-if-changed=build.rs");
+
     let mut flags = ConstantsFlags::all();
     flags.remove(ConstantsFlags::SEMVER_FROM_CARGO_PKG);
+
+    bake_color_schemes();
+
     // Generate the 'cargo:' key output
     generate_cargo_keys(ConstantsFlags::all()).expect("Unable to generate the cargo keys!");
 
@@ -21,7 +68,6 @@ fn main() {
     #[cfg(windows)]
     {
         use std::io::Write;
-        use std::path::Path;
         let profile = std::env::var("PROFILE").unwrap();
         let exe_output_dir = Path::new("target").join(profile);
         let windows_dir = std::env::current_dir()

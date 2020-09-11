@@ -47,6 +47,8 @@ lazy_static! {
     static ref CONFIG: Configuration = Configuration::new();
 }
 
+include!(concat!(env!("OUT_DIR"), "/scheme_data.rs"));
+
 fn xdg_config_home() -> PathBuf {
     match std::env::var_os("XDG_CONFIG_HOME").map(|s| PathBuf::from(s).join("wezterm")) {
         Some(p) => p,
@@ -767,45 +769,7 @@ impl Config {
     fn compute_color_scheme_dirs(&self) -> Vec<PathBuf> {
         let mut paths = self.color_scheme_dirs.clone();
         paths.push(CONFIG_DIR.join("colors"));
-
-        if let Ok(exe_name) = std::env::current_exe() {
-            // If running out of the source tree our executable path will be
-            // something like: `.../wezterm/target/release/wezterm`.
-            // It takes 3 parent calls to reach the wezterm dir; if we get
-            // there, get to the `assets/colors` dir.
-            if let Some(colors_dir) = exe_name
-                .parent()
-                .and_then(|release| release.parent())
-                .and_then(|target| target.parent())
-                .map(|srcdir| srcdir.join("assets").join("colors"))
-            {
-                paths.push(colors_dir);
-            }
-
-            // If running out of an AppImage, resolve our installed colors
-            // path relative to our binary location:
-            // `/usr/bin/wezterm` -> `/usr/share/wezterm/colors`
-            if let Some(colors_dir) = exe_name
-                .parent()
-                .and_then(|bin| bin.parent())
-                .map(|usr| usr.join("share").join("wezterm").join("colors"))
-            {
-                paths.push(colors_dir);
-            }
-        }
-
-        if cfg!(target_os = "macos") {
-            if let Ok(exe_name) = std::env::current_exe() {
-                if let Some(colors_dir) = exe_name
-                    .parent()
-                    .map(|srcdir| srcdir.join("Contents").join("Resources").join("colors"))
-                {
-                    paths.push(colors_dir);
-                }
-            }
-        } else if cfg!(unix) {
-            paths.push(PathBuf::from("/usr/share/wezterm/colors"));
-        } else if cfg!(windows) {
+        if cfg!(windows) {
             // See commentary re: portable tools above!
             if let Ok(exe_name) = std::env::current_exe() {
                 if let Some(exe_dir) = exe_name.parent() {
@@ -860,6 +824,16 @@ impl Config {
                     }
                 }
             }
+        }
+
+        for (scheme_name, data) in SCHEMES.iter() {
+            let scheme_name = scheme_name.to_string();
+            if self.color_schemes.contains_key(&scheme_name) {
+                // This scheme has already been defined
+                continue;
+            }
+            let scheme: ColorSchemeFile = toml::from_str(data).unwrap();
+            self.color_schemes.insert(scheme_name, scheme.colors);
         }
 
         Ok(())

@@ -46,7 +46,6 @@ Source: "..\target\release\wezterm.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\target\release\conpty.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\target\release\OpenConsole.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\target\release\strip-ansi-escapes.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\assets\colors\*"; DestDir: "{app}\colors"; Flags: ignoreversion
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Icons]
