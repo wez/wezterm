@@ -30,7 +30,7 @@ brief notes about them may accumulate here.
   that the default experience is better.
 * Fixed a crash on Linux/X11 when using `wezterm connect HOST`
 * Added `tab_max_width` config setting to limit the maximum
-  width of tabs in the tab tab.  This defaults to 16 glyphs
+  width of tabs in the tab bar.  This defaults to 16 glyphs
   in width.
 
 ### 20200718-095447-d2315640
