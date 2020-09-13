@@ -1769,8 +1769,10 @@ impl TermWindow {
     fn apply_dimensions(
         &mut self,
         dimensions: &Dimensions,
-        scale_changed_cells: Option<RowsAndCols>,
+        mut scale_changed_cells: Option<RowsAndCols>,
     ) {
+        let orig_dimensions = self.dimensions;
+
         self.dimensions = *dimensions;
 
         // Technically speaking, we should compute the rows and cols
@@ -1830,20 +1832,29 @@ impl TermWindow {
             (size, *dimensions)
         };
 
-        self.render_state
-            .advise_of_window_size_change(
-                &self.render_metrics,
-                dimensions.pixel_width,
-                dimensions.pixel_height,
-            )
-            .expect("failed to advise of resize");
-
-        self.terminal_size = size;
+        if let Err(err) = self.render_state.advise_of_window_size_change(
+            &self.render_metrics,
+            dimensions.pixel_width,
+            dimensions.pixel_height,
+        ) {
+            log::error!(
+                "failed to advise of resize from {:?} -> {:?}: {:?}",
+                orig_dimensions,
+                dimensions,
+                err
+            );
+            // Try to restore the original dimensions
+            self.dimensions = orig_dimensions;
+            // Avoid the inner resize below
+            scale_changed_cells.take();
+        } else {
+            self.terminal_size = size;
+        }
 
         let mux = Mux::get().unwrap();
         if let Some(window) = mux.get_window(self.mux_window_id) {
             for tab in window.iter() {
-                tab.resize(size).ok();
+                tab.resize(self.terminal_size).ok();
             }
         };
         self.update_title();
