@@ -146,15 +146,25 @@ pub struct ParentIterator<'a, L, N> {
     path: &'a Path<L, N>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PathBranch {
+    IsLeft,
+    IsRight,
+}
+
 impl<'a, L, N> std::iter::Iterator for ParentIterator<'a, L, N> {
-    type Item = &'a Option<N>;
+    type Item = (PathBranch, &'a Option<N>);
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.path {
             Path::Top => None,
-            Path::Left { data, up, .. } | Path::Right { data, up, .. } => {
+            Path::Left { data, up, .. } => {
                 self.path = &*up;
-                Some(data)
+                Some((PathBranch::IsLeft, data))
+            }
+            Path::Right { data, up, .. } => {
+                self.path = &*up;
+                Some((PathBranch::IsRight, data))
             }
         }
     }
@@ -513,7 +523,7 @@ mod tests {
             }
             match cursor.preorder_next() {
                 Ok(c) => cursor = c,
-                Err(c) => break,
+                Err(_) => break,
             }
         }
 

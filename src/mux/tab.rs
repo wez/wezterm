@@ -2,7 +2,7 @@ use crate::mux::domain::DomainId;
 use crate::mux::renderable::Renderable;
 use crate::mux::Mux;
 use async_trait::async_trait;
-use bintree::Tree;
+use bintree::{PathBranch, Tree};
 use downcast_rs::{impl_downcast, Downcast};
 use portable_pty::PtySize;
 use serde::{Deserialize, Serialize};
@@ -118,6 +118,20 @@ pub struct PositionedPane {
     pub pane: Rc<dyn Pane>,
 }
 
+impl std::fmt::Debug for PositionedPane {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::result::Result<(), std::fmt::Error> {
+        fmt.debug_struct("PositionedPane")
+            .field("index", &self.index)
+            .field("is_active", &self.is_active)
+            .field("left", &self.left)
+            .field("top", &self.top)
+            .field("width", &self.width)
+            .field("height", &self.height)
+            .field("pane_id", &self.pane.pane_id())
+            .finish()
+    }
+}
+
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum SplitDirection {
     Horizontal,
@@ -128,11 +142,24 @@ pub enum SplitDirection {
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub struct SplitDirectionAndSize {
     pub direction: SplitDirection,
-    /// Offset relative to container
-    pub left: usize,
-    pub top: usize,
     pub first: PtySize,
     pub second: PtySize,
+}
+
+impl SplitDirectionAndSize {
+    fn top_of_second(&self) -> usize {
+        match self.direction {
+            SplitDirection::Horizontal => 0,
+            SplitDirection::Vertical => self.first.rows as usize + 1,
+        }
+    }
+
+    fn left_of_second(&self) -> usize {
+        match self.direction {
+            SplitDirection::Horizontal => self.first.cols as usize + 1,
+            SplitDirection::Vertical => 0,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
@@ -156,6 +183,9 @@ impl SplitDirectionAndSize {
         if self.direction == SplitDirection::Horizontal {
             self.first.cols + self.second.cols + 1
         } else {
+            if self.first.cols != self.second.cols {
+                log::error!("{:#?}", self);
+            }
             assert_eq!(self.first.cols, self.second.cols);
             self.first.cols
         }
@@ -194,22 +224,19 @@ impl Tab {
                 let mut left = 0usize;
                 let mut top = 0usize;
                 let mut parent_size = None;
-                let is_second = cursor.is_right();
-                for node in cursor.path_to_root() {
+                for (branch, node) in cursor.path_to_root() {
                     if let Some(node) = node {
                         if parent_size.is_none() {
-                            parent_size.replace(if is_second { node.second } else { node.first });
-                            if is_second {
-                                match node.direction {
-                                    SplitDirection::Vertical => top += node.first.rows as usize + 1,
-                                    SplitDirection::Horizontal => {
-                                        left += node.first.cols as usize + 1
-                                    }
-                                }
-                            }
+                            parent_size.replace(if branch == PathBranch::IsRight {
+                                node.second
+                            } else {
+                                node.first
+                            });
                         }
-                        left += node.left;
-                        top += node.top;
+                        if branch == PathBranch::IsRight {
+                            top += node.top_of_second();
+                            left += node.left_of_second();
+                        }
                     }
                 }
 
@@ -249,19 +276,18 @@ impl Tab {
             if !cursor.is_leaf() {
                 let mut left = 0usize;
                 let mut top = 0usize;
-                for p in cursor.path_to_root() {
+                for (branch, p) in cursor.path_to_root() {
                     if let Some(p) = p {
-                        left += p.left;
-                        top += p.top;
+                        if branch == PathBranch::IsRight {
+                            left += p.left_of_second();
+                            top += p.top_of_second();
+                        }
                     }
                 }
                 if let Ok(Some(node)) = cursor.node_mut() {
-                    left += node.left;
-                    top += node.top;
-
                     match node.direction {
-                        SplitDirection::Vertical => top += node.first.rows as usize,
                         SplitDirection::Horizontal => left += node.first.cols as usize,
+                        SplitDirection::Vertical => top += node.first.rows as usize,
                     }
 
                     dividers.push(PositionedSplit {
@@ -308,17 +334,16 @@ impl Tab {
         *self.size.borrow_mut() = size;
 
         loop {
-            let is_second = cursor.is_right();
             // Figure out the available size by looking at our immediate parent node.
             // If we are the root, look at the provided new size
-            let (direction, pane_size) = if let Some(Some(parent)) = cursor.path_to_root().next() {
-                if is_second {
-                    (parent.direction, parent.second)
+            let pane_size = if let Some((branch, Some(parent))) = cursor.path_to_root().next() {
+                if branch == PathBranch::IsRight {
+                    parent.second
                 } else {
-                    (parent.direction, parent.first)
+                    parent.first
                 }
             } else {
-                (SplitDirection::Horizontal, size)
+                size
             };
 
             if cursor.is_leaf() {
@@ -330,16 +355,16 @@ impl Tab {
                     // child and adjust the second, so if we are split down the middle
                     // and the window is made wider, the right column will grow in
                     // size, leaving the left at its current width.
-                    if direction == SplitDirection::Horizontal {
-                        node.first.rows = size.rows;
-                        node.second.rows = size.rows;
+                    if node.direction == SplitDirection::Horizontal {
+                        node.first.rows = pane_size.rows;
+                        node.second.rows = pane_size.rows;
 
-                        node.second.cols = size.cols - (1 + node.first.cols);
+                        node.second.cols = pane_size.cols.saturating_sub(1 + node.first.cols);
                     } else {
-                        node.first.cols = size.cols;
-                        node.second.cols = size.cols;
+                        node.first.cols = pane_size.cols;
+                        node.second.cols = pane_size.cols;
 
-                        node.second.rows = size.rows - (1 + node.first.rows);
+                        node.second.rows = pane_size.rows.saturating_sub(1 + node.first.rows);
                     }
                     node.first.pixel_width = node.first.cols * cell_width;
                     node.first.pixel_height = node.first.rows * cell_height;
@@ -410,6 +435,7 @@ impl Tab {
                                 pixel_width: cell_dims.pixel_width * cols,
                                 pixel_height: cell_dims.pixel_height * rows,
                             };
+                            log::error!("prune_dead_panes resize a pane to {:?}", size);
 
                             unsplit.resize(size).ok();
                         }
@@ -513,10 +539,9 @@ impl Tab {
                 }
                 SplitDirection::Vertical => ((pos.width, pos.width), split_dimension(pos.height)),
             };
+
             SplitDirectionAndSize {
                 direction,
-                left: pos.left,
-                top: pos.top,
                 first: PtySize {
                     rows: height1 as _,
                     cols: width1 as _,
@@ -543,41 +568,67 @@ impl Tab {
         direction: SplitDirection,
         pane: Rc<dyn Pane>,
     ) -> anyhow::Result<usize> {
-        let split_info = self
-            .compute_split_size(pane_index, direction)
-            .ok_or_else(|| anyhow::anyhow!("invalid pane_index {}; cannot split!", pane_index))?;
-
-        let mut root = self.pane.borrow_mut();
-        let mut cursor = root.take().unwrap().cursor();
-
-        match cursor.go_to_nth_leaf(pane_index) {
-            Ok(c) => cursor = c,
-            Err(c) => {
-                root.replace(c.tree());
-                anyhow::bail!("invalid pane_index {}; cannot split!", pane_index);
+        {
+            let split_info = self
+                .compute_split_size(pane_index, direction)
+                .ok_or_else(|| {
+                    anyhow::anyhow!("invalid pane_index {}; cannot split!", pane_index)
+                })?;
+            let tab_size = *self.size.borrow();
+            if split_info.first.rows == 0
+                || split_info.first.cols == 0
+                || split_info.second.rows == 0
+                || split_info.second.cols == 0
+                || split_info.top_of_second() as u16 + split_info.second.rows > tab_size.rows
+                || split_info.left_of_second() as u16 + split_info.second.cols > tab_size.cols
+            {
+                log::error!(
+                    "No splace for split!!! {:#?} height={} width={} top_of_second={} left_of_second={} tab_size={:?}",
+                    split_info,
+                    split_info.height(),
+                    split_info.width(),
+                    split_info.top_of_second(),
+                    split_info.left_of_second(),
+                    tab_size
+                );
+                anyhow::bail!("No space for split!");
             }
-        };
 
-        let existing_pane = Rc::clone(cursor.leaf_mut().unwrap());
+            let mut root = self.pane.borrow_mut();
+            let mut cursor = root.take().unwrap().cursor();
 
-        existing_pane.resize(split_info.first)?;
-        pane.resize(split_info.second.clone())?;
+            match cursor.go_to_nth_leaf(pane_index) {
+                Ok(c) => cursor = c,
+                Err(c) => {
+                    root.replace(c.tree());
+                    anyhow::bail!("invalid pane_index {}; cannot split!", pane_index);
+                }
+            };
 
-        match cursor.split_leaf_and_insert_right(pane) {
-            Ok(c) => cursor = c,
-            Err(c) => {
-                root.replace(c.tree());
-                anyhow::bail!("invalid pane_index {}; cannot split!", pane_index);
-            }
-        };
+            let existing_pane = Rc::clone(cursor.leaf_mut().unwrap());
 
-        // cursor now points to the newly created split node;
-        // we need to populate its split information
-        match cursor.assign_node(Some(split_info)) {
-            Err(c) | Ok(c) => root.replace(c.tree()),
-        };
+            existing_pane.resize(split_info.first)?;
+            pane.resize(split_info.second.clone())?;
 
-        *self.active.borrow_mut() = pane_index + 1;
+            match cursor.split_leaf_and_insert_right(pane) {
+                Ok(c) => cursor = c,
+                Err(c) => {
+                    root.replace(c.tree());
+                    anyhow::bail!("invalid pane_index {}; cannot split!", pane_index);
+                }
+            };
+
+            // cursor now points to the newly created split node;
+            // we need to populate its split information
+            match cursor.assign_node(Some(split_info)) {
+                Err(c) | Ok(c) => root.replace(c.tree()),
+            };
+
+            *self.active.borrow_mut() = pane_index + 1;
+        }
+
+        log::debug!("split info after split: {:#?}", self.iter_splits());
+        log::debug!("pane info after split: {:#?}", self.iter_panes());
 
         Ok(pane_index + 1)
     }
