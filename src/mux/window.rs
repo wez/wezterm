@@ -130,14 +130,11 @@ impl Window {
             .tabs
             .iter()
             .filter_map(|tab| {
-                if let Some(pane) = tab.get_active_pane() {
-                    if pane.is_dead() {
-                        return Some(tab.tab_id());
-                    } else {
-                        None
-                    }
+                tab.prune_dead_panes();
+                if tab.is_dead() {
+                    return Some(tab.tab_id());
                 } else {
-                    Some(tab.tab_id())
+                    None
                 }
             })
             .collect();

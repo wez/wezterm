@@ -207,7 +207,7 @@ impl Mux {
         self.add_pane(&pane)
     }
 
-    pub fn remove_pane(&self, pane_id: TabId) {
+    pub fn remove_pane(&self, pane_id: PaneId) {
         debug!("removing pane {}", pane_id);
         self.panes.borrow_mut().remove(&pane_id);
         self.prune_dead_windows();
@@ -226,6 +226,7 @@ impl Mux {
         for (window_id, win) in windows.iter_mut() {
             win.prune_dead_tabs(&live_tab_ids);
             if win.is_empty() {
+                log::error!("prune_dead_windows: window is now empty");
                 dead_windows.push(*window_id);
             }
         }
@@ -238,9 +239,11 @@ impl Mux {
             .collect();
 
         for tab_id in dead_tab_ids {
+            log::error!("tab {} is dead", tab_id);
             self.tabs.borrow_mut().remove(&tab_id);
         }
 
+        /*
         let dead_pane_ids: Vec<TabId> = self
             .panes
             .borrow()
@@ -251,6 +254,7 @@ impl Mux {
         for pane_id in dead_pane_ids {
             self.panes.borrow_mut().remove(&pane_id);
         }
+        */
 
         for window_id in dead_windows {
             error!("removing window {}", window_id);

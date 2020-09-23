@@ -7,8 +7,7 @@
 
 use crate::config::configuration;
 use crate::localtab::LocalPane;
-use crate::mux::tab::Pane;
-use crate::mux::tab::Tab;
+use crate::mux::tab::{Pane, SplitDirection, Tab, TabId};
 use crate::mux::window::WindowId;
 use crate::mux::Mux;
 use anyhow::{bail, Error};
@@ -41,6 +40,15 @@ pub trait Domain: Downcast {
         command_dir: Option<String>,
         window: WindowId,
     ) -> Result<Rc<Tab>, Error>;
+
+    async fn split_pane(
+        &self,
+        command: Option<CommandBuilder>,
+        command_dir: Option<String>,
+        tab: TabId,
+        pane_index: usize,
+        split_direction: SplitDirection,
+    ) -> anyhow::Result<Rc<dyn Pane>>;
 
     /// Returns false if the `spawn` method will never succeed.
     /// There are some internal placeholder domains that are
@@ -148,6 +156,68 @@ impl Domain for LocalDomain {
         mux.add_tab_to_window(&tab, window)?;
 
         Ok(tab)
+    }
+
+    async fn split_pane(
+        &self,
+        command: Option<CommandBuilder>,
+        command_dir: Option<String>,
+        tab: TabId,
+        pane_index: usize,
+        direction: SplitDirection,
+    ) -> anyhow::Result<Rc<dyn Pane>> {
+        let mux = Mux::get().unwrap();
+        let tab = match mux.get_tab(tab) {
+            Some(t) => t,
+            None => anyhow::bail!("Invalid tab id {}", tab),
+        };
+
+        let split_size = match tab.compute_split_size(pane_index, direction) {
+            Some(s) => s,
+            None => anyhow::bail!("invalid pane index {}", pane_index),
+        };
+
+        let config = configuration();
+        let mut cmd = match command {
+            Some(mut cmd) => {
+                config.apply_cmd_defaults(&mut cmd);
+                cmd
+            }
+            None => config.build_prog(None)?,
+        };
+        if let Some(dir) = command_dir {
+            // I'm not normally a fan of existence checking, but not checking here
+            // can be painful; in the case where a tab is local but has connected
+            // to a remote system and that remote has used OSC 7 to set a path
+            // that doesn't exist on the local system, process spawning can fail.
+            if std::path::Path::new(&dir).exists() {
+                cmd.cwd(dir);
+            }
+        }
+        let pair = self.pty_system.openpty(split_size.second)?;
+        let child = pair.slave.spawn_command(cmd)?;
+        info!("spawned: {:?}", child);
+
+        let writer = pair.master.try_clone_writer()?;
+
+        let terminal = wezterm_term::Terminal::new(
+            split_size.second.rows as usize,
+            split_size.second.cols as usize,
+            split_size.second.pixel_width as usize,
+            split_size.second.pixel_height as usize,
+            std::sync::Arc::new(crate::config::TermConfig {}),
+            "WezTerm",
+            crate::wezterm_version(),
+            Box::new(writer),
+        );
+
+        let pane: Rc<dyn Pane> = Rc::new(LocalPane::new(terminal, child, pair.master, self.id));
+
+        tab.split_and_insert(pane_index, direction, Rc::clone(&pane))?;
+
+        mux.add_pane(&pane)?;
+
+        Ok(pane)
     }
 
     fn domain_id(&self) -> DomainId {

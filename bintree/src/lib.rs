@@ -216,6 +216,13 @@ impl<L, N> Cursor<L, N> {
         }
     }
 
+    pub fn is_top(&self) -> bool {
+        match &*self.path {
+            Path::Top => true,
+            _ => false,
+        }
+    }
+
     /// If the current position is the root of the empty tree,
     /// assign an initial leaf value.
     /// Consumes the cursor and returns a new cursor representing
@@ -270,6 +277,36 @@ impl<L, N> Cursor<L, N> {
                 Ok(self)
             }
             _ => Err(self),
+        }
+    }
+
+    /// If the current position is a non-root leaf node, remove it
+    /// and unsplit its parent by replacing its parent with either
+    /// the opposite branch of the tree from this leaf.
+    /// On success, yields the revised cursor, which now points to
+    /// the newly unsplit node, along with the leaf value and prior
+    /// parent node value.
+    /// On failure, yields `Err` containing the unchanged cursor.
+    pub fn unsplit_leaf(self) -> Result<(Self, L, Option<N>), Self> {
+        if !self.is_leaf() || self.is_top() {
+            return Err(self);
+        }
+
+        match (*self.it, *self.path) {
+            (Tree::Leaf(l), Path::Left { right, data, up }) => Ok((
+                Self {
+                    it: right,
+                    path: up,
+                },
+                l,
+                data,
+            )),
+            (Tree::Leaf(l), Path::Right { left, data, up }) => {
+                Ok((Self { it: left, path: up }, l, data))
+            }
+            (Tree::Leaf(_), Path::Top) => unreachable!(),
+            (Tree::Empty, _) => unreachable!(),
+            (Tree::Node { .. }, _) => unreachable!(),
         }
     }
 
@@ -393,19 +430,29 @@ impl<L, N> Cursor<L, N> {
     /// after it has yielded `Err` can potentially yield `Ok` with previously
     /// visited nodes, so the caller must take care to stop iterating when
     /// `Err` is received!
-    pub fn preorder_next(self) -> Result<Self, Self> {
+    pub fn preorder_next(mut self) -> Result<Self, Self> {
         // Since we are a "proper" binary tree, we know we cannot have
         // difficult cases such as a left without a right or vice versa.
-        match (&*self.path, &*self.it) {
-            // On a leaf on the left branch, we need to go up and
-            // to the right
-            (Path::Left { .. }, Tree::Leaf(_)) => self.go_up()?.go_right(),
-            // On a leaf on the right branch we need to go up
-            // two levels and to the right
-            (Path::Right { .. }, Tree::Leaf(_)) => self.go_up()?.go_up()?.go_right(),
-            // In all other cases, the next down is down and to
-            // the left.
-            _ => self.go_left(),
+
+        if self.is_leaf() {
+            if self.is_left() {
+                return self.go_up()?.go_right();
+            }
+
+            // while (We were on the right)
+            loop {
+                self = self.go_up()?;
+
+                if self.is_top() {
+                    return Err(self);
+                }
+
+                if self.is_left() {
+                    return self.go_up()?.go_right();
+                }
+            }
+        } else {
+            self.go_left()
         }
     }
 
@@ -437,6 +484,41 @@ impl<L, N> Cursor<L, N> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn split_and_split_and_iterate() {
+        let t: Tree<i32, i32> = Tree::new()
+            .cursor()
+            .assign_top(1)
+            .unwrap()
+            .split_leaf_and_insert_right(2)
+            .unwrap()
+            .tree();
+
+        let t = t
+            .cursor()
+            .go_to_nth_leaf(1)
+            .unwrap()
+            .split_leaf_and_insert_right(3)
+            .unwrap()
+            .tree();
+
+        let mut leaves = vec![];
+
+        let mut cursor = t.cursor();
+        loop {
+            eprintln!("cursor: {:?}", cursor);
+            if cursor.is_leaf() {
+                leaves.push(*cursor.leaf_mut().unwrap());
+            }
+            match cursor.preorder_next() {
+                Ok(c) => cursor = c,
+                Err(c) => break,
+            }
+        }
+
+        assert_eq!(leaves, vec![1, 2, 3]);
+    }
 
     #[test]
     fn populate() {

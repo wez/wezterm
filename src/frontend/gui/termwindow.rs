@@ -19,7 +19,7 @@ use crate::keyassignment::{
 };
 use crate::mux::domain::{DomainId, DomainState};
 use crate::mux::renderable::{RenderableDimensions, StableCursorPosition};
-use crate::mux::tab::{Pane, PaneId, Tab, TabId};
+use crate::mux::tab::{Pane, PaneId, PositionedPane, PositionedSplit, SplitDirection, Tab, TabId};
 use crate::mux::window::WindowId as MuxWindowId;
 use crate::mux::Mux;
 use ::wezterm_term::input::MouseButton as TMB;
@@ -50,9 +50,16 @@ use termwiz::hyperlink::Hyperlink;
 use termwiz::surface::{CursorShape, CursorVisibility};
 use wezterm_term::color::ColorPalette;
 use wezterm_term::input::LastMouseClick;
-use wezterm_term::{Line, StableRowIndex, Underline};
+use wezterm_term::{CellAttributes, Line, StableRowIndex, Underline};
 
 const ATLAS_SIZE: usize = 4096;
+
+#[derive(Copy, Debug, Clone, Eq, PartialEq)]
+pub enum SpawnWhere {
+    NewWindow,
+    NewTab,
+    SplitPane(SplitDirection),
+}
 
 struct RenderScreenLineOpenGLParams<'a> {
     line_idx: usize,
@@ -63,6 +70,7 @@ struct RenderScreenLineOpenGLParams<'a> {
     palette: &'a ColorPalette,
     dims: &'a RenderableDimensions,
     config: &'a ConfigHandle,
+    pos: &'a PositionedPane,
 
     cursor_border_color: Color,
     foreground: Color,
@@ -541,35 +549,37 @@ impl WindowCallbacks for TermWindow {
     }
 
     fn paint(&mut self, ctx: &mut dyn PaintContext) {
-        let pane = match self.get_active_pane_or_overlay() {
-            Some(pane) => pane,
-            None => {
-                ctx.clear(Color::rgb(0, 0, 0));
-                return;
-            }
-        };
+        let panes = self.get_panes_to_render();
+        if panes.is_empty() {
+            ctx.clear(Color::rgb(0, 0, 0));
+            return;
+        }
 
         self.check_for_config_reload();
-        self.update_text_cursor(&pane);
         self.update_title();
 
         let start = std::time::Instant::now();
-        if let Err(err) = self.paint_tab(&pane, ctx) {
-            if let Some(&OutOfTextureSpace { size }) = err.downcast_ref::<OutOfTextureSpace>() {
-                log::error!("out of texture space, allocating {}", size);
-                if let Err(err) = self.recreate_texture_atlas(Some(size)) {
-                    log::error!("failed recreate atlas with size {}: {}", size, err);
-                    // Failed to increase the size.
-                    // This might happen if a lot of images have been displayed in the
-                    // terminal over time and we've hit a texture size limit.
-                    // Let's just try recreating at the current size.
-                    self.recreate_texture_atlas(None)
-                        .expect("OutOfTextureSpace and failed to recreate atlas");
-                }
-                // Recursively initiate a new paint
-                return self.paint(ctx);
+        for pos in panes {
+            if pos.is_active {
+                self.update_text_cursor(&pos.pane);
             }
-            log::error!("paint failed: {}", err);
+            if let Err(err) = self.paint_tab(&pos, ctx) {
+                if let Some(&OutOfTextureSpace { size }) = err.downcast_ref::<OutOfTextureSpace>() {
+                    log::error!("out of texture space, allocating {}", size);
+                    if let Err(err) = self.recreate_texture_atlas(Some(size)) {
+                        log::error!("failed recreate atlas with size {}: {}", size, err);
+                        // Failed to increase the size.
+                        // This might happen if a lot of images have been displayed in the
+                        // terminal over time and we've hit a texture size limit.
+                        // Let's just try recreating at the current size.
+                        self.recreate_texture_atlas(None)
+                            .expect("OutOfTextureSpace and failed to recreate atlas");
+                    }
+                    // Recursively initiate a new paint
+                    return self.paint(ctx);
+                }
+                log::error!("paint failed: {}", err);
+            }
         }
         log::debug!("paint_tab elapsed={:?}", start.elapsed());
         metrics::value!("gui.paint.software", start.elapsed());
@@ -682,35 +692,49 @@ impl WindowCallbacks for TermWindow {
     }
 
     fn paint_opengl(&mut self, frame: &mut glium::Frame) {
-        let pane = match self.get_active_pane_or_overlay() {
-            Some(pane) => pane,
-            None => {
-                frame.clear_color_srgb(0., 0., 0., 1.);
-                return;
-            }
-        };
-        self.check_for_config_reload();
-        self.update_text_cursor(&pane);
-        let start = std::time::Instant::now();
-        if let Err(err) = self.paint_tab_opengl(&pane, frame) {
-            if let Some(&OutOfTextureSpace { size }) = err.downcast_ref::<OutOfTextureSpace>() {
-                log::error!("out of texture space, allocating {}", size);
-                if let Err(err) = self.recreate_texture_atlas(Some(size)) {
-                    log::error!("failed recreate atlas with size {}: {}", size, err);
-                    // Failed to increase the size.
-                    // This might happen if a lot of images have been displayed in the
-                    // terminal over time and we've hit a texture size limit.
-                    // Let's just try recreating at the current size.
-                    self.recreate_texture_atlas(None)
-                        .expect("OutOfTextureSpace and failed to recreate atlas");
-                }
-                // Recursively initiate a new paint
-                return self.paint_opengl(frame);
-            }
-            log::error!("paint_tab_opengl failed: {}", err);
+        let panes = self.get_panes_to_render();
+        if panes.is_empty() {
+            frame.clear_color_srgb(0., 0., 0., 1.);
+            return;
         }
+
+        self.check_for_config_reload();
+        let start = std::time::Instant::now();
+
+        if let Some(pane) = self.get_active_pane_or_overlay() {
+            let splits = self.get_splits();
+            for split in &splits {
+                self.paint_split_opengl(split, &pane).ok();
+            }
+        }
+
+        for pos in panes {
+            if pos.is_active {
+                self.update_text_cursor(&pos.pane);
+            }
+            if let Err(err) = self.paint_tab_opengl(&pos, frame) {
+                if let Some(&OutOfTextureSpace { size }) = err.downcast_ref::<OutOfTextureSpace>() {
+                    log::error!("out of texture space, allocating {}", size);
+                    if let Err(err) = self.recreate_texture_atlas(Some(size)) {
+                        log::error!("failed recreate atlas with size {}: {}", size, err);
+                        // Failed to increase the size.
+                        // This might happen if a lot of images have been displayed in the
+                        // terminal over time and we've hit a texture size limit.
+                        // Let's just try recreating at the current size.
+                        self.recreate_texture_atlas(None)
+                            .expect("OutOfTextureSpace and failed to recreate atlas");
+                    }
+                    // Recursively initiate a new paint
+                    return self.paint_opengl(frame);
+                }
+                log::error!("paint_tab_opengl failed: {}", err);
+            }
+        }
+
+        self.call_draw(frame).ok();
         log::debug!("paint_tab_opengl elapsed={:?}", start.elapsed());
         metrics::value!("gui.paint.opengl", start.elapsed());
+
         self.update_title();
     }
 }
@@ -1433,10 +1457,10 @@ impl TermWindow {
         self.move_tab(tab)
     }
 
-    fn spawn_command(&mut self, spawn: &SpawnCommand, new_window: bool) {
+    fn spawn_command(&mut self, spawn: &SpawnCommand, spawn_where: SpawnWhere) {
         Self::spawn_command_impl(
             spawn,
-            new_window,
+            spawn_where,
             self.terminal_size,
             self.mux_window_id,
             ClipboardHelper {
@@ -1448,7 +1472,7 @@ impl TermWindow {
 
     pub fn spawn_command_impl(
         spawn: &SpawnCommand,
-        new_window: bool,
+        spawn_where: SpawnWhere,
         size: PtySize,
         mux_window_id: MuxWindowId,
         clipboard: ClipboardHelper,
@@ -1459,7 +1483,7 @@ impl TermWindow {
             let mux = Mux::get().unwrap();
             let activity = Activity::new();
 
-            let mux_window_id = if new_window {
+            let mux_window_id = if spawn_where == SpawnWhere::NewWindow {
                 mux.new_empty_window()
             } else {
                 mux_window_id
@@ -1474,7 +1498,7 @@ impl TermWindow {
                     (mux.default_domain().clone(), cwd)
                 }
                 SpawnTabDomain::CurrentPaneDomain => {
-                    if new_window {
+                    if spawn_where == SpawnWhere::NewWindow {
                         // CurrentPaneDomain is the default value for the spawn domain.
                         // It doesn't make sense to use it when spawning a new window,
                         // so we treat it as DefaultDomain instead.
@@ -1554,26 +1578,43 @@ impl TermWindow {
                 None
             };
 
-            let tab = domain.spawn(size, cmd_builder, cwd, mux_window_id).await?;
-            let tab_id = tab.tab_id();
-            let pane = tab
-                .get_active_pane()
-                .ok_or_else(|| anyhow!("newly spawned tab to have a pane"))?;
+            match spawn_where {
+                SpawnWhere::SplitPane(direction) => {
+                    let mux = Mux::get().unwrap();
+                    if let Some(tab) = mux.get_active_tab_for_window(mux_window_id) {
+                        let pane_index = tab.get_active_idx();
 
-            if new_window {
-                let front_end = front_end().expect("to be called on gui thread");
-                let fonts = Rc::new(FontConfiguration::new());
-                front_end.spawn_new_window(&fonts, &tab, mux_window_id)?;
-            } else {
-                let clipboard: Arc<dyn wezterm_term::Clipboard> = Arc::new(clipboard);
-                pane.set_clipboard(&clipboard);
-                let mut window = mux
-                    .get_window_mut(mux_window_id)
-                    .ok_or_else(|| anyhow!("no such window!?"))?;
-                if let Some(idx) = window.idx_by_id(tab_id) {
-                    window.set_active(idx);
+                        log::error!("doing split_pane");
+                        domain
+                            .split_pane(cmd_builder, cwd, tab.tab_id(), pane_index, direction)
+                            .await?;
+                    } else {
+                        log::error!("boop");
+                    }
                 }
-            }
+                _ => {
+                    let tab = domain.spawn(size, cmd_builder, cwd, mux_window_id).await?;
+                    let tab_id = tab.tab_id();
+                    let pane = tab
+                        .get_active_pane()
+                        .ok_or_else(|| anyhow!("newly spawned tab to have a pane"))?;
+
+                    if spawn_where == SpawnWhere::NewWindow {
+                        let front_end = front_end().expect("to be called on gui thread");
+                        let fonts = Rc::new(FontConfiguration::new());
+                        front_end.spawn_new_window(&fonts, &tab, mux_window_id)?;
+                    } else {
+                        let clipboard: Arc<dyn wezterm_term::Clipboard> = Arc::new(clipboard);
+                        pane.set_clipboard(&clipboard);
+                        let mut window = mux
+                            .get_window_mut(mux_window_id)
+                            .ok_or_else(|| anyhow!("no such window!?"))?;
+                        if let Some(idx) = window.idx_by_id(tab_id) {
+                            window.set_active(idx);
+                        }
+                    }
+                }
+            };
 
             drop(activity);
 
@@ -1587,7 +1628,7 @@ impl TermWindow {
                 domain: domain.clone(),
                 ..Default::default()
             },
-            false,
+            SpawnWhere::NewTab,
         );
     }
 
@@ -1657,10 +1698,18 @@ impl TermWindow {
                 self.spawn_new_window();
             }
             SpawnCommandInNewTab(spawn) => {
-                self.spawn_command(spawn, false);
+                self.spawn_command(spawn, SpawnWhere::NewTab);
             }
             SpawnCommandInNewWindow(spawn) => {
-                self.spawn_command(spawn, true);
+                self.spawn_command(spawn, SpawnWhere::NewWindow);
+            }
+            SplitHorizontal(spawn) => {
+                log::error!("SplitHorizontal {:?}", spawn);
+                self.spawn_command(spawn, SpawnWhere::SplitPane(SplitDirection::Horizontal));
+            }
+            SplitVertical(spawn) => {
+                log::error!("SplitVertical {:?}", spawn);
+                self.spawn_command(spawn, SpawnWhere::SplitPane(SplitDirection::Vertical));
             }
             ToggleFullScreen => {
                 // self.toggle_full_screen(),
@@ -1887,9 +1936,7 @@ impl TermWindow {
         let mux = Mux::get().unwrap();
         if let Some(window) = mux.get_window(self.mux_window_id) {
             for tab in window.iter() {
-                if let Some(pane) = tab.get_active_pane() {
-                    pane.resize(size).ok();
-                }
+                tab.resize(size);
             }
         };
         self.update_title();
@@ -1959,18 +2006,24 @@ impl TermWindow {
         self.activate_tab_relative(0)
     }
 
-    fn paint_tab(&mut self, pane: &Rc<dyn Pane>, ctx: &mut dyn PaintContext) -> anyhow::Result<()> {
-        let palette = pane.palette();
+    fn paint_tab(
+        &mut self,
+        pos: &PositionedPane,
+        ctx: &mut dyn PaintContext,
+    ) -> anyhow::Result<()> {
+        let palette = pos.pane.palette();
         let first_line_offset = if self.show_tab_bar { 1 } else { 0 };
 
-        let mut term = pane.renderer();
+        let mut term = pos.pane.renderer();
         let cursor = term.get_cursor_position();
-        self.prev_cursor.update(&cursor);
-        let current_viewport = self.get_viewport(pane.pane_id());
+        if pos.is_active {
+            self.prev_cursor.update(&cursor);
+        }
+        let current_viewport = self.get_viewport(pos.pane.pane_id());
 
         let dims = term.get_dimensions();
 
-        if self.show_tab_bar {
+        if self.show_tab_bar && pos.index == 0 {
             self.render_screen_line(
                 ctx,
                 0,
@@ -1980,6 +2033,7 @@ impl TermWindow {
                 &cursor,
                 &palette,
                 &dims,
+                pos,
             )?;
         }
 
@@ -1995,7 +2049,7 @@ impl TermWindow {
                 let stable_row = stable_top + line_idx as StableRowIndex;
 
                 let selrange = self
-                    .selection(pane.pane_id())
+                    .selection(pos.pane.pane_id())
                     .range
                     .map(|sel| sel.cols_for_row(stable_row))
                     .unwrap_or(0..0);
@@ -2009,6 +2063,7 @@ impl TermWindow {
                     &cursor,
                     &palette,
                     &dims,
+                    pos,
                 )?;
             }
         }
@@ -2075,7 +2130,8 @@ impl TermWindow {
         );
 
         if self.show_scroll_bar {
-            let current_viewport = self.get_viewport(pane.pane_id());
+            // FIXME: scrollbar for active pane
+            let current_viewport = self.get_viewport(pos.pane.pane_id());
             let info = ScrollHit::thumb(
                 &*term,
                 current_viewport,
@@ -2109,24 +2165,132 @@ impl TermWindow {
         effective_right_padding(config, &self.render_metrics)
     }
 
+    fn paint_split_opengl(
+        &mut self,
+        split: &PositionedSplit,
+        pane: &Rc<dyn Pane>,
+    ) -> anyhow::Result<()> {
+        let gl_state = self.render_state.opengl();
+        let mut vb = gl_state.glyph_vertex_buffer.borrow_mut();
+        let mut quads = gl_state.quads.map(&mut vb);
+        let config = configuration();
+        let text = if split.direction == SplitDirection::Horizontal {
+            "│"
+        } else {
+            "─"
+        };
+        let palette = pane.palette();
+        let foreground = rgbcolor_to_window_color(palette.foreground);
+        let background = rgbcolor_to_window_color(palette.background);
+
+        let style = self.fonts.match_style(&config, &CellAttributes::default());
+        let glyph_info = {
+            let key = BorrowedShapeCacheKey { style, text };
+            match self.lookup_cached_shape(&key) {
+                Some(Ok(info)) => info,
+                Some(Err(err)) => return Err(err),
+                None => {
+                    let font = self.fonts.resolve_font(style)?;
+                    match font.shape(text) {
+                        Ok(info) => {
+                            self.shape_cache
+                                .borrow_mut()
+                                .put(key.to_owned(), Ok(Rc::new(info)));
+                            self.lookup_cached_shape(&key).unwrap().unwrap()
+                        }
+                        Err(err) => {
+                            let res = anyhow!("shaper error: {}", err);
+                            self.shape_cache.borrow_mut().put(key.to_owned(), Err(err));
+                            return Err(res);
+                        }
+                    }
+                }
+            }
+        };
+        let first_row_offset = if self.show_tab_bar { 1 } else { 0 };
+
+        for info in glyph_info.iter() {
+            let glyph = gl_state
+                .glyph_cache
+                .borrow_mut()
+                .cached_glyph(info, style)?;
+
+            let left = (glyph.x_offset + glyph.bearing_x).get() as f32;
+            let top = ((PixelLength::new(self.render_metrics.cell_size.height as f64)
+                + self.render_metrics.descender)
+                - (glyph.y_offset + glyph.bearing_y))
+                .get() as f32;
+
+            let texture = glyph
+                .texture
+                .as_ref()
+                .unwrap_or(&gl_state.util_sprites.white_space);
+            let underline_tex_rect = gl_state.util_sprites.white_space.texture_coords();
+
+            let x_y_iter: Box<dyn Iterator<Item = (usize, usize)>> = if split.direction
+                == SplitDirection::Horizontal
+            {
+                Box::new(std::iter::repeat(split.left).zip(split.top..split.top + split.size))
+            } else {
+                Box::new((split.left..split.left + split.size).zip(std::iter::repeat(split.top)))
+            };
+            for (x, y) in x_y_iter {
+                let slice = SpriteSlice {
+                    cell_idx: 0,
+                    num_cells: info.num_cells as usize,
+                    cell_width: self.render_metrics.cell_size.width as usize,
+                    scale: glyph.scale as f32,
+                    left_offset: left,
+                };
+
+                let pixel_rect = slice.pixel_rect(texture);
+                let texture_rect = texture.texture.to_texture_coords(pixel_rect);
+
+                let bottom = (pixel_rect.size.height as f32 * glyph.scale as f32) + top
+                    - self.render_metrics.cell_size.height as f32;
+                let right = pixel_rect.size.width as f32 + left
+                    - self.render_metrics.cell_size.width as f32;
+
+                let mut quad = match quads.cell(x, y + first_row_offset) {
+                    Ok(quad) => quad,
+                    Err(_) => break,
+                };
+
+                quad.set_fg_color(foreground);
+                quad.set_bg_color(background);
+                quad.set_texture(texture_rect);
+                quad.set_texture_adjust(left, top, right, bottom);
+                quad.set_underline(underline_tex_rect);
+                quad.set_has_color(glyph.has_color);
+                quad.set_cursor(underline_tex_rect);
+                quad.set_cursor_color(background);
+            }
+        }
+        Ok(())
+    }
+
     fn paint_tab_opengl(
         &mut self,
-        pane: &Rc<dyn Pane>,
+        pos: &PositionedPane,
         frame: &mut glium::Frame,
     ) -> anyhow::Result<()> {
-        let palette = pane.palette();
+        let palette = pos.pane.palette();
 
         let background_color = palette.resolve_bg(wezterm_term::color::ColorAttribute::Default);
-        let (r, g, b, a) = background_color.to_tuple_rgba();
-        frame.clear_color_srgb(r, g, b, a);
+        if pos.index == 0 {
+            let (r, g, b, a) = background_color.to_tuple_rgba();
+            frame.clear_color_srgb(r, g, b, a);
+        }
 
         let first_line_offset = if self.show_tab_bar { 1 } else { 0 };
 
-        let mut term = pane.renderer();
+        let mut term = pos.pane.renderer();
         let cursor = term.get_cursor_position();
-        self.prev_cursor.update(&cursor);
+        if pos.is_active {
+            self.prev_cursor.update(&cursor);
+        }
 
-        let current_viewport = self.get_viewport(pane.pane_id());
+        let current_viewport = self.get_viewport(pos.pane.pane_id());
         let (stable_top, lines);
         let dims = term.get_dimensions();
         let config = configuration();
@@ -2150,7 +2314,11 @@ impl TermWindow {
         let foreground = rgbcolor_to_window_color(palette.foreground);
         let background = rgbcolor_to_window_color(palette.background);
 
-        if self.show_tab_bar {
+        if self.show_tab_bar && pos.index == 0 {
+            let tab_dims = RenderableDimensions {
+                cols: self.terminal_size.cols as _,
+                ..dims
+            };
             self.render_screen_line_opengl(
                 RenderScreenLineOpenGLParams {
                     line_idx: 0,
@@ -2159,11 +2327,12 @@ impl TermWindow {
                     selection: 0..0,
                     cursor: &cursor,
                     palette: &palette,
-                    dims: &dims,
+                    dims: &tab_dims,
                     config: &config,
                     cursor_border_color,
                     foreground,
                     background,
+                    pos,
                 },
                 &mut quads,
             )?;
@@ -2211,7 +2380,7 @@ impl TermWindow {
             quad.set_cursor_color(rgbcolor_to_window_color(background_color));
         }
 
-        let selrange = self.selection(pane.pane_id()).range.clone();
+        let selrange = self.selection(pos.pane.pane_id()).range.clone();
 
         for (line_idx, line) in lines.iter().enumerate() {
             let stable_row = stable_top + line_idx as StableRowIndex;
@@ -2232,10 +2401,18 @@ impl TermWindow {
                     cursor_border_color,
                     foreground,
                     background,
+                    pos,
                 },
                 &mut quads,
             )?;
         }
+
+        Ok(())
+    }
+
+    fn call_draw(&mut self, frame: &mut glium::Frame) -> anyhow::Result<()> {
+        let gl_state = self.render_state.opengl();
+        let vb = gl_state.glyph_vertex_buffer.borrow_mut();
 
         let tex = gl_state.glyph_cache.borrow().atlas.texture();
         let projection = euclid::Transform3D::<f32, f32, f32>::ortho(
@@ -2253,8 +2430,6 @@ impl TermWindow {
             // sure that our background pixels are at 100% opacity.
             ..Default::default()
         };
-
-        drop(quads);
 
         // Clamp and use the nearest texel rather than interpolate.
         // This prevents things like the box cursor outlines from
@@ -2465,6 +2640,7 @@ impl TermWindow {
                         glyph_color,
                         bg_color,
                         params.palette,
+                        params.pos.is_active,
                     );
 
                     if let Some(image) = attrs.image.as_ref() {
@@ -2540,7 +2716,9 @@ impl TermWindow {
                     let right = pixel_rect.size.width as f32 + left
                         - self.render_metrics.cell_size.width as f32;
 
-                    let mut quad = match quads.cell(cell_idx, params.line_idx) {
+                    let mut quad = match quads
+                        .cell(cell_idx + params.pos.left, params.line_idx + params.pos.top)
+                    {
                         Ok(quad) => quad,
                         Err(_) => break,
                     };
@@ -2583,12 +2761,14 @@ impl TermWindow {
                 params.foreground,
                 params.background,
                 params.palette,
+                params.pos.is_active,
             );
 
-            let mut quad = match quads.cell(cell_idx, params.line_idx) {
-                Ok(quad) => quad,
-                Err(_) => break,
-            };
+            let mut quad =
+                match quads.cell(cell_idx + params.pos.left, params.line_idx + params.pos.top) {
+                    Ok(quad) => quad,
+                    Err(_) => break,
+                };
 
             quad.set_bg_color(bg_color);
             quad.set_fg_color(glyph_color);
@@ -2619,6 +2799,7 @@ impl TermWindow {
         cursor: &StableCursorPosition,
         palette: &ColorPalette,
         dims: &RenderableDimensions,
+        pos: &PositionedPane,
     ) -> anyhow::Result<()> {
         let config = configuration();
 
@@ -2725,13 +2906,14 @@ impl TermWindow {
                         glyph_color,
                         bg_color,
                         palette,
+                        pos.is_active,
                     );
 
                     let cell_rect = Rect::new(
                         Point::new(
-                            (cell_idx as isize * self.render_metrics.cell_size.width)
+                            ((pos.left + cell_idx) as isize * self.render_metrics.cell_size.width)
                                 + padding_left,
-                            (self.render_metrics.cell_size.height * line_idx as isize)
+                            (self.render_metrics.cell_size.height * (pos.top + line_idx) as isize)
                                 + padding_top,
                         ),
                         self.render_metrics.cell_size,
@@ -2848,12 +3030,13 @@ impl TermWindow {
                 rgbcolor_to_window_color(palette.foreground),
                 rgbcolor_to_window_color(palette.background),
                 palette,
+                pos.is_active,
             );
 
             let cell_rect = Rect::new(
                 Point::new(
-                    cell_idx as isize * self.render_metrics.cell_size.width,
-                    self.render_metrics.cell_size.height * line_idx as isize,
+                    (pos.left + cell_idx) as isize * self.render_metrics.cell_size.width,
+                    self.render_metrics.cell_size.height * (pos.top + line_idx) as isize,
                 ),
                 self.render_metrics.cell_size,
             );
@@ -2903,6 +3086,7 @@ impl TermWindow {
         fg_color: Color,
         bg_color: Color,
         palette: &ColorPalette,
+        is_active_pane: bool,
     ) -> (Color, Color, Option<CursorShape>) {
         let selected = selection.contains(&cell_idx);
 
@@ -2919,8 +3103,10 @@ impl TermWindow {
                 let shape = config.default_cursor_style.effective_shape(cursor.shape);
                 // Work out the blinking shape if its a blinking cursor and it hasn't been disabled
                 // and the window is focused.
-                let blinking =
-                    shape.is_blinking() && config.cursor_blink_rate != 0 && self.focused.is_some();
+                let blinking = is_active_pane
+                    && shape.is_blinking()
+                    && config.cursor_blink_rate != 0
+                    && self.focused.is_some();
                 if blinking {
                     // Divide the time since we last moved by the blink rate.
                     // If the result is even then the cursor is "on", else it
@@ -2945,22 +3131,26 @@ impl TermWindow {
                 (cursor.shape, CursorVisibility::Hidden)
             };
 
-        let (fg_color, bg_color) =
-            match (selected, self.focused.is_some(), cursor_shape, visibility) {
-                // Selected text overrides colors
-                (true, _, _, CursorVisibility::Hidden) => (
-                    rgbcolor_to_window_color(palette.selection_fg),
-                    rgbcolor_to_window_color(palette.selection_bg),
-                ),
-                // Cursor cell overrides colors
-                (_, true, CursorShape::BlinkingBlock, CursorVisibility::Visible)
-                | (_, true, CursorShape::SteadyBlock, CursorVisibility::Visible) => (
-                    rgbcolor_to_window_color(palette.cursor_fg),
-                    rgbcolor_to_window_color(palette.cursor_bg),
-                ),
-                // Normally, render the cell as configured (or if the window is unfocused)
-                _ => (fg_color, bg_color),
-            };
+        let (fg_color, bg_color) = match (
+            selected,
+            self.focused.is_some() && is_active_pane,
+            cursor_shape,
+            visibility,
+        ) {
+            // Selected text overrides colors
+            (true, _, _, CursorVisibility::Hidden) => (
+                rgbcolor_to_window_color(palette.selection_fg),
+                rgbcolor_to_window_color(palette.selection_bg),
+            ),
+            // Cursor cell overrides colors
+            (_, true, CursorShape::BlinkingBlock, CursorVisibility::Visible)
+            | (_, true, CursorShape::SteadyBlock, CursorVisibility::Visible) => (
+                rgbcolor_to_window_color(palette.cursor_fg),
+                rgbcolor_to_window_color(palette.cursor_bg),
+            ),
+            // Normally, render the cell as configured (or if the window is unfocused)
+            _ => (fg_color, bg_color),
+        };
 
         (
             fg_color,
@@ -3228,19 +3418,47 @@ impl TermWindow {
 
     fn mouse_event_terminal(
         &mut self,
-        pane: Rc<dyn Pane>,
-        x: usize,
-        y: i64,
+        mut pane: Rc<dyn Pane>,
+        mut x: usize,
+        mut y: i64,
         event: &MouseEvent,
         context: &dyn WindowOps,
     ) {
+        for pos in self.get_panes_to_render() {
+            if y >= pos.top as i64
+                && y <= (pos.top + pos.height) as i64
+                && x >= pos.left
+                && x <= pos.left + pos.width
+            {
+                if pane.pane_id() != pos.pane.pane_id() {
+                    // We're over a pane that isn't active
+                    match &event.kind {
+                        WMEK::Press(_) => {
+                            let mux = Mux::get().unwrap();
+                            mux.get_active_tab_for_window(self.mux_window_id)
+                                .map(|tab| tab.set_active_idx(pos.index));
+
+                            pane = Rc::clone(&pos.pane);
+                        }
+                        WMEK::Move => {}
+                        WMEK::Release(_) => {}
+                        WMEK::VertWheel(_) => {}
+                        WMEK::HorzWheel(_) => {}
+                    }
+                }
+                x = x.saturating_sub(pos.left);
+                y = y.saturating_sub(pos.top as i64);
+                break;
+            }
+        }
+
         let dims = pane.renderer().get_dimensions();
         let stable_row = self
             .get_viewport(pane.pane_id())
             .unwrap_or(dims.physical_top)
             + y as StableRowIndex;
 
-        self.last_mouse_terminal_coords = (x, stable_row);
+        self.last_mouse_terminal_coords = (x, stable_row); // FIXME: per-pane
 
         let (top, mut lines) = pane.renderer().get_lines(stable_row..stable_row + 1);
         let new_highlight = if top == stable_row {
@@ -3429,6 +3647,47 @@ impl TermWindow {
                 .overlay
                 .clone()
                 .or_else(|| Some(pane))
+        }
+    }
+
+    fn get_splits(&mut self) -> Vec<PositionedSplit> {
+        let mux = Mux::get().unwrap();
+        let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
+            Some(tab) => tab,
+            None => return vec![],
+        };
+
+        let tab_id = tab.tab_id();
+
+        if let Some(_) = self.tab_state(tab_id).overlay.clone() {
+            vec![]
+        } else {
+            tab.iter_splits()
+        }
+    }
+
+    fn get_panes_to_render(&mut self) -> Vec<PositionedPane> {
+        let mux = Mux::get().unwrap();
+        let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
+            Some(tab) => tab,
+            None => return vec![],
+        };
+
+        let tab_id = tab.tab_id();
+
+        if let Some(pane) = self.tab_state(tab_id).overlay.clone() {
+            let size = tab.get_size();
+            vec![PositionedPane {
+                index: 0,
+                is_active: true,
+                left: 0,
+                top: 0,
+                width: size.cols as _,
+                height: size.rows as _,
+                pane,
+            }]
+        } else {
+            tab.iter_panes()
         }
     }
 

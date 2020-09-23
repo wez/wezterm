@@ -6,7 +6,7 @@
 //! time of writing our window layer doesn't provide an API for context
 //! menus.
 use crate::config::configuration;
-use crate::frontend::gui::termwindow::{ClipboardHelper, TermWindow};
+use crate::frontend::gui::termwindow::{ClipboardHelper, SpawnWhere, TermWindow};
 use crate::keyassignment::{SpawnCommand, SpawnTabDomain};
 use crate::mux::domain::{DomainId, DomainState};
 use crate::mux::tab::TabId;
@@ -26,7 +26,7 @@ enum Entry {
     Spawn {
         label: String,
         command: SpawnCommand,
-        new_window: bool,
+        spawn_where: SpawnWhere,
     },
     Attach {
         label: String,
@@ -89,7 +89,7 @@ fn enumerate_wsl_entries(entries: &mut Vec<Entry>) -> anyhow::Result<()> {
                 ]),
                 ..Default::default()
             },
-            new_window: false,
+            spawn_where: SpawnWhere::NewTab,
         });
     }
 
@@ -124,7 +124,7 @@ pub fn launcher(
                 },
             },
             command: item.clone(),
-            new_window: false,
+            spawn_where: SpawnWhere::NewTab,
         });
     }
 
@@ -143,7 +143,7 @@ pub fn launcher(
                     domain: SpawnTabDomain::Domain(*domain_id),
                     ..SpawnCommand::default()
                 },
-                new_window: false,
+                spawn_where: SpawnWhere::NewTab,
             }
         } else {
             Entry::Attach {
@@ -207,13 +207,13 @@ pub fn launcher(
         match entries[active_idx].clone() {
             Entry::Spawn {
                 command,
-                new_window,
+                spawn_where,
                 ..
             } => {
                 promise::spawn::spawn_into_main_thread(async move {
                     TermWindow::spawn_command_impl(
                         &command,
-                        new_window,
+                        spawn_where,
                         size,
                         mux_window_id,
                         clipboard,

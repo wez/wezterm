@@ -7,7 +7,7 @@ use crate::font::FontConfiguration;
 use crate::frontend::front_end;
 use crate::mux::domain::{alloc_domain_id, Domain, DomainId, DomainState};
 use crate::mux::renderable::Renderable;
-use crate::mux::tab::{alloc_pane_id, Pane, PaneId, Tab};
+use crate::mux::tab::{alloc_pane_id, Pane, PaneId, SplitDirection, Tab, TabId};
 use crate::mux::window::WindowId;
 use crate::mux::Mux;
 use anyhow::{bail, Error};
@@ -53,6 +53,16 @@ impl Domain for TermWizTerminalDomain {
         _window: WindowId,
     ) -> anyhow::Result<Rc<Tab>> {
         bail!("cannot spawn tabs in a TermWizTerminalPane");
+    }
+    async fn split_pane(
+        &self,
+        _command: Option<CommandBuilder>,
+        _command_dir: Option<String>,
+        _tab: TabId,
+        _pane_index: usize,
+        _split_direction: SplitDirection,
+    ) -> anyhow::Result<Rc<dyn Pane>> {
+        bail!("cannot spawn panes in a TermWizTerminalPane");
     }
 
     fn spawnable(&self) -> bool {

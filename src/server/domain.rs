@@ -3,7 +3,7 @@ use crate::connui::ConnectionUI;
 use crate::font::FontConfiguration;
 use crate::frontend::front_end;
 use crate::mux::domain::{alloc_domain_id, Domain, DomainId, DomainState};
-use crate::mux::tab::{Pane, PaneId, Tab, TabId};
+use crate::mux::tab::{Pane, PaneId, SplitDirection, Tab, TabId};
 use crate::mux::window::WindowId;
 use crate::mux::Mux;
 use crate::server::client::Client;
@@ -380,6 +380,17 @@ impl Domain for ClientDomain {
         mux.add_tab_to_window(&tab, window)?;
 
         Ok(tab)
+    }
+
+    async fn split_pane(
+        &self,
+        _command: Option<CommandBuilder>,
+        _command_dir: Option<String>,
+        _tab: TabId,
+        _pane_index: usize,
+        _direction: SplitDirection,
+    ) -> anyhow::Result<Rc<dyn Pane>> {
+        anyhow::bail!("spawn_pane not implemented for mux");
     }
 
     async fn attach(&self) -> anyhow::Result<()> {

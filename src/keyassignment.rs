@@ -98,6 +98,8 @@ pub enum KeyAssignment {
     QuitApplication,
     SpawnCommandInNewTab(SpawnCommand),
     SpawnCommandInNewWindow(SpawnCommand),
+    SplitHorizontal(SpawnCommand),
+    SplitVertical(SpawnCommand),
     ShowLauncher,
     ClearScrollback,
     Search(Pattern),
@@ -247,6 +249,22 @@ impl InputMap {
                 [KeyModifiers::SHIFT, KeyCode::PageDown, ScrollByPage(1)],
                 [KeyModifiers::ALT, KeyCode::Char('9'), ShowTabNavigator],
                 [ctrl_shift, KeyCode::Char('X'), ActivateCopyMode],
+                [
+                    KeyModifiers::CTRL | KeyModifiers::ALT | KeyModifiers::SHIFT,
+                    KeyCode::Char('"'),
+                    SplitVertical(SpawnCommand {
+                        domain: SpawnTabDomain::CurrentPaneDomain,
+                        ..Default::default()
+                    })
+                ],
+                [
+                    KeyModifiers::CTRL | KeyModifiers::ALT | KeyModifiers::SHIFT,
+                    KeyCode::Char('%'),
+                    SplitHorizontal(SpawnCommand {
+                        domain: SpawnTabDomain::CurrentPaneDomain,
+                        ..Default::default()
+                    })
+                ],
             );
 
             #[cfg(target_os = "macos")]
