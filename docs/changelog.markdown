@@ -10,7 +10,10 @@ daily) from the master branch.  It may not be usable and
 the feature set may change.  As features stabilize some
 brief notes about them may accumulate here.
 
-* Not yet
+* Experimental support for splits/panes.  Not currently
+  supported for multiplexer connections.
+  See https://github.com/wez/wezterm/issues/157 for
+  overall status and additional information.
 
 ### 20200909-002054-4c9af461
 
