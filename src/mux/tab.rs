@@ -1061,8 +1061,6 @@ mod test {
             horz_size,
             SplitDirectionAndSize {
                 direction: SplitDirection::Horizontal,
-                left: 0,
-                top: 0,
                 first: PtySize {
                     rows: 24,
                     cols: 40,
@@ -1083,8 +1081,6 @@ mod test {
             vert_size,
             SplitDirectionAndSize {
                 direction: SplitDirection::Vertical,
-                left: 0,
-                top: 0,
                 first: PtySize {
                     rows: 12,
                     cols: 80,
