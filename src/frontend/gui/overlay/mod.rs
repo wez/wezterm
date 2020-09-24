@@ -27,10 +27,8 @@ where
     F: Send + 'static + FnOnce(TabId, TermWizTerminal) -> anyhow::Result<T>,
 {
     let tab_id = tab.tab_id();
-    let pane = tab.get_active_pane().expect("tab to have pane");
-    // TODO: our overlay should overlap the overall contents of the pane
-    let dims = pane.renderer().get_dimensions();
-    let (tw_term, tw_tab) = allocate(dims.cols, dims.viewport_rows);
+    let tab_size = tab.get_size();
+    let (tw_term, tw_tab) = allocate(tab_size.cols.into(), tab_size.rows.into());
 
     let window = term_window.window.clone().unwrap();
 
