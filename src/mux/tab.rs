@@ -1,3 +1,4 @@
+use crate::keyassignment::PaneDirection;
 use crate::mux::domain::DomainId;
 use crate::mux::renderable::Renderable;
 use crate::mux::Mux;
@@ -423,6 +424,11 @@ impl Tab {
         }
 
         // Now cursor is looking at the split
+        self.adjust_node_at_cursor(&mut cursor, delta);
+        self.cascade_size_from_cursor(root, cursor);
+    }
+
+    fn adjust_node_at_cursor(&self, cursor: &mut Cursor, delta: isize) {
         if let Ok(Some(node)) = cursor.node_mut() {
             match node.direction {
                 SplitDirection::Horizontal => {
@@ -451,7 +457,9 @@ impl Tab {
                 }
             }
         }
+    }
 
+    fn cascade_size_from_cursor(&self, mut root: RefMut<Option<Tree>>, mut cursor: Cursor) {
         // Now we need to cascade this down to children
         match cursor.preorder_next() {
             Ok(c) => cursor = c,
@@ -486,6 +494,73 @@ impl Tab {
                 Err(c) => {
                     root.replace(c.tree());
                     break;
+                }
+            }
+        }
+    }
+
+    /// Adjusts the size of the active pane in the specified direction
+    /// by the specified amount.
+    pub fn adjust_pane_size(&self, direction: PaneDirection, amount: usize) {
+        let active_index = *self.active.borrow();
+        let mut root = self.pane.borrow_mut();
+        let mut cursor = root.take().unwrap().cursor();
+        let mut index = 0;
+
+        // Position cursor on the active leaf
+        loop {
+            if cursor.is_leaf() {
+                if index == active_index {
+                    // Found it
+                    break;
+                }
+                index += 1;
+            }
+            match cursor.preorder_next() {
+                Ok(c) => cursor = c,
+                Err(c) => {
+                    // Didn't find it
+                    root.replace(c.tree());
+                    return;
+                }
+            }
+        }
+
+        // We are on the active leaf.
+        // Now we go up until we find the parent node that is
+        // aligned with the desired direction.
+        let split_direction = match direction {
+            PaneDirection::Left | PaneDirection::Right => SplitDirection::Horizontal,
+            PaneDirection::Up | PaneDirection::Down => SplitDirection::Vertical,
+        };
+        loop {
+            let is_second = cursor.is_right();
+            match cursor.go_up() {
+                Ok(mut c) => {
+                    if let Ok(Some(node)) = c.node_mut() {
+                        if node.direction == split_direction {
+                            let delta = match (is_second, direction) {
+                                (false, PaneDirection::Up)
+                                | (false, PaneDirection::Left)
+                                | (true, PaneDirection::Down)
+                                | (true, PaneDirection::Right) => amount as isize,
+                                (false, PaneDirection::Down)
+                                | (false, PaneDirection::Right)
+                                | (true, PaneDirection::Up)
+                                | (true, PaneDirection::Left) => -(amount as isize),
+                            };
+                            self.adjust_node_at_cursor(&mut c, delta);
+                            self.cascade_size_from_cursor(root, c);
+                            return;
+                        }
+                    }
+
+                    cursor = c;
+                }
+
+                Err(c) => {
+                    root.replace(c.tree());
+                    return;
                 }
             }
         }

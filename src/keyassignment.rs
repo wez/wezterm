@@ -70,6 +70,14 @@ pub struct SpawnCommand {
     pub domain: SpawnTabDomain,
 }
 
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
+pub enum PaneDirection {
+    Up,
+    Down,
+    Left,
+    Right,
+}
+
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub enum KeyAssignment {
     SpawnTab(SpawnTabDomain),
@@ -110,6 +118,8 @@ pub enum KeyAssignment {
     OpenLinkAtMouseCursor,
     CompleteSelection,
     CompleteSelectionOrOpenLinkAtMouseCursor,
+
+    AdjustPaneSize(PaneDirection, usize),
 }
 impl_lua_conversion!(KeyAssignment);
 
@@ -264,6 +274,26 @@ impl InputMap {
                         domain: SpawnTabDomain::CurrentPaneDomain,
                         ..Default::default()
                     })
+                ],
+                [
+                    KeyModifiers::CTRL | KeyModifiers::ALT | KeyModifiers::SHIFT,
+                    KeyCode::LeftArrow,
+                    AdjustPaneSize(PaneDirection::Left, 1)
+                ],
+                [
+                    KeyModifiers::CTRL | KeyModifiers::ALT | KeyModifiers::SHIFT,
+                    KeyCode::RightArrow,
+                    AdjustPaneSize(PaneDirection::Right, 1)
+                ],
+                [
+                    KeyModifiers::CTRL | KeyModifiers::ALT | KeyModifiers::SHIFT,
+                    KeyCode::UpArrow,
+                    AdjustPaneSize(PaneDirection::Up, 1)
+                ],
+                [
+                    KeyModifiers::CTRL | KeyModifiers::ALT | KeyModifiers::SHIFT,
+                    KeyCode::DownArrow,
+                    AdjustPaneSize(PaneDirection::Down, 1)
                 ],
             );
 
