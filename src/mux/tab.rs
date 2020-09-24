@@ -2,7 +2,7 @@ use crate::mux::domain::DomainId;
 use crate::mux::renderable::Renderable;
 use crate::mux::Mux;
 use async_trait::async_trait;
-use bintree::{PathBranch, Tree};
+use bintree::PathBranch;
 use downcast_rs::{impl_downcast, Downcast};
 use portable_pty::PtySize;
 use serde::{Deserialize, Serialize};
@@ -12,6 +12,9 @@ use std::sync::{Arc, Mutex};
 use url::Url;
 use wezterm_term::color::ColorPalette;
 use wezterm_term::{Clipboard, KeyCode, KeyModifiers, MouseEvent, StableRowIndex};
+
+pub type Tree = bintree::Tree<Rc<dyn Pane>, SplitDirectionAndSize>;
+pub type Cursor = bintree::Cursor<Rc<dyn Pane>, SplitDirectionAndSize>;
 
 static TAB_ID: ::std::sync::atomic::AtomicUsize = ::std::sync::atomic::AtomicUsize::new(0);
 pub type TabId = usize;
@@ -93,7 +96,7 @@ pub struct SearchResult {
 /// At this time only a single pane is supported
 pub struct Tab {
     id: TabId,
-    pane: RefCell<Option<Tree<Rc<dyn Pane>, SplitDirectionAndSize>>>,
+    pane: RefCell<Option<Tree>>,
     size: RefCell<PtySize>,
     active: RefCell<usize>,
 }
@@ -325,9 +328,9 @@ impl Tab {
         *self.size.borrow()
     }
 
+    /// Apply the new size of the tab to the panes contained within.
+    /// This works by adjusting the size of the second half of each split.
     pub fn resize(&self, size: PtySize) {
-        let cell_width = size.pixel_width / size.cols;
-        let cell_height = size.pixel_height / size.rows;
         let mut root = self.pane.borrow_mut();
         let mut cursor = root.take().unwrap().cursor();
 
@@ -350,28 +353,7 @@ impl Tab {
                 // Apply our size to the tty
                 cursor.leaf_mut().map(|pane| pane.resize(pane_size));
             } else {
-                if let Ok(Some(node)) = cursor.node_mut() {
-                    // Adjust the size of the node; we preserve the size of the first
-                    // child and adjust the second, so if we are split down the middle
-                    // and the window is made wider, the right column will grow in
-                    // size, leaving the left at its current width.
-                    if node.direction == SplitDirection::Horizontal {
-                        node.first.rows = pane_size.rows;
-                        node.second.rows = pane_size.rows;
-
-                        node.second.cols = pane_size.cols.saturating_sub(1 + node.first.cols);
-                    } else {
-                        node.first.cols = pane_size.cols;
-                        node.second.cols = pane_size.cols;
-
-                        node.second.rows = pane_size.rows.saturating_sub(1 + node.first.rows);
-                    }
-                    node.first.pixel_width = node.first.cols * cell_width;
-                    node.first.pixel_height = node.first.rows * cell_height;
-
-                    node.second.pixel_width = node.second.cols * cell_width;
-                    node.second.pixel_height = node.second.rows * cell_height;
-                }
+                self.apply_pane_size(pane_size, &mut cursor);
             }
             match cursor.preorder_next() {
                 Ok(c) => cursor = c,
@@ -383,10 +365,137 @@ impl Tab {
         }
     }
 
-    pub fn prune_dead_panes(&self) {
+    fn apply_pane_size(&self, pane_size: PtySize, cursor: &mut Cursor) {
+        let cell_width = pane_size.pixel_width / pane_size.cols;
+        let cell_height = pane_size.pixel_height / pane_size.rows;
+        if let Ok(Some(node)) = cursor.node_mut() {
+            // Adjust the size of the node; we preserve the size of the first
+            // child and adjust the second, so if we are split down the middle
+            // and the window is made wider, the right column will grow in
+            // size, leaving the left at its current width.
+            if node.direction == SplitDirection::Horizontal {
+                node.first.rows = pane_size.rows;
+                node.second.rows = pane_size.rows;
+
+                node.second.cols = pane_size.cols.saturating_sub(1 + node.first.cols);
+            } else {
+                node.first.cols = pane_size.cols;
+                node.second.cols = pane_size.cols;
+
+                node.second.rows = pane_size.rows.saturating_sub(1 + node.first.rows);
+            }
+            node.first.pixel_width = node.first.cols * cell_width;
+            node.first.pixel_height = node.first.rows * cell_height;
+
+            node.second.pixel_width = node.second.cols * cell_width;
+            node.second.pixel_height = node.second.rows * cell_height;
+        }
+    }
+
+    /// Given split_index, the topological index of a split returned by
+    /// iter_splits() as PositionedSplit::index, revised the split position
+    /// by the provided delta; positive values move the split to the right/bottom,
+    /// and negative values to the left/top.
+    /// The adjusted size is propogated downwards to contained children and
+    /// their panes are resized accordingly.
+    pub fn resize_split_by(&self, split_index: usize, delta: isize) {
+        let mut root = self.pane.borrow_mut();
+        let mut cursor = root.take().unwrap().cursor();
+        let mut index = 0;
+
+        // Position cursor on the specified split
+        loop {
+            if !cursor.is_leaf() {
+                if index == split_index {
+                    // Found it
+                    break;
+                }
+                index += 1;
+            }
+            match cursor.preorder_next() {
+                Ok(c) => cursor = c,
+                Err(c) => {
+                    // Didn't find it
+                    root.replace(c.tree());
+                    return;
+                }
+            }
+        }
+
+        // Now cursor is looking at the split
+        if let Ok(Some(node)) = cursor.node_mut() {
+            match node.direction {
+                SplitDirection::Horizontal => {
+                    let width = node.width();
+
+                    let mut cols = node.first.cols as isize;
+                    cols = cols
+                        .saturating_add(delta)
+                        .max(1)
+                        .min((width as isize).saturating_sub(2));
+                    node.first.cols = cols as u16;
+
+                    node.second.cols = width.saturating_sub(node.first.cols.saturating_add(1));
+                }
+                SplitDirection::Vertical => {
+                    let height = node.height();
+
+                    let mut rows = node.first.rows as isize;
+                    rows = rows
+                        .saturating_add(delta)
+                        .max(1)
+                        .min((height as isize).saturating_sub(2));
+                    node.first.rows = rows as u16;
+
+                    node.second.rows = height.saturating_sub(node.first.rows.saturating_add(1));
+                }
+            }
+        }
+
+        // Now we need to cascade this down to children
+        match cursor.preorder_next() {
+            Ok(c) => cursor = c,
+            Err(c) => {
+                root.replace(c.tree());
+                return;
+            }
+        }
+        let root_size = *self.size.borrow();
+
+        loop {
+            // Figure out the available size by looking at our immediate parent node.
+            // If we are the root, look at the provided new size
+            let pane_size = if let Some((branch, Some(parent))) = cursor.path_to_root().next() {
+                if branch == PathBranch::IsRight {
+                    parent.second
+                } else {
+                    parent.first
+                }
+            } else {
+                root_size
+            };
+
+            if cursor.is_leaf() {
+                // Apply our size to the tty
+                cursor.leaf_mut().map(|pane| pane.resize(pane_size));
+            } else {
+                self.apply_pane_size(pane_size, &mut cursor);
+            }
+            match cursor.preorder_next() {
+                Ok(c) => cursor = c,
+                Err(c) => {
+                    root.replace(c.tree());
+                    break;
+                }
+            }
+        }
+    }
+
+    pub fn prune_dead_panes(&self) -> bool {
         let mut dead_panes = vec![];
 
         {
+            let root_size = *self.size.borrow();
             let mut active_idx = *self.active.borrow();
             let mut root = self.pane.borrow_mut();
             let mut cursor = root.take().unwrap().cursor();
@@ -394,6 +503,18 @@ impl Tab {
             let cell_dims = self.cell_dimensions();
 
             loop {
+                // Figure out the available size by looking at our immediate parent node.
+                // If we are the root, look at the provided new size
+                let pane_size = if let Some((branch, Some(parent))) = cursor.path_to_root().next() {
+                    if branch == PathBranch::IsRight {
+                        parent.second
+                    } else {
+                        parent.first
+                    }
+                } else {
+                    root_size
+                };
+
                 if cursor.is_leaf() {
                     let pane = Rc::clone(cursor.leaf_mut().unwrap());
                     if pane.is_dead() {
@@ -416,32 +537,26 @@ impl Tab {
 
                         // Now we need to increase the size of the current node
                         // and propagate the revised size to its children.
-                        // FIXME: propagate?
+                        let size = PtySize {
+                            rows: parent.height(),
+                            cols: parent.width(),
+                            pixel_width: cell_dims.pixel_width * parent.width(),
+                            pixel_height: cell_dims.pixel_height * parent.height(),
+                        };
 
                         if let Some(unsplit) = cursor.leaf_mut() {
-                            let (rows, cols) = match parent.direction {
-                                SplitDirection::Horizontal => (
-                                    parent.first.rows,
-                                    parent.first.cols + parent.second.cols + 1,
-                                ),
-                                SplitDirection::Vertical => (
-                                    parent.first.rows + parent.second.rows + 1,
-                                    parent.first.cols,
-                                ),
-                            };
-                            let size = PtySize {
-                                rows,
-                                cols,
-                                pixel_width: cell_dims.pixel_width * cols,
-                                pixel_height: cell_dims.pixel_height * rows,
-                            };
-                            log::error!("prune_dead_panes resize a pane to {:?}", size);
-
                             unsplit.resize(size).ok();
+                        } else {
+                            self.apply_pane_size(size, &mut cursor);
                         }
+                    } else if !dead_panes.is_empty() {
+                        // Apply our revised size to the tty
+                        pane.resize(pane_size).ok();
                     }
 
                     pane_index += 1;
+                } else if !dead_panes.is_empty() {
+                    self.apply_pane_size(pane_size, &mut cursor);
                 }
                 match cursor.preorder_next() {
                     Ok(c) => cursor = c,
@@ -454,12 +569,17 @@ impl Tab {
             *self.active.borrow_mut() = active_idx;
         }
 
-        promise::spawn::spawn_into_main_thread(async move {
-            let mux = Mux::get().unwrap();
-            for pane_id in dead_panes.into_iter() {
-                mux.remove_pane(pane_id);
-            }
-        });
+        if !dead_panes.is_empty() {
+            promise::spawn::spawn_into_main_thread(async move {
+                let mux = Mux::get().unwrap();
+                for pane_id in dead_panes.into_iter() {
+                    mux.remove_pane(pane_id);
+                }
+            });
+            true
+        } else {
+            false
+        }
     }
 
     pub fn is_dead(&self) -> bool {

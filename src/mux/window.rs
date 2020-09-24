@@ -126,11 +126,14 @@ impl Window {
     }
 
     pub fn prune_dead_tabs(&mut self, live_tab_ids: &[TabId]) {
+        let mut invalidated = false;
         let dead: Vec<TabId> = self
             .tabs
             .iter()
             .filter_map(|tab| {
-                tab.prune_dead_panes();
+                if tab.prune_dead_panes() {
+                    invalidated = true;
+                }
                 if tab.is_dead() {
                     return Some(tab.tab_id());
                 } else {
@@ -140,6 +143,7 @@ impl Window {
             .collect();
         for tab_id in dead {
             self.remove_by_id(tab_id);
+            invalidated = true;
         }
 
         let dead: Vec<TabId> = self
@@ -159,6 +163,10 @@ impl Window {
             .collect();
         for tab_id in dead {
             self.remove_by_id(tab_id);
+        }
+
+        if invalidated {
+            self.invalidated = true;
         }
     }
 }

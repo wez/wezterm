@@ -260,6 +260,7 @@ pub struct TermWindow {
     last_mouse_coords: (usize, i64),
     last_mouse_terminal_coords: (usize, StableRowIndex),
     scroll_drag_start: Option<isize>,
+    split_drag_start: Option<PositionedSplit>,
     config_generation: usize,
     prev_cursor: PrevCursorPos,
     last_scroll_info: RenderableDimensions,
@@ -374,7 +375,11 @@ impl WindowCallbacks for TermWindow {
             WMEK::Release(ref press) => {
                 self.current_mouse_button = None;
                 if press == &MousePress::Left && self.scroll_drag_start.take().is_some() {
-                    // Completed a drag
+                    // Completed a scrollbar drag
+                    return;
+                }
+                if press == &MousePress::Left && self.split_drag_start.take().is_some() {
+                    // Completed a split drag
                     return;
                 }
             }
@@ -437,6 +442,33 @@ impl WindowCallbacks for TermWindow {
                     drop(render);
                     self.set_viewport(pane.pane_id(), Some(row), dims);
                     context.invalidate();
+                    return;
+                }
+
+                if let Some(split) = self.split_drag_start.take() {
+                    let mux = Mux::get().unwrap();
+                    let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
+                        Some(tab) => tab,
+                        None => return,
+                    };
+                    let delta = match split.direction {
+                        SplitDirection::Horizontal => {
+                            (x as isize).saturating_sub(split.left as isize)
+                        }
+                        SplitDirection::Vertical => {
+                            (term_y as isize).saturating_sub(split.top as isize)
+                        }
+                    };
+
+                    if delta != 0 {
+                        tab.resize_split_by(split.index, delta);
+
+                        self.split_drag_start = tab.iter_splits().into_iter().nth(split.index);
+                        context.invalidate();
+                    } else {
+                        self.split_drag_start.replace(split);
+                    }
+
                     return;
                 }
             }
@@ -619,6 +651,7 @@ impl WindowCallbacks for TermWindow {
                 last_mouse_coords: self.last_mouse_coords.clone(),
                 last_mouse_terminal_coords: self.last_mouse_terminal_coords.clone(),
                 scroll_drag_start: self.scroll_drag_start.clone(),
+                split_drag_start: self.split_drag_start.clone(),
                 config_generation: self.config_generation,
                 prev_cursor: self.prev_cursor.clone(),
                 last_scroll_info: self.last_scroll_info.clone(),
@@ -827,6 +860,7 @@ impl TermWindow {
                 last_mouse_coords: (0, -1),
                 last_mouse_terminal_coords: (0, 0),
                 scroll_drag_start: None,
+                split_drag_start: None,
                 config_generation: config.generation(),
                 prev_cursor: PrevCursorPos::new(),
                 last_scroll_info: RenderableDimensions::default(),
@@ -3424,6 +3458,36 @@ impl TermWindow {
         event: &MouseEvent,
         context: &dyn WindowOps,
     ) {
+        let mut on_split = false;
+        if y >= 0 {
+            let y = y as usize;
+
+            for split in self.get_splits() {
+                on_split = match split.direction {
+                    SplitDirection::Horizontal => {
+                        if x == split.left && y >= split.top && y <= split.top + split.size {
+                            true
+                        } else {
+                            false
+                        }
+                    }
+                    SplitDirection::Vertical => {
+                        if y == split.top && x >= split.left && x <= split.left + split.size {
+                            true
+                        } else {
+                            false
+                        }
+                    }
+                };
+
+                if on_split && event.kind == WMEK::Press(MousePress::Left) {
+                    context.set_cursor(Some(MouseCursor::Hand));
+                    self.split_drag_start.replace(split);
+                    return;
+                }
+            }
+        }
+
         for pos in self.get_panes_to_render() {
             if y >= pos.top as i64
                 && y <= (pos.top + pos.height) as i64
@@ -3487,7 +3551,7 @@ impl TermWindow {
             }
         };
 
-        context.set_cursor(Some(if self.current_highlight.is_some() {
+        context.set_cursor(Some(if on_split || self.current_highlight.is_some() {
             // When hovering over a hyperlink, show an appropriate
             // mouse cursor to give the cue that it is clickable
             MouseCursor::Hand
