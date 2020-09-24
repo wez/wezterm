@@ -534,22 +534,15 @@ impl Tab {
             PaneDirection::Left | PaneDirection::Right => SplitDirection::Horizontal,
             PaneDirection::Up | PaneDirection::Down => SplitDirection::Vertical,
         };
+        let delta = match direction {
+            PaneDirection::Down | PaneDirection::Right => amount as isize,
+            PaneDirection::Up | PaneDirection::Left => -(amount as isize),
+        };
         loop {
-            let is_second = cursor.is_right();
             match cursor.go_up() {
                 Ok(mut c) => {
                     if let Ok(Some(node)) = c.node_mut() {
                         if node.direction == split_direction {
-                            let delta = match (is_second, direction) {
-                                (false, PaneDirection::Up)
-                                | (false, PaneDirection::Left)
-                                | (true, PaneDirection::Down)
-                                | (true, PaneDirection::Right) => amount as isize,
-                                (false, PaneDirection::Down)
-                                | (false, PaneDirection::Right)
-                                | (true, PaneDirection::Up)
-                                | (true, PaneDirection::Left) => -(amount as isize),
-                            };
                             self.adjust_node_at_cursor(&mut c, delta);
                             self.cascade_size_from_cursor(root, c);
                             return;
