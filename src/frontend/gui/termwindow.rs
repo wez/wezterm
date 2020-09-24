@@ -1863,6 +1863,19 @@ impl TermWindow {
                     tab.adjust_pane_size(*direction, *amount);
                 }
             }
+            ActivatePaneDirection(direction) => {
+                let mux = Mux::get().unwrap();
+                let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
+                    Some(tab) => tab,
+                    None => return Ok(()),
+                };
+
+                let tab_id = tab.tab_id();
+
+                if self.tab_state(tab_id).overlay.is_none() {
+                    tab.activate_pane_direction(*direction);
+                }
+            }
         };
         Ok(())
     }

@@ -120,6 +120,7 @@ pub enum KeyAssignment {
     CompleteSelectionOrOpenLinkAtMouseCursor,
 
     AdjustPaneSize(PaneDirection, usize),
+    ActivatePaneDirection(PaneDirection),
 }
 impl_lua_conversion!(KeyAssignment);
 
@@ -294,6 +295,26 @@ impl InputMap {
                     KeyModifiers::CTRL | KeyModifiers::ALT | KeyModifiers::SHIFT,
                     KeyCode::DownArrow,
                     AdjustPaneSize(PaneDirection::Down, 1)
+                ],
+                [
+                    ctrl_shift,
+                    KeyCode::LeftArrow,
+                    ActivatePaneDirection(PaneDirection::Left)
+                ],
+                [
+                    ctrl_shift,
+                    KeyCode::RightArrow,
+                    ActivatePaneDirection(PaneDirection::Right)
+                ],
+                [
+                    ctrl_shift,
+                    KeyCode::UpArrow,
+                    ActivatePaneDirection(PaneDirection::Up)
+                ],
+                [
+                    ctrl_shift,
+                    KeyCode::DownArrow,
+                    ActivatePaneDirection(PaneDirection::Down)
                 ],
             );
 

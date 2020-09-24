@@ -6,6 +6,7 @@ use async_trait::async_trait;
 use bintree::PathBranch;
 use downcast_rs::{impl_downcast, Downcast};
 use portable_pty::PtySize;
+use rangeset::range_intersection;
 use serde::{Deserialize, Serialize};
 use std::cell::{RefCell, RefMut};
 use std::rc::Rc;
@@ -563,6 +564,85 @@ impl Tab {
                     return;
                 }
             }
+        }
+    }
+
+    /// Activate an adjacent pane in the specified direction.
+    /// In cases where there are multiple adjacent panes in the
+    /// intended direction, we take the pane that has the largest
+    /// edge intersection.
+    pub fn activate_pane_direction(&self, direction: PaneDirection) {
+        let panes = self.iter_panes();
+
+        let active = match panes.iter().find(|pane| pane.is_active) {
+            Some(p) => p,
+            None => {
+                // No active pane somehow...
+                self.set_active_idx(0);
+                return;
+            }
+        };
+
+        let mut best = None;
+
+        /// Compute the edge intersection size between two touching panes
+        fn compute_score(
+            active_start: usize,
+            active_size: usize,
+            current_start: usize,
+            current_size: usize,
+        ) -> usize {
+            range_intersection(
+                &(active_start..active_start + active_size),
+                &(current_start..current_start + current_size),
+            )
+            .unwrap_or(0..0)
+            .count()
+        }
+
+        for pane in &panes {
+            let score = match direction {
+                PaneDirection::Right => {
+                    if pane.left == active.left + active.width + 1 {
+                        compute_score(active.top, active.height, pane.top, pane.height)
+                    } else {
+                        0
+                    }
+                }
+                PaneDirection::Left => {
+                    if pane.left + pane.width + 1 == active.left {
+                        compute_score(active.top, active.height, pane.top, pane.height)
+                    } else {
+                        0
+                    }
+                }
+                PaneDirection::Up => {
+                    if pane.top + pane.height + 1 == active.top {
+                        compute_score(active.left, active.width, pane.left, pane.width)
+                    } else {
+                        0
+                    }
+                }
+                PaneDirection::Down => {
+                    if active.top + active.height + 1 == pane.top {
+                        compute_score(active.left, active.width, pane.left, pane.width)
+                    } else {
+                        0
+                    }
+                }
+            };
+
+            if score > 0 {
+                let target = match best.take() {
+                    Some((best_score, best_pane)) if best_score > score => (best_score, best_pane),
+                    _ => (score, pane),
+                };
+                best.replace(target);
+            }
+        }
+
+        if let Some((_, target)) = best.take() {
+            self.set_active_idx(target.index);
         }
     }
 
