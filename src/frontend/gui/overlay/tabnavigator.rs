@@ -12,19 +12,19 @@ use termwiz::terminal::Terminal;
 pub fn tab_navigator(
     tab_id: TabId,
     mut term: TermWizTerminal,
-    tab_list: Vec<(String, TabId)>,
+    tab_list: Vec<(String, TabId, usize)>,
     mux_window_id: WindowId,
 ) -> anyhow::Result<()> {
     let mut active_tab_idx = tab_list
         .iter()
-        .position(|(_title, id)| *id == tab_id)
+        .position(|(_title, id, _)| *id == tab_id)
         .unwrap_or(0);
 
     term.set_raw_mode()?;
 
     fn render(
         active_tab_idx: usize,
-        tab_list: &[(String, TabId)],
+        tab_list: &[(String, TabId, usize)],
         term: &mut TermWizTerminal,
     ) -> anyhow::Result<()> {
         // let dims = term.get_screen_size()?;
@@ -41,12 +41,17 @@ pub fn tab_navigator(
             Change::AllAttributes(CellAttributes::default()),
         ];
 
-        for (idx, (title, _tab_id)) in tab_list.iter().enumerate() {
+        for (idx, (title, _tab_id, num_panes)) in tab_list.iter().enumerate() {
             if idx == active_tab_idx {
                 changes.push(AttributeChange::Reverse(true).into());
             }
 
-            changes.push(Change::Text(format!(" {}. {} \r\n", idx + 1, title)));
+            changes.push(Change::Text(format!(
+                " {}. {}. {} panes\r\n",
+                idx + 1,
+                title,
+                num_panes
+            )));
 
             if idx == active_tab_idx {
                 changes.push(AttributeChange::Reverse(false).into());
@@ -64,7 +69,7 @@ pub fn tab_navigator(
     fn select_tab_by_idx(
         idx: usize,
         mux_window_id: WindowId,
-        tab_list: &Vec<(String, TabId)>,
+        tab_list: &Vec<(String, TabId, usize)>,
     ) -> bool {
         if idx >= tab_list.len() {
             false

@@ -1365,7 +1365,7 @@ impl TermWindow {
         // overlay, but since the overlay runs in a different thread, accessing
         // the mux list is a bit awkward.  To get the ball rolling we capture
         // the list of tabs up front and live with a static list.
-        let tabs: Vec<(String, TabId)> = window
+        let tabs: Vec<(String, TabId, usize)> = window
             .iter()
             .map(|tab| {
                 (
@@ -1373,6 +1373,7 @@ impl TermWindow {
                         .expect("tab to have a pane")
                         .get_title(),
                     tab.tab_id(),
+                    tab.iter_panes().len(),
                 )
             })
             .collect();
