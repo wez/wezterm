@@ -1373,7 +1373,7 @@ impl TermWindow {
                         .expect("tab to have a pane")
                         .get_title(),
                     tab.tab_id(),
-                    tab.iter_panes().len(),
+                    tab.count_panes(),
                 )
             })
             .collect();
@@ -1876,6 +1876,14 @@ impl TermWindow {
                 if self.tab_state(tab_id).overlay.is_none() {
                     tab.activate_pane_direction(*direction);
                 }
+            }
+            TogglePaneZoomState => {
+                let mux = Mux::get().unwrap();
+                let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
+                    Some(tab) => tab,
+                    None => return Ok(()),
+                };
+                tab.toggle_zoom();
             }
         };
         Ok(())

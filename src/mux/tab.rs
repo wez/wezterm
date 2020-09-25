@@ -101,6 +101,7 @@ pub struct Tab {
     pane: RefCell<Option<Tree>>,
     size: RefCell<PtySize>,
     active: RefCell<usize>,
+    zoomed: RefCell<Option<Rc<dyn Pane>>>,
 }
 
 #[derive(Clone)]
@@ -212,6 +213,43 @@ impl Tab {
             pane: RefCell::new(Some(Tree::new())),
             size: RefCell::new(*size),
             active: RefCell::new(0),
+            zoomed: RefCell::new(None),
+        }
+    }
+
+    /// Returns a count of how many panes are in this tab
+    pub fn count_panes(&self) -> usize {
+        let mut count = 0;
+        let mut root = self.pane.borrow_mut();
+        let mut cursor = root.take().unwrap().cursor();
+
+        loop {
+            if cursor.is_leaf() {
+                count += 1;
+            }
+            match cursor.preorder_next() {
+                Ok(c) => cursor = c,
+                Err(c) => {
+                    root.replace(c.tree());
+                    return count;
+                }
+            }
+        }
+    }
+
+    pub fn toggle_zoom(&self) {
+        let size = *self.size.borrow();
+        if self.zoomed.borrow_mut().take().is_some() {
+            // We were zoomed, but now we are not.
+            // Re-apply the size to the panes
+            self.resize(size);
+        } else {
+            // We weren't zoomed, but now we want to zoom.
+            // Locate the active pane
+            if let Some(pane) = self.get_active_pane() {
+                pane.resize(size).ok();
+                self.zoomed.borrow_mut().replace(pane);
+            }
         }
     }
 
@@ -219,6 +257,21 @@ impl Tab {
     /// list of PositionedPane instances along with their positioning information.
     pub fn iter_panes(&self) -> Vec<PositionedPane> {
         let mut panes = vec![];
+
+        if let Some(zoomed) = self.zoomed.borrow().as_ref() {
+            let size = *self.size.borrow();
+            panes.push(PositionedPane {
+                index: 0,
+                is_active: true,
+                left: 0,
+                top: 0,
+                width: size.cols.into(),
+                height: size.rows.into(),
+                pane: Rc::clone(zoomed),
+            });
+            return panes;
+        }
+
         let active_idx = *self.active.borrow();
         let mut root = self.pane.borrow_mut();
         let mut cursor = root.take().unwrap().cursor();
@@ -273,6 +326,10 @@ impl Tab {
 
     pub fn iter_splits(&self) -> Vec<PositionedSplit> {
         let mut dividers = vec![];
+        if self.zoomed.borrow().is_some() {
+            return dividers;
+        }
+
         let mut root = self.pane.borrow_mut();
         let mut cursor = root.take().unwrap().cursor();
         let mut index = 0;
@@ -337,6 +394,10 @@ impl Tab {
         let mut cursor = root.take().unwrap().cursor();
 
         *self.size.borrow_mut() = size;
+        if let Some(zoomed) = self.zoomed.borrow().as_ref() {
+            zoomed.resize(size).ok();
+            return;
+        }
 
         loop {
             // Figure out the available size by looking at our immediate parent node.
@@ -401,6 +462,10 @@ impl Tab {
     /// The adjusted size is propogated downwards to contained children and
     /// their panes are resized accordingly.
     pub fn resize_split_by(&self, split_index: usize, delta: isize) {
+        if self.zoomed.borrow().is_some() {
+            return;
+        }
+
         let mut root = self.pane.borrow_mut();
         let mut cursor = root.take().unwrap().cursor();
         let mut index = 0;
@@ -503,6 +568,9 @@ impl Tab {
     /// Adjusts the size of the active pane in the specified direction
     /// by the specified amount.
     pub fn adjust_pane_size(&self, direction: PaneDirection, amount: usize) {
+        if self.zoomed.borrow().is_some() {
+            return;
+        }
         let active_index = *self.active.borrow();
         let mut root = self.pane.borrow_mut();
         let mut cursor = root.take().unwrap().cursor();
@@ -565,6 +633,9 @@ impl Tab {
     /// intended direction, we take the pane that has the largest
     /// edge intersection.
     pub fn activate_pane_direction(&self, direction: PaneDirection) {
+        if self.zoomed.borrow().is_some() {
+            return;
+        }
         let panes = self.iter_panes();
 
         let active = match panes.iter().find(|pane| pane.is_active) {
@@ -742,6 +813,10 @@ impl Tab {
     }
 
     pub fn get_active_pane(&self) -> Option<Rc<dyn Pane>> {
+        if let Some(zoomed) = self.zoomed.borrow().as_ref() {
+            return Some(Rc::clone(zoomed));
+        }
+
         self.iter_panes()
             .iter()
             .nth(*self.active.borrow())
@@ -836,6 +911,10 @@ impl Tab {
         direction: SplitDirection,
         pane: Rc<dyn Pane>,
     ) -> anyhow::Result<usize> {
+        if self.zoomed.borrow().is_some() {
+            anyhow::bail!("cannot split while zoomed");
+        }
+
         {
             let split_info = self
                 .compute_split_size(pane_index, direction)

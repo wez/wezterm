@@ -121,6 +121,7 @@ pub enum KeyAssignment {
 
     AdjustPaneSize(PaneDirection, usize),
     ActivatePaneDirection(PaneDirection),
+    TogglePaneZoomState,
 }
 impl_lua_conversion!(KeyAssignment);
 
@@ -316,6 +317,7 @@ impl InputMap {
                     KeyCode::DownArrow,
                     ActivatePaneDirection(PaneDirection::Down)
                 ],
+                [ctrl_shift, KeyCode::Char('Z'), TogglePaneZoomState],
             );
 
             #[cfg(target_os = "macos")]
