@@ -27,12 +27,6 @@ fn main() -> anyhow::Result<()> {
         let mut child = smol::blocking!(slave.spawn_command(cmd))?;
 
         let reader = pair.master.try_clone_reader()?;
-        println!(
-            "child status: {:?}",
-            smol::blocking!(child
-                .wait()
-                .map_err(|e| anyhow!("waiting for child: {}", e)))?
-        );
 
         // We hold handles on the pty.  Now that the child is complete
         // there are no processes remaining that will write to it until
@@ -55,6 +49,17 @@ fn main() -> anyhow::Result<()> {
             }
             println!();
         }
+
+        // Note that we're waiting until after we've read the output
+        // to call `wait` on the process.
+        // On macOS Catalina, waiting on the process seems to prevent
+        // its output from making it into the pty.
+        println!(
+            "child status: {:?}",
+            smol::blocking!(child
+                .wait()
+                .map_err(|e| anyhow!("waiting for child: {}", e)))?
+        );
         Ok(())
     })
 }

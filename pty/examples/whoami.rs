@@ -23,7 +23,6 @@ fn main() {
     drop(pair.slave);
 
     let mut reader = pair.master.try_clone_reader().unwrap();
-    println!("child status: {:?}", child.wait().unwrap());
     // We hold handles on the pty.  Now that the child is complete
     // there are no processes remaining that will write to it until
     // we spawn more.  We're not going to do that in this example,
@@ -44,4 +43,10 @@ fn main() {
     for c in s.escape_debug() {
         print!("{}", c);
     }
+
+    // Note that we're waiting until after we've read the output
+    // to call `wait` on the process.
+    // On macOS Catalina, waiting on the process seems to prevent
+    // its output from making it into the pty.
+    println!("child status: {:?}", child.wait().unwrap());
 }
