@@ -1855,7 +1855,7 @@ impl TermWindow {
                 }
             }
             CloseCurrentTab => self.close_current_tab(),
-            CloseActivePane => self.close_active_pane(),
+            CloseCurrentPane => self.close_active_pane(),
             Nop | DisableDefaultAssignment => {}
             ReloadConfiguration => crate::config::reload(),
             MoveTab(n) => self.move_tab(*n)?,
