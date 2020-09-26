@@ -12,7 +12,7 @@ brief notes about them may accumulate here.
 
 * Experimental support for splits/panes.  Not currently
   supported for multiplexer connections.
-  See https://github.com/wez/wezterm/issues/157 for
+  See [#157](https://github.com/wez/wezterm/issues/157) for
   overall status and additional information.
 
 ### 20200909-002054-4c9af461
