@@ -177,6 +177,12 @@ impl MasterPty for Master {
         let port = Arc::clone(&self.port);
         Ok(Box::new(Master { port }))
     }
+
+    #[cfg(unix)]
+    fn process_group_leader(&self) -> Option<libc::pid_t> {
+        // N/A: there is no local process
+        None
+    }
 }
 
 struct Reader {

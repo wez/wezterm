@@ -102,7 +102,11 @@ impl Pane for LocalPane {
     }
 
     fn get_current_working_dir(&self) -> Option<Url> {
-        self.terminal.borrow().get_current_dir().cloned()
+        self.terminal
+            .borrow()
+            .get_current_dir()
+            .cloned()
+            .or_else(|| self.divine_current_working_dir())
     }
 
     async fn search(&self, mut pattern: Pattern) -> anyhow::Result<Vec<SearchResult>> {
@@ -227,6 +231,26 @@ impl LocalPane {
             pty: RefCell::new(pty),
             domain_id,
         }
+    }
+
+    #[cfg(target_os = "linux")]
+    fn divine_current_working_dir_linux(&self) -> Option<Url> {
+        if let Some(pid) = self.pty.borrow().process_group_leader() {
+            if let Ok(path) = std::fs::read_link(format!("/proc/{}/cwd", pid)) {
+                return Url::parse(&format!("file://localhost{}", path.display())).ok();
+            }
+        }
+        None
+    }
+
+    fn divine_current_working_dir(&self) -> Option<Url> {
+        #[cfg(target_os = "linux")]
+        {
+            return self.divine_current_working_dir_linux();
+        }
+
+        #[allow(unreachable_code)]
+        None
     }
 }
 

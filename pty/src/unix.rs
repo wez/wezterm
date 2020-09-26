@@ -262,6 +262,13 @@ impl MasterPty for UnixMasterPty {
         let fd = PtyFd(self.fd.try_clone()?);
         Ok(Box::new(UnixMasterPty { fd }))
     }
+
+    fn process_group_leader(&self) -> Option<libc::pid_t> {
+        match unsafe { libc::tcgetpgrp(self.fd.0.as_raw_fd()) } {
+            pid if pid > 0 => Some(pid),
+            _ => None,
+        }
+    }
 }
 
 impl Write for UnixMasterPty {

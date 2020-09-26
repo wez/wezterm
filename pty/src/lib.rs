@@ -103,6 +103,11 @@ pub trait MasterPty: std::io::Write {
     /// slave end.  This is equivalent to the Write impl on MasterPty
     /// itself, but allows splitting it off into a separate object.
     fn try_clone_writer(&self) -> Result<Box<dyn std::io::Write + Send>, Error>;
+
+    /// If applicable to the type of the tty, return the local process id
+    /// of the process group or session leader
+    #[cfg(unix)]
+    fn process_group_leader(&self) -> Option<libc::pid_t>;
 }
 
 /// Represents a child process spawned into the pty.

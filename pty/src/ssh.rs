@@ -183,6 +183,12 @@ impl MasterPty for SshMaster {
             pty: self.pty.clone(),
         }))
     }
+
+    #[cfg(unix)]
+    fn process_group_leader(&self) -> Option<libc::pid_t> {
+        // N/A: there is no local process
+        None
+    }
 }
 
 struct SshSlave {

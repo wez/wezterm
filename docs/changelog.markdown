@@ -22,6 +22,8 @@ brief notes about them may accumulate here.
   The displayed number is 1-based.  You can set
   `tab_and_split_indices_are_zero_based=true` if you prefer the
   number to be zero based.
+* On Linux systems, wezterm can now attempt to guess the current
+  working directory that shouldbe set in newly spawned local panes/tabs.
 * Experimental support for splits/panes.  Not currently
   supported for multiplexer connections.
   See [#157](https://github.com/wez/wezterm/issues/157) for
