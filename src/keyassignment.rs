@@ -172,25 +172,25 @@ impl InputMap {
                 [KeyModifiers::SHIFT, KeyCode::Insert, Paste],
                 [KeyModifiers::SUPER, KeyCode::Char('c'), Copy],
                 [KeyModifiers::SUPER, KeyCode::Char('v'), Paste],
-                [ctrl_shift, KeyCode::Char('C'), Copy],
-                [ctrl_shift, KeyCode::Char('V'), Paste],
+                [KeyModifiers::CTRL, KeyCode::Char('C'), Copy],
+                [KeyModifiers::CTRL, KeyCode::Char('V'), Paste],
                 // Window management
                 [KeyModifiers::ALT, KeyCode::Char('\n'), ToggleFullScreen],
                 [KeyModifiers::ALT, KeyCode::Char('\r'), ToggleFullScreen],
                 [KeyModifiers::ALT, KeyCode::Enter, ToggleFullScreen],
                 [KeyModifiers::SUPER, KeyCode::Char('m'), Hide],
                 [KeyModifiers::SUPER, KeyCode::Char('n'), SpawnWindow],
-                [ctrl_shift, KeyCode::Char('M'), Hide],
-                [ctrl_shift, KeyCode::Char('N'), SpawnWindow],
+                [KeyModifiers::CTRL, KeyCode::Char('M'), Hide],
+                [KeyModifiers::CTRL, KeyCode::Char('N'), SpawnWindow],
                 [KeyModifiers::SUPER, KeyCode::Char('k'), ClearScrollback],
-                [ctrl_shift, KeyCode::Char('K'), ClearScrollback],
+                [KeyModifiers::CTRL, KeyCode::Char('K'), ClearScrollback],
                 [
                     KeyModifiers::SUPER,
                     KeyCode::Char('f'),
                     Search(Pattern::CaseSensitiveString("".into()))
                 ],
                 [
-                    ctrl_shift,
+                    KeyModifiers::CTRL,
                     KeyCode::Char('F'),
                     Search(Pattern::CaseSensitiveString("".into()))
                 ],
@@ -208,12 +208,12 @@ impl InputMap {
                     SpawnTab(SpawnTabDomain::CurrentPaneDomain)
                 ],
                 [
-                    ctrl_shift,
+                    KeyModifiers::CTRL,
                     KeyCode::Char('T'),
                     SpawnTab(SpawnTabDomain::CurrentPaneDomain)
                 ],
                 [
-                    KeyModifiers::SUPER | KeyModifiers::SHIFT,
+                    KeyModifiers::SUPER,
                     KeyCode::Char('T'),
                     SpawnTab(SpawnTabDomain::CurrentPaneDomain)
                 ],
@@ -236,7 +236,7 @@ impl InputMap {
                 [ctrl_shift, KeyCode::Char('7'), ActivateTab(6)],
                 [ctrl_shift, KeyCode::Char('8'), ActivateTab(7)],
                 [ctrl_shift, KeyCode::Char('9'), ActivateTab(-1)],
-                [ctrl_shift, KeyCode::Char('W'), CloseCurrentTab],
+                [KeyModifiers::CTRL, KeyCode::Char('W'), CloseCurrentTab],
                 [
                     KeyModifiers::SUPER | KeyModifiers::SHIFT,
                     KeyCode::Char('['),
@@ -258,13 +258,13 @@ impl InputMap {
                     ActivateTabRelative(1)
                 ],
                 [KeyModifiers::SUPER, KeyCode::Char('r'), ReloadConfiguration],
-                [ctrl_shift, KeyCode::Char('R'), ReloadConfiguration],
+                [KeyModifiers::CTRL, KeyCode::Char('R'), ReloadConfiguration],
                 [ctrl_shift, KeyCode::PageUp, MoveTabRelative(-1)],
                 [ctrl_shift, KeyCode::PageDown, MoveTabRelative(1)],
                 [KeyModifiers::SHIFT, KeyCode::PageUp, ScrollByPage(-1)],
                 [KeyModifiers::SHIFT, KeyCode::PageDown, ScrollByPage(1)],
                 [KeyModifiers::ALT, KeyCode::Char('9'), ShowTabNavigator],
-                [ctrl_shift, KeyCode::Char('X'), ActivateCopyMode],
+                [KeyModifiers::CTRL, KeyCode::Char('X'), ActivateCopyMode],
                 [
                     KeyModifiers::CTRL | KeyModifiers::ALT | KeyModifiers::SHIFT,
                     KeyCode::Char('"'),
@@ -321,7 +321,7 @@ impl InputMap {
                     KeyCode::DownArrow,
                     ActivatePaneDirection(PaneDirection::Down)
                 ],
-                [ctrl_shift, KeyCode::Char('Z'), TogglePaneZoomState],
+                [KeyModifiers::CTRL, KeyCode::Char('Z'), TogglePaneZoomState],
             );
 
             #[cfg(target_os = "macos")]

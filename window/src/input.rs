@@ -155,3 +155,36 @@ pub struct KeyEvent {
     /// If true, this is a key down rather than a key up event
     pub key_is_down: bool,
 }
+
+fn normalize_shift(key: KeyCode, modifiers: Modifiers) -> (KeyCode, Modifiers) {
+    if modifiers.contains(Modifiers::SHIFT) {
+        match key {
+            KeyCode::Char(c) if c.is_ascii_uppercase() => (key, modifiers - Modifiers::SHIFT),
+            KeyCode::Char(c) if c.is_ascii_lowercase() => (
+                KeyCode::Char(c.to_ascii_uppercase()),
+                modifiers - Modifiers::SHIFT,
+            ),
+            _ => (key, modifiers),
+        }
+    } else {
+        (key, modifiers)
+    }
+}
+
+impl KeyEvent {
+    /// if SHIFT is held and we have KeyCode::Char('c') we want to normalize
+    /// that keycode to KeyCode::Char('C'); that is what this function does.
+    pub fn normalize_shift(mut self) -> Self {
+        let (key, modifiers) = normalize_shift(self.key, self.modifiers);
+        self.key = key;
+        self.modifiers = modifiers;
+
+        if let Some(raw) = self.raw_key.take() {
+            let (key, modifiers) = normalize_shift(raw, self.raw_modifiers);
+            self.raw_key.replace(key);
+            self.raw_modifiers = modifiers;
+        }
+
+        self
+    }
+}

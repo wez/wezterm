@@ -307,7 +307,8 @@ impl WaylandWindowInner {
                     modifiers,
                     raw_modifiers,
                     repeat_count: 1,
-                };
+                }
+                .normalize_shift();
                 self.callbacks
                     .key_event(&key_event, &Window::Wayland(WaylandWindow(self.window_id)));
             }

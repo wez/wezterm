@@ -939,7 +939,8 @@ unsafe fn ime_composition(
                         modifiers: Modifiers::NONE,
                         repeat_count: 1,
                         key_is_down: true,
-                    };
+                    }
+                    .normalize_shift();
                     inner
                         .callbacks
                         .borrow_mut()
@@ -1215,7 +1216,8 @@ unsafe fn key(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> Option<L
                 modifiers,
                 repeat_count: repeat,
                 key_is_down: !releasing,
-            };
+            }
+            .normalize_shift();
             let handled = inner
                 .callbacks
                 .borrow_mut()

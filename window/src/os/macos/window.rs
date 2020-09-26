@@ -784,7 +784,8 @@ impl WindowView {
             raw_modifiers: Modifiers::NONE,
             repeat_count: 1,
             key_is_down: true,
-        };
+        }
+        .normalize_shift();
 
         if let Some(myself) = Self::get_this(this) {
             let mut inner = myself.inner.borrow_mut();
@@ -821,7 +822,8 @@ impl WindowView {
             raw_modifiers: Modifiers::NONE,
             repeat_count: 1,
             key_is_down: true,
-        };
+        }
+        .normalize_shift();
 
         if let Some(myself) = Self::get_this(this) {
             let mut inner = myself.inner.borrow_mut();
@@ -1115,7 +1117,8 @@ impl WindowView {
                 raw_modifiers,
                 repeat_count: 1,
                 key_is_down,
-            };
+            }
+            .normalize_shift();
 
             log::debug!(
                 "key_common {:?} (chars={:?} unmod={:?} modifiers={:?})",

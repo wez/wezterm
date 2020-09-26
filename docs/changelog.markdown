@@ -10,6 +10,13 @@ daily) from the master branch.  It may not be usable and
 the feature set may change.  As features stabilize some
 brief notes about them may accumulate here.
 
+* The GUI layer now normalizes SHIFT state for keyboard processing.
+  If a keypress is ASCII uppercase and SHIFT is held then the
+  SHIFT modifier is removed from the set of active modifiers.  This
+  has implications for your key assignment configuration; previously
+  you would write `{key="T", mods="CTRL|SHIFT"}`, after updating to
+  this release you need to write `{key="T", mods="CTRL"}` in order
+  for your key bindings to take effect.
 * Experimental support for splits/panes.  Not currently
   supported for multiplexer connections.
   See [#157](https://github.com/wez/wezterm/issues/157) for

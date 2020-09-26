@@ -358,7 +358,8 @@ impl XWindowInner {
                         modifiers: mods,
                         repeat_count: 1,
                         key_is_down: r == xcb::KEY_PRESS,
-                    };
+                    }
+                    .normalize_shift();
                     self.callbacks
                         .key_event(&key, &XWindow::from_id(self.window_id));
                 }
