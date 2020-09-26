@@ -13,6 +13,21 @@ pub struct Key {
 impl_lua_conversion!(Key);
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct LeaderKey {
+    #[serde(deserialize_with = "de_keycode")]
+    pub key: KeyCode,
+    #[serde(deserialize_with = "de_modifiers", default)]
+    pub mods: Modifiers,
+    #[serde(default = "default_leader_timeout")]
+    pub timeout_milliseconds: u64,
+}
+impl_lua_conversion!(LeaderKey);
+
+fn default_leader_timeout() -> u64 {
+    1000
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Mouse {
     pub event: MouseEventTrigger,
     #[serde(deserialize_with = "de_modifiers", default)]
@@ -154,6 +169,8 @@ where
             mods |= Modifiers::CTRL;
         } else if ele == "SUPER" || ele == "CMD" || ele == "WIN" {
             mods |= Modifiers::SUPER;
+        } else if ele == "LEADER" {
+            mods |= Modifiers::LEADER;
         } else if ele == "NONE" || ele == "" {
             mods |= Modifiers::NONE;
         } else {

@@ -1,4 +1,5 @@
 use crate::config::configuration;
+use crate::config::LeaderKey;
 use crate::frontend::gui::SelectionMode;
 use crate::mux::domain::DomainId;
 use crate::mux::tab::Pattern;
@@ -128,6 +129,7 @@ impl_lua_conversion!(KeyAssignment);
 pub struct InputMap {
     keys: HashMap<(KeyCode, KeyModifiers), KeyAssignment>,
     mouse: HashMap<(MouseEventTrigger, KeyModifiers), KeyAssignment>,
+    leader: Option<LeaderKey>,
 }
 
 impl InputMap {
@@ -140,6 +142,8 @@ impl InputMap {
         let mut keys = config
             .key_bindings()
             .expect("keys section of config to be valid");
+
+        let leader = config.leader.clone();
 
         macro_rules! k {
             ($([$mod:expr, $code:expr, $action:expr]),* $(,)?) => {
@@ -420,7 +424,22 @@ impl InputMap {
         keys.retain(|_, v| *v != KeyAssignment::DisableDefaultAssignment);
         mouse.retain(|_, v| *v != KeyAssignment::DisableDefaultAssignment);
 
-        Self { keys, mouse }
+        Self {
+            keys,
+            leader,
+            mouse,
+        }
+    }
+
+    pub fn is_leader(&self, key: KeyCode, mods: KeyModifiers) -> Option<std::time::Duration> {
+        if let Some(leader) = self.leader.as_ref() {
+            if leader.key == key && leader.mods == mods {
+                return Some(std::time::Duration::from_millis(
+                    leader.timeout_milliseconds,
+                ));
+            }
+        }
+        None
     }
 
     pub fn lookup_key(&self, key: KeyCode, mods: KeyModifiers) -> Option<KeyAssignment> {

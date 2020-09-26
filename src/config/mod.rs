@@ -428,6 +428,7 @@ pub struct Config {
     pub keys: Vec<Key>,
     #[serde(default)]
     pub disable_default_key_bindings: bool,
+    pub leader: Option<LeaderKey>,
 
     #[serde(default)]
     pub mouse_bindings: Vec<Mouse>,

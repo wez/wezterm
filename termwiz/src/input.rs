@@ -25,6 +25,9 @@ bitflags! {
         const ALT = 1<<2;
         const CTRL = 1<<3;
         const SUPER = 1<<4;
+        /// This is a virtual modifier used by wezterm
+        #[doc(hidden)]
+        const LEADER = 1<<5;
     }
 }
 bitflags! {

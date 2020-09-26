@@ -254,6 +254,8 @@ pub struct TermWindow {
     render_metrics: RenderMetrics,
     render_state: RenderState,
     input_map: InputMap,
+    /// If is_some, the LEADER modifier is active until the specified instant.
+    leader_is_down: Option<std::time::Instant>,
     show_tab_bar: bool,
     show_scroll_bar: bool,
     tab_bar: TabBarState,
@@ -509,6 +511,23 @@ impl WindowCallbacks for TermWindow {
             Some(pane) => pane,
             None => return false,
         };
+
+        // The leader key is a kind of modal modifier key.
+        // It is allowed to be active for up to the leader timeout duration,
+        // after which it auto-deactivates.
+        let (leader_active, leader_mod) = match self.leader_is_down.as_ref() {
+            Some(expiry) if *expiry > std::time::Instant::now() => {
+                // Currently active
+                (true, termwiz::input::Modifiers::LEADER)
+            }
+            Some(_) => {
+                // Expired; clear out the old expiration time
+                self.leader_is_down.take();
+                (false, termwiz::input::Modifiers::NONE)
+            }
+            _ => (false, termwiz::input::Modifiers::NONE),
+        };
+
         let modifiers = window_mods_to_termwiz_mods(window_key.modifiers);
         let raw_modifiers = window_mods_to_termwiz_mods(window_key.raw_modifiers);
 
@@ -516,21 +535,41 @@ impl WindowCallbacks for TermWindow {
         // user-defined key binding then we execute it and stop there.
         if let Some(key) = &window_key.raw_key {
             if let Key::Code(key) = self.win_key_code_to_termwiz_key_code(&key) {
-                if let Some(assignment) = self.input_map.lookup_key(key, raw_modifiers) {
+                if !leader_active {
+                    // Check to see if this key-press is the leader activating
+                    if let Some(duration) = self.input_map.is_leader(key, raw_modifiers) {
+                        // Yes; record its expiration
+                        self.leader_is_down
+                            .replace(std::time::Instant::now() + duration);
+                        return true;
+                    }
+                }
+
+                if let Some(assignment) = self.input_map.lookup_key(key, raw_modifiers | leader_mod)
+                {
                     self.perform_key_assignment(&pane, &assignment).ok();
                     context.invalidate();
+
+                    if leader_active {
+                        // A successful leader key-lookup cancels the leader
+                        // virtual modifier state
+                        self.leader_is_down.take();
+                    }
                     return true;
                 }
 
-                let config = configuration();
+                // While the leader modifier is active, only registered
+                // keybindings are recognized.
+                if !leader_active {
+                    let config = configuration();
 
-                // This is a bit ugly.
-                // Not all of our platforms report LEFT|RIGHT ALT; most report just ALT.
-                // For those that do distinguish between them we want to respect the left vs.
-                // right settings for the compose behavior.
-                // Otherwise, if the event didn't include left vs. right then we want to
-                // respect the generic compose behavior.
-                let bypass_compose =
+                    // This is a bit ugly.
+                    // Not all of our platforms report LEFT|RIGHT ALT; most report just ALT.
+                    // For those that do distinguish between them we want to respect the left vs.
+                    // right settings for the compose behavior.
+                    // Otherwise, if the event didn't include left vs. right then we want to
+                    // respect the generic compose behavior.
+                    let bypass_compose =
                     // Left ALT and they disabled compose
                     (window_key.raw_modifiers.contains(Modifiers::LEFT_ALT)
                     && !config.send_composed_key_when_left_alt_is_pressed)
@@ -543,12 +582,13 @@ impl WindowCallbacks for TermWindow {
                         && window_key.raw_modifiers.contains(Modifiers::ALT)
                         && !config.send_composed_key_when_alt_is_pressed);
 
-                if bypass_compose && pane.key_down(key, raw_modifiers).is_ok() {
-                    if !key.is_modifier() && self.pane_state(pane.pane_id()).overlay.is_none() {
-                        self.maybe_scroll_to_bottom_for_input(&pane);
+                    if bypass_compose && pane.key_down(key, raw_modifiers).is_ok() {
+                        if !key.is_modifier() && self.pane_state(pane.pane_id()).overlay.is_none() {
+                            self.maybe_scroll_to_bottom_for_input(&pane);
+                        }
+                        context.invalidate();
+                        return true;
                     }
-                    context.invalidate();
-                    return true;
                 }
             }
         }
@@ -556,9 +596,32 @@ impl WindowCallbacks for TermWindow {
         let key = self.win_key_code_to_termwiz_key_code(&window_key.key);
         match key {
             Key::Code(key) => {
-                if let Some(assignment) = self.input_map.lookup_key(key, modifiers) {
+                if !leader_active {
+                    // Check to see if this key-press is the leader activating
+                    if let Some(duration) = self.input_map.is_leader(key, modifiers) {
+                        // Yes; record its expiration
+                        self.leader_is_down
+                            .replace(std::time::Instant::now() + duration);
+                        return true;
+                    }
+                }
+
+                if let Some(assignment) = self.input_map.lookup_key(key, modifiers | leader_mod) {
                     self.perform_key_assignment(&pane, &assignment).ok();
                     context.invalidate();
+                    if leader_active {
+                        // A successful leader key-lookup cancels the leader
+                        // virtual modifier state
+                        self.leader_is_down.take();
+                    }
+                    true
+                } else if leader_active {
+                    if !key.is_modifier() {
+                        // Leader was pressed and this non-modifier keypress isn't
+                        // a registered key binding; swallow this event and cancel
+                        // the leader modifier
+                        self.leader_is_down.take();
+                    }
                     true
                 } else if pane.key_down(key, modifiers).is_ok() {
                     if !key.is_modifier() && self.pane_state(pane.pane_id()).overlay.is_none() {
@@ -571,9 +634,16 @@ impl WindowCallbacks for TermWindow {
                 }
             }
             Key::Composed(s) => {
-                pane.writer().write_all(s.as_bytes()).ok();
-                self.maybe_scroll_to_bottom_for_input(&pane);
-                context.invalidate();
+                if leader_active {
+                    // Leader was pressed and this non-modifier keypress isn't
+                    // a registered key binding; swallow this event and cancel
+                    // the leader modifier.
+                    self.leader_is_down.take();
+                } else {
+                    pane.writer().write_all(s.as_bytes()).ok();
+                    self.maybe_scroll_to_bottom_for_input(&pane);
+                    context.invalidate();
+                }
                 true
             }
             Key::None => false,
@@ -645,6 +715,7 @@ impl WindowCallbacks for TermWindow {
                 terminal_size: self.terminal_size.clone(),
                 render_state,
                 input_map: InputMap::new(),
+                leader_is_down: None,
                 show_tab_bar: self.show_tab_bar,
                 show_scroll_bar: self.show_scroll_bar,
                 tab_bar: self.tab_bar.clone(),
@@ -854,6 +925,7 @@ impl TermWindow {
                 terminal_size,
                 render_state,
                 input_map: InputMap::new(),
+                leader_is_down: None,
                 show_tab_bar,
                 show_scroll_bar: config.enable_scroll_bar,
                 tab_bar: TabBarState::default(),
@@ -1166,6 +1238,7 @@ impl TermWindow {
         self.show_scroll_bar = config.enable_scroll_bar;
         self.shape_cache.borrow_mut().clear();
         self.input_map = InputMap::new();
+        self.leader_is_down = None;
         let dimensions = self.dimensions;
         let cell_dims = self.current_cell_dimensions();
         self.apply_scale_change(&dimensions, self.fonts.get_font_scale());
