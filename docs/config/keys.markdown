@@ -134,6 +134,16 @@ The default key bindings are:
 | `CTRL+SHIFT`     | `F`    | `Search={CaseSensitiveString=""}` |
 | `CTRL+SHIFT`     | `X`    | `ActivateCopyMode` |
 
+If you don't want the default assignments to be registered, you can
+disable all of them with this configuration; if you chose to do this,
+you must explicitly register every binding.
+
+```lua
+return {
+  disable_default_key_bindings = true,
+}
+```
+
 ## Default Mouse Assignments
 
 In the table below, `Triple Left Down` means that the left mouse button is
@@ -156,6 +166,16 @@ that order.
 | Double Left Drag | `NONE`   | `ExtendSelectionToMouseCursor="Word"`  |
 | Triple Left Drag | `NONE`   | `ExtendSelectionToMouseCursor="Line"`  |
 | Single Middle Down | `NONE`   | `Paste`  |
+
+If you don't want the default assignments to be registered, you can
+disable all of them with this configuration; if you chose to do this,
+you must explicitly register every binding.
+
+```lua
+return {
+  disable_default_mouse_bindings = true,
+}
+```
 
 ## Configuring Mouse Assignments
 
