@@ -711,6 +711,18 @@ impl Tab {
     }
 
     pub fn prune_dead_panes(&self) -> bool {
+        self.remove_pane_if(|_, pane| pane.is_dead())
+    }
+
+    pub fn kill_active_pane(&self) -> bool {
+        let active_idx = *self.active.borrow();
+        self.remove_pane_if(|idx, _| idx == active_idx)
+    }
+
+    fn remove_pane_if<F>(&self, f: F) -> bool
+    where
+        F: Fn(usize, &Rc<dyn Pane>) -> bool,
+    {
         let mut dead_panes = vec![];
 
         {
@@ -723,7 +735,7 @@ impl Tab {
 
             loop {
                 // Figure out the available size by looking at our immediate parent node.
-                // If we are the root, look at the provided new size
+                // If we are the root, look at the tab size
                 let pane_size = if let Some((branch, Some(parent))) = cursor.path_to_root().next() {
                     if branch == PathBranch::IsRight {
                         parent.second
@@ -736,7 +748,7 @@ impl Tab {
 
                 if cursor.is_leaf() {
                     let pane = Rc::clone(cursor.leaf_mut().unwrap());
-                    if pane.is_dead() {
+                    if f(pane_index, &pane) {
                         if pane_index == active_idx {
                             active_idx = pane_index.saturating_sub(1);
                         }
@@ -749,7 +761,11 @@ impl Tab {
                             }
                             Err(c) => {
                                 // We might be the root, for example
-                                root.replace(c.tree());
+                                if c.is_top() && c.is_leaf() {
+                                    root.replace(Tree::Empty);
+                                } else {
+                                    root.replace(c.tree());
+                                }
                                 break;
                             }
                         };

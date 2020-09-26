@@ -1855,6 +1855,7 @@ impl TermWindow {
                 }
             }
             CloseCurrentTab => self.close_current_tab(),
+            CloseActivePane => self.close_active_pane(),
             Nop | DisableDefaultAssignment => {}
             ReloadConfiguration => crate::config::reload(),
             MoveTab(n) => self.move_tab(*n)?,
@@ -2123,6 +2124,15 @@ impl TermWindow {
     }
     fn reset_font_size(&mut self) {
         self.scaling_changed(self.dimensions, 1.);
+    }
+
+    fn close_active_pane(&mut self) {
+        let mux = Mux::get().unwrap();
+        let tab = match mux.get_active_tab_for_window(self.mux_window_id) {
+            Some(tab) => tab,
+            None => return,
+        };
+        tab.kill_active_pane();
     }
 
     fn close_current_tab(&mut self) {
