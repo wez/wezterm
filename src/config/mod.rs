@@ -464,6 +464,15 @@ pub struct Config {
     #[serde(default = "default_true")]
     pub enable_tab_bar: bool,
 
+    /// If true, tab bar titles are prefixed with the tab index
+    #[serde(default = "default_true")]
+    pub show_tab_index_in_tab_bar: bool,
+
+    /// If true, show_tab_index_in_tab_bar uses a zero-based index.
+    /// The default is false and the tab shows a one-based index.
+    #[serde(default)]
+    pub tab_and_split_indices_are_zero_based: bool,
+
     /// Specifies the maximum width that a tab can have in the
     /// tab bar.  Defaults to 16 glyphs in width.
     #[serde(default = "default_tab_max_width")]

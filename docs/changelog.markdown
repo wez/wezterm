@@ -17,6 +17,11 @@ brief notes about them may accumulate here.
   you would write `{key="T", mods="CTRL|SHIFT"}`, after updating to
   this release you need to write `{key="T", mods="CTRL"}` in order
   for your key bindings to take effect.
+* Added `show_tab_index_in_tab_bar` option which defaults to true.
+  Causes the tab's ordinal index to be prefixed to tab titles.
+  The displayed number is 1-based.  You can set
+  `tab_and_split_indices_are_zero_based=true` if you prefer the
+  number to be zero based.
 * Experimental support for splits/panes.  Not currently
   supported for multiplexer connections.
   See [#157](https://github.com/wez/wezterm/issues/157) for

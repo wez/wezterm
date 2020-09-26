@@ -1,4 +1,4 @@
-use crate::config::TabBarColors;
+use crate::config::{ConfigHandle, TabBarColors};
 use crate::mux::window::Window as MuxWindow;
 use std::cell::Ref;
 use termwiz::cell::unicode_column_width;
@@ -48,7 +48,7 @@ impl TabBarState {
         mouse_x: Option<usize>,
         window: &Ref<MuxWindow>,
         colors: Option<&TabBarColors>,
-        tab_width_max: usize,
+        config: &ConfigHandle,
     ) -> Self {
         // We ultimately want to produce a line looking like this:
         // ` | tab1-title x | tab2-title x |  +      . - X `
@@ -60,9 +60,21 @@ impl TabBarState {
 
         let tab_titles: Vec<String> = window
             .iter()
-            .map(|tab| {
+            .enumerate()
+            .map(|(idx, tab)| {
                 if let Some(pane) = tab.get_active_pane() {
                     let mut title = pane.get_title();
+                    if config.show_tab_index_in_tab_bar {
+                        title = format!(
+                            "{}: {}",
+                            idx + if config.tab_and_split_indices_are_zero_based {
+                                0
+                            } else {
+                                1
+                            },
+                            title
+                        );
+                    }
                     // We have a preferred soft minimum on tab width to make it
                     // easier to click on tab titles, but we'll still go below
                     // this if there are too many tabs to fit the window at
@@ -88,7 +100,7 @@ impl TabBarState {
             // We need to clamp the length to balance them out
             available_cells / number_of_tabs
         }
-        .min(tab_width_max);
+        .min(config.tab_max_width);
 
         let colors = colors.cloned().unwrap_or_else(TabBarColors::default);
 
