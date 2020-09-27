@@ -3868,7 +3868,13 @@ impl TermWindow {
                 pane,
             }]
         } else {
-            tab.iter_panes()
+            let mut panes = tab.iter_panes();
+            for p in &mut panes {
+                if let Some(overlay) = self.pane_state(p.pane.pane_id()).overlay.as_ref() {
+                    p.pane = Rc::clone(overlay);
+                }
+            }
+            panes
         }
     }
 
@@ -3884,6 +3890,22 @@ impl TermWindow {
         window.apply(move |myself, _| {
             if let Some(myself) = myself.downcast_mut::<Self>() {
                 myself.cancel_overlay_for_tab(tab_id);
+            }
+            Ok(())
+        });
+    }
+
+    fn cancel_overlay_for_pane(&self, pane_id: PaneId) {
+        self.pane_state(pane_id).overlay.take();
+        if let Some(window) = self.window.as_ref() {
+            window.invalidate();
+        }
+    }
+
+    pub fn schedule_cancel_overlay_for_pane(window: Window, pane_id: PaneId) {
+        window.apply(move |myself, _| {
+            if let Some(myself) = myself.downcast_mut::<Self>() {
+                myself.cancel_overlay_for_pane(pane_id);
             }
             Ok(())
         });

@@ -163,7 +163,7 @@ impl CopyRenderable {
 
     fn close(&self) {
         self.set_viewport(None);
-        TermWindow::schedule_cancel_overlay(self.window.clone(), self.delegate.pane_id());
+        TermWindow::schedule_cancel_overlay_for_pane(self.window.clone(), self.delegate.pane_id());
     }
 
     fn page_up(&mut self) {

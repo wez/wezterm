@@ -267,7 +267,7 @@ impl SearchRenderable {
     }
 
     fn close(&self) {
-        TermWindow::schedule_cancel_overlay(self.window.clone(), self.delegate.pane_id());
+        TermWindow::schedule_cancel_overlay_for_pane(self.window.clone(), self.delegate.pane_id());
     }
 
     fn set_viewport(&self, row: Option<StableRowIndex>) {
