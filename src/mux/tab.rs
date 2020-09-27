@@ -45,7 +45,13 @@ fn schedule_next_paste(paste: &Arc<Mutex<Paste>>) {
         let pane = mux.get_pane(locked.pane_id).unwrap();
 
         let remain = locked.text.len() - locked.offset;
-        let chunk = remain.min(PASTE_CHUNK_SIZE);
+        let mut chunk = remain.min(PASTE_CHUNK_SIZE);
+
+        // Make sure we chunk at a char boundary, otherwise the
+        // slice operation below will panic
+        while !locked.text.is_char_boundary(locked.offset + chunk) && chunk < remain {
+            chunk += 1;
+        }
         let text_slice = &locked.text[locked.offset..locked.offset + chunk];
         pane.send_paste(text_slice).unwrap();
 
