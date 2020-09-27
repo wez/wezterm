@@ -32,6 +32,7 @@ pub struct Line {
     cells: Vec<Cell>,
 }
 
+#[derive(Debug, Clone, PartialEq)]
 pub enum DoubleClickRange {
     Range(Range<usize>),
     RangeWithWrap(Range<usize>),
@@ -259,7 +260,8 @@ impl Line {
             lower = idx;
         }
 
-        if upper > lower && self.cells[upper - 1].attrs().wrapped() {
+        let len = self.cells.len();
+        if upper > lower && self.cells[upper.min(len) - 1].attrs().wrapped() {
             DoubleClickRange::RangeWithWrap(lower..upper)
         } else {
             DoubleClickRange::Range(lower..upper)
@@ -617,5 +619,12 @@ mod test {
                 Cell::new('m', hyperlink_attr.clone()),
             ]
         );
+    }
+
+    #[test]
+    fn double_click_range_bounds() {
+        let line: Line = "hello".into();
+        let r = line.compute_double_click_range(200, |_| true);
+        assert_eq!(r, DoubleClickRange::Range(0..200));
     }
 }
