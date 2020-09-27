@@ -10,6 +10,7 @@ use portable_pty::PtySize;
 use rangeset::range_intersection;
 use serde::{Deserialize, Serialize};
 use std::cell::{RefCell, RefMut};
+use std::convert::TryInto;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use url::Url;
@@ -297,6 +298,188 @@ where
     }
 }
 
+/// Computes the minimum (x, y) size based on the panes in this portion
+/// of the tree.
+fn compute_min_size(tree: &mut Tree) -> (usize, usize) {
+    match tree {
+        Tree::Node { data: None, .. } | Tree::Empty => (1, 1),
+        Tree::Node {
+            left,
+            right,
+            data: Some(data),
+        } => {
+            let (left_x, left_y) = compute_min_size(&mut *left);
+            let (right_x, right_y) = compute_min_size(&mut *right);
+            match data.direction {
+                SplitDirection::Vertical => (left_x.max(right_x), left_y + right_y + 1),
+                SplitDirection::Horizontal => (left_x + right_x + 1, left_y.max(right_y)),
+            }
+        }
+        Tree::Leaf(_) => (1, 1),
+    }
+}
+
+fn adjust_x_size(tree: &mut Tree, mut x_adjust: isize, cell_dimensions: &PtySize) {
+    let (min_x, _) = compute_min_size(tree);
+    while x_adjust != 0 {
+        match tree {
+            Tree::Empty | Tree::Leaf(_) => return,
+            Tree::Node { data: None, .. } => return,
+            Tree::Node {
+                left,
+                right,
+                data: Some(data),
+            } => match data.direction {
+                SplitDirection::Vertical => {
+                    let new_cols = (data.first.cols as isize)
+                        .saturating_add(x_adjust)
+                        .max(min_x as isize);
+                    x_adjust = new_cols.saturating_sub(data.first.cols as isize);
+
+                    if x_adjust != 0 {
+                        adjust_x_size(&mut *left, x_adjust, cell_dimensions);
+                        data.first.cols = new_cols.try_into().unwrap();
+                        data.first.pixel_width =
+                            data.first.cols.saturating_mul(cell_dimensions.pixel_width);
+
+                        adjust_x_size(&mut *right, x_adjust, cell_dimensions);
+                        data.second.cols = data.first.cols;
+                        data.second.pixel_width = data.first.pixel_width;
+                    }
+                    return;
+                }
+                SplitDirection::Horizontal if x_adjust > 0 => {
+                    adjust_x_size(&mut *left, 1, cell_dimensions);
+                    data.first.cols += 1;
+                    data.first.pixel_width =
+                        data.first.cols.saturating_mul(cell_dimensions.pixel_width);
+                    x_adjust -= 1;
+
+                    if x_adjust > 0 {
+                        adjust_x_size(&mut *right, 1, cell_dimensions);
+                        data.second.cols += 1;
+                        data.second.pixel_width =
+                            data.second.cols.saturating_mul(cell_dimensions.pixel_width);
+                        x_adjust -= 1;
+                    }
+                }
+                SplitDirection::Horizontal => {
+                    // x_adjust is negative
+                    if data.first.cols > 1 {
+                        adjust_x_size(&mut *left, -1, cell_dimensions);
+                        data.first.cols -= 1;
+                        data.first.pixel_width =
+                            data.first.cols.saturating_mul(cell_dimensions.pixel_width);
+                        x_adjust += 1;
+                    }
+                    if x_adjust < 0 && data.second.cols > 1 {
+                        adjust_x_size(&mut *right, -1, cell_dimensions);
+                        data.second.cols -= 1;
+                        data.second.pixel_width =
+                            data.second.cols.saturating_mul(cell_dimensions.pixel_width);
+                        x_adjust += 1;
+                    }
+                }
+            },
+        }
+    }
+}
+
+fn adjust_y_size(tree: &mut Tree, mut y_adjust: isize, cell_dimensions: &PtySize) {
+    let (_, min_y) = compute_min_size(tree);
+    while y_adjust != 0 {
+        match tree {
+            Tree::Empty | Tree::Leaf(_) => return,
+            Tree::Node { data: None, .. } => return,
+            Tree::Node {
+                left,
+                right,
+                data: Some(data),
+            } => match data.direction {
+                SplitDirection::Horizontal => {
+                    let new_rows = (data.first.rows as isize)
+                        .saturating_add(y_adjust)
+                        .max(min_y as isize);
+                    y_adjust = new_rows.saturating_sub(data.first.rows as isize);
+
+                    if y_adjust != 0 {
+                        adjust_y_size(&mut *left, y_adjust, cell_dimensions);
+                        data.first.rows = new_rows.try_into().unwrap();
+                        data.first.pixel_height =
+                            data.first.rows.saturating_mul(cell_dimensions.pixel_height);
+
+                        adjust_y_size(&mut *right, y_adjust, cell_dimensions);
+                        data.second.rows = data.first.rows;
+                        data.second.pixel_height = data.first.pixel_height;
+                    }
+                }
+                SplitDirection::Vertical if y_adjust > 0 => {
+                    adjust_y_size(&mut *left, 1, cell_dimensions);
+                    data.first.rows += 1;
+                    data.first.pixel_height =
+                        data.first.rows.saturating_mul(cell_dimensions.pixel_height);
+                    y_adjust -= 1;
+                    if y_adjust > 0 {
+                        adjust_y_size(&mut *right, 1, cell_dimensions);
+                        data.second.rows += 1;
+                        data.second.pixel_height = data
+                            .second
+                            .rows
+                            .saturating_mul(cell_dimensions.pixel_height);
+                        y_adjust -= 1;
+                    }
+                }
+                SplitDirection::Vertical => {
+                    // y_adjust is negative
+                    if data.first.rows > 1 {
+                        adjust_y_size(&mut *left, -1, cell_dimensions);
+                        data.first.rows -= 1;
+                        data.first.pixel_height =
+                            data.first.rows.saturating_mul(cell_dimensions.pixel_height);
+                        y_adjust += 1;
+                    }
+                    if y_adjust < 0 && data.second.rows > 1 {
+                        adjust_y_size(&mut *right, -1, cell_dimensions);
+                        data.second.rows -= 1;
+                        data.second.pixel_height = data
+                            .second
+                            .rows
+                            .saturating_mul(cell_dimensions.pixel_height);
+                        y_adjust += 1;
+                    }
+                }
+            },
+        }
+    }
+}
+
+fn apply_sizes_from_splits(tree: &Tree, size: &PtySize) {
+    match tree {
+        Tree::Empty => return,
+        Tree::Node { data: None, .. } => return,
+        Tree::Node {
+            left,
+            right,
+            data: Some(data),
+        } => {
+            apply_sizes_from_splits(&*left, &data.first);
+            apply_sizes_from_splits(&*right, &data.second);
+        }
+        Tree::Leaf(pane) => {
+            pane.resize(*size).ok();
+        }
+    }
+}
+
+fn cell_dimensions(size: &PtySize) -> PtySize {
+    PtySize {
+        rows: 1,
+        cols: 1,
+        pixel_width: size.pixel_width / size.cols,
+        pixel_height: size.pixel_height / size.rows,
+    }
+}
+
 impl Tab {
     pub fn new(size: &PtySize) -> Self {
         Self {
@@ -573,7 +756,11 @@ impl Tab {
     }
 
     /// Apply the new size of the tab to the panes contained within.
-    /// This works by adjusting the size of the second half of each split.
+    /// The delta between the current and the new size is computed,
+    /// and is distributed between the splits.  For small resizes
+    /// this algorithm biases towards adjusting the left/top nodes
+    /// first.  For large resizes this tends to proportionally adjust
+    /// the relative sizes of the elements in a split.
     pub fn resize(&self, size: PtySize) {
         // Un-zoom first, so that the layout can be reasoned about
         // more easily.
@@ -582,37 +769,37 @@ impl Tab {
 
         {
             let mut root = self.pane.borrow_mut();
+            let dims = cell_dimensions(&size);
+            let (min_x, min_y) = compute_min_size(root.as_mut().unwrap());
+            let current_size = *self.size.borrow();
 
-            *self.size.borrow_mut() = size;
+            // Constrain the new size to the minimum possible dimensions
+            let cols = size.cols.max(min_x as u16);
+            let rows = size.rows.max(min_y as u16);
+            let size = PtySize {
+                rows,
+                cols,
+                pixel_width: cols * dims.pixel_width,
+                pixel_height: rows * dims.pixel_height,
+            };
 
-            let mut cursor = root.take().unwrap().cursor();
+            if size != current_size {
+                // Update the split nodes with adjusted sizes
+                adjust_x_size(
+                    root.as_mut().unwrap(),
+                    cols as isize - current_size.cols as isize,
+                    &dims,
+                );
+                adjust_y_size(
+                    root.as_mut().unwrap(),
+                    rows as isize - current_size.rows as isize,
+                    &dims,
+                );
 
-            loop {
-                // Figure out the available size by looking at our immediate parent node.
-                // If we are the root, look at the provided new size
-                let pane_size = if let Some((branch, Some(parent))) = cursor.path_to_root().next() {
-                    if branch == PathBranch::IsRight {
-                        parent.second
-                    } else {
-                        parent.first
-                    }
-                } else {
-                    size
-                };
+                *self.size.borrow_mut() = size;
 
-                if cursor.is_leaf() {
-                    // Apply our size to the tty
-                    cursor.leaf_mut().map(|pane| pane.resize(pane_size));
-                } else {
-                    self.apply_pane_size(pane_size, &mut cursor);
-                }
-                match cursor.preorder_next() {
-                    Ok(c) => cursor = c,
-                    Err(c) => {
-                        root.replace(c.tree());
-                        break;
-                    }
-                }
+                // And then resize the individual panes to match
+                apply_sizes_from_splits(root.as_mut().unwrap(), &size);
             }
         }
 
@@ -1116,13 +1303,7 @@ impl Tab {
     }
 
     fn cell_dimensions(&self) -> PtySize {
-        let size = *self.size.borrow();
-        PtySize {
-            rows: 1,
-            cols: 1,
-            pixel_width: size.pixel_width / size.cols,
-            pixel_height: size.pixel_height / size.rows,
-        }
+        cell_dimensions(&*self.size.borrow())
     }
 
     /// Computes the size of the pane that would result if the specified

@@ -202,6 +202,11 @@ impl<L, N> Cursor<L, N> {
         }
     }
 
+    /// References the subtree at the current cursor position
+    pub fn subtree(&self) -> &Tree<L, N> {
+        &*self.it
+    }
+
     /// Returns true if the current position is a leaf node
     pub fn is_leaf(&self) -> bool {
         match &*self.it {
